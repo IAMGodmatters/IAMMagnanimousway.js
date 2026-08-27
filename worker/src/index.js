@@ -121,6 +121,7 @@ export default {
       }
 
       if (path === '/api/video/render' && request.method === 'POST') return json({detail:'The Cloudflare Worker deployment does not include an FFmpeg runtime. Use the local backend renderer or add a dedicated video-rendering service.'},501);
+      if (env.ASSETS) return env.ASSETS.fetch(request);
       return new Response('Not Found',{status:404});
     } catch (error) {
       return json({detail:error instanceof Error ? error.message : 'Server error'},500);
