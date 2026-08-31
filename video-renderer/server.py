@@ -1,6 +1,9 @@
 from pathlib import Path
 import base64
+import json
 import subprocess
+import urllib.error
+import urllib.request
 import uuid
 import os
 
@@ -34,30 +37,31 @@ def publish_to_mux(filename: str, title: str):
     if not mux_configured():
         return {"configured": False}
 
-    import requests
-
     source_url = f"{RENDERER_PUBLIC_URL}/api/video/download/{filename}"
-    response = requests.post(
+    payload = json.dumps({
+        "inputs": [{"url": source_url}],
+        "playback_policies": ["public"],
+        "video_quality": "basic",
+        "meta": {"title": title, "external_id": filename},
+    }).encode()
+    request = urllib.request.Request(
         "https://api.mux.com/video/v1/assets",
+        data=payload,
+        method="POST",
         headers={
             "Authorization": mux_auth_header(),
             "Content-Type": "application/json",
         },
-        json={
-            "inputs": [{"url": source_url}],
-            "playback_policies": ["public"],
-            "video_quality": "basic",
-            "meta": {
-                "title": title,
-                "external_id": filename,
-            },
-        },
-        timeout=30,
     )
-    if not response.ok:
-        raise RuntimeError(f"Mux asset creation failed ({response.status_code}): {response.text[-1500:]}")
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            data = json.loads(response.read().decode()).get("data", {})
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode(errors="replace")
+        raise RuntimeError(f"Mux asset creation failed ({exc.code}): {detail[-1500:]}")
+    except Exception as exc:
+        raise RuntimeError(f"Mux asset creation failed: {exc}")
 
-    data = response.json().get("data", {})
     playback_ids = data.get("playback_ids") or []
     playback_id = playback_ids[0].get("id") if playback_ids else None
     return {
@@ -112,7 +116,7 @@ def render_video(req: VideoRequest):
     try:
         mux = publish_to_mux(outfile.name, req.title)
     except Exception as exc:
-        # Mux is an optional addition. Never break the working FFmpeg renderer because Mux is unavailable.
+        # Mux is optional. Never break the working FFmpeg renderer because Mux is unavailable.
         mux = {"configured": True, "error": str(exc)}
 
     return {
