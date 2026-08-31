@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "iam-magnanimous-video-gateway",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-30",
+  "routes": [
+    { "pattern": "iammagnanimousway.com/api/video/*", "zone_name": "iammagnanimousway.com" }
+  ],
+  "vars": {
+    "VIDEO_RENDERER_URL": "https://iam-magnanimous-video-renderer.onrender.com"
+  }
+}
