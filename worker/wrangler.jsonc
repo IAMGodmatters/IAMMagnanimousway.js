@@ -2,9 +2,28 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "iam-magnanimous",
   "main": "src/index.js",
-  "compatibility_date": "2026-08-27",
+  "compatibility_date": "2026-08-30",
   "assets": { "directory": "../frontend/out", "binding": "ASSETS" },
   "d1_databases": [
     { "binding": "DB", "database_name": "iam-magnanimous-db", "database_id": "7c9f798b-04d2-443c-a9e9-933c51899771", "migrations_dir": "migrations" }
+  ],
+  "containers": [
+    {
+      "class_name": "VideoRenderer",
+      "image": "./Dockerfile",
+      "max_instances": 2,
+      "instance_type": "basic"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "VIDEO_RENDERER", "class_name": "VideoRenderer" }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1-video-renderer",
+      "new_sqlite_classes": ["VideoRenderer"]
+    }
   ]
 }
