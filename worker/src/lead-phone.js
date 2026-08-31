@@ -80,8 +80,7 @@ export async function handleLeadPhone(request, env) {
     const seed = String(b.seed || b.industry || 'prospect').trim();
     const leads = [];
     for (let i = 1; i <= count; i++) {
-      const first = `Prospect ${i}`;
-      const lead = { first_name: first, last_name: '', company: `${seed} Prospect ${i}`, email: '', phone: '', website: '', source: 'lead-generator', notes: `Generated prospect placeholder for ${seed}. Enrich with an approved data provider or import verified contact data before outreach.` };
+      const lead = { first_name: `Prospect ${i}`, last_name: '', company: `${seed} Prospect ${i}`, email: '', phone: '', website: '', source: 'lead-generator', notes: `Generated prospect placeholder for ${seed}. Enrich with an approved data provider or import verified contact data before outreach.` };
       const scored = scoreLead(lead);
       const t = now();
       const r = await env.DB.prepare('INSERT INTO leads(tenant_id,first_name,last_name,email,phone,company,website,source,status,score,fit_score,engagement_score,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
@@ -104,12 +103,44 @@ export async function handleLeadPhone(request, env) {
     return json({ id: r.meta.last_row_id, created_at: t }, 201);
   }
 
+  if (path === '/api/phone/session' && request.method === 'POST') {
+    const b = await request.json();
+    const sessionId = crypto.randomUUID();
+    const t = now();
+    await env.DB.prepare('INSERT INTO phone_sessions(id,tenant_id,caller_user_id,callee_user_id,status,created_at,expires_at) VALUES(?,?,?,?,?,?,?)')
+      .bind(sessionId, tenantId, user.id, b.callee_user_id || null, 'waiting', t, t + 900).run();
+    return json({ session_id: sessionId, expires_at: t + 900 }, 201);
+  }
+
+  const sessionMatch = path.match(/^\/api\/phone\/session\/([^/]+)$/);
+  if (sessionMatch && request.method === 'GET') {
+    const sessionId = sessionMatch[1];
+    const session = await env.DB.prepare('SELECT * FROM phone_sessions WHERE id=? AND tenant_id=? AND expires_at>?').bind(sessionId, tenantId, now()).first();
+    if (!session) return json({ detail: 'Call session not found or expired' }, 404);
+    const { results } = await env.DB.prepare('SELECT id,sender_user_id,kind,payload,created_at FROM phone_signals WHERE session_id=? AND sender_user_id<>? ORDER BY id ASC').bind(sessionId, user.id).all();
+    return json({ session, signals: results });
+  }
+
+  if (sessionMatch && request.method === 'POST') {
+    const sessionId = sessionMatch[1];
+    const session = await env.DB.prepare('SELECT * FROM phone_sessions WHERE id=? AND tenant_id=? AND expires_at>?').bind(sessionId, tenantId, now()).first();
+    if (!session) return json({ detail: 'Call session not found or expired' }, 404);
+    const b = await request.json();
+    const kind = String(b.kind || 'candidate');
+    if (!['offer','answer','candidate','hangup','ready'].includes(kind)) return json({ detail: 'Invalid signal type' }, 400);
+    await env.DB.prepare('INSERT INTO phone_signals(session_id,sender_user_id,kind,payload,created_at) VALUES(?,?,?,?,?)').bind(sessionId, user.id, kind, JSON.stringify(b.payload ?? null), now()).run();
+    if (kind === 'answer' || kind === 'ready') await env.DB.prepare("UPDATE phone_sessions SET status='connected',callee_user_id=COALESCE(callee_user_id,?) WHERE id=? AND tenant_id=?").bind(user.id, sessionId, tenantId).run();
+    if (kind === 'hangup') await env.DB.prepare("UPDATE phone_sessions SET status='ended' WHERE id=? AND tenant_id=?").bind(sessionId, tenantId).run();
+    return json({ ok: true });
+  }
+
   if (path === '/api/phone/config' && request.method === 'GET') {
     return json({
       browserCalling: true,
       pstnConfigured: Boolean(env.VOIP_PROVIDER_URL && env.VOIP_PROVIDER_TOKEN),
       provider: env.VOIP_PROVIDER_NAME || null,
-      message: env.VOIP_PROVIDER_URL ? 'Carrier integration is configured for this deployment.' : 'Browser-to-browser Internet calling is available. A PSTN carrier is required for ordinary telephone numbers.'
+      stun: 'stun:stun.l.google.com:19302',
+      message: env.VOIP_PROVIDER_URL ? 'Carrier integration is configured for this deployment.' : 'I AM Internet Phone supports browser-to-browser calling. A PSTN carrier is required for ordinary telephone numbers.'
     });
   }
 
