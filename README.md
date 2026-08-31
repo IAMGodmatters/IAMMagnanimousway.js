@@ -1,38 +1,77 @@
 # I AM Magnanimous AI Platform
 
-Production-oriented Cloudflare deployment for the I AM Magnanimous Way™ platform.
+Production-oriented deployment for the I AM Magnanimous Way™ platform.
 
-## Included
+## Consolidated structure
 
-- Odin AI chat interface
-- AI helper catalog
-- Owner login and administration
-- Persistent site settings and sponsored/affiliate links with Cloudflare D1
-- Same-origin API and frontend on Cloudflare Workers
-- OpenAI Responses API integration through a server-side Worker secret
-- Static Next.js frontend prepared for Cloudflare asset hosting
-- Existing FastAPI backend retained for local development and FFmpeg video rendering
+- `frontend/` — Next.js static frontend
+- `worker/` — primary Cloudflare Worker, D1 database, and same-origin API
+- `backend/` — FastAPI/local development support
+- `video-gateway/` — Cloudflare video API gateway
+- `video-renderer/` — Docker/FFmpeg renderer deployed separately on Render
+- `render.yaml` — Render free video-renderer service definition
+- `.github/workflows/deploy.yml` — primary application build and Cloudflare deployment
+- `.github/workflows/video-gateway-deploy.yml` — video gateway deployment
+- `.github/workflows/python-app.yml` — Python validation
 
-## Cloudflare deployment
+## Primary Cloudflare deployment
 
-Cloudflare currently recommends vinext for new Next.js applications on Workers; this project uses a static Next.js export served by a Worker so the API and site can share one origin. Cloudflare D1 provides persistent settings and revenue-link storage.
+The main application uses one Cloudflare Worker to serve the static Next.js frontend and the application API from the same origin. Cloudflare D1 provides persistent application data.
 
-1. Create a D1 database named `iam-magnanimous-db` and put its ID in `worker/wrangler.jsonc` in place of `REPLACE_WITH_YOUR_D1_DATABASE_ID`.
-2. Run the SQL in `worker/schema.sql` against that D1 database.
-3. Configure Worker secrets/variables: `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `SESSION_SECRET`, and `OPENAI_API_KEY`. Optionally set `OPENAI_MODEL`.
-4. Build the frontend with `cd frontend && npm install && npm run build`.
-5. Deploy from `worker` with `npx wrangler deploy`.
+The production deployment requires these Cloudflare secrets/variables to be configured outside the repository:
 
-For a Cloudflare Workers Build connected to this repository, the build command should build `frontend`, and the deploy command should run Wrangler from `worker`.
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+- `SESSION_SECRET`
+- `OPENAI_API_KEY`
+- Optional: `OPENAI_MODEL`
+
+The D1 database is configured in `worker/wrangler.jsonc` as `iam-magnanimous-db`.
+
+### Local deployment commands
+
+```bash
+cd frontend
+npm install
+npm run typecheck
+npm run build
+
+cd ../worker
+npm install
+npx wrangler d1 migrations apply iam-magnanimous-db --remote
+npx wrangler deploy --yes
+```
+
+The GitHub Actions workflow performs the frontend type-check/build, installs Worker dependencies, applies remote D1 migrations, and deploys the Worker.
 
 ## Video
 
-The original FastAPI backend includes a local FFmpeg renderer. Cloudflare Workers does not provide that FFmpeg runtime in this deployment, so `/api/video/render` intentionally reports that the local renderer is required rather than pretending video rendering is available.
+Text-to-video is handled through the consolidated video path:
 
-## Owner admin
+`frontend → Cloudflare Worker/video gateway → Render FFmpeg renderer`
 
-The owner credentials are never stored in the frontend. Keep `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `SESSION_SECRET`, and `OPENAI_API_KEY` in Cloudflare secrets/environment configuration.
+The video gateway uses `VIDEO_RENDERER_URL` to reach the Render service. The Render service is defined by `render.yaml` and uses the Dockerfile in `video-renderer/`.
+
+The video gateway is deployed separately from the main Worker so video-rendering infrastructure does not block the main application deployment.
+
+## Odin and AI
+
+Odin is part of the main platform interface. The Worker connects to the OpenAI Responses API using the server-side `OPENAI_API_KEY`; private API keys are never placed in the frontend.
+
+The platform also contains the AI helper catalog and the owner/admin functionality built into the current application.
+
+## Owner administration
+
+Owner credentials and session secrets remain server-side. Do not commit passwords, API keys, or other private credentials to GitHub.
 
 ## Revenue
 
-The owner dashboard supports legitimate sponsored, referral, and affiliate links. Revenue is not automatic merely because traffic arrives: each monetization provider must be connected and paid according to that provider's terms. The platform stores and displays the links; it does not impersonate a payment processor or redirect traffic deceptively.
+The owner dashboard supports legitimate sponsored, referral, and affiliate links. Connecting a monetization provider and receiving payment still depends on that provider's own account, approval, and terms.
+
+## Deployment status
+
+The latest `main` deployment workflow completed successfully on August 31, 2026, including frontend installation, type-checking, frontend build, D1 migrations, and Cloudflare Worker deployment.
+
+The repository intentionally keeps the main application deployment and the video gateway deployment separate while retaining the FastAPI backend for local development/video support.
