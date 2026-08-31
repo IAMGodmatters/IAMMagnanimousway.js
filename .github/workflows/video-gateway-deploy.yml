@@ -1,0 +1,32 @@
+name: Deploy I AM Video Gateway
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'video-gateway/**'
+      - 'video-renderer/**'
+      - 'render.yaml'
+      - '.github/workflows/video-gateway-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-gateway:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Wrangler
+        working-directory: video-gateway
+        run: npm install --save-dev wrangler@latest
+      - name: Deploy video gateway
+        working-directory: video-gateway
+        run: npx wrangler deploy --config wrangler.jsonc --yes
