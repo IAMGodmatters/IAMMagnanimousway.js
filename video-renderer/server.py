@@ -1,4 +1,5 @@
 from pathlib import Path
+import base64
 import subprocess
 import uuid
 import os
@@ -10,6 +11,7 @@ from pydantic import BaseModel, Field
 app = FastAPI(title="I AM Magnanimous Free Video Renderer")
 OUT = Path("/tmp/iam-video")
 OUT.mkdir(parents=True, exist_ok=True)
+RENDERER_PUBLIC_URL = os.getenv("RENDERER_PUBLIC_URL", "https://iammagnanimousway-js.onrender.com").rstrip("/")
 
 class VideoRequest(BaseModel):
     text: str = Field(default="Faith can move mountains.", max_length=3000)
@@ -18,9 +20,59 @@ class VideoRequest(BaseModel):
     height: int = Field(default=720, ge=240, le=1080)
     duration: int = Field(default=10, ge=1, le=60)
 
+
+def mux_configured():
+    return bool(os.getenv("MUX_TOKEN_ID") and os.getenv("MUX_TOKEN_SECRET"))
+
+
+def mux_auth_header():
+    raw = f"{os.environ['MUX_TOKEN_ID']}:{os.environ['MUX_TOKEN_SECRET']}".encode()
+    return "Basic " + base64.b64encode(raw).decode()
+
+
+def publish_to_mux(filename: str, title: str):
+    if not mux_configured():
+        return {"configured": False}
+
+    import requests
+
+    source_url = f"{RENDERER_PUBLIC_URL}/api/video/download/{filename}"
+    response = requests.post(
+        "https://api.mux.com/video/v1/assets",
+        headers={
+            "Authorization": mux_auth_header(),
+            "Content-Type": "application/json",
+        },
+        json={
+            "inputs": [{"url": source_url}],
+            "playback_policies": ["public"],
+            "video_quality": "basic",
+            "meta": {
+                "title": title,
+                "external_id": filename,
+            },
+        },
+        timeout=30,
+    )
+    if not response.ok:
+        raise RuntimeError(f"Mux asset creation failed ({response.status_code}): {response.text[-1500:]}")
+
+    data = response.json().get("data", {})
+    playback_ids = data.get("playback_ids") or []
+    playback_id = playback_ids[0].get("id") if playback_ids else None
+    return {
+        "configured": True,
+        "asset_id": data.get("id"),
+        "playback_id": playback_id,
+        "playback_url": f"https://stream.mux.com/{playback_id}.m3u8" if playback_id else None,
+        "status": data.get("status", "preparing"),
+    }
+
+
 @app.get("/health")
 def health():
-    return {"status":"ok","renderer":"FFmpeg","free_renderer":True}
+    return {"status":"ok","renderer":"FFmpeg","free_renderer":True,"mux_configured":mux_configured()}
+
 
 @app.post("/api/video/render")
 def render_video(req: VideoRequest):
@@ -55,7 +107,22 @@ def render_video(req: VideoRequest):
     finally:
         title_file.unlink(missing_ok=True)
         text_file.unlink(missing_ok=True)
-    return {"download_url":f"/api/video/download/{outfile.name}","filename":outfile.name,"renderer":"FFmpeg","free_renderer":True}
+
+    mux = {"configured": False}
+    try:
+        mux = publish_to_mux(outfile.name, req.title)
+    except Exception as exc:
+        # Mux is an optional addition. Never break the working FFmpeg renderer because Mux is unavailable.
+        mux = {"configured": True, "error": str(exc)}
+
+    return {
+        "download_url":f"/api/video/download/{outfile.name}",
+        "filename":outfile.name,
+        "renderer":"FFmpeg",
+        "free_renderer":True,
+        "mux": mux,
+    }
+
 
 @app.get("/api/video/download/{filename}")
 def download_video(filename: str):
