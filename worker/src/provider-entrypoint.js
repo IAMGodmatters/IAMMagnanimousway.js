@@ -5,16 +5,23 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
   headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
 });
 
+// Free-first routing. Metered providers are available when explicitly enabled.
 const PROVIDERS = [
-  { id: 'openai', name: 'OpenAI', key: 'OPENAI_API_KEY' },
-  { id: 'anthropic', name: 'Anthropic', key: 'ANTHROPIC_API_KEY' },
-  { id: 'google', name: 'Google Gemini', key: 'GOOGLE_API_KEY' },
-  { id: 'groq', name: 'Groq', key: 'GROQ_API_KEY' },
-  { id: 'mistral', name: 'Mistral AI', key: 'MISTRAL_API_KEY' },
-  { id: 'cloudflare-ai', name: 'Cloudflare Workers AI', key: 'AI' }
+  { id: 'cloudflare-ai', name: 'Cloudflare Workers AI', key: 'AI', tier: 'free-first' },
+  { id: 'google', name: 'Google Gemini', key: 'GOOGLE_API_KEY', tier: 'free-first' },
+  { id: 'groq', name: 'Groq', key: 'GROQ_API_KEY', tier: 'free-first' },
+  { id: 'mistral', name: 'Mistral AI', key: 'MISTRAL_API_KEY', tier: 'free-first' },
+  { id: 'openai', name: 'OpenAI', key: 'OPENAI_API_KEY', tier: 'metered' },
+  { id: 'anthropic', name: 'Anthropic', key: 'ANTHROPIC_API_KEY', tier: 'metered' }
 ];
 
-function configured(env, p) { return Boolean(env?.[p.key]); }
+function configured(env, p) {
+  return Boolean(env?.[p.key]);
+}
+
+function meteredEnabled(env) {
+  return String(env?.ENABLE_METERED_PROVIDERS || '').toLowerCase() === 'true';
+}
 
 async function openai(env, message, model) {
   const r = await fetch('https://api.openai.com/v1/responses', {
@@ -58,6 +65,7 @@ async function openaiCompatible(env, base, key, model, message, label) {
 }
 
 async function cloudflare(env, message, model) {
+  if (!env?.AI) throw new Error('Cloudflare Workers AI binding is not configured');
   const result = await env.AI.run(model || env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct', { messages: [{ role: 'user', content: message }] });
   return result?.response || result?.result?.response || '';
 }
@@ -72,19 +80,39 @@ async function callProvider(id, env, message, model) {
   throw new Error('Unknown AI provider');
 }
 
+function availableProviders(env) {
+  return PROVIDERS.filter(p => p.tier !== 'metered' || meteredEnabled(env));
+}
+
 async function handle(request, env) {
   const url = new URL(request.url);
   if (url.pathname === '/api/providers' && request.method === 'GET') {
-    return json({ providers: PROVIDERS.map(p => ({ id: p.id, name: p.name, configured: configured(env, p), type: 'ai' })) });
+    return json({
+      free_first: true,
+      metered_providers_enabled: meteredEnabled(env),
+      providers: PROVIDERS.map(p => ({
+        id: p.id,
+        name: p.name,
+        configured: configured(env, p),
+        enabled: p.tier !== 'metered' || meteredEnabled(env),
+        tier: p.tier,
+        type: 'ai'
+      }))
+    });
   }
   if (url.pathname === '/api/chat' && request.method === 'POST') {
     const body = await request.json();
     const message = String(body.message || '').trim();
     if (!message) return json({ detail: 'Message is required.' }, 400);
     const requested = String(body.provider || 'auto').toLowerCase();
-    const candidates = requested !== 'auto' ? PROVIDERS.filter(p => p.id === requested) : PROVIDERS;
+    const available = availableProviders(env);
+    const candidates = requested !== 'auto' ? available.filter(p => p.id === requested) : available;
     const configuredCandidates = candidates.filter(p => configured(env, p));
-    if (!configuredCandidates.length) return json({ detail: 'No configured AI provider is available. Configure at least one provider API key.' }, 503);
+    if (!configuredCandidates.length) {
+      return json({ detail: requested === 'auto'
+        ? 'No free-first AI provider is configured. Add a free-tier provider key or Cloudflare Workers AI binding.'
+        : 'The requested AI provider is not configured or is disabled.' }, 503);
+    }
     const errors = [];
     for (const p of configuredCandidates) {
       try {
@@ -92,7 +120,7 @@ async function handle(request, env) {
         return json({ output, provider: p.id, provider_name: p.name });
       } catch (e) { errors.push(`${p.name}: ${e.message}`); }
     }
-    return json({ detail: `All configured AI providers failed. ${errors.join(' | ')}` }, 502);
+    return json({ detail: `All enabled AI providers failed. ${errors.join(' | ')}` }, 502);
   }
   return null;
 }
