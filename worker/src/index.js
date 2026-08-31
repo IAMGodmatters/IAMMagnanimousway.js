@@ -1,3 +1,10 @@
+import { Container, getContainer } from '@cloudflare/containers';
+
+export class VideoRenderer extends Container {
+  defaultPort = 8080;
+  sleepAfter = '15m';
+}
+
 const TOOLS = [
   ['odin','Odin AI Orchestrator','Routes requests across configured AI providers and platform tools.'],
   ['ai-chat','AI Chat','General-purpose AI assistant.'],
@@ -68,12 +75,12 @@ export default {
       const path = url.pathname;
       if (request.method === 'OPTIONS') return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,PUT,DELETE,OPTIONS','access-control-allow-headers':'Content-Type, Authorization'}});
 
-      if (path === '/health') return json({status:'ok',service:'iamagnanimous-ai',version:'3.1.0-cloudflare-crm'});
+      if (path === '/health') return json({status:'ok',service:'iamagnanimous-ai',version:'3.2.0-cloudflare-video-container'});
       if (path === '/api/tools') return json({tools:TOOLS});
       if (path === '/api/providers') return json({providers:[
         {id:'openai',name:'OpenAI',configured:Boolean(env.OPENAI_API_KEY)},
         {id:'cloudflare-ai',name:'Cloudflare Workers AI',configured:Boolean(env.AI)},
-        {id:'local-video',name:'Local Video Renderer',configured:false}
+        {id:'local-video',name:'FFmpeg Video Renderer',configured:Boolean(env.VIDEO_RENDERER)}
       ]});
 
       if (path === '/api/ads' && request.method === 'GET') {
@@ -160,7 +167,11 @@ export default {
         return json({output:data.output_text || '',provider:'openai'});
       }
 
-      if (path === '/api/video/render' && request.method === 'POST') return json({detail:'The Cloudflare Worker deployment does not include an FFmpeg runtime. Use the local backend renderer or add a dedicated video-rendering service.'},501);
+      if (path.startsWith('/api/video/') && env.VIDEO_RENDERER) {
+        const videoContainer = getContainer(env.VIDEO_RENDERER, 'video-renderer');
+        return videoContainer.fetch(request);
+      }
+      if (path === '/api/video/render' && request.method === 'POST') return json({detail:'The FFmpeg video renderer is not available in this deployment. Cloudflare Containers requires the Workers Paid plan.'},501);
       if (env.ASSETS) return env.ASSETS.fetch(request);
       return new Response('Not Found',{status:404});
     } catch (error) { return json({detail:error instanceof Error ? error.message : 'Server error'},500); }
