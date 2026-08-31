@@ -1,4 +1,5 @@
 import app from './index.js';
+import { handleLeadPhone } from './lead-phone.js';
 
 const CRM_TABLES = ['crm_contacts', 'crm_activities', 'crm_opportunities'];
 
@@ -48,9 +49,6 @@ async function repairLegacySchema(env) {
     try { await env.DB.prepare(`UPDATE ${table} SET tenant_id=? WHERE tenant_id IS NULL OR tenant_id=''`).bind(ownerTenant.id).run(); } catch (e) {}
   }
 
-  // Always repair the configured platform owner. Older deployments could
-  // leave the account in a legacy tenant or omit it entirely, which caused
-  // the admin endpoint to return "Owner access required" after login.
   if (env.ADMIN_EMAIL && env.ADMIN_PASSWORD) {
     const email = String(env.ADMIN_EMAIL).trim().toLowerCase();
     let owner = await env.DB.prepare(
@@ -70,7 +68,7 @@ async function repairLegacySchema(env) {
       const passwordHash = await hashPassword(env.ADMIN_PASSWORD, salt);
       await env.DB.prepare(
         'UPDATE users SET tenant_id=?,name=?,role=?,password_hash=?,password_salt=?,active=1 WHERE id=?'
-      ).bind(ownerTenant.id, 'Owner', 'owner', passwordHash, salt, owner.id).run();
+      ).bind(ownerTenant.id, 'Owner', 'owner', passwordHash, salt, 1, owner.id).run();
     }
 
     await env.DB.prepare('UPDATE tenants SET owner_user_id=? WHERE id=?').bind(owner.id, ownerTenant.id).run();
@@ -80,6 +78,8 @@ async function repairLegacySchema(env) {
 export default {
   async fetch(request, env, ctx) {
     await repairLegacySchema(env);
+    const feature = await handleLeadPhone(request, env);
+    if (feature) return feature;
     return app.fetch(request, env, ctx);
   }
 };
