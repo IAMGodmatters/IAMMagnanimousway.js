@@ -1,0 +1,7 @@
+{
+  "name": "iam-magnanimous-video-gateway",
+  "private": true,
+  "devDependencies": {
+    "wrangler": "latest"
+  }
+}
