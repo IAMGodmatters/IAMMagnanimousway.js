@@ -67,20 +67,18 @@ async function callProvider(id, env, message, model) {
 }
 function availableProviders(env) { return PROVIDERS.filter(p => p.tier !== 'metered' || meteredEnabled(env)); }
 
+// Authentication is owned by admin-compat-entrypoint. It persists the session
+// secret in D1 auth_config when SESSION_SECRET is not supplied. Reuse that exact
+// secret here so a customer token created at signup/login remains valid when the
+// request moves on to CRM, AI, integrations, and the rest of the application.
 async function getRuntimeEnv(env) {
   if (env?.SESSION_SECRET) return env;
   if (!env?.DB) return env;
   try {
-    let row = await env.DB.prepare("SELECT value FROM settings WHERE key='auth_session_secret'").first();
-    let secret = row?.value;
-    if (!secret) {
-      secret = crypto.randomUUID() + crypto.randomUUID();
-      await env.DB.prepare("INSERT OR REPLACE INTO settings(key,value) VALUES('auth_session_secret',?)").bind(secret).run();
-    }
-    return { ...env, SESSION_SECRET: secret };
-  } catch (_) {
-    return env;
-  }
+    const row = await env.DB.prepare("SELECT value FROM auth_config WHERE key='session_secret'").first();
+    if (row?.value) return { ...env, SESSION_SECRET: String(row.value) };
+  } catch (_) {}
+  return env;
 }
 
 async function handle(request, env) {
