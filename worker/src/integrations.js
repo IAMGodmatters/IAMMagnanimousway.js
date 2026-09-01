@@ -17,6 +17,9 @@ function configured(env, integration) { return integration.env.length===0 || int
 function redirectUri(request, id){ return `${new URL(request.url).origin}/api/integrations/${id}/callback`; }
 function stateToken(){ return crypto.randomUUID(); }
 function b64(bytes){let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s)}
+function safeOrigin(value,fallback=''){
+  try{const u=new URL(String(value||''));return (u.protocol==='https:'||u.protocol==='http:')?u.origin:fallback}catch{return fallback}
+}
 
 async function sessionSecret(env){
   const configuredSecret=String(env.SESSION_SECRET||'').trim();
@@ -136,7 +139,7 @@ export async function handleIntegrations(request, env){
       const user=await currentUser(request,env);if(!user)return json({error:'Sign in to connect an account.'},401);
       if(!configured(env,item))return json({error:`${item.name} is not configured yet. Add the required platform OAuth credentials as Cloudflare secrets.`},503);
       if(item.auth==='bot-token')return json({error:'Use the Telegram token connection form.'},400);
-      const body=await request.json().catch(()=>({})),metadata={shop_domain:provider==='shopify'?cleanShop(body.shop_domain):''};
+      const body=await request.json().catch(()=>({})),metadata={shop_domain:provider==='shopify'?cleanShop(body.shop_domain):'',return_origin:safeOrigin(request.headers.get('origin'),url.origin)};
       if(provider==='shopify'&&!metadata.shop_domain)return json({error:'Enter your Shopify store domain, for example your-store.myshopify.com.'},400);
       const state=stateToken();
       await env.DB.prepare('INSERT INTO integration_states(state,tenant_id,provider,created_at,expires_at,metadata_json) VALUES(?,?,?,?,?,?)').bind(state,user.tenant_id,provider,now(),now()+600,JSON.stringify(metadata)).run();
@@ -155,7 +158,8 @@ export async function handleIntegrations(request, env){
       const display=String(token.team?.name||metadata.shop_domain||'Connected');
       await storeConnection(env,{tenantId:row.tenant_id,provider,external,displayName:display,accessToken:access,refreshToken:refresh,expiresAt:token.expires_in?now()+Number(token.expires_in):null,metadata:{...safeMetadata(token),...metadata}});
       await env.DB.prepare('DELETE FROM integration_states WHERE state=?').bind(state).run();
-      return Response.redirect(new URL('/connections?integration='+encodeURIComponent(provider)+'&connected=1',request.url),302);
+      const returnOrigin=safeOrigin(metadata.return_origin,url.origin);
+      return Response.redirect(new URL('/connections?integration='+encodeURIComponent(provider)+'&connected=1',returnOrigin),302);
     }
 
     return json({error:'Unsupported integration operation'},400);
