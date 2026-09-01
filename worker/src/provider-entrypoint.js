@@ -37,7 +37,9 @@ async function openaiCompatible(base, key, model, message, label) {
 }
 async function cloudflare(env, message, model) {
   if (env?.AI == null) throw new Error('Cloudflare Workers AI binding is not configured');
-  const result = await env.AI.run(model || env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct', { messages: [{ role: 'user', content: message }] });
+  // The old Llama 3.1 8B model was deprecated by Cloudflare on May 30, 2026.
+  // Use the still-active fast variant for the free-first path.
+  const result = await env.AI.run(model || env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast', { messages: [{ role: 'user', content: message }] });
   return result?.response || result?.result?.response || '';
 }
 async function callProvider(id, env, message, model) {
