@@ -40,7 +40,7 @@ export default function SignupPage() {
       localStorage.setItem('iam_account_token', d.token);
       localStorage.removeItem('odin_admin_token');
       sessionStorage.setItem('iam_session_active','user');
-      window.location.replace('/');
+      window.location.replace('/?access=user');
     } catch (err: any) { setError(err?.message || 'Unable to create your account.'); }
     finally { setBusy(false); }
   }
