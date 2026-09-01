@@ -21,7 +21,8 @@ export default function LoginPage() {
       const d = await readResponse(r);
       if (!r.ok || !d.token) throw new Error(d.detail || 'Invalid email or password.');
       localStorage.setItem('iam_account_token', d.token);
-      window.location.href = '/crm';
+      // Return to the original platform dashboard after successful authentication.
+      window.location.replace('/');
     } catch (err: any) { setError(err?.message || 'Unable to sign in.'); }
     finally { setBusy(false); }
   }
