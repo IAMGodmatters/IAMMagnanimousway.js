@@ -1,0 +1,5 @@
+'use client';
+import {useEffect,useState} from 'react';
+const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
+type Tool={id:string;name:string;description:string};
+export default function AIApps(){const[tools,setTools]=useState<Tool[]>([]);useEffect(()=>{fetch(`${api}/api/tools`).then(r=>r.json()).then(d=>setTools(d.tools||[])).catch(()=>{})},[]);return <main className="module-page"><header className="module-header"><a href="/">← Back to I AM Magnanimous</a><span className="module-status">● AI TOOL GRID</span></header><section className="module-hero"><div className="module-icon">✦</div><div><span className="eyebrow">AI APPLICATIONS</span><h1>AI Apps</h1><p>Focused AI helpers connected to the I AM platform and Odin.</p></div></section><section className="ai-app-grid">{tools.map((t,i)=><a className="ai-app-card" href="/ai-chat" key={t.id}><div className="app-number">{String(i+1).padStart(2,'0')}</div><div><h2>{t.name}</h2><p>{t.description}</p></div><span>OPEN →</span></a>)}{tools.length===0&&<div className="module-panel">Loading AI helpers…</div>}</section></main>}
