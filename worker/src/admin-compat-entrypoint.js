@@ -30,12 +30,12 @@ export default {
         if (url.pathname === '/api/admin/login' && request.method === 'POST') {
           const b = await request.json();
           const email = normEmail(b.email);
-          const user = await env.DB.prepare('SELECT * FROM users WHERE email=? AND active=1 ORDER BY created_at ASC LIMIT 1').bind(email).first();
-          if (!user || (await passwordHash(String(b.password || ''), user.password_salt)) !== user.password_hash) return json({ detail: 'Invalid email or password' }, 401);
+          const user = await env.DB.prepare("SELECT * FROM users WHERE email=? AND role='owner' AND active=1 ORDER BY created_at ASC LIMIT 1").bind(email).first();
+          if (!user || (await passwordHash(String(b.password || ''), user.password_salt)) !== user.password_hash) return json({ detail: 'Invalid owner email or password' }, 401);
           return json({ token: await makeSession(user, env), user: { id: user.id, tenant_id: user.tenant_id, name: user.name, email: user.email, role: user.role } });
         }
         const user = await auth(request, env);
-        if (!user) return json({ detail: 'Sign in required' }, 401);
+        if (!user || user.role !== 'owner') return json({ detail: 'Owner access required' }, 401);
         if (url.pathname === '/api/admin/settings' && request.method === 'GET') {
           const { results } = await env.DB.prepare('SELECT key,value FROM settings').all();
           const data = Object.fromEntries(results.map(r => [r.key, r.value]));
