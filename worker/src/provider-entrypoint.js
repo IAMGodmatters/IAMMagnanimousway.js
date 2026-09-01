@@ -11,6 +11,22 @@ const PROVIDERS = [
   { id: 'anthropic', name: 'Anthropic', key: 'ANTHROPIC_API_KEY', tier: 'metered' }
 ];
 
+const TOOLS = [
+  ['odin','Odin AI Orchestrator','Routes requests across configured AI providers and platform tools.'],
+  ['ai-chat','AI Chat','General-purpose AI assistant.'],
+  ['writing','Writing Helper','Create, rewrite, summarize and polish content.'],
+  ['research','Research Helper','Organize research questions, sources and briefs.'],
+  ['bible-study','Bible Study','Study Scripture and organize biblical topics.'],
+  ['marketing','Marketing Helper','Create campaigns, captions, offers and content plans.'],
+  ['business','Business Helper','Business planning, ideas and analysis.'],
+  ['coding','Coding Helper','Explain, generate and troubleshoot code.'],
+  ['video-studio','Text → Video Studio','Create creator-ready video content.'],
+  ['social','Social Media Helper','Create platform-ready social posts and scripts.'],
+  ['video-script','Video Script Helper','Create short- and long-form video scripts.'],
+  ['travel','Travel Helper','Build travel plans and itineraries.'],
+  ['customer-service','Customer Service Helper','Draft helpful customer responses.']
+].map(([id,name,description]) => ({ id, name, description }));
+
 // Workers AI is a runtime binding object, not a string secret. Test it explicitly.
 function configured(env, p) {
   if (p.id === 'cloudflare-ai') return env?.AI != null;
@@ -37,8 +53,6 @@ async function openaiCompatible(base, key, model, message, label) {
 }
 async function cloudflare(env, message, model) {
   if (env?.AI == null) throw new Error('Cloudflare Workers AI binding is not configured');
-  // The old Llama 3.1 8B model was deprecated by Cloudflare on May 30, 2026.
-  // Use the still-active fast variant for the free-first path.
   const result = await env.AI.run(model || env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast', { messages: [{ role: 'user', content: message }] });
   return result?.response || result?.result?.response || '';
 }
@@ -55,9 +69,24 @@ function availableProviders(env) { return PROVIDERS.filter(p => p.tier !== 'mete
 
 async function handle(request, env) {
   const url = new URL(request.url);
+
+  // Keep the public bootstrap endpoints independent. The frontend loads tools,
+  // providers, and ads together; an unrelated ads/database failure must not
+  // make the provider list disappear and show "0 providers ready".
+  if (url.pathname === '/api/tools' && request.method === 'GET') return json({ tools: TOOLS });
+  if (url.pathname === '/api/ads' && request.method === 'GET') {
+    try {
+      const placement = url.searchParams.get('placement') || 'home';
+      const { results } = await env.DB.prepare('SELECT id,title,url,label,placement,active FROM ads WHERE active=1 AND placement=? ORDER BY id DESC').bind(placement).all();
+      return json({ ads: results || [] });
+    } catch (_) {
+      return json({ ads: [] });
+    }
+  }
   if (url.pathname === '/api/providers' && request.method === 'GET') {
     const providers = PROVIDERS.map(p => ({ id: p.id, name: p.name, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env), tier: p.tier, type: 'ai' }));
-    return json({ free_first: true, metered_providers_enabled: meteredEnabled(env), providers, configured_count: providers.filter(p => p.configured && p.enabled).length, free_configured_count: providers.filter(p => p.configured && p.enabled && p.tier === 'free-first').length });
+    const enabled = providers.filter(p => p.configured && p.enabled);
+    return json({ free_first: true, metered_providers_enabled: meteredEnabled(env), providers, configured_count: enabled.length, free_configured_count: enabled.filter(p => p.tier === 'free-first').length });
   }
   if (url.pathname === '/api/chat' && request.method === 'POST') {
     const body = await request.json(); const message = String(body.message || '').trim(); if (!message) return json({ detail: 'Message is required.' }, 400);
