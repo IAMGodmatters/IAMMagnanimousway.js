@@ -3,7 +3,7 @@ import providerApp from './provider-entrypoint.js';
 import { handleOwnerLeads } from './owner-leads.js';
 import { handleMux } from './mux-integration.js';
 import { handleIntegrations } from './integrations.js';
-import { handleAssistantIntegrations } from './assistant-integrations.js';
+import { handleAssistantIntegrations } from './assistant-integrations-runtime.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
