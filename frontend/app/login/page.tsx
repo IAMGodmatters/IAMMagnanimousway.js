@@ -3,6 +3,11 @@ import { FormEvent, useState } from 'react';
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
+async function readResponse(r: Response) {
+  const text = await r.text();
+  try { return JSON.parse(text); } catch { return { detail: text.startsWith('<') ? `The server returned an HTML page instead of the authentication API. (${r.status})` : text || `Request failed (${r.status})` }; }
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -10,24 +15,15 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   async function submit(e: FormEvent) {
-    e.preventDefault();
-    setError('');
-    setBusy(true);
+    e.preventDefault(); setError(''); setBusy(true);
     try {
-      const r = await fetch(`${api}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(d.detail || 'Invalid email or password.');
+      const r = await fetch(`${api}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+      const d = await readResponse(r);
+      if (!r.ok || !d.token) throw new Error(d.detail || 'Invalid email or password.');
       localStorage.setItem('iam_account_token', d.token);
       window.location.href = '/crm';
-    } catch (err: any) {
-      setError(err?.message || 'Unable to sign in.');
-    } finally {
-      setBusy(false);
-    }
+    } catch (err: any) { setError(err?.message || 'Unable to sign in.'); }
+    finally { setBusy(false); }
   }
 
   return (
@@ -45,6 +41,7 @@ export default function LoginPage() {
           {error && <div role="alert" style={styles.error}>{error}</div>}
         </form>
         <p style={styles.switch}>New to I AM? <a href="/signup" style={styles.link}>Create your account</a></p>
+        <p style={styles.switch}>Owner? <a href="/owner-login" style={styles.link}>Owner Login</a></p>
         <a href="/" style={styles.back}>← Back to I AM Platform</a>
       </section>
     </main>
@@ -63,7 +60,7 @@ const styles: Record<string, React.CSSProperties> = {
   input: { width: '100%', boxSizing: 'border-box', padding: '14px 15px', borderRadius: 13, border: '1px solid rgba(150,165,210,.22)', background: 'rgba(255,255,255,.045)', color: '#fff', outline: 'none', fontSize: 15 },
   button: { width: '100%', border: 0, borderRadius: 13, padding: '14px 16px', fontWeight: 800, fontSize: 15, color: '#fff', cursor: 'pointer', background: 'linear-gradient(135deg, #5366ff, #00bfe8)', boxShadow: '0 12px 28px rgba(0,150,255,.2)' },
   error: { padding: '11px 13px', borderRadius: 11, background: 'rgba(255,75,100,.10)', border: '1px solid rgba(255,100,120,.25)', color: '#ffb9c4', fontSize: 14 },
-  switch: { textAlign: 'center', color: '#aeb7cc', fontSize: 14, marginTop: 22 },
+  switch: { textAlign: 'center', color: '#aeb7cc', fontSize: 14, marginTop: 18 },
   link: { color: '#76dcff', fontWeight: 700, textDecoration: 'none' },
   back: { display: 'block', textAlign: 'center', color: '#8d98b0', textDecoration: 'none', marginTop: 22, fontSize: 14 },
 };
