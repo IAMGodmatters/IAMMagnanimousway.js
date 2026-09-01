@@ -1,6 +1,7 @@
 import adminApp from './admin-compat-entrypoint.js';
 import providerApp from './provider-entrypoint.js';
 import { handleOwnerLeads } from './owner-leads.js';
+import { handleMux } from './mux-integration.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -31,6 +32,11 @@ export default {
     }
 
     try {
+      if (url.pathname.startsWith('/api/mux')) {
+        const muxResponse = await handleMux(request, env);
+        if (muxResponse) return withCors(muxResponse);
+      }
+
       if (url.pathname === '/api/admin/leads') {
         const leadsResponse = await handleOwnerLeads(request, env);
         if (leadsResponse) return withCors(leadsResponse);
