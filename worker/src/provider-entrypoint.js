@@ -28,7 +28,6 @@ const TOOLS = [
   ['customer-service','Customer Service Helper','Draft helpful customer responses.']
 ].map(([id,name,description]) => ({ id, name, description }));
 
-// Workers AI is a runtime binding object, not a string secret. Test it explicitly.
 function configured(env, p) {
   if (p.id === 'cloudflare-ai') return env?.AI != null;
   return typeof env?.[p.key] === 'string' && env[p.key].trim().length > 0;
@@ -68,20 +67,30 @@ async function callProvider(id, env, message, model) {
 }
 function availableProviders(env) { return PROVIDERS.filter(p => p.tier !== 'metered' || meteredEnabled(env)); }
 
+async function getRuntimeEnv(env) {
+  if (env?.SESSION_SECRET) return env;
+  if (!env?.DB) return env;
+  try {
+    let row = await env.DB.prepare("SELECT value FROM settings WHERE key='auth_session_secret'").first();
+    let secret = row?.value;
+    if (!secret) {
+      secret = crypto.randomUUID() + crypto.randomUUID();
+      await env.DB.prepare("INSERT OR REPLACE INTO settings(key,value) VALUES('auth_session_secret',?)").bind(secret).run();
+    }
+    return { ...env, SESSION_SECRET: secret };
+  } catch (_) {
+    return env;
+  }
+}
+
 async function handle(request, env) {
   const url = new URL(request.url);
 
-  // Integrations are handled before the static frontend fallback. Without this
-  // delegation, /api/integrations returned index.html and the frontend saw
-  // "Unexpected token '<'" when it attempted to parse JSON.
   if (url.pathname.startsWith('/api/integrations')) {
     const handled = await handleIntegrations(request, env);
     if (handled) return handled;
   }
 
-  // Keep the public bootstrap endpoints independent. The frontend loads tools,
-  // providers, and ads together; an unrelated ads/database failure must not
-  // make the provider list disappear and show "0 providers ready".
   if (url.pathname === '/api/tools' && request.method === 'GET') return json({ tools: TOOLS });
   if (url.pathname === '/api/ads' && request.method === 'GET') {
     try {
@@ -106,4 +115,4 @@ async function handle(request, env) {
   }
   return null;
 }
-export default { async fetch(request, env, ctx) { const handled = await handle(request, env); return handled || app.fetch(request, env, ctx); } };
+export default { async fetch(request, env, ctx) { const runtimeEnv = await getRuntimeEnv(env); const handled = await handle(request, runtimeEnv); return handled || app.fetch(request, runtimeEnv, ctx); } };
