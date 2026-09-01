@@ -49,6 +49,13 @@ export default function ConnectionsPage() {
           <button onClick={load} disabled={loading} style={{ padding: '10px 16px', borderRadius: 10, cursor: 'pointer' }}>{loading ? 'Refreshing…' : 'Refresh'}</button>
         </div>
 
+        <section style={{marginTop:26,padding:22,borderRadius:16,border:'1px solid rgba(0,190,255,.35)',background:'rgba(0,170,220,.05)'}}>
+          <small style={{opacity:.7}}>VIDEO</small>
+          <h2 style={{margin:'6px 0'}}>Mux Video</h2>
+          <p style={{opacity:.78,lineHeight:1.6,maxWidth:760}}>Each signed-in user can connect their own Mux account with a Mux Access Token ID + Secret, optionally save their Mux Data environment key, upload directly to Mux, and manage their own assets. Credentials are verified server-side and encrypted before storage.</p>
+          <a href="/mux" style={{display:'inline-block',padding:'11px 15px',borderRadius:10,textDecoration:'none',background:'linear-gradient(90deg,#00b9e8,#6b62ff)',color:'#fff',fontWeight:800}}>Open Mux Connection →</a>
+        </section>
+
         {error && <div style={{ marginTop: 20, padding: 14, borderRadius: 10, background: 'rgba(220,38,38,.08)' }}>{error}</div>}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16, marginTop: 28 }}>
@@ -79,8 +86,8 @@ export default function ConnectionsPage() {
 
         <section style={{ marginTop: 30, padding: 20, borderRadius: 16, border: '1px solid rgba(128,128,128,.2)' }}>
           <h2 style={{ marginTop: 0 }}>Agent-ready architecture</h2>
-          <p style={{ opacity: .78, lineHeight: 1.6 }}>Connected accounts are stored server-side per tenant. The next agent-action layer can use these authorized connections for permitted tasks such as email, social publishing, messaging, calendar work, customer/commerce operations, and CRM synchronization.</p>
-          <p style={{ opacity: .65, fontSize: 13, marginBottom: 0 }}>OAuth credentials and access tokens are never placed in the browser or committed to GitHub.</p>
+          <p style={{ opacity: .78, lineHeight: 1.6 }}>Connected accounts are stored server-side per tenant. The next agent-action layer can use these authorized connections for permitted tasks such as email, social publishing, messaging, calendar work, customer/commerce operations, CRM synchronization, and Mux video management.</p>
+          <p style={{ opacity: .65, fontSize: 13, marginBottom: 0 }}>OAuth credentials, Mux API credentials, and access tokens are never committed to GitHub.</p>
         </section>
       </div>
     </main>
