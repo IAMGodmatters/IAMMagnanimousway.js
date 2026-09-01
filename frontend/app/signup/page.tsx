@@ -27,7 +27,8 @@ export default function SignupPage() {
       const d = await readResponse(r);
       if (!r.ok || !d.token) throw new Error(d.detail || 'Unable to create your account.');
       localStorage.setItem('iam_account_token', d.token);
-      window.location.href = '/crm';
+      // Return to the original platform dashboard after successful account creation.
+      window.location.replace('/');
     } catch (err: any) { setError(err?.message || 'Unable to create your account.'); }
     finally { setBusy(false); }
   }
