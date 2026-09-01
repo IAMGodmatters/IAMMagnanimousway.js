@@ -31,15 +31,7 @@ export default function SignupPage() {
       const r = await fetch(`${api}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          workspace: workspace || name,
-          email,
-          password,
-          accountProcessingConsent: privacyConsent,
-          termsAccepted,
-          marketingConsent
-        })
+        body: JSON.stringify({ name, workspace: workspace || name, email, password, accountProcessingConsent: privacyConsent, termsAccepted, marketingConsent })
       });
       const d = await readResponse(r);
       if (!r.ok || !d.token) throw new Error(d.detail || 'Unable to create your account.');
@@ -47,7 +39,8 @@ export default function SignupPage() {
       if (!verify.ok) throw new Error('Your account was created, but the session could not be verified. Please sign in.');
       localStorage.setItem('iam_account_token', d.token);
       localStorage.removeItem('odin_admin_token');
-      window.location.replace('/?access=user');
+      sessionStorage.setItem('iam_session_active','user');
+      window.location.replace('/');
     } catch (err: any) { setError(err?.message || 'Unable to create your account.'); }
     finally { setBusy(false); }
   }
@@ -66,24 +59,12 @@ export default function SignupPage() {
           <input required type="email" autoComplete="email" placeholder="Your email address" value={email} onChange={e => setEmail(e.target.value)} style={styles.input} />
           <input required type="password" minLength={8} autoComplete="new-password" placeholder="Password (8+ characters)" value={password} onChange={e => setPassword(e.target.value)} style={styles.input} />
           <input required type="password" minLength={8} autoComplete="new-password" placeholder="Confirm password" value={confirm} onChange={e => setConfirm(e.target.value)} style={styles.input} />
-
           <div style={styles.consentBox}>
-            <label style={styles.checkRow}>
-              <input type="checkbox" checked={privacyConsent} onChange={e => setPrivacyConsent(e.target.checked)} style={styles.checkbox} />
-              <span>I acknowledge the <a href="/privacy" target="_blank" rel="noreferrer" style={styles.link}>Privacy Notice</a> and consent to the collection and processing of my account information as needed to provide and secure the service, administer my account, and manage the customer/lead relationship. <b>Required.</b></span>
-            </label>
-            <label style={styles.checkRow}>
-              <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} style={styles.checkbox} />
-              <span>I have read and accept the <a href="/terms" target="_blank" rel="noreferrer" style={styles.link}>Terms of Service</a>. <b>Required.</b></span>
-            </label>
-            <label style={styles.checkRow}>
-              <input type="checkbox" checked={marketingConsent} onChange={e => setMarketingConsent(e.target.checked)} style={styles.checkbox} />
-              <span>I would like to receive optional product updates, offers, ministry/business news, and other promotional messages from I AM Magnanimous Way. I can withdraw this consent later. <b>Optional.</b></span>
-            </label>
+            <label style={styles.checkRow}><input type="checkbox" checked={privacyConsent} onChange={e => setPrivacyConsent(e.target.checked)} style={styles.checkbox} /><span>I acknowledge the <a href="/privacy" target="_blank" rel="noreferrer" style={styles.link}>Privacy Notice</a> and consent to the collection and processing of my account information as needed to provide and secure the service, administer my account, and manage the customer/lead relationship. <b>Required.</b></span></label>
+            <label style={styles.checkRow}><input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} style={styles.checkbox} /><span>I have read and accept the <a href="/terms" target="_blank" rel="noreferrer" style={styles.link}>Terms of Service</a>. <b>Required.</b></span></label>
+            <label style={styles.checkRow}><input type="checkbox" checked={marketingConsent} onChange={e => setMarketingConsent(e.target.checked)} style={styles.checkbox} /><span>I would like to receive optional product updates, offers, ministry/business news, and other promotional messages from I AM Magnanimous Way. I can withdraw this consent later. <b>Optional.</b></span></label>
           </div>
-
           <p style={styles.notice}>Your name, email, workspace/account information, signup and login activity, and information you provide while using the platform may be stored for service, security, administration, support, and customer/lead-management purposes. Passwords are not stored in readable plain text.</p>
-
           <button disabled={busy || !privacyConsent || !termsAccepted} type="submit" style={{...styles.button, opacity: busy || !privacyConsent || !termsAccepted ? .55 : 1}}>{busy ? 'Creating account…' : 'Create My Account'}</button>
           {error && <div role="alert" style={styles.error}>{error}</div>}
         </form>
