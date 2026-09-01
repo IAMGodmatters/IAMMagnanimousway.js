@@ -26,9 +26,11 @@ export default function SignupPage() {
       const r = await fetch(`${api}/api/auth/signup`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, workspace: workspace || name, email, password }) });
       const d = await readResponse(r);
       if (!r.ok || !d.token) throw new Error(d.detail || 'Unable to create your account.');
+      const verify = await fetch(`${api}/api/auth/me`, { headers: { Authorization: `Bearer ${d.token}` } });
+      if (!verify.ok) throw new Error('Your account was created, but the session could not be verified. Please sign in.');
       localStorage.setItem('iam_account_token', d.token);
-      // Return to the original platform dashboard after successful account creation.
-      window.location.replace('/');
+      localStorage.removeItem('odin_admin_token');
+      window.location.replace('/?access=user');
     } catch (err: any) { setError(err?.message || 'Unable to create your account.'); }
     finally { setBusy(false); }
   }
@@ -40,7 +42,7 @@ export default function SignupPage() {
         <div style={styles.mark}>✦</div>
         <div style={styles.eyebrow}>I AM MAGNANIMOUS WAY™</div>
         <h1 style={styles.title}>Create your I AM account</h1>
-        <p style={styles.sub}>Your own private workspace for the I AM AI platform and CRM.</p>
+        <p style={styles.sub}>Create your own login credentials and private workspace. After signup, you will enter your dashboard immediately.</p>
         <form onSubmit={submit} style={styles.form}>
           <input required autoComplete="name" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} style={styles.input} />
           <input autoComplete="organization" placeholder="Workspace or business name (optional)" value={workspace} onChange={e => setWorkspace(e.target.value)} style={styles.input} />
@@ -51,8 +53,7 @@ export default function SignupPage() {
           {error && <div role="alert" style={styles.error}>{error}</div>}
         </form>
         <p style={styles.switch}>Already have an account? <a href="/login" style={styles.link}>Sign in</a></p>
-        <p style={styles.switch}>Owner? <a href="/owner-login" style={styles.link}>Owner Login</a></p>
-        <a href="/" style={styles.back}>← Back to I AM Platform</a>
+        <p style={styles.switch}>Owner or administrator? <a href="/owner-login" style={styles.link}>Owner / Admin Login</a></p>
       </section>
     </main>
   );
@@ -72,5 +73,4 @@ const styles: Record<string, React.CSSProperties> = {
   error: { padding: '11px 13px', borderRadius: 11, background: 'rgba(255,75,100,.10)', border: '1px solid rgba(255,100,120,.25)', color: '#ffb9c4', fontSize: 14 },
   switch: { textAlign: 'center', color: '#aeb7cc', fontSize: 14, marginTop: 18 },
   link: { color: '#76dcff', fontWeight: 700, textDecoration: 'none' },
-  back: { display: 'block', textAlign: 'center', color: '#8d98b0', textDecoration: 'none', marginTop: 22, fontSize: 14 },
 };
