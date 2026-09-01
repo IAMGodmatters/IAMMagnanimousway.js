@@ -74,6 +74,59 @@ async function login(request, env) {
   return json({ token: await makeSession(user, env), user: { id: user.id, tenant_id: user.tenant_id, name: user.name, email: user.email, role: user.role, active: user.active } });
 }
 
+// Owner login keeps the existing owner credentials intact. If the owner credentials
+// are configured as Worker secrets but the owner was never represented in the D1
+// users table, create the owner identity once and then use the same D1-backed session
+// mechanism as the rest of the application. This fixes the login -> dashboard handoff
+// without changing the existing dashboard architecture.
+async function adminLogin(request, env) {
+  const b = await request.json(), email = normEmail(b.email), password = String(b.password || '');
+  if (!email || !password) return json({ detail: 'Owner email and password are required.' }, 400);
+
+  // First honor the existing D1 owner account, so its password remains authoritative.
+  const existing = await env.DB.prepare("SELECT * FROM users WHERE email=? AND active=1 ORDER BY created_at ASC LIMIT 1").bind(email).first();
+  if (existing && existing.role === 'owner') {
+    if ((await passwordHash(password, existing.password_salt)) !== existing.password_hash) {
+      await logAuth(env, existing, 'owner_login', 0, email);
+      return json({ detail: 'Invalid owner email or password.' }, 401);
+    }
+    await logAuth(env, existing, 'owner_login', 1, email);
+    return json({ token: await makeSession(existing, env), user: { id: existing.id, tenant_id: existing.tenant_id, name: existing.name, email: existing.email, role: 'owner', active: existing.active } });
+  }
+
+  // Compatibility path for the original owner profile configured in Cloudflare.
+  const configuredEmail = normEmail(env.ADMIN_EMAIL);
+  const configuredPassword = String(env.ADMIN_PASSWORD || '');
+  if (!configuredEmail || !configuredPassword || email !== configuredEmail || password !== configuredPassword) {
+    await logAuth(env, existing, 'owner_login', 0, email);
+    return json({ detail: 'Invalid owner email or password.' }, 401);
+  }
+
+  let tenant = await env.DB.prepare("SELECT * FROM tenants WHERE slug='owner' LIMIT 1").first();
+  const created = now();
+  if (!tenant) {
+    const tid = makeId();
+    await env.DB.prepare('INSERT INTO tenants(id,name,slug,owner_user_id,created_at) VALUES(?,?,?,?,?)').bind(tid, 'I AM Magnanimous Way Owner', 'owner', null, created).run();
+    tenant = await env.DB.prepare("SELECT * FROM tenants WHERE slug='owner' LIMIT 1").first();
+  }
+  let owner = await env.DB.prepare('SELECT * FROM users WHERE email=? LIMIT 1').bind(configuredEmail).first();
+  if (!owner) {
+    const uid = makeId(), salt = makeId(), ph = await passwordHash(configuredPassword, salt);
+    await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,active,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid, tenant.id, 'I AM Magnanimous Way Owner', configuredEmail, 'owner', ph, salt, 1, created).run();
+    await env.DB.prepare("UPDATE tenants SET owner_user_id=? WHERE id=?").bind(uid, tenant.id).run();
+    owner = await env.DB.prepare('SELECT * FROM users WHERE id=?').bind(uid).first();
+  } else {
+    // Never overwrite the existing password; only restore the owner role/tenant link
+    // needed by the compatibility login if this legacy record predates the new schema.
+    if (owner.role !== 'owner' || owner.tenant_id !== tenant.id) {
+      await env.DB.prepare("UPDATE users SET role='owner',tenant_id=?,active=1 WHERE id=?").bind(tenant.id, owner.id).run();
+      owner = await env.DB.prepare('SELECT * FROM users WHERE id=?').bind(owner.id).first();
+    }
+  }
+  await logAuth(env, owner, 'owner_login', 1, configuredEmail);
+  return json({ token: await makeSession(owner, env), user: { id: owner.id, tenant_id: owner.tenant_id, name: owner.name, email: owner.email, role: 'owner', active: owner.active } });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -87,7 +140,7 @@ export default {
       if (url.pathname === '/api/auth/logout' && request.method === 'POST') return json({ ok: true });
       if (url.pathname === '/api/auth/audit' && request.method === 'GET') { const owner = await auth(request, env); if (!owner || owner.role !== 'owner') return json({ detail: 'Owner access required.' }, 401); const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 100), 1), 500); const { results } = await env.DB.prepare('SELECT id,user_id,tenant_id,email,event,success,created_at FROM auth_events ORDER BY id DESC LIMIT ?').bind(limit).all(); return json({ events: results || [] }); }
       if (url.pathname.startsWith('/api/admin/')) {
-        if (url.pathname === '/api/admin/login' && request.method === 'POST') return await login(request, env);
+        if (url.pathname === '/api/admin/login' && request.method === 'POST') return await adminLogin(request, env);
         const user = await auth(request, env); if (!user || user.role !== 'owner') return json({ detail: 'Owner access required' }, 401);
         if (url.pathname === '/api/admin/settings' && request.method === 'GET') { const { results } = await env.DB.prepare('SELECT key,value FROM settings').all(); const data = Object.fromEntries(results.map(r => [r.key, r.value])); return json({ site_name: data.site_name || 'I AM Magnanimous AI Platform', tagline: data.tagline || 'Free AI tools, Odin orchestration, and creator tools in one place.', canva_url: data.canva_url || '' }); }
         if (url.pathname === '/api/admin/settings' && request.method === 'PUT') { const b = await request.json(); const entries = [['site_name', b.site_name || 'I AM Magnanimous AI Platform'], ['tagline', b.tagline || ''], ['canva_url', b.canva_url || '']]; for (const [k,v] of entries) await env.DB.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').bind(k,String(v)).run(); return json({ ok: true }); }
