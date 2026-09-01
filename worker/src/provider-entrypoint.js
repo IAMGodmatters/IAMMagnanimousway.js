@@ -1,5 +1,6 @@
 import app from './entrypoint.js';
 import { handleIntegrations } from './integrations.js';
+import { getKnowledgeContext } from './knowledge-runtime.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 
@@ -16,7 +17,7 @@ const TOOLS = [
   ['odin','Odin AI Orchestrator','Routes requests across configured AI providers and platform tools.'],
   ['ai-chat','AI Chat','General-purpose AI assistant.'],
   ['writing','Writing Helper','Create, rewrite, summarize and polish content.'],
-  ['research','Research Helper','Organize research questions, sources and briefs.'],
+  ['research','Research Helper','Research live web/news sources and private workspace knowledge.'],
   ['bible-study','Bible Study','Study Scripture and organize biblical topics.'],
   ['marketing','Marketing Helper','Create campaigns, captions, offers and content plans.'],
   ['business','Business Helper','Business planning, ideas and analysis.'],
@@ -77,10 +78,10 @@ async function cloudflare(env, message, model) {
     try {
       const result = await env.AI.run(m, {
         messages: [
-          { role: 'system', content: 'You are Odin, the AI orchestration assistant for I AM Magnanimous Way. Be useful, clear, practical, and concise unless the user asks for depth.' },
+          { role: 'system', content: 'You are Odin, the AI orchestration assistant for I AM Magnanimous Way. Be useful, clear, practical, and concise unless the user asks for depth. When grounding sources are provided, use them carefully and cite them with their bracket numbers. Never mix one tenant workspace with another.' },
           { role: 'user', content: message }
         ],
-        max_tokens: 1024
+        max_tokens: 1400
       });
       const text = extractCloudflareText(result).trim();
       if (text) return { text, model: m };
@@ -136,12 +137,17 @@ async function handle(request, env) {
   }
   if (url.pathname === '/api/odin/health' && request.method === 'GET') {
     const providers = PROVIDERS.map(p => ({ id: p.id, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env) }));
-    return json({ ok: true, odin: 'online', workers_ai_bound: env?.AI != null, providers });
+    return json({ ok: true, odin: 'online', workers_ai_bound: env?.AI != null, web_search_configured: Boolean(env?.BRAVE_SEARCH_API_KEY), providers });
   }
   if (url.pathname === '/api/chat' && request.method === 'POST') {
     const body = await request.json();
     const message = String(body.message || '').trim();
     if (!message) return json({ detail: 'Message is required.' }, 400);
+    let grounding={context:'',sources:[],search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY)};
+    if(body.use_knowledge!==false){
+      try{grounding=await getKnowledgeContext(request,env,message,{liveSearch:Boolean(body.live_search),news:Boolean(body.news),remember:Boolean(body.remember_search),freshness:String(body.freshness||''),localLimit:6,webLimit:5,newsLimit:5})}catch(e){console.error('knowledge grounding failed',e)}
+    }
+    const groundedMessage=`${message}${grounding.context||''}`;
     const requested = String(body.provider || 'auto').toLowerCase();
     const available = availableProviders(env);
     const candidates = requested !== 'auto' ? available.filter(p => p.id === requested) : available;
@@ -150,9 +156,9 @@ async function handle(request, env) {
     const errors = [];
     for (const p of configuredCandidates) {
       try {
-        const result = await callProvider(p.id, env, message, body.model);
+        const result = await callProvider(p.id, env, groundedMessage, body.model);
         if (!result?.text?.trim()) throw new Error('Provider returned an empty response');
-        return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, odin: true });
+        return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, odin: true, grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured });
       } catch (e) { errors.push(`${p.name}: ${e?.message || 'provider failed'}`); }
     }
     return json({ detail: `Odin could not complete the request. ${errors.join(' | ')}`, code: 'AI_PROVIDER_FAILURE' }, 502);
