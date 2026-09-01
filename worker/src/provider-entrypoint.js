@@ -51,26 +51,58 @@ async function openaiCompatible(base, key, model, message, label) {
   const r = await fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: JSON.stringify({ model, messages: [{ role: 'user', content: message }] }) });
   const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || `${label} request failed`); return d.choices?.[0]?.message?.content || '';
 }
+
+function extractCloudflareText(result) {
+  if (!result) return '';
+  if (typeof result === 'string') return result;
+  if (typeof result.response === 'string') return result.response;
+  if (typeof result.result?.response === 'string') return result.result.response;
+  if (typeof result.result === 'string') return result.result;
+  if (Array.isArray(result.result)) return result.result.map(x => x?.response || x?.text || '').filter(Boolean).join('\n');
+  if (Array.isArray(result.choices)) return result.choices.map(x => x?.message?.content || x?.text || '').filter(Boolean).join('\n');
+  return '';
+}
+
 async function cloudflare(env, message, model) {
   if (env?.AI == null) throw new Error('Cloudflare Workers AI binding is not configured');
-  const result = await env.AI.run(model || env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast', { messages: [{ role: 'user', content: message }] });
-  return result?.response || result?.result?.response || '';
+  const requested = String(model || env.CLOUDFLARE_AI_MODEL || '').trim();
+  const models = [...new Set([
+    requested,
+    '@cf/meta/llama-3.1-8b-instruct-fast',
+    '@cf/meta/llama-3.2-1b-instruct',
+    '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+  ].filter(Boolean))];
+  const errors = [];
+  for (const m of models) {
+    try {
+      const result = await env.AI.run(m, {
+        messages: [
+          { role: 'system', content: 'You are Odin, the AI orchestration assistant for I AM Magnanimous Way. Be useful, clear, practical, and concise unless the user asks for depth.' },
+          { role: 'user', content: message }
+        ],
+        max_tokens: 1024
+      });
+      const text = extractCloudflareText(result).trim();
+      if (text) return { text, model: m };
+      errors.push(`${m}: empty response`);
+    } catch (e) {
+      errors.push(`${m}: ${e?.message || 'inference failed'}`);
+    }
+  }
+  throw new Error(`Workers AI inference failed. ${errors.join(' | ')}`);
 }
+
 async function callProvider(id, env, message, model) {
-  if (id === 'openai') return openai(env, message, model);
-  if (id === 'anthropic') return anthropic(env, message, model);
-  if (id === 'google') return google(env, message, model);
-  if (id === 'groq') return openaiCompatible('https://api.groq.com/openai/v1', env.GROQ_API_KEY, model || env.GROQ_MODEL || 'llama-3.3-70b-versatile', message, 'Groq');
-  if (id === 'mistral') return openaiCompatible('https://api.mistral.ai/v1', env.MISTRAL_API_KEY, model || env.MISTRAL_MODEL || 'mistral-large-latest', message, 'Mistral');
+  if (id === 'openai') return { text: await openai(env, message, model), model: model || env.OPENAI_MODEL || 'gpt-5.6' };
+  if (id === 'anthropic') return { text: await anthropic(env, message, model), model: model || env.ANTHROPIC_MODEL || 'claude-sonnet-4-5' };
+  if (id === 'google') return { text: await google(env, message, model), model: model || env.GOOGLE_MODEL || 'gemini-2.5-flash' };
+  if (id === 'groq') return { text: await openaiCompatible('https://api.groq.com/openai/v1', env.GROQ_API_KEY, model || env.GROQ_MODEL || 'llama-3.3-70b-versatile', message, 'Groq'), model: model || env.GROQ_MODEL || 'llama-3.3-70b-versatile' };
+  if (id === 'mistral') return { text: await openaiCompatible('https://api.mistral.ai/v1', env.MISTRAL_API_KEY, model || env.MISTRAL_MODEL || 'mistral-large-latest', message, 'Mistral'), model: model || env.MISTRAL_MODEL || 'mistral-large-latest' };
   if (id === 'cloudflare-ai') return cloudflare(env, message, model);
   throw new Error('Unknown AI provider');
 }
 function availableProviders(env) { return PROVIDERS.filter(p => p.tier !== 'metered' || meteredEnabled(env)); }
 
-// Authentication is owned by admin-compat-entrypoint. It persists the session
-// secret in D1 auth_config when SESSION_SECRET is not supplied. Reuse that exact
-// secret here so a customer token created at signup/login remains valid when the
-// request moves on to CRM, AI, integrations, and the rest of the application.
 async function getRuntimeEnv(env) {
   if (env?.SESSION_SECRET) return env;
   if (!env?.DB) return env;
@@ -95,21 +127,35 @@ async function handle(request, env) {
       const placement = url.searchParams.get('placement') || 'home';
       const { results } = await env.DB.prepare('SELECT id,title,url,label,placement,active FROM ads WHERE active=1 AND placement=? ORDER BY id DESC').bind(placement).all();
       return json({ ads: results || [] });
-    } catch (_) {
-      return json({ ads: [] });
-    }
+    } catch (_) { return json({ ads: [] }); }
   }
   if (url.pathname === '/api/providers' && request.method === 'GET') {
     const providers = PROVIDERS.map(p => ({ id: p.id, name: p.name, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env), tier: p.tier, type: 'ai' }));
     const enabled = providers.filter(p => p.configured && p.enabled);
-    return json({ free_first: true, metered_providers_enabled: meteredEnabled(env), providers, configured_count: enabled.length, free_configured_count: enabled.filter(p => p.tier === 'free-first').length });
+    return json({ free_first: true, metered_providers_enabled: meteredEnabled(env), providers, configured_count: enabled.length, free_configured_count: enabled.filter(p => p.tier === 'free-first').length, odin_ready: enabled.length > 0 });
+  }
+  if (url.pathname === '/api/odin/health' && request.method === 'GET') {
+    const providers = PROVIDERS.map(p => ({ id: p.id, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env) }));
+    return json({ ok: true, odin: 'online', workers_ai_bound: env?.AI != null, providers });
   }
   if (url.pathname === '/api/chat' && request.method === 'POST') {
-    const body = await request.json(); const message = String(body.message || '').trim(); if (!message) return json({ detail: 'Message is required.' }, 400);
-    const requested = String(body.provider || 'auto').toLowerCase(); const available = availableProviders(env); const candidates = requested !== 'auto' ? available.filter(p => p.id === requested) : available; const configuredCandidates = candidates.filter(p => configured(env, p));
-    if (!configuredCandidates.length) return json({ detail: requested === 'auto' ? 'No free-first AI provider is configured. Add a free-tier provider key or Cloudflare Workers AI binding.' : 'The requested AI provider is not configured or is disabled.' }, 503);
-    const errors = []; for (const p of configuredCandidates) { try { const output = await callProvider(p.id, env, message, body.model); return json({ output, provider: p.id, provider_name: p.name }); } catch (e) { errors.push(`${p.name}: ${e.message}`); } }
-    return json({ detail: `All enabled AI providers failed. ${errors.join(' | ')}` }, 502);
+    const body = await request.json();
+    const message = String(body.message || '').trim();
+    if (!message) return json({ detail: 'Message is required.' }, 400);
+    const requested = String(body.provider || 'auto').toLowerCase();
+    const available = availableProviders(env);
+    const candidates = requested !== 'auto' ? available.filter(p => p.id === requested) : available;
+    const configuredCandidates = candidates.filter(p => configured(env, p));
+    if (!configuredCandidates.length) return json({ detail: requested === 'auto' ? 'Odin has no configured AI provider. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested AI provider is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
+    const errors = [];
+    for (const p of configuredCandidates) {
+      try {
+        const result = await callProvider(p.id, env, message, body.model);
+        if (!result?.text?.trim()) throw new Error('Provider returned an empty response');
+        return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, odin: true });
+      } catch (e) { errors.push(`${p.name}: ${e?.message || 'provider failed'}`); }
+    }
+    return json({ detail: `Odin could not complete the request. ${errors.join(' | ')}`, code: 'AI_PROVIDER_FAILURE' }, 502);
   }
   return null;
 }
