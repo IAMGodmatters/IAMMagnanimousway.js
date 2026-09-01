@@ -7,14 +7,28 @@ const makeId = () => crypto.randomUUID();
 async function digest(value) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 async function hmac(secret, value) { const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); const b = await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(value)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 async function passwordHash(password, salt) { return digest(`${salt}:${password}`); }
-function authSecret(env) { return String(env.SESSION_SECRET || '').trim(); }
-async function makeSession(user, env) { const secret = authSecret(env); if (!secret) throw new Error('Authentication is not configured. Add SESSION_SECRET in Cloudflare Worker secrets.'); const exp = now() + 604800; const payload = `${user.id}|${user.tenant_id}|${user.role}|${exp}`; return `${payload}|${await hmac(secret, payload)}`; }
+
+// SESSION_SECRET is preferred, but authentication must not silently fail when the
+// optional Worker secret was never configured. A random secret is generated once
+// and persisted in D1, so credentials and sessions remain server-side and stable.
+async function authSecret(env) {
+  const configured = String(env.SESSION_SECRET || '').trim();
+  if (configured) return configured;
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS auth_config (key TEXT PRIMARY KEY,value TEXT NOT NULL)").run();
+  const existing = await env.DB.prepare('SELECT value FROM auth_config WHERE key=?').bind('session_secret').first();
+  if (existing?.value) return String(existing.value);
+  const generated = `${makeId()}${makeId()}${makeId()}`;
+  try { await env.DB.prepare('INSERT INTO auth_config(key,value) VALUES(?,?)').bind('session_secret', generated).run(); } catch (_) {}
+  const saved = await env.DB.prepare('SELECT value FROM auth_config WHERE key=?').bind('session_secret').first();
+  return String(saved?.value || generated);
+}
+async function makeSession(user, env) { const secret = await authSecret(env); const exp = now() + 604800; const payload = `${user.id}|${user.tenant_id}|${user.role}|${exp}`; return `${payload}|${await hmac(secret, payload)}`; }
 async function auth(request, env) {
-  const secret = authSecret(env); if (!secret) return null;
   const raw = request.headers.get('authorization') || '';
   if (!raw.startsWith('Bearer ')) return null;
   const p = raw.slice(7).split('|'); if (p.length !== 5 || Number(p[3]) < now()) return null;
   const [userId, tenantId, role, exp, sig] = p;
+  const secret = await authSecret(env);
   if (sig !== await hmac(secret, `${userId}|${tenantId}|${role}|${exp}`)) return null;
   return await env.DB.prepare('SELECT id,tenant_id,name,email,role,active,created_at FROM users WHERE id=? AND tenant_id=? AND active=1').bind(userId, tenantId).first();
 }
@@ -26,15 +40,19 @@ async function ensureTables(env) {
   await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)").run();
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY,value TEXT NOT NULL)").run();
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS ads (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,url TEXT NOT NULL,label TEXT NOT NULL DEFAULT 'Sponsored',placement TEXT NOT NULL DEFAULT 'home',active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL)").run();
+  await authSecret(env);
 }
-async function logAuth(env, user, event, success = 1, email = '') {
-  try { await env.DB.prepare('INSERT INTO auth_events(user_id,tenant_id,email,event,success,created_at) VALUES(?,?,?,?,?,?)').bind(user?.id || null, user?.tenant_id || null, email || user?.email || '', event, success ? 1 : 0, now()).run(); } catch (_) {}
+async function ensureLegacyCompatibility(env) {
+  const cols = [['tenant_id','TEXT'],['name',"TEXT NOT NULL DEFAULT 'User'"],['password_salt',"TEXT NOT NULL DEFAULT ''"],['active','INTEGER NOT NULL DEFAULT 1']];
+  for (const [c,d] of cols) { try { await env.DB.prepare(`ALTER TABLE users ADD COLUMN ${c} ${d}`).run(); } catch (_) {} }
+  const tenant = await env.DB.prepare('SELECT id FROM tenants WHERE slug=?').bind('owner').first();
+  if (tenant?.id) { try { await env.DB.prepare("UPDATE users SET tenant_id=? WHERE tenant_id IS NULL OR tenant_id=''").bind(tenant.id).run(); } catch (_) {} }
 }
+async function logAuth(env, user, event, success = 1, email = '') { try { await env.DB.prepare('INSERT INTO auth_events(user_id,tenant_id,email,event,success,created_at) VALUES(?,?,?,?,?,?)').bind(user?.id || null, user?.tenant_id || null, email || user?.email || '', event, success ? 1 : 0, now()).run(); } catch (_) {} }
 async function signup(request, env) {
   const b = await request.json();
   const email = normEmail(b.email), name = String(b.name || '').trim(), password = String(b.password || '');
   if (!name || !email || password.length < 8) return json({ detail: 'Name, email, and a password of at least 8 characters are required.' }, 400);
-  if (!authSecret(env)) return json({ detail: 'Authentication is not configured. Add SESSION_SECRET to the Worker secrets.' }, 503);
   const existing = await env.DB.prepare('SELECT id FROM users WHERE email=? AND active=1 LIMIT 1').bind(email).first();
   if (existing) return json({ detail: 'An account with that email already exists. Please sign in instead.' }, 409);
   let slug = String(b.workspace || name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'workspace';
@@ -49,7 +67,6 @@ async function signup(request, env) {
 async function login(request, env) {
   const b = await request.json(), email = normEmail(b.email), password = String(b.password || '');
   if (!email || !password) return json({ detail: 'Email and password are required.' }, 400);
-  if (!authSecret(env)) return json({ detail: 'Authentication is not configured. Add SESSION_SECRET to the Worker secrets.' }, 503);
   const user = await env.DB.prepare('SELECT * FROM users WHERE email=? AND active=1 ORDER BY created_at ASC LIMIT 1').bind(email).first();
   if (!user) { await logAuth(env, null, 'login', 0, email); return json({ detail: 'Invalid email or password.' }, 401); }
   if ((await passwordHash(password, user.password_salt)) !== user.password_hash) { await logAuth(env, user, 'login', 0, email); return json({ detail: 'Invalid email or password.' }, 401); }
@@ -62,56 +79,23 @@ export default {
     const url = new URL(request.url);
     try {
       await ensureTables(env);
+      await ensureLegacyCompatibility(env);
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET,POST,PUT,DELETE,OPTIONS', 'access-control-allow-headers': 'Content-Type, Authorization' } });
-
-      // Public account API lives here, before the provider/static fallback. This
-      // guarantees the browser receives JSON rather than frontend HTML for auth.
       if (url.pathname === '/api/auth/signup' && request.method === 'POST') return await signup(request, env);
       if (url.pathname === '/api/auth/login' && request.method === 'POST') return await login(request, env);
-      if (url.pathname === '/api/auth/me' && request.method === 'GET') {
-        const user = await auth(request, env);
-        return user ? json({ user }) : json({ detail: 'Not authenticated.' }, 401);
-      }
+      if (url.pathname === '/api/auth/me' && request.method === 'GET') { const user = await auth(request, env); return user ? json({ user }) : json({ detail: 'Not authenticated.' }, 401); }
       if (url.pathname === '/api/auth/logout' && request.method === 'POST') return json({ ok: true });
-
-      if (url.pathname === '/api/auth/audit' && request.method === 'GET') {
-        const owner = await auth(request, env);
-        if (!owner || owner.role !== 'owner') return json({ detail: 'Owner access required.' }, 401);
-        const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 100), 1), 500);
-        const { results } = await env.DB.prepare('SELECT id,user_id,tenant_id,email,event,success,created_at FROM auth_events ORDER BY id DESC LIMIT ?').bind(limit).all();
-        return json({ events: results || [] });
-      }
-
+      if (url.pathname === '/api/auth/audit' && request.method === 'GET') { const owner = await auth(request, env); if (!owner || owner.role !== 'owner') return json({ detail: 'Owner access required.' }, 401); const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 100), 1), 500); const { results } = await env.DB.prepare('SELECT id,user_id,tenant_id,email,event,success,created_at FROM auth_events ORDER BY id DESC LIMIT ?').bind(limit).all(); return json({ events: results || [] }); }
       if (url.pathname.startsWith('/api/admin/')) {
         if (url.pathname === '/api/admin/login' && request.method === 'POST') return await login(request, env);
-        const user = await auth(request, env);
-        if (!user || user.role !== 'owner') return json({ detail: 'Owner access required' }, 401);
-        if (url.pathname === '/api/admin/settings' && request.method === 'GET') {
-          const { results } = await env.DB.prepare('SELECT key,value FROM settings').all();
-          const data = Object.fromEntries(results.map(r => [r.key, r.value]));
-          return json({ site_name: data.site_name || 'I AM Magnanimous AI Platform', tagline: data.tagline || 'Free AI tools, Odin orchestration, and creator tools in one place.', canva_url: data.canva_url || '' });
-        }
-        if (url.pathname === '/api/admin/settings' && request.method === 'PUT') {
-          const b = await request.json();
-          const entries = [['site_name', b.site_name || 'I AM Magnanimous AI Platform'], ['tagline', b.tagline || ''], ['canva_url', b.canva_url || '']];
-          for (const [k, v] of entries) await env.DB.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').bind(k, String(v)).run();
-          return json({ ok: true });
-        }
-        if (url.pathname === '/api/admin/ads' && request.method === 'GET') {
-          const { results } = await env.DB.prepare('SELECT id,title,url,label,placement,active FROM ads ORDER BY id DESC').all();
-          return json({ ads: results });
-        }
-        if (url.pathname === '/api/admin/ads' && request.method === 'POST') {
-          const b = await request.json();
-          const r = await env.DB.prepare('INSERT INTO ads(title,url,label,placement,active,created_at) VALUES(?,?,?,?,?,?)').bind(String(b.title || ''), String(b.url || ''), String(b.label || 'Sponsored'), String(b.placement || 'home'), b.active ? 1 : 0, now()).run();
-          return json({ id: r.meta.last_row_id }, 201);
-        }
-        const m = url.pathname.match(/^\/api\/admin\/ads\/(\d+)$/);
-        if (m && request.method === 'DELETE') { await env.DB.prepare('DELETE FROM ads WHERE id=?').bind(Number(m[1])).run(); return json({ ok: true }); }
+        const user = await auth(request, env); if (!user || user.role !== 'owner') return json({ detail: 'Owner access required' }, 401);
+        if (url.pathname === '/api/admin/settings' && request.method === 'GET') { const { results } = await env.DB.prepare('SELECT key,value FROM settings').all(); const data = Object.fromEntries(results.map(r => [r.key, r.value])); return json({ site_name: data.site_name || 'I AM Magnanimous AI Platform', tagline: data.tagline || 'Free AI tools, Odin orchestration, and creator tools in one place.', canva_url: data.canva_url || '' }); }
+        if (url.pathname === '/api/admin/settings' && request.method === 'PUT') { const b = await request.json(); const entries = [['site_name', b.site_name || 'I AM Magnanimous AI Platform'], ['tagline', b.tagline || ''], ['canva_url', b.canva_url || '']]; for (const [k,v] of entries) await env.DB.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').bind(k,String(v)).run(); return json({ ok: true }); }
+        if (url.pathname === '/api/admin/ads' && request.method === 'GET') { const { results } = await env.DB.prepare('SELECT id,title,url,label,placement,active FROM ads ORDER BY id DESC').all(); return json({ ads: results }); }
+        if (url.pathname === '/api/admin/ads' && request.method === 'POST') { const b = await request.json(); const r = await env.DB.prepare('INSERT INTO ads(title,url,label,placement,active,created_at) VALUES(?,?,?,?,?,?)').bind(String(b.title||''),String(b.url||''),String(b.label||'Sponsored'),String(b.placement||'home'),b.active?1:0,now()).run(); return json({ id:r.meta.last_row_id },201); }
+        const m=url.pathname.match(/^\/api\/admin\/ads\/(\d+)$/); if(m&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM ads WHERE id=?').bind(Number(m[1])).run();return json({ok:true});}
       }
       return providerApp.fetch(request, env, ctx);
-    } catch (e) {
-      return json({ detail: e?.message || 'Server error' }, 500);
-    }
+    } catch (e) { return json({ detail: e?.message || 'Server error' }, 500); }
   }
 };
