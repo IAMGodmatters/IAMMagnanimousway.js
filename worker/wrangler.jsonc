@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "iam-magnanimous",
-  "main": "src/provider-entrypoint.js",
+  "main": "src/admin-compat-entrypoint.js",
   "compatibility_date": "2026-08-27",
   "assets": { "directory": "../frontend/out", "binding": "ASSETS" },
   "ai": { "binding": "AI" },
