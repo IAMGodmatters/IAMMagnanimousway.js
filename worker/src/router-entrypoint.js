@@ -4,6 +4,7 @@ import { handleOwnerLeads } from './owner-leads.js';
 import { handleMux } from './mux-integration.js';
 import { handleIntegrations } from './integrations.js';
 import { handleAssistantIntegrations } from './assistant-integrations-runtime.js';
+import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-credentials.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -44,8 +45,18 @@ export default {
         if (assistantResponse) return withCors(assistantResponse);
       }
 
+      // Owner-only encrypted platform credential vault. These are developer/app
+      // credentials (client IDs/secrets), never a customer's social password.
+      if (url.pathname.startsWith('/api/integrations/platform-credentials')) {
+        const credentialResponse = await handlePlatformCredentials(request, env);
+        if (credentialResponse) return withCors(credentialResponse);
+      }
+
       if (url.pathname.startsWith('/api/integrations')) {
-        const integrationResponse = await handleIntegrations(request, env);
+        // Fill missing deployment OAuth keys from the encrypted owner vault before
+        // invoking the existing provider-specific OAuth implementation.
+        const integrationEnv = await getIntegrationRuntimeEnv(env);
+        const integrationResponse = await handleIntegrations(request, integrationEnv);
         if (integrationResponse) return withCors(integrationResponse);
       }
 
