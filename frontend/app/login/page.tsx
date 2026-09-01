@@ -24,7 +24,8 @@ export default function LoginPage() {
       if (!verify.ok) throw new Error('Your login was accepted, but the session could not be verified. Please try again.');
       localStorage.setItem('iam_account_token', d.token);
       localStorage.removeItem('odin_admin_token');
-      window.location.replace('/?access=user');
+      sessionStorage.setItem('iam_session_active','user');
+      window.location.replace('/');
     } catch (err: any) { setError(err?.message || 'Unable to sign in.'); }
     finally { setBusy(false); }
   }
