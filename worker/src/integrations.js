@@ -11,6 +11,7 @@ const INTEGRATIONS = [
   { id:'google-calendar', name:'Google Calendar', category:'calendar', auth:'oauth2', env:['GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET'], scopes:['openid','email','https://www.googleapis.com/auth/calendar'] }
 ];
 
+const json = (data, status=200) => Response.json(data, { status, headers: { 'cache-control':'no-store' } });
 function configured(env, integration) { return integration.env.every(k => typeof env?.[k] === 'string' && env[k].trim()); }
 function now(){ return Math.floor(Date.now()/1000); }
 function redirectUri(request, id){ return `${new URL(request.url).origin}/api/integrations/${id}/callback`; }
@@ -21,8 +22,6 @@ async function ensureTable(env){
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS integration_states (state TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,provider TEXT NOT NULL,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL)`).run();
 }
 async function tenantForRequest(env, request){
-  // Owner fallback keeps the connector framework usable before multi-user session
-  // middleware is wired into every route. Production sessions should supply tenant_id.
   const owner = await env.DB.prepare("SELECT id FROM tenants WHERE slug='owner' LIMIT 1").first();
   return owner?.id || 'owner';
 }
@@ -48,30 +47,52 @@ async function tokenExchange(provider, env, request, code){
 }
 
 export async function handleIntegrations(request, env){
-  if(!env?.DB) return null;
-  const url=new URL(request.url); if(!url.pathname.startsWith('/api/integrations')) return null;
-  await ensureTable(env);
-  if(request.method==='GET' && url.pathname==='/api/integrations'){
-    const tenant=await tenantForRequest(env,request); const {results}=await env.DB.prepare('SELECT provider,external_account_id,display_name,token_expires_at,created_at,updated_at FROM integrations WHERE tenant_id=? ORDER BY provider,updated_at DESC').bind(tenant).all();
-    return Response.json({ integrations: INTEGRATIONS.map(i=>({id:i.id,name:i.name,category:i.category,auth:i.auth,configured:configured(env,i),connected:(results||[]).filter(x=>x.provider===i.id).map(x=>({external_account_id:x.external_account_id,display_name:x.display_name,token_expires_at:x.token_expires_at}))})), connected_count:(results||[]).length });
+  const url=new URL(request.url);
+  if(!url.pathname.startsWith('/api/integrations')) return null;
+  try {
+    if(!env?.DB) return json({error:'Integration database binding is not configured.'},503);
+    await ensureTable(env);
+
+    if(request.method==='GET' && url.pathname==='/api/integrations'){
+      const tenant=await tenantForRequest(env,request);
+      const {results}=await env.DB.prepare('SELECT provider,external_account_id,display_name,token_expires_at,created_at,updated_at FROM integrations WHERE tenant_id=? ORDER BY provider,updated_at DESC').bind(tenant).all();
+      const rows=results||[];
+      return json({ integrations: INTEGRATIONS.map(i=>({id:i.id,name:i.name,category:i.category,auth:i.auth,configured:configured(env,i),connected:rows.filter(x=>x.provider===i.id).map(x=>({external_account_id:x.external_account_id,display_name:x.display_name,token_expires_at:x.token_expires_at}))})), connected_count:rows.length });
+    }
+
+    const m=url.pathname.match(/^\/api\/integrations\/([^/]+)\/?(connect|callback)?$/);
+    if(!m) return json({error:'Integration endpoint not found.'},404);
+    const provider=m[1], action=m[2]||'';
+    const item=INTEGRATIONS.find(x=>x.id===provider);
+    if(!item) return json({error:'Unknown integration'},404);
+
+    if(action==='connect' && request.method==='GET'){
+      if(!configured(env,item)) return json({error:`${item.name} is not configured yet. Add the required OAuth credentials as Cloudflare secrets.`},503);
+      if(item.auth==='bot-token') return json({error:'This connector uses a bot token rather than OAuth.'},400);
+      const state=stateToken(), tenant=await tenantForRequest(env,request);
+      await env.DB.prepare('INSERT INTO integration_states(state,tenant_id,provider,created_at,expires_at) VALUES(?,?,?,?,?)').bind(state,tenant,provider,now(),now()+600).run();
+      const target=oauthUrl(provider,env,request,state);
+      if(!target) return json({error:'This integration does not have an OAuth authorization URL configured yet.'},501);
+      return Response.redirect(target,302);
+    }
+
+    if(action==='callback' && request.method==='GET'){
+      const state=url.searchParams.get('state'), code=url.searchParams.get('code');
+      if(!state||!code) return json({error:'OAuth callback missing state or code'},400);
+      const row=await env.DB.prepare('SELECT tenant_id,provider,expires_at FROM integration_states WHERE state=?').bind(state).first();
+      if(!row||row.provider!==provider||row.expires_at<now()) return json({error:'OAuth state expired or invalid'},400);
+      const token=await tokenExchange(provider,env,request,code);
+      const external=String(token.user_id||token.team?.id||token.bot_user_id||token.access_token?.slice(-12)||crypto.randomUUID());
+      await env.DB.prepare('INSERT INTO integrations(tenant_id,provider,external_account_id,display_name,access_token,refresh_token,token_expires_at,metadata_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,provider,external_account_id) DO UPDATE SET access_token=excluded.access_token,refresh_token=excluded.refresh_token,token_expires_at=excluded.token_expires_at,metadata_json=excluded.metadata_json,updated_at=excluded.updated_at').bind(row.tenant_id,provider,external,'Connected',token.access_token||'',token.refresh_token||'',token.expires_in?now()+Number(token.expires_in):null,JSON.stringify(token),now(),now()).run();
+      await env.DB.prepare('DELETE FROM integration_states WHERE state=?').bind(state).run();
+      return Response.redirect(new URL('/connections?integration='+encodeURIComponent(provider)+'&connected=1',request.url),302);
+    }
+
+    return json({error:'Unsupported integration operation'},400);
+  } catch (e) {
+    console.error('integrations error', e);
+    return json({error:e?.message || 'Integration service error'},500);
   }
-  const m=url.pathname.match(/^\/api\/integrations\/([^/]+)\/?(connect|callback)?$/); if(!m) return Response.json({error:'Not found'},404);
-  const provider=m[1]; const action=m[2]||''; const item=INTEGRATIONS.find(x=>x.id===provider); if(!item) return Response.json({error:'Unknown integration'},404);
-  if(action==='connect' && request.method==='GET'){
-    if(!configured(env,item)) return Response.json({error:`${item.name} is not configured yet. Add the required OAuth credentials as Cloudflare secrets.`},503);
-    if(item.auth==='bot-token') return Response.json({error:'This connector uses a bot token rather than OAuth.'},400);
-    const state=stateToken(), tenant=await tenantForRequest(env,request); await env.DB.prepare('INSERT INTO integration_states(state,tenant_id,provider,created_at,expires_at) VALUES(?,?,?,?,?)').bind(state,tenant,provider,now(),now()+600).run();
-    const target=oauthUrl(provider,env,request,state); return Response.redirect(target,302);
-  }
-  if(action==='callback' && request.method==='GET'){
-    const state=url.searchParams.get('state'), code=url.searchParams.get('code'); if(!state||!code) return Response.json({error:'OAuth callback missing state or code'},400);
-    const row=await env.DB.prepare('SELECT tenant_id,provider,expires_at FROM integration_states WHERE state=?').bind(state).first(); if(!row||row.provider!==provider||row.expires_at<now()) return Response.json({error:'OAuth state expired or invalid'},400);
-    const token=await tokenExchange(provider,env,request,code); const external=String(token.user_id||token.team?.id||token.bot_user_id||token.access_token?.slice(-12)||crypto.randomUUID());
-    await env.DB.prepare('INSERT INTO integrations(tenant_id,provider,external_account_id,display_name,access_token,refresh_token,token_expires_at,metadata_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,provider,external_account_id) DO UPDATE SET access_token=excluded.access_token,refresh_token=excluded.refresh_token,token_expires_at=excluded.token_expires_at,metadata_json=excluded.metadata_json,updated_at=excluded.updated_at').bind(row.tenant_id,provider,external,'Connected',token.access_token||'',token.refresh_token||'',token.expires_in?now()+Number(token.expires_in):null,JSON.stringify(token),now(),now()).run();
-    await env.DB.prepare('DELETE FROM integration_states WHERE state=?').bind(state).run();
-    return Response.redirect(new URL('/?integration='+encodeURIComponent(provider)+'&connected=1',request.url),302);
-  }
-  return Response.json({error:'Unsupported integration operation'},400);
 }
 
 export { INTEGRATIONS };
