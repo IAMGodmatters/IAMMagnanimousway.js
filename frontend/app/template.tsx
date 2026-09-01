@@ -6,7 +6,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const { pathname, search, origin } = window.location;
+    const { pathname, search } = window.location;
 
     if (pathname !== '/') {
       setReady(true);
@@ -15,27 +15,22 @@ export default function Template({ children }: { children: React.ReactNode }) {
 
     const params = new URLSearchParams(search);
     const access = params.get('access');
-    if (access === 'user' || access === 'owner') {
+    const active = sessionStorage.getItem('iam_session_active');
+    const userToken = localStorage.getItem('iam_account_token');
+    const ownerToken = localStorage.getItem('odin_admin_token');
+
+    const validUserHandoff = access === 'user' && active === 'user' && !!userToken;
+    const validOwnerHandoff = access === 'owner' && active === 'owner' && !!ownerToken;
+
+    if (validUserHandoff || validOwnerHandoff) {
       window.history.replaceState(null, '', '/');
       setReady(true);
       return;
     }
 
-    // Allow the immediate navigation that follows a successful login/signup.
-    // A fresh visit, bookmark, refresh, or manually typed root URL must go
-    // through the login entry screen instead of trusting an old browser token.
-    try {
-      if (document.referrer) {
-        const previous = new URL(document.referrer);
-        const cameFromAuth = previous.origin === origin &&
-          ['/login', '/signup', '/owner-login'].includes(previous.pathname);
-        if (cameFromAuth) {
-          setReady(true);
-          return;
-        }
-      }
-    } catch (_) {}
-
+    // A fresh visit, bookmark, refresh, or manually typed root URL always
+    // starts at secure login. Successful auth uses the explicit one-time
+    // access handoff above, avoiding browser-referrer redirect loops.
     window.location.replace('/login');
   }, []);
 
