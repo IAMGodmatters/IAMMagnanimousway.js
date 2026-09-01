@@ -1,95 +1,22 @@
 'use client';
+import {useEffect,useState} from 'react';
 
-import { useEffect, useState } from 'react';
-
-type Connected = { external_account_id: string; display_name: string; token_expires_at: number | null };
-type Integration = { id: string; name: string; category: string; auth: string; configured: boolean; connected: Connected[] };
-
-const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
-export default function ConnectionsPage() {
-  const [items, setItems] = useState<Integration[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  async function load() {
-    setLoading(true);
-    try {
-      const r = await fetch(`${api}/api/integrations`, { cache: 'no-store' });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Unable to load connections');
-      setItems(d.integrations || []);
-    } catch (e: any) {
-      setError(e.message || 'Unable to load connections');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => { load(); }, []);
-
-  function connect(item: Integration) {
-    window.location.href = `${api}/api/integrations/${item.id}/connect`;
-  }
-
-  const categories: Record<string, string> = {
-    email: 'Email', social: 'Social', messaging: 'Messaging', commerce: 'Commerce', work: 'Work', calendar: 'Calendar'
-  };
-
-  return (
-    <main style={{ minHeight: '100vh', padding: '32px', fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <a href="/" style={{ textDecoration: 'none' }}>← Back to I AM Magnanimous</a>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 20, marginTop: 28 }}>
-          <div>
-            <p style={{ letterSpacing: '.12em', fontSize: 12, opacity: .7 }}>I AM MAGNANIMOUS WAY™</p>
-            <h1 style={{ margin: '6px 0' }}>Connections</h1>
-            <p style={{ maxWidth: 700, opacity: .78 }}>Connect the services your I AM agent is authorized to work with. This is an additive integration hub; the existing AI, CRM, video, and platform architecture remains unchanged.</p>
-          </div>
-          <button onClick={load} disabled={loading} style={{ padding: '10px 16px', borderRadius: 10, cursor: 'pointer' }}>{loading ? 'Refreshing…' : 'Refresh'}</button>
-        </div>
-
-        <section style={{marginTop:26,padding:22,borderRadius:16,border:'1px solid rgba(0,190,255,.35)',background:'rgba(0,170,220,.05)'}}>
-          <small style={{opacity:.7}}>VIDEO</small>
-          <h2 style={{margin:'6px 0'}}>Mux Video</h2>
-          <p style={{opacity:.78,lineHeight:1.6,maxWidth:760}}>Each signed-in user can connect their own Mux account with a Mux Access Token ID + Secret, optionally save their Mux Data environment key, upload directly to Mux, and manage their own assets. Credentials are verified server-side and encrypted before storage.</p>
-          <a href="/mux" style={{display:'inline-block',padding:'11px 15px',borderRadius:10,textDecoration:'none',background:'linear-gradient(90deg,#00b9e8,#6b62ff)',color:'#fff',fontWeight:800}}>Open Mux Connection →</a>
-        </section>
-
-        {error && <div style={{ marginTop: 20, padding: 14, borderRadius: 10, background: 'rgba(220,38,38,.08)' }}>{error}</div>}
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16, marginTop: 28 }}>
-          {items.map(item => {
-            const connected = item.connected.length > 0;
-            const needsSetup = !item.configured;
-            return (
-              <article key={item.id} style={{ border: '1px solid rgba(128,128,128,.25)', borderRadius: 16, padding: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                  <div>
-                    <small style={{ opacity: .65 }}>{categories[item.category] || 'Integration'}</small>
-                    <h2 style={{ fontSize: 20, margin: '5px 0' }}>{item.name}</h2>
-                  </div>
-                  <span style={{ fontSize: 12, whiteSpace: 'nowrap', opacity: .75 }}>{connected ? '● Connected' : needsSetup ? 'Setup needed' : 'Ready to connect'}</span>
-                </div>
-                {connected && <div style={{ margin: '14px 0', fontSize: 14 }}>{item.connected.map(c => <div key={c.external_account_id}>✓ {c.display_name || 'Connected account'}</div>)}</div>}
-                {item.auth === 'bot-token' ? (
-                  <p style={{ fontSize: 13, opacity: .7 }}>Telegram uses a bot token and will be enabled when its server-side secret is configured.</p>
-                ) : (
-                  <button onClick={() => connect(item)} disabled={needsSetup} style={{ width: '100%', padding: '11px 14px', borderRadius: 10, cursor: needsSetup ? 'not-allowed' : 'pointer' }}>
-                    {connected ? 'Connect another account' : needsSetup ? 'Configure provider first' : `Connect ${item.name}`}
-                  </button>
-                )}
-              </article>
-            );
-          })}
-        </div>
-
-        <section style={{ marginTop: 30, padding: 20, borderRadius: 16, border: '1px solid rgba(128,128,128,.2)' }}>
-          <h2 style={{ marginTop: 0 }}>Agent-ready architecture</h2>
-          <p style={{ opacity: .78, lineHeight: 1.6 }}>Connected accounts are stored server-side per tenant. The next agent-action layer can use these authorized connections for permitted tasks such as email, social publishing, messaging, calendar work, customer/commerce operations, CRM synchronization, and Mux video management.</p>
-          <p style={{ opacity: .65, fontSize: 13, marginBottom: 0 }}>OAuth credentials, Mux API credentials, and access tokens are never committed to GitHub.</p>
-        </section>
-      </div>
-    </main>
-  );
+type Connected={external_account_id:string;display_name:string;token_expires_at:number|null};
+type Integration={id:string;name:string;category:string;auth:string;configured:boolean;connected:Connected[]};
+const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
+const icons:Record<string,string>={google:'✉',facebook:'f',instagram:'◎',whatsapp:'◉',shopify:'S',outlook:'✦',slack:'#',discord:'☁',telegram:'➤','google-calendar':'▣'};
+const cats:Record<string,string>={email:'EMAIL',social:'SOCIAL',messaging:'MESSAGING',commerce:'COMMERCE',work:'WORK',calendar:'CALENDAR'};
+async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{error:t||`Request failed (${r.status})`}}}
+export default function Connections(){
+ const[items,setItems]=useState<Integration[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(''),[shop,setShop]=useState(''),[telegram,setTelegram]=useState('');
+ function token(){return localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||''}
+ function headers(json=false){const h:any={Authorization:`Bearer ${token()}`};if(json)h['Content-Type']='application/json';return h}
+ async function load(){setLoading(true);setError('');try{const r=await fetch(`${api}/api/integrations`,{headers:headers(),cache:'no-store'}),d=await read(r);if(r.status===401){location.replace('/login');return}if(!r.ok)throw new Error(d.error||'Unable to load connections.');setItems(d.integrations||[])}catch(e:any){setError(e?.message||'Unable to load connections.')}finally{setLoading(false)}}
+ useEffect(()=>{if(!token()){location.replace('/login');return}load()},[]);
+ async function connect(item:Integration){setBusy(item.id);setError('');try{const body=item.id==='shopify'?{shop_domain:shop}:{};const r=await fetch(`${api}/api/integrations/${item.id}/connect`,{method:'POST',headers:headers(true),body:JSON.stringify(body)}),d=await read(r);if(!r.ok)throw new Error(d.error||'Unable to start connection.');if(d.authorization_url)location.href=d.authorization_url;else throw new Error('Provider did not return an authorization URL.')}catch(e:any){setError(e?.message||'Unable to connect.');setBusy('')}}
+ async function connectTelegram(){setBusy('telegram');setError('');try{const r=await fetch(`${api}/api/integrations/telegram/manual`,{method:'POST',headers:headers(true),body:JSON.stringify({token:telegram})}),d=await read(r);if(!r.ok)throw new Error(d.error||'Unable to connect Telegram.');setTelegram('');await load()}catch(e:any){setError(e?.message||'Unable to connect Telegram.')}finally{setBusy('')}}
+ async function disconnect(id:string){setBusy(id);try{const r=await fetch(`${api}/api/integrations/${id}/disconnect`,{method:'DELETE',headers:headers()}),d=await read(r);if(!r.ok)throw new Error(d.error||'Unable to disconnect.');await load()}catch(e:any){setError(e?.message||'Unable to disconnect.')}finally{setBusy('')}}
+ return <main className="connect"><header><a href="/">← Dashboard</a><span>SECURE TENANT CONNECTION FABRIC</span></header><section className="hero"><div><small>I AM CONNECTIONS</small><h1>Connect the accounts your AI can assist with.</h1><p>Every connection belongs only to the signed-in workspace. New access and refresh tokens are encrypted before storage, and owner connections remain separate from customer connections.</p><div className="heroLinks"><a href="/mux">Mux Video</a><a href="/virtual-assistant">Virtual Assistant</a><a href="/social-media">Social Studio</a></div></div><div className="network"><div className="core">M</div>{['AI','CRM','SOC','VID','MAIL','SHOP'].map((x,i)=><span key={x} className={`n n${i}`}>{x}</span>)}</div></section>{error&&<div className="error">{error}</div>}<section className="summary"><div><b>{items.reduce((n,x)=>n+x.connected.length,0)}</b><span>connected accounts</span></div><div><b>{items.filter(x=>x.configured).length}</b><span>providers ready</span></div><div><b>1:1</b><span>tenant isolation</span></div></section><section className="grid">{items.map(item=>{const connected=item.connected.length>0;const setup=!item.configured;return <article key={item.id} className={connected?'on':''}><div className="cardHead"><div className="icon">{icons[item.id]||'◇'}</div><div><small>{cats[item.category]||'INTEGRATION'}</small><h2>{item.name}</h2></div><span>{connected?'● CONNECTED':setup?'SETUP NEEDED':'READY'}</span></div>{connected&&<div className="accounts">{item.connected.map(c=><div key={c.external_account_id}>✓ {c.display_name||'Connected account'}</div>)}</div>}{item.id==='shopify'&&<input value={shop} onChange={e=>setShop(e.target.value)} placeholder="your-store.myshopify.com"/>}{item.id==='telegram'?<><input type="password" value={telegram} onChange={e=>setTelegram(e.target.value)} placeholder="Telegram bot token"/><button disabled={!telegram||busy==='telegram'} onClick={connectTelegram}>{busy==='telegram'?'VERIFYING…':connected?'CONNECT ANOTHER BOT':'VERIFY & CONNECT TELEGRAM'}</button></>:<button disabled={setup||busy===item.id||(item.id==='shopify'&&!shop)} onClick={()=>connect(item)}>{busy===item.id?'OPENING PROVIDER…':connected?'CONNECT ANOTHER ACCOUNT':setup?'PLATFORM CREDENTIALS REQUIRED':`CONNECT ${item.name.toUpperCase()}`}</button>}{connected&&<button className="disconnect" disabled={busy===item.id} onClick={()=>disconnect(item.id)}>Disconnect {item.name}</button>}</article>})}</section><section className="mux"><div><small>VIDEO CONNECTION</small><h2>Mux gets its own secure media workspace.</h2><p>Connect a personal Mux Video API token pair, save the optional Mux Data environment key, create direct uploads, and manage that tenant's assets.</p></div><a href="/mux">OPEN MUX MEDIA HUB →</a></section><footer><b>SECURITY MODEL</b><span>Bearer-authenticated tenant context • encrypted new provider tokens • OAuth state bound to tenant • credentials never committed to GitHub</span></footer><style jsx>{`
+.connect{min-height:100vh;background:#05090f;color:#e9f6ff;padding:24px 34px 70px;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 75% 20%,rgba(0,193,255,.11),transparent 28%),radial-gradient(circle at 18% 72%,rgba(255,176,45,.07),transparent 28%)}header{max-width:1380px;margin:auto;display:flex;justify-content:space-between;color:#6f8799;font-size:9px;letter-spacing:.18em}header a{color:#9de8ff;text-decoration:none}.hero{max-width:1380px;margin:27px auto 14px;padding:35px;border:1px solid #16354a;border-radius:24px;background:linear-gradient(125deg,#08131d,#05080d);display:grid;grid-template-columns:1.4fr .7fr;align-items:center;overflow:hidden}.hero small,.mux small{font-size:9px;letter-spacing:.2em;color:#5fdcff;font-weight:900}.hero h1{font-size:clamp(38px,6vw,68px);line-height:.98;margin:10px 0}.hero p,.mux p{max-width:760px;color:#8aa3b5;line-height:1.6}.heroLinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.heroLinks a{border:1px solid #24485e;border-radius:999px;padding:8px 11px;color:#b6eaff;text-decoration:none;font-size:10px}.network{height:245px;position:relative}.core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:78px;height:78px;border-radius:50%;display:grid;place-items:center;border:1px solid #e0a53a;color:#ffd47a;font:900 32px Georgia;box-shadow:0 0 40px rgba(255,178,50,.15)}.network:before,.network:after{content:'';position:absolute;inset:30px;border:1px solid #174a63;border-radius:50%}.network:after{inset:65px;border-color:#5c4525}.network span{position:absolute;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;border:1px solid #1e536e;background:#06111a;color:#70dfff;font-size:8px}.n0{left:8%;top:20%}.n1{right:4%;top:30%}.n2{left:16%;bottom:7%}.n3{right:13%;bottom:5%}.n4{left:48%;top:0}.n5{left:46%;bottom:-2%}.error{max-width:1380px;margin:10px auto;padding:12px;border:1px solid #6b3037;background:#220d12;color:#ffb9c1;border-radius:10px}.summary{max-width:1380px;margin:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.summary div{padding:17px;border:1px solid #172c3b;border-radius:14px;background:#071019}.summary b{font-size:27px;color:#68ddff}.summary span{display:block;color:#607989;font-size:10px}.grid{max-width:1380px;margin:12px auto;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.grid article{border:1px solid #172e3d;border-radius:16px;background:#071018;padding:18px}.grid article.on{border-color:#275942}.cardHead{display:grid;grid-template-columns:48px 1fr auto;gap:11px;align-items:center}.icon{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;background:#0c1d29;border:1px solid #1f4a62;color:#6de0ff;font-size:20px}.cardHead small{font-size:8px;letter-spacing:.15em;color:#688295}.cardHead h2{font-size:18px;margin:3px 0}.cardHead>span{font-size:8px;color:#6e8a9b}.on .cardHead>span{color:#75e5a6}.accounts{padding:10px 0;color:#9fc9b2;font-size:10px}.grid input{width:100%;box-sizing:border-box;margin-top:11px;padding:11px;border-radius:9px;border:1px solid #1e4053;background:#040a0f;color:#eaf8ff}.grid button{width:100%;margin-top:10px;padding:11px;border:1px solid #285c76;border-radius:9px;background:#12384b;color:#d9f5ff;font-size:10px;font-weight:900;cursor:pointer}.grid button:disabled{opacity:.45;cursor:not-allowed}.grid .disconnect{background:#1b1012;border-color:#4f292f;color:#d8949c}.mux{max-width:1380px;margin:12px auto;border:1px solid #4c3b20;border-radius:18px;padding:22px;background:linear-gradient(90deg,#0b0e12,#161006);display:flex;justify-content:space-between;align-items:center;gap:20px}.mux h2{margin:5px 0}.mux a{white-space:nowrap;border:1px solid #87632a;border-radius:9px;padding:12px;color:#ffd481;text-decoration:none;font-size:10px;font-weight:900}footer{max-width:1380px;margin:16px auto;color:#607989;font-size:9px;letter-spacing:.08em}footer b{color:#9ab2c2;margin-right:10px}@media(max-width:800px){.connect{padding:18px 14px}.hero,.grid,.summary{grid-template-columns:1fr}.network{display:none}.mux{display:block}.mux a{display:inline-block;margin-top:10px}.cardHead{grid-template-columns:44px 1fr}.cardHead>span{grid-column:2}}
+`}</style></main>
 }
