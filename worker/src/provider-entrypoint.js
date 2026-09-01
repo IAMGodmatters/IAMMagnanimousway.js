@@ -1,4 +1,5 @@
 import app from './entrypoint.js';
+import { handleIntegrations } from './integrations.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 
@@ -69,6 +70,14 @@ function availableProviders(env) { return PROVIDERS.filter(p => p.tier !== 'mete
 
 async function handle(request, env) {
   const url = new URL(request.url);
+
+  // Integrations are handled before the static frontend fallback. Without this
+  // delegation, /api/integrations returned index.html and the frontend saw
+  // "Unexpected token '<'" when it attempted to parse JSON.
+  if (url.pathname.startsWith('/api/integrations')) {
+    const handled = await handleIntegrations(request, env);
+    if (handled) return handled;
+  }
 
   // Keep the public bootstrap endpoints independent. The frontend loads tools,
   // providers, and ads together; an unrelated ads/database failure must not
