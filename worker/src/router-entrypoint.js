@@ -5,6 +5,7 @@ import { handleMux } from './mux-integration.js';
 import { handleIntegrations } from './integrations.js';
 import { handleAssistantIntegrations } from './assistant-integrations-runtime.js';
 import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-credentials.js';
+import { handleKnowledge } from './knowledge-runtime.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -38,6 +39,11 @@ export default {
       if (url.pathname.startsWith('/api/mux')) {
         const muxResponse = await handleMux(request, env);
         if (muxResponse) return withCors(muxResponse);
+      }
+
+      if (url.pathname.startsWith('/api/knowledge')) {
+        const knowledgeResponse = await handleKnowledge(request, env);
+        if (knowledgeResponse) return withCors(knowledgeResponse);
       }
 
       if (url.pathname.startsWith('/api/assistant-integrations')) {
