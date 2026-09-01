@@ -1,5 +1,6 @@
 import adminApp from './admin-compat-entrypoint.js';
 import providerApp from './provider-entrypoint.js';
+import { handleOwnerLeads } from './owner-leads.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -30,6 +31,11 @@ export default {
     }
 
     try {
+      if (url.pathname === '/api/admin/leads') {
+        const leadsResponse = await handleOwnerLeads(request, env);
+        if (leadsResponse) return withCors(leadsResponse);
+      }
+
       // Odin/provider traffic must not depend on legacy auth-table repair. The AI
       // binding is independent of D1, so provider detection and inference should
       // remain available even if an old database row/schema needs repair.
