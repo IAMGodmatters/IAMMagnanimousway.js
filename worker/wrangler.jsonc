@@ -3,6 +3,17 @@
   "name": "iam-magnanimous",
   "main": "src/admin-compat-entrypoint.js",
   "compatibility_date": "2026-08-27",
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "iammagnanimousway.com/*",
+      "zone_name": "iammagnanimousway.com"
+    },
+    {
+      "pattern": "www.iammagnanimousway.com/*",
+      "zone_name": "iammagnanimousway.com"
+    }
+  ],
   "assets": {
     "directory": "../frontend/out",
     "binding": "ASSETS",
@@ -10,6 +21,11 @@
   },
   "ai": { "binding": "AI" },
   "d1_databases": [
-    { "binding": "DB", "database_name": "iam-magnanimous-db", "database_id": "7c9f798b-04d2-443c-a9e9-933c51899771", "migrations_dir": "migrations" }
+    {
+      "binding": "DB",
+      "database_name": "iam-magnanimous-db",
+      "database_id": "7c9f798b-04d2-443c-a9e9-933c51899771",
+      "migrations_dir": "migrations"
+    }
   ]
 }
