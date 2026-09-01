@@ -10,9 +10,10 @@ export default function RootLayout({children}:{children:React.ReactNode}){
         if(publicPaths.indexOf(p)!==-1)return;
         var customer=localStorage.getItem('iam_account_token');
         var owner=localStorage.getItem('odin_admin_token');
-        if(!customer&&!owner)location.replace('/login');
+        var active=sessionStorage.getItem('iam_session_active');
+        if((!customer&&!owner)||!active)location.replace('/login');
       }
-      window.addEventListener('load',guard);setTimeout(guard,150);
+      window.addEventListener('load',guard);setTimeout(guard,120);
     })();`}} />
   </body></html>
 }
