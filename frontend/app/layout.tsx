@@ -52,13 +52,16 @@ export default function RootLayout({children}:{children:React.ReactNode}){
         if(!valid)location.replace('/login');
       }
       function polishCustomerUI(){
-        // Keep legacy internal identifiers for API compatibility while removing
-        // the old public-facing product name from any remaining customer UI.
-        var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+        var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+          var p=n.parentElement;if(!p)return NodeFilter.FILTER_ACCEPT;
+          var tag=p.tagName;if(tag==='SCRIPT'||tag==='STYLE'||tag==='NOSCRIPT'||tag==='TEXTAREA')return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }});
         var nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
         nodes.forEach(function(n){
-          if(!n.nodeValue)return;
-          n.nodeValue=n.nodeValue.replace(/ODIN/g,'I AM OPERATOR').replace(/Odin/g,'I AM Operator');
+          var before=n.nodeValue||'';
+          var after=before.replace(/ODIN/g,'I AM OPERATOR').replace(/Odin/g,'I AM Operator').replace(/Owner \/ Admin/g,'Workspace Admin');
+          if(after!==before)n.nodeValue=after;
         });
         document.querySelectorAll('.metrics article').forEach(function(card){
           if((card.textContent||'').indexOf('READY PROVIDERS')!==-1){
@@ -80,7 +83,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
       }
       guardProtectedRoute();
       polishCustomerUI();
-      new MutationObserver(polishCustomerUI).observe(document.documentElement,{subtree:true,childList:true});
+      new MutationObserver(function(){polishCustomerUI()}).observe(document.body,{subtree:true,childList:true});
       loadAds();
     })();`}} />
   </body></html>
