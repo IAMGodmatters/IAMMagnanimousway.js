@@ -29,15 +29,18 @@ const structuredData={
 
 export default function RootLayout({children}:{children:React.ReactNode}){
   return <html lang="en"><body>{children}<PlatformChrome/><GlobalTools/>
+    <style>{`html[data-iam-public="true"] .iam-intelligence-art,html[data-iam-public="true"] .iam-command-button,html[data-iam-public="true"] .iam-command-menu,html[data-iam-public="true"] .iam-va-button,html[data-iam-public="true"] .iam-nudge,html[data-iam-public="true"] .iam-va-panel,html[data-iam-public="true"] .iam-global-tools{display:none!important}`}</style>
     <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
     <script dangerouslySetInnerHTML={{__html:`(function(){
       function normalize(path){
         var clean=(path||'/').replace(/\\/+$/,'');
         return clean||'/';
       }
+      var publicPaths=['/solutions','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise','/security'];
+      var currentPath=normalize(location.pathname);
+      if(publicPaths.indexOf(currentPath)!==-1)document.documentElement.setAttribute('data-iam-public','true');
       function guardProtectedRoute(){
-        var p=normalize(location.pathname);
-        var publicPaths=['/solutions','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise','/security'];
+        var p=currentPath;
         var customer=localStorage.getItem('iam_account_token');
         var owner=localStorage.getItem('odin_admin_token');
         var active=sessionStorage.getItem('iam_session_active');
