@@ -128,10 +128,17 @@ jobs:
           plans=data.get('plans') or []
           assert any(p.get('id') == 'free' and p.get('price_usd') == 0 for p in plans), data
           assert any(p.get('id') == 'business' and p.get('price_usd') == 49 for p in plans), data
-          if data.get('business_checkout_configured'):
-              print('Stripe Full Business checkout is configured.')
-          else:
-              print('::warning::Stripe Full Business checkout is intentionally disabled until STRIPE_SECRET_KEY is installed as a protected Cloudflare Worker secret.')
+          assert data.get('business_checkout_configured') is True, data
+          print('Stripe Full Business checkout is configured.')
+          PY
+
+          check_get "Secure bootstrap public key" "$BASE_URL/api/bootstrap/public-key" /tmp/bootstrap-key.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/bootstrap-key.json'))
+          assert data.get('algorithm') == 'RSA-OAEP-2048-SHA256', data
+          assert data.get('public_spki_b64'), data
+          print('BOOTSTRAP_PUBLIC_SPKI_B64='+data['public_spki_b64'])
           PY
 
           email="deploy-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
@@ -192,6 +199,23 @@ jobs:
           assert user.get('tenant_id'), data
           PY
 
+          status=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/checkout" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{}')
+          if [ "$status" != "200" ]; then
+            echo "Payment Link checkout returned HTTP $status"
+            cat /tmp/checkout.json || true
+            exit 1
+          fi
+          python - "$tenant_id" <<'PY'
+          import json,sys,urllib.parse
+          tenant=sys.argv[1]
+          data=json.load(open('/tmp/checkout.json'))
+          url=data.get('url','')
+          assert url.startswith('https://buy.stripe.com/'), data
+          query=urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+          assert query.get('client_reference_id') == [tenant], data
+          assert data.get('mode') == 'payment_link', data
+          PY
+
           status=$(curl -sS -o /tmp/voice-agent.json -w '%{http_code}' "$BASE_URL/api/voice-agent/config" -H "Authorization: Bearer $token")
           if [ "$status" != "200" ]; then
             echo "AI Receptionist config returned HTTP $status"
@@ -216,4 +240,4 @@ jobs:
           assert data.get('workers_ai_bound') is True, data
           PY
 
-          echo "Production health, Odin, AI Receptionist, Free/$49 plan definitions, signup, owner permissions, session creation, and consent recording passed."
+          echo "Production health, Odin, AI Receptionist, Stripe Payment Link checkout, Free/$49 plan definitions, signup, owner permissions, session creation, and consent recording passed."
