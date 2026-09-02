@@ -1,12 +1,14 @@
 name: Business Email Smoke
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: ["Build and Deploy I AM"]
+    types: [completed]
   workflow_dispatch:
 
 jobs:
   smoke:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Verify Business Email page
@@ -15,7 +17,10 @@ jobs:
           BASE="https://iam-magnanimous.iam-magnanimous.workers.dev"
           curl -fsSL "$BASE/business-email" -o /tmp/business-email.html
           test -s /tmp/business-email.html
-          grep -qi "Business Email Center" /tmp/business-email.html
+          grep -qi "Business Email Center" /tmp/business-email.html || { echo "Business Email page is missing its product identity."; exit 1; }
+          grep -qi "FROM BUSINESS IDEA TO THE MEETING" /tmp/business-email.html || { echo "Business Email page is missing the idea-to-meeting journey."; exit 1; }
+          grep -qi "Professionalize the identity" /tmp/business-email.html || { echo "Business Email page is missing professional identity positioning."; exit 1; }
+          echo "Business Email page and launch journey passed."
       - name: Verify domain email checker
         run: |
           set -euo pipefail
