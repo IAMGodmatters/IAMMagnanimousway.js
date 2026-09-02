@@ -9,6 +9,7 @@ import { handleKnowledge } from './knowledge-runtime.js';
 import { handleBilling } from './billing-runtime.js';
 import { handleBillingSupport } from './billing-support-runtime.js';
 import { handleVoiceAgent } from './voice-agent-runtime.js';
+import { handleAgentMesh } from './agent-mesh-runtime.js';
 import { handleBootstrap } from './secure-bootstrap.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { handlePaymentLinkBilling, augmentBillingResponse } from './payment-link-runtime.js';
@@ -39,6 +40,7 @@ function needsProviderRuntime(pathname) {
   return pathname === '/api/plans' ||
     pathname.startsWith('/api/billing') ||
     pathname.startsWith('/api/voice-agent') ||
+    pathname.startsWith('/api/agents') ||
     pathname === '/api/monetization/config';
 }
 
@@ -58,6 +60,9 @@ export default {
       if (billingSupportResponse) return withCors(billingSupportResponse);
 
       const providerEnv = needsProviderRuntime(url.pathname) ? await getProviderRuntimeEnv(env) : env;
+
+      const agentResponse = await handleAgentMesh(request, providerEnv);
+      if (agentResponse) return withCors(agentResponse);
 
       // Monetization has its own public, sanitized response contract. Route it
       // before the legacy billing compatibility handler so AdSense slot and
