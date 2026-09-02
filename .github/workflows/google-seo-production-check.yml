@@ -1,0 +1,52 @@
+name: Google SEO Production Verification
+
+on:
+  workflow_run:
+    workflows: ["Build and Deploy I AM"]
+    types: [completed]
+
+jobs:
+  verify-google-seo:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify branded domain, sitemap, robots and reviews
+        shell: bash
+        env:
+          SITE: https://iammagnanimousway.com
+        run: |
+          set -euo pipefail
+
+          status=$(curl -LsS -o /tmp/home.html -w '%{http_code}' "$SITE/")
+          [ "$status" = "200" ] || { echo "Branded homepage returned $status"; exit 1; }
+          grep -qi "I AM Magnanimous Way" /tmp/home.html
+
+          status=$(curl -LsS -o /tmp/robots.txt -w '%{http_code}' "$SITE/robots.txt")
+          [ "$status" = "200" ] || { echo "robots.txt returned $status"; exit 1; }
+          grep -q "Sitemap: https://iammagnanimousway.com/sitemap.xml" /tmp/robots.txt
+
+          status=$(curl -LsS -o /tmp/sitemap.xml -w '%{http_code}' "$SITE/sitemap.xml")
+          [ "$status" = "200" ] || { echo "sitemap.xml returned $status"; exit 1; }
+          grep -q "https://iammagnanimousway.com/reviews/" /tmp/sitemap.xml
+          grep -q "https://iammagnanimousway.com/free-tools/" /tmp/sitemap.xml
+          grep -q "https://iammagnanimousway.com/ai-apps/" /tmp/sitemap.xml
+
+          status=$(curl -LsS -o /tmp/reviews.html -w '%{http_code}' "$SITE/reviews/")
+          [ "$status" = "200" ] || { echo "Reviews page returned $status"; exit 1; }
+          grep -qi "Reviews" /tmp/reviews.html
+
+          status=$(curl -LsS -o /tmp/reviews.json -w '%{http_code}' "$SITE/api/support/reviews")
+          [ "$status" = "200" ] || { echo "Public reviews API returned $status"; cat /tmp/reviews.json; exit 1; }
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/reviews.json'))
+          assert data.get('moderated') is True, data
+          assert isinstance(data.get('reviews'), list), data
+          assert isinstance(data.get('summary'), dict), data
+          PY
+
+          status=$(curl -LsS -o /tmp/health.json -w '%{http_code}' "$SITE/health")
+          [ "$status" = "200" ] || { echo "Branded-domain health returned $status"; cat /tmp/health.json; exit 1; }
+
+          echo "Branded domain, Google crawl files, public review page/API and health endpoint passed in production."
