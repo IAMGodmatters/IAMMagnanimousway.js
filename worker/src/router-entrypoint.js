@@ -8,6 +8,7 @@ import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-
 import { handleKnowledge } from './knowledge-runtime.js';
 import { handleBilling } from './billing.js';
 import { handleVoiceAgents } from './voice-agents.js';
+import { handleLiveAvatar } from './live-avatar.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -73,6 +74,14 @@ export default {
         const voiceEnv = await getIntegrationRuntimeEnv(env);
         const voiceResponse = await handleVoiceAgents(request, voiceEnv);
         if (voiceResponse) return withCors(voiceResponse);
+      }
+
+      // LiveAvatar session tokens are minted server-side so the provider API key
+      // never enters the browser or the static frontend bundle.
+      if (url.pathname.startsWith('/api/live-avatar')) {
+        const avatarEnv = await getIntegrationRuntimeEnv(env);
+        const avatarResponse = await handleLiveAvatar(request, avatarEnv);
+        if (avatarResponse) return withCors(avatarResponse);
       }
 
       if (url.pathname.startsWith('/api/integrations')) {
