@@ -18,40 +18,47 @@ jobs:
         run: |
           set -euo pipefail
 
+          must_contain() {
+            local file="$1" needle="$2" label="$3"
+            grep -qi "$needle" "$file" || { echo "Missing expected production content: $label"; exit 1; }
+            echo "Verified: $label"
+          }
+
           status=$(curl -LsS -o /tmp/home.html -w '%{http_code}' "$SITE/")
           [ "$status" = "200" ] || { echo "Branded production homepage returned $status"; exit 1; }
-          grep -qi "I AM Magnanimous Way" /tmp/home.html
+          must_contain /tmp/home.html "I AM Magnanimous Way" "branded homepage"
 
           status=$(curl -LsS -o /tmp/solutions.html -w '%{http_code}' "$SITE/solutions/")
           [ "$status" = "200" ] || { echo "Solutions page returned $status"; exit 1; }
-          grep -qi "I AM Operator" /tmp/solutions.html
-          grep -qi "Run the business" /tmp/solutions.html
+          must_contain /tmp/solutions.html "I AM Operator" "I AM Operator positioning"
+          must_contain /tmp/solutions.html "Run the business" "operator-led Solutions hero"
           if grep -qi "Opening secure access" /tmp/solutions.html; then echo "Solutions is still exposing the secure-loading shell to crawlers"; exit 1; fi
           if grep -qi "0 providers ready" /tmp/solutions.html; then echo "Public Solutions page exposes provider diagnostics"; exit 1; fi
+          echo "Verified: Solutions is crawlable without secure-loading/provider-diagnostic copy"
 
           status=$(curl -LsS -o /tmp/security.html -w '%{http_code}' "$SITE/security/")
           [ "$status" = "200" ] || { echo "Data & Security page returned $status"; exit 1; }
-          grep -qi "Data & Security" /tmp/security.html
-          grep -qi "Workspace isolation" /tmp/security.html
+          must_contain /tmp/security.html "Trust should be understandable" "Data & Security page"
+          must_contain /tmp/security.html "Workspace isolation" "workspace-isolation trust content"
 
           status=$(curl -LsS -o /tmp/robots.txt -w '%{http_code}' "$SITE/robots.txt")
           [ "$status" = "200" ] || { echo "robots.txt returned $status"; exit 1; }
-          grep -q "Sitemap: https://iammagnanimousway.com/sitemap.xml" /tmp/robots.txt
-          grep -q "Disallow: /ai-chat/" /tmp/robots.txt
-          grep -q "Disallow: /crm/" /tmp/robots.txt
+          must_contain /tmp/robots.txt "Sitemap: https://iammagnanimousway.com/sitemap.xml" "sitemap declaration"
+          must_contain /tmp/robots.txt "Disallow: /ai-chat/" "AI workspace crawl boundary"
+          must_contain /tmp/robots.txt "Disallow: /crm/" "CRM crawl boundary"
 
           status=$(curl -LsS -o /tmp/sitemap.xml -w '%{http_code}' "$SITE/sitemap.xml")
           [ "$status" = "200" ] || { echo "sitemap.xml returned $status"; exit 1; }
-          grep -q "https://iammagnanimousway.com/solutions/" /tmp/sitemap.xml
-          grep -q "https://iammagnanimousway.com/security/" /tmp/sitemap.xml
-          grep -q "https://iammagnanimousway.com/reviews/" /tmp/sitemap.xml
-          grep -q "https://iammagnanimousway.com/free-tools/" /tmp/sitemap.xml
-          grep -q "https://iammagnanimousway.com/ai-apps/" /tmp/sitemap.xml
+          must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/solutions/" "Solutions sitemap entry"
+          must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/security/" "Data & Security sitemap entry"
+          must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/reviews/" "Reviews sitemap entry"
+          must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/free-tools/" "Free Tools sitemap entry"
+          must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/ai-apps/" "AI Apps sitemap entry"
 
           status=$(curl -LsS -o /tmp/reviews.html -w '%{http_code}' "$SITE/reviews/")
           [ "$status" = "200" ] || { echo "Reviews page returned $status"; exit 1; }
-          grep -qi "Reviews" /tmp/reviews.html
-          grep -qi "I AM Magnanimous Way" /tmp/reviews.html
+          must_contain /tmp/reviews.html "Reviews" "Reviews page"
+          must_contain /tmp/reviews.html "I AM Magnanimous Way" "Reviews branding"
 
           status=$(curl -LsS -o /tmp/reviews.json -w '%{http_code}' "$SITE/api/support/reviews")
           [ "$status" = "200" ] || { echo "Public reviews API returned $status"; cat /tmp/reviews.json; exit 1; }
@@ -62,6 +69,7 @@ jobs:
           assert isinstance(data.get('reviews'), list), data
           assert isinstance(data.get('summary'), dict), data
           PY
+          echo "Verified: moderated public reviews API"
 
           status=$(curl -LsS -o /tmp/health.json -w '%{http_code}' "$SITE/health")
           [ "$status" = "200" ] || { echo "Production health returned $status"; cat /tmp/health.json; exit 1; }
