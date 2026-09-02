@@ -172,7 +172,7 @@ async function tenantForStripeObject(env, object) {
   const subscriptionId = String(
     object?.subscription ||
     object?.parent?.subscription_details?.subscription ||
-    object?.id?.startsWith?.('sub_') ? object.id : ''
+    (String(object?.id || '').startsWith('sub_') ? object.id : '')
   ).trim();
   if (subscriptionId) {
     const row = await env.DB.prepare('SELECT tenant_id FROM subscriptions WHERE stripe_subscription_id=?').bind(subscriptionId).first();
