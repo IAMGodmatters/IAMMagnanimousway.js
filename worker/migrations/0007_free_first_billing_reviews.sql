@@ -1,7 +1,7 @@
 -- Build 5: preserve free access and add one optional Full Business subscription.
 -- Existing CRM, assistant, lead-phone, and call-center tables are not replaced.
-
-ALTER TABLE tenants ADD COLUMN plan TEXT NOT NULL DEFAULT 'free';
+-- The runtime adds tenants.plan with duplicate-column handling because some earlier
+-- deployed builds may already have added it before this numbered migration existed.
 
 CREATE TABLE IF NOT EXISTS billing_subscriptions (
   tenant_id TEXT PRIMARY KEY,
