@@ -12,6 +12,7 @@ import { handleBootstrap } from './secure-bootstrap.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { handlePaymentLinkBilling, augmentBillingResponse } from './payment-link-runtime.js';
 import { requirePlatformOwner } from './platform-owner-guard.js';
+import { handleMonetization } from './monetization-runtime.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -36,7 +37,8 @@ function isOdinRoute(pathname) {
 function needsProviderRuntime(pathname) {
   return pathname === '/api/plans' ||
     pathname.startsWith('/api/billing') ||
-    pathname.startsWith('/api/voice-agent');
+    pathname.startsWith('/api/voice-agent') ||
+    pathname === '/api/monetization/config';
 }
 
 export default {
@@ -58,6 +60,9 @@ export default {
 
       const billingResponse = await handleBilling(request, providerEnv);
       if (billingResponse) return withCors(await augmentBillingResponse(request, billingResponse, providerEnv));
+
+      const monetizationResponse = await handleMonetization(request, providerEnv);
+      if (monetizationResponse) return withCors(monetizationResponse);
 
       const voiceAgentResponse = await handleVoiceAgent(request, providerEnv);
       if (voiceAgentResponse) return withCors(voiceAgentResponse);
