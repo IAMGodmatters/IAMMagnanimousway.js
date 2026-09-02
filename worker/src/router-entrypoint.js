@@ -39,6 +39,7 @@ function withCors(response) {
 
 function isOdinRoute(pathname) {
   return pathname === '/api/providers' ||
+    pathname === '/api/operator/capabilities' ||
     pathname === '/api/odin/health' ||
     pathname === '/api/chat' ||
     pathname === '/api/tools';
