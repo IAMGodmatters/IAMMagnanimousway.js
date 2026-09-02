@@ -55,6 +55,14 @@ async function recordConsent(env, user, body) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // Keep one canonical public hostname for Google and users. A 308 preserves
+    // the path, query string, and HTTP method if an old www link is used.
+    if (url.hostname.toLowerCase() === 'www.iammagnanimousway.com') {
+      url.hostname = 'iammagnanimousway.com';
+      return Response.redirect(url.toString(), 308);
+    }
+
     if (request.method === 'OPTIONS') return routerApp.fetch(request, env, ctx);
 
     if (url.pathname === '/api/auth/signup' && request.method === 'POST') {
