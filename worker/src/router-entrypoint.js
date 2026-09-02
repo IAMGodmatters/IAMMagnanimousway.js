@@ -6,6 +6,7 @@ import { handleIntegrations } from './integrations.js';
 import { handleAssistantIntegrations } from './assistant-integrations-runtime.js';
 import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-credentials.js';
 import { handleKnowledge } from './knowledge-runtime.js';
+import { handleProfessionalWorkspace } from './professional-workspace-runtime.js';
 import { handleBilling } from './billing-runtime.js';
 import { handleBillingSupport } from './billing-support-runtime.js';
 import { handleVoiceAgent } from './voice-agent-runtime.js';
@@ -84,13 +85,24 @@ export default {
         if (muxResponse) return withCors(muxResponse);
       }
 
+      // Professional work, knowledge search and connected accounts all use the
+      // same encrypted owner-vault runtime so search/OAuth credentials can be
+      // configured once and shared safely across customer workspaces.
+      if (url.pathname.startsWith('/api/professional')) {
+        const professionalEnv = await getIntegrationRuntimeEnv(env);
+        const professionalResponse = await handleProfessionalWorkspace(request, professionalEnv);
+        if (professionalResponse) return withCors(professionalResponse);
+      }
+
       if (url.pathname.startsWith('/api/knowledge')) {
-        const knowledgeResponse = await handleKnowledge(request, env);
+        const knowledgeEnv = await getIntegrationRuntimeEnv(env);
+        const knowledgeResponse = await handleKnowledge(request, knowledgeEnv);
         if (knowledgeResponse) return withCors(knowledgeResponse);
       }
 
       if (url.pathname.startsWith('/api/assistant-integrations')) {
-        const assistantResponse = await handleAssistantIntegrations(request, env);
+        const assistantEnv = await getIntegrationRuntimeEnv(env);
+        const assistantResponse = await handleAssistantIntegrations(request, assistantEnv);
         if (assistantResponse) return withCors(assistantResponse);
       }
 
