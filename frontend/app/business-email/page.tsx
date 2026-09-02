@@ -9,6 +9,7 @@ export default function BusinessEmailPage(){
   return <>
     <section style={{maxWidth:1380,margin:'0 auto',padding:'26px 32px 0',fontFamily:'Inter,system-ui,sans-serif',background:'#05090e',color:'#edfaff'}}>
       <div style={{border:'1px solid #5a4825',borderRadius:20,padding:26,background:'linear-gradient(120deg,#17150f,#071019)'}}>
+        <div style={{fontSize:9,letterSpacing:'.18em',fontWeight:900,color:'#69ddff',marginBottom:8}}>BUSINESS EMAIL CENTER • PROFESSIONAL IDENTITY</div>
         <div style={{fontSize:9,letterSpacing:'.18em',fontWeight:900,color:'#e7b756'}}>FROM BUSINESS IDEA TO THE MEETING</div>
         <h1 style={{fontFamily:'Georgia,serif',fontSize:'clamp(30px,4vw,48px)',margin:'8px 0 10px'}}>A professional email should be part of the business launch—not an isolated setup task.</h1>
         <p style={{maxWidth:1000,color:'#9aabb5',lineHeight:1.65}}>Start with a researched and challenged business case, establish a professional domain and mailbox, connect it to I AM with your permission, then use the CRM and assistant for organized outreach and follow-up.</p>
