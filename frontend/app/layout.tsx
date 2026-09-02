@@ -22,9 +22,12 @@ export default function RootLayout({children}:{children:React.ReactNode}){
       }
       function loadAds(){
         fetch('/api/monetization/config',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(c){
-          if(!c||!c.ads_enabled||!c.adsense_client||document.getElementById('iam-adsense'))return;
+          if(!c)return;
+          var configured=!!(c.adsense_configured||c.auto_ads_ready||c.ads_enabled);
+          var client=c.adsense_client_id||c.adsense_client||'';
+          if(!configured||!client||document.getElementById('iam-adsense'))return;
           var s=document.createElement('script');s.id='iam-adsense';s.async=true;s.crossOrigin='anonymous';
-          s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+encodeURIComponent(c.adsense_client);
+          s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+encodeURIComponent(client);
           document.head.appendChild(s);
         }).catch(function(){});
       }
