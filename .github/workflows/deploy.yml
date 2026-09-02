@@ -58,7 +58,7 @@ jobs:
           BASE_URL: https://iam-magnanimous.iam-magnanimous.workers.dev
         shell: bash
         run: |
-          set -euo pipefail
+          set -eo pipefail
 
           check_get() {
             local name="$1" url="$2" output="$3"
@@ -149,4 +149,13 @@ jobs:
           assert user.get('tenant_id'), data
           PY
 
-          echo "Production health, Free/$49 plan definitions, signup, effective owner permissions, session creation, and consent recording passed."
+          check_get "Odin health endpoint" "$BASE_URL/api/odin/health" /tmp/odin.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/odin.json'))
+          assert data.get('ok') is True, data
+          assert data.get('odin') == 'online', data
+          assert data.get('workers_ai_bound') is True, data
+          PY
+
+          echo "Production health, Odin, Free/$49 plan definitions, signup, owner permissions, session creation, and consent recording passed."
