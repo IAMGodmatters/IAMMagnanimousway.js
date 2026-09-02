@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /owner-center/
+Disallow: /owner-billing/
+Disallow: /owner-feedback/
+Disallow: /owner-integrations/
+Disallow: /owner-leads/
+Disallow: /owner-login/
+Disallow: /owner-reviews/
+Disallow: /connections/
+Disallow: /login/
+Disallow: /signup/
+Disallow: /assistant-actions/
+Disallow: /finance-people/
+Disallow: /crm/
+Disallow: /phone/
+Disallow: /support/
+
+Sitemap: https://iammagnanimousway.com/sitemap.xml
