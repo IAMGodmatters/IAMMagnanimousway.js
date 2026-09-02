@@ -77,11 +77,20 @@ export default {
       if (data?.user?.id) {
         try {
           await recordConsent(env, data.user, body);
+          // The D1 owner-role trigger runs during signup. Return the effective
+          // database role rather than the legacy pre-trigger "member" value so
+          // the client immediately sees the permissions it actually has.
+          const effective = await env.DB.prepare('SELECT role,tenant_id,active FROM users WHERE id=?').bind(String(data.user.id)).first();
+          if (effective) {
+            data.user.role = String(effective.role || data.user.role || 'member');
+            data.user.tenant_id = String(effective.tenant_id || data.user.tenant_id || '');
+            data.user.active = Number(effective.active ?? data.user.active ?? 1);
+          }
         } catch (error) {
           return json({ detail: 'Your account was created, but the consent record could not be saved. Please contact support before using the account.', code: 'CONSENT_RECORD_FAILED' }, 500);
         }
       }
-      return response;
+      return data ? json(data, response.status) : response;
     }
 
     return routerApp.fetch(request, env, ctx);
