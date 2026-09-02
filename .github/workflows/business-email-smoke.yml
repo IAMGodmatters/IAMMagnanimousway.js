@@ -15,7 +15,7 @@ jobs:
           BASE="https://iam-magnanimous.iam-magnanimous.workers.dev"
           curl -fsSL "$BASE/business-email" -o /tmp/business-email.html
           test -s /tmp/business-email.html
-          grep -q "I AM BUSINESS EMAIL NEXUS" /tmp/business-email.html
+          grep -qi "Business Email Center" /tmp/business-email.html
       - name: Verify domain email checker
         run: |
           set -euo pipefail
