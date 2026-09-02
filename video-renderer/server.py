@@ -2,6 +2,7 @@ from pathlib import Path
 import base64
 import json
 import subprocess
+import textwrap
 import urllib.error
 import urllib.request
 import uuid
@@ -20,8 +21,21 @@ class VideoRequest(BaseModel):
     text: str = Field(default="Faith can move mountains.", max_length=3000)
     title: str = Field(default="I AM Magnanimous Way™", max_length=200)
     width: int = Field(default=1280, ge=320, le=1920)
-    height: int = Field(default=720, ge=240, le=1080)
+    height: int = Field(default=720, ge=240, le=1920)
     duration: int = Field(default=10, ge=1, le=60)
+
+
+def wrap_for_video(value: str, max_chars: int) -> str:
+    lines = []
+    for raw_line in (value or "").splitlines() or [""]:
+        wrapped = textwrap.wrap(
+            raw_line,
+            width=max_chars,
+            break_long_words=False,
+            break_on_hyphens=False,
+        )
+        lines.extend(wrapped or [""])
+    return "\n".join(lines)
 
 
 def mux_configured():
@@ -84,10 +98,12 @@ def render_video(req: VideoRequest):
     outfile = OUT / f"{job}.mp4"
     title_file = OUT / f"{job}-title.txt"
     text_file = OUT / f"{job}-text.txt"
-    title_file.write_text(req.title, encoding="utf-8")
-    text_file.write_text(req.text, encoding="utf-8")
     title_size = max(28, req.width // 24)
     body_size = max(24, req.width // 30)
+    title_chars = max(18, int(req.width / max(1, title_size * 0.58)))
+    body_chars = max(24, int(req.width / max(1, body_size * 0.56)))
+    title_file.write_text(wrap_for_video(req.title, title_chars), encoding="utf-8")
+    text_file.write_text(wrap_for_video(req.text, body_chars), encoding="utf-8")
     font_bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     font_regular = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
     vf = (
