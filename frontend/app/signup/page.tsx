@@ -40,7 +40,7 @@ export default function SignupPage() {
       localStorage.setItem('iam_account_token', d.token);
       localStorage.removeItem('odin_admin_token');
       sessionStorage.setItem('iam_session_active','user');
-      window.location.replace('/?access=user');
+      window.location.replace('/start');
     } catch (err: any) { setError(err?.message || 'Unable to create your account.'); }
     finally { setBusy(false); }
   }
@@ -52,7 +52,7 @@ export default function SignupPage() {
         <div style={styles.mark}>✦</div>
         <div style={styles.eyebrow}>I AM MAGNANIMOUS WAY™</div>
         <h1 style={styles.title}>Create your I AM account</h1>
-        <p style={styles.sub}>Create your own login credentials and private workspace. After signup, you will enter your dashboard immediately.</p>
+        <p style={styles.sub}>Create your own login and private workspace. After signup, we will show you a simple Start Here guide so you can choose what you need without learning the whole platform first.</p>
         <form onSubmit={submit} style={styles.form}>
           <input required autoComplete="name" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} style={styles.input} />
           <input autoComplete="organization" placeholder="Workspace or business name (optional)" value={workspace} onChange={e => setWorkspace(e.target.value)} style={styles.input} />
