@@ -6,6 +6,33 @@ const json = (data, status = 200) => Response.json(data, { status, headers: { 'c
 
 export const PLATFORM_CREDENTIAL_GROUPS = [
   {
+    id: 'stripe',
+    name: 'Stripe Advanced Billing',
+    providers: ['stripe'],
+    fields: [
+      { key: 'STRIPE_SECRET_KEY', label: 'Stripe Secret API Key (optional)', secret: true, required: false },
+      { key: 'STRIPE_WEBHOOK_SECRET', label: 'Stripe Webhook Signing Secret', secret: true, required: false }
+    ]
+  },
+  {
+    id: 'twilio',
+    name: 'Twilio Voice',
+    providers: ['twilio'],
+    fields: [
+      { key: 'TWILIO_ACCOUNT_SID', label: 'Twilio Account SID', secret: false, required: true },
+      { key: 'TWILIO_AUTH_TOKEN', label: 'Twilio Auth Token', secret: true, required: true },
+      { key: 'TWILIO_PHONE_NUMBER', label: 'Twilio Phone Number (E.164)', secret: false, required: true }
+    ]
+  },
+  {
+    id: 'tavus',
+    name: 'Tavus Human Video',
+    providers: ['tavus'],
+    fields: [
+      { key: 'TAVUS_API_KEY', label: 'Tavus API Key', secret: true, required: true }
+    ]
+  },
+  {
     id: 'meta',
     name: 'Meta',
     providers: ['facebook', 'instagram', 'whatsapp'],
@@ -184,28 +211,35 @@ function callbackMap(request) {
 async function statusPayload(request, env) {
   const rows = await vaultRows(env);
   const saved = new Map(rows.map(row => [row.credential_key, row]));
-  const groups = PLATFORM_CREDENTIAL_GROUPS.map(group => ({
-    id: group.id,
-    name: group.name,
-    providers: group.providers,
-    configured: group.fields.filter(field => field.required).every(field => {
-      const direct = typeof env?.[field.key] === 'string' && env[field.key].trim();
-      return Boolean(direct || saved.has(field.key));
-    }),
-    fields: group.fields.map(field => {
-      const direct = typeof env?.[field.key] === 'string' && env[field.key].trim();
-      const row = saved.get(field.key);
-      return {
-        key: field.key,
-        label: field.label,
-        secret: field.secret,
-        required: field.required,
-        set: Boolean(direct || row),
-        source: direct ? 'cloudflare' : row ? 'vault' : 'missing',
-        updated_at: row?.updated_at || null
-      };
-    })
-  }));
+  const isSet = field => {
+    const direct = typeof env?.[field.key] === 'string' && env[field.key].trim();
+    return Boolean(direct || saved.has(field.key));
+  };
+  const groups = PLATFORM_CREDENTIAL_GROUPS.map(group => {
+    const requiredFields = group.fields.filter(field => field.required);
+    const configured = requiredFields.length
+      ? requiredFields.every(isSet)
+      : group.fields.some(isSet);
+    return {
+      id: group.id,
+      name: group.name,
+      providers: group.providers,
+      configured,
+      fields: group.fields.map(field => {
+        const direct = typeof env?.[field.key] === 'string' && env[field.key].trim();
+        const row = saved.get(field.key);
+        return {
+          key: field.key,
+          label: field.label,
+          secret: field.secret,
+          required: field.required,
+          set: Boolean(direct || row),
+          source: direct ? 'cloudflare' : row ? 'vault' : 'missing',
+          updated_at: row?.updated_at || null
+        };
+      })
+    };
+  });
   return { groups, callbacks: callbackMap(request) };
 }
 
