@@ -19,6 +19,7 @@ import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { handlePaymentLinkBilling, augmentBillingResponse } from './payment-link-runtime.js';
 import { requirePlatformOwner } from './platform-owner-guard.js';
 import { handleMonetization } from './monetization-runtime.js';
+import { handleBusinessEmail } from './business-email-runtime.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -55,6 +56,8 @@ export default {
     try {
       const bootstrapResponse = await handleBootstrap(request, env);
       if (bootstrapResponse) return withCors(bootstrapResponse);
+      const businessEmailResponse = await handleBusinessEmail(request, env);
+      if (businessEmailResponse) return withCors(businessEmailResponse);
       const billingSupportResponse = await handleBillingSupport(request, env);
       if (billingSupportResponse) return withCors(billingSupportResponse);
       const providerEnv = needsProviderRuntime(url.pathname) ? await getProviderRuntimeEnv(env) : env;
