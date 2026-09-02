@@ -15,13 +15,32 @@ export default function PricingPage(){
    fetch(`${api}/api/plans`,{cache:'no-store'}).then(read),
    fetch(`${api}/api/reviews`,{cache:'no-store'}).then(read)
   ]).then(([p,r])=>{setPlans(p.plans||[]);setBillingReady(!!p.business_checkout_configured);setReviews(r.reviews||[])}).catch(()=>{});
-  if(t)fetch(`${api}/api/billing/status`,{headers:{Authorization:`Bearer ${t}`},cache:'no-store'}).then(read).then(d=>{if(d.plan)setCurrentPlan(d.plan);if(typeof d.billing_configured==='boolean')setBillingReady(d.billing_configured)}).catch(()=>{});
-  const q=new URLSearchParams(location.search);if(q.get('checkout')==='success')setMessage('Payment received. Stripe is confirming your Full Business subscription.');if(q.get('checkout')==='cancelled')setMessage('Checkout was cancelled. Your free access is still available.');
+
+  const loadStatus=()=>t?fetch(`${api}/api/billing/status`,{headers:{Authorization:`Bearer ${t}`},cache:'no-store'}).then(read).then(d=>{if(d.plan)setCurrentPlan(d.plan);if(typeof d.billing_configured==='boolean')setBillingReady(d.billing_configured)}).catch(()=>{}):Promise.resolve();
+  const q=new URLSearchParams(location.search),checkoutState=q.get('checkout'),sessionId=q.get('session_id')||'';
+  if(checkoutState==='success'){
+   if(t&&sessionId){
+    setMessage('Confirming your payment with Stripe…');
+    fetch(`${api}/api/billing/confirm`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${t}`},body:JSON.stringify({session_id:sessionId})})
+     .then(async r=>({ok:r.ok,d:await read(r)}))
+     .then(({ok,d})=>{if(ok&&d.plan==='business'){setCurrentPlan('business');setMessage('Full Business is active. Your $49/month subscription was verified directly with Stripe.');history.replaceState({},'',location.pathname)}else{setMessage(d.detail||'Stripe has not confirmed the subscription yet.')}})
+     .catch(()=>setMessage('Payment returned successfully, but Stripe verification could not be completed. Please refresh this page.'))
+     .finally(()=>{loadStatus()});
+   }else{setMessage('Payment returned successfully. Sign in to verify and activate Full Business.');loadStatus()}
+  }else{
+   if(checkoutState==='cancelled')setMessage('Checkout was cancelled. Your free access is still available.');
+   loadStatus();
+  }
  },[]);
  async function checkout(){
   if(!token){location.href='/login';return}setBusy(true);setMessage('');
-  try{const r=await fetch(`${api}/api/billing/checkout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:'{}'});const d=await read(r);if(!r.ok)throw new Error(d.detail||'Checkout could not start.');if(d.url)location.href=d.url;}
+  try{const r=await fetch(`${api}/api/billing/checkout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:'{}'});const d=await read(r);if(!r.ok)throw new Error(d.detail||'Checkout could not start.');if(d.url)location.href=d.url;else throw new Error('Stripe did not return a checkout page.');}
   catch(e:any){setMessage(e?.message||'Checkout could not start.');setBusy(false)}
+ }
+ async function manage(){
+  if(!token){location.href='/login';return}setBusy(true);setMessage('');
+  try{const r=await fetch(`${api}/api/billing/portal`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:'{}'});const d=await read(r);if(!r.ok)throw new Error(d.detail||'Subscription management could not open.');if(d.url)location.href=d.url;else throw new Error('Stripe did not return a customer portal.');}
+  catch(e:any){setMessage(e?.message||'Subscription management could not open.');setBusy(false)}
  }
  async function submitReview(e:React.FormEvent){
   e.preventDefault();if(!token){location.href='/login';return}setBusy(true);setMessage('');
@@ -32,7 +51,7 @@ export default function PricingPage(){
   <section className="hero"><a className="brand" href="/">I AM MAGNANIMOUS WAY™</a><small>FREE-FIRST AI PLATFORM</small><h1>Use the platform free.<br/><span>Upgrade only if you need more.</span></h1><p>The free plan is the main entry point. There is one optional <b>$49/month Full Business</b> subscription for the expanded business feature set.</p><div className="heroActions"><a href="/signup">Start free</a><a className="ghost" href="/login">Sign in</a></div></section>
   {message&&<div className="message">{message}</div>}
   <section className="plans">
-   {(plans.length?plans:[{id:'free',name:'Free',price_usd:0,cadence:'forever',primary:true,description:'Core platform access without a subscription.',features:['Odin and AI tools','Creator workspaces','CRM and lead tools']},{id:'business',name:'Full Business',price_usd:49,cadence:'month',description:'One optional upgrade for the complete business feature set.',features:['Everything in Free','Advanced assistant workflows','Phone/call-center access','Avatar/video integrations']}]).map(p=><article className={p.id==='business'?'business':''} key={p.id}><div className="planTop"><div><small>{p.primary?'MAIN PLAN':'OPTIONAL UPGRADE'}</small><h2>{p.name}</h2></div>{currentPlan===p.id&&<span className="current">CURRENT</span>}</div><div className="price"><b>${p.price_usd}</b><span>{p.price_usd?'/ month':'forever'}</span></div><p>{p.description}</p><ul>{p.features.map(f=><li key={f}>✓ {f}</li>)}</ul>{p.note&&<div className="note">{p.note}</div>}{p.id==='free'?<a className="planButton ghost" href="/signup">Keep it free</a>:currentPlan==='business'?<button className="planButton" disabled>Full Business active</button>:<button className="planButton" onClick={checkout} disabled={busy||!billingReady}>{billingReady?(busy?'Opening checkout…':'Upgrade for $49/month'):'Checkout setup pending'}</button>}</article>)}
+   {(plans.length?plans:[{id:'free',name:'Free',price_usd:0,cadence:'forever',primary:true,description:'Core platform access without a subscription.',features:['Odin and AI tools','Creator workspaces','CRM and lead tools']},{id:'business',name:'Full Business',price_usd:49,cadence:'month',description:'One optional upgrade for the complete business feature set.',features:['Everything in Free','Advanced assistant workflows','Phone/call-center access','Avatar/video integrations']}]).map(p=><article className={p.id==='business'?'business':''} key={p.id}><div className="planTop"><div><small>{p.primary?'MAIN PLAN':'OPTIONAL UPGRADE'}</small><h2>{p.name}</h2></div>{currentPlan===p.id&&<span className="current">CURRENT</span>}</div><div className="price"><b>${p.price_usd}</b><span>{p.price_usd?'/ month':'forever'}</span></div><p>{p.description}</p><ul>{p.features.map(f=><li key={f}>✓ {f}</li>)}</ul>{p.note&&<div className="note">{p.note}</div>}{p.id==='free'?<a className="planButton ghost" href="/signup">Keep it free</a>:currentPlan==='business'?<button className="planButton" onClick={manage} disabled={busy}>{busy?'Opening Stripe…':'Manage subscription'}</button>:<button className="planButton" onClick={checkout} disabled={busy||!billingReady}>{billingReady?(busy?'Opening checkout…':'Upgrade for $49/month'):'Checkout setup pending'}</button>}</article>)}
   </section>
   <section className="principles"><div><b>FREE STAYS IMPORTANT</b><p>The platform is not designed to force every user into a subscription.</p></div><div><b>ONE CLEAR UPGRADE</b><p>No separate $149 call-center tier. Full Business is the single customer subscription.</p></div><div><b>REAL PROVIDER COSTS</b><p>Carrier, avatar, video and metered AI providers can still have their own quotas or usage charges.</p></div></section>
   <section className="reviews"><div className="reviewHead"><div><small>COMMUNITY FEEDBACK</small><h2>What members say</h2></div><p>Published reviews are moderated before they appear publicly.</p></div>{reviews.length?<div className="reviewGrid">{reviews.slice(0,6).map(r=><article key={r.id}><div className="stars">{'★'.repeat(Math.max(1,Math.min(5,r.rating)))}</div><p>“{r.body}”</p><b>{r.display_name||'Member'}</b></article>)}</div>:<div className="empty">No approved reviews yet. Logged-in members can submit the first one below.</div>}
