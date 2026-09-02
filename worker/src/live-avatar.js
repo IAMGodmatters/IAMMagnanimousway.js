@@ -5,6 +5,7 @@ const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control
 function apiKey(env){return String(env.LIVEAVATAR_API_KEY||env.HEYGEN_API_KEY||'').trim()}
 function avatarId(env){return String(env.LIVEAVATAR_AVATAR_ID||env.HEYGEN_AVATAR_ID||'').trim()}
 function configured(env){return Boolean(apiKey(env)&&avatarId(env))}
+function speechConfigured(env){return Boolean(String(env.ELEVENLABS_API_KEY||'').trim())}
 
 async function premiumAccess(user,env){
  if(user?.role==='owner')return true;
@@ -36,6 +37,27 @@ async function createToken(env){
  return {session_token:token,session_id:String(data?.data?.session_id||''),mode:'LITE'};
 }
 
+async function createSpeech(request,env){
+ if(!speechConfigured(env))return json({error:'ElevenLabs speech is not connected yet.'},503);
+ const body=await request.json().catch(()=>({}));
+ const text=String(body.text||'').trim().slice(0,2400);
+ if(!text)return json({error:'Text is required for avatar speech.'},400);
+ const voiceId=String(env.ELEVENLABS_VOICE_ID||'21m00Tcm4TlvDq8ikWAM').trim();
+ const response=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/with-timestamps?output_format=pcm_24000`,{
+  method:'POST',
+  headers:{'Content-Type':'application/json','xi-api-key':String(env.ELEVENLABS_API_KEY)},
+  body:JSON.stringify({text})
+ });
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok){
+  const error=new Error(data?.detail?.message||data?.detail||data?.message||`ElevenLabs speech failed (${response.status}).`);
+  error.status=response.status>=500?502:400;
+  throw error;
+ }
+ if(!data?.audio_base64)throw new Error('ElevenLabs did not return avatar speech audio.');
+ return json({audio:String(data.audio_base64)});
+}
+
 export async function handleLiveAvatar(request,env){
  const url=new URL(request.url),path=url.pathname;
  if(!path.startsWith('/api/live-avatar'))return null;
@@ -44,11 +66,15 @@ export async function handleLiveAvatar(request,env){
   const user=await currentUser(request,env);
   if(!user)return json({error:'Sign in to use the video assistant.'},401);
   const premium=await premiumAccess(user,env);
-  if(path==='/api/live-avatar/status'&&request.method==='GET')return json({configured:configured(env),premium,provider:'LiveAvatar',mode:'LITE',avatar_configured:Boolean(avatarId(env))});
+  if(path==='/api/live-avatar/status'&&request.method==='GET')return json({configured:configured(env),speech_configured:speechConfigured(env),premium,provider:'LiveAvatar',mode:'LITE',avatar_configured:Boolean(avatarId(env))});
   if(path==='/api/live-avatar/token'&&request.method==='POST'){
    if(!premium)return json({error:'Premium is required for the live human-like video assistant.'},402);
    if(!configured(env))return json({error:'The owner must connect a LiveAvatar API key and avatar ID first.'},503);
    return json(await createToken(env));
+  }
+  if(path==='/api/live-avatar/speech'&&request.method==='POST'){
+   if(!premium)return json({error:'Premium is required for live avatar speech.'},402);
+   return createSpeech(request,env);
   }
   return json({error:'Video-assistant route not found.'},404);
  }catch(error){
