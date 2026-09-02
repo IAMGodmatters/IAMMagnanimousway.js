@@ -48,11 +48,9 @@ jobs:
           table_sql={str(r.get('name') or ''):str(r.get('sql') or '') for r in rows if r.get('name')}
           statements=[]
 
-          # Consent is keyed by user rather than tenant in this schema; remove it before users.
           if 'consent_records' in table_sql and 'users' in table_sql:
               statements.append(f"DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='{tenant}')")
 
-          # Remove all tenant-scoped data discovered in the live schema, excluding users until the end.
           for name,ddl in sorted(table_sql.items()):
               if name in {'users','tenants','consent_records'}:
                   continue
@@ -65,7 +63,6 @@ jobs:
           if 'tenants' in table_sql:
               statements.append(f"DELETE FROM tenants WHERE id='{tenant}'")
 
-          # Cloudflare D1 accepts semicolon-separated statements in the `sql` field.
           print(json.dumps({'sql':';\n'.join(statements)+';'}))
           PY
 
@@ -88,6 +85,29 @@ jobs:
           PY
           }
           trap cleanup EXIT
+
+          cat > /tmp/d1-fk-query.json <<'JSON'
+          {"sql":"SELECT 'billing_subscriptions' AS child, \"table\" AS parent FROM pragma_foreign_key_list('billing_subscriptions') UNION ALL SELECT 'public_reviews' AS child, \"table\" AS parent FROM pragma_foreign_key_list('public_reviews');"}
+          JSON
+          fk_status=$(curl -sS -o /tmp/d1-fks.json -w '%{http_code}' -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${D1_DATABASE_ID}/query" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H 'content-type: application/json' \
+            --data-binary @/tmp/d1-fk-query.json)
+          test "$fk_status" = "200"
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/d1-fks.json'))
+          assert d.get('success') is True, d
+          rows=[]
+          for block in d.get('result') or []:
+              rows.extend(block.get('results') or [])
+          parents={r.get('child'):r.get('parent') for r in rows}
+          assert parents.get('billing_subscriptions') == 'tenants', parents
+          assert parents.get('public_reviews') == 'tenants', parents
+          assert 'tenants_legacy_0008' not in parents.values(), parents
+          print('Legacy tenant foreign keys are repaired.')
+          PY
 
           python - "$email" > /tmp/signup.json <<'PY'
           import json,sys
