@@ -11,7 +11,7 @@ export function visualProviderSnapshot(env){
   {
    id:'iam-cinematic-free',name:'I AM Cinematic Free',type:'video-effects',tier:'free-first',free:true,
    configured:cloudflareReady(env),enabled:cloudflareReady(env),
-   note:'Free-first cinematic pipeline. Uses Gemini 2.5 Flash-Lite as an optional scene director when configured, Cloudflare FLUX for the scene image, and browser animation for motion.'
+   note:'Free-first cinematic pipeline. Uses Gemini 3.1 Flash-Lite as an optional scene director when configured, Cloudflare FLUX for the scene image, and browser animation for motion.'
   },
   {
    id:'cloudflare-flux-free',name:'Cloudflare FLUX.1 Schnell',type:'image-generation',tier:'free-allocation',free:true,
@@ -20,7 +20,7 @@ export function visualProviderSnapshot(env){
   },
   {
    id:'google-gemini-visual-director',name:'Google Gemini Visual Director',type:'visual-planning',tier:'free-tier',free:true,
-   configured:googleReady(env),enabled:googleReady(env),model:'gemini-2.5-flash-lite',
+   configured:googleReady(env),enabled:googleReady(env),model:'gemini-3.1-flash-lite',
    note:'Uses Gemini free-tier text/multimodal reasoning to turn a message into a stronger cinematic scene prompt. It does not claim free Google image/video generation.'
   },
   {
@@ -49,7 +49,7 @@ function baseScenePrompt(title,text,style){
 async function geminiDirect(env,title,text,style){
  const fallback=baseScenePrompt(title,text,style);
  if(!googleReady(env))return {prompt:fallback,director:'built-in'};
- const model=String(env.GOOGLE_VISUAL_MODEL||'gemini-2.5-flash-lite').trim();
+ const model=String(env.GOOGLE_VISUAL_MODEL||'gemini-3.1-flash-lite').trim();
  const instruction=`You are a cinematic visual director. Rewrite the following idea into ONE concise text-to-image prompt for a realistic, professional social-video background. Return only the prompt. Do not include quotation marks, headings, captions, logos, watermarks, or text that should appear inside the image. Preserve the meaning and make the scene visually specific.\n\nSTYLE: ${style||'cinematic'}\nTITLE: ${String(title||'').slice(0,200)}\nMESSAGE: ${String(text||'').slice(0,1200)}`;
  try{
   const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(String(env.GOOGLE_API_KEY))}`,{
