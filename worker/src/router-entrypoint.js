@@ -4,6 +4,7 @@ import { handleOwnerLeads } from './owner-leads.js';
 import { handleMux } from './mux-integration.js';
 import { handleIntegrations } from './integrations.js';
 import { handleAssistantIntegrations } from './assistant-integrations-runtime.js';
+import { handleComposioManagedAuth, handleComposioAssistant } from './composio-managed-auth.js';
 import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-credentials.js';
 import { handleKnowledge } from './knowledge-runtime.js';
 import { handleProfessionalWorkspace } from './professional-workspace-runtime.js';
@@ -107,6 +108,8 @@ export default {
       }
       if (url.pathname.startsWith('/api/assistant-integrations')) {
         const runtimeEnv = await getIntegrationRuntimeEnv(env);
+        const managedResponse = await handleComposioAssistant(request, runtimeEnv);
+        if (managedResponse) return withCors(managedResponse);
         const response = await handleAssistantIntegrations(request, runtimeEnv);
         if (response) return withCors(response);
       }
@@ -118,6 +121,8 @@ export default {
       }
       if (url.pathname.startsWith('/api/integrations')) {
         const runtimeEnv = await getIntegrationRuntimeEnv(env);
+        const managedResponse = await handleComposioManagedAuth(request, runtimeEnv);
+        if (managedResponse) return withCors(managedResponse);
         const response = await handleIntegrations(request, runtimeEnv);
         if (response) return withCors(response);
       }
