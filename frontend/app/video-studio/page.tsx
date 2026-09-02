@@ -3,6 +3,7 @@
 import {useState} from 'react';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
+const videoApi=process.env.NEXT_PUBLIC_VIDEO_API_BASE_URL||api;
 
 const presets={
   vertical:{label:'TikTok / Reels / Shorts',width:720,height:1280,help:'9:16 vertical'},
@@ -49,14 +50,14 @@ export default function VideoStudio(){
     setNotice('');
     const size=presets[preset];
     try{
-      const r=await fetch(`${api}/api/video/render`,{
+      const r=await fetch(`${videoApi}/api/video/render`,{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({text,title,width:size.width,height:size.height,duration}),
       });
       const d=await r.json();
       if(d.download_url){
-        setUrl(`${api}${d.download_url}`);
+        setUrl(`${videoApi}${d.download_url}`);
         setNotice('Video ready. Download it, copy the post text, or send it to your social apps.');
       }else setError(d.detail||'Video renderer is not available.');
     }catch{
