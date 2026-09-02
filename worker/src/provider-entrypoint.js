@@ -21,6 +21,7 @@ const TOOLS = [
   ['bible-study','Bible Study','Study Scripture and organize biblical topics.'],
   ['marketing','Marketing Helper','Create campaigns, captions, offers and content plans.'],
   ['business','Business Helper','Business planning, ideas and analysis.'],
+  ['business-launch','Professional Business Launch','Intake, research, validation, financial review, hostile critique and final plan preparation.'],
   ['coding','Coding Helper','Explain, generate and troubleshoot code.'],
   ['video-studio','Text → Video Studio','Create creator-ready video content.'],
   ['social','Social Media Helper','Create platform-ready social posts and scripts.'],
@@ -103,6 +104,29 @@ async function callProvider(id, env, message, model) {
   throw new Error('Unknown AI provider');
 }
 function availableProviders(env) { return PROVIDERS.filter(p => p.tier !== 'metered' || meteredEnabled(env)); }
+function taskClass(message,body={}){
+  const m=String(message||'').toLowerCase();
+  if(body.live_search||body.news||/research|latest|current|source|cite|market size|competitor/.test(m))return'research';
+  if(/code|debug|typescript|javascript|python|sql|api|function|repository|deploy/.test(m))return'coding';
+  if(/business plan|financial|cash flow|break-even|investor|lender|grant|startup|strategy|market/.test(m))return'business';
+  if(/write|rewrite|email|caption|script|post|copy|letter|proposal/.test(m))return'writing';
+  return'general';
+}
+function routeProviders(env,message,body={}){
+  const available=availableProviders(env).filter(p=>configured(env,p));
+  const quality=String(body.quality||body.route_policy||'').toLowerCase();
+  const task=taskClass(message,body);
+  const order={
+    research:['google','cloudflare-ai','groq','mistral','openai','anthropic'],
+    coding:['mistral','groq','cloudflare-ai','google','openai','anthropic'],
+    business:['google','cloudflare-ai','mistral','groq','openai','anthropic'],
+    writing:['cloudflare-ai','mistral','google','groq','openai','anthropic'],
+    general:['cloudflare-ai','google','groq','mistral','openai','anthropic']
+  }[task]||[];
+  const preferred=(quality==='max'||quality==='maximum'||quality==='quality')?['openai','anthropic',...order]:order;
+  const rank=new Map([...new Set(preferred)].map((id,i)=>[id,i]));
+  return available.sort((a,b)=>(rank.get(a.id)??99)-(rank.get(b.id)??99));
+}
 
 async function getRuntimeEnv(env) {
   if (env?.SESSION_SECRET) return env;
@@ -123,6 +147,15 @@ async function handle(request, env) {
   }
 
   if (url.pathname === '/api/tools' && request.method === 'GET') return json({ tools: TOOLS });
+  if (url.pathname === '/api/operator/capabilities' && request.method === 'GET') return json({
+    operator:'I AM Operator',
+    routing:{task_aware:true,automatic_failover:true,manual_provider_override:true,free_first_default:true,maximum_quality_option:true},
+    providers:PROVIDERS.map(p=>({id:p.id,name:p.name,tier:p.tier,configured:configured(env,p),enabled:p.tier!=='metered'||meteredEnabled(env)})),
+    knowledge:{private_workspace_grounding:true,live_web_search:Boolean(env?.BRAVE_SEARCH_API_KEY),news_search:Boolean(env?.BRAVE_SEARCH_API_KEY)},
+    execution:{specialist_agent_mesh:true,connected_actions:true,crm:true,business_email:true,calling:true,video:true,social:true,professional_business_launch:true},
+    business_launch:{pipeline:['Intake','Clarify','Research','Validate','Financial Review','Draft','Hostile Review','Consistency Check','Audience Adaptation','Final Polish']},
+    note:'External integrations and metered providers require their corresponding authorized connection or server-side credential.'
+  });
   if (url.pathname === '/api/ads' && request.method === 'GET') {
     try {
       const placement = url.searchParams.get('placement') || 'home';
@@ -134,11 +167,11 @@ async function handle(request, env) {
     const providers = PROVIDERS.map(p => ({ id: p.id, name: p.name, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env), tier: p.tier, type: 'ai' }));
     const enabled = providers.filter(p => p.configured && p.enabled);
     const ready = enabled.length > 0;
-    return json({ free_first: true, metered_providers_enabled: meteredEnabled(env), providers, configured_count: enabled.length, free_configured_count: enabled.filter(p => p.tier === 'free-first').length, operator_ready: ready, odin_ready: ready });
+    return json({ free_first: true, metered_providers_enabled: meteredEnabled(env), task_aware_routing:true, automatic_failover:true, providers, configured_count: enabled.length, free_configured_count: enabled.filter(p => p.tier === 'free-first').length, operator_ready: ready, odin_ready: ready });
   }
   if (url.pathname === '/api/odin/health' && request.method === 'GET') {
     const providers = PROVIDERS.map(p => ({ id: p.id, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env) }));
-    return json({ ok: true, operator: 'online', odin: 'online', workers_ai_bound: env?.AI != null, web_search_configured: Boolean(env?.BRAVE_SEARCH_API_KEY), providers });
+    return json({ ok: true, operator: 'online', odin: 'online', task_aware_routing:true, automatic_failover:true, workers_ai_bound: env?.AI != null, web_search_configured: Boolean(env?.BRAVE_SEARCH_API_KEY), providers });
   }
   if (url.pathname === '/api/chat' && request.method === 'POST') {
     const body = await request.json();
@@ -150,19 +183,17 @@ async function handle(request, env) {
     }
     const groundedMessage=`${message}${grounding.context||''}`;
     const requested = String(body.provider || 'auto').toLowerCase();
-    const available = availableProviders(env);
-    const candidates = requested !== 'auto' ? available.filter(p => p.id === requested) : available;
-    const configuredCandidates = candidates.filter(p => configured(env, p));
-    if (!configuredCandidates.length) return json({ detail: requested === 'auto' ? 'I AM Operator has no configured AI provider. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested AI provider is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
-    const errors = [];
-    for (const p of configuredCandidates) {
+    const candidates = requested !== 'auto' ? availableProviders(env).filter(p => p.id === requested && configured(env,p)) : routeProviders(env,message,body);
+    if (!candidates.length) return json({ detail: requested === 'auto' ? 'I AM Operator has no configured AI provider. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested AI provider is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
+    const errors = [],task=taskClass(message,body);
+    for (const p of candidates) {
       try {
         const result = await callProvider(p.id, env, groundedMessage, body.model);
         if (!result?.text?.trim()) throw new Error('Provider returned an empty response');
-        return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, operator: true, odin: true, grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured });
+        return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, operator: true, odin: true, routed_automatically:requested==='auto',route_task:task,route_policy:String(body.quality||body.route_policy||'free-first'),fallback_candidates:candidates.map(x=>x.id), grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured });
       } catch (e) { errors.push(`${p.name}: ${e?.message || 'provider failed'}`); }
     }
-    return json({ detail: `I AM Operator could not complete the request. ${errors.join(' | ')}`, code: 'AI_PROVIDER_FAILURE' }, 502);
+    return json({ detail: `I AM Operator could not complete the request. ${errors.join(' | ')}`, code: 'AI_PROVIDER_FAILURE',route_task:task }, 502);
   }
   return null;
 }
