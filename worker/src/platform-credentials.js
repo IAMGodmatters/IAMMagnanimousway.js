@@ -33,6 +33,18 @@ export const PLATFORM_CREDENTIAL_GROUPS = [
     ]
   },
   {
+    id: 'agent-brains',
+    name: 'Agent Mesh AI Brains',
+    providers: ['google-ai', 'groq', 'openrouter-free', 'huggingface', 'mistral'],
+    fields: [
+      { key: 'GOOGLE_API_KEY', label: 'Google Gemini API Key (free tier supported)', secret: true, required: false },
+      { key: 'GROQ_API_KEY', label: 'Groq API Key (free tier supported)', secret: true, required: false },
+      { key: 'OPENROUTER_API_KEY', label: 'OpenRouter API Key (Free Models Router supported)', secret: true, required: false },
+      { key: 'HF_TOKEN', label: 'Hugging Face Token (free credits supported)', secret: true, required: false },
+      { key: 'MISTRAL_API_KEY', label: 'Mistral API Key (optional)', secret: true, required: false }
+    ]
+  },
+  {
     id: 'adsense',
     name: 'Google AdSense / Auto Ads',
     providers: ['adsense'],
