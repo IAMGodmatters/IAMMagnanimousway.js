@@ -10,14 +10,20 @@ export default function RootLayout({children}:{children:React.ReactNode}){
       }
       function guardProtectedRoute(){
         var p=normalize(location.pathname);
-        var publicPaths=['/login','/signup','/owner-login','/privacy','/terms','/pricing'];
-        if(p==='/'||publicPaths.indexOf(p)!==-1)return;
-
+        var publicPaths=['/solutions','/login','/signup','/owner-login','/privacy','/terms','/pricing'];
         var customer=localStorage.getItem('iam_account_token');
         var owner=localStorage.getItem('odin_admin_token');
         var active=sessionStorage.getItem('iam_session_active');
-        var valid=(active==='user'&&!!customer)||(active==='owner'&&!!owner);
 
+        // New visitors should see what the public platform can do instead of an
+        // empty private dashboard. Existing signed-in users keep the dashboard.
+        if(p==='/'){
+          if(!customer&&!owner)location.replace('/solutions');
+          return;
+        }
+        if(publicPaths.indexOf(p)!==-1)return;
+
+        var valid=(active==='user'&&!!customer)||(active==='owner'&&!!owner);
         if(!valid)location.replace('/login');
       }
       function loadAds(){
