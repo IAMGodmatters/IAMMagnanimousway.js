@@ -16,5 +16,15 @@ Disallow: /finance-people/
 Disallow: /crm/
 Disallow: /phone/
 Disallow: /support/
+Disallow: /ai-chat/
+Disallow: /business/
+Disallow: /business-email/
+Disallow: /knowledge/
+Disallow: /social-media/
+Disallow: /virtual-assistant/
+Disallow: /video-studio/
+Disallow: /mux/
+Disallow: /ai-receptionist/
+Disallow: /agents/
 
 Sitemap: https://iammagnanimousway.com/sitemap.xml
