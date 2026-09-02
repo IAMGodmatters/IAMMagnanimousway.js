@@ -16,12 +16,20 @@ const json = (data, status = 200) => Response.json(data, { status, headers: { 'c
 
 async function planFor(env, user) {
   if (!user) return 'free';
+
+  // Newer workspaces may store a denormalized plan on tenants. Older schemas do not,
+  // so failure of this optional lookup must never prevent the billing fallback below.
   try {
     const tenant = await env.DB.prepare('SELECT plan FROM tenants WHERE id=?').bind(user.tenant_id).first();
     if (String(tenant?.plan || '').toLowerCase() === 'business') return 'business';
-    const billing = await env.DB.prepare('SELECT plan,status FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first();
-    if (String(billing?.plan || '').toLowerCase() === 'business' && ['active','trialing','past_due'].includes(String(billing?.status || ''))) return 'business';
   } catch (_) {}
+
+  // Billing is authoritative for paid access across both old and new workspace schemas.
+  try {
+    const billing = await env.DB.prepare('SELECT plan,status FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first();
+    if (String(billing?.plan || '').toLowerCase() === 'business' && ['active','trialing','past_due'].includes(String(billing?.status || '').toLowerCase())) return 'business';
+  } catch (_) {}
+
   return 'free';
 }
 
