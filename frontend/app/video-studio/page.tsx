@@ -115,7 +115,7 @@ async function createBrowserVideo(title:string,text:string,width:number,height:n
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.shadowColor='rgba(0,0,0,.8)';ctx.shadowBlur=Math.max(8,width*.018);ctx.shadowOffsetY=Math.max(2,width*.004);
     ctx.fillStyle='#fff';ctx.font=`800 ${Math.max(30,Math.floor(width/17))}px Arial, sans-serif`;
-    const titleLines=wrappedLines(ctx,title||'I AM Magnanimous Way™',width*.82,3);
+    const titleLines=wrappedLines(ctx,title||'I Am Magnanimous Way™',width*.82,3);
     const titleLineHeight=Math.max(38,Math.floor(width/14));
     let titleY=height*.33-(titleLines.length-1)*titleLineHeight/2;
     for(const line of titleLines){ctx.fillText(line,width/2,titleY,width*.84);titleY+=titleLineHeight;}
@@ -126,7 +126,7 @@ async function createBrowserVideo(title:string,text:string,width:number,height:n
     for(const line of bodyLines){ctx.fillStyle='rgba(255,255,255,.97)';ctx.fillText(line,width/2,bodyY,width*.8);bodyY+=bodyLineHeight;}
     ctx.shadowBlur=0;ctx.shadowOffsetY=0;
     ctx.font=`700 ${Math.max(18,Math.floor(width/38))}px Arial, sans-serif`;ctx.fillStyle='rgba(255,255,255,.78)';
-    ctx.fillText('I AM Magnanimous Way™',width/2,height*.91,width*.8);
+    ctx.fillText('I Am Magnanimous Way™',width/2,height*.91,width*.8);
     const barWidth=width*.64,barX=(width-barWidth)/2,barY=height*.95,barH=Math.max(4,height*.004);
     ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(barX,barY,barWidth,barH);
     ctx.fillStyle='rgba(255,255,255,.84)';ctx.fillRect(barX,barY,barWidth*Math.min(1,Math.max(0,progress)),barH);
@@ -148,7 +148,7 @@ async function createBrowserVideo(title:string,text:string,width:number,height:n
 
 export default function VideoStudio(){
   const [text,setText]=useState('Faith can move mountains. Keep believing, keep praying, and keep moving forward.');
-  const [title,setTitle]=useState('I AM Magnanimous Way™');
+  const [title,setTitle]=useState('I Am Magnanimous Way™');
   const [caption,setCaption]=useState('Faith can move mountains. Keep believing, keep praying, and keep moving forward.');
   const [preset,setPreset]=useState<PresetKey>('vertical');
   const [duration,setDuration]=useState(15);
@@ -171,7 +171,7 @@ export default function VideoStudio(){
   async function getFreeScene(){
     if(visualMode==='classic')return null;
     const token=localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||'';
-    if(!token)throw new Error('Sign in to use the MAGNANIMOUS cinematic engine.');
+    if(!token)throw new Error('Sign in to use MAGNANIMOUS, the I Am Magnanimous Way™ AI cinematic engine.');
     const response=await fetch(`${api}/api/visual/scene`,{
       method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
       body:JSON.stringify({title,text,style:visualStyle,director:visualMode==='flux-free'?'built-in':'auto'})
@@ -192,7 +192,7 @@ export default function VideoStudio(){
         setNotice('MAGNANIMOUS visual ready. Animating it into your social video on this device…');
         const blob=await createBrowserVideo(title,text,size.width,size.height,duration,scene?.image_data_uri);
         replaceVideoUrl(URL.createObjectURL(blob));setMime(blob.type||'video/webm');
-        setNotice('MAGNANIMOUS cinematic video ready. Your branded visual engine completed the scene and device rendering.');
+        setNotice('MAGNANIMOUS cinematic video ready.');
         setBusy(false);return;
       }catch(visualError:any){
         setNotice(`MAGNANIMOUS cinematic mode was temporarily unavailable (${visualError?.message||'visual engine error'}). Trying the alternate video engine…`);
@@ -245,17 +245,17 @@ export default function VideoStudio(){
   const readyVisuals=visualProviders.filter(p=>p.configured&&p.enabled);
 
   return <main className="module-page">
-    <header className="module-header"><a href="/">← Back to I AM Magnanimous</a><span className="module-status">● MAGNANIMOUS CINEMATIC ENGINE</span></header>
-    <section className="module-hero"><div className="module-icon">▶</div><div><span className="eyebrow">MAGNANIMOUS CREATOR STUDIO</span><h1>Video Studio</h1><p>Create cinematic social videos inside the MAGNANIMOUS branded engine. MAGNANIMOUS directs the scene, creates the visual, animates it into video, and keeps alternate rendering paths available automatically when needed. Third-party infrastructure stays behind the platform instead of competing with your brand for attention.</p><div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:14}}><a href="/owner-integrations" style={{display:'inline-block',padding:'11px 15px',borderRadius:10,textDecoration:'none',border:'1px solid rgba(120,150,255,.35)',color:'inherit'}}>Engine Settings</a></div></div></section>
+    <header className="module-header"><a href="/">← Back to I Am Magnanimous Way™</a><span className="module-status">● MAGNANIMOUS AI · CINEMATIC ENGINE</span></header>
+    <section className="module-hero"><div className="module-icon">▶</div><div><span className="eyebrow">I Am Magnanimous Way™ · CREATOR STUDIO</span><h1>Video Studio</h1><p>Create cinematic social videos inside I Am Magnanimous Way™. MAGNANIMOUS is the platform AI that directs the scene, creates the visual, animates it into video, and automatically manages alternate rendering paths when needed. Third-party infrastructure stays behind the platform instead of competing with the I Am Magnanimous Way™ brand for attention.</p><div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:14}}><a href="/owner-integrations" style={{display:'inline-block',padding:'11px 15px',borderRadius:10,textDecoration:'none',border:'1px solid rgba(120,150,255,.35)',color:'inherit'}}>Engine Settings</a></div></div></section>
 
-    <section className="module-panel" style={{marginBottom:18}}><div className="panel-title"><span>MAGNANIMOUS VIDEO ENGINE</span><b>{readyVisuals.length?'READY':'CORE READY'}</b></div><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:10}}><div style={{padding:12,border:'1px solid rgba(120,150,255,.2)',borderRadius:10,background:'rgba(8,12,28,.35)'}}><b style={{display:'block'}}>MAGNANIMOUS Cinematic</b><span style={{display:'block',fontSize:11,margin:'5px 0',opacity:.78}}>FREE-FIRST · READY</span><small style={{opacity:.7,lineHeight:1.4}}>Branded cinematic scene creation, direction, motion, and fallback rendering managed automatically inside I AM Magnanimous Way™.</small></div><div style={{padding:12,border:'1px solid rgba(120,150,255,.2)',borderRadius:10,background:'rgba(8,12,28,.35)'}}><b style={{display:'block'}}>MAGNANIMOUS Classic</b><span style={{display:'block',fontSize:11,margin:'5px 0',opacity:.78}}>LOCAL MODE · READY</span><small style={{opacity:.7,lineHeight:1.4}}>Device-based video creation remains available as a branded fallback with no required paid video-generation service.</small></div></div></section>
+    <section className="module-panel" style={{marginBottom:18}}><div className="panel-title"><span>MAGNANIMOUS AI VIDEO ENGINE</span><b>{readyVisuals.length?'READY':'CORE READY'}</b></div><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:10}}><div style={{padding:12,border:'1px solid rgba(120,150,255,.2)',borderRadius:10,background:'rgba(8,12,28,.35)'}}><b style={{display:'block'}}>MAGNANIMOUS Cinematic</b><span style={{display:'block',fontSize:11,margin:'5px 0',opacity:.78}}>AI MODE · READY</span><small style={{opacity:.7,lineHeight:1.4}}>Cinematic scene creation, direction, motion, and fallback rendering powered through MAGNANIMOUS inside I Am Magnanimous Way™.</small></div><div style={{padding:12,border:'1px solid rgba(120,150,255,.2)',borderRadius:10,background:'rgba(8,12,28,.35)'}}><b style={{display:'block'}}>I Am Magnanimous Way™ Classic</b><span style={{display:'block',fontSize:11,margin:'5px 0',opacity:.78}}>LOCAL MODE · READY</span><small style={{opacity:.7,lineHeight:1.4}}>Device-based video creation remains available as an I Am Magnanimous Way™ fallback with no required paid video-generation service.</small></div></div></section>
 
     <section className="video-studio-grid"><div className="module-panel"><div className="panel-title"><span>VIDEO INPUT</span><b>FREE-FIRST · SOCIAL READY</b></div>
       <label style={{display:'grid',gap:6,marginBottom:12}}><span style={{fontSize:13,fontWeight:800}}>Video title</span><input style={fieldStyle} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Video title"/></label>
       <label style={{display:'grid',gap:6,marginBottom:12}}><span style={{fontSize:13,fontWeight:800}}>AI video text</span><textarea style={{...fieldStyle,minHeight:145,resize:'vertical'}} value={text} onChange={e=>setText(e.target.value)}/></label>
       <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}><button type="button" style={softButton} onClick={()=>copyValue(text,'AI text')}>Copy AI Text</button><button type="button" style={softButton} onClick={()=>{setCaption(text);setNotice('AI video text copied into the social post caption.')}}>Use as Post Caption</button></div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:12,marginBottom:14}}>
-        <label style={{display:'grid',gap:6}}><span style={{fontSize:13,fontWeight:800}}>MAGNANIMOUS video engine</span><select style={fieldStyle} value={visualMode} onChange={e=>setVisualMode(e.target.value as VisualMode)}><option value="auto-free">MAGNANIMOUS Cinematic — Recommended</option><option value="flux-free">MAGNANIMOUS Cinematic — Direct mode</option><option value="classic">MAGNANIMOUS Classic — Local mode</option></select></label>
+        <label style={{display:'grid',gap:6}}><span style={{fontSize:13,fontWeight:800}}>Video engine</span><select style={fieldStyle} value={visualMode} onChange={e=>setVisualMode(e.target.value as VisualMode)}><option value="auto-free">MAGNANIMOUS Cinematic — Recommended</option><option value="flux-free">MAGNANIMOUS Cinematic — Direct mode</option><option value="classic">I Am Magnanimous Way™ Classic — Local mode</option></select></label>
         <label style={{display:'grid',gap:6}}><span style={{fontSize:13,fontWeight:800}}>Visual style</span><select style={fieldStyle} value={visualStyle} onChange={e=>setVisualStyle(e.target.value as VisualStyle)}><option value="cinematic">Cinematic</option><option value="realistic">Photorealistic</option><option value="faith">Faith / Hope</option><option value="business">Business</option><option value="social">Social Campaign</option><option value="nature">Nature</option></select></label>
         <label style={{display:'grid',gap:6}}><span style={{fontSize:13,fontWeight:800}}>Social format</span><select style={fieldStyle} value={preset} onChange={e=>setPreset(e.target.value as PresetKey)}>{Object.entries(presets).map(([key,value])=><option key={key} value={key}>{value.label} — {value.help}</option>)}</select></label>
         <label style={{display:'grid',gap:6}}><span style={{fontSize:13,fontWeight:800}}>Video length</span><select style={fieldStyle} value={duration} onChange={e=>setDuration(Number(e.target.value))}><option value={10}>10 seconds</option><option value={15}>15 seconds</option><option value={30}>30 seconds</option><option value={60}>60 seconds</option></select></label>
@@ -268,7 +268,7 @@ export default function VideoStudio(){
       <label style={{display:'grid',gap:6,marginBottom:12}}><span style={{fontSize:13,fontWeight:800}}>AI caption / post text</span><textarea style={{...fieldStyle,minHeight:110,resize:'vertical'}} value={caption} onChange={e=>setCaption(e.target.value)} placeholder="Write or paste the caption that should go with the video."/></label>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12,marginBottom:14}}><label style={{display:'grid',gap:6}}><span style={{fontSize:13,fontWeight:800}}>Post destination</span><select style={fieldStyle} value={destination} onChange={e=>setDestination(e.target.value as Destination)}><option value="apps">Phone / Device Share Menu</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="youtube">YouTube / Shorts</option><option value="x">X / Twitter</option><option value="linkedin">LinkedIn</option><option value="whatsapp">WhatsApp</option></select></label></div>
       <div style={{display:'flex',gap:10,flexWrap:'wrap'}}><button type="button" style={softButton} onClick={()=>copyValue(caption||text,'Post text')}>Copy Post Text</button><button type="button" style={softButton} onClick={downloadVideo} disabled={!url}>Download Video</button><button type="button" onClick={shareVideo} disabled={!url||sharing}>{sharing?'Preparing Share…':'Post / Share Video →'}</button></div>
-      <p style={{fontSize:12,opacity:.72,marginBottom:0,marginTop:12}}>MAGNANIMOUS automatically uses the best available free-first visual and rendering path behind the scenes. Third-party infrastructure is not promoted here unless it is intentionally displayed as a revenue-producing sponsored placement.</p>
+      <p style={{fontSize:12,opacity:.72,marginBottom:0,marginTop:12}}>MAGNANIMOUS automatically uses the best available visual and rendering path behind the scenes for I Am Magnanimous Way™. Third-party infrastructure is not promoted here unless it is intentionally displayed as a revenue-producing sponsored placement.</p>
     </section>
   </main>;
 }
