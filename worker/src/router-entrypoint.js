@@ -14,6 +14,7 @@ import { handleSupportFeedback } from './support-feedback-runtime.js';
 import { handleBilling } from './billing-runtime.js';
 import { handleBillingSupport } from './billing-support-runtime.js';
 import { handleVoiceAgent } from './voice-agent-runtime.js';
+import { handlePhoneCarrier } from './phone-carrier-runtime.js';
 import { handleAgentMesh } from './agent-mesh-runtime.js';
 import { handleBootstrap } from './secure-bootstrap.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
@@ -49,6 +50,7 @@ function needsProviderRuntime(pathname) {
   return isOdinRoute(pathname) ||
     pathname.startsWith('/api/business-plan') ||
     pathname.startsWith('/api/visual') ||
+    pathname.startsWith('/api/phone') ||
     pathname === '/api/plans' ||
     pathname.startsWith('/api/billing') ||
     pathname.startsWith('/api/voice-agent') ||
@@ -80,6 +82,8 @@ export default {
       if (paymentLinkResponse) return withCors(paymentLinkResponse);
       const billingResponse = await handleBilling(request, providerEnv);
       if (billingResponse) return withCors(await augmentBillingResponse(request, billingResponse, providerEnv));
+      const phoneCarrierResponse = await handlePhoneCarrier(request, providerEnv);
+      if (phoneCarrierResponse) return withCors(phoneCarrierResponse);
       const voiceAgentResponse = await handleVoiceAgent(request, providerEnv);
       if (voiceAgentResponse) return withCors(voiceAgentResponse);
       if (url.pathname.startsWith('/api/mux')) {
