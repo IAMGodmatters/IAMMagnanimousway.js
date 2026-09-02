@@ -7,7 +7,7 @@ import { handleAssistantIntegrations } from './assistant-integrations-runtime.js
 import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-credentials.js';
 import { handleKnowledge } from './knowledge-runtime.js';
 import { handleProfessionalWorkspace } from './professional-workspace-runtime.js';
-import { handleFinancePeople } from './finance-people-runtime.js';
+import { handleFinancePeople } from './finance-people-v2.js';
 import { handleCallCenterHealth } from './call-center-health-runtime.js';
 import { handleSupportFeedback } from './support-feedback-runtime.js';
 import { handleBilling } from './billing-runtime.js';
@@ -73,8 +73,6 @@ export default {
         if (muxResponse) return withCors(muxResponse);
       }
 
-      // Professional work, finance/HR and compliance research share the owner
-      // credential runtime so optional web research stays server-side.
       if (url.pathname.startsWith('/api/professional')) {
         const runtimeEnv = await getIntegrationRuntimeEnv(env);
         const response = await handleProfessionalWorkspace(request, runtimeEnv);
@@ -131,7 +129,10 @@ export default {
       if (isOdinRoute(url.pathname)) return withCors(await providerApp.fetch(request, env, ctx));
       return withCors(await adminApp.fetch(request, env, ctx));
     } catch (error) {
-      return withCors(new Response(JSON.stringify({detail:error?.message||'Server error',code:'WORKER_RUNTIME_ERROR'}),{status:500,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}}));
+      return withCors(new Response(JSON.stringify({ detail: error?.message || 'Server error', code: 'WORKER_RUNTIME_ERROR' }), {
+        status: 500,
+        headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
+      }));
     }
   }
 };
