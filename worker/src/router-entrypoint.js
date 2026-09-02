@@ -21,6 +21,7 @@ import { handlePaymentLinkBilling, augmentBillingResponse } from './payment-link
 import { requirePlatformOwner } from './platform-owner-guard.js';
 import { handleMonetization } from './monetization-runtime.js';
 import { handleBusinessEmail } from './business-email-runtime.js';
+import { handleBusinessPlan } from './business-plan-runtime.js';
 import { handleVisual } from './visual-runtime.js';
 
 const corsHeaders = {
@@ -45,6 +46,7 @@ function isOdinRoute(pathname) {
 
 function needsProviderRuntime(pathname) {
   return isOdinRoute(pathname) ||
+    pathname.startsWith('/api/business-plan') ||
     pathname.startsWith('/api/visual') ||
     pathname === '/api/plans' ||
     pathname.startsWith('/api/billing') ||
@@ -65,6 +67,8 @@ export default {
       const billingSupportResponse = await handleBillingSupport(request, env);
       if (billingSupportResponse) return withCors(billingSupportResponse);
       const providerEnv = needsProviderRuntime(url.pathname) ? await getProviderRuntimeEnv(env) : env;
+      const businessPlanResponse = await handleBusinessPlan(request, providerEnv);
+      if (businessPlanResponse) return withCors(businessPlanResponse);
       const visualResponse = await handleVisual(request, providerEnv);
       if (visualResponse) return withCors(visualResponse);
       const agentResponse = await handleAgentMesh(request, providerEnv);
