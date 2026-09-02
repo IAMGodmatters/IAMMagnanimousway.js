@@ -36,6 +36,40 @@ jobs:
           if grep -qi "0 providers ready" /tmp/solutions.html; then echo "Public Solutions page exposes provider diagnostics"; exit 1; fi
           echo "Verified: Solutions is crawlable without secure-loading/provider-diagnostic copy"
 
+          status=$(curl -LsS -o /tmp/business-plan.html -w '%{http_code}' "$SITE/business-plan/")
+          [ "$status" = "200" ] || { echo "Business Launch page returned $status"; exit 1; }
+          must_contain /tmp/business-plan.html "Tired of building someone else" "Business Launch sales hero"
+          must_contain /tmp/business-plan.html "automated consulting team" "consulting-team positioning"
+          must_contain /tmp/business-plan.html "I AM Operator" "Business Launch operator branding"
+          if grep -qi "Opening secure access" /tmp/business-plan.html; then echo "Business Launch is exposing the secure-loading shell to crawlers"; exit 1; fi
+
+          status=$(curl -LsS -o /tmp/plan-config.json -w '%{http_code}' "$SITE/api/business-plan/config")
+          [ "$status" = "200" ] || { echo "Business Plan config returned $status"; cat /tmp/plan-config.json; exit 1; }
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/plan-config.json'))
+          assert data.get('enabled') is True, data
+          assert data.get('free_preview') is True, data
+          assert data.get('one_time_price_usd') == 79, data
+          assert data.get('included_with_full_business') is True, data
+          assert len(data.get('pipeline') or []) >= 10, data
+          PY
+          echo "Verified: professional business-plan pipeline config"
+
+          status=$(curl -LsS -o /tmp/operator.json -w '%{http_code}' "$SITE/api/operator/capabilities")
+          [ "$status" = "200" ] || { echo "Operator capabilities returned $status"; cat /tmp/operator.json; exit 1; }
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/operator.json'))
+          assert data.get('operator') == 'I AM Operator', data
+          routing=data.get('routing') or {}
+          assert routing.get('task_aware') is True, data
+          assert routing.get('automatic_failover') is True, data
+          assert routing.get('free_first_default') is True, data
+          assert (data.get('execution') or {}).get('professional_business_launch') is True, data
+          PY
+          echo "Verified: I AM Operator routing and execution capabilities"
+
           status=$(curl -LsS -o /tmp/security.html -w '%{http_code}' "$SITE/security/")
           [ "$status" = "200" ] || { echo "Data & Security page returned $status"; exit 1; }
           must_contain /tmp/security.html "Trust should be understandable" "Data & Security page"
@@ -50,6 +84,7 @@ jobs:
           status=$(curl -LsS -o /tmp/sitemap.xml -w '%{http_code}' "$SITE/sitemap.xml")
           [ "$status" = "200" ] || { echo "sitemap.xml returned $status"; exit 1; }
           must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/solutions/" "Solutions sitemap entry"
+          must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/business-plan/" "Business Launch sitemap entry"
           must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/security/" "Data & Security sitemap entry"
           must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/reviews/" "Reviews sitemap entry"
           must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/free-tools/" "Free Tools sitemap entry"
@@ -74,4 +109,4 @@ jobs:
           status=$(curl -LsS -o /tmp/health.json -w '%{http_code}' "$SITE/health")
           [ "$status" = "200" ] || { echo "Production health returned $status"; cat /tmp/health.json; exit 1; }
 
-          echo "Public crawlability, I AM Operator positioning, Data & Security, protected-route robots, reviews API and health passed."
+          echo "Public crawlability, I AM Operator routing, Professional Business Launch, Data & Security, protected-route robots, reviews API and health passed."
