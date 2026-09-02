@@ -1,0 +1,143 @@
+name: Agent Video Production Verification
+
+on:
+  workflow_run:
+    workflows: ["Build and Deploy I AM"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-agent-video:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deployed revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm install
+
+      - name: Verify live non-OpenAI video agents
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BASE_URL: https://iam-magnanimous.iam-magnanimous.workers.dev
+        shell: bash
+        run: |
+          set -eo pipefail
+          email="agent-video-${{ github.event.workflow_run.id }}-${GITHUB_RUN_ID}@example.com"
+          tenant_id=""
+          cleanup() {
+            if [ -n "${tenant_id:-}" ]; then
+              npx wrangler d1 execute iam-magnanimous-db --remote --command="
+                DELETE FROM agent_mesh_messages WHERE tenant_id='${tenant_id}';
+                DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='${tenant_id}');
+                DELETE FROM tenant_settings WHERE tenant_id='${tenant_id}';
+                DELETE FROM billing_subscriptions WHERE tenant_id='${tenant_id}';
+                DELETE FROM users WHERE tenant_id='${tenant_id}';
+                DELETE FROM tenants WHERE id='${tenant_id}';
+              " >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+
+          status=$(curl -sS -o /tmp/video-page.html -w '%{http_code}' "$BASE_URL/agent-video")
+          [ "$status" = "200" ] || { echo "Agent video page returned $status"; exit 1; }
+
+          status=$(curl -sS -o /tmp/catalog.json -w '%{http_code}' "$BASE_URL/api/agents")
+          [ "$status" = "200" ] || { echo "Agent catalog returned $status"; cat /tmp/catalog.json; exit 1; }
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/catalog.json'))
+          assert d.get('openai_used') is False, d
+          assert d.get('free_first') is True, d
+          ids={p.get('id') for p in d.get('providers',[])}
+          for required in ['cloudflare-ai','google','groq','mistral','openrouter-free','huggingface','cerebras']:
+              assert required in ids, (required,d)
+          assert all(p.get('openai') is False for p in d.get('providers',[])), d
+          video=d.get('talking_avatar') or {}
+          assert video.get('free_browser_mode') is True, d
+          assert video.get('browser_live_avatar') is True, d
+          assert video.get('route') == '/agent-video', d
+          assert len(d.get('native_workspaces') or []) >= 7, d
+          PY
+
+          python - "$email" > /tmp/signup.json <<'PY'
+          import json,sys
+          print(json.dumps({
+            "name":"Agent Video Production Check",
+            "workspace":"Agent Video Production Check",
+            "email":sys.argv[1],
+            "password":"Agent-Video-Smoke-2026!",
+            "accountProcessingConsent":True,
+            "termsAccepted":True,
+            "marketingConsent":False
+          }))
+          PY
+          status=$(curl -sS -o /tmp/signup-result.json -w '%{http_code}' -X POST "$BASE_URL/api/auth/signup" -H 'content-type: application/json' --data-binary @/tmp/signup.json)
+          [ "$status" = "201" ] || { echo "Signup returned $status"; cat /tmp/signup-result.json; exit 1; }
+          readarray -t values < <(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/signup-result.json'))
+          print(d['user']['tenant_id'])
+          print(d['token'])
+          PY
+          )
+          tenant_id="${values[0]}"
+          token="${values[1]}"
+          auth="Authorization: Bearer ${token}"
+
+          status=$(curl -sS -o /tmp/context.json -w '%{http_code}' "$BASE_URL/api/agents/context" -H "$auth")
+          [ "$status" = "200" ] || { echo "Agent context returned $status"; cat /tmp/context.json; exit 1; }
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/context.json'))
+          assert d.get('tenant_isolated') is True, d
+          assert d.get('shared_memory') is True, d
+          assert isinstance(d.get('native_summary'),dict), d
+          ids={x.get('id') for x in d.get('native_workspaces',[])}
+          for required in ['crm','finance-people','call-center-health','support','professional','assistant-actions']:
+              assert required in ids, (required,d)
+          PY
+
+          status=$(curl -sS -o /tmp/chat.json -w '%{http_code}' -X POST "$BASE_URL/api/agents/chat" -H 'content-type: application/json' -H "$auth" --data '{"agent_id":"bobby","provider":"cloudflare-ai","message":"Reply in one short sentence confirming you are Bobby inside the I AM Agent Mesh and can use tenant-safe native workspace context."}')
+          [ "$status" = "200" ] || { echo "Agent chat returned $status"; cat /tmp/chat.json; exit 1; }
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/chat.json'))
+          assert d.get('output'), d
+          assert d.get('provider') == 'cloudflare-ai', d
+          assert d.get('openai_used') is False, d
+          assert d.get('native_context_used') is True, d
+          assert d.get('video_route') == '/agent-video', d
+          PY
+
+          python - <<'PY' > /tmp/render.json
+          import json
+          print(json.dumps({"agent_id":"bobby","text":"This is a free browser live-avatar production test."}))
+          PY
+          status=$(curl -sS -o /tmp/render-result.json -w '%{http_code}' -X POST "$BASE_URL/api/agents/video/render" -H 'content-type: application/json' -H "$auth" --data-binary @/tmp/render.json)
+          [ "$status" = "200" ] || { echo "Agent video render returned $status"; cat /tmp/render-result.json; exit 1; }
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/render-result.json'))
+          assert d.get('ok') is True, d
+          if d.get('renderer_configured'):
+              assert d.get('mode') == 'self-hosted-video', d
+          else:
+              assert d.get('mode') == 'browser-live-avatar', d
+              assert d.get('free') is True, d
+          PY
+
+          echo "Non-OpenAI provider mesh, native platform context, live Agent Mesh chat, and free video-agent mode passed in production."
