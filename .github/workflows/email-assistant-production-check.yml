@@ -65,15 +65,17 @@ jobs:
           if 'tenants' in table_sql:
               statements.append(f"DELETE FROM tenants WHERE id='{tenant}'")
 
-          print(json.dumps({'batch':[{'sql':s} for s in statements]}))
+          # Cloudflare D1 accepts semicolon-separated statements in the `sql` field.
+          print(json.dumps({'sql':';\n'.join(statements)+';'}))
           PY
 
-            if ! curl -fsS -X POST \
+            cleanup_status=$(curl -sS -o /tmp/d1-cleanup-response.json -w '%{http_code}' -X POST \
               "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${D1_DATABASE_ID}/query" \
               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
               -H 'content-type: application/json' \
-              --data-binary @/tmp/d1-cleanup.json > /tmp/d1-cleanup-response.json; then
-              echo "Warning: D1 cleanup request failed."
+              --data-binary @/tmp/d1-cleanup.json)
+            if [ "$cleanup_status" != "200" ]; then
+              echo "Warning: D1 cleanup request returned HTTP $cleanup_status."
               cat /tmp/d1-cleanup-response.json || true
               return 0
             fi
