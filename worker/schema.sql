@@ -22,6 +22,19 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS idx_users_tenant ON users(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
+DROP TRIGGER IF EXISTS trg_workspace_owner_role;
+CREATE TRIGGER trg_workspace_owner_role
+AFTER INSERT ON users
+WHEN EXISTS (
+  SELECT 1
+  FROM tenants
+  WHERE tenants.id = NEW.tenant_id
+    AND tenants.owner_user_id = NEW.id
+)
+BEGIN
+  UPDATE users SET role='owner' WHERE id=NEW.id;
+END;
+
 CREATE TABLE IF NOT EXISTS tenant_settings (
   tenant_id TEXT NOT NULL,
   key TEXT NOT NULL,
