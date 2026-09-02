@@ -171,13 +171,13 @@ export default function VideoStudio(){
   async function getFreeScene(){
     if(visualMode==='classic')return null;
     const token=localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||'';
-    if(!token)throw new Error('Sign in to use the free AI cinematic visual provider.');
+    if(!token)throw new Error('Sign in to use the MAGNANIMOUS cinematic engine.');
     const response=await fetch(`${api}/api/visual/scene`,{
       method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
       body:JSON.stringify({title,text,style:visualStyle,director:visualMode==='flux-free'?'built-in':'auto'})
     });
     const data:SceneResult=await response.json().catch(()=>({}));
-    if(!response.ok||!data.image_data_uri)throw new Error(data.detail||`Visual provider returned ${response.status}`);
+    if(!response.ok||!data.image_data_uri)throw new Error(data.detail||`MAGNANIMOUS visual engine returned ${response.status}`);
     setScenePrompt(data.prompt||'');
     return data;
   }
@@ -187,29 +187,28 @@ export default function VideoStudio(){
     const size=presets[preset];
     if(visualMode!=='classic'){
       try{
-        setNotice(visualMode==='auto-free'?'Directing a cinematic scene with the free-first visual stack…':'Creating a free FLUX cinematic scene…');
+        setNotice(visualMode==='auto-free'?'MAGNANIMOUS is directing your cinematic scene…':'MAGNANIMOUS is creating your cinematic scene…');
         const scene=await getFreeScene();
-        setNotice('Visual ready. Animating it into your social video on this device…');
+        setNotice('MAGNANIMOUS visual ready. Animating it into your social video on this device…');
         const blob=await createBrowserVideo(title,text,size.width,size.height,duration,scene?.image_data_uri);
         replaceVideoUrl(URL.createObjectURL(blob));setMime(blob.type||'video/webm');
-        const directed=scene?.director==='google-gemini-visual-director';
-        setNotice(`${directed?'Gemini-directed + FLUX':'FLUX'} cinematic video ready. The visual path used the free-first provider stack and device rendering.`);
+        setNotice('MAGNANIMOUS cinematic video ready. Your branded visual engine completed the scene and device rendering.');
         setBusy(false);return;
       }catch(visualError:any){
-        setNotice(`Free cinematic visual was unavailable (${visualError?.message||'provider error'}). Trying the existing MP4 renderer…`);
+        setNotice(`MAGNANIMOUS cinematic mode was temporarily unavailable (${visualError?.message||'visual engine error'}). Trying the alternate video engine…`);
       }
-    }else setNotice('Creating video with the existing renderer…');
+    }else setNotice('MAGNANIMOUS is creating your video…');
 
     try{
       const r=await fetch(`${videoApi}/api/video/render`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,title,width:size.width,height:size.height,duration})});
       if(!r.ok)throw new Error(`remote renderer returned ${r.status}`);
       const d=await r.json();if(!d.download_url)throw new Error('remote renderer did not return a video');
-      replaceVideoUrl(`${videoApi}${d.download_url}`);setMime('video/mp4');setNotice('MP4 video ready from the existing cloud renderer.');
+      replaceVideoUrl(`${videoApi}${d.download_url}`);setMime('video/mp4');setNotice('MAGNANIMOUS MP4 video ready.');
     }catch{
       try{
-        setNotice('Cloud rendering is unavailable, so I AM is creating the classic video free on this device…');
+        setNotice('MAGNANIMOUS cloud rendering is unavailable, so the local engine is creating your video on this device…');
         const blob=await createBrowserVideo(title,text,size.width,size.height,duration);
-        replaceVideoUrl(URL.createObjectURL(blob));setMime(blob.type||'video/webm');setNotice('Classic local video ready with no paid renderer required.');
+        replaceVideoUrl(URL.createObjectURL(blob));setMime(blob.type||'video/webm');setNotice('MAGNANIMOUS local video ready with no required paid video-generation service.');
       }catch(localError:any){setError(localError?.message||'Video creation is not supported by this browser.');setNotice('');}
     }finally{setBusy(false);}
   }
@@ -246,22 +245,22 @@ export default function VideoStudio(){
   const readyVisuals=visualProviders.filter(p=>p.configured&&p.enabled);
 
   return <main className="module-page">
-    <header className="module-header"><a href="/">← Back to I AM Magnanimous</a><span className="module-status">● FREE-FIRST CINEMATIC ENGINE</span></header>
-    <section className="module-hero"><div className="module-icon">▶</div><div><span className="eyebrow">CREATOR STUDIO</span><h1>Video Studio</h1><p>Create cinematic social video with a free-first stack: Cloudflare FLUX generates the scene, Gemini 2.5 Flash-Lite can direct the scene when a Gemini key is connected, and your browser animates the visual into video. The existing MP4 renderer and Mux remain available as fallbacks. Google Veo is listed as an optional provider, but it is not automatically used because Google does not provide Veo through the Gemini API free tier.</p><div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:14}}><a href="/mux" style={{display:'inline-block',padding:'11px 15px',borderRadius:10,textDecoration:'none',background:'linear-gradient(90deg,#00b9e8,#6b62ff)',color:'#fff',fontWeight:800}}>Open Mux Video →</a><a href="/owner-integrations" style={{display:'inline-block',padding:'11px 15px',borderRadius:10,textDecoration:'none',border:'1px solid rgba(120,150,255,.35)',color:'inherit'}}>Provider Vault</a></div></div></section>
+    <header className="module-header"><a href="/">← Back to I AM Magnanimous</a><span className="module-status">● MAGNANIMOUS CINEMATIC ENGINE</span></header>
+    <section className="module-hero"><div className="module-icon">▶</div><div><span className="eyebrow">MAGNANIMOUS CREATOR STUDIO</span><h1>Video Studio</h1><p>Create cinematic social videos inside the MAGNANIMOUS branded engine. MAGNANIMOUS directs the scene, creates the visual, animates it into video, and keeps alternate rendering paths available automatically when needed. Third-party infrastructure stays behind the platform instead of competing with your brand for attention.</p><div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:14}}><a href="/owner-integrations" style={{display:'inline-block',padding:'11px 15px',borderRadius:10,textDecoration:'none',border:'1px solid rgba(120,150,255,.35)',color:'inherit'}}>Engine Settings</a></div></div></section>
 
-    <section className="module-panel" style={{marginBottom:18}}><div className="panel-title"><span>VISUAL PROVIDERS</span><b>{readyVisuals.length} READY</b></div><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:10}}>{visualProviders.length?visualProviders.map(p=><div key={p.id} style={{padding:12,border:'1px solid rgba(120,150,255,.2)',borderRadius:10,background:'rgba(8,12,28,.35)'}}><b style={{display:'block'}}>{p.name}</b><span style={{display:'block',fontSize:11,margin:'5px 0',opacity:.78}}>{p.free?'FREE-FIRST / FREE ALLOCATION':'OPTIONAL PAID API'} · {p.configured?(p.enabled?'READY':'AVAILABLE / OFF'):'NOT CONNECTED'}</span><small style={{opacity:.7,lineHeight:1.4}}>{p.note}</small></div>):<p>Loading visual providers…</p>}</div></section>
+    <section className="module-panel" style={{marginBottom:18}}><div className="panel-title"><span>MAGNANIMOUS VIDEO ENGINE</span><b>{readyVisuals.length?'READY':'CORE READY'}</b></div><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:10}}><div style={{padding:12,border:'1px solid rgba(120,150,255,.2)',borderRadius:10,background:'rgba(8,12,28,.35)'}}><b style={{display:'block'}}>MAGNANIMOUS Cinematic</b><span style={{display:'block',fontSize:11,margin:'5px 0',opacity:.78}}>FREE-FIRST · READY</span><small style={{opacity:.7,lineHeight:1.4}}>Branded cinematic scene creation, direction, motion, and fallback rendering managed automatically inside I AM Magnanimous Way™.</small></div><div style={{padding:12,border:'1px solid rgba(120,150,255,.2)',borderRadius:10,background:'rgba(8,12,28,.35)'}}><b style={{display:'block'}}>MAGNANIMOUS Classic</b><span style={{display:'block',fontSize:11,margin:'5px 0',opacity:.78}}>LOCAL MODE · READY</span><small style={{opacity:.7,lineHeight:1.4}}>Device-based video creation remains available as a branded fallback with no required paid video-generation service.</small></div></div></section>
 
     <section className="video-studio-grid"><div className="module-panel"><div className="panel-title"><span>VIDEO INPUT</span><b>FREE-FIRST · SOCIAL READY</b></div>
       <label style={{display:'grid',gap:6,marginBottom:12}}><span style={{fontSize:13,fontWeight:800}}>Video title</span><input style={fieldStyle} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Video title"/></label>
       <label style={{display:'grid',gap:6,marginBottom:12}}><span style={{fontSize:13,fontWeight:800}}>AI video text</span><textarea style={{...fieldStyle,minHeight:145,resize:'vertical'}} value={text} onChange={e=>setText(e.target.value)}/></label>
       <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}><button type="button" style={softButton} onClick={()=>copyValue(text,'AI text')}>Copy AI Text</button><button type="button" style={softButton} onClick={()=>{setCaption(text);setNotice('AI video text copied into the social post caption.')}}>Use as Post Caption</button></div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:12,marginBottom:14}}>
-        <label style={{display:'grid',gap:6}}><span style={{fontSize:13,fontWeight:800}}>Visual effect provider</span><select style={fieldStyle} value={visualMode} onChange={e=>setVisualMode(e.target.value as VisualMode)}><option value="auto-free">I AM Cinematic Free — Gemini + FLUX</option><option value="flux-free">Cloudflare FLUX Free — built-in director</option><option value="classic">Classic renderer — no AI image</option></select></label>
+        <label style={{display:'grid',gap:6}}><span style={{fontSize:13,fontWeight:800}}>MAGNANIMOUS video engine</span><select style={fieldStyle} value={visualMode} onChange={e=>setVisualMode(e.target.value as VisualMode)}><option value="auto-free">MAGNANIMOUS Cinematic — Recommended</option><option value="flux-free">MAGNANIMOUS Cinematic — Direct mode</option><option value="classic">MAGNANIMOUS Classic — Local mode</option></select></label>
         <label style={{display:'grid',gap:6}}><span style={{fontSize:13,fontWeight:800}}>Visual style</span><select style={fieldStyle} value={visualStyle} onChange={e=>setVisualStyle(e.target.value as VisualStyle)}><option value="cinematic">Cinematic</option><option value="realistic">Photorealistic</option><option value="faith">Faith / Hope</option><option value="business">Business</option><option value="social">Social Campaign</option><option value="nature">Nature</option></select></label>
         <label style={{display:'grid',gap:6}}><span style={{fontSize:13,fontWeight:800}}>Social format</span><select style={fieldStyle} value={preset} onChange={e=>setPreset(e.target.value as PresetKey)}>{Object.entries(presets).map(([key,value])=><option key={key} value={key}>{value.label} — {value.help}</option>)}</select></label>
         <label style={{display:'grid',gap:6}}><span style={{fontSize:13,fontWeight:800}}>Video length</span><select style={fieldStyle} value={duration} onChange={e=>setDuration(Number(e.target.value))}><option value={10}>10 seconds</option><option value={15}>15 seconds</option><option value={30}>30 seconds</option><option value={60}>60 seconds</option></select></label>
       </div>
-      <button onClick={render} disabled={busy}>{busy?'Creating Video…':`Create ${presets[preset].label} Video →`}</button>{error&&<div className="error">{error}</div>}{notice&&<div style={{marginTop:12,padding:'10px 12px',border:'1px solid rgba(120,150,255,.25)',borderRadius:10,fontSize:14}}>{notice}</div>}{scenePrompt&&<details style={{marginTop:10,fontSize:12,opacity:.8}}><summary>Generated cinematic scene prompt</summary><p>{scenePrompt}</p></details>}
+      <button onClick={render} disabled={busy}>{busy?'Creating Video…':`Create ${presets[preset].label} Video →`}</button>{error&&<div className="error">{error}</div>}{notice&&<div style={{marginTop:12,padding:'10px 12px',border:'1px solid rgba(120,150,255,.25)',borderRadius:10,fontSize:14}}>{notice}</div>}{scenePrompt&&<details style={{marginTop:10,fontSize:12,opacity:.8}}><summary>MAGNANIMOUS cinematic scene prompt</summary><p>{scenePrompt}</p></details>}
     </div>
     <div className="video-preview"><div className="scanlines"/><div className="preview-orb">✦</div><span>LIVE PREVIEW · {presets[preset].help}</span>{url?<video controls src={url}/>:<p>Your cinematic video will appear here.</p>}</div></section>
 
@@ -269,7 +268,7 @@ export default function VideoStudio(){
       <label style={{display:'grid',gap:6,marginBottom:12}}><span style={{fontSize:13,fontWeight:800}}>AI caption / post text</span><textarea style={{...fieldStyle,minHeight:110,resize:'vertical'}} value={caption} onChange={e=>setCaption(e.target.value)} placeholder="Write or paste the caption that should go with the video."/></label>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12,marginBottom:14}}><label style={{display:'grid',gap:6}}><span style={{fontSize:13,fontWeight:800}}>Post destination</span><select style={fieldStyle} value={destination} onChange={e=>setDestination(e.target.value as Destination)}><option value="apps">Phone / Device Share Menu</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="youtube">YouTube / Shorts</option><option value="x">X / Twitter</option><option value="linkedin">LinkedIn</option><option value="whatsapp">WhatsApp</option></select></label></div>
       <div style={{display:'flex',gap:10,flexWrap:'wrap'}}><button type="button" style={softButton} onClick={()=>copyValue(caption||text,'Post text')}>Copy Post Text</button><button type="button" style={softButton} onClick={downloadVideo} disabled={!url}>Download Video</button><button type="button" onClick={shareVideo} disabled={!url||sharing}>{sharing?'Preparing Share…':'Post / Share Video →'}</button></div>
-      <p style={{fontSize:12,opacity:.72,marginBottom:0,marginTop:12}}>The free cinematic mode creates an AI-generated scene and animates it locally, avoiding a required paid video-generation API. Actual Google Veo remains optional and disabled by default so it cannot create surprise usage charges.</p>
+      <p style={{fontSize:12,opacity:.72,marginBottom:0,marginTop:12}}>MAGNANIMOUS automatically uses the best available free-first visual and rendering path behind the scenes. Third-party infrastructure is not promoted here unless it is intentionally displayed as a revenue-producing sponsored placement.</p>
     </section>
   </main>;
 }
