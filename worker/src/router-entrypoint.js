@@ -21,6 +21,7 @@ import { handlePaymentLinkBilling, augmentBillingResponse } from './payment-link
 import { requirePlatformOwner } from './platform-owner-guard.js';
 import { handleMonetization } from './monetization-runtime.js';
 import { handleBusinessEmail } from './business-email-runtime.js';
+import { handleVisual } from './visual-runtime.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -43,7 +44,9 @@ function isOdinRoute(pathname) {
 }
 
 function needsProviderRuntime(pathname) {
-  return pathname === '/api/plans' ||
+  return isOdinRoute(pathname) ||
+    pathname.startsWith('/api/visual') ||
+    pathname === '/api/plans' ||
     pathname.startsWith('/api/billing') ||
     pathname.startsWith('/api/voice-agent') ||
     pathname.startsWith('/api/agents') ||
@@ -62,6 +65,8 @@ export default {
       const billingSupportResponse = await handleBillingSupport(request, env);
       if (billingSupportResponse) return withCors(billingSupportResponse);
       const providerEnv = needsProviderRuntime(url.pathname) ? await getProviderRuntimeEnv(env) : env;
+      const visualResponse = await handleVisual(request, providerEnv);
+      if (visualResponse) return withCors(visualResponse);
       const agentResponse = await handleAgentMesh(request, providerEnv);
       if (agentResponse) return withCors(agentResponse);
       const monetizationResponse = await handleMonetization(request, providerEnv);
@@ -134,7 +139,7 @@ export default {
         const leadsResponse = await handleOwnerLeads(request, env);
         if (leadsResponse) return withCors(leadsResponse);
       }
-      if (isOdinRoute(url.pathname)) return withCors(await providerApp.fetch(request, env, ctx));
+      if (isOdinRoute(url.pathname)) return withCors(await providerApp.fetch(request, providerEnv, ctx));
       return withCors(await adminApp.fetch(request, env, ctx));
     } catch (error) {
       return withCors(new Response(JSON.stringify({ detail: error?.message || 'Server error', code: 'WORKER_RUNTIME_ERROR' }), {
