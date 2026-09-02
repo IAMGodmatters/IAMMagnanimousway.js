@@ -13,9 +13,9 @@ jobs:
         run: |
           set -euo pipefail
           BASE="https://iam-magnanimous.iam-magnanimous.workers.dev"
-          curl -fsS "$BASE/business-email" -o /tmp/business-email.html
-          grep -q "business-email" /tmp/business-email.html || true
+          curl -fsSL "$BASE/business-email" -o /tmp/business-email.html
           test -s /tmp/business-email.html
+          grep -q "I AM BUSINESS EMAIL NEXUS" /tmp/business-email.html
       - name: Verify domain email checker
         run: |
           set -euo pipefail
