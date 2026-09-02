@@ -192,8 +192,8 @@ jobs:
           cleanup() {
             local exit_code=$?
             if [ -n "${tenant_id:-}" ]; then
-              if [[ ! "$tenant_id" =~ ^[0-9]+$ ]]; then
-                echo "::error::Refusing smoke cleanup for invalid tenant id: $tenant_id"
+              if [[ ! "$tenant_id" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+                echo "::error::Refusing smoke cleanup for invalid tenant UUID: $tenant_id"
                 return 1
               fi
 
