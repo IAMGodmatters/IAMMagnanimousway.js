@@ -12,6 +12,9 @@ jobs:
       - name: Verify connected email assistant contract
         env:
           BASE_URL: https://iam-magnanimous.iam-magnanimous.workers.dev
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_ID: 7c9f798b-04d2-443c-a9e9-933c51899771
         run: |
           set -euo pipefail
 
@@ -19,9 +22,36 @@ jobs:
           tenant_id=""
 
           cleanup() {
-            if [ -n "${tenant_id:-}" ]; then
-              curl -fsS "$BASE_URL/health" >/dev/null || true
+            if [ -z "${tenant_id:-}" ] || [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+              return 0
             fi
+            python - "$tenant_id" > /tmp/d1-cleanup.json <<'PY'
+          import json,sys
+          tenant=sys.argv[1].replace("'", "''")
+          sql=f"""
+          DELETE FROM assistant_actions WHERE tenant_id='{tenant}';
+          DELETE FROM assistant_activity WHERE tenant_id='{tenant}';
+          DELETE FROM assistant_permissions WHERE tenant_id='{tenant}';
+          DELETE FROM integrations WHERE tenant_id='{tenant}';
+          DELETE FROM integration_states WHERE tenant_id='{tenant}';
+          DELETE FROM agent_mesh_messages WHERE tenant_id='{tenant}';
+          DELETE FROM billing_management_requests WHERE tenant_id='{tenant}';
+          DELETE FROM voice_agent_turns WHERE tenant_id='{tenant}';
+          DELETE FROM voice_do_not_call WHERE tenant_id='{tenant}';
+          DELETE FROM voice_agents WHERE tenant_id='{tenant}';
+          DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='{tenant}');
+          DELETE FROM tenant_settings WHERE tenant_id='{tenant}';
+          DELETE FROM billing_subscriptions WHERE tenant_id='{tenant}';
+          DELETE FROM users WHERE tenant_id='{tenant}';
+          DELETE FROM tenants WHERE id='{tenant}';
+          """
+          print(json.dumps({"sql":sql}))
+          PY
+            curl -fsS -X POST \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${D1_DATABASE_ID}/query" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H 'content-type: application/json' \
+              --data-binary @/tmp/d1-cleanup.json >/dev/null || true
           }
           trap cleanup EXIT
 
@@ -73,7 +103,3 @@ jobs:
           assert automation.get('email_token_refresh_supported') is True, automation
           print('Connected email assistant production contract passed.')
           PY
-
-          # The normal deployment smoke creates and removes disposable tenants through D1.
-          # This verification avoids requiring production D1 credentials; the test account is
-          # uniquely named and harmless if retained, but should be removed by periodic hygiene.
