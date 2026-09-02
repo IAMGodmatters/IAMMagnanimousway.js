@@ -1,0 +1,31 @@
+name: Business Email Smoke
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Business Email page
+        run: |
+          set -euo pipefail
+          BASE="https://iam-magnanimous.iam-magnanimous.workers.dev"
+          curl -fsS "$BASE/business-email" -o /tmp/business-email.html
+          grep -q "business-email" /tmp/business-email.html || true
+          test -s /tmp/business-email.html
+      - name: Verify domain email checker
+        run: |
+          set -euo pipefail
+          BASE="https://iam-magnanimous.iam-magnanimous.workers.dev"
+          curl -fsS "$BASE/api/business-email/check?domain=google.com" -o /tmp/domain.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/domain.json'))
+          assert d.get('domain') == 'google.com', d
+          assert d.get('has_mx') is True, d
+          assert isinstance(d.get('mx'), list) and d['mx'], d
+          print('Business Email domain check passed:', d.get('detected_provider'))
+          PY
