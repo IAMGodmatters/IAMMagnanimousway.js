@@ -8,13 +8,13 @@ const googleVerification=process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION||'';
 
 export const metadata:Metadata={
   metadataBase:new URL(siteUrl),
-  title:{default:'I AM Magnanimous Way™ | Free AI Business Platform',template:'%s | I AM Magnanimous Way™'},
-  description:'I AM Magnanimous Way™ is a free-first AI business platform with Odin, specialized AI tools, talking agents, CRM, business workflows, support, calling, video tools and an optional Full Business plan.',
+  title:{default:'I AM Magnanimous Way™ | AI Business Execution Platform',template:'%s | I AM Magnanimous Way™'},
+  description:'I AM Magnanimous Way™ is a free-first AI business execution platform centered on I AM Operator: one primary AI interface for planning work across business tools, CRM, content, calling, video, connected accounts and specialized AI capabilities.',
   applicationName:'I AM Magnanimous Way™',
-  keywords:['I AM Magnanimous Way','free AI tools','AI business platform','AI agents','Odin AI','AI assistant','CRM','AI video agents','business automation'],
+  keywords:['I AM Magnanimous Way','I AM Operator','AI business operator','AI business execution platform','free AI tools','AI agents','AI assistant','CRM','AI video','business automation'],
   robots:{index:true,follow:true,googleBot:{index:true,follow:true,'max-image-preview':'large','max-snippet':-1,'max-video-preview':-1}},
-  openGraph:{type:'website',url:siteUrl,siteName:'I AM Magnanimous Way™',title:'I AM Magnanimous Way™ | Free AI Business Platform',description:'Free-first AI tools, talking agents, business workflows, CRM, calling, video and an optional Full Business plan.'},
-  twitter:{card:'summary_large_image',title:'I AM Magnanimous Way™',description:'Free-first AI business platform with Odin and specialized agents.'},
+  openGraph:{type:'website',url:siteUrl,siteName:'I AM Magnanimous Way™',title:'I AM Magnanimous Way™ | Your AI Business Operator',description:'One AI operator for planning, creating, connecting and executing work across your business stack.',images:[{url:'/iam-operator-share.svg',width:1200,height:630,alt:'I AM Magnanimous Way — I AM Operator'}]},
+  twitter:{card:'summary_large_image',title:'I AM Magnanimous Way™ | I AM Operator',description:'One AI operator for business execution, CRM, content, calling, video and connected work.',images:['/iam-operator-share.svg']},
   verification:googleVerification?{google:googleVerification}:undefined
 };
 
@@ -23,7 +23,7 @@ const structuredData={
   '@graph':[
     {'@type':'Organization','@id':`${siteUrl}/#organization`,name:'I AM Magnanimous Way™',url:siteUrl},
     {'@type':'WebSite','@id':`${siteUrl}/#website`,url:siteUrl,name:'I AM Magnanimous Way™',publisher:{'@id':`${siteUrl}/#organization`},inLanguage:'en'},
-    {'@type':'SoftwareApplication','@id':`${siteUrl}/#software`,name:'I AM Magnanimous Way™',url:siteUrl,applicationCategory:'BusinessApplication',operatingSystem:'Web',description:'A free-first AI business platform with Odin, specialized AI agents, CRM, calling, video tools, support and business workflows.',offers:[{'@type':'Offer',price:'0',priceCurrency:'USD',name:'Free'},{'@type':'Offer',price:'49',priceCurrency:'USD',name:'Full Business',priceSpecification:{'@type':'UnitPriceSpecification',price:'49',priceCurrency:'USD',unitText:'MONTH'}}]}
+    {'@type':'SoftwareApplication','@id':`${siteUrl}/#software`,name:'I AM Magnanimous Way™',alternateName:'I AM Operator',url:siteUrl,applicationCategory:'BusinessApplication',operatingSystem:'Web',description:'A free-first AI business execution platform centered on one operator interface with specialized AI capabilities, CRM, calling, video, connected actions and business workflows.',offers:[{'@type':'Offer',price:'0',priceCurrency:'USD',name:'Free'},{'@type':'Offer',price:'49',priceCurrency:'USD',name:'Full Business',priceSpecification:{'@type':'UnitPriceSpecification',price:'49',priceCurrency:'USD',unitText:'MONTH'}}]}
   ]
 };
 
@@ -37,7 +37,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
       }
       function guardProtectedRoute(){
         var p=normalize(location.pathname);
-        var publicPaths=['/solutions','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise'];
+        var publicPaths=['/solutions','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise','/security'];
         var customer=localStorage.getItem('iam_account_token');
         var owner=localStorage.getItem('odin_admin_token');
         var active=sessionStorage.getItem('iam_session_active');
@@ -51,6 +51,22 @@ export default function RootLayout({children}:{children:React.ReactNode}){
         var valid=(active==='user'&&!!customer)||(active==='owner'&&!!owner);
         if(!valid)location.replace('/login');
       }
+      function polishCustomerUI(){
+        // Keep legacy internal identifiers for API compatibility while removing
+        // the old public-facing product name from any remaining customer UI.
+        var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+        var nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+        nodes.forEach(function(n){
+          if(!n.nodeValue)return;
+          n.nodeValue=n.nodeValue.replace(/ODIN/g,'I AM OPERATOR').replace(/Odin/g,'I AM Operator');
+        });
+        document.querySelectorAll('.metrics article').forEach(function(card){
+          if((card.textContent||'').indexOf('READY PROVIDERS')!==-1){
+            card.style.display='none';
+            var parent=card.parentElement;if(parent)parent.style.gridTemplateColumns='repeat(3,minmax(0,1fr))';
+          }
+        });
+      }
       function loadAds(){
         fetch('/api/monetization/config',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(c){
           if(!c)return;
@@ -63,6 +79,8 @@ export default function RootLayout({children}:{children:React.ReactNode}){
         }).catch(function(){});
       }
       guardProtectedRoute();
+      polishCustomerUI();
+      new MutationObserver(polishCustomerUI).observe(document.documentElement,{subtree:true,childList:true});
       loadAds();
     })();`}} />
   </body></html>
