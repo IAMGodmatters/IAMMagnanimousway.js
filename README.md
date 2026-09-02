@@ -58,9 +58,17 @@ The video gateway is deployed separately from the main Worker so video-rendering
 
 ## Odin and AI
 
-Odin is part of the main platform interface. The Worker connects to the OpenAI Responses API using the server-side `OPENAI_API_KEY`; private API keys are never placed in the frontend.
+Odin is part of the main platform interface. The Worker routes requests through Cloudflare Workers AI first. OpenAI and other metered providers are optional server-side fallbacks; private API keys are never placed in the frontend.
 
 The platform also contains the AI helper catalog and the owner/admin functionality built into the current application.
+
+Cloudflare Workers AI is the free-first provider. Metered providers remain disabled unless `ENABLE_METERED_PROVIDERS=true` is deliberately configured.
+
+## Phone and call center
+
+The `/phone` workspace includes free browser-to-browser WebRTC calling, agent presence, queues, call history, assignments, durations, and dispositions. An optional carrier bridge activates calls to ordinary mobile and landline numbers without changing the frontend.
+
+See [`docs/call-center.md`](docs/call-center.md) for the carrier contract and deployment variables.
 
 ## Owner administration
 
