@@ -3,18 +3,18 @@
 import {useEffect,useState} from 'react';
 
 const steps=[
- {n:'1',title:'Tell us what you want to do',text:'Choose everyday help, work, business, call center, content or learning. You do not need to understand AI providers or technical settings.',links:[['Everyday help','/agents?group=everyday'],['Work & career','/agents?group=career'],['Business','/business']]},
+ {n:'1',title:'Tell us what you want to do',text:'Choose everyday help, work, business, call center, content or learning. You do not need to understand AI providers or technical settings.',links:[['Everyday help','/agents?agent=vinnie'],['Work & career','/agents?agent=hunter'],['Business','/business']]},
  {n:'2',title:'Use the free tools first',text:'The Agent Mesh, Odin, virtual assistant, CRM, free browser calling and everyday tools work without connecting a paid phone or video provider.',links:[['Talk to an AI agent','/agents'],['Virtual Assistant','/virtual-assistant'],['Free browser calling','/phone']]},
  {n:'3',title:'Connect extras only when you need them',text:'Phone-carrier calls, photorealistic live video and other outside services are optional. The platform will clearly tell you when one is required.',links:[['Voice & human video','/ai-receptionist'],['Connections','/connections'],['See plans','/pricing']]}
 ];
 
 const paths=[
- {icon:'☀',title:'Help with daily life',text:'Planning, home organization, simple budgets, trips, events and everyday technology.',href:'/agents?group=everyday'},
- {icon:'↗',title:'Find or improve work',text:'Resumes, interviews, job search, English, spreadsheets and workplace help.',href:'/agents?group=career'},
+ {icon:'☀',title:'Help with daily life',text:'Planning, home organization, simple budgets, trips, events and everyday technology.',href:'/agents?agent=vinnie'},
+ {icon:'↗',title:'Find or improve work',text:'Resumes, interviews, job search, English, spreadsheets and workplace help.',href:'/agents?agent=hunter'},
  {icon:'◫',title:'Run or grow a business',text:'Strategy, customers, marketing, sales, CRM, operations and connected accounts.',href:'/business'},
  {icon:'☎',title:'Run a call center',text:'Browser calling, AI receptionists, scripts, QA, coaching, queues and customer support.',href:'/phone'},
- {icon:'▶',title:'Create content',text:'Social posts, video, scripts, copywriting, repurposing and audience growth.',href:'/agents?group=creator'},
- {icon:'◇',title:'Learn something',text:'Study plans, tutoring, research organization, English and skill building.',href:'/agents?group=learning'}
+ {icon:'▶',title:'Create content',text:'Social posts, video, scripts, copywriting, repurposing and audience growth.',href:'/agents?agent=sandra'},
+ {icon:'◇',title:'Learn something',text:'Study plans, tutoring, research organization, English and skill building.',href:'/agents?agent=teacher'}
 ];
 
 export default function StartHere(){
