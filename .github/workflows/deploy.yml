@@ -60,14 +60,25 @@ jobs:
         run: |
           set -euo pipefail
 
-          curl -fsS "$BASE_URL/health" > /tmp/health.json
+          check_get() {
+            local name="$1" url="$2" output="$3"
+            local status
+            status=$(curl -sS -o "$output" -w '%{http_code}' "$url")
+            if [ "$status" != "200" ]; then
+              echo "$name returned HTTP $status"
+              cat "$output" || true
+              exit 1
+            fi
+          }
+
+          check_get "Health endpoint" "$BASE_URL/health" /tmp/health.json
           python - <<'PY'
           import json
           data=json.load(open('/tmp/health.json'))
           assert data.get('status') == 'ok', data
           PY
 
-          curl -fsS "$BASE_URL/api/plans" > /tmp/plans.json
+          check_get "Plans endpoint" "$BASE_URL/api/plans" /tmp/plans.json
           python - <<'PY'
           import json
           data=json.load(open('/tmp/plans.json'))
@@ -102,20 +113,36 @@ jobs:
 
           status=$(curl -sS -o /tmp/signup.json -w '%{http_code}' -X POST "$BASE_URL/api/auth/signup" -H 'content-type: application/json' --data-binary @/tmp/signup-payload.json)
           if [ "$status" != "201" ]; then
-            cat /tmp/signup.json
             echo "Signup smoke test returned HTTP $status"
+            cat /tmp/signup.json || true
             exit 1
           fi
 
-          tenant_id=$(python - <<'PY'
+          readarray -t signup_values < <(python - <<'PY'
           import json
           data=json.load(open('/tmp/signup.json'))
           user=data.get('user') or {}
-          assert user.get('role') == 'owner', data
           assert user.get('tenant_id'), data
           assert data.get('token'), data
           print(user['tenant_id'])
+          print(data['token'])
           PY
           )
+          tenant_id="${signup_values[0]}"
+          token="${signup_values[1]}"
 
-          echo "Production health, Free/$49 billing configuration, signup, owner role, session creation, and consent recording passed."
+          status=$(curl -sS -o /tmp/me.json -w '%{http_code}' "$BASE_URL/api/auth/me" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then
+            echo "Authenticated account check returned HTTP $status"
+            cat /tmp/me.json || true
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/me.json'))
+          user=data.get('user') or {}
+          assert user.get('role') == 'owner', data
+          assert user.get('tenant_id'), data
+          PY
+
+          echo "Production health, Free/$49 billing configuration, signup, effective owner permissions, session creation, and consent recording passed."
