@@ -1,0 +1,37 @@
+name: Public DNS Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/public-dns-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dns-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect public DNS and web routing
+        run: |
+          set -euo pipefail
+          echo '=== NS ==='
+          dig +short NS iammagnanimousway.com || true
+          echo '=== A apex ==='
+          dig +short A iammagnanimousway.com || true
+          echo '=== AAAA apex ==='
+          dig +short AAAA iammagnanimousway.com || true
+          echo '=== CNAME www ==='
+          dig +short CNAME www.iammagnanimousway.com || true
+          echo '=== A www ==='
+          dig +short A www.iammagnanimousway.com || true
+          echo '=== AAAA www ==='
+          dig +short AAAA www.iammagnanimousway.com || true
+          echo '=== TXT apex ==='
+          dig +short TXT iammagnanimousway.com || true
+          echo '=== HTTP apex ==='
+          curl -sS -I --max-time 20 https://iammagnanimousway.com/ | sed -n '1,12p' || true
+          echo '=== HTTP www ==='
+          curl -sS -I --max-time 20 https://www.iammagnanimousway.com/ | sed -n '1,12p' || true
