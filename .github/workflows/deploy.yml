@@ -132,6 +132,17 @@ jobs:
           print('Stripe Full Business checkout is configured.')
           PY
 
+          check_get "Monetization endpoint" "$BASE_URL/api/monetization/config" /tmp/monetization.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/monetization.json'))
+          assert 'adsense_configured' in data, data
+          assert 'adsense_client_id' in data, data
+          assert 'adsense_home_slot' in data, data
+          assert data.get('sponsored_placements_endpoint') == '/api/ads?placement=home', data
+          assert 'policy' in data, data
+          PY
+
           check_get "Secure bootstrap public key" "$BASE_URL/api/bootstrap/public-key" /tmp/bootstrap-key.json
           python - <<'PY'
           import json
@@ -152,7 +163,7 @@ jobs:
           tenant_id=""
           cleanup() {
             if [ -n "${tenant_id:-}" ]; then
-              npx wrangler d1 execute iam-magnanimous-db --remote --command="DELETE FROM voice_agent_turns WHERE tenant_id='${tenant_id}'; DELETE FROM voice_do_not_call WHERE tenant_id='${tenant_id}'; DELETE FROM voice_agents WHERE tenant_id='${tenant_id}'; DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='${tenant_id}'); DELETE FROM tenant_settings WHERE tenant_id='${tenant_id}'; DELETE FROM billing_subscriptions WHERE tenant_id='${tenant_id}'; DELETE FROM users WHERE tenant_id='${tenant_id}'; DELETE FROM tenants WHERE id='${tenant_id}';" >/dev/null 2>&1 || true
+              npx wrangler d1 execute iam-magnanimous-db --remote --command="DELETE FROM billing_management_requests WHERE tenant_id='${tenant_id}'; DELETE FROM voice_agent_turns WHERE tenant_id='${tenant_id}'; DELETE FROM voice_do_not_call WHERE tenant_id='${tenant_id}'; DELETE FROM voice_agents WHERE tenant_id='${tenant_id}'; DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='${tenant_id}'); DELETE FROM tenant_settings WHERE tenant_id='${tenant_id}'; DELETE FROM billing_subscriptions WHERE tenant_id='${tenant_id}'; DELETE FROM users WHERE tenant_id='${tenant_id}'; DELETE FROM tenants WHERE id='${tenant_id}';" >/dev/null 2>&1 || true
             fi
           }
           trap cleanup EXIT
@@ -238,6 +249,32 @@ jobs:
           assert data.get('mode') == 'payment_link', data
           PY
 
+          status=$(curl -sS -o /tmp/billing-request.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/management-request" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"request_type":"billing_question","message":"Deployment smoke test billing request."}')
+          if [ "$status" != "201" ]; then
+            echo "Billing management request returned HTTP $status"
+            cat /tmp/billing-request.json || true
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/billing-request.json'))
+          assert data.get('id'), data
+          assert data.get('status') == 'pending', data
+          PY
+
+          status=$(curl -sS -o /tmp/billing-request-list.json -w '%{http_code}' "$BASE_URL/api/billing/management-request" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then
+            echo "Billing management request list returned HTTP $status"
+            cat /tmp/billing-request-list.json || true
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/billing-request-list.json'))
+          rows=data.get('requests') or []
+          assert any(r.get('request_type') == 'billing_question' and r.get('status') == 'pending' for r in rows), data
+          PY
+
           status=$(curl -sS -o /tmp/voice-agent.json -w '%{http_code}' "$BASE_URL/api/voice-agent/config" -H "Authorization: Bearer $token")
           if [ "$status" != "200" ]; then
             echo "AI Receptionist config returned HTTP $status"
@@ -262,4 +299,4 @@ jobs:
           assert data.get('workers_ai_bound') is True, data
           PY
 
-          echo "Production health, Odin, AI Receptionist, encrypted Stripe webhook verification, Stripe Payment Link checkout, platform-owner isolation, Free/$49 plans, signup, sessions, and consent passed."
+          echo "Production health, Odin, AI Receptionist, monetization config, billing support, encrypted Stripe webhook verification, Stripe Payment Link checkout, platform-owner isolation, Free/$49 plans, signup, sessions, and consent passed."
