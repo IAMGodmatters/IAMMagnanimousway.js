@@ -8,6 +8,9 @@ import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-
 import { handleKnowledge } from './knowledge-runtime.js';
 import { handleBilling } from './billing-runtime.js';
 import { handleVoiceAgent } from './voice-agent-runtime.js';
+import { handleBootstrap } from './secure-bootstrap.js';
+import { getProviderRuntimeEnv } from './provider-runtime-env.js';
+import { handlePaymentLinkBilling, augmentBillingResponse } from './payment-link-runtime.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -29,6 +32,12 @@ function isOdinRoute(pathname) {
     pathname === '/api/tools';
 }
 
+function needsProviderRuntime(pathname) {
+  return pathname === '/api/plans' ||
+    pathname.startsWith('/api/billing') ||
+    pathname.startsWith('/api/voice-agent');
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -38,10 +47,18 @@ export default {
     }
 
     try {
-      const billingResponse = await handleBilling(request, env);
-      if (billingResponse) return withCors(billingResponse);
+      const bootstrapResponse = await handleBootstrap(request, env);
+      if (bootstrapResponse) return withCors(bootstrapResponse);
 
-      const voiceAgentResponse = await handleVoiceAgent(request, env);
+      const providerEnv = needsProviderRuntime(url.pathname) ? await getProviderRuntimeEnv(env) : env;
+
+      const paymentLinkResponse = await handlePaymentLinkBilling(request, providerEnv);
+      if (paymentLinkResponse) return withCors(paymentLinkResponse);
+
+      const billingResponse = await handleBilling(request, providerEnv);
+      if (billingResponse) return withCors(await augmentBillingResponse(request, billingResponse, providerEnv));
+
+      const voiceAgentResponse = await handleVoiceAgent(request, providerEnv);
       if (voiceAgentResponse) return withCors(voiceAgentResponse);
 
       if (url.pathname.startsWith('/api/mux')) {
