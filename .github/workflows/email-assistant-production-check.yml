@@ -103,3 +103,48 @@ jobs:
           assert automation.get('email_token_refresh_supported') is True, automation
           print('Connected email assistant production contract passed.')
           PY
+
+          status=$(curl -sS -o /tmp/integrations.json -w '%{http_code}' "$BASE_URL/api/integrations" -H "Authorization: Bearer $token")
+          test "$status" = "200"
+
+          readarray -t oauth_state < <(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/integrations.json'))
+          items={p.get('id'):p for p in (d.get('integrations') or [])}
+          for provider in ('google','outlook'):
+              assert provider in items, d
+              print('1' if items[provider].get('configured') else '0')
+          PY
+          )
+          google_ready="${oauth_state[0]}"
+          outlook_ready="${oauth_state[1]}"
+          echo "Google OAuth configured: $google_ready"
+          echo "Microsoft Outlook OAuth configured: $outlook_ready"
+
+          verify_auth_url() {
+            local provider="$1" expected_host="$2"
+            local status
+            status=$(curl -sS -o "/tmp/${provider}-connect.json" -w '%{http_code}' -X POST "$BASE_URL/api/integrations/${provider}/connect" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{}')
+            test "$status" = "200"
+            python - "$provider" "$expected_host" <<'PY'
+          import json,sys,urllib.parse
+          provider,host=sys.argv[1],sys.argv[2]
+          d=json.load(open(f'/tmp/{provider}-connect.json'))
+          u=urllib.parse.urlparse(d.get('authorization_url',''))
+          assert u.scheme == 'https', d
+          assert u.hostname == host, d
+          print(f'{provider} official authorization URL verified: {u.hostname}')
+          PY
+          }
+
+          if [ "$google_ready" = "1" ]; then
+            verify_auth_url google accounts.google.com
+          else
+            echo "Google OAuth developer credentials are not installed yet; platform code remains ready."
+          fi
+
+          if [ "$outlook_ready" = "1" ]; then
+            verify_auth_url outlook login.microsoftonline.com
+          else
+            echo "Microsoft OAuth developer credentials are not installed yet; platform code remains ready."
+          fi
