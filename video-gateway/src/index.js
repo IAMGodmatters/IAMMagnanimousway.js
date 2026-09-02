@@ -1,9 +1,23 @@
 const RENDER_TIMEOUT_MS = 240_000;
+const CORS_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET,POST,OPTIONS",
+  "access-control-allow-headers": "Content-Type, Authorization",
+};
+
+function withCors(headers = new Headers()) {
+  const out = new Headers(headers);
+  for (const [key, value] of Object.entries(CORS_HEADERS)) out.set(key, value);
+  return out;
+}
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+    headers: withCors(new Headers({
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+    })),
   });
 }
 
@@ -18,6 +32,7 @@ async function proxy(request, env) {
     const headers = new Headers(request.headers);
     headers.delete("host");
     headers.delete("cf-connecting-ip");
+    headers.delete("origin");
     const response = await fetch(target, {
       method: request.method,
       headers,
@@ -25,10 +40,10 @@ async function proxy(request, env) {
       redirect: "follow",
       signal: controller.signal,
     });
-    const out = new Response(response.body, response);
-    out.headers.set("cache-control", "no-store");
-    if (response.headers.get("content-type")) out.headers.set("content-type", response.headers.get("content-type"));
-    return out;
+    const outHeaders = withCors(response.headers);
+    outHeaders.set("cache-control", "no-store");
+    if (response.headers.get("content-type")) outHeaders.set("content-type", response.headers.get("content-type"));
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers: outHeaders });
   } catch (error) {
     const detail = error?.name === "AbortError" ? "Video rendering timed out." : "Video renderer is temporarily unavailable.";
     return json({ detail }, 504);
@@ -42,22 +57,11 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/health") return json({ status: "ok", service: "iamagnanimous-video-gateway" });
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: {
-        "access-control-allow-origin": "*",
-        "access-control-allow-methods": "GET,POST,OPTIONS",
-        "access-control-allow-headers": "Content-Type, Authorization",
-      }});
+      return new Response(null, { status: 204, headers: withCors() });
     }
-    if (!url.pathname.startsWith("/api/video/")) return new Response("Not Found", { status: 404 });
-    const response = await proxy(request, env);
-    const location = response.headers.get("location");
-    if (location && location.startsWith(env.VIDEO_RENDERER_URL.replace(/\/$/, ""))) {
-      const rewritten = new URL(location);
-      const current = new URL(request.url);
-      rewritten.protocol = current.protocol;
-      rewritten.host = current.host;
-      return new Response(response.body, { status: response.status, headers: new Headers(response.headers) });
+    if (!url.pathname.startsWith("/api/video/")) {
+      return new Response("Not Found", { status: 404, headers: withCors(new Headers({"content-type":"text/plain; charset=utf-8"})) });
     }
-    return response;
+    return proxy(request, env);
   },
 };
