@@ -11,6 +11,7 @@ import { handleVoiceAgent } from './voice-agent-runtime.js';
 import { handleBootstrap } from './secure-bootstrap.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { handlePaymentLinkBilling, augmentBillingResponse } from './payment-link-runtime.js';
+import { requirePlatformOwner } from './platform-owner-guard.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -76,9 +77,11 @@ export default {
         if (assistantResponse) return withCors(assistantResponse);
       }
 
-      // Owner-only encrypted platform credential vault. These are developer/app
-      // credentials (client IDs/secrets), never a customer's social password.
+      // Platform-wide credentials are global to the service. A tenant workspace
+      // owner must never be able to replace credentials used by every customer.
       if (url.pathname.startsWith('/api/integrations/platform-credentials')) {
+        const guardResponse = await requirePlatformOwner(request, env);
+        if (guardResponse) return withCors(guardResponse);
         const credentialResponse = await handlePlatformCredentials(request, env);
         if (credentialResponse) return withCors(credentialResponse);
       }
@@ -89,6 +92,13 @@ export default {
         const integrationEnv = await getIntegrationRuntimeEnv(env);
         const integrationResponse = await handleIntegrations(request, integrationEnv);
         if (integrationResponse) return withCors(integrationResponse);
+      }
+
+      // Global administration belongs only to the dedicated platform-owner tenant.
+      // /api/admin/login remains public so that owner authentication still works.
+      if (url.pathname.startsWith('/api/admin/') && url.pathname !== '/api/admin/login') {
+        const guardResponse = await requirePlatformOwner(request, env);
+        if (guardResponse) return withCors(guardResponse);
       }
 
       if (url.pathname === '/api/admin/leads') {
