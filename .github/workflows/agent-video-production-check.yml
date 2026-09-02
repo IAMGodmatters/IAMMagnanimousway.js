@@ -52,7 +52,7 @@ jobs:
           }
           trap cleanup EXIT
 
-          status=$(curl -sS -o /tmp/video-page.html -w '%{http_code}' "$BASE_URL/agent-video")
+          status=$(curl -LsS -o /tmp/video-page.html -w '%{http_code}' "$BASE_URL/agent-video")
           [ "$status" = "200" ] || { echo "Agent video page returned $status"; exit 1; }
 
           status=$(curl -sS -o /tmp/catalog.json -w '%{http_code}' "$BASE_URL/api/agents")
