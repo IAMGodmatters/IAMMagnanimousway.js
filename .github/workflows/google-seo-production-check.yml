@@ -11,15 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Verify sitemap, robots, metadata-ready pages and reviews
+      - name: Verify branded sitemap, robots, metadata-ready pages and reviews
         shell: bash
         env:
-          SITE: https://iam-magnanimous.iam-magnanimous.workers.dev
+          SITE: https://iammagnanimousway.com
         run: |
           set -euo pipefail
 
           status=$(curl -LsS -o /tmp/home.html -w '%{http_code}' "$SITE/")
-          [ "$status" = "200" ] || { echo "Production homepage returned $status"; exit 1; }
+          [ "$status" = "200" ] || { echo "Branded production homepage returned $status"; exit 1; }
           grep -qi "I AM Magnanimous Way" /tmp/home.html
 
           status=$(curl -LsS -o /tmp/robots.txt -w '%{http_code}' "$SITE/robots.txt")
@@ -50,5 +50,4 @@ jobs:
           status=$(curl -LsS -o /tmp/health.json -w '%{http_code}' "$SITE/health")
           [ "$status" = "200" ] || { echo "Production health returned $status"; cat /tmp/health.json; exit 1; }
 
-          echo "Google crawl files, branded sitemap URLs, public reviews, ratings API and production health passed."
-          echo "Custom-domain attachment is intentionally verified separately because it requires Cloudflare zone-level permission."
+          echo "Branded production domain, Google crawl files, sitemap URLs, public reviews, ratings API and health passed."
