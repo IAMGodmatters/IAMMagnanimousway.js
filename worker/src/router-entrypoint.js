@@ -6,11 +6,12 @@ import { handleIntegrations } from './integrations.js';
 import { handleAssistantIntegrations } from './assistant-integrations-runtime.js';
 import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-credentials.js';
 import { handleKnowledge } from './knowledge-runtime.js';
+import { handleBilling } from './billing-runtime.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET,POST,PUT,DELETE,OPTIONS',
-  'access-control-allow-headers': 'Content-Type, Authorization',
+  'access-control-allow-headers': 'Content-Type, Authorization, Stripe-Signature',
   'access-control-expose-headers': 'Content-Type'
 };
 
@@ -36,6 +37,9 @@ export default {
     }
 
     try {
+      const billingResponse = await handleBilling(request, env);
+      if (billingResponse) return withCors(billingResponse);
+
       if (url.pathname.startsWith('/api/mux')) {
         const muxResponse = await handleMux(request, env);
         if (muxResponse) return withCors(muxResponse);
