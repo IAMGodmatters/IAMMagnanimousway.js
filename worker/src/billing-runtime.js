@@ -64,8 +64,6 @@ async function currentUser(request, env) {
 }
 
 async function ensureSchema(env) {
-  // The migration is authoritative. These CREATE statements keep local/dev and an
-  // already-running Worker resilient if the route is hit before a manual migration.
   try { await env.DB.prepare("ALTER TABLE tenants ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'").run(); } catch (_) {}
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS billing_subscriptions (
     tenant_id TEXT PRIMARY KEY, plan TEXT NOT NULL DEFAULT 'free', stripe_customer_id TEXT,
@@ -88,6 +86,23 @@ function siteOrigin(request, env) {
   return configured || new URL(request.url).origin;
 }
 
+async function stripeRequest(env, path, options = {}) {
+  if (!env.STRIPE_SECRET_KEY) return { ok: false, status: 503, data: { error: { message: 'Stripe is not configured.' } } };
+  const response = await fetch(`https://api.stripe.com${path}`, {
+    ...options,
+    headers: {
+      authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+      ...(options.headers || {})
+    }
+  });
+  const data = await response.json().catch(() => ({}));
+  return { ok: response.ok, status: response.status, data };
+}
+
+function isBusinessSubscriptionActive(status) {
+  return ['active', 'trialing', 'past_due'].includes(String(status || ''));
+}
+
 async function createCheckout(request, env, user) {
   if (!env.STRIPE_SECRET_KEY || !env.STRIPE_PRICE_BUSINESS) {
     return json({ detail: 'Business checkout is not configured yet.', code: 'STRIPE_NOT_CONFIGURED' }, 503);
@@ -107,18 +122,12 @@ async function createCheckout(request, env, user) {
   form.set('success_url', `${origin}/pricing?checkout=success&session_id={CHECKOUT_SESSION_ID}`);
   form.set('cancel_url', `${origin}/pricing?checkout=cancelled`);
 
-  const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+  const { ok, data } = await stripeRequest(env, '/v1/checkout/sessions', {
     method: 'POST',
-    headers: {
-      authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
-      'content-type': 'application/x-www-form-urlencoded'
-    },
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: form.toString()
   });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || !data?.url) {
-    return json({ detail: data?.error?.message || 'Stripe could not create checkout.' }, 502);
-  }
+  if (!ok || !data?.url) return json({ detail: data?.error?.message || 'Stripe could not create checkout.' }, 502);
   return json({ url: data.url, session_id: data.id, plan: 'business' });
 }
 
@@ -174,7 +183,6 @@ async function resolveTenantForSubscription(env, object) {
 async function processStripeEvent(env, event) {
   const type = String(event?.type || '');
   const object = event?.data?.object || {};
-
   if (type === 'checkout.session.completed') {
     const tenantId = String(object?.metadata?.tenant_id || object?.client_reference_id || '').trim();
     if (tenantId) {
@@ -187,12 +195,11 @@ async function processStripeEvent(env, event) {
     }
     return;
   }
-
   if (type === 'customer.subscription.created' || type === 'customer.subscription.updated' || type === 'customer.subscription.deleted') {
     const tenantId = await resolveTenantForSubscription(env, object);
     if (!tenantId) return;
     const status = String(object.status || (type.endsWith('.deleted') ? 'canceled' : 'inactive'));
-    const active = ['active', 'trialing', 'past_due'].includes(status) && type !== 'customer.subscription.deleted';
+    const active = isBusinessSubscriptionActive(status) && type !== 'customer.subscription.deleted';
     await saveSubscription(env, tenantId, {
       plan: active ? 'business' : 'free',
       customer_id: String(object.customer || '') || null,
@@ -222,7 +229,78 @@ async function stripeWebhook(request, env) {
   return json({ received: true });
 }
 
+async function fetchStripeSubscription(env, subscriptionId) {
+  if (!subscriptionId || !env.STRIPE_SECRET_KEY) return null;
+  const { ok, data } = await stripeRequest(env, `/v1/subscriptions/${encodeURIComponent(subscriptionId)}`);
+  return ok ? data : null;
+}
+
+async function refreshSubscription(env, user) {
+  const row = await env.DB.prepare('SELECT * FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first();
+  if (!row?.stripe_subscription_id || !env.STRIPE_SECRET_KEY) return row || null;
+  const subscription = await fetchStripeSubscription(env, row.stripe_subscription_id);
+  if (!subscription?.id) return row;
+  const status = String(subscription.status || 'inactive');
+  const active = isBusinessSubscriptionActive(status);
+  await saveSubscription(env, user.tenant_id, {
+    plan: active ? 'business' : 'free',
+    customer_id: String(subscription.customer || '') || row.stripe_customer_id || null,
+    subscription_id: String(subscription.id),
+    status,
+    current_period_end: Number(subscription.current_period_end || 0) || null
+  });
+  return env.DB.prepare('SELECT * FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first();
+}
+
+async function confirmCheckout(request, env, user) {
+  if (!env.STRIPE_SECRET_KEY) return json({ detail: 'Stripe is not configured.', code: 'STRIPE_NOT_CONFIGURED' }, 503);
+  const body = await request.json().catch(() => ({}));
+  const sessionId = String(body.session_id || '').trim();
+  if (!/^cs_[A-Za-z0-9_]+$/.test(sessionId)) return json({ detail: 'A valid Stripe Checkout session is required.' }, 400);
+
+  const { ok, data: session } = await stripeRequest(env, `/v1/checkout/sessions/${encodeURIComponent(sessionId)}`);
+  if (!ok || !session?.id) return json({ detail: session?.error?.message || 'Stripe checkout session could not be verified.' }, 502);
+  const tenantId = String(session?.metadata?.tenant_id || session?.client_reference_id || '').trim();
+  if (!tenantId || tenantId !== String(user.tenant_id)) return json({ detail: 'This checkout session does not belong to your workspace.' }, 403);
+  if (session.mode !== 'subscription' || session.status !== 'complete' || !['paid', 'no_payment_required'].includes(String(session.payment_status || ''))) {
+    return json({ detail: 'Stripe has not confirmed this subscription payment yet.', code: 'PAYMENT_NOT_CONFIRMED' }, 409);
+  }
+
+  const subscriptionId = typeof session.subscription === 'string' ? session.subscription : String(session.subscription?.id || '');
+  if (!subscriptionId) return json({ detail: 'Stripe did not return a subscription for this checkout.' }, 409);
+  const subscription = await fetchStripeSubscription(env, subscriptionId);
+  if (!subscription?.id) return json({ detail: 'Stripe subscription could not be verified.' }, 502);
+  const status = String(subscription.status || 'inactive');
+  const active = isBusinessSubscriptionActive(status);
+  await saveSubscription(env, user.tenant_id, {
+    plan: active ? 'business' : 'free',
+    customer_id: String(subscription.customer || session.customer || '') || null,
+    subscription_id: subscriptionId,
+    status,
+    current_period_end: Number(subscription.current_period_end || 0) || null
+  });
+  return json({ confirmed: active, plan: active ? 'business' : 'free', status, current_period_end: Number(subscription.current_period_end || 0) || null });
+}
+
+async function createPortal(request, env, user) {
+  if (!env.STRIPE_SECRET_KEY) return json({ detail: 'Stripe is not configured.' }, 503);
+  const row = await refreshSubscription(env, user);
+  const customerId = String(row?.stripe_customer_id || '');
+  if (!customerId) return json({ detail: 'No Stripe customer is linked to this workspace.' }, 409);
+  const form = new URLSearchParams();
+  form.set('customer', customerId);
+  form.set('return_url', `${siteOrigin(request, env)}/pricing`);
+  const { ok, data } = await stripeRequest(env, '/v1/billing_portal/sessions', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: form.toString()
+  });
+  if (!ok || !data?.url) return json({ detail: data?.error?.message || 'Stripe could not open the subscription portal.' }, 502);
+  return json({ url: data.url });
+}
+
 async function billingStatus(env, user) {
+  await refreshSubscription(env, user);
   const tenant = await env.DB.prepare("SELECT id,name,COALESCE(plan,'free') plan FROM tenants WHERE id=?").bind(user.tenant_id).first();
   const subscription = await env.DB.prepare('SELECT plan,status,current_period_end FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first();
   return json({
@@ -302,6 +380,8 @@ export async function handleBilling(request, env) {
 
   if (path === '/api/billing/status' && request.method === 'GET') return billingStatus(env, user);
   if (path === '/api/billing/checkout' && request.method === 'POST') return createCheckout(request, env, user);
+  if (path === '/api/billing/confirm' && request.method === 'POST') return confirmCheckout(request, env, user);
+  if (path === '/api/billing/portal' && request.method === 'POST') return createPortal(request, env, user);
   if (path === '/api/reviews' && request.method === 'POST') return createReview(request, env, user);
   return null;
 }
