@@ -7,6 +7,8 @@ import { handleAssistantIntegrations } from './assistant-integrations-runtime.js
 import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-credentials.js';
 import { handleKnowledge } from './knowledge-runtime.js';
 import { handleProfessionalWorkspace } from './professional-workspace-runtime.js';
+import { handleFinancePeople } from './finance-people-runtime.js';
+import { handleSupportFeedback } from './support-feedback-runtime.js';
 import { handleBilling } from './billing-runtime.js';
 import { handleBillingSupport } from './billing-support-runtime.js';
 import { handleVoiceAgent } from './voice-agent-runtime.js';
@@ -65,9 +67,6 @@ export default {
       const agentResponse = await handleAgentMesh(request, providerEnv);
       if (agentResponse) return withCors(agentResponse);
 
-      // Monetization has its own public, sanitized response contract. Route it
-      // before the legacy billing compatibility handler so AdSense slot and
-      // sponsored-placement configuration cannot be shadowed by old fields.
       const monetizationResponse = await handleMonetization(request, providerEnv);
       if (monetizationResponse) return withCors(monetizationResponse);
 
@@ -85,13 +84,31 @@ export default {
         if (muxResponse) return withCors(muxResponse);
       }
 
-      // Professional work, knowledge search and connected accounts all use the
-      // same encrypted owner-vault runtime so search/OAuth credentials can be
-      // configured once and shared safely across customer workspaces.
+      // Professional work, finance/HR, knowledge search and connected accounts
+      // share the encrypted owner-vault runtime so web/OAuth credentials remain
+      // server-side and can support every tenant without exposing secrets.
       if (url.pathname.startsWith('/api/professional')) {
         const professionalEnv = await getIntegrationRuntimeEnv(env);
         const professionalResponse = await handleProfessionalWorkspace(request, professionalEnv);
         if (professionalResponse) return withCors(professionalResponse);
+      }
+
+      if (url.pathname.startsWith('/api/finance-people')) {
+        const financeEnv = await getIntegrationRuntimeEnv(env);
+        const financeResponse = await handleFinancePeople(request, financeEnv);
+        if (financeResponse) return withCors(financeResponse);
+      }
+
+      if (url.pathname.startsWith('/api/support/owner/')) {
+        const guardResponse = await requirePlatformOwner(request, env);
+        if (guardResponse) return withCors(guardResponse);
+        const supportResponse = await handleSupportFeedback(request, env, { platformOwner: true });
+        if (supportResponse) return withCors(supportResponse);
+      }
+
+      if (url.pathname.startsWith('/api/support')) {
+        const supportResponse = await handleSupportFeedback(request, env);
+        if (supportResponse) return withCors(supportResponse);
       }
 
       if (url.pathname.startsWith('/api/knowledge')) {
@@ -106,8 +123,6 @@ export default {
         if (assistantResponse) return withCors(assistantResponse);
       }
 
-      // Platform-wide credentials are global to the service. A tenant workspace
-      // owner must never be able to replace credentials used by every customer.
       if (url.pathname.startsWith('/api/integrations/platform-credentials')) {
         const guardResponse = await requirePlatformOwner(request, env);
         if (guardResponse) return withCors(guardResponse);
@@ -116,15 +131,11 @@ export default {
       }
 
       if (url.pathname.startsWith('/api/integrations')) {
-        // Fill missing deployment OAuth keys from the encrypted owner vault before
-        // invoking the existing provider-specific OAuth implementation.
         const integrationEnv = await getIntegrationRuntimeEnv(env);
         const integrationResponse = await handleIntegrations(request, integrationEnv);
         if (integrationResponse) return withCors(integrationResponse);
       }
 
-      // Global administration belongs only to the dedicated platform-owner tenant.
-      // /api/admin/login remains public so that owner authentication still works.
       if (url.pathname.startsWith('/api/admin/') && url.pathname !== '/api/admin/login') {
         const guardResponse = await requirePlatformOwner(request, env);
         if (guardResponse) return withCors(guardResponse);
@@ -135,9 +146,6 @@ export default {
         if (leadsResponse) return withCors(leadsResponse);
       }
 
-      // Odin/provider traffic must not depend on legacy auth-table repair. The AI
-      // binding is independent of D1, so provider detection and inference should
-      // remain available even if an old database row/schema needs repair.
       if (isOdinRoute(url.pathname)) {
         return withCors(await providerApp.fetch(request, env, ctx));
       }
