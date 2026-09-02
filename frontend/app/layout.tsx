@@ -10,7 +10,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
       }
       function guardProtectedRoute(){
         var p=normalize(location.pathname);
-        var publicPaths=['/login','/signup','/owner-login','/privacy','/terms'];
+        var publicPaths=['/login','/signup','/owner-login','/privacy','/terms','/pricing'];
         if(p==='/'||publicPaths.indexOf(p)!==-1)return;
 
         var customer=localStorage.getItem('iam_account_token');
@@ -20,7 +20,16 @@ export default function RootLayout({children}:{children:React.ReactNode}){
 
         if(!valid)location.replace('/login');
       }
+      function loadAds(){
+        fetch('/api/monetization/config',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(c){
+          if(!c||!c.ads_enabled||!c.adsense_client||document.getElementById('iam-adsense'))return;
+          var s=document.createElement('script');s.id='iam-adsense';s.async=true;s.crossOrigin='anonymous';
+          s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+encodeURIComponent(c.adsense_client);
+          document.head.appendChild(s);
+        }).catch(function(){});
+      }
       guardProtectedRoute();
+      loadAds();
     })();`}} />
   </body></html>
 }
