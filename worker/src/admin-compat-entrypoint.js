@@ -55,9 +55,12 @@ async function signup(request, env) {
   if (!name || !email || password.length < 8) return json({ detail: 'Name, email, and a password of at least 8 characters are required.' }, 400);
   const existing = await env.DB.prepare('SELECT id FROM users WHERE email=? AND active=1 LIMIT 1').bind(email).first();
   if (existing) return json({ detail: 'An account with that email already exists. Please sign in instead.' }, 409);
-  let slug = String(b.workspace || name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'workspace';
-  if (await env.DB.prepare('SELECT id FROM tenants WHERE slug=?').bind(slug).first()) slug = `${slug}-${Math.floor(Math.random() * 9999)}`;
   const tid = makeId(), uid = makeId(), salt = makeId(), ph = await passwordHash(password, salt), created = now();
+  const baseSlug = String(b.workspace || name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'workspace';
+  // Public workspaces may legitimately share the same display name. Include a
+  // tenant-derived suffix from the start so concurrent signups never race on the
+  // UNIQUE slug constraint and customers never have to invent a different name.
+  const slug = `${baseSlug}-${tid.replace(/-/g, '').slice(0, 10)}`;
   await env.DB.prepare('INSERT INTO tenants(id,name,slug,owner_user_id,created_at) VALUES(?,?,?,?,?)').bind(tid, String(b.workspace || name), slug, uid, created).run();
   await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,active,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid, tid, name, email, 'member', ph, salt, 1, created).run();
   await logAuth(env, { id: uid, tenant_id: tid, email }, 'signup', 1, email);
