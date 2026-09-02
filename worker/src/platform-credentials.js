@@ -33,6 +33,15 @@ export const PLATFORM_CREDENTIAL_GROUPS = [
     ]
   },
   {
+    id: 'adsense',
+    name: 'Google AdSense / Auto Ads',
+    providers: ['adsense'],
+    fields: [
+      { key: 'ADSENSE_CLIENT_ID', label: 'AdSense Publisher ID (ca-pub-...)', secret: false, required: true },
+      { key: 'ADSENSE_SLOT_HOME', label: 'Homepage Ad Unit Slot ID (optional for Auto Ads)', secret: false, required: false }
+    ]
+  },
+  {
     id: 'meta',
     name: 'Meta',
     providers: ['facebook', 'instagram', 'whatsapp'],
