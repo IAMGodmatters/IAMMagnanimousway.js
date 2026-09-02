@@ -60,6 +60,11 @@ jobs:
           MUX_TOKEN_ID: ${{ secrets.MUX_TOKEN_ID }}
           MUX_TOKEN_SECRET: ${{ secrets.MUX_TOKEN_SECRET }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           INTEGRATION_CREDENTIALS_KEY: ${{ secrets.INTEGRATION_CREDENTIALS_KEY }}
         shell: bash
         run: |
@@ -84,6 +89,11 @@ jobs:
           sync_secret MUX_TOKEN_ID "$MUX_TOKEN_ID"
           sync_secret MUX_TOKEN_SECRET "$MUX_TOKEN_SECRET"
           sync_secret OPENAI_API_KEY "$OPENAI_API_KEY"
+          sync_secret GOOGLE_API_KEY "$GOOGLE_API_KEY"
+          sync_secret GROQ_API_KEY "$GROQ_API_KEY"
+          sync_secret OPENROUTER_API_KEY "$OPENROUTER_API_KEY"
+          sync_secret HF_TOKEN "$HF_TOKEN"
+          sync_secret MISTRAL_API_KEY "$MISTRAL_API_KEY"
           sync_secret INTEGRATION_CREDENTIALS_KEY "$INTEGRATION_CREDENTIALS_KEY"
 
       - name: Deploy Worker
@@ -132,6 +142,19 @@ jobs:
           print('Stripe Full Business checkout is configured.')
           PY
 
+          check_get "Agent Mesh catalog" "$BASE_URL/api/agents" /tmp/agents.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/agents.json'))
+          assert data.get('free_first') is True, data
+          assert data.get('openai_used') is False, data
+          assert len(data.get('agents') or []) >= 30, data
+          providers=data.get('providers') or []
+          assert any(p.get('id') == 'cloudflare-ai' and p.get('configured') is True for p in providers), data
+          assert all(p.get('id') != 'openai' for p in providers), data
+          assert data.get('talking_avatar',{}).get('browser_voice') is True, data
+          PY
+
           check_get "Monetization endpoint" "$BASE_URL/api/monetization/config" /tmp/monetization.json
           python - <<'PY'
           import json
@@ -163,7 +186,7 @@ jobs:
           tenant_id=""
           cleanup() {
             if [ -n "${tenant_id:-}" ]; then
-              npx wrangler d1 execute iam-magnanimous-db --remote --command="DELETE FROM billing_management_requests WHERE tenant_id='${tenant_id}'; DELETE FROM voice_agent_turns WHERE tenant_id='${tenant_id}'; DELETE FROM voice_do_not_call WHERE tenant_id='${tenant_id}'; DELETE FROM voice_agents WHERE tenant_id='${tenant_id}'; DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='${tenant_id}'); DELETE FROM tenant_settings WHERE tenant_id='${tenant_id}'; DELETE FROM billing_subscriptions WHERE tenant_id='${tenant_id}'; DELETE FROM users WHERE tenant_id='${tenant_id}'; DELETE FROM tenants WHERE id='${tenant_id}';" >/dev/null 2>&1 || true
+              npx wrangler d1 execute iam-magnanimous-db --remote --command="DELETE FROM agent_mesh_messages WHERE tenant_id='${tenant_id}'; DELETE FROM billing_management_requests WHERE tenant_id='${tenant_id}'; DELETE FROM voice_agent_turns WHERE tenant_id='${tenant_id}'; DELETE FROM voice_do_not_call WHERE tenant_id='${tenant_id}'; DELETE FROM voice_agents WHERE tenant_id='${tenant_id}'; DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='${tenant_id}'); DELETE FROM tenant_settings WHERE tenant_id='${tenant_id}'; DELETE FROM billing_subscriptions WHERE tenant_id='${tenant_id}'; DELETE FROM users WHERE tenant_id='${tenant_id}'; DELETE FROM tenants WHERE id='${tenant_id}';" >/dev/null 2>&1 || true
             fi
           }
           trap cleanup EXIT
@@ -232,6 +255,22 @@ jobs:
           fi
           echo "Customer workspace owners are isolated from global platform controls."
 
+          status=$(curl -sS -o /tmp/agent-chat.json -w '%{http_code}' -X POST "$BASE_URL/api/agents/chat" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"agent_id":"bobby","provider":"cloudflare-ai","message":"Give one short sentence confirming the native I AM Agent Mesh is online."}')
+          if [ "$status" != "200" ]; then
+            echo "Agent Mesh chat returned HTTP $status"
+            cat /tmp/agent-chat.json || true
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/agent-chat.json'))
+          assert data.get('output'), data
+          assert data.get('provider') == 'cloudflare-ai', data
+          assert data.get('openai_used') is False, data
+          assert data.get('shared_memory') is True, data
+          assert data.get('agent',{}).get('id') == 'bobby', data
+          PY
+
           status=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/checkout" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{}')
           if [ "$status" != "200" ]; then
             echo "Payment Link checkout returned HTTP $status"
@@ -299,4 +338,4 @@ jobs:
           assert data.get('workers_ai_bound') is True, data
           PY
 
-          echo "Production health, Odin, AI Receptionist, monetization config, billing support, encrypted Stripe webhook verification, Stripe Payment Link checkout, platform-owner isolation, Free/$49 plans, signup, sessions, and consent passed."
+          echo "Production health, native non-OpenAI Agent Mesh, Odin, AI Receptionist, monetization config, billing support, encrypted Stripe webhook verification, Stripe Payment Link checkout, platform-owner isolation, Free/$49 plans, signup, sessions, and consent passed."
