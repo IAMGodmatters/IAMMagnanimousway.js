@@ -19,6 +19,7 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      VIDEO_GATEWAY_URL: https://iam-magnanimous-video-gateway.iam-magnanimous.workers.dev
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -35,3 +36,32 @@ jobs:
       - name: Deploy video gateway
         working-directory: video-gateway
         run: npx wrangler deploy --config wrangler.jsonc
+
+      - name: Production video smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 6 --retry-delay 10 --retry-all-errors --max-time 300 \
+            "$VIDEO_GATEWAY_URL/health" >/tmp/video-health.json
+          grep -q '"status":"ok"' /tmp/video-health.json
+
+          curl -fsS --retry 2 --retry-delay 5 --retry-all-errors --max-time 300 \
+            -H 'Content-Type: application/json' \
+            -d '{"title":"I AM Video Smoke Test","text":"Production vertical video test","width":720,"height":1280,"duration":1}' \
+            "$VIDEO_GATEWAY_URL/api/video/render" >/tmp/video-render.json
+
+          DOWNLOAD_PATH="$(python - <<'PY'
+          import json
+          with open('/tmp/video-render.json', encoding='utf-8') as f:
+              data = json.load(f)
+          path = data.get('download_url')
+          if not path:
+              raise SystemExit(f"Missing download_url: {data}")
+          print(path)
+          PY
+          )"
+
+          curl -fsS --retry 2 --retry-delay 5 --retry-all-errors --max-time 300 \
+            "$VIDEO_GATEWAY_URL$DOWNLOAD_PATH" -o /tmp/iam-video-smoke.mp4
+          test -s /tmp/iam-video-smoke.mp4
+          echo "Video gateway health, 9:16 render, and MP4 download all passed."
