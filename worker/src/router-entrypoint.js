@@ -6,11 +6,12 @@ import { handleIntegrations } from './integrations.js';
 import { handleAssistantIntegrations } from './assistant-integrations-runtime.js';
 import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-credentials.js';
 import { handleKnowledge } from './knowledge-runtime.js';
+import { handleBilling } from './billing.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET,POST,PUT,DELETE,OPTIONS',
-  'access-control-allow-headers': 'Content-Type, Authorization',
+  'access-control-allow-headers': 'Content-Type, Authorization, Stripe-Signature',
   'access-control-expose-headers': 'Content-Type'
 };
 
@@ -56,6 +57,14 @@ export default {
       if (url.pathname.startsWith('/api/integrations/platform-credentials')) {
         const credentialResponse = await handlePlatformCredentials(request, env);
         if (credentialResponse) return withCors(credentialResponse);
+      }
+
+      // Billing can use deployment secrets or owner-saved encrypted platform
+      // credentials, so Stripe never needs to be exposed to the browser.
+      if (url.pathname.startsWith('/api/billing') || url.pathname.startsWith('/api/admin/revenue') || url.pathname.startsWith('/api/admin/subscriptions')) {
+        const billingEnv = await getIntegrationRuntimeEnv(env);
+        const billingResponse = await handleBilling(request, billingEnv);
+        if (billingResponse) return withCors(billingResponse);
       }
 
       if (url.pathname.startsWith('/api/integrations')) {
