@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">I AM Magnanimous Way — I AM Operator</title>
+  <desc id="desc">One AI operator for business execution.</desc>
+  <defs>
+    <radialGradient id="glow" cx="75%" cy="35%" r="65%"><stop offset="0" stop-color="#173e4b"/><stop offset=".55" stop-color="#08141a"/><stop offset="1" stop-color="#04080b"/></radialGradient>
+    <linearGradient id="line" x1="0" x2="1"><stop stop-color="#58e5f3"/><stop offset="1" stop-color="#7df3c2"/></linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <g opacity=".14" stroke="#70dbe8"><path d="M0 105h1200M0 210h1200M0 315h1200M0 420h1200M0 525h1200"/><path d="M120 0v630M240 0v630M360 0v630M480 0v630M600 0v630M720 0v630M840 0v630M960 0v630M1080 0v630"/></g>
+  <circle cx="915" cy="315" r="205" fill="none" stroke="#4fd7e9" stroke-opacity=".26" stroke-width="2"/>
+  <circle cx="915" cy="315" r="145" fill="none" stroke="#80f0c6" stroke-opacity=".22" stroke-dasharray="12 14"/>
+  <circle cx="915" cy="315" r="82" fill="#0b2129" stroke="url(#line)" stroke-width="2"/>
+  <text x="915" y="307" text-anchor="middle" fill="#dffcff" font-family="Arial,Helvetica,sans-serif" font-size="25" font-weight="700">I AM</text>
+  <text x="915" y="340" text-anchor="middle" fill="#7ee8ef" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" letter-spacing="3">OPERATOR</text>
+  <g fill="#99e8ef" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="700" letter-spacing="2">
+    <text x="900" y="72">CRM</text><text x="1060" y="185">VIDEO</text><text x="1050" y="470">SOCIAL</text><text x="875" y="575">EMAIL</text><text x="710" y="470">CALLS</text><text x="710" y="185">AI</text>
+  </g>
+  <text x="78" y="92" fill="#8eddea" font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="700" letter-spacing="5">I AM MAGNANIMOUS WAY™</text>
+  <text x="78" y="222" fill="#ffffff" font-family="Arial,Helvetica,sans-serif" font-size="72" font-weight="800">One AI operator.</text>
+  <text x="78" y="306" fill="#ffffff" font-family="Arial,Helvetica,sans-serif" font-size="72" font-weight="800">The business behind it.</text>
+  <rect x="78" y="354" width="455" height="4" rx="2" fill="url(#line)"/>
+  <text x="78" y="413" fill="#9ab4ba" font-family="Arial,Helvetica,sans-serif" font-size="24">Plan • Coordinate • Create • Connect • Continue</text>
+  <text x="78" y="520" fill="#d7f6f8" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="700">Free-first AI business execution platform</text>
+  <text x="78" y="558" fill="#718f96" font-family="Arial,Helvetica,sans-serif" font-size="18">iammagnanimousway.com</text>
+</svg>
