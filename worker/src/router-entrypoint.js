@@ -8,6 +8,7 @@ import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-
 import { handleKnowledge } from './knowledge-runtime.js';
 import { handleProfessionalWorkspace } from './professional-workspace-runtime.js';
 import { handleFinancePeople } from './finance-people-runtime.js';
+import { handleCallCenterHealth } from './call-center-health-runtime.js';
 import { handleSupportFeedback } from './support-feedback-runtime.js';
 import { handleBilling } from './billing-runtime.js';
 import { handleBillingSupport } from './billing-support-runtime.js';
@@ -50,115 +51,87 @@ function needsProviderRuntime(pathname) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders });
-    }
-
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
     try {
       const bootstrapResponse = await handleBootstrap(request, env);
       if (bootstrapResponse) return withCors(bootstrapResponse);
-
       const billingSupportResponse = await handleBillingSupport(request, env);
       if (billingSupportResponse) return withCors(billingSupportResponse);
-
       const providerEnv = needsProviderRuntime(url.pathname) ? await getProviderRuntimeEnv(env) : env;
-
       const agentResponse = await handleAgentMesh(request, providerEnv);
       if (agentResponse) return withCors(agentResponse);
-
       const monetizationResponse = await handleMonetization(request, providerEnv);
       if (monetizationResponse) return withCors(monetizationResponse);
-
       const paymentLinkResponse = await handlePaymentLinkBilling(request, providerEnv);
       if (paymentLinkResponse) return withCors(paymentLinkResponse);
-
       const billingResponse = await handleBilling(request, providerEnv);
       if (billingResponse) return withCors(await augmentBillingResponse(request, billingResponse, providerEnv));
-
       const voiceAgentResponse = await handleVoiceAgent(request, providerEnv);
       if (voiceAgentResponse) return withCors(voiceAgentResponse);
-
       if (url.pathname.startsWith('/api/mux')) {
         const muxResponse = await handleMux(request, env);
         if (muxResponse) return withCors(muxResponse);
       }
 
-      // Professional work, finance/HR, knowledge search and connected accounts
-      // share the encrypted owner-vault runtime so web/OAuth credentials remain
-      // server-side and can support every tenant without exposing secrets.
+      // Professional work, finance/HR and compliance research share the owner
+      // credential runtime so optional web research stays server-side.
       if (url.pathname.startsWith('/api/professional')) {
-        const professionalEnv = await getIntegrationRuntimeEnv(env);
-        const professionalResponse = await handleProfessionalWorkspace(request, professionalEnv);
-        if (professionalResponse) return withCors(professionalResponse);
+        const runtimeEnv = await getIntegrationRuntimeEnv(env);
+        const response = await handleProfessionalWorkspace(request, runtimeEnv);
+        if (response) return withCors(response);
       }
-
       if (url.pathname.startsWith('/api/finance-people')) {
-        const financeEnv = await getIntegrationRuntimeEnv(env);
-        const financeResponse = await handleFinancePeople(request, financeEnv);
-        if (financeResponse) return withCors(financeResponse);
+        const runtimeEnv = await getIntegrationRuntimeEnv(env);
+        const response = await handleFinancePeople(request, runtimeEnv);
+        if (response) return withCors(response);
       }
-
+      if (url.pathname.startsWith('/api/call-center-health')) {
+        const response = await handleCallCenterHealth(request, env);
+        if (response) return withCors(response);
+      }
       if (url.pathname.startsWith('/api/support/owner/')) {
         const guardResponse = await requirePlatformOwner(request, env);
         if (guardResponse) return withCors(guardResponse);
-        const supportResponse = await handleSupportFeedback(request, env, { platformOwner: true });
-        if (supportResponse) return withCors(supportResponse);
+        const response = await handleSupportFeedback(request, env, { platformOwner: true });
+        if (response) return withCors(response);
       }
-
       if (url.pathname.startsWith('/api/support')) {
-        const supportResponse = await handleSupportFeedback(request, env);
-        if (supportResponse) return withCors(supportResponse);
+        const response = await handleSupportFeedback(request, env);
+        if (response) return withCors(response);
       }
-
       if (url.pathname.startsWith('/api/knowledge')) {
-        const knowledgeEnv = await getIntegrationRuntimeEnv(env);
-        const knowledgeResponse = await handleKnowledge(request, knowledgeEnv);
-        if (knowledgeResponse) return withCors(knowledgeResponse);
+        const runtimeEnv = await getIntegrationRuntimeEnv(env);
+        const response = await handleKnowledge(request, runtimeEnv);
+        if (response) return withCors(response);
       }
-
       if (url.pathname.startsWith('/api/assistant-integrations')) {
-        const assistantEnv = await getIntegrationRuntimeEnv(env);
-        const assistantResponse = await handleAssistantIntegrations(request, assistantEnv);
-        if (assistantResponse) return withCors(assistantResponse);
+        const runtimeEnv = await getIntegrationRuntimeEnv(env);
+        const response = await handleAssistantIntegrations(request, runtimeEnv);
+        if (response) return withCors(response);
       }
-
       if (url.pathname.startsWith('/api/integrations/platform-credentials')) {
         const guardResponse = await requirePlatformOwner(request, env);
         if (guardResponse) return withCors(guardResponse);
-        const credentialResponse = await handlePlatformCredentials(request, env);
-        if (credentialResponse) return withCors(credentialResponse);
+        const response = await handlePlatformCredentials(request, env);
+        if (response) return withCors(response);
       }
-
       if (url.pathname.startsWith('/api/integrations')) {
-        const integrationEnv = await getIntegrationRuntimeEnv(env);
-        const integrationResponse = await handleIntegrations(request, integrationEnv);
-        if (integrationResponse) return withCors(integrationResponse);
+        const runtimeEnv = await getIntegrationRuntimeEnv(env);
+        const response = await handleIntegrations(request, runtimeEnv);
+        if (response) return withCors(response);
       }
-
       if (url.pathname.startsWith('/api/admin/') && url.pathname !== '/api/admin/login') {
         const guardResponse = await requirePlatformOwner(request, env);
         if (guardResponse) return withCors(guardResponse);
       }
-
       if (url.pathname === '/api/admin/leads') {
         const leadsResponse = await handleOwnerLeads(request, env);
         if (leadsResponse) return withCors(leadsResponse);
       }
-
-      if (isOdinRoute(url.pathname)) {
-        return withCors(await providerApp.fetch(request, env, ctx));
-      }
-
+      if (isOdinRoute(url.pathname)) return withCors(await providerApp.fetch(request, env, ctx));
       return withCors(await adminApp.fetch(request, env, ctx));
     } catch (error) {
-      return withCors(new Response(JSON.stringify({
-        detail: error?.message || 'Server error',
-        code: 'WORKER_RUNTIME_ERROR'
-      }), {
-        status: 500,
-        headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
-      }));
+      return withCors(new Response(JSON.stringify({detail:error?.message||'Server error',code:'WORKER_RUNTIME_ERROR'}),{status:500,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}}));
     }
   }
 };
