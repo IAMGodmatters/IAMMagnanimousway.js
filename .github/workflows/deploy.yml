@@ -200,25 +200,25 @@ jobs:
               # Execute one statement per Wrangler invocation. This avoids Cloudflare D1's
               # multi-statement batch-JSON response path that previously broke cleanup.
               local cleanup_failed=0
-              while IFS= read -r statement; do
-                [ -z "$statement" ] && continue
+              local cleanup_statements=(
+                "DELETE FROM agent_mesh_messages WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM billing_management_requests WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM voice_agent_turns WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM voice_do_not_call WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM voice_agents WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='${tenant_id}');"
+                "DELETE FROM tenant_settings WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM billing_subscriptions WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM users WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM tenants WHERE id='${tenant_id}';"
+              )
+              for statement in "${cleanup_statements[@]}"; do
                 if ! npx wrangler d1 execute iam-magnanimous-db --remote --command="$statement" >/tmp/deploy-smoke-cleanup.log 2>&1; then
                   echo "::error::Smoke-test cleanup failed: $statement"
                   cat /tmp/deploy-smoke-cleanup.log || true
                   cleanup_failed=1
                 fi
-              done <<SQL
-DELETE FROM agent_mesh_messages WHERE tenant_id='${tenant_id}';
-DELETE FROM billing_management_requests WHERE tenant_id='${tenant_id}';
-DELETE FROM voice_agent_turns WHERE tenant_id='${tenant_id}';
-DELETE FROM voice_do_not_call WHERE tenant_id='${tenant_id}';
-DELETE FROM voice_agents WHERE tenant_id='${tenant_id}';
-DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='${tenant_id}');
-DELETE FROM tenant_settings WHERE tenant_id='${tenant_id}';
-DELETE FROM billing_subscriptions WHERE tenant_id='${tenant_id}';
-DELETE FROM users WHERE tenant_id='${tenant_id}';
-DELETE FROM tenants WHERE id='${tenant_id}';
-SQL
+              done
 
               if [ "$cleanup_failed" -ne 0 ]; then
                 return 1
