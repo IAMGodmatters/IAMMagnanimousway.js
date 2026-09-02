@@ -1,8 +1,9 @@
 import React from 'react';
 import PlatformChrome from './platform-chrome';
+import SponsoredPlacement from './sponsored-placement';
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="en"><body>{children}<PlatformChrome/>
+  return <html lang="en"><body>{children}<PlatformChrome/><SponsoredPlacement/>
     <script dangerouslySetInnerHTML={{__html:`(function(){
       function normalize(path){
         var clean=(path||'/').replace(/\\/+$/,'');
