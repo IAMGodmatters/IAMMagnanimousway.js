@@ -7,6 +7,7 @@ import { handleAssistantIntegrations } from './assistant-integrations-runtime.js
 import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-credentials.js';
 import { handleKnowledge } from './knowledge-runtime.js';
 import { handleBilling } from './billing.js';
+import { handleVoiceAgents } from './voice-agents.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -65,6 +66,13 @@ export default {
         const billingEnv = await getIntegrationRuntimeEnv(env);
         const billingResponse = await handleBilling(request, billingEnv);
         if (billingResponse) return withCors(billingResponse);
+      }
+
+      // Twilio/ElevenLabs voice-agent credentials are loaded only server-side.
+      if (url.pathname.startsWith('/api/voice-agents')) {
+        const voiceEnv = await getIntegrationRuntimeEnv(env);
+        const voiceResponse = await handleVoiceAgents(request, voiceEnv);
+        if (voiceResponse) return withCors(voiceResponse);
       }
 
       if (url.pathname.startsWith('/api/integrations')) {
