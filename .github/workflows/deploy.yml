@@ -50,6 +50,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
+          TAVUS_API_KEY: ${{ secrets.TAVUS_API_KEY }}
           VOIP_PROVIDER_TOKEN: ${{ secrets.VOIP_PROVIDER_TOKEN }}
           VOIP_WEBHOOK_SECRET: ${{ secrets.VOIP_WEBHOOK_SECRET }}
           VIDEO_RENDERER_TOKEN: ${{ secrets.VIDEO_RENDERER_TOKEN }}
@@ -70,6 +74,10 @@ jobs:
           }
           sync_secret STRIPE_SECRET_KEY "$STRIPE_SECRET_KEY"
           sync_secret STRIPE_WEBHOOK_SECRET "$STRIPE_WEBHOOK_SECRET"
+          sync_secret TWILIO_ACCOUNT_SID "$TWILIO_ACCOUNT_SID"
+          sync_secret TWILIO_AUTH_TOKEN "$TWILIO_AUTH_TOKEN"
+          sync_secret TWILIO_PHONE_NUMBER "$TWILIO_PHONE_NUMBER"
+          sync_secret TAVUS_API_KEY "$TAVUS_API_KEY"
           sync_secret VOIP_PROVIDER_TOKEN "$VOIP_PROVIDER_TOKEN"
           sync_secret VOIP_WEBHOOK_SECRET "$VOIP_WEBHOOK_SECRET"
           sync_secret VIDEO_RENDERER_TOKEN "$VIDEO_RENDERER_TOKEN"
@@ -130,7 +138,7 @@ jobs:
           tenant_id=""
           cleanup() {
             if [ -n "${tenant_id:-}" ]; then
-              npx wrangler d1 execute iam-magnanimous-db --remote --command="DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='${tenant_id}'); DELETE FROM tenant_settings WHERE tenant_id='${tenant_id}'; DELETE FROM billing_subscriptions WHERE tenant_id='${tenant_id}'; DELETE FROM users WHERE tenant_id='${tenant_id}'; DELETE FROM tenants WHERE id='${tenant_id}';" >/dev/null 2>&1 || true
+              npx wrangler d1 execute iam-magnanimous-db --remote --command="DELETE FROM voice_agent_turns WHERE tenant_id='${tenant_id}'; DELETE FROM voice_do_not_call WHERE tenant_id='${tenant_id}'; DELETE FROM voice_agents WHERE tenant_id='${tenant_id}'; DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='${tenant_id}'); DELETE FROM tenant_settings WHERE tenant_id='${tenant_id}'; DELETE FROM billing_subscriptions WHERE tenant_id='${tenant_id}'; DELETE FROM users WHERE tenant_id='${tenant_id}'; DELETE FROM tenants WHERE id='${tenant_id}';" >/dev/null 2>&1 || true
             fi
           }
           trap cleanup EXIT
@@ -184,6 +192,21 @@ jobs:
           assert user.get('tenant_id'), data
           PY
 
+          status=$(curl -sS -o /tmp/voice-agent.json -w '%{http_code}' "$BASE_URL/api/voice-agent/config" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then
+            echo "AI Receptionist config returned HTTP $status"
+            cat /tmp/voice-agent.json || true
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/voice-agent.json'))
+          assert data.get('free_browser_calling') is True, data
+          assert data.get('ai_engine') is True, data
+          assert 'twilio_configured' in data, data
+          assert 'tavus_configured' in data, data
+          PY
+
           check_get "Odin health endpoint" "$BASE_URL/api/odin/health" /tmp/odin.json
           python - <<'PY'
           import json
@@ -193,4 +216,4 @@ jobs:
           assert data.get('workers_ai_bound') is True, data
           PY
 
-          echo "Production health, Odin, Free/$49 plan definitions, signup, owner permissions, session creation, and consent recording passed."
+          echo "Production health, Odin, AI Receptionist, Free/$49 plan definitions, signup, owner permissions, session creation, and consent recording passed."
