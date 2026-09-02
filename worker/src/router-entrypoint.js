@@ -7,6 +7,7 @@ import { handleAssistantIntegrations } from './assistant-integrations-runtime.js
 import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-credentials.js';
 import { handleKnowledge } from './knowledge-runtime.js';
 import { handleBilling } from './billing-runtime.js';
+import { handleBillingSupport } from './billing-support-runtime.js';
 import { handleVoiceAgent } from './voice-agent-runtime.js';
 import { handleBootstrap } from './secure-bootstrap.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
@@ -52,6 +53,9 @@ export default {
     try {
       const bootstrapResponse = await handleBootstrap(request, env);
       if (bootstrapResponse) return withCors(bootstrapResponse);
+
+      const billingSupportResponse = await handleBillingSupport(request, env);
+      if (billingSupportResponse) return withCors(billingSupportResponse);
 
       const providerEnv = needsProviderRuntime(url.pathname) ? await getProviderRuntimeEnv(env) : env;
 
