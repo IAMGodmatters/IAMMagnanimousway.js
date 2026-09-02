@@ -1,4 +1,5 @@
 import BusinessPlanClient from './business-plan-client';
+import AudienceActions from './audience-actions';
 
 export const metadata={
  title:'Professional Business Plan & MAGNANIMOUS LaunchPlan | I AM Magnanimous Way',
@@ -12,4 +13,5 @@ export default function BusinessPlanPage(){return <>
   <a href="/launchplan" style={{display:'block',textDecoration:'none',border:'1px solid #344451',borderRadius:12,padding:'12px 15px',background:'#071017',color:'#c9eff8',fontSize:11,fontWeight:800,letterSpacing:'.03em'}}>NEW MERGED INTAKE • Open MAGNANIMOUS LaunchPlan AI →</a>
  </div>
  <BusinessPlanClient/>
+ <AudienceActions/>
  </>}
