@@ -12,7 +12,6 @@ export const metadata:Metadata={
   description:'I AM Magnanimous Way™ is a free-first AI business platform with Odin, specialized AI tools, talking agents, CRM, business workflows, support, calling, video tools and an optional Full Business plan.',
   applicationName:'I AM Magnanimous Way™',
   keywords:['I AM Magnanimous Way','free AI tools','AI business platform','AI agents','Odin AI','AI assistant','CRM','AI video agents','business automation'],
-  alternates:{canonical:'/'},
   robots:{index:true,follow:true,googleBot:{index:true,follow:true,'max-image-preview':'large','max-snippet':-1,'max-video-preview':-1}},
   openGraph:{type:'website',url:siteUrl,siteName:'I AM Magnanimous Way™',title:'I AM Magnanimous Way™ | Free AI Business Platform',description:'Free-first AI tools, talking agents, business workflows, CRM, calling, video and an optional Full Business plan.'},
   twitter:{card:'summary_large_image',title:'I AM Magnanimous Way™',description:'Free-first AI business platform with Odin and specialized agents.'},
