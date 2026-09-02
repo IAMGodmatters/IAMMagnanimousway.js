@@ -1,0 +1,189 @@
+name: Business Operations Production Verification
+
+on:
+  workflow_run:
+    workflows: ["Build and Deploy I AM"]
+    types: [completed]
+
+jobs:
+  verify-business-operations:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout deployed revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm install
+
+      - name: Verify finance HR support and call center health
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BASE_URL: https://iam-magnanimous.iam-magnanimous.workers.dev
+        shell: bash
+        run: |
+          set -eo pipefail
+          email="business-ops-${{ github.event.workflow_run.id }}-${GITHUB_RUN_ID}@example.com"
+          tenant_id=""
+          cleanup() {
+            if [ -n "${tenant_id:-}" ]; then
+              npx wrangler d1 execute iam-magnanimous-db --remote --command="
+                DELETE FROM call_center_quality_reviews WHERE tenant_id='${tenant_id}';
+                DELETE FROM call_center_schedules WHERE tenant_id='${tenant_id}';
+                DELETE FROM call_center_forecasts WHERE tenant_id='${tenant_id}';
+                DELETE FROM call_center_daily_metrics WHERE tenant_id='${tenant_id}';
+                DELETE FROM call_center_kpi_targets WHERE tenant_id='${tenant_id}';
+                DELETE FROM hr_leave_requests WHERE tenant_id='${tenant_id}';
+                DELETE FROM hr_expenses WHERE tenant_id='${tenant_id}';
+                DELETE FROM hr_payroll_runs WHERE tenant_id='${tenant_id}';
+                DELETE FROM hr_workers WHERE tenant_id='${tenant_id}';
+                DELETE FROM finance_journal_lines WHERE tenant_id='${tenant_id}';
+                DELETE FROM finance_journals WHERE tenant_id='${tenant_id}';
+                DELETE FROM finance_documents WHERE tenant_id='${tenant_id}';
+                DELETE FROM finance_tax_tasks WHERE tenant_id='${tenant_id}';
+                DELETE FROM finance_accounts WHERE tenant_id='${tenant_id}';
+                DELETE FROM finance_settings WHERE tenant_id='${tenant_id}';
+                DELETE FROM support_feedback WHERE tenant_id='${tenant_id}';
+                DELETE FROM professional_activity WHERE tenant_id='${tenant_id}';
+                DELETE FROM professional_context WHERE tenant_id='${tenant_id}';
+                DELETE FROM professional_records WHERE tenant_id='${tenant_id}';
+                DELETE FROM agent_mesh_messages WHERE tenant_id='${tenant_id}';
+                DELETE FROM billing_management_requests WHERE tenant_id='${tenant_id}';
+                DELETE FROM voice_agent_turns WHERE tenant_id='${tenant_id}';
+                DELETE FROM voice_do_not_call WHERE tenant_id='${tenant_id}';
+                DELETE FROM voice_agents WHERE tenant_id='${tenant_id}';
+                DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='${tenant_id}');
+                DELETE FROM tenant_settings WHERE tenant_id='${tenant_id}';
+                DELETE FROM billing_subscriptions WHERE tenant_id='${tenant_id}';
+                DELETE FROM users WHERE tenant_id='${tenant_id}';
+                DELETE FROM tenants WHERE id='${tenant_id}';
+              " >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+
+          python - "$email" > /tmp/signup.json <<'PY'
+          import json,sys
+          print(json.dumps({
+            "name":"Business Operations Production Check",
+            "workspace":"Business Operations Production Check",
+            "email":sys.argv[1],
+            "password":"Business-Ops-Smoke-2026!",
+            "accountProcessingConsent":True,
+            "termsAccepted":True,
+            "marketingConsent":False
+          }))
+          PY
+          status=$(curl -sS -o /tmp/signup-result.json -w '%{http_code}' -X POST "$BASE_URL/api/auth/signup" -H 'content-type: application/json' --data-binary @/tmp/signup.json)
+          [ "$status" = "201" ] || { echo "Signup returned $status"; cat /tmp/signup-result.json; exit 1; }
+          readarray -t values < <(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/signup-result.json'))
+          print(d['user']['tenant_id'])
+          print(d['token'])
+          PY
+          )
+          tenant_id="${values[0]}"
+          token="${values[1]}"
+          auth="Authorization: Bearer $token"
+
+          status=$(curl -sS -o /tmp/finance-overview.json -w '%{http_code}' "$BASE_URL/api/finance-people/overview" -H "$auth")
+          [ "$status" = "200" ] || { echo "Finance overview returned $status"; cat /tmp/finance-overview.json; exit 1; }
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/finance-overview.json'))
+          assert d.get('ok') is True, d
+          assert d.get('principles',{}).get('double_entry') is True, d
+          assert d.get('principles',{}).get('multi_currency') is True, d
+          accounts=d.get('analytics',{}).get('accounts') or []
+          assert len(accounts) >= 6, d
+          assert d.get('settings',{}).get('base_currency') == 'USD', d
+          PY
+
+          status=$(curl -sS -o /tmp/income.json -w '%{http_code}' -X POST "$BASE_URL/api/finance-people/transactions/simple" -H 'content-type: application/json' -H "$auth" --data '{"kind":"income","amount":1250,"currency":"USD","description":"Production check revenue"}')
+          [ "$status" = "201" ] || { echo "Income transaction returned $status"; cat /tmp/income.json; exit 1; }
+          status=$(curl -sS -o /tmp/expense.json -w '%{http_code}' -X POST "$BASE_URL/api/finance-people/transactions/simple" -H 'content-type: application/json' -H "$auth" --data '{"kind":"expense","amount":350,"currency":"USD","description":"Production check operating cost"}')
+          [ "$status" = "201" ] || { echo "Expense transaction returned $status"; cat /tmp/expense.json; exit 1; }
+          python - <<'PY'
+          import json
+          for f in ['/tmp/income.json','/tmp/expense.json']:
+            d=json.load(open(f))
+            j=d.get('journal') or {}
+            assert j.get('status') == 'posted', d
+            assert j.get('debits') == j.get('credits'), d
+          PY
+
+          status=$(curl -sS -o /tmp/invoice.json -w '%{http_code}' -X POST "$BASE_URL/api/finance-people/documents" -H 'content-type: application/json' -H "$auth" --data '{"kind":"invoice","document_no":"SMOKE-001","counterparty":"Production Customer","country_code":"US","currency":"USD","subtotal":500,"tax":0}')
+          [ "$status" = "201" ] || { echo "Invoice returned $status"; cat /tmp/invoice.json; exit 1; }
+          status=$(curl -sS -o /tmp/tax.json -w '%{http_code}' -X POST "$BASE_URL/api/finance-people/tax-tasks" -H 'content-type: application/json' -H "$auth" --data '{"country_code":"US","jurisdiction":"Federal","tax_type":"Production compliance review","period_label":"Test only","estimated_amount":100,"currency":"USD"}')
+          [ "$status" = "201" ] || { echo "Tax task returned $status"; cat /tmp/tax.json; exit 1; }
+          status=$(curl -sS -o /tmp/worker.json -w '%{http_code}' -X POST "$BASE_URL/api/finance-people/workers" -H 'content-type: application/json' -H "$auth" --data '{"first_name":"Test","last_name":"Agent","work_email":"agent@example.com","worker_type":"contractor","country_code":"PH","currency":"USD","pay":1000,"pay_frequency":"monthly","department":"Call Center","role_title":"Customer Support Agent"}')
+          [ "$status" = "201" ] || { echo "Worker returned $status"; cat /tmp/worker.json; exit 1; }
+          status=$(curl -sS -o /tmp/payroll.json -w '%{http_code}' -X POST "$BASE_URL/api/finance-people/payroll" -H 'content-type: application/json' -H "$auth" --data '{"country_code":"PH","currency":"USD","gross":1000,"employee_tax":100,"employer_tax":50,"benefits":25,"net":900,"employer_cost":1075,"status":"approved"}')
+          [ "$status" = "201" ] || { echo "Payroll returned $status"; cat /tmp/payroll.json; exit 1; }
+
+          status=$(curl -sS -o /tmp/fx.json -w '%{http_code}' "$BASE_URL/api/finance-people/fx?from=USD&to=USD" -H "$auth")
+          [ "$status" = "200" ] || { echo "FX returned $status"; cat /tmp/fx.json; exit 1; }
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/fx.json'))
+          assert d.get('rate') == 1, d
+          assert d.get('from') == 'USD' and d.get('to') == 'USD', d
+          PY
+
+          status=$(curl -sS -o /tmp/finance-after.json -w '%{http_code}' "$BASE_URL/api/finance-people/overview" -H "$auth")
+          [ "$status" = "200" ] || { echo "Updated finance overview returned $status"; cat /tmp/finance-after.json; exit 1; }
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/finance-after.json'))
+          a=d.get('analytics') or {}
+          assert a.get('revenue_12m') == 1250, d
+          assert a.get('expenses_12m') == 350, d
+          assert a.get('net_income_12m') == 900, d
+          assert a.get('cash') == 900, d
+          assert d.get('hr',{}).get('active') == 1, d
+          assert d.get('hr',{}).get('classification_reviews') == 1, d
+          assert len(d.get('tax_tasks') or []) >= 1, d
+          assert len(d.get('documents') or []) >= 1, d
+          PY
+
+          status=$(curl -sS -o /tmp/support.json -w '%{http_code}' -X POST "$BASE_URL/api/support/tickets" -H 'content-type: application/json' -H "$auth" --data '{"category":"suggestion","priority":"normal","subject":"Production support check","message":"Verify the customer feedback queue saves correctly.","page_url":"/finance-people"}')
+          [ "$status" = "201" ] || { echo "Support create returned $status"; cat /tmp/support.json; exit 1; }
+          status=$(curl -sS -o /tmp/support-list.json -w '%{http_code}' "$BASE_URL/api/support/tickets" -H "$auth")
+          [ "$status" = "200" ] || { echo "Support list returned $status"; cat /tmp/support-list.json; exit 1; }
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/support-list.json'))
+          assert any(x.get('subject')=='Production support check' and x.get('status')=='open' for x in d.get('tickets',[])), d
+          PY
+
+          today=$(date -u +%s)
+          status=$(curl -sS -o /tmp/ops-daily.json -w '%{http_code}' -X POST "$BASE_URL/api/call-center-health/daily" -H 'content-type: application/json' -H "$auth" --data "{\"metric_date\":$today,\"offered\":100,\"answered\":92,\"answered_within_target\":85,\"abandoned\":8,\"answer_wait_seconds\":1840,\"handle_seconds\":27600,\"after_call_seconds\":2760,\"first_contact_resolved\":75,\"csat_sum\":423,\"csat_count\":92,\"qa_sum\":8550,\"qa_count\":92}")
+          [ "$status" = "201" ] || { echo "Call-center daily metrics returned $status"; cat /tmp/ops-daily.json; exit 1; }
+          status=$(curl -sS -o /tmp/ops.json -w '%{http_code}' "$BASE_URL/api/call-center-health/overview" -H "$auth")
+          [ "$status" = "200" ] || { echo "Call-center overview returned $status"; cat /tmp/ops.json; exit 1; }
+          python - <<'PY'
+          import json,math
+          d=json.load(open('/tmp/ops.json'))
+          k=d.get('kpis') or {}
+          assert d.get('ok') is True, d
+          assert k.get('offered') == 100 and k.get('answered') == 92, d
+          assert math.isclose(k.get('service_level_pct'),85.0,abs_tol=.1), d
+          assert math.isclose(k.get('abandon_rate_pct'),8.0,abs_tol=.1), d
+          assert math.isclose(k.get('asa_seconds'),20.0,abs_tol=.1), d
+          assert k.get('aht_seconds') and k.get('aht_seconds') > 300, d
+          assert d.get('finance',{}).get('estimated_monthly_people_cost') == 1000, d
+          PY
+
+          echo "Finance ledger, financial analytics, documents, tax tasks, HR/payroll, user feedback, and call-center health passed in production."
