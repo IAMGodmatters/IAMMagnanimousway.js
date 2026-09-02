@@ -1,0 +1,133 @@
+name: Professional Production Verification
+
+on:
+  workflow_run:
+    workflows: ["Build and Deploy I AM"]
+    types: [completed]
+
+jobs:
+  verify-professional:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout deployed revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm install
+
+      - name: Verify professional production workflows
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BASE_URL: https://iam-magnanimous.iam-magnanimous.workers.dev
+        shell: bash
+        run: |
+          set -eo pipefail
+          email="professional-smoke-${{ github.event.workflow_run.id }}-${GITHUB_RUN_ID}@example.com"
+          tenant_id=""
+          cleanup() {
+            if [ -n "${tenant_id:-}" ]; then
+              npx wrangler d1 execute iam-magnanimous-db --remote --command="DELETE FROM professional_activity WHERE tenant_id='${tenant_id}'; DELETE FROM professional_context WHERE tenant_id='${tenant_id}'; DELETE FROM professional_records WHERE tenant_id='${tenant_id}'; DELETE FROM agent_mesh_messages WHERE tenant_id='${tenant_id}'; DELETE FROM billing_management_requests WHERE tenant_id='${tenant_id}'; DELETE FROM voice_agent_turns WHERE tenant_id='${tenant_id}'; DELETE FROM voice_do_not_call WHERE tenant_id='${tenant_id}'; DELETE FROM voice_agents WHERE tenant_id='${tenant_id}'; DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='${tenant_id}'); DELETE FROM tenant_settings WHERE tenant_id='${tenant_id}'; DELETE FROM billing_subscriptions WHERE tenant_id='${tenant_id}'; DELETE FROM users WHERE tenant_id='${tenant_id}'; DELETE FROM tenants WHERE id='${tenant_id}';" >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+
+          python - "$email" > /tmp/pro-signup.json <<'PY'
+          import json,sys
+          print(json.dumps({
+            'name':'Professional Production Check',
+            'workspace':'Professional Production Check',
+            'email':sys.argv[1],
+            'password':'Professional-Smoke-2026!',
+            'accountProcessingConsent':True,
+            'termsAccepted':True,
+            'marketingConsent':False
+          }))
+          PY
+          status=$(curl -sS -o /tmp/pro-signup-result.json -w '%{http_code}' -X POST "$BASE_URL/api/auth/signup" -H 'content-type: application/json' --data-binary @/tmp/pro-signup.json)
+          [ "$status" = "201" ] || { echo "Professional signup returned $status"; cat /tmp/pro-signup-result.json; exit 1; }
+
+          readarray -t values < <(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/pro-signup-result.json'))
+          print(d['user']['tenant_id'])
+          print(d['token'])
+          PY
+          )
+          tenant_id="${values[0]}"
+          token="${values[1]}"
+
+          status=$(curl -sS -o /tmp/pro-overview.json -w '%{http_code}' "$BASE_URL/api/professional/overview" -H "Authorization: Bearer $token")
+          [ "$status" = "200" ] || { echo "Professional overview returned $status"; cat /tmp/pro-overview.json; exit 1; }
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/pro-overview.json'))
+          assert d.get('ok') is True, d
+          ids={x.get('id') for x in d.get('modules',[])}
+          expected={'knowledge','crm','business-demand','daily-assistant','email-replies','research','customer-follow-up','leads','press','ad-planner','context-control'}
+          assert expected.issubset(ids), (expected-ids,d)
+          assert d.get('readiness',{}).get('workers_ai') is True, d
+          assert 'web_search' in d.get('readiness',{}), d
+          assert 'gmail' in d.get('readiness',{}), d
+          assert 'outlook' in d.get('readiness',{}), d
+          PY
+
+          status=$(curl -sS -o /tmp/pro-context.json -w '%{http_code}' -X POST "$BASE_URL/api/professional/context" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"label":"Preferred communication tone","value":"Warm, concise, practical, and respectful.","scope_type":"workspace","pinned":true}')
+          [ "$status" = "201" ] || { echo "Professional context create returned $status"; cat /tmp/pro-context.json; exit 1; }
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/pro-context.json'))
+          assert d.get('ok') is True and d.get('id'), d
+          PY
+
+          status=$(curl -sS -o /tmp/pro-generate.json -w '%{http_code}' -X POST "$BASE_URL/api/professional/generate" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"module":"daily-assistant","title":"Production check daily plan","input":"Create a short professional plan with three priorities for serving customers today.","priority":"normal"}')
+          [ "$status" = "200" ] || { echo "Professional generation returned $status"; cat /tmp/pro-generate.json; exit 1; }
+          readarray -t generated < <(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/pro-generate.json'))
+          assert d.get('ok') is True, d
+          assert d.get('module') == 'daily-assistant', d
+          assert d.get('output'), d
+          assert d.get('record',{}).get('id'), d
+          assert d.get('record',{}).get('status') == 'draft', d
+          print(d['record']['id'])
+          PY
+          )
+          record_id="${generated[0]}"
+
+          status=$(curl -sS -o /tmp/pro-records.json -w '%{http_code}' "$BASE_URL/api/professional/records?module=daily-assistant" -H "Authorization: Bearer $token")
+          [ "$status" = "200" ] || { echo "Professional records returned $status"; cat /tmp/pro-records.json; exit 1; }
+          python - "$record_id" <<'PY'
+          import json,sys
+          d=json.load(open('/tmp/pro-records.json'))
+          assert any(x.get('id')==sys.argv[1] and x.get('output_text') for x in d.get('records',[])), d
+          PY
+
+          status=$(curl -sS -o /tmp/pro-update.json -w '%{http_code}' -X PUT "$BASE_URL/api/professional/records/$record_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"status":"completed"}')
+          [ "$status" = "200" ] || { echo "Professional record update returned $status"; cat /tmp/pro-update.json; exit 1; }
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/pro-update.json'))
+          assert d.get('record',{}).get('status') == 'completed', d
+          PY
+
+          status=$(curl -sS -o /tmp/pro-context-list.json -w '%{http_code}' "$BASE_URL/api/professional/context" -H "Authorization: Bearer $token")
+          [ "$status" = "200" ] || { echo "Professional context list returned $status"; cat /tmp/pro-context-list.json; exit 1; }
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/pro-context-list.json'))
+          assert any(x.get('label')=='Preferred communication tone' and x.get('pinned')==1 for x in d.get('items',[])), d
+          PY
+
+          echo "Professional Workspace overview, module catalog, tenant context, AI generation, persistent records, and status workflow passed in production."
