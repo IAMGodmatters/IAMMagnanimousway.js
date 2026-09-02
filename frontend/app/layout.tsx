@@ -37,7 +37,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
       }
       function guardProtectedRoute(){
         var p=normalize(location.pathname);
-        var publicPaths=['/solutions','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps'];
+        var publicPaths=['/solutions','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise'];
         var customer=localStorage.getItem('iam_account_token');
         var owner=localStorage.getItem('odin_admin_token');
         var active=sessionStorage.getItem('iam_session_active');
