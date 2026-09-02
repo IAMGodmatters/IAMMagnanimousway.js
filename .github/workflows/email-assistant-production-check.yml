@@ -1,0 +1,79 @@
+name: Email Assistant Production Verification
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify connected email assistant contract
+        env:
+          BASE_URL: https://iam-magnanimous.iam-magnanimous.workers.dev
+        run: |
+          set -euo pipefail
+
+          email="email-assistant-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
+          tenant_id=""
+
+          cleanup() {
+            if [ -n "${tenant_id:-}" ]; then
+              curl -fsS "$BASE_URL/health" >/dev/null || true
+            fi
+          }
+          trap cleanup EXIT
+
+          python - "$email" > /tmp/signup.json <<'PY'
+          import json,sys
+          email=sys.argv[1]
+          print(json.dumps({
+            "name":"Email Assistant Smoke",
+            "workspace":"Email Assistant Smoke",
+            "email":email,
+            "password":"Email-Smoke-Only-2026!",
+            "accountProcessingConsent":True,
+            "termsAccepted":True,
+            "marketingConsent":False
+          }))
+          PY
+
+          status=$(curl -sS -o /tmp/signup-response.json -w '%{http_code}' -X POST "$BASE_URL/api/auth/signup" -H 'content-type: application/json' --data-binary @/tmp/signup.json)
+          test "$status" = "201"
+
+          readarray -t values < <(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/signup-response.json'))
+          print((d.get('user') or {}).get('tenant_id',''))
+          print(d.get('token',''))
+          PY
+          )
+          tenant_id="${values[0]}"
+          token="${values[1]}"
+          test -n "$tenant_id"
+          test -n "$token"
+
+          status=$(curl -sS -o /tmp/context.json -w '%{http_code}' "$BASE_URL/api/assistant-integrations/context" -H "Authorization: Bearer $token")
+          test "$status" = "200"
+
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/context.json'))
+          providers={p.get('id'):p for p in (d.get('providers') or [])}
+          for provider in ('google','outlook'):
+              assert provider in providers, d
+              caps=set(providers[provider].get('capabilities') or [])
+              assert 'read_mail' in caps, (provider,caps)
+              assert 'send_mail' in caps, (provider,caps)
+          automation=d.get('automation') or {}
+          assert automation.get('owner_approval_required') is False, automation
+          assert automation.get('provider_authorization_required') is True, automation
+          assert automation.get('email_read_send_supported') is True, automation
+          assert automation.get('email_token_refresh_supported') is True, automation
+          print('Connected email assistant production contract passed.')
+          PY
+
+          # The normal deployment smoke creates and removes disposable tenants through D1.
+          # This verification avoids requiring production D1 credentials; the test account is
+          # uniquely named and harmless if retained, but should be removed by periodic hygiene.
