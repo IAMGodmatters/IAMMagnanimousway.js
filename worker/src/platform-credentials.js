@@ -86,6 +86,44 @@ export const PLATFORM_CREDENTIAL_GROUPS = [
       { key: 'DISCORD_CLIENT_ID', label: 'Discord Application / Client ID', secret: false, required: true },
       { key: 'DISCORD_CLIENT_SECRET', label: 'Discord Client Secret', secret: true, required: true }
     ]
+  },
+  {
+    id: 'stripe',
+    name: 'Stripe Billing',
+    providers: [],
+    fields: [
+      { key: 'STRIPE_SECRET_KEY', label: 'Stripe Secret Key', secret: true, required: true },
+      { key: 'STRIPE_WEBHOOK_SECRET', label: 'Stripe Webhook Signing Secret', secret: true, required: true },
+      { key: 'STRIPE_PRICE_ID', label: 'Stripe Premium Price ID (optional)', secret: false, required: false }
+    ]
+  },
+  {
+    id: 'twilio',
+    name: 'Twilio Voice',
+    providers: [],
+    fields: [
+      { key: 'TWILIO_ACCOUNT_SID', label: 'Twilio Account SID', secret: false, required: true },
+      { key: 'TWILIO_AUTH_TOKEN', label: 'Twilio Auth Token', secret: true, required: true },
+      { key: 'TWILIO_FROM_NUMBER', label: 'Twilio Voice Number (E.164)', secret: false, required: true }
+    ]
+  },
+  {
+    id: 'elevenlabs',
+    name: 'ElevenLabs Voice Agents',
+    providers: [],
+    fields: [
+      { key: 'ELEVENLABS_API_KEY', label: 'ElevenLabs API Key', secret: true, required: true },
+      { key: 'ELEVENLABS_AGENT_ID', label: 'Default ElevenLabs Agent ID', secret: false, required: false }
+    ]
+  },
+  {
+    id: 'heygen',
+    name: 'HeyGen Video Avatar',
+    providers: [],
+    fields: [
+      { key: 'HEYGEN_API_KEY', label: 'HeyGen API Key', secret: true, required: true },
+      { key: 'HEYGEN_AVATAR_ID', label: 'Default Avatar ID', secret: false, required: false }
+    ]
   }
 ];
 
