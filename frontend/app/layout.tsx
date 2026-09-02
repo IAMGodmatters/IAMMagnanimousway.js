@@ -1,8 +1,9 @@
 import React from 'react';
 import PlatformChrome from './platform-chrome';
+import GlobalTools from './global-tools';
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="en"><body>{children}<PlatformChrome/>
+  return <html lang="en"><body>{children}<PlatformChrome/><GlobalTools/>
     <script dangerouslySetInnerHTML={{__html:`(function(){
       function normalize(path){
         var clean=(path||'/').replace(/\\/+$/,'');
@@ -15,8 +16,6 @@ export default function RootLayout({children}:{children:React.ReactNode}){
         var owner=localStorage.getItem('odin_admin_token');
         var active=sessionStorage.getItem('iam_session_active');
 
-        // New visitors should see what the public platform can do instead of an
-        // empty private dashboard. Existing signed-in users keep the dashboard.
         if(p==='/'){
           if(!customer&&!owner)location.replace('/solutions');
           return;
