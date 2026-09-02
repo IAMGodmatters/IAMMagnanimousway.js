@@ -1,0 +1,113 @@
+name: Cloudflare Branded Domain
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cloudflare-custom-domain.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  attach-domain:
+    runs-on: ubuntu-latest
+    env:
+      CF_API: https://api.cloudflare.com/client/v4
+      SERVICE: iam-magnanimous
+      ZONE_NAME: iammagnanimousway.com
+      APEX: iammagnanimousway.com
+      WWW: www.iammagnanimousway.com
+    steps:
+      - name: Attach apex custom domain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          body=$(python - <<'PY'
+          import json,os
+          print(json.dumps({
+            'hostname': os.environ['APEX'],
+            'service': os.environ['SERVICE'],
+            'zone_name': os.environ['ZONE_NAME']
+          }))
+          PY
+          )
+          code=$(curl -sS -o /tmp/apex.json -w '%{http_code}' \
+            -X PUT "$CF_API/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains" \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            --data "$body")
+          cat /tmp/apex.json
+          python - "$code" <<'PY'
+          import json,sys
+          code=int(sys.argv[1]); data=json.load(open('/tmp/apex.json'))
+          if code >= 400 or not data.get('success'):
+              raise SystemExit(f"Cloudflare apex attach failed HTTP {code}: {data.get('errors')}")
+          result=data.get('result') or {}
+          assert result.get('hostname') == 'iammagnanimousway.com', result
+          assert result.get('service') == 'iam-magnanimous', result
+          print('Apex custom domain attached:', result.get('hostname'))
+          PY
+
+      - name: Attach www custom domain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          body=$(python - <<'PY'
+          import json,os
+          print(json.dumps({
+            'hostname': os.environ['WWW'],
+            'service': os.environ['SERVICE'],
+            'zone_name': os.environ['ZONE_NAME']
+          }))
+          PY
+          )
+          code=$(curl -sS -o /tmp/www.json -w '%{http_code}' \
+            -X PUT "$CF_API/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains" \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            --data "$body")
+          cat /tmp/www.json
+          python - "$code" <<'PY'
+          import json,sys
+          code=int(sys.argv[1]); data=json.load(open('/tmp/www.json'))
+          if code >= 400 or not data.get('success'):
+              print('www custom-domain attach did not succeed:', data.get('errors'))
+              print('Apex remains the required production hostname; www can be repaired separately if an existing DNS record blocks it.')
+              raise SystemExit(0)
+          result=data.get('result') or {}
+          assert result.get('hostname') == 'www.iammagnanimousway.com', result
+          assert result.get('service') == 'iam-magnanimous', result
+          print('www custom domain attached:', result.get('hostname'))
+          PY
+
+      - name: Verify apex production domain
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 18); do
+            status=$(curl -LsS --connect-timeout 10 --max-time 25 -o /tmp/site.html -w '%{http_code}' "https://$APEX/" || true)
+            if [ "$status" = "200" ] && grep -qi 'I AM Magnanimous Way' /tmp/site.html; then
+              echo "Branded apex domain is live."
+              exit 0
+            fi
+            echo "Apex not ready yet (attempt $attempt, HTTP $status)."
+            sleep 10
+          done
+          echo 'Apex custom domain did not become publicly reachable during verification.'
+          exit 1
+
+      - name: Verify Google crawl assets on branded domain
+        run: |
+          set -euo pipefail
+          curl -LsS --fail "https://$APEX/robots.txt" -o /tmp/robots.txt
+          grep -q 'Sitemap: https://iammagnanimousway.com/sitemap.xml' /tmp/robots.txt
+          curl -LsS --fail "https://$APEX/sitemap.xml" -o /tmp/sitemap.xml
+          grep -q 'https://iammagnanimousway.com/reviews/' /tmp/sitemap.xml
+          curl -LsS --fail "https://$APEX/reviews/" -o /tmp/reviews.html
+          grep -qi 'Reviews' /tmp/reviews.html
+          echo 'Branded domain, robots, sitemap and reviews are live.'
