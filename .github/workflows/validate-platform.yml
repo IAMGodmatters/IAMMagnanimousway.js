@@ -40,5 +40,6 @@ jobs:
           node --check worker/src/integrations.js
           node --check worker/src/assistant-integrations.js
           node --check worker/src/assistant-integrations-runtime.js
+          node --check worker/src/composio-managed-auth.js
           node --check worker/src/billing-runtime.js
           node --check worker/src/router-entrypoint.js
