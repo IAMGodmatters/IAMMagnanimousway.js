@@ -25,33 +25,65 @@ jobs:
             if [ -z "${tenant_id:-}" ] || [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
               return 0
             fi
-            python - "$tenant_id" > /tmp/d1-cleanup.json <<'PY'
-          import json,sys
-          tenant=sys.argv[1].replace("'", "''")
-          sql=f"""
-          DELETE FROM assistant_actions WHERE tenant_id='{tenant}';
-          DELETE FROM assistant_activity WHERE tenant_id='{tenant}';
-          DELETE FROM assistant_permissions WHERE tenant_id='{tenant}';
-          DELETE FROM integrations WHERE tenant_id='{tenant}';
-          DELETE FROM integration_states WHERE tenant_id='{tenant}';
-          DELETE FROM agent_mesh_messages WHERE tenant_id='{tenant}';
-          DELETE FROM billing_management_requests WHERE tenant_id='{tenant}';
-          DELETE FROM voice_agent_turns WHERE tenant_id='{tenant}';
-          DELETE FROM voice_do_not_call WHERE tenant_id='{tenant}';
-          DELETE FROM voice_agents WHERE tenant_id='{tenant}';
-          DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='{tenant}');
-          DELETE FROM tenant_settings WHERE tenant_id='{tenant}';
-          DELETE FROM billing_subscriptions WHERE tenant_id='{tenant}';
-          DELETE FROM users WHERE tenant_id='{tenant}';
-          DELETE FROM tenants WHERE id='{tenant}';
-          """
-          print(json.dumps({"sql":sql}))
-          PY
-            curl -fsS -X POST \
+
+            cat > /tmp/d1-schema-query.json <<'JSON'
+          {"sql":"SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"}
+          JSON
+            if ! curl -fsS -X POST \
               "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${D1_DATABASE_ID}/query" \
               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
               -H 'content-type: application/json' \
-              --data-binary @/tmp/d1-cleanup.json >/dev/null || true
+              --data-binary @/tmp/d1-schema-query.json > /tmp/d1-schema.json; then
+              echo "Warning: unable to inspect D1 schema for disposable email-assistant cleanup."
+              return 0
+            fi
+
+            python - "$tenant_id" > /tmp/d1-cleanup.json <<'PY'
+          import json,sys,re
+          tenant=sys.argv[1].replace("'", "''")
+          raw=json.load(open('/tmp/d1-schema.json'))
+          rows=[]
+          for block in raw.get('result') or []:
+              rows.extend(block.get('results') or [])
+          table_sql={str(r.get('name') or ''):str(r.get('sql') or '') for r in rows if r.get('name')}
+          statements=[]
+
+          # Consent is keyed by user rather than tenant in this schema; remove it before users.
+          if 'consent_records' in table_sql and 'users' in table_sql:
+              statements.append(f"DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id='{tenant}')")
+
+          # Remove all tenant-scoped data discovered in the live schema, excluding users until the end.
+          for name,ddl in sorted(table_sql.items()):
+              if name in {'users','tenants','consent_records'}:
+                  continue
+              if re.search(r'\btenant_id\b', ddl, re.I):
+                  safe=name.replace('"','""')
+                  statements.append(f'DELETE FROM "{safe}" WHERE tenant_id=\'{tenant}\'')
+
+          if 'users' in table_sql and re.search(r'\btenant_id\b', table_sql['users'], re.I):
+              statements.append(f"DELETE FROM users WHERE tenant_id='{tenant}'")
+          if 'tenants' in table_sql:
+              statements.append(f"DELETE FROM tenants WHERE id='{tenant}'")
+
+          print(json.dumps({'batch':[{'sql':s} for s in statements]}))
+          PY
+
+            if ! curl -fsS -X POST \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${D1_DATABASE_ID}/query" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H 'content-type: application/json' \
+              --data-binary @/tmp/d1-cleanup.json > /tmp/d1-cleanup-response.json; then
+              echo "Warning: D1 cleanup request failed."
+              cat /tmp/d1-cleanup-response.json || true
+              return 0
+            fi
+            python - <<'PY'
+          import json
+          d=json.load(open('/tmp/d1-cleanup-response.json'))
+          assert d.get('success') is True, d
+          assert all(x.get('success') is True for x in (d.get('result') or [])), d
+          print('Disposable email-assistant workspace cleaned from D1.')
+          PY
           }
           trap cleanup EXIT
 
