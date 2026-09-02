@@ -42,6 +42,8 @@ export async function augmentBillingResponse(request, response, env) {
   if (path === '/api/billing/status') {
     data.billing_configured = true;
     data.checkout_mode = 'payment_link';
+    data.portal_configured = Boolean(String(env?.STRIPE_SECRET_KEY || '').trim());
+    data.management_request_available = true;
   }
   return json(data, response.status);
 }
