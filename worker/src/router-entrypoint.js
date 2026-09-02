@@ -59,14 +59,17 @@ export default {
 
       const providerEnv = needsProviderRuntime(url.pathname) ? await getProviderRuntimeEnv(env) : env;
 
+      // Monetization has its own public, sanitized response contract. Route it
+      // before the legacy billing compatibility handler so AdSense slot and
+      // sponsored-placement configuration cannot be shadowed by old fields.
+      const monetizationResponse = await handleMonetization(request, providerEnv);
+      if (monetizationResponse) return withCors(monetizationResponse);
+
       const paymentLinkResponse = await handlePaymentLinkBilling(request, providerEnv);
       if (paymentLinkResponse) return withCors(paymentLinkResponse);
 
       const billingResponse = await handleBilling(request, providerEnv);
       if (billingResponse) return withCors(await augmentBillingResponse(request, billingResponse, providerEnv));
-
-      const monetizationResponse = await handleMonetization(request, providerEnv);
-      if (monetizationResponse) return withCors(monetizationResponse);
 
       const voiceAgentResponse = await handleVoiceAgent(request, providerEnv);
       if (voiceAgentResponse) return withCors(voiceAgentResponse);
