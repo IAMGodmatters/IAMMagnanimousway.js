@@ -1,4 +1,5 @@
 import LaunchPlanClient from './launchplan-client';
+import BusinessPlanSubscriptionCopy from '../business-plan/subscription-copy';
 
 export const metadata={
  title:'MAGNANIMOUS LaunchPlan AI | I AM Magnanimous Way',
@@ -11,4 +12,4 @@ export const metadata={
  }
 };
 
-export default function LaunchPlanPage(){return <LaunchPlanClient/>}
+export default function LaunchPlanPage(){return <><BusinessPlanSubscriptionCopy/><LaunchPlanClient/></>}
