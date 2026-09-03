@@ -56,3 +56,6 @@ jobs:
           node --check worker/src/contact-center-ivr-routing-runtime.js
           node --check worker/src/twilio-softphone-runtime.js
           node --check worker/src/bpo-operations-runtime.js
+          node --check worker/src/enterprise-commercialization-runtime.js
+          node --check worker/src/usage-guard.js
+          node --check worker/src/stripe-webhook-hardened.js
