@@ -9,13 +9,31 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'STRIPE_SECRET_KEY',label:'Stripe Secret API Key (optional)',secret:true,required:false},
   {key:'STRIPE_WEBHOOK_SECRET',label:'Stripe Webhook Signing Secret',secret:true,required:false}
  ]},
- {id:'twilio',name:'Twilio Voice',providers:['twilio'],fields:[
+ {id:'twilio',name:'Twilio Voice + Browser Agent Desk',providers:['twilio'],fields:[
   {key:'TWILIO_ACCOUNT_SID',label:'Twilio Account SID',secret:false,required:true},
   {key:'TWILIO_AUTH_TOKEN',label:'Twilio Auth Token',secret:true,required:true},
-  {key:'TWILIO_PHONE_NUMBER',label:'Twilio Phone Number (E.164)',secret:false,required:true}
+  {key:'TWILIO_PHONE_NUMBER',label:'Twilio Phone Number (E.164)',secret:false,required:true},
+  {key:'TWILIO_API_KEY_SID',label:'Twilio API Key SID (for Voice SDK)',secret:false,required:false},
+  {key:'TWILIO_API_KEY_SECRET',label:'Twilio API Key Secret (for Voice SDK)',secret:true,required:false},
+  {key:'TWILIO_TWIML_APP_SID',label:'Twilio TwiML App SID (for browser outbound calling)',secret:false,required:false}
+ ]},
+ {id:'telnyx',name:'Telnyx Voice / SIP Alternative',providers:['telnyx'],fields:[
+  {key:'TELNYX_API_KEY',label:'Telnyx API Key',secret:true,required:false},
+  {key:'TELNYX_CONNECTION_ID',label:'Telnyx Voice Connection ID',secret:false,required:false},
+  {key:'TELNYX_PHONE_NUMBER',label:'Telnyx Phone Number (E.164)',secret:false,required:false}
+ ]},
+ {id:'carrier-bridge',name:'Bring Your Own Carrier / SIP Bridge',providers:['carrier-bridge'],fields:[
+  {key:'VOIP_PROVIDER_URL',label:'Carrier Bridge HTTPS Call Endpoint',secret:false,required:false},
+  {key:'VOIP_PROVIDER_NAME',label:'Carrier / Bridge Display Name',secret:false,required:false},
+  {key:'VOIP_CALLER_ID',label:'Carrier Caller ID (E.164)',secret:false,required:false},
+  {key:'VOIP_PROVIDER_TOKEN',label:'Carrier Bridge Bearer Token',secret:true,required:false},
+  {key:'VOIP_WEBHOOK_SECRET',label:'Carrier Bridge Webhook Secret',secret:true,required:false}
  ]},
  {id:'tavus',name:'Tavus Human Video',providers:['tavus'],fields:[
   {key:'TAVUS_API_KEY',label:'Tavus API Key',secret:true,required:true}
+ ]},
+ {id:'heygen',name:'HeyGen Presenter Video',providers:['heygen'],fields:[
+  {key:'HEYGEN_API_KEY',label:'HeyGen API Key (optional presenter-video provider)',secret:true,required:false}
  ]},
  {id:'agent-brains',name:'Agent Mesh AI Brains',providers:['google-ai','groq','openrouter-free','huggingface','mistral','cerebras'],fields:[
   {key:'GOOGLE_API_KEY',label:'Google Gemini API Key (free tier supported)',secret:true,required:false},
