@@ -9,7 +9,7 @@ const hubs=[
 
 const execution=[
  ['01','UNDERSTAND','You describe the outcome in normal language instead of choosing models and apps first.'],
- ['02','PLAN','I AM Operator breaks the goal into steps and identifies the workspace, AI capability, records and connected channels needed.'],
+ ['02','PLAN','Magnanimous AI breaks the goal into steps and identifies the workspace, AI capability, records and connected channels needed.'],
  ['03','APPROVE','You stay in control of external actions. Review the plan before messages, customer updates or connected-account changes are sent.'],
  ['04','EXECUTE','The existing business, CRM, social, calling, video, knowledge and connected-action tools carry out the approved work.'],
  ['05','CONTINUE','Results can flow into the next step so the work does not stop at a single AI answer.']
@@ -20,16 +20,16 @@ export default function Solutions(){
   <nav><div className="brand"><b>I AM</b><span>MAGNANIMOUS WAY™</span></div><div className="navlinks"><a href="/security">Data & Security</a><a href="/pricing">Pricing</a><a href="/login">Sign in</a><a className="join" href="/signup">Create free account</a></div></nav>
 
   <section className="hero">
-   <small>ONE AI OPERATOR • YOUR EXISTING TOOLS BEHIND IT</small>
+   <small>MAGNANIMOUS AI • YOUR EXISTING TOOLS BEHIND IT</small>
    <h1>Run the business by saying what you need done.</h1>
-   <p><b>I AM Operator</b> is the primary intelligence layer for I AM Magnanimous Way™. Instead of making you decide which model, helper or workspace to open first, it starts with your goal, prepares the work, and coordinates the platform capabilities that can help complete it.</p>
+   <p><b>Magnanimous AI</b> is the primary intelligence layer for I AM Magnanimous Way™. Instead of making you decide which model, helper or workspace to open first, it starts with your goal, prepares the work, and coordinates the platform capabilities that can help complete it.</p>
    <div className="actions"><a href="/signup">Start free →</a><a href="/login">Open my workspace</a></div>
    <div className="trust"><span>✓ Free-first access</span><span>✓ Human approval for connected actions</span><span>✓ Tenant-scoped workspaces</span><span>✓ Multiple AI capabilities behind one interface</span></div>
   </section>
 
   <section className="operator">
-   <div className="opCopy"><small>THE PRODUCT, NOT ANOTHER MENU ITEM</small><h2>One operator. Many capabilities.</h2><p>The specialist tools are still here. Nothing has been removed. Business Command, CRM, Social Studio, Video Studio, calling, knowledge, connected accounts, the Agent Mesh and free utilities become capabilities the Operator can help coordinate.</p><div className="prompt"><small>EXAMPLE REQUEST</small><p>“Create a Facebook promotion for my landscaping company, make the image and video, prepare an email for previous customers, organize new replies in the CRM, and show me who still needs follow-up.”</p></div></div>
-   <div className="flow"><div className="brain"><span>I AM</span><b>OPERATOR</b><em>PLAN • COORDINATE • CONTINUE</em></div><div className="orbit o1">CRM</div><div className="orbit o2">VIDEO</div><div className="orbit o3">SOCIAL</div><div className="orbit o4">EMAIL</div><div className="orbit o5">CALLS</div><div className="orbit o6">AI</div></div>
+   <div className="opCopy"><small>THE PRODUCT, NOT ANOTHER MENU ITEM</small><h2>One orchestrator. Many capabilities.</h2><p>The specialist tools are still here. Nothing has been removed. Business Command, CRM, Social Studio, Video Studio, calling, knowledge, connected accounts, the Agent Mesh and free utilities become capabilities Magnanimous AI can help coordinate.</p><div className="prompt"><small>EXAMPLE REQUEST</small><p>“Create a Facebook promotion for my landscaping company, make the image and video, prepare an email for previous customers, organize new replies in the CRM, and show me who still needs follow-up.”</p></div></div>
+   <div className="flow"><div className="brain"><span>MAGNANIMOUS</span><b>AI</b><em>PLAN • COORDINATE • CONTINUE</em></div><div className="orbit o1">CRM</div><div className="orbit o2">VIDEO</div><div className="orbit o3">SOCIAL</div><div className="orbit o4">EMAIL</div><div className="orbit o5">CALLS</div><div className="orbit o6">AI</div></div>
   </section>
 
   <section className="heading"><small>HOW WORK MOVES</small><h2>From a goal to an approved execution plan.</h2></section>
@@ -38,7 +38,7 @@ export default function Solutions(){
   <section className="heading"><small>ALL EXISTING CAPABILITIES REMAIN</small><h2>Start with the outcome, not the technology.</h2></section>
   <section className="grid">{hubs.map((h,i)=><article key={h.title} className={`card c${i}`}><div className="icon">{h.icon}</div><small>0{i+1}</small><h3>{h.title}</h3><p>{h.desc}</p><div>{h.links.map(([label,href])=><a href={href} key={href+label}>{label}<b>→</b></a>)}</div></article>)}</section>
 
-  <section className="agents"><div><small>EXISTING I AM AGENT MESH</small><h2>Specialists behind the Operator.</h2><p>The Agent Mesh remains available for users who want direct access to specialists. Inside your tenant-scoped workspace, different capabilities can assist with planning, business tasks, calls, content, research and learning. The new Operator positioning gives customers one obvious place to begin without taking those specialist tools away.</p><a href="/signup">Create your workspace →</a></div><div className="mesh"><b>EVERYDAY</b><b>CAREER</b><b>BUSINESS</b><b>CALL CENTER</b><b>CREATOR</b><b>LEARNING</b><span>I AM<br/>OPERATOR</span></div></section>
+  <section className="agents"><div><small>EXISTING I AM AGENT MESH</small><h2>Specialists behind Magnanimous AI.</h2><p>The Agent Mesh remains available for users who want direct access to specialists. Inside your tenant-scoped workspace, different capabilities can assist with planning, business tasks, calls, content, research and learning. Magnanimous AI gives customers one obvious place to begin without taking those specialist tools away.</p><a href="/signup">Create your workspace →</a></div><div className="mesh"><b>EVERYDAY</b><b>CAREER</b><b>BUSINESS</b><b>CALL CENTER</b><b>CREATOR</b><b>LEARNING</b><span>MAGNANIMOUS<br/>AI</span></div></section>
 
   <section className="security"><div><small>TRUST IS PART OF THE PRODUCT</small><h2>Know what happens to business data.</h2><p>The platform separates workspaces by tenant, keeps provider credentials server-side, and uses authenticated permissions for protected business and administration areas. AI requests can be routed to external providers when their capability is used, so the Security page explains what is stored, what may be transmitted, and where third-party provider terms apply.</p></div><div className="securityCards"><article><b>Workspace isolation</b><span>Customer records and working context are scoped to the authenticated workspace.</span></article><article><b>Connected-action control</b><span>Users stay in control before supported external actions are sent or changed.</span></article><article><b>Provider transparency</b><span>Model and integration providers are infrastructure—not public sales-dashboard counters.</span></article><a href="/security">Read Data & Security →</a></div></section>
 
