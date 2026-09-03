@@ -12,6 +12,7 @@ import { handleFinancePeople } from './finance-people-v2.js';
 import { handleCallCenterHealth } from './call-center-health-runtime.js';
 import { handleSupportFeedback } from './support-feedback-runtime.js';
 import { handleBilling } from './billing-runtime.js';
+import { handleTierBilling } from './billing-tiers-runtime.js';
 import { handleBillingSupport } from './billing-support-runtime.js';
 import { handleVoiceAgent } from './voice-agent-runtime.js';
 import { handlePhoneCarrier } from './phone-carrier-runtime.js';
@@ -79,6 +80,8 @@ export default {
       if (agentResponse) return withCors(agentResponse);
       const monetizationResponse = await handleMonetization(request, providerEnv);
       if (monetizationResponse) return withCors(monetizationResponse);
+      const tierBillingResponse = await handleTierBilling(request, providerEnv);
+      if (tierBillingResponse) return withCors(tierBillingResponse);
       const paymentLinkResponse = await handlePaymentLinkBilling(request, providerEnv);
       if (paymentLinkResponse) return withCors(paymentLinkResponse);
       const billingResponse = await handleBilling(request, providerEnv);
