@@ -14,7 +14,11 @@ const replacements:[string,string][]=[
 ];
 
 function rewriteText(root:ParentNode){
- const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(node){
+  const parent=(node as Text).parentElement;
+  if(!parent)return NodeFilter.FILTER_ACCEPT;
+  return ['SCRIPT','STYLE','NOSCRIPT','TEXTAREA'].includes(parent.tagName)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;
+ }});
  let node:Node|null;
  while((node=walker.nextNode())){
   const current=node.nodeValue||'';
