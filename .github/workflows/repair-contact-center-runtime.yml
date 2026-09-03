@@ -1,0 +1,51 @@
+name: Repair contact center runtime
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Repair exact Wrangler syntax defect
+        id: repair
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('worker/src/contact-center-runtime.js')
+          text = path.read_text()
+          broken = "try{return Number(new Intl.DateTimeFormat('en-US',{timeZone:timezone||'UTC',hour:'2-digit',hour12:false}).format(new Date())))}catch{return new Date().getUTCHours()}"
+          fixed = "try{return Number(new Intl.DateTimeFormat('en-US',{timeZone:timezone||'UTC',hour:'2-digit',hour12:false}).format(new Date()))}catch{return new Date().getUTCHours()}"
+          count = text.count(broken)
+          if count == 0:
+              print('already_fixed=true')
+              with open('/tmp/repair-output','w') as f: f.write('changed=false\n')
+          elif count == 1:
+              path.write_text(text.replace(broken, fixed))
+              with open('/tmp/repair-output','w') as f: f.write('changed=true\n')
+          else:
+              raise SystemExit(f'Expected one exact defect, found {count}; refusing broad rewrite.')
+          PY
+          cat /tmp/repair-output >> "$GITHUB_OUTPUT"
+      - name: Verify Worker bundle after repair
+        if: steps.repair.outputs.changed == 'true'
+        working-directory: worker
+        run: |
+          npm install
+          npx wrangler deploy --dry-run --outdir /tmp/iam-worker-dry-run
+      - name: Commit exact repair
+        if: steps.repair.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add worker/src/contact-center-runtime.js
+          git commit -m "Fix contact center Worker bundle syntax"
+          git push origin HEAD:main
