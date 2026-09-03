@@ -14,7 +14,7 @@ const PROVIDERS = [
 ];
 
 const TOOLS = [
-  ['odin','I AM Operator','Coordinates requests across configured AI providers and platform capabilities.'],
+  ['magnanimous','Magnanimous AI','Coordinates requests across configured AI providers and platform capabilities.'],
   ['ai-chat','AI Chat','General-purpose AI assistant.'],
   ['writing','Writing Helper','Create, rewrite, summarize and polish content.'],
   ['research','Research Helper','Research live web/news sources and private workspace knowledge.'],
@@ -79,7 +79,7 @@ async function cloudflare(env, message, model) {
     try {
       const result = await env.AI.run(m, {
         messages: [
-          { role: 'system', content: 'You are I AM Operator, the orchestration assistant for I AM Magnanimous Way. Start with the user’s outcome, coordinate the relevant platform capabilities, and be useful, clear, practical, and concise unless the user asks for depth. When grounding sources are provided, use them carefully and cite them with their bracket numbers. Never mix one tenant workspace with another. For actions that would change or send data through connected external services, make the proposed action clear so the user can remain in control of approval.' },
+          { role: 'system', content: 'You are Magnanimous AI, the orchestration assistant for I AM Magnanimous Way. Start with the user’s outcome, coordinate the relevant platform capabilities, and be useful, clear, practical, and concise unless the user asks for depth. When grounding sources are provided, use them carefully and cite them with their bracket numbers. Never mix one tenant workspace with another. For actions that would change or send data through connected external services, make the proposed action clear so the user can remain in control of approval.' },
           { role: 'user', content: message }
         ],
         max_tokens: 1400
@@ -148,7 +148,7 @@ async function handle(request, env) {
 
   if (url.pathname === '/api/tools' && request.method === 'GET') return json({ tools: TOOLS });
   if (url.pathname === '/api/operator/capabilities' && request.method === 'GET') return json({
-    operator:'I AM Operator',
+    operator:'Magnanimous AI',
     routing:{task_aware:true,automatic_failover:true,manual_provider_override:true,free_first_default:true,maximum_quality_option:true},
     providers:PROVIDERS.map(p=>({id:p.id,name:p.name,tier:p.tier,configured:configured(env,p),enabled:p.tier!=='metered'||meteredEnabled(env)})),
     knowledge:{private_workspace_grounding:true,live_web_search:Boolean(env?.BRAVE_SEARCH_API_KEY),news_search:Boolean(env?.BRAVE_SEARCH_API_KEY)},
@@ -167,11 +167,11 @@ async function handle(request, env) {
     const providers = PROVIDERS.map(p => ({ id: p.id, name: p.name, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env), tier: p.tier, type: 'ai' }));
     const enabled = providers.filter(p => p.configured && p.enabled);
     const ready = enabled.length > 0;
-    return json({ free_first: true, metered_providers_enabled: meteredEnabled(env), task_aware_routing:true, automatic_failover:true, providers, configured_count: enabled.length, free_configured_count: enabled.filter(p => p.tier === 'free-first').length, operator_ready: ready, odin_ready: ready });
+    return json({ free_first: true, metered_providers_enabled: meteredEnabled(env), task_aware_routing:true, automatic_failover:true, providers, configured_count: enabled.length, free_configured_count: enabled.filter(p => p.tier === 'free-first').length, magnanimous_ready: ready, operator_ready: ready });
   }
-  if (url.pathname === '/api/odin/health' && request.method === 'GET') {
+  if ((url.pathname === '/api/magnanimous/health' || url.pathname === '/api/odin/health') && request.method === 'GET') {
     const providers = PROVIDERS.map(p => ({ id: p.id, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env) }));
-    return json({ ok: true, operator: 'online', odin: 'online', task_aware_routing:true, automatic_failover:true, workers_ai_bound: env?.AI != null, web_search_configured: Boolean(env?.BRAVE_SEARCH_API_KEY), providers });
+    return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', task_aware_routing:true, automatic_failover:true, workers_ai_bound: env?.AI != null, web_search_configured: Boolean(env?.BRAVE_SEARCH_API_KEY), providers });
   }
   if (url.pathname === '/api/chat' && request.method === 'POST') {
     const body = await request.json();
@@ -184,16 +184,16 @@ async function handle(request, env) {
     const groundedMessage=`${message}${grounding.context||''}`;
     const requested = String(body.provider || 'auto').toLowerCase();
     const candidates = requested !== 'auto' ? availableProviders(env).filter(p => p.id === requested && configured(env,p)) : routeProviders(env,message,body);
-    if (!candidates.length) return json({ detail: requested === 'auto' ? 'I AM Operator has no configured AI provider. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested AI provider is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
+    if (!candidates.length) return json({ detail: requested === 'auto' ? 'Magnanimous AI has no configured AI provider. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested AI provider is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
     const errors = [],task=taskClass(message,body);
     for (const p of candidates) {
       try {
         const result = await callProvider(p.id, env, groundedMessage, body.model);
         if (!result?.text?.trim()) throw new Error('Provider returned an empty response');
-        return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, operator: true, odin: true, routed_automatically:requested==='auto',route_task:task,route_policy:String(body.quality||body.route_policy||'free-first'),fallback_candidates:candidates.map(x=>x.id), grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured });
+        return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, magnanimous: true, operator: true, routed_automatically:requested==='auto',route_task:task,route_policy:String(body.quality||body.route_policy||'free-first'),fallback_candidates:candidates.map(x=>x.id), grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured });
       } catch (e) { errors.push(`${p.name}: ${e?.message || 'provider failed'}`); }
     }
-    return json({ detail: `I AM Operator could not complete the request. ${errors.join(' | ')}`, code: 'AI_PROVIDER_FAILURE',route_task:task }, 502);
+    return json({ detail: `Magnanimous AI could not complete the request. ${errors.join(' | ')}`, code: 'AI_PROVIDER_FAILURE',route_task:task }, 502);
   }
   return null;
 }
