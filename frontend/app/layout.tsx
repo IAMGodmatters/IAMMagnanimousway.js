@@ -10,7 +10,7 @@ const googleVerification=process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION||'';
 export const metadata:Metadata={
   metadataBase:new URL(siteUrl),
   title:{default:'I AM Magnanimous Way™ | AI Business Execution Platform',template:'%s | I AM Magnanimous Way™'},
-  description:'I AM Magnanimous Way™ is a free-first AI business execution platform centered on Magnanimous AI: one primary AI interface for planning work across business tools, CRM, content, calling, video, connected accounts and specialized AI capabilities.',
+  description:'I AM Magnanimous Way™ is a free-first AI business execution platform centered on Magnanimous AI: the official AI identity for planning and coordinating work across business tools, CRM, content, calling, video, connected accounts and specialized AI capabilities.',
   applicationName:'I AM Magnanimous Way™',
   keywords:['I AM Magnanimous Way','Magnanimous AI','AI business orchestrator','AI business execution platform','professional business plan','business launch','free AI tools','AI agents','AI assistant','CRM','AI video','business automation'],
   robots:{index:true,follow:true,googleBot:{index:true,follow:true,'max-image-preview':'large','max-snippet':-1,'max-video-preview':-1}},
@@ -19,12 +19,16 @@ export const metadata:Metadata={
   verification:googleVerification?{google:googleVerification}:undefined
 };
 
+const monthly=(name:string,price:string)=>({'@type':'Offer',price,priceCurrency:'USD',name,priceSpecification:{'@type':'UnitPriceSpecification',price,priceCurrency:'USD',unitText:'MONTH'}});
 const structuredData={
   '@context':'https://schema.org',
   '@graph':[
     {'@type':'Organization','@id':`${siteUrl}/#organization`,name:'I AM Magnanimous Way™',url:siteUrl},
     {'@type':'WebSite','@id':`${siteUrl}/#website`,url:siteUrl,name:'I AM Magnanimous Way™',publisher:{'@id':`${siteUrl}/#organization`},inLanguage:'en'},
-    {'@type':'SoftwareApplication','@id':`${siteUrl}/#software`,name:'I AM Magnanimous Way™',alternateName:'Magnanimous AI',url:siteUrl,applicationCategory:'BusinessApplication',operatingSystem:'Web',description:'A free-first AI business execution platform centered on Magnanimous AI with specialized AI capabilities, professional business planning, CRM, calling, video, connected actions and business workflows.',offers:[{'@type':'Offer',price:'0',priceCurrency:'USD',name:'Free'},{'@type':'Offer',price:'49',priceCurrency:'USD',name:'Full Business',priceSpecification:{'@type':'UnitPriceSpecification',price:'49',priceCurrency:'USD',unitText:'MONTH'}},{'@type':'Offer',price:'79',priceCurrency:'USD',name:'Professional Business Plan — Monthly Subscription',priceSpecification:{'@type':'UnitPriceSpecification',price:'79',priceCurrency:'USD',unitText:'MONTH'}}]}
+    {'@type':'SoftwareApplication','@id':`${siteUrl}/#software`,name:'I AM Magnanimous Way™',alternateName:'Magnanimous AI',url:siteUrl,applicationCategory:'BusinessApplication',operatingSystem:'Web',description:'A free-first AI business execution platform centered on Magnanimous AI with specialized AI capabilities, professional business planning, CRM, calling, video, connected actions and business workflows.',offers:[
+      {'@type':'Offer',price:'0',priceCurrency:'USD',name:'Free'},
+      monthly('Magnanimous Plus','19'),monthly('Full Business','49'),monthly('Professional Business Plan','79'),monthly('Magnanimous Pro','99'),monthly('Magnanimous Scale','199')
+    ]}
   ]
 };
 
@@ -33,62 +37,34 @@ export default function RootLayout({children}:{children:React.ReactNode}){
     <style>{`html[data-iam-public="true"] .iam-intelligence-art,html[data-iam-public="true"] .iam-command-button,html[data-iam-public="true"] .iam-command-menu,html[data-iam-public="true"] .iam-va-button,html[data-iam-public="true"] .iam-nudge,html[data-iam-public="true"] .iam-va-panel,html[data-iam-public="true"] .iam-global-tools{display:none!important}`}</style>
     <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
     <script dangerouslySetInnerHTML={{__html:`(function(){
-      function normalize(path){
-        var clean=(path||'/').replace(/\\/+$/,'');
-        return clean||'/';
-      }
+      function normalize(path){var clean=(path||'/').replace(/\\/+$/,'');return clean||'/';}
       var publicPaths=['/solutions','/business-plan','/guide','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise','/security'];
       var currentPath=normalize(location.pathname);
       if(publicPaths.indexOf(currentPath)!==-1)document.documentElement.setAttribute('data-iam-public','true');
+      function migrateMagnanimousSession(){
+        var official=localStorage.getItem('magnanimous_admin_token');
+        var legacy=localStorage.getItem('odin_admin_token');
+        if(!official&&legacy){localStorage.setItem('magnanimous_admin_token',legacy);official=legacy;}
+        return official||legacy||'';
+      }
       function guardProtectedRoute(){
         var p=currentPath;
         var customer=localStorage.getItem('iam_account_token');
-        var owner=localStorage.getItem('odin_admin_token');
+        var owner=migrateMagnanimousSession();
         var active=sessionStorage.getItem('iam_session_active');
-
-        if(p==='/'){
-          if(!customer&&!owner)location.replace('/solutions');
-          return;
-        }
+        if(p==='/'){if(!customer&&!owner)location.replace('/solutions');return;}
         if(publicPaths.indexOf(p)!==-1)return;
-
         var valid=(active==='user'&&!!customer)||(active==='owner'&&!!owner);
         if(!valid)location.replace('/login');
       }
       function polishCustomerUI(){
-        var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
-          var p=n.parentElement;if(!p)return NodeFilter.FILTER_ACCEPT;
-          var tag=p.tagName;if(tag==='SCRIPT'||tag==='STYLE'||tag==='NOSCRIPT'||tag==='TEXTAREA')return NodeFilter.FILTER_REJECT;
-          return NodeFilter.FILTER_ACCEPT;
-        }});
+        var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:function(n){var p=n.parentElement;if(!p)return NodeFilter.FILTER_ACCEPT;var tag=p.tagName;if(tag==='SCRIPT'||tag==='STYLE'||tag==='NOSCRIPT'||tag==='TEXTAREA')return NodeFilter.FILTER_REJECT;return NodeFilter.FILTER_ACCEPT;}});
         var nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
-        nodes.forEach(function(n){
-          var before=n.nodeValue||'';
-          var after=before.replace(/ODIN/g,'MAGNANIMOUS AI').replace(/Odin/g,'Magnanimous AI').replace(/I AM OPERATOR/g,'MAGNANIMOUS AI').replace(/I AM Operator/g,'Magnanimous AI').replace(/Owner \/ Admin/g,'Workspace Admin');
-          if(after!==before)n.nodeValue=after;
-        });
-        document.querySelectorAll('.metrics article').forEach(function(card){
-          if((card.textContent||'').indexOf('READY PROVIDERS')!==-1){
-            card.style.display='none';
-            var parent=card.parentElement;if(parent)parent.style.gridTemplateColumns='repeat(3,minmax(0,1fr))';
-          }
-        });
+        nodes.forEach(function(n){var before=n.nodeValue||'';var after=before.replace(/ODIN/g,'MAGNANIMOUS AI').replace(/Odin/g,'Magnanimous AI').replace(/I AM OPERATOR/g,'MAGNANIMOUS AI').replace(/I AM Operator/g,'Magnanimous AI').replace(/Owner \/ Admin/g,'Workspace Admin');if(after!==before)n.nodeValue=after;});
+        document.querySelectorAll('.metrics article').forEach(function(card){if((card.textContent||'').indexOf('READY PROVIDERS')!==-1){card.style.display='none';var parent=card.parentElement;if(parent)parent.style.gridTemplateColumns='repeat(3,minmax(0,1fr))';}});
       }
-      function loadAds(){
-        fetch('/api/monetization/config',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(c){
-          if(!c)return;
-          var configured=!!(c.adsense_configured||c.auto_ads_ready||c.ads_enabled);
-          var client=c.adsense_client_id||c.adsense_client||'';
-          if(!configured||!client||document.getElementById('iam-adsense'))return;
-          var s=document.createElement('script');s.id='iam-adsense';s.async=true;s.crossOrigin='anonymous';
-          s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+encodeURIComponent(client);
-          document.head.appendChild(s);
-        }).catch(function(){});
-      }
-      guardProtectedRoute();
-      polishCustomerUI();
-      new MutationObserver(function(){polishCustomerUI()}).observe(document.body,{subtree:true,childList:true});
-      loadAds();
+      function loadAds(){fetch('/api/monetization/config',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(c){if(!c)return;var configured=!!(c.adsense_configured||c.auto_ads_ready||c.ads_enabled);var client=c.adsense_client_id||c.adsense_client||'';if(!configured||!client||document.getElementById('iam-adsense'))return;var s=document.createElement('script');s.id='iam-adsense';s.async=true;s.crossOrigin='anonymous';s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+encodeURIComponent(client);document.head.appendChild(s);}).catch(function(){});}
+      migrateMagnanimousSession();guardProtectedRoute();polishCustomerUI();new MutationObserver(function(){polishCustomerUI()}).observe(document.body,{subtree:true,childList:true});loadAds();
     })();`}} />
   </body></html>
 }
