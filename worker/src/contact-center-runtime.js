@@ -79,7 +79,7 @@ async function validTwilio(request,env){
 }
 
 function localHour(timezone){
- try{return Number(new Intl.DateTimeFormat('en-US',{timeZone:timezone||'UTC',hour:'2-digit',hour12:false}).format(new Date())))}catch{return new Date().getUTCHours()}
+ try{return Number(new Intl.DateTimeFormat('en-US',{timeZone:timezone||'UTC',hour:'2-digit',hour12:false}).format(new Date()))}catch{return new Date().getUTCHours()}
 }
 function insideCallingWindow(campaign){const h=localHour(campaign?.timezone||'UTC');return h>=8&&h<20}
 async function outboundCount(env,tenant,campaignId,since){const r=await env.DB.prepare('SELECT COUNT(*) n FROM cc_campaign_members WHERE tenant_id=? AND campaign_id=? AND last_attempt_at>=?').bind(tenant,campaignId,since).first();return Number(r?.n||0)}
@@ -120,7 +120,7 @@ async function campaignRoutes(request,env,user,url){
  if(enroll&&request.method==='POST'){
   const campaign=await env.DB.prepare('SELECT * FROM cc_campaigns WHERE id=? AND tenant_id=?').bind(enroll[1],tenant).first();if(!campaign)return json({detail:'Campaign not found.'},404);const b=await request.json().catch(()=>({})),ts=now();let added=0,skipped=0;
   const leads=Array.isArray(b.lead_ids)&&b.lead_ids.length?(await env.DB.prepare(`SELECT id,first_name,last_name,phone FROM leads WHERE tenant_id=? AND id IN (${b.lead_ids.map(()=>'?').join(',')})`).bind(tenant,...b.lead_ids.map(Number)).all()).results||[]:[];
-  const contacts=[...leads.map(x=>({lead_id:x.id,phone:x.phone,display_name:`${x.first_name||''} ${x.last_name||''}`.trim()}),...(Array.isArray(b.contacts)?b.contacts:[])];
+  const contacts=[...leads.map(x=>({lead_id:x.id,phone:x.phone,display_name:`${x.first_name||''} ${x.last_name||''}`.trim()})),...(Array.isArray(b.contacts)?b.contacts:[])];
   for(const c of contacts){const p=phone(c.phone);if(!validE164(p)){skipped++;continue}try{await env.DB.prepare('INSERT INTO cc_campaign_members(id,tenant_id,campaign_id,lead_id,phone,display_name,status,attempts,next_attempt_at,consent_confirmed,timezone,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),tenant,campaign.id,c.lead_id||null,p,clean(c.display_name||c.name),'pending',0,ts,c.consent_confirmed===true||b.consent_confirmed===true?1:0,clean(c.timezone),ts,ts).run();added++}catch{skipped++}}
   return json({added,skipped,consent_required:true},201);
  }
