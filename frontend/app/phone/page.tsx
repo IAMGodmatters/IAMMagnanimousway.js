@@ -5,15 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 const rtcConfig: RTCConfiguration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
-type CarrierConfig = {
-  browserCalling: boolean;
-  pstnConfigured: boolean;
-  inboundConfigured: boolean;
-  provider: string | null;
-  callerId: string;
-  message: string;
-};
-
 type Summary = {
   agents: number;
   available: number;
@@ -57,15 +48,6 @@ type Call = {
 };
 
 const emptySummary: Summary = { agents: 0, available: 0, active_calls: 0, calls_today: 0, queues: 0 };
-const emptyConfig: CarrierConfig = {
-  browserCalling: true,
-  pstnConfigured: false,
-  inboundConfigured: false,
-  provider: null,
-  callerId: '',
-  message: 'Checking phone configuration…'
-};
-
 async function read(response: Response) {
   const text = await response.text();
   try { return JSON.parse(text); } catch { return { detail: text || `Request failed (${response.status})` }; }
@@ -85,7 +67,6 @@ function dateTime(timestamp: number) {
 export default function Phone() {
   const [token, setToken] = useState('');
   const [user, setUser] = useState<any>(null);
-  const [config, setConfig] = useState<CarrierConfig>(emptyConfig);
   const [summary, setSummary] = useState<Summary>(emptySummary);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [queues, setQueues] = useState<Queue[]>([]);
@@ -98,9 +79,6 @@ export default function Phone() {
   const [joinId, setJoinId] = useState('');
   const [callStatus, setCallStatus] = useState('Ready');
   const [muted, setMuted] = useState(false);
-  const [dialNumber, setDialNumber] = useState('');
-  const [selectedAgent, setSelectedAgent] = useState('');
-  const [selectedQueue, setSelectedQueue] = useState('');
   const [agentStatus, setAgentStatus] = useState('available');
   const [queueName, setQueueName] = useState('');
   const [queueStrategy, setQueueStrategy] = useState('longest_idle');
@@ -108,6 +86,7 @@ export default function Phone() {
   const peer = useRef<RTCPeerConnection | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const lastSignal = useRef(0);
+  const pendingCandidates = useRef<RTCIceCandidateInit[]>([]);
   const remoteAudio = useRef<HTMLAudioElement>(null);
   const signalTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -115,10 +94,13 @@ export default function Phone() {
   useEffect(() => {
     const saved = localStorage.getItem('odin_admin_token') || localStorage.getItem('iam_account_token') || '';
     if (!saved) {
-      location.replace('/login');
+      const returnTo = `${location.pathname}${location.search}`;
+      location.replace(`/login?returnTo=${encodeURIComponent(returnTo)}`);
       return;
     }
     setToken(saved);
+    const incomingSession = new URLSearchParams(location.search).get('call') || '';
+    if (incomingSession) setJoinId(incomingSession);
     load(saved);
     refreshTimer.current = setInterval(() => load(saved, false), 15000);
     return () => {
@@ -138,9 +120,8 @@ export default function Phone() {
     if (!activeToken) return;
     if (showLoading) setLoading(true);
     try {
-      const [meResponse, configResponse, summaryResponse, agentsResponse, queuesResponse, callsResponse] = await Promise.all([
+      const [meResponse, summaryResponse, agentsResponse, queuesResponse, callsResponse] = await Promise.all([
         authed('/api/auth/me', {}, activeToken),
-        authed('/api/phone/config', {}, activeToken),
         authed('/api/phone/summary', {}, activeToken),
         authed('/api/phone/agents', {}, activeToken),
         authed('/api/phone/queues', {}, activeToken),
@@ -150,11 +131,10 @@ export default function Phone() {
         location.replace('/login');
         return;
       }
-      const [me, phoneConfig, phoneSummary, agentData, queueData, callData] = await Promise.all([
-        read(meResponse), read(configResponse), read(summaryResponse), read(agentsResponse), read(queuesResponse), read(callsResponse)
+      const [me, phoneSummary, agentData, queueData, callData] = await Promise.all([
+        read(meResponse), read(summaryResponse), read(agentsResponse), read(queuesResponse), read(callsResponse)
       ]);
       setUser(me.user || {});
-      if (configResponse.ok) setConfig(phoneConfig);
       if (summaryResponse.ok) setSummary(phoneSummary);
       if (agentsResponse.ok) setAgents(agentData.agents || []);
       if (queuesResponse.ok) setQueues(queueData.queues || []);
@@ -193,7 +173,11 @@ export default function Phone() {
         if (event.candidate) signal(id, 'candidate', event.candidate).catch(() => {});
       };
       connection.onconnectionstatechange = () => {
-        setCallStatus(`Call: ${connection.connectionState}`);
+        const labels: Record<string, string> = {
+          new: 'Preparing call…', connecting: 'Connecting…', connected: 'Connected — you can talk now',
+          disconnected: 'Connection interrupted', failed: 'Could not connect on this network', closed: 'Call ended'
+        };
+        setCallStatus(labels[connection.connectionState] || connection.connectionState);
         if (connection.connectionState === 'connected') load(token, false);
       };
       if (caller) {
@@ -223,13 +207,16 @@ export default function Phone() {
           const payload = JSON.parse(item.payload || 'null');
           if (item.kind === 'offer' && !caller && !connection.remoteDescription) {
             await connection.setRemoteDescription(payload);
+            for (const candidate of pendingCandidates.current.splice(0)) await connection.addIceCandidate(candidate);
             const answer = await connection.createAnswer();
             await connection.setLocalDescription(answer);
             await signal(id, 'answer', answer);
           } else if (item.kind === 'answer' && caller && !connection.remoteDescription) {
             await connection.setRemoteDescription(payload);
+            for (const candidate of pendingCandidates.current.splice(0)) await connection.addIceCandidate(candidate);
           } else if (item.kind === 'candidate' && payload) {
-            try { await connection.addIceCandidate(payload); } catch {}
+            if (connection.remoteDescription) await connection.addIceCandidate(payload);
+            else pendingCandidates.current.push(payload);
           } else if (item.kind === 'hangup') {
             stopLocalCall(false);
           }
@@ -241,6 +228,7 @@ export default function Phone() {
   async function createBrowserCall() {
     setError('');
     lastSignal.current = 0;
+    pendingCandidates.current = [];
     const response = await authed('/api/phone/session', { method: 'POST', body: '{}' });
     const data = await read(response);
     if (!response.ok) {
@@ -248,7 +236,7 @@ export default function Phone() {
       return;
     }
     setSession(data.session_id);
-    setCallStatus('Share the session ID with another signed-in I AM user.');
+    setCallStatus('Invite created. Send the link to another signed-in I AM user.');
     await setupCall(data.session_id, true);
   }
 
@@ -257,6 +245,7 @@ export default function Phone() {
     if (!id) return;
     setError('');
     lastSignal.current = 0;
+    pendingCandidates.current = [];
     setSession(id);
     await setupCall(id, false);
   }
@@ -278,11 +267,21 @@ export default function Phone() {
     load(token, false);
   }
 
+  function inviteLink() {
+    return `${location.origin}/phone?call=${encodeURIComponent(session)}`;
+  }
+
   async function copySession() {
     if (!session) return;
-    await navigator.clipboard.writeText(session);
-    setNotice('Call session ID copied.');
+    await navigator.clipboard.writeText(inviteLink());
+    setNotice('Private call link copied. Send it to the person you want to call.');
     setTimeout(() => setNotice(''), 2500);
+  }
+
+  async function shareSession() {
+    if (!session) return;
+    if (navigator.share) await navigator.share({ title: 'Join my I AM call', text: 'Open this link, sign in, and press Answer call.', url: inviteLink() });
+    else await copySession();
   }
 
   function toggleMute() {
@@ -321,26 +320,6 @@ export default function Phone() {
     load(token, false);
   }
 
-  async function dialOrdinaryNumber() {
-    if (!dialNumber.trim()) return;
-    const response = await authed('/api/phone/calls/outbound', {
-      method: 'POST',
-      body: JSON.stringify({
-        to: dialNumber.trim(),
-        agent_id: selectedAgent || null,
-        queue_id: selectedQueue || null
-      })
-    });
-    const data = await read(response);
-    if (!response.ok) {
-      setError(data.detail || 'Unable to place the call.');
-      return;
-    }
-    setNotice(`Call ${data.id} sent to ${config.provider || 'the carrier'}.`);
-    setDialNumber('');
-    load(token, false);
-  }
-
   async function saveDisposition(call: Call, disposition: string) {
     const response = await authed(`/api/phone/calls/${call.id}`, {
       method: 'PUT',
@@ -363,9 +342,9 @@ export default function Phone() {
           <a href="/">← I AM Platform</a>
           <small>I AM MAGNANIMOUS WAY™ · COMMUNICATION COMMAND</small>
           <h1>Phone & Call Center</h1>
-          <p>Free Internet calling, agent presence, queues, CRM call history, and a carrier-ready public phone layer.</p>
+          <p>Working browser-to-browser voice calls for signed-in I AM users, with agent presence, queues, and call history.</p>
         </div>
-        <div className="liveBadge"><i /> {loading ? 'SYNCING' : 'SYSTEM LIVE'}</div>
+        <div className="liveBadge"><i /> {loading ? 'CHECKING' : 'WORKSPACE ONLINE'}</div>
       </header>
 
       {error && <div className="error">{error}<button onClick={() => setError('')}>×</button></div>}
@@ -376,57 +355,39 @@ export default function Phone() {
         <article><small>ACTIVE CALLS</small><strong>{summary.active_calls}</strong><span>live or ringing</span></article>
         <article><small>TODAY</small><strong>{summary.calls_today}</strong><span>calls recorded</span></article>
         <article><small>QUEUES</small><strong>{summary.queues}</strong><span>routing groups</span></article>
-        <article className={config.pstnConfigured ? 'ready' : 'pending'}>
-          <small>PUBLIC PHONE</small>
-          <strong>{config.pstnConfigured ? 'READY' : 'SETUP'}</strong>
-          <span>{config.provider || 'carrier needed'}</span>
-        </article>
       </section>
 
       <section className="workbench">
         <article className="panel browserPhone">
           <div className="panelTitle"><span>01</span><div><small>FREE CALLING</small><h2>I AM Internet Phone</h2></div></div>
-          <p>Call another signed-in I AM user through the browser. No telephone carrier or per-minute charge is required.</p>
+          <p>Start a private voice call, send the invite link, and talk through both devices. Allow microphone access when asked.</p>
           <div className="statusLine"><i className={session ? 'connected' : ''} /> {callStatus}</div>
           {!session ? <>
             <button className="primary" onClick={createBrowserCall}>START FREE CALL</button>
             <div className="joinRow">
-              <input value={joinId} onChange={event => setJoinId(event.target.value)} placeholder="Paste call session ID" />
-              <button onClick={joinBrowserCall}>JOIN</button>
+              <input value={joinId} onChange={event => setJoinId(event.target.value)} placeholder="Call code from an invite link" />
+              <button onClick={joinBrowserCall}>ANSWER CALL</button>
             </div>
           </> : <div className="activeSession">
             <small>ACTIVE SESSION</small>
-            <code>{session}</code>
+            <code>{inviteLink()}</code>
             <div className="callButtons">
-              <button onClick={copySession}>COPY ID</button>
+              <button onClick={copySession}>COPY INVITE LINK</button>
+              <button onClick={shareSession}>SHARE</button>
               <button onClick={toggleMute}>{muted ? 'UNMUTE' : 'MUTE'}</button>
               <button className="danger" onClick={() => stopLocalCall(true)}>HANG UP</button>
             </div>
           </div>}
         </article>
 
-        <article className="panel dialer">
-          <div className="panelTitle"><span>02</span><div><small>CARRIER CALLING</small><h2>Mobile & Landline Dialer</h2></div></div>
-          <p>{config.message}</p>
-          <label>International telephone number</label>
-          <input value={dialNumber} onChange={event => setDialNumber(event.target.value)} placeholder="+1 555 123 4567" />
-          <div className="split">
-            <select value={selectedAgent} onChange={event => setSelectedAgent(event.target.value)}>
-              <option value="">Assign any agent</option>
-              {agents.map(agent => <option value={agent.id} key={agent.id}>{agent.name} · {agent.status}</option>)}
-            </select>
-            <select value={selectedQueue} onChange={event => setSelectedQueue(event.target.value)}>
-              <option value="">No queue</option>
-              {queues.map(queue => <option value={queue.id} key={queue.id}>{queue.name}</option>)}
-            </select>
-          </div>
-          <button className="primary" disabled={!config.pstnConfigured} onClick={dialOrdinaryNumber}>
-            {config.pstnConfigured ? 'PLACE PHONE CALL' : 'CONNECT CARRIER TO ACTIVATE'}
-          </button>
-          <div className="carrierState">
-            <span className={config.pstnConfigured ? 'on' : ''}>{config.pstnConfigured ? '● CONNECTED' : '○ NOT CONNECTED'}</span>
-            <small>{config.callerId || 'No public caller ID assigned'}</small>
-          </div>
+        <article className="panel instructions">
+          <div className="panelTitle"><span>02</span><div><small>HOW IT WORKS</small><h2>Place a Free Call</h2></div></div>
+          <ol>
+            <li><b>Press Start Free Call.</b><span>Your browser asks for microphone access.</span></li>
+            <li><b>Copy or share the invite link.</b><span>Send it by Messenger, email, or text.</span></li>
+            <li><b>The other user signs in and answers.</b><span>Keep this page open while you talk.</span></li>
+          </ol>
+          <p className="networkNote">This calls I AM users over the Internet. It does not pretend to call ordinary mobile or landline numbers.</p>
         </article>
       </section>
 
@@ -512,6 +473,9 @@ export default function Phone() {
 
       <style jsx>{`
         .callCenter{min-height:100vh;background:#050b12;color:#eef8ff;padding:28px 34px 70px;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 82% 5%,rgba(37,175,235,.11),transparent 30%),linear-gradient(rgba(77,180,226,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(77,180,226,.025) 1px,transparent 1px);background-size:auto,38px 38px,38px 38px}header{max-width:1450px;margin:auto;display:flex;align-items:end;justify-content:space-between;gap:25px}header a{color:#6edaff;text-decoration:none;font-size:12px}header small,.panelTitle small{display:block;color:#53758b;font-size:9px;font-weight:900;letter-spacing:.18em;margin-top:10px}header h1{font-size:clamp(38px,5vw,68px);margin:5px 0;line-height:1}header p{color:#738d9d;max-width:800px;line-height:1.6}.liveBadge{border:1px solid #16495a;color:#75e8ba;border-radius:999px;padding:10px 14px;font-size:10px;letter-spacing:.12em}.liveBadge i{display:inline-block;width:7px;height:7px;background:#44e19d;border-radius:50%;box-shadow:0 0 14px #44e19d}.error,.notice{max-width:1450px;margin:16px auto 0;padding:12px 15px;border-radius:10px;font-size:12px}.error{background:#251015;border:1px solid #71313e;color:#ffb5c0}.notice{background:#0b251f;border:1px solid #23624e;color:#8aefd0}.error button{float:right;background:none;border:0;color:inherit}.stats{max-width:1450px;margin:24px auto 14px;display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.stats article{padding:17px;background:#08131d;border:1px solid #162c3b;border-radius:13px}.stats small{color:#547184;font-size:9px;letter-spacing:.14em}.stats strong{display:block;font-size:27px;margin:7px 0 2px}.stats span{color:#617e90;font-size:10px}.stats .ready{border-color:#21644f}.stats .ready strong{color:#68e2af}.stats .pending{border-color:#5b4820}.stats .pending strong{color:#f2ca64;font-size:20px}.workbench,.operations{max-width:1450px;margin:0 auto 14px;display:grid;grid-template-columns:1fr 1fr;gap:14px}.panel{background:rgba(7,18,27,.96);border:1px solid #183345;border-radius:18px;padding:22px;box-shadow:0 14px 45px rgba(0,0,0,.2)}.panelTitle{display:flex;align-items:center;gap:12px}.panelTitle>span{width:35px;height:35px;display:grid;place-items:center;border:1px solid #28617a;border-radius:9px;color:#79dcff;font-size:10px}.panelTitle h2{margin:3px 0;font-size:25px}.panelTitle small{margin:0}.panel>p{color:#6f8999;line-height:1.55;font-size:12px}.statusLine{margin:18px 0;padding:11px;background:#071018;border:1px solid #162b38;border-radius:9px;color:#83a0b2;font-size:11px}.statusLine i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#5f7580;margin-right:7px}.statusLine i.connected{background:#4ce4a1;box-shadow:0 0 12px #4ce4a1}.primary{width:100%;padding:13px;border:0;border-radius:10px;background:linear-gradient(100deg,#58d3ff,#3c9cdb);color:#041018;font-weight:950;letter-spacing:.06em;cursor:pointer}.primary:disabled{background:#182a34;color:#617983;cursor:not-allowed}.joinRow,.split,.presence,.queueForm{display:flex;gap:8px;margin-top:10px}input,select,button{font:inherit}input,select{background:#050d14;border:1px solid #1d3a4b;color:#e8f6fd;border-radius:9px;padding:11px;box-sizing:border-box}.joinRow input{flex:1}.joinRow button,.callButtons button,.presence button,.queueForm button,.historyHeader>button{border:1px solid #2a5870;border-radius:9px;background:#0c2230;color:#8edfff;padding:10px 13px;font-size:10px;font-weight:900;cursor:pointer}.activeSession{padding:16px;background:#071018;border:1px solid #1f5266;border-radius:12px}.activeSession small{color:#5c8498;font-size:9px}.activeSession code{display:block;color:#89e6ff;word-break:break-all;margin:8px 0 14px}.callButtons{display:flex;gap:8px}.callButtons .danger{border-color:#6b2d39;color:#ff9dac;background:#251118}.dialer label{display:block;color:#6d8998;font-size:10px;margin:17px 0 6px}.dialer>input{width:100%;font-size:18px;letter-spacing:.05em}.split select{width:50%}.dialer .primary{margin-top:10px}.carrierState{display:flex;justify-content:space-between;margin-top:12px;color:#d3aa52;font-size:10px}.carrierState .on{color:#5ee0aa}.carrierState small{color:#5c7687}.presence select{flex:1}.agentList,.queueList{margin-top:14px;display:grid;gap:7px}.agentList>div,.queueList>div{display:grid;grid-template-columns:1fr auto;gap:3px;padding:11px;background:#061019;border:1px solid #132b39;border-radius:10px}.agentList b,.queueList b{font-size:12px}.agentList small,.queueList small,.queueList span{color:#607f91;font-size:9px}.agentList em{grid-row:1/3;grid-column:2;font-style:normal;font-size:9px;text-transform:uppercase;align-self:center;padding:5px 8px;border:1px solid #40505a;border-radius:999px}.agentList em.available{color:#65e7b0;border-color:#285f4c}.agentList em.busy{color:#ff9ea9;border-color:#71333d}.agentList em.break{color:#f2cb69;border-color:#665424}.queueList span{grid-column:2;grid-row:1/3;align-self:center}.queueForm input{flex:1}.empty{color:#597789;text-align:center;padding:18px}.history{max-width:1405px;margin:0 auto}.historyHeader{display:flex;justify-content:space-between;align-items:center}.tableWrap{overflow:auto;margin-top:16px}table{width:100%;border-collapse:collapse;min-width:1000px}th{text-align:left;color:#527486;font-size:8px;letter-spacing:.14em;padding:10px;border-bottom:1px solid #193443}td{padding:11px 10px;border-bottom:1px solid #102733;color:#92a9b6;font-size:10px}td b,td small{display:block}.callStatus{font-style:normal;text-transform:uppercase;font-size:8px;padding:4px 7px;border:1px solid #385164;border-radius:999px}.callStatus.connected{color:#5de6ae;border-color:#285e4b}.callStatus.failed,.callStatus.no-answer{color:#ff9eaa;border-color:#6b303a}td select{padding:7px;font-size:9px}nav{max-width:1450px;margin:16px auto;display:flex;gap:9px;flex-wrap:wrap}nav a{color:#79dcff;text-decoration:none;border:1px solid #21465a;border-radius:9px;padding:9px 12px;font-size:10px}@media(max-width:950px){.callCenter{padding:20px 14px 60px}.stats{grid-template-columns:repeat(2,1fr)}.workbench,.operations{grid-template-columns:1fr}header{display:block}.liveBadge{display:inline-block;margin-top:12px}}@media(max-width:560px){.stats{grid-template-columns:1fr 1fr}.stats article:last-child{grid-column:1/-1}.split,.presence,.queueForm{flex-direction:column}.split select{width:100%}.callButtons{flex-wrap:wrap}.callButtons button{flex:1}.carrierState{display:block}.carrierState small{display:block;margin-top:5px}}
+        .stats{grid-template-columns:repeat(4,1fr)}
+        .instructions ol{list-style:none;padding:0;margin:18px 0;display:grid;gap:10px;counter-reset:steps}.instructions li{counter-increment:steps;display:grid;grid-template-columns:34px 1fr;gap:2px 10px;padding:12px;background:#061019;border:1px solid #173242;border-radius:10px}.instructions li:before{content:counter(steps);grid-row:1/3;width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:#0d3448;color:#7de0ff;font-weight:900}.instructions li b{font-size:12px}.instructions li span{color:#6f8999;font-size:11px}.networkNote{border-left:3px solid #58d3ff;padding-left:12px}
+        @media(max-width:950px){.stats{grid-template-columns:repeat(2,1fr)}}
       `}</style>
     </main>
   );

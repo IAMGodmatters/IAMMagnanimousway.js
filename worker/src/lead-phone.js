@@ -469,7 +469,7 @@ async function phoneRoutes(request, env, user, path, url) {
     const call = await env.DB.prepare(
       'SELECT * FROM phone_calls WHERE tenant_id=? AND provider_call_id=? ORDER BY id DESC LIMIT 1'
     ).bind(tenantId, sessionId).first();
-    if (kind === 'answer' || kind === 'ready') {
+    if (kind === 'answer') {
       await env.DB.prepare(
         "UPDATE phone_sessions SET status='connected',callee_user_id=COALESCE(callee_user_id,?) WHERE id=? AND tenant_id=?"
       ).bind(user.id, sessionId, tenantId).run();

@@ -58,7 +58,9 @@ export default function LoginPage() {
       localStorage.setItem('iam_account_token', d.token);
       localStorage.removeItem('odin_admin_token');
       sessionStorage.setItem('iam_session_active', 'user');
-      window.location.replace('/?access=user');
+      const requested = new URLSearchParams(window.location.search).get('returnTo') || '';
+      const returnTo = requested.startsWith('/') && !requested.startsWith('//') ? requested : '/?access=user';
+      window.location.replace(returnTo);
     } catch (err: any) { setError(err?.message || 'Unable to sign in.'); }
     finally { setBusy(false); }
   }
