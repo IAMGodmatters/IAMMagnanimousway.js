@@ -1,8 +1,511 @@
-'use client';
-import {useState} from 'react';
-const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
-async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t}}}
-function chatHeaders():Record<string,string>{const h:Record<string,string>={'Content-Type':'application/json'},t=localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||'';if(t)h.Authorization=`Bearer ${t}`;return h}
-export default function Business(){const[input,setInput]=useState(''),[output,setOutput]=useState(''),[busy,setBusy]=useState(false),[mode,setMode]=useState('Growth Plan');const modes=['Growth Plan','Offer Builder','Business Plan','Market Research','Sales Script','Customer Strategy'];async function run(){if(!input.trim())return;setBusy(true);setOutput('Building your business brief…');try{const research=mode==='Market Research';const r=await fetch(`${api}/api/chat`,{method:'POST',headers:chatHeaders(),body:JSON.stringify({message:`Act as a practical business strategist. Task: ${mode}. Business/context: ${input}. Give a clear, actionable response with priorities, steps, risks, and next actions.`,use_knowledge:true,live_search:research,news:research,freshness:research?'pw':''})});const d=await read(r);setOutput(d.output||d.detail||'No response.')}catch{setOutput('Unable to reach Magnanimous AI.')}finally{setBusy(false)}}return <main className="biz"><header><a href="/">← Dashboard</a><div className="badge">BUSINESS OPERATIONS</div></header><section className="hero"><div><small>I AM BUSINESS COMMAND</small><h1>Turn ideas into operating plans.</h1><p>Strategy, offers, customer growth, planning and execution—all in a workspace built for entrepreneurs and small businesses and grounded in their private AI knowledge.</p><div className="links"><a href="/business-plan">Professional Business Launch</a><a href="/knowledge">Knowledge Center</a><a href="/crm">Open CRM</a><a href="/business-email">Business Email</a><a href="/connections">Business Connections</a><a href="/virtual-assistant">Delegate to VA</a></div></div><div className="board"><div><b>PLAN</b><span>01</span></div><div><b>BUILD</b><span>02</span></div><div><b>SELL</b><span>03</span></div><div><b>GROW</b><span>04</span></div></div></section><section className="launchPath"><div><small>NEW • PROFESSIONAL BUSINESS LAUNCH</small><h2>Have the idea but don&apos;t know where to start?</h2><p>Use the guided consulting workflow to go from founder intake to live research, validation, financial review, hostile lender/investor challenge and a professional final plan—then continue into business email, CRM, outreach and meeting preparation.</p></div><div className="launchSteps"><span><b>1</b>Bring the idea</span><span><b>2</b>Build & challenge the case</span><span><b>3</b>Prepare for the room</span></div><a href="/business-plan">START THE BUSINESS LAUNCH →</a></section><section className="tools"><div className="rail"><small>BUSINESS MODES</small>{modes.map(x=><button key={x} className={mode===x?'active':''} onClick={()=>setMode(x)}>{x}</button>)}</div><div className="workspace"><div className="top"><div><small>ACTIVE WORKFLOW</small><h2>{mode}</h2></div><span>{mode==='Market Research'?'MAGNANIMOUS AI + LIVE RESEARCH':'MAGNANIMOUS AI + PRIVATE MEMORY'}</span></div><textarea value={input} onChange={e=>setInput(e.target.value)} placeholder="Describe your business, idea, product, challenge, customer, or goal…"/><button className="run" onClick={run} disabled={busy}>{busy?'Building…':`Create ${mode} →`}</button>{output&&<div className="result">{output}</div>}</div></section><section className="bottom"><article><small>KNOWLEDGE</small><h3>Business Memory</h3><p>Teach Magnanimous AI your products, policies, customers, brand voice and research sources.</p><a href="/knowledge">Open Knowledge Center →</a></article><article><small>OPERATIONS</small><h3>Virtual Assistant Desk</h3><p>Turn plans into task lists, messages and follow-ups.</p><a href="/virtual-assistant">Open assistant →</a></article><article><small>MARKETING</small><h3>Social Growth</h3><p>Convert your offer into platform-ready content.</p><a href="/social-media">Open Social Studio →</a></article></section><style jsx>{`
-.biz{min-height:100vh;background:#f3efe8;color:#17130e;font-family:Inter,system-ui,sans-serif;padding:24px 34px 60px}.biz>header{display:flex;justify-content:space-between;align-items:center;max-width:1400px;margin:auto}.biz>header a{color:#17130e;text-decoration:none;font-weight:700}.badge{font-size:10px;letter-spacing:.18em;border:1px solid #b7aa98;padding:9px 12px;border-radius:999px}.hero{max-width:1400px;margin:28px auto 16px;background:#1b1813;color:#fff7ea;border-radius:26px;padding:44px;display:grid;grid-template-columns:1.4fr .8fr;gap:30px}.hero small,.rail small,.workspace small,.bottom small,.launchPath small{font-size:10px;letter-spacing:.18em;color:#ad9a80;font-weight:900}.hero h1{font-family:Georgia,serif;font-size:clamp(42px,6vw,76px);line-height:.96;margin:15px 0}.hero p{max-width:700px;color:#c9bdad;line-height:1.6}.links{display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}.links a,.bottom a{color:inherit;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:3px;font-weight:800;font-size:12px}.board{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-self:center}.board div{aspect-ratio:1;border:1px solid #4a4033;border-radius:16px;padding:15px;display:flex;flex-direction:column;justify-content:space-between}.board b{font-size:18px}.board span{font-family:Georgia,serif;font-size:44px;color:#76654f}.launchPath{max-width:1400px;margin:16px auto;background:#fffaf2;border:1px solid #cdbd9f;border-radius:20px;padding:26px;display:grid;grid-template-columns:1.2fr 1fr auto;gap:25px;align-items:center}.launchPath h2{font:32px Georgia,serif;margin:7px 0}.launchPath p{color:#6c6255;line-height:1.55;margin:0}.launchSteps{display:grid;gap:7px}.launchSteps span{border:1px solid #ddd1bd;border-radius:9px;padding:9px;font-size:10px;color:#594e41}.launchSteps b{display:inline-grid;place-items:center;width:24px;height:24px;background:#1d1913;color:#fff;border-radius:50%;margin-right:8px}.launchPath>a{background:#b9572b;color:#fff;text-decoration:none;padding:14px 16px;border-radius:10px;font-size:10px;font-weight:900;white-space:nowrap}.tools{max-width:1400px;margin:16px auto;display:grid;grid-template-columns:250px 1fr;gap:14px}.rail,.workspace,.bottom article{background:#fffaf2;border:1px solid #d7cdbc;border-radius:18px;padding:20px}.rail button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:12px;border-radius:9px;color:#51473b;cursor:pointer}.rail button.active{background:#1d1913;color:#fff}.workspace .top{display:flex;justify-content:space-between}.top h2{font-family:Georgia,serif;font-size:34px;margin:4px 0 18px}.top span{font-size:10px;font-weight:900}.workspace textarea{width:100%;min-height:180px;padding:16px;border:1px solid #cfc3b2;border-radius:12px;background:#fffdf9;font:inherit}.run{margin-top:12px;border:0;border-radius:10px;background:#b9572b;color:white;padding:13px 17px;font-weight:900;cursor:pointer}.result{white-space:pre-wrap;margin-top:17px;padding:18px;background:#f1e9dc;border-radius:12px;line-height:1.6}.bottom{max-width:1400px;margin:14px auto;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.bottom h3{font-family:Georgia,serif;font-size:23px}.bottom p{color:#6e6253;line-height:1.5}@media(max-width:900px){.biz{padding:18px 14px}.hero,.tools,.launchPath{grid-template-columns:1fr}.bottom{grid-template-columns:1fr}.hero{padding:28px}.board{display:none}.launchPath>a{white-space:normal}}
-`}</style></main>}
+"use client";
+import { useEffect, useState } from "react";
+const api = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+async function read(r: Response) {
+  const t = await r.text();
+  try {
+    return JSON.parse(t);
+  } catch {
+    return { detail: t };
+  }
+}
+function chatHeaders(): Record<string, string> {
+  const h: Record<string, string> = { "Content-Type": "application/json" },
+    t =
+      localStorage.getItem("odin_admin_token") ||
+      localStorage.getItem("iam_account_token") ||
+      "";
+  if (t) h.Authorization = `Bearer ${t}`;
+  return h;
+}
+export default function Business() {
+  const [input, setInput] = useState(""),
+    [output, setOutput] = useState(""),
+    [busy, setBusy] = useState(false),
+    [mode, setMode] = useState("Growth Plan"),
+    [aiReady, setAiReady] = useState<boolean | null>(null),
+    [researchReady, setResearchReady] = useState(false),
+    [sources, setSources] = useState<any[]>([]);
+  const modes = [
+    "Growth Plan",
+    "Offer Builder",
+    "Business Plan",
+    "Market Research",
+    "Sales Script",
+    "Customer Strategy",
+  ];
+  useEffect(() => {
+    Promise.all([
+      fetch(`${api}/api/providers`).then(read),
+      fetch(`${api}/api/operator/capabilities`).then(read),
+    ])
+      .then(([providers, capabilities]) => {
+        setAiReady(Boolean(providers.magnanimous_ready));
+        setResearchReady(Boolean(capabilities.knowledge?.live_web_search));
+      })
+      .catch(() => setAiReady(false));
+  }, []);
+  async function run() {
+    if (!input.trim() || aiReady === false) return;
+    setBusy(true);
+    setSources([]);
+    setOutput("Building your business brief…");
+    try {
+      const research = mode === "Market Research" && researchReady;
+      const r = await fetch(`${api}/api/chat`, {
+        method: "POST",
+        headers: chatHeaders(),
+        body: JSON.stringify({
+          message: `Act as a practical business strategist. Task: ${mode}. Business/context: ${input}. Give a clear, actionable response with priorities, steps, risks, and next actions.`,
+          use_knowledge: true,
+          live_search: research,
+          news: research,
+          freshness: research ? "pw" : "",
+        }),
+      });
+      const d = await read(r);
+      setOutput(d.output || d.detail || "No response.");
+      setSources(Array.isArray(d.sources) ? d.sources : []);
+    } catch {
+      setOutput("Unable to reach Magnanimous AI.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <main className="biz">
+      <header>
+        <a href="/">← Dashboard</a>
+        <div className={`badge ${aiReady ? "ready" : ""}`}>
+          {aiReady === null
+            ? "CHECKING AI"
+            : aiReady
+              ? "AI AVAILABLE"
+              : "AI NOT AVAILABLE"}
+        </div>
+      </header>
+      <section className="hero">
+        <div>
+          <small>I AM BUSINESS COMMAND</small>
+          <h1>Turn ideas into operating plans.</h1>
+          <p>
+            Create strategy, offers, sales scripts and planning drafts with a
+            configured AI provider. Review every result before using it for a
+            business decision.
+          </p>
+          <div className="links">
+            <a href="/business-plan">Professional Business Launch</a>
+            <a href="/knowledge">Knowledge Center</a>
+            <a href="/crm">Open CRM</a>
+            <a href="/business-email">Business Email</a>
+            <a href="/connections">Business Connections</a>
+            <a href="/virtual-assistant">Open VA Workspace</a>
+          </div>
+        </div>
+        <div className="board">
+          <div>
+            <b>PLAN</b>
+            <span>01</span>
+          </div>
+          <div>
+            <b>BUILD</b>
+            <span>02</span>
+          </div>
+          <div>
+            <b>SELL</b>
+            <span>03</span>
+          </div>
+          <div>
+            <b>GROW</b>
+            <span>04</span>
+          </div>
+        </div>
+      </section>
+      <section className="launchPath">
+        <div>
+          <small>GUIDED BUSINESS PLAN</small>
+          <h2>Have the idea but don&apos;t know where to start?</h2>
+          <p>
+            Use the guided workflow for intake, research when search is
+            configured, validation, financial review and a final draft. Its
+            output is planning assistance—not lender, investor, legal or
+            accounting approval.
+          </p>
+        </div>
+        <div className="launchSteps">
+          <span>
+            <b>1</b>Bring the idea
+          </span>
+          <span>
+            <b>2</b>Build & challenge the case
+          </span>
+          <span>
+            <b>3</b>Prepare for the room
+          </span>
+        </div>
+        <a href="/business-plan">START THE BUSINESS LAUNCH →</a>
+      </section>
+      <section className="tools">
+        <div className="rail">
+          <small>BUSINESS MODES</small>
+          {modes.map((x) => (
+            <button
+              key={x}
+              className={mode === x ? "active" : ""}
+              onClick={() => setMode(x)}
+            >
+              {x}
+            </button>
+          ))}
+        </div>
+        <div className="workspace">
+          <div className="top">
+            <div>
+              <small>ACTIVE WORKFLOW</small>
+              <h2>{mode}</h2>
+            </div>
+            <span>
+              {mode === "Market Research"
+                ? researchReady
+                  ? "AI + WEB SEARCH AVAILABLE"
+                  : "AI ONLY — WEB SEARCH OFF"
+                : aiReady
+                  ? "AI AVAILABLE"
+                  : "AI NOT AVAILABLE"}
+            </span>
+          </div>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Describe your business, idea, product, challenge, customer, or goal…"
+          />
+          <button
+            className="run"
+            onClick={run}
+            disabled={busy || aiReady === false}
+          >
+            {busy
+              ? "Building…"
+              : aiReady === false
+                ? "AI PROVIDER REQUIRED"
+                : `Create ${mode} →`}
+          </button>
+          {output && <div className="result">{output}</div>}
+          {sources.length > 0 && (
+            <div className="sources">
+              <b>Sources used</b>
+              {sources.map((source, index) => (
+                <a
+                  key={`${source.url}-${index}`}
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {source.title || source.url}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+      <section className="bottom">
+        <article>
+          <small>KNOWLEDGE</small>
+          <h3>Business Memory</h3>
+          <p>
+            Teach Magnanimous AI your products, policies, customers, brand voice
+            and research sources.
+          </p>
+          <a href="/knowledge">Open Knowledge Center →</a>
+        </article>
+        <article>
+          <small>OPERATIONS</small>
+          <h3>Virtual Assistant Desk</h3>
+          <p>Turn plans into task lists, messages and follow-ups.</p>
+          <a href="/virtual-assistant">Open assistant →</a>
+        </article>
+        <article>
+          <small>MARKETING</small>
+          <h3>Social Growth</h3>
+          <p>Convert your offer into platform-ready content.</p>
+          <a href="/social-media">Open Social Studio →</a>
+        </article>
+      </section>
+      <style jsx>{`
+        .biz {
+          min-height: 100vh;
+          background: #f3efe8;
+          color: #17130e;
+          font-family: Inter, system-ui, sans-serif;
+          padding: 24px 34px 60px;
+        }
+        .biz > header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          max-width: 1400px;
+          margin: auto;
+        }
+        .biz > header a {
+          color: #17130e;
+          text-decoration: none;
+          font-weight: 700;
+        }
+        .badge {
+          font-size: 10px;
+          letter-spacing: 0.18em;
+          border: 1px solid #b7aa98;
+          padding: 9px 12px;
+          border-radius: 999px;
+        }
+        .badge.ready {
+          border-color: #287452;
+          color: #17633f;
+        }
+        .hero {
+          max-width: 1400px;
+          margin: 28px auto 16px;
+          background: #1b1813;
+          color: #fff7ea;
+          border-radius: 26px;
+          padding: 44px;
+          display: grid;
+          grid-template-columns: 1.4fr 0.8fr;
+          gap: 30px;
+        }
+        .hero small,
+        .rail small,
+        .workspace small,
+        .bottom small,
+        .launchPath small {
+          font-size: 10px;
+          letter-spacing: 0.18em;
+          color: #ad9a80;
+          font-weight: 900;
+        }
+        .hero h1 {
+          font-family: Georgia, serif;
+          font-size: clamp(42px, 6vw, 76px);
+          line-height: 0.96;
+          margin: 15px 0;
+        }
+        .hero p {
+          max-width: 700px;
+          color: #c9bdad;
+          line-height: 1.6;
+        }
+        .links {
+          display: flex;
+          gap: 9px;
+          flex-wrap: wrap;
+          margin-top: 20px;
+        }
+        .links a,
+        .bottom a {
+          color: inherit;
+          text-decoration: none;
+          border-bottom: 1px solid currentColor;
+          padding-bottom: 3px;
+          font-weight: 800;
+          font-size: 12px;
+        }
+        .board {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          align-self: center;
+        }
+        .board div {
+          aspect-ratio: 1;
+          border: 1px solid #4a4033;
+          border-radius: 16px;
+          padding: 15px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+        .board b {
+          font-size: 18px;
+        }
+        .board span {
+          font-family: Georgia, serif;
+          font-size: 44px;
+          color: #76654f;
+        }
+        .launchPath {
+          max-width: 1400px;
+          margin: 16px auto;
+          background: #fffaf2;
+          border: 1px solid #cdbd9f;
+          border-radius: 20px;
+          padding: 26px;
+          display: grid;
+          grid-template-columns: 1.2fr 1fr auto;
+          gap: 25px;
+          align-items: center;
+        }
+        .launchPath h2 {
+          font:
+            32px Georgia,
+            serif;
+          margin: 7px 0;
+        }
+        .launchPath p {
+          color: #6c6255;
+          line-height: 1.55;
+          margin: 0;
+        }
+        .launchSteps {
+          display: grid;
+          gap: 7px;
+        }
+        .launchSteps span {
+          border: 1px solid #ddd1bd;
+          border-radius: 9px;
+          padding: 9px;
+          font-size: 10px;
+          color: #594e41;
+        }
+        .launchSteps b {
+          display: inline-grid;
+          place-items: center;
+          width: 24px;
+          height: 24px;
+          background: #1d1913;
+          color: #fff;
+          border-radius: 50%;
+          margin-right: 8px;
+        }
+        .launchPath > a {
+          background: #b9572b;
+          color: #fff;
+          text-decoration: none;
+          padding: 14px 16px;
+          border-radius: 10px;
+          font-size: 10px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+        .tools {
+          max-width: 1400px;
+          margin: 16px auto;
+          display: grid;
+          grid-template-columns: 250px 1fr;
+          gap: 14px;
+        }
+        .rail,
+        .workspace,
+        .bottom article {
+          background: #fffaf2;
+          border: 1px solid #d7cdbc;
+          border-radius: 18px;
+          padding: 20px;
+        }
+        .rail button {
+          display: block;
+          width: 100%;
+          text-align: left;
+          border: 0;
+          background: transparent;
+          padding: 12px;
+          border-radius: 9px;
+          color: #51473b;
+          cursor: pointer;
+        }
+        .rail button.active {
+          background: #1d1913;
+          color: #fff;
+        }
+        .workspace .top {
+          display: flex;
+          justify-content: space-between;
+        }
+        .top h2 {
+          font-family: Georgia, serif;
+          font-size: 34px;
+          margin: 4px 0 18px;
+        }
+        .top span {
+          font-size: 10px;
+          font-weight: 900;
+        }
+        .workspace textarea {
+          width: 100%;
+          min-height: 180px;
+          padding: 16px;
+          border: 1px solid #cfc3b2;
+          border-radius: 12px;
+          background: #fffdf9;
+          font: inherit;
+        }
+        .run {
+          margin-top: 12px;
+          border: 0;
+          border-radius: 10px;
+          background: #b9572b;
+          color: white;
+          padding: 13px 17px;
+          font-weight: 900;
+          cursor: pointer;
+        }
+        .result {
+          white-space: pre-wrap;
+          margin-top: 17px;
+          padding: 18px;
+          background: #f1e9dc;
+          border-radius: 12px;
+          line-height: 1.6;
+        }
+        .sources {
+          display: grid;
+          gap: 7px;
+          margin-top: 12px;
+          padding: 14px;
+          border: 1px solid #d7cdbc;
+          border-radius: 12px;
+        }
+        .sources a {
+          color: #6d351d;
+          font-size: 12px;
+        }
+        .bottom {
+          max-width: 1400px;
+          margin: 14px auto;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 14px;
+        }
+        .bottom h3 {
+          font-family: Georgia, serif;
+          font-size: 23px;
+        }
+        .bottom p {
+          color: #6e6253;
+          line-height: 1.5;
+        }
+        @media (max-width: 900px) {
+          .biz {
+            padding: 18px 14px;
+          }
+          .hero,
+          .tools,
+          .launchPath {
+            grid-template-columns: 1fr;
+          }
+          .bottom {
+            grid-template-columns: 1fr;
+          }
+          .hero {
+            padding: 28px;
+          }
+          .board {
+            display: none;
+          }
+          .launchPath > a {
+            white-space: normal;
+          }
+        }
+      `}</style>
+    </main>
+  );
+}
