@@ -15,6 +15,7 @@ import { handleSupportFeedback } from './support-feedback-runtime.js';
 import { handleBilling } from './billing-runtime.js';
 import { handleTierBilling } from './billing-tiers-runtime.js';
 import { handleBillingSupport } from './billing-support-runtime.js';
+import { handleBillingCheckoutHardening } from './billing-checkout-hardening.js';
 import { handleVoiceAgent } from './voice-agent-runtime.js';
 import { handlePhoneCarrier } from './phone-carrier-runtime.js';
 import { handleAgentMesh } from './agent-mesh-runtime.js';
@@ -106,6 +107,8 @@ export default {
       if (agentResponse) return withCors(agentResponse);
       const monetizationResponse = await handleMonetization(request, providerEnv);
       if (monetizationResponse) return withCors(monetizationResponse);
+      const checkoutHardeningResponse = await handleBillingCheckoutHardening(request, providerEnv);
+      if (checkoutHardeningResponse) return withCors(checkoutHardeningResponse);
       const tierBillingResponse = await handleTierBilling(request, providerEnv);
       if (tierBillingResponse) return withCors(tierBillingResponse);
       const paymentLinkResponse = await handlePaymentLinkBilling(request, providerEnv);
