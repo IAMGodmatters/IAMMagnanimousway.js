@@ -35,6 +35,7 @@ import { handleMonetization } from './monetization-runtime.js';
 import { handleBusinessEmail } from './business-email-runtime.js';
 import { handleBusinessPlan } from './business-plan-subscription-runtime.js';
 import { handleVisual } from './visual-runtime.js';
+import { handleVideoAgents } from './video-agents-runtime.js';
 import { premiumPreflight, premiumPostprocess } from './premium-runtime-guard.js';
 
 const corsHeaders = {
@@ -64,6 +65,7 @@ function needsProviderRuntime(pathname) {
     pathname.startsWith('/api/magnanimous/') ||
     pathname.startsWith('/api/business-plan') ||
     pathname.startsWith('/api/visual') ||
+    pathname.startsWith('/api/video-agents') ||
     pathname.startsWith('/api/phone') ||
     pathname.startsWith('/api/contact-center') ||
     pathname.startsWith('/api/social-connect') ||
@@ -134,6 +136,8 @@ export default {
       }
       const businessPlanResponse = await handleBusinessPlan(request, providerEnv);
       if (businessPlanResponse) return withCors(businessPlanResponse);
+      const videoAgentsResponse = await handleVideoAgents(request, providerEnv);
+      if (videoAgentsResponse) return withCors(await premiumPostprocess(videoAgentsResponse, providerEnv, premium.context));
       const visualResponse = await handleVisual(request, providerEnv);
       if (visualResponse) return withCors(await premiumPostprocess(visualResponse, providerEnv, premium.context));
       const agentResponse = await handleAgentMesh(request, providerEnv);
