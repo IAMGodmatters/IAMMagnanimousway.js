@@ -7,6 +7,7 @@ import { handleAssistantIntegrations } from './assistant-integrations-runtime.js
 import { handleComposioManagedAuth, handleComposioAssistant } from './composio-managed-auth.js';
 import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-credentials.js';
 import { handleKnowledge } from './knowledge-runtime.js';
+import { handleMagnanimousBrain } from './magnanimous-brain-runtime.js';
 import { handleProfessionalWorkspace } from './professional-workspace-runtime.js';
 import { handleFinancePeople } from './finance-people-v2.js';
 import { handleCallCenterHealth } from './call-center-health-runtime.js';
@@ -50,6 +51,7 @@ function isMagnanimousRoute(pathname) {
 
 function needsProviderRuntime(pathname) {
   return isMagnanimousRoute(pathname) ||
+    pathname.startsWith('/api/magnanimous/') ||
     pathname.startsWith('/api/business-plan') ||
     pathname.startsWith('/api/visual') ||
     pathname.startsWith('/api/phone') ||
@@ -72,6 +74,10 @@ export default {
       const billingSupportResponse = await handleBillingSupport(request, env);
       if (billingSupportResponse) return withCors(billingSupportResponse);
       const providerEnv = needsProviderRuntime(url.pathname) ? await getProviderRuntimeEnv(env) : env;
+      if (url.pathname === '/api/magnanimous/capabilities' || url.pathname.startsWith('/api/magnanimous/memory')) {
+        const brainResponse = await handleMagnanimousBrain(request, providerEnv);
+        if (brainResponse) return withCors(brainResponse);
+      }
       const businessPlanResponse = await handleBusinessPlan(request, providerEnv);
       if (businessPlanResponse) return withCors(businessPlanResponse);
       const visualResponse = await handleVisual(request, providerEnv);
