@@ -11,6 +11,17 @@ export const PLAN_LIMITS={
 export function normalizePlan(value){const id=String(value||'free').toLowerCase();return PLAN_LIMITS[id]?id:'free'}
 export function periodKey(ts=Date.now()){const d=new Date(ts);return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`}
 
+function safeEqual(a,b){a=String(a||'');b=String(b||'');if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0}
+async function hmacHex(secret,value){const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);const out=await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(value));return[...new Uint8Array(out)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function sessionSecret(env){const configured=String(env?.SESSION_SECRET||'').trim();if(configured)return configured;try{const row=await env.DB.prepare("SELECT value FROM auth_config WHERE key='session_secret'").first();return String(row?.value||'')}catch(_){return''}}
+
+export async function currentUserFromRequest(request,env){
+ if(!env?.DB)return null;const raw=request.headers.get('authorization')||'';if(!raw.startsWith('Bearer '))return null;
+ const parts=raw.slice(7).split('|');if(parts.length!==5||Number(parts[3])<now())return null;
+ const[userId,tenantId,role,exp,sig]=parts,secret=await sessionSecret(env);if(!secret||!safeEqual(sig,await hmacHex(secret,`${userId}|${tenantId}|${role}|${exp}`)))return null;
+ try{return await env.DB.prepare('SELECT id,tenant_id,name,email,role,active FROM users WHERE id=? AND tenant_id=? AND active=1').bind(userId,tenantId).first()}catch(_){return null}
+}
+
 export async function ensureUsageSchema(env){
  if(!env?.DB)return;
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS billing_usage_guard (
@@ -26,11 +37,15 @@ export async function ensureUsageSchema(env){
 }
 
 export async function tenantPlan(env,tenantId){
- if(!env?.DB||!tenantId)return{plan:'free',limits:PLAN_LIMITS.free};
+ if(!env?.DB||!tenantId)return{plan:'free',limits:PLAN_LIMITS.free,status:'inactive'};
  let row=null;
- try{row=await env.DB.prepare('SELECT plan FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first()}catch(_){ }
- if(!row){try{row=await env.DB.prepare('SELECT plan FROM tenants WHERE id=?').bind(tenantId).first()}catch(_){ }}
- const plan=normalizePlan(row?.plan);return{plan,limits:PLAN_LIMITS[plan]};
+ try{row=await env.DB.prepare('SELECT plan,status FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first()}catch(_){ }
+ if(row){
+  const status=String(row.status||'inactive');const paidActive=['active','trialing'].includes(status);
+  const plan=paidActive?normalizePlan(row.plan):'free';return{plan,limits:PLAN_LIMITS[plan],status};
+ }
+ try{row=await env.DB.prepare('SELECT plan FROM tenants WHERE id=?').bind(tenantId).first()}catch(_){ }
+ const plan=normalizePlan(row?.plan);return{plan,limits:PLAN_LIMITS[plan],status:'legacy'};
 }
 
 export async function usageStatus(env,tenantId){
@@ -40,9 +55,10 @@ export async function usageStatus(env,tenantId){
  return{...p,period_key:key,direct_variable_cost_usd:used,cost_ceiling_usd:ceiling,remaining_cost_usd:Math.max(0,ceiling-used),premium_usage_allowed:p.plan!=='free'&&used<ceiling};
 }
 
-export async function canUsePremium(env,tenantId,{category='premium',estimated_cost_usd=0,required_plan='business'}={}){
- const s=await usageStatus(env,tenantId);const required=PLAN_LIMITS[normalizePlan(required_plan)]?.rank??2;
+export async function canUsePremium(env,tenantId,{category='premium',estimated_cost_usd=0,required_plan='business',entitlement=''}={}){
+ const s=await usageStatus(env,tenantId),required=PLAN_LIMITS[normalizePlan(required_plan)]?.rank??2;
  if((s.limits?.rank??0)<required)return{ok:false,code:'PLAN_REQUIRED',detail:`${required_plan} or higher is required for ${category}.`,...s};
+ if(entitlement&&s.limits?.[entitlement]!==true&&Number(s.limits?.[entitlement]||0)<=0)return{ok:false,code:'ENTITLEMENT_REQUIRED',detail:`Your plan does not include ${category}.`,...s};
  if(Number(estimated_cost_usd||0)>s.remaining_cost_usd)return{ok:false,code:'PREMIUM_BUDGET_EXHAUSTED',detail:'This month’s included premium-cost allowance has been reached. Use a free-first option, upgrade, or add prepaid usage.',...s};
  return{ok:true,...s};
 }
