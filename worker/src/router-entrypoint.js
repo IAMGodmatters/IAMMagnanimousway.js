@@ -26,6 +26,7 @@ import { handleMonetization } from './monetization-runtime.js';
 import { handleBusinessEmail } from './business-email-runtime.js';
 import { handleBusinessPlan } from './business-plan-subscription-runtime.js';
 import { handleVisual } from './visual-runtime.js';
+import { premiumPreflight, premiumPostprocess } from './premium-runtime-guard.js';
 
 const corsHeaders = {
   'access-control-allow-origin': '*',
@@ -90,6 +91,9 @@ export default {
       const billingSupportResponse = await handleBillingSupport(request, env);
       if (billingSupportResponse) return withCors(billingSupportResponse);
       const providerEnv = needsProviderRuntime(url.pathname) ? await getProviderRuntimeEnv(env) : env;
+      const premium = await premiumPreflight(request, providerEnv);
+      if (premium.response) return withCors(premium.response);
+      request = premium.request || request;
       if (url.pathname === '/api/magnanimous/capabilities' || url.pathname.startsWith('/api/magnanimous/memory')) {
         const brainResponse = await handleMagnanimousBrain(request, providerEnv);
         if (brainResponse) return withCors(brainResponse);
@@ -97,7 +101,7 @@ export default {
       const businessPlanResponse = await handleBusinessPlan(request, providerEnv);
       if (businessPlanResponse) return withCors(businessPlanResponse);
       const visualResponse = await handleVisual(request, providerEnv);
-      if (visualResponse) return withCors(visualResponse);
+      if (visualResponse) return withCors(await premiumPostprocess(visualResponse, providerEnv, premium.context));
       const agentResponse = await handleAgentMesh(request, providerEnv);
       if (agentResponse) return withCors(agentResponse);
       const monetizationResponse = await handleMonetization(request, providerEnv);
@@ -109,9 +113,9 @@ export default {
       const billingResponse = await handleBilling(request, providerEnv);
       if (billingResponse) return withCors(await augmentBillingResponse(request, billingResponse, providerEnv));
       const phoneCarrierResponse = await handlePhoneCarrier(request, providerEnv);
-      if (phoneCarrierResponse) return withCors(phoneCarrierResponse);
+      if (phoneCarrierResponse) return withCors(await premiumPostprocess(phoneCarrierResponse, providerEnv, premium.context));
       const voiceAgentResponse = await handleVoiceAgent(request, providerEnv);
-      if (voiceAgentResponse) return withCors(voiceAgentResponse);
+      if (voiceAgentResponse) return withCors(await premiumPostprocess(voiceAgentResponse, providerEnv, premium.context));
       if (url.pathname.startsWith('/api/mux')) {
         const muxResponse = await handleMux(request, env);
         if (muxResponse) return withCors(muxResponse);
@@ -176,7 +180,8 @@ export default {
       }
       if (isMagnanimousRoute(url.pathname)) {
         const routedRequest = url.pathname === '/api/chat' ? await magnanimousChatRequest(request, providerEnv) : request;
-        return withCors(await providerApp.fetch(routedRequest, providerEnv, ctx));
+        const providerResponse = await providerApp.fetch(routedRequest, providerEnv, ctx);
+        return withCors(await premiumPostprocess(providerResponse, providerEnv, premium.context));
       }
       return withCors(await adminApp.fetch(request, env, ctx));
     } catch (error) {
