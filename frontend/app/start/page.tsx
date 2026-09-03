@@ -4,7 +4,7 @@ import {useEffect,useState} from 'react';
 
 const steps=[
  {n:'1',title:'Tell us what you want to do',text:'Choose everyday help, work, business, call center, content or learning. You do not need to understand AI providers or technical settings.',links:[['Everyday help','/agents?agent=vinnie'],['Work & career','/agents?agent=hunter'],['Professional dashboard','/professional']]},
- {n:'2',title:'Use the free tools first',text:'The Agent Mesh, Odin, virtual assistant, CRM, professional workspace, free browser calling and everyday tools work without connecting a paid phone or video provider.',links:[['Talk to an AI agent','/agents'],['Professional workspace','/professional'],['Free browser calling','/phone']]},
+ {n:'2',title:'Use the free tools first',text:'The Agent Mesh, Magnanimous AI, virtual assistant, CRM, professional workspace, free browser calling and everyday tools work without connecting a paid phone or video provider.',links:[['Talk to an AI agent','/agents'],['Professional workspace','/professional'],['Free browser calling','/phone']]},
  {n:'3',title:'Connect extras only when you need them',text:'Email accounts, phone-carrier calls, photorealistic live video and other outside services are optional. The platform will clearly tell you when one is required.',links:[['Connections','/connections'],['Voice & human video','/ai-receptionist'],['See plans','/pricing']]}
 ];
 
