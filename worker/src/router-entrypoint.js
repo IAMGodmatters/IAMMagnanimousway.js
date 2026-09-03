@@ -6,6 +6,7 @@ import { handleIntegrations } from './integrations.js';
 import { handleAssistantIntegrations } from './assistant-integrations-runtime.js';
 import { handleComposioManagedAuth, handleComposioAssistant } from './composio-managed-auth.js';
 import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-credentials.js';
+import { handleSocialPublishing } from './social-publishing-runtime.js';
 import { handleKnowledge } from './knowledge-runtime.js';
 import { handleMagnanimousBrain, getMagnanimousMemoryContext } from './magnanimous-brain-runtime.js';
 import { handleProfessionalWorkspace } from './professional-workspace-runtime.js';
@@ -58,6 +59,7 @@ function needsProviderRuntime(pathname) {
     pathname.startsWith('/api/business-plan') ||
     pathname.startsWith('/api/visual') ||
     pathname.startsWith('/api/phone') ||
+    pathname.startsWith('/api/social-connect') ||
     pathname === '/api/plans' ||
     pathname.startsWith('/api/billing') ||
     pathname.startsWith('/api/voice-agent') ||
@@ -96,6 +98,10 @@ export default {
       const premium = await premiumPreflight(request, providerEnv);
       if (premium.response) return withCors(premium.response);
       request = premium.request || request;
+      if (url.pathname.startsWith('/api/social-connect')) {
+        const socialResponse = await handleSocialPublishing(request, providerEnv);
+        if (socialResponse) return withCors(socialResponse);
+      }
       if (url.pathname === '/api/magnanimous/capabilities' || url.pathname.startsWith('/api/magnanimous/memory')) {
         const brainResponse = await handleMagnanimousBrain(request, providerEnv);
         if (brainResponse) return withCors(brainResponse);
