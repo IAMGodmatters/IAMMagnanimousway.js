@@ -3,6 +3,8 @@
 import {useEffect} from 'react';
 
 const replacements:[string,string][]=[
+ ['I AM Operator','Magnanimous AI'],
+ ['I AM OPERATOR','MAGNANIMOUS AI'],
  ['The complete professional plan can be unlocked once for $79, or is included with Full Business.','The complete professional plan is available with a $79/month recurring subscription, or is included with Full Business.'],
  ['Free on-screen draft preview. Professional finalization is included with Full Business or available as a one-time $79 plan unlock.','Free on-screen draft preview. Professional finalization is included with Full Business or available with a $79/month recurring subscription.'],
  ['one-time plan unlock','per month · recurring subscription'],
@@ -10,7 +12,8 @@ const replacements:[string,string][]=[
  ['Confirming your professional-plan unlock with Stripe…','Confirming your $79/month professional-plan subscription with Stripe…'],
  ['Checkout was cancelled. Your free draft remains saved, and you can unlock the final plan whenever you are ready.','Checkout was cancelled. Your free draft remains saved, and you can start the $79/month professional plan whenever you are ready.'],
  ['Professional finalization stays included with Full Business or available through the existing one-time $79 unlock.','Professional finalization stays included with Full Business or is available through the $79/month recurring professional-plan subscription.'],
- ['Professional Business Plan — One-Time Unlock','Professional Business Plan — $79/Month Subscription']
+ ['Professional Business Plan — One-Time Unlock','Professional Business Plan — $79/Month Subscription'],
+ ['Prepared with I AM Magnanimous Way — I AM Operator','Prepared with I AM Magnanimous Way — Magnanimous AI']
 ];
 
 function rewriteText(root:ParentNode){
