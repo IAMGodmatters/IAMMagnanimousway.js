@@ -12,6 +12,7 @@ import { handleMagnanimousBrain, getMagnanimousMemoryContext } from './magnanimo
 import { handleProfessionalWorkspace } from './professional-workspace-runtime.js';
 import { handleFinancePeople } from './finance-people-v2.js';
 import { handleCallCenterHealth } from './call-center-health-runtime.js';
+import { handleContactCenter } from './contact-center-runtime.js';
 import { handleSupportFeedback } from './support-feedback-runtime.js';
 import { handleBilling } from './billing-runtime.js';
 import { handleTierBilling } from './billing-tiers-runtime.js';
@@ -59,6 +60,7 @@ function needsProviderRuntime(pathname) {
     pathname.startsWith('/api/business-plan') ||
     pathname.startsWith('/api/visual') ||
     pathname.startsWith('/api/phone') ||
+    pathname.startsWith('/api/contact-center') ||
     pathname.startsWith('/api/social-connect') ||
     pathname === '/api/plans' ||
     pathname.startsWith('/api/billing') ||
@@ -101,6 +103,10 @@ export default {
       if (url.pathname.startsWith('/api/social-connect')) {
         const socialResponse = await handleSocialPublishing(request, providerEnv);
         if (socialResponse) return withCors(socialResponse);
+      }
+      if (url.pathname.startsWith('/api/contact-center')) {
+        const contactCenterResponse = await handleContactCenter(request, providerEnv);
+        if (contactCenterResponse) return withCors(await premiumPostprocess(contactCenterResponse, providerEnv, premium.context));
       }
       if (url.pathname === '/api/magnanimous/capabilities' || url.pathname.startsWith('/api/magnanimous/memory')) {
         const brainResponse = await handleMagnanimousBrain(request, providerEnv);
