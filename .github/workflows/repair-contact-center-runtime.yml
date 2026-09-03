@@ -20,24 +20,35 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: frontend/package.json
-      - name: Repair exact Wrangler syntax defect
+      - name: Repair exact Wrangler syntax defects
         id: repair
         run: |
           python - <<'PY'
           from pathlib import Path
           path = Path('worker/src/contact-center-runtime.js')
           text = path.read_text()
-          broken = "try{return Number(new Intl.DateTimeFormat('en-US',{timeZone:timezone||'UTC',hour:'2-digit',hour12:false}).format(new Date())))}catch{return new Date().getUTCHours()}"
-          fixed = "try{return Number(new Intl.DateTimeFormat('en-US',{timeZone:timezone||'UTC',hour:'2-digit',hour12:false}).format(new Date()))}catch{return new Date().getUTCHours()}"
-          count = text.count(broken)
-          if count == 0:
-              print('already_fixed=true')
-              with open('/tmp/repair-output','w') as f: f.write('changed=false\n')
-          elif count == 1:
-              path.write_text(text.replace(broken, fixed))
-              with open('/tmp/repair-output','w') as f: f.write('changed=true\n')
-          else:
-              raise SystemExit(f'Expected one exact defect, found {count}; refusing broad rewrite.')
+          replacements = [
+              (
+                  "try{return Number(new Intl.DateTimeFormat('en-US',{timeZone:timezone||'UTC',hour:'2-digit',hour12:false}).format(new Date())))}catch{return new Date().getUTCHours()}",
+                  "try{return Number(new Intl.DateTimeFormat('en-US',{timeZone:timezone||'UTC',hour:'2-digit',hour12:false}).format(new Date()))}catch{return new Date().getUTCHours()}"
+              ),
+              (
+                  "const contacts=[...leads.map(x=>({lead_id:x.id,phone:x.phone,display_name:`${x.first_name||''} ${x.last_name||''}`.trim()}),...(Array.isArray(b.contacts)?b.contacts:[])];",
+                  "const contacts=[...leads.map(x=>({lead_id:x.id,phone:x.phone,display_name:`${x.first_name||''} ${x.last_name||''}`.trim()})),...(Array.isArray(b.contacts)?b.contacts:[])];"
+              )
+          ]
+          changed = False
+          for broken, fixed in replacements:
+              count = text.count(broken)
+              if count > 1:
+                  raise SystemExit(f'Expected at most one exact defect, found {count}; refusing broad rewrite.')
+              if count == 1:
+                  text = text.replace(broken, fixed)
+                  changed = True
+          if changed:
+              path.write_text(text)
+          with open('/tmp/repair-output','w') as f:
+              f.write(f"changed={'true' if changed else 'false'}\n")
           PY
           cat /tmp/repair-output >> "$GITHUB_OUTPUT"
       - name: Build frontend for Worker assets
