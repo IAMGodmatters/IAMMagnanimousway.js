@@ -58,5 +58,5 @@ CREATE TABLE IF NOT EXISTS ads (
 );
 
 INSERT OR IGNORE INTO settings(key,value) VALUES ('site_name','I AM Magnanimous AI Platform');
-INSERT OR IGNORE INTO settings(key,value) VALUES ('tagline','Free AI tools, Odin orchestration, and creator tools in one place.');
+INSERT OR IGNORE INTO settings(key,value) VALUES ('tagline','Free AI tools, Magnanimous AI orchestration, and creator tools in one place.');
 INSERT OR IGNORE INTO settings(key,value) VALUES ('canva_url','');

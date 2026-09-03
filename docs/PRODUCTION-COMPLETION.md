@@ -14,7 +14,7 @@ That baseline completed the main `Build and Deploy I AM` workflow successfully a
 
 The substantive platform is production-ready and deployed. Core functionality includes:
 
-- Free-first I AM AI platform and Agent Mesh / Odin-style orchestration.
+- Free-first I AM AI platform and Agent Mesh / Magnanimous AI orchestration.
 - Tenant/user authentication and isolated business workspaces.
 - CRM, finance/people, support, professional workspace, knowledge, and assistant-action surfaces.
 - Browser calling and microphone/voice features that remain usable without a paid telephony provider.

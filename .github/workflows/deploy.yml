@@ -367,13 +367,14 @@ jobs:
           assert 'tavus_configured' in data, data
           PY
 
-          check_get "Odin health endpoint" "$BASE_URL/api/odin/health" /tmp/odin.json
+          check_get "Magnanimous AI health endpoint" "$BASE_URL/api/magnanimous/health" /tmp/magnanimous.json
           python - <<'PY'
           import json
-          data=json.load(open('/tmp/odin.json'))
+          data=json.load(open('/tmp/magnanimous.json'))
           assert data.get('ok') is True, data
-          assert data.get('odin') == 'online', data
+          assert data.get('magnanimous') == 'online', data
+          assert data.get('operator') == 'Magnanimous AI', data
           assert data.get('workers_ai_bound') is True, data
           PY
 
-          echo "Production health, native non-OpenAI Agent Mesh, Odin, AI Receptionist, monetization config, billing support, encrypted Stripe webhook verification, Stripe Payment Link checkout, platform-owner isolation, Free/$49 plans, signup, sessions, and consent passed."
+          echo "Production health, native non-OpenAI Agent Mesh, Magnanimous AI, AI Receptionist, monetization config, billing support, encrypted Stripe webhook verification, Stripe Payment Link checkout, platform-owner isolation, Free/$49 plans, signup, sessions, and consent passed."

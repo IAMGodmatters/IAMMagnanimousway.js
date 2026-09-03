@@ -56,9 +56,9 @@ The video gateway uses `VIDEO_RENDERER_URL` to reach the Render service. The Ren
 
 The video gateway is deployed separately from the main Worker so video-rendering infrastructure does not block the main application deployment.
 
-## Odin and AI
+## Magnanimous AI
 
-Odin is part of the main platform interface. The Worker routes requests through Cloudflare Workers AI first. OpenAI and other metered providers are optional server-side fallbacks; private API keys are never placed in the frontend.
+Magnanimous AI is the canonical orchestration assistant in the platform interface. The Worker routes requests through Cloudflare Workers AI first. OpenAI and other metered providers are optional server-side fallbacks; private API keys are never placed in the frontend.
 
 The platform also contains the AI helper catalog and the owner/admin functionality built into the current application.
 
@@ -76,10 +76,12 @@ Owner credentials and session secrets remain server-side. Do not commit password
 
 ## Revenue
 
-The owner dashboard supports legitimate sponsored, referral, and affiliate links. Connecting a monetization provider and receiving payment still depends on that provider's own account, approval, and terms.
+The main Free tier remains the default access model. Full Business is an optional $49/month upgrade, and the platform supports a separate $49/month sponsored-ad product. Metered provider usage remains opt-in so paid API costs do not silently become part of the free tier.
+
+The owner dashboard can also support legitimate sponsored, referral, and affiliate links. Any external advertising or affiliate provider remains subject to that provider's approval and terms.
 
 ## Deployment status
 
-The latest `main` deployment workflow completed successfully on August 31, 2026, including frontend installation, type-checking, frontend build, D1 migrations, and Cloudflare Worker deployment.
+The production baseline is deployed through the `Build and Deploy I AM` workflow, with D1 migrations, frontend type-check/build, and Cloudflare Worker deployment automated on `main`. See [`docs/PRODUCTION-COMPLETION.md`](docs/PRODUCTION-COMPLETION.md) for the verified production baseline and handoff record.
 
 The repository intentionally keeps the main application deployment and the video gateway deployment separate while retaining the FastAPI backend for local development/video support.

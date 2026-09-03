@@ -14,7 +14,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Verify Odin provider count
+      - name: Verify Magnanimous provider count
         shell: bash
         run: |
           set -euo pipefail
@@ -25,10 +25,10 @@ jobs:
           import json
           data=json.load(open('/tmp/providers.json'))
           providers=data.get('providers') or []
-          assert data.get('odin_ready') is True, data
+          assert data.get('magnanimous_ready') is True, data
           assert int(data.get('configured_count') or 0) >= 1, data
           assert any(p.get('id') == 'cloudflare-ai' and p.get('configured') and p.get('enabled') for p in providers), data
-          print('Odin has at least one configured production AI provider.')
+          print('Magnanimous AI has at least one configured production AI provider.')
           PY
 
       - name: Verify free cinematic visual providers
