@@ -237,7 +237,7 @@ export default function AIReceptionist() {
       </div>
     </section>
 
-    <section className="bottomHelp"><div><small>REMEMBER</small><h2>You can use the core platform without the optional services.</h2><p>Talking agents, Odin, the virtual assistant, CRM, AI tools, everyday helpers and free browser calling remain available independently.</p></div><a href="/start">Back to Start Here →</a></section>
+    <section className="bottomHelp"><div><small>REMEMBER</small><h2>You can use the core platform without the optional services.</h2><p>Talking agents, Magnanimous AI, the virtual assistant, CRM, AI tools, everyday helpers and free browser calling remain available independently.</p></div><a href="/start">Back to Start Here →</a></section>
 
     {config?.platform_owner && <details className="advanced">
       <summary>Platform owner: advanced phone/video setup</summary>
