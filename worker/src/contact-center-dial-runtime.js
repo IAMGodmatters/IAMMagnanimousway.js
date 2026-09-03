@@ -33,9 +33,9 @@ export async function handleContactCenterDialGuard(request,env){
   const member=await env.DB.prepare(`SELECT m.* FROM cc_campaign_members m WHERE m.tenant_id=? AND m.campaign_id=? AND m.status IN ('pending','retry') AND m.attempts<? AND (m.next_attempt_at IS NULL OR m.next_attempt_at<=?) AND (?=0 OR m.consent_confirmed=1) AND NOT EXISTS(SELECT 1 FROM voice_do_not_call d WHERE d.tenant_id=m.tenant_id AND d.phone=m.phone) ORDER BY COALESCE(m.next_attempt_at,0),m.created_at LIMIT 1`).bind(tenant,campaignId,Number(campaign.max_attempts||3),ts,Number(campaign.consent_required||1)).first();
   if(!member)return json({detail:'No eligible, consented contacts are ready to dial.',code:'NO_ELIGIBLE_CONTACT'},404);
   const memberGate=await compliance(env,tenant,campaign,member);if(!memberGate.ok)return json({detail:memberGate.detail,code:memberGate.code},memberGate.status);
-  await env.DB.prepare("UPDATE cc_campaign_members SET status='ready',last_attempt_at=?,updated_at=? WHERE id=? AND tenant_id=? AND status IN ('pending','retry')").bind(ts,ts,member.id,tenant).run();
+  const reservation=await env.DB.prepare("UPDATE cc_campaign_members SET status='ready',last_attempt_at=?,updated_at=? WHERE id=? AND tenant_id=? AND status IN ('pending','retry')").bind(ts,ts,member.id,tenant).run();
+  if(Number(reservation?.meta?.changes||0)!==1)return json({detail:'Another agent reserved this contact first. Request the next contact again.',code:'CONTACT_ALREADY_RESERVED'},409);
   const reserved=await env.DB.prepare('SELECT * FROM cc_campaign_members WHERE id=? AND tenant_id=?').bind(member.id,tenant).first();
-  if(!reserved||reserved.status!=='ready')return json({detail:'Another agent reserved this contact first. Request the next contact again.',code:'CONTACT_ALREADY_RESERVED'},409);
   return json({campaign,member:reserved,dial_endpoint:'/api/phone/calls/outbound',required_payload:{to:reserved.phone,contact_id:reserved.lead_id||null,queue_id:campaign.queue_id||null,agent_id:campaign.agent_id||null,consent_confirmed:true,ai_disclosure_accepted:true},compliance:{dnc_checked:true,consent_checked:true,quiet_hours_checked:true,hourly_cap:Number(campaign.hourly_cap||20),daily_cap:Number(campaign.daily_cap||100),hourly_used:Number(memberGate.hourly||0)+1,daily_used:Number(memberGate.daily||0)+1,reserved:true,reservation_expires_seconds:600}});
  }
 
