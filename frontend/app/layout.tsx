@@ -2,6 +2,7 @@ import React from 'react';
 import type {Metadata} from 'next';
 import PlatformChrome from './platform-chrome';
 import GlobalTools from './global-tools';
+import InteractionClarity from './interaction-clarity';
 
 const siteUrl='https://iammagnanimousway.com';
 const googleVerification=process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION||'';
@@ -28,7 +29,7 @@ const structuredData={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="en"><body>{children}<PlatformChrome/><GlobalTools/>
+  return <html lang="en"><body>{children}<PlatformChrome/><GlobalTools/><InteractionClarity/>
     <style>{`html[data-iam-public="true"] .iam-intelligence-art,html[data-iam-public="true"] .iam-command-button,html[data-iam-public="true"] .iam-command-menu,html[data-iam-public="true"] .iam-va-button,html[data-iam-public="true"] .iam-nudge,html[data-iam-public="true"] .iam-va-panel,html[data-iam-public="true"] .iam-global-tools{display:none!important}`}</style>
     <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
     <script dangerouslySetInnerHTML={{__html:`(function(){
@@ -36,7 +37,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
         var clean=(path||'/').replace(/\\/+$/,'');
         return clean||'/';
       }
-      var publicPaths=['/solutions','/business-plan','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise','/security'];
+      var publicPaths=['/solutions','/business-plan','/guide','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise','/security'];
       var currentPath=normalize(location.pathname);
       if(publicPaths.indexOf(currentPath)!==-1)document.documentElement.setAttribute('data-iam-public','true');
       function guardProtectedRoute(){
