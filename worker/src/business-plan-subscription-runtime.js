@@ -45,7 +45,7 @@ async function ensureSchema(env){
 async function projectForUser(env,id,user){return env.DB.prepare('SELECT * FROM business_plan_projects WHERE id=? AND tenant_id=? AND user_id=?').bind(id,user.tenant_id,user.id).first()}
 async function includedAccess(env,user,project){
   if(Number(project?.paid||0)===1){
-    const monthly=await env.DB.prepare('SELECT status FROM business_plan_subscriptions WHERE project_id=?').bind(project.id).first().catch(()=>null);
+    let monthly=null;try{monthly=await env.DB.prepare('SELECT status FROM business_plan_subscriptions WHERE project_id=?').bind(project.id).first()}catch{}
     if(!monthly)return{ok:true,reason:'legacy_one_time_purchase'};
     if(ACTIVE_STATUSES.has(String(monthly.status||'')))return{ok:true,reason:'business_plan_monthly'};
   }
@@ -79,14 +79,17 @@ async function subscriptionFromStripe(env,id){
   const {ok,data}=await stripeRequest(env,`/v1/subscriptions/${encodeURIComponent(id)}`);
   return ok&&data?.id?data:null;
 }
-async function rewriteLegacyResponse(response,path){
+async function rewriteLegacyResponse(response,env){
   if(!response)return response;
   const type=String(response.headers.get('content-type')||'');
   if(!type.includes('application/json'))return response;
   const text=await response.text();let data;try{data=JSON.parse(text)}catch{return new Response(text,{status:response.status,headers:response.headers})}
-  if('one_time_price_usd' in data){delete data.one_time_price_usd;data.monthly_price_usd=PLAN_MONTHLY_PRICE_USD;data.billing_interval='month'}
+  if('one_time_price_usd' in data){delete data.one_time_price_usd;data.monthly_price_usd=PLAN_MONTHLY_PRICE_USD;data.billing_interval='month';data.recurring=true}
   if(typeof data.detail==='string')data.detail=data.detail.replace(/Full Business or the one-time plan unlock\.?/i,'Full Business or the $79/month professional business-plan subscription.');
-  if(data.premium_reason==='one_time_purchase')data.premium_reason='legacy_one_time_purchase';
+  if(data.premium_reason==='one_time_purchase'){
+    let monthly=null;try{if(data.project_id)monthly=await env.DB.prepare('SELECT status FROM business_plan_subscriptions WHERE project_id=?').bind(String(data.project_id)).first()}catch{}
+    data.premium_reason=monthly&&ACTIVE_STATUSES.has(String(monthly.status||''))?'business_plan_monthly':'legacy_one_time_purchase';
+  }
   return json(data,response.status);
 }
 
@@ -104,7 +107,8 @@ async function handleWebhook(request,env){
     const sub=await subscriptionFromStripe(env,subscriptionId);
     if(sub)await setSubscriptionAccess(env,{projectId:String(meta.project_id||''),tenantId:String(meta.tenant_id||''),userId:String(meta.user_id||''),subscriptionId:sub.id,sessionId:String(object.id||''),status:sub.status,currentPeriodEnd:sub.current_period_end});
   }else if(event.type==='customer.subscription.updated'||event.type==='customer.subscription.deleted'||event.type==='customer.subscription.created'){
-    await setSubscriptionAccess(env,{projectId:String(meta.project_id||''),tenantId:String(meta.tenant_id||''),userId:String(meta.user_id||''),subscriptionId:String(object.id||''),sessionId:null,status:String(object.status||event.type==='customer.subscription.deleted'?'canceled':'incomplete'),currentPeriodEnd:object.current_period_end});
+    const status=event.type==='customer.subscription.deleted'?'canceled':String(object.status||'incomplete');
+    await setSubscriptionAccess(env,{projectId:String(meta.project_id||''),tenantId:String(meta.tenant_id||''),userId:String(meta.user_id||''),subscriptionId:String(object.id||''),sessionId:null,status,currentPeriodEnd:object.current_period_end});
   }
   await env.DB.prepare('INSERT INTO business_plan_subscription_events(event_id,event_type,processed_at) VALUES(?,?,?)').bind(eventId,String(event.type||''),now()).run();
   return json({received:true,business_plan_subscription:true});
@@ -156,5 +160,5 @@ export async function handleBusinessPlan(request,env){
   }
 
   const response=await handleLegacyBusinessPlan(request,env);
-  return rewriteLegacyResponse(response,path);
+  return rewriteLegacyResponse(response,env);
 }
