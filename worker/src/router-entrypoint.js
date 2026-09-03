@@ -22,7 +22,7 @@ import { handlePaymentLinkBilling, augmentBillingResponse } from './payment-link
 import { requirePlatformOwner } from './platform-owner-guard.js';
 import { handleMonetization } from './monetization-runtime.js';
 import { handleBusinessEmail } from './business-email-runtime.js';
-import { handleBusinessPlan } from './business-plan-runtime.js';
+import { handleBusinessPlan } from './business-plan-subscription-runtime.js';
 import { handleVisual } from './visual-runtime.js';
 
 const corsHeaders = {
