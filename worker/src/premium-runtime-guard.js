@@ -40,12 +40,12 @@ export async function premiumPreflight(request,env){
   if(!gate.ok)return{response:json({detail:gate.detail,code:gate.code,plan:gate.plan,remaining_cost_usd:gate.remaining_cost_usd,free_browser_calling:true},402)};
   return{request,context:{kind:'pstn',user,reserve,seconds}};
  }
- if(path==='/api/voice-agent/twilio/incoming'&&request.method==='POST'){
+ if((path==='/api/voice-agent/twilio/incoming'||path==='/api/contact-center/twilio/incoming')&&request.method==='POST'){
   const tenantId=await inboundTenant(env);
   if(!tenantId)return{response:xml('The AI receptionist is not assigned yet.',503)};
   const reserve=0.5;
   const gate=await canUsePremium(env,tenantId,{category:'inbound carrier calling',estimated_cost_usd:reserve,required_plan:'business',entitlement:'pstn_minutes'});
-  if(!gate.ok)return{response:xml('This carrier AI receptionist is not enabled for this workspace. Please use the free browser calling option or contact the business another way.')};
+  if(!gate.ok)return{response:xml('This carrier contact center is not enabled for this workspace. Please use the free browser calling option or contact the business another way.')};
   return{request,context:{kind:'pstn-inbound',user:{tenant_id:tenantId},reserve,seconds:60}};
  }
  if(path==='/api/voice-agent/avatar'&&request.method==='POST'){
@@ -68,7 +68,7 @@ export async function premiumPostprocess(response,env,context){
   }else if(context.kind==='pstn'){
    await recordUsage(env,context.user.tenant_id,{category:'pstn-call-reserve',provider:String(data?.provider||'twilio-ai'),units:Number(context.seconds||0)/60,direct_cost_usd:Number(context.reserve||0),reference_id:String(data?.provider_call_id||data?.call_id||'')});
   }else if(context.kind==='pstn-inbound'){
-   await recordUsage(env,context.user.tenant_id,{category:'pstn-inbound-reserve',provider:'twilio-ai',units:1,direct_cost_usd:Number(context.reserve||0),reference_id:''});
+   await recordUsage(env,context.user.tenant_id,{category:'pstn-inbound-reserve',provider:'twilio-contact-center',units:1,direct_cost_usd:Number(context.reserve||0),reference_id:''});
   }else if(context.kind==='avatar'){
    await recordUsage(env,context.user.tenant_id,{category:'avatar-video-reserve',provider:String(data?.provider||'tavus'),units:1,direct_cost_usd:Number(context.reserve||0),reference_id:String(data?.conversation_id||'')});
   }
