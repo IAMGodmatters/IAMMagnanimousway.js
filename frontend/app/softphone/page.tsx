@@ -5,7 +5,7 @@ import {Device} from '@twilio/voice-sdk';
 import {getPlatformAuthToken} from '../lib/magnanimous-session';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
-async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||`Request failed (${r.status})`}}
+async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||`Request failed (${r.status})`}}}
 
 type Config={configured:boolean;identity?:string;token?:string;expires_at?:number;caller_id?:string;twiml_app_voice_url?:string;queue_voice_url?:string;required?:string[];free_browser_phone?:string;note?:string};
 
