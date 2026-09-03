@@ -15,6 +15,11 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package.json
       - name: Repair exact Wrangler syntax defect
         id: repair
         run: |
@@ -35,6 +40,13 @@ jobs:
               raise SystemExit(f'Expected one exact defect, found {count}; refusing broad rewrite.')
           PY
           cat /tmp/repair-output >> "$GITHUB_OUTPUT"
+      - name: Build frontend for Worker assets
+        if: steps.repair.outputs.changed == 'true'
+        working-directory: frontend
+        run: |
+          npm install
+          npm run typecheck
+          npm run build
       - name: Verify Worker bundle after repair
         if: steps.repair.outputs.changed == 'true'
         working-directory: worker
