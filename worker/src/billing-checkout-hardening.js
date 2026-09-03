@@ -4,6 +4,8 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 const PLANS=new Set(['plus','business','pro','scale']);
 const ACTIVEISH=new Set(['active','trialing','past_due']);
 
+function appendQuery(url,key,value){const parsed=new URL(url);parsed.searchParams.set(key,value);return parsed.toString()}
+
 export async function handleBillingCheckoutHardening(request,env){
  const url=new URL(request.url);
  if(url.pathname!=='/api/billing/checkout'||request.method!=='POST')return null;
@@ -11,7 +13,7 @@ export async function handleBillingCheckoutHardening(request,env){
  const user=await currentUserFromRequest(request,env);
  if(!user)return json({detail:'Sign in required.'},401);
  const body=await request.clone().json().catch(()=>({}));
- const plan=String(body.plan||'').toLowerCase();
+ const plan=String(body.plan||'business').toLowerCase();
  if(!PLANS.has(plan))return json({detail:'Choose a valid paid plan: plus, business, pro, or scale.',code:'INVALID_PLAN'},400);
  let existing=null;
  try{existing=await env.DB.prepare('SELECT plan,status,stripe_customer_id,stripe_subscription_id,current_period_end FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first()}catch(_){ }
@@ -26,7 +28,10 @@ export async function handleBillingCheckoutHardening(request,env){
  const priceKey={plus:'STRIPE_PRICE_PLUS',business:'STRIPE_PRICE_BUSINESS',pro:'STRIPE_PRICE_PRO',scale:'STRIPE_PRICE_SCALE'}[plan];
  const stripeConfigured=Boolean(env.STRIPE_SECRET_KEY&&String(env?.[priceKey]||'').trim());
  if(!stripeConfigured&&plan==='business'&&String(env.STRIPE_PAYMENT_LINK_BUSINESS||'').trim()){
-  return json({url:String(env.STRIPE_PAYMENT_LINK_BUSINESS).trim(),plan:'business',fallback:'stripe-payment-link'});
+  return json({
+   url:appendQuery(String(env.STRIPE_PAYMENT_LINK_BUSINESS).trim(),'client_reference_id',String(user.tenant_id)),
+   plan:'business',mode:'payment_link',fallback:'stripe-payment-link'
+  });
  }
  return null;
 }
