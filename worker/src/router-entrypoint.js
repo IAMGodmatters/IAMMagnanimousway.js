@@ -7,7 +7,7 @@ import { handleAssistantIntegrations } from './assistant-integrations-runtime.js
 import { handleComposioManagedAuth, handleComposioAssistant } from './composio-managed-auth.js';
 import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-credentials.js';
 import { handleKnowledge } from './knowledge-runtime.js';
-import { handleMagnanimousBrain } from './magnanimous-brain-runtime.js';
+import { handleMagnanimousBrain, getMagnanimousMemoryContext } from './magnanimous-brain-runtime.js';
 import { handleProfessionalWorkspace } from './professional-workspace-runtime.js';
 import { handleFinancePeople } from './finance-people-v2.js';
 import { handleCallCenterHealth } from './call-center-health-runtime.js';
@@ -60,6 +60,22 @@ function needsProviderRuntime(pathname) {
     pathname.startsWith('/api/voice-agent') ||
     pathname.startsWith('/api/agents') ||
     pathname === '/api/monetization/config';
+}
+
+async function magnanimousChatRequest(request, env) {
+  if (request.method !== 'POST') return request;
+  try {
+    const memory = await getMagnanimousMemoryContext(request, env);
+    if (!memory) return request;
+    const body = await request.clone().json();
+    const message = String(body?.message || '').trim();
+    if (!message) return request;
+    return new Request(request.url, {
+      method: request.method,
+      headers: request.headers,
+      body: JSON.stringify({ ...body, message: `${message}${memory}` })
+    });
+  } catch (_) { return request; }
 }
 
 export default {
@@ -158,7 +174,10 @@ export default {
         const leadsResponse = await handleOwnerLeads(request, env);
         if (leadsResponse) return withCors(leadsResponse);
       }
-      if (isMagnanimousRoute(url.pathname)) return withCors(await providerApp.fetch(request, providerEnv, ctx));
+      if (isMagnanimousRoute(url.pathname)) {
+        const routedRequest = url.pathname === '/api/chat' ? await magnanimousChatRequest(request, providerEnv) : request;
+        return withCors(await providerApp.fetch(routedRequest, providerEnv, ctx));
+      }
       return withCors(await adminApp.fetch(request, env, ctx));
     } catch (error) {
       return withCors(new Response(JSON.stringify({ detail: error?.message || 'Server error', code: 'WORKER_RUNTIME_ERROR' }), {
