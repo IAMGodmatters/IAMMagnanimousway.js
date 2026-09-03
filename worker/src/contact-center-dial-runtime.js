@@ -2,7 +2,7 @@ import { currentUser } from './integrations.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
-function localHour(timezone){try{return Number(new Intl.DateTimeFormat('en-US',{timeZone:String(timezone||'UTC'),hour:'2-digit',hour12:false}).format(new Date())))}catch{return new Date().getUTCHours()}}
+function localHour(timezone){try{return Number(new Intl.DateTimeFormat('en-US',{timeZone:String(timezone||'UTC'),hour:'2-digit',hour12:false}).format(new Date()))}catch{return new Date().getUTCHours()}}
 async function countAttempts(env,tenant,campaignId,since){const row=await env.DB.prepare('SELECT COUNT(*) n FROM cc_campaign_members WHERE tenant_id=? AND campaign_id=? AND last_attempt_at>=?').bind(tenant,campaignId,since).first();return Number(row?.n||0)}
 async function compliance(env,tenant,campaign,member){
  if(campaign.status!=='active')return{detail:'Campaign must be active before dialing.',code:'CAMPAIGN_NOT_ACTIVE',status:409};
@@ -26,7 +26,6 @@ export async function handleContactCenterDialGuard(request,env){
 
  if(operation==='next'){
   const ts=now();
-  // Release abandoned reservations so a closed browser cannot permanently strand a contact.
   await env.DB.prepare("UPDATE cc_campaign_members SET status='retry',next_attempt_at=?,updated_at=? WHERE tenant_id=? AND campaign_id=? AND status IN ('ready','dialing') AND updated_at<?").bind(ts,ts,tenant,campaignId,ts-600).run();
   const gate=await compliance(env,tenant,campaign,{consent_confirmed:1,attempts:0,phone:''});
   if(!gate.ok)return json({detail:gate.detail,code:gate.code},gate.status);
