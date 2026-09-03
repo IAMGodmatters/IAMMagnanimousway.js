@@ -110,7 +110,7 @@ export default {
       const checkoutHardeningResponse = await handleBillingCheckoutHardening(request, providerEnv);
       if (checkoutHardeningResponse) return withCors(checkoutHardeningResponse);
       const tierBillingResponse = await handleTierBilling(request, providerEnv);
-      if (tierBillingResponse) return withCors(tierBillingResponse);
+      if (tierBillingResponse) return withCors(await augmentBillingResponse(request, tierBillingResponse, providerEnv));
       const paymentLinkResponse = await handlePaymentLinkBilling(request, providerEnv);
       if (paymentLinkResponse) return withCors(paymentLinkResponse);
       const billingResponse = await handleBilling(request, providerEnv);
