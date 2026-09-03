@@ -14,6 +14,8 @@ import { handleFinancePeople } from './finance-people-v2.js';
 import { handleCallCenterHealth } from './call-center-health-runtime.js';
 import { handleContactCenter } from './contact-center-runtime.js';
 import { handleContactCenterDialGuard } from './contact-center-dial-runtime.js';
+import { handleProfessionalIvrStep } from './contact-center-ivr-routing-runtime.js';
+import { handleTwilioSoftphone } from './twilio-softphone-runtime.js';
 import { handleSupportFeedback } from './support-feedback-runtime.js';
 import { handleBilling } from './billing-runtime.js';
 import { handleTierBilling } from './billing-tiers-runtime.js';
@@ -106,6 +108,10 @@ export default {
         if (socialResponse) return withCors(socialResponse);
       }
       if (url.pathname.startsWith('/api/contact-center')) {
+        const softphoneResponse = await handleTwilioSoftphone(request, providerEnv);
+        if (softphoneResponse) return withCors(softphoneResponse);
+        const professionalIvrResponse = await handleProfessionalIvrStep(request, providerEnv);
+        if (professionalIvrResponse) return withCors(professionalIvrResponse);
         const dialGuardResponse = await handleContactCenterDialGuard(request, providerEnv);
         if (dialGuardResponse) return withCors(dialGuardResponse);
         const contactCenterResponse = await handleContactCenter(request, providerEnv);
