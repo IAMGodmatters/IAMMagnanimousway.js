@@ -1,3 +1,5 @@
+import { creditWallet } from './usage-guard.js';
+
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const ACTIVE=new Set(['active','trialing']);
@@ -16,6 +18,7 @@ async function ensureSchema(env){
  try{await env.DB.prepare("ALTER TABLE tenants ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'").run()}catch(_){ }
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS billing_subscriptions (tenant_id TEXT PRIMARY KEY,plan TEXT NOT NULL DEFAULT 'free',stripe_customer_id TEXT,stripe_subscription_id TEXT,status TEXT NOT NULL DEFAULT 'inactive',current_period_end INTEGER,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS billing_webhook_events (event_id TEXT PRIMARY KEY,event_type TEXT NOT NULL,processed_at INTEGER NOT NULL)`).run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS enterprise_revenue_events (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,account_id TEXT,contract_id TEXT,event_type TEXT NOT NULL,amount_usd REAL NOT NULL DEFAULT 0,source TEXT NOT NULL DEFAULT '',reference_id TEXT NOT NULL DEFAULT '',occurred_at INTEGER NOT NULL,UNIQUE(tenant_id,event_type,reference_id))`).run();
 }
 async function save(env,tenantId,values){
  if(!tenantId)return;const ts=now(),old=await env.DB.prepare('SELECT * FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first();
@@ -29,10 +32,20 @@ async function resolveTenant(env,object){
  const sub=String(object?.id||'').startsWith('sub_')?String(object.id):String(object?.subscription||'');if(!sub)return'';
  const row=await env.DB.prepare('SELECT tenant_id FROM billing_subscriptions WHERE stripe_subscription_id=?').bind(sub).first();return String(row?.tenant_id||'')
 }
+async function recordRevenue(env,tenantId,eventType,amount,source,referenceId){
+ if(!tenantId||!referenceId)return;try{await env.DB.prepare('INSERT INTO enterprise_revenue_events(tenant_id,event_type,amount_usd,source,reference_id,occurred_at) VALUES(?,?,?,?,?,?)').bind(tenantId,eventType,Number(amount||0),String(source||''),String(referenceId),now()).run()}catch(error){if(!String(error?.message||'').toLowerCase().includes('unique'))throw error}
+}
 async function processEvent(env,event){
  const type=String(event?.type||''),object=event?.data?.object||{};
  if(type==='checkout.session.completed'){
-  const tenantId=await resolveTenant(env,object);if(!tenantId)return;
+  const purpose=String(object?.metadata?.purpose||'').toLowerCase();const tenantId=await resolveTenant(env,object);if(!tenantId)return;
+  if(purpose==='premium_usage_topup'){
+   const paid=String(object?.payment_status||'')==='paid'||String(object?.status||'')==='complete';if(!paid)return;
+   const amount=Math.max(0,Number(object?.amount_total||0)/100);if(amount<=0)return;
+   await creditWallet(env,tenantId,amount,{reference_id:String(object.id||event.id),detail:'Stripe premium usage top-up'});
+   await recordRevenue(env,tenantId,'usage-topup',amount,'stripe',String(object.id||event.id));
+   return;
+  }
   const metadataPlan=String(object?.metadata?.plan||'').toLowerCase(),plan=PLANS.has(metadataPlan)?metadataPlan:'business';
   await save(env,tenantId,{plan,customer_id:String(object.customer||'')||null,subscription_id:String(object.subscription||'')||null,status:'active'});return;
  }
@@ -43,6 +56,9 @@ async function processEvent(env,event){
   const desired=PLANS.has(detected)?detected:'business',status=String(object.status||(type.endsWith('.deleted')?'canceled':'inactive'));
   const active=ACTIVE.has(status)&&!type.endsWith('.deleted');
   await save(env,tenantId,{plan:active?desired:'free',customer_id:String(object.customer||'')||null,subscription_id:String(object.id||'')||null,status,current_period_end:Number(object.current_period_end||0)||null});
+ }
+ if(type==='invoice.paid'){
+  const tenantId=await resolveTenant(env,object);if(tenantId)await recordRevenue(env,tenantId,'invoice-paid',Number(object.amount_paid||0)/100,'stripe',String(object.id||event.id));
  }
 }
 
