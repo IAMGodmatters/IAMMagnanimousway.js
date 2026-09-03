@@ -3,7 +3,8 @@ import { currentUserFromRequest } from './usage-guard.js';
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const PLANS=new Set(['plus','business','pro','scale']);
 const ACTIVEISH=new Set(['active','trialing','past_due']);
-
+const PRICE_KEYS={plus:'STRIPE_PRICE_PLUS',business:'STRIPE_PRICE_BUSINESS',pro:'STRIPE_PRICE_PRO',scale:'STRIPE_PRICE_SCALE'};
+const LINK_KEYS={plus:'STRIPE_PAYMENT_LINK_PLUS',business:'STRIPE_PAYMENT_LINK_BUSINESS',pro:'STRIPE_PAYMENT_LINK_PRO',scale:'STRIPE_PAYMENT_LINK_SCALE'};
 function appendQuery(url,key,value){const parsed=new URL(url);parsed.searchParams.set(key,value);return parsed.toString()}
 
 export async function handleBillingCheckoutHardening(request,env){
@@ -18,20 +19,12 @@ export async function handleBillingCheckoutHardening(request,env){
  let existing=null;
  try{existing=await env.DB.prepare('SELECT plan,status,stripe_customer_id,stripe_subscription_id,current_period_end FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first()}catch(_){ }
  if(existing?.stripe_subscription_id&&ACTIVEISH.has(String(existing.status||''))){
-  return json({
-   detail:'This workspace already has a Stripe subscription. Use Manage billing to change, recover, or cancel the existing subscription instead of creating a duplicate.',
-   code:'ACTIVE_SUBSCRIPTION_EXISTS',
-   current_plan:String(existing.plan||'free'),status:String(existing.status||''),
-   current_period_end:existing.current_period_end||null,portal_endpoint:'/api/billing/portal'
-  },409);
+  return json({detail:'This workspace already has a Stripe subscription. Use Manage billing to change, recover, or cancel the existing subscription instead of creating a duplicate.',code:'ACTIVE_SUBSCRIPTION_EXISTS',current_plan:String(existing.plan||'free'),status:String(existing.status||''),current_period_end:existing.current_period_end||null,portal_endpoint:'/api/billing/portal'},409);
  }
- const priceKey={plus:'STRIPE_PRICE_PLUS',business:'STRIPE_PRICE_BUSINESS',pro:'STRIPE_PRICE_PRO',scale:'STRIPE_PRICE_SCALE'}[plan];
- const stripeConfigured=Boolean(env.STRIPE_SECRET_KEY&&String(env?.[priceKey]||'').trim());
- if(!stripeConfigured&&plan==='business'&&String(env.STRIPE_PAYMENT_LINK_BUSINESS||'').trim()){
-  return json({
-   url:appendQuery(String(env.STRIPE_PAYMENT_LINK_BUSINESS).trim(),'client_reference_id',String(user.tenant_id)),
-   plan:'business',mode:'payment_link',fallback:'stripe-payment-link'
-  });
+ const stripeConfigured=Boolean(env.STRIPE_SECRET_KEY&&String(env?.[PRICE_KEYS[plan]]||'').trim());
+ const link=String(env?.[LINK_KEYS[plan]]||'').trim();
+ if(!stripeConfigured&&link){
+  return json({url:appendQuery(link,'client_reference_id',String(user.tenant_id)),plan,mode:'payment_link',fallback:'stripe-payment-link'});
  }
  return null;
 }
