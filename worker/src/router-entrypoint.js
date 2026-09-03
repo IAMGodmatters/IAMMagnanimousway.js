@@ -17,6 +17,7 @@ import { handleContactCenterDialGuard } from './contact-center-dial-runtime.js';
 import { handleProfessionalIvrStep } from './contact-center-ivr-routing-runtime.js';
 import { handleTwilioSoftphone } from './twilio-softphone-runtime.js';
 import { handleBpoOperations } from './bpo-operations-runtime.js';
+import { handleEnterpriseCommercialization } from './enterprise-commercialization-runtime.js';
 import { handleSupportFeedback } from './support-feedback-runtime.js';
 import { handleBilling } from './billing-runtime.js';
 import { handleTierBilling } from './billing-tiers-runtime.js';
@@ -66,6 +67,7 @@ function needsProviderRuntime(pathname) {
     pathname.startsWith('/api/phone') ||
     pathname.startsWith('/api/contact-center') ||
     pathname.startsWith('/api/social-connect') ||
+    pathname.startsWith('/api/enterprise') ||
     pathname === '/api/plans' ||
     pathname.startsWith('/api/billing') ||
     pathname.startsWith('/api/voice-agent') ||
@@ -104,6 +106,10 @@ export default {
       const premium = await premiumPreflight(request, providerEnv);
       if (premium.response) return withCors(premium.response);
       request = premium.request || request;
+      if (url.pathname.startsWith('/api/enterprise')) {
+        const enterpriseResponse = await handleEnterpriseCommercialization(request, providerEnv);
+        if (enterpriseResponse) return withCors(enterpriseResponse);
+      }
       if (url.pathname.startsWith('/api/social-connect')) {
         const socialResponse = await handleSocialPublishing(request, providerEnv);
         if (socialResponse) return withCors(socialResponse);
