@@ -1,73 +1,62 @@
 'use client';
 import {useEffect,useState} from 'react';
 
-type Plan={id:string;name:string;price_usd:number;cadence:string;primary?:boolean;description:string;features:string[];note?:string};
-type Review={id:number;display_name:string;rating:number;body:string;created_at:number};
+type Entitlements={metered_ai?:boolean;pstn_minutes?:number;avatar_minutes?:number;premium_video_credits?:number;cost_ceiling_usd?:number};
+type Plan={id:string;name:string;price_usd:number;cadence:string;primary?:boolean;description:string;features:string[];note?:string;checkout_configured?:boolean;entitlements?:Entitlements};
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 async function read(r:Response){const text=await r.text();try{return JSON.parse(text)}catch{return{detail:text}}}
-const renameMagnanimous=(value:string)=>String(value||'').replace(/\bOdin\b/g,'Magnanimous AI').replace(/I AM Operator/g,'Magnanimous AI');
+function ownerToken(){
+ const current=localStorage.getItem('magnanimous_admin_token');
+ const legacy=localStorage.getItem('odin_admin_token');
+ if(!current&&legacy)localStorage.setItem('magnanimous_admin_token',legacy);
+ return current||legacy||'';
+}
+function authToken(){return localStorage.getItem('iam_account_token')||ownerToken()}
 
 export default function PricingPage(){
- const[plans,setPlans]=useState<Plan[]>([]),[currentPlan,setCurrentPlan]=useState('free'),[billingReady,setBillingReady]=useState(false),[portalReady,setPortalReady]=useState(false),[reviews,setReviews]=useState<Review[]>([]),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[rating,setRating]=useState(5),[review,setReview]=useState('');
+ const[plans,setPlans]=useState<Plan[]>([]),[currentPlan,setCurrentPlan]=useState('free'),[portalReady,setPortalReady]=useState(false),[busy,setBusy]=useState(''),[message,setMessage]=useState(''),[targetMargin,setTargetMargin]=useState(20);
  const[token,setToken]=useState('');
  useEffect(()=>{
-  const t=localStorage.getItem('iam_account_token')||localStorage.getItem('odin_admin_token')||'';setToken(t);
-  Promise.all([
-   fetch(`${api}/api/plans`,{cache:'no-store'}).then(read),
-   fetch(`${api}/api/reviews`,{cache:'no-store'}).then(read)
-  ]).then(([p,r])=>{setPlans(p.plans||[]);setBillingReady(!!p.business_checkout_configured);setReviews(r.reviews||[])}).catch(()=>{});
-
-  const loadStatus=()=>t?fetch(`${api}/api/billing/status`,{headers:{Authorization:`Bearer ${t}`},cache:'no-store'}).then(read).then(d=>{if(d.plan)setCurrentPlan(d.plan);if(typeof d.billing_configured==='boolean')setBillingReady(d.billing_configured);setPortalReady(!!d.portal_configured);return d}).catch(()=>null):Promise.resolve(null);
-  const q=new URLSearchParams(location.search),checkoutState=q.get('checkout'),sessionId=q.get('session_id')||'';
-  if(checkoutState==='success'){
-   if(t&&sessionId){
-    setMessage('Confirming your payment with Stripe…');
-    fetch(`${api}/api/billing/confirm`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${t}`},body:JSON.stringify({session_id:sessionId})})
-     .then(async r=>({ok:r.ok,d:await read(r)}))
-     .then(({ok,d})=>{if(ok&&d.plan==='business'){setCurrentPlan('business');setMessage('Full Business is active. Your $49/month subscription was verified with Stripe.');history.replaceState({},'',location.pathname)}else{setMessage(d.detail||'Stripe has not confirmed the subscription yet.')}})
-     .catch(()=>setMessage('Payment returned successfully. Stripe will activate Full Business after the signed payment event is received.'))
-     .finally(()=>{loadStatus()});
-   }else{
-    setMessage('Payment submitted to Stripe. Full Business activates automatically when the signed Stripe event reaches your workspace.');
-    let tries=0;
-    const poll=()=>loadStatus().then(d=>{tries+=1;if(d?.plan==='business'){setCurrentPlan('business');setMessage('Full Business is active. Your $49/month subscription was confirmed by Stripe.');history.replaceState({},'',location.pathname)}else if(tries<5)setTimeout(poll,1500)});
-    poll();
-   }
-  }else{
-   if(checkoutState==='cancelled')setMessage('Checkout was cancelled. Your free access is still available.');
-   loadStatus();
-  }
+  const t=authToken();setToken(t);
+  fetch(`${api}/api/plans`,{cache:'no-store'}).then(read).then(d=>{setPlans(d.plans||[]);if(d.target_gross_margin_percent)setTargetMargin(Number(d.target_gross_margin_percent)||20)}).catch(()=>{});
+  const load=()=>t?fetch(`${api}/api/billing/status`,{headers:{Authorization:`Bearer ${t}`},cache:'no-store'}).then(read).then(d=>{if(d.plan)setCurrentPlan(d.plan);setPortalReady(!!d.portal_configured);return d}).catch(()=>null):Promise.resolve(null);
+  const q=new URLSearchParams(location.search),state=q.get('checkout'),sessionId=q.get('session_id')||'',requested=q.get('plan')||'';
+  if(state==='success'&&t&&sessionId){
+   setMessage('Confirming your subscription with Stripe…');
+   fetch(`${api}/api/billing/confirm`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${t}`},body:JSON.stringify({session_id:sessionId,plan:requested})})
+    .then(async r=>({ok:r.ok,d:await read(r)})).then(({ok,d})=>{if(ok&&d.confirmed){setCurrentPlan(d.plan);setMessage(`${d.plan==='business'?'Full Business':plans.find(p=>p.id===d.plan)?.name||'Your plan'} is active.`);history.replaceState({},'',location.pathname)}else setMessage(d.detail||'Stripe has not confirmed the subscription yet.')}).finally(()=>load());
+  }else{if(state==='cancelled')setMessage('Checkout was cancelled. Your current access is unchanged.');load()}
  },[]);
- async function checkout(){
-  if(!token){location.href='/login';return}setBusy(true);setMessage('');
-  try{const r=await fetch(`${api}/api/billing/checkout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:'{}'});const d=await read(r);if(!r.ok)throw new Error(d.detail||'Checkout could not start.');if(d.url)location.href=d.url;else throw new Error('Stripe did not return a checkout page.');}
-  catch(e:any){setMessage(e?.message||'Checkout could not start.');setBusy(false)}
+ async function checkout(plan:string){
+  if(!token){location.href='/login';return}setBusy(plan);setMessage('');
+  try{const r=await fetch(`${api}/api/billing/checkout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({plan})});const d=await read(r);if(!r.ok)throw new Error(d.detail||'Checkout could not start.');if(!d.url)throw new Error('Stripe did not return a checkout page.');location.href=d.url}catch(e:any){setMessage(e?.message||'Checkout could not start.');setBusy('')}
  }
  async function manage(){
-  if(!token){location.href='/login';return}
-  if(!portalReady){location.href='/billing-support';return}
-  setBusy(true);setMessage('');
-  try{const r=await fetch(`${api}/api/billing/portal`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:'{}'});const d=await read(r);if(!r.ok)throw new Error(d.detail||'Subscription management could not open.');if(d.url)location.href=d.url;else throw new Error('Stripe did not return a customer portal.');}
-  catch(e:any){setMessage(e?.message||'Stripe Customer Portal could not open. Use Billing Support below.');setBusy(false)}
+  if(!token){location.href='/login';return}setBusy('portal');
+  try{const r=await fetch(`${api}/api/billing/portal`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:'{}'});const d=await read(r);if(!r.ok)throw new Error(d.detail||'Subscription management could not open.');location.href=d.url}catch(e:any){setMessage(e?.message||'Billing management could not open.');setBusy('')}
  }
- async function submitReview(e:React.FormEvent){
-  e.preventDefault();if(!token){location.href='/login';return}setBusy(true);setMessage('');
-  try{const r=await fetch(`${api}/api/reviews`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({rating,body:review})});const d=await read(r);if(!r.ok)throw new Error(d.detail||'Review could not be submitted.');setReview('');setMessage(d.detail||'Thanks. Your review is awaiting moderation.');}
-  catch(e:any){setMessage(e?.message||'Review could not be submitted.')}finally{setBusy(false)}
- }
- return <main className="pricingPage">
-  <section className="hero"><a className="brand" href="/">I AM MAGNANIMOUS WAY™</a><small>FREE-FIRST AI PLATFORM</small><h1>Use the platform free.<br/><span>Upgrade only if you need more.</span></h1><p>The free plan is the main entry point. There is one optional <b>$49/month Full Business</b> subscription for the expanded business feature set.</p><div className="heroActions"><a href="/signup">Start free</a><a className="ghost" href="/login">Sign in</a></div></section>
+ const fallback:Plan[]=[
+  {id:'free',name:'Free',price_usd:0,cadence:'forever',primary:true,description:'Core Magnanimous AI and free-first tools.',features:['Magnanimous AI','Free-first AI','Creator tools','CRM']},
+  {id:'plus',name:'Magnanimous Plus',price_usd:19,cadence:'month',description:'Affordable expanded access.',features:['Everything in Free','Higher workflow capacity']},
+  {id:'business',name:'Full Business',price_usd:49,cadence:'month',description:'Complete business workspace.',features:['Everything in Plus','Business workflows','Controlled premium integrations']},
+  {id:'pro',name:'Magnanimous Pro',price_usd:99,cadence:'month',description:'Higher professional capacity.',features:['Everything in Full Business','Larger premium allowances']},
+  {id:'scale',name:'Magnanimous Scale',price_usd:199,cadence:'month',description:'High-capacity organizational plan.',features:['Everything in Pro','Largest controlled allowances']}
+ ];
+ const shown=plans.length?plans:fallback;
+ return <main className="page">
+  <header><a href="/">I AM MAGNANIMOUS WAY™</a><small>MAGNANIMOUS AI • FREE-FIRST</small><h1>Start free. Pay only when you need more capacity.</h1><p>The free platform remains important. Paid tiers add capacity and controlled premium services while the system targets at least a {targetMargin}% gross margin instead of offering unlimited owner-funded usage.</p><div><a className="button" href="/signup">Start free</a><a className="button ghost" href="/login">Sign in</a></div></header>
   {message&&<div className="message">{message}</div>}
-  <section className="plans">
-   {(plans.length?plans:[{id:'free',name:'Free',price_usd:0,cadence:'forever',primary:true,description:'Core platform access without a subscription.',features:['Magnanimous AI and specialized AI tools','Creator workspaces','CRM and lead tools']},{id:'business',name:'Full Business',price_usd:49,cadence:'month',description:'One optional upgrade for the complete business feature set.',features:['Everything in Free','Advanced assistant workflows','Phone/call-center access','Avatar/video integrations']}]).map(p=><article className={p.id==='business'?'business':''} key={p.id}><div className="planTop"><div><small>{p.primary?'MAIN PLAN':'OPTIONAL UPGRADE'}</small><h2>{p.name}</h2></div>{currentPlan===p.id&&<span className="current">CURRENT</span>}</div><div className="price"><b>${p.price_usd}</b><span>{p.price_usd?'/ month':'forever'}</span></div><p>{renameMagnanimous(p.description)}</p><ul>{p.features.map(f=><li key={f}>✓ {renameMagnanimous(f)}</li>)}</ul>{p.note&&<div className="note">{p.note}</div>}{p.id==='free'?<a className="planButton ghost" href="/signup">Keep it free</a>:currentPlan==='business'?<><button className="planButton" onClick={manage} disabled={busy}>{busy?'Opening billing…':portalReady?'Manage in Stripe':'Billing management'}</button>{!portalReady&&<a className="billingHelp" href="/billing-support">Cancellation, payment method or billing question →</a>}</>:<button className="planButton" onClick={checkout} disabled={busy||!billingReady}>{billingReady?(busy?'Opening checkout…':'Upgrade for $49/month'):'Checkout setup pending'}</button>}</article>)}
-  </section>
-  <section className="principles"><div><b>FREE STAYS IMPORTANT</b><p>The platform is not designed to force every user into a subscription.</p></div><div><b>ONE CLEAR UPGRADE</b><p>No separate $149 call-center tier. Full Business is the single customer subscription.</p></div><div><b>REAL PROVIDER COSTS</b><p>Carrier, avatar, video and metered AI providers can still have their own quotas or usage charges.</p></div></section>
-  <section className="reviews"><div className="reviewHead"><div><small>COMMUNITY FEEDBACK</small><h2>What members say</h2></div><p>Published reviews are moderated before they appear publicly.</p></div>{reviews.length?<div className="reviewGrid">{reviews.slice(0,6).map(r=><article key={r.id}><div className="stars">{'★'.repeat(Math.max(1,Math.min(5,r.rating)))}</div><p>“{r.body}”</p><b>{r.display_name||'Member'}</b></article>)}</div>:<div className="empty">No approved reviews yet. Logged-in members can submit the first one below.</div>}
-   <form onSubmit={submitReview}><h3>Leave feedback</h3><label>Rating<select value={rating} onChange={e=>setRating(Number(e.target.value))}><option value={5}>5 — Excellent</option><option value={4}>4 — Very good</option><option value={3}>3 — Good</option><option value={2}>2 — Needs work</option><option value={1}>1 — Poor</option></select></label><label>Your review<textarea value={review} onChange={e=>setReview(e.target.value)} maxLength={2000} placeholder="Tell us what worked well or what could be improved."/></label><button disabled={busy}>{token?'Submit for review':'Sign in to submit'}</button></form>
-  </section>
-  <footer><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/billing-support">Billing support</a><a href="/">Platform</a></footer>
+  <section className="plans">{shown.map(p=><article key={p.id} className={p.id===currentPlan?'active':''}>
+   <div className="top"><div><small>{p.primary?'FREE-FIRST':'PAID TIER'}</small><h2>{p.name}</h2></div>{p.id===currentPlan&&<b>CURRENT</b>}</div>
+   <div className="price"><strong>${p.price_usd}</strong><span>{p.price_usd?'/month':'forever'}</span></div><p>{p.description}</p>
+   <ul>{p.features.map(f=><li key={f}>✓ {f}</li>)}</ul>
+   {p.entitlements&&p.price_usd>0&&<div className="limits"><b>Cost-protected included capacity</b><span>AI: {p.entitlements.metered_ai?'premium eligible':'free-first'}</span><span>PSTN calling: {p.entitlements.pstn_minutes||0} min</span><span>Avatar: {p.entitlements.avatar_minutes||0} min</span><span>Premium video credits: {p.entitlements.premium_video_credits||0}</span></div>}
+   {p.id==='free'?<a className="button ghost full" href="/signup">Keep it free</a>:p.id===currentPlan?<button className="button full" onClick={manage} disabled={busy==='portal'}>{busy==='portal'?'Opening…':'Manage subscription'}</button>:<button className="button full" onClick={()=>checkout(p.id)} disabled={!!busy||p.checkout_configured===false}>{busy===p.id?'Opening Stripe…':p.checkout_configured===false?'Checkout setup pending':`Choose ${p.name}`}</button>}
+  </article>)}</section>
+  <section className="rules"><div><b>FREE-FIRST</b><p>Free users stay on free-first AI and browser tools.</p></div><div><b>MARGIN GUARD</b><p>Premium variable costs are capped by plan instead of being silently unlimited.</p></div><div><b>NO FALSE GUARANTEE</b><p>The platform targets {targetMargin}%+ gross margin, but actual profit still depends on fees, refunds, taxes, usage and sales.</p></div></section>
+  <footer><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/billing-support">Billing support</a><a href="/business-plan">Professional Business Plan</a></footer>
   <style jsx>{`
-   .pricingPage{min-height:100vh;background:#05080d;color:#eaf4fb;font-family:Inter,system-ui,sans-serif;padding:0 20px 60px}.hero{max-width:1080px;margin:auto;padding:82px 0 52px}.brand{color:#ffc45c;text-decoration:none;font:900 12px Georgia;letter-spacing:.16em}.hero small,.reviewHead small,.planTop small{display:block;color:#54daf8;font-size:9px;letter-spacing:.18em;margin-top:28px}.hero h1{font-size:clamp(42px,7vw,82px);line-height:.98;letter-spacing:-.055em;margin:14px 0 22px;max-width:950px}.hero h1 span{color:#8ddff3}.hero>p{max-width:760px;color:#9db0bf;font-size:17px;line-height:1.7}.heroActions{display:flex;gap:10px;margin-top:28px}.heroActions a,.planButton,form button{border:1px solid #58dffc;background:#58dffc;color:#031018;border-radius:10px;padding:13px 18px;text-decoration:none;font-weight:900;cursor:pointer}.ghost{background:transparent!important;color:#c9d9e4!important;border-color:#314654!important}.message{max-width:1080px;margin:0 auto 22px;padding:13px 16px;border:1px solid #315469;background:#0b151e;border-radius:10px;color:#9fe8ff}.plans{max-width:1080px;margin:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.plans article{border:1px solid #253542;background:linear-gradient(160deg,#0a1018,#070b10);border-radius:22px;padding:28px}.plans article.business{border-color:#b7802d;box-shadow:0 0 45px rgba(255,185,63,.08)}.planTop{display:flex;justify-content:space-between;gap:14px}.planTop small{margin:0}.planTop h2{font-size:27px;margin:7px 0}.current{height:max-content;border:1px solid #327452;color:#72e5aa;border-radius:999px;padding:6px 9px;font-size:9px;letter-spacing:.1em}.price{display:flex;align-items:end;gap:8px;margin:18px 0}.price b{font-size:50px}.price span{color:#7790a0;padding-bottom:9px}.plans article>p{color:#91a4b3;line-height:1.6;min-height:76px}.plans ul{padding:0;list-style:none;display:grid;gap:10px;color:#c5d6e1;font-size:13px;min-height:130px}.plans li{border-bottom:1px solid #14222d;padding-bottom:9px}.note{font-size:11px;line-height:1.5;color:#b39c73;background:#17130d;border:1px solid #3b3020;padding:10px;border-radius:9px;margin:12px 0}.planButton{width:100%;margin-top:10px}.planButton:disabled{opacity:.55;cursor:not-allowed}.billingHelp{display:block;text-align:center;color:#94cde0;text-decoration:none;font-size:10px;margin-top:10px}.principles{max-width:1080px;margin:22px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.principles div{border:1px solid #1d303d;border-radius:14px;padding:18px;background:#080e14}.principles b{font-size:10px;letter-spacing:.12em;color:#70dff9}.principles p{font-size:12px;line-height:1.55;color:#8297a6}.reviews{max-width:1080px;margin:70px auto 0}.reviewHead{display:flex;justify-content:space-between;gap:25px;align-items:end;border-bottom:1px solid #1e2e39;padding-bottom:18px}.reviewHead small{margin:0}.reviewHead h2{font-size:34px;margin:7px 0 0}.reviewHead p{color:#7e94a3;font-size:12px}.reviewGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}.reviewGrid article,.empty{border:1px solid #1e313e;background:#081018;border-radius:14px;padding:18px}.reviewGrid p{color:#a9bcc8;line-height:1.55}.reviewGrid b{font-size:12px}.stars{color:#ffc04c;letter-spacing:.1em}.empty{color:#758d9c;margin:18px 0}form{max-width:620px;margin-top:28px;display:grid;gap:12px;border:1px solid #203542;border-radius:18px;padding:22px;background:#081018}form h3{margin:0 0 5px}label{display:grid;gap:7px;color:#8ca4b3;font-size:11px}select,textarea{background:#050a0f;border:1px solid #29404e;color:#e8f5fc;border-radius:9px;padding:11px;font:inherit}textarea{min-height:110px;resize:vertical}footer{max-width:1080px;margin:70px auto 0;display:flex;gap:18px;border-top:1px solid #182732;padding-top:20px}footer a{color:#8198a8;text-decoration:none;font-size:11px}@media(max-width:760px){.plans,.principles,.reviewGrid{grid-template-columns:1fr}.reviewHead{display:block}.plans article>p,.plans ul{min-height:0}.hero{padding-top:58px}}
+  .page{min-height:100vh;background:#05080d;color:#edf7fb;font-family:Inter,system-ui,sans-serif;padding:0 22px 60px}header{max-width:1180px;margin:auto;padding:72px 0 44px}header>a{color:#ffc65c;text-decoration:none;font:900 12px Georgia;letter-spacing:.14em}header small{display:block;color:#59ddfb;margin-top:24px;letter-spacing:.18em}h1{font-size:clamp(42px,7vw,78px);line-height:1;margin:12px 0 20px;max-width:1000px}header p{max-width:850px;color:#9db2c1;line-height:1.7}.button{display:inline-block;border:1px solid #59ddfb;background:#59ddfb;color:#041017;border-radius:10px;padding:13px 17px;font-weight:900;text-decoration:none;cursor:pointer;margin:10px 8px 0 0}.ghost{background:transparent;color:#cde2ec;border-color:#34505e}.message{max-width:1180px;margin:0 auto 20px;padding:13px 16px;border:1px solid #315469;background:#0b151e;border-radius:10px}.plans{max-width:1180px;margin:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.plans article{border:1px solid #253844;background:#081018;border-radius:18px;padding:22px}.plans article.active{border-color:#d79a35;box-shadow:0 0 30px rgba(255,184,55,.1)}.top{display:flex;justify-content:space-between;gap:10px}.top small{color:#59ddfb;font-size:9px;letter-spacing:.14em}.top h2{margin:5px 0;font-size:24px}.top>b{font-size:9px;color:#76e5ad;border:1px solid #39785a;padding:6px 8px;border-radius:20px;height:max-content}.price{display:flex;align-items:end;gap:7px;margin:14px 0}.price strong{font-size:46px}.price span{color:#8299a8;padding-bottom:7px}.plans p{color:#9aafbc;line-height:1.55;min-height:70px}.plans ul{list-style:none;padding:0;display:grid;gap:8px;min-height:130px}.plans li{font-size:12px;border-bottom:1px solid #162630;padding-bottom:7px}.limits{display:grid;gap:5px;background:#101820;border:1px solid #263b48;border-radius:10px;padding:10px;font-size:11px;color:#9cc7d8;min-height:108px}.limits b{color:#ffc76d}.full{width:100%;box-sizing:border-box;text-align:center}.rules{max-width:1180px;margin:25px auto;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.rules div{padding:17px;border:1px solid #1f333f;border-radius:13px}.rules b{color:#61def8;font-size:10px;letter-spacing:.12em}.rules p{color:#899daa;font-size:12px;line-height:1.5}footer{max-width:1180px;margin:55px auto 0;display:flex;gap:18px;flex-wrap:wrap}footer a{color:#8ca2b1;text-decoration:none;font-size:11px}@media(max-width:900px){.plans{grid-template-columns:repeat(2,1fr)}}@media(max-width:620px){.plans,.rules{grid-template-columns:1fr}.plans p,.plans ul,.limits{min-height:0}}
   `}</style>
  </main>
 }
