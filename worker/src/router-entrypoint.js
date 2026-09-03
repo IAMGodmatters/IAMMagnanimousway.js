@@ -38,16 +38,17 @@ function withCors(response) {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
-function isOdinRoute(pathname) {
+function isMagnanimousRoute(pathname) {
   return pathname === '/api/providers' ||
     pathname === '/api/operator/capabilities' ||
+    pathname === '/api/magnanimous/health' ||
     pathname === '/api/odin/health' ||
     pathname === '/api/chat' ||
     pathname === '/api/tools';
 }
 
 function needsProviderRuntime(pathname) {
-  return isOdinRoute(pathname) ||
+  return isMagnanimousRoute(pathname) ||
     pathname.startsWith('/api/business-plan') ||
     pathname.startsWith('/api/visual') ||
     pathname.startsWith('/api/phone') ||
@@ -148,7 +149,7 @@ export default {
         const leadsResponse = await handleOwnerLeads(request, env);
         if (leadsResponse) return withCors(leadsResponse);
       }
-      if (isOdinRoute(url.pathname)) return withCors(await providerApp.fetch(request, providerEnv, ctx));
+      if (isMagnanimousRoute(url.pathname)) return withCors(await providerApp.fetch(request, providerEnv, ctx));
       return withCors(await adminApp.fetch(request, env, ctx));
     } catch (error) {
       return withCors(new Response(JSON.stringify({ detail: error?.message || 'Server error', code: 'WORKER_RUNTIME_ERROR' }), {
