@@ -11,8 +11,8 @@ const PLANS = [
     price_usd: 0,
     cadence: 'forever',
     primary: true,
-    description: 'The main way to use I AM Magnanimous Way: core AI, Odin, creator tools, CRM, and browser-based tools without a subscription.',
-    features: ['Odin and configured free-first AI providers', 'Core AI and creator workspaces', 'CRM and lead tools', 'Free browser-based tools']
+    description: 'The main way to use I AM Magnanimous Way: core AI, Magnanimous AI, creator tools, CRM, and browser-based tools without a subscription.',
+    features: ['Magnanimous AI and configured free-first AI providers', 'Core AI and creator workspaces', 'CRM and lead tools', 'Free browser-based tools']
   },
   {
     id: 'business',
