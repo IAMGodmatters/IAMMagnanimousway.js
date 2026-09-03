@@ -6,7 +6,9 @@
   "workers_dev": true,
   "vars": {
     "STRIPE_PRICE_BUSINESS": "price_1UB9WfDuxV2kib03DFKqwM9C",
-    "STRIPE_PAYMENT_LINK_BUSINESS": "https://buy.stripe.com/4gM9AT18u7vE9U463z6kg00"
+    "STRIPE_PAYMENT_LINK_BUSINESS": "https://buy.stripe.com/4gM9AT18u7vE9U463z6kg00",
+    "ENABLE_METERED_PROVIDERS": "false",
+    "TARGET_GROSS_MARGIN_PERCENT": "20"
   },
   "assets": {
     "directory": "../frontend/out",
