@@ -59,7 +59,8 @@ export default {
     // Keep customers on the branded public domain even when an old www or
     // workers.dev link is opened. A 308 preserves path, query, and method.
     const hostname = url.hostname.toLowerCase();
-    if (hostname === 'www.iammagnanimousway.com' || hostname.endsWith('.workers.dev')) {
+    const isPublicPageRequest = request.method === 'GET' && !url.pathname.startsWith('/api/') && url.pathname !== '/health';
+    if (hostname === 'www.iammagnanimousway.com' || (hostname.endsWith('.workers.dev') && isPublicPageRequest)) {
       url.hostname = 'iammagnanimousway.com';
       url.protocol = 'https:';
       url.port = '';
