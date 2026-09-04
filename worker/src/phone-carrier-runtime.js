@@ -1,4 +1,5 @@
 import { handleVoiceAgent } from './voice-agent-runtime.js';
+import { handlePlivoCarrier, plivoReady } from './plivo-carrier-runtime.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -30,9 +31,13 @@ export async function handlePhoneCarrier(request, env) {
   const path = url.pathname;
   if (!path.startsWith('/api/phone')) return null;
 
-  // Preserve an explicitly configured human-agent carrier bridge. The Twilio
-  // fallback below is for the platform's automated AI telephone agent.
+  // Plivo is the preferred direct carrier when configured. Twilio remains a
+  // compatible fallback, and a user-supplied bridge still takes precedence.
   if (genericBridgeReady(env)) return null;
+  if (plivoReady(env)) {
+    const response = await handlePlivoCarrier(request, env);
+    if (response) return response;
+  }
   if (!twilioReady(env)) return null;
 
   if (path === '/api/phone/config' && request.method === 'GET') {
