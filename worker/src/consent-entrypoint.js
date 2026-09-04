@@ -56,10 +56,13 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // Keep one canonical public hostname for Google and users. A 308 preserves
-    // the path, query string, and HTTP method if an old www link is used.
-    if (url.hostname.toLowerCase() === 'www.iammagnanimousway.com') {
+    // Keep customers on the branded public domain even when an old www or
+    // workers.dev link is opened. A 308 preserves path, query, and method.
+    const hostname = url.hostname.toLowerCase();
+    if (hostname === 'www.iammagnanimousway.com' || hostname.endsWith('.workers.dev')) {
       url.hostname = 'iammagnanimousway.com';
+      url.protocol = 'https:';
+      url.port = '';
       return Response.redirect(url.toString(), 308);
     }
 
