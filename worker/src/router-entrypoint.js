@@ -9,6 +9,7 @@ import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-
 import { handleSocialPublishing } from './social-publishing-runtime.js';
 import { handleKnowledge } from './knowledge-runtime.js';
 import { handleMagnanimousBrain, getMagnanimousMemoryContext } from './magnanimous-brain-runtime.js';
+import { handleMagnanimousToolGateway } from './magnanimous-tool-gateway.js';
 import { handleProfessionalWorkspace } from './professional-workspace-runtime.js';
 import { handleFinancePeople } from './finance-people-v2.js';
 import { handleCallCenterHealth } from './call-center-health-runtime.js';
@@ -130,7 +131,11 @@ export default {
         const bpoResponse = await handleBpoOperations(request, env);
         if (bpoResponse) return withCors(bpoResponse);
       }
-      if (url.pathname === '/api/magnanimous/capabilities' || url.pathname.startsWith('/api/magnanimous/memory')) {
+      if (url.pathname.startsWith('/api/magnanimous/tools')) {
+        const toolResponse = await handleMagnanimousToolGateway(request, providerEnv);
+        if (toolResponse) return withCors(toolResponse);
+      }
+      if (url.pathname.startsWith('/api/magnanimous/')) {
         const brainResponse = await handleMagnanimousBrain(request, providerEnv);
         if (brainResponse) return withCors(brainResponse);
       }
