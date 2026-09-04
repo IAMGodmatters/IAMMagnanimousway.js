@@ -1,0 +1,31 @@
+name: Twilio Fast Configuration Audit
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check Twilio configuration presence without exposing values
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api='https://api.cloudflare.com/client/v4'
+          auth=(-H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json')
+
+          echo '=== Cloudflare Worker TWILIO secret names ==='
+          worker_json=$(curl -fsS "${auth[@]}" "$api/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/iam-magnanimous/secrets")
+          names=$(printf '%s' "$worker_json" | jq -r '.result[]?.name' | grep '^TWILIO_' || true)
+          if [ -n "$names" ]; then printf '%s\n' "$names"; else echo 'NO_TWILIO_WORKER_SECRETS_FOUND'; fi
+
+          echo '=== Encrypted platform-vault TWILIO key names ==='
+          d1_json=$(curl -fsS "${auth[@]}" -X POST "$api/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/7c9f798b-04d2-443c-a9e9-933c51899771/query" --data '{"sql":"SELECT credential_key FROM platform_credentials WHERE credential_key LIKE '\''TWILIO_%'\'' ORDER BY credential_key;"}')
+          vault_names=$(printf '%s' "$d1_json" | jq -r '.result[]?.results[]?.credential_key' | grep '^TWILIO_' || true)
+          if [ -n "$vault_names" ]; then printf '%s\n' "$vault_names"; else echo 'NO_TWILIO_VAULT_KEYS_FOUND'; fi
