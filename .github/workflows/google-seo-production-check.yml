@@ -63,14 +63,20 @@ jobs:
           python - <<'PY'
           import json
           data=json.load(open('/tmp/operator.json'))
-          assert data.get('operator') == 'I AM Operator', data
+          assert data.get('operator') == 'Magnanimous AI', data
           routing=data.get('routing') or {}
           assert routing.get('task_aware') is True, data
           assert routing.get('automatic_failover') is True, data
           assert routing.get('free_first_default') is True, data
-          assert (data.get('execution') or {}).get('professional_business_launch') is True, data
+          assert routing.get('learned_tool_planning') is True, data
+          assert routing.get('integration_ranking') is True, data
+          execution=data.get('execution') or {}
+          assert execution.get('specialist_agent_mesh') is True, data
+          assert execution.get('professional_business_launch') is True, data
+          assert execution.get('calling') is True, data
+          assert execution.get('video') is True, data
           PY
-          echo "Verified: I AM Operator routing and execution capabilities"
+          echo "Verified: Magnanimous AI routing and execution capabilities"
 
           status=$(curl -LsS -o /tmp/security.html -w '%{http_code}' "$SITE/security/")
           [ "$status" = "200" ] || { echo "Data & Security page returned $status"; exit 1; }
@@ -111,4 +117,4 @@ jobs:
           status=$(curl -LsS -o /tmp/health.json -w '%{http_code}' "$SITE/health")
           [ "$status" = "200" ] || { echo "Production health returned $status"; cat /tmp/health.json; exit 1; }
 
-          echo "Public crawlability, I AM Operator routing, Professional Business Launch, Data & Security, protected-route robots, reviews API and health passed."
+          echo "Public crawlability, Magnanimous AI routing, Professional Business Launch, Data & Security, protected-route robots, reviews API and health passed."
