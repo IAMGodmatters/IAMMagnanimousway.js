@@ -1,0 +1,136 @@
+name: Repair Agent Mesh provider timeouts
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package.json
+
+      - name: Apply bounded Agent Mesh provider execution
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('worker/src/agent-mesh-runtime.js')
+          text = path.read_text()
+
+          old = "const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});\nconst now=()=>Math.floor(Date.now()/1000);"
+          new = """const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
+const now=()=>Math.floor(Date.now()/1000);
+const AGENT_MODEL_TIMEOUT_MS=12000;
+const AGENT_PROVIDER_TIMEOUT_MS=16000;
+const AGENT_MAX_TOKENS=800;
+
+async function withTimeout(factory,ms,label){
+ let timer;
+ try{
+  return await Promise.race([
+   Promise.resolve().then(factory),
+   new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label} timed out after ${ms}ms`)),ms)})
+  ]);
+ }finally{if(timer)clearTimeout(timer)}
+}"""
+          if old not in text:
+              raise SystemExit('bootstrap timeout insertion point not found')
+          text = text.replace(old, new, 1)
+
+          old = """async function chatCompletionsCompatible(base,key,model,messages,label,extraHeaders={}){
+ const r=await fetch(`${base}/chat/completions`,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`,...extraHeaders},body:JSON.stringify({model,messages,temperature:.45,max_tokens:1600})});
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok)throw new Error(d?.error?.message||d?.message||`${label} request failed (${r.status})`);
+ return {text:String(d?.choices?.[0]?.message?.content||''),model};
+}"""
+          new = """async function chatCompletionsCompatible(base,key,model,messages,label,extraHeaders={}){
+ const r=await withTimeout(()=>fetch(`${base}/chat/completions`,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`,...extraHeaders},body:JSON.stringify({model,messages,temperature:.45,max_tokens:AGENT_MAX_TOKENS})}),AGENT_PROVIDER_TIMEOUT_MS,label);
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok)throw new Error(d?.error?.message||d?.message||`${label} request failed (${r.status})`);
+ return {text:String(d?.choices?.[0]?.message?.content||''),model};
+}"""
+          if old not in text:
+              raise SystemExit('chat-completions block not found')
+          text = text.replace(old, new, 1)
+
+          old = """ if(id==='cloudflare-ai'){
+  const models=[requestedModel,String(env.AGENT_CLOUDFLARE_MODEL||''),'@cf/zai-org/glm-4.7-flash','@cf/google/gemma-4-26b-a4b-it','@cf/nvidia/nemotron-3-120b-a12b'].filter(Boolean);
+  const errors=[];
+  for(const model of [...new Set(models)]){
+   try{const out=await env.AI.run(model,{messages,max_tokens:1600});const value=extractCloudflareText(out).trim();if(value)return{text:value,model};errors.push(`${model}: empty`)}catch(e){errors.push(`${model}: ${e?.message||'failed'}`)}
+  }
+  throw new Error(errors.join(' | '));
+ }
+ if(id==='google'){
+  const model=requestedModel||env.GOOGLE_MODEL||'gemini-3.7-flash';
+  const system=messages.filter(m=>m.role==='system').map(m=>m.content).join('\\n\\n');
+  const contents=messages.filter(m=>m.role!=='system').map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(env.GOOGLE_API_KEY)}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({system_instruction:{parts:[{text:system}]},contents,generationConfig:{temperature:.45,maxOutputTokens:1600}})});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||'Gemini request failed');return{text:(d.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('').trim(),model};
+ }"""
+          new = """ if(id==='cloudflare-ai'){
+  const models=[requestedModel,String(env.AGENT_CLOUDFLARE_MODEL||''),'@cf/zai-org/glm-4.7-flash','@cf/google/gemma-4-26b-a4b-it','@cf/nvidia/nemotron-3-120b-a12b'].filter(Boolean);
+  const errors=[];
+  for(const model of [...new Set(models)].slice(0,3)){
+   try{
+    const out=await withTimeout(()=>env.AI.run(model,{messages,max_tokens:AGENT_MAX_TOKENS}),AGENT_MODEL_TIMEOUT_MS,`Cloudflare Workers AI ${model}`);
+    const value=extractCloudflareText(out).trim();
+    if(value)return{text:value,model};
+    errors.push(`${model}: empty`);
+   }catch(e){errors.push(`${model}: ${e?.message||'failed'}`)}
+  }
+  throw new Error(errors.join(' | '));
+ }
+ if(id==='google'){
+  const model=requestedModel||env.GOOGLE_MODEL||'gemini-3.7-flash';
+  const system=messages.filter(m=>m.role==='system').map(m=>m.content).join('\\n\\n');
+  const contents=messages.filter(m=>m.role!=='system').map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
+  const r=await withTimeout(()=>fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(env.GOOGLE_API_KEY)}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({system_instruction:{parts:[{text:system}]},contents,generationConfig:{temperature:.45,maxOutputTokens:AGENT_MAX_TOKENS}})}),AGENT_PROVIDER_TIMEOUT_MS,'Google Gemini');
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||'Gemini request failed');return{text:(d.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('').trim(),model};
+ }"""
+          if old not in text:
+              raise SystemExit('provider block not found')
+          text = text.replace(old, new, 1)
+
+          old = "const prior=(await history(env,user,agent.id)).slice(-12).filter(x=>x.content!==message).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content}));"
+          new = "const prior=(await history(env,user,agent.id)).slice(-8).filter(x=>x.content!==message).map(x=>({role:x.role==='assistant'?'assistant':'user',content:String(x.content||'').slice(0,4000)}));"
+          if old not in text:
+              raise SystemExit('history compaction block not found')
+          text = text.replace(old, new, 1)
+
+          path.write_text(text)
+
+      - name: Build and verify
+        run: |
+          cd frontend
+          npm install
+          npm run typecheck
+          npm run build
+          cd ../worker
+          npm install
+          npx wrangler deploy --dry-run
+
+      - name: Commit repair
+        run: |
+          if git diff --quiet; then
+            echo "Agent Mesh timeout repair already present."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add worker/src/agent-mesh-runtime.js
+          git commit -m "Bound Agent Mesh provider latency and failover"
+          git push origin HEAD:main
