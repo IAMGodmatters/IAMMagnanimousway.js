@@ -67,6 +67,21 @@ function carrierConfig(env) {
   };
 }
 
+async function ensureBrowserPhoneTables(env) {
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS phone_sessions (
+    id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, caller_user_id TEXT NOT NULL,
+    callee_user_id TEXT, status TEXT NOT NULL DEFAULT 'waiting',
+    created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL
+  )`).run();
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS phone_signals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
+    sender_user_id TEXT NOT NULL, kind TEXT NOT NULL, payload TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`).run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_phone_sessions_tenant ON phone_sessions(tenant_id,created_at)').run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_phone_signals_session ON phone_signals(session_id,id)').run();
+}
+
 async function logEvent(env, tenantId, callId, eventType, status = '', detail = '', payload = {}) {
   await env.DB.prepare(
     'INSERT INTO call_events(tenant_id,call_id,event_type,status,detail,payload_json,created_at) VALUES(?,?,?,?,?,?,?)'
@@ -210,6 +225,8 @@ async function leadRoutes(request, env, user, path, url) {
 
 async function phoneRoutes(request, env, user, path, url) {
   const tenantId = user.tenant_id;
+
+  await ensureBrowserPhoneTables(env);
 
   if (path === '/api/phone/config' && request.method === 'GET') return json(carrierConfig(env));
 
