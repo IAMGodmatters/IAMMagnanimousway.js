@@ -29,11 +29,17 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'VOIP_PROVIDER_TOKEN',label:'Carrier Bridge Bearer Token',secret:true,required:false},
   {key:'VOIP_WEBHOOK_SECRET',label:'Carrier Bridge Webhook Secret',secret:true,required:false}
  ]},
- {id:'tavus',name:'Tavus Human Video',providers:['tavus'],fields:[
-  {key:'TAVUS_API_KEY',label:'Tavus API Key',secret:true,required:true}
+ {id:'tavus',name:'Tavus Human Video',providers:['tavus'],fields:[{key:'TAVUS_API_KEY',label:'Tavus API Key',secret:true,required:false}]},
+ {id:'heygen',name:'HeyGen Presenter Video',providers:['heygen'],fields:[{key:'HEYGEN_API_KEY',label:'HeyGen API Key (optional presenter-video provider)',secret:true,required:false}]},
+ {id:'veo',name:'Google Veo Cinematic Video',providers:['veo'],fields:[
+  {key:'GOOGLE_API_KEY',label:'Google Gemini / Veo API Key',secret:true,required:false},
+  {key:'ENABLE_VEO_PROVIDER',label:'Enable Veo Provider (true/false)',secret:false,required:false}
  ]},
- {id:'heygen',name:'HeyGen Presenter Video',providers:['heygen'],fields:[
-  {key:'HEYGEN_API_KEY',label:'HeyGen API Key (optional presenter-video provider)',secret:true,required:false}
+ {id:'runway',name:'Runway Generative Video',providers:['runway'],fields:[
+  {key:'RUNWAYML_API_SECRET',label:'Runway API Secret',secret:true,required:false}
+ ]},
+ {id:'luma',name:'Luma Dream Machine',providers:['luma'],fields:[
+  {key:'LUMA_API_KEY',label:'Luma API Key',secret:true,required:false}
  ]},
  {id:'agent-brains',name:'Agent Mesh AI Brains',providers:['google-ai','groq','openrouter-free','huggingface','mistral','cerebras'],fields:[
   {key:'GOOGLE_API_KEY',label:'Google Gemini API Key (free tier supported)',secret:true,required:false},
@@ -47,9 +53,7 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'FREE_AVATAR_RENDERER_URL',label:'Avatar Renderer HTTPS Endpoint (optional)',secret:false,required:false},
   {key:'FREE_AVATAR_RENDERER_TOKEN',label:'Avatar Renderer Bearer Token (optional)',secret:true,required:false}
  ]},
- {id:'web-research',name:'Web Research & News',providers:['brave-search'],fields:[
-  {key:'BRAVE_SEARCH_API_KEY',label:'Brave Search API Key (optional live web/news research)',secret:true,required:false}
- ]},
+ {id:'web-research',name:'Web Research & News',providers:['brave-search'],fields:[{key:'BRAVE_SEARCH_API_KEY',label:'Brave Search API Key (optional live web/news research)',secret:true,required:false}]},
  {id:'adsense',name:'Google AdSense / Auto Ads',providers:['adsense'],fields:[
   {key:'ADSENSE_CLIENT_ID',label:'AdSense Publisher ID (ca-pub-...)',secret:false,required:true},
   {key:'ADSENSE_SLOT_HOME',label:'Homepage Ad Unit Slot ID (optional for Auto Ads)',secret:false,required:false}
@@ -59,9 +63,7 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'META_APP_SECRET',label:'Meta App Secret',secret:true,required:true},
   {key:'WHATSAPP_CONFIG_ID',label:'WhatsApp Configuration ID',secret:false,required:false}
  ]},
- {id:'managed-email-auth',name:'Managed Email OAuth Fallback',providers:['google','outlook'],fields:[
-  {key:'COMPOSIO_API_KEY',label:'Composio Project API Key (managed Gmail/Outlook OAuth fallback)',secret:true,required:true}
- ]},
+ {id:'managed-email-auth',name:'Managed Email OAuth Fallback',providers:['google','outlook'],fields:[{key:'COMPOSIO_API_KEY',label:'Composio Project API Key (managed Gmail/Outlook OAuth fallback)',secret:true,required:true}]},
  {id:'google',name:'Google',providers:['google','google-calendar'],fields:[
   {key:'GOOGLE_CLIENT_ID',label:'Google OAuth Client ID',secret:false,required:true},
   {key:'GOOGLE_CLIENT_SECRET',label:'Google OAuth Client Secret',secret:true,required:true}
@@ -103,40 +105,17 @@ async function sessionSecret(env){const direct=String(env?.SESSION_SECRET||'').t
 async function vaultKey(env){const source=String(env?.INTEGRATION_CREDENTIALS_KEY||await sessionSecret(env)||'').trim();if(!source)throw new Error('Platform credential encryption is not available.');const digest=await crypto.subtle.digest('SHA-256',encoder.encode(`iam-platform-credentials-v1:${source}`));return crypto.subtle.importKey('raw',digest,{name:'AES-GCM'},false,['encrypt','decrypt'])}
 async function encrypt(value,env){const iv=crypto.getRandomValues(new Uint8Array(12)),key=await vaultKey(env),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,encoder.encode(String(value)));return`enc1.${b64(iv)}.${b64(new Uint8Array(cipher))}`}
 async function decrypt(value,env){const raw=String(value||'');if(!raw.startsWith('enc1.'))return raw;const[,ivPart,cipherPart]=raw.split('.'),key=await vaultKey(env),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(ivPart)},key,fromB64(cipherPart));return new TextDecoder().decode(plain)}
-async function ensureTables(env){
- await env.DB.prepare(`CREATE TABLE IF NOT EXISTS platform_credentials (credential_key TEXT PRIMARY KEY,encrypted_value TEXT NOT NULL,updated_at INTEGER NOT NULL,updated_by TEXT NOT NULL DEFAULT '')`).run();
- await env.DB.prepare(`CREATE TABLE IF NOT EXISTS platform_credential_audit (id INTEGER PRIMARY KEY AUTOINCREMENT,actor_user_id TEXT NOT NULL,credential_key TEXT NOT NULL,action TEXT NOT NULL,created_at INTEGER NOT NULL)`).run();
-}
+async function ensureTables(env){await env.DB.prepare(`CREATE TABLE IF NOT EXISTS platform_credentials (credential_key TEXT PRIMARY KEY,encrypted_value TEXT NOT NULL,updated_at INTEGER NOT NULL,updated_by TEXT NOT NULL DEFAULT '')`).run();await env.DB.prepare(`CREATE TABLE IF NOT EXISTS platform_credential_audit (id INTEGER PRIMARY KEY AUTOINCREMENT,actor_user_id TEXT NOT NULL,credential_key TEXT NOT NULL,action TEXT NOT NULL,created_at INTEGER NOT NULL)`).run()}
 async function vaultRows(env){await ensureTables(env);const{results}=await env.DB.prepare('SELECT credential_key,encrypted_value,updated_at FROM platform_credentials').all();return results||[]}
 
-export async function getIntegrationRuntimeEnv(env){
- if(!env?.DB)return env;
- try{
-  const rows=await vaultRows(env);if(!rows.length)return env;const merged={...env};
-  for(const row of rows){if(!ALLOWED_KEYS.has(row.credential_key))continue;if(typeof merged[row.credential_key]==='string'&&merged[row.credential_key].trim())continue;merged[row.credential_key]=await decrypt(row.encrypted_value,env)}
-  return merged;
- }catch(error){console.error('platform credential runtime load failed',error);return env}
-}
+export async function getIntegrationRuntimeEnv(env){if(!env?.DB)return env;try{const rows=await vaultRows(env);if(!rows.length)return env;const merged={...env};for(const row of rows){if(!ALLOWED_KEYS.has(row.credential_key))continue;if(typeof merged[row.credential_key]==='string'&&merged[row.credential_key].trim())continue;merged[row.credential_key]=await decrypt(row.encrypted_value,env)}return merged}catch(error){console.error('platform credential runtime load failed',error);return env}}
 function callbackMap(request){const origin=new URL(request.url).origin,providers=[...new Set(PLATFORM_CREDENTIAL_GROUPS.flatMap(g=>g.providers))];return Object.fromEntries(providers.map(provider=>[provider,`${origin}/api/integrations/${provider}/callback`]))}
-async function statusPayload(request,env){
- const rows=await vaultRows(env),saved=new Map(rows.map(row=>[row.credential_key,row]));const isSet=field=>Boolean((typeof env?.[field.key]==='string'&&env[field.key].trim())||saved.has(field.key));
- const groups=PLATFORM_CREDENTIAL_GROUPS.map(group=>{const required=group.fields.filter(f=>f.required),configured=required.length?required.every(isSet):group.fields.some(isSet);return{id:group.id,name:group.name,providers:group.providers,configured,fields:group.fields.map(field=>{const direct=typeof env?.[field.key]==='string'&&env[field.key].trim(),row=saved.get(field.key);return{key:field.key,label:field.label,secret:field.secret,required:field.required,set:Boolean(direct||row),source:direct?'cloudflare':row?'vault':'missing',updated_at:row?.updated_at||null}})}});
- return{groups,callbacks:callbackMap(request)};
-}
 
 export async function handlePlatformCredentials(request,env){
- const url=new URL(request.url);if(!url.pathname.startsWith('/api/integrations/platform-credentials'))return null;if(!env?.DB)return json({error:'Database binding is not configured.'},503);
- try{
-  await ensureTables(env);const user=await currentUser(request,env);if(!user)return json({error:'Sign in as the owner to manage platform credentials.'},401);if(user.role!=='owner')return json({error:'Owner access is required.'},403);
-  if(request.method==='GET'&&url.pathname==='/api/integrations/platform-credentials')return json(await statusPayload(request,env));
-  if(request.method==='POST'&&url.pathname==='/api/integrations/platform-credentials'){
-   const body=await request.json().catch(()=>({})),values=body?.values&&typeof body.values==='object'?body.values:{},entries=Object.entries(values).filter(([key,value])=>ALLOWED_KEYS.has(key)&&typeof value==='string'&&value.trim()).map(([key,value])=>[key,value.trim()]);if(!entries.length)return json({error:'Enter at least one platform credential to save.'},400);const ts=now();
-   for(const[key,value]of entries){await env.DB.prepare(`INSERT INTO platform_credentials(credential_key,encrypted_value,updated_at,updated_by) VALUES(?,?,?,?) ON CONFLICT(credential_key) DO UPDATE SET encrypted_value=excluded.encrypted_value,updated_at=excluded.updated_at,updated_by=excluded.updated_by`).bind(key,await encrypt(value,env),ts,String(user.id)).run();await env.DB.prepare('INSERT INTO platform_credential_audit(actor_user_id,credential_key,action,created_at) VALUES(?,?,?,?)').bind(String(user.id),key,'updated',ts).run()}
-   return json({ok:true,...await statusPayload(request,env)});
-  }
-  if(request.method==='DELETE'&&url.pathname==='/api/integrations/platform-credentials'){
-   const body=await request.json().catch(()=>({})),keys=Array.isArray(body?.keys)?body.keys.filter(key=>ALLOWED_KEYS.has(key)):[];if(!keys.length)return json({error:'Choose at least one saved credential to remove.'},400);const ts=now();for(const key of keys){await env.DB.prepare('DELETE FROM platform_credentials WHERE credential_key=?').bind(key).run();await env.DB.prepare('INSERT INTO platform_credential_audit(actor_user_id,credential_key,action,created_at) VALUES(?,?,?,?)').bind(String(user.id),key,'removed',ts).run()}return json({ok:true,...await statusPayload(request,env)});
-  }
-  return json({error:'Unsupported platform credential operation.'},405);
- }catch(error){console.error('platform credential vault error',error);return json({error:error?.message||'Platform credential vault error.'},500)}
+ const url=new URL(request.url);if(!url.pathname.startsWith('/api/platform-credentials'))return null;
+ const user=await currentUser(request,env);if(!user||user.role!=='owner')return json({detail:'Owner access required.'},403);
+ if(request.method==='GET'&&url.pathname==='/api/platform-credentials'){await ensureTables(env);const rows=await vaultRows(env),byKey=new Map(rows.map(r=>[r.credential_key,r]));return json({groups:PLATFORM_CREDENTIAL_GROUPS.map(group=>({...group,fields:group.fields.map(field=>({...field,configured:byKey.has(field.key)||Boolean(String(env?.[field.key]||'').trim()),updated_at:byKey.get(field.key)?.updated_at||null}))})),callbacks:callbackMap(request)})}
+ if(request.method==='POST'&&url.pathname==='/api/platform-credentials'){const b=await request.json().catch(()=>({}));const key=String(b.key||'').trim();if(!ALLOWED_KEYS.has(key))return json({detail:'Credential key is not allowed.'},400);const value=String(b.value||'').trim();if(!value)return json({detail:'Credential value is required.'},400);await ensureTables(env);const encrypted=await encrypt(value,env);await env.DB.prepare('INSERT INTO platform_credentials (credential_key,encrypted_value,updated_at,updated_by) VALUES (?,?,?,?) ON CONFLICT(credential_key) DO UPDATE SET encrypted_value=excluded.encrypted_value,updated_at=excluded.updated_at,updated_by=excluded.updated_by').bind(key,encrypted,now(),String(user.id||'owner')).run();await env.DB.prepare('INSERT INTO platform_credential_audit (actor_user_id,credential_key,action,created_at) VALUES (?,?,?,?)').bind(String(user.id||'owner'),key,'set',now()).run();return json({ok:true,key})}
+ if(request.method==='DELETE'&&url.pathname==='/api/platform-credentials'){const key=String(url.searchParams.get('key')||'').trim();if(!ALLOWED_KEYS.has(key))return json({detail:'Credential key is not allowed.'},400);await ensureTables(env);await env.DB.prepare('DELETE FROM platform_credentials WHERE credential_key=?').bind(key).run();await env.DB.prepare('INSERT INTO platform_credential_audit (actor_user_id,credential_key,action,created_at) VALUES (?,?,?,?)').bind(String(user.id||'owner'),key,'delete',now()).run();return json({ok:true,key})}
+ return json({detail:'Unsupported platform credential operation.'},405)
 }
