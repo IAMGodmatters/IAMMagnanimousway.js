@@ -8,6 +8,242 @@ import {
 } from "../interaction-catalog";
 
 type Context = { topic: string; source: string; label: string };
+type Lesson = {
+  purpose: string;
+  steps: string[];
+  result: string;
+  requirement: string;
+};
+
+const lessons: Record<string, Lesson> = {
+  start: {
+    purpose:
+      "Find the correct working area without guessing which page to use.",
+    steps: [
+      "Open Start Here for a short list of common goals.",
+      "Choose the goal that matches what you want to accomplish.",
+      "Open the recommended workspace and use its main form or control.",
+    ],
+    result: "You arrive at a working tool, not another description page.",
+    requirement:
+      "No connection is required to browse. Individual tools may require sign-in.",
+  },
+  magnanimous: {
+    purpose:
+      "Create answers, drafts, plans and research with a connected AI provider.",
+    steps: [
+      "Open Magnanimous AI or choose a task-focused role.",
+      "Select the mode that fits your request.",
+      "Write a specific request and send it.",
+      "Review the answer, continue the conversation, or start a new one.",
+    ],
+    result:
+      "A generated response appears with the provider used and sources when available.",
+    requirement:
+      "At least one AI provider must show Ready. Live research also requires a search connection.",
+  },
+  "business-plan": {
+    purpose: "Turn business information into an organized planning document.",
+    steps: [
+      "Open Business Plan and complete the intake fields.",
+      "Describe the business, customer, offer, costs and intended audience.",
+      "Generate the draft and review assumptions or missing information.",
+      "Use Professional Workspace for deeper revisions and saved work.",
+    ],
+    result:
+      "You receive a planning draft for review; approval, funding and profit are not guaranteed.",
+    requirement:
+      "AI generation requires a connected provider. Accurate financial inputs remain the user’s responsibility.",
+  },
+  business: {
+    purpose:
+      "Prepare strategy, offer, marketing, sales and operating recommendations.",
+    steps: [
+      "Open Business Command and choose the type of business work.",
+      "Describe the real situation, goal and limitations.",
+      "Run the analysis and review any sources shown.",
+      "Copy the useful material or continue in Professional Workspace.",
+    ],
+    result:
+      "You receive a practical business draft or analysis, not legal or accounting approval.",
+    requirement:
+      "AI requires a provider; current market research requires web search.",
+  },
+  crm: {
+    purpose: "Keep contacts, leads, customers and follow-up records organized.",
+    steps: [
+      "Sign in and open CRM.",
+      "Create or select a contact.",
+      "Add the correct status, notes and next follow-up.",
+      "Use Leads or Business Email when you are ready for authorized outreach.",
+    ],
+    result: "The customer record is saved inside the signed-in workspace.",
+    requirement:
+      "Sign-in is required. Sending messages requires a connected account and applicable consent.",
+  },
+  email: {
+    purpose:
+      "Draft, read or send business email through a supported connected account.",
+    steps: [
+      "Open Connections and connect Gmail or Outlook when available.",
+      "Open Business Email or Connected Actions.",
+      "Choose the account and prepare the message.",
+      "Review the recipient, subject and content before confirming Send.",
+    ],
+    result:
+      "Supported actions use the authorized mailbox; without a connection, the platform can only prepare text.",
+    requirement: "A real email connection and permission to send are required.",
+  },
+  calling: {
+    purpose:
+      "Use free browser-to-browser calls or carrier calling when a carrier is connected.",
+    steps: [
+      "Open Phone and sign in.",
+      "For a free call, create an invite link and send it to another signed-in user.",
+      "Allow microphone access and wait for the other person to join.",
+      "Use mobile or landline calling only after the page confirms a carrier and caller ID are connected.",
+    ],
+    result:
+      "A browser call connects between users, or a carrier call is placed when its paid infrastructure is ready.",
+    requirement:
+      "Browser calls need two signed-in users and microphone permission. Public telephone calls need a carrier.",
+  },
+  video: {
+    purpose:
+      "Create downloadable animated text videos and optional AI background scenes.",
+    steps: [
+      "Open Video Studio and enter the title and video text.",
+      "Choose Classic mode, or AI Visual only when it shows connected.",
+      "Choose format and duration, then create the video.",
+      "Preview, download and share it from the device.",
+    ],
+    result:
+      "A video file appears when the browser supports local recording; the platform does not publish it automatically.",
+    requirement:
+      "Classic mode needs browser MediaRecorder support. AI backgrounds need sign-in and a visual provider.",
+  },
+  social: {
+    purpose: "Prepare social posts, campaigns and captions for review.",
+    steps: [
+      "Open Social Studio and choose the platform or content type.",
+      "Enter the topic, audience and desired outcome.",
+      "Generate the draft and correct any unsupported claims.",
+      "Copy it or use a genuinely connected publishing action when available.",
+    ],
+    result:
+      "You receive a social-content draft. It is not posted automatically.",
+    requirement:
+      "AI generation requires a provider; direct publishing requires an authorized social connection.",
+  },
+  connections: {
+    purpose: "Authorize outside services that support real platform actions.",
+    steps: [
+      "Open Connections and find the service you need.",
+      "Read what permissions the connection requests.",
+      "Choose Connect and complete the provider’s authorization page.",
+      "Return and confirm the service shows Connected before using it.",
+    ],
+    result:
+      "A successful connection enables only the actions supported for that provider.",
+    requirement:
+      "The outside provider account and its authorization must be valid.",
+  },
+  knowledge: {
+    purpose:
+      "Save workspace notes and sources for later AI answers, with optional live research.",
+    steps: [
+      "Sign in and open Knowledge Center.",
+      "Add a note, public webpage or supported feed.",
+      "Search saved knowledge to confirm it was stored.",
+      "Use Research mode; enable live web/news only when it shows Connected.",
+    ],
+    result:
+      "Saved material becomes available to AI requests in that private workspace.",
+    requirement:
+      "Sign-in is required. Live web and news results require a search provider.",
+  },
+  "finance-people": {
+    purpose:
+      "Organize internal financial and staffing information for planning.",
+    steps: [
+      "Sign in and open Finance & People.",
+      "Enter actual records rather than sample figures.",
+      "Review totals, dates and categories.",
+      "Use the information as internal planning support and verify regulated obligations separately.",
+    ],
+    result:
+      "The workspace displays the records and summaries that were actually saved.",
+    requirement:
+      "Sign-in is required. This area does not replace payroll, tax, legal or accounting professionals.",
+  },
+  billing: {
+    purpose:
+      "Compare available plans and manage a real subscription when billing is connected.",
+    steps: [
+      "Open Pricing and compare included features.",
+      "Choose a paid plan only if checkout is available.",
+      "Review the amount and billing interval on the secure checkout page.",
+      "Use Billing Support or the customer portal to manage or cancel.",
+    ],
+    result:
+      "A subscription changes only after payment succeeds; browsing pricing creates no charge.",
+    requirement:
+      "Paid checkout requires a correctly configured Stripe account and price.",
+  },
+  security: {
+    purpose:
+      "Understand data handling, permissions and provider boundaries before authorizing services.",
+    steps: [
+      "Read Security, Privacy and Terms.",
+      "Review what data a requested connection can access.",
+      "Connect only the services needed for the intended task.",
+      "Remove or restrict access when it is no longer needed.",
+    ],
+    result: "You can make an informed choice about account and data access.",
+    requirement:
+      "Users remain responsible for protecting passwords and reviewing outside-provider terms.",
+  },
+  support: {
+    purpose:
+      "Report a problem, request help or submit a review for moderation.",
+    steps: [
+      "Open Support and choose the relevant issue type.",
+      "Describe what you tried and what happened.",
+      "Include useful details without passwords or secret keys.",
+      "Submit and retain any reference shown.",
+    ],
+    result:
+      "A support or feedback record is created when the form confirms success.",
+    requirement:
+      "Do not include credentials or unnecessary sensitive information.",
+  },
+  advertising: {
+    purpose:
+      "Review or request disclosed sponsored placement without mixing ads into AI answers.",
+    steps: [
+      "Open Advertise and review the available placement information.",
+      "Provide accurate advertiser and destination details.",
+      "Review pricing and disclosure requirements before paying.",
+      "Confirm the placement is active before treating it as published.",
+    ],
+    result:
+      "A placement request or paid campaign may be created; traffic and sales are not guaranteed.",
+    requirement:
+      "Payment and publication depend on configured billing and owner approval.",
+  },
+  owner: {
+    purpose: "Manage protected platform settings and operational records.",
+    steps: [
+      "Sign in through Owner Login.",
+      "Open the specific owner area needed.",
+      "Review current status before changing settings.",
+      "Save one change at a time and confirm the success message.",
+    ],
+    result: "Authorized platform settings or records are updated.",
+    requirement:
+      "Platform-owner access is required. Provider credentials should only be entered in protected settings.",
+  },
+};
 function niceRoute(route: string) {
   const [path] = route.split("?");
   if (path === "/") return "Dashboard";
@@ -39,13 +275,13 @@ export default function GuideClient() {
     });
   }, []);
   const selected = useMemo(() => topicByKey(ctx.topic), [ctx.topic]);
+  const lesson = lessons[selected.key] || lessons.start;
   function choose(key: string) {
     const q = new URLSearchParams();
     q.set("topic", key);
     if (ctx.source) q.set("source", ctx.source);
     history.replaceState({}, "", `/guide?${q.toString()}`);
     setCtx((v) => ({ ...v, topic: key, label: "" }));
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
   return (
     <main className="guide">
@@ -92,8 +328,23 @@ export default function GuideClient() {
           <p>{selected.summary}</p>
         </div>
         <div className="what">
-          <small>WHAT HAPPENS</small>
-          <p>{selected.whatHappens}</p>
+          <small>WHAT THIS AREA DOES</small>
+          <p>{lesson.purpose}</p>
+          <b>Expected result</b>
+          <p>{lesson.result}</p>
+          <b>What must be ready</b>
+          <p>{lesson.requirement}</p>
+        </div>
+        <div className="how">
+          <small>HOW TO USE IT</small>
+          <ol>
+            {lesson.steps.map((step, index) => (
+              <li key={step}>
+                <b>{index + 1}</b>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
         </div>
         <div className="inside">
           <small>CONTINUE INSIDE I AM</small>
@@ -112,11 +363,7 @@ export default function GuideClient() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <div>
-                <b>{r.label}</b>
-                <span>{r.note}</span>
-              </div>
-              <em>OFFICIAL SOURCE ↗</em>
+              {r.label} — {r.note} — Official source ↗
             </a>
           ))}
         </div>
@@ -131,18 +378,48 @@ export default function GuideClient() {
           </p>
         </div>
         <div className="grid">
-          {interactionTopics.map((t, i) => (
-            <button
-              key={t.key}
-              className={t.key === selected.key ? "active" : ""}
-              onClick={() => choose(t.key)}
-            >
-              <small>{String(i + 1).padStart(2, "0")}</small>
-              <h3>{t.title}</h3>
-              <p>{t.summary}</p>
-              <span>UNDERSTAND THIS AREA →</span>
-            </button>
-          ))}
+          {interactionTopics.map((t, i) => {
+            const itemLesson = lessons[t.key] || lessons.start;
+            const active = t.key === selected.key;
+            return (
+              <article key={t.key} className={active ? "active" : ""}>
+                <button onClick={() => choose(t.key)} aria-expanded={active}>
+                  <small>{String(i + 1).padStart(2, "0")}</small>
+                  <h3>{t.title}</h3>
+                  <p>{t.summary}</p>
+                  <span>
+                    {active ? "INSTRUCTIONS OPEN" : "SHOW INSTRUCTIONS →"}
+                  </span>
+                </button>
+                {active && (
+                  <div className="cardLesson">
+                    <h4>How to use this area</h4>
+                    <ol>
+                      {itemLesson.steps.map((step, index) => (
+                        <li key={step}>
+                          <b>{index + 1}</b>
+                          <span>{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+                    <p>
+                      <b>Expected result:</b> {itemLesson.result}
+                    </p>
+                    <p>
+                      <b>Required:</b> {itemLesson.requirement}
+                    </p>
+                    <div className="lessonLinks">
+                      {t.internal.map((route) => (
+                        <a key={route} href={route}>
+                          {niceRoute(route)} — Open →
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </article>
+            );
+          })}
         </div>
       </section>
       <section className="transparency">
@@ -344,6 +621,39 @@ export default function GuideClient() {
           color: #8ca7b1;
           line-height: 1.65;
         }
+        .what > b {
+          display: block;
+          margin-top: 16px;
+          color: #d8f8ff;
+          font-size: 13px;
+        }
+        .how ol,
+        .cardLesson ol {
+          list-style: none;
+          padding: 0;
+          margin: 14px 0 0;
+          display: grid;
+          gap: 10px;
+        }
+        .how li,
+        .cardLesson li {
+          display: grid;
+          grid-template-columns: 28px 1fr;
+          gap: 10px;
+          align-items: start;
+          color: #b8ced6;
+          line-height: 1.55;
+        }
+        .how li > b,
+        .cardLesson li > b {
+          width: 28px;
+          height: 28px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          background: #0d2a35;
+          color: #69def0;
+        }
         .inside,
         .research {
           display: grid;
@@ -352,36 +662,13 @@ export default function GuideClient() {
         }
         .inside > a,
         .research > a {
-          display: flex;
-          justify-content: space-between;
-          gap: 18px;
-          align-items: center;
+          display: block;
           border-top: 1px solid #173944;
           padding: 11px 2px;
           text-decoration: none;
           color: #d8f8ff;
-        }
-        .inside > a span,
-        .research b,
-        .research span {
-          display: block;
-        }
-        .inside > a span,
-        .research b {
-          font-size: 11px;
-        }
-        .inside > a b,
-        .research em {
-          font-size: 8px;
-          color: #62d9ee;
-          font-style: normal;
-          white-space: nowrap;
-        }
-        .research span {
-          font-size: 9px;
-          color: #718d98;
-          line-height: 1.45;
-          margin-top: 3px;
+          font-size: 12px;
+          line-height: 1.55;
         }
         .directory {
           padding-top: 50px;
@@ -400,7 +687,18 @@ export default function GuideClient() {
           gap: 9px;
           margin-top: 18px;
         }
-        .grid button {
+        .grid > article {
+          min-width: 0;
+        }
+        .grid > article.active {
+          grid-column: 1/-1;
+          display: grid;
+          grid-template-columns: minmax(240px, 0.7fr) minmax(0, 1.3fr);
+          gap: 9px;
+        }
+        .grid > article > button {
+          width: 100%;
+          height: 100%;
           min-height: 220px;
           text-align: left;
           border: 1px solid #183c49;
@@ -411,24 +709,24 @@ export default function GuideClient() {
           cursor: pointer;
           position: relative;
         }
-        .grid button:hover,
-        .grid button.active {
+        .grid > article > button:hover,
+        .grid > article.active > button {
           border-color: #4ea7bb;
           background: #0a1c25;
         }
-        .grid button small {
+        .grid > article > button small {
           color: #477785;
         }
         .grid h3 {
           font-size: 19px;
           margin: 25px 0 8px;
         }
-        .grid p {
+        .grid > article > button p {
           color: #76919b;
           font-size: 10px;
           line-height: 1.55;
         }
-        .grid span {
+        .grid > article > button > span {
           position: absolute;
           left: 18px;
           bottom: 16px;
@@ -436,6 +734,36 @@ export default function GuideClient() {
           font-size: 8px;
           font-weight: 900;
           letter-spacing: 0.09em;
+        }
+        .cardLesson {
+          border: 1px solid #2a6272;
+          border-radius: 16px;
+          background: #091b23;
+          padding: 20px;
+        }
+        .cardLesson h4 {
+          margin: 0;
+          font-size: 21px;
+        }
+        .cardLesson p {
+          font-size: 13px;
+          color: #9bb4bd;
+          line-height: 1.55;
+        }
+        .lessonLinks {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 14px;
+        }
+        .lessonLinks a {
+          border: 1px solid #367184;
+          border-radius: 9px;
+          padding: 10px 12px;
+          color: #d9faff;
+          text-decoration: none;
+          font-size: 12px;
+          font-weight: 800;
         }
         .transparency {
           margin-top: 18px;
@@ -483,6 +811,9 @@ export default function GuideClient() {
           }
           .grid {
             grid-template-columns: 1fr 1fr;
+          }
+          .grid > article.active {
+            grid-template-columns: 1fr;
           }
         }
         @media (max-width: 600px) {
