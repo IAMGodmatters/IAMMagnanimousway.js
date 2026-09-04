@@ -1,0 +1,36 @@
+name: Twilio Production Credential Audit
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm install
+
+      - name: Check Twilio credential presence without exposing values
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -eo pipefail
+          echo '=== Cloudflare Worker secret names containing TWILIO ==='
+          npx wrangler secret list 2>/dev/null | grep -i 'TWILIO' || echo 'NO_TWILIO_WORKER_SECRETS_FOUND'
+          echo '=== Encrypted platform vault keys containing TWILIO ==='
+          npx wrangler d1 execute iam-magnanimous-db --remote --command="SELECT credential_key FROM platform_credentials WHERE credential_key LIKE 'TWILIO_%' ORDER BY credential_key;" 2>/dev/null | grep -E 'TWILIO_|credential_key' || echo 'NO_TWILIO_VAULT_KEYS_FOUND'
