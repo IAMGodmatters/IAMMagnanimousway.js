@@ -3,6 +3,11 @@ import fs from 'node:fs';
 const path = 'worker/src/agent-mesh-runtime.js';
 let text = fs.readFileSync(path, 'utf8');
 
+if (text.includes('const AGENT_MODEL_TIMEOUT_MS=12000;') && text.includes('AGENT_PROVIDER_TIMEOUT_MS=16000')) {
+  console.log('Agent Mesh timeout/failover repair already present.');
+  process.exit(0);
+}
+
 function replaceExact(oldText, newText, label) {
   if (!text.includes(oldText)) throw new Error(`${label} insertion point not found`);
   text = text.replace(oldText, newText);
