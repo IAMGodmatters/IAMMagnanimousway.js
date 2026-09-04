@@ -1,0 +1,46 @@
+name: Fix AI video export extension
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Apply export extension repair
+        run: node scripts/fix-ai-video-export-extension.mjs
+
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: |
+          npm install
+          npm run typecheck
+
+      - name: Commit repair if needed
+        shell: bash
+        run: |
+          if git diff --quiet -- frontend/app/ai-video/page.tsx; then
+            echo "AI video export extension already correct."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/app/ai-video/page.tsx
+          git commit -m "Fix AI video export filename extension"
+          git push
