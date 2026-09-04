@@ -17,6 +17,11 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'TWILIO_API_KEY_SECRET',label:'Twilio API Key Secret (for Voice SDK)',secret:true,required:false},
   {key:'TWILIO_TWIML_APP_SID',label:'Twilio TwiML App SID (for browser outbound calling)',secret:false,required:false}
  ]},
+ {id:'plivo',name:'Plivo Voice Carrier',providers:['plivo'],fields:[
+  {key:'PLIVO_AUTH_ID',label:'Plivo Auth ID',secret:false,required:true},
+  {key:'PLIVO_AUTH_TOKEN',label:'Plivo Auth Token',secret:true,required:true},
+  {key:'PLIVO_PHONE_NUMBER',label:'Plivo Phone Number (E.164)',secret:false,required:true}
+ ]},
  {id:'telnyx',name:'Telnyx Voice / SIP Alternative',providers:['telnyx'],fields:[
   {key:'TELNYX_API_KEY',label:'Telnyx API Key',secret:true,required:false},
   {key:'TELNYX_CONNECTION_ID',label:'Telnyx Voice Connection ID',secret:false,required:false},
@@ -99,6 +104,7 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
 ];
 
 const ALLOWED_KEYS=new Set(PLATFORM_CREDENTIAL_GROUPS.flatMap(g=>g.fields.map(f=>f.key)));
+const CREDENTIAL_PATHS=new Set(['/api/platform-credentials','/api/integrations/platform-credentials']);
 function b64(bytes){let value='';for(const byte of bytes)value+=String.fromCharCode(byte);return btoa(value)}
 function fromB64(value){const raw=atob(value);return Uint8Array.from(raw,c=>c.charCodeAt(0))}
 async function sessionSecret(env){const direct=String(env?.SESSION_SECRET||'').trim();if(direct)return direct;if(!env?.DB)return'';const row=await env.DB.prepare("SELECT value FROM auth_config WHERE key='session_secret'").first();return String(row?.value||'')}
@@ -112,10 +118,10 @@ export async function getIntegrationRuntimeEnv(env){if(!env?.DB)return env;try{c
 function callbackMap(request){const origin=new URL(request.url).origin,providers=[...new Set(PLATFORM_CREDENTIAL_GROUPS.flatMap(g=>g.providers))];return Object.fromEntries(providers.map(provider=>[provider,`${origin}/api/integrations/${provider}/callback`]))}
 
 export async function handlePlatformCredentials(request,env){
- const url=new URL(request.url);if(!url.pathname.startsWith('/api/platform-credentials'))return null;
+ const url=new URL(request.url);if(!CREDENTIAL_PATHS.has(url.pathname))return null;
  const user=await currentUser(request,env);if(!user||user.role!=='owner')return json({detail:'Owner access required.'},403);
- if(request.method==='GET'&&url.pathname==='/api/platform-credentials'){await ensureTables(env);const rows=await vaultRows(env),byKey=new Map(rows.map(r=>[r.credential_key,r]));return json({groups:PLATFORM_CREDENTIAL_GROUPS.map(group=>({...group,fields:group.fields.map(field=>({...field,configured:byKey.has(field.key)||Boolean(String(env?.[field.key]||'').trim()),updated_at:byKey.get(field.key)?.updated_at||null}))})),callbacks:callbackMap(request)})}
- if(request.method==='POST'&&url.pathname==='/api/platform-credentials'){const b=await request.json().catch(()=>({}));const key=String(b.key||'').trim();if(!ALLOWED_KEYS.has(key))return json({detail:'Credential key is not allowed.'},400);const value=String(b.value||'').trim();if(!value)return json({detail:'Credential value is required.'},400);await ensureTables(env);const encrypted=await encrypt(value,env);await env.DB.prepare('INSERT INTO platform_credentials (credential_key,encrypted_value,updated_at,updated_by) VALUES (?,?,?,?) ON CONFLICT(credential_key) DO UPDATE SET encrypted_value=excluded.encrypted_value,updated_at=excluded.updated_at,updated_by=excluded.updated_by').bind(key,encrypted,now(),String(user.id||'owner')).run();await env.DB.prepare('INSERT INTO platform_credential_audit (actor_user_id,credential_key,action,created_at) VALUES (?,?,?,?)').bind(String(user.id||'owner'),key,'set',now()).run();return json({ok:true,key})}
- if(request.method==='DELETE'&&url.pathname==='/api/platform-credentials'){const key=String(url.searchParams.get('key')||'').trim();if(!ALLOWED_KEYS.has(key))return json({detail:'Credential key is not allowed.'},400);await ensureTables(env);await env.DB.prepare('DELETE FROM platform_credentials WHERE credential_key=?').bind(key).run();await env.DB.prepare('INSERT INTO platform_credential_audit (actor_user_id,credential_key,action,created_at) VALUES (?,?,?,?)').bind(String(user.id||'owner'),key,'delete',now()).run();return json({ok:true,key})}
+ if(request.method==='GET'){await ensureTables(env);const rows=await vaultRows(env),byKey=new Map(rows.map(r=>[r.credential_key,r]));return json({groups:PLATFORM_CREDENTIAL_GROUPS.map(group=>({...group,fields:group.fields.map(field=>({...field,configured:byKey.has(field.key)||Boolean(String(env?.[field.key]||'').trim()),updated_at:byKey.get(field.key)?.updated_at||null}))})),callbacks:callbackMap(request)})}
+ if(request.method==='POST'){const b=await request.json().catch(()=>({}));const key=String(b.key||'').trim();if(!ALLOWED_KEYS.has(key))return json({detail:'Credential key is not allowed.'},400);const value=String(b.value||'').trim();if(!value)return json({detail:'Credential value is required.'},400);await ensureTables(env);const encrypted=await encrypt(value,env);await env.DB.prepare('INSERT INTO platform_credentials (credential_key,encrypted_value,updated_at,updated_by) VALUES (?,?,?,?) ON CONFLICT(credential_key) DO UPDATE SET encrypted_value=excluded.encrypted_value,updated_at=excluded.updated_at,updated_by=excluded.updated_by').bind(key,encrypted,now(),String(user.id||'owner')).run();await env.DB.prepare('INSERT INTO platform_credential_audit (actor_user_id,credential_key,action,created_at) VALUES (?,?,?,?)').bind(String(user.id||'owner'),key,'set',now()).run();return json({ok:true,key})}
+ if(request.method==='DELETE'){const key=String(url.searchParams.get('key')||'').trim();if(!ALLOWED_KEYS.has(key))return json({detail:'Credential key is not allowed.'},400);await ensureTables(env);await env.DB.prepare('DELETE FROM platform_credentials WHERE credential_key=?').bind(key).run();await env.DB.prepare('INSERT INTO platform_credential_audit (actor_user_id,credential_key,action,created_at) VALUES (?,?,?,?)').bind(String(user.id||'owner'),key,'delete',now()).run();return json({ok:true,key})}
  return json({detail:'Unsupported platform credential operation.'},405)
 }
