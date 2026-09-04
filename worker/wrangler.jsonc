@@ -3,7 +3,7 @@
   "name": "iam-magnanimous",
   "main": "src/consent-entrypoint.js",
   "compatibility_date": "2026-08-27",
-  "workers_dev": true,
+  "workers_dev": false,
   "vars": {
     "STRIPE_PRICE_PLUS": "price_1UBWxgDuxV2kib03EAdmCMei",
     "STRIPE_PRICE_BUSINESS": "price_1UB9WfDuxV2kib03DFKqwM9C",

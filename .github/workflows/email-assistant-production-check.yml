@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Verify connected email assistant contract
         env:
-          BASE_URL: https://iam-magnanimous.iam-magnanimous.workers.dev
+          BASE_URL: https://iammagnanimousway.com
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           D1_DATABASE_ID: 7c9f798b-04d2-443c-a9e9-933c51899771

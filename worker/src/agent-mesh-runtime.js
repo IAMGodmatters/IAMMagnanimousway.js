@@ -232,7 +232,7 @@ async function runProvider(id,env,messages,requestedModel=''){
  }
  if(id==='groq')return chatCompletionsCompatible('https://api.groq.com/openai/v1',env.GROQ_API_KEY,requestedModel||env.GROQ_MODEL||'qwen/qwen3.6-27b',messages,'Groq');
  if(id==='mistral')return chatCompletionsCompatible('https://api.mistral.ai/v1',env.MISTRAL_API_KEY,requestedModel||env.MISTRAL_MODEL||'mistral-small-latest',messages,'Mistral');
- if(id==='openrouter-free')return chatCompletionsCompatible('https://openrouter.ai/api/v1',env.OPENROUTER_API_KEY,requestedModel||env.OPENROUTER_MODEL||'openrouter/free',messages,'OpenRouter',{'HTTP-Referer':'https://iam-magnanimous.iam-magnanimous.workers.dev','X-Title':'I AM Magnanimous Way Agent Mesh'});
+ if(id==='openrouter-free')return chatCompletionsCompatible('https://openrouter.ai/api/v1',env.OPENROUTER_API_KEY,requestedModel||env.OPENROUTER_MODEL||'openrouter/free',messages,'OpenRouter',{'HTTP-Referer':'https://iammagnanimousway.com','X-Title':'I AM Magnanimous Way Agent Mesh'});
  if(id==='huggingface')return chatCompletionsCompatible('https://router.huggingface.co/v1',env.HF_TOKEN,requestedModel||env.HUGGINGFACE_MODEL||'Qwen/Qwen2.5-7B-Instruct',messages,'Hugging Face');
  if(id==='cerebras')return chatCompletionsCompatible('https://api.cerebras.ai/v1',env.CEREBRAS_API_KEY,requestedModel||env.CEREBRAS_MODEL||'zai-glm-4.7',messages,'Cerebras',{'X-Cerebras-Version-Patch':'2'});
  throw new Error('Unknown Agent Mesh provider.');

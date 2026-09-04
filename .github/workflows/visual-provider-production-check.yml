@@ -19,7 +19,7 @@ jobs:
         run: |
           set -euo pipefail
           curl --fail --silent --show-error --retry 5 --retry-delay 4 \
-            https://iam-magnanimous.iam-magnanimous.workers.dev/api/providers \
+            https://iammagnanimousway.com/api/providers \
             -o /tmp/providers.json
           python - <<'PY'
           import json
@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           curl --fail --silent --show-error --retry 5 --retry-delay 4 \
-            https://iam-magnanimous.iam-magnanimous.workers.dev/api/visual/providers \
+            https://iammagnanimousway.com/api/visual/providers \
             -o /tmp/visual.json
           python - <<'PY'
           import json
@@ -57,7 +57,7 @@ jobs:
         run: |
           set -euo pipefail
           status=$(curl -sS -o /tmp/visual-auth.json -w '%{http_code}' \
-            -X POST https://iam-magnanimous.iam-magnanimous.workers.dev/api/visual/scene \
+            -X POST https://iammagnanimousway.com/api/visual/scene \
             -H 'content-type: application/json' \
             --data '{"title":"Production check","text":"cinematic visual"}')
           test "$status" = "401"

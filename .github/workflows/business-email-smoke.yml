@@ -14,7 +14,7 @@ jobs:
       - name: Verify Business Email page
         run: |
           set -euo pipefail
-          BASE="https://iam-magnanimous.iam-magnanimous.workers.dev"
+          BASE="https://iammagnanimousway.com"
           curl -fsSL "$BASE/business-email" -o /tmp/business-email.html
           test -s /tmp/business-email.html
           grep -qi "Business Email Center" /tmp/business-email.html || { echo "Business Email page is missing its product identity."; exit 1; }
@@ -24,7 +24,7 @@ jobs:
       - name: Verify domain email checker
         run: |
           set -euo pipefail
-          BASE="https://iam-magnanimous.iam-magnanimous.workers.dev"
+          BASE="https://iammagnanimousway.com"
           curl -fsS "$BASE/api/business-email/check?domain=google.com" -o /tmp/domain.json
           python - <<'PY'
           import json
