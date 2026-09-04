@@ -1,32 +1,818 @@
-'use client';
-import {useEffect,useState} from 'react';
-const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
-async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{error:t||`Request failed (${r.status})`}}}
-function token(){return localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||''}
-function headers(json=false){const h:any={Authorization:`Bearer ${token()}`};if(json)h['Content-Type']='application/json';return h}
+"use client";
+import { useEffect, useState } from "react";
+const api = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+async function read(r: Response) {
+  const t = await r.text();
+  try {
+    return JSON.parse(t);
+  } catch {
+    return { error: t || `Request failed (${r.status})` };
+  }
+}
+function token() {
+  return (
+    localStorage.getItem("odin_admin_token") ||
+    localStorage.getItem("iam_account_token") ||
+    ""
+  );
+}
+function headers(json = false) {
+  const h: any = { Authorization: `Bearer ${token()}` };
+  if (json) h["Content-Type"] = "application/json";
+  return h;
+}
 
-type Source={id:number;source_type:string;title:string;url:string;updated_at:number};
-type Result={title:string;url:string;description?:string;content?:string;source?:string;source_type?:string};
-export default function Knowledge(){
- const[status,setStatus]=useState<any>({}),[sources,setSources]=useState<Source[]>([]),[research,setResearch]=useState(''),[results,setResults]=useState<Result[]>([]),[web,setWeb]=useState(true),[news,setNews]=useState(true),[remember,setRemember]=useState(true),[url,setUrl]=useState(''),[kind,setKind]=useState('url'),[noteTitle,setNoteTitle]=useState(''),[note,setNote]=useState(''),[memoryQuery,setMemoryQuery]=useState(''),[memory,setMemory]=useState<Result[]>([]),[busy,setBusy]=useState(''),[notice,setNotice]=useState('');
- async function load(){if(!token()){location.replace('/login');return}try{const [s,k]=await Promise.all([fetch(`${api}/api/knowledge/status`,{headers:headers()}).then(read),fetch(`${api}/api/knowledge/sources`,{headers:headers()}).then(read)]);setStatus(s||{});setSources(k.sources||[])}catch{}}
- useEffect(()=>{load()},[]);
- async function researchNow(){if(!research.trim())return;setBusy('research');setNotice('');setResults([]);try{const r=await fetch(`${api}/api/knowledge/research`,{method:'POST',headers:headers(true),body:JSON.stringify({query:research,web,news,remember,freshness:news?'pw':''})}),d=await read(r);if(!r.ok)throw new Error(d.error||'Research failed.');setResults(d.results||[]);setNotice(d.web_search_configured?`Research complete. ${remember?'Useful findings were added to this workspace memory.':'Results were not saved.'}`:'Private memory searched. Live web/news search still needs a platform search connection.');await load()}catch(e:any){setNotice(e?.message||'Research failed.')}finally{setBusy('')}}
- async function ingest(){if(!url.trim())return;setBusy('url');setNotice('');try{const r=await fetch(`${api}/api/knowledge/ingest`,{method:'POST',headers:headers(true),body:JSON.stringify({kind,url})}),d=await read(r);if(!r.ok)throw new Error(d.error||'Unable to learn from source.');setNotice(`Learned ${d.chunks||0} knowledge sections from ${d.title||'the source'}.`);setUrl('');await load()}catch(e:any){setNotice(e?.message||'Unable to ingest source.')}finally{setBusy('')}}
- async function saveNote(){if(!note.trim())return;setBusy('note');setNotice('');try{const r=await fetch(`${api}/api/knowledge/ingest`,{method:'POST',headers:headers(true),body:JSON.stringify({kind:'note',title:noteTitle||'Business knowledge',text:note})}),d=await read(r);if(!r.ok)throw new Error(d.error||'Unable to save knowledge.');setNotice(`Saved ${d.chunks||0} knowledge sections.`);setNote('');setNoteTitle('');await load()}catch(e:any){setNotice(e?.message||'Unable to save knowledge.')}finally{setBusy('')}}
- async function searchMemory(){if(!memoryQuery.trim())return;setBusy('memory');try{const r=await fetch(`${api}/api/knowledge/search?q=${encodeURIComponent(memoryQuery)}&limit=16`,{headers:headers()}),d=await read(r);if(!r.ok)throw new Error(d.error||'Search failed.');setMemory(d.results||[])}catch(e:any){setNotice(e?.message||'Search failed.')}finally{setBusy('')}}
- async function remove(id:number){setBusy(`delete-${id}`);try{const r=await fetch(`${api}/api/knowledge/sources/${id}`,{method:'DELETE',headers:headers()}),d=await read(r);if(!r.ok)throw new Error(d.error||'Delete failed.');await load()}catch(e:any){setNotice(e?.message||'Delete failed.')}finally{setBusy('')}}
- return <main className="knowledge"><header><a href="/">← Dashboard</a><div>ODIN KNOWLEDGE FABRIC • PRIVATE WORKSPACE</div></header>
- <section className="hero"><div><small>I AM KNOWLEDGE CENTER</small><h1>Teach your AI. Research the world. Keep the useful knowledge.</h1><p>Odin can combine your private business memory with fresh web and news research. Paste pages you are viewing in Chrome or Safari, add RSS/news feeds, save internal notes, and let future AI answers use the knowledge inside this workspace.</p><div className="links"><a href="/ai-chat?mode=Research">Ask Odin with Research →</a><a href="/virtual-assistant">Virtual Assistant</a></div></div><div className="brain"><div className="orb">AI</div><i/><i/><i/><span>MEMORY • WEB • NEWS • SOURCES</span></div></section>
- <section className="stats"><article><b>{status.sources||0}</b><span>knowledge sources</span></article><article><b>{status.chunks||0}</b><span>memory sections</span></article><article><b>{status.web_search_configured?'LIVE':'READY'}</b><span>web/news research</span></article><article><b>PRIVATE</b><span>tenant-isolated memory</span></article></section>
- {notice&&<div className="notice">{notice}</div>}
- <section className="grid"><article className="research"><small>LIVE RESEARCH + MEMORY</small><h2>Research & Learn</h2><p>Search this workspace first, then add fresh web and news information when the search connection is available.</p><textarea value={research} onChange={e=>setResearch(e.target.value)} placeholder="Example: Research the newest social-media marketing trends for small businesses and remember the useful findings."/><div className="checks"><label><input type="checkbox" checked={web} onChange={e=>setWeb(e.target.checked)}/> Live web</label><label><input type="checkbox" checked={news} onChange={e=>setNews(e.target.checked)}/> Current news</label><label><input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)}/> Remember findings</label></div><button onClick={researchNow} disabled={busy==='research'||!research.trim()}>{busy==='research'?'RESEARCHING…':'RESEARCH & LEARN →'}</button>{results.length>0&&<div className="results">{results.map((r,i)=><div key={`${r.url}-${i}`}><b>[{i+1}] {r.title||'Knowledge result'}</b><p>{String(r.description||r.content||'').slice(0,420)}</p>{r.url&&<a href={r.url} target="_blank" rel="noreferrer">Open source ↗</a>}<em>{r.source||r.source_type||'workspace'}</em></div>)}</div>}</article>
- <article><small>CHROME / SAFARI / WEBSITE</small><h2>Learn from a page or feed</h2><p>Paste the public URL of a page you have open in your browser, or add an RSS/feed URL from a news or industry source.</p><select value={kind} onChange={e=>setKind(e.target.value)}><option value="url">Web page / article</option><option value="rss">RSS / news feed</option></select><input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://example.com/article-or-feed"/><button onClick={ingest} disabled={busy==='url'||!url.trim()}>{busy==='url'?'LEARNING…':'LEARN FROM SOURCE →'}</button><div className="rule">The platform stores readable knowledge and the source reference—not the user’s browser password or private browser session.</div></article>
- <article><small>BUSINESS MEMORY</small><h2>Teach Odin directly</h2><p>Save products, policies, brand voice, service details, FAQs, processes, customer guidance, or any other knowledge the AI should remember.</p><input value={noteTitle} onChange={e=>setNoteTitle(e.target.value)} placeholder="Knowledge title"/><textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Example: Our refund policy is… Our brand voice is… Our main products are…"/><button onClick={saveNote} disabled={busy==='note'||!note.trim()}>{busy==='note'?'SAVING…':'ADD TO AI MEMORY →'}</button></article>
- <article><small>PRIVATE RETRIEVAL</small><h2>Search learned knowledge</h2><p>See what this workspace has already taught Odin.</p><div className="search"><input value={memoryQuery} onChange={e=>setMemoryQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&searchMemory()} placeholder="Search private memory…"/><button onClick={searchMemory}>{busy==='memory'?'…':'SEARCH'}</button></div><div className="memory">{memory.map((r,i)=><div key={i}><b>{r.title||'Memory'}</b><span>{String(r.content||r.description||'').slice(0,260)}</span></div>)}</div></article></section>
- <section className="library"><div><small>WORKSPACE LIBRARY</small><h2>What Odin can remember here</h2></div>{sources.length===0?<p className="empty">No saved sources yet. Add a business note, webpage, feed, or research topic above.</p>:<div className="sourceGrid">{sources.map(s=><article key={s.id}><span>{s.source_type.toUpperCase()}</span><h3>{s.title}</h3>{s.url&&<a href={s.url} target="_blank" rel="noreferrer">{s.url}</a>}<button onClick={()=>remove(s.id)} disabled={busy===`delete-${s.id}`}>{busy===`delete-${s.id}`?'REMOVING…':'Remove from memory'}</button></article>)}</div>}</section>
- <footer><b>HOW IT LEARNS</b><span>Retrieval-augmented generation: saved tenant knowledge + optional live search/news + AI reasoning. Odin does not secretly retrain or rewrite its own model weights.</span></footer>
- <style jsx>{`
-.knowledge{min-height:100vh;background:#04070d;color:#edf8ff;padding:24px 34px 70px;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 76% 15%,rgba(0,194,255,.12),transparent 28%),radial-gradient(circle at 18% 55%,rgba(239,176,55,.07),transparent 30%)}header{max-width:1400px;margin:auto;display:flex;justify-content:space-between;color:#657d8d;font-size:9px;letter-spacing:.17em}header a{color:#9fe9ff;text-decoration:none}.hero{max-width:1400px;margin:26px auto 12px;border:1px solid #173b50;border-radius:24px;background:linear-gradient(125deg,#07131d,#05080d 66%,#111009);padding:38px;display:grid;grid-template-columns:1.4fr .7fr;min-height:330px;align-items:center}.hero small,.grid small,.library small{font-size:9px;letter-spacing:.19em;color:#e3ad4d;font-weight:900}.hero h1{font-size:clamp(38px,6vw,68px);line-height:.98;margin:10px 0;max-width:900px}.hero p,.grid>article>p{color:#89a0b0;line-height:1.6}.links{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.links a{padding:10px 12px;border:1px solid #285069;border-radius:999px;color:#bcecff;text-decoration:none;font-size:10px}.brain{height:250px;position:relative;display:grid;place-items:center}.orb{width:94px;height:94px;border-radius:50%;display:grid;place-items:center;border:1px solid #e0a743;color:#ffd77d;font:900 27px Georgia;box-shadow:0 0 45px rgba(0,195,255,.15),0 0 75px rgba(224,167,67,.1)}.brain i{position:absolute;border:1px solid #174a62;border-radius:50%}.brain i:nth-of-type(1){inset:20px}.brain i:nth-of-type(2){inset:48px;border-style:dashed;border-color:#5f4828}.brain i:nth-of-type(3){left:50%;top:0;bottom:0;border-radius:0}.brain span{position:absolute;bottom:5px;color:#5dcfec;font-size:8px;letter-spacing:.16em}.stats{max-width:1400px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stats article{border:1px solid #163347;border-radius:13px;background:#071019;padding:16px}.stats b{display:block;font-size:25px;color:#e7bc66}.stats span{font-size:10px;color:#6f8797}.notice{max-width:1400px;margin:12px auto;padding:12px 14px;border:1px solid #385773;border-radius:10px;background:#0b1822;color:#bfeafb}.grid{max-width:1400px;margin:12px auto;display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid>article{border:1px solid #17364b;border-radius:17px;background:#071019;padding:20px}.research{grid-row:span 2}.grid h2,.library h2{font-size:25px;margin:6px 0}.grid input,.grid textarea,.grid select{width:100%;box-sizing:border-box;background:#02070b;border:1px solid #1b4055;border-radius:9px;color:#e9f8ff;padding:12px;margin:7px 0;font:inherit}.grid textarea{min-height:145px}.research textarea{min-height:180px}.grid button{border:0;border-radius:9px;background:linear-gradient(90deg,#176f98,#bd842c);color:#fff;padding:11px 13px;font-weight:900;cursor:pointer}.checks{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 13px;color:#8da6b6;font-size:10px}.checks input{width:auto;margin-right:5px}.rule{margin-top:13px;border-top:1px solid #173244;padding-top:12px;color:#657e8e;font-size:10px;line-height:1.5}.results{margin-top:14px;max-height:570px;overflow:auto}.results>div{border-top:1px solid #153044;padding:11px 0}.results b{display:block;font-size:11px;color:#d8eff8}.results p{font-size:10px;color:#7d96a6;line-height:1.5}.results a{color:#66dcff;font-size:9px;text-decoration:none}.results em{float:right;color:#a9864d;font-size:8px;font-style:normal}.search{display:flex;gap:7px}.search button{margin:7px 0}.memory{max-height:280px;overflow:auto}.memory div{border-top:1px solid #153044;padding:10px 0}.memory b,.memory span{display:block}.memory b{font-size:10px}.memory span{font-size:9px;color:#728b9b;margin-top:4px;line-height:1.45}.library{max-width:1400px;margin:12px auto;border:1px solid #17364b;border-radius:18px;background:#071019;padding:22px}.sourceGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.sourceGrid article{border:1px solid #18384b;border-radius:12px;padding:14px;background:#050c12}.sourceGrid span{font-size:8px;color:#d8a64b;letter-spacing:.15em}.sourceGrid h3{font-size:13px;margin:7px 0}.sourceGrid a{display:block;color:#64cce9;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none}.sourceGrid button{margin-top:12px;border:1px solid #3d3430;background:transparent;color:#947f69;padding:7px 8px;border-radius:7px;font-size:8px;cursor:pointer}.empty{color:#728b9b}footer{max-width:1400px;margin:14px auto;color:#617988;font-size:9px;display:flex;gap:12px;line-height:1.5}footer b{color:#c99b50}@media(max-width:900px){.knowledge{padding:18px 14px}.hero,.grid{grid-template-columns:1fr}.brain{display:none}.stats{grid-template-columns:1fr 1fr}.research{grid-row:auto}.sourceGrid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.stats,.sourceGrid{grid-template-columns:1fr}.hero{padding:25px}.checks{flex-direction:column;gap:4px}header{gap:10px;flex-direction:column}}
-`}</style></main>
+type Source = {
+  id: number;
+  source_type: string;
+  title: string;
+  url: string;
+  updated_at: number;
+};
+type Result = {
+  title: string;
+  url: string;
+  description?: string;
+  content?: string;
+  source?: string;
+  source_type?: string;
+};
+export default function Knowledge() {
+  const [status, setStatus] = useState<any>({}),
+    [sources, setSources] = useState<Source[]>([]),
+    [research, setResearch] = useState(""),
+    [results, setResults] = useState<Result[]>([]),
+    [web, setWeb] = useState(false),
+    [news, setNews] = useState(false),
+    [remember, setRemember] = useState(true),
+    [url, setUrl] = useState(""),
+    [kind, setKind] = useState("url"),
+    [noteTitle, setNoteTitle] = useState(""),
+    [note, setNote] = useState(""),
+    [memoryQuery, setMemoryQuery] = useState(""),
+    [memory, setMemory] = useState<Result[]>([]),
+    [busy, setBusy] = useState(""),
+    [loaded, setLoaded] = useState(false),
+    [notice, setNotice] = useState("");
+  async function load() {
+    if (!token()) {
+      location.replace("/login?returnTo=%2Fknowledge");
+      return;
+    }
+    try {
+      const [s, k] = await Promise.all([
+        fetch(`${api}/api/knowledge/status`, { headers: headers() }).then(read),
+        fetch(`${api}/api/knowledge/sources`, { headers: headers() }).then(
+          read,
+        ),
+      ]);
+      setStatus(s || {});
+      setSources(k.sources || []);
+      setWeb(Boolean(s.web_search_configured));
+      setNews(Boolean(s.web_search_configured));
+    } catch {
+      setNotice(
+        "Workspace knowledge could not be loaded. Refresh the page to try again.",
+      );
+    } finally {
+      setLoaded(true);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  async function researchNow() {
+    if (!research.trim()) return;
+    setBusy("research");
+    setNotice("");
+    setResults([]);
+    try {
+      const r = await fetch(`${api}/api/knowledge/research`, {
+          method: "POST",
+          headers: headers(true),
+          body: JSON.stringify({
+            query: research,
+            web,
+            news,
+            remember,
+            freshness: news ? "pw" : "",
+          }),
+        }),
+        d = await read(r);
+      if (!r.ok) throw new Error(d.error || "Research failed.");
+      setResults(d.results || []);
+      setNotice(
+        d.web_search_configured
+          ? `Research complete. ${remember ? "Useful findings were added to this workspace memory." : "Results were not saved."}`
+          : "Private memory searched. Live web/news search still needs a platform search connection.",
+      );
+      await load();
+    } catch (e: any) {
+      setNotice(e?.message || "Research failed.");
+    } finally {
+      setBusy("");
+    }
+  }
+  async function ingest() {
+    if (!url.trim()) return;
+    setBusy("url");
+    setNotice("");
+    try {
+      const r = await fetch(`${api}/api/knowledge/ingest`, {
+          method: "POST",
+          headers: headers(true),
+          body: JSON.stringify({ kind, url }),
+        }),
+        d = await read(r);
+      if (!r.ok) throw new Error(d.error || "Unable to learn from source.");
+      setNotice(
+        `Learned ${d.chunks || 0} knowledge sections from ${d.title || "the source"}.`,
+      );
+      setUrl("");
+      await load();
+    } catch (e: any) {
+      setNotice(e?.message || "Unable to ingest source.");
+    } finally {
+      setBusy("");
+    }
+  }
+  async function saveNote() {
+    if (!note.trim()) return;
+    setBusy("note");
+    setNotice("");
+    try {
+      const r = await fetch(`${api}/api/knowledge/ingest`, {
+          method: "POST",
+          headers: headers(true),
+          body: JSON.stringify({
+            kind: "note",
+            title: noteTitle || "Business knowledge",
+            text: note,
+          }),
+        }),
+        d = await read(r);
+      if (!r.ok) throw new Error(d.error || "Unable to save knowledge.");
+      setNotice(`Saved ${d.chunks || 0} knowledge sections.`);
+      setNote("");
+      setNoteTitle("");
+      await load();
+    } catch (e: any) {
+      setNotice(e?.message || "Unable to save knowledge.");
+    } finally {
+      setBusy("");
+    }
+  }
+  async function searchMemory() {
+    if (!memoryQuery.trim()) return;
+    setBusy("memory");
+    try {
+      const r = await fetch(
+          `${api}/api/knowledge/search?q=${encodeURIComponent(memoryQuery)}&limit=16`,
+          { headers: headers() },
+        ),
+        d = await read(r);
+      if (!r.ok) throw new Error(d.error || "Search failed.");
+      setMemory(d.results || []);
+    } catch (e: any) {
+      setNotice(e?.message || "Search failed.");
+    } finally {
+      setBusy("");
+    }
+  }
+  async function remove(id: number) {
+    setBusy(`delete-${id}`);
+    try {
+      const r = await fetch(`${api}/api/knowledge/sources/${id}`, {
+          method: "DELETE",
+          headers: headers(),
+        }),
+        d = await read(r);
+      if (!r.ok) throw new Error(d.error || "Delete failed.");
+      await load();
+    } catch (e: any) {
+      setNotice(e?.message || "Delete failed.");
+    } finally {
+      setBusy("");
+    }
+  }
+  return (
+    <main className="knowledge">
+      <header>
+        <a href="/">← Dashboard</a>
+        <div>MAGNANIMOUS KNOWLEDGE • PRIVATE WORKSPACE</div>
+      </header>
+      <section className="hero">
+        <div>
+          <small>I AM KNOWLEDGE CENTER</small>
+          <h1>Teach your AI. Research the world. Keep the useful knowledge.</h1>
+          <p>
+            Magnanimous AI can use knowledge you save in this workspace. When a
+            search provider is connected, Research mode can also retrieve
+            current public web and news sources.
+          </p>
+          <div className="links">
+            <a href="/ai-chat?mode=Research">Ask Magnanimous with Research →</a>
+            <a href="/virtual-assistant">Virtual Assistant</a>
+          </div>
+        </div>
+        <div className="brain">
+          <div className="orb">AI</div>
+          <i />
+          <i />
+          <i />
+          <span>MEMORY • WEB • NEWS • SOURCES</span>
+        </div>
+      </section>
+      <section className="stats">
+        <article>
+          <b>{status.sources || 0}</b>
+          <span>knowledge sources</span>
+        </article>
+        <article>
+          <b>{status.chunks || 0}</b>
+          <span>memory sections</span>
+        </article>
+        <article>
+          <b>
+            {!loaded
+              ? "CHECKING"
+              : status.web_search_configured
+                ? "CONNECTED"
+                : "NOT CONNECTED"}
+          </b>
+          <span>web/news research</span>
+        </article>
+        <article>
+          <b>PRIVATE</b>
+          <span>tenant-isolated memory</span>
+        </article>
+      </section>
+      {notice && <div className="notice">{notice}</div>}
+      <section className="grid">
+        <article className="research">
+          <small>RESEARCH + SAVED KNOWLEDGE</small>
+          <h2>Research & Learn</h2>
+          <p>
+            Search this workspace first, then add fresh web and news information
+            when the search connection is available.
+          </p>
+          <textarea
+            value={research}
+            onChange={(e) => setResearch(e.target.value)}
+            placeholder="Example: Research the newest social-media marketing trends for small businesses and remember the useful findings."
+          />
+          <div className="checks">
+            <label>
+              <input
+                type="checkbox"
+                checked={web}
+                onChange={(e) => setWeb(e.target.checked)}
+                disabled={!status.web_search_configured}
+              />{" "}
+              Live web {status.web_search_configured ? "" : "(not connected)"}
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={news}
+                onChange={(e) => setNews(e.target.checked)}
+                disabled={!status.web_search_configured}
+              />{" "}
+              Current news{" "}
+              {status.web_search_configured ? "" : "(not connected)"}
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+              />{" "}
+              Remember findings
+            </label>
+          </div>
+          <button
+            onClick={researchNow}
+            disabled={busy === "research" || !research.trim()}
+          >
+            {busy === "research" ? "RESEARCHING…" : "RESEARCH & LEARN →"}
+          </button>
+          {results.length > 0 && (
+            <div className="results">
+              {results.map((r, i) => (
+                <div key={`${r.url}-${i}`}>
+                  <b>
+                    [{i + 1}] {r.title || "Knowledge result"}
+                  </b>
+                  <p>
+                    {String(r.description || r.content || "").slice(0, 420)}
+                  </p>
+                  {r.url && (
+                    <a href={r.url} target="_blank" rel="noreferrer">
+                      Open source ↗
+                    </a>
+                  )}
+                  <em>{r.source || r.source_type || "workspace"}</em>
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
+        <article>
+          <small>CHROME / SAFARI / WEBSITE</small>
+          <h2>Learn from a page or feed</h2>
+          <p>
+            Paste the public URL of a page you have open in your browser, or add
+            an RSS/feed URL from a news or industry source.
+          </p>
+          <select value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="url">Web page / article</option>
+            <option value="rss">RSS / news feed</option>
+          </select>
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://example.com/article-or-feed"
+          />
+          <button onClick={ingest} disabled={busy === "url" || !url.trim()}>
+            {busy === "url" ? "LEARNING…" : "LEARN FROM SOURCE →"}
+          </button>
+          <div className="rule">
+            The platform stores readable knowledge and the source reference—not
+            the user’s browser password or private browser session.
+          </div>
+        </article>
+        <article>
+          <small>BUSINESS MEMORY</small>
+          <h2>Teach Magnanimous directly</h2>
+          <p>
+            Save products, policies, brand voice, service details, FAQs,
+            processes, customer guidance, or any other knowledge the AI should
+            remember.
+          </p>
+          <input
+            value={noteTitle}
+            onChange={(e) => setNoteTitle(e.target.value)}
+            placeholder="Knowledge title"
+          />
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Example: Our refund policy is… Our brand voice is… Our main products are…"
+          />
+          <button onClick={saveNote} disabled={busy === "note" || !note.trim()}>
+            {busy === "note" ? "SAVING…" : "ADD TO AI MEMORY →"}
+          </button>
+        </article>
+        <article>
+          <small>PRIVATE RETRIEVAL</small>
+          <h2>Search learned knowledge</h2>
+          <p>See what this workspace has already saved for Magnanimous AI.</p>
+          <div className="search">
+            <input
+              value={memoryQuery}
+              onChange={(e) => setMemoryQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && searchMemory()}
+              placeholder="Search private memory…"
+            />
+            <button onClick={searchMemory}>
+              {busy === "memory" ? "…" : "SEARCH"}
+            </button>
+          </div>
+          <div className="memory">
+            {memory.map((r, i) => (
+              <div key={i}>
+                <b>{r.title || "Memory"}</b>
+                <span>
+                  {String(r.content || r.description || "").slice(0, 260)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+      <section className="library">
+        <div>
+          <small>WORKSPACE LIBRARY</small>
+          <h2>What Magnanimous can use here</h2>
+        </div>
+        {sources.length === 0 ? (
+          <p className="empty">
+            No saved sources yet. Add a business note, webpage, feed, or
+            research topic above.
+          </p>
+        ) : (
+          <div className="sourceGrid">
+            {sources.map((s) => (
+              <article key={s.id}>
+                <span>{s.source_type.toUpperCase()}</span>
+                <h3>{s.title}</h3>
+                {s.url && (
+                  <a href={s.url} target="_blank" rel="noreferrer">
+                    {s.url}
+                  </a>
+                )}
+                <button
+                  onClick={() => remove(s.id)}
+                  disabled={busy === `delete-${s.id}`}
+                >
+                  {busy === `delete-${s.id}`
+                    ? "REMOVING…"
+                    : "Remove from memory"}
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+      <footer>
+        <b>HOW IT LEARNS</b>
+        <span>
+          Retrieval-augmented generation: saved tenant knowledge + optional live
+          search/news + AI reasoning. Magnanimous does not retrain or rewrite
+          provider model weights.
+        </span>
+      </footer>
+      <style jsx>{`
+        .knowledge {
+          min-height: 100vh;
+          background: #04070d;
+          color: #edf8ff;
+          padding: 24px 34px 70px;
+          font-family: Inter, system-ui, sans-serif;
+          background-image:
+            radial-gradient(
+              circle at 76% 15%,
+              rgba(0, 194, 255, 0.12),
+              transparent 28%
+            ),
+            radial-gradient(
+              circle at 18% 55%,
+              rgba(239, 176, 55, 0.07),
+              transparent 30%
+            );
+        }
+        header {
+          max-width: 1400px;
+          margin: auto;
+          display: flex;
+          justify-content: space-between;
+          color: #657d8d;
+          font-size: 9px;
+          letter-spacing: 0.17em;
+        }
+        header a {
+          color: #9fe9ff;
+          text-decoration: none;
+        }
+        .hero {
+          max-width: 1400px;
+          margin: 26px auto 12px;
+          border: 1px solid #173b50;
+          border-radius: 24px;
+          background: linear-gradient(125deg, #07131d, #05080d 66%, #111009);
+          padding: 38px;
+          display: grid;
+          grid-template-columns: 1.4fr 0.7fr;
+          min-height: 330px;
+          align-items: center;
+        }
+        .hero small,
+        .grid small,
+        .library small {
+          font-size: 9px;
+          letter-spacing: 0.19em;
+          color: #e3ad4d;
+          font-weight: 900;
+        }
+        .hero h1 {
+          font-size: clamp(38px, 6vw, 68px);
+          line-height: 0.98;
+          margin: 10px 0;
+          max-width: 900px;
+        }
+        .hero p,
+        .grid > article > p {
+          color: #89a0b0;
+          line-height: 1.6;
+        }
+        .links {
+          display: flex;
+          gap: 9px;
+          flex-wrap: wrap;
+          margin-top: 18px;
+        }
+        .links a {
+          padding: 10px 12px;
+          border: 1px solid #285069;
+          border-radius: 999px;
+          color: #bcecff;
+          text-decoration: none;
+          font-size: 10px;
+        }
+        .brain {
+          height: 250px;
+          position: relative;
+          display: grid;
+          place-items: center;
+        }
+        .orb {
+          width: 94px;
+          height: 94px;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
+          border: 1px solid #e0a743;
+          color: #ffd77d;
+          font: 900 27px Georgia;
+          box-shadow:
+            0 0 45px rgba(0, 195, 255, 0.15),
+            0 0 75px rgba(224, 167, 67, 0.1);
+        }
+        .brain i {
+          position: absolute;
+          border: 1px solid #174a62;
+          border-radius: 50%;
+        }
+        .brain i:nth-of-type(1) {
+          inset: 20px;
+        }
+        .brain i:nth-of-type(2) {
+          inset: 48px;
+          border-style: dashed;
+          border-color: #5f4828;
+        }
+        .brain i:nth-of-type(3) {
+          left: 50%;
+          top: 0;
+          bottom: 0;
+          border-radius: 0;
+        }
+        .brain span {
+          position: absolute;
+          bottom: 5px;
+          color: #5dcfec;
+          font-size: 8px;
+          letter-spacing: 0.16em;
+        }
+        .stats {
+          max-width: 1400px;
+          margin: auto;
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 10px;
+        }
+        .stats article {
+          border: 1px solid #163347;
+          border-radius: 13px;
+          background: #071019;
+          padding: 16px;
+        }
+        .stats b {
+          display: block;
+          font-size: 25px;
+          color: #e7bc66;
+        }
+        .stats span {
+          font-size: 10px;
+          color: #6f8797;
+        }
+        .notice {
+          max-width: 1400px;
+          margin: 12px auto;
+          padding: 12px 14px;
+          border: 1px solid #385773;
+          border-radius: 10px;
+          background: #0b1822;
+          color: #bfeafb;
+        }
+        .grid {
+          max-width: 1400px;
+          margin: 12px auto;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+        .grid > article {
+          border: 1px solid #17364b;
+          border-radius: 17px;
+          background: #071019;
+          padding: 20px;
+        }
+        .research {
+          grid-row: span 2;
+        }
+        .grid h2,
+        .library h2 {
+          font-size: 25px;
+          margin: 6px 0;
+        }
+        .grid input,
+        .grid textarea,
+        .grid select {
+          width: 100%;
+          box-sizing: border-box;
+          background: #02070b;
+          border: 1px solid #1b4055;
+          border-radius: 9px;
+          color: #e9f8ff;
+          padding: 12px;
+          margin: 7px 0;
+          font: inherit;
+        }
+        .grid textarea {
+          min-height: 145px;
+        }
+        .research textarea {
+          min-height: 180px;
+        }
+        .grid button {
+          border: 0;
+          border-radius: 9px;
+          background: linear-gradient(90deg, #176f98, #bd842c);
+          color: #fff;
+          padding: 11px 13px;
+          font-weight: 900;
+          cursor: pointer;
+        }
+        .checks {
+          display: flex;
+          gap: 14px;
+          flex-wrap: wrap;
+          margin: 8px 0 13px;
+          color: #8da6b6;
+          font-size: 10px;
+        }
+        .checks input {
+          width: auto;
+          margin-right: 5px;
+        }
+        .rule {
+          margin-top: 13px;
+          border-top: 1px solid #173244;
+          padding-top: 12px;
+          color: #657e8e;
+          font-size: 10px;
+          line-height: 1.5;
+        }
+        .results {
+          margin-top: 14px;
+          max-height: 570px;
+          overflow: auto;
+        }
+        .results > div {
+          border-top: 1px solid #153044;
+          padding: 11px 0;
+        }
+        .results b {
+          display: block;
+          font-size: 11px;
+          color: #d8eff8;
+        }
+        .results p {
+          font-size: 10px;
+          color: #7d96a6;
+          line-height: 1.5;
+        }
+        .results a {
+          color: #66dcff;
+          font-size: 9px;
+          text-decoration: none;
+        }
+        .results em {
+          float: right;
+          color: #a9864d;
+          font-size: 8px;
+          font-style: normal;
+        }
+        .search {
+          display: flex;
+          gap: 7px;
+        }
+        .search button {
+          margin: 7px 0;
+        }
+        .memory {
+          max-height: 280px;
+          overflow: auto;
+        }
+        .memory div {
+          border-top: 1px solid #153044;
+          padding: 10px 0;
+        }
+        .memory b,
+        .memory span {
+          display: block;
+        }
+        .memory b {
+          font-size: 10px;
+        }
+        .memory span {
+          font-size: 9px;
+          color: #728b9b;
+          margin-top: 4px;
+          line-height: 1.45;
+        }
+        .library {
+          max-width: 1400px;
+          margin: 12px auto;
+          border: 1px solid #17364b;
+          border-radius: 18px;
+          background: #071019;
+          padding: 22px;
+        }
+        .sourceGrid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 9px;
+        }
+        .sourceGrid article {
+          border: 1px solid #18384b;
+          border-radius: 12px;
+          padding: 14px;
+          background: #050c12;
+        }
+        .sourceGrid span {
+          font-size: 8px;
+          color: #d8a64b;
+          letter-spacing: 0.15em;
+        }
+        .sourceGrid h3 {
+          font-size: 13px;
+          margin: 7px 0;
+        }
+        .sourceGrid a {
+          display: block;
+          color: #64cce9;
+          font-size: 8px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          text-decoration: none;
+        }
+        .sourceGrid button {
+          margin-top: 12px;
+          border: 1px solid #3d3430;
+          background: transparent;
+          color: #947f69;
+          padding: 7px 8px;
+          border-radius: 7px;
+          font-size: 8px;
+          cursor: pointer;
+        }
+        .empty {
+          color: #728b9b;
+        }
+        footer {
+          max-width: 1400px;
+          margin: 14px auto;
+          color: #617988;
+          font-size: 9px;
+          display: flex;
+          gap: 12px;
+          line-height: 1.5;
+        }
+        footer b {
+          color: #c99b50;
+        }
+        @media (max-width: 900px) {
+          .knowledge {
+            padding: 18px 14px;
+          }
+          .hero,
+          .grid {
+            grid-template-columns: 1fr;
+          }
+          .brain {
+            display: none;
+          }
+          .stats {
+            grid-template-columns: 1fr 1fr;
+          }
+          .research {
+            grid-row: auto;
+          }
+          .sourceGrid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+        @media (max-width: 560px) {
+          .stats,
+          .sourceGrid {
+            grid-template-columns: 1fr;
+          }
+          .hero {
+            padding: 25px;
+          }
+          .checks {
+            flex-direction: column;
+            gap: 4px;
+          }
+          header {
+            gap: 10px;
+            flex-direction: column;
+          }
+        }
+      `}</style>
+    </main>
+  );
 }
