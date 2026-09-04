@@ -2,95 +2,54 @@ import { currentUser } from './integrations.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
+const clip=(v,n=8000)=>String(v??'').trim().slice(0,n);
+
+const BRAIN_PRINCIPLES=[
+ 'Magnanimous AI is the central intelligence and continuity layer for the platform.',
+ 'External models, media generators, carriers and SaaS providers are tools Magnanimous may orchestrate; they are not the platform brain.',
+ 'Preserve useful knowledge, decisions, workflows, provider outcomes and lessons in private workspace memory so capability survives provider changes.',
+ 'Prefer free-first and native platform capability, then route to specialist providers when they materially improve the result.',
+ 'Teach users what it knows, suggest improvements, and proactively surface useful next actions.',
+ 'Never silently grant itself new external permissions, spend money, bypass security, or perform high-impact actions without the authorization required by that system.',
+ 'Learning means retrieval, structured memory, outcome feedback and reusable skills; private user data is not used to retrain a foundation model.'
+];
 
 const CAPABILITIES=[
  {id:'reasoning-writing',name:'Reasoning, writing & translation',tier:'free-first',ready:true},
  {id:'live-research',name:'Live web/news research with sources',tier:'free-first',env:'BRAVE_SEARCH_API_KEY'},
  {id:'workspace-knowledge',name:'Private workspace knowledge & retrieval',tier:'free-first',ready:true},
  {id:'learning-memory',name:'Persistent user/workflow learning memory',tier:'free-first',ready:true},
+ {id:'outcome-learning',name:'Provider and workflow outcome learning',tier:'free-first',ready:true},
+ {id:'initiative',name:'Suggestions, teaching and safe next-action initiative',tier:'free-first',ready:true},
  {id:'agent-mesh',name:'Specialist agent delegation',tier:'free-first',ready:true},
  {id:'business',name:'Business, CRM, finance, support & professional workflows',tier:'free-first',ready:true},
  {id:'coding',name:'Coding, debugging & structured generation',tier:'free-first',ready:true},
  {id:'image',name:'Image generation and visual workflows',tier:'free-first-or-capped',envAny:['AI','HF_TOKEN','GOOGLE_API_KEY']},
- {id:'video',name:'Text/image to video and video editing',tier:'free-first-or-capped',envAny:['AI','HF_TOKEN','FAL_KEY','REPLICATE_API_TOKEN']},
+ {id:'video',name:'Text/image to video, cinema, voice, sound and editing',tier:'free-first-or-capped',envAny:['AI','HF_TOKEN','GOOGLE_API_KEY','RUNWAY_API_KEY','LUMA_API_KEY','HEYGEN_API_KEY','TAVUS_API_KEY']},
  {id:'voice',name:'Speech, voice assistant & browser calling',tier:'free-first-or-capped',ready:true},
  {id:'pstn',name:'Carrier telephone calling',tier:'metered-paid',envAny:['TWILIO_ACCOUNT_SID','TELNYX_API_KEY']},
- {id:'social-youtube',name:'YouTube authorized publishing',tier:'official-api-quota',envAny:['GOOGLE_CLIENT_ID','YOUTUBE_CLIENT_ID']},
- {id:'social-tiktok',name:'TikTok authorized publishing',tier:'official-api-approval',envAny:['TIKTOK_CLIENT_KEY','TIKTOK_CLIENT_ID']},
- {id:'social-meta',name:'Facebook / Instagram authorized publishing',tier:'official-api-approval',envAny:['META_APP_ID','FACEBOOK_APP_ID']},
- {id:'social-linkedin',name:'LinkedIn authorized publishing',tier:'official-api-approval',envAny:['LINKEDIN_CLIENT_ID']},
- {id:'connected-actions',name:'Connected-account actions with confirmation',tier:'connection-dependent',ready:true},
+ {id:'connected-actions',name:'Connected-account actions with authorization boundaries',tier:'connection-dependent',ready:true},
  {id:'browser-agent',name:'Browser research/inspection agent',tier:'runtime-dependent',envAny:['BROWSER','BROWSER_RENDERING']}
 ];
 
-function configured(env,c){
- if(c.ready)return true;
- if(c.env)return Boolean(env?.[c.env]);
- if(c.envAny)return c.envAny.some(k=>Boolean(env?.[k]));
- return false;
-}
+function configured(env,c){if(c.ready)return true;if(c.env)return Boolean(env?.[c.env]);if(c.envAny)return c.envAny.some(k=>Boolean(env?.[k]));return false}
 
 async function ensureSchema(env){
- await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_memories (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  tenant_id TEXT NOT NULL,
-  user_id TEXT NOT NULL,
-  memory_type TEXT NOT NULL DEFAULT 'preference',
-  memory_key TEXT NOT NULL,
-  memory_value TEXT NOT NULL,
-  confidence REAL NOT NULL DEFAULT 1,
-  source TEXT NOT NULL DEFAULT 'explicit-user',
-  active INTEGER NOT NULL DEFAULT 1,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
-  UNIQUE(tenant_id,user_id,memory_key)
- )`).run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_memories (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,memory_type TEXT NOT NULL DEFAULT 'preference',memory_key TEXT NOT NULL,memory_value TEXT NOT NULL,confidence REAL NOT NULL DEFAULT 1,source TEXT NOT NULL DEFAULT 'explicit-user',active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(tenant_id,user_id,memory_key))`).run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_magnanimous_memories_user ON magnanimous_memories(tenant_id,user_id,active,updated_at DESC)').run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_lessons (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,domain TEXT NOT NULL DEFAULT 'general',lesson_key TEXT NOT NULL,lesson_value TEXT NOT NULL,evidence TEXT NOT NULL DEFAULT '',score REAL NOT NULL DEFAULT 0.5,uses INTEGER NOT NULL DEFAULT 0,active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(tenant_id,user_id,domain,lesson_key))`).run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_outcomes (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,capability TEXT NOT NULL,provider TEXT NOT NULL DEFAULT 'native',task TEXT NOT NULL DEFAULT '',success INTEGER NOT NULL DEFAULT 0,quality REAL NOT NULL DEFAULT 0,cost_hint REAL NOT NULL DEFAULT 0,latency_ms INTEGER NOT NULL DEFAULT 0,notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`).run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_suggestions (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,title TEXT NOT NULL,reason TEXT NOT NULL,action TEXT NOT NULL,risk TEXT NOT NULL DEFAULT 'low',status TEXT NOT NULL DEFAULT 'open',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
 }
+async function auth(request,env){return await currentUser(request,env)||null}
+async function listMemory(env,user){await ensureSchema(env);const{results=[]}=await env.DB.prepare('SELECT id,memory_type,memory_key,memory_value,confidence,source,created_at,updated_at FROM magnanimous_memories WHERE tenant_id=? AND user_id=? AND active=1 ORDER BY updated_at DESC LIMIT 250').bind(String(user.tenant_id),String(user.id)).all();return results}
+async function listLessons(env,user){await ensureSchema(env);const{results=[]}=await env.DB.prepare('SELECT domain,lesson_key,lesson_value,evidence,score,uses,updated_at FROM magnanimous_lessons WHERE tenant_id=? AND user_id=? AND active=1 ORDER BY score DESC,updated_at DESC LIMIT 100').bind(String(user.tenant_id),String(user.id)).all();return results}
+async function remember(request,env,user){await ensureSchema(env);const b=await request.json().catch(()=>({}));const key=clip(b.key,120),value=clip(b.value),type=clip(b.type||'preference',40);if(!key||!value)return json({detail:'Memory key and value are required.'},400);const ts=now();await env.DB.prepare(`INSERT INTO magnanimous_memories(tenant_id,user_id,memory_type,memory_key,memory_value,confidence,source,active,created_at,updated_at) VALUES(?,?,?,?,?,1,'explicit-user',1,?,?) ON CONFLICT(tenant_id,user_id,memory_key) DO UPDATE SET memory_type=excluded.memory_type,memory_value=excluded.memory_value,confidence=1,source='explicit-user',active=1,updated_at=excluded.updated_at`).bind(String(user.tenant_id),String(user.id),type,key,value,ts,ts).run();return json({ok:true,key,type})}
+async function forget(request,env,user){await ensureSchema(env);const b=await request.json().catch(()=>({}));const key=clip(b.key,120);if(!key)return json({detail:'Memory key is required.'},400);await env.DB.prepare('UPDATE magnanimous_memories SET active=0,updated_at=? WHERE tenant_id=? AND user_id=? AND memory_key=?').bind(now(),String(user.tenant_id),String(user.id),key).run();return json({ok:true,key})}
+async function learn(request,env,user){await ensureSchema(env);const b=await request.json().catch(()=>({}));const domain=clip(b.domain||'general',80),key=clip(b.key,160),value=clip(b.value),evidence=clip(b.evidence,3000);const score=Math.max(0,Math.min(1,Number(b.score??0.65)));if(!key||!value)return json({detail:'Lesson key and value are required.'},400);const ts=now();await env.DB.prepare(`INSERT INTO magnanimous_lessons(tenant_id,user_id,domain,lesson_key,lesson_value,evidence,score,uses,active,created_at,updated_at) VALUES(?,?,?,?,?,?,?,0,1,?,?) ON CONFLICT(tenant_id,user_id,domain,lesson_key) DO UPDATE SET lesson_value=excluded.lesson_value,evidence=excluded.evidence,score=MAX(magnanimous_lessons.score,excluded.score),active=1,updated_at=excluded.updated_at`).bind(String(user.tenant_id),String(user.id),domain,key,value,evidence,score,ts,ts).run();return json({ok:true,domain,key,score})}
+async function outcome(request,env,user){await ensureSchema(env);const b=await request.json().catch(()=>({}));const capability=clip(b.capability,100);if(!capability)return json({detail:'Capability is required.'},400);await env.DB.prepare('INSERT INTO magnanimous_outcomes(tenant_id,user_id,capability,provider,task,success,quality,cost_hint,latency_ms,notes,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(String(user.tenant_id),String(user.id),capability,clip(b.provider||'native',100),clip(b.task,1000),b.success?1:0,Math.max(0,Math.min(1,Number(b.quality||0))),Math.max(0,Number(b.cost_hint||0)),Math.max(0,Number(b.latency_ms||0)),clip(b.notes,2000),now()).run();return json({ok:true})}
+async function suggestions(env,user){await ensureSchema(env);const{results=[]}=await env.DB.prepare("SELECT id,title,reason,action,risk,status,created_at FROM magnanimous_suggestions WHERE tenant_id=? AND user_id=? AND status='open' ORDER BY created_at DESC LIMIT 25").bind(String(user.tenant_id),String(user.id)).all();return results}
 
-async function auth(request,env){
- const user=await currentUser(request,env);return user||null;
-}
+export async function getMagnanimousMemoryContext(request,env){if(!env?.DB)return'';const user=await auth(request,env);if(!user)return'';const [memories,lessons]=await Promise.all([listMemory(env,user),listLessons(env,user)]);const memoryText=memories.slice(0,30).map(r=>`- ${r.memory_key}: ${clip(r.memory_value,700)}`).join('\n');const lessonText=lessons.slice(0,20).map(r=>`- [${r.domain}] ${r.lesson_key}: ${clip(r.lesson_value,600)} (confidence ${Number(r.score).toFixed(2)})`).join('\n');return `\n\nMAGNANIMOUS CENTRAL BRAIN CONTEXT (private workspace memory; current instructions override memory):\nIDENTITY: Magnanimous AI is the platform brain. Providers are tools, not identity.\n${memoryText}\nREUSABLE LESSONS:\n${lessonText}`.slice(0,16000)}
 
-async function listMemory(env,user){
- await ensureSchema(env);
- const {results=[]}=await env.DB.prepare('SELECT id,memory_type,memory_key,memory_value,confidence,source,created_at,updated_at FROM magnanimous_memories WHERE tenant_id=? AND user_id=? AND active=1 ORDER BY updated_at DESC LIMIT 250').bind(String(user.tenant_id),String(user.id)).all();
- return results;
-}
-
-async function remember(request,env,user){
- await ensureSchema(env);const body=await request.json().catch(()=>({}));
- const key=String(body.key||'').trim().slice(0,120),value=String(body.value||'').trim().slice(0,8000),type=String(body.type||'preference').trim().slice(0,40);
- if(!key||!value)return json({detail:'Memory key and value are required.'},400);
- const ts=now();
- await env.DB.prepare(`INSERT INTO magnanimous_memories(tenant_id,user_id,memory_type,memory_key,memory_value,confidence,source,active,created_at,updated_at)
- VALUES(?,?,?,?,?,1,'explicit-user',1,?,?)
- ON CONFLICT(tenant_id,user_id,memory_key) DO UPDATE SET memory_type=excluded.memory_type,memory_value=excluded.memory_value,confidence=1,source='explicit-user',active=1,updated_at=excluded.updated_at`)
- .bind(String(user.tenant_id),String(user.id),type,key,value,ts,ts).run();
- return json({ok:true,key,type});
-}
-
-async function forget(request,env,user){
- await ensureSchema(env);const body=await request.json().catch(()=>({}));const key=String(body.key||'').trim();if(!key)return json({detail:'Memory key is required.'},400);
- await env.DB.prepare('UPDATE magnanimous_memories SET active=0,updated_at=? WHERE tenant_id=? AND user_id=? AND memory_key=?').bind(now(),String(user.tenant_id),String(user.id),key).run();
- return json({ok:true,key});
-}
-
-export async function getMagnanimousMemoryContext(request,env){
- if(!env?.DB)return'';const user=await auth(request,env);if(!user)return'';const rows=await listMemory(env,user);if(!rows.length)return'';
- return `\n\nMAGNANIMOUS LEARNED USER/WORKFLOW MEMORY (private to this signed-in workspace; follow current user instructions over memory):\n${rows.slice(0,30).map(r=>`- ${r.memory_key}: ${String(r.memory_value).slice(0,700)}`).join('\n')}`.slice(0,12000);
-}
-
-export async function handleMagnanimousBrain(request,env){
- const url=new URL(request.url);if(!url.pathname.startsWith('/api/magnanimous/'))return null;
- if(url.pathname==='/api/magnanimous/capabilities'&&request.method==='GET'){
-  const capabilities=CAPABILITIES.map(c=>({...c,configured:configured(env,c)}));
-  return json({identity:'Magnanimous AI',official:true,free_first:true,capabilities,configured_count:capabilities.filter(x=>x.configured).length,total:capabilities.length,note:'Provider availability, account authorization, quotas and compute limits still apply.'});
- }
- if(!env?.DB)return json({detail:'Magnanimous memory requires the workspace database.'},503);
- const user=await auth(request,env);if(!user)return json({detail:'Sign in required.'},401);
- if(url.pathname==='/api/magnanimous/memory'&&request.method==='GET')return json({memories:await listMemory(env,user),learning_model:'retrieval-and-memory',training_private_data:false});
- if(url.pathname==='/api/magnanimous/memory/remember'&&request.method==='POST')return remember(request,env,user);
- if(url.pathname==='/api/magnanimous/memory/forget'&&request.method==='POST')return forget(request,env,user);
- return null;
-}
+export async function handleMagnanimousBrain(request,env){const url=new URL(request.url);if(!url.pathname.startsWith('/api/magnanimous/'))return null;if(url.pathname==='/api/magnanimous/capabilities'&&request.method==='GET'){const capabilities=CAPABILITIES.map(c=>({...c,configured:configured(env,c)}));return json({identity:'Magnanimous AI',role:'central-platform-brain',official:true,free_first:true,principles:BRAIN_PRINCIPLES,capabilities,configured_count:capabilities.filter(x=>x.configured).length,total:capabilities.length,note:'Providers extend Magnanimous; they do not replace its memory, orchestration, lessons or identity.'})}if(!env?.DB)return json({detail:'Magnanimous brain requires the workspace database.'},503);const user=await auth(request,env);if(!user)return json({detail:'Sign in required.'},401);if(url.pathname==='/api/magnanimous/memory'&&request.method==='GET')return json({memories:await listMemory(env,user),lessons:await listLessons(env,user),learning_model:'private retrieval + structured lessons + outcome feedback',training_private_data:false});if(url.pathname==='/api/magnanimous/memory/remember'&&request.method==='POST')return remember(request,env,user);if(url.pathname==='/api/magnanimous/memory/forget'&&request.method==='POST')return forget(request,env,user);if(url.pathname==='/api/magnanimous/learn'&&request.method==='POST')return learn(request,env,user);if(url.pathname==='/api/magnanimous/outcome'&&request.method==='POST')return outcome(request,env,user);if(url.pathname==='/api/magnanimous/suggestions'&&request.method==='GET')return json({suggestions:await suggestions(env,user)});return null}
