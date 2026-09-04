@@ -3,6 +3,7 @@ import { handleVisual } from './visual-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const txt=(v,n=1800)=>String(v||'').replace(/\s+/g,' ').trim().slice(0,n);
+const clamp=(n,min,max)=>Math.max(min,Math.min(max,Number(n)||min));
 
 const MAGNANIMOUS_MOTION='Friendly white and silver humanoid Magnanimous AI robot, rounded futuristic shell, glossy dark digital face, expressive cyan eyes and smile, subtle cyan light strips, smooth natural arm and body movement, cinematic neon futuristic city at night, blue and magenta practical lighting, shallow depth of field, polished motion-picture look, warm helpful personality, consistent character design across scenes.';
 
@@ -16,56 +17,62 @@ const AGENTS=[
  {id:'virtual-presenter',name:'Virtual Presenter Agent',role:'Avatar/presenter-led videos when provider is configured',tier:'premium-optional',style:'cinematic',scenes:3,providers:['HeyGen','Tavus']}
 ];
 
-function providerState(env){return{
- free_cinematic:Boolean(env?.AI),
- narration:Boolean(env?.AI),
- heygen:Boolean(String(env?.HEYGEN_API_KEY||'').trim()),
- tavus:Boolean(String(env?.TAVUS_API_KEY||'').trim()),
- veo:Boolean(String(env?.GOOGLE_API_KEY||'').trim())&&String(env?.ENABLE_VEO_PROVIDER||'').toLowerCase()==='true'
-}}
-function splitStory(message,count){
- const base=txt(message,8000);const parts=base.split(/(?<=[.!?])\s+/).filter(Boolean);const out=[];
- if(!parts.length)return Array.from({length:count},()=>base||'Magnanimous AI at work.');
- const per=Math.max(1,Math.ceil(parts.length/count));
- for(let i=0;i<count;i++){const group=parts.slice(i*per,(i+1)*per).join(' ').trim();out.push(group||parts[Math.min(i,parts.length-1)]||base)}
- return out;
+function providerState(env){
+ const veoKey=String(env?.GOOGLE_API_KEY||'').trim();
+ return{
+  free_cinematic:Boolean(env?.AI),
+  narration:Boolean(env?.AI),
+  heygen:Boolean(String(env?.HEYGEN_API_KEY||'').trim()),
+  tavus:Boolean(String(env?.TAVUS_API_KEY||'').trim()),
+  free_avatar:Boolean(String(env?.FREE_AVATAR_RENDERER_URL||'').trim()),
+  veo:Boolean(veoKey)&&String(env?.ENABLE_VEO_PROVIDER||'true').toLowerCase()!=='false',
+  runway:Boolean(String(env?.RUNWAYML_API_SECRET||'').trim()),
+  luma:Boolean(String(env?.LUMA_API_KEY||'').trim())
+ };
 }
 
-async function narration(request,env){
- const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to generate narration.'},401);
- if(!env?.AI)return json({detail:'Workers AI narration is not configured.',code:'NARRATION_PROVIDER_REQUIRED'},409);
- const b=await request.json().catch(()=>({}));const text=txt(b.text,12000);if(!text)return json({detail:'Transcript text is required.'},400);
- const language=String(b.language||'en').toLowerCase();
- const model=language.startsWith('es')?'@cf/deepgram/aura-2-es':'@cf/deepgram/aura-2-en';
- const allowedEn=new Set(['amalthea','andromeda','apollo','arcas','aries','asteria','athena','atlas','aurora','callista','cora','cordelia','delia','draco','electra','harmonia','helena','hera','hermes','hyperion','iris','janus','juno','jupiter','luna','mars','minerva','neptune','odysseus','ophelia','orion','orpheus','pandora','phoebe','pluto','saturn','thalia','theia','vesta','zeus']);
- const allowedEs=new Set(['sirio','nestor','carina','celeste','alvaro','diana','aquila','selena','estrella','javier']);
- const speakerRaw=String(b.speaker||'').toLowerCase();
- const speaker=language.startsWith('es')?(allowedEs.has(speakerRaw)?speakerRaw:'aquila'):(allowedEn.has(speakerRaw)?speakerRaw:'atlas');
- try{
-  const audio=await env.AI.run(model,{text,speaker,encoding:'mp3'});
-  return new Response(audio,{status:200,headers:{'content-type':'audio/mpeg','cache-control':'no-store','x-iam-voice':speaker,'x-iam-model':model}});
- }catch(error){return json({detail:error?.message||'Narration generation failed.',code:'NARRATION_FAILED'},502)}
-}
+function providerCatalog(env){const p=providerState(env);return[
+ {id:'auto',name:'Magnanimous Auto Director',ready:true,tier:'router',native_audio:false,best_for:'Automatically choose the strongest configured route while preserving free fallback.'},
+ {id:'browser',name:'Magnanimous Free-First Renderer',ready:p.free_cinematic,tier:'free-first',native_audio:false,best_for:'No-cost/low-cost scene generation, narration, captions, soundtrack and browser assembly.'},
+ {id:'veo',name:'Google Veo 3.1',ready:p.veo,tier:'premium-optional',native_audio:true,best_for:'Cinematic text/image-to-video with native dialogue, ambience and sound.'},
+ {id:'runway',name:'Runway Gen-4.5',ready:p.runway,tier:'premium-optional',native_audio:false,best_for:'High-quality text/image-to-video, motion control and professional generation workflows.'},
+ {id:'luma',name:'Luma Dream Machine Ray 2',ready:p.luma,tier:'premium-optional',native_audio:false,best_for:'Text/image-to-video and cinematic motion with simple API generation.'},
+ {id:'heygen',name:'HeyGen',ready:p.heygen,tier:'premium-optional',native_audio:true,best_for:'Talking avatars, presenters, lip-sync and reusable assistant characters.'},
+ {id:'tavus',name:'Tavus',ready:p.tavus,tier:'premium-optional',native_audio:true,best_for:'Conversational digital replicas and presenter-led personalized video.'},
+ {id:'free-avatar',name:'Self-hosted Avatar Renderer',ready:p.free_avatar,tier:'free/self-hosted',native_audio:false,best_for:'LivePortrait/Wav2Lip-compatible talking agent rendering you host yourself.'}
+]}
 
-export async function handleVideoAgents(request,env){
- const url=new URL(request.url);if(!url.pathname.startsWith('/api/video-agents'))return null;
- const providers=providerState(env);
- if(request.method==='GET'&&url.pathname==='/api/video-agents')return json({agents:AGENTS.map(a=>({...a,ready:a.tier==='free-first'?providers.free_cinematic:(providers.heygen||providers.tavus)})),providers,character_presets:[{id:'magnanimous-ai',name:'Magnanimous AI',visual_direction:MAGNANIMOUS_MOTION}],principle:'Free-first scene generation and narration with optional customer-funded premium presenter/video providers.'});
+function chooseProvider(env,body={}){const p=providerState(env),mode=String(body.mode||'cinematic'),wantAudio=body.native_audio!==false,prefer=String(body.provider||'auto');if(prefer!=='auto')return prefer;
+ if((mode==='avatar'||mode==='presenter'||mode==='assistant')&&p.heygen)return'heygen';
+ if((mode==='avatar'||mode==='presenter'||mode==='assistant')&&p.tavus)return'tavus';
+ if((mode==='avatar'||mode==='presenter'||mode==='assistant')&&p.free_avatar)return'free-avatar';
+ if(wantAudio&&p.veo)return'veo';
+ if(p.runway)return'runway';
+ if(p.luma)return'luma';
+ return'browser';}
+
+function splitStory(message,count){const base=txt(message,8000);const parts=base.split(/(?<=[.!?])\s+/).filter(Boolean);const out=[];if(!parts.length)return Array.from({length:count},()=>base||'Magnanimous AI at work.');const per=Math.max(1,Math.ceil(parts.length/count));for(let i=0;i<count;i++){const group=parts.slice(i*per,(i+1)*per).join(' ').trim();out.push(group||parts[Math.min(i,parts.length-1)]||base)}return out}
+
+async function narration(request,env){const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to generate narration.'},401);if(!env?.AI)return json({detail:'Workers AI narration is not configured.',code:'NARRATION_PROVIDER_REQUIRED'},409);const b=await request.json().catch(()=>({}));const text=txt(b.text,12000);if(!text)return json({detail:'Transcript text is required.'},400);const language=String(b.language||'en').toLowerCase();const model=language.startsWith('es')?'@cf/deepgram/aura-2-es':'@cf/deepgram/aura-2-en';const allowedEn=new Set(['amalthea','andromeda','apollo','arcas','aries','asteria','athena','atlas','aurora','callista','cora','cordelia','delia','draco','electra','harmonia','helena','hera','hermes','hyperion','iris','janus','juno','jupiter','luna','mars','minerva','neptune','odysseus','ophelia','orion','orpheus','pandora','phoebe','pluto','saturn','thalia','theia','vesta','zeus']);const allowedEs=new Set(['sirio','nestor','carina','celeste','alvaro','diana','aquila','selena','estrella','javier']);const speakerRaw=String(b.speaker||'').toLowerCase();const speaker=language.startsWith('es')?(allowedEs.has(speakerRaw)?speakerRaw:'aquila'):(allowedEn.has(speakerRaw)?speakerRaw:'atlas');try{const audio=await env.AI.run(model,{text,speaker,encoding:'mp3'});return new Response(audio,{status:200,headers:{'content-type':'audio/mpeg','cache-control':'no-store','x-iam-voice':speaker,'x-iam-model':model}})}catch(error){return json({detail:error?.message||'Narration generation failed.',code:'NARRATION_FAILED'},502)}}
+
+function ratioRunway(format){return String(format)==='9:16'?'720:1280':'1280:720'}
+function buildPrompt(body){const transcript=txt(body.transcript||body.message,5000);const direction=txt(body.visual_direction||body.direction,1600);const character=String(body.character||'')==='magnanimous-ai'?MAGNANIMOUS_MOTION:'';const speech=transcript?` Spoken content/dialogue: ${transcript}`:'';return txt(`${character} ${direction} ${speech} Smooth cinematic camera motion, coherent lighting, strong continuity, polished motion-picture quality.`,7000)}
+
+async function startVeo(body,env){const key=String(env.GOOGLE_API_KEY||'').trim();if(!key)return json({detail:'Google Veo is not configured.',code:'PROVIDER_NOT_CONFIGURED'},409);const model=String(body.model||'veo-3.1-fast-generate-preview');const payload={instances:[{prompt:buildPrompt(body)}],parameters:{aspectRatio:String(body.format)==='9:16'?'9:16':'16:9',resolution:String(body.resolution||'720p')}};const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:predictLongRunning`,{method:'POST',headers:{'x-goog-api-key':key,'content-type':'application/json'},body:JSON.stringify(payload)});const d=await r.json().catch(()=>({}));if(!r.ok)return json({detail:d?.error?.message||'Veo generation could not start.',provider:'veo',raw:d},r.status);return json({ok:true,provider:'veo',status:'processing',task_id:d.name,operation:d,model,native_audio:true})}
+async function startRunway(body,env){const key=String(env.RUNWAYML_API_SECRET||'').trim();if(!key)return json({detail:'Runway is not configured.',code:'PROVIDER_NOT_CONFIGURED'},409);const payload={model:String(body.model||'gen4.5'),promptText:buildPrompt(body),ratio:ratioRunway(body.format),duration:clamp(body.duration||5,2,10)};const r=await fetch('https://api.dev.runwayml.com/v1/image_to_video',{method:'POST',headers:{Authorization:`Bearer ${key}`,'X-Runway-Version':'2024-11-06','content-type':'application/json'},body:JSON.stringify(payload)});const d=await r.json().catch(()=>({}));if(!r.ok)return json({detail:d?.error||d?.message||'Runway generation could not start.',provider:'runway',raw:d},r.status);return json({ok:true,provider:'runway',status:'processing',task_id:d.id||d.taskId||d.task_id,task:d,model:payload.model,native_audio:false})}
+async function startLuma(body,env){const key=String(env.LUMA_API_KEY||'').trim();if(!key)return json({detail:'Luma is not configured.',code:'PROVIDER_NOT_CONFIGURED'},409);const payload={prompt:buildPrompt(body),model:String(body.model||'ray-2'),resolution:String(body.resolution||'720p'),duration:`${body.duration&&Number(body.duration)>5?9:5}s`};const r=await fetch('https://api.lumalabs.ai/dream-machine/v1/generations',{method:'POST',headers:{Authorization:`Bearer ${key}`,'content-type':'application/json',accept:'application/json'},body:JSON.stringify(payload)});const d=await r.json().catch(()=>({}));if(!r.ok)return json({detail:d?.detail||d?.message||'Luma generation could not start.',provider:'luma',raw:d},r.status);return json({ok:true,provider:'luma',status:d.state||'processing',task_id:d.id,generation:d,model:payload.model,native_audio:false})}
+
+async function startGeneration(request,env){const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to generate AI video.'},401);const b=await request.json().catch(()=>({}));if(!txt(b.transcript||b.message,5000)&&!txt(b.visual_direction||b.direction,1000))return json({detail:'Add a transcript or visual direction.'},400);const provider=chooseProvider(env,b);if(provider==='veo')return startVeo(b,env);if(provider==='runway')return startRunway(b,env);if(provider==='luma')return startLuma(b,env);if(provider==='heygen'||provider==='tavus'||provider==='free-avatar')return json({ok:true,provider,status:'handoff-ready',mode:'presenter',note:'This provider is configured for presenter/assistant video. Use the provider presenter workflow for avatar identity, consent, voice and lip-sync.',prompt:buildPrompt(b)});return json({ok:true,provider:'browser',status:'ready',mode:'free-first',storyboard_endpoint:'/api/video-agents/storyboard',narration_endpoint:'/api/video-agents/narration',note:'Use the existing Magnanimous browser motion-picture assembly for the zero/low-cost fallback.'})}
+
+async function pollTask(url,env){const provider=String(url.searchParams.get('provider')||''),id=String(url.searchParams.get('id')||'');if(!provider||!id)return json({detail:'provider and id are required.'},400);let r;if(provider==='veo'){const key=String(env.GOOGLE_API_KEY||'').trim();if(!key)return json({detail:'Veo is not configured.'},409);r=await fetch(`https://generativelanguage.googleapis.com/v1beta/${id.replace(/^\//,'')}`,{headers:{'x-goog-api-key':key}})}else if(provider==='runway'){const key=String(env.RUNWAYML_API_SECRET||'').trim();if(!key)return json({detail:'Runway is not configured.'},409);r=await fetch(`https://api.dev.runwayml.com/v1/tasks/${encodeURIComponent(id)}`,{headers:{Authorization:`Bearer ${key}`,'X-Runway-Version':'2024-11-06'}})}else if(provider==='luma'){const key=String(env.LUMA_API_KEY||'').trim();if(!key)return json({detail:'Luma is not configured.'},409);r=await fetch(`https://api.lumalabs.ai/dream-machine/v1/generations/${encodeURIComponent(id)}`,{headers:{Authorization:`Bearer ${key}`,accept:'application/json'}})}else return json({detail:'Unsupported provider task.'},400);const d=await r.json().catch(()=>({}));return json({provider,ok:r.ok,task:d},r.ok?200:r.status)}
+
+export async function handleVideoAgents(request,env){const url=new URL(request.url);if(!url.pathname.startsWith('/api/video-agents'))return null;const providers=providerState(env);
+ if(request.method==='GET'&&url.pathname==='/api/video-agents')return json({agents:AGENTS.map(a=>({...a,ready:a.tier==='free-first'?providers.free_cinematic:(providers.heygen||providers.tavus||providers.free_avatar)})),providers,provider_catalog:providerCatalog(env),character_presets:[{id:'magnanimous-ai',name:'Magnanimous AI',visual_direction:MAGNANIMOUS_MOTION}],principle:'Free-first by default, automatically route to configured premium cinema or presenter providers when requested.'});
+ if(request.method==='GET'&&url.pathname==='/api/video-agents/providers')return json({providers:providerCatalog(env),recommended:chooseProvider(env,{provider:'auto',mode:url.searchParams.get('mode')||'cinematic',native_audio:url.searchParams.get('audio')!=='false'})});
+ if(request.method==='GET'&&url.pathname==='/api/video-agents/task')return pollTask(url,env);
+ if(request.method==='POST'&&url.pathname==='/api/video-agents/route'){const b=await request.json().catch(()=>({}));return json({provider:chooseProvider(env,b),catalog:providerCatalog(env)});}
+ if(request.method==='POST'&&url.pathname==='/api/video-agents/generate')return startGeneration(request,env);
  if(request.method==='POST'&&url.pathname==='/api/video-agents/narration')return narration(request,env);
- if(request.method==='POST'&&url.pathname==='/api/video-agents/storyboard'){
-  const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use Video Agents.'},401);
-  const b=await request.json().catch(()=>({}));const agent=AGENTS.find(a=>a.id===String(b.agent_id||''))||AGENTS[0];
-  const title=txt(b.title,180),message=txt(b.message,8000);if(!title&&!message)return json({detail:'Add a title or transcript.'},400);
-  if(agent.tier!=='free-first'&&!providers.heygen&&!providers.tavus)return json({detail:'The presenter agent needs an authorized HeyGen or Tavus provider. Use Magnanimous Motion Picture AI or another free-first agent instead.',code:'PRESENTER_PROVIDER_REQUIRED'},409);
-  const beats=splitStory(message,Math.max(3,Math.min(8,Number(b.scenes||agent.scenes))));const scenes=[];
-  const character=String(b.character||agent.character||'')==='magnanimous-ai'?MAGNANIMOUS_MOTION:'';
-  for(let i=0;i<beats.length;i++){
-   const sceneText=`Scene ${i+1} of ${beats.length}. Narration meaning: ${beats[i]}. ${character} ${txt(b.visual_direction,1200)} Camera: smooth cinematic motion, gentle push-in or tracking movement, coherent lighting and continuity with the previous scene.`;
-   const visualReq=new Request(new URL('/api/visual/scene',request.url),{method:'POST',headers:request.headers,body:JSON.stringify({title:title||agent.name,text:sceneText,style:b.style||agent.style,director:b.director||'auto'})});
-   const response=await handleVisual(visualReq,env);const data=await response.json().catch(()=>({}));
-   scenes.push({index:i+1,narration:beats[i],image_data_uri:data.image_data_uri||null,prompt:data.prompt||sceneText,provider:data.provider||null,error:response.ok?null:(data.detail||'Scene failed'),motion:'slow cinematic push, parallax pan, subtle character movement'});
-  }
-  return json({ok:true,agent,format:b.format||'16:9',title,scenes,character:character?{id:'magnanimous-ai',name:'Magnanimous AI',visual_direction:MAGNANIMOUS_MOTION}:null,assembly:{mode:'all-in-one-browser-motion-picture',narration_endpoint:'/api/video-agents/narration',features:['AI scene generation','neural narration','captions','cinematic pan and zoom','cross-scene continuity','ambient soundtrack','single-file video export'],note:'The browser motion-picture renderer combines generated scenes with Workers AI narration and soundtrack into one video. Premium presenter providers remain optional.'},providers});
- }
- return json({detail:'Unsupported video-agent operation.'},405);
+ if(request.method==='POST'&&url.pathname==='/api/video-agents/storyboard'){const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use Video Agents.'},401);const b=await request.json().catch(()=>({}));const agent=AGENTS.find(a=>a.id===String(b.agent_id||''))||AGENTS[0];const title=txt(b.title,180),message=txt(b.message,8000);if(!title&&!message)return json({detail:'Add a title or transcript.'},400);if(agent.tier!=='free-first'&&!providers.heygen&&!providers.tavus&&!providers.free_avatar)return json({detail:'The presenter agent needs HeyGen, Tavus, or a self-hosted avatar renderer. Use Magnanimous Motion Picture AI or another free-first agent instead.',code:'PRESENTER_PROVIDER_REQUIRED'},409);const beats=splitStory(message,Math.max(3,Math.min(8,Number(b.scenes||agent.scenes))));const scenes=[];const character=String(b.character||agent.character||'')==='magnanimous-ai'?MAGNANIMOUS_MOTION:'';for(let i=0;i<beats.length;i++){const sceneText=`Scene ${i+1} of ${beats.length}. Narration meaning: ${beats[i]}. ${character} ${txt(b.visual_direction,1200)} Camera: smooth cinematic motion, gentle push-in or tracking movement, coherent lighting and continuity with the previous scene.`;const visualReq=new Request(new URL('/api/visual/scene',request.url),{method:'POST',headers:request.headers,body:JSON.stringify({title:title||agent.name,text:sceneText,style:b.style||agent.style,director:b.director||'auto'})});const response=await handleVisual(visualReq,env);const data=await response.json().catch(()=>({}));scenes.push({index:i+1,narration:beats[i],image_data_uri:data.image_data_uri||null,prompt:data.prompt||sceneText,provider:data.provider||null,error:response.ok?null:(data.detail||'Scene failed'),motion:'slow cinematic push, parallax pan, subtle character movement',recommended_video_provider:chooseProvider(env,{provider:b.provider||'auto',mode:b.mode||'cinematic',native_audio:b.native_audio!==false})})}return json({ok:true,agent,format:b.format||'16:9',title,scenes,character:character?{id:'magnanimous-ai',name:'Magnanimous AI',visual_direction:MAGNANIMOUS_MOTION}:null,assembly:{mode:'multi-provider-motion-picture',generate_endpoint:'/api/video-agents/generate',task_endpoint:'/api/video-agents/task',narration_endpoint:'/api/video-agents/narration',features:['AI scene generation','native motion-video provider routing','neural narration','native audio when provider supports it','captions','cinematic pan and zoom fallback','cross-scene continuity','ambient soundtrack','single-file browser export'],note:'Magnanimous can route each scene to Veo, Runway, Luma, presenter providers, or the free-first browser renderer based on availability and the selected job.'},providers,provider_catalog:providerCatalog(env)});}
+ return json({detail:'Unsupported video-agent operation.'},405)
 }
