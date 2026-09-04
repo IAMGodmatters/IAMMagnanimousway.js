@@ -50,11 +50,13 @@ jobs:
           data=json.load(open('/tmp/plan-config.json'))
           assert data.get('enabled') is True, data
           assert data.get('free_preview') is True, data
-          assert data.get('one_time_price_usd') == 79, data
+          assert data.get('monthly_price_usd') == 79, data
+          assert data.get('billing_interval') == 'month', data
+          assert data.get('recurring') is True, data
           assert data.get('included_with_full_business') is True, data
           assert len(data.get('pipeline') or []) >= 10, data
           PY
-          echo "Verified: professional business-plan pipeline config"
+          echo "Verified: professional business-plan subscription pipeline config"
 
           status=$(curl -LsS -o /tmp/operator.json -w '%{http_code}' "$SITE/api/operator/capabilities")
           [ "$status" = "200" ] || { echo "Operator capabilities returned $status"; cat /tmp/operator.json; exit 1; }
