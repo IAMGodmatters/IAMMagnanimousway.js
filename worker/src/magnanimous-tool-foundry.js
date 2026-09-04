@@ -31,6 +31,22 @@ async function upsertSpec(env,{tenant,uid,name,purpose,family,inputs={},outputs=
  return env.DB.prepare('SELECT id,name,purpose,family,risk,status FROM magnanimous_native_tool_specs WHERE tenant_id=? AND user_id=? AND name=?').bind(tenant,uid,safeName).first();
 }
 
+export async function getMagnanimousToolFoundryContext(request,env,goal=''){
+ if(!env?.DB)return{context:'',tools:[],recommended_integrations:[]};
+ const user=await currentUser(request,env).catch(()=>null);if(!user)return{context:'',tools:[],recommended_integrations:rankIntegrationTargets(goal).slice(0,6)};
+ try{
+  await schema(env);const tenant=String(user.tenant_id),uid=String(user.id);
+  const {results=[]}=await env.DB.prepare("SELECT name,purpose,family,risk,status,uses,successes,steps_json FROM magnanimous_native_tool_specs WHERE tenant_id=? AND user_id=? AND status IN ('ready','proposed') ORDER BY CASE status WHEN 'ready' THEN 0 ELSE 1 END, successes DESC, uses DESC, updated_at DESC LIMIT 40").bind(tenant,uid).all();
+  const terms=String(goal||'').toLowerCase().split(/[^a-z0-9]+/).filter(x=>x.length>2);
+  const ranked=results.map(x=>{const hay=`${x.name} ${x.purpose} ${x.family}`.toLowerCase();return{...x,match:terms.reduce((n,t)=>n+(hay.includes(t)?1:0),0)}}).sort((a,b)=>b.match-a.match||(a.status==='ready'?-1:1)-(b.status==='ready'?-1:1)||Number(b.successes||0)-Number(a.successes||0)).slice(0,10);
+  const recommended=rankIntegrationTargets(goal).slice(0,6);
+  const lines=[];
+  if(ranked.length){lines.push('\n\nMAGNANIMOUS LEARNED TOOL RECIPES:');for(const x of ranked){const rate=Number(x.uses||0)>0?`${Math.round(Number(x.successes||0)/Number(x.uses||1)*100)}% observed success`:'unscored';lines.push(`- ${x.name} [${x.status}/${x.risk}]: ${clip(x.purpose,500)} (${rate})`)}lines.push('Treat proposed recipes as planning guidance only. Never execute high-impact actions merely because a recipe exists.');}
+  if(recommended.length){lines.push('\nINTEGRATION ROUTING CANDIDATES:');for(const x of recommended)lines.push(`- ${x.name}: ${x.capabilities.join(', ')} [${x.priority}]`);lines.push('These are adapter targets, not automatically authorized accounts. Prefer Magnanimous native/free capability first; use a provider only when connected and materially better.');}
+  return{context:lines.join('\n').slice(0,9000),tools:ranked,recommended_integrations:recommended};
+ }catch(e){return{context:'',tools:[],recommended_integrations:rankIntegrationTargets(goal).slice(0,6),error:clip(e?.message||e,500)}}
+}
+
 export async function handleMagnanimousToolFoundry(request,env){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/magnanimous/tool-foundry'))return null;
  if(!env?.DB)return json({detail:'Tool Foundry requires D1.'},503);
