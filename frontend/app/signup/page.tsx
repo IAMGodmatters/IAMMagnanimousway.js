@@ -49,16 +49,17 @@ export default function SignupPage() {
     <main style={styles.page}>
       <div style={styles.glow} aria-hidden="true" />
       <section style={styles.card}>
+        <a href="/solutions" style={styles.back}>← About the platform</a>
         <div style={styles.mark}>✦</div>
         <div style={styles.eyebrow}>I AM MAGNANIMOUS WAY™</div>
         <h1 style={styles.title}>Create your I AM account</h1>
-        <p style={styles.sub}>Create your own login and private workspace. After signup, we will show you a simple Start Here guide so you can choose what you need without learning the whole platform first.</p>
+        <p style={styles.sub}>Create a regular customer login and private workspace. After signup, the Start Here page will guide you to the right tools without making you learn the entire platform first.</p>
         <form onSubmit={submit} style={styles.form}>
-          <input required autoComplete="name" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} style={styles.input} />
-          <input autoComplete="organization" placeholder="Workspace or business name (optional)" value={workspace} onChange={e => setWorkspace(e.target.value)} style={styles.input} />
-          <input required type="email" autoComplete="email" placeholder="Your email address" value={email} onChange={e => setEmail(e.target.value)} style={styles.input} />
-          <input required type="password" minLength={8} autoComplete="new-password" placeholder="Password (8+ characters)" value={password} onChange={e => setPassword(e.target.value)} style={styles.input} />
-          <input required type="password" minLength={8} autoComplete="new-password" placeholder="Confirm password" value={confirm} onChange={e => setConfirm(e.target.value)} style={styles.input} />
+          <label style={styles.field}><span style={styles.fieldLabel}>Your name</span><input required autoComplete="name" placeholder="Name shown in your workspace" value={name} onChange={e => setName(e.target.value)} style={styles.input} /></label>
+          <label style={styles.field}><span style={styles.fieldLabel}>Workspace or business name <em style={styles.optional}>optional</em></span><input autoComplete="organization" placeholder="Example: Hardin Family Business" value={workspace} onChange={e => setWorkspace(e.target.value)} style={styles.input} /></label>
+          <label style={styles.field}><span style={styles.fieldLabel}>Email address</span><input required type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} style={styles.input} /></label>
+          <label style={styles.field}><span style={styles.fieldLabel}>Password</span><input required type="password" minLength={8} autoComplete="new-password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)} style={styles.input} /></label>
+          <label style={styles.field}><span style={styles.fieldLabel}>Confirm password</span><input required type="password" minLength={8} autoComplete="new-password" placeholder="Type the same password again" value={confirm} onChange={e => setConfirm(e.target.value)} style={styles.input} /></label>
           <div style={styles.consentBox}>
             <label style={styles.checkRow}><input type="checkbox" checked={privacyConsent} onChange={e => setPrivacyConsent(e.target.checked)} style={styles.checkbox} /><span>I acknowledge the <a href="/privacy" target="_blank" rel="noreferrer" style={styles.link}>Privacy Notice</a> and consent to the collection and processing of my account information as needed to provide and secure the service, administer my account, and manage the customer/lead relationship. <b>Required.</b></span></label>
             <label style={styles.checkRow}><input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} style={styles.checkbox} /><span>I have read and accept the <a href="/terms" target="_blank" rel="noreferrer" style={styles.link}>Terms of Service</a>. <b>Required.</b></span></label>
@@ -69,7 +70,7 @@ export default function SignupPage() {
           {error && <div role="alert" style={styles.error}>{error}</div>}
         </form>
         <p style={styles.switch}>Already have an account? <a href="/login" style={styles.link}>Sign in</a></p>
-        <p style={styles.switch}>Owner or administrator? <a href="/owner-login" style={styles.link}>Owner / Admin Login</a></p>
+        <p style={styles.ownerSwitch}>Platform owner only: <a href="/owner-login" style={styles.link}>open owner sign-in</a></p>
       </section>
     </main>
   );
@@ -79,11 +80,15 @@ const styles: Record<string, React.CSSProperties> = {
   page: { minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24, position: 'relative', overflow: 'auto', background: 'radial-gradient(circle at 80% 20%, rgba(82,92,255,.18), transparent 35%), radial-gradient(circle at 20% 80%, rgba(0,220,255,.12), transparent 32%), #05070d', color: '#f7f9ff', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
   glow: { position: 'fixed', width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, rgba(83,220,255,.12), transparent 68%)', filter: 'blur(8px)', pointerEvents: 'none' },
   card: { width: 'min(100%, 560px)', padding: '42px 34px', border: '1px solid rgba(120,150,255,.25)', borderRadius: 28, background: 'rgba(9,13,25,.86)', boxShadow: '0 30px 100px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06)', backdropFilter: 'blur(18px)', position: 'relative', zIndex: 1, margin: '20px 0' },
+  back: { display: 'inline-block', color: '#92a9ba', fontSize: 12, fontWeight: 700, textDecoration: 'none', marginBottom: 18 },
   mark: { width: 54, height: 54, display: 'grid', placeItems: 'center', borderRadius: 16, background: 'linear-gradient(135deg, #5b6cff, #00d9ff)', color: '#fff', fontSize: 27, marginBottom: 20, boxShadow: '0 10px 35px rgba(0,190,255,.22)' },
   eyebrow: { fontSize: 12, letterSpacing: '.18em', fontWeight: 800, opacity: .72 },
   title: { fontSize: 'clamp(30px, 6vw, 44px)', lineHeight: 1.05, margin: '12px 0 12px' },
   sub: { color: '#aeb7cc', lineHeight: 1.55, marginBottom: 28 },
   form: { display: 'grid', gap: 13 },
+  field: { display: 'grid', gap: 6 },
+  fieldLabel: { color: '#d8e4f2', fontSize: 12, fontWeight: 750 },
+  optional: { color: '#7f8ca3', fontSize: 10, fontStyle: 'normal', fontWeight: 500 },
   input: { width: '100%', boxSizing: 'border-box', padding: '14px 15px', borderRadius: 13, border: '1px solid rgba(150,165,210,.22)', background: 'rgba(255,255,255,.045)', color: '#fff', outline: 'none', fontSize: 15 },
   consentBox: { display: 'grid', gap: 12, padding: 14, borderRadius: 14, border: '1px solid rgba(118,220,255,.2)', background: 'rgba(70,120,170,.06)' },
   checkRow: { display: 'grid', gridTemplateColumns: '22px 1fr', gap: 10, alignItems: 'start', color: '#c7d2e5', fontSize: 12.5, lineHeight: 1.5, cursor: 'pointer' },
@@ -92,5 +97,6 @@ const styles: Record<string, React.CSSProperties> = {
   button: { width: '100%', border: 0, borderRadius: 13, padding: '14px 16px', fontWeight: 800, fontSize: 15, color: '#fff', cursor: 'pointer', background: 'linear-gradient(135deg, #5366ff, #00bfe8)', boxShadow: '0 12px 28px rgba(0,150,255,.2)' },
   error: { padding: '11px 13px', borderRadius: 11, background: 'rgba(255,75,100,.10)', border: '1px solid rgba(255,100,120,.25)', color: '#ffb9c4', fontSize: 14 },
   switch: { textAlign: 'center', color: '#aeb7cc', fontSize: 14, marginTop: 18 },
+  ownerSwitch: { textAlign: 'center', color: '#76849a', fontSize: 11, marginTop: 10 },
   link: { color: '#76dcff', fontWeight: 700, textDecoration: 'none' },
 };

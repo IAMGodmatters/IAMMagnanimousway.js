@@ -33,14 +33,15 @@ const structuredData={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="en"><body>{children}<PlatformChrome/><GlobalTools/><InteractionClarity/>
-    <style>{`html[data-iam-public="true"] .iam-intelligence-art,html[data-iam-public="true"] .iam-command-button,html[data-iam-public="true"] .iam-command-menu,html[data-iam-public="true"] .iam-va-button,html[data-iam-public="true"] .iam-nudge,html[data-iam-public="true"] .iam-va-panel,html[data-iam-public="true"] .iam-global-tools{display:none!important}`}</style>
+  return <html lang="en"><body><a className="iam-skip-link" href="#iam-main">Skip to main content</a>{children}<PlatformChrome/><GlobalTools/><InteractionClarity/>
+    <style>{`html{color-scheme:dark;scroll-behavior:smooth}body{margin:0}.iam-skip-link{position:fixed;left:16px;top:12px;z-index:2147483647;transform:translateY(-150%);padding:11px 14px;border-radius:9px;background:#eafaff;color:#051015;font:900 13px Inter,system-ui,sans-serif;text-decoration:none;box-shadow:0 8px 30px rgba(0,0,0,.4)}.iam-skip-link:focus{transform:translateY(0)}:where(a,button,input,textarea,select,[role="button"]):focus-visible{outline:3px solid #63e6ff!important;outline-offset:3px!important}::selection{background:#55d9f0;color:#041017}html[data-iam-public="true"] .iam-intelligence-art,html[data-iam-public="true"] .iam-command-button,html[data-iam-public="true"] .iam-command-menu,html[data-iam-public="true"] .iam-va-button,html[data-iam-public="true"] .iam-nudge,html[data-iam-public="true"] .iam-va-panel,html[data-iam-public="true"] .iam-global-tools{display:none!important}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}`}</style>
     <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
     <script dangerouslySetInnerHTML={{__html:`(function(){
       function normalize(path){var clean=(path||'/').replace(/\\/+$/,'');return clean||'/';}
       var publicPaths=['/solutions','/business-plan','/guide','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise','/security'];
       var currentPath=normalize(location.pathname);
       if(publicPaths.indexOf(currentPath)!==-1)document.documentElement.setAttribute('data-iam-public','true');
+      var main=document.querySelector('main');if(main&&!main.id)main.id='iam-main';
       function migrateMagnanimousSession(){
         var official=localStorage.getItem('magnanimous_admin_token');
         var legacy=localStorage.getItem('odin_admin_token');
