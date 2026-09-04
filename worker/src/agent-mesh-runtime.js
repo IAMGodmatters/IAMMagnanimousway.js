@@ -2,6 +2,19 @@ import { currentUser } from './integrations.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
+const AGENT_MODEL_TIMEOUT_MS=12000;
+const AGENT_PROVIDER_TIMEOUT_MS=16000;
+const AGENT_MAX_TOKENS=800;
+
+async function withTimeout(factory,ms,label){
+ let timer;
+ try{
+  return await Promise.race([
+   Promise.resolve().then(factory),
+   new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label} timed out after ${ms}ms`)),ms)})
+  ]);
+ }finally{if(timer)clearTimeout(timer)}
+}
 
 const GROUPS=[
  {id:'everyday',name:'Everyday Life',description:'Planning, organization, travel, budgeting guidance, home tasks and practical day-to-day help.'},
@@ -180,7 +193,7 @@ function nativeSummary(data){
 }
 
 async function chatCompletionsCompatible(base,key,model,messages,label,extraHeaders={}){
- const r=await fetch(`${base}/chat/completions`,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`,...extraHeaders},body:JSON.stringify({model,messages,temperature:.45,max_tokens:1600})});
+ const r=await withTimeout(()=>fetch(`${base}/chat/completions`,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`,...extraHeaders},body:JSON.stringify({model,messages,temperature:.45,max_tokens:AGENT_MAX_TOKENS})}),AGENT_PROVIDER_TIMEOUT_MS,label);
  const d=await r.json().catch(()=>({}));
  if(!r.ok)throw new Error(d?.error?.message||d?.message||`${label} request failed (${r.status})`);
  return {text:String(d?.choices?.[0]?.message?.content||''),model};
@@ -200,8 +213,13 @@ async function runProvider(id,env,messages,requestedModel=''){
  if(id==='cloudflare-ai'){
   const models=[requestedModel,String(env.AGENT_CLOUDFLARE_MODEL||''),'@cf/zai-org/glm-4.7-flash','@cf/google/gemma-4-26b-a4b-it','@cf/nvidia/nemotron-3-120b-a12b'].filter(Boolean);
   const errors=[];
-  for(const model of [...new Set(models)]){
-   try{const out=await env.AI.run(model,{messages,max_tokens:1600});const value=extractCloudflareText(out).trim();if(value)return{text:value,model};errors.push(`${model}: empty`)}catch(e){errors.push(`${model}: ${e?.message||'failed'}`)}
+  for(const model of [...new Set(models)].slice(0,3)){
+   try{
+    const out=await withTimeout(()=>env.AI.run(model,{messages,max_tokens:AGENT_MAX_TOKENS}),AGENT_MODEL_TIMEOUT_MS,`Cloudflare Workers AI ${model}`);
+    const value=extractCloudflareText(out).trim();
+    if(value)return{text:value,model};
+    errors.push(`${model}: empty`);
+   }catch(e){errors.push(`${model}: ${e?.message||'failed'}`)}
   }
   throw new Error(errors.join(' | '));
  }
@@ -209,7 +227,7 @@ async function runProvider(id,env,messages,requestedModel=''){
   const model=requestedModel||env.GOOGLE_MODEL||'gemini-3.7-flash';
   const system=messages.filter(m=>m.role==='system').map(m=>m.content).join('\n\n');
   const contents=messages.filter(m=>m.role!=='system').map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
-  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(env.GOOGLE_API_KEY)}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({system_instruction:{parts:[{text:system}]},contents,generationConfig:{temperature:.45,maxOutputTokens:1600}})});
+  const r=await withTimeout(()=>fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(env.GOOGLE_API_KEY)}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({system_instruction:{parts:[{text:system}]},contents,generationConfig:{temperature:.45,maxOutputTokens:AGENT_MAX_TOKENS}})}),AGENT_PROVIDER_TIMEOUT_MS,'Google Gemini');
   const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||'Gemini request failed');return{text:(d.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('').trim(),model};
  }
  if(id==='groq')return chatCompletionsCompatible('https://api.groq.com/openai/v1',env.GROQ_API_KEY,requestedModel||env.GROQ_MODEL||'qwen/qwen3.6-27b',messages,'Groq');
@@ -270,7 +288,7 @@ export async function handleAgentMesh(request,env){
   if(!agent)return json({detail:'Choose a valid I AM agent.'},400);if(!message)return json({detail:'Message is required.'},400);
   await saveMessage(env,user,agent.id,'user',message);
   const [team,integrations,native]=await Promise.all([teamMemory(env,user.tenant_id,agent.id),connectedPlatformContext(env,user.tenant_id),nativeWorkspaceContext(env,user.tenant_id)]);
-  const prior=(await history(env,user,agent.id)).slice(-12).filter(x=>x.content!==message).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content}));
+  const prior=(await history(env,user,agent.id)).slice(-8).filter(x=>x.content!==message).map(x=>({role:x.role==='assistant'?'assistant':'user',content:String(x.content||'').slice(0,4000)}));
   const messages=[{role:'system',content:buildSystem(agent,team,integrations,native)},...prior,{role:'user',content:message}];
   const requested=String(body.provider||'auto').toLowerCase();const candidates=requested==='auto'?[...PROVIDERS].sort((a,b)=>a.priority-b.priority):PROVIDERS.filter(p=>p.id===requested);
   const ready=candidates.filter(p=>configured(env,p));
