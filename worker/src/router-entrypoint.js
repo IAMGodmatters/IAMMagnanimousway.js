@@ -10,6 +10,8 @@ import { handleSocialPublishing } from './social-publishing-runtime.js';
 import { handleKnowledge } from './knowledge-runtime.js';
 import { handleMagnanimousBrain, getMagnanimousMemoryContext } from './magnanimous-brain-runtime.js';
 import { handleMagnanimousToolGateway } from './magnanimous-tool-gateway.js';
+import { handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
+import { handleWellness } from './wellness-runtime.js';
 import { handleProfessionalWorkspace } from './professional-workspace-runtime.js';
 import { handleFinancePeople } from './finance-people-v2.js';
 import { handleCallCenterHealth } from './call-center-health-runtime.js';
@@ -64,6 +66,7 @@ function isMagnanimousRoute(pathname) {
 function needsProviderRuntime(pathname) {
   return isMagnanimousRoute(pathname) ||
     pathname.startsWith('/api/magnanimous/') ||
+    pathname.startsWith('/api/wellness') ||
     pathname.startsWith('/api/business-plan') ||
     pathname.startsWith('/api/visual') ||
     pathname.startsWith('/api/video-agents') ||
@@ -130,6 +133,14 @@ export default {
       if (url.pathname.startsWith('/api/bpo')) {
         const bpoResponse = await handleBpoOperations(request, env);
         if (bpoResponse) return withCors(bpoResponse);
+      }
+      if (url.pathname.startsWith('/api/wellness')) {
+        const wellnessResponse = await handleWellness(request, providerEnv);
+        if (wellnessResponse) return withCors(wellnessResponse);
+      }
+      if (url.pathname.startsWith('/api/magnanimous/tool-foundry')) {
+        const foundryResponse = await handleMagnanimousToolFoundry(request, providerEnv);
+        if (foundryResponse) return withCors(foundryResponse);
       }
       if (url.pathname.startsWith('/api/magnanimous/tools')) {
         const toolResponse = await handleMagnanimousToolGateway(request, providerEnv);
