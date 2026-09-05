@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
+
+import ModeHero from "../../components/ModeHero";
+import {
+  MODE_OPTIONS,
+  MODE_VISUALS,
+  MagnanimousMode,
+  normalizeMode,
+} from "../../lib/mode-visuals";
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-const modes = [
-  "General",
-  "Business",
-  "Social Media",
-  "Virtual Assistant",
-  "Research",
-  "Writing",
-];
 
 type Source = { title?: string; url?: string; source?: string };
 type Exchange = {
@@ -50,7 +50,7 @@ export default function AIChat() {
   const [ready, setReady] = useState(false);
   const [provider, setProvider] = useState("");
   const [model, setModel] = useState("");
-  const [mode, setMode] = useState("General");
+  const [mode, setMode] = useState<MagnanimousMode>("General");
   const [webSearchReady, setWebSearchReady] = useState(false);
   const [notice, setNotice] = useState("");
 
@@ -58,7 +58,7 @@ export default function AIChat() {
     const query = new URLSearchParams(location.search);
     const requestedMode = query.get("mode");
     const prompt = query.get("prompt");
-    if (requestedMode && modes.includes(requestedMode)) setMode(requestedMode);
+    if (requestedMode) setMode(normalizeMode(requestedMode));
     if (prompt) setMessage(prompt);
 
     Promise.all([
@@ -161,13 +161,22 @@ export default function AIChat() {
     setModel("");
   }
 
+  function chooseMode(nextMode: MagnanimousMode) {
+    setMode(nextMode);
+    const url = new URL(window.location.href);
+    url.searchParams.set("mode", nextMode);
+    window.history.replaceState({}, "", url);
+  }
+
   const status = checking ? "CHECKING" : ready ? "READY" : "SETUP NEEDED";
   const researchLabel = webSearchReady
     ? "Live web and news search available"
     : "Live web search is not connected";
+  const activeMode = normalizeMode(mode);
+  const activeVisual = MODE_VISUALS[activeMode];
 
   return (
-    <main className="odin">
+    <main className={`odin ai-chat ${activeVisual.themeClass}`}>
       <aside>
         <a href="/" className="back">
           ← Dashboard
@@ -180,15 +189,30 @@ export default function AIChat() {
           </div>
         </div>
         <small>MODES</small>
-        {modes.map((item) => (
-          <button
-            key={item}
-            className={mode === item ? "active" : ""}
-            onClick={() => setMode(item)}
-          >
-            {item}
-          </button>
-        ))}
+        <div className="mode-list">
+          {MODE_OPTIONS.map((item) => {
+            const visual = MODE_VISUALS[item];
+            const active = activeMode === item;
+            return (
+              <button
+                key={item}
+                type="button"
+                className={`mode-card ${active ? "active" : ""} ${visual.themeClass}`}
+                style={{ "--card-accent": visual.accent } as CSSProperties}
+                onClick={() => chooseMode(item)}
+                aria-pressed={active}
+              >
+                <span className="mode-card-thumb">
+                  <img src={visual.image} alt="" />
+                </span>
+                <span className="mode-card-copy">
+                  <strong>{item}</strong>
+                  <em>{visual.title}</em>
+                </span>
+              </button>
+            );
+          })}
+        </div>
         <small>WORKSPACES</small>
         <a href="/business-plan">Professional Business Launch</a>
         <a href="/knowledge">Knowledge Center</a>
@@ -200,12 +224,8 @@ export default function AIChat() {
       <section className="main">
         <header>
           <div>
-            <small>AI WORKSPACE</small>
-            <h1>Magnanimous AI</h1>
-            <p>
-              Ask questions, create drafts, and continue a conversation using a
-              connected AI provider.
-            </p>
+            <small>AI WORKSPACE · {activeMode.toUpperCase()}</small>
+            <p>{activeVisual.subtitle}</p>
           </div>
           <div className={`status ${ready ? "ready" : ""}`}>
             <b>{status}</b>
@@ -215,22 +235,15 @@ export default function AIChat() {
             </span>
           </div>
         </header>
-        <section className="scene">
-          <div className="rings">
-            <i />
-            <i />
-            <i />
-            <div>M</div>
-          </div>
-          <div className="meta">
-            <small>ACTIVE MODE</small>
-            <strong>{mode}</strong>
-            <span>
-              {mode === "Research"
-                ? researchLabel
-                : "Uses workspace knowledge when you are signed in and have saved sources"}
-            </span>
-          </div>
+        <ModeHero mode={activeMode} />
+        <section className="mode-context">
+          <small>ACTIVE MODE</small>
+          <strong>{activeMode}</strong>
+          <span>
+            {activeMode === "Research"
+              ? researchLabel
+              : "Uses workspace knowledge when you are signed in and have saved sources"}
+          </span>
         </section>
         <section className="console">
           <div className="consolehead">
@@ -338,33 +351,73 @@ export default function AIChat() {
         </section>
       </section>
       <style jsx>{`
+        .mode-theme-general {
+          --mode-bg-1: #0f1f3d;
+          --mode-bg-2: #243f73;
+          --mode-bg-3: #95afe8;
+          --mode-accent: #7fb6ff;
+        }
+        .mode-theme-business {
+          --mode-bg-1: #10281d;
+          --mode-bg-2: #1f5b43;
+          --mode-bg-3: #d7b85f;
+          --mode-accent: #8ee3a1;
+        }
+        .mode-theme-social {
+          --mode-bg-1: #35162f;
+          --mode-bg-2: #7f2d7f;
+          --mode-bg-3: #ff9bd7;
+          --mode-accent: #ff87dc;
+        }
+        .mode-theme-assistant {
+          --mode-bg-1: #12332f;
+          --mode-bg-2: #2a7068;
+          --mode-bg-3: #c3fff2;
+          --mode-accent: #7ff0d8;
+        }
+        .mode-theme-research {
+          --mode-bg-1: #101a33;
+          --mode-bg-2: #234b85;
+          --mode-bg-3: #9dbfff;
+          --mode-accent: #7aa7ff;
+        }
+        .mode-theme-writing {
+          --mode-bg-1: #2b1838;
+          --mode-bg-2: #6a3f89;
+          --mode-bg-3: #f0c4ff;
+          --mode-accent: #d39bff;
+        }
         .odin {
           min-height: 100vh;
-          background: #06050d;
+          position: relative;
+          background: var(--mode-bg-1);
           color: #f5f1ff;
           font-family: Inter, system-ui, sans-serif;
           display: grid;
-          grid-template-columns: 235px 1fr;
+          grid-template-columns: 278px 1fr;
           background-image:
             radial-gradient(
               circle at 65% 18%,
-              rgba(141, 87, 255, 0.14),
+              color-mix(in srgb, var(--mode-accent) 24%, transparent),
               transparent 28%
             ),
             radial-gradient(
               circle at 80% 70%,
-              rgba(0, 200, 255, 0.08),
+              color-mix(in srgb, var(--mode-bg-3) 15%, transparent),
               transparent 25%
-            );
+            ),
+            linear-gradient(145deg, #05070d 0%, var(--mode-bg-1) 48%, #05070d 100%);
+          transition: background 320ms ease, background-image 320ms ease;
         }
         aside {
           padding: 24px 14px;
-          border-right: 1px solid #20172f;
-          background: #090713;
+          border-right: 1px solid color-mix(in srgb, var(--mode-accent) 24%, transparent);
+          background: linear-gradient(180deg, color-mix(in srgb, var(--mode-bg-1) 58%, #05070d), #05070d 78%);
           min-height: 100vh;
+          transition: background 320ms ease, border-color 320ms ease;
         }
         .back {
-          color: #9b8bb4;
+          color: color-mix(in srgb, var(--mode-accent) 72%, white);
           text-decoration: none;
           font-size: 11px;
         }
@@ -380,9 +433,10 @@ export default function AIChat() {
           border-radius: 50%;
           display: grid;
           place-items: center;
-          border: 1px solid #8d60da;
-          color: #cba6ff;
-          box-shadow: 0 0 24px rgba(159, 91, 255, 0.25);
+          border: 1px solid var(--mode-accent);
+          color: var(--mode-accent);
+          box-shadow: 0 0 24px color-mix(in srgb, var(--mode-accent) 28%, transparent);
+          transition: color 320ms ease, border-color 320ms ease, box-shadow 320ms ease;
         }
         .brand b {
           font-size: 15px;
@@ -391,34 +445,89 @@ export default function AIChat() {
         .brand span {
           display: block;
           font-size: 8px;
-          color: #695d7a;
+          color: color-mix(in srgb, var(--mode-accent) 45%, #728096);
           letter-spacing: 0.16em;
         }
         .odin aside > small {
           display: block;
-          color: #71647e;
+          color: color-mix(in srgb, var(--mode-accent) 48%, #718096);
           font-size: 10px;
           letter-spacing: 0.18em;
           margin: 18px 8px 7px;
         }
-        .odin aside button,
         .odin aside > a:not(.back) {
           display: block;
           width: 100%;
           text-align: left;
           border: 0;
           background: transparent;
-          color: #a698b8;
+          color: #aeb8c8;
           padding: 10px;
           border-radius: 7px;
           text-decoration: none;
           font-size: 12px;
           cursor: pointer;
         }
-        .odin aside button.active,
         .odin aside > a:not(.back):hover {
-          background: #151021;
-          color: #dfc8ff;
+          background: color-mix(in srgb, var(--mode-bg-2) 28%, #090b12);
+          color: #ffffff;
+        }
+        .mode-list {
+          display: grid;
+          gap: 8px;
+        }
+        .mode-card {
+          width: 100%;
+          display: grid;
+          grid-template-columns: 62px 1fr;
+          gap: 10px;
+          align-items: center;
+          padding: 7px;
+          border: 1px solid transparent;
+          border-radius: 12px;
+          background: rgba(6, 9, 15, 0.58);
+          color: #dce6f3;
+          text-align: left;
+          cursor: pointer;
+          transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+        }
+        .mode-card:hover {
+          transform: translateX(2px);
+          border-color: color-mix(in srgb, var(--card-accent) 42%, transparent);
+          background: color-mix(in srgb, var(--mode-bg-2) 22%, #080b12);
+        }
+        .mode-card.active {
+          border-color: var(--card-accent);
+          background: color-mix(in srgb, var(--mode-bg-2) 38%, #080b12);
+          box-shadow: 0 0 24px color-mix(in srgb, var(--card-accent) 18%, transparent);
+        }
+        .mode-card-thumb {
+          width: 62px;
+          aspect-ratio: 16 / 10;
+          overflow: hidden;
+          border: 1px solid color-mix(in srgb, var(--card-accent) 40%, transparent);
+          border-radius: 8px;
+          background: #06080d;
+        }
+        .mode-card-thumb img {
+          width: 100%;
+          height: 100%;
+          display: block;
+          object-fit: cover;
+        }
+        .mode-card-copy,
+        .mode-card-copy strong,
+        .mode-card-copy em {
+          display: block;
+        }
+        .mode-card-copy strong {
+          font-size: 11px;
+        }
+        .mode-card-copy em {
+          margin-top: 3px;
+          color: color-mix(in srgb, var(--card-accent) 68%, #8290a3);
+          font-size: 8px;
+          font-style: normal;
         }
         .main {
           padding: 28px 34px 50px;
@@ -432,29 +541,25 @@ export default function AIChat() {
           gap: 20px;
         }
         header small,
-        .meta small {
+        .mode-context small {
           font-size: 10px;
           letter-spacing: 0.18em;
-          color: #9475b4;
+          color: var(--mode-accent);
           font-weight: 900;
         }
-        header h1 {
-          font-size: clamp(38px, 6vw, 72px);
-          margin: 5px 0;
-          letter-spacing: -0.03em;
-        }
         header p {
-          color: #a597b2;
+          color: color-mix(in srgb, var(--mode-bg-3) 68%, white);
           margin: 0;
           line-height: 1.55;
         }
         .status {
           padding: 11px 14px;
-          border: 1px solid #463653;
+          border: 1px solid color-mix(in srgb, var(--mode-accent) 38%, transparent);
           border-radius: 10px;
-          background: #0c0914;
+          background: color-mix(in srgb, var(--mode-bg-1) 54%, #06080d);
           text-align: right;
           height: max-content;
+          box-shadow: 0 0 28px color-mix(in srgb, var(--mode-accent) 10%, transparent);
         }
         .status b {
           display: block;
@@ -471,78 +576,33 @@ export default function AIChat() {
           margin-top: 3px;
           max-width: 240px;
         }
-        .scene {
-          height: 260px;
-          margin: 28px 0 15px;
-          border: 1px solid #211831;
-          border-radius: 20px;
-          background: linear-gradient(135deg, #0d0a17, #0a0712);
+        .mode-context {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: auto auto 1fr;
+          gap: 13px;
           align-items: center;
-          overflow: hidden;
+          margin: 0 0 15px;
+          padding: 12px 15px;
+          border: 1px solid color-mix(in srgb, var(--mode-accent) 28%, transparent);
+          border-radius: 12px;
+          background: color-mix(in srgb, var(--mode-bg-1) 52%, #07090e);
         }
-        .rings {
-          width: 190px;
-          height: 190px;
-          border: 1px solid #463060;
-          border-radius: 50%;
-          margin: auto;
-          display: grid;
-          place-items: center;
-          position: relative;
-          box-shadow: 0 0 70px rgba(142, 76, 255, 0.12);
+        .mode-context strong {
+          color: var(--mode-accent);
+          font-size: 13px;
         }
-        .rings:before,
-        .rings:after,
-        .rings i {
-          content: "";
-          position: absolute;
-          border: 1px solid #30203f;
-          border-radius: 50%;
-        }
-        .rings:before {
-          inset: 24px;
-        }
-        .rings:after {
-          inset: 52px;
-        }
-        .rings i:nth-child(1) {
-          inset: -24px;
-        }
-        .rings i:nth-child(2) {
-          width: 1px;
-          height: 100%;
-          border: 0;
-          border-left: 1px solid #352446;
-          border-radius: 0;
-        }
-        .rings i:nth-child(3) {
-          width: 100%;
-          height: 1px;
-          border: 0;
-          border-top: 1px solid #352446;
-          border-radius: 0;
-        }
-        .rings div {
-          font: 900 18px Georgia;
-          color: #c8a6ff;
-          letter-spacing: 0.15em;
-        }
-        .meta strong {
-          display: block;
-          font-size: 42px;
-          margin: 8px 0;
-        }
-        .meta span {
-          color: #a093ab;
-          line-height: 1.5;
+        .mode-context span {
+          color: color-mix(in srgb, var(--mode-bg-3) 58%, #cbd5e2);
+          font-size: 12px;
+          line-height: 1.45;
         }
         .console {
-          border: 1px solid #271d37;
+          border: 1px solid color-mix(in srgb, var(--mode-accent) 27%, transparent);
           border-radius: 18px;
-          background: #0b0812;
+          background: color-mix(in srgb, var(--mode-bg-1) 36%, #06080d);
           padding: 19px;
+          box-shadow: 0 18px 54px rgba(0, 0, 0, 0.22);
+          transition: background 320ms ease, border-color 320ms ease;
         }
         .consolehead {
           display: flex;
@@ -550,13 +610,13 @@ export default function AIChat() {
           align-items: center;
           font-size: 10px;
           letter-spacing: 0.16em;
-          color: #9d86b6;
+          color: color-mix(in srgb, var(--mode-accent) 68%, #aab5c6);
         }
         .consolehead button {
-          border: 1px solid #3a2b4b;
+          border: 1px solid color-mix(in srgb, var(--mode-accent) 30%, transparent);
           border-radius: 7px;
           background: transparent;
-          color: #b9a4d1;
+          color: color-mix(in srgb, var(--mode-accent) 72%, white);
           padding: 8px 10px;
           font-size: 10px;
           cursor: pointer;
@@ -617,9 +677,9 @@ export default function AIChat() {
           min-height: 150px;
           margin: 14px 0 10px;
           padding: 17px;
-          border: 1px solid #3a2b50;
+          border: 1px solid color-mix(in srgb, var(--mode-accent) 34%, transparent);
           border-radius: 12px;
-          background: #07050c;
+          background: color-mix(in srgb, var(--mode-bg-1) 28%, #03050a);
           color: #f4efff;
           font: inherit;
           font-size: 16px;
@@ -642,7 +702,7 @@ export default function AIChat() {
         .actions button {
           border: 0;
           border-radius: 9px;
-          background: linear-gradient(90deg, #8256d6, #3c82f6);
+          background: linear-gradient(90deg, var(--mode-bg-2), var(--mode-accent));
           color: #fff;
           padding: 12px 18px;
           font-weight: 900;
@@ -663,12 +723,12 @@ export default function AIChat() {
         }
         .sources {
           margin: 14px 0 0 132px;
-          border-left: 2px solid #2e2140;
+          border-left: 2px solid var(--mode-accent);
           padding-left: 13px;
         }
         .sources > b {
           display: block;
-          color: #a389bf;
+          color: var(--mode-accent);
           font-size: 10px;
           letter-spacing: 0.14em;
           margin-bottom: 8px;
@@ -681,7 +741,7 @@ export default function AIChat() {
           font-size: 12px;
         }
         .sources div > span {
-          color: #9f79cf;
+          color: var(--mode-accent);
         }
         .sources a,
         .sources em {
@@ -700,12 +760,12 @@ export default function AIChat() {
           margin-top: 12px;
         }
         .quick a {
-          border: 1px solid #2d213d;
+          border: 1px solid color-mix(in srgb, var(--mode-accent) 24%, transparent);
           border-radius: 12px;
           padding: 14px;
-          color: #d8c6ea;
+          color: color-mix(in srgb, var(--mode-bg-3) 68%, white);
           text-decoration: none;
-          background: #090711;
+          background: color-mix(in srgb, var(--mode-bg-1) 34%, #06080d);
         }
         .quick b {
           display: block;
@@ -727,14 +787,9 @@ export default function AIChat() {
           .main {
             padding: 20px 14px;
           }
-          .scene {
+          .mode-context {
             grid-template-columns: 1fr;
-            height: auto;
-            padding: 25px;
-          }
-          .meta {
-            text-align: center;
-            margin-top: 20px;
+            gap: 4px;
           }
           .quick {
             grid-template-columns: 1fr;

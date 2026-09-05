@@ -4,7 +4,7 @@ export const metadata:Metadata={
  title:'Magnanimous AI Platform — Free-First Business, Creative & Calling Tools',
  description:'Start with Magnanimous AI, then use connected workspaces for business planning, CRM, content, calling, video, research and customer service.',
  alternates:{canonical:'/solutions/'},
- openGraph:{title:'The Magnanimous AI Family',description:'One platform for AI, business, creative work, communication, calling and automation.',images:['/magnanimous-family.png']}
+ openGraph:{title:'The Magnanimous AI Family',description:'One platform for AI, business, creative work, communication, calling and automation.',images:['/magnanimous-family-full.webp']}
 };
 
 const hubs=[
@@ -30,7 +30,7 @@ export default function Solutions(){
 
   <section className="hero">
    <div className="heroCopy"><small>THE MAGNANIMOUS AI FAMILY</small><h1>One place to plan, create, connect and grow.</h1><p><b>Magnanimous AI</b> gives you one clear starting point, then connects your goal with the right workspace: business planning, CRM, content, calling, video, research, customer service and more.</p><div className="actions"><a href="/signup">Create a free workspace →</a><a href="/login">Sign in</a><a href="/guide">See how it works</a></div></div>
-   <figure><img src="/magnanimous-family.png" alt="Magnanimous AI robot family representing the platform's specialist assistants"/><figcaption>One Magnanimous identity • Specialized helpers • Your workspace stays in your control</figcaption></figure>
+   <figure><img src="/magnanimous-family-full.webp" alt="Magnanimous AI robot family representing the platform's specialist assistants"/><figcaption>One Magnanimous identity • Specialized helpers • Your workspace stays in your control</figcaption></figure>
    <div className="trust"><span>✓ Useful free-first tools</span><span>✓ Approval before connected actions</span><span>✓ Separate customer workspaces</span><span>✓ Optional providers clearly identified</span></div>
   </section>
 
