@@ -38,7 +38,7 @@ export default function Home(){
 
   <section className="hero">
    <div className="heroCopy"><small>THE MAGNANIMOUS AI FAMILY</small><h1>One platform.<br/>Specialized AI<br/>helpers. One<br/><span>Magnanimous</span><br/>identity.</h1><p>Research, Bible study, business, creative work, communication, coding, support, travel, calling and automation — built as one connected family of assistants.</p><div className="actions"><a className="primary" href="/ai-chat">Open Magnanimous AI <b>›</b></a><a href="/auto-dialer">☎ Open Optional Auto Dialer</a><a href="/contact-center">♟ Open Contact Center</a></div></div>
-   <div className="artFrame"><img src="/magnanimous-family.png" alt="Magnanimous AI robot family and specialized helpers"/><div className="artGlow"></div></div>
+   <div className="artFrame"><img src="/magnanimous-family.svg" alt="Magnanimous AI robot family and specialized helpers"/><div className="artGlow"></div></div>
    <div className="heroBottom"><a href="/guide">ⓘ Platform guide</a><a href="/business-plan">▥ Suggested: Build a business growth plan →</a><a href="/virtual-assistant">▣ AI VA</a></div>
   </section>
 
