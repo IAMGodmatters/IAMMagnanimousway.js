@@ -110,25 +110,72 @@ async function localSearch(env,tenantId,q,limit=8){
     const term=`%${String(q||'').slice(0,120)}%`;const {results}=await env.DB.prepare('SELECT title,url,content,source_type,source_id,0 AS score FROM knowledge_chunks WHERE tenant_id=? AND (title LIKE ? OR content LIKE ?) ORDER BY id DESC LIMIT ?').bind(tenantId,term,term,limit).all();return results||[];
   }
 }
+
+function searchState(env){
+  const brave=Boolean(String(env?.BRAVE_SEARCH_API_KEY||'').trim());
+  return{
+    configured:true,
+    brave_search_configured:brave,
+    web_provider:brave?'Brave Search':'cl0q public web index',
+    news_provider:brave?'Brave News':'Google News RSS',
+    fallback_enabled:true
+  };
+}
 async function braveSearch(env,q,type='web',count=6,freshness=''){
   const key=String(env.BRAVE_SEARCH_API_KEY||'').trim();if(!key)return{configured:false,results:[]};
   const endpoint=type==='news'?'news':'web';const u=new URL(`https://api.search.brave.com/res/v1/${endpoint}/search`);u.searchParams.set('q',String(q).slice(0,400));u.searchParams.set('count',String(Math.max(1,Math.min(count,10))));u.searchParams.set('search_lang','en');if(freshness)u.searchParams.set('freshness',freshness);
-  const r=await fetch(u,{headers:{Accept:'application/json','X-Subscription-Token':key}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.message||d?.error?.message||`Web search failed (${r.status})`);
-  const raw=type==='news'?(d.results||[]):(d.web?.results||[]);return{configured:true,results:raw.slice(0,count).map(x=>({title:String(x.title||'Result'),url:String(x.url||''),description:String(x.description||x.snippet||''),age:x.age||'',source:type}))};
+  const r=await fetch(u,{headers:{Accept:'application/json','X-Subscription-Token':key}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.message||d?.error?.message||`Brave search failed (${r.status})`);
+  const raw=type==='news'?(d.results||[]):(d.web?.results||[]);return{configured:true,provider:type==='news'?'brave-news':'brave-search',results:raw.slice(0,count).map(x=>({title:String(x.title||'Result'),url:String(x.url||''),description:String(x.description||x.snippet||''),age:x.age||'',source:type==='news'?'brave-news':'brave-web'}))};
+}
+async function cl0qSearch(q,count=6){
+  const u=new URL('https://cl0q.com/search');u.searchParams.set('q',String(q).slice(0,400));u.searchParams.set('limit',String(Math.max(1,Math.min(count,10))));u.searchParams.set('safe','1');
+  const r=await fetch(u,{headers:{Accept:'application/json','User-Agent':'I-AM-Magnanimous-Research/1.0'}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error||`Public web search failed (${r.status})`);
+  const raw=Array.isArray(d?.results)?d.results:Array.isArray(d?.result)?d.result:[];
+  return raw.slice(0,count).map(x=>({
+    title:String(x.title||x.page_title||x.h1||x.domain||'Web result'),
+    url:String(x.url||x.link||x.canonical||''),
+    description:String(x.snippet||x.description||x.summary||x.h1||''),
+    age:String(x.last_crawled||x.crawled_at||''),
+    source:'cl0q-web'
+  })).filter(x=>x.url);
+}
+async function wikipediaSearch(q,count=6){
+  const u=new URL('https://en.wikipedia.org/w/api.php');u.searchParams.set('action','query');u.searchParams.set('list','search');u.searchParams.set('srsearch',String(q).slice(0,300));u.searchParams.set('srlimit',String(Math.max(1,Math.min(count,10))));u.searchParams.set('format','json');u.searchParams.set('origin','*');
+  const r=await fetch(u,{headers:{Accept:'application/json','User-Agent':'I-AM-Magnanimous-Research/1.0'}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(`Reference search failed (${r.status})`);
+  return (d?.query?.search||[]).slice(0,count).map(x=>({title:String(x.title||'Reference result'),url:`https://en.wikipedia.org/?curid=${encodeURIComponent(String(x.pageid||''))}`,description:htmlToText(x.snippet||''),age:'',source:'wikipedia-reference'}));
+}
+async function googleNewsSearch(q,count=6){
+  const u=new URL('https://news.google.com/rss/search');u.searchParams.set('q',String(q).slice(0,300));u.searchParams.set('hl','en-US');u.searchParams.set('gl','US');u.searchParams.set('ceid','US:en');
+  const r=await fetch(u,{headers:{Accept:'application/rss+xml, application/xml, text/xml','User-Agent':'I-AM-Magnanimous-News/1.0'}});if(!r.ok)throw new Error(`News search failed (${r.status})`);const xml=await r.text();
+  return rssEntries(xml).slice(0,count).map(x=>({title:x.title,url:x.url,description:x.content||x.title,age:'',source:'google-news-rss'}));
+}
+async function webSearch(env,q,count=6,freshness=''){
+  if(String(env?.BRAVE_SEARCH_API_KEY||'').trim()){
+    try{const r=await braveSearch(env,q,'web',count,freshness);if(r.results.length)return r.results;}catch(error){console.error('Brave web search failed; using public fallback',error)}
+  }
+  try{const results=await cl0qSearch(q,count);if(results.length)return results;}catch(error){console.error('cl0q web search failed; using reference fallback',error)}
+  try{return await wikipediaSearch(q,count)}catch(error){console.error('Wikipedia reference search failed',error);return[]}
+}
+async function newsSearch(env,q,count=6,freshness='pw'){
+  if(String(env?.BRAVE_SEARCH_API_KEY||'').trim()){
+    try{const r=await braveSearch(env,q,'news',count,freshness);if(r.results.length)return r.results;}catch(error){console.error('Brave news search failed; using public fallback',error)}
+  }
+  try{const results=await googleNewsSearch(q,count);if(results.length)return results;}catch(error){console.error('Google News RSS search failed; using public web fallback',error)}
+  try{return await cl0qSearch(q,count)}catch(error){console.error('Public news fallback failed',error);return[]}
 }
 async function rememberResults(env,user,results,sourceType){
-  let saved=0;for(const r of results){if(!r.url||!r.description)continue;const row=await upsertSource(env,String(user.tenant_id),{fingerprint:`${sourceType}:${r.url}`,sourceType,title:r.title,url:r.url,metadata:{discovered_at:now()}});if(row?.id){await replaceSourceChunks(env,String(user.tenant_id),row.id,sourceType,r.title,r.url,[r.description]);saved++;}}return saved;
+  let saved=0;for(const r of results){if(!r.url||!r.description)continue;const row=await upsertSource(env,String(user.tenant_id),{fingerprint:`${sourceType}:${r.url}`,sourceType,title:r.title,url:r.url,metadata:{discovered_at:now(),provider:r.source||''}});if(row?.id){await replaceSourceChunks(env,String(user.tenant_id),row.id,sourceType,r.title,r.url,[r.description]);saved++;}}return saved;
 }
 
 export async function getKnowledgeContext(request,env,query,opts={}){
-  if(!env?.DB)return{context:'',sources:[],user:null,search_configured:false};await ensureTables(env);const user=await currentUser(request,env);if(!user)return{context:'',sources:[],user:null,search_configured:Boolean(env.BRAVE_SEARCH_API_KEY)};
-  const tenant=String(user.tenant_id),local=await localSearch(env,tenant,query,Number(opts.localLimit||6));let web=[],news=[],configured=Boolean(env.BRAVE_SEARCH_API_KEY);
-  if(opts.liveSearch){const r=await braveSearch(env,query,'web',Number(opts.webLimit||5),opts.freshness||'');web=r.results;configured=r.configured;}
-  if(opts.news){const r=await braveSearch(env,query,'news',Number(opts.newsLimit||5),opts.freshness||'pw');news=r.results;configured=configured||r.configured;}
+  const state=searchState(env);if(!env?.DB)return{context:'',sources:[],user:null,search_configured:state.configured,search_state:state};await ensureTables(env);const user=await currentUser(request,env);if(!user)return{context:'',sources:[],user:null,search_configured:state.configured,search_state:state};
+  const tenant=String(user.tenant_id),local=await localSearch(env,tenant,query,Number(opts.localLimit||6));let web=[],news=[];
+  if(opts.liveSearch)web=await webSearch(env,query,Number(opts.webLimit||5),opts.freshness||'');
+  if(opts.news)news=await newsSearch(env,query,Number(opts.newsLimit||5),opts.freshness||'pw');
   if(opts.remember){if(web.length)await rememberResults(env,user,web,'web-search');if(news.length)await rememberResults(env,user,news,'news-search');}
   const sources=[...local.map(x=>({title:x.title,url:x.url,description:x.content,source:x.source_type||'workspace'})),...web,...news].slice(0,16);
   const context=sources.length?`\n\nGROUNDING SOURCES (use these as context; do not claim unsupported facts):\n${sources.map((s,i)=>`[${i+1}] ${s.title}${s.url?` — ${s.url}`:''}\n${String(s.description||'').slice(0,1400)}`).join('\n\n')}\n\nWhen these sources support the answer, cite them as [1], [2], etc. Distinguish stored workspace knowledge from fresh web/news information.`:'';
-  return{context,sources,user,search_configured:configured};
+  return{context,sources,user,search_configured:state.configured,search_state:state};
 }
 
 export async function handleKnowledge(request,env){
@@ -136,7 +183,7 @@ export async function handleKnowledge(request,env){
   try{
     await ensureTables(env);const user=await currentUser(request,env);if(!user)return json({error:'Sign in to use your private knowledge workspace.'},401);const tenant=String(user.tenant_id);
     if(request.method==='GET'&&url.pathname==='/api/knowledge/status'){
-      const counts=await env.DB.prepare('SELECT COUNT(*) AS sources,(SELECT COUNT(*) FROM knowledge_chunks WHERE tenant_id=?) AS chunks FROM knowledge_sources WHERE tenant_id=?').bind(tenant,tenant).first();return json({ok:true,sources:Number(counts?.sources||0),chunks:Number(counts?.chunks||0),web_search_configured:Boolean(env.BRAVE_SEARCH_API_KEY),engines:{memory:'D1 FTS5',semantic:env.VECTORIZE?'Cloudflare Vectorize':'ready for Vectorize binding',ai:env.AI?'Workers AI':'provider fallback'}});
+      const counts=await env.DB.prepare('SELECT COUNT(*) AS sources,(SELECT COUNT(*) FROM knowledge_chunks WHERE tenant_id=?) AS chunks FROM knowledge_sources WHERE tenant_id=?').bind(tenant,tenant).first(),state=searchState(env);return json({ok:true,sources:Number(counts?.sources||0),chunks:Number(counts?.chunks||0),web_search_configured:state.configured,news_search_configured:state.configured,brave_search_configured:state.brave_search_configured,web_provider:state.web_provider,news_provider:state.news_provider,fallback_enabled:state.fallback_enabled,engines:{memory:'D1 FTS5',semantic:env.VECTORIZE?'Cloudflare Vectorize':'ready for Vectorize binding',ai:env.AI?'Workers AI':'provider fallback'}});
     }
     if(request.method==='GET'&&url.pathname==='/api/knowledge/sources'){
       const {results}=await env.DB.prepare('SELECT id,source_type,title,url,status,metadata_json,created_at,updated_at FROM knowledge_sources WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 200').bind(tenant).all();return json({sources:results||[]});
@@ -152,7 +199,7 @@ export async function handleKnowledge(request,env){
       const title=String(b.title||textTitle(raw,target.hostname)).slice(0,240),text=htmlToText(raw);if(text.length<40)return json({error:'The page did not contain enough readable text.'},400);const row=await upsertSource(env,tenant,{fingerprint:`url:${target}`,sourceType:'url',title,url:target.toString(),metadata:{content_type:r.headers.get('content-type')||''}});const count=await replaceSourceChunks(env,tenant,row.id,'url',title,target.toString(),chunks(text));await activity(env,user,'ingest_url',{source_id:row.id,chunks:count,url:target.toString()});return json({ok:true,source_id:row.id,chunks:count,title});
     }
     if(request.method==='POST'&&url.pathname==='/api/knowledge/research'){
-      const b=await request.json().catch(()=>({})),q=String(b.query||'').trim();if(!q)return json({error:'Research query is required.'},400);const data=await getKnowledgeContext(request,env,q,{liveSearch:b.web!==false,news:Boolean(b.news),remember:Boolean(b.remember),freshness:String(b.freshness||''),localLimit:8,webLimit:6,newsLimit:6});await activity(env,user,'research',{query:q,web:b.web!==false,news:Boolean(b.news),remember:Boolean(b.remember),results:data.sources.length});return json({ok:true,query:q,results:data.sources,web_search_configured:data.search_configured,remembered:Boolean(b.remember)});
+      const b=await request.json().catch(()=>({})),q=String(b.query||'').trim();if(!q)return json({error:'Research query is required.'},400);const data=await getKnowledgeContext(request,env,q,{liveSearch:b.web!==false,news:Boolean(b.news),remember:Boolean(b.remember),freshness:String(b.freshness||''),localLimit:8,webLimit:6,newsLimit:6});await activity(env,user,'research',{query:q,web:b.web!==false,news:Boolean(b.news),remember:Boolean(b.remember),results:data.sources.length,providers:data.search_state});return json({ok:true,query:q,results:data.sources,web_search_configured:data.search_configured,search_state:data.search_state,remembered:Boolean(b.remember)});
     }
     if(request.method==='DELETE'&&/^\/api\/knowledge\/sources\/\d+$/.test(url.pathname)){
       const id=Number(url.pathname.split('/').pop()),row=await env.DB.prepare('SELECT id FROM knowledge_sources WHERE id=? AND tenant_id=?').bind(id,tenant).first();if(!row)return json({error:'Source not found.'},404);await env.DB.prepare('DELETE FROM knowledge_fts WHERE tenant_id=? AND source_id=?').bind(tenant,String(id)).run();await env.DB.prepare('DELETE FROM knowledge_chunks WHERE tenant_id=? AND source_id=?').bind(tenant,id).run();await env.DB.prepare('DELETE FROM knowledge_sources WHERE tenant_id=? AND id=?').bind(tenant,id).run();await activity(env,user,'delete_source',{source_id:id});return json({ok:true});
