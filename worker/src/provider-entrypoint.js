@@ -152,7 +152,7 @@ async function handle(request, env) {
     operator:'Magnanimous AI',
     routing:{task_aware:true,automatic_failover:true,manual_provider_override:true,free_first_default:true,maximum_quality_option:true,learned_tool_planning:true,integration_ranking:true},
     providers:PROVIDERS.map(p=>({id:p.id,name:p.name,tier:p.tier,configured:configured(env,p),enabled:p.tier!=='metered'||meteredEnabled(env)})),
-    knowledge:{private_workspace_grounding:true,live_web_search:Boolean(env?.BRAVE_SEARCH_API_KEY),news_search:Boolean(env?.BRAVE_SEARCH_API_KEY)},
+    knowledge:{private_workspace_grounding:true,live_web_search:true,news_search:true,brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY),fallback_enabled:true},
     execution:{specialist_agent_mesh:true,connected_actions:true,crm:true,business_email:true,calling:true,video:true,social:true,professional_business_launch:true,tool_foundry:true,universal_tool_gateway:true},
     business_launch:{pipeline:['Intake','Clarify','Research','Validate','Financial Review','Draft','Hostile Review','Consistency Check','Audience Adaptation','Final Polish']},
     note:'External integrations and metered providers require their corresponding authorized connection or server-side credential.'
@@ -172,13 +172,13 @@ async function handle(request, env) {
   }
   if ((url.pathname === '/api/magnanimous/health' || url.pathname === '/api/odin/health') && request.method === 'GET') {
     const providers = PROVIDERS.map(p => ({ id: p.id, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env) }));
-    return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, workers_ai_bound: env?.AI != null, web_search_configured: Boolean(env?.BRAVE_SEARCH_API_KEY), providers });
+    return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, workers_ai_bound: env?.AI != null, web_search_configured:true, news_search_configured:true, brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY), research_fallback_enabled:true, providers });
   }
   if (url.pathname === '/api/chat' && request.method === 'POST') {
     const body = await request.json();
     const message = String(body.message || '').trim();
     if (!message) return json({ detail: 'Message is required.' }, 400);
-    let grounding={context:'',sources:[],search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY)};
+    let grounding={context:'',sources:[],search_configured:true};
     if(body.use_knowledge!==false){
       try{grounding=await getKnowledgeContext(request,env,message,{liveSearch:Boolean(body.live_search),news:Boolean(body.news),remember:Boolean(body.remember_search),freshness:String(body.freshness||''),localLimit:6,webLimit:5,newsLimit:5})}catch(e){console.error('knowledge grounding failed',e)}
     }
