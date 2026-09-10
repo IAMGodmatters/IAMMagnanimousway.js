@@ -11,6 +11,7 @@ const requireText = (text, needle, label) => {
 
 const provider = read('worker/src/provider-entrypoint.js');
 const brain = read('worker/src/magnanimous-brain-runtime.js');
+const cognitive = read('worker/src/magnanimous-cognitive-architecture.js');
 const foundry = read('worker/src/magnanimous-tool-foundry.js');
 const router = read('worker/src/router-entrypoint.js');
 const gateway = read('worker/src/magnanimous-tool-gateway.js');
@@ -21,6 +22,40 @@ requireText(provider, "command_role:'commander-in-chief'", 'provider entrypoint'
 requireText(provider, "provider_role:'execution-engine'", 'provider entrypoint');
 requireText(brain, "role:'commander-in-chief-platform-brain'", 'brain runtime');
 requireText(brain, 'Magnanimous AI is the commander-in-chief intelligence, planning, continuity and learning layer for the platform.', 'brain runtime');
+
+// Hybrid cognitive architecture inspired by established cognitive systems.
+requireText(cognitive, "model: 'hybrid-symbolic-neural'", 'cognitive architecture');
+requireText(cognitive, "name: 'SOAR'", 'cognitive architecture');
+requireText(cognitive, "name: 'LIDA'", 'cognitive architecture');
+requireText(cognitive, "name: 'ACT-R'", 'cognitive architecture');
+requireText(cognitive, "name: 'CLARION'", 'cognitive architecture');
+requireText(cognitive, 'perception-and-normalization', 'cognitive architecture');
+requireText(cognitive, 'attention-and-working-memory', 'cognitive architecture');
+requireText(cognitive, 'declarative-and-episodic-memory', 'cognitive architecture');
+requireText(cognitive, 'procedural-memory', 'cognitive architecture');
+requireText(cognitive, 'hybrid-deliberation', 'cognitive architecture');
+requireText(cognitive, 'action-selection', 'cognitive architecture');
+requireText(cognitive, 'verification-and-metacognition', 'cognitive architecture');
+requireText(cognitive, 'learning-and-consolidation', 'cognitive architecture');
+requireText(brain, '/api/magnanimous/architecture', 'brain runtime');
+requireText(brain, 'getMagnanimousCognitivePrompt', 'brain runtime');
+
+// Explainability, multimodal fusion and human-AI collaboration remain first-class design requirements.
+requireText(cognitive, 'concise-rationale-evidence-uncertainty', 'cognitive architecture');
+requireText(cognitive, 'hidden_chain_of_thought', 'cognitive architecture');
+requireText(cognitive, 'modality-aware-fusion', 'cognitive architecture');
+requireText(cognitive, 'human-ai-collaboration', 'cognitive architecture');
+requireText(cognitive, "id: 'explainable-ai'", 'cognitive architecture');
+requireText(cognitive, "id: 'multimodal-learning'", 'cognitive architecture');
+requireText(cognitive, "id: 'cognitive-human-collaboration'", 'cognitive architecture');
+
+// Core development knowledge and framework literacy.
+for (const skill of ['Python', 'Java', 'C++', 'machine-learning-and-deep-learning', 'natural-language-processing', 'computer-vision', 'knowledge-representation-and-reasoning']) {
+  requireText(cognitive, skill, 'cognitive architecture');
+}
+for (const framework of ['TensorFlow', 'Keras', 'PyTorch', 'Scikit-learn', 'NLTK', 'spaCy', 'OpenCV', 'WordNet', 'YAGO', 'Knowledge graphs and ontologies']) {
+  requireText(cognitive, framework, 'cognitive architecture');
+}
 
 // Knowledge growth and source absorption.
 requireText(provider, 'learnFromLinks', 'provider entrypoint');
@@ -49,5 +84,5 @@ requireText(provider, 'Never bypass security, identity, payment or permission bo
 
 if (!process.exitCode) {
   console.log('MAGNANIMOUS COMMAND LOCK: PASS');
-  console.log('Central brain, link learning, adaptive routing, memory, Tool Foundry growth, and permission boundaries are intact.');
+  console.log('Central brain, hybrid cognition, explainability, multimodal fusion, collaboration, link learning, adaptive routing, memory, Tool Foundry growth, framework literacy, and permission boundaries are intact.');
 }
