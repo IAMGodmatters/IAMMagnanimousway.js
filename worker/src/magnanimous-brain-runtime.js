@@ -1,5 +1,13 @@
 import { currentUser } from './integrations.js';
 import { getKnowledgeContext } from './knowledge-runtime.js';
+import {
+ MAGNANIMOUS_COGNITIVE_ARCHITECTURE,
+ MAGNANIMOUS_COGNITIVE_LOOP,
+ MAGNANIMOUS_DEVELOPMENT_SKILLS,
+ MAGNANIMOUS_FRAMEWORK_LITERACY,
+ MAGNANIMOUS_RESEARCH_PRIORITIES,
+ getMagnanimousCognitivePrompt
+} from './magnanimous-cognitive-architecture.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -16,6 +24,11 @@ const BRAIN_PRINCIPLES=[
  'Repeated successful low-risk workflows can mature into reusable native Magnanimous recipes; high-impact capabilities stay review-gated.',
  'Prefer free-first and native platform capability, then route to specialist providers when they materially improve the result.',
  'Teach users what it knows, suggest improvements, and proactively surface useful next actions.',
+ 'Use a hybrid symbolic-neural cognitive architecture that combines flexible model inference with explicit rules, constraints, memory, retrieval, verification and structured planning.',
+ 'Use SOAR, LIDA, ACT-R and CLARION as cognitive-architecture inspirations for goals, attention, memory, action selection, explicit knowledge and learned patterns without falsely claiming their original runtimes are embedded.',
+ 'Favor explainable AI: provide concise rationale, evidence, assumptions, uncertainty and verified action results when useful without exposing hidden chain-of-thought.',
+ 'Support multimodal reasoning by fusing only text, images, audio, video, documents, structured data and tool results that are actually available in the runtime.',
+ 'Optimize for human-AI collaboration: take initiative on low-risk authorized work and interrupt the user only when information, judgment, consent or a permission boundary truly requires it.',
  'Never silently grant itself new external permissions, spend money, bypass security, or perform high-impact actions without the authorization required by that system.',
  'Learning means retrieval, structured memory, outcome feedback, provider scoring, source absorption and reusable skills; private user data is not used to retrain a public foundation model.'
 ];
@@ -23,6 +36,11 @@ const BRAIN_PRINCIPLES=[
 const CAPABILITIES=[
  {id:'reasoning-writing',name:'Reasoning, writing & translation',tier:'free-first',ready:true},
  {id:'command-orchestration',name:'Commander-in-chief orchestration across platform capabilities',tier:'free-first',ready:true},
+ {id:'hybrid-cognition',name:'Hybrid symbolic + neural cognitive control',tier:'free-first',ready:true},
+ {id:'knowledge-representation',name:'Knowledge graphs, ontologies, symbolic rules & retrieval-augmented reasoning',tier:'free-first',ready:true},
+ {id:'explainable-ai',name:'Concise rationale, evidence, assumptions, uncertainty & action verification',tier:'free-first',ready:true},
+ {id:'multimodal-fusion',name:'Modality-aware fusion across available text, image, audio, video, documents and structured data',tier:'runtime-dependent',ready:true},
+ {id:'human-ai-collaboration',name:'Initiative, delegation, review and permission-aware collaboration',tier:'free-first',ready:true},
  {id:'adaptive-routing',name:'Adaptive provider routing from observed outcomes',tier:'free-first',ready:true},
  {id:'link-learning',name:'Automatic learning from readable public links',tier:'free-first',ready:true},
  {id:'native-tool-growth',name:'Repeated low-risk workflows mature into native recipes',tier:'free-first',ready:true},
@@ -73,21 +91,22 @@ async function research(request,env,user){
  const data=await getKnowledgeContext(request,env,query,{liveSearch:b.web!==false,news:Boolean(b.news),remember:b.remember!==false,freshness:clip(b.freshness,12),localLimit:Math.max(1,Math.min(12,Number(b.local_limit||8))),webLimit:Math.max(1,Math.min(10,Number(b.web_limit||6))),newsLimit:Math.max(1,Math.min(10,Number(b.news_limit||6)))});
  await ensureSchema(env);
  await env.DB.prepare('INSERT INTO magnanimous_outcomes(tenant_id,user_id,capability,provider,task,success,quality,cost_hint,latency_ms,notes,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(String(user.tenant_id),String(user.id),'research',data.search_configured?'workspace+web':'workspace','Research: '+query,1,data.sources.length?0.8:0.35,0,Date.now()-started,`sources=${data.sources.length}; live_web=${data.search_configured}`,now()).run();
- return json({ok:true,brain:'Magnanimous AI',command_role:'commander-in-chief',query,research_mode:data.search_configured?'workspace+live-web':'workspace-only',sources:data.sources,grounding_context:data.context,remembered:b.remember!==false,web_search_configured:data.search_configured,note:data.search_configured?'Magnanimous combined workspace knowledge with live research sources and can reuse remembered findings later.':'Magnanimous researched private workspace knowledge. Configure live search to add fresh web/news sources.'});
+ return json({ok:true,brain:'Magnanimous AI',command_role:'commander-in-chief',brain_architecture:MAGNANIMOUS_COGNITIVE_ARCHITECTURE.model,query,research_mode:data.search_configured?'workspace+live-web':'workspace-only',sources:data.sources,grounding_context:data.context,remembered:b.remember!==false,web_search_configured:data.search_configured,note:data.search_configured?'Magnanimous combined workspace knowledge with live research sources and can reuse remembered findings later.':'Magnanimous researched private workspace knowledge. Configure live search to add fresh web/news sources.'});
 }
 
-export async function getMagnanimousMemoryContext(request,env){if(!env?.DB)return'';const user=await auth(request,env);if(!user)return'';const [memories,lessons]=await Promise.all([listMemory(env,user),listLessons(env,user)]);const memoryText=memories.slice(0,30).map(r=>`- ${r.memory_key}: ${clip(r.memory_value,700)}`).join('\n');const lessonText=lessons.slice(0,20).map(r=>`- [${r.domain}] ${r.lesson_key}: ${clip(r.lesson_value,600)} (confidence ${Number(r.score).toFixed(2)})`).join('\n');return `\n\nMAGNANIMOUS CENTRAL BRAIN CONTEXT (private workspace memory; current instructions override memory):\nIDENTITY: Magnanimous AI is the commander-in-chief platform brain. Providers, search engines and specialist agents are execution arms/tools, not identity.\nLEARNING: Reuse stored knowledge and proven native recipes first. Absorb readable user-supplied public links. Use live research when freshness requires it. Learn from provider/tool outcomes without claiming foundation-model retraining.\n${memoryText}\nREUSABLE LESSONS:\n${lessonText}`.slice(0,18000)}
+export async function getMagnanimousMemoryContext(request,env){if(!env?.DB)return'';const user=await auth(request,env);if(!user)return'';const [memories,lessons]=await Promise.all([listMemory(env,user),listLessons(env,user)]);const memoryText=memories.slice(0,30).map(r=>`- ${r.memory_key}: ${clip(r.memory_value,700)}`).join('\n');const lessonText=lessons.slice(0,20).map(r=>`- [${r.domain}] ${r.lesson_key}: ${clip(r.lesson_value,600)} (confidence ${Number(r.score).toFixed(2)})`).join('\n');const cognitive=getMagnanimousCognitivePrompt();return `\n\nMAGNANIMOUS CENTRAL BRAIN CONTEXT (private workspace memory; current instructions override memory):\nIDENTITY: Magnanimous AI is the commander-in-chief platform brain. Providers, search engines and specialist agents are execution arms/tools, not identity.\nLEARNING: Reuse stored knowledge and proven native recipes first. Absorb readable user-supplied public links. Use live research when freshness requires it. Learn from provider/tool outcomes without claiming foundation-model retraining.\n${cognitive}\nWORKSPACE MEMORY:\n${memoryText}\nREUSABLE LESSONS:\n${lessonText}`.slice(0,18000)}
 
 export async function handleMagnanimousBrain(request,env){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/magnanimous/'))return null;
  if(url.pathname==='/api/magnanimous/health'&&request.method==='GET')return null;
+ if(url.pathname==='/api/magnanimous/architecture'&&request.method==='GET')return json({identity:'Magnanimous AI',role:'commander-in-chief-platform-brain',architecture:MAGNANIMOUS_COGNITIVE_ARCHITECTURE,cognitive_loop:MAGNANIMOUS_COGNITIVE_LOOP,development_skills:MAGNANIMOUS_DEVELOPMENT_SKILLS,framework_literacy:MAGNANIMOUS_FRAMEWORK_LITERACY,research_priorities:MAGNANIMOUS_RESEARCH_PRIORITIES,note:'SOAR, LIDA, ACT-R and CLARION are architectural inspirations. Frameworks are knowledge and adapter targets unless a runtime explicitly confirms installation or connection.'});
  if(url.pathname==='/api/magnanimous/capabilities'&&request.method==='GET'){
   const capabilities=CAPABILITIES.map(c=>({...c,configured:configured(env,c)}));
-  return json({identity:'Magnanimous AI',role:'commander-in-chief-platform-brain',official:true,free_first:true,principles:BRAIN_PRINCIPLES,command:{authority:'central-orchestration',specialists:'execution-arms',providers:'replaceable-execution-engines',knowledge:'persistent-tenant-memory',learning_loop:['absorb','retrieve','plan','route','execute','verify','score','promote']},capabilities,configured_count:capabilities.filter(x=>x.configured).length,total:capabilities.length,note:'Magnanimous owns planning, continuity, learning and routing. External services remain necessary where authorization, live provider data or specialized compute cannot be reproduced natively.'});
+  return json({identity:'Magnanimous AI',role:'commander-in-chief-platform-brain',official:true,free_first:true,principles:BRAIN_PRINCIPLES,cognitive_architecture:MAGNANIMOUS_COGNITIVE_ARCHITECTURE,cognitive_loop:MAGNANIMOUS_COGNITIVE_LOOP,development_skills:MAGNANIMOUS_DEVELOPMENT_SKILLS,framework_literacy:MAGNANIMOUS_FRAMEWORK_LITERACY,research_priorities:MAGNANIMOUS_RESEARCH_PRIORITIES,command:{authority:'central-orchestration',specialists:'execution-arms',providers:'replaceable-execution-engines',knowledge:'persistent-tenant-memory',learning_loop:['absorb','retrieve','plan','route','execute','verify','score','promote']},capabilities,configured_count:capabilities.filter(x=>x.configured).length,total:capabilities.length,note:'Magnanimous owns planning, continuity, learning and routing. Its hybrid cognitive core combines model inference, symbolic constraints, memory, retrieval, verification and permission-aware action. External services remain necessary where authorization, live provider data or specialized compute cannot be reproduced natively.'});
  }
  if(!env?.DB)return json({detail:'Magnanimous brain requires the workspace database.'},503);const user=await auth(request,env);if(!user)return json({detail:'Sign in required.'},401);
  if(url.pathname==='/api/magnanimous/research'&&request.method==='POST')return research(request,env,user);
- if(url.pathname==='/api/magnanimous/memory'&&request.method==='GET')return json({memories:await listMemory(env,user),lessons:await listLessons(env,user),stats:await learningStats(env,user),learning_model:'private retrieval + structured lessons + automatic link absorption + adaptive provider scoring + source-grounded research + native recipe promotion',training_private_data:false});
+ if(url.pathname==='/api/magnanimous/memory'&&request.method==='GET')return json({memories:await listMemory(env,user),lessons:await listLessons(env,user),stats:await learningStats(env,user),cognitive_architecture:MAGNANIMOUS_COGNITIVE_ARCHITECTURE.model,cognitive_loop:MAGNANIMOUS_COGNITIVE_LOOP,learning_model:'private retrieval + structured lessons + automatic link absorption + adaptive provider scoring + source-grounded research + native recipe promotion + hybrid symbolic-neural verification',training_private_data:false});
  if(url.pathname==='/api/magnanimous/memory/remember'&&request.method==='POST')return remember(request,env,user);
  if(url.pathname==='/api/magnanimous/memory/forget'&&request.method==='POST')return forget(request,env,user);
  if(url.pathname==='/api/magnanimous/learn'&&request.method==='POST')return learn(request,env,user);
