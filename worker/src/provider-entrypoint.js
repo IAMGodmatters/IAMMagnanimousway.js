@@ -1,9 +1,21 @@
 import app from './entrypoint.js';
-import { handleIntegrations } from './integrations.js';
-import { getKnowledgeContext } from './knowledge-runtime.js';
-import { getMagnanimousToolFoundryContext } from './magnanimous-tool-foundry.js';
+import { handleIntegrations, currentUser } from './integrations.js';
+import { getKnowledgeContext, handleKnowledge } from './knowledge-runtime.js';
+import { getMagnanimousMemoryContext } from './magnanimous-brain-runtime.js';
+import { getMagnanimousToolFoundryContext, handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
+const now = () => Math.floor(Date.now() / 1000);
+const MEMORY_MARKER = '\n\nMAGNANIMOUS CENTRAL BRAIN CONTEXT';
+
+const COMMANDER_PROTOCOL = `MAGNANIMOUS COMMAND LAYER
+You are speaking as Magnanimous AI, the commander-in-chief orchestration brain for I AM Magnanimous Way™.
+All outside AI models, search engines, plugins, MCP servers, SaaS products, carriers and generators are replaceable execution engines or tools under Magnanimous routing. They are never the platform identity or the final authority over the workflow.
+Use Magnanimous private memory, learned lessons, stored knowledge and native tool recipes before reaching outward. Use fresh research when facts are current, stale, uncertain or source-dependent.
+When the user supplies a public link, learn the readable information into the tenant knowledge workspace so the user does not have to keep supplying the same link. Do not copy secrets, credentials, paywalled material or proprietary backend code.
+Repeated successful low-risk workflows should become reusable Magnanimous-native recipes. External providers remain necessary only when they offer a capability, live data, account access or compute Magnanimous cannot truthfully reproduce natively.
+Specialist agents are execution arms. Magnanimous owns planning, continuity, routing, verification and learning across them.
+Never claim an external action happened without an actual authorized tool result. Never bypass security, identity, payment or permission boundaries.`;
 
 const PROVIDERS = [
   { id: 'cloudflare-ai', name: 'Cloudflare Workers AI', key: 'AI', tier: 'free-first' },
@@ -15,7 +27,7 @@ const PROVIDERS = [
 ];
 
 const TOOLS = [
-  ['magnanimous','Magnanimous AI','Coordinates requests across configured AI providers and platform capabilities.'],
+  ['magnanimous','Magnanimous AI','Commander-in-chief brain that plans, remembers, learns, routes, verifies and coordinates every supported platform capability.'],
   ['ai-chat','AI Chat','General-purpose AI assistant.'],
   ['writing','Writing Helper','Create, rewrite, summarize and polish content.'],
   ['research','Research Helper','Research live web/news sources and private workspace knowledge.'],
@@ -36,6 +48,35 @@ function configured(env, p) {
   return typeof env?.[p.key] === 'string' && env[p.key].trim().length > 0;
 }
 function meteredEnabled(env) { return String(env?.ENABLE_METERED_PROVIDERS || '').toLowerCase() === 'true'; }
+function originalUserMessage(message) {
+  const text = String(message || '');
+  const i = text.indexOf(MEMORY_MARKER);
+  return (i >= 0 ? text.slice(0, i) : text).trim();
+}
+function extractBrainContext(message) {
+  const text = String(message || '');
+  const i = text.indexOf(MEMORY_MARKER);
+  return i >= 0 ? text.slice(i) : '';
+}
+function extractUrls(message) {
+  const matches = String(message || '').match(/https?:\/\/[^\s<>{}\[\]"']+/gi) || [];
+  return [...new Set(matches.map(x => x.replace(/[),.;!?]+$/g, '')))].slice(0, 4);
+}
+function needsFreshResearch(message) {
+  return /\b(latest|current|today|recent|now|this week|this month|news|price|availability|status|updated|update|verify|source|citation|research|competitor|market)\b/i.test(String(message || ''));
+}
+function nativeCapability(message, task) {
+  const m = String(message || '').toLowerCase();
+  if (/shopify|shopee|tiktok shop|product|catalog|markup|upsell|dropship|inventory|store/.test(m)) return 'commerce-catalog-operations';
+  if (/facebook|instagram|tiktok|linkedin|youtube|social|caption|hashtag|post/.test(m)) return 'social-content-operations';
+  if (/website|next\.?js|cloudflare|github|deploy|repository|worker|d1|frontend|backend/.test(m)) return 'web-platform-development';
+  if (/call center|contact center|twilio|telnyx|phone|dialer|ivr|voice/.test(m)) return 'communications-operations';
+  if (/crm|lead|customer|pipeline|sales/.test(m)) return 'crm-sales-operations';
+  if (/finance|budget|cash flow|break-even|profit|expense|revenue/.test(m)) return 'financial-analysis';
+  if (/image|picture|graphic|logo|visual/.test(m)) return 'visual-creation';
+  if (/video|avatar|cinema|render/.test(m)) return 'video-creation';
+  return `${task || 'general'}-workflow`;
+}
 
 async function openai(env, message, model) {
   const r = await fetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: model || env.OPENAI_MODEL || 'gpt-5.6', input: message }) });
@@ -80,7 +121,7 @@ async function cloudflare(env, message, model) {
     try {
       const result = await env.AI.run(m, {
         messages: [
-          { role: 'system', content: 'You are Magnanimous AI, the central orchestration brain for I AM Magnanimous Way. External AI models, plugins, MCP servers and SaaS providers are tools, not your identity. Start with the user’s outcome, prefer native/free capability first, then coordinate authorized tools when they materially improve the result. Learn from the provided workspace memory and tool-outcome context, but do not claim foundation-model retraining. Be useful, clear, practical, and concise unless the user asks for depth. When grounding sources are provided, use them carefully and cite them with their bracket numbers. Never mix one tenant workspace with another. For actions that would change, publish, pay, send, delete or otherwise affect external systems, require the appropriate authorization and make the proposed action clear.' },
+          { role: 'system', content: COMMANDER_PROTOCOL },
           { role: 'user', content: message }
         ],
         max_tokens: 1400
@@ -113,7 +154,20 @@ function taskClass(message,body={}){
   if(/write|rewrite|email|caption|script|post|copy|letter|proposal/.test(m))return'writing';
   return'general';
 }
-function routeProviders(env,message,body={}){
+async function ensureOutcomeSchema(env){
+  if(!env?.DB)return;
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_outcomes (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,capability TEXT NOT NULL,provider TEXT NOT NULL DEFAULT 'native',task TEXT NOT NULL DEFAULT '',success INTEGER NOT NULL DEFAULT 0,quality REAL NOT NULL DEFAULT 0,cost_hint REAL NOT NULL DEFAULT 0,latency_ms INTEGER NOT NULL DEFAULT 0,notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`).run();
+}
+async function learnedProviderScores(request,env,task){
+  if(!env?.DB)return new Map();
+  try{
+    const user=await currentUser(request,env);if(!user)return new Map();await ensureOutcomeSchema(env);
+    const cutoff=now()-90*86400;
+    const {results=[]}=await env.DB.prepare(`SELECT provider,COUNT(*) samples,AVG(success) success_rate,AVG(quality) quality,AVG(latency_ms) latency,AVG(cost_hint) cost FROM magnanimous_outcomes WHERE tenant_id=? AND user_id=? AND capability=? AND created_at>=? GROUP BY provider`).bind(String(user.tenant_id),String(user.id),task,cutoff).all();
+    return new Map(results.map(x=>[String(x.provider),{samples:Number(x.samples||0),success_rate:Number(x.success_rate||0),quality:Number(x.quality||0),latency:Number(x.latency||0),cost:Number(x.cost||0)}]));
+  }catch{return new Map()}
+}
+function routeProviders(env,message,body={},learned=new Map()){
   const available=availableProviders(env).filter(p=>configured(env,p));
   const quality=String(body.quality||body.route_policy||'').toLowerCase();
   const task=taskClass(message,body);
@@ -126,7 +180,43 @@ function routeProviders(env,message,body={}){
   }[task]||[];
   const preferred=(quality==='max'||quality==='maximum'||quality==='quality')?['openai','anthropic',...order]:order;
   const rank=new Map([...new Set(preferred)].map((id,i)=>[id,i]));
-  return available.sort((a,b)=>(rank.get(a.id)??99)-(rank.get(b.id)??99));
+  const adaptiveScore=p=>{
+    const base=rank.get(p.id)??99,stats=learned.get(p.id);
+    if(!stats||stats.samples<2)return base;
+    const reliability=(stats.success_rate*1.4)+(stats.quality*.8);
+    const latencyPenalty=Math.min(.45,stats.latency/40000);
+    const costPenalty=Math.min(.4,stats.cost*.1);
+    return base-reliability+latencyPenalty+costPenalty;
+  };
+  return available.sort((a,b)=>adaptiveScore(a)-adaptiveScore(b));
+}
+async function recordProviderOutcome(request,env,{task,provider,message,success,quality=0,latency=0,notes=''}){
+  if(!env?.DB)return;
+  try{
+    const user=await currentUser(request,env);if(!user)return;await ensureOutcomeSchema(env);
+    await env.DB.prepare('INSERT INTO magnanimous_outcomes(tenant_id,user_id,capability,provider,task,success,quality,cost_hint,latency_ms,notes,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(String(user.tenant_id),String(user.id),task,String(provider||'native'),String(message||'').slice(0,1000),success?1:0,Math.max(0,Math.min(1,Number(quality||0))),0,Math.max(0,Number(latency||0)),String(notes||'').slice(0,1500),now()).run();
+  }catch(e){console.error('Magnanimous outcome learning failed',e)}
+}
+async function learnFromLinks(request,env,message,enabled=true){
+  if(!enabled||!env?.DB)return[];
+  const urls=extractUrls(message),learned=[];
+  for(const target of urls){
+    try{
+      const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
+      const r=await handleKnowledge(new Request(new URL('/api/knowledge/ingest',request.url),{method:'POST',headers,body:JSON.stringify({kind:'url',url:target})}),env);
+      const d=await r?.clone().json().catch(()=>({}));
+      learned.push({url:target,ok:Boolean(r?.ok),title:d?.title||'',chunks:Number(d?.chunks||0),detail:r?.ok?'absorbed':String(d?.error||d?.detail||`status ${r?.status||0}`)});
+    }catch(e){learned.push({url:target,ok:false,title:'',chunks:0,detail:String(e?.message||'ingest failed')})}
+  }
+  return learned;
+}
+async function foundryCall(request,env,path,body){
+  if(!env?.DB)return null;
+  try{
+    const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
+    const r=await handleMagnanimousToolFoundry(new Request(new URL(path,request.url),{method:'POST',headers,body:JSON.stringify(body)}),env);
+    return r?await r.clone().json().catch(()=>null):null;
+  }catch{return null}
 }
 
 async function getRuntimeEnv(env) {
@@ -150,12 +240,14 @@ async function handle(request, env) {
   if (url.pathname === '/api/tools' && request.method === 'GET') return json({ tools: TOOLS });
   if (url.pathname === '/api/operator/capabilities' && request.method === 'GET') return json({
     operator:'Magnanimous AI',
-    routing:{task_aware:true,automatic_failover:true,manual_provider_override:true,free_first_default:true,maximum_quality_option:true,learned_tool_planning:true,integration_ranking:true},
+    command_role:'commander-in-chief',
+    routing:{task_aware:true,automatic_failover:true,manual_provider_override:true,free_first_default:true,maximum_quality_option:true,learned_tool_planning:true,integration_ranking:true,adaptive_provider_learning:true},
     providers:PROVIDERS.map(p=>({id:p.id,name:p.name,tier:p.tier,configured:configured(env,p),enabled:p.tier!=='metered'||meteredEnabled(env)})),
-    knowledge:{private_workspace_grounding:true,live_web_search:true,news_search:true,brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY),fallback_enabled:true},
-    execution:{specialist_agent_mesh:true,connected_actions:true,crm:true,business_email:true,calling:true,video:true,social:true,professional_business_launch:true,tool_foundry:true,universal_tool_gateway:true},
+    knowledge:{private_workspace_grounding:true,live_web_search:true,news_search:true,automatic_link_learning:true,remembered_research:true,brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY),fallback_enabled:true},
+    execution:{specialist_agent_mesh:true,connected_actions:true,crm:true,business_email:true,calling:true,video:true,social:true,professional_business_launch:true,tool_foundry:true,universal_tool_gateway:true,native_recipe_growth:true},
+    learning_loop:['absorb links and sources','retrieve saved knowledge','plan centrally','route execution','verify outcome','score providers and recipes','promote successful low-risk recipes'],
     business_launch:{pipeline:['Intake','Clarify','Research','Validate','Financial Review','Draft','Hostile Review','Consistency Check','Audience Adaptation','Final Polish']},
-    note:'External integrations and metered providers require their corresponding authorized connection or server-side credential.'
+    note:'Magnanimous is the persistent command and learning layer. External integrations remain necessary where account authorization, live provider data or specialized compute is required.'
   });
   if (url.pathname === '/api/ads' && request.method === 'GET') {
     try {
@@ -165,40 +257,61 @@ async function handle(request, env) {
     } catch (_) { return json({ ads: [] }); }
   }
   if (url.pathname === '/api/providers' && request.method === 'GET') {
-    const providers = PROVIDERS.map(p => ({ id: p.id, name: p.name, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env), tier: p.tier, type: 'ai' }));
+    const providers = PROVIDERS.map(p => ({ id: p.id, name: p.name, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env), tier: p.tier, type: 'execution-engine' }));
     const enabled = providers.filter(p => p.configured && p.enabled);
     const ready = enabled.length > 0;
-    return json({ free_first: true, metered_providers_enabled: meteredEnabled(env), task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, providers, configured_count: enabled.length, free_configured_count: enabled.filter(p => p.tier === 'free-first').length, magnanimous_ready: ready, operator_ready: ready });
+    return json({ free_first: true, metered_providers_enabled: meteredEnabled(env), command_role:'commander-in-chief', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, adaptive_provider_learning:true, automatic_link_learning:true, providers, configured_count: enabled.length, free_configured_count: enabled.filter(p => p.tier === 'free-first').length, magnanimous_ready: ready, operator_ready: ready });
   }
   if ((url.pathname === '/api/magnanimous/health' || url.pathname === '/api/odin/health') && request.method === 'GET') {
     const providers = PROVIDERS.map(p => ({ id: p.id, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env) }));
-    return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, workers_ai_bound: env?.AI != null, web_search_configured:true, news_search_configured:true, brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY), research_fallback_enabled:true, providers });
+    return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', command_role:'commander-in-chief', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, adaptive_provider_learning:true, automatic_link_learning:true, native_recipe_growth:true, workers_ai_bound: env?.AI != null, web_search_configured:true, news_search_configured:true, brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY), research_fallback_enabled:true, providers });
   }
   if (url.pathname === '/api/chat' && request.method === 'POST') {
     const body = await request.json();
     const message = String(body.message || '').trim();
     if (!message) return json({ detail: 'Message is required.' }, 400);
+    const userMessage=originalUserMessage(message);
+    const task=taskClass(userMessage,body);
+    const capability=nativeCapability(userMessage,task);
+    let brainContext=extractBrainContext(message);
+    if(!brainContext){try{brainContext=await getMagnanimousMemoryContext(request,env)}catch{brainContext=''}}
+
+    const linkLearning=await learnFromLinks(request,env,userMessage,body.learn_links!==false);
+    const absorbedLinks=linkLearning.filter(x=>x.ok);
+    const autoResearch=body.live_search===true||body.news===true||(body.live_search!==false&&(task==='research'||needsFreshResearch(userMessage)));
+    const rememberResearch=body.remember_search!==false&&(autoResearch||absorbedLinks.length>0);
+
     let grounding={context:'',sources:[],search_configured:true};
     if(body.use_knowledge!==false){
-      try{grounding=await getKnowledgeContext(request,env,message,{liveSearch:Boolean(body.live_search),news:Boolean(body.news),remember:Boolean(body.remember_search),freshness:String(body.freshness||''),localLimit:6,webLimit:5,newsLimit:5})}catch(e){console.error('knowledge grounding failed',e)}
+      try{grounding=await getKnowledgeContext(request,env,userMessage,{liveSearch:autoResearch,news:Boolean(body.news),remember:rememberResearch,freshness:String(body.freshness||''),localLimit:8,webLimit:6,newsLimit:5})}catch(e){console.error('knowledge grounding failed',e)}
     }
     let toolPlanning={context:'',tools:[],recommended_integrations:[]};
     if(body.use_tools!==false){
-      try{toolPlanning=await getMagnanimousToolFoundryContext(request,env,message)}catch(e){console.error('tool planning context failed',e)}
+      try{toolPlanning=await getMagnanimousToolFoundryContext(request,env,userMessage)}catch(e){console.error('tool planning context failed',e)}
     }
-    const groundedMessage=`${message}${grounding.context||''}${toolPlanning.context||''}`;
+    const observed=body.use_tools===false?null:await foundryCall(request,env,'/api/magnanimous/tool-foundry/observe',{capability,example_task:userMessage});
+    const learnedScores=await learnedProviderScores(request,env,task);
+    const learningState=[...learnedScores.entries()].map(([provider,x])=>({provider,...x}));
+    const groundedMessage=`${COMMANDER_PROTOCOL}\n\nUSER REQUEST:\n${userMessage}${brainContext||''}${grounding.context||''}${toolPlanning.context||''}\n\nCURRENT MAGNANIMOUS ROUTING STATE:\nTask class: ${task}\nNative capability family: ${capability}\nLinks absorbed this turn: ${absorbedLinks.length}\nStored/fresh sources available: ${grounding.sources?.length||0}\nUse external execution engines only as needed; return one unified Magnanimous answer.`;
     const requested = String(body.provider || 'auto').toLowerCase();
-    const candidates = requested !== 'auto' ? availableProviders(env).filter(p => p.id === requested && configured(env,p)) : routeProviders(env,message,body);
-    if (!candidates.length) return json({ detail: requested === 'auto' ? 'Magnanimous AI has no configured AI provider. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested AI provider is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
-    const errors = [],task=taskClass(message,body);
+    const candidates = requested !== 'auto' ? availableProviders(env).filter(p => p.id === requested && configured(env,p)) : routeProviders(env,userMessage,body,learnedScores);
+    if (!candidates.length) return json({ detail: requested === 'auto' ? 'Magnanimous AI has no configured execution engine. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested execution engine is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
+    const errors = [];
     for (const p of candidates) {
+      const started=Date.now();
       try {
         const result = await callProvider(p.id, env, groundedMessage, body.model);
         if (!result?.text?.trim()) throw new Error('Provider returned an empty response');
-        return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, magnanimous: true, operator: true, routed_automatically:requested==='auto',route_task:task,route_policy:String(body.quality||body.route_policy||'free-first'),fallback_candidates:candidates.map(x=>x.id), grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured, tool_planning:{enabled:body.use_tools!==false,learned_tools:toolPlanning.tools?.map(x=>({name:x.name,status:x.status,risk:x.risk}))||[],recommended_integrations:toolPlanning.recommended_integrations?.map(x=>({id:x.id,name:x.name,priority:x.priority,capabilities:x.capabilities}))||[]} });
-      } catch (e) { errors.push(`${p.name}: ${e?.message || 'provider failed'}`); }
+        await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:true,quality:.85,latency:Date.now()-started,notes:`capability=${capability}; grounded=${grounding.sources.length}; links=${absorbedLinks.length}`});
+        if(body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:true});
+        return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, magnanimous: true, operator: true, command_role:'commander-in-chief', provider_role:'execution-engine', routed_automatically:requested==='auto', route_task:task, native_capability:capability, route_policy:String(body.quality||body.route_policy||'free-first'), fallback_candidates:candidates.map(x=>x.id), adaptive_provider_learning:true, provider_learning:learningState, grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured, automatic_research:autoResearch, remembered_research:rememberResearch, link_learning:{enabled:body.learn_links!==false,absorbed:absorbedLinks.length,results:linkLearning}, native_recipe_learning:{observed:true,gap_count:Number(observed?.gap_count||0),proposal:observed?.proposal||null}, tool_planning:{enabled:body.use_tools!==false,learned_tools:toolPlanning.tools?.map(x=>({name:x.name,status:x.status,risk:x.risk}))||[],recommended_integrations:toolPlanning.recommended_integrations?.map(x=>({id:x.id,name:x.name,priority:x.priority,capabilities:x.capabilities}))||[]} });
+      } catch (e) {
+        const detail=e?.message || 'provider failed';errors.push(`${p.name}: ${detail}`);
+        await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:false,quality:0,latency:Date.now()-started,notes:detail});
+      }
     }
-    return json({ detail: `Magnanimous AI could not complete the request. ${errors.join(' | ')}`, code: 'AI_PROVIDER_FAILURE',route_task:task }, 502);
+    if(body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:false});
+    return json({ detail: `Magnanimous AI could not complete the request. ${errors.join(' | ')}`, code: 'AI_PROVIDER_FAILURE',route_task:task,native_capability:capability }, 502);
   }
   return null;
 }
