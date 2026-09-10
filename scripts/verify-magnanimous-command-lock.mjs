@@ -19,8 +19,8 @@ const gateway = read('worker/src/magnanimous-tool-gateway.js');
 requireText(provider, 'MAGNANIMOUS COMMAND LAYER', 'provider entrypoint');
 requireText(provider, "command_role:'commander-in-chief'", 'provider entrypoint');
 requireText(provider, "provider_role:'execution-engine'", 'provider entrypoint');
-requireText(brain, "role:'central-platform-brain'", 'brain runtime');
-requireText(brain, 'Magnanimous AI is the central intelligence and continuity layer for the platform.', 'brain runtime');
+requireText(brain, "role:'commander-in-chief-platform-brain'", 'brain runtime');
+requireText(brain, 'Magnanimous AI is the commander-in-chief intelligence, planning, continuity and learning layer for the platform.', 'brain runtime');
 
 // Knowledge growth and source absorption.
 requireText(provider, 'learnFromLinks', 'provider entrypoint');
