@@ -8,6 +8,9 @@ const fail = (message) => {
 const requireText = (text, needle, label) => {
   if (!text.includes(needle)) fail(`${label} is missing required invariant: ${needle}`);
 };
+const forbidText = (text, needle, label) => {
+  if (text.includes(needle)) fail(`${label} contains forbidden direct dependency: ${needle}`);
+};
 
 const provider = read('worker/src/provider-entrypoint.js');
 const brain = read('worker/src/magnanimous-brain-runtime.js');
@@ -15,6 +18,8 @@ const cognitive = read('worker/src/magnanimous-cognitive-architecture.js');
 const foundry = read('worker/src/magnanimous-tool-foundry.js');
 const router = read('worker/src/router-entrypoint.js');
 const gateway = read('worker/src/magnanimous-tool-gateway.js');
+const standalone = read('frontend/app/magnanimous/page.tsx');
+const siteLayout = read('frontend/app/layout.tsx');
 
 // Identity and command authority.
 requireText(provider, 'MAGNANIMOUS COMMAND LAYER', 'provider entrypoint');
@@ -82,7 +87,21 @@ requireText(gateway, "architecture:'central-brain-with-tool-gateway'", 'tool gat
 requireText(gateway, 'External tools extend Magnanimous.', 'tool gateway');
 requireText(provider, 'Never bypass security, identity, payment or permission boundaries.', 'provider entrypoint');
 
+// Standalone distribution must remain another front door into the SAME central brain, never a fork.
+requireText(standalone, "fetch('/api/chat'", 'standalone Magnanimous');
+requireText(standalone, 'use_knowledge:true', 'standalone Magnanimous');
+requireText(standalone, 'use_tools:true', 'standalone Magnanimous');
+requireText(standalone, 'learn_links:true', 'standalone Magnanimous');
+requireText(standalone, 'remember_search:true', 'standalone Magnanimous');
+requireText(standalone, 'Same central Magnanimous brain', 'standalone Magnanimous');
+requireText(siteLayout, "'/magnanimous'", 'site layout');
+requireText(siteLayout, 'data-iam-standalone', 'site layout');
+requireText(siteLayout, 'if(!standalone)loadAds()', 'site layout');
+for (const directProvider of ['api.openai.com', 'api.anthropic.com', 'generativelanguage.googleapis.com', 'api.groq.com', 'api.mistral.ai']) {
+  forbidText(standalone, directProvider, 'standalone Magnanimous');
+}
+
 if (!process.exitCode) {
   console.log('MAGNANIMOUS COMMAND LOCK: PASS');
-  console.log('Central brain, hybrid cognition, explainability, multimodal fusion, collaboration, link learning, adaptive routing, memory, Tool Foundry growth, framework literacy, and permission boundaries are intact.');
+  console.log('Central brain, hybrid cognition, explainability, multimodal fusion, collaboration, link learning, adaptive routing, memory, Tool Foundry growth, framework literacy, standalone same-brain distribution, and permission boundaries are intact.');
 }
