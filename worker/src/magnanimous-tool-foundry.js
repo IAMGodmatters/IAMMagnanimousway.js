@@ -13,10 +13,11 @@ async function schema(env){
 function normalizeName(v){return clip(v,100).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'magnanimous-tool'}
 function proposedSteps(purpose){return [
  {type:'understand',instruction:`Understand the requested outcome: ${purpose}`},
+ {type:'retrieve',instruction:'Retrieve relevant Magnanimous workspace knowledge, learned source material, memories and prior successful lessons before using an outside provider.'},
  {type:'gather',instruction:'Gather only the inputs and authorized data required for the task.'},
- {type:'execute',instruction:'Use a native capability first; use an external connector only when materially necessary.'},
- {type:'verify',instruction:'Validate the result, safety boundaries, permissions, and expected output shape.'},
- {type:'learn',instruction:'Record success/failure, provider cost/latency when applicable, and reusable lessons.'}
+ {type:'execute',instruction:'Use a Magnanimous-native capability first; use an external connector only when materially necessary for live data, account access, proprietary capability or specialized compute.'},
+ {type:'verify',instruction:'Validate the result, safety boundaries, permissions, source quality and expected output shape.'},
+ {type:'learn',instruction:'Record success/failure, provider cost/latency when applicable, source-backed lessons, and reusable workflow steps so Magnanimous can perform more of the task natively next time.'}
 ]}
 function integrationRisk(item){
  const high=new Set(['payments']);
@@ -28,7 +29,7 @@ function integrationRisk(item){
 async function upsertSpec(env,{tenant,uid,name,purpose,family,inputs={},outputs={},steps,risk='low',status}){
  const ts=now(),safeName=normalizeName(name),safeFamily=normalizeName(family||'general'),toolSteps=Array.isArray(steps)&&steps.length?steps.slice(0,30):proposedSteps(purpose),toolStatus=status||(risk==='high'?'review-required':'draft');
  await env.DB.prepare(`INSERT INTO magnanimous_native_tool_specs(tenant_id,user_id,name,purpose,family,inputs_json,outputs_json,steps_json,risk,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,user_id,name) DO UPDATE SET purpose=excluded.purpose,family=excluded.family,inputs_json=excluded.inputs_json,outputs_json=excluded.outputs_json,steps_json=excluded.steps_json,risk=excluded.risk,status=CASE WHEN magnanimous_native_tool_specs.status='ready' THEN 'ready' ELSE excluded.status END,updated_at=excluded.updated_at`).bind(tenant,uid,safeName,clip(purpose,2000),safeFamily,JSON.stringify(inputs).slice(0,30000),JSON.stringify(outputs).slice(0,30000),JSON.stringify(toolSteps).slice(0,50000),risk,toolStatus,ts,ts).run();
- return env.DB.prepare('SELECT id,name,purpose,family,risk,status FROM magnanimous_native_tool_specs WHERE tenant_id=? AND user_id=? AND name=?').bind(tenant,uid,safeName).first();
+ return env.DB.prepare('SELECT id,name,purpose,family,risk,status,uses,successes FROM magnanimous_native_tool_specs WHERE tenant_id=? AND user_id=? AND name=?').bind(tenant,uid,safeName).first();
 }
 
 export async function getMagnanimousToolFoundryContext(request,env,goal=''){
@@ -41,8 +42,8 @@ export async function getMagnanimousToolFoundryContext(request,env,goal=''){
   const ranked=results.map(x=>{const hay=`${x.name} ${x.purpose} ${x.family}`.toLowerCase();return{...x,match:terms.reduce((n,t)=>n+(hay.includes(t)?1:0),0)}}).sort((a,b)=>b.match-a.match||(a.status==='ready'?-1:1)-(b.status==='ready'?-1:1)||Number(b.successes||0)-Number(a.successes||0)).slice(0,10);
   const recommended=rankIntegrationTargets(goal).slice(0,6);
   const lines=[];
-  if(ranked.length){lines.push('\n\nMAGNANIMOUS LEARNED TOOL RECIPES:');for(const x of ranked){const rate=Number(x.uses||0)>0?`${Math.round(Number(x.successes||0)/Number(x.uses||1)*100)}% observed success`:'unscored';lines.push(`- ${x.name} [${x.status}/${x.risk}]: ${clip(x.purpose,500)} (${rate})`)}lines.push('Treat proposed recipes as planning guidance only. Never execute high-impact actions merely because a recipe exists.');}
-  if(recommended.length){lines.push('\nINTEGRATION ROUTING CANDIDATES:');for(const x of recommended)lines.push(`- ${x.name}: ${x.capabilities.join(', ')} [${x.priority}]`);lines.push('These are adapter targets, not automatically authorized accounts. Prefer Magnanimous native/free capability first; use a provider only when connected and materially better.');}
+  if(ranked.length){lines.push('\n\nMAGNANIMOUS LEARNED NATIVE TOOL RECIPES:');for(const x of ranked){const rate=Number(x.uses||0)>0?`${Math.round(Number(x.successes||0)/Number(x.uses||1)*100)}% observed success`:'unscored';lines.push(`- ${x.name} [${x.status}/${x.risk}]: ${clip(x.purpose,500)} (${rate})`)}lines.push('READY recipes are proven low-risk patterns Magnanimous should reuse natively. PROPOSED recipes are planning guidance until enough successful outcomes promote them. Never execute high-impact actions merely because a recipe exists.');}
+  if(recommended.length){lines.push('\nINTEGRATION ROUTING CANDIDATES:');for(const x of recommended)lines.push(`- ${x.name}: ${x.capabilities.join(', ')} [${x.priority}]`);lines.push('These are adapter targets, not automatically authorized accounts. Prefer Magnanimous native/free capability first; use a provider only when connected and materially better or required for live/account-specific capability.');}
   return{context:lines.join('\n').slice(0,9000),tools:ranked,recommended_integrations:recommended};
  }catch(e){return{context:'',tools:[],recommended_integrations:rankIntegrationTargets(goal).slice(0,6),error:clip(e?.message||e,500)}}
 }
@@ -57,7 +58,7 @@ export async function handleMagnanimousToolFoundry(request,env){
    env.DB.prepare('SELECT capability,example_task,count,status,updated_at FROM magnanimous_tool_gaps WHERE tenant_id=? AND user_id=? ORDER BY count DESC,updated_at DESC LIMIT 100').bind(tenant,uid).all(),
    env.DB.prepare('SELECT id,name,purpose,family,inputs_json,outputs_json,steps_json,risk,status,uses,successes,created_at,updated_at FROM magnanimous_native_tool_specs WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 300').bind(tenant,uid).all()
   ]);
-  return json({identity:'Magnanimous AI',mode:'native-tool-learning',gaps:gaps.results||[],tools:(specs.results||[]).map(x=>({...x,inputs:JSON.parse(x.inputs_json||'{}'),outputs:JSON.parse(x.outputs_json||'{}'),steps:JSON.parse(x.steps_json||'[]')})),integration_targets:getIntegrationCatalog().length,note:'Magnanimous learns reusable native tool recipes and provider-adapter specifications. External services still require their own authorization. High-impact tools remain review-gated.'});
+  return json({identity:'Magnanimous AI',mode:'native-tool-learning',command_role:'commander-in-chief',auto_promotion:{enabled:true,low_risk_only:true,min_scored_uses:5,min_success_rate:.8},gaps:gaps.results||[],tools:(specs.results||[]).map(x=>({...x,inputs:JSON.parse(x.inputs_json||'{}'),outputs:JSON.parse(x.outputs_json||'{}'),steps:JSON.parse(x.steps_json||'[]')})),integration_targets:getIntegrationCatalog().length,note:'Magnanimous learns reusable native tool recipes and provider-adapter specifications. Proven low-risk recipes can self-promote to READY. External services still require their own authorization; proprietary provider backends are not copied.'});
  }
  if(request.method==='GET'&&url.pathname==='/api/magnanimous/tool-foundry/integrations'){
   const goal=clip(url.searchParams.get('goal'),1000);
@@ -85,7 +86,15 @@ export async function handleMagnanimousToolFoundry(request,env){
   const b=await request.json().catch(()=>({})),name=normalizeName(b.name),purpose=clip(b.purpose,2000);if(!purpose)return json({detail:'Tool purpose is required.'},400);const risk=['low','medium','high'].includes(String(b.risk))?String(b.risk):'low';const row=await upsertSpec(env,{tenant,uid,name,purpose,family:b.family||'general',inputs:typeof b.inputs==='object'&&b.inputs?b.inputs:{},outputs:typeof b.outputs==='object'&&b.outputs?b.outputs:{},steps:Array.isArray(b.steps)?b.steps:undefined,risk,status:risk==='high'?'review-required':'draft'});return json({ok:true,tool:row});
  }
  if(request.method==='POST'&&url.pathname==='/api/magnanimous/tool-foundry/outcome'){
-  const b=await request.json().catch(()=>({}));const name=normalizeName(b.name);await env.DB.prepare('UPDATE magnanimous_native_tool_specs SET uses=uses+1,successes=successes+?,updated_at=? WHERE tenant_id=? AND user_id=? AND name=?').bind(b.success?1:0,now(),tenant,uid,name).run();return json({ok:true});
+  const b=await request.json().catch(()=>({}));const name=normalizeName(b.name),ts=now();
+  await env.DB.prepare('UPDATE magnanimous_native_tool_specs SET uses=uses+1,successes=successes+?,updated_at=? WHERE tenant_id=? AND user_id=? AND name=?').bind(b.success?1:0,ts,tenant,uid,name).run();
+  let row=await env.DB.prepare('SELECT name,risk,status,uses,successes FROM magnanimous_native_tool_specs WHERE tenant_id=? AND user_id=? AND name=?').bind(tenant,uid,name).first(),promoted=false;
+  if(row&&row.risk==='low'&&row.status==='proposed'&&Number(row.uses||0)>=5&&Number(row.successes||0)/Math.max(1,Number(row.uses||0))>=.8){
+   await env.DB.prepare("UPDATE magnanimous_native_tool_specs SET status='ready',updated_at=? WHERE tenant_id=? AND user_id=? AND name=?").bind(ts,tenant,uid,name).run();
+   await env.DB.prepare("UPDATE magnanimous_tool_gaps SET status='learned',updated_at=? WHERE tenant_id=? AND user_id=? AND capability=?").bind(ts,tenant,uid,name).run();
+   row={...row,status:'ready'};promoted=true;
+  }
+  return json({ok:true,tool:row,promoted,success_rate:row&&Number(row.uses||0)>0?Number(row.successes||0)/Number(row.uses||1):null});
  }
  if(request.method==='POST'&&url.pathname==='/api/magnanimous/tool-foundry/promote'){
   const b=await request.json().catch(()=>({}));const name=normalizeName(b.name),row=await env.DB.prepare('SELECT * FROM magnanimous_native_tool_specs WHERE tenant_id=? AND user_id=? AND name=?').bind(tenant,uid,name).first();if(!row)return json({detail:'Tool spec not found.'},404);if(row.risk==='high')return json({detail:'High-risk tools require explicit review and cannot self-promote.'},409);await env.DB.prepare("UPDATE magnanimous_native_tool_specs SET status='ready',updated_at=? WHERE tenant_id=? AND user_id=? AND name=?").bind(now(),tenant,uid,name).run();return json({ok:true,name,status:'ready'});
