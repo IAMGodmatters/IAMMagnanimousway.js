@@ -4,7 +4,7 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 const now=()=>Math.floor(Date.now()/1000);
 const PLAN_MONTHLY_PRICE_ID='price_1UBPMoDuxV2kib03YdE09xf0';
 const PLAN_MONTHLY_PRICE_USD=79;
-const ACTIVE_STATUSES=new Set(['active','trialing','past_due']);
+const ACTIVE_STATUSES=new Set(['active']);
 
 async function hmacHex(secret,value){
   const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
@@ -51,8 +51,7 @@ async function includedAccess(env,user,project){
   }
   const tenant=await env.DB.prepare('SELECT id,slug,plan FROM tenants WHERE id=?').bind(user.tenant_id).first();
   if(tenant?.slug==='owner')return{ok:true,reason:'platform_owner'};
-  if(String(tenant?.plan||'free')==='business')return{ok:true,reason:'full_business'};
-  try{const sub=await env.DB.prepare('SELECT plan,status FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first();if(sub?.plan==='business'&&['active','trialing','past_due'].includes(String(sub?.status||'')))return{ok:true,reason:'full_business'}}catch{}
+  try{const sub=await env.DB.prepare('SELECT plan,status FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first();if(sub?.plan==='business'&&ACTIVE_STATUSES.has(String(sub?.status||'')))return{ok:true,reason:'full_business'}}catch{}
   return{ok:false,reason:'subscription_required'};
 }
 function siteOrigin(request,env){return String(env.PUBLIC_SITE_URL||'').trim().replace(/\/$/,'')||new URL(request.url).origin}
@@ -102,16 +101,19 @@ async function handleWebhook(request,env){
   if(String(meta.product_type||'')!=='professional_business_plan')return null;
   const eventId=String(event?.id||'');if(!eventId)return json({detail:'Stripe event id is required.'},400);
   const seen=await env.DB.prepare('SELECT event_id FROM business_plan_subscription_events WHERE event_id=?').bind(eventId).first();if(seen)return json({received:true,duplicate:true});
-  if(event.type==='checkout.session.completed'){
-    const subscriptionId=typeof object.subscription==='string'?object.subscription:String(object.subscription?.id||'');
-    const sub=await subscriptionFromStripe(env,subscriptionId);
-    if(sub)await setSubscriptionAccess(env,{projectId:String(meta.project_id||''),tenantId:String(meta.tenant_id||''),userId:String(meta.user_id||''),subscriptionId:sub.id,sessionId:String(object.id||''),status:sub.status,currentPeriodEnd:sub.current_period_end});
+  if(event.type==='checkout.session.completed'||event.type==='checkout.session.async_payment_succeeded'){
+    const paid=['paid','no_payment_required'].includes(String(object.payment_status||''));
+    if(paid){
+      const subscriptionId=typeof object.subscription==='string'?object.subscription:String(object.subscription?.id||'');
+      const sub=await subscriptionFromStripe(env,subscriptionId);
+      if(sub&&ACTIVE_STATUSES.has(String(sub.status||'')))await setSubscriptionAccess(env,{projectId:String(meta.project_id||''),tenantId:String(meta.tenant_id||''),userId:String(meta.user_id||''),subscriptionId:sub.id,sessionId:String(object.id||''),status:sub.status,currentPeriodEnd:sub.current_period_end});
+    }
   }else if(event.type==='customer.subscription.updated'||event.type==='customer.subscription.deleted'||event.type==='customer.subscription.created'){
     const status=event.type==='customer.subscription.deleted'?'canceled':String(object.status||'incomplete');
     await setSubscriptionAccess(env,{projectId:String(meta.project_id||''),tenantId:String(meta.tenant_id||''),userId:String(meta.user_id||''),subscriptionId:String(object.id||''),sessionId:null,status,currentPeriodEnd:object.current_period_end});
   }
   await env.DB.prepare('INSERT INTO business_plan_subscription_events(event_id,event_type,processed_at) VALUES(?,?,?)').bind(eventId,String(event.type||''),now()).run();
-  return json({received:true,business_plan_subscription:true});
+  return json({received:true,business_plan_subscription:true,automatic_fulfillment:true});
 }
 
 export async function handleBusinessPlan(request,env){
@@ -125,7 +127,7 @@ export async function handleBusinessPlan(request,env){
     if(handled)return handled;
     return handleLegacyBusinessPlan(request,env);
   }
-  if(path==='/api/business-plan/config'&&request.method==='GET')return json({enabled:true,free_preview:true,monthly_price_usd:PLAN_MONTHLY_PRICE_USD,billing_interval:'month',recurring:true,included_with_full_business:true,pipeline:['Intake','Clarify','Research','Validate','Financial Review','Draft','Hostile Review','Consistency Check','Audience Adaptation','Final Polish']});
+  if(path==='/api/business-plan/config'&&request.method==='GET')return json({enabled:true,free_preview:true,monthly_price_usd:PLAN_MONTHLY_PRICE_USD,billing_interval:'month',recurring:true,included_with_full_business:true,pipeline:['Intake','Clarify','Research','Validate','Financial Review','Draft','Hostile Review','Consistency Check','Audience Adaptation','Final Polish'],provider_checkout_required:false,provider_billing:'managed_by_i_am'});
 
   if(path==='/api/business-plan/checkout'&&request.method==='POST'){
     const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);
@@ -143,7 +145,7 @@ export async function handleBusinessPlan(request,env){
     form.set('cancel_url',`${origin}/business-plan?checkout=cancelled&project_id=${encodeURIComponent(id)}`);
     const {ok,data}=await stripeRequest(env,'/v1/checkout/sessions',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:form.toString()});
     if(!ok||!data?.url)return json({detail:data?.error?.message||'Stripe could not create subscription checkout.'},502);
-    return json({url:data.url,session_id:data.id,project_id:id,monthly_price_usd:PLAN_MONTHLY_PRICE_USD,billing_interval:'month',recurring:true});
+    return json({url:data.url,session_id:data.id,project_id:id,monthly_price_usd:PLAN_MONTHLY_PRICE_USD,billing_interval:'month',recurring:true,provider_checkout_required:false});
   }
 
   if(path==='/api/business-plan/confirm'&&request.method==='POST'){
@@ -152,11 +154,11 @@ export async function handleBusinessPlan(request,env){
     if(!/^cs_[A-Za-z0-9_]+$/.test(sessionId))return json({detail:'A valid Stripe Checkout session is required.'},400);
     const {ok,data:s}=await stripeRequest(env,`/v1/checkout/sessions/${encodeURIComponent(sessionId)}`);if(!ok||!s?.id)return json({detail:s?.error?.message||'Stripe checkout could not be verified.'},502);
     const meta=s.metadata||{};if(String(meta.product_type||'')!=='professional_business_plan'||String(meta.project_id||'')!==id||String(meta.tenant_id||'')!==String(user.tenant_id))return json({detail:'This checkout does not belong to this business-plan project.'},403);
-    if(s.mode!=='subscription'||s.status!=='complete')return json({detail:'Stripe has not confirmed this monthly subscription yet.'},409);
+    if(s.mode!=='subscription'||s.status!=='complete'||!['paid','no_payment_required'].includes(String(s.payment_status||'')))return json({detail:'Stripe has not confirmed successful payment for this monthly subscription yet.'},409);
     const subscriptionId=typeof s.subscription==='string'?s.subscription:String(s.subscription?.id||'');
-    const sub=await subscriptionFromStripe(env,subscriptionId);if(!sub||!ACTIVE_STATUSES.has(String(sub.status||'')))return json({detail:'The business-plan subscription is not active yet.'},409);
+    const sub=await subscriptionFromStripe(env,subscriptionId);if(!sub||!ACTIVE_STATUSES.has(String(sub.status||'')))return json({detail:'The paid business-plan subscription is not active yet.'},409);
     await setSubscriptionAccess(env,{projectId:id,tenantId:String(user.tenant_id),userId:String(user.id),subscriptionId:sub.id,sessionId,status:sub.status,currentPeriodEnd:sub.current_period_end});
-    return json({confirmed:true,project_id:id,premium:true,premium_reason:'business_plan_monthly',subscription_id:sub.id,subscription_status:sub.status,monthly_price_usd:PLAN_MONTHLY_PRICE_USD,billing_interval:'month'});
+    return json({confirmed:true,project_id:id,premium:true,premium_reason:'business_plan_monthly',subscription_id:sub.id,subscription_status:sub.status,monthly_price_usd:PLAN_MONTHLY_PRICE_USD,billing_interval:'month',provider_checkout_required:false,automatic_fulfillment:true});
   }
 
   const response=await handleLegacyBusinessPlan(request,env);
