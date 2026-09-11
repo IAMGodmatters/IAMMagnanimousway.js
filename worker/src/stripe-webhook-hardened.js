@@ -2,13 +2,15 @@ import { creditWallet } from './usage-guard.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
-const ACTIVE=new Set(['active','trialing']);
+// Provider-funded premium capabilities are released only for actually active paid subscriptions.
+const ACTIVE=new Set(['active']);
 const PLANS=new Set(['plus','business','pro','scale']);
 
 async function hmacHex(secret,value){const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);const out=await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(value));return[...new Uint8Array(out)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function safeEqual(a,b){a=String(a||'');b=String(b||'');if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0}
 function parseSignature(header){const out={t:'',v1:[]};for(const part of String(header||'').split(',')){const[k,...rest]=part.trim().split('='),v=rest.join('=');if(k==='t')out.t=v;if(k==='v1'&&v)out.v1.push(v)}return out}
 async function verify(raw,header,secret){const p=parseSignature(header),stamp=Number(p.t);if(!p.t||!p.v1.length||!Number.isFinite(stamp)||Math.abs(now()-stamp)>300)return false;const expected=await hmacHex(secret,`${p.t}.${raw}`);return p.v1.some(v=>safeEqual(v,expected))}
+function paymentConfirmed(object){const payment=String(object?.payment_status||'').toLowerCase();return payment==='paid'||payment==='no_payment_required'}
 function pricePlan(env,object){
  const map=new Map([[String(env.STRIPE_PRICE_PLUS||''),'plus'],[String(env.STRIPE_PRICE_BUSINESS||''),'business'],[String(env.STRIPE_PRICE_PRO||''),'pro'],[String(env.STRIPE_PRICE_SCALE||''),'scale']]);
  const items=object?.items?.data||[];for(const item of items){const id=String(item?.price?.id||item?.plan?.id||'');if(map.has(id))return map.get(id)}
@@ -19,6 +21,7 @@ async function ensureSchema(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS billing_subscriptions (tenant_id TEXT PRIMARY KEY,plan TEXT NOT NULL DEFAULT 'free',stripe_customer_id TEXT,stripe_subscription_id TEXT,status TEXT NOT NULL DEFAULT 'inactive',current_period_end INTEGER,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS billing_webhook_events (event_id TEXT PRIMARY KEY,event_type TEXT NOT NULL,processed_at INTEGER NOT NULL)`).run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS enterprise_revenue_events (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,account_id TEXT,contract_id TEXT,event_type TEXT NOT NULL,amount_usd REAL NOT NULL DEFAULT 0,source TEXT NOT NULL DEFAULT '',reference_id TEXT NOT NULL DEFAULT '',occurred_at INTEGER NOT NULL,UNIQUE(tenant_id,event_type,reference_id))`).run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS provider_funding_authorizations (tenant_id TEXT NOT NULL,reference_id TEXT NOT NULL,purpose TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'authorized',amount_usd REAL NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,reference_id,purpose))`).run();
 }
 async function save(env,tenantId,values){
  if(!tenantId)return;const ts=now(),old=await env.DB.prepare('SELECT * FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first();
@@ -35,19 +38,32 @@ async function resolveTenant(env,object){
 async function recordRevenue(env,tenantId,eventType,amount,source,referenceId){
  if(!tenantId||!referenceId)return;try{await env.DB.prepare('INSERT INTO enterprise_revenue_events(tenant_id,event_type,amount_usd,source,reference_id,occurred_at) VALUES(?,?,?,?,?,?)').bind(tenantId,eventType,Number(amount||0),String(source||''),String(referenceId),now()).run()}catch(error){if(!String(error?.message||'').toLowerCase().includes('unique'))throw error}
 }
+async function authorizeProviderSpend(env,tenantId,referenceId,purpose,amount=0){
+ if(!tenantId||!referenceId)return;
+ await env.DB.prepare('INSERT OR IGNORE INTO provider_funding_authorizations(tenant_id,reference_id,purpose,status,amount_usd,created_at) VALUES(?,?,?,?,?,?)').bind(String(tenantId),String(referenceId),String(purpose||'paid-feature'),'authorized',Math.max(0,Number(amount||0)),now()).run();
+}
+async function processPaidCheckout(env,event,object){
+ const purpose=String(object?.metadata?.purpose||'').toLowerCase();const tenantId=await resolveTenant(env,object);if(!tenantId||!paymentConfirmed(object))return;
+ const amount=Math.max(0,Number(object?.amount_total||0)/100),reference=String(object.id||event.id);
+ if(purpose==='premium_usage_topup'){
+  if(amount<=0)return;
+  await creditWallet(env,tenantId,amount,{reference_id:reference,detail:'Stripe premium usage top-up'});
+  await authorizeProviderSpend(env,tenantId,reference,'premium_usage_topup',amount);
+  await recordRevenue(env,tenantId,'usage-topup',amount,'stripe',reference);
+  return;
+ }
+ const metadataPlan=String(object?.metadata?.plan||'').toLowerCase(),plan=PLANS.has(metadataPlan)?metadataPlan:'business';
+ await save(env,tenantId,{plan,customer_id:String(object.customer||'')||null,subscription_id:String(object.subscription||'')||null,status:'active'});
+ await authorizeProviderSpend(env,tenantId,reference,`plan:${plan}`,amount);
+ if(amount>0)await recordRevenue(env,tenantId,'checkout-paid',amount,'stripe',reference);
+}
 async function processEvent(env,event){
  const type=String(event?.type||''),object=event?.data?.object||{};
- if(type==='checkout.session.completed'){
-  const purpose=String(object?.metadata?.purpose||'').toLowerCase();const tenantId=await resolveTenant(env,object);if(!tenantId)return;
-  if(purpose==='premium_usage_topup'){
-   const paid=String(object?.payment_status||'')==='paid'||String(object?.status||'')==='complete';if(!paid)return;
-   const amount=Math.max(0,Number(object?.amount_total||0)/100);if(amount<=0)return;
-   await creditWallet(env,tenantId,amount,{reference_id:String(object.id||event.id),detail:'Stripe premium usage top-up'});
-   await recordRevenue(env,tenantId,'usage-topup',amount,'stripe',String(object.id||event.id));
-   return;
-  }
-  const metadataPlan=String(object?.metadata?.plan||'').toLowerCase(),plan=PLANS.has(metadataPlan)?metadataPlan:'business';
-  await save(env,tenantId,{plan,customer_id:String(object.customer||'')||null,subscription_id:String(object.subscription||'')||null,status:'active'});return;
+ if(type==='checkout.session.completed'||type==='checkout.session.async_payment_succeeded'){
+  await processPaidCheckout(env,event,object);return;
+ }
+ if(type==='checkout.session.async_payment_failed'){
+  const tenantId=await resolveTenant(env,object);if(tenantId)await save(env,tenantId,{plan:'free',status:'payment_failed'});return;
  }
  if(['customer.subscription.created','customer.subscription.updated','customer.subscription.deleted'].includes(type)){
   const tenantId=await resolveTenant(env,object);if(!tenantId)return;
@@ -56,9 +72,18 @@ async function processEvent(env,event){
   const desired=PLANS.has(detected)?detected:'business',status=String(object.status||(type.endsWith('.deleted')?'canceled':'inactive'));
   const active=ACTIVE.has(status)&&!type.endsWith('.deleted');
   await save(env,tenantId,{plan:active?desired:'free',customer_id:String(object.customer||'')||null,subscription_id:String(object.id||'')||null,status,current_period_end:Number(object.current_period_end||0)||null});
+  if(active)await authorizeProviderSpend(env,tenantId,String(object.id||event.id),`subscription:${desired}`,0);
+  return;
  }
  if(type==='invoice.paid'){
-  const tenantId=await resolveTenant(env,object);if(tenantId)await recordRevenue(env,tenantId,'invoice-paid',Number(object.amount_paid||0)/100,'stripe',String(object.id||event.id));
+  const tenantId=await resolveTenant(env,object);if(tenantId){
+   const amount=Number(object.amount_paid||0)/100,reference=String(object.id||event.id);
+   await recordRevenue(env,tenantId,'invoice-paid',amount,'stripe',reference);
+   await authorizeProviderSpend(env,tenantId,reference,'recurring-invoice',amount);
+  }
+ }
+ if(type==='invoice.payment_failed'){
+  const tenantId=await resolveTenant(env,object);if(tenantId){const old=await env.DB.prepare('SELECT plan FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first();await save(env,tenantId,{plan:'free',status:'past_due'});if(old?.plan)await recordRevenue(env,tenantId,'invoice-payment-failed',0,'stripe',String(object.id||event.id));}
  }
 }
 
@@ -72,5 +97,5 @@ export async function handleHardenedStripeWebhook(request,env){
  if(await env.DB.prepare('SELECT event_id FROM billing_webhook_events WHERE event_id=?').bind(id).first())return json({received:true,duplicate:true});
  await processEvent(env,event);
  await env.DB.prepare('INSERT INTO billing_webhook_events(event_id,event_type,processed_at) VALUES(?,?,?)').bind(id,String(event?.type||''),now()).run();
- return json({received:true,hardened:true});
+ return json({received:true,hardened:true,automatic_fulfillment:true,provider_billing_owner:'I AM Magnanimous Way'});
 }
