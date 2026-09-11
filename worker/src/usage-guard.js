@@ -52,13 +52,13 @@ export async function tenantPlan(env,tenantId){
  try{row=await env.DB.prepare('SELECT plan,status FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first()}catch(_){ }
  if(row){
   const status=String(row.status||'inactive');
-  // Paid provider spend is released only for an actually active paid subscription.
-  // Trials, incomplete, past_due, canceled and unpaid states fall back to Free.
   const paidActive=status==='active';
   const plan=paidActive?normalizePlan(row.plan):'free';return{plan,limits:PLAN_LIMITS[plan],status};
  }
- try{row=await env.DB.prepare('SELECT plan FROM tenants WHERE id=?').bind(tenantId).first()}catch(_){ }
- const plan=normalizePlan(row?.plan);return{plan,limits:PLAN_LIMITS[plan],status:'legacy'};
+ // A historical tenants.plan flag is not proof of successful payment. Preserve
+ // the account, but do not let it incur platform-paid provider charges until a
+ // Stripe-confirmed billing row exists.
+ return{plan:'free',limits:PLAN_LIMITS.free,status:'unverified_legacy'};
 }
 
 export async function walletStatus(env,tenantId){
@@ -118,8 +118,6 @@ export async function recordUsage(env,tenantId,{category='premium',provider='',u
 export function estimateAiCostUsd(provider){
  const p=String(provider||'').toLowerCase();
  if(p==='cloudflare-ai')return 0;
- // Conservative per-request reserves. Actual provider invoices remain the
- // platform's responsibility; these reserves prevent runaway customer spend.
  if(p==='groq'||p==='cerebras')return 0.01;
  if(p==='google'||p==='mistral')return 0.02;
  if(p==='openai')return 0.03;
