@@ -20,14 +20,14 @@ test('protected current-user endpoint does not authenticate anonymous callers', 
   expect(text).not.toMatch(/secret|api[_ -]?key|password_hash/i);
 });
 
-test('common injection payload renders as text on public query-string navigation', async ({ page }) => {
+test('common injection payload does not execute from public query-string navigation', async ({ page }) => {
   const marker = 'qa-xss-marker-7f12';
-  await page.goto(`/?qa=${encodeURIComponent(`<img src=x onerror=alert('${marker}')>`)}`, { waitUntil: 'domcontentloaded' });
   const dialogs: string[] = [];
   page.on('dialog', async (dialog) => {
     dialogs.push(dialog.message());
     await dialog.dismiss();
   });
+  await page.goto(`/?qa=${encodeURIComponent(`<img src=x onerror=alert('${marker}')>`)}`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(500);
   expect(dialogs.join(' ')).not.toContain(marker);
 });
