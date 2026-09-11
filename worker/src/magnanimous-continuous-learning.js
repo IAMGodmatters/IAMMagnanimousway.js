@@ -44,8 +44,17 @@ export async function runContinuousLearningCycle(env,{source='cron'}={}){
  let scanned=0,promoted=0,lessons=0,errors=0;
  const notes=[];
  try{
-   const cutoff=started-(90*86400);
-   const {results=[]}=await env.DB.prepare(`SELECT tenant_id,user_id,capability,provider,COUNT(*) samples,AVG(success) success_rate,AVG(quality) average_quality,AVG(latency_ms) average_latency_ms,MAX(created_at) last_evidence_at FROM magnanimous_outcomes WHERE created_at>=? GROUP BY tenant_id,user_id,capability,provider HAVING COUNT(*)>=2 ORDER BY tenant_id,user_id,capability,samples DESC LIMIT 1000`).bind(cutoff).all();
+   const {results=[]}=await env.DB.prepare(`
+     SELECT o.tenant_id,o.user_id,o.capability,o.provider,
+       COUNT(*) samples,AVG(o.success) success_rate,AVG(o.quality) average_quality,
+       AVG(o.latency_ms) average_latency_ms,MAX(o.created_at) last_evidence_at
+     FROM magnanimous_outcomes o
+     LEFT JOIN magnanimous_training_settings s ON s.tenant_id=o.tenant_id AND s.user_id=o.user_id
+     WHERE o.created_at >= (? - (CASE WHEN COALESCE(s.lookback_days,30)<7 THEN 7 WHEN COALESCE(s.lookback_days,30)>90 THEN 90 ELSE COALESCE(s.lookback_days,30) END)*86400)
+     GROUP BY o.tenant_id,o.user_id,o.capability,o.provider
+     HAVING COUNT(*)>=2
+     ORDER BY o.tenant_id,o.user_id,o.capability,samples DESC
+     LIMIT 1000`).bind(started).all();
    scanned=results.length;
    const settingCache=new Map();
    const best=new Map();
@@ -55,8 +64,6 @@ export async function runContinuousLearningCycle(env,{source='cron'}={}){
        const sk=`${tenant}|${uid}`;
        let settings=settingCache.get(sk);if(!settings){settings=await settingsFor(env,tenant,uid);settingCache.set(sk,settings)}
        if(!Number(settings.enabled))continue;
-       const recentCutoff=started-(clamp(settings.lookback_days,7,90)*86400);
-       if(Number(row.last_evidence_at||0)<recentCutoff)continue;
        const samples=Number(row.samples||0),success=Number(row.success_rate||0),quality=Number(row.average_quality||0),latency=Number(row.average_latency_ms||0);
        const enough=samples>=clamp(settings.minimum_samples,2,100);
        const qualityPass=success>=clamp(settings.minimum_success_rate,0.5,1)&&quality>=clamp(settings.minimum_quality,0,1);
