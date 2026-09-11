@@ -1,4 +1,6 @@
 import routerApp from './router-entrypoint.js';
+import { handleBusinessPlanQuality } from './business-plan-quality-runtime.js';
+import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 
 const PRIVACY_VERSION = '1.0-2026-09-01';
 const TERMS_VERSION = '1.0-2026-09-01';
@@ -52,6 +54,14 @@ async function recordConsent(env, user, body) {
   ).run();
 }
 
+function withCors(response){
+  const headers=new Headers(response.headers);
+  headers.set('access-control-allow-origin','*');
+  headers.set('access-control-allow-methods','GET,POST,PUT,DELETE,OPTIONS');
+  headers.set('access-control-allow-headers','Content-Type, Authorization');
+  return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -89,9 +99,6 @@ export default {
       if (data?.user?.id) {
         try {
           await recordConsent(env, data.user, body);
-          // The D1 owner-role trigger runs during signup. Return the effective
-          // database role rather than the legacy pre-trigger "member" value so
-          // the client immediately sees the permissions it actually has.
           const effective = await env.DB.prepare('SELECT role,tenant_id,active FROM users WHERE id=?').bind(String(data.user.id)).first();
           if (effective) {
             data.user.role = String(effective.role || data.user.role || 'member');
@@ -103,6 +110,15 @@ export default {
         }
       }
       return data ? json(data, response.status) : response;
+    }
+
+    // The professional business-plan draft/final paths have their own quality
+    // router. Free drafts use I AM's free-first reasoning. Metered outside AI is
+    // eligible only after an I AM purchase/plan entitlement has been verified.
+    if(url.pathname==='/api/business-plan/quality'||url.pathname==='/api/business-plan/draft'||url.pathname==='/api/business-plan/final'){
+      const runtimeEnv=await getProviderRuntimeEnv(env);
+      const qualityResponse=await handleBusinessPlanQuality(request,runtimeEnv);
+      if(qualityResponse)return withCors(qualityResponse);
     }
 
     return routerApp.fetch(request, env, ctx);
