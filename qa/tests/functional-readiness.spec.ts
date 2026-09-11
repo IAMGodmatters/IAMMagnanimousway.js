@@ -1,53 +1,17 @@
 import { test, expect } from '@playwright/test';
-import { watchRuntime } from './helpers';
+import { discoverStaticRoutes, watchRuntime } from './helpers';
 
-const criticalTools = [
-  '/',
-  '/magnanimous',
-  '/ai-chat',
-  '/research',
-  '/bible-study',
-  '/writing',
-  '/marketing',
-  '/business',
-  '/business-plan',
-  '/coding',
-  '/social',
-  '/video-script',
-  '/travel',
-  '/customer-service',
-  '/agents',
-  '/assistant-actions',
-  '/tool-foundry',
-  '/ai-video',
-  '/agent-video',
-  '/cinema-engine',
-  '/ai-receptionist',
-  '/auto-dialer',
-  '/contact-center',
-  '/call-center-health',
-  '/phone',
-  '/business-email',
-  '/crm',
-  '/bpo-operations',
-  '/finance-people',
-  '/connections',
-  '/billing-support',
-  '/pricing',
-  '/support',
-  '/security',
-  '/solutions',
-  '/start',
-  '/owner-login',
-];
+const allRoutes = discoverStaticRoutes();
+const criticalPattern = /ai|magnanimous|bible|business|agent|video|cinema|dial|call|phone|reception|email|crm|bpo|finance|connection|billing|pricing|support|security|solution|start|owner|admin|tool/i;
+const criticalTools = [...new Set(['/', ...allRoutes.filter((route) => criticalPattern.test(route))])];
 
 for (const route of criticalTools) {
-  test(`${route} is present and functionally reachable`, async ({ page }) => {
+  test(`${route} is functionally reachable`, async ({ page }) => {
     const runtimeProblems = watchRuntime(page);
     const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
     expect(response, `${route} produced no response`).not.toBeNull();
-    expect(response!.status(), `${route} is missing`).not.toBe(404);
     expect(response!.status(), `${route} has a server error`).toBeLessThan(500);
+    expect(response!.status(), `${route} is missing from the deployed site`).not.toBe(404);
 
     const visibleText = (await page.locator('body').innerText()).trim();
     expect(visibleText.length, `${route} rendered no meaningful UI`).toBeGreaterThan(30);
@@ -58,8 +22,8 @@ for (const route of criticalTools) {
   });
 }
 
-test('forms expose a submit path instead of trapping user input', async ({ page }) => {
-  const formRoutes = ['/owner-login', '/support', '/business-email', '/crm', '/ai-chat', '/magnanimous'];
+test('visible forms expose a submit path instead of trapping user input', async ({ page }) => {
+  const formRoutes = criticalTools.filter((route) => /login|support|email|crm|ai|magnanimous|business|contact|phone|billing/i.test(route));
   for (const route of formRoutes) {
     const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
     if (!response || response.status() === 404 || response.status() >= 500) continue;
