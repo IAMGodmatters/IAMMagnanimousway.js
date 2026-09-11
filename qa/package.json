@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "name": "iam-magnanimous-way-qa",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test tests/routes.spec.ts tests/navigation.spec.ts",
+    "report": "node scripts/summarize.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.55.0"
+  }
+}
