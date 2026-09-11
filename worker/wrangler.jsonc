@@ -15,6 +15,10 @@
     "STRIPE_PAYMENT_LINK_SCALE": "https://buy.stripe.com/5kQ28r04qbLU9U4ajP6kg04",
     "STRIPE_PAYMENT_LINK_USAGE_TOPUP": "https://buy.stripe.com/4gM00j2cyeY60jucrX6kg06",
     "ENABLE_METERED_PROVIDERS": "false",
+    "CLOUDFLARE_AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "OPENAI_MODEL": "gpt-5.6-sol",
+    "BUSINESS_PLAN_MODEL": "gpt-5.6-sol",
+    "BUSINESS_PLAN_FINAL_MODEL": "gpt-5.6-sol",
     "TARGET_GROSS_MARGIN_PERCENT": "20"
   },
   "assets": {
