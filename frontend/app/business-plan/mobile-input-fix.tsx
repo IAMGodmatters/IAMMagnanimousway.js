@@ -15,7 +15,7 @@ export default function BusinessPlanMobileInputFix(){
    document.querySelectorAll<HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement>(editableSelector).forEach(el=>{
     if(el instanceof HTMLInputElement||el instanceof HTMLTextAreaElement){
      el.inputMode='text';
-     el.autocapitalize='sentences';
+     el.setAttribute('autocapitalize','sentences');
      el.spellcheck=true;
     }
    });
@@ -32,22 +32,25 @@ export default function BusinessPlanMobileInputFix(){
   };
  },[]);
 
- return <style jsx global>{`
-  @media(max-width:900px){
-   .formGrid label{position:relative;z-index:2}
-   .formGrid input,.formGrid textarea,.formGrid select{
-    position:relative!important;
-    z-index:3!important;
-    pointer-events:auto!important;
-    touch-action:manipulation;
-    -webkit-user-select:text!important;
-    user-select:text!important;
-    -webkit-touch-callout:default;
-    font-size:16px!important;
-    line-height:1.35!important;
-    min-height:50px;
+ return <>
+  <span data-business-plan-mobile-input="ready-v1" hidden aria-hidden="true"/>
+  <style jsx global>{`
+   @media(max-width:900px){
+    .formGrid label{position:relative;z-index:2}
+    .formGrid input,.formGrid textarea,.formGrid select{
+     position:relative!important;
+     z-index:3!important;
+     pointer-events:auto!important;
+     touch-action:manipulation;
+     -webkit-user-select:text!important;
+     user-select:text!important;
+     -webkit-touch-callout:default;
+     font-size:16px!important;
+     line-height:1.35!important;
+     min-height:50px;
+    }
+    .formGrid textarea{min-height:120px}
    }
-   .formGrid textarea{min-height:120px}
-  }
- `}</style>;
+  `}</style>
+ </>;
 }
