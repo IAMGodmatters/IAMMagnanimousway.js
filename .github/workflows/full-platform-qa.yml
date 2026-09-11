@@ -1,0 +1,152 @@
+name: Full Platform QA
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: full-platform-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QA_BASE_URL: https://iammagnanimousway.com
+
+jobs:
+  code-health:
+    name: Code health and builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            frontend/package.json
+            worker/package.json
+            video-gateway/package.json
+            qa/package.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Frontend typecheck and production build
+        working-directory: frontend
+        run: |
+          npm install --no-audit --no-fund
+          npm run typecheck
+          npm run build
+
+      - name: Worker JavaScript syntax check
+        run: |
+          find worker/src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Video gateway syntax check
+        run: |
+          if [ -d video-gateway/src ]; then
+            find video-gateway/src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+          fi
+
+      - name: Python service syntax check
+        run: |
+          python -m compileall -q backend video-renderer
+
+  browser-qa:
+    name: Browser and functional QA
+    needs: code-health
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: qa/package.json
+
+      - name: Install QA dependencies
+        working-directory: qa
+        run: npm install --no-audit --no-fund
+
+      - name: Install Playwright browsers
+        working-directory: qa
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Run full platform tests
+        working-directory: qa
+        shell: bash
+        run: |
+          set +e
+          npx playwright test
+          TEST_EXIT=$?
+          node scripts/summarize.mjs
+          exit $TEST_EXIT
+
+      - name: Upload QA report, screenshots, traces and videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-platform-qa-${{ github.run_number }}
+          path: |
+            qa/playwright-report/
+            qa/test-results/
+            qa/qa-results.json
+            qa/qa-summary.md
+          if-no-files-found: warn
+          retention-days: 14
+
+  qa-regression-issue:
+    name: Report QA regression
+    needs: [code-health, browser-qa]
+    if: ${{ failure() && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create or update the automated QA regression issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'Automated QA: platform regression detected';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              'The Full Platform QA workflow detected a failure.',
+              '',
+              `- Run: ${runUrl}`,
+              `- Ref: \`${context.ref}\``,
+              `- Commit: \`${context.sha}\``,
+              `- Trigger: \`${context.eventName}\``,
+              '',
+              'Open the workflow run and download the **full-platform-qa** artifact for the HTML report, screenshots, videos, and Playwright traces.',
+              '',
+              'This issue is updated automatically until the regression is resolved.'
+            ].join('\n');
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+              });
+            }
