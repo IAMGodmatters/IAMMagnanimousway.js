@@ -26,9 +26,16 @@ test.describe('critical cross-browser and mobile matrix', () => {
     test(`${route} renders and remains usable`, async ({ page }) => {
       const runtimeProblems = watchRuntime(page);
       const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
-      expect(response, `${route} produced no response`).not.toBeNull();
-      expect(response!.status(), `${route} returned 404`).not.toBe(404);
-      expect(response!.status(), `${route} returned a server error`).toBeLessThan(500);
+
+      // Protected routes can immediately client-redirect anonymous users to /login,
+      // and Firefox may report a null navigation response for that interrupted
+      // document. Judge HTTP status when Playwright has a response, then verify
+      // the final rendered document below in every browser.
+      if (response) {
+        expect(response.status(), `${route} returned 404`).not.toBe(404);
+        expect(response.status(), `${route} returned a server error`).toBeLessThan(500);
+      }
+      expect(page.url(), `${route} never loaded a document`).not.toBe('about:blank');
 
       const body = page.locator('body');
       await expect(body).toBeVisible();
