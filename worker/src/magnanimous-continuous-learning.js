@@ -101,15 +101,24 @@ async function teach(request,env,user){
  const domain=clip(b.domain||'general',80),prompt=clip(b.prompt,12000),ideal=clip(b.ideal_response,16000),key=clip(b.lesson_key,160),value=clip(b.lesson_value,8000);
  if(!prompt||!ideal)return json({detail:'Prompt and ideal_response are required.'},400);
  rejectSecrets(prompt,ideal,key,value);
- const ts=now();const row=await env.DB.prepare(`INSERT INTO magnanimous_training_examples(tenant_id,user_id,domain,prompt,ideal_response,lesson_key,lesson_value,approved,source,created_at,updated_at) VALUES(?,?,?,?,?,?,?,1,'explicit-user',?,?,?) RETURNING id`).bind(String(user.tenant_id),String(user.id),domain,prompt,ideal,key,value,ts,ts).first();
+ const ts=now();const row=await env.DB.prepare(`INSERT INTO magnanimous_training_examples(tenant_id,user_id,domain,prompt,ideal_response,lesson_key,lesson_value,approved,source,created_at,updated_at) VALUES(?,?,?,?,?,?,?,1,'explicit-user',?,?) RETURNING id`).bind(String(user.tenant_id),String(user.id),domain,prompt,ideal,key,value,ts,ts).first();
  const lesson_updated=await upsertExplicitLesson(env,user,{domain:'explicit-training',key,value,evidence:`Training example ${row?.id||''}`});
  return json({ok:true,id:Number(row?.id||0),approved:true,lesson_updated:Boolean(lesson_updated)});
 }
 
 async function feedback(request,env,user){
- await ensureSchema(env);const b=await request.json().catch(()=>({}));const rating=Math.round(clamp(b.rating,1,5));const capability=clip(b.capability||'general',100),provider=clip(b.provider,100),correction=clip(b.correction,8000),notes=clip(b.notes,2000);rejectSecrets(correction,notes);
- await env.DB.prepare(`INSERT INTO magnanimous_training_feedback(tenant_id,user_id,capability,provider,rating,correction,notes,created_at) VALUES(?,?,?,?,?,?,?,?)`).bind(String(user.tenant_id),String(user.id),capability,provider,rating,correction,notes,now()).run();
- return json({ok:true,rating,stored:true,note:'Feedback improves the private continuous-learning signal. Corrections are not automatically used to retrain a public foundation model.'});
+ await ensureSchema(env);const b=await request.json().catch(()=>({}));
+ const rawRating=Number(b.rating);if(!Number.isFinite(rawRating)||rawRating<1||rawRating>5)return json({detail:'Rating must be a number from 1 to 5.'},400);
+ const rating=Math.round(rawRating),capability=clip(b.capability||'general',100),provider=clip(b.provider,100),correction=clip(b.correction,8000),notes=clip(b.notes,2000);rejectSecrets(correction,notes);
+ const ts=now();
+ await env.DB.prepare(`INSERT INTO magnanimous_training_feedback(tenant_id,user_id,capability,provider,rating,correction,notes,created_at) VALUES(?,?,?,?,?,?,?,?)`).bind(String(user.tenant_id),String(user.id),capability,provider,rating,correction,notes,ts).run();
+ if(provider){
+   const quality=(rating-1)/4;
+   await env.DB.prepare(`INSERT INTO magnanimous_outcomes(tenant_id,user_id,capability,provider,task,success,quality,cost_hint,latency_ms,notes,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`).bind(String(user.tenant_id),String(user.id),capability,provider,'Explicit user feedback',rating>=4?1:0,quality,0,0,clip(notes||correction,1200),ts).run();
+ }
+ let lesson_updated=0;
+ if(correction)lesson_updated=await upsertExplicitLesson(env,user,{domain:'explicit-training',key:`feedback-correction:${capability}:${ts}`,value:correction,evidence:`Explicit ${rating}/5 user correction`});
+ return json({ok:true,rating,stored:true,lesson_updated:Boolean(lesson_updated),note:'Feedback improves this private workspace learning signal. It is not used to retrain a public foundation model.'});
 }
 
 async function updateSettings(request,env,user){
@@ -121,7 +130,7 @@ async function updateSettings(request,env,user){
 
 async function exportExamples(env,user){
  const {results=[]}=await env.DB.prepare(`SELECT domain,prompt,ideal_response FROM magnanimous_training_examples WHERE tenant_id=? AND user_id=? AND approved=1 ORDER BY id ASC LIMIT 5000`).bind(String(user.tenant_id),String(user.id)).all();
- const lines=results.map(r=>JSON.stringify({messages:[{role:'system',content:'You are Magnanimous AI. Follow the platform safety, permission and truthfulness rules.'},{role:'user',content:String(r.prompt)},{role:'assistant',content:String(r.ideal_response)}],metadata:{domain:String(r.domain||'general')}}));
+ const lines=results.map(r=>JSON.stringify({messages:[{role:'system',content:`You are Magnanimous AI. Follow the platform safety, permission and truthfulness rules. Training domain: ${String(r.domain||'general')}.`},{role:'user',content:String(r.prompt)},{role:'assistant',content:String(r.ideal_response)}]}));
  return new Response(lines.join('\n')+(lines.length?'\n':''),{headers:{'content-type':'application/x-ndjson; charset=utf-8','content-disposition':'attachment; filename="magnanimous-training.jsonl"','cache-control':'no-store'}});
 }
 
