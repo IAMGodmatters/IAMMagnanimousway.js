@@ -61,6 +61,11 @@ export default function InteractionClarity() {
         <a href={guideHref(pageTopic.key, path)}>ⓘ Platform guide</a>
       </aside>
       <style jsx global>{`
+        html,
+        body {
+          max-width: 100%;
+          overflow-x: hidden;
+        }
         .iam-action-ready:not(:disabled) {
           cursor: pointer;
         }
@@ -89,6 +94,31 @@ export default function InteractionClarity() {
           box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
           backdrop-filter: blur(12px);
           white-space: nowrap;
+        }
+        /* WCAG AA contrast fixes for the public solutions/business-plan surfaces. */
+        .execution article small {
+          color: #6f9eac !important;
+        }
+        .three article small {
+          color: #65706a !important;
+        }
+        .consult p {
+          color: #aab2ac !important;
+        }
+        .audiences > small,
+        .iamAudienceResourceHead small {
+          color: #755d1f !important;
+        }
+        .iamResourceGrid article > span {
+          color: #70571d !important;
+        }
+        .audiences .iamResourceNote {
+          color: #69706b !important;
+        }
+        .launch footer,
+        .launch footer b,
+        .launch footer span {
+          color: #626a64 !important;
         }
         @media (max-width: 700px) {
           .iam-help-link {
