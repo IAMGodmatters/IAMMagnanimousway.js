@@ -3,7 +3,7 @@ import { getKnowledgeContext } from './knowledge-runtime.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
-const ACTIVE=new Set(['active','trialing','past_due']);
+const ACTIVE=new Set(['active']);
 
 async function ensureSchema(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS business_plan_projects(
@@ -43,8 +43,8 @@ function baseRules(){return `You are the senior consulting board inside I AM Mag
 
 async function cloudflare(env,prompt,{strong=true,maxTokens=2600}={}){
  if(!env?.AI)throw new Error('I AM free-first reasoning is temporarily unavailable.');
- const requested=String(strong?env.BUSINESS_PLAN_FREE_MODEL||'@cf/qwen/qwen3.8-27b':env.CLOUDFLARE_AI_MODEL||'').trim();
- const models=[...new Set([requested,'@cf/qwen/qwen3.8-27b','@cf/qwen/qwen3-30b-a3b-fp8','@cf/meta/llama-3.3-70b-instruct-fp8-fast'].filter(Boolean))];
+ const requested=String(strong?env.BUSINESS_PLAN_FREE_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8':env.CLOUDFLARE_AI_MODEL||'').trim();
+ const models=[...new Set([requested,'@cf/qwen/qwen3-30b-a3b-fp8','@cf/zai-org/glm-4.7-flash','@cf/meta/llama-3.3-70b-instruct-fp8-fast'].filter(Boolean))];
  const errors=[];
  for(const model of models){
   try{
@@ -153,7 +153,7 @@ async function finalize(request,env,user,body){
 
 export async function handleBusinessPlanQuality(request,env){
  const url=new URL(request.url),path=url.pathname;
- if(path==='/api/business-plan/quality'&&request.method==='GET')return json({quality_router:true,free_draft:{provider_class:'I AM free-first',primary_model:'@cf/qwen/qwen3.8-27b',live_research:true},professional_final:{requires_i_am_purchase:true,external_provider_checkout:false,managed_provider_costs:true,strong_model_fallback:true},billing_rule:'Customers pay I AM. Outside AI providers are server-side execution engines and are never a customer checkout destination.'});
+ if(path==='/api/business-plan/quality'&&request.method==='GET')return json({quality_router:true,free_draft:{provider_class:'I AM free-first',primary_model:'@cf/qwen/qwen3-30b-a3b-fp8',fallback_models:['@cf/zai-org/glm-4.7-flash','@cf/meta/llama-3.3-70b-instruct-fp8-fast'],live_research:true},professional_final:{requires_i_am_purchase:true,external_provider_checkout:false,managed_provider_costs:true,strong_model_fallback:true,preferred_models:['claude-sonnet-5','gemini-3.7-flash']},billing_rule:'Customers pay I AM. Outside AI providers are server-side execution engines and are never a customer checkout destination.'});
  if(!['/api/business-plan/draft','/api/business-plan/final'].includes(path)||request.method!=='POST')return null;
  if(!env?.DB)return json({detail:'Business-plan storage is unavailable.'},503);
  await ensureSchema(env);
