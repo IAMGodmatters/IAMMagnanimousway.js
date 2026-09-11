@@ -3,7 +3,7 @@ import { handleBusinessPlanQuality } from './business-plan-quality-runtime.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { handleContinuousLearning, runContinuousLearningCycle } from './magnanimous-continuous-learning.js';
 
-const PRIVACY_VERSION = '1.0-2026-09-01';
+const PRIVACY_VERSION = '1.1-2026-09-11';
 const TERMS_VERSION = '1.0-2026-09-01';
 const cors = {
   'content-type': 'application/json; charset=utf-8',
