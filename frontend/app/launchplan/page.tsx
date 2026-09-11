@@ -1,4 +1,5 @@
 import LaunchPlanClient from './launchplan-client';
+import LaunchPlanMobileInputFix from './mobile-input-fix';
 import BusinessPlanSubscriptionCopy from '../business-plan/subscription-copy';
 
 export const metadata={
@@ -12,4 +13,4 @@ export const metadata={
  }
 };
 
-export default function LaunchPlanPage(){return <><BusinessPlanSubscriptionCopy/><LaunchPlanClient/></>}
+export default function LaunchPlanPage(){return <><LaunchPlanMobileInputFix/><BusinessPlanSubscriptionCopy/><LaunchPlanClient/></>}
