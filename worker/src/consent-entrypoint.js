@@ -1,6 +1,7 @@
 import routerApp from './router-entrypoint.js';
 import { handleBusinessPlanQuality } from './business-plan-quality-runtime.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
+import { handleContinuousLearning, runContinuousLearningCycle } from './magnanimous-continuous-learning.js';
 
 const PRIVACY_VERSION = '1.0-2026-09-01';
 const TERMS_VERSION = '1.0-2026-09-01';
@@ -112,6 +113,11 @@ export default {
       return data ? json(data, response.status) : response;
     }
 
+    if (url.pathname.startsWith('/api/magnanimous/training')) {
+      const trainingResponse = await handleContinuousLearning(request, env);
+      if (trainingResponse) return withCors(trainingResponse);
+    }
+
     // The professional business-plan draft/final paths have their own quality
     // router. Free drafts use I AM's free-first reasoning. Metered outside AI is
     // eligible only after an I AM purchase/plan entitlement has been verified.
@@ -122,5 +128,9 @@ export default {
     }
 
     return routerApp.fetch(request, env, ctx);
+  },
+
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(runContinuousLearningCycle(env,{source:'cron'}));
   }
 };
