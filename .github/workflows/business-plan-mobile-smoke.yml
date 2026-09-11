@@ -22,5 +22,5 @@ jobs:
           set -euo pipefail
           page="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 60 https://iammagnanimousway.com/business-plan/)"
           printf '%s' "$page" | grep -F 'data-business-plan-mobile-input="ready-v1"' >/dev/null
-          printf '%s' "$page" | grep -F 'GUIDED BUSINESS INTAKE' >/dev/null
-          echo "Live Business Plan page contains the mobile input readiness marker and intake UI."
+          printf '%s' "$page" | grep -F 'GET STARTED FREE' >/dev/null
+          echo "Live Business Plan page contains the mobile input readiness marker and start UI."
