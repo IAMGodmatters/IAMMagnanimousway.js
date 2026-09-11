@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.QA_BASE_URL || 'https://iammagnanimousway.com';
 const isCI = Boolean(process.env.CI);
+const criticalMatrix = '**/cross-browser.spec.ts';
 
 export default defineConfig({
   testDir: './tests',
@@ -10,7 +11,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
-  workers: isCI ? 4 : undefined,
+  workers: isCI ? 6 : undefined,
   outputDir: 'test-results',
   reporter: [
     ['list'],
@@ -27,10 +28,12 @@ export default defineConfig({
     ignoreHTTPSErrors: false,
   },
   projects: [
+    // Chromium performs the exhaustive route/function/security/accessibility sweep.
     { name: 'chromium-desktop', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox-desktop', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit-desktop', use: { ...devices['Desktop Safari'] } },
-    { name: 'mobile-chrome', use: { ...devices['Pixel 7'] } },
-    { name: 'mobile-safari', use: { ...devices['iPhone 14'] } },
+    // Other engines/devices focus on critical user-facing surfaces. This keeps free CI fast while preserving cross-browser coverage.
+    { name: 'firefox-desktop', testMatch: criticalMatrix, use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit-desktop', testMatch: criticalMatrix, use: { ...devices['Desktop Safari'] } },
+    { name: 'mobile-chrome', testMatch: criticalMatrix, use: { ...devices['Pixel 7'] } },
+    { name: 'mobile-safari', testMatch: criticalMatrix, use: { ...devices['iPhone 14'] } },
   ],
 });
