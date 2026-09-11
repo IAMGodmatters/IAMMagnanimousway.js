@@ -1,0 +1,26 @@
+name: Business Plan Mobile Smoke
+
+on:
+  workflow_run:
+    workflows: ["Build and Deploy I AM"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-business-plan-mobile:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify live Business Plan mobile input build
+        shell: bash
+        run: |
+          set -euo pipefail
+          page="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 60 https://iammagnanimousway.com/business-plan/)"
+          printf '%s' "$page" | grep -F 'data-business-plan-mobile-input="ready-v1"' >/dev/null
+          printf '%s' "$page" | grep -F 'GUIDED BUSINESS INTAKE' >/dev/null
+          echo "Live Business Plan page contains the mobile input readiness marker and intake UI."
