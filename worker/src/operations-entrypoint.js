@@ -3,6 +3,8 @@ import {currentUser} from './integrations.js';
 import {checkpointProgress,listProgressCheckpoints} from './progress-checkpoint-runtime.js';
 import {listWork,getWork,createWork,updateWork,addWorkStep,updateWorkStep} from './work-engine-runtime.js';
 import {listEvidence,addEvidence,removeEvidence,evidenceCount} from './evidence-notebook-runtime.js';
+import {handleUnifiedInbox} from './unified-inbox-runtime.js';
+import {handleAgencyGrowth} from './agency-growth-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -77,13 +79,15 @@ async function operationsRequest(request,env){
  if(path==='/api/operations/overview'&&request.method==='GET'){
   const [work,evidence,checkpoints]=await Promise.all([listWork(env,user,200),evidenceCount(env,user),listProgressCheckpoints(env,user,{limit:300})]);
   const counts=(status)=>work.filter(x=>x.status===status).length;
-  return json({health:counts('failed')?'attention':'healthy',work_total:work.length,working:counts('working'),waiting:counts('waiting'),failed:counts('failed'),completed:counts('completed'),planned:counts('planned'),evidence_items:evidence,checkpoints:checkpoints.length,recoverable:checkpoints.filter(x=>x.status==='failed'||x.stage==='working'||x.stage==='page-exit').length,integration_contract:INTEGRATION_CONTRACT});
+  return json({health:counts('failed')?'attention':'healthy',work_total:work.length,working:counts('working'),waiting:counts('waiting'),failed:counts('failed'),completed:counts('completed'),planned:counts('planned'),evidence_items:evidence,checkpoints:checkpoints.length,recoverable:checkpoints.filter(x=>x.status==='failed'||x.stage==='working'||x.stage==='page-exit').length,integration_contract:INTEGRATION_CONTRACT,unified_inbox:'/api/inbox/overview',agency_command:'/api/agency/overview'});
  }
  return null;
 }
 
 export default{
  async fetch(request,env,ctx){
+  try{const inbox=await handleUnifiedInbox(request,env);if(inbox)return inbox}catch(error){console.error('unified inbox layer failed',error);return json({detail:'Unified Inbox could not complete this request.'},500)}
+  try{const agency=await handleAgencyGrowth(request,env);if(agency)return agency}catch(error){console.error('agency command layer failed',error);return json({detail:'Agency Command could not complete this request.'},500)}
   try{const handled=await operationsRequest(request,env);if(handled)return handled}catch(error){console.error('operations layer failed',error);return json({detail:'Operations workspace could not complete this request.'},500)}
   return app.fetch(request,env,ctx);
  }
