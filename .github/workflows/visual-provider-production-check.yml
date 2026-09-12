@@ -14,7 +14,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Verify Magnanimous provider count
+      - name: Verify Magnanimous private routing readiness
         shell: bash
         run: |
           set -euo pipefail
@@ -27,8 +27,17 @@ jobs:
           providers=data.get('providers') or []
           assert data.get('magnanimous_ready') is True, data
           assert int(data.get('configured_count') or 0) >= 1, data
-          assert any(p.get('id') == 'cloudflare-ai' and p.get('configured') and p.get('enabled') for p in providers), data
-          print('Magnanimous AI has at least one configured production AI provider.')
+          assert data.get('provider_details_private') is True, data
+          assert len(providers) == 1, data
+          p=providers[0]
+          assert p.get('id') == 'auto', data
+          assert p.get('name') == 'Magnanimous AI routing', data
+          assert p.get('configured') is True and p.get('enabled') is True, data
+          assert p.get('type') == 'private-execution', data
+          public=json.dumps(data).lower()
+          for hidden in ['openai','anthropic','claude','gemini','groq','mistral','openrouter','cerebras','hugging face','cloudflare-ai']:
+            assert hidden not in public, (hidden,data)
+          print('Magnanimous AI private production routing is configured without exposing the execution provider.')
           PY
 
       - name: Verify free cinematic visual providers
