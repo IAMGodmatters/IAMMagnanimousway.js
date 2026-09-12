@@ -18,22 +18,43 @@ const MOVED_ROUTES:Record<string,string>={
  '/dashboard':'/'
 };
 
+const PROTECTED_DESTINATIONS=new Set([
+ '/',
+ '/work-engine',
+ '/activity',
+ '/research-notebook',
+ '/agency-command',
+ '/growth-funnel',
+ '/agency-automations'
+]);
+
 function normalize(path:string){
  const clean=String(path||'/').split('?')[0].split('#')[0].replace(/\/+$/,'')||'/';
  return clean.toLowerCase();
 }
 
+function hasPlatformSession(){
+ try{return Boolean(localStorage.getItem('iam_account_token')||localStorage.getItem('odin_admin_token'))}catch{return false}
+}
+
+function resolveRecovery(path:string){
+ const mapped=MOVED_ROUTES[path];
+ if(!mapped)return '/solutions';
+ if(PROTECTED_DESTINATIONS.has(mapped)&&!hasPlatformSession())return `/login?returnTo=${encodeURIComponent(mapped)}`;
+ return mapped;
+}
+
 export default function NotFoundRecovery(){
- const[target,setTarget]=useState('/');
+ const[target,setTarget]=useState('/solutions');
  const[count,setCount]=useState(1);
  const current=useMemo(()=>typeof window==='undefined'?'':window.location.pathname,[]);
 
  useEffect(()=>{
   const path=normalize(window.location.pathname);
-  const destination=MOVED_ROUTES[path]||'/';
+  const destination=resolveRecovery(path);
   setTarget(destination);
   const interval=window.setInterval(()=>setCount(v=>Math.max(0,v-1)),500);
-  const timer=window.setTimeout(()=>window.location.replace(destination),650);
+  const timer=window.setTimeout(()=>window.location.replace(destination),450);
   return()=>{window.clearInterval(interval);window.clearTimeout(timer)};
  },[]);
 
@@ -45,10 +66,10 @@ export default function NotFoundRecovery(){
    {current&&<div className="path"><b>Requested</b><span>{current}</span><b>Recovering to</b><span>{target}</span></div>}
    <div className="status" role="status">Redirecting{count>0?'…':' now…'}</div>
    <nav aria-label="Recovery choices">
-    <a href="/">Dashboard</a>
+    <a href="/solutions">Platform overview</a>
     <a href="/magnanimous">Magnanimous AI</a>
-    <a href="/growth-funnel">Growth Funnel</a>
-    <a href="/agency-command">Agency Command</a>
+    <a href="/login?returnTo=%2Fgrowth-funnel">Growth Funnel</a>
+    <a href="/login?returnTo=%2Fagency-command">Agency Command</a>
    </nav>
   </section>
   <style jsx>{`
