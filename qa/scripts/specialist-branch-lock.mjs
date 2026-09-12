@@ -43,6 +43,10 @@ must(voice,'latestMagnanimousPersona','Magnanimous voice persona must follow aut
 must(voice,".mag-message.assistant .mag-bubble>small",'voice handoff must derive the visible specialist identity from Magnanimous responses');
 must(voice,'chooseVoice','specialists must keep deterministic distinct voice profiles');
 must(voice,'applyVoiceProfile(u,nextPersona)','spoken Magnanimous replies must use the currently routed specialist voice profile');
+must(voice,"path==='/magnanimous'||path.startsWith('/magnanimous/')",'standalone Magnanimous must remain voice-enabled');
+must(voice,"standalone?'.mag-compose textarea'",'standalone microphone input must feed the standalone composer');
+must(voice,'autoSpeak','standalone Magnanimous must retain automatic spoken replies');
+must(voice,'SpeechRecognition','standalone Magnanimous must retain microphone speech input when supported by the browser');
 must(academy,'Owner AI Academy','owner specialist-training workspace must remain available');
 must(academy,'Teach ${agent?.name','academy must preserve branch-targeted teaching');
 must(academy,'Run Specialist Test','academy must preserve immediate training verification');
@@ -62,4 +66,4 @@ must(magnanimous,'Magnanimous routed to ${specialist.name}','Magnanimous must sh
 must(ownerCenter,'/owner-ai-training-review','Owner Center must link the QA approval queue');
 must(ownerCenter,'/qa-ai-academy','Owner Center must link the QA contributor lab');
 
-if(!process.exitCode)console.log('Specialist branches, QA teaching approval, automatic Magnanimous routing, and specialist voice handoff lock passed.');
+if(!process.exitCode)console.log('Specialist branches, QA teaching approval, automatic Magnanimous routing, standalone voice parity, and specialist voice handoff lock passed.');
