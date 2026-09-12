@@ -40,6 +40,7 @@ const MODE_PERSONAS:Record<string,string>={
 };
 
 let routedPersonaHint='';
+let speechPrimed=false;
 
 function hash(value:string){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function latestMagnanimousPersona(){
@@ -91,6 +92,17 @@ function applyVoiceProfile(utterance:SpeechSynthesisUtterance,label:string){
  utterance.rate=profile.rate;
  utterance.pitch=profile.pitch;
  utterance.volume=1;
+}
+
+function primeSpeechSynthesis(){
+ if(speechPrimed||typeof window==='undefined'||!('speechSynthesis'in window))return;
+ try{
+  const u=new SpeechSynthesisUtterance(' ');
+  u.volume=0;u.rate=2;
+  window.speechSynthesis.speak(u);
+  window.speechSynthesis.resume?.();
+  speechPrimed=true;
+ }catch{}
 }
 
 function latestReply(path:string){
@@ -158,18 +170,32 @@ function writeAndSend(transcript:string){
   const next=[area.value.trim(),text.trim()].filter(Boolean).join(' ');
   setNativeTextareaValue(area,next);area.focus();
   emitCheckpoint({kind:'voice-transcript',stage:'heard',content:text,metadata:{persona:currentPersona(),path}});
-  window.setTimeout(()=>{
+
+  const submit=(attempt=0)=>{
+   if(!area.isConnected)return;
    if(standalone){
-    const buttons=Array.from(document.querySelectorAll('.mag-compose button')) as HTMLButtonElement[];
-    const send=buttons.find(b=>b.type==='submit');if(send&&!send.disabled)send.click();return;
+    const form=area.closest('form') as HTMLFormElement|null;
+    const send=form?.querySelector('button[type="submit"]') as HTMLButtonElement|null;
+    if(form&&send&&!send.disabled){
+     try{form.requestSubmit(send)}catch{send.click()}
+     return;
+    }
+    if(attempt<5)window.setTimeout(()=>submit(attempt+1),140);
+    return;
    }
    if(workspace){
     const buttons=Array.from(document.querySelectorAll('.console .actions button')) as HTMLButtonElement[];
-    const send=buttons.find(b=>/SEND/i.test(b.textContent||''));if(send&&!send.disabled)send.click();return;
+    const send=buttons.find(b=>/SEND/i.test(b.textContent||''));
+    if(send&&!send.disabled){send.click();return}
+    if(attempt<5)window.setTimeout(()=>submit(attempt+1),140);
+    return;
    }
-   const form=area.closest('form');const send=form?.querySelector('button[type="submit"]') as HTMLButtonElement|null;
-   if(send&&!send.disabled)send.click();
-  },320);
+   const form=area.closest('form');
+   const send=form?.querySelector('button[type="submit"]') as HTMLButtonElement|null;
+   if(send&&!send.disabled){send.click();return}
+   if(attempt<5)window.setTimeout(()=>submit(attempt+1),140);
+  };
+  window.setTimeout(()=>submit(),80);
   return true;
  };
 
@@ -205,9 +231,10 @@ export default function VoiceOrchestrator(){
     if(autoSpeakRef.current&&'speechSynthesis'in window){
      window.speechSynthesis.cancel();
      const u=new SpeechSynthesisUtterance(text.slice(0,7000));applyVoiceProfile(u,nextPersona);
-     u.onstart=()=>{setSpeaking(true);emitCheckpoint({kind:'voice-reply',stage:'speaking',content:text,metadata:{persona:nextPersona,path:location.pathname}})};
+     u.onstart=()=>{setNotice('');setSpeaking(true);emitCheckpoint({kind:'voice-reply',stage:'speaking',content:text,metadata:{persona:nextPersona,path:location.pathname}})};
      u.onend=()=>{setSpeaking(false);emitCheckpoint({kind:'voice-reply',stage:'spoken',content:text,metadata:{persona:nextPersona,path:location.pathname}})};
-     u.onerror=()=>{setSpeaking(false);emitCheckpoint({kind:'voice-reply',stage:'speech-error',content:text,metadata:{persona:nextPersona,path:location.pathname}})};
+     u.onerror=()=>{setSpeaking(false);setNotice('I generated the reply, but your browser could not play the voice. Tap the speaker button once, then try again.');emitCheckpoint({kind:'voice-reply',stage:'speech-error',content:text,metadata:{persona:nextPersona,path:location.pathname}})};
+     window.speechSynthesis.resume?.();
      window.speechSynthesis.speak(u);
     }
    }
@@ -240,18 +267,32 @@ export default function VoiceOrchestrator(){
  function speakSample(){
   if(!voiceReady)return;
   window.speechSynthesis.cancel();
+  primeSpeechSynthesis();
   const u=new SpeechSynthesisUtterance(`This is ${persona}. I recognize my name and my specialist role.`);applyVoiceProfile(u,persona);
-  u.onstart=()=>setSpeaking(true);u.onend=()=>setSpeaking(false);u.onerror=()=>setSpeaking(false);window.speechSynthesis.speak(u);
+  u.onstart=()=>{setNotice('');setSpeaking(true)};u.onend=()=>setSpeaking(false);u.onerror=()=>{setSpeaking(false);setNotice('Your browser could not play the voice. Check device volume and try again.')};window.speechSynthesis.resume?.();window.speechSynthesis.speak(u);
  }
  function listen(){
   const w:any=window,SR=w.SpeechRecognition||w.webkitSpeechRecognition;
   if(!SR){setNotice('Microphone speech recognition is not supported in this browser. You can still type and use spoken replies.');return}
   window.speechSynthesis?.cancel();setSpeaking(false);setNotice('');
+  primeSpeechSynthesis();
   const r:SpeechRecognitionLike=new SR();recognitionRef.current=r;r.lang=navigator.language||'en-US';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
-  r.onstart=()=>setListening(true);r.onend=()=>setListening(false);r.onerror=(e:any)=>{setListening(false);setNotice(e?.error==='not-allowed'?'Microphone permission is blocked. Allow microphone access for this site and try again.':'I could not hear that clearly. Tap the microphone and try again.')};
+  let receivedFinal=false;
+  r.onstart=()=>setListening(true);
+  r.onend=()=>setListening(false);
+  r.onerror=(e:any)=>{
+   setListening(false);
+   const code=String(e?.error||'');
+   if(receivedFinal){setNotice('');return}
+   if(code==='aborted'){setNotice('');return}
+   setNotice(code==='not-allowed'?'Microphone permission is blocked. Allow microphone access for this site and try again.':'I could not hear that clearly. Tap the microphone and try again.');
+  };
   r.onresult=(e:any)=>{
    let final='';for(let i=e.resultIndex||0;i<e.results.length;i++)if(e.results[i].isFinal)final+=e.results[i][0]?.transcript||'';
-   if(final.trim()){if(!writeAndSend(final.trim()))setNotice('Voice was heard, but the active chat box was not available yet.');}
+   if(final.trim()){
+    receivedFinal=true;setNotice('');
+    if(!writeAndSend(final.trim()))setNotice('Voice was heard, but the active chat box was not available yet.');
+   }
   };
   try{r.start()}catch{setNotice('The microphone is already starting. Try again in a moment.')}
  }
@@ -261,7 +302,7 @@ export default function VoiceOrchestrator(){
  return <div className={`iam-voice-panel ${listening?'listening':''} ${speaking?'speaking':''}`} aria-label={`${persona} voice controls`}>
   <div className="voice-copy"><b>{persona}</b><span>{listening?'Listening for name + request…':speaking?'Speaking…':'Voice conversation'}</span></div>
   <button type="button" className="voice-mic" onClick={listen} disabled={!micReady} aria-label={`Talk to ${persona}`} title={micReady?`Talk to ${persona}`:'Speech recognition unavailable'}>{listening?'●':'🎙'}</button>
-  <button type="button" className="voice-sound" onClick={()=>{setAutoSpeak(v=>!v);if(autoSpeak)window.speechSynthesis?.cancel()}} disabled={!voiceReady} aria-pressed={autoSpeak} title={autoSpeak?'Turn spoken replies off':'Turn spoken replies on'}>{autoSpeak?'🔊':'🔇'}</button>
+  <button type="button" className="voice-sound" onClick={()=>{const next=!autoSpeak;setAutoSpeak(next);if(next)primeSpeechSynthesis();else window.speechSynthesis?.cancel()}} disabled={!voiceReady} aria-pressed={autoSpeak} title={autoSpeak?'Turn spoken replies off':'Turn spoken replies on'}>{autoSpeak?'🔊':'🔇'}</button>
   <button type="button" className="voice-sample" onClick={speakSample} disabled={!voiceReady} title="Hear this AI voice">VOICE</button>
   {notice&&<div className="voice-notice" role="status">{notice}</div>}
   <style jsx>{`
