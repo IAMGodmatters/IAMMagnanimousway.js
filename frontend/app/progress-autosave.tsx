@@ -87,6 +87,11 @@ export default function ProgressAutosave(){
    }
   }
 
+  function captureExistingDrafts(){
+   const fields=Array.from(document.querySelectorAll('input,textarea')).filter(eligible);
+   for(const el of fields)if(el.value.trim())localSave(el);
+  }
+
   const onInput=(event:Event)=>{const el=event.target;if(el instanceof Element&&eligible(el))localSave(el)};
   const onSubmit=(event:Event)=>{
    const form=event.target as HTMLFormElement|null;if(!form)return;
@@ -104,6 +109,7 @@ export default function ProgressAutosave(){
   document.addEventListener('input',onInput,true);document.addEventListener('change',onInput,true);document.addEventListener('submit',onSubmit,true);
   window.addEventListener('iam:progress-checkpoint',onCheckpoint as EventListener);window.addEventListener('pagehide',onPageHide);
   const observer=new MutationObserver(()=>restore());observer.observe(document.body,{childList:true,subtree:true});
+  window.setTimeout(()=>{restore();captureExistingDrafts()},0);
   window.setTimeout(restore,120);
   return()=>{document.removeEventListener('input',onInput,true);document.removeEventListener('change',onInput,true);document.removeEventListener('submit',onSubmit,true);window.removeEventListener('iam:progress-checkpoint',onCheckpoint as EventListener);window.removeEventListener('pagehide',onPageHide);observer.disconnect();for(const timer of timers.current.values())clearTimeout(timer)};
  },[]);
