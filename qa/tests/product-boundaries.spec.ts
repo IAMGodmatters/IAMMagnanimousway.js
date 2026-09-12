@@ -17,7 +17,7 @@ test('standalone Magnanimous AI remains isolated, public, voice-enabled, and Mag
   await expect(voicePanel).toBeVisible();
   await expect(voicePanel).toContainText('Magnanimous AI');
   await expect(voicePanel.getByRole('button', { name: /Talk to Magnanimous AI/i })).toBeVisible();
-  await expect(voicePanel.getByRole('button', { name: /spoken replies/i })).toBeVisible();
+  await expect(voicePanel.locator('button.voice-sound[title*="spoken replies"]')).toBeVisible();
   await expect(voicePanel.getByRole('button', { name: 'VOICE' })).toBeVisible();
 
   const standaloneFlag = await page.evaluate(() => document.documentElement.getAttribute('data-iam-standalone'));
