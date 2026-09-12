@@ -3,6 +3,7 @@ import { currentUser } from './integrations.js';
 import { branchProfile, ensureBranchSchema, branchKnowledge, branchKnowledgeContext, teachBranch } from './agent-branch-intelligence.js';
 
 const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...headers}});
+const isBranchTrainer=(user)=>Boolean(user&&['owner','admin'].includes(String(user.role||'').toLowerCase()));
 
 async function catalog(request,env,ctx){
  const url=new URL(request.url);url.pathname='/api/agents';url.search='';
@@ -20,6 +21,42 @@ function spokenAgent(message,agents){
   if(re.test(text))return{agent,cleaned:text.replace(re,'').trim()||text};
  }
  return null;
+}
+
+function safeTrainingUrl(value){
+ try{
+  const url=new URL(String(value||'').trim());
+  if(!['http:','https:'].includes(url.protocol))return null;
+  const host=url.hostname.toLowerCase();
+  if(host==='localhost'||host.endsWith('.local')||host==='0.0.0.0'||host==='127.0.0.1'||host==='::1'||/^10\./.test(host)||/^192\.168\./.test(host)||/^169\.254\./.test(host)||/^172\.(1[6-9]|2\d|3[01])\./.test(host))return null;
+  return url;
+ }catch{return null}
+}
+function htmlToTrainingText(value){
+ return String(value||'')
+  .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ')
+  .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ')
+  .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi,' ')
+  .replace(/<!--([\s\S]*?)-->/g,' ')
+  .replace(/<br\s*\/?>|<\/p>|<\/div>|<\/li>|<\/h[1-6]>/gi,'\n')
+  .replace(/<[^>]+>/g,' ')
+  .replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>')
+  .replace(/[ \t]+/g,' ').replace(/\n\s*\n+/g,'\n').trim();
+}
+async function trainingFromUrl(value){
+ const url=safeTrainingUrl(value);
+ if(!url)return{ok:false,status:400,detail:'Use a public http or https webpage URL. Private-network addresses are blocked.'};
+ try{
+  const response=await fetch(url.toString(),{redirect:'follow',headers:{Accept:'text/html,text/plain,application/json,application/xml;q=0.9,*/*;q=0.2','User-Agent':'I-AM-Magnanimous-AI-Academy/1.0'}});
+  if(!response.ok)return{ok:false,status:400,detail:`Training source could not be read (${response.status}).`};
+  const type=String(response.headers.get('content-type')||'').toLowerCase();
+  if(type&&!(type.includes('text/')||type.includes('json')||type.includes('xml')))return{ok:false,status:415,detail:'That URL is not a readable text or webpage source. Paste extracted text for PDF, DOCX, audio, or video sources.'};
+  const raw=(await response.text()).slice(0,240000);
+  const content=type.includes('html')?htmlToTrainingText(raw):raw.trim();
+  if(!content)return{ok:false,status:400,detail:'No readable training text was found at that URL.'};
+  const titleMatch=raw.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return{ok:true,url:url.toString(),content,title:htmlToTrainingText(titleMatch?.[1]||'').slice(0,180)};
+ }catch{return{ok:false,status:400,detail:'Training source could not be fetched.'}}
 }
 
 async function branchRequest(request,env,ctx){
@@ -42,8 +79,8 @@ async function branchRequest(request,env,ctx){
   const id=String(url.searchParams.get('agent_id')||'').toLowerCase();
   const agent=agents.find(a=>String(a.id).toLowerCase()===id);
   if(!agent)return json({detail:'Unknown specialist branch.'},404);
-  const knowledge=await branchKnowledge(env,user.tenant_id,agent.id,30);
-  return json({agent:{...agent,branch:branchProfile(agent)},knowledge,knowledge_count:knowledge.length,shared_core:'Magnanimous AI',branch_isolated:true});
+  const knowledge=await branchKnowledge(env,user.tenant_id,agent.id,40);
+  return json({agent:{...agent,branch:branchProfile(agent)},knowledge,knowledge_count:knowledge.length,shared_core:'Magnanimous AI',branch_isolated:true,can_teach:isBranchTrainer(user)});
  }
 
  if(request.method==='POST'&&url.pathname==='/api/agents/branch/teach'){
@@ -51,8 +88,25 @@ async function branchRequest(request,env,ctx){
   const id=String(body.agent_id||'').toLowerCase();
   const agent=agents.find(a=>String(a.id).toLowerCase()===id);
   if(!agent)return json({detail:'Choose a valid specialist branch.'},400);
-  const taught=await teachBranch(env,user,agent,body);
+  let lesson={...body};
+  if(!String(lesson.content||'').trim()&&String(lesson.url||'').trim()){
+   if(!isBranchTrainer(user))return json({detail:'Only a workspace owner or administrator can teach a specialist branch.'},403);
+   const source=await trainingFromUrl(lesson.url);
+   if(!source.ok)return json({detail:source.detail},source.status||400);
+   lesson={...lesson,content:source.content,title:String(lesson.title||source.title||`${agent.name} web lesson`),source:String(lesson.source||`web:${source.url}`)};
+  }
+  const taught=await teachBranch(env,user,agent,lesson);
   return taught.ok?json({...taught,branch:branchProfile(agent)},201):json({detail:taught.detail},taught.status||400);
+ }
+
+ if(request.method==='DELETE'&&url.pathname==='/api/agents/branch/knowledge'){
+  if(!isBranchTrainer(user))return json({detail:'Only a workspace owner or administrator can curate specialist training.'},403);
+  const agentId=String(url.searchParams.get('agent_id')||'').toLowerCase();
+  const lessonId=Number(url.searchParams.get('id')||0);
+  const agent=agents.find(a=>String(a.id).toLowerCase()===agentId);
+  if(!agent||!Number.isInteger(lessonId)||lessonId<1)return json({detail:'Choose a valid branch lesson.'},400);
+  const result=await env.DB.prepare('DELETE FROM agent_branch_knowledge WHERE id=? AND tenant_id=? AND agent_id=?').bind(lessonId,String(user.tenant_id),agent.id).run();
+  return json({deleted:Number(result?.meta?.changes||0)>0,id:lessonId,agent_id:agent.id});
  }
 
  if(request.method==='POST'&&url.pathname==='/api/agents/chat'){
