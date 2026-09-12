@@ -6,9 +6,16 @@ const must=(text,needle,label)=>{if(!text.includes(needle)){console.error(`SPECI
 const intelligence=read('worker/src/agent-branch-intelligence.js');
 const entry=read('worker/src/branch-consent-entrypoint.js');
 const progress=read('worker/src/progress-entrypoint.js');
+const operations=read('worker/src/operations-entrypoint.js');
+const workRuntime=read('worker/src/work-engine-runtime.js');
+const evidenceRuntime=read('worker/src/evidence-notebook-runtime.js');
 const progressRuntime=read('worker/src/progress-checkpoint-runtime.js');
 const progressUI=read('frontend/app/progress-autosave.tsx');
 const globalTools=read('frontend/app/global-tools.tsx');
+const workUI=read('frontend/app/work-engine/page.tsx');
+const activityUI=read('frontend/app/activity/page.tsx');
+const evidenceUI=read('frontend/app/research-notebook/page.tsx');
+const operationsUI=read('frontend/app/owner-operations/page.tsx');
 const specialistRouter=read('worker/src/specialist-router.js');
 const wrangler=read('worker/wrangler.jsonc');
 const voice=read('frontend/app/voice-orchestrator.tsx');
@@ -18,7 +25,31 @@ const ownerReview=read('frontend/app/owner-ai-training-review/page.tsx');
 const magnanimous=read('frontend/app/magnanimous/page.tsx');
 const ownerCenter=read('frontend/app/owner-center/page.tsx');
 
-must(wrangler,'src/progress-entrypoint.js','production Worker must run through the continuous progress checkpoint entrypoint');
+must(wrangler,'src/operations-entrypoint.js','production Worker must run through the non-destructive operations layer');
+must(operations,"import app from './progress-entrypoint.js'",'operations layer must preserve the existing progress entrypoint beneath it');
+must(operations,"/api/work-engine",'persistent Work Engine API must remain available');
+must(operations,"/api/evidence-notebook",'research Evidence Notebook API must remain available');
+must(operations,"/api/operations/overview",'owner operations overview must remain available');
+must(operations,"/api/integration-contract",'universal integration contract must remain available');
+must(operations,'connect\',\'permissions\',\'health\',\'read\',\'write\',\'approval\',\'receipt\',\'disconnect','connector lifecycle contract must remain explicit');
+must(workRuntime,'magnanimous_work_items','persistent work item storage must remain available');
+must(workRuntime,'magnanimous_work_steps','persistent work step storage must remain available');
+must(workRuntime,'updateWorkStep','step-level resume and completion state must remain available');
+must(evidenceRuntime,'magnanimous_evidence_items','durable research evidence storage must remain available');
+must(evidenceRuntime,'source_url','research evidence must retain source references');
+must(workUI,'MAGNANIMOUS WORK ENGINE','Work Engine customer surface must remain available');
+must(workUI,'Resume','Work Engine must retain resume controls');
+must(activityUI,'ACTIVITY • RESTORE • CONTINUE','Activity and Restore surface must remain available');
+must(activityUI,"/api/progress/checkpoint?limit=250",'Activity Center must remain connected to existing checkpoints');
+must(evidenceUI,'Keep the evidence, not just the answer.','Evidence Notebook customer surface must remain available');
+must(evidenceUI,'Research with Magnanimous','research must remain connected to Magnanimous AI');
+must(operationsUI,'OWNER OPERATIONS CONTROL','owner reliability and cost dashboard must remain available');
+must(operationsUI,'PREMIUM VARIABLE COST','owner cost exposure must remain visible');
+must(globalTools,'/work-engine','global tools must expose the Work Engine');
+must(globalTools,'/activity','global tools must expose Activity and Restore');
+must(globalTools,'/research-notebook','global tools must expose research evidence');
+must(globalTools,'/owner-operations','owner global tools must expose Operations Control');
+
 must(progress,"import app from './branch-consent-entrypoint.js'",'progress entrypoint must retain specialist branch routing beneath autosave');
 must(progress,"path==='/api/progress/checkpoint'",'signed-in progress checkpoint API must remain available');
 must(progress,"stage:'started'",'mutating API actions must checkpoint before execution');
@@ -84,4 +115,4 @@ must(magnanimous,'Magnanimous routed to ${specialist.name}','Magnanimous must sh
 must(ownerCenter,'/owner-ai-training-review','Owner Center must link the QA approval queue');
 must(ownerCenter,'/qa-ai-academy','Owner Center must link the QA contributor lab');
 
-if(!process.exitCode)console.log('Specialist branches, QA teaching approval, automatic routing, voice parity, and continuous progress autosave lock passed.');
+if(!process.exitCode)console.log('Specialist branches, QA teaching approval, automatic routing, voice parity, continuous autosave, Work Engine, Activity Restore, Evidence Notebook, integration contract, and owner operations lock passed.');
