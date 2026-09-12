@@ -1,0 +1,54 @@
+name: Voice Conversation Production Smoke
+
+on:
+  workflow_run:
+    workflows: ["Build and Deploy I AM"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-voice:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      QA_BASE_URL: https://iammagnanimousway.com
+    steps:
+      - name: Checkout deployed main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: qa/package.json
+
+      - name: Install QA dependencies
+        working-directory: qa
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium and WebKit
+        working-directory: qa
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Verify deployed spoken voice conversation
+        working-directory: qa
+        run: npx playwright test --config=playwright.voice.config.ts
+
+      - name: Upload voice QA evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: voice-conversation-production-smoke-${{ github.run_number }}
+          path: |
+            qa/voice-playwright-report/
+            qa/voice-test-results/
+          if-no-files-found: ignore
+          retention-days: 14
