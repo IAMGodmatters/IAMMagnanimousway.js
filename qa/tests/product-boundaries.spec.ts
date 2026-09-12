@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const THIRD_PARTY_AI = /\b(?:OpenAI|Anthropic|Claude|Gemini|Groq|Mistral|OpenRouter|Cerebras|Hugging Face|Cloudflare Workers AI)\b/i;
 
-test('standalone Magnanimous AI remains isolated, public, and Magnanimous-branded', async ({ page }) => {
+test('standalone Magnanimous AI remains isolated, public, voice-enabled, and Magnanimous-branded', async ({ page }) => {
   await page.goto('/magnanimous', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('main.mag-standalone')).toBeVisible();
@@ -11,6 +11,14 @@ test('standalone Magnanimous AI remains isolated, public, and Magnanimous-brande
   await expect(page.getByText('Guest session')).toBeVisible();
   await expect(page.locator('.iam-shop-link')).toBeHidden();
   await expect(page.locator('.iam-global-tools')).toBeHidden();
+
+  // Voice is part of the standalone product, not platform chrome.
+  const voicePanel = page.locator('.iam-voice-panel');
+  await expect(voicePanel).toBeVisible();
+  await expect(voicePanel).toContainText('Magnanimous AI');
+  await expect(voicePanel.getByRole('button', { name: /Talk to Magnanimous AI/i })).toBeVisible();
+  await expect(voicePanel.getByRole('button', { name: /spoken replies/i })).toBeVisible();
+  await expect(voicePanel.getByRole('button', { name: 'VOICE' })).toBeVisible();
 
   const standaloneFlag = await page.evaluate(() => document.documentElement.getAttribute('data-iam-standalone'));
   expect(standaloneFlag).toBe('true');
