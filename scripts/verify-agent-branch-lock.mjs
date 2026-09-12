@@ -6,6 +6,7 @@ const read=(p)=>fs.existsSync(p)?fs.readFileSync(p,'utf8'):'';
 const must=(ok,msg)=>{(ok?checks:fail).push(msg)};
 const branch=read('worker/src/agent-branch-intelligence.js');
 const wrapper=read('worker/src/branch-consent-entrypoint.js');
+const progress=read('worker/src/progress-entrypoint.js');
 const voice=read('frontend/app/voice-orchestrator.tsx');
 const wrangler=read('worker/wrangler.jsonc');
 
@@ -21,7 +22,8 @@ must(wrapper.includes('const {provider,provider_name,model,...publicData}=data')
 must(voice.includes('function routeNamedAgent'),'browser voice recognizes named specialists');
 must(voice.includes("path==='/agents'"),'voice controls support the Agent Mesh page');
 must(voice.includes('applyVoiceProfile(utterance,currentPersona())'),'specialist voices remain persona-specific');
-must(wrangler.includes('"main": "src/branch-consent-entrypoint.js"'),'production Worker enters through the specialist branch layer');
+must(wrangler.includes('"main": "src/progress-entrypoint.js"'),'production Worker enters through continuous progress checkpoint layer');
+must(progress.includes("import app from './branch-consent-entrypoint.js'"),'progress layer must delegate into specialist branch layer');
 
 console.log(`Specialist branch lock: ${checks.length} checks passed.`);
 if(fail.length){console.error(`Specialist branch lock failed (${fail.length})`);for(const item of fail)console.error(`- ${item}`);process.exit(1)}
