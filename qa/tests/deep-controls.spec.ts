@@ -6,24 +6,56 @@ const CONSEQUENCE = /\b(?:delete|remove|pay|buy|checkout|subscribe|purchase|call
 const THIRD_PARTY_AI = /\b(?:OpenAI|Anthropic|Claude|Gemini|Groq|Mistral|OpenRouter|Cerebras|Hugging Face|Cloudflare Workers AI|Workers AI)\b/i;
 
 async function safelyClickableControls(page: any) {
-  return page.locator('button:visible, [role="button"]:visible').evaluateAll((els: Element[]) => els.map((el, index) => {
-    const node = el as HTMLElement;
-    const text = (node.innerText || node.getAttribute('aria-label') || node.getAttribute('title') || '').trim();
-    const disabled = (el as HTMLButtonElement).disabled || el.getAttribute('aria-disabled') === 'true';
-    const form = el.closest('form');
-    const type = (el.getAttribute('type') || '').toLowerCase();
-    return { index, text, disabled, inForm: Boolean(form), type };
-  }));
+  return page.locator('button:visible, [role="button"]:visible').evaluateAll((els: Element[]) => {
+    const seen = new Map<string, number>();
+    return els.map((el, index) => {
+      const node = el as HTMLElement;
+      const text = (node.innerText || node.getAttribute('aria-label') || node.getAttribute('title') || '').trim();
+      const disabled = (el as HTMLButtonElement).disabled || el.getAttribute('aria-disabled') === 'true';
+      const form = el.closest('form');
+      const type = (el.getAttribute('type') || '').toLowerCase();
+      const occurrence = seen.get(text) || 0;
+      seen.set(text, occurrence + 1);
+      return { index, text, disabled, inForm: Boolean(form), type, occurrence };
+    });
+  });
+}
+
+async function loadRoute(page: any, route: string) {
+  const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
+  expect(response, `No HTTP response for ${route}`).not.toBeNull();
+  expect(response!.status(), `${route} returned a fatal HTTP status`).toBeLessThan(500);
+  await page.locator('body').waitFor({ state: 'visible', timeout: 2_000 });
+  await page.waitForLoadState('load', { timeout: 1_500 }).catch(() => {});
+}
+
+function namedControl(page: any, candidate: any) {
+  return page.getByRole('button', { name: candidate.text, exact: true }).nth(candidate.occurrence);
+}
+
+async function ensureCandidateReady(page: any, route: string, candidate: any) {
+  let target = namedControl(page, candidate);
+  if (await target.isVisible().catch(() => false)) return target;
+
+  // A prior safe control may have changed local UI state (dialog/tab/collapse). Only then
+  // restore the route. This avoids the old full-page reload before every single button.
+  await loadRoute(page, route);
+  target = namedControl(page, candidate);
+  if (await target.isVisible().catch(() => false)) return target;
+
+  // Final fallback preserves compatibility with unusual role/button implementations.
+  const visible = page.locator('button:visible, [role="button"]:visible');
+  const count = await visible.count();
+  if (candidate.index >= count) return null;
+  const fallback = visible.nth(candidate.index);
+  return (await fallback.isVisible().catch(() => false)) ? fallback : null;
 }
 
 test.describe('deep non-destructive control sweep', () => {
   for (const route of routes) {
     test(`${route} visible controls are usable without fatal errors`, async ({ page }) => {
       const runtimeProblems = watchRuntime(page);
-      const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
-      expect(response, `No HTTP response for ${route}`).not.toBeNull();
-      expect(response!.status(), `${route} returned a fatal HTTP status`).toBeLessThan(500);
-      await page.waitForLoadState('networkidle', { timeout: 4_000 }).catch(() => {});
+      await loadRoute(page, route);
 
       const controls = await safelyClickableControls(page);
       for (const control of controls) {
@@ -33,22 +65,38 @@ test.describe('deep non-destructive control sweep', () => {
       // Exercise only clearly non-destructive controls. Consequential buttons and form submissions
       // are verified by dedicated authenticated/smoke tests rather than being triggered on production.
       const candidates = controls.filter((c: any) => !c.disabled && !c.inForm && c.type !== 'submit' && c.text && !CONSEQUENCE.test(c.text)).slice(0, 12);
+      const baselineUrl = new URL(page.url());
+
       for (const candidate of candidates) {
-        await page.goto(route, { waitUntil: 'domcontentloaded' });
-        // Do not wait for networkidle on every control reset. Long-lived/autosave requests can keep
-        // an interactive page network-busy and exhaust the whole-test timeout even when the UI is healthy.
-        // Wait for the exact target instead, preserving the same control coverage with a bounded UI wait.
-        const visible = page.locator('button:visible, [role="button"]:visible');
-        const target = visible.nth(candidate.index);
-        await target.waitFor({ state: 'visible', timeout: 2_000 }).catch(() => {});
-        const count = await visible.count();
-        if (candidate.index >= count) continue;
-        if (!(await target.isVisible().catch(() => false))) continue;
+        let target = await ensureCandidateReady(page, route, candidate);
+        if (!target) continue;
         if (await target.isDisabled().catch(() => true)) continue;
-        await target.click({ timeout: 4_000 }).catch(() => {});
-        await page.waitForTimeout(120);
+
+        let clicked = true;
+        try {
+          await target.click({ timeout: 2_500 });
+        } catch {
+          // A previous click may have left a transient overlay intercepting the next control.
+          // Restore once and retry; a second failure is a real sweep failure rather than a silent skip.
+          await loadRoute(page, route);
+          target = await ensureCandidateReady(page, route, candidate);
+          if (!target || await target.isDisabled().catch(() => true)) continue;
+          try {
+            await target.click({ timeout: 2_500 });
+          } catch {
+            clicked = false;
+          }
+        }
+        expect(clicked, `${route} control "${candidate.text}" could not be clicked`).toBe(true);
+
+        await page.waitForTimeout(75);
         const body = (await page.locator('body').innerText()).trim();
         expect(body.length, `${route} went blank after clicking ${candidate.text}`).toBeGreaterThan(20);
+
+        const currentUrl = new URL(page.url());
+        if (currentUrl.origin !== baselineUrl.origin || currentUrl.pathname !== baselineUrl.pathname) {
+          await loadRoute(page, route);
+        }
       }
 
       expect(runtimeProblems, `${route} emitted fatal browser errors while controls were exercised`).toEqual([]);
