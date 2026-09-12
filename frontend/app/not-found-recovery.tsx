@@ -34,7 +34,7 @@ function normalize(path:string){
 }
 
 function hasPlatformSession(){
- try{return Boolean(localStorage.getItem('iam_account_token')||localStorage.getItem('odin_admin_token'))}catch{return false}
+ try{return Boolean(localStorage.getItem('iam_account_token')||localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token'))}catch{return false}
 }
 
 function resolveRecovery(path:string){
@@ -58,7 +58,7 @@ export default function NotFoundRecovery(){
   return()=>{window.clearInterval(interval);window.clearTimeout(timer)};
  },[]);
 
- return <main className="recover" id="iam-main">
+ return <main className="recover" id="iam-main" data-iam-route-recovery="true">
   <section>
    <small>MAGNANIMOUS ROUTE RECOVERY</small>
    <h1>Recovering your workspace…</h1>
