@@ -62,6 +62,7 @@ must(progressUI,"fetch('/api/progress/checkpoint'",'signed-in browser drafts mus
 must(progressUI,"window.addEventListener('pagehide'",'page exit must force a progress checkpoint');
 must(progressUI,"window.addEventListener('iam:progress-checkpoint'",'voice and other explicit progress events must be persisted');
 must(progressUI,'captureExistingDrafts','drafts typed before autosave listeners attach must still be captured');
+must(progressUI,'EARLY_AUTOSAVE_BOOTSTRAP','pre-hydration draft capture must remain active so fast input cannot outrun autosave');
 must(globalTools,'<ProgressAutosave/>','continuous progress autosave must remain mounted across Magnanimous work surfaces');
 must(voice,"kind:'voice-transcript'",'voice transcripts must checkpoint before execution');
 must(voice,"kind:'voice-reply'",'spoken AI replies must checkpoint speaking progress');
