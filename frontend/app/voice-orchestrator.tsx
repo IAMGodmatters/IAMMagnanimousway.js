@@ -40,10 +40,16 @@ const MODE_PERSONAS:Record<string,string>={
 };
 
 function hash(value:string){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function latestMagnanimousPersona(){
+ const labels=Array.from(document.querySelectorAll('.mag-message.assistant .mag-bubble>small'));
+ const label=(labels[labels.length-1]?.textContent||'').trim();
+ const name=label.split('•')[0]?.trim();
+ return name||'Magnanimous AI';
+}
 function currentPersona(){
  if(typeof window==='undefined')return'Magnanimous AI';
  const path=location.pathname;
- if(path==='/magnanimous'||path.startsWith('/magnanimous/'))return'Magnanimous AI';
+ if(path==='/magnanimous'||path.startsWith('/magnanimous/'))return latestMagnanimousPersona();
  if(path==='/agents'||path.startsWith('/agents/')){
   const heading=document.querySelector('.chatHead h2');
   const first=heading?.childNodes?.[0]?.textContent?.trim();
