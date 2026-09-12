@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react';
 import {getMagnanimousAdminToken} from './lib/magnanimous-session';
 import VoiceOrchestrator from './voice-orchestrator';
+import ProgressAutosave from './progress-autosave';
 
 const hiddenPaths=['/login','/signup','/owner-login','/privacy','/terms','/solutions','/pricing','/security','/reviews','/advertise'];
 
@@ -10,6 +11,7 @@ export default function GlobalTools(){
  useEffect(()=>{setPath(location.pathname);setOwner(!!getMagnanimousAdminToken())},[]);
  if(!path||hiddenPaths.includes(path))return null;
  return <>
+  <ProgressAutosave/>
   <VoiceOrchestrator/>
   <div className={`iam-global-tools ${open?'open':'closed'}`}>
    <button className="iam-tools-toggle" onClick={()=>setOpen(v=>!v)} aria-label={open?'Hide platform tools':'Open platform tools'} title={open?'Hide platform tools':'Open platform tools'} aria-expanded={open}>{open?'›':'‹'}</button>
