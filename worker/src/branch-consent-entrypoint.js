@@ -5,6 +5,28 @@ import { specialistForMessage, specialistIntroduction } from './specialist-route
 
 const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...headers}});
 const isBranchTrainer=(user)=>Boolean(user&&['owner','admin'].includes(String(user.role||'').toLowerCase()));
+const EXECUTION_NAME_RE=/\b(?:OpenAI|ChatGPT|Anthropic|Claude|Google Gemini|Gemini|Groq|Mistral AI|Mistral|OpenRouter|Cerebras|Hugging Face|Cloudflare Workers AI|Workers AI)\b/gi;
+const MODEL_ID_RE=/\b(?:gpt-[\w.-]+|claude-[\w.-]+|gemini-[\w.-]+|llama-[\w.-]+|mistral-[\w.-]+)\b|@cf\/[\w./-]+/gi;
+function redactExecutionNames(value){return String(value||'').replace(EXECUTION_NAME_RE,'Magnanimous AI').replace(MODEL_ID_RE,'private routing')}
+function stripExecutionMetadata(data){
+ if(!data||typeof data!=='object'||Array.isArray(data))return data;
+ const {provider,provider_name,model,model_id,engine,execution_engine,...publicData}=data;
+ if(typeof publicData.detail==='string')publicData.detail=redactExecutionNames(publicData.detail);
+ if(typeof publicData.error==='string')publicData.error=redactExecutionNames(publicData.error);
+ if(typeof publicData.message==='string'&&/provider|model|engine/i.test(publicData.message))publicData.message=redactExecutionNames(publicData.message);
+ return publicData;
+}
+async function sanitizeCustomerAiResponse(request,response){
+ const url=new URL(request.url);
+ if(request.method!=='POST'||url.pathname!=='/api/chat')return response;
+ const data=await response.clone().json().catch(()=>null);
+ if(!data)return response;
+ const headers=new Headers(response.headers);
+ headers.set('content-type','application/json; charset=utf-8');
+ headers.set('cache-control','no-store');
+ headers.delete('content-length');
+ return new Response(JSON.stringify(stripExecutionMetadata(data)),{status:response.status,statusText:response.statusText,headers});
+}
 
 async function catalog(request,env,ctx){
  const url=new URL(request.url);url.pathname='/api/agents';url.search='';
@@ -113,10 +135,10 @@ async function branchRequest(request,env,ctx){
   const response=await baseApp.fetch(forwarded,env,ctx);
   const data=await response.clone().json().catch(()=>null);
   if(!data)return response;
-  if(!response.ok)return response;
+  if(!response.ok)return sanitizeCustomerAiResponse(request,response);
   const intro=specialistIntroduction(routed);
   const answer=String(data.output||data.answer||'').trim();
-  const {provider,provider_name,model,...publicData}=data;
+  const publicData=stripExecutionMetadata(data);
   return json({...publicData,output:`${intro}\n\n${answer}`,specialist_handoff:true,specialist:{id:agent.id,name:agent.name,title:agent.title,specialty:routed.specialty,introduction:intro,branch:profile},branch_knowledge_count:knowledge.length,global_branch_knowledge_count:knowledge.filter(x=>x.scope==='global').length,routed_by:'Magnanimous AI'},response.status);
  }
 
@@ -197,7 +219,7 @@ async function branchRequest(request,env,ctx){
   }catch{}
   const data=await response.clone().json().catch(()=>null);
   if(!data)return response;
-  const {provider,provider_name,model,...publicData}=data;
+  const publicData=stripExecutionMetadata(data);
   return json({...publicData,agent:{...(data.agent||agent),branch:profile},branch_identity:true,branch_knowledge_count:knowledge.length,global_branch_knowledge_count:knowledge.filter(x=>x.scope==='global').length,spoken_name_routing:Boolean(named)},response.status);
  }
  return null;
@@ -209,6 +231,7 @@ export default {
    const handled=await branchRequest(request,env,ctx);
    if(handled)return handled;
   }catch(error){console.error('specialist branch layer failed',error)}
-  return baseApp.fetch(request,env,ctx);
+  const response=await baseApp.fetch(request,env,ctx);
+  return sanitizeCustomerAiResponse(request,response);
  }
 };
