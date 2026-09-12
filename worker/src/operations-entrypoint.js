@@ -5,6 +5,7 @@ import {listWork,getWork,createWork,updateWork,addWorkStep,updateWorkStep} from 
 import {listEvidence,addEvidence,removeEvidence,evidenceCount} from './evidence-notebook-runtime.js';
 import {handleUnifiedInbox} from './unified-inbox-runtime.js';
 import {handleAgencyGrowth} from './agency-growth-runtime.js';
+import {handleAgencyAutomations,dispatchAgencyAutomationEvent} from './agency-automation-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -79,15 +80,40 @@ async function operationsRequest(request,env){
  if(path==='/api/operations/overview'&&request.method==='GET'){
   const [work,evidence,checkpoints]=await Promise.all([listWork(env,user,200),evidenceCount(env,user),listProgressCheckpoints(env,user,{limit:300})]);
   const counts=(status)=>work.filter(x=>x.status===status).length;
-  return json({health:counts('failed')?'attention':'healthy',work_total:work.length,working:counts('working'),waiting:counts('waiting'),failed:counts('failed'),completed:counts('completed'),planned:counts('planned'),evidence_items:evidence,checkpoints:checkpoints.length,recoverable:checkpoints.filter(x=>x.status==='failed'||x.stage==='working'||x.stage==='page-exit').length,integration_contract:INTEGRATION_CONTRACT,unified_inbox:'/api/inbox/overview',agency_command:'/api/agency/overview'});
+  return json({health:counts('failed')?'attention':'healthy',work_total:work.length,working:counts('working'),waiting:counts('waiting'),failed:counts('failed'),completed:counts('completed'),planned:counts('planned'),evidence_items:evidence,checkpoints:checkpoints.length,recoverable:checkpoints.filter(x=>x.status==='failed'||x.stage==='working'||x.stage==='page-exit').length,integration_contract:INTEGRATION_CONTRACT,unified_inbox:'/api/inbox/overview',agency_command:'/api/agency/overview',agency_automations:'/api/agency/automations'});
  }
  return null;
 }
 
+function queueAutomation(ctx,task){const safe=Promise.resolve(task).catch(error=>console.error('agency automation dispatch failed',error));if(ctx?.waitUntil)ctx.waitUntil(safe);return safe}
+
 export default{
  async fetch(request,env,ctx){
-  try{const inbox=await handleUnifiedInbox(request,env);if(inbox)return inbox}catch(error){console.error('unified inbox layer failed',error);return json({detail:'Unified Inbox could not complete this request.'},500)}
-  try{const agency=await handleAgencyGrowth(request,env);if(agency)return agency}catch(error){console.error('agency command layer failed',error);return json({detail:'Agency Command could not complete this request.'},500)}
+  const url=new URL(request.url),path=url.pathname;
+  try{const automation=await handleAgencyAutomations(request,env);if(automation)return automation}catch(error){console.error('agency automation layer failed',error);return json({detail:'Agency Automations could not complete this request.'},500)}
+  try{
+   const payload=request.method==='POST'&&(path==='/api/inbox/threads'||path==='/api/inbox/capture')?await bodyOf(request):null;
+   const inbox=await handleUnifiedInbox(request,env);
+   if(inbox){
+    if(inbox.ok&&payload){queueAutomation(ctx,dispatchAgencyAutomationEvent(request,env,{trigger_type:'inbox.received',client_id:String(payload.client_id||''),payload}));}
+    return inbox;
+   }
+  }catch(error){console.error('unified inbox layer failed',error);return json({detail:'Unified Inbox could not complete this request.'},500)}
+  try{
+   const eventMap={
+    '/api/agency/bookings':'booking.created',
+    '/api/agency/funnels':'funnel.created',
+    '/api/agency/reputation':'review.created',
+    '/api/agency/usage':'usage.created'
+   };
+   const trigger=request.method==='POST'?eventMap[path]:'';
+   const payload=trigger?await bodyOf(request):null;
+   const agency=await handleAgencyGrowth(request,env);
+   if(agency){
+    if(agency.ok&&trigger&&payload){queueAutomation(ctx,dispatchAgencyAutomationEvent(request,env,{trigger_type:trigger,client_id:String(payload.client_id||''),payload}));}
+    return agency;
+   }
+  }catch(error){console.error('agency command layer failed',error);return json({detail:'Agency Command could not complete this request.'},500)}
   try{const handled=await operationsRequest(request,env);if(handled)return handled}catch(error){console.error('operations layer failed',error);return json({detail:'Operations workspace could not complete this request.'},500)}
   return app.fetch(request,env,ctx);
  }
