@@ -38,8 +38,11 @@ must(intelligence,'OWNER-APPROVED / WORKSPACE TEACHING FOR THIS BRANCH','approve
 must(specialistRouter,'specialistForMessage','specialist router must remain available');
 must(specialistRouter,'specialistIntroduction','specialist greeting generator must remain available');
 must(specialistRouter,"id:'dina'",'content-creation specialist route must remain available');
-must(voice,'matchSpokenPersona','browser voice layer must recognize named specialists');
+must(voice,'routeNamedAgent','browser voice input must keep direct named-agent routing on the Agent Mesh');
+must(voice,'latestMagnanimousPersona','Magnanimous voice persona must follow automatic specialist handoffs');
+must(voice,".mag-message.assistant .mag-bubble>small",'voice handoff must derive the visible specialist identity from Magnanimous responses');
 must(voice,'chooseVoice','specialists must keep deterministic distinct voice profiles');
+must(voice,'applyVoiceProfile(u,nextPersona)','spoken Magnanimous replies must use the currently routed specialist voice profile');
 must(academy,'Owner AI Academy','owner specialist-training workspace must remain available');
 must(academy,'Teach ${agent?.name','academy must preserve branch-targeted teaching');
 must(academy,'Run Specialist Test','academy must preserve immediate training verification');
@@ -59,4 +62,4 @@ must(magnanimous,'Magnanimous routed to ${specialist.name}','Magnanimous must sh
 must(ownerCenter,'/owner-ai-training-review','Owner Center must link the QA approval queue');
 must(ownerCenter,'/qa-ai-academy','Owner Center must link the QA contributor lab');
 
-if(!process.exitCode)console.log('Specialist branches, QA teaching approval, and automatic Magnanimous routing lock passed.');
+if(!process.exitCode)console.log('Specialist branches, QA teaching approval, automatic Magnanimous routing, and specialist voice handoff lock passed.');
