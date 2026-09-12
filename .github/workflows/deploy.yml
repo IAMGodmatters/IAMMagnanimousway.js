@@ -176,10 +176,37 @@ jobs:
           assert len(data.get('agents') or []) >= 30, data
           assert data.get('qa_training_submission') is True, data
           assert data.get('owner_approval_required_for_global_learning') is True, data
+          assert data.get('provider_details_private') is True, data
           providers=data.get('providers') or []
-          assert any(p.get('id') == 'cloudflare-ai' and p.get('configured') is True for p in providers), data
-          assert all(p.get('id') != 'openai' for p in providers), data
+          assert len(providers) == 1, data
+          provider=providers[0]
+          assert provider.get('id') == 'auto', data
+          assert provider.get('name') == 'Magnanimous AI routing', data
+          assert provider.get('configured') is True, data
+          assert provider.get('type') == 'private-execution', data
+          provider_text=json.dumps(providers).lower()
+          for forbidden in ('openai','anthropic','claude','gemini','groq','mistral','openrouter','cerebras','hugging face','cloudflare'):
+              assert forbidden not in provider_text, (forbidden, data)
           assert data.get('talking_avatar',{}).get('browser_voice') is True, data
+          print('Agent Mesh exposes Magnanimous private routing without execution-provider identities.')
+          PY
+
+          check_get "Private provider catalog" "$BASE_URL/api/providers" /tmp/providers.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/providers.json'))
+          assert data.get('provider_details_private') is True, data
+          providers=data.get('providers') or []
+          assert len(providers) == 1, data
+          provider=providers[0]
+          assert provider.get('id') == 'auto', data
+          assert provider.get('name') == 'Magnanimous AI routing', data
+          assert provider.get('configured') is True, data
+          assert provider.get('type') == 'private-execution', data
+          provider_text=json.dumps(providers).lower()
+          for forbidden in ('openai','anthropic','claude','gemini','groq','mistral','openrouter','cerebras','hugging face','cloudflare'):
+              assert forbidden not in provider_text, (forbidden, data)
+          print('Public provider catalog keeps execution-provider identities private.')
           PY
 
           check_get "Monetization endpoint" "$BASE_URL/api/monetization/config" /tmp/monetization.json
@@ -288,7 +315,7 @@ jobs:
           assert data.get('shared_memory') is True, data
           assert data.get('agent',{}).get('id') == 'bobby', data
           assert data.get('branch_identity') is True, data
-          assert 'provider' not in data and 'provider_name' not in data and 'model' not in data, data
+          assert 'provider' not in data and 'provider_name' not in data and 'model' not in data and 'model_id' not in data and 'engine' not in data and 'execution_engine' not in data, data
           PY
 
           status=$(curl -sS -o /tmp/qa-submit.json -w '%{http_code}' -X POST "$BASE_URL/api/agents/branch/submissions" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"agent_id":"quality","title":"Deployment QA challenge","content":"A strong QA coach should separate evidence from assumptions and give observable coaching points.","challenge_prompt":"Score a difficult customer call and identify the top coaching behavior.","expected_outcome":"A direct score rationale and observable coaching recommendation."}')
@@ -313,7 +340,7 @@ jobs:
           assert d.get('specialist_handoff') is True, d
           assert d.get('specialist',{}).get('id') == 'dina', d
           assert d.get('output','').startswith('Hello, I am Dina.'), d
-          assert 'provider' not in d and 'provider_name' not in d and 'model' not in d, d
+          assert 'provider' not in d and 'provider_name' not in d and 'model' not in d and 'model_id' not in d and 'engine' not in d and 'execution_engine' not in d, d
           PY
 
           status=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/checkout" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{}')
@@ -351,4 +378,4 @@ jobs:
           assert data.get('workers_ai_bound') is True, data
           PY
 
-          echo "Production health, QA contribution with owner-only approval, automatic named specialist handoff, provider privacy, native Agent Mesh, Magnanimous AI, AI Receptionist, billing, monetization, signup, sessions, and platform-owner isolation passed."
+          echo "Production health, QA contribution with owner-only approval, automatic named specialist handoff, private execution-provider catalogs, native Agent Mesh, Magnanimous AI, AI Receptionist, billing, monetization, signup, sessions, and platform-owner isolation passed."
