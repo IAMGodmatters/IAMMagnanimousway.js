@@ -17,8 +17,7 @@ function routeForPage(file){
  return rel.length?`/${rel.join('/')}`:'/';
 }
 function normalizeRoute(target){
- const base=String(target||'').split(/[?#]/)[0].replace(/\/+$/,'')||'/';
- return base;
+ return String(target||'').split(/[?#]/)[0].replace(/\/+$/,'')||'/';
 }
 function hasRoute(routes,target){
  const base=normalizeRoute(target);
@@ -36,8 +35,8 @@ function insideOpenForm(source,index){
 function actionableButton(attrs,source,index){
  if(/onClick\s*=|onPointer(?:Down|Up)?\s*=|onMouse(?:Down|Up)?\s*=|onKeyDown\s*=|formAction\s*=/.test(attrs))return true;
  if(/type\s*=\s*["'](?:submit|reset)["']/i.test(attrs))return true;
- if(/\.\.\./.test(attrs))return true; // delegated/spread component props
- if(insideOpenForm(source,index)&&!/type\s*=\s*["']button["']/i.test(attrs))return true; // native submit default
+ if(/\.\.\./.test(attrs))return true;
+ if(insideOpenForm(source,index)&&!/type\s*=\s*["']button["']/i.test(attrs))return true;
  return false;
 }
 
@@ -51,7 +50,7 @@ for(const file of sourceFiles){
  const source=fs.readFileSync(file,'utf8');
  let m;
 
- const buttonRe=/<button\b([^>]*)>/g;
+ const buttonRe=/<button(?:\s|>)([^>]*)>/g;
  while((m=buttonRe.exec(source))){
   buttons++;
   const attrs=m[1]||'';
@@ -59,7 +58,8 @@ for(const file of sourceFiles){
   if(/disabled\s*=\s*["']disabled["']|\bdisabled\b(?!\s*=\s*\{)/i.test(attrs)&&!/(onClick|type\s*=\s*["']submit["'])/.test(attrs))failures.push(`${rel}: permanently disabled button has no recoverable action near offset ${m.index}`);
  }
 
- const anchorRe=/<a\b([^>]*)>/g;
+ // Require actual JSX/HTML tag syntax. This deliberately avoids treating expressions like b<a as an anchor.
+ const anchorRe=/<a(?:\s|>)([^>]*)>/g;
  while((m=anchorRe.exec(source))){
   anchors++;
   const attrs=m[1]||'';
@@ -68,21 +68,21 @@ for(const file of sourceFiles){
   if(!hasHref&&!hasHandler)failures.push(`${rel}: anchor has neither href nor interaction handler near offset ${m.index}`);
  }
 
- const roleButtonRe=/<([A-Za-z][\w.-]*)\b([^>]*)role\s*=\s*["']button["']([^>]*)>/g;
+ const roleButtonRe=/<([A-Za-z][\w.-]*)(?:\s|>)([^>]*)role\s*=\s*["']button["']([^>]*)>/g;
  while((m=roleButtonRe.exec(source))){
   roleButtons++;
   const attrs=`${m[2]||''} ${m[3]||''}`;
   if(!/onClick\s*=|onKeyDown\s*=|href\s*=|\.\.\./.test(attrs))failures.push(`${rel}: role=button element has no interaction handler near offset ${m.index}`);
  }
 
- const formRe=/<form\b([^>]*)>/g;
+ const formRe=/<form(?:\s|>)([^>]*)>/g;
  while((m=formRe.exec(source))){
   forms++;
   const attrs=m[1]||'';
   if(!/onSubmit\s*=|action\s*=|\.\.\./.test(attrs)){
    const close=source.indexOf('</form>',m.index);
    const body=close>=0?source.slice(m.index,close):'';
-   if(!/<button\b[^>]*type\s*=\s*["']submit["']/i.test(body))failures.push(`${rel}: form has no onSubmit/action/explicit submit control near offset ${m.index}`);
+   if(!/<button(?:\s|>)[^>]*type\s*=\s*["']submit["']/i.test(body))failures.push(`${rel}: form has no onSubmit/action/explicit submit control near offset ${m.index}`);
   }
  }
 
@@ -98,7 +98,7 @@ for(const file of sourceFiles){
   }
  }
 
- const iframeRe=/<iframe\b([^>]*)>/g;
+ const iframeRe=/<iframe(?:\s|>)([^>]*)>/g;
  while((m=iframeRe.exec(source))){
   iframes++;
   const attrs=m[1]||'';
@@ -118,7 +118,9 @@ if(fs.existsSync(standalone)){
 const whiteLabel=path.join(appDir,'white-label','page.tsx');
 if(fs.existsSync(whiteLabel)){
  const s=fs.readFileSync(whiteLabel,'utf8');
- for(const route of ['/white-label/app','/white-label/funnel'])if(!s.includes(route))failures.push(`app/white-label/page.tsx: expected White Label route link is missing: ${route}`);
+ if(!s.includes('/white-label/app?tool='))failures.push('app/white-label/page.tsx: paid White Label apps must enter through the Magnanimous brain shell');
+ if(!routes.has('/white-label/app'))failures.push('app/white-label/app/page.tsx: White Label brain-connected app shell route is missing');
+ if(!routes.has('/white-label/funnel'))failures.push('app/white-label/funnel/page.tsx: dedicated White Label funnel builder route is missing');
 }
 
 console.log(`Deep interaction lock scanned ${files} source files, ${routes.size} routes, ${buttons} buttons, ${anchors} anchors, ${roleButtons} role-buttons, ${forms} forms, ${navigationTargets} literal navigation targets, and ${iframes} iframes.`);
