@@ -1,0 +1,21 @@
+name: Voice Conversation Lock
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  voice-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Lock voice conversation behavior
+        run: node qa/scripts/voice-conversation-lock.mjs
