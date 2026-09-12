@@ -5,6 +5,7 @@ const must=(text,needle,label)=>{if(!text.includes(needle)){console.error(`SPECI
 
 const intelligence=read('worker/src/agent-branch-intelligence.js');
 const entry=read('worker/src/branch-consent-entrypoint.js');
+const progress=read('worker/src/progress-entrypoint.js');
 const specialistRouter=read('worker/src/specialist-router.js');
 const wrangler=read('worker/wrangler.jsonc');
 const voice=read('frontend/app/voice-orchestrator.tsx');
@@ -14,7 +15,8 @@ const ownerReview=read('frontend/app/owner-ai-training-review/page.tsx');
 const magnanimous=read('frontend/app/magnanimous/page.tsx');
 const ownerCenter=read('frontend/app/owner-center/page.tsx');
 
-must(wrangler,'src/branch-consent-entrypoint.js','production Worker must run through the specialist branch entrypoint');
+must(wrangler,'src/progress-entrypoint.js','production Worker must run through the continuous progress checkpoint entrypoint');
+must(progress,"import app from './branch-consent-entrypoint.js'",'progress entrypoint must retain specialist branch routing beneath autosave');
 must(entry,"branchProfile, ensureBranchSchema, branchKnowledge, branchKnowledgeContext, teachBranch",'branch entrypoint must retain curriculum and teaching support');
 must(entry,"/api/agents/branch/teach",'developer teaching endpoint must remain available');
 must(entry,"/api/agents/branch/submissions",'QA contributor training submission endpoint must remain available');
@@ -66,4 +68,4 @@ must(magnanimous,'Magnanimous routed to ${specialist.name}','Magnanimous must sh
 must(ownerCenter,'/owner-ai-training-review','Owner Center must link the QA approval queue');
 must(ownerCenter,'/qa-ai-academy','Owner Center must link the QA contributor lab');
 
-if(!process.exitCode)console.log('Specialist branches, QA teaching approval, automatic Magnanimous routing, standalone voice parity, and specialist voice handoff lock passed.');
+if(!process.exitCode)console.log('Specialist branches, QA teaching approval, automatic Magnanimous routing, standalone voice parity, progress entrypoint, and specialist voice handoff lock passed.');
