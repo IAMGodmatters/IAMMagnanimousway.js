@@ -9,6 +9,8 @@
     "STRIPE_PRICE_BUSINESS": "price_1UB9WfDuxV2kib03DFKqwM9C",
     "STRIPE_PRICE_PRO": "price_1UBWxlDuxV2kib03u7b61rOy",
     "STRIPE_PRICE_SCALE": "price_1UBWxqDuxV2kib0337oX8ARr",
+    "STRIPE_PRICE_AGENCY": "price_1UEs75Bqx3ebIzujqlWosJKu",
+    "STRIPE_PRICE_AGENCY_PRO": "price_1UEs7EBqx3ebIzujT5pbI3QH",
     "STRIPE_PAYMENT_LINK_PLUS": "https://buy.stripe.com/9B614n5oK7vE7LWbnT6kg02",
     "STRIPE_PAYMENT_LINK_BUSINESS": "https://buy.stripe.com/4gM9AT18u7vE9U463z6kg00",
     "STRIPE_PAYMENT_LINK_PRO": "https://buy.stripe.com/5kQcN5g3o4jsd6g2Rn6kg03",
@@ -21,10 +23,15 @@
     "BUSINESS_PLAN_FINAL_MODEL": "gpt-5.6-sol",
     "TARGET_GROSS_MARGIN_PERCENT": "20"
   },
+  "triggers": {
+    "crons": ["*/15 * * * *"]
+  },
   "assets": {
     "directory": "../frontend/out",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*", "/health"]
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash",
+    "run_worker_first": ["/api/*", "/health", "/persistent", "/restore", "/research", "/agency", "/funnels", "/email"]
   },
   "ai": { "binding": "AI" },
   "d1_databases": [
