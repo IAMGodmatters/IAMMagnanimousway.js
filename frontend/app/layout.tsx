@@ -46,6 +46,40 @@ export default function RootLayout({children}:{children:React.ReactNode}){
       if(publicPaths.indexOf(currentPath)!==-1||standalone)document.documentElement.setAttribute('data-iam-public','true');
       if(standalone)document.documentElement.setAttribute('data-iam-standalone','true');
       var main=document.querySelector('main');if(main&&!main.id)main.id='iam-main';
+      function installRootAutosave(){
+        if(window.__iamRootAutosaveInstalled)return;window.__iamRootAutosaveInstalled=true;
+        var prefix='iam_progress_draft:';
+        var sensitive=/password|passwd|passcode|secret|token|authorization|api.?key|card|cvv|cvc|security.?code/i;
+        function eligible(el){
+          if(!(el instanceof HTMLInputElement||el instanceof HTMLTextAreaElement))return false;
+          if(el instanceof HTMLInputElement&&['text','search','email','url','tel','number'].indexOf(el.type)===-1)return false;
+          var marker=[el.name,el.id,el.getAttribute('aria-label'),el.placeholder,el.autocomplete].filter(Boolean).join(' ');
+          return !sensitive.test(marker)&&!el.closest('[data-no-autosave="true"]');
+        }
+        function field(el){return String(el.name||el.id||el.getAttribute('aria-label')||el.placeholder||el.tagName.toLowerCase()).slice(0,180);}
+        function clean(value){return String(value||'').replace(/\\bBearer\\s+\\S+/gi,'Bearer [REDACTED]').replace(/(password|passwd|passcode|secret|token|authorization|api.?key|cvv|cvc)\\s*[:=]\\s*\\S+/gi,'$1=[REDACTED]').slice(0,30000);}
+        function key(el){return prefix+location.pathname+':'+field(el);}
+        function save(event){
+          var el=event&&event.target;if(!eligible(el))return;
+          var record={value:clean(el.value),updatedAt:Date.now(),path:location.pathname,field:field(el),stage:'working'};
+          try{localStorage.setItem(key(el),JSON.stringify(record));}catch(e){}
+        }
+        function restore(){
+          document.querySelectorAll('input,textarea').forEach(function(el){
+            if(!eligible(el)||String(el.value||'').trim())return;
+            try{
+              var raw=localStorage.getItem(key(el));if(!raw)return;
+              var record=JSON.parse(raw);if(!record||!record.value||record.stage==='submitted'||Date.now()-Number(record.updatedAt||0)>604800000)return;
+              var proto=el instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;
+              var descriptor=Object.getOwnPropertyDescriptor(proto,'value');var setter=descriptor&&descriptor.set;
+              if(setter)setter.call(el,record.value);else el.value=record.value;
+              el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));
+            }catch(e){}
+          });
+        }
+        document.addEventListener('input',save,true);document.addEventListener('change',save,true);
+        restore();setTimeout(restore,100);setTimeout(restore,500);setTimeout(restore,1500);
+      }
       function migrateMagnanimousSession(){
         var official=localStorage.getItem('magnanimous_admin_token');
         var legacy=localStorage.getItem('odin_admin_token');
@@ -70,7 +104,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
         document.querySelectorAll('.metrics article').forEach(function(card){if((card.textContent||'').indexOf('READY PROVIDERS')!==-1){card.style.display='none';var parent=card.parentElement;if(parent)parent.style.gridTemplateColumns='repeat(3,minmax(0,1fr))';}});
       }
       function loadAds(){fetch('/api/monetization/config',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(c){if(!c)return;var configured=!!(c.adsense_configured||c.auto_ads_ready||c.ads_enabled);var client=c.adsense_client_id||c.adsense_client||'';if(!configured||!client||document.getElementById('iam-adsense'))return;var s=document.createElement('script');s.id='iam-adsense';s.async=true;s.crossOrigin='anonymous';s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+encodeURIComponent(client);document.head.appendChild(s);}).catch(function(){});}
-      migrateMagnanimousSession();guardProtectedRoute();polishCustomerUI();new MutationObserver(function(){polishCustomerUI()}).observe(document.body,{subtree:true,childList:true});if(!standalone)loadAds();
+      installRootAutosave();migrateMagnanimousSession();guardProtectedRoute();polishCustomerUI();new MutationObserver(function(){polishCustomerUI()}).observe(document.body,{subtree:true,childList:true});if(!standalone)loadAds();
     })();`}} />
   </body></html>
 }
