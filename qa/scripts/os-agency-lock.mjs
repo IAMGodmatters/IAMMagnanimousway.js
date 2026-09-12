@@ -13,6 +13,7 @@ function notMatches(source,re,msg){must(!re.test(source),msg)}
 const standaloneLayout=read('frontend/app/magnanimous/layout.tsx');
 const voice=read('frontend/app/voice-orchestrator.tsx');
 const productTests=read('qa/tests/product-boundaries.spec.ts');
+const navigationTests=read('qa/tests/navigation.spec.ts');
 const globalTools=read('frontend/app/global-tools.tsx');
 const workUI=read('frontend/app/work-engine/page.tsx');
 const activityUI=read('frontend/app/activity/page.tsx');
@@ -26,6 +27,12 @@ const agencyUI=read('frontend/app/agency-command/page.tsx');
 const automationRuntime=read('worker/src/agency-automation-runtime.js');
 const automationUI=read('frontend/app/agency-automations/page.tsx');
 const bpoRuntime=read('worker/src/bpo-operations-runtime.js');
+const growthRuntime=read('worker/src/growth-recovery-runtime.js');
+const growthUI=read('frontend/app/growth-funnel/page.tsx');
+const agencyBilling=read('worker/src/agency-billing-extension.js');
+const wrangler=read('worker/wrangler.jsonc');
+const notFound=read('frontend/app/not-found.tsx');
+const notFoundRecovery=read('frontend/app/not-found-recovery.tsx');
 const packageJson=read('frontend/package.json');
 
 // Option A — Reliability First.
@@ -40,6 +47,12 @@ includes(activityUI,'ACTIVITY • RESTORE • CONTINUE','reliability: Activity &
 includes(activityUI,"filter==='failed'",'reliability: failed checkpoints remain inspectable');
 includes(workUI,'Resume','reliability: persistent work retains Resume behavior');
 includes(workUI,'Retry','reliability: persistent work retains Retry behavior');
+includes(notFound,"NotFoundRecovery",'reliability: missing browser pages use automatic recovery instead of a dead-end screen');
+includes(notFoundRecovery,'window.location.replace(destination)','reliability: missing routes automatically move to a working surface');
+includes(notFoundRecovery,"'/persistent':'/work-engine'",'reliability: stale persistent link recovers to Work Engine');
+notMatches(notFoundRecovery,/404\s*[•-]|continue a persistent Magnanimous job/i,'reliability: recurring dead-end 404/persistent wording stays removed');
+includes(navigationTests,'legacy persistent route redirects to Work Engine instead of a dead end','reliability: browser QA covers stale persistent links');
+includes(navigationTests,'unknown browser routes recover automatically instead of stranding the user','reliability: browser QA covers unknown-route recovery');
 
 // Option B — Magnanimous OS.
 includes(workUI,'MAGNANIMOUS WORK ENGINE','os: Work Engine remains a first-class surface');
@@ -74,6 +87,35 @@ includes(operations,'dispatchAgencyAutomationEvent','agency: event automation di
 includes(automationUI,'EVENT → RULE → ACTION → RECEIPT','agency: automation builder UI remains present');
 for(const route of ['/agency-command','/agency-automations'])includes(globalTools,`href=\"${route}\"`,`agency: platform drawer links ${route}`);
 
+// Growth Funnel + lead memory + abandoned-checkout recovery.
+includes(growthRuntime,"'Magnanimous Revenue Recovery'",'growth: one canonical revenue-recovery funnel remains installed');
+includes(growthRuntime,"'all-platform'",'growth: funnel source scope covers the full platform');
+includes(growthRuntime,'ON CONFLICT(scope_tenant_id,email) DO UPDATE SET','growth: lead memory is durable and deduplicated by scope + email');
+includes(growthRuntime,"Number(lead.marketing_consent)!==1",'growth: commercial recovery refuses to send without stored marketing consent');
+includes(growthRuntime,"'abandoned-checkout'",'growth: abandoned checkout sequence remains enabled');
+includes(growthRuntime,"source:'magnanimous-pricing'",'growth: Magnanimous subscription checkout enters the funnel');
+includes(growthRuntime,"provider='shopify'",'growth: connected Shopify stores are included in recovery sync');
+includes(growthRuntime,"stage:complete?'customer':'abandoned_checkout'",'growth: Shopify checkout state maps into recovery/customer stages');
+includes(growthRuntime,"cancelRecovery(env,lead.id,'Shopify checkout recovered')",'growth: Shopify recovery stops follow-up after conversion');
+includes(growthRuntime,"waiting-compliance",'growth: automation blocks mail until compliance prerequisites are present');
+includes(growthUI,'Magnanimous Revenue Recovery','growth: owner funnel surface exposes the canonical recovery funnel');
+includes(operations,'recordSignupLead','growth: signup events feed lead memory');
+includes(operations,'recordPlatformCheckout','growth: platform checkout events feed lead recovery');
+includes(operations,'recordStripeGrowthEvent','growth: Stripe payment events close recovered leads');
+includes(operations,'scheduledGrowth','growth: recurring automation worker remains wired');
+
+// White-label pricing + real billing enforcement.
+includes(agencyBilling,"price_usd:299",'billing: Agency remains $299/month');
+includes(agencyBilling,"price_usd:499",'billing: Agency Pro remains $499/month');
+includes(agencyBilling,'white_label:true','billing: agency entitlements include white labeling');
+includes(agencyBilling,'client_subaccounts:25','billing: Agency includes 25 client subaccounts');
+includes(agencyBilling,'client_subaccounts:100','billing: Agency Pro includes 100 client subaccounts');
+includes(agencyBilling,'usage_rebilling:true','billing: agency plans retain usage rebilling entitlement');
+includes(agencyBilling,"env[p==='agency'?'STRIPE_PRICE_AGENCY':'STRIPE_PRICE_AGENCY_PRO']",'billing: Agency checkout uses dedicated Stripe price configuration');
+includes(agencyBilling,'ordinary_user_max_usd:199','billing: ordinary customer plans remain capped at $199 positioning');
+includes(wrangler,'"STRIPE_PRICE_AGENCY"','billing: production Worker has Agency Stripe price binding');
+includes(wrangler,'"STRIPE_PRICE_AGENCY_PRO"','billing: production Worker has Agency Pro Stripe price binding');
+
 // Non-regression boundaries.
 notMatches(agencyRuntime,/CREATE TABLE IF NOT EXISTS\s+(?:crm_|bpo_clients)/i,'non-regression: Agency Command must not create a duplicate CRM/BPO client table');
 notMatches(inboxRuntime,/CREATE TABLE IF NOT EXISTS\s+(?:crm_|bpo_clients)/i,'non-regression: Unified Inbox must not create a duplicate CRM/BPO client table');
@@ -84,3 +126,5 @@ if(failures.length){console.error(`\nMAGNANIMOUS OS / AGENCY CONTRACT FAILURE ($
 console.log('Reliability First lock: PASS');
 console.log('Magnanimous OS lock: PASS');
 console.log('Agency powerhouse lock: PASS');
+console.log('Growth + recovery lock: PASS');
+console.log('White-label pricing lock: PASS');
