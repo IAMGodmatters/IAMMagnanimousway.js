@@ -8,6 +8,7 @@ import {handleAgencyGrowth} from './agency-growth-runtime.js';
 import {handleAgencyAutomations,dispatchAgencyAutomationEvent} from './agency-automation-runtime.js';
 import {handleGrowthRecovery,recordSignupLead,recordPlatformCheckout,recordStripeGrowthEvent,scheduledGrowth} from './growth-recovery-runtime.js';
 import {handleAgencyBillingBefore,extendPlansPayload,applyAgencyWebhook} from './agency-billing-extension.js';
+import {handleWhiteLabelBrain,recordWhiteLabelAction,shouldObserveWhiteLabelPath} from './white-label-brain-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -97,9 +98,13 @@ async function operationsRequest(request,env){
 }
 
 function queueAutomation(ctx,task){const safe=Promise.resolve(task).catch(error=>console.error('background automation failed',error));if(ctx?.waitUntil)ctx.waitUntil(safe);return safe}
+function canReadJson(request){const type=String(request.headers.get('content-type')||'').toLowerCase();return !['GET','HEAD'].includes(request.method)&&type.includes('application/json')}
+async function whiteLabelObservationPayload(request){
+ if(!canReadJson(request))return{};
+ try{const body=await request.clone().json();return{client_id:String(body?.client_id||body?.clientId||'').slice(0,80)}}catch{return{}}
+}
 
-export default{
- async fetch(request,env,ctx){
+async function operationsFetch(request,env,ctx){
   const url=new URL(request.url),path=url.pathname;
   if(request.method==='GET'&&LEGACY_ROUTES[path])return Response.redirect(new URL(LEGACY_ROUTES[path],url.origin).toString(),308);
 
@@ -160,6 +165,24 @@ export default{
   if(webhookClone&&response.ok){
    const raw=await webhookClone.text().catch(()=>'');let eventData=null;try{eventData=JSON.parse(raw)}catch{}
    if(eventData){queueAutomation(ctx,Promise.all([applyAgencyWebhook(env,eventData,response),recordStripeGrowthEvent(env,eventData)]));}
+  }
+  return response;
+}
+
+export default{
+ async fetch(request,env,ctx){
+  const brain=await handleWhiteLabelBrain(request,env,ctx,{fetch:operationsFetch});
+  if(brain)return brain;
+
+  const url=new URL(request.url),observe=shouldObserveWhiteLabelPath(url.pathname),started=Date.now();
+  const payload=observe?await whiteLabelObservationPayload(request):{};
+  const response=await operationsFetch(request,env,ctx);
+  if(observe){
+   const task=(async()=>{
+    try{const user=await currentUser(request,env);if(user)await recordWhiteLabelAction(env,user,{path:url.pathname,method:request.method,payload,responseStatus:response.status,durationMs:Date.now()-started})}
+    catch(error){console.error('White Label Magnanimous learning signal failed',error)}
+   })();
+   if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
   }
   return response;
  },
