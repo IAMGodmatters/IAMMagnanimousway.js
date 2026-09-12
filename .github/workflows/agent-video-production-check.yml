@@ -1,0 +1,65 @@
+name: Agent Video Production Verification
+
+on:
+  workflow_run:
+    workflows: ["Build and Deploy I AM"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-agent-video:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify agent video page
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://iammagnanimousway.com"
+          status=$(curl -LsS -o /tmp/video-page.html -w '%{http_code}' "$BASE_URL/agent-video")
+          [ "$status" = "200" ] || { echo "Agent video page returned $status"; exit 1; }
+          test -s /tmp/video-page.html
+          echo "Agent video page is reachable."
+
+      - name: Verify private Magnanimous agent catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://iammagnanimousway.com"
+          curl -fsS "$BASE_URL/api/agents" -o /tmp/catalog.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/catalog.json'))
+          assert d.get('free_first') is True, d
+          assert d.get('provider_details_private') is True, d
+          providers=d.get('providers') or []
+          assert len(providers) == 1, d
+          p=providers[0]
+          assert p.get('id') == 'auto', d
+          assert p.get('name') == 'Magnanimous AI routing', d
+          assert p.get('configured') is True and p.get('enabled') is True, d
+          assert p.get('type') == 'private-execution', d
+          video=d.get('talking_avatar') or {}
+          assert video.get('free_browser_mode') is True, d
+          assert video.get('browser_live_avatar') is True, d
+          assert video.get('route') == '/agent-video', d
+          assert len(d.get('native_workspaces') or []) >= 7, d
+          public=json.dumps(d).lower()
+          for hidden in ['anthropic','claude','gemini','groq','mistral','openrouter','cerebras','hugging face','cloudflare-ai']:
+              assert hidden not in public, (hidden,d)
+          print('Agent catalog keeps execution providers private and video mode ready.')
+          PY
+
+      - name: Verify protected agent actions stay protected
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://iammagnanimousway.com"
+          status=$(curl -sS -o /tmp/context.json -w '%{http_code}' "$BASE_URL/api/agents/context")
+          [ "$status" = "401" ] || { echo "Expected anonymous agent context to require sign-in, got $status"; cat /tmp/context.json; exit 1; }
+          status=$(curl -sS -o /tmp/render.json -w '%{http_code}' -X POST "$BASE_URL/api/agents/video/render" -H 'content-type: application/json' --data '{"agent_id":"bobby","text":"production check"}')
+          [ "$status" = "401" ] || { echo "Expected anonymous video render to require sign-in, got $status"; cat /tmp/render.json; exit 1; }
+          echo "Protected agent context and video rendering correctly require authentication."
