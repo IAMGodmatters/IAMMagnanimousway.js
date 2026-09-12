@@ -1,0 +1,60 @@
+name: Public Teaching Production Smoke
+
+on:
+  workflow_run:
+    workflows: ["Build and Deploy I AM"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-smoke:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      BASE_URL: https://iammagnanimousway.com
+    steps:
+      - name: Verify public Magnanimous teaching surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl --connect-timeout 10 --max-time 60 -LsS -o /tmp/magnanimous.html -w '%{http_code}' "$BASE_URL/magnanimous")
+          test "$status" = "200" || { echo "Standalone Magnanimous returned HTTP $status"; exit 1; }
+          grep -q "Teach Magnanimous AI" /tmp/magnanimous.html || { echo "Public teaching panel is missing from standalone Magnanimous."; exit 1; }
+          grep -q "OWNER APPROVAL REQUIRED" /tmp/magnanimous.html || { echo "Owner-approval disclosure is missing from public teaching."; exit 1; }
+          grep -q "privacy-scrubbed excerpts" /tmp/magnanimous.html || { echo "Q&A observation privacy notice is missing."; exit 1; }
+          echo "Public teaching and Q&A observation disclosure are visible on standalone Magnanimous."
+
+      - name: Verify public teaching intake without creating test teaching
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl --connect-timeout 10 --max-time 60 -sS -o /tmp/public-teaching.json -w '%{http_code}' \
+            -X POST "$BASE_URL/api/agents/branch/submissions/public" \
+            -H 'content-type: application/json' \
+            --data '{"website":"production-smoke-honeypot","agent_id":"bobby","title":"Smoke check","content":"This honeypot request must never be stored."}')
+          test "$status" = "202" || { echo "Public teaching intake returned HTTP $status"; cat /tmp/public-teaching.json || true; exit 1; }
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/public-teaching.json'))
+          assert data.get('ok') is True, data
+          assert data.get('status') == 'pending', data
+          PY
+          echo "Public teaching intake is reachable; honeypot path confirmed without inserting test teaching."
+
+      - name: Verify owner Q&A observation stays private
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(curl --connect-timeout 10 --max-time 60 -sS -o /tmp/owner-observation.json -w '%{http_code}' "$BASE_URL/api/owner/qa-observation")
+          test "$status" = "403" || { echo "Owner Q&A observation endpoint expected HTTP 403 without owner credentials, got $status"; cat /tmp/owner-observation.json || true; exit 1; }
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/owner-observation.json'))
+          assert 'owner' in str(data.get('detail','')).lower(), data
+          PY
+          echo "Owner Q&A observation endpoint is protected from public access."
