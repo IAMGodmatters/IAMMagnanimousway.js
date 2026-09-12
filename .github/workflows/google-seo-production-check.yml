@@ -30,8 +30,8 @@ jobs:
 
           status=$(curl -LsS -o /tmp/solutions.html -w '%{http_code}' "$SITE/solutions/")
           [ "$status" = "200" ] || { echo "Solutions page returned $status"; exit 1; }
-          must_contain /tmp/solutions.html "I AM Operator" "I AM Operator positioning"
-          must_contain /tmp/solutions.html "Run the business" "operator-led Solutions hero"
+          must_contain /tmp/solutions.html "Magnanimous AI" "Magnanimous AI positioning"
+          must_contain /tmp/solutions.html "One place to plan, create, connect and grow" "Magnanimous Solutions hero"
           if grep -qi "Opening secure access" /tmp/solutions.html; then echo "Solutions is still exposing the secure-loading shell to crawlers"; exit 1; fi
           if grep -qi "0 providers ready" /tmp/solutions.html; then echo "Public Solutions page exposes provider diagnostics"; exit 1; fi
           echo "Verified: Solutions is crawlable without secure-loading/provider-diagnostic copy"
