@@ -1,6 +1,6 @@
 import baseApp from './consent-entrypoint.js';
 import { currentUser } from './integrations.js';
-import { branchProfile, ensureBranchSchema, branchKnowledge, branchKnowledgeContext, teachBranch } from './agent-branch-intelligence.js';
+import { branchProfile, ensureBranchSchema, branchKnowledge, branchKnowledgeContext, teachBranch, submitBranchTraining, branchTrainingSubmissions, reviewBranchTrainingSubmission, isPlatformOwnerUser, GLOBAL_BRANCH_TENANT } from './agent-branch-intelligence.js';
 
 const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...headers}});
 const isBranchTrainer=(user)=>Boolean(user&&['owner','admin'].includes(String(user.role||'').toLowerCase()));
@@ -71,6 +71,17 @@ async function trainingFromUrl(value){
  }catch{return{ok:false,status:400,detail:'Training source could not be fetched.'}}
 }
 
+async function enrichTrainingBody(body,agent,requireDirectPermission,user){
+ let lesson={...body};
+ if(!String(lesson.content||'').trim()&&String(lesson.url||'').trim()){
+  if(requireDirectPermission&&!isBranchTrainer(user))return{ok:false,status:403,detail:'Direct teaching requires owner or administrator access. Use the QA submission route for approval-based training.'};
+  const source=await trainingFromUrl(lesson.url);
+  if(!source.ok)return source;
+  lesson={...lesson,content:source.content,title:String(lesson.title||source.title||`${agent.name} web lesson`),source:String(lesson.source||`web:${source.url}`)};
+ }
+ return{ok:true,lesson};
+}
+
 async function branchRequest(request,env,ctx){
  const url=new URL(request.url);
  if(!url.pathname.startsWith('/api/agents'))return null;
@@ -81,18 +92,19 @@ async function branchRequest(request,env,ctx){
   const response=await baseApp.fetch(request,env,ctx);
   const data=await response.clone().json().catch(()=>null);
   if(!data)return response;
-  return json({...data,agents:(data.agents||[]).map(a=>({...a,branch:branchProfile(a)})),architecture:'magnanimous-core-with-specialist-branches'},response.status);
+  return json({...data,agents:(data.agents||[]).map(a=>({...a,branch:branchProfile(a)})),architecture:'magnanimous-core-with-specialist-branches',qa_training_submission:true,owner_approval_required_for_global_learning:true},response.status);
  }
 
  const user=await currentUser(request,env);
  if(!user)return null;
+ const platformOwner=await isPlatformOwnerUser(env,user);
 
  if(request.method==='GET'&&url.pathname==='/api/agents/branch'){
   const id=String(url.searchParams.get('agent_id')||'').toLowerCase();
   const agent=agents.find(a=>String(a.id).toLowerCase()===id);
   if(!agent)return json({detail:'Unknown specialist branch.'},404);
-  const knowledge=await branchKnowledge(env,user.tenant_id,agent.id,40);
-  return json({agent:{...agent,branch:branchProfile(agent)},knowledge,knowledge_count:knowledge.length,shared_core:'Magnanimous AI',branch_isolated:true,can_teach:isBranchTrainer(user)});
+  const knowledge=await branchKnowledge(env,user.tenant_id,agent.id,60);
+  return json({agent:{...agent,branch:branchProfile(agent)},knowledge,knowledge_count:knowledge.length,global_knowledge_count:knowledge.filter(x=>x.scope==='global').length,shared_core:'Magnanimous AI',branch_isolated:true,can_teach:isBranchTrainer(user),can_submit_training:true,platform_owner:platformOwner,qa_approval_required:true});
  }
 
  if(request.method==='POST'&&url.pathname==='/api/agents/branch/teach'){
@@ -100,25 +112,45 @@ async function branchRequest(request,env,ctx){
   const id=String(body.agent_id||'').toLowerCase();
   const agent=agents.find(a=>String(a.id).toLowerCase()===id);
   if(!agent)return json({detail:'Choose a valid specialist branch.'},400);
-  let lesson={...body};
-  if(!String(lesson.content||'').trim()&&String(lesson.url||'').trim()){
-   if(!isBranchTrainer(user))return json({detail:'Only a workspace owner or administrator can teach a specialist branch.'},403);
-   const source=await trainingFromUrl(lesson.url);
-   if(!source.ok)return json({detail:source.detail},source.status||400);
-   lesson={...lesson,content:source.content,title:String(lesson.title||source.title||`${agent.name} web lesson`),source:String(lesson.source||`web:${source.url}`)};
-  }
-  const taught=await teachBranch(env,user,agent,lesson);
+  const enriched=await enrichTrainingBody(body,agent,true,user);
+  if(!enriched.ok)return json({detail:enriched.detail},enriched.status||400);
+  const taught=await teachBranch(env,user,agent,enriched.lesson);
   return taught.ok?json({...taught,branch:branchProfile(agent)},201):json({detail:taught.detail},taught.status||400);
  }
 
+ if(request.method==='POST'&&url.pathname==='/api/agents/branch/submissions'){
+  const body=await request.json().catch(()=>({}));
+  const id=String(body.agent_id||'').toLowerCase();
+  const agent=agents.find(a=>String(a.id).toLowerCase()===id);
+  if(!agent)return json({detail:'Choose a valid specialist branch.'},400);
+  const enriched=await enrichTrainingBody(body,agent,false,user);
+  if(!enriched.ok)return json({detail:enriched.detail},enriched.status||400);
+  const submitted=await submitBranchTraining(env,user,agent,enriched.lesson);
+  return submitted.ok?json({...submitted,branch:branchProfile(agent)},201):json({detail:submitted.detail},submitted.status||400);
+ }
+
+ if(request.method==='GET'&&url.pathname==='/api/agents/branch/submissions'){
+  const agentId=String(url.searchParams.get('agent_id')||'').toLowerCase();
+  const status=String(url.searchParams.get('status')||'').toLowerCase();
+  const submissions=await branchTrainingSubmissions(env,user,{agentId,status});
+  return json({submissions,platform_owner:platformOwner,approval_required:true,count:submissions.length});
+ }
+
+ if(request.method==='POST'&&url.pathname==='/api/agents/branch/submissions/review'){
+  const body=await request.json().catch(()=>({}));
+  const result=await reviewBranchTrainingSubmission(env,user,agents,Number(body.id||0),body);
+  return result.ok?json(result):json({detail:result.detail},result.status||400);
+ }
+
  if(request.method==='DELETE'&&url.pathname==='/api/agents/branch/knowledge'){
-  if(!isBranchTrainer(user))return json({detail:'Only a workspace owner or administrator can curate specialist training.'},403);
+  if(!isBranchTrainer(user))return json({detail:'Only an owner or administrator can curate specialist training.'},403);
   const agentId=String(url.searchParams.get('agent_id')||'').toLowerCase();
   const lessonId=Number(url.searchParams.get('id')||0);
   const agent=agents.find(a=>String(a.id).toLowerCase()===agentId);
   if(!agent||!Number.isInteger(lessonId)||lessonId<1)return json({detail:'Choose a valid branch lesson.'},400);
-  const result=await env.DB.prepare('DELETE FROM agent_branch_knowledge WHERE id=? AND tenant_id=? AND agent_id=?').bind(lessonId,String(user.tenant_id),agent.id).run();
-  return json({deleted:Number(result?.meta?.changes||0)>0,id:lessonId,agent_id:agent.id});
+  const tenantScope=platformOwner?GLOBAL_BRANCH_TENANT:String(user.tenant_id);
+  const result=await env.DB.prepare('DELETE FROM agent_branch_knowledge WHERE id=? AND tenant_id=? AND agent_id=?').bind(lessonId,tenantScope,agent.id).run();
+  return json({deleted:Number(result?.meta?.changes||0)>0,id:lessonId,agent_id:agent.id,scope:platformOwner?'global':'workspace'});
  }
 
  if(request.method==='POST'&&url.pathname==='/api/agents/chat'){
@@ -130,10 +162,10 @@ async function branchRequest(request,env,ctx){
   const agent=agents.find(a=>String(a.id).toLowerCase()===requestedId);
   if(!agent)return null;
   const cleanMessage=named?.cleaned||original;
-  const knowledge=await branchKnowledge(env,user.tenant_id,agent.id,16);
+  const knowledge=await branchKnowledge(env,user.tenant_id,agent.id,20);
   const profile=branchProfile(agent);
   const context=branchKnowledgeContext(profile,knowledge);
-  const internal=`\n\nSPECIALIST BRANCH CONTEXT — apply this silently; do not quote it back to the user.\n${context}\n\nThe user is speaking to ${agent.name}. Stay in ${agent.name}'s ${agent.title} responsibility unless a handoff is genuinely needed.`;
+  const internal=`\n\nSPECIALIST BRANCH CONTEXT — apply this silently; do not quote it back to the user.\n${context}\n\nThe user is speaking to ${agent.name}. Stay in ${agent.name}'s ${agent.title} responsibility unless a handoff is genuinely needed. Answer the request directly. Do not replace a useful answer with a follow-up question when reasonable assumptions are sufficient.`;
   const forwarded=new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify({...body,agent_id:agent.id,message:`${cleanMessage}${internal}`})});
   const response=await baseApp.fetch(forwarded,env,ctx);
   try{
@@ -142,7 +174,7 @@ async function branchRequest(request,env,ctx){
   const data=await response.clone().json().catch(()=>null);
   if(!data)return response;
   const {provider,provider_name,model,...publicData}=data;
-  return json({...publicData,agent:{...(data.agent||agent),branch:profile},branch_identity:true,branch_knowledge_count:knowledge.length,spoken_name_routing:Boolean(named)},response.status);
+  return json({...publicData,agent:{...(data.agent||agent),branch:profile},branch_identity:true,branch_knowledge_count:knowledge.length,global_branch_knowledge_count:knowledge.filter(x=>x.scope==='global').length,spoken_name_routing:Boolean(named)},response.status);
  }
  return null;
 }
