@@ -11,7 +11,7 @@ function includes(source,needle,msg){must(source.includes(needle),msg)}
 function notMatches(source,re,msg){must(!re.test(source),msg)}
 
 const runtime=read('worker/src/white-label-brain-runtime.js');
-const entry=read('worker/src/white-label-brain-entrypoint.js');
+const operations=read('worker/src/operations-entrypoint.js');
 const wrangler=read('worker/wrangler.jsonc');
 const migration=read('worker/migrations/0036_white_label_brain.sql');
 const layout=read('frontend/app/white-label/layout.tsx');
@@ -20,12 +20,15 @@ const shell=read('frontend/app/white-label/app/page.tsx');
 const home=read('frontend/app/white-label/page.tsx');
 const evolution=read('frontend/app/owner-evolution/page.tsx');
 
-includes(wrangler,'"main": "src/white-label-brain-entrypoint.js"','brain: Worker runs through the White Label brain wrapper');
-includes(entry,'handleWhiteLabelBrain','brain: White Label brain API is mounted before normal operations');
-includes(entry,'recordWhiteLabelAction','learning: relevant White Label outcomes are observed');
-includes(entry,'const body=await request.clone().json()','privacy: request observation uses a clone and leaves the customer action intact');
-includes(entry,"client_id:String(body?.client_id||body?.clientId||'').slice(0,80)",'privacy: observer extracts client id only rather than raw customer content');
-includes(entry,'Learning signals must never break the customer action','reliability: learning failure cannot break customer actions');
+includes(wrangler,'"main": "src/operations-entrypoint.js"','brain: production Worker preserves the non-destructive Operations entrypoint');
+includes(operations,"import app from './progress-entrypoint.js'",'architecture: Operations still preserves progress/specialist routing beneath it');
+includes(operations,"from './white-label-brain-runtime.js'",'brain: Operations loads the White Label Magnanimous brain');
+includes(operations,'handleWhiteLabelBrain','brain: White Label brain API is mounted inside Operations');
+includes(operations,'recordWhiteLabelAction','learning: relevant White Label outcomes are observed');
+includes(operations,'const body=await request.clone().json()','privacy: request observation uses a clone and leaves the customer action intact');
+includes(operations,"client_id:String(body?.client_id||body?.clientId||'').slice(0,80)",'privacy: observer extracts client id only rather than raw customer content');
+includes(operations,"catch(error){console.error('White Label Magnanimous learning signal failed',error)}",'reliability: learning-signal errors are contained after the customer response');
+includes(operations,'const response=await operationsFetch(request,env,ctx)','reliability: customer action completes before background White Label learning is queued');
 
 includes(runtime,"role:'shared brain for every White Label app'",'brain: Magnanimous is explicitly the shared White Label brain');
 includes(runtime,'CREATE TABLE IF NOT EXISTS white_label_brain_memory','learning: durable private White Label memory exists');
