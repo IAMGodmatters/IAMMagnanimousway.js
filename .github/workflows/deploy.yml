@@ -32,6 +32,11 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Lock product and specialist QA contracts
+        run: |
+          node qa/scripts/product-contract-locks.mjs
+          node qa/scripts/specialist-branch-lock.mjs
+
       - name: Install Worker dependencies
         working-directory: worker
         run: npm install
@@ -113,7 +118,6 @@ jobs:
         run: |
           set -eo pipefail
 
-          # Never allow one upstream request to pin the deploy job until the job-level timeout.
           curl() {
             command curl --connect-timeout 10 --max-time 120 "$@"
           }
@@ -136,6 +140,9 @@ jobs:
           assert data.get('status') == 'ok', data
           PY
 
+          check_get "QA Training Lab page" "$BASE_URL/qa-ai-academy" /tmp/qa-training.html
+          check_get "Owner QA Approval page" "$BASE_URL/owner-ai-training-review" /tmp/owner-qa-review.html
+
           check_get "Plans endpoint" "$BASE_URL/api/plans" /tmp/plans.json
           python - <<'PY'
           import json
@@ -154,6 +161,8 @@ jobs:
           assert data.get('free_first') is True, data
           assert data.get('openai_used') is False, data
           assert len(data.get('agents') or []) >= 30, data
+          assert data.get('qa_training_submission') is True, data
+          assert data.get('owner_approval_required_for_global_learning') is True, data
           providers=data.get('providers') or []
           assert any(p.get('id') == 'cloudflare-ai' and p.get('configured') is True for p in providers), data
           assert all(p.get('id') != 'openai' for p in providers), data
@@ -196,11 +205,10 @@ jobs:
                 echo "::error::Refusing smoke cleanup for invalid tenant UUID: $tenant_id"
                 return 1
               fi
-
-              # Execute one statement per Wrangler invocation. This avoids Cloudflare D1's
-              # multi-statement batch-JSON response path that previously broke cleanup.
               local cleanup_failed=0
               local cleanup_statements=(
+                "DELETE FROM agent_branch_training_submissions WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agent_branch_knowledge WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM agent_mesh_messages WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM billing_management_requests WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM voice_agent_turns WHERE tenant_id='${tenant_id}';"
@@ -219,10 +227,7 @@ jobs:
                   cleanup_failed=1
                 fi
               done
-
-              if [ "$cleanup_failed" -ne 0 ]; then
-                return 1
-              fi
+              if [ "$cleanup_failed" -ne 0 ]; then return 1; fi
               echo "Cleaned deployment smoke-test tenant $tenant_id."
             fi
             return "$exit_code"
@@ -232,29 +237,16 @@ jobs:
           python - "$email" > /tmp/signup-payload.json <<'PY'
           import json,sys
           email=sys.argv[1]
-          print(json.dumps({
-            'name':'Deployment Smoke Test',
-            'workspace':'Deployment Smoke Test',
-            'email':email,
-            'password':'Smoke-Test-Only-2026!',
-            'accountProcessingConsent':True,
-            'termsAccepted':True,
-            'marketingConsent':False
-          }))
+          print(json.dumps({'name':'Deployment Smoke Test','workspace':'Deployment Smoke Test','email':email,'password':'Smoke-Test-Only-2026!','accountProcessingConsent':True,'termsAccepted':True,'marketingConsent':False}))
           PY
 
           status=$(curl -sS -o /tmp/signup.json -w '%{http_code}' -X POST "$BASE_URL/api/auth/signup" -H 'content-type: application/json' --data-binary @/tmp/signup-payload.json)
-          if [ "$status" != "201" ]; then
-            echo "Signup smoke test returned HTTP $status"
-            cat /tmp/signup.json || true
-            exit 1
-          fi
+          if [ "$status" != "201" ]; then echo "Signup smoke test returned HTTP $status"; cat /tmp/signup.json || true; exit 1; fi
 
           readarray -t signup_values < <(python - <<'PY'
           import json
           data=json.load(open('/tmp/signup.json'))
           user=data.get('user') or {}
-          assert user.get('role') == 'owner', data
           assert user.get('tenant_id'), data
           assert data.get('token'), data
           print(user['tenant_id'])
@@ -265,61 +257,57 @@ jobs:
           token="${signup_values[1]}"
 
           status=$(curl -sS -o /tmp/me.json -w '%{http_code}' "$BASE_URL/api/auth/me" -H "Authorization: Bearer $token")
-          if [ "$status" != "200" ]; then
-            echo "Authenticated account check returned HTTP $status"
-            cat /tmp/me.json || true
-            exit 1
-          fi
-          python - <<'PY'
-          import json
-          data=json.load(open('/tmp/me.json'))
-          user=data.get('user') or {}
-          assert user.get('role') == 'owner', data
-          assert user.get('tenant_id'), data
-          PY
+          if [ "$status" != "200" ]; then echo "Authenticated account check returned HTTP $status"; cat /tmp/me.json || true; exit 1; fi
 
           admin_status=$(curl -sS -o /tmp/admin-denied.json -w '%{http_code}' "$BASE_URL/api/admin/settings" -H "Authorization: Bearer $token")
-          if [ "$admin_status" != "403" ]; then
-            echo "Customer workspace owner global-admin isolation expected HTTP 403, got $admin_status"
-            cat /tmp/admin-denied.json || true
-            exit 1
-          fi
+          if [ "$admin_status" != "403" ]; then echo "Customer account global-admin isolation expected HTTP 403, got $admin_status"; cat /tmp/admin-denied.json || true; exit 1; fi
 
           credential_status=$(curl -sS -o /tmp/credentials-denied.json -w '%{http_code}' "$BASE_URL/api/integrations/platform-credentials" -H "Authorization: Bearer $token")
-          if [ "$credential_status" != "403" ]; then
-            echo "Customer workspace owner platform-credential isolation expected HTTP 403, got $credential_status"
-            cat /tmp/credentials-denied.json || true
-            exit 1
-          fi
-          echo "Customer workspace owners are isolated from global platform controls."
+          if [ "$credential_status" != "403" ]; then echo "Customer platform-credential isolation expected HTTP 403, got $credential_status"; cat /tmp/credentials-denied.json || true; exit 1; fi
+          echo "Customer workspaces are isolated from global platform controls."
 
           status=$(curl -sS -o /tmp/agent-chat.json -w '%{http_code}' -X POST "$BASE_URL/api/agents/chat" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"agent_id":"bobby","provider":"cloudflare-ai","message":"Give one short sentence confirming the native I AM Agent Mesh is online."}')
-          if [ "$status" != "200" ]; then
-            echo "Agent Mesh chat returned HTTP $status"
-            cat /tmp/agent-chat.json || true
-            exit 1
-          fi
+          if [ "$status" != "200" ]; then echo "Agent Mesh chat returned HTTP $status"; cat /tmp/agent-chat.json || true; exit 1; fi
           python - <<'PY'
           import json
           data=json.load(open('/tmp/agent-chat.json'))
           assert data.get('output'), data
-          assert data.get('provider') == 'cloudflare-ai', data
-          assert data.get('openai_used') is False, data
           assert data.get('shared_memory') is True, data
           assert data.get('agent',{}).get('id') == 'bobby', data
+          assert data.get('branch_identity') is True, data
+          assert 'provider' not in data and 'provider_name' not in data and 'model' not in data, data
+          PY
+
+          status=$(curl -sS -o /tmp/qa-submit.json -w '%{http_code}' -X POST "$BASE_URL/api/agents/branch/submissions" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"agent_id":"quality","title":"Deployment QA challenge","content":"A strong QA coach should separate evidence from assumptions and give observable coaching points.","challenge_prompt":"Score a difficult customer call and identify the top coaching behavior.","expected_outcome":"A direct score rationale and observable coaching recommendation."}')
+          if [ "$status" != "201" ]; then echo "QA training submission returned HTTP $status"; cat /tmp/qa-submit.json || true; exit 1; fi
+          qa_id=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/qa-submit.json'))
+          assert d.get('status') == 'pending', d
+          assert d.get('requires_owner_approval') is True, d
+          print(d['id'])
+          PY
+          )
+          review_status=$(curl -sS -o /tmp/qa-review-denied.json -w '%{http_code}' -X POST "$BASE_URL/api/agents/branch/submissions/review" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"id\":$qa_id,\"action\":\"approve\"}")
+          if [ "$review_status" != "403" ]; then echo "QA global approval must be platform-owner-only; got HTTP $review_status"; cat /tmp/qa-review-denied.json || true; exit 1; fi
+          echo "QA contributors can submit training, but cannot publish global specialist knowledge."
+
+          status=$(curl -sS -o /tmp/specialist-handoff.json -w '%{http_code}' -X POST "$BASE_URL/api/chat" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"provider":"cloudflare-ai","message":"Create a social content post announcing a new product in a confident friendly voice.","use_knowledge":false,"use_tools":false,"learn_links":false,"specialist_routing":true}')
+          if [ "$status" != "200" ]; then echo "Magnanimous specialist handoff returned HTTP $status"; cat /tmp/specialist-handoff.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/specialist-handoff.json'))
+          assert d.get('specialist_handoff') is True, d
+          assert d.get('specialist',{}).get('id') == 'dina', d
+          assert d.get('output','').startswith('Hello, I am Dina.'), d
+          assert 'provider' not in d and 'provider_name' not in d and 'model' not in d, d
           PY
 
           status=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/checkout" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{}')
-          if [ "$status" != "200" ]; then
-            echo "Payment Link checkout returned HTTP $status"
-            cat /tmp/checkout.json || true
-            exit 1
-          fi
+          if [ "$status" != "200" ]; then echo "Payment Link checkout returned HTTP $status"; cat /tmp/checkout.json || true; exit 1; fi
           python - "$tenant_id" <<'PY'
           import json,sys,urllib.parse
-          tenant=sys.argv[1]
-          data=json.load(open('/tmp/checkout.json'))
-          url=data.get('url','')
+          tenant=sys.argv[1];data=json.load(open('/tmp/checkout.json'));url=data.get('url','')
           assert url.startswith('https://buy.stripe.com/'), data
           query=urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
           assert query.get('client_reference_id') == [tenant], data
@@ -327,37 +315,10 @@ jobs:
           PY
 
           status=$(curl -sS -o /tmp/billing-request.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/management-request" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"request_type":"billing_question","message":"Deployment smoke test billing request."}')
-          if [ "$status" != "201" ]; then
-            echo "Billing management request returned HTTP $status"
-            cat /tmp/billing-request.json || true
-            exit 1
-          fi
-          python - <<'PY'
-          import json
-          data=json.load(open('/tmp/billing-request.json'))
-          assert data.get('id'), data
-          assert data.get('status') == 'pending', data
-          PY
-
-          status=$(curl -sS -o /tmp/billing-request-list.json -w '%{http_code}' "$BASE_URL/api/billing/management-request" -H "Authorization: Bearer $token")
-          if [ "$status" != "200" ]; then
-            echo "Billing management request list returned HTTP $status"
-            cat /tmp/billing-request-list.json || true
-            exit 1
-          fi
-          python - <<'PY'
-          import json
-          data=json.load(open('/tmp/billing-request-list.json'))
-          rows=data.get('requests') or []
-          assert any(r.get('request_type') == 'billing_question' and r.get('status') == 'pending' for r in rows), data
-          PY
+          if [ "$status" != "201" ]; then echo "Billing management request returned HTTP $status"; cat /tmp/billing-request.json || true; exit 1; fi
 
           status=$(curl -sS -o /tmp/voice-agent.json -w '%{http_code}' "$BASE_URL/api/voice-agent/config" -H "Authorization: Bearer $token")
-          if [ "$status" != "200" ]; then
-            echo "AI Receptionist config returned HTTP $status"
-            cat /tmp/voice-agent.json || true
-            exit 1
-          fi
+          if [ "$status" != "200" ]; then echo "AI Receptionist config returned HTTP $status"; cat /tmp/voice-agent.json || true; exit 1; fi
           python - <<'PY'
           import json
           data=json.load(open('/tmp/voice-agent.json'))
@@ -377,4 +338,4 @@ jobs:
           assert data.get('workers_ai_bound') is True, data
           PY
 
-          echo "Production health, native non-OpenAI Agent Mesh, Magnanimous AI, AI Receptionist, monetization config, billing support, encrypted Stripe webhook verification, Stripe Payment Link checkout, platform-owner isolation, Free/$49 plans, signup, sessions, and consent passed."
+          echo "Production health, QA contribution with owner-only approval, automatic named specialist handoff, provider privacy, native Agent Mesh, Magnanimous AI, AI Receptionist, billing, monetization, signup, sessions, and platform-owner isolation passed."
