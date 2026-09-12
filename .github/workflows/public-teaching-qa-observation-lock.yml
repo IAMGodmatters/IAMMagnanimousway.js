@@ -1,0 +1,25 @@
+name: Public Teaching and QA Observation Lock
+
+on:
+  pull_request:
+  push:
+    branches: ['**']
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Verify public teaching and QA observation contracts
+        run: node qa/scripts/public-teaching-observation-lock.mjs
+      - name: Verify observation runtime syntax
+        run: |
+          node --check worker/src/qa-observation-runtime.js
+          node --check worker/src/progress-entrypoint.js
