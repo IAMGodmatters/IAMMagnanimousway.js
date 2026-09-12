@@ -31,7 +31,7 @@ must(operations,"/api/work-engine",'persistent Work Engine API must remain avail
 must(operations,"/api/evidence-notebook",'research Evidence Notebook API must remain available');
 must(operations,"/api/operations/overview",'owner operations overview must remain available');
 must(operations,"/api/integration-contract",'universal integration contract must remain available');
-must(operations,'connect\',\'permissions\',\'health\',\'read\',\'write\',\'approval\',\'receipt\',\'disconnect','connector lifecycle contract must remain explicit');
+must(operations,"lifecycle:['connect','permissions','health','read','write','approval','receipt','disconnect']",'connector lifecycle contract must remain explicit');
 must(workRuntime,'magnanimous_work_items','persistent work item storage must remain available');
 must(workRuntime,'magnanimous_work_steps','persistent work step storage must remain available');
 must(workRuntime,'updateWorkStep','step-level resume and completion state must remain available');
