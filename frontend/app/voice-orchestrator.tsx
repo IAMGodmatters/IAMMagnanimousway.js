@@ -39,6 +39,8 @@ const MODE_PERSONAS:Record<string,string>={
  Writing:'Writing Helper'
 };
 
+let routedPersonaHint='';
+
 function hash(value:string){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function latestMagnanimousPersona(){
  const labels=Array.from(document.querySelectorAll('.mag-message.assistant .mag-bubble>small'));
@@ -51,6 +53,9 @@ function currentPersona(){
  const path=location.pathname;
  if(path==='/magnanimous'||path.startsWith('/magnanimous/'))return latestMagnanimousPersona();
  if(path==='/agents'||path.startsWith('/agents/')){
+  if(routedPersonaHint)return routedPersonaHint;
+  const active=document.querySelector('.agentList button.active div b')?.textContent?.trim();
+  if(active)return active;
   const heading=document.querySelector('.chatHead h2');
   const first=heading?.childNodes?.[0]?.textContent?.trim();
   if(first)return first;
@@ -123,6 +128,22 @@ function routeNamedAgent(transcript:string){
  return null;
 }
 
+function syncRoutedAgent(data:any){
+ const name=String(data?.agent?.name||'').trim();
+ if(!name)return;
+ routedPersonaHint=name;
+ const buttons=Array.from(document.querySelectorAll('.agentList button')) as HTMLButtonElement[];
+ const button=buttons.find(item=>(item.querySelector('div b')?.textContent||'').trim().toLowerCase()===name.toLowerCase());
+ if(button&&!button.classList.contains('active')){
+  button.click();
+  emitCheckpoint({kind:'specialist-handoff',stage:'backend-routed',content:`Routed to ${name}`,metadata:{specialist:name,path:location.pathname}});
+ }
+ window.setTimeout(()=>{
+  const active=(document.querySelector('.agentList button.active div b')?.textContent||'').trim();
+  if(!active||active.toLowerCase()===name.toLowerCase())routedPersonaHint='';
+ },1800);
+}
+
 function writeAndSend(transcript:string){
  const path=location.pathname;
  const standalone=path==='/magnanimous'||path.startsWith('/magnanimous/');
@@ -155,6 +176,7 @@ function writeAndSend(transcript:string){
  if(agents){
   const routed=routeNamedAgent(transcript);
   if(routed){
+   routedPersonaHint=routed.name;
    routed.button.click();
    emitCheckpoint({kind:'specialist-handoff',stage:'voice-routed',content:transcript,metadata:{specialist:routed.name,path}});
    window.setTimeout(()=>perform(routed.cleaned),360);
@@ -192,15 +214,27 @@ export default function VoiceOrchestrator(){
   });
   observer.observe(document.body,{subtree:true,childList:true,characterData:true});
 
-  let restore:(()=>void)|undefined;
+  const cleanups:Array<()=>void>=[];
   if((p==='/agents'||p.startsWith('/agents/'))&&'speechSynthesis'in window){
    const anySynth:any=window.speechSynthesis,original=anySynth.speak?.bind(anySynth);
    if(original){
     const wrapped=(utterance:SpeechSynthesisUtterance)=>{applyVoiceProfile(utterance,currentPersona());original(utterance)};
-    try{anySynth.speak=wrapped;restore=()=>{try{if(anySynth.speak===wrapped)anySynth.speak=original}catch{}}}catch{}
+    try{anySynth.speak=wrapped;cleanups.push(()=>{try{if(anySynth.speak===wrapped)anySynth.speak=original}catch{}})}catch{}
    }
   }
-  return()=>{observer.disconnect();synth?.removeEventListener?.('voiceschanged',refreshVoices);recognitionRef.current?.stop?.();restore?.()};
+  if(p==='/agents'||p.startsWith('/agents/')){
+   const originalFetch=window.fetch.bind(window);
+   const wrappedFetch:typeof window.fetch=async(input:any,init?:RequestInit)=>{
+    const response=await originalFetch(input,init);
+    try{
+     const target=typeof input==='string'?input:input instanceof URL?input.href:input?.url||'';
+     if(String(target).includes('/api/agents/chat'))response.clone().json().then(syncRoutedAgent).catch(()=>{});
+    }catch{}
+    return response;
+   };
+   try{window.fetch=wrappedFetch;cleanups.push(()=>{try{if(window.fetch===wrappedFetch)window.fetch=originalFetch}catch{}})}catch{}
+  }
+  return()=>{observer.disconnect();synth?.removeEventListener?.('voiceschanged',refreshVoices);recognitionRef.current?.stop?.();for(const cleanup of cleanups)cleanup();routedPersonaHint=''};
  },[]);
 
  function speakSample(){
