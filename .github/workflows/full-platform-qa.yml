@@ -41,6 +41,9 @@ jobs:
       - name: Lock standalone AI, platform, and Shopify boundaries
         run: node qa/scripts/product-contract-locks.mjs
 
+      - name: Lock specialist branch architecture
+        run: node qa/scripts/specialist-branch-lock.mjs
+
       - name: Frontend typecheck and production build
         working-directory: frontend
         run: |
@@ -126,7 +129,7 @@ jobs:
               `- Commit: \`${context.sha}\``,
               `- Trigger: \`${context.eventName}\``,
               '',
-              'The QA gate includes protected contracts for the standalone Magnanimous AI, the main platform, and the God Matters Shopify/store boundary.',
+              'The QA gate includes protected contracts for the standalone Magnanimous AI, the main platform, the God Matters Shopify/store boundary, and the Magnanimous specialist-branch architecture.',
               '',
               'Open the workflow run and download the **full-platform-qa** artifact for the HTML report, screenshots, videos, and Playwright traces.',
               '',
