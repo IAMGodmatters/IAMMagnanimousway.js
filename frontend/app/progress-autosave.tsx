@@ -8,6 +8,21 @@ type CheckpointDetail={kind?:string;stage?:string;content?:string;scope?:string;
 const SENSITIVE=/password|passwd|passcode|secret|token|authorization|api.?key|card|cvv|cvc|security.?code/i;
 const STORAGE_PREFIX='iam_progress_draft:';
 const SESSION_KEY='iam_progress_session_key';
+const EARLY_AUTOSAVE_BOOTSTRAP=`(()=>{
+ try{
+  if(window.__iamEarlyAutosaveInstalled)return;window.__iamEarlyAutosaveInstalled=true;
+  const prefix='iam_progress_draft:';
+  const sensitive=/password|passwd|passcode|secret|token|authorization|api.?key|card|cvv|cvc|security.?code/i;
+  const ok=(el)=>{if(!(el instanceof HTMLInputElement||el instanceof HTMLTextAreaElement))return false;if(el instanceof HTMLInputElement&&!['text','search','email','url','tel','number'].includes(el.type))return false;const marker=[el.name,el.id,el.getAttribute('aria-label'),el.placeholder,el.autocomplete].filter(Boolean).join(' ');return !sensitive.test(marker)&&!el.closest('[data-no-autosave="true"]')};
+  const field=(el)=>String(el.name||el.id||el.getAttribute('aria-label')||el.placeholder||el.tagName.toLowerCase()).slice(0,180);
+  const clean=(value)=>String(value||'').replace(/\\bBearer\\s+\\S+/gi,'Bearer [REDACTED]').replace(/(password|passwd|passcode|secret|token|authorization|api.?key|cvv|cvc)\\s*[:=]\\s*\\S+/gi,'$1=[REDACTED]').slice(0,30000);
+  const save=(event)=>{const el=event&&event.target;if(!ok(el))return;const key=prefix+location.pathname+':'+field(el);const record={value:clean(el.value),updatedAt:Date.now(),path:location.pathname,field:field(el),stage:'working'};try{localStorage.setItem(key,JSON.stringify(record))}catch{}};
+  const restore=()=>{for(const el of document.querySelectorAll('input,textarea')){if(!ok(el)||String(el.value||'').trim())continue;try{const raw=localStorage.getItem(prefix+location.pathname+':'+field(el));if(!raw)continue;const record=JSON.parse(raw);if(!record||!record.value||record.stage==='submitted'||Date.now()-Number(record.updatedAt||0)>604800000)continue;const proto=el instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;const setter=Object.getOwnPropertyDescriptor(proto,'value')&&Object.getOwnPropertyDescriptor(proto,'value').set;if(setter)setter.call(el,record.value);else el.value=record.value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))}catch{}}};
+  document.addEventListener('input',save,true);document.addEventListener('change',save,true);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore,{once:true});else restore();
+  setTimeout(restore,100);setTimeout(restore,500);setTimeout(restore,1500);
+ }catch{}
+})();`;
 
 function authToken(){
  if(typeof window==='undefined')return'';
@@ -114,10 +129,10 @@ export default function ProgressAutosave(){
   return()=>{document.removeEventListener('input',onInput,true);document.removeEventListener('change',onInput,true);document.removeEventListener('submit',onSubmit,true);window.removeEventListener('iam:progress-checkpoint',onCheckpoint as EventListener);window.removeEventListener('pagehide',onPageHide);observer.disconnect();for(const timer of timers.current.values())clearTimeout(timer)};
  },[]);
 
- return <div className={`iam-progress-save ${status}`} aria-live="polite" title="Magnanimous continuously checkpoints work in progress">
+ return <><script dangerouslySetInnerHTML={{__html:EARLY_AUTOSAVE_BOOTSTRAP}}/><div className={`iam-progress-save ${status}`} aria-live="polite" title="Magnanimous continuously checkpoints work in progress">
   <i/>{status==='saving'?'Saving progress…':status==='saved'?'Progress saved':'Autosave on'}
   <style jsx>{`
    .iam-progress-save{position:fixed;left:14px;bottom:14px;z-index:2147483100;display:flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid rgba(111,210,239,.16);border-radius:999px;background:rgba(4,10,17,.78);backdrop-filter:blur(10px);color:#6f8d9b;font:700 8px/1 Inter,system-ui,sans-serif;letter-spacing:.04em;pointer-events:none;opacity:.72}.iam-progress-save i{width:6px;height:6px;border-radius:50%;background:#5fd99d}.iam-progress-save.saving i{background:#ffd56e;animation:pulse 1s infinite}.iam-progress-save.saved{color:#9ce9bd;border-color:rgba(95,217,157,.28)}@keyframes pulse{50%{opacity:.35}}@media(max-width:680px){.iam-progress-save{left:10px;bottom:68px}}
   `}</style>
- </div>;
+ </div></>;
 }
