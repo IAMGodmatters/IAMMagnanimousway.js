@@ -28,7 +28,7 @@ function extractSources(value:unknown):Array<{title?:string;url?:string}>{
 export default function StandaloneMagnanimous(){
  const[input,setInput]=useState('');
  const[mode,setMode]=useState('general');
- const[messages,setMessages]=useState<ChatMessage[]>([{id:1,role:'assistant',content:'I am Magnanimous AI. Tell me what you need done. I can use my central reasoning, learned knowledge, research, tool planning and provider routing without bringing the rest of the website into this workspace.'}]);
+ const[messages,setMessages]=useState<ChatMessage[]>([{id:1,role:'assistant',content:'I am Magnanimous AI. Tell me what you need done. I can use my central reasoning, learned knowledge, research, tool planning and intelligent routing without bringing the rest of the website into this workspace.'}]);
  const[busy,setBusy]=useState(false);
  const[status,setStatus]=useState<'checking'|'online'|'limited'>('checking');
  const[signedIn,setSignedIn]=useState(false);
@@ -71,10 +71,9 @@ export default function StandaloneMagnanimous(){
    const d=await r.json().catch(()=>({}));
    if(!r.ok)throw new Error(String(d?.detail||d?.error||`Magnanimous returned ${r.status}`));
    const answer=String(d?.output||d?.answer||'Magnanimous completed the request but returned no text.');
-   const provider=d?.provider_name||d?.provider;
    const learned=Number(d?.link_learning?.absorbed||0);
    const grounded=Number(d?.sources?.length||0);
-   const parts=[provider?`execution engine: ${provider}`:'',learned?`learned ${learned} link${learned===1?'':'s'}`:'',grounded?`${grounded} source${grounded===1?'':'s'}`:''].filter(Boolean);
+   const parts=[learned?`learned ${learned} link${learned===1?'':'s'}`:'',grounded?`${grounded} source${grounded===1?'':'s'}`:''].filter(Boolean);
    setMessages(v=>[...v,{id:userId+1,role:'assistant',content:answer,meta:parts.join(' • '),sources:extractSources(d?.sources)}]);
   }catch(err:any){
    setMessages(v=>[...v,{id:userId+1,role:'assistant',content:`I could not complete that request: ${String(err?.message||err)}. ${signedIn?'Try again in a moment.':'You can also sign in if this task needs persistent memory or connected-account access.'}`}]);
