@@ -34,10 +34,12 @@ const layout = read('frontend/app/layout.tsx');
 const home = read('frontend/app/page.tsx');
 const standaloneLayout = read('frontend/app/magnanimous/layout.tsx');
 const standalonePage = read('frontend/app/magnanimous/page.tsx');
+const aiChatPage = read('frontend/app/ai-chat/page.tsx');
 const shopPage = read('frontend/app/shop/page.tsx');
 const platformCredentials = read('worker/src/platform-credentials.js');
 const assistantIntegrations = read('worker/src/assistant-integrations.js');
 const providerEntrypoint = read('worker/src/provider-entrypoint.js');
+const branchEntrypoint = read('worker/src/branch-consent-entrypoint.js');
 
 // 1) Standalone Magnanimous AI lock.
 includes(standaloneLayout, "title:'Magnanimous AI™ — Standalone'", 'standalone: branded metadata title remains locked');
@@ -59,6 +61,22 @@ includes(layout, 'html[data-iam-standalone="true"] .iam-global-tools', 'standalo
 includes(layout, 'if(!standalone)loadAds()', 'standalone: advertising remains disabled');
 includes(providerEntrypoint, 'You are speaking as Magnanimous AI, the commander-in-chief orchestration brain', 'standalone: server-side Magnanimous command identity remains locked');
 includes(providerEntrypoint, 'They are never the platform identity or the final authority over the workflow.', 'standalone: external execution engines remain implementation details, not the product identity');
+
+// 1b) Customer execution-provider privacy lock.
+includes(branchEntrypoint, 'function stripExecutionMetadata(data)', 'privacy: customer AI responses retain an execution-metadata stripping boundary');
+includes(branchEntrypoint, 'provider_name,model,model_id,engine,execution_engine', 'privacy: provider/model/engine response fields remain private');
+includes(branchEntrypoint, 'function sanitizeCustomerAiResponse(request,response)', 'privacy: ordinary /api/chat responses are sanitized before customer delivery');
+includes(branchEntrypoint, "url.pathname!=='/api/chat'", 'privacy: generic chat sanitizer remains attached to /api/chat');
+includes(branchEntrypoint, 'function publicProviderSummary(data={})', 'privacy: provider catalog has a customer-safe summary');
+includes(branchEntrypoint, "name:'Magnanimous AI routing'", 'privacy: customer provider catalog uses Magnanimous identity rather than engine brands');
+includes(branchEntrypoint, 'provider_details_private:true', 'privacy: customer catalog explicitly marks execution details private');
+includes(branchEntrypoint, 'function sanitizeProviderCatalog(request,response,env)', 'privacy: provider catalog sanitization remains active');
+includes(branchEntrypoint, 'if(isBranchTrainer(user))return response;', 'privacy: owner/admin configuration can still inspect real provider details');
+includes(branchEntrypoint, 'const publicData=publicProviderSummary(data);', 'privacy: Agent Mesh catalog receives the private provider summary');
+includes(branchEntrypoint, 'return sanitizeProviderCatalog(request,chatResponse,env);', 'privacy: fallback provider-catalog responses are sanitized');
+notMatches(aiChatPage, /data\.(?:provider_name|provider|model)\b/, 'privacy: legacy AI Chat UI must not read execution provider/model identities');
+notMatches(aiChatPage, /item\.(?:provider|model)\b/, 'privacy: legacy AI Chat history must not display execution provider/model metadata');
+includes(aiChatPage, 'MAGNANIMOUS AI™ · PRIVATE ROUTING', 'privacy: legacy AI Chat status presents Magnanimous private routing');
 
 // 2) Main platform lock.
 const requiredPlatformRoutes = [
@@ -114,5 +132,6 @@ if (failures.length) {
   process.exit(1);
 }
 console.log('Standalone Magnanimous AI lock: PASS');
+console.log('Customer execution-provider privacy lock: PASS');
 console.log('Main platform lock: PASS');
 console.log('God Matters Shopify/store lock: PASS');
