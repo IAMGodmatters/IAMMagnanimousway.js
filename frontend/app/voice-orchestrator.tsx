@@ -97,22 +97,58 @@ function setNativeTextareaValue(el:HTMLTextAreaElement,value:string){
  el.dispatchEvent(new Event('change',{bubbles:true}));
 }
 
+function escapeRe(value:string){return value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+function routeNamedAgent(transcript:string){
+ const buttons=Array.from(document.querySelectorAll('.agentList button')) as HTMLButtonElement[];
+ const normalized=transcript.trim();
+ for(const button of buttons){
+  const name=(button.querySelector('div b')?.textContent||'').trim();
+  if(!name)continue;
+  const wake=new RegExp(`^(?:(?:hey|hi|hello|okay|ok)\\s+)?${escapeRe(name)}(?:\\s*[,.:;-]?\\s+|$)`,'i');
+  if(!wake.test(normalized))continue;
+  const cleaned=normalized.replace(wake,'').trim();
+  return{button,name,cleaned:cleaned||normalized};
+ }
+ return null;
+}
+
 function writeAndSend(transcript:string){
  const path=location.pathname;
  const standalone=path==='/magnanimous'||path.startsWith('/magnanimous/');
  const workspace=path==='/ai-chat'||path.startsWith('/ai-chat/');
- if(!standalone&&!workspace)return false;
- const area=document.querySelector(standalone?'.mag-compose textarea':'.console textarea') as HTMLTextAreaElement|null;
- if(!area)return false;
- const next=[area.value.trim(),transcript.trim()].filter(Boolean).join(' ');
- setNativeTextareaValue(area,next);
- area.focus();
- window.setTimeout(()=>{
-  const buttons=Array.from(document.querySelectorAll(standalone?'.mag-compose button':'.console .actions button')) as HTMLButtonElement[];
-  const send=standalone?buttons.find(b=>b.type==='submit'):buttons.find(b=>/SEND/i.test(b.textContent||''));
-  if(send&&!send.disabled)send.click();
- },320);
- return true;
+ const agents=path==='/agents'||path.startsWith('/agents/');
+ if(!standalone&&!workspace&&!agents)return false;
+
+ const perform=(text:string)=>{
+  const selector=standalone?'.mag-compose textarea':workspace?'.console textarea':'.chat form textarea';
+  const area=document.querySelector(selector) as HTMLTextAreaElement|null;
+  if(!area)return false;
+  const next=[area.value.trim(),text.trim()].filter(Boolean).join(' ');
+  setNativeTextareaValue(area,next);area.focus();
+  window.setTimeout(()=>{
+   if(standalone){
+    const buttons=Array.from(document.querySelectorAll('.mag-compose button')) as HTMLButtonElement[];
+    const send=buttons.find(b=>b.type==='submit');if(send&&!send.disabled)send.click();return;
+   }
+   if(workspace){
+    const buttons=Array.from(document.querySelectorAll('.console .actions button')) as HTMLButtonElement[];
+    const send=buttons.find(b=>/SEND/i.test(b.textContent||''));if(send&&!send.disabled)send.click();return;
+   }
+   const form=area.closest('form');const send=form?.querySelector('button[type="submit"]') as HTMLButtonElement|null;
+   if(send&&!send.disabled)send.click();
+  },320);
+  return true;
+ };
+
+ if(agents){
+  const routed=routeNamedAgent(transcript);
+  if(routed){
+   routed.button.click();
+   window.setTimeout(()=>perform(routed.cleaned),360);
+   return true;
+  }
+ }
+ return perform(transcript);
 }
 
 export default function VoiceOrchestrator(){
@@ -155,7 +191,7 @@ export default function VoiceOrchestrator(){
  function speakSample(){
   if(!voiceReady)return;
   window.speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(`This is ${persona}. Voice conversation is ready.`);applyVoiceProfile(u,persona);
+  const u=new SpeechSynthesisUtterance(`This is ${persona}. I recognize my name and my specialist role.`);applyVoiceProfile(u,persona);
   u.onstart=()=>setSpeaking(true);u.onend=()=>setSpeaking(false);u.onerror=()=>setSpeaking(false);window.speechSynthesis.speak(u);
  }
  function listen(){
@@ -171,16 +207,16 @@ export default function VoiceOrchestrator(){
   try{r.start()}catch{setNotice('The microphone is already starting. Try again in a moment.')}
  }
 
- const voicePage=path==='/magnanimous'||path.startsWith('/magnanimous/')||path==='/ai-chat'||path.startsWith('/ai-chat/');
+ const voicePage=path==='/magnanimous'||path.startsWith('/magnanimous/')||path==='/ai-chat'||path.startsWith('/ai-chat/')||path==='/agents'||path.startsWith('/agents/');
  if(!voicePage)return null;
  return <div className={`iam-voice-panel ${listening?'listening':''} ${speaking?'speaking':''}`} aria-label={`${persona} voice controls`}>
-  <div className="voice-copy"><b>{persona}</b><span>{listening?'Listening…':speaking?'Speaking…':'Voice conversation'}</span></div>
+  <div className="voice-copy"><b>{persona}</b><span>{listening?'Listening for name + request…':speaking?'Speaking…':'Voice conversation'}</span></div>
   <button type="button" className="voice-mic" onClick={listen} disabled={!micReady} aria-label={`Talk to ${persona}`} title={micReady?`Talk to ${persona}`:'Speech recognition unavailable'}>{listening?'●':'🎙'}</button>
   <button type="button" className="voice-sound" onClick={()=>{setAutoSpeak(v=>!v);if(autoSpeak)window.speechSynthesis?.cancel()}} disabled={!voiceReady} aria-pressed={autoSpeak} title={autoSpeak?'Turn spoken replies off':'Turn spoken replies on'}>{autoSpeak?'🔊':'🔇'}</button>
   <button type="button" className="voice-sample" onClick={speakSample} disabled={!voiceReady} title="Hear this AI voice">VOICE</button>
   {notice&&<div className="voice-notice" role="status">{notice}</div>}
   <style jsx>{`
-   .iam-voice-panel{position:fixed;right:18px;bottom:18px;z-index:2147483200;display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid rgba(106,224,255,.42);border-radius:16px;background:rgba(4,12,22,.96);box-shadow:0 16px 46px rgba(0,0,0,.48),0 0 28px rgba(68,203,245,.09);backdrop-filter:blur(14px);font-family:Inter,system-ui,sans-serif;color:#eafdff}.voice-copy{display:grid;min-width:112px;max-width:170px}.voice-copy b{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.voice-copy span{font-size:8px;color:#75a9ba;margin-top:2px}.iam-voice-panel button{height:38px;border:1px solid rgba(108,220,250,.28);border-radius:11px;background:#0a1b29;color:#eafdff;cursor:pointer;font-weight:900}.voice-mic,.voice-sound{width:42px;font-size:16px}.voice-sample{padding:0 10px;font-size:8px;letter-spacing:.12em}.iam-voice-panel.listening .voice-mic{color:#ff837b;border-color:#ff837b;box-shadow:0 0 22px rgba(255,92,83,.22)}.iam-voice-panel.speaking{border-color:rgba(120,239,180,.52)}.iam-voice-panel button:disabled{opacity:.38;cursor:not-allowed}.voice-notice{position:absolute;right:0;bottom:52px;width:min(330px,82vw);padding:9px 11px;border:1px solid #445a68;border-radius:10px;background:#08131d;color:#cfe3eb;font-size:9px;line-height:1.45}@media(max-width:680px){.iam-voice-panel{left:12px;right:12px;bottom:12px;justify-content:flex-end}.voice-copy{margin-right:auto;min-width:0;max-width:44vw}.voice-sample{display:none}}
+   .iam-voice-panel{position:fixed;right:18px;bottom:18px;z-index:2147483200;display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid rgba(106,224,255,.42);border-radius:16px;background:rgba(4,12,22,.96);box-shadow:0 16px 46px rgba(0,0,0,.48),0 0 28px rgba(68,203,245,.09);backdrop-filter:blur(14px);font-family:Inter,system-ui,sans-serif;color:#eafdff}.voice-copy{display:grid;min-width:112px;max-width:190px}.voice-copy b{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.voice-copy span{font-size:8px;color:#75a9ba;margin-top:2px}.iam-voice-panel button{height:38px;border:1px solid rgba(108,220,250,.28);border-radius:11px;background:#0a1b29;color:#eafdff;cursor:pointer;font-weight:900}.voice-mic,.voice-sound{width:42px;font-size:16px}.voice-sample{padding:0 10px;font-size:8px;letter-spacing:.12em}.iam-voice-panel.listening .voice-mic{color:#ff837b;border-color:#ff837b;box-shadow:0 0 22px rgba(255,92,83,.22)}.iam-voice-panel.speaking{border-color:rgba(120,239,180,.52)}.iam-voice-panel button:disabled{opacity:.38;cursor:not-allowed}.voice-notice{position:absolute;right:0;bottom:52px;width:min(330px,82vw);padding:9px 11px;border:1px solid #445a68;border-radius:10px;background:#08131d;color:#cfe3eb;font-size:9px;line-height:1.45}@media(max-width:680px){.iam-voice-panel{left:12px;right:12px;bottom:12px;justify-content:flex-end}.voice-copy{margin-right:auto;min-width:0;max-width:48vw}.voice-sample{display:none}}
   `}</style>
  </div>;
 }
