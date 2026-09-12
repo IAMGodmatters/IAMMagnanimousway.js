@@ -1,6 +1,7 @@
 import app from './branch-consent-entrypoint.js';
 import {currentUser} from './integrations.js';
 import {checkpointProgress,listProgressCheckpoints,progressContentFromPayload,progressContentFromResponse,progressSessionKey,isSensitiveProgressPath} from './progress-checkpoint-runtime.js';
+import {captureQaObservationRequest,handleQaObservationControl,recordQaException,recordQaObservation} from './qa-observation-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const MUTATING=new Set(['POST','PUT','PATCH','DELETE']);
@@ -21,9 +22,18 @@ function metadataFor(request,path,payload,sensitive=false){
  };
 }
 
+function background(ctx,task,label){
+ const safe=Promise.resolve(task).catch(error=>console.error(label,error));
+ if(ctx?.waitUntil)ctx.waitUntil(safe);
+ return safe;
+}
+
 export default{
  async fetch(request,env,ctx){
   const url=new URL(request.url),path=url.pathname;
+
+  const control=await handleQaObservationControl(request,env);
+  if(control)return control;
 
   if(path==='/api/progress/checkpoint'){
    const user=await currentUser(request,env);
@@ -40,6 +50,8 @@ export default{
    return json({detail:'Method not allowed.'},405);
   }
 
+  const startedAt=Date.now();
+  const qaCapture=await captureQaObservationRequest(request);
   const shouldCheckpoint=MUTATING.has(request.method)&&path.startsWith('/api/');
   const user=shouldCheckpoint?await currentUser(request,env):null;
   const payload=shouldCheckpoint?await payloadOf(request):{};
@@ -60,6 +72,8 @@ export default{
     const task=checkpointProgress(env,user,{sessionKey,scope:'platform',kind,stage:'failed',content:sensitive?'':String(error?.message||error||'Action failed'),metadata:{method:request.method,path},status:'failed'}).catch(()=>null);
     if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
    }
+   const observation=recordQaException(env,request,error,{startedAt,capture:qaCapture,user});
+   if(ctx?.waitUntil)background(ctx,observation,'QA exception observer failed');else await observation;
    throw error;
   }
 
@@ -72,6 +86,9 @@ export default{
    };
    const task=save().catch(()=>null);if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
   }
+
+  const observation=recordQaObservation(env,request,response,{startedAt,capture:qaCapture,user});
+  if(ctx?.waitUntil)background(ctx,observation,'QA observation failed');else await observation;
   return response;
  }
 };

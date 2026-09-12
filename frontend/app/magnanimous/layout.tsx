@@ -1,5 +1,6 @@
 import type {Metadata} from 'next';
 import type {ReactNode} from 'react';
+import PublicTeachingPanel from './public-teaching-panel';
 
 export const metadata:Metadata={
  title:'Magnanimous AI™ — Standalone',
@@ -107,6 +108,8 @@ export default function MagnanimousStandaloneLayout({children}:{children:ReactNo
   <script dangerouslySetInnerHTML={{__html:STANDALONE_DRAFT_BOOTSTRAP}}/>
   <script dangerouslySetInnerHTML={{__html:STANDALONE_VOICE_DOCK}}/>
   {children}
-  <style>{`html[data-iam-standalone="true"] .iam-voice-panel{max-width:calc(100vw - 24px)!important}html[data-iam-standalone="true"][data-iam-voice-hidden="true"] .iam-voice-panel{display:none!important}.iam-voice-dock-toggle{position:fixed;right:14px;top:84px;z-index:2147483300;border:1px solid rgba(106,224,255,.38);border-radius:999px;background:rgba(4,12,22,.94);color:#dff9ff;padding:8px 10px;font:800 9px Inter,system-ui,sans-serif;letter-spacing:.04em;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.3);backdrop-filter:blur(10px)}@media(max-width:680px){.iam-voice-dock-toggle{right:10px;top:78px;padding:7px 9px}html[data-iam-standalone="true"] .iam-voice-panel{left:auto!important;right:10px!important;max-width:calc(100vw - 20px)!important}html[data-iam-standalone="true"] .iam-voice-panel .voice-copy{display:none!important}}`}</style>
+  <p className="iam-qa-observation-notice">For quality and reliability, Magnanimous AI may retain short privacy-scrubbed excerpts of questions, answers, and failed requests for owner QA review. Do not submit passwords, API keys, payment details, or private records.</p>
+  <PublicTeachingPanel/>
+  <style>{`html[data-iam-standalone="true"] .iam-voice-panel{max-width:calc(100vw - 24px)!important}html[data-iam-standalone="true"][data-iam-voice-hidden="true"] .iam-voice-panel{display:none!important}.iam-voice-dock-toggle{position:fixed;right:14px;top:84px;z-index:2147483300;border:1px solid rgba(106,224,255,.38);border-radius:999px;background:rgba(4,12,22,.94);color:#dff9ff;padding:8px 10px;font:800 9px Inter,system-ui,sans-serif;letter-spacing:.04em;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.3);backdrop-filter:blur(10px)}.iam-qa-observation-notice{max-width:1180px;margin:18px auto 0;padding:0 18px;color:#6f8a96;text-align:center;font:600 9px/1.6 Inter,system-ui,sans-serif}@media(max-width:680px){.iam-voice-dock-toggle{right:10px;top:78px;padding:7px 9px}html[data-iam-standalone="true"] .iam-voice-panel{left:auto!important;right:10px!important;max-width:calc(100vw - 20px)!important}html[data-iam-standalone="true"] .iam-voice-panel .voice-copy{display:none!important}.iam-qa-observation-notice{margin-top:14px;padding:0 14px}}`}</style>
  </>;
 }
