@@ -35,11 +35,14 @@ test.describe('deep non-destructive control sweep', () => {
       const candidates = controls.filter((c: any) => !c.disabled && !c.inForm && c.type !== 'submit' && c.text && !CONSEQUENCE.test(c.text)).slice(0, 12);
       for (const candidate of candidates) {
         await page.goto(route, { waitUntil: 'domcontentloaded' });
-        await page.waitForLoadState('networkidle', { timeout: 3_000 }).catch(() => {});
+        // Do not wait for networkidle on every control reset. Long-lived/autosave requests can keep
+        // an interactive page network-busy and exhaust the whole-test timeout even when the UI is healthy.
+        // Wait for the exact target instead, preserving the same control coverage with a bounded UI wait.
         const visible = page.locator('button:visible, [role="button"]:visible');
+        const target = visible.nth(candidate.index);
+        await target.waitFor({ state: 'visible', timeout: 2_000 }).catch(() => {});
         const count = await visible.count();
         if (candidate.index >= count) continue;
-        const target = visible.nth(candidate.index);
         if (!(await target.isVisible().catch(() => false))) continue;
         if (await target.isDisabled().catch(() => true)) continue;
         await target.click({ timeout: 4_000 }).catch(() => {});
