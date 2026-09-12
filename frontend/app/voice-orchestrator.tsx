@@ -96,6 +96,11 @@ function latestReply(path:string){
  return nodes.length?(nodes[nodes.length-1].textContent||'').trim():'';
 }
 
+function emitCheckpoint(detail:{kind:string;stage:string;content:string;metadata?:Record<string,string|number|boolean>}){
+ if(typeof window==='undefined')return;
+ window.dispatchEvent(new CustomEvent('iam:progress-checkpoint',{detail:{scope:'voice',...detail}}));
+}
+
 function setNativeTextareaValue(el:HTMLTextAreaElement,value:string){
  const setter=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value')?.set;
  if(setter)setter.call(el,value);else el.value=value;
@@ -131,6 +136,7 @@ function writeAndSend(transcript:string){
   if(!area)return false;
   const next=[area.value.trim(),text.trim()].filter(Boolean).join(' ');
   setNativeTextareaValue(area,next);area.focus();
+  emitCheckpoint({kind:'voice-transcript',stage:'heard',content:text,metadata:{persona:currentPersona(),path}});
   window.setTimeout(()=>{
    if(standalone){
     const buttons=Array.from(document.querySelectorAll('.mag-compose button')) as HTMLButtonElement[];
@@ -150,6 +156,7 @@ function writeAndSend(transcript:string){
   const routed=routeNamedAgent(transcript);
   if(routed){
    routed.button.click();
+   emitCheckpoint({kind:'specialist-handoff',stage:'voice-routed',content:transcript,metadata:{specialist:routed.name,path}});
    window.setTimeout(()=>perform(routed.cleaned),360);
    return true;
   }
@@ -176,7 +183,9 @@ export default function VoiceOrchestrator(){
     if(autoSpeakRef.current&&'speechSynthesis'in window){
      window.speechSynthesis.cancel();
      const u=new SpeechSynthesisUtterance(text.slice(0,7000));applyVoiceProfile(u,nextPersona);
-     u.onstart=()=>setSpeaking(true);u.onend=()=>setSpeaking(false);u.onerror=()=>setSpeaking(false);
+     u.onstart=()=>{setSpeaking(true);emitCheckpoint({kind:'voice-reply',stage:'speaking',content:text,metadata:{persona:nextPersona,path:location.pathname}})};
+     u.onend=()=>{setSpeaking(false);emitCheckpoint({kind:'voice-reply',stage:'spoken',content:text,metadata:{persona:nextPersona,path:location.pathname}})};
+     u.onerror=()=>{setSpeaking(false);emitCheckpoint({kind:'voice-reply',stage:'speech-error',content:text,metadata:{persona:nextPersona,path:location.pathname}})};
      window.speechSynthesis.speak(u);
     }
    }
