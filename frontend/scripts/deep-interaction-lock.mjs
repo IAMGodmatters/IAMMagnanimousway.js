@@ -50,7 +50,9 @@ for(const file of sourceFiles){
  const source=fs.readFileSync(file,'utf8');
  let m;
 
- const buttonRe=/<button(?:\s|>)([^>]*)>/g;
+ // Lookahead keeps the delimiter out of the captured attributes and prevents
+ // TypeScript generics/comparisons or selector strings from looking like tags.
+ const buttonRe=/<button(?=\s|>)([^>]*)>/g;
  while((m=buttonRe.exec(source))){
   buttons++;
   const attrs=m[1]||'';
@@ -58,8 +60,7 @@ for(const file of sourceFiles){
   if(/disabled\s*=\s*["']disabled["']|\bdisabled\b(?!\s*=\s*\{)/i.test(attrs)&&!/(onClick|type\s*=\s*["']submit["'])/.test(attrs))failures.push(`${rel}: permanently disabled button has no recoverable action near offset ${m.index}`);
  }
 
- // Require actual JSX/HTML tag syntax. This deliberately avoids treating expressions like b<a as an anchor.
- const anchorRe=/<a(?:\s|>)([^>]*)>/g;
+ const anchorRe=/<a(?=\s|>)([^>]*)>/g;
  while((m=anchorRe.exec(source))){
   anchors++;
   const attrs=m[1]||'';
@@ -68,21 +69,22 @@ for(const file of sourceFiles){
   if(!hasHref&&!hasHandler)failures.push(`${rel}: anchor has neither href nor interaction handler near offset ${m.index}`);
  }
 
- const roleButtonRe=/<([A-Za-z][\w.-]*)(?:\s|>)([^>]*)role\s*=\s*["']button["']([^>]*)>/g;
+ // role=button must occur inside the opening tag before its closing >.
+ const roleButtonRe=/<([A-Za-z][\w.-]*)(?=\s)([^>]*\brole\s*=\s*["']button["'][^>]*)>/g;
  while((m=roleButtonRe.exec(source))){
   roleButtons++;
-  const attrs=`${m[2]||''} ${m[3]||''}`;
+  const attrs=m[2]||'';
   if(!/onClick\s*=|onKeyDown\s*=|href\s*=|\.\.\./.test(attrs))failures.push(`${rel}: role=button element has no interaction handler near offset ${m.index}`);
  }
 
- const formRe=/<form(?:\s|>)([^>]*)>/g;
+ const formRe=/<form(?=\s|>)([^>]*)>/g;
  while((m=formRe.exec(source))){
   forms++;
   const attrs=m[1]||'';
   if(!/onSubmit\s*=|action\s*=|\.\.\./.test(attrs)){
    const close=source.indexOf('</form>',m.index);
    const body=close>=0?source.slice(m.index,close):'';
-   if(!/<button(?:\s|>)[^>]*type\s*=\s*["']submit["']/i.test(body))failures.push(`${rel}: form has no onSubmit/action/explicit submit control near offset ${m.index}`);
+   if(!/<button(?=\s|>)[^>]*type\s*=\s*["']submit["']/i.test(body))failures.push(`${rel}: form has no onSubmit/action/explicit submit control near offset ${m.index}`);
   }
  }
 
@@ -98,7 +100,7 @@ for(const file of sourceFiles){
   }
  }
 
- const iframeRe=/<iframe(?:\s|>)([^>]*)>/g;
+ const iframeRe=/<iframe(?=\s|>)([^>]*)>/g;
  while((m=iframeRe.exec(source))){
   iframes++;
   const attrs=m[1]||'';
