@@ -85,7 +85,8 @@ must(entry,'specialist_handoff:true','automatic specialist handoff metadata must
 must(entry,'specialistIntroduction(routed)','automatic specialist greeting must remain active');
 must(entry,'Do not ask a follow-up question instead of giving a useful answer','specialists must answer directly when reasonable assumptions are sufficient');
 must(entry,'branch_knowledge_count','specialist responses must expose branch-learning state');
-must(entry,'const {provider,provider_name,model,...publicData}=data','routed specialist responses must continue hiding provider/model internals');
+must(entry,'const {provider,provider_name,model,model_id,engine,execution_engine,...publicData}=data','routed specialist responses must continue hiding provider/model/engine internals');
+must(entry,'stripExecutionMetadata(data)','specialist response privacy must use the centralized execution-metadata boundary');
 must(intelligence,'specialized branch of Magnanimous AI','specialists must remain branches of the Magnanimous core');
 must(intelligence,'agent_branch_knowledge','branch-specific knowledge storage must remain available');
 must(intelligence,'agent_branch_training_submissions','QA proposal storage must remain available');
