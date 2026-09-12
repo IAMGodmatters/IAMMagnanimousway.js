@@ -11,16 +11,33 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Verify Business Email page
+      - name: Verify simple Free Business Email Lite page
         run: |
           set -euo pipefail
           BASE="https://iammagnanimousway.com"
           curl -fsSL "$BASE/business-email" -o /tmp/business-email.html
           test -s /tmp/business-email.html
-          grep -qi "Business Email Center" /tmp/business-email.html || { echo "Business Email page is missing its product identity."; exit 1; }
-          grep -qi "FROM BUSINESS IDEA TO THE MEETING" /tmp/business-email.html || { echo "Business Email page is missing the idea-to-meeting journey."; exit 1; }
-          grep -qi "Professionalize the identity" /tmp/business-email.html || { echo "Business Email page is missing professional identity positioning."; exit 1; }
-          echo "Business Email page and launch journey passed."
+          grep -qi "FREE BUSINESS EMAIL LITE" /tmp/business-email.html || { echo "Free Business Email Lite identity is missing."; exit 1; }
+          grep -qi "Make a business email in 3 little steps" /tmp/business-email.html || { echo "Simple three-step flow is missing."; exit 1; }
+          grep -qi "Receive for free. Forward for free." /tmp/business-email.html || { echo "Free receiving/forwarding promise is missing."; exit 1; }
+          grep -qi "Sending mail" /tmp/business-email.html || { echo "Outbound-sending boundary is missing."; exit 1; }
+          echo "Free Business Email Lite page passed."
+
+      - name: Verify free provider contract
+        run: |
+          set -euo pipefail
+          BASE="https://iammagnanimousway.com"
+          curl -fsS "$BASE/api/business-email/providers" -o /tmp/providers.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/providers.json'))
+          lite=d.get('free_lite') or {}
+          assert lite.get('provider') == 'cloudflare', d
+          assert lite.get('receive_and_forward') is True, d
+          assert lite.get('send_as_address') is False, d
+          print('Free Business Email Lite provider contract passed.')
+          PY
+
       - name: Verify domain email checker
         run: |
           set -euo pipefail
@@ -32,5 +49,19 @@ jobs:
           assert d.get('domain') == 'google.com', d
           assert d.get('has_mx') is True, d
           assert isinstance(d.get('mx'), list) and d['mx'], d
+          assert 'email_routing_ready' in d, d
           print('Business Email domain check passed:', d.get('detected_provider'))
+          PY
+
+      - name: Verify saved aliases require sign-in
+        run: |
+          set -euo pipefail
+          BASE="https://iammagnanimousway.com"
+          STATUS=$(curl -sS -o /tmp/lite.json -w "%{http_code}" "$BASE/api/business-email/lite")
+          test "$STATUS" = "401" || { echo "Expected Business Email Lite list to require sign-in, got $STATUS"; cat /tmp/lite.json; exit 1; }
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/lite.json'))
+          assert 'Sign in' in d.get('error',''), d
+          print('Business Email Lite sign-in boundary passed.')
           PY
