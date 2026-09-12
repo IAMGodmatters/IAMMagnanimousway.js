@@ -88,13 +88,15 @@ export default function RootLayout({children}:{children:React.ReactNode}){
       }
       function guardProtectedRoute(){
         var p=currentPath;
+        var recovery=document.querySelector('[data-iam-route-recovery="true"]');
+        if(recovery){document.documentElement.setAttribute('data-iam-public','true');return;}
         var customer=localStorage.getItem('iam_account_token');
         var owner=migrateMagnanimousSession();
         var active=sessionStorage.getItem('iam_session_active');
         if(p==='/'){if(!customer&&!owner)location.replace('/solutions');return;}
         if(standalone||publicPaths.indexOf(p)!==-1)return;
         var valid=(active==='user'&&!!customer)||(active==='owner'&&!!owner);
-        if(!valid)location.replace('/login');
+        if(!valid){var returnTo=p+(location.search||'');location.replace('/login?returnTo='+encodeURIComponent(returnTo));}
       }
       function polishCustomerUI(){
         if(publicPaths.indexOf(currentPath)!==-1||standalone)return;
