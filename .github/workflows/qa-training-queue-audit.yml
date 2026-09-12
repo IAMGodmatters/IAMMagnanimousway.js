@@ -1,0 +1,41 @@
+name: QA Teaching Queue Audit
+
+on:
+  push:
+    branches: [codex/full-platform-lockdown]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: worker/package.json
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm install --no-audit --no-fund
+      - name: Count pending QA teaching privately
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command="SELECT COUNT(*) AS pending_count FROM agent_branch_training_submissions WHERE status='pending';" > /tmp/qa-count.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const raw=JSON.parse(fs.readFileSync('/tmp/qa-count.json','utf8'));
+          const rows=Array.isArray(raw)?(raw[0]?.results||[]):(raw?.results||[]);
+          const count=Number(rows[0]?.pending_count||0);
+          console.log(`Pending QA teaching submissions: ${count}`);
+          NODE
