@@ -18,6 +18,19 @@ test('homepage internal links do not resolve to 404/5xx', async ({ page, request
   }
 });
 
+test('legacy persistent route redirects to Work Engine instead of a dead end', async ({ page }) => {
+  await page.goto('/persistent', { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(/\/work-engine\/?$/);
+  await expect(page.locator('body')).not.toContainText('404 • ROUTE NOT FOUND');
+});
+
+test('unknown browser routes recover automatically instead of stranding the user', async ({ page }) => {
+  await page.goto('/this-route-should-never-exist-qa', { waitUntil: 'domcontentloaded' });
+  await page.waitForURL((url) => url.pathname === '/', { timeout: 7000 });
+  await expect(page.locator('body')).not.toContainText('404 • ROUTE NOT FOUND');
+  await expect(page.locator('body')).not.toContainText('continue a persistent Magnanimous job');
+});
+
 test('interactive controls have an accessible identity', async ({ page }) => {
   const sample = routes.length <= 24 ? routes : ['/', ...routes.filter((r) => /ai|business|video|call|admin|billing|translator|support|pricing|agents/i.test(r)).slice(0, 23)];
   for (const route of [...new Set(sample)]) {
