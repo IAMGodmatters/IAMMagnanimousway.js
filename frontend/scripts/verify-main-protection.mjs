@@ -1,11 +1,13 @@
 const inActions = process.env.GITHUB_ACTIONS === 'true';
 const branch = process.env.GITHUB_REF_NAME || '';
+const workflow = process.env.GITHUB_WORKFLOW || '';
 const repo = process.env.GITHUB_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js';
 
-// Local builds and pull-request merge refs should remain usable. This guard is
-// specifically a production-safety gate for workflows executing from main.
-if (!inActions || branch !== 'main') {
-  console.log('Main branch protection gate: skipped outside GitHub Actions main.');
+// Reliability first: all ordinary CI and Full Platform QA builds must remain
+// runnable so defects are visible. The fail-closed protection gate is enforced
+// only inside the production deployment workflow executing from main.
+if (!inActions || branch !== 'main' || workflow !== 'Build and Deploy I AM') {
+  console.log('Main branch protection gate: skipped outside the production deployment workflow.');
   process.exit(0);
 }
 
@@ -20,13 +22,13 @@ try {
     },
   });
 } catch (error) {
-  console.error('::error::Unable to verify GitHub main-branch protection. Deployment is blocked closed for safety.');
+  console.error('::error::Unable to verify GitHub main-branch protection. Production deployment is blocked closed for safety.');
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 }
 
 if (!response.ok) {
-  console.error(`::error::GitHub branch-protection verification returned HTTP ${response.status}. Deployment is blocked closed for safety.`);
+  console.error(`::error::GitHub branch-protection verification returned HTTP ${response.status}. Production deployment is blocked closed for safety.`);
   process.exit(1);
 }
 
