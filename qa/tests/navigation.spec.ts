@@ -18,15 +18,16 @@ test('homepage internal links do not resolve to 404/5xx', async ({ page, request
   }
 });
 
-test('legacy persistent route redirects to Work Engine instead of a dead end', async ({ page }) => {
+test('legacy persistent route preserves Work Engine intent through authentication', async ({ page }) => {
   await page.goto('/persistent', { waitUntil: 'domcontentloaded' });
-  await expect(page).toHaveURL(/\/work-engine\/?$/);
+  await page.waitForURL((url) => url.pathname.replace(/\/+$/, '') === '/login' && url.searchParams.get('returnTo') === '/work-engine', { timeout: 7000 });
   await expect(page.locator('body')).not.toContainText('404 • ROUTE NOT FOUND');
+  await expect(page.locator('body')).not.toContainText('continue a persistent Magnanimous job');
 });
 
-test('unknown browser routes recover automatically instead of stranding the user', async ({ page }) => {
+test('unknown browser routes recover automatically to a public-safe surface', async ({ page }) => {
   await page.goto('/this-route-should-never-exist-qa', { waitUntil: 'domcontentloaded' });
-  await page.waitForURL((url) => url.pathname === '/', { timeout: 7000 });
+  await page.waitForURL((url) => url.pathname.replace(/\/+$/, '') === '/solutions', { timeout: 7000 });
   await expect(page.locator('body')).not.toContainText('404 • ROUTE NOT FOUND');
   await expect(page.locator('body')).not.toContainText('continue a persistent Magnanimous job');
 });
