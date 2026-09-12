@@ -1,6 +1,7 @@
 import baseApp from './consent-entrypoint.js';
 import { currentUser } from './integrations.js';
 import { branchProfile, ensureBranchSchema, branchKnowledge, branchKnowledgeContext, teachBranch, submitBranchTraining, branchTrainingSubmissions, reviewBranchTrainingSubmission, isPlatformOwnerUser, GLOBAL_BRANCH_TENANT } from './agent-branch-intelligence.js';
+import { specialistForMessage, specialistIntroduction } from './specialist-router.js';
 
 const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...headers}});
 const isBranchTrainer=(user)=>Boolean(user&&['owner','admin'].includes(String(user.role||'').toLowerCase()));
@@ -84,7 +85,7 @@ async function enrichTrainingBody(body,agent,requireDirectPermission,user){
 
 async function branchRequest(request,env,ctx){
  const url=new URL(request.url);
- if(!url.pathname.startsWith('/api/agents'))return null;
+ if(!url.pathname.startsWith('/api/agents')&&url.pathname!=='/api/chat')return null;
  await ensureBranchSchema(env);
  const agents=await catalog(request,env,ctx);
 
@@ -96,6 +97,29 @@ async function branchRequest(request,env,ctx){
  }
 
  const user=await currentUser(request,env);
+
+ if(request.method==='POST'&&url.pathname==='/api/chat'){
+  const body=await request.clone().json().catch(()=>({}));
+  const original=String(body.message||'').trim();
+  if(!original||body.specialist_routing===false)return null;
+  const routed=specialistForMessage(original);
+  if(!routed)return null;
+  const agent=agents.find(a=>String(a.id)===String(routed.id))||routed;
+  const profile=branchProfile(agent);
+  const knowledge=await branchKnowledge(env,user?.tenant_id||'',agent.id,24);
+  const context=branchKnowledgeContext(profile,knowledge);
+  const internal=`\n\nAUTOMATIC SPECIALIST HANDOFF — apply silently.\nMagnanimous has routed this request to ${agent.name}, its ${agent.title} specialist branch.\n${context}\n\nAnswer the user's request now as ${agent.name}. Do not ask a follow-up question instead of giving a useful answer when reasonable assumptions are enough. Ask only when safety, authorization, or a truly indispensable missing fact makes an answer impossible. Do not introduce yourself because the platform will add the specialist greeting automatically.`;
+  const forwarded=new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify({...body,message:`${original}${internal}`,specialist_routing:false})});
+  const response=await baseApp.fetch(forwarded,env,ctx);
+  const data=await response.clone().json().catch(()=>null);
+  if(!data)return response;
+  if(!response.ok)return response;
+  const intro=specialistIntroduction(routed);
+  const answer=String(data.output||data.answer||'').trim();
+  const {provider,provider_name,model,...publicData}=data;
+  return json({...publicData,output:`${intro}\n\n${answer}`,specialist_handoff:true,specialist:{id:agent.id,name:agent.name,title:agent.title,specialty:routed.specialty,introduction:intro,branch:profile},branch_knowledge_count:knowledge.length,global_branch_knowledge_count:knowledge.filter(x=>x.scope==='global').length,routed_by:'Magnanimous AI'},response.status);
+ }
+
  if(!user)return null;
  const platformOwner=await isPlatformOwnerUser(env,user);
 
