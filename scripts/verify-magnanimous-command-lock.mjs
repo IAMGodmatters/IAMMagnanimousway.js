@@ -19,6 +19,7 @@ const foundry = read('worker/src/magnanimous-tool-foundry.js');
 const router = read('worker/src/router-entrypoint.js');
 const gateway = read('worker/src/magnanimous-tool-gateway.js');
 const standalone = read('frontend/app/magnanimous/page.tsx');
+const voice = read('frontend/app/voice-orchestrator.tsx');
 const siteLayout = read('frontend/app/layout.tsx');
 
 // Identity and command authority.
@@ -93,7 +94,14 @@ requireText(standalone, 'use_knowledge:true', 'standalone Magnanimous');
 requireText(standalone, 'use_tools:true', 'standalone Magnanimous');
 requireText(standalone, 'learn_links:true', 'standalone Magnanimous');
 requireText(standalone, 'remember_search:true', 'standalone Magnanimous');
-requireText(standalone, 'Same central Magnanimous brain', 'standalone Magnanimous');
+requireText(standalone, 'specialist_routing:true', 'standalone Magnanimous');
+requireText(standalone, 'Magnanimous core', 'standalone Magnanimous');
+requireText(voice, "path==='/magnanimous'||path.startsWith('/magnanimous/')", 'standalone voice routing');
+requireText(voice, "standalone?'.mag-compose textarea'", 'standalone voice input');
+requireText(voice, 'latestMagnanimousPersona', 'standalone specialist voice identity');
+requireText(voice, 'applyVoiceProfile(u,nextPersona)', 'standalone specialist spoken replies');
+requireText(voice, 'autoSpeak', 'standalone automatic spoken replies');
+requireText(voice, 'SpeechRecognition', 'standalone microphone input');
 requireText(siteLayout, "'/magnanimous'", 'site layout');
 requireText(siteLayout, 'data-iam-standalone', 'site layout');
 requireText(siteLayout, 'if(!standalone)loadAds()', 'site layout');
@@ -103,5 +111,5 @@ for (const directProvider of ['api.openai.com', 'api.anthropic.com', 'generative
 
 if (!process.exitCode) {
   console.log('MAGNANIMOUS COMMAND LOCK: PASS');
-  console.log('Central brain, hybrid cognition, explainability, multimodal fusion, collaboration, link learning, adaptive routing, memory, Tool Foundry growth, framework literacy, standalone same-brain distribution, and permission boundaries are intact.');
+  console.log('Central brain, hybrid cognition, explainability, multimodal fusion, collaboration, link learning, adaptive routing, memory, Tool Foundry growth, framework literacy, standalone same-brain voice distribution, and permission boundaries are intact.');
 }
