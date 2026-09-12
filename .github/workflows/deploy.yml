@@ -133,6 +133,17 @@ jobs:
             fi
           }
 
+          check_protected_page() {
+            local name="$1" url="$2" output="$3"
+            local status
+            status=$(curl -LsS -o "$output" -w '%{http_code}' "$url")
+            if [ "$status" != "200" ]; then
+              echo "$name did not resolve through its authentication boundary; final HTTP $status"
+              cat "$output" || true
+              exit 1
+            fi
+          }
+
           check_get "Health endpoint" "$BASE_URL/health" /tmp/health.json
           python - <<'PY'
           import json
@@ -140,8 +151,10 @@ jobs:
           assert data.get('status') == 'ok', data
           PY
 
-          check_get "QA Training Lab page" "$BASE_URL/qa-ai-academy" /tmp/qa-training.html
-          check_get "Owner QA Approval page" "$BASE_URL/owner-ai-training-review" /tmp/owner-qa-review.html
+          # These are intentionally protected pages. Following the redirect verifies
+          # that the production route exists without weakening its authentication gate.
+          check_protected_page "QA Training Lab page" "$BASE_URL/qa-ai-academy" /tmp/qa-training.html
+          check_protected_page "Owner QA Approval page" "$BASE_URL/owner-ai-training-review" /tmp/owner-qa-review.html
 
           check_get "Plans endpoint" "$BASE_URL/api/plans" /tmp/plans.json
           python - <<'PY'
