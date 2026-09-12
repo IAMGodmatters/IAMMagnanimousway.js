@@ -16,7 +16,7 @@ must(layout,'privacy-scrubbed excerpts','standalone Magnanimous must disclose ow
 must(panel,'/api/agents/branch/submissions/public','public teaching panel must submit to the approval-only public endpoint');
 must(panel,'OWNER APPROVAL REQUIRED','public teaching UI must clearly state owner approval is required');
 must(runtime,"/api/agents/branch/submissions/public",'public teaching endpoint must remain available');
-must(runtime,"source:'public-qa'",'public submissions must be identifiable in the owner queue');
+must(runtime,"'public-qa'",'public submissions must be identifiable in the owner queue');
 must(runtime,"'pending'",'public teaching must enter pending review rather than live knowledge');
 must(runtime,'recent?.total||0)>=6','public teaching must retain hourly anti-spam throttling');
 must(runtime,'isPlatformOwnerUser','observation review must remain platform-owner-only');
