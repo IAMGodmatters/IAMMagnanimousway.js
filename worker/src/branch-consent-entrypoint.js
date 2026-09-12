@@ -16,6 +16,19 @@ function stripExecutionMetadata(data){
  if(typeof publicData.message==='string'&&/provider|model|engine/i.test(publicData.message))publicData.message=redactExecutionNames(publicData.message);
  return publicData;
 }
+function publicProviderSummary(data={}){
+ const source=Array.isArray(data?.providers)?data.providers:[];
+ const ready=source.some(p=>Boolean(p?.configured&&p?.enabled!==false));
+ return {...data,
+  providers:[{id:'auto',name:'Magnanimous AI routing',configured:ready,enabled:ready,tier:'private-routing',type:'private-execution'}],
+  configured_count:ready?1:0,
+  free_configured_count:ready?1:0,
+  magnanimous_ready:ready,
+  operator_ready:ready,
+  provider_details_private:true,
+  execution_disclosure:'Magnanimous AI may use private third-party execution services. Provider identities are not shown to customers.'
+ };
+}
 async function sanitizeCustomerAiResponse(request,response){
  const url=new URL(request.url);
  if(request.method!=='POST'||url.pathname!=='/api/chat')return response;
@@ -26,6 +39,15 @@ async function sanitizeCustomerAiResponse(request,response){
  headers.set('cache-control','no-store');
  headers.delete('content-length');
  return new Response(JSON.stringify(stripExecutionMetadata(data)),{status:response.status,statusText:response.statusText,headers});
+}
+async function sanitizeProviderCatalog(request,response,env){
+ const url=new URL(request.url);
+ if(request.method!=='GET'||url.pathname!=='/api/providers')return response;
+ const user=await currentUser(request,env).catch(()=>null);
+ if(isBranchTrainer(user))return response;
+ const data=await response.clone().json().catch(()=>null);
+ if(!data)return response;
+ return json(publicProviderSummary(data),response.status);
 }
 
 async function catalog(request,env,ctx){
@@ -115,7 +137,8 @@ async function branchRequest(request,env,ctx){
   const response=await baseApp.fetch(request,env,ctx);
   const data=await response.clone().json().catch(()=>null);
   if(!data)return response;
-  return json({...data,agents:(data.agents||[]).map(a=>({...a,branch:branchProfile(a)})),architecture:'magnanimous-core-with-specialist-branches',qa_training_submission:true,owner_approval_required_for_global_learning:true},response.status);
+  const publicData=publicProviderSummary(data);
+  return json({...publicData,agents:(data.agents||[]).map(a=>({...a,branch:branchProfile(a)})),architecture:'magnanimous-core-with-specialist-branches',qa_training_submission:true,owner_approval_required_for_global_learning:true},response.status);
  }
 
  const user=await currentUser(request,env);
@@ -232,6 +255,7 @@ export default {
    if(handled)return handled;
   }catch(error){console.error('specialist branch layer failed',error)}
   const response=await baseApp.fetch(request,env,ctx);
-  return sanitizeCustomerAiResponse(request,response);
+  const chatResponse=await sanitizeCustomerAiResponse(request,response);
+  return sanitizeProviderCatalog(request,chatResponse,env);
  }
 };
