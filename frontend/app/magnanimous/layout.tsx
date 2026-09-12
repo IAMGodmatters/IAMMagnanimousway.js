@@ -60,6 +60,53 @@ const STANDALONE_DRAFT_BOOTSTRAP=`(()=>{
  }catch{}
 })();`;
 
+const STANDALONE_VOICE_DOCK=`(()=>{
+ try{
+  if(window.__iamStandaloneVoiceDockInstalled)return;
+  window.__iamStandaloneVoiceDockInstalled=true;
+  const storageKey='iam_standalone_voice_hidden';
+  const panel=()=>document.querySelector('.iam-voice-panel');
+  const composer=()=>document.querySelector('.mag-compose');
+  const hidden=()=>{try{return localStorage.getItem(storageKey)==='1'}catch{return false}};
+  function syncHidden(){
+   const off=hidden();
+   document.documentElement.setAttribute('data-iam-voice-hidden',off?'true':'false');
+   const toggle=document.querySelector('.iam-voice-dock-toggle');
+   if(toggle){toggle.textContent=off?'🎙 Show voice':'✕ Hide voice';toggle.setAttribute('aria-pressed',off?'true':'false')}
+  }
+  function place(){
+   const p=panel();if(!(p instanceof HTMLElement))return;
+   if(hidden())return;
+   const c=composer();
+   if(c instanceof HTMLElement){
+    const rect=c.getBoundingClientRect();
+    if(rect.top<innerHeight&&rect.bottom>0){
+     const gap=Math.max(14,Math.ceil(innerHeight-rect.top+12));
+     p.style.setProperty('bottom','calc('+gap+'px + env(safe-area-inset-bottom))','important');
+     p.style.setProperty('top','auto','important');
+    }
+   }
+  }
+  function ensureToggle(){
+   if(document.querySelector('.iam-voice-dock-toggle'))return;
+   const b=document.createElement('button');
+   b.type='button';b.className='iam-voice-dock-toggle';b.setAttribute('aria-label','Show or hide Magnanimous voice controls');
+   b.addEventListener('click',()=>{try{localStorage.setItem(storageKey,hidden()?'0':'1')}catch{}syncHidden();requestAnimationFrame(place)});
+   document.body.appendChild(b);syncHidden();
+  }
+  function refresh(){ensureToggle();syncHidden();place()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',refresh,{once:true});else refresh();
+  addEventListener('resize',refresh,{passive:true});addEventListener('orientationchange',refresh,{passive:true});addEventListener('focusin',refresh,true);
+  const observer=new MutationObserver(()=>requestAnimationFrame(refresh));observer.observe(document.documentElement,{childList:true,subtree:true});
+  setTimeout(refresh,100);setTimeout(refresh,500);setTimeout(refresh,1500);
+ }catch{}
+})();`;
+
 export default function MagnanimousStandaloneLayout({children}:{children:ReactNode}){
- return <><script dangerouslySetInnerHTML={{__html:STANDALONE_DRAFT_BOOTSTRAP}}/>{children}</>;
+ return <>
+  <script dangerouslySetInnerHTML={{__html:STANDALONE_DRAFT_BOOTSTRAP}}/>
+  <script dangerouslySetInnerHTML={{__html:STANDALONE_VOICE_DOCK}}/>
+  {children}
+  <style>{`html[data-iam-standalone="true"] .iam-voice-panel{max-width:calc(100vw - 24px)!important}html[data-iam-standalone="true"][data-iam-voice-hidden="true"] .iam-voice-panel{display:none!important}.iam-voice-dock-toggle{position:fixed;right:14px;top:84px;z-index:2147483300;border:1px solid rgba(106,224,255,.38);border-radius:999px;background:rgba(4,12,22,.94);color:#dff9ff;padding:8px 10px;font:800 9px Inter,system-ui,sans-serif;letter-spacing:.04em;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.3);backdrop-filter:blur(10px)}@media(max-width:680px){.iam-voice-dock-toggle{right:10px;top:78px;padding:7px 9px}html[data-iam-standalone="true"] .iam-voice-panel{left:auto!important;right:10px!important;max-width:calc(100vw - 20px)!important}html[data-iam-standalone="true"] .iam-voice-panel .voice-copy{display:none!important}}`}</style>
+ </>;
 }
