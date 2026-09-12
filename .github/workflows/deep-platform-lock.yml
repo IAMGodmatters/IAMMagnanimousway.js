@@ -1,0 +1,37 @@
+name: Deep Platform Control Lock
+
+on:
+  pull_request:
+  push:
+    branches: [main, codex/full-platform-lockdown]
+
+permissions:
+  contents: read
+
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      QA_BASE_URL: https://iammagnanimousway.com
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: qa/package.json
+      - name: Verify deep source interaction contracts
+        working-directory: frontend
+        run: node scripts/deep-interaction-lock.mjs
+      - name: Install QA dependencies
+        working-directory: qa
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        working-directory: qa
+        run: npx playwright install --with-deps chromium
+      - name: Exercise non-destructive controls and standalone Q&A
+        working-directory: qa
+        run: npx playwright test tests/deep-controls.spec.ts --project=chromium-desktop
