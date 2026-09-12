@@ -15,7 +15,7 @@ test('standalone Magnanimous AI remains isolated, public, voice-enabled, autosav
   // Voice and autosave are standalone product capabilities, not platform chrome.
   const voicePanel = page.locator('.iam-voice-panel');
   await expect(voicePanel).toBeVisible();
-  await expect(voicePanel).toContainText('Magnanimous AI');
+  await expect(voicePanel).toContainText(/Magnanimous AI/i);
   await expect(voicePanel.getByRole('button', { name: /Talk to Magnanimous AI/i })).toBeVisible();
   await expect(voicePanel.locator('button.voice-sound[title*="spoken replies"]')).toBeVisible();
   await expect(voicePanel.getByRole('button', { name: 'VOICE' })).toBeVisible();
@@ -56,7 +56,7 @@ test('main platform remains separate from the standalone AI shell', async ({ pag
 test('God Matters marketplace remains wired to the locked Shopify store', async ({ page }) => {
   await page.goto('/shop', { waitUntil: 'domcontentloaded' });
 
-  await expect(page.getByText('GOD MATTERS MARKETPLACE')).toBeVisible();
+  await expect(page.getByText('GOD MATTERS MARKETPLACE', { exact: true })).toBeVisible();
   const storeLinks = page.locator('a[href^="https://puso-iam.myshopify.com"]');
   expect(await storeLinks.count()).toBeGreaterThan(0);
   await expect(storeLinks.first()).toHaveAttribute('rel', /noopener/);
