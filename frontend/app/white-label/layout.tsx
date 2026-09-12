@@ -1,4 +1,5 @@
 import type {Metadata} from 'next';
+import type {ReactNode} from 'react';
 
 export const metadata:Metadata={
  title:'White Label AI Business Platform | I AM Magnanimous Way™',
@@ -6,4 +7,4 @@ export const metadata:Metadata={
  alternates:{canonical:'/white-label/'}
 };
 
-export default function WhiteLabelLayout({children}:{children:React.ReactNode}){return children}
+export default function WhiteLabelLayout({children}:{children:ReactNode}){return children}
