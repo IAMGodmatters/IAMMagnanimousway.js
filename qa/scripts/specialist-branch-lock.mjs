@@ -61,6 +61,7 @@ must(progressUI,"STORAGE_PREFIX='iam_progress_draft:'",'browser drafts must rema
 must(progressUI,"fetch('/api/progress/checkpoint'",'signed-in browser drafts must sync to server checkpoints');
 must(progressUI,"window.addEventListener('pagehide'",'page exit must force a progress checkpoint');
 must(progressUI,"window.addEventListener('iam:progress-checkpoint'",'voice and other explicit progress events must be persisted');
+must(progressUI,'captureExistingDrafts','drafts typed before autosave listeners attach must still be captured');
 must(globalTools,'<ProgressAutosave/>','continuous progress autosave must remain mounted across Magnanimous work surfaces');
 must(voice,"kind:'voice-transcript'",'voice transcripts must checkpoint before execution');
 must(voice,"kind:'voice-reply'",'spoken AI replies must checkpoint speaking progress');
@@ -88,6 +89,8 @@ must(specialistRouter,'specialistForMessage','specialist router must remain avai
 must(specialistRouter,'specialistIntroduction','specialist greeting generator must remain available');
 must(specialistRouter,"id:'dina'",'content-creation specialist route must remain available');
 must(voice,'routeNamedAgent','browser voice input must keep direct named-agent routing on the Agent Mesh');
+must(voice,'syncRoutedAgent','backend specialist routing must synchronize the visible Agent Mesh specialist');
+must(voice,"includes('/api/agents/chat')",'Agent Mesh response routing must remain connected to the UI synchronization layer');
 must(voice,'latestMagnanimousPersona','Magnanimous voice persona must follow automatic specialist handoffs');
 must(voice,".mag-message.assistant .mag-bubble>small",'voice handoff must derive the visible specialist identity from Magnanimous responses');
 must(voice,'chooseVoice','specialists must keep deterministic distinct voice profiles');
