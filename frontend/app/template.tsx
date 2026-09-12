@@ -2,7 +2,7 @@
 import {usePathname} from 'next/navigation';
 import type {ReactNode} from 'react';
 
-const publicPaths=new Set(['/solutions','/business-plan','/guide','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise','/security']);
+const publicPaths=new Set(['/solutions','/business-plan','/guide','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise','/security','/white-label']);
 
 export default function Template({children}:{children:ReactNode}){
  const path=usePathname()||'/';
