@@ -21,6 +21,25 @@ test('standalone Magnanimous AI remains isolated, public, voice-enabled, autosav
   await expect(voicePanel.getByRole('button', { name: 'VOICE' })).toBeVisible();
   await expect(page.locator('.iam-progress-save')).toBeVisible();
 
+  // Reliability contract: voice controls must never cover the standalone Send button.
+  const sendButton = page.locator('.mag-compose button[type="submit"]');
+  await expect(sendButton).toBeVisible();
+  await expect.poll(async () => {
+    const panel = await voicePanel.boundingBox();
+    const send = await sendButton.boundingBox();
+    if (!panel || !send) return false;
+    const overlaps = panel.x < send.x + send.width && panel.x + panel.width > send.x && panel.y < send.y + send.height && panel.y + panel.height > send.y;
+    return !overlaps;
+  }).toBe(true);
+
+  const voiceToggle = page.locator('.iam-voice-dock-toggle');
+  await expect(voiceToggle).toBeVisible();
+  await voiceToggle.click();
+  await expect(voicePanel).toBeHidden();
+  await expect(sendButton).toBeVisible();
+  await voiceToggle.click();
+  await expect(voicePanel).toBeVisible();
+
   const composer = page.locator('.mag-compose textarea');
   const autosaveDraft = 'QA autosave recovery draft — do not send';
   await composer.fill(autosaveDraft);
