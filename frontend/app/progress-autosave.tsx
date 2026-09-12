@@ -2,7 +2,7 @@
 
 import {useEffect,useRef,useState} from 'react';
 
-type DraftRecord={value:string;updatedAt:number;path:string;field:string};
+type DraftRecord={value:string;updatedAt:number;path:string;field:string;stage:string};
 type CheckpointDetail={kind?:string;stage?:string;content?:string;scope?:string;session_key?:string;metadata?:Record<string,string|number|boolean>};
 
 const SENSITIVE=/password|passwd|passcode|secret|token|authorization|api.?key|card|cvv|cvc|security.?code/i;
@@ -65,11 +65,12 @@ export default function ProgressAutosave(){
 
   function localSave(el:HTMLInputElement|HTMLTextAreaElement,stage='working'){
    const field=fieldKey(el),value=safeText(el.value),key=storageKey(path,field);
-   const record:DraftRecord={value,updatedAt:Date.now(),path,field};
+   const record:DraftRecord={value,updatedAt:Date.now(),path,field,stage};
    try{localStorage.setItem(key,JSON.stringify(record))}catch{}
-   if(lastSaved.current.get(key)===value)return;
+   const signature=`${stage}:${value}`;
+   if(lastSaved.current.get(key)===signature)return;
    const old=timers.current.get(key);if(old)clearTimeout(old);
-   timers.current.set(key,setTimeout(()=>{lastSaved.current.set(key,value);remoteSave({kind:'draft',stage,content:value,metadata:{field}})},1100));
+   timers.current.set(key,setTimeout(()=>{lastSaved.current.set(key,signature);remoteSave({kind:'draft',stage,content:value,metadata:{field}})},stage==='working'?1100:0));
   }
 
   function restore(){
@@ -80,7 +81,7 @@ export default function ProgressAutosave(){
     try{
      const raw=localStorage.getItem(key);if(!raw)continue;
      const record=JSON.parse(raw) as DraftRecord;
-     if(!record?.value||Date.now()-Number(record.updatedAt||0)>7*24*60*60*1000)continue;
+     if(!record?.value||record.stage==='submitted'||Date.now()-Number(record.updatedAt||0)>7*24*60*60*1000)continue;
      nativeSet(el,record.value);
     }catch{}
    }
@@ -93,7 +94,7 @@ export default function ProgressAutosave(){
    for(const el of fields)localSave(el,'submitted');
    remoteSave({kind:'action',stage:'submitted',content:'Form/action submitted',metadata:{form:form.getAttribute('aria-label')||form.id||form.className||'form'}});
   };
-  const onCheckpoint=(event:Event)=>{const detail=(event as CustomEvent<CheckpointDetail>).detail||{};const content=safeText(String(detail.content||''));try{localStorage.setItem(`${STORAGE_PREFIX}event:${path}:${detail.kind||'progress'}`,JSON.stringify({value:content,updatedAt:Date.now(),path,field:detail.kind||'progress'}))}catch{};remoteSave({...detail,content})};
+  const onCheckpoint=(event:Event)=>{const detail=(event as CustomEvent<CheckpointDetail>).detail||{};const content=safeText(String(detail.content||''));try{localStorage.setItem(`${STORAGE_PREFIX}event:${path}:${detail.kind||'progress'}`,JSON.stringify({value:content,updatedAt:Date.now(),path,field:detail.kind||'progress',stage:detail.stage||'working'}))}catch{};remoteSave({...detail,content})};
   const onPageHide=()=>{
    const fields=Array.from(document.querySelectorAll('input,textarea')).filter(eligible);
    for(const el of fields)localSave(el,'page-exit');
