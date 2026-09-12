@@ -6,6 +6,9 @@ const must=(text,needle,label)=>{if(!text.includes(needle)){console.error(`SPECI
 const intelligence=read('worker/src/agent-branch-intelligence.js');
 const entry=read('worker/src/branch-consent-entrypoint.js');
 const progress=read('worker/src/progress-entrypoint.js');
+const progressRuntime=read('worker/src/progress-checkpoint-runtime.js');
+const progressUI=read('frontend/app/progress-autosave.tsx');
+const globalTools=read('frontend/app/global-tools.tsx');
 const specialistRouter=read('worker/src/specialist-router.js');
 const wrangler=read('worker/wrangler.jsonc');
 const voice=read('frontend/app/voice-orchestrator.tsx');
@@ -17,6 +20,19 @@ const ownerCenter=read('frontend/app/owner-center/page.tsx');
 
 must(wrangler,'src/progress-entrypoint.js','production Worker must run through the continuous progress checkpoint entrypoint');
 must(progress,"import app from './branch-consent-entrypoint.js'",'progress entrypoint must retain specialist branch routing beneath autosave');
+must(progress,"path==='/api/progress/checkpoint'",'signed-in progress checkpoint API must remain available');
+must(progress,"stage:'started'",'mutating API actions must checkpoint before execution');
+must(progress,"stage:response.ok?'completed':'failed'",'mutating API actions must checkpoint completion or failure');
+must(progressRuntime,'magnanimous_progress_checkpoints','persistent progress checkpoint storage must remain available');
+must(progressRuntime,'sanitizeProgressText','progress storage must retain redaction safeguards');
+must(progressRuntime,'isSensitiveProgressPath','sensitive routes must remain protected from content capture');
+must(progressUI,"STORAGE_PREFIX='iam_progress_draft:'",'browser drafts must remain locally autosaved');
+must(progressUI,"fetch('/api/progress/checkpoint'",'signed-in browser drafts must sync to server checkpoints');
+must(progressUI,"window.addEventListener('pagehide'",'page exit must force a progress checkpoint');
+must(progressUI,"window.addEventListener('iam:progress-checkpoint'",'voice and other explicit progress events must be persisted');
+must(globalTools,'<ProgressAutosave/>','continuous progress autosave must remain mounted across Magnanimous work surfaces');
+must(voice,"kind:'voice-transcript'",'voice transcripts must checkpoint before execution');
+must(voice,"kind:'voice-reply'",'spoken AI replies must checkpoint speaking progress');
 must(entry,"branchProfile, ensureBranchSchema, branchKnowledge, branchKnowledgeContext, teachBranch",'branch entrypoint must retain curriculum and teaching support');
 must(entry,"/api/agents/branch/teach",'developer teaching endpoint must remain available');
 must(entry,"/api/agents/branch/submissions",'QA contributor training submission endpoint must remain available');
@@ -68,4 +84,4 @@ must(magnanimous,'Magnanimous routed to ${specialist.name}','Magnanimous must sh
 must(ownerCenter,'/owner-ai-training-review','Owner Center must link the QA approval queue');
 must(ownerCenter,'/qa-ai-academy','Owner Center must link the QA contributor lab');
 
-if(!process.exitCode)console.log('Specialist branches, QA teaching approval, automatic Magnanimous routing, standalone voice parity, progress entrypoint, and specialist voice handoff lock passed.');
+if(!process.exitCode)console.log('Specialist branches, QA teaching approval, automatic routing, voice parity, and continuous progress autosave lock passed.');
