@@ -23,9 +23,9 @@ function spokenAgent(message,agents){
  return null;
 }
 
-function safeTrainingUrl(value){
+function safeTrainingUrl(value,base){
  try{
-  const url=new URL(String(value||'').trim());
+  const url=base?new URL(String(value||'').trim(),base):new URL(String(value||'').trim());
   if(!['http:','https:'].includes(url.protocol))return null;
   const host=url.hostname.toLowerCase();
   if(host==='localhost'||host.endsWith('.local')||host==='0.0.0.0'||host==='127.0.0.1'||host==='::1'||/^10\./.test(host)||/^192\.168\./.test(host)||/^169\.254\./.test(host)||/^172\.(1[6-9]|2\d|3[01])\./.test(host))return null;
@@ -44,11 +44,23 @@ function htmlToTrainingText(value){
   .replace(/[ \t]+/g,' ').replace(/\n\s*\n+/g,'\n').trim();
 }
 async function trainingFromUrl(value){
- const url=safeTrainingUrl(value);
+ let url=safeTrainingUrl(value);
  if(!url)return{ok:false,status:400,detail:'Use a public http or https webpage URL. Private-network addresses are blocked.'};
  try{
-  const response=await fetch(url.toString(),{redirect:'follow',headers:{Accept:'text/html,text/plain,application/json,application/xml;q=0.9,*/*;q=0.2','User-Agent':'I-AM-Magnanimous-AI-Academy/1.0'}});
-  if(!response.ok)return{ok:false,status:400,detail:`Training source could not be read (${response.status}).`};
+  let response=null;
+  for(let redirects=0;redirects<=3;redirects++){
+   response=await fetch(url.toString(),{redirect:'manual',headers:{Accept:'text/html,text/plain,application/json,application/xml;q=0.9,*/*;q=0.2','User-Agent':'I-AM-Magnanimous-AI-Academy/1.0'}});
+   if(response.status>=300&&response.status<400){
+    const location=response.headers.get('location');
+    if(!location)return{ok:false,status:400,detail:'Training source returned an invalid redirect.'};
+    const next=safeTrainingUrl(location,url.toString());
+    if(!next)return{ok:false,status:400,detail:'Training source redirected to a blocked or private-network address.'};
+    if(redirects===3)return{ok:false,status:400,detail:'Training source redirected too many times.'};
+    url=next;continue;
+   }
+   break;
+  }
+  if(!response||!response.ok)return{ok:false,status:400,detail:`Training source could not be read (${response?.status||'network error'}).`};
   const type=String(response.headers.get('content-type')||'').toLowerCase();
   if(type&&!(type.includes('text/')||type.includes('json')||type.includes('xml')))return{ok:false,status:415,detail:'That URL is not a readable text or webpage source. Paste extracted text for PDF, DOCX, audio, or video sources.'};
   const raw=(await response.text()).slice(0,240000);
