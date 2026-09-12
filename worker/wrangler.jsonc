@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "iam-magnanimous",
-  "main": "src/white-label-brain-entrypoint.js",
+  "main": "src/operations-entrypoint.js",
   "compatibility_date": "2026-08-27",
   "workers_dev": false,
   "vars": {
