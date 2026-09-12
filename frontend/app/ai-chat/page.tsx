@@ -16,8 +16,6 @@ type Source = { title?: string; url?: string; source?: string };
 type Exchange = {
   question: string;
   answer: string;
-  provider?: string;
-  model?: string;
   sources: Source[];
 };
 
@@ -48,8 +46,6 @@ export default function AIChat() {
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(true);
   const [ready, setReady] = useState(false);
-  const [provider, setProvider] = useState("");
-  const [model, setModel] = useState("");
   const [mode, setMode] = useState<MagnanimousMode>("General");
   const [webSearchReady, setWebSearchReady] = useState(false);
   const [notice, setNotice] = useState("");
@@ -79,7 +75,6 @@ export default function AIChat() {
           (item: any) => item.configured && item.enabled !== false,
         );
         setReady(providersResult.response.ok && available.length > 0);
-        setProvider(available[0]?.name || "No AI provider connected");
         setWebSearchReady(
           healthResult.response.ok &&
             Boolean(healthResult.data.web_search_configured),
@@ -87,7 +82,6 @@ export default function AIChat() {
       })
       .catch(() => {
         setReady(false);
-        setProvider("Service check failed");
       })
       .finally(() => setChecking(false));
   }, []);
@@ -128,27 +122,22 @@ export default function AIChat() {
         throw new Error(data.detail || `Request failed (${response.status}).`);
       const answer = String(data.output || "").trim();
       if (!answer)
-        throw new Error("The AI provider returned an empty response.");
-      const usedProvider = data.provider_name || data.provider || provider;
-      setProvider(usedProvider);
-      setModel(data.model || "");
+        throw new Error("Magnanimous AI returned an empty response.");
       setHistory((items) => [
         ...items,
         {
           question,
           answer,
-          provider: usedProvider,
-          model: data.model || "",
           sources: Array.isArray(data.sources) ? data.sources : [],
         },
       ]);
       if (mode === "Research" && data.web_search_configured === false)
         setNotice(
-          "Answer created without live web search because no search provider is connected.",
+          "Answer created without live web search because live search is not connected.",
         );
     } catch (error: any) {
       setMessage(question);
-      setNotice(error?.message || "Unable to reach the AI service.");
+      setNotice(error?.message || "Unable to reach Magnanimous AI.");
     } finally {
       setBusy(false);
     }
@@ -158,7 +147,6 @@ export default function AIChat() {
     setHistory([]);
     setMessage("");
     setNotice("");
-    setModel("");
   }
 
   function chooseMode(nextMode: MagnanimousMode) {
@@ -229,10 +217,7 @@ export default function AIChat() {
           </div>
           <div className={`status ${ready ? "ready" : ""}`}>
             <b>{status}</b>
-            <span>
-              {provider}
-              {model ? ` · ${model}` : ""}
-            </span>
+            <span>MAGNANIMOUS AI™ · PRIVATE ROUTING</span>
           </div>
         </header>
         <ModeHero mode={activeMode} />
@@ -266,13 +251,6 @@ export default function AIChat() {
                   <div className="answer">
                     <b>MAGNANIMOUS</b>
                     <p>{item.answer}</p>
-                    {(item.provider || item.model) && (
-                      <small>
-                        {[item.provider, item.model]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </small>
-                    )}
                   </div>
                   {item.sources.length > 0 && (
                     <div className="sources">
@@ -321,7 +299,7 @@ export default function AIChat() {
           <div className="actions">
             <span>
               {!ready && !checking
-                ? "An owner must connect an AI provider before messages can be sent."
+                ? "Magnanimous AI needs an owner connection before messages can be sent."
                 : mode === "Research"
                   ? researchLabel
                   : "Your message clears after it sends; the conversation remains above."}
@@ -665,12 +643,6 @@ export default function AIChat() {
         }
         .answer p {
           color: #e0d6ee;
-        }
-        .answer > small {
-          grid-column: 2;
-          color: #80718e;
-          font-size: 11px;
-          margin-top: 5px;
         }
         .console textarea {
           width: 100%;
