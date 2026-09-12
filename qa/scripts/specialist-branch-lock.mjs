@@ -11,6 +11,7 @@ const workRuntime=read('worker/src/work-engine-runtime.js');
 const evidenceRuntime=read('worker/src/evidence-notebook-runtime.js');
 const progressRuntime=read('worker/src/progress-checkpoint-runtime.js');
 const progressUI=read('frontend/app/progress-autosave.tsx');
+const rootLayout=read('frontend/app/layout.tsx');
 const globalTools=read('frontend/app/global-tools.tsx');
 const workUI=read('frontend/app/work-engine/page.tsx');
 const activityUI=read('frontend/app/activity/page.tsx');
@@ -62,7 +63,13 @@ must(progressUI,"fetch('/api/progress/checkpoint'",'signed-in browser drafts mus
 must(progressUI,"window.addEventListener('pagehide'",'page exit must force a progress checkpoint');
 must(progressUI,"window.addEventListener('iam:progress-checkpoint'",'voice and other explicit progress events must be persisted');
 must(progressUI,'captureExistingDrafts','drafts typed before autosave listeners attach must still be captured');
-must(progressUI,'EARLY_AUTOSAVE_BOOTSTRAP','pre-hydration draft capture must remain active so fast input cannot outrun autosave');
+must(progressUI,'EARLY_AUTOSAVE_BOOTSTRAP','client-side pre-hydration draft capture must remain available as a recovery layer');
+must(rootLayout,'installRootAutosave','server-rendered root shell must install draft capture before client hydration');
+must(rootLayout,"var prefix='iam_progress_draft:'",'root autosave must use the same durable draft namespace');
+must(rootLayout,"document.addEventListener('input',save,true)",'root autosave must capture input before React hydration can race it');
+must(rootLayout,"document.addEventListener('change',save,true)",'root autosave must capture change events before React hydration can race them');
+must(rootLayout,"setTimeout(restore,1500)",'root autosave must reapply recoverable drafts after hydration settles');
+must(rootLayout,"data-no-autosave=\"true\"",'root autosave must preserve explicit no-autosave exclusions');
 must(globalTools,'<ProgressAutosave/>','continuous progress autosave must remain mounted across Magnanimous work surfaces');
 must(voice,"kind:'voice-transcript'",'voice transcripts must checkpoint before execution');
 must(voice,"kind:'voice-reply'",'spoken AI replies must checkpoint speaking progress');
@@ -119,4 +126,4 @@ must(magnanimous,'Magnanimous routed to ${specialist.name}','Magnanimous must sh
 must(ownerCenter,'/owner-ai-training-review','Owner Center must link the QA approval queue');
 must(ownerCenter,'/qa-ai-academy','Owner Center must link the QA contributor lab');
 
-if(!process.exitCode)console.log('Specialist branches, QA teaching approval, automatic routing, voice parity, continuous autosave, Work Engine, Activity Restore, Evidence Notebook, integration contract, and owner operations lock passed.');
+if(!process.exitCode)console.log('Specialist branches, QA teaching approval, automatic routing, voice parity, continuous autosave, root-shell recovery capture, Work Engine, Activity Restore, Evidence Notebook, integration contract, and owner operations lock passed.');
