@@ -1,0 +1,55 @@
+name: Private Owner Teaching Audit
+
+on:
+  push:
+    branches: [codex/full-platform-lockdown]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm install --no-audit --no-fund
+
+      - name: Export pending teaching privately
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ../qa/private-owner-audit
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command="SELECT id,tenant_id,agent_id,title,content,tags,source,challenge_prompt,expected_outcome,submitted_by,status,created_at FROM agent_branch_training_submissions WHERE status='pending' ORDER BY created_at ASC LIMIT 120;" > ../qa/private-owner-audit/pending-teaching.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='../qa/private-owner-audit/pending-teaching.json';
+          const raw=fs.readFileSync(p,'utf8');
+          let parsed;
+          try{parsed=JSON.parse(raw)}catch{throw new Error('Private teaching export was not valid JSON')}
+          const rows=Array.isArray(parsed)?parsed.flatMap(x=>x?.results||[]):(parsed?.results||[]);
+          fs.writeFileSync('../qa/private-owner-audit/summary.json',JSON.stringify({pending_count:rows.length,exported_at:new Date().toISOString()},null,2));
+          console.log(`Private teaching audit prepared: ${rows.length} pending submission(s). Content is stored only in the protected workflow artifact.`);
+          NODE
+
+      - name: Upload private owner audit
+        uses: actions/upload-artifact@v7
+        with:
+          name: private-owner-teaching-${{ github.run_id }}
+          path: qa/private-owner-audit/
+          retention-days: 1
+          if-no-files-found: error
