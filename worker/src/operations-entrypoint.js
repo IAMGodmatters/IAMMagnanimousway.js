@@ -6,9 +6,20 @@ import {listEvidence,addEvidence,removeEvidence,evidenceCount} from './evidence-
 import {handleUnifiedInbox} from './unified-inbox-runtime.js';
 import {handleAgencyGrowth} from './agency-growth-runtime.js';
 import {handleAgencyAutomations,dispatchAgencyAutomationEvent} from './agency-automation-runtime.js';
+import {handleGrowthRecovery,recordSignupLead,recordPlatformCheckout,recordStripeGrowthEvent,scheduledGrowth} from './growth-recovery-runtime.js';
+import {handleAgencyBillingBefore,extendPlansPayload,applyAgencyWebhook} from './agency-billing-extension.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
+const responseJson=async(response)=>{try{return await response.clone().json()}catch{return null}};
+const LEGACY_ROUTES={
+ '/persistent':'/work-engine',
+ '/restore':'/activity',
+ '/research':'/research-notebook',
+ '/agency':'/agency-command',
+ '/funnels':'/growth-funnel',
+ '/email':'/business-email'
+};
 
 async function signedIn(request,env){
  const user=await currentUser(request,env);return user||null;
@@ -80,16 +91,31 @@ async function operationsRequest(request,env){
  if(path==='/api/operations/overview'&&request.method==='GET'){
   const [work,evidence,checkpoints]=await Promise.all([listWork(env,user,200),evidenceCount(env,user),listProgressCheckpoints(env,user,{limit:300})]);
   const counts=(status)=>work.filter(x=>x.status===status).length;
-  return json({health:counts('failed')?'attention':'healthy',work_total:work.length,working:counts('working'),waiting:counts('waiting'),failed:counts('failed'),completed:counts('completed'),planned:counts('planned'),evidence_items:evidence,checkpoints:checkpoints.length,recoverable:checkpoints.filter(x=>x.status==='failed'||x.stage==='working'||x.stage==='page-exit').length,integration_contract:INTEGRATION_CONTRACT,unified_inbox:'/api/inbox/overview',agency_command:'/api/agency/overview',agency_automations:'/api/agency/automations'});
+  return json({health:counts('failed')?'attention':'healthy',work_total:work.length,working:counts('working'),waiting:counts('waiting'),failed:counts('failed'),completed:counts('completed'),planned:counts('planned'),evidence_items:evidence,checkpoints:checkpoints.length,recoverable:checkpoints.filter(x=>x.status==='failed'||x.stage==='working'||x.stage==='page-exit').length,integration_contract:INTEGRATION_CONTRACT,unified_inbox:'/api/inbox/overview',agency_command:'/api/agency/overview',agency_automations:'/api/agency/automations',growth_funnel:'/api/growth/overview'});
  }
  return null;
 }
 
-function queueAutomation(ctx,task){const safe=Promise.resolve(task).catch(error=>console.error('agency automation dispatch failed',error));if(ctx?.waitUntil)ctx.waitUntil(safe);return safe}
+function queueAutomation(ctx,task){const safe=Promise.resolve(task).catch(error=>console.error('background automation failed',error));if(ctx?.waitUntil)ctx.waitUntil(safe);return safe}
 
 export default{
  async fetch(request,env,ctx){
   const url=new URL(request.url),path=url.pathname;
+  if(request.method==='GET'&&LEGACY_ROUTES[path])return Response.redirect(new URL(LEGACY_ROUTES[path],url.origin).toString(),308);
+
+  try{const growth=await handleGrowthRecovery(request,env);if(growth)return growth}catch(error){console.error('growth recovery layer failed',error);return json({detail:'Growth Funnel could not complete this request.'},500)}
+
+  try{
+   const agencyBilling=await handleAgencyBillingBefore(request,env);
+   if(agencyBilling){
+    if(path==='/api/billing/checkout'&&request.method==='POST'&&agencyBilling.ok){
+     const [body,user,data]=await Promise.all([bodyOf(request),signedIn(request,env),responseJson(agencyBilling)]);
+     if(user&&data?.url)queueAutomation(ctx,recordPlatformCheckout(env,user,body,data));
+    }
+    return agencyBilling;
+   }
+  }catch(error){console.error('agency billing layer failed',error);return json({detail:'Agency billing could not complete this request.'},500)}
+
   try{const automation=await handleAgencyAutomations(request,env);if(automation)return automation}catch(error){console.error('agency automation layer failed',error);return json({detail:'Agency Automations could not complete this request.'},500)}
   try{
    const payload=request.method==='POST'&&(path==='/api/inbox/threads'||path==='/api/inbox/capture')?await bodyOf(request):null;
@@ -115,6 +141,31 @@ export default{
    }
   }catch(error){console.error('agency command layer failed',error);return json({detail:'Agency Command could not complete this request.'},500)}
   try{const handled=await operationsRequest(request,env);if(handled)return handled}catch(error){console.error('operations layer failed',error);return json({detail:'Operations workspace could not complete this request.'},500)}
-  return app.fetch(request,env,ctx);
+
+  const signupBody=path==='/api/auth/signup'&&request.method==='POST'?await bodyOf(request):null;
+  const checkoutBody=path==='/api/billing/checkout'&&request.method==='POST'?await bodyOf(request):null;
+  const checkoutUser=checkoutBody?await signedIn(request,env):null;
+  const webhookClone=path==='/api/billing/webhook'&&request.method==='POST'?request.clone():null;
+  const response=await app.fetch(request,env,ctx);
+
+  if(path==='/api/plans'&&request.method==='GET'&&response.ok){
+   const data=await responseJson(response);if(data)return json(extendPlansPayload(data,env),response.status);
+  }
+  if(signupBody&&response.ok){
+   const data=await responseJson(response);if(data?.user?.id)queueAutomation(ctx,recordSignupLead(env,data.user,signupBody));
+  }
+  if(checkoutBody&&checkoutUser&&response.ok){
+   const data=await responseJson(response);if(data?.url)queueAutomation(ctx,recordPlatformCheckout(env,checkoutUser,checkoutBody,data));
+  }
+  if(webhookClone&&response.ok){
+   const raw=await webhookClone.text().catch(()=>'');let eventData=null;try{eventData=JSON.parse(raw)}catch{}
+   if(eventData){queueAutomation(ctx,Promise.all([applyAgencyWebhook(env,eventData,response),recordStripeGrowthEvent(env,eventData)]));}
+  }
+  return response;
+ },
+ async scheduled(controller,env,ctx){
+  const origin=String(env.PUBLIC_SITE_URL||'https://iammagnanimousway.com').replace(/\/$/,'');
+  const task=scheduledGrowth(env,origin).catch(error=>console.error('scheduled growth automation failed',error));
+  if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
  }
 };
