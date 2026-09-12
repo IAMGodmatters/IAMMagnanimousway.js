@@ -4,7 +4,7 @@ import {getMagnanimousAdminToken} from './lib/magnanimous-session';
 import VoiceOrchestrator from './voice-orchestrator';
 import ProgressAutosave from './progress-autosave';
 
-const hiddenPaths=['/login','/signup','/owner-login','/privacy','/terms','/solutions','/pricing','/security','/reviews','/advertise'];
+const hiddenPaths=['/login','/signup','/owner-login','/privacy','/terms','/solutions','/pricing','/white-label','/security','/reviews','/advertise'];
 
 export default function GlobalTools(){
  const[path,setPath]=useState(''),[owner,setOwner]=useState(false),[open,setOpen]=useState(false);
