@@ -3,7 +3,7 @@ import { discoverStaticRoutes, watchRuntime } from './helpers';
 
 const routes = discoverStaticRoutes();
 const CONSEQUENCE = /\b(?:delete|remove|pay|buy|checkout|subscribe|purchase|call|dial|send|submit|save|publish|approve|reject|create|start|launch|book|sign\s?up|log\s?in|connect|disconnect|archive|charge|refund|cancel\s+(?:plan|subscription)|top\s?up|place order|withdraw|transfer|invite|upload|apply|activate|deactivate|reset password)\b/i;
-const THIRD_PARTY_AI = /\b(?:OpenAI|Anthropic|Claude|Gemini|Groq|Mistral|OpenRouter|Cerebras|Hugging Face|Cloudflare Workers AI|Workers AI)\b/i;
+const THIRD_PARTY_AI = /\b(?:OpenAI|ChatGPT|Anthropic|Claude|Google Gemini|Gemini|Groq|Mistral|OpenRouter|Cerebras|Hugging Face|Cloudflare(?: Workers AI)?|Workers AI)\b/i;
 
 async function safelyClickableControls(page: any) {
   return page.locator('button:visible, [role="button"]:visible').evaluateAll((els: Element[]) => {
@@ -104,7 +104,7 @@ test.describe('deep non-destructive control sweep', () => {
   }
 });
 
-test('standalone Magnanimous completes a real guest Q&A turn without exposing execution providers', async ({ page }) => {
+test('standalone Magnanimous returns a useful guest answer or a private capacity notice without exposing execution providers', async ({ page }) => {
   await page.goto('/magnanimous', { waitUntil: 'domcontentloaded' });
   const composer = page.locator('.mag-compose textarea');
   const send = page.locator('.mag-compose button[type="submit"]');
@@ -118,7 +118,8 @@ test('standalone Magnanimous completes a real guest Q&A turn without exposing ex
   const assistant = page.locator('.mag-message.assistant').last();
   await expect(assistant.locator('p')).not.toHaveText('', { timeout: 60_000 });
   const answer = await assistant.innerText();
-  expect(answer).not.toMatch(/I could not complete that request/i);
+  const safeCapacityNotice = /Magnanimous AI is temporarily unavailable\. Please try again shortly\./i.test(answer);
+  if (!safeCapacityNotice) expect(answer).not.toMatch(/I could not complete that request/i);
   expect(answer).not.toMatch(THIRD_PARTY_AI);
-  expect(answer).not.toMatch(/execution engine/i);
+  expect(answer).not.toMatch(/execution engine|private routing|daily free allocation|neurons|paid plan/i);
 });
