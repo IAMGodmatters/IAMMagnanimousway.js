@@ -1,0 +1,1 @@
+Automatic QA review is enabled for teaching submissions. Material is promoted only after guarded review; uncertain material remains available for owner oversight.
