@@ -100,20 +100,21 @@ export default{
    throw error;
   }
 
-  const customerResponse=await customerSafeAiResponse(request,response);
+  const rawResponse=response;
+  response=await customerSafeAiResponse(request,rawResponse);
 
   if(user){
    const save=async()=>{
     let data={};
-    const type=String(customerResponse.headers.get('content-type')||'').toLowerCase();
-    if(type.includes('json'))data=await customerResponse.clone().json().catch(()=>({}));
-    await checkpointProgress(env,user,{sessionKey,scope:path.includes('/agents')?'specialist':'platform',kind,stage:customerResponse.ok?'completed':'failed',content:sensitive?'':progressContentFromResponse(data),metadata:{method:request.method,path,http_status:customerResponse.status},status:customerResponse.ok?'saved':'failed'});
+    const type=String(response.headers.get('content-type')||'').toLowerCase();
+    if(type.includes('json'))data=await response.clone().json().catch(()=>({}));
+    await checkpointProgress(env,user,{sessionKey,scope:path.includes('/agents')?'specialist':'platform',kind,stage:response.ok?'completed':'failed',content:sensitive?'':progressContentFromResponse(data),metadata:{method:request.method,path,http_status:response.status},status:response.ok?'saved':'failed'});
    };
    const task=save().catch(()=>null);if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
   }
 
-  const observation=recordQaObservation(env,request,response,{startedAt,capture:qaCapture,user});
+  const observation=recordQaObservation(env,request,rawResponse,{startedAt,capture:qaCapture,user});
   if(ctx?.waitUntil)background(ctx,observation,'QA observation failed');else await observation;
-  return customerResponse;
+  return response;
  }
 };
