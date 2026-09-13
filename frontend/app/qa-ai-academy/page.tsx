@@ -4,7 +4,7 @@ import {useEffect,useMemo,useState} from 'react';
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 type Agent={id:string;name:string;title:string;description:string;group:string;branch?:{identity?:string;mission?:string;core_skills?:string[];operating_method?:string[];learning_policy?:string[]}};
 type Submission={id:number;agent_id:string;title:string;content:string;tags:string;source:string;challenge_prompt:string;expected_outcome:string;status:string;reviewer_note:string;created_at:number;reviewed_at:number};
-async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||`Request failed (${r.status})`}}
+async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||`Request failed (${r.status})`}}}
 function token(){if(typeof window==='undefined')return'';return localStorage.getItem('iam_account_token')||localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token')||''}
 
 export default function QaAiAcademy(){
