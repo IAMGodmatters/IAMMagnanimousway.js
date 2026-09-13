@@ -5,6 +5,29 @@ import {captureQaObservationRequest,handleQaObservationControl,recordQaException
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const MUTATING=new Set(['POST','PUT','PATCH','DELETE']);
+const PRIVATE_AI_FAILURE_CODES=new Set(['AI_PROVIDER_FAILURE','AGENT_PROVIDER_FAILURE','NO_AI_PROVIDER']);
+const PRIVATE_EXECUTION_TEXT=/\b(?:openai|chatgpt|anthropic|claude|gemini|groq|mistral|openrouter|cerebras|hugging face|cloudflare|workers ai|provider|execution engine)\b|@cf\/[\w./-]+|\b(?:gpt|llama)-[\w.-]+/i;
+const PRIVATE_EXECUTION_FIELDS=['provider','provider_name','model','model_id','engine','execution_engine','fallback_candidates','provider_learning'];
+
+async function customerSafeAiResponse(request,response){
+ const path=new URL(request.url).pathname;
+ if(request.method!=='POST'||(path!=='/api/chat'&&path!=='/api/agents/chat'))return response;
+ const data=await response.clone().json().catch(()=>null);
+ if(!data||typeof data!=='object'||Array.isArray(data))return response;
+ const publicData={...data};
+ for(const key of PRIVATE_EXECUTION_FIELDS)delete publicData[key];
+ const rawDetail=String(publicData.detail||publicData.error||'');
+ const privateFailure=PRIVATE_AI_FAILURE_CODES.has(String(publicData.code||''))||(!response.ok&&PRIVATE_EXECUTION_TEXT.test(rawDetail));
+ if(privateFailure){
+  publicData.detail='Magnanimous AI is temporarily unavailable. Please try again shortly.';
+  delete publicData.error;
+ }
+ const headers=new Headers(response.headers);
+ headers.set('content-type','application/json; charset=utf-8');
+ headers.set('cache-control','no-store');
+ headers.delete('content-length');
+ return new Response(JSON.stringify(publicData),{status:response.status,statusText:response.statusText,headers});
+}
 
 async function payloadOf(request){
  const type=String(request.headers.get('content-type')||'').toLowerCase();
@@ -77,18 +100,20 @@ export default{
    throw error;
   }
 
+  const customerResponse=await customerSafeAiResponse(request,response);
+
   if(user){
    const save=async()=>{
     let data={};
-    const type=String(response.headers.get('content-type')||'').toLowerCase();
-    if(type.includes('json'))data=await response.clone().json().catch(()=>({}));
-    await checkpointProgress(env,user,{sessionKey,scope:path.includes('/agents')?'specialist':'platform',kind,stage:response.ok?'completed':'failed',content:sensitive?'':progressContentFromResponse(data),metadata:{method:request.method,path,http_status:response.status},status:response.ok?'saved':'failed'});
+    const type=String(customerResponse.headers.get('content-type')||'').toLowerCase();
+    if(type.includes('json'))data=await customerResponse.clone().json().catch(()=>({}));
+    await checkpointProgress(env,user,{sessionKey,scope:path.includes('/agents')?'specialist':'platform',kind,stage:customerResponse.ok?'completed':'failed',content:sensitive?'':progressContentFromResponse(data),metadata:{method:request.method,path,http_status:customerResponse.status},status:customerResponse.ok?'saved':'failed'});
    };
    const task=save().catch(()=>null);if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
   }
 
   const observation=recordQaObservation(env,request,response,{startedAt,capture:qaCapture,user});
   if(ctx?.waitUntil)background(ctx,observation,'QA observation failed');else await observation;
-  return response;
+  return customerResponse;
  }
 };
