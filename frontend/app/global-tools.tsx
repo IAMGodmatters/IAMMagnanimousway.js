@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react';
 import {getMagnanimousAdminToken} from './lib/magnanimous-session';
 import VoiceOrchestrator from './voice-orchestrator';
+import VoiceSurfaceHardener from './voice-surface-hardener';
 import ProgressAutosave from './progress-autosave';
 
 const hiddenPaths=['/login','/signup','/owner-login','/privacy','/terms','/solutions','/pricing','/white-label','/security','/reviews','/advertise'];
@@ -13,6 +14,7 @@ export default function GlobalTools(){
  return <>
   <ProgressAutosave/>
   <VoiceOrchestrator/>
+  <VoiceSurfaceHardener/>
   <div className={`iam-global-tools ${open?'open':'closed'}`}>
    <button className="iam-tools-toggle" onClick={()=>setOpen(v=>!v)} aria-label={open?'Hide platform tools':'Open platform tools'} title={open?'Hide platform tools':'Open platform tools'} aria-expanded={open}>{open?'›':'‹'}</button>
    <div className="iam-tools-panel" aria-hidden={!open} hidden={!open}>
