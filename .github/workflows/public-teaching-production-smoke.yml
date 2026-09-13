@@ -25,9 +25,9 @@ jobs:
           status=$(curl --connect-timeout 10 --max-time 60 -LsS -o /tmp/magnanimous.html -w '%{http_code}' "$BASE_URL/magnanimous")
           test "$status" = "200" || { echo "Standalone Magnanimous returned HTTP $status"; exit 1; }
           grep -q "Teach Magnanimous AI" /tmp/magnanimous.html || { echo "Public teaching panel is missing from standalone Magnanimous."; exit 1; }
-          grep -q "OWNER APPROVAL REQUIRED" /tmp/magnanimous.html || { echo "Owner-approval disclosure is missing from public teaching."; exit 1; }
+          grep -q "AUTOMATIC QA REVIEW" /tmp/magnanimous.html || { echo "Automatic QA review disclosure is missing from public teaching."; exit 1; }
           grep -q "privacy-scrubbed excerpts" /tmp/magnanimous.html || { echo "Q&A observation privacy notice is missing."; exit 1; }
-          echo "Public teaching and Q&A observation disclosure are visible on standalone Magnanimous."
+          echo "Public teaching, automatic QA review, and Q&A observation disclosure are visible on standalone Magnanimous."
 
       - name: Verify public teaching intake without creating test teaching
         shell: bash
@@ -43,8 +43,9 @@ jobs:
           data=json.load(open('/tmp/public-teaching.json'))
           assert data.get('ok') is True, data
           assert data.get('status') == 'pending', data
+          assert data.get('automatic_qa_review') is True, data
           PY
-          echo "Public teaching intake is reachable; honeypot path confirmed without inserting test teaching."
+          echo "Public teaching intake is reachable; automatic QA review is exposed and honeypot path does not insert test teaching."
 
       - name: Verify owner Q&A observation stays private
         shell: bash
