@@ -1,5 +1,6 @@
 import app from './progress-entrypoint.js';
 import {currentUser} from './integrations.js';
+import {requireConsequentialActionConfirmation} from './consequential-action-gate.js';
 import {checkpointProgress,listProgressCheckpoints} from './progress-checkpoint-runtime.js';
 import {listWork,getWork,createWork,updateWork,addWorkStep,updateWorkStep} from './work-engine-runtime.js';
 import {listEvidence,addEvidence,removeEvidence,evidenceCount} from './evidence-notebook-runtime.js';
@@ -108,6 +109,9 @@ async function operationsFetch(request,env,ctx){
   const url=new URL(request.url),path=url.pathname;
   if(request.method==='GET'&&LEGACY_ROUTES[path])return Response.redirect(new URL(LEGACY_ROUTES[path],url.origin).toString(),308);
 
+  const consequential=await requireConsequentialActionConfirmation(request);
+  if(consequential)return consequential;
+
   try{const growth=await handleGrowthRecovery(request,env);if(growth)return growth}catch(error){console.error('growth recovery layer failed',error);return json({detail:'Growth Funnel could not complete this request.'},500)}
 
   try{
@@ -163,7 +167,7 @@ async function operationsFetch(request,env,ctx){
    const data=await responseJson(response);if(data?.url)queueAutomation(ctx,recordPlatformCheckout(env,checkoutUser,checkoutBody,data));
   }
   if(webhookClone&&response.ok){
-   const raw=await webhookClone.text().catch(()=>'');let eventData=null;try{eventData=JSON.parse(raw)}catch{}
+   const raw=await webhookClone.text().catch(()=>'' );let eventData=null;try{eventData=JSON.parse(raw)}catch{}
    if(eventData){queueAutomation(ctx,Promise.all([applyAgencyWebhook(env,eventData,response),recordStripeGrowthEvent(env,eventData)]));}
   }
   return response;
