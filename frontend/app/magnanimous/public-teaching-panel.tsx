@@ -3,7 +3,7 @@ import {useEffect,useMemo,useState} from 'react';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 type Agent={id:string;name:string;title:string;description:string;branch?:{core_skills?:string[]}};
-async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||`Request failed (${r.status})`}}
+async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||`Request failed (${r.status})`}}}
 
 export default function PublicTeachingPanel(){
  const[agents,setAgents]=useState<Agent[]>([]),[selected,setSelected]=useState(''),[title,setTitle]=useState(''),[tags,setTags]=useState(''),[content,setContent]=useState(''),[url,setUrl]=useState(''),[challenge,setChallenge]=useState(''),[expected,setExpected]=useState(''),[website,setWebsite]=useState(''),[busy,setBusy]=useState(false),[msg,setMsg]=useState(''),[err,setErr]=useState('');
