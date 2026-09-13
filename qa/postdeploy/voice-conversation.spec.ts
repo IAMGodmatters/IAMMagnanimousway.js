@@ -75,7 +75,9 @@ test('deployed voice transcript auto-sends, ignores late recognition errors, and
 
   await expect(page.locator('.mag-message.user .mag-bubble p')).toContainText('Hey how are you doing today');
   await expect(page.locator('.mag-compose textarea')).toHaveValue('');
-  await expect(page.locator('.voice-notice')).not.toContainText(/could not hear that clearly/i);
+  // The correct successful state may have no notice element at all. Assert against the page
+  // instead of requiring a .voice-notice node to exist just to prove the false warning is absent.
+  await expect(page.locator('body')).not.toContainText(/could not hear that clearly/i);
   await expect(page.locator('.mag-message.assistant .mag-bubble p').last()).toContainText('I am doing well');
   await expect.poll(async () => page.evaluate(() => ((window as any).__iamSpoken as string[]).filter(text => text.trim()))).toContain(
     'I am doing well. I am Magnanimous AI, here to help you think, create, research, and get things done.'
