@@ -1,4 +1,5 @@
 import { creditWallet } from './usage-guard.js';
+import { parsePaymentReference } from './payment-reference.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
@@ -31,7 +32,8 @@ async function save(env,tenantId,values){
  await env.DB.prepare('UPDATE tenants SET plan=? WHERE id=?').bind(plan,tenantId).run();
 }
 async function resolveTenant(env,object){
- const direct=String(object?.metadata?.tenant_id||object?.client_reference_id||'').trim();if(direct)return direct;
+ const metadataTenant=String(object?.metadata?.tenant_id||'').trim();if(metadataTenant)return metadataTenant;
+ const parsedReference=parsePaymentReference(object?.client_reference_id);if(parsedReference.tenantId)return parsedReference.tenantId;
  const sub=String(object?.id||'').startsWith('sub_')?String(object.id):String(object?.subscription||'');if(!sub)return'';
  const row=await env.DB.prepare('SELECT tenant_id FROM billing_subscriptions WHERE stripe_subscription_id=?').bind(sub).first();return String(row?.tenant_id||'')
 }
@@ -43,7 +45,10 @@ async function authorizeProviderSpend(env,tenantId,referenceId,purpose,amount=0)
  await env.DB.prepare('INSERT OR IGNORE INTO provider_funding_authorizations(tenant_id,reference_id,purpose,status,amount_usd,created_at) VALUES(?,?,?,?,?,?)').bind(String(tenantId),String(referenceId),String(purpose||'paid-feature'),'authorized',Math.max(0,Number(amount||0)),now()).run();
 }
 async function processPaidCheckout(env,event,object){
- const purpose=String(object?.metadata?.purpose||'').toLowerCase();const tenantId=await resolveTenant(env,object);if(!tenantId||!paymentConfirmed(object))return;
+ const paymentReference=parsePaymentReference(object?.client_reference_id);
+ const metadataPurpose=String(object?.metadata?.purpose||'').toLowerCase();
+ const purpose=paymentReference.kind==='topup'?'premium_usage_topup':metadataPurpose;
+ const tenantId=await resolveTenant(env,object);if(!tenantId||!paymentConfirmed(object))return;
  const amount=Math.max(0,Number(object?.amount_total||0)/100),reference=String(object.id||event.id);
  if(purpose==='premium_usage_topup'){
   if(amount<=0)return;
@@ -52,7 +57,9 @@ async function processPaidCheckout(env,event,object){
   await recordRevenue(env,tenantId,'usage-topup',amount,'stripe',reference);
   return;
  }
- const metadataPlan=String(object?.metadata?.plan||'').toLowerCase(),plan=PLANS.has(metadataPlan)?metadataPlan:'business';
+ const metadataPlan=String(object?.metadata?.plan||'').toLowerCase();
+ const referencePlan=paymentReference.kind==='plan'?paymentReference.plan:'';
+ const plan=PLANS.has(metadataPlan)?metadataPlan:(PLANS.has(referencePlan)?referencePlan:'business');
  await save(env,tenantId,{plan,customer_id:String(object.customer||'')||null,subscription_id:String(object.subscription||'')||null,status:'active'});
  await authorizeProviderSpend(env,tenantId,reference,`plan:${plan}`,amount);
  if(amount>0)await recordRevenue(env,tenantId,'checkout-paid',amount,'stripe',reference);

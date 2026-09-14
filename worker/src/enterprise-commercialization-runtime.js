@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { usageStatus, walletStatus } from './usage-guard.js';
+import { encodeTopupPaymentReference } from './payment-reference.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -85,7 +86,7 @@ export async function handleEnterpriseCommercialization(request,env){
   }
   if(request.method==='GET'&&url.pathname==='/api/enterprise/usage-wallet'){const s=await usageStatus(env,tenant);const{results=[]}=await env.DB.prepare('SELECT * FROM billing_usage_wallet_events WHERE tenant_id=? ORDER BY created_at DESC LIMIT 100').bind(tenant).all();return json({status:s,events:results})}
   if(request.method==='POST'&&url.pathname==='/api/enterprise/usage-wallet/topup'){
-   const base=String(env.STRIPE_PAYMENT_LINK_USAGE_TOPUP||'').trim();if(!base)return json({detail:'Premium usage top-up checkout is not configured.'},503);const link=new URL(base);link.searchParams.set('client_reference_id',tenant);return json({url:link.toString(),min_usd:10,max_usd:1000,purpose:'prepaid-premium-usage'});
+   const base=String(env.STRIPE_PAYMENT_LINK_USAGE_TOPUP||'').trim();if(!base)return json({detail:'Premium usage top-up checkout is not configured.'},503);const link=new URL(base);link.searchParams.set('client_reference_id',encodeTopupPaymentReference(tenant));return json({url:link.toString(),min_usd:10,max_usd:1000,purpose:'prepaid-premium-usage'});
   }
   if(request.method==='GET'&&url.pathname==='/api/enterprise/revenue'){const{results=[]}=await env.DB.prepare('SELECT * FROM enterprise_revenue_events WHERE tenant_id=? ORDER BY occurred_at DESC LIMIT 250').bind(tenant).all();const s=await summary(env,tenant);return json({events:results,summary:s})}
   return json({detail:'Enterprise endpoint not found.'},404);
