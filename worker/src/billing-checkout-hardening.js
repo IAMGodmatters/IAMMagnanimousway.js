@@ -1,4 +1,5 @@
 import { currentUserFromRequest } from './usage-guard.js';
+import { encodePlanPaymentReference } from './payment-reference.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const PLANS=new Set(['plus','business','pro','scale']);
@@ -24,7 +25,8 @@ export async function handleBillingCheckoutHardening(request,env){
  const stripeConfigured=Boolean(env.STRIPE_SECRET_KEY&&String(env?.[PRICE_KEYS[plan]]||'').trim());
  const link=String(env?.[LINK_KEYS[plan]]||'').trim();
  if(!stripeConfigured&&link){
-  return json({url:appendQuery(link,'client_reference_id',String(user.tenant_id)),plan,mode:'payment_link',fallback:'stripe-payment-link'});
+  const paymentReference=encodePlanPaymentReference(String(user.tenant_id),plan);
+  return json({url:appendQuery(link,'client_reference_id',paymentReference),plan,mode:'payment_link',fallback:'stripe-payment-link'});
  }
  return null;
 }
