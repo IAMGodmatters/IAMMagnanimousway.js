@@ -1,7 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "iam-magnanimous",
-  "main": "src/operations-entrypoint.js",
+  // Security boundary delegates to src/operations-entrypoint.js, preserving the established non-destructive operations layer beneath it.
+  "main": "src/security-entrypoint.js",
   "compatibility_date": "2026-08-27",
   "workers_dev": false,
   "vars": {
