@@ -4,6 +4,7 @@ const refs=fs.readFileSync('worker/src/payment-reference.js','utf8');
 const checkout=fs.readFileSync('worker/src/billing-checkout-hardening.js','utf8');
 const links=fs.readFileSync('worker/src/payment-link-runtime.js','utf8');
 const webhook=fs.readFileSync('worker/src/stripe-webhook-hardened.js','utf8');
+const enterprise=fs.readFileSync('worker/src/enterprise-commercialization-runtime.js','utf8');
 const tiers=fs.readFileSync('worker/src/billing-tiers-runtime.js','utf8');
 const usage=fs.readFileSync('worker/src/usage-guard.js','utf8');
 
@@ -15,6 +16,7 @@ const checks=[
  ['checkout hardening uses plan-bound references', checkout.includes('encodePlanPaymentReference')&&checkout.includes("client_reference_id',paymentReference")],
  ['payment-link runtime validates paid plans', links.includes('normalizePaidPlan')&&links.includes('INVALID_PLAN')],
  ['payment-link runtime uses plan-bound references', links.includes('encodePlanPaymentReference')&&links.includes("client_reference_id',paymentReference")],
+ ['prepaid top-up checkout binds top-up purpose into the payment reference', enterprise.includes('encodeTopupPaymentReference')&&enterprise.includes("client_reference_id',encodeTopupPaymentReference(tenant)")],
  ['webhook parses payment reference', webhook.includes('parsePaymentReference')],
  ['webhook requires confirmed payment before fulfillment', webhook.includes("if(!tenantId||!paymentConfirmed(object))return")],
  ['metadata plan wins when valid', webhook.includes("PLANS.has(metadataPlan)?metadataPlan")],
