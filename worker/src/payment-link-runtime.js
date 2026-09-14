@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { encodePlanPaymentReference, normalizePaidPlan } from './payment-reference.js';
 
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'cache-control': 'no-store' } });
 const LINK_KEYS={plus:'STRIPE_PAYMENT_LINK_PLUS',business:'STRIPE_PAYMENT_LINK_BUSINESS',pro:'STRIPE_PAYMENT_LINK_PRO',scale:'STRIPE_PAYMENT_LINK_SCALE'};
@@ -9,13 +10,17 @@ function appendQuery(url, key, value) {const parsed = new URL(url);parsed.search
 export async function handlePaymentLinkBilling(request, env) {
   const url = new URL(request.url);
   if (url.pathname !== '/api/billing/checkout' || request.method !== 'POST') return null;
-  const body=await request.clone().json().catch(()=>({})),plan=String(body.plan||'business').toLowerCase(),link=paymentLink(env,plan);
+  const body=await request.clone().json().catch(()=>({}));
+  const plan=normalizePaidPlan(body.plan||'business');
+  if(!plan)return json({detail:'Choose a valid paid plan: plus, business, pro, or scale.',code:'INVALID_PLAN'},400);
+  const link=paymentLink(env,plan);
   if(!link)return null;
   const user = await currentUser(request, env);
   if (!user) return json({ detail: 'Sign in required.' }, 401);
   const tenantId = String(user.tenant_id || '').trim();
   if (!tenantId) return json({ detail: 'Workspace is missing.' }, 409);
-  return json({url:appendQuery(link,'client_reference_id',tenantId),plan,mode:'payment_link'});
+  const paymentReference=encodePlanPaymentReference(tenantId,plan);
+  return json({url:appendQuery(link,'client_reference_id',paymentReference),plan,mode:'payment_link'});
 }
 
 export async function augmentBillingResponse(request, response, env) {
