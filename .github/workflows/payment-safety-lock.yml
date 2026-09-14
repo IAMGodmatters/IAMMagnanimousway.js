@@ -1,0 +1,22 @@
+name: Payment Safety Lock
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  payment-safety-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Verify payment safety contracts
+        run: node qa/scripts/payment-safety-lock.mjs
