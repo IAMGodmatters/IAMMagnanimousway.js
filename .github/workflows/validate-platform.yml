@@ -43,8 +43,13 @@ jobs:
         working-directory: worker
         run: npx wrangler deploy --dry-run --outdir /tmp/iam-worker-dry-run
 
+      - name: Verify central security boundary
+        run: node scripts/verify-security-hardening.mjs
+
       - name: Check critical Worker JavaScript syntax
         run: |
+          node --check worker/src/security-hardening.js
+          node --check worker/src/security-entrypoint.js
           node --check worker/src/integrations.js
           node --check worker/src/assistant-integrations.js
           node --check worker/src/assistant-integrations-runtime.js
