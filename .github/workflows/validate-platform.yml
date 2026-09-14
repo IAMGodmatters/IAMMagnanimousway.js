@@ -23,6 +23,9 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package.json
 
+      - name: Verify frontend secret boundary
+        run: node scripts/verify-frontend-secret-boundary.mjs
+
       - name: Install frontend
         working-directory: frontend
         run: npm install
