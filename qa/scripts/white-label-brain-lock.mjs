@@ -12,6 +12,7 @@ function notMatches(source,re,msg){must(!re.test(source),msg)}
 
 const runtime=read('worker/src/white-label-brain-runtime.js');
 const operations=read('worker/src/operations-entrypoint.js');
+const securityEntry=read('worker/src/security-entrypoint.js');
 const wrangler=read('worker/wrangler.jsonc');
 const migration=read('worker/migrations/0036_white_label_brain.sql');
 const layout=read('frontend/app/white-label/layout.tsx');
@@ -20,7 +21,10 @@ const shell=read('frontend/app/white-label/app/page.tsx');
 const home=read('frontend/app/white-label/page.tsx');
 const evolution=read('frontend/app/owner-evolution/page.tsx');
 
-includes(wrangler,'"main": "src/operations-entrypoint.js"','brain: production Worker preserves the non-destructive Operations entrypoint');
+includes(wrangler,'"main": "src/security-entrypoint.js"','security: production Worker enters through the central security boundary');
+includes(securityEntry,"import app from './operations-entrypoint.js'",'brain: security boundary preserves the non-destructive Operations entrypoint beneath it');
+includes(securityEntry,'securityPreflight','security: White Label requests cross the preflight security boundary');
+includes(securityEntry,'securityPostflight','security: White Label responses cross the postflight security boundary');
 includes(operations,"import app from './progress-entrypoint.js'",'architecture: Operations still preserves progress/specialist routing beneath it');
 includes(operations,"from './white-label-brain-runtime.js'",'brain: Operations loads the White Label Magnanimous brain');
 includes(operations,'handleWhiteLabelBrain','brain: White Label brain API is mounted inside Operations');
