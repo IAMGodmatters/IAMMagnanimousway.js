@@ -6,7 +6,7 @@ type User={name?:string;email?:string;role?:string};
 type Ad={id:number;title:string;url:string;label:string;placement:string;active:number};
 type AdConfig={adsense_configured:boolean;adsense_client_id:string|null;adsense_home_slot:string|null;auto_ads_ready:boolean};
 
-const nav=[['⌂','Home','/'],['✦','AI Tools','/ai-chat'],['▤','Bible Study','/bible-study'],['◇','Learning','/agents'],['♟','Community','/support'],['▣','Business','/business'],['☎','Call Center','/contact-center'],['•••','More','/solutions']];
+const nav=[['⌂','Home','/'],['✦','AI Tools','/ai-chat'],['▤','Bible Study','/bible-study'],['◇','Learning','/agents'],['♟','Community','/support'],['▣','Business','/business'],['☎','Call Center','/contact-center'],['▧','White Label','/white-label'],['•••','More','/solutions']];
 const workspaces=[
  ['▣','Business Command','Plans, offers, operations and growth','/business'],
  ['◎','Social Studio','Content, campaigns and platforms','/social-media'],
@@ -19,7 +19,8 @@ const systems=[
  ['⌘','Connected Assistant','Prepare or run actions when an event happens','/assistant-actions'],
  ['☎','AI Receptionist','Inbound routing and AI voice reception','/ai-receptionist'],
  ['▶','Video Studio','Text-to-video, visual agents and media creation','/video-studio'],
- ['⌁','Contact Center','Queues, campaigns, IVR, QA and agent operations','/contact-center']
+ ['⌁','Contact Center','Queues, campaigns, IVR, QA and agent operations','/contact-center'],
+ ['▧','White Label Studio','Your separate branded client platform, funnels, apps and agency tools','/white-label']
 ];
 async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{}}}
 async function safeJson(url:string,init?:RequestInit){try{return await fetch(url,init).then(read)}catch{return{}}}
@@ -47,7 +48,7 @@ export default function Home(){
 
   {(ads.length>0||adConfig.adsense_configured)&&<section className="revenue"><div><small>SPONSORED / ADVERTISING</small><span>Advertising stays separate from AI answers</span></div>{ads.length>0&&<div className="sponsors">{ads.map(ad=><a key={ad.id} href={ad.url} target="_blank" rel="sponsored noopener noreferrer"><small>{ad.label||'Sponsored'}</small><b>{ad.title}</b></a>)}</div>}{adConfig.adsense_configured&&<div className="adsense">{adConfig.adsense_home_slot&&adConfig.adsense_client_id?<ins className="adsbygoogle" style={{display:'block'}} data-ad-client={adConfig.adsense_client_id} data-ad-slot={adConfig.adsense_home_slot} data-ad-format="auto" data-full-width-responsive="true"/>:<p>Approved AdSense Auto Ads are enabled.</p>}</div>}</section>}
 
-  <footer><div><b>I AM MAGNANIMOUS <span>WAY™</span></b><a href="/start">Start Here</a><a href="/solutions">Solutions</a><a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/support">Support</a></div><p>“A brighter tomorrow, together.” ♛</p></footer>
+  <footer><div><b>I AM MAGNANIMOUS <span>WAY™</span></b><a href="/start">Start Here</a><a href="/solutions">Solutions</a><a href="/pricing">Pricing</a><a href="/white-label">White Label</a><a href="/security">Security</a><a href="/support">Support</a></div><p>“A brighter tomorrow, together.” ♛</p></footer>
 
   <style jsx>{`
   *{box-sizing:border-box}.page{min-height:100vh;background:#031129;color:#eefaff;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 73% 13%,rgba(27,143,255,.20),transparent 30%),linear-gradient(180deg,#03132f,#020b1e 78%)}
