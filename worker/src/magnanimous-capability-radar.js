@@ -49,11 +49,16 @@ export async function getMagnanimousCapabilityRadar(env,{tenant,userId}={}){
   rowsIf(env,'magnanimous_tool_gaps','SELECT capability,example_task,count,status,updated_at FROM magnanimous_tool_gaps WHERE tenant_id=? AND user_id=? ORDER BY count DESC,updated_at DESC LIMIT 250',[t,u]),
   rowsIf(env,'magnanimous_tool_servers','SELECT id,name,status,tool_count,enabled,last_error,updated_at FROM magnanimous_tool_servers WHERE tenant_id=? ORDER BY name',[t]),
   rowsIf(env,'magnanimous_discovered_tools','SELECT t.server_id,t.tool_name,t.description,t.enabled,s.name AS server_name,s.status AS server_status FROM magnanimous_discovered_tools t JOIN magnanimous_tool_servers s ON s.id=t.server_id WHERE t.tenant_id=? AND t.enabled=1 AND s.enabled=1 ORDER BY s.name,t.tool_name LIMIT 2500',[t]),
-  rowsIf(env,'magnanimous_tool_audit',"SELECT server_id,tool_name,success,created_at FROM magnanimous_tool_audit WHERE tenant_id=? AND action='call' ORDER BY id DESC LIMIT 1000",[t])
+  rowsIf(env,'magnanimous_tool_audit',"SELECT server_id,tool_name,success,detail,created_at FROM magnanimous_tool_audit WHERE tenant_id=? AND action='call' ORDER BY id DESC LIMIT 1000",[t])
  ]);
- const verifiedCalls=new Map();for(const row of audit)if(Number(row.success)===1&&row.tool_name&&!verifiedCalls.has(row.tool_name))verifiedCalls.set(row.tool_name,row.created_at);
+ const verifiedCalls=new Map(),failureMap=new Map();
+ for(const row of audit){
+  if(Number(row.success)===1&&row.tool_name&&!verifiedCalls.has(row.tool_name))verifiedCalls.set(row.tool_name,row.created_at);
+  if(Number(row.success)!==1&&row.tool_name){const current=failureMap.get(row.tool_name)||{tool_name:row.tool_name,server_id:row.server_id,count:0,last_error:'',last_failed_at:0};current.count++;if(Number(row.created_at||0)>=Number(current.last_failed_at||0)){current.last_failed_at=row.created_at;current.last_error=clip(row.detail,500)}failureMap.set(row.tool_name,current)}
+ }
+ const runtimeFailures=[...failureMap.values()].sort((a,b)=>b.count-a.count||Number(b.last_failed_at||0)-Number(a.last_failed_at||0));
  const nativeRuntime=native.map(row=>{const uses=Number(row.uses||0),successes=Number(row.successes||0);return{...row,uses,successes,success_rate:uses?successes/uses:null,runtime_evidence:uses>0?'outcome-scored':'not-yet-outcome-scored',execution_status:uses>0&&successes>0?'verified-by-outcome':row.status==='ready'?'ready-unverified':row.status}});
- const mcpRuntime=mcpTools.map(row=>({...row,execution_status:verifiedCalls.has(row.tool_name)?'verified-by-successful-call':row.server_status==='ready'?'discovered-unverified':'unavailable',last_verified_at:verifiedCalls.get(row.tool_name)||null}));
+ const mcpRuntime=mcpTools.map(row=>({...row,execution_status:verifiedCalls.has(row.tool_name)?'verified-by-successful-call':row.server_status==='ready'?'discovered-unverified':'unavailable',last_verified_at:verifiedCalls.get(row.tool_name)||null,observed_failures:failureMap.get(row.tool_name)?.count||0}));
  const catalog=getIntegrationCatalog();
  const desired=[];for(const domain of MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS)for(const capability of domain.capabilities)desired.push({domain:domain.name,capability});
  const evidenceHay=nativeRuntime.map(x=>`${x.name} ${x.family} ${x.purpose}`).join(' ');
@@ -67,7 +72,8 @@ export async function getMagnanimousCapabilityRadar(env,{tenant,userId}={}){
   return{...item,status,observed_gap:gap?{capability:gap.capability,count:Number(gap.count||0),status:gap.status}:null};
  });
  const readyNative=nativeRuntime.filter(x=>x.status==='ready'),verifiedNative=nativeRuntime.filter(x=>x.execution_status==='verified-by-outcome'),readyServers=servers.filter(x=>x.enabled&&x.status==='ready'),verifiedMcp=mcpRuntime.filter(x=>x.execution_status==='verified-by-successful-call');
- const nextBuild=[...gaps].filter(x=>x.status!=='learned').sort((a,b)=>Number(b.count||0)-Number(a.count||0)).slice(0,12).map(x=>({type:'observed-gap',capability:x.capability,count:Number(x.count||0),example_task:x.example_task,status:x.status}));
+ const nextBuild=runtimeFailures.filter(x=>x.count>=2).slice(0,6).map(x=>({type:'runtime-tool-reliability-gap',capability:`tool-${normalize(x.tool_name)}`,count:x.count,last_error:x.last_error,last_failed_at:x.last_failed_at}));
+ for(const gap of [...gaps].filter(x=>x.status!=='learned').sort((a,b)=>Number(b.count||0)-Number(a.count||0))){if(nextBuild.length>=12)break;if(!nextBuild.some(x=>x.capability===gap.capability))nextBuild.push({type:'observed-gap',capability:gap.capability,count:Number(gap.count||0),example_task:gap.example_task,status:gap.status})}
  if(nextBuild.length<12){
   const existing=nativeRuntime.map(x=>`${x.name} ${x.purpose} ${x.family}`).join(' ');
   for(const item of catalog.filter(x=>['critical','high'].includes(x.priority))){if(nextBuild.length>=12)break;const represented=item.capabilities.some(c=>relevance(c,existing)>=.75)||item.capabilities.some(c=>relevance(c,mcpHay)>=.75);if(!represented)nextBuild.push({type:'adapter-target',capability:item.native_target||item.id,priority:item.priority,benchmark_capabilities:item.capabilities.slice(0,8),requires_connection:true});}
@@ -75,13 +81,13 @@ export async function getMagnanimousCapabilityRadar(env,{tenant,userId}={}){
  return{
   identity:'Magnanimous AI',mode:'runtime-capability-radar',available:true,generated_at:now(),
   truth_policy:{rule:'Capability claims must distinguish architecture, declared routing families, discovered connections, and verified execution evidence.',architectural_goal_is_not_runtime_proof:true,adapter_target_is_not_connected:true,discovered_tool_is_not_verified_until_successful_call:true,ready_recipe_is_not_outcome_verified_until_scored:true},
-  counts:{universal_capability_goals:desired.length,declared_builtin_families:MAGNANIMOUS_BUILTIN_CAPABILITY_FAMILIES.length,native_recipes:nativeRuntime.length,ready_native_recipes:readyNative.length,outcome_verified_native_recipes:verifiedNative.length,connected_ready_mcp_servers:readyServers.length,discovered_mcp_tools:mcpRuntime.length,verified_mcp_tools:verifiedMcp.length,observed_capability_gaps:gaps.filter(x=>x.status!=='learned').length,integration_benchmark_targets:catalog.length},
+  counts:{universal_capability_goals:desired.length,declared_builtin_families:MAGNANIMOUS_BUILTIN_CAPABILITY_FAMILIES.length,native_recipes:nativeRuntime.length,ready_native_recipes:readyNative.length,outcome_verified_native_recipes:verifiedNative.length,connected_ready_mcp_servers:readyServers.length,discovered_mcp_tools:mcpRuntime.length,verified_mcp_tools:verifiedMcp.length,runtime_tool_failure_signals:runtimeFailures.length,observed_capability_gaps:gaps.filter(x=>x.status!=='learned').length,integration_benchmark_targets:catalog.length},
   builtin_families:MAGNANIMOUS_BUILTIN_CAPABILITY_FAMILIES,
   native_recipes:nativeRuntime.slice(0,200),
-  mcp:{servers:servers.slice(0,100),tools:mcpRuntime.slice(0,500)},
+  mcp:{servers:servers.slice(0,100),tools:mcpRuntime.slice(0,500),recent_failure_signals:runtimeFailures.slice(0,50)},
   universal_matrix:matrix,
   top_gaps:gaps.slice(0,40),
   next_build:nextBuild,
-  evolution_rule:'Detect → observe → propose → test → score → promote or rollback. Never manufacture a connection, permission, successful action, or capability claim.'
+  evolution_rule:'Detect → observe → propose → test → score → promote or rollback. Runtime failures are learning signals, not permission to bypass authorization or safety. Never manufacture a connection, permission, successful action, or capability claim.'
  };
 }
