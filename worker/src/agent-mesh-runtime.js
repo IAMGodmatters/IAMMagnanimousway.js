@@ -2,8 +2,8 @@ import { currentUser } from './integrations.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
-const AGENT_MODEL_TIMEOUT_MS=12000;
-const AGENT_PROVIDER_TIMEOUT_MS=16000;
+const AGENT_MODEL_TIMEOUT_MS=25000;
+const AGENT_PROVIDER_TIMEOUT_MS=30000;
 const AGENT_MAX_TOKENS=800;
 
 async function withTimeout(factory,ms,label){
@@ -211,9 +211,9 @@ function extractCloudflareText(result){
 
 async function runProvider(id,env,messages,requestedModel=''){
  if(id==='cloudflare-ai'){
-  const models=[requestedModel,String(env.AGENT_CLOUDFLARE_MODEL||''),'@cf/zai-org/glm-4.7-flash','@cf/google/gemma-4-26b-a4b-it','@cf/nvidia/nemotron-3-120b-a12b'].filter(Boolean);
+  const models=[requestedModel,String(env.AGENT_CLOUDFLARE_MODEL||''),String(env.CLOUDFLARE_AI_MODEL||''),'@cf/zai-org/glm-4.7-flash','@cf/qwen/qwen3-30b-a3b-fp8','@cf/google/gemma-4-26b-a4b-it','@cf/nvidia/nemotron-3-120b-a12b'].filter(Boolean);
   const errors=[];
-  for(const model of [...new Set(models)].slice(0,3)){
+  for(const model of [...new Set(models)].slice(0,4)){
    try{
     const out=await withTimeout(()=>env.AI.run(model,{messages,max_tokens:AGENT_MAX_TOKENS}),AGENT_MODEL_TIMEOUT_MS,`Cloudflare Workers AI ${model}`);
     const value=extractCloudflareText(out).trim();
