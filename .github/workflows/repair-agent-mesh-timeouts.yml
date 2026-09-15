@@ -1,4 +1,4 @@
-name: Repair Agent Mesh provider timeouts
+name: Repair platform resilience locks
 
 on:
   push:
@@ -24,20 +24,25 @@ jobs:
         with:
           node-version: 24
 
-      - name: Apply Agent Mesh timeout repair
+      - name: Apply Agent Mesh resilience repair
         run: node scripts/repair-agent-mesh-timeouts.mjs
 
+      - name: Apply contact-center carrier privacy repair
+        run: node scripts/repair-contact-center-provider-privacy.mjs
+
       - name: Verify Worker syntax
-        run: node --check worker/src/agent-mesh-runtime.js
+        run: |
+          node --check worker/src/agent-mesh-runtime.js
+          node --check worker/src/contact-center-runtime.js
 
       - name: Commit repair
         run: |
-          if git diff --quiet -- worker/src/agent-mesh-runtime.js; then
-            echo "Agent Mesh timeout repair already present."
+          if git diff --quiet -- worker/src/agent-mesh-runtime.js worker/src/contact-center-runtime.js; then
+            echo "Platform resilience repairs already present."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add worker/src/agent-mesh-runtime.js
-          git commit -m "Bound Agent Mesh provider latency and failover"
+          git add worker/src/agent-mesh-runtime.js worker/src/contact-center-runtime.js
+          git commit -m "Lock Agent Mesh resilience and carrier privacy"
           git push origin HEAD:main
