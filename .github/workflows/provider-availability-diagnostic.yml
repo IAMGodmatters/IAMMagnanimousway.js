@@ -1,0 +1,53 @@
+name: Provider Availability Diagnostic
+
+on:
+  push:
+    branches:
+      - diag/provider-availability
+    paths:
+      - .github/workflows/provider-availability-diagnostic.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm install
+      - name: Report configured free-first provider credential names only
+        working-directory: worker
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          SQL="SELECT credential_key, updated_at FROM platform_credentials WHERE credential_key IN ('GOOGLE_API_KEY','GROQ_API_KEY','OPENROUTER_API_KEY','MISTRAL_API_KEY','NVIDIA_API_KEY','HF_TOKEN','CEREBRAS_API_KEY') ORDER BY credential_key;"
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command="$SQL" > /tmp/provider-keys.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/provider-keys.json'))
+          rows=[]
+          def walk(x):
+              if isinstance(x,dict):
+                  if 'credential_key' in x:
+                      rows.append({'credential_key':x.get('credential_key'),'updated_at':x.get('updated_at')})
+                  for v in x.values(): walk(v)
+              elif isinstance(x,list):
+                  for v in x: walk(v)
+          walk(data)
+          seen=[]
+          for r in rows:
+              if r['credential_key'] not in [x['credential_key'] for x in seen]: seen.append(r)
+          print('CONFIGURED_FREE_FIRST_KEYS='+','.join(r['credential_key'] for r in seen))
+          print('CONFIGURED_FREE_FIRST_COUNT='+str(len(seen)))
+          for r in seen:
+              print(f"CONFIGURED_KEY={r['credential_key']} UPDATED_AT={r['updated_at']}")
+          PY
