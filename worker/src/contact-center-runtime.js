@@ -18,14 +18,15 @@ function twilioReady(env){return Boolean(env.TWILIO_ACCOUNT_SID&&env.TWILIO_AUTH
 function genericReady(env){return Boolean(env.VOIP_PROVIDER_URL&&env.VOIP_PROVIDER_TOKEN)}
 function telnyxReady(env){return Boolean(env.TELNYX_API_KEY&&env.TELNYX_CONNECTION_ID&&env.TELNYX_PHONE_NUMBER)}
 function providerSnapshot(env){
+ const byoc=genericReady(env);
+ const ordinary=byoc||twilioReady(env);
+ const mode=String(env.VOIP_BILLING_MODE||'metered').trim().toLowerCase();
  return {
-  browser_webrtc:{configured:true,free_first:true,inbound:true,outbound:true,note:'Peer-to-peer browser calling for signed-in users.'},
-  twilio:{configured:twilioReady(env),inbound:twilioReady(env),outbound:twilioReady(env),ai_receptionist:twilioReady(env)},
-  telnyx:{configured:telnyxReady(env),inbound:false,outbound:false,note:'Credential detection is ready; direct Telnyx call-control activation remains opt-in.'},
-  carrier_bridge:{configured:genericReady(env),inbound:genericReady(env)&&Boolean(env.VOIP_WEBHOOK_SECRET),outbound:genericReady(env),byoc:true},
-  ai:{configured:Boolean(env.AI),free_first:Boolean(env.AI)},
-  tavus:{configured:Boolean(env.TAVUS_API_KEY),premium:true},
-  heygen:{configured:Boolean(env.HEYGEN_API_KEY),premium:true,note:'Optional presenter-video provider; real-time telephone routing continues through the voice stack.'}
+  provider_details_private:true,
+  browser_calling:{configured:true,free_first:true,inbound:true,outbound:true,note:'Peer-to-peer browser calling for signed-in users.'},
+  magnanimous_carrier:{configured:ordinary,inbound:ordinary,outbound:ordinary,byoc,flat_rate:['flat-rate','unlimited','channel'].includes(mode),billing_mode:byoc?mode:'metered',least_cost_routing:true},
+  ai_assist:{configured:Boolean(env.AI),free_first:Boolean(env.AI)},
+  optional_video:{configured:Boolean(env.TAVUS_API_KEY||env.HEYGEN_API_KEY),premium:true}
  };
 }
 
@@ -179,11 +180,11 @@ async function analyzeCall(env,tenant,callId){
 export async function handleContactCenter(request,env){
  const url=new URL(request.url),path=url.pathname;if(!path.startsWith('/api/contact-center'))return null;if(!env?.DB)return json({detail:'Contact center database is not configured.'},503);
  try{
-  if(path==='/api/contact-center/twilio/incoming'&&request.method==='POST')return twilioIncoming(request,env);
+  if((path==='/api/contact-center/carrier/incoming'||path==='/api/contact-center/twilio/incoming')&&request.method==='POST')return twilioIncoming(request,env);
   if(path==='/api/contact-center/ivr/step'&&request.method==='POST')return ivrStep(request,env,url);
   if(path==='/api/contact-center/voicemail/recording'&&request.method==='POST')return voicemailRecording(request,env,url);
   await ensure(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use the contact center.'},401);const tenant=String(user.tenant_id);await seed(env,tenant);
-  if(path==='/api/contact-center/capabilities'&&request.method==='GET')return json({ok:true,providers:providerSnapshot(env),features:{acd:true,skills_routing:true,ivr:true,callbacks:true,voicemail:true,dnc:true,outbound_campaigns:true,dialer_modes:['preview','progressive','power'],predictive_mass_dialing:false,reason:'High-volume predictive automation is intentionally not enabled without carrier/compliance controls.',agent_presence:true,crm_screen_pop:true,recording:true,ai_call_intelligence:Boolean(env.AI),agent_assist:true,workforce_management:true,quality_management:true,analytics:true,omnichannel_inbox:true,free_browser_calling:true},inbound_webhook:`${url.origin}/api/contact-center/twilio/incoming`});
+  if(path==='/api/contact-center/capabilities'&&request.method==='GET')return json({ok:true,providers:providerSnapshot(env),features:{acd:true,skills_routing:true,ivr:true,callbacks:true,voicemail:true,dnc:true,outbound_campaigns:true,dialer_modes:['preview','progressive','power'],predictive_mass_dialing:false,reason:'High-volume predictive automation is intentionally not enabled without carrier/compliance controls.',agent_presence:true,crm_screen_pop:true,recording:true,ai_call_intelligence:Boolean(env.AI),agent_assist:true,workforce_management:true,quality_management:true,analytics:true,omnichannel_inbox:true,free_browser_calling:true},inbound_webhook:`${url.origin}/api/contact-center/carrier/incoming`});
   if(path==='/api/contact-center/overview'&&request.method==='GET')return json({ok:true,...await overview(env,tenant)});
   const campaign=await campaignRoutes(request,env,user,url);if(campaign)return campaign;
   if(path==='/api/contact-center/ivr'&&request.method==='GET'){const {results=[]}=await env.DB.prepare('SELECT * FROM cc_ivr_flows WHERE tenant_id=? ORDER BY active DESC,updated_at DESC').bind(tenant).all();return json({flows:results.map(x=>({...x,nodes:safeJson(x.nodes_json,{}),business_hours:safeJson(x.business_hours_json,{})}))})}
