@@ -151,7 +151,7 @@ export const MAGNANIMOUS_SELF_EVOLUTION_PROTOCOL = {
   },
   hard_rules: [
     'Self-learning does not mean silently retraining a public foundation model on private user data.',
-    'Self-improvement may change recipes, routing, memory, tests and adapters; it may not remove authentication, authorization, tenant isolation, secret protection or legal/safety controls.',
+    'Self-improvement must not remove authentication, authorization, tenant isolation, secret protection or legal/safety controls. It may improve recipes, routing, memory, tests and adapters only within those boundaries.',
     'Magnanimous may learn the public behavior and workflow pattern of another AI capability, but must not copy proprietary weights, hidden prompts, private code, stolen credentials or restricted data.',
     'A capability is not claimed as working until the current runtime proves it through an actual tool result, test or configured adapter.',
     'Every autonomous change must be observable, attributable, testable and reversible.'
