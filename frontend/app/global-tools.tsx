@@ -28,6 +28,7 @@ export default function GlobalTools(){
     <a className="enterprise" href="/enterprise" title="Enterprise commercialization, contracts and usage funding"><b>◆</b><span>Enterprise</span></a>
     <a className="video" href="/video-agents" title="Multi-agent social and enterprise video creation"><b>▶</b><span>Video Agents</span></a>
     <a className="cx" href="/contact-center" title="Professional Magnanimous contact center"><b>☏</b><span>CX Command</span></a>
+    <a className="cx" href="/agent-desk" title="Low-cost browser call center with scripts and rebuttals"><b>◉</b><span>Agent Desk</span></a>
     <a className="bpo" href="/bpo-operations" title="Multi-client BPO and outsourced operations"><b>⌘</b><span>BPO Ops</span></a>
     <a className="finance" href="/finance-people" title="Finance, global tax and HR"><b>◈</b><span>Finance + HR</span></a>
     <a className="ops" href="/call-center-health" title="Call center quality, workforce and performance health"><b>☎</b><span>QA + WFM</span></a>
