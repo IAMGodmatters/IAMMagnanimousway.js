@@ -2,6 +2,21 @@
 // These named cognitive systems are design inspirations, not claims that their
 // original runtimes have been embedded or fully reimplemented here.
 
+import {
+  MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS,
+  MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL,
+  MAGNANIMOUS_SELF_EVOLUTION_PROTOCOL,
+  MAGNANIMOUS_SOURCE_OF_CAPABILITY,
+  getMagnanimousUniversalPrompt
+} from './magnanimous-universal-capabilities.js';
+
+export {
+  MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS,
+  MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL,
+  MAGNANIMOUS_SELF_EVOLUTION_PROTOCOL,
+  MAGNANIMOUS_SOURCE_OF_CAPABILITY
+} from './magnanimous-universal-capabilities.js';
+
 export const MAGNANIMOUS_COGNITIVE_LOOP = [
   'perceive',
   'attend',
@@ -12,14 +27,19 @@ export const MAGNANIMOUS_COGNITIVE_LOOP = [
   'execute',
   'verify',
   'explain',
-  'learn'
+  'learn',
+  'evaluate',
+  'evolve'
 ];
 
 export const MAGNANIMOUS_COGNITIVE_ARCHITECTURE = {
-  id: 'magnanimous-hybrid-cognitive-core-v1',
-  name: 'Magnanimous Hybrid Cognitive Core',
-  model: 'hybrid-symbolic-neural',
+  id: 'magnanimous-hybrid-cognitive-core-v2',
+  name: 'Magnanimous Universal Hybrid Cognitive Core',
+  model: 'hybrid-symbolic-neural-agentic',
   central_brain: true,
+  universal_capability_core: true,
+  self_evolution_protocol: MAGNANIMOUS_SELF_EVOLUTION_PROTOCOL.version,
+  capability_domains: MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS.map(x => x.id),
   inspirations: [
     {
       name: 'SOAR',
@@ -56,8 +76,16 @@ export const MAGNANIMOUS_COGNITIVE_ARCHITECTURE = {
       purpose: 'Reuse proven native recipes, tool sequences and specialist-agent workflows before rebuilding the same process from scratch.'
     },
     {
+      id: 'universal-capability-fabric',
+      purpose: 'Represent all major AI capability classes through stable Magnanimous-native contracts so models, providers, MCP servers, apps and future runtimes remain replaceable execution engines.'
+    },
+    {
       id: 'hybrid-deliberation',
       purpose: 'Combine flexible model inference with explicit rules, permissions, deterministic checks, knowledge retrieval and structured planning.'
+    },
+    {
+      id: 'multi-agent-parallel-execution',
+      purpose: 'Decompose long-horizon goals into independently verifiable workstreams, delegate to specialist agents, run low-risk independent work in parallel when supported, and merge results under one Magnanimous plan.'
     },
     {
       id: 'action-selection',
@@ -66,6 +94,10 @@ export const MAGNANIMOUS_COGNITIVE_ARCHITECTURE = {
     {
       id: 'verification-and-metacognition',
       purpose: 'Check results against the request, evidence, constraints and actual tool outcomes; represent uncertainty and correct failures instead of bluffing.'
+    },
+    {
+      id: 'sandboxed-self-improvement',
+      purpose: 'Detect capability gaps, research public best practices, design original native skills or adapters, sandbox and regression-test them, canary low-risk changes, measure outcomes, promote successes and roll back failures.'
     },
     {
       id: 'learning-and-consolidation',
@@ -86,7 +118,16 @@ export const MAGNANIMOUS_COGNITIVE_ARCHITECTURE = {
   collaboration: {
     mode: 'human-ai-collaboration',
     rule: 'Take initiative on low-risk authorized work, minimize unnecessary interruptions, and ask the human only when information, judgment, consent or a platform permission boundary makes it necessary.'
-  }
+  },
+  evolution: {
+    mode: 'continuous-evidence-driven-self-improvement',
+    stages: MAGNANIMOUS_SELF_EVOLUTION_PROTOCOL.stages,
+    automatic_low_risk_learning: true,
+    governed_high_impact_change: true,
+    reversible: true,
+    rule: 'Improve routing, memory, skills, tests, adapters and low-risk recipes automatically when measured evidence supports the change; never remove authentication, authorization, tenant isolation, secret protection, legal controls or required approval gates.'
+  },
+  source_strategy: MAGNANIMOUS_SOURCE_OF_CAPABILITY
 };
 
 export const MAGNANIMOUS_DEVELOPMENT_SKILLS = [
@@ -111,6 +152,16 @@ export const MAGNANIMOUS_DEVELOPMENT_SKILLS = [
     purpose: 'Work with visual information when supported by the active runtime or provider.'
   },
   {
+    domain: 'agentic-systems',
+    items: ['long-horizon planning', 'subagents', 'parallel workstreams', 'tool use', 'computer use', 'sandboxes', 'checkpoint/resume', 'MCP'],
+    purpose: 'Execute complex goals across tools and environments while retaining Magnanimous as the central planner, memory and verification layer.'
+  },
+  {
+    domain: 'evaluation-and-self-improvement',
+    items: ['regression tests', 'adversarial evaluation', 'canary rollout', 'provider scoring', 'skill promotion', 'rollback', 'capability-gap discovery'],
+    purpose: 'Make improvement measurable, evidence-driven, reversible and safe to operate continuously.'
+  },
+  {
     domain: 'knowledge-representation-and-reasoning',
     items: ['knowledge graphs', 'ontologies', 'symbolic rules', 'constraints', 'retrieval-augmented reasoning'],
     purpose: 'Keep durable knowledge structured and combine it with explicit reasoning constraints.'
@@ -132,6 +183,9 @@ export const MAGNANIMOUS_FRAMEWORK_LITERACY = [
   { name: 'OpenCV', family: 'computer-vision', role: 'knowledge-and-adapter-target' },
   { name: 'WordNet', family: 'knowledge-representation', role: 'knowledge-source-and-ontology-target' },
   { name: 'YAGO', family: 'knowledge-representation', role: 'knowledge-graph-target' },
+  { name: 'Model Context Protocol (MCP)', family: 'agent-tools', role: 'open-tool-and-data-adapter-standard' },
+  { name: 'Function calling and structured outputs', family: 'agent-tools', role: 'normalized-native-tool-contract-pattern' },
+  { name: 'Sandboxed code/computer execution', family: 'agent-runtime', role: 'controlled-execution-pattern' },
   { name: 'Knowledge graphs and ontologies', family: 'knowledge-representation', role: 'native-architecture-pattern' }
 ];
 
@@ -140,6 +194,16 @@ export const MAGNANIMOUS_RESEARCH_PRIORITIES = [
     id: 'hybrid-symbolic-neural',
     name: 'Hybrid symbolic + connectionist reasoning',
     objective: 'Use neural inference for flexible understanding and symbolic structures for rules, constraints, verification and durable knowledge.'
+  },
+  {
+    id: 'universal-agent-runtime',
+    name: 'Universal long-horizon agent runtime',
+    objective: 'Unify planning, subagents, parallel tool use, browser/computer operation, code execution, files, checkpoints and recovery under one provider-neutral Magnanimous control plane.'
+  },
+  {
+    id: 'continuous-self-evolution',
+    name: 'Continuous evidence-driven self-improvement',
+    objective: 'Continuously detect capability gaps and turn proven public patterns into original native skills, adapters, tests and procedural memory through sandboxed, regression-tested, reversible promotion.'
   },
   {
     id: 'explainable-ai',
@@ -159,5 +223,5 @@ export const MAGNANIMOUS_RESEARCH_PRIORITIES = [
 ];
 
 export function getMagnanimousCognitivePrompt() {
-  return `MAGNANIMOUS HYBRID COGNITIVE CORE\nArchitecture: hybrid-symbolic-neural. SOAR, LIDA, ACT-R and CLARION are design inspirations, not claims of full reimplementation.\nCognitive loop: ${MAGNANIMOUS_COGNITIVE_LOOP.join(' -> ')}.\nUse flexible model inference together with explicit constraints, permissions, retrieval, structured plans and deterministic checks.\nMaintain working context, retrieve declarative/episodic knowledge, reuse procedural recipes, then select the best authorized action or execution engine.\nFor explainability, provide concise rationale, evidence, assumptions, uncertainty and verified action results when useful. Do not expose hidden chain-of-thought.\nFor multimodal work, fuse only inputs actually available in the runtime; never pretend to have processed an unavailable modality.\nFor human-AI collaboration, act proactively on low-risk authorized work and ask only when missing information, judgment, consent or a permission boundary genuinely requires the user.\nTreat TensorFlow, Keras, PyTorch, Scikit-learn, NLTK, spaCy, OpenCV, WordNet, YAGO, knowledge graphs and ontologies as framework/tool knowledge and adapter targets unless the runtime explicitly proves they are installed or connected.`;
+  return `MAGNANIMOUS HYBRID COGNITIVE CORE\nArchitecture: hybrid-symbolic-neural-agentic. SOAR, LIDA, ACT-R and CLARION are design inspirations, not claims of full reimplementation.\nCognitive loop: ${MAGNANIMOUS_COGNITIVE_LOOP.join(' -> ')}.\nUse flexible model inference together with explicit constraints, permissions, retrieval, structured plans and deterministic checks.\nMaintain working context, retrieve declarative/episodic knowledge, reuse procedural recipes, then select the best authorized action or execution engine.\nFor long-horizon work, decompose the goal, use specialist subagents or parallel low-risk workstreams when useful, checkpoint progress, verify each workstream and merge results under Magnanimous control.\nFor explainability, provide concise rationale, evidence, assumptions, uncertainty and verified action results when useful. Do not expose hidden chain-of-thought.\nFor multimodal work, fuse only inputs actually available in the runtime; never pretend to have processed an unavailable modality.\nFor human-AI collaboration, act proactively on low-risk authorized work and ask only when missing information, judgment, consent or a permission boundary genuinely requires the user.\nFor self-improvement, use capability-gap detection, evidence gathering, original skill/adapter design, sandbox testing, regression/adversarial evaluation, canary rollout, measured promotion and rollback. Never weaken authentication, authorization, privacy, tenant isolation, secret handling, required approvals or law/safety controls.\nTreat TensorFlow, Keras, PyTorch, Scikit-learn, NLTK, spaCy, OpenCV, WordNet, YAGO, MCP, function calling, structured outputs and sandboxed execution as framework/tool knowledge and adapter targets unless the runtime explicitly proves they are installed or connected.\n\n${getMagnanimousUniversalPrompt()}`;
 }
