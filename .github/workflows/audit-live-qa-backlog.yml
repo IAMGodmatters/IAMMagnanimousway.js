@@ -1,0 +1,47 @@
+name: Audit live QA teaching backlog
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-live-qa-backlog.yml'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm install
+
+      - name: Export unresolved QA teaching
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command="SELECT id,agent_id,title,content,tags,source,challenge_prompt,expected_outcome,status,reviewer_id,reviewer_note,created_at,reviewed_at FROM agent_branch_training_submissions WHERE status<>'approved' OR reviewer_note LIKE '[AUTO-QA %' ORDER BY created_at ASC,id ASC;" > /tmp/qa-backlog.json
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command="SELECT status,COUNT(*) AS total FROM agent_branch_training_submissions GROUP BY status ORDER BY status;" > /tmp/qa-status-counts.json
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command="SELECT COUNT(*) AS knowledge_total FROM agent_branch_knowledge;" > /tmp/qa-knowledge-count.json
+
+      - name: Upload audit data
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-qa-teaching-backlog
+          path: |
+            /tmp/qa-backlog.json
+            /tmp/qa-status-counts.json
+            /tmp/qa-knowledge-count.json
+          retention-days: 2
