@@ -23,6 +23,7 @@ const PROVIDERS = [
   { id: 'google', name: 'Google Gemini', key: 'GOOGLE_API_KEY', tier: 'free-first' },
   { id: 'groq', name: 'Groq', key: 'GROQ_API_KEY', tier: 'free-first' },
   { id: 'mistral', name: 'Mistral AI', key: 'MISTRAL_API_KEY', tier: 'free-first' },
+  { id: 'openrouter-free', name: 'OpenRouter Free Models', key: 'OPENROUTER_API_KEY', tier: 'free-first' },
   { id: 'nvidia-kimi', name: 'NVIDIA NIM — Kimi K3', key: 'NVIDIA_API_KEY', tier: 'free-first' },
   { id: 'nvidia-deepseek-pro', name: 'NVIDIA NIM — DeepSeek V4 Pro', key: 'NVIDIA_API_KEY', tier: 'free-first' },
   { id: 'nvidia-deepseek-flash', name: 'NVIDIA NIM — DeepSeek V4 Flash', key: 'NVIDIA_API_KEY', tier: 'free-first' },
@@ -146,6 +147,7 @@ async function callProvider(id, env, message, model) {
   if (id === 'google') return { text: await google(env, message, model), model: model || env.GOOGLE_MODEL || 'gemini-2.5-flash' };
   if (id === 'groq') return { text: await openaiCompatible('https://api.groq.com/openai/v1', env.GROQ_API_KEY, model || env.GROQ_MODEL || 'llama-3.3-70b-versatile', message, 'Groq'), model: model || env.GROQ_MODEL || 'llama-3.3-70b-versatile' };
   if (id === 'mistral') return { text: await openaiCompatible('https://api.mistral.ai/v1', env.MISTRAL_API_KEY, model || env.MISTRAL_MODEL || 'mistral-large-latest', message, 'Mistral'), model: model || env.MISTRAL_MODEL || 'mistral-large-latest' };
+  if (id === 'openrouter-free') return { text: await openaiCompatible('https://openrouter.ai/api/v1', env.OPENROUTER_API_KEY, model || env.OPENROUTER_FREE_MODEL || 'openrouter/free', message, 'OpenRouter Free'), model: model || env.OPENROUTER_FREE_MODEL || 'openrouter/free' };
   if (id === 'nvidia-kimi') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_KIMI_MODEL || 'moonshotai/kimi-k3', message, 'NVIDIA Kimi'), model: model || env.NVIDIA_KIMI_MODEL || 'moonshotai/kimi-k3' };
   if (id === 'nvidia-deepseek-pro') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_DEEPSEEK_PRO_MODEL || 'deepseek-ai/deepseek-v4-pro-0813', message, 'NVIDIA DeepSeek Pro'), model: model || env.NVIDIA_DEEPSEEK_PRO_MODEL || 'deepseek-ai/deepseek-v4-pro-0813' };
   if (id === 'nvidia-deepseek-flash') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_DEEPSEEK_FLASH_MODEL || 'deepseek-ai/deepseek-v4-flash-0731', message, 'NVIDIA DeepSeek Flash'), model: model || env.NVIDIA_DEEPSEEK_FLASH_MODEL || 'deepseek-ai/deepseek-v4-flash-0731' };
@@ -179,11 +181,11 @@ function routeProviders(env,message,body={},learned=new Map()){
   const quality=String(body.quality||body.route_policy||'').toLowerCase();
   const task=taskClass(message,body);
   const order={
-    research:['google','nvidia-kimi','cloudflare-ai','nvidia-deepseek-flash','groq','mistral','nvidia-deepseek-pro','openai','anthropic'],
-    coding:['nvidia-deepseek-pro','nvidia-deepseek-flash','nvidia-kimi','mistral','groq','cloudflare-ai','google','openai','anthropic'],
-    business:['nvidia-kimi','nvidia-deepseek-pro','google','cloudflare-ai','nvidia-deepseek-flash','mistral','groq','openai','anthropic'],
-    writing:['cloudflare-ai','nvidia-kimi','nvidia-deepseek-flash','mistral','google','groq','nvidia-deepseek-pro','openai','anthropic'],
-    general:['cloudflare-ai','nvidia-kimi','nvidia-deepseek-flash','google','groq','mistral','nvidia-deepseek-pro','openai','anthropic']
+    research:['google','nvidia-kimi','cloudflare-ai','nvidia-deepseek-flash','groq','mistral','nvidia-deepseek-pro','openrouter-free','openai','anthropic'],
+    coding:['nvidia-deepseek-pro','nvidia-deepseek-flash','nvidia-kimi','mistral','groq','cloudflare-ai','google','openrouter-free','openai','anthropic'],
+    business:['nvidia-kimi','nvidia-deepseek-pro','google','cloudflare-ai','nvidia-deepseek-flash','mistral','groq','openrouter-free','openai','anthropic'],
+    writing:['cloudflare-ai','nvidia-kimi','nvidia-deepseek-flash','mistral','google','groq','nvidia-deepseek-pro','openrouter-free','openai','anthropic'],
+    general:['cloudflare-ai','nvidia-kimi','nvidia-deepseek-flash','google','groq','mistral','nvidia-deepseek-pro','openrouter-free','openai','anthropic']
   }[task]||[];
   const preferred=(quality==='max'||quality==='maximum'||quality==='quality')?['openai','anthropic',...order]:order;
   const rank=new Map([...new Set(preferred)].map((id,i)=>[id,i]));
