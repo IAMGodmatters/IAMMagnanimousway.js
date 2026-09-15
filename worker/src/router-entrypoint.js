@@ -9,6 +9,7 @@ import { handlePlatformCredentials, getIntegrationRuntimeEnv } from './platform-
 import { handleSocialPublishing } from './social-publishing-runtime.js';
 import { handleKnowledge } from './knowledge-runtime.js';
 import { handleMagnanimousBrain, getMagnanimousMemoryContext } from './magnanimous-brain-runtime.js';
+import { handleMagnanimousSovereign } from './magnanimous-sovereign-runtime.js';
 import { handleMagnanimousToolGateway } from './magnanimous-tool-gateway.js';
 import { handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
 import { handleWellness } from './wellness-runtime.js';
@@ -41,211 +42,51 @@ import { handleVisual } from './visual-runtime.js';
 import { handleVideoAgents } from './video-agents-runtime.js';
 import { premiumPreflight, premiumPostprocess } from './premium-runtime-guard.js';
 
-const corsHeaders = {
-  'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET,POST,PUT,DELETE,OPTIONS',
-  'access-control-allow-headers': 'Content-Type, Authorization, Stripe-Signature, X-Twilio-Signature',
-  'access-control-expose-headers': 'Content-Type'
-};
+const corsHeaders={'access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,PUT,DELETE,OPTIONS','access-control-allow-headers':'Content-Type, Authorization, Stripe-Signature, X-Twilio-Signature','access-control-expose-headers':'Content-Type'};
+function withCors(response){const headers=new Headers(response.headers);for(const[key,value]of Object.entries(corsHeaders))headers.set(key,value);return new Response(response.body,{status:response.status,statusText:response.statusText,headers});}
+function isMagnanimousRoute(pathname){return pathname==='/api/providers'||pathname==='/api/operator/capabilities'||pathname==='/api/magnanimous/health'||pathname==='/api/odin/health'||pathname==='/api/chat'||pathname==='/api/tools';}
+function needsProviderRuntime(pathname){return isMagnanimousRoute(pathname)||pathname.startsWith('/api/magnanimous/')||pathname.startsWith('/api/wellness')||pathname.startsWith('/api/business-plan')||pathname.startsWith('/api/visual')||pathname.startsWith('/api/video-agents')||pathname.startsWith('/api/phone')||pathname.startsWith('/api/contact-center')||pathname.startsWith('/api/social-connect')||pathname.startsWith('/api/enterprise')||pathname==='/api/plans'||pathname.startsWith('/api/billing')||pathname.startsWith('/api/voice-agent')||pathname.startsWith('/api/agents')||pathname==='/api/monetization/config';}
+async function magnanimousChatRequest(request,env){if(request.method!=='POST')return request;try{const memory=await getMagnanimousMemoryContext(request,env);if(!memory)return request;const body=await request.clone().json();const message=String(body?.message||'').trim();if(!message)return request;return new Request(request.url,{method:request.method,headers:request.headers,body:JSON.stringify({...body,message:`${message}${memory}`})});}catch{return request;}}
 
-function withCors(response) {
-  const headers = new Headers(response.headers);
-  for (const [key, value] of Object.entries(corsHeaders)) headers.set(key, value);
-  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
-}
-
-function isMagnanimousRoute(pathname) {
-  return pathname === '/api/providers' ||
-    pathname === '/api/operator/capabilities' ||
-    pathname === '/api/magnanimous/health' ||
-    pathname === '/api/odin/health' ||
-    pathname === '/api/chat' ||
-    pathname === '/api/tools';
-}
-
-function needsProviderRuntime(pathname) {
-  return isMagnanimousRoute(pathname) ||
-    pathname.startsWith('/api/magnanimous/') ||
-    pathname.startsWith('/api/wellness') ||
-    pathname.startsWith('/api/business-plan') ||
-    pathname.startsWith('/api/visual') ||
-    pathname.startsWith('/api/video-agents') ||
-    pathname.startsWith('/api/phone') ||
-    pathname.startsWith('/api/contact-center') ||
-    pathname.startsWith('/api/social-connect') ||
-    pathname.startsWith('/api/enterprise') ||
-    pathname === '/api/plans' ||
-    pathname.startsWith('/api/billing') ||
-    pathname.startsWith('/api/voice-agent') ||
-    pathname.startsWith('/api/agents') ||
-    pathname === '/api/monetization/config';
-}
-
-async function magnanimousChatRequest(request, env) {
-  if (request.method !== 'POST') return request;
-  try {
-    const memory = await getMagnanimousMemoryContext(request, env);
-    if (!memory) return request;
-    const body = await request.clone().json();
-    const message = String(body?.message || '').trim();
-    if (!message) return request;
-    return new Request(request.url, {
-      method: request.method,
-      headers: request.headers,
-      body: JSON.stringify({ ...body, message: `${message}${memory}` })
-    });
-  } catch (_) { return request; }
-}
-
-export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
-    try {
-      const bootstrapResponse = await handleBootstrap(request, env);
-      if (bootstrapResponse) return withCors(bootstrapResponse);
-      const businessEmailResponse = await handleBusinessEmail(request, env);
-      if (businessEmailResponse) return withCors(businessEmailResponse);
-      const billingSupportResponse = await handleBillingSupport(request, env);
-      if (billingSupportResponse) return withCors(billingSupportResponse);
-      const providerEnv = needsProviderRuntime(url.pathname) ? await getProviderRuntimeEnv(env) : env;
-      const premium = await premiumPreflight(request, providerEnv);
-      if (premium.response) return withCors(premium.response);
-      request = premium.request || request;
-      if (url.pathname.startsWith('/api/enterprise')) {
-        const enterpriseResponse = await handleEnterpriseCommercialization(request, providerEnv);
-        if (enterpriseResponse) return withCors(enterpriseResponse);
-      }
-      if (url.pathname.startsWith('/api/social-connect')) {
-        const socialResponse = await handleSocialPublishing(request, providerEnv);
-        if (socialResponse) return withCors(socialResponse);
-      }
-      if (url.pathname.startsWith('/api/contact-center')) {
-        const softphoneResponse = await handleTwilioSoftphone(request, providerEnv);
-        if (softphoneResponse) return withCors(softphoneResponse);
-        const professionalIvrResponse = await handleProfessionalIvrStep(request, providerEnv);
-        if (professionalIvrResponse) return withCors(professionalIvrResponse);
-        const dialGuardResponse = await handleContactCenterDialGuard(request, providerEnv);
-        if (dialGuardResponse) return withCors(dialGuardResponse);
-        const contactCenterResponse = await handleContactCenter(request, providerEnv);
-        if (contactCenterResponse) return withCors(await premiumPostprocess(contactCenterResponse, providerEnv, premium.context));
-      }
-      if (url.pathname.startsWith('/api/bpo')) {
-        const bpoResponse = await handleBpoOperations(request, env);
-        if (bpoResponse) return withCors(bpoResponse);
-      }
-      if (url.pathname.startsWith('/api/wellness')) {
-        const wellnessResponse = await handleWellness(request, providerEnv);
-        if (wellnessResponse) return withCors(wellnessResponse);
-      }
-      if (url.pathname.startsWith('/api/magnanimous/tool-foundry')) {
-        const foundryResponse = await handleMagnanimousToolFoundry(request, providerEnv);
-        if (foundryResponse) return withCors(foundryResponse);
-      }
-      if (url.pathname.startsWith('/api/magnanimous/tools')) {
-        const toolResponse = await handleMagnanimousToolGateway(request, providerEnv);
-        if (toolResponse) return withCors(toolResponse);
-      }
-      if (url.pathname.startsWith('/api/magnanimous/')) {
-        const brainResponse = await handleMagnanimousBrain(request, providerEnv);
-        if (brainResponse) return withCors(brainResponse);
-      }
-      const businessPlanResponse = await handleBusinessPlan(request, providerEnv);
-      if (businessPlanResponse) return withCors(businessPlanResponse);
-      const videoAgentsResponse = await handleVideoAgents(request, providerEnv);
-      if (videoAgentsResponse) return withCors(await premiumPostprocess(videoAgentsResponse, providerEnv, premium.context));
-      const visualResponse = await handleVisual(request, providerEnv);
-      if (visualResponse) return withCors(await premiumPostprocess(visualResponse, providerEnv, premium.context));
-      const agentResponse = await handleAgentMesh(request, providerEnv);
-      if (agentResponse) return withCors(agentResponse);
-      const monetizationResponse = await handleMonetization(request, providerEnv);
-      if (monetizationResponse) return withCors(monetizationResponse);
-      const checkoutHardeningResponse = await handleBillingCheckoutHardening(request, providerEnv);
-      if (checkoutHardeningResponse) return withCors(checkoutHardeningResponse);
-      const hardenedWebhookResponse = await handleHardenedStripeWebhook(request, providerEnv);
-      if (hardenedWebhookResponse) return withCors(hardenedWebhookResponse);
-      const tierBillingResponse = await handleTierBilling(request, providerEnv);
-      if (tierBillingResponse) return withCors(await augmentBillingResponse(request, tierBillingResponse, providerEnv));
-      const paymentLinkResponse = await handlePaymentLinkBilling(request, providerEnv);
-      if (paymentLinkResponse) return withCors(paymentLinkResponse);
-      const billingResponse = await handleBilling(request, providerEnv);
-      if (billingResponse) return withCors(await augmentBillingResponse(request, billingResponse, providerEnv));
-      const phoneCarrierResponse = await handlePhoneCarrier(request, providerEnv);
-      if (phoneCarrierResponse) return withCors(await premiumPostprocess(phoneCarrierResponse, providerEnv, premium.context));
-      const voiceAgentResponse = await handleVoiceAgent(request, providerEnv);
-      if (voiceAgentResponse) return withCors(await premiumPostprocess(voiceAgentResponse, providerEnv, premium.context));
-      if (url.pathname.startsWith('/api/mux')) {
-        const muxResponse = await handleMux(request, env);
-        if (muxResponse) return withCors(muxResponse);
-      }
-      if (url.pathname.startsWith('/api/professional')) {
-        const runtimeEnv = await getIntegrationRuntimeEnv(env);
-        const response = await handleProfessionalWorkspace(request, runtimeEnv);
-        if (response) return withCors(response);
-      }
-      if (url.pathname.startsWith('/api/finance-people')) {
-        const runtimeEnv = await getIntegrationRuntimeEnv(env);
-        const response = await handleFinancePeople(request, runtimeEnv);
-        if (response) return withCors(response);
-      }
-      if (url.pathname.startsWith('/api/call-center-health')) {
-        const response = await handleCallCenterHealth(request, env);
-        if (response) return withCors(response);
-      }
-      if (url.pathname.startsWith('/api/support/owner/')) {
-        const guardResponse = await requirePlatformOwner(request, env);
-        if (guardResponse) return withCors(guardResponse);
-        const response = await handleSupportFeedback(request, env, { platformOwner: true });
-        if (response) return withCors(response);
-      }
-      if (url.pathname.startsWith('/api/support')) {
-        const response = await handleSupportFeedback(request, env);
-        if (response) return withCors(response);
-      }
-      if (url.pathname.startsWith('/api/knowledge')) {
-        const runtimeEnv = await getIntegrationRuntimeEnv(env);
-        const response = await handleKnowledge(request, runtimeEnv);
-        if (response) return withCors(response);
-      }
-      if (url.pathname.startsWith('/api/assistant-integrations')) {
-        const runtimeEnv = await getIntegrationRuntimeEnv(env);
-        const managedResponse = await handleComposioAssistant(request, runtimeEnv);
-        if (managedResponse) return withCors(managedResponse);
-        const response = await handleAssistantIntegrations(request, runtimeEnv);
-        if (response) return withCors(response);
-      }
-      if (url.pathname.startsWith('/api/integrations/platform-credentials')) {
-        const guardResponse = await requirePlatformOwner(request, env);
-        if (guardResponse) return withCors(guardResponse);
-        const response = await handlePlatformCredentials(request, env);
-        if (response) return withCors(response);
-      }
-      if (url.pathname.startsWith('/api/integrations')) {
-        const runtimeEnv = await getIntegrationRuntimeEnv(env);
-        const managedResponse = await handleComposioManagedAuth(request, runtimeEnv);
-        if (managedResponse) return withCors(managedResponse);
-        const response = await handleIntegrations(request, runtimeEnv);
-        if (response) return withCors(response);
-      }
-      if (url.pathname.startsWith('/api/admin/') && url.pathname !== '/api/admin/login') {
-        const guardResponse = await requirePlatformOwner(request, env);
-        if (guardResponse) return withCors(guardResponse);
-      }
-      if (url.pathname === '/api/admin/leads') {
-        const leadsResponse = await handleOwnerLeads(request, env);
-        if (leadsResponse) return withCors(leadsResponse);
-      }
-      if (isMagnanimousRoute(url.pathname)) {
-        const routedRequest = url.pathname === '/api/chat' ? await magnanimousChatRequest(request, providerEnv) : request;
-        const providerResponse = await providerApp.fetch(routedRequest, providerEnv, ctx);
-        return withCors(await premiumPostprocess(providerResponse, providerEnv, premium.context));
-      }
-      return withCors(await adminApp.fetch(request, env, ctx));
-    } catch (error) {
-      return withCors(new Response(JSON.stringify({ detail: error?.message || 'Server error', code: 'WORKER_RUNTIME_ERROR' }), {
-        status: 500,
-        headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
-      }));
-    }
-  }
-};
+export default{async fetch(request,env,ctx){const url=new URL(request.url);if(request.method==='OPTIONS')return new Response(null,{status:204,headers:corsHeaders});try{
+ const bootstrapResponse=await handleBootstrap(request,env);if(bootstrapResponse)return withCors(bootstrapResponse);
+ const businessEmailResponse=await handleBusinessEmail(request,env);if(businessEmailResponse)return withCors(businessEmailResponse);
+ const billingSupportResponse=await handleBillingSupport(request,env);if(billingSupportResponse)return withCors(billingSupportResponse);
+ const providerEnv=needsProviderRuntime(url.pathname)?await getProviderRuntimeEnv(env):env;
+ const premium=await premiumPreflight(request,providerEnv);if(premium.response)return withCors(premium.response);request=premium.request||request;
+ if(url.pathname.startsWith('/api/enterprise')){const r=await handleEnterpriseCommercialization(request,providerEnv);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/social-connect')){const r=await handleSocialPublishing(request,providerEnv);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/contact-center')){const a=await handleTwilioSoftphone(request,providerEnv);if(a)return withCors(a);const b=await handleProfessionalIvrStep(request,providerEnv);if(b)return withCors(b);const c=await handleContactCenterDialGuard(request,providerEnv);if(c)return withCors(c);const d=await handleContactCenter(request,providerEnv);if(d)return withCors(await premiumPostprocess(d,providerEnv,premium.context));}
+ if(url.pathname.startsWith('/api/bpo')){const r=await handleBpoOperations(request,env);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/wellness')){const r=await handleWellness(request,providerEnv);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/magnanimous/sovereign')){const r=await handleMagnanimousSovereign(request,providerEnv);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/magnanimous/tool-foundry')){const r=await handleMagnanimousToolFoundry(request,providerEnv);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/magnanimous/tools')){const r=await handleMagnanimousToolGateway(request,providerEnv);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/magnanimous/')){const r=await handleMagnanimousBrain(request,providerEnv);if(r)return withCors(r);}
+ const businessPlanResponse=await handleBusinessPlan(request,providerEnv);if(businessPlanResponse)return withCors(businessPlanResponse);
+ const videoAgentsResponse=await handleVideoAgents(request,providerEnv);if(videoAgentsResponse)return withCors(await premiumPostprocess(videoAgentsResponse,providerEnv,premium.context));
+ const visualResponse=await handleVisual(request,providerEnv);if(visualResponse)return withCors(await premiumPostprocess(visualResponse,providerEnv,premium.context));
+ const agentResponse=await handleAgentMesh(request,providerEnv);if(agentResponse)return withCors(agentResponse);
+ const monetizationResponse=await handleMonetization(request,providerEnv);if(monetizationResponse)return withCors(monetizationResponse);
+ const checkoutHardeningResponse=await handleBillingCheckoutHardening(request,providerEnv);if(checkoutHardeningResponse)return withCors(checkoutHardeningResponse);
+ const hardenedWebhookResponse=await handleHardenedStripeWebhook(request,providerEnv);if(hardenedWebhookResponse)return withCors(hardenedWebhookResponse);
+ const tierBillingResponse=await handleTierBilling(request,providerEnv);if(tierBillingResponse)return withCors(await augmentBillingResponse(request,tierBillingResponse,providerEnv));
+ const paymentLinkResponse=await handlePaymentLinkBilling(request,providerEnv);if(paymentLinkResponse)return withCors(paymentLinkResponse);
+ const billingResponse=await handleBilling(request,providerEnv);if(billingResponse)return withCors(await augmentBillingResponse(request,billingResponse,providerEnv));
+ const phoneCarrierResponse=await handlePhoneCarrier(request,providerEnv);if(phoneCarrierResponse)return withCors(await premiumPostprocess(phoneCarrierResponse,providerEnv,premium.context));
+ const voiceAgentResponse=await handleVoiceAgent(request,providerEnv);if(voiceAgentResponse)return withCors(await premiumPostprocess(voiceAgentResponse,providerEnv,premium.context));
+ if(url.pathname.startsWith('/api/mux')){const r=await handleMux(request,env);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/professional')){const runtimeEnv=await getIntegrationRuntimeEnv(env);const r=await handleProfessionalWorkspace(request,runtimeEnv);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/finance-people')){const runtimeEnv=await getIntegrationRuntimeEnv(env);const r=await handleFinancePeople(request,runtimeEnv);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/call-center-health')){const r=await handleCallCenterHealth(request,env);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/support/owner/')){const g=await requirePlatformOwner(request,env);if(g)return withCors(g);const r=await handleSupportFeedback(request,env,{platformOwner:true});if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/support')){const r=await handleSupportFeedback(request,env);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/knowledge')){const runtimeEnv=await getIntegrationRuntimeEnv(env);const r=await handleKnowledge(request,runtimeEnv);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/assistant-integrations')){const runtimeEnv=await getIntegrationRuntimeEnv(env);const managed=await handleComposioAssistant(request,runtimeEnv);if(managed)return withCors(managed);const r=await handleAssistantIntegrations(request,runtimeEnv);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/integrations/platform-credentials')){const g=await requirePlatformOwner(request,env);if(g)return withCors(g);const r=await handlePlatformCredentials(request,env);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/integrations')){const runtimeEnv=await getIntegrationRuntimeEnv(env);const managed=await handleComposioManagedAuth(request,runtimeEnv);if(managed)return withCors(managed);const r=await handleIntegrations(request,runtimeEnv);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/admin/')&&url.pathname!=='/api/admin/login'){const g=await requirePlatformOwner(request,env);if(g)return withCors(g);}
+ if(url.pathname==='/api/admin/leads'){const r=await handleOwnerLeads(request,env);if(r)return withCors(r);}
+ if(isMagnanimousRoute(url.pathname)){const routed=url.pathname==='/api/chat'?await magnanimousChatRequest(request,providerEnv):request;const r=await providerApp.fetch(routed,providerEnv,ctx);return withCors(await premiumPostprocess(r,providerEnv,premium.context));}
+ return withCors(await adminApp.fetch(request,env,ctx));
+}catch(error){return withCors(new Response(JSON.stringify({detail:error?.message||'Server error',code:'WORKER_RUNTIME_ERROR'}),{status:500,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}}));}}};
