@@ -2,15 +2,33 @@ import { test, expect } from '@playwright/test';
 
 const THIRD_PARTY_AI = /\b(?:OpenAI|Anthropic|Claude|Gemini|Groq|Mistral|OpenRouter|Cerebras|Hugging Face|Cloudflare Workers AI)\b/i;
 
-test('standalone Magnanimous AI remains isolated, public, voice-enabled, autosaving, and Magnanimous-branded', async ({ page }) => {
+test('standalone Magnanimous AI remains isolated, sign-in protected, voice-enabled, autosaving, Magnanimous-branded, and owner-promo visible', async ({ page }) => {
+  // Authentication is a hard product boundary: anonymous visitors must not receive the standalone composer.
+  await page.goto('/magnanimous', { waitUntil: 'domcontentloaded' });
+  await page.waitForURL((url) => /^\/login\/?$/.test(url.pathname) && url.searchParams.get('returnTo') === '/magnanimous', { timeout: 10_000 });
+  await expect(page.locator('main.mag-standalone')).toHaveCount(0);
+  await expect(page.locator('.mag-compose textarea')).toHaveCount(0);
+
+  // Establish the same browser-side customer session contract used by the platform guard.
+  await page.evaluate(() => {
+    localStorage.setItem('iam_account_token', 'qa-customer-session');
+    sessionStorage.setItem('iam_session_active', 'user');
+  });
   await page.goto('/magnanimous', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('main.mag-standalone')).toBeVisible();
   await expect(page.getByText('MAGNANIMOUS AI™').first()).toBeVisible();
   await expect(page.getByText('STANDALONE INTELLIGENCE')).toBeVisible();
-  await expect(page.getByText('Guest session')).toBeVisible();
   await expect(page.locator('.iam-shop-link')).toBeHidden();
   await expect(page.locator('.iam-global-tools')).toBeHidden();
+
+  // The owner's God Matters promotion is intentionally part of standalone Magnanimous without exposing platform chrome.
+  const promo = page.locator('.mag-shop-promo');
+  await expect(promo).toBeVisible();
+  await expect(promo).toContainText('GOD MATTERS SHOP');
+  await expect(promo).toContainText('THE HOLY SPIRIT SPEAKS');
+  await expect(promo.locator('a[href="/shop"]')).toBeVisible();
+  await expect(promo.locator('a[href="https://a.co/d/02rFwv8H"]')).toBeVisible();
 
   // Voice and autosave are standalone product capabilities, not platform chrome.
   const voicePanel = page.locator('.iam-voice-panel');
