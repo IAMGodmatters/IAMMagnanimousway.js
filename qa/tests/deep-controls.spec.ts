@@ -104,9 +104,20 @@ test.describe('deep non-destructive control sweep', () => {
   }
 });
 
-test('standalone Magnanimous guest Q&A UI keeps execution providers private', async ({ page }) => {
-  // PR/source QA must test the branch being reviewed, not whatever backend version happens to be
-  // live before merge. The post-deployment suite performs the separate real production API check.
+test('standalone Magnanimous requires sign-in and keeps execution providers private for signed-in customers', async ({ page }) => {
+  // First lock the customer boundary: an unauthenticated visitor must not receive the standalone composer.
+  await page.goto('/magnanimous', { waitUntil: 'domcontentloaded' });
+  await page.waitForURL(/\/login\?returnTo=%2Fmagnanimous(?:&|$)/, { timeout: 10_000 });
+  await expect(page.locator('.mag-compose textarea')).toHaveCount(0);
+
+  // Establish the same browser-side customer session contract used by the platform guard.
+  // The backend chat response remains mocked because this source QA validates the UI/privacy contract;
+  // the post-deployment suite separately checks the real production API.
+  await page.evaluate(() => {
+    localStorage.setItem('iam_account_token', 'qa-customer-session');
+    sessionStorage.setItem('iam_session_active', 'user');
+  });
+
   await page.route('**/api/chat', async (route: any) => {
     if (route.request().method() !== 'POST') return route.continue();
     await route.fulfill({
