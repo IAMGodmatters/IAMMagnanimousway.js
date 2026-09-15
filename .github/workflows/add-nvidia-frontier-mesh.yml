@@ -15,8 +15,8 @@ jobs:
   repair:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
       - name: Apply additive NVIDIA routing and remembrance invariant
@@ -27,6 +27,12 @@ jobs:
           node --check worker/src/provider-runtime-env.js
           node --check worker/src/platform-credentials.js
           node --check worker/src/magnanimous-brain-runtime.js
+      - name: Build frontend assets for Worker validation
+        working-directory: frontend
+        run: |
+          npm install
+          npm run typecheck
+          npm run build
       - name: Validate Worker bundle
         working-directory: worker
         run: |
