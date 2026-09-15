@@ -52,15 +52,15 @@ jobs:
         working-directory: worker
         run: npx wrangler deploy --dry-run
 
-      - name: Commit validated source repair
+      - name: Commit validated provider repair
         shell: bash
         run: |
-          if git diff --quiet; then
-            echo 'No source changes were needed.'
+          if git diff --quiet -- worker/src/provider-entrypoint.js; then
+            echo 'No provider source changes were needed.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add worker/src/provider-entrypoint.js .github/workflows/deploy.yml
-          git commit -m 'Add OpenRouter free fallback and NVIDIA secret sync'
+          git add worker/src/provider-entrypoint.js
+          git commit -m 'Add OpenRouter free fallback'
           git push
