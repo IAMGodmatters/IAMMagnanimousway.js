@@ -1,0 +1,105 @@
+name: Repair deployment QA smoke semantics
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-deploy-smoke-qa-semantics.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Patch stale Q&A training smoke assertions
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path=Path('.github/workflows/deploy.yml')
+          text=path.read_text()
+
+          replacements=[
+            (
+              "          assert data.get('owner_approval_required_for_global_learning') is True, data\n",
+              "          assert data.get('automatic_qa_gate_for_contributor_learning') is True, data\n"
+              "          assert data.get('owner_oversight_required_for_held_learning') is True, data\n"
+              "          assert data.get('automatic_qa_review_required_for_global_learning') is True, data\n"
+              "          assert data.get('manual_owner_review_if_held') is True, data\n"
+              "          assert data.get('owner_override_available') is True, data\n"
+            ),
+            (
+              "          assert d.get('requires_owner_approval') is True, d\n",
+              "          assert d.get('requires_quality_review') is True, d\n"
+              "          assert d.get('automatic_qa_review') is True, d\n"
+              "          assert d.get('owner_approval_required_if_held') is True, d\n"
+            ),
+            (
+              "          echo \"QA contributors can submit training, but cannot publish global specialist knowledge.\"\n",
+              "          echo \"QA contributors can submit training but cannot directly approve or publish it; Magnanimous automatic QA may promote safe high-confidence teaching, while held material remains under owner oversight.\"\n"
+            ),
+            (
+              "          echo \"Production health, QA contribution with owner-only approval, automatic named specialist handoff, private execution-provider catalogs, native Agent Mesh, Magnanimous AI, AI Receptionist, billing, monetization, signup, sessions, and platform-owner isolation passed.\"\n",
+              "          echo \"Production health, guarded automatic QA learning with owner oversight for held material, automatic named specialist handoff, private execution-provider catalogs, native Agent Mesh, Magnanimous AI, AI Receptionist, billing, monetization, signup, sessions, and platform-owner isolation passed.\"\n"
+            )
+          ]
+
+          for old,new in replacements:
+            count=text.count(old)
+            if count==0:
+              if new not in text:
+                raise SystemExit(f'Expected stale smoke-test text not found: {old.strip()}')
+              continue
+            if count!=1:
+              raise SystemExit(f'Expected exactly one stale smoke-test match, found {count}: {old.strip()}')
+            text=text.replace(old,new)
+
+          required=[
+            "automatic_qa_gate_for_contributor_learning",
+            "owner_oversight_required_for_held_learning",
+            "automatic_qa_review_required_for_global_learning",
+            "manual_owner_review_if_held",
+            "owner_override_available",
+            "requires_quality_review",
+            "automatic_qa_review",
+            "owner_approval_required_if_held",
+            "cannot directly approve or publish"
+          ]
+          for marker in required:
+            if marker not in text:
+              raise SystemExit(f'Missing repaired smoke-test marker: {marker}')
+
+          if "owner_approval_required_for_global_learning" in text:
+            raise SystemExit('Stale global owner-approval assertion remains in deployment smoke test.')
+          if "d.get('requires_owner_approval')" in text:
+            raise SystemExit('Stale per-submission owner-approval assertion remains in deployment smoke test.')
+
+          path.write_text(text)
+
+      - name: Validate workflow diff
+        run: |
+          git diff --check
+          grep -q "automatic_qa_gate_for_contributor_learning" .github/workflows/deploy.yml
+          grep -q "owner_approval_required_if_held" .github/workflows/deploy.yml
+          grep -q "cannot directly approve or publish" .github/workflows/deploy.yml
+
+      - name: Commit corrected deployment smoke test
+        run: |
+          if git diff --quiet -- .github/workflows/deploy.yml; then
+            echo "Deployment smoke test is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/deploy.yml
+          git commit -m "Align deployment smoke test with guarded automatic QA"
+          git push origin HEAD:main
