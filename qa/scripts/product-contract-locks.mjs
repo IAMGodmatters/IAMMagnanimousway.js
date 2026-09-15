@@ -48,7 +48,7 @@ includes(standalonePage, 'className="mag-standalone"', 'standalone: isolated int
 includes(standalonePage, "fetch('/api/magnanimous/health'", 'standalone: Magnanimous health endpoint remains wired');
 includes(standalonePage, "fetch('/api/chat'", 'standalone: Magnanimous chat endpoint remains wired');
 includes(standalonePage, '/login?returnTo=%2Fmagnanimous', 'standalone: persistent-memory sign-in return path remains locked');
-includes(standalonePage, 'Guest session', 'standalone: guest access boundary remains locked');
+includes(standalonePage, 'Guest session', 'standalone: guest-session UI contract remains locked');
 includes(standalonePage, 'MAGNANIMOUS AI™', 'standalone: Magnanimous customer-facing identity remains locked');
 notMatches(standalonePage, /d\?\.(?:provider|provider_name|model)\b/, 'standalone: UI must not read provider/model identities');
 notMatches(standalonePage, /execution engine/i, 'standalone: UI must not display execution-engine language');
@@ -94,11 +94,13 @@ const requiredPlatformRoutes = [
 ];
 for (const rel of requiredPlatformRoutes) must(fs.existsSync(path.join(root, rel)), `platform: required route exists — ${rel.replace('frontend/app','')}`);
 includes(layout, '<PlatformChrome/><GlobalTools/><InteractionClarity/>', 'platform: global platform chrome/tools/clarity remain mounted');
-includes(layout, "var publicPaths=['/solutions'", 'platform: explicit public/protected route boundary remains present');
-includes(layout, "'/shop'", 'platform: marketplace route remains public');
-includes(layout, "'/magnanimous'", 'platform: standalone entry remains public without becoming the whole platform');
+includes(layout, "var publicPaths=['/teach','/shop','/login','/signup','/owner-login'];", 'platform: strict Teach + Shop public boundary remains present');
+includes(layout, "function isPublicPath(path){return publicPaths.indexOf(path)!==-1||path.indexOf('/teach/')===0||path.indexOf('/shop/')===0;}", 'platform: nested Teach and Shop routes remain public');
+includes(layout, "href=\"/shop\"", 'platform: God Matters marketplace remains linked from platform chrome');
+notMatches(layout.match(/var publicPaths=\[[^;]+;/)?.[0] || '', /['"]\/magnanimous['"]/, 'platform: standalone Magnanimous entry remains protected behind sign-in');
+notMatches(layout.match(/var publicPaths=\[[^;]+;/)?.[0] || '', /['"]\/(?:solutions|pricing|free-tools|ai-apps|business-plan|guide|privacy|terms|reviews|advertise|security|white-label|bible-study)['"]/, 'platform: protected routes stay out of the public allowlist');
+includes(layout, "if(p==='/'){if(!valid)location.replace('/login?returnTo=%2F');return;}", 'platform: unauthenticated root route returns to login');
 notMatches(home, /mag-standalone/, 'platform: main homepage must not become the standalone AI shell');
-includes(layout, 'href="/shop"', 'platform: God Matters marketplace remains linked from platform chrome');
 
 // 3) God Matters Shopify/store lock.
 const storeMatch = shopPage.match(/const STORE_URL=['"](https:\/\/[^'"]+)['"]/);
