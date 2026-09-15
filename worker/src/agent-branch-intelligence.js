@@ -153,7 +153,7 @@ export async function submitBranchTraining(env,user,agent,body={}){
  const source='qa-contributor';
  const ts=now();
  const result=await env.DB.prepare('INSERT INTO agent_branch_training_submissions(tenant_id,agent_id,title,content,tags,source,challenge_prompt,expected_outcome,submitted_by,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(String(user.tenant_id),agent.id,title,content.slice(0,30000),tags,source,challenge.slice(0,10000),expected.slice(0,10000),String(user.id), 'pending',ts).run();
- return{ok:true,id:result?.meta?.last_row_id||null,agent_id:agent.id,title,status:'pending',requires_quality_review:true,automatic_qa_review:true,owner_approval_required_if_held:true};
+ return{ok:true,id:result?.meta?.last_row_id||null,agent_id:agent.id,title,status:'pending',requires_quality_review:true,automatic_qa_review:true,owner_approval_required_if_held:true,requires_owner_approval:true,legacy_qa_compatibility_note:'Legacy owner-approval flag preserves existing clients; automatic QA may approve only safe high-confidence teaching, while held material remains under owner oversight.'};
 }
 
 export async function branchTrainingSubmissions(env,user,{agentId='',status=''}={}){
