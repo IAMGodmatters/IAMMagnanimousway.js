@@ -290,7 +290,10 @@ export async function handleAgentMesh(request,env){
   const [team,integrations,native]=await Promise.all([teamMemory(env,user.tenant_id,agent.id),connectedPlatformContext(env,user.tenant_id),nativeWorkspaceContext(env,user.tenant_id)]);
   const prior=(await history(env,user,agent.id)).slice(-8).filter(x=>x.content!==message).map(x=>({role:x.role==='assistant'?'assistant':'user',content:String(x.content||'').slice(0,4000)}));
   const messages=[{role:'system',content:buildSystem(agent,team,integrations,native)},...prior,{role:'user',content:message}];
-  const requested=String(body.provider||'auto').toLowerCase();const candidates=requested==='auto'?[...PROVIDERS].sort((a,b)=>a.priority-b.priority):PROVIDERS.filter(p=>p.id===requested);
+  const requested=String(body.provider||'auto').toLowerCase();
+  const ordered=[...PROVIDERS].sort((a,b)=>a.priority-b.priority);
+  const preferred=requested==='auto'?null:ordered.find(p=>p.id===requested);
+  const candidates=preferred?[preferred,...ordered.filter(p=>p.id!==preferred.id)]:ordered;
   const ready=candidates.filter(p=>configured(env,p));
   if(!ready.length)return json({detail:requested==='auto'?'No non-OpenAI Agent Mesh provider is configured. Cloudflare Workers AI is the built-in free-first brain and should normally be available.':'The selected provider is not configured.',code:'NO_AGENT_PROVIDER'},503);
   const errors=[];
