@@ -48,11 +48,14 @@ if(fs.existsSync(bibleStudyPath)){
  if(!/href\s*=\s*(?:["']\/ai-chat["']|\{\s*["']\/ai-chat["']\s*\})/.test(bibleStudyPage))failures.push('app/bible-study/page.tsx: Magnanimous AI handoff link is missing');
 }
 
-// Bible Study must continue through the authenticated workspace guard.
-// Adding it to publicPaths would silently bypass the customer sign-in boundary.
+// Bible Study and Magnanimous AI must continue through the authenticated workspace guard.
+// Adding either to publicPaths would silently bypass the customer sign-in boundary.
 const publicPathsMatch=layout.match(/(?:var|let|const)\s+publicPaths\s*=\s*\[([\s\S]*?)\]/);
 if(!publicPathsMatch)failures.push('app/layout.tsx: public route contract could not be verified');
-else if(/["']\/bible-study["']/.test(publicPathsMatch[1]))failures.push('app/layout.tsx: /bible-study must remain behind the customer sign-in boundary');
+else{
+ if(/["']\/bible-study["']/.test(publicPathsMatch[1]))failures.push('app/layout.tsx: /bible-study must remain behind the customer sign-in boundary');
+ if(/["']\/magnanimous["']/.test(publicPathsMatch[1]))failures.push('app/layout.tsx: /magnanimous must remain behind the customer sign-in boundary');
+}
 
 const magnanimousLayoutPath=path.join(appDir,'magnanimous','layout.tsx');
 const magnanimousPagePath=path.join(appDir,'magnanimous','page.tsx');
@@ -69,9 +72,8 @@ if(fs.existsSync(magnanimousPagePath)){
  if(!magnanimousPage.includes("fetch('/api/magnanimous/health'"))failures.push('app/magnanimous/page.tsx: Magnanimous health check is missing');
  if(!magnanimousPage.includes("fetch('/api/chat'"))failures.push('app/magnanimous/page.tsx: Magnanimous chat endpoint is missing');
  if(!magnanimousPage.includes('/login?returnTo=%2Fmagnanimous'))failures.push('app/magnanimous/page.tsx: persistent-memory sign-in return path is missing');
- if(!magnanimousPage.includes('Guest session'))failures.push('app/magnanimous/page.tsx: public guest-session boundary is missing');
+ if(!magnanimousPage.includes('Guest session'))failures.push('app/magnanimous/page.tsx: guest-session UI contract is missing');
 }
-if(publicPathsMatch&&!/["']\/magnanimous["']/.test(publicPathsMatch[1]))failures.push('app/layout.tsx: /magnanimous must remain publicly accessible');
 if(!layout.includes("var standalone=currentPath==='/magnanimous'||currentPath.indexOf('/magnanimous/')===0"))failures.push('app/layout.tsx: standalone route detection is missing');
 if(!layout.includes("if(standalone)document.documentElement.setAttribute('data-iam-standalone','true')"))failures.push('app/layout.tsx: standalone document mode is missing');
 if(!layout.includes('html[data-iam-standalone="true"] .iam-shop-link')||!layout.includes('html[data-iam-standalone="true"] .iam-global-tools'))failures.push('app/layout.tsx: standalone interface isolation rules are missing');
@@ -79,5 +81,5 @@ if(!layout.includes('if(!standalone)loadAds()'))failures.push('app/layout.tsx: s
 console.log(`Interaction audit: ${sourceFiles.length} source files, ${routes.size} routes, ${literalLinks} literal links, ${buttons} buttons.`);
 if(failures.length){console.error('\nInteraction integrity failures:');for(const failure of failures)console.error(`- ${failure}`);process.exit(1)}
 console.log('Bible Study contract passed: route, marketplace link, metadata, Magnanimous AI handoff, and customer sign-in boundary are intact.');
-console.log('Standalone Magnanimous AI contract passed: public route, metadata, guest boundary, chat runtime, isolated interface, and no-ad shell are intact.');
+console.log('Standalone Magnanimous AI contract passed: protected route, metadata, sign-in boundary, chat runtime, isolated interface, and no-ad shell are intact.');
 console.log('Interaction audit passed: no empty/#/javascript links, literal internal links resolve to an app route, explicit type=button controls have handlers, and the global clarity layer is mounted.');
