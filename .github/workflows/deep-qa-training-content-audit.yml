@@ -1,0 +1,56 @@
+name: Deep Q&A Training Content Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/deep-qa-training-content-audit.mjs'
+      - '.github/workflows/deep-qa-training-content-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Apply guarded Q&A and training content improvements
+        run: node scripts/deep-qa-training-content-audit.mjs
+      - name: Install frontend
+        working-directory: frontend
+        run: npm ci
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npx tsc --noEmit
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+      - name: Run specialist and product QA locks
+        run: |
+          node qa/scripts/specialist-branch-lock.mjs
+          node qa/scripts/public-teaching-observation-lock.mjs
+          node qa/scripts/product-contract-locks.mjs
+          node scripts/verify-magnanimous-command-lock.mjs
+      - name: Worker dry run
+        working-directory: worker
+        run: |
+          npm ci
+          npx wrangler deploy --dry-run
+      - name: Commit validated improvements
+        run: |
+          if git diff --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add worker/src/agent-branch-intelligence.js worker/src/auto-teaching-runtime.js frontend/app/qa-ai-academy/page.tsx frontend/app/owner-ai-academy/page.tsx
+          git commit -m 'Deepen Q&A and training content quality rules'
+          git push origin HEAD:main
