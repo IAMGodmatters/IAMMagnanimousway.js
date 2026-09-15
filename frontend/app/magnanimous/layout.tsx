@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import type {ReactNode} from 'react';
 import PublicTeachingPanel from './public-teaching-panel';
+import ShopPromo from './shop-promo';
 
 export const metadata:Metadata={
  title:'Magnanimous AI™ — Standalone',
@@ -107,6 +108,7 @@ export default function MagnanimousStandaloneLayout({children}:{children:ReactNo
  return <>
   <script dangerouslySetInnerHTML={{__html:STANDALONE_DRAFT_BOOTSTRAP}}/>
   <script dangerouslySetInnerHTML={{__html:STANDALONE_VOICE_DOCK}}/>
+  <ShopPromo/>
   {children}
   <p className="iam-qa-observation-notice">For quality and reliability, Magnanimous AI may retain short privacy-scrubbed excerpts of questions, answers, and failed requests for owner QA review. Do not submit passwords, API keys, payment details, or private records.</p>
   <PublicTeachingPanel/>
