@@ -209,26 +209,46 @@ function extractCloudflareText(result){
  return'';
 }
 
+function cloudflareAccountLevelError(error){
+ const value=String(error?.message||error||'').toLowerCase();
+ return /(?:\b3036\b|daily free allocation|account blocked|\b3023\b|authentication error|\b10000\b)/.test(value);
+}
+
+function classifyAgentFailure(errors){
+ const value=errors.join(' | ').toLowerCase();
+ if(/(?:\b3036\b|daily free allocation|out of capacity|\b3040\b)/.test(value))return'capacity';
+ if(/(?:authentication error|\b10000\b|account blocked|\b3023\b)/.test(value))return'authorization';
+ if(/(?:timed out|timeout|\b3007\b)/.test(value))return'timeout';
+ if(/(?:paid plan|not allowed|\b5035\b|\b5018\b|\b3041\b)/.test(value))return'model-access';
+ if(/(?:invalid|incomplete request|\b5004\b|\b3003\b|\b3042\b)/.test(value))return'request-contract';
+ return'unavailable';
+}
+
 async function runProvider(id,env,messages,requestedModel=''){
  if(id==='cloudflare-ai'){
-  const models=[requestedModel,String(env.AGENT_CLOUDFLARE_MODEL||''),String(env.CLOUDFLARE_AI_MODEL||''),'@cf/zai-org/glm-4.7-flash','@cf/qwen/qwen3-30b-a3b-fp8','@cf/google/gemma-4-26b-a4b-it','@cf/nvidia/nemotron-3-120b-a12b','@cf/meta/llama-3.1-8b-instruct-fast','@cf/meta/llama-3.3-70b-instruct-fp8-fast'].filter(Boolean);
+  const models=[requestedModel,String(env.AGENT_CLOUDFLARE_MODEL||''),String(env.CLOUDFLARE_AI_MODEL||''),'@cf/meta/llama-3.2-1b-instruct','@cf/meta/llama-3.1-8b-instruct-fast','@cf/zai-org/glm-4.7-flash','@cf/qwen/qwen3-30b-a3b-fp8','@cf/google/gemma-4-26b-a4b-it','@cf/nvidia/nemotron-3-120b-a12b','@cf/meta/llama-3.3-70b-instruct-fp8-fast'].filter(Boolean);
   const errors=[];
-  for(const model of [...new Set(models)].slice(0,6)){
+  for(const model of [...new Set(models)].slice(0,7)){
    try{
     let out;
     try{
-     out=await withTimeout(()=>env.AI.run(model,{messages,max_completion_tokens:AGENT_MAX_TOKENS}),AGENT_MODEL_TIMEOUT_MS,`Cloudflare Workers AI ${model}`);
+     out=await withTimeout(()=>env.AI.run(model,{messages,max_tokens:AGENT_MAX_TOKENS}),AGENT_MODEL_TIMEOUT_MS,`Cloudflare Workers AI ${model}`);
     }catch(primaryError){
+     if(cloudflareAccountLevelError(primaryError))throw primaryError;
      try{
       out=await withTimeout(()=>env.AI.run(model,{messages}),AGENT_MODEL_TIMEOUT_MS,`Cloudflare Workers AI ${model} compatibility retry`);
      }catch(compatError){
+      if(cloudflareAccountLevelError(compatError))throw compatError;
       throw new Error(`${primaryError?.message||'primary request failed'}; compatibility retry: ${compatError?.message||'failed'}`);
      }
     }
     const value=extractCloudflareText(out).trim();
     if(value)return{text:value,model};
     errors.push(`${model}: empty`);
-   }catch(e){errors.push(`${model}: ${e?.message||'failed'}`)}
+   }catch(e){
+    errors.push(`${model}: ${e?.message||'failed'}`);
+    if(cloudflareAccountLevelError(e))break;
+   }
   }
   throw new Error(errors.join(' | '));
  }
@@ -314,7 +334,8 @@ export async function handleAgentMesh(request,env){
     return json({output:result.text,agent,provider:p.id,provider_name:p.name,model:result.model,shared_memory:true,tenant_isolated:true,connected_tools:integrations,native_workspaces:NATIVE_WORKSPACES,native_context_used:true,platform_actions:'/assistant-actions',video_route:'/agent-video',openai_used:false});
    }catch(e){errors.push(`${p.name}: ${e?.message||'failed'}`)}
   }
-  return json({detail:`Agent Mesh could not complete the request. ${errors.join(' | ')}`,code:'AGENT_PROVIDER_FAILURE'},502);
+  console.error('Agent Mesh execution failed',errors);
+  return json({detail:`Agent Mesh could not complete the request. ${errors.join(' | ')}`,code:'AGENT_PROVIDER_FAILURE',failure_class:classifyAgentFailure(errors)},502);
  }
  return json({detail:'Agent Mesh endpoint not found.'},404);
 }
