@@ -1,0 +1,66 @@
+name: Repair Q&A action tool bridge
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/qa-action-tool-bridge-repair.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Apply guarded repair
+        run: node scripts/qa-action-tool-bridge-repair.mjs
+
+      - name: Install frontend
+        working-directory: frontend
+        run: npm install
+
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Lock public teaching and action tool bridge
+        run: node qa/scripts/public-teaching-observation-lock.mjs
+
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm install
+
+      - name: Worker dry-run
+        working-directory: worker
+        run: npx wrangler deploy --dry-run
+
+      - name: Commit validated repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'No source changes needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add worker/src/auto-teaching-runtime.js worker/src/magnanimous-tool-foundry.js qa/scripts/public-teaching-observation-lock.mjs
+          git commit -m 'Compile approved Q&A teaching into action tools'
+          git push
