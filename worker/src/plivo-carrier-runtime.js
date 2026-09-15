@@ -50,25 +50,25 @@ export async function handlePlivoCarrier(request,env){
   return xml(`<?xml version="1.0" encoding="UTF-8"?><Response><Speak>${message}</Speak></Response>`);
  }
  if(!plivoReady(env))return null;
- if(path==='/api/phone/config'&&request.method==='GET')return json({browserCalling:true,pstnConfigured:true,inboundConfigured:false,provider:'Plivo Voice',carrierMode:'plivo',aiCarrier:true,callerId:String(env.PLIVO_PHONE_NUMBER||''),accessGranted:true,message:'Plivo is connected as the Magnanimous PSTN carrier. Free browser calling remains available.'});
+ if(path==='/api/phone/config'&&request.method==='GET')return json({browserCalling:true,pstnConfigured:true,inboundConfigured:false,provider:'Magnanimous Carrier',carrierMode:'metered-fallback',billing_mode:'metered',flatRateConfigured:false,leastCostRouting:true,routeOrder:['free-browser','workspace-byoc','metered-fallback','premium-fallback'],aiCarrier:true,callerId:String(env.PLIVO_PHONE_NUMBER||''),accessGranted:true,message:'Ordinary-number carrier calling is connected. Free browser calling and workspace BYOC should be preferred when available.'});
  if(path==='/api/phone/calls/outbound'&&request.method==='POST'){
   const body=await request.json().catch(()=>({}));
   if(body.consent_confirmed!==true||body.ai_disclosure_accepted!==true)return json({detail:'Confirm contact permission and AI disclosure before placing an automated carrier call.',code:'CALL_CONSENT_REQUIRED'},400);
   const to=e164(body.to),from=e164(env.PLIVO_PHONE_NUMBER);
   if(!to)return json({detail:'Destination must be a valid E.164 phone number.',code:'INVALID_DESTINATION'},400);
-  if(!from)return json({detail:'PLIVO_PHONE_NUMBER must be configured in E.164 format.',code:'PLIVO_CALLER_ID_INVALID'},503);
+  if(!from)return json({detail:'The configured carrier caller ID must use E.164 format.',code:'CARRIER_CALLER_ID_INVALID'},503);
   const greeting=String(body.opening_message||'Hello. This is Magnanimous AI calling. This is an automated AI-assisted call.');
   const answer=new URL('/api/phone/plivo/answer',url.origin);answer.searchParams.set('message',greeting.slice(0,450));
   const endpoint=`https://api.plivo.com/v1/Account/${encodeURIComponent(String(env.PLIVO_AUTH_ID))}/Call/`;
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   let upstream;
   try{upstream=await fetch(endpoint,{method:'POST',headers:{authorization:basicAuth(env),'content-type':'application/json'},body:JSON.stringify({from,to,answer_url:answer.toString(),answer_method:'GET'}),signal:controller.signal})}
-  catch(e){clearTimeout(timer);return json({detail:e?.name==='AbortError'?'Plivo call request timed out.':'Plivo call request failed.',provider:'plivo',code:'PLIVO_UPSTREAM_FAILED'},502)}
+  catch(e){clearTimeout(timer);return json({detail:e?.name==='AbortError'?'Carrier call request timed out.':'Carrier call request failed.',provider:'magnanimous-carrier',code:'CARRIER_UPSTREAM_FAILED'},502)}
   clearTimeout(timer);
   const data=await upstream.json().catch(()=>({}));
-  if(!upstream.ok)return json({detail:data?.error||data?.message||'Plivo could not place the call.',provider:'plivo',provider_status:upstream.status},upstream.status>=400&&upstream.status<500?400:502);
+  if(!upstream.ok)return json({detail:data?.error||data?.message||'The carrier could not place the call.',provider:'magnanimous-carrier',provider_status:upstream.status},upstream.status>=400&&upstream.status<500?400:502);
   const callId=String(data.request_uuid||data.call_uuid||data.api_id||crypto.randomUUID());
-  return json({id:callId,call_id:callId,provider_call_id:callId,status:'queued',provider:'plivo',agent:'Magnanimous AI'},201);
+  return json({id:callId,call_id:callId,provider_call_id:callId,status:'queued',provider:'magnanimous-carrier',agent:'Magnanimous AI'},201);
  }
  return null;
 }
