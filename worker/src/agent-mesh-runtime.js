@@ -211,11 +211,20 @@ function extractCloudflareText(result){
 
 async function runProvider(id,env,messages,requestedModel=''){
  if(id==='cloudflare-ai'){
-  const models=[requestedModel,String(env.AGENT_CLOUDFLARE_MODEL||''),String(env.CLOUDFLARE_AI_MODEL||''),'@cf/zai-org/glm-4.7-flash','@cf/qwen/qwen3-30b-a3b-fp8','@cf/google/gemma-4-26b-a4b-it','@cf/nvidia/nemotron-3-120b-a12b'].filter(Boolean);
+  const models=[requestedModel,String(env.AGENT_CLOUDFLARE_MODEL||''),String(env.CLOUDFLARE_AI_MODEL||''),'@cf/zai-org/glm-4.7-flash','@cf/qwen/qwen3-30b-a3b-fp8','@cf/google/gemma-4-26b-a4b-it','@cf/nvidia/nemotron-3-120b-a12b','@cf/meta/llama-3.1-8b-instruct-fast','@cf/meta/llama-3.3-70b-instruct-fp8-fast'].filter(Boolean);
   const errors=[];
-  for(const model of [...new Set(models)].slice(0,4)){
+  for(const model of [...new Set(models)].slice(0,6)){
    try{
-    const out=await withTimeout(()=>env.AI.run(model,{messages,max_tokens:AGENT_MAX_TOKENS}),AGENT_MODEL_TIMEOUT_MS,`Cloudflare Workers AI ${model}`);
+    let out;
+    try{
+     out=await withTimeout(()=>env.AI.run(model,{messages,max_completion_tokens:AGENT_MAX_TOKENS}),AGENT_MODEL_TIMEOUT_MS,`Cloudflare Workers AI ${model}`);
+    }catch(primaryError){
+     try{
+      out=await withTimeout(()=>env.AI.run(model,{messages}),AGENT_MODEL_TIMEOUT_MS,`Cloudflare Workers AI ${model} compatibility retry`);
+     }catch(compatError){
+      throw new Error(`${primaryError?.message||'primary request failed'}; compatibility retry: ${compatError?.message||'failed'}`);
+     }
+    }
     const value=extractCloudflareText(out).trim();
     if(value)return{text:value,model};
     errors.push(`${model}: empty`);
