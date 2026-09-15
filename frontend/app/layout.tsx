@@ -40,10 +40,11 @@ export default function RootLayout({children}:{children:React.ReactNode}){
     <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
     <script dangerouslySetInnerHTML={{__html:`(function(){
       function normalize(path){var clean=(path||'/').replace(/\\/+$/,'');return clean||'/';}
-      var publicPaths=['/solutions','/business-plan','/guide','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise','/security','/shop','/magnanimous'];
+      var publicPaths=['/teach','/shop','/login','/signup','/owner-login'];
+      function isPublicPath(path){return publicPaths.indexOf(path)!==-1||path.indexOf('/teach/')===0||path.indexOf('/shop/')===0;}
       var currentPath=normalize(location.pathname);
       var standalone=currentPath==='/magnanimous'||currentPath.indexOf('/magnanimous/')===0;
-      if(publicPaths.indexOf(currentPath)!==-1||standalone)document.documentElement.setAttribute('data-iam-public','true');
+      if(isPublicPath(currentPath))document.documentElement.setAttribute('data-iam-public','true');
       if(standalone)document.documentElement.setAttribute('data-iam-standalone','true');
       var main=document.querySelector('main');if(main&&!main.id)main.id='iam-main';
       function installRootAutosave(){
@@ -88,18 +89,16 @@ export default function RootLayout({children}:{children:React.ReactNode}){
       }
       function guardProtectedRoute(){
         var p=currentPath;
-        var recovery=document.querySelector('[data-iam-route-recovery="true"]');
-        if(recovery){document.documentElement.setAttribute('data-iam-public','true');return;}
         var customer=localStorage.getItem('iam_account_token');
         var owner=migrateMagnanimousSession();
         var active=sessionStorage.getItem('iam_session_active');
-        if(p==='/'){if(!customer&&!owner)location.replace('/solutions');return;}
-        if(standalone||publicPaths.indexOf(p)!==-1)return;
         var valid=(active==='user'&&!!customer)||(active==='owner'&&!!owner);
+        if(p==='/'){if(!valid)location.replace('/login?returnTo=%2F');return;}
+        if(isPublicPath(p))return;
         if(!valid){var returnTo=p+(location.search||'');location.replace('/login?returnTo='+encodeURIComponent(returnTo));}
       }
       function polishCustomerUI(){
-        if(publicPaths.indexOf(currentPath)!==-1||standalone)return;
+        if(isPublicPath(currentPath)||standalone)return;
         var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:function(n){var p=n.parentElement;if(!p)return NodeFilter.FILTER_ACCEPT;var tag=p.tagName;if(tag==='SCRIPT'||tag==='STYLE'||tag==='NOSCRIPT'||tag==='TEXTAREA')return NodeFilter.FILTER_REJECT;return NodeFilter.FILTER_ACCEPT;}});
         var nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
         nodes.forEach(function(n){var before=n.nodeValue||'';var after=before.replace(/ODIN/g,'MAGNANIMOUS AI').replace(/Odin/g,'Magnanimous AI').replace(/I AM OPERATOR/g,'MAGNANIMOUS AI').replace(/I AM Operator/g,'Magnanimous AI').split('Owner / Admin').join('Workspace Admin');if(after!==before)n.nodeValue=after;});
