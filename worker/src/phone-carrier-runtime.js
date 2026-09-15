@@ -14,6 +14,16 @@ function genericBridgeReady(env) {
   return Boolean(env.VOIP_PROVIDER_URL && env.VOIP_PROVIDER_TOKEN);
 }
 
+function billingMode(env) {
+  const value = String(env.VOIP_BILLING_MODE || 'metered').trim().toLowerCase();
+  if (['flat-rate', 'unlimited', 'channel', 'metered', 'wholesale'].includes(value)) return value;
+  return 'metered';
+}
+
+function isFlatRate(mode) {
+  return mode === 'flat-rate' || mode === 'unlimited' || mode === 'channel';
+}
+
 function translatedRequest(request, pathname, body) {
   const source = new URL(request.url);
   const target = new URL(pathname, source.origin);
@@ -31,9 +41,33 @@ export async function handlePhoneCarrier(request, env) {
   const path = url.pathname;
   if (!path.startsWith('/api/phone')) return null;
 
-  // Plivo is the preferred direct carrier when configured. Twilio remains a
-  // compatible fallback, and a user-supplied bridge still takes precedence.
-  if (genericBridgeReady(env)) return null;
+  // A workspace-supplied carrier bridge is intentionally first. This lets an
+  // owner use a self-hosted Asterisk/FreeSWITCH gateway plus a flat-rate or
+  // wholesale SIP trunk instead of forcing the platform through a premium
+  // per-minute carrier. Existing direct carriers remain fallbacks.
+  if (genericBridgeReady(env)) {
+    if (path === '/api/phone/config' && request.method === 'GET') {
+      const mode = billingMode(env);
+      return json({
+        browserCalling: true,
+        pstnConfigured: true,
+        inboundConfigured: Boolean(env.VOIP_WEBHOOK_SECRET),
+        provider: 'Magnanimous Carrier',
+        carrierMode: 'byoc-bridge',
+        billing_mode: mode,
+        flatRateConfigured: isFlatRate(mode),
+        leastCostRouting: true,
+        routeOrder: ['free-browser', 'workspace-byoc', 'metered-fallback', 'premium-fallback'],
+        callerId: String(env.VOIP_CALLER_ID || ''),
+        accessGranted: true,
+        message: isFlatRate(mode)
+          ? 'Workspace flat-rate/BYOC calling is the primary ordinary-number route. Metered carrier calling remains a fallback when configured.'
+          : 'Workspace BYOC calling is connected. Free browser calls remain first choice and the carrier bridge can use wholesale or metered routing.'
+      });
+    }
+    return null;
+  }
+
   if (plivoReady(env)) {
     const response = await handlePlivoCarrier(request, env);
     if (response) return response;
@@ -53,15 +87,19 @@ export async function handlePhoneCarrier(request, env) {
       browserCalling: true,
       pstnConfigured: Boolean(data.twilio_configured),
       inboundConfigured: false,
-      provider: 'Twilio AI carrier',
-      carrierMode: 'twilio-ai',
+      provider: 'Magnanimous Carrier',
+      carrierMode: 'premium-fallback',
+      billing_mode: 'metered',
+      flatRateConfigured: false,
+      leastCostRouting: true,
+      routeOrder: ['free-browser', 'workspace-byoc', 'metered-fallback', 'premium-fallback'],
       aiCarrier: true,
       callerId: String(env.TWILIO_PHONE_NUMBER || ''),
       accessGranted: access,
       inboundWebhook: `${url.origin}/api/voice-agent/twilio/incoming`,
       message: access
-        ? 'Twilio is connected. Carrier calls from this dialer are handled by your automated MAGNANIMOUS AI receptionist and are recorded in call history.'
-        : 'Twilio is connected. AI carrier calling requires Full Business; free browser calling remains available.'
+        ? 'Ordinary-number carrier calling is connected as a fallback. Free browser and workspace BYOC routes should be preferred when available.'
+        : 'Ordinary-number carrier calling is connected. Premium carrier calling requires Full Business; free browser calling remains available.'
     });
   }
 
@@ -85,7 +123,7 @@ export async function handlePhoneCarrier(request, env) {
       }),
       env
     );
-    if (!voiceResponse) return json({ detail: 'The Twilio carrier route is unavailable.' }, 503);
+    if (!voiceResponse) return json({ detail: 'The configured carrier route is unavailable.' }, 503);
     const data = await voiceResponse.clone().json().catch(() => ({}));
     if (!voiceResponse.ok) return voiceResponse;
     return json({
@@ -93,7 +131,7 @@ export async function handlePhoneCarrier(request, env) {
       call_id: data.call_id,
       provider_call_id: data.provider_call_id,
       status: data.status,
-      provider: data.provider || 'twilio-ai',
+      provider: 'magnanimous-carrier',
       agent: data.agent || null
     }, voiceResponse.status || 201);
   }
