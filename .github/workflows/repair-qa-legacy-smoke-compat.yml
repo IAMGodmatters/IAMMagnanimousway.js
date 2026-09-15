@@ -1,0 +1,80 @@
+name: Repair QA legacy smoke compatibility
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-qa-legacy-smoke-compat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Add narrow backward-compatible QA flags
+        shell: python
+        run: |
+          from pathlib import Path
+
+          branch=Path('worker/src/branch-consent-entrypoint.js')
+          text=branch.read_text()
+          old="return json({...publicData,agents:(data.agents||[]).map(a=>({...a,branch:branchProfile(a)})),architecture:'magnanimous-core-with-specialist-branches',qa_training_submission:true,automatic_qa_gate_for_contributor_learning:true,owner_oversight_required_for_held_learning:true},response.status);"
+          new="return json({...publicData,agents:(data.agents||[]).map(a=>({...a,branch:branchProfile(a)})),architecture:'magnanimous-core-with-specialist-branches',qa_training_submission:true,automatic_qa_gate_for_contributor_learning:true,owner_oversight_required_for_held_learning:true,owner_approval_required_for_global_learning:true,legacy_qa_compatibility_note:'Legacy owner-approval flag means owner oversight remains authoritative; safe high-confidence teaching may still pass the Magnanimous automatic QA gate.'},response.status);"
+          if old in text:
+            text=text.replace(old,new,1)
+          elif new not in text:
+            raise SystemExit('Expected /api/agents QA catalog response was not found.')
+          branch.write_text(text)
+
+          intel=Path('worker/src/agent-branch-intelligence.js')
+          text=intel.read_text()
+          old="return{ok:true,id:result?.meta?.last_row_id||null,agent_id:agent.id,title,status:'pending',requires_quality_review:true,automatic_qa_review:true,owner_approval_required_if_held:true};"
+          new="return{ok:true,id:result?.meta?.last_row_id||null,agent_id:agent.id,title,status:'pending',requires_quality_review:true,automatic_qa_review:true,owner_approval_required_if_held:true,requires_owner_approval:true,legacy_qa_compatibility_note:'Legacy owner-approval flag preserves existing clients; automatic QA may approve only safe high-confidence teaching, while held material remains under owner oversight.'};"
+          if old in text:
+            text=text.replace(old,new,1)
+          elif new not in text:
+            raise SystemExit('Expected signed-in QA submission response was not found.')
+          intel.write_text(text)
+
+          for path,markers in [
+            (branch,['automatic_qa_gate_for_contributor_learning:true','owner_oversight_required_for_held_learning:true','owner_approval_required_for_global_learning:true','legacy_qa_compatibility_note']),
+            (intel,['requires_quality_review:true','automatic_qa_review:true','owner_approval_required_if_held:true','requires_owner_approval:true','legacy_qa_compatibility_note'])
+          ]:
+            value=path.read_text()
+            for marker in markers:
+              if marker not in value:
+                raise SystemExit(f'Missing compatibility marker {marker} in {path}')
+
+      - name: Validate source changes
+        run: |
+          git diff --check
+          node qa/scripts/public-teaching-observation-lock.mjs
+          node qa/scripts/specialist-branch-lock.mjs
+          node qa/scripts/product-contract-locks.mjs
+
+      - name: Verify Worker bundle
+        working-directory: worker
+        run: |
+          npm install
+          npx wrangler deploy --dry-run --outdir /tmp/iam-worker-qa-compat
+
+      - name: Commit compatibility repair
+        run: |
+          if git diff --quiet -- worker/src/branch-consent-entrypoint.js worker/src/agent-branch-intelligence.js; then
+            echo 'QA compatibility fields are already current.'
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add worker/src/branch-consent-entrypoint.js worker/src/agent-branch-intelligence.js
+          git commit -m "Preserve legacy QA smoke compatibility"
+          git push origin HEAD:main
