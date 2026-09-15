@@ -25,7 +25,7 @@ test('legacy persistent route redirects to Work Engine instead of a dead end', a
   await expect(page.locator('body')).not.toContainText('continue a persistent Magnanimous job');
 });
 
-test('unknown protected browser routes preserve destination through sign-in instead of stranding the user', async ({ page }) => {
+test('unknown browser routes recover automatically instead of stranding the user by preserving destination through sign-in', async ({ page }) => {
   const unknownPath = '/this-route-should-never-exist-qa';
   await page.goto(unknownPath, { waitUntil: 'domcontentloaded' });
   await page.waitForURL((url) => url.pathname.replace(/\/+$/, '') === '/login' && url.searchParams.get('returnTo') === unknownPath, { timeout: 7000 });
