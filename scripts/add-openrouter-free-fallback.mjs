@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 
+// Re-run marker: the workflow is now installed on main, so this revision triggers the validated additive repair.
 const read = p => fs.readFileSync(p, 'utf8');
 const write = (p, v) => fs.writeFileSync(p, v);
 
