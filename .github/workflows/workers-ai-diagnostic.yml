@@ -1,0 +1,49 @@
+name: Workers AI Diagnostic
+
+on:
+  push:
+    branches:
+      - diag/workers-ai
+    paths:
+      - .github/workflows/workers-ai-diagnostic.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test low-cost Workers AI model through account API
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -u
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "DIAGNOSTIC_RESULT=missing-cloudflare-actions-credentials"
+            exit 0
+          fi
+          status=$(curl -sS -o /tmp/workers-ai.json -w '%{http_code}' \
+            -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.2-1b-instruct" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data '{"prompt":"Reply only with OK.","max_tokens":8}')
+          echo "DIAGNOSTIC_HTTP_STATUS=${status}"
+          python - <<'PY'
+          import json
+          p='/tmp/workers-ai.json'
+          try:
+              d=json.load(open(p))
+          except Exception:
+              print('DIAGNOSTIC_BODY=non-json-response')
+              raise SystemExit(0)
+          print('DIAGNOSTIC_SUCCESS='+str(bool(d.get('success'))).lower())
+          for e in d.get('errors') or []:
+              print('DIAGNOSTIC_ERROR_CODE='+str(e.get('code','')))
+              print('DIAGNOSTIC_ERROR_MESSAGE='+str(e.get('message',''))[:500])
+          result=d.get('result') or {}
+          if isinstance(result,dict) and result.get('response'):
+              print('DIAGNOSTIC_MODEL_RESPONSE_PRESENT=true')
+          PY
