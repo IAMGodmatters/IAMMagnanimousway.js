@@ -107,7 +107,7 @@ test.describe('deep non-destructive control sweep', () => {
 test('standalone Magnanimous requires sign-in and keeps execution providers private for signed-in customers', async ({ page }) => {
   // First lock the customer boundary: an unauthenticated visitor must not receive the standalone composer.
   await page.goto('/magnanimous', { waitUntil: 'domcontentloaded' });
-  await page.waitForURL(/\/login\?returnTo=%2Fmagnanimous(?:&|$)/, { timeout: 10_000 });
+  await page.waitForURL(url => /^\/login\/?$/.test(url.pathname) && url.searchParams.get('returnTo') === '/magnanimous', { timeout: 10_000 });
   await expect(page.locator('.mag-compose textarea')).toHaveCount(0);
 
   // Establish the same browser-side customer session contract used by the platform guard.
