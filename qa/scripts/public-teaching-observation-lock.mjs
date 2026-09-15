@@ -27,6 +27,9 @@ must(runtime,'recent?.total||0)>=6','public teaching must retain hourly anti-spa
 must(runtime,'isPlatformOwnerUser','observation review must remain platform-owner-only');
 must(runtime,"/api/owner/qa-observation",'owner QA observation API must remain available');
 must(runtime,'cleanText','observation excerpts must remain scrubbed/truncated before storage');
+must(runtime,'qaQualityIssue','successful Q&A must retain automatic obvious-quality detection');
+must(runtime,"kind='qa-quality'",'quality issues must remain first-class owner observations');
+must(runtime,'quality_flagged','owner must retain a manual answer-quality flag path');
 
 must(progress,"import app from './progress-entrypoint-base.js'",'automatic teaching wrapper must preserve the existing progress runtime');
 must(progress,'runQaLearningNow','public submissions must trigger immediate automatic QA review');
@@ -45,6 +48,9 @@ must(autoTeaching,'HIGH_STAKES_RE','high-stakes teaching must remain held for hu
 must(autoTeaching,'UNTRUSTED DATA','AI review must treat submitted teaching as untrusted data');
 must(autoTeaching,'score>=92','automatic promotion must retain a high quality threshold');
 must(autoTeaching,'requires_external_verification!==true','unverified factual claims must not auto-promote');
+must(autoTeaching,'MAGNANIMOUS_HEAVY_MODEL','automatic teaching review should prefer the Magnanimous heavy reasoning helper when configured');
+must(autoTeaching,'current_approved_teaching','automatic teaching must compare candidates against current approved branch teaching');
+must(autoTeaching,'deduplicated:Boolean(existing?.id)','automatic teaching must avoid duplicate durable lessons');
 must(autoTeaching,'prompt_injection!==true','prompt-injection candidates must not auto-promote');
 must(autoTeaching,'GLOBAL_BRANCH_TENANT','approved automatic teaching must enter global specialist knowledge');
 must(autoTeaching,"status='approved'",'automatically accepted teaching must be marked approved after promotion');

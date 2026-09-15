@@ -91,6 +91,9 @@ must(autoTeaching,'HIGH_STAKES_RE','high-stakes material must be held for owner 
 must(autoTeaching,'UNTRUSTED DATA','submitted teaching must be treated as untrusted data by the quality judge');
 must(autoTeaching,'score>=92','automatic promotion must retain its high quality threshold');
 must(autoTeaching,'requires_external_verification!==true','material needing external verification must not auto-promote');
+must(autoTeaching,'MAGNANIMOUS_HEAVY_MODEL','automatic QA teaching should prefer the Magnanimous heavy reasoning helper when available');
+must(autoTeaching,'current_approved_teaching','automatic QA teaching must compare candidates with existing approved branch knowledge');
+must(autoTeaching,'deduplicated:Boolean(existing?.id)','automatic QA teaching must deduplicate durable lessons');
 must(autoTeaching,'prompt_injection!==true','detected prompt injection must not auto-promote');
 must(autoTeaching,'GLOBAL_BRANCH_TENANT','accepted QA teaching must become reusable global branch knowledge');
 must(autoTeaching,"createdBy=`${AUTO_REVIEWER}:${id}`",'automatic promotion must retain idempotent provenance');
@@ -144,7 +147,8 @@ must(qaAcademy,'Submit for Automatic QA Review','QA contributors must use the au
 must(qaAcademy,'automatic QA review','QA Academy must explain automatic quality review');
 must(qaAcademy,'challenge_prompt','QA challenge submission must remain available');
 must(qaAcademy,'expected_outcome','QA expected-outcome evidence must remain available');
-must(ownerReview,'QA Approval Queue','owner oversight workspace must remain available');
+must(ownerReview,'QA Oversight Queue','owner oversight workspace must remain available');
+must(ownerReview,'Flag Answer Quality','owner must be able to flag successful but poor Q&A turns');
 must(ownerReview,'Approve Globally','owner must retain manual global override control');
 must(ownerReview,"review(row,'reject')",'owner must retain rejection control');
 must(magnanimous,'specialist_routing:true','Magnanimous UI must request automatic specialty routing');

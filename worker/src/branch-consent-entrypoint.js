@@ -6,7 +6,9 @@ import { specialistForMessage, specialistIntroduction } from './specialist-route
 const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...headers}});
 const isBranchTrainer=(user)=>Boolean(user&&['owner','admin'].includes(String(user.role||'').toLowerCase()));
 const EXECUTION_NAME_RE=/\b(?:OpenAI|ChatGPT|Anthropic|Claude|Google Gemini|Gemini|Groq|Mistral AI|Mistral|OpenRouter|Cerebras|Hugging Face|Cloudflare Workers AI|Workers AI)\b/gi;
-const MODEL_ID_RE=/\b(?:gpt-[\w.-]+|claude-[\w.-]+|gemini-[\w.-]+|llama-[\w.-]+|mistral-[\w.-]+)\b|@cf\/[\w./-]+/gi;
+const MODEL_ID_RE=/\b(?:gpt-[\w.-]+|claude-[\w.-]+|gemini-[\w.-]+|llama-[\w.-]+|mistral-[\w.-]+|nemotron-[\w.-]+|gemma-[\w.-]+|glm-[\w.-]+)\b|@cf\/[\w./-]+/gi;
+const WEB_TRAINING_INJECTION_RE=/\b(ignore|override|disregard|forget)\b[\s\S]{0,80}\b(previous|system|developer|safety|policy|instructions?)\b|\bjailbreak\b|\bsystem prompt\b|\bbypass\b[\s\S]{0,60}\b(safety|permission|guardrail|authorization)\b/i;
+const WEB_TRAINING_SECRET_RE=/-----BEGIN [A-Z ]*PRIVATE KEY-----|\bsk-[A-Za-z0-9_-]{16,}|\b(?:password|passwd|passcode|api.?key|secret|token|cvv|cvc)\s*[:=]\s*\S+/i;
 function redactExecutionNames(value){return String(value||'').replace(EXECUTION_NAME_RE,'Magnanimous AI').replace(MODEL_ID_RE,'private routing')}
 function stripExecutionMetadata(data){
  if(!data||typeof data!=='object'||Array.isArray(data))return data;
@@ -73,7 +75,7 @@ function safeTrainingUrl(value,base){
   const url=base?new URL(String(value||'').trim(),base):new URL(String(value||'').trim());
   if(!['http:','https:'].includes(url.protocol))return null;
   const host=url.hostname.toLowerCase();
-  if(host==='localhost'||host.endsWith('.local')||host==='0.0.0.0'||host==='127.0.0.1'||host==='::1'||/^10\./.test(host)||/^192\.168\./.test(host)||/^169\.254\./.test(host)||/^172\.(1[6-9]|2\d|3[01])\./.test(host))return null;
+  if(host==='localhost'||host.endsWith('.local')||host==='metadata'||host==='metadata.google.internal'||host==='0.0.0.0'||host==='127.0.0.1'||host==='::1'||host==='[::1]'||/^0\./.test(host)||/^10\./.test(host)||/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host)||/^127\./.test(host)||/^192\.168\./.test(host)||/^169\.254\./.test(host)||/^172\.(1[6-9]|2\d|3[01])\./.test(host)||/^22[4-9]\./.test(host)||/^23\d\./.test(host)||/^24\d\./.test(host)||/^25[0-5]\./.test(host)||/^\[(?:fc|fd|fe8|fe9|fea|feb)/i.test(host))return null;
   return url;
  }catch{return null}
 }
@@ -106,11 +108,15 @@ async function trainingFromUrl(value){
    break;
   }
   if(!response||!response.ok)return{ok:false,status:400,detail:`Training source could not be read (${response?.status||'network error'}).`};
+  const declaredSize=Number(response.headers.get('content-length')||0);
+  if(Number.isFinite(declaredSize)&&declaredSize>2_000_000)return{ok:false,status:413,detail:'Training webpage is too large to import safely. Use a focused source or paste the specific reviewed section.'};
   const type=String(response.headers.get('content-type')||'').toLowerCase();
   if(type&&!(type.includes('text/')||type.includes('json')||type.includes('xml')))return{ok:false,status:415,detail:'That URL is not a readable text or webpage source. Paste extracted text for PDF, DOCX, audio, or video sources.'};
   const raw=(await response.text()).slice(0,240000);
   const content=type.includes('html')?htmlToTrainingText(raw):raw.trim();
   if(!content)return{ok:false,status:400,detail:'No readable training text was found at that URL.'};
+  if(WEB_TRAINING_INJECTION_RE.test(content))return{ok:false,status:422,detail:'This webpage contains instruction-override or prompt-injection language. Review it manually and paste only the safe teaching you intend Magnanimous to learn.'};
+  if(WEB_TRAINING_SECRET_RE.test(content))return{ok:false,status:422,detail:'This webpage appears to contain credentials or secret-like material. It was not imported into Magnanimous training.'};
   const titleMatch=raw.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   return{ok:true,url:url.toString(),content,title:htmlToTrainingText(titleMatch?.[1]||'').slice(0,180)};
  }catch{return{ok:false,status:400,detail:'Training source could not be fetched.'}}
@@ -138,7 +144,7 @@ async function branchRequest(request,env,ctx){
   const data=await response.clone().json().catch(()=>null);
   if(!data)return response;
   const publicData=publicProviderSummary(data);
-  return json({...publicData,agents:(data.agents||[]).map(a=>({...a,branch:branchProfile(a)})),architecture:'magnanimous-core-with-specialist-branches',qa_training_submission:true,owner_approval_required_for_global_learning:true},response.status);
+  return json({...publicData,agents:(data.agents||[]).map(a=>({...a,branch:branchProfile(a)})),architecture:'magnanimous-core-with-specialist-branches',qa_training_submission:true,automatic_qa_gate_for_contributor_learning:true,owner_oversight_required_for_held_learning:true},response.status);
  }
 
  const user=await currentUser(request,env);
@@ -173,7 +179,7 @@ async function branchRequest(request,env,ctx){
   const agent=agents.find(a=>String(a.id).toLowerCase()===id);
   if(!agent)return json({detail:'Unknown specialist branch.'},404);
   const knowledge=await branchKnowledge(env,user.tenant_id,agent.id,60);
-  return json({agent:{...agent,branch:branchProfile(agent)},knowledge,knowledge_count:knowledge.length,global_knowledge_count:knowledge.filter(x=>x.scope==='global').length,shared_core:'Magnanimous AI',branch_isolated:true,can_teach:isBranchTrainer(user),can_submit_training:true,platform_owner:platformOwner,qa_approval_required:true});
+  return json({agent:{...agent,branch:branchProfile(agent)},knowledge,knowledge_count:knowledge.length,global_knowledge_count:knowledge.filter(x=>x.scope==='global').length,shared_core:'Magnanimous AI',branch_isolated:true,can_teach:isBranchTrainer(user),can_submit_training:true,platform_owner:platformOwner,qa_quality_gate_required:true,owner_approval_required_if_held:true});
  }
 
  if(request.method==='POST'&&url.pathname==='/api/agents/branch/teach'){
@@ -202,7 +208,7 @@ async function branchRequest(request,env,ctx){
   const agentId=String(url.searchParams.get('agent_id')||'').toLowerCase();
   const status=String(url.searchParams.get('status')||'').toLowerCase();
   const submissions=await branchTrainingSubmissions(env,user,{agentId,status});
-  return json({submissions,platform_owner:platformOwner,approval_required:true,count:submissions.length});
+  return json({submissions,platform_owner:platformOwner,automatic_qa_review:true,owner_oversight_if_held:true,count:submissions.length});
  }
 
  if(request.method==='POST'&&url.pathname==='/api/agents/branch/submissions/review'){
