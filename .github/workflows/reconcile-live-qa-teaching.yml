@@ -1,0 +1,96 @@
+name: Reconcile live Q&A teaching
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/reconcile-live-qa-teaching.yml'
+  workflow_dispatch:
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm install
+
+      - name: Verify reviewed submissions still exist
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command="SELECT id,status,reviewer_note FROM agent_branch_training_submissions WHERE id IN (97,98,101,102) ORDER BY id;" > /tmp/preflight.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const raw=JSON.parse(fs.readFileSync('/tmp/preflight.json','utf8'));
+          const rows=(raw[0]&&raw[0].results)||[];
+          const ids=rows.map(x=>Number(x.id));
+          const expected=[97,98,101,102];
+          if(JSON.stringify(ids)!==JSON.stringify(expected)) throw new Error(`Expected reviewed submission IDs ${expected.join(',')}; found ${ids.join(',')}`);
+          const bad=rows.filter(x=>!['pending','approved'].includes(String(x.status||'')));
+          if(bad.length) throw new Error(`Reviewed submissions changed to unexpected status: ${JSON.stringify(bad)}`);
+          console.log(`Verified ${rows.length} reviewed submissions.`);
+          NODE
+
+      - name: Apply normalized knowledge and action recipes
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler d1 execute iam-magnanimous-db --remote --file=../scripts/live-qa-teaching-reconcile.sql
+
+      - name: Verify reconciliation
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command="SELECT id,status,reviewer_id,reviewer_note FROM agent_branch_training_submissions WHERE id IN (97,98,101,102) ORDER BY id;" > /tmp/reviewed.json
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command="SELECT id,agent_id,title,tags,source,created_by FROM agent_branch_knowledge WHERE created_by IN ('qa-audit:97','qa-audit:101','qa-audit:102') ORDER BY created_by;" > /tmp/knowledge.json
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command="SELECT name,family,risk,status,uses,successes FROM magnanimous_native_tool_specs WHERE tenant_id='__magnanimous_global__' AND user_id='system:auto-qa' AND name IN ('evaluation-driven-improvement-loop','virtual-assistant-operations','intelligent-daily-planner') ORDER BY name;" > /tmp/tools.json
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command="SELECT COUNT(*) AS unresolved FROM agent_branch_training_submissions WHERE status<>'approved';" > /tmp/unresolved.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const rows=p=>{const x=JSON.parse(fs.readFileSync(p,'utf8'));return (x[0]&&x[0].results)||[]};
+          const reviewed=rows('/tmp/reviewed.json');
+          const knowledge=rows('/tmp/knowledge.json');
+          const tools=rows('/tmp/tools.json');
+          const unresolved=Number(rows('/tmp/unresolved.json')[0]?.unresolved||0);
+          if(reviewed.length!==4||reviewed.some(x=>x.status!=='approved')) throw new Error(`Not all four reviewed submissions are approved: ${JSON.stringify(reviewed)}`);
+          if(knowledge.length!==3) throw new Error(`Expected 3 deduplicated knowledge lessons, found ${knowledge.length}`);
+          if(tools.length!==3) throw new Error(`Expected 3 action recipes, found ${tools.length}`);
+          if(tools.some(x=>!['proposed','ready'].includes(String(x.status||'')))) throw new Error(`Unexpected tool status: ${JSON.stringify(tools)}`);
+          const summary={reviewed_submissions:reviewed.map(x=>({id:x.id,status:x.status,reviewer_id:x.reviewer_id})),deduplicated_knowledge:knowledge,action_recipes:tools,remaining_unresolved_submissions:unresolved};
+          fs.writeFileSync('/tmp/reconciliation-summary.json',JSON.stringify(summary,null,2));
+          console.log(JSON.stringify(summary,null,2));
+          if(unresolved!==0) throw new Error(`${unresolved} unresolved submission(s) remain and require another audit pass.`);
+          NODE
+
+      - name: Upload reconciliation summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-qa-reconciliation-summary
+          path: |
+            /tmp/reconciliation-summary.json
+            /tmp/reviewed.json
+            /tmp/knowledge.json
+            /tmp/tools.json
+            /tmp/unresolved.json
+          if-no-files-found: ignore
+          retention-days: 2
