@@ -16,6 +16,7 @@ const provider = read('worker/src/provider-entrypoint.js');
 const brain = read('worker/src/magnanimous-brain-runtime.js');
 const cognitive = read('worker/src/magnanimous-cognitive-architecture.js');
 const universal = read('worker/src/magnanimous-universal-capabilities.js');
+const radar = read('worker/src/magnanimous-capability-radar.js');
 const foundry = read('worker/src/magnanimous-tool-foundry.js');
 const router = read('worker/src/router-entrypoint.js');
 const gateway = read('worker/src/magnanimous-tool-gateway.js');
@@ -90,6 +91,21 @@ requireText(universal, 'must not remove authentication, authorization, tenant is
 requireText(universal, 'must not copy proprietary weights, hidden prompts, private code, stolen credentials or restricted data.', 'self-evolution protocol');
 requireText(universal, 'A capability is not claimed as working until the current runtime proves it through an actual tool result, test or configured adapter.', 'self-evolution protocol');
 
+// Runtime capability truth must distinguish architectural goals, configured/discovered tools, and verified execution.
+requireText(radar, "mode:'runtime-capability-radar'", 'capability radar');
+requireText(radar, 'architectural_goal_is_not_runtime_proof:true', 'capability radar');
+requireText(radar, 'adapter_target_is_not_connected:true', 'capability radar');
+requireText(radar, 'discovered_tool_is_not_verified_until_successful_call:true', 'capability radar');
+requireText(radar, 'ready_recipe_is_not_outcome_verified_until_scored:true', 'capability radar');
+requireText(radar, 'verified-by-successful-call', 'capability radar');
+requireText(radar, 'verified-by-outcome', 'capability radar');
+requireText(radar, 'runtime-tool-reliability-gap', 'capability radar');
+requireText(radar, 'Never manufacture a connection, permission, successful action, or capability claim.', 'capability radar');
+requireText(foundry, '/api/magnanimous/tool-foundry/radar', 'tool foundry');
+requireText(foundry, 'getMagnanimousCapabilityRadar', 'tool foundry');
+requireText(foundry, 'recordMagnanimousCapabilityGap', 'tool foundry');
+requireText(foundry, 'syncGapProposals', 'tool foundry');
+
 // Knowledge growth and source absorption.
 requireText(provider, 'learnFromLinks', 'provider entrypoint');
 requireText(provider, 'automatic_link_learning:true', 'provider entrypoint');
@@ -139,5 +155,5 @@ for (const directProvider of ['api.openai.com', 'api.anthropic.com', 'generative
 
 if (!process.exitCode) {
   console.log('MAGNANIMOUS COMMAND LOCK: PASS');
-  console.log('Central brain, durable remembrance, universal hybrid cognition, explainability, multimodal fusion, collaboration, capability fabric, evidence-driven reversible self-evolution, link learning, adaptive routing, memory, Tool Foundry growth, framework literacy, standalone same-brain voice distribution, and permission boundaries are intact.');
+  console.log('Central brain, durable remembrance, universal hybrid cognition, explainability, multimodal fusion, collaboration, capability fabric, runtime capability truth, evidence-driven reversible self-evolution, link learning, adaptive routing, memory, Tool Foundry growth, framework literacy, standalone same-brain voice distribution, and permission boundaries are intact.');
 }
