@@ -37,14 +37,14 @@ replaceIfPresent(
 // Magnanimous remains the commander: try the requested configured worker first,
 // then fail over through every other configured worker in priority order.
 replaceIfPresent(
-  " const requested=String(body?.provider||'').trim();\n let candidates=requested?ready.filter(p=>p.id===requested):ready;\n if(!candidates.length)candidates=ready;",
-  " const requested=String(body?.provider||'').trim();\n const preferred=requested?ready.find(p=>p.id===requested):null;\n const candidates=preferred?[preferred,...ready.filter(p=>p.id!==preferred.id)]:ready;",
+  "  const requested=String(body.provider||'auto').toLowerCase();const candidates=requested==='auto'?[...PROVIDERS].sort((a,b)=>a.priority-b.priority):PROVIDERS.filter(p=>p.id===requested);\n  const ready=candidates.filter(p=>configured(env,p));",
+  "  const requested=String(body.provider||'auto').toLowerCase();\n  const ordered=[...PROVIDERS].sort((a,b)=>a.priority-b.priority);\n  const preferred=requested==='auto'?null:ordered.find(p=>p.id===requested);\n  const candidates=preferred?[preferred,...ordered.filter(p=>p.id!==preferred.id)]:ordered;\n  const ready=candidates.filter(p=>configured(env,p));",
   'Magnanimous cross-provider failover routing'
 );
 
 const timeoutReady = text.includes('const AGENT_MODEL_TIMEOUT_MS=25000;') && text.includes('const AGENT_PROVIDER_TIMEOUT_MS=30000;');
 const fallbackReady = text.includes("'@cf/qwen/qwen3-30b-a3b-fp8'") && text.includes("String(env.CLOUDFLARE_AI_MODEL||'')");
-const routingReady = text.includes("const preferred=requested?ready.find(p=>p.id===requested):null;") && text.includes("const candidates=preferred?[preferred,...ready.filter(p=>p.id!==preferred.id)]:ready;");
+const routingReady = text.includes("const ordered=[...PROVIDERS].sort((a,b)=>a.priority-b.priority);") && text.includes("const preferred=requested==='auto'?null:ordered.find(p=>p.id===requested);") && text.includes("const candidates=preferred?[preferred,...ordered.filter(p=>p.id!==preferred.id)]:ordered;");
 
 if (!timeoutReady || !fallbackReady || !routingReady) {
   throw new Error('Agent Mesh resilience repair insertion points were not found; refusing to make an unsafe partial edit.');
