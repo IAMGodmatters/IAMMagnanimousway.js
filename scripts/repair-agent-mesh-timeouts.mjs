@@ -12,6 +12,9 @@ function replaceIfPresent(oldText, newText, label) {
   return true;
 }
 
+// This repair is also an idempotent production lock: once the hardened
+// timeout and fallback signatures are present, later pushes verify them
+// without rewriting a healthy Agent Mesh runtime.
 // Production inference can legitimately take longer than 12 seconds on a cold
 // Workers AI model. Keep a hard bound, but allow enough time for cold starts
 // before failing over to another current Cloudflare-hosted model.
