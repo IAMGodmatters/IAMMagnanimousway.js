@@ -1,0 +1,68 @@
+name: Lock Public Surface
+
+on:
+  push:
+    paths:
+      - '.github/workflows/lock-public-surface.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  lock-public-surface:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Enforce Teach and Shop public-only surface
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          layout = Path('frontend/app/layout.tsx')
+          text = layout.read_text()
+          replacements = {
+            "var publicPaths=['/solutions','/business-plan','/guide','/login','/signup','/owner-login','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise','/security','/shop','/magnanimous'];": "var publicPaths=['/teach','/shop','/login','/signup','/owner-login'];",
+            "if(publicPaths.indexOf(currentPath)!==-1||standalone)document.documentElement.setAttribute('data-iam-public','true');": "if(publicPaths.indexOf(currentPath)!==-1)document.documentElement.setAttribute('data-iam-public','true');",
+            "        var recovery=document.querySelector('[data-iam-route-recovery=\"true\"]');\n        if(recovery){document.documentElement.setAttribute('data-iam-public','true');return;}\n": "",
+            "if(p==='/'){if(!customer&&!owner)location.replace('/solutions');return;}": "if(p==='/'){if(!customer&&!owner)location.replace('/login?returnTo=%2F');return;}",
+            "if(standalone||publicPaths.indexOf(p)!==-1)return;": "if(publicPaths.indexOf(p)!==-1)return;",
+          }
+          for old, new in replacements.items():
+            if old not in text:
+              raise SystemExit(f'Expected route-guard source not found: {old[:90]}')
+            text = text.replace(old, new, 1)
+          layout.write_text(text)
+
+          lock = Path('qa/scripts/public-surface-lock.mjs')
+          lock.write_text("""import fs from 'node:fs';\nconst source=fs.readFileSync('frontend/app/layout.tsx','utf8');\nconst required=[\n  \"var publicPaths=['/teach','/shop','/login','/signup','/owner-login'];\",\n  \"if(p==='/'){if(!customer&&!owner)location.replace('/login?returnTo=%2F');return;}\",\n  \"if(publicPaths.indexOf(p)!==-1)return;\"\n];\nfor(const item of required){if(!source.includes(item))throw new Error('Public surface lock missing: '+item)}\nfor(const forbidden of ['/solutions','/business-plan','/guide','/privacy','/terms','/pricing','/reviews','/free-tools','/ai-apps','/advertise','/security','/magnanimous']){\n  const allowlist=source.match(/var publicPaths=\\[[^;]+;/)?.[0]||'';\n  if(allowlist.includes(\"'\"+forbidden+\"'\"))throw new Error('Protected route leaked into public allowlist: '+forbidden);\n}\nif(source.includes('if(standalone||publicPaths.indexOf(p)!==-1)return;'))throw new Error('Standalone Magnanimous bypass must stay protected');\nif(source.includes('data-iam-route-recovery=\\\"true\\\"]'))throw new Error('Generic recovery bypass must not bypass authentication');\nconsole.log('Public surface lock: PASS — Teach + Shop are public; auth pages remain reachable; all other routes require sign-in.');\n""")
+
+          pkg_path = Path('frontend/package.json')
+          pkg = json.loads(pkg_path.read_text())
+          cmd = pkg['scripts']['platform-contract-audit']
+          addition = 'node ../qa/scripts/public-surface-lock.mjs'
+          if addition not in cmd:
+            pkg['scripts']['platform-contract-audit'] = cmd + ' && ' + addition
+          pkg_path.write_text(json.dumps(pkg, separators=(',', ':')))
+          PY
+      - name: Validate strict public gate
+        run: |
+          cd frontend
+          npm install
+          npm run typecheck
+          npm run build
+      - name: Commit validated gate
+        run: |
+          if git diff --quiet; then
+            echo 'Public surface already locked.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add frontend/app/layout.tsx frontend/package.json qa/scripts/public-surface-lock.mjs
+          git commit -m 'Lock public access to Teach and Shop'
+          git push
