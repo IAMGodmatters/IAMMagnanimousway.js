@@ -22,12 +22,14 @@ const standalone = read('frontend/app/magnanimous/page.tsx');
 const voice = read('frontend/app/voice-orchestrator.tsx');
 const siteLayout = read('frontend/app/layout.tsx');
 
-// Identity and command authority.
+// Identity, command authority, and durable remembrance.
 requireText(provider, 'MAGNANIMOUS COMMAND LAYER', 'provider entrypoint');
 requireText(provider, "command_role:'commander-in-chief'", 'provider entrypoint');
 requireText(provider, "provider_role:'execution-engine'", 'provider entrypoint');
+requireText(provider, 'Magnanimous AI is the durable remembrance layer for the platform', 'provider entrypoint');
 requireText(brain, "role:'commander-in-chief-platform-brain'", 'brain runtime');
-requireText(brain, 'Magnanimous AI is the commander-in-chief intelligence, planning, continuity and learning layer for the platform.', 'brain runtime');
+requireText(brain, 'Magnanimous AI is the commander-in-chief intelligence, planning, continuity, remembrance and learning layer for the platform.', 'brain runtime');
+requireText(brain, 'outside models may execute tasks, but they do not own platform memory or continuity.', 'brain runtime');
 
 // Hybrid cognitive architecture inspired by established cognitive systems.
 requireText(cognitive, "model: 'hybrid-symbolic-neural'", 'cognitive architecture');
@@ -111,5 +113,5 @@ for (const directProvider of ['api.openai.com', 'api.anthropic.com', 'generative
 
 if (!process.exitCode) {
   console.log('MAGNANIMOUS COMMAND LOCK: PASS');
-  console.log('Central brain, hybrid cognition, explainability, multimodal fusion, collaboration, link learning, adaptive routing, memory, Tool Foundry growth, framework literacy, standalone same-brain voice distribution, and permission boundaries are intact.');
+  console.log('Central brain, durable remembrance, hybrid cognition, explainability, multimodal fusion, collaboration, link learning, adaptive routing, memory, Tool Foundry growth, framework literacy, standalone same-brain voice distribution, and permission boundaries are intact.');
 }
