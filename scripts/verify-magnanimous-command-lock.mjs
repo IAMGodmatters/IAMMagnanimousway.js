@@ -15,6 +15,7 @@ const forbidText = (text, needle, label) => {
 const provider = read('worker/src/provider-entrypoint.js');
 const brain = read('worker/src/magnanimous-brain-runtime.js');
 const cognitive = read('worker/src/magnanimous-cognitive-architecture.js');
+const universal = read('worker/src/magnanimous-universal-capabilities.js');
 const foundry = read('worker/src/magnanimous-tool-foundry.js');
 const router = read('worker/src/router-entrypoint.js');
 const gateway = read('worker/src/magnanimous-tool-gateway.js');
@@ -31,8 +32,9 @@ requireText(brain, "role:'commander-in-chief-platform-brain'", 'brain runtime');
 requireText(brain, 'Magnanimous AI is the commander-in-chief intelligence, planning, continuity, remembrance and learning layer for the platform.', 'brain runtime');
 requireText(brain, 'outside models may execute tasks, but they do not own platform memory or continuity.', 'brain runtime');
 
-// Hybrid cognitive architecture inspired by established cognitive systems.
-requireText(cognitive, "model: 'hybrid-symbolic-neural'", 'cognitive architecture');
+// Universal hybrid cognitive architecture inspired by established cognitive systems.
+requireText(cognitive, "model: 'hybrid-symbolic-neural-agentic'", 'cognitive architecture');
+requireText(cognitive, "universal_capability_core: true", 'cognitive architecture');
 requireText(cognitive, "name: 'SOAR'", 'cognitive architecture');
 requireText(cognitive, "name: 'LIDA'", 'cognitive architecture');
 requireText(cognitive, "name: 'ACT-R'", 'cognitive architecture');
@@ -41,11 +43,15 @@ requireText(cognitive, 'perception-and-normalization', 'cognitive architecture')
 requireText(cognitive, 'attention-and-working-memory', 'cognitive architecture');
 requireText(cognitive, 'declarative-and-episodic-memory', 'cognitive architecture');
 requireText(cognitive, 'procedural-memory', 'cognitive architecture');
+requireText(cognitive, 'universal-capability-fabric', 'cognitive architecture');
 requireText(cognitive, 'hybrid-deliberation', 'cognitive architecture');
+requireText(cognitive, 'multi-agent-parallel-execution', 'cognitive architecture');
 requireText(cognitive, 'action-selection', 'cognitive architecture');
 requireText(cognitive, 'verification-and-metacognition', 'cognitive architecture');
+requireText(cognitive, 'sandboxed-self-improvement', 'cognitive architecture');
 requireText(cognitive, 'learning-and-consolidation', 'cognitive architecture');
 requireText(brain, '/api/magnanimous/architecture', 'brain runtime');
+requireText(brain, '/api/magnanimous/evolution', 'brain runtime');
 requireText(brain, 'getMagnanimousCognitivePrompt', 'brain runtime');
 
 // Explainability, multimodal fusion and human-AI collaboration remain first-class design requirements.
@@ -57,19 +63,39 @@ requireText(cognitive, "id: 'explainable-ai'", 'cognitive architecture');
 requireText(cognitive, "id: 'multimodal-learning'", 'cognitive architecture');
 requireText(cognitive, "id: 'cognitive-human-collaboration'", 'cognitive architecture');
 
-// Core development knowledge and framework literacy.
-for (const skill of ['Python', 'Java', 'C++', 'machine-learning-and-deep-learning', 'natural-language-processing', 'computer-vision', 'knowledge-representation-and-reasoning']) {
+// Core development knowledge, frontier-agent literacy and open adapter standards.
+for (const skill of ['Python', 'Java', 'C++', 'machine-learning-and-deep-learning', 'natural-language-processing', 'computer-vision', 'knowledge-representation-and-reasoning', 'agentic-systems', 'evaluation-and-self-improvement']) {
   requireText(cognitive, skill, 'cognitive architecture');
 }
-for (const framework of ['TensorFlow', 'Keras', 'PyTorch', 'Scikit-learn', 'NLTK', 'spaCy', 'OpenCV', 'WordNet', 'YAGO', 'Knowledge graphs and ontologies']) {
+for (const framework of ['TensorFlow', 'Keras', 'PyTorch', 'Scikit-learn', 'NLTK', 'spaCy', 'OpenCV', 'WordNet', 'YAGO', 'Knowledge graphs and ontologies', 'Model Context Protocol (MCP)', 'Sandboxed code/computer execution']) {
   requireText(cognitive, framework, 'cognitive architecture');
 }
+
+// Universal capability fabric covers frontier capability classes without claiming unconfigured tools are live.
+for (const domain of ['reasoning-planning', 'deep-research', 'coding-computation', 'computer-browser-use', 'multimodal-intelligence', 'creative-generation', 'voice-realtime', 'files-documents', 'memory-personalization', 'agents-subagents', 'tools-connectors', 'business-operations', 'specialized-knowledge', 'security-reliability', 'accessibility-language', 'future-adapters']) {
+  requireText(universal, domain, 'universal capability core');
+}
+for (const pattern of ['function-calling', 'mcp', 'tool-discovery', 'subagents', 'parallel-workstreams', 'checkpoint-resume', 'screen-understanding', 'code-execution', 'source-ranking', 'citation-tracking']) {
+  requireText(universal, pattern, 'universal capability core');
+}
+
+// Self-evolution must be evidence-driven, reversible, and unable to erase governance boundaries.
+for (const stage of ['observe-capability-gap', 'research-current-best-patterns', 'sandbox-and-test', 'adversarial-and-regression-evaluate', 'canary-low-risk-rollout', 'promote-or-rollback', 'consolidate-procedural-memory']) {
+  requireText(universal, stage, 'self-evolution protocol');
+}
+for (const invariant of ['require_regression_pass: true', 'require_reversible_change: true', 'spending money or enabling metered providers', 'production secrets or credential changes', 'irreversible actions', 'Every autonomous change must be observable, attributable, testable and reversible.']) {
+  requireText(universal, invariant, 'self-evolution protocol');
+}
+requireText(universal, 'must not remove authentication, authorization, tenant isolation, secret protection or legal/safety controls.', 'self-evolution protocol');
+requireText(universal, 'must not copy proprietary weights, hidden prompts, private code, stolen credentials or restricted data.', 'self-evolution protocol');
+requireText(universal, 'A capability is not claimed as working until the current runtime proves it through an actual tool result, test or configured adapter.', 'self-evolution protocol');
 
 // Knowledge growth and source absorption.
 requireText(provider, 'learnFromLinks', 'provider entrypoint');
 requireText(provider, 'automatic_link_learning:true', 'provider entrypoint');
 requireText(provider, 'remembered_research', 'provider entrypoint');
-requireText(brain, 'Persistent user/workflow learning memory', 'brain runtime');
+requireText(brain, 'Persistent episodic, semantic, preference and procedural learning memory', 'brain runtime');
+requireText(brain, 'capability-gap discovery', 'brain runtime');
 requireText(router, 'getMagnanimousMemoryContext', 'router');
 requireText(router, 'magnanimousChatRequest', 'router');
 
@@ -113,5 +139,5 @@ for (const directProvider of ['api.openai.com', 'api.anthropic.com', 'generative
 
 if (!process.exitCode) {
   console.log('MAGNANIMOUS COMMAND LOCK: PASS');
-  console.log('Central brain, durable remembrance, hybrid cognition, explainability, multimodal fusion, collaboration, link learning, adaptive routing, memory, Tool Foundry growth, framework literacy, standalone same-brain voice distribution, and permission boundaries are intact.');
+  console.log('Central brain, durable remembrance, universal hybrid cognition, explainability, multimodal fusion, collaboration, capability fabric, evidence-driven reversible self-evolution, link learning, adaptive routing, memory, Tool Foundry growth, framework literacy, standalone same-brain voice distribution, and permission boundaries are intact.');
 }
