@@ -13,12 +13,19 @@ permissions:
 jobs:
   repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package.json
 
       - name: Add narrow backward-compatible QA flags
         shell: python
@@ -60,6 +67,13 @@ jobs:
           node qa/scripts/public-teaching-observation-lock.mjs
           node qa/scripts/specialist-branch-lock.mjs
           node qa/scripts/product-contract-locks.mjs
+
+      - name: Build frontend assets
+        working-directory: frontend
+        run: |
+          npm install
+          npm run typecheck
+          npm run build
 
       - name: Verify Worker bundle
         working-directory: worker
