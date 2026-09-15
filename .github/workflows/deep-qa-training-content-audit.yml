@@ -15,20 +15,20 @@ jobs:
   repair:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Apply guarded Q&A and training content improvements
         run: node scripts/deep-qa-training-content-audit.mjs
       - name: Install frontend
         working-directory: frontend
-        run: npm ci
+        run: npm install
       - name: Typecheck frontend
         working-directory: frontend
-        run: npx tsc --noEmit
+        run: npm run typecheck
       - name: Build frontend
         working-directory: frontend
         run: npm run build
@@ -41,7 +41,7 @@ jobs:
       - name: Worker dry run
         working-directory: worker
         run: |
-          npm ci
+          npm install
           npx wrangler deploy --dry-run
       - name: Commit validated improvements
         run: |
