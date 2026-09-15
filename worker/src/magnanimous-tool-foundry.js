@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { getIntegrationCatalog, rankIntegrationTargets } from './magnanimous-integration-catalog.js';
+import { getMagnanimousCapabilityRadar, recordMagnanimousCapabilityGap } from './magnanimous-capability-radar.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -33,6 +34,11 @@ async function upsertSpec(env,{tenant,uid,name,purpose,family,inputs={},outputs=
  await env.DB.prepare(`INSERT INTO magnanimous_native_tool_specs(tenant_id,user_id,name,purpose,family,inputs_json,outputs_json,steps_json,risk,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,user_id,name) DO UPDATE SET purpose=excluded.purpose,family=excluded.family,inputs_json=excluded.inputs_json,outputs_json=excluded.outputs_json,steps_json=excluded.steps_json,risk=excluded.risk,status=CASE WHEN magnanimous_native_tool_specs.status='ready' THEN 'ready' ELSE excluded.status END,updated_at=excluded.updated_at`).bind(tenant,uid,safeName,clip(purpose,2000),safeFamily,JSON.stringify(inputs).slice(0,30000),JSON.stringify(outputs).slice(0,30000),JSON.stringify(toolSteps).slice(0,50000),risk,toolStatus,ts,ts).run();
  return env.DB.prepare('SELECT id,name,purpose,family,risk,status,uses,successes FROM magnanimous_native_tool_specs WHERE tenant_id=? AND user_id=? AND name=?').bind(tenant,uid,safeName).first();
 }
+async function syncGapProposals(env,{tenant,uid}){
+ const {results=[]}=await env.DB.prepare("SELECT capability,example_task,count,status FROM magnanimous_tool_gaps WHERE tenant_id=? AND user_id=? AND count>=3 AND status='observed' ORDER BY count DESC LIMIT 40").bind(tenant,uid).all();
+ const proposals=[];for(const gap of results){const purpose=gap.example_task||`Reusable native capability for ${gap.capability}`;const proposal=await upsertSpec(env,{tenant,uid,name:gap.capability,purpose,family:'learned',risk:'low',status:'proposed'});await env.DB.prepare("UPDATE magnanimous_tool_gaps SET status='proposed',updated_at=? WHERE tenant_id=? AND user_id=? AND capability=?").bind(now(),tenant,uid,gap.capability).run();proposals.push(proposal)}
+ return proposals;
+}
 
 export async function upsertApprovedTeachingTool(env,{submissionId=0,agentId='teacher',name='learned-workflow',purpose='',family='learned',risk='low',steps=[],requiredCapabilities=[],requiresConnection=false}={}){
  if(!env?.DB||!String(purpose||'').trim())return null;
@@ -49,7 +55,7 @@ export async function getMagnanimousToolFoundryContext(request,env,goal=''){
  if(!env?.DB)return{context:'',tools:[],recommended_integrations:[]};
  const user=await currentUser(request,env).catch(()=>null);if(!user)return{context:'',tools:[],recommended_integrations:rankIntegrationTargets(goal).slice(0,6)};
  try{
-  await schema(env);const tenant=String(user.tenant_id),uid=String(user.id);
+  await schema(env);const tenant=String(user.tenant_id),uid=String(user.id);await syncGapProposals(env,{tenant,uid});
   const {results=[]}=await env.DB.prepare("SELECT name,purpose,family,risk,status,uses,successes,steps_json FROM magnanimous_native_tool_specs WHERE ((tenant_id=? AND user_id=?) OR (tenant_id=? AND user_id=?)) AND status IN ('ready','proposed') ORDER BY CASE status WHEN 'ready' THEN 0 ELSE 1 END, successes DESC, uses DESC, updated_at DESC LIMIT 80").bind(tenant,uid,GLOBAL_TOOL_TENANT,GLOBAL_TOOL_USER).all();
   const terms=String(goal||'').toLowerCase().split(/[^a-z0-9]+/).filter(x=>x.length>2);
   const ranked=results.map(x=>{const hay=`${x.name} ${x.purpose} ${x.family}`.toLowerCase();return{...x,match:terms.reduce((n,t)=>n+(hay.includes(t)?1:0),0)}}).sort((a,b)=>b.match-a.match||(a.status==='ready'?-1:1)-(b.status==='ready'?-1:1)||Number(b.successes||0)-Number(a.successes||0)).slice(0,10);
@@ -67,11 +73,16 @@ export async function handleMagnanimousToolFoundry(request,env){
  const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);
  await schema(env);const tenant=String(user.tenant_id),uid=String(user.id);
  if(request.method==='GET'&&url.pathname==='/api/magnanimous/tool-foundry'){
+  await syncGapProposals(env,{tenant,uid});
   const [gaps,specs]=await Promise.all([
    env.DB.prepare('SELECT capability,example_task,count,status,updated_at FROM magnanimous_tool_gaps WHERE tenant_id=? AND user_id=? ORDER BY count DESC,updated_at DESC LIMIT 100').bind(tenant,uid).all(),
    env.DB.prepare('SELECT id,name,purpose,family,inputs_json,outputs_json,steps_json,risk,status,uses,successes,created_at,updated_at FROM magnanimous_native_tool_specs WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 300').bind(tenant,uid).all()
   ]);
-  return json({identity:'Magnanimous AI',mode:'native-tool-learning',command_role:'commander-in-chief',auto_promotion:{enabled:true,low_risk_only:true,min_scored_uses:5,min_success_rate:.8},gaps:gaps.results||[],tools:(specs.results||[]).map(x=>({...x,inputs:JSON.parse(x.inputs_json||'{}'),outputs:JSON.parse(x.outputs_json||'{}'),steps:JSON.parse(x.steps_json||'[]')})),integration_targets:getIntegrationCatalog().length,note:'Magnanimous learns reusable native tool recipes and provider-adapter specifications. Proven low-risk recipes can self-promote to READY. External services still require their own authorization; proprietary provider backends are not copied.'});
+  return json({identity:'Magnanimous AI',mode:'native-tool-learning',command_role:'commander-in-chief',auto_promotion:{enabled:true,low_risk_only:true,min_scored_uses:5,min_success_rate:.8},capability_radar:'/api/magnanimous/tool-foundry/radar',gaps:gaps.results||[],tools:(specs.results||[]).map(x=>({...x,inputs:JSON.parse(x.inputs_json||'{}'),outputs:JSON.parse(x.outputs_json||'{}'),steps:JSON.parse(x.steps_json||'[]')})),integration_targets:getIntegrationCatalog().length,note:'Magnanimous learns reusable native tool recipes and provider-adapter specifications. Proven low-risk recipes can self-promote to READY. External services still require their own authorization; proprietary provider backends are not copied.'});
+ }
+ if(request.method==='GET'&&url.pathname==='/api/magnanimous/tool-foundry/radar'){
+  await syncGapProposals(env,{tenant,uid});
+  return json(await getMagnanimousCapabilityRadar(env,{tenant,userId:uid}));
  }
  if(request.method==='GET'&&url.pathname==='/api/magnanimous/tool-foundry/integrations'){
   const goal=clip(url.searchParams.get('goal'),1000);
@@ -92,8 +103,9 @@ export async function handleMagnanimousToolFoundry(request,env){
   return json({ok:true,seeded:seeded.length,high_priority_only:onlyPriority,review_required:seeded.filter(x=>x?.risk==='high').length,tools:seeded});
  }
  if(request.method==='POST'&&url.pathname==='/api/magnanimous/tool-foundry/observe'){
-  const b=await request.json().catch(()=>({}));const capability=normalizeName(b.capability||b.need),example=clip(b.example_task||b.task,1500);if(!capability)return json({detail:'Capability is required.'},400);const ts=now();await env.DB.prepare(`INSERT INTO magnanimous_tool_gaps(tenant_id,user_id,capability,example_task,count,status,created_at,updated_at) VALUES(?,?,?,?,1,'observed',?,?) ON CONFLICT(tenant_id,user_id,capability) DO UPDATE SET example_task=CASE WHEN excluded.example_task<>'' THEN excluded.example_task ELSE magnanimous_tool_gaps.example_task END,count=magnanimous_tool_gaps.count+1,updated_at=excluded.updated_at`).bind(tenant,uid,capability,example,ts,ts).run();const gap=await env.DB.prepare('SELECT * FROM magnanimous_tool_gaps WHERE tenant_id=? AND user_id=? AND capability=?').bind(tenant,uid,capability).first();let proposal=null;if(Number(gap?.count||0)>=3){const name=capability,purpose=example||`Reusable native capability for ${capability}`;proposal=await upsertSpec(env,{tenant,uid,name,purpose,family:'learned',risk:'low',status:'proposed'});await env.DB.prepare("UPDATE magnanimous_tool_gaps SET status='proposed',updated_at=? WHERE tenant_id=? AND user_id=? AND capability=?").bind(ts,tenant,uid,capability).run();}
-  return json({ok:true,gap_count:Number(gap?.count||1),proposal});
+  const b=await request.json().catch(()=>({}));const capability=normalizeName(b.capability||b.need),example=clip(b.example_task||b.task,1500);if(!capability)return json({detail:'Capability is required.'},400);
+  const gap=await recordMagnanimousCapabilityGap(env,{tenant,userId:uid,capability,task:example,source:b.source||'tool-foundry'});const proposals=await syncGapProposals(env,{tenant,uid});
+  return json({ok:true,gap_count:Number(gap?.count||1),gap_status:gap?.status||'observed',proposal:proposals.find(x=>x?.name===capability)||null});
  }
  if(request.method==='POST'&&url.pathname==='/api/magnanimous/tool-foundry/spec'){
   const b=await request.json().catch(()=>({})),name=normalizeName(b.name),purpose=clip(b.purpose,2000);if(!purpose)return json({detail:'Tool purpose is required.'},400);const risk=['low','medium','high'].includes(String(b.risk))?String(b.risk):'low';const row=await upsertSpec(env,{tenant,uid,name,purpose,family:b.family||'general',inputs:typeof b.inputs==='object'&&b.inputs?b.inputs:{},outputs:typeof b.outputs==='object'&&b.outputs?b.outputs:{},steps:Array.isArray(b.steps)?b.steps:undefined,risk,status:risk==='high'?'review-required':'draft'});return json({ok:true,tool:row});
