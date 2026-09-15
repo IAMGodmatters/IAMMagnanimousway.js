@@ -2,15 +2,10 @@ import { test, expect } from '@playwright/test';
 
 test('deployed voice transcript auto-sends, ignores late recognition errors, and speaks the reply', async ({ page }) => {
   await page.addInitScript(() => {
-    // /magnanimous is intentionally protected. Seed the same client-side account state
-    // the app requires so this post-deploy test exercises the authenticated voice surface
-    // instead of being redirected to /login.
+    // /magnanimous is intentionally protected. Seed the same authenticated customer
+    // session contract used by the production root guard without weakening that guard.
     localStorage.setItem('iam_account_token', 'voice-postdeploy-qa');
-    sessionStorage.setItem('iam_active_user', JSON.stringify({
-      id: 'voice-postdeploy-qa',
-      name: 'Voice Post-Deploy QA',
-      email: 'voice-postdeploy-qa@example.invalid'
-    }));
+    sessionStorage.setItem('iam_session_active', 'user');
 
     class FakeUtterance {
       text: string;
@@ -81,6 +76,7 @@ test('deployed voice transcript auto-sends, ignores late recognition errors, and
   }));
 
   await page.goto('/magnanimous', { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(/\/magnanimous\/?(?:[?#].*)?$/);
   await page.getByRole('button', { name: /Talk to Magnanimous AI/i }).click();
 
   await expect(page.locator('.mag-message.user .mag-bubble p')).toContainText('Hey how are you doing today');
