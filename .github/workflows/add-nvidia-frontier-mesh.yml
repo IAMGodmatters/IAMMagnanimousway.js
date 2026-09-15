@@ -1,0 +1,45 @@
+name: Add NVIDIA Frontier Mesh
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/add-nvidia-frontier-mesh.mjs'
+      - '.github/workflows/add-nvidia-frontier-mesh.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Apply additive NVIDIA routing and remembrance invariant
+        run: node scripts/add-nvidia-frontier-mesh.mjs
+      - name: Validate changed JavaScript
+        run: |
+          node --check worker/src/provider-entrypoint.js
+          node --check worker/src/provider-runtime-env.js
+          node --check worker/src/platform-credentials.js
+          node --check worker/src/magnanimous-brain-runtime.js
+      - name: Validate Worker bundle
+        working-directory: worker
+        run: |
+          npm install
+          npx wrangler deploy --dry-run
+      - name: Commit validated source changes
+        run: |
+          if git diff --quiet; then
+            echo 'No source changes needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add worker/src/provider-entrypoint.js worker/src/provider-runtime-env.js worker/src/platform-credentials.js worker/src/magnanimous-brain-runtime.js .env.example
+          git commit -m 'Add free-first NVIDIA frontier execution mesh'
+          git push
