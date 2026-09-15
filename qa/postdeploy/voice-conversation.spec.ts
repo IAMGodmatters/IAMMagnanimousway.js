@@ -2,6 +2,16 @@ import { test, expect } from '@playwright/test';
 
 test('deployed voice transcript auto-sends, ignores late recognition errors, and speaks the reply', async ({ page }) => {
   await page.addInitScript(() => {
+    // /magnanimous is intentionally protected. Seed the same client-side account state
+    // the app requires so this post-deploy test exercises the authenticated voice surface
+    // instead of being redirected to /login.
+    localStorage.setItem('iam_account_token', 'voice-postdeploy-qa');
+    sessionStorage.setItem('iam_active_user', JSON.stringify({
+      id: 'voice-postdeploy-qa',
+      name: 'Voice Post-Deploy QA',
+      email: 'voice-postdeploy-qa@example.invalid'
+    }));
+
     class FakeUtterance {
       text: string;
       voice: any = null;
