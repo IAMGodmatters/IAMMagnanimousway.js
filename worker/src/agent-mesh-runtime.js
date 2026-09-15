@@ -238,6 +238,20 @@ function localResilienceResponse(agent,message,failureClass='unavailable'){
  return `I can keep this task moving in local resilience mode even though full reasoning capacity is temporarily unavailable. I will not invent facts or claim external actions happened. Break the request into the immediate objective, known constraints and safest next action; the request I received was: “${text.slice(0,320)}”`;
 }
 
+function localResilienceResponse(agent,message,failureClass='unavailable'){
+ const text=String(message||'').trim();
+ const lower=text.toLowerCase();
+ if(/(?:confirm|online|available|working|ready)/.test(lower)&&text.length<220){
+  return `${agent.name} is online in the I AM Agent Mesh; local resilience mode is keeping the branch available while full reasoning capacity recovers.`;
+ }
+ const specialty=String(agent?.description||agent?.title||'this task');
+ const group=String(agent?.group||'').toLowerCase();
+ if(group==='business')return `I can keep this moving in local resilience mode. For ${specialty}, define the customer and exact objective, name the biggest constraint, choose one measurable next action, and set a review metric before spending more money. Your request was: “${text.slice(0,260)}”`;
+ if(group==='marketing'||group==='social')return `I can keep this moving in local resilience mode. Anchor the message to one audience, one problem, one promise and one clear next action; then test the smallest publishable version and measure response. Your request was: “${text.slice(0,260)}”`;
+ if(group==='customer'||group==='support')return `I can keep this moving in local resilience mode. Confirm the customer goal, state what is known, avoid promising an action that has not actually completed, give the safest next step, and record the outcome for follow-up. Your request was: “${text.slice(0,260)}”`;
+ return `I can keep this task moving in local resilience mode even though full reasoning capacity is temporarily unavailable. I will not invent facts or claim external actions happened. Break the request into the immediate objective, known constraints and safest next action; the request I received was: “${text.slice(0,320)}”`;
+}
+
 async function runProvider(id,env,messages,requestedModel=''){
  if(id==='cloudflare-ai'){
   const models=[requestedModel,String(env.AGENT_CLOUDFLARE_MODEL||''),String(env.CLOUDFLARE_AI_MODEL||''),'@cf/meta/llama-3.2-1b-instruct','@cf/meta/llama-3.1-8b-instruct-fast','@cf/zai-org/glm-4.7-flash','@cf/qwen/qwen3-30b-a3b-fp8','@cf/google/gemma-4-26b-a4b-it','@cf/nvidia/nemotron-3-120b-a12b','@cf/meta/llama-3.3-70b-instruct-fp8-fast'].filter(Boolean);
