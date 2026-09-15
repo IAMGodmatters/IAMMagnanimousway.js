@@ -1,0 +1,66 @@
+name: Add OpenRouter Free Fallback
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/add-openrouter-free-fallback.mjs'
+      - '.github/workflows/add-openrouter-free-fallback.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Apply additive free-provider repair
+        run: node scripts/add-openrouter-free-fallback.mjs
+
+      - name: Verify provider syntax and Magnanimous architecture
+        run: |
+          node --check worker/src/provider-entrypoint.js
+          node scripts/verify-magnanimous-command-lock.mjs
+
+      - name: Install frontend
+        working-directory: frontend
+        run: npm install
+
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm install
+
+      - name: Validate Worker bundle
+        working-directory: worker
+        run: npx wrangler deploy --dry-run
+
+      - name: Commit validated source repair
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No source changes were needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add worker/src/provider-entrypoint.js .github/workflows/deploy.yml
+          git commit -m 'Add OpenRouter free fallback and NVIDIA secret sync'
+          git push
