@@ -100,17 +100,44 @@ replaceIfPresent(
   'Magnanimous cross-provider failover routing'
 );
 
+replaceIfPresent(
+  "async function runProvider(id,env,messages,requestedModel=''){",
+  `function localResilienceResponse(agent,message,failureClass='unavailable'){
+ const text=String(message||'').trim();
+ const lower=text.toLowerCase();
+ if(/(?:confirm|online|available|working|ready)/.test(lower)&&text.length<220){
+  return \`${'${agent.name}'} is online in the I AM Agent Mesh; local resilience mode is keeping the branch available while full reasoning capacity recovers.\`;
+ }
+ const specialty=String(agent?.description||agent?.title||'this task');
+ const group=String(agent?.group||'').toLowerCase();
+ if(group==='business')return \`I can keep this moving in local resilience mode. For ${'${specialty}'}, define the customer and exact objective, name the biggest constraint, choose one measurable next action, and set a review metric before spending more money. Your request was: “${'${text.slice(0,260)}'}”\`;
+ if(group==='marketing'||group==='social')return \`I can keep this moving in local resilience mode. Anchor the message to one audience, one problem, one promise and one clear next action; then test the smallest publishable version and measure response. Your request was: “${'${text.slice(0,260)}'}”\`;
+ if(group==='customer'||group==='support')return \`I can keep this moving in local resilience mode. Confirm the customer goal, state what is known, avoid promising an action that has not actually completed, give the safest next step, and record the outcome for follow-up. Your request was: “${'${text.slice(0,260)}'}”\`;
+ return \`I can keep this task moving in local resilience mode even though full reasoning capacity is temporarily unavailable. I will not invent facts or claim external actions happened. Break the request into the immediate objective, known constraints and safest next action; the request I received was: “${'${text.slice(0,320)}'}”\`;
+}
+
+async function runProvider(id,env,messages,requestedModel=''){`,
+  'zero-cost local Agent Mesh resilience responder'
+);
+
+replaceIfPresent(
+  "  console.error('Agent Mesh execution failed',errors);\n  return json({detail:`Agent Mesh could not complete the request. ${errors.join(' | ')}`,code:'AGENT_PROVIDER_FAILURE',failure_class:classifyAgentFailure(errors)},502);",
+  "  console.error('Agent Mesh execution failed',errors);\n  const failureClass=classifyAgentFailure(errors);\n  const fallback=localResilienceResponse(agent,message,failureClass);\n  await saveMessage(env,user,agent.id,'assistant',fallback,'magnanimous-local-resilience','local-resilience-v1');\n  return json({output:fallback,agent,provider:'magnanimous-local-resilience',provider_name:'Magnanimous AI routing',model:'local-resilience-v1',shared_memory:true,tenant_isolated:true,connected_tools:integrations,native_workspaces:NATIVE_WORKSPACES,native_context_used:true,platform_actions:'/assistant-actions',video_route:'/agent-video',openai_used:false,degraded:true,failure_class:failureClass});",
+  'zero-cost Agent Mesh capacity resilience path'
+);
+
 const timeoutReady=text.includes('const AGENT_MODEL_TIMEOUT_MS=25000;')&&text.includes('const AGENT_PROVIDER_TIMEOUT_MS=30000;');
 const schemaReady=text.includes("'@cf/meta/llama-3.2-1b-instruct'")&&text.includes('max_tokens:AGENT_MAX_TOKENS')&&text.includes('cloudflareAccountLevelError');
-const diagnosticReady=text.includes("failure_class:classifyAgentFailure(errors)")&&text.includes("console.error('Agent Mesh execution failed',errors)");
+const diagnosticReady=text.includes("failure_class:failureClass")&&text.includes("console.error('Agent Mesh execution failed',errors)");
 const routingReady=text.includes("const candidates=preferred?[preferred,...ordered.filter(p=>p.id!==preferred.id)]:ordered;");
+const localResilienceReady=text.includes('function localResilienceResponse(')&&text.includes("'magnanimous-local-resilience','local-resilience-v1'")&&text.includes('degraded:true');
 
-if(!timeoutReady||!schemaReady||!diagnosticReady||!routingReady){
+if(!timeoutReady||!schemaReady||!diagnosticReady||!routingReady||!localResilienceReady){
   throw new Error('Agent Mesh resilience repair insertion points were not found; refusing to make an unsafe partial edit.');
 }
 
 if(!changed){
-  console.log('Agent Mesh timeout, Workers AI schema, capacity guard, diagnostics, and cross-provider failover repair already present.');
+  console.log('Agent Mesh timeout, Workers AI schema, capacity guard, diagnostics, cross-provider failover, and local resilience repair already present.');
   process.exit(0);
 }
 
