@@ -12,6 +12,7 @@ const COMMANDER_PROTOCOL = `MAGNANIMOUS COMMAND LAYER
 You are speaking as Magnanimous AI, the commander-in-chief orchestration brain for I AM Magnanimous Way™.
 All outside AI models, search engines, plugins, MCP servers, SaaS products, carriers and generators are replaceable execution engines or tools under Magnanimous routing. They are never the platform identity or the final authority over the workflow.
 Use Magnanimous private memory, learned lessons, stored knowledge and native tool recipes before reaching outward. Use fresh research when facts are current, stale, uncertain or source-dependent.
+Magnanimous AI is the durable remembrance layer for the platform: decisions, useful context, learned lessons, proven workflows and continuity belong to Magnanimous memory, never to a replaceable outside model.
 When the user supplies a public link, learn the readable information into the tenant knowledge workspace so the user does not have to keep supplying the same link. Do not copy secrets, credentials, paywalled material or proprietary backend code.
 Repeated successful low-risk workflows should become reusable Magnanimous-native recipes. External providers remain necessary only when they offer a capability, live data, account access or compute Magnanimous cannot truthfully reproduce natively.
 Specialist agents are execution arms. Magnanimous owns planning, continuity, routing, verification and learning across them.
@@ -22,6 +23,9 @@ const PROVIDERS = [
   { id: 'google', name: 'Google Gemini', key: 'GOOGLE_API_KEY', tier: 'free-first' },
   { id: 'groq', name: 'Groq', key: 'GROQ_API_KEY', tier: 'free-first' },
   { id: 'mistral', name: 'Mistral AI', key: 'MISTRAL_API_KEY', tier: 'free-first' },
+  { id: 'nvidia-kimi', name: 'NVIDIA NIM — Kimi K3', key: 'NVIDIA_API_KEY', tier: 'free-first' },
+  { id: 'nvidia-deepseek-pro', name: 'NVIDIA NIM — DeepSeek V4 Pro', key: 'NVIDIA_API_KEY', tier: 'free-first' },
+  { id: 'nvidia-deepseek-flash', name: 'NVIDIA NIM — DeepSeek V4 Flash', key: 'NVIDIA_API_KEY', tier: 'free-first' },
   { id: 'openai', name: 'OpenAI', key: 'OPENAI_API_KEY', tier: 'metered' },
   { id: 'anthropic', name: 'Anthropic', key: 'ANTHROPIC_API_KEY', tier: 'metered' }
 ];
@@ -142,6 +146,9 @@ async function callProvider(id, env, message, model) {
   if (id === 'google') return { text: await google(env, message, model), model: model || env.GOOGLE_MODEL || 'gemini-2.5-flash' };
   if (id === 'groq') return { text: await openaiCompatible('https://api.groq.com/openai/v1', env.GROQ_API_KEY, model || env.GROQ_MODEL || 'llama-3.3-70b-versatile', message, 'Groq'), model: model || env.GROQ_MODEL || 'llama-3.3-70b-versatile' };
   if (id === 'mistral') return { text: await openaiCompatible('https://api.mistral.ai/v1', env.MISTRAL_API_KEY, model || env.MISTRAL_MODEL || 'mistral-large-latest', message, 'Mistral'), model: model || env.MISTRAL_MODEL || 'mistral-large-latest' };
+  if (id === 'nvidia-kimi') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_KIMI_MODEL || 'moonshotai/kimi-k3', message, 'NVIDIA Kimi'), model: model || env.NVIDIA_KIMI_MODEL || 'moonshotai/kimi-k3' };
+  if (id === 'nvidia-deepseek-pro') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_DEEPSEEK_PRO_MODEL || 'deepseek-ai/deepseek-v4-pro-0813', message, 'NVIDIA DeepSeek Pro'), model: model || env.NVIDIA_DEEPSEEK_PRO_MODEL || 'deepseek-ai/deepseek-v4-pro-0813' };
+  if (id === 'nvidia-deepseek-flash') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_DEEPSEEK_FLASH_MODEL || 'deepseek-ai/deepseek-v4-flash-0731', message, 'NVIDIA DeepSeek Flash'), model: model || env.NVIDIA_DEEPSEEK_FLASH_MODEL || 'deepseek-ai/deepseek-v4-flash-0731' };
   if (id === 'cloudflare-ai') return cloudflare(env, message, model);
   throw new Error('Unknown AI provider');
 }
@@ -172,11 +179,11 @@ function routeProviders(env,message,body={},learned=new Map()){
   const quality=String(body.quality||body.route_policy||'').toLowerCase();
   const task=taskClass(message,body);
   const order={
-    research:['google','cloudflare-ai','groq','mistral','openai','anthropic'],
-    coding:['mistral','groq','cloudflare-ai','google','openai','anthropic'],
-    business:['google','cloudflare-ai','mistral','groq','openai','anthropic'],
-    writing:['cloudflare-ai','mistral','google','groq','openai','anthropic'],
-    general:['cloudflare-ai','google','groq','mistral','openai','anthropic']
+    research:['google','nvidia-kimi','cloudflare-ai','nvidia-deepseek-flash','groq','mistral','nvidia-deepseek-pro','openai','anthropic'],
+    coding:['nvidia-deepseek-pro','nvidia-deepseek-flash','nvidia-kimi','mistral','groq','cloudflare-ai','google','openai','anthropic'],
+    business:['nvidia-kimi','nvidia-deepseek-pro','google','cloudflare-ai','nvidia-deepseek-flash','mistral','groq','openai','anthropic'],
+    writing:['cloudflare-ai','nvidia-kimi','nvidia-deepseek-flash','mistral','google','groq','nvidia-deepseek-pro','openai','anthropic'],
+    general:['cloudflare-ai','nvidia-kimi','nvidia-deepseek-flash','google','groq','mistral','nvidia-deepseek-pro','openai','anthropic']
   }[task]||[];
   const preferred=(quality==='max'||quality==='maximum'||quality==='quality')?['openai','anthropic',...order]:order;
   const rank=new Map([...new Set(preferred)].map((id,i)=>[id,i]));
