@@ -1,0 +1,90 @@
+name: Repair Q&A and training quality
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/qa-training-quality-repair.mjs'
+      - 'worker/src/qa-observation-runtime.js'
+      - 'worker/src/auto-teaching-runtime.js'
+      - 'worker/src/agent-branch-intelligence.js'
+      - 'worker/src/branch-consent-entrypoint.js'
+      - 'frontend/app/qa-ai-academy/page.tsx'
+      - 'frontend/app/owner-ai-academy/page.tsx'
+      - 'frontend/app/owner-ai-training-review/page.tsx'
+      - 'qa/scripts/public-teaching-observation-lock.mjs'
+      - 'qa/scripts/specialist-branch-lock.mjs'
+      - '.github/workflows/repair-qa-training-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package.json
+
+      - name: Apply guarded Q&A and training audit repair
+        id: repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/qa-training-quality-repair.mjs
+          if git diff --quiet; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+            git diff --check
+          fi
+
+      - name: Verify specialist and public QA contracts
+        if: steps.repair.outputs.changed == 'true'
+        run: |
+          node qa/scripts/public-teaching-observation-lock.mjs
+          node qa/scripts/specialist-branch-lock.mjs
+          node qa/scripts/product-contract-locks.mjs
+
+      - name: Typecheck and build frontend
+        if: steps.repair.outputs.changed == 'true'
+        working-directory: frontend
+        run: |
+          npm install
+          npm run typecheck
+          npm run build
+
+      - name: Verify Worker bundle
+        if: steps.repair.outputs.changed == 'true'
+        working-directory: worker
+        run: |
+          npm install
+          npx wrangler deploy --dry-run --outdir /tmp/iam-worker-qa-training-audit
+
+      - name: Commit validated Q&A and training improvements
+        if: steps.repair.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add worker/src/qa-observation-runtime.js \
+                  worker/src/auto-teaching-runtime.js \
+                  worker/src/agent-branch-intelligence.js \
+                  worker/src/branch-consent-entrypoint.js \
+                  frontend/app/qa-ai-academy/page.tsx \
+                  frontend/app/owner-ai-academy/page.tsx \
+                  frontend/app/owner-ai-training-review/page.tsx \
+                  qa/scripts/public-teaching-observation-lock.mjs \
+                  qa/scripts/specialist-branch-lock.mjs
+          git commit -m "Strengthen Magnanimous Q&A and training quality"
+          git push origin HEAD:main
