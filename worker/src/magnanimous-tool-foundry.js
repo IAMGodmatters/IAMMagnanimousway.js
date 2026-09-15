@@ -4,6 +4,8 @@ import { getIntegrationCatalog, rankIntegrationTargets } from './magnanimous-int
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
 const clip=(v,n=5000)=>String(v??'').trim().slice(0,n);
+export const GLOBAL_TOOL_TENANT='__magnanimous_global__';
+export const GLOBAL_TOOL_USER='system:auto-qa';
 
 async function schema(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_tool_gaps (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,capability TEXT NOT NULL,example_task TEXT NOT NULL DEFAULT '',count INTEGER NOT NULL DEFAULT 1,status TEXT NOT NULL DEFAULT 'observed',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(tenant_id,user_id,capability))`).run();
@@ -32,17 +34,28 @@ async function upsertSpec(env,{tenant,uid,name,purpose,family,inputs={},outputs=
  return env.DB.prepare('SELECT id,name,purpose,family,risk,status,uses,successes FROM magnanimous_native_tool_specs WHERE tenant_id=? AND user_id=? AND name=?').bind(tenant,uid,safeName).first();
 }
 
+export async function upsertApprovedTeachingTool(env,{submissionId=0,agentId='teacher',name='learned-workflow',purpose='',family='learned',risk='low',steps=[],requiredCapabilities=[],requiresConnection=false}={}){
+ if(!env?.DB||!String(purpose||'').trim())return null;
+ await schema(env);
+ const safeRisk=['low','medium','high'].includes(String(risk||'').toLowerCase())?String(risk).toLowerCase():'low';
+ const safeCapabilities=Array.isArray(requiredCapabilities)?requiredCapabilities.map(x=>clip(x,120)).filter(Boolean).slice(0,20):[];
+ const safeSteps=Array.isArray(steps)?steps.map((instruction,index)=>({type:index===0?'understand':index===steps.length-1?'verify':'execute',instruction:clip(instruction,1000)})).filter(x=>x.instruction).slice(0,20):[];
+ const permissionStep={type:'authorize',instruction:requiresConnection?'Verify the required account/tool connection, tenant scope, and user authorization before any account-specific action.':'Verify permissions and require explicit approval before any consequential action.'};
+ const recipeSteps=[permissionStep,...safeSteps,{type:'verify',instruction:'Verify the outcome against the approved teaching, report anything not completed, and never claim an external action succeeded without a real tool result.'}].slice(0,30);
+ return upsertSpec(env,{tenant:GLOBAL_TOOL_TENANT,uid:GLOBAL_TOOL_USER,name,purpose,family,risk:safeRisk,status:safeRisk==='high'?'review-required':'proposed',inputs:{task:'string',authorized_context:'object',required_capabilities:safeCapabilities,requires_connection:Boolean(requiresConnection),teaching_submission_id:Number(submissionId)||0,agent_id:clip(agentId,120)},outputs:{result:'verified workflow result',actions_taken:'array',actions_pending_authorization:'array'},steps:recipeSteps});
+}
+
 export async function getMagnanimousToolFoundryContext(request,env,goal=''){
  if(!env?.DB)return{context:'',tools:[],recommended_integrations:[]};
  const user=await currentUser(request,env).catch(()=>null);if(!user)return{context:'',tools:[],recommended_integrations:rankIntegrationTargets(goal).slice(0,6)};
  try{
   await schema(env);const tenant=String(user.tenant_id),uid=String(user.id);
-  const {results=[]}=await env.DB.prepare("SELECT name,purpose,family,risk,status,uses,successes,steps_json FROM magnanimous_native_tool_specs WHERE tenant_id=? AND user_id=? AND status IN ('ready','proposed') ORDER BY CASE status WHEN 'ready' THEN 0 ELSE 1 END, successes DESC, uses DESC, updated_at DESC LIMIT 40").bind(tenant,uid).all();
+  const {results=[]}=await env.DB.prepare("SELECT name,purpose,family,risk,status,uses,successes,steps_json FROM magnanimous_native_tool_specs WHERE ((tenant_id=? AND user_id=?) OR (tenant_id=? AND user_id=?)) AND status IN ('ready','proposed') ORDER BY CASE status WHEN 'ready' THEN 0 ELSE 1 END, successes DESC, uses DESC, updated_at DESC LIMIT 80").bind(tenant,uid,GLOBAL_TOOL_TENANT,GLOBAL_TOOL_USER).all();
   const terms=String(goal||'').toLowerCase().split(/[^a-z0-9]+/).filter(x=>x.length>2);
   const ranked=results.map(x=>{const hay=`${x.name} ${x.purpose} ${x.family}`.toLowerCase();return{...x,match:terms.reduce((n,t)=>n+(hay.includes(t)?1:0),0)}}).sort((a,b)=>b.match-a.match||(a.status==='ready'?-1:1)-(b.status==='ready'?-1:1)||Number(b.successes||0)-Number(a.successes||0)).slice(0,10);
   const recommended=rankIntegrationTargets(goal).slice(0,6);
   const lines=[];
-  if(ranked.length){lines.push('\n\nMAGNANIMOUS LEARNED NATIVE TOOL RECIPES:');for(const x of ranked){const rate=Number(x.uses||0)>0?`${Math.round(Number(x.successes||0)/Number(x.uses||1)*100)}% observed success`:'unscored';lines.push(`- ${x.name} [${x.status}/${x.risk}]: ${clip(x.purpose,500)} (${rate})`)}lines.push('READY recipes are proven low-risk patterns Magnanimous should reuse natively. PROPOSED recipes are planning guidance until enough successful outcomes promote them. Never execute high-impact actions merely because a recipe exists.');}
+  if(ranked.length){lines.push('\n\nMAGNANIMOUS LEARNED NATIVE TOOL RECIPES:');for(const x of ranked){const rate=Number(x.uses||0)>0?`${Math.round(Number(x.successes||0)/Number(x.uses||1)*100)}% observed success`:'unscored';lines.push(`- ${x.name} [${x.status}/${x.risk}]: ${clip(x.purpose,500)} (${rate})`)}lines.push('READY recipes are proven low-risk patterns Magnanimous should reuse natively. PROPOSED recipes are approved workflow guidance that must route through real native or connected tools before claiming an action occurred. Never execute high-impact actions merely because a recipe exists; preserve account permissions and explicit approval requirements.');}
   if(recommended.length){lines.push('\nINTEGRATION ROUTING CANDIDATES:');for(const x of recommended)lines.push(`- ${x.name}: ${x.capabilities.join(', ')} [${x.priority}]`);lines.push('These are adapter targets, not automatically authorized accounts. Prefer Magnanimous native/free capability first; use a provider only when connected and materially better or required for live/account-specific capability.');}
   return{context:lines.join('\n').slice(0,9000),tools:ranked,recommended_integrations:recommended};
  }catch(e){return{context:'',tools:[],recommended_integrations:rankIntegrationTargets(goal).slice(0,6),error:clip(e?.message||e,500)}}
