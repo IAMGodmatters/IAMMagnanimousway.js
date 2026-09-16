@@ -3,6 +3,7 @@ import { handleLeadPhone } from './lead-phone.js';
 import { handleIntegrations } from './integrations.js';
 import { handleSponsoredAds } from './sponsored-ad-runtime.js';
 import { handleInkboxRouter } from './inkbox-router.js';
+import { ensureMagnanimousCommunicationsToolSeed } from './inkbox-tool-seed.js';
 
 const CRM_TABLES=['crm_contacts','crm_activities','crm_opportunities'];
 async function hashPassword(password,salt){const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(`${salt}:${password}`));return [...new Uint8Array(bytes)].map(x=>x.toString(16).padStart(2,'0')).join('');}
@@ -56,6 +57,7 @@ async function repairLegacySchema(env){
 export default {
   async fetch(request,env,ctx){
     await repairLegacySchema(env);
+    try{await ensureMagnanimousCommunicationsToolSeed(env)}catch(error){console.error('communications tool seed failed',error)}
     const sponsored=await handleSponsoredAds(request,env);
     if(sponsored)return sponsored;
     const communications=await handleInkboxRouter(request,env);
