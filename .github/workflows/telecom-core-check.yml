@@ -7,20 +7,24 @@ on:
       - 'telecom-core/**'
       - 'frontend/app/telecom/**'
       - 'worker/src/magnanimous-telecom-runtime.js'
+      - 'worker/src/magnanimous-telecom-network-runtime.js'
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0040_magnanimous_telecom_business.sql'
       - 'worker/migrations/0041_magnanimous_telecom_commercial_ops.sql'
       - 'worker/migrations/0042_magnanimous_sim_esim.sql'
+      - 'worker/migrations/0043_magnanimous_regulated_network.sql'
       - '.github/workflows/telecom-core-check.yml'
   pull_request:
     paths:
       - 'telecom-core/**'
       - 'frontend/app/telecom/**'
       - 'worker/src/magnanimous-telecom-runtime.js'
+      - 'worker/src/magnanimous-telecom-network-runtime.js'
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0040_magnanimous_telecom_business.sql'
       - 'worker/migrations/0041_magnanimous_telecom_commercial_ops.sql'
       - 'worker/migrations/0042_magnanimous_sim_esim.sql'
+      - 'worker/migrations/0043_magnanimous_regulated_network.sql'
       - '.github/workflows/telecom-core-check.yml'
 
 permissions:
@@ -62,9 +66,10 @@ jobs:
       - name: Build Telecom API image
         run: docker build -t magnanimous-telecom-api:ci telecom-core/control-api
 
-      - name: Validate Worker Telecom runtime
+      - name: Validate Worker Telecom runtimes
         run: |
           node --check worker/src/magnanimous-telecom-runtime.js
+          node --check worker/src/magnanimous-telecom-network-runtime.js
           node --check worker/src/entrypoint.js
 
       - name: Validate Telecom schema foundations
@@ -76,7 +81,18 @@ jobs:
           grep -q 'telecom_sim_inventory' worker/migrations/0042_magnanimous_sim_esim.sql
           grep -q 'telecom_esim_orders' worker/migrations/0042_magnanimous_sim_esim.sql
           grep -q 'telecom_mobile_adapters' worker/migrations/0042_magnanimous_sim_esim.sql
+          grep -q 'telecom_network_providers' worker/migrations/0043_magnanimous_regulated_network.sql
+          grep -q 'telecom_regulatory_cases' worker/migrations/0043_magnanimous_regulated_network.sql
+          grep -q 'telecom_network_events' worker/migrations/0043_magnanimous_regulated_network.sql
           grep -q 'The application MUST NOT generate, clone, copy or store raw Ki' telecom-core/SIM_ESIM.md
+
+      - name: Validate consequential action locks
+        run: |
+          grep -q 'TELECOM_PURCHASE_ACTIONS_ENABLED' worker/src/magnanimous-telecom-network-runtime.js
+          grep -q 'confirm_purchase' worker/src/magnanimous-telecom-network-runtime.js
+          grep -q 'TELECOM_REGULATED_ACTIONS_ENABLED' worker/src/magnanimous-telecom-network-runtime.js
+          grep -q 'confirm_regulated_action' worker/src/magnanimous-telecom-network-runtime.js
+          grep -q 'Software readiness is not regulatory authority' worker/src/magnanimous-telecom-network-runtime.js
 
       - name: Install frontend dependencies
         working-directory: frontend
@@ -95,6 +111,9 @@ jobs:
           grep -q 'Magnanimous Telecom' frontend/app/telecom/page.tsx
           grep -q 'Magnanimous AI' frontend/app/telecom/page.tsx
           grep -q 'SIM + eSIM Control' frontend/app/telecom/page.tsx
+          grep -q 'Carrier Access' frontend/app/telecom/page.tsx
+          grep -q 'Magnanimous remains the public identity' frontend/app/telecom/network/page.tsx
           grep -q 'integrated-and-standalone' worker/src/magnanimous-telecom-runtime.js
           grep -q 'MOBILE_PROVISIONER_URL' worker/src/magnanimous-telecom-runtime.js
           grep -q 'TELECOM_EMERGENCY_LIVE' telecom-core/STANDALONE.md
+          grep -q 'Provider-search result' telecom-core/REGULATED_NETWORK.md
