@@ -76,7 +76,7 @@ jobs:
           grep -q 'telecom_sim_inventory' worker/migrations/0042_magnanimous_sim_esim.sql
           grep -q 'telecom_esim_orders' worker/migrations/0042_magnanimous_sim_esim.sql
           grep -q 'telecom_mobile_adapters' worker/migrations/0042_magnanimous_sim_esim.sql
-          grep -q 'Raw SIM/eSIM authentication secrets' telecom-core/SIM_ESIM.md
+          grep -q 'The application MUST NOT generate, clone, copy or store raw Ki' telecom-core/SIM_ESIM.md
 
       - name: Install frontend dependencies
         working-directory: frontend
