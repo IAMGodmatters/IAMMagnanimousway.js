@@ -38,7 +38,7 @@
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     "html_handling": "auto-trailing-slash",
-    "run_worker_first": ["/api/*", "/health", "/persistent", "/restore", "/research", "/agency", "/funnels", "/email"]
+    "run_worker_first": ["/api/*", "/mcp", "/.well-known/*", "/health", "/persistent", "/restore", "/research", "/agency", "/funnels", "/email"]
   },
   "ai": { "binding": "AI" },
   "d1_databases": [
