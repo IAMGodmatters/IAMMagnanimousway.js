@@ -1,3 +1,5 @@
+import { pbkdf2 as nodePbkdf2 } from 'node:crypto';
+
 const encoder = new TextEncoder();
 const PBKDF2_PREFIX = 'pbkdf2-sha256';
 const DEFAULT_ITERATIONS = 600000;
@@ -33,14 +35,19 @@ function passwordBytes(password) {
 }
 
 async function derive(password, salt, iterations) {
-  const key = await crypto.subtle.importKey('raw', passwordBytes(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({
-    name: 'PBKDF2',
-    hash: 'SHA-256',
-    salt,
-    iterations
-  }, key, HASH_BYTES * 8);
-  return new Uint8Array(bits);
+  // Cloudflare Workers' WebCrypto PBKDF2 path currently rejects iteration
+  // counts above 100,000. The Worker compatibility date enables the native
+  // node:crypto implementation, which supports the platform's 600,000-round
+  // policy while producing standard PBKDF2-HMAC-SHA256 output. Keeping the
+  // same encoded hash format preserves verification compatibility.
+  const input = passwordBytes(password);
+  const derived = await new Promise((resolve, reject) => {
+    nodePbkdf2(input, salt, iterations, HASH_BYTES, 'sha256', (error, value) => {
+      if (error) reject(error);
+      else resolve(value);
+    });
+  });
+  return new Uint8Array(derived);
 }
 
 async function legacyDigest(password, salt) {
