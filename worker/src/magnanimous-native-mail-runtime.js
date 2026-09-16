@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { handleAssistantIntegrations } from './assistant-integrations-runtime.js';
+import { readOutlookMailbox } from './magnanimous-outlook-mail-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const clamp=(v,min,max,fallback)=>{const n=Number(v);return Number.isFinite(n)?Math.max(min,Math.min(max,Math.floor(n))):fallback};
@@ -39,6 +40,16 @@ function normalizeTerms(value){
   return String(value||'').toLowerCase().split(/\s+/).map(x=>x.trim()).filter(x=>x&&!x.includes(':')&&x.length>1).slice(0,12);
 }
 
+function outlookSearchText(query,terms){
+  const tokens=String(query||'').split(/\s+/).map(token=>{
+    const value=String(token||'').trim();
+    if(!value)return'';
+    const i=value.indexOf(':');
+    return i>=0?value.slice(i+1):value;
+  }).filter(Boolean);
+  return(tokens.length?tokens:terms).join(' ').trim();
+}
+
 function matchesTerms(message,terms){
   if(!terms.length)return true;
   const hay=[message?.from,message?.to,message?.subject,message?.snippet].flat().join(' ').toLowerCase();
@@ -50,15 +61,35 @@ function messageTimestamp(message){
   return Number.isFinite(t)?t:0;
 }
 
-async function scanAccounts(request,env,accounts,{query='',terms=[],limitPerAccount=20,inboxOnly=false}={}){
+function decorateMessages(account,messages){
+  return(messages||[]).map(message=>({...message,account_provider:account.provider,account_id:account.external_account_id,account_name:account.display_name||account.external_account_id}));
+}
+
+async function readOutlookDirect(request,env,tenantId,account,{query='',terms=[],limitPerAccount=20,inboxOnly=false}={}){
+  const direct=()=>readOutlookMailbox(env,{tenantId,externalAccountId:account.external_account_id,query:outlookSearchText(query,terms),limit:limitPerAccount,inboxOnly});
+  try{return await direct()}catch(firstError){
+    const refresh=await runMailAction(request,env,account,'read_mail',{limit:1});
+    if(refresh.ok){try{return await direct()}catch(_) {}}
+    throw firstError;
+  }
+}
+
+async function scanAccounts(request,env,tenantId,accounts,{query='',terms=[],limitPerAccount=20,inboxOnly=false}={}){
   const jobs=accounts.map(async account=>{
+    if(account.provider==='outlook'){
+      try{
+        const result=await readOutlookDirect(request,env,tenantId,account,{query,terms,limitPerAccount,inboxOnly});
+        return{account:accountMeta(account),ok:true,status:200,messages:decorateMessages(account,result.messages)};
+      }catch(_){}
+    }
+
     const payload={limit:limitPerAccount};
     if(account.provider==='google')payload.query=String(query||'').trim()||(inboxOnly?'in:inbox':'');
     const result=await runMailAction(request,env,account,'read_mail',payload);
     if(!result.ok)return{account:accountMeta(account),ok:false,status:result.status,error:result.error,messages:[]};
     let messages=Array.isArray(result.data?.result?.messages)?result.data.result.messages:[];
     if(account.provider==='outlook'&&terms.length)messages=messages.filter(m=>matchesTerms(m,terms));
-    return{account:accountMeta(account),ok:true,status:result.status,messages:messages.map(message=>({...message,account_provider:account.provider,account_id:account.external_account_id,account_name:account.display_name||account.external_account_id}))};
+    return{account:accountMeta(account),ok:true,status:result.status,messages:decorateMessages(account,messages)};
   });
   const rows=await Promise.all(jobs);
   const messages=rows.flatMap(x=>x.messages||[]).sort((a,b)=>messageTimestamp(b)-messageTimestamp(a));
@@ -84,7 +115,7 @@ export async function handleMagnanimousNativeMail(request,env){
     const terms=normalizeTerms(body.terms?.length?body.terms:query);
     if(!query&&!terms.length)return json({detail:'Enter a mail search query or search terms.'},400);
     const limitPerAccount=clamp(body.limit_per_account,1,20,20);
-    const scanned=await scanAccounts(request,env,accounts,{query,terms,limitPerAccount,inboxOnly:false});
+    const scanned=await scanAccounts(request,env,user.tenant_id,accounts,{query,terms,limitPerAccount,inboxOnly:false});
     return json({operator:'Magnanimous AI',execution_mode:'native-direct-mail',superhuman_used:false,accounts_scanned:accounts.length,accounts_succeeded:scanned.rows.filter(x=>x.ok).length,accounts_failed:scanned.rows.filter(x=>!x.ok).map(x=>({account:x.account,error:x.error,status:x.status})),query,terms,messages:scanned.messages,count:scanned.messages.length});
   }
 
@@ -94,7 +125,7 @@ export async function handleMagnanimousNativeMail(request,env){
     const limitPerAccount=clamp(body.limit_per_account,1,20,10);
     const query=String(body.query||'').trim();
     const terms=normalizeTerms(query);
-    const scanned=await scanAccounts(request,env,accounts,{query,terms,limitPerAccount,inboxOnly:true});
+    const scanned=await scanAccounts(request,env,user.tenant_id,accounts,{query,terms,limitPerAccount,inboxOnly:true});
     return json({operator:'Magnanimous AI',execution_mode:'native-direct-mail',superhuman_used:false,accounts_scanned:accounts.length,messages:scanned.messages,count:scanned.messages.length,failures:scanned.rows.filter(x=>!x.ok).map(x=>({account:x.account,error:x.error,status:x.status}))});
   }
 
