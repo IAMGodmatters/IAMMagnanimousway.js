@@ -25,6 +25,8 @@ export const CLOUDFLARE_ARCHITECTURE_TECHNIQUES=Object.freeze([
  {id:'edge-cache',name:'Cache at the edge',apply:'Cache safe public reads near users; keep authenticated, tenant-private and mutation responses no-store.'},
  {id:'zero-trust-origin',name:'Private origins with Zero Trust',apply:'Prefer outbound Cloudflare Tunnel/private connectors and Access policy over exposing administrative origins directly to the public Internet.'},
  {id:'least-privilege',name:'Least-privilege credentials',apply:'Use dedicated scoped API tokens and narrowly scoped bindings; never reuse broad deployment tokens inside runtime application logic.'},
+ {id:'secrets-store',name:'Central secret isolation',apply:'Keep runtime credentials in Cloudflare Secrets Store or Worker secrets and inject them only into the component that needs them; generated/user workloads must not receive platform secrets.'},
+ {id:'private-service-connectivity',name:'Private service connectivity',apply:'Use Workers VPC and/or Cloudflare Tunnel for private downstream services instead of exposing database or administrative origins publicly.'},
  {id:'separate-confirmation',name:'Separate consequential confirmation',apply:'Stage mutating infrastructure actions, show the exact operation, then require a distinct approval before execution.'},
  {id:'idempotent-retries',name:'Idempotent and retry-safe automation',apply:'Use stable action IDs, durable ledgers, deduplication and atomic state transitions for webhooks, queues and workflows.'},
  {id:'ai-gateway',name:'AI Gateway routing and observability',apply:'Route external model calls through one measured policy layer for caching, fallback, analytics and provider replacement where appropriate.'},
@@ -42,16 +44,16 @@ export const CLOUDFLARE_ARCHITECTURE_TECHNIQUES=Object.freeze([
 export const MAGNANIMOUS_CLOUDFLARE_FAMILIES=Object.freeze([
  family('compute','Compute & application runtime',[
   cap('workers','Workers serverless compute'),cap('static-assets','Workers Static Assets'),cap('pages','Pages'),cap('containers','Containers','guarded'),
-  cap('durable-objects','Durable Objects'),cap('workflows','Workflows'),cap('queues','Queues'),cap('cron-triggers','Cron Triggers'),
+  cap('dynamic-workers','Dynamic Workers / isolated Workers on demand','guarded'),cap('durable-objects','Durable Objects'),cap('workflows','Workflows'),cap('queues','Queues'),cap('cron-triggers','Cron Triggers'),
   cap('service-bindings','Service Bindings'),cap('smart-placement','Smart Placement'),cap('workers-builds','Workers Builds'),cap('workers-for-platforms','Workers for Platforms','guarded'),
-  cap('sandbox','Sandbox / isolated execution','guarded'),cap('browser-run','Browser Run / browser execution','guarded')
+  cap('workers-vpc','Workers VPC / private service connectivity','guarded'),cap('sandbox','Sandbox / isolated execution','guarded'),cap('browser-run','Browser Run / browser execution','guarded'),cap('browser-rendering','Browser Rendering','guarded')
  ]),
  family('data','Data, storage & messaging',[
   cap('d1','D1 SQL'),cap('kv','Workers KV'),cap('r2','R2 object storage'),cap('hyperdrive','Hyperdrive'),cap('vectorize','Vectorize'),
   cap('analytics-engine','Analytics Engine'),cap('queues','Queues'),cap('pipelines','Pipelines'),cap('durable-object-sql','Durable Object SQLite')
  ]),
  family('ai','AI & agent platform',[
-  cap('workers-ai','Workers AI'),cap('ai-gateway','AI Gateway'),cap('ai-search','AI Search'),cap('agents-sdk','Agents SDK'),
+  cap('workers-ai','Workers AI'),cap('ai-gateway','AI Gateway'),cap('ai-search','AI Search'),cap('ai-crawl-control','AI Crawl Control'),cap('cloudflare-agent','Cloudflare Agent','guarded'),cap('agents-sdk','Agents SDK'),
   cap('agent-skills','Agent Skills'),cap('mcp-client','MCP client'),cap('mcp-server','Remote MCP server'),cap('code-mode','Code Mode'),
   cap('think','@cloudflare/think agent harness'),cap('ai-chat','@cloudflare/ai-chat'),cap('shell','@cloudflare/shell','guarded'),cap('voice','Agents voice'),
   cap('x402','x402 payments','spend-locked'),cap('browser-agents','Browser agents','guarded')
@@ -93,7 +95,7 @@ export const MAGNANIMOUS_CLOUDFLARE_FAMILIES=Object.freeze([
  ]),
  family('developer','Developer platform & automation',[
   cap('wrangler','Wrangler CLI'),cap('rest-api','Cloudflare REST API'),cap('openapi','OpenAPI'),cap('graphql-api','GraphQL API'),cap('terraform','Terraform provider'),
-  cap('mcp-code-mode','Cloudflare API MCP Code Mode'),cap('skills-plugin','Cloudflare Skills plugin'),cap('local-dev','Local development/Miniflare'),cap('bindings','Bindings'),cap('secrets','Secrets','guarded')
+  cap('mcp-code-mode','Cloudflare API MCP Code Mode'),cap('skills-plugin','Cloudflare Skills plugin'),cap('local-dev','Local development/Miniflare'),cap('bindings','Bindings'),cap('secrets-store','Secrets Store','guarded'),cap('secrets','Worker secrets','guarded')
  ])
 ]);
 
