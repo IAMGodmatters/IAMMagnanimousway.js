@@ -9,15 +9,15 @@ const robots=read('frontend/public/robots.txt');
 const sitemap=read('frontend/public/sitemap.xml');
 
 must(entry.includes("const CANONICAL_HOST='iammagnanimousway.com'"),'Canonical apex host lock is missing.');
-must(entry.includes("const WWW_HOST='www.iammagnanimousway.com'"),'WWW canonical redirect lock is missing.');
-must(entry.includes("status:308"),'WWW/HTTP permanent redirect is missing.');
+must(entry.includes("const WWW_HOST='www.iammagnanimousway.com'"),'WWW canonical redirect logic is missing.');
+must(entry.includes("status:308"),'WWW/HTTP permanent redirect logic is missing.');
 must(entry.includes("status:410"),'Legacy WordPress 410 response is missing.');
 must(entry.includes("'x-robots-tag':'noindex, noarchive, nosnippet'"),'Legacy WordPress noindex header is missing.');
 must(entry.includes("url.searchParams.has('rest_route')"),'Legacy WordPress REST query retirement is missing.');
 must(entry.includes('rel="canonical"'),'Canonical response header is missing.');
 
-must(wrangler.includes('"pattern": "iammagnanimousway.com", "custom_domain": true'),'Apex custom domain is not managed by the Worker.');
-must(wrangler.includes('"pattern": "www.iammagnanimousway.com", "custom_domain": true'),'WWW custom domain is not managed by the Worker.');
+must(!wrangler.includes('"routes"'),'Deploy config must not mutate Cloudflare zone routes with the restricted production token.');
+must(wrangler.includes('Production domain attachment is managed in Cloudflare outside this file.'),'Out-of-band production domain ownership note is missing.');
 for(const route of ['"/"','"/wp-admin*"','"/wp-login.php"','"/wp-json*"','"/wp-content/*"','"/wp-includes/*"','"/xmlrpc.php"']){
   must(wrangler.includes(route),`Worker-first retirement route missing: ${route}`);
 }
@@ -31,4 +31,4 @@ must(sitemap.includes('<lastmod>2026-09-16</lastmod>'),'Sitemap recrawl date was
 must(!sitemap.includes('www.iammagnanimousway.com'),'WWW must not be advertised in the sitemap.');
 
 console.log('WordPress retirement lock: PASS');
-console.log('Canonical apex, WWW redirect, WordPress 410 retirement, crawler guidance, sitemap refresh, and non-redundant Worker routing are locked.');
+console.log('Canonical apex, WordPress 410 retirement, crawler guidance, sitemap refresh, and restricted-token-safe Worker routing are locked.');
