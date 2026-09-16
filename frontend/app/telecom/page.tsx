@@ -13,13 +13,15 @@ type Overview={
  provider_disclosure:string;
  readiness:Record<string,boolean>;
  inventory:{numbers:number;active_interconnects:number;open_port_requests:number;enabled_emergency_locations:number;rated_calls:number};
+ commercial:{customers:number;active_plans:number;active_subscriptions:number;verified_caller_identities:number;active_fraud_policies:number;audit_events:number};
  gates:Array<{key:string;label:string;ready:boolean;detail:string}>;
 };
 
 const fallback:Overview={
  identity:'Magnanimous Telecom',parent_brand:'I AM MAGNANIMOUS WAY™',brain:'Magnanimous AI',architecture:'integrated-and-standalone',provider_disclosure:'hidden-from-customer-ui',
  readiness:{internal_voice:true,pstn_bridge:false,public_number:false,inbound_events:false,emergency_calling:false,direct_numbering:false,carrier_authorized:false},
- inventory:{numbers:0,active_interconnects:0,open_port_requests:0,enabled_emergency_locations:0,rated_calls:0},gates:[]
+ inventory:{numbers:0,active_interconnects:0,open_port_requests:0,enabled_emergency_locations:0,rated_calls:0},
+ commercial:{customers:0,active_plans:0,active_subscriptions:0,verified_caller_identities:0,active_fraud_policies:0,audit_events:0},gates:[]
 };
 
 async function read(response:Response){const text=await response.text();try{return JSON.parse(text)}catch{return{detail:text||`Request failed (${response.status})`}}}
@@ -34,17 +36,17 @@ export default function TelecomPage(){
 
  useEffect(()=>{
   const saved=localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||'';
-  if(!saved){location.replace(`/login?returnTo=${encodeURIComponent('/telecom')}`);return}
+  if(!saved){location.replace(`/login?returnTo=${encodeURIComponent(location.pathname||'/telecom')}`);return}
   setToken(saved);load(saved);
  },[]);
 
  async function load(activeToken=token){
   try{
    const response=await fetch(`${api}/api/telecom/overview`,{headers:{Authorization:`Bearer ${activeToken}`}});
-   if(response.status===401){location.replace(`/login?returnTo=${encodeURIComponent('/telecom')}`);return}
+   if(response.status===401){location.replace(`/login?returnTo=${encodeURIComponent(location.pathname||'/telecom')}`);return}
    const data=await read(response);
    if(!response.ok)throw new Error(data.detail||'Unable to load Magnanimous Telecom.');
-   setOverview(data);setError('');
+   setOverview({...fallback,...data,inventory:{...fallback.inventory,...(data.inventory||{})},commercial:{...fallback.commercial,...(data.commercial||{})}});setError('');
   }catch(caught:any){setError(caught?.message||'Unable to load Magnanimous Telecom.')}
  }
 
@@ -52,7 +54,7 @@ export default function TelecomPage(){
   event.preventDefault();
   const prompt=question.trim();if(!prompt||!token)return;
   setBusy(true);setError('');setAnswer('');
-  const context=`You are Magnanimous AI operating inside Magnanimous Telecom. Keep Magnanimous as the public identity and command layer. Treat outside carriers, model providers and infrastructure vendors as replaceable tools. Never claim emergency calling, direct numbering authority, carrier authorization, or a public telephone number unless the live system indicates it is configured and verified. Help with telecom operations, architecture, customer service, routing, compliance planning and troubleshooting. User request: ${prompt}`;
+  const context=`You are Magnanimous AI operating inside Magnanimous Telecom. Keep Magnanimous as the public identity and command layer. Treat outside carriers, model providers and infrastructure vendors as replaceable tools. Never claim emergency calling, direct numbering authority, carrier authorization, or a public telephone number unless the live system indicates it is configured and verified. Help with telecom operations, architecture, customer service, routing, compliance planning, fraud controls, service-plan design, number lifecycle and troubleshooting. User request: ${prompt}`;
   try{
    const response=await fetch(`${api}/api/chat`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({message:context,tool:'magnanimous'})});
    const data=await read(response);
@@ -73,7 +75,7 @@ export default function TelecomPage(){
 
  return <main className={styles.shell}>
   <header className={styles.hero}>
-   <nav><a href='/'>I AM MAGNANIMOUS WAY™</a><span>•</span><a href='/phone'>PHONE</a></nav>
+   <nav><a href='/'>I AM MAGNANIMOUS WAY™</a><span>•</span><a href='/phone'>PHONE</a><span>•</span><a href='/telecom-standalone'>STANDALONE</a></nav>
    <div className={styles.heroGrid}>
     <div>
      <p className={styles.eyebrow}>STANDALONE SERVICE · SHARED MAGNANIMOUS BRAIN</p>
@@ -92,8 +94,8 @@ export default function TelecomPage(){
   <section className={styles.metrics}>
    <article><small>NUMBERS</small><strong>{overview.inventory.numbers}</strong><span>inventory records</span></article>
    <article><small>INTERCONNECTS</small><strong>{overview.inventory.active_interconnects}</strong><span>active routes</span></article>
-   <article><small>PORTS</small><strong>{overview.inventory.open_port_requests}</strong><span>open requests</span></article>
-   <article><small>RATED CALLS</small><strong>{overview.inventory.rated_calls}</strong><span>usage ledger</span></article>
+   <article><small>CUSTOMERS</small><strong>{overview.commercial.customers}</strong><span>active/prospect records</span></article>
+   <article><small>SUBSCRIPTIONS</small><strong>{overview.commercial.active_subscriptions}</strong><span>trial + active</span></article>
   </section>
 
   <section className={styles.section}>
@@ -113,6 +115,16 @@ export default function TelecomPage(){
   </section>
 
   <section className={styles.section}>
+   <div className={styles.sectionTitle}><div><small>COMMERCIAL FOUNDATION</small><h2>Phone-company Building Blocks</h2></div><span>Shared by the platform and standalone service.</span></div>
+   <div className={styles.metrics}>
+    <article><small>PLANS</small><strong>{overview.commercial.active_plans}</strong><span>active service plans</span></article>
+    <article><small>CALLER ID</small><strong>{overview.commercial.verified_caller_identities}</strong><span>verified identities</span></article>
+    <article><small>FRAUD POLICIES</small><strong>{overview.commercial.active_fraud_policies}</strong><span>active protections</span></article>
+    <article><small>AUDIT EVENTS</small><strong>{overview.commercial.audit_events}</strong><span>telecom history</span></article>
+   </div>
+  </section>
+
+  <section className={styles.section}>
    <div className={styles.sectionTitle}><div><small>FUTURE PHONE-COMPANY READINESS</small><h2>Carrier Growth Gates</h2></div><button className={styles.refresh} onClick={()=>load()}>REFRESH STATUS</button></div>
    <div className={styles.gates}>{(overview.gates.length?overview.gates:[
     {key:'public_pstn',label:'Public PSTN calling',ready:false,detail:'Requires an authorized PSTN interconnect and assigned number.'},
@@ -124,7 +136,7 @@ export default function TelecomPage(){
 
   <section className={styles.foundation}>
    <div><small>BUILT INTO THE FOUNDATION</small><h2>Ready to grow without rebuilding the company from scratch.</h2></div>
-   <ul><li>Number inventory and lifecycle</li><li>Replaceable SIP/PSTN interconnect registry</li><li>Number-porting workflow records</li><li>Emergency-location readiness records</li><li>STIR/SHAKEN readiness metadata</li><li>Usage and call-rating ledger</li><li>Jurisdiction/compliance control tracking</li><li>Provider-neutral Magnanimous AI command layer</li></ul>
+   <ul><li>Number inventory and lifecycle</li><li>Replaceable SIP/PSTN interconnect registry</li><li>Number-porting workflow records</li><li>Emergency-location readiness records</li><li>STIR/SHAKEN and caller-identity readiness</li><li>Usage and call-rating ledger</li><li>Customer, plan and subscription records</li><li>Fraud/spend protection policies</li><li>Immutable-style telecom audit history</li><li>Jurisdiction/compliance control tracking</li><li>Provider-neutral Magnanimous AI command layer</li></ul>
   </section>
 
   <footer className={styles.footer}><b>I AM MAGNANIMOUS WAY™</b><span>Magnanimous Telecom · ONE GOD • ONE PEOPLE • A BRIGHTER TOMORROW.</span></footer>
