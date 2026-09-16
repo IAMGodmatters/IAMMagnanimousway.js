@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { isRequestSessionRevoked, revokeRequestSession } from './session-revocation.js';
 
 const now = () => Math.floor(Date.now() / 1000);
 const encoder = new TextEncoder();
@@ -175,6 +176,16 @@ export async function securityPreflight(request, env) {
 
   if (requiresStrongSession(request, url.pathname) && !strongSecret(await sessionSecret(env))) {
     return json({ detail: 'Authentication is temporarily unavailable because secure session configuration is incomplete.', code: 'SECURE_SESSION_REQUIRED' }, 503);
+  }
+  if (request.headers.get('authorization') && await isRequestSessionRevoked(request, env)) {
+    return json({ detail: 'This session has been signed out. Sign in again to continue.', code: 'SESSION_REVOKED' }, 401);
+  }
+  if (url.pathname === '/api/auth/logout' && request.method === 'POST') {
+    const user = await currentUser(request, env).catch(() => null);
+    if (!user) return json({ detail: 'Not authenticated.', code: 'AUTH_REQUIRED' }, 401);
+    const result = await revokeRequestSession(request, env, 'logout');
+    if (!result.revoked) return json({ detail: 'This session could not be signed out safely.', code: 'LOGOUT_FAILED' }, 400);
+    return json({ ok: true, revoked: true });
   }
 
   const entitlement = await enforceAgencyEntitlement(request, env, url.pathname);

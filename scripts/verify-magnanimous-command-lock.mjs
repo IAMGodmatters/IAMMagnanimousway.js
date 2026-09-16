@@ -23,6 +23,7 @@ const gateway = read('worker/src/magnanimous-tool-gateway.js');
 const standalone = read('frontend/app/magnanimous/page.tsx');
 const voice = read('frontend/app/voice-orchestrator.tsx');
 const siteLayout = read('frontend/app/layout.tsx');
+const siteRuntime = read('frontend/app/platform-runtime-script.tsx');
 
 // Identity, command authority, and durable remembrance.
 requireText(provider, 'MAGNANIMOUS COMMAND LAYER', 'provider entrypoint');
@@ -146,9 +147,12 @@ requireText(voice, 'latestMagnanimousPersona', 'standalone specialist voice iden
 requireText(voice, 'applyVoiceProfile(u,nextPersona)', 'standalone specialist spoken replies');
 requireText(voice, 'autoSpeak', 'standalone automatic spoken replies');
 requireText(voice, 'SpeechRecognition', 'standalone microphone input');
-requireText(siteLayout, "'/magnanimous'", 'site layout');
-requireText(siteLayout, 'data-iam-standalone', 'site layout');
-requireText(siteLayout, 'if(!standalone)loadAds()', 'site layout');
+requireText(siteLayout, "import PlatformRuntimeScript from './platform-runtime-script'", 'site layout runtime mount');
+requireText(siteLayout, '<PlatformRuntimeScript/>', 'site layout runtime mount');
+requireText(siteLayout, 'data-iam-standalone', 'site layout standalone CSS isolation');
+requireText(siteRuntime, "currentPath==='/magnanimous'||currentPath.indexOf('/magnanimous/')===0", 'platform runtime standalone route detection');
+requireText(siteRuntime, "if(standalone)document.documentElement.setAttribute('data-iam-standalone','true')", 'platform runtime standalone document mode');
+requireText(siteRuntime, 'if(!standalone)loadAds()', 'platform runtime standalone advertising isolation');
 for (const directProvider of ['api.openai.com', 'api.anthropic.com', 'generativelanguage.googleapis.com', 'api.groq.com', 'api.mistral.ai']) {
   forbidText(standalone, directProvider, 'standalone Magnanimous');
 }

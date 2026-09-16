@@ -18,11 +18,13 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: frontend/package.json
+          cache-dependency-path: |
+            frontend/package-lock.json
+            worker/package-lock.json
 
       - name: Install frontend
         working-directory: frontend
-        run: npm install
+        run: npm ci --no-audit --no-fund
 
       - name: Typecheck frontend
         working-directory: frontend
@@ -39,7 +41,7 @@ jobs:
 
       - name: Install Worker dependencies
         working-directory: worker
-        run: npm install
+        run: npm ci --no-audit --no-fund
 
       - name: Apply D1 migrations
         working-directory: worker
@@ -247,6 +249,7 @@ jobs:
               fi
               local cleanup_failed=0
               local cleanup_statements=(
+                "DELETE FROM auth_sessions WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM agent_branch_training_submissions WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM agent_branch_knowledge WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM agent_mesh_messages WHERE tenant_id='${tenant_id}';"
@@ -284,13 +287,16 @@ jobs:
           if [ "$status" != "201" ]; then echo "Signup smoke test returned HTTP $status"; cat /tmp/signup.json || true; exit 1; fi
 
           readarray -t signup_values < <(python - <<'PY'
-          import json
+          import json,time
           data=json.load(open('/tmp/signup.json'))
           user=data.get('user') or {}
+          token=data.get('token') or ''
           assert user.get('tenant_id'), data
-          assert data.get('token'), data
+          assert token.startswith('ms1_'), data
+          assert '|' not in token, data
+          assert int(data.get('session_expires_at') or 0) > int(time.time()), data
           print(user['tenant_id'])
-          print(data['token'])
+          print(token)
           PY
           )
           tenant_id="${signup_values[0]}"
@@ -378,4 +384,9 @@ jobs:
           assert data.get('workers_ai_bound') is True, data
           PY
 
-          echo "Production health, QA contribution with owner-only approval, automatic named specialist handoff, private execution-provider catalogs, native Agent Mesh, Magnanimous AI, AI Receptionist, billing, monetization, signup, sessions, and platform-owner isolation passed."
+          logout_status=$(curl -sS -o /tmp/logout.json -w '%{http_code}' -X POST "$BASE_URL/api/auth/logout" -H "Authorization: Bearer $token")
+          if [ "$logout_status" != "200" ]; then echo "Opaque-session logout returned HTTP $logout_status"; cat /tmp/logout.json || true; exit 1; fi
+          revoked_status=$(curl -sS -o /tmp/revoked-me.json -w '%{http_code}' "$BASE_URL/api/auth/me" -H "Authorization: Bearer $token")
+          if [ "$revoked_status" != "401" ]; then echo "Revoked opaque session expected HTTP 401, got $revoked_status"; cat /tmp/revoked-me.json || true; exit 1; fi
+
+          echo "Production health, opaque session issuance/revocation, QA contribution with owner-only approval, automatic named specialist handoff, private execution-provider catalogs, native Agent Mesh, Magnanimous AI, AI Receptionist, billing, monetization, signup, sessions, and platform-owner isolation passed."

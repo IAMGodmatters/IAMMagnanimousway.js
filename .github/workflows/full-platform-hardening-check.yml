@@ -1,0 +1,53 @@
+name: Full Platform Hardening Verification
+
+on:
+  push:
+    branches:
+      - main
+      - magnanimous/full-platform-audit-hardening-20260916
+    paths:
+      - 'worker/src/password-security.js'
+      - 'worker/src/admin-compat-entrypoint.js'
+      - 'worker/src/entrypoint.js'
+      - 'worker/src/security-hardening.js'
+      - 'worker/wrangler.jsonc'
+      - 'frontend/app/layout.tsx'
+      - 'frontend/app/platform-runtime-script.tsx'
+      - 'frontend/app/template.tsx'
+      - 'frontend/app/signup/page.tsx'
+      - 'frontend/public/robots.txt'
+      - 'frontend/public/sitemap.xml'
+      - 'qa/scripts/full-platform-hardening-lock.mjs'
+      - '.github/workflows/full-platform-hardening-check.yml'
+  workflow_dispatch:
+
+jobs:
+  hardening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Verify hardening contracts
+        run: node qa/scripts/full-platform-hardening-lock.mjs
+
+      - name: Verify Worker syntax
+        run: |
+          node --check worker/src/password-security.js
+          node --check worker/src/admin-compat-entrypoint.js
+          node --check worker/src/entrypoint.js
+          node --check worker/src/security-hardening.js
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck

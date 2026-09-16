@@ -1,0 +1,126 @@
+name: Magnanimous Telecom Integer Micros Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-telecom-charging-runtime.js'
+      - 'worker/migrations/0061_magnanimous_telecom_integer_micros.sql'
+      - 'worker/migrations/0062_magnanimous_telecom_atomic_micros.sql'
+      - 'worker/migrations/0063_magnanimous_telecom_expiry_micros.sql'
+      - 'worker/migrations/0064_magnanimous_telecom_partial_commit_micros.sql'
+      - 'worker/migrations/0065_magnanimous_telecom_precision_views_v2.sql'
+      - 'qa/scripts/telecom-integer-micros-lock.mjs'
+      - '.github/workflows/telecom-integer-micros-check.yml'
+  pull_request:
+    paths:
+      - 'worker/src/magnanimous-telecom-charging-runtime.js'
+      - 'worker/migrations/0061_magnanimous_telecom_integer_micros.sql'
+      - 'worker/migrations/0062_magnanimous_telecom_atomic_micros.sql'
+      - 'worker/migrations/0063_magnanimous_telecom_expiry_micros.sql'
+      - 'worker/migrations/0064_magnanimous_telecom_partial_commit_micros.sql'
+      - 'worker/migrations/0065_magnanimous_telecom_precision_views_v2.sql'
+      - 'qa/scripts/telecom-integer-micros-lock.mjs'
+      - '.github/workflows/telecom-integer-micros-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Lock exact accounting source contract
+        run: node qa/scripts/telecom-integer-micros-lock.mjs
+
+      - name: Execute full migration and exact-accounting invariants
+        run: |
+          python - <<'PY'
+          import pathlib, sqlite3, time
+
+          db=sqlite3.connect(':memory:')
+          db.execute('PRAGMA foreign_keys=ON')
+          db.executescript('''
+          CREATE TABLE telecom_customer_lines(
+            tenant_id TEXT NOT NULL,
+            id TEXT NOT NULL,
+            customer_id TEXT,
+            plan_id TEXT,
+            PRIMARY KEY(tenant_id,id)
+          );
+          ''')
+          migrations=[
+            '0045_magnanimous_telecom_oss_bss.sql',
+            '0046_magnanimous_telecom_charging_policy.sql',
+            '0047_magnanimous_telecom_charging_integrity.sql',
+            '0052_magnanimous_telecom_financial_integrity.sql',
+            '0053_magnanimous_telecom_daily_unit_guard.sql',
+            '0054_magnanimous_telecom_daily_spend_guard.sql',
+            '0055_magnanimous_telecom_shared_member_guard.sql',
+            '0056_magnanimous_telecom_expired_reservation_reconcile.sql',
+            '0060_magnanimous_telecom_atomic_reservation.sql',
+            '0061_magnanimous_telecom_integer_micros.sql',
+            '0062_magnanimous_telecom_atomic_micros.sql',
+            '0063_magnanimous_telecom_expiry_micros.sql',
+            '0064_magnanimous_telecom_partial_commit_micros.sql',
+            '0065_magnanimous_telecom_precision_views_v2.sql',
+          ]
+          for name in migrations:
+            db.executescript(pathlib.Path('worker/migrations',name).read_text())
+
+          now=int(time.time())
+          tenant='micros-t1'
+          db.execute("INSERT INTO telecom_customer_lines(tenant_id,id,customer_id,plan_id) VALUES(?,?,?,?)",(tenant,'line1','customer1','plan1'))
+          db.execute("INSERT INTO telecom_balance_accounts(id,tenant_id,customer_id,line_id,account_kind,currency,status,created_at,updated_at) VALUES(?,?,?,?,?,'USD','active',?,?)",('acct1',tenant,'customer1','line1','prepaid',now,now))
+
+          # Runtime-style exact grant: 0.3 units = exactly 300000 micros.
+          db.execute("INSERT INTO telecom_balance_buckets(id,tenant_id,balance_account_id,bucket_kind,initial_units,remaining_units,status,created_at,updated_at,initial_units_micros,remaining_units_micros) VALUES(?,?,?,?,0.3,0.3,'active',?,?,300000,300000)",('bucket1',tenant,'acct1','minute',now,now))
+          db.execute("INSERT INTO telecom_charging_sessions(id,tenant_id,customer_id,line_id,service_type,idempotency_key,state,requested_units,unit_name,currency,created_at,updated_at,requested_units_micros) VALUES(?,?,?,?,?,?,'requested',0.2,'minute','USD',?,?,200000)",('session1',tenant,'customer1','line1','voice','m1',now,now))
+          db.execute("INSERT INTO telecom_balance_reservations(id,tenant_id,charging_session_id,bucket_id,reserved_units,state,created_at,updated_at,reserved_units_micros) VALUES(?,?,?,?,0.2,'reserved',?,?,200000)",('reservation1',tenant,'session1','bucket1',now,now))
+
+          bucket=db.execute("SELECT remaining_units,remaining_units_micros FROM telecom_balance_buckets WHERE id='bucket1'").fetchone()
+          assert bucket[1]==100000, bucket
+          assert abs(bucket[0]-0.1)<1e-12, bucket
+          reserve=db.execute("SELECT units_micros,balance_after_micros FROM telecom_balance_transactions WHERE idempotency_key='reserve:session1:bucket1'").fetchone()
+          assert reserve==(200000,100000), reserve
+
+          # Runtime-style partial commit returns 0.15 exactly, leaving 0.25 in the bucket.
+          db.execute("UPDATE telecom_balance_buckets SET remaining_units_micros=remaining_units_micros+150000,remaining_units=(remaining_units_micros+150000)/1000000.0,status='active',updated_at=? WHERE id='bucket1'",(now,))
+          db.execute("UPDATE telecom_balance_reservations SET committed_units_micros=50000,committed_units=0.05,state='committed',updated_at=? WHERE id='reservation1'",(now,))
+          bucket=db.execute("SELECT remaining_units,remaining_units_micros FROM telecom_balance_buckets WHERE id='bucket1'").fetchone()
+          assert bucket[1]==250000, bucket
+          assert abs(bucket[0]-0.25)<1e-12, bucket
+          partial=db.execute("SELECT units_micros,balance_after_micros FROM telecom_balance_transactions WHERE idempotency_key='partial-release:session1:reservation1'").fetchone()
+          assert partial==(150000,250000), partial
+
+          # Precision views expose the authoritative integer values, not recomputed float aliases.
+          view=db.execute("SELECT initial_units_micros,remaining_units_micros FROM telecom_balance_precision_v WHERE id='bucket1'").fetchone()
+          assert view==(300000,250000), view
+
+          # Expiry reconciliation uses micros and preserves mirror equality.
+          db.execute("INSERT INTO telecom_balance_buckets(id,tenant_id,balance_account_id,bucket_kind,initial_units,remaining_units,status,created_at,updated_at,initial_units_micros,remaining_units_micros) VALUES(?,?,?,?,1.0,0.6,'active',?,?,1000000,600000)",('bucket-exp',tenant,'acct1','minute',now,now))
+          db.execute("INSERT INTO telecom_charging_sessions(id,tenant_id,customer_id,line_id,service_type,idempotency_key,state,requested_units,reserved_units,unit_name,currency,expires_at,created_at,updated_at,requested_units_micros,reserved_units_micros) VALUES(?,?,?,?,?,?,'reserved',0.4,0.4,'minute','USD',?,?,?,400000,400000)",('session-exp',tenant,'customer1','line1','voice','m-exp',now-10,now-100,now-100))
+          db.execute("INSERT INTO telecom_balance_reservations(id,tenant_id,charging_session_id,bucket_id,reserved_units,state,created_at,updated_at,reserved_units_micros) VALUES(?,?,?,?,0.4,'reserved',?,?,400000)",('reservation-exp',tenant,'session-exp','bucket-exp',now-100,now-100))
+          # Atomic insert above deducted another 0.4, so reset to the realistic post-reservation state for expiry test.
+          db.execute("UPDATE telecom_balance_buckets SET remaining_units_micros=600000,remaining_units=0.6 WHERE id='bucket-exp'")
+          db.execute("INSERT INTO telecom_charging_sessions(id,tenant_id,customer_id,line_id,service_type,idempotency_key,state,requested_units,unit_name,currency,created_at,updated_at,requested_units_micros) VALUES(?,?,?,?,?,?,'requested',0.1,'minute','USD',?,?,100000)",('session-trigger',tenant,'customer1','line1','voice','m-trigger',now,now))
+          expired=db.execute("SELECT state,reserved_units_micros,reserved_units FROM telecom_charging_sessions WHERE id='session-exp'").fetchone()
+          assert expired[0]=='expired' and expired[1]==0 and expired[2]==0, expired
+          bucket=db.execute("SELECT remaining_units_micros,remaining_units FROM telecom_balance_buckets WHERE id='bucket-exp'").fetchone()
+          assert bucket[0]==1000000 and abs(bucket[1]-1.0)<1e-12, bucket
+          expire_ledger=db.execute("SELECT units_micros,balance_after_micros FROM telecom_balance_transactions WHERE idempotency_key='expire-release:session-exp:reservation-exp'").fetchone()
+          assert expire_ledger==(400000,1000000), expire_ledger
+
+          print('Magnanimous Telecom integer-micro accounting checks passed')
+          PY
+
+      - name: Syntax check charging runtime
+        run: node --check worker/src/magnanimous-telecom-charging-runtime.js
