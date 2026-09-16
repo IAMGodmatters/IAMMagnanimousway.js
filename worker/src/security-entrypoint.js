@@ -7,6 +7,7 @@ import { resolveSessionRequest, revokeOpaqueSession, upgradeAuthResponseToOpaque
 import { prepareCarrierWebhook, completeCarrierWebhook } from './carrier-webhook-security.js';
 import { enforceAssistantActionPolicy, completeAssistantActionPolicy } from './assistant-action-policy.js';
 import { handleMagnanimousCloudflare } from './magnanimous-cloudflare-runtime.js';
+import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -98,14 +99,19 @@ export default {
         return finalizeResponse(request,await securityPostflight(policyRequest,completed,env));
       }
 
-      const cloudflareResponse=await handleMagnanimousCloudflare(policyRequest,env);
+      const policyUrl=new URL(policyRequest.url);
+      let cloudflareResponse=null;
+      if(policyUrl.pathname.startsWith('/api/cloudflare')){
+        const cloudflareEnv=await getProviderRuntimeEnv(env);
+        cloudflareResponse=await handleMagnanimousCloudflare(policyRequest,cloudflareEnv);
+      }
       if(cloudflareResponse){
         const assistantCompleted=await completeAssistantActionPolicy(assistantContext,cloudflareResponse,env);
         const carrierCompleted=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
         return finalizeResponse(request,await securityPostflight(policyRequest,carrierCompleted,env));
       }
 
-      const routedUrl = new URL(policyRequest.url);
+      const routedUrl = policyUrl;
       const continuityRequest = policyRequest.method === 'POST' && routedUrl.pathname === '/api/professional/generate' ? policyRequest.clone() : null;
       if (isNativeOperationsPath(routedUrl.pathname)) {
         const nativeOperationsResponse = await handleNativeWorkCrm(policyRequest, env);
