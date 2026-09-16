@@ -1,0 +1,40 @@
+name: Magnanimous Ecosystem Capability Verification
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'worker/src/magnanimous-ecosystem-capability-registry.js'
+      - 'worker/src/magnanimous-ecosystem-runtime.js'
+      - 'worker/src/entrypoint.js'
+      - 'ecosystem-core/PROVIDER_ECOSYSTEM_ABSORPTION.md'
+      - 'qa/scripts/ecosystem-absorption-lock.mjs'
+      - '.github/workflows/ecosystem-absorption-check.yml'
+  pull_request:
+    paths:
+      - 'worker/src/magnanimous-ecosystem-capability-registry.js'
+      - 'worker/src/magnanimous-ecosystem-runtime.js'
+      - 'worker/src/entrypoint.js'
+      - 'ecosystem-core/PROVIDER_ECOSYSTEM_ABSORPTION.md'
+      - 'qa/scripts/ecosystem-absorption-lock.mjs'
+      - '.github/workflows/ecosystem-absorption-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: JavaScript syntax
+        run: |
+          node --check worker/src/magnanimous-ecosystem-capability-registry.js
+          node --check worker/src/magnanimous-ecosystem-runtime.js
+          node --check worker/src/entrypoint.js
+      - name: Ecosystem identity and safety lock
+        run: node qa/scripts/ecosystem-absorption-lock.mjs
