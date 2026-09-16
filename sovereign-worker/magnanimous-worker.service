@@ -1,0 +1,23 @@
+[Unit]
+Description=Magnanimous Worker Runtime
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/iammagnanimous/sovereign-worker
+EnvironmentFile=-/etc/iammagnanimous/worker.env
+ExecStart=/usr/bin/node /opt/iammagnanimous/sovereign-worker/server.mjs
+Restart=always
+RestartSec=3
+User=magnanimous
+Group=magnanimous
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/iammagnanimous
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
