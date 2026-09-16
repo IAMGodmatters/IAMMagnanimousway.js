@@ -48,8 +48,8 @@ jobs:
           grep -q "id:'literature-review'" worker/src/magnanimous-research-capability-registry.js
           grep -q "id:'research-memory'" worker/src/magnanimous-research-capability-registry.js
           grep -q "id:'scispace'" worker/src/magnanimous-research-capability-registry.js
-          grep -q 'semantic paper search' research-core/SCISPACE_ABSORPTION.md
-          grep -q 'Structured column enrichment' research-core/SCISPACE_ABSORPTION.md
+          grep -qi 'semantic paper search' research-core/SCISPACE_ABSORPTION.md
+          grep -qi 'structured column enrichment' research-core/SCISPACE_ABSORPTION.md
       - name: Validate normalized memory schema
         run: |
           grep -q 'magnanimous_research_queries' worker/migrations/0049_magnanimous_research_memory.sql
