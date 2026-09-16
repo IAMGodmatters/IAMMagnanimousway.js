@@ -8,6 +8,8 @@ import { prepareCarrierWebhook, completeCarrierWebhook } from './carrier-webhook
 import { enforceAssistantActionPolicy, completeAssistantActionPolicy } from './assistant-action-policy.js';
 import { handleMagnanimousCloudflare } from './magnanimous-cloudflare-runtime.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
+import { currentUser } from './integrations.js';
+import { isPlatformOwnerUser } from './agent-branch-intelligence.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -75,6 +77,43 @@ function credentialVaultPath(request){
   return CREDENTIAL_VAULT_PATHS.has(new URL(request.url).pathname);
 }
 
+async function enforcePlatformOwnerBoundary(request,env){
+  const url=new URL(request.url);
+  const path=url.pathname;
+
+  // The owner login endpoint is public by necessity, but only the configured
+  // platform identity (or an already-established user in the reserved owner
+  // tenant) may attempt the platform-owner login flow. Workspace owners use the
+  // normal account login and never become global administrators.
+  if(path==='/api/admin/login'&&request.method==='POST'){
+    const body=await request.clone().json().catch(()=>({}));
+    const email=String(body?.email||'').trim().toLowerCase();
+    if(!email)return Response.json({detail:'Invalid owner email or password.'},{status:401,headers:{'cache-control':'no-store'}});
+    const configured=String(env?.ADMIN_EMAIL||'').trim().toLowerCase();
+    if(configured&&email===configured)return null;
+    if(env?.DB){
+      try{
+        const existing=await env.DB.prepare(`SELECT u.id FROM users u
+          JOIN tenants t ON t.id=u.tenant_id
+          WHERE lower(u.email)=? AND u.active=1 AND u.role='owner' AND t.slug='owner' LIMIT 1`).bind(email).first();
+        if(existing?.id)return null;
+      }catch(_){}
+    }
+    return Response.json({detail:'Invalid owner email or password.'},{status:401,headers:{'cache-control':'no-store'}});
+  }
+
+  const restricted=path==='/api/auth/audit'||
+    (path.startsWith('/api/admin/')&&path!=='/api/admin/login')||
+    credentialVaultPath(request);
+  if(!restricted)return null;
+
+  const user=await currentUser(request,env).catch(()=>null);
+  if(!user||!await isPlatformOwnerUser(env,user)){
+    return Response.json({detail:'Platform owner access required.',code:'PLATFORM_OWNER_REQUIRED'},{status:403,headers:{'cache-control':'no-store'}});
+  }
+  return null;
+}
+
 async function blockServerOnlyCredentialBrowserWrite(request){
   if(!credentialVaultPath(request))return null;
   const url=new URL(request.url);
@@ -134,6 +173,9 @@ export default {
       const sessionResolution=await resolveSessionRequest(guardedRequest,env,requestId);
       if(sessionResolution.response)return finalizeResponse(request,await securityPostflight(guardedRequest,sessionResolution.response,env));
       const routedRequest=sessionResolution.request;
+
+      const ownerBoundary=await enforcePlatformOwnerBoundary(routedRequest,env);
+      if(ownerBoundary)return finalizeResponse(request,await securityPostflight(routedRequest,ownerBoundary,env));
 
       const assistantPolicy=await enforceAssistantActionPolicy(routedRequest,env);
       if(assistantPolicy instanceof Response)return finalizeResponse(request,await securityPostflight(routedRequest,assistantPolicy,env));
