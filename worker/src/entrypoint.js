@@ -9,6 +9,7 @@ import { handleMagnanimousTelecom } from './magnanimous-telecom-runtime.js';
 import { handleMagnanimousTelecomNetwork } from './magnanimous-telecom-network-runtime.js';
 import { handleMagnanimousTelecomService } from './magnanimous-telecom-service-runtime.js';
 import { handleMagnanimousTelecomOperations } from './magnanimous-telecom-operations-runtime.js';
+import { handleMagnanimousTelecomBssAdmin } from './magnanimous-telecom-bss-admin-runtime.js';
 import { handleMagnanimousTelecomCharging } from './magnanimous-telecom-charging-runtime.js';
 import { handleMagnanimousTelecomChargingSafetyGuard } from './magnanimous-telecom-charging-safety-guard.js';
 import { handleMagnanimousTelecomSecurityGate } from './magnanimous-telecom-security-gate.js';
@@ -76,6 +77,8 @@ export default {
     if(communications)return communications;
     const telecomSecurity=await handleMagnanimousTelecomSecurityGate(request);
     if(telecomSecurity)return telecomSecurity;
+    const telecomBssAdmin=await handleMagnanimousTelecomBssAdmin(request,env);
+    if(telecomBssAdmin)return telecomBssAdmin;
     const telecomChargingSafety=await handleMagnanimousTelecomChargingSafetyGuard(request,env);
     if(telecomChargingSafety)return telecomChargingSafety;
     const telecomCharging=await handleMagnanimousTelecomCharging(request,env);
