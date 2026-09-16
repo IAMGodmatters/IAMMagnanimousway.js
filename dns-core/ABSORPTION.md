@@ -43,3 +43,12 @@ Magnanimous AI owns the DNS/domain intelligence workflow. Public resolvers, RDAP
 - Cloudflare API token guidance: https://developers.cloudflare.com/fundamentals/api/get-started/create-token/
 
 The public resolver layer deliberately uses fixed HTTPS origins rather than user-provided URLs, preventing this capability from becoming a generic server-side request proxy.
+
+## Registrar adapter completion
+
+- Porkbun credentials can be stored in the existing encrypted platform-owner Provider Vault or protected runtime secrets.
+- Provider-neutral domain pricing is available without exposing the execution-provider identity.
+- Owner-only registrar reads cover portfolio metadata, editable DNS records, nameservers, DNSSEC, glue records, and availability.
+- DNS record and nameserver writes are provider-side dry-run first, then stored as a durable needs_confirmation action, then executed only through a separate confirmation request with an idempotency key.
+- Domain registration, renewal, and transfer remain disabled in the runtime because they spend money; capability metadata may describe them, but Magnanimous does not execute them through this DNS adapter.
+- Production DNS behavior is verified after deployment with authenticated live checks.

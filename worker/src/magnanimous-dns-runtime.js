@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { handleMagnanimousCloudflare } from './magnanimous-cloudflare-runtime.js';
+import { handleMagnanimousPorkbunDns } from './magnanimous-porkbun-dns-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const clip=(value,n=8000)=>String(value??'').trim().slice(0,n);
@@ -141,7 +142,8 @@ export async function handleMagnanimousDns(request,env){
  const url=new URL(request.url),path=url.pathname;if(!path.startsWith('/api/magnanimous/dns'))return null;
  if(!env?.DB)return json({detail:'DNS intelligence requires D1-backed Magnanimous authentication.'},503);
  const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);
- if(request.method==='GET'&&(path==='/api/magnanimous/dns'||path==='/api/magnanimous/dns/capabilities'))return json({identity:'Magnanimous AI',capability:'dns-domain-intelligence',read_tools:['dns lookup','multi-resolver propagation comparison','DNSSEC visibility','MX/SPF/DKIM/DMARC diagnostics','reverse DNS','RDAP registration context','domain diagnosis','Cloudflare DNS record inventory'],record_types:[...DNS_TYPES],resolvers:Object.fromEntries(Object.entries(RESOLVERS).map(([id,r])=>[id,r.name])),write_path:{provider:'Cloudflare',mode:'owner-only staged mutation with separate confirmation',stage_endpoint:'/api/magnanimous/dns/cloudflare/stage',confirmation:'uses existing /api/cloudflare/actions/{id}/confirm safety gate'},provider_identity_public:false});
+ const registrar=await handleMagnanimousPorkbunDns(request,env,user);if(registrar)return registrar;
+ if(request.method==='GET'&&(path==='/api/magnanimous/dns'||path==='/api/magnanimous/dns/capabilities'))return json({identity:'Magnanimous AI',capability:'dns-domain-intelligence',read_tools:['dns lookup','multi-resolver propagation comparison','DNSSEC visibility','MX/SPF/DKIM/DMARC diagnostics','reverse DNS','RDAP registration context','domain diagnosis','domain pricing','registrar DNS portfolio','Cloudflare DNS record inventory'],record_types:[...DNS_TYPES],resolvers:Object.fromEntries(Object.entries(RESOLVERS).map(([id,r])=>[id,r.name])),write_path:{provider:'Cloudflare',mode:'owner-only staged mutation with separate confirmation',stage_endpoint:'/api/magnanimous/dns/cloudflare/stage',confirmation:'uses existing /api/cloudflare/actions/{id}/confirm safety gate'},provider_identity_public:false});
  if(request.method==='POST'&&path==='/api/magnanimous/dns/lookup'){
   const body=await request.json().catch(()=>({})),name=normalizeName(body.name),type=normalizeType(body.type),resolver=String(body.resolver||'all').toLowerCase();if(!name||!type)return json({detail:'Valid name and supported type are required.'},400);if(resolver!=='all'&&!RESOLVERS[resolver])return json({detail:'resolver must be all, cloudflare, or google.'},400);return json({name,type,results:await lookup(name,type,resolver)});
  }
