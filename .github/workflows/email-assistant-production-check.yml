@@ -1,9 +1,9 @@
 name: Email Assistant Production Verification
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '31 3 * * 0'
 
 jobs:
   smoke:
