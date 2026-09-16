@@ -19,10 +19,10 @@ for(const skill of ['agents-sdk','durable-objects','wrangler','workers-best-prac
 for(const endpoint of ['https://mcp.cloudflare.com/mcp','https://docs.mcp.cloudflare.com/mcp','https://bindings.mcp.cloudflare.com/mcp','https://observability.mcp.cloudflare.com/mcp']){
  must(registry.includes(endpoint),`Cloudflare MCP endpoint missing: ${endpoint}`);
 }
-for(const capability of ['workers-ai','durable-objects','d1','kv','r2','queues','workflows','vectorize','ai-gateway','access','gateway','tunnel','waf','turnstile','dns','cache','images','stream','logpush','radar']){
+for(const capability of ['workers-ai','dynamic-workers','browser-rendering','ai-crawl-control','cloudflare-agent','durable-objects','d1','kv','r2','queues','workflows','vectorize','ai-gateway','workers-vpc','secrets-store','access','gateway','tunnel','waf','turnstile','dns','cache','images','stream','logpush','radar']){
  must(registry.includes(`'${capability}'`),`Cloudflare capability missing: ${capability}`);
 }
-for(const technique of ['code-mode','bindings-first','durable-state','event-driven','edge-cache','zero-trust-origin','least-privilege','separate-confirmation','idempotent-retries','ai-gateway','skills-on-demand','mcp-composition','sandbox-isolation','browser-isolation','observability','progressive-delivery','storage-by-access-pattern','security-at-edge','performance-budget']){
+for(const technique of ['code-mode','bindings-first','durable-state','event-driven','edge-cache','zero-trust-origin','least-privilege','secrets-store','private-service-connectivity','separate-confirmation','idempotent-retries','ai-gateway','skills-on-demand','mcp-composition','sandbox-isolation','browser-isolation','observability','progressive-delivery','storage-by-access-pattern','security-at-edge','performance-budget']){
  must(registry.includes(`id:'${technique}'`),`Cloudflare architecture technique missing: ${technique}`);
 }
 
@@ -66,4 +66,4 @@ must(migration.includes('magnanimous_cloudflare_audit'),'Cloudflare audit ledger
 must(securityEntry.includes("from './magnanimous-cloudflare-runtime.js'"),'Central security entrypoint must mount Cloudflare control plane.');
 must(securityEntry.includes('await handleMagnanimousCloudflare(policyRequest,env)'),'Cloudflare control plane must run after central session/policy resolution.');
 
-console.log('Magnanimous Cloudflare capability, techniques, Tool Foundry, owner-console and action contracts verified.');
+console.log('Magnanimous Cloudflare current capability, techniques, Tool Foundry, owner-console and action contracts verified.');
