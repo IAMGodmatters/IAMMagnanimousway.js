@@ -17,6 +17,28 @@ export const CLOUDFLARE_AGENT_SKILLS=Object.freeze([
  'wrangler','workers-best-practices','cloudflare-email-service','turnstile-spin','web-perf','cloudflare-one','cloudflare-one-migrations'
 ]);
 
+export const CLOUDFLARE_ARCHITECTURE_TECHNIQUES=Object.freeze([
+ {id:'code-mode',name:'Code Mode discovery then execution',apply:'Search the typed API surface first, then execute only the minimum endpoint needed; avoid loading thousands of schemas into the main prompt.'},
+ {id:'bindings-first',name:'Bindings-first architecture',apply:'Prefer Worker bindings for D1, R2, KV, Durable Objects, Queues, AI and other platform resources instead of public credential-bearing HTTP hops.'},
+ {id:'durable-state',name:'Durable state per identity',apply:'Use Durable Objects/SQLite for coordinated state, realtime sessions, alarms, locks and strongly scoped agent identity.'},
+ {id:'event-driven',name:'Event-driven background work',apply:'Use Queues for reliable delivery and Workflows for durable multi-step/retryable processes instead of holding request threads open.'},
+ {id:'edge-cache',name:'Cache at the edge',apply:'Cache safe public reads near users; keep authenticated, tenant-private and mutation responses no-store.'},
+ {id:'zero-trust-origin',name:'Private origins with Zero Trust',apply:'Prefer outbound Cloudflare Tunnel/private connectors and Access policy over exposing administrative origins directly to the public Internet.'},
+ {id:'least-privilege',name:'Least-privilege credentials',apply:'Use dedicated scoped API tokens and narrowly scoped bindings; never reuse broad deployment tokens inside runtime application logic.'},
+ {id:'separate-confirmation',name:'Separate consequential confirmation',apply:'Stage mutating infrastructure actions, show the exact operation, then require a distinct approval before execution.'},
+ {id:'idempotent-retries',name:'Idempotent and retry-safe automation',apply:'Use stable action IDs, durable ledgers, deduplication and atomic state transitions for webhooks, queues and workflows.'},
+ {id:'ai-gateway',name:'AI Gateway routing and observability',apply:'Route external model calls through one measured policy layer for caching, fallback, analytics and provider replacement where appropriate.'},
+ {id:'skills-on-demand',name:'Skills-on-demand',apply:'Load focused operational skills only when task triggers match, keeping the normal Magnanimous prompt compact.'},
+ {id:'mcp-composition',name:'MCP composition',apply:'Connect remote tools through scoped MCP clients and expose Magnanimous-owned tools through remote MCP without transferring memory ownership.'},
+ {id:'sandbox-isolation',name:'Sandboxed execution',apply:'Run generated or untrusted code in isolated execution environments with restricted network/filesystem scope.'},
+ {id:'browser-isolation',name:'Remote browser isolation',apply:'Use isolated browser execution for risky browsing/automation rather than granting local-device execution privileges.'},
+ {id:'observability',name:'Structured observability',apply:'Attach request/trace correlation IDs, structured logs and metrics to every important operation; make failures diagnosable without leaking secrets.'},
+ {id:'progressive-delivery',name:'Progressive deployment',apply:'Verify source contracts, type/build checks, staged migrations, deploy, then production smoke tests; fail closed before new code reaches traffic.'},
+ {id:'storage-by-access-pattern',name:'Choose storage by access pattern',apply:'Use KV for read-heavy key/value, D1 for relational SQL, R2 for objects, Durable Objects for coordinated state, Vectorize for embeddings and Hyperdrive for external SQL.'},
+ {id:'security-at-edge',name:'Security at the edge',apply:'Use WAF, rate limiting, Turnstile, API protection and DDoS controls before requests reach application logic.'},
+ {id:'performance-budget',name:'Core Web Vitals performance budget',apply:'Measure LCP/CLS/INP and network/render chains; offload third-party scripts or media transformations to edge services when they materially improve UX.'}
+]);
+
 export const MAGNANIMOUS_CLOUDFLARE_FAMILIES=Object.freeze([
  family('compute','Compute & application runtime',[
   cap('workers','Workers serverless compute'),cap('static-assets','Workers Static Assets'),cap('pages','Pages'),cap('containers','Containers','guarded'),
@@ -109,6 +131,7 @@ export function magnanimousCloudflareSummary(env={}){
   capability_count:MAGNANIMOUS_CLOUDFLARE_FAMILIES.reduce((n,f)=>n+f.capabilities.length,0),
   skills:[...CLOUDFLARE_AGENT_SKILLS],
   mcp_servers:[...CLOUDFLARE_MANAGED_MCP_SERVERS],
+  techniques:[...CLOUDFLARE_ARCHITECTURE_TECHNIQUES],
   families:MAGNANIMOUS_CLOUDFLARE_FAMILIES,
   readiness:{configured:Boolean(token),account_id_configured:Boolean(account),zone_id_configured:Boolean(zone),least_privilege_token_recommended:true},
   action_model:'Owner-only direct reads; mutations are staged, separately confirmed, audited, and subject to hard spend/security locks.'
