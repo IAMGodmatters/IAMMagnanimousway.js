@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'video-core/**'
+      - 'video-renderer/server.py'
       - 'worker/src/magnanimous-mux-capability-registry.js'
       - 'worker/src/magnanimous-mux-runtime.js'
       - 'worker/src/magnanimous-mux-credentials.js'
@@ -14,6 +15,7 @@ on:
   pull_request:
     paths:
       - 'video-core/**'
+      - 'video-renderer/server.py'
       - 'worker/src/magnanimous-mux-capability-registry.js'
       - 'worker/src/magnanimous-mux-runtime.js'
       - 'worker/src/magnanimous-mux-credentials.js'
@@ -38,6 +40,7 @@ jobs:
           node --check worker/src/magnanimous-mux-runtime.js
           node --check worker/src/magnanimous-mux-credentials.js
           node --check worker/src/entrypoint.js
+          python3 -m py_compile video-renderer/server.py
       - name: Validate Magnanimous identity and provider boundary
         run: |
           grep -q "identity:'Magnanimous AI Mux Control'" worker/src/magnanimous-mux-capability-registry.js
@@ -94,6 +97,13 @@ jobs:
           grep -q 'MUX_CONTROL_PLANE_READ_ONLY' worker/src/magnanimous-mux-runtime.js
           grep -qi 'No Mux access-token secrets, stream keys, private signing keys, webhook signing secrets' worker/migrations/0051_magnanimous_mux_control.sql
           ! grep -Eq 'stream_key[[:space:]]+TEXT|token_secret[[:space:]]+TEXT|private_key[[:space:]]+TEXT|signing_secret[[:space:]]+TEXT' worker/migrations/0051_magnanimous_mux_control.sql
+      - name: Validate existing renderer is cost-gated
+        run: |
+          grep -q 'publish_to_mux: bool = False' video-renderer/server.py
+          grep -q 'ENABLE_MUX_PROVIDER_WRITES' video-renderer/server.py
+          grep -q 'if req.publish_to_mux:' video-renderer/server.py
+          grep -q 'mux_provider_writes_enabled()' video-renderer/server.py
+          grep -q 'Never break the working FFmpeg renderer because Mux is unavailable' video-renderer/server.py
       - name: Validate current-platform documentation
         run: |
           grep -qi 'Mux Video' video-core/MUX_ABSORPTION.md
