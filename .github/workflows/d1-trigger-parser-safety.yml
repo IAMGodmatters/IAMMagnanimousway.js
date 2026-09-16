@@ -1,0 +1,45 @@
+name: D1 Trigger Parser Safety
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/migrations/0053_magnanimous_telecom_daily_unit_guard.sql'
+      - 'worker/migrations/0054_magnanimous_telecom_daily_spend_guard.sql'
+      - 'worker/migrations/0055_magnanimous_telecom_shared_member_guard.sql'
+      - 'worker/migrations/0056_magnanimous_telecom_expired_reservation_reconcile.sql'
+      - '.github/workflows/d1-trigger-parser-safety.yml'
+  pull_request:
+    paths:
+      - 'worker/migrations/0053_magnanimous_telecom_daily_unit_guard.sql'
+      - 'worker/migrations/0054_magnanimous_telecom_daily_spend_guard.sql'
+      - 'worker/migrations/0055_magnanimous_telecom_shared_member_guard.sql'
+      - 'worker/migrations/0056_magnanimous_telecom_expired_reservation_reconcile.sql'
+      - '.github/workflows/d1-trigger-parser-safety.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Reject parser-ambiguous telecom trigger shapes
+        run: |
+          set -euo pipefail
+          for f in \
+            worker/migrations/0053_magnanimous_telecom_daily_unit_guard.sql \
+            worker/migrations/0054_magnanimous_telecom_daily_spend_guard.sql \
+            worker/migrations/0055_magnanimous_telecom_shared_member_guard.sql
+          do
+            test "$(grep -c 'CREATE TRIGGER' "$f")" -eq 1
+            test "$(grep -c '^END;$' "$f")" -eq 1
+            if grep -Eq 'SELECT[[:space:]]+CASE|THEN[[:space:]]+RAISE\([^;]*\)[[:space:]]+END;' "$f"; then
+              echo "D1 parser-ambiguous nested CASE/END trigger body found in $f" >&2
+              exit 1
+            fi
+          done
+          test "$(grep -c 'CREATE TRIGGER' worker/migrations/0056_magnanimous_telecom_expired_reservation_reconcile.sql)" -eq 1
+          test "$(grep -c '^END;$' worker/migrations/0056_magnanimous_telecom_expired_reservation_reconcile.sql)" -eq 1
+          echo 'D1 trigger parser safety lock passed.'
