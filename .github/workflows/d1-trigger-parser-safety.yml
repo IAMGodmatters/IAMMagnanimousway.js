@@ -8,6 +8,10 @@ on:
       - 'worker/migrations/0054_magnanimous_telecom_daily_spend_guard.sql'
       - 'worker/migrations/0055_magnanimous_telecom_shared_member_guard.sql'
       - 'worker/migrations/0056_magnanimous_telecom_expired_reservation_reconcile.sql'
+      - 'worker/migrations/0060_magnanimous_telecom_atomic_reservation.sql'
+      - 'worker/migrations/0062_magnanimous_telecom_atomic_micros.sql'
+      - 'worker/migrations/0063_magnanimous_telecom_expiry_micros.sql'
+      - 'worker/migrations/0064_magnanimous_telecom_partial_commit_micros.sql'
       - '.github/workflows/d1-trigger-parser-safety.yml'
   pull_request:
     paths:
@@ -15,6 +19,10 @@ on:
       - 'worker/migrations/0054_magnanimous_telecom_daily_spend_guard.sql'
       - 'worker/migrations/0055_magnanimous_telecom_shared_member_guard.sql'
       - 'worker/migrations/0056_magnanimous_telecom_expired_reservation_reconcile.sql'
+      - 'worker/migrations/0060_magnanimous_telecom_atomic_reservation.sql'
+      - 'worker/migrations/0062_magnanimous_telecom_atomic_micros.sql'
+      - 'worker/migrations/0063_magnanimous_telecom_expiry_micros.sql'
+      - 'worker/migrations/0064_magnanimous_telecom_partial_commit_micros.sql'
       - '.github/workflows/d1-trigger-parser-safety.yml'
 
 permissions:
@@ -31,15 +39,18 @@ jobs:
           for f in \
             worker/migrations/0053_magnanimous_telecom_daily_unit_guard.sql \
             worker/migrations/0054_magnanimous_telecom_daily_spend_guard.sql \
-            worker/migrations/0055_magnanimous_telecom_shared_member_guard.sql
+            worker/migrations/0055_magnanimous_telecom_shared_member_guard.sql \
+            worker/migrations/0056_magnanimous_telecom_expired_reservation_reconcile.sql \
+            worker/migrations/0060_magnanimous_telecom_atomic_reservation.sql \
+            worker/migrations/0062_magnanimous_telecom_atomic_micros.sql \
+            worker/migrations/0063_magnanimous_telecom_expiry_micros.sql \
+            worker/migrations/0064_magnanimous_telecom_partial_commit_micros.sql
           do
             test "$(grep -c 'CREATE TRIGGER' "$f")" -eq 1
             test "$(grep -c '^END;$' "$f")" -eq 1
-            if grep -Eq 'SELECT[[:space:]]+CASE|THEN[[:space:]]+RAISE\([^;]*\)[[:space:]]+END;' "$f"; then
+            if grep -Eq 'SELECT[[:space:]]+CASE|=[[:space:]]*CASE|THEN[[:space:]]+RAISE\([^;]*\)[[:space:]]+END;' "$f"; then
               echo "D1 parser-ambiguous nested CASE/END trigger body found in $f" >&2
               exit 1
             fi
           done
-          test "$(grep -c 'CREATE TRIGGER' worker/migrations/0056_magnanimous_telecom_expired_reservation_reconcile.sql)" -eq 1
-          test "$(grep -c '^END;$' worker/migrations/0056_magnanimous_telecom_expired_reservation_reconcile.sql)" -eq 1
           echo 'D1 trigger parser safety lock passed.'
