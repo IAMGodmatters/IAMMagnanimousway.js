@@ -4,10 +4,13 @@ function read(path){return fs.readFileSync(path,'utf8')}
 function must(condition,message){if(!condition)throw new Error(message)}
 function mustContain(text,value,message){must(text.includes(value),message)}
 function mustNotContain(text,value,message){must(!text.includes(value),message)}
+function packageJson(path){return JSON.parse(read(path))}
 
 const password=read('worker/src/password-security.js');
 const admin=read('worker/src/admin-compat-entrypoint.js');
 const entry=read('worker/src/entrypoint.js');
+const security=read('worker/src/security-hardening.js');
+const revocation=read('worker/src/session-revocation.js');
 const layout=read('frontend/app/layout.tsx');
 const runtime=read('frontend/app/platform-runtime-script.tsx');
 const template=read('frontend/app/template.tsx');
@@ -33,6 +36,16 @@ mustContain(entry,'ensureRuntimeBootstrap','Runtime bootstrap caching is missing
 mustContain(entry,'bootstrapReady=true','Runtime bootstrap must mark successful initialization.');
 mustNotContain(entry,"digest('SHA-256',new TextEncoder().encode(`${salt}:${password}`))",'Fast owner-password hashing must not return.');
 
+mustContain(revocation,'auth_revoked_sessions','Server-side revoked-session registry is missing.');
+mustContain(revocation,"await sha256(token)",'Revocation registry must fingerprint bearer tokens before persistence.');
+mustNotContain(revocation,'INSERT INTO auth_revoked_sessions(token,','Raw bearer tokens must never be stored in the revocation table.');
+mustContain(revocation,'expires_at<=?','Expired session-revocation rows must be cleanable.');
+mustContain(security,"from './session-revocation.js'",'Central security boundary must import session revocation.');
+mustContain(security,'await isRequestSessionRevoked(request, env)','Every authorized API request must honor revoked sessions.');
+mustContain(security,"code: 'SESSION_REVOKED'",'Revoked sessions must return an explicit safe error code.');
+mustContain(security,"url.pathname === '/api/auth/logout'",'Logout must be intercepted at the central security boundary.');
+mustContain(security,"await revokeRequestSession(request, env, 'logout')",'Logout must revoke the presented bearer session.');
+
 mustContain(layout,"import PlatformRuntimeScript from './platform-runtime-script'",'Root layout must use the hardened platform runtime.');
 mustNotContain(layout,'new MutationObserver','Root layout must not reintroduce its old inline full-DOM observer.');
 mustContain(runtime,"var sessionPrefix='iam_session_draft:'",'Generic draft recovery must default to session storage.');
@@ -47,5 +60,14 @@ mustContain(template,"const publicPaths=new Set(['/','/teach'",'Template public/
 for(const path of ['/api/','/owner-','/crm/','/telecom/','/assistant-actions/'])mustContain(robots,`Disallow: ${path}`,`Crawler boundary missing for ${path}`);
 for(const path of ['/white-label/','/shop/','/teach/','/advertise/'])mustContain(sitemap,`https://iammagnanimousway.com${path}`,`Public sitemap entry missing for ${path}`);
 mustContain(wrangler,'"main": "src/security-entrypoint.js"','Production Worker must remain behind the central security entrypoint.');
+
+for(const dir of ['frontend','worker','video-gateway','qa']){
+  const pkg=packageJson(`${dir}/package.json`);
+  for(const section of ['dependencies','devDependencies']){
+    for(const [name,value] of Object.entries(pkg[section]||{})){
+      must(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(String(value)),`${dir} ${section}.${name} must use an exact version, got ${value}`);
+    }
+  }
+}
 
 console.log('Full-platform hardening contracts verified.');
