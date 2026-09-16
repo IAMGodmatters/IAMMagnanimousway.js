@@ -1,12 +1,18 @@
 import providerApp from './provider-entrypoint.js';
+import {createPasswordRecord,verifyPassword,upgradePasswordIfNeeded} from './password-security.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const now = () => Math.floor(Date.now() / 1000);
 const normEmail = (e) => String(e || '').trim().toLowerCase();
 const makeId = () => crypto.randomUUID();
-async function digest(value) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 async function hmac(secret, value) { const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); const b = await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(value)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
-async function passwordHash(password, salt) { return digest(`${salt}:${password}`); }
+async function safeTextEqual(left,right){
+  const encoder=new TextEncoder(),a=encoder.encode(String(left||'')),b=encoder.encode(String(right||''));
+  const [ad,bd]=await Promise.all([crypto.subtle.digest('SHA-256',a),crypto.subtle.digest('SHA-256',b)]);
+  const av=new Uint8Array(ad),bv=new Uint8Array(bd);
+  if(typeof crypto.subtle.timingSafeEqual==='function'){try{return crypto.subtle.timingSafeEqual(av,bv)}catch(_){}}
+  let diff=0;for(let i=0;i<av.length;i+=1)diff|=av[i]^bv[i];return diff===0;
+}
 
 // SESSION_SECRET is preferred, but authentication must not silently fail when the
 // optional Worker secret was never configured. A random secret is generated once
@@ -29,7 +35,7 @@ async function auth(request, env) {
   const p = raw.slice(7).split('|'); if (p.length !== 5 || Number(p[3]) < now()) return null;
   const [userId, tenantId, role, exp, sig] = p;
   const secret = await authSecret(env);
-  if (sig !== await hmac(secret, `${userId}|${tenantId}|${role}|${exp}`)) return null;
+  if (!(await safeTextEqual(sig,await hmac(secret, `${userId}|${tenantId}|${role}|${exp}`)))) return null;
   return await env.DB.prepare('SELECT id,tenant_id,name,email,role,active,created_at FROM users WHERE id=? AND tenant_id=? AND active=1').bind(userId, tenantId).first();
 }
 async function ensureTables(env) {
@@ -52,17 +58,15 @@ async function logAuth(env, user, event, success = 1, email = '') { try { await 
 async function signup(request, env) {
   const b = await request.json();
   const email = normEmail(b.email), name = String(b.name || '').trim(), password = String(b.password || '');
-  if (!name || !email || password.length < 8) return json({ detail: 'Name, email, and a password of at least 8 characters are required.' }, 400);
+  if (!name || !email || password.length < 10) return json({ detail: 'Name, email, and a password of at least 10 characters are required.' }, 400);
   const existing = await env.DB.prepare('SELECT id FROM users WHERE email=? AND active=1 LIMIT 1').bind(email).first();
   if (existing) return json({ detail: 'An account with that email already exists. Please sign in instead.' }, 409);
-  const tid = makeId(), uid = makeId(), salt = makeId(), ph = await passwordHash(password, salt), created = now();
+  let passwordRecord;try{passwordRecord=await createPasswordRecord(password,env)}catch(error){return json({detail:error?.message||'Choose a different password.'},400)}
+  const tid = makeId(), uid = makeId(), created = now();
   const baseSlug = String(b.workspace || name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'workspace';
-  // Public workspaces may legitimately share the same display name. Include a
-  // tenant-derived suffix from the start so concurrent signups never race on the
-  // UNIQUE slug constraint and customers never have to invent a different name.
   const slug = `${baseSlug}-${tid.replace(/-/g, '').slice(0, 10)}`;
   await env.DB.prepare('INSERT INTO tenants(id,name,slug,owner_user_id,created_at) VALUES(?,?,?,?,?)').bind(tid, String(b.workspace || name), slug, uid, created).run();
-  await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,active,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid, tid, name, email, 'member', ph, salt, 1, created).run();
+  await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,active,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid, tid, name, email, 'member', passwordRecord.password_hash, passwordRecord.password_salt, 1, created).run();
   await logAuth(env, { id: uid, tenant_id: tid, email }, 'signup', 1, email);
   const user = { id: uid, tenant_id: tid, name, email, role: 'member', active: 1, created_at: created };
   return json({ token: await makeSession(user, env), user }, 201);
@@ -72,35 +76,31 @@ async function login(request, env) {
   if (!email || !password) return json({ detail: 'Email and password are required.' }, 400);
   const user = await env.DB.prepare('SELECT * FROM users WHERE email=? AND active=1 ORDER BY created_at ASC LIMIT 1').bind(email).first();
   if (!user) { await logAuth(env, null, 'login', 0, email); return json({ detail: 'Invalid email or password.' }, 401); }
-  if ((await passwordHash(password, user.password_salt)) !== user.password_hash) { await logAuth(env, user, 'login', 0, email); return json({ detail: 'Invalid email or password.' }, 401); }
+  let verification;try{verification=await verifyPassword(password,user.password_hash,user.password_salt,env)}catch(_){verification={valid:false,needs_upgrade:false}}
+  if (!verification.valid) { await logAuth(env, user, 'login', 0, email); return json({ detail: 'Invalid email or password.' }, 401); }
+  try{await upgradePasswordIfNeeded(env,user,password,verification)}catch(error){console.error('password hash upgrade failed',error)}
   await logAuth(env, user, 'login', 1, email);
   return json({ token: await makeSession(user, env), user: { id: user.id, tenant_id: user.tenant_id, name: user.name, email: user.email, role: user.role, active: user.active } });
 }
 
-// Owner login keeps the existing owner credentials intact. If the owner credentials
-// are configured as Worker secrets but the owner was never represented in the D1
-// users table, create the owner identity once and then use the same D1-backed session
-// mechanism as the rest of the application. This fixes the login -> dashboard handoff
-// without changing the existing dashboard architecture.
 async function adminLogin(request, env) {
   const b = await request.json(), email = normEmail(b.email), password = String(b.password || '');
   if (!email || !password) return json({ detail: 'Owner email and password are required.' }, 400);
-
-  // First honor the existing D1 owner account, so its password remains authoritative.
   const existing = await env.DB.prepare("SELECT * FROM users WHERE email=? AND active=1 ORDER BY created_at ASC LIMIT 1").bind(email).first();
   if (existing && existing.role === 'owner') {
-    if ((await passwordHash(password, existing.password_salt)) !== existing.password_hash) {
+    let verification;try{verification=await verifyPassword(password,existing.password_hash,existing.password_salt,env)}catch(_){verification={valid:false,needs_upgrade:false}}
+    if (!verification.valid) {
       await logAuth(env, existing, 'owner_login', 0, email);
       return json({ detail: 'Invalid owner email or password.' }, 401);
     }
+    try{await upgradePasswordIfNeeded(env,existing,password,verification)}catch(error){console.error('owner password hash upgrade failed',error)}
     await logAuth(env, existing, 'owner_login', 1, email);
     return json({ token: await makeSession(existing, env), user: { id: existing.id, tenant_id: existing.tenant_id, name: existing.name, email: existing.email, role: 'owner', active: existing.active } });
   }
 
-  // Compatibility path for the original owner profile configured in Cloudflare.
   const configuredEmail = normEmail(env.ADMIN_EMAIL);
   const configuredPassword = String(env.ADMIN_PASSWORD || '');
-  if (!configuredEmail || !configuredPassword || email !== configuredEmail || password !== configuredPassword) {
+  if (!configuredEmail || !configuredPassword || !(await safeTextEqual(email,configuredEmail)) || !(await safeTextEqual(password,configuredPassword))) {
     await logAuth(env, existing, 'owner_login', 0, email);
     return json({ detail: 'Invalid owner email or password.' }, 401);
   }
@@ -114,17 +114,13 @@ async function adminLogin(request, env) {
   }
   let owner = await env.DB.prepare('SELECT * FROM users WHERE email=? LIMIT 1').bind(configuredEmail).first();
   if (!owner) {
-    const uid = makeId(), salt = makeId(), ph = await passwordHash(configuredPassword, salt);
-    await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,active,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid, tenant.id, 'I AM Magnanimous Way Owner', configuredEmail, 'owner', ph, salt, 1, created).run();
+    const uid = makeId(), record = await createPasswordRecord(configuredPassword,env);
+    await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,active,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid, tenant.id, 'I AM Magnanimous Way Owner', configuredEmail, 'owner', record.password_hash, record.password_salt, 1, created).run();
     await env.DB.prepare("UPDATE tenants SET owner_user_id=? WHERE id=?").bind(uid, tenant.id).run();
     owner = await env.DB.prepare('SELECT * FROM users WHERE id=?').bind(uid).first();
-  } else {
-    // Never overwrite the existing password; only restore the owner role/tenant link
-    // needed by the compatibility login if this legacy record predates the new schema.
-    if (owner.role !== 'owner' || owner.tenant_id !== tenant.id) {
-      await env.DB.prepare("UPDATE users SET role='owner',tenant_id=?,active=1 WHERE id=?").bind(tenant.id, owner.id).run();
-      owner = await env.DB.prepare('SELECT * FROM users WHERE id=?').bind(owner.id).first();
-    }
+  } else if (owner.role !== 'owner' || owner.tenant_id !== tenant.id) {
+    await env.DB.prepare("UPDATE users SET role='owner',tenant_id=?,active=1 WHERE id=?").bind(tenant.id, owner.id).run();
+    owner = await env.DB.prepare('SELECT * FROM users WHERE id=?').bind(owner.id).first();
   }
   await logAuth(env, owner, 'owner_login', 1, configuredEmail);
   return json({ token: await makeSession(owner, env), user: { id: owner.id, tenant_id: owner.tenant_id, name: owner.name, email: owner.email, role: 'owner', active: owner.active } });
@@ -152,6 +148,9 @@ export default {
         const m=url.pathname.match(/^\/api\/admin\/ads\/(\d+)$/); if(m&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM ads WHERE id=?').bind(Number(m[1])).run();return json({ok:true});}
       }
       return providerApp.fetch(request, env, ctx);
-    } catch (e) { return json({ detail: e?.message || 'Server error' }, 500); }
+    } catch (e) {
+      console.error('admin compatibility runtime error',e);
+      return json({ detail: 'The account service could not complete this request.', code:'ACCOUNT_SERVICE_ERROR' }, 500);
+    }
   }
 };
