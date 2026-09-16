@@ -1,0 +1,100 @@
+name: Magnanimous Telecom Atomic Reservation Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-telecom-charging-runtime.js'
+      - 'worker/migrations/0060_magnanimous_telecom_atomic_reservation.sql'
+      - 'qa/scripts/telecom-atomic-reservation-lock.mjs'
+      - '.github/workflows/telecom-atomic-reservation-check.yml'
+  pull_request:
+    paths:
+      - 'worker/src/magnanimous-telecom-charging-runtime.js'
+      - 'worker/migrations/0060_magnanimous_telecom_atomic_reservation.sql'
+      - 'qa/scripts/telecom-atomic-reservation-lock.mjs'
+      - '.github/workflows/telecom-atomic-reservation-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Lock atomic reservation source contract
+        run: node qa/scripts/telecom-atomic-reservation-lock.mjs
+
+      - name: Execute atomic reservation rollback invariants
+        run: |
+          python - <<'PY'
+          import pathlib, sqlite3, time
+
+          db=sqlite3.connect(':memory:')
+          db.execute('PRAGMA foreign_keys=ON')
+          db.executescript('''
+          CREATE TABLE telecom_customer_lines(
+            tenant_id TEXT NOT NULL,
+            id TEXT NOT NULL,
+            customer_id TEXT,
+            plan_id TEXT,
+            PRIMARY KEY(tenant_id,id)
+          );
+          ''')
+
+          migrations=[
+            '0045_magnanimous_telecom_oss_bss.sql',
+            '0046_magnanimous_telecom_charging_policy.sql',
+            '0047_magnanimous_telecom_charging_integrity.sql',
+            '0052_magnanimous_telecom_financial_integrity.sql',
+            '0053_magnanimous_telecom_daily_unit_guard.sql',
+            '0054_magnanimous_telecom_daily_spend_guard.sql',
+            '0055_magnanimous_telecom_shared_member_guard.sql',
+            '0056_magnanimous_telecom_expired_reservation_reconcile.sql',
+            '0060_magnanimous_telecom_atomic_reservation.sql',
+          ]
+          for name in migrations:
+            db.executescript(pathlib.Path('worker/migrations',name).read_text())
+
+          now=int(time.time())
+          tenant='atomic-t1'
+          db.execute("INSERT INTO telecom_customer_lines(tenant_id,id,customer_id,plan_id) VALUES(?,?,?,?)",(tenant,'line1','customer1','plan1'))
+          db.execute("INSERT INTO telecom_balance_accounts(id,tenant_id,customer_id,line_id,account_kind,currency,status,created_at,updated_at) VALUES(?,?,?,?,?,'USD','active',?,?)",('acct1',tenant,'customer1','line1','prepaid',now,now))
+          db.execute("INSERT INTO telecom_balance_buckets(id,tenant_id,balance_account_id,bucket_kind,initial_units,remaining_units,status,created_at,updated_at) VALUES(?,?,?,?,10,10,'active',?,?)",('bucket1',tenant,'acct1','minute',now,now))
+
+          db.execute("INSERT INTO telecom_charging_sessions(id,tenant_id,customer_id,line_id,service_type,idempotency_key,state,requested_units,unit_name,currency,created_at,updated_at) VALUES(?,?,?,?,?,?,'requested',4,'minute','USD',?,?)",('session-ok',tenant,'customer1','line1','voice','atomic-ok',now,now))
+          db.execute("INSERT INTO telecom_balance_reservations(id,tenant_id,charging_session_id,bucket_id,reserved_units,state,created_at,updated_at) VALUES(?,?,?,?,4,'reserved',?,?)",('reservation-ok',tenant,'session-ok','bucket1',now,now))
+
+          remaining=db.execute("SELECT remaining_units FROM telecom_balance_buckets WHERE tenant_id=? AND id='bucket1'",(tenant,)).fetchone()[0]
+          assert abs(remaining-6)<1e-9, remaining
+          ledger=db.execute("SELECT transaction_type,units,balance_after FROM telecom_balance_transactions WHERE tenant_id=? AND idempotency_key='reserve:session-ok:bucket1'",(tenant,)).fetchone()
+          assert ledger is not None, 'reserve ledger missing'
+          assert ledger[0]=='reserve' and abs(ledger[1]-4)<1e-9 and abs(ledger[2]-6)<1e-9, ledger
+
+          db.execute("INSERT INTO telecom_charging_sessions(id,tenant_id,customer_id,line_id,service_type,idempotency_key,state,requested_units,unit_name,currency,created_at,updated_at) VALUES(?,?,?,?,?,?,'requested',7,'minute','USD',?,?)",('session-fail',tenant,'customer1','line1','voice','atomic-fail',now,now))
+          try:
+            db.execute("INSERT INTO telecom_balance_reservations(id,tenant_id,charging_session_id,bucket_id,reserved_units,state,created_at,updated_at) VALUES(?,?,?,?,7,'reserved',?,?)",('reservation-fail',tenant,'session-fail','bucket1',now,now))
+            raise AssertionError('insufficient reservation unexpectedly succeeded')
+          except sqlite3.IntegrityError as error:
+            assert 'telecom_insufficient_balance' in str(error), error
+
+          remaining_after=db.execute("SELECT remaining_units FROM telecom_balance_buckets WHERE tenant_id=? AND id='bucket1'",(tenant,)).fetchone()[0]
+          assert abs(remaining_after-6)<1e-9, remaining_after
+          reservation_count=db.execute("SELECT COUNT(*) FROM telecom_balance_reservations WHERE id='reservation-fail'").fetchone()[0]
+          ledger_count=db.execute("SELECT COUNT(*) FROM telecom_balance_transactions WHERE idempotency_key='reserve:session-fail:bucket1'").fetchone()[0]
+          assert reservation_count==0, reservation_count
+          assert ledger_count==0, ledger_count
+
+          print('Magnanimous Telecom atomic reservation rollback checks passed')
+          PY
+
+      - name: Syntax check charging runtime
+        run: node --check worker/src/magnanimous-telecom-charging-runtime.js
