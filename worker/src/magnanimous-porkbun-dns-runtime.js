@@ -8,7 +8,12 @@ const CONFIRM_TTL_SECONDS=900;
 const DNS_TYPES=new Set(['A','AAAA','MX','CNAME','ALIAS','TXT','NS','SRV','TLSA','CAA','SSHFP','HTTPS','SVCB']);
 const ACTIONS=new Set(['create-record','edit-record','delete-record','update-nameservers']);
 
-function isOwner(user){return String(user?.role||'').toLowerCase()==='owner';}
+function isPlatformOwner(user,env){
+ const configured=clip(env?.ADMIN_EMAIL,320).toLowerCase();
+ const email=clip(user?.email,320).toLowerCase();
+ const role=String(user?.role||'').toLowerCase();
+ return Boolean(configured&&email===configured&&['owner','admin'].includes(role));
+}
 function normalizeDomain(value){
  const name=clip(value,253).toLowerCase().replace(/\.$/,'');
  if(!name||name.includes('://')||name.includes('/')||name.includes('\\')||name.includes('@')||name.includes(' ')||!name.includes('.'))return'';
@@ -97,7 +102,7 @@ export async function handleMagnanimousPorkbunDns(request,env,user){
   try{const result=await requestJson('pricing/get',{env,auth:false});return json({identity:'Magnanimous AI',capability:'domain-pricing',provider_identity_public:false,pricing:result.data?.pricing||{},api_version:result.apiVersion});}catch(error){return json(safeError(error),502);}
  }
  if(!path.startsWith('/api/magnanimous/dns/porkbun'))return null;
- if(!isOwner(user))return json({detail:'Owner access required for registrar account operations.'},403);
+ if(!isPlatformOwner(user,env))return json({detail:'Platform owner access required for registrar account operations.'},403);
  if(!env?.DB)return json({detail:'Registrar control requires D1.'},503);
  await ensureSchema(env);
  const creds=await runtimeCredentials(env);
