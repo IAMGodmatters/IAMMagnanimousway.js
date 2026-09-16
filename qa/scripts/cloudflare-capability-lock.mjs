@@ -6,6 +6,7 @@ const registry=read('worker/src/magnanimous-cloudflare-capability-registry.js');
 const runtime=read('worker/src/magnanimous-cloudflare-runtime.js');
 const entry=read('worker/src/security-entrypoint.js');
 const migration=read('worker/migrations/0059_magnanimous_cloudflare_control.sql');
+const ui=read('frontend/app/owner-cloudflare/page.tsx');
 
 for(const family of ['compute','data','ai','security','delivery','zero-trust','network','media','email','observability','performance','developer']){
  must(registry.includes(`family('${family}'`),`Cloudflare family missing: ${family}`);
@@ -42,9 +43,17 @@ for(const flag of ['CLOUDFLARE_MUTATIONS_ENABLED','CLOUDFLARE_DESTRUCTIVE_ACTION
 must(runtime.includes("return json({path:apiPath,provider_response:result.data,secrets_exposed:false}"),'Cloudflare read responses must explicitly deny secret exposure.');
 must(runtime.includes("provider_tokens_exposed:false"),'Cloudflare MCP catalog must not expose provider tokens.');
 
+must(ui.includes('MAGNANIMOUS CLOUDFLARE CONTROL'),'Owner Cloudflare console identity is missing.');
+must(ui.includes('STAGE ≠ EXECUTE'),'Owner console must distinguish staging from execution.');
+must(ui.includes("body:JSON.stringify({confirm:true})"),'Owner console must use a distinct confirmation request.');
+must(ui.includes('No Cloudflare API token is entered or displayed in this browser console.'),'Owner console must explicitly keep credentials server-side.');
+must(!/type=["']password["']/.test(ui),'Owner Cloudflare console must not collect provider secrets in the browser.');
+must(ui.includes("role=\"status\"")&&ui.includes('aria-live="polite"'),'Owner console must expose live status changes accessibly.');
+must(ui.includes(':focus-visible'),'Owner console must preserve visible keyboard focus.');
+
 must(migration.includes('magnanimous_cloudflare_actions'),'Cloudflare durable action ledger migration is missing.');
 must(migration.includes('magnanimous_cloudflare_audit'),'Cloudflare audit ledger migration is missing.');
 must(entry.includes("from './magnanimous-cloudflare-runtime.js'"),'Central security entrypoint must mount Cloudflare control plane.');
 must(entry.includes('await handleMagnanimousCloudflare(policyRequest,env)'),'Cloudflare control plane must run after central session/policy resolution.');
 
-console.log('Magnanimous Cloudflare capability, techniques and action contracts verified.');
+console.log('Magnanimous Cloudflare capability, techniques, owner-console and action contracts verified.');
