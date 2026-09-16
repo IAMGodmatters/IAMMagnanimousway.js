@@ -2,8 +2,8 @@ import React from 'react';
 
 const runtime=`(function(){
   function normalize(path){var clean=(path||'/').replace(/\\/+$/,'');return clean||'/';}
-  var publicPaths=['/teach','/shop','/login','/signup','/owner-login'];
-  function isPublicPath(path){return publicPaths.indexOf(path)!==-1||path.indexOf('/teach/')===0||path.indexOf('/shop/')===0;}
+  var publicPaths=['/','/teach','/shop','/login','/signup','/owner-login','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label'];
+  function isPublicPath(path){return publicPaths.indexOf(path)!==-1||path.indexOf('/teach/')===0||path.indexOf('/shop/')===0||path.indexOf('/reviews/')===0;}
   var currentPath=normalize(location.pathname);
   var standalone=currentPath==='/magnanimous'||currentPath.indexOf('/magnanimous/')===0;
   if(isPublicPath(currentPath))document.documentElement.setAttribute('data-iam-public','true');
@@ -75,9 +75,8 @@ const runtime=`(function(){
     safeRemove(sessionStorage,'iam_session_active');safeRemove(sessionStorage,'iam_session_validated_at');
   }
   function guardProtectedRoute(){
-    var session=activeSession();
-    if(currentPath==='/'){if(!session)location.replace('/login?returnTo=%2F');return;}
     if(isPublicPath(currentPath)||standalone)return;
+    var session=activeSession();
     if(!session){var returnTo=currentPath+(location.search||'');location.replace('/login?returnTo='+encodeURIComponent(returnTo));}
   }
   function validateActiveSession(){
