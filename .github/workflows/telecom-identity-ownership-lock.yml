@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - 'frontend/app/telecom/**'
+      - 'frontend/app/telecom-standalone/**'
       - 'telecom-core/**'
       - '.github/workflows/telecom-identity-ownership-lock.yml'
   pull_request:
     paths:
       - 'frontend/app/telecom/**'
+      - 'frontend/app/telecom-standalone/**'
       - 'telecom-core/**'
       - '.github/workflows/telecom-identity-ownership-lock.yml'
 
@@ -29,13 +31,17 @@ jobs:
           grep -q 'owned by.*God Matters' frontend/app/telecom/layout.tsx
           grep -q 'I AM MAGNANIMOUS WAY™' frontend/app/telecom/layout.tsx
           grep -q 'Operated by.*Magnanimous AI' frontend/app/telecom/layout.tsx
+          grep -q "import TelecomLayout from '../telecom/layout'" frontend/app/telecom-standalone/layout.tsx
+          grep -q 'owned by God Matters' frontend/app/telecom-standalone/layout.tsx
+          grep -q 'I AM MAGNANIMOUS WAY™' frontend/app/telecom-standalone/layout.tsx
+          grep -q 'Operated by Magnanimous AI' frontend/app/telecom-standalone/layout.tsx
           grep -q 'God Matters' telecom-core/IDENTITY_OWNERSHIP.md
           grep -q 'I AM MAGNANIMOUS WAY™' telecom-core/IDENTITY_OWNERSHIP.md
           grep -q 'Magnanimous AI' telecom-core/IDENTITY_OWNERSHIP.md
 
       - name: Prevent incorrect God Matters trademark styling
         run: |
-          if grep -R -n -E 'God Matters™|God Matters®|God Matters Trademark' frontend/app/telecom telecom-core --exclude='IDENTITY_OWNERSHIP.md'; then
+          if grep -R -n -E 'God Matters™|God Matters®|God Matters Trademark' frontend/app/telecom frontend/app/telecom-standalone telecom-core --exclude='IDENTITY_OWNERSHIP.md'; then
             echo 'God Matters must not be presented with trademark styling in Magnanimous Telecom surfaces.' >&2
             exit 1
           fi
