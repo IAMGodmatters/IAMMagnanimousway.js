@@ -14,7 +14,7 @@ function normalizeName(value){
  let name=clip(value,253).toLowerCase().replace(/\.$/,'');
  if(!name||name.includes('://')||name.includes('/')||name.includes('\\')||name.includes('@')||name.includes(' '))return'';
  const labels=name.split('.');
- if(labels.some(label=>!label||label.length>63||!^[a-z0-9_-]+$/.test(label)||label.startsWith('-')||label.endsWith('-')))return'';
+ if(labels.some(label=>!label||label.length>63||!/^[a-z0-9_-]+$/.test(label)||label.startsWith('-')||label.endsWith('-')))return'';
  return name;
 }
 function baseDomain(value){const name=normalizeName(value);if(!name)return'';return name.startsWith('_dmarc.')?name.slice(7):name;}
@@ -36,9 +36,9 @@ async function lookup(name,type,resolver='all'){
 }
 function compareResults(results){
  const usable=results.filter(x=>!x.error);if(!usable.length)return{consistent:false,reason:'No resolver returned a usable answer.'};
- const signatures=usable.map(x=>JSON.stringify(canonicalAnswers({Answer:x.records.map(r=>({data:r.data}))})));
+ const signatures=usable.map(x=>JSON.stringify([...new Set((x.records||[]).map(r=>String(r.data||'').trim()).filter(Boolean))].sort()));
  const consistent=new Set(signatures).size===1&&new Set(usable.map(x=>x.status)).size===1;
- return{consistent,resolvers_checked:usable.length,answer_sets:usable.map(x=>({resolver:x.resolver,status:x.status_text,answers:x.records.map(r=>r.data)}))};
+ return{consistent,resolvers_checked:usable.length,answer_sets:usable.map(x=>({resolver:x.resolver,status:x.status_text,answers:(x.records||[]).map(r=>r.data)}))};
 }
 function txtValues(results){return results.flatMap(x=>x.records||[]).map(r=>r.data.replace(/^"|"$/g,'').replace(/"\s+"/g,''));}
 function hasPrefix(values,prefix){return values.some(v=>v.toLowerCase().startsWith(prefix.toLowerCase()));}
