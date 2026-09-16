@@ -1,0 +1,115 @@
+name: Magnanimous Telecom Financial Integrity Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/migrations/0045_magnanimous_telecom_oss_bss.sql'
+      - 'worker/migrations/0046_magnanimous_telecom_charging_policy.sql'
+      - 'worker/migrations/0047_magnanimous_telecom_charging_integrity.sql'
+      - 'worker/migrations/0052_magnanimous_telecom_financial_integrity.sql'
+      - '.github/workflows/telecom-financial-integrity-check.yml'
+  pull_request:
+    paths:
+      - 'worker/migrations/0045_magnanimous_telecom_oss_bss.sql'
+      - 'worker/migrations/0046_magnanimous_telecom_charging_policy.sql'
+      - 'worker/migrations/0047_magnanimous_telecom_charging_integrity.sql'
+      - 'worker/migrations/0052_magnanimous_telecom_financial_integrity.sql'
+      - '.github/workflows/telecom-financial-integrity-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Execute financial-integrity migration and invariants
+        run: |
+          python - <<'PY'
+          import pathlib, sqlite3, time
+
+          db=sqlite3.connect(':memory:')
+          db.execute('PRAGMA foreign_keys=ON')
+          db.executescript('''
+          CREATE TABLE telecom_customer_lines(
+            tenant_id TEXT NOT NULL,
+            id TEXT NOT NULL,
+            customer_id TEXT,
+            plan_id TEXT,
+            PRIMARY KEY(tenant_id,id)
+          );
+          ''')
+          for name in [
+            '0045_magnanimous_telecom_oss_bss.sql',
+            '0046_magnanimous_telecom_charging_policy.sql',
+            '0047_magnanimous_telecom_charging_integrity.sql',
+            '0052_magnanimous_telecom_financial_integrity.sql',
+          ]:
+            db.executescript(pathlib.Path('worker/migrations',name).read_text())
+
+          now=int(time.time())
+          tenant='t1'
+          db.execute("INSERT INTO telecom_customer_lines(tenant_id,id,customer_id,plan_id) VALUES(?,?,?,?)",(tenant,'line1','c1','plan1'))
+          db.execute("INSERT INTO telecom_balance_accounts(id,tenant_id,customer_id,line_id,account_kind,currency,status,created_at,updated_at) VALUES(?,?,?,?,?,'USD','active',?,?)",('acct1',tenant,'c1','line1','prepaid',now,now))
+          db.execute("INSERT INTO telecom_balance_buckets(id,tenant_id,balance_account_id,bucket_kind,initial_units,remaining_units,status,created_at,updated_at) VALUES(?,?,?,?,?,?, 'active',?,?)",('bucket1',tenant,'acct1','currency',10.123456,10.123456,now,now))
+          micros=db.execute("SELECT initial_units_micros,remaining_units_micros FROM telecom_balance_buckets WHERE id='bucket1'").fetchone()
+          assert micros==(10123456,10123456), micros
+
+          db.execute("INSERT INTO telecom_policy_profiles(id,tenant_id,name,plan_id,service_type,max_daily_units,max_daily_spend,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,'active',?,?)",('pol1',tenant,'daily','plan1','voice',10,5,now,now))
+          db.execute("INSERT INTO telecom_charging_sessions(id,tenant_id,customer_id,line_id,service_type,idempotency_key,state,requested_units,reserved_units,committed_units,unit_name,estimated_charge,final_charge,currency,created_at,updated_at) VALUES(?,?,?,?,?,?,'committed',9,9,9,'minute',4,4,'USD',?,?)",('s-old',tenant,'c1','line1','voice','old',now,now))
+          db.execute("INSERT INTO telecom_charging_sessions(id,tenant_id,customer_id,line_id,service_type,idempotency_key,state,requested_units,unit_name,estimated_charge,currency,created_at,updated_at) VALUES(?,?,?,?,?,?,'requested',2,'minute',1,'USD',?,?)",('s-unit',tenant,'c1','line1','voice','unit',now,now))
+          try:
+            db.execute("UPDATE telecom_charging_sessions SET state='reserved' WHERE id='s-unit'")
+            raise AssertionError('daily unit limit did not block')
+          except sqlite3.IntegrityError as e:
+            assert 'telecom_daily_unit_limit' in str(e), e
+
+          db.execute("UPDATE telecom_policy_profiles SET max_daily_units=100 WHERE id='pol1'")
+          db.execute("INSERT INTO telecom_charging_sessions(id,tenant_id,customer_id,line_id,service_type,idempotency_key,state,requested_units,unit_name,estimated_charge,currency,created_at,updated_at) VALUES(?,?,?,?,?,?,'requested',1,'minute',2,'USD',?,?)",('s-spend',tenant,'c1','line1','voice','spend',now,now))
+          try:
+            db.execute("UPDATE telecom_charging_sessions SET state='reserved' WHERE id='s-spend'")
+            raise AssertionError('daily spend limit did not block')
+          except sqlite3.IntegrityError as e:
+            assert 'telecom_daily_spend_limit' in str(e), e
+
+          db.execute("INSERT INTO telecom_balance_groups(id,tenant_id,customer_id,name,group_kind,balance_account_id,status,created_at,updated_at) VALUES(?,?,?,'Family','family',?,'active',?,?)",('grp1',tenant,'c1','acct1',now,now))
+          db.execute("INSERT INTO telecom_balance_group_members(id,tenant_id,group_id,line_id,priority,spend_limit_units,status,created_at,updated_at) VALUES(?,?,?,?,100,5,'active',?,?)",('gm1',tenant,'grp1','line1',now,now))
+          db.execute("INSERT INTO telecom_charging_sessions(id,tenant_id,customer_id,line_id,service_type,idempotency_key,state,requested_units,unit_name,currency,created_at,updated_at) VALUES(?,?,?,?,?,?,'requested',4,'unit','USD',?,?)",('s-r1',tenant,'c1','line1','other','r1',now,now))
+          db.execute("INSERT INTO telecom_balance_reservations(id,tenant_id,charging_session_id,bucket_id,reserved_units,state,created_at,updated_at) VALUES(?,?,?,?,4,'reserved',?,?)",('r1',tenant,'s-r1','bucket1',now,now))
+          db.execute("INSERT INTO telecom_charging_sessions(id,tenant_id,customer_id,line_id,service_type,idempotency_key,state,requested_units,unit_name,currency,created_at,updated_at) VALUES(?,?,?,?,?,?,'requested',2,'unit','USD',?,?)",('s-r2',tenant,'c1','line1','other','r2',now,now))
+          try:
+            db.execute("INSERT INTO telecom_balance_reservations(id,tenant_id,charging_session_id,bucket_id,reserved_units,state,created_at,updated_at) VALUES(?,?,?,?,2,'reserved',?,?)",('r2',tenant,'s-r2','bucket1',now,now))
+            raise AssertionError('shared member limit did not block')
+          except sqlite3.IntegrityError as e:
+            assert 'telecom_shared_member_limit' in str(e), e
+
+          db.execute("UPDATE telecom_balance_group_members SET spend_limit_units=0 WHERE id='gm1'")
+          db.execute("INSERT INTO telecom_balance_buckets(id,tenant_id,balance_account_id,bucket_kind,initial_units,remaining_units,status,created_at,updated_at) VALUES(?,?,?,?,10,5,'active',?,?)",('bucket-exp',tenant,'acct1','minute',now,now))
+          db.execute("INSERT INTO telecom_charging_sessions(id,tenant_id,customer_id,line_id,service_type,idempotency_key,state,requested_units,reserved_units,unit_name,currency,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?,'reserved',5,5,'minute','USD',?,?,?)",('s-exp',tenant,'c1','line1','voice','exp',now-10,now-100,now-100))
+          db.execute("INSERT INTO telecom_balance_reservations(id,tenant_id,charging_session_id,bucket_id,reserved_units,state,created_at,updated_at) VALUES(?,?,?,?,5,'reserved',?,?)",('r-exp',tenant,'s-exp','bucket-exp',now-100,now-100))
+          db.execute("INSERT INTO telecom_charging_sessions(id,tenant_id,customer_id,line_id,service_type,idempotency_key,state,requested_units,unit_name,currency,created_at,updated_at) VALUES(?,?,?,?,?,?,'requested',1,'minute','USD',?,?)",('s-new',tenant,'c1','line1','voice','new',now,now))
+          assert db.execute("SELECT state FROM telecom_charging_sessions WHERE id='s-exp'").fetchone()[0]=='expired'
+          assert db.execute("SELECT state FROM telecom_balance_reservations WHERE id='r-exp'").fetchone()[0]=='expired'
+          restored=db.execute("SELECT remaining_units FROM telecom_balance_buckets WHERE id='bucket-exp'").fetchone()[0]
+          assert abs(restored-10)<1e-9, restored
+          ledger=db.execute("SELECT COUNT(*) FROM telecom_balance_transactions WHERE idempotency_key='expire-release:s-exp:r-exp'").fetchone()[0]
+          assert ledger==1, ledger
+
+          charge_micros=db.execute("SELECT final_charge_micros FROM telecom_charging_sessions WHERE id='s-old'").fetchone()[0]
+          assert charge_micros==4000000, charge_micros
+          print('Magnanimous Telecom financial integrity checks passed')
+          PY
+      - name: Lock safety intent
+        run: |
+          grep -q 'trg_telecom_daily_unit_limit' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
+          grep -q 'trg_telecom_daily_spend_limit' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
+          grep -q 'trg_telecom_shared_member_limit' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
+          grep -q 'trg_telecom_reconcile_expired_before_session' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
+          grep -q 'estimated_charge_micros' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
+          grep -q 'final_charge_micros' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
+          grep -q 'performs no PSTN/carrier purchase' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
