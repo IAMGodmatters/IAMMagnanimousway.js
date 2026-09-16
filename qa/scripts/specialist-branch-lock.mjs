@@ -16,6 +16,7 @@ const evidenceRuntime=read('worker/src/evidence-notebook-runtime.js');
 const progressRuntime=read('worker/src/progress-checkpoint-runtime.js');
 const progressUI=read('frontend/app/progress-autosave.tsx');
 const rootLayout=read('frontend/app/layout.tsx');
+const rootRuntime=read('frontend/app/platform-runtime-script.tsx');
 const globalTools=read('frontend/app/global-tools.tsx');
 const workUI=read('frontend/app/work-engine/page.tsx');
 const activityUI=read('frontend/app/activity/page.tsx');
@@ -63,18 +64,24 @@ must(progressBase,"stage:response.ok?'completed':'failed'",'mutating API actions
 must(progressRuntime,'magnanimous_progress_checkpoints','persistent progress checkpoint storage must remain available');
 must(progressRuntime,'sanitizeProgressText','progress storage must retain redaction safeguards');
 must(progressRuntime,'isSensitiveProgressPath','sensitive routes must remain protected from content capture');
-must(progressUI,"STORAGE_PREFIX='iam_progress_draft:'",'browser drafts must remain locally autosaved');
+must(progressUI,"STORAGE_PREFIX='iam_progress_draft:'",'explicit durable browser drafts must retain their local namespace');
 must(progressUI,"fetch('/api/progress/checkpoint'",'signed-in browser drafts must sync to server checkpoints');
 must(progressUI,"window.addEventListener('pagehide'",'page exit must force a progress checkpoint');
 must(progressUI,"window.addEventListener('iam:progress-checkpoint'",'voice and other explicit progress events must be persisted');
 must(progressUI,'captureExistingDrafts','drafts typed before autosave listeners attach must still be captured');
 must(progressUI,'EARLY_AUTOSAVE_BOOTSTRAP','client-side pre-hydration draft capture must remain available as a recovery layer');
-must(rootLayout,'installRootAutosave','server-rendered root shell must install draft capture before client hydration');
-must(rootLayout,"var prefix='iam_progress_draft:'",'root autosave must use the same durable draft namespace');
-must(rootLayout,"document.addEventListener('input',save,true)",'root autosave must capture input before React hydration can race it');
-must(rootLayout,"document.addEventListener('change',save,true)",'root autosave must capture change events before React hydration can race it');
-must(rootLayout,"setTimeout(restore,1500)",'root autosave must reapply recoverable drafts after hydration settles');
-must(rootLayout,"data-no-autosave=\"true\"",'root autosave must preserve explicit no-autosave exclusions');
+must(rootLayout,"import PlatformRuntimeScript from './platform-runtime-script'",'server-rendered root shell must import the pre-hydration runtime');
+must(rootLayout,'<PlatformRuntimeScript/>','server-rendered root shell must mount draft capture before client hydration');
+must(rootRuntime,'installRootAutosave','root runtime must install draft capture before client hydration');
+must(rootRuntime,"var sessionPrefix='iam_session_draft:'",'generic root drafts must default to session-scoped storage');
+must(rootRuntime,"var persistentPrefix='iam_progress_draft:'",'explicit durable root drafts must retain the durable namespace');
+must(rootRuntime,"data-persist-draft",'durable root draft storage must require explicit opt-in');
+must(rootRuntime,"document.addEventListener('input',save,true)",'root autosave must capture input before React hydration can race it');
+must(rootRuntime,"document.addEventListener('change',save,true)",'root autosave must capture change events before React hydration can race it');
+must(rootRuntime,"setTimeout(function(){restore(document)},700)",'root autosave must reapply recoverable drafts after hydration settles');
+must(rootRuntime,"data-no-autosave=\"true\"",'root autosave must preserve explicit no-autosave exclusions');
+must(rootRuntime,'social.?security','root autosave must exclude high-risk identity fields');
+must(rootRuntime,'routing.?number','root autosave must exclude high-risk banking fields');
 must(globalTools,'<ProgressAutosave/>','continuous progress autosave must remain mounted across Magnanimous work surfaces');
 
 must(progress,'runQaLearningNow','public teaching must enter immediate automatic QA review');
@@ -157,4 +164,4 @@ must(magnanimous,'Magnanimous routed to ${specialist.name}','Magnanimous must sh
 must(ownerCenter,'/owner-ai-training-review','Owner Center must link owner QA oversight');
 must(ownerCenter,'/qa-ai-academy','Owner Center must link the QA contributor lab');
 
-if(!process.exitCode)console.log('Specialist branches, guarded automatic QA teaching, owner override and curation, automatic routing, voice parity, continuous autosave, Work Engine, Activity Restore, Evidence Notebook, integration contract, and owner operations lock passed.');
+if(!process.exitCode)console.log('Specialist branches, guarded automatic QA teaching, owner override and curation, automatic routing, voice parity, privacy-hardened continuous autosave, Work Engine, Activity Restore, Evidence Notebook, integration contract, and owner operations lock passed.');
