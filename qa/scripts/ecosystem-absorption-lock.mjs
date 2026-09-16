@@ -30,11 +30,11 @@ must(registry,"network_parent:'tmobile-devedge'",'Metro parent-network lock');
 must(registry,'independent_network_api_claimed:false','Metro independent-network claim lock');
 must(registry,"legacy_pilot_retired_on:'2026-06-04'",'T-Mobile retired-pilot awareness');
 must(registry,'public_api_verified:false','DSers API verification boundary');
-must(registry,"id:'domain-register'",'Porkbun domain capability');
+must(registry,"cap('domain-register'",'Porkbun domain capability');
 must(registry,"'spend-locked'",'Porkbun spend lock');
-must(registry,"id:'responses'",'OpenAI Responses capability');
-must(registry,"id:'realtime'",'OpenAI Realtime capability');
-must(registry,"id:'provenance-citations'",'Web provenance capability');
+must(registry,"cap('responses'",'OpenAI Responses capability');
+must(registry,"cap('realtime'",'OpenAI Realtime capability');
+must(registry,"cap('provenance-citations'",'Web provenance capability');
 
 must(runtime,"path.startsWith('/api/ecosystem')",'ecosystem route');
 must(runtime,"request.method!=='GET'",'read-only control plane');
