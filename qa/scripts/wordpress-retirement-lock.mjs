@@ -14,13 +14,15 @@ must(entry.includes("status:308"),'WWW/HTTP permanent redirect is missing.');
 must(entry.includes("status:410"),'Legacy WordPress 410 response is missing.');
 must(entry.includes("'x-robots-tag':'noindex, noarchive, nosnippet'"),'Legacy WordPress noindex header is missing.');
 must(entry.includes("url.searchParams.has('rest_route')"),'Legacy WordPress REST query retirement is missing.');
-must(entry.includes("rel=\"canonical\"")||entry.includes("rel=\"canonical\""),'Canonical response header is missing.');
+must(entry.includes('rel="canonical"'),'Canonical response header is missing.');
 
 must(wrangler.includes('"pattern": "iammagnanimousway.com", "custom_domain": true'),'Apex custom domain is not managed by the Worker.');
 must(wrangler.includes('"pattern": "www.iammagnanimousway.com", "custom_domain": true'),'WWW custom domain is not managed by the Worker.');
 for(const route of ['"/"','"/wp-admin*"','"/wp-login.php"','"/wp-json*"','"/wp-content/*"','"/wp-includes/*"','"/xmlrpc.php"']){
   must(wrangler.includes(route),`Worker-first retirement route missing: ${route}`);
 }
+must(!wrangler.includes('"/wp-admin/*"'),'Redundant /wp-admin/* route must not be present; /wp-admin* already covers it.');
+must(!wrangler.includes('"/wp-json/*"'),'Redundant /wp-json/* route must not be present; /wp-json* already covers it.');
 
 must(robots.includes('Sitemap: https://iammagnanimousway.com/sitemap.xml'),'Canonical sitemap directive is missing.');
 must(!/Disallow:\s*\/wp-/i.test(robots),'Do not robots-block retired WordPress paths; crawlers must see the 410 response.');
@@ -29,4 +31,4 @@ must(sitemap.includes('<lastmod>2026-09-16</lastmod>'),'Sitemap recrawl date was
 must(!sitemap.includes('www.iammagnanimousway.com'),'WWW must not be advertised in the sitemap.');
 
 console.log('WordPress retirement lock: PASS');
-console.log('Canonical apex, WWW redirect, WordPress 410 retirement, crawler guidance, and sitemap refresh are locked.');
+console.log('Canonical apex, WWW redirect, WordPress 410 retirement, crawler guidance, sitemap refresh, and non-redundant Worker routing are locked.');
