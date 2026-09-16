@@ -19,11 +19,15 @@ for(const endpoint of ['https://mcp.cloudflare.com/mcp','https://docs.mcp.cloudf
 for(const capability of ['workers-ai','durable-objects','d1','kv','r2','queues','workflows','vectorize','ai-gateway','access','gateway','tunnel','waf','turnstile','dns','cache','images','stream','logpush','radar']){
  must(registry.includes(`'${capability}'`),`Cloudflare capability missing: ${capability}`);
 }
+for(const technique of ['code-mode','bindings-first','durable-state','event-driven','edge-cache','zero-trust-origin','least-privilege','separate-confirmation','idempotent-retries','ai-gateway','skills-on-demand','mcp-composition','sandbox-isolation','browser-isolation','observability','progressive-delivery','storage-by-access-pattern','security-at-edge','performance-budget']){
+ must(registry.includes(`id:'${technique}'`),`Cloudflare architecture technique missing: ${technique}`);
+}
 
 must(registry.includes("brain_identity:'Magnanimous AI'"),'Magnanimous AI must remain the Cloudflare control-plane brain.');
 must(registry.includes('provider_brand_override_allowed:false'),'Cloudflare must not override Magnanimous public identity.');
 must(registry.includes('external_api_token_exposure_allowed:false'),'Cloudflare token exposure must remain forbidden.');
 must(registry.includes('mutations_require_separate_confirmation:true'),'Cloudflare mutations must require separate confirmation.');
+must(registry.includes('techniques:[...CLOUDFLARE_ARCHITECTURE_TECHNIQUES]'),'Cloudflare techniques must be exposed through the owner summary.');
 
 must(runtime.includes("import { requirePlatformOwner }"),'Cloudflare runtime must require the platform-owner guard.');
 must(runtime.includes("const API='https://api.cloudflare.com/client/v4'"),'Cloudflare runtime must use a fixed API origin.');
@@ -43,4 +47,4 @@ must(migration.includes('magnanimous_cloudflare_audit'),'Cloudflare audit ledger
 must(entry.includes("from './magnanimous-cloudflare-runtime.js'"),'Central security entrypoint must mount Cloudflare control plane.');
 must(entry.includes('await handleMagnanimousCloudflare(policyRequest,env)'),'Cloudflare control plane must run after central session/policy resolution.');
 
-console.log('Magnanimous Cloudflare capability and action contracts verified.');
+console.log('Magnanimous Cloudflare capability, techniques and action contracts verified.');
