@@ -9,6 +9,7 @@ import { handleMagnanimousSpace } from './magnanimous-space-runtime.js';
 import { handleMagnanimousResearch } from './magnanimous-research-runtime.js';
 import { handleMagnanimousMux } from './magnanimous-mux-runtime.js';
 import { handleMagnanimousMeta } from './magnanimous-meta-runtime.js';
+import { handleMagnanimousEcosystem } from './magnanimous-ecosystem-runtime.js';
 import { handleMagnanimousWhatsApp } from './magnanimous-whatsapp-runtime.js';
 import { ensureWhatsAppIntegrationCompatibility } from './magnanimous-whatsapp-integration-compat.js';
 import { handleMagnanimousTelecom } from './magnanimous-telecom-runtime.js';
@@ -92,6 +93,8 @@ export default {
     if(whatsapp)return whatsapp;
     const meta=await handleMagnanimousMeta(request,env);
     if(meta)return meta;
+    const ecosystem=await handleMagnanimousEcosystem(request,env);
+    if(ecosystem)return ecosystem;
     const telecomSecurity=await handleMagnanimousTelecomSecurityGate(request);
     if(telecomSecurity)return telecomSecurity;
     const telecomBssAdmin=await handleMagnanimousTelecomBssAdmin(request,env);
