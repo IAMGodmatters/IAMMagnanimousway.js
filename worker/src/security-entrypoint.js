@@ -6,6 +6,7 @@ import { applyPlatformResponseHeaders, requestCorrelationId, unhandledRequestFai
 import { resolveSessionRequest, revokeOpaqueSession, upgradeAuthResponseToOpaque } from './session-authority.js';
 import { prepareCarrierWebhook, completeCarrierWebhook } from './carrier-webhook-security.js';
 import { enforceAssistantActionPolicy, completeAssistantActionPolicy } from './assistant-action-policy.js';
+import { handleMagnanimousCloudflare } from './magnanimous-cloudflare-runtime.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -96,6 +97,14 @@ export default {
         const completed=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
         return finalizeResponse(request,await securityPostflight(policyRequest,completed,env));
       }
+
+      const cloudflareResponse=await handleMagnanimousCloudflare(policyRequest,env);
+      if(cloudflareResponse){
+        const assistantCompleted=await completeAssistantActionPolicy(assistantContext,cloudflareResponse,env);
+        const carrierCompleted=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
+        return finalizeResponse(request,await securityPostflight(policyRequest,carrierCompleted,env));
+      }
+
       const routedUrl = new URL(policyRequest.url);
       const continuityRequest = policyRequest.method === 'POST' && routedUrl.pathname === '/api/professional/generate' ? policyRequest.clone() : null;
       if (isNativeOperationsPath(routedUrl.pathname)) {
