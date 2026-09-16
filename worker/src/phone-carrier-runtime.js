@@ -1,5 +1,6 @@
 import { handleVoiceAgent } from './voice-agent-runtime.js';
 import { handlePlivoCarrier, plivoReady } from './plivo-carrier-runtime.js';
+import { handleMagnanimousCarrierPhoneAlias } from './magnanimous-carrier-phone-alias.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -41,6 +42,9 @@ export async function handlePhoneCarrier(request, env) {
   const path = url.pathname;
   if (!path.startsWith('/api/phone')) return null;
 
+  const carrierCore = await handleMagnanimousCarrierPhoneAlias(request, env);
+  if (carrierCore) return carrierCore;
+
   // A workspace-supplied carrier bridge is intentionally first. This lets an
   // owner use a self-hosted Asterisk/FreeSWITCH gateway plus a flat-rate or
   // wholesale SIP trunk instead of forcing the platform through a premium
@@ -60,6 +64,7 @@ export async function handlePhoneCarrier(request, env) {
         routeOrder: ['free-browser', 'workspace-byoc', 'metered-fallback', 'premium-fallback'],
         callerId: String(env.VOIP_CALLER_ID || ''),
         accessGranted: true,
+        carrierCore: '/api/phone/carrier-core/status',
         message: isFlatRate(mode)
           ? 'Workspace flat-rate/BYOC calling is the primary ordinary-number route. Metered carrier calling remains a fallback when configured.'
           : 'Workspace BYOC calling is connected. Free browser calls remain first choice and the carrier bridge can use wholesale or metered routing.'
@@ -94,6 +99,7 @@ export async function handlePhoneCarrier(request, env) {
       leastCostRouting: true,
       routeOrder: ['free-browser', 'workspace-byoc', 'metered-fallback', 'premium-fallback'],
       aiCarrier: true,
+      carrierCore: '/api/phone/carrier-core/status',
       callerId: String(env.TWILIO_PHONE_NUMBER || ''),
       accessGranted: access,
       inboundWebhook: `${url.origin}/api/voice-agent/twilio/incoming`,
