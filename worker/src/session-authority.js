@@ -138,11 +138,24 @@ export async function upgradeAuthResponseToOpaque(request,response,env){
   if(!legacyToken||isOpaqueToken(legacyToken)||!data?.user)return response;
   const parts=await verifiedLegacyParts(legacyToken,env);
   if(!parts||String(data.user.id||'')!==parts.user_id||String(data.user.tenant_id||'')!==parts.tenant_id)return response;
+
+  // The legacy token proves the authentication event and identity. D1 remains
+  // authoritative for the role because signup triggers may promote the creator
+  // to workspace owner before this outer session layer runs. Starting the opaque
+  // session from that effective role prevents a brand-new session from being
+  // immediately revoked while preserving later role-change revocation.
+  const current=await env.DB.prepare('SELECT role,tenant_id,active FROM users WHERE id=? AND tenant_id=? LIMIT 1')
+    .bind(parts.user_id,parts.tenant_id).first();
+  if(!current||Number(current.active||0)!==1)return response;
+  const effectiveRole=String(current.role||parts.role||'member');
+  const effectiveTenant=String(current.tenant_id||parts.tenant_id);
+  if(effectiveTenant!==parts.tenant_id)return response;
+
   await ensureSchema(env);
   const token=randomOpaqueToken(),hash=await sha256(token),t=now();
   await env.DB.prepare(`INSERT INTO auth_sessions(token_hash,user_id,tenant_id,role,created_at,expires_at,revoked_at,revoke_reason)
-    VALUES(?,?,?,?,?,?,NULL,'')`).bind(hash,parts.user_id,parts.tenant_id,parts.role,t,parts.expires_at).run();
+    VALUES(?,?,?,?,?,?,NULL,'')`).bind(hash,parts.user_id,effectiveTenant,effectiveRole,t,parts.expires_at).run();
   await cleanupSessions(env,t);
   const headers=new Headers(response.headers);headers.delete('content-length');headers.set('cache-control','no-store');headers.set('content-type','application/json; charset=utf-8');
-  return new Response(JSON.stringify({...data,token,session_expires_at:parts.expires_at}),{status:response.status,statusText:response.statusText,headers});
+  return new Response(JSON.stringify({...data,user:{...data.user,tenant_id:effectiveTenant,role:effectiveRole,active:Number(current.active)},token,session_expires_at:parts.expires_at}),{status:response.status,statusText:response.statusText,headers});
 }
