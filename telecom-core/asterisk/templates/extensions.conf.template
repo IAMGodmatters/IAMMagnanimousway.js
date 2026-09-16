@@ -1,0 +1,42 @@
+[general]
+static=yes
+writeprotect=yes
+clearglobalvars=no
+
+[globals]
+MAGNANIMOUS_AI_EXTENSION=${MAGNANIMOUS_AI_EXTENSION}
+MAGNANIMOUS_ADMIN_EXTENSION=${MAGNANIMOUS_ADMIN_EXTENSION}
+
+[magnanimous-internal]
+; Internal Magnanimous extensions.
+exten => ${MAGNANIMOUS_ADMIN_EXTENSION},1,Dial(PJSIP/${MAGNANIMOUS_ADMIN_EXTENSION},45)
+ same => n,Hangup()
+exten => ${MAGNANIMOUS_AI_EXTENSION},1,Dial(PJSIP/${MAGNANIMOUS_AI_EXTENSION},45)
+ same => n,Hangup()
+
+; Public-network calls use E.164 format. Emergency calling is deliberately not
+; advertised or routed until compliant E911 service is configured.
+exten => 911,1,Playback(ss-noservice)
+ same => n,Hangup()
+exten => _+X.,1,Goto(magnanimous-outbound,${EXTEN},1)
+
+[magnanimous-outbound]
+exten => _+X.,1,NoOp(Magnanimous outbound call to ${EXTEN})
+ same => n,Set(CALLERID(num)=${MAG_FROM})
+ same => n,Dial(PJSIP/${EXTEN}@pstn-trunk,60)
+ same => n,Hangup()
+
+[magnanimous-ai]
+; The public party is bridged to the Magnanimous AI SIP endpoint after answer.
+exten => s,1,NoOp(Connecting call ${MAG_CALL_ID} to Magnanimous AI)
+ same => n,Dial(PJSIP/${MAGNANIMOUS_AI_EXTENSION},60)
+ same => n,Hangup()
+
+[from-pstn]
+; Inbound DID calls remain branded and controlled by Magnanimous.
+exten => _X.,1,NoOp(Magnanimous inbound PSTN call ${CALLERID(num)} -> ${EXTEN})
+ same => n,Dial(PJSIP/${MAGNANIMOUS_AI_EXTENSION},60)
+ same => n,Hangup()
+exten => _+X.,1,NoOp(Magnanimous inbound PSTN call ${CALLERID(num)} -> ${EXTEN})
+ same => n,Dial(PJSIP/${MAGNANIMOUS_AI_EXTENSION},60)
+ same => n,Hangup()
