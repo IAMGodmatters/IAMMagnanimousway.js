@@ -5,6 +5,8 @@ const runtime=read('worker/src/magnanimous-dns-runtime.js');
 const router=read('worker/src/router-entrypoint.js');
 const cloudflare=read('worker/src/magnanimous-cloudflare-runtime.js');
 const providerEnv=read('worker/src/provider-runtime-env.js');
+const gateway=read('worker/src/magnanimous-tool-gateway.js');
+const universal=read('worker/src/magnanimous-universal-capabilities.js');
 const failures=[];
 const must=(condition,message)=>{if(!condition)failures.push(message)};
 const includes=(text,needle,message)=>must(text.includes(needle),message);
@@ -26,8 +28,12 @@ includes(cloudflare,'CLOUDFLARE_PLATFORM_API_TOKEN','DNS writes must use the ded
 must(!runtime.includes('CLOUDFLARE_API_TOKEN'),'DNS runtime must never reuse the broad deployment token');
 for(const key of ['CLOUDFLARE_PLATFORM_API_TOKEN','CLOUDFLARE_PLATFORM_ACCOUNT_ID','CLOUDFLARE_PLATFORM_ZONE_ID'])includes(providerEnv,`'${key}'`,`provider runtime must preserve ${key} in the encrypted server-side credential layer`);
 includes(runtime,"const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);",'DNS operational routes must require Magnanimous authentication');
+includes(gateway,"'dns-domain-intelligence'",'Magnanimous central tool gateway must advertise DNS/domain intelligence as a built-in family');
+includes(universal,"id: 'dns-domain-operations'",'Magnanimous universal capability core must recognize DNS/domain operations');
+for(const capability of ['dns-lookup','multi-resolver-comparison','dnssec-visibility','reverse-dns','rdap-domain-context','mx-analysis','spf-analysis','dkim-analysis','dmarc-analysis','approval-gated-dns-changes','registrar-adapters'])includes(universal,`'${capability}'`,`Magnanimous universal core must retain ${capability}`);
 
 if(failures.length){console.error(`Magnanimous DNS lock failed (${failures.length}):`);for(const f of failures)console.error(`- ${f}`);process.exit(1);}
 console.log('Magnanimous DNS intelligence lock: PASS');
 console.log('DoH lookup + propagation + DNSSEC + email security + reverse DNS + RDAP + diagnosis: PASS');
 console.log('Cloudflare DNS inventory + staged owner-only record mutations with separate confirmation: PASS');
+console.log('Central tool gateway + universal Magnanimous brain registry integration: PASS');
