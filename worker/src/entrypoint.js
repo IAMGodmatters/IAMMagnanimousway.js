@@ -7,6 +7,7 @@ import { handleMagnanimousNativeMail } from './magnanimous-native-mail-runtime.j
 import { handleMagnanimousUniversalAIConnector } from './magnanimous-universal-ai-connector.js';
 import { handleMagnanimousTelecom } from './magnanimous-telecom-runtime.js';
 import { handleMagnanimousTelecomNetwork } from './magnanimous-telecom-network-runtime.js';
+import { handleMagnanimousTelecomService } from './magnanimous-telecom-service-runtime.js';
 import { ensureMagnanimousCommunicationsToolSeed } from './inkbox-tool-seed.js';
 import { ensureMagnanimousSuperhumanMailSeed } from './superhuman-mail-tool-seed.js';
 
@@ -41,9 +42,6 @@ async function repairLegacySchema(env){
   try{await env.DB.prepare("UPDATE users SET tenant_id=? WHERE tenant_id IS NULL OR tenant_id=''").bind(ownerTenant.id).run()}catch(e){}
   for(const t of CRM_TABLES){try{await env.DB.prepare(`UPDATE ${t} SET tenant_id=? WHERE tenant_id IS NULL OR tenant_id=''`).bind(ownerTenant.id).run()}catch(e){}}
 
-  // Bootstrap the configured owner only when no owner account exists. On normal
-  // requests, never rotate or overwrite an existing password hash. Only repair
-  // the tenant/role link needed by legacy records.
   if(env.ADMIN_EMAIL&&env.ADMIN_PASSWORD){
     const email=String(env.ADMIN_EMAIL).trim().toLowerCase();
     let owner=await env.DB.prepare('SELECT id,tenant_id,role FROM users WHERE email=? ORDER BY created_at ASC LIMIT 1').bind(email).first();
@@ -72,6 +70,8 @@ export default {
     if(nativeMail)return nativeMail;
     const communications=await handleMagnanimousCommunications(request,env);
     if(communications)return communications;
+    const telecomService=await handleMagnanimousTelecomService(request,env);
+    if(telecomService)return telecomService;
     const regulatedNetwork=await handleMagnanimousTelecomNetwork(request,env);
     if(regulatedNetwork)return regulatedNetwork;
     const telecom=await handleMagnanimousTelecom(request,env);
