@@ -10,6 +10,7 @@ on:
       - 'worker/src/magnanimous-telecom-network-runtime.js'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
+      - 'worker/src/magnanimous-telecom-charging-runtime.js'
       - 'worker/src/magnanimous-telecom-security-gate.js'
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0040_magnanimous_telecom_business.sql'
@@ -18,6 +19,7 @@ on:
       - 'worker/migrations/0043_magnanimous_regulated_network.sql'
       - 'worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql'
       - 'worker/migrations/0045_magnanimous_telecom_oss_bss.sql'
+      - 'worker/migrations/0046_magnanimous_telecom_charging_policy.sql'
       - '.github/workflows/telecom-core-check.yml'
   pull_request:
     paths:
@@ -27,6 +29,7 @@ on:
       - 'worker/src/magnanimous-telecom-network-runtime.js'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
+      - 'worker/src/magnanimous-telecom-charging-runtime.js'
       - 'worker/src/magnanimous-telecom-security-gate.js'
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0040_magnanimous_telecom_business.sql'
@@ -35,6 +38,7 @@ on:
       - 'worker/migrations/0043_magnanimous_regulated_network.sql'
       - 'worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql'
       - 'worker/migrations/0045_magnanimous_telecom_oss_bss.sql'
+      - 'worker/migrations/0046_magnanimous_telecom_charging_policy.sql'
       - '.github/workflows/telecom-core-check.yml'
 
 permissions:
@@ -82,6 +86,7 @@ jobs:
           node --check worker/src/magnanimous-telecom-network-runtime.js
           node --check worker/src/magnanimous-telecom-service-runtime.js
           node --check worker/src/magnanimous-telecom-operations-runtime.js
+          node --check worker/src/magnanimous-telecom-charging-runtime.js
           node --check worker/src/magnanimous-telecom-security-gate.js
           node --check worker/src/entrypoint.js
 
@@ -111,6 +116,17 @@ jobs:
           grep -q 'telecom_routing_policies' worker/migrations/0045_magnanimous_telecom_oss_bss.sql
           grep -q 'telecom_fraud_cases' worker/migrations/0045_magnanimous_telecom_oss_bss.sql
           grep -q 'telecom_architecture_patterns' worker/migrations/0045_magnanimous_telecom_oss_bss.sql
+          grep -q 'telecom_charging_sessions' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
+          grep -q 'telecom_balance_reservations' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
+          grep -q 'telecom_balance_transactions' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
+          grep -q 'telecom_balance_groups' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
+          grep -q 'telecom_policy_profiles' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
+          grep -q 'telecom_policy_decisions' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
+          grep -q 'telecom_devices' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
+          grep -q 'telecom_apn_profiles' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
+          grep -q 'telecom_sim_registration_state' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
+          grep -q 'telecom_rate_decks' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
+          grep -q 'telecom_invoices' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
           grep -q 'The application MUST NOT generate, clone, copy or store raw Ki' telecom-core/SIM_ESIM.md
 
       - name: Validate consequential action locks
@@ -124,6 +140,9 @@ jobs:
           grep -q 'identity_verification_reference' worker/src/magnanimous-telecom-security-gate.js
           grep -q 'confirm_port_out_authorization' worker/src/magnanimous-telecom-security-gate.js
           grep -q 'porting_authorization_reference' worker/src/magnanimous-telecom-security-gate.js
+          grep -q 'purchase_action:false' worker/src/magnanimous-telecom-charging-runtime.js
+          grep -q 'public_network_action:false' worker/src/magnanimous-telecom-charging-runtime.js
+          grep -q 'This runtime does not charge or purchase funds' worker/src/magnanimous-telecom-charging-runtime.js
 
       - name: Validate no-white-label Telecom lock
         run: |
@@ -135,14 +154,19 @@ jobs:
           grep -q "brain_identity TEXT NOT NULL DEFAULT 'Magnanimous AI' CHECK(brain_identity='Magnanimous AI')" worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql
           grep -q "white-label, reseller, sub-carrier" worker/src/magnanimous-telecom-service-runtime.js
           grep -q "customer-created phone company" worker/src/magnanimous-telecom-service-runtime.js
+          grep -q 'retailLock' worker/src/magnanimous-telecom-charging-runtime.js
 
       - name: Validate absorbed carrier operations model
         run: |
           grep -q 'Normalize usage before rating/billing' worker/src/magnanimous-telecom-operations-runtime.js
           grep -q 'GSMA eSIM Consumer' worker/src/magnanimous-telecom-operations-runtime.js
           grep -q 'carrier-grade OSS/BSS orchestration' worker/src/magnanimous-telecom-operations-runtime.js
+          grep -q 'reserve_commit_release' worker/src/magnanimous-telecom-charging-runtime.js
+          grep -q 'fair_use_threshold' worker/src/magnanimous-telecom-charging-runtime.js
+          grep -q 'sim_registration_not_verified' worker/src/magnanimous-telecom-charging-runtime.js
           grep -q 'Mobile core lab' frontend/app/telecom/operations/page.tsx
           grep -q 'Future mobile core: lab first' frontend/app/telecom/operations/page.tsx
+          grep -q 'Real-Time' frontend/app/telecom/charging/page.tsx
           grep -q 'Starter node' telecom-core/RESEARCH_ABSORPTION.md
 
       - name: Install frontend dependencies
@@ -168,6 +192,8 @@ jobs:
           grep -q 'SIM + eSIM Control' frontend/app/telecom/page.tsx
           grep -q 'Carrier Access' frontend/app/telecom/page.tsx
           grep -q 'Magnanimous remains the public identity' frontend/app/telecom/network/page.tsx
+          grep -q 'Magnanimous Telecom stays the provider' frontend/app/telecom/charging/page.tsx
+          grep -q 'outside networks stay replaceable and internal' frontend/app/telecom/charging/page.tsx
           grep -q 'integrated-and-standalone' worker/src/magnanimous-telecom-runtime.js
           grep -q 'MOBILE_PROVISIONER_URL' worker/src/magnanimous-telecom-runtime.js
           grep -q 'TELECOM_EMERGENCY_LIVE' telecom-core/STANDALONE.md
