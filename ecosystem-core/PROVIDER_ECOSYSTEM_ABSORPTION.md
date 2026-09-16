@@ -25,22 +25,22 @@ The former DevEdge pilot APIs/services were retired on 2026-06-04. Magnanimous m
 
 References:
 - https://devedge.t-mobile.com/
-- https://devedge.t-mobile.com/faq
+- https://devedge.t-mobile.com/support/faq
 
 ### Metro by T-Mobile
 
 Metro is modeled as a T-Mobile-backed prepaid/consumer service surface, not as an independent network API or independent carrier core. Magnanimous can normalize plan, coverage, device/eSIM support and customer-service knowledge while network-level capabilities remain attached to the T-Mobile provider family.
 
 Reference:
-- https://www.metrobyt-mobile.com/
+- https://www.metrobyt-mobile.com/coverage/network
 
 ### Verizon
 
 Mapped around Verizon/ThingSpace patterns: IoT connectivity, device lifecycle, SIM/device swaps, usage and connection history, SMS/events/callbacks, coverage, network performance/device experience and firmware management. Live operations require appropriate Verizon business/ThingSpace credentials and entitlement.
 
 References:
-- https://thingspace.verizon.com/
-- https://www.verizon.com/business/products/5g/5g-edge/api-marketplace/
+- https://thingspace.verizon.com/documentation/apis/connectivity-management.html
+- https://thingspace.verizon.com/documentation/apis/intelligence/wireless-network-performance/api-reference.html
 
 ### DSers
 
@@ -49,7 +49,8 @@ Mapped as a commerce/fulfillment provider: product sourcing, supplier optimizati
 No general public DSers API is marked verified in this registry. Until a supported authorized API/connector is confirmed, Magnanimous treats DSers as capability knowledge and an adapter contract rather than claiming direct live API access.
 
 References:
-- https://www.dsers.com/
+- https://www.dsers.com/features/shipment-tracking-alerts
+- https://www.dsers.com/features/auto-sync-tracking-numbers
 
 ### GitHub
 
@@ -74,12 +75,12 @@ The Web is not treated as one vendor. Magnanimous absorbs open-web capability pa
 
 ### ChatGPT / OpenAI
 
-Mapped as a replaceable AI execution family beneath Magnanimous: Responses, streaming, text, image/vision and file input, web/file search tools, function/custom tools, remote MCP/connectors, Realtime multimodal/audio and tracing/observability.
+Mapped as a replaceable AI execution family beneath Magnanimous: Responses, streaming, text and vision, file input, web/file search, function/custom tools, guarded computer use, remote MCP, authorized connectors, Realtime multimodal/audio, image generation/editing, speech generation, transcription, and tracing/observability.
 
 The existing Magnanimous universal AI connector already exposes Magnanimous to ChatGPT/OpenAI over scoped MCP. This ecosystem layer is the complementary direction: OpenAI capabilities can serve as execution tools beneath Magnanimous when an authorized API/connector is configured. OpenAI does not own Magnanimous memory or identity.
 
 References:
-- https://platform.openai.com/docs/quickstart
+- https://platform.openai.com/docs/models
 - https://platform.openai.com/docs/guides/realtime
 
 ## Hard action locks
