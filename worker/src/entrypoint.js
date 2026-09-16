@@ -10,6 +10,7 @@ import { handleMagnanimousTelecomNetwork } from './magnanimous-telecom-network-r
 import { handleMagnanimousTelecomService } from './magnanimous-telecom-service-runtime.js';
 import { handleMagnanimousTelecomOperations } from './magnanimous-telecom-operations-runtime.js';
 import { handleMagnanimousTelecomCharging } from './magnanimous-telecom-charging-runtime.js';
+import { handleMagnanimousTelecomChargingSafetyGuard } from './magnanimous-telecom-charging-safety-guard.js';
 import { handleMagnanimousTelecomSecurityGate } from './magnanimous-telecom-security-gate.js';
 import { ensureMagnanimousCommunicationsToolSeed } from './inkbox-tool-seed.js';
 import { ensureMagnanimousSuperhumanMailSeed } from './superhuman-mail-tool-seed.js';
@@ -75,6 +76,8 @@ export default {
     if(communications)return communications;
     const telecomSecurity=await handleMagnanimousTelecomSecurityGate(request);
     if(telecomSecurity)return telecomSecurity;
+    const telecomChargingSafety=await handleMagnanimousTelecomChargingSafetyGuard(request,env);
+    if(telecomChargingSafety)return telecomChargingSafety;
     const telecomCharging=await handleMagnanimousTelecomCharging(request,env);
     if(telecomCharging)return telecomCharging;
     const telecomOperations=await handleMagnanimousTelecomOperations(request,env);
