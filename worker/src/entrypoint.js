@@ -6,6 +6,7 @@ import { handleMagnanimousCommunications } from './magnanimous-communications-ro
 import { handleMagnanimousNativeMail } from './magnanimous-native-mail-runtime.js';
 import { handleMagnanimousUniversalAIConnector } from './magnanimous-universal-ai-connector.js';
 import { handleMagnanimousSpace } from './magnanimous-space-runtime.js';
+import { handleMagnanimousResearch } from './magnanimous-research-runtime.js';
 import { handleMagnanimousTelecom } from './magnanimous-telecom-runtime.js';
 import { handleMagnanimousTelecomNetwork } from './magnanimous-telecom-network-runtime.js';
 import { handleMagnanimousTelecomService } from './magnanimous-telecom-service-runtime.js';
@@ -78,6 +79,8 @@ export default {
     if(communications)return communications;
     const space=await handleMagnanimousSpace(request,env);
     if(space)return space;
+    const research=await handleMagnanimousResearch(request,env);
+    if(research)return research;
     const telecomSecurity=await handleMagnanimousTelecomSecurityGate(request);
     if(telecomSecurity)return telecomSecurity;
     const telecomBssAdmin=await handleMagnanimousTelecomBssAdmin(request,env);
