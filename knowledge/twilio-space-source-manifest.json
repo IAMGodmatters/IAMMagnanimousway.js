@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "purpose": "Authoritative public-source registry for Magnanimous provider and space research. Store URLs and normalized concepts, not copied proprietary documentation.",
+  "identity_rules": {
+    "brain": "Magnanimous AI",
+    "telecom_public_identity": "Magnanimous Telecom",
+    "space_program": "Magnanimous AI Space Program",
+    "owner": "God Matters",
+    "affiliation": "I AM MAGNANIMOUS WAY™",
+    "external_providers_are_replaceable": true
+  },
+  "twilio": {
+    "role": "replaceable_internal_execution_provider",
+    "public_customer_brand": false,
+    "sources": [
+      {"id":"docs-root","url":"https://www.twilio.com/docs","kind":"product_and_developer_index"},
+      {"id":"openapi","url":"https://www.twilio.com/docs/openapi","kind":"api_spec_documentation"},
+      {"id":"openapi-spec","url":"https://github.com/twilio/twilio-oai","kind":"machine_readable_api_specs"},
+      {"id":"voice","url":"https://www.twilio.com/docs/voice","kind":"product_docs"},
+      {"id":"media-streams","url":"https://www.twilio.com/docs/voice/media-streams","kind":"product_docs"},
+      {"id":"conversation-relay","url":"https://www.twilio.com/docs/voice/conversationrelay","kind":"product_docs"},
+      {"id":"sip-trunking","url":"https://www.twilio.com/docs/sip-trunking","kind":"product_docs"},
+      {"id":"messaging","url":"https://www.twilio.com/docs/messaging","kind":"product_docs"},
+      {"id":"conversations","url":"https://www.twilio.com/docs/conversations","kind":"product_docs"},
+      {"id":"verify","url":"https://www.twilio.com/docs/verify","kind":"product_docs"},
+      {"id":"phone-numbers","url":"https://www.twilio.com/docs/phone-numbers","kind":"product_docs"},
+      {"id":"lookup","url":"https://www.twilio.com/docs/lookup","kind":"product_docs"},
+      {"id":"taskrouter","url":"https://www.twilio.com/docs/taskrouter","kind":"product_docs"},
+      {"id":"flex","url":"https://www.twilio.com/docs/flex","kind":"product_docs"},
+      {"id":"video","url":"https://www.twilio.com/docs/video","kind":"product_docs"},
+      {"id":"studio","url":"https://www.twilio.com/docs/studio","kind":"product_docs"},
+      {"id":"sync","url":"https://www.twilio.com/docs/sync","kind":"product_docs"},
+      {"id":"event-streams","url":"https://www.twilio.com/docs/events","kind":"product_docs"},
+      {"id":"segment","url":"https://segment.com/docs/","kind":"product_docs"},
+      {"id":"sendgrid","url":"https://www.twilio.com/docs/sendgrid","kind":"product_docs"},
+      {"id":"trust-hub","url":"https://www.twilio.com/docs/trust-hub","kind":"product_docs"},
+      {"id":"changelog","url":"https://www.twilio.com/en-us/changelog","kind":"change_monitoring"},
+      {"id":"status","url":"https://status.twilio.com/","kind":"service_health"}
+    ]
+  },
+  "space": {
+    "ownership_target": "MAGNANIMOUS ONE dedicated owned spacecraft",
+    "sources": [
+      {"id":"itu-smallsat","url":"https://www.itu.int/en/ITU-R/space/support/smallsat/Pages/default.aspx","kind":"frequency_and_filing_guidance"},
+      {"id":"itu-esubmission","url":"https://www.itu.int/ITU-R/go/space-e-submission/en","kind":"satellite_network_filings"},
+      {"id":"philsa-space-act","url":"https://philsa.gov.ph/philippine-space-act/","kind":"philippines_space_policy"},
+      {"id":"philsa-irr","url":"https://philsa.gov.ph/implementing-rules-and-regulations/","kind":"philippines_space_policy"},
+      {"id":"ntc","url":"https://ntc.gov.ph/","kind":"philippines_radio_and_earth_station_regulator"},
+      {"id":"aws-ground-station","url":"https://docs.aws.amazon.com/ground-station/latest/ug/","kind":"managed_ground_station_reference"},
+      {"id":"spacex-rideshare","url":"https://www.spacex.com/rideshare/","kind":"launch_reference"},
+      {"id":"loft-orbital","url":"https://loftorbital.com/physical-missions/","kind":"turnkey_and_hosted_mission_reference"},
+      {"id":"endurosat","url":"https://www.endurosat.com/space-service/","kind":"smallsat_mission_service_reference"},
+      {"id":"us-space-commerce","url":"https://www.space.commerce.gov/","kind":"us_space_operations_and_remote_sensing_reference"}
+    ]
+  },
+  "refresh_policy": {
+    "official_docs_and_changelogs": "monitor_for_material_schema_product_or_regulatory_changes",
+    "machine_readable_specs": "prefer_schema_diff_over_copying_docs",
+    "pricing": "treat_as_time_sensitive_and_reverify_before_decision",
+    "regulation": "reverify_before_submission_or_operation",
+    "copyright": "summarize_and_normalize; do_not_bulk_copy_proprietary_documentation"
+  }
+}

@@ -1,0 +1,65 @@
+name: Magnanimous Research Capability Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'research-core/**'
+      - 'worker/src/magnanimous-research-runtime.js'
+      - 'worker/src/magnanimous-research-capability-registry.js'
+      - 'worker/src/entrypoint.js'
+      - 'worker/migrations/0049_magnanimous_research_memory.sql'
+      - '.github/workflows/research-capability-check.yml'
+  pull_request:
+    paths:
+      - 'research-core/**'
+      - 'worker/src/magnanimous-research-runtime.js'
+      - 'worker/src/magnanimous-research-capability-registry.js'
+      - 'worker/src/entrypoint.js'
+      - 'worker/migrations/0049_magnanimous_research_memory.sql'
+      - '.github/workflows/research-capability-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Validate research runtimes
+        run: |
+          node --check worker/src/magnanimous-research-capability-registry.js
+          node --check worker/src/magnanimous-research-runtime.js
+          node --check worker/src/entrypoint.js
+      - name: Validate Magnanimous research identity
+        run: |
+          grep -q "identity:'Magnanimous AI Research'" worker/src/magnanimous-research-capability-registry.js
+          grep -q "brain_identity:'Magnanimous AI'" worker/src/magnanimous-research-capability-registry.js
+          grep -q 'provider_internal_only:true' worker/src/magnanimous-research-capability-registry.js
+          grep -q 'provider_brand_override_allowed:false' worker/src/magnanimous-research-capability-registry.js
+      - name: Validate SciSpace capability absorption
+        run: |
+          grep -q "id:'semantic-paper-search'" worker/src/magnanimous-research-capability-registry.js
+          grep -q "id:'structured-columns'" worker/src/magnanimous-research-capability-registry.js
+          grep -q "id:'literature-review'" worker/src/magnanimous-research-capability-registry.js
+          grep -q "id:'research-memory'" worker/src/magnanimous-research-capability-registry.js
+          grep -q "id:'scispace'" worker/src/magnanimous-research-capability-registry.js
+          grep -qi 'semantic paper search' research-core/SCISPACE_ABSORPTION.md
+          grep -qi 'structured column enrichment' research-core/SCISPACE_ABSORPTION.md
+      - name: Validate normalized memory schema
+        run: |
+          grep -q 'magnanimous_research_queries' worker/migrations/0049_magnanimous_research_memory.sql
+          grep -q 'magnanimous_research_papers' worker/migrations/0049_magnanimous_research_memory.sql
+          grep -q 'magnanimous_research_query_results' worker/migrations/0049_magnanimous_research_memory.sql
+          grep -q 'magnanimous_research_enrichments' worker/migrations/0049_magnanimous_research_memory.sql
+          grep -q 'magnanimous_research_syntheses' worker/migrations/0049_magnanimous_research_memory.sql
+      - name: Validate provider and corpus safety
+        run: |
+          grep -q 'proprietary_corpus_copy_allowed:false' worker/src/magnanimous-research-capability-registry.js
+          grep -q 'provider_corpus_copied:false' worker/src/magnanimous-research-runtime.js
+          grep -q 'Do not scrape or clone a proprietary research corpus' research-core/SCISPACE_ABSORPTION.md
+          grep -q 'direct_scispace_runtime:false' worker/src/magnanimous-research-runtime.js
