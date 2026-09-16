@@ -28,3 +28,32 @@ Replaceable PSTN interconnect names:
 - `PSTN_TRUNK_FROM_DOMAIN`
 
 When `PSTN_TRUNK_HOST` is empty, the server starts without a public PSTN trunk. Internal Magnanimous SIP service remains independent of the external interconnect.
+
+## Worker-side regulated-network bindings
+
+Store these in encrypted Worker runtime secrets/variables, never in GitHub or D1 metadata tables.
+
+### Telnyx wholesale bridge
+
+- `TELNYX_API_KEY` — enables Magnanimous owner-side Telnyx number/SIM/eSIM/E911 adapter calls.
+- Telnyx remains replaceable infrastructure. Do not expose it as Magnanimous Telecom's public identity.
+
+### Gigs mobile/MVNO alternative
+
+- `GIGS_API_TOKEN`
+- `GIGS_PROJECT_ID`
+
+### Consequential-action locks
+
+- `TELECOM_PURCHASE_ACTIONS_ENABLED=true` — permits owner-confirmed paid actions such as ordering a number or purchasing eSIM profiles. Leave false/unset until intentionally enabled.
+- `TELECOM_REGULATED_ACTIONS_ENABLED=true` — permits owner-confirmed regulated provisioning actions such as creating emergency-service address records. Leave false/unset until the applicable compliance path is ready.
+
+Every paid action must still include `confirm_purchase=true` in that individual request. Every regulated action must include `confirm_regulated_action=true`. The environment flag alone is never sufficient authorization.
+
+### Existing authority gates
+
+- `TELECOM_EMERGENCY_LIVE=true` only after emergency routing and registered-location behavior are configured and tested.
+- `TELECOM_DIRECT_NUMBERING_AUTHORIZED=true` only after direct numbering authorization actually exists.
+- `TELECOM_CARRIER_AUTHORIZED=true` only after the applicable carrier/facilities authorization actually exists.
+
+These flags describe verified external authority/readiness; they do not create that authority.
