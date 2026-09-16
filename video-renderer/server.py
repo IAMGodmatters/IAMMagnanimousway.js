@@ -23,6 +23,8 @@ class VideoRequest(BaseModel):
     width: int = Field(default=1280, ge=320, le=1920)
     height: int = Field(default=720, ge=240, le=1920)
     duration: int = Field(default=10, ge=1, le=60)
+    publish_to_mux: bool = False
+    mux_playback_policy: str = Field(default="public", max_length=16)
 
 
 def wrap_for_video(value: str, max_chars: int) -> str:
@@ -42,19 +44,27 @@ def mux_configured():
     return bool(os.getenv("MUX_TOKEN_ID") and os.getenv("MUX_TOKEN_SECRET"))
 
 
+def mux_provider_writes_enabled():
+    return os.getenv("ENABLE_MUX_PROVIDER_WRITES", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def mux_auth_header():
     raw = f"{os.environ['MUX_TOKEN_ID']}:{os.environ['MUX_TOKEN_SECRET']}".encode()
     return "Basic " + base64.b64encode(raw).decode()
 
 
-def publish_to_mux(filename: str, title: str):
+def publish_to_mux(filename: str, title: str, playback_policy: str = "public"):
     if not mux_configured():
-        return {"configured": False}
+        return {"configured": False, "published": False}
+    if not mux_provider_writes_enabled():
+        return {"configured": True, "published": False, "owner_write_gate": "disabled"}
+    if playback_policy not in {"public", "signed"}:
+        raise RuntimeError("Mux playback policy must be public or signed for this renderer adapter.")
 
     source_url = f"{RENDERER_PUBLIC_URL}/api/video/download/{filename}"
     payload = json.dumps({
         "inputs": [{"url": source_url}],
-        "playback_policies": ["public"],
+        "playback_policies": [playback_policy],
         "video_quality": "basic",
         "meta": {"title": title, "external_id": filename},
     }).encode()
@@ -80,8 +90,10 @@ def publish_to_mux(filename: str, title: str):
     playback_id = playback_ids[0].get("id") if playback_ids else None
     return {
         "configured": True,
+        "published": True,
         "asset_id": data.get("id"),
         "playback_id": playback_id,
+        "playback_policy": playback_policy,
         "playback_url": f"https://stream.mux.com/{playback_id}.m3u8" if playback_id else None,
         "status": data.get("status", "preparing"),
     }
@@ -89,7 +101,13 @@ def publish_to_mux(filename: str, title: str):
 
 @app.get("/health")
 def health():
-    return {"status":"ok","renderer":"FFmpeg","free_renderer":True,"mux_configured":mux_configured()}
+    return {
+        "status": "ok",
+        "renderer": "FFmpeg",
+        "free_renderer": True,
+        "mux_configured": mux_configured(),
+        "mux_provider_writes_enabled": mux_provider_writes_enabled(),
+    }
 
 
 @app.post("/api/video/render")
@@ -128,12 +146,19 @@ def render_video(req: VideoRequest):
         title_file.unlink(missing_ok=True)
         text_file.unlink(missing_ok=True)
 
-    mux = {"configured": False}
-    try:
-        mux = publish_to_mux(outfile.name, req.title)
-    except Exception as exc:
-        # Mux is optional. Never break the working FFmpeg renderer because Mux is unavailable.
-        mux = {"configured": True, "error": str(exc)}
+    mux = {
+        "configured": mux_configured(),
+        "published": False,
+        "requested": bool(req.publish_to_mux),
+        "owner_write_gate": "enabled" if mux_provider_writes_enabled() else "disabled",
+    }
+    if req.publish_to_mux:
+        try:
+            mux = publish_to_mux(outfile.name, req.title, req.mux_playback_policy)
+            mux["requested"] = True
+        except Exception as exc:
+            # Mux is optional. Never break the working FFmpeg renderer because Mux is unavailable.
+            mux = {"configured": mux_configured(), "published": False, "requested": True, "error": str(exc)}
 
     return {
         "download_url":f"/api/video/download/{outfile.name}",
