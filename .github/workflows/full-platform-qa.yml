@@ -80,7 +80,6 @@ jobs:
           cache-dependency-path: qa/package.json
 
       - name: Resolve latest successful production deployment
-        if: github.event_name == 'pull_request'
         id: deployed-production
         uses: actions/github-script@v9
         with:
@@ -102,8 +101,7 @@ jobs:
             core.info(`Using successful production deployment ${run.head_sha} from run ${run.id}.`);
             core.setOutput('sha', run.head_sha);
 
-      - name: Fetch deployed-route baseline for pull requests
-        if: github.event_name == 'pull_request'
+      - name: Fetch deployed-route baseline
         env:
           DEPLOYED_SHA: ${{ steps.deployed-production.outputs.sha }}
         run: |
