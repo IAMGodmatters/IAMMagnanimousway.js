@@ -57,9 +57,14 @@ jobs:
           grep -q "id:'media-streams'" worker/src/magnanimous-twilio-capability-registry.js
           grep -q "id:'sip-trunking'" worker/src/magnanimous-twilio-capability-registry.js
           grep -q "id:'verify'" worker/src/magnanimous-twilio-capability-registry.js
-          grep -q "id:'segment'" worker/src/magnanimous-twilio-capability-registry.js
+          grep -q "id:'segment-connections'" worker/src/magnanimous-twilio-capability-registry.js
+          grep -q "id:'segment-protocols'" worker/src/magnanimous-twilio-capability-registry.js
+          grep -q "id:'segment-unify'" worker/src/magnanimous-twilio-capability-registry.js
+          grep -q "id:'segment-engage'" worker/src/magnanimous-twilio-capability-registry.js
           grep -q "id:'sendgrid'" worker/src/magnanimous-twilio-capability-registry.js
           grep -q "id:'trust-hub'" worker/src/magnanimous-twilio-capability-registry.js
+          grep -q "id:'openapi'" worker/src/magnanimous-twilio-capability-registry.js
+          grep -q "id:'cli'" worker/src/magnanimous-twilio-capability-registry.js
           grep -q 'provider_internal_only:true' worker/src/magnanimous-twilio-capability-registry.js
       - name: Install frontend dependencies
         working-directory: frontend
