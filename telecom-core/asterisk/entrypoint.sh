@@ -37,4 +37,16 @@ for template in /etc/asterisk/templates/*.template; do
   chmod 0640 "$target"
 done
 
+if [ -n "$PSTN_TRUNK_HOST" ]; then
+  if [ -z "$PSTN_TRUNK_USERNAME" ] || [ -z "$PSTN_TRUNK_PASSWORD" ]; then
+    echo "PSTN_TRUNK_HOST is set, but trunk credentials are incomplete." >&2
+    exit 1
+  fi
+  envsubst < /etc/asterisk/templates/pjsip-trunk.conf.optional > /etc/asterisk/pjsip-trunk.conf
+else
+  printf '; No PSTN interconnect configured yet.\n' > /etc/asterisk/pjsip-trunk.conf
+fi
+chown root:asterisk /etc/asterisk/pjsip-trunk.conf
+chmod 0640 /etc/asterisk/pjsip-trunk.conf
+
 exec "$@"
