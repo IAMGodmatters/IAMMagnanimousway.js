@@ -2,7 +2,7 @@ import app from './index.js';
 import { handleLeadPhone } from './lead-phone.js';
 import { handleIntegrations } from './integrations.js';
 import { handleSponsoredAds } from './sponsored-ad-runtime.js';
-import { handleInkboxRouter } from './inkbox-router.js';
+import { handleMagnanimousCommunications } from './magnanimous-communications-router.js';
 import { ensureMagnanimousCommunicationsToolSeed } from './inkbox-tool-seed.js';
 
 const CRM_TABLES=['crm_contacts','crm_activities','crm_opportunities'];
@@ -60,7 +60,7 @@ export default {
     try{await ensureMagnanimousCommunicationsToolSeed(env)}catch(error){console.error('communications tool seed failed',error)}
     const sponsored=await handleSponsoredAds(request,env);
     if(sponsored)return sponsored;
-    const communications=await handleInkboxRouter(request,env);
+    const communications=await handleMagnanimousCommunications(request,env);
     if(communications)return communications;
     const integration=await handleIntegrations(request,env);
     if(integration)return integration;
