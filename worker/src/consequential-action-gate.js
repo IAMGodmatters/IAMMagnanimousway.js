@@ -1,3 +1,5 @@
+import { isApprovedAssistantActionRequest } from './assistant-action-policy.js';
+
 const WRITE_ACTIONS = new Set([
   'publish_post',
   'publish_media',
@@ -21,10 +23,10 @@ export async function requireConsequentialActionConfirmation(request) {
   const action = String(body?.action || '').trim();
   if (!WRITE_ACTIONS.has(action)) return null;
 
-  // A write request is allowed to create a pending action, but approval must be
-  // a separate request to /actions/:id/confirm. Never accept confirm=true or a
-  // Referer header as proof of human approval because an automated caller can
-  // manufacture either value in the same request that creates the action.
+  // The central policy creates pending actions. Only a Request object marked
+  // in-memory after a separate approval may carry confirm=true downstream.
+  // Headers, Referer and JSON fields are never trusted as approval by themselves.
+  if (isApprovedAssistantActionRequest(request)) return null;
   if (body?.confirm === true) {
     return json({
       error: 'Create the pending action first, then approve it with the separate confirmation endpoint.',
