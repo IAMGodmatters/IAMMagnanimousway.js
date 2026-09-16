@@ -1,0 +1,50 @@
+name: Magnanimous Inkbox Router Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-inkbox-router.js'
+      - 'worker/src/inkbox-router.js'
+      - 'worker/src/magnanimous-communications-router.js'
+      - 'worker/src/inkbox-tool-seed.js'
+      - 'worker/src/provider-runtime-env.js'
+      - 'worker/src/platform-credentials.js'
+      - 'worker/src/router-entrypoint.js'
+      - 'worker/src/entrypoint.js'
+      - 'qa/scripts/inkbox-router-lock.mjs'
+      - '.github/workflows/inkbox-router-lock.yml'
+  pull_request:
+    paths:
+      - 'worker/src/magnanimous-inkbox-router.js'
+      - 'worker/src/inkbox-router.js'
+      - 'worker/src/magnanimous-communications-router.js'
+      - 'worker/src/inkbox-tool-seed.js'
+      - 'worker/src/provider-runtime-env.js'
+      - 'worker/src/platform-credentials.js'
+      - 'worker/src/router-entrypoint.js'
+      - 'worker/src/entrypoint.js'
+      - 'qa/scripts/inkbox-router-lock.mjs'
+      - '.github/workflows/inkbox-router-lock.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse router modules
+        run: |
+          node --check worker/src/magnanimous-inkbox-router.js
+          node --check worker/src/inkbox-router.js
+          node --check worker/src/magnanimous-communications-router.js
+          node --check worker/src/inkbox-tool-seed.js
+          node --check worker/src/entrypoint.js
+          node --check worker/src/router-entrypoint.js
+      - name: Verify routing lock
+        run: node qa/scripts/inkbox-router-lock.mjs
