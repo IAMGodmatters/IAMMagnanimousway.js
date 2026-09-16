@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
+import TelecomLayout from '../telecom/layout';
 
 export const metadata: Metadata = {
-  title: "Magnanimous Telecom",
+  title: 'Magnanimous Telecom | God Matters | I AM MAGNANIMOUS WAY™',
   description:
-    "Standalone Magnanimous Telecom entrance powered by the shared Magnanimous AI brain and telecom backend.",
+    'Magnanimous Telecom is owned by God Matters and affiliated with I AM MAGNANIMOUS WAY™. Operated by Magnanimous AI.',
 };
 
 export default function TelecomStandaloneLayout({
@@ -21,7 +22,7 @@ export default function TelecomStandaloneLayout({
           })();`,
         }}
       />
-      {children}
+      <TelecomLayout>{children}</TelecomLayout>
     </>
   );
 }

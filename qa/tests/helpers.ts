@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Page } from '@playwright/test';
@@ -5,6 +6,18 @@ import type { Page } from '@playwright/test';
 export type RuntimeProblem = { type: 'pageerror' | 'console'; message: string };
 
 const pageFilePattern = /^page\.(tsx|ts|jsx|js)$/;
+
+function cleanRoute(segments: string[]): string | null {
+  const clean = segments.filter((segment) => {
+    if (!segment) return false;
+    if (segment.startsWith('(') && segment.endsWith(')')) return false;
+    if (segment.startsWith('@')) return false;
+    return true;
+  });
+  if (clean.some((segment) => segment.includes('[') || segment.includes(']'))) return null;
+  const route = '/' + clean.join('/');
+  return route === '//' ? '/' : route;
+}
 
 function walk(dir: string): string[] {
   if (!fs.existsSync(dir)) return [];
@@ -21,19 +34,35 @@ export function discoverStaticRoutes(): string[] {
   for (const file of walk(appDir)) {
     if (!pageFilePattern.test(path.basename(file))) continue;
     const relDir = path.relative(appDir, path.dirname(file));
-    const segments = relDir === '' ? [] : relDir.split(path.sep);
-    const clean = segments.filter((segment) => {
-      if (!segment) return false;
-      if (segment.startsWith('(') && segment.endsWith(')')) return false;
-      if (segment.startsWith('@')) return false;
-      return true;
-    });
-    if (clean.some((segment) => segment.includes('[') || segment.includes(']'))) continue;
-    routes.add('/' + clean.join('/'));
+    const route = cleanRoute(relDir === '' ? [] : relDir.split(path.sep));
+    if (route) routes.add(route);
   }
 
   routes.add('/');
-  return [...routes].map((route) => route === '//' ? '/' : route).sort();
+  return [...routes].sort();
+}
+
+export function discoverStaticRoutesFromGitRef(ref: string): string[] | null {
+  try {
+    const output = execFileSync('git', ['ls-tree', '-r', '--name-only', ref, '--', 'frontend/app'], {
+      cwd: path.resolve(process.cwd(), '..'),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    const routes = new Set<string>();
+    for (const raw of output.split(/\r?\n/)) {
+      const file = raw.trim();
+      if (!file || !pageFilePattern.test(path.posix.basename(file))) continue;
+      const rel = file.replace(/^frontend\/app\/?/, '');
+      const relDir = path.posix.dirname(rel);
+      const route = cleanRoute(relDir === '.' ? [] : relDir.split('/'));
+      if (route) routes.add(route);
+    }
+    routes.add('/');
+    return [...routes].sort();
+  } catch {
+    return null;
+  }
 }
 
 export function watchRuntime(page: Page) {

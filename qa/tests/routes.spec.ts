@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { discoverStaticRoutes, watchRuntime } from './helpers';
+import { discoverStaticRoutes, discoverStaticRoutesFromGitRef, watchRuntime } from './helpers';
 
 const routes = discoverStaticRoutes();
+const deployedRef = String(process.env.QA_PRODUCTION_BASE_REF || '').trim();
+const deployedRoutes = deployedRef ? discoverStaticRoutesFromGitRef(deployedRef) : null;
+const deployedRouteSet = deployedRoutes ? new Set(deployedRoutes) : null;
 
 test.describe('all static application routes', () => {
   for (const route of routes) {
@@ -11,6 +14,10 @@ test.describe('all static application routes', () => {
       expect(response, `No HTTP response for ${route}`).not.toBeNull();
       const status = response!.status();
       expect(status, `${route} returned HTTP ${status}`).toBeLessThan(500);
+
+      if (status === 404 && deployedRouteSet && !deployedRouteSet.has(route)) {
+        test.skip(true, `${route} is new in this pull request and is not expected on production until deployment.`);
+      }
       expect(status, `${route} returned 404`).not.toBe(404);
 
       await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});

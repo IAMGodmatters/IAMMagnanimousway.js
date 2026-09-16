@@ -28,7 +28,9 @@ test('standalone Magnanimous AI remains isolated, sign-in protected, voice-enabl
   await expect(promo).toContainText('GOD MATTERS SHOP');
   await expect(promo).toContainText('THE HOLY SPIRIT SPEAKS');
   await expect(promo.locator('a[href="/shop"]')).toBeVisible();
-  await expect(promo.locator('a[href="https://a.co/d/02rFwv8H"]')).toBeVisible();
+  const bookLinks = promo.locator('a[href="https://a.co/d/02rFwv8H"]');
+  expect(await bookLinks.count(), 'Expected at least one visible link to THE HOLY SPIRIT SPEAKS').toBeGreaterThan(0);
+  await expect(bookLinks.first()).toBeVisible();
 
   // Voice and autosave are standalone product capabilities, not platform chrome.
   const voicePanel = page.locator('.iam-voice-panel');
