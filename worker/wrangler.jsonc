@@ -5,10 +5,8 @@
   "main": "src/security-entrypoint.js",
   "compatibility_date": "2026-08-27",
   "workers_dev": false,
-  "routes": [
-    { "pattern": "iammagnanimousway.com", "custom_domain": true },
-    { "pattern": "www.iammagnanimousway.com", "custom_domain": true }
-  ],
+  // Production domain attachment is managed in Cloudflare outside this file.
+  // The deploy token intentionally has Worker/D1 access but no zone-route mutation permission.
   "vars": {
     "STRIPE_PRICE_PLUS": "price_1UBWxgDuxV2kib03EAdmCMei",
     "STRIPE_PRICE_BUSINESS": "price_1UB9WfDuxV2kib03DFKqwM9C",
