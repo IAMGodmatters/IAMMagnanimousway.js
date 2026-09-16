@@ -5,6 +5,7 @@ import { handleNativeWorkCrm } from './native-work-crm-runtime.js';
 import { applyPlatformResponseHeaders, requestCorrelationId, unhandledRequestFailure } from './request-observability.js';
 import { resolveSessionRequest, revokeOpaqueSession, upgradeAuthResponseToOpaque } from './session-authority.js';
 import { prepareCarrierWebhook, completeCarrierWebhook } from './carrier-webhook-security.js';
+import { enforceAssistantActionPolicy } from './assistant-action-policy.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -82,6 +83,9 @@ export default {
       const sessionResolution=await resolveSessionRequest(guardedRequest,env,requestId);
       if(sessionResolution.response)return finalizeResponse(request,await securityPostflight(guardedRequest,sessionResolution.response,env));
       const routedRequest=sessionResolution.request;
+
+      const assistantPolicy=await enforceAssistantActionPolicy(routedRequest,env);
+      if(assistantPolicy)return finalizeResponse(request,await securityPostflight(routedRequest,assistantPolicy,env));
 
       const blocked = await securityPreflight(routedRequest, env);
       if (blocked) {
