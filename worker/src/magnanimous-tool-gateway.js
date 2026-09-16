@@ -9,7 +9,7 @@ const MCP_CURRENT='2026-07-28';
 const MCP_LEGACY='2025-06-18';
 
 const BUILTIN_FAMILIES=[
- 'web-search','deep-research','calculator','weather','currency','unit-conversion','time','maps-local-search',
+ 'web-search','deep-research','calculator','weather','currency','unit-conversion','time','maps-local-search','dns-domain-intelligence',
  'files-documents','spreadsheets','slides','pdf','image-generation','image-editing','voice','text-to-speech','speech-to-text',
  'video-generation','cinema','avatars','lipsync','translation','coding','github','email','calendar','contacts','cloud-drive',
  'crm','sales','payments','commerce','social-media','music','database','communications','telephony','automation','knowledge-memory'
