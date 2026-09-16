@@ -10,6 +10,7 @@ on:
       - 'worker/src/magnanimous-telecom-network-runtime.js'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
+      - 'worker/src/magnanimous-telecom-bss-admin-runtime.js'
       - 'worker/src/magnanimous-telecom-charging-runtime.js'
       - 'worker/src/magnanimous-telecom-charging-safety-guard.js'
       - 'worker/src/magnanimous-telecom-security-gate.js'
@@ -30,6 +31,7 @@ on:
       - 'worker/src/magnanimous-telecom-network-runtime.js'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
+      - 'worker/src/magnanimous-telecom-bss-admin-runtime.js'
       - 'worker/src/magnanimous-telecom-charging-runtime.js'
       - 'worker/src/magnanimous-telecom-charging-safety-guard.js'
       - 'worker/src/magnanimous-telecom-security-gate.js'
@@ -88,6 +90,7 @@ jobs:
           node --check worker/src/magnanimous-telecom-network-runtime.js
           node --check worker/src/magnanimous-telecom-service-runtime.js
           node --check worker/src/magnanimous-telecom-operations-runtime.js
+          node --check worker/src/magnanimous-telecom-bss-admin-runtime.js
           node --check worker/src/magnanimous-telecom-charging-runtime.js
           node --check worker/src/magnanimous-telecom-charging-safety-guard.js
           node --check worker/src/magnanimous-telecom-security-gate.js
@@ -129,6 +132,7 @@ jobs:
           grep -q 'telecom_apn_profiles' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
           grep -q 'telecom_sim_registration_state' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
           grep -q 'telecom_rate_decks' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
+          grep -q 'telecom_rate_rules' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
           grep -q 'telecom_invoices' worker/migrations/0046_magnanimous_telecom_charging_policy.sql
           grep -q 'The application MUST NOT generate, clone, copy or store raw Ki' telecom-core/SIM_ESIM.md
 
@@ -150,6 +154,10 @@ jobs:
           grep -q 'roaming_requires_explicit_plan_and_line_permission' worker/src/magnanimous-telecom-charging-safety-guard.js
           grep -q 'international_requires_explicit_plan_line_and_fraud_permission' worker/src/magnanimous-telecom-charging-safety-guard.js
           grep -q 'premium_rate_requires_explicit_plan_and_fraud_permission' worker/src/magnanimous-telecom-charging-safety-guard.js
+          grep -q 'internal_rate_quote_required' worker/src/magnanimous-telecom-charging-safety-guard.js
+          grep -q 'public_network_action:false' worker/src/magnanimous-telecom-bss-admin-runtime.js
+          grep -q 'network_activation_performed:false' worker/src/magnanimous-telecom-bss-admin-runtime.js
+          grep -q 'raw_identity_documents_stored:false' worker/src/magnanimous-telecom-bss-admin-runtime.js
 
       - name: Validate no-white-label Telecom lock
         run: |
@@ -162,6 +170,7 @@ jobs:
           grep -q "white-label, reseller, sub-carrier" worker/src/magnanimous-telecom-service-runtime.js
           grep -q "customer-created phone company" worker/src/magnanimous-telecom-service-runtime.js
           grep -q 'retailLock' worker/src/magnanimous-telecom-charging-runtime.js
+          grep -q 'external_provider_brand_override_allowed' worker/src/magnanimous-telecom-bss-admin-runtime.js
 
       - name: Validate absorbed carrier operations model
         run: |
@@ -171,6 +180,8 @@ jobs:
           grep -q 'reserve_commit_release' worker/src/magnanimous-telecom-charging-runtime.js
           grep -q 'fair_use_threshold' worker/src/magnanimous-telecom-charging-runtime.js
           grep -q 'sim_registration_not_verified' worker/src/magnanimous-telecom-charging-runtime.js
+          grep -q 'rate-quote' worker/src/magnanimous-telecom-bss-admin-runtime.js
+          grep -q 'destination_prefix' worker/src/magnanimous-telecom-bss-admin-runtime.js
           grep -q 'Mobile core lab' frontend/app/telecom/operations/page.tsx
           grep -q 'Future mobile core: lab first' frontend/app/telecom/operations/page.tsx
           grep -q 'Real-Time' frontend/app/telecom/charging/page.tsx
