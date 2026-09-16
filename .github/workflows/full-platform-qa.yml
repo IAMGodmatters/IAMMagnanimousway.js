@@ -9,6 +9,7 @@ on:
     - cron: '17 2 * * *'
 
 permissions:
+  actions: read
   contents: read
   issues: write
 
@@ -78,9 +79,38 @@ jobs:
           cache: npm
           cache-dependency-path: qa/package.json
 
+      - name: Resolve latest successful production deployment
+        if: github.event_name == 'pull_request'
+        id: deployed-production
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy.yml',
+              branch: 'main',
+              event: 'push',
+              status: 'success',
+              per_page: 20,
+            });
+            const run = data.workflow_runs.find((item) => item.conclusion === 'success' && item.head_sha);
+            if (!run) {
+              core.setFailed('No successful main deployment is available for the production-route baseline.');
+              return;
+            }
+            core.info(`Using successful production deployment ${run.head_sha} from run ${run.id}.`);
+            core.setOutput('sha', run.head_sha);
+
       - name: Fetch deployed-route baseline for pull requests
         if: github.event_name == 'pull_request'
-        run: git fetch --no-tags --depth=1 origin main:refs/remotes/origin/main
+        env:
+          DEPLOYED_SHA: ${{ steps.deployed-production.outputs.sha }}
+        run: |
+          test -n "$DEPLOYED_SHA"
+          git fetch --no-tags --depth=1 origin "$DEPLOYED_SHA"
+          echo "QA_PRODUCTION_BASE_REF=$DEPLOYED_SHA" >> "$GITHUB_ENV"
+          echo "Production route baseline: $DEPLOYED_SHA"
 
       - name: Install QA dependencies
         working-directory: qa
@@ -93,8 +123,6 @@ jobs:
       - name: Run full platform tests
         working-directory: qa
         shell: bash
-        env:
-          QA_PRODUCTION_BASE_REF: ${{ github.event_name == 'pull_request' && 'origin/main' || '' }}
         run: |
           set +e
           npx playwright test

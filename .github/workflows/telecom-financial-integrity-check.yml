@@ -8,6 +8,10 @@ on:
       - 'worker/migrations/0046_magnanimous_telecom_charging_policy.sql'
       - 'worker/migrations/0047_magnanimous_telecom_charging_integrity.sql'
       - 'worker/migrations/0052_magnanimous_telecom_financial_integrity.sql'
+      - 'worker/migrations/0053_magnanimous_telecom_daily_unit_guard.sql'
+      - 'worker/migrations/0054_magnanimous_telecom_daily_spend_guard.sql'
+      - 'worker/migrations/0055_magnanimous_telecom_shared_member_guard.sql'
+      - 'worker/migrations/0056_magnanimous_telecom_expired_reservation_reconcile.sql'
       - '.github/workflows/telecom-financial-integrity-check.yml'
   pull_request:
     paths:
@@ -15,6 +19,10 @@ on:
       - 'worker/migrations/0046_magnanimous_telecom_charging_policy.sql'
       - 'worker/migrations/0047_magnanimous_telecom_charging_integrity.sql'
       - 'worker/migrations/0052_magnanimous_telecom_financial_integrity.sql'
+      - 'worker/migrations/0053_magnanimous_telecom_daily_unit_guard.sql'
+      - 'worker/migrations/0054_magnanimous_telecom_daily_spend_guard.sql'
+      - 'worker/migrations/0055_magnanimous_telecom_shared_member_guard.sql'
+      - 'worker/migrations/0056_magnanimous_telecom_expired_reservation_reconcile.sql'
       - '.github/workflows/telecom-financial-integrity-check.yml'
 
 permissions:
@@ -28,7 +36,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
-      - name: Execute financial-integrity migration and invariants
+      - name: Execute financial-integrity migrations and invariants
         run: |
           python - <<'PY'
           import pathlib, sqlite3, time
@@ -49,6 +57,10 @@ jobs:
             '0046_magnanimous_telecom_charging_policy.sql',
             '0047_magnanimous_telecom_charging_integrity.sql',
             '0052_magnanimous_telecom_financial_integrity.sql',
+            '0053_magnanimous_telecom_daily_unit_guard.sql',
+            '0054_magnanimous_telecom_daily_spend_guard.sql',
+            '0055_magnanimous_telecom_shared_member_guard.sql',
+            '0056_magnanimous_telecom_expired_reservation_reconcile.sql',
           ]:
             db.executescript(pathlib.Path('worker/migrations',name).read_text())
 
@@ -56,8 +68,8 @@ jobs:
           tenant='t1'
           db.execute("INSERT INTO telecom_customer_lines(tenant_id,id,customer_id,plan_id) VALUES(?,?,?,?)",(tenant,'line1','c1','plan1'))
           db.execute("INSERT INTO telecom_balance_accounts(id,tenant_id,customer_id,line_id,account_kind,currency,status,created_at,updated_at) VALUES(?,?,?,?,?,'USD','active',?,?)",('acct1',tenant,'c1','line1','prepaid',now,now))
-          db.execute("INSERT INTO telecom_balance_buckets(id,tenant_id,balance_account_id,bucket_kind,initial_units,remaining_units,status,created_at,updated_at) VALUES(?,?,?,?,?,?, 'active',?,?)",('bucket1',tenant,'acct1','currency',10.123456,10.123456,now,now))
-          micros=db.execute("SELECT initial_units_micros,remaining_units_micros FROM telecom_balance_buckets WHERE id='bucket1'").fetchone()
+          db.execute("INSERT INTO telecom_balance_buckets(id,tenant_id,balance_account_id,bucket_kind,initial_units,remaining_units,status,created_at,updated_at) VALUES(?,?,?,?,?,?,'active',?,?)",('bucket1',tenant,'acct1','currency',10.123456,10.123456,now,now))
+          micros=db.execute("SELECT initial_units_micros,remaining_units_micros FROM telecom_balance_precision_v WHERE id='bucket1'").fetchone()
           assert micros==(10123456,10123456), micros
 
           db.execute("INSERT INTO telecom_policy_profiles(id,tenant_id,name,plan_id,service_type,max_daily_units,max_daily_spend,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,'active',?,?)",('pol1',tenant,'daily','plan1','voice',10,5,now,now))
@@ -100,16 +112,22 @@ jobs:
           ledger=db.execute("SELECT COUNT(*) FROM telecom_balance_transactions WHERE idempotency_key='expire-release:s-exp:r-exp'").fetchone()[0]
           assert ledger==1, ledger
 
-          charge_micros=db.execute("SELECT final_charge_micros FROM telecom_charging_sessions WHERE id='s-old'").fetchone()[0]
+          charge_micros=db.execute("SELECT final_charge_micros FROM telecom_charging_precision_v WHERE id='s-old'").fetchone()[0]
           assert charge_micros==4000000, charge_micros
           print('Magnanimous Telecom financial integrity checks passed')
           PY
-      - name: Lock safety intent
+      - name: Lock D1-safe migration shape and safety intent
         run: |
-          grep -q 'trg_telecom_daily_unit_limit' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
-          grep -q 'trg_telecom_daily_spend_limit' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
-          grep -q 'trg_telecom_shared_member_limit' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
-          grep -q 'trg_telecom_reconcile_expired_before_session' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
+          test "$(grep -c 'CREATE TRIGGER' worker/migrations/0053_magnanimous_telecom_daily_unit_guard.sql)" -eq 1
+          test "$(grep -c 'CREATE TRIGGER' worker/migrations/0054_magnanimous_telecom_daily_spend_guard.sql)" -eq 1
+          test "$(grep -c 'CREATE TRIGGER' worker/migrations/0055_magnanimous_telecom_shared_member_guard.sql)" -eq 1
+          test "$(grep -c 'CREATE TRIGGER' worker/migrations/0056_magnanimous_telecom_expired_reservation_reconcile.sql)" -eq 1
+          ! grep -q 'CREATE TRIGGER' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
+          grep -q 'telecom_balance_precision_v' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
           grep -q 'estimated_charge_micros' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
           grep -q 'final_charge_micros' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
+          grep -q 'trg_telecom_daily_unit_limit' worker/migrations/0053_magnanimous_telecom_daily_unit_guard.sql
+          grep -q 'trg_telecom_daily_spend_limit' worker/migrations/0054_magnanimous_telecom_daily_spend_guard.sql
+          grep -q 'trg_telecom_shared_member_limit' worker/migrations/0055_magnanimous_telecom_shared_member_guard.sql
+          grep -q 'trg_telecom_reconcile_expired_before_session' worker/migrations/0056_magnanimous_telecom_expired_reservation_reconcile.sql
           grep -q 'performs no PSTN/carrier purchase' worker/migrations/0052_magnanimous_telecom_financial_integrity.sql
