@@ -5,7 +5,7 @@ import { handleNativeWorkCrm } from './native-work-crm-runtime.js';
 import { applyPlatformResponseHeaders, requestCorrelationId, unhandledRequestFailure } from './request-observability.js';
 import { resolveSessionRequest, revokeOpaqueSession, upgradeAuthResponseToOpaque } from './session-authority.js';
 import { prepareCarrierWebhook, completeCarrierWebhook } from './carrier-webhook-security.js';
-import { enforceAssistantActionPolicy } from './assistant-action-policy.js';
+import { enforceAssistantActionPolicy, completeAssistantActionPolicy } from './assistant-action-policy.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -69,6 +69,7 @@ export default {
     if(canonicalOrLegacy)return finalizeResponse(request,canonicalOrLegacy);
     const requestId=requestCorrelationId(request);
     let carrierContext=null;
+    let assistantContext=null;
     try{
       const url=new URL(request.url);
       if(request.method==='POST'&&url.pathname==='/api/auth/logout'){
@@ -85,28 +86,33 @@ export default {
       const routedRequest=sessionResolution.request;
 
       const assistantPolicy=await enforceAssistantActionPolicy(routedRequest,env);
-      if(assistantPolicy)return finalizeResponse(request,await securityPostflight(routedRequest,assistantPolicy,env));
+      if(assistantPolicy instanceof Response)return finalizeResponse(request,await securityPostflight(routedRequest,assistantPolicy,env));
+      const policyRequest=assistantPolicy?.request||routedRequest;
+      assistantContext=assistantPolicy?.context||null;
 
-      const blocked = await securityPreflight(routedRequest, env);
+      const blocked = await securityPreflight(policyRequest, env);
       if (blocked) {
-        const completed=await completeCarrierWebhook(carrierContext,blocked,env);
-        return finalizeResponse(request,await securityPostflight(routedRequest,completed,env));
+        const assistantCompleted=await completeAssistantActionPolicy(assistantContext,blocked,env);
+        const completed=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
+        return finalizeResponse(request,await securityPostflight(policyRequest,completed,env));
       }
-      const routedUrl = new URL(routedRequest.url);
-      const continuityRequest = routedRequest.method === 'POST' && routedUrl.pathname === '/api/professional/generate' ? routedRequest.clone() : null;
+      const routedUrl = new URL(policyRequest.url);
+      const continuityRequest = policyRequest.method === 'POST' && routedUrl.pathname === '/api/professional/generate' ? policyRequest.clone() : null;
       if (isNativeOperationsPath(routedUrl.pathname)) {
-        const nativeOperationsResponse = await handleNativeWorkCrm(routedRequest, env);
-        if (nativeOperationsResponse) return finalizeResponse(request,await securityPostflight(routedRequest, nativeOperationsResponse, env));
+        const nativeOperationsResponse = await handleNativeWorkCrm(policyRequest, env);
+        if (nativeOperationsResponse) return finalizeResponse(request,await securityPostflight(policyRequest, nativeOperationsResponse, env));
       }
-      const response = await app.fetch(routedRequest, env, ctx);
+      const response = await app.fetch(policyRequest, env, ctx);
       const resilientResponse = continuityRequest ? await recoverProfessionalGeneration(continuityRequest, env, response) : response;
       const sessionResponse=await upgradeAuthResponseToOpaque(request,resilientResponse,env);
-      const carrierResponse=await completeCarrierWebhook(carrierContext,sessionResponse,env);
-      const securedResponse=await securityPostflight(routedRequest, carrierResponse, env);
+      const assistantResponse=await completeAssistantActionPolicy(assistantContext,sessionResponse,env);
+      const carrierResponse=await completeCarrierWebhook(carrierContext,assistantResponse,env);
+      const securedResponse=await securityPostflight(policyRequest, carrierResponse, env);
       return finalizeResponse(request,securedResponse);
     }catch(error){
       const fallback=unhandledRequestFailure(request,error);
-      const completed=await completeCarrierWebhook(carrierContext,fallback,env).catch(()=>fallback);
+      const assistantCompleted=await completeAssistantActionPolicy(assistantContext,fallback,env).catch(()=>fallback);
+      const completed=await completeCarrierWebhook(carrierContext,assistantCompleted,env).catch(()=>assistantCompleted);
       const secured=await securityPostflight(request,completed,env);
       return finalizeResponse(request,secured);
     }
