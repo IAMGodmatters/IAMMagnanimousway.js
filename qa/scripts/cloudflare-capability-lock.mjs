@@ -11,6 +11,7 @@ const workerEntry=read('worker/src/entrypoint.js');
 const seed=read('worker/src/cloudflare-tool-seed.js');
 const migration=read('worker/migrations/0059_magnanimous_cloudflare_control.sql');
 const ui=read('frontend/app/owner-cloudflare/page.tsx');
+const ownerIntegrations=read('frontend/app/owner-integrations/page.tsx');
 
 for(const family of ['compute','data','ai','security','delivery','zero-trust','network','media','email','observability','performance','developer']){
  must(registry.includes(`family('${family}'`),`Cloudflare family missing: ${family}`);
@@ -52,7 +53,15 @@ must(platformCredentials.includes("{key:'CLOUDFLARE_PLATFORM_API_TOKEN',label:'D
 for(const key of ['CLOUDFLARE_PLATFORM_API_TOKEN','CLOUDFLARE_PLATFORM_ACCOUNT_ID','CLOUDFLARE_PLATFORM_ZONE_ID']){
  must(platformCredentials.includes(`key:'${key}'`),`Cloudflare vault key missing: ${key}`);
  must(providerRuntime.includes(`'${key}'`),`Cloudflare provider runtime key missing: ${key}`);
+ must(securityEntry.includes(`'${key}'`),`Cloudflare server-only browser boundary missing: ${key}`);
+ must(ownerIntegrations.includes(`'${key}'`),`Owner integrations browser filter missing: ${key}`);
 }
+must(securityEntry.includes('SERVER_ONLY_CREDENTIAL_KEYS'),'Cloudflare credential keys must have a server-only policy boundary.');
+must(securityEntry.includes('blockServerOnlyCredentialBrowserWrite'),'Generic browser credential writes must reject Cloudflare platform credentials.');
+must(securityEntry.includes('hideServerOnlyCredentialMetadata'),'Generic credential GET responses must hide the Cloudflare credential group.');
+must(securityEntry.includes("code:'SERVER_ONLY_CREDENTIAL'"),'Server-only credential rejection must be explicit and testable.');
+must(ownerIntegrations.includes('serverOnlyCredentialKeys'),'Owner integrations UI must independently filter server-only Cloudflare fields.');
+must(ownerIntegrations.includes('Cloudflare platform credentials are intentionally server-side only and are never collected by this page.'),'Owner integrations UI must state that Cloudflare credentials are never collected in-browser.');
 must(securityEntry.includes("import { getProviderRuntimeEnv } from './provider-runtime-env.js'"),'Cloudflare control plane must consume the server-side provider runtime environment.');
 must(securityEntry.includes("policyUrl.pathname.startsWith('/api/cloudflare')"),'Vaulted provider credentials must be scoped to Cloudflare control-plane requests.');
 must(securityEntry.includes('handleMagnanimousCloudflare(policyRequest,cloudflareEnv)'),'Cloudflare handler must receive the vaulted provider environment.');
@@ -78,4 +87,4 @@ must(migration.includes('magnanimous_cloudflare_audit'),'Cloudflare audit ledger
 must(securityEntry.includes("from './magnanimous-cloudflare-runtime.js'"),'Central security entrypoint must mount Cloudflare control plane.');
 must(securityEntry.includes('await handleMagnanimousCloudflare(policyRequest,cloudflareEnv)'),'Cloudflare control plane must run after central session/policy resolution with server-side vaulted credentials.');
 
-console.log('Magnanimous Cloudflare current capability, techniques, encrypted vault, Tool Foundry, owner-console and action contracts verified.');
+console.log('Magnanimous Cloudflare current capability, techniques, encrypted server-only vault, Tool Foundry, owner-console and action contracts verified.');
