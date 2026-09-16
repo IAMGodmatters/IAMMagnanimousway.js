@@ -2,6 +2,7 @@ import app from './operations-entrypoint.js';
 import { securityPreflight, securityPostflight } from './security-hardening.js';
 import { recoverProfessionalGeneration } from './professional-resilience-runtime.js';
 import { handleNativeWorkCrm } from './native-work-crm-runtime.js';
+import { applyPlatformResponseHeaders, unhandledRequestFailure } from './request-observability.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -55,22 +56,32 @@ function applyCanonicalRootHeaders(request,response){
   return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
 }
 
+function finalizeResponse(request,response){
+  return applyPlatformResponseHeaders(request,applyCanonicalRootHeaders(request,response));
+}
+
 export default {
   async fetch(request, env, ctx) {
     const canonicalOrLegacy=canonicalOrLegacyResponse(request);
-    if(canonicalOrLegacy)return canonicalOrLegacy;
-    const blocked = await securityPreflight(request, env);
-    if (blocked) return securityPostflight(request, blocked, env);
-    const url = new URL(request.url);
-    const continuityRequest = request.method === 'POST' && url.pathname === '/api/professional/generate' ? request.clone() : null;
-    if (isNativeOperationsPath(url.pathname)) {
-      const nativeOperationsResponse = await handleNativeWorkCrm(request, env);
-      if (nativeOperationsResponse) return securityPostflight(request, nativeOperationsResponse, env);
+    if(canonicalOrLegacy)return finalizeResponse(request,canonicalOrLegacy);
+    try{
+      const blocked = await securityPreflight(request, env);
+      if (blocked) return finalizeResponse(request,await securityPostflight(request, blocked, env));
+      const url = new URL(request.url);
+      const continuityRequest = request.method === 'POST' && url.pathname === '/api/professional/generate' ? request.clone() : null;
+      if (isNativeOperationsPath(url.pathname)) {
+        const nativeOperationsResponse = await handleNativeWorkCrm(request, env);
+        if (nativeOperationsResponse) return finalizeResponse(request,await securityPostflight(request, nativeOperationsResponse, env));
+      }
+      const response = await app.fetch(request, env, ctx);
+      const resilientResponse = continuityRequest ? await recoverProfessionalGeneration(continuityRequest, env, response) : response;
+      const securedResponse=await securityPostflight(request, resilientResponse, env);
+      return finalizeResponse(request,securedResponse);
+    }catch(error){
+      const fallback=unhandledRequestFailure(request,error);
+      const secured=await securityPostflight(request,fallback,env);
+      return finalizeResponse(request,secured);
     }
-    const response = await app.fetch(request, env, ctx);
-    const resilientResponse = continuityRequest ? await recoverProfessionalGeneration(continuityRequest, env, response) : response;
-    const securedResponse=await securityPostflight(request, resilientResponse, env);
-    return applyCanonicalRootHeaders(request,securedResponse);
   },
   async scheduled(controller, env, ctx) {
     if (typeof app.scheduled === 'function') return app.scheduled(controller, env, ctx);
