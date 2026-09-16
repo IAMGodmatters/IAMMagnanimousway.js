@@ -24,9 +24,14 @@ export function requestCorrelationId(request){
   return id;
 }
 
+function privatePrefixMatches(pathname,prefix){
+  if(prefix.endsWith('-'))return pathname.startsWith(prefix);
+  return pathname===prefix||pathname.startsWith(`${prefix}/`);
+}
+
 function isPrivatePage(pathname){
   if(!pathname||pathname.startsWith('/api/')||pathname==='/health')return false;
-  return PRIVATE_PAGE_PREFIXES.some(prefix=>pathname===prefix||pathname.startsWith(prefix.endsWith('/')?prefix:`${prefix}/`)||(!prefix.endsWith('/')&&pathname.startsWith(prefix)));
+  return PRIVATE_PAGE_PREFIXES.some(prefix=>privatePrefixMatches(pathname,prefix));
 }
 
 export function applyPlatformResponseHeaders(request,response){
