@@ -155,7 +155,7 @@ jobs:
           grep -q 'public_network_action:false' worker/src/magnanimous-telecom-charging-runtime.js
           grep -q 'This runtime does not charge or purchase funds' worker/src/magnanimous-telecom-charging-runtime.js
           grep -q 'Number.isFinite' worker/src/magnanimous-telecom-charging-safety-guard.js
-          grep -q 'sessions\\/[^/]+\\/commit' worker/src/magnanimous-telecom-charging-safety-guard.js
+          grep -q 'commitPath=path.match' worker/src/magnanimous-telecom-charging-safety-guard.js
           grep -q 'roaming_requires_explicit_plan_and_line_permission' worker/src/magnanimous-telecom-charging-safety-guard.js
           grep -q 'international_requires_explicit_plan_line_and_fraud_permission' worker/src/magnanimous-telecom-charging-safety-guard.js
           grep -q 'premium_rate_requires_explicit_plan_and_fraud_permission' worker/src/magnanimous-telecom-charging-safety-guard.js
