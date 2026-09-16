@@ -4,7 +4,9 @@ const read=p=>fs.readFileSync(p,'utf8');
 const must=(condition,message)=>{if(!condition)throw new Error(message)};
 const registry=read('worker/src/magnanimous-cloudflare-capability-registry.js');
 const runtime=read('worker/src/magnanimous-cloudflare-runtime.js');
-const entry=read('worker/src/security-entrypoint.js');
+const securityEntry=read('worker/src/security-entrypoint.js');
+const workerEntry=read('worker/src/entrypoint.js');
+const seed=read('worker/src/cloudflare-tool-seed.js');
 const migration=read('worker/migrations/0059_magnanimous_cloudflare_control.sql');
 const ui=read('frontend/app/owner-cloudflare/page.tsx');
 
@@ -51,9 +53,17 @@ must(!/type=["']password["']/.test(ui),'Owner Cloudflare console must not collec
 must(ui.includes("role=\"status\"")&&ui.includes('aria-live="polite"'),'Owner console must expose live status changes accessibly.');
 must(ui.includes(':focus-visible'),'Owner console must preserve visible keyboard focus.');
 
+must(seed.includes("from './magnanimous-tool-foundry.js'"),'Cloudflare knowledge must seed through the Magnanimous Tool Foundry.');
+must(seed.includes('MAGNANIMOUS_CLOUDFLARE_FAMILIES'),'Cloudflare Tool Foundry seed must cover every capability family.');
+must(seed.includes('CLOUDFLARE_ARCHITECTURE_TECHNIQUES'),'Cloudflare Tool Foundry seed must include architecture techniques.');
+must(seed.includes('requiresConnection:true'),'Live Cloudflare family recipes must preserve connection/authorization requirements.');
+must(seed.includes('stage the exact method/path/payload first'),'Cloudflare tool recipes must preserve staged mutation approval.');
+must(workerEntry.includes("from './cloudflare-tool-seed.js'"),'Worker bootstrap must import Cloudflare Tool Foundry seed.');
+must(workerEntry.includes('await ensureMagnanimousCloudflareToolSeed(env)'),'Worker bootstrap must seed Cloudflare knowledge.');
+
 must(migration.includes('magnanimous_cloudflare_actions'),'Cloudflare durable action ledger migration is missing.');
 must(migration.includes('magnanimous_cloudflare_audit'),'Cloudflare audit ledger migration is missing.');
-must(entry.includes("from './magnanimous-cloudflare-runtime.js'"),'Central security entrypoint must mount Cloudflare control plane.');
-must(entry.includes('await handleMagnanimousCloudflare(policyRequest,env)'),'Cloudflare control plane must run after central session/policy resolution.');
+must(securityEntry.includes("from './magnanimous-cloudflare-runtime.js'"),'Central security entrypoint must mount Cloudflare control plane.');
+must(securityEntry.includes('await handleMagnanimousCloudflare(policyRequest,env)'),'Cloudflare control plane must run after central session/policy resolution.');
 
-console.log('Magnanimous Cloudflare capability, techniques, owner-console and action contracts verified.');
+console.log('Magnanimous Cloudflare capability, techniques, Tool Foundry, owner-console and action contracts verified.');
