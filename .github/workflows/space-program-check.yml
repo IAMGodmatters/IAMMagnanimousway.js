@@ -1,0 +1,72 @@
+name: Magnanimous AI Space Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'space-core/**'
+      - 'frontend/app/space/**'
+      - 'worker/src/magnanimous-space-runtime.js'
+      - 'worker/src/magnanimous-twilio-capability-registry.js'
+      - 'worker/src/entrypoint.js'
+      - 'worker/migrations/0048_magnanimous_space_program.sql'
+      - '.github/workflows/space-program-check.yml'
+  pull_request:
+    paths:
+      - 'space-core/**'
+      - 'frontend/app/space/**'
+      - 'worker/src/magnanimous-space-runtime.js'
+      - 'worker/src/magnanimous-twilio-capability-registry.js'
+      - 'worker/src/entrypoint.js'
+      - 'worker/migrations/0048_magnanimous_space_program.sql'
+      - '.github/workflows/space-program-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Validate Space runtimes
+        run: |
+          node --check worker/src/magnanimous-space-runtime.js
+          node --check worker/src/magnanimous-twilio-capability-registry.js
+          node --check worker/src/entrypoint.js
+      - name: Validate identity contract
+        run: |
+          grep -q "owner_identity:'God Matters'" worker/src/magnanimous-space-runtime.js
+          grep -q "affiliation_identity:'I AM MAGNANIMOUS WAY™'" worker/src/magnanimous-space-runtime.js
+          grep -q "brain_identity:'Magnanimous AI'" worker/src/magnanimous-space-runtime.js
+          grep -q 'OWNED BY GOD MATTERS' frontend/app/space/page.tsx
+          grep -q 'I AM MAGNANIMOUS WAY™' frontend/app/space/page.tsx
+      - name: Validate consequential locks
+        run: |
+          grep -q "flight_command_enabled INTEGER NOT NULL DEFAULT 0 CHECK(flight_command_enabled=0)" worker/migrations/0048_magnanimous_space_program.sql
+          grep -q "purchase_authorized INTEGER NOT NULL DEFAULT 0 CHECK(purchase_authorized=0)" worker/migrations/0048_magnanimous_space_program.sql
+          grep -q 'SPACE_FLIGHT_COMMAND_LOCKED' worker/src/magnanimous-space-runtime.js
+          grep -q 'SPACE_PURCHASE_LOCKED' worker/src/magnanimous-space-runtime.js
+          grep -q 'purchase_actions_enabled:false' worker/src/magnanimous-space-runtime.js
+      - name: Validate Twilio absorption catalog
+        run: |
+          grep -q "id:'voice'" worker/src/magnanimous-twilio-capability-registry.js
+          grep -q "id:'media-streams'" worker/src/magnanimous-twilio-capability-registry.js
+          grep -q "id:'sip-trunking'" worker/src/magnanimous-twilio-capability-registry.js
+          grep -q "id:'verify'" worker/src/magnanimous-twilio-capability-registry.js
+          grep -q "id:'segment'" worker/src/magnanimous-twilio-capability-registry.js
+          grep -q "id:'sendgrid'" worker/src/magnanimous-twilio-capability-registry.js
+          grep -q "id:'trust-hub'" worker/src/magnanimous-twilio-capability-registry.js
+          grep -q 'provider_internal_only:true' worker/src/magnanimous-twilio-capability-registry.js
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
