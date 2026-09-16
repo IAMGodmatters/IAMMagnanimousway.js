@@ -1,0 +1,73 @@
+name: Dependency Lockfiles
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/package.json'
+      - 'worker/package.json'
+      - 'video-gateway/package.json'
+      - 'qa/package.json'
+      - '.github/workflows/dependency-lockfiles.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  lockfiles:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Generate exact npm lockfiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          for dir in frontend worker video-gateway qa; do
+            echo "Generating $dir/package-lock.json"
+            (cd "$dir" && npm install --package-lock-only --ignore-scripts --no-audit --no-fund)
+          done
+
+      - name: Verify manifests contain no moving dependency specifiers
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const dirs=['frontend','worker','video-gateway','qa'];
+          const moving=/^(?:latest|next|\*|\^|~|>|<|>=|<=)/;
+          let failed=false;
+          for(const dir of dirs){
+            const pkg=JSON.parse(fs.readFileSync(`${dir}/package.json`,'utf8'));
+            for(const section of ['dependencies','devDependencies','peerDependencies']){
+              for(const [name,value] of Object.entries(pkg[section]||{})){
+                if(moving.test(String(value))){console.error(`${dir}: ${section}.${name} is not exact: ${value}`);failed=true;}
+              }
+            }
+          }
+          if(failed)process.exit(1);
+          console.log('All audited Node workspace dependency versions are exact.');
+          NODE
+
+      - name: Commit generated lockfiles when needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add frontend/package-lock.json worker/package-lock.json video-gateway/package-lock.json qa/package-lock.json
+          if git diff --cached --quiet; then
+            echo 'Lockfiles already match package manifests.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Lock transitive npm dependencies'
+          git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
