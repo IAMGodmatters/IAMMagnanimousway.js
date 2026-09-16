@@ -64,6 +64,11 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
     capabilities: ['crm','sales','marketing','finance','customer-service','commerce','project-management','analytics','scheduling','communications','business-planning']
   },
   {
+    id: 'dns-domain-operations',
+    name: 'DNS, domain and internet naming intelligence',
+    capabilities: ['dns-lookup','multi-resolver-comparison','dns-propagation-analysis','dnssec-visibility','reverse-dns','rdap-domain-context','mx-analysis','spf-analysis','dkim-analysis','dmarc-analysis','domain-health-diagnosis','dns-record-inventory','approval-gated-dns-changes','registrar-adapters']
+  },
+  {
     id: 'specialized-knowledge',
     name: 'Specialized domain reasoning',
     capabilities: ['science','engineering','education','legal-research','health-information','finance-research','religious-study','travel','local-information','technical-support']
