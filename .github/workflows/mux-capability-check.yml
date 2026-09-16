@@ -1,0 +1,96 @@
+name: Magnanimous Mux Capability Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'video-core/**'
+      - 'worker/src/magnanimous-mux-capability-registry.js'
+      - 'worker/src/magnanimous-mux-runtime.js'
+      - 'worker/src/entrypoint.js'
+      - 'worker/migrations/0051_magnanimous_mux_control.sql'
+      - '.github/workflows/mux-capability-check.yml'
+  pull_request:
+    paths:
+      - 'video-core/**'
+      - 'worker/src/magnanimous-mux-capability-registry.js'
+      - 'worker/src/magnanimous-mux-runtime.js'
+      - 'worker/src/entrypoint.js'
+      - 'worker/migrations/0051_magnanimous_mux_control.sql'
+      - '.github/workflows/mux-capability-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Validate Mux runtimes
+        run: |
+          node --check worker/src/magnanimous-mux-capability-registry.js
+          node --check worker/src/magnanimous-mux-runtime.js
+          node --check worker/src/entrypoint.js
+      - name: Validate Magnanimous identity and provider boundary
+        run: |
+          grep -q "identity:'Magnanimous AI Mux Control'" worker/src/magnanimous-mux-capability-registry.js
+          grep -q "brain_identity:'Magnanimous AI'" worker/src/magnanimous-mux-capability-registry.js
+          grep -q 'provider_internal_only:true' worker/src/magnanimous-mux-capability-registry.js
+          grep -q 'provider_brand_override_allowed:false' worker/src/magnanimous-mux-capability-registry.js
+          grep -q 'direct_cost_producing_writes_enabled:false' worker/src/magnanimous-mux-capability-registry.js
+      - name: Validate absorbed capability families
+        run: |
+          grep -q "id:'video-assets'" worker/src/magnanimous-mux-capability-registry.js
+          grep -q "id:'direct-uploads'" worker/src/magnanimous-mux-capability-registry.js
+          grep -q "id:'live-streams'" worker/src/magnanimous-mux-capability-registry.js
+          grep -q "id:'simulcast'" worker/src/magnanimous-mux-capability-registry.js
+          grep -q "id:'secure-playback'" worker/src/magnanimous-mux-capability-registry.js
+          grep -q "id:'drm'" worker/src/magnanimous-mux-capability-registry.js
+          grep -q "id:'captions-transcripts'" worker/src/magnanimous-mux-capability-registry.js
+          grep -q "id:'mux-player'" worker/src/magnanimous-mux-capability-registry.js
+          grep -q "id:'data-metrics'" worker/src/magnanimous-mux-capability-registry.js
+          grep -q "id:'monitoring-realtime'" worker/src/magnanimous-mux-capability-registry.js
+          grep -q "id:'robots'" worker/src/magnanimous-mux-capability-registry.js
+      - name: Validate normalized state migration
+        run: |
+          python3 - <<'PY'
+          import pathlib, sqlite3
+          sql=pathlib.Path('worker/migrations/0051_magnanimous_mux_control.sql').read_text()
+          db=sqlite3.connect(':memory:')
+          db.executescript(sql)
+          expected={
+            'magnanimous_mux_environments','magnanimous_mux_assets','magnanimous_mux_playback_ids',
+            'magnanimous_mux_live_streams','magnanimous_mux_uploads','magnanimous_mux_tracks',
+            'magnanimous_mux_webhooks','magnanimous_mux_robots_jobs','magnanimous_mux_data_snapshots',
+            'magnanimous_mux_simulcast_targets','magnanimous_mux_playback_restrictions',
+            'magnanimous_mux_usage_snapshots','magnanimous_mux_player_configs'
+          }
+          actual={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+          missing=expected-actual
+          assert not missing, f'missing tables: {sorted(missing)}'
+          PY
+      - name: Validate credential and cost safety
+        run: |
+          grep -q 'provider_tokens_exposed:false' worker/src/magnanimous-mux-runtime.js
+          grep -q 'provider_secrets_exposed:false' worker/src/magnanimous-mux-runtime.js
+          grep -q 'stream_keys_exposed:false' worker/src/magnanimous-mux-runtime.js
+          grep -q 'private_signing_keys_exposed:false' worker/src/magnanimous-mux-runtime.js
+          grep -q 'webhook_signing_secrets_exposed:false' worker/src/magnanimous-mux-runtime.js
+          grep -q 'direct_paid_write_execution:false' worker/src/magnanimous-mux-runtime.js
+          grep -q 'MUX_CONTROL_PLANE_READ_ONLY' worker/src/magnanimous-mux-runtime.js
+          grep -qi 'No Mux access-token secrets, stream keys, private signing keys, webhook signing secrets' worker/migrations/0051_magnanimous_mux_control.sql
+          ! grep -Eq 'stream_key[[:space:]]+TEXT|token_secret[[:space:]]+TEXT|private_key[[:space:]]+TEXT|signing_secret[[:space:]]+TEXT' worker/migrations/0051_magnanimous_mux_control.sql
+      - name: Validate current-platform documentation
+        run: |
+          grep -qi 'Mux Video' video-core/MUX_ABSORPTION.md
+          grep -qi 'Mux Data' video-core/MUX_ABSORPTION.md
+          grep -qi 'Mux Player' video-core/MUX_ABSORPTION.md
+          grep -qi 'Mux Robots' video-core/MUX_ABSORPTION.md
+          grep -qi 'Direct uploads' video-core/MUX_ABSORPTION.md
+          grep -qi 'Simulcast' video-core/MUX_ABSORPTION.md
+          grep -qi 'DRM' video-core/MUX_ABSORPTION.md
+          grep -qi 'Webhooks' video-core/MUX_ABSORPTION.md
