@@ -2,7 +2,15 @@ import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.QA_BASE_URL || 'https://iammagnanimousway.com';
 const isCI = Boolean(process.env.CI);
+const isPullRequest = process.env.GITHUB_EVENT_NAME === 'pull_request';
 const criticalMatrix = '**/cross-browser.spec.ts';
+const chromium = { name: 'chromium-desktop', use: { ...devices['Desktop Chrome'] } };
+const crossBrowserProjects = [
+  { name: 'firefox-desktop', testMatch: criticalMatrix, use: { ...devices['Desktop Firefox'] } },
+  { name: 'webkit-desktop', testMatch: criticalMatrix, use: { ...devices['Desktop Safari'] } },
+  { name: 'mobile-chrome', testMatch: criticalMatrix, use: { ...devices['Pixel 7'] } },
+  { name: 'mobile-safari', testMatch: criticalMatrix, use: { ...devices['iPhone 14'] } },
+];
 
 export default defineConfig({
   testDir: './tests',
@@ -11,9 +19,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
-  // Production QA targets the live public edge. Keep concurrency intentionally low so
-  // the test harness does not manufacture rate-limit failures against the platform.
-  workers: isCI ? 2 : undefined,
+  // Pull-request QA targets an already-deployed production baseline, not the branch preview.
+  // Run it serially and in Chromium so the harness cannot manufacture a rate-limit storm.
+  // Full deployed/main and scheduled QA still retains the cross-browser/mobile matrix.
+  workers: isCI ? 1 : undefined,
   outputDir: 'test-results',
   reporter: [
     ['list'],
@@ -29,13 +38,5 @@ export default defineConfig({
     navigationTimeout: 30_000,
     ignoreHTTPSErrors: false,
   },
-  projects: [
-    // Chromium performs the exhaustive route/function/security/accessibility sweep.
-    { name: 'chromium-desktop', use: { ...devices['Desktop Chrome'] } },
-    // Other engines/devices focus on critical user-facing surfaces. This keeps free CI fast while preserving cross-browser coverage.
-    { name: 'firefox-desktop', testMatch: criticalMatrix, use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit-desktop', testMatch: criticalMatrix, use: { ...devices['Desktop Safari'] } },
-    { name: 'mobile-chrome', testMatch: criticalMatrix, use: { ...devices['Pixel 7'] } },
-    { name: 'mobile-safari', testMatch: criticalMatrix, use: { ...devices['iPhone 14'] } },
-  ],
+  projects: isPullRequest ? [chromium] : [chromium, ...crossBrowserProjects],
 });
