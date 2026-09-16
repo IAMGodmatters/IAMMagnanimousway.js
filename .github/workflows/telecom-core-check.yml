@@ -1,0 +1,46 @@
+name: Magnanimous Telecom Core Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'telecom-core/**'
+      - '.github/workflows/telecom-core-check.yml'
+  pull_request:
+    paths:
+      - 'telecom-core/**'
+      - '.github/workflows/telecom-core-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Compile Telecom API
+        run: python -m py_compile telecom-core/control-api/app/main.py
+
+      - name: Validate Asterisk bootstrap shell
+        run: sh -n telecom-core/asterisk/entrypoint.sh
+
+      - name: Validate Compose model
+        env:
+          TELECOM_API_TOKEN: ci-token
+          TELECOM_WEBHOOK_SECRET: ci-webhook
+          ASTERISK_ARI_USER: ci-user
+          ASTERISK_ARI_PASSWORD: ci-ari-password
+          MAGNANIMOUS_AI_PASSWORD: ci-ai-password
+          MAGNANIMOUS_ADMIN_PASSWORD: ci-admin-password
+        run: docker compose -f telecom-core/docker-compose.yml config -q
+
+      - name: Build Telecom API image
+        run: docker build -t magnanimous-telecom-api:ci telecom-core/control-api
