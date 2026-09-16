@@ -11,7 +11,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
-  workers: isCI ? 6 : undefined,
+  // Production QA targets the live public edge. Keep concurrency intentionally low so
+  // the test harness does not manufacture rate-limit failures against the platform.
+  workers: isCI ? 2 : undefined,
   outputDir: 'test-results',
   reporter: [
     ['list'],
