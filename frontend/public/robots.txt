@@ -2,6 +2,7 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /owner-
+Disallow: /owner-center/
 Disallow: /agency-
 Disallow: /agent-desk/
 Disallow: /agent-video/
@@ -26,6 +27,7 @@ Disallow: /knowledge/
 Disallow: /leads/
 Disallow: /login/
 Disallow: /marketing/
+Disallow: /mux/
 Disallow: /phone/
 Disallow: /qa-
 Disallow: /research/
