@@ -1,8 +1,10 @@
+import asyncio
 import hmac
 import os
 import re
 import uuid
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -10,12 +12,13 @@ from pydantic import BaseModel, Field
 
 app = FastAPI(
     title="Magnanimous Telecom Core",
-    version="0.1.0",
+    version="0.2.0",
     docs_url="/docs",
     redoc_url=None,
 )
 
 E164 = re.compile(r"^\+[1-9]\d{6,14}$")
+MONITOR_TASKS: set[asyncio.Task[Any]] = set()
 
 
 def env(name: str, default: str = "") -> str:
@@ -68,6 +71,90 @@ async def ari_request(method: str, path: str, *, params: dict[str, Any] | None =
     return response
 
 
+def callback_url(request_url: str | None) -> str | None:
+    candidate = env("MAGNANIMOUS_WEBHOOK_URL") or (request_url or "").strip()
+    if not candidate:
+        return None
+    parsed = urlparse(candidate)
+    allowed = {
+        host.strip().lower()
+        for host in env("MAGNANIMOUS_WEBHOOK_HOSTS", "iammagnanimousway.com").split(",")
+        if host.strip()
+    }
+    if parsed.scheme != "https" or not parsed.hostname or parsed.hostname.lower() not in allowed:
+        return None
+    return candidate
+
+
+async def send_status_callback(url: str, provider_call_id: str, status: str, detail: str = "") -> None:
+    secret = env("TELECOM_WEBHOOK_SECRET")
+    if not secret:
+        return
+    payload = {
+        "provider_call_id": provider_call_id,
+        "call_id": provider_call_id,
+        "status": status,
+        "event_type": "carrier-status",
+        "detail": detail,
+        "provider": "Magnanimous Telecom",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            await client.post(
+                url,
+                headers={"x-iam-webhook-secret": secret, "content-type": "application/json"},
+                json=payload,
+            )
+    except httpx.HTTPError:
+        # Call control must never fail only because a status callback could not be delivered.
+        pass
+
+
+def map_channel_state(state: str) -> str:
+    normalized = (state or "").strip().lower()
+    if normalized in {"ring", "ringing"}:
+        return "ringing"
+    if normalized == "up":
+        return "connected"
+    if normalized in {"down", "dialing", "dial"}:
+        return "dialing"
+    return normalized or "dialing"
+
+
+async def monitor_call(provider_call_id: str, url: str) -> None:
+    last_status = "dialing"
+    await send_status_callback(url, provider_call_id, last_status, "Call accepted by Magnanimous Telecom.")
+    # Poll ARI only for the lifetime of this call. A future multi-node carrier edge can replace
+    # this with a durable event bus without changing the Worker callback contract.
+    for _ in range(1800):
+        await asyncio.sleep(2)
+        try:
+            response = await ari_request("GET", f"/channels/{provider_call_id}")
+        except HTTPException:
+            continue
+        if response.status_code == 404:
+            await send_status_callback(url, provider_call_id, "ended", "Asterisk channel ended.")
+            return
+        if not response.is_success:
+            continue
+        try:
+            state = map_channel_state(str(response.json().get("state", "")))
+        except (ValueError, TypeError):
+            continue
+        if state != last_status:
+            last_status = state
+            await send_status_callback(url, provider_call_id, state)
+    await send_status_callback(url, provider_call_id, "ended", "Call monitor reached its safety timeout.")
+
+
+def start_monitor(provider_call_id: str, url: str | None) -> None:
+    if not url or not env("TELECOM_WEBHOOK_SECRET"):
+        return
+    task = asyncio.create_task(monitor_call(provider_call_id, url))
+    MONITOR_TASKS.add(task)
+    task.add_done_callback(MONITOR_TASKS.discard)
+
+
 @app.get("/health")
 async def health() -> dict[str, Any]:
     asterisk_ok = False
@@ -82,6 +169,7 @@ async def health() -> dict[str, Any]:
         "asterisk": "ready" if asterisk_ok else "unavailable",
         "public_number": env("MAGNANIMOUS_CALLER_ID") or None,
         "identity": "Magnanimous",
+        "active_monitors": len(MONITOR_TASKS),
     }
 
 
@@ -106,7 +194,6 @@ async def place_call(request: OutboundCall) -> dict[str, Any]:
         "MAG_TENANT_ID": request.tenant_id,
         "MAG_FROM": caller_id,
         "MAG_TO": destination,
-        "MAG_WEBHOOK_URL": request.webhook_url or "",
         "MAG_AGENT_ID": request.agent_id or "",
         "MAG_QUEUE_ID": request.queue_id or "",
     }
@@ -115,6 +202,7 @@ async def place_call(request: OutboundCall) -> dict[str, Any]:
         detail = response.text[:1000] or "Asterisk rejected the call."
         raise HTTPException(status_code=502, detail=detail)
 
+    start_monitor(provider_call_id, callback_url(request.webhook_url))
     return {
         "provider_call_id": provider_call_id,
         "call_id": provider_call_id,
@@ -150,7 +238,7 @@ async def get_call(provider_call_id: str) -> dict[str, Any]:
     channel = response.json()
     return {
         "provider_call_id": provider_call_id,
-        "status": str(channel.get("state", "unknown")).lower(),
+        "status": map_channel_state(str(channel.get("state", ""))),
         "channel": channel.get("name"),
         "caller": channel.get("caller", {}),
         "connected": channel.get("connected", {}),
