@@ -71,6 +71,7 @@ export default function TelecomPage(){
   {href:'/softphone',icon:'◉',title:'Softphone',text:'Use Magnanimous as a working phone endpoint.'},
   {href:'/ai-receptionist',icon:'✦',title:'AI Receptionist',text:'Magnanimous AI can answer, route and assist callers.'},
   {href:'/telecom/sim',icon:'▤',title:'SIM + eSIM Control',text:'Inventory, mobile adapters and authorized profile provisioning.'},
+  {href:'/telecom/network',icon:'◎',title:'Carrier Access',text:'Numbering, PSTN, E911, mobile providers and regulatory readiness.'},
   {href:'/auto-dialer',icon:'↗',title:'Auto Dialer',text:'Authorized outbound calling workflows and campaigns.'},
   {href:'/ai-connectors',icon:'⌘',title:'Universal Connector',text:'Keep external engines beneath the Magnanimous command layer.'},
   {href:'/business',icon:'▣',title:'Business Operations',text:'Operate the telecom company from the same platform.'}
@@ -78,13 +79,13 @@ export default function TelecomPage(){
 
  return <main className={styles.shell}>
   <header className={styles.hero}>
-   <nav><a href='/'>I AM MAGNANIMOUS WAY™</a><span>•</span><a href='/phone'>PHONE</a><span>•</span><a href='/telecom/sim'>SIM + eSIM</a><span>•</span><a href='/telecom-standalone'>STANDALONE</a></nav>
+   <nav><a href='/'>I AM MAGNANIMOUS WAY™</a><span>•</span><a href='/phone'>PHONE</a><span>•</span><a href='/telecom/sim'>SIM + eSIM</a><span>•</span><a href='/telecom/network'>CARRIER ACCESS</a><span>•</span><a href='/telecom-standalone'>STANDALONE</a></nav>
    <div className={styles.heroGrid}>
     <div>
      <p className={styles.eyebrow}>STANDALONE SERVICE · SHARED MAGNANIMOUS BRAIN</p>
      <h1>Magnanimous <em>Telecom</em></h1>
      <p className={styles.lead}>A provider-neutral communications company foundation powered by Magnanimous AI. The telecom service has its own command center while remaining part of the I AM MAGNANIMOUS WAY™ platform.</p>
-     <div className={styles.actions}><a className={styles.primary} href='/phone'>OPEN LIVE PHONE</a><a className={styles.secondary} href='/telecom/sim'>OPEN SIM + eSIM</a></div>
+     <div className={styles.actions}><a className={styles.primary} href='/phone'>OPEN LIVE PHONE</a><a className={styles.secondary} href='/telecom/network'>OPEN CARRIER ACCESS</a><a className={styles.secondary} href='/telecom/sim'>OPEN SIM + eSIM</a></div>
     </div>
     <aside className={styles.identityCard}>
      <span className={styles.pulse}/><small>PUBLIC IDENTITY</small><strong>{overview.identity}</strong><p>Brain: {overview.brain}</p><p>Architecture: integrated + standalone</p><p>Underlying providers stay replaceable and out of the customer-facing identity.</p>
@@ -150,7 +151,7 @@ export default function TelecomPage(){
 
   <section className={styles.foundation}>
    <div><small>BUILT INTO THE FOUNDATION</small><h2>Ready to grow without rebuilding the company from scratch.</h2></div>
-   <ul><li>Number inventory and lifecycle</li><li>Replaceable SIP/PSTN interconnect registry</li><li>Physical SIM inventory and lifecycle</li><li>eSIM profile-order workflow</li><li>Replaceable MNO/MVNO/SM-DP+ adapter layer</li><li>Number-porting workflow records</li><li>Emergency-location readiness records</li><li>STIR/SHAKEN and caller-identity readiness</li><li>Usage and call-rating ledger</li><li>Customer, plan and subscription records</li><li>Fraud/spend protection policies</li><li>Immutable-style telecom audit history</li><li>Jurisdiction/compliance control tracking</li><li>Provider-neutral Magnanimous AI command layer</li></ul>
+   <ul><li>Number inventory and lifecycle</li><li>Replaceable SIP/PSTN interconnect registry</li><li>Physical SIM inventory and lifecycle</li><li>eSIM profile-order workflow</li><li>Replaceable MNO/MVNO/SM-DP+ adapter layer</li><li>Regulated-network provider adapters</li><li>U.S. FCC and Philippine NTC readiness tracking</li><li>Number-porting workflow records</li><li>Emergency-location readiness records</li><li>STIR/SHAKEN and caller-identity readiness</li><li>Usage and call-rating ledger</li><li>Customer, plan and subscription records</li><li>Fraud/spend protection policies</li><li>Immutable-style telecom audit history</li><li>Jurisdiction/compliance control tracking</li><li>Provider-neutral Magnanimous AI command layer</li></ul>
   </section>
 
   <footer className={styles.footer}><b>I AM MAGNANIMOUS WAY™</b><span>Magnanimous Telecom · ONE GOD • ONE PEOPLE • A BRIGHTER TOMORROW.</span></footer>
