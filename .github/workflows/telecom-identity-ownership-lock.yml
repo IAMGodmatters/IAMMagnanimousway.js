@@ -1,0 +1,41 @@
+name: Magnanimous Telecom Ownership Identity Lock
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/app/telecom/**'
+      - 'telecom-core/**'
+      - '.github/workflows/telecom-identity-ownership-lock.yml'
+  pull_request:
+    paths:
+      - 'frontend/app/telecom/**'
+      - 'telecom-core/**'
+      - '.github/workflows/telecom-identity-ownership-lock.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-ownership-identity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Verify required ownership and affiliation wording
+        run: |
+          grep -q 'Magnanimous Telecom' frontend/app/telecom/layout.tsx
+          grep -q 'owned by.*God Matters' frontend/app/telecom/layout.tsx
+          grep -q 'I AM MAGNANIMOUS WAY™' frontend/app/telecom/layout.tsx
+          grep -q 'Operated by.*Magnanimous AI' frontend/app/telecom/layout.tsx
+          grep -q 'God Matters' telecom-core/IDENTITY_OWNERSHIP.md
+          grep -q 'I AM MAGNANIMOUS WAY™' telecom-core/IDENTITY_OWNERSHIP.md
+          grep -q 'Magnanimous AI' telecom-core/IDENTITY_OWNERSHIP.md
+
+      - name: Prevent incorrect God Matters trademark styling
+        run: |
+          if grep -R -n -E 'God Matters™|God Matters®|God Matters Trademark' frontend/app/telecom telecom-core --exclude='IDENTITY_OWNERSHIP.md'; then
+            echo 'God Matters must not be presented with trademark styling in Magnanimous Telecom surfaces.' >&2
+            exit 1
+          fi
