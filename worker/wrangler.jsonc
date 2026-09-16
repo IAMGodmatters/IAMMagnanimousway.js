@@ -40,8 +40,11 @@
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     "html_handling": "auto-trailing-slash",
+    // Static pages and unknown/bot probe paths are intentionally asset-first. Cloudflare
+    // serves matching static assets free/unlimited, and the static 404 page handles
+    // unmatched probes without spending the Workers Free daily request allowance.
+    // Only routes that genuinely require server execution run the Worker first.
     "run_worker_first": [
-      "/",
       "/api/*",
       "/mcp",
       "/.well-known/*",
@@ -51,18 +54,7 @@
       "/research",
       "/agency",
       "/funnels",
-      "/email",
-      "/wp-admin*",
-      "/wp-login.php",
-      "/wp-json*",
-      "/wp-content/*",
-      "/wp-includes/*",
-      "/xmlrpc.php",
-      "/wp-cron.php",
-      "/wp-signup.php",
-      "/wp-activate.php",
-      "/readme.html",
-      "/license.txt"
+      "/email"
     ]
   },
   "ai": { "binding": "AI" },

@@ -69,6 +69,11 @@ jobs:
   browser-qa:
     name: Browser and functional QA
     needs: code-health
+    # PRs and branch pushes validate source/builds only. They must not repeatedly
+    # exercise the live production Worker and consume the account's daily quota.
+    # The strict deployment smoke still verifies every production deploy; this broad
+    # browser matrix is reserved for scheduled or explicitly requested production QA.
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -144,7 +149,7 @@ jobs:
   qa-regression-issue:
     name: Report QA regression
     needs: [code-health, browser-qa]
-    if: ${{ failure() && github.event_name != 'pull_request' }}
+    if: ${{ failure() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     steps:
       - name: Create or update the automated QA regression issue
@@ -194,7 +199,7 @@ jobs:
   qa-regression-resolved:
     name: Close resolved QA regression
     needs: [code-health, browser-qa]
-    if: ${{ success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    if: ${{ success() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     steps:
       - name: Close stale automated QA regression issue
@@ -215,7 +220,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: existing.number,
-              body: `Full Platform QA is green again on main. Resolved by: ${runUrl}`,
+              body: `Full Platform QA is green again. Resolved by: ${runUrl}`,
             });
             await github.rest.issues.update({
               owner: context.repo.owner,
