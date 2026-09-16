@@ -127,6 +127,6 @@ export default function TelecomPage(){
    <ul><li>Number inventory and lifecycle</li><li>Replaceable SIP/PSTN interconnect registry</li><li>Number-porting workflow records</li><li>Emergency-location readiness records</li><li>STIR/SHAKEN readiness metadata</li><li>Usage and call-rating ledger</li><li>Jurisdiction/compliance control tracking</li><li>Provider-neutral Magnanimous AI command layer</li></ul>
   </section>
 
-  <footer><b>I AM MAGNANIMOUS WAY™</b><span>Magnanimous Telecom · ONE GOD • ONE PEOPLE • A BRIGHTER TOMORROW.</span></footer>
+  <footer className={styles.footer}><b>I AM MAGNANIMOUS WAY™</b><span>Magnanimous Telecom · ONE GOD • ONE PEOPLE • A BRIGHTER TOMORROW.</span></footer>
  </main>
 }
