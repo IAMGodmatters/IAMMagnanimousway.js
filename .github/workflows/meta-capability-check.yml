@@ -1,0 +1,78 @@
+name: Magnanimous Meta Capability Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'meta-core/**'
+      - 'worker/src/magnanimous-meta-capability-registry.js'
+      - 'worker/src/magnanimous-meta-runtime.js'
+      - 'worker/src/entrypoint.js'
+      - '.github/workflows/meta-capability-check.yml'
+  pull_request:
+    paths:
+      - 'meta-core/**'
+      - 'worker/src/magnanimous-meta-capability-registry.js'
+      - 'worker/src/magnanimous-meta-runtime.js'
+      - 'worker/src/entrypoint.js'
+      - '.github/workflows/meta-capability-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Validate Meta runtimes
+        run: |
+          node --check worker/src/magnanimous-meta-capability-registry.js
+          node --check worker/src/magnanimous-meta-runtime.js
+          node --check worker/src/entrypoint.js
+      - name: Validate Magnanimous identity and provider boundary
+        run: |
+          grep -q "identity:'Magnanimous AI Meta Control'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "brain_identity:'Magnanimous AI'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q 'provider_internal_only:true' worker/src/magnanimous-meta-capability-registry.js
+          grep -q 'provider_brand_override_allowed:false' worker/src/magnanimous-meta-capability-registry.js
+          grep -q 'secret_exposure_allowed:false' worker/src/magnanimous-meta-capability-registry.js
+      - name: Validate absorbed Meta capability map
+        run: |
+          grep -q "id:'graph-api'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'facebook-login'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'facebook-pages'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'instagram-platform'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'messenger-platform'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'whatsapp-cloud'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'threads-api'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'marketing-api'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'conversions-api'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'business-management'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'catalog-api'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'commerce-api'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'webhooks'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'llama'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'horizon'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "id:'wearables'" worker/src/magnanimous-meta-capability-registry.js
+      - name: Validate consequential action locks
+        run: |
+          grep -q 'publish_actions_require_confirmation:true' worker/src/magnanimous-meta-capability-registry.js
+          grep -q 'message_actions_require_confirmation:true' worker/src/magnanimous-meta-capability-registry.js
+          grep -q 'ad_spend_actions_require_confirmation:true' worker/src/magnanimous-meta-capability-registry.js
+          grep -q 'purchase_actions_enabled:false' worker/src/magnanimous-meta-capability-registry.js
+          grep -q 'META_CONTROL_PLANE_READ_ONLY' worker/src/magnanimous-meta-runtime.js
+          grep -q "action_router:'/api/assistant-integrations/actions'" worker/src/magnanimous-meta-runtime.js
+      - name: Validate current version awareness
+        run: |
+          grep -q "current_graph_version_reference:'v26.0'" worker/src/magnanimous-meta-capability-registry.js
+          grep -q "graph_api:'v26.0'" worker/src/magnanimous-meta-runtime.js
+          grep -q 'must not silently upgrade' meta-core/META_ABSORPTION.md
+      - name: Validate provider independence documentation
+        run: |
+          grep -q 'Magnanimous AI remains the brain' meta-core/META_ABSORPTION.md
+          grep -q 'Do not expose Meta as the owner or brain' meta-core/META_ABSORPTION.md
+          grep -q 'does not spend money' meta-core/META_ABSORPTION.md
