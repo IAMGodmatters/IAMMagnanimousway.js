@@ -9,6 +9,7 @@ import { handleMagnanimousSpace } from './magnanimous-space-runtime.js';
 import { handleMagnanimousResearch } from './magnanimous-research-runtime.js';
 import { handleMagnanimousMeta } from './magnanimous-meta-runtime.js';
 import { handleMagnanimousWhatsApp } from './magnanimous-whatsapp-runtime.js';
+import { ensureWhatsAppIntegrationCompatibility } from './magnanimous-whatsapp-integration-compat.js';
 import { handleMagnanimousTelecom } from './magnanimous-telecom-runtime.js';
 import { handleMagnanimousTelecomNetwork } from './magnanimous-telecom-network-runtime.js';
 import { handleMagnanimousTelecomService } from './magnanimous-telecom-service-runtime.js';
@@ -68,6 +69,7 @@ async function repairLegacySchema(env){
 
 export default {
   async fetch(request,env,ctx){
+    ensureWhatsAppIntegrationCompatibility();
     await repairLegacySchema(env);
     try{await ensureMagnanimousCommunicationsToolSeed(env)}catch(error){console.error('communications tool seed failed',error)}
     try{await ensureMagnanimousSuperhumanMailSeed(env)}catch(error){console.error('Superhuman Mail pattern seed failed',error)}
