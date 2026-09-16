@@ -4,9 +4,18 @@ Magnanimous Telecom Core is the self-hosted telephony foundation for I AM MAGNAN
 
 ## Ownership model
 
-Magnanimous owns and controls the application, SIP/PBX configuration, call routing, extensions, call records, AI routing, policy, authentication, and provider abstraction. External telephone networks are treated only as replaceable interconnects.
+Magnanimous owns and controls the application, SIP/PBX configuration, call routing, extensions, call records, AI routing, policy, authentication, and provider abstraction. External telephone networks and infrastructure hosts are treated only as replaceable interconnects or hosting resources.
 
 A public PSTN telephone number is a regulated numbering resource, not a number software can mint. Until Magnanimous has direct numbering authorization and interconnection, a PSTN trunk/numbering partner supplies the public DID while Magnanimous still operates the server and customer-facing service. The trunk can later be replaced without changing the Magnanimous API or user experience.
+
+## Hosting choices
+
+The same Telecom Core stack can run in either place without creating a second system:
+
+- **Owner-hosted server** — hardware owned and operated by Magnanimous. See `SELF-HOSTED.md`.
+- **Singapore cloud starter** — DigitalOcean `sgp1`, size `s-1vcpu-2gb`, currently listed at $12/month. See `DIGITALOCEAN.md`.
+
+DigitalOcean is not required for Magnanimous Telecom. It is a convenient low-cost cloud node and can later serve as a backup/failover host while an owner-owned server becomes primary.
 
 ## Components
 
@@ -46,7 +55,7 @@ The control API returns a `provider_call_id` and status in the same contract exp
 
 ## Network requirements
 
-Deploy on a Linux VM with a stable public IPv4 address. Allow only the required ports:
+Deploy on a Linux VM or owner-owned Linux server with a stable public IPv4 address. Allow only the required ports:
 
 - UDP/TCP 5060 for SIP (restrict by source where possible)
 - UDP 10000-20000 for RTP
@@ -56,14 +65,15 @@ Deploy on a Linux VM with a stable public IPv4 address. Allow only the required 
 
 ## Start
 
-1. Create a local `.env` on the telecom VM using `ENVIRONMENT.md`. Never commit it.
-2. Configure strong random API, ARI and SIP credentials on that server.
-3. Configure the SIP trunk values only when a real interconnect/numbering partner or direct carrier interconnect exists.
-4. Run `docker compose up -d --build` on the telecom VM.
-5. Verify `GET /health` on the Telecom API.
-6. Put the Telecom API behind HTTPS and restrict management access.
-7. Point the existing Worker `VOIP_PROVIDER_URL` to `/v1/calls`.
-8. Set `VOIP_CALLER_ID` only to a number Magnanimous is actually authorized to present.
+1. Choose owner-hosted (`SELF-HOSTED.md`) or cloud (`DIGITALOCEAN.md`).
+2. Create a local `.env` on the telecom server using `ENVIRONMENT.md`. Never commit it.
+3. Configure strong random API, ARI and SIP credentials on that server.
+4. Configure the SIP trunk values only when a real interconnect/numbering partner or direct carrier interconnect exists.
+5. Run `docker compose up -d --build` on the telecom server.
+6. Verify `GET /health` on the Telecom API.
+7. Put the Telecom API behind HTTPS and restrict management access.
+8. Point the existing Worker `VOIP_PROVIDER_URL` to `/v1/calls`.
+9. Set `VOIP_CALLER_ID` only to a number Magnanimous is actually authorized to present.
 
 ## Emergency calling
 
@@ -71,4 +81,4 @@ The dialplan intentionally does not advertise or provide 911/E911 service yet. E
 
 ## Growth path
 
-Phase 1 is a self-hosted PBX/provider control plane with a replaceable PSTN interconnect. Phase 2 adds Kamailio/SBC and RTPengine for multi-node scale. Phase 3 adds STIR/SHAKEN signing, E911/location services, LNP, fraud controls and provider compliance. Phase 4, after regulatory authorization, can request numbering resources directly and reduce dependency on a numbering partner.
+Phase 1 is a self-hosted PBX/provider control plane with a replaceable PSTN interconnect. Phase 2 adds Kamailio/SBC and RTPengine for multi-node scale. Phase 3 adds STIR/SHAKEN signing, E911/location services, LNP, fraud controls, SIM/eSIM/MVNO integrations and provider compliance. Phase 4, after regulatory authorization, can request numbering resources directly and reduce dependency on numbering and mobile-network partners.
