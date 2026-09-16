@@ -78,6 +78,10 @@ jobs:
           cache: npm
           cache-dependency-path: qa/package.json
 
+      - name: Fetch deployed-route baseline for pull requests
+        if: github.event_name == 'pull_request'
+        run: git fetch --no-tags --depth=1 origin main:refs/remotes/origin/main
+
       - name: Install QA dependencies
         working-directory: qa
         run: npm install --no-audit --no-fund
@@ -89,6 +93,8 @@ jobs:
       - name: Run full platform tests
         working-directory: qa
         shell: bash
+        env:
+          QA_PRODUCTION_BASE_REF: ${{ github.event_name == 'pull_request' && 'origin/main' || '' }}
         run: |
           set +e
           npx playwright test
