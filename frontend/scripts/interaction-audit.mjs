@@ -25,7 +25,12 @@ for(const file of sourceFiles){
  }
 }
 const layout=fs.readFileSync(path.join(appDir,'layout.tsx'),'utf8');
+const runtimePath=path.join(appDir,'platform-runtime-script.tsx');
+if(!fs.existsSync(runtimePath))failures.push('app/platform-runtime-script.tsx: extracted platform runtime is missing');
+const platformRuntime=fs.existsSync(runtimePath)?fs.readFileSync(runtimePath,'utf8'):'';
 if(!layout.includes('InteractionClarity'))failures.push('app/layout.tsx: global InteractionClarity layer is not mounted');
+if(!layout.includes("import PlatformRuntimeScript from './platform-runtime-script'"))failures.push('app/layout.tsx: hardened platform runtime import is missing');
+if(!layout.includes('<PlatformRuntimeScript/>'))failures.push('app/layout.tsx: hardened platform runtime is not mounted');
 const requiredRoutes=new Map([
  ['/guide','app/guide/page.tsx: platform guide route is missing'],
  ['/bible-study','app/bible-study/page.tsx: required Bible Study route is missing'],
@@ -48,14 +53,20 @@ if(fs.existsSync(bibleStudyPath)){
  if(!/href\s*=\s*(?:["']\/ai-chat["']|\{\s*["']\/ai-chat["']\s*\})/.test(bibleStudyPage))failures.push('app/bible-study/page.tsx: Magnanimous AI handoff link is missing');
 }
 
-// Bible Study and Magnanimous AI must continue through the authenticated workspace guard.
-// Adding either to publicPaths would silently bypass the customer sign-in boundary.
-const publicPathsMatch=layout.match(/(?:var|let|const)\s+publicPaths\s*=\s*\[([\s\S]*?)\]/);
-if(!publicPathsMatch)failures.push('app/layout.tsx: public route contract could not be verified');
+// Public discovery is intentionally separated from authenticated operational workspaces.
+const publicPathsMatch=platformRuntime.match(/(?:var|let|const)\s+publicPaths\s*=\s*\[([\s\S]*?)\]/);
+if(!publicPathsMatch)failures.push('app/platform-runtime-script.tsx: public route contract could not be verified');
 else{
- if(/["']\/bible-study["']/.test(publicPathsMatch[1]))failures.push('app/layout.tsx: /bible-study must remain behind the customer sign-in boundary');
- if(/["']\/magnanimous["']/.test(publicPathsMatch[1]))failures.push('app/layout.tsx: /magnanimous must remain behind the customer sign-in boundary');
+ const publicContract=publicPathsMatch[1];
+ for(const route of ['/','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label','/teach','/shop','/login','/signup','/owner-login']){
+  if(!new RegExp(`["']${route.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}["']`).test(publicContract))failures.push(`app/platform-runtime-script.tsx: public discovery route missing from contract: ${route}`);
+ }
+ for(const route of ['/bible-study','/magnanimous','/ai-chat','/crm','/connections','/assistant-actions','/owner-center','/telecom']){
+  if(new RegExp(`["']${route.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}["']`).test(publicContract))failures.push(`app/platform-runtime-script.tsx: protected route must remain behind sign-in: ${route}`);
+ }
 }
+if(!platformRuntime.includes("path.indexOf('/teach/')===0")||!platformRuntime.includes("path.indexOf('/shop/')===0")||!platformRuntime.includes("path.indexOf('/reviews/')===0"))failures.push('app/platform-runtime-script.tsx: nested public discovery routes are incomplete');
+if(!platformRuntime.includes("if(isPublicPath(currentPath)||standalone)return"))failures.push('app/platform-runtime-script.tsx: public/standalone route guard exemption is missing');
 
 const magnanimousLayoutPath=path.join(appDir,'magnanimous','layout.tsx');
 const magnanimousPagePath=path.join(appDir,'magnanimous','page.tsx');
@@ -74,12 +85,13 @@ if(fs.existsSync(magnanimousPagePath)){
  if(!magnanimousPage.includes('/login?returnTo=%2Fmagnanimous'))failures.push('app/magnanimous/page.tsx: persistent-memory sign-in return path is missing');
  if(!magnanimousPage.includes('Guest session'))failures.push('app/magnanimous/page.tsx: guest-session UI contract is missing');
 }
-if(!layout.includes("var standalone=currentPath==='/magnanimous'||currentPath.indexOf('/magnanimous/')===0"))failures.push('app/layout.tsx: standalone route detection is missing');
-if(!layout.includes("if(standalone)document.documentElement.setAttribute('data-iam-standalone','true')"))failures.push('app/layout.tsx: standalone document mode is missing');
+if(!platformRuntime.includes("currentPath==='/magnanimous'||currentPath.indexOf('/magnanimous/')===0"))failures.push('app/platform-runtime-script.tsx: standalone route detection is missing');
+if(!platformRuntime.includes("if(standalone)document.documentElement.setAttribute('data-iam-standalone','true')"))failures.push('app/platform-runtime-script.tsx: standalone document mode is missing');
 if(!layout.includes('html[data-iam-standalone="true"] .iam-shop-link')||!layout.includes('html[data-iam-standalone="true"] .iam-global-tools'))failures.push('app/layout.tsx: standalone interface isolation rules are missing');
-if(!layout.includes('if(!standalone)loadAds()'))failures.push('app/layout.tsx: standalone advertising isolation is missing');
+if(!platformRuntime.includes('if(!standalone)loadAds()'))failures.push('app/platform-runtime-script.tsx: standalone advertising isolation is missing');
 console.log(`Interaction audit: ${sourceFiles.length} source files, ${routes.size} routes, ${literalLinks} literal links, ${buttons} buttons.`);
 if(failures.length){console.error('\nInteraction integrity failures:');for(const failure of failures)console.error(`- ${failure}`);process.exit(1)}
 console.log('Bible Study contract passed: route, marketplace link, metadata, Magnanimous AI handoff, and customer sign-in boundary are intact.');
 console.log('Standalone Magnanimous AI contract passed: protected route, metadata, sign-in boundary, chat runtime, isolated interface, and no-ad shell are intact.');
-console.log('Interaction audit passed: no empty/#/javascript links, literal internal links resolve to an app route, explicit type=button controls have handlers, and the global clarity layer is mounted.');
+console.log('Public discovery contract passed: public marketing/teaching/marketplace routes stay discoverable while operational workspaces remain protected.');
+console.log('Interaction audit passed: no empty/#/javascript links, literal internal links resolve to an app route, explicit type=button controls have handlers, and the global clarity/runtime layers are mounted.');
