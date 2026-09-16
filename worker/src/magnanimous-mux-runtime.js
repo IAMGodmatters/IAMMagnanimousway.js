@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { muxCapabilitySummary } from './magnanimous-mux-capability-registry.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -64,12 +65,14 @@ export async function handleMagnanimousMux(request,env){
   const user=await currentUser(request,env);
   if(!user)return json({detail:'Sign in to Magnanimous AI.'},401);
   if(user.role!=='owner')return json({detail:'Owner access required.'},403);
+  const runtimeEnv=await getProviderRuntimeEnv(env);
 
   if(request.method==='GET'&&(path==='/api/mux'||path==='/api/mux/capabilities'||path==='/api/mux/readiness')){
-    const summary=muxCapabilitySummary(env);
+    const summary=muxCapabilitySummary(runtimeEnv);
     return json({
       ...summary,
       normalized_state:await normalizedState(env),
+      credential_source:'Magnanimous encrypted provider vault or server environment',
       read_probe:'/api/mux/whoami',
       provider_tokens_exposed:false,
       provider_secrets_exposed:false,
@@ -81,7 +84,7 @@ export async function handleMagnanimousMux(request,env){
     });
   }
 
-  if(request.method==='GET'&&path==='/api/mux/whoami')return json(await muxWhoAmI(env));
+  if(request.method==='GET'&&path==='/api/mux/whoami')return json(await muxWhoAmI(runtimeEnv));
 
   return json({
     detail:'Magnanimous Mux Control is read-only in this release. Asset creation, direct uploads, live-stream creation, Robots jobs, signing-key changes, webhook changes and other provider mutations remain confirmation-gated and disabled here.',
