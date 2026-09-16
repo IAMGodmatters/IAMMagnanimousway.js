@@ -22,7 +22,7 @@ export default function SignupPage() {
 
   async function submit(e: FormEvent) {
     e.preventDefault(); setError('');
-    if (password.length < 8) return setError('Use a password with at least 8 characters.');
+    if (password.length < 10) return setError('Use a password with at least 10 characters.');
     if (password !== confirm) return setError('The passwords do not match.');
     if (!privacyConsent) return setError('Please acknowledge the Privacy Notice and required account data processing.');
     if (!termsAccepted) return setError('Please accept the Terms of Service.');
@@ -58,14 +58,15 @@ export default function SignupPage() {
           <label style={styles.field}><span style={styles.fieldLabel}>Your name</span><input required autoComplete="name" placeholder="Name shown in your workspace" value={name} onChange={e => setName(e.target.value)} style={styles.input} /></label>
           <label style={styles.field}><span style={styles.fieldLabel}>Workspace or business name <em style={styles.optional}>optional</em></span><input autoComplete="organization" placeholder="Example: Hardin Family Business" value={workspace} onChange={e => setWorkspace(e.target.value)} style={styles.input} /></label>
           <label style={styles.field}><span style={styles.fieldLabel}>Email address</span><input required type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} style={styles.input} /></label>
-          <label style={styles.field}><span style={styles.fieldLabel}>Password</span><input required type="password" minLength={8} autoComplete="new-password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)} style={styles.input} /></label>
-          <label style={styles.field}><span style={styles.fieldLabel}>Confirm password</span><input required type="password" minLength={8} autoComplete="new-password" placeholder="Type the same password again" value={confirm} onChange={e => setConfirm(e.target.value)} style={styles.input} /></label>
+          <label style={styles.field}><span style={styles.fieldLabel}>Password</span><input required type="password" minLength={10} autoComplete="new-password" aria-describedby="password-guidance" placeholder="At least 10 characters" value={password} onChange={e => setPassword(e.target.value)} style={styles.input} /></label>
+          <p id="password-guidance" style={styles.guidance}>Use 10 or more characters. Password managers and pasted passwords are supported.</p>
+          <label style={styles.field}><span style={styles.fieldLabel}>Confirm password</span><input required type="password" minLength={10} autoComplete="new-password" placeholder="Type the same password again" value={confirm} onChange={e => setConfirm(e.target.value)} style={styles.input} /></label>
           <div style={styles.consentBox}>
             <label style={styles.checkRow}><input type="checkbox" checked={privacyConsent} onChange={e => setPrivacyConsent(e.target.checked)} style={styles.checkbox} /><span>I acknowledge the <a href="/privacy" target="_blank" rel="noreferrer" style={styles.link}>Privacy Notice</a> and consent to the collection and processing of my account information as needed to provide and secure the service, administer my account, and manage the customer/lead relationship. <b>Required.</b></span></label>
             <label style={styles.checkRow}><input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} style={styles.checkbox} /><span>I have read and accept the <a href="/terms" target="_blank" rel="noreferrer" style={styles.link}>Terms of Service</a>. <b>Required.</b></span></label>
             <label style={styles.checkRow}><input type="checkbox" checked={marketingConsent} onChange={e => setMarketingConsent(e.target.checked)} style={styles.checkbox} /><span>I would like to receive optional product updates, offers, ministry/business news, and other promotional messages from I AM Magnanimous Way. I can withdraw this consent later. <b>Optional.</b></span></label>
           </div>
-          <p style={styles.notice}>Your name, email, workspace/account information, signup and login activity, and information you provide while using the platform may be stored for service, security, administration, support, and customer/lead-management purposes. Passwords are not stored in readable plain text.</p>
+          <p style={styles.notice}>Your name, email, workspace/account information, signup and login activity, and information you provide while using the platform may be stored for service, security, administration, support, and customer/lead-management purposes. Passwords are stored using a one-way password derivation process and are not stored in readable plain text.</p>
           <button disabled={busy || !privacyConsent || !termsAccepted} type="submit" style={{...styles.button, opacity: busy || !privacyConsent || !termsAccepted ? .55 : 1}}>{busy ? 'Creating account…' : 'Create My Account'}</button>
           {error && <div role="alert" style={styles.error}>{error}</div>}
         </form>
@@ -90,6 +91,7 @@ const styles: Record<string, React.CSSProperties> = {
   fieldLabel: { color: '#d8e4f2', fontSize: 12, fontWeight: 750 },
   optional: { color: '#7f8ca3', fontSize: 10, fontStyle: 'normal', fontWeight: 500 },
   input: { width: '100%', boxSizing: 'border-box', padding: '14px 15px', borderRadius: 13, border: '1px solid rgba(150,165,210,.22)', background: 'rgba(255,255,255,.045)', color: '#fff', outline: 'none', fontSize: 15 },
+  guidance: { margin: '-6px 0 0', color: '#8fa3bb', fontSize: 11.5, lineHeight: 1.45 },
   consentBox: { display: 'grid', gap: 12, padding: 14, borderRadius: 14, border: '1px solid rgba(118,220,255,.2)', background: 'rgba(70,120,170,.06)' },
   checkRow: { display: 'grid', gridTemplateColumns: '22px 1fr', gap: 10, alignItems: 'start', color: '#c7d2e5', fontSize: 12.5, lineHeight: 1.5, cursor: 'pointer' },
   checkbox: { width: 18, height: 18, marginTop: 2, accentColor: '#48d7ff' },
