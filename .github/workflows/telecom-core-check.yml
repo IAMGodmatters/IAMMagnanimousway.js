@@ -5,10 +5,18 @@ on:
     branches: [main]
     paths:
       - 'telecom-core/**'
+      - 'frontend/app/telecom/**'
+      - 'worker/src/magnanimous-telecom-runtime.js'
+      - 'worker/src/entrypoint.js'
+      - 'worker/migrations/0040_magnanimous_telecom_business.sql'
       - '.github/workflows/telecom-core-check.yml'
   pull_request:
     paths:
       - 'telecom-core/**'
+      - 'frontend/app/telecom/**'
+      - 'worker/src/magnanimous-telecom-runtime.js'
+      - 'worker/src/entrypoint.js'
+      - 'worker/migrations/0040_magnanimous_telecom_business.sql'
       - '.github/workflows/telecom-core-check.yml'
 
 permissions:
@@ -25,6 +33,11 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.13'
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
 
       - name: Compile Telecom API
         run: python -m py_compile telecom-core/control-api/app/main.py
@@ -44,3 +57,27 @@ jobs:
 
       - name: Build Telecom API image
         run: docker build -t magnanimous-telecom-api:ci telecom-core/control-api
+
+      - name: Validate Worker Telecom runtime
+        run: |
+          node --check worker/src/magnanimous-telecom-runtime.js
+          node --check worker/src/entrypoint.js
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Typecheck standalone Telecom dashboard
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build production frontend assets
+        working-directory: frontend
+        run: npm run build
+
+      - name: Lock Magnanimous identity contract
+        run: |
+          grep -q 'Magnanimous Telecom' frontend/app/telecom/page.tsx
+          grep -q 'Magnanimous AI' frontend/app/telecom/page.tsx
+          grep -q 'integrated-and-standalone' worker/src/magnanimous-telecom-runtime.js
+          grep -q 'TELECOM_EMERGENCY_LIVE' telecom-core/STANDALONE.md
