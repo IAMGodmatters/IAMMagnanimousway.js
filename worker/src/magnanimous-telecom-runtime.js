@@ -2,6 +2,7 @@ import { currentUser } from './integrations.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const truthy=value=>String(value||'').toLowerCase()==='true';
+const now=()=>Math.floor(Date.now()/1000);
 
 async function ensureSchema(env){
  if(!env?.DB)return;
@@ -11,13 +12,26 @@ async function ensureSchema(env){
   `CREATE TABLE IF NOT EXISTS telecom_port_requests (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,number_e164 TEXT NOT NULL,losing_carrier TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'draft',foc_at INTEGER,metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS telecom_emergency_locations (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,number_id TEXT,country TEXT NOT NULL DEFAULT '',address_line1 TEXT NOT NULL DEFAULT '',address_line2 TEXT NOT NULL DEFAULT '',city TEXT NOT NULL DEFAULT '',region TEXT NOT NULL DEFAULT '',postal_code TEXT NOT NULL DEFAULT '',validation_status TEXT NOT NULL DEFAULT 'unverified',provider_reference TEXT NOT NULL DEFAULT '',enabled INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS telecom_rating_ledger (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,call_id TEXT NOT NULL DEFAULT '',direction TEXT NOT NULL DEFAULT '',destination TEXT NOT NULL DEFAULT '',units REAL NOT NULL DEFAULT 0,unit_name TEXT NOT NULL DEFAULT 'minute',rate REAL NOT NULL DEFAULT 0,cost REAL NOT NULL DEFAULT 0,currency TEXT NOT NULL DEFAULT 'USD',rated_at INTEGER NOT NULL,metadata_json TEXT NOT NULL DEFAULT '{}')`,
-  `CREATE TABLE IF NOT EXISTS telecom_compliance_controls (tenant_id TEXT NOT NULL,jurisdiction TEXT NOT NULL DEFAULT 'global',control_key TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'not_started',evidence_ref TEXT NOT NULL DEFAULT '',notes TEXT NOT NULL DEFAULT '',updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,jurisdiction,control_key))`
+  `CREATE TABLE IF NOT EXISTS telecom_compliance_controls (tenant_id TEXT NOT NULL,jurisdiction TEXT NOT NULL DEFAULT 'global',control_key TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'not_started',evidence_ref TEXT NOT NULL DEFAULT '',notes TEXT NOT NULL DEFAULT '',updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,jurisdiction,control_key))`,
+  `CREATE TABLE IF NOT EXISTS telecom_customers (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,display_name TEXT NOT NULL,email TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'prospect',billing_currency TEXT NOT NULL DEFAULT 'USD',metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS telecom_service_plans (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',monthly_price REAL NOT NULL DEFAULT 0,currency TEXT NOT NULL DEFAULT 'USD',included_minutes REAL NOT NULL DEFAULT 0,features_json TEXT NOT NULL DEFAULT '{}',active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS telecom_subscriptions (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,customer_id TEXT NOT NULL,plan_id TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'trial',started_at INTEGER NOT NULL,renews_at INTEGER,ended_at INTEGER,metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS telecom_caller_identities (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,number_id TEXT,display_name TEXT NOT NULL DEFAULT '',verification_status TEXT NOT NULL DEFAULT 'unverified',stir_shaken_attestation TEXT NOT NULL DEFAULT '',cnam_status TEXT NOT NULL DEFAULT 'not_configured',metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS telecom_fraud_policies (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,daily_spend_limit REAL NOT NULL DEFAULT 0,max_call_minutes REAL NOT NULL DEFAULT 0,international_enabled INTEGER NOT NULL DEFAULT 0,blocked_prefixes_json TEXT NOT NULL DEFAULT '[]',active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS telecom_audit_events (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,actor_user_id TEXT NOT NULL DEFAULT '',event_type TEXT NOT NULL,subject_type TEXT NOT NULL DEFAULT '',subject_id TEXT NOT NULL DEFAULT '',detail_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL)`
  ];
  for(const sql of statements){try{await env.DB.prepare(sql).run()}catch(error){console.error('telecom schema repair failed',error)}}
 }
 
 async function count(env,sql,...bind){
  try{return Number((await env.DB.prepare(sql).bind(...bind).first())?.n||0)}catch{return 0}
+}
+
+async function audit(env,tenant,user,eventType,subjectType='',subjectId='',detail={}){
+ try{
+  await env.DB.prepare('INSERT INTO telecom_audit_events(tenant_id,actor_user_id,event_type,subject_type,subject_id,detail_json,created_at) VALUES(?,?,?,?,?,?,?)')
+   .bind(tenant,String(user?.id||user?.user_id||''),eventType,subjectType,subjectId,JSON.stringify(detail||{}),now()).run();
+ }catch(error){console.error('telecom audit write failed',error)}
 }
 
 function readiness(env){
@@ -58,12 +72,18 @@ export async function handleMagnanimousTelecom(request,env){
 
  if(path==='/api/telecom/overview'&&request.method==='GET'){
   const state=readiness(env);
-  const [numbers,interconnects,ports,emergencyLocations,ratedCalls]=await Promise.all([
+  const [numbers,interconnects,ports,emergencyLocations,ratedCalls,customers,plans,subscriptions,callerIdentities,fraudPolicies,auditEvents]=await Promise.all([
    count(env,'SELECT COUNT(*) n FROM telecom_numbers WHERE tenant_id=?',tenant),
    count(env,'SELECT COUNT(*) n FROM telecom_interconnects WHERE tenant_id=? AND active=1',tenant),
    count(env,"SELECT COUNT(*) n FROM telecom_port_requests WHERE tenant_id=? AND status NOT IN ('completed','cancelled','rejected')",tenant),
    count(env,'SELECT COUNT(*) n FROM telecom_emergency_locations WHERE tenant_id=? AND enabled=1',tenant),
-   count(env,'SELECT COUNT(*) n FROM telecom_rating_ledger WHERE tenant_id=?',tenant)
+   count(env,'SELECT COUNT(*) n FROM telecom_rating_ledger WHERE tenant_id=?',tenant),
+   count(env,"SELECT COUNT(*) n FROM telecom_customers WHERE tenant_id=? AND status NOT IN ('closed','suspended')",tenant),
+   count(env,'SELECT COUNT(*) n FROM telecom_service_plans WHERE tenant_id=? AND active=1',tenant),
+   count(env,"SELECT COUNT(*) n FROM telecom_subscriptions WHERE tenant_id=? AND status IN ('trial','active')",tenant),
+   count(env,"SELECT COUNT(*) n FROM telecom_caller_identities WHERE tenant_id=? AND verification_status='verified'",tenant),
+   count(env,'SELECT COUNT(*) n FROM telecom_fraud_policies WHERE tenant_id=? AND active=1',tenant),
+   count(env,'SELECT COUNT(*) n FROM telecom_audit_events WHERE tenant_id=?',tenant)
   ]);
   return json({
    identity:'Magnanimous Telecom',
@@ -73,8 +93,24 @@ export async function handleMagnanimousTelecom(request,env){
    provider_disclosure:'hidden-from-customer-ui',
    readiness:state,
    gates:gates(state),
-   inventory:{numbers,active_interconnects:interconnects,open_port_requests:ports,enabled_emergency_locations:emergencyLocations,rated_calls:ratedCalls}
+   inventory:{numbers,active_interconnects:interconnects,open_port_requests:ports,enabled_emergency_locations:emergencyLocations,rated_calls:ratedCalls},
+   commercial:{customers,active_plans:plans,active_subscriptions:subscriptions,verified_caller_identities:callerIdentities,active_fraud_policies:fraudPolicies,audit_events:auditEvents}
   });
+ }
+
+ if(path==='/api/telecom/commercial'&&request.method==='GET'){
+  const [plansResult,policiesResult]=await Promise.all([
+   env.DB.prepare('SELECT id,name,description,monthly_price,currency,included_minutes,features_json,active,updated_at FROM telecom_service_plans WHERE tenant_id=? ORDER BY active DESC,name').bind(tenant).all(),
+   env.DB.prepare('SELECT id,name,daily_spend_limit,max_call_minutes,international_enabled,blocked_prefixes_json,active,updated_at FROM telecom_fraud_policies WHERE tenant_id=? ORDER BY active DESC,name').bind(tenant).all()
+  ]);
+  return json({plans:plansResult.results||[],fraud_policies:policiesResult.results||[]});
+ }
+
+ if(path==='/api/telecom/audit'&&request.method==='GET'){
+  if(user.role!=='owner')return json({detail:'Owner access required.'},403);
+  const limit=Math.max(1,Math.min(200,Number(url.searchParams.get('limit')||50)));
+  const {results}=await env.DB.prepare('SELECT id,actor_user_id,event_type,subject_type,subject_id,detail_json,created_at FROM telecom_audit_events WHERE tenant_id=? ORDER BY id DESC LIMIT ?').bind(tenant,limit).all();
+  return json({events:results||[]});
  }
 
  if(path==='/api/telecom/compliance'&&request.method==='GET'){
@@ -90,8 +126,9 @@ export async function handleMagnanimousTelecom(request,env){
   const status=String(body.status||'not_started').trim().slice(0,40);
   if(!controlKey)return json({detail:'control_key is required.'},400);
   if(!['not_started','planned','in_progress','blocked','ready','verified'].includes(status))return json({detail:'Unsupported compliance status.'},400);
-  const evidence=String(body.evidence_ref||'').trim().slice(0,500),notes=String(body.notes||'').trim().slice(0,2000),ts=Math.floor(Date.now()/1000);
+  const evidence=String(body.evidence_ref||'').trim().slice(0,500),notes=String(body.notes||'').trim().slice(0,2000),ts=now();
   await env.DB.prepare(`INSERT INTO telecom_compliance_controls(tenant_id,jurisdiction,control_key,status,evidence_ref,notes,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(tenant_id,jurisdiction,control_key) DO UPDATE SET status=excluded.status,evidence_ref=excluded.evidence_ref,notes=excluded.notes,updated_at=excluded.updated_at`).bind(tenant,jurisdiction,controlKey,status,evidence,notes,ts).run();
+  await audit(env,tenant,user,'compliance.control.updated','compliance_control',`${jurisdiction}:${controlKey}`,{status,evidence_ref:evidence});
   return json({ok:true,jurisdiction,control_key:controlKey,status});
  }
 
