@@ -46,7 +46,7 @@ export const MAGNANIMOUS_ECOSYSTEM_PROVIDERS=[
  {
   id:'openai-chatgpt',name:'ChatGPT / OpenAI',category:'ai-execution',provider_internal_only:true,
   access:'openai_api_key_or_authorized_chatgpt_connector_required',
-  capabilities:[cap('responses','Responses API'),cap('streaming','Streaming'),cap('text','Text generation and understanding'),cap('vision','Image/vision input'),cap('file-input','File input'),cap('web-search','Web search tool'),cap('file-search','File search tool'),cap('function-calling','Function calling and custom tools'),cap('mcp','Remote MCP tools and connectors'),cap('realtime','Realtime multimodal/audio'),cap('tracing','Tracing and observability')]
+  capabilities:[cap('responses','Responses API'),cap('streaming','Streaming'),cap('text','Text generation and understanding'),cap('vision','Image/vision input'),cap('file-input','File input'),cap('web-search','Web search tool'),cap('file-search','File search tool'),cap('function-calling','Function calling and custom tools'),cap('computer-use','Computer use','guarded'),cap('mcp','Remote MCP tools'),cap('connectors','Authorized connectors'),cap('realtime','Realtime multimodal/audio'),cap('image-generation','Image generation and editing'),cap('speech-generation','Speech generation'),cap('transcription','Speech transcription'),cap('tracing','Tracing and observability')]
  }
 ];
 
