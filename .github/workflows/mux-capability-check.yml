@@ -6,6 +6,8 @@ on:
     paths:
       - 'video-core/**'
       - 'video-renderer/server.py'
+      - 'worker/src/platform-credentials.js'
+      - 'worker/src/provider-runtime-env.js'
       - 'worker/src/magnanimous-mux-capability-registry.js'
       - 'worker/src/magnanimous-mux-runtime.js'
       - 'worker/src/magnanimous-mux-credentials.js'
@@ -16,6 +18,8 @@ on:
     paths:
       - 'video-core/**'
       - 'video-renderer/server.py'
+      - 'worker/src/platform-credentials.js'
+      - 'worker/src/provider-runtime-env.js'
       - 'worker/src/magnanimous-mux-capability-registry.js'
       - 'worker/src/magnanimous-mux-runtime.js'
       - 'worker/src/magnanimous-mux-credentials.js'
@@ -36,6 +40,8 @@ jobs:
           node-version: '24'
       - name: Validate Mux runtimes
         run: |
+          node --check worker/src/platform-credentials.js
+          node --check worker/src/provider-runtime-env.js
           node --check worker/src/magnanimous-mux-capability-registry.js
           node --check worker/src/magnanimous-mux-runtime.js
           node --check worker/src/magnanimous-mux-credentials.js
@@ -79,14 +85,23 @@ jobs:
           missing=expected-actual
           assert not missing, f'missing tables: {sorted(missing)}'
           PY
-      - name: Validate credential and cost safety
+      - name: Validate centralized credential and cost safety
         run: |
-          grep -q "key:'MUX_TOKEN_ID'" worker/src/magnanimous-mux-credentials.js
-          grep -q "key:'MUX_TOKEN_SECRET'" worker/src/magnanimous-mux-credentials.js
-          grep -q "key:'MUX_DATA_ENV_KEY'" worker/src/magnanimous-mux-credentials.js
-          grep -q "key:'MUX_WEBHOOK_SECRET'" worker/src/magnanimous-mux-credentials.js
-          grep -q 'iam-platform-credentials-v1' worker/src/magnanimous-mux-credentials.js
-          grep -q 'platform_credential_audit' worker/src/magnanimous-mux-credentials.js
+          grep -q "id:'mux'" worker/src/platform-credentials.js
+          grep -q "key:'MUX_TOKEN_ID'" worker/src/platform-credentials.js
+          grep -q "key:'MUX_TOKEN_SECRET'" worker/src/platform-credentials.js
+          grep -q "key:'MUX_DATA_ENV_KEY'" worker/src/platform-credentials.js
+          grep -q "key:'MUX_WEBHOOK_SECRET'" worker/src/platform-credentials.js
+          grep -q 'export async function setPlatformCredential' worker/src/platform-credentials.js
+          grep -q 'export async function deletePlatformCredential' worker/src/platform-credentials.js
+          grep -q 'iam-platform-credentials-v1' worker/src/platform-credentials.js
+          grep -q 'platform_credential_audit' worker/src/platform-credentials.js
+          grep -q 'setPlatformCredential' worker/src/magnanimous-mux-credentials.js
+          grep -q 'deletePlatformCredential' worker/src/magnanimous-mux-credentials.js
+          ! grep -q 'crypto.subtle' worker/src/magnanimous-mux-credentials.js
+          ! grep -q 'CREATE TABLE IF NOT EXISTS platform_credentials' worker/src/magnanimous-mux-credentials.js
+          grep -q "'MUX_DATA_ENV_KEY'" worker/src/provider-runtime-env.js
+          grep -q "'MUX_WEBHOOK_SECRET'" worker/src/provider-runtime-env.js
           grep -q 'secrets_exposed:false' worker/src/magnanimous-mux-runtime.js
           grep -q 'provider_tokens_exposed:false' worker/src/magnanimous-mux-runtime.js
           grep -q 'provider_secrets_exposed:false' worker/src/magnanimous-mux-runtime.js
