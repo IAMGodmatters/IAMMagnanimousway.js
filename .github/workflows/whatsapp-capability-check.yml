@@ -78,7 +78,7 @@ jobs:
           grep -q 'direct_call_execution_enabled:false' worker/src/magnanimous-whatsapp-runtime.js
           grep -q "action_router:'/api/assistant-integrations/actions'" worker/src/magnanimous-whatsapp-runtime.js
           grep -q 'does not create a second write path' whatsapp-core/ABSORPTION.md
-          grep -q 'no provider access tokens, raw message bodies, media bytes, payment credentials or raw identity documents' worker/migrations/0050_magnanimous_whatsapp_control.sql
+          grep -qi 'no provider access tokens, raw message bodies, media bytes, payment credentials or raw identity documents' worker/migrations/0050_magnanimous_whatsapp_control.sql
       - name: Validate current-platform documentation
         run: |
           grep -qi 'Cloud API' whatsapp-core/ABSORPTION.md
