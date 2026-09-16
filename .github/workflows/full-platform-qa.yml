@@ -6,7 +6,7 @@ on:
   pull_request:
   workflow_dispatch:
   schedule:
-    - cron: '17 2 * * *'
+    - cron: '17 2 * * 0'
 
 permissions:
   actions: read
@@ -72,7 +72,7 @@ jobs:
     # PRs and branch pushes validate source/builds only. They must not repeatedly
     # exercise the live production Worker and consume the account's daily quota.
     # The strict deployment smoke still verifies every production deploy; this broad
-    # browser matrix is reserved for scheduled or explicitly requested production QA.
+    # browser matrix is reserved for weekly or explicitly requested production QA.
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
