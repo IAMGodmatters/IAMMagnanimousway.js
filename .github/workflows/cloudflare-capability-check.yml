@@ -1,0 +1,43 @@
+name: Magnanimous Cloudflare Capability Verification
+
+on:
+  pull_request:
+    paths:
+      - 'worker/src/magnanimous-cloudflare-*.js'
+      - 'worker/src/security-entrypoint.js'
+      - 'worker/migrations/0059_magnanimous_cloudflare_control.sql'
+      - 'qa/scripts/cloudflare-capability-lock.mjs'
+      - '.github/workflows/cloudflare-capability-check.yml'
+      - 'cloudflare-core/**'
+  push:
+    branches: ['main','magnanimous/**']
+    paths:
+      - 'worker/src/magnanimous-cloudflare-*.js'
+      - 'worker/src/security-entrypoint.js'
+      - 'worker/migrations/0059_magnanimous_cloudflare_control.sql'
+      - 'qa/scripts/cloudflare-capability-lock.mjs'
+      - '.github/workflows/cloudflare-capability-check.yml'
+      - 'cloudflare-core/**'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Verify Cloudflare absorption contracts
+        run: node qa/scripts/cloudflare-capability-lock.mjs
+      - name: Syntax check Cloudflare runtime
+        run: |
+          node --check worker/src/magnanimous-cloudflare-capability-registry.js
+          node --check worker/src/magnanimous-cloudflare-runtime.js
+          node --check worker/src/security-entrypoint.js
+      - name: Lock D1-safe migration shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(grep -c 'CREATE TABLE IF NOT EXISTS magnanimous_cloudflare_actions' worker/migrations/0059_magnanimous_cloudflare_control.sql)" -eq 1
+          test "$(grep -c 'CREATE TABLE IF NOT EXISTS magnanimous_cloudflare_audit' worker/migrations/0059_magnanimous_cloudflare_control.sql)" -eq 1
+          ! grep -Eqi 'CREATE TRIGGER|ALTER TABLE|DROP TABLE|DROP COLUMN' worker/migrations/0059_magnanimous_cloudflare_control.sql
