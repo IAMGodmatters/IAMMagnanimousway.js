@@ -10,6 +10,7 @@ on:
       - 'worker/src/magnanimous-telecom-network-runtime.js'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
+      - 'worker/src/magnanimous-telecom-security-gate.js'
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0040_magnanimous_telecom_business.sql'
       - 'worker/migrations/0041_magnanimous_telecom_commercial_ops.sql'
@@ -26,6 +27,7 @@ on:
       - 'worker/src/magnanimous-telecom-network-runtime.js'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
+      - 'worker/src/magnanimous-telecom-security-gate.js'
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0040_magnanimous_telecom_business.sql'
       - 'worker/migrations/0041_magnanimous_telecom_commercial_ops.sql'
@@ -80,6 +82,7 @@ jobs:
           node --check worker/src/magnanimous-telecom-network-runtime.js
           node --check worker/src/magnanimous-telecom-service-runtime.js
           node --check worker/src/magnanimous-telecom-operations-runtime.js
+          node --check worker/src/magnanimous-telecom-security-gate.js
           node --check worker/src/entrypoint.js
 
       - name: Validate Telecom schema foundations
@@ -117,6 +120,10 @@ jobs:
           grep -q 'TELECOM_REGULATED_ACTIONS_ENABLED' worker/src/magnanimous-telecom-network-runtime.js
           grep -q 'confirm_regulated_action' worker/src/magnanimous-telecom-network-runtime.js
           grep -q 'Software readiness is not regulatory authority' worker/src/magnanimous-telecom-network-runtime.js
+          grep -q 'confirm_sim_swap_security_review' worker/src/magnanimous-telecom-security-gate.js
+          grep -q 'identity_verification_reference' worker/src/magnanimous-telecom-security-gate.js
+          grep -q 'confirm_port_out_authorization' worker/src/magnanimous-telecom-security-gate.js
+          grep -q 'porting_authorization_reference' worker/src/magnanimous-telecom-security-gate.js
 
       - name: Validate no-white-label Telecom lock
         run: |
