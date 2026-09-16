@@ -1,0 +1,28 @@
+'use client';
+import {useEffect,useState} from 'react';
+
+const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
+type AccountUser={id?:string;tenant_id?:string;name?:string;email?:string;role?:string};
+async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t}}}
+
+export default function Account(){
+ const[user,setUser]=useState<AccountUser>({}),[ready,setReady]=useState(false),[error,setError]=useState('');
+ useEffect(()=>{(async()=>{
+  const token=localStorage.getItem('iam_account_token')||'';
+  if(!token){location.replace('/login?returnTo=/account');return}
+  try{
+   const r=await fetch(`${api}/api/auth/me`,{headers:{Authorization:`Bearer ${token}`},cache:'no-store'}),d=await read(r);
+   if(!r.ok||!d.user){localStorage.removeItem('iam_account_token');sessionStorage.removeItem('iam_session_active');location.replace('/login?returnTo=/account');return}
+   setUser(d.user);setReady(true);
+  }catch{setError('Your account could not be loaded. Check your connection and try again.');setReady(true)}
+ })()},[]);
+ async function logout(){
+  const token=localStorage.getItem('iam_account_token')||'';
+  try{if(token)await fetch(`${api}/api/auth/logout`,{method:'POST',headers:{Authorization:`Bearer ${token}`}})}catch{}
+  localStorage.removeItem('iam_account_token');sessionStorage.removeItem('iam_session_active');location.replace('/login');
+ }
+ if(!ready)return <main className="loading">Loading your Magnanimous account…<style jsx>{`.loading{min-height:100vh;display:grid;place-items:center;background:#031129;color:#c9efff;font:14px Inter,system-ui}`}</style></main>;
+ return <main className="page"><header><a href="/">← Platform</a><span>MY MAGNANIMOUS ACCOUNT</span></header><section className="hero"><small>I AM MAGNANIMOUS WAY™</small><h1>Your Account</h1><p>One account for your Magnanimous AI workspace, tools, connections and services.</p></section>{error&&<div className="error" role="alert">{error}</div>}<section className="grid"><article><div className="head"><b>PROFILE</b><span>SECURE SESSION</span></div><dl><div><dt>Name</dt><dd>{user.name||'—'}</dd></div><div><dt>Email</dt><dd>{user.email||'—'}</dd></div><div><dt>Workspace role</dt><dd>{user.role||'member'}</dd></div></dl><button className="logout" onClick={logout}>Log out securely</button></article><article><div className="head"><b>ACCOUNT & SERVICES</b><span>QUICK ACCESS</span></div><nav><a href="/start"><strong>Start / Workspace</strong><small>Return to your main Magnanimous workspace.</small></a><a href="/pricing"><strong>Plans & Pricing</strong><small>Review current plan options.</small></a><a href="/billing-support"><strong>Billing Support</strong><small>Manage billing questions and cancellation requests.</small></a><a href="/connections"><strong>Connections</strong><small>Review supported platform connections.</small></a><a href="/security"><strong>Security & Privacy</strong><small>Read the platform security model and protections.</small></a><a href="/support"><strong>Support</strong><small>Get help using the platform.</small></a></nav></article></section><section className="note"><b>Privacy boundary</b><p>Your customer account is separate from global owner controls, infrastructure credentials and provider administration.</p></section><style jsx>{`
+.page{min-height:100vh;background:#031129;color:#effaff;padding:24px 32px 60px;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 82% 8%,rgba(36,173,255,.17),transparent 30%)}header,.hero,.grid,.note,.error{max-width:1100px;margin-left:auto;margin-right:auto}header{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.14em;color:#75a5bd}header a{color:#70ddff;text-decoration:none}.hero{margin-top:28px;border:1px solid #21688f;border-radius:18px;background:linear-gradient(135deg,#071d39,#041024);padding:30px}.hero small{font-size:9px;letter-spacing:.18em;color:#5ce5ff}.hero h1{font:700 clamp(40px,7vw,68px) Georgia,serif;margin:5px 0 8px;color:#d7f5ff}.hero p{color:#a6c5d3;line-height:1.55}.error{margin-top:12px;border:1px solid #70343b;background:#251116;color:#ffc1c6;padding:12px;border-radius:9px}.grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:14px;margin-top:14px}.grid article,.note{border:1px solid #1f506c;background:#071625;border-radius:15px;padding:20px}.head{display:flex;justify-content:space-between;color:#8edcff;font-size:10px;letter-spacing:.1em;margin-bottom:14px}.head span{color:#618da3}dl{margin:0}dl div{padding:12px 0;border-bottom:1px solid #18394d}dt{color:#7899aa;font-size:9px;text-transform:uppercase;letter-spacing:.12em}dd{margin:5px 0 0;color:#e8f7ff;overflow-wrap:anywhere}nav{display:grid;grid-template-columns:1fr 1fr;gap:9px}nav a{display:grid;gap:5px;border:1px solid #245d7c;border-radius:10px;padding:13px;text-decoration:none;background:#071c30;color:#e8f8ff}nav a:hover{border-color:#5adfff}nav small{color:#7fa3b5;line-height:1.4}.logout{margin-top:18px;border:1px solid #8b4750;background:#34151b;color:#ffd6d9;border-radius:9px;padding:11px 14px;font-weight:800;cursor:pointer}.note{margin-top:14px}.note b{color:#91e4ff}.note p{color:#8daab7;margin-bottom:0;line-height:1.5}@media(max-width:760px){.page{padding:18px 13px 40px}.grid{grid-template-columns:1fr}nav{grid-template-columns:1fr}header span{display:none}}
+`}</style></main>
+}
