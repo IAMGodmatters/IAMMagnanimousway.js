@@ -1,5 +1,5 @@
 import { currentUser } from './integrations.js';
-import { getProviderRuntimeEnv } from './provider-runtime-env.js';
+import { getMuxRuntimeEnv,muxCredentialStatus,setMuxCredential,deleteMuxCredential } from './magnanimous-mux-credentials.js';
 import { muxCapabilitySummary } from './magnanimous-mux-capability-registry.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -61,18 +61,34 @@ async function muxWhoAmI(env){
 export async function handleMagnanimousMux(request,env){
   const url=new URL(request.url),path=url.pathname;
   if(!path.startsWith('/api/mux'))return null;
-  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type','access-control-allow-methods':'GET,OPTIONS'}});
+  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type','access-control-allow-methods':'GET,POST,DELETE,OPTIONS'}});
   const user=await currentUser(request,env);
   if(!user)return json({detail:'Sign in to Magnanimous AI.'},401);
   if(user.role!=='owner')return json({detail:'Owner access required.'},403);
-  const runtimeEnv=await getProviderRuntimeEnv(env);
 
+  if(path==='/api/mux/credentials'){
+    if(request.method==='GET')return json({fields:await muxCredentialStatus(env),secrets_exposed:false});
+    if(request.method==='POST'){
+      const body=await request.json().catch(()=>({}));
+      try{await setMuxCredential(env,user,String(body.key||'').trim(),String(body.value||''));return json({ok:true,key:String(body.key||'').trim(),secrets_exposed:false});}
+      catch(error){return json({detail:String(error?.message||error)},400);}
+    }
+    if(request.method==='DELETE'){
+      try{const key=String(url.searchParams.get('key')||'').trim();await deleteMuxCredential(env,user,key);return json({ok:true,key,secrets_exposed:false});}
+      catch(error){return json({detail:String(error?.message||error)},400);}
+    }
+    return json({detail:'Unsupported Mux credential operation.'},405);
+  }
+
+  const runtimeEnv=await getMuxRuntimeEnv(env);
   if(request.method==='GET'&&(path==='/api/mux'||path==='/api/mux/capabilities'||path==='/api/mux/readiness')){
     const summary=muxCapabilitySummary(runtimeEnv);
     return json({
       ...summary,
       normalized_state:await normalizedState(env),
-      credential_source:'Magnanimous encrypted provider vault or server environment',
+      credential_source:'Magnanimous encrypted platform_credentials vault or server environment',
+      credential_status:await muxCredentialStatus(env),
+      credential_router:'/api/mux/credentials',
       read_probe:'/api/mux/whoami',
       provider_tokens_exposed:false,
       provider_secrets_exposed:false,
@@ -87,7 +103,7 @@ export async function handleMagnanimousMux(request,env){
   if(request.method==='GET'&&path==='/api/mux/whoami')return json(await muxWhoAmI(runtimeEnv));
 
   return json({
-    detail:'Magnanimous Mux Control is read-only in this release. Asset creation, direct uploads, live-stream creation, Robots jobs, signing-key changes, webhook changes and other provider mutations remain confirmation-gated and disabled here.',
+    detail:'Magnanimous Mux Control is read-only for provider-resource mutations in this release. Asset creation, direct uploads, live-stream creation, Robots jobs, signing-key changes, webhook changes and other provider mutations remain confirmation-gated and disabled here.',
     code:'MUX_CONTROL_PLANE_READ_ONLY'
   },405);
 }
