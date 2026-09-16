@@ -6,6 +6,7 @@ import { handleMagnanimousCommunications } from './magnanimous-communications-ro
 import { handleMagnanimousNativeMail } from './magnanimous-native-mail-runtime.js';
 import { handleMagnanimousUniversalAIConnector } from './magnanimous-universal-ai-connector.js';
 import { handleMagnanimousTelecom } from './magnanimous-telecom-runtime.js';
+import { handleMagnanimousTelecomNetwork } from './magnanimous-telecom-network-runtime.js';
 import { ensureMagnanimousCommunicationsToolSeed } from './inkbox-tool-seed.js';
 import { ensureMagnanimousSuperhumanMailSeed } from './superhuman-mail-tool-seed.js';
 
@@ -71,6 +72,8 @@ export default {
     if(nativeMail)return nativeMail;
     const communications=await handleMagnanimousCommunications(request,env);
     if(communications)return communications;
+    const regulatedNetwork=await handleMagnanimousTelecomNetwork(request,env);
+    if(regulatedNetwork)return regulatedNetwork;
     const telecom=await handleMagnanimousTelecom(request,env);
     if(telecom)return telecom;
     const integration=await handleIntegrations(request,env);
