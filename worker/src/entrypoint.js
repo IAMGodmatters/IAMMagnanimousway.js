@@ -8,6 +8,7 @@ import { handleMagnanimousUniversalAIConnector } from './magnanimous-universal-a
 import { handleMagnanimousSpace } from './magnanimous-space-runtime.js';
 import { handleMagnanimousResearch } from './magnanimous-research-runtime.js';
 import { handleMagnanimousMeta } from './magnanimous-meta-runtime.js';
+import { handleMagnanimousWhatsApp } from './magnanimous-whatsapp-runtime.js';
 import { handleMagnanimousTelecom } from './magnanimous-telecom-runtime.js';
 import { handleMagnanimousTelecomNetwork } from './magnanimous-telecom-network-runtime.js';
 import { handleMagnanimousTelecomService } from './magnanimous-telecom-service-runtime.js';
@@ -82,6 +83,8 @@ export default {
     if(space)return space;
     const research=await handleMagnanimousResearch(request,env);
     if(research)return research;
+    const whatsapp=await handleMagnanimousWhatsApp(request,env);
+    if(whatsapp)return whatsapp;
     const meta=await handleMagnanimousMeta(request,env);
     if(meta)return meta;
     const telecomSecurity=await handleMagnanimousTelecomSecurityGate(request);
