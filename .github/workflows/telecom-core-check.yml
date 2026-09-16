@@ -9,6 +9,7 @@ on:
       - 'worker/src/magnanimous-telecom-runtime.js'
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0040_magnanimous_telecom_business.sql'
+      - 'worker/migrations/0041_magnanimous_telecom_commercial_ops.sql'
       - '.github/workflows/telecom-core-check.yml'
   pull_request:
     paths:
@@ -17,6 +18,7 @@ on:
       - 'worker/src/magnanimous-telecom-runtime.js'
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0040_magnanimous_telecom_business.sql'
+      - 'worker/migrations/0041_magnanimous_telecom_commercial_ops.sql'
       - '.github/workflows/telecom-core-check.yml'
 
 permissions:
@@ -62,6 +64,13 @@ jobs:
         run: |
           node --check worker/src/magnanimous-telecom-runtime.js
           node --check worker/src/entrypoint.js
+
+      - name: Validate Telecom schema foundations
+        run: |
+          grep -q 'telecom_numbers' worker/migrations/0040_magnanimous_telecom_business.sql
+          grep -q 'telecom_service_plans' worker/migrations/0041_magnanimous_telecom_commercial_ops.sql
+          grep -q 'telecom_fraud_controls' worker/migrations/0041_magnanimous_telecom_commercial_ops.sql
+          grep -q 'telecom_audit_log' worker/migrations/0041_magnanimous_telecom_commercial_ops.sql
 
       - name: Install frontend dependencies
         working-directory: frontend
