@@ -6,6 +6,8 @@ import { applyPlatformResponseHeaders, requestCorrelationId, unhandledRequestFai
 import { resolveSessionRequest, revokeOpaqueSession, upgradeAuthResponseToOpaque } from './session-authority.js';
 import { prepareCarrierWebhook, completeCarrierWebhook } from './carrier-webhook-security.js';
 import { enforceAssistantActionPolicy, completeAssistantActionPolicy } from './assistant-action-policy.js';
+import { handleMagnanimousCloudflare } from './magnanimous-cloudflare-runtime.js';
+import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -13,6 +15,12 @@ const LEGACY_WORDPRESS_EXACT=new Set([
   '/wp-login.php','/xmlrpc.php','/wp-cron.php','/wp-signup.php','/wp-activate.php','/readme.html','/license.txt'
 ]);
 const LEGACY_WORDPRESS_PREFIXES=['/wp-admin','/wp-json','/wp-content','/wp-includes'];
+const CREDENTIAL_VAULT_PATHS=new Set(['/api/platform-credentials','/api/integrations/platform-credentials']);
+const SERVER_ONLY_CREDENTIAL_KEYS=new Set([
+  'CLOUDFLARE_PLATFORM_API_TOKEN',
+  'CLOUDFLARE_PLATFORM_ACCOUNT_ID',
+  'CLOUDFLARE_PLATFORM_ZONE_ID'
+]);
 
 const NATIVE_OPERATIONS_PATHS=new Set([
   '/api/operations/capabilities','/api/operations/summary','/api/operations/bootstrap-crm',
@@ -63,6 +71,48 @@ function finalizeResponse(request,response){
   return applyPlatformResponseHeaders(request,applyCanonicalRootHeaders(request,response));
 }
 
+function credentialVaultPath(request){
+  return CREDENTIAL_VAULT_PATHS.has(new URL(request.url).pathname);
+}
+
+async function blockServerOnlyCredentialBrowserWrite(request){
+  if(!credentialVaultPath(request))return null;
+  const url=new URL(request.url);
+  if(request.method==='DELETE'){
+    const key=String(url.searchParams.get('key')||'').trim();
+    if(SERVER_ONLY_CREDENTIAL_KEYS.has(key))return Response.json({detail:'Cloudflare platform credentials are server-side only and cannot be changed through browser credential APIs.',code:'SERVER_ONLY_CREDENTIAL'},{status:403,headers:{'cache-control':'no-store'}});
+    return null;
+  }
+  if(!['POST','PUT','PATCH'].includes(request.method))return null;
+  const body=await request.clone().json().catch(()=>({}));
+  const keys=new Set([
+    String(body?.key||'').trim(),
+    ...Object.keys(body?.values&&typeof body.values==='object'?body.values:{})
+  ].filter(Boolean));
+  if([...keys].some(key=>SERVER_ONLY_CREDENTIAL_KEYS.has(key))){
+    return Response.json({detail:'Cloudflare platform credentials are server-side only and cannot be submitted from browser credential APIs.',code:'SERVER_ONLY_CREDENTIAL'},{status:403,headers:{'cache-control':'no-store'}});
+  }
+  return null;
+}
+
+async function hideServerOnlyCredentialMetadata(request,response){
+  if(!credentialVaultPath(request)||request.method!=='GET'||!response)return response;
+  const type=String(response.headers.get('content-type')||'').toLowerCase();
+  if(!type.includes('application/json'))return response;
+  const data=await response.clone().json().catch(()=>null);
+  if(!data||!Array.isArray(data.groups))return response;
+  const groups=data.groups.filter(group=>{
+    if(String(group?.id||'').toLowerCase()==='cloudflare')return false;
+    const fields=Array.isArray(group?.fields)?group.fields:[];
+    return !fields.some(field=>SERVER_ONLY_CREDENTIAL_KEYS.has(String(field?.key||'')));
+  });
+  const headers=new Headers(response.headers);
+  headers.delete('content-length');
+  headers.set('cache-control','no-store');
+  headers.set('content-type','application/json; charset=utf-8');
+  return new Response(JSON.stringify({...data,groups}),{status:response.status,statusText:response.statusText,headers});
+}
+
 export default {
   async fetch(request, env, ctx) {
     const canonicalOrLegacy=canonicalOrLegacyResponse(request);
@@ -90,19 +140,40 @@ export default {
       const policyRequest=assistantPolicy?.request||routedRequest;
       assistantContext=assistantPolicy?.context||null;
 
+      const credentialWriteBlock=await blockServerOnlyCredentialBrowserWrite(policyRequest);
+      if(credentialWriteBlock){
+        const assistantCompleted=await completeAssistantActionPolicy(assistantContext,credentialWriteBlock,env);
+        const completed=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
+        return finalizeResponse(request,await securityPostflight(policyRequest,completed,env));
+      }
+
       const blocked = await securityPreflight(policyRequest, env);
       if (blocked) {
         const assistantCompleted=await completeAssistantActionPolicy(assistantContext,blocked,env);
         const completed=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
         return finalizeResponse(request,await securityPostflight(policyRequest,completed,env));
       }
-      const routedUrl = new URL(policyRequest.url);
+
+      const policyUrl=new URL(policyRequest.url);
+      let cloudflareResponse=null;
+      if(policyUrl.pathname.startsWith('/api/cloudflare')){
+        const cloudflareEnv=await getProviderRuntimeEnv(env);
+        cloudflareResponse=await handleMagnanimousCloudflare(policyRequest,cloudflareEnv);
+      }
+      if(cloudflareResponse){
+        const assistantCompleted=await completeAssistantActionPolicy(assistantContext,cloudflareResponse,env);
+        const carrierCompleted=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
+        return finalizeResponse(request,await securityPostflight(policyRequest,carrierCompleted,env));
+      }
+
+      const routedUrl = policyUrl;
       const continuityRequest = policyRequest.method === 'POST' && routedUrl.pathname === '/api/professional/generate' ? policyRequest.clone() : null;
       if (isNativeOperationsPath(routedUrl.pathname)) {
         const nativeOperationsResponse = await handleNativeWorkCrm(policyRequest, env);
         if (nativeOperationsResponse) return finalizeResponse(request,await securityPostflight(policyRequest, nativeOperationsResponse, env));
       }
-      const response = await app.fetch(policyRequest, env, ctx);
+      const rawResponse = await app.fetch(policyRequest, env, ctx);
+      const response = await hideServerOnlyCredentialMetadata(policyRequest,rawResponse);
       const resilientResponse = continuityRequest ? await recoverProfessionalGeneration(continuityRequest, env, response) : response;
       const sessionResponse=await upgradeAuthResponseToOpaque(request,resilientResponse,env);
       const assistantResponse=await completeAssistantActionPolicy(assistantContext,sessionResponse,env);

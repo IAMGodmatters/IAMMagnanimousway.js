@@ -49,6 +49,11 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'MUX_DATA_ENV_KEY',label:'Mux Data Environment Key',secret:false,required:false},
   {key:'MUX_WEBHOOK_SECRET',label:'Mux Webhook Signing Secret',secret:true,required:false}
  ]},
+ {id:'cloudflare',name:'Magnanimous Cloudflare Control Plane',providers:[],fields:[
+  {key:'CLOUDFLARE_PLATFORM_API_TOKEN',label:'Dedicated least-privilege Cloudflare Platform API Token',secret:true,required:false},
+  {key:'CLOUDFLARE_PLATFORM_ACCOUNT_ID',label:'Cloudflare Platform Account ID',secret:false,required:false},
+  {key:'CLOUDFLARE_PLATFORM_ZONE_ID',label:'Cloudflare Platform Zone ID',secret:false,required:false}
+ ]},
  {id:'veo',name:'Google Veo Cinematic Video',providers:['veo'],fields:[
   {key:'GOOGLE_API_KEY',label:'Google Gemini / Veo API Key',secret:true,required:false},
   {key:'ENABLE_VEO_PROVIDER',label:'Enable Veo Provider (true/false)',secret:false,required:false}
