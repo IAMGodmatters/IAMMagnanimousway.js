@@ -1,0 +1,35 @@
+name: WordPress Retirement Check
+
+on:
+  push:
+    branches:
+      - main
+      - magnanimous/**
+    paths:
+      - 'worker/src/security-entrypoint.js'
+      - 'worker/wrangler.jsonc'
+      - 'frontend/public/robots.txt'
+      - 'frontend/public/sitemap.xml'
+      - 'qa/scripts/wordpress-retirement-lock.mjs'
+      - '.github/workflows/wordpress-retirement-check.yml'
+  pull_request:
+    paths:
+      - 'worker/src/security-entrypoint.js'
+      - 'worker/wrangler.jsonc'
+      - 'frontend/public/robots.txt'
+      - 'frontend/public/sitemap.xml'
+      - 'qa/scripts/wordpress-retirement-lock.mjs'
+      - '.github/workflows/wordpress-retirement-check.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify canonical routing and WordPress retirement
+        run: node qa/scripts/wordpress-retirement-lock.mjs
+      - name: Validate Worker configuration
+        working-directory: worker
+        run: |
+          npm install
+          npx wrangler deploy --dry-run --outdir /tmp/wordpress-retirement-worker
