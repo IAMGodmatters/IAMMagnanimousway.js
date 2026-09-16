@@ -31,6 +31,7 @@ function walk(dir) {
 }
 
 const layout = read('frontend/app/layout.tsx');
+const platformRuntime = read('frontend/app/platform-runtime-script.tsx');
 const home = read('frontend/app/page.tsx');
 const standaloneLayout = read('frontend/app/magnanimous/layout.tsx');
 const standalonePage = read('frontend/app/magnanimous/page.tsx');
@@ -54,11 +55,13 @@ notMatches(standalonePage, /d\?\.(?:provider|provider_name|model)\b/, 'standalon
 notMatches(standalonePage, /execution engine/i, 'standalone: UI must not display execution-engine language');
 notMatches(standalonePage, /\b(?:OpenAI|Anthropic|Claude|Gemini|Groq|Mistral|OpenRouter|Cerebras|Hugging Face|Cloudflare Workers AI)\b/i, 'standalone: third-party AI brands must not appear in customer-facing source');
 notMatches(standalonePage, /myshopify\.com|href=["']\/shop["']|STORE_URL/, 'standalone: Shopify/store UI must not bleed into the standalone AI');
-includes(layout, "var standalone=currentPath==='/magnanimous'||currentPath.indexOf('/magnanimous/')===0", 'standalone: route detection remains isolated to /magnanimous');
-includes(layout, "if(standalone)document.documentElement.setAttribute('data-iam-standalone','true')", 'standalone: document isolation flag remains locked');
+includes(layout, "import PlatformRuntimeScript from './platform-runtime-script'", 'standalone: hardened platform runtime remains mounted from root layout');
+includes(layout, '<PlatformRuntimeScript/>', 'standalone: platform runtime component remains mounted');
+includes(platformRuntime, "currentPath==='/magnanimous'||currentPath.indexOf('/magnanimous/')===0", 'standalone: route detection remains isolated to /magnanimous');
+includes(platformRuntime, "if(standalone)document.documentElement.setAttribute('data-iam-standalone','true')", 'standalone: document isolation flag remains locked');
 includes(layout, 'html[data-iam-standalone="true"] .iam-shop-link', 'standalone: platform shop chrome remains hidden');
 includes(layout, 'html[data-iam-standalone="true"] .iam-global-tools', 'standalone: platform global tools remain hidden');
-includes(layout, 'if(!standalone)loadAds()', 'standalone: advertising remains disabled');
+includes(platformRuntime, 'if(!standalone)loadAds()', 'standalone: advertising remains disabled');
 includes(providerEntrypoint, 'You are speaking as Magnanimous AI, the commander-in-chief orchestration brain', 'standalone: server-side Magnanimous command identity remains locked');
 includes(providerEntrypoint, 'They are never the platform identity or the final authority over the workflow.', 'standalone: external execution engines remain implementation details, not the product identity');
 
@@ -94,12 +97,22 @@ const requiredPlatformRoutes = [
 ];
 for (const rel of requiredPlatformRoutes) must(fs.existsSync(path.join(root, rel)), `platform: required route exists — ${rel.replace('frontend/app','')}`);
 includes(layout, '<PlatformChrome/><GlobalTools/><InteractionClarity/>', 'platform: global platform chrome/tools/clarity remain mounted');
-includes(layout, "var publicPaths=['/teach','/shop','/login','/signup','/owner-login'];", 'platform: strict Teach + Shop public boundary remains present');
-includes(layout, "function isPublicPath(path){return publicPaths.indexOf(path)!==-1||path.indexOf('/teach/')===0||path.indexOf('/shop/')===0;}", 'platform: nested Teach and Shop routes remain public');
+includes(layout, "import PlatformRuntimeScript from './platform-runtime-script'", 'platform: extracted runtime stays explicitly mounted');
+const publicMatch = platformRuntime.match(/var publicPaths=\[([^;]+)\];/);
+must(Boolean(publicMatch), 'platform: public route contract remains machine-verifiable');
+const publicSource = publicMatch?.[1] || '';
+for (const route of ['/','/teach','/shop','/login','/signup','/owner-login','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label']) {
+  must(new RegExp(`["']${route.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}["']`).test(publicSource), `platform: public discovery route stays public — ${route}`);
+}
+includes(platformRuntime, "path.indexOf('/teach/')===0", 'platform: nested Teach routes remain public');
+includes(platformRuntime, "path.indexOf('/shop/')===0", 'platform: nested Shop routes remain public');
+includes(platformRuntime, "path.indexOf('/reviews/')===0", 'platform: nested Reviews routes remain public');
 includes(layout, "href=\"/shop\"", 'platform: God Matters marketplace remains linked from platform chrome');
-notMatches(layout.match(/var publicPaths=\[[^;]+;/)?.[0] || '', /['"]\/magnanimous['"]/, 'platform: standalone Magnanimous entry remains protected behind sign-in');
-notMatches(layout.match(/var publicPaths=\[[^;]+;/)?.[0] || '', /['"]\/(?:solutions|pricing|free-tools|ai-apps|business-plan|guide|privacy|terms|reviews|advertise|security|white-label|bible-study)['"]/, 'platform: protected routes stay out of the public allowlist');
-includes(layout, "if(p==='/'){if(!valid)location.replace('/login?returnTo=%2F');return;}", 'platform: unauthenticated root route returns to login');
+for (const route of ['/magnanimous','/bible-study','/ai-chat','/crm','/connections','/assistant-actions','/owner-center','/telecom']) {
+  must(!new RegExp(`["']${route.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}["']`).test(publicSource), `platform: operational route remains protected — ${route}`);
+}
+includes(platformRuntime, 'if(isPublicPath(currentPath)||standalone)return;', 'platform: public discovery and standalone routing are explicit');
+includes(platformRuntime, "location.replace('/login?returnTo='+encodeURIComponent(returnTo))", 'platform: protected unauthenticated routes still return to login');
 notMatches(home, /mag-standalone/, 'platform: main homepage must not become the standalone AI shell');
 
 // 3) God Matters Shopify/store lock.
@@ -135,5 +148,5 @@ if (failures.length) {
 }
 console.log('Standalone Magnanimous AI lock: PASS');
 console.log('Customer execution-provider privacy lock: PASS');
-console.log('Main platform lock: PASS');
+console.log('Main platform public-discovery/protected-workspace lock: PASS');
 console.log('God Matters Shopify/store lock: PASS');
