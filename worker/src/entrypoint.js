@@ -7,6 +7,7 @@ import { handleMagnanimousNativeMail } from './magnanimous-native-mail-runtime.j
 import { handleMagnanimousUniversalAIConnector } from './magnanimous-universal-ai-connector.js';
 import { handleMagnanimousSpace } from './magnanimous-space-runtime.js';
 import { handleMagnanimousResearch } from './magnanimous-research-runtime.js';
+import { handleMagnanimousMux } from './magnanimous-mux-runtime.js';
 import { handleMagnanimousMeta } from './magnanimous-meta-runtime.js';
 import { handleMagnanimousWhatsApp } from './magnanimous-whatsapp-runtime.js';
 import { ensureWhatsAppIntegrationCompatibility } from './magnanimous-whatsapp-integration-compat.js';
@@ -85,6 +86,8 @@ export default {
     if(space)return space;
     const research=await handleMagnanimousResearch(request,env);
     if(research)return research;
+    const mux=await handleMagnanimousMux(request,env);
+    if(mux)return mux;
     const whatsapp=await handleMagnanimousWhatsApp(request,env);
     if(whatsapp)return whatsapp;
     const meta=await handleMagnanimousMeta(request,env);
