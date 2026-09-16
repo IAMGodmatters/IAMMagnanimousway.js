@@ -4,6 +4,7 @@ import { handleIntegrations } from './integrations.js';
 import { handleSponsoredAds } from './sponsored-ad-runtime.js';
 import { handleMagnanimousCommunications } from './magnanimous-communications-router.js';
 import { ensureMagnanimousCommunicationsToolSeed } from './inkbox-tool-seed.js';
+import { ensureMagnanimousSuperhumanMailSeed } from './superhuman-mail-tool-seed.js';
 
 const CRM_TABLES=['crm_contacts','crm_activities','crm_opportunities'];
 async function hashPassword(password,salt){const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(`${salt}:${password}`));return [...new Uint8Array(bytes)].map(x=>x.toString(16).padStart(2,'0')).join('');}
@@ -58,6 +59,7 @@ export default {
   async fetch(request,env,ctx){
     await repairLegacySchema(env);
     try{await ensureMagnanimousCommunicationsToolSeed(env)}catch(error){console.error('communications tool seed failed',error)}
+    try{await ensureMagnanimousSuperhumanMailSeed(env)}catch(error){console.error('Superhuman Mail pattern seed failed',error)}
     const sponsored=await handleSponsoredAds(request,env);
     if(sponsored)return sponsored;
     const communications=await handleMagnanimousCommunications(request,env);
