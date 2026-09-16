@@ -2,6 +2,6 @@
   "name": "iam-magnanimous-video-gateway",
   "private": true,
   "devDependencies": {
-    "wrangler": "latest"
+    "wrangler": "4.132.0"
   }
 }
