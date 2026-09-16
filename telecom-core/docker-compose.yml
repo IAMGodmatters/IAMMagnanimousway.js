@@ -1,0 +1,45 @@
+services:
+  asterisk:
+    build:
+      context: ./asterisk
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      ASTERISK_ARI_USER: ${ASTERISK_ARI_USER}
+      ASTERISK_ARI_PASSWORD: ${ASTERISK_ARI_PASSWORD}
+      MAGNANIMOUS_AI_EXTENSION: ${MAGNANIMOUS_AI_EXTENSION:-9000}
+      MAGNANIMOUS_AI_PASSWORD: ${MAGNANIMOUS_AI_PASSWORD}
+      MAGNANIMOUS_ADMIN_EXTENSION: ${MAGNANIMOUS_ADMIN_EXTENSION:-1000}
+      MAGNANIMOUS_ADMIN_PASSWORD: ${MAGNANIMOUS_ADMIN_PASSWORD}
+      PSTN_TRUNK_HOST: ${PSTN_TRUNK_HOST:-}
+      PSTN_TRUNK_PORT: ${PSTN_TRUNK_PORT:-5060}
+      PSTN_TRUNK_USERNAME: ${PSTN_TRUNK_USERNAME:-}
+      PSTN_TRUNK_PASSWORD: ${PSTN_TRUNK_PASSWORD:-}
+      PSTN_TRUNK_FROM_DOMAIN: ${PSTN_TRUNK_FROM_DOMAIN:-}
+      TELECOM_PUBLIC_IP: ${TELECOM_PUBLIC_IP:-}
+    volumes:
+      - ./certs:/certs:ro
+      - asterisk-data:/var/lib/asterisk
+      - asterisk-spool:/var/spool/asterisk
+      - asterisk-log:/var/log/asterisk
+
+  control-api:
+    build:
+      context: ./control-api
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - asterisk
+    environment:
+      TELECOM_API_TOKEN: ${TELECOM_API_TOKEN}
+      TELECOM_WEBHOOK_SECRET: ${TELECOM_WEBHOOK_SECRET}
+      ASTERISK_ARI_URL: ${ASTERISK_ARI_URL:-http://127.0.0.1:8088/ari}
+      ASTERISK_ARI_USER: ${ASTERISK_ARI_USER}
+      ASTERISK_ARI_PASSWORD: ${ASTERISK_ARI_PASSWORD}
+      MAGNANIMOUS_CALLER_ID: ${MAGNANIMOUS_CALLER_ID:-}
+      MAGNANIMOUS_AI_EXTENSION: ${MAGNANIMOUS_AI_EXTENSION:-9000}
+
+volumes:
+  asterisk-data:
+  asterisk-spool:
+  asterisk-log:
