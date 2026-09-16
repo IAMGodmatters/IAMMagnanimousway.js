@@ -22,9 +22,12 @@ import { handleMagnanimousTelecomChargingSafetyGuard } from './magnanimous-telec
 import { handleMagnanimousTelecomSecurityGate } from './magnanimous-telecom-security-gate.js';
 import { ensureMagnanimousCommunicationsToolSeed } from './inkbox-tool-seed.js';
 import { ensureMagnanimousSuperhumanMailSeed } from './superhuman-mail-tool-seed.js';
+import { createPasswordRecord } from './password-security.js';
 
 const CRM_TABLES=['crm_contacts','crm_activities','crm_opportunities'];
-async function hashPassword(password,salt){const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(`${salt}:${password}`));return [...new Uint8Array(bytes)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+let bootstrapReady=false;
+let bootstrapPromise=null;
+
 async function repairLegacySchema(env){
   if(!env?.DB)return;
   const base=[
@@ -58,8 +61,8 @@ async function repairLegacySchema(env){
     const email=String(env.ADMIN_EMAIL).trim().toLowerCase();
     let owner=await env.DB.prepare('SELECT id,tenant_id,role FROM users WHERE email=? ORDER BY created_at ASC LIMIT 1').bind(email).first();
     if(!owner){
-      const salt=crypto.randomUUID(),passwordHash=await hashPassword(env.ADMIN_PASSWORD,salt),uid=crypto.randomUUID();
-      await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,active,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid,ownerTenant.id,'Owner',email,'owner',passwordHash,salt,1,Math.floor(Date.now()/1000)).run();
+      const record=await createPasswordRecord(env.ADMIN_PASSWORD,env),uid=crypto.randomUUID();
+      await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,active,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid,ownerTenant.id,'Owner',email,'owner',record.password_hash,record.password_salt,1,Math.floor(Date.now()/1000)).run();
       owner={id:uid,tenant_id:ownerTenant.id,role:'owner'};
     }else if(owner.tenant_id!==ownerTenant.id||owner.role!=='owner'){
       await env.DB.prepare("UPDATE users SET tenant_id=?,name=?,role='owner',active=1 WHERE id=?").bind(ownerTenant.id,'Owner',owner.id).run();
@@ -69,12 +72,22 @@ async function repairLegacySchema(env){
   }
 }
 
-export default {
-  async fetch(request,env,ctx){
-    ensureWhatsAppIntegrationCompatibility();
+async function ensureRuntimeBootstrap(env){
+  if(bootstrapReady)return;
+  if(bootstrapPromise)return bootstrapPromise;
+  bootstrapPromise=(async()=>{
     await repairLegacySchema(env);
     try{await ensureMagnanimousCommunicationsToolSeed(env)}catch(error){console.error('communications tool seed failed',error)}
     try{await ensureMagnanimousSuperhumanMailSeed(env)}catch(error){console.error('Superhuman Mail pattern seed failed',error)}
+    bootstrapReady=true;
+  })();
+  try{await bootstrapPromise}finally{if(!bootstrapReady)bootstrapPromise=null}
+}
+
+export default {
+  async fetch(request,env,ctx){
+    ensureWhatsAppIntegrationCompatibility();
+    await ensureRuntimeBootstrap(env);
     const sponsored=await handleSponsoredAds(request,env);
     if(sponsored)return sponsored;
     const aiConnector=await handleMagnanimousUniversalAIConnector(request,env);
