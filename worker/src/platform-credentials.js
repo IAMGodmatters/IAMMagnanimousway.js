@@ -34,6 +34,13 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'VOIP_PROVIDER_TOKEN',label:'Carrier Bridge Bearer Token',secret:true,required:false},
   {key:'VOIP_WEBHOOK_SECRET',label:'Carrier Bridge Webhook Secret',secret:true,required:false}
  ]},
+ {id:'inkbox',name:'Magnanimous Communications via Inkbox',providers:['inkbox'],fields:[
+  {key:'INKBOX_API_KEY',label:'Inkbox API Key',secret:true,required:false},
+  {key:'INKBOX_AGENT_IDENTITY_ID',label:'Inkbox Agent Identity ID',secret:false,required:false},
+  {key:'INKBOX_PHONE_NUMBER',label:'Inkbox Phone Number (E.164)',secret:false,required:false},
+  {key:'INKBOX_WEBHOOK_SECRET',label:'Inkbox Webhook Secret',secret:true,required:false},
+  {key:'INKBOX_BASE_URL',label:'Inkbox API Base URL (optional override)',secret:false,required:false}
+ ]},
  {id:'tavus',name:'Tavus Human Video',providers:['tavus'],fields:[{key:'TAVUS_API_KEY',label:'Tavus API Key',secret:true,required:false}]},
  {id:'heygen',name:'HeyGen Presenter Video',providers:['heygen'],fields:[{key:'HEYGEN_API_KEY',label:'HeyGen API Key (optional presenter-video provider)',secret:true,required:false}]},
  {id:'veo',name:'Google Veo Cinematic Video',providers:['veo'],fields:[
