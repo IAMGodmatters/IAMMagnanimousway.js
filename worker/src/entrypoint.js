@@ -4,6 +4,7 @@ import { handleIntegrations } from './integrations.js';
 import { handleSponsoredAds } from './sponsored-ad-runtime.js';
 import { handleMagnanimousCommunications } from './magnanimous-communications-router.js';
 import { handleMagnanimousNativeMail } from './magnanimous-native-mail-runtime.js';
+import { handleMagnanimousUniversalAIConnector } from './magnanimous-universal-ai-connector.js';
 import { ensureMagnanimousCommunicationsToolSeed } from './inkbox-tool-seed.js';
 import { ensureMagnanimousSuperhumanMailSeed } from './superhuman-mail-tool-seed.js';
 
@@ -63,6 +64,8 @@ export default {
     try{await ensureMagnanimousSuperhumanMailSeed(env)}catch(error){console.error('Superhuman Mail pattern seed failed',error)}
     const sponsored=await handleSponsoredAds(request,env);
     if(sponsored)return sponsored;
+    const aiConnector=await handleMagnanimousUniversalAIConnector(request,env);
+    if(aiConnector)return aiConnector;
     const nativeMail=await handleMagnanimousNativeMail(request,env);
     if(nativeMail)return nativeMail;
     const communications=await handleMagnanimousCommunications(request,env);
