@@ -2,7 +2,7 @@ import { currentUser } from './integrations.js';
 
 const json=(data,status=400)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const riskyPaths=new Set(['/api/telecom/charging/policy/evaluate','/api/telecom/charging/sessions/reserve']);
-const numericFields=['requested_units','estimated_charge','final_charge','committed_units'];
+const numericFields=['requested_units','estimated_charge','final_charge','committed_units','reservation_ttl_seconds'];
 const truthy=value=>value===true||String(value).toLowerCase()==='true';
 const parseList=value=>{try{const parsed=JSON.parse(value||'[]');return Array.isArray(parsed)?parsed:[]}catch{return[]}};
 const prefixMatch=(destination,prefixes)=>prefixes.some(prefix=>String(destination||'').startsWith(String(prefix||'')));
@@ -34,6 +34,12 @@ export async function handleMagnanimousTelecomChargingSafetyGuard(request,env){
 
  if(path==='/api/telecom/charging/buckets'){
   const error=validateFinite(body,['units','starts_at','expires_at']);
+  if(error)return json({detail:error,identity:'Magnanimous Telecom',policy:'charging_input_guard'});
+  return null;
+ }
+ const commitPath=path.match(/^\/api\/telecom\/charging\/sessions\/[^/]+\/commit$/);
+ if(commitPath){
+  const error=validateFinite(body,['committed_units','final_charge']);
   if(error)return json({detail:error,identity:'Magnanimous Telecom',policy:'charging_input_guard'});
   return null;
  }
