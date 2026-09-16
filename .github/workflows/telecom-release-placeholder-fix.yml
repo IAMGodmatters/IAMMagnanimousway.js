@@ -1,0 +1,40 @@
+name: Telecom Release Placeholder Fix
+
+on:
+  push:
+    branches:
+      - magnanimous/full-platform-audit-hardening-20260916
+    paths:
+      - .github/workflows/telecom-release-placeholder-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: magnanimous/full-platform-audit-hardening-20260916
+      - name: Patch exact release ledger placeholder mismatch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('worker/src/magnanimous-telecom-charging-runtime.js')
+          s=p.read_text()
+          old="VALUES(?,?,?,?,?,?,'release',?,?,?,'',?,?,?,?,?)"
+          new="VALUES(?,?,?,?,?,?,'release',?,?,?,'',?,?,?,?)"
+          count=s.count(old)
+          if count != 1:
+              raise SystemExit(f'expected exactly one buggy release placeholder pattern, found {count}')
+          p.write_text(s.replace(old,new,1))
+          PY
+          node --check worker/src/magnanimous-telecom-charging-runtime.js
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add worker/src/magnanimous-telecom-charging-runtime.js
+          git commit -m "Fix Telecom release ledger bind count"
+          git push origin HEAD:magnanimous/full-platform-audit-hardening-20260916
