@@ -56,7 +56,7 @@ export default function TelecomPage(){
   event.preventDefault();
   const prompt=question.trim();if(!prompt||!token)return;
   setBusy(true);setError('');setAnswer('');
-  const context=`You are Magnanimous AI operating inside Magnanimous Telecom. Keep Magnanimous as the public identity and command layer. Treat outside carriers, mobile networks, MVNOs, eSIM providers, model providers and infrastructure vendors as replaceable tools. Never claim emergency calling, direct numbering authority, carrier authorization, a public telephone number, or mobile provisioning unless the live system indicates it is configured and verified. Never request or store raw SIM authentication credentials such as Ki, OPc or ADM keys. Help with telecom operations, architecture, customer service, routing, compliance planning, fraud controls, service-plan design, SIM/eSIM lifecycle, number lifecycle and troubleshooting. User request: ${prompt}`;
+  const context=`You are Magnanimous AI operating inside Magnanimous Telecom. Magnanimous AI is the brain and Magnanimous Telecom is the public telecom service provider. Treat outside carriers, mobile networks, MVNOs, eSIM providers, model providers and infrastructure vendors only as replaceable tools beneath Magnanimous. Never offer, recommend, configure or expose Magnanimous Telecom as a white-label telecom product, telecom reseller platform, sub-carrier platform, customer-owned carrier, alternate provider brand, or backend that lets a customer start their own phone company. Customers may subscribe to Magnanimous Telecom SIM/eSIM lines, phone numbers, minutes, messaging, data, call-center lines and service bundles. Never claim emergency calling, direct numbering authority, carrier authorization, a public telephone number, or mobile provisioning unless the live system indicates it is configured and verified. Never request or store raw SIM authentication credentials such as Ki, OPc or ADM keys. Help with telecom operations, architecture, customer service, routing, compliance planning, fraud controls, Magnanimous retail service-plan design, SIM/eSIM lifecycle, number lifecycle and troubleshooting. User request: ${prompt}`;
   try{
    const response=await fetch(`${api}/api/chat`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({message:context,tool:'magnanimous'})});
    const data=await read(response);
@@ -70,6 +70,7 @@ export default function TelecomPage(){
   {href:'/phone',icon:'☎',title:'Phone & Call Center',text:'Browser calling, agents, queues and call history.'},
   {href:'/softphone',icon:'◉',title:'Softphone',text:'Use Magnanimous as a working phone endpoint.'},
   {href:'/ai-receptionist',icon:'✦',title:'AI Receptionist',text:'Magnanimous AI can answer, route and assist callers.'},
+  {href:'/telecom/plans',icon:'$',title:'Plans & Subscriptions',text:'Monthly SIM, number, minutes, data and call-center service plans.'},
   {href:'/telecom/sim',icon:'▤',title:'SIM + eSIM Control',text:'Inventory, mobile adapters and authorized profile provisioning.'},
   {href:'/telecom/network',icon:'◎',title:'Carrier Access',text:'Numbering, PSTN, E911, mobile providers and regulatory readiness.'},
   {href:'/auto-dialer',icon:'↗',title:'Auto Dialer',text:'Authorized outbound calling workflows and campaigns.'},
@@ -79,16 +80,16 @@ export default function TelecomPage(){
 
  return <main className={styles.shell}>
   <header className={styles.hero}>
-   <nav><a href='/'>I AM MAGNANIMOUS WAY™</a><span>•</span><a href='/phone'>PHONE</a><span>•</span><a href='/telecom/sim'>SIM + eSIM</a><span>•</span><a href='/telecom/network'>CARRIER ACCESS</a><span>•</span><a href='/telecom-standalone'>STANDALONE</a></nav>
+   <nav><a href='/'>I AM MAGNANIMOUS WAY™</a><span>•</span><a href='/phone'>PHONE</a><span>•</span><a href='/telecom/plans'>PLANS</a><span>•</span><a href='/telecom/sim'>SIM + eSIM</a><span>•</span><a href='/telecom/network'>CARRIER ACCESS</a><span>•</span><a href='/telecom-standalone'>STANDALONE</a></nav>
    <div className={styles.heroGrid}>
     <div>
      <p className={styles.eyebrow}>STANDALONE SERVICE · SHARED MAGNANIMOUS BRAIN</p>
      <h1>Magnanimous <em>Telecom</em></h1>
-     <p className={styles.lead}>A provider-neutral communications company foundation powered by Magnanimous AI. The telecom service has its own command center while remaining part of the I AM MAGNANIMOUS WAY™ platform.</p>
-     <div className={styles.actions}><a className={styles.primary} href='/phone'>OPEN LIVE PHONE</a><a className={styles.secondary} href='/telecom/network'>OPEN CARRIER ACCESS</a><a className={styles.secondary} href='/telecom/sim'>OPEN SIM + eSIM</a></div>
+     <p className={styles.lead}>A Magnanimous-operated communications service powered by Magnanimous AI. It has its own command center while remaining part of the I AM MAGNANIMOUS WAY™ platform. Customers buy service from Magnanimous Telecom; the telecom backend is not a white-label carrier product.</p>
+     <div className={styles.actions}><a className={styles.primary} href='/telecom/plans'>OPEN PLANS</a><a className={styles.secondary} href='/phone'>OPEN LIVE PHONE</a><a className={styles.secondary} href='/telecom/network'>OPEN CARRIER ACCESS</a><a className={styles.secondary} href='/telecom/sim'>OPEN SIM + eSIM</a></div>
     </div>
     <aside className={styles.identityCard}>
-     <span className={styles.pulse}/><small>PUBLIC IDENTITY</small><strong>{overview.identity}</strong><p>Brain: {overview.brain}</p><p>Architecture: integrated + standalone</p><p>Underlying providers stay replaceable and out of the customer-facing identity.</p>
+     <span className={styles.pulse}/><small>PUBLIC IDENTITY</small><strong>{overview.identity}</strong><p>Brain: {overview.brain}</p><p>Model: retail telecom service provider</p><p>White-label / reseller telecom: locked off</p><p>Underlying providers stay replaceable and out of the customer-facing identity.</p>
     </aside>
    </div>
   </header>
@@ -103,18 +104,18 @@ export default function TelecomPage(){
   </section>
 
   <section className={styles.section}>
-   <div className={styles.sectionTitle}><div><small>MAGNANIMOUS AI INSIDE TELECOM</small><h2>Telecom Command AI</h2></div><span>One brain. Two surfaces.</span></div>
+   <div className={styles.sectionTitle}><div><small>MAGNANIMOUS AI INSIDE TELECOM</small><h2>Telecom Command AI</h2></div><span>One brain. One provider identity.</span></div>
    <div className={styles.aiPanel}>
     <form onSubmit={askMagnanimous}>
-     <textarea value={question} onChange={event=>setQuestion(event.target.value)} placeholder='Ask Magnanimous to plan routing, troubleshoot calls, manage SIM/eSIM workflows, design a business phone package, explain a compliance gate, or prepare the next telecom build step.'/>
+     <textarea value={question} onChange={event=>setQuestion(event.target.value)} placeholder='Ask Magnanimous to plan routing, troubleshoot calls, manage SIM/eSIM workflows, design a monthly telecom package, explain a compliance gate, or prepare the next telecom build step.'/>
      <button disabled={busy||!question.trim()}>{busy?'MAGNANIMOUS IS WORKING…':'ASK MAGNANIMOUS'}</button>
     </form>
-    <div className={styles.answer}>{answer||'Magnanimous AI remains the reasoning and command layer here. Outside AI engines, carriers, MVNOs and telecom vendors are tools beneath it, not the identity of the service.'}</div>
+    <div className={styles.answer}>{answer||'Magnanimous AI remains the reasoning and command layer. Customers subscribe to Magnanimous Telecom service; outside carriers, MVNOs and telecom vendors remain replaceable infrastructure tools beneath it.'}</div>
    </div>
   </section>
 
   <section className={styles.section}>
-   <div className={styles.sectionTitle}><div><small>OPERATIONS</small><h2>Telecom Apps</h2></div><span>Simple enough to understand at a glance.</span></div>
+   <div className={styles.sectionTitle}><div><small>OPERATIONS</small><h2>Telecom Apps</h2></div><span>Operate the provider and its customer services from one place.</span></div>
    <div className={styles.tools}>{tools.map(tool=><a href={tool.href} className={styles.tool} key={tool.href}><b>{tool.icon}</b><div><h3>{tool.title}</h3><p>{tool.text}</p></div><span>OPEN →</span></a>)}</div>
   </section>
 
@@ -129,7 +130,7 @@ export default function TelecomPage(){
   </section>
 
   <section className={styles.section}>
-   <div className={styles.sectionTitle}><div><small>COMMERCIAL FOUNDATION</small><h2>Phone-company Building Blocks</h2></div><span>Shared by the platform and standalone service.</span></div>
+   <div className={styles.sectionTitle}><div><small>COMMERCIAL FOUNDATION</small><h2>Phone-company Building Blocks</h2></div><span>Sell recurring Magnanimous Telecom service.</span></div>
    <div className={styles.metrics}>
     <article><small>PLANS</small><strong>{overview.commercial.active_plans}</strong><span>active service plans</span></article>
     <article><small>CALLER ID</small><strong>{overview.commercial.verified_caller_identities}</strong><span>verified identities</span></article>
@@ -150,8 +151,8 @@ export default function TelecomPage(){
   </section>
 
   <section className={styles.foundation}>
-   <div><small>BUILT INTO THE FOUNDATION</small><h2>Ready to grow without rebuilding the company from scratch.</h2></div>
-   <ul><li>Number inventory and lifecycle</li><li>Replaceable SIP/PSTN interconnect registry</li><li>Physical SIM inventory and lifecycle</li><li>eSIM profile-order workflow</li><li>Replaceable MNO/MVNO/SM-DP+ adapter layer</li><li>Regulated-network provider adapters</li><li>U.S. FCC and Philippine NTC readiness tracking</li><li>Number-porting workflow records</li><li>Emergency-location readiness records</li><li>STIR/SHAKEN and caller-identity readiness</li><li>Usage and call-rating ledger</li><li>Customer, plan and subscription records</li><li>Fraud/spend protection policies</li><li>Immutable-style telecom audit history</li><li>Jurisdiction/compliance control tracking</li><li>Provider-neutral Magnanimous AI command layer</li></ul>
+   <div><small>BUILT INTO THE FOUNDATION</small><h2>Ready to grow into a subscription telecom company without giving the carrier platform away.</h2></div>
+   <ul><li>Magnanimous AI locked as Telecom command brain</li><li>Magnanimous Telecom locked as provider identity</li><li>White-label/reseller/sub-carrier Telecom modes disabled</li><li>Monthly SIM/eSIM retail plan catalog</li><li>Monthly phone-number and minutes plans</li><li>Call-center line and service bundles</li><li>Usage-cycle and overage accounting foundation</li><li>Number inventory and lifecycle</li><li>Replaceable SIP/PSTN interconnect registry</li><li>Physical SIM inventory and lifecycle</li><li>eSIM profile-order workflow</li><li>Replaceable MNO/MVNO/SM-DP+ adapter layer</li><li>Regulated-network provider adapters</li><li>U.S. FCC and Philippine NTC readiness tracking</li><li>Number-porting workflow records</li><li>Emergency-location readiness records</li><li>STIR/SHAKEN and caller-identity readiness</li><li>Usage and call-rating ledger</li><li>Customer, plan and subscription records</li><li>Fraud/spend protection policies</li><li>Immutable-style telecom audit history</li><li>Jurisdiction/compliance control tracking</li></ul>
   </section>
 
   <footer className={styles.footer}><b>I AM MAGNANIMOUS WAY™</b><span>Magnanimous Telecom · ONE GOD • ONE PEOPLE • A BRIGHTER TOMORROW.</span></footer>
