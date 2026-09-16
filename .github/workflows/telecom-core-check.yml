@@ -10,6 +10,7 @@ on:
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0040_magnanimous_telecom_business.sql'
       - 'worker/migrations/0041_magnanimous_telecom_commercial_ops.sql'
+      - 'worker/migrations/0042_magnanimous_sim_esim.sql'
       - '.github/workflows/telecom-core-check.yml'
   pull_request:
     paths:
@@ -19,6 +20,7 @@ on:
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0040_magnanimous_telecom_business.sql'
       - 'worker/migrations/0041_magnanimous_telecom_commercial_ops.sql'
+      - 'worker/migrations/0042_magnanimous_sim_esim.sql'
       - '.github/workflows/telecom-core-check.yml'
 
 permissions:
@@ -71,6 +73,10 @@ jobs:
           grep -q 'telecom_service_plans' worker/migrations/0041_magnanimous_telecom_commercial_ops.sql
           grep -q 'telecom_fraud_controls' worker/migrations/0041_magnanimous_telecom_commercial_ops.sql
           grep -q 'telecom_audit_log' worker/migrations/0041_magnanimous_telecom_commercial_ops.sql
+          grep -q 'telecom_sim_inventory' worker/migrations/0042_magnanimous_sim_esim.sql
+          grep -q 'telecom_esim_orders' worker/migrations/0042_magnanimous_sim_esim.sql
+          grep -q 'telecom_mobile_adapters' worker/migrations/0042_magnanimous_sim_esim.sql
+          grep -q 'Raw SIM/eSIM authentication secrets' telecom-core/SIM_ESIM.md
 
       - name: Install frontend dependencies
         working-directory: frontend
@@ -88,5 +94,7 @@ jobs:
         run: |
           grep -q 'Magnanimous Telecom' frontend/app/telecom/page.tsx
           grep -q 'Magnanimous AI' frontend/app/telecom/page.tsx
+          grep -q 'SIM + eSIM Control' frontend/app/telecom/page.tsx
           grep -q 'integrated-and-standalone' worker/src/magnanimous-telecom-runtime.js
+          grep -q 'MOBILE_PROVISIONER_URL' worker/src/magnanimous-telecom-runtime.js
           grep -q 'TELECOM_EMERGENCY_LIVE' telecom-core/STANDALONE.md
