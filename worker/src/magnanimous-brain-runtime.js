@@ -62,6 +62,7 @@ const CAPABILITIES=[
  {id:'initiative',name:'Suggestions, teaching and safe next-action initiative',tier:'free-first',ready:true},
  {id:'agent-mesh',name:'Specialist agent delegation under central brain direction',tier:'free-first',ready:true},
  {id:'structured-tools',name:'Structured tool contracts, function routing and provider-neutral adapters',tier:'free-first',ready:true},
+ {id:'dns-domain-intelligence',name:'DNS, domain, registrar and email-domain diagnostics with guarded DNS actions',tier:'free-first',ready:true},
  {id:'business',name:'Business, CRM, finance, support & professional workflows',tier:'free-first',ready:true},
  {id:'coding',name:'Coding, debugging & structured generation',tier:'free-first',ready:true},
  {id:'image',name:'Image generation and visual workflows',tier:'free-first-or-capped',envAny:['AI','HF_TOKEN','GOOGLE_API_KEY']},

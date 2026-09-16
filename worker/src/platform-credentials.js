@@ -54,6 +54,10 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'CLOUDFLARE_PLATFORM_ACCOUNT_ID',label:'Cloudflare Platform Account ID',secret:false,required:false},
   {key:'CLOUDFLARE_PLATFORM_ZONE_ID',label:'Cloudflare Platform Zone ID',secret:false,required:false}
  ]},
+ {id:'porkbun',name:'Magnanimous Registrar / DNS Control',providers:[],fields:[
+  {key:'PORKBUN_API_KEY',label:'Porkbun API Key (use a domain-scoped or sandbox key when possible)',secret:true,required:false},
+  {key:'PORKBUN_SECRET_API_KEY',label:'Porkbun Secret API Key',secret:true,required:false}
+ ]},
  {id:'veo',name:'Google Veo Cinematic Video',providers:['veo'],fields:[
   {key:'GOOGLE_API_KEY',label:'Google Gemini / Veo API Key',secret:true,required:false},
   {key:'ENABLE_VEO_PROVIDER',label:'Enable Veo Provider (true/false)',secret:false,required:false}
