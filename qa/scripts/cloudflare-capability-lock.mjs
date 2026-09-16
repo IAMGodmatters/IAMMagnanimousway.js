@@ -5,6 +5,8 @@ const must=(condition,message)=>{if(!condition)throw new Error(message)};
 const registry=read('worker/src/magnanimous-cloudflare-capability-registry.js');
 const runtime=read('worker/src/magnanimous-cloudflare-runtime.js');
 const securityEntry=read('worker/src/security-entrypoint.js');
+const providerRuntime=read('worker/src/provider-runtime-env.js');
+const platformCredentials=read('worker/src/platform-credentials.js');
 const workerEntry=read('worker/src/entrypoint.js');
 const seed=read('worker/src/cloudflare-tool-seed.js');
 const migration=read('worker/migrations/0059_magnanimous_cloudflare_control.sql');
@@ -45,6 +47,16 @@ for(const flag of ['CLOUDFLARE_MUTATIONS_ENABLED','CLOUDFLARE_DESTRUCTIVE_ACTION
 must(runtime.includes("return json({path:apiPath,provider_response:result.data,secrets_exposed:false}"),'Cloudflare read responses must explicitly deny secret exposure.');
 must(runtime.includes("provider_tokens_exposed:false"),'Cloudflare MCP catalog must not expose provider tokens.');
 
+must(platformCredentials.includes("{id:'cloudflare',name:'Magnanimous Cloudflare Control Plane'"),'Cloudflare credentials must be registered in the central encrypted platform vault.');
+must(platformCredentials.includes("{key:'CLOUDFLARE_PLATFORM_API_TOKEN',label:'Dedicated least-privilege Cloudflare Platform API Token',secret:true"),'Cloudflare platform API token must remain a secret vault field.');
+for(const key of ['CLOUDFLARE_PLATFORM_API_TOKEN','CLOUDFLARE_PLATFORM_ACCOUNT_ID','CLOUDFLARE_PLATFORM_ZONE_ID']){
+ must(platformCredentials.includes(`key:'${key}'`),`Cloudflare vault key missing: ${key}`);
+ must(providerRuntime.includes(`'${key}'`),`Cloudflare provider runtime key missing: ${key}`);
+}
+must(securityEntry.includes("import { getProviderRuntimeEnv } from './provider-runtime-env.js'"),'Cloudflare control plane must consume the server-side provider runtime environment.');
+must(securityEntry.includes("policyUrl.pathname.startsWith('/api/cloudflare')"),'Vaulted provider credentials must be scoped to Cloudflare control-plane requests.');
+must(securityEntry.includes('handleMagnanimousCloudflare(policyRequest,cloudflareEnv)'),'Cloudflare handler must receive the vaulted provider environment.');
+
 must(ui.includes('MAGNANIMOUS CLOUDFLARE CONTROL'),'Owner Cloudflare console identity is missing.');
 must(ui.includes('STAGE ≠ EXECUTE'),'Owner console must distinguish staging from execution.');
 must(ui.includes("body:JSON.stringify({confirm:true})"),'Owner console must use a distinct confirmation request.');
@@ -64,6 +76,6 @@ must(workerEntry.includes('await ensureMagnanimousCloudflareToolSeed(env)'),'Wor
 must(migration.includes('magnanimous_cloudflare_actions'),'Cloudflare durable action ledger migration is missing.');
 must(migration.includes('magnanimous_cloudflare_audit'),'Cloudflare audit ledger migration is missing.');
 must(securityEntry.includes("from './magnanimous-cloudflare-runtime.js'"),'Central security entrypoint must mount Cloudflare control plane.');
-must(securityEntry.includes('await handleMagnanimousCloudflare(policyRequest,env)'),'Cloudflare control plane must run after central session/policy resolution.');
+must(securityEntry.includes('await handleMagnanimousCloudflare(policyRequest,cloudflareEnv)'),'Cloudflare control plane must run after central session/policy resolution with server-side vaulted credentials.');
 
-console.log('Magnanimous Cloudflare current capability, techniques, Tool Foundry, owner-console and action contracts verified.');
+console.log('Magnanimous Cloudflare current capability, techniques, encrypted vault, Tool Foundry, owner-console and action contracts verified.');
