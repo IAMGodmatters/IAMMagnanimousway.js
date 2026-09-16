@@ -2,6 +2,7 @@ import { currentUser } from './integrations.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { handleMagnanimousPorkbunDns } from './magnanimous-porkbun-dns-runtime.js';
 import { MAGNANIMOUS_REGISTRAR_ADAPTERS, REGISTRAR_GUARDRAILS, getRegistrarAdapter } from './magnanimous-registrar-capability-registry.js';
+import { registrarStandardsCapabilities, rdapDomainIntelligence, lookupIanaRegistrar, interpretEppStatuses, getIanaDnsBootstrap, resolveRdapBase } from './magnanimous-domain-standards.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const clip=(value,n=8000)=>String(value??'').trim().slice(0,n);
@@ -59,10 +60,22 @@ export async function handleMagnanimousRegistrar(request,env){
  const runtime=await getProviderRuntimeEnv(env);
 
  if(request.method==='GET'&&(path==='/api/magnanimous/registrar'||path==='/api/magnanimous/registrar/adapters')){
-  return json({identity:'Magnanimous AI',provider_identity_public:false,guardrails:REGISTRAR_GUARDRAILS,adapters:MAGNANIMOUS_REGISTRAR_ADAPTERS.map(adapter=>({...safeAdapter(adapter),connection:connectionState(adapter,runtime)})),billable_execution_enabled:false});
+  return json({identity:'Magnanimous AI',provider_identity_public:false,guardrails:REGISTRAR_GUARDRAILS,standards:registrarStandardsCapabilities(),adapters:MAGNANIMOUS_REGISTRAR_ADAPTERS.map(adapter=>({...safeAdapter(adapter),connection:connectionState(adapter,runtime)})),billable_execution_enabled:false});
  }
  if(request.method==='GET'&&path==='/api/magnanimous/registrar/status'){
-  return json({identity:'Magnanimous AI',provider_identity_public:false,connections:MAGNANIMOUS_REGISTRAR_ADAPTERS.map(adapter=>({id:adapter.id,state:adapter.state,...connectionState(adapter,runtime)})),live_paths:{porkbun:'/api/magnanimous/registrar/porkbun/*',cloudflare_registrar:'/api/magnanimous/registrar/cloudflare/*'},billable_execution_enabled:false});
+  return json({identity:'Magnanimous AI',provider_identity_public:false,connections:MAGNANIMOUS_REGISTRAR_ADAPTERS.map(adapter=>({id:adapter.id,state:adapter.state,...connectionState(adapter,runtime)})),live_paths:{porkbun:'/api/magnanimous/registrar/porkbun/*',cloudflare_registrar:'/api/magnanimous/registrar/cloudflare/*',standards:'/api/magnanimous/registrar/intelligence/*'},billable_execution_enabled:false});
+ }
+
+ if(path.startsWith('/api/magnanimous/registrar/intelligence')){
+  const base='/api/magnanimous/registrar/intelligence';
+  try{
+   if(request.method==='GET'&&path===`${base}/capabilities`)return json(registrarStandardsCapabilities());
+   if(request.method==='GET'&&path===`${base}/domain`){const domain=normalizeDomain(url.searchParams.get('domain'));if(!domain)return json({detail:'A valid domain is required.'},400);const result=await rdapDomainIntelligence(domain);return json({ok:true,identity:'Magnanimous AI',provider_identity_public:false,domain,result});}
+   if(request.method==='GET'&&path===`${base}/tld`){const tld=clip(url.searchParams.get('tld'),63).toLowerCase().replace(/^\./,'');if(!/^[a-z0-9-]+$/.test(tld))return json({detail:'A valid TLD is required.'},400);const bootstrap=await getIanaDnsBootstrap();const result=resolveRdapBase(`example.${tld}`,bootstrap);return json({ok:true,identity:'Magnanimous AI',source:'IANA RDAP Bootstrap Registry',tld,rdap_base:result?.base||'',published:Boolean(result?.base)});}
+   if(request.method==='GET'&&path===`${base}/registrar`){const id=clip(url.searchParams.get('id'),20);const result=await lookupIanaRegistrar(id);return result?json({ok:true,identity:'Magnanimous AI',result}):json({detail:'IANA registrar ID was not found.'},404);}
+   if(request.method==='GET'&&path===`${base}/epp`){const values=url.searchParams.getAll('status').flatMap(v=>v.split(',')).map(v=>v.trim()).filter(Boolean);return json({ok:true,identity:'Magnanimous AI',statuses:interpretEppStatuses(values)});}
+   return json({detail:'Unknown registrar intelligence route.'},404);
+  }catch(error){return json(safeError(error),error.httpStatus||error.status||502);}
  }
 
  if(path.startsWith('/api/magnanimous/registrar/porkbun')){
