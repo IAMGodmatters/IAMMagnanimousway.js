@@ -8,6 +8,7 @@ on:
       - 'worker/src/magnanimous-native-mail-runtime.js'
       - 'worker/src/magnanimous-communications-router.js'
       - 'worker/src/entrypoint.js'
+      - 'worker/wrangler.jsonc'
       - 'frontend/app/ai-connectors/page.tsx'
       - 'qa/scripts/universal-ai-connector-lock.mjs'
       - '.github/workflows/universal-ai-connector-check.yml'
@@ -18,6 +19,7 @@ on:
       - 'worker/src/magnanimous-native-mail-runtime.js'
       - 'worker/src/magnanimous-communications-router.js'
       - 'worker/src/entrypoint.js'
+      - 'worker/wrangler.jsonc'
       - 'frontend/app/ai-connectors/page.tsx'
       - 'qa/scripts/universal-ai-connector-lock.mjs'
       - '.github/workflows/universal-ai-connector-check.yml'
@@ -38,6 +40,10 @@ jobs:
       - name: Syntax check connector runtime
         run: |
           node --check worker/src/magnanimous-universal-ai-connector.js
+          node --check worker/src/magnanimous-native-mail-runtime.js
+          node --check worker/src/magnanimous-communications-router.js
           node --check worker/src/entrypoint.js
       - name: Lock connector contract
         run: node qa/scripts/universal-ai-connector-lock.mjs
+      - name: Verify Cloudflare Worker bundle
+        run: npx --yes wrangler@4 deploy --dry-run --config worker/wrangler.jsonc
