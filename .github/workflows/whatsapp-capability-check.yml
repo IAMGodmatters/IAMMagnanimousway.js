@@ -7,6 +7,7 @@ on:
       - 'whatsapp-core/**'
       - 'worker/src/magnanimous-whatsapp-capability-registry.js'
       - 'worker/src/magnanimous-whatsapp-runtime.js'
+      - 'worker/src/magnanimous-whatsapp-integration-compat.js'
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0050_magnanimous_whatsapp_control.sql'
       - '.github/workflows/whatsapp-capability-check.yml'
@@ -15,6 +16,7 @@ on:
       - 'whatsapp-core/**'
       - 'worker/src/magnanimous-whatsapp-capability-registry.js'
       - 'worker/src/magnanimous-whatsapp-runtime.js'
+      - 'worker/src/magnanimous-whatsapp-integration-compat.js'
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0050_magnanimous_whatsapp_control.sql'
       - '.github/workflows/whatsapp-capability-check.yml'
@@ -34,7 +36,20 @@ jobs:
         run: |
           node --check worker/src/magnanimous-whatsapp-capability-registry.js
           node --check worker/src/magnanimous-whatsapp-runtime.js
+          node --check worker/src/magnanimous-whatsapp-integration-compat.js
           node --check worker/src/entrypoint.js
+      - name: Validate WhatsApp send action compatibility
+        run: |
+          node --input-type=module <<'NODE'
+          import { INTEGRATIONS } from './worker/src/integrations.js';
+          import { ensureWhatsAppIntegrationCompatibility } from './worker/src/magnanimous-whatsapp-integration-compat.js';
+          if(!ensureWhatsAppIntegrationCompatibility()) throw new Error('WhatsApp integration definition missing');
+          const def=INTEGRATIONS.find(item=>item.id==='whatsapp');
+          if(!def.capabilities.includes('send_messages')) throw new Error('Legacy send_messages capability was removed');
+          if(!def.capabilities.includes('send_message')) throw new Error('Live send_message action alias is missing');
+          NODE
+          grep -q "provider==='whatsapp'&&action==='send_message'" worker/src/assistant-integrations.js
+          grep -q "'send_message'" worker/src/assistant-integrations.js
       - name: Validate Magnanimous identity and provider boundary
         run: |
           grep -q "identity:'Magnanimous AI WhatsApp Control'" worker/src/magnanimous-whatsapp-capability-registry.js
