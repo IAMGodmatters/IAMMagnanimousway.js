@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-const read=p=>fs.readFileSync(p,'utf8');
+const read=p=>fs.readFileSync(new URL(`../../${p}`,import.meta.url),'utf8');
 const dns=read('worker/src/magnanimous-dns-runtime.js');
 const registrar=read('worker/src/magnanimous-porkbun-dns-runtime.js');
 const credentials=read('worker/src/platform-credentials.js');
