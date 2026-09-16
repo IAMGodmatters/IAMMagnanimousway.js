@@ -76,7 +76,10 @@ async function verifiedLegacyParts(token,env){
 }
 async function compatibilityToken(row,env){
   const secret=await sessionSecret(env);if(!secret)return'';
-  const payload=`${row.user_id}|${row.tenant_id}|${row.role}|${row.expires_at}`;
+  // Internal-only compatibility token. Keep it deliberately short-lived so the
+  // old signed-token shape never becomes a second long-lived browser session.
+  const compatExpiry=Math.min(Number(row.expires_at||0),now()+60);
+  const payload=`${row.user_id}|${row.tenant_id}|${row.role}|${compatExpiry}`;
   return `${payload}|${await hmacHex(secret,payload)}`;
 }
 async function cleanupSessions(env,t=now()){
