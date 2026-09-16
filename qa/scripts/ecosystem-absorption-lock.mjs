@@ -34,6 +34,10 @@ must(registry,"cap('domain-register'",'Porkbun domain capability');
 must(registry,"'spend-locked'",'Porkbun spend lock');
 must(registry,"cap('responses'",'OpenAI Responses capability');
 must(registry,"cap('realtime'",'OpenAI Realtime capability');
+must(registry,"cap('computer-use'",'OpenAI computer-use capability');
+must(registry,"cap('image-generation'",'OpenAI image-generation capability');
+must(registry,"cap('speech-generation'",'OpenAI speech-generation capability');
+must(registry,"cap('transcription'",'OpenAI transcription capability');
 must(registry,"cap('provenance-citations'",'Web provenance capability');
 
 must(runtime,"path.startsWith('/api/ecosystem')",'ecosystem route');
@@ -50,6 +54,7 @@ must(docs,'former DevEdge pilot APIs/services were retired on 2026-06-04','T-Mob
 must(docs,'No general public DSers API is marked verified','DSers docs boundary');
 must(docs,'The Web is not treated as one vendor','World Wide Web boundary');
 must(docs,'OpenAI does not own Magnanimous memory or identity','OpenAI identity boundary');
+must(docs,'guarded computer use','OpenAI computer-use documentation');
 
 if(failures.length){console.error(`Ecosystem absorption lock failed (${failures.length}):`);for(const failure of failures)console.error(`- ${failure}`);process.exit(1)}
 console.log('Magnanimous Ecosystem absorption lock: PASS');
