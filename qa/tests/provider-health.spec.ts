@@ -1,9 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { isTransientStatus, requestWithBackoff } from './network-retry';
 
 const videoGateway = process.env.QA_VIDEO_GATEWAY_URL || 'https://iam-magnanimous-video-gateway.iam-magnanimous.workers.dev';
 
 test('video gateway health endpoint is reachable', async ({ request }) => {
-  const response = await request.get(`${videoGateway}/health`);
+  const response = await requestWithBackoff(request, `${videoGateway}/health`, { method: 'GET' });
+  expect(isTransientStatus(response.status()), `Video gateway stayed transiently unavailable after bounded backoff (${response.status()})`).toBe(false);
   expect(response.status(), 'Video gateway health endpoint is unavailable').toBe(200);
   const body = await response.json().catch(() => null);
   expect(body).toBeTruthy();
@@ -16,7 +18,8 @@ test('public platform does not return 5xx for representative API preflight paths
     '/api/admin/login',
   ];
   for (const route of safeChecks) {
-    const response = await request.fetch(route, { method: 'OPTIONS' });
+    const response = await requestWithBackoff(request, route, { method: 'OPTIONS' });
+    expect.soft(isTransientStatus(response.status()), `${route} OPTIONS remained throttled after bounded backoff (${response.status()})`).toBe(false);
     expect.soft(response.status(), `${route} OPTIONS returned a server error`).toBeLessThan(500);
   }
 });
