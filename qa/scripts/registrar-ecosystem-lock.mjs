@@ -10,7 +10,7 @@ for(const id of ['porkbun','cloudflare-registrar','godaddy','namecheap','namesil
 for(const guard of ['provider_identity_public:false','spend-locked','Transfer auth/EPP codes','Never claim a domain action completed'])must(registry.includes(guard),`missing registrar safety guard: ${guard}`);
 must(seed.includes('MAGNANIMOUS_REGISTRAR_ADAPTERS'),'Tool Foundry seed must import registrar registry');
 must(seed.includes("agentId:'magnanimous-registrar-control'"),'Tool Foundry must seed registrar knowledge');
-must(seed.includes('registration, renewal, transfer'),'Tool Foundry must teach paid registrar boundaries');
+must(seed.includes('Chargeable operations include:')&&seed.includes('REGISTRAR_GUARDRAILS.spend'),'Tool Foundry must teach paid registrar boundaries from normalized spend capabilities and the universal spend guard');
 must(router.includes("import { handleMagnanimousRegistrar } from './magnanimous-registrar-runtime.js';"),'router must import registrar runtime');
 must(router.includes("url.pathname.startsWith('/api/magnanimous/registrar')"),'router must route registrar API before generic brain');
 must(runtime.includes('isPlatformOwner(user,env)'),'registrar account operations must be platform-owner scoped');
