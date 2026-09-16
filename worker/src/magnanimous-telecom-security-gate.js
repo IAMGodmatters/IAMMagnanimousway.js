@@ -8,13 +8,13 @@ export async function handleMagnanimousTelecomSecurityGate(request){
  if(['sim_swap','esim_swap'].includes(orderType)){
   const verificationReference=String(body.identity_verification_reference||'').trim();
   if(!verificationReference||body.confirm_sim_swap_security_review!==true){
-   return json({detail:'SIM/eSIM swaps require a completed identity-verification reference and explicit security-review confirmation. Use the dedicated secure swap workflow.'},409);
+   return json({detail:'SIM/eSIM swaps require a completed identity-verification reference and explicit security-review confirmation. Use /telecom/security.'},409);
   }
  }
  if(orderType==='port_out'){
   const authorizationReference=String(body.porting_authorization_reference||'').trim();
   if(!authorizationReference||body.confirm_port_out_authorization!==true){
-   return json({detail:'Port-out requests require an authorization reference and explicit port-out confirmation. Use the dedicated secure port-out workflow.'},409);
+   return json({detail:'Port-out requests require an authorization reference and explicit port-out confirmation. Use /telecom/security.'},409);
   }
  }
  return null;
