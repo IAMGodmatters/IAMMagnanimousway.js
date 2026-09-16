@@ -5,6 +5,7 @@ import { handleSponsoredAds } from './sponsored-ad-runtime.js';
 import { handleMagnanimousCommunications } from './magnanimous-communications-router.js';
 import { handleMagnanimousNativeMail } from './magnanimous-native-mail-runtime.js';
 import { handleMagnanimousUniversalAIConnector } from './magnanimous-universal-ai-connector.js';
+import { handleMagnanimousSpace } from './magnanimous-space-runtime.js';
 import { handleMagnanimousTelecom } from './magnanimous-telecom-runtime.js';
 import { handleMagnanimousTelecomNetwork } from './magnanimous-telecom-network-runtime.js';
 import { handleMagnanimousTelecomService } from './magnanimous-telecom-service-runtime.js';
@@ -75,6 +76,8 @@ export default {
     if(nativeMail)return nativeMail;
     const communications=await handleMagnanimousCommunications(request,env);
     if(communications)return communications;
+    const space=await handleMagnanimousSpace(request,env);
+    if(space)return space;
     const telecomSecurity=await handleMagnanimousTelecomSecurityGate(request);
     if(telecomSecurity)return telecomSecurity;
     const telecomBssAdmin=await handleMagnanimousTelecomBssAdmin(request,env);
