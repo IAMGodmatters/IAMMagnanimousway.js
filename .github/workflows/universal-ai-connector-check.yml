@@ -1,0 +1,43 @@
+name: Universal AI Connector Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-universal-ai-connector.js'
+      - 'worker/src/magnanimous-native-mail-runtime.js'
+      - 'worker/src/magnanimous-communications-router.js'
+      - 'worker/src/entrypoint.js'
+      - 'frontend/app/ai-connectors/page.tsx'
+      - 'qa/scripts/universal-ai-connector-lock.mjs'
+      - '.github/workflows/universal-ai-connector-check.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-universal-ai-connector.js'
+      - 'worker/src/magnanimous-native-mail-runtime.js'
+      - 'worker/src/magnanimous-communications-router.js'
+      - 'worker/src/entrypoint.js'
+      - 'frontend/app/ai-connectors/page.tsx'
+      - 'qa/scripts/universal-ai-connector-lock.mjs'
+      - '.github/workflows/universal-ai-connector-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Syntax check connector runtime
+        run: |
+          node --check worker/src/magnanimous-universal-ai-connector.js
+          node --check worker/src/entrypoint.js
+      - name: Lock connector contract
+        run: node qa/scripts/universal-ai-connector-lock.mjs
