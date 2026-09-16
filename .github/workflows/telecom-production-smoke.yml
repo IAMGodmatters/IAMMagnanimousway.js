@@ -1,0 +1,79 @@
+name: Verify Magnanimous Telecom Production
+
+on:
+  workflow_run:
+    workflows: ["Build and Deploy I AM"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-telecom:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE_URL: https://iammagnanimousway.com
+    steps:
+      - name: Verify both Magnanimous Telecom entrances
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl_retry() {
+            local output="$1" url="$2"
+            local status="000"
+            for attempt in 1 2 3 4 5; do
+              status=$(curl -LsS --connect-timeout 10 --max-time 45 -o "$output" -w '%{http_code}' "$url" || true)
+              if [ "$status" = "200" ]; then
+                printf '%s' "$status"
+                return 0
+              fi
+              sleep $((attempt * 3))
+            done
+            printf '%s' "$status"
+            return 1
+          }
+
+          verify_page() {
+            local name="$1" path="$2" output="$3"
+            local status
+            status=$(curl_retry "$output" "$BASE_URL$path") || {
+              echo "::error::$name failed to resolve after deployment; final HTTP $status"
+              cat "$output" 2>/dev/null || true
+              exit 1
+            }
+            if ! grep -qi "Magnanimous Telecom" "$output"; then
+              echo "::error::$name returned HTTP 200 but did not contain the Magnanimous Telecom surface."
+              head -c 2000 "$output" || true
+              exit 1
+            fi
+            echo "$name is live and contains the Magnanimous Telecom surface."
+          }
+
+          verify_page "Integrated Telecom entrance" "/telecom" /tmp/telecom.html
+          verify_page "Standalone Telecom entrance" "/telecom-standalone" /tmp/telecom-standalone.html
+
+      - name: Verify Telecom API exists and remains protected
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="000"
+          for attempt in 1 2 3 4 5; do
+            status=$(curl -sS --connect-timeout 10 --max-time 45 -o /tmp/telecom-api.json -w '%{http_code}' "$BASE_URL/api/telecom/overview" || true)
+            if [ "$status" = "401" ]; then break; fi
+            sleep $((attempt * 3))
+          done
+          if [ "$status" != "401" ]; then
+            echo "::error::Telecom overview should require authentication; got HTTP $status"
+            cat /tmp/telecom-api.json 2>/dev/null || true
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/telecom-api.json'))
+          assert data.get('detail') == 'Sign in to Magnanimous Telecom.', data
+          print('Telecom API is live and its authentication boundary is intact.')
+          PY
