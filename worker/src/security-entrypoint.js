@@ -4,6 +4,7 @@ import { recoverProfessionalGeneration } from './professional-resilience-runtime
 import { handleNativeWorkCrm } from './native-work-crm-runtime.js';
 import { applyPlatformResponseHeaders, requestCorrelationId, unhandledRequestFailure } from './request-observability.js';
 import { resolveSessionRequest, revokeOpaqueSession, upgradeAuthResponseToOpaque } from './session-authority.js';
+import { prepareCarrierWebhook, completeCarrierWebhook } from './carrier-webhook-security.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -66,6 +67,7 @@ export default {
     const canonicalOrLegacy=canonicalOrLegacyResponse(request);
     if(canonicalOrLegacy)return finalizeResponse(request,canonicalOrLegacy);
     const requestId=requestCorrelationId(request);
+    let carrierContext=null;
     try{
       const url=new URL(request.url);
       if(request.method==='POST'&&url.pathname==='/api/auth/logout'){
@@ -73,12 +75,19 @@ export default {
         if(logout.handled)return finalizeResponse(request,await securityPostflight(request,logout.response,env));
       }
 
-      const sessionResolution=await resolveSessionRequest(request,env,requestId);
-      if(sessionResolution.response)return finalizeResponse(request,await securityPostflight(request,sessionResolution.response,env));
+      carrierContext=await prepareCarrierWebhook(request,env,requestId);
+      if(carrierContext.response)return finalizeResponse(request,await securityPostflight(request,carrierContext.response,env));
+      const guardedRequest=carrierContext.request;
+
+      const sessionResolution=await resolveSessionRequest(guardedRequest,env,requestId);
+      if(sessionResolution.response)return finalizeResponse(request,await securityPostflight(guardedRequest,sessionResolution.response,env));
       const routedRequest=sessionResolution.request;
 
       const blocked = await securityPreflight(routedRequest, env);
-      if (blocked) return finalizeResponse(request,await securityPostflight(routedRequest, blocked, env));
+      if (blocked) {
+        const completed=await completeCarrierWebhook(carrierContext,blocked,env);
+        return finalizeResponse(request,await securityPostflight(routedRequest,completed,env));
+      }
       const routedUrl = new URL(routedRequest.url);
       const continuityRequest = routedRequest.method === 'POST' && routedUrl.pathname === '/api/professional/generate' ? routedRequest.clone() : null;
       if (isNativeOperationsPath(routedUrl.pathname)) {
@@ -88,11 +97,13 @@ export default {
       const response = await app.fetch(routedRequest, env, ctx);
       const resilientResponse = continuityRequest ? await recoverProfessionalGeneration(continuityRequest, env, response) : response;
       const sessionResponse=await upgradeAuthResponseToOpaque(request,resilientResponse,env);
-      const securedResponse=await securityPostflight(routedRequest, sessionResponse, env);
+      const carrierResponse=await completeCarrierWebhook(carrierContext,sessionResponse,env);
+      const securedResponse=await securityPostflight(routedRequest, carrierResponse, env);
       return finalizeResponse(request,securedResponse);
     }catch(error){
       const fallback=unhandledRequestFailure(request,error);
-      const secured=await securityPostflight(request,fallback,env);
+      const completed=await completeCarrierWebhook(carrierContext,fallback,env).catch(()=>fallback);
+      const secured=await securityPostflight(request,completed,env);
       return finalizeResponse(request,secured);
     }
   },
