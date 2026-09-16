@@ -8,11 +8,13 @@ on:
       - 'frontend/app/telecom/**'
       - 'worker/src/magnanimous-telecom-runtime.js'
       - 'worker/src/magnanimous-telecom-network-runtime.js'
+      - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0040_magnanimous_telecom_business.sql'
       - 'worker/migrations/0041_magnanimous_telecom_commercial_ops.sql'
       - 'worker/migrations/0042_magnanimous_sim_esim.sql'
       - 'worker/migrations/0043_magnanimous_regulated_network.sql'
+      - 'worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql'
       - '.github/workflows/telecom-core-check.yml'
   pull_request:
     paths:
@@ -20,11 +22,13 @@ on:
       - 'frontend/app/telecom/**'
       - 'worker/src/magnanimous-telecom-runtime.js'
       - 'worker/src/magnanimous-telecom-network-runtime.js'
+      - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/entrypoint.js'
       - 'worker/migrations/0040_magnanimous_telecom_business.sql'
       - 'worker/migrations/0041_magnanimous_telecom_commercial_ops.sql'
       - 'worker/migrations/0042_magnanimous_sim_esim.sql'
       - 'worker/migrations/0043_magnanimous_regulated_network.sql'
+      - 'worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql'
       - '.github/workflows/telecom-core-check.yml'
 
 permissions:
@@ -70,6 +74,7 @@ jobs:
         run: |
           node --check worker/src/magnanimous-telecom-runtime.js
           node --check worker/src/magnanimous-telecom-network-runtime.js
+          node --check worker/src/magnanimous-telecom-service-runtime.js
           node --check worker/src/entrypoint.js
 
       - name: Validate Telecom schema foundations
@@ -84,6 +89,10 @@ jobs:
           grep -q 'telecom_network_providers' worker/migrations/0043_magnanimous_regulated_network.sql
           grep -q 'telecom_regulatory_cases' worker/migrations/0043_magnanimous_regulated_network.sql
           grep -q 'telecom_network_events' worker/migrations/0043_magnanimous_regulated_network.sql
+          grep -q 'telecom_provider_policy' worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql
+          grep -q 'telecom_retail_plans' worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql
+          grep -q 'telecom_customer_lines' worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql
+          grep -q 'telecom_usage_cycles' worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql
           grep -q 'The application MUST NOT generate, clone, copy or store raw Ki' telecom-core/SIM_ESIM.md
 
       - name: Validate consequential action locks
@@ -93,6 +102,17 @@ jobs:
           grep -q 'TELECOM_REGULATED_ACTIONS_ENABLED' worker/src/magnanimous-telecom-network-runtime.js
           grep -q 'confirm_regulated_action' worker/src/magnanimous-telecom-network-runtime.js
           grep -q 'Software readiness is not regulatory authority' worker/src/magnanimous-telecom-network-runtime.js
+
+      - name: Validate no-white-label Telecom lock
+        run: |
+          grep -q "white_label_allowed INTEGER NOT NULL DEFAULT 0 CHECK(white_label_allowed=0)" worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql
+          grep -q "reseller_allowed INTEGER NOT NULL DEFAULT 0 CHECK(reseller_allowed=0)" worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql
+          grep -q "subcarrier_allowed INTEGER NOT NULL DEFAULT 0 CHECK(subcarrier_allowed=0)" worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql
+          grep -q "customer_number_resale_allowed INTEGER NOT NULL DEFAULT 0 CHECK(customer_number_resale_allowed=0)" worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql
+          grep -q "provider_identity TEXT NOT NULL DEFAULT 'Magnanimous Telecom' CHECK(provider_identity='Magnanimous Telecom')" worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql
+          grep -q "brain_identity TEXT NOT NULL DEFAULT 'Magnanimous AI' CHECK(brain_identity='Magnanimous AI')" worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql
+          grep -q "white-label, reseller, sub-carrier" worker/src/magnanimous-telecom-service-runtime.js
+          grep -q "customer-created phone company" worker/src/magnanimous-telecom-service-runtime.js
 
       - name: Install frontend dependencies
         working-directory: frontend
@@ -110,6 +130,9 @@ jobs:
         run: |
           grep -q 'Magnanimous Telecom' frontend/app/telecom/page.tsx
           grep -q 'Magnanimous AI' frontend/app/telecom/page.tsx
+          grep -q 'Plans & Subscriptions' frontend/app/telecom/page.tsx
+          grep -q 'White-label / reseller telecom: locked off' frontend/app/telecom/page.tsx
+          grep -q 'Telecom is intentionally excluded from white labeling' frontend/app/telecom/plans/page.tsx
           grep -q 'SIM + eSIM Control' frontend/app/telecom/page.tsx
           grep -q 'Carrier Access' frontend/app/telecom/page.tsx
           grep -q 'Magnanimous remains the public identity' frontend/app/telecom/network/page.tsx
