@@ -21,6 +21,7 @@ const template=read('frontend/app/template.tsx');
 const robots=read('frontend/public/robots.txt');
 const sitemap=read('frontend/public/sitemap.xml');
 const wrangler=read('worker/wrangler.jsonc');
+const deploy=read('.github/workflows/deploy.yml');
 
 mustContain(password,"const PBKDF2_PREFIX = 'pbkdf2-sha256'",'Modern password algorithm identifier is missing.');
 mustContain(password,'const DEFAULT_ITERATIONS = 600000','PBKDF2 default work factor regressed.');
@@ -91,6 +92,13 @@ mustContain(template,"const publicPaths=new Set(['/','/teach'",'Template public/
 for(const path of ['/api/','/owner-','/owner-center/','/crm/','/telecom/','/assistant-actions/','/mux/'])mustContain(robots,`Disallow: ${path}`,`Crawler boundary missing for ${path}`);
 for(const path of ['/white-label/','/shop/','/teach/','/advertise/'])mustContain(sitemap,`https://iammagnanimousway.com${path}`,`Public sitemap entry missing for ${path}`);
 mustContain(wrangler,'"main": "src/security-entrypoint.js"','Production Worker must remain behind the central security entrypoint.');
+
+mustContain(deploy,'run: npm ci --no-audit --no-fund','Production deploy must install from committed lockfiles with npm ci.');
+mustNotContain(deploy,'run: npm install\n','Production deploy must not resolve dependencies with npm install.');
+mustContain(deploy,"assert token.startswith('ms1_')",'Production smoke test must prove new sessions are opaque.');
+mustContain(deploy,"assert '|' not in token",'Production smoke test must prove browser session tokens do not embed legacy identity fields.');
+mustContain(deploy,'Opaque-session logout returned HTTP','Production smoke test must exercise opaque logout.');
+mustContain(deploy,'Revoked opaque session expected HTTP 401','Production smoke test must prove logout invalidates the session server-side.');
 
 for(const dir of ['frontend','worker','video-gateway','qa']){
   const pkg=packageJson(`${dir}/package.json`);
