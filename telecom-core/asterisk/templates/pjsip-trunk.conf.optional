@@ -1,40 +1,40 @@
-[pstn-auth]
+[${CARRIER_SIP_ENDPOINT}-auth]
 type=auth
 auth_type=userpass
-username=${PSTN_TRUNK_USERNAME}
-password=${PSTN_TRUNK_PASSWORD}
+username=${CARRIER_SIP_USERNAME}
+password=${CARRIER_SIP_PASSWORD}
 
-[pstn-aor]
+[${CARRIER_SIP_ENDPOINT}-aor]
 type=aor
-contact=sip:${PSTN_TRUNK_HOST}:${PSTN_TRUNK_PORT}
+contact=sip:${CARRIER_SIP_HOST}:${CARRIER_SIP_PORT}
 qualify_frequency=30
 
-[pstn-trunk]
+[${CARRIER_SIP_ENDPOINT}]
 type=endpoint
 transport=transport-udp
 context=from-pstn
 disallow=all
 allow=ulaw,alaw
-aors=pstn-aor
-outbound_auth=pstn-auth
-from_user=${PSTN_TRUNK_USERNAME}
-from_domain=${PSTN_TRUNK_FROM_DOMAIN}
+aors=${CARRIER_SIP_ENDPOINT}-aor
+outbound_auth=${CARRIER_SIP_ENDPOINT}-auth
+from_user=${CARRIER_SIP_USERNAME}
+from_domain=${CARRIER_SIP_FROM_DOMAIN}
 direct_media=no
 rtp_symmetric=yes
 force_rport=yes
 rewrite_contact=yes
 
-[pstn-identify]
+[${CARRIER_SIP_ENDPOINT}-identify]
 type=identify
-endpoint=pstn-trunk
-match=${PSTN_TRUNK_HOST}
+endpoint=${CARRIER_SIP_ENDPOINT}
+match=${CARRIER_SIP_HOST}
 
-[pstn-registration]
+[${CARRIER_SIP_ENDPOINT}-registration]
 type=registration
 transport=transport-udp
-outbound_auth=pstn-auth
-server_uri=sip:${PSTN_TRUNK_HOST}:${PSTN_TRUNK_PORT}
-client_uri=sip:${PSTN_TRUNK_USERNAME}@${PSTN_TRUNK_HOST}
+outbound_auth=${CARRIER_SIP_ENDPOINT}-auth
+server_uri=sip:${CARRIER_SIP_HOST}:${CARRIER_SIP_PORT}
+client_uri=sip:${CARRIER_SIP_USERNAME}@${CARRIER_SIP_HOST}
 retry_interval=60
 forbidden_retry_interval=300
 expiration=300
