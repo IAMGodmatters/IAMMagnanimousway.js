@@ -41,7 +41,7 @@ const routes=[
  {id:'penny',name:'Penny',title:'Budget Organizer',group:'everyday',specialty:'budget organization and savings goals',description:'Simple budgeting guidance, spending categories, savings goals and bill organization; not financial or investment advice.',patterns:[/\bpersonal budget\b/i,/\bbill budget\b/i,/\bsavings goal\b/i]},
  {id:'techie',name:'Techie',title:'Everyday Tech Help',group:'everyday',specialty:'everyday technology troubleshooting',description:'Explain common phone, computer, app and internet tasks in clear step-by-step language.',patterns:[/\bphone problem\b/i,/\bcomputer problem\b/i,/\btech support\b/i,/\bapp not working\b/i]},
  {id:'study',name:'Study',title:'Study Coach',group:'learning',specialty:'study planning and revision',description:'Study schedules, revision plans, practice questions and learning routines.',patterns:[/\bstudy plan\b/i,/\brevision plan\b/i,/\bexam study\b/i]},
- {id:'researcher',name:'Researcher',title:'Research Organizer',group:'learning',specialty:'research organization and evidence synthesis',description:'Turn a topic into research questions, source notes, comparisons and organized findings.',patterns:[/\bresearch (this|topic|question)\b/i,/\bcompare sources\b/i,/\bresearch organizer\b/i]},
+ {id:'researcher',name:'Researcher',title:'Evidence Researcher',group:'learning',specialty:'evidence-first research, source verification, primary-source discovery and cross-checking',description:'Break complex questions into searches, prioritize authoritative primary evidence, cross-check independent sources, identify contradictions, and synthesize claim-level sourced findings.',patterns:[/\bresearch\b/i,/\bcompare sources\b/i,/\bsource(s|d)?\b/i,/\bcitation\b/i,/\bfact.?check\b/i,/\bverify\b/i,/\bevidence\b/i,/\baudit\b/i,/\bin.?depth\b/i]},
  {id:'teacher',name:'Teacher',title:'General Tutor',group:'learning',specialty:'step-by-step tutoring and practice',description:'Explain concepts step by step, adapt difficulty and create practice activities without doing dishonest assessed work.',patterns:[/\bteach me\b/i,/\btutor me\b/i,/\bexplain .* step by step\b/i]}
 ];
 
@@ -62,8 +62,7 @@ export function specialistForMessage(message){
  return {...best,score:bestScore};
 }
 
-export function specialistIntroduction(agent){
- return `Hello, I am ${agent.name}. I specialize in ${agent.specialty}. I will be assisting you with this request.`;
-}
+// Specialist routing is an internal implementation detail. The visible response begins with the answer.
+export function specialistIntroduction(){return ''}
 
 export function specialistRoutingCatalog(){return routes.map(({patterns,...x})=>x)}
