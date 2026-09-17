@@ -26,7 +26,7 @@ has(runtime,'architecture-decomposition','God Coding owns decomposition as an en
 has(runtime,'solid-design','God Coding owns SOLID design as an engineering capability');
 has(runtime,'dependency-injection','God Coding owns dependency injection as an engineering capability');
 has(runtime,"id:'architecture'",'self-development plan includes an explicit architecture phase');
-has(runtime,'Decompose large functions and mixed-responsibility modules into smaller single-purpose helpers.','native policy requires decomposition');
+has(runtime,'Decompose large functions','native policy requires decomposition');
 has(runtime,'Apply SOLID boundaries','native policy requires SOLID boundaries');
 has(runtime,'Favor composition and dependency injection through an explicit composition root','native policy requires composition and dependency injection');
 has(runtime,'engineering_architecture_policy','native-first overview exposes the engineering architecture policy');
