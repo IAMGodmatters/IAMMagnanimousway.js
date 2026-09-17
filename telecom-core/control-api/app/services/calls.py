@@ -6,8 +6,7 @@ from typing import Any, Callable
 from ..config import TelecomSettings
 from ..domain import normalize_number, validate_call_id
 from ..models import HangupRequest, OutboundCall
-from ..ports import CarrierBridge, CarrierCallRequest
-from ..adapters.callbacks import CallbackUrlPolicy
+from ..ports import CallbackPolicy, CarrierBridge, CarrierCallRequest
 from .monitoring import CarrierCallMonitor
 
 
@@ -18,7 +17,7 @@ class CallService:
         self,
         bridge: CarrierBridge,
         monitor: CarrierCallMonitor,
-        callback_policy: CallbackUrlPolicy,
+        callback_policy: CallbackPolicy,
         settings: TelecomSettings,
         id_factory: Callable[[], uuid.UUID] = uuid.uuid4,
     ):
