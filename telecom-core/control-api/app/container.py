@@ -4,11 +4,13 @@ from dataclasses import dataclass
 
 from .adapters.asterisk import AsteriskAriClient, AsteriskSipCarrierBridge
 from .adapters.callbacks import CallbackUrlPolicy, WebhookStatusPublisher
+from .adapters.sip_subscribers import PostgresSipSubscriberStore
 from .config import TelecomSettings
 from .security import TelecomTokenAuthenticator
 from .services.calls import CallService
 from .services.health import HealthService
 from .services.monitoring import CarrierCallMonitor
+from .services.sip_accounts import SipAccountService
 
 
 @dataclass(frozen=True)
@@ -18,6 +20,7 @@ class ApplicationContainer:
     carrier_bridge: AsteriskSipCarrierBridge
     calls: CallService
     health: HealthService
+    sip_accounts: SipAccountService
 
 
 def build_container(settings: TelecomSettings | None = None) -> ApplicationContainer:
@@ -31,12 +34,15 @@ def build_container(settings: TelecomSettings | None = None) -> ApplicationConta
     calls = CallService(bridge, monitor, callback_policy, resolved)
     health = HealthService(bridge, monitor, resolved)
     auth = TelecomTokenAuthenticator(resolved)
+    subscriber_store = PostgresSipSubscriberStore(resolved)
+    sip_accounts = SipAccountService(subscriber_store, resolved)
     return ApplicationContainer(
         settings=resolved,
         auth=auth,
         carrier_bridge=bridge,
         calls=calls,
         health=health,
+        sip_accounts=sip_accounts,
     )
 
 

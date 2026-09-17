@@ -7,11 +7,11 @@ from fastapi.responses import JSONResponse
 
 from .container import ApplicationContainer, get_container
 from .errors import TelecomError
-from .models import HangupRequest, OutboundCall
+from .models import HangupRequest, OutboundCall, SipAccountCreate
 
 app = FastAPI(
     title="Magnanimous Telecom Core",
-    version="0.3.0",
+    version="0.4.0",
     docs_url="/docs",
     redoc_url=None,
 )
@@ -45,6 +45,45 @@ async def carrier(container: ApplicationContainer = Depends(get_container)) -> d
 @app.get("/v1/carrier/health", dependencies=[Depends(require_token)])
 async def carrier_health(container: ApplicationContainer = Depends(get_container)) -> dict[str, Any]:
     return await container.health.carrier_health()
+
+
+@app.get("/v1/sip", dependencies=[Depends(require_token)])
+async def sip_core(container: ApplicationContainer = Depends(get_container)) -> dict[str, Any]:
+    return {
+        "identity": "Magnanimous Telecom",
+        "service": "Magnanimous SIP Core",
+        "domain": container.settings.sip_domain,
+        "registrar_port": 5060,
+        "transports": ["udp", "tcp"],
+        "pbx_media": "Magnanimous-owned Asterisk",
+        "pstn_boundary": "replaceable interconnect until direct carrier authority is obtained",
+    }
+
+
+@app.get("/v1/sip/health", dependencies=[Depends(require_token)])
+async def sip_health(container: ApplicationContainer = Depends(get_container)) -> dict[str, Any]:
+    return await container.sip_accounts.health()
+
+
+@app.get("/v1/sip/accounts", dependencies=[Depends(require_token)])
+async def list_sip_accounts(container: ApplicationContainer = Depends(get_container)) -> dict[str, Any]:
+    return await container.sip_accounts.list()
+
+
+@app.post("/v1/sip/accounts", status_code=201, dependencies=[Depends(require_token)])
+async def create_sip_account(
+    request: SipAccountCreate,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.sip_accounts.create(request)
+
+
+@app.delete("/v1/sip/accounts/{username}", dependencies=[Depends(require_token)])
+async def delete_sip_account(
+    username: str,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.sip_accounts.delete(username)
 
 
 @app.post("/v1/calls", status_code=201, dependencies=[Depends(require_token)])

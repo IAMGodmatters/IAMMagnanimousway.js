@@ -43,6 +43,12 @@ class TelecomSettings:
     carrier_timeout_ms: int
     monitor_interval_seconds: float
     monitor_max_polls: int
+    sip_domain: str = ""
+    sip_db_host: str = "127.0.0.1"
+    sip_db_port: int = 5433
+    sip_db_name: str = "magnanimous_sip"
+    sip_db_user: str = "magnanimous_sip"
+    sip_db_password: str = ""
 
     @classmethod
     def from_env(cls) -> "TelecomSettings":
@@ -65,4 +71,10 @@ class TelecomSettings:
             carrier_timeout_ms=max(1000, _env_int("CARRIER_CALL_TIMEOUT_MS", 60000)),
             monitor_interval_seconds=max(0.5, _env_float("CARRIER_MONITOR_INTERVAL_SECONDS", 2.0)),
             monitor_max_polls=max(1, _env_int("CARRIER_MONITOR_MAX_POLLS", 1800)),
+            sip_domain=_env("MAGNANIMOUS_SIP_DOMAIN"),
+            sip_db_host=_env("SIP_DB_HOST", "127.0.0.1"),
+            sip_db_port=max(1, _env_int("SIP_DB_PORT", 5433)),
+            sip_db_name=_env("SIP_DB_NAME", "magnanimous_sip"),
+            sip_db_user=_env("SIP_DB_USER", "magnanimous_sip"),
+            sip_db_password=_env("SIP_DB_PASSWORD"),
         )

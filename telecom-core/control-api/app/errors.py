@@ -30,3 +30,13 @@ class CarrierUnavailableError(TelecomError):
 class CarrierRejectedError(TelecomError):
     status_code = 502
     code = "CARRIER_REJECTED"
+
+
+class SipAccountConflictError(TelecomError):
+    status_code = 409
+    code = "SIP_ACCOUNT_EXISTS"
+
+
+class SipAccountNotFoundError(TelecomError):
+    status_code = 404
+    code = "SIP_ACCOUNT_NOT_FOUND"

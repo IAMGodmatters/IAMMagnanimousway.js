@@ -3,20 +3,47 @@ type=global
 user_agent=Magnanimous-Telecom
 endpoint_identifier_order=auth_username,username,ip,anonymous
 
+; Public subscriber SIP lives on Kamailio port 5060. Asterisk uses 5070 as the
+; owned PBX/media and carrier edge so the two services never fight for a socket.
 [transport-udp]
 type=transport
 protocol=udp
-bind=0.0.0.0:5060
+bind=0.0.0.0:${ASTERISK_SIP_PORT}
 
 [transport-tcp]
 type=transport
 protocol=tcp
-bind=0.0.0.0:5060
+bind=0.0.0.0:${ASTERISK_SIP_PORT}
 
 [transport-wss]
 type=transport
 protocol=wss
 bind=0.0.0.0
+
+; Trusted loopback route to the Magnanimous SIP registrar/proxy.
+[magnanimous-sip-core]
+type=aor
+contact=sip:127.0.0.1:5060
+qualify_frequency=30
+
+[magnanimous-sip-core]
+type=endpoint
+aors=magnanimous-sip-core
+transport=transport-udp
+context=from-sip-core
+disallow=all
+allow=opus,ulaw,alaw
+direct_media=no
+rtp_symmetric=yes
+force_rport=yes
+rewrite_contact=yes
+trust_id_inbound=no
+trust_id_outbound=no
+
+[magnanimous-sip-core-identify]
+type=identify
+endpoint=magnanimous-sip-core
+match=127.0.0.1
 
 [${MAGNANIMOUS_ADMIN_EXTENSION}]
 type=aor
@@ -64,7 +91,7 @@ rtp_symmetric=yes
 force_rport=yes
 rewrite_contact=yes
 
-; Browser/WebRTC clients can use the same extension credentials over WSS.
-; A production deployment should use a publicly trusted TLS certificate.
+; Browser/WebRTC clients can keep using the Asterisk WSS endpoint where needed.
+; General SIP subscribers register against the Magnanimous SIP Core on port 5060.
 
 #include pjsip-trunk.conf
