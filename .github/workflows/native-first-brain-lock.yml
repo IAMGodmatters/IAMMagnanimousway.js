@@ -1,0 +1,23 @@
+name: Magnanimous Native-First Brain Lock
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-first-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Verify native-first brain and God Coding contracts
+        run: node qa/scripts/magnanimous-native-first-lock.mjs
+      - name: Syntax check native-first Worker runtime
+        run: node --check worker/src/magnanimous-native-first.js
