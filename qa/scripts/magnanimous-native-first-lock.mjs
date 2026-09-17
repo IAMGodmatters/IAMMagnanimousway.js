@@ -22,6 +22,14 @@ has(runtime,'self_development_enabled:true','Magnanimous self-development is ena
 has(runtime,'external_plugins_required_for_core_brain:false','core brain does not require plugins');
 has(runtime,'external_adapters_required_for_core_brain:false','core brain does not require adapters');
 has(runtime,"adapter_policy:'fallback-only for irreducibly external actions'",'self-development plan keeps adapters fallback-only');
+has(runtime,'architecture-decomposition','God Coding owns decomposition as an engineering capability');
+has(runtime,'solid-design','God Coding owns SOLID design as an engineering capability');
+has(runtime,'dependency-injection','God Coding owns dependency injection as an engineering capability');
+has(runtime,"id:'architecture'",'self-development plan includes an explicit architecture phase');
+has(runtime,'Decompose large functions and mixed-responsibility modules into smaller single-purpose helpers.','native policy requires decomposition');
+has(runtime,'Apply SOLID boundaries','native policy requires SOLID boundaries');
+has(runtime,'Favor composition and dependency injection through an explicit composition root','native policy requires composition and dependency injection');
+has(runtime,'engineering_architecture_policy','native-first overview exposes the engineering architecture policy');
 has(runtime,"/api/magnanimous/native-first/assimilate",'capability assimilation endpoint exists');
 has(runtime,"/api/magnanimous/native-first/self-develop",'self-development endpoint exists');
 has(runtime,'capability-assimilation','capability assimilation is a native learned skill');
