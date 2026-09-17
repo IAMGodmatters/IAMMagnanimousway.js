@@ -27,7 +27,17 @@ checks.push(
   ['OAuth/account linking remains user self-service rather than platform-owner gated', runtime.includes('owner_approval_required: false')],
   ['provider authorization remains required', runtime.includes('provider_authorization_required: true')],
   ['customer retains read/write connection controls', runtime.includes('user_can_disable_read_or_write: true')],
-  ['connected assistant UI still exists', ui.includes('assistant-integrations') || ui.includes('Connected Assistant') || ui.includes('CONNECTED ASSISTANT')]
+  ['connected assistant UI still exists', ui.includes('assistant-integrations') || ui.includes('Connected Assistant') || ui.includes('CONNECTED ASSISTANT')],
+  ['connected assistant UI never sends same-request confirmation', !ui.includes('confirm:true') && !ui.includes('confirm: true')],
+  ['connected assistant UI keeps consequential confirmation enabled', ui.includes('require_confirmation:true') && !ui.includes('require_confirmation:false')],
+  ['connected assistant UI uses the separate approval endpoint', ui.includes('/confirm') && ui.includes('approveAction')],
+  ['connected assistant UI presents explicit four-step review flow', ui.includes('Choose account') && ui.includes('Prepare action') && ui.includes('Review pending write') && ui.includes('Approve &amp; Run')],
+  ['connected assistant UI does not claim writes execute immediately', !ui.includes('EXECUTE NOW') && !ui.includes('AUTOMATIC ACCESS') && !ui.includes('without owner approval')],
+  ['connected assistant UI distinguishes read-now from staged writes', ui.includes('RUN SECURE READ') && ui.includes('PREPARE FOR REVIEW') && ui.includes("status==='needs_confirmation'")],
+  ['connected assistant UI exposes pending payload for review', ui.includes('JSON.stringify(a.payload||{},null,2)') && ui.includes('Pending approvals expire after 15 minutes')],
+  ['connected assistant UI has accessible live status messaging', ui.includes('aria-live="polite"') && ui.includes('role="status"')],
+  ['connected assistant UI includes keyboard focus treatment', ui.includes(':focus-visible')],
+  ['connected assistant UI uses 44px minimum interactive targets', ui.includes('min-height:44px') || ui.includes('minHeight:44')]
 );
 
 const failed = checks.filter(([, ok]) => !ok);
