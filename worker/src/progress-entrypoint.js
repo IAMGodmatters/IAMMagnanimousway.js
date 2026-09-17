@@ -2,6 +2,7 @@ import app from './progress-entrypoint-base.js';
 import {runQaLearningQueue} from './qa-learning-runtime.js';
 import {runQaLearningNow} from './qa-learning-now-runtime.js';
 import {specialistForMessage,specialistIntroduction} from './specialist-router.js';
+import {handleMagnanimousNativeFirst} from './magnanimous-native-first.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 
@@ -51,6 +52,15 @@ async function recoverSpecialistHandoff(request,path,response,chatBody){
 export default{
  async fetch(request,env,ctx){
   const path=new URL(request.url).pathname;
+  if(path.startsWith('/api/magnanimous/native-first')){
+   try{
+    const nativeFirst=await handleMagnanimousNativeFirst(request,env);
+    if(nativeFirst)return nativeFirst;
+   }catch(error){
+    console.error('Magnanimous native-first runtime failed',error);
+    return json({detail:'Magnanimous native-first runtime could not complete this request.'},500);
+   }
+  }
   const chatBody=request.method==='POST'&&path==='/api/chat'?await request.clone().json().catch(()=>null):null;
   let response=await app.fetch(request,env,ctx);
   response=await recoverSpecialistHandoff(request,path,response,chatBody);
