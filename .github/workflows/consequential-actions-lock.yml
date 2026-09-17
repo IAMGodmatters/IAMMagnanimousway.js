@@ -19,4 +19,6 @@ jobs:
         with:
           node-version: 24
       - name: Verify self-service consequential-action protections
-        run: node qa/scripts/consequential-actions-lock.mjs
+        run: |
+          node qa/scripts/consequential-actions-lock.mjs
+          node qa/scripts/connected-assistant-ui-lock.mjs
