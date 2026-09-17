@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { isRequestSessionRevoked, revokeRequestSession } from './session-revocation.js';
+import { handlePasswordRecovery } from './password-recovery.js';
 
 const now = () => Math.floor(Date.now() / 1000);
 const encoder = new TextEncoder();
@@ -173,6 +174,17 @@ export async function securityPreflight(request, env) {
   const size = Number(request.headers.get('content-length') || 0);
   if (size > 1_000_000) return json({ detail: 'Request body is too large.' }, 413);
   if (isProtectedAiPath(url.pathname) && size > 160_000) return json({ detail: 'AI request is too large.' }, 413);
+
+  if (url.pathname === '/api/auth/forgot-password' && request.method === 'POST') {
+    const limited = await rateLimit(request, env, 'password-recovery', Number(env?.SECURITY_PASSWORD_RECOVERY_LIMIT || 5), 900);
+    if (limited) return limited;
+    return await handlePasswordRecovery(request, env);
+  }
+  if (url.pathname === '/api/auth/reset-password' && request.method === 'POST') {
+    const limited = await rateLimit(request, env, 'password-reset', Number(env?.SECURITY_PASSWORD_RESET_LIMIT || 10), 900);
+    if (limited) return limited;
+    return await handlePasswordRecovery(request, env);
+  }
 
   if (requiresStrongSession(request, url.pathname) && !strongSecret(await sessionSecret(env))) {
     return json({ detail: 'Authentication is temporarily unavailable because secure session configuration is incomplete.', code: 'SECURE_SESSION_REQUIRED' }, 503);
