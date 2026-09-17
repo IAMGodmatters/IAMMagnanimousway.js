@@ -6,6 +6,7 @@ clearglobalvars=no
 [globals]
 MAGNANIMOUS_AI_EXTENSION=${MAGNANIMOUS_AI_EXTENSION}
 MAGNANIMOUS_ADMIN_EXTENSION=${MAGNANIMOUS_ADMIN_EXTENSION}
+CARRIER_SIP_ENDPOINT=${CARRIER_SIP_ENDPOINT}
 
 [magnanimous-internal]
 ; Internal Magnanimous extensions.
@@ -21,9 +22,9 @@ exten => 911,1,Playback(ss-noservice)
 exten => _+X.,1,Goto(magnanimous-outbound,${EXTEN},1)
 
 [magnanimous-outbound]
-exten => _+X.,1,NoOp(Magnanimous outbound call to ${EXTEN})
+exten => _+X.,1,NoOp(Magnanimous outbound carrier bridge call to ${EXTEN})
  same => n,Set(CALLERID(num)=${MAG_FROM})
- same => n,Dial(PJSIP/${EXTEN}@pstn-trunk,60)
+ same => n,Dial(PJSIP/${EXTEN}@${CARRIER_SIP_ENDPOINT},60)
  same => n,Hangup()
 
 [magnanimous-ai]
@@ -34,9 +35,9 @@ exten => s,1,NoOp(Connecting call ${MAG_CALL_ID} to Magnanimous AI)
 
 [from-pstn]
 ; Inbound DID calls remain branded and controlled by Magnanimous.
-exten => _X.,1,NoOp(Magnanimous inbound PSTN call ${CALLERID(num)} -> ${EXTEN})
+exten => _X.,1,NoOp(Magnanimous inbound carrier call ${CALLERID(num)} -> ${EXTEN})
  same => n,Dial(PJSIP/${MAGNANIMOUS_AI_EXTENSION},60)
  same => n,Hangup()
-exten => _+X.,1,NoOp(Magnanimous inbound PSTN call ${CALLERID(num)} -> ${EXTEN})
+exten => _+X.,1,NoOp(Magnanimous inbound carrier call ${CALLERID(num)} -> ${EXTEN})
  same => n,Dial(PJSIP/${MAGNANIMOUS_AI_EXTENSION},60)
  same => n,Hangup()

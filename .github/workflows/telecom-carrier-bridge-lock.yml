@@ -1,0 +1,26 @@
+name: Telecom Carrier Bridge Lock
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  telecom-bridge-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Verify carrier bridge architecture
+        run: node qa/scripts/telecom-carrier-bridge-lock.mjs
+      - name: Compile telecom control API
+        run: python -m compileall -q telecom-core/control-api/app
