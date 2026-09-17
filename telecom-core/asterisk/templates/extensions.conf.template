@@ -9,20 +9,41 @@ MAGNANIMOUS_ADMIN_EXTENSION=${MAGNANIMOUS_ADMIN_EXTENSION}
 CARRIER_SIP_ENDPOINT=${CARRIER_SIP_ENDPOINT}
 
 [magnanimous-internal]
-; Internal Magnanimous extensions.
+; Existing direct Asterisk extensions remain available for backward compatibility.
 exten => ${MAGNANIMOUS_ADMIN_EXTENSION},1,Dial(PJSIP/${MAGNANIMOUS_ADMIN_EXTENSION},45)
  same => n,Hangup()
 exten => ${MAGNANIMOUS_AI_EXTENSION},1,Dial(PJSIP/${MAGNANIMOUS_AI_EXTENSION},45)
  same => n,Hangup()
 
-; Public-network calls use E.164 format. Emergency calling is deliberately not
-; advertised or routed until compliant E911 service is configured.
+; Other numeric extensions are delivered through the owned SIP registrar.
+exten => _X.,1,Dial(PJSIP/${EXTEN}@magnanimous-sip-core,45)
+ same => n,Hangup()
+
+; Public-network calls use E.164 format. Emergency calling stays deliberately
+; unavailable until a compliant emergency-services route is contracted/tested.
 exten => 911,1,Playback(ss-noservice)
+ same => n,Hangup()
+exten => 112,1,Playback(ss-noservice)
  same => n,Hangup()
 exten => _+X.,1,Goto(magnanimous-outbound,${EXTEN},1)
 
+[from-sip-core]
+; Every authenticated Magnanimous SIP subscriber reaches the PBX through here.
+; Asterisk anchors media and owns dial policy before any PSTN interconnect is used.
+exten => 911,1,Playback(ss-noservice)
+ same => n,Hangup()
+exten => 112,1,Playback(ss-noservice)
+ same => n,Hangup()
+exten => ${MAGNANIMOUS_ADMIN_EXTENSION},1,Dial(PJSIP/${MAGNANIMOUS_ADMIN_EXTENSION},45)
+ same => n,Hangup()
+exten => ${MAGNANIMOUS_AI_EXTENSION},1,Dial(PJSIP/${MAGNANIMOUS_AI_EXTENSION},45)
+ same => n,Hangup()
+exten => _+X.,1,Goto(magnanimous-outbound,${EXTEN},1)
+exten => _X.,1,Dial(PJSIP/${EXTEN}@magnanimous-sip-core,45)
+ same => n,Hangup()
+
 [magnanimous-outbound]
-exten => _+X.,1,NoOp(Magnanimous outbound carrier bridge call to ${EXTEN})
+exten => _+X.,1,NoOp(Magnanimous outbound PSTN bridge call to ${EXTEN})
  same => n,Set(CALLERID(num)=${MAG_FROM})
  same => n,Dial(PJSIP/${EXTEN}@${CARRIER_SIP_ENDPOINT},60)
  same => n,Hangup()
@@ -34,10 +55,10 @@ exten => s,1,NoOp(Connecting call ${MAG_CALL_ID} to Magnanimous AI)
  same => n,Hangup()
 
 [from-pstn]
-; Inbound DID calls remain branded and controlled by Magnanimous.
-exten => _X.,1,NoOp(Magnanimous inbound carrier call ${CALLERID(num)} -> ${EXTEN})
+; Inbound PSTN/DID calls remain branded and controlled by Magnanimous.
+exten => _X.,1,NoOp(Magnanimous inbound PSTN call ${CALLERID(num)} -> ${EXTEN})
  same => n,Dial(PJSIP/${MAGNANIMOUS_AI_EXTENSION},60)
  same => n,Hangup()
-exten => _+X.,1,NoOp(Magnanimous inbound carrier call ${CALLERID(num)} -> ${EXTEN})
+exten => _+X.,1,NoOp(Magnanimous inbound PSTN call ${CALLERID(num)} -> ${EXTEN})
  same => n,Dial(PJSIP/${MAGNANIMOUS_AI_EXTENSION},60)
  same => n,Hangup()

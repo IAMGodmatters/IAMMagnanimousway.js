@@ -13,3 +13,8 @@ class OutboundCall(BaseModel):
 
 class HangupRequest(BaseModel):
     reason: str = Field(default="normal", max_length=120)
+
+
+class SipAccountCreate(BaseModel):
+    username: str = Field(min_length=2, max_length=64, pattern=r"^[A-Za-z0-9_.-]+$")
+    password: str | None = Field(default=None, min_length=12, max_length=128)

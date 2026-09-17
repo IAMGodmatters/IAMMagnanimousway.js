@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Protocol
 
 
@@ -24,6 +25,14 @@ class CarrierCallState:
     connected: dict[str, Any] | None = None
 
 
+@dataclass(frozen=True)
+class SipSubscriber:
+    username: str
+    domain: str
+    active: bool
+    created_at: datetime | None = None
+
+
 class CarrierBridge(Protocol):
     async def originate(self, call: CarrierCallRequest) -> CarrierCallState: ...
 
@@ -36,9 +45,19 @@ class CarrierBridge(Protocol):
     def describe(self) -> dict[str, Any]: ...
 
 
-class CallbackPolicy(Protocol):
-    def resolve(self, requested_url: str | None) -> str | None: ...
-
-
 class StatusPublisher(Protocol):
     async def publish(self, url: str, provider_call_id: str, status: str, detail: str = "") -> None: ...
+
+
+class CallbackPolicy(Protocol):
+    def resolve(self, requested: str | None) -> str: ...
+
+
+class SipSubscriberStore(Protocol):
+    async def list(self) -> list[SipSubscriber]: ...
+
+    async def create(self, username: str, domain: str, ha1: str) -> SipSubscriber: ...
+
+    async def delete(self, username: str) -> bool: ...
+
+    async def health(self) -> bool: ...

@@ -28,6 +28,8 @@ COPY templates/ /etc/asterisk/templates/
 COPY entrypoint.sh /usr/local/bin/magnanimous-asterisk-entrypoint
 RUN chmod 0755 /usr/local/bin/magnanimous-asterisk-entrypoint
 
-EXPOSE 5060/udp 5060/tcp 8088/tcp 8089/tcp 10000-20000/udp
+# 5060 is owned by the Magnanimous SIP registrar. Asterisk listens on 5070
+# for the internal PBX/media plane and restricted PSTN interconnect traffic.
+EXPOSE 5070/udp 5070/tcp 8088/tcp 8089/tcp 10000-20000/udp
 ENTRYPOINT ["/usr/local/bin/magnanimous-asterisk-entrypoint"]
 CMD ["asterisk", "-f", "-U", "asterisk", "-G", "asterisk", "-vvv"]

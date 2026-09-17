@@ -1,0 +1,154 @@
+#!KAMAILIO
+
+# Magnanimous SIP Core: owned registrar/proxy. Public identity stays Magnanimous Telecom.
+debug=2
+log_stderror=yes
+fork=yes
+children=4
+auto_aliases=no
+
+listen=udp:0.0.0.0:5060
+listen=tcp:0.0.0.0:5060
+
+loadmodule "sl.so"
+loadmodule "tm.so"
+loadmodule "rr.so"
+loadmodule "maxfwd.so"
+loadmodule "textops.so"
+loadmodule "pv.so"
+loadmodule "xlog.so"
+loadmodule "sanity.so"
+loadmodule "auth.so"
+loadmodule "auth_db.so"
+loadmodule "db_postgres.so"
+loadmodule "usrloc.so"
+loadmodule "registrar.so"
+loadmodule "nathelper.so"
+loadmodule "pike.so"
+
+modparam("auth_db", "db_url", "postgres://${SIP_DB_USER}:${SIP_DB_PASSWORD}@${SIP_DB_HOST}:${SIP_DB_PORT}/${SIP_DB_NAME}")
+modparam("auth_db", "use_domain", 0)
+modparam("auth_db", "calculate_ha1", 0)
+modparam("auth_db", "password_column", "ha1")
+modparam("auth_db", "version_table", 0)
+modparam("usrloc", "db_mode", 0)
+modparam("registrar", "max_contacts", ${SIP_MAX_CONTACTS})
+modparam("registrar", "received_avp", "$avp(s:rcv)")
+modparam("nathelper", "received_avp", "$avp(s:rcv)")
+modparam("pike", "sampling_time_unit", 2)
+modparam("pike", "reqs_density_per_unit", 40)
+modparam("pike", "remove_latency", 4)
+
+request_route {
+    if (!mf_process_maxfwd_header("16")) {
+        sl_send_reply("483", "Too Many Hops");
+        exit;
+    }
+
+    if (!sanity_check("1511", "7")) {
+        xlog("L_WARN", "Magnanimous SIP rejected malformed request from $si:$sp\n");
+        exit;
+    }
+
+    force_rport();
+
+    if (is_method("CANCEL")) {
+        if (t_check_trans()) t_relay();
+        exit;
+    }
+
+    if (has_totag()) {
+        if (loose_route()) {
+            route(RELAY);
+            exit;
+        }
+        if (is_method("ACK") && t_check_trans()) {
+            route(RELAY);
+            exit;
+        }
+        sl_send_reply("404", "Not Here");
+        exit;
+    }
+
+    # Asterisk is the owned PBX/media plane. Only loopback traffic is trusted.
+    if (src_ip == 127.0.0.1) {
+        route(FROM_PBX);
+        exit;
+    }
+
+    if (!pike_check_req()) {
+        xlog("L_WARN", "Magnanimous SIP rate limit hit from $si:$sp\n");
+        sl_send_reply("503", "Temporarily Unavailable");
+        exit;
+    }
+
+    if (is_method("REGISTER")) {
+        route(REGISTER);
+        exit;
+    }
+
+    if (is_method("OPTIONS") && $rU == $null) {
+        sl_send_reply("200", "Magnanimous SIP Ready");
+        exit;
+    }
+
+    route(AUTH_SUBSCRIBER);
+
+    if (is_method("INVITE")) record_route();
+    route(TO_PBX);
+}
+
+route[REGISTER] {
+    if (!www_authorize("${MAGNANIMOUS_SIP_DOMAIN}", "subscriber")) {
+        www_challenge("${MAGNANIMOUS_SIP_DOMAIN}", "0");
+        exit;
+    }
+
+    if ($au != $tU) {
+        sl_send_reply("403", "Account Mismatch");
+        exit;
+    }
+
+    if (nat_uac_test("19")) fix_nated_register();
+
+    if (!save("location")) sl_reply_error();
+    exit;
+}
+
+route[AUTH_SUBSCRIBER] {
+    if (!proxy_authorize("${MAGNANIMOUS_SIP_DOMAIN}", "subscriber")) {
+        proxy_challenge("${MAGNANIMOUS_SIP_DOMAIN}", "0");
+        exit;
+    }
+    if ($au != $fU) {
+        sl_send_reply("403", "Account Mismatch");
+        exit;
+    }
+    consume_credentials();
+}
+
+route[TO_PBX] {
+    # Every subscriber call crosses the Magnanimous-owned PBX so policy,
+    # media anchoring, AI routing, CDRs, and PSTN controls stay centralized.
+    $du = "sip:${ASTERISK_SIP_HOST}:${ASTERISK_SIP_PORT}";
+    route(RELAY);
+}
+
+route[FROM_PBX] {
+    # Calls sent back by Asterisk are deliveries to registered SIP accounts.
+    if (is_method("OPTIONS")) {
+        sl_send_reply("200", "Magnanimous SIP Ready");
+        exit;
+    }
+    if (!lookup("location")) {
+        sl_send_reply("404", "SIP Account Unavailable");
+        exit;
+    }
+    if (is_method("INVITE")) record_route();
+    route(RELAY);
+}
+
+route[RELAY] {
+    if (!t_relay()) sl_reply_error();
+    exit;
+}
