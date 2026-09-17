@@ -1,0 +1,52 @@
+'use client';
+import {useEffect,useState} from 'react';
+
+const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
+async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||`HTTP ${r.status}`}}}
+
+export default function GodCoding(){
+ const[repo,setRepo]=useState('IAMGodmatters/IAMMagnanimousway.js');
+ const[ref,setRef]=useState('main');
+ const[goal,setGoal]=useState('');
+ const[contextPath,setContextPath]=useState('');
+ const[result,setResult]=useState('');
+ const[evidence,setEvidence]=useState<any>(null);
+ const[busy,setBusy]=useState(false);
+ const[message,setMessage]=useState('Ready. God Coding uses Magnanimous Dev Agent, repository evidence, CI evidence, security review and verification discipline together.');
+
+ function token(){return localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||''}
+ function headers(json=false){const h:Record<string,string>={Authorization:`Bearer ${token()}`};if(json)h['Content-Type']='application/json';return h}
+ async function request(path:string,options:RequestInit={}){const r=await fetch(`${api}${path}`,options),d=await read(r);if(r.status===401||r.status===403){location.replace('/owner-login');throw new Error('Owner sign-in required.')}if(!r.ok)throw new Error(d.detail||d.error||`Request failed (${r.status}).`);return d}
+ useEffect(()=>{if(!token())location.replace('/owner-login')},[]);
+
+ async function run(){
+  if(!goal.trim())return;
+  setBusy(true);setResult('');setEvidence(null);setMessage('God Coding is inspecting the repository and assembling a verification-first engineering plan…');
+  try{
+   const plan=await request('/api/magnanimous/dev-agent/plan',{method:'POST',headers:headers(true),body:JSON.stringify({repo,ref,goal:`GOD CODING MODE: ${goal}`})});
+   const root=await request('/api/magnanimous/dev-agent/read',{method:'POST',headers:headers(true),body:JSON.stringify({repo,ref,path:''})});
+   let selected:any=null;
+   if(contextPath.trim())selected=await request('/api/magnanimous/dev-agent/read',{method:'POST',headers:headers(true),body:JSON.stringify({repo,ref,path:contextPath.trim()})});
+   let workflows:any=null;
+   try{workflows=await request('/api/magnanimous/dev-agent/workflows',{method:'POST',headers:headers(true),body:JSON.stringify({repo,branch:ref})})}catch{workflows=null}
+   setEvidence({plan,root:selected?undefined:root,selected_file:selected?{path:selected.path,sha:selected.sha,size:selected.size}:null,workflow_count:workflows?.runs?.length||0});
+   const prompt=`You are Magnanimous AI operating GOD CODING MODE, the highest-discipline software-engineering mode inside I AM MAGNANIMOUS WAY. This is an original Magnanimous capability; Codex is not required.\n\nGOAL:\n${goal}\n\nREPOSITORY: ${repo}\nREF: ${ref}\n\nMANDATORY ENGINEERING STANDARD:\n- preserve every unrelated working feature\n- inspect before changing\n- identify root cause, not symptoms\n- prefer the smallest coherent safe change\n- include correctness, security, privacy, accessibility, performance and regression impact\n- define exact files and exact verification required\n- separate confirmed evidence from assumptions\n- never claim a test, commit, deployment or external action happened without tool evidence\n- repository writes remain staged and separately owner-approved through Magnanimous Dev Agent\n\nMAGNANIMOUS PLAN:\n${JSON.stringify(plan,null,2)}\n\nREPOSITORY ROOT EVIDENCE:\n${JSON.stringify(root.entries||root,null,2)}${selected?`\n\nSELECTED FILE (${contextPath}):\n${String(selected.content||JSON.stringify(selected,null,2)).slice(0,50000)}`:''}${workflows?`\n\nRECENT CI EVIDENCE:\n${JSON.stringify((workflows.runs||[]).slice(0,10),null,2)}`:''}\n\nReturn a build-ready engineering response with: acceptance criteria, repository findings, root cause or architecture decision, exact implementation steps, exact files, regression protections, verification commands/workflows, security review, release checks, and any remaining blocker. If code changes are needed, make the instructions precise enough for Magnanimous Dev Agent to stage them next.`;
+   const chat=await request('/api/chat',{method:'POST',headers:headers(true),body:JSON.stringify({message:prompt,provider:'auto',use_tools:true,use_knowledge:false,learn_links:false,specialist_routing:true})});
+   setResult(String(chat.output||''));setMessage('God Coding analysis complete. Use Magnanimous Dev Agent to inspect or stage the reviewed repository changes.');
+  }catch(e:any){setMessage(e?.message||'God Coding could not complete the analysis.')}finally{setBusy(false)}
+ }
+
+ return <main className="shell">
+  <header><a href="/owner-center">← Owner Center</a><span>PRIVATE OWNER MODE</span></header>
+  <section className="hero"><div><small>I AM MAGNANIMOUS WAY™ • MAGNANIMOUS AI</small><h1>God Coding</h1><p>Maximum-discipline coding mode for building, fixing, reviewing and verifying software through Magnanimous AI. It combines repository inspection, developer skills, CI evidence, security review and release verification while keeping repository writes separately approved.</p></div><div className="badge"><b>MAGNANIMOUS NATIVE</b><span>Inspect first</span><span>Preserve working features</span><span>Verify before release</span><span>Codex not required</span></div></section>
+  <div className="notice" role="status" aria-live="polite">{message}</div>
+  <section className="panel"><div className="head"><div><small>GOD CODING REQUEST</small><h2>What do you want Magnanimous to build or fix?</h2></div><a className="secondary" href="/developer-agent">OPEN FULL DEV AGENT →</a></div><div className="two"><label>Repository<input value={repo} onChange={e=>setRepo(e.target.value)}/></label><label>Branch / ref<input value={ref} onChange={e=>setRef(e.target.value)}/></label></div><label>Goal<textarea value={goal} onChange={e=>setGoal(e.target.value)} placeholder="Example: Fix the login flow, preserve all working features, add regression protection, verify CI, and prepare the exact implementation plan."/></label><label>Optional file for direct inspection<input value={contextPath} onChange={e=>setContextPath(e.target.value)} placeholder="worker/src/example.js"/></label><button onClick={run} disabled={busy||!goal.trim()}>{busy?'GOD CODING…':'RUN GOD CODING →'}</button></section>
+  {evidence&&<section className="panel"><small>VERIFIED INPUT EVIDENCE</small><pre>{JSON.stringify(evidence,null,2)}</pre></section>}
+  {result&&<section className="panel answer"><small>MAGNANIMOUS GOD CODING ANALYSIS</small><div>{result}</div><div className="actions"><a href="/developer-agent">Inspect, stage and verify in Magnanimous Dev Agent →</a></div></section>}
+  <section className="grid"><article><b>UNDERSTAND</b><p>Turn the request into measurable acceptance criteria and preserve unrelated behavior.</p></article><article><b>INSPECT</b><p>Ground decisions in repository files, routes, dependencies and CI evidence before editing.</p></article><article><b>BUILD</b><p>Choose the smallest coherent implementation and reuse your existing architecture.</p></article><article><b>VERIFY</b><p>Require regression checks, security review, exact-head CI and production evidence before calling work complete.</p></article></section>
+  <footer>God Coding is a Magnanimous AI engineering mode • repository credentials remain server-side • consequential repository writes stay separately owner-approved</footer>
+  <style jsx>{`
+   *{box-sizing:border-box}.shell{min-height:100vh;background:#050607;color:#fff5df;padding:24px 32px 70px;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 80% 7%,rgba(255,191,73,.14),transparent 26%),radial-gradient(circle at 12% 88%,rgba(75,155,255,.08),transparent 30%)}header{max-width:1400px;margin:auto;display:flex;justify-content:space-between;color:#aa8750;font-size:10px;letter-spacing:.16em}a{color:#ffd17d;text-decoration:none;min-height:44px;display:inline-flex;align-items:center}.hero{max-width:1400px;margin:28px auto 14px;padding:34px;border:1px solid #604725;border-radius:20px;background:linear-gradient(135deg,#12100c,#08090b);display:grid;grid-template-columns:1fr 260px;gap:28px}.hero small,.panel small{font-size:9px;letter-spacing:.18em;color:#d1a85d}.hero h1{font-family:Georgia,serif;font-size:clamp(48px,7vw,84px);margin:8px 0;color:#ffe09a}.hero p{max-width:900px;color:#b5a991;line-height:1.65}.badge{border-left:1px solid #5a4325;padding-left:22px;display:flex;flex-direction:column;gap:10px}.badge b{color:#ffd57f}.badge span{font-size:11px;color:#baa98b}.notice,.panel,.grid{max-width:1400px;margin:14px auto}.notice{padding:14px 17px;border:1px solid #5c472a;border-radius:12px;background:#11100d;color:#ecd8ae}.panel{padding:22px;border:1px solid #43331f;border-radius:16px;background:#0b0b0b}.head{display:flex;justify-content:space-between;gap:16px;align-items:center}.head h2{margin:6px 0 14px}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:block;color:#aa9b83;font-size:11px;margin:10px 0}input,textarea{display:block;width:100%;margin-top:5px;min-height:44px;padding:11px;border-radius:9px;border:1px solid #4c3c28;background:#060606;color:#fff4de;font:inherit}textarea{min-height:145px;resize:vertical}button,.secondary,.actions a{min-height:44px;border:1px solid #9b6e28;border-radius:9px;background:#8b5710;color:#fff1ce;padding:11px 15px;font-weight:800;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#15110b}.answer div{white-space:pre-wrap;line-height:1.65;color:#e8ddc8;margin-top:12px}.actions{margin-top:16px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.grid article{padding:18px;border:1px solid #34291c;border-radius:14px;background:#0b0b0b}.grid b{color:#f0c46c}.grid p{font-size:12px;color:#9f9482;line-height:1.55}pre{white-space:pre-wrap;word-break:break-word;max-height:420px;overflow:auto;background:#050505;border:1px solid #282016;border-radius:10px;padding:14px;color:#d7c8aa}footer{max-width:1400px;margin:26px auto 0;color:#6f6555;font-size:10px;text-align:center}:focus-visible{outline:3px solid #ffd16c;outline-offset:3px}@media(max-width:900px){.shell{padding:18px 14px 50px}.hero{grid-template-columns:1fr}.badge{border-left:0;border-top:1px solid #5a4325;padding:18px 0 0}.two,.grid{grid-template-columns:1fr}.head{display:block}.secondary{margin-bottom:12px}}
+  `}</style>
+ </main>
+}
