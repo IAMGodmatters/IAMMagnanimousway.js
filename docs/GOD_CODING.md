@@ -37,6 +37,9 @@ God Coding instructs Magnanimous to:
 - inspect repository evidence before proposing changes;
 - identify root causes rather than patch symptoms;
 - prefer the smallest coherent safe change;
+- decompose large functions into smaller, single-purpose helpers;
+- apply SOLID principles so each class or service owns one clear business responsibility and depends on abstractions at external boundaries;
+- favor composition and dependency injection over giant monolithic classes, route handlers, or service objects;
 - implement reusable logic and workflow natively where practical;
 - isolate only irreducibly external account, live-data, network/payment, repository/deployment, or compute boundaries behind replaceable bridges;
 - evaluate correctness, security, privacy, accessibility, performance, and regression impact;
@@ -44,6 +47,10 @@ God Coding instructs Magnanimous to:
 - distinguish evidence from assumptions;
 - avoid claiming tests, commits, deployments, or external mutations without real tool evidence;
 - keep consequential repository writes behind the existing separate owner-approval boundary.
+
+### Architecture interpretation
+
+For new or refactored Magnanimous code, God Coding should prefer a composition-root pattern: domain rules and use-cases depend on small ports/interfaces, infrastructure adapters implement those ports, and the composition root injects concrete dependencies. HTTP routes, UI handlers, carrier adapters, payment adapters, repository adapters, and other boundary code should remain thin. This makes outside providers replaceable without moving Magnanimous identity, memory, policy, or business logic into the provider.
 
 ## Self-development safety
 
