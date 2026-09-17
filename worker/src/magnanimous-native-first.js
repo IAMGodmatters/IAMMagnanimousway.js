@@ -11,7 +11,7 @@ const CORE_NATIVE_CAPABILITIES=[
  {id:'magnanimous-brain',name:'Magnanimous Brain',family:'core',status:'native',capabilities:['identity','reasoning-policy','orchestration','routing','decision-contracts'],boundary:'none'},
  {id:'magnanimous-memory',name:'Magnanimous Memory',family:'core',status:'native',capabilities:['continuity','workspace-memory','learning-signals','reusable-lessons'],boundary:'none'},
  {id:'tool-foundry',name:'Tool Foundry',family:'learning',status:'native',capabilities:['skill-learning','recipe-reuse','capability-gap-detection','native-tool-specification'],boundary:'none'},
- {id:'god-coding',name:'God Coding',family:'engineering',status:'native',capabilities:['self-development-planning','code-architecture','bug-analysis','security-review','regression-planning','release-verification'],boundary:'repository-write-or-runner-only'},
+ {id:'god-coding',name:'God Coding',family:'engineering',status:'native',capabilities:['self-development-planning','code-architecture','architecture-decomposition','solid-design','dependency-injection','composition-root-design','bug-analysis','security-review','regression-planning','release-verification'],boundary:'repository-write-or-runner-only'},
  {id:'developer-agent',name:'Magnanimous Dev Agent',family:'engineering',status:'native',capabilities:['repository-planning','source-inspection','code-search','staged-changes','ci-verification','pr-workflow'],boundary:'repository-write-or-runner-only'},
  {id:'capability-assimilation',name:'Capability Assimilation',family:'learning',status:'native',capabilities:['benchmark-decomposition','native-equivalent-design','workflow-internalization','dependency-reduction'],boundary:'none'},
  {id:'verification-core',name:'Verification Core',family:'quality',status:'native',capabilities:['evidence-first-validation','claim-checking','release-gates','regression-locks'],boundary:'none'}
@@ -77,15 +77,15 @@ async function seedNativeRecipes(env){
  if(!env?.DB)return;
  await upsertApprovedTeachingTool(env,{
   agentId:'magnanimous-native-first',name:'god-coding-self-development',family:'software-engineering',risk:'medium',requiresConnection:false,
-  purpose:'Use God Coding as Magnanimous AI own self-development discipline: inspect current architecture, define the smallest additive improvement, verify safety and regressions, and prepare repository changes without silently mutating production.',
-  requiredCapabilities:['source-inspection','architecture-planning','verification','regression-protection'],
-  steps:['Define the self-development goal and observable acceptance criteria.','Inspect Magnanimous-owned source, memory, skills, routes and verification contracts before changing code.','Prefer a Magnanimous-native implementation over a provider dependency whenever the capability can be owned locally.','Keep external bridges only for third-party account access, live outside data, network rails, specialized compute, repository hosting or deployment targets.','Prepare the smallest additive code change and preserve unrelated working behavior.','Run or dispatch real verification and review exact evidence before release.','Record the successful procedure back into Tool Foundry for future native reuse.']
+  purpose:'Use God Coding as Magnanimous AI own self-development discipline: inspect current architecture, decompose large responsibilities, apply SOLID boundaries, prefer composition and dependency injection, define the smallest additive improvement, verify safety and regressions, and prepare repository changes without silently mutating production.',
+  requiredCapabilities:['source-inspection','architecture-planning','architecture-decomposition','solid-design','dependency-injection','verification','regression-protection'],
+  steps:['Define the self-development goal and observable acceptance criteria.','Inspect Magnanimous-owned source, memory, skills, routes and verification contracts before changing code.','Decompose large functions, route handlers and services into smaller single-purpose helpers when responsibilities are mixed.','Apply SOLID boundaries: keep one clear business responsibility per service and make domain/use-case code depend on ports or interfaces rather than concrete providers.','Favor composition and dependency injection through an explicit composition root instead of giant monolithic objects or hidden global wiring.','Prefer a Magnanimous-native implementation over a provider dependency whenever the capability can be owned locally.','Keep external bridges only for third-party account access, live outside data, network rails, specialized compute, repository hosting or deployment targets.','Prepare the smallest additive code change and preserve unrelated working behavior.','Run or dispatch real verification and review exact evidence before release.','Record the successful procedure back into Tool Foundry for future native reuse.']
  });
  await upsertApprovedTeachingTool(env,{
   agentId:'magnanimous-native-first',name:'capability-assimilation',family:'native-capability',risk:'low',requiresConnection:false,
   purpose:'Convert the useful behavior class of an external tool or plugin into a Magnanimous-owned specification and implementation target without copying proprietary code, credentials, hidden prompts, models or provider internals.',
   requiredCapabilities:['benchmark-decomposition','native-tool-specification','dependency-reduction'],
-  steps:['Describe the observable capability and user outcome without relying on provider internals.','Split the capability into data, reasoning, workflow, UI, storage, compute and external-account boundaries.','Implement logic, memory, policy, workflow and reusable skills natively where practical.','Keep only irreducibly external account/data/network/compute actions behind replaceable bridges.','Verify the native path works when the benchmark provider is disconnected.','Track remaining external boundaries explicitly instead of pretending they are native.']
+  steps:['Describe the observable capability and user outcome without relying on provider internals.','Split the capability into data, reasoning, workflow, UI, storage, compute and external-account boundaries.','Decompose the native implementation into focused responsibilities and define ports for any external boundary.','Compose small services through dependency injection so providers remain replaceable and business logic remains Magnanimous-owned.','Implement logic, memory, policy, workflow and reusable skills natively where practical.','Keep only irreducibly external account/data/network/compute actions behind replaceable bridges.','Verify the native path works when the benchmark provider is disconnected.','Track remaining external boundaries explicitly instead of pretending they are native.']
  });
 }
 
@@ -96,12 +96,18 @@ function selfDevelopmentPlan(goal){
   native_first:true,
   provider_identity_allowed:false,
   adapter_policy:'fallback-only for irreducibly external actions',
+  engineering_architecture:{
+   decompose:'Break large functions and mixed-responsibility modules into smaller single-purpose helpers.',
+   solid:'Give each service one clear business responsibility and depend on abstractions at external boundaries.',
+   composition:'Favor object composition and dependency injection through an explicit composition root over monolithic structures.'
+  },
   phases:[
    {id:'understand',instruction:'Turn the goal into measurable acceptance criteria for Magnanimous itself.'},
    {id:'inspect',instruction:'Inspect Magnanimous-owned code, native recipes, memory, capability matrix, routes and regression contracts first.'},
+   {id:'architecture',instruction:'Decompose mixed responsibilities, apply SOLID boundaries, define small ports/interfaces, and compose concrete adapters through dependency injection at a composition root.'},
    {id:'internalize',instruction:'Implement logic, planning, memory, reusable skills and orchestration inside Magnanimous rather than outsourcing them to a plugin.'},
    {id:'bridge-check',instruction:'Identify any truly external boundary such as third-party account data, payment/network rail, repository host, deployment target or specialized compute. Keep only that boundary replaceable.'},
-   {id:'implement',instruction:'Use God Coding and Magnanimous Dev Agent to prepare the smallest additive implementation. Do not silently mutate production.'},
+   {id:'implement',instruction:'Use God Coding and Magnanimous Dev Agent to prepare the smallest additive implementation with focused helpers/services. Do not silently mutate production.'},
    {id:'verify',instruction:'Require syntax/type/build/regression/security evidence and exact-head CI where available.'},
    {id:'release',instruction:'Release only through existing approval and deployment gates, then verify production separately.'},
    {id:'learn',instruction:'Store the successful pattern in Tool Foundry so future work needs fewer outside capabilities.'}
@@ -125,6 +131,7 @@ async function overview(env){
   external_plugins_required_for_core_brain:false,external_adapters_required_for_core_brain:false,
   external_bridges_policy:'Only use replaceable bridges for third-party accounts, live outside data, payment/network rails, repository/deployment targets or specialized compute that Magnanimous does not yet host itself.',
   proprietary_clone_policy:'Recreate observable capability classes and workflows with original Magnanimous code; never copy proprietary source, hidden prompts, credentials, weights or private provider internals.',
+  engineering_architecture_policy:'Decompose large responsibilities, apply SOLID boundaries, and compose small services through dependency injection so external adapters remain replaceable.',
   capability_count:capabilities.length,native_count:capabilities.filter(x=>x.status==='native').length,specified_count:capabilities.filter(x=>x.status==='specified').length,
   capabilities
  };
@@ -144,7 +151,7 @@ async function assimilate(request,env){
    agentId:'magnanimous-native-first',name:`native-${row.id}`,family:`native-${row.family}`,risk:'low',requiresConnection:false,
    purpose:`Build and reuse a Magnanimous-owned ${row.name} capability covering: ${capabilities.join(', ')}. External benchmarks define observable outcomes only; Magnanimous owns the implementation.`,
    requiredCapabilities:capabilities.slice(0,20),
-   steps:['Define provider-independent inputs, outputs and acceptance tests.','Reuse Magnanimous memory, orchestration, storage, UI and existing native services before adding dependencies.','Implement the reusable workflow as Magnanimous-owned code or deterministic recipe.','Isolate third-party account, live-data, network or specialized-compute boundaries behind optional replaceable bridges only when unavoidable.','Add regression verification proving the native path remains usable without the benchmark provider.']
+   steps:['Define provider-independent inputs, outputs and acceptance tests.','Decompose responsibilities into focused domain/use-case services and small helpers before adding infrastructure.','Define ports/interfaces for external boundaries and inject concrete adapters through a composition root.','Reuse Magnanimous memory, orchestration, storage, UI and existing native services before adding dependencies.','Implement the reusable workflow as Magnanimous-owned code or deterministic recipe.','Isolate third-party account, live-data, network or specialized-compute boundaries behind optional replaceable bridges only when unavoidable.','Add regression verification proving the native path remains usable without the benchmark provider.']
   });
   await env.DB.prepare("UPDATE magnanimous_native_capability_matrix SET status='specified',notes=?,updated_at=? WHERE id=? AND status!='native'").bind('Magnanimous-native implementation recipe specified in Tool Foundry.',now(),row.id).run();
   specified.push({id:row.id,status:'specified',boundary:row.boundary});
