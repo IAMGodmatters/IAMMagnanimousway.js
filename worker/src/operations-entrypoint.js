@@ -10,6 +10,7 @@ import {handleAgencyAutomations,dispatchAgencyAutomationEvent} from './agency-au
 import {handleGrowthRecovery,recordSignupLead,recordPlatformCheckout,recordStripeGrowthEvent,scheduledGrowth} from './growth-recovery-runtime.js';
 import {handleAgencyBillingBefore,extendPlansPayload,applyAgencyWebhook} from './agency-billing-extension.js';
 import {handleWhiteLabelBrain,recordWhiteLabelAction,shouldObserveWhiteLabelPath} from './white-label-brain-runtime.js';
+import {handleMagnanimousDevAgent} from './magnanimous-dev-agent.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -112,6 +113,7 @@ async function operationsFetch(request,env,ctx){
   const consequential=await requireConsequentialActionConfirmation(request);
   if(consequential)return consequential;
 
+  try{const developer=await handleMagnanimousDevAgent(request,env);if(developer)return developer}catch(error){console.error('Magnanimous developer agent failed',error);return json({detail:'Magnanimous developer agent could not complete this request.'},500)}
   try{const growth=await handleGrowthRecovery(request,env);if(growth)return growth}catch(error){console.error('growth recovery layer failed',error);return json({detail:'Growth Funnel could not complete this request.'},500)}
 
   try{
