@@ -7,6 +7,8 @@ const security=read('worker/src/security-entrypoint.js');
 const wrangler=read('worker/wrangler.jsonc');
 const migration=read('worker/migrations/0067_magnanimous_dev_agent.sql');
 const ui=read('frontend/app/developer-agent/page.tsx');
+const ownerCenter=read('frontend/app/owner-center/page.tsx');
+const robots=read('frontend/public/robots.txt');
 const cognitive=read('worker/src/magnanimous-cognitive-architecture.js');
 const foundry=read('worker/src/magnanimous-tool-foundry.js');
 const catalog=read('worker/src/magnanimous-integration-catalog.js');
@@ -52,6 +54,8 @@ has(ui,':focus-visible','owner console preserves visible keyboard focus');
 has(ui,'min-height:44px','owner console preserves practical touch-target sizing');
 has(ui,'GITHUB_PLATFORM_TOKEN','owner console identifies server-side repo token without collecting it');
 lacks(ui,'type="password"','owner console never collects repository credentials in the browser');
+has(ownerCenter,'href="/developer-agent"','Owner Center links to Magnanimous Dev Agent');
+has(robots,'Disallow: /developer-agent/','private developer console is excluded from crawler indexing');
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} - ${name}`);
