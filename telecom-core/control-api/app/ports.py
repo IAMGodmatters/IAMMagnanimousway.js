@@ -36,5 +36,9 @@ class CarrierBridge(Protocol):
     def describe(self) -> dict[str, Any]: ...
 
 
+class CallbackPolicy(Protocol):
+    def resolve(self, requested_url: str | None) -> str | None: ...
+
+
 class StatusPublisher(Protocol):
     async def publish(self, url: str, provider_call_id: str, status: str, detail: str = "") -> None: ...
