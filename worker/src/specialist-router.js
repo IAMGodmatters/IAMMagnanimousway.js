@@ -62,8 +62,8 @@ export function specialistForMessage(message){
  return {...best,score:bestScore};
 }
 
-export function specialistIntroduction(agent){
- return `Hello, I am ${agent.name}. I specialize in ${agent.specialty}. I will be assisting you with this request.`;
-}
+// Specialist routing is an internal implementation detail. The user asked a question,
+// so the visible response should begin with the answer rather than a capability or handoff speech.
+export function specialistIntroduction(){return ''}
 
 export function specialistRoutingCatalog(){return routes.map(({patterns,...x})=>x)}
