@@ -1,5 +1,11 @@
+import sys
+from pathlib import Path
 import unittest
 import uuid
+
+CONTROL_API_ROOT = Path(__file__).resolve().parents[1]
+if str(CONTROL_API_ROOT) not in sys.path:
+    sys.path.insert(0, str(CONTROL_API_ROOT))
 
 from app.config import TelecomSettings
 from app.errors import TelecomValidationError
