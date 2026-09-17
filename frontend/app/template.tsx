@@ -1,15 +1,18 @@
 'use client';
 import {usePathname} from 'next/navigation';
 import type {ReactNode} from 'react';
+import PasswordRecoveryOverlay from './password-recovery-overlay';
 
 const publicPaths=new Set(['/','/teach','/shop','/login','/signup','/owner-login','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label']);
 
 export default function Template({children}:{children:ReactNode}){
  const path=usePathname()||'/';
  const isPublic=publicPaths.has(path)||path.startsWith('/teach/')||path.startsWith('/shop/')||path.startsWith('/reviews/');
+ const loginPortal=path==='/login'?'customer':path==='/owner-login'?'owner':null;
  return <>
   {!isPublic&&path!=='/'&&<div className="iam-brand-watermark" aria-hidden="true"><img src="/magnanimous-family-full.webp" alt=""/></div>}
   {children}
+  {loginPortal&&<PasswordRecoveryOverlay portal={loginPortal}/>} 
   <style jsx global>{`
    .iam-brand-watermark{position:fixed;right:-90px;top:90px;width:min(46vw,620px);z-index:0;pointer-events:none;opacity:.055;filter:saturate(1.2);mask-image:linear-gradient(90deg,transparent,#000 24%,#000 78%,transparent)}.iam-brand-watermark img{width:100%;display:block}body>div,body>main{position:relative;z-index:1}@media(max-width:850px){.iam-brand-watermark{width:90vw;right:-45vw;opacity:.04}}
   `}</style>
