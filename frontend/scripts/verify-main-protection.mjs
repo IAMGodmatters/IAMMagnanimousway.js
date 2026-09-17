@@ -2,6 +2,7 @@ const inActions = process.env.GITHUB_ACTIONS === 'true';
 const branch = process.env.GITHUB_REF_NAME || '';
 const workflow = process.env.GITHUB_WORKFLOW || '';
 const repo = process.env.GITHUB_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js';
+const token = process.env.GITHUB_TOKEN || '';
 
 // Reliability first: all ordinary CI and Full Platform QA builds must remain
 // runnable so defects are visible. The fail-closed protection gate is enforced
@@ -11,12 +12,18 @@ if (!inActions || branch !== 'main' || workflow !== 'Build and Deploy I AM') {
   process.exit(0);
 }
 
+if (!token) {
+  console.error('::error::GitHub branch-protection verification token is unavailable. Production deployment is blocked closed for safety.');
+  process.exit(1);
+}
+
 const endpoint = `https://api.github.com/repos/${repo}/branches/main`;
 let response;
 try {
   response = await fetch(endpoint, {
     headers: {
       Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${token}`,
       'User-Agent': 'iam-magnanimous-way-branch-protection-gate',
       'X-GitHub-Api-Version': '2022-11-28',
     },

@@ -1,0 +1,29 @@
+name: Branch Protection Gate Verification
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-production-protection-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Verify production branch-protection gate with read-only Actions auth
+        working-directory: frontend
+        env:
+          GITHUB_ACTIONS: 'true'
+          GITHUB_REF_NAME: main
+          GITHUB_WORKFLOW: Build and Deploy I AM
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/verify-main-protection.mjs
