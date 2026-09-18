@@ -22,6 +22,19 @@ async function audit(env,tenant,thread,event,user,detail=''){await env.DB.prepar
 function rowThread(x){return {...x,priority:Number(x.priority||0),last_message_at:Number(x.last_message_at||0),created_at:Number(x.created_at||0),updated_at:Number(x.updated_at||0)} }
 async function clientExists(env,tenant,clientId){if(!clientId)return true;try{return Boolean(await env.DB.prepare('SELECT id FROM bpo_clients WHERE id=? AND tenant_id=?').bind(clientId,tenant).first())}catch{return false}}
 async function crmContactExists(env,tenant,contactId){if(!contactId)return true;try{return Boolean(await env.DB.prepare('SELECT id FROM crm_contacts WHERE id=? AND tenant_id=?').bind(Number(contactId),tenant).first())}catch{return false}}
+async function stopCrmSequencesOnInbound(env,tenant,contactId,threadId=''){
+ if(!contactId)return 0;const ts=now();let stopped=0;
+ try{
+  const{results=[]}=await env.DB.prepare("SELECT e.id,e.sequence_id,s.settings_json FROM crm_sequence_enrollments e JOIN magnanimous_ops_sequences s ON s.id=e.sequence_id AND s.tenant_id=e.tenant_id WHERE e.tenant_id=? AND e.contact_id=? AND e.status='active'").bind(tenant,Number(contactId)).all();
+  for(const row of results){let settings={};try{settings=JSON.parse(row.settings_json||'{}')}catch{}if(settings.stop_on_reply===false)continue;
+   await env.DB.prepare("UPDATE crm_sequence_enrollments SET status='goal_met',next_due_at=NULL,updated_at=? WHERE tenant_id=? AND id=?").bind(ts,tenant,row.id).run();
+   try{await env.DB.prepare("UPDATE crm_activities SET completed=1 WHERE tenant_id=? AND sequence_enrollment_id=? AND completed=0").bind(tenant,row.id).run()}catch{}
+   try{await env.DB.prepare("INSERT INTO crm_sequence_events(tenant_id,enrollment_id,sequence_id,contact_id,step_index,event_type,status,detail_json,created_at) VALUES(?,?,?,?,?,?,?,?,?)").bind(tenant,row.id,row.sequence_id,Number(contactId),-1,'goal.reply','goal_met',JSON.stringify({thread_id:threadId}),ts).run()}catch{}
+   stopped++;
+  }
+ }catch{}
+ return stopped;
+}
 
 async function listThreads(env,tenant,url){
  let sql=`SELECT t.*,(SELECT content FROM unified_inbox_messages m WHERE m.thread_id=t.id AND m.tenant_id=t.tenant_id ORDER BY m.id DESC LIMIT 1) last_message FROM unified_inbox_threads t WHERE t.tenant_id=?`;
@@ -49,7 +62,7 @@ export async function handleUnifiedInbox(request,env){
    const id=crypto.randomUUID(),ts=now(),subject=text(b.subject,300)||'Conversation',content=text(b.content||b.message,30000);if(!content)return json({detail:'Message content is required.'},400);
    await env.DB.prepare('INSERT INTO unified_inbox_threads(id,tenant_id,client_id,crm_contact_id,channel,source,external_ref,customer_name,customer_ref,subject,status,priority,assigned_ai_agent_id,assigned_user_id,last_message_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,clientId,crmContactId,text(b.channel||'task',40),text(b.source||'manual',80),text(b.external_ref,200),text(b.customer_name,200),text(b.customer_ref,200),subject,text(b.status||'open',30),clamp(b.priority||50,1,100),b.assigned_ai_agent_id?text(b.assigned_ai_agent_id,100):null,b.assigned_user_id?text(b.assigned_user_id,100):null,ts,ts,ts).run();
    await env.DB.prepare('INSERT INTO unified_inbox_messages(thread_id,tenant_id,direction,author_type,author_name,content,metadata_json,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(id,tenant,text(b.direction||'inbound',20),text(b.author_type||'customer',40),text(b.author_name||b.customer_name,160),content,JSON.stringify(b.metadata||{}),ts).run();
-   await audit(env,tenant,id,'thread.created',user,`${text(b.channel||'task',40)} • ${subject}`);return json({ok:true,id},201)
+   await audit(env,tenant,id,'thread.created',user,`${text(b.channel||'task',40)} • ${subject}`);const direction=text(b.direction||'inbound',20);const stopped=direction==='inbound'&&crmContactId?await stopCrmSequencesOnInbound(env,tenant,crmContactId,id):0;return json({ok:true,id,sequence_goals_met:stopped},201)
   }
   let m=url.pathname.match(/^\/api\/inbox\/threads\/([^/]+)$/);
   if(m&&request.method==='PATCH'){
@@ -63,7 +76,7 @@ export async function handleUnifiedInbox(request,env){
   }
   if(m&&request.method==='POST'){
    const thread=await env.DB.prepare('SELECT * FROM unified_inbox_threads WHERE id=? AND tenant_id=?').bind(m[1],tenant).first();if(!thread)return json({detail:'Inbox thread not found.'},404);const b=await request.json().catch(()=>({})),content=text(b.content||b.message,30000);if(!content)return json({detail:'Reply content is required.'},400);const ts=now();
-   const result=await env.DB.prepare('INSERT INTO unified_inbox_messages(thread_id,tenant_id,direction,author_type,author_name,content,metadata_json,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(m[1],tenant,text(b.direction||'outbound',20),text(b.author_type||'user',40),text(b.author_name||user.name||user.email,160),content,JSON.stringify(b.metadata||{}),ts).run();await env.DB.prepare('UPDATE unified_inbox_threads SET last_message_at=?,updated_at=?,status=? WHERE id=? AND tenant_id=?').bind(ts,ts,text(b.thread_status||'waiting',30),m[1],tenant).run();await audit(env,tenant,m[1],'message.sent',user,text(content,240));return json({ok:true,id:result.meta?.last_row_id||null},201)
+   const direction=text(b.direction||'outbound',20);const result=await env.DB.prepare('INSERT INTO unified_inbox_messages(thread_id,tenant_id,direction,author_type,author_name,content,metadata_json,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(m[1],tenant,direction,text(b.author_type||'user',40),text(b.author_name||user.name||user.email,160),content,JSON.stringify(b.metadata||{}),ts).run();await env.DB.prepare('UPDATE unified_inbox_threads SET last_message_at=?,updated_at=?,status=? WHERE id=? AND tenant_id=?').bind(ts,ts,text(b.thread_status||'waiting',30),m[1],tenant).run();await audit(env,tenant,m[1],'message.sent',user,text(content,240));const stopped=direction==='inbound'&&thread.crm_contact_id?await stopCrmSequencesOnInbound(env,tenant,Number(thread.crm_contact_id),m[1]):0;return json({ok:true,id:result.meta?.last_row_id||null,sequence_goals_met:stopped},201)
   }
   if(request.method==='GET'&&url.pathname==='/api/inbox/audit'){const{results=[]}=await env.DB.prepare('SELECT * FROM unified_inbox_audit WHERE tenant_id=? ORDER BY id DESC LIMIT 400').bind(tenant).all();return json({events:results})}
   return json({detail:'Unified Inbox endpoint not found.'},404);
