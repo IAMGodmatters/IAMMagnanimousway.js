@@ -36,6 +36,7 @@ must(esign.includes("status='signed'")&&esign.includes("Type your full name as y
 must(esign.includes('token_hash')&&!esign.includes('INSERT INTO agency_esign_requests(id,tenant_id,client_id,contract_id,signer_name,signer_email,token,'),'Public e-sign token must be stored only as a hash.');
 must(esign.includes("tenantOnly:true"),'E-sign email must require the agency tenant’s own mailbox.');
 must(esign.includes("30*86400"),'Public e-sign links must expire.');
+must(esign.includes("existing?.document_hash||await sha")&&esign.includes("existing?.document_body||c.body"),'Resending an unsigned e-sign request must preserve its original immutable document snapshot while rotating the secure link.');
 must(esign.includes("Signed audit records cannot be deleted"),'Signed electronic-signature audit records must not be deletable from the standard UI.');
 must(wrangler.includes('"/sign/*"')&&operations.includes('handlePublicEsign'),'Public signing links must route through the Worker.');
 
