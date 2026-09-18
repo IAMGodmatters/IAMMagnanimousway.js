@@ -72,13 +72,13 @@ export default function CRM(){
  async function createDeal(){
   if(!dealForm.name.trim()){setError('Deal name is required.');return}
   setBusy('deal');setError('');
-  const body={...dealForm,contact_id:Number(dealForm.contact_id||0)||null,value:Number(dealForm.value||0),probability:dealForm.probability===''?undefined:Number(dealForm.probability),expected_close_at:dealForm.expected_close_at?Math.floor(new Date(dealForm.expected_close_at+'T12:00:00').getTime()/1000):null};
+  const body={...dealForm,contact_id:Number(dealForm.contact_id||0)||null,account_id:Number(dealForm.account_id||0)||null,pipeline_id:dealForm.pipeline_id||activePipeline?.id||'',value:Number(dealForm.value||0),probability:dealForm.probability===''?undefined:Number(dealForm.probability),expected_close_at:dealForm.expected_close_at?Math.floor(new Date(dealForm.expected_close_at+'T12:00:00').getTime()/1000):null};
   const r=await fetch(`${api}/api/operations/crm/deals`,{method:'POST',headers:auth(true),body:JSON.stringify(body)}),d=await read(r);
   if(!r.ok)setError(d.detail||'Unable to create deal.');else{setShowDeal(false);setDealForm(blankDeal);setNotice('Deal created. Forecast and pipeline intelligence updated.');await load()}
   setBusy('');
  }
  async function updateDealStage(deal:Deal,stage:string){
-  setBusy(`deal-${deal.id}`);const r=await fetch(`${api}/api/operations/crm/deals/${deal.id}`,{method:'PUT',headers:auth(true),body:JSON.stringify({stage})}),d=await read(r);
+  setBusy(`deal-${deal.id}`);const p=pipelines.find(x=>x.id===deal.pipeline_id)||activePipeline;const r=await fetch(`${api}/api/operations/crm/deals/${deal.id}`,{method:'PUT',headers:auth(true),body:JSON.stringify({stage,pipeline_id:p?.id||''})}),d=await read(r);
   if(!r.ok)setError(d.detail||'Unable to move deal.');else{setNotice(`${deal.name} moved to ${stageLabel(stage)}.`);await load()}setBusy('');
  }
  async function createTask(){
@@ -91,6 +91,26 @@ export default function CRM(){
   setBusy(`task-${task.id}`);const r=await fetch(`${api}/api/operations/crm/tasks/${task.id}`,{method:'PUT',headers:auth(true),body:JSON.stringify({completed:true})}),d=await read(r);
   if(!r.ok)setError(d.detail||'Unable to complete task.');else{setNotice('Follow-up completed.');await load()}setBusy('');
  }
+ async function createAccount(){
+  if(!accountForm.name.trim()){setError('Account name is required.');return}
+  setBusy('account');setError('');
+  const r=await fetch(`${api}/api/operations/crm/accounts`,{method:'POST',headers:auth(true),body:JSON.stringify({...accountForm,tags:accountForm.tags.split(',').map(x=>x.trim()).filter(Boolean)})}),d=await read(r);
+  if(!r.ok)setError(d.detail||'Unable to create account.');else{setShowAccount(false);setAccountForm(blankAccount);setNotice('Company account created.');await load()}setBusy('');
+ }
+ async function createPipeline(){
+  if(!pipelineForm.name.trim()){setError('Pipeline name is required.');return}
+  const names=pipelineForm.stages.split(',').map(x=>x.trim()).filter(Boolean);if(names.length<2){setError('Add at least two pipeline stages.');return}
+  const openNames=names.filter(x=>!['won','closed won','lost','closed lost'].includes(x.toLowerCase()));
+  const steps=names.map((name,index)=>{const lower=name.toLowerCase();const kind:'open'|'won'|'lost'=['won','closed won'].includes(lower)?'won':['lost','closed lost'].includes(lower)?'lost':'open';const openIndex=openNames.indexOf(name);const probability=kind==='won'?100:kind==='lost'?0:Math.round(((openIndex+1)/(openNames.length+1))*85);return{name,stage_key:lower.replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),kind,probability,position:index+1}});
+  setBusy('pipeline');setError('');
+  const r=await fetch(`${api}/api/operations/crm/pipelines`,{method:'POST',headers:auth(true),body:JSON.stringify({name:pipelineForm.name,description:pipelineForm.description,is_default:pipelineForm.is_default,stages:steps})}),d=await read(r);
+  if(!r.ok)setError(d.detail||'Unable to create pipeline.');else{setShowPipeline(false);setPipelineForm(blankPipeline);setNotice('Sales pipeline created.');await load()}setBusy('');
+ }
+ async function saveContactAccount(accountId:string){
+  if(!contact360)return;setBusy('account-link');
+  const r=await fetch(`${api}/api/operations/crm/contacts/${contact360.contact.id}/account`,{method:'PUT',headers:auth(true),body:JSON.stringify({account_id:accountId?Number(accountId):null})}),d=await read(r);
+  if(!r.ok)setError(d.detail||'Unable to update company account.');else{setContact360({...contact360,contact:{...contact360.contact,account_id:accountId?Number(accountId):null}});setNotice('Contact company relationship updated.');await load()}setBusy('');
+ }
  async function open360(contactId:number){
   setBusy('360');setError('');const r=await fetch(`${api}/api/operations/crm/contacts/${contactId}/360`,{headers:auth(),cache:'no-store'}),d=await read(r);
   if(!r.ok)setError(d.detail||'Unable to load the customer 360 view.');else{setContact360(d);setPrefForm({email_status:d.preferences?.email_status||'unknown',sms_status:d.preferences?.sms_status||'unknown',phone_status:d.preferences?.phone_status||'unknown',whatsapp_status:d.preferences?.whatsapp_status||'unknown',do_not_contact:Boolean(d.preferences?.do_not_contact),lawful_basis:d.preferences?.lawful_basis||'',consent_source:d.preferences?.consent_source||'',consent_note:d.preferences?.consent_note||''});setShow360(true)}setBusy('');
@@ -100,7 +120,7 @@ export default function CRM(){
   if(!r.ok)setError(d.detail||'Unable to save contact preferences.');else{setContact360({...contact360,preferences:d.preferences});setNotice('Contact permission preferences saved.');await load()}setBusy('');
  }
  const openTask=(contactId?:number)=>{setTaskForm({...blankTask,contact_id:contactId?String(contactId):''});setShowTask(true)};
- const openDeal=(contactId?:number)=>{setDealForm({...blankDeal,contact_id:contactId?String(contactId):''});setShowDeal(true)};
+ const openDeal=(contactId?:number)=>{setDealForm({...blankDeal,contact_id:contactId?String(contactId):'',pipeline_id:activePipeline?.id||'',stage:activePipeline?.stages.find(s=>s.kind==='open')?.stage_key||'new'});setShowDeal(true)};
  const metrics=intel?.metrics||{contacts:stats.contacts,leads:stats.leads,customers:stats.customers,open_deals:0,pipeline_value:stats.pipeline_value,weighted_forecast:0,overdue_tasks:stats.overdue_tasks,due_next_7_days:0,stale_deals:0,at_risk_deals:0,duplicate_groups:0};
 
  return <main className="crm">
