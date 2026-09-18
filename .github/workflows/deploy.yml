@@ -339,7 +339,10 @@ jobs:
           assert data.get('plan') == 'agency', data
           if data.get('mode') == 'payment_link':
               query=urllib.parse.parse_qs(parsed.query)
-              assert query.get('client_reference_id') == [tenant], data
+              ref=(query.get('client_reference_id') or [''])[0]
+              parts=ref.split(':')
+              assert len(parts) == 4 and parts[0] == 'agency' and parts[1] == tenant and parts[2] == 'agency', data
+              assert len(parts[3]) == 64 and all(ch in '0123456789abcdef' for ch in parts[3].lower()), data
           PY
 
           admin_status=$(curl -sS -o /tmp/admin-denied.json -w '%{http_code}' "$BASE_URL/api/admin/settings" -H "Authorization: Bearer $token")
