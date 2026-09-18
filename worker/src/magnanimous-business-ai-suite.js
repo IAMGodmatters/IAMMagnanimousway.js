@@ -258,9 +258,9 @@ async function runDirectExecution(request,env,ctx,downstream,user,row){
  if(!downstream?.fetch)return json({detail:'Magnanimous execution runtime is unavailable.'},503);
  const prior=work.steps.filter(x=>x.status==='completed'&&String(x.result||'').trim()).slice(-3).map(x=>`STEP: ${x.title}\nRESULT: ${txt(x.result,1800)}`).join('\n\n');
 
- if(row.tool_id==='hyper-images'&&/route to image generation/i.test(String(step.title||''))){
+ if((row.tool_id==='hyper-images'&&/route to image generation/i.test(String(step.title||'')))||(row.tool_id==='logo-maker'&&/generate logo concept/i.test(String(step.title||'')))){
   const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
-  const forwarded=new Request(new URL('/api/visual/scene',request.url),{method:'POST',headers,body:JSON.stringify({title:row.title,text:goal,style:'business'})});
+  const forwarded=new Request(new URL('/api/visual/scene',request.url),{method:'POST',headers,body:JSON.stringify({title:row.title,text:goal,style:row.tool_id==='logo-maker'?'minimal original brand logo':'business'})});
   const response=await downstream.fetch(forwarded,env,ctx),data=await response.clone().json().catch(()=>({}));if(!response.ok)return json({detail:data.detail||'Image generation failed.',code:data.code||'VISUAL_GENERATION_FAILED'},response.status);
   await updateWorkStep(env,user,work.id,step.id,{status:'completed',result:'Generated image for this step. Prompt: '+txt(data.prompt,2400)});
   const fresh=await getWork(env,user,work.id),out={...(view.output||{}),work_id:work.id,last_execution_at:now(),last_step_id:step.id,last_step_title:step.title,artifact_type:'image',image_prompt:txt(data.prompt,2500),image_provider_internal:true};
@@ -268,8 +268,17 @@ async function runDirectExecution(request,env,ctx,downstream,user,row){
   return json({ok:true,id:row.id,artifact_type:'image',image_data_uri:data.image_data_uri,prompt:data.prompt,completed_step:{id:step.id,title:step.title},work:fresh,external_action_performed:false});
  }
 
- const adapter=row.tool_id==='hyper-images'
-  ?{tool:'marketing',instruction:'Complete only the current image-planning or review step. Produce a concise visual brief, accessibility/alt-text guidance, or review checklist as appropriate. Do not claim an image was generated unless the current step is the actual image-generation step.'}
+ if(row.tool_id==='music-generator'&&/create music studio project/i.test(String(step.title||''))){
+  const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
+  const forwarded=new Request(new URL('/api/music/projects',request.url),{method:'POST',headers,body:JSON.stringify({title:row.title||'Magnanimous Music Project',mode:'song',creative_brief:goal,rights_status:'original'})});
+  const response=await downstream.fetch(forwarded,env,ctx),data=await response.clone().json().catch(()=>({}));if(!response.ok)return json({detail:data.detail||'Music Studio project could not be created.',code:'MUSIC_PROJECT_CREATE_FAILED'},response.status);
+  const project=data.project||{};await updateWorkStep(env,user,work.id,step.id,{status:'completed',result:'Created Magnanimous Music Studio project '+String(project.id||'')+'.'});
+  const fresh=await getWork(env,user,work.id),out={...(view.output||{}),work_id:work.id,last_execution_at:now(),last_step_id:step.id,last_step_title:step.title,music_project_id:String(project.id||'')};
+  await env.DB.prepare('UPDATE magnanimous_business_ai_jobs SET output_json=?,status=?,updated_at=? WHERE id=? AND tenant_id=? AND user_id=?').bind(JSON.stringify(out),'working',now(),row.id,String(user.tenant_id),String(user.id)).run();
+  return json({ok:true,id:row.id,artifact_type:'music-project',music_project:project,completed_step:{id:step.id,title:step.title},work:fresh,external_action_performed:false});
+ }
+ const adapter=(row.tool_id==='hyper-images'||row.tool_id==='logo-maker')
+  ?{tool:'marketing',instruction:'Complete only the current visual planning or review step. Produce a concise visual brief, accessibility/alt-text guidance, or review checklist as appropriate. Do not claim an image was generated unless the current step is the actual image-generation step.'}
   :DIRECT_EXECUTION[row.tool_id];
  if(!adapter)return json({detail:'This capability uses a specialized workspace. Open its working surface to execute it.'},409);
  const prompt=`MAGNANIMOUS BUSINESS AI STEP EXECUTION
@@ -284,7 +293,7 @@ Verification criteria:
 - ${(VERIFY_CRITERIA[row.tool_id]||[]).join('\n- ')}
 Complete ONLY the current step. Return a concrete, useful deliverable for this step. Do not claim later steps, deployment, publishing, sending, signing, charging, calling, file upload, or any outside action occurred unless an authorized tool result proves it.`;
  const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
- const forwarded=new Request(new URL('/api/chat',request.url),{method:'POST',headers,body:JSON.stringify({message:prompt,tool:adapter.tool,provider:'auto',specialist_routing:true,use_knowledge:true})});
+ const forwarded=new Request(new URL('/api/chat',request.url),{method:'POST',headers,body:JSON.stringify({message:prompt,tool:adapter.tool,provider:'auto',specialist_routing:true,use_knowledge:true,live_search:Boolean(adapter.live_search),news:false,freshness:adapter.live_search?'pm':''})});
  const response=await downstream.fetch(forwarded,env,ctx),data=await response.clone().json().catch(()=>({}));if(!response.ok)return json({detail:data.detail||data.error||'Magnanimous AI execution failed.'},response.status);
  const artifact=aiText(data);if(!artifact)return json({detail:'Magnanimous AI returned no usable output.'},502);
  await updateWorkStep(env,user,work.id,step.id,{status:'completed',result:artifact});
