@@ -62,6 +62,8 @@ CREATE TABLE IF NOT EXISTS agency_esign_requests (
   token_hash TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL DEFAULT 'pending',
   consent_text TEXT NOT NULL,
+  document_title TEXT NOT NULL,
+  document_body TEXT NOT NULL,
   document_hash TEXT NOT NULL,
   signature_text TEXT NOT NULL DEFAULT '',
   signer_user_agent TEXT NOT NULL DEFAULT '',
