@@ -32,6 +32,8 @@ export const NATIVE_OPERATIONS_CAPABILITIES=[
  {id:'source-attribution',name:'Lead-source attribution & source mix',native:true},
  {id:'omnichannel',name:'Unified email, SMS, voice, chat & inbox handoff',native:true,bridge:'Unified Inbox + business email + contact center'},
  {id:'consent-safety',name:'Consent-aware outreach & communication safety hooks',native:true,bridge:'Contact center permission gates + assistant policy'},
+ {id:'account-graph',name:'Companies/accounts with person and deal rollups',native:true},
+ {id:'multi-pipeline',name:'Multiple configurable sales pipelines and stage probabilities',native:true},
 ];
 
 async function ensureSchema(env){
@@ -41,6 +43,9 @@ async function ensureSchema(env){
  `CREATE TABLE IF NOT EXISTS crm_activities (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT,contact_id INTEGER NOT NULL,type TEXT NOT NULL DEFAULT 'note',title TEXT NOT NULL DEFAULT '',body TEXT NOT NULL DEFAULT '',due_at INTEGER,completed INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS crm_opportunities (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT,contact_id INTEGER,name TEXT NOT NULL,stage TEXT NOT NULL DEFAULT 'new',value REAL NOT NULL DEFAULT 0,probability REAL NOT NULL DEFAULT 0,expected_close_at INTEGER,notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS crm_contact_preferences (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,contact_id INTEGER NOT NULL,email_status TEXT NOT NULL DEFAULT 'unknown',sms_status TEXT NOT NULL DEFAULT 'unknown',phone_status TEXT NOT NULL DEFAULT 'unknown',whatsapp_status TEXT NOT NULL DEFAULT 'unknown',do_not_contact INTEGER NOT NULL DEFAULT 0,lawful_basis TEXT NOT NULL DEFAULT '',consent_source TEXT NOT NULL DEFAULT '',consent_note TEXT NOT NULL DEFAULT '',updated_at INTEGER NOT NULL,UNIQUE(tenant_id,contact_id))`,
+ `CREATE TABLE IF NOT EXISTS crm_accounts (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,name TEXT NOT NULL,domain TEXT NOT NULL DEFAULT '',industry TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'prospect',owner_user_id TEXT NOT NULL DEFAULT '',tags TEXT NOT NULL DEFAULT '',notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+ `CREATE TABLE IF NOT EXISTS crm_pipelines (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',is_default INTEGER NOT NULL DEFAULT 0,active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+ `CREATE TABLE IF NOT EXISTS crm_pipeline_stages (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,pipeline_id TEXT NOT NULL,name TEXT NOT NULL,stage_key TEXT NOT NULL,position INTEGER NOT NULL DEFAULT 0,probability REAL NOT NULL DEFAULT 0,kind TEXT NOT NULL DEFAULT 'open',active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(pipeline_id,stage_key))`,
  `CREATE TABLE IF NOT EXISTS magnanimous_ops_workspaces(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,owner_user_id TEXT NOT NULL,name TEXT NOT NULL,kind TEXT NOT NULL DEFAULT 'workspace',description TEXT NOT NULL DEFAULT '',settings_json TEXT NOT NULL DEFAULT '{}',permissions_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS magnanimous_ops_boards(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,workspace_id TEXT NOT NULL,name TEXT NOT NULL,singular_name TEXT NOT NULL DEFAULT 'record',kind TEXT NOT NULL DEFAULT 'board',description TEXT NOT NULL DEFAULT '',icon TEXT NOT NULL DEFAULT '',settings_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS magnanimous_ops_fields(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,board_id TEXT NOT NULL,name TEXT NOT NULL,field_key TEXT NOT NULL,field_type TEXT NOT NULL DEFAULT 'text',required INTEGER NOT NULL DEFAULT 0,position INTEGER NOT NULL DEFAULT 0,config_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(board_id,field_key))`,
@@ -54,11 +59,27 @@ async function ensureSchema(env){
  for(const s of stmts)await env.DB.prepare(s).run();
  for(const table of ['crm_contacts','crm_activities','crm_opportunities']){try{await env.DB.prepare('ALTER TABLE '+table+' ADD COLUMN tenant_id TEXT').run()}catch{}}
  for(const sql of [
+  'ALTER TABLE crm_contacts ADD COLUMN account_id INTEGER',
+  'ALTER TABLE crm_opportunities ADD COLUMN account_id INTEGER',
+  'ALTER TABLE crm_opportunities ADD COLUMN pipeline_id TEXT',
+  'ALTER TABLE crm_opportunities ADD COLUMN stage_id TEXT'
+ ]){try{await env.DB.prepare(sql).run()}catch{}}
+ for(const sql of [
   'CREATE INDEX IF NOT EXISTS idx_crm_contacts_tenant_status ON crm_contacts(tenant_id,status)',
   'CREATE INDEX IF NOT EXISTS idx_crm_opportunities_tenant_stage ON crm_opportunities(tenant_id,stage)',
   'CREATE INDEX IF NOT EXISTS idx_crm_activities_tenant_due ON crm_activities(tenant_id,due_at,completed)',
-  'CREATE INDEX IF NOT EXISTS idx_crm_preferences_contact ON crm_contact_preferences(tenant_id,contact_id)'
+  'CREATE INDEX IF NOT EXISTS idx_crm_preferences_contact ON crm_contact_preferences(tenant_id,contact_id)',
+  'CREATE INDEX IF NOT EXISTS idx_crm_accounts_tenant_name ON crm_accounts(tenant_id,name)',
+  'CREATE INDEX IF NOT EXISTS idx_crm_contacts_account ON crm_contacts(tenant_id,account_id)',
+  'CREATE INDEX IF NOT EXISTS idx_crm_opportunities_account ON crm_opportunities(tenant_id,account_id)',
+  'CREATE INDEX IF NOT EXISTS idx_crm_opportunities_pipeline ON crm_opportunities(tenant_id,pipeline_id,stage_id)',
+  'CREATE INDEX IF NOT EXISTS idx_crm_pipelines_tenant ON crm_pipelines(tenant_id,active,is_default)',
+  'CREATE INDEX IF NOT EXISTS idx_crm_pipeline_stages_pipeline ON crm_pipeline_stages(tenant_id,pipeline_id,position)'
  ]){try{await env.DB.prepare(sql).run()}catch{}}
+ try{
+  const tenantRows=await env.DB.prepare("SELECT DISTINCT tenant_id FROM crm_contacts WHERE tenant_id IS NOT NULL AND tenant_id<>'' UNION SELECT DISTINCT tenant_id FROM crm_opportunities WHERE tenant_id IS NOT NULL AND tenant_id<>''").all();
+  for(const row of tenantRows.results||[])await ensureDefaultCrmPipeline(env,String(row.tenant_id||''));
+ }catch{}
 }
 
 async function log(env,user,action,{workspace_id='',board_id='',record_id='',detail={}}={}){
@@ -121,6 +142,44 @@ async function seedCrmWorkspace(env,user){
  return mapWorkspace(ws);
 }
 
+
+
+const CRM_DEFAULT_PIPELINE_STAGES=[
+ ['new','New',10,'open'],['qualified','Qualified',25,'open'],['discovery','Discovery',35,'open'],['demo','Demo',45,'open'],
+ ['proposal','Proposal',55,'open'],['negotiation','Negotiation',75,'open'],['contract','Contract',85,'open'],['won','Won',100,'won'],['lost','Lost',0,'lost']
+];
+async function ensureDefaultCrmPipeline(env,t){
+ if(!t)return null;
+ let pipeline=await env.DB.prepare("SELECT * FROM crm_pipelines WHERE tenant_id=? AND is_default=1 AND active=1 ORDER BY created_at LIMIT 1").bind(t).first();
+ if(!pipeline){const pid=id(),ts=now();await env.DB.prepare('INSERT INTO crm_pipelines(id,tenant_id,name,description,is_default,active,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)').bind(pid,t,'Main Sales Pipeline','Default Magnanimous sales process',1,1,ts,ts).run();pipeline=await env.DB.prepare('SELECT * FROM crm_pipelines WHERE tenant_id=? AND id=?').bind(t,pid).first()}
+ const count=Number((await env.DB.prepare('SELECT COUNT(*) n FROM crm_pipeline_stages WHERE tenant_id=? AND pipeline_id=?').bind(t,pipeline.id).first())?.n||0);
+ if(!count){let position=0;for(const [key,name,probability,kind] of CRM_DEFAULT_PIPELINE_STAGES){position++;const sid=id(),ts=now();await env.DB.prepare('INSERT INTO crm_pipeline_stages(id,tenant_id,pipeline_id,name,stage_key,position,probability,kind,active,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(sid,t,pipeline.id,name,key,position,probability,kind,1,ts,ts).run()}}
+ return pipeline;
+}
+async function crmPipelines(env,t){
+ await ensureDefaultCrmPipeline(env,t);
+ const{results:pipes=[]}=await env.DB.prepare('SELECT * FROM crm_pipelines WHERE tenant_id=? AND active=1 ORDER BY is_default DESC,created_at').bind(t).all();
+ const{results:stages=[]}=await env.DB.prepare('SELECT * FROM crm_pipeline_stages WHERE tenant_id=? AND active=1 ORDER BY pipeline_id,position').bind(t).all();
+ return pipes.map(p=>({...p,is_default:Boolean(p.is_default),active:Boolean(p.active),stages:stages.filter(s=>s.pipeline_id===p.id).map(s=>({...s,probability:Number(s.probability||0),position:Number(s.position||0),active:Boolean(s.active)}))}));
+}
+async function crmPipelineStage(env,t,pipelineId,stageKey){
+ const pipeline=pipelineId?await env.DB.prepare('SELECT * FROM crm_pipelines WHERE tenant_id=? AND id=? AND active=1').bind(t,pipelineId).first():await ensureDefaultCrmPipeline(env,t);
+ if(!pipeline)return null;
+ let stage=null;
+ if(stageKey)stage=await env.DB.prepare('SELECT * FROM crm_pipeline_stages WHERE tenant_id=? AND pipeline_id=? AND stage_key=? AND active=1').bind(t,pipeline.id,crmStage(stageKey)).first();
+ if(!stage)stage=await env.DB.prepare("SELECT * FROM crm_pipeline_stages WHERE tenant_id=? AND pipeline_id=? AND active=1 AND kind='open' ORDER BY position LIMIT 1").bind(t,pipeline.id).first();
+ return stage?{pipeline,stage}:null;
+}
+async function crmOwnedAccount(env,t,accountId){return env.DB.prepare('SELECT * FROM crm_accounts WHERE tenant_id=? AND id=?').bind(t,Number(accountId)).first()}
+async function crmAccounts(env,t){
+ const{results=[]}=await env.DB.prepare(`SELECT a.*,
+  (SELECT COUNT(*) FROM crm_contacts c WHERE c.tenant_id=a.tenant_id AND c.account_id=a.id) contact_count,
+  (SELECT COUNT(*) FROM crm_opportunities o WHERE o.tenant_id=a.tenant_id AND o.account_id=a.id AND lower(o.stage) NOT IN ('won','lost','closed')) open_deals,
+  (SELECT COALESCE(SUM(o.value),0) FROM crm_opportunities o WHERE o.tenant_id=a.tenant_id AND o.account_id=a.id AND lower(o.stage) NOT IN ('won','lost','closed')) pipeline_value
+  FROM crm_accounts a WHERE a.tenant_id=? ORDER BY a.updated_at DESC LIMIT 300`).bind(t).all();
+ return results.map(r=>({...r,tags:parse(r.tags,[]),contact_count:Number(r.contact_count||0),open_deals:Number(r.open_deals||0),pipeline_value:Number(r.pipeline_value||0)}));
+}
+async function crmStudio(env,t){return{accounts:await crmAccounts(env,t),pipelines:await crmPipelines(env,t)}}
 
 const CRM_STAGE_PROBABILITY={new:10,qualified:25,discovery:35,demo:45,proposal:55,negotiation:75,contract:85,won:100,closed:100,lost:0};
 const CRM_CLOSED_STAGES=new Set(['won','lost','closed']);
@@ -285,6 +344,38 @@ export async function handleNativeWorkCrm(request,env){
  let body={};if(!['GET','DELETE'].includes(request.method)){try{body=await request.json()}catch{return json({detail:'Valid JSON body required.'},400)}}
 
 
+
+ if(url.pathname==='/api/operations/crm/studio'&&request.method==='GET')return json(await crmStudio(env,t));
+
+ if(url.pathname==='/api/operations/crm/accounts'){
+  if(request.method==='GET')return json({items:await crmAccounts(env,t)});
+  if(request.method==='POST'){
+   const name=text(body.name,220);if(!name)return json({detail:'Account name required.'},400);const ts=now();
+   const r=await env.DB.prepare('INSERT INTO crm_accounts(tenant_id,name,domain,industry,status,owner_user_id,tags,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(t,name,text(body.domain,220),text(body.industry,160),text(body.status||'prospect',60),text(body.owner_user_id||user.id,120),JSON.stringify(Array.isArray(body.tags)?body.tags:[]),text(body.notes,12000),ts,ts).run();
+   const accountId=Number(r.meta?.last_row_id||0);await log(env,user,'crm_account_created',{detail:{account_id:accountId,name}});return json({item:await crmOwnedAccount(env,t,accountId)},201);
+  }
+ }
+
+ let crmAccountMatch=url.pathname.match(/^\/api\/operations\/crm\/contacts\/(\d+)\/account$/);
+ if(crmAccountMatch&&request.method==='PUT'){
+  const contactId=Number(crmAccountMatch[1]);if(!await crmOwnedContact(env,t,contactId))return json({detail:'CRM contact not found.'},404);
+  const accountId=body.account_id?Number(body.account_id):null;if(accountId&&!await crmOwnedAccount(env,t,accountId))return json({detail:'Account not found.'},404);
+  await env.DB.prepare('UPDATE crm_contacts SET account_id=?,updated_at=? WHERE tenant_id=? AND id=?').bind(accountId,now(),t,contactId).run();
+  await log(env,user,'crm_contact_account_updated',{detail:{contact_id:contactId,account_id:accountId}});return json({ok:true,contact_id:contactId,account_id:accountId});
+ }
+
+ if(url.pathname==='/api/operations/crm/pipelines'){
+  if(request.method==='GET')return json({items:await crmPipelines(env,t)});
+  if(request.method==='POST'){
+   const name=text(body.name,180);if(!name)return json({detail:'Pipeline name required.'},400);const pid=id(),ts=now(),makeDefault=Boolean(body.is_default);
+   if(makeDefault)await env.DB.prepare('UPDATE crm_pipelines SET is_default=0,updated_at=? WHERE tenant_id=?').bind(ts,t).run();
+   await env.DB.prepare('INSERT INTO crm_pipelines(id,tenant_id,name,description,is_default,active,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)').bind(pid,t,name,text(body.description,2000),makeDefault?1:0,1,ts,ts).run();
+   const rawStages=Array.isArray(body.stages)&&body.stages.length?body.stages:CRM_DEFAULT_PIPELINE_STAGES.map(([stage_key,stageName,probability,kind])=>({stage_key,name:stageName,probability,kind}));
+   let position=0;for(const s of rawStages.slice(0,30)){position++;const key=crmStage(s.stage_key||s.name||('stage-'+position));const kind=['open','won','lost'].includes(String(s.kind||''))?String(s.kind):'open';const probability=kind==='won'?100:kind==='lost'?0:Math.max(0,Math.min(100,Number(s.probability||0)));await env.DB.prepare('INSERT INTO crm_pipeline_stages(id,tenant_id,pipeline_id,name,stage_key,position,probability,kind,active,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(id(),t,pid,text(s.name||key,120),key,position,probability,kind,1,ts,ts).run()}
+   await log(env,user,'crm_pipeline_created',{detail:{pipeline_id:pid,name,stage_count:position}});return json({items:await crmPipelines(env,t)},201);
+  }
+ }
+
  if(url.pathname==='/api/operations/crm/command-center'&&request.method==='GET')return json(await crmCommandCenter(env,user));
 
 
@@ -302,10 +393,11 @@ export async function handleNativeWorkCrm(request,env){
  if(url.pathname==='/api/operations/crm/deals'){
   if(request.method==='GET'){const data=await crmCommandCenter(env,user);return json({items:data.deals,stage_summary:data.stage_summary,metrics:data.metrics})}
   if(request.method==='POST'){
-   const contactId=Number(body.contact_id||0);if(contactId&&!await crmOwnedContact(env,t,contactId))return json({detail:'Contact not found in this workspace.'},404);
+   const contactId=Number(body.contact_id||0);const contact=contactId?await crmOwnedContact(env,t,contactId):null;if(contactId&&!contact)return json({detail:'Contact not found in this workspace.'},404);
+   const accountId=body.account_id!==undefined?Number(body.account_id||0)||null:(contact?.account_id?Number(contact.account_id):null);if(accountId&&!await crmOwnedAccount(env,t,accountId))return json({detail:'Account not found in this workspace.'},404);
    const name=text(body.name,220);if(!name)return json({detail:'Deal name required.'},400);
-   const ts=now(),stage=crmStage(body.stage||'new'),probability=crmProbability(stage,body.probability),value=Math.max(0,Number(body.value||0)),expected=body.expected_close_at?Number(body.expected_close_at):null;
-   const r=await env.DB.prepare('INSERT INTO crm_opportunities(tenant_id,contact_id,name,stage,value,probability,expected_close_at,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(t,contactId||null,name,stage,value,probability,expected,text(body.notes,12000),ts,ts).run();
+   const configured=await crmPipelineStage(env,t,text(body.pipeline_id,80),body.stage||'new'),ts=now(),stage=crmStage(configured?.stage?.stage_key||body.stage||'new'),probability=body.probability===undefined?Number(configured?.stage?.probability??crmProbability(stage,0)):crmProbability(stage,body.probability),value=Math.max(0,Number(body.value||0)),expected=body.expected_close_at?Number(body.expected_close_at):null;
+   const r=await env.DB.prepare('INSERT INTO crm_opportunities(tenant_id,contact_id,account_id,pipeline_id,stage_id,name,stage,value,probability,expected_close_at,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(t,contactId||null,accountId,configured?.pipeline?.id||null,configured?.stage?.id||null,name,stage,value,probability,expected,text(body.notes,12000),ts,ts).run();
    const dealId=Number(r.meta?.last_row_id||0);await log(env,user,'crm_deal_created',{detail:{deal_id:dealId,contact_id:contactId||null,stage,value}});return json({item:await crmOwnedDeal(env,t,dealId)},201);
   }
  }
@@ -313,9 +405,10 @@ export async function handleNativeWorkCrm(request,env){
  let crmMatch=url.pathname.match(/^\/api\/operations\/crm\/deals\/(\d+)$/);
  if(crmMatch&&request.method==='PUT'){
   const dealId=Number(crmMatch[1]),cur=await crmOwnedDeal(env,t,dealId);if(!cur)return json({detail:'Deal not found.'},404);
-  const contactId=body.contact_id===undefined?Number(cur.contact_id||0):Number(body.contact_id||0);if(contactId&&!await crmOwnedContact(env,t,contactId))return json({detail:'Contact not found in this workspace.'},404);
-  const stage=body.stage===undefined?crmStage(cur.stage):crmStage(body.stage),stageChanged=body.stage!==undefined&&stage!==crmStage(cur.stage),probability=body.probability===undefined?(stageChanged?crmProbability(stage,0):crmProbability(stage,cur.probability)):crmProbability(stage,body.probability);
-  await env.DB.prepare('UPDATE crm_opportunities SET contact_id=?,name=?,stage=?,value=?,probability=?,expected_close_at=?,notes=?,updated_at=? WHERE tenant_id=? AND id=?').bind(contactId||null,body.name===undefined?cur.name:text(body.name,220),stage,body.value===undefined?Number(cur.value||0):Math.max(0,Number(body.value||0)),probability,body.expected_close_at===undefined?cur.expected_close_at:(body.expected_close_at?Number(body.expected_close_at):null),body.notes===undefined?cur.notes:text(body.notes,12000),now(),t,dealId).run();
+  const contactId=body.contact_id===undefined?Number(cur.contact_id||0):Number(body.contact_id||0);const contact=contactId?await crmOwnedContact(env,t,contactId):null;if(contactId&&!contact)return json({detail:'Contact not found in this workspace.'},404);
+  const accountId=body.account_id===undefined?(cur.account_id?Number(cur.account_id):(contact?.account_id?Number(contact.account_id):null)):(Number(body.account_id||0)||null);if(accountId&&!await crmOwnedAccount(env,t,accountId))return json({detail:'Account not found in this workspace.'},404);
+  const requestedPipeline=body.pipeline_id===undefined?text(cur.pipeline_id,80):text(body.pipeline_id,80),requestedStage=body.stage===undefined?crmStage(cur.stage):crmStage(body.stage),configured=await crmPipelineStage(env,t,requestedPipeline,requestedStage),stage=crmStage(configured?.stage?.stage_key||requestedStage),stageChanged=body.stage!==undefined&&stage!==crmStage(cur.stage),probability=body.probability===undefined?(stageChanged?Number(configured?.stage?.probability??crmProbability(stage,0)):crmProbability(stage,cur.probability)):crmProbability(stage,body.probability);
+  await env.DB.prepare('UPDATE crm_opportunities SET contact_id=?,account_id=?,pipeline_id=?,stage_id=?,name=?,stage=?,value=?,probability=?,expected_close_at=?,notes=?,updated_at=? WHERE tenant_id=? AND id=?').bind(contactId||null,accountId,configured?.pipeline?.id||cur.pipeline_id||null,configured?.stage?.id||cur.stage_id||null,body.name===undefined?cur.name:text(body.name,220),stage,body.value===undefined?Number(cur.value||0):Math.max(0,Number(body.value||0)),probability,body.expected_close_at===undefined?cur.expected_close_at:(body.expected_close_at?Number(body.expected_close_at):null),body.notes===undefined?cur.notes:text(body.notes,12000),now(),t,dealId).run();
   await log(env,user,'crm_deal_updated',{detail:{deal_id:dealId,stage,probability}});return json({item:await crmOwnedDeal(env,t,dealId)});
  }
 
