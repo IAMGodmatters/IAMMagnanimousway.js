@@ -10,6 +10,7 @@ const transport=read('worker/src/white-label-message-transport.js');
 const inbox=read('worker/src/unified-inbox-runtime.js');
 const growthMail=read('worker/src/growth-email-transport.js');
 const operations=read('worker/src/operations-entrypoint.js');
+const stripeWebhook=read('worker/src/stripe-webhook-hardened.js');
 const wrangler=read('worker/wrangler.jsonc');
 const deploy=read('.github/workflows/deploy.yml');
 const providerEnv=read('worker/src/provider-runtime-env.js');
@@ -47,6 +48,7 @@ must(payments.includes("platform_application_fee_cents:0"),'Default client payme
 must(payments.includes("payment_status||'')==='paid'"),'Usage ledger may be marked paid only after Stripe reports paid.');
 must(payments.includes('agency_usage_rebill')&&payments.includes('customer_charge_usd'),'Client payment amount must come from the server-side rebilling ledger.');
 must(payments.includes('applyWhiteLabelClientPaymentWebhook')&&operations.includes('applyWhiteLabelClientPaymentWebhook'),'Connected-account checkout events must be able to synchronize the rebilling ledger.');
+must(stripeWebhook.includes("if(event?.account)return")&&stripeWebhook.includes("clientRef.startsWith('usage:')"),'Connected-account/usage client payments must never be fulfilled as platform subscriptions.');
 must(providerEnv.includes("'STRIPE_CONNECT_CLIENT_ID'")&&credentials.includes("STRIPE_CONNECT_CLIENT_ID"),'Optional Stripe Connect OAuth configuration must remain in the protected credential layer.');
 
 must(transport.includes("messagingReadiness(env,tenant")||transport.includes("messagingReadiness(env,tenant=''"),'Messaging readiness must be tenant-aware.');
