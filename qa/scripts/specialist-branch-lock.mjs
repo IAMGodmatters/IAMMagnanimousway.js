@@ -132,6 +132,7 @@ must(intelligence,'Only the platform owner can approve or reject global QA train
 must(intelligence,'OWNER-APPROVED / WORKSPACE TEACHING FOR THIS BRANCH','learned specialist knowledge must be injected into branch context');
 must(specialistRouter,'specialistForMessage','specialist router must remain available');
 must(specialistRouter,'specialistIntroduction','specialist greeting generator must remain available');
+must(specialistRouter,'Hello, I am ${name}.','specialist greeting must remain non-empty and identify the routed branch');
 must(specialistRouter,"id:'dina'",'content-creation specialist route must remain available');
 must(voice,'routeNamedAgent','browser voice input must keep direct named-agent routing on the Agent Mesh');
 must(voice,'syncRoutedAgent','backend specialist routing must synchronize the visible Agent Mesh specialist');
