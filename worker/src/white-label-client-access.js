@@ -53,11 +53,16 @@ export async function getWhiteLabelClientContext(env,user){
   WHERE m.tenant_id=? AND m.user_id=? AND m.active=1 AND c.status!='archived' ORDER BY m.updated_at DESC LIMIT 1`).bind(tenant,userId).first();
  return membership?{tenant_id:tenant,user_id:userId,client_id:String(membership.client_id),client_name:String(membership.client_name||''),role:String(membership.role||'member')}:null;
 }
+export async function whiteLabelClientBusinessAIAllowance(env,user){
+ const isClient=String(user?.role||'').toLowerCase()==='client';
+ if(!isClient)return{restricted:false,allowed:null,context:null};
+ const ctx=await getWhiteLabelClientContext(env,user);if(!ctx)return{restricted:true,allowed:new Set(),context:null};
+ const{results=[]}=await env.DB.prepare("SELECT app_id,enabled FROM agency_client_apps WHERE tenant_id=? AND client_id=? AND app_id LIKE 'business-ai:%'").bind(ctx.tenant_id,ctx.client_id).all();
+ if(!results.length)return{restricted:true,allowed:null,context:ctx};
+ return{restricted:true,allowed:new Set(results.filter(x=>Boolean(x.enabled)).map(x=>String(x.app_id).slice('business-ai:'.length))),context:ctx};
+}
 export async function canWhiteLabelClientUseBusinessAITool(env,user,toolId){
- const ctx=await getWhiteLabelClientContext(env,user);if(!ctx)return{restricted:String(user?.role||'').toLowerCase()==='client',allowed:String(user?.role||'').toLowerCase()!=='client',context:null};
- const appId='business-ai:'+String(toolId||'');
- const row=await env.DB.prepare('SELECT enabled FROM agency_client_apps WHERE tenant_id=? AND client_id=? AND app_id=? LIMIT 1').bind(ctx.tenant_id,ctx.client_id,appId).first();
- return{restricted:true,allowed:row?Boolean(row.enabled):true,context:ctx};
+ const access=await whiteLabelClientBusinessAIAllowance(env,user);if(!access.restricted)return{...access,allowed:true};if(!access.context)return{...access,allowed:false};return{...access,allowed:access.allowed===null||access.allowed.has(String(toolId||''))};
 }
 async function catalogForClient(env,ctx){
  const saved=await env.DB.prepare('SELECT app_id,label,enabled,sort_order FROM agency_client_apps WHERE tenant_id=? AND client_id=? ORDER BY sort_order,app_id').bind(ctx.tenant_id,ctx.client_id).all();
