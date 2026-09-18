@@ -30,7 +30,22 @@ export const BUSINESS_AI_SUITE=[
 ['forms-surveys','Forms + Surveys','Build lead forms, questionnaires and feedback flows','growth'],
 ['community','Community','Create branded member spaces and engagement plans','education'],
 ['marketplace','AI Marketplace','Package original/user-authorized assets, apps and services for sale','commerce'],
-['multilingual','Multilingual Studio','Localize business content while preserving meaning and brand voice','language']
+['multilingual','Multilingual Studio','Localize business content while preserving meaning and brand voice','language'],
+['podcast-studio','Podcast Studio','Turn ideas and source material into podcast episode plans, scripts and audio projects','audio'],
+['vibe-marketer','Vibe Marketer','Turn one product or offer into a coordinated cross-channel campaign','marketing'],
+['movie-studio','AI Movie Studio','Create cinematic stories, scenes, shots and production plans','video'],
+['spokesperson-video','Spokesperson Video','Create avatar or spokesperson scripts, scenes and render-ready jobs','video'],
+['voiceover-studio','Voiceover Studio','Create narration scripts, voice direction and audio-ready projects','audio'],
+['persona-builder','AI Persona Builder','Create branded AI personalities with instructions, boundaries and knowledge','agent'],
+['aeo-funnels','AEO Funnel Builder','Create conversion funnels optimized for search and answer engines','web'],
+['audiobook-maker','Audiobook Maker','Turn manuscripts into chaptered narration and production plans','audio'],
+['music-generator','Music Generator','Create original music briefs, lyrics and Music Studio projects','audio'],
+['deep-research','Deep Research','Research complex topics and organize source-backed evidence','research'],
+['web-chat-wizard','Website Chat Wizard','Create website support and sales chat experiences with follow-up rules','agent'],
+['precision-image-model','Precision Image Model','Prepare consented custom-image datasets and generation workflows','creative'],
+['humanizer','Natural Writing Studio','Rewrite stiff or AI-sounding text into natural brand-appropriate language','writing'],
+['knowledge-base','Knowledge Base','Organize websites, text, research and feedback for AI recall','knowledge'],
+['logo-maker','Logo Maker','Create original logo concepts, brand marks and visual directions','creative']
 ];
 async function ensure(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL DEFAULT '',tool_id TEXT NOT NULL,title TEXT NOT NULL,input_json TEXT NOT NULL DEFAULT '{}',output_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
@@ -76,7 +91,22 @@ const CAPABILITY_ROUTES={
 'forms-surveys':{surface:'/agency-command?tab=funnels',accessibility:['labels','field schema','response routing'],dependencies:['funnels','automation']},
 'community':{surface:'/white-label-studio?tab=community',accessibility:['spaces','member access','moderation plan'],dependencies:['community']},
 'marketplace':{surface:'/white-label-studio?tab=catalog',accessibility:['catalog metadata','pricing','terms'],dependencies:['catalog','billing','payment-external']},
-'multilingual':{surface:'/magnanimous',accessibility:['localization','meaning preservation','review'],dependencies:['translation']}
+'multilingual':{surface:'/magnanimous',accessibility:['localization','meaning preservation','review'],dependencies:['translation']},
+'podcast-studio':{surface:'/music-studio',accessibility:['episode outline','transcript-first workflow','captions/transcript'],dependencies:['music-studio','audio-render-external']},
+'vibe-marketer':{surface:'/social-media',accessibility:['plain-language campaign brief','cross-channel variants'],dependencies:['social','marketing']},
+'movie-studio':{surface:'/cinema-engine',accessibility:['scene structure','captions','shot descriptions'],dependencies:['cinema-engine','renderer-external']},
+'spokesperson-video':{surface:'/agent-video',accessibility:['script','captions','avatar alternatives'],dependencies:['agent-video','renderer-external']},
+'voiceover-studio':{surface:'/agent-video',accessibility:['narration script','speech rate/direction','transcript'],dependencies:['voice','voice-render-external']},
+'persona-builder':{surface:'/agents',accessibility:['plain-language persona setup','test prompts','handoff rules'],dependencies:['agent-mesh','knowledge']},
+'aeo-funnels':{surface:'/agency-command?tab=funnels',accessibility:['semantic funnel copy','form labels','answer-engine structure'],dependencies:['agency-funnels','seo-aeo']},
+'audiobook-maker':{surface:'/music-studio',accessibility:['chapter structure','narration script','transcript'],dependencies:['music-studio','voice-render-external']},
+'music-generator':{surface:'/music-studio',accessibility:['lyrics','creative brief','rights/consent notes'],dependencies:['music-studio','audio-generation-external']},
+'deep-research':{surface:'/research-notebook',accessibility:['source list','claim/evidence separation','plain-language summary'],dependencies:['research','evidence-notebook']},
+'web-chat-wizard':{surface:'/ai-receptionist',accessibility:['keyboard chat','handoff rules','follow-up controls'],dependencies:['agent-mesh','inbox','website-widget-external']},
+'precision-image-model':{surface:'/magnanimous',accessibility:['dataset description','consent/rights checklist','alt-text workflow'],dependencies:['image-generation','custom-image-model-external']},
+'humanizer':{surface:'/ai-chat',accessibility:['plain text input/output','tone controls'],dependencies:['writing']},
+'knowledge-base':{surface:'/knowledge',accessibility:['source metadata','searchable text','source provenance'],dependencies:['knowledge']},
+'logo-maker':{surface:'/magnanimous',accessibility:['brand brief','alt text','high-contrast review'],dependencies:['image-generation']}
 };
 const DIRECT_EXECUTION={
 'video-ads':{tool:'video-script',instruction:'Create a production-ready video-ad script, hook, scene-by-scene storyboard, CTA, caption notes and accessibility/caption plan. Do not claim a video was rendered.'},
@@ -106,7 +136,22 @@ const DIRECT_EXECUTION={
 'asset-library':{tool:'business',instruction:'Create an asset-library taxonomy and metadata plan covering ownership/license status, tags, campaign/project linkage, access controls and reuse rules. Do not claim files were uploaded.'},
 'image-editor':{tool:'writing',instruction:'Create a precise image-edit brief describing the source-image changes, preserved elements, accessibility/alt-text needs and review checklist. Do not claim an image was edited; a true edit requires an edit-capable visual engine.'},
 'crm':{tool:'business',instruction:'Translate the goal into a structured CRM action plan using only supplied customer facts. Identify contact/account fields, pipeline stage, task/follow-up suggestions, notes and any missing information. Do not invent contact details or mutate CRM records from guesses.'},
-'app-wizard':{tool:'coding',instruction:'Create an implementation-ready app specification with users, jobs-to-be-done, screens, data model, permissions, APIs/actions, edge cases, accessibility, security, acceptance criteria and QA plan. Do not stage repository mutations or claim deployment; those remain behind the developer-agent approval gate.'}
+'app-wizard':{tool:'coding',instruction:'Create an implementation-ready app specification with users, jobs-to-be-done, screens, data model, permissions, APIs/actions, edge cases, accessibility, security, acceptance criteria and QA plan. Do not stage repository mutations or claim deployment; those remain behind the developer-agent approval gate.'},
+'podcast-studio':{tool:'writing',instruction:'Create a podcast episode package with audience, title options, episode outline, host script, optional two-host dialogue, intro/outro, CTA, transcript/caption plan and audio production notes. Do not claim audio was rendered.'},
+'vibe-marketer':{tool:'marketing',instruction:'Turn the supplied offer into one coherent cross-channel marketing concept with positioning, message, visual vibe, campaign hooks, channel variants, CTA and test plan.'},
+'movie-studio':{tool:'video-script',instruction:'Create a cinematic production package with premise, scene list, shot directions, narration/dialogue, visual continuity, captions and render notes. Do not claim a movie was rendered.'},
+'spokesperson-video':{tool:'video-script',instruction:'Create a spokesperson/UGC-style video package with hook, spoken script, scene/gesture direction, captions, CTA and render notes. Do not claim an avatar video was rendered.'},
+'voiceover-studio':{tool:'writing',instruction:'Create a narration-ready voiceover script with pronunciation notes, pacing, pauses, emphasis, tone and transcript. Do not claim an audio file was rendered.'},
+'persona-builder':{tool:'magnanimous',instruction:'Create an AI persona specification with identity, role, system behavior, tone, knowledge sources, safety boundaries, handoffs and test conversations.'},
+'aeo-funnels':{tool:'marketing',instruction:'Create a conversion funnel that also answers high-intent questions clearly: page flow, offer, semantic headings, FAQ/entity coverage, CTA logic, forms, schema recommendations and A/B hypotheses.'},
+'audiobook-maker':{tool:'writing',instruction:'Convert the supplied manuscript or concept into an audiobook production plan with chapter segmentation, narration-ready text guidance, pronunciation notes, intro/outro and accessibility transcript requirements. Do not claim audio was rendered.'},
+'music-generator':{tool:'writing',instruction:'Create an original music brief with genre, mood, tempo, instruments, structure, lyrical direction and rights/consent notes. Do not claim audio was generated unless the Music Studio returns a real result.'},
+'deep-research':{tool:'research',live_search:true,instruction:'Perform source-grounded research on the requested topic. Separate claims from evidence, note uncertainty, provide source context, and prepare material that can be saved into the Evidence Notebook.'},
+'web-chat-wizard':{tool:'customer-service',instruction:'Create a website chat experience with greeting, qualification/support flow, FAQ boundaries, lead capture fields, escalation, missed-message follow-up rules, consent controls and test conversations. Do not claim a widget was deployed.'},
+'precision-image-model':{tool:'marketing',instruction:'Create a lawful custom-image-model preparation plan: subject/object goal, dataset guidance, consent/rights checklist, variation requirements, labeling, validation prompts and safety review. Do not claim model training occurred.'},
+'humanizer':{tool:'writing',instruction:'Rewrite the supplied text so it sounds natural, specific and human while preserving facts, meaning, citations and brand voice. Do not add fake personal experiences or evade detection/safety systems.'},
+'knowledge-base':{tool:'research',instruction:'Turn the supplied material into a knowledge-base ingestion plan with source titles, provenance, chunks/topics, tags, update rules, conflicts and questions that need resolution. Do not claim sources were stored unless the Knowledge workspace confirms it.'},
+'logo-maker':{tool:'marketing',instruction:'Create an original logo brief with brand meaning, symbol directions, typography guidance, composition, contrast/accessibility and distinctiveness checks. Avoid copying existing trademarks or logos.'}
 };
 const VERIFY_CRITERIA={
 'video-ads':['storyboard/script saved','render path available','final media reviewed'],
