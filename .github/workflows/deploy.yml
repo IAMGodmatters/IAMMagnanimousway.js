@@ -69,6 +69,12 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
+          PLIVO_AUTH_ID: ${{ secrets.PLIVO_AUTH_ID }}
+          PLIVO_AUTH_TOKEN: ${{ secrets.PLIVO_AUTH_TOKEN }}
+          PLIVO_PHONE_NUMBER: ${{ secrets.PLIVO_PHONE_NUMBER }}
+          CLOUDFLARE_SAAS_API_TOKEN: ${{ secrets.CLOUDFLARE_SAAS_API_TOKEN }}
+          CLOUDFLARE_SAAS_ZONE_ID: ${{ secrets.CLOUDFLARE_SAAS_ZONE_ID }}
+          CLOUDFLARE_SAAS_CNAME_TARGET: ${{ secrets.CLOUDFLARE_SAAS_CNAME_TARGET }}
           TAVUS_API_KEY: ${{ secrets.TAVUS_API_KEY }}
           VOIP_PROVIDER_TOKEN: ${{ secrets.VOIP_PROVIDER_TOKEN }}
           VOIP_WEBHOOK_SECRET: ${{ secrets.VOIP_WEBHOOK_SECRET }}
@@ -98,6 +104,12 @@ jobs:
           sync_secret TWILIO_ACCOUNT_SID "$TWILIO_ACCOUNT_SID"
           sync_secret TWILIO_AUTH_TOKEN "$TWILIO_AUTH_TOKEN"
           sync_secret TWILIO_PHONE_NUMBER "$TWILIO_PHONE_NUMBER"
+          sync_secret PLIVO_AUTH_ID "$PLIVO_AUTH_ID"
+          sync_secret PLIVO_AUTH_TOKEN "$PLIVO_AUTH_TOKEN"
+          sync_secret PLIVO_PHONE_NUMBER "$PLIVO_PHONE_NUMBER"
+          sync_secret CLOUDFLARE_SAAS_API_TOKEN "$CLOUDFLARE_SAAS_API_TOKEN"
+          sync_secret CLOUDFLARE_SAAS_ZONE_ID "$CLOUDFLARE_SAAS_ZONE_ID"
+          sync_secret CLOUDFLARE_SAAS_CNAME_TARGET "$CLOUDFLARE_SAAS_CNAME_TARGET"
           sync_secret TAVUS_API_KEY "$TAVUS_API_KEY"
           sync_secret VOIP_PROVIDER_TOKEN "$VOIP_PROVIDER_TOKEN"
           sync_secret VOIP_WEBHOOK_SECRET "$VOIP_WEBHOOK_SECRET"
