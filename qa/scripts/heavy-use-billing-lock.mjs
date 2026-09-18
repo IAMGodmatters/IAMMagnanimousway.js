@@ -1,0 +1,1 @@
+import fs from'node:fs';const x=fs.readFileSync(new URL('../../worker/src/magnanimous-billing-policy.js',import.meta.url),'utf8');for(const s of ['continuousUseMetering:true','concurrencyMultiplier:true','prepaidChargeCents','maximumUseGuard','require_prepaid_topup'])if(!x.includes(s))throw Error('heavy use lock '+s);console.log('Heavy-use billing lock passed.');
