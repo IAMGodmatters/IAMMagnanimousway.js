@@ -413,6 +413,46 @@ export async function handleNativeWorkCrm(request,env){
 
 
 
+ if(url.pathname==='/api/operations/crm/scoring'){
+  if(request.method==='GET'){const profile=await ensureDefaultScoringProfile(env,t);return json({profile:{id:profile.id,name:profile.name,rules:profile.rules,thresholds:profile.thresholds,active:profile.active}})}
+  if(request.method==='PUT'){
+   const current=await ensureDefaultScoringProfile(env,t),rules=crmScoreRules(body.rules||current.rules),thresholds=crmScoreThresholds(body.thresholds||current.thresholds),name=text(body.name||current.name,180),ts=now();
+   await env.DB.prepare('UPDATE crm_scoring_profiles SET name=?,rules_json=?,thresholds_json=?,updated_at=? WHERE tenant_id=? AND id=?').bind(name,JSON.stringify(rules),JSON.stringify(thresholds),ts,t,current.id).run();
+   await log(env,user,'crm_scoring_profile_updated',{detail:{profile_id:current.id,name}});const profile=await ensureDefaultScoringProfile(env,t);return json({profile:{id:profile.id,name:profile.name,rules:profile.rules,thresholds:profile.thresholds,active:profile.active}})
+  }
+ }
+
+ if(url.pathname==='/api/operations/crm/sequences'&&request.method==='GET'){
+  const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_ops_sequences WHERE tenant_id=? ORDER BY updated_at DESC').bind(t).all();
+  return json({items:results.map(mapSequence),enrollments:await crmSequenceEnrollments(env,t,Number(url.searchParams.get('contact_id')||0))});
+ }
+
+ let crmSequenceMatch=url.pathname.match(/^\/api\/operations\/crm\/sequences\/([^/]+)\/enroll$/);
+ if(crmSequenceMatch&&request.method==='POST'){
+  const sequence=await crmSequenceDefinition(env,t,crmSequenceMatch[1]);if(!sequence)return json({detail:'Sequence not found.'},404);
+  if(!['active','published'].includes(String(sequence.status||'').toLowerCase()))return json({detail:'Activate the sequence before enrolling contacts.'},409);
+  const contactId=Number(body.contact_id||0),contact=await crmOwnedContact(env,t,contactId);if(!contact)return json({detail:'CRM contact not found.'},404);
+  const preferences=await crmPreferences(env,t,contactId);if(preferences.do_not_contact)return json({detail:'This contact is marked do not contact. Remove that preference only when appropriate before enrollment.'},409);
+  const existing=await env.DB.prepare("SELECT id,status FROM crm_sequence_enrollments WHERE tenant_id=? AND sequence_id=? AND contact_id=? AND status IN ('active','paused') ORDER BY started_at DESC LIMIT 1").bind(t,sequence.id,contactId).first();
+  if(existing)return json({detail:'This contact is already enrolled in the sequence.',enrollment_id:existing.id,status:existing.status},409);
+  const steps=Array.isArray(sequence.steps)?sequence.steps:[],first=steps[0],eid=id(),ts=now(),nextAt=first?ts+crmSequenceDelaySeconds(first):null,status=first?'active':'completed';
+  await env.DB.prepare('INSERT INTO crm_sequence_enrollments(id,tenant_id,sequence_id,contact_id,status,step_index,next_step_at,goal,timezone,started_at,updated_at,completed_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(eid,t,sequence.id,contactId,status,0,nextAt,text(body.goal||'reply',80),text(body.timezone,80),ts,ts,status==='completed'?ts:null).run();
+  await log(env,user,'crm_sequence_enrolled',{detail:{enrollment_id:eid,sequence_id:sequence.id,contact_id:contactId,status}});return json({enrollment:(await crmSequenceEnrollments(env,t,contactId)).find(x=>x.id===eid)||{id:eid,status}},201);
+ }
+
+ if(url.pathname==='/api/operations/crm/sequences/run-due'&&request.method==='POST'){
+  const result=await crmRunDueSequences(env,user,{limit:body.limit});await log(env,user,'crm_sequence_run_due',{detail:result});return json(result);
+ }
+
+ crmSequenceMatch=url.pathname.match(/^\/api\/operations\/crm\/sequences\/enrollments\/([^/]+)$/);
+ if(crmSequenceMatch&&request.method==='PUT'){
+  const eid=text(crmSequenceMatch[1],80),cur=await env.DB.prepare('SELECT * FROM crm_sequence_enrollments WHERE tenant_id=? AND id=?').bind(t,eid).first();if(!cur)return json({detail:'Sequence enrollment not found.'},404);
+  const requested=String(body.status||'').toLowerCase();if(!['active','paused','cancelled'].includes(requested))return json({detail:'Status must be active, paused, or cancelled.'},400);
+  if(requested==='active'){const preferences=await crmPreferences(env,t,cur.contact_id);if(preferences.do_not_contact)return json({detail:'This contact is marked do not contact.'},409)}
+  await env.DB.prepare('UPDATE crm_sequence_enrollments SET status=?,next_step_at=CASE WHEN ?="active" AND next_step_at IS NULL THEN ? ELSE next_step_at END,updated_at=?,completed_at=CASE WHEN ?="cancelled" THEN ? ELSE completed_at END WHERE tenant_id=? AND id=?').bind(requested,requested,now(),now(),requested,requested==='cancelled'?now():null,t,eid).run();
+  await log(env,user,'crm_sequence_enrollment_updated',{detail:{enrollment_id:eid,status:requested}});return json({item:(await crmSequenceEnrollments(env,t,Number(cur.contact_id))).find(x=>x.id===eid)})
+ }
+
  if(url.pathname==='/api/operations/crm/studio'&&request.method==='GET')return json(await crmStudio(env,t));
 
  if(url.pathname==='/api/operations/crm/accounts'){
