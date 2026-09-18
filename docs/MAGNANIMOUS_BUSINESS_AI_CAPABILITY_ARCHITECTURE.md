@@ -10,3 +10,6 @@ Magnanimous additionally combines telecom/contact-center architecture, Work Engi
 
 ## Clean-room rule
 Implement capabilities from functional requirements using original Magnanimous code, schemas, UI, prompts, workflows and documentation. Do not copy third-party source code, private prompts, model weights, protected creative assets, trademarks, confidential material, or bypass access controls. Outside engines may only be used as authorized replaceable infrastructure beneath Magnanimous AI.
+
+## Expanded first-class studios
+Magnanimous Business AI separately exposes podcast production, campaign acceleration, movie production, spokesperson/presenter video, voiceover preparation, AI personality design, AEO-aware funnels, audiobook production, music generation, deep research, personalized-image workflows, natural-writing transformation, private knowledge bases, logo creation, and rights-tracked licensed-image libraries. Each capability uses Magnanimous-owned workflow contracts and routes to native or authorized replaceable infrastructure. External rendering, voice/audio export, personalized model training, licensed third-party assets, publishing, payment, calling, signing, and similar outside actions remain explicitly connection-gated and cannot be marked complete from a text draft alone.
