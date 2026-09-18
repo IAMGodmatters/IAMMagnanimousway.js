@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useState,type ReactNode} from 'react';
 import {getPlatformAuthToken} from '../lib/magnanimous-session';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
@@ -128,4 +128,4 @@ export default function CRM(){
 function Metric({label,value,note}:{label:string;value:string|number;note:string}){return <article className="metric"><span>{label.toUpperCase()}</span><b>{value}</b><small>{note}</small></article>}
 function Health({label,value}:{label:string;value:number}){return <div className="healthRow"><span>{label}</span><b>{value}</b></div>}
 function Empty({text}:{text:string}){return <div className="empty">{text}</div>}
-function Modal({close,eyebrow,title,children}:{close:()=>void;eyebrow:string;title:string;children:React.ReactNode}){return <div className="modal" role="dialog" aria-modal="true"><div className="modalCard"><button className="close" onClick={close}>×</button><small>{eyebrow}</small><h2>{title}</h2>{children}</div></div>}
+function Modal({close,eyebrow,title,children}:{close:()=>void;eyebrow:string;title:string;children:ReactNode}){return <div className="modal" role="dialog" aria-modal="true"><div className="modalCard"><button className="close" onClick={close}>×</button><small>{eyebrow}</small><h2>{title}</h2>{children}</div></div>}
