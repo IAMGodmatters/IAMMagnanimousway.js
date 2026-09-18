@@ -7,8 +7,8 @@ async function ownerTenant(env){
  const configured=String(env.GROWTH_SENDER_TENANT_ID||'').trim();if(configured)return configured;
  try{const row=await env.DB.prepare("SELECT tenant_id FROM users WHERE active=1 AND lower(role) IN ('owner','admin','super_admin','superadmin') ORDER BY CASE WHEN lower(role)='owner' THEN 0 ELSE 1 END,id LIMIT 1").first();return String(row?.tenant_id||'')}catch{return ''}
 }
-async function connectionFor(env,scopeTenantId){
- const tenants=[];if(scopeTenantId&&scopeTenantId!=='__platform__')tenants.push(scopeTenantId);const owner=await ownerTenant(env);if(owner&&!tenants.includes(owner))tenants.push(owner);
+async function connectionFor(env,scopeTenantId,tenantOnly=false){
+ const tenants=[];if(scopeTenantId&&scopeTenantId!=='__platform__')tenants.push(scopeTenantId);if(!tenantOnly){const owner=await ownerTenant(env);if(owner&&!tenants.includes(owner))tenants.push(owner)}
  for(const tenant of tenants){
   try{const row=await env.DB.prepare("SELECT * FROM integrations WHERE tenant_id=? AND provider IN ('google','outlook') ORDER BY CASE provider WHEN 'google' THEN 0 ELSE 1 END,updated_at DESC LIMIT 1").bind(tenant).first();if(row)return row}catch{}
  }
@@ -38,8 +38,8 @@ async function outlookSend(token,{to,subject,text,replyTo}){
  const r=await fetch('https://graph.microsoft.com/v1.0/me/sendMail',{method:'POST',headers:{Authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify({message,saveToSentItems:true})});if(r.ok)return{ok:true,receipt:'outlook-sent'};const d=await r.json().catch(()=>({}));return{ok:false,error:String(d?.error?.message||`Outlook send failed (${r.status})`)};
 }
 
-export async function sendGrowthEmail(env,{scopeTenantId,to,subject,text,replyTo='',senderName=''}){
- const conn=await connectionFor(env,scopeTenantId);if(!conn)return{ok:false,code:'NO_SENDER',error:'Connect a Gmail or Outlook sender in Connections before automated email can send.'};
+export async function sendGrowthEmail(env,{scopeTenantId,to,subject,text,replyTo='',senderName='',tenantOnly=false}){
+ const conn=await connectionFor(env,scopeTenantId,tenantOnly);if(!conn)return{ok:false,code:'NO_SENDER',error:'Connect a Gmail or Outlook sender in Connections before automated email can send.'};
  const token=await accessToken(env,conn);if(!token)return{ok:false,code:'SENDER_AUTH',error:'The connected email sender needs to be reauthorized.'};
  if(conn.provider==='google')return gmailSend(token,{to,subject,text,replyTo,senderName});
  if(conn.provider==='outlook')return outlookSend(token,{to,subject,text,replyTo});
