@@ -1,0 +1,1 @@
+import fs from'node:fs';const x=fs.readFileSync(new URL('../../worker/src/agency-billing-extension.js',import.meta.url),'utf8');for(const s of ['TERMS_ACCEPTANCE_REQUIRED','metadata[terms_version]','metadata[terms_accepted]','subscription_data[metadata][terms_version]'])if(!x.includes(s))throw Error('agency legal consent '+s);console.log('Agency server consent passed.');
