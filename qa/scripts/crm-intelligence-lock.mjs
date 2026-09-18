@@ -40,10 +40,22 @@ has(ui,'CUSTOMER 360°','CRM UI exposes customer 360 relationship timeline');
 has(ui,'OUTREACH PERMISSIONS','CRM UI exposes outreach permission center');
 has(ui,'360° View','contact cards open the unified relationship view');
 has(ui,'Consent & DNC controls','CRM capability map exposes consent and do-not-contact controls');
+has(runtime,'crm_accounts','native CRM company/account table exists');
+has(runtime,'crm_pipelines','native CRM multiple pipeline table exists');
+has(runtime,'crm_pipeline_stages','configurable pipeline stages exist');
+has(runtime,"/api/operations/crm/studio",'CRM studio exposes accounts and pipelines together');
+has(runtime,"/api/operations/crm/accounts",'CRM account APIs exist');
+has(runtime,"/api/operations/crm/pipelines",'CRM pipeline APIs exist');
+has(runtime,'stageKind','revenue intelligence recognizes custom won/lost stage kinds');
+has(runtime,'crm_contact_account_updated','contact-to-account relationship changes are audited');
+has(ui,'COMPANY / ACCOUNT GRAPH','CRM UI exposes company account rollups');
+has(ui,'SALES PROCESS STUDIO','CRM UI exposes configurable sales processes');
+has(ui,'Multiple configurable pipelines','CRM capability map exposes multi-pipeline support');
+has(ui,'Company account','customer 360 can link a person to an account');
 
 const failed=checks.filter(([ok])=>!ok);
 if(failed.length){console.error(`CRM intelligence lock failed: ${failed.length}/${checks.length} checks failed.`);process.exit(1)}
 console.log(`CRM intelligence lock: ${checks.length} checks passed.`);
-console.log('Relationship intelligence + Customer 360: PASS');
-console.log('Revenue intelligence: PASS');
+console.log('Relationship intelligence + Customer 360 + account graph: PASS');
+console.log('Revenue intelligence + multi-pipeline: PASS');
 console.log('Omnichannel/action routing + consent safety: PASS');
