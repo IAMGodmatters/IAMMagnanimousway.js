@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { isPlatformOwnerUser } from './agent-branch-intelligence.js';
 import { createWork } from './work-engine-runtime.js';
 import { handleUnifiedInbox } from './unified-inbox-runtime.js';
 
@@ -17,6 +18,7 @@ async function ensure(env){
 }
 async function clientExists(env,tenant,id){if(!id)return true;try{return Boolean(await env.DB.prepare('SELECT id FROM bpo_clients WHERE id=? AND tenant_id=?').bind(id,tenant).first())}catch{return false}}
 function config(v){try{return typeof v==='string'?JSON.parse(v||'{}'):(v||{})}catch{return{}}}
+async function agencyAccess(env,user){if(await isPlatformOwnerUser(env,user))return true;try{const row=await env.DB.prepare("SELECT plan FROM billing_subscriptions WHERE tenant_id=? AND status='active' LIMIT 1").bind(String(user.tenant_id)).first();const plan=String(row?.plan||'').toLowerCase();return plan==='agency'||plan==='agency_pro'}catch{return false}}
 function row(x){return{...x,action_config:config(x.action_config_json),run_count:Number(x.run_count||0),last_run_at:x.last_run_at?Number(x.last_run_at):null}}
 function getPath(value,path){return String(path||'').split('.').filter(Boolean).reduce((v,k)=>v&&typeof v==='object'?v[k]:undefined,value)}
 function render(template,payload,event){return text(String(template||'').replace(/\{\{\s*([\w.-]+)\s*\}\}/g,(_,key)=>{const value=key==='event'?event:getPath(payload,key);return value==null?'':String(value)}),12000)}
@@ -45,7 +47,7 @@ async function executeRule(request,env,user,rule,payload={}){
 }
 
 export async function dispatchAgencyAutomationEvent(request,env,{trigger_type,client_id='',payload={}}={}){
- if(!env?.DB||!trigger_type)return[];await ensure(env);const user=await currentUser(request,env).catch(()=>null);if(!user)return[];const tenant=String(user.tenant_id),client=text(client_id||payload?.client_id,80);
+ if(!env?.DB||!trigger_type)return[];await ensure(env);const user=await currentUser(request,env).catch(()=>null);if(!user||!await agencyAccess(env,user))return[];const tenant=String(user.tenant_id),client=text(client_id||payload?.client_id,80);
  let sql="SELECT * FROM agency_automations WHERE tenant_id=? AND trigger_type=? AND status='active' AND (client_id IS NULL OR client_id='')";const args=[tenant,text(trigger_type,80)];if(client){sql="SELECT * FROM agency_automations WHERE tenant_id=? AND trigger_type=? AND status='active' AND (client_id IS NULL OR client_id='' OR client_id=?)";args.push(client)}
  const{results=[]}=await env.DB.prepare(sql).bind(...args).all();const output=[];for(const rule of results)output.push(await executeRule(request,env,user,rule,{...payload,client_id:client}));return output;
 }
@@ -53,7 +55,7 @@ export async function dispatchAgencyAutomationEvent(request,env,{trigger_type,cl
 export async function handleAgencyAutomations(request,env){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/agency/automations'))return null;if(!env?.DB)return json({detail:'Agency automation database is unavailable.'},503);
  try{
-  await ensure(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use Agency Automations.'},401);const tenant=String(user.tenant_id),owner=['owner','admin'].includes(String(user.role||'').toLowerCase());
+  await ensure(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use Agency Automations.'},401);if(!await agencyAccess(env,user))return json({detail:'An active White Label Agency subscription is required.'},402);const tenant=String(user.tenant_id),owner=['owner','admin'].includes(String(user.role||'').toLowerCase());
   if(url.pathname==='/api/agency/automations'){
    if(request.method==='GET'){const client=text(url.searchParams.get('client_id'),80);let sql='SELECT * FROM agency_automations WHERE tenant_id=?';const args=[tenant];if(client){sql+=' AND (client_id=? OR client_id IS NULL)';args.push(client)}sql+=' ORDER BY status DESC,updated_at DESC';const{results=[]}=await env.DB.prepare(sql).bind(...args).all();return json({automations:results.map(row),triggers:['booking.created','funnel.created','review.created','usage.created','inbox.received','manual'],actions:['create-work','create-inbox']})}
    if(request.method==='POST'){if(!owner)return json({detail:'Workspace owner access required to create automations.'},403);const b=await request.json().catch(()=>({})),client=text(b.client_id,80)||null;if(client&&!await clientExists(env,tenant,client))return json({detail:'Choose a valid client account.'},400);const name=text(b.name,180),trigger=text(b.trigger_type,80),action=text(b.action_type,80);if(!name||!trigger||!action)return json({detail:'Name, trigger and action are required.'},400);const id=crypto.randomUUID(),ts=now();await env.DB.prepare('INSERT INTO agency_automations(id,tenant_id,client_id,name,trigger_type,action_type,action_config_json,status,run_count,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,client,name,trigger,action,JSON.stringify(b.action_config||{}).slice(0,12000),text(b.status||'active',30),0,ts,ts).run();return json({ok:true,id},201)}
