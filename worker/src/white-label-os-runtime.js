@@ -29,12 +29,41 @@ async function ensure(env){for(const q of[
 `CREATE TABLE IF NOT EXISTS agency_affiliate_programs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,commission_percent REAL NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
 `CREATE TABLE IF NOT EXISTS agency_portal_pages(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,client_id TEXT NOT NULL,title TEXT NOT NULL,slug TEXT NOT NULL,content TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
 `CREATE TABLE IF NOT EXISTS agency_community_spaces(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,title TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',access_level TEXT NOT NULL DEFAULT 'members',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
-`CREATE TABLE IF NOT EXISTS agency_affiliate_referrals(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,program_id TEXT NOT NULL,partner_name TEXT NOT NULL,reference TEXT NOT NULL DEFAULT '',revenue_usd REAL NOT NULL DEFAULT 0,commission_usd REAL NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'pending',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`
+`CREATE TABLE IF NOT EXISTS agency_affiliate_referrals(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,program_id TEXT NOT NULL,partner_name TEXT NOT NULL,reference TEXT NOT NULL DEFAULT '',revenue_usd REAL NOT NULL DEFAULT 0,commission_usd REAL NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'pending',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+`CREATE TABLE IF NOT EXISTS agency_client_apps(tenant_id TEXT NOT NULL,client_id TEXT NOT NULL,app_id TEXT NOT NULL,label TEXT NOT NULL DEFAULT '',enabled INTEGER NOT NULL DEFAULT 1,sort_order INTEGER NOT NULL DEFAULT 0,updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,client_id,app_id))`
 ])await env.DB.prepare(q).run()}
 const owner=u=>['owner','admin'].includes(String(u?.role||'').toLowerCase());
 async function agencyAccess(env,user){if(await isPlatformOwnerUser(env,user))return true;try{const active=await env.DB.prepare("SELECT plan FROM billing_subscriptions WHERE tenant_id=? AND status='active' LIMIT 1").bind(String(user.tenant_id)).first();const plan=String(active?.plan||'').toLowerCase();return plan==='agency'||plan==='agency_pro'}catch{return false}}
 export async function handleWhiteLabelOS(request,env){const u=new URL(request.url);if(!u.pathname.startsWith('/api/white-label-os'))return null;const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);if(!await agencyAccess(env,user))return json({detail:'An active White Label Agency subscription is required.'},402);await ensure(env);const tenant=String(user.tenant_id);
 if(u.pathname==='/api/white-label-os/overview'&&request.method==='GET')return json({name:'Magnanimous White Label OS',brain:'Magnanimous AI',modules:WHITE_LABEL_MODULES,principles:['your brand','your clients','your pricing','tenant isolation','provider independence','no hidden provider identity','action receipts','transparent metered costs']});
+const CLIENT_APP_CATALOG=[
+ ['branded-ai','Branded AI'],['crm','CRM'],['inbox','Unified Inbox'],['booking','Booking'],['funnel','Funnel Builder'],['reputation','Reputation'],['automations','Automations'],['work-engine','Work Engine'],['receptionist','AI Receptionist'],['video-agents','Video Agents'],['rebilling','Usage Rebilling']
+];
+if(u.pathname==='/api/white-label-os/client-apps'){
+ const clientId=txt(u.searchParams.get('client_id'),80);
+ if(!clientId)return json({detail:'Choose a client first.'},400);
+ const client=await env.DB.prepare('SELECT id,name FROM bpo_clients WHERE id=? AND tenant_id=? LIMIT 1').bind(clientId,tenant).first();
+ if(!client)return json({detail:'That client does not belong to this White Label workspace.'},404);
+ if(request.method==='GET'){
+  const{results=[]}=await env.DB.prepare('SELECT app_id,label,enabled,sort_order FROM agency_client_apps WHERE tenant_id=? AND client_id=? ORDER BY sort_order,app_id').bind(tenant,clientId).all();
+  const saved=new Map(results.map(x=>[String(x.app_id),x]));
+  const apps=CLIENT_APP_CATALOG.map(([app_id,name],index)=>{const row=saved.get(app_id);return{app_id,name,label:row?.label||name,enabled:row?Boolean(row.enabled):true,sort_order:row?Number(row.sort_order||0):index}});
+  return json({client,apps,available_apps:CLIENT_APP_CATALOG.map(([app_id,name])=>({app_id,name}))});
+ }
+ if(request.method==='PUT'){
+  if(!owner(user))return json({detail:'Owner or admin access required.'},403);
+  const b=await request.json().catch(()=>({})),apps=Array.isArray(b.apps)?b.apps:[];
+  const allowed=new Set(CLIENT_APP_CATALOG.map(x=>x[0])),ts=now(),seen=new Set();
+  for(const row of apps){
+   const appId=txt(row?.app_id,60);if(!allowed.has(appId)||seen.has(appId))continue;seen.add(appId);
+   await env.DB.prepare(`INSERT INTO agency_client_apps(tenant_id,client_id,app_id,label,enabled,sort_order,updated_at) VALUES(?,?,?,?,?,?,?)
+    ON CONFLICT(tenant_id,client_id,app_id) DO UPDATE SET label=excluded.label,enabled=excluded.enabled,sort_order=excluded.sort_order,updated_at=excluded.updated_at`)
+    .bind(tenant,clientId,appId,txt(row?.label,120)||CLIENT_APP_CATALOG.find(x=>x[0]===appId)?.[1]||appId,row?.enabled===false?0:1,Math.max(0,Math.min(999,Number(row?.sort_order)||0)),ts).run();
+  }
+  return json({ok:true,client_id:clientId,saved:seen.size});
+ }
+ return json({detail:'Method not allowed.'},405);
+}
 const specs={catalog:['agency_catalog_items',['name','kind','description','price_usd','status']],projects:['agency_projects',['client_id','name','status','owner','due_at']],contracts:['agency_contracts',['client_id','title','body','status','signer_name']],learning:['agency_learning_assets',['title','kind','description','status']],affiliates:['agency_affiliate_programs',['name','commission_percent','status']],portal:['agency_portal_pages',['client_id','title','slug','content','status']],community:['agency_community_spaces',['title','description','access_level','status']],referrals:['agency_affiliate_referrals',['program_id','partner_name','reference','revenue_usd','commission_usd','status']]};
 const base=u.pathname.match(/^\/api\/white-label-os\/(catalog|projects|contracts|learning|affiliates|portal|community|referrals)$/),item=u.pathname.match(/^\/api\/white-label-os\/(catalog|projects|contracts|learning|affiliates|portal|community|referrals)\/([^/]+)$/);const module=base?.[1]||item?.[1];if(!module)return json({detail:'White Label OS endpoint not found.'},404);const [table,fields]=specs[module];
 const clientOk=async id=>!id||Boolean(await env.DB.prepare('SELECT id FROM bpo_clients WHERE id=? AND tenant_id=? LIMIT 1').bind(txt(id,80),tenant).first());
