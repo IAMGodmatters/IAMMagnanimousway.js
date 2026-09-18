@@ -8,10 +8,10 @@
   // Production domain attachment is managed in Cloudflare outside this file.
   // The deploy token intentionally has Worker/D1 access but no zone-route mutation permission.
   "vars": {
-    "STRIPE_PRICE_PLUS": "price_1UBWxgDuxV2kib03EAdmCMei",
-    "STRIPE_PRICE_BUSINESS": "price_1UB9WfDuxV2kib03DFKqwM9C",
-    "STRIPE_PRICE_PRO": "price_1UBWxlDuxV2kib03u7b61rOy",
-    "STRIPE_PRICE_SCALE": "price_1UBWxqDuxV2kib0337oX8ARr",
+    "STRIPE_PRICE_PLUS": "price_1UGsdOBqx3ebIzujDBMRWFcm",
+    "STRIPE_PRICE_BUSINESS": "price_1UGsdOBqx3ebIzujDBMRWFcm",
+    "STRIPE_PRICE_PRO": "price_1UGsdOBqx3ebIzujDBMRWFcm",
+    "STRIPE_PRICE_SCALE": "price_1UGsdQBqx3ebIzujn5X0tN1y",
     "STRIPE_PRICE_AGENCY": "price_1UEs75Bqx3ebIzujqlWosJKu",
     "STRIPE_PRICE_AGENCY_PRO": "price_1UEs7EBqx3ebIzujT5pbI3QH",
     "STRIPE_PAYMENT_LINK_PLUS": "https://buy.stripe.com/9B614n5oK7vE7LWbnT6kg02",
