@@ -5,7 +5,8 @@ const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 // Provider-funded premium capabilities are released only for actually active paid subscriptions.
 const ACTIVE=new Set(['active']);
-const PLANS=new Set(['plus','business','pro','scale']);
+const PLANS=new Set(['plus','scale']);
+const PLAN_ALIAS={business:'plus',pro:'plus'};
 
 async function hmacHex(secret,value){const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);const out=await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(value));return[...new Uint8Array(out)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function safeEqual(a,b){a=String(a||'');b=String(b||'');if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0}
@@ -13,9 +14,9 @@ function parseSignature(header){const out={t:'',v1:[]};for(const part of String(
 async function verify(raw,header,secret){const p=parseSignature(header),stamp=Number(p.t);if(!p.t||!p.v1.length||!Number.isFinite(stamp)||Math.abs(now()-stamp)>300)return false;const expected=await hmacHex(secret,`${p.t}.${raw}`);return p.v1.some(v=>safeEqual(v,expected))}
 function paymentConfirmed(object){const payment=String(object?.payment_status||'').toLowerCase();return payment==='paid'||payment==='no_payment_required'}
 function pricePlan(env,object){
- const map=new Map([[String(env.STRIPE_PRICE_PLUS||''),'plus'],[String(env.STRIPE_PRICE_BUSINESS||''),'business'],[String(env.STRIPE_PRICE_PRO||''),'pro'],[String(env.STRIPE_PRICE_SCALE||''),'scale']]);
+ const map=new Map([[String(env.STRIPE_PRICE_PLUS||''),'plus'],[String(env.STRIPE_PRICE_SCALE||''),'scale']]);
  const items=object?.items?.data||[];for(const item of items){const id=String(item?.price?.id||item?.plan?.id||'');if(map.has(id))return map.get(id)}
- const metadata=String(object?.metadata?.plan||'').toLowerCase();return PLANS.has(metadata)?metadata:'';
+ const metadataRaw=String(object?.metadata?.plan||'').toLowerCase(),metadata=PLAN_ALIAS[metadataRaw]||metadataRaw;return PLANS.has(metadata)?metadata:'';
 }
 async function ensureSchema(env){
  try{await env.DB.prepare("ALTER TABLE tenants ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'").run()}catch(_){ }
@@ -57,9 +58,9 @@ async function processPaidCheckout(env,event,object){
   await recordRevenue(env,tenantId,'usage-topup',amount,'stripe',reference);
   return;
  }
- const metadataPlan=String(object?.metadata?.plan||'').toLowerCase();
- const referencePlan=paymentReference.kind==='plan'?paymentReference.plan:'';
- const plan=PLANS.has(metadataPlan)?metadataPlan:(PLANS.has(referencePlan)?referencePlan:'business');
+ const metadataRaw=String(object?.metadata?.plan||'').toLowerCase(),metadataPlan=PLAN_ALIAS[metadataRaw]||metadataRaw;
+ const referenceRaw=paymentReference.kind==='plan'?paymentReference.plan:'',referencePlan=PLAN_ALIAS[referenceRaw]||referenceRaw;
+ const plan=PLANS.has(metadataPlan)?metadataPlan:(PLANS.has(referencePlan)?referencePlan:'plus');
  await save(env,tenantId,{plan,customer_id:String(object.customer||'')||null,subscription_id:String(object.subscription||'')||null,status:'active'});
  await authorizeProviderSpend(env,tenantId,reference,`plan:${plan}`,amount);
  if(amount>0)await recordRevenue(env,tenantId,'checkout-paid',amount,'stripe',reference);
@@ -76,7 +77,7 @@ async function processEvent(env,event){
   const tenantId=await resolveTenant(env,object);if(!tenantId)return;
   const old=await env.DB.prepare('SELECT plan FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first();
   const detected=pricePlan(env,object)||String(object?.metadata?.plan||old?.plan||'business').toLowerCase();
-  const desired=PLANS.has(detected)?detected:'business',status=String(object.status||(type.endsWith('.deleted')?'canceled':'inactive'));
+  const canonical=PLAN_ALIAS[detected]||detected,desired=PLANS.has(canonical)?canonical:'plus',status=String(object.status||(type.endsWith('.deleted')?'canceled':'inactive'));
   const active=ACTIVE.has(status)&&!type.endsWith('.deleted');
   await save(env,tenantId,{plan:active?desired:'free',customer_id:String(object.customer||'')||null,subscription_id:String(object.id||'')||null,status,current_period_end:Number(object.current_period_end||0)||null});
   if(active)await authorizeProviderSpend(env,tenantId,String(object.id||event.id),`subscription:${desired}`,0);
