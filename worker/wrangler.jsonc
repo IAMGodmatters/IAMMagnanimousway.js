@@ -52,6 +52,7 @@
     // unmatched probes without spending the Workers Free daily request allowance.
     // Only routes that genuinely require server execution run the Worker first.
     "run_worker_first": [
+      "/",
       "/api/*",
       "/mcp",
       "/.well-known/*",
