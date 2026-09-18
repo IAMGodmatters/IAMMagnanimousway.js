@@ -15,16 +15,19 @@ async function ensure(env){
   `CREATE TABLE IF NOT EXISTS unified_inbox_audit (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,thread_id TEXT,event_type TEXT NOT NULL,actor_id TEXT NOT NULL DEFAULT '',detail TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`
  ];
  for(const q of statements)await env.DB.prepare(q).run();
+ try{await env.DB.prepare('ALTER TABLE unified_inbox_threads ADD COLUMN crm_contact_id INTEGER').run()}catch{}
+ try{await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_unified_inbox_crm_contact ON unified_inbox_threads(tenant_id,crm_contact_id,updated_at DESC)').run()}catch{}
 }
 async function audit(env,tenant,thread,event,user,detail=''){await env.DB.prepare('INSERT INTO unified_inbox_audit(tenant_id,thread_id,event_type,actor_id,detail,created_at) VALUES(?,?,?,?,?,?)').bind(tenant,thread||null,event,String(user?.id||''),text(detail,2000),now()).run()}
 function rowThread(x){return {...x,priority:Number(x.priority||0),last_message_at:Number(x.last_message_at||0),created_at:Number(x.created_at||0),updated_at:Number(x.updated_at||0)} }
 async function clientExists(env,tenant,clientId){if(!clientId)return true;try{return Boolean(await env.DB.prepare('SELECT id FROM bpo_clients WHERE id=? AND tenant_id=?').bind(clientId,tenant).first())}catch{return false}}
+async function crmContactExists(env,tenant,contactId){if(!contactId)return true;try{return Boolean(await env.DB.prepare('SELECT id FROM crm_contacts WHERE id=? AND tenant_id=?').bind(Number(contactId),tenant).first())}catch{return false}}
 
 async function listThreads(env,tenant,url){
  let sql=`SELECT t.*,(SELECT content FROM unified_inbox_messages m WHERE m.thread_id=t.id AND m.tenant_id=t.tenant_id ORDER BY m.id DESC LIMIT 1) last_message FROM unified_inbox_threads t WHERE t.tenant_id=?`;
  const args=[tenant];
- const status=text(url.searchParams.get('status'),30),channel=text(url.searchParams.get('channel'),40),client=text(url.searchParams.get('client_id'),80);
- if(status){sql+=' AND t.status=?';args.push(status)}if(channel){sql+=' AND t.channel=?';args.push(channel)}if(client){sql+=' AND t.client_id=?';args.push(client)}
+ const status=text(url.searchParams.get('status'),30),channel=text(url.searchParams.get('channel'),40),client=text(url.searchParams.get('client_id'),80),crmContact=Number(url.searchParams.get('crm_contact_id')||0);
+ if(status){sql+=' AND t.status=?';args.push(status)}if(channel){sql+=' AND t.channel=?';args.push(channel)}if(client){sql+=' AND t.client_id=?';args.push(client)}if(crmContact){sql+=' AND t.crm_contact_id=?';args.push(crmContact)}
  sql+=' ORDER BY CASE t.status WHEN \'open\' THEN 0 WHEN \'waiting\' THEN 1 ELSE 2 END,t.priority DESC,t.updated_at DESC LIMIT 300';
  const {results=[]}=await env.DB.prepare(sql).bind(...args).all();return results.map(rowThread);
 }
@@ -42,9 +45,9 @@ export async function handleUnifiedInbox(request,env){
   if(request.method==='GET'&&url.pathname==='/api/inbox/overview')return json(await overview(env,tenant));
   if(request.method==='GET'&&url.pathname==='/api/inbox/threads')return json({threads:await listThreads(env,tenant,url)});
   if(request.method==='POST'&&(url.pathname==='/api/inbox/threads'||url.pathname==='/api/inbox/capture')){
-   const b=await request.json().catch(()=>({})),clientId=text(b.client_id,80)||null;if(clientId&&!await clientExists(env,tenant,clientId))return json({detail:'Choose a valid client account.'},400);
+   const b=await request.json().catch(()=>({})),clientId=text(b.client_id,80)||null,crmContactId=Number(b.crm_contact_id||0)||null;if(clientId&&!await clientExists(env,tenant,clientId))return json({detail:'Choose a valid client account.'},400);if(crmContactId&&!await crmContactExists(env,tenant,crmContactId))return json({detail:'Choose a valid CRM contact.'},400);
    const id=crypto.randomUUID(),ts=now(),subject=text(b.subject,300)||'Conversation',content=text(b.content||b.message,30000);if(!content)return json({detail:'Message content is required.'},400);
-   await env.DB.prepare('INSERT INTO unified_inbox_threads(id,tenant_id,client_id,channel,source,external_ref,customer_name,customer_ref,subject,status,priority,assigned_ai_agent_id,assigned_user_id,last_message_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,clientId,text(b.channel||'task',40),text(b.source||'manual',80),text(b.external_ref,200),text(b.customer_name,200),text(b.customer_ref,200),subject,text(b.status||'open',30),clamp(b.priority||50,1,100),b.assigned_ai_agent_id?text(b.assigned_ai_agent_id,100):null,b.assigned_user_id?text(b.assigned_user_id,100):null,ts,ts,ts).run();
+   await env.DB.prepare('INSERT INTO unified_inbox_threads(id,tenant_id,client_id,crm_contact_id,channel,source,external_ref,customer_name,customer_ref,subject,status,priority,assigned_ai_agent_id,assigned_user_id,last_message_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,clientId,crmContactId,text(b.channel||'task',40),text(b.source||'manual',80),text(b.external_ref,200),text(b.customer_name,200),text(b.customer_ref,200),subject,text(b.status||'open',30),clamp(b.priority||50,1,100),b.assigned_ai_agent_id?text(b.assigned_ai_agent_id,100):null,b.assigned_user_id?text(b.assigned_user_id,100):null,ts,ts,ts).run();
    await env.DB.prepare('INSERT INTO unified_inbox_messages(thread_id,tenant_id,direction,author_type,author_name,content,metadata_json,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(id,tenant,text(b.direction||'inbound',20),text(b.author_type||'customer',40),text(b.author_name||b.customer_name,160),content,JSON.stringify(b.metadata||{}),ts).run();
    await audit(env,tenant,id,'thread.created',user,`${text(b.channel||'task',40)} • ${subject}`);return json({ok:true,id},201)
   }

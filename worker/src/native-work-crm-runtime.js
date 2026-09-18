@@ -40,6 +40,7 @@ async function ensureSchema(env){
  `CREATE TABLE IF NOT EXISTS crm_contacts (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT,first_name TEXT NOT NULL,last_name TEXT NOT NULL DEFAULT '',email TEXT NOT NULL DEFAULT '',phone TEXT NOT NULL DEFAULT '',company TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'lead',source TEXT NOT NULL DEFAULT '',tags TEXT NOT NULL DEFAULT '',notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS crm_activities (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT,contact_id INTEGER NOT NULL,type TEXT NOT NULL DEFAULT 'note',title TEXT NOT NULL DEFAULT '',body TEXT NOT NULL DEFAULT '',due_at INTEGER,completed INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS crm_opportunities (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT,contact_id INTEGER,name TEXT NOT NULL,stage TEXT NOT NULL DEFAULT 'new',value REAL NOT NULL DEFAULT 0,probability REAL NOT NULL DEFAULT 0,expected_close_at INTEGER,notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+ `CREATE TABLE IF NOT EXISTS crm_contact_preferences (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,contact_id INTEGER NOT NULL,email_status TEXT NOT NULL DEFAULT 'unknown',sms_status TEXT NOT NULL DEFAULT 'unknown',phone_status TEXT NOT NULL DEFAULT 'unknown',whatsapp_status TEXT NOT NULL DEFAULT 'unknown',do_not_contact INTEGER NOT NULL DEFAULT 0,lawful_basis TEXT NOT NULL DEFAULT '',consent_source TEXT NOT NULL DEFAULT '',consent_note TEXT NOT NULL DEFAULT '',updated_at INTEGER NOT NULL,UNIQUE(tenant_id,contact_id))`,
  `CREATE TABLE IF NOT EXISTS magnanimous_ops_workspaces(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,owner_user_id TEXT NOT NULL,name TEXT NOT NULL,kind TEXT NOT NULL DEFAULT 'workspace',description TEXT NOT NULL DEFAULT '',settings_json TEXT NOT NULL DEFAULT '{}',permissions_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS magnanimous_ops_boards(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,workspace_id TEXT NOT NULL,name TEXT NOT NULL,singular_name TEXT NOT NULL DEFAULT 'record',kind TEXT NOT NULL DEFAULT 'board',description TEXT NOT NULL DEFAULT '',icon TEXT NOT NULL DEFAULT '',settings_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS magnanimous_ops_fields(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,board_id TEXT NOT NULL,name TEXT NOT NULL,field_key TEXT NOT NULL,field_type TEXT NOT NULL DEFAULT 'text',required INTEGER NOT NULL DEFAULT 0,position INTEGER NOT NULL DEFAULT 0,config_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(board_id,field_key))`,
@@ -55,7 +56,8 @@ async function ensureSchema(env){
  for(const sql of [
   'CREATE INDEX IF NOT EXISTS idx_crm_contacts_tenant_status ON crm_contacts(tenant_id,status)',
   'CREATE INDEX IF NOT EXISTS idx_crm_opportunities_tenant_stage ON crm_opportunities(tenant_id,stage)',
-  'CREATE INDEX IF NOT EXISTS idx_crm_activities_tenant_due ON crm_activities(tenant_id,due_at,completed)'
+  'CREATE INDEX IF NOT EXISTS idx_crm_activities_tenant_due ON crm_activities(tenant_id,due_at,completed)',
+  'CREATE INDEX IF NOT EXISTS idx_crm_preferences_contact ON crm_contact_preferences(tenant_id,contact_id)'
  ]){try{await env.DB.prepare(sql).run()}catch{}}
 }
 
@@ -150,22 +152,75 @@ async function crmOwnedContact(env,t,contactId){return env.DB.prepare('SELECT * 
 async function crmOwnedDeal(env,t,dealId){return env.DB.prepare('SELECT * FROM crm_opportunities WHERE tenant_id=? AND id=?').bind(t,Number(dealId)).first()}
 async function crmOwnedTask(env,t,taskId){return env.DB.prepare('SELECT * FROM crm_activities WHERE tenant_id=? AND id=?').bind(t,Number(taskId)).first()}
 
+
+const CRM_CONSENT_STATUSES=new Set(['unknown','opted_in','opted_out','transactional','not_applicable']);
+const crmConsentStatus=(v)=>CRM_CONSENT_STATUSES.has(String(v||'').toLowerCase())?String(v).toLowerCase():'unknown';
+const crmDefaultPreferences=(contactId)=>({contact_id:Number(contactId),email_status:'unknown',sms_status:'unknown',phone_status:'unknown',whatsapp_status:'unknown',do_not_contact:false,lawful_basis:'',consent_source:'',consent_note:'',updated_at:0});
+async function crmPreferences(env,t,contactId){
+ try{
+  const row=await env.DB.prepare('SELECT * FROM crm_contact_preferences WHERE tenant_id=? AND contact_id=?').bind(t,Number(contactId)).first();
+  return row?{...row,contact_id:Number(row.contact_id),do_not_contact:Boolean(row.do_not_contact),updated_at:Number(row.updated_at||0)}:crmDefaultPreferences(contactId);
+ }catch{return crmDefaultPreferences(contactId)}
+}
+async function saveCrmPreferences(env,t,contactId,body){
+ const current=await crmPreferences(env,t,contactId),ts=now();
+ const next={
+  email_status:body.email_status===undefined?current.email_status:crmConsentStatus(body.email_status),
+  sms_status:body.sms_status===undefined?current.sms_status:crmConsentStatus(body.sms_status),
+  phone_status:body.phone_status===undefined?current.phone_status:crmConsentStatus(body.phone_status),
+  whatsapp_status:body.whatsapp_status===undefined?current.whatsapp_status:crmConsentStatus(body.whatsapp_status),
+  do_not_contact:body.do_not_contact===undefined?Boolean(current.do_not_contact):Boolean(body.do_not_contact),
+  lawful_basis:body.lawful_basis===undefined?current.lawful_basis:text(body.lawful_basis,160),
+  consent_source:body.consent_source===undefined?current.consent_source:text(body.consent_source,200),
+  consent_note:body.consent_note===undefined?current.consent_note:text(body.consent_note,4000)
+ };
+ await env.DB.prepare('INSERT INTO crm_contact_preferences(tenant_id,contact_id,email_status,sms_status,phone_status,whatsapp_status,do_not_contact,lawful_basis,consent_source,consent_note,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,contact_id) DO UPDATE SET email_status=excluded.email_status,sms_status=excluded.sms_status,phone_status=excluded.phone_status,whatsapp_status=excluded.whatsapp_status,do_not_contact=excluded.do_not_contact,lawful_basis=excluded.lawful_basis,consent_source=excluded.consent_source,consent_note=excluded.consent_note,updated_at=excluded.updated_at').bind(t,Number(contactId),next.email_status,next.sms_status,next.phone_status,next.whatsapp_status,next.do_not_contact?1:0,next.lawful_basis,next.consent_source,next.consent_note,ts).run();
+ return crmPreferences(env,t,contactId);
+}
+async function crmContact360(env,user,contactId){
+ const t=tenant(user),contact=await crmOwnedContact(env,t,contactId);if(!contact)return null;
+ const preferences=await crmPreferences(env,t,contactId),events=[];let calls=0,messages=0,activities=0,deals=0;
+ try{
+  const{results=[]}=await env.DB.prepare('SELECT * FROM crm_activities WHERE tenant_id=? AND contact_id=? ORDER BY created_at DESC LIMIT 150').bind(t,Number(contactId)).all();
+  activities=results.length;for(const a of results)events.push({id:'activity:'+a.id,kind:a.type||'activity',channel:'crm',direction:'internal',title:a.title||'CRM activity',body:a.body||'',status:Number(a.completed)?'completed':'open',timestamp:Number(a.created_at||0),due_at:a.due_at?Number(a.due_at):null});
+ }catch{}
+ try{
+  const{results=[]}=await env.DB.prepare('SELECT * FROM crm_opportunities WHERE tenant_id=? AND contact_id=? ORDER BY updated_at DESC LIMIT 100').bind(t,Number(contactId)).all();
+  deals=results.length;for(const d of results)events.push({id:'deal:'+d.id,kind:'deal',channel:'sales',direction:'internal',title:d.name||'Deal',body:(crmStage(d.stage)+' • '+Number(d.value||0).toLocaleString()+' • '+Math.round(crmProbability(d.stage,d.probability))+'%'),status:crmStage(d.stage),timestamp:Number(d.updated_at||d.created_at||0),value:Number(d.value||0),deal_id:Number(d.id)});
+ }catch{}
+ try{
+  const{results=[]}=await env.DB.prepare('SELECT id,direction,caller,callee,status,started_at,ended_at,duration_seconds,notes,created_at FROM phone_calls WHERE tenant_id=? AND contact_id=? ORDER BY created_at DESC LIMIT 100').bind(t,Number(contactId)).all();
+  calls=results.length;for(const call of results)events.push({id:'call:'+call.id,kind:'call',channel:'voice',direction:call.direction||'',title:(call.direction==='inbound'?'Inbound call':'Outbound call'),body:call.notes||'',status:call.status||'',timestamp:Number(call.started_at||call.created_at||0),duration_seconds:Number(call.duration_seconds||0),caller:call.caller||'',callee:call.callee||''});
+ }catch{}
+ try{await env.DB.prepare('ALTER TABLE unified_inbox_threads ADD COLUMN crm_contact_id INTEGER').run()}catch{}
+ try{
+  const email=String(contact.email||'').trim().toLowerCase(),phone=String(contact.phone||'').trim();
+  const{results=[]}=await env.DB.prepare("SELECT m.id,m.thread_id,m.direction,m.author_type,m.author_name,m.content,m.created_at,t.channel,t.subject,t.status FROM unified_inbox_messages m JOIN unified_inbox_threads t ON t.id=m.thread_id AND t.tenant_id=m.tenant_id WHERE m.tenant_id=? AND (t.crm_contact_id=? OR (?<>'' AND lower(t.customer_ref)=?) OR (?<>'' AND t.customer_ref=?)) ORDER BY m.created_at DESC LIMIT 180").bind(t,Number(contactId),email,email,phone,phone).all();
+  messages=results.length;for(const m of results)events.push({id:'message:'+m.id,kind:'message',channel:m.channel||'inbox',direction:m.direction||'',title:m.subject||((m.direction||'')==='inbound'?'Inbound message':'Outbound message'),body:m.content||'',status:m.status||'',timestamp:Number(m.created_at||0),thread_id:m.thread_id,author:m.author_name||m.author_type||''});
+ }catch{}
+ events.sort((a,b)=>Number(b.timestamp||0)-Number(a.timestamp||0));
+ const lastTouch=events.length?Number(events[0].timestamp||0):Number(contact.updated_at||contact.created_at||0);
+ return{contact:{...contact,tags:parse(contact.tags,[])},preferences,summary:{activities,deals,calls,messages,total_touches:events.length,last_touch_at:lastTouch},timeline:events.slice(0,250)};
+}
+
 async function crmCommandCenter(env,user){
  const t=tenant(user),ts=now();
- const [{results:contactsRaw=[]},{results:dealsRaw=[]},{results:tasksRaw=[]}]=await Promise.all([
+ const [{results:contactsRaw=[]},{results:dealsRaw=[]},{results:tasksRaw=[]},{results:preferencesRaw=[]}]=await Promise.all([
   env.DB.prepare('SELECT * FROM crm_contacts WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 400').bind(t).all(),
   env.DB.prepare('SELECT * FROM crm_opportunities WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 400').bind(t).all(),
-  env.DB.prepare('SELECT * FROM crm_activities WHERE tenant_id=? ORDER BY created_at DESC LIMIT 500').bind(t).all()
+  env.DB.prepare('SELECT * FROM crm_activities WHERE tenant_id=? ORDER BY created_at DESC LIMIT 500').bind(t).all(),
+  env.DB.prepare('SELECT * FROM crm_contact_preferences WHERE tenant_id=?').bind(t).all()
  ]);
  const contacts=contactsRaw.map(r=>({...r,tags:parse(r.tags,[])}));
  const byId=new Map(contacts.map(r=>[Number(r.id),r]));
+ const preferencesByContact=new Map(preferencesRaw.map(r=>[Number(r.contact_id),{...r,do_not_contact:Boolean(r.do_not_contact)}]));
  const activityStats=new Map(),dealStats=new Map();
  for(const a of tasksRaw){const k=Number(a.contact_id);const cur=activityStats.get(k)||{count:0,last:0};cur.count++;cur.last=Math.max(cur.last,Number(a.created_at||0));activityStats.set(k,cur)}
  for(const d of dealsRaw){const k=Number(d.contact_id);dealStats.set(k,(dealStats.get(k)||0)+1)}
  const lead_scores=contacts.map(contact=>{
   const a=activityStats.get(Number(contact.id))||{count:0,last:0};
   const score=crmLeadScore(contact,{activityCount:a.count,dealCount:dealStats.get(Number(contact.id))||0,lastActivityAt:a.last});
-  return{id:Number(contact.id),name:crmContactName(contact),company:contact.company||'',status:contact.status||'',email:contact.email||'',phone:contact.phone||'',score:score.score,reasons:score.reasons};
+  const preferences=preferencesByContact.get(Number(contact.id))||crmDefaultPreferences(contact.id);return{id:Number(contact.id),name:crmContactName(contact),company:contact.company||'',status:contact.status||'',email:contact.email||'',phone:contact.phone||'',score:score.score,reasons:score.reasons,do_not_contact:Boolean(preferences.do_not_contact),consent:{email:preferences.email_status||'unknown',sms:preferences.sms_status||'unknown',phone:preferences.phone_status||'unknown'}};
  }).sort((a,b)=>b.score-a.score).slice(0,50);
 
  const stageMap=new Map(),openDeals=[],staleDeals=[],riskDeals=[];let pipelineValue=0,weightedForecast=0;
@@ -193,7 +248,8 @@ async function crmCommandCenter(env,user){
  const next_actions=[];
  for(const task of overdue.slice(0,5))next_actions.push({kind:'overdue-task',priority:'urgent',title:task.title||'Overdue follow-up',detail:(task.contact_name||'Contact')+' • due '+new Date(Number(task.due_at)*1000).toISOString(),contact_id:Number(task.contact_id),task_id:Number(task.id)});
  for(const deal of riskDeals.slice(0,5))next_actions.push({kind:'deal-risk',priority:'high',title:'Protect '+deal.name,detail:(deal.contact_name||'Contact')+' • '+deal.risk+' • '+Math.round(deal.probability)+'% probability',contact_id:Number(deal.contact_id),deal_id:Number(deal.id)});
- for(const lead of lead_scores.filter(x=>x.score>=55&&['lead','qualified'].includes(String(x.status).toLowerCase())).slice(0,5))next_actions.push({kind:'hot-lead',priority:'high',title:'Follow up with '+lead.name,detail:'Lead score '+lead.score+'/100 • '+lead.reasons.slice(0,2).join(' • '),contact_id:lead.id});
+ for(const lead of lead_scores.filter(x=>x.score>=55&&!x.do_not_contact&&['lead','qualified'].includes(String(x.status).toLowerCase())).slice(0,5))next_actions.push({kind:'hot-lead',priority:'high',title:'Follow up with '+lead.name,detail:'Lead score '+lead.score+'/100 • '+lead.reasons.slice(0,2).join(' • '),contact_id:lead.id});
+ for(const lead of lead_scores.filter(x=>x.do_not_contact).slice(0,3))next_actions.push({kind:'consent-review',priority:'normal',title:'Respect contact preference for '+lead.name,detail:'Do-not-contact is enabled. Review the record without sending outreach.',contact_id:lead.id});
  if(!next_actions.length&&contacts.length)next_actions.push({kind:'relationship-review',priority:'normal',title:'Review recent relationships',detail:'No urgent CRM risks detected. Review the newest contacts and keep next steps current.'});
 
  return{
@@ -230,6 +286,18 @@ export async function handleNativeWorkCrm(request,env){
 
 
  if(url.pathname==='/api/operations/crm/command-center'&&request.method==='GET')return json(await crmCommandCenter(env,user));
+
+
+ let crmContactMatch=url.pathname.match(/^\/api\/operations\/crm\/contacts\/(\d+)\/360$/);
+ if(crmContactMatch&&request.method==='GET'){
+  const data=await crmContact360(env,user,Number(crmContactMatch[1]));if(!data)return json({detail:'CRM contact not found.'},404);return json(data);
+ }
+ crmContactMatch=url.pathname.match(/^\/api\/operations\/crm\/contacts\/(\d+)\/preferences$/);
+ if(crmContactMatch){
+  const contactId=Number(crmContactMatch[1]);if(!await crmOwnedContact(env,t,contactId))return json({detail:'CRM contact not found.'},404);
+  if(request.method==='GET')return json({preferences:await crmPreferences(env,t,contactId)});
+  if(request.method==='PUT'){const preferences=await saveCrmPreferences(env,t,contactId,body);await log(env,user,'crm_contact_preferences_updated',{detail:{contact_id:contactId,do_not_contact:Boolean(preferences.do_not_contact),email_status:preferences.email_status,sms_status:preferences.sms_status,phone_status:preferences.phone_status}});return json({preferences})}
+ }
 
  if(url.pathname==='/api/operations/crm/deals'){
   if(request.method==='GET'){const data=await crmCommandCenter(env,user);return json({items:data.deals,stage_summary:data.stage_summary,metrics:data.metrics})}
