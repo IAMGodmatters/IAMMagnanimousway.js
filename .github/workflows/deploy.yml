@@ -290,6 +290,9 @@ jobs:
                 "DELETE FROM unified_inbox_audit WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM unified_inbox_messages WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM unified_inbox_threads WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM magnanimous_cells WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM magnanimous_sheets WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM magnanimous_workbooks WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM magnanimous_business_ai_jobs WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM magnanimous_work_steps WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM magnanimous_work_items WHERE tenant_id='${tenant_id}';"
@@ -368,14 +371,14 @@ jobs:
           tools=d.get('tools') or []
           ids=[x.get('id') for x in tools]
           assert d.get('brain') == 'Magnanimous AI', d
-          assert len(tools) == 44 and len(set(ids)) == 29, ids
-          assert 'asset-library' in ids and 'hyper-images' in ids and 'app-wizard' in ids and 'crm' in ids, ids
+          assert len(tools) == 31 and len(set(ids)) == 31, ids
+          assert 'asset-library' in ids and 'hyper-images' in ids and 'app-wizard' in ids and 'crm' in ids and 'accounting' in ids and 'spreadsheets' in ids, ids
           assert all(x.get('surface') for x in tools), tools
           assert all(isinstance(x.get('dependencies'),list) for x in tools), tools
           assert d.get('truth_boundary'), d
           text=json.dumps(d).lower()
           assert 'deal.ai' not in text and 'deal ai' not in text, d
-          print('Business AI live catalog exposes 44 independent Magnanimous capabilities.')
+          print('Business AI live catalog exposes 31 independent Magnanimous capabilities.')
           PY
 
           status=$(curl -sS -o /tmp/business-ai-job.json -w '%{http_code}' -X POST "$BASE_URL/api/business-ai/jobs" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"tool_id":"sticky-notes","title":"Deployment Business AI Smoke","input":{"goal":"Create a safe deployment verification note without performing an external action."}}')
@@ -418,6 +421,38 @@ jobs:
           assert (d.get('verification') or {}).get('status') == 'not_verified', d
           print('Business AI live durable execution and truthful verification boundary passed.')
           PY
+
+
+          # Native Spreadsheet Studio smoke: create workbook, save raw values and a safe formula,
+          # confirm server-side calculation, then export CSV.
+          status=$(curl -sS -o /tmp/spreadsheet-create.json -w '%{http_code}' -X POST "$BASE_URL/api/spreadsheets" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"name":"Deployment Spreadsheet Smoke"}')
+          if [ "$status" != "201" ]; then echo "Spreadsheet create returned HTTP $status"; cat /tmp/spreadsheet-create.json || true; exit 1; fi
+          readarray -t spreadsheet_values < <(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/spreadsheet-create.json'))
+          assert d.get('workbook',{}).get('name') == 'Deployment Spreadsheet Smoke', d
+          assert d.get('selected_sheet',{}).get('id'), d
+          assert 'SUM' in (d.get('formula_support') or []), d
+          print(d['workbook']['id'])
+          print(d['selected_sheet']['id'])
+          PY
+          )
+          spreadsheet_id="${spreadsheet_values[0]}"
+          spreadsheet_sheet_id="${spreadsheet_values[1]}"
+          status=$(curl -sS -o /tmp/spreadsheet-cells.json -w '%{http_code}' -X PUT "$BASE_URL/api/spreadsheets/$spreadsheet_id/sheets/$spreadsheet_sheet_id/cells" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"cells":[{"row":0,"col":0,"value":"Revenue"},{"row":0,"col":1,"value":"10"},{"row":1,"col":1,"value":"20"},{"row":2,"col":1,"value":"=SUM(B1:B2)"}]}')
+          if [ "$status" != "200" ]; then echo "Spreadsheet cell save returned HTTP $status"; cat /tmp/spreadsheet-cells.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/spreadsheet-cells.json'))
+          cells={x.get('address'):x for x in d.get('cells') or []}
+          assert cells['B3']['value'] == 30, d
+          assert cells['B3']['formula'] == '=SUM(B1:B2)', d
+          print('Spreadsheet formula engine computed SUM safely.')
+          PY
+          status=$(curl -sS -o /tmp/spreadsheet-export.csv -w '%{http_code}' "$BASE_URL/api/spreadsheets/$spreadsheet_id/sheets/$spreadsheet_sheet_id/export-csv" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Spreadsheet CSV export returned HTTP $status"; cat /tmp/spreadsheet-export.csv || true; exit 1; fi
+          grep -q "30" /tmp/spreadsheet-export.csv
+          echo "Native Spreadsheet Studio live create/save/formula/export smoke passed."
 
           check_protected_page "White Label public page" "$BASE_URL/white-label" /tmp/white-label.html
 
