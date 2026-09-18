@@ -5,6 +5,7 @@ import {isPlatformOwnerUser} from './agent-branch-intelligence.js';
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const clean=v=>String(v??'').trim();
+const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const hostname=v=>clean(v).toLowerCase().replace(/^https?:\/\//,'').split('/')[0].replace(/\.$/,'');
 const validHostname=v=>/^(?=.{3,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(v);
 const owner=u=>['owner','admin'].includes(String(u?.role||'').toLowerCase());
@@ -101,4 +102,22 @@ export async function handleWhiteLabelDomains(request,env){
   await env.DB.prepare('DELETE FROM agency_custom_domains WHERE id=? AND tenant_id=?').bind(m[1],tenant).run();return json({ok:true,deleted:true});
  }
  return json({detail:'Custom domain endpoint not found.'},404);
+}
+
+export async function handlePublicWhiteLabelDomain(request,env){
+ const url=new URL(request.url);if(request.method!=='GET'||url.pathname!=='/')return null;const host=hostname(url.hostname);
+ if(!host||['iammagnanimousway.com','www.iammagnanimousway.com'].includes(host))return null;
+ let row=null;try{row=await env.DB.prepare(`SELECT d.client_id,d.hostname,s.brand_name,s.logo_url,s.accent_color,c.name client_name
+  FROM agency_custom_domains d JOIN bpo_clients c ON c.id=d.client_id AND c.tenant_id=d.tenant_id
+  LEFT JOIN agency_client_settings s ON s.client_id=d.client_id AND s.tenant_id=d.tenant_id
+  WHERE d.hostname=? AND d.status='active' AND d.ssl_status='active' LIMIT 1`).bind(host).first()}catch{return null}
+ if(!row)return null;
+ try{
+  const funnel=await env.DB.prepare("SELECT client_id,slug FROM agency_funnels WHERE client_id=? AND status='active' ORDER BY updated_at DESC LIMIT 1").bind(row.client_id).first();
+  if(funnel?.slug)return Response.redirect(`https://${host}/funnels/${encodeURIComponent(funnel.client_id)}/${encodeURIComponent(funnel.slug)}`,302);
+ }catch{}
+ let portal=null;try{portal=await env.DB.prepare("SELECT title,content FROM agency_portal_pages WHERE client_id=? AND status='active' ORDER BY updated_at DESC LIMIT 1").bind(row.client_id).first()}catch{}
+ const brand=esc(row.brand_name||row.client_name||'Welcome'),title=esc(portal?.title||brand),body=esc(portal?.content||'Welcome.').replace(/\n/g,'<br>'),logo=String(row.logo_url||'').startsWith('https://')?String(row.logo_url):'',accent=/^#[0-9a-f]{3,8}$/i.test(String(row.accent_color||''))?String(row.accent_color):'#71e1ff';
+ const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><meta name="robots" content="index,follow"><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#071018;color:#eff9ff;font-family:Inter,system-ui,sans-serif;padding:24px;background-image:radial-gradient(circle at 75% 0,${accent}22,transparent 32%)}main{width:min(820px,100%);border:1px solid #294654;border-radius:24px;background:#09141c;padding:clamp(24px,6vw,54px);box-shadow:0 28px 80px #0008}.brand{display:flex;align-items:center;gap:12px;color:${accent};font-weight:900;letter-spacing:.08em;font-size:11px}.brand img{width:58px;height:58px;object-fit:contain;background:#fff;border-radius:13px;padding:5px}h1{font-size:clamp(38px,7vw,70px);line-height:.98;margin:22px 0}.body{color:#adbec7;line-height:1.75;font-size:16px}</style></head><body><main><div class="brand">${logo?`<img src="${esc(logo)}" alt="">`:''}<span>${brand}</span></div><h1>${title}</h1><div class="body">${body}</div></main></body></html>`;
+ return new Response(html,{status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'public, max-age=60','x-frame-options':'SAMEORIGIN'}});
 }
