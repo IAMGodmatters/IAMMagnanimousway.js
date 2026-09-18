@@ -1,5 +1,6 @@
 import {currentUser} from './integrations.js';
 import {isPlatformOwnerUser} from './agent-branch-intelligence.js';
+import {BUSINESS_AI_SUITE} from './magnanimous-business-ai-suite.js';
 const json=(d,s=200)=>Response.json(d,{status:s,headers:{'cache-control':'no-store'}}),now=()=>Math.floor(Date.now()/1000),txt=(v,n=4000)=>String(v||'').trim().slice(0,n);
 export const WHITE_LABEL_MODULES=[
 {id:'branding',name:'Brand Studio',what:'Brand name, logo, accent color, White Label flag and custom-domain configuration for each client',status:'active'},
@@ -36,9 +37,10 @@ const owner=u=>['owner','admin'].includes(String(u?.role||'').toLowerCase());
 async function agencyAccess(env,user){if(await isPlatformOwnerUser(env,user))return true;try{const active=await env.DB.prepare("SELECT plan FROM billing_subscriptions WHERE tenant_id=? AND status='active' LIMIT 1").bind(String(user.tenant_id)).first();const plan=String(active?.plan||'').toLowerCase();return plan==='agency'||plan==='agency_pro'}catch{return false}}
 export async function handleWhiteLabelOS(request,env){const u=new URL(request.url);if(!u.pathname.startsWith('/api/white-label-os'))return null;const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);if(!await agencyAccess(env,user))return json({detail:'An active White Label Agency subscription is required.'},402);await ensure(env);const tenant=String(user.tenant_id);
 if(u.pathname==='/api/white-label-os/overview'&&request.method==='GET')return json({name:'Magnanimous White Label OS',brain:'Magnanimous AI',modules:WHITE_LABEL_MODULES,principles:['your brand','your clients','your pricing','tenant isolation','provider independence','no hidden provider identity','action receipts','transparent metered costs']});
-const CLIENT_APP_CATALOG=[
- ['branded-ai','Branded AI'],['crm','CRM'],['inbox','Unified Inbox'],['booking','Booking'],['funnel','Funnel Builder'],['reputation','Reputation'],['automations','Automations'],['work-engine','Work Engine'],['receptionist','AI Receptionist'],['video-agents','Video Agents'],['rebilling','Usage Rebilling']
+const CORE_CLIENT_APPS=[
+ ['branded-ai','Branded AI','core'],['crm','CRM','core'],['inbox','Unified Inbox','core'],['booking','Booking','core'],['funnel','Funnel Builder','core'],['reputation','Reputation','core'],['automations','Automations','core'],['work-engine','Work Engine','core'],['receptionist','AI Receptionist','core'],['video-agents','Video Agents','core'],['rebilling','Usage Rebilling','core']
 ];
+const CLIENT_APP_CATALOG=[...CORE_CLIENT_APPS,...BUSINESS_AI_SUITE.map(([id,name])=>['business-ai:'+id,name,'business-ai'])];
 if(u.pathname==='/api/white-label-os/client-apps'){
  const clientId=txt(u.searchParams.get('client_id'),80);
  if(!clientId)return json({detail:'Choose a client first.'},400);
@@ -47,8 +49,8 @@ if(u.pathname==='/api/white-label-os/client-apps'){
  if(request.method==='GET'){
   const{results=[]}=await env.DB.prepare('SELECT app_id,label,enabled,sort_order FROM agency_client_apps WHERE tenant_id=? AND client_id=? ORDER BY sort_order,app_id').bind(tenant,clientId).all();
   const saved=new Map(results.map(x=>[String(x.app_id),x]));
-  const apps=CLIENT_APP_CATALOG.map(([app_id,name],index)=>{const row=saved.get(app_id);return{app_id,name,label:row?.label||name,enabled:row?Boolean(row.enabled):true,sort_order:row?Number(row.sort_order||0):index}});
-  return json({client,apps,available_apps:CLIENT_APP_CATALOG.map(([app_id,name])=>({app_id,name}))});
+  const apps=CLIENT_APP_CATALOG.map(([app_id,name,group],index)=>{const row=saved.get(app_id);return{app_id,name,group,label:row?.label||name,enabled:row?Boolean(row.enabled):true,sort_order:row?Number(row.sort_order||0):index}});
+  return json({client,apps,available_apps:CLIENT_APP_CATALOG.map(([app_id,name,group])=>({app_id,name,group})),catalog_count:CLIENT_APP_CATALOG.length,authorization_boundary:'Client app selections control menu visibility and packaging. They do not become a security authorization boundary until the signed-in end user is reliably mapped to this client account.'});
  }
  if(request.method==='PUT'){
   if(!owner(user))return json({detail:'Owner or admin access required.'},403);
