@@ -316,7 +316,7 @@ jobs:
           status=$(curl -sS -o /tmp/me.json -w '%{http_code}' "$BASE_URL/api/auth/me" -H "Authorization: Bearer $token")
           if [ "$status" != "200" ]; then echo "Authenticated account check returned HTTP $status"; cat /tmp/me.json || true; exit 1; fi
 
-          check_get "White Label public page" "$BASE_URL/white-label" /tmp/white-label.html
+          check_protected_page "White Label public page" "$BASE_URL/white-label/" /tmp/white-label.html
 
           white_label_status=$(curl -sS -o /tmp/white-label-denied.json -w '%{http_code}' "$BASE_URL/api/white-label-os/overview" -H "Authorization: Bearer $token")
           if [ "$white_label_status" != "402" ]; then echo "Free workspace White Label OS paywall expected HTTP 402, got $white_label_status"; cat /tmp/white-label-denied.json || true; exit 1; fi
