@@ -25,6 +25,7 @@ const studio=read('frontend/app/white-label-studio/page.tsx');
 must(domains.includes('getProviderRuntimeEnv'),'Custom domains must reuse the protected provider credential layer.');
 must(domains.includes("CLOUDFLARE_PLATFORM_API_TOKEN")&&domains.includes("CLOUDFLARE_PLATFORM_ZONE_ID"),'Custom domains must support the protected Cloudflare control-plane credentials.');
 must(domains.includes('/custom_hostnames')&&domains.includes('ownership_verification')&&domains.includes('validation_records'),'Custom domains must use managed hostname verification and TLS validation.');
+must(!domains.includes('custom_metadata:'),'Default custom-hostname creation must stay compatible with non-Enterprise Cloudflare plans and not require Enterprise-only custom metadata.');
 must(domains.includes('/custom_hostnames/fallback_origin')&&domains.includes("fallback.active"),'Custom domains must verify an Active SaaS fallback origin before registration.');
 must(domains.includes("row.status==='active'&&row.ssl_status==='active'"),'Custom domain may be called live only after hostname and TLS are active.');
 must(domains.includes('handlePublicWhiteLabelDomain')&&domains.includes("d.status='active' AND d.ssl_status='active'"),'Verified custom-domain root routing must require live hostname and TLS status.');
