@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { isPlatformOwnerUser } from './agent-branch-intelligence.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -22,6 +23,7 @@ async function ensure(env){
 async function client(env,tenant,id){try{return await env.DB.prepare('SELECT id,name,industry,status FROM bpo_clients WHERE id=? AND tenant_id=?').bind(id,tenant).first()}catch{return null}}
 async function clients(env,tenant){try{const{results=[]}=await env.DB.prepare('SELECT id,name,industry,status FROM bpo_clients WHERE tenant_id=? ORDER BY name').bind(tenant).all();return results}catch{return[]}}
 function ownerOnly(user){return ['owner','admin'].includes(String(user?.role||'').toLowerCase())}
+async function agencyAccess(env,user){if(await isPlatformOwnerUser(env,user))return true;try{const active=await env.DB.prepare("SELECT plan FROM billing_subscriptions WHERE tenant_id=? AND status IN ('active','trialing') LIMIT 1").bind(String(user.tenant_id)).first();let plan=String(active?.plan||'').toLowerCase();if(!plan){const tenant=await env.DB.prepare('SELECT plan FROM tenants WHERE id=? LIMIT 1').bind(String(user.tenant_id)).first();plan=String(tenant?.plan||'').toLowerCase()}return plan==='agency'||plan==='agency_pro'}catch{return false}}
 
 async function overview(env,tenant){
  const scalar=async(sql)=>Number((await env.DB.prepare(sql).bind(tenant).first())?.n||0);
@@ -38,7 +40,7 @@ async function overview(env,tenant){
 export async function handleAgencyGrowth(request,env){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/agency'))return null;if(!env?.DB)return json({detail:'Agency workspace database is unavailable.'},503);
  try{
-  await ensure(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use Agency Command.'},401);const tenant=String(user.tenant_id),owner=ownerOnly(user);
+  await ensure(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use Agency Command.'},401);if(!await agencyAccess(env,user))return json({detail:'An active White Label Agency subscription is required.'},402);const tenant=String(user.tenant_id),owner=ownerOnly(user);
   if(request.method==='GET'&&url.pathname==='/api/agency/overview')return json(await overview(env,tenant));
   if(request.method==='GET'&&url.pathname==='/api/agency/clients')return json({clients:await clients(env,tenant),identity_source:'bpo_clients'});
 
