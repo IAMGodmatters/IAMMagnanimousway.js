@@ -59,6 +59,12 @@ jobs:
         run: |
           find worker/src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
 
+      - name: Worker deployment bundle check
+        working-directory: worker
+        run: |
+          npm install --no-audit --no-fund
+          npx wrangler deploy --dry-run --outdir /tmp/magnanimous-worker-bundle
+
       - name: Video gateway syntax check
         run: |
           if [ -d video-gateway/src ]; then
