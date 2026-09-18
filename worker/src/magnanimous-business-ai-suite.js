@@ -1,5 +1,6 @@
 import {currentUser} from './integrations.js';
 import {createWork,addWorkStep,getWork,updateWorkStep} from './work-engine-runtime.js';
+import {handleMediaLibrary} from './media-library-runtime.js';
 const json=(d,s=200)=>Response.json(d,{status:s,headers:{'cache-control':'no-store'}}),now=()=>Math.floor(Date.now()/1000),txt=(v,n=12000)=>String(v||'').trim().slice(0,n);
 export const BUSINESS_AI_SUITE=[
 ['video-ads','AI Video Ads','Generate video-ad briefs, scripts, scenes, hooks, CTAs and production jobs','video'],
@@ -321,6 +322,17 @@ async function runDirectExecution(request,env,ctx,downstream,user,row){
   const fresh=await getWork(env,user,work.id),out={...(view.output||{}),work_id:work.id,latest_artifact:artifact,last_execution_at:now(),last_step_id:step.id,last_step_title:step.title,direct_execution_tool:'deep-research'};
   await env.DB.prepare('UPDATE magnanimous_business_ai_jobs SET output_json=?,status=?,updated_at=? WHERE id=? AND tenant_id=? AND user_id=?').bind(JSON.stringify(out),'working',now(),row.id,String(user.tenant_id),String(user.id)).run();
   return json({ok:true,id:row.id,artifact,completed_step:{id:step.id,title:step.title},work:fresh,research:data,external_action_performed:false});
+ }
+
+ if(row.tool_id==='open-media-library'&&/Search open-license images/i.test(String(step.title||''))){
+  const headers=new Headers(request.headers),url=new URL('/api/media-library/search',request.url);url.searchParams.set('q',goal);
+  const response=await handleMediaLibrary(new Request(url,{method:'GET',headers}),env),data=await response.clone().json().catch(()=>({}));
+  if(!response.ok)return json({detail:data.detail||'Open-license image search failed.',surface:'/media-library',requires_surface:true},response.status);
+  const sample=(data.results||[]).slice(0,12),artifact=txt(JSON.stringify({query:data.query,results:sample,license_notice:data.license_notice}),12000);
+  await updateWorkStep(env,user,work.id,step.id,{status:'completed',result:artifact});
+  const fresh=await getWork(env,user,work.id),out={...(view.output||{}),work_id:work.id,latest_artifact:artifact,last_execution_at:now(),last_step_id:step.id,last_step_title:step.title,direct_execution_tool:'open-license-search'};
+  await env.DB.prepare('UPDATE magnanimous_business_ai_jobs SET output_json=?,status=?,updated_at=? WHERE id=? AND tenant_id=? AND user_id=?').bind(JSON.stringify(out),'working',now(),row.id,String(user.tenant_id),String(user.id)).run();
+  return json({ok:true,id:row.id,artifact,media_results:sample,license_notice:data.license_notice,completed_step:{id:step.id,title:step.title},work:fresh,external_action_performed:false});
  }
 
  if((row.tool_id==='hyper-images'&&/route to image generation/i.test(String(step.title||'')))||(row.tool_id==='logo-maker'&&/generate logo concept/i.test(String(step.title||'')))){
