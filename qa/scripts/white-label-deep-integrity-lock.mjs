@@ -33,6 +33,7 @@ for(const id of ['agency:{rank:5','agency_pro:{rank:6','client_subaccounts:25','
 must(auth.includes("bind(uid, tid, name, email, 'owner'"),'New workspace creator must be the workspace owner.');
 must(auth.includes("tenant?.owner_user_id")&&auth.includes("UPDATE users SET role='owner'"),'Existing recorded tenant owners must be repaired on login.');
 must(bpo.includes("CLIENT_SUBACCOUNT_LIMIT")&&bpo.includes("plan==='agency'?25:plan==='agency_pro'?100"),'Agency 25/100 client limits must be enforced server-side.');
+must(bpo.includes("status!='archived'"),'Agency client capacity must count paused and active managed clients, excluding only archived clients.');
 must(bpo.includes("clientMatch=url.pathname.match")&&bpo.includes("'archived'"),'Client archive/reactivate path must exist.');
 
 must(shell.includes("src:'/white-label/branded-ai'"),'Branded AI must open its dedicated workspace.');
@@ -40,6 +41,8 @@ must(shell.includes("src:'/white-label/client-apps'"),'Client Apps must open its
 for(const deep of ["?tab=booking","?tab=reputation","?tab=billing"])must(shell.includes(deep)||os.includes(deep),'White Label module missing deep link '+deep);
 must(clientApps.includes('/api/white-label-os/client-apps')&&clientApps.includes('Save client apps'),'Client Apps must persist client-scoped app selections.');
 must(brandedAi.includes('/api/white-label/brain/assist')&&brandedAi.includes('/api/agency/clients/'),'Branded AI must use the White Label brain and client brand context.');
+must(brain.includes('workspace_shared_memory:true'),'White Label brain status must advertise real tenant-shared workspace memory.');
+must(brain.includes("WHERE tenant_id=? AND (client_id=? OR client_id='')")&&!brain.includes("WHERE tenant_id=? AND user_id=? AND (client_id=? OR client_id='')"),'Approved White Label lessons must be shared across authorized users inside the same tenant/client boundary.');
 
 must(wl.includes('agency_client_apps')&&wl.includes("u.pathname==='/api/white-label-os/client-apps'"),'Client Apps storage/API is missing.');
 must(wl.includes("request.method==='PATCH'")&&wl.includes("request.method==='DELETE'"),'White Label Studio must support edit/delete.');
@@ -53,6 +56,9 @@ must(agency.includes('public_url'),'Agency funnel API must return the hosted pub
 must(agencyUi.includes('Open live ↗'),'Agency UI must expose the live hosted funnel.');
 
 must(automation.includes("An active White Label Agency subscription is required."),'Agency Automations must be behind Agency billing.');
+must(automation.includes('TRIGGERS=new Set')&&automation.includes('ACTIONS=new Set')&&automation.includes('RULE_STATUSES=new Set'),'Automation API must validate trigger, action, and lifecycle values server-side.');
+must(agency.includes('BOOKING_CONFLICT')&&agency.includes("start_at<? AND end_at>?"),'Booking API must prevent overlapping active appointments for the same client.');
+for(const phrase of ['Booking status must be booked, completed, or cancelled.','Funnel status must be draft, active, or paused.','Usage status must be unbilled, invoiced, paid, or void.'])must(agency.includes(phrase),'Agency lifecycle validation missing: '+phrase);
 must(agency.includes("Math.max(0,Number(b.cost_usd||0))")&&agency.includes("Math.max(0,Number(b.units||0))"),'Usage rebilling must reject negative economics at the server boundary.');
 must(agencyUi.includes('does not charge a client card by itself')&&agencyUi.includes('accounting states only'),'Usage rebilling UI must explain that its ledger does not execute a payment.');
 

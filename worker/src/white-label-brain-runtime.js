@@ -66,12 +66,13 @@ async function clientContext(env,user,clientId){
 }
 
 async function memoryFor(env,user,{clientId='',app='platform',limit=18}={}){
- await ensure(env);const id=clip(clientId,80),a=appId(app);
+ await ensure(env);const id=clip(clientId,80),a=appId(app),cap=Math.max(1,Math.min(40,Number(limit)||18));
  const {results=[]}=await env.DB.prepare(`SELECT lesson_key,lesson_value,evidence,score,updated_at FROM white_label_brain_memory
- WHERE tenant_id=? AND user_id=? AND (client_id=? OR client_id='') AND (app=? OR app='platform')
+ WHERE tenant_id=? AND (client_id=? OR client_id='') AND (app=? OR app='platform')
  ORDER BY CASE WHEN client_id=? THEN 0 ELSE 1 END,CASE WHEN app=? THEN 0 ELSE 1 END,score DESC,updated_at DESC LIMIT ?`)
- .bind(String(user.tenant_id),String(user.id),id,a,id,a,Math.max(1,Math.min(40,Number(limit)||18))).all();
- return results;
+ .bind(String(user.tenant_id),id,a,id,a,Math.min(120,cap*4)).all();
+ const seen=new Set(),shared=[];for(const row of results){const key=String(row.lesson_key||'');if(!key||seen.has(key))continue;seen.add(key);shared.push(row);if(shared.length>=cap)break}
+ return shared;
 }
 
 async function addSignal(env,user,{clientId='',app='platform',eventType='action',route='',success=false,httpStatus=0,quality}={}){
@@ -104,12 +105,12 @@ export async function recordWhiteLabelAction(env,user,{path='',method='POST',pay
 }
 
 async function status(env,user,plan){
- await ensure(env);const tenant=String(user.tenant_id),uid=String(user.id);
+ await ensure(env);const tenant=String(user.tenant_id);
  const counts=await env.DB.prepare(`SELECT
-  (SELECT COUNT(*) FROM white_label_brain_memory WHERE tenant_id=? AND user_id=?) memory_count,
-  (SELECT COUNT(*) FROM white_label_brain_signals WHERE tenant_id=? AND user_id=?) signal_count,
-  (SELECT COUNT(*) FROM white_label_brain_signals WHERE tenant_id=? AND user_id=? AND success=1) successful_signals`).bind(tenant,uid,tenant,uid,tenant,uid).first();
- return{ok:true,brain:'Magnanimous AI',role:'shared brain for every White Label app',plan,access:true,client_isolation:true,workspace_learning:true,automatic_outcome_learning:true,global_learning_owner_review_required:true,memory_count:Number(counts?.memory_count||0),signal_count:Number(counts?.signal_count||0),successful_signals:Number(counts?.successful_signals||0),learning_note:'Magnanimous learns White Label patterns inside this tenant and client context. Raw client content is not promoted across customers.'};
+  (SELECT COUNT(*) FROM white_label_brain_memory WHERE tenant_id=?) memory_count,
+  (SELECT COUNT(*) FROM white_label_brain_signals WHERE tenant_id=?) signal_count,
+  (SELECT COUNT(*) FROM white_label_brain_signals WHERE tenant_id=? AND success=1) successful_signals`).bind(tenant,tenant,tenant).first();
+ return{ok:true,brain:'Magnanimous AI',role:'shared brain for every White Label app',plan,access:true,client_isolation:true,workspace_learning:true,workspace_shared_memory:true,automatic_outcome_learning:true,global_learning_owner_review_required:true,memory_count:Number(counts?.memory_count||0),signal_count:Number(counts?.signal_count||0),successful_signals:Number(counts?.successful_signals||0),learning_note:'Magnanimous shares approved White Label lessons inside this tenant and client context. Raw client content is not promoted across customers.'};
 }
 
 async function assist(request,env,ctx,downstream,user,plan){
