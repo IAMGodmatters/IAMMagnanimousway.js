@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS video_agent_profiles(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,assistant_mode TEXT NOT NULL DEFAULT 'General',avatar_ref TEXT NOT NULL DEFAULT '',voice_ref TEXT NOT NULL DEFAULT '',provider_key TEXT NOT NULL DEFAULT 'auto',appearance_json TEXT NOT NULL DEFAULT '{}',active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS video_agent_sessions(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,profile_id TEXT,provider_key TEXT NOT NULL DEFAULT 'auto',provider_session_ref TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'created',started_at INTEGER NOT NULL,ended_at INTEGER,metadata_json TEXT NOT NULL DEFAULT '{}');
+CREATE INDEX IF NOT EXISTS idx_video_agent_profiles_tenant ON video_agent_profiles(tenant_id,active);
+CREATE INDEX IF NOT EXISTS idx_video_agent_sessions_tenant ON video_agent_sessions(tenant_id,started_at);
