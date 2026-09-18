@@ -22,8 +22,8 @@ export function musicCapabilities(env){
  };
 }
 
-async function project(env,tid,pid){
- return env.DB.prepare('SELECT * FROM music_projects WHERE id=? AND tenant_id=?').bind(pid,tid).first();
+async function project(env,tid,uid,pid){
+ return env.DB.prepare('SELECT * FROM music_projects WHERE id=? AND tenant_id=? AND owner_user_id=?').bind(pid,tid,uid).first();
 }
 
 export async function handleMusic(request,env,user,path){
@@ -32,9 +32,8 @@ export async function handleMusic(request,env,user,path){
  const tid=user.tenant_id;
  if(path==='/api/music/capabilities'&&request.method==='GET') return json({...musicCapabilities(env),paid_access:await entitled(env,user),checkout_url:MUSIC_CHECKOUT,price_id:MUSIC_PRICE});
  if(path==='/api/music/access'&&request.method==='GET') return json({active:await entitled(env,user),checkout_url:MUSIC_CHECKOUT,price_id:MUSIC_PRICE});
- if(!(await entitled(env,user))) return json({detail:'An active Magnanimous Music Studio subscription is required.',checkout_url:MUSIC_CHECKOUT},402);
  if(path==='/api/music/projects'&&request.method==='GET'){
-  const {results}=await env.DB.prepare('SELECT * FROM music_projects WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 100').bind(tid).all();
+  const {results}=await env.DB.prepare('SELECT * FROM music_projects WHERE tenant_id=? AND owner_user_id=? ORDER BY updated_at DESC LIMIT 100').bind(tid,user.id).all();
   return json({projects:results});
  }
  if(path==='/api/music/projects'&&request.method==='POST'){
@@ -42,16 +41,17 @@ export async function handleMusic(request,env,user,path){
   if(!MODES.has(mode)) return json({detail:'Invalid music mode'},400);
   const id=uid(),t=now();
   await env.DB.prepare('INSERT INTO music_projects(id,tenant_id,owner_user_id,title,mode,creative_brief,lyrics,bpm,musical_key,time_signature,rights_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,tid,user.id,String(b.title||'Untitled Music Project').slice(0,160),mode,String(b.creative_brief||''),String(b.lyrics||''),b.bpm?Number(b.bpm):null,b.musical_key?String(b.musical_key):null,String(b.time_signature||'4/4'),String(b.rights_status||'original'),t,t).run();
-  return json({project:await project(env,tid,id)},201);
+  return json({project:await project(env,tid,user.id,id)},201);
  }
  const pm=path.match(/^\/api\/music\/projects\/([^/]+)$/);
  if(pm&&request.method==='GET'){
-  const p=await project(env,tid,pm[1]); return p?json({project:p}):json({detail:'Music project not found'},404);
+  const p=await project(env,tid,user.id,pm[1]); return p?json({project:p}):json({detail:'Music project not found'},404);
  }
  const opm=path.match(/^\/api\/music\/(generate|lyrics|extend|remix|replace-section|remaster|stems|sounds|midi|render)$/);
  if(opm&&request.method==='POST'){
+  if(!(await entitled(env,user))) return json({detail:'An active Magnanimous Music Studio generation plan is required for rendering or generation.',checkout_url:MUSIC_CHECKOUT},402);
   const operation=opm[1],b=await request.json(),pid=String(b.project_id||'');
-  const p=await project(env,tid,pid); if(!p)return json({detail:'Music project not found'},404);
+  const p=await project(env,tid,user.id,pid); if(!p)return json({detail:'Music project not found'},404);
   if(['remix','extend','replace-section','remaster','stems'].includes(operation)&&!['owned','licensed','original','authorized'].includes(String(b.source_rights||p.rights_status).toLowerCase())) return json({detail:'Confirm ownership, license, or authorization for source audio before this operation.'},400);
   if(b.voice_profile&&!b.voice_consent) return json({detail:'Verified voice consent is required.'},400);
   const gid=uid(),t=now(),configured=Boolean(env.MUSIC_ENGINE_URL&&env.MUSIC_ENGINE_TOKEN);
