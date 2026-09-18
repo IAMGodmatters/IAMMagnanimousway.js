@@ -126,6 +126,38 @@ jobs:
           sync_secret MISTRAL_API_KEY "$MISTRAL_API_KEY"
           sync_secret INTEGRATION_CREDENTIALS_KEY "$INTEGRATION_CREDENTIALS_KEY"
 
+      - name: Sync dedicated Stripe Connect webhook
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$STRIPE_SECRET_KEY" ]; then
+            echo "Stripe API key is not configured; connected-account webhook remains unavailable."
+            exit 0
+          fi
+          description='Magnanimous White Label connected-account client payments'
+          url='https://iammagnanimousway.com/api/billing/webhook'
+          old_ids="$(curl -fsS https://api.stripe.com/v1/webhook_endpoints?limit=100 -u "$STRIPE_SECRET_KEY:" | python -c 'import json,sys; d=json.load(sys.stdin); print(" ".join(x.get("id","") for x in d.get("data",[]) if x.get("description")=="Magnanimous White Label connected-account client payments"))')"
+          created="$(curl -fsS https://api.stripe.com/v1/webhook_endpoints -u "$STRIPE_SECRET_KEY:" -X POST             --data-urlencode "url=$url"             --data-urlencode "connect=true"             --data-urlencode "description=$description"             --data-urlencode "enabled_events[]=checkout.session.completed"             --data-urlencode "enabled_events[]=checkout.session.async_payment_succeeded"             --data-urlencode "enabled_events[]=checkout.session.async_payment_failed")"
+          new_id="$(printf '%s' "$created" | python -c 'import json,sys; print(json.load(sys.stdin).get("id",""))')"
+          connect_secret="$(printf '%s' "$created" | python -c 'import json,sys; print(json.load(sys.stdin).get("secret",""))')"
+          if [ -z "$new_id" ] || [ -z "$connect_secret" ]; then
+            echo "::error::Stripe Connect webhook creation did not return an endpoint id and signing secret."
+            exit 1
+          fi
+          printf '%s' "$connect_secret" | npx wrangler secret put STRIPE_CONNECT_WEBHOOK_SECRET >/dev/null
+          for old_id in $old_ids; do
+            if [ "$old_id" != "$new_id" ]; then
+              curl -fsS -X DELETE "https://api.stripe.com/v1/webhook_endpoints/$old_id" -u "$STRIPE_SECRET_KEY:" >/dev/null
+            fi
+          done
+          unset connect_secret created
+          echo "Synced dedicated connected-account Stripe webhook: $new_id"
+
       - name: Deploy Worker
         working-directory: worker
         env:
