@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');
+const wl=read('frontend/app/white-label/page.tsx');
+const shell=read('frontend/app/white-label/app/page.tsx');
+const os=read('frontend/app/white-label-os/page.tsx');
+const video=read('frontend/app/agent-video/page.tsx');
+const keys=[...wl.matchAll(/\{key:'([^']+)'/g)].map(x=>x[1]);
+for(const k of keys)if(!shell.includes(`${JSON.stringify(k).slice(1,-1)}:`)&&!shell.includes(`'${k}':`))throw new Error('White Label app missing shell route: '+k);
+for(const p of ['/white-label/funnel','/white-label-studio'])if(!os.includes(p))throw new Error('White Label OS missing native route '+p);
+if(video.includes('<div className="hair"/>')||video.includes('<div className="face"><em/>'))throw new Error('Cartoon avatar markup remains');
+if(!video.includes('/agent-portraits/professional-ai-agent.webp'))throw new Error('Professional portrait fallback missing');
+console.log('white-label + video-agent audit lock passed');
