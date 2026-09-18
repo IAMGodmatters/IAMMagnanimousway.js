@@ -62,7 +62,11 @@ export function specialistForMessage(message){
  return {...best,score:bestScore};
 }
 
-// Specialist routing is an internal implementation detail. The visible response begins with the answer.
-export function specialistIntroduction(){return ''}
+// Make the routed specialist identity explicit before the answer so the user can
+// tell which Magnanimous branch is speaking without exposing execution providers.
+export function specialistIntroduction(route){
+ const name=String(route?.name||'Specialist').trim()||'Specialist';
+ return `Hello, I am ${name}.`;
+}
 
 export function specialistRoutingCatalog(){return routes.map(({patterns,...x})=>x)}
