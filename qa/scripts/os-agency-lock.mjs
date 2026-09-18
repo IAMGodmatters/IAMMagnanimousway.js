@@ -115,6 +115,11 @@ includes(agencyBilling,"env[p==='agency'?'STRIPE_PRICE_AGENCY':'STRIPE_PRICE_AGE
 includes(agencyBilling,'ordinary_user_max_usd:199','billing: ordinary customer plans remain capped at $199 positioning');
 includes(wrangler,'"STRIPE_PRICE_AGENCY"','billing: production Worker has Agency Stripe price binding');
 includes(wrangler,'"STRIPE_PRICE_AGENCY_PRO"','billing: production Worker has Agency Pro Stripe price binding');
+includes(wrangler,'"STRIPE_PAYMENT_LINK_AGENCY"','billing: production Worker has Agency Payment Link fallback');
+includes(wrangler,'"STRIPE_PAYMENT_LINK_AGENCY_PRO"','billing: production Worker has Agency Pro Payment Link fallback');
+includes(agencyBilling,"AGENCY_LINK_KEYS={agency:'STRIPE_PAYMENT_LINK_AGENCY',agency_pro:'STRIPE_PAYMENT_LINK_AGENCY_PRO'}",'billing: Agency runtime recognizes dedicated hosted fallback links');
+includes(agencyBilling,"mode:'payment_link'",'billing: Agency runtime can return a hosted Payment Link fallback');
+includes(agencyBilling,"['paid','no_payment_required'].includes",'billing: Agency entitlement confirmation requires Stripe-confirmed payment');
 
 // Non-regression boundaries.
 notMatches(agencyRuntime,/CREATE TABLE IF NOT EXISTS\s+(?:crm_|bpo_clients)/i,'non-regression: Agency Command must not create a duplicate CRM/BPO client table');

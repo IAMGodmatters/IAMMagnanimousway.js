@@ -8,6 +8,9 @@ export const AGENCY_PLANS={
 };
 const isAgency=p=>Object.prototype.hasOwnProperty.call(AGENCY_PLANS,String(p||'').toLowerCase());
 const planPrice=(env,p)=>String(env[p==='agency'?'STRIPE_PRICE_AGENCY':'STRIPE_PRICE_AGENCY_PRO']||'');
+const AGENCY_LINK_KEYS={agency:'STRIPE_PAYMENT_LINK_AGENCY',agency_pro:'STRIPE_PAYMENT_LINK_AGENCY_PRO'};
+const paymentLink=(env,p)=>String(env?.[AGENCY_LINK_KEYS[p]]||'').trim();
+const appendQuery=(url,key,value)=>{const u=new URL(url);u.searchParams.set(key,value);return u.toString()};
 const periodKey=()=>{const d=new Date();return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`};
 async function stripe(env,path,options={}){
  if(!env.STRIPE_SECRET_KEY)return{ok:false,data:{error:{message:'Stripe is not configured.'}}};
@@ -24,14 +27,14 @@ async function savePlan(env,tenantId,{plan,customer_id=null,subscription_id=null
 async function refresh(env,user,row){
  if(!row?.stripe_subscription_id||!env.STRIPE_SECRET_KEY)return row;
  const r=await stripe(env,`/v1/subscriptions/${encodeURIComponent(row.stripe_subscription_id)}`);if(!r.ok||!r.data?.id)return row;
- const active=['active','trialing'].includes(String(r.data.status||''));const metadataPlan=String(r.data?.metadata?.plan||row.plan||'');
+ const active=String(r.data.status||'')==='active';const metadataPlan=String(r.data?.metadata?.plan||row.plan||'');
  if(active&&isAgency(metadataPlan)){await savePlan(env,user.tenant_id,{plan:metadataPlan,customer_id:String(r.data.customer||''),subscription_id:r.data.id,status:r.data.status,current_period_end:Number(r.data.current_period_end||0)||null});return env.DB.prepare('SELECT * FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first()}
  if(!active){await savePlan(env,user.tenant_id,{plan:'free',customer_id:String(r.data.customer||''),subscription_id:r.data.id,status:String(r.data.status||'inactive'),current_period_end:Number(r.data.current_period_end||0)||null});return null}
  return row;
 }
 export function extendPlansPayload(data,env){
  const base=Array.isArray(data?.plans)?data.plans.filter(p=>!isAgency(p.id)):[];
- return{...data,plans:[...base,...Object.values(AGENCY_PLANS).map(p=>({...p,checkout_configured:Boolean(env.STRIPE_SECRET_KEY&&planPrice(env,p.id)),target_gross_margin_percent:Number(env.TARGET_GROSS_MARGIN_PERCENT||20)}))],agency_white_label:true,ordinary_user_max_usd:199};
+ return{...data,plans:[...base,...Object.values(AGENCY_PLANS).map(p=>{const api=Boolean(env.STRIPE_SECRET_KEY&&planPrice(env,p.id)),link=Boolean(paymentLink(env,p.id));return{...p,checkout_configured:api||link,checkout_mode:api?'checkout_session':(link?'payment_link':undefined),target_gross_margin_percent:Number(env.TARGET_GROSS_MARGIN_PERCENT||20)}})],agency_white_label:true,agency_payment_link_fallbacks:{agency:Boolean(paymentLink(env,'agency')),agency_pro:Boolean(paymentLink(env,'agency_pro'))},ordinary_user_max_usd:199};
 }
 async function agencyStatus(env,user){
  let row=await env.DB.prepare('SELECT * FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first();if(!isAgency(row?.plan))return null;row=await refresh(env,user,row);if(!row||!isAgency(row.plan))return null;
@@ -39,18 +42,23 @@ async function agencyStatus(env,user){
  return json({plan:plan.id,plan_name:plan.name,subscription:{plan:plan.id,status:row.status,current_period_end:row.current_period_end},entitlements:plan.entitlements,direct_variable_cost_usd:used,cost_ceiling_usd:ceiling,premium_usage_allowed:used<ceiling,billing_configured:Boolean(env.STRIPE_SECRET_KEY),portal_configured:Boolean(env.STRIPE_SECRET_KEY&&row.stripe_customer_id),white_label_enabled:true,managed_client_limit:plan.entitlements.client_subaccounts,usage_rebilling:true});
 }
 async function checkout(request,env,user,body){
- const plan=String(body.plan||'').toLowerCase(),config=AGENCY_PLANS[plan];const requiredTerms=plan==='agency_pro'?'agency-pro-2026-09-18.1':'agency-2026-09-18.1';if(body.termsAccepted!==true||String(body.termsVersion||'')!==requiredTerms)return json({detail:'The terms for the selected White Label plan must be accepted before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED',requiredTerms},428);
- const price=planPrice(env,plan);if(!config)return null;if(!price||!env.STRIPE_SECRET_KEY)return json({detail:`${config.name} checkout is not configured yet.`,code:'STRIPE_NOT_CONFIGURED'},503);
- const existing=await env.DB.prepare("SELECT plan,status FROM billing_subscriptions WHERE tenant_id=? AND status IN ('active','trialing')").bind(user.tenant_id).first();if(existing)return json({detail:'You already have an active subscription. Use Manage subscription to change it.',code:'ACTIVE_SUBSCRIPTION_EXISTS'},409);
- const form=new URLSearchParams();form.set('mode','subscription');form.set('line_items[0][price]',price);form.set('line_items[0][quantity]','1');form.set('client_reference_id',String(user.tenant_id));form.set('customer_email',String(user.email||''));form.set('metadata[tenant_id]',String(user.tenant_id));form.set('metadata[plan]',plan);form.set('metadata[terms_version]',String(body.termsVersion));form.set('metadata[terms_accepted]','true');form.set('subscription_data[metadata][tenant_id]',String(user.tenant_id));form.set('subscription_data[metadata][plan]',plan);form.set('subscription_data[metadata][terms_version]',String(body.termsVersion));form.set('allow_promotion_codes','true');
- const origin=siteOrigin(request,env);form.set('success_url',`${origin}/white-label?checkout=success&plan=${encodeURIComponent(plan)}&session_id={CHECKOUT_SESSION_ID}`);form.set('cancel_url',`${origin}/white-label?checkout=cancelled&plan=${encodeURIComponent(plan)}`);
- const r=await stripe(env,'/v1/checkout/sessions',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:form.toString()});if(!r.ok||!r.data?.url)return json({detail:r.data?.error?.message||'Stripe could not create agency checkout.'},502);return json({url:r.data.url,session_id:r.data.id,plan});
+ const plan=String(body.plan||'').toLowerCase(),config=AGENCY_PLANS[plan];if(!config)return null;
+ const requiredTerms=plan==='agency_pro'?'agency-pro-2026-09-18.1':'agency-2026-09-18.1';if(body.termsAccepted!==true||String(body.termsVersion||'')!==requiredTerms)return json({detail:'The terms for the selected White Label plan must be accepted before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED',requiredTerms},428);
+ const existing=await env.DB.prepare("SELECT plan,status FROM billing_subscriptions WHERE tenant_id=? AND status='active'").bind(user.tenant_id).first();if(existing)return json({detail:'You already have an active subscription. Use Manage subscription to change it.',code:'ACTIVE_SUBSCRIPTION_EXISTS'},409);
+ const price=planPrice(env,plan),link=paymentLink(env,plan);
+ if(env.STRIPE_SECRET_KEY&&price){
+  const form=new URLSearchParams();form.set('mode','subscription');form.set('line_items[0][price]',price);form.set('line_items[0][quantity]','1');form.set('client_reference_id',String(user.tenant_id));form.set('customer_email',String(user.email||''));form.set('metadata[tenant_id]',String(user.tenant_id));form.set('metadata[plan]',plan);form.set('metadata[terms_version]',String(body.termsVersion));form.set('metadata[terms_accepted]','true');form.set('subscription_data[metadata][tenant_id]',String(user.tenant_id));form.set('subscription_data[metadata][plan]',plan);form.set('subscription_data[metadata][terms_version]',String(body.termsVersion));form.set('allow_promotion_codes','true');
+  const origin=siteOrigin(request,env);form.set('success_url',`${origin}/white-label?checkout=success&plan=${encodeURIComponent(plan)}&session_id={CHECKOUT_SESSION_ID}`);form.set('cancel_url',`${origin}/white-label?checkout=cancelled&plan=${encodeURIComponent(plan)}`);
+  const r=await stripe(env,'/v1/checkout/sessions',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:form.toString()});if(!r.ok||!r.data?.url)return json({detail:r.data?.error?.message||'Stripe could not create agency checkout.'},502);return json({url:r.data.url,session_id:r.data.id,plan,mode:'checkout_session'});
+ }
+ if(link)return json({url:appendQuery(link,'client_reference_id',String(user.tenant_id)),plan,mode:'payment_link'});
+ return json({detail:`${config.name} checkout is not configured yet.`,code:'STRIPE_NOT_CONFIGURED'},503);
 }
 async function confirm(request,env,user,body){
  const plan=String(body.plan||'').toLowerCase();if(!isAgency(plan))return null;const sessionId=String(body.session_id||'');if(!/^cs_[A-Za-z0-9_]+$/.test(sessionId))return json({detail:'A valid Stripe Checkout session is required.'},400);
  const s=await stripe(env,`/v1/checkout/sessions/${encodeURIComponent(sessionId)}`);if(!s.ok||!s.data?.id)return json({detail:s.data?.error?.message||'Stripe checkout could not be verified.'},502);
  const tenant=String(s.data?.metadata?.tenant_id||s.data?.client_reference_id||'');const actual=String(s.data?.metadata?.plan||plan);if(tenant!==String(user.tenant_id)||!isAgency(actual))return json({detail:'This checkout does not belong to the signed-in account.'},403);
- const complete=String(s.data.status||'')==='complete'||String(s.data.payment_status||'')==='paid';if(!complete)return json({confirmed:false,plan:'free',status:String(s.data.status||'open')});
+ const complete=String(s.data.status||'')==='complete'&&['paid','no_payment_required'].includes(String(s.data.payment_status||''));if(!complete)return json({confirmed:false,plan:'free',status:String(s.data.status||'open')});
  let sub=null;if(s.data.subscription){const r=await stripe(env,`/v1/subscriptions/${encodeURIComponent(s.data.subscription)}`);if(r.ok)sub=r.data}
  await savePlan(env,user.tenant_id,{plan:actual,customer_id:String(s.data.customer||sub?.customer||''),subscription_id:String(s.data.subscription||sub?.id||''),status:String(sub?.status||'active'),current_period_end:Number(sub?.current_period_end||0)||null});return json({confirmed:true,plan:actual,status:String(sub?.status||'active'),current_period_end:Number(sub?.current_period_end||0)||null,white_label_enabled:true});
 }
@@ -63,6 +71,7 @@ export async function handleAgencyBillingBefore(request,env){
 }
 export async function applyAgencyWebhook(env,event,response){
  if(!response?.ok)return;const type=String(event?.type||''),object=event?.data?.object||{},plan=String(object?.metadata?.plan||'').toLowerCase();if(!isAgency(plan))return;
- if(type==='checkout.session.completed'){const tenant=String(object?.metadata?.tenant_id||object?.client_reference_id||'');if(tenant)await savePlan(env,tenant,{plan,customer_id:String(object.customer||''),subscription_id:String(object.subscription||''),status:'active'});return}
- if(['customer.subscription.created','customer.subscription.updated','customer.subscription.deleted'].includes(type)){const tenant=String(object?.metadata?.tenant_id||'');if(!tenant)return;const active=['active','trialing'].includes(String(object.status||''))&&!type.endsWith('.deleted');await savePlan(env,tenant,{plan:active?plan:'free',customer_id:String(object.customer||''),subscription_id:String(object.id||''),status:String(object.status||'inactive'),current_period_end:Number(object.current_period_end||0)||null})}
+ if(type==='checkout.session.completed'||type==='checkout.session.async_payment_succeeded'){const tenant=String(object?.metadata?.tenant_id||object?.client_reference_id||'');const paid=['paid','no_payment_required'].includes(String(object?.payment_status||''));if(tenant&&paid)await savePlan(env,tenant,{plan,customer_id:String(object.customer||''),subscription_id:String(object.subscription||''),status:'active'});return}
+ if(type==='checkout.session.async_payment_failed')return;
+ if(['customer.subscription.created','customer.subscription.updated','customer.subscription.deleted'].includes(type)){const tenant=String(object?.metadata?.tenant_id||'');if(!tenant)return;const active=String(object.status||'')==='active'&&!type.endsWith('.deleted');await savePlan(env,tenant,{plan:active?plan:'free',customer_id:String(object.customer||''),subscription_id:String(object.id||''),status:String(object.status||'inactive'),current_period_end:Number(object.current_period_end||0)||null})}
 }
