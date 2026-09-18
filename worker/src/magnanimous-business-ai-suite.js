@@ -90,7 +90,9 @@ const DIRECT_EXECUTION={
 'community':{tool:'business',instruction:'Create a community-space plan with audience, spaces/topics, access rules, onboarding, moderation, posting cadence and success measures. Do not claim it is published.'},
 'marketplace':{tool:'business',instruction:'Create a marketplace/package specification with offer, deliverables, license/usage terms placeholders, pricing options, fulfillment steps and payment-readiness checklist. Do not publish or charge.'},
 'asset-library':{tool:'business',instruction:'Create an asset-library taxonomy and metadata plan covering ownership/license status, tags, campaign/project linkage, access controls and reuse rules. Do not claim files were uploaded.'},
-'image-editor':{tool:'writing',instruction:'Create a precise image-edit brief describing the source-image changes, preserved elements, accessibility/alt-text needs and review checklist. Do not claim an image was edited; a true edit requires an edit-capable visual engine.'}
+'image-editor':{tool:'writing',instruction:'Create a precise image-edit brief describing the source-image changes, preserved elements, accessibility/alt-text needs and review checklist. Do not claim an image was edited; a true edit requires an edit-capable visual engine.'},
+'crm':{tool:'business',instruction:'Translate the goal into a structured CRM action plan using only supplied customer facts. Identify contact/account fields, pipeline stage, task/follow-up suggestions, notes and any missing information. Do not invent contact details or mutate CRM records from guesses.'},
+'app-wizard':{tool:'coding',instruction:'Create an implementation-ready app specification with users, jobs-to-be-done, screens, data model, permissions, APIs/actions, edge cases, accessibility, security, acceptance criteria and QA plan. Do not stage repository mutations or claim deployment; those remain behind the developer-agent approval gate.'}
 };
 const VERIFY_CRITERIA={
 'video-ads':['storyboard/script saved','render path available','final media reviewed'],
