@@ -167,11 +167,14 @@ jobs:
           python - <<'PY'
           import json
           data=json.load(open('/tmp/plans.json'))
-          plans=data.get('plans') or []
-          assert any(p.get('id') == 'free' and p.get('price_usd') == 0 for p in plans), data
-          assert any(p.get('id') == 'business' and p.get('price_usd') == 49 for p in plans), data
-          assert data.get('business_checkout_configured') is True, data
-          print('Stripe Full Business checkout is configured.')
+          plans={p.get('id'):p for p in (data.get('plans') or [])}
+          assert plans.get('free',{}).get('price_usd') == 0, data
+          assert plans.get('plus',{}).get('price_usd') == 19.99 and plans['plus'].get('cadence') == 'month' and plans['plus'].get('checkout_configured') is True, data
+          assert plans.get('scale',{}).get('price_usd') == 199 and plans['scale'].get('cadence') == 'year' and plans['scale'].get('checkout_configured') is True, data
+          assert plans.get('agency',{}).get('price_usd') == 299 and plans['agency'].get('cadence') == 'month' and plans['agency'].get('checkout_configured') is True, data
+          assert plans.get('agency_pro',{}).get('price_usd') == 499 and plans['agency_pro'].get('cadence') == 'month' and plans['agency_pro'].get('checkout_configured') is True, data
+          assert data.get('agency_white_label') is True, data
+          print('Regular and White Label Stripe checkout paths are configured.')
           PY
 
           check_get "Agent Mesh catalog" "$BASE_URL/api/agents" /tmp/agents.json
