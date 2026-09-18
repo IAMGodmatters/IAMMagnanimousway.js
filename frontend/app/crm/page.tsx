@@ -121,12 +121,35 @@ export default function CRM(){
   if(!r.ok)setError(d.detail||'Unable to update company account.');else{setContact360({...contact360,contact:{...contact360.contact,account_id:accountId?Number(accountId):null}});setNotice('Contact company relationship updated.');await load()}setBusy('');
  }
  async function open360(contactId:number){
-  setBusy('360');setError('');const r=await fetch(`${api}/api/operations/crm/contacts/${contactId}/360`,{headers:auth(),cache:'no-store'}),d=await read(r);
-  if(!r.ok)setError(d.detail||'Unable to load the customer 360 view.');else{setContact360(d);setPrefForm({email_status:d.preferences?.email_status||'unknown',sms_status:d.preferences?.sms_status||'unknown',phone_status:d.preferences?.phone_status||'unknown',whatsapp_status:d.preferences?.whatsapp_status||'unknown',do_not_contact:Boolean(d.preferences?.do_not_contact),lawful_basis:d.preferences?.lawful_basis||'',consent_source:d.preferences?.consent_source||'',consent_note:d.preferences?.consent_note||''});setShow360(true)}setBusy('');
+  setBusy('360');setError('');
+  const[r,s]=await Promise.all([
+   fetch(`${api}/api/operations/crm/contacts/${contactId}/360`,{headers:auth(),cache:'no-store'}),
+   fetch(`${api}/api/operations/crm/sequences?contact_id=${contactId}`,{headers:auth(),cache:'no-store'})
+  ]),[d,sd]=await Promise.all([read(r),read(s)]);
+  if(!r.ok)setError(d.detail||'Unable to load the customer 360 view.');else{setContact360(d);setPrefForm({email_status:d.preferences?.email_status||'unknown',sms_status:d.preferences?.sms_status||'unknown',phone_status:d.preferences?.phone_status||'unknown',whatsapp_status:d.preferences?.whatsapp_status||'unknown',do_not_contact:Boolean(d.preferences?.do_not_contact),lawful_basis:d.preferences?.lawful_basis||'',consent_source:d.preferences?.consent_source||'',consent_note:d.preferences?.consent_note||''});if(s.ok){setSequences(sd.items||[]);setEnrollments(sd.enrollments||[]);const first=(sd.items||[]).find((x:Sequence)=>['active','published'].includes(String(x.status).toLowerCase()));setSelectedSequence(first?.id||'')}setShow360(true)}setBusy('');
  }
  async function savePreferences(){
   if(!contact360)return;setBusy('preferences');const r=await fetch(`${api}/api/operations/crm/contacts/${contact360.contact.id}/preferences`,{method:'PUT',headers:auth(true),body:JSON.stringify(prefForm)}),d=await read(r);
   if(!r.ok)setError(d.detail||'Unable to save contact preferences.');else{setContact360({...contact360,preferences:d.preferences});setNotice('Contact permission preferences saved.');await load()}setBusy('');
+ }
+ async function saveScoring(){
+  setBusy('scoring');setError('');
+  const r=await fetch(`${api}/api/operations/crm/scoring`,{method:'PUT',headers:auth(true),body:JSON.stringify({name:scoreName,rules:scoreRules,thresholds:scoreThresholds})}),d=await read(r);
+  if(!r.ok)setError(d.detail||'Unable to save scoring profile.');else{setShowScoring(false);setNotice('Fit and engagement scoring updated.');await load()}setBusy('');
+ }
+ async function enrollSequence(){
+  if(!contact360||!selectedSequence){setError('Choose an active sequence first.');return}setBusy('enroll');
+  const r=await fetch(`${api}/api/operations/crm/sequences/${encodeURIComponent(selectedSequence)}/enroll`,{method:'POST',headers:auth(true),body:JSON.stringify({contact_id:contact360.contact.id,goal:'reply'})}),d=await read(r);
+  if(!r.ok)setError(d.detail||'Unable to enroll this contact.');else{setNotice('Contact enrolled. The cadence will stop when they reply.');await open360(contact360.contact.id)}setBusy('');
+ }
+ async function updateEnrollment(enrollmentId:string,statusValue:'active'|'paused'|'cancelled'){
+  if(!contact360)return;setBusy(`enrollment-${enrollmentId}`);
+  const r=await fetch(`${api}/api/operations/crm/sequences/enrollments/${encodeURIComponent(enrollmentId)}`,{method:'PUT',headers:auth(true),body:JSON.stringify({status:statusValue})}),d=await read(r);
+  if(!r.ok)setError(d.detail||'Unable to update sequence enrollment.');else{setNotice(`Sequence ${statusValue}.`);await open360(contact360.contact.id)}setBusy('');
+ }
+ async function processDueCadences(){
+  setBusy('run-cadences');const r=await fetch(`${api}/api/operations/crm/sequences/run-due`,{method:'POST',headers:auth(true),body:JSON.stringify({limit:50})}),d=await read(r);
+  if(!r.ok)setError(d.detail||'Unable to process due cadence steps.');else{setNotice(`Cadences processed: ${d.processed||0}. Ready: ${d.advanced||0}; review: ${d.review_required||0}; blocked: ${d.blocked||0}.`);await load();if(contact360)await open360(contact360.contact.id)}setBusy('');
  }
  const openTask=(contactId?:number)=>{setTaskForm({...blankTask,contact_id:contactId?String(contactId):''});setShowTask(true)};
  const openDeal=(contactId?:number)=>{setDealForm({...blankDeal,contact_id:contactId?String(contactId):'',pipeline_id:activePipeline?.id||'',stage:activePipeline?.stages.find(s=>s.kind==='open')?.stage_key||'new'});setShowDeal(true)};
