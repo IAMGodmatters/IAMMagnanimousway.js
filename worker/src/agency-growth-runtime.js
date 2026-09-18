@@ -23,7 +23,7 @@ async function ensure(env){
 async function client(env,tenant,id){try{return await env.DB.prepare('SELECT id,name,industry,status FROM bpo_clients WHERE id=? AND tenant_id=?').bind(id,tenant).first()}catch{return null}}
 async function clients(env,tenant){try{const{results=[]}=await env.DB.prepare('SELECT id,name,industry,status FROM bpo_clients WHERE tenant_id=? ORDER BY name').bind(tenant).all();return results}catch{return[]}}
 function ownerOnly(user){return ['owner','admin'].includes(String(user?.role||'').toLowerCase())}
-async function agencyAccess(env,user){if(await isPlatformOwnerUser(env,user))return true;try{const active=await env.DB.prepare("SELECT plan FROM billing_subscriptions WHERE tenant_id=? AND status IN ('active','trialing') LIMIT 1").bind(String(user.tenant_id)).first();let plan=String(active?.plan||'').toLowerCase();if(!plan){const tenant=await env.DB.prepare('SELECT plan FROM tenants WHERE id=? LIMIT 1').bind(String(user.tenant_id)).first();plan=String(tenant?.plan||'').toLowerCase()}return plan==='agency'||plan==='agency_pro'}catch{return false}}
+async function agencyAccess(env,user){if(await isPlatformOwnerUser(env,user))return true;try{const active=await env.DB.prepare("SELECT plan FROM billing_subscriptions WHERE tenant_id=? AND status='active' LIMIT 1").bind(String(user.tenant_id)).first();const plan=String(active?.plan||'').toLowerCase();return plan==='agency'||plan==='agency_pro'}catch{return false}}
 
 async function overview(env,tenant){
  const scalar=async(sql)=>Number((await env.DB.prepare(sql).bind(tenant).first())?.n||0);
