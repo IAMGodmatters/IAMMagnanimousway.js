@@ -1,3 +1,4 @@
+import {getProviderRuntimeEnv} from './provider-runtime-env.js';
 import {currentUser} from './integrations.js';
 import {isPlatformOwnerUser} from './agent-branch-intelligence.js';
 
@@ -27,7 +28,7 @@ async function refresh(env,tenant,row){
 function publicConnection(row){return row?{connected:true,account_id:row.stripe_account_id,status:row.status,charges_enabled:Boolean(row.charges_enabled),payouts_enabled:Boolean(row.payouts_enabled),details_submitted:Boolean(row.details_submitted),country:row.country||'',default_currency:row.default_currency||''}:{connected:false,status:'not_started',charges_enabled:false,payouts_enabled:false,details_submitted:false}}
 export async function handleWhiteLabelPayments(request,env){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/white-label/payments'))return null;if(!env?.DB)return json({detail:'Client payment storage is unavailable.'},503);
- const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);if(!await agencyAccess(env,user))return json({detail:'An active White Label Agency subscription is required.'},402);const tenant=String(user.tenant_id);
+ env=await getProviderRuntimeEnv(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);if(!await agencyAccess(env,user))return json({detail:'An active White Label Agency subscription is required.'},402);const tenant=String(user.tenant_id);
  if(url.pathname==='/api/white-label/payments/status'&&request.method==='GET'){
   let row=await connection(env,tenant);row=await refresh(env,tenant,row);return json({stripe_connect_available:Boolean(env.STRIPE_SECRET_KEY),direct_charges:true,merchant_model:'agency connected account is the seller/merchant for its end-client payment',platform_subscription_separate:true,connection:publicConnection(row),requires_hosted_onboarding:!row?.details_submitted});
  }
