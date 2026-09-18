@@ -1,0 +1,5 @@
+-- Magnanimous CRM predictive intelligence foundation.
+CREATE TABLE IF NOT EXISTS crm_ml_datasets(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,model_type TEXT NOT NULL,schema_version TEXT NOT NULL DEFAULT 'v1',row_count INTEGER NOT NULL DEFAULT 0,positive_count INTEGER NOT NULL DEFAULT 0,negative_count INTEGER NOT NULL DEFAULT 0,feature_names_json TEXT NOT NULL DEFAULT '[]',dataset_json TEXT NOT NULL DEFAULT '[]',created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS crm_ml_experiments(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,dataset_id TEXT NOT NULL,model_type TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'prepared',algorithm TEXT NOT NULL DEFAULT 'logistic_regression_candidate',train_rows INTEGER NOT NULL DEFAULT 0,validation_rows INTEGER NOT NULL DEFAULT 0,metrics_json TEXT NOT NULL DEFAULT '{}',artifact_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_crm_ml_datasets_tenant_type ON crm_ml_datasets(tenant_id,model_type,created_at);
+CREATE INDEX IF NOT EXISTS idx_crm_ml_experiments_tenant_type ON crm_ml_experiments(tenant_id,model_type,created_at);
