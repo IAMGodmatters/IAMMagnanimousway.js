@@ -1,5 +1,6 @@
 import {currentUser} from './integrations.js';
 import {createWork,addWorkStep,getWork,updateWorkStep} from './work-engine-runtime.js';
+import {createSpreadsheetWorkbook} from './spreadsheet-runtime.js';
 const json=(d,s=200)=>Response.json(d,{status:s,headers:{'cache-control':'no-store'}}),now=()=>Math.floor(Date.now()/1000),txt=(v,n=12000)=>String(v||'').trim().slice(0,n);
 export const BUSINESS_AI_SUITE=[
 ['video-ads','AI Video Ads','Generate video-ad briefs, scripts, scenes, hooks, CTAs and production jobs','video'],
@@ -30,7 +31,9 @@ export const BUSINESS_AI_SUITE=[
 ['forms-surveys','Forms + Surveys','Build lead forms, questionnaires and feedback flows','growth'],
 ['community','Community','Create branded member spaces and engagement plans','education'],
 ['marketplace','AI Marketplace','Package original/user-authorized assets, apps and services for sale','commerce'],
-['multilingual','Multilingual Studio','Localize business content while preserving meaning and brand voice','language']
+['multilingual','Multilingual Studio','Localize business content while preserving meaning and brand voice','language'],
+['accounting','Accounting','Work with bookkeeping, accounts, invoices, bills, cash flow and financial reporting','finance'],
+['spreadsheets','Spreadsheet Studio','Create private workbooks with formulas, CSV import/export and accessible charts','data']
 ];
 async function ensure(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL DEFAULT '',tool_id TEXT NOT NULL,title TEXT NOT NULL,input_json TEXT NOT NULL DEFAULT '{}',output_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
@@ -66,7 +69,9 @@ const CAPABILITY_ROUTES={
 'forms-surveys':{surface:'/white-label/funnel',accessibility:['labels','field schema','response routing'],dependencies:['funnels','automation']},
 'community':{surface:'/white-label-studio?tab=community',accessibility:['spaces','member access','moderation plan'],dependencies:['community']},
 'marketplace':{surface:'/white-label-studio?tab=catalog',accessibility:['catalog metadata','pricing','terms'],dependencies:['catalog','billing','payment-external']},
-'multilingual':{surface:'/magnanimous',accessibility:['localization','meaning preservation','review'],dependencies:['translation']}
+'multilingual':{surface:'/magnanimous',accessibility:['localization','meaning preservation','review'],dependencies:['translation']},
+'accounting':{surface:'/finance-people',accessibility:['ledger summaries','invoices and bills','currency-aware reporting'],dependencies:['finance-people']},
+'spreadsheets':{surface:'/spreadsheets',accessibility:['keyboard grid','labeled cells','CSV import/export','formula results','chart descriptions'],dependencies:['spreadsheet-studio']}
 };
 const DIRECT_EXECUTION={
 'video-ads':{tool:'video-script',instruction:'Create a production-ready video-ad script, hook, scene-by-scene storyboard, CTA, caption notes and accessibility/caption plan. Do not claim a video was rendered.'},
@@ -96,7 +101,9 @@ const DIRECT_EXECUTION={
 'asset-library':{tool:'business',instruction:'Create an asset-library taxonomy and metadata plan covering ownership/license status, tags, campaign/project linkage, access controls and reuse rules. Do not claim files were uploaded.'},
 'image-editor':{tool:'writing',instruction:'Create a precise image-edit brief describing the source-image changes, preserved elements, accessibility/alt-text needs and review checklist. Do not claim an image was edited; a true edit requires an edit-capable visual engine.'},
 'crm':{tool:'business',instruction:'Translate the goal into a structured CRM action plan using only supplied customer facts. Identify contact/account fields, pipeline stage, task/follow-up suggestions, notes and any missing information. Do not invent contact details or mutate CRM records from guesses.'},
-'app-wizard':{tool:'coding',instruction:'Create an implementation-ready app specification with users, jobs-to-be-done, screens, data model, permissions, APIs/actions, edge cases, accessibility, security, acceptance criteria and QA plan. Do not stage repository mutations or claim deployment; those remain behind the developer-agent approval gate.'}
+'app-wizard':{tool:'coding',instruction:'Create an implementation-ready app specification with users, jobs-to-be-done, screens, data model, permissions, APIs/actions, edge cases, accessibility, security, acceptance criteria and QA plan. Do not stage repository mutations or claim deployment; those remain behind the developer-agent approval gate.'},
+'accounting':{tool:'business',instruction:'Analyze the stated accounting goal using supplied records only. Produce bookkeeping/reporting guidance, reconciliation questions, cash-flow observations or account mappings without inventing balances, tax rates, filing deadlines or audited conclusions. Direct record entry to the native Finance workspace.'},
+'spreadsheets':{tool:'business',instruction:'Complete the current spreadsheet-planning step: define tables, columns, formulas, validation, chart choices or data-cleaning rules. Use safe spreadsheet formulas and never invent source data.'}
 };
 const VERIFY_CRITERIA={
 'video-ads':['storyboard/script saved','render path available','final media reviewed'],
@@ -127,7 +134,9 @@ const VERIFY_CRITERIA={
 'forms-surveys':['field schema saved','routing saved','label/accessibility review complete'],
 'community':['space/access rules saved','moderation plan saved','member experience reviewed'],
 'marketplace':['offer/license saved','pricing/terms saved','payment connection verified before sale'],
-'multilingual':['source meaning preserved','localized output saved','human/review step recorded']
+'multilingual':['source meaning preserved','localized output saved','human/review step recorded'],
+'accounting':['source records identified','bookkeeping/reporting output saved','financial claims reviewed against records'],
+'spreadsheets':['workbook structure saved','formulas/data rules reviewed','CSV/chart output verified']
 };
 const PLAYBOOKS={
 'video-ads':['Define audience and offer','Write hook/script/CTA','Create scene and asset brief','Route to Video Studio','Review and publish'],
@@ -158,7 +167,9 @@ const PLAYBOOKS={
 'forms-surveys':['Define questions and fields','Create form schema','Set routing/automation','Analyze responses'],
 'community':['Define audience and access','Create spaces/topics','Create onboarding/content cadence','Moderate and measure'],
 'marketplace':['Define original/authorized offer','Package deliverables and license','Set pricing/terms','Publish catalog item'],
-'multilingual':['Identify source meaning and audience','Translate/localize','Preserve brand/legal terms','Review before publish']
+'multilingual':['Identify source meaning and audience','Translate/localize','Preserve brand/legal terms','Review before publish'],
+'accounting':['Define accounting outcome','Organize source records','Analyze books and reports','Review compliance-sensitive assumptions','Verify against ledger'],
+'spreadsheets':['Define workbook purpose','Create workbook structure','Build formulas and calculations','Review data and chart','Export or continue safely']
 };
 function planFor(id,input){const steps=PLAYBOOKS[id]||['Understand goal','Plan','Execute with Magnanimous tools','Verify'];return{tool_id:id,goal:txt(input?.goal||'',1000),steps:steps.map((name,index)=>({index:index+1,name,status:'planned'})),orchestrator:'Magnanimous AI',provider_policy:'native-first; authorized replaceable infrastructure only when needed',verification_criteria:VERIFY_CRITERIA[id]||['output saved','execution reviewed','evidence recorded'],verification:'Evidence and action receipts required before claiming completion'}}
 const externalFor=id=>(CAPABILITY_ROUTES[id]?.dependencies||[]).filter(x=>String(x).endsWith('-external'));
@@ -173,6 +184,13 @@ async function runDirectExecution(request,env,ctx,downstream,user,row){
  if(!downstream?.fetch)return json({detail:'Magnanimous execution runtime is unavailable.'},503);
  const prior=work.steps.filter(x=>x.status==='completed'&&String(x.result||'').trim()).slice(-3).map(x=>`STEP: ${x.title}\nRESULT: ${txt(x.result,1800)}`).join('\n\n');
 
+ if(row.tool_id==='spreadsheets'&&/create workbook structure/i.test(String(step.title||''))){
+  const made=await createSpreadsheetWorkbook(env,user,{name:row.title,description:goal});
+  await updateWorkStep(env,user,work.id,step.id,{status:'completed',result:'Created native Spreadsheet Studio workbook '+made.name+' ('+made.id+').'});
+  const fresh=await getWork(env,user,work.id),out={...(view.output||{}),work_id:work.id,last_execution_at:now(),last_step_id:step.id,last_step_title:step.title,spreadsheet_workbook_id:made.id,spreadsheet_sheet_id:made.sheet_id};
+  await env.DB.prepare('UPDATE magnanimous_business_ai_jobs SET output_json=?,status=?,updated_at=? WHERE id=? AND tenant_id=? AND user_id=?').bind(JSON.stringify(out),'working',now(),row.id,String(user.tenant_id),String(user.id)).run();
+  return json({ok:true,id:row.id,artifact_type:'spreadsheet-workbook',workbook:made,open_url:'/spreadsheets?workbook='+encodeURIComponent(made.id),completed_step:{id:step.id,title:step.title},work:fresh,external_action_performed:false});
+ }
  if(row.tool_id==='hyper-images'&&/route to image generation/i.test(String(step.title||''))){
   const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
   const forwarded=new Request(new URL('/api/visual/scene',request.url),{method:'POST',headers,body:JSON.stringify({title:row.title,text:goal,style:'business'})});
