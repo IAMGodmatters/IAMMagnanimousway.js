@@ -5,7 +5,7 @@ import {getPlatformAuthToken} from '../lib/magnanimous-session';
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 type Contact={id:number;first_name:string;last_name:string;email:string;phone:string;company:string;status:string;source:string;tags:string[];notes:string;account_id?:number|null};
 type Stats={contacts:number;leads:number;customers:number;pipeline_value:number;overdue_tasks:number};
-type LeadScore={id:number;name:string;company:string;status:string;email:string;phone:string;score:number;reasons:string[];do_not_contact?:boolean;consent?:{email:string;sms:string;phone:string}};
+type LeadScore={id:number;name:string;company:string;status:string;email:string;phone:string;score:number;fit_score?:number;engagement_score?:number;grade?:string;reasons:string[];do_not_contact?:boolean;consent?:{email:string;sms:string;phone:string}};
 type Deal={id:number;contact_id:number;account_id?:number|null;pipeline_id?:string|null;stage_id?:string|null;contact_name?:string;name:string;stage:string;value:number;probability:number;expected_close_at?:number;notes?:string;updated_at?:number};
 type Task={id:number;contact_id:number;contact_name?:string;type:string;title:string;body:string;due_at?:number;completed:number};
 type Action={kind:string;priority:string;title:string;detail:string;contact_id?:number;deal_id?:number;task_id?:number};
@@ -13,12 +13,18 @@ type Contact360={contact:Contact;preferences:{contact_id:number;email_status:str
 type Account={id:number;name:string;domain:string;industry:string;status:string;owner_user_id:string;tags:string[];notes:string;contact_count:number;open_deals:number;pipeline_value:number};
 type PipelineStage={id:string;pipeline_id:string;name:string;stage_key:string;position:number;probability:number;kind:'open'|'won'|'lost';active:boolean};
 type Pipeline={id:string;name:string;description:string;is_default:boolean;active:boolean;stages:PipelineStage[]};
+type ScoreRules={fit:{status_qualified:number;status_lead:number;email:number;phone:number;company:number;source:number;tag_each:number;tag_cap:number};engagement:{activity_each:number;activity_cap:number;open_deal:number;recent_7d:number;recent_30d:number}};
+type ScoreThresholds={fit_high:number;fit_medium:number;engagement_high:number;engagement_medium:number};
+type ScoringProfile={id:string;name:string;rules:ScoreRules;thresholds:ScoreThresholds};
+type Sequence={id:string;name:string;description?:string;status:string;steps:any[]};
+type SequenceEnrollment={id:string;sequence_id:string;sequence_name?:string;contact_id:number;status:string;step_index:number;next_step_at?:number|null;goal:string;started_at:number;completed_at?:number|null};
 type Intelligence={
  generated_at:number;
  metrics:{contacts:number;leads:number;customers:number;open_deals:number;pipeline_value:number;weighted_forecast:number;overdue_tasks:number;due_next_7_days:number;stale_deals:number;at_risk_deals:number;duplicate_groups:number};
  lead_scores:LeadScore[];stage_summary:{stage:string;count:number;value:number;weighted:number}[];source_mix:{source:string;count:number}[];next_actions:Action[];deals:Deal[];tasks:Task[];
  risks:{stale_deals:Deal[];at_risk_deals:(Deal&{risk?:string})[]};
  data_quality:{missing_email:number;missing_phone:number;missing_company:number;duplicate_email_groups:any[];duplicate_phone_groups:any[]};
+ scoring_profile?:ScoringProfile;
 };
 async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||`Request failed (${r.status})`}}}
 const amount=(n:number)=>Number(n||0).toLocaleString(undefined,{maximumFractionDigits:0});
@@ -29,13 +35,16 @@ const blankDeal={contact_id:'',account_id:'',pipeline_id:'',name:'',stage:'new',
 const blankTask={contact_id:'',title:'',due_at:'',body:''};
 const blankAccount={name:'',domain:'',industry:'',status:'prospect',tags:'',notes:''};
 const blankPipeline={name:'',description:'',stages:'New, Qualified, Discovery, Proposal, Negotiation, Won, Lost',is_default:false};
+const defaultScoreRules:ScoreRules={fit:{status_qualified:20,status_lead:8,email:8,phone:8,company:10,source:5,tag_each:2,tag_cap:9},engagement:{activity_each:3,activity_cap:12,open_deal:10,recent_7d:20,recent_30d:10}};
+const defaultScoreThresholds:ScoreThresholds={fit_high:35,fit_medium:20,engagement_high:25,engagement_medium:10};
 
 export default function CRM(){
- const[token,setToken]=useState(''),[user,setUser]=useState<any>(null),[contacts,setContacts]=useState<Contact[]>([]),[accounts,setAccounts]=useState<Account[]>([]),[pipelines,setPipelines]=useState<Pipeline[]>([]),[pipelineView,setPipelineView]=useState(''),[stats,setStats]=useState<Stats>({contacts:0,leads:0,customers:0,pipeline_value:0,overdue_tasks:0}),[intel,setIntel]=useState<Intelligence|null>(null),[q,setQ]=useState(''),[status,setStatus]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(''),[showForm,setShowForm]=useState(false),[showDeal,setShowDeal]=useState(false),[showTask,setShowTask]=useState(false),[showAccount,setShowAccount]=useState(false),[showPipeline,setShowPipeline]=useState(false),[show360,setShow360]=useState(false),[contact360,setContact360]=useState<Contact360|null>(null);
+ const[token,setToken]=useState(''),[user,setUser]=useState<any>(null),[contacts,setContacts]=useState<Contact[]>([]),[accounts,setAccounts]=useState<Account[]>([]),[pipelines,setPipelines]=useState<Pipeline[]>([]),[pipelineView,setPipelineView]=useState(''),[stats,setStats]=useState<Stats>({contacts:0,leads:0,customers:0,pipeline_value:0,overdue_tasks:0}),[intel,setIntel]=useState<Intelligence|null>(null),[sequences,setSequences]=useState<Sequence[]>([]),[enrollments,setEnrollments]=useState<SequenceEnrollment[]>([]),[selectedSequence,setSelectedSequence]=useState(''),[q,setQ]=useState(''),[status,setStatus]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(''),[showForm,setShowForm]=useState(false),[showDeal,setShowDeal]=useState(false),[showTask,setShowTask]=useState(false),[showAccount,setShowAccount]=useState(false),[showPipeline,setShowPipeline]=useState(false),[showScoring,setShowScoring]=useState(false),[show360,setShow360]=useState(false),[contact360,setContact360]=useState<Contact360|null>(null);
  const[form,setForm]=useState({first_name:'',last_name:'',email:'',phone:'',company:'',status:'lead',source:'',tags:'',notes:''});
  const[dealForm,setDealForm]=useState(blankDeal),[taskForm,setTaskForm]=useState(blankTask);
  const[accountForm,setAccountForm]=useState(blankAccount),[pipelineForm,setPipelineForm]=useState(blankPipeline);
  const[prefForm,setPrefForm]=useState({email_status:'unknown',sms_status:'unknown',phone_status:'unknown',whatsapp_status:'unknown',do_not_contact:false,lawful_basis:'',consent_source:'',consent_note:''});
+ const[scoreName,setScoreName]=useState('Magnanimous Fit + Engagement'),[scoreRules,setScoreRules]=useState<ScoreRules>(defaultScoreRules),[scoreThresholds,setScoreThresholds]=useState<ScoreThresholds>(defaultScoreThresholds);
  const auth=(json=false,t=token)=>{const h:any={Authorization:`Bearer ${t}`};if(json)h['Content-Type']='application/json';return h};
  const scoreMap=useMemo(()=>new Map((intel?.lead_scores||[]).map(x=>[Number(x.id),x])),[intel]);
  const activePipeline=useMemo(()=>pipelines.find(p=>p.id===pipelineView)||pipelines.find(p=>p.is_default)||pipelines[0]||null,[pipelines,pipelineView]);
@@ -57,7 +66,7 @@ export default function CRM(){
    if(m.status===401||c.status===401||i.status===401){location.replace('/login?returnTo=%2Fcrm');return}
    if(!m.ok){setError(md.detail||'Unable to load your account.');return}
    setUser(md.user||{});if(c.ok)setContacts(cd.contacts||[]);if(s.ok)setStats({contacts:Number(sd.contacts||0),leads:Number(sd.leads||0),customers:Number(sd.customers||0),pipeline_value:Number(sd.pipeline_value||0),overdue_tasks:Number(sd.overdue_tasks||0)});
-   if(i.ok)setIntel(id);else setError(id.detail||'CRM intelligence could not load.');if(studio.ok){setAccounts(studioData.accounts||[]);setPipelines(studioData.pipelines||[]);if(!pipelineView){const preferred=(studioData.pipelines||[]).find((p:Pipeline)=>p.is_default)||(studioData.pipelines||[])[0];if(preferred)setPipelineView(preferred.id)}}
+   if(i.ok){setIntel(id);if(id.scoring_profile){setScoreName(id.scoring_profile.name||'Magnanimous Fit + Engagement');setScoreRules(id.scoring_profile.rules||defaultScoreRules);setScoreThresholds(id.scoring_profile.thresholds||defaultScoreThresholds)}}else setError(id.detail||'CRM intelligence could not load.');if(studio.ok){setAccounts(studioData.accounts||[]);setPipelines(studioData.pipelines||[]);if(!pipelineView){const preferred=(studioData.pipelines||[]).find((p:Pipeline)=>p.is_default)||(studioData.pipelines||[])[0];if(preferred)setPipelineView(preferred.id)}}
   }catch{setError('Unable to load this CRM workspace.')}
  }
  useEffect(()=>{const t=getPlatformAuthToken();if(!t){location.replace('/login?returnTo=%2Fcrm');return}setToken(t);load(t)},[]);
