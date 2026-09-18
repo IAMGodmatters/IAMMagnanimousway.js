@@ -23,6 +23,7 @@ export default function GlobalTools(){
     <a className="activity" href="/activity" title="Review saved checkpoints, failures and recoverable work"><b>◷</b><span>Activity</span></a>
     <a className="research" href="/research-notebook" title="Save source-backed research evidence for reuse"><b>⌕</b><span>Evidence</span></a>
     <a className="inbox" href="/inbox" title="Unified email, SMS, voice, social, chat and task queue"><b>✉</b><span>Inbox</span></a>
+    <a className="business-ai" href="/business-ai" title="Marketing, websites, sales, creative, productivity and business AI tools"><b>✦</b><span>Business AI</span></a>
     <a className="agency" href="/agency-command" title="Client booking, funnels, reputation, white label and usage rebilling"><b>◇</b><span>Agency</span></a>
     <a className="automation" href="/agency-automations" title="Event-driven agency rules that create work and follow-ups"><b>⚡</b><span>Automations</span></a>
     <a className="enterprise" href="/enterprise" title="Enterprise commercialization, contracts and usage funding"><b>◆</b><span>Enterprise</span></a>
