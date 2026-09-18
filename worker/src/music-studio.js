@@ -49,7 +49,21 @@ export async function handleMusic(request,env,user,path){
   const gid=uid(),t=now(),configured=Boolean(env.MUSIC_ENGINE_URL&&env.MUSIC_ENGINE_TOKEN);
   await env.DB.prepare('INSERT INTO music_generations(id,tenant_id,project_id,operation,status,engine,input_json,output_json,cost_units,error,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(gid,tid,pid,operation,configured?'queued':'needs_engine',configured?'configured-adapter':'unconfigured',JSON.stringify(b),'{}',0,configured?'':'No audio generation engine configured.',t,t).run();
   if(!configured)return json({generation_id:gid,status:'needs_engine',detail:'Project and operation saved safely. No audio generation engine is configured, so no charge was made and no audio was falsely reported as generated.'},202);
-  return json({generation_id:gid,status:'queued'},202);
+  if(operation==='generate'||operation==='sounds'){
+   try{
+    const target=String(env.MUSIC_ENGINE_URL).replace(/\/$/,'')+'/v1/generate';
+    const er=await fetch(target,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+env.MUSIC_ENGINE_TOKEN},body:JSON.stringify({prompt:String(b.prompt||p.creative_brief||''),lyrics:String(b.lyrics||p.lyrics||''),duration:Math.max(10,Math.min(600,Number(b.duration||30))),instrumental:Boolean(b.instrumental||p.mode==='instrumental'||p.mode==='sound')})});
+    const out=await er.json().catch(()=>({}));
+    if(!er.ok)throw new Error(out.detail||'Music engine failed');
+    const audioUrl=String(env.MUSIC_ENGINE_URL).replace(/\/$/,'')+String(out.audio_url||'');
+    await env.DB.prepare('UPDATE music_generations SET status=?,engine=?,output_json=?,updated_at=? WHERE id=? AND tenant_id=?').bind('completed','magnanimous-self-hosted',JSON.stringify({...out,audio_url:audioUrl}),now(),gid,tid).run();
+    return json({generation_id:gid,status:'completed',audio_url:audioUrl,filename:out.filename},201);
+   }catch(e){
+    await env.DB.prepare('UPDATE music_generations SET status=?,error=?,updated_at=? WHERE id=? AND tenant_id=?').bind('failed',String(e?.message||e),now(),gid,tid).run();
+    return json({generation_id:gid,status:'failed',detail:String(e?.message||e)},502);
+   }
+  }
+  return json({generation_id:gid,status:'queued',detail:'Operation is recorded; this engine adapter does not implement that operation yet.'},202);
  }
  return json({detail:'Music route not found'},404);
 }
