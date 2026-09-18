@@ -13,12 +13,12 @@ export const WHITE_LABEL_MODULES=[
 {id:'marketplace',name:'Catalog + Packages',what:'Create and manage agency products, services, package descriptions, prices and status',status:'active'},
 {id:'portal',name:'Client Portal Pages',what:'Create tenant-isolated client portal pages with titles, slugs, content and publication status',status:'active'},
 {id:'projects',name:'Projects',what:'Track client projects, owners, due dates and delivery status',status:'active'},
-{id:'contracts',name:'Proposals + Signature Tracking',what:'Store proposal/agreement text, signer name and signature-state lifecycle; no third-party e-signature is implied',status:'active'},
+{id:'contracts',name:'Proposals + Electronic Signatures',what:'Store proposal/agreement text and create native electronic-signature requests with immutable document snapshots, signer consent, document hashes and audit evidence',status:'active'},
 {id:'learning',name:'Learning Assets',what:'Create course/content records with descriptions, type and publication status',status:'active'},
 {id:'affiliate',name:'Affiliate Programs',what:'Create referral programs, commission percentages and referral ledger records',status:'active'},
 {id:'analytics',name:'Agency Overview',what:'Operational counts for clients, bookings, active funnels, reviews needing response and unbilled client usage',status:'active'},
 {id:'ai',name:'Magnanimous AI',what:'Shared agency intelligence, research, writing, service, operations and client-aware assistance',status:'active'},
-{id:'integrations',name:'Connections',what:'APIs, MCP, OAuth, webhooks and replaceable providers under Magnanimous control',status:'active'},
+{id:'integrations',name:'Connections + Payments',what:'Verified custom domains, connected email/SMS delivery, Magnanimous Telecom readiness, electronic-signature delivery and agency-owned Stripe client payments',status:'active'},
 {id:'mobile',name:'Mobile-ready Portal Pages',what:'Responsive client portal content managed from White Label Studio',status:'active'}
 ];
 async function ensure(env){for(const q of[
