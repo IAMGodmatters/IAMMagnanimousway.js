@@ -3,13 +3,16 @@ import {useEffect,useMemo,useState,type ReactNode} from 'react';
 import {getPlatformAuthToken} from '../lib/magnanimous-session';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
-type Contact={id:number;first_name:string;last_name:string;email:string;phone:string;company:string;status:string;source:string;tags:string[];notes:string};
+type Contact={id:number;first_name:string;last_name:string;email:string;phone:string;company:string;status:string;source:string;tags:string[];notes:string;account_id?:number|null};
 type Stats={contacts:number;leads:number;customers:number;pipeline_value:number;overdue_tasks:number};
 type LeadScore={id:number;name:string;company:string;status:string;email:string;phone:string;score:number;reasons:string[];do_not_contact?:boolean;consent?:{email:string;sms:string;phone:string}};
-type Deal={id:number;contact_id:number;contact_name?:string;name:string;stage:string;value:number;probability:number;expected_close_at?:number;notes?:string;updated_at?:number};
+type Deal={id:number;contact_id:number;account_id?:number|null;pipeline_id?:string|null;stage_id?:string|null;contact_name?:string;name:string;stage:string;value:number;probability:number;expected_close_at?:number;notes?:string;updated_at?:number};
 type Task={id:number;contact_id:number;contact_name?:string;type:string;title:string;body:string;due_at?:number;completed:number};
 type Action={kind:string;priority:string;title:string;detail:string;contact_id?:number;deal_id?:number;task_id?:number};
 type Contact360={contact:Contact;preferences:{contact_id:number;email_status:string;sms_status:string;phone_status:string;whatsapp_status:string;do_not_contact:boolean;lawful_basis:string;consent_source:string;consent_note:string;updated_at:number};summary:{activities:number;deals:number;calls:number;messages:number;total_touches:number;last_touch_at:number};timeline:{id:string;kind:string;channel:string;direction:string;title:string;body:string;status:string;timestamp:number;duration_seconds?:number}[]};
+type Account={id:number;name:string;domain:string;industry:string;status:string;owner_user_id:string;tags:string[];notes:string;contact_count:number;open_deals:number;pipeline_value:number};
+type PipelineStage={id:string;pipeline_id:string;name:string;stage_key:string;position:number;probability:number;kind:'open'|'won'|'lost';active:boolean};
+type Pipeline={id:string;name:string;description:string;is_default:boolean;active:boolean;stages:PipelineStage[]};
 type Intelligence={
  generated_at:number;
  metrics:{contacts:number;leads:number;customers:number;open_deals:number;pipeline_value:number;weighted_forecast:number;overdue_tasks:number;due_next_7_days:number;stale_deals:number;at_risk_deals:number;duplicate_groups:number};
@@ -22,32 +25,39 @@ const amount=(n:number)=>Number(n||0).toLocaleString(undefined,{maximumFractionD
 const when=(unix?:number)=>unix?new Date(unix*1000).toLocaleString():'No due date';
 const stageLabel=(s:string)=>String(s||'new').replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
 const pipelineStages=['new','qualified','discovery','demo','proposal','negotiation','contract'];
-const blankDeal={contact_id:'',name:'',stage:'new',value:'',probability:'',expected_close_at:'',notes:''};
+const blankDeal={contact_id:'',account_id:'',pipeline_id:'',name:'',stage:'new',value:'',probability:'',expected_close_at:'',notes:''};
 const blankTask={contact_id:'',title:'',due_at:'',body:''};
+const blankAccount={name:'',domain:'',industry:'',status:'prospect',tags:'',notes:''};
+const blankPipeline={name:'',description:'',stages:'New, Qualified, Discovery, Proposal, Negotiation, Won, Lost',is_default:false};
 
 export default function CRM(){
- const[token,setToken]=useState(''),[user,setUser]=useState<any>(null),[contacts,setContacts]=useState<Contact[]>([]),[stats,setStats]=useState<Stats>({contacts:0,leads:0,customers:0,pipeline_value:0,overdue_tasks:0}),[intel,setIntel]=useState<Intelligence|null>(null),[q,setQ]=useState(''),[status,setStatus]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(''),[showForm,setShowForm]=useState(false),[showDeal,setShowDeal]=useState(false),[showTask,setShowTask]=useState(false),[show360,setShow360]=useState(false),[contact360,setContact360]=useState<Contact360|null>(null);
+ const[token,setToken]=useState(''),[user,setUser]=useState<any>(null),[contacts,setContacts]=useState<Contact[]>([]),[accounts,setAccounts]=useState<Account[]>([]),[pipelines,setPipelines]=useState<Pipeline[]>([]),[pipelineView,setPipelineView]=useState(''),[stats,setStats]=useState<Stats>({contacts:0,leads:0,customers:0,pipeline_value:0,overdue_tasks:0}),[intel,setIntel]=useState<Intelligence|null>(null),[q,setQ]=useState(''),[status,setStatus]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(''),[showForm,setShowForm]=useState(false),[showDeal,setShowDeal]=useState(false),[showTask,setShowTask]=useState(false),[showAccount,setShowAccount]=useState(false),[showPipeline,setShowPipeline]=useState(false),[show360,setShow360]=useState(false),[contact360,setContact360]=useState<Contact360|null>(null);
  const[form,setForm]=useState({first_name:'',last_name:'',email:'',phone:'',company:'',status:'lead',source:'',tags:'',notes:''});
  const[dealForm,setDealForm]=useState(blankDeal),[taskForm,setTaskForm]=useState(blankTask);
+ const[accountForm,setAccountForm]=useState(blankAccount),[pipelineForm,setPipelineForm]=useState(blankPipeline);
  const[prefForm,setPrefForm]=useState({email_status:'unknown',sms_status:'unknown',phone_status:'unknown',whatsapp_status:'unknown',do_not_contact:false,lawful_basis:'',consent_source:'',consent_note:''});
  const auth=(json=false,t=token)=>{const h:any={Authorization:`Bearer ${t}`};if(json)h['Content-Type']='application/json';return h};
  const scoreMap=useMemo(()=>new Map((intel?.lead_scores||[]).map(x=>[Number(x.id),x])),[intel]);
- const stages=useMemo(()=>{const found=new Set((intel?.deals||[]).map(d=>d.stage));return [...pipelineStages,...[...found].filter(s=>!pipelineStages.includes(s)&&!['won','lost','closed'].includes(s))]},[intel]);
+ const activePipeline=useMemo(()=>pipelines.find(p=>p.id===pipelineView)||pipelines.find(p=>p.is_default)||pipelines[0]||null,[pipelines,pipelineView]);
+ const stages=useMemo(()=>activePipeline?.stages.filter(s=>s.kind==='open')||pipelineStages.map((stage_key,position)=>({id:stage_key,pipeline_id:'',name:stageLabel(stage_key),stage_key,position,probability:0,kind:'open' as const,active:true})),[activePipeline]);
+ const pipelineDeals=useMemo(()=>{const items=intel?.deals||[];if(!activePipeline)return items;return items.filter(d=>d.pipeline_id?d.pipeline_id===activePipeline.id:activePipeline.is_default)},[intel,activePipeline]);
+ const selectedDealPipeline=useMemo(()=>pipelines.find(p=>p.id===dealForm.pipeline_id)||activePipeline,[pipelines,dealForm.pipeline_id,activePipeline]);
 
  async function load(t=token){
   if(!t)return;setError('');
   try{
-   const[m,c,s,i]=await Promise.all([
+   const[m,c,s,i,studio]=await Promise.all([
     fetch(`${api}/api/auth/me`,{headers:auth(false,t),cache:'no-store'}),
     fetch(`${api}/api/crm/contacts?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`,{headers:auth(false,t),cache:'no-store'}),
     fetch(`${api}/api/crm/summary`,{headers:auth(false,t),cache:'no-store'}),
-    fetch(`${api}/api/operations/crm/command-center`,{headers:auth(false,t),cache:'no-store'})
+    fetch(`${api}/api/operations/crm/command-center`,{headers:auth(false,t),cache:'no-store'}),
+    fetch(`${api}/api/operations/crm/studio`,{headers:auth(false,t),cache:'no-store'})
    ]);
-   const[md,cd,sd,id]=await Promise.all([read(m),read(c),read(s),read(i)]);
+   const[md,cd,sd,id,studioData]=await Promise.all([read(m),read(c),read(s),read(i),read(studio)]);
    if(m.status===401||c.status===401||i.status===401){location.replace('/login?returnTo=%2Fcrm');return}
    if(!m.ok){setError(md.detail||'Unable to load your account.');return}
    setUser(md.user||{});if(c.ok)setContacts(cd.contacts||[]);if(s.ok)setStats({contacts:Number(sd.contacts||0),leads:Number(sd.leads||0),customers:Number(sd.customers||0),pipeline_value:Number(sd.pipeline_value||0),overdue_tasks:Number(sd.overdue_tasks||0)});
-   if(i.ok)setIntel(id);else setError(id.detail||'CRM intelligence could not load.');
+   if(i.ok)setIntel(id);else setError(id.detail||'CRM intelligence could not load.');if(studio.ok){setAccounts(studioData.accounts||[]);setPipelines(studioData.pipelines||[]);if(!pipelineView){const preferred=(studioData.pipelines||[]).find((p:Pipeline)=>p.is_default)||(studioData.pipelines||[])[0];if(preferred)setPipelineView(preferred.id)}}
   }catch{setError('Unable to load this CRM workspace.')}
  }
  useEffect(()=>{const t=getPlatformAuthToken();if(!t){location.replace('/login?returnTo=%2Fcrm');return}setToken(t);load(t)},[]);
