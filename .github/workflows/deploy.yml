@@ -368,14 +368,14 @@ jobs:
           tools=d.get('tools') or []
           ids=[x.get('id') for x in tools]
           assert d.get('brain') == 'Magnanimous AI', d
-          assert len(tools) == 29 and len(set(ids)) == 29, ids
+          assert len(tools) == 44 and len(set(ids)) == 29, ids
           assert 'asset-library' in ids and 'hyper-images' in ids and 'app-wizard' in ids and 'crm' in ids, ids
           assert all(x.get('surface') for x in tools), tools
           assert all(isinstance(x.get('dependencies'),list) for x in tools), tools
           assert d.get('truth_boundary'), d
           text=json.dumps(d).lower()
           assert 'deal.ai' not in text and 'deal ai' not in text, d
-          print('Business AI live catalog exposes 29 independent Magnanimous capabilities.')
+          print('Business AI live catalog exposes 44 independent Magnanimous capabilities.')
           PY
 
           status=$(curl -sS -o /tmp/business-ai-job.json -w '%{http_code}' -X POST "$BASE_URL/api/business-ai/jobs" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"tool_id":"sticky-notes","title":"Deployment Business AI Smoke","input":{"goal":"Create a safe deployment verification note without performing an external action."}}')
