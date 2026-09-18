@@ -3,6 +3,12 @@ const now=()=>Math.floor(Date.now()/1000);
 const uid=()=>crypto.randomUUID();
 const MODES=new Set(['song','instrumental','sound','remix','studio']);
 const OPS=new Set(['generate','lyrics','extend','remix','replace-section','remaster','stems','sounds','midi','render']);
+const MUSIC_PRICE='price_1UH3wmBqx3ebIzujCTrTeR6h';
+const MUSIC_CHECKOUT='https://buy.stripe.com/6oU14mfDL0fWfpM9JMbV60b';
+async function entitled(env,user){
+ const e=await env.DB.prepare("SELECT status,current_period_end FROM music_entitlements WHERE tenant_id=? AND user_id=?").bind(user.tenant_id,user.id).first();
+ return Boolean(e&&['active','trialing'].includes(e.status)&&(Number(e.current_period_end||0)===0||Number(e.current_period_end)>now()));
+}
 
 export function musicCapabilities(env){
  return {
@@ -24,7 +30,9 @@ export async function handleMusic(request,env,user,path){
  if(!path.startsWith('/api/music')) return null;
  if(!user) return json({detail:'Sign in required'},401);
  const tid=user.tenant_id;
- if(path==='/api/music/capabilities'&&request.method==='GET') return json(musicCapabilities(env));
+ if(path==='/api/music/capabilities'&&request.method==='GET') return json({...musicCapabilities(env),paid_access:await entitled(env,user),checkout_url:MUSIC_CHECKOUT,price_id:MUSIC_PRICE});
+ if(path==='/api/music/access'&&request.method==='GET') return json({active:await entitled(env,user),checkout_url:MUSIC_CHECKOUT,price_id:MUSIC_PRICE});
+ if(!(await entitled(env,user))) return json({detail:'An active Magnanimous Music Studio subscription is required.',checkout_url:MUSIC_CHECKOUT},402);
  if(path==='/api/music/projects'&&request.method==='GET'){
   const {results}=await env.DB.prepare('SELECT * FROM music_projects WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 100').bind(tid).all();
   return json({projects:results});
