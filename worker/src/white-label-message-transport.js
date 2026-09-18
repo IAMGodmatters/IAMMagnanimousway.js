@@ -27,7 +27,7 @@ export async function deliverUnifiedInboxMessage(env,{tenant,thread,content,subj
  const channel=String(thread?.channel||'').toLowerCase(),target=clean(thread?.customer_ref,254);
  if(channel==='email'){
   if(!validEmail(email(target)))return{ok:false,code:'MISSING_EMAIL_TARGET',status:400,error:'This email thread needs a valid customer email address in Customer contact.'};
-  const sent=await sendGrowthEmail(env,{scopeTenantId:tenant,to:email(target),subject:clean(subject||thread.subject||'Message',240),text:clean(content,30000),senderName:'Magnanimous White Label'});
+  const sent=await sendGrowthEmail(env,{scopeTenantId:tenant,to:email(target),subject:clean(subject||thread.subject||'Message',240),text:clean(content,30000),senderName:'Magnanimous White Label',tenantOnly:true});
   return sent.ok?{ok:true,channel:'email',receipt:sent.receipt||'email-sent'}:{ok:false,code:sent.code||'EMAIL_SEND_FAILED',status:503,error:sent.error||'Connected email delivery failed.'};
  }
  if(channel==='sms'){
