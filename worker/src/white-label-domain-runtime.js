@@ -1,3 +1,4 @@
+import {getProviderRuntimeEnv} from './provider-runtime-env.js';
 import {currentUser} from './integrations.js';
 import {isPlatformOwnerUser} from './agent-branch-intelligence.js';
 
@@ -13,11 +14,14 @@ async function agencyAccess(env,user){
  try{const row=await env.DB.prepare("SELECT plan FROM billing_subscriptions WHERE tenant_id=? AND status='active' LIMIT 1").bind(String(user.tenant_id)).first();return ['agency','agency_pro'].includes(String(row?.plan||'').toLowerCase())}catch{return false}
 }
 async function client(env,tenant,id){return env.DB.prepare('SELECT id,name,status FROM bpo_clients WHERE id=? AND tenant_id=? LIMIT 1').bind(id,tenant).first()}
-function ready(env){return Boolean(env.CLOUDFLARE_SAAS_API_TOKEN&&env.CLOUDFLARE_SAAS_ZONE_ID&&env.CLOUDFLARE_SAAS_CNAME_TARGET)}
-function cfHeaders(env){return{authorization:`Bearer ${env.CLOUDFLARE_SAAS_API_TOKEN}`,'content-type':'application/json'}}
+function tokenFor(env){return String(env.CLOUDFLARE_SAAS_API_TOKEN||env.CLOUDFLARE_PLATFORM_API_TOKEN||'').trim()}
+function zoneFor(env){return String(env.CLOUDFLARE_SAAS_ZONE_ID||env.CLOUDFLARE_PLATFORM_ZONE_ID||'').trim()}
+function cnameFor(env){return String(env.CLOUDFLARE_SAAS_CNAME_TARGET||'customers.iammagnanimousway.com').trim()}
+function ready(env){return Boolean(tokenFor(env)&&zoneFor(env)&&cnameFor(env))}
+function cfHeaders(env){return{authorization:`Bearer ${tokenFor(env)}`,'content-type':'application/json'}}
 async function cf(env,path,options={}){
  if(!ready(env))return{ok:false,status:503,data:{errors:[{message:'Managed custom domains are not configured.'}]}};
- const r=await fetch(`https://api.cloudflare.com/client/v4/zones/${encodeURIComponent(env.CLOUDFLARE_SAAS_ZONE_ID)}${path}`,{...options,headers:{...cfHeaders(env),...(options.headers||{})}});
+ const r=await fetch(`https://api.cloudflare.com/client/v4/zones/${encodeURIComponent(zoneFor(env))}${path}`,{...options,headers:{...cfHeaders(env),...(options.headers||{})}});
  const d=await r.json().catch(()=>({}));return{ok:r.ok&&d?.success!==false,status:r.status,data:d};
 }
 function details(result={}){
@@ -28,7 +32,7 @@ function details(result={}){
  };
 }
 async function save(env,tenant,clientId,host,result,error=''){
- const d=details(result),id=crypto.randomUUID(),ts=now(),target=clean(env.CLOUDFLARE_SAAS_CNAME_TARGET);
+ const d=details(result),id=crypto.randomUUID(),ts=now(),target=cnameFor(env);
  await env.DB.prepare(`INSERT INTO agency_custom_domains(id,tenant_id,client_id,hostname,provider,provider_hostname_id,status,ssl_status,cname_target,ownership_name,ownership_value,ssl_txt_name,ssl_txt_value,last_error,created_at,updated_at)
  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
  ON CONFLICT(tenant_id,hostname) DO UPDATE SET client_id=excluded.client_id,provider_hostname_id=excluded.provider_hostname_id,status=excluded.status,ssl_status=excluded.ssl_status,cname_target=excluded.cname_target,ownership_name=excluded.ownership_name,ownership_value=excluded.ownership_value,ssl_txt_name=excluded.ssl_txt_name,ssl_txt_value=excluded.ssl_txt_value,last_error=excluded.last_error,updated_at=excluded.updated_at`)
@@ -55,10 +59,10 @@ function publicRow(row){
 export async function handleWhiteLabelDomains(request,env){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/white-label/domains'))return null;
  if(!env?.DB)return json({detail:'Domain storage is unavailable.'},503);
- const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);
+ env=await getProviderRuntimeEnv(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);
  if(!await agencyAccess(env,user))return json({detail:'An active White Label Agency subscription is required.'},402);
  const tenant=String(user.tenant_id);
- if(url.pathname==='/api/white-label/domains/readiness'&&request.method==='GET')return json({configured:ready(env),managed_custom_domains:true,requires_customer_dns:true,activation_requires_hostname_and_certificate_validation:true,cname_target:ready(env)?String(env.CLOUDFLARE_SAAS_CNAME_TARGET):'',setup_missing:ready(env)?[]:['CLOUDFLARE_SAAS_API_TOKEN','CLOUDFLARE_SAAS_ZONE_ID','CLOUDFLARE_SAAS_CNAME_TARGET']});
+ if(url.pathname==='/api/white-label/domains/readiness'&&request.method==='GET')return json({configured:ready(env),managed_custom_domains:true,requires_customer_dns:true,activation_requires_hostname_and_certificate_validation:true,cname_target:ready(env)?cnameFor(env):'',credential_source:env.CLOUDFLARE_SAAS_API_TOKEN?'dedicated-saas-token':'platform-cloudflare-token',setup_missing:ready(env)?[]:['Cloudflare API token','Cloudflare zone ID']});
  if(url.pathname==='/api/white-label/domains'&&request.method==='GET'){
   const cid=clean(url.searchParams.get('client_id'));let sql='SELECT * FROM agency_custom_domains WHERE tenant_id=?',args=[tenant];if(cid){sql+=' AND client_id=?';args.push(cid)}sql+=' ORDER BY updated_at DESC LIMIT 100';
   const{results=[]}=await env.DB.prepare(sql).bind(...args).all();const refresh=url.searchParams.get('refresh')==='1',rows=[];for(const row of results)rows.push(publicRow(refresh?await refreshRow(env,row):row));return json({domains:rows,configured:ready(env)});
