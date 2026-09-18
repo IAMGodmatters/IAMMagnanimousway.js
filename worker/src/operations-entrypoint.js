@@ -14,6 +14,7 @@ import {handleMagnanimousDevAgent} from './magnanimous-dev-agent.js';
 import {handleWhiteLabelOS} from './white-label-os-runtime.js';
 import {handleBusinessAISuite} from './magnanimous-business-ai-suite.js';
 import {handlePublicAgencyFunnel} from './public-agency-funnel-runtime.js';
+import {handleCredentials} from './credential-runtime.js';
 import {handleDataStudio} from './data-studio-runtime.js';
 import {handleMediaLibrary} from './media-library-runtime.js';
 
@@ -115,6 +116,7 @@ async function operationsFetch(request,env,ctx){
   const url=new URL(request.url),path=url.pathname;
   if(request.method==='GET'&&LEGACY_ROUTES[path])return Response.redirect(new URL(LEGACY_ROUTES[path],url.origin).toString(),308);
   try{const publicFunnel=await handlePublicAgencyFunnel(request,env);if(publicFunnel)return publicFunnel}catch(error){console.error('public White Label funnel failed',error);return new Response('Funnel temporarily unavailable.',{status:500,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'}})}
+  try{const credentials=await handleCredentials(request,env);if(credentials)return credentials}catch(error){console.error('Credential Studio failed',error);return json({detail:'Credential Studio could not complete this request.'},500)}
 
   const consequential=await requireConsequentialActionConfirmation(request);
   if(consequential)return consequential;
