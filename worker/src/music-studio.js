@@ -22,9 +22,9 @@ async function project(env,tid,pid){
 
 export async function handleMusic(request,env,user,path){
  if(!path.startsWith('/api/music')) return null;
+ if(path==='/api/music/capabilities'&&request.method==='GET') return json(musicCapabilities(env));
  if(!user) return json({detail:'Sign in required'},401);
  const tid=user.tenant_id;
- if(path==='/api/music/capabilities'&&request.method==='GET') return json(musicCapabilities(env));
  if(path==='/api/music/projects'&&request.method==='GET'){
   const {results}=await env.DB.prepare('SELECT * FROM music_projects WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 100').bind(tid).all();
   return json({projects:results});
