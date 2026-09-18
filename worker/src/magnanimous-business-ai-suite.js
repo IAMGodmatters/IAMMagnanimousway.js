@@ -1,5 +1,6 @@
 import {currentUser} from './integrations.js';
 import {createWork,addWorkStep,getWork,updateWorkStep} from './work-engine-runtime.js';
+import {createSpreadsheetWorkbook} from './spreadsheet-runtime.js';
 const json=(d,s=200)=>Response.json(d,{status:s,headers:{'cache-control':'no-store'}}),now=()=>Math.floor(Date.now()/1000),txt=(v,n=12000)=>String(v||'').trim().slice(0,n);
 export const BUSINESS_AI_SUITE=[
 ['video-ads','AI Video Ads','Generate video-ad briefs, scripts, scenes, hooks, CTAs and production jobs','video'],
@@ -31,21 +32,8 @@ export const BUSINESS_AI_SUITE=[
 ['community','Community','Create branded member spaces and engagement plans','education'],
 ['marketplace','AI Marketplace','Package original/user-authorized assets, apps and services for sale','commerce'],
 ['multilingual','Multilingual Studio','Localize business content while preserving meaning and brand voice','language'],
-['podcast-studio','Podcast Studio','Turn ideas and source material into podcast episode plans, scripts and audio projects','audio'],
-['vibe-marketer','Vibe Marketer','Turn one product or offer into a coordinated cross-channel campaign','marketing'],
-['movie-studio','AI Movie Studio','Create cinematic stories, scenes, shots and production plans','video'],
-['spokesperson-video','Spokesperson Video','Create avatar or spokesperson scripts, scenes and render-ready jobs','video'],
-['voiceover-studio','Voiceover Studio','Create narration scripts, voice direction and audio-ready projects','audio'],
-['persona-builder','AI Persona Builder','Create branded AI personalities with instructions, boundaries and knowledge','agent'],
-['aeo-funnels','AEO Funnel Builder','Create conversion funnels optimized for search and answer engines','web'],
-['audiobook-maker','Audiobook Maker','Turn manuscripts into chaptered narration and production plans','audio'],
-['music-generator','Music Generator','Create original music briefs, lyrics and Music Studio projects','audio'],
-['deep-research','Deep Research','Research complex topics and organize source-backed evidence','research'],
-['web-chat-wizard','Website Chat Wizard','Create website support and sales chat experiences with follow-up rules','agent'],
-['precision-image-model','Precision Image Model','Prepare consented custom-image datasets and generation workflows','creative'],
-['humanizer','Natural Writing Studio','Rewrite stiff or AI-sounding text into natural brand-appropriate language','writing'],
-['knowledge-base','Knowledge Base','Organize websites, text, research and feedback for AI recall','knowledge'],
-['logo-maker','Logo Maker','Create original logo concepts, brand marks and visual directions','creative']
+['accounting','Accounting','Work with bookkeeping, accounts, invoices, bills, cash flow and financial reporting','finance'],
+['spreadsheets','Spreadsheet Studio','Create private workbooks with formulas, CSV import/export and accessible charts','data']
 ];
 async function ensure(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL DEFAULT '',tool_id TEXT NOT NULL,title TEXT NOT NULL,input_json TEXT NOT NULL DEFAULT '{}',output_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
@@ -92,21 +80,8 @@ const CAPABILITY_ROUTES={
 'community':{surface:'/white-label-studio?tab=community',accessibility:['spaces','member access','moderation plan'],dependencies:['community']},
 'marketplace':{surface:'/white-label-studio?tab=catalog',accessibility:['catalog metadata','pricing','terms'],dependencies:['catalog','billing','payment-external']},
 'multilingual':{surface:'/magnanimous',accessibility:['localization','meaning preservation','review'],dependencies:['translation']},
-'podcast-studio':{surface:'/music-studio',accessibility:['episode outline','transcript-first workflow','captions/transcript'],dependencies:['music-studio','audio-render-external']},
-'vibe-marketer':{surface:'/social-media',accessibility:['plain-language campaign brief','cross-channel variants'],dependencies:['social','marketing']},
-'movie-studio':{surface:'/cinema-engine',accessibility:['scene structure','captions','shot descriptions'],dependencies:['cinema-engine','renderer-external']},
-'spokesperson-video':{surface:'/agent-video',accessibility:['script','captions','avatar alternatives'],dependencies:['agent-video','renderer-external']},
-'voiceover-studio':{surface:'/agent-video',accessibility:['narration script','speech rate/direction','transcript'],dependencies:['voice','voice-render-external']},
-'persona-builder':{surface:'/agents',accessibility:['plain-language persona setup','test prompts','handoff rules'],dependencies:['agent-mesh','knowledge']},
-'aeo-funnels':{surface:'/agency-command?tab=funnels',accessibility:['semantic funnel copy','form labels','answer-engine structure'],dependencies:['agency-funnels','seo-aeo']},
-'audiobook-maker':{surface:'/music-studio',accessibility:['chapter structure','narration script','transcript'],dependencies:['music-studio','voice-render-external']},
-'music-generator':{surface:'/music-studio',accessibility:['lyrics','creative brief','rights/consent notes'],dependencies:['music-studio','audio-generation-external']},
-'deep-research':{surface:'/research-notebook',accessibility:['source list','claim/evidence separation','plain-language summary'],dependencies:['research','evidence-notebook']},
-'web-chat-wizard':{surface:'/ai-receptionist',accessibility:['keyboard chat','handoff rules','follow-up controls'],dependencies:['agent-mesh','inbox','website-widget-external']},
-'precision-image-model':{surface:'/magnanimous',accessibility:['dataset description','consent/rights checklist','alt-text workflow'],dependencies:['image-generation','custom-image-model-external']},
-'humanizer':{surface:'/ai-chat',accessibility:['plain text input/output','tone controls'],dependencies:['writing']},
-'knowledge-base':{surface:'/knowledge',accessibility:['source metadata','searchable text','source provenance'],dependencies:['knowledge']},
-'logo-maker':{surface:'/magnanimous',accessibility:['brand brief','alt text','high-contrast review'],dependencies:['image-generation']}
+'accounting':{surface:'/finance-people',accessibility:['ledger summaries','invoices and bills','currency-aware reporting'],dependencies:['finance-people']},
+'spreadsheets':{surface:'/spreadsheets',accessibility:['keyboard grid','labeled cells','CSV import/export','formula results','chart descriptions'],dependencies:['spreadsheet-studio']}
 };
 const DIRECT_EXECUTION={
 'video-ads':{tool:'video-script',instruction:'Create a production-ready video-ad script, hook, scene-by-scene storyboard, CTA, caption notes and accessibility/caption plan. Do not claim a video was rendered.'},
@@ -137,21 +112,8 @@ const DIRECT_EXECUTION={
 'image-editor':{tool:'writing',instruction:'Create a precise image-edit brief describing the source-image changes, preserved elements, accessibility/alt-text needs and review checklist. Do not claim an image was edited; a true edit requires an edit-capable visual engine.'},
 'crm':{tool:'business',instruction:'Translate the goal into a structured CRM action plan using only supplied customer facts. Identify contact/account fields, pipeline stage, task/follow-up suggestions, notes and any missing information. Do not invent contact details or mutate CRM records from guesses.'},
 'app-wizard':{tool:'coding',instruction:'Create an implementation-ready app specification with users, jobs-to-be-done, screens, data model, permissions, APIs/actions, edge cases, accessibility, security, acceptance criteria and QA plan. Do not stage repository mutations or claim deployment; those remain behind the developer-agent approval gate.'},
-'podcast-studio':{tool:'writing',instruction:'Create a podcast episode package with audience, title options, episode outline, host script, optional two-host dialogue, intro/outro, CTA, transcript/caption plan and audio production notes. Do not claim audio was rendered.'},
-'vibe-marketer':{tool:'marketing',instruction:'Turn the supplied offer into one coherent cross-channel marketing concept with positioning, message, visual vibe, campaign hooks, channel variants, CTA and test plan.'},
-'movie-studio':{tool:'video-script',instruction:'Create a cinematic production package with premise, scene list, shot directions, narration/dialogue, visual continuity, captions and render notes. Do not claim a movie was rendered.'},
-'spokesperson-video':{tool:'video-script',instruction:'Create a spokesperson/UGC-style video package with hook, spoken script, scene/gesture direction, captions, CTA and render notes. Do not claim an avatar video was rendered.'},
-'voiceover-studio':{tool:'writing',instruction:'Create a narration-ready voiceover script with pronunciation notes, pacing, pauses, emphasis, tone and transcript. Do not claim an audio file was rendered.'},
-'persona-builder':{tool:'magnanimous',instruction:'Create an AI persona specification with identity, role, system behavior, tone, knowledge sources, safety boundaries, handoffs and test conversations.'},
-'aeo-funnels':{tool:'marketing',instruction:'Create a conversion funnel that also answers high-intent questions clearly: page flow, offer, semantic headings, FAQ/entity coverage, CTA logic, forms, schema recommendations and A/B hypotheses.'},
-'audiobook-maker':{tool:'writing',instruction:'Convert the supplied manuscript or concept into an audiobook production plan with chapter segmentation, narration-ready text guidance, pronunciation notes, intro/outro and accessibility transcript requirements. Do not claim audio was rendered.'},
-'music-generator':{tool:'writing',instruction:'Create an original music brief with genre, mood, tempo, instruments, structure, lyrical direction and rights/consent notes. Do not claim audio was generated unless the Music Studio returns a real result.'},
-'deep-research':{tool:'research',live_search:true,instruction:'Perform source-grounded research on the requested topic. Separate claims from evidence, note uncertainty, provide source context, and prepare material that can be saved into the Evidence Notebook.'},
-'web-chat-wizard':{tool:'customer-service',instruction:'Create a website chat experience with greeting, qualification/support flow, FAQ boundaries, lead capture fields, escalation, missed-message follow-up rules, consent controls and test conversations. Do not claim a widget was deployed.'},
-'precision-image-model':{tool:'marketing',instruction:'Create a lawful custom-image-model preparation plan: subject/object goal, dataset guidance, consent/rights checklist, variation requirements, labeling, validation prompts and safety review. Do not claim model training occurred.'},
-'humanizer':{tool:'writing',instruction:'Rewrite the supplied text so it sounds natural, specific and human while preserving facts, meaning, citations and brand voice. Do not add fake personal experiences or evade detection/safety systems.'},
-'knowledge-base':{tool:'research',instruction:'Turn the supplied material into a knowledge-base ingestion plan with source titles, provenance, chunks/topics, tags, update rules, conflicts and questions that need resolution. Do not claim sources were stored unless the Knowledge workspace confirms it.'},
-'logo-maker':{tool:'marketing',instruction:'Create an original logo brief with brand meaning, symbol directions, typography guidance, composition, contrast/accessibility and distinctiveness checks. Avoid copying existing trademarks or logos.'}
+'accounting':{tool:'business',instruction:'Analyze the stated accounting goal using supplied records only. Produce bookkeeping/reporting guidance, reconciliation questions, cash-flow observations or account mappings without inventing balances, tax rates, filing deadlines or audited conclusions. Direct record entry to the native Finance workspace.'},
+'spreadsheets':{tool:'business',instruction:'Complete the current spreadsheet-planning step: define tables, columns, formulas, validation, chart choices or data-cleaning rules. Use safe spreadsheet formulas and never invent source data.'}
 };
 const VERIFY_CRITERIA={
 'video-ads':['storyboard/script saved','render path available','final media reviewed'],
@@ -183,21 +145,8 @@ const VERIFY_CRITERIA={
 'community':['space/access rules saved','moderation plan saved','member experience reviewed'],
 'marketplace':['offer/license saved','pricing/terms saved','payment connection verified before sale'],
 'multilingual':['source meaning preserved','localized output saved','human/review step recorded'],
-'podcast-studio':['episode structure saved','script/transcript saved','audio render truthfully gated'],
-'vibe-marketer':['positioning saved','cross-channel campaign saved','test plan saved'],
-'movie-studio':['story/scene plan saved','shot/dialogue package saved','renderer truthfully gated'],
-'spokesperson-video':['script saved','caption/scene direction saved','renderer truthfully gated'],
-'voiceover-studio':['narration script saved','pacing/pronunciation saved','audio render truthfully gated'],
-'persona-builder':['persona instructions saved','knowledge/boundaries saved','test conversations reviewed'],
-'aeo-funnels':['funnel structure saved','answer-engine content saved','CTA/measurement plan saved'],
-'audiobook-maker':['chapter plan saved','narration guidance saved','audio render truthfully gated'],
-'music-generator':['original music brief saved','Music Studio project created','audio generation truthfully gated'],
-'deep-research':['research question saved','source-backed findings created','evidence/uncertainty reviewed'],
-'web-chat-wizard':['chat flow saved','lead/handoff rules saved','widget deployment truthfully gated'],
-'precision-image-model':['dataset plan saved','rights/consent reviewed','model training truthfully gated'],
-'humanizer':['source meaning preserved','natural rewrite saved','facts/citations reviewed'],
-'knowledge-base':['source/provenance plan saved','taxonomy/chunk plan saved','knowledge ingestion reviewed'],
-'logo-maker':['brand/logo brief saved','original visual concept generated','distinctiveness/accessibility reviewed']
+'accounting':['source records identified','bookkeeping/reporting output saved','financial claims reviewed against records'],
+'spreadsheets':['workbook structure saved','formulas/data rules reviewed','CSV/chart output verified']
 };
 const PLAYBOOKS={
 'video-ads':['Define audience and offer','Write hook/script/CTA','Create scene and asset brief','Route to Video Studio','Review and publish'],
@@ -229,21 +178,8 @@ const PLAYBOOKS={
 'community':['Define audience and access','Create spaces/topics','Create onboarding/content cadence','Moderate and measure'],
 'marketplace':['Define original/authorized offer','Package deliverables and license','Set pricing/terms','Publish catalog item'],
 'multilingual':['Identify source meaning and audience','Translate/localize','Preserve brand/legal terms','Review before publish'],
-'podcast-studio':['Define audience and episode goal','Create episode outline','Write host script and transcript','Prepare audio production directions','Review and render when audio engine is connected'],
-'vibe-marketer':['Define offer and audience','Choose campaign vibe and positioning','Create cross-channel campaign','Create testing plan'],
-'movie-studio':['Define story goal','Create scene structure','Write shots/dialogue/narration','Prepare render package','Render with configured cinema engine'],
-'spokesperson-video':['Define audience and spokesperson goal','Write hook and script','Create scene/caption directions','Prepare avatar render job','Render with connected video engine'],
-'voiceover-studio':['Prepare source text','Create narration script','Add pronunciation/pacing direction','Render with connected voice engine'],
-'persona-builder':['Define persona role','Write system behavior and tone','Attach knowledge/boundaries','Create test conversations','Publish persona when ready'],
-'aeo-funnels':['Define conversion and search intent','Create funnel structure','Write answer-engine content and FAQs','Add CTA/forms/schema','Test and measure'],
-'audiobook-maker':['Prepare manuscript','Split into narration chapters','Create pronunciation and pacing guide','Prepare audiobook project','Render with connected voice engine'],
-'music-generator':['Define original music goal','Create music brief and lyrics direction','Create Music Studio project','Generate or render with configured audio engine','Review rights and output'],
-'deep-research':['Define research question','Run source-grounded research','Separate claims and evidence','Capture uncertainty and sources','Save evidence for review'],
-'web-chat-wizard':['Define website visitor goals','Create chat flow','Create lead capture and handoff rules','Create missed-message follow-up','Deploy widget when connection is ready'],
-'precision-image-model':['Define subject/object goal','Prepare consented dataset plan','Define labels and variation coverage','Prepare training/validation workflow','Train only with authorized engine'],
-'humanizer':['Inspect source meaning and facts','Rewrite for natural voice','Preserve citations and claims','Review tone and accuracy'],
-'knowledge-base':['Collect authorized sources','Define provenance and taxonomy','Chunk/tag content','Resolve conflicts and freshness','Store/review in Knowledge workspace'],
-'logo-maker':['Define brand and audience','Create logo brief','Generate logo concept','Review distinctiveness, contrast and accessibility']
+'accounting':['Define accounting outcome','Organize source records','Analyze books and reports','Review compliance-sensitive assumptions','Verify against ledger'],
+'spreadsheets':['Define workbook purpose','Create workbook structure','Build formulas and calculations','Review data and chart','Export or continue safely']
 };
 function planFor(id,input){const steps=PLAYBOOKS[id]||['Understand goal','Plan','Execute with Magnanimous tools','Verify'];return{tool_id:id,goal:txt(input?.goal||'',1000),steps:steps.map((name,index)=>({index:index+1,name,status:'planned'})),orchestrator:'Magnanimous AI',provider_policy:'native-first; authorized replaceable infrastructure only when needed',verification_criteria:VERIFY_CRITERIA[id]||['output saved','execution reviewed','evidence recorded'],verification:'Evidence and action receipts required before claiming completion'}}
 const externalFor=id=>(CAPABILITY_ROUTES[id]?.dependencies||[]).filter(x=>String(x).endsWith('-external'));
@@ -258,9 +194,16 @@ async function runDirectExecution(request,env,ctx,downstream,user,row){
  if(!downstream?.fetch)return json({detail:'Magnanimous execution runtime is unavailable.'},503);
  const prior=work.steps.filter(x=>x.status==='completed'&&String(x.result||'').trim()).slice(-3).map(x=>`STEP: ${x.title}\nRESULT: ${txt(x.result,1800)}`).join('\n\n');
 
- if((row.tool_id==='hyper-images'&&/route to image generation/i.test(String(step.title||'')))||(row.tool_id==='logo-maker'&&/generate logo concept/i.test(String(step.title||'')))){
+ if(row.tool_id==='spreadsheets'&&/create workbook structure/i.test(String(step.title||''))){
+  const made=await createSpreadsheetWorkbook(env,user,{name:row.title,description:goal});
+  await updateWorkStep(env,user,work.id,step.id,{status:'completed',result:'Created native Spreadsheet Studio workbook '+made.name+' ('+made.id+').'});
+  const fresh=await getWork(env,user,work.id),out={...(view.output||{}),work_id:work.id,last_execution_at:now(),last_step_id:step.id,last_step_title:step.title,spreadsheet_workbook_id:made.id,spreadsheet_sheet_id:made.sheet_id};
+  await env.DB.prepare('UPDATE magnanimous_business_ai_jobs SET output_json=?,status=?,updated_at=? WHERE id=? AND tenant_id=? AND user_id=?').bind(JSON.stringify(out),'working',now(),row.id,String(user.tenant_id),String(user.id)).run();
+  return json({ok:true,id:row.id,artifact_type:'spreadsheet-workbook',workbook:made,open_url:'/spreadsheets?workbook='+encodeURIComponent(made.id),completed_step:{id:step.id,title:step.title},work:fresh,external_action_performed:false});
+ }
+ if(row.tool_id==='hyper-images'&&/route to image generation/i.test(String(step.title||''))){
   const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
-  const forwarded=new Request(new URL('/api/visual/scene',request.url),{method:'POST',headers,body:JSON.stringify({title:row.title,text:goal,style:row.tool_id==='logo-maker'?'minimal original brand logo':'business'})});
+  const forwarded=new Request(new URL('/api/visual/scene',request.url),{method:'POST',headers,body:JSON.stringify({title:row.title,text:goal,style:'business'})});
   const response=await downstream.fetch(forwarded,env,ctx),data=await response.clone().json().catch(()=>({}));if(!response.ok)return json({detail:data.detail||'Image generation failed.',code:data.code||'VISUAL_GENERATION_FAILED'},response.status);
   await updateWorkStep(env,user,work.id,step.id,{status:'completed',result:'Generated image for this step. Prompt: '+txt(data.prompt,2400)});
   const fresh=await getWork(env,user,work.id),out={...(view.output||{}),work_id:work.id,last_execution_at:now(),last_step_id:step.id,last_step_title:step.title,artifact_type:'image',image_prompt:txt(data.prompt,2500),image_provider_internal:true};
@@ -268,17 +211,8 @@ async function runDirectExecution(request,env,ctx,downstream,user,row){
   return json({ok:true,id:row.id,artifact_type:'image',image_data_uri:data.image_data_uri,prompt:data.prompt,completed_step:{id:step.id,title:step.title},work:fresh,external_action_performed:false});
  }
 
- if(row.tool_id==='music-generator'&&/create music studio project/i.test(String(step.title||''))){
-  const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
-  const forwarded=new Request(new URL('/api/music/projects',request.url),{method:'POST',headers,body:JSON.stringify({title:row.title||'Magnanimous Music Project',mode:'song',creative_brief:goal,rights_status:'original'})});
-  const response=await downstream.fetch(forwarded,env,ctx),data=await response.clone().json().catch(()=>({}));if(!response.ok)return json({detail:data.detail||'Music Studio project could not be created.',code:'MUSIC_PROJECT_CREATE_FAILED'},response.status);
-  const project=data.project||{};await updateWorkStep(env,user,work.id,step.id,{status:'completed',result:'Created Magnanimous Music Studio project '+String(project.id||'')+'.'});
-  const fresh=await getWork(env,user,work.id),out={...(view.output||{}),work_id:work.id,last_execution_at:now(),last_step_id:step.id,last_step_title:step.title,music_project_id:String(project.id||'')};
-  await env.DB.prepare('UPDATE magnanimous_business_ai_jobs SET output_json=?,status=?,updated_at=? WHERE id=? AND tenant_id=? AND user_id=?').bind(JSON.stringify(out),'working',now(),row.id,String(user.tenant_id),String(user.id)).run();
-  return json({ok:true,id:row.id,artifact_type:'music-project',music_project:project,completed_step:{id:step.id,title:step.title},work:fresh,external_action_performed:false});
- }
- const adapter=(row.tool_id==='hyper-images'||row.tool_id==='logo-maker')
-  ?{tool:'marketing',instruction:'Complete only the current visual planning or review step. Produce a concise visual brief, accessibility/alt-text guidance, or review checklist as appropriate. Do not claim an image was generated unless the current step is the actual image-generation step.'}
+ const adapter=row.tool_id==='hyper-images'
+  ?{tool:'marketing',instruction:'Complete only the current image-planning or review step. Produce a concise visual brief, accessibility/alt-text guidance, or review checklist as appropriate. Do not claim an image was generated unless the current step is the actual image-generation step.'}
   :DIRECT_EXECUTION[row.tool_id];
  if(!adapter)return json({detail:'This capability uses a specialized workspace. Open its working surface to execute it.'},409);
  const prompt=`MAGNANIMOUS BUSINESS AI STEP EXECUTION
@@ -293,7 +227,7 @@ Verification criteria:
 - ${(VERIFY_CRITERIA[row.tool_id]||[]).join('\n- ')}
 Complete ONLY the current step. Return a concrete, useful deliverable for this step. Do not claim later steps, deployment, publishing, sending, signing, charging, calling, file upload, or any outside action occurred unless an authorized tool result proves it.`;
  const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
- const forwarded=new Request(new URL('/api/chat',request.url),{method:'POST',headers,body:JSON.stringify({message:prompt,tool:adapter.tool,provider:'auto',specialist_routing:true,use_knowledge:true,live_search:Boolean(adapter.live_search),news:false,freshness:adapter.live_search?'pm':''})});
+ const forwarded=new Request(new URL('/api/chat',request.url),{method:'POST',headers,body:JSON.stringify({message:prompt,tool:adapter.tool,provider:'auto',specialist_routing:true,use_knowledge:true})});
  const response=await downstream.fetch(forwarded,env,ctx),data=await response.clone().json().catch(()=>({}));if(!response.ok)return json({detail:data.detail||data.error||'Magnanimous AI execution failed.'},response.status);
  const artifact=aiText(data);if(!artifact)return json({detail:'Magnanimous AI returned no usable output.'},502);
  await updateWorkStep(env,user,work.id,step.id,{status:'completed',result:artifact});
@@ -302,7 +236,7 @@ Complete ONLY the current step. Return a concrete, useful deliverable for this s
  return json({ok:true,id:row.id,artifact,completed_step:{id:step.id,title:step.title},work:fresh,verification:(await jobView(env,user,{...row,output_json:JSON.stringify(out),status:'working'})).verification,external_action_performed:false});
 }
 export async function handleBusinessAISuite(request,env,ctx,downstream){const u=new URL(request.url);if(!u.pathname.startsWith('/api/business-ai'))return null;const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);await ensure(env);await claimLegacyJobs(env,user);const tenant=String(user.tenant_id),userId=String(user.id);
-if(u.pathname==='/api/business-ai/tools'&&request.method==='GET')return json({name:'Magnanimous Business AI Suite',brain:'Magnanimous AI',tools:BUSINESS_AI_SUITE.map(([id,name,description,category])=>{const route=CAPABILITY_ROUTES[id],external=externalFor(id);return{id,name,description,category,...route,execution_mode:['hyper-images','logo-maker','music-generator'].includes(id)?'native-specialized':'magnanimous-step-execution',external_connections_required:external,outside_action_required:external.length>0}}),count:BUSINESS_AI_SUITE.length,accessibility_standard:'keyboard-first, semantic labels, responsive layouts, plain-language errors, accessible generated-content metadata',truth_boundary:'External telecom, messaging, domain, storage, publishing or payment actions are only live when the corresponding authorized connection is actually ready.'});
+if(u.pathname==='/api/business-ai/tools'&&request.method==='GET')return json({name:'Magnanimous Business AI Suite',brain:'Magnanimous AI',tools:BUSINESS_AI_SUITE.map(([id,name,description,category])=>({id,name,description,category,...CAPABILITY_ROUTES[id]})),count:BUSINESS_AI_SUITE.length,accessibility_standard:'keyboard-first, semantic labels, responsive layouts, plain-language errors, accessible generated-content metadata',truth_boundary:'External telecom, messaging, domain, storage, publishing or payment actions are only live when the corresponding authorized connection is actually ready.'});
 if(u.pathname==='/api/business-ai/jobs'&&request.method==='GET'){const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_business_ai_jobs WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 100').bind(tenant,userId).all();const items=[];for(const row of results)items.push(await jobView(env,user,row));return json({items})}
 const jobMatch=u.pathname.match(/^\/api\/business-ai\/jobs\/([^/]+)(?:\/(verify|execute))?$/);
 if(jobMatch&&request.method==='GET'){const row=await env.DB.prepare('SELECT * FROM magnanimous_business_ai_jobs WHERE id=? AND tenant_id=? AND user_id=?').bind(jobMatch[1],tenant,userId).first();if(!row)return json({detail:'Business AI job not found.'},404);return json(await jobView(env,user,row))}
