@@ -4,7 +4,8 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
   headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
 });
 
-const PLAN_ORDER = ['free', 'plus', 'business', 'pro', 'scale']; // legacy plan ids retained for account compatibility
+const PLAN_ORDER = ['free', 'plus', 'scale'];
+const LEGACY_PLAN_ALIAS={business:'plus',pro:'plus'};
 const PLAN_CONFIG = {
   free: {
     id: 'free', name: 'Free', price_usd: 0, cadence: 'forever', primary: true,
@@ -46,7 +47,8 @@ const PRICE_ENV = {
 };
 
 function normalizedPlan(value) {
-  const id = String(value || '').toLowerCase();
+  const raw=String(value || '').toLowerCase();
+  const id=LEGACY_PLAN_ALIAS[raw]||raw;
   return PLAN_CONFIG[id] ? id : 'free';
 }
 function isActive(status) { return ['active', 'trialing'].includes(String(status || '')); }
