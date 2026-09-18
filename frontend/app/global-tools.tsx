@@ -31,7 +31,8 @@ export default function GlobalTools(){
     <a className="cx" href="/contact-center" title="Professional Magnanimous contact center"><b>☏</b><span>CX Command</span></a>
     <a className="cx" href="/agent-desk" title="Low-cost browser call center with scripts and rebuttals"><b>◉</b><span>Agent Desk</span></a>
     <a className="bpo" href="/bpo-operations" title="Multi-client BPO and outsourced operations"><b>⌘</b><span>BPO Ops</span></a>
-    <a className="finance" href="/finance-people" title="Finance, global tax and HR"><b>◈</b><span>Finance + HR</span></a>
+    <a className="finance" href="/finance-people" title="Finance, accounting, global tax and HR"><b>◈</b><span>Finance + HR</span></a>
+    <a className="sheets" href="/spreadsheets" title="Private workbooks, formulas, CSV and charts"><b>▦</b><span>Spreadsheets</span></a>
     <a className="ops" href="/call-center-health" title="Call center quality, workforce and performance health"><b>☎</b><span>QA + WFM</span></a>
     {owner&&<a className="ownerops" href="/owner-operations" title="Owner reliability, recovery and premium cost controls"><b>♛</b><span>Owner Ops</span></a>}
     <a className="feedback" href={owner?'/owner-feedback':'/support'} title={owner?'Review user feedback':'Send feedback or report a problem'}><b>♥</b><span>{owner?'User Voice':'Feedback'}</span></a>
