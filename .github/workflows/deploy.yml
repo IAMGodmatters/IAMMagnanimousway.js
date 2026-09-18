@@ -478,9 +478,13 @@ jobs:
           import json
           d=json.load(open('/tmp/client-apps.json'))
           apps=d.get('apps') or []
-          assert len(apps) >= 10, d
+          assert len(apps) == 55, d
+          assert d.get('catalog_count') == 55, d
+          ids={app.get('app_id') for app in apps}
+          assert 'business-ai:podcast-studio' in ids and 'business-ai:deep-research' in ids and 'business-ai:logo-maker' in ids, ids
+          assert d.get('authorization_boundary'), d
           for app in apps:
-              app['enabled']=app['app_id'] in {'branded-ai','crm','inbox','booking','funnel','automations','work-engine'}
+              app['enabled']=app['app_id'] in {'branded-ai','crm','inbox','booking','funnel','automations','work-engine','business-ai:sticky-notes'}
           print(json.dumps({'apps':apps}))
           PY
           status=$(curl -sS -o /tmp/client-apps-saved.json -w '%{http_code}' -X PUT "$BASE_URL/api/white-label-os/client-apps?client_id=$client_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data-binary @/tmp/client-apps-save.json)
