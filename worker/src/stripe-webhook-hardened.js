@@ -48,7 +48,7 @@ async function authorizeProviderSpend(env,tenantId,referenceId,purpose,amount=0)
  await env.DB.prepare('INSERT OR IGNORE INTO provider_funding_authorizations(tenant_id,reference_id,purpose,status,amount_usd,created_at) VALUES(?,?,?,?,?,?)').bind(String(tenantId),String(referenceId),String(purpose||'paid-feature'),'authorized',Math.max(0,Number(amount||0)),now()).run();
 }
 async function processPaidCheckout(env,event,object){
- const metadataRawPlan=String(object?.metadata?.plan||'').toLowerCase();if(AGENCY_PLANS.has(metadataRawPlan))return;
+ const metadataRawPlan=String(object?.metadata?.plan||'').toLowerCase(),usageId=String(object?.metadata?.usage_id||'').trim(),clientRef=String(object?.client_reference_id||'');if(event?.account||usageId||clientRef.startsWith('usage:')||AGENCY_PLANS.has(metadataRawPlan))return;
  const paymentReference=parsePaymentReference(object?.client_reference_id);
  const metadataPurpose=String(object?.metadata?.purpose||'').toLowerCase();
  const purpose=paymentReference.kind==='topup'?'premium_usage_topup':metadataPurpose;
@@ -69,7 +69,7 @@ async function processPaidCheckout(env,event,object){
  if(amount>0)await recordRevenue(env,tenantId,'checkout-paid',amount,'stripe',reference);
 }
 async function processEvent(env,event){
- const type=String(event?.type||''),object=event?.data?.object||{};
+ const type=String(event?.type||''),object=event?.data?.object||{};if(event?.account)return;
  if(type==='checkout.session.completed'||type==='checkout.session.async_payment_succeeded'){
   await processPaidCheckout(env,event,object);return;
  }
