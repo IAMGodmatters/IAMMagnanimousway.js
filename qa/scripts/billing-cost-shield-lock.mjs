@@ -1,0 +1,1 @@
+import fs from'node:fs';const x=fs.readFileSync(new URL('../../worker/src/magnanimous-billing-policy.js',import.meta.url),'utf8');for(const s of ['reservePercent:20','paidGpuRequiresFundedBalance:true','unlimitedExcludesPassThroughInfrastructure:true','invoice.paid','prepaid_required'])if(!x.includes(s))throw Error('billing shield '+s);console.log('Billing cost shield passed.');
