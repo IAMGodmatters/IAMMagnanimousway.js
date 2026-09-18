@@ -74,9 +74,9 @@ includes(agencyRuntime,'CREATE TABLE IF NOT EXISTS agency_funnels','agency: funn
 includes(agencyRuntime,'CREATE TABLE IF NOT EXISTS agency_reputation_items','agency: reputation queue storage exists');
 includes(agencyRuntime,'CREATE TABLE IF NOT EXISTS agency_client_settings','agency: white-label client settings exist');
 includes(agencyRuntime,'CREATE TABLE IF NOT EXISTS agency_usage_rebill','agency: usage rebilling ledger exists');
-includes(agencyRuntime,"pricing_position:{agency:299,agency_pro:499,ordinary_max:199}",'agency: agency pricing targets stay separate from ordinary $0–$199 plans');
+includes(agencyRuntime,"pricing_position:{agency:299,agency_pro:499,ordinary_max:199}",'agency: Agency and Agency Pro live pricing remains separate from ordinary plans');
 includes(agencyUI,'BUSINESS / AGENCY POWERHOUSE','agency: Agency Command UI remains present');
-includes(agencyUI,'Existing $0–$199 customer plans are unchanged','agency: UI states ordinary customer pricing boundary is preserved');
+includes(agencyUI,'These are the live White Label subscription prices','agency: UI truthfully identifies Agency pricing as live subscriptions');
 includes(automationRuntime,'CREATE TABLE IF NOT EXISTS agency_automations','agency: persistent automation rules exist');
 includes(automationRuntime,'CREATE TABLE IF NOT EXISTS agency_automation_runs','agency: automation execution receipts exist');
 includes(automationRuntime,"'booking.created'",'agency: booking events can trigger automations');

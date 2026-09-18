@@ -50,9 +50,8 @@ async function ensure(env){
 async function agencyPlan(env,user){
  if(!env?.DB||!user)return'';
  try{
-  const active=await env.DB.prepare("SELECT plan FROM billing_subscriptions WHERE tenant_id=? AND status IN ('active','trialing') LIMIT 1").bind(String(user.tenant_id)).first();
-  let plan=String(active?.plan||'').toLowerCase();
-  if(!plan){const tenant=await env.DB.prepare('SELECT plan FROM tenants WHERE id=? LIMIT 1').bind(String(user.tenant_id)).first();plan=String(tenant?.plan||'').toLowerCase()}
+  const active=await env.DB.prepare("SELECT plan FROM billing_subscriptions WHERE tenant_id=? AND status='active' LIMIT 1").bind(String(user.tenant_id)).first();
+  const plan=String(active?.plan||'').toLowerCase();
   return plan==='agency'||plan==='agency_pro'?plan:'';
  }catch{return''}
 }

@@ -66,16 +66,23 @@ async function signup(request, env) {
   const baseSlug = String(b.workspace || name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'workspace';
   const slug = `${baseSlug}-${tid.replace(/-/g, '').slice(0, 10)}`;
   await env.DB.prepare('INSERT INTO tenants(id,name,slug,owner_user_id,created_at) VALUES(?,?,?,?,?)').bind(tid, String(b.workspace || name), slug, uid, created).run();
-  await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,active,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid, tid, name, email, 'member', passwordRecord.password_hash, passwordRecord.password_salt, 1, created).run();
+  await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,active,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid, tid, name, email, 'owner', passwordRecord.password_hash, passwordRecord.password_salt, 1, created).run();
   await logAuth(env, { id: uid, tenant_id: tid, email }, 'signup', 1, email);
-  const user = { id: uid, tenant_id: tid, name, email, role: 'member', active: 1, created_at: created };
+  const user = { id: uid, tenant_id: tid, name, email, role: 'owner', active: 1, created_at: created };
   return json({ token: await makeSession(user, env), user }, 201);
 }
 async function login(request, env) {
   const b = await request.json(), email = normEmail(b.email), password = String(b.password || '');
   if (!email || !password) return json({ detail: 'Email and password are required.' }, 400);
-  const user = await env.DB.prepare('SELECT * FROM users WHERE email=? AND active=1 ORDER BY created_at ASC LIMIT 1').bind(email).first();
+  let user = await env.DB.prepare('SELECT * FROM users WHERE email=? AND active=1 ORDER BY created_at ASC LIMIT 1').bind(email).first();
   if (!user) { await logAuth(env, null, 'login', 0, email); return json({ detail: 'Invalid email or password.' }, 401); }
+  try{
+    const tenant=await env.DB.prepare('SELECT owner_user_id FROM tenants WHERE id=? LIMIT 1').bind(user.tenant_id).first();
+    if(String(tenant?.owner_user_id||'')===String(user.id)&&String(user.role||'')!=='owner'){
+      await env.DB.prepare("UPDATE users SET role='owner' WHERE id=? AND tenant_id=?").bind(user.id,user.tenant_id).run();
+      user={...user,role:'owner'};
+    }
+  }catch(_){} 
   let verification;try{verification=await verifyPassword(password,user.password_hash,user.password_salt,env)}catch(_){verification={valid:false,needs_upgrade:false}}
   if (!verification.valid) { await logAuth(env, user, 'login', 0, email); return json({ detail: 'Invalid email or password.' }, 401); }
   try{await upgradePasswordIfNeeded(env,user,password,verification)}catch(error){console.error('password hash upgrade failed',error)}
