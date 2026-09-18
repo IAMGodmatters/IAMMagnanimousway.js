@@ -20,6 +20,10 @@ async function stripe(env,path,{method='GET',body=null,account=''}={}){
 function site(request,env){return String(env.PUBLIC_SITE_URL||'').trim().replace(/\/$/,'')||new URL(request.url).origin}
 function apiReady(env){return Boolean(String(env.STRIPE_SECRET_KEY||'').trim())}
 function oauthReady(env){return apiReady(env)&&Boolean(String(env.STRIPE_CONNECT_CLIENT_ID||'').trim())}
+async function connectCapability(env){
+ if(!apiReady(env))return{ok:false,status:503,error:'Stripe API access is not configured.'};
+ const r=await stripe(env,'/v1/accounts?limit=1');return{ok:r.ok,status:r.status,error:r.ok?'':clean(r.data?.error?.message||'Stripe Connect account access is unavailable.')};
+}
 async function connection(env,tenant){return env.DB.prepare('SELECT * FROM agency_payment_connections WHERE tenant_id=? LIMIT 1').bind(tenant).first()}
 async function saveConnection(env,tenant,acct,mode=''){
  const ts=now(),existing=await connection(env,tenant),connectionMode=clean(mode||existing?.connection_mode,40);
@@ -66,7 +70,8 @@ export async function handleWhiteLabelPayments(request,rawEnv){
  if(url.pathname==='/api/white-label/payments/callback'&&request.method==='GET')return oauthCallback(request,env,url);
  const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);if(!await agencyAccess(env,user))return json({detail:'An active White Label Agency subscription is required.'},402);const tenant=String(user.tenant_id);
  if(url.pathname==='/api/white-label/payments/status'&&request.method==='GET'){
-  let row=await connection(env,tenant);row=await refresh(env,tenant,row);return json({stripe_connect_available:apiReady(env),stripe_api_configured:apiReady(env),existing_account_oauth_available:oauthReady(env),hosted_new_account_onboarding_available:apiReady(env),direct_charges:true,merchant_model:'agency connected account is the seller/merchant for its end-client payment',platform_subscription_separate:true,connection:publicConnection(row),requires_owner_authorization:!row?.stripe_account_id});
+  let row=await connection(env,tenant);row=await refresh(env,tenant,row);const capability=await connectCapability(env);
+  return json({stripe_connect_available:capability.ok,stripe_api_configured:apiReady(env),connect_api_status:capability.status,connect_api_error:capability.error,existing_account_oauth_available:capability.ok&&oauthReady(env),hosted_new_account_onboarding_available:capability.ok,direct_charges:true,merchant_model:'agency connected account is the seller/merchant for its end-client payment',platform_subscription_separate:true,connection:publicConnection(row),requires_owner_authorization:!row?.stripe_account_id});
  }
  if(url.pathname==='/api/white-label/payments/onboard'&&request.method==='POST'){
   if(!owner(user))return json({detail:'Workspace owner or admin access required.'},403);if(!apiReady(env))return json({detail:'Stripe API access is not configured for this platform.',code:'STRIPE_CONNECT_NOT_CONFIGURED'},503);
