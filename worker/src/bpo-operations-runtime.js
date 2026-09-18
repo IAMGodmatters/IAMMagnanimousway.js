@@ -16,6 +16,15 @@ async function ensure(env){
  for(const q of statements)await env.DB.prepare(q).run();
 }
 async function audit(env,tenant,event,opts={}){await env.DB.prepare('INSERT INTO bpo_audit_events(tenant_id,client_id,program_id,work_item_id,actor_type,actor_id,event_type,detail,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(tenant,opts.client_id||null,opts.program_id||null,opts.work_item_id||null,opts.actor_type||'user',opts.actor_id||'',event,text(opts.detail,2000),now()).run()}
+async function agencyClientCapacity(env,tenant){
+ try{
+  const sub=await env.DB.prepare("SELECT plan FROM billing_subscriptions WHERE tenant_id=? AND status='active' LIMIT 1").bind(tenant).first();
+  const plan=String(sub?.plan||'').toLowerCase(),limit=plan==='agency'?25:plan==='agency_pro'?100:0;
+  if(!limit)return{plan,limit:0,count:0,remaining:null};
+  const row=await env.DB.prepare("SELECT COUNT(*) n FROM bpo_clients WHERE tenant_id=? AND status!='archived'").bind(tenant).first(),count=Number(row?.n||0);
+  return{plan,limit,count,remaining:Math.max(0,limit-count)};
+ }catch{return{plan:'',limit:0,count:0,remaining:null}}
+}
 
 async function overview(env,tenant){
  const [clients,programs,open,overdue,resolved]=await Promise.all([
@@ -41,10 +50,10 @@ export async function handleBpoOperations(request,env){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/bpo'))return null;if(!env?.DB)return json({detail:'BPO operations database is unavailable.'},503);
  try{
   await ensure(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use BPO operations.'},401);const tenant=String(user.tenant_id),owner=user.role==='owner';
-  if(request.method==='GET'&&url.pathname==='/api/bpo/overview')return json(await overview(env,tenant));
+  if(request.method==='GET'&&url.pathname==='/api/bpo/overview'){const data=await overview(env,tenant),capacity=await agencyClientCapacity(env,tenant);return json({...data,agency_client_capacity:capacity.limit?capacity:null})}
   if(request.method==='GET'&&url.pathname==='/api/bpo/clients'){const{results=[]}=await env.DB.prepare('SELECT * FROM bpo_clients WHERE tenant_id=? ORDER BY status DESC,name').bind(tenant).all();return json({clients:results.map(x=>({...x,service_lines:JSON.parse(x.service_lines||'[]')}))})}
   if(request.method==='POST'&&url.pathname==='/api/bpo/clients'){
-   if(!owner)return json({detail:'Workspace owner access required.'},403);const b=await request.json().catch(()=>({})),name=text(b.name,160);if(!name)return json({detail:'Client name is required.'},400);const id=crypto.randomUUID(),ts=now();await env.DB.prepare('INSERT INTO bpo_clients(id,tenant_id,name,industry,service_lines,status,data_classification,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,name,text(b.industry,120),JSON.stringify(arr(b.service_lines).map(x=>text(x,80)).filter(Boolean)),text(b.status||'active',30),text(b.data_classification||'standard',40),text(b.notes),ts,ts).run();await audit(env,tenant,'client.created',{client_id:id,actor_id:user.id,detail:name});return json({id},201)
+   if(!owner)return json({detail:'Workspace owner access required.'},403);const capacity=await agencyClientCapacity(env,tenant);if(capacity.limit&&capacity.count>=capacity.limit)return json({detail:`Your ${capacity.plan==='agency_pro'?'Agency Pro':'Agency'} plan supports up to ${capacity.limit} managed client subaccounts. Archive an unused client or change plans before creating another.`,code:'CLIENT_SUBACCOUNT_LIMIT',limit:capacity.limit,count:capacity.count},409);const b=await request.json().catch(()=>({})),name=text(b.name,160);if(!name)return json({detail:'Client name is required.'},400);const id=crypto.randomUUID(),ts=now();await env.DB.prepare('INSERT INTO bpo_clients(id,tenant_id,name,industry,service_lines,status,data_classification,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,name,text(b.industry,120),JSON.stringify(arr(b.service_lines).map(x=>text(x,80)).filter(Boolean)),text(b.status||'active',30),text(b.data_classification||'standard',40),text(b.notes),ts,ts).run();await audit(env,tenant,'client.created',{client_id:id,actor_id:user.id,detail:name});return json({id},201)
   }
   if(request.method==='GET'&&url.pathname==='/api/bpo/programs'){const{results=[]}=await env.DB.prepare('SELECT p.*,c.name client_name FROM bpo_programs p JOIN bpo_clients c ON c.id=p.client_id WHERE p.tenant_id=? ORDER BY c.name,p.name').bind(tenant).all();return json({programs:results.map(x=>({...x,required_skills:JSON.parse(x.required_skills||'[]'),operating_hours:JSON.parse(x.operating_hours_json||'{}')}))})}
   if(request.method==='POST'&&url.pathname==='/api/bpo/programs'){
