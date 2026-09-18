@@ -247,6 +247,17 @@ const PLAYBOOKS={
 };
 function planFor(id,input){const steps=PLAYBOOKS[id]||['Understand goal','Plan','Execute with Magnanimous tools','Verify'];return{tool_id:id,goal:txt(input?.goal||'',1000),steps:steps.map((name,index)=>({index:index+1,name,status:'planned'})),orchestrator:'Magnanimous AI',provider_policy:'native-first; authorized replaceable infrastructure only when needed',verification_criteria:VERIFY_CRITERIA[id]||['output saved','execution reviewed','evidence recorded'],verification:'Evidence and action receipts required before claiming completion'}}
 const externalFor=id=>(CAPABILITY_ROUTES[id]?.dependencies||[]).filter(x=>String(x).endsWith('-external'));
+const SURFACE_ONLY_STEPS={
+ 'movie-studio':/Route to Cinema Engine/i,
+ 'spokesperson-video':/Route to presenter renderer/i,
+ 'music-generator':/Generate through configured music engine/i
+};
+function surfaceGate(id,title){
+ const external=externalFor(id),surface=CAPABILITY_ROUTES[id]?.surface||'/business-ai',step=String(title||'');
+ if(SURFACE_ONLY_STEPS[id]?.test(step))return{surface,reason:'This step belongs in its specialized Magnanimous workspace.'};
+ if(external.length&&/\b(route|publish|send|call|charge|sign|upload|register|train|render|export|launch)\b/i.test(step))return{surface,reason:'This step requires a live authorized connection or specialized engine.'};
+ return null;
+}
 async function jobView(env,user,row){const out=(()=>{try{return JSON.parse(String(row.output_json||'{}'))}catch{return{}}})();const workId=Number(out.work_id||0),work=workId?await getWork(env,user,workId):null,external=externalFor(row.tool_id),done=Boolean(work&&work.status==='completed'&&Number(work.progress||0)===100),{tenant_id:_tenant,user_id:_user,input_json:_inputRaw,output_json:_outputRaw,...safe}=row;return{...safe,input:(()=>{try{return JSON.parse(String(row.input_json||'{}'))}catch{return{}}})(),output:out,work,verification:{criteria:VERIFY_CRITERIA[row.tool_id]||[],workflow_complete:done,external_connections_required:external,action_ready:done&&external.length===0,status:done?(external.length?'workflow_verified_external_connection_required':'verified'):'not_verified'},resume_url:workId?'/work-engine?work='+workId:CAPABILITY_ROUTES[row.tool_id]?.surface||'/business-ai'}}
 function aiText(data){return txt(data?.reply??data?.answer??data?.response??data?.output??data?.message??data?.result??'',30000)}
 async function runDirectExecution(request,env,ctx,downstream,user,row){
@@ -257,6 +268,31 @@ async function runDirectExecution(request,env,ctx,downstream,user,row){
  if(!step)return json({detail:'All execution steps are finished. Run verification instead of creating another artifact.',verification:view.verification},409);
  if(!downstream?.fetch)return json({detail:'Magnanimous execution runtime is unavailable.'},503);
  const prior=work.steps.filter(x=>x.status==='completed'&&String(x.result||'').trim()).slice(-3).map(x=>`STEP: ${x.title}\nRESULT: ${txt(x.result,1800)}`).join('\n\n');
+ const gate=surfaceGate(row.tool_id,step.title);
+ if(gate)return json({detail:gate.reason,surface:gate.surface,requires_surface:true,external_connections_required:externalFor(row.tool_id),current_step:{id:step.id,title:step.title}},409);
+
+ if(row.tool_id==='deep-research'&&/Search current and saved sources/i.test(String(step.title||''))){
+  const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
+  const forwarded=new Request(new URL('/api/knowledge/research',request.url),{method:'POST',headers,body:JSON.stringify({query:goal,web:true,news:false,remember:true})});
+  const response=await downstream.fetch(forwarded,env,ctx),data=await response.clone().json().catch(()=>({}));
+  if(!response.ok)return json({detail:data.error||data.detail||'Deep research failed.'},response.status);
+  if(!data.web_search_configured)return json({detail:'Live research is not connected yet. Saved workspace knowledge remains available, but this current-source step is not being marked complete.',surface:'/knowledge',requires_surface:true,current_step:{id:step.id,title:step.title}},409);
+  const artifact=txt(JSON.stringify({query:data.query,results:data.results,search_state:data.search_state,remembered:data.remembered}),12000);
+  await updateWorkStep(env,user,work.id,step.id,{status:'completed',result:artifact});
+  const fresh=await getWork(env,user,work.id),out={...(view.output||{}),work_id:work.id,latest_artifact:artifact,last_execution_at:now(),last_step_id:step.id,last_step_title:step.title,direct_execution_tool:'deep-research'};
+  await env.DB.prepare('UPDATE magnanimous_business_ai_jobs SET output_json=?,status=?,updated_at=? WHERE id=? AND tenant_id=? AND user_id=?').bind(JSON.stringify(out),'working',now(),row.id,String(user.tenant_id),String(user.id)).run();
+  return json({ok:true,id:row.id,artifact,completed_step:{id:step.id,title:step.title},work:fresh,research:data,external_action_performed:false});
+ }
+
+ if(row.tool_id==='logo-maker'&&/Route selected directions to image generation/i.test(String(step.title||''))){
+  const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
+  const forwarded=new Request(new URL('/api/visual/scene',request.url),{method:'POST',headers,body:JSON.stringify({title:row.title,text:'Create an original logo concept. '+goal+' Use simple distinctive geometry, strong monochrome behavior, readable negative space, no copied trademarks or brand marks.',style:'logo'})});
+  const response=await downstream.fetch(forwarded,env,ctx),data=await response.clone().json().catch(()=>({}));if(!response.ok)return json({detail:data.detail||'Logo generation failed.',code:data.code||'VISUAL_GENERATION_FAILED'},response.status);
+  await updateWorkStep(env,user,work.id,step.id,{status:'completed',result:'Generated an original logo concept for this step. Prompt: '+txt(data.prompt,2400)});
+  const fresh=await getWork(env,user,work.id),out={...(view.output||{}),work_id:work.id,last_execution_at:now(),last_step_id:step.id,last_step_title:step.title,artifact_type:'image',image_prompt:txt(data.prompt,2500),image_provider_internal:true};
+  await env.DB.prepare('UPDATE magnanimous_business_ai_jobs SET output_json=?,status=?,updated_at=? WHERE id=? AND tenant_id=? AND user_id=?').bind(JSON.stringify(out),'working',now(),row.id,String(user.tenant_id),String(user.id)).run();
+  return json({ok:true,id:row.id,artifact_type:'image',image_data_uri:data.image_data_uri,prompt:data.prompt,completed_step:{id:step.id,title:step.title},work:fresh,external_action_performed:false});
+ }
 
  if(row.tool_id==='hyper-images'&&/route to image generation/i.test(String(step.title||''))){
   const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
