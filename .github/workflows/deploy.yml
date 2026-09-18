@@ -285,6 +285,11 @@ jobs:
                 "DELETE FROM white_label_brain_signals WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM white_label_brain_memory WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM magnanimous_outcomes WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_custom_domains WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_client_charge_sessions WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_payment_states WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_payment_connections WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_esign_requests WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM agency_client_apps WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM agency_automation_runs WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM agency_automations WHERE tenant_id='${tenant_id}';"
@@ -421,7 +426,7 @@ jobs:
           PY
           )
 
-          status=$(curl -sS -o /tmp/wl-brand.json -w '%{http_code}' -X PUT "$BASE_URL/api/agency/clients/$client_id/settings" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"brand_name":"Smoke Client Brand","accent_color":"#22c55e","white_label_enabled":true,"monthly_platform_fee_usd":25,"default_markup_percent":20}')
+          status=$(curl -sS -o /tmp/wl-brand.json -w '%{http_code}' -X PUT "$BASE_URL/api/agency/clients/$client_id/settings" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"brand_name":"Smoke Client Brand","accent_color":"#22c55e","white_label_enabled":true,"monthly_platform_fee_usd":25,"default_markup_percent":20,"billing_email":"billing-smoke@example.com","billing_currency":"usd"}')
           if [ "$status" != "200" ]; then echo "White Label brand settings returned HTTP $status"; cat /tmp/wl-brand.json || true; exit 1; fi
 
           status=$(curl -sS -o /tmp/client-apps.json -w '%{http_code}' "$BASE_URL/api/white-label-os/client-apps?client_id=$client_id" -H "Authorization: Bearer $token")
@@ -498,6 +503,67 @@ jobs:
           import json
           d=json.load(open('/tmp/wl-inbox-messages.json'));assert len(d.get('messages') or [])==1,d
           PY
+
+          status=$(curl -sS -o /tmp/wl-domain-ready.json -w '%{http_code}' "$BASE_URL/api/white-label/domains/readiness" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "White Label domain readiness returned HTTP $status"; cat /tmp/wl-domain-ready.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-domain-ready.json'))
+          assert d.get('managed_custom_domains') is True,d
+          assert isinstance(d.get('configured'),bool),d
+          assert d.get('activation_requires_hostname_and_certificate_validation') is True,d
+          PY
+
+          status=$(curl -sS -o /tmp/wl-payments-ready.json -w '%{http_code}' "$BASE_URL/api/white-label/payments/status" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "White Label payment readiness returned HTTP $status"; cat /tmp/wl-payments-ready.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-payments-ready.json'))
+          assert d.get('direct_charges') is True,d
+          assert d.get('platform_subscription_separate') is True,d
+          assert 'agency connected account' in d.get('merchant_model',''),d
+          assert isinstance(d.get('stripe_connect_available'),bool),d
+          PY
+
+          status=$(curl -sS -o /tmp/wl-inbox-ready.json -w '%{http_code}' "$BASE_URL/api/inbox/overview" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Unified Inbox readiness returned HTTP $status"; cat /tmp/wl-inbox-ready.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-inbox-ready.json'));delivery=d.get('delivery') or {}
+          assert delivery.get('email') is False,d
+          assert isinstance(delivery.get('sms'),bool),d
+          PY
+
+          status=$(curl -sS -o /tmp/wl-contract.json -w '%{http_code}' -X POST "$BASE_URL/api/white-label-os/contracts" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"title\":\"Smoke Signature Agreement\",\"body\":\"This exact document snapshot is used to verify native White Label electronic signatures.\",\"status\":\"draft\",\"signer_name\":\"Smoke Signer\"}")
+          if [ "$status" != "201" ]; then echo "White Label contract create returned HTTP $status"; cat /tmp/wl-contract.json || true; exit 1; fi
+          contract_id=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-contract.json'));assert d.get('id'),d;print(d['id'])
+          PY
+          )
+          status=$(curl -sS -o /tmp/wl-esign.json -w '%{http_code}' -X POST "$BASE_URL/api/white-label/esign" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"contract_id\":\"$contract_id\",\"signer_name\":\"Smoke Signer\",\"signer_email\":\"signer-smoke@example.com\",\"send_email\":false}")
+          if [ "$status" != "201" ]; then echo "White Label e-sign create returned HTTP $status"; cat /tmp/wl-esign.json || true; exit 1; fi
+          signing_url=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-esign.json'));assert d.get('request',{}).get('document_hash'),d;u=d.get('delivery',{}).get('signing_url','');assert '/sign/' in u,d;print(u)
+          PY
+          )
+          status=$(curl -sS -o /tmp/wl-sign-page.html -w '%{http_code}' "$signing_url")
+          if [ "$status" != "200" ]; then echo "Public e-sign page returned HTTP $status"; cat /tmp/wl-sign-page.html || true; exit 1; fi
+          grep -q "Smoke Signature Agreement" /tmp/wl-sign-page.html
+          status=$(curl -sS -o /tmp/wl-sign-done.html -w '%{http_code}' -X POST "${signing_url}/accept" --data-urlencode 'consent=yes' --data-urlencode 'signature=Smoke Signer')
+          if [ "$status" != "200" ]; then echo "Public e-sign acceptance returned HTTP $status"; cat /tmp/wl-sign-done.html || true; exit 1; fi
+          grep -q "Signed successfully" /tmp/wl-sign-done.html
+          status=$(curl -sS -o /tmp/wl-esign-status.json -w '%{http_code}' "$BASE_URL/api/white-label/esign?client_id=$client_id" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "White Label e-sign audit read returned HTTP $status"; cat /tmp/wl-esign-status.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-esign-status.json'));rows=d.get('requests') or []
+          assert rows and rows[0].get('status')=='signed',d
+          assert rows[0].get('audit',{}).get('signature_text')=='Smoke Signer',d
+          assert len(rows[0].get('document_hash',''))==64,d
+          PY
+          echo "White Label real-integration readiness and native e-sign smoke passed."
 
           status=$(curl -sS -o /tmp/wl-project.json -w '%{http_code}' -X POST "$BASE_URL/api/white-label-os/projects" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"name\":\"Smoke Project\",\"status\":\"planned\",\"owner\":\"QA\"}")
           if [ "$status" != "201" ]; then echo "White Label Studio project create returned HTTP $status"; cat /tmp/wl-project.json || true; exit 1; fi
