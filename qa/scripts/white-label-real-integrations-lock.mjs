@@ -51,6 +51,7 @@ must(payments.includes("payment_status||'')==='paid'"),'Usage ledger may be mark
 must(payments.includes('agency_usage_rebill')&&payments.includes('customer_charge_usd'),'Client payment amount must come from the server-side rebilling ledger.');
 must(payments.includes('applyWhiteLabelClientPaymentWebhook')&&operations.includes('applyWhiteLabelClientPaymentWebhook'),'Connected-account checkout events must be able to synchronize the rebilling ledger.');
 must(stripeWebhook.includes("if(event?.account)return")&&stripeWebhook.includes("clientRef.startsWith('usage:')"),'Connected-account/usage client payments must never be fulfilled as platform subscriptions.');
+must(operations.includes("if(!eventData?.account)tasks.push(applyAgencyWebhook")&&operations.includes('recordStripeGrowthEvent(env,eventData)'),'Connected-account client sales must stay out of platform subscription and growth post-processing.');
 must(providerEnv.includes("'STRIPE_CONNECT_CLIENT_ID'")&&credentials.includes("STRIPE_CONNECT_CLIENT_ID"),'Optional Stripe Connect OAuth configuration must remain in the protected credential layer.');
 
 must(transport.includes("messagingReadiness(env,tenant")||transport.includes("messagingReadiness(env,tenant=''"),'Messaging readiness must be tenant-aware.');
