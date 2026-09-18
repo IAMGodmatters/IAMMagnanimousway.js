@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { handleAdvancedCrm, ADVANCED_CRM_CAPABILITIES } from './crm-advanced-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -36,6 +37,7 @@ export const NATIVE_OPERATIONS_CAPABILITIES=[
  {id:'multi-pipeline',name:'Multiple configurable sales pipelines and stage probabilities',native:true},
  {id:'configurable-scoring',name:'Configurable fit, engagement & combined scoring profiles',native:true},
  {id:'sequence-engine',name:'Consent-aware multi-touch sequences with reply stop goals',native:true,bridge:'CRM tasks + Unified Inbox'},
+ ...ADVANCED_CRM_CAPABILITIES.map(x=>({...x,native:true})),
 ];
 
 async function ensureSchema(env){
@@ -430,6 +432,7 @@ export async function handleNativeWorkCrm(request,env){
  if(url.pathname==='/api/operations/capabilities'&&request.method==='GET')return json({identity:'Magnanimous AI',native:true,capabilities:NATIVE_OPERATIONS_CAPABILITIES});
  await ensureSchema(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);const t=tenant(user);if(!t)return json({detail:'Tenant context required.'},403);
  let body={};if(!['GET','DELETE'].includes(request.method)){try{body=await request.json()}catch{return json({detail:'Valid JSON body required.'},400)}}
+ const advancedCrmResponse=await handleAdvancedCrm(request,env,user,body);if(advancedCrmResponse)return advancedCrmResponse;
 
 
 
