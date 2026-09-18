@@ -14,6 +14,7 @@ import {handleMagnanimousDevAgent} from './magnanimous-dev-agent.js';
 import {handleWhiteLabelOS} from './white-label-os-runtime.js';
 import {handleBusinessAISuite} from './magnanimous-business-ai-suite.js';
 import {handlePublicAgencyFunnel} from './public-agency-funnel-runtime.js';
+import {handleWhiteLabelClientAccess} from './white-label-client-access.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -113,6 +114,15 @@ async function operationsFetch(request,env,ctx){
   const url=new URL(request.url),path=url.pathname;
   if(request.method==='GET'&&LEGACY_ROUTES[path])return Response.redirect(new URL(LEGACY_ROUTES[path],url.origin).toString(),308);
   try{const publicFunnel=await handlePublicAgencyFunnel(request,env);if(publicFunnel)return publicFunnel}catch(error){console.error('public White Label funnel failed',error);return new Response('Funnel temporarily unavailable.',{status:500,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'}})}
+
+  try{const clientAccess=await handleWhiteLabelClientAccess(request,env);if(clientAccess)return clientAccess}catch(error){console.error('White Label client access failed',error);return json({detail:'White Label client access could not complete this request.'},500)}
+  if(path.startsWith('/api/')){
+   const clientUser=await signedIn(request,env);
+   if(String(clientUser?.role||'').toLowerCase()==='client'){
+    const allowed=['/api/auth/me','/api/auth/logout','/api/white-label-client','/api/business-ai','/api/work-engine','/api/evidence-notebook','/api/progress','/api/chat','/api/knowledge','/api/visual'];
+    if(!allowed.some(prefix=>path===prefix||path.startsWith(prefix+'/')))return json({detail:'This client account is limited to the apps your agency enabled for you.',code:'WHITE_LABEL_CLIENT_SCOPE_REQUIRED'},403);
+   }
+  }
 
   const consequential=await requireConsequentialActionConfirmation(request);
   if(consequential)return consequential;
