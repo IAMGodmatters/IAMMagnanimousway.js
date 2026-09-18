@@ -33,7 +33,7 @@ async function createTokenRecord(env,tenant,user,b,existing=null){
 }
 async function deliver(request,env,user,created){
  const url=publicUrl(request,created.raw),subject=`Signature requested: ${clean(created.contract.title,180)}`,text=`Hello ${created.signerName},\n\nYou have a document ready for electronic signature.\n\nOpen the secure signing page:\n${url}\n\nThe signing page shows the exact document snapshot and records your affirmative electronic-signature consent.\n\nIf you were not expecting this request, do not sign it.`;
- const sent=await sendGrowthEmail(env,{scopeTenantId:String(user.tenant_id),to:created.signerEmail,subject,text,senderName:'Magnanimous White Label'});
+ const sent=await sendGrowthEmail(env,{scopeTenantId:String(user.tenant_id),to:created.signerEmail,subject,text,senderName:'Magnanimous White Label',tenantOnly:true});
  if(sent.ok)await env.DB.prepare('UPDATE agency_esign_requests SET sent_at=?,updated_at=? WHERE id=? AND tenant_id=?').bind(now(),now(),created.id,user.tenant_id).run();
  return{sent:sent.ok,receipt:sent.ok?sent.receipt:null,error:sent.ok?'':sent.error||'No connected email sender.',signing_url:url};
 }
