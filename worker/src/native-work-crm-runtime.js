@@ -34,6 +34,8 @@ export const NATIVE_OPERATIONS_CAPABILITIES=[
  {id:'consent-safety',name:'Consent-aware outreach & communication safety hooks',native:true,bridge:'Contact center permission gates + assistant policy'},
  {id:'account-graph',name:'Companies/accounts with person and deal rollups',native:true},
  {id:'multi-pipeline',name:'Multiple configurable sales pipelines and stage probabilities',native:true},
+ {id:'scoring-studio',name:'Configurable fit + engagement scoring profiles',native:true},
+ {id:'cadence-runtime',name:'Consent-aware sequence enrollment, step queue & reply stop-goals',native:true},
 ];
 
 async function ensureSchema(env){
@@ -46,6 +48,9 @@ async function ensureSchema(env){
  `CREATE TABLE IF NOT EXISTS crm_accounts (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,name TEXT NOT NULL,domain TEXT NOT NULL DEFAULT '',industry TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'prospect',owner_user_id TEXT NOT NULL DEFAULT '',tags TEXT NOT NULL DEFAULT '',notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS crm_pipelines (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',is_default INTEGER NOT NULL DEFAULT 0,active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS crm_pipeline_stages (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,pipeline_id TEXT NOT NULL,name TEXT NOT NULL,stage_key TEXT NOT NULL,position INTEGER NOT NULL DEFAULT 0,probability REAL NOT NULL DEFAULT 0,kind TEXT NOT NULL DEFAULT 'open',active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(pipeline_id,stage_key))`,
+ `CREATE TABLE IF NOT EXISTS crm_scoring_profiles (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,rules_json TEXT NOT NULL DEFAULT '{}',thresholds_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+ `CREATE TABLE IF NOT EXISTS crm_sequence_enrollments (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,sequence_id TEXT NOT NULL,contact_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'active',step_index INTEGER NOT NULL DEFAULT 0,next_step_at INTEGER,goal TEXT NOT NULL DEFAULT 'reply',timezone TEXT NOT NULL DEFAULT '',started_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,completed_at INTEGER)`,
+ `CREATE TABLE IF NOT EXISTS crm_sequence_step_runs (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,enrollment_id TEXT NOT NULL,sequence_id TEXT NOT NULL,contact_id INTEGER NOT NULL,step_index INTEGER NOT NULL,step_type TEXT NOT NULL,status TEXT NOT NULL,artifact_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS magnanimous_ops_workspaces(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,owner_user_id TEXT NOT NULL,name TEXT NOT NULL,kind TEXT NOT NULL DEFAULT 'workspace',description TEXT NOT NULL DEFAULT '',settings_json TEXT NOT NULL DEFAULT '{}',permissions_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS magnanimous_ops_boards(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,workspace_id TEXT NOT NULL,name TEXT NOT NULL,singular_name TEXT NOT NULL DEFAULT 'record',kind TEXT NOT NULL DEFAULT 'board',description TEXT NOT NULL DEFAULT '',icon TEXT NOT NULL DEFAULT '',settings_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS magnanimous_ops_fields(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,board_id TEXT NOT NULL,name TEXT NOT NULL,field_key TEXT NOT NULL,field_type TEXT NOT NULL DEFAULT 'text',required INTEGER NOT NULL DEFAULT 0,position INTEGER NOT NULL DEFAULT 0,config_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(board_id,field_key))`,
@@ -74,7 +79,11 @@ async function ensureSchema(env){
   'CREATE INDEX IF NOT EXISTS idx_crm_opportunities_account ON crm_opportunities(tenant_id,account_id)',
   'CREATE INDEX IF NOT EXISTS idx_crm_opportunities_pipeline ON crm_opportunities(tenant_id,pipeline_id,stage_id)',
   'CREATE INDEX IF NOT EXISTS idx_crm_pipelines_tenant ON crm_pipelines(tenant_id,active,is_default)',
-  'CREATE INDEX IF NOT EXISTS idx_crm_pipeline_stages_pipeline ON crm_pipeline_stages(tenant_id,pipeline_id,position)'
+  'CREATE INDEX IF NOT EXISTS idx_crm_pipeline_stages_pipeline ON crm_pipeline_stages(tenant_id,pipeline_id,position)',
+  'CREATE INDEX IF NOT EXISTS idx_crm_scoring_active ON crm_scoring_profiles(tenant_id,active,updated_at)',
+  'CREATE INDEX IF NOT EXISTS idx_crm_sequence_enrollments_due ON crm_sequence_enrollments(tenant_id,status,next_step_at)',
+  'CREATE INDEX IF NOT EXISTS idx_crm_sequence_enrollments_contact ON crm_sequence_enrollments(tenant_id,contact_id,status)',
+  'CREATE INDEX IF NOT EXISTS idx_crm_sequence_step_runs_enrollment ON crm_sequence_step_runs(tenant_id,enrollment_id,step_index)'
  ]){try{await env.DB.prepare(sql).run()}catch{}}
  try{
   const tenantRows=await env.DB.prepare("SELECT DISTINCT tenant_id FROM crm_contacts WHERE tenant_id IS NOT NULL AND tenant_id<>'' UNION SELECT DISTINCT tenant_id FROM crm_opportunities WHERE tenant_id IS NOT NULL AND tenant_id<>''").all();
@@ -181,6 +190,61 @@ async function crmAccounts(env,t){
 }
 async function crmStudio(env,t){return{accounts:await crmAccounts(env,t),pipelines:await crmPipelines(env,t)}}
 
+
+const CRM_DEFAULT_SCORE_RULES={
+ fit:{status_qualified:20,status_lead:8,email:8,phone:8,company:10,source:5,tag_each:2,tag_cap:9},
+ engagement:{activity_each:3,activity_cap:12,open_deal:10,recent_7d:20,recent_30d:10}
+};
+const CRM_DEFAULT_SCORE_THRESHOLDS={fit_high:35,fit_medium:20,engagement_high:25,engagement_medium:10};
+function crmScoreRules(raw){
+ const fit={...CRM_DEFAULT_SCORE_RULES.fit,...(raw?.fit||{})},engagement={...CRM_DEFAULT_SCORE_RULES.engagement,...(raw?.engagement||{})};
+ const clean=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,Math.max(-100,Math.min(100,Number(v)||0))]));
+ return{fit:clean(fit),engagement:clean(engagement)};
+}
+function crmScoreThresholds(raw){return{fit_high:Math.max(0,Number(raw?.fit_high??35)),fit_medium:Math.max(0,Number(raw?.fit_medium??20)),engagement_high:Math.max(0,Number(raw?.engagement_high??25)),engagement_medium:Math.max(0,Number(raw?.engagement_medium??10))}}
+async function ensureDefaultScoringProfile(env,t){
+ let row=await env.DB.prepare('SELECT * FROM crm_scoring_profiles WHERE tenant_id=? AND active=1 ORDER BY updated_at DESC LIMIT 1').bind(t).first();
+ if(!row){const sid=id(),ts=now();await env.DB.prepare('INSERT INTO crm_scoring_profiles(id,tenant_id,name,active,rules_json,thresholds_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)').bind(sid,t,'Magnanimous Fit + Engagement',1,JSON.stringify(CRM_DEFAULT_SCORE_RULES),JSON.stringify(CRM_DEFAULT_SCORE_THRESHOLDS),ts,ts).run();row=await env.DB.prepare('SELECT * FROM crm_scoring_profiles WHERE tenant_id=? AND id=?').bind(t,sid).first()}
+ return{...row,active:Boolean(row.active),rules:crmScoreRules(parse(row.rules_json,{})),thresholds:crmScoreThresholds(parse(row.thresholds_json,{}))};
+}
+const crmScoreGrade=(fit,engagement,thresholds)=>{const letter=fit>=thresholds.fit_high?'A':fit>=thresholds.fit_medium?'B':'C';const number=engagement>=thresholds.engagement_high?'1':engagement>=thresholds.engagement_medium?'2':'3';return letter+number};
+const crmSequenceDelaySeconds=(step)=>Math.max(0,Number(step?.delay_minutes||0)*60+Number(step?.delay_hours||0)*3600+Number(step?.delay_days||0)*86400);
+const CRM_SEQUENCE_CHANNELS=new Set(['email','sms','call','phone','whatsapp']);
+const crmSequenceChannel=(step)=>{const t=String(step?.channel||step?.type||'task').toLowerCase();return t==='phone'?'call':t};
+const crmSequencePermission=(preferences,channel)=>channel==='email'?preferences.email_status:channel==='sms'?preferences.sms_status:channel==='call'?preferences.phone_status:channel==='whatsapp'?preferences.whatsapp_status:'not_applicable';
+async function crmSequenceDefinition(env,t,sequenceId){const row=await env.DB.prepare('SELECT * FROM magnanimous_ops_sequences WHERE tenant_id=? AND id=?').bind(t,text(sequenceId,80)).first();return row?mapSequence(row):null}
+async function crmSequenceEnrollments(env,t,contactId=0){
+ let sql='SELECT e.*,s.name sequence_name FROM crm_sequence_enrollments e LEFT JOIN magnanimous_ops_sequences s ON s.id=e.sequence_id AND s.tenant_id=e.tenant_id WHERE e.tenant_id=?',args=[t];if(contactId){sql+=' AND e.contact_id=?';args.push(Number(contactId))}sql+=' ORDER BY e.updated_at DESC LIMIT 300';
+ const{results=[]}=await env.DB.prepare(sql).bind(...args).all();return results.map(r=>({...r,step_index:Number(r.step_index||0),next_step_at:r.next_step_at?Number(r.next_step_at):null,started_at:Number(r.started_at||0),updated_at:Number(r.updated_at||0),completed_at:r.completed_at?Number(r.completed_at):null}));
+}
+async function crmRunDueSequences(env,user,{limit=50}={}){
+ const t=tenant(user),ts=now(),cap=Math.min(100,Math.max(1,Number(limit)||50));
+ const{results=[]}=await env.DB.prepare("SELECT * FROM crm_sequence_enrollments WHERE tenant_id=? AND status='active' AND COALESCE(next_step_at,0)<=? ORDER BY next_step_at,started_at LIMIT ?").bind(t,ts,cap).all();
+ let advanced=0,blocked=0,completed=0,review_required=0;
+ for(const enrollment of results){
+  const sequence=await crmSequenceDefinition(env,t,enrollment.sequence_id),contact=await crmOwnedContact(env,t,enrollment.contact_id);
+  if(!sequence||!contact){await env.DB.prepare("UPDATE crm_sequence_enrollments SET status='blocked',updated_at=? WHERE tenant_id=? AND id=?").bind(ts,t,enrollment.id).run();blocked++;continue}
+  const steps=Array.isArray(sequence.steps)?sequence.steps:[],index=Number(enrollment.step_index||0),step=steps[index];
+  if(!step){await env.DB.prepare("UPDATE crm_sequence_enrollments SET status='completed',completed_at=?,updated_at=? WHERE tenant_id=? AND id=?").bind(ts,ts,t,enrollment.id).run();completed++;continue}
+  const preferences=await crmPreferences(env,t,enrollment.contact_id),channel=crmSequenceChannel(step),isCommunication=CRM_SEQUENCE_CHANNELS.has(channel),permission=crmSequencePermission(preferences,channel);
+  let status='ready',artifact={channel,title:text(step.title||step.subject||('Sequence '+channel),220),body:text(step.body||step.message||step.content,12000),permission};
+  if(preferences.do_not_contact||permission==='opted_out'){status='blocked';artifact={...artifact,reason:preferences.do_not_contact?'do_not_contact':'channel_opted_out'}}
+  else if(isCommunication&&!['opted_in','transactional','not_applicable'].includes(permission)){status='review_required';artifact={...artifact,reason:'permission_not_confirmed'}}
+  await env.DB.prepare('INSERT INTO crm_sequence_step_runs(tenant_id,enrollment_id,sequence_id,contact_id,step_index,step_type,status,artifact_json,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(t,enrollment.id,enrollment.sequence_id,Number(enrollment.contact_id),index,channel,status,JSON.stringify(artifact),ts).run();
+  if(status==='blocked'||status==='review_required'){
+   const title=status==='blocked'?'Sequence step blocked':'Review permission before sequence step';
+   await env.DB.prepare('INSERT INTO crm_activities(tenant_id,contact_id,type,title,body,due_at,completed,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(t,Number(enrollment.contact_id),'sequence_review',title,text((sequence.name||'Sequence')+' • '+channel+' • '+(artifact.body||artifact.title),12000),ts,0,ts).run();
+   await env.DB.prepare("UPDATE crm_sequence_enrollments SET status=?,updated_at=? WHERE tenant_id=? AND id=?").bind(status==='blocked'?'blocked':'paused',ts,t,enrollment.id).run();
+   if(status==='blocked')blocked++;else review_required++;continue;
+  }
+  const taskTitle=text(step.task_title||step.title||step.subject||('Sequence '+channel),220),taskBody=text(step.body||step.message||step.content,12000);
+  await env.DB.prepare('INSERT INTO crm_activities(tenant_id,contact_id,type,title,body,due_at,completed,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(t,Number(enrollment.contact_id),'sequence_'+channel,taskTitle,taskBody,ts,0,ts).run();
+  const nextIndex=index+1,nextStep=steps[nextIndex],nextAt=nextStep?ts+crmSequenceDelaySeconds(nextStep):null;
+  if(nextStep){await env.DB.prepare("UPDATE crm_sequence_enrollments SET step_index=?,next_step_at=?,updated_at=? WHERE tenant_id=? AND id=?").bind(nextIndex,nextAt,ts,t,enrollment.id).run();advanced++}
+  else{await env.DB.prepare("UPDATE crm_sequence_enrollments SET step_index=?,status='completed',next_step_at=NULL,completed_at=?,updated_at=? WHERE tenant_id=? AND id=?").bind(nextIndex,ts,ts,t,enrollment.id).run();completed++}
+ }
+ return{processed:results.length,advanced,blocked,review_required,completed};
+}
 const CRM_STAGE_PROBABILITY={new:10,qualified:25,discovery:35,demo:45,proposal:55,negotiation:75,contract:85,won:100,closed:100,lost:0};
 const CRM_CLOSED_STAGES=new Set(['won','lost','closed']);
 const crmContactName=(c)=>[c?.first_name,c?.last_name].filter(Boolean).join(' ').trim()||c?.company||('Contact '+String(c?.id||''));
@@ -190,22 +254,23 @@ function crmProbability(stage,value){
  if(Number.isFinite(n)&&n>0)return Math.max(0,Math.min(100,n));
  return CRM_STAGE_PROBABILITY[crmStage(stage)]??20;
 }
-function crmLeadScore(contact,{activityCount=0,dealCount=0,lastActivityAt=0}={}){
- let score=0;const reasons=[];
- const add=(points,reason)=>{score+=points;if(reason)reasons.push(reason)};
+function crmLeadScore(contact,{activityCount=0,dealCount=0,lastActivityAt=0}={},profile={rules:CRM_DEFAULT_SCORE_RULES,thresholds:CRM_DEFAULT_SCORE_THRESHOLDS}){
+ const rules=crmScoreRules(profile.rules),thresholds=crmScoreThresholds(profile.thresholds),reasons=[];let fit=0,engagement=0;
+ const add=(bucket,points,reason)=>{if(bucket==='fit')fit+=Number(points||0);else engagement+=Number(points||0);if(points&&reason)reasons.push(reason)};
  const status=String(contact?.status||'').toLowerCase();
- if(status==='qualified')add(25,'Qualified status');else if(status==='customer')add(35,'Existing customer');else if(status==='lead')add(12,'Active lead');
- if(contact?.email)add(12,'Email available');
- if(contact?.phone)add(12,'Phone available');
- if(contact?.company)add(8,'Company identified');
- if(contact?.source)add(5,'Lead source captured');
+ if(status==='qualified')add('fit',rules.fit.status_qualified,'Qualified status');else if(status==='lead')add('fit',rules.fit.status_lead,'Active lead');
+ if(contact?.email)add('fit',rules.fit.email,'Email available');
+ if(contact?.phone)add('fit',rules.fit.phone,'Phone available');
+ if(contact?.company)add('fit',rules.fit.company,'Company identified');
+ if(contact?.source)add('fit',rules.fit.source,'Lead source captured');
  const tags=Array.isArray(contact?.tags)?contact.tags:parse(contact?.tags,[]);
- if(tags.length)add(Math.min(10,tags.length*2),'Profile tags');
- if(activityCount)add(Math.min(12,activityCount*3),'Recorded engagement');
- if(dealCount)add(Math.min(10,dealCount*4),'Open opportunity');
+ if(tags.length)add('fit',Math.min(rules.fit.tag_cap,tags.length*rules.fit.tag_each),'Profile tags');
+ if(activityCount)add('engagement',Math.min(rules.engagement.activity_cap,activityCount*rules.engagement.activity_each),'Recorded engagement');
+ if(dealCount)add('engagement',rules.engagement.open_deal,'Open opportunity');
  const ts=Number(lastActivityAt||contact?.updated_at||contact?.created_at||0),age=ts?now()-ts:999999999;
- if(age<=7*86400)add(12,'Recent activity');else if(age<=30*86400)add(6,'Activity in last 30 days');
- return{score:Math.max(0,Math.min(100,Math.round(score))),reasons:reasons.slice(0,5)};
+ if(age<=7*86400)add('engagement',rules.engagement.recent_7d,'Recent activity');else if(age<=30*86400)add('engagement',rules.engagement.recent_30d,'Activity in last 30 days');
+ fit=Math.max(0,Math.min(60,Math.round(fit)));engagement=Math.max(0,Math.min(40,Math.round(engagement)));const score=Math.max(0,Math.min(100,fit+engagement));
+ return{score,fit_score:fit,engagement_score:engagement,grade:crmScoreGrade(fit,engagement,thresholds),reasons:reasons.slice(0,6)};
 }
 async function crmOwnedContact(env,t,contactId){return env.DB.prepare('SELECT * FROM crm_contacts WHERE tenant_id=? AND id=?').bind(t,Number(contactId)).first()}
 async function crmOwnedDeal(env,t,dealId){return env.DB.prepare('SELECT * FROM crm_opportunities WHERE tenant_id=? AND id=?').bind(t,Number(dealId)).first()}
@@ -263,7 +328,7 @@ async function crmContact360(env,user,contactId){
 }
 
 async function crmCommandCenter(env,user){
- const t=tenant(user),ts=now();
+ const t=tenant(user),ts=now(),scoringProfile=await ensureDefaultScoringProfile(env,t);
  const [{results:contactsRaw=[]},{results:dealsRaw=[]},{results:tasksRaw=[]},{results:preferencesRaw=[]},{results:pipelineStagesRaw=[]}]=await Promise.all([
   env.DB.prepare('SELECT * FROM crm_contacts WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 400').bind(t).all(),
   env.DB.prepare('SELECT * FROM crm_opportunities WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 400').bind(t).all(),
@@ -280,8 +345,8 @@ async function crmCommandCenter(env,user){
  for(const d of dealsRaw){const k=Number(d.contact_id);dealStats.set(k,(dealStats.get(k)||0)+1)}
  const lead_scores=contacts.map(contact=>{
   const a=activityStats.get(Number(contact.id))||{count:0,last:0};
-  const score=crmLeadScore(contact,{activityCount:a.count,dealCount:dealStats.get(Number(contact.id))||0,lastActivityAt:a.last});
-  const preferences=preferencesByContact.get(Number(contact.id))||crmDefaultPreferences(contact.id);return{id:Number(contact.id),name:crmContactName(contact),company:contact.company||'',status:contact.status||'',email:contact.email||'',phone:contact.phone||'',score:score.score,reasons:score.reasons,do_not_contact:Boolean(preferences.do_not_contact),consent:{email:preferences.email_status||'unknown',sms:preferences.sms_status||'unknown',phone:preferences.phone_status||'unknown'}};
+  const score=crmLeadScore(contact,{activityCount:a.count,dealCount:dealStats.get(Number(contact.id))||0,lastActivityAt:a.last},scoringProfile);
+  const preferences=preferencesByContact.get(Number(contact.id))||crmDefaultPreferences(contact.id);return{id:Number(contact.id),name:crmContactName(contact),company:contact.company||'',status:contact.status||'',email:contact.email||'',phone:contact.phone||'',score:score.score,fit_score:score.fit_score,engagement_score:score.engagement_score,grade:score.grade,reasons:score.reasons,do_not_contact:Boolean(preferences.do_not_contact),consent:{email:preferences.email_status||'unknown',sms:preferences.sms_status||'unknown',phone:preferences.phone_status||'unknown'}};
  }).sort((a,b)=>b.score-a.score).slice(0,50);
 
  const stageMap=new Map(),openDeals=[],staleDeals=[],riskDeals=[];let pipelineValue=0,weightedForecast=0;
@@ -315,6 +380,7 @@ async function crmCommandCenter(env,user){
 
  return{
   generated_at:ts,
+  scoring_profile:{id:scoringProfile.id,name:scoringProfile.name,rules:scoringProfile.rules,thresholds:scoringProfile.thresholds},
   metrics:{
    contacts:contacts.length,
    leads:contacts.filter(c=>['lead','qualified'].includes(String(c.status).toLowerCase())).length,
