@@ -182,7 +182,22 @@ const VERIFY_CRITERIA={
 'forms-surveys':['field schema saved','routing saved','label/accessibility review complete'],
 'community':['space/access rules saved','moderation plan saved','member experience reviewed'],
 'marketplace':['offer/license saved','pricing/terms saved','payment connection verified before sale'],
-'multilingual':['source meaning preserved','localized output saved','human/review step recorded']
+'multilingual':['source meaning preserved','localized output saved','human/review step recorded'],
+'podcast-studio':['episode structure saved','script/show notes saved','audio export not claimed without engine'],
+'campaign-accelerator':['audience/offer saved','multi-channel assets saved','measurement plan saved'],
+'movie-studio':['story/script saved','scene/shot plan saved','render result reviewed before completion'],
+'spokesperson-video':['script saved','likeness/voice consent requirements recorded','renderer connection verified before claiming finished presenter video'],
+'voiceover-studio':['narration script saved','voice direction/pronunciation saved','audio export verified before completion'],
+'personality-builder':['persona instructions saved','knowledge/tool boundaries saved','test conversations reviewed'],
+'aeo-funnels':['funnel flow saved','semantic/FAQ/schema plan saved','conversion measurement saved'],
+'audiobook-studio':['chapter segmentation saved','narration-ready text saved','audio/QC result verified before completion'],
+'music-generator':['music brief/project saved','rights status recorded','audio generation result verified before completion'],
+'deep-research':['research question saved','source-backed findings preserved','uncertainty/confidence reviewed'],
+'personalized-image-lab':['reference rights/consent recorded','training/generation plan saved','model training not claimed without engine evidence'],
+'humanizer':['meaning preserved','facts/names/numbers preserved','naturalness review completed'],
+'knowledge-base':['sources/notes structured','retrieval metadata saved','update/delete path reviewed'],
+'logo-maker':['brand brief saved','original logo concepts generated','distinctiveness/accessibility review completed'],
+'licensed-image-library':['license metadata required','usage scope recorded','unverified third-party rights never claimed']
 };
 const PLAYBOOKS={
 'video-ads':['Define audience and offer','Write hook/script/CTA','Create scene and asset brief','Route to Video Studio','Review and publish'],
@@ -213,7 +228,22 @@ const PLAYBOOKS={
 'forms-surveys':['Define questions and fields','Create form schema','Set routing/automation','Analyze responses'],
 'community':['Define audience and access','Create spaces/topics','Create onboarding/content cadence','Moderate and measure'],
 'marketplace':['Define original/authorized offer','Package deliverables and license','Set pricing/terms','Publish catalog item'],
-'multilingual':['Identify source meaning and audience','Translate/localize','Preserve brand/legal terms','Review before publish']
+'multilingual':['Identify source meaning and audience','Translate/localize','Preserve brand/legal terms','Review before publish'],
+'podcast-studio':['Define audience and episode goal','Build episode structure','Write host dialogue/script and show notes','Route to podcast audio engine','Review transcript and audio'],
+'campaign-accelerator':['Define audience, offer and objective','Build channel strategy','Create campaign asset set','Prepare launch/automation connections','Measure and iterate'],
+'movie-studio':['Define story and audience','Write screenplay/script','Build scene and shot plan','Route to Cinema Engine','Review finished render'],
+'spokesperson-video':['Define presenter purpose and audience','Write presenter script','Confirm avatar/voice rights and consent','Route to presenter renderer','Review captions and output'],
+'voiceover-studio':['Define voice, tone and duration','Write narration-ready script','Add pronunciation and timing notes','Route to voice engine','Review audio and transcript'],
+'personality-builder':['Define role and audience','Write system behavior and boundaries','Attach authorized knowledge/tools','Test representative conversations','Publish personality'],
+'aeo-funnels':['Map visitor intent and answer-engine questions','Design funnel/page structure','Write semantic copy, FAQs and schema plan','Publish/test funnel','Measure conversion and discovery'],
+'audiobook-studio':['Prepare manuscript and rights','Segment chapters and narration','Add pronunciation/voice direction','Route to audiobook audio engine','Perform chapter and metadata QC'],
+'music-generator':['Define musical brief and rights','Create Music Studio project','Prepare lyrics/structure/instrumentation','Generate through configured music engine','Review and export'],
+'deep-research':['Define research question','Search current and saved sources','Synthesize evidence and uncertainty','Save durable evidence','Review conclusions and gaps'],
+'personalized-image-lab':['Confirm subject rights and consent','Prepare reference set requirements','Define training/style objectives','Route to personalized image engine','Test outputs for identity/quality/privacy'],
+'humanizer':['Identify audience and intended voice','Preserve facts and required wording','Rewrite for natural flow','Check tone and clarity','Review final text'],
+'knowledge-base':['Collect authorized sources and notes','Ingest and structure knowledge','Tag and organize retrieval metadata','Test retrieval questions','Maintain, update or delete sources'],
+'logo-maker':['Define brand brief and constraints','Generate original logo directions','Route selected directions to image generation','Review distinctiveness and accessibility','Prepare final usage guidance'],
+'licensed-image-library':['Identify lawful image sources','Record license/attribution/territory/expiry','Ingest metadata and tags','Organize by campaign/project','Review rights before reuse']
 };
 function planFor(id,input){const steps=PLAYBOOKS[id]||['Understand goal','Plan','Execute with Magnanimous tools','Verify'];return{tool_id:id,goal:txt(input?.goal||'',1000),steps:steps.map((name,index)=>({index:index+1,name,status:'planned'})),orchestrator:'Magnanimous AI',provider_policy:'native-first; authorized replaceable infrastructure only when needed',verification_criteria:VERIFY_CRITERIA[id]||['output saved','execution reviewed','evidence recorded'],verification:'Evidence and action receipts required before claiming completion'}}
 const externalFor=id=>(CAPABILITY_ROUTES[id]?.dependencies||[]).filter(x=>String(x).endsWith('-external'));
