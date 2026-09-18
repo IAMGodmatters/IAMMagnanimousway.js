@@ -1,5 +1,6 @@
 import { creditWallet } from './usage-guard.js';
 import { parsePaymentReference } from './payment-reference.js';
+import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
@@ -7,6 +8,7 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 const ACTIVE=new Set(['active']);
 const PLANS=new Set(['plus','scale']);
 const PLAN_ALIAS={business:'plus',pro:'plus'};
+const AGENCY_PLANS=new Set(['agency','agency_pro']);
 
 async function hmacHex(secret,value){const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);const out=await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(value));return[...new Uint8Array(out)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function safeEqual(a,b){a=String(a||'');b=String(b||'');if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0}
@@ -46,6 +48,7 @@ async function authorizeProviderSpend(env,tenantId,referenceId,purpose,amount=0)
  await env.DB.prepare('INSERT OR IGNORE INTO provider_funding_authorizations(tenant_id,reference_id,purpose,status,amount_usd,created_at) VALUES(?,?,?,?,?,?)').bind(String(tenantId),String(referenceId),String(purpose||'paid-feature'),'authorized',Math.max(0,Number(amount||0)),now()).run();
 }
 async function processPaidCheckout(env,event,object){
+ const metadataRawPlan=String(object?.metadata?.plan||'').toLowerCase();if(AGENCY_PLANS.has(metadataRawPlan))return;
  const paymentReference=parsePaymentReference(object?.client_reference_id);
  const metadataPurpose=String(object?.metadata?.purpose||'').toLowerCase();
  const purpose=paymentReference.kind==='topup'?'premium_usage_topup':metadataPurpose;
@@ -74,8 +77,9 @@ async function processEvent(env,event){
   const tenantId=await resolveTenant(env,object);if(tenantId)await save(env,tenantId,{plan:'free',status:'payment_failed'});return;
  }
  if(['customer.subscription.created','customer.subscription.updated','customer.subscription.deleted'].includes(type)){
+  const metadataPlan=String(object?.metadata?.plan||'').toLowerCase();if(AGENCY_PLANS.has(metadataPlan))return;
   const tenantId=await resolveTenant(env,object);if(!tenantId)return;
-  const old=await env.DB.prepare('SELECT plan FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first();
+  const old=await env.DB.prepare('SELECT plan FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first();if(AGENCY_PLANS.has(String(old?.plan||'').toLowerCase()))return;
   const detected=pricePlan(env,object)||String(object?.metadata?.plan||old?.plan||'business').toLowerCase();
   const canonical=PLAN_ALIAS[detected]||detected,desired=PLANS.has(canonical)?canonical:'plus',status=String(object.status||(type.endsWith('.deleted')?'canceled':'inactive'));
   const active=ACTIVE.has(status)&&!type.endsWith('.deleted');
@@ -97,13 +101,13 @@ async function processEvent(env,event){
 
 export async function handleHardenedStripeWebhook(request,env){
  const url=new URL(request.url);if(url.pathname!=='/api/billing/webhook'||request.method!=='POST')return null;
- const secret=String(env.STRIPE_WEBHOOK_SECRET||'').trim();if(!secret)return null;
- await ensureSchema(env);const raw=await request.text(),signature=request.headers.get('stripe-signature')||'';
+ const runtimeEnv=await getProviderRuntimeEnv(env),secret=String(runtimeEnv.STRIPE_WEBHOOK_SECRET||'').trim();if(!secret)return json({detail:'Stripe webhook verification is not configured.'},503);
+ await ensureSchema(runtimeEnv);const raw=await request.text(),signature=request.headers.get('stripe-signature')||'';
  if(!await verify(raw,signature,secret))return json({detail:'Invalid Stripe webhook signature.'},401);
  let event;try{event=JSON.parse(raw)}catch{return json({detail:'Invalid Stripe webhook payload.'},400)}
  const id=String(event?.id||'');if(!id)return json({detail:'Stripe event id is required.'},400);
- if(await env.DB.prepare('SELECT event_id FROM billing_webhook_events WHERE event_id=?').bind(id).first())return json({received:true,duplicate:true});
- await processEvent(env,event);
- await env.DB.prepare('INSERT INTO billing_webhook_events(event_id,event_type,processed_at) VALUES(?,?,?)').bind(id,String(event?.type||''),now()).run();
+ if(await runtimeEnv.DB.prepare('SELECT event_id FROM billing_webhook_events WHERE event_id=?').bind(id).first())return json({received:true,duplicate:true});
+ await processEvent(runtimeEnv,event);
+ await runtimeEnv.DB.prepare('INSERT INTO billing_webhook_events(event_id,event_type,processed_at) VALUES(?,?,?)').bind(id,String(event?.type||''),now()).run();
  return json({received:true,hardened:true,automatic_fulfillment:true,provider_billing_owner:'I AM Magnanimous Way'});
 }
