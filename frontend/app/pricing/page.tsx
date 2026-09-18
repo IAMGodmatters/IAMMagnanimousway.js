@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import {getPlatformAuthToken} from '../lib/magnanimous-session';
+import {PremiumAgreementConsent} from '../../components/PremiumAgreementConsent';
 
 type Entitlements={metered_ai?:boolean;pstn_minutes?:number;avatar_minutes?:number;premium_video_credits?:number;cost_ceiling_usd?:number};
 type Plan={id:string;name:string;price_usd:number;cadence:string;primary?:boolean;description:string;features:string[];note?:string;checkout_configured?:boolean;checkout_mode?:string;entitlements?:Entitlements};
@@ -10,7 +11,7 @@ async function read(r:Response){const text=await r.text();try{return JSON.parse(
 
 export default function PricingPage(){
  const[plans,setPlans]=useState<Plan[]>([]),[currentPlan,setCurrentPlan]=useState('free'),[portalReady,setPortalReady]=useState(false),[busy,setBusy]=useState(''),[message,setMessage]=useState(''),[usage,setUsage]=useState<Usage|null>(null);
- const[token,setToken]=useState('');
+ const[token,setToken]=useState(''),[termsAccepted,setTermsAccepted]=useState(false);
  useEffect(()=>{
   const t=getPlatformAuthToken();setToken(t);
   fetch(`${api}/api/plans`,{cache:'no-store'}).then(read).then(d=>setPlans((d.plans||[]).filter((p:Plan)=>!p.id.startsWith('agency')))).catch(()=>{});
@@ -23,8 +24,9 @@ export default function PricingPage(){
   }else{if(state==='cancelled')setMessage('Checkout was cancelled. Your current access is unchanged.');load()}
  },[]);
  async function checkout(plan:string){
+  if(!termsAccepted){setMessage('Please agree to the Premium Services Agreement before continuing to payment.');return}
   if(!token){location.href='/login?returnTo=%2Fpricing';return}setBusy(plan);setMessage('');
-  try{const r=await fetch(`${api}/api/billing/checkout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({plan})});const d=await read(r);if(r.status===409&&d.code==='ACTIVE_SUBSCRIPTION_EXISTS'){setMessage(d.detail||'You already have an active subscription. Use Manage subscription to change it.');setBusy('');return}if(!r.ok)throw new Error(d.detail||'Checkout could not start.');if(!d.url)throw new Error('Stripe did not return a checkout page.');location.href=d.url}catch(e:any){setMessage(e?.message||'Checkout could not start.');setBusy('')}
+  try{const r=await fetch(`${api}/api/billing/checkout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({plan,termsAccepted:true,termsVersion:'2026-09-18.1'})});const d=await read(r);if(r.status===409&&d.code==='ACTIVE_SUBSCRIPTION_EXISTS'){setMessage(d.detail||'You already have an active subscription. Use Manage subscription to change it.');setBusy('');return}if(!r.ok)throw new Error(d.detail||'Checkout could not start.');if(!d.url)throw new Error('Stripe did not return a checkout page.');location.href=d.url}catch(e:any){setMessage(e?.message||'Checkout could not start.');setBusy('')}
  }
  async function manage(){
   if(!token){location.href='/login?returnTo=%2Fpricing';return}setBusy('portal');
@@ -43,12 +45,13 @@ export default function PricingPage(){
   <section className="finance"><div><small>RECOMMENDED COMPLETE PLAN</small><strong>Magnanimous Pro • $99/month</strong></div><div><small>REGULAR PLAN RANGE</small><strong>Free through Scale • $0–$199/month</strong></div><div><small>ADDITIONAL USAGE</small><strong>Runs only with customer-funded prepaid credits</strong></div></section>
   {message&&<div className="message" role="status">{message}</div>}
   {token&&usage&&<section className="usage"><div><small>CURRENT PLAN</small><strong>{shown.find(p=>p.id===currentPlan)?.name||currentPlan}</strong></div><div><small>PREMIUM VARIABLE-COST ALLOWANCE</small><strong>{ceiling>0?`$${used.toFixed(2)} used • $${remaining.toFixed(2)} remaining`:'Free-first only'}</strong>{ceiling>0&&<span><i style={{width:`${pct}%`}}/></span>}</div><div><small>PREMIUM STATUS</small><strong>{usage.premium_usage_allowed?'Available within allowance':'Free-first routing active'}</strong></div></section>}
+  <PremiumAgreementConsent checked={termsAccepted} onChange={setTermsAccepted} recurring={true}/>
   <section className="plans">{shown.map(p=><article key={p.id} className={`${p.id===currentPlan?'active ':''}${p.id==='pro'?'recommended':''}`}>
    <div className="top"><div><small>{p.id==='pro'?'RECOMMENDED':p.primary?'FREE-FIRST':'PAID TIER'}</small><h2>{p.name}</h2></div>{p.id===currentPlan&&<b>CURRENT</b>}</div>
    <div className="price"><strong>${p.price_usd}</strong><span>{p.price_usd?'/month':'forever'}</span></div><p>{p.id==='pro'?'Recommended complete plan with protected premium usage and prepaid-only overage.':p.description}</p>
    <ul>{p.features.map(f=><li key={f}>✓ {f}</li>)}{p.id==='pro'&&<li>✓ Premium overage cannot silently become owner-funded usage</li>}</ul>
    {p.entitlements&&p.price_usd>0&&<div className="limits"><b>Included premium limits</b><span>AI routing: {p.entitlements.metered_ai?'premium eligible':'free-first'}</span><span>Carrier calling: {p.entitlements.pstn_minutes||0} min</span><span>Avatar generation: {p.entitlements.avatar_minutes||0} min</span><span>Premium video credits: {p.entitlements.premium_video_credits||0}</span><span>Additional provider usage requires prepaid credits</span></div>}
-   {p.id==='free'?<a className="button ghost full" href="/signup">Keep it free</a>:p.id===currentPlan?<button className="button full" onClick={manage} disabled={busy==='portal'||!portalReady}>{busy==='portal'?'Opening…':portalReady?'Manage subscription':'Billing management available through support'}</button>:<button className="button full" onClick={()=>checkout(p.id)} disabled={!!busy||p.checkout_configured===false}>{busy===p.id?'Opening Stripe…':p.checkout_configured===false?'Checkout setup pending':p.id==='pro'?'Choose recommended Pro':`Choose ${p.name}`}</button>}
+   {p.id==='free'?<a className="button ghost full" href="/signup">Keep it free</a>:p.id===currentPlan?<button className="button full" onClick={manage} disabled={busy==='portal'||!portalReady}>{busy==='portal'?'Opening…':portalReady?'Manage subscription':'Billing management available through support'}</button>:<button className="button full" onClick={()=>checkout(p.id)} disabled={!!busy||p.checkout_configured===false||!termsAccepted}>{busy===p.id?'Opening Stripe…':p.checkout_configured===false?'Checkout setup pending':p.id==='pro'?'Choose recommended Pro':`Choose ${p.name}`}</button>}
   </article>)}</section>
   <section className="rules"><div><b>FREE-FIRST</b><p>Start with core AI, creator workspaces, CRM, and browser tools without a subscription.</p></div><div><b>WHITE LABEL IS SEPARATE</b><p>Need your own branded client platform, funnels, agency automation and rebilling? Open White Label to preview the apps and see its plans.</p><a href="/white-label">Open White Label →</a></div><div><b>YOU STAY IN CONTROL</b><p>Extra variable-cost usage requires customer-funded prepaid credits. Provider availability and separate provider terms can still apply.</p></div></section>
   <footer><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/billing-support">Billing support</a><a href="/business-plan">Professional Business Plan</a><a href="/white-label">White Label</a></footer>
