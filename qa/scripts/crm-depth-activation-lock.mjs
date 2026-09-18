@@ -14,6 +14,7 @@ has(runtime,'communicationPlan','contact-timezone communication planning exists'
 has(runtime,'do_not_contact','communication plan exposes DNC state');
 has(runtime,'approval_status','quote approval state exists');
 has(runtime,'multi-touch-observed','attribution labels observed multi-touch data');
+has(migration,'CREATE TABLE IF NOT EXISTS crm_contact_preferences','CRM depth migration creates its communication-preferences prerequisite');
 has(migration,'local_timezone','contact timezone storage is migrated');
 has(migration,'quiet_hours_json','quiet-hours storage is migrated');
 has(ui,'Depth Activation Center','advanced CRM UI exists');
