@@ -246,7 +246,7 @@ export async function handleNativeWorkCrm(request,env){
  if(crmMatch&&request.method==='PUT'){
   const dealId=Number(crmMatch[1]),cur=await crmOwnedDeal(env,t,dealId);if(!cur)return json({detail:'Deal not found.'},404);
   const contactId=body.contact_id===undefined?Number(cur.contact_id||0):Number(body.contact_id||0);if(contactId&&!await crmOwnedContact(env,t,contactId))return json({detail:'Contact not found in this workspace.'},404);
-  const stage=body.stage===undefined?crmStage(cur.stage):crmStage(body.stage),probability=body.probability===undefined?crmProbability(stage,cur.probability):crmProbability(stage,body.probability);
+  const stage=body.stage===undefined?crmStage(cur.stage):crmStage(body.stage),stageChanged=body.stage!==undefined&&stage!==crmStage(cur.stage),probability=body.probability===undefined?(stageChanged?crmProbability(stage,0):crmProbability(stage,cur.probability)):crmProbability(stage,body.probability);
   await env.DB.prepare('UPDATE crm_opportunities SET contact_id=?,name=?,stage=?,value=?,probability=?,expected_close_at=?,notes=?,updated_at=? WHERE tenant_id=? AND id=?').bind(contactId||null,body.name===undefined?cur.name:text(body.name,220),stage,body.value===undefined?Number(cur.value||0):Math.max(0,Number(body.value||0)),probability,body.expected_close_at===undefined?cur.expected_close_at:(body.expected_close_at?Number(body.expected_close_at):null),body.notes===undefined?cur.notes:text(body.notes,12000),now(),t,dealId).run();
   await log(env,user,'crm_deal_updated',{detail:{deal_id:dealId,stage,probability}});return json({item:await crmOwnedDeal(env,t,dealId)});
  }
