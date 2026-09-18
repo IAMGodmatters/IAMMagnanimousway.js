@@ -60,7 +60,7 @@ must(automation.includes('TRIGGERS=new Set')&&automation.includes('ACTIONS=new S
 must(agency.includes('BOOKING_CONFLICT')&&agency.includes("start_at<? AND end_at>?"),'Booking API must prevent overlapping active appointments for the same client.');
 for(const phrase of ['Booking status must be booked, completed, or cancelled.','Funnel status must be draft, active, or paused.','Usage status must be unbilled, invoiced, paid, or void.'])must(agency.includes(phrase),'Agency lifecycle validation missing: '+phrase);
 must(agency.includes("Math.max(0,Number(b.cost_usd||0))")&&agency.includes("Math.max(0,Number(b.units||0))"),'Usage rebilling must reject negative economics at the server boundary.');
-must(agencyUi.includes('does not charge a client card by itself')&&agencyUi.includes('accounting states only'),'Usage rebilling UI must explain that its ledger does not execute a payment.');
+must(agencyUi.includes('connected Stripe account is the merchant')&&agencyUi.includes('Create Stripe payment link'),'Usage rebilling UI must separate ledger creation from explicit connected-account card collection.');
 
 for(const overclaim of ['Proposals + eSign','Projects + Tasks','installable-app path'])must(!wl.includes(overclaim),'White Label still overclaims an unimplemented capability: '+overclaim);
 must(os.includes("analytics:'/agency-command?tab=command'"),'Agency Overview must not route ordinary Agency customers into platform-owner operations.');
