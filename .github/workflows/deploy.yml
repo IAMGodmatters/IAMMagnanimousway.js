@@ -66,6 +66,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_CONNECT_CLIENT_ID: ${{ secrets.STRIPE_CONNECT_CLIENT_ID }}
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
@@ -101,6 +102,7 @@ jobs:
           }
           sync_secret STRIPE_SECRET_KEY "$STRIPE_SECRET_KEY"
           sync_secret STRIPE_WEBHOOK_SECRET "$STRIPE_WEBHOOK_SECRET"
+          sync_secret STRIPE_CONNECT_CLIENT_ID "$STRIPE_CONNECT_CLIENT_ID"
           sync_secret TWILIO_ACCOUNT_SID "$TWILIO_ACCOUNT_SID"
           sync_secret TWILIO_AUTH_TOKEN "$TWILIO_AUTH_TOKEN"
           sync_secret TWILIO_PHONE_NUMBER "$TWILIO_PHONE_NUMBER"
