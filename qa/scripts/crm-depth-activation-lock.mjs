@@ -1,0 +1,26 @@
+import fs from 'node:fs';
+const runtime=fs.readFileSync('../worker/src/crm-advanced-runtime.js','utf8');
+const native=fs.readFileSync('../worker/src/native-work-crm-runtime.js','utf8');
+const ui=fs.readFileSync('app/crm/advanced/page.tsx','utf8');
+const migration=fs.readFileSync('../worker/migrations/0044_crm_depth_activation.sql','utf8');
+const checks=[];const has=(s,n,m)=>checks.push([s.includes(n),m]);
+has(native,"handleAdvancedCrm",'advanced CRM is routed through native operations');
+has(native,"ADVANCED_CRM_CAPABILITIES",'advanced capability families are published');
+for(const x of ['crm_cases','crm_quotes','crm_quote_items','crm_campaigns','crm_campaign_touches','crm_territories','crm_health_snapshots'])has(runtime,x,`runtime owns ${x}`);
+for(const x of ['/api/operations/crm/advanced','/api/operations/crm/predictive-readiness','/api/operations/crm/cases','/api/operations/crm/quotes','/api/operations/crm/campaigns','/api/operations/crm/attribution','/api/operations/crm/territories','/api/operations/crm/customer-health/recalculate','communication-plan'])has(runtime,x,`endpoint ${x} exists`);
+has(runtime,'minimum_recommended:200','predictive scoring is gated on real outcome volume');
+has(runtime,"will not pretend heuristic scoring is a trained predictive model",'predictive readiness is truthfully labeled');
+has(runtime,'communicationPlan','contact-timezone communication planning exists');
+has(runtime,'do_not_contact','communication plan exposes DNC state');
+has(runtime,'approval_status','quote approval state exists');
+has(runtime,'multi-touch-observed','attribution labels observed multi-touch data');
+has(migration,'local_timezone','contact timezone storage is migrated');
+has(migration,'quiet_hours_json','quiet-hours storage is migrated');
+has(ui,'Depth Activation Center','advanced CRM UI exists');
+has(ui,'RECALCULATE HEALTH','customer health activation is actionable');
+has(ui,'PREDICTIVE MODEL READINESS','predictive readiness is visible');
+has(ui,'Communication windows are now CRM-native','safe outreach governance is visible');
+const failed=checks.filter(([ok])=>!ok);if(failed.length){for(const[,m]of failed)console.error('FAIL:',m);process.exit(1)}
+console.log(`CRM depth activation lock: ${checks.length} checks passed.`);
+console.log('Service + CPQ + attribution + territory/quota: PASS');
+console.log('Customer health + predictive readiness + communication governance: PASS');

@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { handleAdvancedCrm, ADVANCED_CRM_CAPABILITIES } from './crm-advanced-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -36,6 +37,7 @@ export const NATIVE_OPERATIONS_CAPABILITIES=[
  {id:'multi-pipeline',name:'Multiple configurable sales pipelines and stage probabilities',native:true},
  {id:'configurable-scoring',name:'Configurable fit, engagement & combined scoring profiles',native:true},
  {id:'sequence-engine',name:'Consent-aware multi-touch sequences with reply stop goals',native:true,bridge:'CRM tasks + Unified Inbox'},
+ ...ADVANCED_CRM_CAPABILITIES.map(x=>({...x,native:true})),
 ];
 
 async function ensureSchema(env){
@@ -297,11 +299,11 @@ async function crmOwnedTask(env,t,taskId){return env.DB.prepare('SELECT * FROM c
 
 const CRM_CONSENT_STATUSES=new Set(['unknown','opted_in','opted_out','transactional','not_applicable']);
 const crmConsentStatus=(v)=>CRM_CONSENT_STATUSES.has(String(v||'').toLowerCase())?String(v).toLowerCase():'unknown';
-const crmDefaultPreferences=(contactId)=>({contact_id:Number(contactId),email_status:'unknown',sms_status:'unknown',phone_status:'unknown',whatsapp_status:'unknown',do_not_contact:false,lawful_basis:'',consent_source:'',consent_note:'',updated_at:0});
+const crmDefaultPreferences=(contactId)=>({contact_id:Number(contactId),email_status:'unknown',sms_status:'unknown',phone_status:'unknown',whatsapp_status:'unknown',do_not_contact:false,lawful_basis:'',consent_source:'',consent_note:'',local_timezone:'',quiet_hours:{},updated_at:0});
 async function crmPreferences(env,t,contactId){
  try{
   const row=await env.DB.prepare('SELECT * FROM crm_contact_preferences WHERE tenant_id=? AND contact_id=?').bind(t,Number(contactId)).first();
-  return row?{...row,contact_id:Number(row.contact_id),do_not_contact:Boolean(row.do_not_contact),updated_at:Number(row.updated_at||0)}:crmDefaultPreferences(contactId);
+  return row?{...row,contact_id:Number(row.contact_id),do_not_contact:Boolean(row.do_not_contact),quiet_hours:parse(row.quiet_hours_json,{}),updated_at:Number(row.updated_at||0)}:crmDefaultPreferences(contactId);
  }catch{return crmDefaultPreferences(contactId)}
 }
 async function saveCrmPreferences(env,t,contactId,body){
@@ -314,9 +316,11 @@ async function saveCrmPreferences(env,t,contactId,body){
   do_not_contact:body.do_not_contact===undefined?Boolean(current.do_not_contact):Boolean(body.do_not_contact),
   lawful_basis:body.lawful_basis===undefined?current.lawful_basis:text(body.lawful_basis,160),
   consent_source:body.consent_source===undefined?current.consent_source:text(body.consent_source,200),
-  consent_note:body.consent_note===undefined?current.consent_note:text(body.consent_note,4000)
+  consent_note:body.consent_note===undefined?current.consent_note:text(body.consent_note,4000),
+  local_timezone:body.local_timezone===undefined?text(current.local_timezone,80):text(body.local_timezone,80),
+  quiet_hours:body.quiet_hours===undefined?(current.quiet_hours||{}):(body.quiet_hours||{})
  };
- await env.DB.prepare('INSERT INTO crm_contact_preferences(tenant_id,contact_id,email_status,sms_status,phone_status,whatsapp_status,do_not_contact,lawful_basis,consent_source,consent_note,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,contact_id) DO UPDATE SET email_status=excluded.email_status,sms_status=excluded.sms_status,phone_status=excluded.phone_status,whatsapp_status=excluded.whatsapp_status,do_not_contact=excluded.do_not_contact,lawful_basis=excluded.lawful_basis,consent_source=excluded.consent_source,consent_note=excluded.consent_note,updated_at=excluded.updated_at').bind(t,Number(contactId),next.email_status,next.sms_status,next.phone_status,next.whatsapp_status,next.do_not_contact?1:0,next.lawful_basis,next.consent_source,next.consent_note,ts).run();
+ await env.DB.prepare('INSERT INTO crm_contact_preferences(tenant_id,contact_id,email_status,sms_status,phone_status,whatsapp_status,do_not_contact,lawful_basis,consent_source,consent_note,local_timezone,quiet_hours_json,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,contact_id) DO UPDATE SET email_status=excluded.email_status,sms_status=excluded.sms_status,phone_status=excluded.phone_status,whatsapp_status=excluded.whatsapp_status,do_not_contact=excluded.do_not_contact,lawful_basis=excluded.lawful_basis,consent_source=excluded.consent_source,consent_note=excluded.consent_note,local_timezone=excluded.local_timezone,quiet_hours_json=excluded.quiet_hours_json,updated_at=excluded.updated_at').bind(t,Number(contactId),next.email_status,next.sms_status,next.phone_status,next.whatsapp_status,next.do_not_contact?1:0,next.lawful_basis,next.consent_source,next.consent_note,next.local_timezone,JSON.stringify(next.quiet_hours).slice(0,4000),ts).run();
  return crmPreferences(env,t,contactId);
 }
 async function crmContact360(env,user,contactId){
@@ -430,6 +434,7 @@ export async function handleNativeWorkCrm(request,env){
  if(url.pathname==='/api/operations/capabilities'&&request.method==='GET')return json({identity:'Magnanimous AI',native:true,capabilities:NATIVE_OPERATIONS_CAPABILITIES});
  await ensureSchema(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);const t=tenant(user);if(!t)return json({detail:'Tenant context required.'},403);
  let body={};if(!['GET','DELETE'].includes(request.method)){try{body=await request.json()}catch{return json({detail:'Valid JSON body required.'},400)}}
+ const advancedCrmResponse=await handleAdvancedCrm(request,env,user,body);if(advancedCrmResponse)return advancedCrmResponse;
 
 
 
