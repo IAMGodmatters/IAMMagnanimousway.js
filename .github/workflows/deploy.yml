@@ -290,6 +290,8 @@ jobs:
                 "DELETE FROM unified_inbox_audit WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM unified_inbox_messages WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM unified_inbox_threads WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM media_library_assets WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM data_studio_workbooks WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM magnanimous_business_ai_jobs WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM magnanimous_work_steps WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM magnanimous_work_items WHERE tenant_id='${tenant_id}';"
@@ -368,14 +370,14 @@ jobs:
           tools=d.get('tools') or []
           ids=[x.get('id') for x in tools]
           assert d.get('brain') == 'Magnanimous AI', d
-          assert len(tools) == 44 and len(set(ids)) == 44, ids
-          assert all(x in ids for x in ['asset-library','hyper-images','app-wizard','crm','podcast-studio','movie-studio','spokesperson-video','voiceover-studio','music-generator','deep-research','web-chat-wizard','precision-image-model','knowledge-base','logo-maker']), ids
+          assert len(tools) == 47 and len(set(ids)) == 47, ids
+          assert all(x in ids for x in ['asset-library','hyper-images','app-wizard','crm','podcast-studio','movie-studio','spokesperson-video','voiceover-studio','music-generator','deep-research','web-chat-wizard','precision-image-model','knowledge-base','logo-maker','accounting-books','data-studio','open-media-library']), ids
           assert all(x.get('surface') for x in tools), tools
           assert all(isinstance(x.get('dependencies'),list) for x in tools), tools
           assert d.get('truth_boundary'), d
           text=json.dumps(d).lower()
           assert 'deal.ai' not in text and 'deal ai' not in text, d
-          print('Business AI live catalog exposes 44 independent Magnanimous capabilities.')
+          print('Business AI live catalog exposes 47 independent Magnanimous capabilities.')
           PY
 
           status=$(curl -sS -o /tmp/business-ai-job.json -w '%{http_code}' -X POST "$BASE_URL/api/business-ai/jobs" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"tool_id":"sticky-notes","title":"Deployment Business AI Smoke","input":{"goal":"Create a safe deployment verification note without performing an external action."}}')
@@ -407,6 +409,38 @@ jobs:
           assert verification.get('workflow_complete') is False, d
           assert verification.get('status') == 'not_verified', d
           assert verification.get('action_ready') is False, d
+          PY
+
+          status=$(curl -sS -o /tmp/data-studio-create.json -w '%{http_code}' -X POST "$BASE_URL/api/data-studio/workbooks" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"title":"Deployment Data Smoke","columns":["Name","Value"],"rows":[["Alpha","10"],["Beta","20"]],"visibility":"private"}')
+          if [ "$status" != "201" ]; then echo "Data Studio create returned HTTP $status"; cat /tmp/data-studio-create.json || true; exit 1; fi
+          data_workbook_id=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/data-studio-create.json'))
+          w=d.get('workbook') or {}
+          assert w.get('id'), d
+          assert w.get('columns') == ['Name','Value'], d
+          assert len(w.get('rows') or []) == 2, d
+          print(w['id'])
+          PY
+          )
+          status=$(curl -sS -o /tmp/data-studio-summary.json -w '%{http_code}' "$BASE_URL/api/data-studio/workbooks/$data_workbook_id/summary" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Data Studio summary returned HTTP $status"; cat /tmp/data-studio-summary.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/data-studio-summary.json'))
+          assert d.get('row_count') == 2 and d.get('column_count') == 2, d
+          cols=d.get('columns') or []
+          assert any(x.get('name')=='Value' and x.get('numeric_count')==2 for x in cols), d
+          print('Data Studio live workbook persistence and summary passed.')
+          PY
+
+          status=$(curl -sS -o /tmp/media-library.json -w '%{http_code}' "$BASE_URL/api/media-library/assets" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Media Library saved-assets endpoint returned HTTP $status"; cat /tmp/media-library.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/media-library.json'))
+          assert isinstance(d.get('assets'),list), d
+          print('Media Library authenticated rights-ledger endpoint passed.')
           PY
 
           verify_status=$(curl -sS -o /tmp/business-ai-verify.json -w '%{http_code}' -X POST "$BASE_URL/api/business-ai/jobs/$business_ai_job_id/verify" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{}')
@@ -478,10 +512,10 @@ jobs:
           import json
           d=json.load(open('/tmp/client-apps.json'))
           apps=d.get('apps') or []
-          assert len(apps) == 55, d
-          assert d.get('catalog_count') == 55, d
+          assert len(apps) == 58, d
+          assert d.get('catalog_count') == 58, d
           ids={app.get('app_id') for app in apps}
-          assert 'business-ai:podcast-studio' in ids and 'business-ai:deep-research' in ids and 'business-ai:logo-maker' in ids, ids
+          assert all(x in ids for x in ['business-ai:podcast-studio','business-ai:deep-research','business-ai:logo-maker','business-ai:accounting-books','business-ai:data-studio','business-ai:open-media-library']), ids
           assert d.get('authorization_boundary'), d
           for app in apps:
               app['enabled']=app['app_id'] in {'branded-ai','crm','inbox','booking','funnel','automations','work-engine','business-ai:sticky-notes'}

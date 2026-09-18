@@ -1,5 +1,6 @@
 import {currentUser} from './integrations.js';
 import {createWork,addWorkStep,getWork,updateWorkStep} from './work-engine-runtime.js';
+import {handleMediaLibrary} from './media-library-runtime.js';
 const json=(d,s=200)=>Response.json(d,{status:s,headers:{'cache-control':'no-store'}}),now=()=>Math.floor(Date.now()/1000),txt=(v,n=12000)=>String(v||'').trim().slice(0,n);
 export const BUSINESS_AI_SUITE=[
 ['video-ads','AI Video Ads','Generate video-ad briefs, scripts, scenes, hooks, CTAs and production jobs','video'],
@@ -45,7 +46,10 @@ export const BUSINESS_AI_SUITE=[
 ['precision-image-model','Personalized Image Lab','Prepare consented custom-image datasets and generation workflows','creative'],
 ['humanizer','Natural Writing Studio','Rewrite stiff or AI-sounding text into natural brand-appropriate language','writing'],
 ['knowledge-base','Knowledge Workspace','Organize websites, text, research and feedback for AI recall','knowledge'],
-['logo-maker','Logo Studio','Create original logo concepts, brand marks and visual directions','creative']
+['logo-maker','Logo Studio','Create original logo concepts, brand marks and visual directions','creative'],
+['accounting-books','Accounting & Bookkeeping','Use Magnanimous Finance for double-entry books, invoices, bills, FX and management reporting','finance'],
+['data-studio','Spreadsheet & Data Studio','Import, edit, save, chart and analyze structured workbook data','data'],
+['open-media-library','Open-License Image Library','Search open-license images, preserve attribution and track source/license verification','creative']
 ];
 async function ensure(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL DEFAULT '',tool_id TEXT NOT NULL,title TEXT NOT NULL,input_json TEXT NOT NULL DEFAULT '{}',output_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
@@ -106,7 +110,10 @@ const CAPABILITY_ROUTES={
 'precision-image-model':{surface:'/magnanimous',accessibility:['dataset description','consent/rights checklist','alt-text workflow'],dependencies:['image-generation','custom-image-model-external']},
 'humanizer':{surface:'/ai-chat',accessibility:['plain text input/output','tone controls'],dependencies:['writing']},
 'knowledge-base':{surface:'/knowledge',accessibility:['source metadata','searchable text','source provenance'],dependencies:['knowledge']},
-'logo-maker':{surface:'/magnanimous',accessibility:['brand brief','alt text','high-contrast review'],dependencies:['image-generation']}
+'logo-maker':{surface:'/magnanimous',accessibility:['brand brief','alt text','high-contrast review'],dependencies:['image-generation']},
+'accounting-books':{surface:'/finance-people',accessibility:['double-entry books','invoices and bills','management summaries'],dependencies:['finance-people']},
+'data-studio':{surface:'/data-studio',accessibility:['editable grid','CSV import/export','numeric summaries','AI analysis'],dependencies:['data-studio']},
+'open-media-library':{surface:'/media-library',accessibility:['searchable results','source and license links','verification ledger'],dependencies:['media-library','open-license-search']}
 };
 const DIRECT_EXECUTION={
 'video-ads':{tool:'video-script',instruction:'Create a production-ready video-ad script, hook, scene-by-scene storyboard, CTA, caption notes and accessibility/caption plan. Do not claim a video was rendered.'},
@@ -151,7 +158,10 @@ const DIRECT_EXECUTION={
 'precision-image-model':{tool:'marketing',instruction:'Create a lawful custom-image-model preparation plan: subject/object goal, dataset guidance, consent/rights checklist, variation requirements, labeling, validation prompts and safety review. Do not claim model training occurred.'},
 'humanizer':{tool:'writing',instruction:'Rewrite the supplied text so it sounds natural, specific and human while preserving facts, meaning, citations and brand voice. Do not add fake personal experiences or evade detection/safety systems.'},
 'knowledge-base':{tool:'research',instruction:'Turn the supplied material into a knowledge-base ingestion plan with source titles, provenance, chunks/topics, tags, update rules, conflicts and questions that need resolution. Do not claim sources were stored unless the Knowledge workspace confirms it.'},
-'logo-maker':{tool:'marketing',instruction:'Create an original logo brief with brand meaning, symbol directions, typography guidance, composition, contrast/accessibility and distinctiveness checks. Avoid copying existing trademarks or logos.'}
+'logo-maker':{tool:'marketing',instruction:'Create an original logo brief with brand meaning, symbol directions, typography guidance, composition, contrast/accessibility and distinctiveness checks. Avoid copying existing trademarks or logos.'},
+'accounting-books':{tool:'business',instruction:'Create a bookkeeping and accounting action plan only from supplied facts. Identify source records, account/category mapping, reconciliation checks, management reports to review, missing information, and professional-review boundaries. Do not post transactions, invent balances, or invent tax treatment.'},
+'data-studio':{tool:'business',instruction:'Create a structured data-workbook plan with proposed columns, data types, cleanup rules, calculations, summaries, chart choices, and analysis questions. Do not claim a workbook was imported, saved, edited, charted, or exported unless Data Studio proves that action.'},
+'open-media-library':{tool:'marketing',instruction:'Create an image-search brief with subject, composition, orientation, usage context, attribution needs, and license-verification checks. Never claim an image is cleared for reuse unless the source and license record have actually been reviewed.'}
 };
 const VERIFY_CRITERIA={
 'video-ads':['storyboard/script saved','render path available','final media reviewed'],
@@ -197,7 +207,10 @@ const VERIFY_CRITERIA={
 'precision-image-model':['dataset plan saved','rights/consent reviewed','model training truthfully gated'],
 'humanizer':['source meaning preserved','natural rewrite saved','facts/citations reviewed'],
 'knowledge-base':['source/provenance plan saved','taxonomy/chunk plan saved','knowledge ingestion reviewed'],
-'logo-maker':['brand/logo brief saved','original visual concept generated','distinctiveness/accessibility reviewed']
+'logo-maker':['brand/logo brief saved','original visual concept generated','distinctiveness/accessibility reviewed'],
+'accounting-books':['accounting objective and source records identified','real books/documents handled in Finance workspace','management output reviewed with professional boundaries'],
+'data-studio':['workbook structure saved','data quality/numeric summary reviewed','analysis/chart output reviewed'],
+'open-media-library':['source/license metadata preserved','source page checked before verified use','attribution retained for saved asset']
 };
 const PLAYBOOKS={
 'video-ads':['Define audience and offer','Write hook/script/CTA','Create scene and asset brief','Route to Video Studio','Review and publish'],
@@ -243,7 +256,10 @@ const PLAYBOOKS={
 'precision-image-model':['Define subject/object goal','Prepare consented dataset plan','Define labels and variation coverage','Prepare training/validation workflow','Train only with authorized engine'],
 'humanizer':['Inspect source meaning and facts','Rewrite for natural voice','Preserve citations and claims','Review tone and accuracy'],
 'knowledge-base':['Collect authorized sources','Define provenance and taxonomy','Chunk/tag content','Resolve conflicts and freshness','Store/review in Knowledge workspace'],
-'logo-maker':['Define brand and audience','Create logo brief','Generate logo concept','Review distinctiveness, contrast and accessibility']
+'logo-maker':['Define brand and audience','Create logo brief','Generate logo concept','Review distinctiveness, contrast and accessibility'],
+'accounting-books':['Define accounting goal','Review source records','Open Finance & People to post or organize real records','Reconcile and review management reports','Confirm professional-review boundaries'],
+'data-studio':['Import or create workbook','Clean columns and rows','Save workbook','Analyze and chart data','Review findings and export'],
+'open-media-library':['Define image need','Search open-license images','Inspect source/license metadata','Save selected assets','Mark license checked only after source review']
 };
 function planFor(id,input){const steps=PLAYBOOKS[id]||['Understand goal','Plan','Execute with Magnanimous tools','Verify'];return{tool_id:id,goal:txt(input?.goal||'',1000),steps:steps.map((name,index)=>({index:index+1,name,status:'planned'})),orchestrator:'Magnanimous AI',provider_policy:'native-first; authorized replaceable infrastructure only when needed',verification_criteria:VERIFY_CRITERIA[id]||['output saved','execution reviewed','evidence recorded'],verification:'Evidence and action receipts required before claiming completion'}}
 const externalFor=id=>(CAPABILITY_ROUTES[id]?.dependencies||[]).filter(x=>String(x).endsWith('-external'));
@@ -274,7 +290,10 @@ const SURFACE_ONLY_STEPS={
  'music-generator':/Generate or render with configured audio engine/i,
  'web-chat-wizard':/Deploy widget when connection is ready/i,
  'precision-image-model':/Train only with authorized engine/i,
- 'knowledge-base':/Store\/review in Knowledge workspace/i
+ 'knowledge-base':/Store\/review in Knowledge workspace/i,
+ 'accounting-books':/Open Finance & People|post or organize real records|Reconcile and review management reports/i,
+ 'data-studio':/Import or create workbook|Save workbook|Analyze and chart data|export/i,
+ 'open-media-library':/Inspect source\/license metadata|Save selected assets|Mark license checked/i
 };
 function surfaceGate(id,title){
  const external=externalFor(id),surface=CAPABILITY_ROUTES[id]?.surface||'/business-ai',step=String(title||'');
@@ -306,6 +325,17 @@ async function runDirectExecution(request,env,ctx,downstream,user,row){
   const fresh=await getWork(env,user,work.id),out={...(view.output||{}),work_id:work.id,latest_artifact:artifact,last_execution_at:now(),last_step_id:step.id,last_step_title:step.title,direct_execution_tool:'deep-research'};
   await env.DB.prepare('UPDATE magnanimous_business_ai_jobs SET output_json=?,status=?,updated_at=? WHERE id=? AND tenant_id=? AND user_id=?').bind(JSON.stringify(out),'working',now(),row.id,String(user.tenant_id),String(user.id)).run();
   return json({ok:true,id:row.id,artifact,completed_step:{id:step.id,title:step.title},work:fresh,research:data,external_action_performed:false});
+ }
+
+ if(row.tool_id==='open-media-library'&&/Search open-license images/i.test(String(step.title||''))){
+  const headers=new Headers(request.headers),url=new URL('/api/media-library/search',request.url);url.searchParams.set('q',goal);
+  const response=await handleMediaLibrary(new Request(url,{method:'GET',headers}),env),data=await response.clone().json().catch(()=>({}));
+  if(!response.ok)return json({detail:data.detail||'Open-license image search failed.',surface:'/media-library',requires_surface:true},response.status);
+  const sample=(data.results||[]).slice(0,12),artifact=txt(JSON.stringify({query:data.query,results:sample,license_notice:data.license_notice}),12000);
+  await updateWorkStep(env,user,work.id,step.id,{status:'completed',result:artifact});
+  const fresh=await getWork(env,user,work.id),out={...(view.output||{}),work_id:work.id,latest_artifact:artifact,last_execution_at:now(),last_step_id:step.id,last_step_title:step.title,direct_execution_tool:'open-license-search'};
+  await env.DB.prepare('UPDATE magnanimous_business_ai_jobs SET output_json=?,status=?,updated_at=? WHERE id=? AND tenant_id=? AND user_id=?').bind(JSON.stringify(out),'working',now(),row.id,String(user.tenant_id),String(user.id)).run();
+  return json({ok:true,id:row.id,artifact,media_results:sample,license_notice:data.license_notice,completed_step:{id:step.id,title:step.title},work:fresh,external_action_performed:false});
  }
 
  if((row.tool_id==='hyper-images'&&/route to image generation/i.test(String(step.title||'')))||(row.tool_id==='logo-maker'&&/generate logo concept/i.test(String(step.title||'')))){
@@ -352,7 +382,7 @@ Complete ONLY the current step. Return a concrete, useful deliverable for this s
  return json({ok:true,id:row.id,artifact,completed_step:{id:step.id,title:step.title},work:fresh,verification:(await jobView(env,user,{...row,output_json:JSON.stringify(out),status:'working'})).verification,external_action_performed:false});
 }
 export async function handleBusinessAISuite(request,env,ctx,downstream){const u=new URL(request.url);if(!u.pathname.startsWith('/api/business-ai'))return null;const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);await ensure(env);await claimLegacyJobs(env,user);const tenant=String(user.tenant_id),userId=String(user.id);
-if(u.pathname==='/api/business-ai/tools'&&request.method==='GET')return json({name:'Magnanimous Business AI Suite',brain:'Magnanimous AI',tools:BUSINESS_AI_SUITE.map(([id,name,description,category])=>{const route=CAPABILITY_ROUTES[id],external=externalFor(id);return{id,name,description,category,...route,execution_mode:['hyper-images','logo-maker','music-generator'].includes(id)?'native-specialized':'magnanimous-step-execution',external_connections_required:external,outside_action_required:external.length>0}}),count:BUSINESS_AI_SUITE.length,accessibility_standard:'keyboard-first, semantic labels, responsive layouts, plain-language errors, accessible generated-content metadata',truth_boundary:'External telecom, messaging, domain, storage, publishing or payment actions are only live when the corresponding authorized connection is actually ready.'});
+if(u.pathname==='/api/business-ai/tools'&&request.method==='GET')return json({name:'Magnanimous Business AI Suite',brain:'Magnanimous AI',tools:BUSINESS_AI_SUITE.map(([id,name,description,category])=>{const route=CAPABILITY_ROUTES[id],external=externalFor(id);return{id,name,description,category,...route,execution_mode:['hyper-images','logo-maker','music-generator','open-media-library'].includes(id)?'native-specialized':'magnanimous-step-execution',external_connections_required:external,outside_action_required:external.length>0}}),count:BUSINESS_AI_SUITE.length,accessibility_standard:'keyboard-first, semantic labels, responsive layouts, plain-language errors, accessible generated-content metadata',truth_boundary:'External telecom, messaging, domain, storage, publishing or payment actions are only live when the corresponding authorized connection is actually ready.'});
 if(u.pathname==='/api/business-ai/jobs'&&request.method==='GET'){const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_business_ai_jobs WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 100').bind(tenant,userId).all();const items=[];for(const row of results)items.push(await jobView(env,user,row));return json({items})}
 const jobMatch=u.pathname.match(/^\/api\/business-ai\/jobs\/([^/]+)(?:\/(verify|execute))?$/);
 if(jobMatch&&request.method==='GET'){const row=await env.DB.prepare('SELECT * FROM magnanimous_business_ai_jobs WHERE id=? AND tenant_id=? AND user_id=?').bind(jobMatch[1],tenant,userId).first();if(!row)return json({detail:'Business AI job not found.'},404);return json(await jobView(env,user,row))}
