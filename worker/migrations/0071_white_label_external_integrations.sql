@@ -36,6 +36,13 @@ CREATE TABLE IF NOT EXISTS agency_payment_connections (
   updated_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS agency_payment_states (
+  state TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS agency_client_charge_sessions (
   id TEXT PRIMARY KEY,
   tenant_id TEXT NOT NULL,
@@ -71,6 +78,7 @@ CREATE TABLE IF NOT EXISTS agency_esign_requests (
   sent_at INTEGER,
   viewed_at INTEGER,
   signed_at INTEGER,
+  expires_at INTEGER NOT NULL,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
