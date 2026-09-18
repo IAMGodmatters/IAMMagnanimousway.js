@@ -32,8 +32,40 @@ export const BUSINESS_AI_SUITE=[
 ['multilingual','Multilingual Studio','Localize business content while preserving meaning and brand voice','language']
 ];
 async function ensure(env){await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,tool_id TEXT NOT NULL,title TEXT NOT NULL,input_json TEXT NOT NULL DEFAULT '{}',output_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run()}
+const PLAYBOOKS={
+'video-ads':['Define audience and offer','Write hook/script/CTA','Create scene and asset brief','Route to Video Studio','Review and publish'],
+'academy-wizard':['Define learning outcome','Create course structure','Create lessons and exercises','Publish to Learning/Community'],
+'coach-wizard':['Define assistant role','Set instructions and boundaries','Attach authorized knowledge','Test scenarios','Publish assistant'],
+'hyper-images':['Define subject and campaign goal','Create image brief','Route to image generation','Review brand fit'],
+'scroll-ads':['Define offer and audience','Generate hooks and variants','Create creative brief','Set campaign test plan'],
+'proposals':['Collect client goal','Create scope and deliverables','Create pricing/options','Route to Contracts/eSign'],
+'email-marketing':['Define segment and goal','Draft sequence','Add CTA and tracking plan','Route to campaign automation'],
+'image-editor':['Describe authorized source image and edits','Create transformation brief','Route to image editor','Review result'],
+'magic-hooks':['Define audience and promise','Generate hook families','Rank by clarity and relevance','Attach to campaign assets'],
+'asset-library':['Classify user-owned/licensed assets','Add searchable metadata','Connect to campaigns and projects'],
+'funnels':['Define conversion goal','Create page sequence','Write page/CTA copy','Create A/B test plan','Track conversion'],
+'websites':['Define business and pages','Create information architecture','Generate responsive content/SEO plan','Prepare domain/publish checklist'],
+'ecommerce-pdp':['Collect product facts','Write benefits and specifications','Create SEO/AEO structure','Add FAQs and CTA'],
+'domain-generator':['Define brand constraints','Generate candidates','Flag trademark/domain checks','Prepare connection checklist'],
+'crm':['Define pipeline','Capture/import contacts','Create stages and activities','Automate follow-up'],
+'chat-agent':['Define qualification/support goal','Create questions and handoff rules','Set knowledge boundaries','Test conversations'],
+'sticky-notes':['Capture note','Classify context','Link to client/project','Create reminder when requested'],
+'cloud-storage':['Classify file','Choose authorized storage','Attach metadata/client/project','Apply access controls'],
+'business-phone':['Define call workflow','Apply consent/quiet-hour controls','Route through Magnanimous Telecom/contact center','Record receipt'],
+'project-management':['Define outcome','Create milestones/tasks','Assign owners/dates','Track evidence and completion'],
+'app-wizard':['Define user problem','Create app specification','Create data/actions/UI plan','Route to developer agent','QA before release'],
+'lead-flow':['Define ICP and lawful source','Build qualification criteria','Create outreach sequence','Route replies to CRM/inbox'],
+'seo-aeo':['Audit page/topic','Map intent and entities','Create metadata/schema/content recommendations','Measure outcomes'],
+'social':['Define platforms and goal','Create calendar and posts','Create repurposing plan','Route approved publishing'],
+'sms':['Verify consent','Create concise sequence','Apply opt-out/quiet hours','Route approved sends'],
+'forms-surveys':['Define questions and fields','Create form schema','Set routing/automation','Analyze responses'],
+'community':['Define audience and access','Create spaces/topics','Create onboarding/content cadence','Moderate and measure'],
+'marketplace':['Define original/authorized offer','Package deliverables and license','Set pricing/terms','Publish catalog item'],
+'multilingual':['Identify source meaning and audience','Translate/localize','Preserve brand/legal terms','Review before publish']
+};
+function planFor(id,input){const steps=PLAYBOOKS[id]||['Understand goal','Plan','Execute with Magnanimous tools','Verify'];return{tool_id:id,goal:txt(input?.goal||'',1000),steps:steps.map((name,index)=>({index:index+1,name,status:'planned'})),orchestrator:'Magnanimous AI',provider_policy:'native-first; authorized replaceable infrastructure only when needed',verification:'Evidence and action receipts required before claiming completion'}}
 export async function handleBusinessAISuite(request,env){const u=new URL(request.url);if(!u.pathname.startsWith('/api/business-ai'))return null;const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);await ensure(env);const tenant=String(user.tenant_id);
 if(u.pathname==='/api/business-ai/tools'&&request.method==='GET')return json({name:'Magnanimous Business AI Suite',brain:'Magnanimous AI',tools:BUSINESS_AI_SUITE.map(([id,name,description,category])=>({id,name,description,category})),count:BUSINESS_AI_SUITE.length});
 if(u.pathname==='/api/business-ai/jobs'&&request.method==='GET'){const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_business_ai_jobs WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 300').bind(tenant).all();return json({items:results})}
-if(u.pathname==='/api/business-ai/jobs'&&request.method==='POST'){const b=await request.json().catch(()=>({})),tool=BUSINESS_AI_SUITE.find(x=>x[0]===String(b.tool_id||''));if(!tool)return json({detail:'Choose a valid tool.'},400);const id=crypto.randomUUID(),ts=now(),title=txt(b.title||tool[1],180);await env.DB.prepare('INSERT INTO magnanimous_business_ai_jobs(id,tenant_id,tool_id,title,input_json,output_json,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,tenant,tool[0],title,JSON.stringify(b.input||{}),JSON.stringify({next:'Magnanimous AI orchestration',capability:tool[1]}),'planned',ts,ts).run();return json({ok:true,id,tool:{id:tool[0],name:tool[1]},status:'planned'},201)}
+if(u.pathname==='/api/business-ai/jobs'&&request.method==='POST'){const b=await request.json().catch(()=>({})),tool=BUSINESS_AI_SUITE.find(x=>x[0]===String(b.tool_id||''));if(!tool)return json({detail:'Choose a valid tool.'},400);const id=crypto.randomUUID(),ts=now(),title=txt(b.title||tool[1],180);await env.DB.prepare('INSERT INTO magnanimous_business_ai_jobs(id,tenant_id,tool_id,title,input_json,output_json,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,tenant,tool[0],title,JSON.stringify(b.input||{}),JSON.stringify(planFor(tool[0],b.input||{})),'planned',ts,ts).run();return json({ok:true,id,tool:{id:tool[0],name:tool[1]},status:'planned',execution_plan:planFor(tool[0],b.input||{})},201)}
 return json({detail:'Business AI endpoint not found.'},404)}
