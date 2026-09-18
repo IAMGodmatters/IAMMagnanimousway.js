@@ -52,10 +52,24 @@ has(ui,'COMPANY / ACCOUNT GRAPH','CRM UI exposes company account rollups');
 has(ui,'SALES PROCESS STUDIO','CRM UI exposes configurable sales processes');
 has(ui,'Multiple configurable pipelines','CRM capability map exposes multi-pipeline support');
 has(ui,'Company account','customer 360 can link a person to an account');
+has(runtime,'crm_scoring_profiles','CRM stores configurable scoring profiles');
+has(runtime,'crmConfiguredScore','CRM evaluates configured scoring profiles');
+has(runtime,'score_source','lead intelligence reports whether native or configured scoring is active');
+has(runtime,"/api/operations/crm/scoring",'CRM scoring profile API exists');
+has(runtime,'crm_sequence_enrollments','CRM persists sequence enrollments');
+has(runtime,'crmEnrollSequence','CRM sequence enrollment engine exists');
+has(runtime,"/api/operations/crm/sequences",'CRM sequence API exists');
+has(runtime,'needs_consent','sequence scheduling flags channel permission gaps');
+has(inboxRuntime,'stopCrmSequencesOnInbound','linked inbound replies stop active CRM sequences');
+has(inboxRuntime,"status='goal_met'",'reply goal completion is persisted');
+has(ui,'SCORING STUDIO','CRM exposes configurable scoring studio');
+has(ui,'SEQUENCE ENGINE','CRM exposes sequence builder');
+has(ui,'FOLLOW-UP SEQUENCES','customer 360 exposes sequence enrollment');
+has(ui,'Reply-aware sequences','CRM capability map exposes reply-aware sequences');
 
 const failed=checks.filter(([ok])=>!ok);
 if(failed.length){console.error(`CRM intelligence lock failed: ${failed.length}/${checks.length} checks failed.`);process.exit(1)}
 console.log(`CRM intelligence lock: ${checks.length} checks passed.`);
 console.log('Relationship intelligence + Customer 360 + account graph: PASS');
-console.log('Revenue intelligence + multi-pipeline: PASS');
-console.log('Omnichannel/action routing + consent safety: PASS');
+console.log('Revenue intelligence + multi-pipeline + configurable scoring: PASS');
+console.log('Omnichannel/action routing + consent safety + reply-aware sequences: PASS');
