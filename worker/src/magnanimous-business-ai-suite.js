@@ -39,6 +39,10 @@ async function ensure(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL DEFAULT '',tool_id TEXT NOT NULL,title TEXT NOT NULL,input_json TEXT NOT NULL DEFAULT '{}',output_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
  try{await env.DB.prepare("ALTER TABLE magnanimous_business_ai_jobs ADD COLUMN user_id TEXT NOT NULL DEFAULT ''").run()}catch{}
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_business_ai_user ON magnanimous_business_ai_jobs(tenant_id,user_id,updated_at DESC)').run();
+ try{
+  const{results=[]}=await env.DB.prepare("SELECT id,tenant_id,output_json FROM magnanimous_business_ai_jobs WHERE user_id='' LIMIT 100").all();
+  for(const row of results){let out={};try{out=JSON.parse(String(row.output_json||'{}'))}catch{}const workId=Number(out.work_id||0);if(!workId)continue;const work=await env.DB.prepare('SELECT user_id FROM magnanimous_work_items WHERE id=? AND tenant_id=?').bind(workId,String(row.tenant_id)).first();if(work?.user_id)await env.DB.prepare("UPDATE magnanimous_business_ai_jobs SET user_id=? WHERE id=? AND tenant_id=? AND user_id=''").bind(String(work.user_id),String(row.id),String(row.tenant_id)).run()}
+ }catch{}
 }
 const CAPABILITY_ROUTES={
 'video-ads':{surface:'/video-agents',accessibility:['script','storyboard','captions','9:16 and 16:9'],dependencies:['video-agents','renderer']},
