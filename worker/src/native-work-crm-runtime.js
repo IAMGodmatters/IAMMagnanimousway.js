@@ -103,7 +103,7 @@ async function summary(env,t){
  const [workspaces,boards,records,automations,sequences]=await Promise.all([count('magnanimous_ops_workspaces'),count('magnanimous_ops_boards'),count('magnanimous_ops_records'),count('magnanimous_ops_automations'),count('magnanimous_ops_sequences')]);
  let crm={contacts:0,deals:0,pipeline_value:0};
  try{crm.contacts=Number((await env.DB.prepare('SELECT COUNT(*) n FROM crm_contacts WHERE tenant_id=?').bind(t).first())?.n||0)}catch{}
- try{const r=await env.DB.prepare("SELECT COUNT(*) n,COALESCE(SUM(value),0) value FROM crm_opportunities WHERE tenant_id=? AND stage NOT IN ('won','lost','closed')").bind(t).first();crm.deals=Number(r?.n||0);crm.pipeline_value=Number(r?.value||0)}catch{}
+ try{const r=await env.DB.prepare("SELECT COUNT(*) n,COALESCE(SUM(o.value),0) value FROM crm_opportunities o LEFT JOIN crm_pipeline_stages ps ON ps.id=o.stage_id AND ps.tenant_id=o.tenant_id WHERE o.tenant_id=? AND COALESCE(ps.kind,CASE WHEN lower(o.stage) IN ('won','lost','closed') THEN 'closed' ELSE 'open' END)='open'").bind(t).first();crm.deals=Number(r?.n||0);crm.pipeline_value=Number(r?.value||0)}catch{}
  return{workspaces,boards,records,automations,sequences,crm,capabilities:NATIVE_OPERATIONS_CAPABILITIES.length};
 }
 
@@ -174,8 +174,8 @@ async function crmOwnedAccount(env,t,accountId){return env.DB.prepare('SELECT * 
 async function crmAccounts(env,t){
  const{results=[]}=await env.DB.prepare(`SELECT a.*,
   (SELECT COUNT(*) FROM crm_contacts c WHERE c.tenant_id=a.tenant_id AND c.account_id=a.id) contact_count,
-  (SELECT COUNT(*) FROM crm_opportunities o WHERE o.tenant_id=a.tenant_id AND o.account_id=a.id AND lower(o.stage) NOT IN ('won','lost','closed')) open_deals,
-  (SELECT COALESCE(SUM(o.value),0) FROM crm_opportunities o WHERE o.tenant_id=a.tenant_id AND o.account_id=a.id AND lower(o.stage) NOT IN ('won','lost','closed')) pipeline_value
+  (SELECT COUNT(*) FROM crm_opportunities o LEFT JOIN crm_pipeline_stages ps ON ps.id=o.stage_id AND ps.tenant_id=o.tenant_id WHERE o.tenant_id=a.tenant_id AND o.account_id=a.id AND COALESCE(ps.kind,CASE WHEN lower(o.stage) IN ('won','lost','closed') THEN 'closed' ELSE 'open' END)='open') open_deals,
+  (SELECT COALESCE(SUM(o.value),0) FROM crm_opportunities o LEFT JOIN crm_pipeline_stages ps ON ps.id=o.stage_id AND ps.tenant_id=o.tenant_id WHERE o.tenant_id=a.tenant_id AND o.account_id=a.id AND COALESCE(ps.kind,CASE WHEN lower(o.stage) IN ('won','lost','closed') THEN 'closed' ELSE 'open' END)='open') pipeline_value
   FROM crm_accounts a WHERE a.tenant_id=? ORDER BY a.updated_at DESC LIMIT 300`).bind(t).all();
  return results.map(r=>({...r,tags:parse(r.tags,[]),contact_count:Number(r.contact_count||0),open_deals:Number(r.open_deals||0),pipeline_value:Number(r.pipeline_value||0)}));
 }
@@ -264,15 +264,17 @@ async function crmContact360(env,user,contactId){
 
 async function crmCommandCenter(env,user){
  const t=tenant(user),ts=now();
- const [{results:contactsRaw=[]},{results:dealsRaw=[]},{results:tasksRaw=[]},{results:preferencesRaw=[]}]=await Promise.all([
+ const [{results:contactsRaw=[]},{results:dealsRaw=[]},{results:tasksRaw=[]},{results:preferencesRaw=[]},{results:pipelineStagesRaw=[]}]=await Promise.all([
   env.DB.prepare('SELECT * FROM crm_contacts WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 400').bind(t).all(),
   env.DB.prepare('SELECT * FROM crm_opportunities WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 400').bind(t).all(),
   env.DB.prepare('SELECT * FROM crm_activities WHERE tenant_id=? ORDER BY created_at DESC LIMIT 500').bind(t).all(),
-  env.DB.prepare('SELECT * FROM crm_contact_preferences WHERE tenant_id=?').bind(t).all()
+  env.DB.prepare('SELECT * FROM crm_contact_preferences WHERE tenant_id=?').bind(t).all(),
+  env.DB.prepare('SELECT id,pipeline_id,stage_key,name,probability,kind FROM crm_pipeline_stages WHERE tenant_id=?').bind(t).all()
  ]);
  const contacts=contactsRaw.map(r=>({...r,tags:parse(r.tags,[])}));
  const byId=new Map(contacts.map(r=>[Number(r.id),r]));
  const preferencesByContact=new Map(preferencesRaw.map(r=>[Number(r.contact_id),{...r,do_not_contact:Boolean(r.do_not_contact)}]));
+ const pipelineStageById=new Map(pipelineStagesRaw.map(r=>[String(r.id),r]));
  const activityStats=new Map(),dealStats=new Map();
  for(const a of tasksRaw){const k=Number(a.contact_id);const cur=activityStats.get(k)||{count:0,last:0};cur.count++;cur.last=Math.max(cur.last,Number(a.created_at||0));activityStats.set(k,cur)}
  for(const d of dealsRaw){const k=Number(d.contact_id);dealStats.set(k,(dealStats.get(k)||0)+1)}
@@ -284,9 +286,9 @@ async function crmCommandCenter(env,user){
 
  const stageMap=new Map(),openDeals=[],staleDeals=[],riskDeals=[];let pipelineValue=0,weightedForecast=0;
  for(const deal of dealsRaw){
-  const stage=crmStage(deal.stage),closed=CRM_CLOSED_STAGES.has(stage),value=Math.max(0,Number(deal.value||0)),probability=crmProbability(stage,deal.probability);
-  const shaped={...deal,stage,value,probability,contact_name:crmContactName(byId.get(Number(deal.contact_id))),contact:byId.get(Number(deal.contact_id))||null};
-  const agg=stageMap.get(stage)||{stage,count:0,value:0,weighted:0};agg.count++;agg.value+=value;agg.weighted+=value*(probability/100);stageMap.set(stage,agg);
+  const stage=crmStage(deal.stage),stageMeta=pipelineStageById.get(String(deal.stage_id||'')),stageKind=String(stageMeta?.kind||'').toLowerCase()||(CRM_CLOSED_STAGES.has(stage)?(stage==='lost'?'lost':'won'):'open'),closed=stageKind!=='open',value=Math.max(0,Number(deal.value||0)),probability=crmProbability(stage,deal.probability);
+  const shaped={...deal,stage,stage_kind:stageKind,value,probability,contact_name:crmContactName(byId.get(Number(deal.contact_id))),contact:byId.get(Number(deal.contact_id))||null};
+  const stageMapKey=String(deal.pipeline_id||'legacy')+':'+stage;const agg=stageMap.get(stageMapKey)||{stage,pipeline_id:deal.pipeline_id||null,stage_kind:stageKind,count:0,value:0,weighted:0};agg.count++;agg.value+=value;agg.weighted+=value*(probability/100);stageMap.set(stageMapKey,agg);
   if(!closed){pipelineValue+=value;weightedForecast+=value*(probability/100);openDeals.push(shaped)}
   const age=ts-Number(deal.updated_at||deal.created_at||0),pastClose=Number(deal.expected_close_at||0)>0&&Number(deal.expected_close_at)<ts;
   if(!closed&&age>14*86400)staleDeals.push({...shaped,days_stale:Math.floor(age/86400)});
