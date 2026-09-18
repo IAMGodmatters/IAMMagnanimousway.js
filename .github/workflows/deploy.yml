@@ -268,6 +268,38 @@ jobs:
                 "DELETE FROM agent_branch_training_submissions WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM agent_branch_knowledge WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM agent_mesh_messages WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM white_label_brain_signals WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM white_label_brain_memory WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM magnanimous_outcomes WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_client_apps WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_automation_runs WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_automations WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_affiliate_referrals WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_affiliate_programs WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_community_spaces WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_portal_pages WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_learning_assets WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_contracts WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_projects WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_catalog_items WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_usage_rebill WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_reputation_items WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_funnels WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_bookings WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM agency_client_settings WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM unified_inbox_audit WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM unified_inbox_messages WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM unified_inbox_threads WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM magnanimous_work_steps WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM magnanimous_work_items WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM bpo_audit_events WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM bpo_work_items WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM bpo_programs WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM bpo_clients WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM crm_activities WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM crm_opportunities WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM crm_contacts WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM billing_usage_guard WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM billing_management_requests WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM voice_agent_turns WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM voice_do_not_call WHERE tenant_id='${tenant_id}';"
@@ -307,6 +339,7 @@ jobs:
           user=data.get('user') or {}
           token=data.get('token') or ''
           assert user.get('tenant_id'), data
+          assert user.get('role') == 'owner', data
           assert token.startswith('ms1_'), data
           assert '|' not in token, data
           assert int(data.get('session_expires_at') or 0) > int(time.time()), data
@@ -344,6 +377,134 @@ jobs:
               assert len(parts) == 4 and parts[0] == 'agency' and parts[1] == tenant and parts[2] == 'agency', data
               assert len(parts[3]) == 64 and all(ch in '0123456789abcdef' for ch in parts[3].lower()), data
           PY
+
+          # Production White Label depth smoke: use this temporary tenant only.
+          # This creates a test entitlement directly in D1 so no real Stripe payment is made.
+          smoke_ts=$(date +%s)
+          npx wrangler d1 execute iam-magnanimous-db --remote --command="INSERT INTO billing_subscriptions(tenant_id,plan,stripe_customer_id,stripe_subscription_id,status,current_period_end,created_at,updated_at) VALUES('${tenant_id}','agency',NULL,NULL,'active',NULL,${smoke_ts},${smoke_ts}) ON CONFLICT(tenant_id) DO UPDATE SET plan='agency',status='active',updated_at=${smoke_ts};" >/tmp/agency-smoke-entitlement.log
+          npx wrangler d1 execute iam-magnanimous-db --remote --command="UPDATE tenants SET plan='agency' WHERE id='${tenant_id}';" >>/tmp/agency-smoke-entitlement.log
+
+          status=$(curl -sS -o /tmp/agency-status.json -w '%{http_code}' "$BASE_URL/api/billing/status" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Agency billing status returned HTTP $status"; cat /tmp/agency-status.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/agency-status.json'))
+          assert d.get('plan') == 'agency', d
+          assert d.get('white_label_enabled') is True, d
+          assert d.get('managed_client_limit') == 25, d
+          assert d.get('usage_rebilling') is True, d
+          PY
+
+          status=$(curl -sS -o /tmp/wl-client.json -w '%{http_code}' -X POST "$BASE_URL/api/bpo/clients" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"name":"White Label Smoke Client","industry":"QA","service_lines":["Customer Service","Marketing"]}')
+          if [ "$status" != "201" ]; then echo "White Label client creation returned HTTP $status"; cat /tmp/wl-client.json || true; exit 1; fi
+          client_id=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-client.json'));assert d.get('id'),d;print(d['id'])
+          PY
+          )
+
+          status=$(curl -sS -o /tmp/wl-brand.json -w '%{http_code}' -X PUT "$BASE_URL/api/agency/clients/$client_id/settings" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"brand_name":"Smoke Client Brand","accent_color":"#22c55e","white_label_enabled":true,"monthly_platform_fee_usd":25,"default_markup_percent":20}')
+          if [ "$status" != "200" ]; then echo "White Label brand settings returned HTTP $status"; cat /tmp/wl-brand.json || true; exit 1; fi
+
+          status=$(curl -sS -o /tmp/client-apps.json -w '%{http_code}' "$BASE_URL/api/white-label-os/client-apps?client_id=$client_id" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Client Apps discovery returned HTTP $status"; cat /tmp/client-apps.json || true; exit 1; fi
+          python - <<'PY' >/tmp/client-apps-save.json
+          import json
+          d=json.load(open('/tmp/client-apps.json'))
+          apps=d.get('apps') or []
+          assert len(apps) >= 10, d
+          for app in apps:
+              app['enabled']=app['app_id'] in {'branded-ai','crm','inbox','booking','funnel','automations','work-engine'}
+          print(json.dumps({'apps':apps}))
+          PY
+          status=$(curl -sS -o /tmp/client-apps-saved.json -w '%{http_code}' -X PUT "$BASE_URL/api/white-label-os/client-apps?client_id=$client_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data-binary @/tmp/client-apps-save.json)
+          if [ "$status" != "200" ]; then echo "Client Apps save returned HTTP $status"; cat /tmp/client-apps-saved.json || true; exit 1; fi
+
+          start_at=$((smoke_ts+3600)); end_at=$((smoke_ts+5400))
+          status=$(curl -sS -o /tmp/wl-booking.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/bookings" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"contact_name\":\"Smoke Booking\",\"contact_email\":\"booking@example.com\",\"service\":\"Consultation\",\"start_at\":$start_at,\"end_at\":$end_at}")
+          if [ "$status" != "201" ]; then echo "White Label booking returned HTTP $status"; cat /tmp/wl-booking.json || true; exit 1; fi
+
+          status=$(curl -sS -o /tmp/wl-funnel.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/funnels" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"name\":\"Smoke Funnel\",\"slug\":\"smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}\",\"headline\":\"Smoke Funnel Headline\",\"offer\":\"Production White Label funnel verification.\",\"cta_label\":\"Get started\",\"status\":\"active\"}")
+          if [ "$status" != "201" ]; then echo "White Label funnel creation returned HTTP $status"; cat /tmp/wl-funnel.json || true; exit 1; fi
+          funnel_url=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-funnel.json'));u=d.get('public_url','');assert u.startswith('https://iammagnanimousway.com/funnels/'),d;print(u)
+          PY
+          )
+          status=$(curl -sS -o /tmp/wl-funnel-public.html -w '%{http_code}' "$funnel_url")
+          if [ "$status" != "200" ]; then echo "Hosted White Label funnel returned HTTP $status"; cat /tmp/wl-funnel-public.html || true; exit 1; fi
+          grep -q "Smoke Funnel Headline" /tmp/wl-funnel-public.html
+          status=$(curl -sS -o /tmp/wl-lead.html -w '%{http_code}' -X POST "${funnel_url}/lead" --data-urlencode 'name=Smoke Funnel Lead' --data-urlencode "email=wl-lead-${GITHUB_RUN_ID}@example.com")
+          if [ "$status" != "200" ]; then echo "White Label funnel lead capture returned HTTP $status"; cat /tmp/wl-lead.html || true; exit 1; fi
+          status=$(curl -sS -o /tmp/wl-crm.json -w '%{http_code}' "$BASE_URL/api/crm/contacts?q=wl-lead-${GITHUB_RUN_ID}%40example.com" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "CRM funnel lead lookup returned HTTP $status"; cat /tmp/wl-crm.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-crm.json'));rows=d.get('contacts') or [];assert rows and rows[0].get('source','').startswith('funnel:'),d
+          PY
+
+          status=$(curl -sS -o /tmp/wl-review.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/reputation" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"source\":\"smoke\",\"customer_name\":\"Smoke Reviewer\",\"rating\":5,\"review_text\":\"Great service.\"}")
+          if [ "$status" != "201" ]; then echo "Reputation capture returned HTTP $status"; cat /tmp/wl-review.json || true; exit 1; fi
+
+          status=$(curl -sS -o /tmp/wl-usage.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/usage" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"period\":\"2026-09\",\"category\":\"Smoke usage\",\"units\":2,\"cost_usd\":1,\"markup_percent\":20}")
+          if [ "$status" != "201" ]; then echo "Usage rebilling ledger returned HTTP $status"; cat /tmp/wl-usage.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-usage.json'));assert d.get('cost_usd')==1 and d.get('customer_charge_usd')==1.2,d
+          PY
+
+          status=$(curl -sS -o /tmp/wl-auto.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/automations" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"name\":\"Smoke Work Automation\",\"trigger_type\":\"manual\",\"action_type\":\"create-work\",\"action_config\":{\"title\":\"Smoke automated work\",\"goal\":\"Verify White Label automation to Work Engine.\"},\"status\":\"active\"}")
+          if [ "$status" != "201" ]; then echo "Agency automation creation returned HTTP $status"; cat /tmp/wl-auto.json || true; exit 1; fi
+          automation_id=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-auto.json'));assert d.get('id'),d;print(d['id'])
+          PY
+          )
+          status=$(curl -sS -o /tmp/wl-auto-run.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/automations/$automation_id/run" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"payload":{"subject":"Smoke manual run"}}')
+          if [ "$status" != "200" ]; then echo "Agency automation run returned HTTP $status"; cat /tmp/wl-auto-run.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-auto-run.json'));assert d.get('ok') is True and d.get('work_id'),d
+          PY
+
+          status=$(curl -sS -o /tmp/wl-inbox.json -w '%{http_code}' -X POST "$BASE_URL/api/inbox/capture" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"channel\":\"email\",\"source\":\"smoke\",\"customer_name\":\"Inbox Smoke\",\"subject\":\"White Label inbox smoke\",\"content\":\"Inbound smoke message\",\"priority\":80}")
+          if [ "$status" != "201" ]; then echo "Unified Inbox capture returned HTTP $status"; cat /tmp/wl-inbox.json || true; exit 1; fi
+          thread_id=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-inbox.json'));assert d.get('id'),d;print(d['id'])
+          PY
+          )
+          status=$(curl -sS -o /tmp/wl-inbox-messages.json -w '%{http_code}' "$BASE_URL/api/inbox/threads/$thread_id/messages" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Unified Inbox thread read returned HTTP $status"; cat /tmp/wl-inbox-messages.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-inbox-messages.json'));assert len(d.get('messages') or [])==1,d
+          PY
+
+          status=$(curl -sS -o /tmp/wl-project.json -w '%{http_code}' -X POST "$BASE_URL/api/white-label-os/projects" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"name\":\"Smoke Project\",\"status\":\"planned\",\"owner\":\"QA\"}")
+          if [ "$status" != "201" ]; then echo "White Label Studio project create returned HTTP $status"; cat /tmp/wl-project.json || true; exit 1; fi
+          project_id=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-project.json'));assert d.get('id'),d;print(d['id'])
+          PY
+          )
+          status=$(curl -sS -o /tmp/wl-project-update.json -w '%{http_code}' -X PATCH "$BASE_URL/api/white-label-os/projects/$project_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"status":"working","owner":"Smoke Owner"}')
+          if [ "$status" != "200" ]; then echo "White Label Studio project update returned HTTP $status"; cat /tmp/wl-project-update.json || true; exit 1; fi
+          status=$(curl -sS -o /tmp/wl-project-delete.json -w '%{http_code}' -X DELETE "$BASE_URL/api/white-label-os/projects/$project_id" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "White Label Studio project delete returned HTTP $status"; cat /tmp/wl-project-delete.json || true; exit 1; fi
+
+          status=$(curl -sS -o /tmp/wl-brain.json -w '%{http_code}' "$BASE_URL/api/white-label/brain/status" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "White Label brain status returned HTTP $status"; cat /tmp/wl-brain.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-brain.json'));assert d.get('access') is True and d.get('plan')=='agency',d
+          PY
+
+          status=$(curl -sS -o /tmp/wl-client-archive.json -w '%{http_code}' -X PATCH "$BASE_URL/api/bpo/clients/$client_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"status":"archived"}')
+          if [ "$status" != "200" ]; then echo "Client archive returned HTTP $status"; cat /tmp/wl-client-archive.json || true; exit 1; fi
+          status=$(curl -sS -o /tmp/wl-client-reactivate.json -w '%{http_code}' -X PATCH "$BASE_URL/api/bpo/clients/$client_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"status":"active"}')
+          if [ "$status" != "200" ]; then echo "Client reactivate returned HTTP $status"; cat /tmp/wl-client-reactivate.json || true; exit 1; fi
+          echo "Paid White Label depth smoke passed: owner permissions, branding, Client Apps, booking, hosted funnel + CRM capture, reputation, rebilling ledger, automation → Work Engine, Unified Inbox, Studio CRUD, brain access, and client lifecycle."
 
           admin_status=$(curl -sS -o /tmp/admin-denied.json -w '%{http_code}' "$BASE_URL/api/admin/settings" -H "Authorization: Bearer $token")
           if [ "$admin_status" != "403" ]; then echo "Customer account global-admin isolation expected HTTP 403, got $admin_status"; cat /tmp/admin-denied.json || true; exit 1; fi
