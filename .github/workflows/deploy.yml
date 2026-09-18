@@ -290,6 +290,7 @@ jobs:
                 "DELETE FROM unified_inbox_audit WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM unified_inbox_messages WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM unified_inbox_threads WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM magnanimous_business_ai_jobs WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM magnanimous_work_steps WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM magnanimous_work_items WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM bpo_audit_events WHERE tenant_id='${tenant_id}';"
@@ -356,6 +357,67 @@ jobs:
 
           status=$(curl -sS -o /tmp/me.json -w '%{http_code}' "$BASE_URL/api/auth/me" -H "Authorization: Bearer $token")
           if [ "$status" != "200" ]; then echo "Authenticated account check returned HTTP $status"; cat /tmp/me.json || true; exit 1; fi
+
+          # Magnanimous Business AI production smoke: verify the live catalog,
+          # durable Work Engine linkage, tenant isolation, and truthful pre-verification state.
+          status=$(curl -sS -o /tmp/business-ai-tools.json -w '%{http_code}' "$BASE_URL/api/business-ai/tools" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Business AI tools returned HTTP $status"; cat /tmp/business-ai-tools.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/business-ai-tools.json'))
+          tools=d.get('tools') or []
+          ids=[x.get('id') for x in tools]
+          assert d.get('brain') == 'Magnanimous AI', d
+          assert len(tools) == 29 and len(set(ids)) == 29, ids
+          assert 'asset-library' in ids and 'hyper-images' in ids and 'app-wizard' in ids and 'crm' in ids, ids
+          assert all(x.get('surface') for x in tools), tools
+          assert all(isinstance(x.get('dependencies'),list) for x in tools), tools
+          assert d.get('truth_boundary'), d
+          text=json.dumps(d).lower()
+          assert 'deal.ai' not in text and 'deal ai' not in text, d
+          print('Business AI live catalog exposes 29 independent Magnanimous capabilities.')
+          PY
+
+          status=$(curl -sS -o /tmp/business-ai-job.json -w '%{http_code}' -X POST "$BASE_URL/api/business-ai/jobs" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"tool_id":"sticky-notes","title":"Deployment Business AI Smoke","input":{"goal":"Create a safe deployment verification note without performing an external action."}}')
+          if [ "$status" != "201" ]; then echo "Business AI durable job returned HTTP $status"; cat /tmp/business-ai-job.json || true; exit 1; fi
+          readarray -t business_ai_values < <(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/business-ai-job.json'))
+          assert d.get('status') == 'working', d
+          work=d.get('work') or {}
+          assert int(work.get('id') or 0) > 0, d
+          assert len(work.get('steps') or []) >= 2, d
+          plan=d.get('execution_plan') or {}
+          assert int(plan.get('work_id') or 0) == int(work.get('id') or 0), d
+          print(d['id'])
+          print(work['id'])
+          PY
+          )
+          business_ai_job_id="${business_ai_values[0]}"
+          business_ai_work_id="${business_ai_values[1]}"
+
+          status=$(curl -sS -o /tmp/business-ai-job-read.json -w '%{http_code}' "$BASE_URL/api/business-ai/jobs/$business_ai_job_id" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Business AI saved job lookup returned HTTP $status"; cat /tmp/business-ai-job-read.json || true; exit 1; fi
+          python - "$business_ai_work_id" <<'PY'
+          import json,sys
+          work_id=int(sys.argv[1]);d=json.load(open('/tmp/business-ai-job-read.json'))
+          assert int((d.get('work') or {}).get('id') or 0) == work_id, d
+          assert d.get('resume_url') == f'/work-engine?work={work_id}', d
+          verification=d.get('verification') or {}
+          assert verification.get('workflow_complete') is False, d
+          assert verification.get('status') == 'not_verified', d
+          assert verification.get('action_ready') is False, d
+          PY
+
+          verify_status=$(curl -sS -o /tmp/business-ai-verify.json -w '%{http_code}' -X POST "$BASE_URL/api/business-ai/jobs/$business_ai_job_id/verify" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{}')
+          if [ "$verify_status" != "200" ]; then echo "Business AI verification endpoint returned HTTP $verify_status"; cat /tmp/business-ai-verify.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/business-ai-verify.json'))
+          assert d.get('status') == 'working', d
+          assert (d.get('verification') or {}).get('status') == 'not_verified', d
+          print('Business AI live durable execution and truthful verification boundary passed.')
+          PY
 
           check_protected_page "White Label public page" "$BASE_URL/white-label" /tmp/white-label.html
 
