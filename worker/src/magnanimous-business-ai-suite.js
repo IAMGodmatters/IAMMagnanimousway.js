@@ -182,7 +182,22 @@ const VERIFY_CRITERIA={
 'forms-surveys':['field schema saved','routing saved','label/accessibility review complete'],
 'community':['space/access rules saved','moderation plan saved','member experience reviewed'],
 'marketplace':['offer/license saved','pricing/terms saved','payment connection verified before sale'],
-'multilingual':['source meaning preserved','localized output saved','human/review step recorded']
+'multilingual':['source meaning preserved','localized output saved','human/review step recorded'],
+'podcast-studio':['episode structure saved','script/transcript saved','audio render truthfully gated'],
+'vibe-marketer':['positioning saved','cross-channel campaign saved','test plan saved'],
+'movie-studio':['story/scene plan saved','shot/dialogue package saved','renderer truthfully gated'],
+'spokesperson-video':['script saved','caption/scene direction saved','renderer truthfully gated'],
+'voiceover-studio':['narration script saved','pacing/pronunciation saved','audio render truthfully gated'],
+'persona-builder':['persona instructions saved','knowledge/boundaries saved','test conversations reviewed'],
+'aeo-funnels':['funnel structure saved','answer-engine content saved','CTA/measurement plan saved'],
+'audiobook-maker':['chapter plan saved','narration guidance saved','audio render truthfully gated'],
+'music-generator':['original music brief saved','Music Studio project created','audio generation truthfully gated'],
+'deep-research':['research question saved','source-backed findings created','evidence/uncertainty reviewed'],
+'web-chat-wizard':['chat flow saved','lead/handoff rules saved','widget deployment truthfully gated'],
+'precision-image-model':['dataset plan saved','rights/consent reviewed','model training truthfully gated'],
+'humanizer':['source meaning preserved','natural rewrite saved','facts/citations reviewed'],
+'knowledge-base':['source/provenance plan saved','taxonomy/chunk plan saved','knowledge ingestion reviewed'],
+'logo-maker':['brand/logo brief saved','original visual concept generated','distinctiveness/accessibility reviewed']
 };
 const PLAYBOOKS={
 'video-ads':['Define audience and offer','Write hook/script/CTA','Create scene and asset brief','Route to Video Studio','Review and publish'],
@@ -213,7 +228,22 @@ const PLAYBOOKS={
 'forms-surveys':['Define questions and fields','Create form schema','Set routing/automation','Analyze responses'],
 'community':['Define audience and access','Create spaces/topics','Create onboarding/content cadence','Moderate and measure'],
 'marketplace':['Define original/authorized offer','Package deliverables and license','Set pricing/terms','Publish catalog item'],
-'multilingual':['Identify source meaning and audience','Translate/localize','Preserve brand/legal terms','Review before publish']
+'multilingual':['Identify source meaning and audience','Translate/localize','Preserve brand/legal terms','Review before publish'],
+'podcast-studio':['Define audience and episode goal','Create episode outline','Write host script and transcript','Prepare audio production directions','Review and render when audio engine is connected'],
+'vibe-marketer':['Define offer and audience','Choose campaign vibe and positioning','Create cross-channel campaign','Create testing plan'],
+'movie-studio':['Define story goal','Create scene structure','Write shots/dialogue/narration','Prepare render package','Render with configured cinema engine'],
+'spokesperson-video':['Define audience and spokesperson goal','Write hook and script','Create scene/caption directions','Prepare avatar render job','Render with connected video engine'],
+'voiceover-studio':['Prepare source text','Create narration script','Add pronunciation/pacing direction','Render with connected voice engine'],
+'persona-builder':['Define persona role','Write system behavior and tone','Attach knowledge/boundaries','Create test conversations','Publish persona when ready'],
+'aeo-funnels':['Define conversion and search intent','Create funnel structure','Write answer-engine content and FAQs','Add CTA/forms/schema','Test and measure'],
+'audiobook-maker':['Prepare manuscript','Split into narration chapters','Create pronunciation and pacing guide','Prepare audiobook project','Render with connected voice engine'],
+'music-generator':['Define original music goal','Create music brief and lyrics direction','Create Music Studio project','Generate or render with configured audio engine','Review rights and output'],
+'deep-research':['Define research question','Run source-grounded research','Separate claims and evidence','Capture uncertainty and sources','Save evidence for review'],
+'web-chat-wizard':['Define website visitor goals','Create chat flow','Create lead capture and handoff rules','Create missed-message follow-up','Deploy widget when connection is ready'],
+'precision-image-model':['Define subject/object goal','Prepare consented dataset plan','Define labels and variation coverage','Prepare training/validation workflow','Train only with authorized engine'],
+'humanizer':['Inspect source meaning and facts','Rewrite for natural voice','Preserve citations and claims','Review tone and accuracy'],
+'knowledge-base':['Collect authorized sources','Define provenance and taxonomy','Chunk/tag content','Resolve conflicts and freshness','Store/review in Knowledge workspace'],
+'logo-maker':['Define brand and audience','Create logo brief','Generate logo concept','Review distinctiveness, contrast and accessibility']
 };
 function planFor(id,input){const steps=PLAYBOOKS[id]||['Understand goal','Plan','Execute with Magnanimous tools','Verify'];return{tool_id:id,goal:txt(input?.goal||'',1000),steps:steps.map((name,index)=>({index:index+1,name,status:'planned'})),orchestrator:'Magnanimous AI',provider_policy:'native-first; authorized replaceable infrastructure only when needed',verification_criteria:VERIFY_CRITERIA[id]||['output saved','execution reviewed','evidence recorded'],verification:'Evidence and action receipts required before claiming completion'}}
 const externalFor=id=>(CAPABILITY_ROUTES[id]?.dependencies||[]).filter(x=>String(x).endsWith('-external'));
