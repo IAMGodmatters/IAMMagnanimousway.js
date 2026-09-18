@@ -150,7 +150,8 @@ async function createCheckout(request, env, user) {
   if (!env.STRIPE_SECRET_KEY || !price) return json({ detail: `${PLAN_CONFIG[plan].name} checkout is not configured yet.`, code: 'STRIPE_NOT_CONFIGURED' }, 503);
   const origin = siteOrigin(request, env);
   const form = new URLSearchParams();
-  if(body.termsAccepted!==true||String(body.termsVersion||'')!=='2026-09-18.1') return json({detail:'Premium Services Agreement acceptance is required before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED'},428);
+  const requiredTerms=plan==='scale'?'annual-2026-09-18.1':'unlimited-2026-09-18.1';
+  if(body.termsAccepted!==true||String(body.termsVersion||'')!==requiredTerms) return json({detail:'The terms for the selected payment plan must be accepted before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED',requiredTerms},428);
   form.set('mode', 'subscription');
   form.set('line_items[0][price]', price);
   form.set('line_items[0][quantity]', '1');
