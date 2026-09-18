@@ -31,7 +31,7 @@ const NATIVE_OPERATIONS_PATHS=new Set([
   '/api/operations/automations','/api/operations/events','/api/operations/sequences',
   '/api/operations/activity'
 ]);
-function isNativeOperationsPath(pathname){return NATIVE_OPERATIONS_PATHS.has(pathname)||pathname.startsWith('/api/operations/records/');}
+function isNativeOperationsPath(pathname){return NATIVE_OPERATIONS_PATHS.has(pathname)||pathname.startsWith('/api/operations/records/')||pathname.startsWith('/api/operations/crm/');}
 
 function canonicalOrLegacyResponse(request){
   const url=new URL(request.url);
