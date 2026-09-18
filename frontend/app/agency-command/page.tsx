@@ -15,7 +15,7 @@ export default function AgencyCommand(){
  const[review,setReview]=useState({source:'manual',customer_name:'',rating:5,review_text:''});
  const[usageForm,setUsageForm]=useState({period:month(),category:'AI usage',units:0,cost_usd:0,markup_percent:0,note:''});
  const selectedClient=useMemo(()=>clients.find(c=>c.id===clientId)||null,[clients,clientId]);
- useEffect(()=>{const t=getPlatformAuthToken();if(!t){location.replace('/login?returnTo=%2Fagency-command');return}setToken(t);load(t)},[]);
+ useEffect(()=>{const t=getPlatformAuthToken();if(!t){location.replace('/login?returnTo=%2Fagency-command');return}const requested=new URLSearchParams(location.search).get('tab')||'command';const allowed=new Set(['command','booking','funnels','reputation','branding','billing']);setTab(allowed.has(requested)?requested:'command');setToken(t);load(t)},[]);
  async function authed(path:string,options:RequestInit={},active=token){const h=new Headers(options.headers||{});h.set('Authorization',`Bearer ${active}`);if(options.body&&!h.has('Content-Type'))h.set('Content-Type','application/json');return fetch(`${api}${path}`,{...options,headers:h,cache:'no-store'})}
  async function get(path:string,active=token){const r=await authed(path,{},active),d=await read(r);if(!r.ok)throw new Error(d.detail||'Request failed.');return d}
  async function load(active=token){try{const[o,c]=await Promise.all([get('/api/agency/overview',active),get('/api/agency/clients',active)]);setOverview(o);setClients(c.clients||[]);const id=clientId||(c.clients?.[0]?.id||'');setClientId(id);setError('');if(id)await loadClient(id,active)}catch(e:any){setError(e?.message||'Agency Command could not load.')}}
