@@ -12,6 +12,7 @@ import {handleAgencyBillingBefore,extendPlansPayload,applyAgencyWebhook} from '.
 import {handleWhiteLabelBrain,recordWhiteLabelAction,shouldObserveWhiteLabelPath} from './white-label-brain-runtime.js';
 import {handleMagnanimousDevAgent} from './magnanimous-dev-agent.js';
 import {handleWhiteLabelOS} from './white-label-os-runtime.js';
+import {handleBusinessAISuite} from './magnanimous-business-ai-suite.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -128,6 +129,7 @@ async function operationsFetch(request,env,ctx){
    }
   }catch(error){console.error('agency billing layer failed',error);return json({detail:'Agency billing could not complete this request.'},500)}
 
+  try{const businessAI=await handleBusinessAISuite(request,env);if(businessAI)return businessAI}catch(error){console.error('Business AI Suite failed',error);return json({detail:'Business AI Suite could not complete this request.'},500)}
   try{const whiteLabelOS=await handleWhiteLabelOS(request,env);if(whiteLabelOS)return whiteLabelOS}catch(error){console.error('White Label OS failed',error);return json({detail:'White Label OS could not complete this request.'},500)}
   try{const automation=await handleAgencyAutomations(request,env);if(automation)return automation}catch(error){console.error('agency automation layer failed',error);return json({detail:'Agency Automations could not complete this request.'},500)}
   try{
