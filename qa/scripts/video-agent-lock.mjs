@@ -1,1 +1,6 @@
-import fs from'node:fs';const r=fs.readFileSync(new URL('../../worker/src/video-agent-runtime.js',import.meta.url),'utf8'),s=fs.readFileSync(new URL('../../worker/src/security-entrypoint.js',import.meta.url),'utf8');for(const x of ['realtime-avatar','lip-sync','interruptions','consented-custom-avatar','rendering_ready:false'])if(!r.includes(x))throw Error('video agent lock '+x);if(!s.includes('handleVideoAgents'))throw Error('video agent routing lock');console.log('Video agent lock passed.');
+import fs from'node:fs';
+const r=fs.readFileSync(new URL('../../worker/src/video-agent-runtime.js',import.meta.url),'utf8');
+const s=fs.readFileSync(new URL('../../worker/src/security-entrypoint.js',import.meta.url),'utf8');
+for(const x of ['realtime-avatar','lip-sync','interruptions','consented-custom-avatar','rendering_ready:Boolean(live)','live_renderer_configured:adapterReady(env)'])if(!r.includes(x))throw Error('video agent lock '+x);
+if(!s.includes('handleVideoAgents'))throw Error('video agent routing lock');
+console.log('Video agent lock passed.');
