@@ -449,7 +449,7 @@ export async function handleNativeWorkCrm(request,env){
   const eid=text(crmSequenceMatch[1],80),cur=await env.DB.prepare('SELECT * FROM crm_sequence_enrollments WHERE tenant_id=? AND id=?').bind(t,eid).first();if(!cur)return json({detail:'Sequence enrollment not found.'},404);
   const requested=String(body.status||'').toLowerCase();if(!['active','paused','cancelled'].includes(requested))return json({detail:'Status must be active, paused, or cancelled.'},400);
   if(requested==='active'){const preferences=await crmPreferences(env,t,cur.contact_id);if(preferences.do_not_contact)return json({detail:'This contact is marked do not contact.'},409)}
-  await env.DB.prepare('UPDATE crm_sequence_enrollments SET status=?,next_step_at=CASE WHEN ?="active" AND next_step_at IS NULL THEN ? ELSE next_step_at END,updated_at=?,completed_at=CASE WHEN ?="cancelled" THEN ? ELSE completed_at END WHERE tenant_id=? AND id=?').bind(requested,requested,now(),now(),requested,requested==='cancelled'?now():null,t,eid).run();
+  await env.DB.prepare("UPDATE crm_sequence_enrollments SET status=?,next_step_at=CASE WHEN ?='active' AND next_step_at IS NULL THEN ? ELSE next_step_at END,updated_at=?,completed_at=CASE WHEN ?='cancelled' THEN ? ELSE completed_at END WHERE tenant_id=? AND id=?").bind(requested,requested,now(),now(),requested,requested==='cancelled'?now():null,t,eid).run();
   await log(env,user,'crm_sequence_enrollment_updated',{detail:{enrollment_id:eid,status:requested}});return json({item:(await crmSequenceEnrollments(env,t,Number(cur.contact_id))).find(x=>x.id===eid)})
  }
 
