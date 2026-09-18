@@ -184,7 +184,7 @@ async function operationsFetch(request,env,ctx){
   }
   if(webhookClone&&response.ok){
    const raw=await webhookClone.text().catch(()=>'' );let eventData=null;try{eventData=JSON.parse(raw)}catch{}
-   if(eventData){queueAutomation(ctx,Promise.all([applyAgencyWebhook(env,eventData,response),applyWhiteLabelClientPaymentWebhook(env,eventData),recordStripeGrowthEvent(env,eventData)]));}
+   if(eventData){const tasks=[applyWhiteLabelClientPaymentWebhook(env,eventData)];if(!eventData?.account)tasks.push(applyAgencyWebhook(env,eventData,response),recordStripeGrowthEvent(env,eventData));queueAutomation(ctx,Promise.all(tasks));}
   }
   return response;
 }
