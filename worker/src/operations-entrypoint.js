@@ -16,7 +16,7 @@ import {handleBusinessAISuite} from './magnanimous-business-ai-suite.js';
 import {handlePublicAgencyFunnel} from './public-agency-funnel-runtime.js';
 import {handleWhiteLabelDomains} from './white-label-domain-runtime.js';
 import {handleWhiteLabelEsign,handlePublicEsign} from './white-label-esign-runtime.js';
-import {handleWhiteLabelPayments} from './white-label-payments-runtime.js';
+import {handleWhiteLabelPayments,applyWhiteLabelClientPaymentWebhook} from './white-label-payments-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -183,7 +183,7 @@ async function operationsFetch(request,env,ctx){
   }
   if(webhookClone&&response.ok){
    const raw=await webhookClone.text().catch(()=>'' );let eventData=null;try{eventData=JSON.parse(raw)}catch{}
-   if(eventData){queueAutomation(ctx,Promise.all([applyAgencyWebhook(env,eventData,response),recordStripeGrowthEvent(env,eventData)]));}
+   if(eventData){queueAutomation(ctx,Promise.all([applyAgencyWebhook(env,eventData,response),applyWhiteLabelClientPaymentWebhook(env,eventData),recordStripeGrowthEvent(env,eventData)]));}
   }
   return response;
 }
