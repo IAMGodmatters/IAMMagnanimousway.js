@@ -48,6 +48,10 @@ jobs:
         working-directory: worker
         run: npm ci --no-audit --no-fund
 
+      - name: Bundle Worker before database changes
+        working-directory: worker
+        run: npx wrangler deploy --dry-run --outdir /tmp/magnanimous-worker-bundle
+
       - name: Apply D1 migrations
         working-directory: worker
         env:
@@ -169,9 +173,11 @@ jobs:
           data=json.load(open('/tmp/plans.json'))
           plans=data.get('plans') or []
           assert any(p.get('id') == 'free' and p.get('price_usd') == 0 for p in plans), data
-          assert any(p.get('id') == 'business' and p.get('price_usd') == 49 for p in plans), data
-          assert data.get('business_checkout_configured') is True, data
-          print('Stripe Full Business checkout is configured.')
+          assert any(p.get('id') == 'plus' and p.get('price_usd') == 19.99 and p.get('cadence') == 'month' for p in plans), data
+          assert any(p.get('id') == 'scale' and p.get('price_usd') == 199 and p.get('cadence') == 'year' for p in plans), data
+          configured=data.get('tier_checkout_configured') or {}
+          assert configured.get('plus') is True and configured.get('scale') is True, data
+          print('Stripe Unlimited and Annual checkout are configured.')
           PY
 
           check_get "Agent Mesh catalog" "$BASE_URL/api/agents" /tmp/agents.json
