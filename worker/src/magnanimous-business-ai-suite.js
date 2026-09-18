@@ -79,7 +79,18 @@ const DIRECT_EXECUTION={
 'seo-aeo':{tool:'marketing',instruction:'Create an SEO and answer-engine optimization plan with search intent, entities, page structure, metadata, schema recommendations, FAQs and measurement plan. Do not invent rankings or traffic.'},
 'social':{tool:'social',instruction:'Create platform-specific social content variants, posting calendar suggestions, repurposing plan, CTA options and accessibility notes such as captions/alt-text prompts. Do not publish.'},
 'forms-surveys':{tool:'business',instruction:'Create an accessible form/survey schema with labels, field types, required/optional states, validation, consent language placeholders, routing rules and response-analysis plan.'},
-'multilingual':{tool:'writing',instruction:'Translate/localize the supplied material while preserving meaning, brand terms, numbers and legal/compliance wording; flag ambiguous phrases for review.'}
+'multilingual':{tool:'writing',instruction:'Translate/localize the supplied material while preserving meaning, brand terms, numbers and legal/compliance wording; flag ambiguous phrases for review.'},
+'domain-generator':{tool:'business',instruction:'Generate distinctive domain-name candidates from the supplied brand constraints. Flag that availability, registration rights and trademark clearance require live checks; do not claim a domain is available.'},
+'lead-flow':{tool:'marketing',instruction:'Create a lawful lead-flow plan with ICP, qualification criteria, outreach sequence, CRM stages, reply handling, consent/DNC safeguards and measurement. Do not contact anyone.'},
+'project-management':{tool:'business',instruction:'Turn the goal into a project plan with milestones, tasks, dependencies, owners/roles, due-date placeholders, risks, acceptance criteria and verification checkpoints.'},
+'sticky-notes':{tool:'writing',instruction:'Turn the goal into a concise actionable note with context, decisions, next actions and reminder suggestions.'},
+'cloud-storage':{tool:'business',instruction:'Create a secure file-organization plan with folder/taxonomy structure, metadata, access-control roles, retention notes and project/client linkage. Do not claim files were uploaded.'},
+'business-phone':{tool:'customer-service',instruction:'Create a business-phone/call-center workflow with call purpose, script, routing, consent/quiet-hour checks, escalation, disposition and action-receipt requirements. Do not place a call.'},
+'sms':{tool:'marketing',instruction:'Create a consent-aware SMS sequence with concise messages, opt-out language, quiet-hour safeguards and follow-up logic. Do not send messages.'},
+'community':{tool:'business',instruction:'Create a community-space plan with audience, spaces/topics, access rules, onboarding, moderation, posting cadence and success measures. Do not claim it is published.'},
+'marketplace':{tool:'business',instruction:'Create a marketplace/package specification with offer, deliverables, license/usage terms placeholders, pricing options, fulfillment steps and payment-readiness checklist. Do not publish or charge.'},
+'asset-library':{tool:'business',instruction:'Create an asset-library taxonomy and metadata plan covering ownership/license status, tags, campaign/project linkage, access controls and reuse rules. Do not claim files were uploaded.'},
+'image-editor':{tool:'writing',instruction:'Create a precise image-edit brief describing the source-image changes, preserved elements, accessibility/alt-text needs and review checklist. Do not claim an image was edited; a true edit requires an edit-capable visual engine.'}
 };
 const VERIFY_CRITERIA={
 'video-ads':['storyboard/script saved','render path available','final media reviewed'],
@@ -148,6 +159,17 @@ const externalFor=id=>(CAPABILITY_ROUTES[id]?.dependencies||[]).filter(x=>String
 async function jobView(env,user,row){const out=(()=>{try{return JSON.parse(String(row.output_json||'{}'))}catch{return{}}})();const workId=Number(out.work_id||0),work=workId?await getWork(env,user,workId):null,external=externalFor(row.tool_id),done=Boolean(work&&work.status==='completed'&&Number(work.progress||0)===100);return{...row,input:(()=>{try{return JSON.parse(String(row.input_json||'{}'))}catch{return{}}})(),output:out,work,verification:{criteria:VERIFY_CRITERIA[row.tool_id]||[],workflow_complete:done,external_connections_required:external,action_ready:done&&external.length===0,status:done?(external.length?'workflow_verified_external_connection_required':'verified'):'not_verified'},resume_url:workId?'/work-engine?work='+workId:CAPABILITY_ROUTES[row.tool_id]?.surface||'/business-ai'}}
 function aiText(data){return txt(data?.reply??data?.answer??data?.response??data?.output??data?.message??data?.result??'',30000)}
 async function runDirectExecution(request,env,ctx,downstream,user,row){
+ if(row.tool_id==='hyper-images'){
+  const input=(()=>{try{return JSON.parse(String(row.input_json||'{}'))}catch{return{}}})(),view=await jobView(env,user,row),goal=txt(input.goal||view.work?.goal||row.title,1800);
+  if(!goal)return json({detail:'Describe the image you want first.'},400);if(!downstream?.fetch)return json({detail:'Magnanimous visual runtime is unavailable.'},503);
+  const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
+  const forwarded=new Request(new URL('/api/visual/scene',request.url),{method:'POST',headers,body:JSON.stringify({title:row.title,text:goal,style:'business'})});
+  const response=await downstream.fetch(forwarded,env,ctx),data=await response.clone().json().catch(()=>({}));if(!response.ok)return json({detail:data.detail||'Image generation failed.',code:data.code||'VISUAL_GENERATION_FAILED'},response.status);
+  const work=view.work;if(work){const step=work.steps.find(x=>x.status==='pending'||x.status==='working');if(step)await updateWorkStep(env,user,work.id,step.id,{status:'completed',result:'Image generated and returned to the authenticated Business AI session. Prompt: '+txt(data.prompt,2000)})}
+  const out={...(view.output||{}),work_id:work?.id||view.output?.work_id,last_execution_at:now(),artifact_type:'image',image_prompt:txt(data.prompt,2500),image_provider_internal:true};
+  await env.DB.prepare('UPDATE magnanimous_business_ai_jobs SET output_json=?,status=?,updated_at=? WHERE id=? AND tenant_id=?').bind(JSON.stringify(out),'working',now(),row.id,String(user.tenant_id)).run();
+  return json({ok:true,id:row.id,artifact_type:'image',image_data_uri:data.image_data_uri,prompt:data.prompt,work:work?await getWork(env,user,work.id):null,external_action_performed:false});
+ }
  const adapter=DIRECT_EXECUTION[row.tool_id];if(!adapter)return json({detail:'This capability uses a specialized workspace. Open its working surface to execute it.'},409);
  const input=(()=>{try{return JSON.parse(String(row.input_json||'{}'))}catch{return{}}})(),view=await jobView(env,user,row),goal=txt(input.goal||view.work?.goal||row.title,10000);
  if(!goal)return json({detail:'Add a goal before executing this capability.'},400);
