@@ -38,7 +38,7 @@ async function refresh(env,user,row){
 }
 export function extendPlansPayload(data,env){
  const base=Array.isArray(data?.plans)?data.plans.filter(p=>!isAgency(p.id)):[];
- return{...data,plans:[...base,...Object.values(AGENCY_PLANS).map(p=>({...p,checkout_configured:agencyCheckoutConfigured(env,p.id),checkout_mode:env.STRIPE_SECRET_KEY&&planPrice(env,p.id)?'checkout_session':planPaymentLink(env,p.id)?'payment_link':'unavailable',target_gross_margin_percent:Number(env.TARGET_GROSS_MARGIN_PERCENT||20)}))],agency_white_label:true,ordinary_user_max_usd:199};
+ return{...data,plans:[...base,...Object.values(AGENCY_PLANS).map(p=>({...p,checkout_configured:agencyCheckoutConfigured(env,p.id),checkout_mode:env.STRIPE_SECRET_KEY&&planPrice(env,p.id)?'checkout_session':planPaymentLink(env,p.id)?'payment_link':'unavailable',target_gross_margin_percent:Number(env.TARGET_GROSS_MARGIN_PERCENT||20)}))],agency_white_label:true,agency_payment_link_fallbacks:{agency:Boolean(planPaymentLink(env,'agency')),agency_pro:Boolean(planPaymentLink(env,'agency_pro'))},ordinary_user_max_usd:199};
 }
 async function agencyStatus(env,user){
  let row=await env.DB.prepare('SELECT * FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first();if(!isAgency(row?.plan))return null;row=await refresh(env,user,row);if(!row||!isAgency(row.plan)||String(row.status||'')!=='active')return null;
