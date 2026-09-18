@@ -177,7 +177,11 @@ jobs:
           assert any(p.get('id') == 'scale' and p.get('price_usd') == 199 and p.get('cadence') == 'year' for p in plans), data
           configured=data.get('tier_checkout_configured') or {}
           assert configured.get('plus') is True and configured.get('scale') is True, data
-          print('Stripe Unlimited and Annual checkout are configured.')
+          assert any(p.get('id') == 'agency' and p.get('price_usd') == 299 and p.get('checkout_configured') is True for p in plans), data
+          assert any(p.get('id') == 'agency_pro' and p.get('price_usd') == 499 and p.get('checkout_configured') is True for p in plans), data
+          fallbacks=data.get('agency_payment_link_fallbacks') or {}
+          assert fallbacks.get('agency') is True and fallbacks.get('agency_pro') is True, data
+          print('Stripe Unlimited, Annual, Agency and Agency Pro checkout are configured.')
           PY
 
           check_get "Agent Mesh catalog" "$BASE_URL/api/agents" /tmp/agents.json
@@ -324,6 +328,19 @@ jobs:
           agency_status=$(curl -sS -o /tmp/agency-denied.json -w '%{http_code}' "$BASE_URL/api/agency/overview" -H "Authorization: Bearer $token")
           if [ "$agency_status" != "402" ]; then echo "Free workspace Agency API paywall expected HTTP 402, got $agency_status"; cat /tmp/agency-denied.json || true; exit 1; fi
           echo "White Label public discovery and server-side Agency paywall passed."
+
+          agency_checkout_status=$(curl -sS -o /tmp/agency-checkout.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/checkout" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"plan":"agency","termsAccepted":true,"termsVersion":"agency-2026-09-18.1"}')
+          if [ "$agency_checkout_status" != "200" ]; then echo "Agency checkout returned HTTP $agency_checkout_status"; cat /tmp/agency-checkout.json || true; exit 1; fi
+          python - "$tenant_id" <<'PY'
+          import json,sys,urllib.parse
+          tenant=sys.argv[1];data=json.load(open('/tmp/agency-checkout.json'));url=data.get('url','')
+          parsed=urllib.parse.urlparse(url)
+          assert parsed.scheme == 'https' and parsed.hostname in {'buy.stripe.com','checkout.stripe.com'}, data
+          assert data.get('plan') == 'agency', data
+          if data.get('mode') == 'payment_link':
+              query=urllib.parse.parse_qs(parsed.query)
+              assert query.get('client_reference_id') == [tenant], data
+          PY
 
           admin_status=$(curl -sS -o /tmp/admin-denied.json -w '%{http_code}' "$BASE_URL/api/admin/settings" -H "Authorization: Bearer $token")
           if [ "$admin_status" != "403" ]; then echo "Customer account global-admin isolation expected HTTP 403, got $admin_status"; cat /tmp/admin-denied.json || true; exit 1; fi
