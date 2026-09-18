@@ -55,18 +55,19 @@ export default function CRM(){
  async function load(t=token){
   if(!t)return;setError('');
   try{
-   const[m,c,s,i,studio]=await Promise.all([
+   const[m,c,s,i,studio,seq]=await Promise.all([
     fetch(`${api}/api/auth/me`,{headers:auth(false,t),cache:'no-store'}),
     fetch(`${api}/api/crm/contacts?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`,{headers:auth(false,t),cache:'no-store'}),
     fetch(`${api}/api/crm/summary`,{headers:auth(false,t),cache:'no-store'}),
     fetch(`${api}/api/operations/crm/command-center`,{headers:auth(false,t),cache:'no-store'}),
-    fetch(`${api}/api/operations/crm/studio`,{headers:auth(false,t),cache:'no-store'})
+    fetch(`${api}/api/operations/crm/studio`,{headers:auth(false,t),cache:'no-store'}),
+    fetch(`${api}/api/operations/crm/sequences`,{headers:auth(false,t),cache:'no-store'})
    ]);
-   const[md,cd,sd,id,studioData]=await Promise.all([read(m),read(c),read(s),read(i),read(studio)]);
+   const[md,cd,sd,id,studioData,seqData]=await Promise.all([read(m),read(c),read(s),read(i),read(studio),read(seq)]);
    if(m.status===401||c.status===401||i.status===401){location.replace('/login?returnTo=%2Fcrm');return}
    if(!m.ok){setError(md.detail||'Unable to load your account.');return}
    setUser(md.user||{});if(c.ok)setContacts(cd.contacts||[]);if(s.ok)setStats({contacts:Number(sd.contacts||0),leads:Number(sd.leads||0),customers:Number(sd.customers||0),pipeline_value:Number(sd.pipeline_value||0),overdue_tasks:Number(sd.overdue_tasks||0)});
-   if(i.ok){setIntel(id);if(id.scoring_profile){setScoreName(id.scoring_profile.name||'Magnanimous Fit + Engagement');setScoreRules(id.scoring_profile.rules||defaultScoreRules);setScoreThresholds(id.scoring_profile.thresholds||defaultScoreThresholds)}}else setError(id.detail||'CRM intelligence could not load.');if(studio.ok){setAccounts(studioData.accounts||[]);setPipelines(studioData.pipelines||[]);if(!pipelineView){const preferred=(studioData.pipelines||[]).find((p:Pipeline)=>p.is_default)||(studioData.pipelines||[])[0];if(preferred)setPipelineView(preferred.id)}}
+   if(i.ok){setIntel(id);if(id.scoring_profile){setScoreName(id.scoring_profile.name||'Magnanimous Fit + Engagement');setScoreRules(id.scoring_profile.rules||defaultScoreRules);setScoreThresholds(id.scoring_profile.thresholds||defaultScoreThresholds)}}else setError(id.detail||'CRM intelligence could not load.');if(studio.ok){setAccounts(studioData.accounts||[]);setPipelines(studioData.pipelines||[]);if(!pipelineView){const preferred=(studioData.pipelines||[]).find((p:Pipeline)=>p.is_default)||(studioData.pipelines||[])[0];if(preferred)setPipelineView(preferred.id)}}if(seq.ok){setSequences(seqData.items||[]);setEnrollments(seqData.enrollments||[])}
   }catch{setError('Unable to load this CRM workspace.')}
  }
  useEffect(()=>{const t=getPlatformAuthToken();if(!t){location.replace('/login?returnTo=%2Fcrm');return}setToken(t);load(t)},[]);
