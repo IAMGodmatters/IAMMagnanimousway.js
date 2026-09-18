@@ -39,6 +39,7 @@ must(esign.includes("Signed audit records cannot be deleted"),'Signed electronic
 must(wrangler.includes('"/sign/*"')&&operations.includes('handlePublicEsign'),'Public signing links must route through the Worker.');
 
 must(payments.includes("type','standard'")&&payments.includes('/v1/account_links'),'Stripe Connect must support Stripe-hosted Standard connected-account onboarding.');
+must(payments.includes("/v1/accounts?limit=1")&&payments.includes('connectCapability'),'Client-payment readiness must verify the live Stripe Connect account API instead of trusting key presence alone.');
 must(payments.includes('https://connect.stripe.com/oauth/authorize')&&payments.includes('STRIPE_CONNECT_CLIENT_ID'),'Stripe Connect may also attach an existing Standard account through owner-authorized OAuth when configured.');
 must(payments.includes('agency_payment_states')&&payments.includes('state=crypto.randomUUID()'),'Existing-account OAuth must use tenant-scoped expiring state.');
 must(payments.includes("'Stripe-Account'"),'End-client checkout must run as a direct charge on the connected agency account.');
