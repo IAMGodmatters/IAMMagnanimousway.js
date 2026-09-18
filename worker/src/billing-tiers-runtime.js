@@ -41,8 +41,8 @@ const PLAN_CONFIG = {
 
 const PRICE_ENV = {
   plus: 'STRIPE_PRICE_PLUS',
-  business: 'STRIPE_PRICE_BUSINESS',
-  pro: 'STRIPE_PRICE_PRO',
+  business: 'STRIPE_PRICE_PLUS',
+  pro: 'STRIPE_PRICE_PLUS',
   scale: 'STRIPE_PRICE_SCALE'
 };
 
