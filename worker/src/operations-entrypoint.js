@@ -14,7 +14,7 @@ import {handleMagnanimousDevAgent} from './magnanimous-dev-agent.js';
 import {handleWhiteLabelOS} from './white-label-os-runtime.js';
 import {handleBusinessAISuite} from './magnanimous-business-ai-suite.js';
 import {handlePublicAgencyFunnel} from './public-agency-funnel-runtime.js';
-import {handleWhiteLabelDomains} from './white-label-domain-runtime.js';
+import {handleWhiteLabelDomains,handlePublicWhiteLabelDomain} from './white-label-domain-runtime.js';
 import {handleWhiteLabelEsign,handlePublicEsign} from './white-label-esign-runtime.js';
 import {handleWhiteLabelPayments,applyWhiteLabelClientPaymentWebhook} from './white-label-payments-runtime.js';
 
@@ -115,6 +115,7 @@ async function whiteLabelObservationPayload(request){
 async function operationsFetch(request,env,ctx){
   const url=new URL(request.url),path=url.pathname;
   if(request.method==='GET'&&LEGACY_ROUTES[path])return Response.redirect(new URL(LEGACY_ROUTES[path],url.origin).toString(),308);
+  try{const publicDomain=await handlePublicWhiteLabelDomain(request,env);if(publicDomain)return publicDomain}catch(error){console.error('public White Label domain failed',error)}
   try{const publicFunnel=await handlePublicAgencyFunnel(request,env);if(publicFunnel)return publicFunnel}catch(error){console.error('public White Label funnel failed',error);return new Response('Funnel temporarily unavailable.',{status:500,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'}})}
   try{const publicEsign=await handlePublicEsign(request,env);if(publicEsign)return publicEsign}catch(error){console.error('public White Label e-sign failed',error);return new Response('Signature request temporarily unavailable.',{status:500,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'}})}
 
