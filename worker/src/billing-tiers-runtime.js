@@ -4,7 +4,7 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
   headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
 });
 
-const PLAN_ORDER = ['free', 'plus', 'business', 'pro', 'scale'];
+const PLAN_ORDER = ['free', 'plus', 'business', 'pro', 'scale']; // legacy plan ids retained for account compatibility
 const PLAN_CONFIG = {
   free: {
     id: 'free', name: 'Free', price_usd: 0, cadence: 'forever', primary: true,
@@ -13,25 +13,25 @@ const PLAN_CONFIG = {
     entitlements: { metered_ai: false, pstn_minutes: 0, avatar_minutes: 0, premium_video_credits: 0, cost_ceiling_usd: 0 }
   },
   plus: {
-    id: 'plus', name: 'Magnanimous Plus', price_usd: 19, cadence: 'month',
+    id: 'plus', name: 'Magnanimous Unlimited Fair-Use', price_usd: 19.99, cadence: 'month',
     description: 'Affordable expanded access while high-variable-cost services stay controlled.',
     features: ['Everything in Free', 'Higher workflow capacity', 'Expanded business tools', 'Priority free-first routing'],
     entitlements: { metered_ai: false, pstn_minutes: 0, avatar_minutes: 0, premium_video_credits: 0, cost_ceiling_usd: 8 }
   },
   business: {
-    id: 'business', name: 'Full Business', price_usd: 49, cadence: 'month',
+    id: 'business', name: 'Magnanimous Unlimited Fair-Use', price_usd: 19.99, cadence: 'month',
     description: 'Full business workspace with controlled access to premium integrations.',
     features: ['Everything in Plus', 'Full business workspace', 'Advanced assistant workflows', 'Calling and avatar integration access', 'Professional Business Plan included where entitlement rules apply'],
     entitlements: { metered_ai: true, pstn_minutes: 30, avatar_minutes: 10, premium_video_credits: 10, cost_ceiling_usd: 24 }
   },
   pro: {
-    id: 'pro', name: 'Magnanimous Pro', price_usd: 99, cadence: 'month',
+    id: 'pro', name: 'Magnanimous Unlimited Fair-Use', price_usd: 19.99, cadence: 'month',
     description: 'Higher-capacity professional tier with larger controlled premium allowances.',
     features: ['Everything in Full Business', 'Premium AI access', 'Larger calling allowance', 'Larger avatar/video allowance', 'Priority business workflows'],
     entitlements: { metered_ai: true, pstn_minutes: 90, avatar_minutes: 30, premium_video_credits: 30, cost_ceiling_usd: 54 }
   },
   scale: {
-    id: 'scale', name: 'Magnanimous Scale', price_usd: 199, cadence: 'month',
+    id: 'scale', name: 'Magnanimous Annual', price_usd: 199, cadence: 'year',
     description: 'High-capacity organizational tier with controlled premium usage and scale features.',
     features: ['Everything in Pro', 'Highest included capacity', 'Expanded team/business workflows', 'Largest controlled premium allowances', 'Scale-ready support path'],
     entitlements: { metered_ai: true, pstn_minutes: 180, avatar_minutes: 60, premium_video_credits: 60, cost_ceiling_usd: 112 }
@@ -148,6 +148,7 @@ async function createCheckout(request, env, user) {
   if (!env.STRIPE_SECRET_KEY || !price) return json({ detail: `${PLAN_CONFIG[plan].name} checkout is not configured yet.`, code: 'STRIPE_NOT_CONFIGURED' }, 503);
   const origin = siteOrigin(request, env);
   const form = new URLSearchParams();
+  if(body.termsAccepted!==true||String(body.termsVersion||'')!=='2026-09-18.1') return json({detail:'Premium Services Agreement acceptance is required before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED'},428);
   form.set('mode', 'subscription');
   form.set('line_items[0][price]', price);
   form.set('line_items[0][quantity]', '1');
@@ -155,6 +156,8 @@ async function createCheckout(request, env, user) {
   form.set('customer_email', String(user.email || ''));
   form.set('metadata[tenant_id]', String(user.tenant_id));
   form.set('metadata[plan]', plan);
+  form.set('metadata[terms_version]', String(body.termsVersion));
+  form.set('metadata[terms_accepted]', 'true');
   form.set('subscription_data[metadata][tenant_id]', String(user.tenant_id));
   form.set('subscription_data[metadata][plan]', plan);
   form.set('allow_promotion_codes', 'true');
