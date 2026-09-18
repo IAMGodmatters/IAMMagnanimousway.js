@@ -1,0 +1,1 @@
+import fs from'node:fs';const x=fs.readFileSync(new URL('../../frontend/app/white-label/page.tsx',import.meta.url),'utf8');for(const s of ['PremiumAgreementConsent','termsAccepted:true','termsVersion:\'2026-09-18.1\'','!termsAccepted'])if(!x.includes(s))throw Error('white label payment consent '+s);console.log('White Label payment consent passed.');
