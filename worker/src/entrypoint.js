@@ -2,6 +2,7 @@ import app from './index.js';
 import { handleLeadPhone } from './lead-phone.js';
 import { handleIntegrations } from './integrations.js';
 import { handleSponsoredAds } from './sponsored-ad-runtime.js';
+import { handleVisual } from './visual-runtime.js';
 import { handleMagnanimousCommunications } from './magnanimous-communications-router.js';
 import { handleMagnanimousNativeMail } from './magnanimous-native-mail-runtime.js';
 import { handleMagnanimousUniversalAIConnector } from './magnanimous-universal-ai-connector.js';
@@ -90,6 +91,8 @@ export default {
   async fetch(request,env,ctx){
     ensureWhatsAppIntegrationCompatibility();
     await ensureRuntimeBootstrap(env);
+    const visual=await handleVisual(request,env);
+    if(visual)return visual;
     const sponsored=await handleSponsoredAds(request,env);
     if(sponsored)return sponsored;
     const aiConnector=await handleMagnanimousUniversalAIConnector(request,env);
