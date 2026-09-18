@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS credential_programs(
  issuer_name TEXT NOT NULL DEFAULT 'I AM MAGNANIMOUS WAY',
  questions_json TEXT NOT NULL DEFAULT '[]',
  passing_score REAL NOT NULL DEFAULT 80,
+ visibility TEXT NOT NULL DEFAULT 'workspace',
  status TEXT NOT NULL DEFAULT 'draft',
  accreditation_status TEXT NOT NULL DEFAULT 'platform-issued',
  created_at INTEGER NOT NULL,
