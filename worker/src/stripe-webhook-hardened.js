@@ -1,6 +1,7 @@
 import { creditWallet } from './usage-guard.js';
 import { parsePaymentReference } from './payment-reference.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
+import { applyWhiteLabelClientPaymentWebhook } from './white-label-payments-runtime.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
@@ -107,6 +108,7 @@ export async function handleHardenedStripeWebhook(request,env){
  let event;try{event=JSON.parse(raw)}catch{return json({detail:'Invalid Stripe webhook payload.'},400)}
  const id=String(event?.id||'');if(!id)return json({detail:'Stripe event id is required.'},400);
  if(await runtimeEnv.DB.prepare('SELECT event_id FROM billing_webhook_events WHERE event_id=?').bind(id).first())return json({received:true,duplicate:true});
+ await applyWhiteLabelClientPaymentWebhook(runtimeEnv,event);
  await processEvent(runtimeEnv,event);
  await runtimeEnv.DB.prepare('INSERT INTO billing_webhook_events(event_id,event_type,processed_at) VALUES(?,?,?)').bind(id,String(event?.type||''),now()).run();
  return json({received:true,hardened:true,automatic_fulfillment:true,provider_billing_owner:'I AM Magnanimous Way'});
