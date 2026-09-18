@@ -312,6 +312,10 @@ jobs:
               )
               for statement in "${cleanup_statements[@]}"; do
                 if ! npx wrangler d1 execute iam-magnanimous-db --remote --command="$statement" >/tmp/deploy-smoke-cleanup.log 2>&1; then
+                  if grep -qi "no such table" /tmp/deploy-smoke-cleanup.log; then
+                    echo "Cleanup skipped an unused table that was never created."
+                    continue
+                  fi
                   echo "::error::Smoke-test cleanup failed: $statement"
                   cat /tmp/deploy-smoke-cleanup.log || true
                   cleanup_failed=1
