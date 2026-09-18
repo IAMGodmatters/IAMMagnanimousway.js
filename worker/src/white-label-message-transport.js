@@ -1,3 +1,4 @@
+import {getProviderRuntimeEnv} from './provider-runtime-env.js';
 import {sendGrowthEmail} from './growth-email-transport.js';
 
 const clean=(v,n=12000)=>String(v??'').trim().slice(0,n);
@@ -20,11 +21,11 @@ async function plivoSms(env,to,body){
  const url='https://api.plivo.com/v1/Account/'+encodeURIComponent(String(env.PLIVO_AUTH_ID))+'/Message/';
  const r=await fetch(url,{method:'POST',headers:{authorization:basic(env.PLIVO_AUTH_ID,env.PLIVO_AUTH_TOKEN),'content-type':'application/json'},body:JSON.stringify({src:String(env.PLIVO_PHONE_NUMBER),dst:to,text:body})});const d=await r.json().catch(()=>({}));return r.ok?{ok:true,receipt:String(d.message_uuid?.[0]||d.api_id||'sms-sent')}:{ok:false,status:r.status,error:String(d.error||d.message||('SMS send failed ('+r.status+')'))};
 }
-export function messagingReadiness(env){
+export async function messagingReadiness(env){env=await getProviderRuntimeEnv(env);
  return{email:true,sms:twilioReady(env)||plivoReady(env),sms_provider_configured:twilioReady(env)||plivoReady(env),email_note:'Email requires a tenant-connected Gmail or Outlook account.',sms_note:'SMS requires configured carrier credentials and explicit contact consent.'};
 }
 export async function deliverUnifiedInboxMessage(env,{tenant,thread,content,subject='',consentConfirmed=false}){
- const channel=String(thread?.channel||'').toLowerCase(),target=clean(thread?.customer_ref,254);
+ env=await getProviderRuntimeEnv(env);const channel=String(thread?.channel||'').toLowerCase(),target=clean(thread?.customer_ref,254);
  if(channel==='email'){
   if(!validEmail(email(target)))return{ok:false,code:'MISSING_EMAIL_TARGET',status:400,error:'This email thread needs a valid customer email address in Customer contact.'};
   const sent=await sendGrowthEmail(env,{scopeTenantId:tenant,to:email(target),subject:clean(subject||thread.subject||'Message',240),text:clean(content,30000),senderName:'Magnanimous White Label',tenantOnly:true});
