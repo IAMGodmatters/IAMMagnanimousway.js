@@ -1,0 +1,1 @@
+import fs from'node:fs';const x=fs.readFileSync(new URL('../../worker/src/video-gpu-fallbacks.js',import.meta.url),'utf8');for(const s of ['runpod-community-4090','tensordock-4090','vast-4090','automatic_paid_use:false','Free browser/edge first'])if(!x.includes(s))throw Error('GPU fallback lock '+s);console.log('Low-cost GPU fallback lock passed.');
