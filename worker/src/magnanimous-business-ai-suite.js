@@ -248,17 +248,37 @@ const PLAYBOOKS={
 function planFor(id,input){const steps=PLAYBOOKS[id]||['Understand goal','Plan','Execute with Magnanimous tools','Verify'];return{tool_id:id,goal:txt(input?.goal||'',1000),steps:steps.map((name,index)=>({index:index+1,name,status:'planned'})),orchestrator:'Magnanimous AI',provider_policy:'native-first; authorized replaceable infrastructure only when needed',verification_criteria:VERIFY_CRITERIA[id]||['output saved','execution reviewed','evidence recorded'],verification:'Evidence and action receipts required before claiming completion'}}
 const externalFor=id=>(CAPABILITY_ROUTES[id]?.dependencies||[]).filter(x=>String(x).endsWith('-external'));
 const SURFACE_ONLY_STEPS={
+ 'academy-wizard':/Publish to Learning\/Community/i,
+ 'coach-wizard':/Publish assistant/i,
+ 'proposals':/Route to Contracts\/eSign/i,
+ 'email-marketing':/Route to campaign automation/i,
+ 'asset-library':/Connect to campaigns and projects/i,
+ 'domain-generator':/Prepare connection checklist/i,
+ 'crm':/Capture\/import contacts|Create stages and activities|Automate follow-up/i,
+ 'sticky-notes':/Link to client\/project|Create reminder when requested/i,
+ 'cloud-storage':/Choose authorized storage|Attach metadata\/client\/project|Apply access controls/i,
+ 'business-phone':/Route through Magnanimous Telecom\/contact center|Record receipt/i,
+ 'project-management':/Assign owners\/dates|Track evidence and completion/i,
+ 'app-wizard':/Route to developer agent|QA before release/i,
+ 'lead-flow':/Route replies to CRM\/inbox/i,
+ 'social':/Route approved publishing/i,
+ 'sms':/Route approved sends/i,
+ 'forms-surveys':/Set routing\/automation|Analyze responses/i,
+ 'community':/Create spaces\/topics|Moderate and measure/i,
+ 'marketplace':/Publish catalog item/i,
+ 'persona-builder':/Publish persona when ready/i,
  'movie-studio':/Render with configured cinema engine/i,
  'spokesperson-video':/Render with connected video engine/i,
  'voiceover-studio':/Render with connected voice engine/i,
  'audiobook-maker':/Render with connected voice engine/i,
  'music-generator':/Generate or render with configured audio engine/i,
  'web-chat-wizard':/Deploy widget when connection is ready/i,
- 'precision-image-model':/Train only with authorized engine/i
+ 'precision-image-model':/Train only with authorized engine/i,
+ 'knowledge-base':/Store\/review in Knowledge workspace/i
 };
 function surfaceGate(id,title){
  const external=externalFor(id),surface=CAPABILITY_ROUTES[id]?.surface||'/business-ai',step=String(title||'');
- if(SURFACE_ONLY_STEPS[id]?.test(step))return{surface,reason:'This step belongs in its specialized Magnanimous workspace and requires a real configured engine or connection.'};
+ if(SURFACE_ONLY_STEPS[id]?.test(step))return{surface,reason:external.length?'This step belongs in its specialized Magnanimous workspace and requires a real configured engine, connection, approval, or action receipt.':'This step changes a real Magnanimous workspace. Open that workspace to perform and verify the action instead of treating a text draft as completion.'};
  if(external.length&&/^(Route|Publish|Send|Call|Charge|Sign|Upload|Register|Train|Render|Export|Launch)\b/i.test(step))return{surface,reason:'This step requires a live authorized connection or specialized engine.'};
  return null;
 }
