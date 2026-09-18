@@ -5,17 +5,17 @@ import {getPlatformAuthToken} from '../../lib/magnanimous-session';
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 const TOOLS:Record<string,{name:string;src:string}>={
  funnel:{name:'Funnel Builder',src:'/white-label/funnel'},
- 'branded-ai':{name:'Branded AI',src:'/agency-command'},
+ 'branded-ai':{name:'Branded AI',src:'/agency-command?tab=branding'},
  'client-apps':{name:'Client Apps',src:'/bpo-operations'},
- booking:{name:'Booking',src:'/agency-command'},
- reputation:{name:'Reputation',src:'/agency-command'},
+ booking:{name:'Booking',src:'/agency-command?tab=booking'},
+ reputation:{name:'Reputation',src:'/agency-command?tab=reputation'},
  automations:{name:'Automations',src:'/agency-automations'},
  inbox:{name:'Unified Inbox',src:'/inbox'},
  crm:{name:'CRM',src:'/crm'},
  receptionist:{name:'AI Receptionist',src:'/ai-receptionist'},
  'video-agents':{name:'Video Agents',src:'/video-agents'},
  'work-engine':{name:'Work Engine',src:'/work-engine'},
- rebilling:{name:'Usage Rebilling',src:'/agency-command'}
+ rebilling:{name:'Usage Rebilling',src:'/agency-command?tab=billing'}
 };
 async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||`Request failed (${r.status})`}}}
 
