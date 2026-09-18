@@ -1,5 +1,5 @@
 import {currentUser} from './integrations.js';
-import {createWork,addWorkStep,getWork} from './work-engine-runtime.js';
+import {createWork,addWorkStep,getWork,updateWorkStep} from './work-engine-runtime.js';
 const json=(d,s=200)=>Response.json(d,{status:s,headers:{'cache-control':'no-store'}}),now=()=>Math.floor(Date.now()/1000),txt=(v,n=12000)=>String(v||'').trim().slice(0,n);
 export const BUSINESS_AI_SUITE=[
 ['video-ads','AI Video Ads','Generate video-ad briefs, scripts, scenes, hooks, CTAs and production jobs','video'],
@@ -32,18 +32,22 @@ export const BUSINESS_AI_SUITE=[
 ['marketplace','AI Marketplace','Package original/user-authorized assets, apps and services for sale','commerce'],
 ['multilingual','Multilingual Studio','Localize business content while preserving meaning and brand voice','language']
 ];
-async function ensure(env){await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,tool_id TEXT NOT NULL,title TEXT NOT NULL,input_json TEXT NOT NULL DEFAULT '{}',output_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run()}
+async function ensure(env){
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL DEFAULT '',tool_id TEXT NOT NULL,title TEXT NOT NULL,input_json TEXT NOT NULL DEFAULT '{}',output_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
+ try{await env.DB.prepare("ALTER TABLE magnanimous_business_ai_jobs ADD COLUMN user_id TEXT NOT NULL DEFAULT ''").run()}catch{}
+ await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_business_ai_user ON magnanimous_business_ai_jobs(tenant_id,user_id,updated_at DESC)').run();
+}
 const CAPABILITY_ROUTES={
 'video-ads':{surface:'/video-agents',accessibility:['script','storyboard','captions','9:16 and 16:9'],dependencies:['video-agents','renderer']},
 'academy-wizard':{surface:'/white-label-studio?tab=learning',accessibility:['course structure','lessons','plain-language learning paths'],dependencies:['learning']},
 'coach-wizard':{surface:'/magnanimous',accessibility:['keyboard-first chat','plain-language instructions'],dependencies:['magnanimous-ai','knowledge']},
 'hyper-images':{surface:'/magnanimous',accessibility:['text prompt','alt-text workflow'],dependencies:['image-generation']},
 'scroll-ads':{surface:'/marketing',accessibility:['copy variants','creative brief'],dependencies:['marketing']},
-'proposals':{surface:'/white-label-studio?tab=contracts',accessibility:['structured proposal','signature-status workflow'],dependencies:['contracts']},
-'email-marketing':{surface:'/marketing',accessibility:['subject/body sequence','audience segmentation'],dependencies:['marketing','automation']},
-'image-editor':{surface:'/magnanimous',accessibility:['text-directed edits','alt-text workflow'],dependencies:['image-editing']},
+'proposals':{surface:'/white-label-studio?tab=contracts',accessibility:['structured proposal','signature-status workflow'],dependencies:['contracts','esign-external']},
+'email-marketing':{surface:'/marketing',accessibility:['subject/body sequence','audience segmentation'],dependencies:['marketing','automation','email-send-external']},
+'image-editor':{surface:'/magnanimous',accessibility:['text-directed edits','alt-text workflow'],dependencies:['image-editing','image-edit-engine-external']},
 'magic-hooks':{surface:'/writing',accessibility:['plain text','variant generation'],dependencies:['writing']},
-'asset-library':{surface:'/connections',accessibility:['searchable metadata','project/client linkage'],dependencies:['files','connections']},
+'asset-library':{surface:'/connections',accessibility:['searchable metadata','project/client linkage'],dependencies:['files','connections','storage-external']},
 'funnels':{surface:'/agency-command?tab=funnels',accessibility:['hosted page','CTA','analytics'],dependencies:['agency-funnels']},
 'websites':{surface:'/developer',accessibility:['responsive structure','semantic content','SEO'],dependencies:['developer-agent']},
 'ecommerce-pdp':{surface:'/marketing',accessibility:['structured product facts','FAQ','SEO/AEO'],dependencies:['marketing']},
@@ -51,17 +55,17 @@ const CAPABILITY_ROUTES={
 'crm':{surface:'/crm',accessibility:['contacts','accounts','pipelines','tasks','sequences'],dependencies:['crm']},
 'chat-agent':{surface:'/magnanimous',accessibility:['keyboard chat','handoff rules'],dependencies:['magnanimous-ai','knowledge']},
 'sticky-notes':{surface:'/work-engine',accessibility:['plain text','task linkage'],dependencies:['work-engine']},
-'cloud-storage':{surface:'/connections',accessibility:['file metadata','access controls'],dependencies:['files','connections']},
+'cloud-storage':{surface:'/connections',accessibility:['file metadata','access controls'],dependencies:['files','connections','storage-external']},
 'business-phone':{surface:'/telecom',accessibility:['consent controls','call workflow','receipts'],dependencies:['telecom','carrier-external']},
 'project-management':{surface:'/work-engine',accessibility:['steps','status','resume','evidence'],dependencies:['work-engine']},
-'app-wizard':{surface:'/developer',accessibility:['plain-language spec','QA workflow'],dependencies:['developer-agent']},
-'lead-flow':{surface:'/crm',accessibility:['ICP','qualification','sequence','inbox replies'],dependencies:['crm','inbox','automation']},
+'app-wizard':{surface:'/developer',accessibility:['plain-language spec','QA workflow'],dependencies:['developer-agent','developer-approval-external']},
+'lead-flow':{surface:'/crm',accessibility:['ICP','qualification','sequence','inbox replies'],dependencies:['crm','inbox','automation','outreach-external']},
 'seo-aeo':{surface:'/marketing',accessibility:['metadata','schema plan','content recommendations'],dependencies:['marketing']},
-'social':{surface:'/social',accessibility:['platform variants','calendar','repurposing'],dependencies:['social']},
+'social':{surface:'/social',accessibility:['platform variants','calendar','repurposing'],dependencies:['social','publishing-external']},
 'sms':{surface:'/inbox',accessibility:['consent preflight','opt-out','quiet hours'],dependencies:['inbox','sms-external']},
 'forms-surveys':{surface:'/white-label/funnel',accessibility:['labels','field schema','response routing'],dependencies:['funnels','automation']},
 'community':{surface:'/white-label-studio?tab=community',accessibility:['spaces','member access','moderation plan'],dependencies:['community']},
-'marketplace':{surface:'/white-label-studio?tab=catalog',accessibility:['catalog metadata','pricing','terms'],dependencies:['catalog','billing']},
+'marketplace':{surface:'/white-label-studio?tab=catalog',accessibility:['catalog metadata','pricing','terms'],dependencies:['catalog','billing','payment-external']},
 'multilingual':{surface:'/magnanimous',accessibility:['localization','meaning preservation','review'],dependencies:['translation']}
 };
 const DIRECT_EXECUTION={
