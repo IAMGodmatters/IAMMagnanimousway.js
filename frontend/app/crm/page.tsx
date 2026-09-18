@@ -175,6 +175,23 @@ export default function CRM(){
    <textarea placeholder="Deal notes" value={dealForm.notes} onChange={e=>setDealForm({...dealForm,notes:e.target.value})}/>
    <button className="save" disabled={busy==='deal'} onClick={createDeal}>{busy==='deal'?'Creating…':'CREATE DEAL'}</button>
   </div></Modal>}
+  {showAccount&&<Modal close={()=>setShowAccount(false)} eyebrow="COMPANY ACCOUNT" title="Add Company"><div className="form">
+   <input placeholder="Company / account name" value={accountForm.name} onChange={e=>setAccountForm({...accountForm,name:e.target.value})}/>
+   <input placeholder="Domain, e.g. example.com" value={accountForm.domain} onChange={e=>setAccountForm({...accountForm,domain:e.target.value})}/>
+   <input placeholder="Industry" value={accountForm.industry} onChange={e=>setAccountForm({...accountForm,industry:e.target.value})}/>
+   <select value={accountForm.status} onChange={e=>setAccountForm({...accountForm,status:e.target.value})}>{['prospect','customer','partner','inactive'].map(x=><option key={x}>{x}</option>)}</select>
+   <input placeholder="Tags, comma separated" value={accountForm.tags} onChange={e=>setAccountForm({...accountForm,tags:e.target.value})}/>
+   <textarea placeholder="Company notes" value={accountForm.notes} onChange={e=>setAccountForm({...accountForm,notes:e.target.value})}/>
+   <button className="save" disabled={busy==='account'} onClick={createAccount}>{busy==='account'?'Creating…':'CREATE ACCOUNT'}</button>
+  </div></Modal>}
+  {showPipeline&&<Modal close={()=>setShowPipeline(false)} eyebrow="SALES PROCESS STUDIO" title="Create Pipeline"><div className="form">
+   <input placeholder="Pipeline name" value={pipelineForm.name} onChange={e=>setPipelineForm({...pipelineForm,name:e.target.value})}/>
+   <textarea placeholder="What this sales process is for" value={pipelineForm.description} onChange={e=>setPipelineForm({...pipelineForm,description:e.target.value})}/>
+   <label>Stages — comma separated<input value={pipelineForm.stages} onChange={e=>setPipelineForm({...pipelineForm,stages:e.target.value})}/></label>
+   <label className="check"><input type="checkbox" checked={pipelineForm.is_default} onChange={e=>setPipelineForm({...pipelineForm,is_default:e.target.checked})}/><span>Make this the default pipeline</span></label>
+   <p className="muted">Magnanimous assigns stage probabilities automatically. Stages named Won or Lost become closing stages.</p>
+   <button className="save" disabled={busy==='pipeline'} onClick={createPipeline}>{busy==='pipeline'?'Creating…':'CREATE PIPELINE'}</button>
+  </div></Modal>}
   {showTask&&<Modal close={()=>setShowTask(false)} eyebrow="FOLLOW-UP" title="Schedule Next Step"><div className="form"><select value={taskForm.contact_id} onChange={e=>setTaskForm({...taskForm,contact_id:e.target.value})}><option value="">Choose contact</option>{contacts.map(c=><option value={c.id} key={c.id}>{[c.first_name,c.last_name].filter(Boolean).join(' ')||c.company||`Contact ${c.id}`}</option>)}</select><input placeholder="Follow-up title" value={taskForm.title} onChange={e=>setTaskForm({...taskForm,title:e.target.value})}/><label>Due date & time<input type="datetime-local" value={taskForm.due_at} onChange={e=>setTaskForm({...taskForm,due_at:e.target.value})}/></label><textarea placeholder="Context / next step" value={taskForm.body} onChange={e=>setTaskForm({...taskForm,body:e.target.value})}/><button className="save" disabled={busy==='task'} onClick={createTask}>{busy==='task'?'Creating…':'CREATE FOLLOW-UP'}</button></div></Modal>}
 
   {show360&&contact360&&<Modal close={()=>setShow360(false)} eyebrow="CUSTOMER 360°" title={[contact360.contact.first_name,contact360.contact.last_name].filter(Boolean).join(' ')||contact360.contact.company||'Contact'}>
