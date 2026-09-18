@@ -87,7 +87,7 @@ export async function handleWhiteLabelDomains(request,env){
   if(['iammagnanimousway.com','www.iammagnanimousway.com'].includes(host))return json({detail:'The platform production domain cannot be assigned to a client.'},400);
   if(!await client(env,tenant,cid))return json({detail:'That client does not belong to this White Label workspace.'},404);
   const existing=await env.DB.prepare('SELECT * FROM agency_custom_domains WHERE tenant_id=? AND hostname=? LIMIT 1').bind(tenant,host).first();if(existing?.provider_hostname_id)return json({detail:'That hostname is already registered in this workspace.',domain:publicRow(existing)},409);
-  const body={hostname:host,ssl:{method:'txt',type:'dv',settings:{min_tls_version:'1.2'}},custom_metadata:{tenant_id:tenant.slice(0,120),client_id:cid.slice(0,120)}};
+  const body={hostname:host,ssl:{method:'txt',type:'dv',settings:{min_tls_version:'1.2'}}};
   const r=await cf(env,'/custom_hostnames',{method:'POST',body:JSON.stringify(body)});if(!r.ok){const message=clean(r.data?.errors?.[0]?.message||`Custom domain request failed (${r.status})`);await save(env,tenant,cid,host,{},message);return json({detail:message,code:'DOMAIN_PROVIDER_REJECTED'},r.status>=400&&r.status<500?r.status:502)}
   const row=await save(env,tenant,cid,host,r.data?.result||{});return json({ok:true,domain:publicRow(row),next:'Add the returned CNAME/TXT records at the customer DNS provider, then press Refresh status.'},201);
  }
