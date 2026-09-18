@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { handleAdvancedCrm, ADVANCED_CRM_CAPABILITIES } from './crm-advanced-runtime.js';
+import { handleMagnanimousSuite, MAGNANIMOUS_SUITE_CAPABILITIES } from './magnanimous-workspace-suite.js';
 import { handleWorkforceOps, WORKFORCE_CAPABILITIES } from './magnanimous-workforce-ops.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -39,6 +40,7 @@ export const NATIVE_OPERATIONS_CAPABILITIES=[
  {id:'configurable-scoring',name:'Configurable fit, engagement & combined scoring profiles',native:true},
  {id:'sequence-engine',name:'Consent-aware multi-touch sequences with reply stop goals',native:true,bridge:'CRM tasks + Unified Inbox'},
  ...ADVANCED_CRM_CAPABILITIES.map(x=>({...x,native:true})),
+ ...MAGNANIMOUS_SUITE_CAPABILITIES.map(x=>({...x,native:true})),
  ...WORKFORCE_CAPABILITIES.map(x=>({...x,native:true})),
 ];
 
