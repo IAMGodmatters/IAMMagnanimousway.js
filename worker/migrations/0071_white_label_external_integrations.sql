@@ -26,6 +26,7 @@ CREATE INDEX IF NOT EXISTS idx_agency_custom_domains_client ON agency_custom_dom
 CREATE TABLE IF NOT EXISTS agency_payment_connections (
   tenant_id TEXT PRIMARY KEY,
   stripe_account_id TEXT NOT NULL DEFAULT '',
+  connection_mode TEXT NOT NULL DEFAULT '',
   status TEXT NOT NULL DEFAULT 'not_started',
   charges_enabled INTEGER NOT NULL DEFAULT 0,
   payouts_enabled INTEGER NOT NULL DEFAULT 0,
