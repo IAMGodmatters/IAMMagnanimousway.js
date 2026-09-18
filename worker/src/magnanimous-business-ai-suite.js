@@ -30,7 +30,22 @@ export const BUSINESS_AI_SUITE=[
 ['forms-surveys','Forms + Surveys','Build lead forms, questionnaires and feedback flows','growth'],
 ['community','Community','Create branded member spaces and engagement plans','education'],
 ['marketplace','AI Marketplace','Package original/user-authorized assets, apps and services for sale','commerce'],
-['multilingual','Multilingual Studio','Localize business content while preserving meaning and brand voice','language']
+['multilingual','Multilingual Studio','Localize business content while preserving meaning and brand voice','language'],
+['podcast-studio','Podcast Studio','Turn ideas and source material into structured podcast episodes, host dialogue and publishing packages','audio'],
+['campaign-accelerator','Campaign Accelerator','Turn a product or offer into a complete multi-channel marketing campaign','marketing'],
+['movie-studio','Movie Studio','Plan and create cinematic AI video projects through Magnanimous video infrastructure','video'],
+['spokesperson-video','Spokesperson Video','Create presenter and avatar-led video campaigns with consent-aware identity controls','video'],
+['voiceover-studio','Voiceover Studio','Create narration scripts, voice direction and voiceover-ready production packages','audio'],
+['personality-builder','AI Personality Builder','Create specialized assistant personalities, instructions, knowledge boundaries and tests','agent'],
+['aeo-funnels','AEO Funnel Builder','Create answer-engine-aware conversion funnels with structured content and measurement','web'],
+['audiobook-studio','Audiobook Studio','Turn manuscripts into chapter-by-chapter narration and audiobook production plans','audio'],
+['music-generator','Music Generator','Create original music projects and route generation through Magnanimous Music Studio','audio'],
+['deep-research','Deep Research','Research live and saved sources and preserve source-backed findings as durable evidence','research'],
+['personalized-image-lab','Personalized Image Lab','Prepare consent-aware personalized image model/reference workflows without inventing training completion','creative'],
+['humanizer','Natural Writing Studio','Rewrite robotic or stiff text into natural human-sounding prose while preserving meaning','writing'],
+['knowledge-base','Knowledge Base','Store, search, ingest and reuse private workspace knowledge for Magnanimous reasoning','knowledge'],
+['logo-maker','Logo Maker','Create original logo concepts, visual directions and generated brand marks','creative'],
+['licensed-image-library','Licensed Image Library','Organize rights-cleared image sources and reusable brand assets with license tracking','storage']
 ];
 async function ensure(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL DEFAULT '',tool_id TEXT NOT NULL,title TEXT NOT NULL,input_json TEXT NOT NULL DEFAULT '{}',output_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
@@ -76,7 +91,22 @@ const CAPABILITY_ROUTES={
 'forms-surveys':{surface:'/agency-command?tab=funnels',accessibility:['labels','field schema','response routing'],dependencies:['funnels','automation']},
 'community':{surface:'/white-label-studio?tab=community',accessibility:['spaces','member access','moderation plan'],dependencies:['community']},
 'marketplace':{surface:'/white-label-studio?tab=catalog',accessibility:['catalog metadata','pricing','terms'],dependencies:['catalog','billing','payment-external']},
-'multilingual':{surface:'/magnanimous',accessibility:['localization','meaning preservation','review'],dependencies:['translation']}
+'multilingual':{surface:'/magnanimous',accessibility:['localization','meaning preservation','review'],dependencies:['translation']},
+'podcast-studio':{surface:'/magnanimous',accessibility:['transcript-first','speaker labels','caption/transcript output'],dependencies:['audio-script','podcast-audio-external']},
+'campaign-accelerator':{surface:'/business',accessibility:['plain-language campaign brief','channel variants','measurement plan'],dependencies:['business','marketing']},
+'movie-studio':{surface:'/cinema-engine',accessibility:['script','storyboard','captions','16:9 and 9:16'],dependencies:['video-agents','renderer']},
+'spokesperson-video':{surface:'/cinema-engine',accessibility:['script','captions','consent-aware avatar'],dependencies:['video-agents','avatar-renderer-external']},
+'voiceover-studio':{surface:'/magnanimous',accessibility:['script-first','pronunciation notes','transcript'],dependencies:['voice','voice-export-external']},
+'personality-builder':{surface:'/magnanimous',accessibility:['plain-language persona rules','knowledge boundaries','test prompts'],dependencies:['magnanimous-ai','knowledge']},
+'aeo-funnels':{surface:'/agency-command?tab=funnels',accessibility:['semantic structure','FAQ/schema plan','conversion path'],dependencies:['agency-funnels']},
+'audiobook-studio':{surface:'/magnanimous',accessibility:['chapter transcript','speaker direction','navigation'],dependencies:['writing','audiobook-audio-external']},
+'music-generator':{surface:'/music-studio',accessibility:['lyrics/text brief','project metadata','rights controls'],dependencies:['music-studio','music-engine-external']},
+'deep-research':{surface:'/research-notebook',accessibility:['source list','confidence notes','saved evidence'],dependencies:['knowledge','research']},
+'personalized-image-lab':{surface:'/magnanimous',accessibility:['reference-image description','consent/rights checklist','alt-text'],dependencies:['image-generation','personalized-training-external']},
+'humanizer':{surface:'/magnanimous',accessibility:['plain text','meaning-preserving rewrite','tone control'],dependencies:['writing']},
+'knowledge-base':{surface:'/knowledge',accessibility:['searchable sources','plain-language notes','source deletion'],dependencies:['knowledge']},
+'logo-maker':{surface:'/magnanimous',accessibility:['brand brief','vector-friendly direction','alt-text'],dependencies:['image-generation']},
+'licensed-image-library':{surface:'/connections',accessibility:['license metadata','searchable tags','rights status'],dependencies:['asset-library','licensed-assets-external']}
 };
 const DIRECT_EXECUTION={
 'video-ads':{tool:'video-script',instruction:'Create a production-ready video-ad script, hook, scene-by-scene storyboard, CTA, caption notes and accessibility/caption plan. Do not claim a video was rendered.'},
@@ -106,7 +136,22 @@ const DIRECT_EXECUTION={
 'asset-library':{tool:'business',instruction:'Create an asset-library taxonomy and metadata plan covering ownership/license status, tags, campaign/project linkage, access controls and reuse rules. Do not claim files were uploaded.'},
 'image-editor':{tool:'writing',instruction:'Create a precise image-edit brief describing the source-image changes, preserved elements, accessibility/alt-text needs and review checklist. Do not claim an image was edited; a true edit requires an edit-capable visual engine.'},
 'crm':{tool:'business',instruction:'Translate the goal into a structured CRM action plan using only supplied customer facts. Identify contact/account fields, pipeline stage, task/follow-up suggestions, notes and any missing information. Do not invent contact details or mutate CRM records from guesses.'},
-'app-wizard':{tool:'coding',instruction:'Create an implementation-ready app specification with users, jobs-to-be-done, screens, data model, permissions, APIs/actions, edge cases, accessibility, security, acceptance criteria and QA plan. Do not stage repository mutations or claim deployment; those remain behind the developer-agent approval gate.'}
+'app-wizard':{tool:'coding',instruction:'Create an implementation-ready app specification with users, jobs-to-be-done, screens, data model, permissions, APIs/actions, edge cases, accessibility, security, acceptance criteria and QA plan. Do not stage repository mutations or claim deployment; those remain behind the developer-agent approval gate.'},
+'podcast-studio':{tool:'writing',instruction:'Create a podcast production package with episode concept, title options, host roles, segment structure, full or outline script, intro/outro, show notes, transcript accessibility and publishing checklist. Do not claim audio was rendered.'},
+'campaign-accelerator':{tool:'marketing',instruction:'Create a coordinated campaign with audience, offer, message hierarchy, channel plan, content/ad/email assets, CTA path, test matrix and measurement plan.'},
+'movie-studio':{tool:'video-script',instruction:'Create a cinematic production package with story concept, script, scenes, shots, character continuity, visual/audio direction, captions and render checklist. Do not claim a movie was rendered.'},
+'spokesperson-video':{tool:'video-script',instruction:'Create a presenter/UGC-style video package with script, shot direction, on-screen text, captions, avatar/likeness consent requirements and CTA. Do not claim a presenter was rendered.'},
+'voiceover-studio':{tool:'writing',instruction:'Create a voiceover-ready script with pacing, pronunciation, emphasis, pauses, tone, timing and accessibility transcript. Do not claim audio was generated.'},
+'personality-builder':{tool:'magnanimous',instruction:'Create a specialized AI personality specification including purpose, tone, system instructions, knowledge boundaries, tools, escalation/refusal rules and test conversations.'},
+'aeo-funnels':{tool:'marketing',instruction:'Create a conversion funnel optimized for both human visitors and answer engines, including page flow, semantic headings, FAQs, schema recommendations, CTAs, experiments and analytics.'},
+'audiobook-studio':{tool:'writing',instruction:'Create an audiobook production package from supplied text with chapter segmentation, narration-ready text, pronunciation notes, voice direction, metadata and QC checklist. Do not claim audio was rendered.'},
+'music-generator':{tool:'writing',instruction:'Create an original music brief with genre, mood, structure, instrumentation, tempo/key suggestions, lyrics when requested, rights status and a Magnanimous Music Studio generation checklist. Do not claim audio generation unless Music Studio proves it.'},
+'deep-research':{tool:'research',instruction:'Research the topic using available current and saved sources, separate evidence from uncertainty, preserve useful citations/source references and produce actionable findings.'},
+'personalized-image-lab':{tool:'writing',instruction:'Create a consent- and rights-aware personalized image workflow: subject/reference requirements, dataset quality checklist, intended style/use, privacy constraints, review tests and generation prompts. Do not claim a model was trained.'},
+'humanizer':{tool:'writing',instruction:'Rewrite the supplied text so it sounds natural, clear and human while preserving facts, intent, names, numbers and required legal/brand wording. Do not fabricate experiences or claims.'},
+'knowledge-base':{tool:'research',instruction:'Turn the supplied material into a structured knowledge-base plan: source title/type, concise facts, tags, retrieval questions, conflicts/uncertainty and update/delete guidance.'},
+'logo-maker':{tool:'marketing',instruction:'Create original logo concepts from the brand brief: symbol directions, typography guidance, shape language, monochrome behavior, accessibility/contrast notes and image-generation prompts. Avoid copying existing trademarks.'},
+'licensed-image-library':{tool:'business',instruction:'Create a rights-cleared image-library plan with source/license fields, usage scope, attribution requirements, expiry/territory notes, tags and project/campaign linkage. Do not claim third-party images are licensed without records.'}
 };
 const VERIFY_CRITERIA={
 'video-ads':['storyboard/script saved','render path available','final media reviewed'],
