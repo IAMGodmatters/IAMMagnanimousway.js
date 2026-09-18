@@ -15,7 +15,8 @@ const TOOLS:Record<string,{name:string;src:string}>={
  receptionist:{name:'AI Receptionist',src:'/ai-receptionist'},
  'video-agents':{name:'Video Agents',src:'/video-agents'},
  'work-engine':{name:'Work Engine',src:'/work-engine'},
- rebilling:{name:'Usage Rebilling',src:'/agency-command?tab=billing'}
+ rebilling:{name:'Usage Rebilling',src:'/agency-command?tab=billing'},
+ integrations:{name:'Connections + Payments',src:'/white-label/integrations'}
 };
 async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||`Request failed (${r.status})`}}}
 
