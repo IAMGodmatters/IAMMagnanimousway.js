@@ -246,12 +246,7 @@ export default function AgentsPage() {
         </div>
         <div className={`avatar ${speaking ? "speaking" : ""}`}>
           <div className="halo" />
-          <div className="head">
-            <i />
-            <i />
-            <b />
-          </div>
-          <div className="body" />
+          <img className="agentPortrait" src="/mode-images/virtual-assistant.webp" alt={`${agent?.name || 'AI agent'} professional portrait`} />
           <span>
             {agent?.name || "AGENT"} •{" "}
             {speaking ? "SPEAKING" : providerReady ? "READY" : "NOT READY"}
@@ -531,6 +526,7 @@ export default function AgentsPage() {
           color: #70ddf4;
           text-decoration: none;
         }
+        .agentPortrait{width:190px;height:230px;object-fit:cover;border-radius:24px;border:1px solid rgba(112,221,244,.35);box-shadow:0 18px 55px rgba(0,0,0,.42)}
         .hero {
           margin-top: 28px;
           border: 1px solid #173643;

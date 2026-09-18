@@ -1,5 +1,6 @@
 "use client";
-import {useEffect,useState} from "react";\nconst api=process.env.NEXT_PUBLIC_API_BASE_URL||"";
+import {useEffect,useState} from "react";
+const api=process.env.NEXT_PUBLIC_API_BASE_URL||"";
 const modes=["Song","Instrumental","Sound / Loop","Remix / Extend","Advanced Studio"];
 export default function MusicStudio(){
  const [mode,setMode]=useState("Song"),[title,setTitle]=useState(""),[idea,setIdea]=useState(""),[lyrics,setLyrics]=useState(""),[notice,setNotice]=useState(""),[projects,setProjects]=useState<any[]>([]),[busy,setBusy]=useState(false);

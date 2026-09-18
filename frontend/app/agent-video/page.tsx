@@ -26,7 +26,7 @@ export default function AgentVideo(){
  function choose(id:string){window.speechSynthesis?.cancel();setSpeaking(false);setVideoUrl('');setSelected(id);history.replaceState(null,'',`/agent-video?agent=${encodeURIComponent(id)}`)}
 
  const ringCount=speaking?7:4;
- const portraits:Record<string,string>={vinnie:'/agent-portraits/vinnie.webp'};const portrait=portraits[selected]||'/agent-portraits/professional-ai-agent.webp';
+ const portrait='/mode-images/virtual-assistant.webp';
  return <main className="page">
   <header><a href="/agents">← Agent Mesh</a><b>I AM • LIVE VIDEO AGENTS • NON-OPENAI</b><a href="/assistant-actions">Platform Actions →</a></header>
   <section className="top">
