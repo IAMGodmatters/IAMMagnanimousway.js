@@ -1,6 +1,5 @@
 import {currentUser} from './integrations.js';
 import {createPasswordRecord} from './password-security.js';
-import {BUSINESS_AI_SUITE} from './magnanimous-business-ai-suite.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -62,9 +61,10 @@ export async function canWhiteLabelClientUseBusinessAITool(env,user,toolId){
 }
 async function catalogForClient(env,ctx){
  const saved=await env.DB.prepare('SELECT app_id,label,enabled,sort_order FROM agency_client_apps WHERE tenant_id=? AND client_id=? ORDER BY sort_order,app_id').bind(ctx.tenant_id,ctx.client_id).all();
- const map=new Map((saved.results||[]).map(x=>[String(x.app_id),x]));
- const catalog=[...CORE_APPS.map(([id,name])=>['core:'+id,id,name,'core']),...BUSINESS_AI_SUITE.map(([id,name])=>['business-ai:'+id,'business-ai:'+id,name,'business-ai'])];
- return catalog.map(([,app_id,name,group],index)=>{const row=map.get(app_id);return{app_id,name,label:String(row?.label||name),group,enabled:row?Boolean(row.enabled):true,sort_order:row?Number(row.sort_order||0):index,client_safe:group==='business-ai'}}).filter(x=>x.enabled).sort((a,b)=>a.sort_order-b.sort_order);
+ const rows=saved.results||[],known=new Set(rows.map(x=>String(x.app_id)));
+ const core=CORE_APPS.map(([app_id,name],index)=>{const row=rows.find(x=>String(x.app_id)===app_id);return{app_id,name,label:String(row?.label||name),group:'core',enabled:row?Boolean(row.enabled):true,sort_order:row?Number(row.sort_order||0):index,client_safe:false}});
+ const business=rows.filter(x=>String(x.app_id).startsWith('business-ai:')).map(x=>({app_id:String(x.app_id),name:String(x.label||x.app_id),label:String(x.label||x.app_id),group:'business-ai',enabled:Boolean(x.enabled),sort_order:Number(x.sort_order||100),client_safe:true}));
+ return [...core,...business].filter(x=>x.enabled).sort((a,b)=>a.sort_order-b.sort_order);
 }
 async function acceptInvite(request,env){
  await ensure(env);const b=await request.json().catch(()=>({})),token=txt(b.token,300),name=txt(b.name,180),password=String(b.password||'');
