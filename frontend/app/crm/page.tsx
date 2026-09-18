@@ -116,6 +116,32 @@ export default function CRM(){
   const r=await fetch(`${api}/api/operations/crm/contacts/${contact360.contact.id}/account`,{method:'PUT',headers:auth(true),body:JSON.stringify({account_id:accountId?Number(accountId):null})}),d=await read(r);
   if(!r.ok)setError(d.detail||'Unable to update company account.');else{setContact360({...contact360,contact:{...contact360.contact,account_id:accountId?Number(accountId):null}});setNotice('Contact company relationship updated.');await load()}setBusy('');
  }
+ async function createScoreProfile(){
+  if(!scoreForm.name.trim()){setError('Scoring profile name is required.');return}
+  const rules=[
+   {field:'email_present',operator:'exists',value:true,points:Number(scoreForm.email||0),label:'Email available'},
+   {field:'phone_present',operator:'exists',value:true,points:Number(scoreForm.phone||0),label:'Phone available'},
+   {field:'company_present',operator:'exists',value:true,points:Number(scoreForm.company||0),label:'Company or account identified'},
+   {field:'status',operator:'equals',value:'qualified',points:Number(scoreForm.qualified||0),label:'Qualified status'},
+   {field:'days_since_activity',operator:'lte',value:7,points:Number(scoreForm.recent||0),label:'Active in the last 7 days'},
+   {field:'deal_count',operator:'gte',value:1,points:Number(scoreForm.deal||0),label:'Has an opportunity'}
+  ].filter(r=>r.points!==0);
+  setBusy('scoring');setError('');
+  const r=await fetch(`${api}/api/operations/crm/scoring`,{method:'POST',headers:auth(true),body:JSON.stringify({name:scoreForm.name,score_type:scoreForm.score_type,rules})}),d=await read(r);
+  if(!r.ok)setError(d.detail||'Unable to create scoring profile.');else{setShowScoring(false);setScoreForm(blankScore);setNotice('Scoring profile activated. Lead priorities now use your configured rules.');await load()}setBusy('');
+ }
+ async function createSequence(){
+  if(!sequenceForm.name.trim()){setError('Sequence name is required.');return}
+  const steps=[{type:sequenceForm.first_type,title:'First touch',content:sequenceForm.first_content,delay_hours:0},{type:'wait',title:'Wait',content:'',delay_hours:Number(sequenceForm.wait_hours||0)},{type:sequenceForm.second_type,title:'Second touch',content:sequenceForm.second_content,delay_hours:0},{type:'wait',title:'Wait',content:'',delay_hours:Number(sequenceForm.final_wait_hours||0)},{type:sequenceForm.final_type,title:'Final follow-up',content:sequenceForm.final_content,delay_hours:0}];
+  setBusy('sequence');setError('');
+  const r=await fetch(`${api}/api/operations/crm/sequences`,{method:'POST',headers:auth(true),body:JSON.stringify({name:sequenceForm.name,steps,stop_on_reply:true})}),d=await read(r);
+  if(!r.ok)setError(d.detail||'Unable to create sequence.');else{setShowSequence(false);setSequenceForm(blankSequence);setNotice('Follow-up sequence created with automatic stop-on-reply.');await load()}setBusy('');
+ }
+ async function enrollSequence(){
+  if(!contact360||!sequenceChoice){setError('Choose a sequence first.');return}setBusy('enroll');setError('');
+  const r=await fetch(`${api}/api/operations/crm/sequences/${encodeURIComponent(sequenceChoice)}/enroll`,{method:'POST',headers:auth(true),body:JSON.stringify({contact_id:contact360.contact.id})}),d=await read(r);
+  if(!r.ok)setError(d.detail||'Unable to enroll this contact.');else{setNotice(d.needs_consent?`Sequence scheduled. ${d.needs_consent} step(s) require permission review before outreach.`:'Sequence scheduled. It will stop automatically if the customer replies.');await load();await open360(contact360.contact.id)}setBusy('');
+ }
  async function open360(contactId:number){
   setBusy('360');setError('');const r=await fetch(`${api}/api/operations/crm/contacts/${contactId}/360`,{headers:auth(),cache:'no-store'}),d=await read(r);
   if(!r.ok)setError(d.detail||'Unable to load the customer 360 view.');else{setContact360(d);setPrefForm({email_status:d.preferences?.email_status||'unknown',sms_status:d.preferences?.sms_status||'unknown',phone_status:d.preferences?.phone_status||'unknown',whatsapp_status:d.preferences?.whatsapp_status||'unknown',do_not_contact:Boolean(d.preferences?.do_not_contact),lawful_basis:d.preferences?.lawful_basis||'',consent_source:d.preferences?.consent_source||'',consent_note:d.preferences?.consent_note||''});setShow360(true)}setBusy('');
