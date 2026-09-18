@@ -49,7 +49,8 @@ export const BUSINESS_AI_SUITE=[
 ['logo-maker','Logo Studio','Create original logo concepts, brand marks and visual directions','creative'],
 ['accounting-books','Accounting & Bookkeeping','Use Magnanimous Finance for double-entry books, invoices, bills, FX and management reporting','finance'],
 ['data-studio','Spreadsheet & Data Studio','Import, edit, save, chart and analyze structured workbook data','data'],
-['open-media-library','Open-License Image Library','Search open-license images, preserve attribution and track source/license verification','creative']
+['open-media-library','Open-License Image Library','Search open-license images, preserve attribution and track source/license verification','creative'],
+['credentials-studio','Certificates & Credentials','Create assessments and issue verifiable platform completion credentials','education']
 ];
 async function ensure(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL DEFAULT '',tool_id TEXT NOT NULL,title TEXT NOT NULL,input_json TEXT NOT NULL DEFAULT '{}',output_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run();
@@ -113,7 +114,8 @@ const CAPABILITY_ROUTES={
 'logo-maker':{surface:'/magnanimous',accessibility:['brand brief','alt text','high-contrast review'],dependencies:['image-generation']},
 'accounting-books':{surface:'/finance-people',accessibility:['double-entry books','invoices and bills','management summaries'],dependencies:['finance-people']},
 'data-studio':{surface:'/data-studio',accessibility:['editable grid','CSV import/export','numeric summaries','AI analysis'],dependencies:['data-studio']},
-'open-media-library':{surface:'/media-library',accessibility:['searchable results','source and license links','verification ledger'],dependencies:['media-library','open-license-search']}
+'open-media-library':{surface:'/media-library',accessibility:['searchable results','source and license links','verification ledger'],dependencies:['media-library','open-license-search']},
+'credentials-studio':{surface:'/credentials',accessibility:['server-scored quiz','keyboard-friendly answers','public verification opt-in'],dependencies:['credentials']}
 };
 const DIRECT_EXECUTION={
 'video-ads':{tool:'video-script',instruction:'Create a production-ready video-ad script, hook, scene-by-scene storyboard, CTA, caption notes and accessibility/caption plan. Do not claim a video was rendered.'},
@@ -161,7 +163,8 @@ const DIRECT_EXECUTION={
 'logo-maker':{tool:'marketing',instruction:'Create an original logo brief with brand meaning, symbol directions, typography guidance, composition, contrast/accessibility and distinctiveness checks. Avoid copying existing trademarks or logos.'},
 'accounting-books':{tool:'business',instruction:'Create a bookkeeping and accounting action plan only from supplied facts. Identify source records, account/category mapping, reconciliation checks, management reports to review, missing information, and professional-review boundaries. Do not post transactions, invent balances, or invent tax treatment.'},
 'data-studio':{tool:'business',instruction:'Create a structured data-workbook plan with proposed columns, data types, cleanup rules, calculations, summaries, chart choices, and analysis questions. Do not claim a workbook was imported, saved, edited, charted, or exported unless Data Studio proves that action.'},
-'open-media-library':{tool:'marketing',instruction:'Create an image-search brief with subject, composition, orientation, usage context, attribution needs, and license-verification checks. Never claim an image is cleared for reuse unless the source and license record have actually been reviewed.'}
+'open-media-library':{tool:'marketing',instruction:'Create an image-search brief with subject, composition, orientation, usage context, attribution needs, and license-verification checks. Never claim an image is cleared for reuse unless the source and license record have actually been reviewed.'},
+'credentials-studio':{tool:'writing',instruction:'Create an assessment and credential plan with learning outcome, question coverage, passing threshold, issuer wording, completion criteria and verification language. Never claim external accreditation, licensure, government recognition, or an academic degree unless separately verified.'}
 };
 const VERIFY_CRITERIA={
 'video-ads':['storyboard/script saved','render path available','final media reviewed'],
@@ -210,7 +213,8 @@ const VERIFY_CRITERIA={
 'logo-maker':['brand/logo brief saved','original visual concept generated','distinctiveness/accessibility reviewed'],
 'accounting-books':['accounting objective and source records identified','real books/documents handled in Finance workspace','management output reviewed with professional boundaries'],
 'data-studio':['workbook structure saved','data quality/numeric summary reviewed','analysis/chart output reviewed'],
-'open-media-library':['source/license metadata preserved','source page checked before verified use','attribution retained for saved asset']
+'open-media-library':['source/license metadata preserved','source page checked before verified use','attribution retained for saved asset'],
+'credentials-studio':['assessment questions and passing score saved','server-scored attempt completed','credential issued only after passing','external accreditation not implied']
 };
 const PLAYBOOKS={
 'video-ads':['Define audience and offer','Write hook/script/CTA','Create scene and asset brief','Route to Video Studio','Review and publish'],
@@ -259,7 +263,8 @@ const PLAYBOOKS={
 'logo-maker':['Define brand and audience','Create logo brief','Generate logo concept','Review distinctiveness, contrast and accessibility'],
 'accounting-books':['Define accounting goal','Review source records','Open Finance & People to post or organize real records','Reconcile and review management reports','Confirm professional-review boundaries'],
 'data-studio':['Import or create workbook','Clean columns and rows','Save workbook','Analyze and chart data','Review findings and export'],
-'open-media-library':['Define image need','Search open-license images','Inspect source/license metadata','Save selected assets','Mark license checked only after source review']
+'open-media-library':['Define image need','Search open-license images','Inspect source/license metadata','Save selected assets','Mark license checked only after source review'],
+'credentials-studio':['Define learning outcome and issuer','Create assessment questions and passing score','Create and activate credential program','Take server-scored assessment','Issue credential only after passing','Enable public verification only with holder consent']
 };
 function planFor(id,input){const steps=PLAYBOOKS[id]||['Understand goal','Plan','Execute with Magnanimous tools','Verify'];return{tool_id:id,goal:txt(input?.goal||'',1000),steps:steps.map((name,index)=>({index:index+1,name,status:'planned'})),orchestrator:'Magnanimous AI',provider_policy:'native-first; authorized replaceable infrastructure only when needed',verification_criteria:VERIFY_CRITERIA[id]||['output saved','execution reviewed','evidence recorded'],verification:'Evidence and action receipts required before claiming completion'}}
 const externalFor=id=>(CAPABILITY_ROUTES[id]?.dependencies||[]).filter(x=>String(x).endsWith('-external'));
@@ -293,7 +298,8 @@ const SURFACE_ONLY_STEPS={
  'knowledge-base':/Store\/review in Knowledge workspace/i,
  'accounting-books':/Open Finance & People|post or organize real records|Reconcile and review management reports/i,
  'data-studio':/Import or create workbook|Save workbook|Analyze and chart data|export/i,
- 'open-media-library':/Inspect source\/license metadata|Save selected assets|Mark license checked/i
+ 'open-media-library':/Inspect source\/license metadata|Save selected assets|Mark license checked/i,
+ 'credentials-studio':/Create and activate credential program|Take server-scored assessment|Issue credential only after passing|Enable public verification/i
 };
 function surfaceGate(id,title){
  const external=externalFor(id),surface=CAPABILITY_ROUTES[id]?.surface||'/business-ai',step=String(title||'');
