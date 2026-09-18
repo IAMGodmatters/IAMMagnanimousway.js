@@ -369,7 +369,7 @@ jobs:
           ids=[x.get('id') for x in tools]
           assert d.get('brain') == 'Magnanimous AI', d
           assert len(tools) == 44 and len(set(ids)) == 44, ids
-          assert 'asset-library' in ids and 'hyper-images' in ids and 'app-wizard' in ids and 'crm' in ids, ids
+          assert all(x in ids for x in ['asset-library','hyper-images','app-wizard','crm','podcast-studio','movie-studio','spokesperson-video','voiceover-studio','music-generator','deep-research','knowledge-base','logo-maker','licensed-image-library']), ids
           assert all(x.get('surface') for x in tools), tools
           assert all(isinstance(x.get('dependencies'),list) for x in tools), tools
           assert d.get('truth_boundary'), d
