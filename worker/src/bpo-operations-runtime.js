@@ -21,7 +21,7 @@ async function agencyClientCapacity(env,tenant){
   const sub=await env.DB.prepare("SELECT plan FROM billing_subscriptions WHERE tenant_id=? AND status='active' LIMIT 1").bind(tenant).first();
   const plan=String(sub?.plan||'').toLowerCase(),limit=plan==='agency'?25:plan==='agency_pro'?100:0;
   if(!limit)return{plan,limit:0,count:0,remaining:null};
-  const row=await env.DB.prepare("SELECT COUNT(*) n FROM bpo_clients WHERE tenant_id=? AND status='active'").bind(tenant).first(),count=Number(row?.n||0);
+  const row=await env.DB.prepare("SELECT COUNT(*) n FROM bpo_clients WHERE tenant_id=? AND status!='archived'").bind(tenant).first(),count=Number(row?.n||0);
   return{plan,limit,count,remaining:Math.max(0,limit-count)};
  }catch{return{plan:'',limit:0,count:0,remaining:null}}
 }
