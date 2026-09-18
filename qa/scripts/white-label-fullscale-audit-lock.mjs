@@ -6,6 +6,8 @@ const wl=read('frontend/app/white-label/page.tsx');
 const shell=read('frontend/app/white-label/app/page.tsx');
 const os=read('frontend/app/white-label-os/page.tsx');
 const studioApi=read('worker/src/white-label-os-runtime.js');
+const agencyApi=read('worker/src/agency-growth-runtime.js');
+const studioUi=read('frontend/app/white-label-studio/page.tsx');
 const liveVideo=read('frontend/app/agent-video/page.tsx');
 const mesh=read('frontend/app/agents/page.tsx');
 
@@ -21,6 +23,9 @@ for(const route of new Set(routes)){
 }
 if(/mobile:'\/white-label-os'/.test(os))throw new Error('Mobile-ready Portal still self-loops to White Label OS');
 if(!studioApi.includes("b.name||b.title||b.partner_name"))throw new Error('Affiliate referral validation does not accept partner_name');
+for(const src of [studioApi,agencyApi])if(!src.includes("An active White Label Agency subscription is required."))throw new Error('White Label server-side Agency plan gate is missing');
+if(!os.includes("/api/billing/status")||!studioUi.includes("/api/billing/status"))throw new Error('White Label protected UIs must verify Agency billing before loading tools');
+for(const deep of ['?tab=projects','?tab=contracts','?tab=learning','?tab=affiliates','?tab=portal'])if(!os.includes(deep))throw new Error('White Label Studio deep link missing '+deep);
 for(const src of [liveVideo,mesh]){
  if(src.includes('<div className="hair"/>')||src.includes('<div className="face"><em/>')||src.includes('<div className="head">'))throw new Error('Cartoon avatar markup remains');
 }
