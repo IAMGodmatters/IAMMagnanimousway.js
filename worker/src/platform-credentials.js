@@ -7,7 +7,8 @@ const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control
 export const PLATFORM_CREDENTIAL_GROUPS=[
  {id:'stripe',name:'Stripe Advanced Billing',providers:['stripe'],fields:[
   {key:'STRIPE_SECRET_KEY',label:'Stripe Secret API Key (optional)',secret:true,required:false},
-  {key:'STRIPE_WEBHOOK_SECRET',label:'Stripe Webhook Signing Secret',secret:true,required:false}
+  {key:'STRIPE_WEBHOOK_SECRET',label:'Stripe Webhook Signing Secret',secret:true,required:false},
+  {key:'STRIPE_CONNECT_CLIENT_ID',label:'Stripe Connect OAuth Client ID (optional; enables connecting an existing Stripe account)',secret:false,required:false}
  ]},
  {id:'twilio',name:'Twilio Voice + Browser Agent Desk',providers:['twilio'],fields:[
   {key:'TWILIO_ACCOUNT_SID',label:'Twilio Account SID',secret:false,required:true},
