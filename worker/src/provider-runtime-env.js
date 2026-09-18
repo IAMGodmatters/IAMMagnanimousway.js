@@ -4,6 +4,7 @@ import { getBootstrapSecrets } from './secure-bootstrap.js';
 const PROVIDER_KEYS = new Set([
   'STRIPE_WEBHOOK_SECRET',
   'STRIPE_SECRET_KEY',
+  'STRIPE_CONNECT_CLIENT_ID',
   'TWILIO_ACCOUNT_SID',
   'TWILIO_AUTH_TOKEN',
   'TWILIO_PHONE_NUMBER',
