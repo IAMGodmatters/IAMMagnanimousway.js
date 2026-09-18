@@ -21,8 +21,10 @@ async function plivoSms(env,to,body){
  const url='https://api.plivo.com/v1/Account/'+encodeURIComponent(String(env.PLIVO_AUTH_ID))+'/Message/';
  const r=await fetch(url,{method:'POST',headers:{authorization:basic(env.PLIVO_AUTH_ID,env.PLIVO_AUTH_TOKEN),'content-type':'application/json'},body:JSON.stringify({src:String(env.PLIVO_PHONE_NUMBER),dst:to,text:body})});const d=await r.json().catch(()=>({}));return r.ok?{ok:true,receipt:String(d.message_uuid?.[0]||d.api_id||'sms-sent')}:{ok:false,status:r.status,error:String(d.error||d.message||('SMS send failed ('+r.status+')'))};
 }
-export async function messagingReadiness(env){env=await getProviderRuntimeEnv(env);
- return{email:true,sms:twilioReady(env)||plivoReady(env),sms_provider_configured:twilioReady(env)||plivoReady(env),email_note:'Email requires a tenant-connected Gmail or Outlook account.',sms_note:'SMS requires configured carrier credentials and explicit contact consent.'};
+export async function messagingReadiness(env,tenant=''){env=await getProviderRuntimeEnv(env);let emailConnected=false;
+ if(tenant){try{emailConnected=Boolean(await env.DB.prepare("SELECT id FROM integrations WHERE tenant_id=? AND provider IN ('google','outlook') LIMIT 1").bind(String(tenant)).first())}catch{}}
+ const smsReady=twilioReady(env)||plivoReady(env);
+ return{email:emailConnected,email_connected:emailConnected,sms:smsReady,sms_provider_configured:smsReady,email_note:emailConnected?'Tenant Gmail/Outlook sender connected.':'Connect Gmail or Outlook in this workspace before email can send.',sms_note:smsReady?'Carrier SMS transport configured; explicit contact consent is still required.':'SMS requires configured carrier credentials and explicit contact consent.'};
 }
 export async function deliverUnifiedInboxMessage(env,{tenant,thread,content,subject='',consentConfirmed=false}){
  env=await getProviderRuntimeEnv(env);const channel=String(thread?.channel||'').toLowerCase(),target=clean(thread?.customer_ref,254);
