@@ -13,13 +13,14 @@ const apps:AppCard[]=[
  {key:'booking',icon:'◷',name:'Booking',tag:'BOOK',description:'Create appointments and keep a clean booking list.',steps:['Choose a client.','Type the customer and service.','Pick the time.','Press Save booking.']},
  {key:'reputation',icon:'★',name:'Reputation',tag:'REVIEWS',description:'Keep reviews together and prepare responses.',steps:['Choose the client.','Add the review.','Ask Magnanimous for a response.','Review it and mark the item handled.']},
  {key:'automations',icon:'⚡',name:'Automations',tag:'AUTO',description:'Make rules that create follow-ups and work automatically.',steps:['Choose what starts the rule.','Choose what happens next.','Save it.','Turn it on.']},
- {key:'inbox',icon:'✉',name:'Unified Inbox',tag:'INBOX',description:'Keep customer conversations and follow-up work together.',steps:['Open the inbox.','Choose a conversation.','Reply or make a task.','Magnanimous learns whether the workflow succeeds.']},
+ {key:'inbox',icon:'✉',name:'Unified Inbox',tag:'INBOX',description:'Keep customer conversations together and send through verified email/SMS connections when configured.',steps:['Open the inbox.','Choose a conversation.','Send through the connected channel or save an internal note.','Magnanimous records the outcome.']},
  {key:'crm',icon:'◎',name:'CRM',tag:'CUSTOMERS',description:'Keep customer and lead information organized.',steps:['Add or find a contact.','Save the details.','Track the next step.','Use Magnanimous to plan the follow-up.']},
  {key:'receptionist',icon:'☎',name:'AI Receptionist',tag:'CALLS',description:'Set up an AI front desk for supported calling workflows.',steps:['Open the receptionist.','Choose the greeting.','Connect supported calling.','Test before real calls.']},
  {key:'video-agents',icon:'▶',name:'Video Agents',tag:'VIDEO',description:'Create AI-assisted video work for a client brand.',steps:['Choose the goal.','Add the message.','Create the media.','Review before publishing.']},
  {key:'work-engine',icon:'↻',name:'Work Engine',tag:'WORK',description:'Save multi-step work so you can continue later.',steps:['Start a job.','Follow the steps.','Save progress.','Resume later with Magnanimous context.']},
- {key:'rebilling',icon:'
-];
+ {key:'rebilling',icon:'$',name:'Usage Rebilling',tag:'MONEY',description:'Track variable usage and create verified client payment links from your connected agency Stripe account.',steps:['Choose the client.','Add the usage cost.','Set the approved markup.','Connect your agency Stripe account and create the client payment link.']},
+ {key:'integrations',icon:'⇄',name:'Connections + Payments',tag:'LIVE',description:'Activate custom domains, real messaging, telecom, electronic signatures and client payments with verified status.',steps:['Choose the capability.','Complete the secure authorization.','Follow the returned verification steps.','Use it after Magnanimous shows it ready.']}
+]
 async function read(r:Response){const text=await r.text();try{return JSON.parse(text)}catch{return{detail:text}}}
 
 export default function WhiteLabel(){
