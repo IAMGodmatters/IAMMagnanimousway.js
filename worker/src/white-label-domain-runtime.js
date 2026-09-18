@@ -16,8 +16,8 @@ async function agencyAccess(env,user){
 async function client(env,tenant,id){return env.DB.prepare('SELECT id,name,status FROM bpo_clients WHERE id=? AND tenant_id=? LIMIT 1').bind(id,tenant).first()}
 function tokenFor(env){return String(env.CLOUDFLARE_SAAS_API_TOKEN||env.CLOUDFLARE_PLATFORM_API_TOKEN||'').trim()}
 function zoneFor(env){return String(env.CLOUDFLARE_SAAS_ZONE_ID||env.CLOUDFLARE_PLATFORM_ZONE_ID||'').trim()}
-function cnameFor(env){return String(env.CLOUDFLARE_SAAS_CNAME_TARGET||'customers.iammagnanimousway.com').trim()}
-function ready(env){return Boolean(tokenFor(env)&&zoneFor(env)&&cnameFor(env))}
+function cnameFor(env){return String(env.CLOUDFLARE_SAAS_CNAME_TARGET||'').trim()}
+function ready(env){return Boolean(tokenFor(env)&&zoneFor(env))}
 function cfHeaders(env){return{authorization:`Bearer ${tokenFor(env)}`,'content-type':'application/json'}}
 async function cf(env,path,options={}){
  if(!ready(env))return{ok:false,status:503,data:{errors:[{message:'Managed custom domains are not configured.'}]}};
@@ -31,8 +31,18 @@ function details(result={}){
   ownership_name:clean(own.name),ownership_value:clean(own.value),ssl_txt_name:clean(txt?.txt_name||txt?.name),ssl_txt_value:clean(txt?.txt_value||txt?.value)
  };
 }
+async function fallbackState(env){
+ if(!ready(env))return{ok:false,active:false,status:'not_configured',origin:'',error:'Cloudflare API token or zone ID is missing.'};
+ const r=await cf(env,'/custom_hostnames/fallback_origin',{method:'GET'}),result=r.data?.result||{};
+ if(!r.ok)return{ok:false,active:false,status:'unavailable',origin:'',error:clean(r.data?.errors?.[0]?.message||r.data?.detail||`Fallback-origin check failed (${r.status})`)};
+ return{ok:true,active:String(result.status||'').toLowerCase()==='active',status:clean(result.status||'unknown'),origin:clean(result.origin||''),error:''};
+}
+async function resolveCnameTarget(env){
+ const explicit=cnameFor(env);if(explicit)return explicit;
+ const fallback=await fallbackState(env);return fallback.active?fallback.origin:'';
+}
 async function save(env,tenant,clientId,host,result,error=''){
- const d=details(result),id=crypto.randomUUID(),ts=now(),target=cnameFor(env);
+ const d=details(result),id=crypto.randomUUID(),ts=now(),target=await resolveCnameTarget(env);
  await env.DB.prepare(`INSERT INTO agency_custom_domains(id,tenant_id,client_id,hostname,provider,provider_hostname_id,status,ssl_status,cname_target,ownership_name,ownership_value,ssl_txt_name,ssl_txt_value,last_error,created_at,updated_at)
  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
  ON CONFLICT(tenant_id,hostname) DO UPDATE SET client_id=excluded.client_id,provider_hostname_id=excluded.provider_hostname_id,status=excluded.status,ssl_status=excluded.ssl_status,cname_target=excluded.cname_target,ownership_name=excluded.ownership_name,ownership_value=excluded.ownership_value,ssl_txt_name=excluded.ssl_txt_name,ssl_txt_value=excluded.ssl_txt_value,last_error=excluded.last_error,updated_at=excluded.updated_at`)
@@ -62,13 +72,16 @@ export async function handleWhiteLabelDomains(request,env){
  env=await getProviderRuntimeEnv(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);
  if(!await agencyAccess(env,user))return json({detail:'An active White Label Agency subscription is required.'},402);
  const tenant=String(user.tenant_id);
- if(url.pathname==='/api/white-label/domains/readiness'&&request.method==='GET')return json({configured:ready(env),managed_custom_domains:true,requires_customer_dns:true,activation_requires_hostname_and_certificate_validation:true,cname_target:ready(env)?cnameFor(env):'',credential_source:env.CLOUDFLARE_SAAS_API_TOKEN?'dedicated-saas-token':'platform-cloudflare-token',setup_missing:ready(env)?[]:['Cloudflare API token','Cloudflare zone ID']});
+ if(url.pathname==='/api/white-label/domains/readiness'&&request.method==='GET'){
+  const credentials=ready(env),fallback=credentials?await fallbackState(env):{ok:false,active:false,status:'not_configured',origin:'',error:'Cloudflare API token or zone ID is missing.'},target=credentials?(cnameFor(env)||fallback.origin):'';
+  return json({configured:credentials&&fallback.active&&Boolean(target),credentials_configured:credentials,managed_custom_domains:true,managed_service_ready:Boolean(fallback.active&&target),requires_customer_dns:true,activation_requires_hostname_and_certificate_validation:true,cname_target:target,fallback_origin:{status:fallback.status,origin:fallback.origin,active:fallback.active},credential_source:env.CLOUDFLARE_SAAS_API_TOKEN?'dedicated-saas-token':'platform-cloudflare-token',setup_missing:!credentials?['Cloudflare API token','Cloudflare zone ID']:!fallback.active?['Cloudflare for SaaS fallback origin must be Active']:!target?['Managed CNAME target or active fallback origin']:[]});
+ }
  if(url.pathname==='/api/white-label/domains'&&request.method==='GET'){
   const cid=clean(url.searchParams.get('client_id'));let sql='SELECT * FROM agency_custom_domains WHERE tenant_id=?',args=[tenant];if(cid){sql+=' AND client_id=?';args.push(cid)}sql+=' ORDER BY updated_at DESC LIMIT 100';
   const{results=[]}=await env.DB.prepare(sql).bind(...args).all();const refresh=url.searchParams.get('refresh')==='1',rows=[];for(const row of results)rows.push(publicRow(refresh?await refreshRow(env,row):row));return json({domains:rows,configured:ready(env)});
  }
  if(url.pathname==='/api/white-label/domains'&&request.method==='POST'){
-  if(!owner(user))return json({detail:'Workspace owner or admin access required.'},403);if(!ready(env))return json({detail:'Managed custom domains are not configured yet. Add the scoped domain-service credentials first.',code:'DOMAIN_PROVIDER_NOT_CONFIGURED'},503);
+  if(!owner(user))return json({detail:'Workspace owner or admin access required.'},403);if(!ready(env))return json({detail:'Managed custom domains are not configured yet. Add a scoped Cloudflare token and zone ID first.',code:'DOMAIN_PROVIDER_NOT_CONFIGURED'},503);const fallback=await fallbackState(env),target=await resolveCnameTarget(env);if(!fallback.active||!target)return json({detail:'Cloudflare for SaaS is not traffic-ready. Configure an Active fallback origin before registering client domains.',code:'DOMAIN_FALLBACK_NOT_READY',fallback_origin:fallback},409);
   const b=await request.json().catch(()=>({})),cid=clean(b.client_id),host=hostname(b.hostname);if(!cid||!host||!validHostname(host))return json({detail:'Choose a client and enter a valid hostname such as app.customer.com.'},400);
   if(['iammagnanimousway.com','www.iammagnanimousway.com'].includes(host))return json({detail:'The platform production domain cannot be assigned to a client.'},400);
   if(!await client(env,tenant,cid))return json({detail:'That client does not belong to this White Label workspace.'},404);
