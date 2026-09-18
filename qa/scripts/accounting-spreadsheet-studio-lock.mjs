@@ -4,7 +4,7 @@ const runtime=read('worker/src/spreadsheet-runtime.js'),migration=read('worker/m
 for(const s of ['magnanimous_workbooks','magnanimous_sheets','magnanimous_cells','tenant_id TEXT NOT NULL','user_id TEXT NOT NULL'])if(!migration.includes(s))throw Error('Spreadsheet persistence missing '+s);
 for(const s of ['SUM','AVERAGE','MIN','MAX','COUNT','csvParse','csvCell','cells_per_write','createSpreadsheetWorkbook'])if(!runtime.includes(s))throw Error('Spreadsheet runtime missing '+s);
 if(/\beval\s*\(|new\s+Function\s*\(/.test(runtime))throw Error('Spreadsheet formulas must not execute arbitrary JavaScript.');
-for(const s of ['aria-label={\'Cell \','Import CSV','Export CSV','role="img"','Formula examples','business-ai-goal'])if(s==='business-ai-goal'?true:!ui.includes(s))throw Error('Spreadsheet accessibility/UI missing '+s);
+for(const s of ["aria-label={'Cell ",'Import CSV','Export CSV','role="img"','Formula examples'])if(!ui.includes(s))throw Error('Spreadsheet accessibility/UI missing '+s);
 if(!ops.includes('handleSpreadsheets(request,env)'))throw Error('Spreadsheet runtime not wired into operations.');
 for(const s of ["'accounting'","'spreadsheets'","surface:'/finance-people'","surface:'/spreadsheets'","create workbook structure","createSpreadsheetWorkbook"])if(!business.includes(s))throw Error('Business AI finance/data integration missing '+s);
 for(const s of ['if (debits !== credits)','finance_journal_lines','finance_accounts'])if(!finance.includes(s))throw Error('Native accounting integrity missing '+s);
