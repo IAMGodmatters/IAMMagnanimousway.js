@@ -15,9 +15,10 @@ export async function handleBillingCheckoutHardening(request,env){
  const user=await currentUserFromRequest(request,env);
  if(!user)return json({detail:'Sign in required.'},401);
  const body=await request.clone().json().catch(()=>({}));
- if(body.termsAccepted!==true||String(body.termsVersion||'')!=='2026-09-18.1')return json({detail:'Premium Services Agreement acceptance is required before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED'},428);
  const plan=String(body.plan||'business').toLowerCase();
  if(!PLANS.has(plan))return json({detail:'Choose a valid paid plan: plus, business, pro, or scale.',code:'INVALID_PLAN'},400);
+ const requiredTerms=plan==='scale'?'annual-2026-09-18.1':'unlimited-2026-09-18.1';
+ if(body.termsAccepted!==true||String(body.termsVersion||'')!==requiredTerms)return json({detail:'Premium Services Agreement acceptance is required before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED',requiredTerms},428);
  let existing=null;
  try{existing=await env.DB.prepare('SELECT plan,status,stripe_customer_id,stripe_subscription_id,current_period_end FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first()}catch(_){ }
  if(existing?.stripe_subscription_id&&ACTIVEISH.has(String(existing.status||''))){
