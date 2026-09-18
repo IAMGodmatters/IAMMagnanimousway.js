@@ -49,7 +49,7 @@ async function overview(env,tenant){
  const count=async(where,args=[])=>Number((await env.DB.prepare(`SELECT COUNT(*) n FROM unified_inbox_threads WHERE tenant_id=? ${where}`).bind(tenant,...args).first())?.n||0);
  const [open,waiting,unassigned,urgent]=await Promise.all([count("AND status='open'"),count("AND status='waiting'"),count("AND assigned_user_id IS NULL AND assigned_ai_agent_id IS NULL AND status IN ('open','waiting')"),count("AND priority>=80 AND status IN ('open','waiting')")]);
  let bpoOpen=0;try{bpoOpen=Number((await env.DB.prepare("SELECT COUNT(*) n FROM bpo_work_items WHERE tenant_id=? AND status IN ('open','assigned','in-progress','waiting')").bind(tenant).first())?.n||0)}catch{}
- const delivery=await messagingReadiness(env);return{ok:true,open,waiting,unassigned,urgent,bpo_open_items:bpoOpen,channels:['email','sms','voice','voicemail','social','chat','web','task'],capture_endpoint:'/api/inbox/capture',handoff:'Magnanimous AI + named specialists + human users',delivery};
+ const delivery=await messagingReadiness(env,tenant);return{ok:true,open,waiting,unassigned,urgent,bpo_open_items:bpoOpen,channels:['email','sms','voice','voicemail','social','chat','web','task'],capture_endpoint:'/api/inbox/capture',handoff:'Magnanimous AI + named specialists + human users',delivery};
 }
 
 export async function handleUnifiedInbox(request,env){
