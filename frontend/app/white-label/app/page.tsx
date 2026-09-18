@@ -5,8 +5,8 @@ import {getPlatformAuthToken} from '../../lib/magnanimous-session';
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 const TOOLS:Record<string,{name:string;src:string}>={
  funnel:{name:'Funnel Builder',src:'/white-label/funnel'},
- 'branded-ai':{name:'Branded AI',src:'/agency-command?tab=branding'},
- 'client-apps':{name:'Client Apps',src:'/bpo-operations'},
+ 'branded-ai':{name:'Branded AI',src:'/white-label/branded-ai'},
+ 'client-apps':{name:'Client Apps',src:'/white-label/client-apps'},
  booking:{name:'Booking',src:'/agency-command?tab=booking'},
  reputation:{name:'Reputation',src:'/agency-command?tab=reputation'},
  automations:{name:'Automations',src:'/agency-automations'},
