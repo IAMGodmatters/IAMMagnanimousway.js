@@ -33,6 +33,37 @@ export const BUSINESS_AI_SUITE=[
 ['multilingual','Multilingual Studio','Localize business content while preserving meaning and brand voice','language']
 ];
 async function ensure(env){await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_business_ai_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,tool_id TEXT NOT NULL,title TEXT NOT NULL,input_json TEXT NOT NULL DEFAULT '{}',output_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`).run()}
+const CAPABILITY_ROUTES={
+'video-ads':{surface:'/video-agents',accessibility:['script','storyboard','captions','9:16 and 16:9'],dependencies:['video-agents','renderer']},
+'academy-wizard':{surface:'/white-label-studio?tab=learning',accessibility:['course structure','lessons','plain-language learning paths'],dependencies:['learning']},
+'coach-wizard':{surface:'/magnanimous',accessibility:['keyboard-first chat','plain-language instructions'],dependencies:['magnanimous-ai','knowledge']},
+'hyper-images':{surface:'/magnanimous',accessibility:['text prompt','alt-text workflow'],dependencies:['image-generation']},
+'scroll-ads':{surface:'/marketing',accessibility:['copy variants','creative brief'],dependencies:['marketing']},
+'proposals':{surface:'/white-label-studio?tab=contracts',accessibility:['structured proposal','signature-status workflow'],dependencies:['contracts']},
+'email-marketing':{surface:'/marketing',accessibility:['subject/body sequence','audience segmentation'],dependencies:['marketing','automation']},
+'image-editor':{surface:'/magnanimous',accessibility:['text-directed edits','alt-text workflow'],dependencies:['image-editing']},
+'magic-hooks':{surface:'/writing',accessibility:['plain text','variant generation'],dependencies:['writing']},
+'asset-library':{surface:'/connections',accessibility:['searchable metadata','project/client linkage'],dependencies:['files','connections']},
+'funnels':{surface:'/agency-command?tab=funnels',accessibility:['hosted page','CTA','analytics'],dependencies:['agency-funnels']},
+'websites':{surface:'/developer',accessibility:['responsive structure','semantic content','SEO'],dependencies:['developer-agent']},
+'ecommerce-pdp':{surface:'/marketing',accessibility:['structured product facts','FAQ','SEO/AEO'],dependencies:['marketing']},
+'domain-generator':{surface:'/developer',accessibility:['candidate list','connection checklist'],dependencies:['developer-agent','dns-external']},
+'crm':{surface:'/crm',accessibility:['contacts','accounts','pipelines','tasks','sequences'],dependencies:['crm']},
+'chat-agent':{surface:'/magnanimous',accessibility:['keyboard chat','handoff rules'],dependencies:['magnanimous-ai','knowledge']},
+'sticky-notes':{surface:'/work-engine',accessibility:['plain text','task linkage'],dependencies:['work-engine']},
+'cloud-storage':{surface:'/connections',accessibility:['file metadata','access controls'],dependencies:['files','connections']},
+'business-phone':{surface:'/telecom',accessibility:['consent controls','call workflow','receipts'],dependencies:['telecom','carrier-external']},
+'project-management':{surface:'/work-engine',accessibility:['steps','status','resume','evidence'],dependencies:['work-engine']},
+'app-wizard':{surface:'/developer',accessibility:['plain-language spec','QA workflow'],dependencies:['developer-agent']},
+'lead-flow':{surface:'/crm',accessibility:['ICP','qualification','sequence','inbox replies'],dependencies:['crm','inbox','automation']},
+'seo-aeo':{surface:'/marketing',accessibility:['metadata','schema plan','content recommendations'],dependencies:['marketing']},
+'social':{surface:'/social',accessibility:['platform variants','calendar','repurposing'],dependencies:['social']},
+'sms':{surface:'/inbox',accessibility:['consent preflight','opt-out','quiet hours'],dependencies:['inbox','sms-external']},
+'forms-surveys':{surface:'/white-label/funnel',accessibility:['labels','field schema','response routing'],dependencies:['funnels','automation']},
+'community':{surface:'/white-label-studio?tab=community',accessibility:['spaces','member access','moderation plan'],dependencies:['community']},
+'marketplace':{surface:'/white-label-studio?tab=catalog',accessibility:['catalog metadata','pricing','terms'],dependencies:['catalog','billing']},
+'multilingual':{surface:'/magnanimous',accessibility:['localization','meaning preservation','review'],dependencies:['translation']}
+};
 const PLAYBOOKS={
 'video-ads':['Define audience and offer','Write hook/script/CTA','Create scene and asset brief','Route to Video Studio','Review and publish'],
 'academy-wizard':['Define learning outcome','Create course structure','Create lessons and exercises','Publish to Learning/Community'],
@@ -66,7 +97,7 @@ const PLAYBOOKS={
 };
 function planFor(id,input){const steps=PLAYBOOKS[id]||['Understand goal','Plan','Execute with Magnanimous tools','Verify'];return{tool_id:id,goal:txt(input?.goal||'',1000),steps:steps.map((name,index)=>({index:index+1,name,status:'planned'})),orchestrator:'Magnanimous AI',provider_policy:'native-first; authorized replaceable infrastructure only when needed',verification:'Evidence and action receipts required before claiming completion'}}
 export async function handleBusinessAISuite(request,env){const u=new URL(request.url);if(!u.pathname.startsWith('/api/business-ai'))return null;const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);await ensure(env);const tenant=String(user.tenant_id);
-if(u.pathname==='/api/business-ai/tools'&&request.method==='GET')return json({name:'Magnanimous Business AI Suite',brain:'Magnanimous AI',tools:BUSINESS_AI_SUITE.map(([id,name,description,category])=>({id,name,description,category})),count:BUSINESS_AI_SUITE.length});
+if(u.pathname==='/api/business-ai/tools'&&request.method==='GET')return json({name:'Magnanimous Business AI Suite',brain:'Magnanimous AI',tools:BUSINESS_AI_SUITE.map(([id,name,description,category])=>({id,name,description,category,...CAPABILITY_ROUTES[id]})),count:BUSINESS_AI_SUITE.length,accessibility_standard:'keyboard-first, semantic labels, responsive layouts, plain-language errors, accessible generated-content metadata',truth_boundary:'External telecom, messaging, domain, storage, publishing or payment actions are only live when the corresponding authorized connection is actually ready.'});
 if(u.pathname==='/api/business-ai/jobs'&&request.method==='GET'){const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_business_ai_jobs WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 300').bind(tenant).all();return json({items:results})}
 if(u.pathname==='/api/business-ai/jobs'&&request.method==='POST'){const b=await request.json().catch(()=>({})),tool=BUSINESS_AI_SUITE.find(x=>x[0]===String(b.tool_id||''));if(!tool)return json({detail:'Choose a valid tool.'},400);const id=crypto.randomUUID(),ts=now(),title=txt(b.title||tool[1],180);const plan=planFor(tool[0],b.input||{});const work=await createWork(env,user,{title,goal:plan.goal||tool[2],specialist_id:tool[0],metadata:{source:'business-ai',business_ai_job_id:id,tool_id:tool[0]}});if(!work)return json({detail:'Magnanimous Work Engine could not create this job.'},500);for(const step of plan.steps)await addWorkStep(env,user,work.id,{title:step.name,status:'planned'});const linked=await getWork(env,user,work.id);await env.DB.prepare('INSERT INTO magnanimous_business_ai_jobs(id,tenant_id,tool_id,title,input_json,output_json,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,tenant,tool[0],title,JSON.stringify(b.input||{}),JSON.stringify({...plan,work_id:work.id}),'working',ts,ts).run();return json({ok:true,id,tool:{id:tool[0],name:tool[1]},status:'working',work:linked,execution_plan:{...plan,work_id:work.id}},201)}
 return json({detail:'Business AI endpoint not found.'},404)}
