@@ -35,7 +35,7 @@ export default function WhiteLabel(){
  },[]);
  const fallback:Plan[]=[
   {id:'agency',name:'Magnanimous Agency',price_usd:299,description:'White-label business system with the shared Magnanimous AI brain.',features:['25 client subaccounts','White labeling','Magnanimous brain in every app','Funnels + booking + reputation','Unified Inbox + automations','Usage rebilling']},
-  {id:'agency_pro',name:'Magnanimous Agency Pro',price_usd:499,description:'Higher-capacity White Label workspace with the same shared Magnanimous brain.',features:['100 client subaccounts','Everything in Agency','Higher agency capacities','Magnanimous workspace learning','Usage rebilling','Priority agency operating capacity']}
+  {id:'agency_pro',name:'Magnanimous Agency Pro',price_usd:499,description:'Higher-capacity White Label operating system with the same shared Magnanimous brain.',features:['100 client subaccounts','Everything in Agency','Higher agency capacities','Magnanimous workspace learning','Usage rebilling','Priority agency operating capacity']}
  ];
  const whitePlans=useMemo(()=>plans.length?plans:fallback,[plans]);
  async function checkout(plan:string){
