@@ -11,6 +11,7 @@ import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { currentUser } from './integrations.js';
 import { isPlatformOwnerUser } from './agent-branch-intelligence.js';
 import { handleVideoAgents } from './video-agent-runtime.js';
+import { handleRenderEngine } from './magnanimous-render-engine.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -162,6 +163,7 @@ export default {
     let assistantContext=null;
     try{
       const url=new URL(request.url);
+      if(url.pathname.startsWith('/api/video-agents/render-engine')){const rr=await handleRenderEngine(request,env,await currentUser(request,env).catch(()=>null));if(rr)return finalizeResponse(request,await securityPostflight(request,rr,env));}
       if(url.pathname.startsWith('/api/video-agents')){const vr=await handleVideoAgents(request,env);if(vr)return finalizeResponse(request,await securityPostflight(request,vr,env));}
       if(request.method==='POST'&&url.pathname==='/api/auth/logout'){
         const logout=await revokeOpaqueSession(request,env,'logout');
