@@ -1,7 +1,7 @@
 import React from 'react';
 
 export default function TermsPage(){
-  return <main style={s.page}><article style={s.card}>
+  return <main style={s.page}><section id="premium-services-agreement"><h1>Premium Services Agreement</h1><p>Premium purchases require affirmative acceptance at checkout. Your selected plan, price, renewal interval, prepaid or metered usage, fair-use limits, cancellation rights, and applicable pass-through infrastructure costs are disclosed before payment. Unlimited plans do not include unlimited third-party GPU, telecom, carrier, premium-model, storage, media-delivery, tax, or other externally metered costs. Annual subscriptions renew as disclosed until canceled. Complete Ownership covers the purchased Magnanimous software license and does not promise lifetime-free third-party infrastructure. Paid access activates only after confirmed payment. Refunds, disputes, privacy, acceptable-use, intellectual-property, AI limitations, and non-waivable consumer rights remain governed by these Terms and applicable law.</p></section><article style={s.card}>
     <a href="/signup" style={s.back}>← Back to signup</a>
     <div style={s.eyebrow}>I AM MAGNANIMOUS WAY™</div>
     <h1 style={s.h1}>Terms of Service</h1>
