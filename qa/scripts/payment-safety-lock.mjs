@@ -9,7 +9,7 @@ const tiers=fs.readFileSync('worker/src/billing-tiers-runtime.js','utf8');
 const usage=fs.readFileSync('worker/src/usage-guard.js','utf8');
 
 const checks=[
- ['paid tier prices stay 19/49/99/199', /plus:[\s\S]*price_usd:\s*19/.test(tiers)&&/business:[\s\S]*price_usd:\s*49/.test(tiers)&&/pro:[\s\S]*price_usd:\s*99/.test(tiers)&&/scale:[\s\S]*price_usd:\s*199/.test(tiers)],
+ ['current paid pricing stays Unlimited $19.99 monthly and Annual $199 yearly', /plus:[\s\S]*price_usd:\s*19\.99/.test(tiers)&&/scale:[\s\S]*price_usd:\s*199/.test(tiers)&&tiers.includes("LEGACY_PLAN_ALIAS={business:'plus',pro:'plus'}")],
  ['payment references encode non-Business tier identity', refs.includes('iam:${tenantId}:plan:${normalized}')||refs.includes('iam:${tenant}:plan:${normalized}')],
  ['legacy Business references remain backwards compatible', refs.includes("if (normalized === 'business') return tenant")],
  ['payment references support prepaid top-up identity', refs.includes('iam:${tenant}:topup')],
@@ -20,7 +20,7 @@ const checks=[
  ['webhook parses payment reference', webhook.includes('parsePaymentReference')],
  ['webhook requires confirmed payment before fulfillment', webhook.includes("if(!tenantId||!paymentConfirmed(object))return")],
  ['metadata plan wins when valid', webhook.includes("PLANS.has(metadataPlan)?metadataPlan")],
- ['encoded reference plan is used when metadata is absent', webhook.includes("PLANS.has(referencePlan)?referencePlan:'business'")],
+ ['encoded reference plan is used when metadata is absent', webhook.includes("PLANS.has(referencePlan)?referencePlan:'plus'")&&webhook.includes("PLAN_ALIAS[referenceRaw]||referenceRaw")],
  ['top-up reference is recognized by webhook', webhook.includes("paymentReference.kind==='topup'?'premium_usage_topup'")],
  ['webhook signature has five-minute replay window', webhook.includes('Math.abs(now()-stamp)>300')],
  ['webhook events are deduplicated', webhook.includes('billing_webhook_events')&&webhook.includes('duplicate:true')],
