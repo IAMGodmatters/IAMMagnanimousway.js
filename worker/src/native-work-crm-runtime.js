@@ -434,11 +434,12 @@ async function crmCommandCenter(env,user){
 }
 
 export async function handleNativeWorkCrm(request,env){
- const url=new URL(request.url);if(!url.pathname.startsWith('/api/operations'))const workforce=await handleWorkforceOps(request,env,user,body);if(workforce)return workforce;
- return null;
+ const url=new URL(request.url);if(!url.pathname.startsWith('/api/operations'))return null;
  if(url.pathname==='/api/operations/capabilities'&&request.method==='GET')return json({identity:'Magnanimous AI',native:true,capabilities:NATIVE_OPERATIONS_CAPABILITIES});
  await ensureSchema(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);const t=tenant(user);if(!t)return json({detail:'Tenant context required.'},403);
  let body={};if(!['GET','DELETE'].includes(request.method)){try{body=await request.json()}catch{return json({detail:'Valid JSON body required.'},400)}}
+ const suiteResponse=await handleMagnanimousSuite(request,env,user,body);if(suiteResponse)return suiteResponse;
+ const workforceResponse=await handleWorkforceOps(request,env,user,body);if(workforceResponse)return workforceResponse;
  const advancedCrmResponse=await handleAdvancedCrm(request,env,user,body);if(advancedCrmResponse)return advancedCrmResponse;
 
 
