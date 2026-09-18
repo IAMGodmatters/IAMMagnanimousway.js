@@ -33,7 +33,7 @@ for(const id of ['agency:{rank:5','agency_pro:{rank:6','client_subaccounts:25','
 must(auth.includes("bind(uid, tid, name, email, 'owner'"),'New workspace creator must be the workspace owner.');
 must(auth.includes("tenant?.owner_user_id")&&auth.includes("UPDATE users SET role='owner'"),'Existing recorded tenant owners must be repaired on login.');
 must(bpo.includes("CLIENT_SUBACCOUNT_LIMIT")&&bpo.includes("plan==='agency'?25:plan==='agency_pro'?100"),'Agency 25/100 client limits must be enforced server-side.');
-must(bpo.includes("/api/bpo/clients/")&&bpo.includes("'archived'"),'Client archive/reactivate path must exist.');
+must(bpo.includes("clientMatch=url.pathname.match")&&bpo.includes("'archived'"),'Client archive/reactivate path must exist.');
 
 must(shell.includes("src:'/white-label/branded-ai'"),'Branded AI must open its dedicated workspace.');
 must(shell.includes("src:'/white-label/client-apps'"),'Client Apps must open its dedicated workspace.');
