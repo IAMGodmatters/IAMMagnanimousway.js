@@ -2,24 +2,24 @@ import {currentUser} from './integrations.js';
 import {isPlatformOwnerUser} from './agent-branch-intelligence.js';
 const json=(d,s=200)=>Response.json(d,{status:s,headers:{'cache-control':'no-store'}}),now=()=>Math.floor(Date.now()/1000),txt=(v,n=4000)=>String(v||'').trim().slice(0,n);
 export const WHITE_LABEL_MODULES=[
-{id:'branding',name:'Brand Studio',what:'Logo, colors, custom domain, branded login, emails and client experience',status:'active'},
+{id:'branding',name:'Brand Studio',what:'Brand name, logo, accent color, White Label flag and custom-domain configuration for each client',status:'active'},
 {id:'crm',name:'CRM + Pipelines',what:'Contacts, companies, deals, pipelines, activities and client history',status:'active'},
 {id:'funnels',name:'Sites + Funnels',what:'Funnels, landing pages, offers, CTAs, templates and conversion tracking',status:'active'},
 {id:'automation',name:'Automation Studio',what:'Event rules, follow-ups, durable work and inbox actions',status:'active'},
 {id:'inbox',name:'Unified Inbox',what:'Email, SMS, voice, social, chat and task conversations in one queue',status:'active'},
 {id:'booking',name:'Appointments',what:'Client bookings, services, status and scheduling records',status:'active'},
 {id:'reputation',name:'Reputation',what:'Review capture, response queue and reputation workflows',status:'active'},
-{id:'billing',name:'Billing + Rebilling',what:'Client platform fees, usage markup, subscriptions and transparent rebilling',status:'active'},
-{id:'marketplace',name:'Marketplace + Packages',what:'Create your own products, bundles, plans, margins, add-ons and upgrade paths',status:'active'},
-{id:'portal',name:'Client Portal',what:'Per-client navigation, modules, announcements, onboarding and self-service experience',status:'active'},
-{id:'projects',name:'Projects + Tasks',what:'Client projects, tasks, owners, due dates and delivery status',status:'active'},
-{id:'contracts',name:'Proposals + eSign',what:'Reusable proposals, agreements, signature state and document lifecycle',status:'active'},
-{id:'learning',name:'Courses + Community',what:'Branded courses, lessons, member communities and knowledge delivery',status:'active'},
-{id:'affiliate',name:'Affiliate Center',what:'Referral programs, commission rules and partner attribution',status:'active'},
-{id:'analytics',name:'Agency Analytics',what:'MRR, usage, funnel, pipeline, client health and product performance',status:'active'},
+{id:'billing',name:'Usage Rebilling',what:'Client platform-fee settings, usage cost, approved markup and transparent client-charge ledger',status:'active'},
+{id:'marketplace',name:'Catalog + Packages',what:'Create and manage agency products, services, package descriptions, prices and status',status:'active'},
+{id:'portal',name:'Client Portal Pages',what:'Create tenant-isolated client portal pages with titles, slugs, content and publication status',status:'active'},
+{id:'projects',name:'Projects',what:'Track client projects, owners, due dates and delivery status',status:'active'},
+{id:'contracts',name:'Proposals + Signature Tracking',what:'Store proposal/agreement text, signer name and signature-state lifecycle; no third-party e-signature is implied',status:'active'},
+{id:'learning',name:'Learning Assets',what:'Create course/content records with descriptions, type and publication status',status:'active'},
+{id:'affiliate',name:'Affiliate Programs',what:'Create referral programs, commission percentages and referral ledger records',status:'active'},
+{id:'analytics',name:'Agency Overview',what:'Operational counts for clients, bookings, active funnels, reviews needing response and unbilled client usage',status:'active'},
 {id:'ai',name:'Magnanimous AI',what:'Shared agency intelligence, research, writing, service, operations and client-aware assistance',status:'active'},
 {id:'integrations',name:'Connections',what:'APIs, MCP, OAuth, webhooks and replaceable providers under Magnanimous control',status:'active'},
-{id:'mobile',name:'Mobile-ready Portal',what:'Responsive branded client experience with installable-app path',status:'active'}
+{id:'mobile',name:'Mobile-ready Portal Pages',what:'Responsive client portal content managed from White Label Studio',status:'active'}
 ];
 async function ensure(env){for(const q of[
 `CREATE TABLE IF NOT EXISTS agency_catalog_items(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,kind TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',price_usd REAL NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
