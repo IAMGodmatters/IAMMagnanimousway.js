@@ -310,6 +310,15 @@ jobs:
           status=$(curl -sS -o /tmp/me.json -w '%{http_code}' "$BASE_URL/api/auth/me" -H "Authorization: Bearer $token")
           if [ "$status" != "200" ]; then echo "Authenticated account check returned HTTP $status"; cat /tmp/me.json || true; exit 1; fi
 
+          check_get "White Label public page" "$BASE_URL/white-label" /tmp/white-label.html
+
+          white_label_status=$(curl -sS -o /tmp/white-label-denied.json -w '%{http_code}' "$BASE_URL/api/white-label-os/overview" -H "Authorization: Bearer $token")
+          if [ "$white_label_status" != "402" ]; then echo "Free workspace White Label OS paywall expected HTTP 402, got $white_label_status"; cat /tmp/white-label-denied.json || true; exit 1; fi
+
+          agency_status=$(curl -sS -o /tmp/agency-denied.json -w '%{http_code}' "$BASE_URL/api/agency/overview" -H "Authorization: Bearer $token")
+          if [ "$agency_status" != "402" ]; then echo "Free workspace Agency API paywall expected HTTP 402, got $agency_status"; cat /tmp/agency-denied.json || true; exit 1; fi
+          echo "White Label public discovery and server-side Agency paywall passed."
+
           admin_status=$(curl -sS -o /tmp/admin-denied.json -w '%{http_code}' "$BASE_URL/api/admin/settings" -H "Authorization: Bearer $token")
           if [ "$admin_status" != "403" ]; then echo "Customer account global-admin isolation expected HTTP 403, got $admin_status"; cat /tmp/admin-denied.json || true; exit 1; fi
 
@@ -354,15 +363,17 @@ jobs:
           assert 'provider' not in d and 'provider_name' not in d and 'model' not in d and 'model_id' not in d and 'engine' not in d and 'execution_engine' not in d, d
           PY
 
-          status=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/checkout" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{}')
-          if [ "$status" != "200" ]; then echo "Payment Link checkout returned HTTP $status"; cat /tmp/checkout.json || true; exit 1; fi
+          status=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/checkout" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"plan":"plus","termsAccepted":true,"termsVersion":"unlimited-2026-09-18.1"}')
+          if [ "$status" != "200" ]; then echo "Stripe checkout creation returned HTTP $status"; cat /tmp/checkout.json || true; exit 1; fi
           python - "$tenant_id" <<'PY'
           import json,sys,urllib.parse
           tenant=sys.argv[1];data=json.load(open('/tmp/checkout.json'));url=data.get('url','')
-          assert url.startswith('https://buy.stripe.com/'), data
-          query=urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
-          assert query.get('client_reference_id') == [tenant], data
-          assert data.get('mode') == 'payment_link', data
+          parsed=urllib.parse.urlparse(url)
+          assert parsed.scheme == 'https' and parsed.hostname in {'buy.stripe.com','checkout.stripe.com'}, data
+          assert data.get('plan') in {None,'plus'}, data
+          if data.get('mode') == 'payment_link':
+              query=urllib.parse.parse_qs(parsed.query)
+              assert query.get('client_reference_id') == [f'iam:{tenant}:plan:plus'], data
           PY
 
           status=$(curl -sS -o /tmp/billing-request.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/management-request" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"request_type":"billing_question","message":"Deployment smoke test billing request."}')
