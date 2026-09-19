@@ -68,43 +68,7 @@ assert(installer.includes('Python.Python.3.13'),'Windows bootstrap should be abl
 assert(installer.includes('Test-PythonCandidate'),'Windows bootstrap must execute-test Python candidates instead of trusting command discovery');
 assert(installer.includes('os.path.realpath(sys.executable)'),'Windows bootstrap must resolve the real Python executable');
 assert(installer.includes('WindowsApps\\\\python'),'Windows bootstrap must reject Microsoft Store App Execution Alias stubs');
-assert(installer.includes('Git.Git'),'Windows bootstrap should optionally install Git when missing');
-assert(installer.includes('MagnanimousWorkspace'),'Windows bootstrap should provide a safe default workspace');
-assert(installer.includes('automatic health check'),'Windows bootstrap should explain activation verification');
-assert(installer.includes('No inbound port was opened.'),'installer must state the inbound-listener boundary');
-assert(uninstaller.includes('Unregister-ScheduledTask'),'Windows uninstall must remove the startup task');
-assert(uninstaller.includes('Remove-Item -Path $homeDir -Recurse -Force'),'Windows uninstall must remove local bridge credentials/files');
-assert(migration.includes('magnanimous_local_bridge_devices'));
-assert(migration.includes('magnanimous_local_bridge_tasks'));
-assert(progress.includes('handleMagnanimousLocalBridge'),'secured runtime must route local bridge endpoints');
-assert(provider.includes('hasAnyReadyLocalBridge'),'public health must use actual heartbeat state');
-assert(provider.includes("ogenicPlan.classification==='LOCAL'"),'chat must auto-initiate local OGENIC work when a bridge is available');
-assert(provider.includes("ogenicPlan.classification==='HYBRID'"),'chat must auto-initiate hybrid OGENIC work when a bridge is available');
-assert(page.includes('CREATE ACTIVATION'));
-assert(page.includes('DOWNLOAD WINDOWS ACTIVATION FILE'));
-assert(page.includes('READY LOCAL — VERIFIED'));
-assert(page.includes('REVOKE DEVICE'));
-assert(page.includes('DOWNLOAD WINDOWS REMOVAL FILE'));
-assert(page.includes('LOCAL BRIDGE REQUIRED'));
-assert(robots.includes('Disallow: /local-bridge/'));
-assert(deploy.includes('Local Bridge customer isolation expected HTTP 403'),'production smoke must preserve platform-owner-only Local Bridge control');
-assert(deploy.includes("assert d.get('local_bridge_runtime') is True"),'production smoke must verify Local Bridge runtime is live');
-assert(deploy.includes("assert b.get('raw_shell') is False"),'production smoke must verify raw shell stays disabled');
-
-const local=buildMagnanimousOgenicPlan('Check my local computer health',{MAGNANIMOUS_LOCAL_BRIDGE_READY:true});
-assert.equal(local.classification,'LOCAL');
-assert.equal(local.status,'READY_LOCAL');
-
-const missing=buildMagnanimousOgenicPlan('Check my local computer health',{});
-assert.equal(missing.status,'LOCAL_BRIDGE_REQUIRED');
-
-const netwalk=buildMagnanimousOgenicPlan('Use netwalk to survey this LAN',{MAGNANIMOUS_LOCAL_BRIDGE_READY:true});
-assert.equal(netwalk.status,'READY_LOCAL');
-assert.equal(netwalk.netwalk?.mode,'read-only-network-survey');
-
-console.log('Magnanimous Local Bridge lock passed.');
-),'Windows bootstrap must reject Microsoft Store App Execution Alias stubs');
-assert(installer.includes('Programs\\Python'),'Windows bootstrap must search normal per-user Python install folders after winget');
+assert(installer.includes('Programs\\\\Python'),'Windows bootstrap must search normal per-user Python install folders after winget');
 assert(installer.includes('Using Python: $pythonExe'),'Windows bootstrap must use a verified real interpreter path');
 assert(installer.includes('Git.Git'),'Windows bootstrap should optionally install Git when missing');
 assert(installer.includes('MagnanimousWorkspace'),'Windows bootstrap should provide a safe default workspace');
