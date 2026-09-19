@@ -9,6 +9,8 @@ const recovery=read('worker/src/password-recovery.js');
 const security=read('worker/src/security-hardening.js');
 const template=read('frontend/app/template.tsx');
 const overlay=read('frontend/app/password-recovery-overlay.tsx');
+const customerLogin=read('frontend/app/login/page.tsx');
+const ownerLogin=read('frontend/app/owner-login/page.tsx');
 const migration=read('worker/migrations/0069_password_recovery.sql');
 const failures=[];
 const must=(condition,message)=>{if(!condition)failures.push(message)};
@@ -28,6 +30,9 @@ must(template.includes('<PasswordRecoveryOverlay'),'shared template must mount p
 must(template.includes("path==='/login'")&&template.includes("path==='/owner-login'"),'both customer and owner login portals must expose recovery');
 must(overlay.includes('/api/auth/forgot-password')&&overlay.includes('/api/auth/reset-password'),'recovery UI must call both recovery APIs');
 must(overlay.includes('history.replaceState'),'reset token must be removed from the visible URL after capture');
+must(overlay.includes("params.get('forgot')==='1'")&&overlay.includes("setMode('forgot')"),'visible forgot-password links must open the recovery flow');
+must(customerLogin.includes('href="/login?forgot=1"')&&customerLogin.includes('Forgot password?'),'customer login must show an inline forgot-password link');
+must(ownerLogin.includes('href="/owner-login?forgot=1"')&&ownerLogin.includes('Forgot password?'),'owner login must show an inline forgot-password link');
 must(migration.includes('password_reset_tokens')&&migration.includes('token_hash TEXT PRIMARY KEY'),'D1 migration must create hashed reset-token storage');
 
 if(failures.length){

@@ -23,10 +23,11 @@ export default function PasswordRecoveryOverlay({portal}:{portal:Portal}){
  const[loginPath,setLoginPath]=useState(portal==='owner'?'/owner-login':'/login');
 
  useEffect(()=>{
-  const params=new URLSearchParams(window.location.search),reset=params.get('reset')||'';
-  if(!reset)return;
-  setToken(reset);setMode('reset');setMessage('');setError('');
-  params.delete('reset');
+  const params=new URLSearchParams(window.location.search),reset=params.get('reset')||'',forgot=params.get('forgot')==='1';
+  if(!reset&&!forgot)return;
+  if(reset){setToken(reset);setMode('reset')}else setMode('forgot');
+  setMessage('');setError('');
+  params.delete('reset');params.delete('forgot');
   const query=params.toString();
   window.history.replaceState(null,'',`${window.location.pathname}${query?`?${query}`:''}${window.location.hash||''}`);
  },[]);

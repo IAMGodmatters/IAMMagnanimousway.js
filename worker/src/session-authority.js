@@ -1,6 +1,7 @@
 const encoder=new TextEncoder();
 const now=()=>Math.floor(Date.now()/1000);
 const OPAQUE_PREFIX='ms1_';
+const SESSION_TTL_SECONDS=12*60*60;
 let schemaReady=false;
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -96,23 +97,26 @@ export async function resolveSessionRequest(request,env,requestId=''){
   if(!env?.DB||!validOpaqueToken(token))return{request,opaque:true,response:json({detail:'Not authenticated.',code:'AUTH_REQUIRED'},401)};
   await ensureSchema(env);
   const hash=await sha256(token),t=now();
-  const row=await env.DB.prepare(`SELECT s.user_id,s.tenant_id,s.role,s.expires_at,s.revoked_at,u.role AS current_role,u.active
+  const row=await env.DB.prepare(`SELECT s.user_id,s.tenant_id,s.role,s.created_at,s.expires_at,s.revoked_at,u.role AS current_role,u.active
     FROM auth_sessions s JOIN users u ON u.id=s.user_id AND u.tenant_id=s.tenant_id
     WHERE s.token_hash=? LIMIT 1`).bind(hash).first();
-  if(!row||Number(row.active||0)!==1||Number(row.expires_at||0)<=t||row.revoked_at!=null){
-    if(row&&Number(row.expires_at||0)<=t)try{await env.DB.prepare('DELETE FROM auth_sessions WHERE token_hash=?').bind(hash).run()}catch(_){}
+  const createdAt=Number(row?.created_at||0),serverExpiry=Number(row?.expires_at||0),cappedExpiry=createdAt>0?Math.min(serverExpiry,createdAt+SESSION_TTL_SECONDS):serverExpiry;
+  if(!row||Number(row.active||0)!==1||cappedExpiry<=t||row.revoked_at!=null){
+    if(row&&cappedExpiry<=t)try{await env.DB.prepare('DELETE FROM auth_sessions WHERE token_hash=?').bind(hash).run()}catch(_){}
     return{request,opaque:true,response:json({detail:'This session is no longer active. Sign in again to continue.',code:'SESSION_EXPIRED'},401)};
   }
+  if(serverExpiry!==cappedExpiry)try{await env.DB.prepare('UPDATE auth_sessions SET expires_at=? WHERE token_hash=?').bind(cappedExpiry,hash).run()}catch(_){}
   if(String(row.current_role||'')!==String(row.role||'')){
     try{await env.DB.prepare("UPDATE auth_sessions SET revoked_at=?,revoke_reason='role_changed' WHERE token_hash=? AND revoked_at IS NULL").bind(t,hash).run()}catch(_){}
     return{request,opaque:true,response:json({detail:'Your access changed. Sign in again to continue.',code:'SESSION_RENEWAL_REQUIRED'},401)};
   }
-  const compat=await compatibilityToken(row,env);
+  const normalizedRow={...row,expires_at:cappedExpiry};
+  const compat=await compatibilityToken(normalizedRow,env);
   if(!compat)return{request,opaque:true,response:json({detail:'Authentication is temporarily unavailable.',code:'SECURE_SESSION_REQUIRED'},503)};
   const headers=new Headers(request.headers);
   headers.set('authorization',`Bearer ${compat}`);
   if(requestId)headers.set('x-request-id',requestId);
-  return{request:new Request(request,{headers}),opaque:true,session:{token_hash:hash,user_id:row.user_id,tenant_id:row.tenant_id,role:row.role,expires_at:Number(row.expires_at)}};
+  return{request:new Request(request,{headers}),opaque:true,session:{token_hash:hash,user_id:row.user_id,tenant_id:row.tenant_id,role:row.role,expires_at:cappedExpiry}};
 }
 
 export async function revokeOpaqueSession(request,env,reason='logout'){
