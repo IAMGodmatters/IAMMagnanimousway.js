@@ -1,6 +1,7 @@
 import { INTEGRATIONS } from './integrations.js';
 import { getIntegrationCatalog } from './magnanimous-integration-catalog.js';
 import { CHATGPT_PLUGIN_CONTRACT_SNAPSHOT, getChatGPTPluginContractSummary } from './magnanimous-chatgpt-plugin-capability-snapshot.js';
+import { INSTALLED_PLUGIN_SKILL_SNAPSHOT, getInstalledPluginSkillSummary } from './magnanimous-installed-plugin-skill-snapshot.js';
 
 // Research ledger for the account connectors that I AM Magnanimous Way can authorize directly.
 // These sources describe public API contracts only. They are not copied implementations.
@@ -144,12 +145,28 @@ function pluginCapabilityRecipe(plugin,tool){
 export function getChatGPTPluginCapabilityManifest(){
  return CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.flatMap(plugin=>(plugin.tools||[]).map(tool=>pluginCapabilityRecipe(plugin,tool)));
 }
+function installedSkillRecipe(tuple){
+ const [plugin,skill,description]=tuple,native_target=pluginNativeTarget({namespace:plugin,tools:[skill,description]});
+ const slug=String(skill||'skill').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'skill';
+ return{
+  id:`plugin-skill:${plugin}:${slug}`,connector_id:`plugin-skill:${plugin}`,connector_name:`${plugin} skill pack`,category:'plugin-skill',
+  capability:`skill-${slug}`,native_target,priority:'observed',source_kind:'installed-plugin-skill-contract',direct_connector:false,
+  boundary:'external-plugin-account-or-provider-rail-when-required',absorption_status:'brain-spec-absorbed',implementation_status:'specified-not-assumed-native',
+  magnanimous_owned:['skill-selection',...ownedParts()],external_only:['plugin/account authorization when required','provider-specific execution when required'],
+  acceptance_tests:['Skill purpose can be expressed provider-neutrally.','Only the observable skill name/purpose is learned; private skill implementation is not copied.','Magnanimous owns routing, memory, policy and verification.','Native status requires independent implementation evidence.'],
+  recipe:[`Apply the observable procedure goal of ${skill} through Magnanimous-owned planning and verification.`,'Use the concise skill purpose as routing guidance, not as authority to copy private implementation.','Prefer native Magnanimous workflows and open standards.','Use any external account/provider only when separately authorized and actually required.','Verify the result and learn reusable low-risk steps.'],
+  plugin_namespace:plugin,skill_name:skill,search_text:description,authorization_state:'not-assumed'
+ };
+}
+export function getInstalledPluginSkillManifest(){
+ return INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(installedSkillRecipe);
+}
 export function getCapabilityAbsorptionManifest(){
- return [...getPersistentConnectorAbsorptionManifest(),...getChatGPTPluginCapabilityManifest()];
+ return [...getPersistentConnectorAbsorptionManifest(),...getChatGPTPluginCapabilityManifest(),...getInstalledPluginSkillManifest()];
 }
 
 export function getConnectorAbsorptionSummary(){
- const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),plugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
+ const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),plugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),skills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
  const missingDirect=INTEGRATIONS.filter(x=>!directCatalogued.has(x.id)).map(x=>x.id);
  return{
   identity:'Magnanimous AI',
@@ -158,9 +175,11 @@ export function getConnectorAbsorptionSummary(){
   capability_specs:persistent.length,
   visible_plugin_namespaces:plugins.plugin_namespaces,
   visible_plugin_tool_contracts:plugins.tool_contracts,
-  full_brain_capability_contracts:persistent.length+pluginManifest.length,
+  installed_plugin_skill_namespaces:skills.plugin_skill_namespaces,
+  installed_plugin_skills:skills.installed_plugin_skills,
+  full_brain_capability_contracts:persistent.length+pluginManifest.length+skillManifest.length,
   plugin_authorization_state:'not-assumed',
-  native_targets:[...new Set([...catalog.map(x=>x.native_target).filter(Boolean),...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(pluginNativeTarget)])].sort(),
+  native_targets:[...new Set([...catalog.map(x=>x.native_target).filter(Boolean),...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(pluginNativeTarget),...INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x[0],tools:[x[1],x[2]]}))])].sort(),
   direct_connector_coverage:{covered:INTEGRATIONS.length-missingDirect.length,total:INTEGRATIONS.length,missing:missingDirect},
   absorption_policy:ABSORPTION_POLICY,
   status:missingDirect.length?'coverage-gap':'catalog-complete'
@@ -170,7 +189,7 @@ export function getConnectorAbsorptionSummary(){
 export function rankAbsorbedCapabilities(goal='',limit=12){
  const terms=words(goal),rows=getCapabilityAbsorptionManifest();
  return rows.map(row=>{
-  const hay=words([row.connector_id,row.connector_name,row.category,row.capability,row.native_target].join(' '));
+  const hay=words([row.connector_id,row.connector_name,row.category,row.capability,row.native_target,row.search_text||''].join(' '));
   const score=terms.reduce((n,t)=>n+(hay.some(x=>x.includes(t)||t.includes(x))?1:0),0)+(row.direct_connector?0.2:0);
   return{...row,score};
  }).sort((a,b)=>b.score-a.score||String(a.connector_name).localeCompare(String(b.connector_name))).slice(0,Math.max(1,Math.min(30,Number(limit)||12)));
@@ -179,8 +198,8 @@ export function rankAbsorbedCapabilities(goal='',limit=12){
 export function getConnectorAbsorptionPrompt(goal=''){
  const ranked=rankAbsorbedCapabilities(goal,10);
  if(!ranked.length)return'';
- const lines=['MAGNANIMOUS ABSORBED CONNECTOR CAPABILITY SPECS:'];
+ const lines=['MAGNANIMOUS ABSORBED CONNECTOR / PLUGIN TOOL / PLUGIN SKILL SPECS:'];
  for(const x of ranked)lines.push(`- ${x.capability} → native target ${x.native_target||'Magnanimous core'}; boundary=${x.boundary}; benchmark=${x.connector_name}.`);
- lines.push('Treat these as Magnanimous-owned workflow/skill specifications, not proof that an external account is connected or that every capability is already fully native. ChatGPT-visible plugin contracts do not imply authorization inside I AM. Keep provider-specific accounts and rails replaceable; never copy proprietary internals.');
+ lines.push('Treat these as Magnanimous-owned workflow/skill specifications, not proof that an external account is connected or that every capability is already fully native. ChatGPT-visible plugin and installed-skill contracts do not imply authorization inside I AM. Only observable skill purposes are learned; private skill implementation files are not copied. Keep provider-specific accounts and rails replaceable.');
  return lines.join('\n');
 }
