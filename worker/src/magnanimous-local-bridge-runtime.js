@@ -269,13 +269,9 @@ export async function handleMagnanimousLocalBridge(request,env){
  if(request.method==='POST'&&path==='/api/magnanimous/local-bridge/tasks'){
   const body=await request.json().catch(()=>({})),deviceId=clip(body.device_id,120),action=clip(body.action,80);
   if(!deviceId||!action)return json({detail:'device_id and action are required.'},400);
-  let checked;try{checked=validateTask(action,body.payload)}catch(error){return json({detail:error.message},400)}
-  const device=await env.DB.prepare("SELECT * FROM magnanimous_local_bridge_devices WHERE id=? AND tenant_id=? AND status='active'").bind(deviceId,String(user.tenant_id)).first();
-  if(!device)return json({detail:'Paired local bridge device not found.'},404);
-  const caps=safeCapabilities(JSON.parse(device.capabilities_json||'[]'));if(!caps.includes(action))return json({detail:'That paired bridge does not advertise this action.',code:'CAPABILITY_NOT_READY'},409);
-  const id=uid('lbt'),ts=now(),status=checked.def.confirmation?'needs_confirmation':'queued';
-  await env.DB.prepare('INSERT INTO magnanimous_local_bridge_tasks(id,tenant_id,user_id,device_id,action,payload_json,risk_class,status,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,String(user.tenant_id),String(user.id),deviceId,action,JSON.stringify(checked.body).slice(0,500000),checked.def.risk,status,ts,ts+TASK_TTL).run();
-  return json({ok:true,id,device_id:deviceId,action,risk_class:checked.def.risk,status,requires_confirmation:checked.def.confirmation,confirmation_endpoint:checked.def.confirmation?`/api/magnanimous/local-bridge/tasks/${id}/confirm`:null,note:checked.def.confirmation?'No local mutation has executed. Confirm this exact task separately.':'The safe task is queued for the paired outbound bridge.'},checked.def.confirmation?202:201);
+  let queued;try{queued=await queueLocalBridgeTask(env,user,{action,payload:body.payload,deviceId})}catch(error){return json({detail:error.message},400)}
+  if(!queued.ok)return json({detail:queued.detail,code:queued.code},queued.code==='CAPABILITY_NOT_READY'?409:503);
+  return json({...queued,note:queued.requires_confirmation?'No local mutation has executed. Confirm this exact task separately.':'The safe task is queued for the paired outbound bridge.'},queued.requires_confirmation?202:201);
  }
  const confirm=path.match(/^\/api\/magnanimous\/local-bridge\/tasks\/([^/]+)\/confirm$/);
  if(request.method==='POST'&&confirm){
@@ -283,6 +279,15 @@ export async function handleMagnanimousLocalBridge(request,env){
   if(!task)return json({detail:'Confirmation task not found, already handled, or expired.'},404);
   await env.DB.prepare("UPDATE magnanimous_local_bridge_tasks SET status='queued',confirmed_at=? WHERE id=? AND status='needs_confirmation'").bind(now(),id).run();
   return json({ok:true,id,status:'queued',note:'The exact reviewed task is now available to the paired local bridge.'});
+ }
+ const cancel=path.match(/^\/api\/magnanimous\/local-bridge\/tasks\/([^/]+)\/cancel$/);
+ if(request.method==='POST'&&cancel){
+  const id=clip(cancel[1],120),tenantId=String(user.tenant_id);
+  const task=await env.DB.prepare("SELECT id,status FROM magnanimous_local_bridge_tasks WHERE id=? AND tenant_id=?").bind(id,tenantId).first();
+  if(!task)return json({detail:'Task not found.'},404);
+  if(!['queued','needs_confirmation'].includes(String(task.status)))return json({detail:'Only queued or awaiting-confirmation tasks can be cancelled safely.',code:'TASK_ALREADY_RUNNING'},409);
+  await env.DB.prepare("UPDATE magnanimous_local_bridge_tasks SET status='cancelled',error_text='Cancelled by platform owner.',completed_at=? WHERE id=? AND tenant_id=? AND status IN ('queued','needs_confirmation')").bind(now(),id,tenantId).run();
+  return json({ok:true,id,status:'cancelled'});
  }
  const taskMatch=path.match(/^\/api\/magnanimous\/local-bridge\/tasks\/([^/]+)$/);
  if(request.method==='GET'&&taskMatch){
