@@ -135,6 +135,23 @@ export async function handleMagnanimousNativeWeb(request,env){
   }catch(error){return json({detail:error.message||'Native web run could not be queued.',code:'NATIVE_WEB_INVALID'},400)}
  }
 
+ if(request.method==='GET'&&path==='/api/magnanimous/native-web/runs'){
+  const limit=Math.max(1,Math.min(200,Number(url.searchParams.get('limit')||80)));
+  const status=clip(url.searchParams.get('status'),40);
+  const actions=Object.values(KIND_TO_ACTION);
+  const placeholders=actions.map(()=>'?').join(',');
+  const args=[tenantId,...actions];
+  let sql="SELECT * FROM magnanimous_local_bridge_tasks WHERE tenant_id=? AND action IN ("+placeholders+")";
+  if(status){sql+=' AND status=?';args.push(status)}
+  sql+=' ORDER BY created_at DESC LIMIT ?';args.push(limit);
+  const {results=[]}=await env.DB.prepare(sql).bind(...args).all();
+  const runs=results.map(task=>{
+   let payload={},result={};try{payload=JSON.parse(task.payload_json||'{}')}catch{}try{result=JSON.parse(task.result_json||'{}')}catch{}
+   return{id:task.id,device_id:task.device_id,action:task.action,status:task.status,risk_class:task.risk_class,payload,result,error:task.error_text,created_at:task.created_at,claimed_at:task.claimed_at,completed_at:task.completed_at,confirmed_at:task.confirmed_at};
+  });
+  return json({runs,native:true,tinyfish_required:false,count:runs.length});
+ }
+
  let match=path.match(/^\/api\/magnanimous\/native-web\/runs\/([^/]+)$/);
  if(request.method==='GET'&&match){
   const task=await localBridgeTask(env,tenantId,decodeURIComponent(match[1]));
