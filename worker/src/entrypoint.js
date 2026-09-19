@@ -89,6 +89,10 @@ async function ensureRuntimeBootstrap(env){
 
 export default {
   async fetch(request,env,ctx){
+    const url=new URL(request.url);
+    if(request.method==='GET'&&url.pathname==='/health'){
+      return Response.json({status:'ok',service:'iamagnanimous-ai',version:'4.0.0-multitenant',database_bootstrap:'deferred'},{headers:{'cache-control':'no-store'}});
+    }
     ensureWhatsAppIntegrationCompatibility();
     await ensureRuntimeBootstrap(env);
     const visual=await handleVisual(request,env);
