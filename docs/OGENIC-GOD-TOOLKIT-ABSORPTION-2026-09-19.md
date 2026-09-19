@@ -123,7 +123,7 @@ It must return a configuration/blocking status instead of silently replacing an 
 
 ## Netwalk safety contract
 
-The Netwalk pattern is absorbed as a Magnanimous network-observability specification, but **network survey execution is not marked live until a real local/private-network bridge exists**.
+The Netwalk pattern is absorbed as a Magnanimous network-observability specification. The **Magnanimous Local Bridge runtime now exists**, but network survey execution is marked ready only when a paired, recently active device explicitly advertises the required Netwalk capability.
 
 Required guarantees:
 
@@ -146,8 +146,9 @@ Required guarantees:
 - Tool Foundry procedures: implemented.
 - Chat-wide OGENIC action policy: implemented.
 - Production planner endpoints: implemented.
-- Local native-app/OS control: **LOCAL_BRIDGE_REQUIRED**.
-- Private-network Netwalk execution: **LOCAL_BRIDGE_REQUIRED** until an authorized local bridge is installed/configured.
+- Local bridge control plane: **implemented** with outbound HTTPS polling, hashed server-side tokens, capability-scoped tasks, receipts and mutation confirmation.
+- Local native-computer execution: **READY_LOCAL only after a real paired device heartbeat**; otherwise `LOCAL_BRIDGE_REQUIRED`.
+- Private-network Netwalk execution: **READY_LOCAL only when the paired device advertises the exact Netwalk action and Core-Dv1 enforces local authorization/scope**.
 - External account actions: require the corresponding connected account and its permissions.
 - Payments, calls, publishing and destructive changes: remain approval/authorization gated.
 
