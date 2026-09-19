@@ -15,19 +15,16 @@ async function safeTextEqual(left,right){
   let diff=0;for(let i=0;i<av.length;i+=1)diff|=av[i]^bv[i];return diff===0;
 }
 
-// SESSION_SECRET is preferred, but authentication must not silently fail when the
-// optional Worker secret was never configured. A random secret is generated once
-// and persisted in D1, so credentials and sessions remain server-side and stable.
+// SESSION_SECRET is authoritative in production. D1 keeps a legacy fallback for
+// older installs, but runtime requests never create auth schema.
 async function authSecret(env) {
   const configured = String(env.SESSION_SECRET || '').trim();
   if (configured) return configured;
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS auth_config (key TEXT PRIMARY KEY,value TEXT NOT NULL)").run();
-  const existing = await env.DB.prepare('SELECT value FROM auth_config WHERE key=?').bind('session_secret').first();
-  if (existing?.value) return String(existing.value);
-  const generated = `${makeId()}${makeId()}${makeId()}`;
-  try { await env.DB.prepare('INSERT INTO auth_config(key,value) VALUES(?,?)').bind('session_secret', generated).run(); } catch (_) {}
-  const saved = await env.DB.prepare('SELECT value FROM auth_config WHERE key=?').bind('session_secret').first();
-  return String(saved?.value || generated);
+  try {
+    const existing = await env.DB.prepare('SELECT value FROM auth_config WHERE key=?').bind('session_secret').first();
+    if (existing?.value) return String(existing.value);
+  } catch (_) {}
+  throw new Error('Secure session configuration is unavailable.');
 }
 async function makeSession(user, env) { const secret = await authSecret(env); const exp = now() + SESSION_TTL_SECONDS; const payload = `${user.id}|${user.tenant_id}|${user.role}|${exp}`; return `${payload}|${await hmac(secret, payload)}`; }
 async function auth(request, env) {
@@ -39,21 +36,36 @@ async function auth(request, env) {
   if (!(await safeTextEqual(sig,await hmac(secret, `${userId}|${tenantId}|${role}|${exp}`)))) return null;
   return await env.DB.prepare('SELECT id,tenant_id,name,email,role,active,created_at FROM users WHERE id=? AND tenant_id=? AND active=1').bind(userId, tenantId).first();
 }
+let schemaPromise=null;
 async function ensureTables(env) {
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS tenants (id TEXT PRIMARY KEY,name TEXT NOT NULL,slug TEXT NOT NULL UNIQUE,owner_user_id TEXT,created_at INTEGER NOT NULL)").run();
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,email TEXT NOT NULL,role TEXT NOT NULL DEFAULT 'member',password_hash TEXT NOT NULL,password_salt TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,UNIQUE(tenant_id,email))").run();
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS auth_events (id INTEGER PRIMARY KEY AUTOINCREMENT,user_id TEXT,tenant_id TEXT,email TEXT NOT NULL,event TEXT NOT NULL,success INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL)").run();
-  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_auth_events_user ON auth_events(user_id,created_at)").run();
-  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)").run();
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY,value TEXT NOT NULL)").run();
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS ads (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,url TEXT NOT NULL,label TEXT NOT NULL DEFAULT 'Sponsored',placement TEXT NOT NULL DEFAULT 'home',active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL)").run();
-  await authSecret(env);
+  if(schemaPromise)return schemaPromise;
+  schemaPromise=(async()=>{
+    // D1 migrations own schema. Live account requests verify only.
+    await env.DB.prepare('SELECT 1 FROM tenants LIMIT 1').first();
+    await env.DB.prepare('SELECT 1 FROM users LIMIT 1').first();
+    await env.DB.prepare('SELECT 1 FROM auth_events LIMIT 1').first();
+    await env.DB.prepare('SELECT 1 FROM settings LIMIT 1').first();
+    await env.DB.prepare('SELECT 1 FROM ads LIMIT 1').first();
+    return true;
+  })();
+  try{return await schemaPromise}catch(error){schemaPromise=null;throw error}
 }
 async function ensureLegacyCompatibility(env) {
-  const cols = [['tenant_id','TEXT'],['name',"TEXT NOT NULL DEFAULT 'User'"],['password_salt',"TEXT NOT NULL DEFAULT ''"],['active','INTEGER NOT NULL DEFAULT 1']];
-  for (const [c,d] of cols) { try { await env.DB.prepare(`ALTER TABLE users ADD COLUMN ${c} ${d}`).run(); } catch (_) {} }
+  // Migration 0008 owns legacy auth columns. Only repair actual orphaned legacy rows.
+  const legacy = await env.DB.prepare("SELECT 1 FROM users WHERE tenant_id IS NULL OR tenant_id='' LIMIT 1").first();
+  if(!legacy)return;
   const tenant = await env.DB.prepare('SELECT id FROM tenants WHERE slug=?').bind('owner').first();
-  if (tenant?.id) { try { await env.DB.prepare("UPDATE users SET tenant_id=? WHERE tenant_id IS NULL OR tenant_id=''").bind(tenant.id).run(); } catch (_) {} }
+  if (tenant?.id) await env.DB.prepare("UPDATE users SET tenant_id=? WHERE tenant_id IS NULL OR tenant_id=''").bind(tenant.id).run();
+}
+function d1DailyLimit(error){
+  const message=`${String(error?.message||'')} ${String(error?.cause?.message||'')}`.toLowerCase();
+  if(message.includes("exceeded d1's free tier daily row write limit"))return'write';
+  if(message.includes("exceeded d1's free tier daily row read limit"))return'read';
+  return'';
+}
+function nextUtcReset(){
+  const d=new Date();
+  return new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+1,0,0,0)).toISOString();
 }
 async function logAuth(env, user, event, success = 1, email = '') { try { await env.DB.prepare('INSERT INTO auth_events(user_id,tenant_id,email,event,success,created_at) VALUES(?,?,?,?,?,?)').bind(user?.id || null, user?.tenant_id || null, email || user?.email || '', event, success ? 1 : 0, now()).run(); } catch (_) {} }
 async function signup(request, env) {
@@ -158,6 +170,14 @@ export default {
       return providerApp.fetch(request, env, ctx);
     } catch (e) {
       console.error('admin compatibility runtime error',e);
+      const limit=d1DailyLimit(e);
+      if(limit){
+        return json({
+          detail:'Database capacity is temporarily unavailable because the Cloudflare D1 Free daily row '+limit+' limit has been reached.',
+          code:limit==='write'?'D1_DAILY_ROW_WRITE_LIMIT':'D1_DAILY_ROW_READ_LIMIT',
+          resets_at_utc:nextUtcReset()
+        },503);
+      }
       return json({ detail: 'The account service could not complete this request.', code:'ACCOUNT_SERVICE_ERROR' }, 500);
     }
   }
