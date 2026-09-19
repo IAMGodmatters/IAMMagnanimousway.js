@@ -105,10 +105,26 @@ jobs:
             )
           fi
 
+          echo "Applying current-manifest stale-row pruning"
+          set +e
+          prune_output=$(cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file=/tmp/magnanimous-d1-maintenance/000-prune-stale.sql 2>&1)
+          prune_rc=$?
+          set -e
+          printf '%s\n' "$prune_output"
+          if [ "$prune_rc" -ne 0 ]; then
+            if printf '%s' "$prune_output" | grep -qi "free tier daily row write limit"; then
+              echo "::warning::D1 quota blocked stale-row pruning; a later scheduled run will retry."
+              echo "D1_MAINTENANCE_QUOTA_BLOCKED=1" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            exit "$prune_rc"
+          fi
+
           if [ "$current_digest" = "$digest" ]; then
-            echo "Production D1 already matches full-brain digest $digest."
+            echo "Production D1 already matches full-brain digest $digest; stale rows were pruned."
           else
             for file in /tmp/magnanimous-d1-maintenance/*.sql; do
+              if [ "$(basename "$file")" = "000-prune-stale.sql" ]; then continue; fi
               set +e
               output=$(cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file="$file" 2>&1)
               rc=$?
