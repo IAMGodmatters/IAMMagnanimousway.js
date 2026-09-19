@@ -2,6 +2,7 @@ import { currentUser } from './integrations.js';
 import { requirePlatformOwner } from './platform-owner-guard.js';
 import { getIntegrationCatalog } from './magnanimous-integration-catalog.js';
 import { upsertApprovedTeachingTool } from './magnanimous-tool-foundry.js';
+import { getPersistentConnectorAbsorptionManifest, getConnectorAbsorptionCatalog, getConnectorAbsorptionSummary } from './magnanimous-connector-absorption.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -31,6 +32,13 @@ async function ensureSchema(env){
   id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,goal TEXT NOT NULL,mode TEXT NOT NULL DEFAULT 'god-coding',
   plan_json TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'planned',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL
  )`).run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_connector_capability_absorption (
+  connector_id TEXT NOT NULL,capability_id TEXT NOT NULL,connector_name TEXT NOT NULL,category TEXT NOT NULL DEFAULT 'general',
+  native_target TEXT NOT NULL DEFAULT '',boundary TEXT NOT NULL DEFAULT 'none',source_kind TEXT NOT NULL DEFAULT 'benchmark-contract',
+  status TEXT NOT NULL DEFAULT 'brain-spec-absorbed',research_json TEXT NOT NULL DEFAULT '{}',spec_json TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(connector_id,capability_id)
+ )`).run();
+ await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_connector_absorption_target ON magnanimous_connector_capability_absorption(native_target,status,updated_at DESC)').run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_magnanimous_self_dev_tenant_created ON magnanimous_self_development_runs(tenant_id,created_at DESC)').run();
 }
 
@@ -71,6 +79,47 @@ async function seedMatrix(env){
  await ensureSchema(env);
  for(const row of CORE_NATIVE_CAPABILITIES)await upsertCapability(env,{...row,benchmarks:[],notes:'Magnanimous-owned core capability.'});
  for(const row of aggregateTargets())await upsertCapability(env,{...row,notes:'Native-equivalent target derived from public capability classes. No proprietary provider source code is copied.'});
+ await seedConnectorAbsorption(env);
+}
+
+async function seedConnectorAbsorption(env){
+ if(!env?.DB)return;
+ await ensureSchema(env);
+ const ts=now(),catalog=new Map(getConnectorAbsorptionCatalog().map(x=>[x.id,x])),statements=[];
+ for(const row of getPersistentConnectorAbsorptionManifest()){
+  const research=catalog.get(row.connector_id)?.research||{};
+  const spec={magnanimous_owned:row.magnanimous_owned,external_only:row.external_only,acceptance_tests:row.acceptance_tests,recipe:row.recipe,implementation_status:row.implementation_status};
+  statements.push(env.DB.prepare(`INSERT INTO magnanimous_connector_capability_absorption(connector_id,capability_id,connector_name,category,native_target,boundary,source_kind,status,research_json,spec_json,created_at,updated_at)
+   VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(connector_id,capability_id) DO UPDATE SET connector_name=excluded.connector_name,category=excluded.category,native_target=excluded.native_target,boundary=excluded.boundary,source_kind=excluded.source_kind,research_json=excluded.research_json,spec_json=excluded.spec_json,updated_at=excluded.updated_at`).bind(
+    row.connector_id,row.capability,row.connector_name,row.category,String(row.native_target||''),row.boundary,row.source_kind,'brain-spec-absorbed',JSON.stringify(research).slice(0,10000),JSON.stringify(spec).slice(0,30000),ts,ts
+   ));
+ }
+ for(let i=0;i<statements.length;i+=50)await env.DB.batch(statements.slice(i,i+50));
+}
+
+async function materializeConnectorCapabilityRecipes(env,{connector='',capability='',limit=60,pendingOnly=false}={}){
+ await seedConnectorAbsorption(env);
+ const where=[],bind=[];if(connector){where.push('connector_id=?');bind.push(connector)}if(capability){where.push('capability_id=?');bind.push(capability)}if(pendingOnly)where.push("status!='tool-foundry-specified'");
+ const safeLimit=Math.max(1,Math.min(100,Number(limit)||60));
+ const {results=[]}=await env.DB.prepare(`SELECT connector_id,capability_id,connector_name,category,native_target,boundary,source_kind,status,spec_json FROM magnanimous_connector_capability_absorption ${where.length?'WHERE '+where.join(' AND '):''} ORDER BY connector_id,capability_id LIMIT ${safeLimit}`).bind(...bind).all();
+ const materialized=[];
+ for(const row of results){
+  const spec=(()=>{try{return JSON.parse(row.spec_json||'{}')}catch{return{}}})();
+  await upsertApprovedTeachingTool(env,{
+   agentId:'magnanimous-native-first',
+   name:`absorb-${row.connector_id}-${row.capability_id}`,
+   family:`native-${row.category}`,
+   risk:['payments','telephony'].includes(row.category)?'high':['sales','crm','marketing','commerce','operations','email','calendar','social','messaging','work','deployment','engineering'].includes(row.category)?'medium':'low',
+   requiresConnection:String(row.boundary||'').includes('external')||String(row.boundary||'').includes('account')||String(row.boundary||'').includes('rail'),
+   purpose:`Magnanimous-owned workflow specification for ${row.capability_id}, benchmarked against ${row.connector_name}. Magnanimous owns reasoning, memory, workflow and verification; any unavoidable outside account/data/network/compute boundary remains a replaceable adapter.`,
+   requiredCapabilities:[row.capability_id],
+   steps:Array.isArray(spec.recipe)?spec.recipe:[]
+  });
+  await env.DB.prepare("UPDATE magnanimous_connector_capability_absorption SET status='tool-foundry-specified',updated_at=? WHERE connector_id=? AND capability_id=?").bind(now(),row.connector_id,row.capability_id).run();
+  materialized.push({connector_id:row.connector_id,capability:row.capability_id,native_target:row.native_target,boundary:row.boundary,status:'tool-foundry-specified'});
+ }
+ const remainingRow=pendingOnly?await env.DB.prepare("SELECT COUNT(*) count FROM magnanimous_connector_capability_absorption WHERE status!='tool-foundry-specified'").first():null;
+ return{items:materialized,remaining:Number(remainingRow?.count||0)};
 }
 
 async function seedNativeRecipes(env){
@@ -133,6 +182,7 @@ async function overview(env){
   proprietary_clone_policy:'Recreate observable capability classes and workflows with original Magnanimous code; never copy proprietary source, hidden prompts, credentials, weights or private provider internals.',
   engineering_architecture_policy:'Decompose large responsibilities, apply SOLID boundaries, and compose small services through dependency injection so external adapters remain replaceable.',
   capability_count:capabilities.length,native_count:capabilities.filter(x=>x.status==='native').length,specified_count:capabilities.filter(x=>x.status==='specified').length,
+  connector_absorption:getConnectorAbsorptionSummary(),
   capabilities
  };
 }
@@ -140,6 +190,12 @@ async function overview(env){
 async function assimilate(request,env){
  const body=await request.json().catch(()=>({}));
  await seedMatrix(env);await seedNativeRecipes(env);
+ const connector=clip(body.connector,120),capability=clip(body.capability,160);
+ if(connector||capability||body.mode==='connector-capabilities'){
+  const bulk=body.mode==='connector-capabilities',materialized=await materializeConnectorCapabilityRecipes(env,{connector,capability,limit:body.limit,pendingOnly:bulk});
+  if(!bulk&&!materialized.items.length)return json({detail:'Connector capability not found.'},404);
+  return json({ok:true,native_first:true,mode:'one-by-one-connector-capability-absorption',materialized_count:materialized.items.length,remaining:materialized.remaining,capabilities:materialized.items,summary:getConnectorAbsorptionSummary(),note:'Each selected capability is now a reusable Magnanimous Tool Foundry specification. External account/data/network rails remain replaceable and are not falsely labeled native.'});
+ }
  const requested=clip(body.target,120);
  const {results=[]}=await env.DB.prepare(`SELECT id,name,family,status,boundary,capabilities_json,benchmarks_json FROM magnanimous_native_capability_matrix ${requested?'WHERE id=?':''} ORDER BY name`).bind(...(requested?[requested]:[])).all();
  if(requested&&!results.length)return json({detail:'Native capability target not found.'},404);
@@ -175,6 +231,13 @@ export async function handleMagnanimousNativeFirst(request,env){
  const auth=await owner(request,env);if(auth.denied)return auth.denied;
  await ensureSchema(env);
  if(request.method==='GET'&&path==='/api/magnanimous/native-first')return json(await overview(env));
+ if(request.method==='GET'&&path==='/api/magnanimous/native-first/connectors'){
+  await seedConnectorAbsorption(env);
+  const connector=clip(url.searchParams.get('connector'),120),capability=clip(url.searchParams.get('capability'),160),where=[],bind=[];
+  if(connector){where.push('connector_id=?');bind.push(connector)}if(capability){where.push('capability_id=?');bind.push(capability)}
+  const {results=[]}=await env.DB.prepare(`SELECT connector_id,capability_id,connector_name,category,native_target,boundary,source_kind,status,research_json,spec_json,updated_at FROM magnanimous_connector_capability_absorption ${where.length?'WHERE '+where.join(' AND '):''} ORDER BY connector_id,capability_id LIMIT 500`).bind(...bind).all();
+  return json({identity:'Magnanimous AI',summary:getConnectorAbsorptionSummary(),capabilities:results.map(x=>({...x,research:JSON.parse(x.research_json||'{}'),spec:JSON.parse(x.spec_json||'{}'),research_json:undefined,spec_json:undefined})),policy:getConnectorAbsorptionSummary().absorption_policy});
+ }
  if(request.method==='POST'&&path==='/api/magnanimous/native-first/assimilate')return assimilate(request,env);
  if(request.method==='POST'&&path==='/api/magnanimous/native-first/self-develop')return selfDevelop(request,env,auth.user);
  if(request.method==='GET'&&path==='/api/magnanimous/native-first/self-develop'){

@@ -1,6 +1,7 @@
 import { currentUser } from './integrations.js';
 import { getIntegrationCatalog, rankIntegrationTargets } from './magnanimous-integration-catalog.js';
 import { getMagnanimousCapabilityRadar, recordMagnanimousCapabilityGap } from './magnanimous-capability-radar.js';
+import { getConnectorAbsorptionCatalog, getConnectorAbsorptionPrompt, getConnectorAbsorptionSummary, rankAbsorbedCapabilities } from './magnanimous-connector-absorption.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -52,19 +53,20 @@ export async function upsertApprovedTeachingTool(env,{submissionId=0,agentId='te
 }
 
 export async function getMagnanimousToolFoundryContext(request,env,goal=''){
- if(!env?.DB)return{context:'',tools:[],recommended_integrations:[]};
- const user=await currentUser(request,env).catch(()=>null);if(!user)return{context:'',tools:[],recommended_integrations:rankIntegrationTargets(goal).slice(0,6)};
+ if(!env?.DB)return{context:getConnectorAbsorptionPrompt(goal),tools:[],recommended_integrations:rankIntegrationTargets(goal).slice(0,6),absorbed_capabilities:rankAbsorbedCapabilities(goal,10)};
+ const user=await currentUser(request,env).catch(()=>null);if(!user)return{context:getConnectorAbsorptionPrompt(goal),tools:[],recommended_integrations:rankIntegrationTargets(goal).slice(0,6),absorbed_capabilities:rankAbsorbedCapabilities(goal,10)};
  try{
   await schema(env);const tenant=String(user.tenant_id),uid=String(user.id);await syncGapProposals(env,{tenant,uid});
   const {results=[]}=await env.DB.prepare("SELECT name,purpose,family,risk,status,uses,successes,steps_json FROM magnanimous_native_tool_specs WHERE ((tenant_id=? AND user_id=?) OR (tenant_id=? AND user_id=?)) AND status IN ('ready','proposed') ORDER BY CASE status WHEN 'ready' THEN 0 ELSE 1 END, successes DESC, uses DESC, updated_at DESC LIMIT 80").bind(tenant,uid,GLOBAL_TOOL_TENANT,GLOBAL_TOOL_USER).all();
   const terms=String(goal||'').toLowerCase().split(/[^a-z0-9]+/).filter(x=>x.length>2);
   const ranked=results.map(x=>{const hay=`${x.name} ${x.purpose} ${x.family}`.toLowerCase();return{...x,match:terms.reduce((n,t)=>n+(hay.includes(t)?1:0),0)}}).sort((a,b)=>b.match-a.match||(a.status==='ready'?-1:1)-(b.status==='ready'?-1:1)||Number(b.successes||0)-Number(a.successes||0)).slice(0,10);
   const recommended=rankIntegrationTargets(goal).slice(0,6);
-  const lines=[];
+  const absorbed=rankAbsorbedCapabilities(goal,10),lines=[];
   if(ranked.length){lines.push('\n\nMAGNANIMOUS LEARNED NATIVE TOOL RECIPES:');for(const x of ranked){const rate=Number(x.uses||0)>0?`${Math.round(Number(x.successes||0)/Number(x.uses||1)*100)}% observed success`:'unscored';lines.push(`- ${x.name} [${x.status}/${x.risk}]: ${clip(x.purpose,500)} (${rate})`)}lines.push('READY recipes are proven low-risk patterns Magnanimous should reuse natively. PROPOSED recipes are approved workflow guidance that must route through real native or connected tools before claiming an action occurred. Never execute high-impact actions merely because a recipe exists; preserve account permissions and explicit approval requirements.');}
   if(recommended.length){lines.push('\nINTEGRATION ROUTING CANDIDATES:');for(const x of recommended)lines.push(`- ${x.name}: ${x.capabilities.join(', ')} [${x.priority}]`);lines.push('These are adapter targets, not automatically authorized accounts. Prefer Magnanimous native/free capability first; use a provider only when connected and materially better or required for live/account-specific capability.');}
-  return{context:lines.join('\n').slice(0,9000),tools:ranked,recommended_integrations:recommended};
- }catch(e){return{context:'',tools:[],recommended_integrations:rankIntegrationTargets(goal).slice(0,6),error:clip(e?.message||e,500)}}
+  if(absorbed.length){lines.push('\n'+getConnectorAbsorptionPrompt(goal));}
+  return{context:lines.join('\n').slice(0,12000),tools:ranked,recommended_integrations:recommended,absorbed_capabilities:absorbed,absorption_summary:getConnectorAbsorptionSummary()};
+ }catch(e){return{context:getConnectorAbsorptionPrompt(goal),tools:[],recommended_integrations:rankIntegrationTargets(goal).slice(0,6),absorbed_capabilities:rankAbsorbedCapabilities(goal,10),error:clip(e?.message||e,500)}}
 }
 
 export async function handleMagnanimousToolFoundry(request,env){
@@ -86,7 +88,11 @@ export async function handleMagnanimousToolFoundry(request,env){
  }
  if(request.method==='GET'&&url.pathname==='/api/magnanimous/tool-foundry/integrations'){
   const goal=clip(url.searchParams.get('goal'),1000);
-  return json({identity:'Magnanimous AI',mode:'integration-benchmark-catalog',catalog:getIntegrationCatalog(),recommended:goal?rankIntegrationTargets(goal):[],note:'Catalog entries are capability benchmarks and adapter targets, not inherited ChatGPT connections.'});
+  return json({identity:'Magnanimous AI',mode:'integration-benchmark-catalog',catalog:getConnectorAbsorptionCatalog(),absorption_summary:getConnectorAbsorptionSummary(),recommended:goal?rankIntegrationTargets(goal):[],absorbed_capabilities:goal?rankAbsorbedCapabilities(goal,20):[],note:'Catalog entries are Magnanimous capability benchmarks and adapter targets. Direct account connections still require their own authorization; the learned capability specifications belong to Magnanimous.'});
+ }
+ if(request.method==='GET'&&url.pathname==='/api/magnanimous/tool-foundry/absorption'){
+  const goal=clip(url.searchParams.get('goal'),1000),summary=getConnectorAbsorptionSummary();
+  return json({identity:'Magnanimous AI',mode:'connector-capability-absorption',summary,catalog:goal?[]:getConnectorAbsorptionCatalog(),ranked:goal?rankAbsorbedCapabilities(goal,30):[],policy:summary.absorption_policy,note:'Each capability is absorbed as a provider-neutral Magnanimous workflow specification. Native implementation status remains evidence-gated.'});
  }
  if(request.method==='POST'&&url.pathname==='/api/magnanimous/tool-foundry/seed-integrations'){
   const b=await request.json().catch(()=>({}));const onlyPriority=Boolean(b.high_priority_only);const targets=getIntegrationCatalog().filter(x=>!onlyPriority||['critical','high'].includes(x.priority));const seeded=[];
