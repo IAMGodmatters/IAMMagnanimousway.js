@@ -366,6 +366,29 @@ jobs:
           status=$(curl -sS -o /tmp/me.json -w '%{http_code}' "$BASE_URL/api/auth/me" -H "Authorization: Bearer $token")
           if [ "$status" != "200" ]; then echo "Authenticated account check returned HTTP $status"; cat /tmp/me.json || true; exit 1; fi
 
+          status=$(curl -sS -o /tmp/connector-absorption.json -w '%{http_code}' "$BASE_URL/api/magnanimous/tool-foundry/absorption?goal=email%20social%20commerce" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Connector capability absorption endpoint returned HTTP $status"; cat /tmp/connector-absorption.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/connector-absorption.json'))
+          s=d.get('summary') or {}
+          coverage=s.get('direct_connector_coverage') or {}
+          assert d.get('identity') == 'Magnanimous AI', d
+          assert d.get('mode') == 'connector-capability-absorption', d
+          assert int(s.get('connector_benchmarks') or 0) >= 68, s
+          assert int(s.get('direct_platform_connectors') or 0) == 13, s
+          assert int(s.get('capability_specs') or 0) >= 288, s
+          assert coverage.get('covered') == 13 and coverage.get('total') == 13, coverage
+          assert coverage.get('missing') == [], coverage
+          assert s.get('status') == 'catalog-complete', s
+          ranked=d.get('ranked') or []
+          assert ranked, d
+          assert all(x.get('absorption_status') == 'brain-spec-absorbed' for x in ranked), ranked
+          assert all(x.get('implementation_status') == 'specified-not-assumed-native' for x in ranked), ranked
+          assert all(x.get('native_target') for x in ranked), ranked
+          print('All direct connector types are covered by the Magnanimous per-capability brain absorption registry.')
+          PY
+
           # Magnanimous Business AI production smoke: verify the live catalog,
           # durable Work Engine linkage, tenant isolation, and truthful pre-verification state.
           status=$(curl -sS -o /tmp/business-ai-tools.json -w '%{http_code}' "$BASE_URL/api/business-ai/tools" -H "Authorization: Bearer $token")
