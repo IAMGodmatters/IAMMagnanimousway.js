@@ -377,7 +377,11 @@ jobs:
           assert d.get('mode') == 'connector-capability-absorption', d
           assert int(s.get('connector_benchmarks') or 0) >= 68, s
           assert int(s.get('direct_platform_connectors') or 0) == 13, s
-          assert int(s.get('capability_specs') or 0) >= 288, s
+          assert int(s.get('capability_specs') or 0) >= 294, s
+          assert int(s.get('visible_plugin_namespaces') or 0) >= 109, s
+          assert int(s.get('visible_plugin_tool_contracts') or 0) >= 2259, s
+          assert int(s.get('full_brain_capability_contracts') or 0) >= 2553, s
+          assert s.get('plugin_authorization_state') == 'not-assumed', s
           assert coverage.get('covered') == 13 and coverage.get('total') == 13, coverage
           assert coverage.get('missing') == [], coverage
           assert s.get('status') == 'catalog-complete', s
