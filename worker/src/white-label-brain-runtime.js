@@ -4,7 +4,7 @@ import {isPlatformOwnerUser} from './agent-branch-intelligence.js';
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const clip=(v,n=8000)=>String(v??'').trim().slice(0,n);
-const APPS=new Set(['funnel','branded-ai','client-apps','booking','reputation','automations','inbox','crm','receptionist','video-agents','work-engine','rebilling','platform']);
+const APPS=new Set(['funnel','branded-ai','client-apps','booking','reputation','automations','inbox','crm','receptionist','video-agents','work-engine','rebilling','invoice','pos','website','app-builder','whatsapp','platform']);
 const SECRET_PATTERNS=[/\bsk-[A-Za-z0-9_-]{16,}\b/,/\bBearer\s+[A-Za-z0-9._-]{16,}/i,/BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY/i,/\b(?:password|client_secret|api[_ -]?key|access[_ -]?token)\s*[:=]\s*\S{8,}/i];
 
 function appId(v){const id=clip(v||'platform',60).toLowerCase().replace(/[^a-z0-9-]+/g,'-');return APPS.has(id)?id:'platform'}
@@ -86,6 +86,7 @@ async function addSignal(env,user,{clientId='',app='platform',eventType='action'
 
 function inferApp(path){
  const p=String(path||'').toLowerCase();
+ if(p.includes('/white-label/native/invoice'))return'invoice';if(p.includes('/white-label/native/pos'))return'pos';if(p.includes('/white-label/native/website'))return'website';if(p.includes('/white-label/native/app'))return'app-builder';if(p.includes('/white-label/native/whatsapp'))return'whatsapp';
  if(p.includes('/funnels'))return'funnel';if(p.includes('/bookings'))return'booking';if(p.includes('/reputation')||p.includes('/reviews'))return'reputation';if(p.includes('/automations'))return'automations';if(p.includes('/inbox'))return'inbox';if(p.includes('/crm'))return'crm';if(p.includes('/voice-agent')||p.includes('/contact-center')||p.includes('/phone'))return'receptionist';if(p.includes('/video-agents')||p.includes('/video'))return'video-agents';if(p.includes('/work-engine'))return'work-engine';if(p.includes('/usage')||p.includes('/rebill'))return'rebilling';if(p.includes('/bpo')||p.includes('/clients'))return'client-apps';if(p.includes('/chat')||p.includes('/agents')||p.includes('/magnanimous'))return'branded-ai';return'platform';
 }
 
