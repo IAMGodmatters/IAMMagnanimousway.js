@@ -158,6 +158,16 @@ export default {
   async fetch(request, env, ctx) {
     const canonicalOrLegacy=canonicalOrLegacyResponse(request);
     if(canonicalOrLegacy)return finalizeResponse(request,canonicalOrLegacy);
+    const outerUrl=new URL(request.url);
+    if(request.method==='GET'&&outerUrl.pathname==='/health'){
+      return finalizeResponse(request,Response.json({
+        status:'ok',
+        service:'iamagnanimous-ai',
+        version:'4.0.0-multitenant',
+        database_bootstrap:'bypassed-for-health',
+        database_independent:true
+      },{headers:{'cache-control':'no-store'}}));
+    }
     const requestId=requestCorrelationId(request);
     let carrierContext=null;
     let assistantContext=null;

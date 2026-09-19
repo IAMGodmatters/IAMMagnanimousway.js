@@ -37,6 +37,9 @@ const has=(text,needle,name)=>checks.push([name,text.includes(needle)]);
 const lacks=(text,needle,name)=>checks.push([name,!text.includes(needle)]);
 
 has(security,"import app from './operations-entrypoint.js'",'central security entrypoint still wraps operations');
+has(security,"outerUrl.pathname==='/health'",'outermost Worker entrypoint handles health before downstream D1-aware layers');
+checks.push(['outer health shortcut precedes session resolution',security.indexOf("outerUrl.pathname==='/health'")>=0&&security.indexOf("outerUrl.pathname==='/health'")<security.indexOf('resolveSessionRequest(guardedRequest')]);
+has(security,'database_independent:true','outer health response explicitly declares database independence');
 has(entrypoint,"url.pathname==='/health'",'health endpoint is intercepted before runtime bootstrap');
 has(entrypoint,"database_bootstrap:'deferred'",'health endpoint stays read-only under D1 write quota pressure');
 has(progress,"handleMagnanimousNativeFirst",'native-first runtime is routed inside the existing secured request chain');
