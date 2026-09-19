@@ -77,7 +77,25 @@ function externalParts(boundary){
  if(boundary==='optional-specialized-compute')return['specialized-generation-compute-when-needed'];
  return[];
 }
+function initiativePolicy(name='',purpose='',boundary=''){
+ const hay=(String(name||'')+' '+String(purpose||'')).toLowerCase();
+ const destructive=/\b(delete|remove|revoke|uninstall|drop|purge|terminate|unpublish|cancel|disable|trash)\b/.test(hay);
+ const financial=/\b(pay|payment|charge|refund|payout|transfer|purchase|checkout|invoice|billing|bank|withdraw)\b/.test(hay);
+ const communications=/\b(send|reply|forward|message|sms|call|dial|publish|post|comment|email|invite)\b/.test(hay);
+ const credentials=/\b(secret|credential|permission|oauth|token|key|provision|connect|resource|domain|deploy|merge|commit|write|edit|update|create|upload|execute|run code|sql|query mutation)\b/.test(hay);
+ const safeRead=/^(get|list|read|search|find|fetch|inspect|check|status|preview|screenshot|query|lookup|describe|discover|typecheck|test|logs?)(\b|[_-])/.test(String(name||'').toLowerCase())&&!destructive&&!financial&&!communications&&!credentials;
+ let action_class='write-or-external-action',requires_confirmation=false,auto_initiate=false;
+ if(safeRead){action_class='read-inspect-verify';auto_initiate=true}
+ else if(destructive){action_class='destructive';requires_confirmation=true}
+ else if(financial){action_class='financial';requires_confirmation=true}
+ else if(communications){action_class='communications-or-publish';requires_confirmation=true}
+ else if(credentials){action_class='configuration-or-write';requires_confirmation=true}
+ if(/external|account|rail|repository|deployment|provider|network|compute/.test(String(boundary||'').toLowerCase())&&action_class!=='read-inspect-verify')requires_confirmation=true;
+ return{suggestive:true,auto_initiate,requires_confirmation,action_class};
+}
+
 function capabilityRecipe(item,capability,boundary){
+ const initiative=initiativePolicy(capability,`${item.name} ${item.category}`,boundary);
  return{
   id:`${item.id}:${capability}`,
   connector_id:item.id,
@@ -100,6 +118,7 @@ function capabilityRecipe(item,capability,boundary){
    'No external action is claimed without a real authorized result.',
    'Native status is granted only after runtime and regression evidence.'
   ],
+  initiative,
   recipe:[
    `Understand the user outcome for ${capability} without depending on ${item.name} internals.`,
    'Retrieve Magnanimous memory, approved knowledge and existing native recipes first.',
@@ -149,7 +168,7 @@ function pluginNativeTarget(plugin){
  return'universal-tool-gateway';
 }
 function pluginCapabilityRecipe(plugin,tool){
- const capability=String(tool||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tool-action',native_target=pluginNativeTarget(plugin),research=liveToolResearch(plugin.namespace,tool),floot=plugin.namespace==='Floot'?getFlootToolPolicy(tool):null;
+ const capability=String(tool||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tool-action',native_target=pluginNativeTarget(plugin),research=liveToolResearch(plugin.namespace,tool),floot=plugin.namespace==='Floot'?getFlootToolPolicy(tool):null,genericInitiative=initiativePolicy(tool,research?.purpose||plugin.name,'external-plugin-account-or-provider-rail-when-required');
  return{
   id:`${plugin.id}:${capability}`,connector_id:plugin.id,connector_name:plugin.name,category:'plugin-contract',capability,native_target,priority:'observed',
   source_kind:plugin.source_kind,direct_connector:false,boundary:'external-plugin-account-or-provider-rail-when-required',
@@ -160,7 +179,7 @@ function pluginCapabilityRecipe(plugin,tool){
   plugin_namespace:plugin.namespace,authorization_state:plugin.authorization_state,
   search_text:research?.purpose||tool,
   visibility_state:research?'live-visible':'historical-observed',
-  initiative:floot?{suggestive:true,auto_initiate:floot.auto_initiate,requires_confirmation:floot.requires_confirmation,action_class:floot.action_class}:undefined,
+  initiative:floot?{suggestive:true,auto_initiate:floot.auto_initiate,requires_confirmation:floot.requires_confirmation,action_class:floot.action_class,family:floot.family}:genericInitiative,
   research:{captured_at:research?'2026-09-20':'historical',source_kind:research?'live-observable-plugin-tool-catalog':plugin.source_kind,public_purpose:research?.purpose||'',authorization_state:'not-assumed',proprietary_implementation_copied:false,...(floot?{floot_family:floot.family,floot_action_class:floot.action_class,requires_real_floot_tool:true}: {})}
  };
 }
@@ -179,7 +198,7 @@ export function getChatGPTPluginCapabilityManifest(){
  return [...historical,...liveOnlyPluginRecipes()];
 }
 function installedSkillRecipe(tuple){
- const [plugin,skill,description]=tuple,live=LIVE_SKILL_BY_KEY.get(`${plugin}/${skill}`)||null,native_target=pluginNativeTarget({namespace:plugin,tools:[skill,live?.purpose||description]});
+ const [plugin,skill,description]=tuple,live=LIVE_SKILL_BY_KEY.get(`${plugin}/${skill}`)||null,native_target=pluginNativeTarget({namespace:plugin,tools:[skill,live?.purpose||description]}),initiative=initiativePolicy(skill,live?.purpose||description,'external-plugin-account-or-provider-rail-when-required');
  const slug=String(skill||'skill').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'skill';
  return{
   id:`plugin-skill:${plugin}:${slug}`,connector_id:`plugin-skill:${plugin}`,connector_name:`${plugin} skill pack`,category:'plugin-skill',
@@ -188,7 +207,7 @@ function installedSkillRecipe(tuple){
   magnanimous_owned:['skill-selection',...ownedParts()],external_only:['plugin/account authorization when required','provider-specific execution when required'],
   acceptance_tests:['Skill purpose can be expressed provider-neutrally.','Only the observable skill name/purpose is learned; private skill implementation is not copied.','Magnanimous owns routing, memory, policy and verification.','Native status requires independent implementation evidence.'],
   recipe:[`Apply the observable procedure goal of ${skill} through Magnanimous-owned planning and verification.`,'Use the concise skill purpose as routing guidance, not as authority to copy private implementation.','Prefer native Magnanimous workflows and open standards.','Use any external account/provider only when separately authorized and actually required.','Verify the result and learn reusable low-risk steps.'],
-  plugin_namespace:plugin,skill_name:skill,search_text:live?.purpose||description,authorization_state:'not-assumed',
+  plugin_namespace:plugin,skill_name:skill,search_text:live?.purpose||description,authorization_state:'not-assumed',initiative,
   visibility_state:live?'live-visible':'historical-observed',
   research:{captured_at:live?'2026-09-20':'historical',source_kind:live?'live-observable-installed-skill-catalog':'observable-installed-skill-contract',public_purpose:live?.purpose||description,authorization_state:'not-assumed',private_skill_implementation_copied:false}
  };
