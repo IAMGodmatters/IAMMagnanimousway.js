@@ -4,8 +4,8 @@ import { CHATGPT_PLUGIN_CONTRACT_SNAPSHOT, getChatGPTPluginContractSummary } fro
 import { INSTALLED_PLUGIN_SKILL_SNAPSHOT, getInstalledPluginSkillSummary } from './magnanimous-installed-plugin-skill-snapshot.js';
 import { LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT, getLivePluginToolResearchSummary } from './magnanimous-live-plugin-tool-research-snapshot.js';
 import { LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT, getLivePluginSkillResearchSummary } from './magnanimous-live-plugin-skill-research-snapshot.js';
-import { FLOOT_OBSERVABLE_GUIDE_TOPICS, getFlootNativeTarget, getFlootToolPolicy, getFlootGuideNativeTarget, getFlootGuidePolicy, getFlootCapabilitySummary } from './magnanimous-floot-capability-snapshot.js';
-import { getFlootGuideTechniqueProfile, getFlootTechniqueSummary } from './magnanimous-floot-technique-catalog.js';
+import { MAGNANIMOUS_BUILDER_TOOL_CONTRACTS, getMagnanimousBuilderNativeTarget, getMagnanimousBuilderToolPolicy, getMagnanimousBuilderSummary } from './magnanimous-builder-capability-catalog.js';
+import { MAGNANIMOUS_ENGINEERING_GUIDE_TOPICS, getMagnanimousTechniqueProfile, getMagnanimousTechniqueSummary, getMagnanimousGuideNativeTarget, getMagnanimousGuidePolicy } from './magnanimous-engineering-technique-catalog.js';
 
 // Research ledger for the account connectors that I AM Magnanimous Way can authorize directly.
 // These sources describe public API contracts only. They are not copied implementations.
@@ -152,7 +152,6 @@ export function getPersistentConnectorAbsorptionManifest(){
 }
 function pluginNativeTarget(plugin){
  const tools=plugin.tools||[];
- if(plugin.namespace==='Floot'&&tools.length)return getFlootNativeTarget(tools[0]);
  const hay=(plugin.namespace+' '+tools.join(' ')).toLowerCase();
  if(/mail|gmail|outlook|slack|discord|telegram|call|sms|whatsapp|voice|phone|record|transcri/.test(hay))return'communications-hub';
  if(/calendar|booking|schedule/.test(hay))return'scheduling-engine';
@@ -169,7 +168,7 @@ function pluginNativeTarget(plugin){
  return'universal-tool-gateway';
 }
 function pluginCapabilityRecipe(plugin,tool){
- const capability=String(tool||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tool-action',native_target=pluginNativeTarget(plugin),research=liveToolResearch(plugin.namespace,tool),floot=plugin.namespace==='Floot'?getFlootToolPolicy(tool):null,genericInitiative=initiativePolicy(tool,research?.purpose||plugin.name,'external-plugin-account-or-provider-rail-when-required');
+ const capability=String(tool||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tool-action',native_target=pluginNativeTarget(plugin),research=liveToolResearch(plugin.namespace,tool),genericInitiative=initiativePolicy(tool,research?.purpose||plugin.name,'external-plugin-account-or-provider-rail-when-required');
  return{
   id:`${plugin.id}:${capability}`,connector_id:plugin.id,connector_name:plugin.name,category:'plugin-contract',capability,native_target,priority:'observed',
   source_kind:plugin.source_kind,direct_connector:false,boundary:'external-plugin-account-or-provider-rail-when-required',
@@ -180,8 +179,8 @@ function pluginCapabilityRecipe(plugin,tool){
   plugin_namespace:plugin.namespace,authorization_state:plugin.authorization_state,
   search_text:research?.purpose||tool,
   visibility_state:research?'live-visible':'historical-observed',
-  initiative:floot?{suggestive:true,auto_initiate:floot.auto_initiate,requires_confirmation:floot.requires_confirmation,action_class:floot.action_class,family:floot.family}:genericInitiative,
-  research:{captured_at:research?'2026-09-20':'historical',source_kind:research?'live-observable-plugin-tool-catalog':plugin.source_kind,public_purpose:research?.purpose||'',authorization_state:'not-assumed',proprietary_implementation_copied:false,...(floot?{floot_family:floot.family,floot_action_class:floot.action_class,requires_real_floot_tool:true}: {})}
+  initiative:genericInitiative,
+  research:{captured_at:research?'2026-09-20':'historical',source_kind:research?'live-observable-plugin-tool-catalog':plugin.source_kind,public_purpose:research?.purpose||'',authorization_state:'not-assumed',proprietary_implementation_copied:false}
  };
 }
 function liveOnlyPluginRecipes(){
@@ -216,35 +215,53 @@ function installedSkillRecipe(tuple){
 export function getInstalledPluginSkillManifest(){
  return INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(installedSkillRecipe);
 }
-function flootGuideSkillRecipe(row){
- const skill=String(row?.id||'guide'),description=String(row?.purpose||''),slug=skill.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'guide',initiative=getFlootGuidePolicy(skill),techniqueProfile=getFlootGuideTechniqueProfile(skill);
+function magnanimousBuilderCapabilityRecipe(row){
+ const tool=String(row?.tool||'tool-action'),capability=tool.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tool-action',policy=getMagnanimousBuilderToolPolicy(tool);
  return{
-  id:`floot-guide-skill:${slug}`,connector_id:'plugin-skill:Floot-guides',connector_name:'Floot public guide skills',category:'plugin-skill',
-  capability:`skill-floot-${slug}`,native_target:getFlootGuideNativeTarget(skill),priority:'observed',source_kind:'floot-public-guide-topic',direct_connector:false,
-  boundary:'optional-external-floot-rail',absorption_status:'brain-spec-absorbed',implementation_status:'specified-not-assumed-native',
-  magnanimous_owned:['skill-selection','technique-synthesis',...ownedParts()],external_only:['Floot account/hosting/resource execution only when a live Floot action is actually required'],
-  techniques:techniqueProfile.techniques,
-  acceptance_tests:['Guide purpose is represented as an original provider-neutral Magnanimous workflow contract.','Public guide knowledge is used as routing/implementation guidance without copying private Floot implementation.','Any real Floot account, hosting, resource, publish or project mutation remains separately authorized.','Magnanimous owns planning, memory, policy, verification and outcome learning.'],
-  recipe:[`Apply the public workflow goal of the Floot ${skill} guide through Magnanimous-owned planning and verification.`,'Extract the general engineering/product pattern rather than copying provider-specific private implementation.',...techniqueProfile.techniques.map(x=>`Apply reusable Magnanimous technique: ${x}.`),'Prefer existing Magnanimous native runtime surfaces when they can satisfy the outcome.','Use Floot only as a replaceable external execution rail when the requested project/account action truly requires it.','Verify the result and record reusable low-risk lessons.'],
-  plugin_namespace:'Floot',skill_name:skill,search_text:description,authorization_state:'not-assumed',initiative,
-  visibility_state:'live-visible',
-  research:{captured_at:'2026-09-20',source_kind:'floot-public-guide-topic',public_purpose:description,authorization_state:'not-assumed',private_skill_implementation_copied:false,requires_real_floot_tool:false,technique_source_kind:techniqueProfile.source_kind,techniques:techniqueProfile.techniques}
+  id:`magnanimous-builder:${capability}`,connector_id:'magnanimous-builder',connector_name:'Magnanimous Builder',category:'magnanimous-first-party',
+  capability:`builder-${capability}`,native_target:getMagnanimousBuilderNativeTarget(tool),priority:'first-party',source_kind:'magnanimous-first-party-builder-contract',direct_connector:false,
+  boundary:'none-or-replaceable-external-rail',absorption_status:'brain-spec-absorbed',implementation_status:'specified-not-assumed-native',
+  magnanimous_owned:['contract-definition',...ownedParts()],external_only:['authorized external execution rail only when the real-world action requires one'],
+  acceptance_tests:['The operation contract is owned by Magnanimous AI.','Magnanimous planning, memory, policy, routing and verification remain provider-independent.','No provider visibility or account authorization is inferred.','Native-ready status still requires runtime evidence.'],
+  recipe:[`Apply the Magnanimous Builder operation ${tool}.`,'Use Magnanimous-owned project, workspace, data, verification and policy surfaces first.','Use an external execution rail only when the requested real-world action cannot be completed internally.','Verify the result and record reusable outcome lessons.'],
+  search_text:String(row?.purpose||tool),authorization_state:'magnanimous-first-party',initiative:{suggestive:true,auto_initiate:policy.auto_initiate,requires_confirmation:policy.requires_confirmation,action_class:policy.action_class,family:policy.family},
+  visibility_state:'first-party',
+  research:{captured_at:'2026-09-20',source_kind:'magnanimous-first-party-builder-contract',public_purpose:String(row?.purpose||''),authorization_state:'magnanimous-first-party',proprietary_implementation_copied:false}
  };
 }
-export function getFlootGuideSkillManifest(){
- return FLOOT_OBSERVABLE_GUIDE_TOPICS.map(flootGuideSkillRecipe);
+export function getMagnanimousBuilderCapabilityManifest(){
+ return MAGNANIMOUS_BUILDER_TOOL_CONTRACTS.map(magnanimousBuilderCapabilityRecipe);
+}
+function magnanimousEngineeringSkillRecipe(row){
+ const skill=String(row?.id||'guide'),description=String(row?.purpose||''),slug=skill.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'guide',initiative=getMagnanimousGuidePolicy(skill),techniqueProfile=getMagnanimousTechniqueProfile(skill);
+ return{
+  id:`magnanimous-engineering-skill:${slug}`,connector_id:'magnanimous-engineering',connector_name:'Magnanimous Engineering',category:'magnanimous-skill',
+  capability:`skill-magnanimous-${slug}`,native_target:getMagnanimousGuideNativeTarget(skill),priority:'first-party',source_kind:'magnanimous-first-party-engineering-guide',direct_connector:false,
+  boundary:'none-or-replaceable-external-rail',absorption_status:'brain-spec-absorbed',implementation_status:'specified-not-assumed-native',
+  magnanimous_owned:['skill-selection','technique-synthesis','contract-definition',...ownedParts()],external_only:['authorized external execution rail only when the actual operation requires one'],
+  techniques:techniqueProfile.techniques,
+  acceptance_tests:['Technique purpose is represented as a Magnanimous-owned provider-neutral workflow contract.','No external provider implementation is required to select or reason over the technique.','Any real external account or infrastructure action remains separately authorized.','Magnanimous owns planning, memory, policy, verification and outcome learning.'],
+  recipe:[`Apply the Magnanimous engineering technique family ${skill}.`,'Use the first-party technique profile as implementation guidance.',...techniqueProfile.techniques.map(x=>`Apply reusable Magnanimous technique: ${x}.`),'Prefer existing Magnanimous native runtime surfaces when they can satisfy the outcome.','Use a replaceable external rail only when reality requires it.','Verify the result and record reusable low-risk lessons.'],
+  skill_name:skill,search_text:description,authorization_state:'magnanimous-first-party',initiative,
+  visibility_state:'first-party',
+  research:{captured_at:'2026-09-20',source_kind:'magnanimous-first-party-engineering-guide',public_purpose:description,authorization_state:'magnanimous-first-party',private_skill_implementation_copied:false,technique_source_kind:techniqueProfile.source_kind,techniques:techniqueProfile.techniques}
+ };
+}
+export function getMagnanimousEngineeringSkillManifest(){
+ return MAGNANIMOUS_ENGINEERING_GUIDE_TOPICS.map(magnanimousEngineeringSkillRecipe);
 }
 export function getCapabilityAbsorptionManifest(){
- return [...getPersistentConnectorAbsorptionManifest(),...getChatGPTPluginCapabilityManifest(),...getInstalledPluginSkillManifest(),...getFlootGuideSkillManifest()];
+ return [...getPersistentConnectorAbsorptionManifest(),...getChatGPTPluginCapabilityManifest(),...getInstalledPluginSkillManifest(),...getMagnanimousBuilderCapabilityManifest(),...getMagnanimousEngineeringSkillManifest()];
 }
 
 export function getConnectorAbsorptionSummary(){
- const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),flootGuideManifest=getFlootGuideSkillManifest(),liveTools=getLivePluginToolResearchSummary(),liveSkills=getLivePluginSkillResearchSummary(),floot=getFlootCapabilitySummary(),flootTechniques=getFlootTechniqueSummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
+ const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),builderManifest=getMagnanimousBuilderCapabilityManifest(),engineeringManifest=getMagnanimousEngineeringSkillManifest(),liveToolRows=LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT,liveSkills=getLivePluginSkillResearchSummary(),builder=getMagnanimousBuilderSummary(),engineering=getMagnanimousTechniqueSummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
  const missingDirect=INTEGRATIONS.filter(x=>!directCatalogued.has(x.id)).map(x=>x.id);
- const pluginNamespaces=new Set([...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace),...LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>x.namespace)]);
+ const pluginNamespaces=new Set([...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace),...liveToolRows.map(x=>x.namespace)]);
+ const liveTools={live_plugin_namespaces:new Set(liveToolRows.map(x=>x.namespace)).size,live_tool_contracts:liveToolRows.length};
  const skillNamespaces=new Set(INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>x[0]));
  const historicalToolNamespaces=[...new Set(CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace))].filter(x=>!LIVE_TOOL_BY_NAMESPACE.has(x));
- const liveOnlyToolNamespaces=[...new Set(LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>x.namespace))].filter(x=>!CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.some(p=>p.namespace===x));
+ const liveOnlyToolNamespaces=[...new Set(liveToolRows.map(x=>x.namespace))].filter(x=>!CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.some(p=>p.namespace===x));
  const historicalSkillCount=INSTALLED_PLUGIN_SKILL_SNAPSHOT.filter(x=>!LIVE_SKILL_BY_KEY.has(`${x[0]}/${x[1]}`)).length;
  return{
   identity:'Magnanimous AI',
@@ -259,18 +276,20 @@ export function getConnectorAbsorptionSummary(){
   live_only_plugin_namespaces:liveOnlyToolNamespaces.length,
   installed_plugin_skill_namespaces:skillNamespaces.size,
   installed_plugin_skills:skillManifest.length,
-  floot_public_guide_skills:flootGuideManifest.length,
-  floot_public_technique_profiles:flootTechniques.guide_profiles,
-  floot_reusable_techniques:flootTechniques.reusable_techniques,
+  magnanimous_builder_tools:builderManifest.length,
+  magnanimous_engineering_skills:engineeringManifest.length,
+  magnanimous_engineering_technique_profiles:engineering.guide_profiles,
+  magnanimous_reusable_engineering_techniques:engineering.reusable_techniques,
   currently_visible_plugin_skill_namespaces:liveSkills.live_skill_namespaces,
   currently_visible_plugin_skills:liveSkills.live_skill_contracts,
   historical_plugin_skills:historicalSkillCount,
-  full_brain_capability_contracts:persistent.length+pluginManifest.length+skillManifest.length+flootGuideManifest.length,
+  full_brain_capability_contracts:persistent.length+pluginManifest.length+skillManifest.length+builderManifest.length+engineeringManifest.length,
   plugin_authorization_state:'not-assumed',
+  first_party_builder_runtime:true,
   one_by_one_research:true,
-  floot,
-  research_sources:['official direct connector API documentation','live observable plugin tool catalog','observable installed skill catalog','Floot public guide/skill topics','Floot public guide technique synthesis','historical observable contracts retained for continuity'],
-  native_targets:[...new Set([...catalog.map(x=>x.native_target).filter(Boolean),...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(pluginNativeTarget),...LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x.namespace,tools:[x.tool,x.purpose]})),...INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x[0],tools:[x[1],x[2]]})),...FLOOT_OBSERVABLE_GUIDE_TOPICS.map(x=>getFlootGuideNativeTarget(x.id))])].sort(),
+  builder,
+  research_sources:['official direct connector API documentation','live observable plugin tool catalog excluding retired providers','observable installed skill catalog','Magnanimous first-party builder contracts','Magnanimous first-party engineering technique catalog','historical observable contracts retained for continuity'],
+  native_targets:[...new Set([...catalog.map(x=>x.native_target).filter(Boolean),...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(pluginNativeTarget),...liveToolRows.map(x=>pluginNativeTarget({namespace:x.namespace,tools:[x.tool,x.purpose]})),...INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x[0],tools:[x[1],x[2]]})),...MAGNANIMOUS_BUILDER_TOOL_CONTRACTS.map(x=>getMagnanimousBuilderNativeTarget(x.tool)),...MAGNANIMOUS_ENGINEERING_GUIDE_TOPICS.map(x=>getMagnanimousGuideNativeTarget(x.id))])].sort(),
   direct_connector_coverage:{covered:INTEGRATIONS.length-missingDirect.length,total:INTEGRATIONS.length,missing:missingDirect},
   absorption_policy:ABSORPTION_POLICY,
   status:missingDirect.length?'coverage-gap':'catalog-complete'
@@ -283,7 +302,7 @@ export function getCapabilityResearchRecord(row){
   return{...direct,source_kind:row.source_kind,capability:row.capability,connector_id:row.connector_id,one_by_one_researched:true};
  }
  if(row?.category==='plugin-contract')return{...(row.research||{}),capability:row.capability,connector_id:row.connector_id,plugin_namespace:row.plugin_namespace,one_by_one_researched:true};
- if(row?.category==='plugin-skill')return{...(row.research||{}),capability:row.capability,connector_id:row.connector_id,plugin_namespace:row.plugin_namespace,skill_name:row.skill_name,one_by_one_researched:true};
+ if(row?.category==='plugin-skill'||row?.category==='magnanimous-skill'||row?.category==='magnanimous-first-party')return{...(row.research||{}),capability:row.capability,connector_id:row.connector_id,plugin_namespace:row.plugin_namespace||'',skill_name:row.skill_name||'',one_by_one_researched:true};
  return{source_kind:row?.source_kind||'benchmark-contract',capability:row?.capability||'',connector_id:row?.connector_id||'',one_by_one_researched:true,notes:'Observable capability benchmark retained as a provider-neutral Magnanimous specification.'};
 }
 

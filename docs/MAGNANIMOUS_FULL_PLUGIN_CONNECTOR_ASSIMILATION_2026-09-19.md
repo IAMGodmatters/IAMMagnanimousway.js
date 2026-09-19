@@ -171,9 +171,9 @@ QA now locks that:
 - existing approval, security, CI and release boundaries stay intact.
 
 
-## 2026-09-20 Floot-first live catalog refresh
+## 2026-09-20 Magnanimous first-party builder conversion
 
-The live ChatGPT connector/tool catalog was refreshed after Floot was connected.
+The live connector/tool catalog was refreshed, then provider-specific builder contracts were converted into first-party Magnanimous Builder and Magnanimous Engineering contracts.
 
 Current observed surface:
 
@@ -181,16 +181,16 @@ Current observed surface:
 - 2,309 live observable tool contracts.
 - 109 installed skill namespaces.
 - 867 installed skill contracts.
-- 3,535 total Magnanimous capability specifications after current + retained historical union and Floot public guide-skill materialization.
+- 3,535 total Magnanimous capability specifications after current + retained historical union and first-party Magnanimous Builder/Engineering materialization.
 - 59 native-ready realization routes.
 - 3,476 hybrid-ready realization routes.
 - 0 bridge-required and 0 specified-only current realization gaps.
 
-### Floot
+### Magnanimous Builder and Engineering
 
-Floot is represented as a first-class clean-room capability source rather than a generic plugin.
+Magnanimous Builder and Magnanimous Engineering are first-party capability sources owned by Magnanimous AI.
 
-The connected Floot account exposes 44 callable tools and 65 public guide/skill topics. All 65 guide topics are also materialized as first-class Magnanimous skill contracts, so Floot contributes 109 individually tracked tool/skill contracts to the full brain. Magnanimous maps them into ten provider-neutral families:
+Magnanimous Builder defines 44 provider-neutral builder operations and Magnanimous Engineering defines 65 reusable engineering/agent guidance topics. Together they contribute 109 individually tracked first-party contracts to the full brain. Magnanimous maps them into ten provider-neutral families:
 
 - project discovery;
 - code authoring;
@@ -203,7 +203,7 @@ The connected Floot account exposes 44 callable tools and 65 public guide/skill 
 - production publishing;
 - platform knowledge.
 
-Magnanimous owns intent, planning, routing, memory, workflow, risk policy, verification, learning and normalized contracts. Floot-derived public capability research is retained only as provenance/benchmark knowledge; no Floot account authorization, hosting, managed resource, published-app infrastructure, or provider-specific project state is required by the active Magnanimous runtime.
+Magnanimous owns intent, planning, routing, memory, workflow, risk policy, verification, learning, normalized contracts, builder operations and engineering technique profiles. No retired provider account, hosting surface, managed resource, published-app infrastructure, or provider-specific project state is required by the active Magnanimous runtime.
 
 Initiative rules are explicit:
 
@@ -211,14 +211,14 @@ Initiative rules are explicit:
 - writes, code execution, SQL mutation, resource provisioning, credential requests, publishing, unpublishing and destructive actions remain subject to existing confirmation and permission gates;
 - no external action is reported complete without a real tool result.
 
-The former Floot-hosted mirror has been unpublished and its `floot.app` subdomain released. Floot is no longer an active production, hosting, runtime, identity, memory, or deployment dependency for I AM MAGNANIMOUS WAY™ / Magnanimous AI. The authoritative platform is `https://iammagnanimousway.com/` with GitHub `main` as source of truth.
+The former external builder-hosted mirror has been unpublished and its subdomain released. The authoritative platform is `https://iammagnanimousway.com/` with GitHub `main` as source of truth.
 
 
 
 
-### Floot public-guide technique assimilation
+### Magnanimous engineering technique assimilation
 
-The 65 Floot public guide/skill topics are no longer stored only as topic-level capability contracts. Magnanimous also maintains a clean-room technique profile for every guide in `worker/src/magnanimous-floot-technique-catalog.js`.
+The 65 Magnanimous Engineering guidance topics are first-party capability contracts. Magnanimous maintains a provider-neutral technique profile for every topic in `worker/src/magnanimous-engineering-technique-catalog.js`.
 
 Each profile extracts reusable engineering/product patterns such as:
 
@@ -232,11 +232,11 @@ Each profile extracts reusable engineering/product patterns such as:
 - provider-neutral model routing, multimodal embeddings and image generation;
 - persistent agent loops, subagents, memory, scheduling, remote agents, collections, access control and MCP tool registries.
 
-These are original provider-neutral Magnanimous patterns derived from public documentation. They do not copy Floot private implementation. Technique terms participate in Magnanimous capability ranking and are injected into the absorbed routing context so the brain can select and reuse them directly. QA requires all 65 public guide ids to resolve to non-empty technique profiles and requires every Floot guide skill contract to carry technique metadata.
+These are provider-neutral Magnanimous patterns derived from public/general engineering research and independent implementation work. Technique terms participate in Magnanimous capability ranking and are injected into routing context so the brain can select and reuse them directly. QA requires all 65 engineering topic ids to resolve to non-empty technique profiles and requires every Magnanimous Engineering contract to carry technique metadata.
 
 ### D1 quota-safe materialization
 
-The first Floot-expanded production deployment successfully materialized and deployed the 3,470-tool manifest, but the broad mutation smoke later exposed Cloudflare D1 free-tier daily row-write exhaustion. The deployment architecture was hardened rather than weakening the smoke test:
+The first expanded production deployment successfully materialized and deployed the capability manifest, but the broad mutation smoke later exposed Cloudflare D1 free-tier daily row-write exhaustion. The deployment architecture was hardened rather than weakening the smoke test:
 
 - generated capability rows use semantic conditional upserts, so unchanged rows perform zero D1 writes;
 - CI executes the generated SQL twice against SQLite and requires the second pass to write exactly zero rows;
