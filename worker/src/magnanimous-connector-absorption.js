@@ -1,5 +1,6 @@
 import { INTEGRATIONS } from './integrations.js';
 import { getIntegrationCatalog } from './magnanimous-integration-catalog.js';
+import { CHATGPT_PLUGIN_CONTRACT_SNAPSHOT, getChatGPTPluginContractSummary } from './magnanimous-chatgpt-plugin-capability-snapshot.js';
 
 // Research ledger for the account connectors that I AM Magnanimous Way can authorize directly.
 // These sources describe public API contracts only. They are not copied implementations.
@@ -109,19 +110,57 @@ export function getConnectorAbsorptionCatalog(){
  });
 }
 
-export function getCapabilityAbsorptionManifest(){
+export function getPersistentConnectorAbsorptionManifest(){
  return getConnectorAbsorptionCatalog().flatMap(item=>(item.capabilities||[]).map(cap=>capabilityRecipe(item,cap,item.absorption.boundary)));
+}
+function pluginNativeTarget(plugin){
+ const hay=(plugin.namespace+' '+(plugin.tools||[]).join(' ')).toLowerCase();
+ if(/mail|gmail|outlook|slack|discord|telegram|call|sms|whatsapp|voice|phone|record|transcri/.test(hay))return'communications-hub';
+ if(/calendar|booking|schedule/.test(hay))return'scheduling-engine';
+ if(/github|git|deploy|vercel|netlify|railway|digitalocean|aiven|appdeploy|shipstatic|val.town|replit|basicdeploy|manufact/.test(hay))return'deployment-operator';
+ if(/postgres|database|sql|neon|airtable|data/.test(hay))return'data-platform';
+ if(/figma|canva|adobe|pixel|color|whiteboard|design/.test(hay))return'design-studio';
+ if(/video|image|audio|music|animation|avatar|magnific|heygen|krikey|morphix|youcam/.test(hay))return'creative-studio';
+ if(/crm|apollo|close|hubspot|zoho|prospect|sales|lead/.test(hay))return'crm-growth-engine';
+ if(/shop|commerce|product|dropship|zendrop|shopee|storeinspect/.test(hay))return'commerce-engine';
+ if(/ads|marketing|metricool|windsor|vidiq|linkedin|campaign|seo/.test(hay))return'growth-analytics';
+ if(/pdf|document|notion|drive|files|scribe|transcript/.test(hay))return'workspace-files';
+ if(/research|search|tavily|scispace|token.terminal|product.hunt/.test(hay))return'research-orchestrator';
+ if(/agent|automation|workflow/.test(hay))return'agent-mesh';
+ return'universal-tool-gateway';
+}
+function pluginCapabilityRecipe(plugin,tool){
+ const capability=String(tool||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tool-action',native_target=pluginNativeTarget(plugin);
+ return{
+  id:`${plugin.id}:${capability}`,connector_id:plugin.id,connector_name:plugin.name,category:'plugin-contract',capability,native_target,priority:'observed',
+  source_kind:plugin.source_kind,direct_connector:false,boundary:'external-plugin-account-or-provider-rail-when-required',
+  absorption_status:'brain-spec-absorbed',implementation_status:'specified-not-assumed-native',
+  magnanimous_owned:ownedParts(),external_only:['plugin/account authorization when required','live provider data or delivery when required'],
+  acceptance_tests:['Provider-independent input/output contract can be described.','Magnanimous owns planning, memory, policy, normalization and verification.','Account authorization is never inferred from tool visibility.','Native status requires independent runtime evidence.'],
+  recipe:[`Understand the observable outcome of ${tool} without copying provider internals.`,'Map inputs/outputs into a stable Magnanimous tool contract.','Reuse native Magnanimous services first.','Use the plugin/provider only when authorized or when live provider data/compute is genuinely required.','Verify the result and record reusable outcome lessons.'],
+  plugin_namespace:plugin.namespace,authorization_state:plugin.authorization_state
+ };
+}
+export function getChatGPTPluginCapabilityManifest(){
+ return CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.flatMap(plugin=>(plugin.tools||[]).map(tool=>pluginCapabilityRecipe(plugin,tool)));
+}
+export function getCapabilityAbsorptionManifest(){
+ return [...getPersistentConnectorAbsorptionManifest(),...getChatGPTPluginCapabilityManifest()];
 }
 
 export function getConnectorAbsorptionSummary(){
- const catalog=getConnectorAbsorptionCatalog(),manifest=getCapabilityAbsorptionManifest(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
+ const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),plugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
  const missingDirect=INTEGRATIONS.filter(x=>!directCatalogued.has(x.id)).map(x=>x.id);
  return{
   identity:'Magnanimous AI',
   connector_benchmarks:catalog.length,
   direct_platform_connectors:INTEGRATIONS.length,
-  capability_specs:manifest.length,
-  native_targets:[...new Set(catalog.map(x=>x.native_target).filter(Boolean))].sort(),
+  capability_specs:persistent.length,
+  visible_plugin_namespaces:plugins.plugin_namespaces,
+  visible_plugin_tool_contracts:plugins.tool_contracts,
+  full_brain_capability_contracts:persistent.length+pluginManifest.length,
+  plugin_authorization_state:'not-assumed',
+  native_targets:[...new Set([...catalog.map(x=>x.native_target).filter(Boolean),...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(pluginNativeTarget)])].sort(),
   direct_connector_coverage:{covered:INTEGRATIONS.length-missingDirect.length,total:INTEGRATIONS.length,missing:missingDirect},
   absorption_policy:ABSORPTION_POLICY,
   status:missingDirect.length?'coverage-gap':'catalog-complete'
@@ -142,6 +181,6 @@ export function getConnectorAbsorptionPrompt(goal=''){
  if(!ranked.length)return'';
  const lines=['MAGNANIMOUS ABSORBED CONNECTOR CAPABILITY SPECS:'];
  for(const x of ranked)lines.push(`- ${x.capability} → native target ${x.native_target||'Magnanimous core'}; boundary=${x.boundary}; benchmark=${x.connector_name}.`);
- lines.push('Treat these as Magnanimous-owned workflow/skill specifications, not proof that an external account is connected or that every capability is already fully native. Keep provider-specific accounts and rails replaceable; never copy proprietary internals.');
+ lines.push('Treat these as Magnanimous-owned workflow/skill specifications, not proof that an external account is connected or that every capability is already fully native. ChatGPT-visible plugin contracts do not imply authorization inside I AM. Keep provider-specific accounts and rails replaceable; never copy proprietary internals.');
  return lines.join('\n');
 }
