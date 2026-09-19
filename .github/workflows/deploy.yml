@@ -67,8 +67,8 @@ jobs:
           printf '%s\n' "$output"
           if [ "$rc" -ne 0 ]; then
             if printf '%s' "$output" | grep -qi "exceeded D1's free tier daily row write limit"; then
-              echo "::warning::D1 migration writes are temporarily blocked by the Cloudflare Free daily row-write limit. Verifying that all runtime-required 0080 tables already exist before deferring this migration."
-              npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('tenant_settings','ads','settings','security_rate_limits') ORDER BY name;" > /tmp/d1-migration-quota-schema.json
+              echo "::warning::D1 migration writes are temporarily blocked by the Cloudflare Free daily row-write limit. Verifying that all runtime-required bootstrap/auth tables already exist before deferring pending migrations."
+              npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('tenant_settings','ads','settings','security_rate_limits','auth_events','auth_config') ORDER BY name;" > /tmp/d1-migration-quota-schema.json
               python - <<'PY'
           import json
           payload=json.load(open('/tmp/d1-migration-quota-schema.json'))
@@ -80,10 +80,10 @@ jobs:
               elif isinstance(x,list):
                   for v in x: walk(v)
           walk(payload)
-          required={'tenant_settings','ads','settings','security_rate_limits'}
+          required={'tenant_settings','ads','settings','security_rate_limits','auth_events','auth_config'}
           missing=required-names
-          assert not missing, f"Cannot defer migration 0080; production is missing required tables: {sorted(missing)}"
-          print("Migration 0080 safely deferred under confirmed D1 quota; required production tables already exist.")
+          assert not missing, f"Cannot defer pending runtime migrations; production is missing required tables: {sorted(missing)}"
+          print("Pending runtime migrations safely deferred under confirmed D1 quota; required production tables already exist.")
           PY
               echo "D1_MIGRATION_DEFERRED=1" >> "$GITHUB_ENV"
             else
