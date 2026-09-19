@@ -7,6 +7,7 @@ type Device={id:string;name:string;hostname:string;platform:string;status:string
 type Overview={ready:boolean;paired:boolean;policy:Record<string,unknown>;devices:Device[];pending_tasks:number;actions:Record<string,{risk:string;confirmation:boolean;family:string}>};
 
 const RAW_INSTALLER='https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/install.ps1';
+const RAW_UNINSTALLER='https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/uninstall.ps1';
 
 function psQuote(value:string){return "'" + value.replaceAll("'","''") + "'"}
 function encodePowerShell(command:string){
@@ -107,6 +108,19 @@ export default function LocalBridgePage(){
   try{await navigator.clipboard.writeText(windowsCommand);setCopied(true);setNotice('Windows activation command copied.')}catch{setNotice('Copy was blocked by this browser. Use the Download Activation File button instead.')}
  }
 
+ function downloadRemoval(){
+  const removalPowerShell=[
+   "$ErrorActionPreference='Stop'",
+   "$cleanup=Join-Path $env:TEMP 'uninstall-magnanimous-bridge.ps1'",
+   `Invoke-WebRequest -UseBasicParsing -Uri ${psQuote(RAW_UNINSTALLER)} -OutFile $cleanup`,
+   "& $cleanup"
+  ].join('; ');
+  const command=`powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encodePowerShell(removalPowerShell)}`;
+  const body=`@echo off\r\ntitle Remove Magnanimous Local Bridge\r\necho Removing local Magnanimous Local Bridge files and startup task...\r\n${command}\r\nif errorlevel 1 (echo Removal failed. Review the error above. & pause & exit /b 1)\r\necho Local Bridge removed from this computer.\r\npause\r\n`;
+  const blob=new Blob([body],{type:'application/x-msdos-program'});const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download='Remove-Magnanimous-Local-Bridge.cmd';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+ }
+
  const activeDevices=(overview?.devices||[]).filter(d=>d.status==='active');
  const revokedDevices=(overview?.devices||[]).filter(d=>d.status!=='active');
 
@@ -145,7 +159,7 @@ export default function LocalBridgePage(){
 
    <article className="card">
     <small>SECURITY MODEL</small><h2>Capability-scoped, not remote shell</h2>
-    <ul><li>No inbound listener or opened LAN port.</li><li>No arbitrary shell/process endpoint.</li><li>Filesystem access stays inside the authorized workspace roots.</li><li>Default Git branch remains protected.</li><li>Patch/branch/commit mutations require separate confirmation.</li><li>Netwalk remains read-only and scope-authorized.</li><li>Revoking a device invalidates its bridge token immediately.</li></ul>
+    <ul><li>No inbound listener or opened LAN port.</li><li>No arbitrary shell/process endpoint.</li><li>Filesystem access stays inside the authorized workspace roots.</li><li>Default Git branch remains protected.</li><li>Patch/branch/commit mutations require separate confirmation.</li><li>Netwalk remains read-only and scope-authorized.</li><li>Revoking a device invalidates its bridge token immediately.</li></ul><button onClick={downloadRemoval}>DOWNLOAD WINDOWS REMOVAL FILE</button>
    </article>
   </section>
 
