@@ -5,6 +5,7 @@ import { INSTALLED_PLUGIN_SKILL_SNAPSHOT, getInstalledPluginSkillSummary } from 
 import { LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT, getLivePluginToolResearchSummary } from './magnanimous-live-plugin-tool-research-snapshot.js';
 import { LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT, getLivePluginSkillResearchSummary } from './magnanimous-live-plugin-skill-research-snapshot.js';
 import { FLOOT_OBSERVABLE_GUIDE_TOPICS, getFlootNativeTarget, getFlootToolPolicy, getFlootGuideNativeTarget, getFlootGuidePolicy, getFlootCapabilitySummary } from './magnanimous-floot-capability-snapshot.js';
+import { getFlootGuideTechniqueProfile, getFlootTechniqueSummary } from './magnanimous-floot-technique-catalog.js';
 
 // Research ledger for the account connectors that I AM Magnanimous Way can authorize directly.
 // These sources describe public API contracts only. They are not copied implementations.
@@ -216,17 +217,18 @@ export function getInstalledPluginSkillManifest(){
  return INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(installedSkillRecipe);
 }
 function flootGuideSkillRecipe(row){
- const skill=String(row?.id||'guide'),description=String(row?.purpose||''),slug=skill.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'guide',initiative=getFlootGuidePolicy(skill);
+ const skill=String(row?.id||'guide'),description=String(row?.purpose||''),slug=skill.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'guide',initiative=getFlootGuidePolicy(skill),techniqueProfile=getFlootGuideTechniqueProfile(skill);
  return{
   id:`floot-guide-skill:${slug}`,connector_id:'plugin-skill:Floot-guides',connector_name:'Floot public guide skills',category:'plugin-skill',
   capability:`skill-floot-${slug}`,native_target:getFlootGuideNativeTarget(skill),priority:'observed',source_kind:'floot-public-guide-topic',direct_connector:false,
   boundary:'optional-external-floot-rail',absorption_status:'brain-spec-absorbed',implementation_status:'specified-not-assumed-native',
-  magnanimous_owned:['skill-selection',...ownedParts()],external_only:['Floot account/hosting/resource execution only when a live Floot action is actually required'],
+  magnanimous_owned:['skill-selection','technique-synthesis',...ownedParts()],external_only:['Floot account/hosting/resource execution only when a live Floot action is actually required'],
+  techniques:techniqueProfile.techniques,
   acceptance_tests:['Guide purpose is represented as an original provider-neutral Magnanimous workflow contract.','Public guide knowledge is used as routing/implementation guidance without copying private Floot implementation.','Any real Floot account, hosting, resource, publish or project mutation remains separately authorized.','Magnanimous owns planning, memory, policy, verification and outcome learning.'],
-  recipe:[`Apply the public workflow goal of the Floot ${skill} guide through Magnanimous-owned planning and verification.`,'Extract the general engineering/product pattern rather than copying provider-specific private implementation.','Prefer existing Magnanimous native runtime surfaces when they can satisfy the outcome.','Use Floot only as a replaceable external execution rail when the requested project/account action truly requires it.','Verify the result and record reusable low-risk lessons.'],
+  recipe:[`Apply the public workflow goal of the Floot ${skill} guide through Magnanimous-owned planning and verification.`,'Extract the general engineering/product pattern rather than copying provider-specific private implementation.',...techniqueProfile.techniques.map(x=>`Apply reusable Magnanimous technique: ${x}.`),'Prefer existing Magnanimous native runtime surfaces when they can satisfy the outcome.','Use Floot only as a replaceable external execution rail when the requested project/account action truly requires it.','Verify the result and record reusable low-risk lessons.'],
   plugin_namespace:'Floot',skill_name:skill,search_text:description,authorization_state:'not-assumed',initiative,
   visibility_state:'live-visible',
-  research:{captured_at:'2026-09-20',source_kind:'floot-public-guide-topic',public_purpose:description,authorization_state:'not-assumed',private_skill_implementation_copied:false,requires_real_floot_tool:false}
+  research:{captured_at:'2026-09-20',source_kind:'floot-public-guide-topic',public_purpose:description,authorization_state:'not-assumed',private_skill_implementation_copied:false,requires_real_floot_tool:false,technique_source_kind:techniqueProfile.source_kind,techniques:techniqueProfile.techniques}
  };
 }
 export function getFlootGuideSkillManifest(){
@@ -237,7 +239,7 @@ export function getCapabilityAbsorptionManifest(){
 }
 
 export function getConnectorAbsorptionSummary(){
- const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),flootGuideManifest=getFlootGuideSkillManifest(),liveTools=getLivePluginToolResearchSummary(),liveSkills=getLivePluginSkillResearchSummary(),floot=getFlootCapabilitySummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
+ const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),flootGuideManifest=getFlootGuideSkillManifest(),liveTools=getLivePluginToolResearchSummary(),liveSkills=getLivePluginSkillResearchSummary(),floot=getFlootCapabilitySummary(),flootTechniques=getFlootTechniqueSummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
  const missingDirect=INTEGRATIONS.filter(x=>!directCatalogued.has(x.id)).map(x=>x.id);
  const pluginNamespaces=new Set([...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace),...LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>x.namespace)]);
  const skillNamespaces=new Set(INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>x[0]));
@@ -258,6 +260,8 @@ export function getConnectorAbsorptionSummary(){
   installed_plugin_skill_namespaces:skillNamespaces.size,
   installed_plugin_skills:skillManifest.length,
   floot_public_guide_skills:flootGuideManifest.length,
+  floot_public_technique_profiles:flootTechniques.guide_profiles,
+  floot_reusable_techniques:flootTechniques.reusable_techniques,
   currently_visible_plugin_skill_namespaces:liveSkills.live_skill_namespaces,
   currently_visible_plugin_skills:liveSkills.live_skill_contracts,
   historical_plugin_skills:historicalSkillCount,
@@ -265,7 +269,7 @@ export function getConnectorAbsorptionSummary(){
   plugin_authorization_state:'not-assumed',
   one_by_one_research:true,
   floot,
-  research_sources:['official direct connector API documentation','live observable plugin tool catalog','observable installed skill catalog','Floot public guide/skill topics','historical observable contracts retained for continuity'],
+  research_sources:['official direct connector API documentation','live observable plugin tool catalog','observable installed skill catalog','Floot public guide/skill topics','Floot public guide technique synthesis','historical observable contracts retained for continuity'],
   native_targets:[...new Set([...catalog.map(x=>x.native_target).filter(Boolean),...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(pluginNativeTarget),...LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x.namespace,tools:[x.tool,x.purpose]})),...INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x[0],tools:[x[1],x[2]]})),...FLOOT_OBSERVABLE_GUIDE_TOPICS.map(x=>getFlootGuideNativeTarget(x.id))])].sort(),
   direct_connector_coverage:{covered:INTEGRATIONS.length-missingDirect.length,total:INTEGRATIONS.length,missing:missingDirect},
   absorption_policy:ABSORPTION_POLICY,
@@ -286,7 +290,7 @@ export function getCapabilityResearchRecord(row){
 export function rankAbsorbedCapabilities(goal='',limit=12){
  const terms=words(goal),rows=getCapabilityAbsorptionManifest();
  return rows.map(row=>{
-  const hay=words([row.connector_id,row.connector_name,row.category,row.capability,row.native_target,row.search_text||''].join(' '));
+  const hay=words([row.connector_id,row.connector_name,row.category,row.capability,row.native_target,row.search_text||'',...(row.techniques||[])].join(' '));
   const score=terms.reduce((n,t)=>n+(hay.some(x=>x.includes(t)||t.includes(x))?1:0),0)+(row.direct_connector?0.2:0);
   return{...row,score};
  }).sort((a,b)=>b.score-a.score||String(a.connector_name).localeCompare(String(b.connector_name))).slice(0,Math.max(1,Math.min(30,Number(limit)||12)));
@@ -299,7 +303,7 @@ export function getConnectorAbsorptionPrompt(goal=''){
  for(const x of ranked){
   const initiative=x.initiative||{};
   const action=initiative.auto_initiate?'safe-read/verification may be initiated when the required surface is available':initiative.requires_confirmation?'suggest/stage only until the existing confirmation/permission gate is satisfied':'suggest and route through the authorized execution surface';
-  lines.push(`- ${x.capability} → native target ${x.native_target||'Magnanimous core'}; boundary=${x.boundary}; benchmark=${x.connector_name}; initiative=${action}.`);
+  lines.push(`- ${x.capability} → native target ${x.native_target||'Magnanimous core'}; boundary=${x.boundary}; benchmark=${x.connector_name}; techniques=${(x.techniques||[]).slice(0,4).join('|')||'base-workflow'}; initiative=${action}.`);
  }
  lines.push('Treat these as Magnanimous-owned workflow/skill specifications, not proof that an external account is connected or that every capability is already fully native. ChatGPT-visible plugin and installed-skill contracts do not imply authorization inside I AM. Only observable skill purposes are learned; private skill implementation files are not copied. Keep provider-specific accounts and rails replaceable.');
  lines.push('INITIATIVE RULE: suggest useful next actions proactively. Auto-initiate only read-only inspection, research, status, test, preview, and verification operations that are actually available and authorized. Writes, code execution, database mutation, provisioning, publishing/deployment, messaging/calling, payments, credentials, permissions, deletion, and destructive actions must use their existing confirmation/permission gates and real tool results.');
