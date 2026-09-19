@@ -30,12 +30,15 @@ const materializationMigration=read('worker/migrations/0078_full_brain_materiali
 const realizationMigration=read('worker/migrations/0079_capability_realization.sql');
 const materializer=read('qa/scripts/materialize-full-brain-d1.mjs');
 const deployWorkflow=read('.github/workflows/deploy.yml');
+const entrypoint=read('worker/src/entrypoint.js');
 
 const checks=[];
 const has=(text,needle,name)=>checks.push([name,text.includes(needle)]);
 const lacks=(text,needle,name)=>checks.push([name,!text.includes(needle)]);
 
 has(security,"import app from './operations-entrypoint.js'",'central security entrypoint still wraps operations');
+has(entrypoint,"url.pathname==='/health'",'health endpoint is intercepted before runtime bootstrap');
+has(entrypoint,"database_bootstrap:'deferred'",'health endpoint stays read-only under D1 write quota pressure');
 has(progress,"handleMagnanimousNativeFirst",'native-first runtime is routed inside the existing secured request chain');
 has(runtime,'requirePlatformOwner','native-first control requires platform-owner authorization');
 has(runtime,"id:'god-coding'",'God Coding is registered as a native core capability');
@@ -64,6 +67,7 @@ has(runtime,'seed:body.seed!==false','full-brain API supports resumable batches 
 has(runtime,'absorbedRecipeRisk','full-brain Tool Foundry materialization infers action risk from capability contracts');
 has(runtime,"return'high'",'consequential absorbed actions remain high-risk and review-gated');
 has(runtime,'getCapabilityResearchRecord','durable ledger stores one-by-one research provenance');
+has(runtime,'WHERE magnanimous_connector_capability_absorption.connector_name IS NOT excluded.connector_name','runtime absorption seeding avoids semantic no-op D1 writes');
 has(runtime,'magnanimous_connector_capability_absorption','runtime persists per-connector capability absorption state');
 has(absorption,'getCapabilityAbsorptionManifest','brain registry flattens connector capabilities one by one');
 has(absorption,"absorption_status:'brain-spec-absorbed'",'capability registry distinguishes learned specs from native implementation');
@@ -110,6 +114,9 @@ has(materializer,'Tool Foundry name collision','deployment materializer fails cl
 has(materializer,"risk==='high'?'review-required'",'deployment materializer preserves review-required status for high-risk capabilities');
 has(materializer,"status='tool-foundry-specified'",'deployment materializer marks persisted capability ledger rows as Tool Foundry specified');
 has(materializer,'source_digest','deployment materializer records a stable source digest');
+has(materializer,'WHERE magnanimous_connector_capability_absorption.connector_name IS NOT excluded.connector_name','absorption ledger avoids semantic no-op writes');
+has(materializer,'WHERE magnanimous_native_tool_specs.purpose IS NOT excluded.purpose','Tool Foundry materialization avoids semantic no-op writes');
+has(materializer,'WHERE magnanimous_capability_realizations.tool_name IS NOT excluded.tool_name','realization materialization avoids semantic no-op writes');
 has(materializer,'classifyCapabilityRealization','deployment materializer classifies every capability against proven Magnanimous execution surfaces');
 has(materializer,'magnanimous_capability_realizations','deployment persists a per-capability realization ledger');
 has(materializer,"realization.status==='native-ready'",'only low-risk native-ready realized specs can be deployment-promoted to READY');
@@ -117,6 +124,9 @@ has(deployWorkflow,'Materialize full Magnanimous capability brain','every produc
 has(deployWorkflow,'materialize-full-brain-d1.mjs','deployment calls the checked-in full-brain materializer');
 has(deployWorkflow,"status='tool-foundry-specified'",'deployment verifies durable full-brain ledger rows');
 has(deployWorkflow,'Full Magnanimous capability brain materialized','deployment fails unless production D1 count and digest verification succeeds');
+has(deployWorkflow,'Production D1 already matches full-brain digest','deployment skips full-brain writes when production digest already matches');
+has(deployWorkflow,'free tier daily row write limit','only the known D1 daily write-quota condition can defer durable materialization');
+has(deployWorkflow,'Production mutation smoke remains authoritative and is not bypassed','D1 quota deferral does not weaken production mutation smoke');
 has(deployWorkflow,'realization_count','deployment verifies the complete capability realization ledger');
 has(deployWorkflow,'native_ready_count','deployment verifies native-ready realization counts');
 has(deployWorkflow,'realization_digest','deployment verifies realization registry digest against the same full-brain source');
