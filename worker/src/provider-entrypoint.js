@@ -3,6 +3,7 @@ import { handleIntegrations, currentUser } from './integrations.js';
 import { getKnowledgeContext, handleKnowledge } from './knowledge-runtime.js';
 import { getMagnanimousMemoryContext } from './magnanimous-brain-runtime.js';
 import { getMagnanimousToolFoundryContext, handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
+import { getMagnanimousOgenicPrompt } from './magnanimous-ogenic-god-toolkit.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const now = () => Math.floor(Date.now() / 1000);
@@ -301,7 +302,8 @@ async function handle(request, env) {
     const observed=body.use_tools===false?null:await foundryCall(request,env,'/api/magnanimous/tool-foundry/observe',{capability,example_task:userMessage});
     const learnedScores=await learnedProviderScores(request,env,task);
     const learningState=[...learnedScores.entries()].map(([provider,x])=>({provider,...x}));
-    const groundedMessage=`${COMMANDER_PROTOCOL}\n\nUSER REQUEST:\n${userMessage}${brainContext||''}${grounding.context||''}${toolPlanning.context||''}\n\nCURRENT MAGNANIMOUS ROUTING STATE:\nTask class: ${task}\nNative capability family: ${capability}\nLinks absorbed this turn: ${absorbedLinks.length}\nStored/fresh sources available: ${grounding.sources?.length||0}\nUse external execution engines only as needed; return one unified Magnanimous answer.`;
+    const ogenicContext=getMagnanimousOgenicPrompt(userMessage);
+    const groundedMessage=`${COMMANDER_PROTOCOL}\n\n${ogenicContext}\n\nUSER REQUEST:\n${userMessage}${brainContext||''}${grounding.context||''}${toolPlanning.context||''}\n\nCURRENT MAGNANIMOUS ROUTING STATE:\nTask class: ${task}\nNative capability family: ${capability}\nLinks absorbed this turn: ${absorbedLinks.length}\nStored/fresh sources available: ${grounding.sources?.length||0}\nUse external execution engines only as needed; return one unified Magnanimous answer.`;
     const requested = String(body.provider || 'auto').toLowerCase();
     const candidates = requested !== 'auto' ? availableProviders(env).filter(p => p.id === requested && configured(env,p)) : routeProviders(env,userMessage,body,learnedScores);
     if (!candidates.length) return json({ detail: requested === 'auto' ? 'Magnanimous AI has no configured execution engine. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested execution engine is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
