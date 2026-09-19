@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { INTEGRATIONS as liveIntegrations } from '../../worker/src/integrations.js';
-import { getConnectorAbsorptionCatalog as liveAbsorptionCatalog, getCapabilityAbsorptionManifest as liveCapabilityManifest } from '../../worker/src/magnanimous-connector-absorption.js';
+import { getConnectorAbsorptionCatalog as liveAbsorptionCatalog, getCapabilityAbsorptionManifest as liveCapabilityManifest, getPersistentConnectorAbsorptionManifest, getChatGPTPluginCapabilityManifest, getConnectorAbsorptionSummary } from '../../worker/src/magnanimous-connector-absorption.js';
 
 const read=p=>fs.readFileSync(p,'utf8');
 const runtime=read('worker/src/magnanimous-native-first.js');
@@ -11,6 +11,7 @@ const godCoding=read('frontend/app/god-coding/page.tsx');
 const robots=read('frontend/public/robots.txt');
 const toolFoundry=read('worker/src/magnanimous-tool-foundry.js');
 const absorption=read('worker/src/magnanimous-connector-absorption.js');
+const pluginSnapshot=read('worker/src/magnanimous-chatgpt-plugin-capability-snapshot.js');
 const integrations=read('worker/src/integrations.js');
 const catalog=read('worker/src/magnanimous-integration-catalog.js');
 const absorptionMigration=read('worker/migrations/0073_connector_capability_absorption.sql');
@@ -45,6 +46,10 @@ has(absorption,"absorption_status:'brain-spec-absorbed'",'capability registry di
 has(absorption,"implementation_status:'specified-not-assumed-native'",'capability registry never falsely marks learned capability specs native');
 has(absorption,'proprietary_copying:false','absorption policy explicitly forbids proprietary copying');
 has(absorption,'getConnectorAbsorptionPrompt','absorbed connector skills can be injected into Magnanimous reasoning context');
+has(absorption,'getChatGPTPluginCapabilityManifest','visible plugin tool contracts are converted into brain capability specs');
+has(pluginSnapshot,'CHATGPT_PLUGIN_CONTRACT_SNAPSHOT','observable ChatGPT plugin tool-contract snapshot exists');
+has(pluginSnapshot,'authorization_state','plugin snapshot keeps authorization state explicit');
+has(pluginSnapshot,'proprietary_implementation_copied:false','plugin snapshot explicitly denies proprietary implementation copying');
 has(toolFoundry,'getConnectorAbsorptionPrompt','Tool Foundry injects connector absorption knowledge into Magnanimous routing');
 has(toolFoundry,"/api/magnanimous/tool-foundry/absorption",'signed-in absorption catalog endpoint exists');
 has(absorptionMigration,'magnanimous_connector_capability_absorption','connector capability absorption has durable D1 storage');
@@ -69,7 +74,7 @@ lacks(runtime,'copy provider source code','runtime never instructs provider sour
 
 const directIds=[...integrations.matchAll(/\{ id:'([^']+)'/g)].map(x=>x[1]);
 const catalogIds=new Set([...catalog.matchAll(/\{id:'([^']+)'/g)].map(x=>x[1]));
-const runtimeAbsorption=liveAbsorptionCatalog(),runtimeManifest=liveCapabilityManifest();
+const runtimeAbsorption=liveAbsorptionCatalog(),runtimeManifest=liveCapabilityManifest(),persistentManifest=getPersistentConnectorAbsorptionManifest(),pluginManifest=getChatGPTPluginCapabilityManifest(),runtimeSummary=getConnectorAbsorptionSummary();
 checks.push(['every live /connections connector exists in the Magnanimous absorption catalog',directIds.every(id=>catalogIds.has(id))]);
 checks.push(['all 13 direct platform connector types are covered',directIds.length===13&&liveIntegrations.length===13]);
 for(const item of liveIntegrations){
@@ -79,7 +84,12 @@ for(const item of liveIntegrations){
 }
 checks.push(['absorption research ledger covers every direct connector',directIds.every(id=>absorption.includes(` ${id}:`)||absorption.includes(`'${id}':`))]);
 checks.push(['catalog contains at least 68 benchmark/direct connector entries',catalogIds.size>=68]);
-checks.push(['one-by-one manifest contains at least 294 capability specs',runtimeManifest.length>=294]);
+checks.push(['persistent connector manifest contains at least 294 capability specs',persistentManifest.length>=294]);
+checks.push(['visible ChatGPT plugin snapshot covers at least 109 plugin namespaces',runtimeSummary.visible_plugin_namespaces>=109]);
+checks.push(['visible ChatGPT plugin snapshot covers at least 2259 tool contracts',runtimeSummary.visible_plugin_tool_contracts>=2259]);
+checks.push(['plugin tool contracts are converted one by one',pluginManifest.length>=2259]);
+checks.push(['full Magnanimous brain manifest covers connector plus plugin contracts',runtimeManifest.length>=2553&&runtimeSummary.full_brain_capability_contracts>=2553]);
+checks.push(['plugin account authorization is not assumed',runtimeSummary.plugin_authorization_state==='not-assumed']);
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} - ${name}`);
