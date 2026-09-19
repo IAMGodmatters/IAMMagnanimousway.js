@@ -1,5 +1,5 @@
 // Generated observable live plugin-tool research snapshot.
-// Captured from the current ChatGPT plugin/tool catalog on 2026-09-19.
+// Refreshed from the current ChatGPT connector/tool catalog on 2026-09-20.
 // Stores public/observable tool names and concise purposes only. No private implementation,
 // credentials, hidden prompts, model weights, account data, or authorization state is copied.
 export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
@@ -11,12 +11,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "AccurateScribe_ai",
     "tool": "_Transcribe__get_filelist",
-    "purpose": "Retrieves the user's recent AccurateScribe transcription records and statuses for history, selection, and polling. Use it only for the user's AccurateScribe transcription history, not for files on the user's computer, Downloads folder, cloud drive, or generic file management. When a selected record is passed to get-transcription-result, map the record's id field to that tool's fileId input. The response is limited to"
+    "purpose": "Retrieves the user's recent AccurateScribe transcription records and statuses for history, selection, and polling. Use it only for the user's AccurateScribe transcription history, not for files on the user's computer, Downloads folder, cloud drive, or generic file management. When a selected record is passed to get-transcription-result, map the record's id field to that tool's fileId input. The response is limited to user-facing file fields needed by the widget and does not include personal identifiers, session dat"
   },
   {
     "namespace": "AccurateScribe_ai",
     "tool": "_Transcribe__get_transcription_result",
-    "purpose": "Checks the transcription status for a user-owned AccurateScribe record and returns the latest user-facing result when completed, such as transcript text, summary, normalized subtitle entries, language, and duration. For subtitle translation or any task that must preserve cue timestamps, use subtitleEntries when it is non-empty. Use this tool only when the user asks to retrieve an AccurateScribe transcription and a va"
+    "purpose": "Checks the transcription status for a user-owned AccurateScribe record and returns the latest user-facing result when completed, such as transcript text, summary, normalized subtitle entries, language, and duration. For subtitle translation or any task that must preserve cue timestamps, use subtitleEntries when it is non-empty. Use this tool only when the user asks to retrieve an AccurateScribe transcription and a valid fileId is already known or was selected from get-filelist; when chaining from get-filelist, pass"
   },
   {
     "namespace": "AccurateScribe_ai",
@@ -36,17 +36,17 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "AccurateScribe_ai",
     "tool": "_Transcribe__subtitle_generator",
-    "purpose": "Use this tool only when the user wants AccurateScribe to process an audio or video source and produce new subtitles/captions, or explicitly asks to open the AccurateScribe subtitle interface. Do not use it to translate, edit, review, summarize, or convert transcript/subtitle text already pasted into the conversation. This tool must open the AccurateScribe subtitle widget; do not ask the user to upload, attach, or sen"
+    "purpose": "Use this tool only when the user wants AccurateScribe to process an audio or video source and produce new subtitles/captions, or explicitly asks to open the AccurateScribe subtitle interface. Do not use it to translate, edit, review, summarize, or convert transcript/subtitle text already pasted into the conversation. This tool must open the AccurateScribe subtitle widget; do not ask the user to upload, attach, or send media files in the ChatGPT conversation because chat attachments are not processed by this app. On"
   },
   {
     "namespace": "AccurateScribe_ai",
     "tool": "_Transcribe__transcribe",
-    "purpose": "Use this tool only when the user wants AccurateScribe to process an audio or video source and produce a new transcription, or explicitly asks to open the AccurateScribe transcription interface. Do not use it to translate, edit, review, summarize, or convert transcript/subtitle text already pasted into the conversation. This tool must open the AccurateScribe transcription widget; do not ask the user to upload, attach,"
+    "purpose": "Use this tool only when the user wants AccurateScribe to process an audio or video source and produce a new transcription, or explicitly asks to open the AccurateScribe transcription interface. Do not use it to translate, edit, review, summarize, or convert transcript/subtitle text already pasted into the conversation. This tool must open the AccurateScribe transcription widget; do not ask the user to upload, attach, or send media files in the ChatGPT conversation because chat attachments are not processed by this "
   },
   {
     "namespace": "Adobe",
     "tool": "adobe_mandatory_init",
-    "purpose": "CALL ONCE per chat session before using any adobe tool (animate_design, asset_add_file, asset_add_file_check_status, asset_add_file_submit, asset_copy_assets, asset_create_folders, asset_download_file, asset_finalize_file_upload, asset_get_mime_type, asset_get_presigned_url, asset_get_presigned_urls, asset_initialize_file_upload, asset_inline_preview, asset_license_and_download_stock, asset_lr_get_presigned_url, asse"
+    "purpose": "CALL ONCE per chat session before using any adobe tool (animate_design, asset_add_file, asset_add_file_check_status, asset_add_file_submit, asset_copy_assets, asset_create_folders, asset_download_file, asset_finalize_file_upload, asset_get_mime_type, asset_get_presigned_url, asset_get_presigned_urls, asset_initialize_file_upload, asset_inline_preview, asset_license_and_download_stock, asset_lr_get_presigned_url, asset_migrate_guest_storage, asset_openai_file_upload, asset_preview_file, asset_resolve_short_url, asse"
   },
   {
     "namespace": "Adobe",
@@ -526,7 +526,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "AI_App_Readiness_Checker",
     "tool": "check_submission_materials",
-    "purpose": "Use when checking supplied submission materials such as app display assets, developer/company information, privacy policy URL, MCP and tool information, test prompts and expected responses, localization declaration, review shell page statuses, demo information, prompts, release notes, domain verification, and challenge route status. It returns missing material findings under the fixed ruleset. It does not create, upl"
+    "purpose": "Use when checking supplied submission materials such as app display assets, developer/company information, privacy policy URL, MCP and tool information, test prompts and expected responses, localization declaration, review shell page statuses, demo information, prompts, release notes, domain verification, and challenge route status. It returns missing material findings under the fixed ruleset. It does not create, upload, verify, submit, publish, access URLs, or guarantee approval."
   },
   {
     "namespace": "AI_App_Readiness_Checker",
@@ -536,7 +536,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "AI_Color_Picker",
     "tool": "_Design_Tool__color_picker",
-    "purpose": "Use to open an interactive color picker widget when the user needs a concrete color value chosen or adjusted. The tool accepts an optional starting color and optional suggested color swatches, then lets the user visually and numerically refine the result (hue, saturation, lightness/value, transparency, and exact hex/RGB) and returns the selected color. Invoke this for color design actions such as showing a named/hex "
+    "purpose": "Use to open an interactive color picker widget when the user needs a concrete color value chosen or adjusted. The tool accepts an optional starting color and optional suggested color swatches, then lets the user visually and numerically refine the result (hue, saturation, lightness/value, transparency, and exact hex/RGB) and returns the selected color. Invoke this for color design actions such as showing a named/hex color, warming or cooling a color, lightening or darkening it, desaturating or muting it, or selecti"
   },
   {
     "namespace": "AI_Vibe_Prospecting",
@@ -631,7 +631,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "AirHelp",
     "tool": "check_compensation",
-    "purpose": "Check whether a disrupted flight qualifies for compensation (up to €600 under EC261/UK261, plus UK, Turkish SHY, and Saudi rules), estimate the amount, and hand the user off to AirHelp to file the claim. This tool carries your full operating brief for the app; read it in full. Your role: you are AirHelp's flight-compensation assistant. Be warm, concise, and reassuring — you help travellers recover money they're owed "
+    "purpose": "Check whether a disrupted flight qualifies for compensation (up to €600 under EC261/UK261, plus UK, Turkish SHY, and Saudi rules), estimate the amount, and hand the user off to AirHelp to file the claim. This tool carries your full operating brief for the app; read it in full. Your role: you are AirHelp's flight-compensation assistant. Be warm, concise, and reassuring — you help travellers recover money they're owed after a disrupted flight, so sound trustworthy and on their side, never pushy or salesy. Only help w"
   },
   {
     "namespace": "AirHelp",
@@ -651,17 +651,17 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Airtable",
     "tool": "create_automation",
-    "purpose": "Creates and validates one automation in a base: a trigger plus ordered nodes — action nodes, `repeatingGroup` (run inner nodes once per item), and `conditionalGroup` (if/else-if/else branches). Many trigger and action types are supported; get_create_automation_instructions has the full catalog. Saves the draft configuration only — it is off until the user reviews and turns it on in the Airtable UI. Prefer get_create_"
+    "purpose": "Creates and validates one automation in a base: a trigger plus ordered nodes — action nodes, `repeatingGroup` (run inner nodes once per item), and `conditionalGroup` (if/else-if/else branches). Many trigger and action types are supported; get_create_automation_instructions has the full catalog. Saves the draft configuration only — it is off until the user reviews and turns it on in the Airtable UI. Prefer get_create_automation_instructions once per session for the full catalog. Before building IDs, call list_tables"
   },
   {
     "namespace": "Airtable",
     "tool": "create_base",
-    "purpose": "Creates a new Airtable base with the specified tables and fields. Requires a workspaceId. To find workspace IDs, use list_workspaces. When tables are provided, the first field in each table's fields array becomes that table's primary field and must be a supported primary field type. Example: create a base called \"Project Tracker\" with a \"Tasks\" table: {\"workspaceId\": \"wspZfrNIUEip5MazD\", \"name\": \"Project Tracker\", \"t"
+    "purpose": "Creates a new Airtable base with the specified tables and fields. Requires a workspaceId. To find workspace IDs, use list_workspaces. When tables are provided, the first field in each table's fields array becomes that table's primary field and must be a supported primary field type. Example: create a base called \"Project Tracker\" with a \"Tasks\" table: {\"workspaceId\": \"wspZfrNIUEip5MazD\", \"name\": \"Project Tracker\", \"tables\": [{\"name\": \"Tasks\", \"fields\": [{\"name\": \"Task Name\", \"type\": \"singleLineText\"}, {\"name\": \"Sta"
   },
   {
     "namespace": "Airtable",
     "tool": "create_field",
-    "purpose": "Creates a new field in an existing Airtable table. To get baseId and tableId, use the search_bases and list_tables_for_base tools first. Example: create a singleSelect \"Status\" field: {\"baseId\": \"appZfrNIUEip5MazD\", \"tableId\": \"tblGlReoTNWfYnXIG\", \"field\": {\"name\": \"Status\", \"type\": \"singleSelect\", \"options\": {\"choices\": [{\"name\": \"Todo\"}, {\"name\": \"In progress\"}, {\"name\": \"Done\"}]}}} Example: create a number \"Priori"
+    "purpose": "Creates a new field in an existing Airtable table. To get baseId and tableId, use the search_bases and list_tables_for_base tools first. Example: create a singleSelect \"Status\" field: {\"baseId\": \"appZfrNIUEip5MazD\", \"tableId\": \"tblGlReoTNWfYnXIG\", \"field\": {\"name\": \"Status\", \"type\": \"singleSelect\", \"options\": {\"choices\": [{\"name\": \"Todo\"}, {\"name\": \"In progress\"}, {\"name\": \"Done\"}]}}} Example: create a number \"Priority\" field: {\"baseId\": \"appZfrNIUEip5MazD\", \"tableId\": \"tblGlReoTNWfYnXIG\", \"field\": {\"name\": \"Priori"
   },
   {
     "namespace": "Airtable",
@@ -671,7 +671,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Airtable",
     "tool": "create_page",
-    "purpose": "Creates a new page. Most page types live within an existing interface (pass interfaceId). Supported page types: visualization, dashboard, and recordDetail. Supported visualization types for \"visualization\" pages: kanban, list, calendar, gallery, grid, timeline, and recordReview. Use list_bases or search_bases to find the appropriate baseId. Use create_interface to create a new interface to house the page. Use list_pa"
+    "purpose": "Creates a new page. Most page types live within an existing interface (pass interfaceId). Supported page types: visualization, dashboard, and recordDetail. Supported visualization types for \"visualization\" pages: kanban, list, calendar, gallery, grid, timeline, and recordReview. Use list_bases or search_bases to find the appropriate baseId. Use create_interface to create a new interface to house the page. Use list_pages_for_base to find the interfaceId if needed. Use describe_page_type to discover the config shape "
   },
   {
     "namespace": "Airtable",
@@ -681,12 +681,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Airtable",
     "tool": "create_records_for_table",
-    "purpose": "Creates new records in an Airtable table. To get baseId and tableId, use the search_bases and list_tables_for_base tools first. When writing to a linked-record (multipleRecordLinks) field through an interface page, get the record IDs from search_candidate_linked_records, passing a pageId that exposes the field for editing — it also applies the field's record-selection filters. It only works within interfaces; for bas"
+    "purpose": "Creates new records in an Airtable table. To get baseId and tableId, use the search_bases and list_tables_for_base tools first. When writing to a linked-record (multipleRecordLinks) field through an interface page, get the record IDs from search_candidate_linked_records, passing a pageId that exposes the field for editing — it also applies the field's record-selection filters. It only works within interfaces; for base-level writes, use record IDs from the linked table. For singleSelect/multipleSelects fields, provi"
   },
   {
     "namespace": "Airtable",
     "tool": "create_table",
-    "purpose": "Creates a new table in an Airtable base. To get baseId, use the search_bases or list_bases tools first. The first field in the fields array becomes the primary field of the table. Example: create a table called \"Projects\" with singleLineText (Title), number (Priority), singleSelect (Status), and multipleSelects (Tags) fields: {\"baseId\": \"appZfrNIUEip5MazD\", \"name\": \"Projects\", \"fields\": [{\"name\": \"Title\", \"type\": \"si"
+    "purpose": "Creates a new table in an Airtable base. To get baseId, use the search_bases or list_bases tools first. The first field in the fields array becomes the primary field of the table. Example: create a table called \"Projects\" with singleLineText (Title), number (Priority), singleSelect (Status), and multipleSelects (Tags) fields: {\"baseId\": \"appZfrNIUEip5MazD\", \"name\": \"Projects\", \"fields\": [{\"name\": \"Title\", \"type\": \"singleLineText\"}, {\"name\": \"Priority\", \"type\": \"number\", \"options\": {\"precision\": 0}}, {\"name\": \"Statu"
   },
   {
     "namespace": "Airtable",
@@ -701,7 +701,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Airtable",
     "tool": "delete_page",
-    "purpose": "Deletes a page from an interface, given its pageId. Standalone forms, and pages that have no published version yet, are removed immediately. A page that has its own published version is instead staged for removal in the working draft, staying visible to end users until the interface is published. An immediate removal cannot be undone with these tools; a staged removal becomes permanent once the interface is published"
+    "purpose": "Deletes a page from an interface, given its pageId. Standalone forms, and pages that have no published version yet, are removed immediately. A page that has its own published version is instead staged for removal in the working draft, staying visible to end users until the interface is published. An immediate removal cannot be undone with these tools; a staged removal becomes permanent once the interface is published. Use list_pages_for_base to find the pageId if needed. After deleting, only offer to run publish_in"
   },
   {
     "namespace": "Airtable",
@@ -726,7 +726,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Airtable",
     "tool": "display_records_for_table",
-    "purpose": "Displays an interactive widget showing record data queried from an Airtable table. Do not assume baseId and tableId. Obtain these from search_bases → list_tables_for_base. Do not attempt to pass filterByFormula. Look carefully at the filters parameter. Pre-requisite: If filtering on singleSelect/multipleSelects fields, you must call get_table_schema first to get the choice IDs. Aim to provide 6 to 10 relevant fields "
+    "purpose": "Displays an interactive widget showing record data queried from an Airtable table. Do not assume baseId and tableId. Obtain these from search_bases → list_tables_for_base. Do not attempt to pass filterByFormula. Look carefully at the filters parameter. Pre-requisite: If filtering on singleSelect/multipleSelects fields, you must call get_table_schema first to get the choice IDs. Aim to provide 6 to 10 relevant fields via the 'fieldIds' parameter. The possible view types are kanban and list. Set viewType to kanban wh"
   },
   {
     "namespace": "Airtable",
@@ -736,7 +736,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Airtable",
     "tool": "get_automation",
-    "purpose": "Gets the full configuration of a single automation in an Airtable base, including trigger configuration, action nodes with their input expressions, and deployment status. The returned configuration is the draft (the working copy the user edits). Set includeDeployedVersion to true to also see the most recently published configuration when it differs from the draft — useful for debugging deployed behavior. Edits always"
+    "purpose": "Gets the full configuration of a single automation in an Airtable base, including trigger configuration, action nodes with their input expressions, and deployment status. The returned configuration is the draft (the working copy the user edits). Set includeDeployedVersion to true to also see the most recently published configuration when it differs from the draft — useful for debugging deployed behavior. Edits always apply to the draft. Requires an automationId, which can be obtained from list_automations. {\"baseId"
   },
   {
     "namespace": "Airtable",
@@ -766,7 +766,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Airtable",
     "tool": "list_automations",
-    "purpose": "Lists automations in an Airtable base. Returns metadata about each automation including its ID, name, deployment status, trigger info, and graph nodes. Use this when the user asks about automations configured in a base. Optionally filter by trigger type (e.g., 'agentTriggerReceived'). The returned configuration is the draft (the working copy the user edits). Set includeDeployedVersion to true to also see each automat"
+    "purpose": "Lists automations in an Airtable base. Returns metadata about each automation including its ID, name, deployment status, trigger info, and graph nodes. Use this when the user asks about automations configured in a base. Optionally filter by trigger type (e.g., 'agentTriggerReceived'). The returned configuration is the draft (the working copy the user edits). Set includeDeployedVersion to true to also see each automation's most recently published configuration when it differs from the draft — useful for debugging de"
   },
   {
     "namespace": "Airtable",
@@ -796,7 +796,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Airtable",
     "tool": "list_records_for_table",
-    "purpose": "Lists records queried from an Airtable table. Do not assume baseId and tableId. Obtain these from search_bases → list_tables_for_base. Do not attempt to pass filterByFormula. Look carefully at the filters parameter. Pre-requisite: If filtering on singleSelect/multipleSelects fields, and the choice name is not provided, you must call get_table_schema first to get the choice IDs. Aim to provide at least 6 relevant fiel"
+    "purpose": "Lists records queried from an Airtable table. Do not assume baseId and tableId. Obtain these from search_bases → list_tables_for_base. Do not attempt to pass filterByFormula. Look carefully at the filters parameter. Pre-requisite: If filtering on singleSelect/multipleSelects fields, and the choice name is not provided, you must call get_table_schema first to get the choice IDs. Aim to provide at least 6 relevant fields via the 'fieldIds' parameter. Note: singleSelect and multipleSelects field values are returned as"
   },
   {
     "namespace": "Airtable",
@@ -826,12 +826,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Airtable",
     "tool": "publish_interface",
-    "purpose": "Publishes an interface, promoting each page's working draft to the live version that end users see. This includes any draft edits made outside this conversation, so publishing may make more changes live than just the ones made here. Pages whose publishing state is \"disabled\" are skipped and remain as drafts. Publishing is idempotent: re-publishing an already-published interface with no new changes is a no-op. Use sea"
+    "purpose": "Publishes an interface, promoting each page's working draft to the live version that end users see. This includes any draft edits made outside this conversation, so publishing may make more changes live than just the ones made here. Pages whose publishing state is \"disabled\" are skipped and remain as drafts. Publishing is idempotent: re-publishing an already-published interface with no new changes is a no-op. Use search_bases or list_bases to find the appropriate baseId. Use list_pages_for_base to find the interfac"
   },
   {
     "namespace": "Airtable",
     "tool": "revert_action",
-    "purpose": "Reverts a previous eligible Airtable mutation by performing the inverse write, using the actionId it returned. Record updates are not revertible. Use the actionId returned by an eligible mutating tool result. A tool result is eligible only if it explicitly returns an actionId. Examples include create_records_for_table or delete_records_for_table. Reverts one actionId per call (a multi-action revert is not atomic). To"
+    "purpose": "Reverts a previous eligible Airtable mutation by performing the inverse write, using the actionId it returned. Record updates are not revertible. Use the actionId returned by an eligible mutating tool result. A tool result is eligible only if it explicitly returns an actionId. Examples include create_records_for_table or delete_records_for_table. Reverts one actionId per call (a multi-action revert is not atomic). To revert several, call once per actionId in reverse completion order, stopping on the first error. Ex"
   },
   {
     "namespace": "Airtable",
@@ -841,37 +841,37 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Airtable",
     "tool": "search_candidate_linked_records",
-    "purpose": "Searches for records that are valid candidates for a linked-record (foreign-key) field, returning each candidate's record ID along with the fields the linked-record field is configured to display (the same fields shown on the in-product card). Use this to find the record ID to put in a linked-record field when calling submit_form or update_records_for_table. Use list_pages_for_base to find the pageId if needed. Use g"
+    "purpose": "Searches for records that are valid candidates for a linked-record (foreign-key) field, returning each candidate's record ID along with the fields the linked-record field is configured to display (the same fields shown on the in-product card). Use this to find the record ID to put in a linked-record field when calling submit_form or update_records_for_table. Use list_pages_for_base to find the pageId if needed. Use get_form_schema (for forms) to discover the linked field's fieldId. Pass the fieldId of the linked-re"
   },
   {
     "namespace": "Airtable",
     "tool": "search_records",
-    "purpose": "Searches for records in a table using a free-text query. Uses an optimized full-text index that supports fuzzy matching (handles typos) and token-based search (matches individual words regardless of order). When available, returns full record cell values and supports filtering and sorting of results. Call list_tables_for_base first to discover available tables and fields if needed. Prefer this over list_records_for_t"
+    "purpose": "Searches for records in a table using a free-text query. Uses an optimized full-text index that supports fuzzy matching (handles typos) and token-based search (matches individual words regardless of order). When available, returns full record cell values and supports filtering and sorting of results. Call list_tables_for_base first to discover available tables and fields if needed. Prefer this over list_records_for_table when performing free-text search on large tables. Use list_records_for_table instead when filte"
   },
   {
     "namespace": "Airtable",
     "tool": "submit_form",
-    "purpose": "Submits a form, creating a new record in the form's source table. Call get_form_schema first on the form's pageId to discover which fields the form collects, their fieldIds, types, required/read-only flags, select-field choices, and any prefilled values and visibility filters — do not assume every column on the source table is on the form. The schema response includes the interfaceId (null for standalone forms) to pa"
+    "purpose": "Submits a form, creating a new record in the form's source table. Call get_form_schema first on the form's pageId to discover which fields the form collects, their fieldIds, types, required/read-only flags, select-field choices, and any prefilled values and visibility filters — do not assume every column on the source table is on the form. The schema response includes the interfaceId (null for standalone forms) to pass back here. For linked-record fields, use search_candidate_linked_records to find the record IDs t"
   },
   {
     "namespace": "Airtable",
     "tool": "test_automation_webhook_trigger",
-    "purpose": "Re-runs the trigger test for a genericWebhookReceived automation and waits briefly for a newly captured payload schema. This is an automation trigger operation, not an Airtable Webhooks API operation. Call get_automation first. The external system must POST a representative object payload to the returned webhookUrl before this tool can capture its schema. For a deployed automation, posting the sample also runs the li"
+    "purpose": "Re-runs the trigger test for a genericWebhookReceived automation and waits briefly for a newly captured payload schema. This is an automation trigger operation, not an Airtable Webhooks API operation. Call get_automation first. The external system must POST a representative object payload to the returned webhookUrl before this tool can capture its schema. For a deployed automation, posting the sample also runs the live automation and may cause side effects. This tool does not send the sample or deploy or undeploy t"
   },
   {
     "namespace": "Airtable",
     "tool": "update_automation",
-    "purpose": "Replaces the entire draft configuration (trigger, graph, name, description) of an existing automation. If the automation is on, live behavior is unchanged until unpublished changes are applied with Update in the Airtable UI. Use list_automations to find the automationId, then call get_automation to retrieve the current trigger, nodes, and description before updating — list_automations returns node summaries without t"
+    "purpose": "Replaces the entire draft configuration (trigger, graph, name, description) of an existing automation. If the automation is on, live behavior is unchanged until unpublished changes are applied with Update in the Airtable UI. Use list_automations to find the automationId, then call get_automation to retrieve the current trigger, nodes, and description before updating — list_automations returns node summaries without their inputs. Call get_create_automation_instructions once per session for the full catalog of trigge"
   },
   {
     "namespace": "Airtable",
     "tool": "update_field",
-    "purpose": "Updates the name, description, and/or options of a field in an existing Airtable table. At least one of name, description, or options must be specified. To get baseId and tableId, use the search_bases and list_tables_for_base tools first. To get the fieldId, use the list_tables_for_base tool. Example: update a field's name and description: {\"baseId\": \"appZfrNIUEip5MazD\", \"tableId\": \"tblGlReoTNWfYnXIG\", \"fieldId\": \"fl"
+    "purpose": "Updates the name, description, and/or options of a field in an existing Airtable table. At least one of name, description, or options must be specified. To get baseId and tableId, use the search_bases and list_tables_for_base tools first. To get the fieldId, use the list_tables_for_base tool. Example: update a field's name and description: {\"baseId\": \"appZfrNIUEip5MazD\", \"tableId\": \"tblGlReoTNWfYnXIG\", \"fieldId\": \"fldGlRtkBNWfYnPOV\", \"name\": \"Updated Name\", \"description\": \"Updated description\"} Example: update a fo"
   },
   {
     "namespace": "Airtable",
     "tool": "update_records_for_table",
-    "purpose": "Updates records in an Airtable table. The fields you specify will be updated, and all other fields will be left unchanged. To get baseId and tableId, consider using the search_bases and list_tables_for_base tools first. When writing to a linked-record (multipleRecordLinks) field through an interface page, get the record IDs from search_candidate_linked_records, passing a pageId that exposes the field for editing — it"
+    "purpose": "Updates records in an Airtable table. The fields you specify will be updated, and all other fields will be left unchanged. To get baseId and tableId, consider using the search_bases and list_tables_for_base tools first. When writing to a linked-record (multipleRecordLinks) field through an interface page, get the record IDs from search_candidate_linked_records, passing a pageId that exposes the field for editing — it also applies the field's record-selection filters. It only works within interfaces; for base-level "
   },
   {
     "namespace": "Airtable",
@@ -891,7 +891,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Aiven",
     "tool": "aiven_docs_search",
-    "purpose": "Search the official Aiven documentation to answer the user's question in natural language. Use only when the user is explicitly asking how to do something in Aiven — typically via the Aiven Console, UI, or REST API — and wants to understand or learn, not to actually perform the action. Do not use this tool to figure out how to call other tools in this server; use the other tools directly for that. Do not use it for r"
+    "purpose": "Search the official Aiven documentation to answer the user's question in natural language. Use only when the user is explicitly asking how to do something in Aiven — typically via the Aiven Console, UI, or REST API — and wants to understand or learn, not to actually perform the action. Do not use this tool to figure out how to call other tools in this server; use the other tools directly for that. Do not use it for runtime state of a service (status, metrics, configuration values) — those come from the dedicated to"
   },
   {
     "namespace": "Aiven",
@@ -971,12 +971,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Aiven",
     "tool": "aiven_kafka_topic_get",
-    "purpose": "This tool returns `topic` with: - topic_name: Topic identifier - state: Lifecycle state (e.g. `ACTIVE`) - replication: Replication factor - retention_hours / retention_bytes: Retention bounds (`retention_bytes` may be `-1`) - cleanup_policy / min_insync_replicas / owner_user_group_id / topic_description / tags: Same meanings as topic list (`owner_user_group_id` and topic_description may be null) - config: Resolved Ka"
+    "purpose": "This tool returns `topic` with: - topic_name: Topic identifier - state: Lifecycle state (e.g. `ACTIVE`) - replication: Replication factor - retention_hours / retention_bytes: Retention bounds (`retention_bytes` may be `-1`) - cleanup_policy / min_insync_replicas / owner_user_group_id / topic_description / tags: Same meanings as topic list (`owner_user_group_id` and topic_description may be null) - config: Resolved Kafka configs for this topic (`cleanup_policy`, `retention_*`, compression, ISR, tiers/remote_storage,"
   },
   {
     "namespace": "Aiven",
     "tool": "aiven_kafka_topic_list",
-    "purpose": "This tool returns `topics`: an array of topic objects with: - topic_name: Topic name - state: Topic state (e.g. `ACTIVE`) - partitions: Partition count - replication: Replication factor (brokers/in-sync copies) - retention_hours / retention_bytes: Message retention limits (`retention_bytes` may be `-1` for unset / broker default) - cleanup_policy: e.g. `delete` or `compact` - min_insync_replicas: ISR minimum writes r"
+    "purpose": "This tool returns `topics`: an array of topic objects with: - topic_name: Topic name - state: Topic state (e.g. `ACTIVE`) - partitions: Partition count - replication: Replication factor (brokers/in-sync copies) - retention_hours / retention_bytes: Message retention limits (`retention_bytes` may be `-1` for unset / broker default) - cleanup_policy: e.g. `delete` or `compact` - min_insync_replicas: ISR minimum writes require - remote_storage_enable: Tiered remote storage enabled - topic_description: Optional human-re"
   },
   {
     "namespace": "Aiven",
@@ -1031,7 +1031,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Aiven",
     "tool": "aiven_pg_service_query_statistics",
-    "purpose": "This tool returns **`queries`**: an array of one row per normalized query with: - **Query identity:** `query` (SQL text, may use `$1` placeholders), `queryid` (internal id), `database_name`, `user_name` - **Execution counts:** `calls`, `rows` (total rows returned/fetched) - **Time (ms):** `total_time`, `min_time`, `max_time`, `mean_time`, `stddev_time`; plan timing: `total_plan_time`, `min_plan_time`, `max_plan_time`"
+    "purpose": "This tool returns **`queries`**: an array of one row per normalized query with: - **Query identity:** `query` (SQL text, may use `$1` placeholders), `queryid` (internal id), `database_name`, `user_name` - **Execution counts:** `calls`, `rows` (total rows returned/fetched) - **Time (ms):** `total_time`, `min_time`, `max_time`, `mean_time`, `stddev_time`; plan timing: `total_plan_time`, `min_plan_time`, `max_plan_time`, `mean_plan_time`, `stddev_plan_time` (often `0` when planning is not tracked separately) - **Buffe"
   },
   {
     "namespace": "Aiven",
@@ -1146,22 +1146,22 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Amazing_Nature_Sounds",
     "tool": "nature_sounds",
-    "purpose": "Use to open an interactive nature-sounds player when the user wants calming background audio or a guided ambience experience, such as for studying, working, meditation, winding down, or sleep preparation. Accepts an optional `sound` parameter to choose the starting ambience. Supported values are `waves`, `forest-rain`, `crackling-fireplace`, `mountain-breeze`, `flowing-river`, `birds-at-sunrise`, `distant-waterfall`,"
+    "purpose": "Use to open an interactive nature-sounds player when the user wants calming background audio or a guided ambience experience, such as for studying, working, meditation, winding down, or sleep preparation. Accepts an optional `sound` parameter to choose the starting ambience. Supported values are `waves`, `forest-rain`, `crackling-fireplace`, `mountain-breeze`, `flowing-river`, `birds-at-sunrise`, `distant-waterfall`, and `night-crickets`; when omitted, the player starts with `waves`. Prefer this tool when the user "
   },
   {
     "namespace": "Apollo_io",
     "tool": "apollo_accounts_bulk_create",
-    "purpose": "Create many accounts (companies) in a single call. Pass an array of account objects under accounts. No deduplication is applied: each object becomes a new record even if it matches an existing account by name or domain. Use the single Create an Account endpoint when adding only one account; use Update an Account to modify an existing account. Once created, accounts are not removed by subsequent calls — review the arr"
+    "purpose": "Create many accounts (companies) in a single call. Pass an array of account objects under accounts. No deduplication is applied: each object becomes a new record even if it matches an existing account by name or domain. Use the single Create an Account endpoint when adding only one account; use Update an Account to modify an existing account. Once created, accounts are not removed by subsequent calls — review the array before sending. To set custom fields, first call the List Custom Fields tool (apollo_fields_index"
   },
   {
     "namespace": "Apollo_io",
     "tool": "apollo_accounts_create",
-    "purpose": "Use the Create an Account endpoint to add a new account to your team's Apollo account. Use this when adding a single account; to add several at once, use the Bulk Create Accounts tool (apollo_accounts_bulk_create). In Apollo terminology, an account is a company that your team has explicitly added to your database. Apollo does not apply deduplication processes when you create a new account via the API. If your entry h"
+    "purpose": "Use the Create an Account endpoint to add a new account to your team's Apollo account. Use this when adding a single account; to add several at once, use the Bulk Create Accounts tool (apollo_accounts_bulk_create). In Apollo terminology, an account is a company that your team has explicitly added to your database. Apollo does not apply deduplication processes when you create a new account via the API. If your entry has the same name, domain, or other details as an existing account, Apollo will create a new account "
   },
   {
     "namespace": "Apollo_io",
     "tool": "apollo_accounts_update",
-    "purpose": "Use the Update an Account endpoint to update existing accounts in your team's Apollo account. In Apollo terminology, an account is a company that your team has explicitly added to your database. To create a new account, use the Create an Account endpoint instead. To set custom fields, first call the List Custom Fields tool (apollo_fields_index) and use the field whose modality is 'account', then pass typed_custom_fie"
+    "purpose": "Use the Update an Account endpoint to update existing accounts in your team's Apollo account. In Apollo terminology, an account is a company that your team has explicitly added to your database. To create a new account, use the Create an Account endpoint instead. To set custom fields, first call the List Custom Fields tool (apollo_fields_index) and use the field whose modality is 'account', then pass typed_custom_fields keyed by the returned field IDs."
   },
   {
     "namespace": "Apollo_io",
@@ -1171,22 +1171,22 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Apollo_io",
     "tool": "apollo_contacts_bulk_create",
-    "purpose": "Create many contacts in a single call. Pass an array of contact objects under contacts. Apollo automatically prevents duplicates: any object that matches an existing contact by email or other details updates that existing contact instead of creating a new record. Use the single Create Contact endpoint when adding only one contact; use Update Contact to modify an existing contact. Once created, contacts are not remove"
+    "purpose": "Create many contacts in a single call. Pass an array of contact objects under contacts. Apollo automatically prevents duplicates: any object that matches an existing contact by email or other details updates that existing contact instead of creating a new record. Use the single Create Contact endpoint when adding only one contact; use Update Contact to modify an existing contact. Once created, contacts are not removed by subsequent calls — review the array before sending. To set custom fields, first call the List C"
   },
   {
     "namespace": "Apollo_io",
     "tool": "apollo_contacts_create",
-    "purpose": "Create a new contact in Apollo. Use this when adding a single contact; to add several at once, use the Bulk Create Contacts tool (apollo_contacts_bulk_create). Apollo automatically prevents duplicates: if an entry matches an existing contact by email or other details, that existing contact is updated instead of creating a new one. To set custom fields, first call the List Custom Fields tool (apollo_fields_index) and "
+    "purpose": "Create a new contact in Apollo. Use this when adding a single contact; to add several at once, use the Bulk Create Contacts tool (apollo_contacts_bulk_create). Apollo automatically prevents duplicates: if an entry matches an existing contact by email or other details, that existing contact is updated instead of creating a new one. To set custom fields, first call the List Custom Fields tool (apollo_fields_index) and use the field whose modality is 'contact', then pass typed_custom_fields keyed by the returned field"
   },
   {
     "namespace": "Apollo_io",
     "tool": "apollo_contacts_search",
-    "purpose": "Use the Search for Contacts endpoint to search for the contacts that have been added to your team's Apollo account. In Apollo terminology, a contact is a person that your team has explicitly added to your database. A contact will have their data enriched in some way, such as accessing an email address or a phone number. This endpoint only returns contacts in the search results. To search for people in the Apollo data"
+    "purpose": "Use the Search for Contacts endpoint to search for the contacts that have been added to your team's Apollo account. In Apollo terminology, a contact is a person that your team has explicitly added to your database. A contact will have their data enriched in some way, such as accessing an email address or a phone number. This endpoint only returns contacts in the search results. To search for people in the Apollo database, call the People API Search endpoint. To protect Apollo's performance for all users, this endpo"
   },
   {
     "namespace": "Apollo_io",
     "tool": "apollo_contacts_update",
-    "purpose": "Update an existing contact in your team's Apollo account. In Apollo terminology, a contact is a person that your team has explicitly added to your database. A contact will have their data enriched in some way, such as accessing an email address or a phone number. To create a new contact, use the Create a Contact endpoint instead. To set custom fields, first call the List Custom Fields tool (apollo_fields_index) and u"
+    "purpose": "Update an existing contact in your team's Apollo account. In Apollo terminology, a contact is a person that your team has explicitly added to your database. A contact will have their data enriched in some way, such as accessing an email address or a phone number. To create a new contact, use the Create a Contact endpoint instead. To set custom fields, first call the List Custom Fields tool (apollo_fields_index) and use the field whose modality is 'contact', then pass typed_custom_fields keyed by the returned field "
   },
   {
     "namespace": "Apollo_io",
@@ -1206,7 +1206,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Apollo_io",
     "tool": "apollo_email_accounts_index",
-    "purpose": "Use the Get a List of Email Accounts endpoint to retrieve information about the linked email inboxes that your teammates use in your Apollo account. In particular, this endpoint returns IDs for each of your team's linked email accounts, which can be used with the Add Contacts to a Sequence endpoint. The response includes a \"default\" field on each account — the account with default: true is the user's primary sending "
+    "purpose": "Use the Get a List of Email Accounts endpoint to retrieve information about the linked email inboxes that your teammates use in your Apollo account. In particular, this endpoint returns IDs for each of your team's linked email accounts, which can be used with the Add Contacts to a Sequence endpoint. The response includes a \"default\" field on each account — the account with default: true is the user's primary sending mailbox and should be auto-selected when adding contacts to sequences (unless the user explicitly re"
   },
   {
     "namespace": "Apollo_io",
@@ -1226,7 +1226,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Apollo_io",
     "tool": "apollo_emailer_campaigns_search",
-    "purpose": "Use the Search for Sequences endpoint to search for the sequences that have been created for your team's Apollo account. This endpoint should be called before adding contacts to a sequence to retrieve the correct sequence ID. If multiple sequences match the search query, you must present all matching sequences to the user and ask them to confirm which one they intend before proceeding. Do not assume or pick one on th"
+    "purpose": "Use the Search for Sequences endpoint to search for the sequences that have been created for your team's Apollo account. This endpoint should be called before adding contacts to a sequence to retrieve the correct sequence ID. If multiple sequences match the search query, you must present all matching sequences to the user and ask them to confirm which one they intend before proceeding. Do not assume or pick one on their behalf."
   },
   {
     "namespace": "Apollo_io",
@@ -1251,7 +1251,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Apollo_io",
     "tool": "apollo_feedback_log",
-    "purpose": "Call this tool to report when a previous Apollo tool returned an unexpected, empty, or unhelpful result — for example, when a search returned no results despite valid inputs, a record was not found when it should exist, or a tool response was ambiguous or unclear. Include the name of the tool that failed and a clear description of what went wrong. Do NOT call this for successful tool results or expected empty states "
+    "purpose": "Call this tool to report when a previous Apollo tool returned an unexpected, empty, or unhelpful result — for example, when a search returned no results despite valid inputs, a record was not found when it should exist, or a tool response was ambiguous or unclear. Include the name of the tool that failed and a clear description of what went wrong. Do NOT call this for successful tool results or expected empty states (e.g. a deliberate empty search)."
   },
   {
     "namespace": "Apollo_io",
@@ -1261,27 +1261,27 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Apollo_io",
     "tool": "apollo_labels_add_entity_ids_to_label_names",
-    "purpose": "Add one or more contacts or accounts to one or more Apollo lists. Identify the records by their Apollo ids (entity_ids) and the lists by name (label_names). The modality must match the kind of records and lists — use \"contacts\" when adding contacts and \"accounts\" when adding accounts. If a supplied list name does not exist yet for that modality it is created automatically, so this tool can both create-and-populate a "
+    "purpose": "Add one or more contacts or accounts to one or more Apollo lists. Identify the records by their Apollo ids (entity_ids) and the lists by name (label_names). The modality must match the kind of records and lists — use \"contacts\" when adding contacts and \"accounts\" when adding accounts. If a supplied list name does not exist yet for that modality it is created automatically, so this tool can both create-and-populate a list in a single call. Get contact ids from apollo_contacts_search and account ids from apollo_accou"
   },
   {
     "namespace": "Apollo_io",
     "tool": "apollo_labels_create",
-    "purpose": "Create a new, empty Apollo list (label) for your team. In Apollo terminology, a list is a named, saved group of records. Supply the modality to choose whether this is a list of contacts or a list of accounts. List names must be unique per modality within your team; creating a list whose name already exists for that modality returns an error. To rename an existing list, use Update List (apollo_labels_update). To add r"
+    "purpose": "Create a new, empty Apollo list (label) for your team. In Apollo terminology, a list is a named, saved group of records. Supply the modality to choose whether this is a list of contacts or a list of accounts. List names must be unique per modality within your team; creating a list whose name already exists for that modality returns an error. To rename an existing list, use Update List (apollo_labels_update). To add records to a list use Add Records to Lists (apollo_labels_add_entity_ids_to_label_names) — that tool "
   },
   {
     "namespace": "Apollo_io",
     "tool": "apollo_labels_index",
-    "purpose": "List the Apollo lists (also called labels) that belong to your team. In Apollo terminology, a list is a named, saved group of records — most commonly a list of contacts or a list of accounts. Each returned list includes its id, name, modality (e.g. \"contacts\" or \"accounts\") and cached record count. Call this first to discover existing lists and their ids before updating a list (apollo_labels_update) or adding/removin"
+    "purpose": "List the Apollo lists (also called labels) that belong to your team. In Apollo terminology, a list is a named, saved group of records — most commonly a list of contacts or a list of accounts. Each returned list includes its id, name, modality (e.g. \"contacts\" or \"accounts\") and cached record count. Call this first to discover existing lists and their ids before updating a list (apollo_labels_update) or adding/removing records (apollo_labels_add_entity_ids_to_label_names, apollo_labels_remove_entity_ids_from_label_n"
   },
   {
     "namespace": "Apollo_io",
     "tool": "apollo_labels_remove_entity_ids_from_label_names",
-    "purpose": "Remove one or more contacts or accounts from one or more Apollo lists. Identify the records by their Apollo ids (entity_ids) and the lists by name (label_names). The modality must match the kind of records and lists — use \"contacts\" for contacts and \"accounts\" for accounts. This only detaches the records from the named lists; it does NOT delete the records themselves and it does NOT delete the list. Removing a record"
+    "purpose": "Remove one or more contacts or accounts from one or more Apollo lists. Identify the records by their Apollo ids (entity_ids) and the lists by name (label_names). The modality must match the kind of records and lists — use \"contacts\" for contacts and \"accounts\" for accounts. This only detaches the records from the named lists; it does NOT delete the records themselves and it does NOT delete the list. Removing a record that is not on a list is a no-op."
   },
   {
     "namespace": "Apollo_io",
     "tool": "apollo_labels_update",
-    "purpose": "Rename an existing Apollo list (label). Pass the list id and the new name. Use List Lists (apollo_labels_index) to discover the id of the list you want to rename. The new name must be unique per modality within your team; reusing an existing name for that modality returns an error. This tool only renames a list — it does not add or remove records (use apollo_labels_add_entity_ids_to_label_names / apollo_labels_remove"
+    "purpose": "Rename an existing Apollo list (label). Pass the list id and the new name. Use List Lists (apollo_labels_index) to discover the id of the list you want to rename. The new name must be unique per modality within your team; reusing an existing name for that modality returns an error. This tool only renames a list — it does not add or remove records (use apollo_labels_add_entity_ids_to_label_names / apollo_labels_remove_entity_ids_from_label_names) and it cannot delete a list."
   },
   {
     "namespace": "Apollo_io",
@@ -1311,12 +1311,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Apollo_io",
     "tool": "apollo_people_bulk_match",
-    "purpose": "For each person, provide identifying details such as first name, last name, email, organization name, domain, or LinkedIn URL. By default, this endpoint does not return personal emails or phone numbers. When reveal_phone_number=true, phone enrichment is ASYNC: the response returns a top-level request_id and NO phone numbers. Poll apollo_webhook_result_show with that top-level request_id (~10s, retry on 404) to retrie"
+    "purpose": "For each person, provide identifying details such as first name, last name, email, organization name, domain, or LinkedIn URL. By default, this endpoint does not return personal emails or phone numbers. When reveal_phone_number=true, phone enrichment is ASYNC: the response returns a top-level request_id and NO phone numbers. Poll apollo_webhook_result_show with that top-level request_id (~10s, retry on 404) to retrieve the numbers."
   },
   {
     "namespace": "Apollo_io",
     "tool": "apollo_people_match",
-    "purpose": "Use the People Enrichment endpoint to enrich data for 1 person. Apollo relies on the information you pass via the endpoint's parameters to identify the correct person to enrich. If you provide more information about a person, Apollo is more likely to find a match within its database. By default, this endpoint does not return personal emails or phone numbers. Use the reveal_personal_emails parameter to retrieve person"
+    "purpose": "Use the People Enrichment endpoint to enrich data for 1 person. Apollo relies on the information you pass via the endpoint's parameters to identify the correct person to enrich. If you provide more information about a person, Apollo is more likely to find a match within its database. By default, this endpoint does not return personal emails or phone numbers. Use the reveal_personal_emails parameter to retrieve personal emails. Phone enrichment is ASYNC. When reveal_phone_number=true, the response returns a top-leve"
   },
   {
     "namespace": "Apollo_io",
@@ -1341,7 +1341,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Apollo_io",
     "tool": "apollo_tasks_create",
-    "purpose": "Create a single task in Apollo. A task is an action item (call, email, LinkedIn step, generic action_item) assigned to a user and tied to a contact, account, or opportunity. REQUIRED: in addition to user_id and type, you MUST provide at least one of contact_id, account_id, or opportunity_id. Calls without any association will fail. Use Bulk Create Tasks when creating more than one task at a time. No deduplication is "
+    "purpose": "Create a single task in Apollo. A task is an action item (call, email, LinkedIn step, generic action_item) assigned to a user and tied to a contact, account, or opportunity. REQUIRED: in addition to user_id and type, you MUST provide at least one of contact_id, account_id, or opportunity_id. Calls without any association will fail. Use Bulk Create Tasks when creating more than one task at a time. No deduplication is applied. If the team has a connected CRM, the task may be pushed to the CRM as part of creation."
   },
   {
     "namespace": "Apollo_io",
@@ -1406,7 +1406,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "AppDeploy",
     "tool": "deploy_app",
-    "purpose": "Use this when the user asks to deploy or publish a website or web app and wants a public URL. If the user plans to provide large resources later (images/PDF/media/fonts), include resource_requirements with stable target_path placeholders so the widget can request exact files and uploads can resolve those paths. For each resource_requirements slot, ensure type resolution via accept and/or target_path extension so widg"
+    "purpose": "Use this when the user asks to deploy or publish a website or web app and wants a public URL. If the user plans to provide large resources later (images/PDF/media/fonts), include resource_requirements with stable target_path placeholders so the widget can request exact files and uploads can resolve those paths. For each resource_requirements slot, ensure type resolution via accept and/or target_path extension so widget placeholders map to the right file type. If user-attached files are intended as resources, do not"
   },
   {
     "namespace": "AppDeploy",
@@ -1421,7 +1421,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "AppDeploy",
     "tool": "get_appdeploy_sdk_reference",
-    "purpose": "Returns types, rules, and examples for one requested SDK feature plus its dependencies. Input must be { feature: <one enum value> }. Call this after reviewing deploy instructions and before writing code that imports or calls @appdeploy/client or @appdeploy/sdk. Available features: api, realtime, auth, notifications, invites, database, storage, secrets, ai.generate, ai.extract, ai.ocr, ai.classify, ai.scrape, ai.run, "
+    "purpose": "Returns types, rules, and examples for one requested SDK feature plus its dependencies. Input must be { feature: <one enum value> }. Call this after reviewing deploy instructions and before writing code that imports or calls @appdeploy/client or @appdeploy/sdk. Available features: api, realtime, auth, notifications, invites, database, storage, secrets, ai.generate, ai.extract, ai.ocr, ai.classify, ai.scrape, ai.run, ai.image, cron. Choose features by scenario: Use api for standard backend HTTP routes and transport "
   },
   {
     "namespace": "AppDeploy",
@@ -1526,7 +1526,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Autocalls_AI",
     "tool": "add_to_blacklist",
-    "purpose": "Add a phone number to the account blacklist so campaigns never call it and inbound calls from it are rejected — use it for spam or do-not-call numbers. Must be a real, valid phone number (any format; it is normalized to E.164). Optionally include a reason. This tool blocks a specific real number. To block ALL private/anonymous callers instead, the user does it in the dashboard: a private inbound call shows up as \"ano"
+    "purpose": "Add a phone number to the account blacklist so campaigns never call it and inbound calls from it are rejected — use it for spam or do-not-call numbers. Must be a real, valid phone number (any format; it is normalized to E.164). Optionally include a reason. This tool blocks a specific real number. To block ALL private/anonymous callers instead, the user does it in the dashboard: a private inbound call shows up as \"anonymous\" — opening that call and clicking Add to blacklist blocks every private/withheld caller from "
   },
   {
     "namespace": "Autocalls_AI",
@@ -1551,7 +1551,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Autocalls_AI",
     "tool": "create_automation",
-    "purpose": "Create a CUSTOM automation from its definition (the trigger and its chained steps), activate it, run a REAL test with a sample payload, and report the per-step result. ALWAYS check list-automation-templates FIRST — when a template matches the request, use apply-automation-template instead of this tool. For a custom build on an integration piece, discover the exact action/trigger machine names and input fields with li"
+    "purpose": "Create a CUSTOM automation from its definition (the trigger and its chained steps), activate it, run a REAL test with a sample payload, and report the per-step result. ALWAYS check list-automation-templates FIRST — when a template matches the request, use apply-automation-template instead of this tool. For a custom build on an integration piece, discover the exact action/trigger machine names and input fields with list-piece-actions first — never write a piece step from memory. Supported triggers: webhook (external"
   },
   {
     "namespace": "Autocalls_AI",
@@ -1591,7 +1591,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Autocalls_AI",
     "tool": "create_mid_call_tool",
-    "purpose": "Create a reusable custom mid-call tool the assistant can call during a conversation: an HTTP endpoint plus the parameters it should collect. Use {param} (single brace) in the endpoint/body for assistant-collected parameters, and {{system variables}} (double brace — {{customer_phone}}, {{assistant_phone}}, {{assistant_id}}, {{assistant_name}}, {{current_date}}, {{current_time}}) in the endpoint, header values or stati"
+    "purpose": "Create a reusable custom mid-call tool the assistant can call during a conversation: an HTTP endpoint plus the parameters it should collect. Use {param} (single brace) in the endpoint/body for assistant-collected parameters, and {{system variables}} (double brace — {{customer_phone}}, {{assistant_phone}}, {{assistant_id}}, {{assistant_name}}, {{current_date}}, {{current_time}}) in the endpoint, header values or static fields; those are substituted automatically at call time. This creates an HTTP-type tool. Automati"
   },
   {
     "namespace": "Autocalls_AI",
@@ -1701,7 +1701,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Autocalls_AI",
     "tool": "get_guide",
-    "purpose": "Returns the platform's authoritative how-to guides. Useful before building, fixing or configuring an assistant; writing a system prompt; setting up a mid-call tool, inbound recognition or CRM lookup; sending an SMS or WhatsApp during a call; getting or connecting a phone number, SIP trunk or caller ID; or answering an account, billing or setup question. Call with no topic to list the available guides and what each co"
+    "purpose": "Returns the platform's authoritative how-to guides. Useful before building, fixing or configuring an assistant; writing a system prompt; setting up a mid-call tool, inbound recognition or CRM lookup; sending an SMS or WhatsApp during a call; getting or connecting a phone number, SIP trunk or caller ID; or answering an account, billing or setup question. Call with no topic to list the available guides and what each covers, then call again with a topic key to get the full guide for that topic."
   },
   {
     "namespace": "Autocalls_AI",
@@ -1726,7 +1726,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Autocalls_AI",
     "tool": "get_webhook_sample",
-    "purpose": "Get an example payload for an assistant webhook, to help the user build their automation. webhook_type: post_call (after a call) and conversation_ended (when a chat ends) — these match configure-assistant-webhook; plus conversation (a chat/conversation event) and whatsapp_voice (Ask to call / permission / WhatsApp call started). NOTE: there is no sample for the \"inbound\" pre-call-variables webhook (configure-assistan"
+    "purpose": "Get an example payload for an assistant webhook, to help the user build their automation. webhook_type: post_call (after a call) and conversation_ended (when a chat ends) — these match configure-assistant-webhook; plus conversation (a chat/conversation event) and whatsapp_voice (Ask to call / permission / WhatsApp call started). NOTE: there is no sample for the \"inbound\" pre-call-variables webhook (configure-assistant-webhook type \"inbound\") — that one just returns the flat key-value variables you define on the ass"
   },
   {
     "namespace": "Autocalls_AI",
@@ -1741,7 +1741,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Autocalls_AI",
     "tool": "list_automation_options",
-    "purpose": "Resolve the REAL choices for an integration step's dropdown field (trigger OR action) using the user's own connected account — e.g. their Facebook pages/lead forms, CRM pipelines, spreadsheets. Call this BEFORE building an automation on an external integration and let the user pick from the returned list; NEVER guess ids. Use the returned value, not the label. Requires the integration's account to be connected alread"
+    "purpose": "Resolve the REAL choices for an integration step's dropdown field (trigger OR action) using the user's own connected account — e.g. their Facebook pages/lead forms, CRM pipelines, spreadsheets. Call this BEFORE building an automation on an external integration and let the user pick from the returned list; NEVER guess ids. Use the returned value, not the label. Requires the integration's account to be connected already."
   },
   {
     "namespace": "Autocalls_AI",
@@ -1761,7 +1761,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Autocalls_AI",
     "tool": "list_calls",
-    "purpose": "List the calls belonging to the user's assistants, most recent first. Returns an object with a `data` array of compact call records (no transcript) plus `page`, `total_pages` and `has_more`; read the records from `data`, and to get older calls call again with the next `page` while `has_more` is true. Use get-call on a `data[].id` for the full transcript and evaluation. Supports filters. Ideal first step when analysin"
+    "purpose": "List the calls belonging to the user's assistants, most recent first. Returns an object with a `data` array of compact call records (no transcript) plus `page`, `total_pages` and `has_more`; read the records from `data`, and to get older calls call again with the next `page` while `has_more` is true. Use get-call on a `data[].id` for the full transcript and evaluation. Supports filters. Ideal first step when analysing or improving an assistant."
   },
   {
     "namespace": "Autocalls_AI",
@@ -1821,7 +1821,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Autocalls_AI",
     "tool": "list_piece_actions",
-    "purpose": "Discover the automation building blocks (integration pieces) installed on this platform and their EXACT machine names + input fields — the discovery step BEFORE writing any custom automation step on an integration you have not verified. With search: finds pieces by name or by what they do (e.g. \"spreadsheet\", \"send email\", \"hubspot\") and lists which of their actions/triggers matched. With piece_name: returns that pie"
+    "purpose": "Discover the automation building blocks (integration pieces) installed on this platform and their EXACT machine names + input fields — the discovery step BEFORE writing any custom automation step on an integration you have not verified. With search: finds pieces by name or by what they do (e.g. \"spreadsheet\", \"send email\", \"hubspot\") and lists which of their actions/triggers matched. With piece_name: returns that piece's compact schema — every action/trigger machine name with its input fields (type, required, stati"
   },
   {
     "namespace": "Autocalls_AI",
@@ -1906,7 +1906,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Autocalls_AI",
     "tool": "update_assistant",
-    "purpose": "Update an existing assistant the user owns. Pass only the fields you want to change. All platform safeguards are enforced (for example, interruptions cannot be disabled in multimodal/dualplex mode, and changing mode resets incompatible voice/model settings). When updating built-in tools that include calendar_integration, omit calendar credentials (they are masked on read) — the user's already-connected Cal.com/Calend"
+    "purpose": "Update an existing assistant the user owns. Pass only the fields you want to change. All platform safeguards are enforced (for example, interruptions cannot be disabled in multimodal/dualplex mode, and changing mode resets incompatible voice/model settings). When updating built-in tools that include calendar_integration, omit calendar credentials (they are masked on read) — the user's already-connected Cal.com/Calendly account stays linked automatically. This is the typical final step when improving an assistant af"
   },
   {
     "namespace": "Autocalls_AI",
@@ -1946,7 +1946,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Autocalls_AI",
     "tool": "update_mid_call_tool",
-    "purpose": "Update a custom mid-call (HTTP) tool the user owns. Pass only the fields you want to change. headers, static_fields and schema each REPLACE the current set. Use {param} (single brace) for assistant-collected parameters and {{system variables}} (e.g. {{customer_phone}}) in the endpoint, header values or static fields. Automation-Platform tools are managed in the app UI; their endpoint/method should not be changed here"
+    "purpose": "Update a custom mid-call (HTTP) tool the user owns. Pass only the fields you want to change. headers, static_fields and schema each REPLACE the current set. Use {param} (single brace) for assistant-collected parameters and {{system variables}} (e.g. {{customer_phone}}) in the endpoint, header values or static fields. Automation-Platform tools are managed in the app UI; their endpoint/method should not be changed here."
   },
   {
     "namespace": "Autocalls_AI",
@@ -1976,12 +1976,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Awesome_Record",
     "tool": "voice___sound___record",
-    "purpose": "Use to open an audio recording widget when the user wants to capture microphone input directly inside the ChatGPT conversation. This tool is appropriate when the user asks to record audio, make a voice memo, capture a spoken note, or open a simple recorder UI that they can operate themselves. The tool does not require any input arguments because the recording interaction happens inside the widget after it is displaye"
+    "purpose": "Use to open an audio recording widget when the user wants to capture microphone input directly inside the ChatGPT conversation. This tool is appropriate when the user asks to record audio, make a voice memo, capture a spoken note, or open a simple recorder UI that they can operate themselves. The tool does not require any input arguments because the recording interaction happens inside the widget after it is displayed. Once opened, the widget lets the user start recording, pause and resume, finish the take, and the"
   },
   {
     "namespace": "BasicDeploy",
     "tool": "create_container",
-    "purpose": "Create a new empty BasicDeploy container. A PostgreSQL database and an S3 bucket are provisioned automatically for it. Returns the container's id, subdomain, and public URL. Its public URL is proxied to PORT 8080 inside the container, so whatever you deploy MUST listen on 0.0.0.0:8080 (any other port/binding returns 503). Use deploy_app or exec_command afterwards to put an application in it. Optional memoryMb (256/51"
+    "purpose": "Create a new empty BasicDeploy container. A PostgreSQL database and an S3 bucket are provisioned automatically for it. Returns the container's id, subdomain, and public URL. Its public URL is proxied to PORT 8080 inside the container, so whatever you deploy MUST listen on 0.0.0.0:8080 (any other port/binding returns 503). Use deploy_app or exec_command afterwards to put an application in it. Optional memoryMb (256/512/1024/2048) and alwaysOn require the plan/add-ons to allow them (see get_account); larger sizes nee"
   },
   {
     "namespace": "BasicDeploy",
@@ -2001,12 +2001,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "BasicDeploy",
     "tool": "deploy_app",
-    "purpose": "Deploy an application from a local tarball (.tar, .tar.gz, .tgz, or .zip) to BasicDeploy. The runtime (Node.js, Python, or Go) is auto-detected from the archive contents; the app must listen on 0.0.0.0:8080. If containerId is omitted, a new container (with DB + S3) is created for the app; if provided, the archive is deployed into that existing container. Returns the resulting container and its public URL. IMPORTANT: "
+    "purpose": "Deploy an application from a local tarball (.tar, .tar.gz, .tgz, or .zip) to BasicDeploy. The runtime (Node.js, Python, or Go) is auto-detected from the archive contents; the app must listen on 0.0.0.0:8080. If containerId is omitted, a new container (with DB + S3) is created for the app; if provided, the archive is deployed into that existing container. Returns the resulting container and its public URL. IMPORTANT: tarballPath is a path on the machine running THIS MCP client (i.e. the local/stdio install). When Ba"
   },
   {
     "namespace": "BasicDeploy",
     "tool": "exec_command",
-    "purpose": "Run a shell command inside a container (like docker exec). Returns the combined stdout/stderr output and the exit code. Useful for inspecting files, installing packages, or restarting processes inside the container. DEPLOYING WITHOUT A TARBALL (the way to deploy over a remote/chat connector, where there is no shared filesystem for deploy_app): write your app's files into the container with exec_command (e.g. heredoc/"
+    "purpose": "Run a shell command inside a container (like docker exec). Returns the combined stdout/stderr output and the exit code. Useful for inspecting files, installing packages, or restarting processes inside the container. DEPLOYING WITHOUT A TARBALL (the way to deploy over a remote/chat connector, where there is no shared filesystem for deploy_app): write your app's files into the container with exec_command (e.g. heredoc/echo or install from git), install deps, then start the server. CRITICAL: the container's public URL"
   },
   {
     "namespace": "BasicDeploy",
@@ -2021,12 +2021,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "BasicDeploy",
     "tool": "get_docs",
-    "purpose": "Fetch the BasicDeploy documentation as Markdown so you can answer the user's questions and deploy correctly without leaving the chat. Covers: what BasicDeploy is, deploying an app (the 0.0.0.0:8080 rule), the runtime and preset env vars, the PostgreSQL database and S3 object storage, the REST API, the MCP tools, custom domains, SSH, plans/pricing, and hosted auth-as-a-service (OpenID Connect) for your app's own end-u"
+    "purpose": "Fetch the BasicDeploy documentation as Markdown so you can answer the user's questions and deploy correctly without leaving the chat. Covers: what BasicDeploy is, deploying an app (the 0.0.0.0:8080 rule), the runtime and preset env vars, the PostgreSQL database and S3 object storage, the REST API, the MCP tools, custom domains, SSH, plans/pricing, and hosted auth-as-a-service (OpenID Connect) for your app's own end-users. Optional 'topic' returns only the matching section(s)."
   },
   {
     "namespace": "BasicDeploy",
     "tool": "get_kafka",
-    "purpose": "Get the user's Kafka connection details and topics. BasicDeploy gives every account a Kafka broker (SASL/SCRAM, SCRAM-SHA-256) shared by all their containers. Returns the internal bootstrap (preset as KAFKA_BOOTSTRAP inside containers), the external bootstrap (for outside clients), the SASL username/password, the mandatory consumer-group id prefix (group ids MUST start with it), the current topics, usage and the plan"
+    "purpose": "Get the user's Kafka connection details and topics. BasicDeploy gives every account a Kafka broker (SASL/SCRAM, SCRAM-SHA-256) shared by all their containers. Returns the internal bootstrap (preset as KAFKA_BOOTSTRAP inside containers), the external bootstrap (for outside clients), the SASL username/password, the mandatory consumer-group id prefix (group ids MUST start with it), the current topics, usage and the plan limits. Provisions the tenancy on first call."
   },
   {
     "namespace": "BasicDeploy",
@@ -2081,12 +2081,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "CALL_E",
     "tool": "plan_call",
-    "purpose": "First, use this to plan the call. Always pass the user's latest message verbatim via 'user_input' (even if you also set other fields). Do not guess region/language or reformat ambiguous phone numbers. If 'ready_to_run' is false, prefer letting the user fill the missing details in the plan card UI instead of restating every question in chat. If the user answers in chat instead, call this again with 'user_input' set to"
+    "purpose": "First, use this to plan the call. Always pass the user's latest message verbatim via 'user_input' (even if you also set other fields). Do not guess region/language or reformat ambiguous phone numbers. If 'ready_to_run' is false, prefer letting the user fill the missing details in the plan card UI instead of restating every question in chat. If the user answers in chat instead, call this again with 'user_input' set to the user's response. When 'ready_to_run' is true and a plan card UI is available, stop after 'plan_"
   },
   {
     "namespace": "CALL_E",
     "tool": "run_call",
-    "purpose": "Executes the planned call. Use only after 'plan_call' returns 'ready_to_run=true'. Pass the 'confirm_token' exactly as received. In ChatGPT, do not call 'run_call' in the same turn if a plan card UI is available and has already started the call. Use 'run_call' there only when no plan card UI is available or the user explicitly asks to start or retry the call in chat. If the call starts, it runs asynchronously. Do not"
+    "purpose": "Executes the planned call. Use only after 'plan_call' returns 'ready_to_run=true'. Pass the 'confirm_token' exactly as received. In ChatGPT, do not call 'run_call' in the same turn if a plan card UI is available and has already started the call. Use 'run_call' there only when no plan card UI is available or the user explicitly asks to start or retry the call in chat. If the call starts, it runs asynchronously. Do not perform extra operations; the server will notify on completion. Do not call 'run_call' more than on"
   },
   {
     "namespace": "Cambiante",
@@ -2186,7 +2186,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Canva",
     "tool": "commit_editing_transaction",
-    "purpose": "Commit an editing transaction. This will save all the changes made to the design in the specified editing transaction. CRITICAL: All edits are in DRAFT and will be PERMANENTLY LOST if this tool is not called. You MUST always show the user what changes were made and ask for their explicit approval before calling this tool — for example: \"Would you like me to save these changes to your design?\" Wait for their clear app"
+    "purpose": "Commit an editing transaction. This will save all the changes made to the design in the specified editing transaction. CRITICAL: All edits are in DRAFT and will be PERMANENTLY LOST if this tool is not called. You MUST always show the user what changes were made and ask for their explicit approval before calling this tool — for example: \"Would you like me to save these changes to your design?\" Wait for their clear approval before proceeding. Do NOT call this tool without user approval. After successfully saving chan"
   },
   {
     "namespace": "Canva",
@@ -2196,7 +2196,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Canva",
     "tool": "create_design_from_brand_template",
-    "purpose": "Create a new Canva design from a brand template. Optionally select specific pages to include. If the user has already provided a brand template ID (a string starting with \"BTM\"), call this tool directly with that ID — do NOT call `search-brand-templates` first. Only use `search-brand-templates` when no ID has been provided and you need to discover one. If you need to fill template fields with custom data, use the `au"
+    "purpose": "Create a new Canva design from a brand template. Optionally select specific pages to include. If the user has already provided a brand template ID (a string starting with \"BTM\"), call this tool directly with that ID — do NOT call `search-brand-templates` first. Only use `search-brand-templates` when no ID has been provided and you need to discover one. If you need to fill template fields with custom data, use the `autofill-design` tool instead."
   },
   {
     "namespace": "Canva",
@@ -2221,7 +2221,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Canva",
     "tool": "get_assets",
-    "purpose": "Get metadata for particular assets by a list of their IDs. Returns information about ALL the assets including their names, tags, types, creation dates, and thumbnails. Thumbnails returned are in the same order as the list of asset IDs requested. When editing a page with more than one image or video asset ALWAYS request ALL assets from that page.IMPORTANT: ALWAYS ALWAYS ALWAYS show the preview to the user of EACH thum"
+    "purpose": "Get metadata for particular assets by a list of their IDs. Returns information about ALL the assets including their names, tags, types, creation dates, and thumbnails. Thumbnails returned are in the same order as the list of asset IDs requested. When editing a page with more than one image or video asset ALWAYS request ALL assets from that page.IMPORTANT: ALWAYS ALWAYS ALWAYS show the preview to the user of EACH thumbnail you get in the response in the chat, EVERY SINGLE TIME you call this tool"
   },
   {
     "namespace": "Canva",
@@ -2231,22 +2231,22 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Canva",
     "tool": "get_design",
-    "purpose": "Get detailed information about a Canva design, such as a doc, presentation, whiteboard, video, or sheet. This includes design owner information, title, URLs for editing and viewing, thumbnail, created/updated time, and page count. This tool doesn't work on folders or images. You must provide the design ID, which you can find by using the `search-designs` or `list-folder-items` tools. You may also pass a full Canva de"
+    "purpose": "Get detailed information about a Canva design, such as a doc, presentation, whiteboard, video, or sheet. This includes design owner information, title, URLs for editing and viewing, thumbnail, created/updated time, and page count. This tool doesn't work on folders or images. You must provide the design ID, which you can find by using the `search-designs` or `list-folder-items` tools. You may also pass a full Canva design share URL directly (do not pre-extract just the ID) — any collaboration token embedded in the U"
   },
   {
     "namespace": "Canva",
     "tool": "get_design_content",
-    "purpose": "Get the text content of a doc, presentation, whiteboard, social media post, and other designs in Canva (except sheets, as it does not return data in sheets). Use this when you only need to read text content without making changes. IMPORTANT: If the user wants to edit, update, change, translate, or fix content, use `start-editing-transaction` instead as it shows content AND enables editing. You must provide the design"
+    "purpose": "Get the text content of a doc, presentation, whiteboard, social media post, and other designs in Canva (except sheets, as it does not return data in sheets). Use this when you only need to read text content without making changes. IMPORTANT: If the user wants to edit, update, change, translate, or fix content, use `start-editing-transaction` instead as it shows content AND enables editing. You must provide the design ID, which you can find with the `search-designs` tool. You may also pass a full Canva design share "
   },
   {
     "namespace": "Canva",
     "tool": "get_design_pages",
-    "purpose": "Get a list of pages in a Canva design, such as a presentation. Each page includes its index and thumbnail. This tool doesn't work on designs that don't have pages (e.g. Canva docs). You must provide the design ID, which you can find using tools like `search-designs` or `list-folder-items`. You may also pass a full Canva design share URL directly (do not pre-extract just the ID) — any collaboration token embedded in t"
+    "purpose": "Get a list of pages in a Canva design, such as a presentation. Each page includes its index and thumbnail. This tool doesn't work on designs that don't have pages (e.g. Canva docs). You must provide the design ID, which you can find using tools like `search-designs` or `list-folder-items`. You may also pass a full Canva design share URL directly (do not pre-extract just the ID) — any collaboration token embedded in the URL is needed to access a design shared via link and will be parsed and forwarded automatically. "
   },
   {
     "namespace": "Canva",
     "tool": "get_design_thumbnail",
-    "purpose": "Get the thumbnail for a particular page of the design in the specified editing transaction. This tool needs to be used with the `start-editing-transaction` tool to obtain an editing transaction ID. You need to provide the transaction ID and a page index to get the thumbnail of that particular page. Each call can only get the thumbnail for one page. Retrieving the thumbnails for multiple pages will require multiple ca"
+    "purpose": "Get the thumbnail for a particular page of the design in the specified editing transaction. This tool needs to be used with the `start-editing-transaction` tool to obtain an editing transaction ID. You need to provide the transaction ID and a page index to get the thumbnail of that particular page. Each call can only get the thumbnail for one page. Retrieving the thumbnails for multiple pages will require multiple calls of this tool.IMPORTANT: ALWAYS ALWAYS ALWAYS show the preview to the user of EACH thumbnail you "
   },
   {
     "namespace": "Canva",
@@ -2261,7 +2261,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Canva",
     "tool": "import_design_from_url",
-    "purpose": "ALWAYS use this tool when the user's message contains an HTTPS URL, or a file generated/uploaded in this chat, and their intent is to create a Canva design from it. Pass public HTTPS URLs directly via url. Use design_file for chat-generated or uploaded files, including HTML files and ZIP bundles. **When to provide the design_file parameter:** Provide design_file when a platform file reference object has been supplied"
+    "purpose": "ALWAYS use this tool when the user's message contains an HTTPS URL, or a file generated/uploaded in this chat, and their intent is to create a Canva design from it. Pass public HTTPS URLs directly via url. Use design_file for chat-generated or uploaded files, including HTML files and ZIP bundles. **When to provide the design_file parameter:** Provide design_file when a platform file reference object has been supplied, or when the user wants to import a file artifact generated/uploaded in this chat. Use design_file "
   },
   {
     "namespace": "Canva",
@@ -2291,7 +2291,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Canva",
     "tool": "perform_editing_operations",
-    "purpose": "Perform editing operations on a design. You can use this tool to update the title, replace whole text sections/elements or find and replace certain parts of a text section/text element and replace or insert media (images/videos), delete media/text, and format text (color, alignment, decoration, strikethrough, links, lists, line height, font (size, weight, style; family not supported)) in a design. You can also connec"
+    "purpose": "Perform editing operations on a design. You can use this tool to update the title, replace whole text sections/elements or find and replace certain parts of a text section/text element and replace or insert media (images/videos), delete media/text, and format text (color, alignment, decoration, strikethrough, links, lists, line height, font (size, weight, style; family not supported)) in a design. You can also connect or remove autofill field labels on text or image elements for fixed-page designs using `update_aut"
   },
   {
     "namespace": "Canva",
@@ -2321,7 +2321,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Canva",
     "tool": "search_designs",
-    "purpose": "Search docs, presentations, videos, whiteboards, sheets, and other designs in Canva, except for templates or brand templates. Use when you need to find specific designs by keywords rather than browsing folders. Use 'query' parameter to search by title or content. If 'query' is used, 'sortBy' must be set to 'relevance'. Filter by 'any' ownership unless specified. Sort by relevance unless specified. Use the continuatio"
+    "purpose": "Search docs, presentations, videos, whiteboards, sheets, and other designs in Canva, except for templates or brand templates. Use when you need to find specific designs by keywords rather than browsing folders. Use 'query' parameter to search by title or content. If 'query' is used, 'sortBy' must be set to 'relevance'. Filter by 'any' ownership unless specified. Sort by relevance unless specified. Use the continuation token to get the next page of results, when there are more results."
   },
   {
     "namespace": "Canva",
@@ -2331,37 +2331,52 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Canva",
     "tool": "start_editing_transaction",
-    "purpose": "Start an editing session for a Canva design. Use this tool FIRST whenever a user wants to make ANY changes or examine ALL content of a design, including:- Translate text to another language - Edit or replace content - Update titles - Connect or remove autofill field labels on existing text or image elements - Replace or insert media (images/videos) - Delete media/text - Fix typos or formatting - Format text appearanc"
+    "purpose": "Start an editing session for a Canva design. Use this tool FIRST whenever a user wants to make ANY changes or examine ALL content of a design, including:- Translate text to another language - Edit or replace content - Update titles - Connect or remove autofill field labels on existing text or image elements - Replace or insert media (images/videos) - Delete media/text - Fix typos or formatting - Format text appearance (color, alignment, decoration, links, lists, font (size, weight, style; family not supported)) - A"
   },
   {
     "namespace": "Canva",
     "tool": "upload_asset_from_url",
-    "purpose": "Upload an asset (e.g. an image, a video) into Canva, from a public HTTPS URL or a file uploaded/generated in this chat. Pass public HTTPS URLs directly via url. Use asset_file for chat-generated or uploaded files: provide the file reference object exactly as supplied by the platform. Provide exactly one of url or asset_file. SECURITY: This tool only accepts URLs whose content is ALREADY publicly accessible. NEVER upl"
+    "purpose": "Upload an asset (e.g. an image, a video) into Canva, from a public HTTPS URL or a file uploaded/generated in this chat. Pass public HTTPS URLs directly via url. Use asset_file for chat-generated or uploaded files: provide the file reference object exactly as supplied by the platform. Provide exactly one of url or asset_file. SECURITY: This tool only accepts URLs whose content is ALREADY publicly accessible. NEVER upload, copy, or transfer the user's local, private, or agent-generated files to any public file-sharin"
+  },
+  {
+    "namespace": "Chat2Doc",
+    "tool": "document_rag_answer",
+    "purpose": "Generate search keywords based on the user’s question and search within their saved documents. Use this tool when the user’s question can likely be answered using documents they have previously saved. The tool uses the generated keywords to retrieve relevant passages from the user’s document collection and uses them as context for answering the question."
+  },
+  {
+    "namespace": "Chat2Doc",
+    "tool": "get_documents_list",
+    "purpose": "Get Documents List"
+  },
+  {
+    "namespace": "Chat2Doc",
+    "tool": "prepare_chat_for_saving",
+    "purpose": "When a user wants to create a document that they intend to save for future use, this tool should be invoked to analyze and generate the document according to the user's instructions; after the user confirms, the save function will then be called. Otherwise, the save function should not be invoked without the user's permission."
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "add_or_update_ad_account_user",
-    "purpose": "Grant ad-account access, invite a user, or change an existing user's role. Sofa enforces the caller's ad_account.users.read and ad_account.users.write permissions for the selected account, plus workspace membership constraints. This is a consequential write; use only after the user approves the selected account, exact email, detected membership state, and role. Call list_ad_account_users for both active users and pen"
+    "purpose": "Grant ad-account access, invite a user, or change an existing user's role. Sofa enforces the caller's ad_account.users.read and ad_account.users.write permissions for the selected account, plus workspace membership constraints. This is a consequential write; use only after the user approves the selected account, exact email, detected membership state, and role. Call list_ad_account_users for both active users and pending invitations before every call so an apparent grant cannot silently replace existing access. Set"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "create_ad",
-    "purpose": "Create an ad using only supported public Sofa ad fields exposed by this tool. This is a consequential write; use only after the user approves the selected account and full request body, or when the request is within an explicitly approved bounded automation policy for that account. Resolve the parent ad group id from names where possible. Use upload_image or upload_image_file first when the creative needs an image, t"
+    "purpose": "Create an ad using only supported public Sofa ad fields exposed by this tool. This is a consequential write; use only after the user approves the selected account and full request body, or when the request is within an explicitly approved bounded automation policy for that account. Resolve the parent ad group id from names where possible. Use upload_image or upload_image_file first when the creative needs an image, then pass its file_id token unchanged as creative.file_id. For create_ad, that token must come from t"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "create_ad_group",
-    "purpose": "Create an ad group using only supported public Sofa ad group fields exposed by this tool. This is a consequential write; use only after the user approves the selected account and full request body, or when the request is within an explicitly approved bounded automation policy for that account. In an explicit ad-first end-to-end creation flow, the generated ad group name is the only field that may be omitted from the "
+    "purpose": "Create an ad group using only supported public Sofa ad group fields exposed by this tool. This is a consequential write; use only after the user approves the selected account and full request body, or when the request is within an explicitly approved bounded automation policy for that account. In an explicit ad-first end-to-end creation flow, the generated ad group name is the only field that may be omitted from the user-facing confirmation; keep every other setup field visible. The name must still be present, stab"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "create_campaign",
-    "purpose": "Create a campaign using only supported public Sofa campaign fields exposed by this tool. This is a consequential write; use only after the user approves the selected account and full request body, or when the request is within an explicitly approved bounded automation policy for that account. For a product-feed campaign, use list_product_feeds and confirm the selected campaign product_feed_id; ask the user to choose "
+    "purpose": "Create a campaign using only supported public Sofa campaign fields exposed by this tool. This is a consequential write; use only after the user approves the selected account and full request body, or when the request is within an explicitly approved bounded automation policy for that account. For a product-feed campaign, use list_product_feeds and confirm the selected campaign product_feed_id; ask the user to choose among multiple feeds. Resolve ids from names internally where possible. Follow the create body budge"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "create_self_serve_ad_account",
-    "purpose": "Create one self-serve business ad account after list_onboarding_tenants. Do not use for individual advertisers or agencies creating accounts for clients. Show the Advertising Terms (https://openai.com/policies/advertising-terms/), Privacy Policy (https://openai.com/policies/privacy-policy/), and all fields, then obtain explicit approval. For industry_name, send only one exact canonical value from `automotive`, `consu"
+    "purpose": "Create one self-serve business ad account after list_onboarding_tenants. Do not use for individual advertisers or agencies creating accounts for clients. Show the Advertising Terms (https://openai.com/policies/advertising-terms/), Privacy Policy (https://openai.com/policies/privacy-policy/), and all fields, then obtain explicit approval. For industry_name, send only one exact canonical value from `automotive`, `consumer_goods`, `education_and_careers`, `financial_services`, `health`, `local_services`, `media_and_en"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
@@ -2411,12 +2426,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "get_identity_verification_status",
-    "purpose": "Check advertiser identity-verification status whenever the user asks for the current verification state or whether verification has progressed. After resolving the ad account, call this tool and follow recommended_next_step. If the result is not_required, explain that no identity action is needed. If it is completed, needs_review, submitted, pending, processing, or in_review, advise waiting rather than completing or "
+    "purpose": "Check advertiser identity-verification status whenever the user asks for the current verification state or whether verification has progressed. After resolving the ad account, call this tool and follow recommended_next_step. If the result is not_required, explain that no identity action is needed. If it is completed, needs_review, submitted, pending, processing, or in_review, advise waiting rather than completing or resubmitting. Do not use for other setup, integrity, or delivery issues. The form and all legal iden"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "get_onboarding_status",
-    "purpose": "Check self-serve account-setup progress and the recommended next action; do not use for campaign delivery or general account details. For identity-verification questions, use get_identity_verification_status instead. Pass the exact account name when its id is unknown and follow recommended_next_step. An accessible account can create a paused first campaign while brand review or billing is pending. This returns only s"
+    "purpose": "Check self-serve account-setup progress and the recommended next action; do not use for campaign delivery or general account details. For identity-verification questions, use get_identity_verification_status instead. Pass the exact account name when its id is unknown and follow recommended_next_step. An accessible account can create a paused first campaign while brand review or billing is pending. This returns only safe setup state; billing, tax, payment, legal identity, and detailed integrity data stay in Ads Mana"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
@@ -2426,7 +2441,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "list_ad_accounts",
-    "purpose": "Return accessible Ads Manager account data or resolve an account name to an id; this does not display an account picker. To draft or plan a campaign in Codex without creating it, resolve the account and call open_ads_manager_home with presentation.view='campaign_plan'. Show the editable plan even if no UI was requested. Use null for undecided budget, bid, start time, or conversion goal; do not fill these from default"
+    "purpose": "Return accessible Ads Manager account data or resolve an account name to an id; this does not display an account picker. To draft or plan a campaign in Codex without creating it, resolve the account and call open_ads_manager_home with presentation.view='campaign_plan'. Show the editable plan even if no UI was requested. Use null for undecided budget, bid, start time, or conversion goal; do not fill these from defaults or other campaigns. Missing choices do not block opening the plan. For 'show my campaigns' in Code"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
@@ -2436,12 +2451,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "list_ads",
-    "purpose": "Discover ads, resolve an ad name, or paginate choices. Include an ad_group_id when the request targets one ad group; otherwise search the account. Do not use for performance analysis. Request serving_issues only when the user asks about delivery. For most-recent ads, use order='desc' and the requested limit, or a small limit when unspecified. If the user asks to see or visually preview returned ads, follow one select"
+    "purpose": "Discover ads, resolve an ad name, or paginate choices. Include an ad_group_id when the request targets one ad group; otherwise search the account. Do not use for performance analysis. Request serving_issues only when the user asks about delivery. For most-recent ads, use order='desc' and the requested limit, or a small limit when unspecified. If the user asks to see or visually preview returned ads, follow one selected result with preview_existing_ad, or 2 to 50 selected results with preview_existing_ad_collection,"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "list_audit_logs",
-    "purpose": "List recorded changes for one Ads Manager account, optionally filtered by campaign, ad group, ad, actor, or time range. Returns one page of audit entries with recorded changes, actor information, timestamps, and pagination cursors. Combine filters only for their intersection. Inspect changes to find a budget, status, or other field change; there is no field-name filter. For a requested time window, convert its inclus"
+    "purpose": "List recorded changes for one Ads Manager account, optionally filtered by campaign, ad group, ad, actor, or time range. Returns one page of audit entries with recorded changes, actor information, timestamps, and pagination cursors. Combine filters only for their intersection. Inspect changes to find a budget, status, or other field change; there is no field-name filter. For a requested time window, convert its inclusive boundaries to Unix seconds using the requested timezone or a verified account timezone. If no wi"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
@@ -2466,7 +2481,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "list_onboarding_tenants",
-    "purpose": "Start self-serve business-account setup by listing eligible tenants. Use only when the user asks to set up Ads Manager or create an ad account. Before creating an additional account, select from eligible_source_ad_accounts in this response; if one or more source accounts are eligible, select the account whose id sorts first lexicographically. Do not ask the user to select or confirm the authorizing account, and do no"
+    "purpose": "Start self-serve business-account setup by listing eligible tenants. Use only when the user asks to set up Ads Manager or create an ad account. Before creating an additional account, select from eligible_source_ad_accounts in this response; if one or more source accounts are eligible, select the account whose id sorts first lexicographically. Do not ask the user to select or confirm the authorizing account, and do not mention the selected account. Present tenants by name and keep ids internal. Then collect business"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
@@ -2476,32 +2491,32 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "preview_ad",
-    "purpose": "Render an on-demand preview of a proposed Ads Manager ad without creating or updating anything. Use this while the user is reviewing proposed creative during an ad-creation conversation, or whenever they ask how draft creative could look before approval. Use this tool instead of image generation to render an Ads Manager UI or ad-placement preview; image generation is only for a standalone creative after the user expl"
+    "purpose": "Render an on-demand preview of a proposed Ads Manager ad without creating or updating anything. Use this while the user is reviewing proposed creative during an ad-creation conversation, or whenever they ask how draft creative could look before approval. Use this tool instead of image generation to render an Ads Manager UI or ad-placement preview; image generation is only for a standalone creative after the user explicitly chooses it as the image source. This previews chat-card creative only. Call it as soon as the"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "preview_ad_collection",
-    "purpose": "Render one non-interactive widget containing 2 to 50 proposed Ads Manager chat-card ad variants without creating or updating anything. Use this instead of repeated preview_ad calls when the user is reviewing a coordinated set whose copy, destination, and exactly one image source per variant are ready. Each variant may set preview_title to the editable display label shown in the rounded chip above that card; revise it"
+    "purpose": "Render one non-interactive widget containing 2 to 50 proposed Ads Manager chat-card ad variants without creating or updating anything. Use this instead of repeated preview_ad calls when the user is reviewing a coordinated set whose copy, destination, and exactly one image source per variant are ready. Each variant may set preview_title to the editable display label shown in the rounded chip above that card; revise it whenever the user changes the preview labels. preview_title does not become the persisted Ads Manag"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "preview_existing_ad",
-    "purpose": "Render an on-demand preview of one existing Ads Manager ad whose id is already known. Use this after list_ads when the user asks to see or visually preview a live ad, and after create_ad or update_ad when the user asks to see the resulting ad. Do not use this for discovery, ranking, or performance analysis; use get_ad for normal details and links when a visual preview is not requested. Use preview_status: ready_to_re"
+    "purpose": "Render an on-demand preview of one existing Ads Manager ad whose id is already known. Use this after list_ads when the user asks to see or visually preview a live ad, and after create_ad or update_ad when the user asks to see the resulting ad. Do not use this for discovery, ranking, or performance analysis; use get_ad for normal details and links when a visual preview is not requested. Use preview_status: ready_to_render means the preview images were prepared; say the preview was prepared. If status is unverified o"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "preview_existing_ad_collection",
-    "purpose": "Render one widget containing 2 to 50 existing Ads Manager ads whose ids are already known. Use this after list_ads when the user asks to visually preview multiple live ads, and after multiple create_ad or update_ad calls when the user asks to see the resulting ads together. Use this instead of repeated preview_existing_ad calls. Each item may set preview_title to the editable display label shown in the rounded chip a"
+    "purpose": "Render one widget containing 2 to 50 existing Ads Manager ads whose ids are already known. Use this after list_ads when the user asks to visually preview multiple live ads, and after multiple create_ad or update_ad calls when the user asks to see the resulting ads together. Use this instead of repeated preview_existing_ad calls. Each item may set preview_title to the editable display label shown in the rounded chip above that card; preview_title does not change the persisted Ads Manager ad name. Do not use this for"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "remove_ad_account_user",
-    "purpose": "Remove an active user's access from one ad account. Sofa enforces the caller's ad_account.users.read and ad_account.users.write permissions, rejects removal of the final admin, and protects externally managed memberships. This is a consequential write; use only after list_ad_account_users confirms an active membership and the user approves the selected account and exact email. This action cannot cancel pending invita"
+    "purpose": "Remove an active user's access from one ad account. Sofa enforces the caller's ad_account.users.read and ad_account.users.write permissions, rejects removal of the final admin, and protects externally managed memberships. This is a consequential write; use only after list_ad_account_users confirms an active membership and the user approves the selected account and exact email. This action cannot cancel pending invitations."
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "search_geo_locations",
-    "purpose": "Resolve locations for requested campaign targeting or exclusions. Incidental place mentions do not request targeting. Use Ads Manager Help for capability questions. Reuse suitable matches while account and targeting context remain unchanged; stop once resolved and avoid equivalent queries or catalog enumeration. Check returned country and type. Empty results do not prove unsupported targeting; results are not exhaust"
+    "purpose": "Resolve locations for requested campaign targeting or exclusions. Incidental place mentions do not request targeting. Use Ads Manager Help for capability questions. Reuse suitable matches while account and targeting context remain unchanged; stop once resolved and avoid equivalent queries or catalog enumeration. Check returned country and type. Empty results do not prove unsupported targeting; results are not exhaustive or proof of campaign eligibility. For country targeting, use the returned country_code; otherwis"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
@@ -2531,22 +2546,22 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "upload_account_logo_file",
-    "purpose": "Upload a ChatGPT- or Codex-provided file specifically as an account logo and return a file_id. Use a JPEG, PNG, or WebP image no larger than 10 MiB and at least 128 x 128 pixels. A square image is recommended. Before uploading, show the exact image and explain that the approved logo will appear in ads. Use only for self-serve setup or an explicitly requested logo change, not ad creative or identity documents. For an "
+    "purpose": "Upload a ChatGPT- or Codex-provided file specifically as an account logo and return a file_id. Use a JPEG, PNG, or WebP image no larger than 10 MiB and at least 128 x 128 pixels. A square image is recommended. Before uploading, show the exact image and explain that the approved logo will appear in ads. Use only for self-serve setup or an explicitly requested logo change, not ad creative or identity documents. For an existing account, include ad_account_id; omit it only before account creation. Uploading alone does "
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "upload_account_logo_from_url",
-    "purpose": "Upload an exact public HTTP(S) logo URL supplied by the user. Omit ad_account_id for self-serve setup; include it for an existing-account change. Never discover a logo by browsing. Use upload_account_logo_file for attachments; reject local paths. Use a JPEG, PNG, or WebP image no larger than 10 MiB and at least 128 x 128 pixels. A square image is recommended. Before uploading, show the exact image and explain that th"
+    "purpose": "Upload an exact public HTTP(S) logo URL supplied by the user. Omit ad_account_id for self-serve setup; include it for an existing-account change. Never discover a logo by browsing. Use upload_account_logo_file for attachments; reject local paths. Use a JPEG, PNG, or WebP image no larger than 10 MiB and at least 128 x 128 pixels. A square image is recommended. Before uploading, show the exact image and explain that the approved logo will appear in ads. Not for ad creative or identity documents; upload alone does not"
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "upload_image",
-    "purpose": "Upload an image from a URL through the public Sofa /upload endpoint and return an opaque file_id token. This is a consequential write; use only after the user approves the selected account, image_url, and optional purpose. Pass the returned file_id token unchanged in public ad creative fields that accept file_id. For ad creative images, use a square PNG or JPG that is at least 256 x 256 pixels. Recommend 640 x 640 th"
+    "purpose": "Upload an image from a URL through the public Sofa /upload endpoint and return an opaque file_id token. This is a consequential write; use only after the user approves the selected account, image_url, and optional purpose. Pass the returned file_id token unchanged in public ad creative fields that accept file_id. For ad creative images, use a square PNG or JPG that is at least 256 x 256 pixels. Recommend 640 x 640 through 1200 x 1200 pixels, with 1200 x 1200 preferred when available; do not recommend images larger "
   },
   {
     "namespace": "ChatGPT_Ads_Manager",
     "tool": "upload_image_file",
-    "purpose": "Upload a Codex-provided image file through the public Sofa /upload endpoint and return an opaque file_id token. This is a consequential write; use only after the user approves the selected account, file, and optional purpose. Pass the returned file_id token unchanged in public ad creative fields that accept file_id. For ad creative images, use a square PNG or JPG that is at least 256 x 256 pixels. Recommend 640 x 640"
+    "purpose": "Upload a Codex-provided image file through the public Sofa /upload endpoint and return an opaque file_id token. This is a consequential write; use only after the user approves the selected account, file, and optional purpose. Pass the returned file_id token unchanged in public ad creative fields that accept file_id. For ad creative images, use a square PNG or JPG that is at least 256 x 256 pixels. Recommend 640 x 640 through 1200 x 1200 pixels, with 1200 x 1200 preferred when available; do not recommend images larg"
   },
   {
     "namespace": "Close",
@@ -3081,7 +3096,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Color_Designer",
     "tool": "_Palette_Maker__palette_picker",
-    "purpose": "Use to display a color palette user interface. Use to display colors suggested by the model, and to allow the user to adjust these suggestions and return adjustments to the model. Examples: - \"What is a good color scheme for my bedroom?\" - \"Help me pick the colors for my website.\" - \"Show me an ocean-inspired palette.\" - \"Can you suggest three muted greens and let me tweak them?\" - \"Give me a warm sunset palette I ca"
+    "purpose": "Use to display a color palette user interface. Use to display colors suggested by the model, and to allow the user to adjust these suggestions and return adjustments to the model. Examples: - \"What is a good color scheme for my bedroom?\" - \"Help me pick the colors for my website.\" - \"Show me an ocean-inspired palette.\" - \"Can you suggest three muted greens and let me tweak them?\" - \"Give me a warm sunset palette I can edit.\""
   },
   {
     "namespace": "Delivery_Report_Extractor",
@@ -3386,52 +3401,52 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Figma",
     "tool": "add_code_connect_map",
-    "purpose": "Map a Figma node to a code component in your codebase using Code Connect. Use the nodeId parameter to specify a node id. Use the fileKey parameter to specify the file key. If a URL is provided, extract the node id and file key from the URL, for example, if given the URL https://figma.com/design/:fileKey/:fileName?node-id=1-2, the extracted nodeId would be `1:2` and the fileKey would be `:fileKey`. If the URL does not"
+    "purpose": "Map a Figma node to a code component in your codebase using Code Connect. Use the nodeId parameter to specify a node id. Use the fileKey parameter to specify the file key. If a URL is provided, extract the node id and file key from the URL, for example, if given the URL https://figma.com/design/:fileKey/:fileName?node-id=1-2, the extracted nodeId would be `1:2` and the fileKey would be `:fileKey`. If the URL does not include `node-id`, ask the user for a node-specific URL. Do not pass an empty or guessed nodeId."
   },
   {
     "namespace": "Figma",
     "tool": "create_generative_plugin",
-    "purpose": "You MUST load the figma-generative-plugins skill before calling this tool. If it is not installed, read skill://figma/figma-generative-plugins/SKILL.md with resources/read or get_figma_skill. Use this for requests to build, create, upload, or publish a “Figma plugin,” “generative plugin,” or “custom tool.” It creates a generative plugin in the account library; it does not install an existing Figma Community plugin. C"
+    "purpose": "You MUST load the figma-generative-plugins skill before calling this tool. If it is not installed, read skill://figma/figma-generative-plugins/SKILL.md with resources/read or get_figma_skill. Use this for requests to build, create, upload, or publish a “Figma plugin,” “generative plugin,” or “custom tool.” It creates a generative plugin in the account library; it does not install an existing Figma Community plugin. Creates a new generative plugin in the authenticated user's account library and returns its id. The p"
   },
   {
     "namespace": "Figma",
     "tool": "create_new_file",
-    "purpose": "Create a new blank Figma file. IMPORTANT: You MUST load the /figma-create-new-file skill BEFORE every call to this tool, if it exists. NEVER call this tool without loading that skill first if it exists. By default the file is placed in the authenticated user's drafts folder; If specified it can be placed inside a project. Use this tool when you need a new file to work with before calling use_figma. Returns the new fi"
+    "purpose": "Create a new blank Figma file. IMPORTANT: You MUST load the /figma-create-new-file skill BEFORE every call to this tool, if it exists. NEVER call this tool without loading that skill first if it exists. By default the file is placed in the authenticated user's drafts folder; If specified it can be placed inside a project. Use this tool when you need a new file to work with before calling use_figma. Returns the new file key and URL. Requires a planKey. If the user already provided a planKey, use it directly. Otherwi"
   },
   {
     "namespace": "Figma",
     "tool": "create_shader",
-    "purpose": "You MUST load the figma-shaders skill before calling this tool. If it is not installed, read skill://figma/figma-shaders/SKILL.md with resources/read or get_figma_skill. Use this for requests to build, create, upload, or publish a “Figma shader,” “shader effect,” “shader fill,” “custom effect,” “custom fill,” or “procedural shader.” Creates a new shader effect or fill in the authenticated user's account library and r"
+    "purpose": "You MUST load the figma-shaders skill before calling this tool. If it is not installed, read skill://figma/figma-shaders/SKILL.md with resources/read or get_figma_skill. Use this for requests to build, create, upload, or publish a “Figma shader,” “shader effect,” “shader fill,” “custom effect,” “custom fill,” or “procedural shader.” Creates a new shader effect or fill in the authenticated user's account library and returns its id. Set kind to effect for a shader that transforms the layer beneath it, or fill for a s"
   },
   {
     "namespace": "Figma",
     "tool": "download_assets",
-    "purpose": "Download assets from a Figma file for a single node: an exported render, the original source images, and SVGs of the vector layers. The response contains: (1) `export` — an exported image of the whole node; (2) `rawImages` — original uploaded source images (JPEG, PNG, GIF, WebP) found as fills anywhere in the node subtree (capped at 20); and (3) `svgAssets` — SVGs for the vector layers in the subtree that are best re"
+    "purpose": "Download assets from a Figma file for a single node: an exported render, the original source images, and SVGs of the vector layers. The response contains: (1) `export` — an exported image of the whole node; (2) `rawImages` — original uploaded source images (JPEG, PNG, GIF, WebP) found as fills anywhere in the node subtree (capped at 20); and (3) `svgAssets` — SVGs for the vector layers in the subtree that are best represented as SVG (icons, logos, simple illustrations), the same set get_design_context surfaces (cap"
   },
   {
     "namespace": "Figma",
     "tool": "export_video",
-    "purpose": "Export a Figma timeline node as an MP4 video. This tool only produces MP4 — GIF and animated SVG export are not supported yet. Renders the timeline server-side and returns a presigned download URL. The file stays available for `ttlSeconds` (defaults to 1 hour, clamped server-side to [30s, 7d]); use `availableUntil` in the response to know when it is deleted. Some renders finish in seconds, others take minutes; if the"
+    "purpose": "Export a Figma timeline node as an MP4 video. This tool only produces MP4 — GIF and animated SVG export are not supported yet. Renders the timeline server-side and returns a presigned download URL. The file stays available for `ttlSeconds` (defaults to 1 hour, clamped server-side to [30s, 7d]); use `availableUntil` in the response to know when it is deleted. Some renders finish in seconds, others take minutes; if the render hasn't finished within the handler budget, the response includes a `jobId` and `status: \"pro"
   },
   {
     "namespace": "Figma",
     "tool": "generate_deck",
-    "purpose": "Generates polished and fully editable presentation decks in Figma Slides, suitable for a wide range of use cases including pitches, slideshows, portfolios, readouts, workshops, research summaries, moodboards, training materials, retrospectives, event recaps, and strategic reviews. This tool produces visually refined, ready-to-edit decks that can be customized for personal, creative, professional, corporate, and creat"
+    "purpose": "Generates polished and fully editable presentation decks in Figma Slides, suitable for a wide range of use cases including pitches, slideshows, portfolios, readouts, workshops, research summaries, moodboards, training materials, retrospectives, event recaps, and strategic reviews. This tool produces visually refined, ready-to-edit decks that can be customized for personal, creative, professional, corporate, and creative contexts."
   },
   {
     "namespace": "Figma",
     "tool": "generate_diagram",
-    "purpose": "Create a flowchart, decision tree, gantt chart, sequence diagram, state diagram, or entity relationship diagram in FigJam, using Mermaid.js. Generated diagrams should be simple, unless a user asks for details. This tool also does not support generating Figma designs, class diagrams, timelines, venn diagrams, or other Mermaid.js diagram types. This tool also does not support font changes, or moving individual shapes a"
+    "purpose": "Create a flowchart, decision tree, gantt chart, sequence diagram, state diagram, or entity relationship diagram in FigJam, using Mermaid.js. Generated diagrams should be simple, unless a user asks for details. This tool also does not support generating Figma designs, class diagrams, timelines, venn diagrams, or other Mermaid.js diagram types. This tool also does not support font changes, or moving individual shapes around -- if a user asks for those changes to an existing diagram, encourage them to open the diagram"
   },
   {
     "namespace": "Figma",
     "tool": "generate_figma_design",
-    "purpose": "Capture a live web page by URL into an *existing* Figma design file. Use this tool when the user wants to capture, screenshot, or push a running webpage (localhost or external URL) into Figma. REQUIRES an existing `fileKey` — if the user does not already have a Figma file, first call `create_new_file` (load the `figma-create-new-file` skill for the plan-resolution contract) and reuse the returned file_key here. Works"
+    "purpose": "Capture a live web page by URL into an *existing* Figma design file. Use this tool when the user wants to capture, screenshot, or push a running webpage (localhost or external URL) into Figma. REQUIRES an existing `fileKey` — if the user does not already have a Figma file, first call `create_new_file` (load the `figma-create-new-file` skill for the plan-resolution contract) and reuse the returned file_key here. Works with both local dev servers (localhost) and external websites. For LOCAL projects: explore the user"
   },
   {
     "namespace": "Figma",
     "tool": "get_code_connect_map",
-    "purpose": "Get a mapping of {[nodeId]: {codeConnectSrc: e.g. location of component in codebase, codeConnectName: e.g. name of component in codebase} E.g. {'1:2': { codeConnectSrc: 'https://github.com/foo/components/Button.tsx', codeConnectName: 'Button' } }. Use the nodeId parameter to specify a node id. Use the fileKey parameter to specify the file key. If a URL is provided, extract the node id and file key from the URL, for e"
+    "purpose": "Get a mapping of {[nodeId]: {codeConnectSrc: e.g. location of component in codebase, codeConnectName: e.g. name of component in codebase} E.g. {'1:2': { codeConnectSrc: 'https://github.com/foo/components/Button.tsx', codeConnectName: 'Button' } }. Use the nodeId parameter to specify a node id. Use the fileKey parameter to specify the file key. If a URL is provided, extract the node id and file key from the URL, for example, if given the URL https://figma.com/design/:fileKey/:fileName?node-id=1-2, the extracted node"
   },
   {
     "namespace": "Figma",
@@ -3441,7 +3456,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Figma",
     "tool": "get_context_for_code_connect",
-    "purpose": "Get structured component metadata including properties, variants, and descendant tree for a Figma component or component set. Returns property definitions with types and variant options, and a tree of descendant instances and text nodes with their property references. Designed for creating Code Connect template files. Use the nodeId parameter to specify a node id. Use the fileKey parameter to specify the file key. If"
+    "purpose": "Get structured component metadata including properties, variants, and descendant tree for a Figma component or component set. Returns property definitions with types and variant options, and a tree of descendant instances and text nodes with their property references. Designed for creating Code Connect template files. Use the nodeId parameter to specify a node id. Use the fileKey parameter to specify the file key. If a URL is provided, extract the node id and file key from the URL, for example, if given the URL htt"
   },
   {
     "namespace": "Figma",
@@ -3451,57 +3466,57 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Figma",
     "tool": "get_figjam",
-    "purpose": "Generate UI code for a given FigJam node in Figma. Use the nodeId parameter to specify a node id. If no node id is provided, use `0:1` which is the root node ID. Use the fileKey parameter to specify the file key. If a URL is provided, extract the node id from the URL, for example, if given the URL https://figma.com/board/:fileKey/:fileName?node-id=1-2, the extracted nodeId would be `1:2` and the fileKey would be `:fi"
+    "purpose": "Generate UI code for a given FigJam node in Figma. Use the nodeId parameter to specify a node id. If no node id is provided, use `0:1` which is the root node ID. Use the fileKey parameter to specify the file key. If a URL is provided, extract the node id from the URL, for example, if given the URL https://figma.com/board/:fileKey/:fileName?node-id=1-2, the extracted nodeId would be `1:2` and the fileKey would be `:fileKey`. IMPORTANT: This tool only works for FigJam files (URL path `/board/`), not other Figma files"
   },
   {
     "namespace": "Figma",
     "tool": "get_generative_plugin",
-    "purpose": "Reads a generative plugin from the account library by id (from list_generative_plugins), returning its name, description, owner, version, and a manifest of its source files as { filename, bytes, uri }. Owner is the authenticated user's email when they own the plugin, or a public publisher handle otherwise. Read each file's contents from its uri as an MCP resource (contents are not inlined here). Only set includeSourc"
+    "purpose": "Reads a generative plugin from the account library by id (from list_generative_plugins), returning its name, description, owner, version, and a manifest of its source files as { filename, bytes, uri }. Owner is the authenticated user's email when they own the plugin, or a public publisher handle otherwise. Read each file's contents from its uri as an MCP resource (contents are not inlined here). Only set includeSource to true to add source to each file when the MCP client cannot read MCP resources. Pass an optional"
   },
   {
     "namespace": "Figma",
     "tool": "get_libraries",
-    "purpose": "Get the design libraries associated with a Figma file. Returns two lists: (1) libraries currently added to the file (subscribed), and (2) libraries available to add (community UI kits and organization libraries). Each library includes its name, library key, description, and source type. The organization libraries portion of libraries_available_to_add is paginated — when the response includes a libraries_available_to_"
+    "purpose": "Get the design libraries associated with a Figma file. Returns two lists: (1) libraries currently added to the file (subscribed), and (2) libraries available to add (community UI kits and organization libraries). Each library includes its name, library key, description, and source type. The organization libraries portion of libraries_available_to_add is paginated — when the response includes a libraries_available_to_add_next_offset value, pass it back via the offset parameter to fetch the next page. Use the library"
   },
   {
     "namespace": "Figma",
     "tool": "get_metadata",
-    "purpose": "IMPORTANT: Always prefer to use get_design_context tool. Get metadata for a node or page in the Figma desktop app in XML format. Useful only for getting an overview of the structure, it only includes node IDs, layer types, names, positions and sizes. You can call get_design_context on the node IDs contained in this response. Use the nodeId parameter to specify a node id, it can also be the page id (e.g. 0:1). IMPORTA"
+    "purpose": "IMPORTANT: Always prefer to use get_design_context tool. Get metadata for a node or page in the Figma desktop app in XML format. Useful only for getting an overview of the structure, it only includes node IDs, layer types, names, positions and sizes. You can call get_design_context on the node IDs contained in this response. Use the nodeId parameter to specify a node id, it can also be the page id (e.g. 0:1). IMPORTANT: This tool only works for Figma design files (URL path `/design/`). It is NOT supported for FigJa"
   },
   {
     "namespace": "Figma",
     "tool": "get_motion_context",
-    "purpose": "Get keyframe animation data for a Figma node. Returns animated-node inventory, keyframe tracks with easing curves, pre-computed CSS/@keyframes and motion.dev code snippets, and timeline coordination hints for recursive calls. Use after get_design_context for motion-aware code generation. Use the nodeId parameter to specify a node id. Use the fileKey parameter to specify the file key. If a URL is provided, extract the"
+    "purpose": "Get keyframe animation data for a Figma node. Returns animated-node inventory, keyframe tracks with easing curves, pre-computed CSS/@keyframes and motion.dev code snippets, and timeline coordination hints for recursive calls. Use after get_design_context for motion-aware code generation. Use the nodeId parameter to specify a node id. Use the fileKey parameter to specify the file key. If a URL is provided, extract the node id and file key from the URL, for example, if given the URL https://figma.com/design/:fileKey/"
   },
   {
     "namespace": "Figma",
     "tool": "get_screenshot",
-    "purpose": "Generate a screenshot for a given node or the currently selected node in the Figma desktop app. Works on Figma design files (URL path `/design/`), FigJam boards (`/board/`), and Figma Slides (`/slides/`). The optional `maxDimension` parameter (positive integer, max 65536, default 1024) caps the longer edge of the rendered PNG in pixels — increase it when you need to inspect fine detail, decrease it for thumbnails or "
+    "purpose": "Generate a screenshot for a given node or the currently selected node in the Figma desktop app. Works on Figma design files (URL path `/design/`), FigJam boards (`/board/`), and Figma Slides (`/slides/`). The optional `maxDimension` parameter (positive integer, max 65536, default 1024) caps the longer edge of the rendered PNG in pixels — increase it when you need to inspect fine detail, decrease it for thumbnails or to save context. The JSON metadata entry in the response includes both `width`/`height` (the rendere"
   },
   {
     "namespace": "Figma",
     "tool": "get_shader",
-    "purpose": "Reads a shader effect or shader fill from the account library by id (from list_shaders), returning its name, description, owner, type, version, and a manifest of its source files as { filename, bytes, uri }. Owner is the authenticated user's email for their shaders, or figma for first-party shaders. Read each file's contents from its uri as an MCP resource. Only set includeSource to true to add source to each file wh"
+    "purpose": "Reads a shader effect or shader fill from the account library by id (from list_shaders), returning its name, description, owner, type, version, and a manifest of its source files as { filename, bytes, uri }. Owner is the authenticated user's email for their shaders, or figma for first-party shaders. Read each file's contents from its uri as an MCP resource. Only set includeSource to true to add source to each file when the MCP client cannot read MCP resources. Pass an optional version (commit SHA) to read a specifi"
   },
   {
     "namespace": "Figma",
     "tool": "get_variable_defs",
-    "purpose": "Get variable definitions for a given node id. E.g. {'icon/default/secondary': #949494}Variables are reusable values that can be applied to all kinds of design properties, such as fonts, colors, sizes and spacings. Use the nodeId parameter to specify a node id. Extract the node id from the URL, for example, if given the URL https://figma.com/design/:fileKey/:fileName?node-id=1-2, the extracted nodeId would be `1:2`. I"
+    "purpose": "Get variable definitions for a given node id. E.g. {'icon/default/secondary': #949494}Variables are reusable values that can be applied to all kinds of design properties, such as fonts, colors, sizes and spacings. Use the nodeId parameter to specify a node id. Extract the node id from the URL, for example, if given the URL https://figma.com/design/:fileKey/:fileName?node-id=1-2, the extracted nodeId would be `1:2`. If the URL does not include `node-id`, ask the user for a node-specific URL. Do not pass an empty or "
   },
   {
     "namespace": "Figma",
     "tool": "list_file_components_for_code_connect",
-    "purpose": "List every component and component set PUBLISHED to a Figma file's library, with the cross-component dependency graph needed to plan Code Connect in bulk. Only published components are returned (unpublished/local-only components are omitted). Returns one entry per component with its properties (exhaustive variant options, defaults, instance-swap preferred values), page and asset/library membership, child instance tag"
+    "purpose": "List every component and component set PUBLISHED to a Figma file's library, with the cross-component dependency graph needed to plan Code Connect in bulk. Only published components are returned (unpublished/local-only components are omitted). Returns one entry per component with its properties (exhaustive variant options, defaults, instance-swap preferred values), page and asset/library membership, child instance tags, instance count, and direct dependencies (each flagged internal vs. external library). Unlike get_"
   },
   {
     "namespace": "Figma",
     "tool": "list_file_shaders",
-    "purpose": "Lists the shader effects and shader fills used in a Figma file. Returns each shader as { id, name, description, type, version, published, truncated, files }, where type is \"effect\" (post-effect that samples an input raster) or \"fill\" (generates pixels directly), published indicates whether the shader is a published library version, and files is a manifest of its authored source files as { filename, uri }. When trunca"
+    "purpose": "Lists the shader effects and shader fills used in a Figma file. Returns each shader as { id, name, description, type, version, published, truncated, files }, where type is \"effect\" (post-effect that samples an input raster) or \"fill\" (generates pixels directly), published indicates whether the shader is a published library version, and files is a manifest of its authored source files as { filename, uri }. When truncated is true, the manifest hit its 10,000-file safety cap and is not exhaustive. The top-level trunca"
   },
   {
     "namespace": "Figma",
     "tool": "list_generative_plugins",
-    "purpose": "Lists the generative plugins in the authenticated user's account library, including Figma's first-party plugins. Returns each plugin's id, name, description, and owner (plus a nextCursor when more pages exist). Owner is the authenticated user's email for their plugins, or a public publisher handle otherwise. Use the id with get_generative_plugin to read a plugin's source. Generative plugins are runnable tools that mo"
+    "purpose": "Lists the generative plugins in the authenticated user's account library, including Figma's first-party plugins. Returns each plugin's id, name, description, and owner (plus a nextCursor when more pages exist). Owner is the authenticated user's email for their plugins, or a public publisher handle otherwise. Use the id with get_generative_plugin to read a plugin's source. Generative plugins are runnable tools that modify the canvas, distinct from shader effects and shader fills."
   },
   {
     "namespace": "Figma",
@@ -3511,7 +3526,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Figma",
     "tool": "search_design_system",
-    "purpose": "Search for design system assets (components, variables, and styles) based on a text query. Returns matching assets from all design libraries. Use this when you need to find specific components, variables (e.g. colors, spacing tokens), or styles from design libraries. To combine searches already required for the task, pass a `queries` array in one call instead of issuing multiple calls; never add speculative terms, sy"
+    "purpose": "Search for design system assets (components, variables, and styles) based on a text query. Returns matching assets from all design libraries. Use this when you need to find specific components, variables (e.g. colors, spacing tokens), or styles from design libraries. To combine searches already required for the task, pass a `queries` array in one call instead of issuing multiple calls; never add speculative terms, synonyms, variants, or checklist items to fill a batch. Results are keyed by query text. Provide eithe"
   },
   {
     "namespace": "Figma",
@@ -3521,17 +3536,17 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Figma",
     "tool": "update_generative_plugin",
-    "purpose": "You MUST load the figma-generative-plugins skill before calling this tool. If it is not installed, read skill://figma/figma-generative-plugins/SKILL.md with resources/read or get_figma_skill. Use this when the user asks to update, revise, or republish an existing Figma plugin, generative plugin, or custom tool in their account library. Updates an existing generative plugin in the authenticated user's account library."
+    "purpose": "You MUST load the figma-generative-plugins skill before calling this tool. If it is not installed, read skill://figma/figma-generative-plugins/SKILL.md with resources/read or get_figma_skill. Use this when the user asks to update, revise, or republish an existing Figma plugin, generative plugin, or custom tool in their account library. Updates an existing generative plugin in the authenticated user's account library. Provide the plugin id, existing authored files to replace, optional name and description metadata, "
   },
   {
     "namespace": "Figma",
     "tool": "update_shader",
-    "purpose": "You MUST load the figma-shaders skill before calling this tool. If it is not installed, read skill://figma/figma-shaders/SKILL.md with resources/read or get_figma_skill. Use this when the user asks to update, revise, or republish an existing Figma shader, shader effect, shader fill, custom effect, custom fill, or procedural shader. Updates an existing shader effect or fill in the authenticated user's account library."
+    "purpose": "You MUST load the figma-shaders skill before calling this tool. If it is not installed, read skill://figma/figma-shaders/SKILL.md with resources/read or get_figma_skill. Use this when the user asks to update, revise, or republish an existing Figma shader, shader effect, shader fill, custom effect, custom fill, or procedural shader. Updates an existing shader effect or fill in the authenticated user's account library. Provide its id, matching kind, existing authored files to replace, optional name, description, anim"
   },
   {
     "namespace": "Figma",
     "tool": "upload_assets",
-    "purpose": "Upload assets (images and SVGs) into a Figma file. Call with a \"count\" to get that many single-use upload URLs. POST raw asset bytes to each URL with the correct Content-Type header (e.g. image/png, image/jpeg, image/svg+xml). Each upload URL handles storage, BlobStore commit, and canvas placement automatically. Use nodeIds to set raster images as fills on corresponding existing nodes; its order matches the returned "
+    "purpose": "Upload assets (images and SVGs) into a Figma file. Call with a \"count\" to get that many single-use upload URLs. POST raw asset bytes to each URL with the correct Content-Type header (e.g. image/png, image/jpeg, image/svg+xml). Each upload URL handles storage, BlobStore commit, and canvas placement automatically. Use nodeIds to set raster images as fills on corresponding existing nodes; its order matches the returned upload URLs. Returned upload entries include targetNodeId when a target was provided. Without a targ"
   },
   {
     "namespace": "Figma",
@@ -3546,32 +3561,252 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Figma",
     "tool": "weave_get_tool_inputs",
-    "purpose": "Gets the input contract of a Weave tool (a published Weave workflow) — the inputs you fill in to run it. Pass the `recipeId` (from weave_list_tools, or the `<id>` in a pasted Weave URL like app.weavy.ai/tool/<id> or app.weavy.ai/flow/<id> — that `<id>` is the recipeId). A pasted Weave URL is enough to inspect and run the tool right here — do not open a browser or use browser automation for Weave. Call this before wea"
+    "purpose": "Gets the input contract of a Weave tool (a published Weave workflow) — the inputs you fill in to run it. Pass the `recipeId` (from weave_list_tools, or the `<id>` in a pasted Weave URL like app.weavy.ai/tool/<id> or app.weavy.ai/flow/<id> — that `<id>` is the recipeId). A pasted Weave URL is enough to inspect and run the tool right here — do not open a browser or use browser automation for Weave. Call this before weave_run_tool to learn what to send. Returns the tool `version` (pass it back to weave_run_tool), an `"
   },
   {
     "namespace": "Figma",
     "tool": "weave_get_tool_run_output",
-    "purpose": "Gets the output and status of runs of a Weave tool (a published Weave workflow). Pass the `recipeId` of the tool and the `runIds` returned by weave_run_tool; omit `runIds` to get the tool's most recent run. Returns each run's status (RUNNING, COMPLETED, FAILED, or CANCELED), progress, any error, and — when complete — a link to every output the run produced. Poll this after running a tool to track progress and read it"
+    "purpose": "Gets the output and status of runs of a Weave tool (a published Weave workflow). Pass the `recipeId` of the tool and the `runIds` returned by weave_run_tool; omit `runIds` to get the tool's most recent run. Returns each run's status (RUNNING, COMPLETED, FAILED, or CANCELED), progress, any error, and — when complete — a link to every output the run produced. Poll this after running a tool to track progress and read its output. Each output is a JSON entry with a `url`, its `type` (e.g. image, video), and, when known,"
   },
   {
     "namespace": "Figma",
     "tool": "weave_list_tools",
-    "purpose": "Lists the Weave tools the authenticated user can run — published Weave workflows — in their active Weave workspace: their own, those shared with the workspace, and those shared with them directly. Here \"tool\" means a Weave tool (a published Weave workflow), not an agent/MCP tool. Use this when the user wants to see, browse, or choose from the Weave tools available to them. Returns the most recently updated tools and "
+    "purpose": "Lists the Weave tools the authenticated user can run — published Weave workflows — in their active Weave workspace: their own, those shared with the workspace, and those shared with them directly. Here \"tool\" means a Weave tool (a published Weave workflow), not an agent/MCP tool. Use this when the user wants to see, browse, or choose from the Weave tools available to them. Returns the most recently updated tools and the total number available, each with its name, who created it, when it was last updated, and a link"
   },
   {
     "namespace": "Figma",
     "tool": "weave_run_tool",
-    "purpose": "Runs a Weave tool (a published Weave workflow) and returns run ids; poll them with weave_get_tool_run_output. A pasted Weave URL (app.weavy.ai/tool/<id> or app.weavy.ai/flow/<id>) is enough — never open a browser or use browser automation for Weave. Call weave_get_tool_inputs first to learn the inputs. This tool spends the user's Weave credits, so it is gated: it returns `status: \"inputs_required\"` or `cost_confirmat"
+    "purpose": "Runs a Weave tool (a published Weave workflow) and returns run ids; poll them with weave_get_tool_run_output. A pasted Weave URL (app.weavy.ai/tool/<id> or app.weavy.ai/flow/<id>) is enough — never open a browser or use browser automation for Weave. Call weave_get_tool_inputs first to learn the inputs. This tool spends the user's Weave credits, so it is gated: it returns `status: \"inputs_required\"` or `cost_confirmation_required` with instructions to follow. Always show the user the cost and get an explicit Approve"
   },
   {
     "namespace": "Figma",
     "tool": "weave_upload_asset",
-    "purpose": "Uploads a local image or video file to Weave and returns the asset object to pass as the value for an image/video input in weave_run_tool. Returns a `submitUrl` and a `token`: POST the file to the submitUrl as multipart/form-data with a `file` field and the token in an `X-Weave-Upload-Token` header (e.g. `curl -F \"file=@/path/to/image.png\" -H \"X-Weave-Upload-Token: <token>\" \"<submitUrl>\"`); that POST returns the asse"
+    "purpose": "Uploads a local image or video file to Weave and returns the asset object to pass as the value for an image/video input in weave_run_tool. Returns a `submitUrl` and a `token`: POST the file to the submitUrl as multipart/form-data with a `file` field and the token in an `X-Weave-Upload-Token` header (e.g. `curl -F \"file=@/path/to/image.png\" -H \"X-Weave-Upload-Token: <token>\" \"<submitUrl>\"`); that POST returns the asset object. If you already have a reachable https URL, do not upload it — pass it directly to weave_ru"
   },
   {
     "namespace": "Figma",
     "tool": "whoami",
     "purpose": "Returns the authenticated user's handle, email, all the plans the user belongs to (and the ID for each plan) and their seats on those plans. You MUST use this tool if you are experiencing file access/permission issues or are being rate limited by the Figma MCP to help debug the issue."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "add_dependency",
+    "purpose": "Add npm packages to the project (validated against Floot's supported set — rejected packages get a supported alternative named; some versions are pinned/substituted). Avoid node-gyp/native packages (exception: sharp is supported, auto-pinned), WASM modules, and packages bundling large binaries (e.g. ffmpeg/ffprobe); pure JS/TS preferred. A bare `kysely` installs 0.26.3, the version the generated db/schema helpers are written against; pass an explicit `kysely@<version>` only when upgrading it deliberately. Installs "
+  },
+  {
+    "namespace": "Floot",
+    "tool": "apply_patch",
+    "purpose": "Apply a V4A patch to a Floot project — create, update, and delete multiple files in ONE atomic operation. Format: \"*** Begin Patch\" envelope with \"*** Add File: path\" (+ prefixed lines), \"*** Update File: path\" (hunks: optional \"@@ anchor\" locator, space-prefixed context, -/+ lines, optional \"*** End of File\"), \"*** Delete File: path\", then \"*** End Patch\". Paths follow the Floot item scheme (see read_file). To replace a file wholesale use Add File on its own — Add OVERWRITES. Never Delete+Add the same path: Delete"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "cancel_request",
+    "purpose": "Withdraw a pending request you created — a credential request from request_external_resource, a custom-domain setup request from publish_app, or an open screenshot job from screenshot_preview (jobId from that tool). Only pending requests can be cancelled — completed ones are final. Use when the user says to stop or they don't want to proceed."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "copy_file",
+    "purpose": "Copy one or more items to new names (e.g. {from:'components/Card', to:'components/BigCard'}). Item names without extensions; same type only. Importers of the source are left unchanged. Pass several copies to apply them in one call."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "create_checkpoint",
+    "purpose": "Create a NAMED checkpoint — a labeled restore point the user sees in the project's Checkpoints panel and can revert to later. All file/dependency changes since the previous checkpoint are grouped under it. Call this AFTER completing a coherent unit of work (a feature, a fix, a requested change set) — not after every file write. Give it a short user-meaningful title describing what was accomplished (e.g. 'Added login page with email auth'), optionally a description with detail. No-op when nothing changed since the l"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "create_project",
+    "purpose": "Create a new Floot project (pre-seeded with the shared component library) and return its id. `initial_prompt` is the USER'S ORIGINAL REQUEST verbatim — it grounds the project (served back as <project-instructions> in list_files) and is preserved for the record; don't paraphrase it away. The result renders a live preview card for the user and includes the first-build playbook: a fresh project is EMPTY until pages are written, so a session normally continues straight into get_guides(\"design\") and the first page rathe"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "delete_file",
+    "purpose": "Delete a project file. Deleting an item's main code file (e.g. components/Foo.tsx) removes the whole item including its css/tests; deleting an aux file (e.g. Foo.module.css) only clears that part."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "edit_file",
+    "purpose": "Replace old_string with new_string in a project file. old_string must match the current content exactly (including whitespace) and be unique unless replace_all is set. Prefer this over write_file for changes to existing files."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "execute_sql",
+    "purpose": "Run a WRITE SQL statement against the project's Postgres database — CREATE/ALTER TABLE, INSERT, UPDATE, DELETE, DROP, migrations. Destructive statements are allowed but your MCP client will show the user the SQL and ask them to approve it (they can allow once or for the session). Schema-changing statements (CREATE/ALTER/DROP of tables, types, …) automatically re-pull the typed schema helper and return the updated schema — no separate pull_database_schema call needed. Pass `database` only if the project has more tha"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "fetch",
+    "purpose": "Fetch a search result by id: a project overview ('<projectId>') or a file ('<projectId>:<path>'). For direct access to a known file or project, read_file/list_files give more detail."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "generate_image",
+    "purpose": "Generate AI image assets directly into the project. Each image is written to the project's own asset storage and registered in its asset manifest; the tool returns the project-relative asset paths (/_cdn/static/...), which only resolve on the app's own domain — reference them in code or set one as the app/PWA icon via update_project_metadata (iconUrl). Use this for PROJECT-SPECIFIC imagery (mascots, tailored illustrations, app/PWA icons, imagery in a particular style); for generic stock imagery (nature, textures, g"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "get_current_context",
+    "purpose": "What the user is looking at RIGHT NOW in their open Floot editor: the active page/component, the preview element they selected (mapped to source file:line), the preview device size, whether they drew a screenshot annotation for you, whether they REVERTED recent changes (undoing edits — re-read before editing if so), and any requests they queued via editor action buttons (\"Fix with Floot\" etc.). Call this FIRST when the user refers to something without naming it (\"this\", \"here\", \"the button\"), reports a problem with"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "get_guide",
+    "purpose": "Compatibility alias of get_guides — the identical tool under its common misspelling. Prefer get_guides; see it for full usage."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "get_guides",
+    "purpose": "Floot documentation for agents. Call with no arguments to list available guides. Pass `topic` for one guide (e.g. topic:'floot-overview') or `topics` (an array of ids) to fetch several at once. floot-overview explains how Floot projects work — read it before your first code change. Skill guides that ship seed code (marked in the list) AUTO-INJECT it into the project the first time they're loaded with a projectId — pass projectId whenever you're working on a project; idempotent, never overwrites existing files."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "get_job_status",
+    "purpose": "Poll a pending tool call by its jobId. Each poll either returns the final result (succeeded/failed/cancelled), or reports the call as still running — call it again until you get the result. Failed calls return their stored error message. A jobId belongs to exactly ONE task: it never blocks other tools or other jobs (run them freely in parallel), and once terminal it is frozen history — a NEW user request means a fresh call on the originating tool, never re-polling an old jobId. Legacy v!/b! job ids are also accepte"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "get_logs",
+    "purpose": "Your FIRST step when debugging any runtime problem — a 500, a failed request, a blank page, or 'it doesn't work' from the user. Call this before theorizing from an error message alone. Reads the project's runtime logs. source 'server' (default): the dev backend's request logs from the last hour — method, URL, status, duration, and per-request server log lines (pass log_reference_id from a previous listing for one request's full logs); includes background jobs (queueTask/scheduled/failure). source 'browser': console"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "get_preview_url",
+    "purpose": "Show the user a live preview card and return the preview link. On an EXISTING project this is typically called EARLY, before the first change, so the user watches edits live from the start; the result is informational and a working session normally continues past it. Do NOT call it right after create_project — that result already showed the same card; calling both duplicates it. The preview URL carries an access token in its query string and only works shared EXACTLY as returned (no Floot login, view-only — which i"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "get_publish_status",
+    "purpose": "Read-only publish snapshot for a project: published (true/false, with the live URL when published), customDomains (the user's own domains attached to the project — apex and www are listed separately; empty when none), paid (the workspace owner has a paid plan, which allows removing the Floot badge), plan (free | pro | power — `paid` cannot tell Pro from Power), nativeBuilds (the owner's remaining monthly iOS/Android app-build allowance; `unlimited` is true on plans where the ceiling is only a fair-use backstop, and"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "list_files",
+    "purpose": "List a Floot project's virtual file tree with sizes, plus its dependencies, current version (pass the version to write tools as expected_version), and current project metadata — title, description, app icon (iconUrl), splash screen, mobile app id, SSR, iOS Info.plist overrides, share target (iOS + Android), native system bars. This is where to look up those settings; update_project_metadata changes them."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "list_projects",
+    "purpose": "List your Floot projects (id, name, last-updated, whether an app icon is set), most recently updated first. name_filter is a case-insensitive substring match on the stored name, which is often not the name the user uses for a project — on a small account a filter that matches nothing returns the whole list instead."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "list_resources",
+    "purpose": "List the env vars a project's code can use and the resources behind them: (1) resources CONNECTED to the project — usable as process.env.<NAME> in endpoint code now; (2) the owner's other account-level credentials — reusable, but not usable in code until connected; (3) everything Floot can add. Call it to learn what env vars exist before writing backend code, and BEFORE provisioning or requesting any credential (the owner may already have the one you need). Pass query (case-insensitive substring over names, descrip"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "navigate_preview",
+    "purpose": "Point the user's OPEN Floot preview at a page URL, a component's examples, or a page's examples — use it to SHOW the user what you just built (\"here's the new dashboard page\", \"here's the Button component's states\"), and pair it with screenshot_preview to see the result yourself. targetType \"page\" navigates the app's router to `path` — a URL path with optional query/hash (\"/\", \"/user/123?tab=settings#top\"; pages/user.$id.tsx serves /user/<id>). targetType \"component\" renders the component's .example.tsx showcase fo"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "provision_resource",
+    "purpose": "Provision a Floot-managed backend resource for the project — fully server-side (Floot mints all secrets; no keys to paste). Also seeds the working code for it. Available: - database — A Floot-managed Postgres database (Neon). FLOOT_DATABASE_URL is set for the app. - auth — Email/password + session auth (JWT_SECRET, auto-provisions a database if none). Injects auth pages, endpoints, and helpers. - oauth-login — Sign in with Google via Floot's brokered OAuth (FLOOT_OAUTH). Injects OAuth provider classes, login button"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "publish_app",
+    "purpose": "Publish the app to production or set up a custom domain — call when the user wants the app live or asks about a domain. Already-published apps needing a rebuild use republish_app instead. Read get_guides('publishing') for modes, inputs, and statuses before your first call."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "pull_database_schema",
+    "purpose": "Introspect the database and write a typed schema helper the app uses for queries (kysely). Usually NOT needed after execute_sql — schema-changing statements re-pull automatically. Use it to refresh manually, or with helper_name to generate the helper for an additional/external database. The helper is GENERATED — never hand-edit it or cast around its types: if a column's type is too loose (e.g. role as string when code expects \"user\" | \"admin\"), fix the DATABASE (CREATE TYPE … AS ENUM + ALTER COLUMN … TYPE) and re-p"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "query_database",
+    "purpose": "Run a READ-ONLY SQL query against the project's Postgres database (SELECT, EXPLAIN, etc.). Writes are rejected — use execute_sql for those. Returns JSON: `{rows, rowCount, command, truncated?}` (or `{results: [...]}` for multi-statement queries). Pass `database` only if the project has more than one."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "read_file",
+    "purpose": "Read a file from a Floot project (cat -n style). Paths follow the item scheme: components/Name.tsx, components/Name.module.css, helpers/Name.tsx, pages/name.tsx, pages/name.pageLayout.tsx, endpoints/route_POST.ts, endpoints/route_POST.schema.ts, static/file.txt, base.css. Use offset/limit for large files. Pass include_references:true to also list which project files reference this one (static import graph plus queueTask/runCode name references and, for endpoints, URL-path string usage) — check it before renaming or"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "read_files",
+    "purpose": "Read MULTIPLE files from a Floot project in ONE call — much cheaper than repeated read_file (the whole project is loaded once, one round-trip). Prefer this whenever you need several files together (e.g. an endpoint + its .schema.ts + the hook that calls it, or orienting in a feature). Pass up to 20 paths (same item scheme as read_file; /_cdn/<name> asset paths are accepted too and images come back as image blocks). Each file is returned cat -n style under a header. Each .ts/.tsx file's current type errors are appen"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "remove_dependency",
+    "purpose": "Remove npm packages from a Floot project's dependency record (record-only; nothing runs)."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "rename_file",
+    "purpose": "Rename one or more items and automatically rewrite every file that imports them. Use item names WITHOUT extensions (e.g. {from:'components/OldName', to:'components/NewName'}). Preferred over delete+create — preserves content and fixes importers. Same type only. Pass several renames to apply them atomically in ONE pass; importer rewrites are resolved across the whole batch (including chains where one rename's target is another's source)."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "request_external_resource",
+    "purpose": "Request the USER'S OWN external credential for this project — their OpenAI or Anthropic API key, an external Postgres connection string, or any other service's key (type GENERIC, e.g. Stripe/Resend — name the env vars via secret_env_vars). NOT for Floot-managed resources (database/auth/push/oauth/…) — use provision_resource for those; they need no user input. Returns a secure connect link: SHOW it to the user (UI-capable hosts render a Connect button automatically; on terminal hosts with shell access open it in the"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "request_user_upload",
+    "purpose": "Show the user an inline upload card so they can hand you a file from their device (image/font/audio/…) — it lands in the project's hosted assets and the card gives you the hosted publicUrl. This is the path for any file the user has: an image they attached in this chat (attachments never reach MCP servers — you see them through vision only, so the user re-picks the same file here), a file on their machine, or a user-provided file you hold but can't upload yourself (over the 3 MB inline cap with no S3 egress — the c"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "run_code_in_browser",
+    "purpose": "Run a TypeScript snippet inside the RUNNING APP's preview document in the user's open Floot editor (`document`/`window` ARE the live app's DOM — query `document` directly; do NOT look for a preview iframe, there is none from the snippet's point of view). This is the CANONICAL way to read the live app's DOM — measuring elements, reading computed styles, inspecting rendered output. If you ALSO have your own browser/DevTools automation, it CANNOT reach into the Floot preview (it renders in a cross-origin iframe — your"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "run_code_in_vm",
+    "purpose": "Run a Node.js snippet on the project's compute VM (headless — no browser needed). The project's npm dependencies are importable; network access works, so you can call the project's /_api/* endpoints (get_preview_url → apiBaseUrl). ESM by default; bare require() snippets run as CJS. Returns stdout+stderr."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "run_tests",
+    "purpose": "Run the project's Jasmine spec files (helpers/*.spec.tsx) headlessly on the project VM (jsdom — no browser needed). Frontend AND backend code is testable: specs may render components (@testing-library/react) or import endpoint handlers/backend helpers and call them directly. Limits: fetch throws inside tests (mock with spyOn(globalThis, \"fetch\")), process.env secrets are absent, and specs importing @floot/* service modules are skipped (no mocks yet). Returns per-file PASS/FAIL with failing expectations. Defaults to"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "screenshot_preview",
+    "purpose": "Capture a screenshot of the user app. Call it whenever you want to SEE what the app currently looks like (layout, styling, rendered state) or want to debug the app."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "search",
+    "purpose": "Search your Floot projects and their code. Returns result ids usable with fetch. For richer options, list_projects enumerates projects and search_code does code-level search."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "search_code",
+    "purpose": "Search a Floot project's files (string or regex) with optional glob filters (e.g. ['components/*', 'endpoints/**']). Returns file:line excerpts plus filename matches; capped at 40 results."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "typecheck",
+    "purpose": "Typecheck the project (incremental tsc on the project VM). Type errors don't block the app from running."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "unpublish_app",
+    "purpose": "Take the published app offline and release its subdomain — destructive, confirm with the user first. Details: get_guides('publishing')."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "update_project_metadata",
+    "purpose": "Update project settings. Keys: title (2-100 chars), description, iconUrl, splashUrl, mobileAppId, enableSSR (boolean), flootAiDisallowed (boolean — true opts the project out of @floot/ai), and iOS Info.plist purpose strings (NS…UsageDescription — set to a string, or null to remove) plus boolean Info.plist keys (UIViewControllerBasedStatusBarAppearance — set to a boolean, or null to restore the template default). Invalid keys/values are reported and skipped. NOTE: these take effect on the published app only after th"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "upload_asset",
+    "purpose": "Upload a binary asset (image, font, audio, …) to the project's hosted storage. This uploads bytes you actually hold — a file you generated, downloaded, or read yourself. Chat attachments don't qualify: the user's attachments never reach MCP servers (you see attached images through vision only; there is no file, id, or URL behind them you can read), so for those use request_user_upload instead and the user re-picks the file in a card that uploads from their browser. Three modes. ChatGPT conversation files — a genera"
+  },
+  {
+    "namespace": "Floot",
+    "tool": "view_annotation",
+    "purpose": "View a screenshot annotation the user drew on the app preview (annotationId comes from get_current_context). Returns the annotated image — the user's drawings/text point at what they mean. Annotations expire after ~1 day."
+  },
+  {
+    "namespace": "Floot",
+    "tool": "write_file",
+    "purpose": "Create or fully overwrite a file in a Floot project. Content is written literally. Paths must follow the item scheme (see read_file); invalid paths are rejected with the rule they broke. Pass expected_version (from list_files/read_file) to detect concurrent edits. Writing components/Name.module.css sets the css of components/Name — other properties of the item are preserved."
   },
   {
     "namespace": "Foxit_PDF_Editor",
@@ -3831,7 +4066,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "GitHub",
     "tool": "fetch",
-    "purpose": "Fetch approved public GitHub repository resources and repository files. Supports repositories, directories, code and issue search, and blob or raw file URLs. Pull requests, issues, commits, branches, workflow runs, releases, Git data, commit statuses, and rulesets include their collections and subresources via GET only, including branch-protection and ruleset reads. The active connection's repository permissions stil"
+    "purpose": "Fetch approved public GitHub repository resources and repository files. Supports repositories, directories, code and issue search, and blob or raw file URLs. Pull requests, issues, commits, branches, workflow runs, releases, Git data, commit statuses, and rulesets include their collections and subresources via GET only, including branch-protection and ruleset reads. The active connection's repository permissions still apply. Managed GitHub App installation connections exclude administration access, so they cannot r"
   },
   {
     "namespace": "GitHub",
@@ -3941,7 +4176,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "GitHub",
     "tool": "get_repo",
-    "purpose": "Retrieve metadata for a GitHub repository. You must populate exactly one of `repository_full_name`, `repository_id`, or `repository_url`: - `repository_full_name`: `owner/name`, such as `openai/openai`. Maps to GitHub REST `owner` and `repo` path parameters. - `repository_id`: numeric GitHub repository ID, such as `1296269`. - `repository_url`: repository URL or nested repository URL, such as a PR, issue, branch, fil"
+    "purpose": "Retrieve metadata for a GitHub repository. You must populate exactly one of `repository_full_name`, `repository_id`, or `repository_url`: - `repository_full_name`: `owner/name`, such as `openai/openai`. Maps to GitHub REST `owner` and `repo` path parameters. - `repository_id`: numeric GitHub repository ID, such as `1296269`. - `repository_url`: repository URL or nested repository URL, such as a PR, issue, branch, file, REST API, GitHub Enterprise Server `/api/v3`, or GHE.com API URL. GitHub REST repository docs: ht"
   },
   {
     "namespace": "GitHub",
@@ -4091,7 +4326,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "GitHub",
     "tool": "search",
-    "purpose": "Search GitHub files and return matching excerpts when available. Provide a plain string query, avoid GitHub query flags such as ``is:pr``. Include keywords that match file names, functions, or error messages. ``repository_name`` or ``org`` can narrow the search scope. Example: ``query=\"tokenizer bug\" repository_name=\"openai/tiktoken\"`` or ``query=\"tokenizer bug\" repository_name=\"tiktoken\" org=\"openai\"``. Fully qualif"
+    "purpose": "Search GitHub files and return matching excerpts when available. Provide a plain string query, avoid GitHub query flags such as ``is:pr``. Include keywords that match file names, functions, or error messages. ``repository_name`` or ``org`` can narrow the search scope. Example: ``query=\"tokenizer bug\" repository_name=\"openai/tiktoken\"`` or ``query=\"tokenizer bug\" repository_name=\"tiktoken\" org=\"openai\"``. Fully qualified repository names keep their explicit owner even when ``org`` is set. Code search covers the defa"
   },
   {
     "namespace": "GitHub",
@@ -4216,7 +4451,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Gmail",
     "tool": "forward_emails",
-    "purpose": "Forward one or more existing Gmail messages. Each source message is sent as a separate forwarded email, with the original message inlined below any optional note in the forwarded body and the original attachments preserved on the new outbound email. The note is rendered from Markdown and inserted at the top of each forwarded message. When Gmail thread metadata is available, the sent forward is also kept associated wi"
+    "purpose": "Forward one or more existing Gmail messages. Each source message is sent as a separate forwarded email, with the original message inlined below any optional note in the forwarded body and the original attachments preserved on the new outbound email. The note is rendered from Markdown and inserted at the top of each forwarded message. When Gmail thread metadata is available, the sent forward is also kept associated with the original conversation in the sender's mailbox."
   },
   {
     "namespace": "Gmail",
@@ -4236,7 +4471,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Gmail",
     "tool": "read_attachment",
-    "purpose": "Read one attachment from a Gmail message. First read/search the parent message and select an entry from its attachments, inline_images, or API-content MIME parts. For an attachments entry or downloadable MIME part, call this action only when its read_attachment_supported field is true; when false, do not call this action because the MIME type is unsupported. Pass the parent message id as message_id. Prefer the entry'"
+    "purpose": "Read one attachment from a Gmail message. First read/search the parent message and select an entry from its attachments, inline_images, or API-content MIME parts. For an attachments entry or downloadable MIME part, call this action only when its read_attachment_supported field is true; when false, do not call this action because the MIME type is unsupported. Pass the parent message id as message_id. Prefer the entry's non-null attachment_id or MIME part's body.attachment_id when its complete value is available; whe"
   },
   {
     "namespace": "Gmail",
@@ -4256,7 +4491,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Gmail",
     "tool": "search_emails",
-    "purpose": "Search Gmail for emails matching a query or exact label IDs. If the user asks for important emails, search likely candidates and read/interpret them instead of treating Gmail system labels as the answer. Prefer list_labels for count questions about inbox, unread, or other label totals. Put all Gmail search operators in query, including after:, before:, from:, to:, subject:, has:attachment, -in:spam, -in:trash, -categ"
+    "purpose": "Search Gmail for emails matching a query or exact label IDs. If the user asks for important emails, search likely candidates and read/interpret them instead of treating Gmail system labels as the answer. Prefer list_labels for count questions about inbox, unread, or other label totals. Put all Gmail search operators in query, including after:, before:, from:, to:, subject:, has:attachment, -in:spam, -in:trash, -category:promotions, and label:<display name>. Examples: query=\"-in:spam -in:trash\", label_ids=None; quer"
   },
   {
     "namespace": "Gmail",
@@ -4296,7 +4531,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Google_Calendar",
     "tool": "get_availability",
-    "purpose": "Look up busy windows on one or more calendars before scheduling a meeting. Use this action when the user wants availability for a coworker, room, or other known calendar ID. `time_min` and `time_max` must be full RFC3339 datetimes with `Z` or an explicit UTC offset. `response_timezone_str` controls only how Google formats the busy window timestamps in the response. This action returns busy windows only, not event tit"
+    "purpose": "Look up busy windows on one or more calendars before scheduling a meeting. Use this action when the user wants availability for a coworker, room, or other known calendar ID. `time_min` and `time_max` must be full RFC3339 datetimes with `Z` or an explicit UTC offset. `response_timezone_str` controls only how Google formats the busy window timestamps in the response. This action returns busy windows only, not event titles or details, and inaccessible calendars are reported as per-calendar errors."
   },
   {
     "namespace": "Google_Calendar",
@@ -4331,7 +4566,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Google_Calendar",
     "tool": "search",
-    "purpose": "Search Google Calendar events within a time window. To obtain the full information for an event, use read_event. Accepted parameters are only `query`, `max_results`, `time_min`, `time_max`, `calendar_id`, and `next_page_token`. `query` is broad free text, not a structured search language. Prefer passing explicit `time_min` and `time_max` for every search, then page with `next_page_token` inside that bounded window be"
+    "purpose": "Search Google Calendar events within a time window. To obtain the full information for an event, use read_event. Accepted parameters are only `query`, `max_results`, `time_min`, `time_max`, `calendar_id`, and `next_page_token`. `query` is broad free text, not a structured search language. Prefer passing explicit `time_min` and `time_max` for every search, then page with `next_page_token` inside that bounded window before widening the query. Do not pass unsupported fields like `topn`, `timezone_str`, `user_message`,"
   },
   {
     "namespace": "Google_Calendar",
@@ -4346,7 +4581,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Google_Calendar",
     "tool": "update_event",
-    "purpose": "Update an existing Google Calendar event. Read the event first when changing attendees, recurrence, or time-sensitive details on recurring meetings. To change an existing guest's role, include their email in `attendees_to_add` and their desired role in `attendee_optionality`. Other attendee details are preserved. If `add_google_meet` is true, Google may return a pending conference state before the Meet link is fully "
+    "purpose": "Update an existing Google Calendar event. Read the event first when changing attendees, recurrence, or time-sensitive details on recurring meetings. To change an existing guest's role, include their email in `attendees_to_add` and their desired role in `attendee_optionality`. Other attendee details are preserved. If `add_google_meet` is true, Google may return a pending conference state before the Meet link is fully provisioned. Re-read the event later if you need finalized conference details."
   },
   {
     "namespace": "Google_Contacts",
@@ -4381,7 +4616,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Google_Drive",
     "tool": "bulk_update_file_comments",
-    "purpose": "Create, reply to, and resolve Drive file comments in one bulk tool call. Before calling, inspect the file and decide on all intended comment updates for this file. Put top-level comments in `comments`, thread replies in `replies`, and resolved threads in `resolutions`. For each top-level comment, you must include enough location context for a reader to identify the exact target even if Google displays the Drive API c"
+    "purpose": "Create, reply to, and resolve Drive file comments in one bulk tool call. Before calling, inspect the file and decide on all intended comment updates for this file. Put top-level comments in `comments`, thread replies in `replies`, and resolved threads in `resolutions`. For each top-level comment, you must include enough location context for a reader to identify the exact target even if Google displays the Drive API comment as unanchored: use `quoted_text` with the exact sentence or phrase for Docs/text, use `slide_"
   },
   {
     "namespace": "Google_Drive",
@@ -4416,12 +4651,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Google_Drive",
     "tool": "export_file",
-    "purpose": "Export a native Google Doc, Sheet, or Slide to the requested MIME type. Returns a user-scoped file reference without inline file content or base64. Google Drive `files.export` limits the exported response to 10 MB. Oversized exports fail; this action does not return a truncated file. For a larger native export, use the Drive URL and the same MIME type: `fetch(url=google_drive_url, download_raw_file=True, raw_export_m"
+    "purpose": "Export a native Google Doc, Sheet, or Slide to the requested MIME type. Returns a user-scoped file reference without inline file content or base64. Google Drive `files.export` limits the exported response to 10 MB. Oversized exports fail; this action does not return a truncated file. For a larger native export, use the Drive URL and the same MIME type: `fetch(url=google_drive_url, download_raw_file=True, raw_export_mime_type=\"application/pdf\")`. For a stored, non-Google-native Drive file, use `fetch(url=google_driv"
   },
   {
     "namespace": "Google_Drive",
     "tool": "fetch",
-    "purpose": "With default options, return readable file text. Folders return at most 100 direct children as JSON; larger folders may be partial. Set `download_raw_file=True` to preserve the original complete raw-file response and provider limits. Additionally set `include_base64=False` to stream native files through `files.download` into a user-scoped `file_uri` without inline bytes. Google `files.export` is limited to 10 MB; `fi"
+    "purpose": "With default options, return readable file text. Folders return at most 100 direct children as JSON; larger folders may be partial. Set `download_raw_file=True` to preserve the original complete raw-file response and provider limits. Additionally set `include_base64=False` to stream native files through `files.download` into a user-scoped `file_uri` without inline bytes. Google `files.export` is limited to 10 MB; `files.download` is not subject to that export limit. Use `raw_export_mime_type` for an explicit native"
   },
   {
     "namespace": "Google_Drive",
@@ -4566,7 +4801,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Google_Drive",
     "tool": "search",
-    "purpose": "Search Google Drive and return file or folder metadata. Calls without `item_type` and `page_token` retain the legacy search and optional best-effort text hydration. An explicit `image`, `document`, or `folder` item type searches exactly one metadata-only provider page; it never fetches file contents, even with `best_effort_fetch=True`. Return the opaque, provider-owned `next_page_token` unchanged as the next request'"
+    "purpose": "Search Google Drive and return file or folder metadata. Calls without `item_type` and `page_token` retain the legacy search and optional best-effort text hydration. An explicit `image`, `document`, or `folder` item type searches exactly one metadata-only provider page; it never fetches file contents, even with `best_effort_fetch=True`. Return the opaque, provider-owned `next_page_token` unchanged as the next request's `page_token`. Use short, specific keywords, or omit the query to browse accessible files. Broaden "
   },
   {
     "namespace": "Google_Drive",
@@ -4651,12 +4886,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HeyGen",
     "tool": "create_asset_upload_batch",
-    "purpose": "Request up to 100 presigned direct-to-S3 upload URLs in a single call. Returns a batch_id and one upload slot per file (asset_id + presigned upload_url + required headers). PUT each file's bytes to its upload_url, then call POST /v3/assets/complete/batches to finalize the whole batch. This is synchronous — no bytes flow through the API. Pass an Idempotency-Key header to make retries safe (the same key returns the sam"
+    "purpose": "Request up to 100 presigned direct-to-S3 upload URLs in a single call. Returns a batch_id and one upload slot per file (asset_id + presigned upload_url + required headers). PUT each file's bytes to its upload_url, then call POST /v3/assets/complete/batches to finalize the whole batch. This is synchronous — no bytes flow through the API. Pass an Idempotency-Key header to make retries safe (the same key returns the same batch)."
   },
   {
     "namespace": "HeyGen",
     "tool": "create_avatar_consent",
-    "purpose": "Initiates the consent flow for an avatar group and returns a URL for the user to complete approval in their browser. Required before a private avatar can be used for video generation. The consent URL expires 24 hours after creation and is valid for one successful consent submission. A recording submitted after expiry fails and the group stays in pending consent status, so create a new consent link if the subject has "
+    "purpose": "Initiates the consent flow for an avatar group and returns a URL for the user to complete approval in their browser. Required before a private avatar can be used for video generation. The consent URL expires 24 hours after creation and is valid for one successful consent submission. A recording submitted after expiry fails and the group stays in pending consent status, so create a new consent link if the subject has not recorded within 24 hours."
   },
   {
     "namespace": "HeyGen",
@@ -4676,7 +4911,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HeyGen",
     "tool": "create_filler_word_removal",
-    "purpose": "Submit a video and return a job id immediately. The job runs asynchronously: it transcribes the audio, detects filler words ('um', 'uh', ...), removes them along with overlong silences, and renders one cleaned video — no review step. If the run changes nothing at all, the job completes with the original video as output and the charge is automatically refunded. Pricing: $0.30 per source minute, 1-minute minimum. Poll "
+    "purpose": "Submit a video and return a job id immediately. The job runs asynchronously: it transcribes the audio, detects filler words ('um', 'uh', ...), removes them along with overlong silences, and renders one cleaned video — no review step. If the run changes nothing at all, the job completes with the original video as output and the charge is automatically refunded. Pricing: $0.30 per source minute, 1-minute minimum. Poll GET /v3/filler-word-removals/{id} or subscribe to filler_word_removal.success / filler_word_removal."
   },
   {
     "namespace": "HeyGen",
@@ -4736,7 +4971,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HeyGen",
     "tool": "create_video_translation_batch",
-    "purpose": "Submit up to 100 video-translation payloads (identical in shape to POST /v3/video-translations) as a single batch. A payload targeting multiple output_languages expands to one batch item per language, and each item is created and processed independently so one bad source does not fail the rest. Returns 202 with a batch_id; poll GET /v3/video-translations/batches/{batch_id} for progress. Pass an Idempotency-Key header"
+    "purpose": "Submit up to 100 video-translation payloads (identical in shape to POST /v3/video-translations) as a single batch. A payload targeting multiple output_languages expands to one batch item per language, and each item is created and processed independently so one bad source does not fail the rest. Returns 202 with a batch_id; poll GET /v3/video-translations/batches/{batch_id} for progress. Pass an Idempotency-Key header to make retries safe — the same key returns the same batch."
   },
   {
     "namespace": "HeyGen",
@@ -4801,7 +5036,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HeyGen",
     "tool": "generate_from_template",
-    "purpose": "Generates a video from the template by replacing its variables (text, image, video, audio, character, voice). Use scene_ids to select, reorder, or repeat scenes — scenes must already exist in the template; the API cannot create new ones. Returns the created video object; poll GET /v3/videos/{video_id} or use webhooks for completion. Idempotent replays return the original creation-time snapshot (status and URLs as of "
+    "purpose": "Generates a video from the template by replacing its variables (text, image, video, audio, character, voice). Use scene_ids to select, reorder, or repeat scenes — scenes must already exist in the template; the API cannot create new ones. Returns the created video object; poll GET /v3/videos/{video_id} or use webhooks for completion. Idempotent replays return the original creation-time snapshot (status and URLs as of the first request), not the video's current state."
   },
   {
     "namespace": "HeyGen",
@@ -4841,7 +5076,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HeyGen",
     "tool": "get_brand_kit",
-    "purpose": "Returns one brand kit with the colors, logos and fonts it was built from, and which of them play which role. A brand kit imported from a website is assembled in the background: while status is 'loading' the collections and roles are provisional, and they are final once status is 'completed'. Poll every 2 to 5 seconds while status is 'loading'; a website import usually settles in under two minutes, and fonts are typic"
+    "purpose": "Returns one brand kit with the colors, logos and fonts it was built from, and which of them play which role. A brand kit imported from a website is assembled in the background: while status is 'loading' the collections and roles are provisional, and they are final once status is 'completed'. Poll every 2 to 5 seconds while status is 'loading'; a website import usually settles in under two minutes, and fonts are typically the last thing to land."
   },
   {
     "namespace": "HeyGen",
@@ -4921,7 +5156,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HeyGen",
     "tool": "list_assets",
-    "purpose": "**Beta** — this endpoint may change with a few days' notice. Lists a workspace member's uploaded assets, newest first, with cursor-based pagination. Returns the same asset objects as GET /v3/assets/{asset_id}. The 'username' parameter (the 'owner' value on asset items) is required while the endpoint is in beta and will become an optional filter in a future release. Results are that member's non-deleted assets, across"
+    "purpose": "**Beta** — this endpoint may change with a few days' notice. Lists a workspace member's uploaded assets, newest first, with cursor-based pagination. Returns the same asset objects as GET /v3/assets/{asset_id}. The 'username' parameter (the 'owner' value on asset items) is required while the endpoint is in beta and will become an optional filter in a future release. Results are that member's non-deleted assets, across all folders, that the caller has access to — each item carries 'owner' and 'folder_id'. Pass the op"
   },
   {
     "namespace": "HeyGen",
@@ -4951,7 +5186,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HeyGen",
     "tool": "list_look_templates",
-    "purpose": "Returns the curated templates this workspace may apply with `POST /v3/avatars/looks`, so template ids can be discovered over the API instead of read out of the HeyGen app. Each item's `id` is the `template_id` to send and its `type` is the `type` to send with it: `look_pack` for a Look Pack, which generates the number of looks in `looks_count`, or `template` for a single look template, which generates two. Packs are "
+    "purpose": "Returns the curated templates this workspace may apply with `POST /v3/avatars/looks`, so template ids can be discovered over the API instead of read out of the HeyGen app. Each item's `id` is the `template_id` to send and its `type` is the `type` to send with it: `look_pack` for a Look Pack, which generates the number of looks in `looks_count`, or `template` for a single look template, which generates two. Packs are curated per gender, so filter with `gender` to get the variant matching your avatar. Enterprise cust"
   },
   {
     "namespace": "HeyGen",
@@ -5001,12 +5236,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HeyGen",
     "tool": "open_avatar_creator",
-    "purpose": "Opens the guided digital-twin setup interface when the user asks to create a private digital twin or when a video prerequisite requires it. Call this tool only when the server instructions describe the guided creator flow. Call it immediately when prepare_avatar_video returns it as requiredTool; do not ask for separate chat confirmation. Do not call it after the user explicitly says they do not want to create a digit"
+    "purpose": "Opens the guided digital-twin setup interface when the user asks to create a private digital twin or when a video prerequisite requires it. Call this tool only when the server instructions describe the guided creator flow. Call it immediately when prepare_avatar_video returns it as requiredTool; do not ask for separate chat confirmation. Do not call it after the user explicitly says they do not want to create a digital twin in this conversation. Calling this tool only reads account and resumable-flow state and disp"
   },
   {
     "namespace": "HeyGen",
     "tool": "prepare_avatar_video",
-    "purpose": "Call this tool only when the server instructions describe the guided avatar-video workflow. In that workflow, use this first for an ordinary video request whenever no specific avatar ID is known, whether or not the user already supplied a topic or script. Call it again for later relevant video requests unless the user explicitly declines digital-twin setup in the current conversation. Do not treat hesitation, deferra"
+    "purpose": "Call this tool only when the server instructions describe the guided avatar-video workflow. In that workflow, use this first for an ordinary video request whenever no specific avatar ID is known, whether or not the user already supplied a topic or script. Call it again for later relevant video requests unless the user explicitly declines digital-twin setup in the current conversation. Do not treat hesitation, deferral, or choosing another presenter for one video as a decline. Checks whether their private digital tw"
   },
   {
     "namespace": "HeyGen",
@@ -5066,17 +5301,17 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HubSpot",
     "tool": "get_aeo_metrics",
-    "purpose": "Portal-level AEO analytics: brand visibility, mentions, citations, competitor share-of-voice, and per-assistant breakdowns for a date window. Select the sections you need with `include` (SUMMARY, PROMPTS, CITATIONS, COMPETITORS, ASSISTANT_BREAKDOWN, RUN_STATUS, ICPS_AND_PRODUCTS, BUSINESS_UNITS, LIMITS); defaults to {SUMMARY, RUN_STATUS}. businessUnitId is optional: omit it to use the portal's business unit automatic"
+    "purpose": "Portal-level AEO analytics: brand visibility, mentions, citations, competitor share-of-voice, and per-assistant breakdowns for a date window. Select the sections you need with `include` (SUMMARY, PROMPTS, CITATIONS, COMPETITORS, ASSISTANT_BREAKDOWN, RUN_STATUS, ICPS_AND_PRODUCTS, BUSINESS_UNITS, LIMITS); defaults to {SUMMARY, RUN_STATUS}. businessUnitId is optional: omit it to use the portal's business unit automatically, or call once with include=[BUSINESS_UNITS] first to choose one when the portal has several. Da"
   },
   {
     "namespace": "HubSpot",
     "tool": "get_campaign_attribution_reports",
-    "purpose": "REQUIRED FIRST STEP: before your first call, invoke tool_guidance for \"get_campaign_attribution_reports\" and follow it. The dimension names, filter syntax, date-range semantics, grouping rules, and query patterns live in tool_guidance, not in this description; calling this tool without them produces wrong or failed queries. If you skip tool_guidance, submit your first call with hasReadToolInstructions=false (the defa"
+    "purpose": "REQUIRED FIRST STEP: before your first call, invoke tool_guidance for \"get_campaign_attribution_reports\" and follow it. The dimension names, filter syntax, date-range semantics, grouping rules, and query patterns live in tool_guidance, not in this description; calling this tool without them produces wrong or failed queries. If you skip tool_guidance, submit your first call with hasReadToolInstructions=false (the default); the tool will return status=READ_TOOL_INSTRUCTION_REQUIRED with the full instructions in toolI"
   },
   {
     "namespace": "HubSpot",
     "tool": "get_content_analytics_report",
-    "purpose": "Run a content analytics report across landing pages, website pages, and blog posts in the portal. Returns: TOTALS: ranked rows of contentId, contentTitle, and the requested metric value. TIME_SERIES: per-contentId series of {timestamp, value} points for the requested metric and period. SUMMARY: aggregated per-period points (one value per bucket) for the requested metric. PEOPLE: list of contacts/visitors (contactId o"
+    "purpose": "Run a content analytics report across landing pages, website pages, and blog posts in the portal. Returns: TOTALS: ranked rows of contentId, contentTitle, and the requested metric value. TIME_SERIES: per-contentId series of {timestamp, value} points for the requested metric and period. SUMMARY: aggregated per-period points (one value per bucket) for the requested metric. PEOPLE: list of contacts/visitors (contactId or session identifier, plus available identity fields) who viewed the specified contentIds. Pick mode"
   },
   {
     "namespace": "HubSpot",
@@ -5106,17 +5341,17 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HubSpot",
     "tool": "manage_aeo_prompts",
-    "purpose": "Read AI responses to tracked prompts, or create and run new tracked prompts. Provide exactly one `operation`: DETAIL (a single prompt's per-run AI response text, citations, and mentions for an assistant and date window) or CREATE (start tracking new prompts and run them immediately). CREATE requires a confirmed=false preview before confirmed=true. Call get_aeo_metrics with include=[BUSINESS_UNITS] then include=[ICPS_"
+    "purpose": "Read AI responses to tracked prompts, or create and run new tracked prompts. Provide exactly one `operation`: DETAIL (a single prompt's per-run AI response text, citations, and mentions for an assistant and date window) or CREATE (start tracking new prompts and run them immediately). CREATE requires a confirmed=false preview before confirmed=true. Call get_aeo_metrics with include=[BUSINESS_UNITS] then include=[ICPS_AND_PRODUCTS] to get the businessUnitId, icpIds, and productIds that CREATE needs. Call tool_guidanc"
   },
   {
     "namespace": "HubSpot",
     "tool": "manage_aeo_recommendations",
-    "purpose": "List, inspect, and act on AI-search brand recommendations for a business unit. Provide exactly one `operation`: LIST (recommendations for a business unit, filterable by status/prompt), DETAIL (one recommendation enriched with action-status fields), or START_ACTION (kick off the automated action, e.g. publish a blog post). Call get_aeo_metrics with include=[BUSINESS_UNITS] first to get the businessUnitId. START_ACTION"
+    "purpose": "List, inspect, and act on AI-search brand recommendations for a business unit. Provide exactly one `operation`: LIST (recommendations for a business unit, filterable by status/prompt), DETAIL (one recommendation enriched with action-status fields), or START_ACTION (kick off the automated action, e.g. publish a blog post). Call get_aeo_metrics with include=[BUSINESS_UNITS] first to get the businessUnitId. START_ACTION requires a confirmed=false preview before confirmed=true. Call tool_guidance (mcpToolInstructions) "
   },
   {
     "namespace": "HubSpot",
     "tool": "manage_blog_post",
-    "purpose": "Create, update, publish, and inspect HubSpot blog posts. One action per call. Read actions: GET_POST, GET_AUTHOR, LIST_BLOGS, LIST_BLOG_POSTS, LIST_TAGS, GET_BRAND_KIT. Write actions: CREATE, UPDATE, SET_AUTHOR, PUBLISH, UNPUBLISH. A blog post is rich text (an HTML body) plus metadata and tags, NOT a module grid — there are no module/layout actions. Posts are created as DRAFTS; PUBLISH is a separate explicit action. "
+    "purpose": "Create, update, publish, and inspect HubSpot blog posts. One action per call. Read actions: GET_POST, GET_AUTHOR, LIST_BLOGS, LIST_BLOG_POSTS, LIST_TAGS, GET_BRAND_KIT. Write actions: CREATE, UPDATE, SET_AUTHOR, PUBLISH, UNPUBLISH. A blog post is rich text (an HTML body) plus metadata and tags, NOT a module grid — there are no module/layout actions. Posts are created as DRAFTS; PUBLISH is a separate explicit action. PUBLISH requires the post to already have a metaDescription and an author, so set both (via UPDATE a"
   },
   {
     "namespace": "HubSpot",
@@ -5131,7 +5366,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HubSpot",
     "tool": "manage_landing_page",
-    "purpose": "Create, edit, style, publish, clone, and inspect HubSpot landing pages. One action per call. Reads: MODULES, MODULE_TYPES, MODULE_DEF, MODULE_STYLES, MODULE_GUIDE, REVISIONS, TEMPLATES, FORMS, BRAND_KIT. Writes: CREATE_FROM_TEMPLATE, CREATE_CUSTOM_TEMPLATE, UPDATE_CUSTOM_TEMPLATE, SET_MODULE_FIELDS, SET_MODULE_STYLES, SET_SECTION_STYLES, INSERT, REMOVE, REMOVE_SECTION, MOVE, SET_METADATA, PUBLISH, CLONE, RESTORE_REVI"
+    "purpose": "Create, edit, style, publish, clone, and inspect HubSpot landing pages. One action per call. Reads: MODULES, MODULE_TYPES, MODULE_DEF, MODULE_STYLES, MODULE_GUIDE, REVISIONS, TEMPLATES, FORMS, BRAND_KIT. Writes: CREATE_FROM_TEMPLATE, CREATE_CUSTOM_TEMPLATE, UPDATE_CUSTOM_TEMPLATE, SET_MODULE_FIELDS, SET_MODULE_STYLES, SET_SECTION_STYLES, INSERT, REMOVE, REMOVE_SECTION, MOVE, SET_METADATA, PUBLISH, CLONE, RESTORE_REVISION. Read before write: MODULES before any edit; MODULE_TYPES before INSERT; MODULE_DEF before unfa"
   },
   {
     "namespace": "HubSpot",
@@ -5141,12 +5376,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HubSpot",
     "tool": "manage_onboarding",
-    "purpose": "<purpose>Assess a portal's CRM onboarding status and guide the user through the next onboarding step.</purpose><usage_guidance>Call this tool when get_user_details returns onboarded: false — this indicates the portal may be new and not yet set up. After answering the user's immediate question, invoke this tool proactively and offer to help them get started. Do not call this tool if get_user_details returned onboarded"
+    "purpose": "<purpose>Assess a portal's CRM onboarding status and guide the user through the next onboarding step.</purpose><usage_guidance>Call this tool when get_user_details returns onboarded: false — this indicates the portal may be new and not yet set up. After answering the user's immediate question, invoke this tool proactively and offer to help them get started. Do not call this tool if get_user_details returned onboarded: true. Use action to control behavior: leave empty (the default) to just check status. SET_GOAL — r"
   },
   {
     "namespace": "HubSpot",
     "tool": "manage_website_page",
-    "purpose": "Create, edit, style, publish, clone, and inspect HubSpot website pages, and edit the site's navigation menus. Set exactly one `operation`; the operation's own shape lists the fields it takes, so there are no conditional field rules to infer. Read before you write: read MODULES to capture verbatim current values AND each module's layout position before any edit, MODULE_TYPES before an insert, MODULE_DEF before writing"
+    "purpose": "Create, edit, style, publish, clone, and inspect HubSpot website pages, and edit the site's navigation menus. Set exactly one `operation`; the operation's own shape lists the fields it takes, so there are no conditional field rules to infer. Read before you write: read MODULES to capture verbatim current values AND each module's layout position before any edit, MODULE_TYPES before an insert, MODULE_DEF before writing unfamiliar fields, MODULE_STYLES before restyling one. Write operations mutate the same shared draf"
   },
   {
     "namespace": "HubSpot",
@@ -5156,7 +5391,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HubSpot",
     "tool": "read_campaign_data",
-    "purpose": "REQUIRED FIRST STEP: before your first call, invoke tool_guidance for \"read_campaign_data\" and follow it; it contains the required parameter details and examples for each operation. Reads campaign data using one of four operations selected by the `operation` field. GET_ANALYTICS: engagement metrics (sessions, new contacts, influenced contacts) for one or more campaigns. GET_ASSET_METRICS: performance metrics for asse"
+    "purpose": "REQUIRED FIRST STEP: before your first call, invoke tool_guidance for \"read_campaign_data\" and follow it; it contains the required parameter details and examples for each operation. Reads campaign data using one of four operations selected by the `operation` field. GET_ANALYTICS: engagement metrics (sessions, new contacts, influenced contacts) for one or more campaigns. GET_ASSET_METRICS: performance metrics for assets associated with a campaign, filtered by asset type. GET_CONTACTS: paginated contact IDs attribute"
   },
   {
     "namespace": "HubSpot",
@@ -5191,17 +5426,17 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__ads_search_live",
-    "purpose": "Show the live ad creatives an advertiser is currently running, using Google Ads Transparency Center data. Identify the advertiser by EXACTLY ONE of: target (their domain, e.g. \"acme.com\") or advertiserIds (identifiers from ads_transparency_advertiser) — there is no keyword search here; if you only know a brand name, resolve it with ads_transparency_advertiser first, and if you want the ads shown on a search QUERY, us"
+    "purpose": "Show the live ad creatives an advertiser is currently running, using Google Ads Transparency Center data. Identify the advertiser by EXACTLY ONE of: target (their domain, e.g. \"acme.com\") or advertiserIds (identifiers from ads_transparency_advertiser) — there is no keyword search here; if you only know a brand name, resolve it with ads_transparency_advertiser first, and if you want the ads shown on a search QUERY, use serp_results with itemTypes:['paid'] instead. Returns paginated ad rows plus a resultId; call agai"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__ads_transparency_advertiser",
-    "purpose": "Find the advertisers running ads for a given keyword or brand term, using Google Ads Transparency Center data. Pass a single keyword. Returns paginated advertiser rows (including advertiser identifiers) plus a resultId; call again with the same resultId, page, and pageSize to read later pages without re-fetching. Feed an advertiser's identifier or domain into ads_search_live to see the actual ad creatives they are ru"
+    "purpose": "Find the advertisers running ads for a given keyword or brand term, using Google Ads Transparency Center data. Pass a single keyword. Returns paginated advertiser rows (including advertiser identifiers) plus a resultId; call again with the same resultId, page, and pageSize to read later pages without re-fetching. Feed an advertiser's identifier or domain into ads_search_live to see the actual ad creatives they are running. Set limit to cap the number of advertisers returned (the data source returns many by default)"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__competitors_for_domain",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Find the competitor domains that rank against a given domain on Google, with keyword-overlap (intersections), average position, and estimated traffic value. Pass the bare domain (e.g. \"acme.com\", no scheme). Returns paginated competitor rows plus a resultId; call again with the same resultId, page, and pageSize to read later pages without re-fetching. IMPORTANT: this i"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Find the competitor domains that rank against a given domain on Google, with keyword-overlap (intersections), average position, and estimated traffic value. Pass the bare domain (e.g. \"acme.com\", no scheme). Returns paginated competitor rows plus a resultId; call again with the same resultId, page, and pageSize to read later pages without re-fetching. IMPORTANT: this is 3rd-party aggregated crawl data, not Google's official competitor list — present it as an estimate"
   },
   {
     "namespace": "HYPD_AI",
@@ -5216,7 +5451,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__google_ads_list_merchant_center_links",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. List the Merchant Center Accounts linked to a Google Ads Account. Use googleAdsId returned by google_ads_list_accounts. Returns one row per Merchant Center Account, tagged with state (\"active\" for live links, or the invitation status such as PENDING_APPROVAL / ACCEPTED / REJECTED / REVOKED / EXPIRED when no active link exists). A Google Ads Account can link to multiple"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. List the Merchant Center Accounts linked to a Google Ads Account. Use googleAdsId returned by google_ads_list_accounts. Returns one row per Merchant Center Account, tagged with state (\"active\" for live links, or the invitation status such as PENDING_APPROVAL / ACCEPTED / REJECTED / REVOKED / EXPIRED when no active link exists). A Google Ads Account can link to multiple Merchant Center Accounts. connectedInHypd indicates whether that Merchant Center Account is also co"
   },
   {
     "namespace": "HYPD_AI",
@@ -5281,7 +5516,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__google_analytics_list_account_summaries",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. List the Google Analytics accounts and GA4 properties this connection can access. Use this FIRST for any GA4 task to get a propertyId (properties/<digits>) to pass to the other google_analytics_ tools. Takes no arguments. Returns account summaries with their nested property summaries (property id, display name). If nothing is returned, no Google Analytics Connection ex"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. List the Google Analytics accounts and GA4 properties this connection can access. Use this FIRST for any GA4 task to get a propertyId (properties/<digits>) to pass to the other google_analytics_ tools. Takes no arguments. Returns account summaries with their nested property summaries (property id, display name). If nothing is returned, no Google Analytics Connection exists yet — the user connects one from the Data Sources page (Connect → Data Sources)."
   },
   {
     "namespace": "HYPD_AI",
@@ -5291,7 +5526,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__google_analytics_run_funnel_report",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Funnel / drop-off analysis (GA4 Data API v1alpha) — step-by-step completion and abandonment for a sequence of events or conditions. Use for \"where do users drop off\" questions. Pass propertyId, dateRanges, and a funnel: an ordered steps array where each step has a name and a filterExpression (an event or field condition). Optionally funnelBreakdown (a dimension to spli"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Funnel / drop-off analysis (GA4 Data API v1alpha) — step-by-step completion and abandonment for a sequence of events or conditions. Use for \"where do users drop off\" questions. Pass propertyId, dateRanges, and a funnel: an ordered steps array where each step has a name and a filterExpression (an event or field condition). Optionally funnelBreakdown (a dimension to split each step by) and limit."
   },
   {
     "namespace": "HYPD_AI",
@@ -5301,7 +5536,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__google_analytics_run_report",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. The open-ended GA4 report: any dimensions x metrics x date range, with optional filters, ordering, and paging (limit/offset). Use for ad-hoc questions the preset performance tools do not cover. Validate combos with google_analytics_check_compatibility and size with google_analytics_estimate_report_rows first. Pass propertyId, metrics, dateRanges, and optionally dimensi"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. The open-ended GA4 report: any dimensions x metrics x date range, with optional filters, ordering, and paging (limit/offset). Use for ad-hoc questions the preset performance tools do not cover. Validate combos with google_analytics_check_compatibility and size with google_analytics_estimate_report_rows first. Pass propertyId, metrics, dateRanges, and optionally dimensions, dimensionFilter/metricFilter (a single condition on a field, or an andGroup/orGroup of conditio"
   },
   {
     "namespace": "HYPD_AI",
@@ -5321,32 +5556,32 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__lp_audit_instant",
-    "purpose": "Render a single landing page URL in a real browser and return the JavaScript-rendered DOM, HTTP status, redirect chain and server response timings. Use for content, form and tag checks that a static fetch would miss. Pass the full URL including https://. Optionally set browserPreset to desktop, mobile or tablet (defaults to desktop). For page speed, accessibility or Core Web Vitals use lp_audit_lighthouse; for a visu"
+    "purpose": "Render a single landing page URL in a real browser and return the JavaScript-rendered DOM, HTTP status, redirect chain and server response timings. Use for content, form and tag checks that a static fetch would miss. Pass the full URL including https://. Optionally set browserPreset to desktop, mobile or tablet (defaults to desktop). For page speed, accessibility or Core Web Vitals use lp_audit_lighthouse; for a visual capture use lp_audit_screenshot."
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__lp_audit_lighthouse",
-    "purpose": "Run a Lighthouse audit on a single landing page URL using Google data: returns Performance, Accessibility, and Best Practices scores with their underlying metrics (including Core Web Vitals). Use this whenever page speed, Core Web Vitals, mobile performance, or accessibility is in question. Pass the full URL (including https://). Set forMobile to true to run the mobile audit (defaults to a desktop audit). Optionally "
+    "purpose": "Run a Lighthouse audit on a single landing page URL using Google data: returns Performance, Accessibility, and Best Practices scores with their underlying metrics (including Core Web Vitals). Use this whenever page speed, Core Web Vitals, mobile performance, or accessibility is in question. Pass the full URL (including https://). Set forMobile to true to run the mobile audit (defaults to a desktop audit). Optionally pass categories (an array containing any of 'performance', 'accessibility', 'best_practices') to nar"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__lp_audit_resources",
-    "purpose": "Inventory the JavaScript, CSS, and image resources loaded by a single landing page URL, with load timing. Use this to detect conversion-tracking setup — Google Ads tags, analytics, pixels, call-tracking, and event-tracking scripts — or to find broken and slow resources. Pass the full URL (including https://). Optionally set resourceType to 'script', 'stylesheet', 'image', or 'broken' to filter the inventory (defaults"
+    "purpose": "Inventory the JavaScript, CSS, and image resources loaded by a single landing page URL, with load timing. Use this to detect conversion-tracking setup — Google Ads tags, analytics, pixels, call-tracking, and event-tracking scripts — or to find broken and slow resources. Pass the full URL (including https://). Optionally set resourceType to 'script', 'stylesheet', 'image', or 'broken' to filter the inventory (defaults to all resource types)."
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__lp_audit_screenshot",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Capture a screenshot of a single landing page URL using Google data, rendered in a real browser. The capture is returned inline as an image you can look at directly — judge the page from it rather than asking the user for a screenshot. Use this for any visual or design judgment about the page — fold position, hero appeal, layout, color contrast, mobile rendering, or pr"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Capture a screenshot of a single landing page URL using Google data, rendered in a real browser. The capture is returned inline as an image you can look at directly — judge the page from it rather than asking the user for a screenshot. Use this for any visual or design judgment about the page — fold position, hero appeal, layout, color contrast, mobile rendering, or professionalism. Pass the full URL (including https://). Set fullPage to true to capture the entire sc"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__merchant_center_get_competitive_visibility",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Get Shopping competitive visibility for a Merchant Center Account: view \"competitors\" lists businesses with similar impressions (rank, page overlap rate, higher position rate, relative visibility), \"top_merchants\" lists the top-ranked merchants, \"benchmark\" compares your impression trend against the category average over time. Use merchantCenterId returned by merchant_"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Get Shopping competitive visibility for a Merchant Center Account: view \"competitors\" lists businesses with similar impressions (rank, page overlap rate, higher position rate, relative visibility), \"top_merchants\" lists the top-ranked merchants, \"benchmark\" compares your impression trend against the category average over time. Use merchantCenterId returned by merchant_center_list_accounts. Requires startDate/endDate (YYYY-MM-DD), reportCategoryId (numeric Google prod"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__merchant_center_get_price_competitiveness",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Compare your product prices against Google Shopping benchmark prices (price vs benchmark_price per product) for a Merchant Center Account. Use merchantCenterId returned by merchant_center_list_accounts. Requires Market Insights to be enabled on the Merchant Center Account; fails with an error otherwise. Does not work for advanced/multi-client (MCA) parent accounts — qu"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Compare your product prices against Google Shopping benchmark prices (price vs benchmark_price per product) for a Merchant Center Account. Use merchantCenterId returned by merchant_center_list_accounts. Requires Market Insights to be enabled on the Merchant Center Account; fails with an error otherwise. Does not work for advanced/multi-client (MCA) parent accounts — query a sub-account. Results are stateless and cursor-paginated: pass nextPageToken from the response "
   },
   {
     "namespace": "HYPD_AI",
@@ -5356,7 +5591,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__merchant_center_get_product_performance",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Get product performance (clicks, impressions, click-through rate, conversions, conversion value) for a Merchant Center Account from the Merchant Reports API. Use merchantCenterId returned by merchant_center_list_accounts. A startDate and endDate (YYYY-MM-DD) are required. Segment rows by up to 4 dimensions (offer_id, title, brand, category_l1-l3, date, week, marketing_"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Get product performance (clicks, impressions, click-through rate, conversions, conversion value) for a Merchant Center Account from the Merchant Reports API. Use merchantCenterId returned by merchant_center_list_accounts. A startDate and endDate (YYYY-MM-DD) are required. Segment rows by up to 4 dimensions (offer_id, title, brand, category_l1-l3, date, week, marketing_method) and sort with orderBy/orderDirection — e.g. orderBy clicks DESC for top products, ASC for ze"
   },
   {
     "namespace": "HYPD_AI",
@@ -5381,7 +5616,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__merchant_center_list_disapproved_products",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. List products that are disapproved or not eligible to serve (aggregated_reporting_context_status NOT_ELIGIBLE_OR_DISAPPROVED) for a Merchant Center Account, including per-product item issues with reasons. Use merchantCenterId returned by merchant_center_list_accounts. To inspect one product in depth, follow up with merchant_center_get_product_status using the product n"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. List products that are disapproved or not eligible to serve (aggregated_reporting_context_status NOT_ELIGIBLE_OR_DISAPPROVED) for a Merchant Center Account, including per-product item issues with reasons. Use merchantCenterId returned by merchant_center_list_accounts. To inspect one product in depth, follow up with merchant_center_get_product_status using the product name from merchant_center_list_products — never construct product names by hand. Does not work for ad"
   },
   {
     "namespace": "HYPD_AI",
@@ -5391,32 +5626,32 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__merchant_center_summarize_issues",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Summarize product issues across the whole catalog of a Merchant Center Account: counts of products by approval status plus item issues aggregated by code and severity with sample offer ids. Use merchantCenterId returned by merchant_center_list_accounts. Scans up to 5000 products; if truncated is true the catalog is larger and counts are partial. Use merchant_center_lis"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Summarize product issues across the whole catalog of a Merchant Center Account: counts of products by approval status plus item issues aggregated by code and severity with sample offer ids. Use merchantCenterId returned by merchant_center_list_accounts. Scans up to 5000 products; if truncated is true the catalog is larger and counts are partial. Use merchant_center_list_disapproved_products to enumerate the affected products. Does not work for advanced/multi-client ("
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_activities",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Return the change history for a Meta Ads account — what changed and when (campaign/ad set edits, budget, targeting, creative, status). Use when the user asks 'what changed' or to investigate a sudden performance shift. Pass accountId (the act_<digits> id from meta_list_ad_accounts); optionally narrow with since/until (YYYY-MM-DD). Paginate with pageSize and the returne"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Return the change history for a Meta Ads account — what changed and when (campaign/ad set edits, budget, targeting, creative, status). Use when the user asks 'what changed' or to investigate a sudden performance shift. Pass accountId (the act_<digits> id from meta_list_ad_accounts); optionally narrow with since/until (YYYY-MM-DD). Paginate with pageSize and the returned nextPageToken. On busy accounts the change history is a heavy read — if the lookup fails, retry wi"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_ad_library_ad_detail",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Get the full creative and metadata for one Meta Ad Library ad. Pass adArchiveId (from meta_ad_library_search or meta_ad_library_advertiser_ads). The ad's creative renders inline as a thumbnail image; the text output also carries the creative text (body, headline, CTA), the full-res image/video URLs as Image:/Video: lines, the advertiser page, publisher platforms, run d"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Get the full creative and metadata for one Meta Ad Library ad. Pass adArchiveId (from meta_ad_library_search or meta_ad_library_advertiser_ads). The ad's creative renders inline as a thumbnail image; the text output also carries the creative text (body, headline, CTA), the full-res image/video URLs as Image:/Video: lines, the advertiser page, publisher platforms, run dates, and countries; returns null if no ad matches the id. Building an artifact or report with these"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_ad_library_advertiser_ads",
-    "purpose": "List the ads a specific advertiser is running or has run in the public Meta Ad Library. Pass pageId (from meta_ad_library_advertisers, from a meta_ad_library_search row, or a known Facebook Page id); optionally countries (two-letter ISO codes) and adActiveStatus (active, inactive, all). Each result carries the creative text, media URLs, publisher platforms and run dates; thumbnails render inline (up to 12 per call). "
+    "purpose": "List the ads a specific advertiser is running or has run in the public Meta Ad Library. Pass pageId (from meta_ad_library_advertisers, from a meta_ad_library_search row, or a known Facebook Page id); optionally countries (two-letter ISO codes) and adActiveStatus (active, inactive, all). Each result carries the creative text, media URLs, publisher platforms and run dates; thumbnails render inline (up to 12 per call). EU, EEA and UK country scopes add Meta's official transparency fields (audience reach, targeting, pa"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_ad_library_advertisers",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Resolve a brand or company name to its Meta Ad Library advertiser page id(s) — the entry point for pulling a specific competitor's ads. Pass query (the brand/company name); optionally countries (two-letter ISO codes). Returns advertiser rows with pageId, pageName, page categories, verification, and follower counts. Feed the pageId into meta_ad_library_advertiser_ads to"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Resolve a brand or company name to its Meta Ad Library advertiser page id(s) — the entry point for pulling a specific competitor's ads. Pass query (the brand/company name); optionally countries (two-letter ISO codes). Returns advertiser rows with pageId, pageName, page categories, verification, and follower counts. Feed the pageId into meta_ad_library_advertiser_ads to list that advertiser's ads. This name lookup is best-effort — it can return nothing or fail for nic"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_ad_library_search",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Search the public Meta (Facebook/Instagram) Ad Library by keyword — find live and past ads across advertisers for competitor and market research. Use for topic/angle discovery (\"who is running ads about X\"). Pass query (keyword or phrase); optionally countries (two-letter ISO codes, e.g. [\"US\",\"GB\"]), adActiveStatus (active/inactive/all), and mediaType (image/video/mem"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Search the public Meta (Facebook/Instagram) Ad Library by keyword — find live and past ads across advertisers for competitor and market research. Use for topic/angle discovery (\"who is running ads about X\"). Pass query (keyword or phrase); optionally countries (two-letter ISO codes, e.g. [\"US\",\"GB\"]), adActiveStatus (active/inactive/all), and mediaType (image/video/meme/none/all). Each ad's creative renders inline as a thumbnail image (up to 12 per call); each ad's t"
   },
   {
     "namespace": "HYPD_AI",
@@ -5426,47 +5661,47 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_catalog_diagnostics",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Return a catalog's diagnostics — feed/product issues that block products from serving (disapprovals, missing fields, image problems). Use when products are not showing in Advantage+ Shopping. Pass accountId (act_<digits> from meta_list_ad_accounts) and catalogId (from meta_list_catalogs, or meta_resolve_catalogs). Needs catalog_management. Note: reading a catalog's dia"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Return a catalog's diagnostics — feed/product issues that block products from serving (disapprovals, missing fields, image problems). Use when products are not showing in Advantage+ Shopping. Pass accountId (act_<digits> from meta_list_ad_accounts) and catalogId (from meta_list_catalogs, or meta_resolve_catalogs). Needs catalog_management. Note: reading a catalog's diagnostics also depends on the connection having asset-level access to that catalog, so this can be un"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_get_ads",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. List the ads in a Meta Ads account, with status and the creative each ad references. Use when the user asks which ads are running or wants to enumerate ads before inspecting creatives or performance. Pass accountId (act_<digits> from meta_list_ad_accounts). Optionally pass fields; paginate with pageSize and the returned nextPageToken. For the creative copy/media of a s"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. List the ads in a Meta Ads account, with status and the creative each ad references. Use when the user asks which ads are running or wants to enumerate ads before inspecting creatives or performance. Pass accountId (act_<digits> from meta_list_ad_accounts). Optionally pass fields; paginate with pageSize and the returned nextPageToken. For the creative copy/media of a specific ad use meta_get_creative; for performance use meta_insights at the ad level. If a rate-limit"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_get_adsets",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. List the ad sets in a Meta Ads account, including targeting, optimization, bidding, and budget settings. Use when the user asks about audiences, placements, optimization goals, or budgets at the ad-set level. Pass accountId (act_<digits> from meta_list_ad_accounts). Optionally pass fields; paginate with pageSize and the returned nextPageToken. On accounts with many ad "
+    "purpose": "PREREQUISITE: Run init tool first once per chat. List the ad sets in a Meta Ads account, including targeting, optimization, bidding, and budget settings. Use when the user asks about audiences, placements, optimization goals, or budgets at the ad-set level. Pass accountId (act_<digits> from meta_list_ad_accounts). Optionally pass fields; paginate with pageSize and the returned nextPageToken. On accounts with many ad sets the default field set can be too heavy for Meta — if the lookup fails, retry with an explicit m"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_get_campaigns",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. List the campaigns in a Meta Ads account. Use when the user asks what campaigns exist, their status, objective, or budget, or before drilling into ad sets/ads. Pass accountId (act_<digits> from meta_list_ad_accounts). Optionally pass fields to select which campaign fields to return; paginate with pageSize and the returned nextPageToken. This returns structural data onl"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. List the campaigns in a Meta Ads account. Use when the user asks what campaigns exist, their status, objective, or budget, or before drilling into ad sets/ads. Pass accountId (act_<digits> from meta_list_ad_accounts). Optionally pass fields to select which campaign fields to return; paginate with pageSize and the returned nextPageToken. This returns structural data only — for performance use meta_insights at the campaign level. If a rate-limit error is returned, run "
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_get_creative",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Get the creative assets for a single Meta ad — headline/primary text, media (image/video), call-to-action, and destination link. Use when the user wants to review or critique ad copy and creative, or check the landing URL. Pass accountId (the act_<digits> id from meta_list_ad_accounts the ad belongs to) and adId (an ad id from meta_get_ads). Returns a paginated list of"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Get the creative assets for a single Meta ad — headline/primary text, media (image/video), call-to-action, and destination link. Use when the user wants to review or critique ad copy and creative, or check the landing URL. Pass accountId (the act_<digits> id from meta_list_ad_accounts the ad belongs to) and adId (an ad id from meta_get_ads). Returns a paginated list of creative rows plus a nextPageToken; pass pageSize and the returned nextPageToken to read further pa"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_get_lead_form_submissions",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Retrieve the submitted leads for a lead form — field values and submission timestamps. Use when the user wants the actual leads captured by a form. Pass accountId (act_<digits> from meta_list_ad_accounts) and formId (from meta_list_lead_forms); optionally pass pageId (the page the form belongs to — the same pageId you gave meta_list_lead_forms), recommended so the form"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Retrieve the submitted leads for a lead form — field values and submission timestamps. Use when the user wants the actual leads captured by a form. Pass accountId (act_<digits> from meta_list_ad_accounts) and formId (from meta_list_lead_forms); optionally pass pageId (the page the form belongs to — the same pageId you gave meta_list_lead_forms), recommended so the form's leads resolve faster; if omitted it is derived from the form. Needs leads_retrieval plus per-Page"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_get_metric_definition",
-    "purpose": "Return definitions of the Meta Ads performance metrics produced by meta_insights — what each field means and its unit (spend, impressions, reach, frequency, clicks, link clicks, CTR, CPC, CPM, actions, action_values, purchase_roas, cost_per_action_type, video play milestones). Use to interpret meta_insights output correctly before drawing conclusions. Pass metric to get one definition (e.g. \"purchase_roas\"); omit it "
+    "purpose": "Return definitions of the Meta Ads performance metrics produced by meta_insights — what each field means and its unit (spend, impressions, reach, frequency, clicks, link clicks, CTR, CPC, CPM, actions, action_values, purchase_roas, cost_per_action_type, video play milestones). Use to interpret meta_insights output correctly before drawing conclusions. Pass metric to get one definition (e.g. \"purchase_roas\"); omit it to get them all. This is curated reference data, not a live account lookup."
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_get_object",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Fetch a single Meta Ads object by id — an account, campaign, ad set, or ad — with its full field set. Use when you already have an object id and need its details rather than listing siblings. Pass accountId (the act_<digits> id from meta_list_ad_accounts that the object belongs to), objectId, and objectType ('account', 'campaign', 'adset', or 'ad'); optionally pass fie"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Fetch a single Meta Ads object by id — an account, campaign, ad set, or ad — with its full field set. Use when you already have an object id and need its details rather than listing siblings. Pass accountId (the act_<digits> id from meta_list_ad_accounts that the object belongs to), objectId, and objectType ('account', 'campaign', 'adset', or 'ad'); optionally pass fields to select which fields to return. For performance metrics use meta_insights instead."
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_get_policy",
-    "purpose": "Return Meta's official advertising policy and compliance references (Advertising Standards, prohibited and restricted content, Special Ad Categories, commerce policies, community standards) with their canonical URLs and a short summary of each. Use when reviewing whether an ad, creative, or landing page is compliant, or when the user asks what Meta allows. Optionally pass topic to filter to a specific area (e.g. \"res"
+    "purpose": "Return Meta's official advertising policy and compliance references (Advertising Standards, prohibited and restricted content, Special Ad Categories, commerce policies, community standards) with their canonical URLs and a short summary of each. Use when reviewing whether an ad, creative, or landing page is compliant, or when the user asks what Meta allows. Optionally pass topic to filter to a specific area (e.g. \"restricted\", \"special ad categories\"). This is curated reference data, not a live account lookup."
   },
   {
     "namespace": "HYPD_AI",
@@ -5476,42 +5711,42 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_get_recommendations",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Get Meta's own native recommendations and Opportunity Score for an object (account, campaign, ad set, or ad). Use when the user asks what Meta suggests improving, or you want the platform's optimization opportunities. Pass accountId (the act_<digits> id from meta_list_ad_accounts the object belongs to) and objectId, and optionally level (defaults to account). These are"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Get Meta's own native recommendations and Opportunity Score for an object (account, campaign, ad set, or ad). Use when the user asks what Meta suggests improving, or you want the platform's optimization opportunities. Pass accountId (the act_<digits> id from meta_list_ad_accounts the object belongs to) and objectId, and optionally level (defaults to account). These are Meta-generated suggestions — present them as the platform's recommendations, and pair with meta_ins"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_insights",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. The performance tool for Meta Ads — spend, impressions, reach, clicks, CTR, CPC, CPM, conversions, and ROAS for any object. Use this whenever the user asks how something is performing. Pass accountId (the act_<digits> id from meta_list_ad_accounts the object belongs to), objectId (an account act_<digits>, campaign, ad set, or ad id) and level ('account', 'campaign', 'a"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. The performance tool for Meta Ads — spend, impressions, reach, clicks, CTR, CPC, CPM, conversions, and ROAS for any object. Use this whenever the user asks how something is performing. Pass accountId (the act_<digits> id from meta_list_ad_accounts the object belongs to), objectId (an account act_<digits>, campaign, ad set, or ad id) and level ('account', 'campaign', 'adset', or 'ad'). Set the date window with either timeRange ({ since, until } as YYYY-MM-DD) or dateP"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_insights_async",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. The async version of meta_insights for big accounts or long date ranges — runs the report server-side and returns rows when ready. To START a report, pass accountId (act_<digits> from meta_list_ad_accounts), objectId, level ('account', 'campaign', 'adset', or 'ad'), and a date window (timeRange { since, until } in YYYY-MM-DD, or datePreset). If status is 'running', cal"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. The async version of meta_insights for big accounts or long date ranges — runs the report server-side and returns rows when ready. To START a report, pass accountId (act_<digits> from meta_list_ad_accounts), objectId, level ('account', 'campaign', 'adset', or 'ad'), and a date window (timeRange { since, until } in YYYY-MM-DD, or datePreset). If status is 'running', call again with the returned reportRunId to RESUME until status is 'completed', then read rows (paginat"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_list_ad_accounts",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. List the Meta Ads accounts you have connected in Hypd, with each account's id, name, currency, and timezone. Call this FIRST when working with Meta Ads — it is the entry point and the source of account context (currency, timezone) that you should reuse for the rest of the conversation instead of re-fetching. Use the returned account id (format act_<digits>) as the acco"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. List the Meta Ads accounts you have connected in Hypd, with each account's id, name, currency, and timezone. Call this FIRST when working with Meta Ads — it is the entry point and the source of account context (currency, timezone) that you should reuse for the rest of the conversation instead of re-fetching. Use the returned account id (format act_<digits>) as the accountId for every other Meta tool: meta_get_campaigns, meta_get_adsets, meta_get_ads, meta_get_object,"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_list_catalog_products",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. List the products in a catalog, with availability, price, and status. Use to resolve a product_id to a product, or to find underperforming products for Advantage+ Shopping. Pass accountId (act_<digits> from meta_list_ad_accounts) and catalogId (from meta_list_catalogs, or meta_resolve_catalogs); optionally a filter object. Needs catalog_management. Note: enumerating a "
+    "purpose": "PREREQUISITE: Run init tool first once per chat. List the products in a catalog, with availability, price, and status. Use to resolve a product_id to a product, or to find underperforming products for Advantage+ Shopping. Pass accountId (act_<digits> from meta_list_ad_accounts) and catalogId (from meta_list_catalogs, or meta_resolve_catalogs); optionally a filter object. Needs catalog_management. Note: enumerating a catalog's products also depends on the connection having asset-level access to that catalog, so this"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_list_catalogs",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. List the product catalogs owned by a business, for Advantage+ Shopping and commerce analysis. This is the primary way to find an account's catalogs: first get the owning businessId from meta_get_object on the account with fields [\"business\"] (needs the business_management permission), then pass it here. Pass accountId (act_<digits> from meta_list_ad_accounts) and busin"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. List the product catalogs owned by a business, for Advantage+ Shopping and commerce analysis. This is the primary way to find an account's catalogs: first get the owning businessId from meta_get_object on the account with fields [\"business\"] (needs the business_management permission), then pass it here. Pass accountId (act_<digits> from meta_list_ad_accounts) and businessId. Needs the catalog_management permission; if missingScopes is returned by either call, tell th"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_list_feed_rules",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. List the feed transformation rules applied to a catalog's product feeds. Use when investigating how feed data is being mapped or transformed. Pass accountId (act_<digits> from meta_list_ad_accounts) and catalogId (from meta_list_catalogs, or meta_resolve_catalogs); optionally feedId to scope to one feed. Needs catalog_management; degrades with missingScopes if absent. "
+    "purpose": "PREREQUISITE: Run init tool first once per chat. List the feed transformation rules applied to a catalog's product feeds. Use when investigating how feed data is being mapped or transformed. Pass accountId (act_<digits> from meta_list_ad_accounts) and catalogId (from meta_list_catalogs, or meta_resolve_catalogs); optionally feedId to scope to one feed. Needs catalog_management; degrades with missingScopes if absent. Paginate with pageSize and nextPageToken."
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_list_lead_forms",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. List the lead-generation forms on a Page. Fire this before retrieving submissions. Pass accountId (act_<digits> from meta_list_ad_accounts, to scope the call) and pageId (from meta_list_pages). Needs the leads_retrieval permission plus Page Lead Access; if missingScopes is returned, surface that the connection must grant it — return what is available, do not treat it a"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. List the lead-generation forms on a Page. Fire this before retrieving submissions. Pass accountId (act_<digits> from meta_list_ad_accounts, to scope the call) and pageId (from meta_list_pages). Needs the leads_retrieval permission plus Page Lead Access; if missingScopes is returned, surface that the connection must grant it — return what is available, do not treat it as an error. Paginate with pageSize and nextPageToken."
   },
   {
     "namespace": "HYPD_AI",
@@ -5531,17 +5766,17 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_resolve_catalogs",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Get the product catalog id(s) this account actually advertises, derived from its ad sets (ads_read only — no business_management consent needed). This is the FALLBACK for finding a catalogId: prefer meta_list_catalogs (via the account's businessId from meta_get_object), and use this when the connection lacks business_management or you want to avoid that consent. Feeds "
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Get the product catalog id(s) this account actually advertises, derived from its ad sets (ads_read only — no business_management consent needed). This is the FALLBACK for finding a catalogId: prefer meta_list_catalogs (via the account's businessId from meta_get_object), and use this when the connection lacks business_management or you want to avoid that consent. Feeds the catalog tools (meta_list_catalog_products, meta_list_product_sets, meta_catalog_diagnostics, met"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__meta_search_targeting",
-    "purpose": "PREREQUISITE: Run init tool first once per chat. Search Meta's targeting taxonomy for interests, behaviors, demographics, and geo. Use for audience research — not to apply targeting (this connector is read-only). Pass accountId (act_<digits>) and query (the search term); optionally type (e.g. 'adinterest', 'adgeolocation') and limit. Get accountId by calling meta_list_ad_accounts first and using an id it returned — n"
+    "purpose": "PREREQUISITE: Run init tool first once per chat. Search Meta's targeting taxonomy for interests, behaviors, demographics, and geo. Use for audience research — not to apply targeting (this connector is read-only). Pass accountId (act_<digits>) and query (the search term); optionally type (e.g. 'adinterest', 'adgeolocation') and limit. Get accountId by calling meta_list_ad_accounts first and using an id it returned — never invent or guess one, and never reuse an id from another platform. If meta_list_ad_accounts retu"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__prompt_templates_list",
-    "purpose": "List HYPD's library of saved prompt templates: pre-written analysis and reporting requests a user can run against their connected accounts, for example a weekly Google Ads performance summary or a Merchant Center disapproval report. Each entry has a key, title, category, platforms, tags and runsIn (which assistant the template was written for). Optionally filter by category, platform or a text query over titles and t"
+    "purpose": "List HYPD's library of saved prompt templates: pre-written analysis and reporting requests a user can run against their connected accounts, for example a weekly Google Ads performance summary or a Merchant Center disapproval report. Each entry has a key, title, category, platforms, tags and runsIn (which assistant the template was written for). Optionally filter by category, platform or a text query over titles and tags. Use when the user asks which templates or ready-made reports exist. Pass the chosen key to prom"
   },
   {
     "namespace": "HYPD_AI",
@@ -5566,17 +5801,17 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__serp_results",
-    "purpose": "Fetch the Google search results page (SERP) for one keyword, filtered by block type (organic, paid, featured_snippet, local_pack, people_also_ask, shopping and others). Pass itemTypes explicitly; ['paid'] returns the sponsored results with each advertiser's domain, which answers who is advertising on a keyword. Returns paginated SERP items plus a resultId; call again with the same resultId, page and pageSize to read "
+    "purpose": "Fetch the Google search results page (SERP) for one keyword, filtered by block type (organic, paid, featured_snippet, local_pack, people_also_ask, shopping and others). Pass itemTypes explicitly; ['paid'] returns the sponsored results with each advertiser's domain, which answers who is advertising on a keyword. Returns paginated SERP items plus a resultId; call again with the same resultId, page and pageSize to read further pages. Location and language default to the Google Ads account context; if none is loaded, a"
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__shopping_sellers",
-    "purpose": "List the sellers offering a specific Google Shopping product, with each seller's price, shipping, special offers and ratings. Use to compare prices across sellers for one product. Pass a productId from shopping_top_products. Returns paginated seller rows plus a resultId; call again with the same resultId, page and pageSize to read further pages. Location and language default to the Google Ads account context; if none"
+    "purpose": "List the sellers offering a specific Google Shopping product, with each seller's price, shipping, special offers and ratings. Use to compare prices across sellers for one product. Pass a productId from shopping_top_products. Returns paginated seller rows plus a resultId; call again with the same resultId, page and pageSize to read further pages. Location and language default to the Google Ads account context; if none is loaded, ask the user."
   },
   {
     "namespace": "HYPD_AI",
     "tool": "_Paid_Ads___Analytics__shopping_top_products",
-    "purpose": "Find the top Google Shopping products for a keyword, using Google data: returns products with title, rank, price, rating, reviews, and a product_id. Pass a single keyword. Returns paginated product rows plus a resultId; call again with the same resultId, page, and pageSize to read later pages without re-fetching. Optionally filter by priceMin/priceMax and set sortBy to 'review_score', 'price_low_to_high', or 'price_h"
+    "purpose": "Find the top Google Shopping products for a keyword, using Google data: returns products with title, rank, price, rating, reviews, and a product_id. Pass a single keyword. Returns paginated product rows plus a resultId; call again with the same resultId, page, and pageSize to read later pages without re-fetching. Optionally filter by priceMin/priceMax and set sortBy to 'review_score', 'price_low_to_high', or 'price_high_to_low'. Set limit to cap the number of products returned (the data source returns many by defau"
   },
   {
     "namespace": "Inkbox",
@@ -5601,12 +5836,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Inkbox",
     "tool": "inkbox_a2a_task_reply",
-    "purpose": "Updates the state of an A2A task involving the connected identity. As the worker, the intent reports progress, requests caller input, completes the task, or marks it failed. As the requester, the cancel intent withdraws a nonterminal outbound task and takes no text; that does not retract email, SMS, or iMessage, and may not undo actions the remote agent already took. This is agent-to-agent, not an email, SMS, or iMes"
+    "purpose": "Updates the state of an A2A task involving the connected identity. As the worker, the intent reports progress, requests caller input, completes the task, or marks it failed. As the requester, the cancel intent withdraws a nonterminal outbound task and takes no text; that does not retract email, SMS, or iMessage, and may not undo actions the remote agent already took. This is agent-to-agent, not an email, SMS, or iMessage reply."
   },
   {
     "namespace": "Inkbox",
     "tool": "inkbox_a2a_task_send",
-    "purpose": "Sends a text task or message over A2A to another Inkbox agent identified by @handle rather than by email, SMS, or iMessage. Starting a new task requires A2A enabled for the connected identity and permission to contact the target; continuing an existing input-required task uses task_id. The tool returns durable current state immediately and does not imply completion; the remote agent may cause further external effects"
+    "purpose": "Sends a text task or message over A2A to another Inkbox agent identified by @handle rather than by email, SMS, or iMessage. Starting a new task requires A2A enabled for the connected identity and permission to contact the target; continuing an existing input-required task uses task_id. The tool returns durable current state immediately and does not imply completion; the remote agent may cause further external effects."
   },
   {
     "namespace": "Inkbox",
@@ -5636,7 +5871,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Inkbox",
     "tool": "inkbox_call_settings_update",
-    "purpose": "Replace one block of call settings for the connected identity. section=incoming_call_action sets inbound behavior: auto_accept (requires client_websocket_url), auto_reject, webhook (requires incoming_call_webhook_url), hosted_agent, or forward (requires one complete phone or SIP destination). section=hosted_agent replaces the voice and instructions overrides; omitted nullable fields clear. A hosted agent answers auto"
+    "purpose": "Replace one block of call settings for the connected identity. section=incoming_call_action sets inbound behavior: auto_accept (requires client_websocket_url), auto_reject, webhook (requires incoming_call_webhook_url), hosted_agent, or forward (requires one complete phone or SIP destination). section=hosted_agent replaces the voice and instructions overrides; omitted nullable fields clear. A hosted agent answers automatically and does not connect the MCP model to the live call."
   },
   {
     "namespace": "Inkbox",
@@ -5836,7 +6071,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Inkbox",
     "tool": "inkbox_sms_consent_get",
-    "purpose": "Check recipient consent and outbound contact rules before texting someone; never changes consent. Works with no conversation yet, which is the case that matters for a first message. This is a recipient-side preflight, not full send readiness: a send can still be rejected for sender registration, self-send, rate limits, message content, or media. blocked_reason names the consent or rule code a send would return, or nu"
+    "purpose": "Check recipient consent and outbound contact rules before texting someone; never changes consent. Works with no conversation yet, which is the case that matters for a first message. This is a recipient-side preflight, not full send readiness: a send can still be rejected for sender registration, self-send, rate limits, message content, or media. blocked_reason names the consent or rule code a send would return, or null when neither blocks it. With a conversation_id, rules come from that conversation's own sending n"
   },
   {
     "namespace": "Inkbox",
@@ -5931,7 +6166,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "joblet_ai",
     "tool": "_AI_Job_Search__search_jobs",
-    "purpose": "Search live Joblet listings. CRITICAL RULES: 1. Pass the EXACT phrase the user typed into 'query' (do not add words like 'developer'). 2. If the user explicitly names a location, use it. 3. If the user does NOT name a location, you MUST infer their location from their profile/IP and append it to the query (e.g. 'manager in India'). 4. If any location search returns 0 jobs, you MUST immediately do a follow-up search c"
+    "purpose": "Search live Joblet listings. CRITICAL RULES: 1. Pass the EXACT phrase the user typed into 'query' (do not add words like 'developer'). 2. If the user explicitly names a location, use it. 3. If the user does NOT name a location, you MUST infer their location from their profile/IP and append it to the query (e.g. 'manager in India'). 4. If any location search returns 0 jobs, you MUST immediately do a follow-up search completely empty of location to find global matches. 5. LOCATION-MISMATCH NOTE: ALWAYS show the job c"
   },
   {
     "namespace": "Kopi",
@@ -5981,7 +6216,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Linked_Word",
     "tool": "reverse_strongs",
-    "purpose": "Reverse lookup: find Strong's numbers whose KJV usage/gloss is the given English word (e.g. flesh, love, beginning). Matches the English word the KJV uses, not the long definition text. Returns only the number and a short definition. Use this when several Hebrew or Greek words share one English rendering. `match` controls how the keyword is compared: \"exact\" (the default) matches whole words only, so \"love\" will not "
+    "purpose": "Reverse lookup: find Strong's numbers whose KJV usage/gloss is the given English word (e.g. flesh, love, beginning). Matches the English word the KJV uses, not the long definition text. Returns only the number and a short definition. Use this when several Hebrew or Greek words share one English rendering. `match` controls how the keyword is compared: \"exact\" (the default) matches whole words only, so \"love\" will not reach \"loved\"; \"stemmed\" folds word endings, so \"love\" also finds \"loved\", \"loveth\" and \"loving\" -- "
   },
   {
     "namespace": "Linked_Word",
@@ -6006,12 +6241,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "LinkedIn_Ads",
     "tool": "browse_linkedin_ad_sets",
-    "purpose": "Retrieves and displays ad sets for a LinkedIn Ad Account as a multi-select widget with summary metrics (spend, clicks, impressions, budget) per ad set. Use this tool when the user wants to see, list, or browse ad sets, view ad set metrics or stats, change the time range for ad set analytics data, or select ad sets to compare — the widget lets the user select up to 5 ad sets for comparison. Do NOT use this tool when t"
+    "purpose": "Retrieves and displays ad sets for a LinkedIn Ad Account as a multi-select widget with summary metrics (spend, clicks, impressions, budget) per ad set. Use this tool when the user wants to see, list, or browse ad sets, view ad set metrics or stats, change the time range for ad set analytics data, or select ad sets to compare — the widget lets the user select up to 5 ad sets for comparison. Do NOT use this tool when the user wants to view ads — use select_linkedin_ad_set instead. Only use show_linkedin_ad_set_perfor"
   },
   {
     "namespace": "LinkedIn_Ads",
     "tool": "browse_linkedin_ads",
-    "purpose": "Retrieves and displays ads for a LinkedIn ad set as a visual widget with summary metrics (spend, clicks, impressions) per ad. Use this tool whenever the user asks to see, list, or browse ads for an ad set, view ad metrics or stats, or change the time range for ad analytics data. This tool fetches its own data directly — pass accountId, adSetId, and optional days. Only use find_linkedin_ads when you already know which"
+    "purpose": "Retrieves and displays ads for a LinkedIn ad set as a visual widget with summary metrics (spend, clicks, impressions) per ad. Use this tool whenever the user asks to see, list, or browse ads for an ad set, view ad metrics or stats, or change the time range for ad analytics data. This tool fetches its own data directly — pass accountId, adSetId, and optional days. Only use find_linkedin_ads when you already know which ad the user wants (by name or ID) and need to match it before chaining to another tool. Only use sh"
   },
   {
     "namespace": "LinkedIn_Ads",
@@ -6021,27 +6256,27 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "LinkedIn_Ads",
     "tool": "find_linkedin_ad_sets",
-    "purpose": "Retrieves ad sets for a LinkedIn Ad Account with performance metrics (data only, no UI). Use this tool only when the user already specified which ad set they want (by name or ID) and you need to match it before chaining to another tool. If the user did NOT specify an ad set, call browse_linkedin_ad_sets (to compare ad set performance) or select_linkedin_ad_set (to pick one ad set for viewing ads) instead. Requires an"
+    "purpose": "Retrieves ad sets for a LinkedIn Ad Account with performance metrics (data only, no UI). Use this tool only when the user already specified which ad set they want (by name or ID) and you need to match it before chaining to another tool. If the user did NOT specify an ad set, call browse_linkedin_ad_sets (to compare ad set performance) or select_linkedin_ad_set (to pick one ad set for viewing ads) instead. Requires an account ID. If missing, call browse_linkedin_ad_accounts to let the user select one. Do not auto-se"
   },
   {
     "namespace": "LinkedIn_Ads",
     "tool": "find_linkedin_ads",
-    "purpose": "Retrieves ads for a LinkedIn ad set with performance metrics (data only, no UI). Use this tool only when the user already specified which ad they want (by name or ID) and you need to match it before chaining to another tool. If the user did NOT specify an ad, call browse_linkedin_ads instead to let them browse and select visually. Requires an account ID and an ad set ID. If ad set ID is missing, call select_linkedin_"
+    "purpose": "Retrieves ads for a LinkedIn ad set with performance metrics (data only, no UI). Use this tool only when the user already specified which ad they want (by name or ID) and you need to match it before chaining to another tool. If the user did NOT specify an ad, call browse_linkedin_ads instead to let them browse and select visually. Requires an account ID and an ad set ID. If ad set ID is missing, call select_linkedin_ad_set to let the user browse and select an ad set. If account ID is missing, call browse_linkedin_a"
   },
   {
     "namespace": "LinkedIn_Ads",
     "tool": "select_linkedin_ad_set",
-    "purpose": "Retrieves and displays ad sets for a LinkedIn Ad Account as a single-select widget with summary metrics (spend, clicks, impressions, budget) per ad set. Use this tool when the user wants to pick one ad set to view or analyze its ads, view ad set metrics or stats, or change the time range for ad set analytics data — the widget lets the user select a single ad set with radio buttons. Do NOT use this tool when the user "
+    "purpose": "Retrieves and displays ad sets for a LinkedIn Ad Account as a single-select widget with summary metrics (spend, clicks, impressions, budget) per ad set. Use this tool when the user wants to pick one ad set to view or analyze its ads, view ad set metrics or stats, or change the time range for ad set analytics data — the widget lets the user select a single ad set with radio buttons. Do NOT use this tool when the user wants to compare multiple ad sets — use browse_linkedin_ad_sets instead. This tool fetches its own d"
   },
   {
     "namespace": "LinkedIn_Ads",
     "tool": "show_linkedin_ad_performance",
-    "purpose": "Shows a detailed time-series performance chart for specific LinkedIn ads. Displays trends of impressions, clicks, CPM, CPC, CTR, and spend over time. Only use this tool when the user explicitly asks for a performance chart, trend analysis, or time-series breakdown for specific ads. Do NOT use this tool when the user asks to list, browse, or view summary metrics for ads — use browse_linkedin_ads instead. Supports two "
+    "purpose": "Shows a detailed time-series performance chart for specific LinkedIn ads. Displays trends of impressions, clicks, CPM, CPC, CTR, and spend over time. Only use this tool when the user explicitly asks for a performance chart, trend analysis, or time-series breakdown for specific ads. Do NOT use this tool when the user asks to list, browse, or view summary metrics for ads — use browse_linkedin_ads instead. Supports two modes: (1) Single ad when one adId is provided, (2) Multi-ad comparison when multiple adIds are prov"
   },
   {
     "namespace": "LinkedIn_Ads",
     "tool": "show_linkedin_ad_set_performance",
-    "purpose": "Shows a detailed time-series performance chart for LinkedIn ad sets. Displays trends of impressions, clicks, CPM, CPC, CTR, and spend over time. Only use this tool when the user explicitly asks for a performance chart, trend analysis, or time-series breakdown for specific ad sets. Do NOT use this tool when the user asks to list, browse, or view summary metrics for ad sets — use browse_linkedin_ad_sets instead. Suppor"
+    "purpose": "Shows a detailed time-series performance chart for LinkedIn ad sets. Displays trends of impressions, clicks, CPM, CPC, CTR, and spend over time. Only use this tool when the user explicitly asks for a performance chart, trend analysis, or time-series breakdown for specific ad sets. Do NOT use this tool when the user asks to list, browse, or view summary metrics for ad sets — use browse_linkedin_ad_sets instead. Supports two modes: (1) Single ad set when one adSetId is provided, (2) Multi-ad set comparison when multi"
   },
   {
     "namespace": "LinkedIn_Headline_Rewriter",
@@ -6366,7 +6601,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Magnific",
     "tool": "video_generate",
-    "purpose": "Generate video. External clients: call `video_plan` first to draft the brief and resolve model choice — skip only if the user explicitly says \"just generate\" or \"one-shot\". Pick a model with `slug` (copy it verbatim from `video_models_list`); omit `slug` for auto-select. Image refs: use an asset URL or a creation `identifier`; never `webUrl`. Limits: `video_models_list`. On UI-capable clients, after generating you MU"
+    "purpose": "Generate video. External clients: call `video_plan` first to draft the brief and resolve model choice — skip only if the user explicitly says \"just generate\" or \"one-shot\". Pick a model with `slug` (copy it verbatim from `video_models_list`); omit `slug` for auto-select. Image refs: use an asset URL or a creation `identifier`; never `webUrl`. Limits: `video_models_list`. On UI-capable clients, after generating you MUST call `creations_show` once with all returned identifiers to render results; never stop at links."
   },
   {
     "namespace": "Magnific",
@@ -6426,12 +6661,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Manufact",
     "tool": "add_server_custom_domain",
-    "purpose": "Add a custom hostname you own to a server environment and return its CNAME setup instructions. Configure DNS, then call verify_server_custom_domain with the returned domainId. Hosted servers require a deployment of that environment after verification to activate the domain; external proxy domains activate without deployment. Use update_server_subdomain to change the Manufact-managed name. After an uncertain result, i"
+    "purpose": "Add a custom hostname you own to a server environment and return its CNAME setup instructions. Configure DNS, then call verify_server_custom_domain with the returned domainId. Hosted servers require a deployment of that environment after verification to activate the domain; external proxy domains activate without deployment. Use update_server_subdomain to change the Manufact-managed name. After an uncertain result, inspect get_server_domains before retrying."
   },
   {
     "namespace": "Manufact",
     "tool": "authenticate_deployment",
-    "purpose": "Create a Cloud consent link to authenticate a protected deployment before running publishing checklists. Present authenticationUrl to the user as a clickable link. The user completes OAuth in Cloud, which saves credentials and verifies the MCP connection. Without sessionId, each call creates a new pending session; omit branch for production. With sessionId, read that session's current status once. Only authenticated "
+    "purpose": "Create a Cloud consent link to authenticate a protected deployment before running publishing checklists. Present authenticationUrl to the user as a clickable link. The user completes OAuth in Cloud, which saves credentials and verifies the MCP connection. Without sessionId, each call creates a new pending session; omit branch for production. With sessionId, read that session's current status once. Only authenticated confirms success; pending is not completion. This tool never waits, completes a session, or starts a"
   },
   {
     "namespace": "Manufact",
@@ -6466,7 +6701,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Manufact",
     "tool": "deploy",
-    "purpose": "Deploy a GitHub repository to Manufact Cloud. Use this when the user asks to deploy the current repo/project. Before calling, infer repoFullName from the local git remote when possible. The tool checks whether the repo is already connected to a Cloud server in the organization: if yes, it redeploys that server; if no, it creates a new GitHub-backed server and starts the initial deployment. This tool does not accept s"
+    "purpose": "Deploy a GitHub repository to Manufact Cloud. Use this when the user asks to deploy the current repo/project. Before calling, infer repoFullName from the local git remote when possible. The tool checks whether the repo is already connected to a Cloud server in the organization: if yes, it redeploys that server; if no, it creates a new GitHub-backed server and starts the initial deployment. This tool does not accept serverId; use redeploy for a known existing server."
   },
   {
     "namespace": "Manufact",
@@ -6476,7 +6711,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Manufact",
     "tool": "generate_submission_pack",
-    "purpose": "Start submission-pack generation on the production server (desktop video). May exercise the target server's tools. Returns after dispatch, not completion; use get_submission_pack to inspect status and retrieve direct public video and screenshot URLs once saved. Omit submissionId to reuse latest/create the first draft. Existing active jobs are retained without applying new instructions. Deliberate reruns replace reque"
+    "purpose": "Start submission-pack generation on the production server (desktop video). May exercise the target server's tools. Returns after dispatch, not completion; use get_submission_pack to inspect status and retrieve direct public video and screenshot URLs once saved. Omit submissionId to reuse latest/create the first draft. Existing active jobs are retained without applying new instructions. Deliberate reruns replace requested generated outputs; after errors or a lost response inspect get/list before retrying. Historical"
   },
   {
     "namespace": "Manufact",
@@ -6666,17 +6901,17 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Manufact",
     "tool": "verify_server_custom_domain",
-    "purpose": "Check custom-domain DNS and HTTPS validation after configuring the CNAME record. Performs one verification attempt, may request a validation recheck, and marks the domain verified when ready. Pending DNS or SSL is returned with verified false and available diagnostics. Hosted servers require a deployment of the same environment after verification to activate the domain; external proxy domains activate without deploym"
+    "purpose": "Check custom-domain DNS and HTTPS validation after configuring the CNAME record. Performs one verification attempt, may request a validation recheck, and marks the domain verified when ready. Pending DNS or SSL is returned with verified false and available diagnostics. Hosted servers require a deployment of the same environment after verification to activate the domain; external proxy domains activate without deployment. Verification alone does not test URL reachability."
   },
   {
     "namespace": "Metricool",
     "tool": "createScheduledPost",
-    "purpose": "Schedule a post to Metricool at a specific date and time. To be able to schedule the post, you need to maintain the structure. You can use the tool getBestTimeToPostByNetwork to get the best time to post for a specific provider if the user doesn't specify the time to post. If the post include Instagram, is a must to have at least one image or video. Posts must include an image or a carousel, Reels and Trial Reels mus"
+    "purpose": "Schedule a post to Metricool at a specific date and time. To be able to schedule the post, you need to maintain the structure. You can use the tool getBestTimeToPostByNetwork to get the best time to post for a specific provider if the user doesn't specify the time to post. If the post include Instagram, is a must to have at least one image or video. Posts must include an image or a carousel, Reels and Trial Reels must include a video, and Stories can include either an image or a video. If you don't have more inform"
   },
   {
     "namespace": "Metricool",
     "tool": "createScheduledPostForReview",
-    "purpose": "Schedule a NEW post and send it to review (approval flow) in Metricool, replicating the web \"Send for review\". Use this instead of createScheduledPost ONLY when the user wants a brand-new post reviewed/approved before publishing. To send an ALREADY scheduled post to review, use sendScheduledPostForReview instead. The post content ('info') follows the SAME structure as createScheduledPost. Reviewers are a comma-separa"
+    "purpose": "Schedule a NEW post and send it to review (approval flow) in Metricool, replicating the web \"Send for review\". Use this instead of createScheduledPost ONLY when the user wants a brand-new post reviewed/approved before publishing. To send an ALREADY scheduled post to review, use sendScheduledPostForReview instead. The post content ('info') follows the SAME structure as createScheduledPost. Reviewers are a comma-separated list of emails. Emails of a Metricool collaborator of the brand become internal reviewers; unkno"
   },
   {
     "namespace": "Metricool",
@@ -6706,12 +6941,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Metricool",
     "tool": "sendScheduledPostForReview",
-    "purpose": "Send an ALREADY scheduled post to review (approval flow) in Metricool. Use this when the post already exists (you have its id and uuid from getScheduledPosts) and the user just wants it reviewed/approved. Like updateScheduledPost, this changes the post's id; its uuid stays the same. The response includes the post's new id, if you need to act on this same post again later in the conversation, use that id instead of th"
+    "purpose": "Send an ALREADY scheduled post to review (approval flow) in Metricool. Use this when the post already exists (you have its id and uuid from getScheduledPosts) and the user just wants it reviewed/approved. Like updateScheduledPost, this changes the post's id; its uuid stays the same. The response includes the post's new id, if you need to act on this same post again later in the conversation, use that id instead of the one you started with or call getScheduledPosts to obtain the unique id. To create a new post AND s"
   },
   {
     "namespace": "Metricool",
     "tool": "updateScheduledPost",
-    "purpose": "Update a scheduled post in Metricool. You need the id of the post to update. Get it from the getScheduledPosts tool previous on the conversation. Updating a scheduled post overwrites its content immediately; there is no confirmation step or undo in the API. Errors from this endpoint are final; retrying with the same input will not change the result. To update the post, ensure the full original content is included in "
+    "purpose": "Update a scheduled post in Metricool. You need the id of the post to update. Get it from the getScheduledPosts tool previous on the conversation. Updating a scheduled post overwrites its content immediately; there is no confirmation step or undo in the API. Errors from this endpoint are final; retrying with the same input will not change the result. To update the post, ensure the full original content is included in the request, modifying only the new information while keeping the rest unchanged and maintaining the"
   },
   {
     "namespace": "Microsoft_Outlook_Calendar",
@@ -6766,12 +7001,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Microsoft_Outlook_Calendar",
     "tool": "fetch_events_batch",
-    "purpose": "Retrieve multiple Outlook Calendar events in batched Graph requests. Use this when you already have several concrete event IDs and need full event payloads. For search or date-window discovery, prefer `search_events` or `list_events`. Successful events remain in `value`; `batch_failures` retain the requested event ID, Graph status, and Retry-After. If every item fails, `value` is empty. No automatic retries. If you n"
+    "purpose": "Retrieve multiple Outlook Calendar events in batched Graph requests. Use this when you already have several concrete event IDs and need full event payloads. For search or date-window discovery, prefer `search_events` or `list_events`. Successful events remain in `value`; `batch_failures` retain the requested event ID, Graph status, and Retry-After. If every item fails, `value` is empty. No automatic retries. If you need mailbox timezone context while interpreting these events, call `get_mailbox_settings` first."
   },
   {
     "namespace": "Microsoft_Outlook_Calendar",
     "tool": "find_available_slots",
-    "purpose": "Return free windows in a bounded window, optionally accounting for buffers. This helper is useful for travel-time and focus-block planning, where the model needs concrete open windows instead of reasoning over raw events. If mailbox timezone or working-hours settings are relevant to the final recommendation, call `get_mailbox_settings` first and apply them explicitly when interpreting the results. For personal Micros"
+    "purpose": "Return free windows in a bounded window, optionally accounting for buffers. This helper is useful for travel-time and focus-block planning, where the model needs concrete open windows instead of reasoning over raw events. If mailbox timezone or working-hours settings are relevant to the final recommendation, call `get_mailbox_settings` first and apply them explicitly when interpreting the results. For personal Microsoft accounts, use `schedule_id=\"me\"` for the linked user's primary calendar. An email target is acce"
   },
   {
     "namespace": "Microsoft_Outlook_Calendar",
@@ -6811,7 +7046,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Microsoft_Outlook_Calendar",
     "tool": "list_recurring_series_in_range",
-    "purpose": "List distinct recurring series in one personal Outlook calendar and date window. Include a series when at least one occurrence or modified exception overlaps the window and matches the optional query. Exclude single events. Match every literal keyword across subject, full body, location, and participant names or email addresses; this is not Graph full-text search or its operator syntax. Omit query for date-only disco"
+    "purpose": "List distinct recurring series in one personal Outlook calendar and date window. Include a series when at least one occurrence or modified exception overlaps the window and matches the optional query. Exclude single events. Match every literal keyword across subject, full body, location, and participant names or email addresses; this is not Graph full-text search or its operator syntax. Omit query for date-only discovery; a supplied blank query is invalid. Both dates require a UTC offset or Z. Derive the window fro"
   },
   {
     "namespace": "Microsoft_Outlook_Calendar",
@@ -6821,7 +7056,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Microsoft_Outlook_Calendar",
     "tool": "search_events",
-    "purpose": "Find Outlook Calendar events by keywords, dates, or both. Personal accounts search the primary calendar or the selected calendar_id. With no dates, search single events and recurring series masters across the calendar. With both filters.start and filters.end, search overlapping single events, recurring occurrences, and exceptions in that exact window. No dates are invented and no extra day is added for personal accou"
+    "purpose": "Find Outlook Calendar events by keywords, dates, or both. Personal accounts search the primary calendar or the selected calendar_id. With no dates, search single events and recurring series masters across the calendar. With both filters.start and filters.end, search overlapping single events, recurring occurrences, and exceptions in that exact window. No dates are invented and no extra day is added for personal accounts. Keywords match case-insensitive substrings in subject, body, location, and participant names/em"
   },
   {
     "namespace": "Microsoft_Outlook_Calendar",
@@ -6846,7 +7081,522 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Microsoft_Outlook_Calendar",
     "tool": "update_event",
-    "purpose": "Update an event in a calendar owned by the signed-in user. Use this to reschedule a meeting, change its subject/body/location, or adjust attendees. Setting `recurrence` on a non-recurring event converts it into a recurring series. On an already recurring event, recurrence changes require `update_scope='entire_series'` or `update_scope='this_and_following'`. Only provided fields are updated; null/omitted fields keep t"
+    "purpose": "Update an event in a calendar owned by the signed-in user. Use this to reschedule a meeting, change its subject/body/location, or adjust attendees. Setting `recurrence` on a non-recurring event converts it into a recurring series. On an already recurring event, recurrence changes require `update_scope='entire_series'` or `update_scope='this_and_following'`. Only provided fields are updated; null/omitted fields keep their existing values. For shared or delegated calendars, use `update_shared_calendar_event`."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "activate_sequence",
+    "purpose": "Activate a sequence. Changes status from INACTIVE to ACTIVE, enabling enrollment and step execution."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "agent_catalog",
+    "purpose": "Browse the account-wide catalog of available trigger types and skills for monday platform agents. READ-ONLY — no agent_id required."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "all_api_read",
+    "purpose": "Execute read-only GraphQL queries against the monday.com API. Only queries are accepted — mutations are rejected with an error before the request is sent. Use get_graphql_schema and get_type_details tools first to understand the schema before crafting your query."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "all_api_write",
+    "purpose": "Execute GraphQL mutations against the monday.com API to create, update, or delete data. Only mutations are accepted — queries are rejected with an error before the request is sent. Use get_graphql_schema and get_type_details tools first to understand the schema before crafting your mutation."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "all_monday_api",
+    "purpose": "Execute any monday.com API operation by generating GraphQL queries and mutations dynamically. Make sure you ask only for the fields you need and nothing more. When providing the query/mutation - use get_graphql_schema and get_type_details tools first to understand the schema before crafting your query."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "all_widgets_schema",
+    "purpose": "Fetch complete JSON Schema 7 definitions for all available widget types in monday.com. This tool is essential before creating widgets as it provides: - Complete schema definitions for all supported widgets - Required and optional fields for each widget type - Data type specifications and validation rules - Detailed descriptions of widget capabilities Use this tool when you need to: - Understand widget configuration requirements before creating widgets - Validate widget settings against official schemas - Plan widge"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "board_insights",
+    "purpose": "This tool allows you to calculate insights about board's data by filtering, grouping and aggregating columns. For example, you can get the total number of items in a board, the number of items in each status, the number of items in each column, etc. Use this tool when you need to get a summary of the board's data, for example, you want to know the total number of items in a board, the number of items in each status, the number of items in each column, etc.[REQUIRED PRECONDITION]: Before using this tool, if new colu"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "change_item_column_values",
+    "purpose": "[IMPORTANT] If you need to update multiple items in one call, use update_items instead of calling this tool in a loop. Otherwise: change the column values of a single item in a monday.com board. [REQUIRED PRECONDITION]: Before using this tool, if new columns were added to the board or if you are not familiar with the board's structure (column IDs, column types, status labels, etc.), first use get_board_info to understand the board metadata. This is essential for constructing valid column values. For board-relation "
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_action",
+    "purpose": "Save a reusable action (a stored code script). Variables are injected as environment variables (access via os.environ in Python, process.env in JS/TS)."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_automation",
+    "purpose": "Creates an automation on a monday board from a structured natural-language description."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_board",
+    "purpose": "Create a monday.com board"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_column",
+    "purpose": "Create a new column in a monday.com board"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_dashboard",
+    "purpose": "Use this tool to create a new monday.com dashboard that aggregates data from one or more boards. Dashboards provide visual representations of board data through widgets and charts. Use this tool when users want to: - Create a dashboard to visualize board data - Aggregate information from multiple boards - Set up a data visualization container for widgets"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_doc",
+    "purpose": "Create a new monday.com doc either inside a workspace or attached to an item (via a doc column). After creation, the provided markdown will be appended to the document."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_folder",
+    "purpose": "Create a new folder in a monday.com workspace"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_form",
+    "purpose": "Create a monday.com form. Also creates a backing board to store responses. Returns the formToken for future mutations."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_form_submission",
+    "purpose": "Submit a response to a monday.com WorkForm. Use get_form first to retrieve the WorkForm, then: - Inspect each question's showIfRules to determine which questions are conditionally shown based on previous answers. - Inspect each question's settings for any answer constraints (e.g. rating limits, select options, label limits). - Take note of any titles, descriptions, and content blocks to present the form naturally as you walk the user through it. - Take note of pages and question order to present questions in the co"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_group",
+    "purpose": "Create a new group in a monday.com board. Groups are sections that organize related items. Use when users want to add structure, categorize items, or create workflow phases. Groups can be positioned relative to existing groups and assigned predefined colors. Items will always be created in the top group and so the top group should be the most relevant one for new item creation"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_item",
+    "purpose": "[IMPORTANT] If you need to create multiple items in one call, use create_items instead of calling this tool in a loop. Otherwise: create a new item with provided values, create a subitem under a parent item, or duplicate an existing item and update it with new values. Use parentItemId when creating a subitem under an existing item. Use duplicateFromItemId when copying an existing item with modifications. [REQUIRED PRECONDITION]: Before using this tool, if new columns were added to the board or if you are not famili"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_items",
+    "purpose": "Create up to 20 new items in a single call. Each item is fully independent - it chooses its own groupId, parentItemId (for subitems), duplicateFromItemId (for bulk templating from an existing item), and createLabelsIfMissing. A single call can therefore span multiple groups, mix regular items with subitems under different parents, and mix fresh creates with duplicates of existing items. Each item returns its own item_id and item_url on success, or a raw error message on failure. [REQUIRED PRECONDITION]: Before usin"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_notification",
+    "purpose": "Send a notification to a user via the bell icon and optionally by email. Use target_type \"Post\" for updates/replies or \"Project\" for items/boards."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_sequence",
+    "purpose": "Creates a new sequence on a board. Always created INACTIVE — use `activate-sequence` to enable after creation."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_timeline_item",
+    "purpose": "Create a new structured activity entry on a CRM item's timeline. Returns the created timeline_item_id. For freeform notes (meeting outcomes, follow-ups), use create-timeline-note instead."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_timeline_note",
+    "purpose": "Log a freeform text note on a CRM item's timeline — meeting outcomes, follow-up reminders, context for the next rep, or any unstructured observation."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_update",
+    "purpose": "Create a new update (comment/post) on a monday.com item. Updates can be used to add comments, notes, or discussions to items. You can optionally mention users, teams, or boards in the update. You can also reply to an existing update by using the parentId parameter."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_view",
+    "purpose": "Create a new board view (tab) with optional filters and sorting. This creates a saved view on a monday.com board that users can switch to."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_view_table",
+    "purpose": "Create a new table-type board view with optional filters, sort, tags, and table-specific settings (column visibility/order and group-by). Use this instead of create_view when you need to configure table-specific settings. For a simple table view, create_view also works."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_widget",
+    "purpose": "Create a new widget in a dashboard or board view with specific configuration settings. This tool creates data visualization widgets that display information from monday.com boards: **Parent Containers:** - **DASHBOARD**: Place widget in a dashboard (most common use case) - **BOARD_VIEW**: Place widget in a specific board view **Critical Requirements:** 1. **Schema Compliance**: Widget settings MUST conform to the JSON schema for the specific widget type 2. **Use all_widgets_schema first**: Always fetch widget schem"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_workflow",
+    "purpose": "Creates a new empty workflow in the given workspace and returns its identifiers (workflowObjectId and workflowDraftId)."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "create_workspace",
+    "purpose": "Create a new workspace in monday.com"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "deactivate_sequence",
+    "purpose": "Deactivate a sequence. Changes status from ACTIVE to INACTIVE, blocking new enrollments. Items already enrolled continue their execution."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "delete_action",
+    "purpose": "Delete a saved action."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "duplicate_sequence",
+    "purpose": "Duplicate a sequence. Creates a copy with the same steps and configuration. The new sequence starts with INACTIVE status."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "enroll_item_in_sequence",
+    "purpose": "Enroll one or more CRM contacts or leads into an outreach sequence. The sequence must be active. Returns per-item success/failure so partial failures do not silently drop contacts."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "execute_code",
+    "purpose": "Run arbitrary code in a monday-authenticated sandbox, without saving."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "explore_meetings",
+    "purpose": "Discover meetings by topic, or list/browse meetings by date and access. Returns meetings ranked by keyword relevance (matched against title and AI gist — not semantic). USE THIS FIRST for topic/theme questions (\"what did we decide about pricing\", \"find meetings about the acme deal\") AND for listing/browsing (\"list my recent meetings\", \"meetings from last week\", \"my last 10 meetings\"). When query is omitted, returns recent meetings filtered by date/access only — this is the tool for listing. Pass returned ids to get"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "finalize_asset_upload",
+    "purpose": "Finalize a file upload and create the asset on monday.com. Call this after uploading the file to the presigned URL from get_asset_upload_url. Requires the etag value from the PUT response headers. Automatically attaches the uploaded asset to the specified file column on the item. Returns the created asset_id."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "form_questions_editor",
+    "purpose": "Create, update, or delete a question in a monday.com form"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_action",
+    "purpose": "Retrieve a saved action by ID."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_activity_insights",
+    "purpose": "Fetch aggregated activity insights for a CRM board: call counts, duration stats, grouped by rep, activity type, or item. Does not return individual activity records."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_asset_upload_url",
+    "purpose": "Only call this tool if you can execute a direct HTTP PUT with binary file data and read response headers (e.g. via shell/curl). If you can't, tell the user direct file upload isn't supported here — don't call this tool."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_assets",
+    "purpose": "Get assets (files) by their IDs. Returns file metadata including name, extension, size, public URL (valid for 1 hour), thumbnail URL, upload date, and who uploaded it."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_automation_runs",
+    "purpose": "Read automation/workflow run history. Read-only."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_automation_statistics",
+    "purpose": "Aggregate automation run statistics. Read-only."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_board_activity",
+    "purpose": "Get board activity logs for a specified time range (defaults to last 30 days). Optionally filter by item ids or user ids to avoid fetching activity for the entire board."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_board_info",
+    "purpose": "Get comprehensive board information including metadata, structure, owners, and configuration. Also returns the board's views (e.g. table views, filter views) — each view includes its id, name, type, and a structured filter object."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_board_items_page",
+    "purpose": "Get all items from a monday.com board with pagination support and optional column values and item descriptions. Returns structured JSON with item details, creation/update timestamps, and pagination info. Use the nextCursor parameter from the response to get the next page of results when has_more is true. To retrieve an item description (the rich-text body/details of a monday.com item), set includeItemDescription to true — the response will include the item description document blocks with their content, type, and i"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_board_sequences",
+    "purpose": "List sequences for a board or the current user. Returns active and inactive sequences (never deleted). Each entry includes status, enrollment counts, step count, and aggregate analytics. An empty list means no matching sequences."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_column_type_info",
+    "purpose": "Retrieves comprehensive information about a specific column type. Use fetchMode \"schema\" (default) to get the JSON schema definition from the API — use this before creating or updating columns (e.g. create_column) to understand structure, validation rules, and available properties for column settings. Use fetchMode \"guidelines\" to get only guidelines.filter and guidelines.aggregation for building items_page filters and board insights counts (no schema, no GraphQL round-trip)."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_contact_journey",
+    "purpose": "List every sequence a contact (item) is enrolled in, sorted by most recent enrollment first. Returns each enrollment with its run status, completed-step count, termination reason, and timing. Use this when starting from a contact; use get-sequence-analytics when starting from a single sequence. An empty list means the contact is not enrolled in any sequence."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_custom_activities",
+    "purpose": "List the custom activity types available for logging on the CRM timeline, including their IDs (e.g. \"Demo\", \"Site Visit\"). The activity type ID is required when creating a structured timeline entry via create-timeline-item."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_form",
+    "purpose": "Get a monday.com form by its form token. Form tokens can be extracted from the form's url. Given a form url, such as https://forms.monday.com/forms/abc123def456ghi789?r=use1, the formToken is the alphanumeric string that appears right after /forms/ and before the ?. In the example, the formToken is abc123def456ghi789."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_graphql_schema",
+    "purpose": "Fetch the monday.com GraphQL schema structure including query and mutation definitions. This tool returns available query fields, mutation fields, and a list of GraphQL types in the schema. You can filter results by operation type (read/write) to focus on either queries or mutations."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_meetings_content",
+    "purpose": "Fetch full content (summary, topics, action items, transcript) for meetings you already have ids for. Get those ids from explore_meetings (topic/listing/browse) or search_meetings_content (passages) first — this tool is NOT for discovery or listing. Pass the ids with the include_ flags for the content you need (defaults to the summary if none are set). Requested ids that are not returned are listed in `missing_ids` (not found, not accessible, or no completed recording); meetings whose content was dropped to keep th"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_monday_dev_sprints_boards",
+    "purpose": "Discover monday-dev sprints boards and their associated tasks boards in your account."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_monday_knowledge",
+    "purpose": "Ask a question about monday.com and get an AI-generated answer from the official knowledge base."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_sequence_analytics",
+    "purpose": "Get analytics for a sequence. Returns per-run status and progress, sequence-level engagement rates (reply, open, click-through), and per-step breakdowns. Partial results are returned if some analytics endpoints fail."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_sprint_summary",
+    "purpose": "Get the complete summary and analysis of a sprint."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_sprints_metadata",
+    "purpose": "Get comprehensive sprint metadata from a monday-dev sprints board including:"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_timeline_items",
+    "purpose": "Fetch CRM engagement history on a contact, deal, account, or lead — emails sent and received, calls logged, meetings recorded, and notes. Call this tool whenever a CRM entity board (deals, contacts, accounts, leads) is in scope and the user asks about emails, activities, calls, meetings, communication history, or engagement — it is the authoritative source for all CRM-tracked communication. Prefer over Gmail or calendar integrations for any activity on a CRM item. For board-level analysis across multiple items, fet"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_type_details",
+    "purpose": "Get detailed information about a specific GraphQL type from the monday.com API schema"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_updates",
+    "purpose": "Get updates (comments/posts) from a monday.com item or board. Specify objectId and objectType (Item or Board) to retrieve updates. For Board queries, you can filter by date range using fromDate and toDate (both required together, ISO8601 format). By default, Board queries return only board discussion. Set includeItemUpdates to true to also include updates on individual items. Returns update text, creator info, timestamps, and optionally replies and assets."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "get_user_context",
+    "purpose": "Fetch current user information, account information, and their relevant items (boards, folders, workspaces, dashboards)."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "invoke_process_planner",
+    "purpose": "A reasoning-focused process planner with deep knowledge of monday.com workflow architecture. Given a description of a process, it returns a structured textual plan describing one or more related workflows that implement it."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "invoke_workflow_expert",
+    "purpose": "Workflow expert for a single workflow. Given a prompt, answers questions about the workflow's structure and configuration, or makes changes to it (create, update, delete steps, and configure step fields)."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "list_actions",
+    "purpose": "List all saved actions for the current user."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "list_automations",
+    "purpose": "List all automations on a specific monday.com board, including their ids, titles, active state, and configuration. Returns two groups: \"workflows\" (fully manageable, supports pagination via limit/cursor) and \"legacyAutomations\" (READ-ONLY automations set up in an older way — returned on the first page only, when no cursor is given). Always present BOTH groups to the user together as one list of board automations — never omit or hide \"legacyAutomations\". The split and the read-only limitation are internal context fo"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "list_users_and_teams",
+    "purpose": "Tool to fetch users and/or teams data."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "list_workspaces",
+    "purpose": "List all workspaces available to the user, ordered by membership (user's workspaces first). Returns workspaces with their ID, name, and description. [IMPORTANT] To search for workspaces by name, use the \"search\" tool with searchType WORKSPACES instead — it provides faster and more accurate results."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "manage_agent",
+    "purpose": "Full lifecycle management for monday platform agents — create, read, update, delete, change state, and run."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "manage_agent_knowledge",
+    "purpose": "List, grant, update, or revoke a monday platform agent's access to boards and docs."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "manage_agent_skills",
+    "purpose": "Manage the full skill lifecycle for monday platform agents — create new skills in the catalog, attach skills to an agent, or detach them."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "manage_agent_triggers",
+    "purpose": "Manage the triggers attached to a monday platform agent — triggers define WHEN the agent runs automatically."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "manage_automations",
+    "purpose": "Activate, deactivate, or delete an existing monday.com automation."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "move_object",
+    "purpose": "Move a folder, board, or overview in monday.com. Use position for relative placement based on another object, parentFolderId for folder changes, workspaceId for workspace moves, and accountProductId for account product changes."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "publish_workflow",
+    "purpose": "Promotes a workflow draft to live and optionally activates it."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "read_docs",
+    "purpose": "Get information about monday.com documents. Supports two modes:"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "run_action",
+    "purpose": "Execute a saved action by ID. Optionally pass variables (injected as environment variables, access via os.environ)."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "search",
+    "purpose": "Search within monday.com platform. Supported searchType values: BOARD, DOCUMENTS, FOLDERS, WORKSPACES, UPDATES, ITEMS, TIMELINE_ITEMS, DASHBOARDS. searchTerm is the phrase the search matches against — the text/keywords to look for (e.g. a board name, item title, or a word from an update). It is required and must be non-empty. This tool has no \"list everything\" mode: to browse or list without a search phrase, use workspace_info (boards/docs/folders in a workspace) or get_board_items_page (items in a board) instead o"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "search_meetings_content",
+    "purpose": "Search inside meeting content (topics, summary, action items) and return matching passages with their source area. Keyword-ranked (not semantic). When query is omitted, returns content filtered by date/access. Use to find where something was said or decided (\"which meeting mentioned the budget freeze\", \"find the auth migration discussion\"). Pass returned ids to get_meetings_content for full context."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "show_assign",
+    "purpose": "[UI COMPONENT] Renders an interactive smart assignment interface visualization that the user can see and interact with. IMPORTANT: This is a UI DISPLAY tool - use it to RENDER visual components for the user to see and interact with. Do NOT use data-fetching tools when the user explicitly asks to \"show\", \"display\", \"visualize\", or \"see\" something visually. Helps assign tasks to the right people. Assignment suggestions are based on task details (like name) and person details (such as title, availability, etc).Use for"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "show_battery",
+    "purpose": "[UI COMPONENT] Renders an interactive battery/progress indicator visualization that the user can see and interact with. IMPORTANT: This is a UI DISPLAY tool - use it to RENDER visual components for the user to see and interact with. Do NOT use data-fetching tools when the user explicitly asks to \"show\", \"display\", \"visualize\", or \"see\" something visually. Use when user asks for: battery view, progress indicator, status distribution bar, completion percentage visualization, or Monday.com style status breakdown."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "show_chart",
+    "purpose": "[UI COMPONENT] Renders an interactive chart/graph visualization that the user can see and interact with. IMPORTANT: This is a UI DISPLAY tool - use it to RENDER visual components for the user to see and interact with. Do NOT use data-fetching tools when the user explicitly asks to \"show\", \"display\", \"visualize\", or \"see\" something visually. Use when user asks for: pie chart, bar chart, line graph, data visualization, or any graphical representation of numbers/statistics."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "show_table",
+    "purpose": "[UI COMPONENT] Renders an interactive table visualization that the user can see and interact with. IMPORTANT: This is a UI DISPLAY tool - use it to RENDER visual components for the user to see and interact with. Do NOT use data-fetching tools when the user explicitly asks to \"show\", \"display\", \"visualize\", or \"see\" something visually. Use when user asks to: display a board as table, show items in table format, view data in tabular layout, or see a Monday.com board visually. When asked to update an item, use the cur"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "submit_bug_or_feature_request",
+    "purpose": "Report a bug, submit a feature request, or share feedback about the monday.com product or this integration."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "update_action",
+    "purpose": "Update an existing action. Only pass the fields you want to change."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "update_column",
+    "purpose": "Update properties of an existing monday.com column (title, description, settings). Uses optimistic concurrency control via the revision field — fetch the current revision via get_board_schema first, then call this tool. If the update fails because the revision is stale, re-fetch and try again."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "update_doc",
+    "purpose": "Update an existing monday.com document. Provide doc_id (preferred) or object_id, plus an ordered operations array (executed sequentially, stops on first failure)."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "update_folder",
+    "purpose": "Update an existing folder in monday.com"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "update_form",
+    "purpose": "Update a monday.com form. Use the action field to specify the operation."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "update_items",
+    "purpose": "Update column values for up to 40 items in a single call. Each update targets one item by itemId and sets one or more column values on it. Each update is independent - it can target its own board via boardId and set its own column values, so a single call can update many items across multiple boards, apply the same value to many items, or apply different values per item. Each update returns its own item_id and item_url on success or a raw error message on failure. To link board-relation columns, call link_board_ite"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "update_view",
+    "purpose": "Update an existing board view (tab) — change its name, filter rules, or sort order. Provide only the fields you want to change. Omitted fields are left unchanged."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "update_view_table",
+    "purpose": "Update an existing table-type board view — change its name, filters, sort, tags, or table-specific settings (column visibility/order and group-by). Provide only the fields you want to change. Omitted fields are left unchanged."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "update_workspace",
+    "purpose": "Update an existing workspace in monday.com"
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "validate_workflow",
+    "purpose": "Validates the current workflow's structure and step configuration. Reports issues such as a missing trigger or action block, a delay/wait-trigger block left as a leaf, an empty loop, unknown blocks, missing required inputs, type mismatches between a variable and the field it's bound to, cross-branch node-results references, or invalid variable values."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "vibe_ask",
+    "purpose": "Ask a read-only question about an existing Vibe app. Blocks for up to 45s (configurable via timeout_ms) awaiting the assistant reply. Status: COMPLETED with the reply, TIMEOUT if the workflow did not finish in time (call vibe_get later to retrieve it), or FAILED if the workflow errored or was cancelled. Optional model to pick the LLM for the answer."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "vibe_create",
+    "purpose": "Creates a new Vibe app from a natural-language prompt. Returns immediately with app_id and editor_link — the URL of the Vibe builder/chat page for the new app (https://{accountSlug}.monday.com/vibe/app/{appId}); the user can open it right away to watch generation in progress. Generation itself runs asynchronously — poll vibe_get for status. Optional: board_ids to connect existing boards (omit to auto-create), view_id to host a dashboard widget, and model to pick the LLM."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "vibe_delete",
+    "purpose": "Delete a Vibe app and its associated assets. Destructive."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "vibe_get",
+    "purpose": "Fetch a Vibe app by id. App metadata is always returned, including editor_link — the URL of the Vibe builder/chat page for this app (https://{accountSlug}.monday.com/vibe/app/{appId}); usable as soon as the app row exists. Pass `include` to add expensive slices: status (refreshes status + adds is_busy, default true), messages (with optional from_date), code_versions."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "vibe_list",
+    "purpose": "List Vibe apps owned by the authenticated user. Supports pagination, search, status, and is_published filters."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "vibe_publication",
+    "purpose": "Manage the publication state of a Vibe app on the caller account. action=publish requires the app to be deployed and respects the published-apps license limit. action=unpublish removes the app from the account."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "vibe_update",
+    "purpose": "Sends a follow-up message to modify an existing app. Fire-and-forget — returns immediately with user_message_id and editor_link (the Vibe builder/chat URL for this app, https://{accountSlug}.monday.com/vibe/app/{appId}). Returns APP_BUSY (409) if the app is currently generating; poll vibe_get first. Optional model to pick the LLM for this build."
+  },
+  {
+    "namespace": "monday_com",
+    "tool": "workspace_info",
+    "purpose": "This tool returns the boards, docs and folders in a workspace and which folder they are in. It returns up to 100 of each object type, if you receive 100 assume there are additional objects of that type in the workspace."
   },
   {
     "namespace": "Morphix",
@@ -6956,7 +7706,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Neon",
     "tool": "complete_query_tuning",
-    "purpose": "Apply or discard query-tuning changes and delete the temporary branch. NEVER run autonomously. Before calling, apply suggested SQL with run_sql on the temporary branch and re-run explain_sql_statement. Pass the tuning_id from prepare_query_tuning, not the branch id, plus temporary_branch_id. Set apply_changes true to apply; omitting it discards. Call this even when the user rejects the changes. Do not use prepare_dat"
+    "purpose": "Apply or discard query-tuning changes and delete the temporary branch. NEVER run autonomously. Before calling, apply suggested SQL with run_sql on the temporary branch and re-run explain_sql_statement. Pass the tuning_id from prepare_query_tuning, not the branch id, plus temporary_branch_id. Set apply_changes true to apply; omitting it discards. Call this even when the user rejects the changes. Do not use prepare_database_migration."
   },
   {
     "namespace": "Neon",
@@ -7146,7 +7896,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Neon",
     "tool": "get_connection_string",
-    "purpose": "Get a PostgreSQL connection string for a Neon database. The branch must have a compute endpoint. `create_project` and `create_branch` do not return one; call this after they succeed. All parameters are optional; the tool resolves the project, branch, and database automatically if not specified. Requires write access: the connection string carries a privileged role password, so it is unavailable in read-only mode. A r"
+    "purpose": "Get a PostgreSQL connection string for a Neon database. The branch must have a compute endpoint. `create_project` and `create_branch` do not return one; call this after they succeed. All parameters are optional; the tool resolves the project, branch, and database automatically if not specified. Requires write access: the connection string carries a privileged role password, so it is unavailable in read-only mode. A read-only caller who needs a DATABASE_URL must copy it from https://console.neon.tech manually."
   },
   {
     "namespace": "Neon",
@@ -7691,7 +8441,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Notion",
     "tool": "notion_duplicate_page",
-    "purpose": "Duplicate a Notion page. The page must be within the current workspace, and you must have permission to access it. The duplication completes asynchronously, so do not rely on the new page identified by the returned ID or URL to be populated immediately. Let the user know that the duplication is in progress and that they can check back later using the 'fetch' tool or by clicking the returned URL and viewing it in the "
+    "purpose": "Duplicate a Notion page. The page must be within the current workspace, and you must have permission to access it. The duplication completes asynchronously, so do not rely on the new page identified by the returned ID or URL to be populated immediately. Let the user know that the duplication is in progress and that they can check back later using the 'fetch' tool or by clicking the returned URL and viewing it in the Notion app."
   },
   {
     "namespace": "Notion",
@@ -7786,7 +8536,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Notion",
     "tool": "notion_show_advanced_analysis_next_steps",
-    "purpose": "Use this exactly once at the end of a turn when query_multiple_data_sources requires the full version of Notion MCP. Call with no arguments. Do not call this once per failed query, and do not call it again if it has already been called in this turn. Use the card data to give the user the relevant next-step message and destination link in the final response. Use a compact, labeled Markdown link rather than a bare URL,"
+    "purpose": "Use this exactly once at the end of a turn when query_multiple_data_sources requires the full version of Notion MCP. Call with no arguments. Do not call this once per failed query, and do not call it again if it has already been called in this turn. Use the card data to give the user the relevant next-step message and destination link in the final response. Use a compact, labeled Markdown link rather than a bare URL, and do not request or create a separate link preview."
   },
   {
     "namespace": "Notion",
@@ -7836,7 +8586,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Notion",
     "tool": "search",
-    "purpose": "Before the first content search for this connection, call fetch with {\"id\":\"self\"} unless its current access result is already in context. Choose the content-search tool by current_tool_access.ai_search.status, not by query wording: - If the status is \"available\", use ai_search for every keyword, page-title, project-name, or natural-language content search. - If self reports that AI search is not available to this co"
+    "purpose": "Before the first content search for this connection, call fetch with {\"id\":\"self\"} unless its current access result is already in context. Choose the content-search tool by current_tool_access.ai_search.status, not by query wording: - If the status is \"available\", use ai_search for every keyword, page-title, project-name, or natural-language content search. - If self reports that AI search is not available to this connection, use search with short, specific keywords. Missing access information is not a denial; fetc"
   },
   {
     "namespace": "OpenAI_Platform",
@@ -7851,7 +8601,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "OpenAI_Platform",
     "tool": "start_api_key_setup",
-    "purpose": "Open the ChatGPT web/widget OpenAI API key setup flow. Use this only in ChatGPT chat surfaces when the user asks for an OpenAI API key, OPENAI_API_KEY, or Platform key, or when code/config in the conversation needs OPENAI_API_KEY. Do not use this tool from Codex. In Codex, follow the installed Codex API key setup skill and use create_encrypted_openai_api_key only from a trusted local-write flow that decrypts locally "
+    "purpose": "Open the ChatGPT web/widget OpenAI API key setup flow. Use this only in ChatGPT chat surfaces when the user asks for an OpenAI API key, OPENAI_API_KEY, or Platform key, or when code/config in the conversation needs OPENAI_API_KEY. Do not use this tool from Codex. In Codex, follow the installed Codex API key setup skill and use create_encrypted_openai_api_key only from a trusted local-write flow that decrypts locally into a user-confirmed file. Opening this setup flow automatically loads selectable organizations and"
   },
   {
     "namespace": "Opera_Browser_Connector",
@@ -7896,12 +8646,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "OriginalVoices",
     "tool": "ask_twins",
-    "purpose": "This tool enables you to instantly understand and act on what real people think and feel. It lets you conduct qualitative market research by asking questions to Digital Twins - AI representations of real people, trained and owned by the individuals they represent. This tool generates responses grounded in how those real individuals think, feel, and behave, based on their ongoing training and validation. It returns mu"
+    "purpose": "This tool enables you to instantly understand and act on what real people think and feel. It lets you conduct qualitative market research by asking questions to Digital Twins - AI representations of real people, trained and owned by the individuals they represent. This tool generates responses grounded in how those real individuals think, feel, and behave, based on their ongoing training and validation. It returns multiple individual responses from Digital Twins selected to match your specified audience demographic"
   },
   {
     "namespace": "PDF_Editor_by_PDF_net",
     "tool": "apply_editor_command",
-    "purpose": "Apply a single editing command to the document in the editor session. `command` is a discriminated union keyed by `type` — each variant declares only its own fields. Supported types: `set_paragraph_text`, `add_page`, `remove_page`, `move_page`, `duplicate_page`, `add_paragraph`, `remove_paragraph`, `set_paragraph_bounds`. Use `describe_editor_pages` first to discover page and paragraph IDs. Form fields are not editab"
+    "purpose": "Apply a single editing command to the document in the editor session. `command` is a discriminated union keyed by `type` — each variant declares only its own fields. Supported types: `set_paragraph_text`, `add_page`, `remove_page`, `move_page`, `duplicate_page`, `add_paragraph`, `remove_paragraph`, `set_paragraph_bounds`. Use `describe_editor_pages` first to discover page and paragraph IDs. Form fields are not editable through this tool; use `fill_form_fields`. The call returns once the command is queued and its ta"
   },
   {
     "namespace": "PDF_Editor_by_PDF_net",
@@ -7931,7 +8681,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "PDF_Editor_by_PDF_net",
     "tool": "describe_editor_pages",
-    "purpose": "Return page metadata, paragraph IDs, paragraph bounds (`x`, `y`, `width`, `height`), `textWrapWidth`, paragraph-level style (`textAlign`, `lineHeight`, `textIndent`), and full text content for the document open in the editor session. Bounds are the read-only axis-aligned bounding box in PDF user space (Y axis up; `x`/`y` is its bottom-left corner). `textWrapWidth` is the width the text wraps at, in text-space units, "
+    "purpose": "Return page metadata, paragraph IDs, paragraph bounds (`x`, `y`, `width`, `height`), `textWrapWidth`, paragraph-level style (`textAlign`, `lineHeight`, `textIndent`), and full text content for the document open in the editor session. Bounds are the read-only axis-aligned bounding box in PDF user space (Y axis up; `x`/`y` is its bottom-left corner). `textWrapWidth` is the width the text wraps at, in text-space units, or \"auto\"; it is the only width `set_paragraph_bounds` accepts, and it equals the box `width` only w"
   },
   {
     "namespace": "PDF_Editor_by_PDF_net",
@@ -7941,7 +8691,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "PDF_Editor_by_PDF_net",
     "tool": "fill_form_fields",
-    "purpose": "Fill form fields of the document in the editor session — the only way to set field values; `apply_editor_command` edits page text and cannot touch them. Address each field by the `fieldName` from `describe_editor_pages`, never by `widgetId`: a value belongs to the field, so widgets sharing a `fieldName` share one value — that is a radio group, its options told apart by `checkedValue`. Write back the shape reported in"
+    "purpose": "Fill form fields of the document in the editor session — the only way to set field values; `apply_editor_command` edits page text and cannot touch them. Address each field by the `fieldName` from `describe_editor_pages`, never by `widgetId`: a value belongs to the field, so widgets sharing a `fieldName` share one value — that is a radio group, its options told apart by `checkedValue`. Write back the shape reported in `value`: a string for `text` and single-select `choice`, an array for multi-select `choice`, a bool"
   },
   {
     "namespace": "PDF_Editor_by_PDF_net",
@@ -7986,12 +8736,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "PDF_Editor_by_PDF_net",
     "tool": "open_pdf_document_editor",
-    "purpose": "Open an interactive PDF editor and start an editing session. The PREFERRED way to edit a single PDF — use it for ANY edit request. Returns an `editorSessionId` used by `describe_editor_pages` and `apply_editor_command` to read pages and apply edits. Two modes: (1) pass a `documentId` to open an existing document — editing tools are available immediately after the document loads; (2) omit `documentId` to show an empty"
+    "purpose": "Open an interactive PDF editor and start an editing session. The PREFERRED way to edit a single PDF — use it for ANY edit request. Returns an `editorSessionId` used by `describe_editor_pages` and `apply_editor_command` to read pages and apply edits. Two modes: (1) pass a `documentId` to open an existing document — editing tools are available immediately after the document loads; (2) omit `documentId` to show an empty editor with a file upload drop zone — the user must upload a file before editing tools become avail"
   },
   {
     "namespace": "PDF_Editor_by_PDF_net",
     "tool": "open_pdf_document_manager",
-    "purpose": "Open an interactive document manager with folder navigation, thumbnails, and drag-and-drop upload. This is the PREFERRED way to add multiple files to the library for further editing. Also used to browse the library or organize files. Due to privacy policy we have no access to the chat history or to files the user uploaded directly to the host (e.g. attached to the conversation). If the user refers to such a file, ask"
+    "purpose": "Open an interactive document manager with folder navigation, thumbnails, and drag-and-drop upload. This is the PREFERRED way to add multiple files to the library for further editing. Also used to browse the library or organize files. Due to privacy policy we have no access to the chat history or to files the user uploaded directly to the host (e.g. attached to the conversation). If the user refers to such a file, ask them to re-upload it through this interface."
   },
   {
     "namespace": "PDF_Editor_by_PDF_net",
@@ -8146,37 +8896,37 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Plugin_Management",
     "tool": "get_app_permissions",
-    "purpose": "Inspect one named ChatGPT plugin's global/default and plugin-specific permission settings. Use when the user asks what the plugin may read, write, or do, whether it must ask first, or whether it inherits the default. For a missing/broad target such as my plugins, all, or Google, make no call and ask which plugin. Never pass global. Do not use for OAuth/admin scopes, install/connect/undo requests, ordinary plugin use,"
+    "purpose": "Inspect one named ChatGPT plugin's global/default and plugin-specific permission settings. Use when the user asks what the plugin may read, write, or do, whether it must ask first, or whether it inherits the default. For a missing/broad target such as my plugins, all, or Google, make no call and ask which plugin. Never pass global. Do not use for OAuth/admin scopes, install/connect/undo requests, ordinary plugin use, or npm/Chrome/code plugins."
   },
   {
     "namespace": "Plugin_Management",
     "tool": "get_plugin_dependencies",
-    "purpose": "Resolve the canonical public plugins declared by one plugin's app manifest. Use only when a skill or user explicitly asks for dependency metadata. Pass a plugin ID or name@marketplace reference unchanged. Named references resolve by globally listed plugin name. This reports metadata plus current user-aware plugin status, installation policy, and installed state; it does not install or connect anything. The result sep"
+    "purpose": "Resolve the canonical public plugins declared by one plugin's app manifest. Use only when a skill or user explicitly asks for dependency metadata. Pass a plugin ID or name@marketplace reference unchanged. Named references resolve by globally listed plugin name. This reports metadata plus current user-aware plugin status, installation policy, and installed state; it does not install or connect anything. The result separates visible canonical plugins from app entries that lack a unique canonical plugin or whose canon"
   },
   {
     "namespace": "Plugin_Management",
     "tool": "search_plugins",
-    "purpose": "Search the plugin directory when the user explicitly requests a plugin or provider, or when their task would benefit from an external app, account, service, data source, or capability not available through existing tools. Infer relevant plugin intent from the task even when the user does not mention plugins. For example, requests involving email, calendars, messaging, documents, CRM, project management, finance, or a"
+    "purpose": "Search the plugin directory when the user explicitly requests a plugin or provider, or when their task would benefit from an external app, account, service, data source, or capability not available through existing tools. Infer relevant plugin intent from the task even when the user does not mention plugins. For example, requests involving email, calendars, messaging, documents, CRM, project management, finance, or analytics may warrant plugin discovery. Search before claiming a service is unavailable, asking for p"
   },
   {
     "namespace": "Plugin_Management",
     "tool": "suggest_plugins",
-    "purpose": "Suggest plugins when an external integration would help the user. The user does not need to mention plugins or installation. Call plugin_management.search_plugins for relevant missing capabilities when needed, then choose the most relevant eligible plugins. Call plugin_management.suggest_plugins at most once per turn with one or more references or plugin IDs. Accept exact plugin IDs or exact name@openai-curated-remot"
+    "purpose": "Suggest plugins when an external integration would help the user. The user does not need to mention plugins or installation. Call plugin_management.search_plugins for relevant missing capabilities when needed, then choose the most relevant eligible plugins. Call plugin_management.suggest_plugins at most once per turn with one or more references or plugin IDs. Accept exact plugin IDs or exact name@openai-curated-remote references. Do not suggest installed plugins or plugins already pending. Suggestions do not block "
   },
   {
     "namespace": "Plugin_Management",
     "tool": "uninstall_app",
-    "purpose": "Uninstall ChatGPT plugins only for explicit uninstall, remove, or disconnect intent. Pass every exact, user-approved target in one call. For a missing/broad target such as Google, all/risky plugins, or a choice left to you, make no call and ask. Disable is not uninstall. Never use this for install/connect/undo/how-to, sentiment, negation, ordinary plugin use, or npm/Chrome/code plugins. The result reports each outcom"
+    "purpose": "Uninstall ChatGPT plugins only for explicit uninstall, remove, or disconnect intent. Pass every exact, user-approved target in one call. For a missing/broad target such as Google, all/risky plugins, or a choice left to you, make no call and ask. Disable is not uninstall. Never use this for install/connect/undo/how-to, sentiment, negation, ordinary plugin use, or npm/Chrome/code plugins. The result reports each outcome."
   },
   {
     "namespace": "Plugin_Management",
     "tool": "update_app_permissions",
-    "purpose": "Update global ChatGPT plugin permissions or a plugin-specific override. Omit app_id for global-only updates and provide it for plugin-specific updates. Map Always ask to always_ask, Any changes to ask_before_writes, Important actions to review_important_actions, Never ask to full_access, and Use my default to inherit. For plugin-specific changes, a missing/broad target such as Google, a vague mode such as tighter/mor"
+    "purpose": "Update global ChatGPT plugin permissions or a plugin-specific override. Omit app_id for global-only updates and provide it for plugin-specific updates. Map Always ask to always_ask, Any changes to ask_before_writes, Important actions to review_important_actions, Never ask to full_access, and Use my default to inherit. For plugin-specific changes, a missing/broad target such as Google, a vague mode such as tighter/more permissive, conflicting intent such as less access plus Never ask, or a choice left to you require"
   },
   {
     "namespace": "post_bridge",
     "tool": "create_post",
-    "purpose": "Publish or schedule a social media post to Instagram, TikTok, YouTube, X (Twitter), LinkedIn, Facebook, Pinterest, Threads, Bluesky, and Google Business Profile. One call can cross-post the same text, image, or video to multiple accounts and platforms at once. Use list_social_accounts first to get account IDs. Omit scheduled_at to post immediately. Pass public media URLs via media_urls (the API downloads them). IMPOR"
+    "purpose": "Publish or schedule a social media post to Instagram, TikTok, YouTube, X (Twitter), LinkedIn, Facebook, Pinterest, Threads, Bluesky, and Google Business Profile. One call can cross-post the same text, image, or video to multiple accounts and platforms at once. Use list_social_accounts first to get account IDs. Omit scheduled_at to post immediately. Pass public media URLs via media_urls (the API downloads them). IMPORTANT for X/Twitter: links are automatically removed from the text before posting to X — this include"
   },
   {
     "namespace": "post_bridge",
@@ -8221,12 +8971,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "post_bridge",
     "tool": "list_social_accounts",
-    "purpose": "List the user's connected social media accounts across Instagram, TikTok, YouTube, X (Twitter), LinkedIn, Facebook, Pinterest, Threads, Bluesky, and Google Business Profile. Returns account IDs, platforms, usernames, and needs_reconnect. When needs_reconnect is true, repeated dead-token failures have paused posting to that account: posts to it are skipped until the user reconnects it in the dashboard (reconnecting cl"
+    "purpose": "List the user's connected social media accounts across Instagram, TikTok, YouTube, X (Twitter), LinkedIn, Facebook, Pinterest, Threads, Bluesky, and Google Business Profile. Returns account IDs, platforms, usernames, and needs_reconnect. When needs_reconnect is true, repeated dead-token failures have paused posting to that account: posts to it are skipped until the user reconnects it in the dashboard (reconnecting clears it automatically). Do not post or retry against accounts in that state; tell the user to reconn"
   },
   {
     "namespace": "post_bridge",
     "tool": "request_upload_link",
-    "purpose": "Get an upload page for files that live on the user's device (a video or photos on their phone or laptop) and therefore have no public URL. Returns a link valid for 24 hours; give it to the user, they open it and drop one or many files in (a whole carousel at once is fine), and each file lands in their Post Bridge media library. Then call list_media (newest first), take as many media_ids as files they uploaded, and pa"
+    "purpose": "Get an upload page for files that live on the user's device (a video or photos on their phone or laptop) and therefore have no public URL. Returns a link valid for 24 hours; give it to the user, they open it and drop one or many files in (a whole carousel at once is fine), and each file lands in their Post Bridge media library. Then call list_media (newest first), take as many media_ids as files they uploaded, and pass them to create_post. Use this whenever the user wants to post a file that upload_media cannot rea"
   },
   {
     "namespace": "post_bridge",
@@ -8241,42 +8991,42 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "post_bridge",
     "tool": "upload_media",
-    "purpose": "Upload media and get back a reusable media_id. Two modes: (1) pass `url` to upload from a publicly accessible URL (preferred for anything over a few MB), or (2) pass `data` (base64-encoded file bytes) plus `mime_type` to upload bytes directly from the model context. Supports images (PNG/JPEG), videos (MP4/MOV), and PDFs (application/pdf). A PDF returns a document-kind media_id — pass it to create_post on a LinkedIn a"
+    "purpose": "Upload media and get back a reusable media_id. Two modes: (1) pass `url` to upload from a publicly accessible URL (preferred for anything over a few MB), or (2) pass `data` (base64-encoded file bytes) plus `mime_type` to upload bytes directly from the model context. Supports images (PNG/JPEG), videos (MP4/MOV), and PDFs (application/pdf). A PDF returns a document-kind media_id — pass it to create_post on a LinkedIn account to publish a native LinkedIn document post (PDF carousel); set platform_configurations.linked"
   },
   {
     "namespace": "Product_Hunt",
     "tool": "find_alternatives",
-    "purpose": "Find alternative products to a given product. - When to use: The user asks to find alternatives to a specific product like \"alternatives to [product]\", \"apps like [product]\", \"[product] competitors\", \"what can I use instead of [product]?\", or wants to compare similar products. - Args: product_name (required), order (highest_rated, most_relevant, or recent_launches), tags (e.g. \"free\", \"open-source\", \"ai\"), limit. - R"
+    "purpose": "Find alternative products to a given product. - When to use: The user asks to find alternatives to a specific product like \"alternatives to [product]\", \"apps like [product]\", \"[product] competitors\", \"what can I use instead of [product]?\", or wants to compare similar products. - Args: product_name (required), order (highest_rated, most_relevant, or recent_launches), tags (e.g. \"free\", \"open-source\", \"ai\"), limit. - Returns: Similar products with ratings, categories, and relevance scores in an interactive carousel."
   },
   {
     "namespace": "Product_Hunt",
     "tool": "get_categories",
-    "purpose": "List all available Product Hunt categories with their slugs. - When to use: When you need to find the right category_slug for get_products or search_launches, or when the user asks what categories Product Hunt has, or wants to browse available topics. - Returns: All searchable categories organised by parent/child hierarchy with slugs. Use the slug values directly in get_products(category_slug) or search_launches(cate"
+    "purpose": "List all available Product Hunt categories with their slugs. - When to use: When you need to find the right category_slug for get_products or search_launches, or when the user asks what categories Product Hunt has, or wants to browse available topics. - Returns: All searchable categories organised by parent/child hierarchy with slugs. Use the slug values directly in get_products(category_slug) or search_launches(category_slug)."
   },
   {
     "namespace": "Product_Hunt",
     "tool": "get_leaderboard",
-    "purpose": "Get the ranked Product Hunt leaderboard for a specific day, week, month, or year. - When to use: The user asks \"what won on [date]?\", \"top launches in [week/month/year]\", \"#1 product on [date]\", \"Product Hunt winners for [period]\", or wants the official ranking for a past or recent day, week, month, or year. - Args: date (required; YYYY-MM-DD for a day, YYYY-Www for an ISO week, YYYY-MM for a month, or YYYY for a yea"
+    "purpose": "Get the ranked Product Hunt leaderboard for a specific day, week, month, or year. - When to use: The user asks \"what won on [date]?\", \"top launches in [week/month/year]\", \"#1 product on [date]\", \"Product Hunt winners for [period]\", or wants the official ranking for a past or recent day, week, month, or year. - Args: date (required; YYYY-MM-DD for a day, YYYY-Www for an ISO week, YYYY-MM for a month, or YYYY for a year), limit (default 5, max 8). - Returns: Top-ranked products for that period with their rank, votes,"
   },
   {
     "namespace": "Product_Hunt",
     "tool": "get_product_profile",
-    "purpose": "Get detailed information about a product including description, makers, categories, social links, pricing, ratings, review highlights, and credibility signals like YC backing, funding, founded date, and team size. - When to use: \"tell me about [product]\", \"what is [product]?\", \"who made [product]?\", \"give me info on [product]\", or wants a comprehensive overview of a specific product. - Args: product_name (name or slu"
+    "purpose": "Get detailed information about a product including description, makers, categories, social links, pricing, ratings, review highlights, and credibility signals like YC backing, funding, founded date, and team size. - When to use: \"tell me about [product]\", \"what is [product]?\", \"who made [product]?\", \"give me info on [product]\", or wants a comprehensive overview of a specific product. - Args: product_name (name or slug). - Returns: Full profile with reviews, rating, sentiment, and credibility details."
   },
   {
     "namespace": "Product_Hunt",
     "tool": "get_products",
-    "purpose": "Get top-rated or recently launched products in a Product Hunt category. - When to use: The user wants to see the best products in a topic like \"best [topic] tools\", \"top [topic] apps\", \"find me a [topic] app\", \"top open source [topic] tools\", \"best free [topic] apps\", \"best paid [topic] tools\". - Args: category_slug (required, use get_categories when you need to discover valid slugs), order (highest_rated or recent_l"
+    "purpose": "Get top-rated or recently launched products in a Product Hunt category. - When to use: The user wants to see the best products in a topic like \"best [topic] tools\", \"top [topic] apps\", \"find me a [topic] app\", \"top open source [topic] tools\", \"best free [topic] apps\", \"best paid [topic] tools\". - Args: category_slug (required, use get_categories when you need to discover valid slugs), order (highest_rated or recent_launches), open_source (boolean), pricing (\"free\", \"free_options\", or \"payment_required\"), limit. - R"
   },
   {
     "namespace": "Product_Hunt",
     "tool": "search_launches",
-    "purpose": "Search recent product launches on Product Hunt. - When to use: The user asks \"what's new?\", \"latest AI launches\", \"trending products this week\", \"new tools launched today\", \"what launched on Product Hunt recently?\", \"new YC startups\", \"open source products launched this week\", \"free AI tools\", \"paid AI tools launched recently\". - Args: query (text search), category_slug (preferred over query; use get_categories to di"
+    "purpose": "Search recent product launches on Product Hunt. - When to use: The user asks \"what's new?\", \"latest AI launches\", \"trending products this week\", \"new tools launched today\", \"what launched on Product Hunt recently?\", \"new YC startups\", \"open source products launched this week\", \"free AI tools\", \"paid AI tools launched recently\". - Args: query (text search), category_slug (preferred over query; use get_categories to discover valid slugs), days_ago (default 30), yc_only (boolean), open_source (boolean), pricing (\"free"
   },
   {
     "namespace": "Product_Hunt",
     "tool": "semantic_product_search",
-    "purpose": "Search Product Hunt products by natural-language topic or use case using vector similarity. - When to use: The user describes what they want without naming a category or product, e.g. \"tools for managing claude code sessions\", \"AI that summarizes meeting notes\", \"self-hosted analytics for small teams\". Prefer get_products when the user asks for a category, and find_alternatives when they name a specific product. - Ar"
+    "purpose": "Search Product Hunt products by natural-language topic or use case using vector similarity. - When to use: The user describes what they want without naming a category or product, e.g. \"tools for managing claude code sessions\", \"AI that summarizes meeting notes\", \"self-hosted analytics for small teams\". Prefer get_products when the user asks for a category, and find_alternatives when they name a specific product. - Args: query (required, free-form description), limit (default 6, max 8). - Returns: Semantically simil"
   },
   {
     "namespace": "ProductOS",
@@ -8286,17 +9036,17 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "analyze_survey_responses",
-    "purpose": "Pull all responses for a survey in this project and return per-question statistics (distributions, averages, top open-text answers). YOU interpret them: write the headline, a 2-paragraph PM-grade narrative, and a confirmed / partially_confirmed / refuted / new_finding verdict against each of your prior hypotheses, into your research run doc. Use this once you've collected at least a handful of responses to a previous"
+    "purpose": "Pull all responses for a survey in this project and return per-question statistics (distributions, averages, top open-text answers). YOU interpret them: write the headline, a 2-paragraph PM-grade narrative, and a confirmed / partially_confirmed / refuted / new_finding verdict against each of your prior hypotheses, into your research run doc. Use this once you've collected at least a handful of responses to a previously-generated survey. Pass `surveyId` from a prior generate_survey result."
   },
   {
     "namespace": "ProductOS",
     "tool": "bash",
-    "purpose": "Execute a bash command in the project's REMOTE cloud sandbox (working dir /home/user — the project root). This is NOT the local machine: all coding happens on the ProductOS sandbox, so you can drive a project from any device without a local clone. Full shell semantics: pipes, &&, globs, redirection, git, npm, tsc — anything installed in the sandbox. Synchronous commands time out at 55s: for anything longer (next buil"
+    "purpose": "Execute a bash command in the project's REMOTE cloud sandbox (working dir /home/user — the project root). This is NOT the local machine: all coding happens on the ProductOS sandbox, so you can drive a project from any device without a local clone. Full shell semantics: pipes, &&, globs, redirection, git, npm, tsc — anything installed in the sandbox. Synchronous commands time out at 55s: for anything longer (next build, a full test suite, prisma generate) pass background:true to get a jobId back immediately, then ca"
   },
   {
     "namespace": "ProductOS",
     "tool": "browser_act",
-    "purpose": "Perform one interaction. Targets are @eN refs from browser_snapshot or CSS selectors. Actions: click, double_click, hover, fill (clear then type), type (append), select (dropdown), check/uncheck, press (a key or combo like 'Enter' or 'Control+a'), scroll, scroll_into_view, wait (for an element, text, or a pause — use before snapshotting an async UI). Re-snapshot afterwards — refs go stale. Requires project:exec scope"
+    "purpose": "Perform one interaction. Targets are @eN refs from browser_snapshot or CSS selectors. Actions: click, double_click, hover, fill (clear then type), type (append), select (dropdown), check/uncheck, press (a key or combo like 'Enter' or 'Control+a'), scroll, scroll_into_view, wait (for an element, text, or a pause — use before snapshotting an async UI). Re-snapshot afterwards — refs go stale. Requires project:exec scope."
   },
   {
     "namespace": "ProductOS",
@@ -8331,7 +9081,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "check_deploy_status",
-    "purpose": "Check the latest deployment's live Vercel status for this project. Use whenever the user asks 'is it done?', 'what's the status?', 'did the deploy finish?', or asks for the public URL after a prior delegate_to_deploy. By DEFAULT this BLOCKS up to ~3 minutes polling Vercel until the deployment reaches a terminal state (READY/FAILED/CANCELLED) — that is what 'wait for the deploy' means. Pass `wait: false` for an instan"
+    "purpose": "Check the latest deployment's live Vercel status for this project. Use whenever the user asks 'is it done?', 'what's the status?', 'did the deploy finish?', or asks for the public URL after a prior delegate_to_deploy. By DEFAULT this BLOCKS up to ~3 minutes polling Vercel until the deployment reaches a terminal state (READY/FAILED/CANCELLED) — that is what 'wait for the deploy' means. Pass `wait: false` for an instant non-blocking snapshot. Returns a structured JSON string."
   },
   {
     "namespace": "ProductOS",
@@ -8341,7 +9091,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "create_project",
-    "purpose": "Create a new ProductOS project: registers it in the workspace, initializes its Git repository, applies the chosen template, and optionally provisions + boots its sandbox. Returns the project id, repo, and sandbox/preview URLs. IMPORTANT — pick `template` from what the user actually wants, don't just default to web: a MOBILE app / iOS / Android / React Native / Expo → 'mobile'; a marketing/landing/brand/blog/SEO site "
+    "purpose": "Create a new ProductOS project: registers it in the workspace, initializes its Git repository, applies the chosen template, and optionally provisions + boots its sandbox. Returns the project id, repo, and sandbox/preview URLs. IMPORTANT — pick `template` from what the user actually wants, don't just default to web: a MOBILE app / iOS / Android / React Native / Expo → 'mobile'; a marketing/landing/brand/blog/SEO site → 'website'; a web app / dashboard / SaaS → 'web-app'. If the user says 'app' without qualifying and"
   },
   {
     "namespace": "ProductOS",
@@ -8356,12 +9106,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "delegate_to_deploy",
-    "purpose": "Delegate publish-and-deploy to the Deploy sub-agent. Use this whenever the user asks to publish, deploy, or ship the project. The sub-agent runs `next build` in the sandbox to verify, pushes to the ProductOS GitHub org, triggers a Vercel deployment, polls for completion, and auto-fixes build errors up to 3 times before asking the user. Available in any stage where Develop has produced files. This tool returns a short"
+    "purpose": "Delegate publish-and-deploy to the Deploy sub-agent. Use this whenever the user asks to publish, deploy, or ship the project. The sub-agent runs `next build` in the sandbox to verify, pushes to the ProductOS GitHub org, triggers a Vercel deployment, polls for completion, and auto-fixes build errors up to 3 times before asking the user. Available in any stage where Develop has produced files. This tool returns a short status string with the public URL on success — use `read_file` on /home/user/wiki/agents/deploy/out"
   },
   {
     "namespace": "ProductOS",
     "tool": "delegate_to_design",
-    "purpose": "Delegate a flows/screens design task to the UI/UX sub-agent. Only valid when the current stage is `design`, and only AFTER the user has explicitly asked for flows or screens (per the design rules). DO NOT use this for brand work — brand guidelines are owned by ProductOS directly via the brand tools (`set_brand_identity`, `generate_brand_palette`, `generate_font_pairing`, `generate_vibe_report`, `generate_mood_board`)"
+    "purpose": "Delegate a flows/screens design task to the UI/UX sub-agent. Only valid when the current stage is `design`, and only AFTER the user has explicitly asked for flows or screens (per the design rules). DO NOT use this for brand work — brand guidelines are owned by ProductOS directly via the brand tools (`set_brand_identity`, `generate_brand_palette`, `generate_font_pairing`, `generate_vibe_report`, `generate_mood_board`). The sub-agent reads prior-stage artifacts (ideation brief, research findings, PRD) and produces st"
   },
   {
     "namespace": "ProductOS",
@@ -8376,12 +9126,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "delegate_to_qa",
-    "purpose": "Run the ProductOS QA Agent against the user's preview URL. It drives a headless browser to test critical flows, capture screenshots, hit backend APIs, and run accessibility and console checks. Its activity streams into this chat as live steps. BLOCKS until the run finishes (~1-5 minutes). Returns the verdict (pass/partial/fail), summary, and findings count. If verdict is `fail`, consider following up with `delegate_t"
+    "purpose": "Run the ProductOS QA Agent against the user's preview URL. It drives a headless browser to test critical flows, capture screenshots, hit backend APIs, and run accessibility and console checks. Its activity streams into this chat as live steps. BLOCKS until the run finishes (~1-5 minutes). Returns the verdict (pass/partial/fail), summary, and findings count. If verdict is `fail`, consider following up with `delegate_to_engineer` to fix the critical issues it found."
   },
   {
     "namespace": "ProductOS",
     "tool": "delegate_to_research",
-    "purpose": "Delegate a research task (competitor audit, market signals, user validation, technical feasibility, regulatory scan) to the Research sub-agent. Only valid when the current stage is `research`. The sub-agent uses Exa semantic search (fast/auto/deep modes) to gather sourced findings and writes a cumulative research brief. This tool returns a short status string — use `read_file` to see the actual brief and findings lis"
+    "purpose": "Delegate a research task (competitor audit, market signals, user validation, technical feasibility, regulatory scan) to the Research sub-agent. Only valid when the current stage is `research`. The sub-agent uses Exa semantic search (fast/auto/deep modes) to gather sourced findings and writes a cumulative research brief. This tool returns a short status string — use `read_file` to see the actual brief and findings list."
   },
   {
     "namespace": "ProductOS",
@@ -8431,7 +9181,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "generate_mood_board",
-    "purpose": "Generate a mood board image summarizing the brand's visual direction. Should be called ONLY after the design system has been generated — the image model grounds itself against DESIGN.md + the preview HTML so the board reflects the locked design language, not just the raw palette/fonts. Requires color palette and typography to already exist. Normally the user triggers this themselves from the Mood Board sub-tab inside"
+    "purpose": "Generate a mood board image summarizing the brand's visual direction. Should be called ONLY after the design system has been generated — the image model grounds itself against DESIGN.md + the preview HTML so the board reflects the locked design language, not just the raw palette/fonts. Requires color palette and typography to already exist. Normally the user triggers this themselves from the Mood Board sub-tab inside the Design System; only call it programmatically if explicitly asked."
   },
   {
     "namespace": "ProductOS",
@@ -8456,17 +9206,17 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "get_deploy_status",
-    "purpose": "Check a deployment's status for this project. Returns status (QUEUED/PUSHING/DEPLOYING/READY/DEGRADED/FAILED/CANCELLED), the exact source commit deployed, the deployment URL, GitHub repo info, and the full post-deploy verification report — including any routes that failed their release check with expected vs actual HTTP status. DEGRADED means the build succeeded but verification failed, so it was not promoted to prod"
+    "purpose": "Check a deployment's status for this project. Returns status (QUEUED/PUSHING/DEPLOYING/READY/DEGRADED/FAILED/CANCELLED), the exact source commit deployed, the deployment URL, GitHub repo info, and the full post-deploy verification report — including any routes that failed their release check with expected vs actual HTTP status. DEGRADED means the build succeeded but verification failed, so it was not promoted to production. Defaults to the latest deployment."
   },
   {
     "namespace": "ProductOS",
     "tool": "get_eas_build_logs",
-    "purpose": "Return the real failure logs for a mobile EAS build — the 'Run gradlew' (Android) / Xcode (iOS) phase output, plus the extracted cause. Use this whenever a Play Store / App Store build fails, ESPECIALLY when the status says \"unknown error — see logs for the Run gradlew phase\": that message is EAS's classifier giving up, and this tool fetches what it points at. Defaults to the project's most recent mobile build. Pass "
+    "purpose": "Return the real failure logs for a mobile EAS build — the 'Run gradlew' (Android) / Xcode (iOS) phase output, plus the extracted cause. Use this whenever a Play Store / App Store build fails, ESPECIALLY when the status says \"unknown error — see logs for the Run gradlew phase\": that message is EAS's classifier giving up, and this tool fetches what it points at. Defaults to the project's most recent mobile build. Pass grep to filter (e.g. 'Execution failed|e: file://'). Requires project:read scope."
   },
   {
     "namespace": "ProductOS",
     "tool": "get_product_context",
-    "purpose": "Orient in ProductOS Product mode — a Product groups several platform projects (web / mobile / website) that share ONE frozen spec, one database, and one orchestrator agent. Call this FIRST whenever the project you're working on might belong to a Product: it lists the sibling surfaces, whether the shared contract is frozen (and at which version), and what the ProductOS Agent is doing. With no arguments it resolves the"
+    "purpose": "Orient in ProductOS Product mode — a Product groups several platform projects (web / mobile / website) that share ONE frozen spec, one database, and one orchestrator agent. Call this FIRST whenever the project you're working on might belong to a Product: it lists the sibling surfaces, whether the shared contract is frozen (and at which version), and what the ProductOS Agent is doing. With no arguments it resolves the Product owning the connection's active project, or — if that project is standalone — lists every Pr"
   },
   {
     "namespace": "ProductOS",
@@ -8511,7 +9261,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "git_sync",
-    "purpose": "Git operations on the project sandbox. action='status' shows the working tree + recent commits (project:read). action='commit-push' commits the live sandbox state and pushes it to the project's GitHub repo via the durable commit pipeline — file writes via MCP already auto-commit, so use this to force an immediate sync point (project:write). action='pull' pulls the latest from the project's GitHub repo INTO the sandbo"
+    "purpose": "Git operations on the project sandbox. action='status' shows the working tree + recent commits (project:read). action='commit-push' commits the live sandbox state and pushes it to the project's GitHub repo via the durable commit pipeline — file writes via MCP already auto-commit, so use this to force an immediate sync point (project:write). action='pull' pulls the latest from the project's GitHub repo INTO the sandbox — it first backs up the current tree to S3 so the pull is undoable, and refuses while an agent tur"
   },
   {
     "namespace": "ProductOS",
@@ -8541,7 +9291,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "list_projects",
-    "purpose": "List the ProductOS projects this MCP connection can access, with each project's access level (READ / WRITE / FULL_DEV), current stage, and id. Projects that are platforms of a multi-platform Product are grouped under it — use get_product_context for that Product's shared spec and orchestrator agent. The active project is marked — switch it with open_project, or pass projectId to any file/sandbox tool to target anothe"
+    "purpose": "List the ProductOS projects this MCP connection can access, with each project's access level (READ / WRITE / FULL_DEV), current stage, and id. Projects that are platforms of a multi-platform Product are grouped under it — use get_product_context for that Product's shared spec and orchestrator agent. The active project is marked — switch it with open_project, or pass projectId to any file/sandbox tool to target another project directly."
   },
   {
     "namespace": "ProductOS",
@@ -8591,12 +9341,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "manage_product",
-    "purpose": "Create and steer a ProductOS Product (several platform projects — web / mobile / website — sharing one frozen spec, one database and one orchestrator agent). Actions: 'create' (from a brief + surfaces: provisions the shared database, creates one project per surface, and starts the ProductOS Agent in PLAN MODE — nothing builds until you approve its plan with product_agent); 'add_surface' (add a platform to an existing"
+    "purpose": "Create and steer a ProductOS Product (several platform projects — web / mobile / website — sharing one frozen spec, one database and one orchestrator agent). Actions: 'create' (from a brief + surfaces: provisions the shared database, creates one project per surface, and starts the ProductOS Agent in PLAN MODE — nothing builds until you approve its plan with product_agent); 'add_surface' (add a platform to an existing product and build it against the existing contract); 'sync_spec' (re-freeze the shared contract — t"
   },
   {
     "namespace": "ProductOS",
     "tool": "mobile_publish",
-    "purpose": "The Expo/EAS pipeline for MOBILE_EXPO projects — app identity → EAS build → App Store / Play Store submission. Use this instead of trigger_deploy for any mobile app (trigger_deploy is the web/Vercel pipeline and will not produce an app). Actions: 'status' (ALWAYS start here — app identity, which store credentials are connected, what can run now, and the in-flight/latest build); 'configure' (set packageName + displayN"
+    "purpose": "The Expo/EAS pipeline for MOBILE_EXPO projects — app identity → EAS build → App Store / Play Store submission. Use this instead of trigger_deploy for any mobile app (trigger_deploy is the web/Vercel pipeline and will not produce an app). Actions: 'status' (ALWAYS start here — app identity, which store credentials are connected, what can run now, and the in-flight/latest build); 'configure' (set packageName + displayName — required before any build; the package name is permanent once published); 'build' (EAS build p"
   },
   {
     "namespace": "ProductOS",
@@ -8616,27 +9366,27 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "product_agent",
-    "purpose": "Read and drive the ProductOS Agent — the orchestrator that plans a Product, freezes its shared contract, and dispatches the per-surface builds. It is not a project and can't be reached with the project tools. Actions: 'status' (what it last said, whether it's mid-turn, and — crucially — whether it is parked awaiting plan approval, with the proposed plan); 'approve' (approve the parked plan so the builds start — this "
+    "purpose": "Read and drive the ProductOS Agent — the orchestrator that plans a Product, freezes its shared contract, and dispatches the per-surface builds. It is not a project and can't be reached with the project tools. Actions: 'status' (what it last said, whether it's mid-turn, and — crucially — whether it is parked awaiting plan approval, with the proposed plan); 'approve' (approve the parked plan so the builds start — this SPENDS CREDITS and dispatches real work across every surface, so confirm with the user first); 'answ"
   },
   {
     "namespace": "ProductOS",
     "tool": "propose_design_plan",
-    "purpose": "Show the user a Design kickoff plan card. Automation covers the first two pieces only — brand & visual direction and the design system. User flows and UI screens are USER-DRIVEN: list them on the plan card as their own user-led steps so the user knows they can drive that part themselves (or ask you to help later). Call this on the FIRST turn of the design stage (right after greeting) — it REPLACES writing the plan as"
+    "purpose": "Show the user a Design kickoff plan card. Automation covers the first two pieces only — brand & visual direction and the design system. User flows and UI screens are USER-DRIVEN: list them on the plan card as their own user-led steps so the user knows they can drive that part themselves (or ask you to help later). Call this on the FIRST turn of the design stage (right after greeting) — it REPLACES writing the plan as a bullet list in your text reply. DO NOT call `delegate_to_design`, `delegate_to_design_system`, or"
   },
   {
     "namespace": "ProductOS",
     "tool": "propose_develop_plan",
-    "purpose": "Show the user a Develop kickoff plan card with the concrete features/screens you'll build in the develop stage. CRITICAL: The sandbox ALREADY has a pre-built Next.js project — DO NOT include a step like 'Set up the Next.js project structure' or any scaffolding/install work. The plan MUST focus on user-visible feature work (core flows, gameplay, screens, auth, integrations, leaderboards, etc.). Call this on the FIRST "
+    "purpose": "Show the user a Develop kickoff plan card with the concrete features/screens you'll build in the develop stage. CRITICAL: The sandbox ALREADY has a pre-built Next.js project — DO NOT include a step like 'Set up the Next.js project structure' or any scaffolding/install work. The plan MUST focus on user-visible feature work (core flows, gameplay, screens, auth, integrations, leaderboards, etc.). Call this on the FIRST turn of the develop stage (right after greeting) — it REPLACES writing the plan as a bullet list in "
   },
   {
     "namespace": "ProductOS",
     "tool": "propose_prd_plan",
-    "purpose": "Show the user a PRD kickoff plan card with the 4 phases you'll run through (read ideation + research context, present PRD template options, confirm the section outline, generate sections one by one). Call this on the FIRST turn of the PRD stage (right after greeting). DO NOT call `setup_prd_outline` or `delegate_to_prd` on the same turn — wait for the user to approve the plan via the card. The user clicks 'Run plan' "
+    "purpose": "Show the user a PRD kickoff plan card with the 4 phases you'll run through (read ideation + research context, present PRD template options, confirm the section outline, generate sections one by one). Call this on the FIRST turn of the PRD stage (right after greeting). DO NOT call `setup_prd_outline` or `delegate_to_prd` on the same turn — wait for the user to approve the plan via the card. The user clicks 'Run plan' to approve, which arrives as a hidden message on the next turn; then you proceed with Phase 1 (read "
   },
   {
     "namespace": "ProductOS",
     "tool": "propose_research_plan",
-    "purpose": "Show the user a research plan card with 1-6 concrete research questions you intend to investigate. Default to 3-5, but honor the user when they ask for fewer (e.g. a single focused investigation like 'just the competitor landscape') — a one-step plan is valid. Call this on the FIRST turn of the research stage (right after greeting). DO NOT call `delegate_to_research` on the same turn — wait for the user to approve th"
+    "purpose": "Show the user a research plan card with 1-6 concrete research questions you intend to investigate. Default to 3-5, but honor the user when they ask for fewer (e.g. a single focused investigation like 'just the competitor landscape') — a one-step plan is valid. Call this on the FIRST turn of the research stage (right after greeting). DO NOT call `delegate_to_research` on the same turn — wait for the user to approve the plan via the card. The user clicks 'Run plan' to approve, which arrives as a hidden message on the"
   },
   {
     "namespace": "ProductOS",
@@ -8686,7 +9436,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "read_shared_context",
-    "purpose": "Read the FROZEN shared contract every surface of a ProductOS Product is built against: spec/prd.md (requirements), spec/flows.md (user flows), spec/components.md (component spec), spec/design-tokens.json, spec/schema.prisma (the shared database), design-system/DESIGN.md, and progress/<surface>.md (what each sibling surface has done so far). Read the relevant parts BEFORE changing any surface of a Product — code that "
+    "purpose": "Read the FROZEN shared contract every surface of a ProductOS Product is built against: spec/prd.md (requirements), spec/flows.md (user flows), spec/components.md (component spec), spec/design-tokens.json, spec/schema.prisma (the shared database), design-system/DESIGN.md, and progress/<surface>.md (what each sibling surface has done so far). Read the relevant parts BEFORE changing any surface of a Product — code that contradicts this contract will drift from the other platforms. Omit `path` to list what's available."
   },
   {
     "namespace": "ProductOS",
@@ -8706,7 +9456,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "run_release_checks",
-    "purpose": "Run the project's release checks against its live deployment and report each route's expected vs actual HTTP status. Uses the project's configured checks when it has them, otherwise derives them from the routes in the last deploy. Also re-checks that every built route exists in production and that the database is reachable. Use this to confirm whether a deployment is actually healthy, or to see exactly which routes a"
+    "purpose": "Run the project's release checks against its live deployment and report each route's expected vs actual HTTP status. Uses the project's configured checks when it has them, otherwise derives them from the routes in the last deploy. Also re-checks that every built route exists in production and that the database is reachable. Use this to confirm whether a deployment is actually healthy, or to see exactly which routes are failing and with what status. Does not deploy or change anything."
   },
   {
     "namespace": "ProductOS",
@@ -8746,7 +9496,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "set_active_design_tab",
-    "purpose": "Switch the main Design page tab in the user's UI. Call this BEFORE talking about or generating content for a different tab so the user actually sees the panel you are working in. Tabs: 'brand' (Brand Guidelines wizard), 'design-system' (Design System picker/generator), 'flows' (User Flows canvas), 'screens' (UI Screens grid), 'builder' (Design Agent build panel). Example: when the user says 'let's go to user flows an"
+    "purpose": "Switch the main Design page tab in the user's UI. Call this BEFORE talking about or generating content for a different tab so the user actually sees the panel you are working in. Tabs: 'brand' (Brand Guidelines wizard), 'design-system' (Design System picker/generator), 'flows' (User Flows canvas), 'screens' (UI Screens grid), 'builder' (Design Agent build panel). Example: when the user says 'let's go to user flows and UI screens', call this with 'flows' before doing any user-flow work."
   },
   {
     "namespace": "ProductOS",
@@ -8766,7 +9516,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "set_stage",
-    "purpose": "Transition the project to a new stage. Call this ONLY after the user has explicitly consented in their most recent message (e.g. 'yes move to research', 'let's do PRD now'). Prefer `propose_stage_transition` when you believe the stage is done but the user hasn't yet said yes. IDEATION EXIT GATE: when the current stage is ideation, do not call this until the user has supplied or explicitly confirmed the brand/product "
+    "purpose": "Transition the project to a new stage. Call this ONLY after the user has explicitly consented in their most recent message (e.g. 'yes move to research', 'let's do PRD now'). Prefer `propose_stage_transition` when you believe the stage is done but the user hasn't yet said yes. IDEATION EXIT GATE: when the current stage is ideation, do not call this until the user has supplied or explicitly confirmed the brand/product name; an AI-generated or placeholder project name does not count. IMPORTANT: Calling set_stage creat"
   },
   {
     "namespace": "ProductOS",
@@ -8781,7 +9531,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "ProductOS",
     "tool": "trigger_deploy",
-    "purpose": "Deploy the active project to production: GitHub push → Vercel deployment (deterministic, no auto-fix). Works in both Manual and Automatic deployment mode — calling it is the user's explicit deploy. Runs asynchronously and shows live in the ProductOS UI. On a build failure it stops at FAILED with the build logs — read get_deploy_logs, fix the code (edit_file/bash), and call trigger_deploy again. Poll get_deploy_status"
+    "purpose": "Deploy the active project to production: GitHub push → Vercel deployment (deterministic, no auto-fix). Works in both Manual and Automatic deployment mode — calling it is the user's explicit deploy. Runs asynchronously and shows live in the ProductOS UI. On a build failure it stops at FAILED with the build logs — read get_deploy_logs, fix the code (edit_file/bash), and call trigger_deploy again. Poll get_deploy_status for status/URL. Requires project:write scope."
   },
   {
     "namespace": "ProductOS",
@@ -8966,37 +9716,37 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Replit",
     "tool": "ask_question",
-    "purpose": "Ask the Replit Agent a question in natural language about the user's Replit App's codebase or behavior without modifying it. Use this when the user wants explanation, debugging help, or inspection (for example, understanding how routing works, why a request is failing, or where a bug might be), and NOT when they are clearly asking you to change how their Replit App behaves — in that case, prefer update_app_using_prom"
+    "purpose": "Ask the Replit Agent a question in natural language about the user's Replit App's codebase or behavior without modifying it. Use this when the user wants explanation, debugging help, or inspection (for example, understanding how routing works, why a request is failing, or where a bug might be), and NOT when they are clearly asking you to change how their Replit App behaves — in that case, prefer update_app_using_prompt. If the user refers to an existing app and you do not already have its replId, call search_apps t"
   },
   {
     "namespace": "Replit",
     "tool": "create_app_from_prompt",
-    "purpose": "Create a brand-new Replit App for the user. Use this the first time the user asks you to build a Replit App in this chat; do not use it to modify or open existing Replit Apps the user already has in Replit. After invoking this tool, reply with one short sentence summarizing that Replit is now creating their Replit App, and, when the tool result contains an app URL, end your reply with that exact URL on its own line, "
+    "purpose": "Create a brand-new Replit App for the user. Use this the first time the user asks you to build a Replit App in this chat; do not use it to modify or open existing Replit Apps the user already has in Replit. After invoking this tool, reply with one short sentence summarizing that Replit is now creating their Replit App, and, when the tool result contains an app URL, end your reply with that exact URL on its own line, so the user can open their Replit App even if no preview card is rendered. Never construct or guess "
   },
   {
     "namespace": "Replit",
     "tool": "get_publish_status",
-    "purpose": "Check the publish status of the user's Replit App: whether it has ever been published, the current status of its most recent publish, and the public URL it serves. found=false means the app has never been published; call publish_app to publish it for the first time. When found, 'success' means it is live at the returned url, 'failed' means the last publish did not go through, 'suspended' means the published app is pa"
+    "purpose": "Check the publish status of the user's Replit App: whether it has ever been published, the current status of its most recent publish, and the public URL it serves. found=false means the app has never been published; call publish_app to publish it for the first time. When found, 'success' means it is live at the returned url, 'failed' means the last publish did not go through, 'suspended' means the published app is paused and not serving, and anything else means a publish or lifecycle operation is still in progress."
   },
   {
     "namespace": "Replit",
     "tool": "list_apps",
-    "purpose": "List Replit Apps the user can edit, most recently updated first; `query` optionally filters by matching app titles, surfacing the best matches for the query first. Use this when the user wants to browse or pick from their apps, or when you need a replId but resolve_app_by_name returned found=false because the user gave an approximate name — present the returned titles and let the user choose, then pass the chosen rep"
+    "purpose": "List Replit Apps the user can edit, most recently updated first; `query` optionally filters by matching app titles, surfacing the best matches for the query first. Use this when the user wants to browse or pick from their apps, or when you need a replId but resolve_app_by_name returned found=false because the user gave an approximate name — present the returned titles and let the user choose, then pass the chosen replId to update_app_using_prompt or ask_question. This is a search/list, not the exact resolver: prefe"
   },
   {
     "namespace": "Replit",
     "tool": "publish_app",
-    "purpose": "Publish the user's Replit App so its latest changes go live at its public URL. If the app has been published before, this republishes it, reusing the existing deployment's settings. If it has never been published, this publishes it with default settings: Autoscale hosting, private visibility when the app belongs to a workspace (organization), public visibility otherwise. Some apps cannot be published from chat the fi"
+    "purpose": "Publish the user's Replit App so its latest changes go live at its public URL. If the app has been published before, this republishes it, reusing the existing deployment's settings. If it has never been published, this publishes it with default settings: Autoscale hosting, private visibility when the app belongs to a workspace (organization), public visibility otherwise. Some apps cannot be published from chat the first time; when that applies, this tool returns an error explaining what the user should do on the Re"
   },
   {
     "namespace": "Replit",
     "tool": "resolve_app_by_name",
-    "purpose": "Look up by exact name a Replit App the user can edit and return its replId (UUID) and URL. Use this when the user refers to an app by name (e.g. \"update my Todo App\", \"what does my Recipe Tracker do?\") and you don't already have a replId from create_app_from_prompt earlier in this conversation. Pass the result's replId into update_app_using_prompt or ask_question to act on the app. Matching is case-insensitive but ex"
+    "purpose": "Look up by exact name a Replit App the user can edit and return its replId (UUID) and URL. Use this when the user refers to an app by name (e.g. \"update my Todo App\", \"what does my Recipe Tracker do?\") and you don't already have a replId from create_app_from_prompt earlier in this conversation. Pass the result's replId into update_app_using_prompt or ask_question to act on the app. Matching is case-insensitive but exact: this is a name resolver, not a search. If the user gives you an approximate or partial name and"
   },
   {
     "namespace": "Replit",
     "tool": "search_apps",
-    "purpose": "Search Replit Apps the user can edit (owned or shared with them). query is a BM25-style keyword search over app titles, best matches first; updatedAfter/updatedBefore bound the last-updated time; these combine. Prefer the default recency ordering: only set updatedAfter/updatedBefore when the user explicitly asks to filter by time, since date bounds exclude apps that would otherwise be listed. url resolves a Replit Ap"
+    "purpose": "Search Replit Apps the user can edit (owned or shared with them). query is a BM25-style keyword search over app titles, best matches first; updatedAfter/updatedBefore bound the last-updated time; these combine. Prefer the default recency ordering: only set updatedAfter/updatedBefore when the user explicitly asks to filter by time, since date bounds exclude apps that would otherwise be listed. url resolves a Replit App URL directly to that app and ignores the other filters. With no filters, this returns the user's m"
   },
   {
     "namespace": "Replit",
@@ -9136,7 +9886,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Shopify",
     "tool": "get_collection",
-    "purpose": "Retrieve detailed information about a specific Shopify collection by its GID, including title, description, image, products, and rules (for smart collections). MUST be called whenever the user refers to a collection they own or previously created — regardless of phrasing. Trigger phrases include: \"my collection\", \"that collection\", \"the collection\", \"show me my collection\", \"get my collection\", or any reference to a "
+    "purpose": "Retrieve detailed information about a specific Shopify collection by its GID, including title, description, image, products, and rules (for smart collections). MUST be called whenever the user refers to a collection they own or previously created — regardless of phrasing. Trigger phrases include: \"my collection\", \"that collection\", \"the collection\", \"show me my collection\", \"get my collection\", or any reference to a previously created or known collection. \"Show\" and \"get\" mean the same thing here: always fetch live"
   },
   {
     "namespace": "Shopify",
@@ -9156,7 +9906,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Shopify",
     "tool": "get_product",
-    "purpose": "Retrieve detailed information about a specific Shopify product by its GID, including title, status, vendor, variants, images, tags, and inventory. MUST be called whenever the user refers to a product they own or previously created — regardless of phrasing. Trigger phrases include: \"my product\", \"that product\", \"the product\", \"show me my product\", \"get my product\", \"pull up the product\", \"open my product\", or any refe"
+    "purpose": "Retrieve detailed information about a specific Shopify product by its GID, including title, status, vendor, variants, images, tags, and inventory. MUST be called whenever the user refers to a product they own or previously created — regardless of phrasing. Trigger phrases include: \"my product\", \"that product\", \"the product\", \"show me my product\", \"get my product\", \"pull up the product\", \"open my product\", or any reference to a previously created or known product. \"Show\" and \"get\" mean the same thing here: always fe"
   },
   {
     "namespace": "Shopify",
@@ -9166,7 +9916,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Shopify",
     "tool": "graphql_mutation",
-    "purpose": "Execute a GraphQL mutation against the Shopify Admin API. The Shopify Admin API supports hundreds of mutations. Built-in tools cover common write operations, but when the user asks to modify a resource that has no dedicated tool (e.g. metafields, metaobjects, pages, blogs, translations, publications, etc.), use this tool. Note: Some dangerous mutations are blocked for safety (e.g. refunds, gift card writes, staff man"
+    "purpose": "Execute a GraphQL mutation against the Shopify Admin API. The Shopify Admin API supports hundreds of mutations. Built-in tools cover common write operations, but when the user asks to modify a resource that has no dedicated tool (e.g. metafields, metaobjects, pages, blogs, translations, publications, etc.), use this tool. Note: Some dangerous mutations are blocked for safety (e.g. refunds, gift card writes, staff management, theme deletion, theme publishing). Theme file writes (themeFilesCopy, themeFilesUpsert) are"
   },
   {
     "namespace": "Shopify",
@@ -9196,7 +9946,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Shopify",
     "tool": "search_collections",
-    "purpose": "Search and browse collections on a Shopify store. Use this whenever the user wants to see, find, or look at collections in their store. Trigger phrases include: 'show me my collections', 'what collections do I have', 'list my collections', 'find a collection', 'search collections', or any reference to viewing multiple collections. 'Show' and 'get' mean the same thing: always fetch live data from Shopify. Do NOT summa"
+    "purpose": "Search and browse collections on a Shopify store. Use this whenever the user wants to see, find, or look at collections in their store. Trigger phrases include: 'show me my collections', 'what collections do I have', 'list my collections', 'find a collection', 'search collections', or any reference to viewing multiple collections. 'Show' and 'get' mean the same thing: always fetch live data from Shopify. Do NOT summarize from memory."
   },
   {
     "namespace": "Shopify",
@@ -9206,7 +9956,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Shopify",
     "tool": "search_products",
-    "purpose": "Search and browse products on a Shopify store. MUST be called whenever the user wants to see, find, or look at products in their store. Trigger phrases include: 'show me my products', 'what products do I have', 'list my products', 'browse my catalog', 'find a product', 'search for', or any reference to viewing multiple products. 'Show' and 'get' mean the same thing: always fetch live data from Shopify. Do NOT summari"
+    "purpose": "Search and browse products on a Shopify store. MUST be called whenever the user wants to see, find, or look at products in their store. Trigger phrases include: 'show me my products', 'what products do I have', 'list my products', 'browse my catalog', 'find a product', 'search for', or any reference to viewing multiple products. 'Show' and 'get' mean the same thing: always fetch live data from Shopify. Do NOT summarize from memory."
   },
   {
     "namespace": "Shopify",
@@ -9216,7 +9966,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Shopify",
     "tool": "switch_shop",
-    "purpose": "Switch to a different Shopify store. Call this tool whenever the user wants to work with a different store — including when they ask to fetch data, manage products, or perform any action on another shop. Revokes the current store's access token so the next tool call will prompt authorization for a new store. IMPORTANT: You must always make a follow-up tool call after this tool returns. If the user requested a specifi"
+    "purpose": "Switch to a different Shopify store. Call this tool whenever the user wants to work with a different store — including when they ask to fetch data, manage products, or perform any action on another shop. Revokes the current store's access token so the next tool call will prompt authorization for a new store. IMPORTANT: You must always make a follow-up tool call after this tool returns. If the user requested a specific action (e.g. fetch products), call that tool next. Otherwise, you MUST call get-shop-info to compl"
   },
   {
     "namespace": "Shopify",
@@ -9246,57 +9996,57 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Soluvery",
     "tool": "get_capabilities",
-    "purpose": "Returns a professional overview of all Soluvery Drive audit capabilities with ready-to-use prompts the user can copy and paste. WHEN TO USE: - User says 'hi', 'hello', 'hey', or any greeting. - User asks 'what can you do?', 'help', 'how does this work?', 'features'. - User sends a vague or generic first message. - User asks 'show me what Soluvery can do'. WHEN NOT TO USE: - User has a specific request (e.g. 'scan my "
+    "purpose": "Returns a professional overview of all Soluvery Drive audit capabilities with ready-to-use prompts the user can copy and paste. WHEN TO USE: - User says 'hi', 'hello', 'hey', or any greeting. - User asks 'what can you do?', 'help', 'how does this work?', 'features'. - User sends a vague or generic first message. - User asks 'show me what Soluvery can do'. WHEN NOT TO USE: - User has a specific request (e.g. 'scan my public files') — use the relevant tool directly."
   },
   {
     "namespace": "Soluvery",
     "tool": "get_file_permissions",
-    "purpose": "Returns all users and their permission levels for a specific file. Shows each user's email, role (owner/writer/commenter/reader), and access type. WHEN TO USE: - User asks 'Who has access to this file?' - User asks 'Show permissions for file X' - User provides a specific file ID and wants to see its sharing settings. REQUIRED PARAMETER: A Google Drive file ID. - RESPONSE REQUIREMENTS (MANDATORY): - Start with a clear"
+    "purpose": "Returns all users and their permission levels for a specific file. Shows each user's email, role (owner/writer/commenter/reader), and access type. WHEN TO USE: - User asks 'Who has access to this file?' - User asks 'Show permissions for file X' - User provides a specific file ID and wants to see its sharing settings. REQUIRED PARAMETER: A Google Drive file ID. - RESPONSE REQUIREMENTS (MANDATORY): - Start with a clear summary of how many people have access to this file. - List every person with their role (owner / w"
   },
   {
     "namespace": "Soluvery",
     "tool": "get_files_by_owner",
-    "purpose": "Lists files in the user's Drive that are owned by a specific email address. Returns a count and up to 25 file names with links. WHEN TO USE: - User asks 'Which files does john@example.com own in my Drive?' - User asks 'Show files owned by a specific person' WHEN NOT TO USE: - User asks about access (not ownership) — use get_live_files_accessible_by_email. REQUIRED PARAMETER: A valid email address. - RESPONSE REQUIREM"
+    "purpose": "Lists files in the user's Drive that are owned by a specific email address. Returns a count and up to 25 file names with links. WHEN TO USE: - User asks 'Which files does john@example.com own in my Drive?' - User asks 'Show files owned by a specific person' WHEN NOT TO USE: - User asks about access (not ownership) — use get_live_files_accessible_by_email. REQUIRED PARAMETER: A valid email address. - RESPONSE REQUIREMENTS (MANDATORY): - Start with a clear summary of how many files this person owns in the user's Driv"
   },
   {
     "namespace": "Soluvery",
     "tool": "get_inactive_files",
-    "purpose": "Lists files in the user's Drive that have not been modified within a given number of days. Defaults to 90 days if not specified. Returns a count and up to 25 file names with last-modified dates and links. WHEN TO USE: - User asks 'Which files haven't been touched in a while?' - User asks 'Show me inactive or stale files' - User asks 'What files are older than 6 months?' WHEN NOT TO USE: - User asks about file size — "
+    "purpose": "Lists files in the user's Drive that have not been modified within a given number of days. Defaults to 90 days if not specified. Returns a count and up to 25 file names with last-modified dates and links. WHEN TO USE: - User asks 'Which files haven't been touched in a while?' - User asks 'Show me inactive or stale files' - User asks 'What files are older than 6 months?' WHEN NOT TO USE: - User asks about file size — use get_largest_files. - RESPONSE REQUIREMENTS (MANDATORY): - Start with a clear summary of how many"
   },
   {
     "namespace": "Soluvery",
     "tool": "get_largest_files",
-    "purpose": "Returns the top 25 largest files in the user's Google Drive, sorted by storage consumption (largest first). Shows file name, human-readable size (KB/MB/GB), file type, and a clickable Google Drive link. Note: Google-native files (Docs, Sheets, Slides) report as 0 bytes because they do not count against storage quota. WHEN TO USE: - User asks 'What are my biggest files?' - User asks 'What's using the most space in my "
+    "purpose": "Returns the top 25 largest files in the user's Google Drive, sorted by storage consumption (largest first). Shows file name, human-readable size (KB/MB/GB), file type, and a clickable Google Drive link. Note: Google-native files (Docs, Sheets, Slides) report as 0 bytes because they do not count against storage quota. WHEN TO USE: - User asks 'What are my biggest files?' - User asks 'What's using the most space in my Drive?' - User asks 'I'm running out of storage, what should I clean up?' - User wants to free up st"
   },
   {
     "namespace": "Soluvery",
     "tool": "get_live_files_accessible_by_email",
-    "purpose": "Scans the user's entire Google Drive and counts ALL files that a specific email address has access to — as reader, writer, or commenter. Performs a full Drive scan with no limit. Returns an exact total count. WHEN TO USE: - User asks 'How many files does john@example.com have access to?' - User asks 'What can sarah@company.com see in my Drive?' - User asks 'Does bob@gmail.com have access to anything?' - User wants to"
+    "purpose": "Scans the user's entire Google Drive and counts ALL files that a specific email address has access to — as reader, writer, or commenter. Performs a full Drive scan with no limit. Returns an exact total count. WHEN TO USE: - User asks 'How many files does john@example.com have access to?' - User asks 'What can sarah@company.com see in my Drive?' - User asks 'Does bob@gmail.com have access to anything?' - User wants to check a specific person's access level. WHEN NOT TO USE: - User asks about publicly shared files in"
   },
   {
     "namespace": "Soluvery",
     "tool": "get_not_owned_files",
-    "purpose": "Lists files in the user's Drive that they do NOT own — files shared with them by others. Returns a count and up to 25 file names with links. WHEN TO USE: - User asks 'Which files are owned by others?' - User asks 'What files were shared with me?' - User asks 'Which files do I not own?' WHEN NOT TO USE: - User asks about files they own — use get_owned_files. - RESPONSE REQUIREMENTS (MANDATORY): - Start with a clear su"
+    "purpose": "Lists files in the user's Drive that they do NOT own — files shared with them by others. Returns a count and up to 25 file names with links. WHEN TO USE: - User asks 'Which files are owned by others?' - User asks 'What files were shared with me?' - User asks 'Which files do I not own?' WHEN NOT TO USE: - User asks about files they own — use get_owned_files. - RESPONSE REQUIREMENTS (MANDATORY): - Start with a clear summary of how many files are owned by others. - Highlight the security risk — owners can modify, move"
   },
   {
     "namespace": "Soluvery",
     "tool": "get_owned_files",
-    "purpose": "Lists files owned by the user in their Google Drive. Returns up to 25 file names with clickable links. Scan is capped at 500 files for performance; structuredContent.count will be the string '500+' when capped is true. WHEN TO USE: - User asks 'Which files do I own?' - User asks 'How many files do I own?' - User wants to see files they are the owner of. WHEN NOT TO USE: - User asks about files shared with them — use "
+    "purpose": "Lists files owned by the user in their Google Drive. Returns up to 25 file names with clickable links. Scan is capped at 500 files for performance; structuredContent.count will be the string '500+' when capped is true. WHEN TO USE: - User asks 'Which files do I own?' - User asks 'How many files do I own?' - User wants to see files they are the owner of. WHEN NOT TO USE: - User asks about files shared with them — use get_not_owned_files. - RESPONSE REQUIREMENTS (MANDATORY): - Start with a clear summary of how many f"
   },
   {
     "namespace": "Soluvery",
     "tool": "get_public_files",
-    "purpose": "Scans the user's Google Drive in real time and lists files that are shared with 'Anyone with the link' — anyone who has or receives the direct URL can open these files without signing in. Returns file names with clickable Google Drive links (default 5, configurable via limit). WHEN TO USE: - User asks 'How many files in my Drive are publicly shared?' - User asks 'Am I sharing anything publicly?' - User asks 'Which fi"
+    "purpose": "Scans the user's Google Drive in real time and lists files that are shared with 'Anyone with the link' — anyone who has or receives the direct URL can open these files without signing in. Returns file names with clickable Google Drive links (default 5, configurable via limit). WHEN TO USE: - User asks 'How many files in my Drive are publicly shared?' - User asks 'Am I sharing anything publicly?' - User asks 'Which files are shared with anyone with the link?' - User wants an exposure or risk overview of their Drive."
   },
   {
     "namespace": "Soluvery",
     "tool": "get_shared_files_count",
-    "purpose": "Counts ALL files in the user's Google Drive that are shared with anyone (not just the owner). Scans the entire Drive — no page limit — and returns an exact total. Includes files shared via link, shared with the domain, and shared with specific people. WHEN TO USE: - User asks 'How many of my files are shared?' - User asks 'What percentage of my Drive is shared?' - User wants an overall sharing exposure number. WHEN N"
+    "purpose": "Counts ALL files in the user's Google Drive that are shared with anyone (not just the owner). Scans the entire Drive — no page limit — and returns an exact total. Includes files shared via link, shared with the domain, and shared with specific people. WHEN TO USE: - User asks 'How many of my files are shared?' - User asks 'What percentage of my Drive is shared?' - User wants an overall sharing exposure number. WHEN NOT TO USE: - User asks about a specific person's access — use get_live_files_accessible_by_email. - "
   },
   {
     "namespace": "Soluvery",
     "tool": "get_starred_files",
-    "purpose": "Returns up to 25 starred (bookmarked) files from the user's Google Drive. Shows file name, last modified date, and a clickable Google Drive link. Starred files are files the user has manually marked as important. WHEN TO USE: - User asks 'Show me my starred files' - User asks 'What files have I marked as important?' - User asks 'List my bookmarked files' WHEN NOT TO USE: - User asks about shared or public files — use"
+    "purpose": "Returns up to 25 starred (bookmarked) files from the user's Google Drive. Shows file name, last modified date, and a clickable Google Drive link. Starred files are files the user has manually marked as important. WHEN TO USE: - User asks 'Show me my starred files' - User asks 'What files have I marked as important?' - User asks 'List my bookmarked files' WHEN NOT TO USE: - User asks about shared or public files — use sharing-related tools. - RESPONSE REQUIREMENTS (MANDATORY): - Start with a clear summary of how man"
   },
   {
     "namespace": "Soul_Family_AI",
@@ -9331,7 +10081,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "SoundBreak",
     "tool": "create_song_generation",
-    "purpose": "Start a SoundBreak song generation with an AI artist. Prefer artist_name from the user (e.g. \"Kevin\") — the server resolves it when exactly one artist matches. Use ai_cowriter_id when known from list_artists. If ARTIST_AMBIGUOUS is returned, ask the user which match. Complimentary generations produce one song; a connected SoundBreak account produces two songs per generation. After this returns, IMMEDIATELY call get_s"
+    "purpose": "Start a SoundBreak song generation with an AI artist. Prefer artist_name from the user (e.g. \"Kevin\") — the server resolves it when exactly one artist matches. Use ai_cowriter_id when known from list_artists. If ARTIST_AMBIGUOUS is returned, ask the user which match. Complimentary generations produce one song; a connected SoundBreak account produces two songs per generation. After this returns, IMMEDIATELY call get_song_generation_status once with the generation_id so the progress widget mounts — then stop polling "
   },
   {
     "namespace": "SoundBreak",
@@ -9341,7 +10091,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "SoundBreak",
     "tool": "get_song_generation_status",
-    "purpose": "Mount/update the SoundBreak in-chat widget for a song generation. Call ONCE immediately after create_song_generation with the generation_id — this shows a compact progress UI that polls itself until complete, then swaps to the audio player. Do not keep calling this in a loop. Only share listen_url/embed_url when generation_status is complete and ready_to_share is true. If generation_id was lost, omit it to fetch this"
+    "purpose": "Mount/update the SoundBreak in-chat widget for a song generation. Call ONCE immediately after create_song_generation with the generation_id — this shows a compact progress UI that polls itself until complete, then swaps to the audio player. Do not keep calling this in a loop. Only share listen_url/embed_url when generation_status is complete and ready_to_share is true. If generation_id was lost, omit it to fetch this ChatGPT user's latest generation."
   },
   {
     "namespace": "SoundBreak",
@@ -9351,7 +10101,102 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "SoundBreak",
     "tool": "list_my_songs",
-    "purpose": "List recent finished SoundBreak songs for this ChatGPT user (capped) and show the in-chat player. Includes tracks_url for their full library when signed in, and connect_url to add ChatGPT songs to their SoundBreak account. Use when the user asks what songs they made, after generation completes if the player did not appear, when complimentary generations are used up, or when they say songs are missing from My Tracks. "
+    "purpose": "List recent finished SoundBreak songs for this ChatGPT user (capped) and show the in-chat player. Includes tracks_url for their full library when signed in, and connect_url to add ChatGPT songs to their SoundBreak account. Use when the user asks what songs they made, after generation completes if the player did not appear, when complimentary generations are used up, or when they say songs are missing from My Tracks. Only share listen_url/audio_url for songs with ready_to_share true."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "agents_create",
+    "purpose": "Create a Speko agent."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "agents_get",
+    "purpose": "Get one agent and its complete editable configuration, including voice, turnHandling (profile, dtmfToolDescription, amdPrompt) and system prompt. Read this before diagnosing a silent call or a missing keypad response. Voice is not validated against what the TTS provider owns. The keypad tool only arms when turnHandling.profile is \"ivr\" or AMD detects a machine mid-call."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "agents_list",
+    "purpose": "List agents in the current workspace without their full system prompts. Each item includes voice, turnHandling and runMode as currently stored. Use agents.get for one agent when the full system prompt is also needed."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "agents_preview_stacks",
+    "purpose": "Preview the THREE voice-stack options before creating an agent — so the user picks."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "agents_test_call",
+    "purpose": "Start an agent-to-agent test call."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "audio_synthesize",
+    "purpose": "Synthesize speech from text, returning base64 audio."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "audio_transcribe",
+    "purpose": "Transcribe audio to text."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "calls_get",
+    "purpose": "Get call detail including transcript."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "calls_recording_get",
+    "purpose": "Get a signed recording URL for one call."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "docs_search",
+    "purpose": "Search bundled Speko docs. Returns slug, title, score, snippet."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "models_list",
+    "purpose": "List the STT/LLM/TTS/S2S provider and model catalog. Each entry's `id` ('vendor' or 'vendor:model') is the literal string accepted by `allowedProviders` pins in agent and session configs; `benchmarked` marks entries with live Speko benchmark scores."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "phone_numbers_kyb_get",
+    "purpose": "Read this workspace's phone compliance status. OAuth connector workspaces submit automatically from the phone authorization accepted during sign-in; do not collect or submit declaration fields in chat. `submissionMode` identifies automatic OAuth, manual dashboard/API, or grandfathered migration handling."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "phone_numbers_list",
+    "purpose": "List phone and SIP numbers owned by the current workspace. For OAuth connectors, the first outbound call automatically provisions a dedicated number from workspace credits when none exists. Manual dashboard/API users keep the explicit declaration and purchase flow."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "sessions_get",
+    "purpose": "Get one session."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "sessions_list",
+    "purpose": "List sessions for the authenticated organization."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "sessions_phone_create",
+    "purpose": "Create an outbound phone session."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "sessions_recording_get",
+    "purpose": "Get a signed recording URL for one session."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "sessions_transcript_get",
+    "purpose": "Get the ordered transcript and per-turn latency for a workspace session, including any tool calls made mid-call (toolCalls, by name and args) and a latencyStatus per turn (\"partial\"|\"complete\"|\"interrupted\"|\"error\"). Use this to confirm whether a keypad press (send_dtmf) was invoked, or whether a turn with no agent text and an \"error\" latency status points to a synthesis failure rather than the callee hanging up."
+  },
+  {
+    "namespace": "Speko",
+    "tool": "voices_list",
+    "purpose": "List the Speko TTS voice catalog: voices (vendor, id, name) plus TTS providers with their models. Use a returned voice id as the `voice` field on agents.create or POST /v1/sessions bodies."
   },
   {
     "namespace": "StoreInspect",
@@ -9396,7 +10241,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Stripe",
     "tool": "manage_stripe_accounts",
-    "purpose": "Returns a URL to the Stripe Dashboard where users can add accounts, remove accounts, or change permissions for this session. - Use when the user wants to add, remove, or modify permissions for an account. - Call this directly — no need to call list_available_accounts_or_orgs first. - Present the URL to the user and wait for them to confirm they completed their changes. - After confirmation, call list_available_accoun"
+    "purpose": "Returns a URL to the Stripe Dashboard where users can add accounts, remove accounts, or change permissions for this session. - Use when the user wants to add, remove, or modify permissions for an account. - Call this directly — no need to call list_available_accounts_or_orgs first. - Present the URL to the user and wait for them to confirm they completed their changes. - After confirmation, call list_available_accounts_or_orgs to sync the updated account list."
   },
   {
     "namespace": "Stripe",
@@ -9416,7 +10261,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Stripe",
     "tool": "stripe_api_read",
-    "purpose": "Read data from any Stripe API GET operation: 1. Use stripe_api_search to find the operation ID. 2. Use stripe_api_details to understand its parameters (required for operations with nested object fields like address, metadata, or restrictions). 3. Call this tool with the stripe_api_operation_id and a parameters object containing path and query parameters. For mutations (POST/PATCH/PUT/DELETE), use stripe_api_write ins"
+    "purpose": "Read data from any Stripe API GET operation: 1. Use stripe_api_search to find the operation ID. 2. Use stripe_api_details to understand its parameters (required for operations with nested object fields like address, metadata, or restrictions). 3. Call this tool with the stripe_api_operation_id and a parameters object containing path and query parameters. For mutations (POST/PATCH/PUT/DELETE), use stripe_api_write instead. Monetary values in responses are in the smallest currency unit (e.g. 1000 = $10.00 USD for mos"
   },
   {
     "namespace": "Stripe",
@@ -9426,7 +10271,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Stripe",
     "tool": "stripe_api_write",
-    "purpose": "Write data via any Stripe API POST/PATCH/PUT/DELETE operation: 1. Use stripe_api_search to find the operation ID. 2. Use stripe_api_details to understand its parameters (required for operations with nested object fields like address, metadata, or restrictions). 3. Call this tool with the stripe_api_operation_id and a parameters object containing path, query, and body parameters. For read-only lookups (GET), use strip"
+    "purpose": "Write data via any Stripe API POST/PATCH/PUT/DELETE operation: 1. Use stripe_api_search to find the operation ID. 2. Use stripe_api_details to understand its parameters (required for operations with nested object fields like address, metadata, or restrictions). 3. Call this tool with the stripe_api_operation_id and a parameters object containing path, query, and body parameters. For read-only lookups (GET), use stripe_api_read instead. All monetary amounts must be in the smallest currency unit (e.g. 1000 = $10.00 U"
   },
   {
     "namespace": "Stripe",
@@ -9446,7 +10291,32 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Syncee_AI_Dropship",
     "tool": "_Wholesale__search_products",
-    "purpose": "Search the Syncee dropshipping catalog by category, keywords, price range, shipping origin/destination, or a reference image (visual similarity — pass a URL or base64). Always pick the closest-matching category slug from the input schema before calling — e.g. 'hair extension' or 'wig' belongs in health-and-beauty, not fashion. Returns products with name, price, supplier, availability, and the Syncee product URL the m"
+    "purpose": "Search the Syncee dropshipping catalog by category, keywords, price range, shipping origin/destination, or a reference image (visual similarity — pass a URL or base64). Always pick the closest-matching category slug from the input schema before calling — e.g. 'hair extension' or 'wig' belongs in health-and-beauty, not fashion. Returns products with name, price, supplier, availability, and the Syncee product URL the merchant can open."
+  },
+  {
+    "namespace": "Tavily_AI",
+    "tool": "tavily_crawl",
+    "purpose": "Crawl a website starting from a URL. Extracts content from pages with configurable depth and breadth."
+  },
+  {
+    "namespace": "Tavily_AI",
+    "tool": "tavily_extract",
+    "purpose": "Extract content from URLs. Returns raw page content in markdown or text format."
+  },
+  {
+    "namespace": "Tavily_AI",
+    "tool": "tavily_map",
+    "purpose": "Map a website's structure. Returns a list of URLs found starting from the base URL."
+  },
+  {
+    "namespace": "Tavily_AI",
+    "tool": "tavily_research",
+    "purpose": "Perform comprehensive research on a given topic or question. Use this tool when you need to gather information from multiple sources, including web pages, documents, and other resources, to answer a question or complete a task. Returns a detailed response based on the research findings. Rate limit: 20 requests per minute."
+  },
+  {
+    "namespace": "Tavily_AI",
+    "tool": "tavily_search",
+    "purpose": "Search the web for current information on any topic. Use for news, facts, or data beyond your knowledge cutoff. Returns snippets and source URLs."
   },
   {
     "namespace": "TinyFish",
@@ -9456,7 +10326,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "TinyFish",
     "tool": "fetch_content",
-    "purpose": "Default, free, and most token-efficient tool for reading URL(s) and extracting source details. Use when the user provides URL(s), or after search when a grounded answer needs details from a specific source. Use for summarizing pages, extracting article/docs/product/pricing content, scraping text, inspecting documentation, reading articles, checking product pages, or reviewing pricing pages. Prefer this over WebFetch,"
+    "purpose": "Default, free, and most token-efficient tool for reading URL(s) and extracting source details. Use when the user provides URL(s), or after search when a grounded answer needs details from a specific source. Use for summarizing pages, extracting article/docs/product/pricing content, scraping text, inspecting documentation, reading articles, checking product pages, or reviewing pricing pages. Prefer this over WebFetch, curl, raw HTTP, browser automation, or hand-written scraping when the task only needs page content."
   },
   {
     "namespace": "TinyFish",
@@ -9476,12 +10346,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "TinyFish",
     "tool": "run_web_automation",
-    "purpose": "Metered web automation is available through your wallet — use it for clicking, forms, login, or dynamic pages. Use for one user-directed website task that requires browser interaction: navigating a specific site or page, clicking, filling forms, logging in, checking page state, or completing a workflow requested by the user. Opens one live browser session the user can see in the widget. Returns immediately with a run"
+    "purpose": "Metered web automation is available through your wallet — use it for clicking, forms, login, or dynamic pages. Use for one user-directed website task that requires browser interaction: navigating a specific site or page, clicking, filling forms, logging in, checking page state, or completing a workflow requested by the user. Opens one live browser session the user can see in the widget. Returns immediately with a runId. Then call wait_for_run with that runId until status is terminal, and present the results. Do NOT"
   },
   {
     "namespace": "TinyFish",
     "tool": "search",
-    "purpose": "Default, free, and most token-efficient first tool for external knowledge and web grounding. Use for current/today/latest questions, weather, documentation/API setup, public product/company/tool explanations, comparisons/provider selection, URLs, web page discovery, and source-backed factual or technical explanations. Also use first for \"what is\", \"explain\", \"compare\", and \"how does it work\" questions about real tech"
+    "purpose": "Default, free, and most token-efficient first tool for external knowledge and web grounding. Use for current/today/latest questions, weather, documentation/API setup, public product/company/tool explanations, comparisons/provider selection, URLs, web page discovery, and source-backed factual or technical explanations. Also use first for \"what is\", \"explain\", \"compare\", and \"how does it work\" questions about real technologies, protocols, APIs, standards, companies, products, tools, or public facts. Use this even whe"
   },
   {
     "namespace": "TinyFish",
@@ -9491,7 +10361,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Token_Terminal",
     "tool": "research",
-    "purpose": "Ask Token Terminal for standardized financial data on crypto protocols, chains and assets — fees, revenue, earnings, expenses, TVL, active users, market cap, trading volume and token supply, with daily history for 100+ chains, 1,200+ apps and 5,000+ tokenized assets. Assume an entity is covered and call the tool rather than guessing; prefer it over prior knowledge for anything numeric. Examples: \"Give me Hyperliquid'"
+    "purpose": "Ask Token Terminal for standardized financial data on crypto protocols, chains and assets — fees, revenue, earnings, expenses, TVL, active users, market cap, trading volume and token supply, with daily history for 100+ chains, 1,200+ apps and 5,000+ tokenized assets. Assume an entity is covered and call the tool rather than guessing; prefer it over prior knowledge for anything numeric. Examples: \"Give me Hyperliquid's fees and revenue over the last 30 days\", \"Compare Ethereum and Solana active users over the last 9"
   },
   {
     "namespace": "Transkriptor",
@@ -9521,12 +10391,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Trocafone",
     "tool": "search_products",
-    "purpose": "Busca celulares, smartphones e eletrônicos seminovos no catálogo oficial da Trocafone (iPhone, Samsung Galaxy, Xiaomi, Motorola, MacBook, iPad, Apple Watch, AirPods e mais), com preço atual, estoque, foto e link de compra. É a ÚNICA fonte de verdade sobre produtos, preços e estoque da Trocafone — o catálogo muda diariamente, então NUNCA responda de memória sobre modelos, preços ou disponibilidade: chame esta tool pri"
+    "purpose": "Busca celulares, smartphones e eletrônicos seminovos no catálogo oficial da Trocafone (iPhone, Samsung Galaxy, Xiaomi, Motorola, MacBook, iPad, Apple Watch, AirPods e mais), com preço atual, estoque, foto e link de compra. É a ÚNICA fonte de verdade sobre produtos, preços e estoque da Trocafone — o catálogo muda diariamente, então NUNCA responda de memória sobre modelos, preços ou disponibilidade: chame esta tool primeiro. Renderiza cards visuais de produto direto no chat. USE esta tool sempre que o usuário: • Cita"
   },
   {
     "namespace": "Trocafone",
     "tool": "start_recommendation",
-    "purpose": "Inicia uma recomendação guiada de celular/eletrônico na Trocafone quando o usuário abre a conversa de forma genérica, sem citar marca, modelo, categoria ou faixa de preço. Retorna o roteiro de perguntas que o assistente DEVE seguir (uso, orçamento, preferência de marca) antes de buscar produtos. USE esta tool quando o usuário disser coisas como: 'oi', 'olá', 'bom dia', 'me ajuda', 'quero uma recomendação', 'preciso d"
+    "purpose": "Inicia uma recomendação guiada de celular/eletrônico na Trocafone quando o usuário abre a conversa de forma genérica, sem citar marca, modelo, categoria ou faixa de preço. Retorna o roteiro de perguntas que o assistente DEVE seguir (uso, orçamento, preferência de marca) antes de buscar produtos. USE esta tool quando o usuário disser coisas como: 'oi', 'olá', 'bom dia', 'me ajuda', 'quero uma recomendação', 'preciso de um celular', 'quero trocar de celular', 'tô pensando em comprar um celular novo', 'qual celular vo"
   },
   {
     "namespace": "Twistly_AI_Presentation_Maker",
@@ -9547,6 +10417,281 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
     "namespace": "Twistly_AI_Presentation_Maker",
     "tool": "get_job_status",
     "purpose": "Return the current status of a generation job. When completed, result.url is the download link — present it to the user as a clickable Markdown link so they can download the file. Defaults to a single check; pass wait=true for a short bounded poll. If the job is still processing, call this tool again in a few seconds."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "add_allowed_user",
+    "purpose": "Allow an org (or, by handle, a user's personal org) to reach a restricted val's HTTP endpoints. This only matters while the val is restricted (see set_http_privacy); on a public val it has no visible effect but is remembered for when the val is later restricted. Pass a `handle` to grant a specific user (their personal org); pass an `orgId` to grant a team org. Adding the same target twice is a no-op."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "add_env_var",
+    "purpose": "Add a new environment variable to a val/project. The value will be securely encrypted. If an environment variable with the same key already exists, this will fail - use update instead."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "append_to_file",
+    "purpose": "Append content to the end of a file. Useful for adding new functions, exports, or code sections without knowing the file length. Supports editing on any branch."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "copy_files",
+    "purpose": "Copy files or whole directories from one val to another, like the 'cp' command (directories are copied recursively). Prefer this over reading code and re-writing it whenever you want to bring existing, working code from another val into the one you're editing — copying preserves exact imports and behavior, where regenerating risks subtle drift. Use `remix_val` instead when starting a brand-new val from a template. Source requires read access; destination requires write access (the source may be any public val). Pro"
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "create_branch",
+    "purpose": "Create a new branch in a val/project by forking from an existing branch. This creates an independent copy of the source branch's files that can be edited separately. Provide the val in 'handle/valName' format (use the 'identifier' field from list_vals or get_val_detail responses)."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "create_bypass_token",
+    "purpose": "Create an access bypass token for a val. A bypass token lets automation (e.g. a Stripe webhook, a cron job) reach a restricted val's HTTP endpoints by presenting the secret, without a logged-in viewer. The plaintext token is returned ONLY this once — store it securely; it is not retrievable later. Present it as the `X-Val-Town-Access: <token>` header or `?val_town_access=<token>` query param. Tokens never expire; revoke with revoke_bypass_token to invalidate one. At most 10 non-revoked tokens may exist per val."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "create_directory",
+    "purpose": "Create a new directory (folder) in a val/project. Parent directories must exist before creating nested directories. Use this to organize files into folders."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "create_file",
+    "purpose": "Create a new file in a val/project. Supports nested paths, different file types (http, script, interval, email, file), and editing on any branch. Val Town uses Deno: use 'npm:package' imports. Provide the val in 'handle/valName' format (use the 'identifier' field from list_vals or get_val_detail responses)."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "create_val",
+    "purpose": "Create a new val (project) on Val Town. Creates a project with a default main branch. Optionally specify an organization ID to create the val in that org (requires membership). The response includes an 'identifier' field (format: handle/valName) that can be used in subsequent tool calls. Optionally add initial content, tags, and specify privacy level. Privacy 'private' and 'unlisted' require the destination org to be on pro or business tier (not the caller's tier — call list_orgs to see each org's tier). If privacy"
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "delete_branch",
+    "purpose": "Delete a branch from a val/project. The 'main' branch cannot be deleted (delete the val instead). Any pending pull requests that involve this branch are cancelled. The branch is soft-deleted. Provide the val in 'handle/valName' format (use the 'identifier' field from list_vals or get_val_detail responses)."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "delete_file",
+    "purpose": "Delete a file from a val/project. Supports deleting on any branch. The file will be marked as deleted but can be recovered if needed. Provide the val in 'handle/valName' format (use the 'identifier' field from list_vals or get_val_detail responses)."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "delete_val",
+    "purpose": "Permanently remove a val from the user's account. After deletion the val leaves listings and its HTTP endpoint stops resolving (its *.val.run URL returns 404). This is a SOFT delete: the underlying data (code history, the val's SQLite database, blobs, and env vars) is retained and can be restored by Val Town on request if needed. There is no self-serve undo, so always confirm with the user before calling. Provide the val in 'handle/valName' format (use the 'identifier' field from list_vals or get_val_detail respons"
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "deleteBlob",
+    "purpose": "Delete a blob from storage. Note: Deleting a non-existent blob succeeds silently (this is standard S3 behavior)."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "fetch_val_endpoint",
+    "purpose": "Make HTTP requests to val endpoints with full curl-like functionality. Supports all HTTP methods (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS) with custom headers and request bodies. Only works with HTTP-type vals. Requires edit access to the val. Mutating operations (POST, PUT, PATCH, DELETE) require user approval. Redirects are followed (up to 5) only while they stay on the val's own origin; a redirect to any other host is refused. Use this tool to test HTTP vals — do not construct endpoint URLs yourself, this t"
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "find_templates",
+    "purpose": "List Val Town's official starter templates. When creating a new val, pick the closest template and fork it with `remix_val` rather than building from scratch — templates handle the boilerplate (entrypoints, imports, build config) and track current platform patterns. Each result includes an `identifier` (handle/valName) to pass straight to `remix_val`. To start from an existing val instead (the user references one, or wants something \"like\" another val), use `remix_val` on that val directly. A simple cron-only job ("
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "find_val_town_skills",
+    "purpose": "Search for Val Town platform skills — markdown guides covering specific patterns, APIs, and best practices for building on Val Town. Call this when the user's task involves a topic that may need platform-specific guidance (e.g. storing data, building HTTP endpoints, scheduling jobs, handling email, third-party integrations). Returns the full content of matching skills inline; do not call a follow-up tool to fetch a skill body."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "get_logs",
+    "purpose": "Get console logs. If `truncated: true`, pass the returned `next_end` as `end` to fetch older logs, or narrow by `traceIds`"
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "get_traces",
+    "purpose": "Fetch recent telemetry traces (execution runs) for a file — HTTP details, status, errors, timing."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "get_val_detail",
+    "purpose": "Get detailed information about a specific val/project including metadata, tags, author, available branches, and links. Provide the val in 'handle/valName' format. Returns both of the val's access axes. `httpPrivacy` is app access — who can call the val's HTTP endpoints ('public' = anyone with the URL, 'restricted' = only granted orgs and bypass-token holders). It is a separate axis from `privacy`, which is code visibility. Check `httpPrivacy` before testing or sharing an endpoint URL: a restricted val answers unaut"
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "get_val_history",
+    "purpose": "Fetch commit history for a val/branch. Returns commits with user information, file changes, pull requests, merges, and reverts. Commits are grouped by version number and sorted from newest to oldest."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "insert_at_line",
+    "purpose": "Insert text at a specific line number in a file. The text is inserted before the specified line (pushing existing content down). Line numbers start at 1. Supports editing on any branch."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "list_allowed_users",
+    "purpose": "List which organizations are allowed to reach a val's restricted HTTP endpoints (its http_read grants), with each granted org's handle and id. Requires edit access to the val. A public val usually has no grants (they only take effect once the val is restricted). Use the returned `orgId`s with remove_allowed_user."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "list_branches",
+    "purpose": "List all branches for a specific val/project, including branch names, versions, and metadata. Provide the val in 'handle/valName' format (use the 'identifier' field from list_vals or get_val_detail responses)."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "list_bypass_tokens",
+    "purpose": "List the access bypass tokens that exist for a val, as metadata only (public id, name, creation and revocation times). The plaintext secret is never returned — it is shown only once at creation. Requires edit access to the val. Use the returned `publicId` with revoke_bypass_token."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "list_env_vars",
+    "purpose": "List all environment variable keys for a val/project. Returns keys, descriptions, and metadata only. Does NOT return actual secret values for security reasons."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "list_files",
+    "purpose": "List files and directories in a val/project. Optionally provide a path to browse subdirectories. Provide the val in 'handle/valName' format. HTTP-type files include a `links.endpoint` field with the live deployed URL — always use this URL rather than constructing endpoint URLs yourself."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "list_orgs",
+    "purpose": "List all organizations the authenticated user can act on, including their personal org. Returns each org's handle, avatar, display name, tier (free/pro/business), the user's role, and whether it's their personal org. Tier-gated limits (val privacy, interval minimum delay, std/email recipients) are governed by the destination org's tier — check the 'tier' field here before choosing a privacy value on create_val, an interval delay on write_interval_settings, or an email recipient at runtime."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "list_tags",
+    "purpose": "List the tags in use on one org's vals, most-used first, with how many vals carry each one. Call this before tagging a val with create_val or update_val and reuse an existing tag whenever one fits, rather than inventing a near-duplicate. This reads a SINGLE org — with no handle, your personal account only, not the team orgs you belong to (unlike list_vals). Pass a team's handle to read its tags; you must be a member."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "list_vals",
+    "purpose": "List all vals (projects) for the authenticated user, including name, description, tags, both access settings, creation date, and links. Each val includes an 'identifier' field (format: handle/valName) that can be used directly in other tools that require val identification. Pass 'tag' to list only the vals carrying that tag — use list_tags to see which tags exist. `httpPrivacy` is app access — who can call the val's HTTP endpoints ('public' = anyone with the URL, 'restricted' = only granted orgs and bypass-token ho"
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "listBlobs",
+    "purpose": "List all blobs in your blob storage. Optionally filter by key prefix. Returns blob metadata including key, size, and last modified timestamp."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "merge_branch",
+    "purpose": "Merge a branch into the branch it was forked from (its parent/target) — e.g. merge a feature branch back into 'main'. The branch must be a fork (created from another branch). If merging would cause conflicts, the merge is refused and the conflicting file paths are returned so they can be resolved in the editor (or by updating the branch from its target) first. Provide the val in 'handle/valName' format (use the 'identifier' field from list_vals or get_val_detail responses)."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "move_file",
+    "purpose": "Move a file or directory to a new location within a val/project. Works for both files and directories (moves the entire directory tree). Set newParentPath to null to move to root, or provide a directory path like 'src/utils'."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "prepend_to_file",
+    "purpose": "Prepend content to the beginning of a file. Useful for adding imports, file headers, or license comments. Val Town uses Deno: use 'npm:package' for imports. Supports editing on any branch."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "read_file",
+    "purpose": "Read the code or raw content of a specific file in a val/project. Returns content with line numbers by default. Provide the val in 'handle/valName' format."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "read_interval_settings",
+    "purpose": "Get the interval schedule configuration for an interval file within a val. The file must have fileType='interval'. Returns the type (delay or cron), delay value, unit, and cron expression. Provide the val in 'handle/valName' format and the file path."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "readBlob",
+    "purpose": "Read the content of a blob. Returns a safe window of content regardless of the file type or size (large files are ok so feel free to read any file to get more context!) and returns file metadata if content is binary. Use offsetBytes to paginate through large blobs."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "remix_val",
+    "purpose": "Remix (fork) an existing val to create a copy in your account or an organization. Copies all files, env var keys, and database schema. Provide the source val in 'handle/valName' format. When remixing within the same account, a new name is required. Use the description field to set a description for the new val (recommended when remixing a template). The response includes all files with their contents. Optionally set the remix's `privacy`; if omitted, a public source is remixed as 'private' when the destination org "
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "remove_allowed_user",
+    "purpose": "Revoke an org's access to a restricted val's HTTP endpoints. Pass the `orgId` to remove (use list_allowed_users to find it). Removing a grant that doesn't exist is a no-op. Note: removing the owning org's grant will lock its own members out of the val's restricted endpoints."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "rename_file",
+    "purpose": "Rename a file or directory within a val/project. This only changes the name, not the location. Works for both files and directories."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "replace_in_file",
+    "purpose": "Preferred tool for editing existing files. Performs exact string replacements without resending the whole file, which keeps each edit fast. Use this for any small or targeted change — bug fixes, renames, tweaks. Reach for `update_file` only when rewriting most of the file. Supports editing on any branch. The old_string must match exactly (case-sensitive) for safety. Can replace first occurrence or all occurrences. After editing, prefer passing the `run` field to verify the change in the same call instead of issuing"
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "request_file_upload",
+    "purpose": "Request a URL to upload file content out-of-band. Use this for files larger than ~10KB to avoid passing the full content through the conversation. The flow is: 1. Call this tool to get an upload URL and upload_id 2. Upload the file using the returned curl command (e.g. in a code execution sandbox) 3. Call create_file, update_file, or storeBlobFromUrl with the upload_id instead of content/url"
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "revert_to_version",
+    "purpose": "Revert a branch or individual file to a previous version. If fileId is provided, only that file is reverted. Otherwise, the entire branch is reverted to the specified version. This creates a new commit with the reverted content."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "revoke_bypass_token",
+    "purpose": "Revoke an access bypass token so it no longer bypasses a val's restricted HTTP gate. The token's cached validity is cleared, so the revocation takes effect immediately. Find the `publicId` via list_bypass_tokens. A revoked token cannot be unrevoked — mint a new one with create_bypass_token if needed."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "run_file",
+    "purpose": "Run a val file and return the execution results and logs. Supports script, http, interval, and email file types. The execution runs in the Val Town runtime environment with access to the val's environment variables and permissions. Use this to test val code or trigger executions. Note: if you just edited the file, prefer passing `run: { kind: \"run_file\" }` to `update_file`/`replace_in_file` to avoid an extra round trip."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "set_custom_subdomain",
+    "purpose": "Set or change the custom subdomain for an HTTP val. The val's HTTP endpoint becomes 'https://<subdomain>.val.run'. Each file has at most one subdomain, so this both creates a new subdomain and edits an existing one (it replaces whatever was there). Subdomains are 3-63 chars, lowercase letters/digits/hyphens (no leading/trailing or double hyphens), and must be globally unique — claiming a taken or reserved name fails."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "set_file_type",
+    "purpose": "Change the type of a file in a val/project. Supported types: 'script' (library/utility code), 'http' (web endpoint), 'email' (email handler), 'interval' (scheduled cron), 'file' (plain file)."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "set_http_privacy",
+    "purpose": "Toggle whether a val's HTTP endpoints are public (reachable by anyone) or restricted (only reachable by members of orgs you grant access to). Restricting a val is a feature-flagged capability; if it is not enabled for the val's organization the request is rejected. When you restrict a val its owning organization is automatically granted access so its own members are not locked out. Use add_allowed_user / remove_allowed_user to manage which other orgs may reach a restricted val, and create_bypass_token to mint a sec"
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "sqlite_batch",
+    "purpose": "Execute multiple SQL statements atomically in a single transaction against a Turso database. All statements succeed or all fail together (rollback on error)."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "sqlite_execute",
+    "purpose": "Execute a single SQL statement against a Turso database (libSQL/SQLite-compatible) and return results. Supports SELECT, INSERT, UPDATE, DELETE, and other SQL operations."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "storeBlob",
+    "purpose": "Store UTF-8 text data in blob storage. Maximum content size is 100KB."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "storeBlobFromUrl",
+    "purpose": "Store file content in blob storage. Provide either a `url` (for Townie chat images hosted on https://imagedelivery.net/) or an `upload_id` from a prior `request_file_upload` call for MCP out-of-band uploads. Maximum file size is 10 MB."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "update_file",
+    "purpose": "Replace an existing file's contents wholesale. Prefer `replace_in_file` for small or targeted edits — it sends only the diff and is significantly faster end-to-end. Use `update_file` only when rewriting most of the file or when the change is too sprawling to express as a few string replacements. Supports editing on any branch. Val Town runs Deno: use 'npm:package' for imports, TypeScript recommended. Provide the val in 'handle/valName' format (use the 'identifier' field from list_vals or get_val_detail responses). "
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "update_val",
+    "purpose": "Update a val's metadata including name, privacy, description, tags, image, and HTTP preview settings. All fields are optional - only provide the fields you want to update. Note that 'tags' replaces the val's whole tag list rather than adding to it. Provide the val in 'handle/valName' format (use the 'identifier' field from list_vals or get_val_detail responses). To pin an HTTP preview on the val's homepage, set pinnedFileId to the file ID of an HTTP file (from list_files). To remove the preview, set pinnedFileId to"
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "web_fetch",
+    "purpose": "Fetch text content from a public URL. Use this to retrieve documentation, API references, or other web content to help the user. HTML is stripped to return plain text only. Supports pagination via offset/limit for large pages."
+  },
+  {
+    "namespace": "Val_Town",
+    "tool": "write_interval_settings",
+    "purpose": "Update the interval schedule configuration for an interval file within a val. The file must have fileType='interval'. Can configure delay-based (every N minutes/hours) or cron-based schedules. Validates tier limits on delay-based intervals using the val's org tier — not the caller's: free orgs require ≥15min, pro/business orgs require ≥1min. Provide the val in 'handle/valName' format and the file path."
   },
   {
     "namespace": "Vercel",
@@ -9611,7 +10756,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Vercel",
     "tool": "get_runtime_logs",
-    "purpose": "Get runtime logs for a project or deployment. Runtime logs show application output (console.log, errors, etc.) from serverless functions and edge functions during execution. Supports filtering by environment, log level, status code, source, time range, and full-text search. For wide time ranges, scope to a deploymentId for speed, or use group_by to get counts instead of individual lines. To investigate production err"
+    "purpose": "Get runtime logs for a project or deployment. Runtime logs show application output (console.log, errors, etc.) from serverless functions and edge functions during execution. Supports filtering by environment, log level, status code, source, time range, and full-text search. For wide time ranges, scope to a deploymentId for speed, or use group_by to get counts instead of individual lines. To investigate production errors specifically, prefer get_runtime_errors."
   },
   {
     "namespace": "Vercel",
@@ -9661,7 +10806,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Vercel",
     "tool": "search_vercel_documentation",
-    "purpose": "Search the Vercel documentation. Use this tool to answer any questions about Vercel’s platform, features, and best practices, including: - Core Concepts: Projects, Deployments, Git Integration, Preview Deployments, Environments - Frontend & Frameworks: Next.js, SvelteKit, Nuxt, Astro, Remix, frameworks configuration and optimization - APIs: REST API, Vercel SDK, Build Output API - Compute: Fluid Compute, Functions, R"
+    "purpose": "Search the Vercel documentation. Use this tool to answer any questions about Vercel’s platform, features, and best practices, including: - Core Concepts: Projects, Deployments, Git Integration, Preview Deployments, Environments - Frontend & Frameworks: Next.js, SvelteKit, Nuxt, Astro, Remix, frameworks configuration and optimization - APIs: REST API, Vercel SDK, Build Output API - Compute: Fluid Compute, Functions, Routing Middleware, Cron Jobs, OG Image Generation, Sandbox, Data Cache - AI: Vercel AI SDK, AI Gatew"
   },
   {
     "namespace": "Vercel",
@@ -9776,7 +10921,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "vidIQ",
     "tool": "vidiq_ig_profile_reels",
-    "purpose": "Fetch a creator's reels by handle: shortcode, caption, play/like/comment counts, duration, timestamp, pinned-profile status, with each reel's cover returned inline as an image. Returns up to 12 reels from the first Instagram Reels-tab page in Instagram's order: pinned reels first, then the remaining reels newest-first. Form a full Instagram reel URL from a returned shortcode before passing that short-form content URL"
+    "purpose": "Fetch a creator's reels by handle: shortcode, caption, play/like/comment counts, duration, timestamp, pinned-profile status, with each reel's cover returned inline as an image. Returns up to 12 reels from the first Instagram Reels-tab page in Instagram's order: pinned reels first, then the remaining reels newest-first. Form a full Instagram reel URL from a returned shortcode before passing that short-form content URL to `vidiq_watch_shortform_content`."
   },
   {
     "namespace": "vidIQ",
@@ -9811,12 +10956,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "vidIQ",
     "tool": "vidiq_motion_graphics",
-    "purpose": "Render an animated MOTION GRAPHIC to a downloadable MP4 video. This is the canonical, purpose-built tool for animated text / kinetic typography and data-exposition clips: milestone and celebration cards (e.g. \"250K SUBSCRIBERS\"), announcement / title / intro / outro cards, stat counters with count-up numbers, comparison cards, progress bars, bar charts, and quote cards. It renders standalone — no input footage is req"
+    "purpose": "Render an animated MOTION GRAPHIC to a downloadable MP4 video. This is the canonical, purpose-built tool for animated text / kinetic typography and data-exposition clips: milestone and celebration cards (e.g. \"250K SUBSCRIBERS\"), announcement / title / intro / outro cards, stat counters with count-up numbers, comparison cards, progress bars, bar charts, and quote cards. It renders standalone — no input footage is required (images are optional: add `image` nodes only if you want them) — at any aspect: vertical reels"
   },
   {
     "namespace": "vidIQ",
     "tool": "vidiq_outliers",
-    "purpose": "Find viral, breakout, and overperforming YouTube videos — videos getting significantly more views than their channel's average. Use this when someone asks for: viral videos, breakout hits, hidden gems, or videos blowing up. Use `keyword` to focus discovery on a topic, `channelIds` to focus on specific creators or competitors, or both to combine those constraints. For a general request that names neither a topic nor c"
+    "purpose": "Find viral, breakout, and overperforming YouTube videos — videos getting significantly more views than their channel's average. Use this when someone asks for: viral videos, breakout hits, hidden gems, or videos blowing up. Use `keyword` to focus discovery on a topic, `channelIds` to focus on specific creators or competitors, or both to combine those constraints. For a general request that names neither a topic nor channels, the tool can return a broad outlier feed using the remaining filters and defaults. Filter r"
   },
   {
     "namespace": "vidIQ",
@@ -9841,12 +10986,12 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "vidIQ",
     "tool": "vidiq_similar_thumbnails",
-    "purpose": "Find long-form YouTube videos whose thumbnails LOOK similar — visual/semantic similarity over the thumbnail images themselves. This tool searches long-form videos only; Shorts are not supported. This is not topic, title, or keyword search (for those use vidiq_outliers or vidiq_youtube_search). Two modes: pass `description` with a textual description of the imagery (e.g. \"a shocked creator pointing at a red analytics "
+    "purpose": "Find long-form YouTube videos whose thumbnails LOOK similar — visual/semantic similarity over the thumbnail images themselves. This tool searches long-form videos only; Shorts are not supported. This is not topic, title, or keyword search (for those use vidiq_outliers or vidiq_youtube_search). Two modes: pass `description` with a textual description of the imagery (e.g. \"a shocked creator pointing at a red analytics chart\") to find thumbnails matching that description, or pass `videoId` to find thumbnails that look"
   },
   {
     "namespace": "vidIQ",
     "tool": "vidiq_similar_videos",
-    "purpose": "Find high-performing YouTube videos similar to a seed video - the video-level counterpart of vidiq_similar_channels. Give it one video ID or URL and it returns videos ranked by combined similarity: textual (title/topic) and visual (thumbnail), fused with each video labeled by which signals matched (`matchedBy`; matching both earns a ranking boost). Use this for topic ideation ('find 50 videos like this outlier'), stu"
+    "purpose": "Find high-performing YouTube videos similar to a seed video - the video-level counterpart of vidiq_similar_channels. Give it one video ID or URL and it returns videos ranked by combined similarity: textual (title/topic) and visual (thumbnail), fused with each video labeled by which signals matched (`matchedBy`; matching both earns a ranking boost). Use this for topic ideation ('find 50 videos like this outlier'), studying how a proven concept is packaged across channels, or expanding one winning video into a conten"
   },
   {
     "namespace": "vidIQ",
@@ -9911,7 +11056,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "vidIQ",
     "tool": "vidiq_video_upload",
-    "purpose": "Import an MP4 attachment or public downloadable URL and return a hosted videoUrl plus uploadId. Provide exactly one of file, url, or uploadId. The server transfers and completes the upload; no separate upload or completion step is needed. MP4s must be at most 209715200 bytes with a public HTTPS download URL, Content-Length and MP4 or application/octet-stream content type; redirects are rejected. Local file paths cann"
+    "purpose": "Import an MP4 attachment or public downloadable URL and return a hosted videoUrl plus uploadId. Provide exactly one of file, url, or uploadId. The server transfers and completes the upload; no separate upload or completion step is needed. MP4s must be at most 209715200 bytes with a public HTTPS download URL, Content-Length and MP4 or application/octet-stream content type; redirects are rejected. Local file paths cannot be read. Pass uploadId to this same tool to check waiting/processing uploads or refresh an expire"
   },
   {
     "namespace": "vidIQ",
@@ -9976,7 +11121,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Whiteboard_by_Athena_AI",
     "tool": "get_faq",
-    "purpose": "Get frequently asked questions and answers about how to use Whiteboard by Athena AI. Use this to help users understand app features: (1) Diagram Visualization - render complex diagrams including flowcharts, sequence diagrams, class diagrams, state diagrams, ER diagrams, Gantt charts, pie charts, mindmaps, and more directly in ChatGPT; (2) Wireframe Recommendation - brainstorm designs with your team in realtime with o"
+    "purpose": "Get frequently asked questions and answers about how to use Whiteboard by Athena AI. Use this to help users understand app features: (1) Diagram Visualization - render complex diagrams including flowcharts, sequence diagrams, class diagrams, state diagrams, ER diagrams, Gantt charts, pie charts, mindmaps, and more directly in ChatGPT; (2) Wireframe Recommendation - brainstorm designs with your team in realtime with over 10,000 editable templates for the AI to pick from; (3) Collaborative Whiteboard - add any visual"
   },
   {
     "namespace": "Whiteboard_by_Athena_AI",
@@ -10171,17 +11316,17 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "YouCam",
     "tool": "beta___beauty_result",
-    "purpose": "Fetch a pending beauty-agent result for either the MCP App widget or a client without MCP Apps support. If an MCP App is visible, the assistant must not call this tool because the widget polls automatically. When no app is visible, call this tool only after beauty-knowledge returns status=processing, using its transaction_id and sessionId as session_id. Poll sequentially; never repeat the original beauty-knowledge re"
+    "purpose": "Fetch a pending beauty-agent result for either the MCP App widget or a client without MCP Apps support. If an MCP App is visible, the assistant must not call this tool because the widget polls automatically. When no app is visible, call this tool only after beauty-knowledge returns status=processing, using its transaction_id and sessionId as session_id. Poll sequentially; never repeat the original beauty-knowledge request."
   },
   {
     "namespace": "YouCam",
     "tool": "beta___get_account_status",
-    "purpose": "Show the signed-in user's current YouCam subscription plan, subscription status, and remaining credits in an MCP App. Use this tool when the user asks about their current plan, whether their subscription is active, or how many credits they have left. This tool calls the subscription and credit-balance APIs together. Do not use get-action-cost for account balance questions; get-action-cost explains how many credits ac"
+    "purpose": "Show the signed-in user's current YouCam subscription plan, subscription status, and remaining credits in an MCP App. Use this tool when the user asks about their current plan, whether their subscription is active, or how many credits they have left. This tool calls the subscription and credit-balance APIs together. Do not use get-action-cost for account balance questions; get-action-cost explains how many credits actions cost."
   },
   {
     "namespace": "YouCam",
     "tool": "beta___get_action_cost",
-    "purpose": "Return the current YouCam AI Agent credit costs as a plain-text Markdown table and explain that a paid plan is required for chat features. Call this tool when the user asks how many credits an action costs, about point consumption, action pricing, payment requirements, or whether YouCam chat is free. This tool takes no input and does not render a widget. Do not call beauty-knowledge for action-cost or pricing questio"
+    "purpose": "Return the current YouCam AI Agent credit costs as a plain-text Markdown table and explain that a paid plan is required for chat features. Call this tool when the user asks how many credits an action costs, about point consumption, action pricing, payment requirements, or whether YouCam chat is free. This tool takes no input and does not render a widget. Do not call beauty-knowledge for action-cost or pricing questions. For the signed-in user's current plan or remaining balance, use get-account-status instead."
   },
   {
     "namespace": "YouCam",
@@ -10191,7 +11336,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "YouCam",
     "tool": "beta___upload_file",
-    "purpose": "ChatGPT-only helper for uploading one ChatGPT-hosted image file and returning its fileKey and fileId. Use this tool only when ChatGPT file ID is available. This tool is not a final image editing or image generation tool. After every successful upload-file call, continue the same user request by calling beauty-knowledge with the returned fileKey in file_keys and fileId in file_ids at the same index. When handling mult"
+    "purpose": "ChatGPT-only helper for uploading one ChatGPT-hosted image file and returning its fileKey and fileId. Use this tool only when ChatGPT file ID is available. This tool is not a final image editing or image generation tool. After every successful upload-file call, continue the same user request by calling beauty-knowledge with the returned fileKey in file_keys and fileId in file_ids at the same index. When handling multiple images, call this tool once per image first, then pass all returned values through matching bea"
   },
   {
     "namespace": "Zeiko_Agents",
@@ -10391,7 +11536,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Zoho_CRM",
     "tool": "ZohoMCP_getFeatures",
-    "purpose": "Returns feature groups for intent-based tool discovery. IMPORTANT - Always call this tool first before ZohoMCP_listTools to discover available feature groups and narrow down tool discovery. If has_groups is true, use a matching group name with ZohoMCP_listTools(group=\"<name>\") to get only relevant tools. If has_groups is false or no group matches the user's intent, call ZohoMCP_listTools without a group parameter to "
+    "purpose": "Returns feature groups for intent-based tool discovery. IMPORTANT - Always call this tool first before ZohoMCP_listTools to discover available feature groups and narrow down tool discovery. If has_groups is true, use a matching group name with ZohoMCP_listTools(group=\"<name>\") to get only relevant tools. If has_groups is false or no group matches the user's intent, call ZohoMCP_listTools without a group parameter to browse all tools. For services with hierarchical groups (has_children=true on a group), pass parent_"
   },
   {
     "namespace": "Zoho_CRM",
@@ -10401,10 +11546,10 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
   {
     "namespace": "Zoho_CRM",
     "tool": "ZohoMCP_listTools",
-    "purpose": "List available tools with their names and descriptions. IMPORTANT - Call ZohoMCP_getFeatures first to discover feature groups, then pass matching group names here to get only relevant tools. If no group matches or has_groups was false, omit the groups parameter to list all tools. Use ZohoMCP_getSchema to get the full input schema before executing with ZohoMCP_executeTool. Results are paginated - keep calling with inc"
+    "purpose": "List available tools with their names and descriptions. IMPORTANT - Call ZohoMCP_getFeatures first to discover feature groups, then pass matching group names here to get only relevant tools. If no group matches or has_groups was false, omit the groups parameter to list all tools. Use ZohoMCP_getSchema to get the full input schema before executing with ZohoMCP_executeTool. Results are paginated - keep calling with incremented page numbers until has_more is false. For compound intents (e.g. \"send email and create tas"
   }
 ]);
 export function getLivePluginToolResearchSummary(){
  const namespaces=new Set(LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>x.namespace));
- return{captured_at:'2026-09-19',live_plugin_namespaces:namespaces.size,live_tool_contracts:LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.length,source_kind:'live-observable-plugin-tool-catalog',proprietary_implementation_copied:false,authorization_state:'not-assumed'};
+ return{captured_at:'2026-09-20',live_plugin_namespaces:namespaces.size,live_tool_contracts:LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.length,source_kind:'live-observable-plugin-tool-catalog',proprietary_implementation_copied:false,authorization_state:'not-assumed'};
 }

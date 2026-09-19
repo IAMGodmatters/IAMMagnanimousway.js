@@ -60,7 +60,8 @@ for(let offset=0;offset<rows.length;offset+=chunkSize){
    external_only:row.external_only,
    acceptance_tests:row.acceptance_tests,
    recipe:row.recipe,
-   implementation_status:row.implementation_status
+   implementation_status:row.implementation_status,
+   initiative:row.initiative||{}
   };
   const realization=classifyCapabilityRealization(row);
   const requiresConnection=realization.requires_external||String(row.boundary||'').includes('external')||String(row.boundary||'').includes('account')||String(row.boundary||'').includes('rail');
@@ -75,7 +76,8 @@ for(let offset=0;offset<rows.length;offset+=chunkSize){
    required_capabilities:[clip(row.capability,120)].filter(Boolean),
    requires_connection:requiresConnection,
    teaching_submission_id:0,
-   agent_id:'magnanimous-native-first'
+   agent_id:'magnanimous-native-first',
+   initiative:{suggestive:row.initiative?.suggestive===true,auto_initiate:row.initiative?.auto_initiate===true,requires_confirmation:row.initiative?.requires_confirmation===true,action_class:clip(row.initiative?.action_class||'',120),family:clip(row.initiative?.family||'',120)}
   };
   const outputs={result:'verified workflow result',actions_taken:'array',actions_pending_authorization:'array'};
   const steps=recipeSteps(row,requiresConnection);
@@ -100,7 +102,7 @@ ON CONFLICT(connector_id,capability_id) DO UPDATE SET tool_name=excluded.tool_na
 const realizations=rows.map(x=>classifyCapabilityRealization(x));
 const realizationCounts={'native-ready':0,'hybrid-ready':0,'bridge-required':0,'specified-only':0};
 for(const x of realizations)realizationCounts[x.status]=(realizationCounts[x.status]||0)+1;
-const digest=crypto.createHash('sha256').update(rows.map((x,i)=>JSON.stringify({id:x.id,connector_id:x.connector_id,capability:x.capability,source_kind:x.source_kind,boundary:x.boundary,native_target:x.native_target,recipe:x.recipe,research:getCapabilityResearchRecord(x),search_text:x.search_text||'',realization:realizations[i]})+'\n').join('')).digest('hex');
+const digest=crypto.createHash('sha256').update(rows.map((x,i)=>JSON.stringify({id:x.id,connector_id:x.connector_id,capability:x.capability,source_kind:x.source_kind,boundary:x.boundary,native_target:x.native_target,recipe:x.recipe,research:getCapabilityResearchRecord(x),search_text:x.search_text||'',initiative:x.initiative||{},realization:realizations[i]})+'\n').join('')).digest('hex');
 const finalSql=`INSERT INTO magnanimous_capability_materialization_state(id,manifest_count,ledger_count,tool_spec_count,source_digest,status,updated_at)
 VALUES('full-brain',${rows.length},${rows.length},${rows.length},${q(digest)},'complete',${now})
 ON CONFLICT(id) DO UPDATE SET manifest_count=excluded.manifest_count,ledger_count=excluded.ledger_count,tool_spec_count=excluded.tool_spec_count,source_digest=excluded.source_digest,status='complete',updated_at=excluded.updated_at;

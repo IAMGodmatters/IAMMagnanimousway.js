@@ -1,5 +1,5 @@
 // Generated observable live installed plugin-skill research snapshot.
-// Captured from the current installed skill catalog on 2026-09-19.
+// Refreshed from the current installed skill catalog on 2026-09-20.
 // Stores public/observable skill names and concise purposes only. Private skill implementation is not copied.
 export const LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT=Object.freeze([
   {
@@ -178,6 +178,61 @@ export const LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT=Object.freeze([
     "purpose": "Operate Railway infrastructure: sign up for or sign in to a Railway account, create projects, provision services and databases, manage object storage buckets, deploy code, configure environments and variables, manage domains, troubleshoot failures, check status and metrics, manage feature flags, set up Railway agent tooling, and query Railway docs. Use this skill whenever the user mentions Railway, feature flags, flag rollout, targeting rules, signing up, creating an account, registering, logging in, deployments, s"
   },
   {
+    "plugin_namespace": "app-6a5e7ac6ddf881919de226cb7506ef57",
+    "skill_name": "blob-storage",
+    "purpose": "Use when a val needs simple key/value persistence — JSON documents, cached responses, uploaded files, or binary assets. Covers the std/blob API, listing and deleting keys, account-global or val scoping, and storage limits."
+  },
+  {
+    "plugin_namespace": "app-6a5e7ac6ddf881919de226cb7506ef57",
+    "skill_name": "client-side-js",
+    "purpose": "Use when a val needs to ship JavaScript that runs in the browser — React apps, vanilla DOM scripts, canvas/games, htmx/Alpine, or any client-side module beyond a single inline snippet. Explains how Val Town serves transpiled .ts/.tsx/.jsx modules with no build step, how the browser resolves their imports, and how to load third-party deps."
+  },
+  {
+    "plugin_namespace": "app-6a5e7ac6ddf881919de226cb7506ef57",
+    "skill_name": "create-skill",
+    "purpose": "Use when the user wants to persist a preference, skill, or knowledge. Use when it would aid future val development to store a memory of how best to build something."
+  },
+  {
+    "plugin_namespace": "app-6a5e7ac6ddf881919de226cb7506ef57",
+    "skill_name": "cron-and-intervals",
+    "purpose": "Use when building a val that runs on a schedule — periodic jobs, recurring tasks, polling, cron jobs, monitoring, alerting. Covers the interval handler signature, cron expressions, the UTC timezone constraint, and the `lastRunAt` pattern for detecting new items since the previous run."
+  },
+  {
+    "plugin_namespace": "app-6a5e7ac6ddf881919de226cb7506ef57",
+    "skill_name": "email",
+    "purpose": "Use when a val sends email, receives email, or is triggered by an incoming email. Covers email-type vals (the Email handler shape, attachment limits, the assigned val email address) and sending mail via std/email."
+  },
+  {
+    "plugin_namespace": "app-6a5e7ac6ddf881919de226cb7506ef57",
+    "skill_name": "http-endpoints",
+    "purpose": "Use when building an HTTP val — a web endpoint, API route, webhook receiver, or any val that responds to HTTP requests. Covers the handler signature, Hono usage, the endpoint URL, CORS behavior, redirects, and Val Town-specific limitations."
+  },
+  {
+    "plugin_namespace": "app-6a5e7ac6ddf881919de226cb7506ef57",
+    "skill_name": "oauth",
+    "purpose": "Use when a val needs to require login with a Val Town account — gating routes behind authentication, identifying the current user, building user-specific dashboards. Covers std/oauth's `oauthMiddleware` and `getOAuthUserData`, the auto-managed `/auth/*` routes, and session behavior. For third-party OAuth providers (Google, GitHub, etc.) see the `third-party-integrations` skill instead."
+  },
+  {
+    "plugin_namespace": "app-6a5e7ac6ddf881919de226cb7506ef57",
+    "skill_name": "react-ui",
+    "purpose": "Use when building any val with a user interface — dashboards, web apps, landing pages, forms, admin tools, anything users see in a browser. Covers JSX/React conventions, Twind/Tailwind styling, React version pinning, the view-source link requirement, and what to avoid (template-string HTML, external assets)."
+  },
+  {
+    "plugin_namespace": "app-6a5e7ac6ddf881919de226cb7506ef57",
+    "skill_name": "restricted-access",
+    "purpose": "Use when a val's HTTP endpoints should not be open to the whole internet — limiting an app to a team, understanding why an endpoint redirects to a login page, letting a webhook through, or identifying which Val Town user is viewing an app. Covers app access (`httpPrivacy`), org grants, bypass tokens for automation, and the `X-Val-Town-User` identity header. For building your own login flow inside a val, see the `oauth` skill instead."
+  },
+  {
+    "plugin_namespace": "app-6a5e7ac6ddf881919de226cb7506ef57",
+    "skill_name": "sqlite-storage",
+    "purpose": "Use when a val needs to store structured or relational data. Covers the std/sqlite API, parameterized queries, transactions, and the val-scoped vs organization-scoped database distinction."
+  },
+  {
+    "plugin_namespace": "app-6a5e7ac6ddf881919de226cb7506ef57",
+    "skill_name": "third-party-integrations",
+    "purpose": "Use when a val talks to an external service — Slack, Discord, Telegram, Stripe, GitHub, Gmail, Google Sheets, Postgres/Supabase/Upstash/Neon, browser automation (Playwright, Browserbase, Kernel, Steel), web scraping, PDF generation, push notifications, RSS, or any other third-party API. Covers the required workflow (fetch the Val Town guide, get credentials, test, store secrets) and the catalog of available guides."
+  },
+  {
     "plugin_namespace": "app-6a6bc49c188481918455b61154ce3963",
     "skill_name": "onboarding",
     "purpose": "Set up Inkbox email, SMS, iMessage, and voice; recover automatically when a requested channel is not ready; and recommend scheduled communications triage."
@@ -186,6 +241,11 @@ export const LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT=Object.freeze([
     "plugin_namespace": "app-6a7c58a845f88191860e59f46130b8bb",
     "skill_name": "deploy-on-basicdeploy",
     "purpose": "Deploy and host a web app, API, or site on BasicDeploy and get a live HTTPS URL. Trigger when the user asks to deploy, host, ship, or \"put online\" an app on BasicDeploy (with the BasicDeploy connector available). Covers creating a container, deploying code over the chat connector, the REQUIRED 0.0.0.0:8080 port, the preset DATABASE_URL / S3 env vars, logs, and always-on. Do not use for other hosting providers."
+  },
+  {
+    "plugin_namespace": "app-6a88aa7070e88191b5825453492c5cf5",
+    "skill_name": "speko-phone-call",
+    "purpose": "Place a real outbound phone call through Speko and read back what was said. Use when the user wants someone actually called on the telephone — booking, confirming, chasing, asking a business a question — or wants to rehearse such a call first, or wants to review a call that already happened."
   },
   {
     "plugin_namespace": "awesome-maintainer-defense",
@@ -4280,5 +4340,5 @@ export const LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT=Object.freeze([
 ]);
 export function getLivePluginSkillResearchSummary(){
  const namespaces=new Set(LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT.map(x=>x.plugin_namespace));
- return{captured_at:'2026-09-19',live_skill_namespaces:namespaces.size,live_skill_contracts:LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT.length,source_kind:'live-observable-installed-skill-catalog',private_skill_implementation_copied:false,authorization_state:'not-assumed'};
+ return{captured_at:'2026-09-20',live_skill_namespaces:namespaces.size,live_skill_contracts:LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT.length,source_kind:'live-observable-installed-skill-catalog',private_skill_implementation_copied:false,authorization_state:'not-assumed'};
 }

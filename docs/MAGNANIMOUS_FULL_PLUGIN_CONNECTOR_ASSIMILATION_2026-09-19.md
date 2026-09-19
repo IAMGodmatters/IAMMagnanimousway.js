@@ -169,3 +169,46 @@ QA now locks that:
 - proprietary/private implementations are never treated as copied;
 - the God Coding owner control can process the entire ledger in bounded batches;
 - existing approval, security, CI and release boundaries stay intact.
+
+
+## 2026-09-20 Floot-first live catalog refresh
+
+The live ChatGPT connector/tool catalog was refreshed after Floot was connected.
+
+Current observed surface:
+
+- 111 live plugin/tool namespaces.
+- 2,309 live observable tool contracts.
+- 109 installed skill namespaces.
+- 867 installed skill contracts.
+- 3,470 total Magnanimous capability specifications after current + retained historical union.
+- 59 native-ready realization routes.
+- 3,411 hybrid-ready realization routes.
+- 0 bridge-required and 0 specified-only current realization gaps.
+
+### Floot
+
+Floot is represented as a first-class clean-room capability source rather than a generic plugin.
+
+The connected Floot account exposes 44 callable tools and 65 public guide/skill topics. Magnanimous maps them into ten provider-neutral families:
+
+- project discovery;
+- code authoring;
+- quality verification;
+- preview and UI observation;
+- database and schema;
+- resources and auth;
+- assets and media;
+- project lifecycle;
+- production publishing;
+- platform knowledge.
+
+Magnanimous owns intent, planning, routing, memory, workflow, risk policy, verification, learning and normalized contracts. Floot account authorization, Floot hosting, Floot-managed resources, published-app infrastructure and provider-specific project state remain replaceable external execution rails.
+
+Initiative rules are explicit:
+
+- safe reads, inspection, status checks, tests, previews and verification may auto-initiate when the required authorized surface exists;
+- writes, code execution, SQL mutation, resource provisioning, credential requests, publishing, unpublishing and destructive actions remain subject to existing confirmation and permission gates;
+- no external action is reported complete without a real tool result.
+
+The current connected Floot account has no projects yet. Magnanimous therefore does not create a throwaway Floot project merely to claim integration.
