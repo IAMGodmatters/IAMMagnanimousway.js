@@ -150,6 +150,12 @@ export async function hasAnyReadyLocalBridge(env){
  const row=await env.DB.prepare("SELECT id FROM magnanimous_local_bridge_devices WHERE status='active' AND last_seen_at>=? LIMIT 1").bind(now()-ACTIVE_WINDOW).first();
  return Boolean(row?.id);
 }
+export async function hasAnyReadyLocalBridgeCapability(env,action){
+ if(!env?.DB||!action)return false;
+ await ensureSchema(env);
+ const {results=[]}=await env.DB.prepare("SELECT capabilities_json FROM magnanimous_local_bridge_devices WHERE status='active' AND last_seen_at>=? ORDER BY last_seen_at DESC LIMIT 50").bind(now()-ACTIVE_WINDOW).all();
+ return results.some(row=>{try{return JSON.parse(row.capabilities_json||'[]').includes(action)}catch{return false}});
+}
 export async function findReadyLocalBridgeDevice(env,tenantId,action=''){
  if(!env?.DB||!tenantId)return null;
  await ensureSchema(env);
