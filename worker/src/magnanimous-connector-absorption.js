@@ -4,7 +4,7 @@ import { CHATGPT_PLUGIN_CONTRACT_SNAPSHOT, getChatGPTPluginContractSummary } fro
 import { INSTALLED_PLUGIN_SKILL_SNAPSHOT, getInstalledPluginSkillSummary } from './magnanimous-installed-plugin-skill-snapshot.js';
 import { LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT, getLivePluginToolResearchSummary } from './magnanimous-live-plugin-tool-research-snapshot.js';
 import { LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT, getLivePluginSkillResearchSummary } from './magnanimous-live-plugin-skill-research-snapshot.js';
-import { getFlootNativeTarget, getFlootToolPolicy, getFlootCapabilitySummary } from './magnanimous-floot-capability-snapshot.js';
+import { FLOOT_OBSERVABLE_GUIDE_TOPICS, getFlootNativeTarget, getFlootToolPolicy, getFlootGuideNativeTarget, getFlootGuidePolicy, getFlootCapabilitySummary } from './magnanimous-floot-capability-snapshot.js';
 
 // Research ledger for the account connectors that I AM Magnanimous Way can authorize directly.
 // These sources describe public API contracts only. They are not copied implementations.
@@ -215,12 +215,29 @@ function installedSkillRecipe(tuple){
 export function getInstalledPluginSkillManifest(){
  return INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(installedSkillRecipe);
 }
+function flootGuideSkillRecipe(row){
+ const skill=String(row?.id||'guide'),description=String(row?.purpose||''),slug=skill.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'guide',initiative=getFlootGuidePolicy(skill);
+ return{
+  id:`floot-guide-skill:${slug}`,connector_id:'plugin-skill:Floot-guides',connector_name:'Floot public guide skills',category:'plugin-skill',
+  capability:`skill-floot-${slug}`,native_target:getFlootGuideNativeTarget(skill),priority:'observed',source_kind:'floot-public-guide-topic',direct_connector:false,
+  boundary:'optional-external-floot-rail',absorption_status:'brain-spec-absorbed',implementation_status:'specified-not-assumed-native',
+  magnanimous_owned:['skill-selection',...ownedParts()],external_only:['Floot account/hosting/resource execution only when a live Floot action is actually required'],
+  acceptance_tests:['Guide purpose is represented as an original provider-neutral Magnanimous workflow contract.','Public guide knowledge is used as routing/implementation guidance without copying private Floot implementation.','Any real Floot account, hosting, resource, publish or project mutation remains separately authorized.','Magnanimous owns planning, memory, policy, verification and outcome learning.'],
+  recipe:[`Apply the public workflow goal of the Floot ${skill} guide through Magnanimous-owned planning and verification.`,'Extract the general engineering/product pattern rather than copying provider-specific private implementation.','Prefer existing Magnanimous native runtime surfaces when they can satisfy the outcome.','Use Floot only as a replaceable external execution rail when the requested project/account action truly requires it.','Verify the result and record reusable low-risk lessons.'],
+  plugin_namespace:'Floot',skill_name:skill,search_text:description,authorization_state:'not-assumed',initiative,
+  visibility_state:'live-visible',
+  research:{captured_at:'2026-09-20',source_kind:'floot-public-guide-topic',public_purpose:description,authorization_state:'not-assumed',private_skill_implementation_copied:false,requires_real_floot_tool:false}
+ };
+}
+export function getFlootGuideSkillManifest(){
+ return FLOOT_OBSERVABLE_GUIDE_TOPICS.map(flootGuideSkillRecipe);
+}
 export function getCapabilityAbsorptionManifest(){
- return [...getPersistentConnectorAbsorptionManifest(),...getChatGPTPluginCapabilityManifest(),...getInstalledPluginSkillManifest()];
+ return [...getPersistentConnectorAbsorptionManifest(),...getChatGPTPluginCapabilityManifest(),...getInstalledPluginSkillManifest(),...getFlootGuideSkillManifest()];
 }
 
 export function getConnectorAbsorptionSummary(){
- const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),liveTools=getLivePluginToolResearchSummary(),liveSkills=getLivePluginSkillResearchSummary(),floot=getFlootCapabilitySummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
+ const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),flootGuideManifest=getFlootGuideSkillManifest(),liveTools=getLivePluginToolResearchSummary(),liveSkills=getLivePluginSkillResearchSummary(),floot=getFlootCapabilitySummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
  const missingDirect=INTEGRATIONS.filter(x=>!directCatalogued.has(x.id)).map(x=>x.id);
  const pluginNamespaces=new Set([...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace),...LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>x.namespace)]);
  const skillNamespaces=new Set(INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>x[0]));
@@ -240,15 +257,16 @@ export function getConnectorAbsorptionSummary(){
   live_only_plugin_namespaces:liveOnlyToolNamespaces.length,
   installed_plugin_skill_namespaces:skillNamespaces.size,
   installed_plugin_skills:skillManifest.length,
+  floot_public_guide_skills:flootGuideManifest.length,
   currently_visible_plugin_skill_namespaces:liveSkills.live_skill_namespaces,
   currently_visible_plugin_skills:liveSkills.live_skill_contracts,
   historical_plugin_skills:historicalSkillCount,
-  full_brain_capability_contracts:persistent.length+pluginManifest.length+skillManifest.length,
+  full_brain_capability_contracts:persistent.length+pluginManifest.length+skillManifest.length+flootGuideManifest.length,
   plugin_authorization_state:'not-assumed',
   one_by_one_research:true,
   floot,
-  research_sources:['official direct connector API documentation','live observable plugin tool catalog','observable installed skill catalog','historical observable contracts retained for continuity'],
-  native_targets:[...new Set([...catalog.map(x=>x.native_target).filter(Boolean),...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(pluginNativeTarget),...LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x.namespace,tools:[x.tool,x.purpose]})),...INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x[0],tools:[x[1],x[2]]}))])].sort(),
+  research_sources:['official direct connector API documentation','live observable plugin tool catalog','observable installed skill catalog','Floot public guide/skill topics','historical observable contracts retained for continuity'],
+  native_targets:[...new Set([...catalog.map(x=>x.native_target).filter(Boolean),...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(pluginNativeTarget),...LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x.namespace,tools:[x.tool,x.purpose]})),...INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x[0],tools:[x[1],x[2]]})),...FLOOT_OBSERVABLE_GUIDE_TOPICS.map(x=>getFlootGuideNativeTarget(x.id))])].sort(),
   direct_connector_coverage:{covered:INTEGRATIONS.length-missingDirect.length,total:INTEGRATIONS.length,missing:missingDirect},
   absorption_policy:ABSORPTION_POLICY,
   status:missingDirect.length?'coverage-gap':'catalog-complete'
