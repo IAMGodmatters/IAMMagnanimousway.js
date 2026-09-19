@@ -312,7 +312,7 @@ async function handle(request, env) {
     const ogenicRuntimeEnv=localBridgeReady?{...env,MAGNANIMOUS_LOCAL_BRIDGE_READY:true}:env;
     const ogenicPlan=buildMagnanimousOgenicPlan(userMessage,ogenicRuntimeEnv),ogenicContext=getMagnanimousOgenicPrompt(userMessage);
     let ogenicInitiative=null;
-    if(body.use_tools!==false&&body.ogenic_initiative!==false&&ogenicPlan.groups.some(x=>x.id==='code-system')){
+    if(body.use_tools!==false&&body.ogenic_initiative!==false&&(ogenicPlan.groups.some(x=>x.id==='code-system')||ogenicPlan.classification==='LOCAL'||ogenicPlan.classification==='HYBRID')){
       try{
         const initiativeUrl=new URL('/api/magnanimous/ogenic/initiate',request.url),initiativeHeaders=new Headers(request.headers);
         initiativeHeaders.set('content-type','application/json');

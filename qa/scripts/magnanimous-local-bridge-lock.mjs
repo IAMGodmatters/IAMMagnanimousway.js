@@ -62,6 +62,8 @@ assert(migration.includes('magnanimous_local_bridge_devices'));
 assert(migration.includes('magnanimous_local_bridge_tasks'));
 assert(progress.includes('handleMagnanimousLocalBridge'),'secured runtime must route local bridge endpoints');
 assert(provider.includes('hasAnyReadyLocalBridge'),'public health must use actual heartbeat state');
+assert(provider.includes("ogenicPlan.classification==='LOCAL'"),'chat must auto-initiate local OGENIC work when a bridge is available');
+assert(provider.includes("ogenicPlan.classification==='HYBRID'"),'chat must auto-initiate hybrid OGENIC work when a bridge is available');
 assert(page.includes('CREATE PAIRING CODE'));
 assert(page.includes('LOCAL BRIDGE REQUIRED'));
 assert(robots.includes('Disallow: /local-bridge/'));
