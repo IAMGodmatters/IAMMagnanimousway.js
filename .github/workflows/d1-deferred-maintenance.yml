@@ -1,0 +1,172 @@
+name: Deferred D1 Maintenance
+
+on:
+  schedule:
+    # Cloudflare Free D1 daily limits reset at 00:00 UTC. Run shortly after reset.
+    - cron: '17 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: magnanimous-d1-maintenance
+  cancel-in-progress: false
+
+jobs:
+  catch-up:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm ci --no-audit --no-fund
+
+      - name: Apply deferred D1 migrations
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          output=$(printf 'y\n' | npx wrangler d1 migrations apply iam-magnanimous-db --remote 2>&1)
+          rc=$?
+          set -e
+          printf '%s\n' "$output"
+          if [ "$rc" -ne 0 ]; then
+            if printf '%s' "$output" | grep -qi "exceeded D1's free tier daily row write limit"; then
+              echo "::warning::D1 write quota is still exhausted; the scheduled maintenance run will retry after the next reset."
+              echo "D1_MAINTENANCE_QUOTA_BLOCKED=1" >> "$GITHUB_ENV"
+            else
+              exit "$rc"
+            fi
+          fi
+
+      - name: Materialize deferred Magnanimous brain rows
+        if: env.D1_MAINTENANCE_QUOTA_BLOCKED != '1'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/magnanimous-d1-maintenance
+          node qa/scripts/materialize-full-brain-d1.mjs /tmp/magnanimous-d1-maintenance
+
+          expected=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/magnanimous-d1-maintenance/manifest-metadata.json'))
+          print(d['manifest_count'])
+          PY
+          )
+          digest=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/magnanimous-d1-maintenance/manifest-metadata.json'))
+          print(d['source_digest'])
+          PY
+          )
+          realization_counts=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/magnanimous-d1-maintenance/manifest-metadata.json'))
+          print(','.join(str(d[k]) for k in ['native_ready','hybrid_ready','bridge_required','specified_only']))
+          PY
+          )
+
+          current_digest=""
+          set +e
+          (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT source_digest,status FROM magnanimous_capability_materialization_state WHERE id='full-brain';" > /tmp/magnanimous-d1-maintenance/current.json 2>/dev/null)
+          state_rc=$?
+          set -e
+          if [ "$state_rc" -eq 0 ]; then
+            current_digest=$(python - <<'PY'
+          import json
+          try: payload=json.load(open('/tmp/magnanimous-d1-maintenance/current.json'))
+          except Exception:
+              print('')
+              raise SystemExit
+          rows=[]
+          def walk(x):
+              if isinstance(x,dict):
+                  if 'source_digest' in x: rows.append(x)
+                  for v in x.values(): walk(v)
+              elif isinstance(x,list):
+                  for v in x: walk(v)
+          walk(payload)
+          row=rows[-1] if rows else {}
+          print(row.get('source_digest') if row.get('status')=='complete' else '')
+          PY
+            )
+          fi
+
+          if [ -n "$current_digest" ] && [ "$current_digest" = "$digest" ]; then
+            echo "Production D1 already matches the checked-in full-brain digest."
+          else
+            for file in /tmp/magnanimous-d1-maintenance/*.sql; do
+              echo "Applying $(basename "$file")"
+              set +e
+              output=$(cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file="$file" 2>&1)
+              rc=$?
+              set -e
+              printf '%s\n' "$output"
+              if [ "$rc" -ne 0 ]; then
+                if printf '%s' "$output" | grep -qi "free tier daily row write limit"; then
+                  echo "::warning::D1 quota was exhausted during materialization; a later scheduled run will resume idempotently."
+                  exit 0
+                fi
+                exit "$rc"
+              fi
+            done
+          fi
+
+          (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT
+            (SELECT COUNT(*) FROM magnanimous_connector_capability_absorption WHERE status='tool-foundry-specified') AS ledger_count,
+            (SELECT COUNT(*) FROM magnanimous_native_tool_specs WHERE tenant_id='__magnanimous_global__' AND user_id='system:auto-qa') AS tool_spec_count,
+            (SELECT COUNT(*) FROM magnanimous_capability_realizations) AS realization_count,
+            (SELECT native_ready_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS native_ready_count,
+            (SELECT hybrid_ready_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS hybrid_ready_count,
+            (SELECT bridge_required_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS bridge_required_count,
+            (SELECT specified_only_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS specified_only_count,
+            magnanimous_capability_materialization_state.manifest_count AS manifest_count,
+            magnanimous_capability_materialization_state.source_digest AS source_digest,
+            magnanimous_capability_materialization_state.status AS status
+            FROM magnanimous_capability_materialization_state WHERE id='full-brain';" > /tmp/magnanimous-d1-maintenance/verify.json)
+
+          EXPECTED="$expected" DIGEST="$digest" REALIZATION_COUNTS="$realization_counts" python - <<'PY'
+          import json, os
+          payload=json.load(open('/tmp/magnanimous-d1-maintenance/verify.json'))
+          rows=[]
+          def walk(x):
+              if isinstance(x,dict):
+                  if 'manifest_count' in x and 'source_digest' in x: rows.append(x)
+                  for v in x.values(): walk(v)
+              elif isinstance(x,list):
+                  for v in x: walk(v)
+          walk(payload)
+          assert rows, payload
+          row=rows[-1]
+          expected=int(os.environ['EXPECTED'])
+          native_ready,hybrid_ready,bridge_required,specified_only=map(int,os.environ['REALIZATION_COUNTS'].split(','))
+          assert int(row['manifest_count']) == expected, row
+          assert int(row['ledger_count']) >= expected, row
+          assert int(row['tool_spec_count']) >= expected, row
+          assert int(row['realization_count']) == expected, row
+          assert int(row['native_ready_count']) == native_ready, row
+          assert int(row['hybrid_ready_count']) == hybrid_ready, row
+          assert int(row['bridge_required_count']) == bridge_required, row
+          assert int(row['specified_only_count']) == specified_only, row
+          assert row['source_digest'] == os.environ['DIGEST'], row
+          assert row['status'] == 'complete', row
+          print(f"Deferred D1 maintenance complete: {expected} capability specifications verified.")
+          PY
