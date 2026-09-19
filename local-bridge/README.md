@@ -17,17 +17,19 @@ The Magnanimous Local Bridge closes the local-computer/private-network boundary 
 
 ## Windows
 
-1. In I AM MAGNANIMOUS WAY™, open **Owner → Local Bridge** and create a pairing code.
-2. Run PowerShell:
+1. In I AM MAGNANIMOUS WAY™, open **Owner → Local Bridge**.
+2. Choose the authorized workspace folder and select **Create Activation**.
+3. Download **Activate-Magnanimous-Local-Bridge.cmd** and open it on the Windows computer before the one-time code expires.
+4. The bootstrap installs Python automatically with Windows Package Manager when needed, optionally installs Git, downloads the Magnanimous agent, pairs it, and creates a scheduled task named **Magnanimous Local Bridge**.
+5. Magnanimous automatically queues a safe health task. The owner page changes to **READY LOCAL — VERIFIED** only after that task is actually claimed and returned successfully.
+
+Manual PowerShell is still supported:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\local-bridge\install.ps1 -PairingCode "PAIR_CODE" -WorkspaceRoot "C:\path\to\your\project"
+powershell -ExecutionPolicy Bypass -File .\local-bridge\install.ps1 -PairingCode "PAIR_CODE" -WorkspaceRoot "C:\path\to\your\project" -InstallGit
 ```
 
-3. The installer pairs the bridge and creates a scheduled task named **Magnanimous Local Bridge** that starts at sign-in.
-4. Return to the Local Bridge page. The device becomes online after its heartbeat.
-
-The installer requires Python 3. It refuses to continue if Python is unavailable.
+If no workspace is supplied, the installer creates `%USERPROFILE%\Documents\MagnanimousWorkspace`.
 
 ## Manual / macOS / Linux
 
@@ -77,3 +79,16 @@ Separately confirmed local mutations:
 ## Safety boundaries
 
 The bridge intentionally does not expose a generic shell, arbitrary process execution, raw input events, or unrestricted filesystem access. Browser/UI, Office, media and device-specific operations continue to use dedicated connected tools where available. This keeps Magnanimous initiative capability-scoped and auditable instead of turning the machine into a broad remote-control endpoint.
+
+
+## Revoke and uninstall
+
+Use **Revoke Device** on the owner Local Bridge page to invalidate that device's bridge token and cancel its pending tasks. A revoked bridge stops when the server returns unauthorized status.
+
+To remove the local startup task, agent, and local bridge credentials from Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\local-bridge\uninstall.ps1
+```
+
+The uninstaller removes only Magnanimous Local Bridge files and the scheduled task. It does not delete a non-empty workspace.
