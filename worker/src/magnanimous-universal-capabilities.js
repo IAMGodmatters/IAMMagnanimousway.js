@@ -21,7 +21,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'computer-browser-use',
     name: 'Computer, browser and application operation',
-    capabilities: ['screen-understanding','browser-navigation','form-entry','click-type-scroll','desktop-operation','mobile-operation','ui-testing','workflow-automation','recovery-from-ui-change']
+    capabilities: ['screen-understanding','browser-navigation','browser-search','rendered-page-extraction','structured-web-extraction','form-entry','click-type-scroll','persistent-browser-profiles','browser-task-lifecycle','scheduled-web-monitoring','screenshot-capture','native-local-browser','desktop-operation','mobile-operation','ui-testing','workflow-automation','recovery-from-ui-change']
   },
   {
     id: 'multimodal-intelligence',
@@ -100,6 +100,7 @@ export const MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL = {
     'Decompose long-horizon work into independently verifiable workstreams.',
     'Run independent low-risk workstreams in parallel when the runtime supports it.',
     'Use native/free capability first, then the best authorized connector or execution engine for missing capability.',
+    'For supported public web automation, prefer the Magnanimous-owned Local Bridge + local Chromium path before any metered external web-agent provider; keep external browser agents optional fallbacks only.',
     'Use sandboxed code/computer environments for generated code, browser automation and untrusted inputs when available.',
     'Verify important outputs against evidence, tests, schemas, permissions and actual tool results.',
     'Save reusable lessons, source-backed knowledge, successful plans and low-risk recipes back into Magnanimous memory.',
@@ -166,6 +167,7 @@ export const MAGNANIMOUS_SELF_EVOLUTION_PROTOCOL = {
 export const MAGNANIMOUS_SOURCE_OF_CAPABILITY = {
   principle: 'Become the durable source of orchestration, memory, skills and reusable capability patterns rather than the owner of every underlying foundation model.',
   native_growth_rule: 'When a repeated capability can be implemented with Magnanimous-owned code, open standards, authorized data and proven recipes, migrate more of that capability into the native platform over time.',
+  native_web_rule: 'Search, rendered extraction, browser workflows, persistent sessions and scheduled monitoring should use Magnanimous-owned contracts and local Chromium execution when available; provider-specific anti-bot or proxy infrastructure remains optional and must not be misrepresented as native.',
   adapter_rule: 'When a capability requires proprietary compute, live external data or an authorized account, keep a normalized adapter so providers remain replaceable.',
   knowledge_rule: 'Continuously refresh changeable facts from current sources instead of freezing stale claims into permanent memory.',
   quality_rule: 'Superior means better verified outcomes, reliability, continuity, privacy, adaptability and tool execution—not pretending limits do not exist.'
