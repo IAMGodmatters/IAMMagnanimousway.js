@@ -61,7 +61,7 @@ mustContain(security,"await revokeRequestSession(request, env, 'logout')",'Legac
 
 mustContain(authority,"const OPAQUE_PREFIX='ms1_'",'Versioned opaque session identifier is missing.');
 mustContain(authority,'SESSION_TTL_SECONDS=12*60*60','Opaque browser sessions must be capped at 12 hours.');
-mustContain(authority,'created_at+SESSION_TTL_SECONDS','Existing opaque sessions must not exceed the 12-hour cap.');
+mustContain(authority,'createdAt+SESSION_TTL_SECONDS','Existing opaque sessions must not exceed the 12-hour cap.');
 mustContain(authority,'crypto.getRandomValues(new Uint8Array(32))','Opaque session IDs must use at least 256 bits of CSPRNG material.');
 mustContain(authority,"await sha256(token)",'Opaque session persistence must fingerprint tokens before storage.');
 mustNotContain(authority,'INSERT INTO auth_sessions(token,','Raw opaque bearer tokens must never be persisted.');
