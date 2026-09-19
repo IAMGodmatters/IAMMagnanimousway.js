@@ -42,6 +42,7 @@ mustContain(admin,'upgradePasswordIfNeeded','Successful legacy logins must upgra
 mustContain(admin,'password.length < 10','New-account minimum password length regressed.');
 mustNotContain(admin,'async function passwordHash(','Fast local password hashing must not return to the account runtime.');
 mustNotContain(admin,"return json({ detail: e?.message",'Unexpected account-service errors must not be reflected directly to clients.');
+mustContain(admin,'OWNER_SESSION_TTL_SECONDS = 12 * 60 * 60','Platform-owner sessions must expire after 12 hours.');
 
 mustContain(entry,"from './password-security.js'",'Owner bootstrap must use hardened password storage.');
 mustContain(entry,'ensureRuntimeBootstrap','Runtime bootstrap caching is missing.');
@@ -101,6 +102,9 @@ mustContain(runtime,"var sessionPrefix='iam_session_draft:'",'Generic draft reco
 mustContain(runtime,"data-persist-draft",'Persistent draft storage must be explicit opt-in.');
 mustContain(runtime,'mutation.addedNodes.forEach','DOM cleanup must remain incremental.');
 mustContain(runtime,"fetch('/api/auth/me'",'Protected client sessions must be periodically revalidated.');
+mustContain(runtime,"magnanimous_admin_session_expires_at",'Owner browser session expiry must remain persisted.');
+mustContain(runtime,"if(owner){safeSet(sessionStorage,'iam_session_active','owner')",'A valid persisted owner token must recover the active browser marker across navigation.');
+mustContain(runtime,'43200000','Recovered owner browser sessions must be limited to 12 hours.');
 mustContain(runtime,"script[data-iam-adsense=\"true\"],#iam-adsense",'Global ad loading must remain deduplicated.');
 mustContain(runtime,"var publicPaths=['/'",'Homepage must remain a public discovery surface.');
 mustContain(runtime,"'/business-plan'",'Public business-plan discovery route is missing.');
