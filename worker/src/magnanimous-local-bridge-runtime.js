@@ -21,6 +21,12 @@ export const LOCAL_BRIDGE_ACTIONS=Object.freeze({
  project_typecheck:{risk:'medium',auto:true,confirmation:false,family:'project-lifecycle'},
  project_build:{risk:'medium',auto:true,confirmation:false,family:'project-lifecycle'},
  web_fetch:{risk:'low',auto:true,confirmation:false,family:'network'},
+ browser_search:{risk:'low',auto:true,confirmation:false,family:'native-web'},
+ browser_fetch:{risk:'low',auto:true,confirmation:false,family:'native-web'},
+ browser_read_flow:{risk:'low',auto:true,confirmation:false,family:'native-web'},
+ browser_action_flow:{risk:'high',auto:false,confirmation:true,family:'native-web'},
+ browser_profile_list:{risk:'low',auto:true,confirmation:false,family:'native-web'},
+ browser_profile_setup:{risk:'medium',auto:false,confirmation:true,family:'native-web'},
  netwalk_probe:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
  netwalk_scan:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
  netwalk_diag:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
@@ -37,6 +43,10 @@ export const LOCAL_BRIDGE_POLICY=Object.freeze({
  token_storage:'local-agent-only; server stores SHA-256 hash',
  raw_shell_exposed:false,
  raw_keyboard_mouse_exposed:false,
+ browser_input_scoped_to_page:true,
+ browser_secret_fill_from_remote_task:false,
+ browser_private_network_targets:false,
+ browser_profiles_local_only:true,
  arbitrary_process_execution:false,
  workspace_roots_required:true,
  exact_capability_allowlist:true,
@@ -104,6 +114,26 @@ function validateTask(action,payload){
   let u;try{u=new URL(String(body.url||''))}catch{}
   if(!u||!['http:','https:'].includes(u.protocol))throw new Error('web_fetch requires an http(s) URL.');
  }
+ if(action==='browser_search'&&!clip(body.query,2000))throw new Error('browser_search requires query.');
+ if(['browser_fetch','browser_profile_setup'].includes(action)){
+  let u;try{u=new URL(String(body.url||''))}catch{}
+  if(!u||!['http:','https:'].includes(u.protocol))throw new Error(action+' requires an http(s) URL.');
+  const host=String(u.hostname||'').toLowerCase();
+  if(host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||/^127\.|^0\.|^169\.254\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host))throw new Error('Native browser private/local targets are blocked.');
+ }
+ if(['browser_read_flow','browser_action_flow'].includes(action)){
+  if(!Array.isArray(body.steps)||!body.steps.length||body.steps.length>60)throw new Error(action+' requires 1-60 browser steps.');
+  for(const step of body.steps){
+   if(!step||typeof step!=='object'||Array.isArray(step))throw new Error('Browser steps must be objects.');
+   if(String(step.op||'').toLowerCase()==='goto'){
+    let u;try{u=new URL(String(step.url||''))}catch{}
+    if(!u||!['http:','https:'].includes(u.protocol))throw new Error('Browser goto requires an http(s) URL.');
+    const host=String(u.hostname||'').toLowerCase();
+    if(host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||/^127\.|^0\.|^169\.254\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host))throw new Error('Native browser private/local targets are blocked.');
+   }
+   if(String(step.op||'').toLowerCase()==='fill'&&step.secret===true)throw new Error('Remote browser tasks cannot carry secret/password values. Use a local persistent profile.');
+  }
+ }
  if(['read_file','search_text','git_status','git_diff','git_log','project_test','project_lint','project_typecheck','project_build','apply_patch','git_create_branch','git_commit'].includes(action)&&!clip(body.workspace,1000))throw new Error('A paired workspace path/id is required.');
  if(action==='apply_patch'&&!clip(body.patch,200000))throw new Error('apply_patch requires a unified diff patch.');
  return{def,body};
@@ -120,6 +150,12 @@ export async function hasAnyReadyLocalBridge(env){
  const row=await env.DB.prepare("SELECT id FROM magnanimous_local_bridge_devices WHERE status='active' AND last_seen_at>=? LIMIT 1").bind(now()-ACTIVE_WINDOW).first();
  return Boolean(row?.id);
 }
+export async function hasAnyReadyLocalBridgeCapability(env,action){
+ if(!env?.DB||!action)return false;
+ await ensureSchema(env);
+ const {results=[]}=await env.DB.prepare("SELECT capabilities_json FROM magnanimous_local_bridge_devices WHERE status='active' AND last_seen_at>=? ORDER BY last_seen_at DESC LIMIT 50").bind(now()-ACTIVE_WINDOW).all();
+ return results.some(row=>{try{return JSON.parse(row.capabilities_json||'[]').includes(action)}catch{return false}});
+}
 export async function findReadyLocalBridgeDevice(env,tenantId,action=''){
  if(!env?.DB||!tenantId)return null;
  await ensureSchema(env);
@@ -129,6 +165,32 @@ export async function findReadyLocalBridgeDevice(env,tenantId,action=''){
   if(!action||caps.includes(action))return publicDevice(row);
  }
  return null;
+}
+
+export async function queueLocalBridgeTask(env,user,{action,payload={},deviceId='',allowConfirmation=true}={}){
+ if(!env?.DB||!user?.tenant_id||!user?.id)throw new Error('Signed-in tenant user is required to queue a Local Bridge task.');
+ await ensureSchema(env);
+ const checked=validateTask(clip(action,80),payload);
+ let device=null;
+ if(deviceId){
+  const row=await env.DB.prepare("SELECT * FROM magnanimous_local_bridge_devices WHERE id=? AND tenant_id=? AND status='active' AND last_seen_at>=?").bind(clip(deviceId,120),String(user.tenant_id),now()-ACTIVE_WINDOW).first();
+  if(row)device=publicDevice(row);
+ }else device=await findReadyLocalBridgeDevice(env,user.tenant_id,action);
+ if(!device)return{ok:false,code:'NATIVE_BROWSER_NOT_READY',detail:'No online paired Local Bridge currently advertises this capability.'};
+ if(!Array.isArray(device.capabilities)||!device.capabilities.includes(action))return{ok:false,code:'CAPABILITY_NOT_READY',detail:'The selected Local Bridge does not advertise this capability.'};
+ if(checked.def.confirmation&&!allowConfirmation)return{ok:false,code:'CONFIRMATION_REQUIRED',detail:'This browser action requires an exact task confirmation before execution.'};
+ const id=uid('lbt'),ts=now(),status=checked.def.confirmation?'needs_confirmation':'queued';
+ await env.DB.prepare('INSERT INTO magnanimous_local_bridge_tasks(id,tenant_id,user_id,device_id,action,payload_json,risk_class,status,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,String(user.tenant_id),String(user.id),device.id,action,JSON.stringify(checked.body).slice(0,500000),checked.def.risk,status,ts,ts+TASK_TTL).run();
+ return{ok:true,id,device_id:device.id,action,risk_class:checked.def.risk,status,requires_confirmation:checked.def.confirmation,confirmation_endpoint:checked.def.confirmation?'/api/magnanimous/local-bridge/tasks/'+id+'/confirm':null};
+}
+
+export async function localBridgeTask(env,tenantId,taskId){
+ if(!env?.DB||!tenantId||!taskId)return null;
+ await ensureSchema(env);
+ const task=await env.DB.prepare('SELECT * FROM magnanimous_local_bridge_tasks WHERE id=? AND tenant_id=?').bind(String(taskId),String(tenantId)).first();
+ if(!task)return null;
+ let payload={},result={};try{payload=JSON.parse(task.payload_json||'{}')}catch{}try{result=JSON.parse(task.result_json||'{}')}catch{}
+ return{id:task.id,device_id:task.device_id,action:task.action,risk_class:task.risk_class,status:task.status,payload,result,error:task.error_text,created_at:task.created_at,claimed_at:task.claimed_at,completed_at:task.completed_at,expires_at:task.expires_at,confirmed_at:task.confirmed_at};
 }
 async function overview(env,user){
  const tenantId=String(user.tenant_id);
@@ -213,13 +275,9 @@ export async function handleMagnanimousLocalBridge(request,env){
  if(request.method==='POST'&&path==='/api/magnanimous/local-bridge/tasks'){
   const body=await request.json().catch(()=>({})),deviceId=clip(body.device_id,120),action=clip(body.action,80);
   if(!deviceId||!action)return json({detail:'device_id and action are required.'},400);
-  let checked;try{checked=validateTask(action,body.payload)}catch(error){return json({detail:error.message},400)}
-  const device=await env.DB.prepare("SELECT * FROM magnanimous_local_bridge_devices WHERE id=? AND tenant_id=? AND status='active'").bind(deviceId,String(user.tenant_id)).first();
-  if(!device)return json({detail:'Paired local bridge device not found.'},404);
-  const caps=safeCapabilities(JSON.parse(device.capabilities_json||'[]'));if(!caps.includes(action))return json({detail:'That paired bridge does not advertise this action.',code:'CAPABILITY_NOT_READY'},409);
-  const id=uid('lbt'),ts=now(),status=checked.def.confirmation?'needs_confirmation':'queued';
-  await env.DB.prepare('INSERT INTO magnanimous_local_bridge_tasks(id,tenant_id,user_id,device_id,action,payload_json,risk_class,status,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,String(user.tenant_id),String(user.id),deviceId,action,JSON.stringify(checked.body).slice(0,500000),checked.def.risk,status,ts,ts+TASK_TTL).run();
-  return json({ok:true,id,device_id:deviceId,action,risk_class:checked.def.risk,status,requires_confirmation:checked.def.confirmation,confirmation_endpoint:checked.def.confirmation?`/api/magnanimous/local-bridge/tasks/${id}/confirm`:null,note:checked.def.confirmation?'No local mutation has executed. Confirm this exact task separately.':'The safe task is queued for the paired outbound bridge.'},checked.def.confirmation?202:201);
+  let queued;try{queued=await queueLocalBridgeTask(env,user,{action,payload:body.payload,deviceId})}catch(error){return json({detail:error.message},400)}
+  if(!queued.ok)return json({detail:queued.detail,code:queued.code},queued.code==='CAPABILITY_NOT_READY'?409:503);
+  return json({...queued,note:queued.requires_confirmation?'No local mutation has executed. Confirm this exact task separately.':'The safe task is queued for the paired outbound bridge.'},queued.requires_confirmation?202:201);
  }
  const confirm=path.match(/^\/api\/magnanimous\/local-bridge\/tasks\/([^/]+)\/confirm$/);
  if(request.method==='POST'&&confirm){
@@ -227,6 +285,15 @@ export async function handleMagnanimousLocalBridge(request,env){
   if(!task)return json({detail:'Confirmation task not found, already handled, or expired.'},404);
   await env.DB.prepare("UPDATE magnanimous_local_bridge_tasks SET status='queued',confirmed_at=? WHERE id=? AND status='needs_confirmation'").bind(now(),id).run();
   return json({ok:true,id,status:'queued',note:'The exact reviewed task is now available to the paired local bridge.'});
+ }
+ const cancel=path.match(/^\/api\/magnanimous\/local-bridge\/tasks\/([^/]+)\/cancel$/);
+ if(request.method==='POST'&&cancel){
+  const id=clip(cancel[1],120),tenantId=String(user.tenant_id);
+  const task=await env.DB.prepare("SELECT id,status FROM magnanimous_local_bridge_tasks WHERE id=? AND tenant_id=?").bind(id,tenantId).first();
+  if(!task)return json({detail:'Task not found.'},404);
+  if(!['queued','needs_confirmation'].includes(String(task.status)))return json({detail:'Only queued or awaiting-confirmation tasks can be cancelled safely.',code:'TASK_ALREADY_RUNNING'},409);
+  await env.DB.prepare("UPDATE magnanimous_local_bridge_tasks SET status='cancelled',error_text='Cancelled by platform owner.',completed_at=? WHERE id=? AND tenant_id=? AND status IN ('queued','needs_confirmation')").bind(now(),id,tenantId).run();
+  return json({ok:true,id,status:'cancelled'});
  }
  const taskMatch=path.match(/^\/api\/magnanimous\/local-bridge\/tasks\/([^/]+)$/);
  if(request.method==='GET'&&taskMatch){

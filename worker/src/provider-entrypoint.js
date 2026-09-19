@@ -4,7 +4,7 @@ import { getKnowledgeContext, handleKnowledge } from './knowledge-runtime.js';
 import { getMagnanimousMemoryContext } from './magnanimous-brain-runtime.js';
 import { getMagnanimousToolFoundryContext, handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
 import { getMagnanimousOgenicPrompt, buildMagnanimousOgenicPlan, handleMagnanimousOgenic } from './magnanimous-ogenic-god-toolkit.js';
-import { hasAnyReadyLocalBridge, hasReadyLocalBridge } from './magnanimous-local-bridge-runtime.js';
+import { hasAnyReadyLocalBridge, hasReadyLocalBridge, hasAnyReadyLocalBridgeCapability } from './magnanimous-local-bridge-runtime.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const now = () => Math.floor(Date.now() / 1000);
@@ -38,6 +38,7 @@ const TOOLS = [
   ['ai-chat','AI Chat','General-purpose AI assistant.'],
   ['writing','Writing Helper','Create, rewrite, summarize and polish content.'],
   ['research','Research Helper','Research live web/news sources and private workspace knowledge.'],
+  ['native-web','Native Web Agent','Magnanimous-owned browser search, rendered extraction, browser workflows, persistent local sessions and monitoring through a paired Local Bridge.'],
   ['bible-study','Bible Study','Study Scripture and organize biblical topics.'],
   ['marketing','Marketing Helper','Create campaigns, captions, offers and content plans.'],
   ['business','Business Helper','Business planning, ideas and analysis.'],
@@ -74,6 +75,7 @@ function needsFreshResearch(message) {
 }
 function nativeCapability(message, task) {
   const m = String(message || '').toLowerCase();
+  if (/browse|browser|open website|click|fill|form|scrape|crawl|rendered page|web automation|website monitor/.test(m)) return 'native-web-browser-automation';
   if (/shopify|shopee|tiktok shop|product|catalog|markup|upsell|dropship|inventory|store/.test(m)) return 'commerce-catalog-operations';
   if (/facebook|instagram|tiktok|linkedin|youtube|social|caption|hashtag|post/.test(m)) return 'social-content-operations';
   if (/website|next\.?js|cloudflare|github|deploy|repository|worker|d1|frontend|backend/.test(m)) return 'web-platform-development';
@@ -251,16 +253,18 @@ async function handle(request, env) {
   if (url.pathname === '/api/tools' && request.method === 'GET') return json({ tools: TOOLS });
   if (url.pathname === '/api/operator/capabilities' && request.method === 'GET') {
     const localBridgeReady=await hasAnyReadyLocalBridge(env).catch(()=>false);
+    const nativeBrowserReady=await hasAnyReadyLocalBridgeCapability(env,'browser_fetch').catch(()=>false);
     return json({
     operator:'Magnanimous AI',
     command_role:'commander-in-chief',
     routing:{task_aware:true,automatic_failover:true,manual_provider_override:true,free_first_default:true,maximum_quality_option:true,learned_tool_planning:true,integration_ranking:true,adaptive_provider_learning:true,ogenic_god_toolkit:true,cloud_local_hybrid:true,suggestive_initiation:true},
     providers:PROVIDERS.map(p=>({id:p.id,name:p.name,tier:p.tier,configured:configured(env,p),enabled:p.tier!=='metered'||meteredEnabled(env)})),
     knowledge:{private_workspace_grounding:true,live_web_search:true,news_search:true,automatic_link_learning:true,remembered_research:true,brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY),fallback_enabled:true},
-    execution:{specialist_agent_mesh:true,connected_actions:true,crm:true,business_email:true,calling:true,video:true,social:true,professional_business_launch:true,tool_foundry:true,universal_tool_gateway:true,native_recipe_growth:true,ogenic_god_toolkit:true,netwalk_contract:true,safe_action_initiation:true},
+    execution:{specialist_agent_mesh:true,connected_actions:true,crm:true,business_email:true,calling:true,video:true,social:true,professional_business_launch:true,tool_foundry:true,universal_tool_gateway:true,native_recipe_growth:true,ogenic_god_toolkit:true,netwalk_contract:true,safe_action_initiation:true,native_web_agent:true},
+    native_web:{runtime:true,browser_ready:nativeBrowserReady,search:true,rendered_fetch:true,read_flows:true,interactive_flows:true,persistent_local_profiles:true,scheduled_monitoring:true,free_first:true,tinyfish_required:false,execution_surface:'Magnanimous Local Bridge + local Chromium'},
     learning_loop:['absorb links and sources','retrieve saved knowledge','plan centrally','route execution','verify outcome','score providers and recipes','promote successful low-risk recipes'],
     business_launch:{pipeline:['Intake','Clarify','Research','Validate','Financial Review','Draft','Hostile Review','Consistency Check','Audience Adaptation','Final Polish']},
-    local_bridge:{runtime:true,connected:localBridgeReady,transport:'outbound-only',raw_shell:false},
+    local_bridge:{runtime:true,connected:localBridgeReady,native_browser_ready:nativeBrowserReady,transport:'outbound-only',raw_shell:false},
     note:'Magnanimous is the persistent command and learning layer. External integrations remain necessary where account authorization, live provider data or specialized compute is required.'
   });
   }
@@ -280,7 +284,8 @@ async function handle(request, env) {
   if ((url.pathname === '/api/magnanimous/health' || url.pathname === '/api/odin/health') && request.method === 'GET') {
     const providers = PROVIDERS.map(p => ({ id: p.id, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env) }));
     const localBridgeReady=await hasAnyReadyLocalBridge(env).catch(()=>false);
-    return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', command_role:'commander-in-chief', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, adaptive_provider_learning:true, automatic_link_learning:true, native_recipe_growth:true, ogenic_god_toolkit:true, suggestive_initiation:true, local_bridge_runtime:true, local_bridge_configured:localBridgeReady, local_bridge_transport:'outbound-only', workers_ai_bound: env?.AI != null, web_search_configured:true, news_search_configured:true, brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY), research_fallback_enabled:true, providers });
+    const nativeBrowserReady=await hasAnyReadyLocalBridgeCapability(env,'browser_fetch').catch(()=>false);
+    return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', command_role:'commander-in-chief', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, adaptive_provider_learning:true, automatic_link_learning:true, native_recipe_growth:true, ogenic_god_toolkit:true, suggestive_initiation:true, local_bridge_runtime:true, local_bridge_configured:localBridgeReady, local_bridge_transport:'outbound-only', native_web_runtime:true, native_browser_ready:nativeBrowserReady, native_web_tinyfish_required:false, native_web_execution_surface:'Magnanimous Local Bridge + local Chromium', workers_ai_bound: env?.AI != null, web_search_configured:true, news_search_configured:true, brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY), research_fallback_enabled:true, providers });
   }
   if (url.pathname === '/api/chat' && request.method === 'POST') {
     const body = await request.json();

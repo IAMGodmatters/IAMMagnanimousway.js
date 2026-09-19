@@ -23,6 +23,10 @@ jobs:
         run: node qa/scripts/magnanimous-ogenic-god-toolkit-lock.mjs
       - name: Verify Magnanimous Local Bridge
         run: node qa/scripts/magnanimous-local-bridge-lock.mjs
+      - name: Verify Magnanimous Native Web Agent
+        run: node qa/scripts/magnanimous-native-web-lock.mjs
+      - name: Syntax check Native Web Worker runtime
+        run: node --check worker/src/magnanimous-native-web-runtime.js
       - name: Syntax check Local Bridge Python agent
         run: python -m py_compile local-bridge/bridge_agent.py
       - name: Syntax check Local Bridge PowerShell installer

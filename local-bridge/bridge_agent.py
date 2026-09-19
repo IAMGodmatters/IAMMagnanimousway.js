@@ -7,6 +7,8 @@ No inbound listener. No generic remote shell. Secrets remain on the local machin
 from __future__ import annotations
 
 import argparse
+import base64
+import ipaddress
 import json
 import os
 import platform
@@ -24,6 +26,7 @@ from pathlib import Path
 
 APP_DIR = Path.home() / ".magnanimous"
 CONFIG_PATH = APP_DIR / "local-bridge.json"
+BROWSER_DIR = APP_DIR / "browser-profiles"
 MAX_OUTPUT = 250_000
 DEFAULT_SERVER = "https://iammagnanimousway.com"
 SAFE_PROJECT_SCRIPTS = {
@@ -181,6 +184,14 @@ def capabilities(config):
                 caps.add(action)
     if _detect_netwalk(config):
         caps.update({"netwalk_probe","netwalk_scan","netwalk_diag","netwalk_map","netwalk_report"})
+    try:
+        import playwright.sync_api  # noqa: F401
+        caps.update({
+            "browser_search","browser_fetch","browser_read_flow","browser_action_flow",
+            "browser_profile_list","browser_profile_setup"
+        })
+    except Exception:
+        pass
     return sorted(caps)
 
 
@@ -317,6 +328,294 @@ def action_web_fetch(config, payload):
         if len(data) > 1_000_000:
             raise RuntimeError("Fetched response exceeds the 1 MB limit.")
         return {"url": response.geturl(), "status": response.status, "content_type": response.headers.get("content-type",""), "body": data.decode("utf-8","replace")}
+
+
+def _public_web_url(value):
+    raw = str(value or "").strip()
+    u = urllib.parse.urlparse(raw)
+    if u.scheme not in {"http","https"} or not u.hostname:
+        raise RuntimeError("Browser navigation requires an http(s) URL.")
+    host = u.hostname.lower().rstrip(".")
+    if host == "localhost" or host.endswith(".localhost") or host.endswith(".local"):
+        raise RuntimeError("Local/private browser targets are blocked by the public-web safety boundary.")
+    try:
+        ip = ipaddress.ip_address(host)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+            raise RuntimeError("Local/private browser targets are blocked by the public-web safety boundary.")
+    except ValueError:
+        try:
+            for item in socket.getaddrinfo(host, u.port or (443 if u.scheme == "https" else 80), type=socket.SOCK_STREAM):
+                ip = ipaddress.ip_address(item[4][0])
+                if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+                    raise RuntimeError("Local/private browser targets are blocked by the public-web safety boundary.")
+        except socket.gaierror as exc:
+            raise RuntimeError(f"Browser target could not be resolved: {host}") from exc
+    return raw
+
+
+def _profile_name(value):
+    name = str(value or "default").strip()
+    if not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", name):
+        raise RuntimeError("Browser profile name may contain only letters, numbers, dot, underscore, and hyphen.")
+    return name
+
+
+def _browser_runtime():
+    try:
+        from playwright.sync_api import sync_playwright
+        return sync_playwright
+    except Exception as exc:
+        raise RuntimeError("Magnanimous Native Browser is not installed. Re-run the Local Bridge activation to install Playwright and Chromium.") from exc
+
+
+def _browser_proxy(config):
+    value = str(config.get("browser_proxy") or os.environ.get("MAGNANIMOUS_BROWSER_PROXY") or "").strip()
+    if not value:
+        return None
+    u = urllib.parse.urlparse(value)
+    if u.scheme not in {"http","https","socks5"} or not u.hostname:
+        raise RuntimeError("Configured browser proxy must use http, https, or socks5.")
+    return {"server": value}
+
+
+def _browser_open(config, payload, *, headed=False):
+    sync_playwright = _browser_runtime()
+    profile = _profile_name(payload.get("profile"))
+    profile_dir = (BROWSER_DIR / profile).resolve()
+    BROWSER_DIR.mkdir(parents=True, exist_ok=True)
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    manager = sync_playwright().start()
+    kwargs = {
+        "user_data_dir": str(profile_dir),
+        "headless": not headed,
+        "viewport": {"width": 1440, "height": 1000},
+        "locale": str(payload.get("locale") or "en-US")[:20],
+    }
+    proxy = _browser_proxy(config)
+    if proxy:
+        kwargs["proxy"] = proxy
+    try:
+        context = manager.chromium.launch_persistent_context(**kwargs)
+    except Exception:
+        manager.stop()
+        raise
+    page = context.pages[0] if context.pages else context.new_page()
+    page.set_default_timeout(max(3000, min(30000, int(payload.get("timeout_ms") or 15000))))
+    return manager, context, page, profile
+
+
+def _browser_close(manager, context):
+    try:
+        context.close()
+    finally:
+        manager.stop()
+
+
+def _browser_snapshot(page, limit=80000):
+    title = page.title()
+    url = page.url
+    text = page.locator("body").inner_text(timeout=10000)
+    return {"title": title[:500], "url": url, "text": text[:limit]}
+
+
+def _extract_links(page, limit=100):
+    return page.locator("a[href]").evaluate_all(
+        """(els, limit) => els.slice(0, limit).map(a => ({text:(a.innerText||a.textContent||'').trim().slice(0,300), url:a.href})).filter(x => x.url)""",
+        limit
+    )
+
+
+def _locator(page, spec):
+    spec = spec or {}
+    if spec.get("css"):
+        return page.locator(str(spec["css"])).first
+    if spec.get("label"):
+        return page.get_by_label(str(spec["label"]), exact=bool(spec.get("exact"))).first
+    if spec.get("placeholder"):
+        return page.get_by_placeholder(str(spec["placeholder"]), exact=bool(spec.get("exact"))).first
+    if spec.get("text"):
+        return page.get_by_text(str(spec["text"]), exact=bool(spec.get("exact"))).first
+    if spec.get("testid"):
+        return page.get_by_test_id(str(spec["testid"])).first
+    role = str(spec.get("role") or "").strip()
+    if role:
+        name = spec.get("name")
+        return page.get_by_role(role, name=str(name) if name is not None else None, exact=bool(spec.get("exact"))).first
+    raise RuntimeError("Browser step requires one locator: css, label, placeholder, text, testid, or role.")
+
+
+def action_browser_profile_list(config, payload):
+    BROWSER_DIR.mkdir(parents=True, exist_ok=True)
+    profiles = []
+    for item in sorted(BROWSER_DIR.iterdir(), key=lambda p: p.name.lower()):
+        if item.is_dir():
+            profiles.append({"name": item.name, "updated_at": int(item.stat().st_mtime)})
+    return {"profiles": profiles, "credential_storage": "local-browser-profile-only", "secrets_transmitted_to_platform": False}
+
+
+def action_browser_profile_setup(config, payload):
+    target = _public_web_url(payload.get("url"))
+    seconds = max(30, min(300, int(payload.get("seconds") or 120)))
+    manager, context, page, profile = _browser_open(config, payload, headed=True)
+    try:
+        page.goto(target, wait_until="domcontentloaded", timeout=30000)
+        deadline = time.time() + seconds
+        while time.time() < deadline:
+            time.sleep(1)
+        return {"ok": True, "profile": profile, "url": page.url, "note": "The local visible browser window was opened for manual sign-in. Credentials were never sent through Magnanimous."}
+    finally:
+        _browser_close(manager, context)
+
+
+def action_browser_search(config, payload):
+    query = str(payload.get("query") or "").strip()
+    if not query:
+        raise RuntimeError("browser_search requires query.")
+    limit = max(1, min(20, int(payload.get("limit") or 10)))
+    manager, context, page, profile = _browser_open(config, payload)
+    try:
+        page.goto("https://www.bing.com/search?q=" + urllib.parse.quote_plus(query), wait_until="domcontentloaded", timeout=30000)
+        page.wait_for_timeout(600)
+        rows = page.locator("li.b_algo").evaluate_all(
+            """(els, limit) => els.slice(0, limit).map((el, i) => {
+                const a=el.querySelector('h2 a'); const p=el.querySelector('.b_caption p');
+                return a ? {position:i+1,title:(a.innerText||'').trim(),url:a.href,snippet:(p?.innerText||'').trim()} : null;
+            }).filter(Boolean)""",
+            limit
+        )
+        if not rows:
+            page.goto("https://duckduckgo.com/?q=" + urllib.parse.quote_plus(query), wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(800)
+            rows = page.locator("a[data-testid='result-title-a']").evaluate_all(
+                """(els, limit) => els.slice(0, limit).map((a, i) => ({position:i+1,title:(a.innerText||'').trim(),url:a.href,snippet:''}))""",
+                limit
+            )
+        return {"query": query, "results": rows[:limit], "profile": profile, "native": True, "provider_dependency": False}
+    finally:
+        _browser_close(manager, context)
+
+
+def action_browser_fetch(config, payload):
+    target = _public_web_url(payload.get("url"))
+    selector = str(payload.get("selector") or "").strip()
+    limit = max(1000, min(200000, int(payload.get("max_chars") or 80000)))
+    manager, context, page, profile = _browser_open(config, payload)
+    try:
+        page.goto(target, wait_until="domcontentloaded", timeout=30000)
+        page.wait_for_timeout(max(0, min(5000, int(payload.get("settle_ms") or 700))))
+        root = page.locator(selector).first if selector else page.locator("main,article,[role='main'],body").first
+        text = root.inner_text(timeout=12000)[:limit]
+        result = {"url": page.url, "title": page.title()[:500], "text": text, "profile": profile, "native": True, "links": _extract_links(page, min(200, int(payload.get("link_limit") or 80)))}
+        fields = payload.get("fields") or {}
+        if isinstance(fields, dict):
+            structured = {}
+            for key, spec in list(fields.items())[:50]:
+                try:
+                    loc = page.locator(str(spec)).first
+                    structured[str(key)[:100]] = loc.inner_text(timeout=5000)[:10000]
+                except Exception:
+                    structured[str(key)[:100]] = None
+            result["structured"] = structured
+        if payload.get("include_html"):
+            result["html"] = root.inner_html(timeout=12000)[:limit]
+        return result
+    finally:
+        _browser_close(manager, context)
+
+
+def _browser_flow(config, payload, *, allow_actions):
+    steps = payload.get("steps") or []
+    if not isinstance(steps, list) or not steps:
+        raise RuntimeError("Browser flow requires a non-empty steps array.")
+    if len(steps) > 60:
+        raise RuntimeError("Browser flow exceeds the 60-step safety limit.")
+    manager, context, page, profile = _browser_open(config, payload)
+    outputs = []
+    try:
+        for index, step in enumerate(steps):
+            if not isinstance(step, dict):
+                raise RuntimeError(f"Browser step {index+1} is invalid.")
+            op = str(step.get("op") or "").strip().lower()
+            if op == "goto":
+                target = _public_web_url(step.get("url"))
+                page.goto(target, wait_until="domcontentloaded", timeout=30000)
+                outputs.append({"step": index+1, "op": op, "url": page.url})
+            elif op == "wait_ms":
+                ms = max(0, min(10000, int(step.get("ms") or 500)))
+                page.wait_for_timeout(ms)
+                outputs.append({"step": index+1, "op": op, "waited_ms": ms})
+            elif op == "wait_for":
+                loc = _locator(page, step)
+                loc.wait_for(state=str(step.get("state") or "visible"), timeout=max(1000, min(30000, int(step.get("timeout_ms") or 10000))))
+                outputs.append({"step": index+1, "op": op, "ok": True})
+            elif op == "extract_text":
+                loc = _locator(page, step) if any(step.get(k) for k in ("css","label","placeholder","text","testid","role")) else page.locator("body").first
+                outputs.append({"step": index+1, "op": op, "text": loc.inner_text(timeout=10000)[:max(100, min(50000, int(step.get("max_chars") or 12000)))]})
+            elif op == "extract_links":
+                outputs.append({"step": index+1, "op": op, "links": _extract_links(page, max(1, min(100, int(step.get("limit") or 40))))})
+            elif op == "snapshot":
+                outputs.append({"step": index+1, "op": op, **_browser_snapshot(page, max(1000, min(80000, int(step.get("max_chars") or 20000))))})
+            elif op == "scroll":
+                amount = max(-6000, min(6000, int(step.get("pixels") or 800)))
+                page.mouse.wheel(0, amount)
+                outputs.append({"step": index+1, "op": op, "pixels": amount})
+            elif op == "extract_elements":
+                selector = str(step.get("css") or "a,button,input,select,textarea,[role]").strip()
+                limit = max(1, min(200, int(step.get("limit") or 80)))
+                elements = page.locator(selector).evaluate_all(
+                    """(els, limit) => els.slice(0, limit).map((el, i) => ({
+                        index:i, tag:el.tagName.toLowerCase(), role:el.getAttribute('role')||'',
+                        text:(el.innerText||el.textContent||'').trim().slice(0,500),
+                        name:el.getAttribute('name')||'', type:el.getAttribute('type')||'',
+                        placeholder:el.getAttribute('placeholder')||'', href:el.href||''
+                    }))""",
+                    limit
+                )
+                outputs.append({"step": index+1, "op": op, "elements": elements})
+            elif op == "screenshot":
+                data = page.screenshot(type="jpeg", quality=55, full_page=bool(step.get("full_page")))
+                if len(data) > 350000:
+                    raise RuntimeError("Screenshot exceeds the safe bridge result size.")
+                outputs.append({"step": index+1, "op": op, "content_type": "image/jpeg", "base64": base64.b64encode(data).decode("ascii")})
+            elif allow_actions and op == "click":
+                _locator(page, step).click(timeout=max(1000, min(30000, int(step.get("timeout_ms") or 10000))))
+                outputs.append({"step": index+1, "op": op, "url": page.url})
+            elif allow_actions and op == "fill":
+                loc = _locator(page, step)
+                field_type = str(loc.get_attribute("type") or "").lower()
+                if field_type == "password" or step.get("secret") is True:
+                    raise RuntimeError("Password/secret fields cannot be filled from a remote task. Use a local persistent browser profile instead.")
+                value = str(step.get("value") or "")
+                if len(value) > 20000:
+                    raise RuntimeError("Browser fill value exceeds the safety limit.")
+                loc.fill(value)
+                outputs.append({"step": index+1, "op": op, "filled": True})
+            elif allow_actions and op == "press":
+                key = str(step.get("key") or "").strip()
+                if not key:
+                    raise RuntimeError("Browser press step requires key.")
+                _locator(page, step).press(key)
+                outputs.append({"step": index+1, "op": op, "key": key})
+            elif allow_actions and op == "select":
+                value = str(step.get("value") or "")
+                _locator(page, step).select_option(value=value)
+                outputs.append({"step": index+1, "op": op, "selected": True})
+            else:
+                allowed = ["goto","wait_ms","wait_for","extract_text","extract_links","extract_elements","snapshot","scroll","screenshot"]
+                if allow_actions:
+                    allowed += ["click","fill","press","select"]
+                raise RuntimeError(f"Browser operation '{op}' is not allowed. Allowed: {', '.join(allowed)}")
+        return {"ok": True, "profile": profile, "final": _browser_snapshot(page, 30000), "steps": outputs, "native": True}
+    finally:
+        _browser_close(manager, context)
+
+
+def action_browser_read_flow(config, payload):
+    return _browser_flow(config, payload, allow_actions=False)
+
+
+def action_browser_action_flow(config, payload):
+    return _browser_flow(config, payload, allow_actions=True)
 
 
 def _patch_paths(patch):
@@ -500,6 +799,12 @@ HANDLERS = {
     "git_diff": action_git_diff,
     "git_log": action_git_log,
     "web_fetch": action_web_fetch,
+    "browser_search": action_browser_search,
+    "browser_fetch": action_browser_fetch,
+    "browser_read_flow": action_browser_read_flow,
+    "browser_action_flow": action_browser_action_flow,
+    "browser_profile_list": action_browser_profile_list,
+    "browser_profile_setup": action_browser_profile_setup,
     "apply_patch": action_apply_patch,
     "git_create_branch": action_git_create_branch,
     "git_commit": action_git_commit,
@@ -595,6 +900,7 @@ def status_cmd(args):
         "device_id": config.get("device_id"),
         "roots": [str(p) for p in _roots(config)],
         "netwalk_toolkit": str(_detect_netwalk(config) or ""),
+        "native_browser_profiles": str(BROWSER_DIR),
         "capabilities": capabilities(config),
         "token_present": bool(config.get("token")),
     }, indent=2))

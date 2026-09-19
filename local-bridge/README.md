@@ -78,7 +78,28 @@ Separately confirmed local mutations:
 
 ## Safety boundaries
 
-The bridge intentionally does not expose a generic shell, arbitrary process execution, raw input events, or unrestricted filesystem access. Browser/UI, Office, media and device-specific operations continue to use dedicated connected tools where available. This keeps Magnanimous initiative capability-scoped and auditable instead of turning the machine into a broad remote-control endpoint.
+The bridge intentionally does not expose a generic shell, arbitrary process execution, raw operating-system input events, or unrestricted filesystem access. Browser work uses a dedicated **Magnanimous Native Browser** capability instead of a generic remote-control endpoint. Office, media, and other device-specific operations still use capability-scoped tools where available.
+
+## Magnanimous Native Browser
+
+The Windows activation now attempts to install **Playwright 1.63.0 + Chromium** locally. When that succeeds, the paired computer advertises these Magnanimous-owned capabilities:
+
+- `browser_search` — fresh public-web search through local Chromium.
+- `browser_fetch` — JavaScript-rendered page text, links, optional HTML, and selector-based fields.
+- `browser_read_flow` — multi-step navigation, waiting, scrolling, snapshots, and extraction.
+- `browser_action_flow` — click/fill/select/press/screenshot workflows; these require exact task confirmation before execution.
+- `browser_profile_list` — lists persistent local Chromium profiles.
+- `browser_profile_setup` — opens a visible local browser so the owner can sign in manually.
+
+Browser session cookies and credentials stay in the local browser profile under the user's computer. Remote tasks refuse password/secret field filling. Public-web browser actions also reject localhost, private-network, link-local, and reserved targets.
+
+Magnanimous can therefore perform supported search, rendered extraction, browser workflows, session continuity, screenshots, and scheduled read-only monitoring without requiring TinyFish. TinyFish or another browser provider may remain an optional fallback for capabilities that Magnanimous does not truthfully reproduce, such as a provider-specific anti-bot network, managed residential proxy fleet, or proprietary browser-agent model.
+
+### Existing paired computers
+
+An already-installed Local Bridge does not silently replace its local executable. After this browser-capability release is deployed, **re-run the Windows activation from the Local Bridge owner page once**. The installer safely reuses the existing pairing, upgrades the local agent, installs Playwright/Chromium when possible, and then the next heartbeat advertises the browser capabilities.
+
+
 
 
 ## Revoke and uninstall
