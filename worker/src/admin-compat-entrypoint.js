@@ -54,7 +54,12 @@ async function ensureTables(env) {
   await env.DB.prepare('SELECT id,user_id,tenant_id,email,event,success,created_at FROM auth_events LIMIT 1').first();
   await env.DB.prepare('SELECT key,value FROM settings LIMIT 1').first();
   await env.DB.prepare('SELECT id,title,url,label,placement,active,created_at FROM ads LIMIT 1').first();
-  await env.DB.prepare('SELECT key,value FROM auth_config LIMIT 1').first();
+  // auth_config is a migration-owned fallback only. A configured SESSION_SECRET
+  // is sufficient for stable server-side session signing while D1 migration writes
+  // are temporarily quota-blocked.
+  if (!String(env.SESSION_SECRET || '').trim()) {
+    await env.DB.prepare('SELECT key,value FROM auth_config LIMIT 1').first();
+  }
   await authSecret(env);
 }
 async function ensureLegacyCompatibility(env) {
