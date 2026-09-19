@@ -5,6 +5,7 @@ const must=(text,needle,label)=>{if(!text.includes(needle)){console.error(`SPECI
 
 const intelligence=read('worker/src/agent-branch-intelligence.js');
 const entry=read('worker/src/branch-consent-entrypoint.js');
+const mesh=read('worker/src/agent-mesh-runtime.js');
 const progress=read('worker/src/progress-entrypoint.js');
 const progressBase=read('worker/src/progress-entrypoint-base.js');
 const autoTeaching=read('worker/src/auto-teaching-runtime.js');
@@ -110,7 +111,7 @@ must(autoTeaching,'[AUTO-QA RETRY]','temporary reviewer failures must remain ret
 
 must(voice,"kind:'voice-transcript'",'voice transcripts must checkpoint before execution');
 must(voice,"kind:'voice-reply'",'spoken AI replies must checkpoint speaking progress');
-must(entry,"branchProfile, ensureBranchSchema, branchKnowledge, branchKnowledgeContext, teachBranch",'branch entrypoint must retain curriculum and teaching support');
+must(entry,"branchProfile, agenticCapabilityLadder, ensureBranchSchema, branchKnowledge, branchKnowledgeContext, teachBranch",'branch entrypoint must retain curriculum and teaching support');
 must(entry,"/api/agents/branch/teach",'direct owner/developer teaching endpoint must remain available');
 must(entry,"/api/agents/branch/submissions",'QA contributor training submission endpoint must remain available');
 must(entry,"/api/agents/branch/submissions/review",'platform-owner manual review/override endpoint must remain available');
@@ -125,6 +126,10 @@ must(entry,'branch_knowledge_count','specialist responses must expose branch-lea
 must(entry,'const {provider,provider_name,model,model_id,engine,execution_engine,...publicData}=data','routed specialist responses must continue hiding provider/model/engine internals');
 must(entry,'stripExecutionMetadata(data)','specialist response privacy must use the centralized execution-metadata boundary');
 must(intelligence,'specialized branch of Magnanimous AI','specialists must remain branches of the Magnanimous core');
+must(intelligence,'AGENTIC_CAPABILITY_LADDER','agentic capability ladder must exist in runtime code');
+must(intelligence,'capability_ladder:ladder','specialist profiles must expose their ladder level when applicable');
+must(entry,'agenticCapabilityLadder','agent catalog must expose the native agentic capability ladder');
+for(const id of ["foundation","appsmith","agentforge","governor","architect","transform"])must(mesh,`['${id}'`,'every agentic capability level must have a native specialist: '+id);
 must(intelligence,'agent_branch_knowledge','branch-specific knowledge storage must remain available');
 must(intelligence,'agent_branch_training_submissions','QA proposal storage must remain available');
 must(intelligence,"GLOBAL_BRANCH_TENANT='__global__'",'global specialist knowledge must remain available across workspaces');

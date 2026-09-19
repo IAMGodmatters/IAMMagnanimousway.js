@@ -280,11 +280,11 @@ function externalDependencyState(env,dep){
  return'connection-required';
 }
 function runtimeReadiness(env,id){
- const external=externalFor(id);
- if(!external.length)return{state:'native-ready',outside_action_required:false,checks:[]};
+ const external=externalFor(id),dependencies=CAPABILITY_ROUTES[id]?.dependencies||[],networkDependencies=dependencies.filter(x=>['open-license-search'].includes(String(x)));
+ if(!external.length)return{state:'native-ready',outside_action_required:false,checks:[],readiness_basis:'contract-and-routing',operational_verification_required:true,runtime_probe_required:networkDependencies.length>0,runtime_probe_dependencies:networkDependencies};
  const checks=external.map(dependency=>({dependency,state:externalDependencyState(env,dependency)})),states=checks.map(x=>x.state);
  const state=states.every(x=>x==='server-ready')?'server-ready':states.includes('server-engine-required')?'server-engine-required':states.includes('connection-required')?'connection-required':'approval-required';
- return{state,outside_action_required:true,checks};
+ return{state,outside_action_required:true,checks,readiness_basis:'server-configuration',operational_verification_required:true,runtime_probe_required:true,runtime_probe_dependencies:[...new Set([...external,...networkDependencies])]};
 }
 const SURFACE_ONLY_STEPS={
  'academy-wizard':/Publish to Learning\/Community/i,
@@ -323,6 +323,11 @@ function surfaceGate(id,title){
  if(SURFACE_ONLY_STEPS[id]?.test(step))return{surface,reason:external.length?'This step belongs in its specialized Magnanimous workspace and requires a real configured engine, connection, approval, or action receipt.':'This step changes a real Magnanimous workspace. Open that workspace to perform and verify the action instead of treating a text draft as completion.'};
  if(external.length&&/^(Route|Publish|Send|Call|Charge|Sign|Upload|Register|Train|Render|Export|Launch)\b/i.test(step))return{surface,reason:'This step requires a live authorized connection or specialized engine.'};
  return null;
+}
+function executionPathProbe(id){
+ const route=CAPABILITY_ROUTES[id]||{},playbook=PLAYBOOKS[id]||[],firstStep=String(playbook[0]||''),gate=surfaceGate(id,firstStep),specialized=['hyper-images','logo-maker','music-generator','deep-research','open-media-library'].includes(id),adapter=(id==='hyper-images'||id==='logo-maker')?{tool:'marketing'}:DIRECT_EXECUTION[id];
+ const dispatch=gate?'surface-handoff':specialized?'specialized-runtime':adapter?'magnanimous-tool':'missing';
+ return{ok:Boolean(route.surface&&playbook.length&&(gate||specialized||adapter)),tool_id:id,first_step:firstStep,dispatch,adapter_family:gate?'surface':specialized?id:String(adapter?.tool||''),surface:route.surface||'',read_only:true,cost_incurring:false,mutation_performed:false,outside_action_performed:false,operational_execution_performed:false,truth_boundary:'This probe verifies the execution path only; it does not claim the tool completed real work.'};
 }
 async function jobView(env,user,row){const out=(()=>{try{return JSON.parse(String(row.output_json||'{}'))}catch{return{}}})();const workId=Number(out.work_id||0),work=workId?await getWork(env,user,workId):null,external=externalFor(row.tool_id),done=Boolean(work&&work.status==='completed'&&Number(work.progress||0)===100),{tenant_id:_tenant,user_id:_user,input_json:_inputRaw,output_json:_outputRaw,...safe}=row;return{...safe,input:(()=>{try{return JSON.parse(String(row.input_json||'{}'))}catch{return{}}})(),output:out,work,verification:{criteria:VERIFY_CRITERIA[row.tool_id]||[],workflow_complete:done,external_connections_required:external,action_ready:done&&external.length===0,status:done?(external.length?'workflow_verified_external_connection_required':'verified'):'not_verified'},resume_url:workId?'/work-engine?work='+workId:CAPABILITY_ROUTES[row.tool_id]?.surface||'/business-ai'}}
 function aiText(data){return txt(data?.reply??data?.answer??data?.response??data?.output??data?.message??data?.result??'',30000)}
@@ -425,9 +430,17 @@ if(toolPreflight&&request.method==='GET'){
   external_connections_required:external,
   outside_action_state:external.length?'connection-or-receipt-required':'no-external-action-required',
   runtime_readiness:runtimeReadiness(env,id),
+  verification_level:'contract-preflight',
+  operational_verification_required:true,
   safe_preflight:true,
   truthful_action_boundary:true
  });
+}
+const executionProbe=u.pathname.match(/^\/api\/business-ai\/tools\/([^/]+)\/execution-probe$/);
+if(executionProbe&&request.method==='GET'){
+ const id=decodeURIComponent(executionProbe[1]),tool=BUSINESS_AI_SUITE.find(x=>x[0]===id);
+ if(!tool)return json({detail:'Business AI tool not found.'},404);
+ return json(executionPathProbe(id));
 }
 await ensure(env);await claimLegacyJobs(env,user);
 if(u.pathname==='/api/business-ai/jobs'&&request.method==='GET'){const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_business_ai_jobs WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 100').bind(tenant,userId).all();const items=[];for(const row of results)items.push(await jobView(env,user,row));return json({items})}
