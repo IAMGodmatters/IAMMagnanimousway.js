@@ -383,6 +383,28 @@ Complete ONLY the current step. Return a concrete, useful deliverable for this s
 }
 export async function handleBusinessAISuite(request,env,ctx,downstream){const u=new URL(request.url);if(!u.pathname.startsWith('/api/business-ai'))return null;const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);await ensure(env);await claimLegacyJobs(env,user);const tenant=String(user.tenant_id),userId=String(user.id);
 if(u.pathname==='/api/business-ai/tools'&&request.method==='GET')return json({name:'Magnanimous Business AI Suite',brain:'Magnanimous AI',tools:BUSINESS_AI_SUITE.map(([id,name,description,category])=>{const route=CAPABILITY_ROUTES[id],external=externalFor(id);return{id,name,description,category,...route,execution_mode:['hyper-images','logo-maker','music-generator','open-media-library'].includes(id)?'native-specialized':'magnanimous-step-execution',external_connections_required:external,outside_action_required:external.length>0}}),count:BUSINESS_AI_SUITE.length,accessibility_standard:'keyboard-first, semantic labels, responsive layouts, plain-language errors, accessible generated-content metadata',truth_boundary:'External telecom, messaging, domain, storage, publishing or payment actions are only live when the corresponding authorized connection is actually ready.'});
+const toolPreflight=u.pathname.match(/^\/api\/business-ai\/tools\/([^/]+)\/preflight$/);
+if(toolPreflight&&request.method==='GET'){
+ const id=decodeURIComponent(toolPreflight[1]),tool=BUSINESS_AI_SUITE.find(x=>x[0]===id);
+ if(!tool)return json({detail:'Business AI tool not found.'},404);
+ const route=CAPABILITY_ROUTES[id]||{},external=externalFor(id),specialized=['hyper-images','logo-maker','music-generator','deep-research','open-media-library'].includes(id),adapter=Boolean(DIRECT_EXECUTION[id]||specialized),playbook=PLAYBOOKS[id]||[],criteria=VERIFY_CRITERIA[id]||[];
+ return json({
+  ok:Boolean(route.surface&&adapter&&playbook.length&&criteria.length),
+  tool:{id,name:tool[1],description:tool[2],category:tool[3]},
+  surface:route.surface||'',
+  accessibility:Array.isArray(route.accessibility)?route.accessibility:[],
+  dependencies:Array.isArray(route.dependencies)?route.dependencies:[],
+  execution_mode:specialized?'native-specialized':'magnanimous-step-execution',
+  execution_adapter_present:adapter,
+  playbook_steps:playbook,
+  verification_criteria:criteria,
+  outside_action_required:external.length>0,
+  external_connections_required:external,
+  outside_action_state:external.length?'connection-or-receipt-required':'no-external-action-required',
+  safe_preflight:true,
+  truthful_action_boundary:true
+ });
+}
 if(u.pathname==='/api/business-ai/jobs'&&request.method==='GET'){const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_business_ai_jobs WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 100').bind(tenant,userId).all();const items=[];for(const row of results)items.push(await jobView(env,user,row));return json({items})}
 const jobMatch=u.pathname.match(/^\/api\/business-ai\/jobs\/([^/]+)(?:\/(verify|execute))?$/);
 if(jobMatch&&request.method==='GET'){const row=await env.DB.prepare('SELECT * FROM magnanimous_business_ai_jobs WHERE id=? AND tenant_id=? AND user_id=?').bind(jobMatch[1],tenant,userId).first();if(!row)return json({detail:'Business AI job not found.'},404);return json(await jobView(env,user,row))}
