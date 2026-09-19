@@ -122,6 +122,7 @@ export default function LocalBridgePage(){
  }
 
  const activeDevices=(overview?.devices||[]).filter(d=>d.status==='active');
+ const nativeBrowserReady=activeDevices.some(d=>d.online&&d.capabilities.includes('browser_fetch'));
  const revokedDevices=(overview?.devices||[]).filter(d=>d.status!=='active');
 
  return <main className="page">
@@ -134,7 +135,7 @@ export default function LocalBridgePage(){
    <div className="badges">
     <b className={overview?.ready?'good':overview?.paired?'warn':''}>{overview?.ready?'READY LOCAL — VERIFIED':overview?.paired?'PAIRED — VERIFYING':'LOCAL BRIDGE REQUIRED'}</b>
     <span>{activeDevices.filter(x=>x.online).length} online device(s)</span>
-    <span>{overview?.pending_tasks||0} pending task(s)</span>
+    <span>{overview?.pending_tasks||0} pending task(s)</span><span className={nativeBrowserReady?'good':'warn'}>{nativeBrowserReady?'NATIVE BROWSER READY':'NATIVE BROWSER UPDATE NEEDED'}</span>
    </div>
   </section>
 
@@ -143,7 +144,7 @@ export default function LocalBridgePage(){
   <section className="grid">
    <article className="card">
     <small>ONE-CLICK WINDOWS ACTIVATION</small><h2>Pair a computer</h2>
-    <p>Choose the folder Magnanimous is allowed to use. The activation file can install Python automatically when Windows Package Manager is available, optionally installs Git, pairs the bridge, creates its startup task, and triggers a real health verification.</p>
+    <p>Choose the folder Magnanimous is allowed to use. The activation file can install Python automatically when Windows Package Manager is available, optionally installs Git, installs the free Magnanimous Native Browser (Playwright + Chromium), pairs or reuses the bridge, creates its startup task, and triggers a real health verification. Existing paired computers can safely run activation again to add native browser capability.</p>
     <label>Authorized workspace
      <input value={workspace} onChange={e=>setWorkspace(e.target.value)} placeholder="%USERPROFILE%\Documents\MagnanimousWorkspace"/>
     </label>
@@ -159,7 +160,7 @@ export default function LocalBridgePage(){
 
    <article className="card">
     <small>SECURITY MODEL</small><h2>Capability-scoped, not remote shell</h2>
-    <ul><li>No inbound listener or opened LAN port.</li><li>No arbitrary shell/process endpoint.</li><li>Filesystem access stays inside the authorized workspace roots.</li><li>Default Git branch remains protected.</li><li>Patch/branch/commit mutations require separate confirmation.</li><li>Netwalk remains read-only and scope-authorized.</li><li>Revoking a device invalidates its bridge token immediately.</li></ul><button onClick={downloadRemoval}>DOWNLOAD WINDOWS REMOVAL FILE</button>
+    <ul><li>No inbound listener or opened LAN port.</li><li>No arbitrary shell/process endpoint.</li><li>Filesystem access stays inside the authorized workspace roots.</li><li>Default Git branch remains protected.</li><li>Patch/branch/commit mutations require separate confirmation.</li><li>Netwalk remains read-only and scope-authorized.</li><li>Native browser work blocks private-network targets and remote password filling.</li><li>Interactive browser actions require separate confirmation.</li><li>Browser cookies and sessions stay in local browser profiles.</li><li>Revoking a device invalidates its bridge token immediately.</li></ul><button onClick={downloadRemoval}>DOWNLOAD WINDOWS REMOVAL FILE</button>
    </article>
   </section>
 
