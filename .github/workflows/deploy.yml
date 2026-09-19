@@ -68,10 +68,6 @@ jobs:
           set -euo pipefail
           rm -rf /tmp/magnanimous-full-brain
           node qa/scripts/materialize-full-brain-d1.mjs /tmp/magnanimous-full-brain
-          for file in /tmp/magnanimous-full-brain/*.sql; do
-            echo "Applying $(basename "$file")"
-            (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file="$file")
-          done
 
           expected=$(python - <<'PY'
           import json
@@ -92,24 +88,78 @@ jobs:
           PY
           )
 
-          (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT
-            (SELECT COUNT(*) FROM magnanimous_connector_capability_absorption WHERE status='tool-foundry-specified') AS ledger_count,
-            (SELECT COUNT(*) FROM magnanimous_native_tool_specs WHERE tenant_id='__magnanimous_global__' AND user_id='system:auto-qa') AS tool_spec_count,
-            (SELECT COUNT(*) FROM magnanimous_capability_realizations) AS realization_count,
-            (SELECT native_ready_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS native_ready_count,
-            (SELECT hybrid_ready_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS hybrid_ready_count,
-            (SELECT bridge_required_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS bridge_required_count,
-            (SELECT specified_only_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS specified_only_count,
-            (SELECT source_digest FROM magnanimous_capability_realization_state WHERE id='full-brain') AS realization_digest,
-            (SELECT status FROM magnanimous_capability_realization_state WHERE id='full-brain') AS realization_status,
-            magnanimous_capability_materialization_state.manifest_count AS manifest_count,
-            magnanimous_capability_materialization_state.ledger_count AS recorded_ledger_count,
-            magnanimous_capability_materialization_state.tool_spec_count AS recorded_tool_spec_count,
-            magnanimous_capability_materialization_state.source_digest AS source_digest,
-            magnanimous_capability_materialization_state.status AS status
-            FROM magnanimous_capability_materialization_state WHERE id='full-brain';" > /tmp/magnanimous-full-brain/verify.json)
+          # D1 is a durable cache/index for the checked-in brain manifest. Avoid
+          # consuming row-write quota when production already has this exact digest.
+          current_digest=""
+          set +e
+          (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT source_digest,status,manifest_count FROM magnanimous_capability_materialization_state WHERE id='full-brain';" > /tmp/magnanimous-full-brain/current-state.json 2>/tmp/magnanimous-full-brain/current-state.err)
+          state_rc=$?
+          set -e
+          if [ "$state_rc" -eq 0 ]; then
+            current_digest=$(python - <<'PY'
+          import json
+          try:
+              payload=json.load(open('/tmp/magnanimous-full-brain/current-state.json'))
+          except Exception:
+              print('')
+              raise SystemExit
+          rows=[]
+          def walk(x):
+              if isinstance(x,dict):
+                  if 'source_digest' in x:
+                      rows.append(x)
+                  for v in x.values(): walk(v)
+              elif isinstance(x,list):
+                  for v in x: walk(v)
+          walk(payload)
+          row=rows[-1] if rows else {}
+          print(row.get('source_digest') if row.get('status')=='complete' else '')
+          PY
+            )
+          fi
 
-          EXPECTED="$expected" DIGEST="$digest" REALIZATION_COUNTS="$realization_counts" python - <<'PY'
+          materialization_deferred=0
+          if [ -n "$current_digest" ] && [ "$current_digest" = "$digest" ]; then
+            echo "Production D1 already matches full-brain digest $digest; skipping all materialization writes."
+          else
+            echo "Full-brain digest changed; applying only new or semantically changed D1 rows."
+            for file in /tmp/magnanimous-full-brain/*.sql; do
+              echo "Applying $(basename "$file")"
+              set +e
+              output=$(cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file="$file" 2>&1)
+              rc=$?
+              set -e
+              printf '%s\n' "$output"
+              if [ "$rc" -ne 0 ]; then
+                if printf '%s' "$output" | grep -qi "free tier daily row write limit"; then
+                  materialization_deferred=1
+                  echo "::warning::Cloudflare D1 daily row-write quota is exhausted. The checked-in Magnanimous brain manifest remains authoritative in the deployed Worker; durable D1 materialization is deferred until write capacity is available."
+                  break
+                fi
+                exit "$rc"
+              fi
+            done
+          fi
+
+          if [ "$materialization_deferred" -eq 0 ]; then
+            (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT
+              (SELECT COUNT(*) FROM magnanimous_connector_capability_absorption WHERE status='tool-foundry-specified') AS ledger_count,
+              (SELECT COUNT(*) FROM magnanimous_native_tool_specs WHERE tenant_id='__magnanimous_global__' AND user_id='system:auto-qa') AS tool_spec_count,
+              (SELECT COUNT(*) FROM magnanimous_capability_realizations) AS realization_count,
+              (SELECT native_ready_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS native_ready_count,
+              (SELECT hybrid_ready_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS hybrid_ready_count,
+              (SELECT bridge_required_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS bridge_required_count,
+              (SELECT specified_only_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS specified_only_count,
+              (SELECT source_digest FROM magnanimous_capability_realization_state WHERE id='full-brain') AS realization_digest,
+              (SELECT status FROM magnanimous_capability_realization_state WHERE id='full-brain') AS realization_status,
+              magnanimous_capability_materialization_state.manifest_count AS manifest_count,
+              magnanimous_capability_materialization_state.ledger_count AS recorded_ledger_count,
+              magnanimous_capability_materialization_state.tool_spec_count AS recorded_tool_spec_count,
+              magnanimous_capability_materialization_state.source_digest AS source_digest,
+              magnanimous_capability_materialization_state.status AS status
+              FROM magnanimous_capability_materialization_state WHERE id='full-brain';" > /tmp/magnanimous-full-brain/verify.json)
+
+            EXPECTED="$expected" DIGEST="$digest" REALIZATION_COUNTS="$realization_counts" python - <<'PY'
           import json, os
           payload=json.load(open('/tmp/magnanimous-full-brain/verify.json'))
           rows=[]
@@ -143,6 +193,9 @@ jobs:
           assert row['status'] == 'complete', row
           print(f"Full Magnanimous capability brain materialized: {expected} specifications; realization registry verified ({native_ready} native-ready, {hybrid_ready} hybrid-ready, {bridge_required} bridge-required, {specified_only} specified-only).")
           PY
+          else
+            echo "Durable D1 materialization verification deferred because write quota is exhausted; deployment continues with the checked-in runtime manifest. Production mutation smoke remains authoritative and is not bypassed."
+          fi
 
       - name: Sync optional protected Worker secrets
         working-directory: worker

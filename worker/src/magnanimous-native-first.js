@@ -92,7 +92,14 @@ async function seedConnectorAbsorption(env,{scope='direct'}={}){
   const research=row.direct_connector?(catalog.get(row.connector_id)?.research||getCapabilityResearchRecord(row)):getCapabilityResearchRecord(row);
   const spec={magnanimous_owned:row.magnanimous_owned,external_only:row.external_only,acceptance_tests:row.acceptance_tests,recipe:row.recipe,implementation_status:row.implementation_status,initiative:row.initiative||{}};
   statements.push(env.DB.prepare(`INSERT INTO magnanimous_connector_capability_absorption(connector_id,capability_id,connector_name,category,native_target,boundary,source_kind,status,research_json,spec_json,created_at,updated_at)
-   VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(connector_id,capability_id) DO UPDATE SET connector_name=excluded.connector_name,category=excluded.category,native_target=excluded.native_target,boundary=excluded.boundary,source_kind=excluded.source_kind,research_json=excluded.research_json,spec_json=excluded.spec_json,updated_at=excluded.updated_at`).bind(
+   VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(connector_id,capability_id) DO UPDATE SET connector_name=excluded.connector_name,category=excluded.category,native_target=excluded.native_target,boundary=excluded.boundary,source_kind=excluded.source_kind,research_json=excluded.research_json,spec_json=excluded.spec_json,updated_at=excluded.updated_at
+   WHERE magnanimous_connector_capability_absorption.connector_name IS NOT excluded.connector_name
+    OR magnanimous_connector_capability_absorption.category IS NOT excluded.category
+    OR magnanimous_connector_capability_absorption.native_target IS NOT excluded.native_target
+    OR magnanimous_connector_capability_absorption.boundary IS NOT excluded.boundary
+    OR magnanimous_connector_capability_absorption.source_kind IS NOT excluded.source_kind
+    OR magnanimous_connector_capability_absorption.research_json IS NOT excluded.research_json
+    OR magnanimous_connector_capability_absorption.spec_json IS NOT excluded.spec_json`).bind(
     row.connector_id,row.capability,row.connector_name,row.category,String(row.native_target||''),row.boundary,row.source_kind,'brain-spec-absorbed',JSON.stringify(research).slice(0,10000),JSON.stringify(spec).slice(0,30000),ts,ts
    ));
  }
