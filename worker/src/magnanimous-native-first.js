@@ -2,7 +2,7 @@ import { currentUser } from './integrations.js';
 import { requirePlatformOwner } from './platform-owner-guard.js';
 import { getIntegrationCatalog } from './magnanimous-integration-catalog.js';
 import { upsertApprovedTeachingTool } from './magnanimous-tool-foundry.js';
-import { getCapabilityAbsorptionManifest, getConnectorAbsorptionCatalog, getConnectorAbsorptionSummary } from './magnanimous-connector-absorption.js';
+import { getPersistentConnectorAbsorptionManifest, getConnectorAbsorptionCatalog, getConnectorAbsorptionSummary } from './magnanimous-connector-absorption.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -86,7 +86,7 @@ async function seedConnectorAbsorption(env){
  if(!env?.DB)return;
  await ensureSchema(env);
  const ts=now(),catalog=new Map(getConnectorAbsorptionCatalog().map(x=>[x.id,x])),statements=[];
- for(const row of getCapabilityAbsorptionManifest()){
+ for(const row of getPersistentConnectorAbsorptionManifest()){
   const research=catalog.get(row.connector_id)?.research||{};
   const spec={magnanimous_owned:row.magnanimous_owned,external_only:row.external_only,acceptance_tests:row.acceptance_tests,recipe:row.recipe,implementation_status:row.implementation_status};
   statements.push(env.DB.prepare(`INSERT INTO magnanimous_connector_capability_absorption(connector_id,capability_id,connector_name,category,native_target,boundary,source_kind,status,research_json,spec_json,created_at,updated_at)
