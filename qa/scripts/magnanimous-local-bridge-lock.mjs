@@ -81,6 +81,7 @@ assert(page.includes('CREATE ACTIVATION'));
 assert(page.includes('DOWNLOAD WINDOWS ACTIVATION FILE'));
 assert(page.includes('READY LOCAL — VERIFIED'));
 assert(page.includes('REVOKE DEVICE'));
+assert(page.includes('DOWNLOAD WINDOWS REMOVAL FILE'));
 assert(page.includes('LOCAL BRIDGE REQUIRED'));
 assert(robots.includes('Disallow: /local-bridge/'));
 assert(deploy.includes('Local Bridge customer isolation expected HTTP 403'),'production smoke must preserve platform-owner-only Local Bridge control');
