@@ -5,7 +5,9 @@ const base=read('worker/src/index.js');
 const security=read('worker/src/security-hardening.js');
 const sessions=read('worker/src/session-authority.js');
 const obs=read('worker/src/request-observability.js');
+const adminCompat=read('worker/src/admin-compat-entrypoint.js');
 const migration=read('worker/migrations/0080_runtime_bootstrap_quota_hardening.sql');
+const authMigration=read('worker/migrations/0081_admin_auth_quota_hardening.sql');
 const deploy=read('.github/workflows/deploy.yml');
 
 const checks=[];
@@ -34,16 +36,34 @@ add('opaque-session schema is migration-owned',sessionBlock.includes("SELECT 1 F
 add('migration owns tenant settings',migration.includes('CREATE TABLE IF NOT EXISTS tenant_settings'));
 add('migration owns settings',migration.includes('CREATE TABLE IF NOT EXISTS settings'));
 add('migration owns rate-limit table',migration.includes('CREATE TABLE IF NOT EXISTS security_rate_limits'));
+add('auth migration owns auth events',authMigration.includes('CREATE TABLE IF NOT EXISTS auth_events'));
+add('auth migration owns auth config',authMigration.includes('CREATE TABLE IF NOT EXISTS auth_config'));
+add('auth migration owns auth events index',authMigration.includes('CREATE INDEX IF NOT EXISTS idx_auth_events_user'));
 
 add('D1 row write limit has explicit 503 code',obs.includes("D1_DAILY_ROW_WRITE_LIMIT"));
 add('D1 row read limit has explicit 503 code',obs.includes("D1_DAILY_ROW_READ_LIMIT"));
 add('quota response reports UTC reset',obs.includes('resets_at_utc:nextUtcReset()'));
 add('generic internal errors remain 500',obs.includes("code:'INTERNAL_ERROR'"));
 
+const compatTablesStart=adminCompat.indexOf('async function ensureTables');
+const compatTablesEnd=adminCompat.indexOf('async function ensureLegacyCompatibility',compatTablesStart);
+const compatTables=adminCompat.slice(compatTablesStart,compatTablesEnd);
+const compatLegacyStart=adminCompat.indexOf('async function ensureLegacyCompatibility');
+const compatLegacyEnd=adminCompat.indexOf('async function logAuth',compatLegacyStart);
+const compatLegacy=adminCompat.slice(compatLegacyStart,compatLegacyEnd);
+const authSecretStart=adminCompat.indexOf('async function authSecret');
+const authSecretEnd=adminCompat.indexOf('async function makeSession',authSecretStart);
+const authSecretBlock=adminCompat.slice(authSecretStart,authSecretEnd);
+add('admin compatibility runtime imports shared quota-aware failure handler',adminCompat.includes("import {unhandledRequestFailure} from './request-observability.js'"));
+add('admin compatibility outer catch delegates quota errors to shared handler',adminCompat.includes('return unhandledRequestFailure(request,e);'));
+add('admin compatibility table checks are read-only',compatTables.includes('SELECT id,name,slug')&&!compatTables.includes('CREATE TABLE')&&!compatTables.includes('CREATE INDEX'));
+add('admin legacy compatibility is read-only',compatLegacy.includes('SELECT id,tenant_id,name')&&!compatLegacy.includes('ALTER TABLE')&&!compatLegacy.includes('UPDATE users'));
+add('auth secret lookup no longer creates schema at request time',authSecretBlock.includes('SELECT value FROM auth_config')&&!authSecretBlock.includes('CREATE TABLE'));
+
 add('deploy defers only exact D1 quota auth codes',deploy.includes('D1_DAILY_ROW_WRITE_LIMIT')&&deploy.includes('D1_DAILY_ROW_READ_LIMIT')&&deploy.includes('Production auth mutation smoke deferred because Cloudflare D1 reported'));
-add('migration defer requires exact Cloudflare D1 write-limit text',deploy.includes("exceeded D1's free tier daily row write limit")&&deploy.includes('Cannot defer migration 0080'));
+add('migration defer requires exact Cloudflare D1 write-limit text',deploy.includes("exceeded D1's free tier daily row write limit")&&deploy.includes('Cannot defer pending runtime migrations'));
 add('migration confirmation is noninteractive without unsupported Wrangler flags',deploy.includes("printf 'y\\n' | npx wrangler d1 migrations apply iam-magnanimous-db --remote")&&!deploy.includes('migrations apply iam-magnanimous-db --remote --yes'));
-add('migration defer proves all required 0080 tables already exist',deploy.includes("'tenant_settings','ads','settings','security_rate_limits'")&&deploy.includes('required production tables already exist'));
+add('migration defer proves all required runtime/auth tables already exist',deploy.includes("'tenant_settings','ads','settings','security_rate_limits','auth_events','auth_config'")&&deploy.includes('required production tables already exist'));
 add('non-quota migration failures still stop deployment',deploy.includes('else\n              exit "$rc"'));
 add('ordinary signup failures still fail deployment',deploy.includes('Signup smoke test returned HTTP $status')&&deploy.includes('exit 1'));
 add('quota branch never claims signup passed',deploy.includes('This is an external daily Free-plan limit, not a passing signup result.'));
