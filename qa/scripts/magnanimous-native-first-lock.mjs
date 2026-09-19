@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import { INTEGRATIONS as liveIntegrations } from '../../worker/src/integrations.js';
+import { getConnectorAbsorptionCatalog as liveAbsorptionCatalog, getCapabilityAbsorptionManifest as liveCapabilityManifest } from '../../worker/src/magnanimous-connector-absorption.js';
 
 const read=p=>fs.readFileSync(p,'utf8');
 const runtime=read('worker/src/magnanimous-native-first.js');
@@ -67,11 +69,17 @@ lacks(runtime,'copy provider source code','runtime never instructs provider sour
 
 const directIds=[...integrations.matchAll(/\{ id:'([^']+)'/g)].map(x=>x[1]);
 const catalogIds=new Set([...catalog.matchAll(/\{id:'([^']+)'/g)].map(x=>x[1]));
+const runtimeAbsorption=liveAbsorptionCatalog(),runtimeManifest=liveCapabilityManifest();
 checks.push(['every live /connections connector exists in the Magnanimous absorption catalog',directIds.every(id=>catalogIds.has(id))]);
-checks.push(['all 13 direct platform connector types are covered',directIds.length===13]);
-for(const id of directIds)checks.push([`direct connector catalogued: ${id}`,catalogIds.has(id)]);
+checks.push(['all 13 direct platform connector types are covered',directIds.length===13&&liveIntegrations.length===13]);
+for(const item of liveIntegrations){
+ const absorbed=runtimeAbsorption.find(x=>x.id===item.id);
+ checks.push([`direct connector catalogued: ${item.id}`,Boolean(absorbed)]);
+ checks.push([`all live connector actions absorbed: ${item.id}`,Boolean(absorbed)&&item.capabilities.every(cap=>absorbed.capabilities.includes(cap)&&runtimeManifest.some(x=>x.connector_id===item.id&&x.capability===cap))]);
+}
 checks.push(['absorption research ledger covers every direct connector',directIds.every(id=>absorption.includes(` ${id}:`)||absorption.includes(`'${id}':`))]);
 checks.push(['catalog contains at least 68 benchmark/direct connector entries',catalogIds.size>=68]);
+checks.push(['one-by-one manifest contains at least 294 capability specs',runtimeManifest.length>=294]);
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} - ${name}`);
