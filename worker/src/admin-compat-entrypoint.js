@@ -1,5 +1,6 @@
 import providerApp from './provider-entrypoint.js';
 import {createPasswordRecord,verifyPassword,upgradePasswordIfNeeded} from './password-security.js';
+import {unhandledRequestFailure} from './request-observability.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const now = () => Math.floor(Date.now() / 1000);
@@ -21,13 +22,19 @@ async function safeTextEqual(left,right){
 async function authSecret(env) {
   const configured = String(env.SESSION_SECRET || '').trim();
   if (configured) return configured;
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS auth_config (key TEXT PRIMARY KEY,value TEXT NOT NULL)").run();
   const existing = await env.DB.prepare('SELECT value FROM auth_config WHERE key=?').bind('session_secret').first();
   if (existing?.value) return String(existing.value);
   const generated = `${makeId()}${makeId()}${makeId()}`;
-  try { await env.DB.prepare('INSERT INTO auth_config(key,value) VALUES(?,?)').bind('session_secret', generated).run(); } catch (_) {}
+  try { await env.DB.prepare('INSERT INTO auth_config(key,value) VALUES(?,?)').bind('session_secret', generated).run(); } catch (error) {
+    // A one-time fallback secret may be persisted when capacity is available.
+    // Quota/schema failures are surfaced by the outer request handler instead of hidden.
+    const retry = await env.DB.prepare('SELECT value FROM auth_config WHERE key=?').bind('session_secret').first().catch(()=>null);
+    if (retry?.value) return String(retry.value);
+    throw error;
+  }
   const saved = await env.DB.prepare('SELECT value FROM auth_config WHERE key=?').bind('session_secret').first();
-  return String(saved?.value || generated);
+  if (!saved?.value) throw new Error('Authentication secret persistence failed.');
+  return String(saved.value);
 }
 async function makeSession(user, env) { const secret = await authSecret(env); const exp = now() + SESSION_TTL_SECONDS; const payload = `${user.id}|${user.tenant_id}|${user.role}|${exp}`; return `${payload}|${await hmac(secret, payload)}`; }
 async function auth(request, env) {
@@ -40,20 +47,20 @@ async function auth(request, env) {
   return await env.DB.prepare('SELECT id,tenant_id,name,email,role,active,created_at FROM users WHERE id=? AND tenant_id=? AND active=1').bind(userId, tenantId).first();
 }
 async function ensureTables(env) {
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS tenants (id TEXT PRIMARY KEY,name TEXT NOT NULL,slug TEXT NOT NULL UNIQUE,owner_user_id TEXT,created_at INTEGER NOT NULL)").run();
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,email TEXT NOT NULL,role TEXT NOT NULL DEFAULT 'member',password_hash TEXT NOT NULL,password_salt TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,UNIQUE(tenant_id,email))").run();
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS auth_events (id INTEGER PRIMARY KEY AUTOINCREMENT,user_id TEXT,tenant_id TEXT,email TEXT NOT NULL,event TEXT NOT NULL,success INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL)").run();
-  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_auth_events_user ON auth_events(user_id,created_at)").run();
-  await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)").run();
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY,value TEXT NOT NULL)").run();
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS ads (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,url TEXT NOT NULL,label TEXT NOT NULL DEFAULT 'Sponsored',placement TEXT NOT NULL DEFAULT 'home',active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL)").run();
+  // Runtime schema is migration-owned. These read probes validate the contract
+  // without consuming D1 row-write quota on every request.
+  await env.DB.prepare('SELECT id,name,slug,owner_user_id,created_at FROM tenants LIMIT 1').first();
+  await env.DB.prepare('SELECT id,tenant_id,name,email,role,password_hash,password_salt,active,created_at FROM users LIMIT 1').first();
+  await env.DB.prepare('SELECT id,user_id,tenant_id,email,event,success,created_at FROM auth_events LIMIT 1').first();
+  await env.DB.prepare('SELECT key,value FROM settings LIMIT 1').first();
+  await env.DB.prepare('SELECT id,title,url,label,placement,active,created_at FROM ads LIMIT 1').first();
+  await env.DB.prepare('SELECT key,value FROM auth_config LIMIT 1').first();
   await authSecret(env);
 }
 async function ensureLegacyCompatibility(env) {
-  const cols = [['tenant_id','TEXT'],['name',"TEXT NOT NULL DEFAULT 'User'"],['password_salt',"TEXT NOT NULL DEFAULT ''"],['active','INTEGER NOT NULL DEFAULT 1']];
-  for (const [c,d] of cols) { try { await env.DB.prepare(`ALTER TABLE users ADD COLUMN ${c} ${d}`).run(); } catch (_) {} }
-  const tenant = await env.DB.prepare('SELECT id FROM tenants WHERE slug=?').bind('owner').first();
-  if (tenant?.id) { try { await env.DB.prepare("UPDATE users SET tenant_id=? WHERE tenant_id IS NULL OR tenant_id=''").bind(tenant.id).run(); } catch (_) {} }
+  // Legacy shape repair is migration-owned (0008/0009). Validate required columns only.
+  await env.DB.prepare('SELECT id,tenant_id,name,email,role,password_hash,password_salt,active,created_at FROM users LIMIT 1').first();
+  await env.DB.prepare('SELECT id,name,slug,owner_user_id,created_at FROM tenants LIMIT 1').first();
 }
 async function logAuth(env, user, event, success = 1, email = '') { try { await env.DB.prepare('INSERT INTO auth_events(user_id,tenant_id,email,event,success,created_at) VALUES(?,?,?,?,?,?)').bind(user?.id || null, user?.tenant_id || null, email || user?.email || '', event, success ? 1 : 0, now()).run(); } catch (_) {} }
 async function signup(request, env) {
@@ -157,8 +164,7 @@ export default {
       }
       return providerApp.fetch(request, env, ctx);
     } catch (e) {
-      console.error('admin compatibility runtime error',e);
-      return json({ detail: 'The account service could not complete this request.', code:'ACCOUNT_SERVICE_ERROR' }, 500);
+      return unhandledRequestFailure(request,e);
     }
   }
 };
