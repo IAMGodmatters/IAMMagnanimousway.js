@@ -181,16 +181,16 @@ Current observed surface:
 - 2,309 live observable tool contracts.
 - 109 installed skill namespaces.
 - 867 installed skill contracts.
-- 3,470 total Magnanimous capability specifications after current + retained historical union.
+- 3,535 total Magnanimous capability specifications after current + retained historical union and Floot public guide-skill materialization.
 - 59 native-ready realization routes.
-- 3,411 hybrid-ready realization routes.
+- 3,476 hybrid-ready realization routes.
 - 0 bridge-required and 0 specified-only current realization gaps.
 
 ### Floot
 
 Floot is represented as a first-class clean-room capability source rather than a generic plugin.
 
-The connected Floot account exposes 44 callable tools and 65 public guide/skill topics. Magnanimous maps them into ten provider-neutral families:
+The connected Floot account exposes 44 callable tools and 65 public guide/skill topics. All 65 guide topics are also materialized as first-class Magnanimous skill contracts, so Floot contributes 109 individually tracked tool/skill contracts to the full brain. Magnanimous maps them into ten provider-neutral families:
 
 - project discovery;
 - code authoring;
@@ -212,3 +212,18 @@ Initiative rules are explicit:
 - no external action is reported complete without a real tool result.
 
 The current connected Floot account has no projects yet. Magnanimous therefore does not create a throwaway Floot project merely to claim integration.
+
+
+### D1 quota-safe materialization
+
+The first Floot-expanded production deployment successfully materialized and deployed the 3,470-tool manifest, but the broad mutation smoke later exposed Cloudflare D1 free-tier daily row-write exhaustion. The deployment architecture was hardened rather than weakening the smoke test:
+
+- generated capability rows use semantic conditional upserts, so unchanged rows perform zero D1 writes;
+- CI executes the generated SQL twice against SQLite and requires the second pass to write exactly zero rows;
+- deployment reads the current production brain digest first and skips the entire D1 materialization phase when the digest already matches;
+- runtime assimilation seeding also avoids no-op D1 updates;
+- the public `/health` route is read-only and bypasses runtime database bootstrap;
+- only the explicit Cloudflare daily row-write quota error may defer durable materialization; unrelated database errors still fail deployment;
+- production mutation smoke remains authoritative and is never bypassed merely because quota is exhausted.
+
+The checked-in provider-neutral manifest remains the Magnanimous brain source of truth. D1 is the durable searchable Tool Foundry/materialization index and automatically catches up when write capacity is available.
