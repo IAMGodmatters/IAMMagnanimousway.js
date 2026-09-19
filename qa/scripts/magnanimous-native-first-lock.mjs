@@ -37,8 +37,9 @@ const has=(text,needle,name)=>checks.push([name,text.includes(needle)]);
 const lacks=(text,needle,name)=>checks.push([name,!text.includes(needle)]);
 
 has(security,"import app from './operations-entrypoint.js'",'central security entrypoint still wraps operations');
-has(entrypoint,"url.pathname==='/health'",'health endpoint is intercepted before runtime bootstrap');
-has(entrypoint,"database_bootstrap:'deferred'",'health endpoint stays read-only under D1 write quota pressure');
+has(security,"topLevelUrl.pathname==='/health'",'health endpoint is intercepted at Wrangler top-level security entrypoint before session/database machinery');
+has(security,"top_level_health:true",'top-level health response is explicit and read-only under D1 write quota pressure');
+has(entrypoint,"url.pathname==='/health'",'lower runtime health fallback remains read-only');
 has(progress,"handleMagnanimousNativeFirst",'native-first runtime is routed inside the existing secured request chain');
 has(runtime,'requirePlatformOwner','native-first control requires platform-owner authorization');
 has(runtime,"id:'god-coding'",'God Coding is registered as a native core capability');
