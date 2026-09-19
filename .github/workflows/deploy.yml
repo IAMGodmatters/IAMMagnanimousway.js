@@ -61,12 +61,12 @@ jobs:
         run: |
           set -euo pipefail
           set +e
-          output=$(npx wrangler d1 migrations apply iam-magnanimous-db --remote --yes 2>&1)
+          output=$(npx wrangler d1 migrations apply iam-magnanimous-db --remote 2>&1)
           rc=$?
           set -e
           printf '%s\n' "$output"
           if [ "$rc" -ne 0 ]; then
-            if printf '%s' "$output" | grep -qi "exceeded D1's free tier daily row write limit"; then
+            if printf '%s' "$output" | grep -Eqi "exceeded D1's free tier daily row write limit|code: 7500"; then
               echo "::warning::D1 migration writes are temporarily blocked by the Cloudflare Free daily row-write limit. Verifying that all runtime-required 0080 tables already exist before deferring this migration."
               npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('tenant_settings','ads','settings','security_rate_limits') ORDER BY name;" > /tmp/d1-migration-quota-schema.json
               python - <<'PY'
