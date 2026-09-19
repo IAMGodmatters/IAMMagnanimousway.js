@@ -100,7 +100,7 @@ has(realizationRuntime,"'knowledge-workspace'",'realization registry recognizes 
 has(materializer,'getCapabilityAbsorptionManifest','deployment materializer derives directly from the full Magnanimous brain manifest');
 has(materializer,'Capability ledger key collision','deployment materializer fails closed on capability-key collisions');
 has(materializer,'Tool Foundry name collision','deployment materializer fails closed on normalized Tool Foundry name collisions');
-has(materializer,"risk==='high'?'review-required':'proposed'",'deployment materializer preserves review-required status for high-risk capabilities');
+has(materializer,"risk==='high'?'review-required'",'deployment materializer preserves review-required status for high-risk capabilities');
 has(materializer,"status='tool-foundry-specified'",'deployment materializer marks persisted capability ledger rows as Tool Foundry specified');
 has(materializer,'source_digest','deployment materializer records a stable source digest');
 has(materializer,'classifyCapabilityRealization','deployment materializer classifies every capability against proven Magnanimous execution surfaces');
