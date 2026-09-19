@@ -5,6 +5,8 @@ param(
 $ErrorActionPreference = "Stop"
 $taskName = "Magnanimous Local Bridge"
 $homeDir = Join-Path $env:USERPROFILE ".magnanimous"
+$startupDir = [Environment]::GetFolderPath("Startup")
+$startupLauncher = Join-Path $startupDir "Magnanimous-Local-Bridge.cmd"
 
 try {
   $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
@@ -14,6 +16,10 @@ try {
   }
 } catch {
   Write-Warning "Could not remove scheduled task: $($_.Exception.Message)"
+}
+
+if (Test-Path $startupLauncher) {
+  Remove-Item -Path $startupLauncher -Force
 }
 
 if (Test-Path $homeDir) {
@@ -28,5 +34,5 @@ if (-not $KeepWorkspace) {
   }
 }
 
-Write-Host "Magnanimous Local Bridge local files and startup task were removed."
+Write-Host "Magnanimous Local Bridge local files, Startup launcher, and scheduled task (if present) were removed."
 Write-Host "The server-side device should also be revoked from Owner Center -> Local Bridge."
