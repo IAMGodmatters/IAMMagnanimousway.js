@@ -94,7 +94,7 @@ export async function handleMagnanimousToolFoundry(request,env){
  }
  if(request.method==='GET'&&url.pathname==='/api/magnanimous/tool-foundry/absorption'){
   const goal=clip(url.searchParams.get('goal'),1000),summary=getConnectorAbsorptionSummary();
-  return json({identity:'Magnanimous AI',mode:'connector-capability-absorption',summary,catalog:goal?[]:getConnectorAbsorptionCatalog(),ranked:goal?rankAbsorbedCapabilities(goal,30):[],policy:summary.absorption_policy,note:'Each capability is absorbed as a provider-neutral Magnanimous workflow specification. Native implementation status remains evidence-gated.'});
+  return json({identity:'Magnanimous AI',mode:'connector-capability-absorption',summary,realization:await getCapabilityRealizationSummary(env),catalog:goal?[]:getConnectorAbsorptionCatalog(),ranked:goal?rankAbsorbedCapabilities(goal,30):[],policy:summary.absorption_policy,note:'Each capability is absorbed as a provider-neutral Magnanimous workflow specification. Native implementation status is evidence-gated by the capability realization registry.'});
  }
  if(request.method==='POST'&&url.pathname==='/api/magnanimous/tool-foundry/seed-integrations'){
   const b=await request.json().catch(()=>({}));const onlyPriority=Boolean(b.high_priority_only);const targets=getIntegrationCatalog().filter(x=>!onlyPriority||['critical','high'].includes(x.priority));const seeded=[];
