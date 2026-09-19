@@ -14,7 +14,8 @@ export const NATIVE_WEB_CAPABILITIES=Object.freeze({
  action_flow:{action:'browser_action_flow',mode:'interactive',confirmation:true,description:'Confirmed page-scoped click/fill/select/press workflows with screenshot capture.'},
  profiles:{action:'browser_profile_list',mode:'local-session',confirmation:false,description:'Persistent local Chromium session profiles. Credentials stay on the paired computer.'},
  profile_setup:{action:'browser_profile_setup',mode:'local-session',confirmation:true,description:'Opens a visible local browser for manual sign-in without sending passwords through the platform.'},
- monitoring:{action:'scheduled-native-web',mode:'read-only',confirmation:false,description:'15-minute-or-slower scheduled search/fetch monitoring through the paired native browser.'}
+ goal_agent:{action:'browser-goal-planner',mode:'planner',confirmation:true,description:'Magnanimous converts a plain-English web goal into a bounded native browser plan; interactive execution remains confirmation-gated.'},
+  monitoring:{action:'scheduled-native-web',mode:'read-only',confirmation:false,description:'15-minute-or-slower scheduled search/fetch monitoring through the paired native browser.'}
 });
 
 const KIND_TO_ACTION=Object.freeze({
@@ -76,6 +77,7 @@ async function readiness(env,tenantId){
  const entries={};
  for(const [id,def] of Object.entries(NATIVE_WEB_CAPABILITIES)){
   if(id==='monitoring'){entries[id]={...def,ready:Boolean(await findReadyLocalBridgeDevice(env,tenantId,'browser_fetch'))};continue}
+  if(id==='goal_agent'){entries[id]={...def,ready:Boolean(env?.AI)&&Boolean(await findReadyLocalBridgeDevice(env,tenantId,'browser_read_flow'))};continue}
   entries[id]={...def,ready:Boolean(await findReadyLocalBridgeDevice(env,tenantId,def.action))};
  }
  return entries;
@@ -96,6 +98,37 @@ async function queueRun(env,user,kind,body,allowConfirmation=true){
  const queued=await queueLocalBridgeTask(env,user,{action,payload:payloadFor(kind,body),allowConfirmation});
  if(!queued.ok)return queued;
  return{...queued,kind,native:true,operator:'Magnanimous AI',tinyfish_required:false};
+}
+
+async function planBrowserGoal(env,{goal,start_url='',mode='read'}={}){
+ const safeGoal=clip(goal,5000),safeMode=String(mode||'read').toLowerCase()==='action'?'action':'read';
+ if(!safeGoal)throw new Error('Browser goal is required.');
+ if(!env?.AI)throw new Error('Magnanimous goal planning requires the configured native Workers AI binding.');
+ const allowed=safeMode==='action'
+  ?['goto','wait_ms','wait_for','extract_text','extract_links','extract_elements','snapshot','scroll','screenshot','click','fill','press','select']
+  :['goto','wait_ms','wait_for','extract_text','extract_links','extract_elements','snapshot','scroll','screenshot'];
+ const prompt=[
+  'You are the browser planning department beneath Magnanimous AI. Return ONLY valid JSON, no markdown.',
+  'Create a short deterministic Playwright-style plan for the goal. Do not claim execution.',
+  'Allowed operations: '+allowed.join(', ')+'. Maximum 30 steps.',
+  'For locators prefer role+name, label, placeholder, text, testid, then css. Do not invent credentials.',
+  'Never include password, API key, token, payment-card, security-code, or other secret values in fill steps.',
+  'Only navigate to public http(s) URLs. Do not use localhost, private IPs, file URLs, javascript URLs, downloads, or browser extensions.',
+  'If the goal needs a login, use the existing persistent local profile and plan only the post-login UI steps; do not type login secrets.',
+  'Output shape: {"steps":[{"op":"goto","url":"https://..."},...],"notes":"brief planning note"}',
+  start_url?'Start URL: '+clip(start_url,4000):'No start URL was supplied; include a public goto only if the goal clearly identifies a site.',
+  'Goal: '+safeGoal
+ ].join('\n');
+ const model=String(env.CLOUDFLARE_AI_MODEL||'@cf/meta/llama-3.3-70b-instruct-fp8-fast');
+ const result=await env.AI.run(model,{messages:[{role:'user',content:prompt}],max_tokens:1800,temperature:.1});
+ let text=typeof result==='string'?result:String(result?.response||result?.result?.response||result?.result||'');
+ text=text.trim().replace(/^\`\`\`(?:json)?/i,'').replace(/\`\`\`$/,'').trim();
+ const first=text.indexOf('{'),last=text.lastIndexOf('}');if(first<0||last<=first)throw new Error('Magnanimous browser planner returned no usable JSON plan.');
+ const parsed=JSON.parse(text.slice(first,last+1)),steps=Array.isArray(parsed.steps)?parsed.steps.slice(0,30):[];
+ if(!steps.length)throw new Error('Magnanimous browser planner returned an empty plan.');
+ const allowedSet=new Set(allowed);
+ for(const step of steps){if(!step||typeof step!=='object'||!allowedSet.has(String(step.op||'').toLowerCase()))throw new Error('Magnanimous browser planner proposed an unsupported operation.');}
+ return{mode:safeMode,steps,notes:clip(parsed.notes,1200),model_role:'replaceable planning engine beneath Magnanimous AI'};
 }
 
 async function confirmOrCancel(request,env,user,taskId,operation){
@@ -124,6 +157,17 @@ export async function handleMagnanimousNativeWeb(request,env){
    private_network_targets:false,
    capabilities
   });
+ }
+
+ if(request.method==='POST'&&path==='/api/magnanimous/native-web/goals'){
+  const body=await request.json().catch(()=>({}));
+  try{
+   const plan=await planBrowserGoal(env,{goal:body.goal,start_url:body.start_url,mode:body.mode});
+   const kind=plan.mode==='action'?'action_flow':'read_flow';
+   const queued=await queueRun(env,user,kind,{steps:plan.steps,profile:body.profile,locale:body.locale,timeout_ms:body.timeout_ms},true);
+   if(!queued.ok)return json({detail:queued.detail,code:queued.code,plan,native:true,tinyfish_required:false},queued.code==='CONFIRMATION_REQUIRED'?409:503);
+   return json({...queued,goal:clip(body.goal,5000),plan,native:true,tinyfish_required:false},queued.requires_confirmation?202:201);
+  }catch(error){return json({detail:error.message||'Magnanimous could not plan this browser goal.',code:'NATIVE_WEB_GOAL_INVALID'},400)}
  }
 
  if(request.method==='POST'&&path==='/api/magnanimous/native-web/runs'){
