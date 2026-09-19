@@ -3,6 +3,7 @@ import { requirePlatformOwner } from './platform-owner-guard.js';
 import { getIntegrationCatalog } from './magnanimous-integration-catalog.js';
 import { upsertApprovedTeachingTool } from './magnanimous-tool-foundry.js';
 import { getPersistentConnectorAbsorptionManifest, getConnectorAbsorptionCatalog, getConnectorAbsorptionSummary } from './magnanimous-connector-absorption.js';
+import { OGENIC_SKILL_SNAPSHOT, OGENIC_CAPABILITY_GROUPS, GOD_MODE_TOOL_FAMILIES, NETWALK_NATIVE_CONTRACT } from './magnanimous-ogenic-god-toolkit.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -131,6 +132,24 @@ async function seedNativeRecipes(env){
   steps:['Define the self-development goal and observable acceptance criteria.','Inspect Magnanimous-owned source, memory, skills, routes and verification contracts before changing code.','Decompose large functions, route handlers and services into smaller single-purpose helpers when responsibilities are mixed.','Apply SOLID boundaries: keep one clear business responsibility per service and make domain/use-case code depend on ports or interfaces rather than concrete providers.','Favor composition and dependency injection through an explicit composition root instead of giant monolithic objects or hidden global wiring.','Prefer a Magnanimous-native implementation over a provider dependency whenever the capability can be owned locally.','Keep external bridges only for third-party account access, live outside data, network rails, specialized compute, repository hosting or deployment targets.','Prepare the smallest additive code change and preserve unrelated working behavior.','Run or dispatch real verification and review exact evidence before release.','Record the successful procedure back into Tool Foundry for future native reuse.']
  });
  await upsertApprovedTeachingTool(env,{
+  agentId:'magnanimous-native-first',name:'ogenic-god-mode-orchestration',family:'orchestration',risk:'medium',requiresConnection:false,
+  purpose:'Use Magnanimous GOD TOOLKIT mode to classify work as cloud, local or hybrid; discover the minimum available execution surfaces; initiate safe reads/plans/verifications; stage scoped writes; preserve approval gates for consequential actions; and verify outcomes before claiming completion.',
+  requiredCapabilities:['cloud-local-hybrid-classification','tool-discovery','surface-selection','sequencing','read-before-write','verification','auto-network-direction'],
+  steps:['Classify the request as CLOUD, LOCAL or HYBRID.','Discover the exact available Magnanimous/connected execution surfaces before promising action.','Select only the minimum capability groups required: Code Skill, Code System, Code Delivery, Code Website.','Auto-initiate safe reads, inspection, planning and non-mutating verification.','Run tests/lint/typecheck/build only when an execution surface is actually available.','Stage scoped code/config changes and preserve unrelated work.','Keep merge, production deploy, publishing, messaging/calling, payments, deletion, credentials and security-policy changes behind their existing approval gates.','Verify the result with direct evidence and stop after verification.']
+ });
+ for(const group of OGENIC_CAPABILITY_GROUPS)await upsertApprovedTeachingTool(env,{
+  agentId:'magnanimous-native-first',name:`ogenic-${group.id}`,family:'ogenic-capability-group',risk:'low',requiresConnection:false,
+  purpose:`Magnanimous-owned OGENIC ${group.name} workflow covering: ${group.capabilities.join(', ')}.`,
+  requiredCapabilities:group.capabilities,
+  steps:['Identify whether each requested operation is already native, cloud-connected, local-bridge-only, or unavailable.','Reuse existing Magnanimous state and tools before reaching outward.','Initiate the safe available step instead of stopping at advice.','Return CONNECTOR_REQUIRED, LOCAL_BRIDGE_REQUIRED, EXECUTION_SURFACE_REQUIRED or CONFIGURATION_REQUIRED when the necessary surface is genuinely absent.','Verify completed work and preserve outcome lessons.']
+ });
+ await upsertApprovedTeachingTool(env,{
+  agentId:'magnanimous-native-first',name:'ogenic-netwalk-readonly-survey',family:'network-observability',risk:'medium',requiresConnection:true,
+  purpose:'Magnanimous native contract for OGENIC Netwalk-style read-only network surveying: scoped authorization, local secret collection, topology discovery, health diagnosis, evidence-backed findings, deterministic mapping and full/public reporting without changing surveyed devices.',
+  requiredCapabilities:['authorized-network-survey','read-only-diagnostics','topology-map','coverage-accounting','evidence-first-findings','secret-non-disclosure'],
+  steps:['Confirm the exact site/device scope and authorization before any network access.','Collect credentials only through an approved local credential UI/secret manager; never in chat.','Run only read-only commands through an enforced allowlist and record evidence.','Do not sweep any address range without recorded owner authorization.','Keep unreachable, unidentified, skipped and out-of-scope devices in coverage accounting.','Keep configuration exports local and out of model/chat/report content.','Create evidence-backed findings with confidence, severity and concrete recommendations.','Render topology and reports deterministically from one structured record.','Produce public output only after sensitive operational details are excluded.','Report what was not covered and where sensitive local artifacts remain.']
+ });
+ await upsertApprovedTeachingTool(env,{
   agentId:'magnanimous-native-first',name:'capability-assimilation',family:'native-capability',risk:'low',requiresConnection:false,
   purpose:'Convert the useful behavior class of an external tool or plugin into a Magnanimous-owned specification and implementation target without copying proprietary code, credentials, hidden prompts, models or provider internals.',
   requiredCapabilities:['benchmark-decomposition','native-tool-specification','dependency-reduction'],
@@ -183,6 +202,7 @@ async function overview(env){
   engineering_architecture_policy:'Decompose large responsibilities, apply SOLID boundaries, and compose small services through dependency injection so external adapters remain replaceable.',
   capability_count:capabilities.length,native_count:capabilities.filter(x=>x.status==='native').length,specified_count:capabilities.filter(x=>x.status==='specified').length,
   connector_absorption:getConnectorAbsorptionSummary(),
+  ogenic_god_toolkit:{absorbed:true,skill_count:OGENIC_SKILL_SNAPSHOT.skills.length,capability_group_count:OGENIC_CAPABILITY_GROUPS.length,tool_family_count:GOD_MODE_TOOL_FAMILIES.length,netwalk_mode:NETWALK_NATIVE_CONTRACT.mode,initiative:'suggest-and-initiate-safe-actions'},
   capabilities
  };
 }

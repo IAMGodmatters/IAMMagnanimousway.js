@@ -3,6 +3,7 @@ import {runQaLearningQueue} from './qa-learning-runtime.js';
 import {runQaLearningNow} from './qa-learning-now-runtime.js';
 import {specialistForMessage,specialistIntroduction} from './specialist-router.js';
 import {handleMagnanimousNativeFirst} from './magnanimous-native-first.js';
+import {handleMagnanimousOgenic} from './magnanimous-ogenic-god-toolkit.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 
@@ -59,6 +60,15 @@ export default{
    }catch(error){
     console.error('Magnanimous native-first runtime failed',error);
     return json({detail:'Magnanimous native-first runtime could not complete this request.'},500);
+   }
+  }
+  if(path.startsWith('/api/magnanimous/ogenic')){
+   try{
+    const ogenic=await handleMagnanimousOgenic(request,env);
+    if(ogenic)return ogenic;
+   }catch(error){
+    console.error('Magnanimous OGENIC runtime failed',error);
+    return json({detail:'Magnanimous GOD TOOLKIT runtime could not complete this request.'},500);
    }
   }
   const chatBody=request.method==='POST'&&path==='/api/chat'?await request.clone().json().catch(()=>null):null;
