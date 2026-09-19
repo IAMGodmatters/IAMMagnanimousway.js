@@ -11,7 +11,12 @@ Magnanimous AI remains the brain, identity, memory owner, planner, orchestrator,
 - Catalogued connector/provider/plugin families: **68**
 - Direct platform connector types exposed by `/connections`: **13**
 - Direct connector coverage in the absorption catalog: **13/13**
-- One-by-one capability specifications after unioning live connector actions with benchmark capabilities: **294**
+- Persistent one-by-one platform connector/benchmark capability specifications: **294**
+- ChatGPT-visible plugin namespaces additionally captured: **109**
+- ChatGPT-visible plugin tool contracts additionally absorbed into brain routing: **2,259**
+- Total current brain-visible capability contracts: **2,553**
+- Full tool-by-tool inventory: `docs/VISIBLE-PLUGIN-TOOL-CONTRACT-ABSORPTION-2026-09-19.md`
+- Plugin/account authorization inside I AM is **not assumed** merely because a tool contract is visible.
 - Status vocabulary: `brain-spec-absorbed` → `tool-foundry-specified` → `native` only after runtime evidence.
 - Paid spend remains zero by default; consequential writes retain permission/approval controls.
 
