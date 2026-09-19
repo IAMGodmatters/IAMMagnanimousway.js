@@ -125,6 +125,10 @@ must(entry,'branch_knowledge_count','specialist responses must expose branch-lea
 must(entry,'const {provider,provider_name,model,model_id,engine,execution_engine,...publicData}=data','routed specialist responses must continue hiding provider/model/engine internals');
 must(entry,'stripExecutionMetadata(data)','specialist response privacy must use the centralized execution-metadata boundary');
 must(intelligence,'specialized branch of Magnanimous AI','specialists must remain branches of the Magnanimous core');
+must(intelligence,'AGENTIC_CAPABILITY_LADDER','agentic capability ladder must exist in runtime code');
+must(intelligence,'capability_ladder:ladder','specialist profiles must expose their ladder level when applicable');
+must(entry,'agenticCapabilityLadder','agent catalog must expose the native agentic capability ladder');
+for(const id of ["foundation","appsmith","agentforge","governor","architect","transform"])must(mesh,\`['\${id}'\`,'every agentic capability level must have a native specialist: '+id);
 must(intelligence,'agent_branch_knowledge','branch-specific knowledge storage must remain available');
 must(intelligence,'agent_branch_training_submissions','QA proposal storage must remain available');
 must(intelligence,"GLOBAL_BRANCH_TENANT='__global__'",'global specialist knowledge must remain available across workspaces');
