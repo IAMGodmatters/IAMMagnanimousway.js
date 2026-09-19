@@ -101,7 +101,7 @@ async function requestReset(request,env){
  await env.DB.prepare('UPDATE password_reset_tokens SET used_at=? WHERE user_id=? AND used_at IS NULL').bind(t,user.id).run();
  await env.DB.prepare(`INSERT INTO password_reset_tokens(token_hash,user_id,tenant_id,created_at,expires_at,used_at,delivery_provider,delivery_status)
   VALUES(?,?,?,?,?,NULL,'','pending')`).bind(tokenHash,user.id,user.tenant_id,t,expires).run();
- const resetUrl=new URL('/login',safeSiteOrigin(env,request));resetUrl.searchParams.set('reset',token);
+ const resetUrl=new URL('/forgot-password',safeSiteOrigin(env,request));resetUrl.searchParams.set('reset',token);resetUrl.searchParams.set('portal',String(user.role||'').toLowerCase()==='owner'?'owner':'customer');
  const copy=mailCopy(resetUrl.toString(),Math.ceil(ttl/60));
  const delivery=await deliverResetEmail(env,email,copy,`password-reset-${tokenHash.slice(0,32)}`);
  if(delivery.ok){

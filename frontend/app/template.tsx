@@ -3,7 +3,7 @@ import {usePathname} from 'next/navigation';
 import type {ReactNode} from 'react';
 import PasswordRecoveryOverlay from './password-recovery-overlay';
 
-const publicPaths=new Set(['/','/teach','/shop','/login','/signup','/owner-login','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label']);
+const publicPaths=new Set(['/','/teach','/shop','/login','/signup','/owner-login','/forgot-password','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label']);
 
 export default function Template({children}:{children:ReactNode}){
  const path=usePathname()||'/';
