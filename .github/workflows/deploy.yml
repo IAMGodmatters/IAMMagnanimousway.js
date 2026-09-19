@@ -401,6 +401,8 @@ jobs:
           assert d.get('ok') is True, d
           assert (d.get('tool') or {}).get('id') == expected, (expected,d)
           assert d.get('surface'), d
+          assert len(d.get('accessibility') or []) >= 1, d
+          assert len(d.get('dependencies') or []) >= 1, d
           assert d.get('execution_adapter_present') is True, d
           assert len(d.get('playbook_steps') or []) >= 2, d
           assert len(d.get('verification_criteria') or []) >= 1, d
