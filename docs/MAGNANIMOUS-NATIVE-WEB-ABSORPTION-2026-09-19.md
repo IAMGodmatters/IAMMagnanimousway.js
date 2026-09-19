@@ -15,12 +15,14 @@ Magnanimous remains the brain, memory, policy, task queue, verification layer, a
 | Clean text / link extraction | rendered body/selector text + bounded link extraction | Implemented |
 | Structured extraction | CSS field map + element extraction in browser flows | Implemented |
 | Multi-step browsing | `browser_read_flow` and `browser_action_flow` | Implemented |
+| Natural-language web-agent goal | Workers AI planning department converts the goal to a bounded native browser plan | Implemented; interactive plans remain confirmation-gated |
 | Click / fill / select / press | confirmed interactive browser flow | Implemented with exact-task confirmation |
 | Screenshots | bounded JPEG screenshot capture | Implemented |
 | Page snapshots / elements | snapshot, text, links, element metadata | Implemented |
 | Persistent browser sessions | local Chromium user-data profiles | Implemented |
 | Credential-assisted session reuse | manual local profile setup; credentials stay local | Implemented without server-side password transport |
 | Run creation | `POST /api/magnanimous/native-web/runs` | Implemented |
+| Goal run creation | `POST /api/magnanimous/native-web/goals` | Implemented |
 | Run listing | `GET /api/magnanimous/native-web/runs` | Implemented |
 | Run status/result | `GET /api/magnanimous/native-web/runs/:id` | Implemented |
 | Run cancellation | `POST /api/magnanimous/native-web/runs/:id/cancel` | Implemented for queued/confirmation-waiting runs |
