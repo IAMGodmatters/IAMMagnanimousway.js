@@ -127,6 +127,7 @@ must(entry,'const {provider,provider_name,model,model_id,engine,execution_engine
 must(entry,'stripExecutionMetadata(data)','specialist response privacy must use the centralized execution-metadata boundary');
 must(intelligence,'specialized branch of Magnanimous AI','specialists must remain branches of the Magnanimous core');
 must(intelligence,'AGENTIC_CAPABILITY_LADDER','agentic capability ladder must exist in runtime code');
+must(intelligence,"[/workforce & queue|queue planner|workforce planner/i",'call-center workforce curriculum must not match generic workforce language such as workforce adoption');
 must(intelligence,'capability_ladder:ladder','specialist profiles must expose their ladder level when applicable');
 must(entry,'agenticCapabilityLadder','agent catalog must expose the native agentic capability ladder');
 for(const id of ["foundation","appsmith","agentforge","governor","architect","transform"])must(mesh,`['${id}'`,'every agentic capability level must have a native specialist: '+id);
