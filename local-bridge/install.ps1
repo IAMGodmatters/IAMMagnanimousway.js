@@ -14,10 +14,53 @@ function Refresh-Path {
   $env:Path = "$machine;$user"
 }
 
+function Test-PythonCandidate {
+  param(
+    [Parameter(Mandatory=$true)][string]$Executable,
+    [string[]]$PrefixArgs = @()
+  )
+  try {
+    $resolved = & $Executable @PrefixArgs -c "import os,sys; print(os.path.realpath(sys.executable))" 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $resolved) { return $null }
+    $real = ($resolved | Select-Object -Last 1).ToString().Trim()
+    if (-not $real -or -not (Test-Path $real)) { return $null }
+    if ($real -match '\\WindowsApps\\python(3)?\.exe$') { return $null }
+    return (Resolve-Path $real).Path
+  } catch {
+    return $null
+  }
+}
+
 function Find-Python {
-  $cmd = Get-Command python -ErrorAction SilentlyContinue
-  if (-not $cmd) { $cmd = Get-Command py -ErrorAction SilentlyContinue }
-  return $cmd
+  $candidates = @()
+
+  $py = Get-Command py -ErrorAction SilentlyContinue
+  if ($py) { $candidates += [PSCustomObject]@{ Executable=$py.Source; Args=@("-3") } }
+
+  $python = Get-Command python -ErrorAction SilentlyContinue
+  if ($python) { $candidates += [PSCustomObject]@{ Executable=$python.Source; Args=@() } }
+
+  $python3 = Get-Command python3 -ErrorAction SilentlyContinue
+  if ($python3) { $candidates += [PSCustomObject]@{ Executable=$python3.Source; Args=@() } }
+
+  foreach ($candidate in $candidates) {
+    $real = Test-PythonCandidate -Executable $candidate.Executable -PrefixArgs $candidate.Args
+    if ($real) { return $real }
+  }
+
+  $searchRoots = @()
+  if ($env:LOCALAPPDATA) { $searchRoots += (Join-Path $env:LOCALAPPDATA "Programs\Python") }
+  if ($env:ProgramFiles) { $searchRoots += (Join-Path $env:ProgramFiles "Python") }
+  if (${env:ProgramFiles(x86)}) { $searchRoots += (Join-Path ${env:ProgramFiles(x86)} "Python") }
+
+  foreach ($root in ($searchRoots | Where-Object { $_ -and (Test-Path $_) })) {
+    $found = Get-ChildItem -Path $root -Filter python.exe -File -Recurse -ErrorAction SilentlyContinue | Sort-Object FullName -Descending
+    foreach ($item in $found) {
+      $real = Test-PythonCandidate -Executable $item.FullName
+      if ($real) { return $real }
+    }
+  }
+  return $null
 }
 
 function Install-WithWinget([string]$Id,[string]$Name) {
@@ -29,12 +72,17 @@ function Install-WithWinget([string]$Id,[string]$Name) {
   Refresh-Path
 }
 
-$python = Find-Python
-if (-not $python) {
+$pythonExe = Find-Python
+if (-not $pythonExe) {
   Install-WithWinget "Python.Python.3.13" "Python 3"
-  $python = Find-Python
+  Refresh-Path
+  Start-Sleep -Seconds 2
+  $pythonExe = Find-Python
 }
-if (-not $python) { throw "Python 3 installation completed but Python is still not available in PATH. Sign out/in and run the installer again." }
+if (-not $pythonExe) {
+  throw "Python 3 was installed or detected, but Windows is still exposing only the Microsoft Store App Execution Alias. Disable the python.exe/python3.exe aliases under Settings > Apps > Advanced app settings > App execution aliases, then run this activation file again."
+}
+Write-Host "Using Python: $pythonExe"
 
 if ($InstallGit -and -not (Get-Command git -ErrorAction SilentlyContinue)) {
   Install-WithWinget "Git.Git" "Git"
@@ -64,11 +112,10 @@ Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $agent
 
 $argsList = @($agent, "pair", "--server", $Server, "--code", $PairingCode, "--root", $WorkspaceRoot)
 if ($NetwalkToolkit) { $argsList += @("--netwalk-toolkit", $NetwalkToolkit) }
-& $python.Source @argsList
+& $pythonExe @argsList
 if ($LASTEXITCODE -ne 0) { throw "Magnanimous Local Bridge pairing failed." }
 
 $taskName = "Magnanimous Local Bridge"
-$pythonExe = $python.Source
 $taskArgs = '"' + $agent + '" run'
 $action = New-ScheduledTaskAction -Execute $pythonExe -Argument $taskArgs
 $trigger = New-ScheduledTaskTrigger -AtLogOn
