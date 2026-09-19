@@ -49,7 +49,7 @@ for(const row of rows){
 }
 
 const chunks=[];
-const chunkSize=80;
+const chunkSize=200;
 for(let offset=0;offset<rows.length;offset+=chunkSize){
  const part=rows.slice(offset,offset+chunkSize),statements=[];
  for(const row of part){
@@ -91,7 +91,7 @@ ON CONFLICT(tenant_id,user_id,name) DO UPDATE SET purpose=excluded.purpose,famil
  fs.writeFileSync(file,statements.join('\n'));
  chunks.push(file);
 }
-const digest=crypto.createHash('sha256').update(rows.map(x=>`${x.connector_id}\t${x.capability}\t${x.source_kind}\n`).join('')).digest('hex');
+const digest=crypto.createHash('sha256').update(rows.map(x=>JSON.stringify({id:x.id,connector_id:x.connector_id,capability:x.capability,source_kind:x.source_kind,boundary:x.boundary,native_target:x.native_target,recipe:x.recipe,research:getCapabilityResearchRecord(x),search_text:x.search_text||''})+'\n').join('')).digest('hex');
 const finalSql=`INSERT INTO magnanimous_capability_materialization_state(id,manifest_count,ledger_count,tool_spec_count,source_digest,status,updated_at)
 VALUES('full-brain',${rows.length},${rows.length},${rows.length},${q(digest)},'complete',${now})
 ON CONFLICT(id) DO UPDATE SET manifest_count=excluded.manifest_count,ledger_count=excluded.ledger_count,tool_spec_count=excluded.tool_spec_count,source_digest=excluded.source_digest,status='complete',updated_at=excluded.updated_at;
