@@ -91,10 +91,10 @@ function safeCapabilities(value){
  const input=Array.isArray(value)?value:[];
  return [...new Set(input.map(x=>clip(x,80)).filter(x=>LOCAL_BRIDGE_ACTIONS[x]))].slice(0,100);
 }
-function publicDevice(row){
+function publicDevice(row,activation=null){
  if(!row)return null;
  let caps=[];try{caps=JSON.parse(row.capabilities_json||'[]')}catch{}
- return{id:row.id,name:row.name,hostname:row.hostname,platform:row.platform,status:row.status,last_seen_at:Number(row.last_seen_at||0),online:Number(row.last_seen_at||0)>=now()-ACTIVE_WINDOW,capabilities:caps,created_at:Number(row.created_at||0),updated_at:Number(row.updated_at||0)};
+ return{id:row.id,name:row.name,hostname:row.hostname,platform:row.platform,status:row.status,last_seen_at:Number(row.last_seen_at||0),online:Number(row.last_seen_at||0)>=now()-ACTIVE_WINDOW,capabilities:caps,activation:{verified:Boolean(activation?.status==='completed'),status:activation?.status||'not-run',task_id:activation?.id||null,completed_at:Number(activation?.completed_at||0),error:activation?.error_text||''},created_at:Number(row.created_at||0),updated_at:Number(row.updated_at||0)};
 }
 function validateTask(action,payload){
  const def=LOCAL_BRIDGE_ACTIONS[action];if(!def)throw new Error('Unsupported local bridge action.');
@@ -131,9 +131,13 @@ export async function findReadyLocalBridgeDevice(env,tenantId,action=''){
  return null;
 }
 async function overview(env,user){
- const {results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_local_bridge_devices WHERE tenant_id=? ORDER BY last_seen_at DESC').bind(String(user.tenant_id)).all();
- const pending=Number((await env.DB.prepare("SELECT COUNT(*) n FROM magnanimous_local_bridge_tasks WHERE tenant_id=? AND status IN ('queued','claimed','needs_confirmation')").bind(String(user.tenant_id)).first())?.n||0);
- return{identity:'Magnanimous AI',mode:'outbound-local-bridge',ready:results.some(x=>Number(x.last_seen_at||0)>=now()-ACTIVE_WINDOW&&x.status==='active'),policy:LOCAL_BRIDGE_POLICY,actions:LOCAL_BRIDGE_ACTIONS,devices:results.map(publicDevice),pending_tasks:pending};
+ const tenantId=String(user.tenant_id);
+ const {results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_local_bridge_devices WHERE tenant_id=? ORDER BY last_seen_at DESC').bind(tenantId).all();
+ const {results:activationRows=[]}=await env.DB.prepare("SELECT t.* FROM magnanimous_local_bridge_tasks t JOIN (SELECT device_id,MAX(created_at) created_at FROM magnanimous_local_bridge_tasks WHERE tenant_id=? AND action='health' GROUP BY device_id) latest ON latest.device_id=t.device_id AND latest.created_at=t.created_at WHERE t.tenant_id=? AND t.action='health'").bind(tenantId,tenantId).all();
+ const activations=new Map(activationRows.map(x=>[String(x.device_id),x]));
+ const devices=results.map(x=>publicDevice(x,activations.get(String(x.id))));
+ const pending=Number((await env.DB.prepare("SELECT COUNT(*) n FROM magnanimous_local_bridge_tasks WHERE tenant_id=? AND status IN ('queued','claimed','needs_confirmation')").bind(tenantId).first())?.n||0);
+ return{identity:'Magnanimous AI',mode:'outbound-local-bridge',ready:devices.some(x=>x.online&&x.status==='active'&&x.activation.verified),paired:devices.some(x=>x.online&&x.status==='active'),policy:LOCAL_BRIDGE_POLICY,actions:LOCAL_BRIDGE_ACTIONS,devices,pending_tasks:pending};
 }
 
 export async function handleMagnanimousLocalBridge(request,env){
@@ -148,12 +152,14 @@ export async function handleMagnanimousLocalBridge(request,env){
   const codeHash=await sha(code),pair=await env.DB.prepare('SELECT * FROM magnanimous_local_bridge_pairings WHERE code_hash=? AND used_at IS NULL AND expires_at>=?').bind(codeHash,now()).first();
   if(!pair)return json({detail:'Pairing code is invalid, expired, or already used.'},401);
   const token='mblb_'+crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-',''),tokenHash=await sha(token),id=uid('lbd'),ts=now();
-  const caps=safeCapabilities(body.capabilities);
-  await env.DB.batch([
+  const caps=safeCapabilities(body.capabilities),activationTaskId=caps.includes('health')?uid('lbt'):null;
+  const statements=[
    env.DB.prepare('INSERT INTO magnanimous_local_bridge_devices(id,tenant_id,name,hostname,platform,capabilities_json,token_hash,status,last_seen_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,\'active\',?,?,?)').bind(id,pair.tenant_id,clip(body.name,120)||pair.name||'Magnanimous Local Bridge',clip(body.hostname,200),clip(body.platform,120),JSON.stringify(caps),tokenHash,ts,ts,ts),
    env.DB.prepare('UPDATE magnanimous_local_bridge_pairings SET used_at=? WHERE id=? AND used_at IS NULL').bind(ts,pair.id)
-  ]);
-  return json({ok:true,device_id:id,bridge_token:token,poll_endpoint:'/api/magnanimous/local-bridge/agent/next',result_endpoint:'/api/magnanimous/local-bridge/agent/result',heartbeat_endpoint:'/api/magnanimous/local-bridge/agent/heartbeat',note:'Store the bridge token only on this local machine. It is shown once and the server keeps only its hash.'},201);
+  ];
+  if(activationTaskId)statements.push(env.DB.prepare('INSERT INTO magnanimous_local_bridge_tasks(id,tenant_id,user_id,device_id,action,payload_json,risk_class,status,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(activationTaskId,pair.tenant_id,pair.user_id,id,'health','{}','low','queued',ts,ts+TASK_TTL));
+  await env.DB.batch(statements);
+  return json({ok:true,device_id:id,bridge_token:token,activation_task_id:activationTaskId,poll_endpoint:'/api/magnanimous/local-bridge/agent/next',result_endpoint:'/api/magnanimous/local-bridge/agent/result',heartbeat_endpoint:'/api/magnanimous/local-bridge/agent/heartbeat',note:'Store the bridge token only on this local machine. It is shown once and the server keeps only its hash. A safe health task is queued automatically to verify real execution when supported.'},201);
  }
 
  if(path.startsWith('/api/magnanimous/local-bridge/agent/')){
@@ -190,8 +196,19 @@ export async function handleMagnanimousLocalBridge(request,env){
   return json({ok:true,pairing_id:id,pairing_code:code,expires_at:ts+PAIR_TTL,note:'Enter this one-time code only into the Magnanimous Local Bridge running on your computer.'},201);
  }
  if(request.method==='GET'&&path==='/api/magnanimous/local-bridge/devices'){
-  const {results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_local_bridge_devices WHERE tenant_id=? ORDER BY last_seen_at DESC').bind(String(user.tenant_id)).all();
-  return json({devices:results.map(publicDevice)});
+  const data=await overview(env,user);return json({ready:data.ready,paired:data.paired,devices:data.devices});
+ }
+ const revokeMatch=path.match(/^\/api\/magnanimous\/local-bridge\/devices\/([^/]+)\/revoke$/);
+ if(request.method==='POST'&&revokeMatch){
+  const body=await request.json().catch(()=>({}));if(body.confirm!==true)return json({detail:'Device revocation requires confirm=true.'},400);
+  const id=clip(revokeMatch[1],120),tenantId=String(user.tenant_id);
+  const device=await env.DB.prepare("SELECT id,name FROM magnanimous_local_bridge_devices WHERE id=? AND tenant_id=? AND status='active'").bind(id,tenantId).first();
+  if(!device)return json({detail:'Active Local Bridge device not found.'},404);
+  await env.DB.batch([
+   env.DB.prepare("UPDATE magnanimous_local_bridge_devices SET status='revoked',updated_at=? WHERE id=? AND tenant_id=?").bind(now(),id,tenantId),
+   env.DB.prepare("UPDATE magnanimous_local_bridge_tasks SET status='cancelled',error_text='Device revoked by platform owner.',completed_at=? WHERE device_id=? AND tenant_id=? AND status IN ('queued','claimed','needs_confirmation')").bind(now(),id,tenantId)
+  ]);
+  return json({ok:true,id,status:'revoked',name:device.name,note:'This bridge token can no longer claim tasks. Re-pair the computer to restore access.'});
  }
  if(request.method==='POST'&&path==='/api/magnanimous/local-bridge/tasks'){
   const body=await request.json().catch(()=>({})),deviceId=clip(body.device_id,120),action=clip(body.action,80);
