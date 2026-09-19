@@ -35,11 +35,12 @@ export default function OwnerWebAgentPage(){
 
  async function refresh(t=token){
   if(!t)return;
-  const[c,m]=await Promise.all([
+  const[c,m,r]=await Promise.all([
    fetch('/api/magnanimous/native-web/capabilities',{headers:headers(false,t),cache:'no-store'}).then(readData),
-   fetch('/api/magnanimous/native-web/monitors',{headers:headers(false,t),cache:'no-store'}).then(readData)
+   fetch('/api/magnanimous/native-web/monitors',{headers:headers(false,t),cache:'no-store'}).then(readData),
+   fetch('/api/magnanimous/native-web/runs?limit=40',{headers:headers(false,t),cache:'no-store'}).then(readData)
   ]);
-  setCaps(c);setMonitors(m.monitors||[]);
+  setCaps(c);setMonitors(m.monitors||[]);setRuns(r.runs||[]);
  }
 
  useEffect(()=>{
