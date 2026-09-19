@@ -54,7 +54,8 @@ async function ensureTables(env) {
   await env.DB.prepare('SELECT id,user_id,tenant_id,email,event,success,created_at FROM auth_events LIMIT 1').first();
   await env.DB.prepare('SELECT key,value FROM settings LIMIT 1').first();
   await env.DB.prepare('SELECT id,title,url,label,placement,active,created_at FROM ads LIMIT 1').first();
-  await env.DB.prepare('SELECT key,value FROM auth_config LIMIT 1').first();
+  // auth_config is only the fallback secret store. If SESSION_SECRET is configured,
+  // authentication does not depend on that optional table while migration 0081 is deferred.
   await authSecret(env);
 }
 async function ensureLegacyCompatibility(env) {
