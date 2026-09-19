@@ -212,3 +212,28 @@ Initiative rules are explicit:
 - no external action is reported complete without a real tool result.
 
 The current connected Floot account has no projects yet. Magnanimous therefore does not create a throwaway Floot project merely to claim integration.
+
+## 2026-09-20 live connector refresh and Floot assimilation
+
+The live observable connector catalog was refreshed again after Floot was connected.
+
+Current live research snapshot:
+
+- 111 visible plugin/tool namespaces.
+- 2,309 visible plugin tool contracts.
+- 109 installed-skill namespaces.
+- 867 installed plugin skill contracts.
+- Floot contributes 44 observable callable tools and 65 public guide/skill topics.
+- Floot currently has no projects in the connected account, so no throwaway project was created merely to claim integration.
+
+Floot is treated as a first-class replaceable execution rail beneath Magnanimous. Its observable capabilities are grouped into project discovery, code authoring, quality verification, preview/UI observation, database/schema, resources/auth, assets/media, project lifecycle, production publishing, and platform knowledge. Floot guide topics are also materialized individually as Magnanimous skill contracts.
+
+Initiative policy is persisted with every absorbed capability. Magnanimous may proactively suggest next actions. Read-only inspection, research, status, testing, preview, and verification can auto-initiate when the required surface is actually available and authorized. Writes, code/database mutation, provisioning, publishing/deployment, messaging/calling, payments, credentials, permissions, deletion, and destructive operations remain behind their existing real authorization and confirmation gates.
+
+Floot-specific examples:
+
+- `list_projects`, `read_file`, `search_code`, `typecheck`, `run_tests`, `get_logs`, `get_publish_status`, and preview inspection are read/verification operations and may be initiated when safe.
+- `write_file`, `edit_file`, `apply_patch`, `execute_sql`, `provision_resource`, `request_external_resource`, `publish_app`, and `unpublish_app` are consequential/destructive actions and remain permission/confirmation-gated.
+- Magnanimous never treats Floot account access, Floot hosting, secrets, or project state as native Magnanimous ownership merely because the observable capability contract was learned.
+
+The realization registry now requires every current capability to resolve to either a proven Magnanimous-native surface or a truthful hybrid surface. Current CI rejects any `bridge-required` or `specified-only` row in the live manifest; this does not erase real external boundaries, which remain represented as `hybrid-ready`.
