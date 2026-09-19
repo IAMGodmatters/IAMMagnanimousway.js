@@ -22,6 +22,9 @@ const liveSkillResearch=read('worker/src/magnanimous-live-plugin-skill-research-
 const integrations=read('worker/src/integrations.js');
 const catalog=read('worker/src/magnanimous-integration-catalog.js');
 const absorptionMigration=read('worker/migrations/0073_connector_capability_absorption.sql');
+const materializationMigration=read('worker/migrations/0078_full_brain_materialization.sql');
+const materializer=read('qa/scripts/materialize-full-brain-d1.mjs');
+const deployWorkflow=read('.github/workflows/deploy.yml');
 
 const checks=[];
 const has=(text,needle,name)=>checks.push([name,text.includes(needle)]);
@@ -76,6 +79,18 @@ has(liveSkillResearch,'private_skill_implementation_copied:false','live skill re
 has(toolFoundry,'getConnectorAbsorptionPrompt','Tool Foundry injects connector absorption knowledge into Magnanimous routing');
 has(toolFoundry,"/api/magnanimous/tool-foundry/absorption",'signed-in absorption catalog endpoint exists');
 has(absorptionMigration,'magnanimous_connector_capability_absorption','connector capability absorption has durable D1 storage');
+has(materializationMigration,'magnanimous_native_tool_specs','Tool Foundry global specs exist through D1 migrations before deployment materialization');
+has(materializationMigration,'magnanimous_capability_materialization_state','deployment materialization state is durable in D1');
+has(materializer,'getCapabilityAbsorptionManifest','deployment materializer derives directly from the full Magnanimous brain manifest');
+has(materializer,'Capability ledger key collision','deployment materializer fails closed on capability-key collisions');
+has(materializer,'Tool Foundry name collision','deployment materializer fails closed on normalized Tool Foundry name collisions');
+has(materializer,"risk==='high'?'review-required':'proposed'",'deployment materializer preserves review-required status for high-risk capabilities');
+has(materializer,"status='tool-foundry-specified'",'deployment materializer marks persisted capability ledger rows as Tool Foundry specified');
+has(materializer,'source_digest','deployment materializer records a stable source digest');
+has(deployWorkflow,'Materialize full Magnanimous capability brain','every production deployment materializes the full brain manifest');
+has(deployWorkflow,'materialize-full-brain-d1.mjs','deployment calls the checked-in full-brain materializer');
+has(deployWorkflow,"status='tool-foundry-specified'",'deployment verifies durable full-brain ledger rows');
+has(deployWorkflow,'Full Magnanimous capability brain materialized','deployment fails unless production D1 count and digest verification succeeds');
 
 has(runtime,"/api/magnanimous/native-first/self-develop",'self-development endpoint exists');
 has(runtime,'capability-assimilation','capability assimilation is a native learned skill');
