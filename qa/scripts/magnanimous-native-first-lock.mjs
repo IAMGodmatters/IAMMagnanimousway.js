@@ -8,6 +8,10 @@ const migration=read('worker/migrations/0068_magnanimous_native_first.sql');
 const godCoding=read('frontend/app/god-coding/page.tsx');
 const robots=read('frontend/public/robots.txt');
 const toolFoundry=read('worker/src/magnanimous-tool-foundry.js');
+const absorption=read('worker/src/magnanimous-connector-absorption.js');
+const integrations=read('worker/src/integrations.js');
+const catalog=read('worker/src/magnanimous-integration-catalog.js');
+const absorptionMigration=read('worker/migrations/0073_connector_capability_absorption.sql');
 
 const checks=[];
 const has=(text,needle,name)=>checks.push([name,text.includes(needle)]);
@@ -31,6 +35,18 @@ has(runtime,'Apply SOLID boundaries','native policy requires SOLID boundaries');
 has(runtime,'Favor composition and dependency injection through an explicit composition root','native policy requires composition and dependency injection');
 has(runtime,'engineering_architecture_policy','native-first overview exposes the engineering architecture policy');
 has(runtime,"/api/magnanimous/native-first/assimilate",'capability assimilation endpoint exists');
+has(runtime,"/api/magnanimous/native-first/connectors",'per-connector native-first absorption ledger endpoint exists');
+has(runtime,'materializeConnectorCapabilityRecipes','one-by-one connector capability specs can materialize into Tool Foundry');
+has(runtime,'magnanimous_connector_capability_absorption','runtime persists per-connector capability absorption state');
+has(absorption,'getCapabilityAbsorptionManifest','brain registry flattens connector capabilities one by one');
+has(absorption,"absorption_status:'brain-spec-absorbed'",'capability registry distinguishes learned specs from native implementation');
+has(absorption,"implementation_status:'specified-not-assumed-native'",'capability registry never falsely marks learned capability specs native');
+has(absorption,'proprietary_copying:false','absorption policy explicitly forbids proprietary copying');
+has(absorption,'getConnectorAbsorptionPrompt','absorbed connector skills can be injected into Magnanimous reasoning context');
+has(toolFoundry,'getConnectorAbsorptionPrompt','Tool Foundry injects connector absorption knowledge into Magnanimous routing');
+has(toolFoundry,"/api/magnanimous/tool-foundry/absorption",'signed-in absorption catalog endpoint exists');
+has(absorptionMigration,'magnanimous_connector_capability_absorption','connector capability absorption has durable D1 storage');
+
 has(runtime,"/api/magnanimous/native-first/self-develop",'self-development endpoint exists');
 has(runtime,'capability-assimilation','capability assimilation is a native learned skill');
 has(runtime,'No proprietary provider source code is copied','native matrix explicitly rejects proprietary source copying');
@@ -47,6 +63,15 @@ has(godCoding,'Outside model required: NO','native God Coding result does not re
 has(godCoding,'Optional compute was unavailable, so God Coding completed with its Magnanimous-native plan instead.','God Coding falls back to native plan when outside compute fails');
 has(robots,'Disallow: /god-coding/','private God Coding route remains excluded from crawlers');
 lacks(runtime,'copy provider source code','runtime never instructs provider source-code copying');
+
+
+const directIds=[...integrations.matchAll(/\{ id:'([^']+)'/g)].map(x=>x[1]);
+const catalogIds=new Set([...catalog.matchAll(/\{id:'([^']+)'/g)].map(x=>x[1]));
+checks.push(['every live /connections connector exists in the Magnanimous absorption catalog',directIds.every(id=>catalogIds.has(id))]);
+checks.push(['all 13 direct platform connector types are covered',directIds.length===13]);
+for(const id of directIds)checks.push([`direct connector catalogued: ${id}`,catalogIds.has(id)]);
+checks.push(['absorption research ledger covers every direct connector',directIds.every(id=>absorption.includes(` ${id}:`)||absorption.includes(`'${id}':`))]);
+checks.push(['catalog contains at least 68 benchmark/direct connector entries',catalogIds.size>=68]);
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} - ${name}`);
