@@ -41,8 +41,9 @@ add('quota response reports UTC reset',obs.includes('resets_at_utc:nextUtcReset(
 add('generic internal errors remain 500',obs.includes("code:'INTERNAL_ERROR'"));
 
 add('deploy defers only exact D1 quota auth codes',deploy.includes('D1_DAILY_ROW_WRITE_LIMIT')&&deploy.includes('D1_DAILY_ROW_READ_LIMIT')&&deploy.includes('Production auth mutation smoke deferred because Cloudflare D1 reported'));
-add('migration defer requires exact Cloudflare D1 write-limit text',deploy.includes("exceeded D1's free tier daily row write limit")&&deploy.includes('Cannot defer migration 0080'));
+add('migration defer recognizes Cloudflare D1 write-limit text or code 7500',deploy.includes("exceeded D1's free tier daily row write limit")&&deploy.includes('code: 7500')&&deploy.includes('Cannot defer migration 0080'));
 add('migration defer proves all required 0080 tables already exist',deploy.includes("'tenant_settings','ads','settings','security_rate_limits'")&&deploy.includes('required production tables already exist'));
+add('migration apply avoids unsupported Wrangler --yes flag',deploy.includes('d1 migrations apply iam-magnanimous-db --remote 2>&1')&&!deploy.includes('d1 migrations apply iam-magnanimous-db --remote --yes'));
 add('non-quota migration failures still stop deployment',deploy.includes('else\n              exit "$rc"'));
 add('ordinary signup failures still fail deployment',deploy.includes('Signup smoke test returned HTTP $status')&&deploy.includes('exit 1'));
 add('quota branch never claims signup passed',deploy.includes('This is an external daily Free-plan limit, not a passing signup result.'));
