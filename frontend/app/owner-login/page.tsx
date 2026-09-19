@@ -28,7 +28,7 @@ export default function OwnerLoginPage(){
    const verify=await fetch(`${api}/api/auth/me`,{headers:{Authorization:`Bearer ${d.token}`}});
    const vd=await readResponse(verify);
    if(!verify.ok||vd?.user?.role!=='owner')throw new Error('Owner session could not be verified.');
-   setMagnanimousAdminToken(d.token);
+   setMagnanimousAdminToken(d.token,d.session_expires_at);
    sessionStorage.setItem('iam_session_active','owner');
    setSuccess('Owner verified. Opening your command dashboard…');
    setTimeout(()=>location.replace('/?access=owner'),350);

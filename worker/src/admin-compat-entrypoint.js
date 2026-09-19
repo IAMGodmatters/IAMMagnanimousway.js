@@ -3,6 +3,8 @@ import {createPasswordRecord,verifyPassword,upgradePasswordIfNeeded} from './pas
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const now = () => Math.floor(Date.now() / 1000);
+const OWNER_SESSION_TTL_SECONDS = 12 * 60 * 60;
+const ACCOUNT_SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
 const normEmail = (e) => String(e || '').trim().toLowerCase();
 const makeId = () => crypto.randomUUID();
 async function hmac(secret, value) { const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); const b = await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(value)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
@@ -28,7 +30,7 @@ async function authSecret(env) {
   const saved = await env.DB.prepare('SELECT value FROM auth_config WHERE key=?').bind('session_secret').first();
   return String(saved?.value || generated);
 }
-async function makeSession(user, env) { const secret = await authSecret(env); const exp = now() + 604800; const payload = `${user.id}|${user.tenant_id}|${user.role}|${exp}`; return `${payload}|${await hmac(secret, payload)}`; }
+async function makeSession(user, env) { const secret = await authSecret(env); const ttl = String(user?.role || '') === 'owner' ? OWNER_SESSION_TTL_SECONDS : ACCOUNT_SESSION_TTL_SECONDS; const exp = now() + ttl; const payload = `${user.id}|${user.tenant_id}|${user.role}|${exp}`; return `${payload}|${await hmac(secret, payload)}`; }
 async function auth(request, env) {
   const raw = request.headers.get('authorization') || '';
   if (!raw.startsWith('Bearer ')) return null;
