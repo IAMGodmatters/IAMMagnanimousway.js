@@ -1,9 +1,12 @@
 import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {LOCAL_BRIDGE_ACTIONS,LOCAL_BRIDGE_POLICY} from '../../worker/src/magnanimous-local-bridge-runtime.js';
 import {buildMagnanimousOgenicPlan} from '../../worker/src/magnanimous-ogenic-god-toolkit.js';
 
-const read=p=>fs.readFileSync(p,'utf8');
+const repoRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+const read=p=>fs.readFileSync(path.join(repoRoot,p),'utf8');
 const runtime=read('worker/src/magnanimous-local-bridge-runtime.js');
 const agent=read('local-bridge/bridge_agent.py');
 const installer=read('local-bridge/install.ps1');
