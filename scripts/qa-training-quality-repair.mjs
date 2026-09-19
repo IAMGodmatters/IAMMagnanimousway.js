@@ -16,6 +16,10 @@ function replaceRegexOnce(text,re,to,label){
 }
 function patch(path,fn,required=[]){
  const before=fs.readFileSync(path,'utf8');
+ if(required.length&&required.every(needle=>before.includes(needle))){
+  console.log(`${path}: required hardening postconditions already satisfied; repair skipped.`);
+  return;
+ }
  const after=fn(before);
  for(const needle of required)if(!after.includes(needle))throw new Error(`${path}: required postcondition missing: ${needle}`);
  if(after!==before){fs.writeFileSync(path,after);touched.push(path)}
