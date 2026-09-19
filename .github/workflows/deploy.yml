@@ -380,6 +380,41 @@ jobs:
           print('Business AI live catalog exposes 47 independent Magnanimous capabilities.')
           PY
 
+          python - <<'PY' > /tmp/business-ai-tool-ids.txt
+          import json
+          d=json.load(open('/tmp/business-ai-tools.json'))
+          for tool in d.get('tools') or []:
+              print(tool['id'])
+          PY
+
+          while IFS= read -r business_ai_tool_id; do
+            status=$(curl -sS -o /tmp/business-ai-preflight.json -w '%{http_code}' "$BASE_URL/api/business-ai/tools/$business_ai_tool_id/preflight" -H "Authorization: Bearer $token")
+            if [ "$status" != "200" ]; then
+              echo "Business AI preflight failed for $business_ai_tool_id with HTTP $status"
+              cat /tmp/business-ai-preflight.json || true
+              exit 1
+            fi
+            python - "$business_ai_tool_id" <<'PY'
+          import json,sys
+          expected=sys.argv[1]
+          d=json.load(open('/tmp/business-ai-preflight.json'))
+          assert d.get('ok') is True, d
+          assert (d.get('tool') or {}).get('id') == expected, (expected,d)
+          assert d.get('surface'), d
+          assert d.get('execution_adapter_present') is True, d
+          assert len(d.get('playbook_steps') or []) >= 2, d
+          assert len(d.get('verification_criteria') or []) >= 1, d
+          assert d.get('safe_preflight') is True, d
+          assert d.get('truthful_action_boundary') is True, d
+          if d.get('outside_action_required'):
+              assert d.get('external_connections_required'), d
+              assert d.get('outside_action_state') == 'connection-or-receipt-required', d
+          else:
+              assert d.get('outside_action_state') == 'no-external-action-required', d
+          PY
+          done < /tmp/business-ai-tool-ids.txt
+          echo "All 47 Business AI tools passed individual live preflight."
+
           status=$(curl -sS -o /tmp/business-ai-job.json -w '%{http_code}' -X POST "$BASE_URL/api/business-ai/jobs" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"tool_id":"sticky-notes","title":"Deployment Business AI Smoke","input":{"goal":"Create a safe deployment verification note without performing an external action."}}')
           if [ "$status" != "201" ]; then echo "Business AI durable job returned HTTP $status"; cat /tmp/business-ai-job.json || true; exit 1; fi
           readarray -t business_ai_values < <(python - <<'PY'
