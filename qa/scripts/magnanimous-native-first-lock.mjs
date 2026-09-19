@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { INTEGRATIONS as liveIntegrations } from '../../worker/src/integrations.js';
-import { getConnectorAbsorptionCatalog as liveAbsorptionCatalog, getCapabilityAbsorptionManifest as liveCapabilityManifest, getPersistentConnectorAbsorptionManifest, getChatGPTPluginCapabilityManifest, getInstalledPluginSkillManifest, getConnectorAbsorptionSummary } from '../../worker/src/magnanimous-connector-absorption.js';
+import { getConnectorAbsorptionCatalog as liveAbsorptionCatalog, getCapabilityAbsorptionManifest as liveCapabilityManifest, getPersistentConnectorAbsorptionManifest, getChatGPTPluginCapabilityManifest, getInstalledPluginSkillManifest, getFlootGuideSkillManifest, getConnectorAbsorptionSummary } from '../../worker/src/magnanimous-connector-absorption.js';
 import { getLivePluginToolResearchSummary } from '../../worker/src/magnanimous-live-plugin-tool-research-snapshot.js';
 import { getLivePluginSkillResearchSummary } from '../../worker/src/magnanimous-live-plugin-skill-research-snapshot.js';
 import { MAGNANIMOUS_EXECUTION_SURFACES, classifyCapabilityRealization } from '../../worker/src/magnanimous-capability-realization.js';
@@ -165,7 +165,7 @@ lacks(runtime,'copy provider source code','runtime never instructs provider sour
 
 const directIds=[...integrations.matchAll(/\{ id:'([^']+)'/g)].map(x=>x[1]);
 const catalogIds=new Set([...catalog.matchAll(/\{id:'([^']+)'/g)].map(x=>x[1]));
-const runtimeAbsorption=liveAbsorptionCatalog(),runtimeManifest=liveCapabilityManifest(),persistentManifest=getPersistentConnectorAbsorptionManifest(),pluginManifest=getChatGPTPluginCapabilityManifest(),skillManifest=getInstalledPluginSkillManifest(),runtimeSummary=getConnectorAbsorptionSummary(),liveToolSummary=getLivePluginToolResearchSummary(),liveSkillSummary=getLivePluginSkillResearchSummary(),realizations=runtimeManifest.map(classifyCapabilityRealization);
+const runtimeAbsorption=liveAbsorptionCatalog(),runtimeManifest=liveCapabilityManifest(),persistentManifest=getPersistentConnectorAbsorptionManifest(),pluginManifest=getChatGPTPluginCapabilityManifest(),skillManifest=getInstalledPluginSkillManifest(),flootGuideManifest=getFlootGuideSkillManifest(),runtimeSummary=getConnectorAbsorptionSummary(),liveToolSummary=getLivePluginToolResearchSummary(),liveSkillSummary=getLivePluginSkillResearchSummary(),realizations=runtimeManifest.map(classifyCapabilityRealization);
 checks.push(['every live /connections connector exists in the Magnanimous absorption catalog',directIds.every(id=>catalogIds.has(id))]);
 checks.push(['all 13 direct platform connector types are covered',directIds.length===13&&liveIntegrations.length===13]);
 for(const item of liveIntegrations){
@@ -184,7 +184,9 @@ checks.push(['plugin tool contracts are converted one by one',pluginManifest.len
 checks.push(['Plugin Management capabilities are absorbed into the manifest',pluginManifest.some(x=>x.plugin_namespace==='Plugin_Management'&&x.capability.includes('search-plugins'))]);
 const flootManifest=pluginManifest.filter(x=>x.plugin_namespace==='Floot');
 checks.push(['all 44 Floot tools are absorbed one by one',FLOOT_OBSERVABLE_TOOL_CONTRACTS.length===44&&flootManifest.length===44]);
-checks.push(['Floot guide/skill research covers at least 65 public topics',FLOOT_OBSERVABLE_GUIDE_TOPICS.length>=65]);
+checks.push(['Floot guide/skill research covers exactly the current 65 public topics',FLOOT_OBSERVABLE_GUIDE_TOPICS.length===65]);
+checks.push(['all 65 Floot public guide topics are first-class Magnanimous skill contracts',flootGuideManifest.length===65]);
+checks.push(['every Floot guide skill carries safe suggestive initiative metadata',flootGuideManifest.every(x=>x.initiative?.suggestive===true&&x.initiative?.auto_initiate===true&&x.initiative?.action_class==='skill-guidance')]);
 checks.push(['Floot list/read inspection can auto-initiate safely',getFlootToolPolicy('list_projects').auto_initiate===true&&getFlootToolPolicy('read_file').auto_initiate===true]);
 checks.push(['Floot SQL mutation and publishing remain confirmation-gated',getFlootToolPolicy('execute_sql').requires_confirmation===true&&getFlootToolPolicy('publish_app').requires_confirmation===true]);
 checks.push(['every Floot manifest capability carries suggestive initiative metadata',flootManifest.every(x=>x.initiative?.suggestive===true&&typeof x.initiative?.auto_initiate==='boolean'&&typeof x.initiative?.requires_confirmation==='boolean')]);
@@ -192,7 +194,7 @@ checks.push(['retained plugin skill research covers at least 109 skill namespace
 checks.push(['current live skill catalog covers at least 107 namespaces and 855 skills',liveSkillSummary.live_skill_namespaces>=107&&liveSkillSummary.live_skill_contracts>=855&&runtimeSummary.currently_visible_plugin_skills>=855]);
 checks.push(['retained plugin skill snapshot covers at least 867 skill contracts for continuity',runtimeSummary.installed_plugin_skills>=867]);
 checks.push(['installed plugin skills are converted one by one',skillManifest.length>=867]);
-checks.push(['full Magnanimous brain manifest covers connector, plugin tool, and skill contracts',runtimeManifest.length>=3426&&runtimeSummary.full_brain_capability_contracts>=3426]);
+checks.push(['full Magnanimous brain manifest covers connector, plugin tool, installed skill, and Floot guide-skill contracts',runtimeManifest.length>=3535&&runtimeSummary.full_brain_capability_contracts>=3535]);
 checks.push(['one-by-one research state is explicit',runtimeSummary.one_by_one_research===true]);
 checks.push(['execution-surface registry has proven native and hybrid targets',Object.values(MAGNANIMOUS_EXECUTION_SURFACES).some(x=>x.mode==='native')&&Object.values(MAGNANIMOUS_EXECUTION_SURFACES).some(x=>x.mode==='hybrid')]);
 checks.push(['full manifest realization is total and lossless',realizations.length===runtimeManifest.length]);
@@ -203,7 +205,7 @@ checks.push(['no current capability remains bridge-required or specified-only',!
 checks.push(['every native-ready realization names a concrete internal route and evidence module',realizations.filter(x=>x.status==='native-ready').every(x=>String(x.route).startsWith('/api/')&&String(x.evidence_module).startsWith('worker/src/'))]);
 checks.push(['plugin account authorization is not assumed',runtimeSummary.plugin_authorization_state==='not-assumed']);
 checks.push(['all absorbed plugin and skill contracts are suggestive-action aware',pluginManifest.every(x=>x.initiative?.suggestive===true)&&skillManifest.every(x=>x.initiative?.suggestive===true)]);
-checks.push(['Floot summary is exposed through the Magnanimous absorption overview',runtimeSummary.floot?.observable_tools===44&&runtimeSummary.floot?.guide_topics>=65]);
+checks.push(['Floot summary is exposed through the Magnanimous absorption overview',runtimeSummary.floot?.observable_tools===44&&runtimeSummary.floot?.guide_topics===65&&runtimeSummary.floot_public_guide_skills===65]);
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} - ${name}`);
