@@ -12,14 +12,14 @@ export default function Account(){
   if(!token){location.replace('/login?returnTo=/account');return}
   try{
    const r=await fetch(`${api}/api/auth/me`,{headers:{Authorization:`Bearer ${token}`},cache:'no-store'}),d=await read(r);
-   if(!r.ok||!d.user){localStorage.removeItem('iam_account_token');sessionStorage.removeItem('iam_session_active');location.replace('/login?returnTo=/account');return}
+   if(!r.ok||!d.user){localStorage.removeItem('iam_account_token');localStorage.removeItem('iam_account_session_expires_at');sessionStorage.removeItem('iam_session_active');location.replace('/login?returnTo=/account');return}
    setUser(d.user);setReady(true);
   }catch{setError('Your account could not be loaded. Check your connection and try again.');setReady(true)}
  })()},[]);
  async function logout(){
   const token=localStorage.getItem('iam_account_token')||'';
   try{if(token)await fetch(`${api}/api/auth/logout`,{method:'POST',headers:{Authorization:`Bearer ${token}`}})}catch{}
-  localStorage.removeItem('iam_account_token');sessionStorage.removeItem('iam_session_active');location.replace('/login');
+  localStorage.removeItem('iam_account_token');localStorage.removeItem('iam_account_session_expires_at');sessionStorage.removeItem('iam_session_active');location.replace('/login');
  }
  if(!ready)return <main className="loading">Loading your Magnanimous account…<style jsx>{`.loading{min-height:100vh;display:grid;place-items:center;background:#031129;color:#c9efff;font:14px Inter,system-ui}`}</style></main>;
  return <main className="page"><header><a href="/">← Platform</a><span>MY MAGNANIMOUS ACCOUNT</span></header><section className="hero"><small>I AM MAGNANIMOUS WAY™</small><h1>Your Account</h1><p>One account for your Magnanimous AI workspace, tools, connections and services.</p></section>{error&&<div className="error" role="alert">{error}</div>}<section className="grid"><article><div className="head"><b>PROFILE</b><span>SECURE SESSION</span></div><dl><div><dt>Name</dt><dd>{user.name||'—'}</dd></div><div><dt>Email</dt><dd>{user.email||'—'}</dd></div><div><dt>Workspace role</dt><dd>{user.role||'member'}</dd></div></dl><button className="logout" onClick={logout}>Log out securely</button></article><article><div className="head"><b>ACCOUNT & SERVICES</b><span>QUICK ACCESS</span></div><nav><a href="/start"><strong>Start / Workspace</strong><small>Return to your main Magnanimous workspace.</small></a><a href="/pricing"><strong>Plans & Pricing</strong><small>Review current plan options.</small></a><a href="/billing-support"><strong>Billing Support</strong><small>Manage billing questions and cancellation requests.</small></a><a href="/connections"><strong>Connections</strong><small>Review supported platform connections.</small></a><a href="/security"><strong>Security & Privacy</strong><small>Read the platform security model and protections.</small></a><a href="/support"><strong>Support</strong><small>Get help using the platform.</small></a></nav></article></section><section className="note"><b>Privacy boundary</b><p>Your customer account is separate from global owner controls, infrastructure credentials and provider administration.</p></section><style jsx>{`
