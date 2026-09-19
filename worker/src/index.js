@@ -12,26 +12,41 @@ async function passwordHash(password,salt){return digest(`${salt}:${password}`);
 async function makeSession(user,env){const exp=now()+604800;const payload=`${user.id}|${user.tenant_id}|${user.role}|${exp}`;return `${payload}|${await hmac(env.SESSION_SECRET||'change-me',payload)}`;}
 async function auth(request,env){const raw=request.headers.get('authorization')||'';if(!raw.startsWith('Bearer '))return null;const p=raw.slice(7).split('|');if(p.length!==5||Number(p[3])<now())return null;const [userId,tenantId,role,exp,sig]=p;if(sig!==await hmac(env.SESSION_SECRET||'change-me',`${userId}|${tenantId}|${role}|${exp}`))return null;const user=await env.DB.prepare('SELECT id,tenant_id,name,email,role,active FROM users WHERE id=? AND tenant_id=? AND active=1').bind(userId,tenantId).first();return user||null;}
 function rendererUrl(env){return(env.VIDEO_RENDERER_URL||VIDEO_RENDERER_DEFAULT_URL).replace(/\/$/,'');}
+let initPromise=null;
 async function init(env){
- const sql=[
- 'CREATE TABLE IF NOT EXISTS tenants (id TEXT PRIMARY KEY,name TEXT NOT NULL,slug TEXT NOT NULL UNIQUE,owner_user_id TEXT,created_at INTEGER NOT NULL)',
- 'CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,email TEXT NOT NULL,role TEXT NOT NULL DEFAULT \'member\',password_hash TEXT NOT NULL,password_salt TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,UNIQUE(tenant_id,email))',
- 'CREATE TABLE IF NOT EXISTS tenant_settings (tenant_id TEXT NOT NULL,key TEXT NOT NULL,value TEXT NOT NULL,PRIMARY KEY(tenant_id,key))',
- 'CREATE TABLE IF NOT EXISTS crm_contacts (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT,first_name TEXT NOT NULL,last_name TEXT NOT NULL DEFAULT \'\',email TEXT NOT NULL DEFAULT \'\',phone TEXT NOT NULL DEFAULT \'\',company TEXT NOT NULL DEFAULT \'\',status TEXT NOT NULL DEFAULT \'lead\',source TEXT NOT NULL DEFAULT \'\',tags TEXT NOT NULL DEFAULT \'\',notes TEXT NOT NULL DEFAULT \'\',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)',
- 'CREATE TABLE IF NOT EXISTS crm_activities (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT,contact_id INTEGER NOT NULL,type TEXT NOT NULL DEFAULT \'note\',title TEXT NOT NULL DEFAULT \'\',body TEXT NOT NULL DEFAULT \'\',due_at INTEGER,completed INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL)',
- 'CREATE TABLE IF NOT EXISTS crm_opportunities (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT,contact_id INTEGER,name TEXT NOT NULL,stage TEXT NOT NULL DEFAULT \'new\',value REAL NOT NULL DEFAULT 0,probability REAL NOT NULL DEFAULT 0,expected_close_at INTEGER,notes TEXT NOT NULL DEFAULT \'\',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)',
- 'CREATE TABLE IF NOT EXISTS ads (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,url TEXT NOT NULL,label TEXT NOT NULL DEFAULT \'Sponsored\',placement TEXT NOT NULL DEFAULT \'home\',active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL)',
- 'CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY,value TEXT NOT NULL)',
- 'CREATE INDEX IF NOT EXISTS idx_contacts_tenant ON crm_contacts(tenant_id)',
- 'CREATE INDEX IF NOT EXISTS idx_activities_tenant ON crm_activities(tenant_id)',
- 'CREATE INDEX IF NOT EXISTS idx_opps_tenant ON crm_opportunities(tenant_id)'
- ];
- for(const q of sql)try{await env.DB.prepare(q).run()}catch(e){}
- let ownerTenant=null;
- if(env.ADMIN_EMAIL){ownerTenant=await env.DB.prepare('SELECT * FROM tenants WHERE slug=?').bind('owner').first();if(!ownerTenant){const t=id();await env.DB.prepare('INSERT INTO tenants(id,name,slug,created_at) VALUES(?,?,?,?)').bind(t,'I AM Magnanimous','owner',now()).run();ownerTenant=await env.DB.prepare('SELECT * FROM tenants WHERE id=?').bind(t).first();}
- const email=normEmail(env.ADMIN_EMAIL);let owner=await env.DB.prepare('SELECT * FROM users WHERE tenant_id=? AND email=?').bind(ownerTenant.id,email).first();if(!owner&&env.ADMIN_PASSWORD){const salt=id();const ph=await passwordHash(env.ADMIN_PASSWORD,salt);const uid=id();await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(uid,ownerTenant.id,'Owner',email,'owner',ph,salt,now()).run();await env.DB.prepare('UPDATE tenants SET owner_user_id=? WHERE id=?').bind(uid,ownerTenant.id).run();}}
- if(ownerTenant){for(const table of ['crm_contacts','crm_activities','crm_opportunities'])try{await env.DB.prepare(`UPDATE ${table} SET tenant_id=? WHERE tenant_id IS NULL`).bind(ownerTenant.id).run()}catch(e){}}
- await env.DB.batch([env.DB.prepare("INSERT OR IGNORE INTO settings(key,value) VALUES('site_name','I AM Magnanimous AI Platform')"),env.DB.prepare("INSERT OR IGNORE INTO settings(key,value) VALUES('tagline','Free-first AI tools, Magnanimous orchestration, and creator tools in one place.')")]);
+ if(initPromise)return initPromise;
+ initPromise=(async()=>{
+  // Production schema is owned by D1 migrations. Keep live request bootstrap read-first
+  // and only write when a genuinely missing owner/legacy attachment must be repaired.
+  await env.DB.prepare('SELECT 1 FROM tenants LIMIT 1').first();
+  await env.DB.prepare('SELECT 1 FROM users LIMIT 1').first();
+  let ownerTenant=null;
+  if(env.ADMIN_EMAIL){
+   ownerTenant=await env.DB.prepare('SELECT * FROM tenants WHERE slug=?').bind('owner').first();
+   if(!ownerTenant){
+    const t=id();
+    await env.DB.prepare('INSERT INTO tenants(id,name,slug,created_at) VALUES(?,?,?,?)').bind(t,'I AM Magnanimous','owner',now()).run();
+    ownerTenant=await env.DB.prepare('SELECT * FROM tenants WHERE id=?').bind(t).first();
+   }
+   const email=normEmail(env.ADMIN_EMAIL);
+   let owner=await env.DB.prepare('SELECT * FROM users WHERE tenant_id=? AND email=?').bind(ownerTenant.id,email).first();
+   if(!owner&&env.ADMIN_PASSWORD){
+    const salt=id(),ph=await passwordHash(env.ADMIN_PASSWORD,salt),uid=id();
+    await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(uid,ownerTenant.id,'Owner',email,'owner',ph,salt,now()).run();
+    await env.DB.prepare('UPDATE tenants SET owner_user_id=? WHERE id=?').bind(uid,ownerTenant.id).run();
+   }
+  }
+  if(ownerTenant){
+   for(const table of ['crm_contacts','crm_activities','crm_opportunities']){
+    try{
+     const legacy=await env.DB.prepare(`SELECT 1 FROM ${table} WHERE tenant_id IS NULL LIMIT 1`).first();
+     if(legacy)await env.DB.prepare(`UPDATE ${table} SET tenant_id=? WHERE tenant_id IS NULL`).bind(ownerTenant.id).run();
+    }catch(e){}
+   }
+  }
+  return true;
+ })();
+ try{return await initPromise}catch(e){initPromise=null;throw e}
 }
 function tenantRequired(user){return user?.tenant_id||null;}
 export default {async fetch(request,env){try{await init(env);const u=new URL(request.url),path=u.pathname;if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,PUT,DELETE,OPTIONS','access-control-allow-headers':'Content-Type, Authorization'}});
