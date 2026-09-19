@@ -35,7 +35,7 @@ export default function GodCoding(){
    const coarse=await request('/api/magnanimous/native-first/assimilate',{method:'POST',headers:headers(true),body:JSON.stringify({})});
    let materialized=0,remaining=1,passes=0;
    while(remaining>0&&passes<50){
-    const d=await request('/api/magnanimous/native-first/assimilate',{method:'POST',headers:headers(true),body:JSON.stringify({mode:'full-brain-capabilities',limit:100})});
+    const d=await request('/api/magnanimous/native-first/assimilate',{method:'POST',headers:headers(true),body:JSON.stringify({mode:'full-brain-capabilities',limit:100,seed:passes===0})});
     materialized+=Number(d.materialized_count||0);remaining=Number(d.remaining||0);passes++;
     if(!d.materialized_count&&remaining>0)throw new Error('Full-brain capability assimilation stopped before the ledger was complete.');
    }
