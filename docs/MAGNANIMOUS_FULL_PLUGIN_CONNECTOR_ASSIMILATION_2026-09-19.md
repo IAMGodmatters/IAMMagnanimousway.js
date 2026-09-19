@@ -203,7 +203,7 @@ The connected Floot account exposes 44 callable tools and 65 public guide/skill 
 - production publishing;
 - platform knowledge.
 
-Magnanimous owns intent, planning, routing, memory, workflow, risk policy, verification, learning and normalized contracts. Floot account authorization, Floot hosting, Floot-managed resources, published-app infrastructure and provider-specific project state remain replaceable external execution rails.
+Magnanimous owns intent, planning, routing, memory, workflow, risk policy, verification, learning and normalized contracts. Floot-derived public capability research is retained only as provenance/benchmark knowledge; no Floot account authorization, hosting, managed resource, published-app infrastructure, or provider-specific project state is required by the active Magnanimous runtime.
 
 Initiative rules are explicit:
 
@@ -211,7 +211,7 @@ Initiative rules are explicit:
 - writes, code execution, SQL mutation, resource provisioning, credential requests, publishing, unpublishing and destructive actions remain subject to existing confirmation and permission gates;
 - no external action is reported complete without a real tool result.
 
-The connected Floot account now has a real project named `I AM MAGNANIMOUS WAY™ — Magnanimous AI`, published at `https://i-am-magnanimous-way.floot.app`. It is a secondary build/verification/publishing surface beneath the main platform and does not replace the GitHub `main` source of truth or Magnanimous AI identity/memory ownership.
+The former Floot-hosted mirror has been unpublished and its `floot.app` subdomain released. Floot is no longer an active production, hosting, runtime, identity, memory, or deployment dependency for I AM MAGNANIMOUS WAY™ / Magnanimous AI. The authoritative platform is `https://iammagnanimousway.com/` with GitHub `main` as source of truth.
 
 
 
