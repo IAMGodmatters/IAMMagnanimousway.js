@@ -263,6 +263,29 @@ const PLAYBOOKS={
 };
 function planFor(id,input){const steps=PLAYBOOKS[id]||['Understand goal','Plan','Execute with Magnanimous tools','Verify'];return{tool_id:id,goal:txt(input?.goal||'',1000),steps:steps.map((name,index)=>({index:index+1,name,status:'planned'})),orchestrator:'Magnanimous AI',provider_policy:'native-first; authorized replaceable infrastructure only when needed',verification_criteria:VERIFY_CRITERIA[id]||['output saved','execution reviewed','evidence recorded'],verification:'Evidence and action receipts required before claiming completion'}}
 const externalFor=id=>(CAPABILITY_ROUTES[id]?.dependencies||[]).filter(x=>String(x).endsWith('-external'));
+function externalDependencyState(env,dep){
+ const d=String(dep||'');
+ if(d==='developer-approval-external')return'approval-required';
+ if(d==='payment-external')return env.STRIPE_SECRET_KEY?'server-ready':'server-engine-required';
+ if(d==='carrier-external'||d==='sms-external'){
+  const carrier=Boolean((env.TWILIO_ACCOUNT_SID&&env.TWILIO_AUTH_TOKEN&&env.TWILIO_PHONE_NUMBER)||env.VOIP_PROVIDER_TOKEN);
+  return carrier?'server-ready':'server-engine-required';
+ }
+ if(d==='audio-generation-external'||d==='audio-render-external')return env.MUSIC_ENGINE_URL&&env.MUSIC_ENGINE_TOKEN?'server-ready':'server-engine-required';
+ if(d==='renderer-external')return env.MAGNANIMOUS_RENDER_NODE_URL||env.VIDEO_AVATAR_SESSION_URL||env.TAVUS_API_KEY?'server-ready':'server-engine-required';
+ if(d==='voice-render-external')return env.VIDEO_AVATAR_SESSION_URL||env.TAVUS_API_KEY?'server-ready':'server-engine-required';
+ if(d==='dns-external')return env.CLOUDFLARE_PLATFORM_API_TOKEN||(env.PORKBUN_API_KEY&&env.PORKBUN_SECRET_API_KEY)?'server-ready':'connection-required';
+ if(['esign-external','email-send-external','storage-external','outreach-external','publishing-external','website-widget-external'].includes(d))return'connection-required';
+ if(['image-edit-engine-external','custom-image-model-external'].includes(d))return'server-engine-required';
+ return'connection-required';
+}
+function runtimeReadiness(env,id){
+ const external=externalFor(id);
+ if(!external.length)return{state:'native-ready',outside_action_required:false,checks:[]};
+ const checks=external.map(dependency=>({dependency,state:externalDependencyState(env,dependency)})),states=checks.map(x=>x.state);
+ const state=states.every(x=>x==='server-ready')?'server-ready':states.includes('server-engine-required')?'server-engine-required':states.includes('connection-required')?'connection-required':'approval-required';
+ return{state,outside_action_required:true,checks};
+}
 const SURFACE_ONLY_STEPS={
  'academy-wizard':/Publish to Learning\/Community/i,
  'coach-wizard':/Publish assistant/i,
@@ -382,7 +405,7 @@ Complete ONLY the current step. Return a concrete, useful deliverable for this s
  return json({ok:true,id:row.id,artifact,completed_step:{id:step.id,title:step.title},work:fresh,verification:(await jobView(env,user,{...row,output_json:JSON.stringify(out),status:'working'})).verification,external_action_performed:false});
 }
 export async function handleBusinessAISuite(request,env,ctx,downstream){const u=new URL(request.url);if(!u.pathname.startsWith('/api/business-ai'))return null;const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);const tenant=String(user.tenant_id),userId=String(user.id);
-if(u.pathname==='/api/business-ai/tools'&&request.method==='GET')return json({name:'Magnanimous Business AI Suite',brain:'Magnanimous AI',tools:BUSINESS_AI_SUITE.map(([id,name,description,category])=>{const route=CAPABILITY_ROUTES[id],external=externalFor(id);return{id,name,description,category,...route,execution_mode:['hyper-images','logo-maker','music-generator','open-media-library'].includes(id)?'native-specialized':'magnanimous-step-execution',external_connections_required:external,outside_action_required:external.length>0}}),count:BUSINESS_AI_SUITE.length,accessibility_standard:'keyboard-first, semantic labels, responsive layouts, plain-language errors, accessible generated-content metadata',truth_boundary:'External telecom, messaging, domain, storage, publishing or payment actions are only live when the corresponding authorized connection is actually ready.'});
+if(u.pathname==='/api/business-ai/tools'&&request.method==='GET')return json({name:'Magnanimous Business AI Suite',brain:'Magnanimous AI',tools:BUSINESS_AI_SUITE.map(([id,name,description,category])=>{const route=CAPABILITY_ROUTES[id],external=externalFor(id);return{id,name,description,category,...route,execution_mode:['hyper-images','logo-maker','music-generator','open-media-library'].includes(id)?'native-specialized':'magnanimous-step-execution',external_connections_required:external,outside_action_required:external.length>0,runtime_readiness:runtimeReadiness(env,id)}}),count:BUSINESS_AI_SUITE.length,accessibility_standard:'keyboard-first, semantic labels, responsive layouts, plain-language errors, accessible generated-content metadata',truth_boundary:'External telecom, messaging, domain, storage, publishing or payment actions are only live when the corresponding authorized connection is actually ready.'});
 const toolPreflight=u.pathname.match(/^\/api\/business-ai\/tools\/([^/]+)\/preflight$/);
 if(toolPreflight&&request.method==='GET'){
  const id=decodeURIComponent(toolPreflight[1]),tool=BUSINESS_AI_SUITE.find(x=>x[0]===id);
@@ -401,6 +424,7 @@ if(toolPreflight&&request.method==='GET'){
   outside_action_required:external.length>0,
   external_connections_required:external,
   outside_action_state:external.length?'connection-or-receipt-required':'no-external-action-required',
+  runtime_readiness:runtimeReadiness(env,id),
   safe_preflight:true,
   truthful_action_boundary:true
  });
