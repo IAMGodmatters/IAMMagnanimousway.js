@@ -527,6 +527,11 @@ jobs:
           import json
           d=json.load(open('/tmp/media-search.json'))
           assert d.get('license_notice'), d
+          assert d.get('catalog_source') in {'openverse','wikimedia-commons'}, d
+          assert isinstance(d.get('fallback_used'),bool), d
+          if d.get('fallback_used'):
+              degraded=d.get('degraded_sources') or []
+              assert any(x.get('source')=='openverse' and int(x.get('status') or 0)>=400 for x in degraded), d
           valid=[x for x in d.get('results') or [] if x.get('asset_url') and x.get('landing_url')]
           assert valid, d
           print(json.dumps(valid[0]))
