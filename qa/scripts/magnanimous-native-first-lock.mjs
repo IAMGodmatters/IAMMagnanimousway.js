@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import { INTEGRATIONS as liveIntegrations } from '../../worker/src/integrations.js';
 import { getConnectorAbsorptionCatalog as liveAbsorptionCatalog, getCapabilityAbsorptionManifest as liveCapabilityManifest, getPersistentConnectorAbsorptionManifest, getChatGPTPluginCapabilityManifest, getInstalledPluginSkillManifest, getConnectorAbsorptionSummary } from '../../worker/src/magnanimous-connector-absorption.js';
+import { getLivePluginToolResearchSummary } from '../../worker/src/magnanimous-live-plugin-tool-research-snapshot.js';
+import { getLivePluginSkillResearchSummary } from '../../worker/src/magnanimous-live-plugin-skill-research-snapshot.js';
 
 const read=p=>fs.readFileSync(p,'utf8');
 const runtime=read('worker/src/magnanimous-native-first.js');
@@ -15,6 +17,8 @@ const toolFoundry=read('worker/src/magnanimous-tool-foundry.js');
 const absorption=read('worker/src/magnanimous-connector-absorption.js');
 const pluginSnapshot=read('worker/src/magnanimous-chatgpt-plugin-capability-snapshot.js');
 const skillSnapshot=read('worker/src/magnanimous-installed-plugin-skill-snapshot.js');
+const liveToolResearch=read('worker/src/magnanimous-live-plugin-tool-research-snapshot.js');
+const liveSkillResearch=read('worker/src/magnanimous-live-plugin-skill-research-snapshot.js');
 const integrations=read('worker/src/integrations.js');
 const catalog=read('worker/src/magnanimous-integration-catalog.js');
 const absorptionMigration=read('worker/migrations/0073_connector_capability_absorption.sql');
@@ -43,6 +47,10 @@ has(runtime,'engineering_architecture_policy','native-first overview exposes the
 has(runtime,"/api/magnanimous/native-first/assimilate",'capability assimilation endpoint exists');
 has(runtime,"/api/magnanimous/native-first/connectors",'per-connector native-first absorption ledger endpoint exists');
 has(runtime,'materializeConnectorCapabilityRecipes','one-by-one connector capability specs can materialize into Tool Foundry');
+has(runtime,'getCapabilityAbsorptionManifest','full connector + plugin tool + plugin skill manifest reaches durable materialization');
+has(runtime,"seedConnectorAbsorption(env,{scope:'full'})",'Tool Foundry materialization seeds the full brain manifest');
+has(runtime,"body.mode==='full-brain-capabilities'",'native-first API exposes full-brain one-by-one assimilation mode');
+has(runtime,'getCapabilityResearchRecord','durable ledger stores one-by-one research provenance');
 has(runtime,'magnanimous_connector_capability_absorption','runtime persists per-connector capability absorption state');
 has(absorption,'getCapabilityAbsorptionManifest','brain registry flattens connector capabilities one by one');
 has(absorption,"absorption_status:'brain-spec-absorbed'",'capability registry distinguishes learned specs from native implementation');
@@ -53,10 +61,15 @@ has(absorption,'getChatGPTPluginCapabilityManifest','visible plugin tool contrac
 has(pluginSnapshot,'CHATGPT_PLUGIN_CONTRACT_SNAPSHOT','observable ChatGPT plugin tool-contract snapshot exists');
 has(pluginSnapshot,'authorization_state','plugin snapshot keeps authorization state explicit');
 has(pluginSnapshot,'proprietary_implementation_copied:false','plugin snapshot explicitly denies proprietary implementation copying');
+has(liveToolResearch,'LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT','current live plugin-tool research snapshot exists');
+has(liveToolResearch,'Plugin_Management','Plugin Management live tool contracts are researched');
+has(liveToolResearch,'proprietary_implementation_copied:false','live tool research denies proprietary implementation copying');
 has(absorption,'getInstalledPluginSkillManifest','installed plugin skill contracts are converted into brain capability specs');
 has(skillSnapshot,'INSTALLED_PLUGIN_SKILL_SNAPSHOT','installed plugin skill snapshot exists');
 has(skillSnapshot,'private_skill_implementation_copied:false','installed skill snapshot denies private implementation copying');
 has(skillSnapshot,"authorization_state:'not-assumed'",'installed skill visibility does not imply account authorization');
+has(liveSkillResearch,'LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT','current live installed-skill research snapshot exists');
+has(liveSkillResearch,'private_skill_implementation_copied:false','live skill research denies private skill implementation copying');
 has(toolFoundry,'getConnectorAbsorptionPrompt','Tool Foundry injects connector absorption knowledge into Magnanimous routing');
 has(toolFoundry,"/api/magnanimous/tool-foundry/absorption",'signed-in absorption catalog endpoint exists');
 has(absorptionMigration,'magnanimous_connector_capability_absorption','connector capability absorption has durable D1 storage');
@@ -71,7 +84,10 @@ has(migration,'magnanimous_native_capability_matrix','native capability matrix h
 has(migration,'magnanimous_self_development_runs','self-development plans have durable D1 storage');
 has(godCoding,"useState(true)",'God Coding defaults to Magnanimous self-development mode');
 has(godCoding,"useState(false)",'outside model accelerator is off by default');
-has(godCoding,'ASSIMILATE ALL CAPABILITY TARGETS','owner can internalize all capability benchmark targets');
+has(godCoding,'ASSIMILATE ALL CONNECTORS + PLUGIN TOOLS + SKILLS','owner can internalize direct connectors, plugin tools and skill contracts');
+has(godCoding,"mode:'full-brain-capabilities'",'God Coding uses full-brain materialization mode');
+has(godCoding,'passes<50','God Coding can process the entire multi-thousand-contract ledger in bounded batches');
+has(godCoding,'limit:100','God Coding uses bounded 100-contract Tool Foundry batches');
 has(godCoding,"/api/magnanimous/native-first/self-develop",'God Coding invokes native self-development runtime');
 has(godCoding,'Outside model required: NO','native God Coding result does not require outside model compute');
 has(godCoding,"/api/magnanimous/compute-accelerator",'God Coding uses the dedicated compute accelerator instead of normal chat');
@@ -101,7 +117,7 @@ lacks(runtime,'copy provider source code','runtime never instructs provider sour
 
 const directIds=[...integrations.matchAll(/\{ id:'([^']+)'/g)].map(x=>x[1]);
 const catalogIds=new Set([...catalog.matchAll(/\{id:'([^']+)'/g)].map(x=>x[1]));
-const runtimeAbsorption=liveAbsorptionCatalog(),runtimeManifest=liveCapabilityManifest(),persistentManifest=getPersistentConnectorAbsorptionManifest(),pluginManifest=getChatGPTPluginCapabilityManifest(),skillManifest=getInstalledPluginSkillManifest(),runtimeSummary=getConnectorAbsorptionSummary();
+const runtimeAbsorption=liveAbsorptionCatalog(),runtimeManifest=liveCapabilityManifest(),persistentManifest=getPersistentConnectorAbsorptionManifest(),pluginManifest=getChatGPTPluginCapabilityManifest(),skillManifest=getInstalledPluginSkillManifest(),runtimeSummary=getConnectorAbsorptionSummary(),liveToolSummary=getLivePluginToolResearchSummary(),liveSkillSummary=getLivePluginSkillResearchSummary();
 checks.push(['every live /connections connector exists in the Magnanimous absorption catalog',directIds.every(id=>catalogIds.has(id))]);
 checks.push(['all 13 direct platform connector types are covered',directIds.length===13&&liveIntegrations.length===13]);
 for(const item of liveIntegrations){
@@ -112,13 +128,18 @@ for(const item of liveIntegrations){
 checks.push(['absorption research ledger covers every direct connector',directIds.every(id=>absorption.includes(` ${id}:`)||absorption.includes(`'${id}':`))]);
 checks.push(['catalog contains at least 68 benchmark/direct connector entries',catalogIds.size>=68]);
 checks.push(['persistent connector manifest contains at least 294 capability specs',persistentManifest.length>=294]);
-checks.push(['visible ChatGPT plugin snapshot covers at least 109 plugin namespaces',runtimeSummary.visible_plugin_namespaces>=109]);
-checks.push(['visible ChatGPT plugin snapshot covers at least 2259 tool contracts',runtimeSummary.visible_plugin_tool_contracts>=2259]);
-checks.push(['plugin tool contracts are converted one by one',pluginManifest.length>=2259]);
-checks.push(['installed plugin skill snapshot covers at least 109 skill namespaces',runtimeSummary.installed_plugin_skill_namespaces>=109]);
-checks.push(['installed plugin skill snapshot covers at least 867 skill contracts',runtimeSummary.installed_plugin_skills>=867]);
+checks.push(['retained plugin research covers at least 110 observable namespaces including current + historical continuity',runtimeSummary.visible_plugin_namespaces>=110]);
+checks.push(['current live plugin research covers at least 105 namespaces',liveToolSummary.live_plugin_namespaces>=105&&runtimeSummary.currently_visible_plugin_namespaces>=105]);
+checks.push(['current live plugin research covers at least 2080 tool contracts',liveToolSummary.live_tool_contracts>=2080&&runtimeSummary.currently_visible_plugin_tool_contracts>=2080]);
+checks.push(['retained plugin tool manifest covers at least 2265 tool contracts including live-only Plugin Management',runtimeSummary.visible_plugin_tool_contracts>=2265]);
+checks.push(['plugin tool contracts are converted one by one',pluginManifest.length>=2265]);
+checks.push(['Plugin Management capabilities are absorbed into the manifest',pluginManifest.some(x=>x.plugin_namespace==='Plugin_Management'&&x.capability.includes('search-plugins'))]);
+checks.push(['retained plugin skill research covers at least 109 skill namespaces',runtimeSummary.installed_plugin_skill_namespaces>=109]);
+checks.push(['current live skill catalog covers at least 107 namespaces and 855 skills',liveSkillSummary.live_skill_namespaces>=107&&liveSkillSummary.live_skill_contracts>=855&&runtimeSummary.currently_visible_plugin_skills>=855]);
+checks.push(['retained plugin skill snapshot covers at least 867 skill contracts for continuity',runtimeSummary.installed_plugin_skills>=867]);
 checks.push(['installed plugin skills are converted one by one',skillManifest.length>=867]);
-checks.push(['full Magnanimous brain manifest covers connector, plugin tool, and installed skill contracts',runtimeManifest.length>=3420&&runtimeSummary.full_brain_capability_contracts>=3420]);
+checks.push(['full Magnanimous brain manifest covers connector, plugin tool, and skill contracts',runtimeManifest.length>=3426&&runtimeSummary.full_brain_capability_contracts>=3426]);
+checks.push(['one-by-one research state is explicit',runtimeSummary.one_by_one_research===true]);
 checks.push(['plugin account authorization is not assumed',runtimeSummary.plugin_authorization_state==='not-assumed']);
 
 const failed=checks.filter(([,ok])=>!ok);
