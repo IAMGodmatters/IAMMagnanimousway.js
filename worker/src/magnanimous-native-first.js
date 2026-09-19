@@ -85,15 +85,16 @@ async function seedMatrix(env){
 async function seedConnectorAbsorption(env){
  if(!env?.DB)return;
  await ensureSchema(env);
- const ts=now();
+ const ts=now(),catalog=new Map(getConnectorAbsorptionCatalog().map(x=>[x.id,x])),statements=[];
  for(const row of getCapabilityAbsorptionManifest()){
-  const research=(getConnectorAbsorptionCatalog().find(x=>x.id===row.connector_id)||{}).research||{};
+  const research=catalog.get(row.connector_id)?.research||{};
   const spec={magnanimous_owned:row.magnanimous_owned,external_only:row.external_only,acceptance_tests:row.acceptance_tests,recipe:row.recipe,implementation_status:row.implementation_status};
-  await env.DB.prepare(`INSERT INTO magnanimous_connector_capability_absorption(connector_id,capability_id,connector_name,category,native_target,boundary,source_kind,status,research_json,spec_json,created_at,updated_at)
+  statements.push(env.DB.prepare(`INSERT INTO magnanimous_connector_capability_absorption(connector_id,capability_id,connector_name,category,native_target,boundary,source_kind,status,research_json,spec_json,created_at,updated_at)
    VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(connector_id,capability_id) DO UPDATE SET connector_name=excluded.connector_name,category=excluded.category,native_target=excluded.native_target,boundary=excluded.boundary,source_kind=excluded.source_kind,research_json=excluded.research_json,spec_json=excluded.spec_json,updated_at=excluded.updated_at`).bind(
     row.connector_id,row.capability,row.connector_name,row.category,String(row.native_target||''),row.boundary,row.source_kind,'brain-spec-absorbed',JSON.stringify(research).slice(0,10000),JSON.stringify(spec).slice(0,30000),ts,ts
-   ).run();
+   ));
  }
+ for(let i=0;i<statements.length;i+=50)await env.DB.batch(statements.slice(i,i+50));
 }
 
 async function materializeConnectorCapabilityRecipes(env,{connector='',capability='',limit=60,pendingOnly=false}={}){
