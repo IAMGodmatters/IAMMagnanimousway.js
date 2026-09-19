@@ -38,6 +38,7 @@ const TOOLS = [
   ['ai-chat','AI Chat','General-purpose AI assistant.'],
   ['writing','Writing Helper','Create, rewrite, summarize and polish content.'],
   ['research','Research Helper','Research live web/news sources and private workspace knowledge.'],
+  ['native-web','Native Web Agent','Magnanimous-owned browser search, rendered extraction, browser workflows, persistent local sessions and monitoring through a paired Local Bridge.'],
   ['bible-study','Bible Study','Study Scripture and organize biblical topics.'],
   ['marketing','Marketing Helper','Create campaigns, captions, offers and content plans.'],
   ['business','Business Helper','Business planning, ideas and analysis.'],
@@ -74,6 +75,7 @@ function needsFreshResearch(message) {
 }
 function nativeCapability(message, task) {
   const m = String(message || '').toLowerCase();
+  if (/browse|browser|open website|click|fill|form|scrape|crawl|rendered page|web automation|website monitor/.test(m)) return 'native-web-browser-automation';
   if (/shopify|shopee|tiktok shop|product|catalog|markup|upsell|dropship|inventory|store/.test(m)) return 'commerce-catalog-operations';
   if (/facebook|instagram|tiktok|linkedin|youtube|social|caption|hashtag|post/.test(m)) return 'social-content-operations';
   if (/website|next\.?js|cloudflare|github|deploy|repository|worker|d1|frontend|backend/.test(m)) return 'web-platform-development';
