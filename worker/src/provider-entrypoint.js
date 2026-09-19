@@ -4,6 +4,7 @@ import { getKnowledgeContext, handleKnowledge } from './knowledge-runtime.js';
 import { getMagnanimousMemoryContext } from './magnanimous-brain-runtime.js';
 import { getMagnanimousToolFoundryContext, handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
 import { getMagnanimousOgenicPrompt, buildMagnanimousOgenicPlan, handleMagnanimousOgenic } from './magnanimous-ogenic-god-toolkit.js';
+import { hasAnyReadyLocalBridge, hasReadyLocalBridge } from './magnanimous-local-bridge-runtime.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const now = () => Math.floor(Date.now() / 1000);
@@ -248,7 +249,9 @@ async function handle(request, env) {
   }
 
   if (url.pathname === '/api/tools' && request.method === 'GET') return json({ tools: TOOLS });
-  if (url.pathname === '/api/operator/capabilities' && request.method === 'GET') return json({
+  if (url.pathname === '/api/operator/capabilities' && request.method === 'GET') {
+    const localBridgeReady=await hasAnyReadyLocalBridge(env).catch(()=>false);
+    return json({
     operator:'Magnanimous AI',
     command_role:'commander-in-chief',
     routing:{task_aware:true,automatic_failover:true,manual_provider_override:true,free_first_default:true,maximum_quality_option:true,learned_tool_planning:true,integration_ranking:true,adaptive_provider_learning:true,ogenic_god_toolkit:true,cloud_local_hybrid:true,suggestive_initiation:true},
@@ -257,8 +260,10 @@ async function handle(request, env) {
     execution:{specialist_agent_mesh:true,connected_actions:true,crm:true,business_email:true,calling:true,video:true,social:true,professional_business_launch:true,tool_foundry:true,universal_tool_gateway:true,native_recipe_growth:true,ogenic_god_toolkit:true,netwalk_contract:true,safe_action_initiation:true},
     learning_loop:['absorb links and sources','retrieve saved knowledge','plan centrally','route execution','verify outcome','score providers and recipes','promote successful low-risk recipes'],
     business_launch:{pipeline:['Intake','Clarify','Research','Validate','Financial Review','Draft','Hostile Review','Consistency Check','Audience Adaptation','Final Polish']},
+    local_bridge:{runtime:true,connected:localBridgeReady,transport:'outbound-only',raw_shell:false},
     note:'Magnanimous is the persistent command and learning layer. External integrations remain necessary where account authorization, live provider data or specialized compute is required.'
   });
+  }
   if (url.pathname === '/api/ads' && request.method === 'GET') {
     try {
       const placement = url.searchParams.get('placement') || 'home';
@@ -274,7 +279,8 @@ async function handle(request, env) {
   }
   if ((url.pathname === '/api/magnanimous/health' || url.pathname === '/api/odin/health') && request.method === 'GET') {
     const providers = PROVIDERS.map(p => ({ id: p.id, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env) }));
-    return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', command_role:'commander-in-chief', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, adaptive_provider_learning:true, automatic_link_learning:true, native_recipe_growth:true, ogenic_god_toolkit:true, suggestive_initiation:true, local_bridge_configured:Boolean(env?.MAGNANIMOUS_LOCAL_BRIDGE_URL), workers_ai_bound: env?.AI != null, web_search_configured:true, news_search_configured:true, brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY), research_fallback_enabled:true, providers });
+    const localBridgeReady=await hasAnyReadyLocalBridge(env).catch(()=>false);
+    return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', command_role:'commander-in-chief', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, adaptive_provider_learning:true, automatic_link_learning:true, native_recipe_growth:true, ogenic_god_toolkit:true, suggestive_initiation:true, local_bridge_runtime:true, local_bridge_configured:localBridgeReady, local_bridge_transport:'outbound-only', workers_ai_bound: env?.AI != null, web_search_configured:true, news_search_configured:true, brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY), research_fallback_enabled:true, providers });
   }
   if (url.pathname === '/api/chat' && request.method === 'POST') {
     const body = await request.json();
@@ -302,13 +308,15 @@ async function handle(request, env) {
     const observed=body.use_tools===false?null:await foundryCall(request,env,'/api/magnanimous/tool-foundry/observe',{capability,example_task:userMessage});
     const learnedScores=await learnedProviderScores(request,env,task);
     const learningState=[...learnedScores.entries()].map(([provider,x])=>({provider,...x}));
-    const ogenicPlan=buildMagnanimousOgenicPlan(userMessage,env),ogenicContext=getMagnanimousOgenicPrompt(userMessage);
+    const signedInUser=await currentUser(request,env).catch(()=>null),localBridgeReady=signedInUser?await hasReadyLocalBridge(env,signedInUser.tenant_id).catch(()=>false):false;
+    const ogenicRuntimeEnv=localBridgeReady?{...env,MAGNANIMOUS_LOCAL_BRIDGE_READY:true}:env;
+    const ogenicPlan=buildMagnanimousOgenicPlan(userMessage,ogenicRuntimeEnv),ogenicContext=getMagnanimousOgenicPrompt(userMessage);
     let ogenicInitiative=null;
     if(body.use_tools!==false&&body.ogenic_initiative!==false&&ogenicPlan.groups.some(x=>x.id==='code-system')){
       try{
         const initiativeUrl=new URL('/api/magnanimous/ogenic/initiate',request.url),initiativeHeaders=new Headers(request.headers);
         initiativeHeaders.set('content-type','application/json');
-        const initiativeResponse=await handleMagnanimousOgenic(new Request(initiativeUrl.toString(),{method:'POST',headers:initiativeHeaders,body:JSON.stringify({goal:userMessage,repo:body.repo||'IAMGodmatters/IAMMagnanimousway.js',ref:body.ref||'main'})}),env);
+        const initiativeResponse=await handleMagnanimousOgenic(new Request(initiativeUrl.toString(),{method:'POST',headers:initiativeHeaders,body:JSON.stringify({goal:userMessage,repo:body.repo||'IAMGodmatters/IAMMagnanimousway.js',ref:body.ref||'main',workspace:body.workspace||'',local_payload:body.local_payload||{}})}),env);
         const initiativeData=await initiativeResponse?.clone().json().catch(()=>null);
         ogenicInitiative=initiativeData?{http_status:initiativeResponse.status,initiated:Boolean(initiativeData.initiated),initiative:initiativeData.initiative||null,code:initiativeData.code||null,result:initiativeData.result?{mode:initiativeData.result.mode||null,repo:initiativeData.result.repo||null,ref:initiativeData.result.ref||null}:null}:null;
       }catch(error){ogenicInitiative={initiated:false,code:'INITIATIVE_ERROR',detail:String(error?.message||error).slice(0,300)}}
