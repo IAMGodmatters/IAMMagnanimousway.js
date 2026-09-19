@@ -41,7 +41,9 @@ for(const needle of [
  'Local/private browser targets are blocked',
  'Password/secret fields cannot be filled from a remote task',
  'BROWSER_DIR = APP_DIR / "browser-profiles"',
- 'provider_dependency": False'
+ 'provider_dependency": False',
+ '"extract_elements"',
+ 'Screenshot exceeds the safe bridge result size.'
 ])assert(agent.includes(needle),'Native browser agent contract missing: '+needle);
 
 assert(!agent.includes('shell=True'),'native browser must not reopen a generic shell surface');
@@ -59,7 +61,11 @@ for(const needle of [
  "'/api/magnanimous/native-web/monitors'",
  "Math.max(15",
  "requirePlatformOwner",
- "scheduledNativeWeb"
+ "scheduledNativeWeb",
+ "'/api/magnanimous/native-web/goals'",
+ "planBrowserGoal",
+ "Maximum 30 steps",
+ "'/api/magnanimous/native-web/runs'"
 ])assert(runtime.includes(needle),'Magnanimous Native Web runtime contract missing: '+needle);
 
 assert(!runtime.includes("from './tinyfish"),'Magnanimous Native Web must not import TinyFish as a required runtime');
@@ -88,6 +94,7 @@ for(const needle of [
 assert(ownerPage.includes('Native Web Agent'),'owner Native Web dashboard missing');
 assert(ownerPage.includes('/api/magnanimous/native-web/capabilities'),'owner dashboard must read native capability truth');
 assert(ownerPage.includes('TinyFish required:'),'owner dashboard must expose dependency truth');
+assert(ownerPage.includes('/api/magnanimous/native-web/goals'),'owner dashboard must expose plain-English browser goals');
 assert(localPage.includes('NATIVE BROWSER UPDATE NEEDED'),'Local Bridge page must show browser-upgrade state');
 assert(ownerCenter.includes('/owner-web-agent'),'Owner Center must link Native Web Agent');
 assert(docs.includes('Magnanimous Native Browser'),'Local Bridge documentation must explain native browser capability');
