@@ -20,6 +20,8 @@ export default function OwnerWebAgentPage(){
  const[runs,setRuns]=useState<Run[]>([]);
  const[monitors,setMonitors]=useState<Monitor[]>([]);
  const[query,setQuery]=useState('');
+ const[goal,setGoal]=useState('');
+ const[goalMode,setGoalMode]=useState<'read'|'action'>('read');
  const[url,setUrl]=useState('');
  const[monitorUrl,setMonitorUrl]=useState('');
  const[monitorName,setMonitorName]=useState('');
@@ -54,6 +56,16 @@ export default function OwnerWebAgentPage(){
   const timer=setInterval(()=>runs.forEach(r=>{if(['queued','claimed'].includes(r.status))void poll(r.id)}),2500);
   return()=>clearInterval(timer);
  },[token,runs]);
+
+ async function queueGoal(){
+  setBusy('goal');setError('');setNotice('');
+  try{
+   const d=await readData(await fetch('/api/magnanimous/native-web/goals',{method:'POST',headers:headers(true),body:JSON.stringify({goal,mode:goalMode})}));
+   const next:Run={id:d.id,kind:'goal-'+goalMode,status:d.status,requires_confirmation:d.requires_confirmation,result:{plan:d.plan}};
+   setRuns(list=>[next,...list.filter(x=>x.id!==next.id)]);
+   setNotice(d.requires_confirmation?'Magnanimous planned the goal. Confirm the exact interactive task before it executes.':'Magnanimous planned and queued the read-only browser goal.');
+  }catch(e:any){setError(e.message||'Could not plan browser goal.')}finally{setBusy('')}
+ }
 
  async function queue(kind:string,body:any){
   setBusy(kind);setError('');setNotice('');
@@ -109,6 +121,12 @@ export default function OwnerWebAgentPage(){
   {!browserReady&&<section className={styles.upgrade}><b>One-time local upgrade needed</b><p>The platform runtime is ready, but the paired computer must advertise the new browser capabilities. Re-run the Windows activation once; the existing pairing is reused.</p><a href="/local-bridge">OPEN LOCAL BRIDGE ACTIVATION →</a></section>}
   {notice&&<div className={styles.noticeOk}>{notice}</div>}
   {error&&<div className={styles.noticeErr}>{error}</div>}
+
+  <section className={styles.panel}>
+   <div className={styles.panelHead}><div><small>NATURAL-LANGUAGE WEB AGENT</small><h2>Tell Magnanimous what to do</h2></div><span>Magnanimous plans • Local Chromium executes</span></div>
+   <textarea className={styles.goalBox} value={goal} onChange={e=>setGoal(e.target.value)} placeholder="Example: Open the public pricing page for a service, collect the plan names and prices, and summarize the differences."/>
+   <div className={styles.goalActions}><select value={goalMode} onChange={e=>setGoalMode(e.target.value as 'read'|'action')}><option value="read">Read-only goal</option><option value="action">Interactive goal — confirmation required</option></select><button disabled={!browserReady||!goal.trim()||!!busy} onClick={queueGoal}>{busy==='goal'?'PLANNING…':'PLAN + RUN WITH MAGNANIMOUS'}</button></div>
+  </section>
 
   <section className={styles.grid}>
    <article className={styles.card}><small>NATIVE SEARCH</small><h2>Search the public web</h2><p>Uses local Chromium instead of a metered web-agent service.</p><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="What should Magnanimous search for?"/><button disabled={!browserReady||!query.trim()||!!busy} onClick={()=>queue('search',{query,limit:10})}>{busy==='search'?'QUEUING…':'RUN NATIVE SEARCH'}</button></article>
