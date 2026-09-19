@@ -21,6 +21,7 @@ Disallow: /crm/
 Disallow: /customer-service/
 Disallow: /developer-agent/
 Disallow: /god-coding/
+Disallow: /local-bridge/
 Disallow: /email/
 Disallow: /finance-people/
 Disallow: /grants/

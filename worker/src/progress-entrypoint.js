@@ -4,6 +4,7 @@ import {runQaLearningNow} from './qa-learning-now-runtime.js';
 import {specialistForMessage,specialistIntroduction} from './specialist-router.js';
 import {handleMagnanimousNativeFirst} from './magnanimous-native-first.js';
 import {handleMagnanimousOgenic} from './magnanimous-ogenic-god-toolkit.js';
+import {handleMagnanimousLocalBridge} from './magnanimous-local-bridge-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 
@@ -60,6 +61,15 @@ export default{
    }catch(error){
     console.error('Magnanimous native-first runtime failed',error);
     return json({detail:'Magnanimous native-first runtime could not complete this request.'},500);
+   }
+  }
+  if(path.startsWith('/api/magnanimous/local-bridge')){
+   try{
+    const bridge=await handleMagnanimousLocalBridge(request,env);
+    if(bridge)return bridge;
+   }catch(error){
+    console.error('Magnanimous Local Bridge runtime failed',error);
+    return json({detail:'Magnanimous Local Bridge could not complete this request.'},500);
    }
   }
   if(path.startsWith('/api/magnanimous/ogenic')){
