@@ -25,6 +25,16 @@ jobs:
         run: node qa/scripts/magnanimous-local-bridge-lock.mjs
       - name: Syntax check Local Bridge Python agent
         run: python -m py_compile local-bridge/bridge_agent.py
+      - name: Syntax check Local Bridge PowerShell installer
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'local-bridge/install.ps1'), [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
       - name: Syntax check native-first Worker runtime
         run: node --check worker/src/magnanimous-native-first.js
       - name: Syntax check OGENIC GOD TOOLKIT runtime
