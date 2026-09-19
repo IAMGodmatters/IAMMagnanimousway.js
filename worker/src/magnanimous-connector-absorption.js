@@ -43,7 +43,6 @@ const DIRECT_IDS=new Set(INTEGRATIONS.map(x=>x.id));
 const DIRECT_BY_ID=new Map(INTEGRATIONS.map(x=>[x.id,x]));
 const LIVE_TOOL_BY_NAMESPACE=new Map();
 for(const row of LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT){
- if(row.namespace==='Floot')continue;
  const list=LIVE_TOOL_BY_NAMESPACE.get(row.namespace)||[];list.push(row);LIVE_TOOL_BY_NAMESPACE.set(row.namespace,list);
 }
 const LIVE_SKILL_BY_KEY=new Map(LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT.map(x=>[`${x.plugin_namespace}/${x.skill_name}`,x]));
@@ -187,7 +186,6 @@ function pluginCapabilityRecipe(plugin,tool){
 function liveOnlyPluginRecipes(){
  const out=[];
  for(const row of LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT){
-  if(row.namespace==='Floot')continue;
   const historical=CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.find(x=>x.namespace===row.namespace);
   if(historical&&(historical.tools||[]).some(tool=>toolContractMatch(row.tool,tool)))continue;
   const slug=String(row.namespace||'plugin').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'plugin';
@@ -196,7 +194,7 @@ function liveOnlyPluginRecipes(){
  return out;
 }
 export function getChatGPTPluginCapabilityManifest(){
- const historical=CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.filter(plugin=>plugin.namespace!=='Floot').flatMap(plugin=>(plugin.tools||[]).map(tool=>pluginCapabilityRecipe(plugin,tool)));
+ const historical=CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.flatMap(plugin=>(plugin.tools||[]).map(tool=>pluginCapabilityRecipe(plugin,tool)));
  return [...historical,...liveOnlyPluginRecipes()];
 }
 function installedSkillRecipe(tuple){
@@ -257,12 +255,12 @@ export function getCapabilityAbsorptionManifest(){
 }
 
 export function getConnectorAbsorptionSummary(){
- const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),builderManifest=getMagnanimousBuilderCapabilityManifest(),engineeringManifest=getMagnanimousEngineeringSkillManifest(),liveToolRows=LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.filter(x=>x.namespace!=='Floot'),liveSkills=getLivePluginSkillResearchSummary(),builder=getMagnanimousBuilderSummary(),engineering=getMagnanimousTechniqueSummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
+ const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),builderManifest=getMagnanimousBuilderCapabilityManifest(),engineeringManifest=getMagnanimousEngineeringSkillManifest(),liveToolRows=LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT,liveSkills=getLivePluginSkillResearchSummary(),builder=getMagnanimousBuilderSummary(),engineering=getMagnanimousTechniqueSummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
  const missingDirect=INTEGRATIONS.filter(x=>!directCatalogued.has(x.id)).map(x=>x.id);
- const pluginNamespaces=new Set([...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.filter(x=>x.namespace!=='Floot').map(x=>x.namespace),...liveToolRows.map(x=>x.namespace)]);
+ const pluginNamespaces=new Set([...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace),...liveToolRows.map(x=>x.namespace)]);
  const liveTools={live_plugin_namespaces:new Set(liveToolRows.map(x=>x.namespace)).size,live_tool_contracts:liveToolRows.length};
  const skillNamespaces=new Set(INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>x[0]));
- const historicalToolNamespaces=[...new Set(CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.filter(x=>x.namespace!=='Floot').map(x=>x.namespace))].filter(x=>!LIVE_TOOL_BY_NAMESPACE.has(x));
+ const historicalToolNamespaces=[...new Set(CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace))].filter(x=>!LIVE_TOOL_BY_NAMESPACE.has(x));
  const liveOnlyToolNamespaces=[...new Set(liveToolRows.map(x=>x.namespace))].filter(x=>!CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.some(p=>p.namespace===x));
  const historicalSkillCount=INSTALLED_PLUGIN_SKILL_SNAPSHOT.filter(x=>!LIVE_SKILL_BY_KEY.has(`${x[0]}/${x[1]}`)).length;
  return{
@@ -291,7 +289,7 @@ export function getConnectorAbsorptionSummary(){
   one_by_one_research:true,
   builder,
   research_sources:['official direct connector API documentation','live observable plugin tool catalog excluding retired providers','observable installed skill catalog','Magnanimous first-party builder contracts','Magnanimous first-party engineering technique catalog','historical observable contracts retained for continuity'],
-  native_targets:[...new Set([...catalog.map(x=>x.native_target).filter(Boolean),...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.filter(x=>x.namespace!=='Floot').map(pluginNativeTarget),...liveToolRows.map(x=>pluginNativeTarget({namespace:x.namespace,tools:[x.tool,x.purpose]})),...INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x[0],tools:[x[1],x[2]]})),...MAGNANIMOUS_BUILDER_TOOL_CONTRACTS.map(x=>getMagnanimousBuilderNativeTarget(x.tool)),...MAGNANIMOUS_ENGINEERING_GUIDE_TOPICS.map(x=>getMagnanimousGuideNativeTarget(x.id))])].sort(),
+  native_targets:[...new Set([...catalog.map(x=>x.native_target).filter(Boolean),...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(pluginNativeTarget),...liveToolRows.map(x=>pluginNativeTarget({namespace:x.namespace,tools:[x.tool,x.purpose]})),...INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x[0],tools:[x[1],x[2]]})),...MAGNANIMOUS_BUILDER_TOOL_CONTRACTS.map(x=>getMagnanimousBuilderNativeTarget(x.tool)),...MAGNANIMOUS_ENGINEERING_GUIDE_TOPICS.map(x=>getMagnanimousGuideNativeTarget(x.id))])].sort(),
   direct_connector_coverage:{covered:INTEGRATIONS.length-missingDirect.length,total:INTEGRATIONS.length,missing:missingDirect},
   absorption_policy:ABSORPTION_POLICY,
   status:missingDirect.length?'coverage-gap':'catalog-complete'
