@@ -4,7 +4,7 @@ import { CHATGPT_PLUGIN_CONTRACT_SNAPSHOT, getChatGPTPluginContractSummary } fro
 import { INSTALLED_PLUGIN_SKILL_SNAPSHOT, getInstalledPluginSkillSummary } from './magnanimous-installed-plugin-skill-snapshot.js';
 import { LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT, getLivePluginToolResearchSummary } from './magnanimous-live-plugin-tool-research-snapshot.js';
 import { LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT, getLivePluginSkillResearchSummary } from './magnanimous-live-plugin-skill-research-snapshot.js';
-import { getFlootNativeTarget, getFlootToolPolicy, getFlootCapabilitySummary } from './magnanimous-floot-capability-snapshot.js';
+import { FLOOT_OBSERVABLE_GUIDE_TOPICS, getFlootNativeTarget, getFlootToolPolicy, getFlootCapabilitySummary } from './magnanimous-floot-capability-snapshot.js';
 
 // Research ledger for the account connectors that I AM Magnanimous Way can authorize directly.
 // These sources describe public API contracts only. They are not copied implementations.
@@ -215,12 +215,45 @@ function installedSkillRecipe(tuple){
 export function getInstalledPluginSkillManifest(){
  return INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(installedSkillRecipe);
 }
+function flootGuideNativeTarget(id='',purpose=''){
+ const hay=(String(id)+' '+String(purpose)).toLowerCase();
+ if(/agent|subagent|memory|collection|access-control|scheduling|remote|telegram|mcp|queue|scheduled/.test(hay))return'agent-mesh';
+ if(/publish|domain|dns|native-mobile|ios|android|entitlement|share-target|background-wake|system-bars|server-memory|hosting/.test(hay))return'tool-deployment';
+ if(/database|postgres|sql|schema|csv/.test(hay))return'data-platform';
+ if(/image|lottie|animation|audio|video/.test(hay))return'creative-studio';
+ if(/design|preview|screenshot|calendar/.test(hay))return'product-design-agent';
+ if(/email|push-notification/.test(hay))return'communications-hub';
+ if(/analytics|seo|sitemap/.test(hay))return'growth-analytics';
+ if(/pdf|storage|zip|upload/.test(hay))return'workspace-files';
+ if(/ai|chat|embedding|model/.test(hay))return'model-router';
+ if(/oauth|google|microsoft|resource|auth|payment-challenge/.test(hay))return'universal-tool-gateway';
+ if(/test|runCode|primitives|first-build|floot-overview/.test(hay))return'engineering-operator';
+ return'knowledge-workspace';
+}
+export function getFlootGuideSkillManifest(){
+ return FLOOT_OBSERVABLE_GUIDE_TOPICS.map(({id,purpose})=>{
+  const slug=String(id||'guide').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'guide';
+  const native_target=flootGuideNativeTarget(id,purpose);
+  return{
+   id:`floot-guide:${slug}`,connector_id:'plugin-skill:Floot-guides',connector_name:'Floot observable guide/skill pack',category:'plugin-skill',
+   capability:`skill-floot-${slug}`,native_target,priority:'observed',source_kind:'floot-observable-guide-contract',direct_connector:false,
+   boundary:'external-plugin-account-or-provider-rail-when-required',absorption_status:'brain-spec-absorbed',implementation_status:'specified-not-assumed-native',
+   magnanimous_owned:['skill-selection',...ownedParts()],external_only:['Floot project/account authorization when required','Floot-hosted execution when required'],
+   acceptance_tests:['Guide purpose is represented as a provider-neutral Magnanimous workflow goal.','Only the observable guide topic and public purpose are learned; private Floot implementation is not copied.','Magnanimous owns routing, memory, policy, initiative and verification.','Native status requires independent runtime evidence.'],
+   recipe:[`Apply the observable Floot guide goal ${id} through Magnanimous-owned planning and verification.`,'Reuse Magnanimous native execution surfaces first.','Use Floot only when its real project/hosting/resource rail is authorized and needed.','Respect existing approval gates for writes, provisioning, publishing, credentials, database mutation and destructive actions.','Verify the result and record reusable lessons.'],
+   plugin_namespace:'Floot',skill_name:id,search_text:purpose,authorization_state:'not-assumed',
+   initiative:{...initiativePolicy(id,purpose,'external-plugin-account-or-provider-rail-when-required'),auto_initiate:false,action_class:'advisory-skill'},
+   visibility_state:'live-visible',
+   research:{captured_at:'2026-09-20',source_kind:'floot-observable-guide-contract',public_purpose:purpose,authorization_state:'not-assumed',private_skill_implementation_copied:false,requires_real_floot_tool:true}
+  };
+ });
+}
 export function getCapabilityAbsorptionManifest(){
- return [...getPersistentConnectorAbsorptionManifest(),...getChatGPTPluginCapabilityManifest(),...getInstalledPluginSkillManifest()];
+ return [...getPersistentConnectorAbsorptionManifest(),...getChatGPTPluginCapabilityManifest(),...getInstalledPluginSkillManifest(),...getFlootGuideSkillManifest()];
 }
 
 export function getConnectorAbsorptionSummary(){
- const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),liveTools=getLivePluginToolResearchSummary(),liveSkills=getLivePluginSkillResearchSummary(),floot=getFlootCapabilitySummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
+ const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),flootGuideManifest=getFlootGuideSkillManifest(),liveTools=getLivePluginToolResearchSummary(),liveSkills=getLivePluginSkillResearchSummary(),floot=getFlootCapabilitySummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
  const missingDirect=INTEGRATIONS.filter(x=>!directCatalogued.has(x.id)).map(x=>x.id);
  const pluginNamespaces=new Set([...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace),...LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>x.namespace)]);
  const skillNamespaces=new Set(INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>x[0]));
@@ -243,7 +276,8 @@ export function getConnectorAbsorptionSummary(){
   currently_visible_plugin_skill_namespaces:liveSkills.live_skill_namespaces,
   currently_visible_plugin_skills:liveSkills.live_skill_contracts,
   historical_plugin_skills:historicalSkillCount,
-  full_brain_capability_contracts:persistent.length+pluginManifest.length+skillManifest.length,
+  floot_guide_skill_contracts:flootGuideManifest.length,
+  full_brain_capability_contracts:persistent.length+pluginManifest.length+skillManifest.length+flootGuideManifest.length,
   plugin_authorization_state:'not-assumed',
   one_by_one_research:true,
   floot,
