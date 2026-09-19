@@ -160,6 +160,32 @@ export async function findReadyLocalBridgeDevice(env,tenantId,action=''){
  }
  return null;
 }
+
+export async function queueLocalBridgeTask(env,user,{action,payload={},deviceId='',allowConfirmation=true}={}){
+ if(!env?.DB||!user?.tenant_id||!user?.id)throw new Error('Signed-in tenant user is required to queue a Local Bridge task.');
+ await ensureSchema(env);
+ const checked=validateTask(clip(action,80),payload);
+ let device=null;
+ if(deviceId){
+  const row=await env.DB.prepare("SELECT * FROM magnanimous_local_bridge_devices WHERE id=? AND tenant_id=? AND status='active' AND last_seen_at>=?").bind(clip(deviceId,120),String(user.tenant_id),now()-ACTIVE_WINDOW).first();
+  if(row)device=publicDevice(row);
+ }else device=await findReadyLocalBridgeDevice(env,user.tenant_id,action);
+ if(!device)return{ok:false,code:'NATIVE_BROWSER_NOT_READY',detail:'No online paired Local Bridge currently advertises this capability.'};
+ if(!Array.isArray(device.capabilities)||!device.capabilities.includes(action))return{ok:false,code:'CAPABILITY_NOT_READY',detail:'The selected Local Bridge does not advertise this capability.'};
+ if(checked.def.confirmation&&!allowConfirmation)return{ok:false,code:'CONFIRMATION_REQUIRED',detail:'This browser action requires an exact task confirmation before execution.'};
+ const id=uid('lbt'),ts=now(),status=checked.def.confirmation?'needs_confirmation':'queued';
+ await env.DB.prepare('INSERT INTO magnanimous_local_bridge_tasks(id,tenant_id,user_id,device_id,action,payload_json,risk_class,status,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,String(user.tenant_id),String(user.id),device.id,action,JSON.stringify(checked.body).slice(0,500000),checked.def.risk,status,ts,ts+TASK_TTL).run();
+ return{ok:true,id,device_id:device.id,action,risk_class:checked.def.risk,status,requires_confirmation:checked.def.confirmation,confirmation_endpoint:checked.def.confirmation?'/api/magnanimous/local-bridge/tasks/'+id+'/confirm':null};
+}
+
+export async function localBridgeTask(env,tenantId,taskId){
+ if(!env?.DB||!tenantId||!taskId)return null;
+ await ensureSchema(env);
+ const task=await env.DB.prepare('SELECT * FROM magnanimous_local_bridge_tasks WHERE id=? AND tenant_id=?').bind(String(taskId),String(tenantId)).first();
+ if(!task)return null;
+ let payload={},result={};try{payload=JSON.parse(task.payload_json||'{}')}catch{}try{result=JSON.parse(task.result_json||'{}')}catch{}
+ return{id:task.id,device_id:task.device_id,action:task.action,risk_class:task.risk_class,status:task.status,payload,result,error:task.error_text,created_at:task.created_at,claimed_at:task.claimed_at,completed_at:task.completed_at,expires_at:task.expires_at,confirmed_at:task.confirmed_at};
+}
 async function overview(env,user){
  const tenantId=String(user.tenant_id);
  const {results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_local_bridge_devices WHERE tenant_id=? ORDER BY last_seen_at DESC').bind(tenantId).all();
