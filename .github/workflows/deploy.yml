@@ -68,10 +68,6 @@ jobs:
           set -euo pipefail
           rm -rf /tmp/magnanimous-full-brain
           node qa/scripts/materialize-full-brain-d1.mjs /tmp/magnanimous-full-brain
-          for file in /tmp/magnanimous-full-brain/*.sql; do
-            echo "Applying $(basename "$file")"
-            (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file="$file")
-          done
 
           expected=$(python - <<'PY'
           import json
@@ -91,6 +87,68 @@ jobs:
           print(','.join(str(d[k]) for k in ['native_ready','hybrid_ready','bridge_required','specified_only']))
           PY
           )
+
+          # Avoid spending D1 write quota when the exact brain manifest is already live.
+          # This check is intentionally read-only and compares the source digest plus
+          # realization counts before any generated SQL is applied.
+          (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT
+            m.manifest_count AS manifest_count,
+            m.source_digest AS source_digest,
+            m.status AS status,
+            r.native_ready_count AS native_ready_count,
+            r.hybrid_ready_count AS hybrid_ready_count,
+            r.bridge_required_count AS bridge_required_count,
+            r.specified_only_count AS specified_only_count,
+            r.source_digest AS realization_digest,
+            r.status AS realization_status
+            FROM magnanimous_capability_materialization_state m
+            LEFT JOIN magnanimous_capability_realization_state r ON r.id='full-brain'
+            WHERE m.id='full-brain';" > /tmp/magnanimous-full-brain/precheck.json || true)
+
+          materialization_needed=$(EXPECTED="$expected" DIGEST="$digest" REALIZATION_COUNTS="$realization_counts" python - <<'PY'
+          import json, os
+          try:
+              payload=json.load(open('/tmp/magnanimous-full-brain/precheck.json'))
+          except Exception:
+              print(1); raise SystemExit
+          rows=[]
+          def walk(x):
+              if isinstance(x,dict):
+                  if 'manifest_count' in x and 'source_digest' in x: rows.append(x)
+                  for v in x.values(): walk(v)
+              elif isinstance(x,list):
+                  for v in x: walk(v)
+          walk(payload)
+          if not rows:
+              print(1); raise SystemExit
+          row=rows[-1]
+          expected=int(os.environ['EXPECTED'])
+          digest=os.environ['DIGEST']
+          nr,hr,br,so=map(int,os.environ['REALIZATION_COUNTS'].split(','))
+          ok=(
+              int(row.get('manifest_count') or -1)==expected and
+              row.get('source_digest')==digest and
+              row.get('status')=='complete' and
+              int(row.get('native_ready_count') or -1)==nr and
+              int(row.get('hybrid_ready_count') or -1)==hr and
+              int(row.get('bridge_required_count') or -1)==br and
+              int(row.get('specified_only_count') or -1)==so and
+              row.get('realization_digest')==digest and
+              row.get('realization_status')=='complete'
+          )
+          print(0 if ok else 1)
+          PY
+          )
+
+          if [ "$materialization_needed" = "0" ]; then
+            echo "Full Magnanimous capability brain already matches digest $digest; skipping D1 materialization writes."
+          else
+            echo "Capability brain changed; applying delta-only D1 materialization."
+            for file in /tmp/magnanimous-full-brain/*.sql; do
+              echo "Applying $(basename "$file")"
+              (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file="$file")
+            done
+          fi
 
           (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT
             (SELECT COUNT(*) FROM magnanimous_connector_capability_absorption WHERE status='tool-foundry-specified') AS ledger_count,
