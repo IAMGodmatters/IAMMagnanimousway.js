@@ -1,8 +1,8 @@
 // Generated observable installed plugin-skill contract snapshot.
 // Source: skills://plugins catalog visible to the current ChatGPT session on 2026-09-19.
-// Only skill names and public/observable descriptions are captured. Private skill implementation
-// files, proprietary prompts, credentials, weights, and restricted data are not copied.
-// Account authorization inside I AM MAGNANIMOUS WAY™ is never inferred from visibility here.
+// Only skill names and concise public/observable purpose descriptions are captured.
+// Private skill implementation files, proprietary prompts, credentials, weights, and restricted
+// data are not copied. Account authorization inside I AM MAGNANIMOUS WAY™ is not inferred.
 
 export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
   {
@@ -11,7 +11,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ads-manager-account-admin",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Check what remains to finish an existing Ads Manager account's setup, launch billing setup, add or replace its logo, and manage users, pending invitations, roles, and removals. Use for existing-account setup/readiness questions, help setting up billing or a logo, and requested account-access changes. Setup checks are read-only; membership and logo writes require confirmation and verification. Do not use for new-account creation, ad creation, campaign/ad-group/ad changes, reporting, or delivery diagnosis."
+    "description": "Check what remains to finish an existing Ads Manager account's setup, launch billing setup, add or replace its logo, and manage users, pending invitations, roles, and removals. Use for existing-account setup/readiness questions, help setting up billing or a logo, and requested ac"
   },
   {
     "id": "plugin-skill:ads-manager:ads-manager-actionable-review",
@@ -19,7 +19,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ads-manager-actionable-review",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Run a manual, read-only Ads Manager review and, when supported recommendations emerge, offer exact changes for explicit user approval before delegating accepted writes to their owning skills. Use only when the user explicitly invokes $ads-manager-actionable-review to test this workflow. Do not use for scheduled reviews, implicit routing, account setup, or direct changes without an approved proposal."
+    "description": "Run a manual, read-only Ads Manager review and, when supported recommendations emerge, offer exact changes for explicit user approval before delegating accepted writes to their owning skills. Use only when the user explicitly invokes $ads-manager-actionable-review to test this wo"
   },
   {
     "id": "plugin-skill:ads-manager:ads-manager-ad-creation",
@@ -27,7 +27,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ads-manager-ad-creation",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create one or more new Ads Manager ads end-to-end when the user asks to create, make, or build an ad or copy variants, or supplies a product or landing-page URL. Own website extraction and image discovery, manual intake, coordinated multi-ad copy variation, campaign-aware image selection or generation, draft preview, creative upload, and save or publish. Use for new ads even when no account exists yet; do not use for account onboarding, existing-ad updates, reporting, or delivery troubleshooting."
+    "description": "Create one or more new Ads Manager ads end-to-end when the user asks to create, make, or build an ad or copy variants, or supplies a product or landing-page URL. Own website extraction and image discovery, manual intake, coordinated multi-ad copy variation, campaign-aware image s"
   },
   {
     "id": "plugin-skill:ads-manager:ads-manager-delivery-recovery",
@@ -35,7 +35,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ads-manager-delivery-recovery",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Diagnose why an existing Ads Manager account, campaign, ad group, or ad is not delivering or scaling, then produce a prioritized read-only recovery plan grounded in live connector evidence and official Help Center guidance. Use when the user reports low or zero impressions, spend, clicks, or conversions; delivery drops; limited delivery; serving issues; or uncertainty about what is blocking expansion."
+    "description": "Diagnose why an existing Ads Manager account, campaign, ad group, or ad is not delivering or scaling, then produce a prioritized read-only recovery plan grounded in live connector evidence and official Help Center guidance. Use when the user reports low or zero impressions, spend"
   },
   {
     "id": "plugin-skill:ads-manager:ads-manager-entity-management",
@@ -43,7 +43,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ads-manager-entity-management",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create or update existing Ads Manager campaigns and ad groups, and update existing ads, through a minimal-diff, confirmed, read-back-verified workflow. Use when the user explicitly asks for campaign-only or ad-group-only creation and does not want ads created yet, or asks to edit, pause, activate, archive, or otherwise change an existing campaign, ad group, or ad. Do not interpret a vague “create a campaign” request as campaign-only work. Do not use for new-ad creation, account onboarding, account administration, reporting, or delivery diagnosis."
+    "description": "Create or update existing Ads Manager campaigns and ad groups, and update existing ads, through a minimal-diff, confirmed, read-back-verified workflow. Use when the user explicitly asks for campaign-only or ad-group-only creation and does not want ads created yet, or asks to edit"
   },
   {
     "id": "plugin-skill:ads-manager:ads-manager-help",
@@ -51,7 +51,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ads-manager-help",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Help users understand and troubleshoot Ads Manager through read-only connector evidence, official Help Center guidance, and shared playbooks. Use for standalone campaign planning, reviews of supplied context hints, product-feed suitability, how-to and targeting-support questions, delivery issues, spend or performance questions, and conversion-reporting problems without changing Ads Manager state. Direct existing-account setup/readiness, billing setup, and logo requests belong to Account Admin."
+    "description": "Help users understand and troubleshoot Ads Manager through read-only connector evidence, official Help Center guidance, and shared playbooks. Use for standalone campaign planning, reviews of supplied context hints, product-feed suitability, how-to and targeting-support questions,"
   },
   {
     "id": "plugin-skill:ads-manager:ads-manager-insights",
@@ -59,7 +59,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ads-manager-insights",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Report Ads Manager performance, rankings, comparisons, trends, conversion totals, current conversion-source or event-setting inventory, or recent raw conversion-event diagnostics for an existing account, campaign, ad group, or ad. Use when the user asks what happened or how metrics compare. Do not use for delivery diagnosis, recommendations, recurring review setup, or mutations."
+    "description": "Report Ads Manager performance, rankings, comparisons, trends, conversion totals, current conversion-source or event-setting inventory, or recent raw conversion-event diagnostics for an existing account, campaign, ad group, or ad. Use when the user asks what happened or how metri"
   },
   {
     "id": "plugin-skill:ads-manager:ads-manager-onboarding",
@@ -67,7 +67,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ads-manager-onboarding",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create one new self-serve Ads Manager business account end-to-end, including business intake, ownership resolution, an optional attached, linked, or generated logo, terms acceptance, and account creation. Use when the user asks to create a new ad account, has no account and confirms setup, or requests unsupported individual or agency onboarding. Use before list_onboarding_tenants, account-logo uploads for account creation, create_self_serve_ad_account, or onboarding status for account creation. Do not use for finishing an existing account's setup, existing-account troubleshooting, campaign creation, or ad creation."
+    "description": "Create one new self-serve Ads Manager business account end-to-end, including business intake, ownership resolution, an optional attached, linked, or generated logo, terms acceptance, and account creation. Use when the user asks to create a new ad account, has no account and confi"
   },
   {
     "id": "plugin-skill:ads-manager:ads-manager-review",
@@ -75,7 +75,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ads-manager-review",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Analyze an existing Ads Manager account, campaign set, campaign, ad group, or ad and return concise, evidence-backed CMO recommendations in plain language. Use when the user asks for manual or scheduled health checks and reviews of delivery, measurement, performance efficiency, spend, targeting, or ad creative, including broad one-time requests to improve or optimize an account or portfolio. Do not use for account setup, ad creation, live changes, or approvals."
+    "description": "Analyze an existing Ads Manager account, campaign set, campaign, ad group, or ad and return concise, evidence-backed CMO recommendations in plain language. Use when the user asks for manual or scheduled health checks and reviews of delivery, measurement, performance efficiency, s"
   },
   {
     "id": "plugin-skill:ads-manager:ads-manager-start-agent",
@@ -83,7 +83,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ads-manager-start-agent",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Set up recommendation-only recurring Ads Manager reviews. Use when a user asks for recurring, periodic, daily, weekly, ongoing, or scheduled recommendations for an account, campaign, ad group, or ad. Do not use for one-time recommendations or health reviews, including broad requests to improve or optimize Ads Manager; route those directly to $ads-manager-review. Do not use for direct ad changes, account setup, ad creation, or pure delivery troubleshooting that belongs to ads-manager-delivery-recovery."
+    "description": "Set up recommendation-only recurring Ads Manager reviews. Use when a user asks for recurring, periodic, daily, weekly, ongoing, or scheduled recommendations for an account, campaign, ad group, or ad. Do not use for one-time recommendations or health reviews, including broad reque"
   },
   {
     "id": "plugin-skill:agentbroko:audio-mixer",
@@ -179,7 +179,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ai-hooter",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use AI Hooter when the user explicitly asks to be hooted, called, summoned, or alerted, including persistent project-wide grants such as “use Hooter whenever you need me” and explicit revocations of that grant. Never use it for routine updates or without an explicit task or project authorization."
+    "description": "Use AI Hooter when the user explicitly asks to be hooted, called, summoned, or alerted, including persistent project-wide grants such as “use Hooter whenever you need me” and explicit revocations of that grant. Never use it for routine updates or without an explicit task or proje"
   },
   {
     "id": "plugin-skill:airtable:airtable-cli",
@@ -211,7 +211,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "antom-integration",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Antom payment integration skill for product and integration-mode selection, integration Q&A, code implementation, troubleshooting, sandbox testing, and go-live guidance. Use for One-time Payments, Tokenized Payment (recurring auto-debit), Subscription Payment, Payment Element, Checkout Page, and API-only integration."
+    "description": "Antom payment integration skill for product and integration-mode selection, integration Q&A, code implementation, troubleshooting, sandbox testing, and go-live guidance. Use for One-time Payments, Tokenized Payment (recurring auto-debit), Subscription Payment, Payment Element, Ch"
   },
   {
     "id": "plugin-skill:app-69312da8e4dc81919370cb86fd172b6c:adobe-batch-edit-photos",
@@ -219,7 +219,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "adobe-batch-edit-photos",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Apply consistent photo adjustments across a set of images so they look like they were edited together. Use this skill whenever the user says \"make my photos look cohesive\", \"give all these the same style\", \"apply a warm and golden feel to all of these\", \"make this cinematic\", \"match the look across my photos\", \"edit all my travel photos the same way\", \"batch edit these\", \"make these consistent\", \"fix my phone photos\", or uploads a folder of photos and wants a unified, polished result. Also triggers for requests like \"apply a preset to all of these\", \"make these look professional\", or \"they were shot in mixed lighting — can you fix them all\". Outputs direct final image URLs plus an in-chat pr"
+    "description": "Apply consistent photo adjustments across a set of images so they look like they were edited together. Use this skill whenever the user says \"make my photos look cohesive\", \"give all these the same style\", \"apply a warm and golden feel to all of these\", \"make this cinematic\", \"ma"
   },
   {
     "id": "plugin-skill:app-69312da8e4dc81919370cb86fd172b6c:adobe-create-mockups",
@@ -227,7 +227,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "adobe-create-mockups",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when a user wants to see their logo, design, or sketch on a product or scene mockup — mugs, t-shirts, business cards, hats, phone screens, posters, billboards, or similar. Triggers on \"create mockups\", \"show my logo on products\", or any logo upload with a request to visualize it on items. Access: 🔐 Signed-In required | Gen AI: ✅ Adobe Firefly via `image_generate` used for design creation, sketch polishing, and mockup scene generation"
+    "description": "Use when a user wants to see their logo, design, or sketch on a product or scene mockup — mugs, t-shirts, business cards, hats, phone screens, posters, billboards, or similar. Triggers on \"create mockups\", \"show my logo on products\", or any logo upload with a request to visualize"
   },
   {
     "id": "plugin-skill:app-69312da8e4dc81919370cb86fd172b6c:adobe-create-social-variations",
@@ -235,7 +235,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "adobe-create-social-variations",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Resize, crop, or export any image or video into platform-ready social media assets using Adobe Creative Cloud tools. Use this skill when a user wants to prepare a photo, image, or video for one or more social platforms — Instagram, TikTok, LinkedIn, Facebook, YouTube, Snapchat, Pinterest, Threads, or X/Twitter. Triggers on: \"prepare my image for Instagram\", \"resize for TikTok\", \"get this ready to post\", \"make versions for all platforms\", \"social media sizes\", \"crop for stories\", \"export for LinkedIn\", \"resize my video for social\", \"make social media assets\", or any request to adapt a photo or video for specific platforms. Handles subject-aware cropping, AI canvas expansion, test previews bef"
+    "description": "Resize, crop, or export any image or video into platform-ready social media assets using Adobe Creative Cloud tools. Use this skill when a user wants to prepare a photo, image, or video for one or more social platforms — Instagram, TikTok, LinkedIn, Facebook, YouTube, Snapchat, P"
   },
   {
     "id": "plugin-skill:app-69312da8e4dc81919370cb86fd172b6c:adobe-design-from-template",
@@ -243,7 +243,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "adobe-design-from-template",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create any visual design using Adobe Express templates — flyers, posters, social media posts (Instagram, Facebook, LinkedIn), business cards, invitations, greeting cards, resumes, cover letters, brochures, newsletters, certificates, presentations, YouTube thumbnails, email headers, logos, menus, and labels. Use this skill whenever the user wants to make, design, or build any visual — even if they just say \"make me a flyer\", \"design a poster\", \"I need something for Instagram\", \"create an event invite\", or \"make a business card\". Also handles browsing templates, editing text, replacing images, changing backgrounds, animating, and exporting designs. Access: 🔐 Signed-In required | Gen AI: ❌ by "
+    "description": "Create any visual design using Adobe Express templates — flyers, posters, social media posts (Instagram, Facebook, LinkedIn), business cards, invitations, greeting cards, resumes, cover letters, brochures, newsletters, certificates, presentations, YouTube thumbnails, email header"
   },
   {
     "id": "plugin-skill:app-69312da8e4dc81919370cb86fd172b6c:adobe-edit-quick-cut",
@@ -251,7 +251,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "adobe-edit-quick-cut",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create a punchy sizzle reel from a video using Adobe Quick Cut. Use this skill whenever a user wants to cut, trim, or shorten a video into highlights — including phrases like \"make a sizzle reel\", \"make a highlight reel\", \"quick cut this\", \"cut the best parts\", \"shorten this video\", \"make a highlight clip\", \"summarize this video visually\", or any request to produce a shorter edited version of a video. Use this skill for Quick Cut requests before suggesting manual editing in Premiere. Requires the user to upload a video file."
+    "description": "Create a punchy sizzle reel from a video using Adobe Quick Cut. Use this skill whenever a user wants to cut, trim, or shorten a video into highlights — including phrases like \"make a sizzle reel\", \"make a highlight reel\", \"quick cut this\", \"cut the best parts\", \"shorten this vide"
   },
   {
     "id": "plugin-skill:app-69312da8e4dc81919370cb86fd172b6c:adobe-retouch-portraits",
@@ -259,7 +259,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "adobe-retouch-portraits",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Bulk-retouch a folder of portrait photos using Adobe tools — designed for wedding photographers and event photographers who need fast, walk-away batch processing. Use this skill when the user says \"retouch my photos\", \"batch process these portraits\", \"process my wedding photos\", \"clean up this folder of images\", \"run my headshots through Adobe\", or uploads/selects a folder of photos and wants them polished and ready to review. Automatically applies auto-straighten, auto-tone, and auto-light to every image. Outputs a preview grid and download folder. Access: 🔐 Signed-In required | Gen AI: ❌ by default — optional background-only cleanup only where the surface permits generative AI (e.g. Codex"
+    "description": "Bulk-retouch a folder of portrait photos using Adobe tools — designed for wedding photographers and event photographers who need fast, walk-away batch processing. Use this skill when the user says \"retouch my photos\", \"batch process these portraits\", \"process my wedding photos\", "
   },
   {
     "id": "plugin-skill:app-6a10f96a5f508191be5b541177bb08fd:auto-photos",
@@ -267,7 +267,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "auto-photos",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Search and display photos from the user's Auto camera-roll library through the Auto MCP plugin. Use when the user explicitly asks to find, browse, show, or view \"my photos,\" \"my pictures,\" or otherwise clearly refers to their own photo library, including searches by subject, visible detail, scene, activity, mood, date or date range, location, or a combination of these. Also use when Auto or this skill is explicitly invoked, and for follow-ups referring to a photo or photo set previously returned by Auto. Do not use for generic requests such as \"show me pictures of New York\" that do not indicate the user's own photos; those should use ordinary image search instead."
+    "description": "Search and display photos from the user's Auto camera-roll library through the Auto MCP plugin. Use when the user explicitly asks to find, browse, show, or view \"my photos,\" \"my pictures,\" or otherwise clearly refers to their own photo library, including searches by subject, visi"
   },
   {
     "id": "plugin-skill:app-6a3c278c93ac8191b29768648d63a754:provision-droplet",
@@ -283,7 +283,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "use-railway",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Operate Railway infrastructure: sign up for or sign in to a Railway account, create projects, provision services and databases, manage object storage buckets, deploy code, configure environments and variables, manage domains, troubleshoot failures, check status and metrics, manage feature flags, set up Railway agent tooling, and query Railway docs. Use this skill whenever the user mentions Railway, feature flags, flag rollout, targeting rules, signing up, creating an account, registering, logging in, deployments, services, environments, buckets, object storage, build failures, agent setup, MCP, or infrastructure operations, even if they don't say \"Railway\" explicitly. Also invoke this skill "
+    "description": "Operate Railway infrastructure: sign up for or sign in to a Railway account, create projects, provision services and databases, manage object storage buckets, deploy code, configure environments and variables, manage domains, troubleshoot failures, check status and metrics, manag"
   },
   {
     "id": "plugin-skill:app-6a5e7ac6ddf881919de226cb7506ef57:blob-storage",
@@ -299,7 +299,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "client-side-js",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when a val needs to ship JavaScript that runs in the browser — React apps, vanilla DOM scripts, canvas/games, htmx/Alpine, or any client-side module beyond a single inline snippet. Explains how Val Town serves transpiled .ts/.tsx/.jsx modules with no build step, how the browser resolves their imports, and how to load third-party deps."
+    "description": "Use when a val needs to ship JavaScript that runs in the browser — React apps, vanilla DOM scripts, canvas/games, htmx/Alpine, or any client-side module beyond a single inline snippet. Explains how Val Town serves transpiled .ts/.tsx/.jsx modules with no build step, how the brows"
   },
   {
     "id": "plugin-skill:app-6a5e7ac6ddf881919de226cb7506ef57:create-skill",
@@ -315,7 +315,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "cron-and-intervals",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when building a val that runs on a schedule — periodic jobs, recurring tasks, polling, cron jobs, monitoring, alerting. Covers the interval handler signature, cron expressions, the UTC timezone constraint, and the `lastRunAt` pattern for detecting new items since the previous run."
+    "description": "Use when building a val that runs on a schedule — periodic jobs, recurring tasks, polling, cron jobs, monitoring, alerting. Covers the interval handler signature, cron expressions, the UTC timezone constraint, and the `lastRunAt` pattern for detecting new items since the previous"
   },
   {
     "id": "plugin-skill:app-6a5e7ac6ddf881919de226cb7506ef57:email",
@@ -339,7 +339,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "oauth",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when a val needs to require login with a Val Town account — gating routes behind authentication, identifying the current user, building user-specific dashboards. Covers std/oauth's `oauthMiddleware` and `getOAuthUserData`, the auto-managed `/auth/*` routes, and session behavior. For third-party OAuth providers (Google, GitHub, etc.) see the `third-party-integrations` skill instead."
+    "description": "Use when a val needs to require login with a Val Town account — gating routes behind authentication, identifying the current user, building user-specific dashboards. Covers std/oauth's `oauthMiddleware` and `getOAuthUserData`, the auto-managed `/auth/*` routes, and session behavi"
   },
   {
     "id": "plugin-skill:app-6a5e7ac6ddf881919de226cb7506ef57:react-ui",
@@ -347,7 +347,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "react-ui",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when building any val with a user interface — dashboards, web apps, landing pages, forms, admin tools, anything users see in a browser. Covers JSX/React conventions, Twind/Tailwind styling, React version pinning, the view-source link requirement, and what to avoid (template-string HTML, external assets)."
+    "description": "Use when building any val with a user interface — dashboards, web apps, landing pages, forms, admin tools, anything users see in a browser. Covers JSX/React conventions, Twind/Tailwind styling, React version pinning, the view-source link requirement, and what to avoid (template-s"
   },
   {
     "id": "plugin-skill:app-6a5e7ac6ddf881919de226cb7506ef57:restricted-access",
@@ -355,7 +355,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "restricted-access",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when a val's HTTP endpoints should not be open to the whole internet — limiting an app to a team, understanding why an endpoint redirects to a login page, letting a webhook through, or identifying which Val Town user is viewing an app. Covers app access (`httpPrivacy`), org grants, bypass tokens for automation, and the `X-Val-Town-User` identity header. For building your own login flow inside a val, see the `oauth` skill instead."
+    "description": "Use when a val's HTTP endpoints should not be open to the whole internet — limiting an app to a team, understanding why an endpoint redirects to a login page, letting a webhook through, or identifying which Val Town user is viewing an app. Covers app access (`httpPrivacy`), org g"
   },
   {
     "id": "plugin-skill:app-6a5e7ac6ddf881919de226cb7506ef57:sqlite-storage",
@@ -371,7 +371,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "third-party-integrations",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when a val talks to an external service — Slack, Discord, Telegram, Stripe, GitHub, Gmail, Google Sheets, Postgres/Supabase/Upstash/Neon, browser automation (Playwright, Browserbase, Kernel, Steel), web scraping, PDF generation, push notifications, RSS, or any other third-party API. Covers the required workflow (fetch the Val Town guide, get credentials, test, store secrets) and the catalog of available guides."
+    "description": "Use when a val talks to an external service — Slack, Discord, Telegram, Stripe, GitHub, Gmail, Google Sheets, Postgres/Supabase/Upstash/Neon, browser automation (Playwright, Browserbase, Kernel, Steel), web scraping, PDF generation, push notifications, RSS, or any other third-par"
   },
   {
     "id": "plugin-skill:app-6a6bc49c188481918455b61154ce3963:onboarding",
@@ -387,7 +387,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "deploy-on-basicdeploy",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Deploy and host a web app, API, or site on BasicDeploy and get a live HTTPS URL. Trigger when the user asks to deploy, host, ship, or \"put online\" an app on BasicDeploy (with the BasicDeploy connector available). Covers creating a container, deploying code over the chat connector, the REQUIRED 0.0.0.0:8080 port, the preset DATABASE_URL / S3 env vars, logs, and always-on. Do not use for other hosting providers."
+    "description": "Deploy and host a web app, API, or site on BasicDeploy and get a live HTTPS URL. Trigger when the user asks to deploy, host, ship, or \"put online\" an app on BasicDeploy (with the BasicDeploy connector available). Covers creating a container, deploying code over the chat connector"
   },
   {
     "id": "plugin-skill:app-6a88aa7070e88191b5825453492c5cf5:speko-phone-call",
@@ -395,7 +395,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "speko-phone-call",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Place a real outbound phone call through Speko and read back what was said. Use when the user wants someone actually called on the telephone — booking, confirming, chasing, asking a business a question — or wants to rehearse such a call first, or wants to review a call that already happened."
+    "description": "Place a real outbound phone call through Speko and read back what was said. Use when the user wants someone actually called on the telephone — booking, confirming, chasing, asking a business a question — or wants to rehearse such a call first, or wants to review a call that alrea"
   },
   {
     "id": "plugin-skill:awesome-maintainer-defense:audit-repository-workflows",
@@ -411,7 +411,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "onboard-baseten",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Install, upgrade, detect, and authenticate the Baseten CLI on a local Codex Desktop host, then install Baseten's official skill globally. Use when the Baseten CLI is missing, `baseten` is not on PATH, a Baseten profile or credential is not configured, authentication fails, the global Baseten skill is missing, or the user asks to set up Baseten before model API, deployment, or monitoring work."
+    "description": "Install, upgrade, detect, and authenticate the Baseten CLI on a local Codex Desktop host, then install Baseten's official skill globally. Use when the Baseten CLI is missing, `baseten` is not on PATH, a Baseten profile or credential is not configured, authentication fails, the gl"
   },
   {
     "id": "plugin-skill:build-mcp-apps:build-mcp-apps",
@@ -419,7 +419,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "build-mcp-apps",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guide developers through creating and updating MCP servers, MCP apps, and ChatGPT apps with Skybridge. Covers brainstorming, bootstrapping, implementing tools/views, debugging, running dev servers, and preparing apps for deployment. Use when a user wants to create or update a ChatGPT app, MCP app, MCP server, or use the Skybridge framework."
+    "description": "Guide developers through creating and updating MCP servers, MCP apps, and ChatGPT apps with Skybridge. Covers brainstorming, bootstrapping, implementing tools/views, debugging, running dev servers, and preparing apps for deployment. Use when a user wants to create or update a Cha"
   },
   {
     "id": "plugin-skill:build-mcp-apps:use-alpic",
@@ -435,7 +435,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "cache-stats",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Set up, verify, use, update, or uninstall the bundled local Cache Stats runtime on ChatGPT for Windows; show verified prompt-cache usage; or diagnose Responses API cache misses. Use when the user invokes Cache Stats, asks about cached, fresh, or cache-write tokens, requests local setup or removal, or asks about prompt_cache_diagnostics."
+    "description": "Set up, verify, use, update, or uninstall the bundled local Cache Stats runtime on ChatGPT for Windows; show verified prompt-cache usage; or diagnose Responses API cache misses. Use when the user invokes Cache Stats, asks about cached, fresh, or cache-write tokens, requests local"
   },
   {
     "id": "plugin-skill:canva:canva-brand-check",
@@ -443,7 +443,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "canva-brand-check",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Check a Canva design against a brand kit and report where it diverges — off-palette colors, non-brand fonts, logo misuse, and off-tone copy. Read-only; makes no changes. Use when the user asks \"is this on brand\", \"check this against our brand kit\", \"do a brand review\", \"does this match our brand guidelines\", or \"brand-check my design\"."
+    "description": "Check a Canva design against a brand kit and report where it diverges — off-palette colors, non-brand fonts, logo misuse, and off-tone copy. Read-only; makes no changes. Use when the user asks \"is this on brand\", \"check this against our brand kit\", \"do a brand review\", \"does this"
   },
   {
     "id": "plugin-skill:canva:canva-branded-presentation",
@@ -451,7 +451,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "canva-branded-presentation",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create on-brand Canva presentations from an outline or brief. Use when the user asks to create a branded presentation, make an on-brand deck, turn an outline into slides, or generate a presentation from a brief. Input can be text directly in the message, a Canva design ID, a reference to a Canva doc by name, or a Canva design link (e.g., https://www.canva.com/design/...)."
+    "description": "Create on-brand Canva presentations from an outline or brief. Use when the user asks to create a branded presentation, make an on-brand deck, turn an outline into slides, or generate a presentation from a brief. Input can be text directly in the message, a Canva design ID, a refe"
   },
   {
     "id": "plugin-skill:canva:canva-bulk-create",
@@ -459,7 +459,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "canva-bulk-create",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Bulk-create Canva designs from tabular data using a brand template with autofill fields, producing one design per row. Use when users say \"bulk create designs from this CSV\", \"generate one design per row\", \"create a design for each product\", \"batch generate from a template\", or \"autofill a template from a spreadsheet\". Accepts any tabular data source — uploaded files, pasted tables, JSON, or URLs."
+    "description": "Bulk-create Canva designs from tabular data using a brand template with autofill fields, producing one design per row. Use when users say \"bulk create designs from this CSV\", \"generate one design per row\", \"create a design for each product\", \"batch generate from a template\", or \""
   },
   {
     "id": "plugin-skill:canva:canva-design-feedback",
@@ -467,7 +467,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "canva-design-feedback",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Read a Canva design and return structured, actionable design feedback — visual hierarchy, copy/messaging, layout & spacing, consistency, readability, and accessibility. Read-only; makes no changes to the design. Use when the user asks to \"review my design\", \"give me feedback on this\", \"critique my deck/poster/flyer\", \"how can I improve this design\", or \"what's wrong with this slide\"."
+    "description": "Read a Canva design and return structured, actionable design feedback — visual hierarchy, copy/messaging, layout & spacing, consistency, readability, and accessibility. Read-only; makes no changes to the design. Use when the user asks to \"review my design\", \"give me feedback on t"
   },
   {
     "id": "plugin-skill:canva:canva-edit-design",
@@ -475,7 +475,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "canva-edit-design",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Make edits to an existing Canva design — change or fix text, replace/insert/delete images and videos, reformat text (size, weight, style, color, alignment, lists, line height), reposition or resize elements, and update the title. Use when the user wants to change, edit, update, fix, translate, replace, or reformat content in a specific Canva design. This is the safe edit engine that other Canva skills (e.g. implement-feedback) build on."
+    "description": "Make edits to an existing Canva design — change or fix text, replace/insert/delete images and videos, reformat text (size, weight, style, color, alignment, lists, line height), reposition or resize elements, and update the title. Use when the user wants to change, edit, update, f"
   },
   {
     "id": "plugin-skill:canva:canva-implement-feedback",
@@ -483,7 +483,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "canva-implement-feedback",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Implement reviewer feedback on a Canva design. Reads all comment threads, synthesises what reviewers want, makes the clear-cut changes directly, and flags anything that needs a human decision. Use when the user asks to \"implement feedback on my deck\", \"address comments on a design\", \"apply review feedback\", \"fix the comments on my presentation\", or \"implement the feedback\"."
+    "description": "Implement reviewer feedback on a Canva design. Reads all comment threads, synthesises what reviewers want, makes the clear-cut changes directly, and flags anything that needs a human decision. Use when the user asks to \"implement feedback on my deck\", \"address comments on a desig"
   },
   {
     "id": "plugin-skill:canva:canva-resize-for-social-media",
@@ -491,7 +491,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "canva-resize-for-social-media",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Resize a Canva design into multiple social media formats (Facebook post, Facebook story, Instagram post, Instagram story, LinkedIn post). Use this skill when users want to resize Canva designs specifically for multiple social media platforms in one operation, rather than resizing to a single format manually."
+    "description": "Resize a Canva design into multiple social media formats (Facebook post, Facebook story, Instagram post, Instagram story, LinkedIn post). Use this skill when users want to resize Canva designs specifically for multiple social media platforms in one operation, rather than resizing"
   },
   {
     "id": "plugin-skill:canva:canva-translate-design",
@@ -499,7 +499,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "canva-translate-design",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Translate all text in a Canva design to another language, creating a translated copy. Faster than manually copying and editing each text box in Canva's editor. Use when users say \"translate my design to [language]\", \"make a Spanish/French/etc version\", or \"localize my Canva design\"."
+    "description": "Translate all text in a Canva design to another language, creating a translated copy. Faster than manually copying and editing each text box in Canva's editor. Use when users say \"translate my design to [language]\", \"make a Spanish/French/etc version\", or \"localize my Canva desig"
   },
   {
     "id": "plugin-skill:cerebrium:cerebrium",
@@ -507,7 +507,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "cerebrium",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use for any Cerebrium task: deploying Python code to serverless GPU or CPU, writing or fixing cerebrium.toml, choosing hardware and regions, calling deployed endpoints (REST, streaming, WebSocket, async), autoscaling and concurrency, cold starts, secrets, CI/CD, and debugging a build or a running app from the terminal. Covers the cerebrium CLI, configuration defaults the API actually applies, accepted GPU identifiers with per-plan limits, and troubleshooting."
+    "description": "Use for any Cerebrium task: deploying Python code to serverless GPU or CPU, writing or fixing cerebrium.toml, choosing hardware and regions, calling deployed endpoints (REST, streaming, WebSocket, async), autoscaling and concurrency, cold starts, secrets, CI/CD, and debugging a b"
   },
   {
     "id": "plugin-skill:chatcut-desktop:asset-import",
@@ -515,7 +515,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "asset-import",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Hosted ChatCut plugin sessions only (the `chatcut` MCP server). If the conversation is driving ChatCut Desktop (a `chatcut_desktop*` MCP server), load this skill only when the user explicitly chooses the plugin/web surface — desktop sessions otherwise ship their own instructions and tools. Import local, attached, or downloaded media into a ChatCut project through the hosted external connector."
+    "description": "Hosted ChatCut plugin sessions only (the `chatcut` MCP server). If the conversation is driving ChatCut Desktop (a `chatcut_desktop*` MCP server), load this skill only when the user explicitly chooses the plugin/web surface — desktop sessions otherwise ship their own instructions "
   },
   {
     "id": "plugin-skill:chatcut-desktop:chatcut-plugin-basics",
@@ -523,7 +523,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "chatcut-plugin-basics",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Must read before using the hosted ChatCut plugin in Codex, including creating projects, opening the editor, or editing/creating videos. Also use when ChatCut tools are missing or need authentication. For ChatCut Desktop, follow its own instructions unless the user explicitly chooses the hosted plugin/web surface."
+    "description": "Must read before using the hosted ChatCut plugin in Codex, including creating projects, opening the editor, or editing/creating videos. Also use when ChatCut tools are missing or need authentication. For ChatCut Desktop, follow its own instructions unless the user explicitly choo"
   },
   {
     "id": "plugin-skill:chatcut-desktop:create-motion-graphics",
@@ -531,7 +531,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "create-motion-graphics",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use whenever an ACP or local CLI agent in ChatCut Desktop needs to add, create, hand-author, patch, or place Motion Graphic JSX assets in a project. Covers direct inline JSX authoring, visual language, editable properties, asset binding, timeline placement, and local verification. Not for the built-in ChatCut Agent."
+    "description": "Use whenever an ACP or local CLI agent in ChatCut Desktop needs to add, create, hand-author, patch, or place Motion Graphic JSX assets in a project. Covers direct inline JSX authoring, visual language, editable properties, asset binding, timeline placement, and local verification"
   },
   {
     "id": "plugin-skill:chatcut-desktop:digital-human",
@@ -539,7 +539,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "digital-human",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create and manage script- or audio-driven AI avatar videos from an official or saved presenter, an imported portrait, or a representative still prepared from video. Use for 数字人、数字分身、虚拟人、照片开口说话、人像口播、改稿不重拍, AI avatar, AI avatar video, avatar video, talking avatar, talking photo, photo avatar, video avatar, AI presenter, virtual presenter, virtual spokesperson, digital human, or a person's digital twin, including choosing or creating the avatar and deciding its voice, script, aspect ratio, and output quality. Do not use for a static profile-picture avatar, game or 3D character creation, an industrial digital twin, ordinary B-roll, generic image-to-video, video translation, talking-head editing,"
+    "description": "Create and manage script- or audio-driven AI avatar videos from an official or saved presenter, an imported portrait, or a representative still prepared from video. Use for 数字人、数字分身、虚拟人、照片开口说话、人像口播、改稿不重拍, AI avatar, AI avatar video, avatar video, talking avatar, talking photo, ph"
   },
   {
     "id": "plugin-skill:chatcut-desktop:export",
@@ -547,7 +547,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "export",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Hosted ChatCut plugin sessions only (the `chatcut` MCP server). If the conversation is driving ChatCut Desktop (a `chatcut_desktop*` MCP server), load this skill only when the user explicitly chooses the plugin/web surface — desktop sessions otherwise ship their own instructions and tools. Export or deliver a ChatCut project through the hosted connector, including video, audio, subtitles, XML, and render-status checks."
+    "description": "Hosted ChatCut plugin sessions only (the `chatcut` MCP server). If the conversation is driving ChatCut Desktop (a `chatcut_desktop*` MCP server), load this skill only when the user explicitly chooses the plugin/web surface — desktop sessions otherwise ship their own instructions "
   },
   {
     "id": "plugin-skill:chatcut-desktop:known-errors",
@@ -563,7 +563,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "multicam-sync",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Synchronize footage from a multi-camera / multi-recorder shoot — several cameras plus separate audio recorders covering one session, imported as loose clips — and optionally turn all or part of it into speaker-follow footage for a larger edit. Use when a user drops in multiple clips from the same recording and wants them aligned, asks for multicam / 多机位 / multi-angle sync, wants a \"cut to whoever is talking\" edit, or refers to camera A/B, angles, or separate lav or field recordings that need to line up with picture."
+    "description": "Synchronize footage from a multi-camera / multi-recorder shoot — several cameras plus separate audio recorders covering one session, imported as loose clips — and optionally turn all or part of it into speaker-follow footage for a larger edit. Use when a user drops in multiple cl"
   },
   {
     "id": "plugin-skill:chatcut-desktop:music",
@@ -571,7 +571,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "music",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Shared ChatCut entry point for newly generated music, soundtrack, theme music, 配乐, background music, an intro theme, a music bed, BGM, or vocal songs. If vocals are unspecified, ask whether the user wants a vocal song or instrumental music before choosing a generator. Use `submit_music` for either branch, with `generationType` selecting instrumental or song mode."
+    "description": "Shared ChatCut entry point for newly generated music, soundtrack, theme music, 配乐, background music, an intro theme, a music bed, BGM, or vocal songs. If vocals are unspecified, ask whether the user wants a vocal song or instrumental music before choosing a generator. Use `submit"
   },
   {
     "id": "plugin-skill:chatcut-desktop:product-help",
@@ -579,7 +579,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "product-help",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Answer current ChatCut product questions using the latest official Docs, Releases, and Changelog. Use for how ChatCut works; UI layout, buttons, and feature instructions; troubleshooting; feature or fix availability on Web, Desktop, or Agent Plugin and minimum version requirements; credits including costs, balance, usage history, validity, or recent charges; plans, subscriptions, renewals, ChatCut Pro, pricing, card or Alipay (支付宝) payments, and billing; Desktop downloads; Agent Plugin installation or updates for Codex and Claude Code; and manual GUI guidance when an action cannot be completed directly. NOT for live project, asset, timeline, or item state; use the matching read tool instead."
+    "description": "Answer current ChatCut product questions using the latest official Docs, Releases, and Changelog. Use for how ChatCut works; UI layout, buttons, and feature instructions; troubleshooting; feature or fix availability on Web, Desktop, or Agent Plugin and minimum version requirement"
   },
   {
     "id": "plugin-skill:chatcut-desktop:shader-gen",
@@ -587,7 +587,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shader-gen",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "AI shader generator for WebGL video effects, transitions, masks, and color grading (LUT / 调色 / 电影感 / film look). Use when the user wants a video effect (滤镜 / 特效), a transition (转场 / crossfade / wipe / cube / 3d), a mask (蒙版 / 遮罩 / reveal), a zoom / push-in (推近 / 推镜头), or a color grade — try the built-in effects (zoom, builtin LUTs) before generating a new shader."
+    "description": "AI shader generator for WebGL video effects, transitions, masks, and color grading (LUT / 调色 / 电影感 / film look). Use when the user wants a video effect (滤镜 / 特效), a transition (转场 / crossfade / wipe / cube / 3d), a mask (蒙版 / 遮罩 / reveal), a zoom / push-in (推近 / 推镜头), or a color "
   },
   {
     "id": "plugin-skill:chatcut-desktop:talking-head-guide",
@@ -595,7 +595,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "talking-head-guide",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guide for editing speech-led videos where spoken delivery or conversation drives the cut — single-speaker talking-head / 口播, two- or multi-speaker interview / 访谈, video podcast, lecture, tutorial, course, and similar formats. Use for any non-trivial edit of those formats, including speech cleanup (剪口播 / 口播剪辑 / 去口癖 / clean up fillers / smooth speech), pause or repeated-take removal, motion graphics layered onto the footage (口播加 MG / 加动画), B-roll (加 B-roll / add B-roll), music, or captions. For motion graphics specifically, use this together with the active Motion Graphics skill/workflow available in the current ChatCut environment — this skill adds speech-specific guidance (rhythm-aware timin"
+    "description": "Guide for editing speech-led videos where spoken delivery or conversation drives the cut — single-speaker talking-head / 口播, two- or multi-speaker interview / 访谈, video podcast, lecture, tutorial, course, and similar formats. Use for any non-trivial edit of those formats, includi"
   },
   {
     "id": "plugin-skill:chatcut-desktop:transcription",
@@ -603,7 +603,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "transcription",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Hosted ChatCut plugin sessions only (the `chatcut` MCP server). If the conversation is driving ChatCut Desktop (a `chatcut_desktop*` MCP server), load this skill only when the user explicitly chooses the plugin/web surface — desktop sessions otherwise ship their own instructions and tools. Use for ChatCut transcription, transcript readiness, captions, subtitles, transcript repair, filler removal, and speech-led editing setup."
+    "description": "Hosted ChatCut plugin sessions only (the `chatcut` MCP server). If the conversation is driving ChatCut Desktop (a `chatcut_desktop*` MCP server), load this skill only when the user explicitly chooses the plugin/web surface — desktop sessions otherwise ship their own instructions "
   },
   {
     "id": "plugin-skill:chatcut-desktop:verification",
@@ -611,7 +611,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "verification",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Hosted ChatCut plugin sessions only (the `chatcut` MCP server). If the conversation is driving ChatCut Desktop (a `chatcut_desktop*` MCP server), load this skill only when the user explicitly chooses the plugin/web surface — desktop sessions otherwise ship their own instructions and tools. Verify that ChatCut plugin edits are reflected in project structure and visible timeline output before reporting success."
+    "description": "Hosted ChatCut plugin sessions only (the `chatcut` MCP server). If the conversation is driving ChatCut Desktop (a `chatcut_desktop*` MCP server), load this skill only when the user explicitly chooses the plugin/web surface — desktop sessions otherwise ship their own instructions "
   },
   {
     "id": "plugin-skill:chatcut-desktop:video-gen",
@@ -619,7 +619,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "video-gen",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "AI video generation via Seedance, Kling, Gemini Omni, MiniMax H3, and MiniMax H3 Max. Use when the user wants to generate a video clip — text-to-video, image-to-video, first/last-frame transitions, reference-guided generation — or wants to modify / edit / extend an existing generated clip."
+    "description": "AI video generation via Seedance, Kling, Gemini Omni, MiniMax H3, and MiniMax H3 Max. Use when the user wants to generate a video clip — text-to-video, image-to-video, first/last-frame transitions, reference-guided generation — or wants to modify / edit / extend an existing gener"
   },
   {
     "id": "plugin-skill:chatcut-desktop:video-translation",
@@ -627,7 +627,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "video-translation",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Translate, dub, and localize speech in an existing video while optionally preserving speaker voices, generating translated captions, or synchronizing the speaker's lip movements. Use when the user asks for 视频译制、多语言配音、 把视频里的中文变成英文、让视频里的人说另一种语言、保留原音色、翻译声音、 口型同步、translated video, video dubbing, voice translation, or lip-synced localization, as well as traducción de video, doblaje de video, traducir un video, or sincronización labial. This Skill MUST be loaded before composing treatment choices for an ambiguous video-translation request in any language, including a turn that only asks the user to choose a treatment. Do not use when the user only wants subtitles translated, wants an SRT/VTT file,"
+    "description": "Translate, dub, and localize speech in an existing video while optionally preserving speaker voices, generating translated captions, or synchronizing the speaker's lip movements. Use when the user asks for 视频译制、多语言配音、 把视频里的中文变成英文、让视频里的人说另一种语言、保留原音色、翻译声音、 口型同步、translated video, vi"
   },
   {
     "id": "plugin-skill:chatcut-desktop:voice",
@@ -635,7 +635,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "voice",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Text-to-Speech (TTS), voice cloning, voiceover, narration placement/sync, and custom sound effects (SFX) generator. Use when the user wants generated speech from text, wants to clone a consented voice from uploaded reference audio, wants to add/replace/align narration or voiceover for an existing video/timeline, wants to keep existing voiceover synced after visual retiming edits, needs voice audition/selection, or explicitly wants a newly generated/custom sound effect that is not available in the Sound Effects library."
+    "description": "Text-to-Speech (TTS), voice cloning, voiceover, narration placement/sync, and custom sound effects (SFX) generator. Use when the user wants generated speech from text, wants to clone a consented voice from uploaded reference audio, wants to add/replace/align narration or voiceove"
   },
   {
     "id": "plugin-skill:chatcut-desktop:widget-forms",
@@ -651,7 +651,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "chunk",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use CircleCI Chunk for AI-assisted CI/CD work through either the Chunk web UI or the chunk-cli. Trigger this skill when users ask to set up Chunk, troubleshoot or fix failing builds with Chunk, configure Chunk environments, schedule/proactively run Chunk tasks, or use chunk-cli commands such as init, validate, build-prompt, auth, sandbox, task, and skill install."
+    "description": "Use CircleCI Chunk for AI-assisted CI/CD work through either the Chunk web UI or the chunk-cli. Trigger this skill when users ask to set up Chunk, troubleshoot or fix failing builds with Chunk, configure Chunk environments, schedule/proactively run Chunk tasks, or use chunk-cli c"
   },
   {
     "id": "plugin-skill:circleci:circleci-builds",
@@ -683,7 +683,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "advisory-brief-planner",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use internally when Clara receives a new or materially reframed advisory assignment and must turn the natural request into a reviewable assignment contract and generation handoff. Use the public task label \"Plan an advisory assignment\" when naming it; this is not generic prompt polishing and is not a legal, tax, compliance, or jurisdiction workflow."
+    "description": "Use internally when Clara receives a new or materially reframed advisory assignment and must turn the natural request into a reviewable assignment contract and generation handoff. Use the public task label \"Plan an advisory assignment\" when naming it; this is not generic prompt p"
   },
   {
     "id": "plugin-skill:clara:advisory-case-director",
@@ -691,7 +691,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "advisory-case-director",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when Clara must direct a durable advisory case after initial assignment framing: state the answer first, keep a living analytical spine, choose and coordinate the next analysis or research branch, integrate new evidence and partner judgement, revise the position when warranted, and decide when the working deliverable should change. This is the case-direction workflow, not a fixed analytical schema, generic prompt optimizer, data-analysis engine, deck builder, or final validator."
+    "description": "Use when Clara must direct a durable advisory case after initial assignment framing: state the answer first, keep a living analytical spine, choose and coordinate the next analysis or research branch, integrate new evidence and partner judgement, revise the position when warrante"
   },
   {
     "id": "plugin-skill:clara:advisory-deliverable-validator",
@@ -699,7 +699,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "advisory-deliverable-validator",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when Clara must validate a completed advisory memo, report, analysis, presentation, or other supported professional document against advisory_contract.json and available evidence. Review contract fit, support, calculations and provenance, reasoning, contradictions, recommendation fit, judgement boundaries, correction needs, uncertainty, and delivery readiness without turning the workflow into legal, tax, compliance, or jurisdictional research."
+    "description": "Use when Clara must validate a completed advisory memo, report, analysis, presentation, or other supported professional document against advisory_contract.json and available evidence. Review contract fit, support, calculations and provenance, reasoning, contradictions, recommenda"
   },
   {
     "id": "plugin-skill:clara:attribute-reporting",
@@ -731,7 +731,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "claim-basis-map",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when Clara or Codex generates, revises, or audits a clean PPTX/deck and needs a fully automatic readable sidecar that maps each slide claim to its basis and checks whether current deck text has drifted from the generation-time claim snapshot. Use for AI-generated decks where visible citations, claim IDs, reviewer attestations, hashes, thumbnails, and HTML are explicitly not wanted."
+    "description": "Use when Clara or Codex generates, revises, or audits a clean PPTX/deck and needs a fully automatic readable sidecar that maps each slide claim to its basis and checks whether current deck text has drifted from the generation-time claim snapshot. Use for AI-generated decks where "
   },
   {
     "id": "plugin-skill:clara:clara",
@@ -739,7 +739,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "clara",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use whenever Clara is explicitly invoked, including through @clara, and for advisory work that Clara may organize, analyze, research, document, or present, including commercial due-diligence preparation. Always activate Clara's router, select the narrowest supported workflow, identify unsupported professional work as a capability gap with a consent-gated change-request offer, and return unrelated work as out of scope instead of answering as general ChatGPT."
+    "description": "Use whenever Clara is explicitly invoked, including through @clara, and for advisory work that Clara may organize, analyze, research, document, or present, including commercial due-diligence preparation. Always activate Clara's router, select the narrowest supported workflow, ide"
   },
   {
     "id": "plugin-skill:clara:deck-correction",
@@ -747,7 +747,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "deck-correction",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Correct, revise, or rebuild an existing PPTX or Clara HTML deck from spoken feedback, a call transcript, screen recording, review notes, or partner comments. Use when the user says record feedback on this deck or when the requested outcome is a changed deck rather than only a transcript: open Clara Voice Capture when needed, interpret every requested change, preserve untouched content, require a reviewable understanding and approval checkpoint for PPTX work, apply changes to a copy, render, verify, and inspect the final audience-facing deck. Do not use for transcription alone or for creating a new deck without revision feedback."
+    "description": "Correct, revise, or rebuild an existing PPTX or Clara HTML deck from spoken feedback, a call transcript, screen recording, review notes, or partner comments. Use when the user says record feedback on this deck or when the requested outcome is a changed deck rather than only a tra"
   },
   {
     "id": "plugin-skill:clara:hosted-interview",
@@ -755,7 +755,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "hosted-interview",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Prepare and operate Clara-hosted external voice interviews: select an exact versioned research campaign or define a scoped one-off case interview, create an expiring no-login participant link, check its status, and retrieve the completed JSON bundle and post-interview quality review. Use when the user asks to interview a client, stakeholder, expert, research participant, or other external respondent through a hosted browser link, or asks to retrieve or review that interview's result. Do not use for interviewing the user in chat, advisor voice debriefs, uploading or transcribing existing recordings, bulk outreach or email campaigns, or importing Hosted Voice bundles."
+    "description": "Prepare and operate Clara-hosted external voice interviews: select an exact versioned research campaign or define a scoped one-off case interview, create an expiring no-login participant link, check its status, and retrieve the completed JSON bundle and post-interview quality rev"
   },
   {
     "id": "plugin-skill:clara:html-deck",
@@ -763,7 +763,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "html-deck",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Build or revise source-faithful, cinematic, animated standalone HTML slide decks for Clara or Codex from Word, PDF, Markdown, spreadsheet, case-workspace, or mixed source materials. Use for a premium HTML presentation, web deck, animated talk, responsive keynote-style deck, speaker notes, preservation-aware HTML deck changes, or an alternative to PPTX/PDF that must remain self-contained and browser-presentable."
+    "description": "Build or revise source-faithful, cinematic, animated standalone HTML slide decks for Clara or Codex from Word, PDF, Markdown, spreadsheet, case-workspace, or mixed source materials. Use for a premium HTML presentation, web deck, animated talk, responsive keynote-style deck, speak"
   },
   {
     "id": "plugin-skill:clara:learn-with-clara",
@@ -771,7 +771,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "learn-with-clara",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Teach only this installation's supported Clara workflows through a native voice conversation and a parallel working chat that runs real examples. Use for first onboarding, demonstrations, guided practice, discovering what Clara can do, revisiting an example, or applying it to user-selected files. Starts in desktop Codex; Claude Cowork is outside this feature."
+    "description": "Teach only this installation's supported Clara workflows through a native voice conversation and a parallel working chat that runs real examples. Use for first onboarding, demonstrations, guided practice, discovering what Clara can do, revisiting an example, or applying it to use"
   },
   {
     "id": "plugin-skill:clara:privacy-surface-review",
@@ -787,7 +787,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "reporting-engine",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when Clara needs budgeting/forecast reports with both variances and Sites delivery, CSV/XLSX/Parquet dataset intake, Sales/Discount/COGS identification, chart capability evidence, dataset profiling, a source-backed dataset semantic layer, mechanical compatibility checks, or reporting contract inspection before chart/report selection."
+    "description": "Use when Clara needs budgeting/forecast reports with both variances and Sites delivery, CSV/XLSX/Parquet dataset intake, Sales/Discount/COGS identification, chart capability evidence, dataset profiling, a source-backed dataset semantic layer, mechanical compatibility checks, or r"
   },
   {
     "id": "plugin-skill:clara:research-video",
@@ -795,7 +795,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "research-video",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Turn a user-approved ordered set of research scene images into a source-faithful 16:9 narrated MP4 with restrained motion, synchronized narration in English, Italian, French, German, or Spanish, captions, a reviewable narration script, and mechanical media validation. Use for a research explainer, executive briefing video, client education video, or narrated visual short. Do not use for filming, avatar video, generative scene invention, or revising an existing video."
+    "description": "Turn a user-approved ordered set of research scene images into a source-faithful 16:9 narrated MP4 with restrained motion, synchronized narration in English, Italian, French, German, or Spanish, captions, a reviewable narration script, and mechanical media validation. Use for a r"
   },
   {
     "id": "plugin-skill:clara:transcribe",
@@ -803,7 +803,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "transcribe",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Capture, transcribe, import, attribute, and review advisor voice notes, consultant debriefs, meetings, calls, and existing audio recordings with Clara Hosted Voice. Use when the user asks to start Voice Capture, transcribe an audio file, import a case-notes-audio or case-notes-voice ZIP/JSON bundle, preserve a transcript in an ordinary folder with deduplication, or add a reviewed transcript to a Clara case. Do not use to create an adaptive external-participant interview link or to revise a deck from spoken feedback."
+    "description": "Capture, transcribe, import, attribute, and review advisor voice notes, consultant debriefs, meetings, calls, and existing audio recordings with Clara Hosted Voice. Use when the user asks to start Voice Capture, transcribe an audio file, import a case-notes-audio or case-notes-vo"
   },
   {
     "id": "plugin-skill:close:close-crm",
@@ -819,7 +819,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "cuar",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use whenever the user invokes or mentions CUAR, asks whether an unscheduled Codex reset happened, asks whether CUAR reminder tooling is unavailable, or asks whether a CUAR expiration reminder was created. Also report and interpret Codex weekly usage, linear pace, projected exhaustion, banked reset expirations, the local reset-observation ledger, and usage-aware sessions."
+    "description": "Use whenever the user invokes or mentions CUAR, asks whether an unscheduled Codex reset happened, asks whether CUAR reminder tooling is unavailable, or asks whether a CUAR expiration reminder was created. Also report and interpret Codex weekly usage, linear pace, projected exhaus"
   },
   {
     "id": "plugin-skill:codex-voice-notify:voice-notify-settings",
@@ -827,7 +827,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "voice-notify-settings",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Set up, configure, test, mute, or unmute private offline Voice Notify alerts for Codex lifecycle events on macOS or Windows. Use when someone asks to hear when Codex needs attention or finishes, complete first-time setup, check Codex CLI compatibility, review hook trust, choose the female or male voice, select Korean, Japanese, English, Russian, or Simplified Chinese, change events, or adjust playback timing. Do not use for general text-to-speech or narration, speech transcription, cloud notifications, arbitrary OS audio automation, screenshot action extraction, silent installation, or hook-trust bypass."
+    "description": "Set up, configure, test, mute, or unmute private offline Voice Notify alerts for Codex lifecycle events on macOS or Windows. Use when someone asks to hear when Codex needs attention or finishes, complete first-time setup, check Codex CLI compatibility, review hook trust, choose t"
   },
   {
     "id": "plugin-skill:conversational-narrative:conversational-narrative-router",
@@ -939,7 +939,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "creator-router",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Route requests across Creator Workspace to the smallest useful set of bundled skills. Use whenever the user explicitly invokes Creator Workspace, asks for a multi-step creator workflow, or the right second-brain, recall, writing, social-media, visualization, analytics, or session-learning skill is unclear."
+    "description": "Route requests across Creator Workspace to the smallest useful set of bundled skills. Use whenever the user explicitly invokes Creator Workspace, asks for a multi-step creator workflow, or the right second-brain, recall, writing, social-media, visualization, analytics, or session"
   },
   {
     "id": "plugin-skill:creator-workbench:graphic-designer",
@@ -1099,7 +1099,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "voiceprint",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Turn the user's own spoken transcript into a finished long-form piece primarily by cutting, ordering, and lightly joining their literal wording. Use when the user asks to turn a recording or transcript into an article, newsletter, blog post, or long social post that must genuinely remain their own wording."
+    "description": "Turn the user's own spoken transcript into a finished long-form piece primarily by cutting, ordering, and lightly joining their literal wording. Use when the user asks to turn a recording or transcript into an article, newsletter, blog post, or long social post that must genuinel"
   },
   {
     "id": "plugin-skill:creator-workbench:workspace-recall",
@@ -1107,7 +1107,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "workspace-recall",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Retrieve the smallest relevant set of facts, notes, project state, lessons, and voice context from a Creator Workspace second brain. Use when the user asks what the workspace remembers, wants to resume prior work, needs context before creating, or asks to find something across stored workspace files."
+    "description": "Retrieve the smallest relevant set of facts, notes, project state, lessons, and voice context from a Creator Workspace second brain. Use when the user asks what the workspace remembers, wants to resume prior work, needs context before creating, or asks to find something across st"
   },
   {
     "id": "plugin-skill:creator-workbench:youtube-thumbnail",
@@ -1123,7 +1123,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "arabic-rtl-director",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Arabic visual hierarchy, RTL reading flow, calligraphy glyph fidelity, and regional cultural authenticity director. This skill should be used when designing Arabic-first posters and campaigns, directing Right-to-Left eye paths, balancing mixed Arabic/English typography, or issuing hard vetoes on Arabic glyph and rendering errors."
+    "description": "Arabic visual hierarchy, RTL reading flow, calligraphy glyph fidelity, and regional cultural authenticity director. This skill should be used when designing Arabic-first posters and campaigns, directing Right-to-Left eye paths, balancing mixed Arabic/English typography, or issuin"
   },
   {
     "id": "plugin-skill:designly:brand-activation",
@@ -1131,7 +1131,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "brand-activation",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Specialist in experiential campaigns, PR stunts, and brand utility. This skill should be used when creating non-traditional marketing activations, interactive physical/digital stunts, brand utility tools, cultural objects, ambient media, or applying the diagnostic test to distinguish genuine non-advertising utility from channel-specific executions."
+    "description": "Specialist in experiential campaigns, PR stunts, and brand utility. This skill should be used when creating non-traditional marketing activations, interactive physical/digital stunts, brand utility tools, cultural objects, ambient media, or applying the diagnostic test to disting"
   },
   {
     "id": "plugin-skill:designly:brand-intelligence",
@@ -1139,7 +1139,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "brand-intelligence",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Brand identity and product fidelity specialist. This skill should be used when auditing visual proposals against brand guidelines, enforcing logo clearspace and color formulas, verifying product packaging fidelity, conducting the Brand-Off test, or issuing hard vetoes on brand violations."
+    "description": "Brand identity and product fidelity specialist. This skill should be used when auditing visual proposals against brand guidelines, enforcing logo clearspace and color formulas, verifying product packaging fidelity, conducting the Brand-Off test, or issuing hard vetoes on brand vi"
   },
   {
     "id": "plugin-skill:designly:campaign-canon",
@@ -1147,7 +1147,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "campaign-canon",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Advertising history and campaign pattern benchmarking specialist. This skill should be used when referencing the 571 canonical advertising campaigns, looking up case studies across P01-P18 patterns, checking market pattern saturation, evaluating anti-derivative uniqueness, or finding cross-industry analog cases by industry, budget, format, or emotional intent."
+    "description": "Advertising history and campaign pattern benchmarking specialist. This skill should be used when referencing the 571 canonical advertising campaigns, looking up case studies across P01-P18 patterns, checking market pattern saturation, evaluating anti-derivative uniqueness, or fin"
   },
   {
     "id": "plugin-skill:designly:campaign-dna",
@@ -1155,7 +1155,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "campaign-dna",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Multi-asset campaign visual DNA and cross-format continuity director. This skill should be used when planning multi-asset campaigns, defining visual-family continuity rules across formats (1:1, 9:16, 16:9), creating deliberate variation across deliverables, or maintaining campaign brand consistency."
+    "description": "Multi-asset campaign visual DNA and cross-format continuity director. This skill should be used when planning multi-asset campaigns, defining visual-family continuity rules across formats (1:1, 9:16, 16:9), creating deliberate variation across deliverables, or maintaining campaig"
   },
   {
     "id": "plugin-skill:designly:composition-director",
@@ -1171,7 +1171,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "creative-director",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "AI creative director with recursive self-assessment, Cannes-calibrated scoring, SIT/TRIZ structural ideation, and campaign canon anti-derivative preflight. This skill should be used when the user asks to generate creative concepts, brainstorm campaign ideas, develop a Big Idea or campaign platform, evaluate or critique existing creative work, find consumer insights, or shares a brief for ideation — including activations, PR-stunts, brand utility, experiential, and non-advertising ideas."
+    "description": "AI creative director with recursive self-assessment, Cannes-calibrated scoring, SIT/TRIZ structural ideation, and campaign canon anti-derivative preflight. This skill should be used when the user asks to generate creative concepts, brainstorm campaign ideas, develop a Big Idea or"
   },
   {
     "id": "plugin-skill:designly:creative-strategy",
@@ -1179,7 +1179,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "creative-strategy",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Marketing strategy and visual concept specialist. This skill should be used when deconstructing marketing briefs, defining target audience insights, establishing message hierarchy, developing distinct concept territories, or clarifying the single primary communication job before visual design begins."
+    "description": "Marketing strategy and visual concept specialist. This skill should be used when deconstructing marketing briefs, defining target audience insights, establishing message hierarchy, developing distinct concept territories, or clarifying the single primary communication job before "
   },
   {
     "id": "plugin-skill:designly:designly-director",
@@ -1187,7 +1187,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "designly-director",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Lead commercial Art Director and Design Neural Mesh orchestrator. This skill should be used when orchestrating end-to-end commercial design, resolving conflicting brand/taste/structure signals, locking brief constraints, delegating specialist analysis, sanitizing bounded edits, and conducting final art-direction signoff."
+    "description": "Lead commercial Art Director and Design Neural Mesh orchestrator. This skill should be used when orchestrating end-to-end commercial design, resolving conflicting brand/taste/structure signals, locking brief constraints, delegating specialist analysis, sanitizing bounded edits, a"
   },
   {
     "id": "plugin-skill:designly:edit-sanitizer",
@@ -1195,7 +1195,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "edit-sanitizer",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Pre-execution sanitizer for annotation-guided edits, inpainting, copy corrections, local retouching, and object replacement. This skill should be used when a user points at or annotates part of an existing image and expects a bounded change without collateral redesign, or when edit scope, mask geometry, exact copy, or protected regions must be validated before image execution."
+    "description": "Pre-execution sanitizer for annotation-guided edits, inpainting, copy corrections, local retouching, and object replacement. This skill should be used when a user points at or annotates part of an existing image and expects a bounded change without collateral redesign, or when ed"
   },
   {
     "id": "plugin-skill:designly:insight-mining",
@@ -1203,7 +1203,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "insight-mining",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Specialist in unearthing consumer tensions and strategic insight formulation. This skill should be used when discovering deep audience insights, mapping Jobs-To-Be-Done (JTBD), identifying cultural, category, or human tensions, applying Mark Pollard's Four Points, or laddering abstraction levels before creative ideation begins."
+    "description": "Specialist in unearthing consumer tensions and strategic insight formulation. This skill should be used when discovering deep audience insights, mapping Jobs-To-Be-Done (JTBD), identifying cultural, category, or human tensions, applying Mark Pollard's Four Points, or laddering ab"
   },
   {
     "id": "plugin-skill:designly:manipulation-director",
@@ -1211,7 +1211,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "manipulation-director",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Digital manipulation, compositing physics, perspective alignment, and photo-integration director. This skill should be used when combining multiple image elements, planning compositing perspective and scale, enforcing realistic contact shadows and reflections, or directing impossible/surreal advertising scenes with internal physical consistency."
+    "description": "Digital manipulation, compositing physics, perspective alignment, and photo-integration director. This skill should be used when combining multiple image elements, planning compositing perspective and scale, enforcing realistic contact shadows and reflections, or directing imposs"
   },
   {
     "id": "plugin-skill:designly:photography-director",
@@ -1227,7 +1227,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "prompt-compiler",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Image-generation and image-edit instruction compiler. This skill should be used when translating an approved Art Direction Spec or a ready EditContract into precise provider/model-ready instructions, linting prompt slop, or preparing execution for the host image tool without changing upstream creative decisions."
+    "description": "Image-generation and image-edit instruction compiler. This skill should be used when translating an approved Art Direction Spec or a ready EditContract into precise provider/model-ready instructions, linting prompt slop, or preparing execution for the host image tool without chan"
   },
   {
     "id": "plugin-skill:designly:reference-memory",
@@ -1243,7 +1243,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "taste-engine",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Taste extraction and transferable visual rule mixing engine. This skill should be used when deconstructing visual reference images into transferable design principles, building Taste Profiles, mixing multiple references by assigned design jobs, or preventing plagiarism and AI-slop anti-patterns."
+    "description": "Taste extraction and transferable visual rule mixing engine. This skill should be used when deconstructing visual reference images into transferable design principles, building Taste Profiles, mixing multiple references by assigned design jobs, or preventing plagiarism and AI-slo"
   },
   {
     "id": "plugin-skill:designly:typography-director",
@@ -1259,7 +1259,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "visual-qa",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Independent visual quality assurance, hard-gate auditor, and targeted revision router. This skill should be used when reviewing generated or edited visuals, testing hierarchy/craft/brand fidelity, detecting AI slop, checking bounded-edit collateral drift, issuing approval verdicts, or routing targeted RevisionRequests."
+    "description": "Independent visual quality assurance, hard-gate auditor, and targeted revision router. This skill should be used when reviewing generated or edited visuals, testing hierarchy/craft/brand fidelity, detecting AI slop, checking bounded-edit collateral drift, issuing approval verdict"
   },
   {
     "id": "plugin-skill:designly:visual-storytelling",
@@ -1267,7 +1267,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "visual-storytelling",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Narrative architecture and visual storytelling specialist. This skill should be used when structuring dramatic narrative arcs, crafting multi-frame storyboards, applying classic storytelling frameworks (Story Spine, Sparkline, Freytag's Pyramid, Monroe's Motivated Sequence, Pixar Rules, Hero's Journey), or aligning visual pacing with complex emotional tiers."
+    "description": "Narrative architecture and visual storytelling specialist. This skill should be used when structuring dramatic narrative arcs, crafting multi-frame storyboards, applying classic storytelling frameworks (Story Spine, Sparkline, Freytag's Pyramid, Monroe's Motivated Sequence, Pixar"
   },
   {
     "id": "plugin-skill:documents-router:document",
@@ -1347,7 +1347,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "identityserver-configuration",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Configure Duende IdentityServer including client definitions, API resources, identity resources, scopes, signing credentials, and server-side sessions. Covers client types (M2M, interactive, SPA), grant types, API Scopes vs API Resources vs Identity Resources, secret management, and client authentication methods. Includes both in-memory and database-backed configuration."
+    "description": "Configure Duende IdentityServer including client definitions, API resources, identity resources, scopes, signing credentials, and server-side sessions. Covers client types (M2M, interactive, SPA), grant types, API Scopes vs API Resources vs Identity Resources, secret management, "
   },
   {
     "id": "plugin-skill:duende-skills:identityserver-dcr",
@@ -1403,7 +1403,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "identityserver-stores",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Implement and customize Duende IdentityServer stores including configuration store, operational store, and Entity Framework Core integration. Covers migrations, custom store implementations, caching strategies, server-side sessions, signing key storage, token cleanup, and multi-tenant patterns."
+    "description": "Implement and customize Duende IdentityServer stores including configuration store, operational store, and Entity Framework Core integration. Covers migrations, custom store implementations, caching strategies, server-side sessions, signing key storage, token cleanup, and multi-t"
   },
   {
     "id": "plugin-skill:duende-skills:identityserver-token-lifecycle",
@@ -1451,7 +1451,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "identityserver4-migration",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Migrating from IdentityServer4 to Duende IdentityServer v8. Covers NuGet package replacement, namespace changes, API surface changes, EF Core database schema migrations, .NET target framework upgrade, license configuration, signing key migration, data protection, and UI template updates."
+    "description": "Migrating from IdentityServer4 to Duende IdentityServer v8. Covers NuGet package replacement, namespace changes, API surface changes, EF Core database schema migrations, .NET target framework upgrade, license configuration, signing key migration, data protection, and UI template "
   },
   {
     "id": "plugin-skill:duende-skills:oauth-oidc-protocols",
@@ -1523,7 +1523,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "expo-module",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guide for writing Expo native modules and views using the Expo Modules API (Swift, Kotlin, TypeScript). Covers module definition DSL, native views, shared objects, config plugins, lifecycle hooks, autolinking, and type system. Use when building or modifying native modules for Expo."
+    "description": "Guide for writing Expo native modules and views using the Expo Modules API (Swift, Kotlin, TypeScript). Covers module definition DSL, native views, shared objects, config plugins, lifecycle hooks, autolinking, and type system. Use when building or modifying native modules for Exp"
   },
   {
     "id": "plugin-skill:expo:expo-tailwind-setup",
@@ -1579,7 +1579,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "fastapi-new",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create new uv-backed FastAPI apps with `fastapi-new`. Use when the user asks to scaffold a new FastAPI project, create a new app directory, initialize a FastAPI project in the current directory, choose a Python version for a new app, or prepare a fresh app that can later be run with `uv run fastapi dev` or deployed to FastAPI Cloud."
+    "description": "Create new uv-backed FastAPI apps with `fastapi-new`. Use when the user asks to scaffold a new FastAPI project, create a new app directory, initialize a FastAPI project in the current directory, choose a Python version for a new app, or prepare a fresh app that can later be run w"
   },
   {
     "id": "plugin-skill:fastapicloud:fastapicloud-deploy",
@@ -1587,7 +1587,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "fastapicloud-deploy",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Prepare and deploy FastAPI apps to FastAPI Cloud. Use when the user asks to deploy a project, create, link, or update a FastAPI Cloud app, log in before deployment, set up CI/CD, a GitHub Actions deploy workflow, or GitHub-linked auto-deploys, manage deploy tokens, validate deployment inputs, inspect app IDs, review `.fastapicloudignore`, or update commands that invoke `fastapi deploy` or `fastapi cloud deploy`."
+    "description": "Prepare and deploy FastAPI apps to FastAPI Cloud. Use when the user asks to deploy a project, create, link, or update a FastAPI Cloud app, log in before deployment, set up CI/CD, a GitHub Actions deploy workflow, or GitHub-linked auto-deploys, manage deploy tokens, validate deplo"
   },
   {
     "id": "plugin-skill:fastapicloud:fastapicloud-domains",
@@ -1611,7 +1611,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "fastapicloud-integrations",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Connect and manage databases and third-party resources for FastAPI Cloud apps. Use when the user asks to connect or add a database, Postgres provider, Redis cache, observability service, or other managed service; inspect available integration providers; connect Neon, Redis Cloud, Supabase, or Logfire; list or inspect connected resources; review managed environment variables; or disconnect a resource from an app."
+    "description": "Connect and manage databases and third-party resources for FastAPI Cloud apps. Use when the user asks to connect or add a database, Postgres provider, Redis cache, observability service, or other managed service; inspect available integration providers; connect Neon, Redis Cloud,"
   },
   {
     "id": "plugin-skill:fastapicloud:fastapicloud-logs",
@@ -1635,7 +1635,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "figma-create-new-file",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "**MANDATORY prerequisite** — you MUST invoke this skill BEFORE every `create_new_file` tool call. NEVER call `create_new_file` directly without loading this skill first. Trigger whenever the user wants a new blank Figma file — a new design, FigJam, or Slides file — or when you need a fresh file before calling `use_figma`. Usage — /figma-create-new-file [editorType] [fileName] (e.g. /figma-create-new-file figjam My Whiteboard, /figma-create-new-file slides Q3 Review)"
+    "description": "**MANDATORY prerequisite** — you MUST invoke this skill BEFORE every `create_new_file` tool call. NEVER call `create_new_file` directly without loading this skill first. Trigger whenever the user wants a new blank Figma file — a new design, FigJam, or Slides file — or when you ne"
   },
   {
     "id": "plugin-skill:figma:figma-design-to-code",
@@ -1643,7 +1643,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "figma-design-to-code",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "**MANDATORY prerequisite** — you MUST invoke this skill BEFORE calling the `get_design_context` Figma MCP tool. You MUST trigger this skill whenever the user wants to implement, build, port, or code up a Figma design as code. Example prompts (not exhaustive) are 'implement this Figma design', 'build this screen from Figma', 'turn this Figma into code', 'design to code'. This skill provides critical instructions and steps to the agent on how to correctly implement Figma designs in code and must NOT be skipped."
+    "description": "**MANDATORY prerequisite** — you MUST invoke this skill BEFORE calling the `get_design_context` Figma MCP tool. You MUST trigger this skill whenever the user wants to implement, build, port, or code up a Figma design as code. Example prompts (not exhaustive) are 'implement this F"
   },
   {
     "id": "plugin-skill:figma:figma-generate-design",
@@ -1651,7 +1651,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "figma-generate-design",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use this skill alongside figma-use when the task involves translating an application page, view, or multi-section layout into Figma. Triggers: 'write to Figma', 'create in Figma from code', 'push page to Figma', 'take this app/page and build it in Figma', 'create a screen', 'build a landing page in Figma', 'update the Figma screen to match code', 'convert this modal/dialog/drawer/panel to Figma'. This is the preferred workflow skill whenever the user wants to build or update a full page, modal, dialog, drawer, sidebar, panel, or any composed multi-section view in Figma from code or a description. Discovers design system components, variables, and styles from Code Connect files, existing scre"
+    "description": "Use this skill alongside figma-use when the task involves translating an application page, view, or multi-section layout into Figma. Triggers: 'write to Figma', 'create in Figma from code', 'push page to Figma', 'take this app/page and build it in Figma', 'create a screen', 'buil"
   },
   {
     "id": "plugin-skill:figma:figma-generate-diagram",
@@ -1659,7 +1659,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "figma-generate-diagram",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MANDATORY prerequisite — load this skill BEFORE every `generate_diagram` tool call. NEVER call `generate_diagram` directly without loading this skill first. Trigger whenever the user asks to create, generate, draw, render, sketch, or build a diagram — flowchart, architecture diagram, sequence diagram, ERD or entity-relationship diagram, state diagram or state machine, gantt chart, or timeline. Also trigger when the user mentions Mermaid syntax or wants a system architecture, decision tree, dependency graph, API call flow, auth handshake, schema, or pipeline visualized in FigJam. Routes to type-specific guidance, sets universal Mermaid constraints, and tells you when to use a different diagra"
+    "description": "MANDATORY prerequisite — load this skill BEFORE every `generate_diagram` tool call. NEVER call `generate_diagram` directly without loading this skill first. Trigger whenever the user asks to create, generate, draw, render, sketch, or build a diagram — flowchart, architecture diag"
   },
   {
     "id": "plugin-skill:figma:figma-generate-library",
@@ -1667,7 +1667,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "figma-generate-library",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Build or update a professional-grade design system in Figma from a codebase. Use when the user wants to create variables/tokens, build component libraries, create individual components with proper variant sets and variable bindings, set up theming (light/dark modes), document foundations, or reconcile gaps between code and Figma. Also use when the user asks to create or generate any component in Figma — even a single one — since components require proper variable foundations, variant states, and design token bindings to be production-quality. This skill teaches WHAT to build and in WHAT ORDER — it complements the `figma-use` skill which teaches HOW to call the Plugin API. Both skills should "
+    "description": "Build or update a professional-grade design system in Figma from a codebase. Use when the user wants to create variables/tokens, build component libraries, create individual components with proper variant sets and variable bindings, set up theming (light/dark modes), document fou"
   },
   {
     "id": "plugin-skill:figma:figma-generative-plugins",
@@ -1683,7 +1683,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "figma-implement-motion",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Translates Figma motion and animations into production-ready application code. Use when implementing animation/motion from a Figma design — user mentions \"implement this motion\", \"add animation from Figma\", \"animate this component\", provides a Figma URL whose node is animated, or when `get_design_context` returns motion data or instructs you to call `get_motion_context`."
+    "description": "Translates Figma motion and animations into production-ready application code. Use when implementing animation/motion from a Figma design — user mentions \"implement this motion\", \"add animation from Figma\", \"animate this component\", provides a Figma URL whose node is animated, or"
   },
   {
     "id": "plugin-skill:figma:figma-shaders",
@@ -1699,7 +1699,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "figma-swiftui",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "SwiftUI ↔ Figma translation. Use whenever the user mentions Swift, SwiftUI, iOS, iPhone, or iPad — in EITHER direction — translating a Figma design into SwiftUI (design → code), or pushing SwiftUI views / screens / tokens back into a Figma file (code → design). Triggers on phrases like 'implement this Figma design in SwiftUI', 'build this screen in Swift', 'push this SwiftUI view to Figma', 'mirror my Swift code in a Figma file', or whenever a Figma URL appears alongside `.swift` files / an `.xcodeproj`. Routes to a direction-specific reference doc; loads alongside `figma-use` for the code → design path."
+    "description": "SwiftUI ↔ Figma translation. Use whenever the user mentions Swift, SwiftUI, iOS, iPhone, or iPad — in EITHER direction — translating a Figma design into SwiftUI (design → code), or pushing SwiftUI views / screens / tokens back into a Figma file (code → design). Triggers on phrase"
   },
   {
     "id": "plugin-skill:figma:figma-use",
@@ -1707,7 +1707,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "figma-use",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "**MANDATORY prerequisite** — you MUST invoke this skill BEFORE every `use_figma` tool call. NEVER call `use_figma` directly without loading this skill first. Skipping it causes common, hard-to-debug failures. Trigger whenever the user wants to perform a write action or a unique read action that requires JavaScript execution in the Figma file context — e.g. create/edit/delete nodes, set up variables or tokens, build components and variants, modify auto-layout or fills, bind variables to properties, or inspect file structure programmatically."
+    "description": "**MANDATORY prerequisite** — you MUST invoke this skill BEFORE every `use_figma` tool call. NEVER call `use_figma` directly without loading this skill first. Skipping it causes common, hard-to-debug failures. Trigger whenever the user wants to perform a write action or a unique r"
   },
   {
     "id": "plugin-skill:figma:figma-use-figjam",
@@ -1739,7 +1739,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "gauntlet",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Turn requests that invoke Gauntlet as a quality-control workflow into rigorous, proportionate build-test-critique-benchmark-improve processes for arbitrary non-trivial tasks. Use when the user commands \"Gauntlet this,\" \"Run the Gauntlet,\" \"Build a Gauntlet,\" requests a \"Gauntlet prompt,\" asks to \"Audit this with Gauntlet,\" or unmistakably requests an adversarial iterative quality-control loop. Support three modes: BUILD a self-contained copy-paste prompt, RUN the underlying task, or AUDIT/IMPROVE existing work. Adapt tests, critics, real benchmarks, stress tests, iteration evidence, conditional implementation translation, and stop gates across software, design, research, writing, strategy, d"
+    "description": "Turn requests that invoke Gauntlet as a quality-control workflow into rigorous, proportionate build-test-critique-benchmark-improve processes for arbitrary non-trivial tasks. Use when the user commands \"Gauntlet this,\" \"Run the Gauntlet,\" \"Build a Gauntlet,\" requests a \"Gauntlet "
   },
   {
     "id": "plugin-skill:generate-runbook:generate-runbook",
@@ -1747,7 +1747,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "generate-runbook",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create, review, validate, dry-run, and audit operational runbooks for software releases, incidents, migrations, recurring procedures, and other high-consequence workflows. Use when a user asks for a runbook, playbook, standard operating procedure, launch checklist, rollback plan, incident procedure, operational handoff, or validation of an existing runbook."
+    "description": "Create, review, validate, dry-run, and audit operational runbooks for software releases, incidents, migrations, recurring procedures, and other high-consequence workflows. Use when a user asks for a runbook, playbook, standard operating procedure, launch checklist, rollback plan,"
   },
   {
     "id": "plugin-skill:genra-video-editor:genra-video-editor",
@@ -1763,7 +1763,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "google-docs",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Prompt- and template-complete Google Docs creation and editing with explicit-instruction-authoritative structural preservation, including semantic roles, relationships, comparison dimensions, and instructed extensions; full-topology native-copy routing; source-grounded per-tab adaptation for past/example references; style-preserving hyperlink and table edits; canonical smart-chip-first authoring for dates and relevant supported people or Google resources; a file-backed advisory trusted read before existing-document writes; automatic protected-control awareness; direct connector APIs by default; DOCX-first import only when no supplied Google Doc template/reference constrains the output; and c"
+    "description": "Prompt- and template-complete Google Docs creation and editing with explicit-instruction-authoritative structural preservation, including semantic roles, relationships, comparison dimensions, and instructed extensions; full-topology native-copy routing; source-grounded per-tab ad"
   },
   {
     "id": "plugin-skill:google-drive:google-drive",
@@ -1771,7 +1771,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "google-drive",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use connected Google Drive as the single entrypoint for Drive, Docs, Sheets, and Slides work. Use when the user wants to find, fetch, organize, share, export, copy, or delete Drive files, or summarize and edit Google Docs, Google Sheets, and Google Slides through one unified Google Drive plugin."
+    "description": "Use connected Google Drive as the single entrypoint for Drive, Docs, Sheets, and Slides work. Use when the user wants to find, fetch, organize, share, export, copy, or delete Drive files, or summarize and edit Google Docs, Google Sheets, and Google Slides through one unified Goog"
   },
   {
     "id": "plugin-skill:google-drive:google-drive-comments",
@@ -1787,7 +1787,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "google-sheets",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Analyze and edit connected Google Sheets with range precision. Use when the user wants to create Google Sheets, find a spreadsheet, inspect tabs or ranges, search rows, plan formulas, create or repair charts, clean or restructure tables, write concise summaries, or make explicit cell-range updates."
+    "description": "Analyze and edit connected Google Sheets with range precision. Use when the user wants to create Google Sheets, find a spreadsheet, inspect tabs or ranges, search rows, plan formulas, create or repair charts, clean or restructure tables, write concise summaries, or make explicit "
   },
   {
     "id": "plugin-skill:google-drive:google-slides",
@@ -1795,7 +1795,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "google-slides",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Route Google Slides authoring requests and derive a design system from a native template or reference deck. Use this skill when the user provides an existing native Google Slides deck as a template, reference, or prior-period source, or asks to edit, update, repair, restyle, or clean up an existing native Google Slides deck. Use the Presentations skill instead for net-new presentation creation when no existing native Google Slides deck must be followed."
+    "description": "Route Google Slides authoring requests and derive a design system from a native template or reference deck. Use this skill when the user provides an existing native Google Slides deck as a template, reference, or prior-period source, or asks to edit, update, repair, restyle, or c"
   },
   {
     "id": "plugin-skill:gstack-workflows:autoplan",
@@ -2163,7 +2163,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "hey-terminal-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Plan, review, and interpret SSH and terminal work intended for the Hey Terminal app on iPhone or iPad. Use when a user asks to use Hey Terminal, prepare a safe server command, troubleshoot terminal output, or operate Hey Terminal through an available iOS device-control capability. This skill never implies that an iPhone was controlled or a command was executed unless the current runtime actually provides local iOS app control and the visible result was observed."
+    "description": "Plan, review, and interpret SSH and terminal work intended for the Hey Terminal app on iPhone or iPad. Use when a user asks to use Hey Terminal, prepare a safe server command, troubleshoot terminal output, or operate Hey Terminal through an available iOS device-control capability"
   },
   {
     "id": "plugin-skill:hostinger-connector:domains",
@@ -2171,7 +2171,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "domains",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when the user wants to work with domain names or DNS at Hostinger — checking availability and buying a domain, reading domain details and renewal dates, changing nameservers, setting up forwarding, managing registrar lock, WHOIS privacy and WHOIS contact profiles, getting an authorization code for a transfer, and reading, editing, validating, resetting or restoring DNS records."
+    "description": "Use when the user wants to work with domain names or DNS at Hostinger — checking availability and buying a domain, reading domain details and renewal dates, changing nameservers, setting up forwarding, managing registrar lock, WHOIS privacy and WHOIS contact profiles, getting an "
   },
   {
     "id": "plugin-skill:hostinger-connector:ecommerce",
@@ -2179,7 +2179,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ecommerce",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when the user wants a Hostinger online store — creating a store, adding physical or digital products, setting flat-rate shipping, enabling a manual payment method, checking whether the store is ready to take orders, and creating or updating a custom sales channel so a frontend you built can serve the catalog and a hosted checkout. Not for WooCommerce, which is a WordPress plugin."
+    "description": "Use when the user wants a Hostinger online store — creating a store, adding physical or digital products, setting flat-rate shipping, enabling a manual payment method, checking whether the store is ready to take orders, and creating or updating a custom sales channel so a fronten"
   },
   {
     "id": "plugin-skill:hostinger-connector:email-marketing",
@@ -2187,7 +2187,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "email-marketing",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when the user wants to work with Hostinger Reach, their email marketing product — listing and creating contacts, importing contacts in bulk, organising them into groups, building segments with custom criteria, reading segment membership, listing marketing profiles, and checking whether a sending domain's MX, SPF, DKIM and DMARC records are configured. Not for mailboxes or reading mail."
+    "description": "Use when the user wants to work with Hostinger Reach, their email marketing product — listing and creating contacts, importing contacts in bulk, organising them into groups, building segments with custom criteria, reading segment membership, listing marketing profiles, and checki"
   },
   {
     "id": "plugin-skill:hostinger-connector:hostinger",
@@ -2195,7 +2195,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "hostinger",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Start here for any task involving the user's Hostinger account — deploying a site, managing hosting and PHP, running WordPress, buying or configuring domains and DNS records, or administering a VPS. This skill connects the Hostinger MCP server, signs the user in, sets the safety rules that every Hostinger action follows, and hands off to the specialist skill that owns the task."
+    "description": "Start here for any task involving the user's Hostinger account — deploying a site, managing hosting and PHP, running WordPress, buying or configuring domains and DNS records, or administering a VPS. This skill connects the Hostinger MCP server, signs the user in, sets the safety "
   },
   {
     "id": "plugin-skill:hostinger-connector:subscriptions-and-payments",
@@ -2203,7 +2203,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "subscriptions-and-payments",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when the user wants to see or manage what they pay Hostinger for — listing subscriptions and their renewal state, enabling or disabling auto-renewal, renewing a subscription, browsing the product catalog with prices, listing payment methods and setting a default, or placing an order for a Hostinger product. Every write here costs the user money or affects whether their services stay online."
+    "description": "Use when the user wants to see or manage what they pay Hostinger for — listing subscriptions and their renewal state, enabling or disabling auto-renewal, renewing a subscription, browsing the product catalog with prices, listing payment methods and setting a default, or placing a"
   },
   {
     "id": "plugin-skill:hostinger-connector:vps",
@@ -2211,7 +2211,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "vps",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when the user wants to administer a Hostinger VPS — listing and inspecting virtual machines, starting, stopping or restarting them, taking and restoring snapshots and backups, managing firewalls and their rules, SSH public keys, post-install scripts, PTR records, hostnames and nameservers, entering recovery mode, reading metrics and malware scan results, or running Docker projects on the machine."
+    "description": "Use when the user wants to administer a Hostinger VPS — listing and inspecting virtual machines, starting, stopping or restarting them, taking and restoring snapshots and backups, managing firewalls and their rules, SSH public keys, post-install scripts, PTR records, hostnames an"
   },
   {
     "id": "plugin-skill:hostinger-connector:websites",
@@ -2219,7 +2219,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "websites",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use for anything on a Hostinger hosting plan — deploying static sites and Node.js applications, provisioning websites and free subdomains, installing and operating WordPress with its plugins and themes, and managing PHP versions and extensions, MySQL databases, cron jobs, subdomains, parked domains and server-side caching. Also covers Agency Plan websites. Buying or configuring a domain name belongs to domains; a VPS belongs to vps."
+    "description": "Use for anything on a Hostinger hosting plan — deploying static sites and Node.js applications, provisioning websites and free subdomains, installing and operating WordPress with its plugins and themes, and managing PHP versions and extensions, MySQL databases, cron jobs, subdoma"
   },
   {
     "id": "plugin-skill:hubspot:hubspot",
@@ -2259,7 +2259,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "human-prose",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Edit, rewrite, audit, or draft prose when the user wants writing to sound less AI-generated, less generic, less templated, more concrete, or more human while preserving the writer's existing voice and meaning. Use for requests to de-AI, humanize, de-slop, remove AI writing habits, audit for AI-slop, fix staccato or semantic beat stacking, repair weak narrative or scene architecture, fix floating dialogue, or apply anti-AI prose rules. Do not trigger for ordinary summarization, translation, factual Q&A, or grammar-only checks unless the user also asks for this style treatment."
+    "description": "Edit, rewrite, audit, or draft prose when the user wants writing to sound less AI-generated, less generic, less templated, more concrete, or more human while preserving the writer's existing voice and meaning. Use for requests to de-AI, humanize, de-slop, remove AI writing habits"
   },
   {
     "id": "plugin-skill:human-writing:human-writing",
@@ -2267,7 +2267,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "human-writing",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Draft or revise prose so it sounds natural, specific, and individually voiced while preserving the writer's meaning. Use for humanizing AI-assisted text, matching a supplied voice sample, or improving fiction and narrative structure; do not use as an AI-detector or for proofreading that should preserve every stylistic choice."
+    "description": "Draft or revise prose so it sounds natural, specific, and individually voiced while preserving the writer's meaning. Use for humanizing AI-assisted text, matching a supplied voice sample, or improving fiction and narrative structure; do not use as an AI-detector or for proofreadi"
   },
   {
     "id": "plugin-skill:humanwriting:human-writing",
@@ -2275,7 +2275,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "human-writing",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Draft or revise reader-facing prose so it sounds natural, specific, and suited to the writer, audience, and situation. Use when the user invokes HumanWriting, asks for a human or natural voice, wants AI-sounding language removed, or requests polished emails, messages, posts, applications, reports, speeches, articles, explanations, or other prose where authentic voice matters. Do not trigger for code, data extraction, verbatim quotations, exact-format transcription, or factual lookup unless prose writing is also requested."
+    "description": "Draft or revise reader-facing prose so it sounds natural, specific, and suited to the writer, audience, and situation. Use when the user invokes HumanWriting, asks for a human or natural voice, wants AI-sounding language removed, or requests polished emails, messages, posts, appl"
   },
   {
     "id": "plugin-skill:hype-design-production:hype-design-production",
@@ -2315,7 +2315,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "linkedin-infographic-autopilot",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Run LinkedIn infographic work in autopilot mode by negotiating available host capabilities, using real side jobs and sandbox artifacts when available, and falling back honestly when they are not. Use for end-to-end creation, redesign, animation, or rigorous production workflows in ChatGPT or Codex."
+    "description": "Run LinkedIn infographic work in autopilot mode by negotiating available host capabilities, using real side jobs and sandbox artifacts when available, and falling back honestly when they are not. Use for end-to-end creation, redesign, animation, or rigorous production workflows i"
   },
   {
     "id": "plugin-skill:linkedin-animated-infographics:linkedin-infographic-review",
@@ -2331,7 +2331,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "linkedin-infographic-studio",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create or redesign a static or animated LinkedIn infographic with evidence checks, verified identity sourcing, narrative taste, concept exploration, intentional typography, macro-layout planning, still-first visual critique, disciplined motion, and final verification. Use for full infographic creation in ChatGPT or Codex."
+    "description": "Create or redesign a static or animated LinkedIn infographic with evidence checks, verified identity sourcing, narrative taste, concept exploration, intentional typography, macro-layout planning, still-first visual critique, disciplined motion, and final verification. Use for ful"
   },
   {
     "id": "plugin-skill:linkedin-animated-infographics:masterone",
@@ -2363,7 +2363,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "style-linkedin-text",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Style, format, or clean LinkedIn posts, comments, profile headlines, About sections, and company-page copy using copy-paste-safe Unicode emphasis, decorative alphabets, bullets, checklists, and numbered lists. Use when the user asks for LinkedIn bold, italics, underline, strikethrough, special fonts, a text formatter, a styled post, Unicode conversion, formatting removal, or variants to compare before posting."
+    "description": "Style, format, or clean LinkedIn posts, comments, profile headlines, About sections, and company-page copy using copy-paste-safe Unicode emphasis, decorative alphabets, bullets, checklists, and numbered lists. Use when the user asks for LinkedIn bold, italics, underline, striketh"
   },
   {
     "id": "plugin-skill:ls-doctor:ls-doctor",
@@ -2379,7 +2379,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "computation-audit",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Design, run, or audit a mathematical computation that supports a research claim, including symbolic, exact, finite-field, representation-theoretic, homological, or numerical experiments. Use when correctness, provenance, tested range, reproducibility, or interpretation matters. Do not present bounded output as a universal proof."
+    "description": "Design, run, or audit a mathematical computation that supports a research claim, including symbolic, exact, finite-field, representation-theoretic, homological, or numerical experiments. Use when correctness, provenance, tested range, reproducibility, or interpretation matters. D"
   },
   {
     "id": "plugin-skill:mathbox:literature-check",
@@ -2387,7 +2387,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "literature-check",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Verify an external mathematical theorem, citation, notation translation, source-dependent implication, or bounded novelty claim, reusing authorized project-local source copies when available. Use when a proof relies on a named paper/result, when exact hypotheses or versions matter, when the user asks whether a claim is known, or when an authenticated mathematical source should be cached for later checks. Prefer primary sources and record the search scope. Do not treat snippets or failed searches as proof or global novelty."
+    "description": "Verify an external mathematical theorem, citation, notation translation, source-dependent implication, or bounded novelty claim, reusing authorized project-local source copies when available. Use when a proof relies on a named paper/result, when exact hypotheses or versions matte"
   },
   {
     "id": "plugin-skill:mathbox:manuscript-integrate",
@@ -2395,7 +2395,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "manuscript-integrate",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Integrate an already validated mathematical result, correction, citation, or referee response into an authoritative LaTeX manuscript while preserving hypotheses, evidence status, notation, and dependencies. Use only when the user explicitly requests manuscript integration. Do not use to invent a proof or to perform routine copyediting."
+    "description": "Integrate an already validated mathematical result, correction, citation, or referee response into an authoritative LaTeX manuscript while preserving hypotheses, evidence status, notation, and dependencies. Use only when the user explicitly requests manuscript integration. Do not"
   },
   {
     "id": "plugin-skill:mathbox:proof-audit",
@@ -2403,7 +2403,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "proof-audit",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Adversarially audit an existing mathematical claim, proof, derivation, diagram, or theorem dependency for correctness. Use for requests to verify, referee, stress-test, type-check, find gaps, or isolate the exact remaining implication. Default to read-only. Do not use to invent a substantially new proof route or merely copyedit prose."
+    "description": "Adversarially audit an existing mathematical claim, proof, derivation, diagram, or theorem dependency for correctness. Use for requests to verify, referee, stress-test, type-check, find gaps, or isolate the exact remaining implication. Default to read-only. Do not use to invent a"
   },
   {
     "id": "plugin-skill:mathbox:proofread-math",
@@ -2411,7 +2411,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "proofread-math",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Conservatively proofread mathematical prose and LaTeX for grammar, typography, syntax, notation consistency, cross-references, and uniquely forced local mathematical typos. Use for explicit math-proofreading requests and final self-review of theorem-, proof-, or equation-heavy edits. Do not invent, replace, shorten, or substantively repair proofs."
+    "description": "Conservatively proofread mathematical prose and LaTeX for grammar, typography, syntax, notation consistency, cross-references, and uniquely forced local mathematical typos. Use for explicit math-proofreading requests and final self-review of theorem-, proof-, or equation-heavy ed"
   },
   {
     "id": "plugin-skill:mathbox:research-attempt",
@@ -2419,7 +2419,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "research-attempt",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Run one bounded, auditable mathematical research route: a proof attempt, reduction, counterexample search, source-dependent implication, or claim-supporting computation. Use when the user explicitly asks to attack a research question or invokes this skill. Do not use for a sustained multi-route investigation that continues after failed approaches, routine editing, explanation, or an unchanged verification rerun."
+    "description": "Run one bounded, auditable mathematical research route: a proof attempt, reduction, counterexample search, source-dependent implication, or claim-supporting computation. Use when the user explicitly asks to attack a research question or invokes this skill. Do not use for a sustai"
   },
   {
     "id": "plugin-skill:mathbox:research-init",
@@ -2427,7 +2427,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "research-init",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Initialize, retrofit, or refresh an AI-assisted mathematical research repository. Use only when the user explicitly asks to set up or substantially revise AGENTS.md, CLAUDE.md, research workflow files, or the repository's agent architecture. Inspect first, interview adaptively, propose a reviewed file plan, and default to no repository-local skills because canonical workflows come from the mathbox plugin."
+    "description": "Initialize, retrofit, or refresh an AI-assisted mathematical research repository. Use only when the user explicitly asks to set up or substantially revise AGENTS.md, CLAUDE.md, research workflow files, or the repository's agent architecture. Inspect first, interview adaptively, p"
   },
   {
     "id": "plugin-skill:mathbox:research-program",
@@ -2435,7 +2435,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "research-program",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Pursue a substantial mathematical research goal across multiple proof, counterexample, literature, and computational routes. Use when the user asks for sustained investigation, several approaches, a breakthrough, or continuation until a goal is reached. Coordinate successive research attempts and preserve their evidence. Do not use for a single bounded lemma attempt, ordinary explanation, proofreading, or a read-only project retrospective."
+    "description": "Pursue a substantial mathematical research goal across multiple proof, counterexample, literature, and computational routes. Use when the user asks for sustained investigation, several approaches, a breakthrough, or continuation until a goal is reached. Coordinate successive rese"
   },
   {
     "id": "plugin-skill:mathbox:research-retrospective",
@@ -2443,7 +2443,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "research-retrospective",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Reconcile a mathematical research repository's current claims, proofs, computations, status, literature dependencies, and failed routes, then recommend the next bounded research moves. Use only when the user asks for a project review, weekly/monthly retrospective, prioritization, a prose project handoff, or “what should I do next?”. Do not use to operate a .mathbox ledger or to generate its dependency-aware handoff. Default to read-only."
+    "description": "Reconcile a mathematical research repository's current claims, proofs, computations, status, literature dependencies, and failed routes, then recommend the next bounded research moves. Use only when the user asks for a project review, weekly/monthly retrospective, prioritization,"
   },
   {
     "id": "plugin-skill:mathbox:research-state",
@@ -2451,7 +2451,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "research-state",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Track exact mathematical claims, evidence revisions, dependency impact, audit provenance, research routes, and parallel or delayed executions in a local append-only ledger. Use when a project has a .mathbox ledger or the user asks for executable research-state tracking, stale-evidence detection, run reconciliation, or a dependency-aware handoff generated from recorded events. Do not initialize state for a casual math question, replace proof auditing with metadata validation, or write a prose project retrospective from status files."
+    "description": "Track exact mathematical claims, evidence revisions, dependency impact, audit provenance, research routes, and parallel or delayed executions in a local append-only ledger. Use when a project has a .mathbox ledger or the user asks for executable research-state tracking, stale-evi"
   },
   {
     "id": "plugin-skill:migrating-to-react-native:assess-react-native-migration",
@@ -2459,7 +2459,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "assess-react-native-migration",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Assesses whether and how an existing mobile product should migrate to React Native. Use when auditing one or more product repositories for migration readiness, including products whose iOS, Android, and other clients live in separate directories or repositories; choosing brownfield, greenfield, or a checkpoint-based path; defining a representative trial; or preparing a baseline and ROI decision before implementation. When product scope or material evidence is unavailable, grills the stakeholder with exactly one question per turn instead of sending a questionnaire."
+    "description": "Assesses whether and how an existing mobile product should migrate to React Native. Use when auditing one or more product repositories for migration readiness, including products whose iOS, Android, and other clients live in separate directories or repositories; choosing brownfie"
   },
   {
     "id": "plugin-skill:migrating-to-react-native:react-native-brownfield-migration",
@@ -2467,7 +2467,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "react-native-brownfield-migration",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Implements an accepted incremental brownfield migration from native iOS or Android to React Native or Expo using @callstack/react-native-brownfield. Use after the brownfield path has been selected, when setting up the integration, packaging XCFramework or AAR artifacts, or adding React Native surfaces to native hosts."
+    "description": "Implements an accepted incremental brownfield migration from native iOS or Android to React Native or Expo using @callstack/react-native-brownfield. Use after the brownfield path has been selected, when setting up the integration, packaging XCFramework or AAR artifacts, or adding"
   },
   {
     "id": "plugin-skill:nacl:nacl-ba",
@@ -2555,7 +2555,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "natural-writing",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Draft or revise ordinary expository prose when the user asks for clearer, more concise, less formulaic, or audience-appropriate wording. Use for workplace messages, explanations, documentation, reports, and prose rewrites where wording and information order are central. Do not invoke automatically for code-only or machine-readable output, exact transcription or protected text, legal or specification wording, or creative and literary writing; use it there only when the user explicitly invokes the skill or asks to revise unprotected surrounding prose."
+    "description": "Draft or revise ordinary expository prose when the user asks for clearer, more concise, less formulaic, or audience-appropriate wording. Use for workplace messages, explanations, documentation, reports, and prose rewrites where wording and information order are central. Do not in"
   },
   {
     "id": "plugin-skill:neon-postgres:neon",
@@ -2563,7 +2563,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "neon",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Overview of Neon, a complete set of cloud backend primitives for apps and agents, spanning Lakebase Postgres, Auth, the Data API, Object Storage, Compute Functions, and the AI Gateway. Start here to route to the right Neon skill, set up the CLI or MCP server, and follow the branch-first workflow. Use when \"Neon\" or \"Lakebase Postgres\" is mentioned, or when any of its individual capabilities are the trigger: \"object storage\" or \"S3\", \"buckets\", \"serverless functions\", \"AI gateway\", \"call an LLM\", \"logs\", \"branch logs\", \"query logs\", \"log export\", \"Loki\", \"Grafana\", \"observability\", \"telemetry\", \"postgres\", \"database\", or \"backend\". Also use when there is no Neon account yet, the user cannot s"
+    "description": "Overview of Neon, a complete set of cloud backend primitives for apps and agents, spanning Lakebase Postgres, Auth, the Data API, Object Storage, Compute Functions, and the AI Gateway. Start here to route to the right Neon skill, set up the CLI or MCP server, and follow the branc"
   },
   {
     "id": "plugin-skill:neon-postgres:neon-ai-gateway",
@@ -2571,7 +2571,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "neon-ai-gateway",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "One API and one credential for frontier and open-source LLMs, built into your Neon branch and powered by Databricks. Use when a user wants to call an LLM, add AI/chat/an agent to their app, route between model providers (OpenAI, Anthropic, Google/Gemini, Meta, Alibaba, and more), or avoid juggling separate provider API keys and accounts — especially when they already use Neon and want AI requests to branch with their project. Works with the OpenAI SDK, Anthropic SDK, google-genai, the Vercel AI SDK, and Mastra by changing only the base URL. Triggers include \"call an LLM\", \"add AI to my app\", \"chat completion\", \"model routing\", \"LLM proxy/gateway\", \"one API for all models\", \"use Claude/GPT/Ge"
+    "description": "One API and one credential for frontier and open-source LLMs, built into your Neon branch and powered by Databricks. Use when a user wants to call an LLM, add AI/chat/an agent to their app, route between model providers (OpenAI, Anthropic, Google/Gemini, Meta, Alibaba, and more),"
   },
   {
     "id": "plugin-skill:neon-postgres:neon-functions",
@@ -2579,7 +2579,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "neon-functions",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Long-running, serverless Node.js HTTP functions deployed onto your Neon branch, with DATABASE_URL injected automatically and compute that runs next to your data. Use when a user wants to host an API, an AI agent with long streaming responses, a WebSocket or server-sent-events (SSE) server, a webhook handler, a Discord bot, an MCP server, or any request/response workload that risks timing out on short, lambda-style serverless functions — and wants it to branch with their database. Triggers include \"serverless function\", \"deploy an API\", \"long-running function\", \"streaming agent\", \"SSE server\", \"WebSocket server\", \"webhook handler\", \"MCP server\", \"run code next to my database\", \"function that "
+    "description": "Long-running, serverless Node.js HTTP functions deployed onto your Neon branch, with DATABASE_URL injected automatically and compute that runs next to your data. Use when a user wants to host an API, an AI agent with long streaming responses, a WebSocket or server-sent-events (SS"
   },
   {
     "id": "plugin-skill:neon-postgres:neon-object-storage",
@@ -2587,7 +2587,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "neon-object-storage",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "S3-compatible object storage that branches with your Neon project, so files and the database stay in sync across every branch. Use when a user wants object storage, a bucket, blob/file storage, or somewhere to put uploads, images, documents, avatars, or user-generated files for their app or agent — especially when they already use (or are setting up) Lakebase Postgres and don't want to add a separate storage provider like AWS S3, Cloudflare R2, or Supabase Storage. Triggers include \"object storage\", \"bucket\", \"blob storage\", \"file storage\", \"store uploads/images/files\", \"S3-compatible storage\", \"presigned URL\", \"where do I put files\", \"storage logs\", \"bucket logs\", \"CDN in front of object st"
+    "description": "S3-compatible object storage that branches with your Neon project, so files and the database stay in sync across every branch. Use when a user wants object storage, a bucket, blob/file storage, or somewhere to put uploads, images, documents, avatars, or user-generated files for t"
   },
   {
     "id": "plugin-skill:neon-postgres:neon-postgres",
@@ -2595,7 +2595,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "neon-postgres",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guides and best practices for working with Lakebase Postgres, the database behind Neon. Covers setup, connection methods and drivers, pooled vs direct connections, branching, schema migrations, autoscaling, scale-to-zero, instant restore, read replicas, connection pooling, IP allow lists, and logical replication. Use when users ask about \"Lakebase Postgres\", \"Neon setup\", \"connect to Neon\", \"Neon project\", \"DATABASE_URL\", \"serverless Postgres\", \"Neon CLI\", \"neon\", \"Neon MCP\", \"Neon Auth\", \"@neondatabase/serverless\", \"@neondatabase/neon-js\", \"scale to zero\", \"Neon autoscaling\", \"Neon read replica\", \"Neon connection pooling\", or \"schema migrations\"."
+    "description": "Guides and best practices for working with Lakebase Postgres, the database behind Neon. Covers setup, connection methods and drivers, pooled vs direct connections, branching, schema migrations, autoscaling, scale-to-zero, instant restore, read replicas, connection pooling, IP all"
   },
   {
     "id": "plugin-skill:netlify:netlify-ai-gateway",
@@ -2603,7 +2603,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netlify-ai-gateway",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guide for using Netlify AI Gateway to access AI models. Use when adding AI capabilities or selecting/changing AI models. Must be read before choosing a model. Covers supported providers (OpenAI, Anthropic, Google), SDK setup, environment variables, and the list of available models."
+    "description": "Guide for using Netlify AI Gateway to access AI models. Use when adding AI capabilities or selecting/changing AI models. Must be read before choosing a model. Covers supported providers (OpenAI, Anthropic, Google), SDK setup, environment variables, and the list of available model"
   },
   {
     "id": "plugin-skill:netlify:netlify-blobs",
@@ -2619,7 +2619,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netlify-caching",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guide for controlling caching on Netlify's CDN. Use when configuring cache headers, setting up stale-while-revalidate, implementing on-demand cache purge, or understanding Netlify's CDN caching behavior. Covers Cache-Control, Netlify-CDN-Cache-Control, cache tags, durable cache, and framework-specific caching patterns."
+    "description": "Guide for controlling caching on Netlify's CDN. Use when configuring cache headers, setting up stale-while-revalidate, implementing on-demand cache purge, or understanding Netlify's CDN caching behavior. Covers Cache-Control, Netlify-CDN-Cache-Control, cache tags, durable cache, "
   },
   {
     "id": "plugin-skill:netlify:netlify-cli-and-deploy",
@@ -2627,7 +2627,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netlify-cli-and-deploy",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guide for using the Netlify CLI and deploying sites. Use when installing the CLI, linking sites, deploying (Git-based or manual), managing environment variables, or running local development. Covers netlify dev, netlify deploy, Git vs non-Git workflows, and environment variable management."
+    "description": "Guide for using the Netlify CLI and deploying sites. Use when installing the CLI, linking sites, deploying (Git-based or manual), managing environment variables, or running local development. Covers netlify dev, netlify deploy, Git vs non-Git workflows, and environment variable m"
   },
   {
     "id": "plugin-skill:netlify:netlify-config",
@@ -2635,7 +2635,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netlify-config",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Reference for netlify.toml configuration. Use when configuring build settings, redirects, rewrites, headers, deploy contexts, environment variables, or any site-level configuration. Covers the complete netlify.toml syntax including redirects with splats/conditions, headers, deploy contexts, functions config, and edge functions config."
+    "description": "Reference for netlify.toml configuration. Use when configuring build settings, redirects, rewrites, headers, deploy contexts, environment variables, or any site-level configuration. Covers the complete netlify.toml syntax including redirects with splats/conditions, headers, deplo"
   },
   {
     "id": "plugin-skill:netlify:netlify-deploy",
@@ -2651,7 +2651,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netlify-edge-functions",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guide for writing Netlify Edge Functions. Use when building middleware, geolocation-based logic, request/response manipulation, authentication checks, A/B testing, or any low-latency edge compute. Covers Deno runtime, context.next() middleware pattern, geolocation, and when to choose edge vs serverless."
+    "description": "Guide for writing Netlify Edge Functions. Use when building middleware, geolocation-based logic, request/response manipulation, authentication checks, A/B testing, or any low-latency edge compute. Covers Deno runtime, context.next() middleware pattern, geolocation, and when to ch"
   },
   {
     "id": "plugin-skill:netlify:netlify-forms",
@@ -2659,7 +2659,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netlify-forms",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guide for using Netlify Forms for HTML form handling. Use when adding contact forms, feedback forms, file upload forms, or any form that should be collected by Netlify. Covers the data-netlify attribute, spam filtering, AJAX submissions, file uploads, notifications, and the submissions API."
+    "description": "Guide for using Netlify Forms for HTML form handling. Use when adding contact forms, feedback forms, file upload forms, or any form that should be collected by Netlify. Covers the data-netlify attribute, spam filtering, AJAX submissions, file uploads, notifications, and the submi"
   },
   {
     "id": "plugin-skill:netlify:netlify-frameworks",
@@ -2667,7 +2667,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netlify-frameworks",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guide for deploying web frameworks on Netlify. Use when setting up a framework project (Vite/React, Astro, TanStack Start, Next.js, Nuxt, SvelteKit, Remix) for Netlify deployment, configuring adapters or plugins, or troubleshooting framework-specific Netlify integration. Covers what Netlify needs from each framework and how adapters handle server-side rendering."
+    "description": "Guide for deploying web frameworks on Netlify. Use when setting up a framework project (Vite/React, Astro, TanStack Start, Next.js, Nuxt, SvelteKit, Remix) for Netlify deployment, configuring adapters or plugins, or troubleshooting framework-specific Netlify integration. Covers w"
   },
   {
     "id": "plugin-skill:netlify:netlify-functions",
@@ -2675,7 +2675,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netlify-functions",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guide for writing Netlify serverless functions. Use when creating API endpoints, background processing, scheduled tasks, or any server-side logic using Netlify Functions. Covers modern syntax (default export + Config), TypeScript, path routing, background functions, scheduled functions, streaming, and method routing."
+    "description": "Guide for writing Netlify serverless functions. Use when creating API endpoints, background processing, scheduled tasks, or any server-side logic using Netlify Functions. Covers modern syntax (default export + Config), TypeScript, path routing, background functions, scheduled fun"
   },
   {
     "id": "plugin-skill:netlify:netlify-identity",
@@ -2691,7 +2691,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netlify-image-cdn",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guide for using Netlify Image CDN for image optimization and transformation. Use when serving optimized images, creating responsive image markup, setting up user-uploaded image pipelines, or configuring image transformations. Covers the /.netlify/images endpoint, query parameters, remote image allowlisting, clean URL rewrites, and composing uploads with Functions + Blobs."
+    "description": "Guide for using Netlify Image CDN for image optimization and transformation. Use when serving optimized images, creating responsive image markup, setting up user-uploaded image pipelines, or configuring image transformations. Covers the /.netlify/images endpoint, query parameters"
   },
   {
     "id": "plugin-skill:no-ai-slop-plugins-6a6694f6da748191ae9544fa5d1b4d7f:no-ai-slop",
@@ -2707,7 +2707,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "arabic-style-curator",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Curate Arabic prose for dialect authenticity, natural Arabic-English code-switching, house vocabulary, Egyptian spoken cadence, banned AI expressions, and phrase-bank guidance. Use for Egyptian Arabic, Saudi Arabic, MSA, neutral Arabic, bilingual content, or when Arabic sounds translated, generic, or mechanically formal."
+    "description": "Curate Arabic prose for dialect authenticity, natural Arabic-English code-switching, house vocabulary, Egyptian spoken cadence, banned AI expressions, and phrase-bank guidance. Use for Egyptian Arabic, Saudi Arabic, MSA, neutral Arabic, bilingual content, or when Arabic sounds tr"
   },
   {
     "id": "plugin-skill:no-ai-slop-plugins-6a891ce942648191994f57393f2e765b:commercial-copy-director",
@@ -2715,7 +2715,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "commercial-copy-director",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Build or edit advertising copy, landing-page copy, campaign copy, marketing playbooks, offers, headlines, and CTAs using audience awareness, real objections, proof, specificity, and decision context. Use when the writing must persuade commercially without fabricated proof, fake urgency, generic hype, or psychological pressure."
+    "description": "Build or edit advertising copy, landing-page copy, campaign copy, marketing playbooks, offers, headlines, and CTAs using audience awareness, real objections, proof, specificity, and decision context. Use when the writing must persuade commercially without fabricated proof, fake u"
   },
   {
     "id": "plugin-skill:no-ai-slop-plugins-6a891ce942648191994f57393f2e765b:plain-spoken-writing",
@@ -2723,7 +2723,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "plain-spoken-writing",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when drafting or rewriting prose that should sound like the speaker actually talks, especially Egyptian Arabic, Arabic-English code-switching, social posts, emails, business writing, personal voice, conversational copy, or when output feels polished, generic, formal, or AI-written."
+    "description": "Use when drafting or rewriting prose that should sound like the speaker actually talks, especially Egyptian Arabic, Arabic-English code-switching, social posts, emails, business writing, personal voice, conversational copy, or when output feels polished, generic, formal, or AI-wr"
   },
   {
     "id": "plugin-skill:no-ai-slop-plugins-6a891ce942648191994f57393f2e765b:slop-audit",
@@ -2755,7 +2755,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "slop-router",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Route a writing or content request through the minimum connected Slop Curator Skills needed. Use for anti-slop editing, voice preservation, spoken or Egyptian Arabic writing, strict house-style rules, commercial copy, playbooks, presentations, visual-content review, or combined audit-and-edit workflows."
+    "description": "Route a writing or content request through the minimum connected Slop Curator Skills needed. Use for anti-slop editing, voice preservation, spoken or Egyptian Arabic writing, strict house-style rules, commercial copy, playbooks, presentations, visual-content review, or combined a"
   },
   {
     "id": "plugin-skill:no-ai-slop-plugins-6a891ce942648191994f57393f2e765b:strict-human-output",
@@ -2771,7 +2771,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "visual-content-anti-slop",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Review or plan presentations, reports, brochures, documents, visual briefs, and Arabic RTL layouts for AI-design clichés, fake data, decorative copy, asset misuse, weak hierarchy, and Arabic rendering risks. Use when the requested deliverable has a visual or document-design component."
+    "description": "Review or plan presentations, reports, brochures, documents, visual briefs, and Arabic RTL layouts for AI-design clichés, fake data, decorative copy, asset misuse, weak hierarchy, and Arabic rendering risks. Use when the requested deliverable has a visual or document-design compo"
   },
   {
     "id": "plugin-skill:no-ai-slop-plugins-6a891ce942648191994f57393f2e765b:voice-preserving-edit",
@@ -2827,7 +2827,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "god-mode",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Orchestrate software, repository, browser, document, automation, and system operations through one auto-routed hybrid interface. Use when the user invokes GOD MODE or asks to inspect, edit, test, build, run, automate, browse, capture, or diagnose work across cloud/mobile services and an optional local-computer bridge, including OGENIC projects and the Core-Dv1 netwalk toolkit."
+    "description": "Orchestrate software, repository, browser, document, automation, and system operations through one auto-routed hybrid interface. Use when the user invokes GOD MODE or asks to inspect, edit, test, build, run, automate, browse, capture, or diagnose work across cloud/mobile services"
   },
   {
     "id": "plugin-skill:ogenic-god-toolkit:netwalk",
@@ -2835,7 +2835,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netwalk",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Run a complete read-only network survey end to end: get access, crawl the topology, diagnose every device, draw the diagram and produce a deliverable report. Loops netwalk-login, netwalk-scan and netwalk-diag until the crawl runs dry or the engineer is satisfied, then finishes once with netwalk-map and netwalk-fullreport. Use when the user wants a whole network surveyed, audited or documented rather than one specific step - 'survey this site', 'audit my customer's network', 'document what is on this LAN'."
+    "description": "Run a complete read-only network survey end to end: get access, crawl the topology, diagnose every device, draw the diagram and produce a deliverable report. Loops netwalk-login, netwalk-scan and netwalk-diag until the crawl runs dry or the engineer is satisfied, then finishes on"
   },
   {
     "id": "plugin-skill:ogenic-god-toolkit:netwalk-diag",
@@ -2843,7 +2843,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netwalk-diag",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Read a network device or Linux/Windows server end to end and work out what is wrong with it. Exports config read-only, collects CPU, memory, storage, temperature, PoE, interface counters, error and flap counts, throughput, sessions, services and logs, then reasons from that evidence to concrete findings with severity and recommendations. Use when the user asks what is wrong with a device or site, wants a health check, or has a symptom (slow, dropping, rebooting, flapping) to chase."
+    "description": "Read a network device or Linux/Windows server end to end and work out what is wrong with it. Exports config read-only, collects CPU, memory, storage, temperature, PoE, interface counters, error and flap counts, throughput, sessions, services and logs, then reasons from that evide"
   },
   {
     "id": "plugin-skill:ogenic-god-toolkit:netwalk-fullreport",
@@ -2851,7 +2851,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netwalk-fullreport",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Turn a netwalk scan record into a single self-contained HTML network report a site owner can be handed. Includes summary, method and coverage, embedded topology diagram, device inventory, per-device interfaces/VLANs/wireless/services/health, findings with evidence and recommendations, and the full log of commands run. Has a --public mode that strips internal detail. Use when the user asks for a network report, audit document, site survey writeup or something to deliver to a client."
+    "description": "Turn a netwalk scan record into a single self-contained HTML network report a site owner can be handed. Includes summary, method and coverage, embedded topology diagram, device inventory, per-device interfaces/VLANs/wireless/services/health, findings with evidence and recommendat"
   },
   {
     "id": "plugin-skill:ogenic-god-toolkit:netwalk-login",
@@ -2859,7 +2859,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netwalk-login",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Collect device credentials for a netwalk survey through a local browser form instead of the chat. Serves a one-shot page on 127.0.0.1 where the user types usernames, passwords, SSH key PATHS or API tokens; the values are written to a private file on their machine and the assistant never sees them. Use when a scan needs to log into a device and there is no working credential yet, when a hop fails authentication, or when the user asks how to give access without pasting secrets."
+    "description": "Collect device credentials for a netwalk survey through a local browser form instead of the chat. Serves a one-shot page on 127.0.0.1 where the user types usernames, passwords, SSH key PATHS or API tokens; the values are written to a private file on their machine and the assistan"
   },
   {
     "id": "plugin-skill:ogenic-god-toolkit:netwalk-map",
@@ -2867,7 +2867,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netwalk-map",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Draw a network topology diagram from a netwalk scan record. Produces a self-contained SVG with a vendor logo, hostname, management IP, model, OS version and live CPU/RAM/storage/temperature per device, one box per internet uplink, and port labels on every link. Use when the user asks for a network diagram, topology map or visual of a scanned site, or wants the picture refreshed after more devices were found."
+    "description": "Draw a network topology diagram from a netwalk scan record. Produces a self-contained SVG with a vendor logo, hostname, management IP, model, OS version and live CPU/RAM/storage/temperature per device, one box per internet uplink, and port labels on every link. Use when the user "
   },
   {
     "id": "plugin-skill:ogenic-god-toolkit:netwalk-scan",
@@ -2875,7 +2875,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "netwalk-scan",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Discover and map a network read-only, starting from one device the user names. Crawls outward hop by hop using LLDP, CDP, MNDP, ARP, DHCP leases, routing and MAC tables across MikroTik, Cisco, Aruba, HP, Fortinet, Juniper, Ubiquiti, Linux and Windows, and writes a structured scan record. Use when the user asks to scan, survey, crawl, inventory, audit or 'see everything on' a network or a site, theirs or a customer's."
+    "description": "Discover and map a network read-only, starting from one device the user names. Crawls outward hop by hop using LLDP, CDP, MNDP, ARP, DHCP leases, routing and MAC tables across MikroTik, Cisco, Aruba, HP, Fortinet, Juniper, Ubiquiti, Linux and Windows, and writes a structured scan"
   },
   {
     "id": "plugin-skill:ogenic-god-toolkit:ogenic-god-toolkit",
@@ -3043,7 +3043,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "artifact-template-three-statement-forecast",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create a spreadsheet using the Three-Statement Forecast template and its retained reference file. Use when the user selects or names Three-Statement Forecast. Build an integrated income statement, balance sheet, and cash flow forecast with assumptions, checks, and an executive summary."
+    "description": "Create a spreadsheet using the Three-Statement Forecast template and its retained reference file. Use when the user selects or names Three-Statement Forecast. Build an integrated income statement, balance sheet, and cash flow forecast with assumptions, checks, and an executive su"
   },
   {
     "id": "plugin-skill:opencompare:opencompare",
@@ -3067,7 +3067,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "plugin-management",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Discover and suggest relevant plugins, inspect app permissions and dependencies, and manage plugin connections or removal. Use when the user asks about plugins or when a task would materially benefit from an external app, account, service, or data source that available tools cannot access."
+    "description": "Discover and suggest relevant plugins, inspect app permissions and dependencies, and manage plugin connections or removal. Use when the user asks about plugins or when a task would materially benefit from an external app, account, service, or data source that available tools cann"
   },
   {
     "id": "plugin-skill:practice:brief-to-counsel-drafter",
@@ -3083,7 +3083,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "closure-report-drafter",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Close legal matters with a source-backed report, final client communication, decisions and obligations schedule, financial reconciliation, file disposition, retention plan, conflict update, and lessons note. Use after completion, settlement, judgment, transfer, withdrawal, or termination of a retainer."
+    "description": "Close legal matters with a source-backed report, final client communication, decisions and obligations schedule, financial reconciliation, file disposition, retention plan, conflict update, and lessons note. Use after completion, settlement, judgment, transfer, withdrawal, or ter"
   },
   {
     "id": "plugin-skill:practice:conflict-checker",
@@ -3091,7 +3091,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "conflict-checker",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Run structured, confidentiality-preserving legal conflict checks across prospective clients, current and former clients, adverse parties, affiliates, related people, matters, witnesses, funders, experts, and lawyer interests. Use at intake and whenever parties, scope, staffing, or relationships change."
+    "description": "Run structured, confidentiality-preserving legal conflict checks across prospective clients, current and former clients, adverse parties, affiliates, related people, matters, witnesses, funders, experts, and lawyer interests. Use at intake and whenever parties, scope, staffing, o"
   },
   {
     "id": "plugin-skill:practice:costing-estimator",
@@ -3099,7 +3099,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "costing-estimator",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Build transparent, stage-based legal cost estimates and budgets with staffing, rates, hours, assumptions, exclusions, disbursements, taxes, scenarios, contingencies, and change controls. Use for engagement, matter planning, litigation budgets, fixed or capped fees, tenders, or estimate updates."
+    "description": "Build transparent, stage-based legal cost estimates and budgets with staffing, rates, hours, assumptions, exclusions, disbursements, taxes, scenarios, contingencies, and change controls. Use for engagement, matter planning, litigation budgets, fixed or capped fees, tenders, or es"
   },
   {
     "id": "plugin-skill:practice:time-narrative-drafter",
@@ -3107,7 +3107,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "time-narrative-drafter",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Convert contemporaneous legal work records into accurate, specific, privilege-aware time-entry narratives. Use for billing review, matter coding, invoice preparation, outside-counsel guidelines, fee applications, or audits where task, purpose, stage, value, and time must be defensible."
+    "description": "Convert contemporaneous legal work records into accurate, specific, privilege-aware time-entry narratives. Use for billing review, matter coding, invoice preparation, outside-counsel guidelines, fee applications, or audits where task, purpose, stage, value, and time must be defen"
   },
   {
     "id": "plugin-skill:presentations-router:presentation",
@@ -3123,7 +3123,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "audit",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Audit or critique a product flow, journey, workflow, funnel, onboarding path, checkout path, settings path, screen, or multi-step product experience by capturing screenshots first, then reporting UX, design, and accessibility findings from that evidence. Default to an inline report; use a canvas for a visual walkthrough when requested or clearly implied by the ongoing task. Use when the user asks to audit, review, critique, or give feedback on an app or website experience."
+    "description": "Audit or critique a product flow, journey, workflow, funnel, onboarding path, checkout path, settings path, screen, or multi-step product experience by capturing screenshots first, then reporting UX, design, and accessibility findings from that evidence. Default to an inline repo"
   },
   {
     "id": "plugin-skill:product-design:design-qa",
@@ -3131,7 +3131,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "design-qa",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Internal prototype QA helper. Use only after a Product Design prototype, URL-to-code build, or image-to-code build has a source visual target and a rendered implementation to compare before handoff. Do not use for broad UX critique, design critique, product audits, or flow reviews; route those user-facing requests to audit."
+    "description": "Internal prototype QA helper. Use only after a Product Design prototype, URL-to-code build, or image-to-code build has a source visual target and a rendered implementation to compare before handoff. Do not use for broad UX critique, design critique, product audits, or flow review"
   },
   {
     "id": "plugin-skill:product-design:get-context",
@@ -3163,7 +3163,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "index",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when Product Design is explicitly invoked, or when the user's main goal is to explore a design, research UX, audit or critique a UX, product or web design, faithfully clone a visual design of a website or app into code, check a built design, or share a prototype. Do not use Product Design for ordinary implementation unless the user explicitly asks for it."
+    "description": "Use when Product Design is explicitly invoked, or when the user's main goal is to explore a design, research UX, audit or critique a UX, product or web design, faithfully clone a visual design of a website or app into code, check a built design, or share a prototype. Do not use P"
   },
   {
     "id": "plugin-skill:product-design:research",
@@ -3171,7 +3171,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "research",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Run fast, source-grounded UX research on the highest-signal problems users are experiencing with a user-specified digital product. Use when the user asks to research user pain, UX friction, onboarding issues, docs/help problems, developer experience friction, support pain, product workflow issues, or current user complaints for a named product."
+    "description": "Run fast, source-grounded UX research on the highest-signal problems users are experiencing with a user-specified digital product. Use when the user asks to research user pain, UX friction, onboarding issues, docs/help problems, developer experience friction, support pain, produc"
   },
   {
     "id": "plugin-skill:product-design:share",
@@ -3195,7 +3195,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "user-context",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Load or manage Product Design's saved user context. Use when the user asks to set up Product Design, get started, onboard, save product or design sources, see what Product Design remembers, update saved context, or remember Product Design preferences. Examples include product URLs, Figma files, screenshots, reference images, codebase paths, Storybook, tokens, design systems, brand assets, and general product/design notes."
+    "description": "Load or manage Product Design's saved user context. Use when the user asks to set up Product Design, get started, onboard, save product or design sources, see what Product Design remembers, update saved context, or remember Product Design preferences. Examples include product URL"
   },
   {
     "id": "plugin-skill:promotion-check:promotion-check",
@@ -3211,7 +3211,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "prompt-pie",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Connect to Prompt Pie, send a regular prompt or single-file SKILL.md draft for visual editing, or get the edited document through the local ppie companion. Use for direct $prompt-pie requests and action-oriented requests to connect, send, or get one prompt-sized document. Keep explanation-only questions passive."
+    "description": "Connect to Prompt Pie, send a regular prompt or single-file SKILL.md draft for visual editing, or get the edited document through the local ppie companion. Use for direct $prompt-pie requests and action-oriented requests to connect, send, or get one prompt-sized document. Keep ex"
   },
   {
     "id": "plugin-skill:quarryfi-time-tracker:quarryfi-status",
@@ -4219,7 +4219,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "barcode-capture-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit Barcode Capture (`BarcodeCapture`) in native Android (Kotlin/Java) projects — the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + overlay), without the pre-built SparkScan UI. Use for integration, symbology and scan settings, result handling, overlay customization, SDK version migration (v6→v7→v8), replacing third-party scanners (ZXing, ML Kit), or troubleshooting."
+    "description": "Scandit Barcode Capture (`BarcodeCapture`) in native Android (Kotlin/Java) projects — the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + overlay), without the pre-built SparkScan UI. Use for integration, symbology and scan settings, resul"
   },
   {
     "id": "plugin-skill:scandit-sdk:barcode-capture-capacitor",
@@ -4227,7 +4227,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "barcode-capture-capacitor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Capacitor — Scandit Barcode Capture (`BarcodeCapture`) in Capacitor (Ionic) hybrid apps via the Scandit Capacitor plugins (`ScanditCaptureCorePlugin`), the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + BarcodeCaptureOverlay) without the pre-built SparkScan UI, not the browser-only web SDK. Use for integration, symbology settings, result handling, viewfinder and feedback customization, SDK version migration, or troubleshooting."
+    "description": "Capacitor — Scandit Barcode Capture (`BarcodeCapture`) in Capacitor (Ionic) hybrid apps via the Scandit Capacitor plugins (`ScanditCaptureCorePlugin`), the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + BarcodeCaptureOverlay) without the "
   },
   {
     "id": "plugin-skill:scandit-sdk:barcode-capture-cordova",
@@ -4235,7 +4235,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "barcode-capture-cordova",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Cordova — Scandit Barcode Capture (`BarcodeCapture`) in Apache Cordova hybrid apps via the `scandit-cordova-datacapture-*` plugins (global `window.Scandit`), the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + BarcodeCaptureOverlay) without the pre-built SparkScan UI, not the browser-only web SDK. Use for integration, scan settings, result handling, overlay wiring, SDK version migration, or troubleshooting."
+    "description": "Cordova — Scandit Barcode Capture (`BarcodeCapture`) in Apache Cordova hybrid apps via the `scandit-cordova-datacapture-*` plugins (global `window.Scandit`), the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + BarcodeCaptureOverlay) withou"
   },
   {
     "id": "plugin-skill:scandit-sdk:barcode-capture-flutter",
@@ -4243,7 +4243,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "barcode-capture-flutter",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit Barcode Capture (`BarcodeCapture`) in Flutter (Dart) projects — the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + BarcodeCaptureOverlay), without the pre-built SparkScan UI. Use for integration, scan settings, result handling, overlay customization, SDK version migration, or troubleshooting."
+    "description": "Scandit Barcode Capture (`BarcodeCapture`) in Flutter (Dart) projects — the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + BarcodeCaptureOverlay), without the pre-built SparkScan UI. Use for integration, scan settings, result handling, ov"
   },
   {
     "id": "plugin-skill:scandit-sdk:barcode-capture-ios",
@@ -4251,7 +4251,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "barcode-capture-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit Barcode Capture (`BarcodeCapture`) in native iOS (Swift) projects — the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + overlay), without the pre-built SparkScan UI. Use for integration, scan settings, result handling, overlay customization, SDK version migration (v6→v7→v8), replacing a third-party barcode scanner, or troubleshooting."
+    "description": "Scandit Barcode Capture (`BarcodeCapture`) in native iOS (Swift) projects — the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + overlay), without the pre-built SparkScan UI. Use for integration, scan settings, result handling, overlay cust"
   },
   {
     "id": "plugin-skill:scandit-sdk:barcode-capture-net-android",
@@ -4259,7 +4259,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "barcode-capture-net-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit BarcodeCapture in .NET for Android projects (`net*-android` target framework, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — for MAUI apps use barcode-capture-net-maui) — the low-level, full-control barcode scanning mode without the pre-built SparkScan UI. Use for integration, scan settings, listener and event wiring, overlay customization, camera lifecycle, SDK version migration (v6→v7→v8), replacing ZXing.Net or ML Kit bindings, or troubleshooting."
+    "description": "Scandit BarcodeCapture in .NET for Android projects (`net*-android` target framework, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — for MAUI apps use barcode-capture-net-maui) — the low-level, full-control barcode scanning mode without the pre-built SparkScan UI. Use for integr"
   },
   {
     "id": "plugin-skill:scandit-sdk:barcode-capture-net-ios",
@@ -4267,7 +4267,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "barcode-capture-net-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit BarcodeCapture in .NET for iOS projects (`net*-ios` target framework, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — for MAUI apps use barcode-capture-net-maui) — the low-level, full-control barcode scanning mode without the pre-built SparkScan UI. Use for integration, scan settings, listener and event wiring, overlay customization, camera lifecycle, SDK version migration (v6→v7→v8), replacing ZXing.Net.Mobile or AVFoundation scanners, or troubleshooting."
+    "description": "Scandit BarcodeCapture in .NET for iOS projects (`net*-ios` target framework, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — for MAUI apps use barcode-capture-net-maui) — the low-level, full-control barcode scanning mode without the pre-built SparkScan UI. Use for integration, s"
   },
   {
     "id": "plugin-skill:scandit-sdk:barcode-capture-net-maui",
@@ -4275,7 +4275,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "barcode-capture-net-maui",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit BarcodeCapture in .NET MAUI projects (`<UseMaui>true</UseMaui>`, `Scandit.DataCapture.Barcode.Maui` NuGet) — the low-level, full-control barcode scanning mode with your own `<scandit:DataCaptureView>` XAML control and overlay in a MAUI page, without the pre-built SparkScan UI (for that use sparkscan-net-maui); for non-MAUI .NET use barcode-capture-net-android or barcode-capture-net-ios. Use for integration, scan settings, result handling, lifecycle wiring, SDK version migration (v6→v7→v8), replacing ZXing.Net.Maui, or troubleshooting."
+    "description": "Scandit BarcodeCapture in .NET MAUI projects (`<UseMaui>true</UseMaui>`, `Scandit.DataCapture.Barcode.Maui` NuGet) — the low-level, full-control barcode scanning mode with your own `<scandit:DataCaptureView>` XAML control and overlay in a MAUI page, without the pre-built SparkSca"
   },
   {
     "id": "plugin-skill:scandit-sdk:barcode-capture-rn",
@@ -4283,7 +4283,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "barcode-capture-rn",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit Barcode Capture (`BarcodeCapture`) in React Native projects — the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + BarcodeCaptureOverlay), without the pre-built SparkScan UI. Use for integration, symbology configuration, result handling, viewfinder and feedback customization, SDK version migration, or troubleshooting."
+    "description": "Scandit Barcode Capture (`BarcodeCapture`) in React Native projects — the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + BarcodeCaptureOverlay), without the pre-built SparkScan UI. Use for integration, symbology configuration, result hand"
   },
   {
     "id": "plugin-skill:scandit-sdk:barcode-capture-web",
@@ -4291,7 +4291,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "barcode-capture-web",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit Barcode Capture (`BarcodeCapture`) in web/browser (TypeScript/JavaScript) projects — the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + overlay), without the pre-built SparkScan UI; not the Cordova or Capacitor hybrid plugins. Use for integration, scan settings, result handling, overlay and viewfinder customization, Scandit Web SDK version migration (v6→v7→v8), or troubleshooting."
+    "description": "Scandit Barcode Capture (`BarcodeCapture`) in web/browser (TypeScript/JavaScript) projects — the low-level, full-control single-barcode scanning mode (BarcodeCapture + DataCaptureView + overlay), without the pre-built SparkScan UI; not the Cordova or Capacitor hybrid plugins. Use"
   },
   {
     "id": "plugin-skill:scandit-sdk:data-capture-sdk",
@@ -4299,7 +4299,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "data-capture-sdk",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when a user mentions Scandit, data capture SDK, barcode scanning products, smart data capture, choosing a scanning product, comparing scanning features, supported barcode symbologies, system requirements, device compatibility, or Scandit pricing. Helps choose the right Scandit product (SparkScan, Barcode Capture, MatrixScan, Smart Label Capture, ID Capture, etc.), points to the correct documentation and sample apps for their platform, and hands off to implementation skills."
+    "description": "Use when a user mentions Scandit, data capture SDK, barcode scanning products, smart data capture, choosing a scanning product, comparing scanning features, supported barcode symbologies, system requirements, device compatibility, or Scandit pricing. Helps choose the right Scandi"
   },
   {
     "id": "plugin-skill:scandit-sdk:id-bolt",
@@ -4307,7 +4307,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "id-bolt",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit ID Bolt in web projects (`@scandit/web-id-bolt`) — the hosted, drop-in identity-document scanning pop-up (passports, driver's licenses, ID cards) with built-in handover to the user's phone, for adding ID scanning to a website with minimal code and no camera UI to build. Use for integration (IdBoltSession), document selection, validators, returned-data and anonymization options, theming and workflow customization, or troubleshooting. A different product from ID Capture — for in-page fully-customizable scanning embedded in your own UI use id-capture-web."
+    "description": "Scandit ID Bolt in web projects (`@scandit/web-id-bolt`) — the hosted, drop-in identity-document scanning pop-up (passports, driver's licenses, ID cards) with built-in handover to the user's phone, for adding ID scanning to a website with minimal code and no camera UI to build. U"
   },
   {
     "id": "plugin-skill:scandit-sdk:id-capture-android",
@@ -4315,7 +4315,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "id-capture-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit ID Capture (`IdCapture`) in native Android (Kotlin or Java) projects — scanning passports, driver's licenses, ID cards, residence permits, health-insurance cards, visas via MRZ, VIZ, PDF417 barcode, or mobile documents. Use for integration, accepted-document and scanner configuration, CapturedId result handling, rejection rules, AAMVA verification, anonymization, overlay UI, camera lifecycle, and Scandit Android SDK version migration."
+    "description": "Scandit ID Capture (`IdCapture`) in native Android (Kotlin or Java) projects — scanning passports, driver's licenses, ID cards, residence permits, health-insurance cards, visas via MRZ, VIZ, PDF417 barcode, or mobile documents. Use for integration, accepted-document and scanner c"
   },
   {
     "id": "plugin-skill:scandit-sdk:id-capture-capacitor",
@@ -4323,7 +4323,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "id-capture-capacitor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit ID Capture (`IdCapture`) in Capacitor projects — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, barcode, or mobile documents. Use for integration, accepted-document and scanner configuration, captured-field result handling, anonymization, add-on capabilities (voided-ID detection, European driving-license back decoding, AAMVA barcode verification), and SDK version migration."
+    "description": "Scandit ID Capture (`IdCapture`) in Capacitor projects — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, barcode, or mobile documents. Use for integration, accepted-document and scanner configuration, captured-field result handling, anonymi"
   },
   {
     "id": "plugin-skill:scandit-sdk:id-capture-cordova",
@@ -4331,7 +4331,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "id-capture-cordova",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit ID Capture (`IdCapture`) in Cordova / PhoneGap projects (`scandit-cordova-datacapture-id`) — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, barcode, or mobile documents. Use for integration, accepted-document and scanner configuration, captured-field result handling, anonymization, add-on capabilities (voided-ID detection, European driving-license back decoding, AAMVA barcode verification), and SDK version migration."
+    "description": "Scandit ID Capture (`IdCapture`) in Cordova / PhoneGap projects (`scandit-cordova-datacapture-id`) — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, barcode, or mobile documents. Use for integration, accepted-document and scanner configurat"
   },
   {
     "id": "plugin-skill:scandit-sdk:id-capture-flutter",
@@ -4339,7 +4339,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "id-capture-flutter",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit ID Capture (`IdCapture`) in Flutter projects — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, barcode, or mobile documents. Use for integration, accepted-document and scanner configuration, captured-field result handling, anonymization, add-on capabilities (voided-ID detection, European driving-license back decoding, AAMVA barcode verification), and SDK version migration."
+    "description": "Scandit ID Capture (`IdCapture`) in Flutter projects — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, barcode, or mobile documents. Use for integration, accepted-document and scanner configuration, captured-field result handling, anonymiza"
   },
   {
     "id": "plugin-skill:scandit-sdk:id-capture-ios",
@@ -4347,7 +4347,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "id-capture-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit ID Capture (`IdCapture`) in native iOS Swift projects (UIKit or SwiftUI) — scanning passports, driver's licenses, ID cards, residence permits, health-insurance cards, visas via MRZ, VIZ, PDF417 barcode, or mobile documents on iOS. Use for integration, accepted-document and scanner configuration, CapturedId result handling, rejection rules, AAMVA verification, anonymization, overlay UI, camera lifecycle, and Scandit iOS SDK version migration in Swift, UIKit, or SwiftUI iOS apps."
+    "description": "Scandit ID Capture (`IdCapture`) in native iOS Swift projects (UIKit or SwiftUI) — scanning passports, driver's licenses, ID cards, residence permits, health-insurance cards, visas via MRZ, VIZ, PDF417 barcode, or mobile documents on iOS. Use for integration, accepted-document an"
   },
   {
     "id": "plugin-skill:scandit-sdk:id-capture-net-android",
@@ -4355,7 +4355,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "id-capture-net-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit ID Capture (`IdCapture`) in .NET for Android projects (`net*-android` target framework, `Scandit.DataCapture.IdCapture` NuGet, C#) — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, PDF417 barcode, or mobile documents. Use for integration, accepted-document and scanner configuration, CapturedId result handling, rejection rules, AAMVA verification, anonymization, overlay UI, and Scandit .NET SDK version migration — for MAUI apps (`<UseMaui>true</UseMaui>`) use id-capture-net-maui instead."
+    "description": "Scandit ID Capture (`IdCapture`) in .NET for Android projects (`net*-android` target framework, `Scandit.DataCapture.IdCapture` NuGet, C#) — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, PDF417 barcode, or mobile documents. Use for integr"
   },
   {
     "id": "plugin-skill:scandit-sdk:id-capture-net-ios",
@@ -4363,7 +4363,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "id-capture-net-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit ID Capture (`IdCapture`) in .NET for iOS projects (`net*-ios` target framework, `Scandit.DataCapture.IdCapture` NuGet, C#) — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, PDF417 barcode, or mobile documents. Use for integration, accepted-document and scanner configuration, CapturedId result handling, rejection rules, AAMVA verification, anonymization, overlay UI, and Scandit .NET SDK version migration — for MAUI apps (`<UseMaui>true</UseMaui>`) use id-capture-net-maui instead."
+    "description": "Scandit ID Capture (`IdCapture`) in .NET for iOS projects (`net*-ios` target framework, `Scandit.DataCapture.IdCapture` NuGet, C#) — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, PDF417 barcode, or mobile documents. Use for integration, a"
   },
   {
     "id": "plugin-skill:scandit-sdk:id-capture-net-maui",
@@ -4371,7 +4371,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "id-capture-net-maui",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit ID Capture (`IdCapture`) in .NET MAUI projects (`<UseMaui>true</UseMaui>`, `Scandit.DataCapture.IdCapture` NuGet) — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, PDF417 barcode, or mobile documents. Use for integration, accepted-document and scanner configuration, CapturedId result handling, rejection rules, AAMVA verification, MAUI view hosting and lifecycle, and SDK version migration — for non-MAUI .NET projects use `id-capture-net-android` (`net*-android`) or `id-capture-net-ios` (`net*-ios`) instead."
+    "description": "Scandit ID Capture (`IdCapture`) in .NET MAUI projects (`<UseMaui>true</UseMaui>`, `Scandit.DataCapture.IdCapture` NuGet) — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, PDF417 barcode, or mobile documents. Use for integration, accepted-d"
   },
   {
     "id": "plugin-skill:scandit-sdk:id-capture-rn",
@@ -4379,7 +4379,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "id-capture-rn",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit ID Capture (`IdCapture`) in React Native projects — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, barcode, or mobile documents. Use for integration, accepted-document and scanner configuration, captured-field result handling, anonymization, add-on capabilities (voided-ID detection, European driving-license back decoding, AAMVA barcode verification), and SDK version migration."
+    "description": "Scandit ID Capture (`IdCapture`) in React Native projects — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, barcode, or mobile documents. Use for integration, accepted-document and scanner configuration, captured-field result handling, anon"
   },
   {
     "id": "plugin-skill:scandit-sdk:id-capture-web",
@@ -4387,7 +4387,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "id-capture-web",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Scandit ID Capture in web/browser projects (`@scandit/web-datacapture-id`) — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, PDF417 barcode, or mobile documents. Use for integration, accepted-document and scanner configuration, CapturedId result handling, rejection rules, AAMVA verification, overlay UI, and SDK version migration in TypeScript/JavaScript web apps."
+    "description": "Scandit ID Capture in web/browser projects (`@scandit/web-datacapture-id`) — scanning passports, driver's licenses, ID cards, residence permits, visas via MRZ, VIZ, PDF417 barcode, or mobile documents. Use for integration, accepted-document and scanner configuration, CapturedId r"
   },
   {
     "id": "plugin-skill:scandit-sdk:label-capture-android",
@@ -4395,7 +4395,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "label-capture-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Smart Label Capture (Scandit `LabelCapture`) in native Android projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns and pre-built definitions like price capture. Use for integration, label-definition configuration, captured-session handling, overlay customization (brushes, floating badges), the Validation Flow, and SDK version migration."
+    "description": "Smart Label Capture (Scandit `LabelCapture`) in native Android projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns and pre-built definitions like price capture"
   },
   {
     "id": "plugin-skill:scandit-sdk:label-capture-capacitor",
@@ -4403,7 +4403,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "label-capture-capacitor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Smart Label Capture (Scandit `LabelCapture`) in Capacitor projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns. Use for integration, label-definition configuration, captured-label handling, the Validation Flow, and SDK version migration."
+    "description": "Smart Label Capture (Scandit `LabelCapture`) in Capacitor projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns. Use for integration, label-definition configurat"
   },
   {
     "id": "plugin-skill:scandit-sdk:label-capture-cordova",
@@ -4411,7 +4411,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "label-capture-cordova",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Smart Label Capture (Scandit `LabelCapture`) in Cordova / PhoneGap projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns. Use for integration, label-definition configuration, captured-label handling, the Validation Flow, and SDK version migration."
+    "description": "Smart Label Capture (Scandit `LabelCapture`) in Cordova / PhoneGap projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns. Use for integration, label-definition c"
   },
   {
     "id": "plugin-skill:scandit-sdk:label-capture-flutter",
@@ -4419,7 +4419,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "label-capture-flutter",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Smart Label Capture (Scandit `LabelCapture`) in Flutter projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns. Use for integration, label-definition configuration, captured-label handling, the Validation Flow, and SDK version migration."
+    "description": "Smart Label Capture (Scandit `LabelCapture`) in Flutter projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns. Use for integration, label-definition configuratio"
   },
   {
     "id": "plugin-skill:scandit-sdk:label-capture-ios",
@@ -4427,7 +4427,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "label-capture-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Smart Label Capture (Scandit `LabelCapture`) in native iOS projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns. Use for integration, label-definition configuration, captured-session handling, overlay UI, the Validation Flow, and SDK version migration."
+    "description": "Smart Label Capture (Scandit `LabelCapture`) in native iOS projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns. Use for integration, label-definition configura"
   },
   {
     "id": "plugin-skill:scandit-sdk:label-capture-net-android",
@@ -4435,7 +4435,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "label-capture-net-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Smart Label Capture (Scandit `LabelCapture`) in .NET for Android projects (`net*-android` target framework, `Scandit.DataCapture.Label` NuGet, C#) — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan via barcode and text fields. Use for integration, label definitions (including prebuilt VIN, price label, 7-segment), captured-session handling, overlays, the Validation Flow, and Scandit .NET SDK version migration — for MAUI apps (`<UseMaui>true</UseMaui>`) use label-capture-net-maui instead."
+    "description": "Smart Label Capture (Scandit `LabelCapture`) in .NET for Android projects (`net*-android` target framework, `Scandit.DataCapture.Label` NuGet, C#) — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan via barcode and text fields."
   },
   {
     "id": "plugin-skill:scandit-sdk:label-capture-net-ios",
@@ -4443,7 +4443,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "label-capture-net-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Smart Label Capture (Scandit `LabelCapture`) in .NET for iOS projects (`net*-ios` target framework, `Scandit.DataCapture.Label` NuGet, C#) — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan via barcode and text fields. Use for integration, label definitions (including prebuilt VIN, price label, 7-segment), captured-session handling, overlays, the Validation Flow, and Scandit .NET SDK version migration — for MAUI apps (`<UseMaui>true</UseMaui>`) use label-capture-net-maui instead."
+    "description": "Smart Label Capture (Scandit `LabelCapture`) in .NET for iOS projects (`net*-ios` target framework, `Scandit.DataCapture.Label` NuGet, C#) — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan via barcode and text fields. Use for"
   },
   {
     "id": "plugin-skill:scandit-sdk:label-capture-net-maui",
@@ -4451,7 +4451,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "label-capture-net-maui",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Smart Label Capture (Scandit `LabelCapture`) in .NET MAUI projects (`<UseMaui>true</UseMaui>`, `Scandit.DataCapture.Label` NuGet) — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan via barcode and text fields. Use for integration, label definitions (prebuilt VIN, price label, 7-segment), captured-session handling, MAUI view hosting and lifecycle, the Validation Flow, and SDK version migration — for non-MAUI .NET projects use `label-capture-net-android` or `label-capture-net-ios` instead."
+    "description": "Smart Label Capture (Scandit `LabelCapture`) in .NET MAUI projects (`<UseMaui>true</UseMaui>`, `Scandit.DataCapture.Label` NuGet) — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan via barcode and text fields. Use for integrat"
   },
   {
     "id": "plugin-skill:scandit-sdk:label-capture-rn",
@@ -4459,7 +4459,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "label-capture-rn",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Smart Label Capture (Scandit `LabelCapture`) in React Native projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns. Use for integration, label-definition configuration, captured-label handling, the Validation Flow, and SDK version migration."
+    "description": "Smart Label Capture (Scandit `LabelCapture`) in React Native projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns. Use for integration, label-definition configu"
   },
   {
     "id": "plugin-skill:scandit-sdk:label-capture-web",
@@ -4467,7 +4467,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "label-capture-web",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Smart Label Capture (Scandit `LabelCapture`) in web/browser (TypeScript/JavaScript) projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns. Use for integration, label-definition configuration, captured-session handling, overlay UI, the Validation Flow, and SDK version migration."
+    "description": "Smart Label Capture (Scandit `LabelCapture`) in web/browser (TypeScript/JavaScript) projects — extracting multiple fields (price, expiry date, serial or lot number, weight) from a label in one scan, using barcode fields plus text fields with regex patterns. Use for integration, l"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-ar-android",
@@ -4475,7 +4475,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-ar-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan AR (Barcode AR, BarcodeAr) — scanning multiple barcodes at once with AR highlights and annotations over tracked barcodes in Android (Kotlin/Java) projects. Use for integration, scan settings, tracked-barcode handling, highlight and annotation providers, SDK version migration, or troubleshooting."
+    "description": "MatrixScan AR (Barcode AR, BarcodeAr) — scanning multiple barcodes at once with AR highlights and annotations over tracked barcodes in Android (Kotlin/Java) projects. Use for integration, scan settings, tracked-barcode handling, highlight and annotation providers, SDK version mig"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-ar-annotation-ios",
@@ -4483,7 +4483,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-ar-annotation-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan AR annotations in native iOS Swift projects (UIKit/SwiftUI — Swift only, not C#/.NET) — info annotations, popovers, status icons, and responsive annotations attached to tracked barcodes. Use for adding annotations, customizing their appearance and content, controlling when they appear, or handling annotation taps — pipeline setup belongs to matrixscan-ar-ios; C#/.NET apps use matrixscan-ar-net-ios or matrixscan-ar-net-maui."
+    "description": "MatrixScan AR annotations in native iOS Swift projects (UIKit/SwiftUI — Swift only, not C#/.NET) — info annotations, popovers, status icons, and responsive annotations attached to tracked barcodes. Use for adding annotations, customizing their appearance and content, controlling "
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-ar-capacitor",
@@ -4491,7 +4491,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-ar-capacitor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Capacitor MatrixScan AR (Barcode AR, BarcodeAr) — scanning multiple barcodes at once with AR highlights and annotations, BarcodeArView attached to a DOM element, in Capacitor iOS/Android apps (not the plain-web sibling). Use for integration, symbology configuration, highlight and annotation providers, session handling, migration from BarcodeBatch/BarcodeTracking, or troubleshooting."
+    "description": "Capacitor MatrixScan AR (Barcode AR, BarcodeAr) — scanning multiple barcodes at once with AR highlights and annotations, BarcodeArView attached to a DOM element, in Capacitor iOS/Android apps (not the plain-web sibling). Use for integration, symbology configuration, highlight and"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-ar-cordova",
@@ -4499,7 +4499,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-ar-cordova",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Cordova MatrixScan AR (Barcode AR, BarcodeAr) via the scandit-cordova-datacapture-* plugins — scanning multiple barcodes at once with AR highlights and annotations (info annotations, popovers, status icons) on tracked barcodes. Use for integration, symbology configuration, highlight and annotation providers, BarcodeArView customization, migration from BarcodeBatch/BarcodeTracking, or troubleshooting."
+    "description": "Cordova MatrixScan AR (Barcode AR, BarcodeAr) via the scandit-cordova-datacapture-* plugins — scanning multiple barcodes at once with AR highlights and annotations (info annotations, popovers, status icons) on tracked barcodes. Use for integration, symbology configuration, highli"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-ar-flutter",
@@ -4507,7 +4507,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-ar-flutter",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan AR (Barcode AR, BarcodeAr) in Flutter projects (scandit_flutter_datacapture_barcode_ar) — scanning multiple barcodes at once with AR highlights and annotations over tracked barcodes. Use for integration, scan settings, highlight and annotation providers, migration from BarcodeBatch/BarcodeTracking, or troubleshooting."
+    "description": "MatrixScan AR (Barcode AR, BarcodeAr) in Flutter projects (scandit_flutter_datacapture_barcode_ar) — scanning multiple barcodes at once with AR highlights and annotations over tracked barcodes. Use for integration, scan settings, highlight and annotation providers, migration from"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-ar-highlight-ios",
@@ -4523,7 +4523,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-ar-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan AR scanning pipeline in iOS projects (Swift, UIKit/SwiftUI) — BarcodeAr mode and settings, BarcodeArView, listener, feedback, camera and controls, plus migration from MatrixScan Batch (BarcodeBatch/BarcodeTracking). Use for integration, configuration, or troubleshooting — highlight and annotation work routes to the sibling skills matrixscan-ar-highlight-ios and matrixscan-ar-annotation-ios."
+    "description": "MatrixScan AR scanning pipeline in iOS projects (Swift, UIKit/SwiftUI) — BarcodeAr mode and settings, BarcodeArView, listener, feedback, camera and controls, plus migration from MatrixScan Batch (BarcodeBatch/BarcodeTracking). Use for integration, configuration, or troubleshootin"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-ar-net-android",
@@ -4531,7 +4531,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-ar-net-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan AR (Barcode AR, BarcodeAr) in .NET for Android projects (`net*-android` TFM, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — MAUI apps use matrixscan-ar-net-maui) — scanning multiple barcodes at once with AR highlights and annotations. Use for integration, settings, listeners/events, highlight and annotation providers, lifecycle, SDK version migration, or troubleshooting."
+    "description": "MatrixScan AR (Barcode AR, BarcodeAr) in .NET for Android projects (`net*-android` TFM, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — MAUI apps use matrixscan-ar-net-maui) — scanning multiple barcodes at once with AR highlights and annotations. Use for integration, settings, li"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-ar-net-ios",
@@ -4539,7 +4539,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-ar-net-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan AR (Barcode AR, BarcodeAr) in .NET for iOS projects (`net*-ios` TFM, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — MAUI apps use matrixscan-ar-net-maui) — scanning multiple barcodes at once with AR highlights and annotations (info annotations, popovers, status icons) in C#. Use for integration, settings, listeners/events, highlight and annotation providers, torch/zoom/macro controls, lifecycle, SDK version migration, or troubleshooting."
+    "description": "MatrixScan AR (Barcode AR, BarcodeAr) in .NET for iOS projects (`net*-ios` TFM, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — MAUI apps use matrixscan-ar-net-maui) — scanning multiple barcodes at once with AR highlights and annotations (info annotations, popovers, status icons)"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-ar-net-maui",
@@ -4547,7 +4547,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-ar-net-maui",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan AR (Barcode AR, BarcodeAr) in .NET MAUI projects (`Scandit.DataCapture.Barcode.Maui` NuGet, XAML BarcodeArView) — scanning multiple barcodes at once with AR highlights and annotations. For non-MAUI .NET projects use matrixscan-ar-net-android or matrixscan-ar-net-ios. Use for integration, settings, listeners/events, highlight and annotation providers, lifecycle, SDK version migration, or troubleshooting."
+    "description": "MatrixScan AR (Barcode AR, BarcodeAr) in .NET MAUI projects (`Scandit.DataCapture.Barcode.Maui` NuGet, XAML BarcodeArView) — scanning multiple barcodes at once with AR highlights and annotations. For non-MAUI .NET projects use matrixscan-ar-net-android or matrixscan-ar-net-ios. U"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-ar-rn",
@@ -4555,7 +4555,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-ar-rn",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan AR (Barcode AR, BarcodeAr) in React Native projects — scanning multiple barcodes at once with AR overlays, highlights, and annotations on tracked barcodes. Use for integration, symbology configuration, highlight and annotation providers, session handling, feedback, migration from BarcodeBatch, or troubleshooting."
+    "description": "MatrixScan AR (Barcode AR, BarcodeAr) in React Native projects — scanning multiple barcodes at once with AR overlays, highlights, and annotations on tracked barcodes. Use for integration, symbology configuration, highlight and annotation providers, session handling, feedback, mig"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-ar-web",
@@ -4563,7 +4563,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-ar-web",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan AR (Barcode AR, BarcodeAr) in web/browser (TypeScript/JavaScript) projects (@scandit/web-datacapture-barcode) — scanning multiple barcodes at once with AR overlays, highlights, and annotations on tracked barcodes. Use for integration, symbology configuration, highlight and annotation providers, session handling, migration from BarcodeBatch, or troubleshooting."
+    "description": "MatrixScan AR (Barcode AR, BarcodeAr) in web/browser (TypeScript/JavaScript) projects (@scandit/web-datacapture-barcode) — scanning multiple barcodes at once with AR overlays, highlights, and annotations on tracked barcodes. Use for integration, symbology configuration, highlight"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-batch-android",
@@ -4571,7 +4571,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-batch-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) — tracking and scanning multiple barcodes at once in Android (Kotlin/Java) projects. Use for integration, settings and symbologies, tracked-barcode handling, basic/advanced overlay customization, lifecycle, or troubleshooting."
+    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) — tracking and scanning multiple barcodes at once in Android (Kotlin/Java) projects. Use for integration, settings and symbologies, tracked-barcode handling, basic/advanced overlay customization, lifecycle, or tr"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-batch-capacitor",
@@ -4579,7 +4579,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-batch-capacitor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Capacitor MatrixScan Batch (scandit-capacitor-datacapture-barcode) — MatrixScan, BarcodeBatch, legacy BarcodeTracking — tracking and scanning multiple barcodes at once with basic/advanced AR overlays in Capacitor iOS/Android apps (not the plain-web sibling). Use for integration, settings and symbologies, per-barcode brushes, TrackedBarcodeView annotations, lifecycle, SDK version migration, or troubleshooting."
+    "description": "Capacitor MatrixScan Batch (scandit-capacitor-datacapture-barcode) — MatrixScan, BarcodeBatch, legacy BarcodeTracking — tracking and scanning multiple barcodes at once with basic/advanced AR overlays in Capacitor iOS/Android apps (not the plain-web sibling). Use for integration, "
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-batch-cordova",
@@ -4587,7 +4587,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-batch-cordova",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Cordova MatrixScan Batch (scandit-cordova-datacapture-* plugins) — MatrixScan, BarcodeBatch, legacy BarcodeTracking — tracking and scanning multiple barcodes at once with basic/advanced AR overlays. Use for integration, settings and symbologies, per-barcode brushes, TrackedBarcodeView annotations, lifecycle, SDK version migration, or troubleshooting."
+    "description": "Cordova MatrixScan Batch (scandit-cordova-datacapture-* plugins) — MatrixScan, BarcodeBatch, legacy BarcodeTracking — tracking and scanning multiple barcodes at once with basic/advanced AR overlays. Use for integration, settings and symbologies, per-barcode brushes, TrackedBarcod"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-batch-flutter",
@@ -4595,7 +4595,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-batch-flutter",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) in Flutter projects (scandit_flutter_datacapture_barcode_batch) — tracking and scanning multiple barcodes at once. Use for integration, settings and symbologies, tracked-barcode handling, per-barcode brushes, advanced-overlay AR widgets, lifecycle, or troubleshooting."
+    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) in Flutter projects (scandit_flutter_datacapture_barcode_batch) — tracking and scanning multiple barcodes at once. Use for integration, settings and symbologies, tracked-barcode handling, per-barcode brushes, adv"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-batch-ios",
@@ -4603,7 +4603,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-batch-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) — tracking and scanning multiple barcodes at once in iOS (Swift, UIKit/SwiftUI) projects. Use for integration, settings and symbologies, tracked-barcode handling, basic/advanced overlay customization, lifecycle, or troubleshooting."
+    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) — tracking and scanning multiple barcodes at once in iOS (Swift, UIKit/SwiftUI) projects. Use for integration, settings and symbologies, tracked-barcode handling, basic/advanced overlay customization, lifecycle, "
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-batch-net-android",
@@ -4611,7 +4611,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-batch-net-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) in .NET for Android projects (`net*-android` TFM, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — MAUI apps use matrixscan-batch-net-maui) — tracking and scanning multiple barcodes at once. Use for integration, settings and symbologies, listeners/events, basic/advanced overlay customization, camera lifecycle, SDK version migration, or troubleshooting."
+    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) in .NET for Android projects (`net*-android` TFM, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — MAUI apps use matrixscan-batch-net-maui) — tracking and scanning multiple barcodes at once. Use for integration, s"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-batch-net-ios",
@@ -4619,7 +4619,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-batch-net-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) in .NET for iOS projects (`net*-ios` TFM, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — MAUI apps use matrixscan-batch-net-maui) — tracking and scanning multiple barcodes at once. Use for integration, settings and symbologies, listeners/events, basic/advanced overlay customization, camera lifecycle, SDK version migration, or troubleshooting."
+    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) in .NET for iOS projects (`net*-ios` TFM, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — MAUI apps use matrixscan-batch-net-maui) — tracking and scanning multiple barcodes at once. Use for integration, settings "
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-batch-net-maui",
@@ -4627,7 +4627,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-batch-net-maui",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) in .NET MAUI projects (`Scandit.DataCapture.Barcode.Maui` NuGet, XAML DataCaptureView) — tracking and scanning multiple barcodes at once with basic/advanced overlays. For non-MAUI .NET projects use matrixscan-batch-net-android or matrixscan-batch-net-ios. Use for integration, settings, listeners/events, overlay customization, lifecycle, SDK version migration, or troubleshooting."
+    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) in .NET MAUI projects (`Scandit.DataCapture.Barcode.Maui` NuGet, XAML DataCaptureView) — tracking and scanning multiple barcodes at once with basic/advanced overlays. For non-MAUI .NET projects use matrixscan-bat"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-batch-rn",
@@ -4635,7 +4635,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-batch-rn",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) in React Native projects — tracking and scanning multiple barcodes at once. Use for integration, settings and symbologies, tracked-barcode handling, per-barcode brushes, advanced-overlay AR annotations, tap handling, manual feedback, lifecycle, third-party scanner replacement, or troubleshooting."
+    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) in React Native projects — tracking and scanning multiple barcodes at once. Use for integration, settings and symbologies, tracked-barcode handling, per-barcode brushes, advanced-overlay AR annotations, tap handl"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-batch-web",
@@ -4643,7 +4643,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-batch-web",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) in web/browser (TypeScript/JavaScript) projects (@scandit/web-datacapture-barcode) — tracking and scanning multiple barcodes at once. Use for integration, settings and symbologies, per-barcode brushes, HTML-element AR overlays, manual feedback, lifecycle, SDK version migration, or troubleshooting."
+    "description": "MatrixScan Batch (MatrixScan, BarcodeBatch, legacy BarcodeTracking) in web/browser (TypeScript/JavaScript) projects (@scandit/web-datacapture-barcode) — tracking and scanning multiple barcodes at once. Use for integration, settings and symbologies, per-barcode brushes, HTML-eleme"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-count-android",
@@ -4651,7 +4651,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-count-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Count (BarcodeCount) in native Android projects (Kotlin/Java, `com.scandit.datacapture:barcode`) — counting and receiving barcodes in bulk with the BarcodeCountView UI in an Activity or Fragment, scanning against an expected/receiving list, clustering, status mode, explicitly managed camera. Use for integration, settings and symbology configuration, result handling, UI customization, or troubleshooting counting workflows."
+    "description": "MatrixScan Count (BarcodeCount) in native Android projects (Kotlin/Java, `com.scandit.datacapture:barcode`) — counting and receiving barcodes in bulk with the BarcodeCountView UI in an Activity or Fragment, scanning against an expected/receiving list, clustering, status mode, exp"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-count-capacitor",
@@ -4659,7 +4659,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-count-capacitor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Capacitor MatrixScan Count (BarcodeCount) — plugin scandit-capacitor-datacapture-barcode. Multi-barcode counting and receiving workflows (scan-and-count, inventory count, capture list, status mode) with BarcodeCountView on a DOM element in Capacitor apps, iOS/Android native only. For React Native use matrixscan-count-rn. Use for integration, symbology configuration, result handling, view customization, or troubleshooting counting workflows."
+    "description": "Capacitor MatrixScan Count (BarcodeCount) — plugin scandit-capacitor-datacapture-barcode. Multi-barcode counting and receiving workflows (scan-and-count, inventory count, capture list, status mode) with BarcodeCountView on a DOM element in Capacitor apps, iOS/Android native only."
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-count-cordova",
@@ -4667,7 +4667,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-count-cordova",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Cordova MatrixScan Count (BarcodeCount) — plugin scandit-cordova-datacapture-barcode. Counting and receiving workflows (scan-and-count, inventory count, scan against a capture list, status mode, tap-to-uncount) with BarcodeCountView in Cordova apps. For Capacitor use matrixscan-count-capacitor. Use for integration, symbology configuration, view customization, result handling, SDK version migration, or troubleshooting counting workflows."
+    "description": "Cordova MatrixScan Count (BarcodeCount) — plugin scandit-cordova-datacapture-barcode. Counting and receiving workflows (scan-and-count, inventory count, scan against a capture list, status mode, tap-to-uncount) with BarcodeCountView in Cordova apps. For Capacitor use matrixscan-c"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-count-flutter",
@@ -4675,7 +4675,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-count-flutter",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Count (BarcodeCount) in Flutter projects — scandit_flutter_datacapture_barcode_count package. Multi-barcode counting and receiving workflows (scan-and-count, counting against a target list, status providers) with the BarcodeCountView widget. Use for integration, scan settings, result handling, UI customization, SDK version migration, or troubleshooting counting workflows."
+    "description": "MatrixScan Count (BarcodeCount) in Flutter projects — scandit_flutter_datacapture_barcode_count package. Multi-barcode counting and receiving workflows (scan-and-count, counting against a target list, status providers) with the BarcodeCountView widget. Use for integration, scan s"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-count-ios",
@@ -4683,7 +4683,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-count-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Count (BarcodeCount) in native iOS projects (Swift/Objective-C, ScanditBarcodeCapture) — counting and receiving barcodes in bulk with the BarcodeCountView UI in UIKit or SwiftUI, scanning against an expected/receiving list, spatial map, explicitly managed camera. Use for integration, settings and symbology configuration, result handling, UI customization, status mode, or troubleshooting counting workflows."
+    "description": "MatrixScan Count (BarcodeCount) in native iOS projects (Swift/Objective-C, ScanditBarcodeCapture) — counting and receiving barcodes in bulk with the BarcodeCountView UI in UIKit or SwiftUI, scanning against an expected/receiving list, spatial map, explicitly managed camera. Use f"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-count-net-android",
@@ -4691,7 +4691,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-count-net-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Count (BarcodeCount) in .NET for Android projects (net*-android, Scandit.DataCapture.Barcode NuGet, non-MAUI) — counting/receiving barcodes in bulk with BarcodeCountView, capture/receiving lists, spatial map, explicitly managed camera. For MAUI apps use matrixscan-count-net-maui. Use for integration, settings configuration, result handling, UI customization, SDK version migration, or troubleshooting counting workflows."
+    "description": "MatrixScan Count (BarcodeCount) in .NET for Android projects (net*-android, Scandit.DataCapture.Barcode NuGet, non-MAUI) — counting/receiving barcodes in bulk with BarcodeCountView, capture/receiving lists, spatial map, explicitly managed camera. For MAUI apps use matrixscan-coun"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-count-net-ios",
@@ -4699,7 +4699,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-count-net-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Count (BarcodeCount) in .NET for iOS projects (net*-ios, Scandit.DataCapture.Barcode NuGet, non-MAUI) — counting/receiving barcodes in bulk with BarcodeCountView in a UIViewController, capture/receiving lists, spatial map, explicitly managed camera. For MAUI apps use matrixscan-count-net-maui. Use for integration, settings configuration, result handling, UI customization, SDK version migration, or troubleshooting counting workflows."
+    "description": "MatrixScan Count (BarcodeCount) in .NET for iOS projects (net*-ios, Scandit.DataCapture.Barcode NuGet, non-MAUI) — counting/receiving barcodes in bulk with BarcodeCountView in a UIViewController, capture/receiving lists, spatial map, explicitly managed camera. For MAUI apps use m"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-count-net-maui",
@@ -4707,7 +4707,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-count-net-maui",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Count (BarcodeCount) in .NET MAUI projects (<UseMaui>true</UseMaui>, Scandit.DataCapture.Barcode.Maui NuGet) — counting/receiving workflows with the BarcodeCountView XAML control and capture/receiving lists. For non-MAUI .NET use matrixscan-count-net-android or matrixscan-count-net-ios. Use for integration, XAML and builder-chain setup, result handling, UI customization, SDK version migration, or troubleshooting counting workflows."
+    "description": "MatrixScan Count (BarcodeCount) in .NET MAUI projects (<UseMaui>true</UseMaui>, Scandit.DataCapture.Barcode.Maui NuGet) — counting/receiving workflows with the BarcodeCountView XAML control and capture/receiving lists. For non-MAUI .NET use matrixscan-count-net-android or matrixs"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-count-rn",
@@ -4715,7 +4715,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-count-rn",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Count (BarcodeCount) in React Native projects — scandit-react-native-datacapture-barcode package. Multi-barcode counting workflows (scan-and-count, counting against an expected capture list, status overlays) with BarcodeCountView. For Capacitor use matrixscan-count-capacitor. Use for integration, settings and symbology configuration, result handling, UI customization, or troubleshooting counting workflows."
+    "description": "MatrixScan Count (BarcodeCount) in React Native projects — scandit-react-native-datacapture-barcode package. Multi-barcode counting workflows (scan-and-count, counting against an expected capture list, status overlays) with BarcodeCountView. For Capacitor use matrixscan-count-cap"
   },
   {
     "id": "plugin-skill:scandit-sdk:matrixscan-pick-ios",
@@ -4723,7 +4723,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "matrixscan-pick-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MatrixScan Pick (BarcodePick) in native iOS projects (Swift, ScanditBarcodeCapture) — pick/put verification workflows where the app confirms each item picked, with BarcodePickView, product provider, highlight styles, and auto-pick or tap-to-pick behavior. Use for integration, settings configuration, highlight styling, feedback, finish-button handling, or troubleshooting pick workflows."
+    "description": "MatrixScan Pick (BarcodePick) in native iOS projects (Swift, ScanditBarcodeCapture) — pick/put verification workflows where the app confirms each item picked, with BarcodePickView, product provider, highlight styles, and auto-pick or tap-to-pick behavior. Use for integration, set"
   },
   {
     "id": "plugin-skill:scandit-sdk:sparkscan-android",
@@ -4739,7 +4739,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "sparkscan-capacitor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Capacitor — SparkScan single-barcode scanning with the pre-built scanning UI in Capacitor (Ionic) hybrid mobile apps via the Scandit Capacitor plugins (`ScanditCaptureCorePlugin`), not the browser-only web SDK. Use for integration, scan settings, result handling, UI customization, SDK version migration, or troubleshooting."
+    "description": "Capacitor — SparkScan single-barcode scanning with the pre-built scanning UI in Capacitor (Ionic) hybrid mobile apps via the Scandit Capacitor plugins (`ScanditCaptureCorePlugin`), not the browser-only web SDK. Use for integration, scan settings, result handling, UI customization"
   },
   {
     "id": "plugin-skill:scandit-sdk:sparkscan-cordova",
@@ -4747,7 +4747,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "sparkscan-cordova",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Cordova — SparkScan single-barcode scanning with the pre-built scanning UI in Apache Cordova hybrid apps via the `scandit-cordova-datacapture-*` plugins (global `window.Scandit`), not the browser-only web SDK. Use for integration, scan settings, result handling, UI customization, SDK version migration, or troubleshooting."
+    "description": "Cordova — SparkScan single-barcode scanning with the pre-built scanning UI in Apache Cordova hybrid apps via the `scandit-cordova-datacapture-*` plugins (global `window.Scandit`), not the browser-only web SDK. Use for integration, scan settings, result handling, UI customization,"
   },
   {
     "id": "plugin-skill:scandit-sdk:sparkscan-flutter",
@@ -4771,7 +4771,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "sparkscan-net-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "SparkScan single-barcode scanning with the pre-built `SparkScanView` UI in .NET for Android projects (`net*-android` target framework, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — for MAUI apps use sparkscan-net-maui). Use for integration, scan settings, result handling, feedback customization, lifecycle wiring, SDK version migration (v6→v7→v8), replacing third-party scanners (ZXing.Net), or troubleshooting."
+    "description": "SparkScan single-barcode scanning with the pre-built `SparkScanView` UI in .NET for Android projects (`net*-android` target framework, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — for MAUI apps use sparkscan-net-maui). Use for integration, scan settings, result handling, feedb"
   },
   {
     "id": "plugin-skill:scandit-sdk:sparkscan-net-ios",
@@ -4779,7 +4779,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "sparkscan-net-ios",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "SparkScan single-barcode scanning with the pre-built `SparkScanView` UI in .NET for iOS projects (`net*-ios` target framework, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — for MAUI apps use sparkscan-net-maui). Use for integration, scan settings, result handling, feedback customization, scanning lifecycle, SDK version migration (v6→v7→v8), replacing third-party scanners (ZXing.Net.Mobile), or troubleshooting."
+    "description": "SparkScan single-barcode scanning with the pre-built `SparkScanView` UI in .NET for iOS projects (`net*-ios` target framework, `Scandit.DataCapture.Barcode` NuGet, non-MAUI — for MAUI apps use sparkscan-net-maui). Use for integration, scan settings, result handling, feedback cust"
   },
   {
     "id": "plugin-skill:scandit-sdk:sparkscan-net-maui",
@@ -4787,7 +4787,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "sparkscan-net-maui",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "SparkScan single-barcode scanning with the pre-built `SparkScanView` UI in .NET MAUI projects (`<UseMaui>true</UseMaui>`, `Scandit.DataCapture.Barcode.Maui` NuGet) — for non-MAUI .NET projects use sparkscan-net-android or sparkscan-net-ios. Use for integration, scan settings, result handling, feedback and UI customization, SDK version migration (v6→v7→v8), replacing third-party MAUI scanners (ZXing.Net.Maui), or troubleshooting."
+    "description": "SparkScan single-barcode scanning with the pre-built `SparkScanView` UI in .NET MAUI projects (`<UseMaui>true</UseMaui>`, `Scandit.DataCapture.Barcode.Maui` NuGet) — for non-MAUI .NET projects use sparkscan-net-android or sparkscan-net-ios. Use for integration, scan settings, res"
   },
   {
     "id": "plugin-skill:scandit-sdk:sparkscan-rn",
@@ -4803,7 +4803,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "sparkscan-web",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "SparkScan single-barcode scanning with the pre-built scanning UI (floating trigger button, `<spark-scan-view>`) in web/browser projects (`@scandit/web-datacapture-barcode`), including React/Vite/Next.js apps. Use for integration, scan settings, result handling, trigger-button customization, React-specific issues (StrictMode, React 18 vs 19 binding), camera/HTTPS/COOP-COEP troubleshooting, or SDK version migration — not for SparkScan on native or hybrid platforms."
+    "description": "SparkScan single-barcode scanning with the pre-built scanning UI (floating trigger button, `<spark-scan-view>`) in web/browser projects (`@scandit/web-datacapture-barcode`), including React/Vite/Next.js apps. Use for integration, scan settings, result handling, trigger-button cus"
   },
   {
     "id": "plugin-skill:selective-intelligence:selective-intelligence",
@@ -4811,7 +4811,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "selective-intelligence",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use Selective Intelligence for corrections, failures, dissatisfaction, or exact trigger. Activate directly for any user correction, dissatisfaction, failure feedback, the exact words Selective Intelligence, or an unmistakable request for a named responsibility—even when unnamed and in any conversation domain. Use active conversation context to identify what failed and recover the real outcome. Named work includes one-prompt websites, sparse briefs, profiles, campaigns, documents, grounded research, product design/UI/UX, frontend inconsistency, component sprawl, vibe coding, repository audit/realignment, drift prevention, resume/catch-up, and developer-grade execution. Ask Use Selective Intel"
+    "description": "Use Selective Intelligence for corrections, failures, dissatisfaction, or exact trigger. Activate directly for any user correction, dissatisfaction, failure feedback, the exact words Selective Intelligence, or an unmistakable request for a named responsibility—even when unnamed a"
   },
   {
     "id": "plugin-skill:seomatic-seo-audit:seomatic-seo-audit",
@@ -4819,7 +4819,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "seomatic-seo-audit",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Runs a full SEO audit of the user's own website from real data via the SEOmatic connector - Search Console performance, striking-distance keywords, traffic decay, indexation, backlinks, and AI-answer visibility - and produces a prioritized action plan the user can approve. Use whenever the user asks for an SEO audit, an SEO health check, a site review, \"how is my SEO doing\", \"why is my traffic dropping\", \"what should I fix first\", or where to focus SEO effort."
+    "description": "Runs a full SEO audit of the user's own website from real data via the SEOmatic connector - Search Console performance, striking-distance keywords, traffic decay, indexation, backlinks, and AI-answer visibility - and produces a prioritized action plan the user can approve. Use wh"
   },
   {
     "id": "plugin-skill:shopify:shopify-admin",
@@ -4827,7 +4827,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-admin",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Write or explain **Admin GraphQL** queries and mutations for apps and integrations that extend the Shopify admin. Use when the user wants to **understand, design, or generate** the operation itself—even before deciding how to run it. Do **not** choose `admin` first for **app or extension config validation** —use **`use-shopify-cli`**. Do **not** choose `admin` first to **execute** Admin GraphQL **now via Shopify CLI** or for CLI setup/troubleshooting on store workflows—use **`use-shopify-cli`** (store auth/execute, handle/SKU/location lookups, inventory changes)."
+    "description": "Write or explain **Admin GraphQL** queries and mutations for apps and integrations that extend the Shopify admin. Use when the user wants to **understand, design, or generate** the operation itself—even before deciding how to run it. Do **not** choose `admin` first for **app or e"
   },
   {
     "id": "plugin-skill:shopify:shopify-app-store-review",
@@ -4843,7 +4843,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-custom-data",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "MUST be used first when prompts mention Metafields or Metaobjects. Use Metafields and Metaobjects to model and store custom data for your app. Metafields extend built-in Shopify data types like products or customers, Metaobjects are custom data types that can be used to store bespoke data structures. Metafield and Metaobject definitions provide a schema and configuration for values to follow."
+    "description": "MUST be used first when prompts mention Metafields or Metaobjects. Use Metafields and Metaobjects to model and store custom data for your app. Metafields extend built-in Shopify data types like products or customers, Metaobjects are custom data types that can be used to store bes"
   },
   {
     "id": "plugin-skill:shopify:shopify-customer",
@@ -4867,7 +4867,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-functions",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Shopify Functions allow developers to customize the backend logic that powers parts of Shopify. Available APIs: Discount, Cart and Checkout Validation, Cart Transform, Pickup Point Delivery Option Generator, Delivery Customization, Fulfillment Constraints, Local Pickup Delivery Option Generator, Order Routing Location Rule, Payment Customization"
+    "description": "Shopify Functions allow developers to customize the backend logic that powers parts of Shopify. Available APIs: Discount, Cart and Checkout Validation, Cart Transform, Pickup Point Delivery Option Generator, Delivery Customization, Fulfillment Constraints, Local Pickup Delivery O"
   },
   {
     "id": "plugin-skill:shopify:shopify-hydrogen",
@@ -4875,7 +4875,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-hydrogen",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Hydrogen storefront implementation cookbooks. Some of the available recipes are: B2B Commerce, Bundles, Combined Listings, Custom Cart Method, Dynamic Content with Metaobjects, Express Server, Google Tag Manager Integration, Infinite Scroll, Legacy Customer Account Flow, Markets, Partytown + Google Tag Manager, Subscriptions, Third-party API Queries and Caching. MANDATORY: Use this API for ANY Hydrogen storefront question - do NOT use Storefront GraphQL when 'Hydrogen' is mentioned."
+    "description": "Hydrogen storefront implementation cookbooks. Some of the available recipes are: B2B Commerce, Bundles, Combined Listings, Custom Cart Method, Dynamic Content with Metaobjects, Express Server, Google Tag Manager Integration, Infinite Scroll, Legacy Customer Account Flow, Markets,"
   },
   {
     "id": "plugin-skill:shopify:shopify-liquid",
@@ -4883,7 +4883,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-liquid",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Liquid is an open-source templating language created by Shopify. It is the backbone of Shopify themes and is used to load dynamic content on storefronts. Keywords: liquid, theme, shopify-theme, liquid-component, liquid-block, liquid-section, liquid-snippet, liquid-schemas, shopify-theme-schemas"
+    "description": "Liquid is an open-source templating language created by Shopify. It is the backbone of Shopify themes and is used to load dynamic content on storefronts. Keywords: liquid, theme, shopify-theme, liquid-component, liquid-block, liquid-section, liquid-snippet, liquid-schemas, shopif"
   },
   {
     "id": "plugin-skill:shopify:shopify-onboarding-dev",
@@ -4899,7 +4899,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-onboarding-merchant",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Set up and connect a Shopify store from your AI assistant. Use when the user wants to: set up my Shopify store, connect my store, install Shopify plugin, get started with Shopify, manage my store, add products to my store, merchant onboarding, start selling online, Shopify setup help, create my first store, how do I set up an online store, import products, migrate from Square, migrate from WooCommerce, migrate from Etsy, migrate from Amazon, migrate from eBay, migrate from Wix, import from Google Merchant Center, migrate from Clover, migrate from Lightspeed, move products to Shopify, import catalog, replatform to Shopify. This is for store owners — not developers."
+    "description": "Set up and connect a Shopify store from your AI assistant. Use when the user wants to: set up my Shopify store, connect my store, install Shopify plugin, get started with Shopify, manage my store, add products to my store, merchant onboarding, start selling online, Shopify setup "
   },
   {
     "id": "plugin-skill:shopify:shopify-partner",
@@ -4955,7 +4955,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-pos-ui",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Build retail point-of-sale applications using Shopify's POS UI components. These components provide a consistent and familiar interface for POS applications. POS UI Extensions also supports scaffolding new POS extensions using Shopify CLI commands. Keywords: POS, Retail, smart grid"
+    "description": "Build retail point-of-sale applications using Shopify's POS UI components. These components provide a consistent and familiar interface for POS applications. POS UI Extensions also supports scaffolding new POS extensions using Shopify CLI commands. Keywords: POS, Retail, smart gr"
   },
   {
     "id": "plugin-skill:shopify:shopify-shopifyql",
@@ -4963,7 +4963,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-shopifyql",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Answer a merchant's **analytics and reporting** questions with **ShopifyQL** — Shopify's query language for aggregated store metrics that the Admin GraphQL API cannot compute. Choose this (not `admin`) whenever the ask is for **numbers, totals, trends, or breakdowns** rather than fetching or mutating individual records: including but not limited to total/gross/net sales and revenue, order counts, average order value, refunds, quantity sold, sessions, conversion rate, and traffic — sliced by product, channel, region, or customer, trended over time, or compared period-over-period. Examples: \"total sales last 7 days\", \"orders by sales channel this month\", \"top products by revenue\", \"conversion "
+    "description": "Answer a merchant's **analytics and reporting** questions with **ShopifyQL** — Shopify's query language for aggregated store metrics that the Admin GraphQL API cannot compute. Choose this (not `admin`) whenever the ask is for **numbers, totals, trends, or breakdowns** rather than"
   },
   {
     "id": "plugin-skill:shopify:shopify-storefront-graphql",
@@ -4971,7 +4971,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-storefront-graphql",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use for custom storefronts requiring direct GraphQL queries/mutations for data fetching and cart operations. Choose this when you need full control over data fetching and rendering your own UI. NOT for Web Components - if the prompt mentions HTML tags like <shopify-store>, <shopify-cart>, use storefront-web-components instead."
+    "description": "Use for custom storefronts requiring direct GraphQL queries/mutations for data fetching and cart operations. Choose this when you need full control over data fetching and rendering your own UI. NOT for Web Components - if the prompt mentions HTML tags like <shopify-store>, <shopi"
   },
   {
     "id": "plugin-skill:shopify:shopify-use-shopify-cli",
@@ -4979,7 +4979,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-use-shopify-cli",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Choose when the user needs **Shopify CLI** to run or fix something now: validate app or extension config on disk (`shopify.app.toml`, `shopify.app.<name>.toml`, `shopify.extension.toml`); run or troubleshoot store workflows (`shopify store auth`, `shopify store execute`); inventory or product changes by handle, SKU, or location name; or CLI setup, auth, upgrade issues. Emphasize **commands and operational steps**, not only authoring GraphQL. Skip for API-only understanding or codegen with no CLI execution. Examples: validate configuration before deploy; run an existing query via CLI; list products; missing `shopify store execute`."
+    "description": "Choose when the user needs **Shopify CLI** to run or fix something now: validate app or extension config on disk (`shopify.app.toml`, `shopify.app.<name>.toml`, `shopify.extension.toml`); run or troubleshoot store workflows (`shopify store auth`, `shopify store execute`); invento"
   },
   {
     "id": "plugin-skill:shopify:ucp",
@@ -4987,7 +4987,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ucp",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when the user wants to use the UCP CLI to find, compare, buy, or track products from online merchants, or to set up and troubleshoot the local UCP profile required for merchant-scoped operations. Covers global catalog search (\"find me X under $Y\"), named-merchant transactions (\"buy this from Z.com\"), order tracking, `ucp profile init`, `ucp doctor`, carts, checkout, orders, and UCP setup/help. Falls back to merchant-hosted handoff when direct in-protocol checkout isn't available."
+    "description": "Use when the user wants to use the UCP CLI to find, compare, buy, or track products from online merchants, or to set up and troubleshoot the local UCP profile required for merchant-scoped operations. Covers global catalog search (\"find me X under $Y\"), named-merchant transactions"
   },
   {
     "id": "plugin-skill:shopify-app-builder:admin-graphql",
@@ -5011,7 +5011,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "app-accessibility",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when auditing or building accessibility in a Shopify embedded app — WCAG 2.1 AA, keyboard navigation, focus management in Modal/SaveBar/ResourcePicker, screen reader support (NVDA/JAWS/VoiceOver), color contrast within Polaris tokens, ARIA usage, alt text, i18n + a11y, and Built for Shopify accessibility gates. Triggers: 'accessibility shopify app', 'a11y shopify', 'WCAG 2.1 AA', 'screen reader shopify', 'keyboard nav shopify app', 'focus management modal', 'polaris contrast', 'color contrast shopify', 'aria label polaris', 'shopify accessibility audit', 'built for shopify accessibility'."
+    "description": "Use when auditing or building accessibility in a Shopify embedded app — WCAG 2.1 AA, keyboard navigation, focus management in Modal/SaveBar/ResourcePicker, screen reader support (NVDA/JAWS/VoiceOver), color contrast within Polaris tokens, ARIA usage, alt text, i18n + a11y, and Bu"
   },
   {
     "id": "plugin-skill:shopify-app-builder:app-auth",
@@ -5019,7 +5019,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "app-auth",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Implement OAuth 2.0, Token Exchange, Managed Installation, App Proxy, and webhook verification for Shopify apps. Support online/offline tokens, session storage (Prisma, Redis, Memory), and multi-auth patterns. Covers admin API, public apps, custom apps, and customer account authentication. Triggers include: 'Shopify authentication', 'OAuth 2.0', 'Token Exchange', 'Managed Installation', 'App Proxy', 'Webhook signature', 'HMAC verification', 'Admin API auth', 'Customer Account API', 'Session storage', 'Online token', 'Offline token', 'Remix auth', 'shopify auth'."
+    "description": "Implement OAuth 2.0, Token Exchange, Managed Installation, App Proxy, and webhook verification for Shopify apps. Support online/offline tokens, session storage (Prisma, Redis, Memory), and multi-auth patterns. Covers admin API, public apps, custom apps, and customer account authe"
   },
   {
     "id": "plugin-skill:shopify-app-builder:app-billing",
@@ -5043,7 +5043,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "app-listing-optimization",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Optimize your Shopify App Store listing to maximize install velocity and conversion. Covers ranking factors, title/tagline formulas, description structure, screenshot strategy, A/B testing, and a 30-item pre-submission checklist. Triggers include: 'How do I optimize my Shopify app listing?', 'What's the App Store ranking algorithm?', 'How should I write my app title and description?', 'What makes a good app screenshot?', 'How do I increase app install velocity?', 'Will my app title get rejected?', 'How do I improve my app store SEO?', 'What's the best pricing plan layout?', 'How do I A/B test my listing?', 'App Store listing checklist', 'Help me optimize my app listing', 'Why is my app not g"
+    "description": "Optimize your Shopify App Store listing to maximize install velocity and conversion. Covers ranking factors, title/tagline formulas, description structure, screenshot strategy, A/B testing, and a 30-item pre-submission checklist. Triggers include: 'How do I optimize my Shopify ap"
   },
   {
     "id": "plugin-skill:shopify-app-builder:app-naming",
@@ -5051,7 +5051,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "app-naming",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when naming a new Shopify app, evaluating an app name candidate, running a trademark check, optimizing the app name for App Store SEO, or brainstorming brand candidates. Triggers: 'name my shopify app', 'app naming', 'app store SEO', 'trademark check', 'brand my app', 'what should I call my shopify app', 'brand domain', 'shopify app name', 'rename my app', 'is this app name taken', 'trademark Shopify'."
+    "description": "Use when naming a new Shopify app, evaluating an app name candidate, running a trademark check, optimizing the app name for App Store SEO, or brainstorming brand candidates. Triggers: 'name my shopify app', 'app naming', 'app store SEO', 'trademark check', 'brand my app', 'what s"
   },
   {
     "id": "plugin-skill:shopify-app-builder:app-niche-finder",
@@ -5059,7 +5059,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "app-niche-finder",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Find profitable, underserved Shopify app niches. Identifies gaps in the App Store by analyzing competitor density, merchant pain signals, and buildability constraints. Returns ranked ideas with TAM, competition score, and first-mover advantage assessment. Triggered on: 'shopify app idea', 'find niche', 'app store opportunity', 'underserved category', 'gap analysis', 'competitor with bad reviews', 'app idea validation', 'what shopify app should I build', 'shopify app niche', 'find a profitable app idea'"
+    "description": "Find profitable, underserved Shopify app niches. Identifies gaps in the App Store by analyzing competitor density, merchant pain signals, and buildability constraints. Returns ranked ideas with TAM, competition score, and first-mover advantage assessment. Triggered on: 'shopify a"
   },
   {
     "id": "plugin-skill:shopify-app-builder:app-performance",
@@ -5067,7 +5067,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "app-performance",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when optimizing Shopify embedded app performance — LCP, INP, CLS, TTI, cold-start, App Bridge init, Polaris bundle slimming, large GraphQL costs, Remix defer/streaming/prefetch, image lazy-loading, server cache + CDN, Prisma connection pooling, webhook handler latency, and meeting Built for Shopify performance gates. Triggers: 'app slow', 'embedded app performance', 'LCP shopify app', 'INP shopify', 'app bundle too big', 'polaris bundle slim', 'remix defer', 'prefetch intent', 'shopify app lighthouse', 'shopify performance budget', 'built for shopify performance', 'image lazy load shopify', 'graphql query cost', 'n+1 prisma'."
+    "description": "Use when optimizing Shopify embedded app performance — LCP, INP, CLS, TTI, cold-start, App Bridge init, Polaris bundle slimming, large GraphQL costs, Remix defer/streaming/prefetch, image lazy-loading, server cache + CDN, Prisma connection pooling, webhook handler latency, and me"
   },
   {
     "id": "plugin-skill:shopify-app-builder:app-pricing-strategy",
@@ -5075,7 +5075,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "app-pricing-strategy",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when designing Shopify app pricing, choosing a pricing model (flat tiered / usage-based / freemium / hybrid), setting trial length (7/14/30 days), structuring 3-4 tier plans, sizing capped usage, raising prices on existing customers, or writing pricing copy for the App Store listing. Triggers: 'shopify app pricing', 'app pricing tiers', 'free trial length', 'usage based pricing', 'recurring vs one-time', 'capped pricing', 'pricing strategy', 'monetization', 'how should I price my shopify app', 'shopify app monetization', 'MUST_USE_BILLING', 'raise app prices'."
+    "description": "Use when designing Shopify app pricing, choosing a pricing model (flat tiered / usage-based / freemium / hybrid), setting trial length (7/14/30 days), structuring 3-4 tier plans, sizing capped usage, raising prices on existing customers, or writing pricing copy for the App Store "
   },
   {
     "id": "plugin-skill:shopify-app-builder:app-validation",
@@ -5083,7 +5083,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "app-validation",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Validate a Shopify app idea before writing code. Runs a 7-question pre-build framework, facilitates 5-merchant interview protocol, guides landing page + waitlist test, and identifies kill criteria early. Outputs a prioritization matrix and yes/no decision. Triggered on: 'validate app idea', 'should I build this app', 'MVP scope', 'app validation framework', 'problem-solution fit', 'customer interview', 'is my shopify app idea good', 'validate my idea'"
+    "description": "Validate a Shopify app idea before writing code. Runs a 7-question pre-build framework, facilitates 5-merchant interview protocol, guides landing page + waitlist test, and identifies kill criteria early. Outputs a prioritization matrix and yes/no decision. Triggered on: 'validate"
   },
   {
     "id": "plugin-skill:shopify-app-builder:b2b-markets",
@@ -5091,7 +5091,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "b2b-markets",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when building Shopify B2B catalogs, multi-storefront B2B, company location pricing, wholesale checkout, Shopify Markets (multi-region), multi-currency pricing with @inContext, currency formatting, market-specific catalogs, payment terms (NET 30/60), or anything involving B2B Plus / Markets / international commerce features. Triggers: B2B, wholesale, company, locations, customer accounts B2B, Markets, @inContext, country code, currency code, market, catalog, price list, payment terms, NET 30, draft order B2B, vaulted card, 'shopify b2b', 'shopify markets'."
+    "description": "Use when building Shopify B2B catalogs, multi-storefront B2B, company location pricing, wholesale checkout, Shopify Markets (multi-region), multi-currency pricing with @inContext, currency formatting, market-specific catalogs, payment terms (NET 30/60), or anything involving B2B "
   },
   {
     "id": "plugin-skill:shopify-app-builder:built-for-shopify-standards",
@@ -5107,7 +5107,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "dev-troubleshooting",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when a Shopify dev workflow is failing — `shopify app dev` cryptic errors, Cloudflare tunnel not starting, App Bridge v3→v4 migration 'No AppBridge context provided', GraphQL 200 OK with throttle errors, webhook 401, double-subscribed webhooks, app proxy 404, REST 302 loops, Rust function wasm-validator errors, session token 24h expiry, X-Frame-Options blocking iframe, dev store billing fakeouts, app review SLA blown. Triggers: 'shopify app dev failing', 'tunnel won't start', 'no app bridge context', 'throttle error 200', 'webhook 401', 'wasm validator error', 'session token expired', 'frame ancestors', 'remix template auth broken', 'billing test charge', 'shopify cli error'."
+    "description": "Use when a Shopify dev workflow is failing — `shopify app dev` cryptic errors, Cloudflare tunnel not starting, App Bridge v3→v4 migration 'No AppBridge context provided', GraphQL 200 OK with throttle errors, webhook 401, double-subscribed webhooks, app proxy 404, REST 302 loops, "
   },
   {
     "id": "plugin-skill:shopify-app-builder:hydrogen-storefront",
@@ -5115,7 +5115,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "hydrogen-storefront",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use this skill for Hydrogen 2026 Storefront Framework. Triggers include: 'hydrogen storefront', 'hydrogen 2026', 'hydrogen remix', 'shopify hydrogen framework', 'hydrogen setup scaffold', 'hydrogen useCart hook', 'hydrogen createCartHandler', 'hydrogen Customer Account API', 'hydrogen caching strategies', 'hydrogen oxygen deployment', 'hydrogen cli commands', 'hydrogen storefront client', 'hydrogen product page', 'hydrogen collection page', 'hydrogen checkout', 'hydrogen admin api', 'hydrogen queueApi', 'hydrogen analytics', 'hydrogen search implementation', 'hydrogen variants and options', 'hydrogen localization i18n', 'hydrogen performance optimization', 'hydrogen seo structured data', 'hy"
+    "description": "Use this skill for Hydrogen 2026 Storefront Framework. Triggers include: 'hydrogen storefront', 'hydrogen 2026', 'hydrogen remix', 'shopify hydrogen framework', 'hydrogen setup scaffold', 'hydrogen useCart hook', 'hydrogen createCartHandler', 'hydrogen Customer Account API', 'hyd"
   },
   {
     "id": "plugin-skill:shopify-app-builder:liquid-themes",
@@ -5123,7 +5123,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "liquid-themes",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use this skill for Liquid Theme Development (Online Store 2.0). Triggers include: 'liquid theme development', 'shopify theme online store 2.0', 'liquid section schema', 'liquid blocks', 'liquid filters', 'liquid objects', 'json template shopify', 'theme preset', 'liquid include snippet', 'theme-check linting', 'liquid forloop iteration', 'liquid if conditions', 'liquid assign variable', 'shopify theme app extension', 'liquid capture variable', 'theme metafields', 'liquid date filter', 'liquid money filter', 'liquid array filters', 'liquid string manipulation', 'liquid product page', 'liquid collection page', 'liquid cart page', 'liquid header footer', 'liquid for loop break continue', 'liqui"
+    "description": "Use this skill for Liquid Theme Development (Online Store 2.0). Triggers include: 'liquid theme development', 'shopify theme online store 2.0', 'liquid section schema', 'liquid blocks', 'liquid filters', 'liquid objects', 'json template shopify', 'theme preset', 'liquid include s"
   },
   {
     "id": "plugin-skill:shopify-app-builder:merchant-pain-prevention",
@@ -5131,7 +5131,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "merchant-pain-prevention",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when designing, building, reviewing, or shipping a Shopify app to avoid the patterns that get merchants angry (1-2 star reviews, uninstalls, churn). Covers theme injection / leftover code on uninstall, surprise billing, fake urgency, slow scripts, cancel friction, scope creep, bot-only support, broken on platform updates, locale/checkout breakage. Triggers: 'merchant complaint', 'avoid bad app review', 'shopify app uninstall hygiene', 'leftover code in theme', 'surprise charge', 'shopify app dark pattern', 'billing after uninstall', 'cancel friction', 'shopify app churn', '1 star review', 'billed after trial', 'shopify app cleanup'. MUST trigger on any pre-ship review or quality check."
+    "description": "Use when designing, building, reviewing, or shipping a Shopify app to avoid the patterns that get merchants angry (1-2 star reviews, uninstalls, churn). Covers theme injection / leftover code on uninstall, surprise billing, fake urgency, slow scripts, cancel friction, scope creep"
   },
   {
     "id": "plugin-skill:shopify-app-builder:metafields-metaobjects",
@@ -5139,7 +5139,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "metafields-metaobjects",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Custom data fields and objects specification, namespace/key management, definition creation, querying, and Liquid theme access. Triggers include: 'metafield', 'metaobject', 'custom field', 'custom data', 'namespace key', 'metafield definition', 'metaobject type', 'product metafield', 'variant metafield', 'customer custom field', 'order metafield'."
+    "description": "Custom data fields and objects specification, namespace/key management, definition creation, querying, and Liquid theme access. Triggers include: 'metafield', 'metaobject', 'custom field', 'custom data', 'namespace key', 'metafield definition', 'metaobject type', 'product metafie"
   },
   {
     "id": "plugin-skill:shopify-app-builder:polaris-ui",
@@ -5147,7 +5147,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "polaris-ui",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use this skill for Polaris 12.x UI Components. Triggers include: 'polaris components', 'react ui shopify', 'approvider initialization', 'polaris form', 'polaris button', 'polaris card', 'polaris table indexTable', 'polaris modal dialog', 'polaris select dropdown', 'polaris textfield input', 'polaris checkbox radio', 'polaris navigation', 'polaris layout blocklist inlinestack', 'polaris design tokens', 'polaris icons', 'polaris stack grid', 'polaris page frame resource list', 'polaris loading spinner', 'polaris toast notification', 'polaris banner alert', 'shopify ui component library', 'polaris 12', 'polaris css import', 'polaris styled components', 'polaris form validation', 'polaris access"
+    "description": "Use this skill for Polaris 12.x UI Components. Triggers include: 'polaris components', 'react ui shopify', 'approvider initialization', 'polaris form', 'polaris button', 'polaris card', 'polaris table indexTable', 'polaris modal dialog', 'polaris select dropdown', 'polaris textfi"
   },
   {
     "id": "plugin-skill:shopify-app-builder:shopify-app-store-ads",
@@ -5155,7 +5155,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-app-store-ads",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Research, plan, launch, and optimize Shopify App Store ads for a Shopify app. Use when asked to advertise an app in the Shopify App Store, create an App Store Ads campaign, choose keywords or bids, estimate paid acquisition economics, diagnose ad performance, or turn Reddit/community research into a testable campaign. Require explicit approval of the daily and total spend before creating or enabling any paid campaign."
+    "description": "Research, plan, launch, and optimize Shopify App Store ads for a Shopify app. Use when asked to advertise an app in the Shopify App Store, create an App Store Ads campaign, choose keywords or bids, estimate paid acquisition economics, diagnose ad performance, or turn Reddit/commu"
   },
   {
     "id": "plugin-skill:shopify-app-builder:shopify-cli",
@@ -5163,7 +5163,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-cli",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when scaffolding a new Shopify app, running Shopify CLI commands (shopify app dev/deploy/generate), configuring shopify.app.toml, generating app extensions (admin/checkout/theme/function), debugging tunnels or auth issues, or working with the official Remix/Node/PHP/Ruby app templates. Trigger on 'shopify app', 'shopify cli', 'shopify init', 'shopify dev', 'shopify deploy', 'generate extension', 'shopify.app.toml', 'remix template', 'tunnel', 'ngrok', 'cloudflare tunnel', 'ME APP_URL', 'SHOPIFY_API_KEY', or anything involving the Shopify CLI workflow."
+    "description": "Use when scaffolding a new Shopify app, running Shopify CLI commands (shopify app dev/deploy/generate), configuring shopify.app.toml, generating app extensions (admin/checkout/theme/function), debugging tunnels or auth issues, or working with the official Remix/Node/PHP/Ruby app "
   },
   {
     "id": "plugin-skill:shopify-app-builder:shopify-functions",
@@ -5171,7 +5171,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-functions",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Build WebAssembly functions for the Shopify checkout and order pipeline. Rust or JavaScript, 5ms execution window, 256KB binary limit. Targets cart transform, discount, validation, payment customization, delivery customization, order routing, fulfillment constraints, and localization. Triggers include: 'Shopify Function', 'WASM', 'Rust function', 'JavaScript function', 'function-runner', 'cart.transform.run', 'discount.run', 'cart.checkout-validation.run', 'cart.delivery-customization.run', 'cart.payment-customization.run', 'cart.lines.discounts.generate.run', 'order.routing.location.rank.run', 'fulfillment-constraints.run', 'localization.generate.run', 'metafield function', 'shopify functio"
+    "description": "Build WebAssembly functions for the Shopify checkout and order pipeline. Rust or JavaScript, 5ms execution window, 256KB binary limit. Targets cart transform, discount, validation, payment customization, delivery customization, order routing, fulfillment constraints, and localiza"
   },
   {
     "id": "plugin-skill:shopify-app-builder:shopify-mcp",
@@ -5179,7 +5179,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shopify-mcp",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use this skill for shopify mcp. Triggers include: 'shopify mcp', 'shopify dev mcp', 'storefront mcp', 'merchant-facing mcp', 'well-known mcp', 'shopify mcp configuration', 'custom mcp shopify', 'agentic commerce', 'shopify agent', 'claude code shopify integration', 'mcp.json', 'shopify mcp setup'."
+    "description": "Use this skill for shopify mcp. Triggers include: 'shopify mcp', 'shopify dev mcp', 'storefront mcp', 'merchant-facing mcp', 'well-known mcp', 'shopify mcp configuration', 'custom mcp shopify', 'agentic commerce', 'shopify agent', 'claude code shopify integration', 'mcp.json', 's"
   },
   {
     "id": "plugin-skill:shopify-app-builder:storefront-api",
@@ -5187,7 +5187,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "storefront-api",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Build customer-facing storefront applications with Shopify Storefront API. Access product catalogs, collections, checkout flows, cart management, and customer accounts using public/private tokens. Includes GraphQL queries, Market directives, Customer Account API, and TypeScript examples. Triggers include: 'storefront api', 'customer-facing shopify', 'shopping cart api', 'product catalog query', 'checkout flow', 'customer account api', 'market directive', 'storefront token'."
+    "description": "Build customer-facing storefront applications with Shopify Storefront API. Access product catalogs, collections, checkout flows, cart management, and customer accounts using public/private tokens. Includes GraphQL queries, Market directives, Customer Account API, and TypeScript e"
   },
   {
     "id": "plugin-skill:shopify-app-builder:top-app-ux-patterns",
@@ -5195,7 +5195,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "top-app-ux-patterns",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when designing or reviewing the UX of a Shopify app and you want to mirror what the top-grossing apps do (Klaviyo, Gorgias, Judge.me, Loox, Vitals, PageFly). Covers IA, first-30s flow, empty states, setup data collection, the aha moment, pricing presentation, listing page conventions, and the 20 reusable UX patterns common across top apps. Triggers: 'what do top shopify apps do', 'best in class shopify ui', 'klaviyo ux', 'gorgias ux', 'modern shopify app pattern', 'shopify app ia', 'app store screenshot pattern', 'polaris convention'. MUST trigger when designing first-run, dashboard, settings, or pricing screens."
+    "description": "Use when designing or reviewing the UX of a Shopify app and you want to mirror what the top-grossing apps do (Klaviyo, Gorgias, Judge.me, Loox, Vitals, PageFly). Covers IA, first-30s flow, empty states, setup data collection, the aha moment, pricing presentation, listing page con"
   },
   {
     "id": "plugin-skill:shopify-app-builder:using-shopify-app-builder",
@@ -5203,7 +5203,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "using-shopify-app-builder",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use at the start of any Shopify app engineering, debugging, review, launch, listing, or growth task. Routes the request to the smallest relevant Shopify App Builder skills and enforces credential, verification, deployment, publication, and paid-spend boundaries. Triggers include: 'Shopify app', 'Shopify extension', 'Shopify API', 'App Bridge', 'Polaris', 'Built for Shopify', 'App Store listing', and 'Shopify app ads'."
+    "description": "Use at the start of any Shopify app engineering, debugging, review, launch, listing, or growth task. Routes the request to the smallest relevant Shopify App Builder skills and enforces credential, verification, deployment, publication, and paid-spend boundaries. Triggers include:"
   },
   {
     "id": "plugin-skill:shopify-app-builder:ux-empty-error-states",
@@ -5211,7 +5211,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ux-empty-error-states",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when designing empty states, loading states, error states, and partial-failure states in a Shopify embedded app. Covers Polaris EmptyState, SkeletonPage/SkeletonBodyText, Banner tones (critical/warning/info/success), Toast vs Banner vs Modal decision, optimistic UI in Remix, network-down handling, partial bulk-failure recipes, GraphQL '200 OK with errors' gotcha. Triggers: 'empty state', 'loading state', 'error state', 'polaris banner', 'skeleton', 'toast', 'optimistic ui', 'partial failure', 'network down', 'remix loading ux', 'graphql error handling'."
+    "description": "Use when designing empty states, loading states, error states, and partial-failure states in a Shopify embedded app. Covers Polaris EmptyState, SkeletonPage/SkeletonBodyText, Banner tones (critical/warning/info/success), Toast vs Banner vs Modal decision, optimistic UI in Remix, "
   },
   {
     "id": "plugin-skill:shopify-app-builder:ux-modern-app-feel",
@@ -5219,7 +5219,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ux-modern-app-feel",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when you want a Shopify embedded app to feel modern, fast, and opinionated like Linear, Notion, Vercel, or Cron — speed-first, keyboard-first, calm UI, opinionated defaults, no-config success path. Covers keyboard shortcuts inside App Bridge, command palette patterns, micro-interactions Polaris allows, density vs spacious tradeoffs, brand expression within Polaris tokens, and 15 concrete patterns to copy from modern SaaS into Polaris-compliant Shopify apps. Triggers: 'modern shopify app', 'fast app', 'linear-style ux', 'notion-style ux', 'keyboard shortcuts shopify app', 'command palette', 'calm ui', 'minimalist polaris', 'opinionated defaults', 'fewer settings', 'speed first'."
+    "description": "Use when you want a Shopify embedded app to feel modern, fast, and opinionated like Linear, Notion, Vercel, or Cron — speed-first, keyboard-first, calm UI, opinionated defaults, no-config success path. Covers keyboard shortcuts inside App Bridge, command palette patterns, micro-i"
   },
   {
     "id": "plugin-skill:shopify-app-builder:ux-onboarding",
@@ -5227,7 +5227,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ux-onboarding",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when designing the first-run/onboarding experience of a Shopify embedded app. Covers the first-30-second rule, required-vs-optional setup, checklist vs wizard vs deferred-config vs sample-data, time-to-value targets, the 'aha moment' pattern, personalization using shop's currency/language/niche, activation events to instrument, and 15 onboarding pattern recipes built on Polaris components. Triggers: 'shopify app onboarding', 'first run', 'first time experience', 'app activation', 'onboarding checklist', 'wizard', 'empty state first install', 'time to value', 'aha moment', 'shopify app welcome screen', 'guide merchant'."
+    "description": "Use when designing the first-run/onboarding experience of a Shopify embedded app. Covers the first-30-second rule, required-vs-optional setup, checklist vs wizard vs deferred-config vs sample-data, time-to-value targets, the 'aha moment' pattern, personalization using shop's curr"
   },
   {
     "id": "plugin-skill:shopify-app-builder:ux-polaris-antipatterns",
@@ -5235,7 +5235,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "ux-polaris-antipatterns",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when reviewing or writing Polaris UI for common design mistakes — using deprecated Stack instead of BlockStack/InlineStack, modal overuse, blocking validation, wrong tone (success/critical/warning/info), custom CSS overrides instead of tokens, off-brand colors, mis-sized cards, missing helpText, no FormLayout, mobile responsive failures, accessibility failures inside Polaris components, drifting between Polaris versions. Triggers: 'polaris mistake', 'polaris anti-pattern', 'polaris stack deprecated', 'polaris design review', 'shopify ui code review', 'polaris best practice', 'polaris vs custom', 'polaris tokens'."
+    "description": "Use when reviewing or writing Polaris UI for common design mistakes — using deprecated Stack instead of BlockStack/InlineStack, modal overuse, blocking validation, wrong tone (success/critical/warning/info), custom CSS overrides instead of tokens, off-brand colors, mis-sized card"
   },
   {
     "id": "plugin-skill:shopify-app-builder:webhooks",
@@ -5243,7 +5243,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "webhooks",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Webhook delivery methods, verification, retry behavior, payload handling, and implementation patterns for Shopify events. Triggers include: 'set up webhook', 'verify webhook signature', 'webhook delivery', 'HMAC verification', 'webhook retry', 'event subscription', 'webhook payload', 'AWS EventBridge Shopify', 'Google Pub/Sub webhook', 'webhook manifest'."
+    "description": "Webhook delivery methods, verification, retry behavior, payload handling, and implementation patterns for Shopify events. Triggers include: 'set up webhook', 'verify webhook signature', 'webhook delivery', 'HMAC verification', 'webhook retry', 'event subscription', 'webhook paylo"
   },
   {
     "id": "plugin-skill:simulator-login:simulator-login",
@@ -5251,7 +5251,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "simulator-login",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Sign in to an app on an iOS Simulator or Android Emulator with user-supplied test credentials, handling device selection, field focus, virtual keyboards, paste restrictions, native or WebView forms, and authenticated-state verification. Use when a user asks to log in, prepare an authenticated simulator session, or capture signed-in screenshots; do not use to create accounts, recover passwords, or access credentials the user did not provide."
+    "description": "Sign in to an app on an iOS Simulator or Android Emulator with user-supplied test credentials, handling device selection, field focus, virtual keyboards, paste restrictions, native or WebView forms, and authenticated-state verification. Use when a user asks to log in, prepare an "
   },
   {
     "id": "plugin-skill:spreadsheets-router:spreadsheet",
@@ -5267,7 +5267,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "animated-readme-logo",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Audit, create, transform, or animate verified logo pipelines for GitHub READMEs. Use when a repository needs a new or reconstructed mark, motion specification, SVG animation master, executable animation recipe, static PNG, animated GIF, README-safe markup, reduced-motion fallback, or compatibility review. Do not use for unrelated app/site motion or generic image generation without a README branding target."
+    "description": "Audit, create, transform, or animate verified logo pipelines for GitHub READMEs. Use when a repository needs a new or reconstructed mark, motion specification, SVG animation master, executable animation recipe, static PNG, animated GIF, README-safe markup, reduced-motion fallback"
   },
   {
     "id": "plugin-skill:stark-ai-developer:architecture-compass",
@@ -5275,7 +5275,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "architecture-compass",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Set up repository-native ADR governance, audit architecture, or plan and execute ADR-guided refactors through intent-bound workflows. Use when work needs binding agent-facing ADRs, provider-to-local mapping, architecture PR review or drift, Next.js request patterns, source placement, backend/runtime/env/config boundaries, stack deviations, or bounded ADR-governed implementation. Do not use for tiny edits, generic framework education, or work with no architecture or governance consequence."
+    "description": "Set up repository-native ADR governance, audit architecture, or plan and execute ADR-guided refactors through intent-bound workflows. Use when work needs binding agent-facing ADRs, provider-to-local mapping, architecture PR review or drift, Next.js request patterns, source placem"
   },
   {
     "id": "plugin-skill:stark-ai-developer:codex-spec-interviewer",
@@ -5283,7 +5283,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "codex-spec-interviewer",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Interview, source-challenge, verify, save, and ADR-gate fuzzy coding requests into Codex-ready implementation specs. Use when a feature, bugfix, refactor, migration, repo-wide change, or architecture task needs user-verified requirements, source-backed decisions, durable architecture decisions, acceptance criteria, validation commands, rollout notes, saved spec/ADR files, and a Codex execution prompt. Do not use when already fully specified or when the user wants direct implementation now."
+    "description": "Interview, source-challenge, verify, save, and ADR-gate fuzzy coding requests into Codex-ready implementation specs. Use when a feature, bugfix, refactor, migration, repo-wide change, or architecture task needs user-verified requirements, source-backed decisions, durable architec"
   },
   {
     "id": "plugin-skill:stark-ai-developer:drawio-diagrams",
@@ -5291,7 +5291,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "drawio-diagrams",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create, draw, generate, edit, verify, and export draw.io/diagrams.net `.drawio` diagrams. Use when the user asks for editable diagrams, flowcharts, architecture, sequence, ER/UML/state, BPMN, SysML, ML/DL, swimlane, timeline, network, icon-rich technical diagrams, or PNG/SVG/PDF exports; do not use for charts/plots or artistic image generation."
+    "description": "Create, draw, generate, edit, verify, and export draw.io/diagrams.net `.drawio` diagrams. Use when the user asks for editable diagrams, flowcharts, architecture, sequence, ER/UML/state, BPMN, SysML, ML/DL, swimlane, timeline, network, icon-rich technical diagrams, or PNG/SVG/PDF "
   },
   {
     "id": "plugin-skill:stripe:connect-recommend",
@@ -5299,7 +5299,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "connect-recommend",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use this skill when the user asks about Stripe Connect configuration, charge patterns, Dashboard access, or how to get started with Connect, is building a marketplace, platform, multi-vendor store, gig platform, or subscription platform, needs to pay out sellers, vendors, or providers, mentions split payments, revenue sharing, multi-party payments, or similar payment distribution concepts, provides a company URL or business description for a recommendation, builds SaaS that routes money between parties (for example, POS, booking, invoicing — not operational SaaS without payment routing), asks about onboarding or KYC for merchants, sellers, and vendors, mentions connected account Dashboard or"
+    "description": "Use this skill when the user asks about Stripe Connect configuration, charge patterns, Dashboard access, or how to get started with Connect, is building a marketplace, platform, multi-vendor store, gig platform, or subscription platform, needs to pay out sellers, vendors, or prov"
   },
   {
     "id": "plugin-skill:stripe:stripe-apps",
@@ -5307,7 +5307,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "stripe-apps",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when building, modifying, or reviewing a Stripe App — or when the user describes something that implies one (e.g. \"add a panel to the customer page\", \"customize my Stripe Dashboard\", \"react to Stripe events from my app\", \"connect my service to Stripe without sharing API keys\"). Covers the full app development workflow (scaffold, preview, upload, versioning), UI extension architecture (sandboxed iframe, Stripe UI toolkit, viewports), extension types (UI extensions, backend-only, extension interfaces, embedded apps), authentication (platform keys, OAuth, restricted API keys), stripe-app.yaml manifest setup (permissions, viewports, CSP), webhook configuration for apps, Secret Store API, `fe"
+    "description": "Use when building, modifying, or reviewing a Stripe App — or when the user describes something that implies one (e.g. \"add a panel to the customer page\", \"customize my Stripe Dashboard\", \"react to Stripe events from my app\", \"connect my service to Stripe without sharing API keys\""
   },
   {
     "id": "plugin-skill:stripe:stripe-best-practices",
@@ -5315,7 +5315,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "stripe-best-practices",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guides Stripe integration decisions across API selection (Checkout Sessions vs PaymentIntents), Connect platform setup (Accounts v2, controller properties), billing/subscriptions, tax and registrations (Stripe Tax, automatic_tax, product tax codes), Treasury financial accounts, integration options (Checkout, Payment Element), migrating from deprecated Stripe APIs, and security best practices (API key management, restricted keys, webhooks, OAuth). Use when building, modifying, or reviewing any Stripe integration, including accepting payments, building marketplaces, integrating Stripe, processing payments, setting up subscriptions, collecting sales tax, VAT, or GST, creating connected accounts"
+    "description": "Guides Stripe integration decisions across API selection (Checkout Sessions vs PaymentIntents), Connect platform setup (Accounts v2, controller properties), billing/subscriptions, tax and registrations (Stripe Tax, automatic_tax, product tax codes), Treasury financial accounts, i"
   },
   {
     "id": "plugin-skill:stripe:stripe-directory",
@@ -5323,7 +5323,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "stripe-directory",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when the user wants to find businesses, software, service providers, or partners for a specific industry, workflow, pain point, capability, or job to be done. Also use when the agent needs to programmatically purchase or consume a service. Use Stripe Directory to build a short relevant shortlist, even if the user does not mention Stripe Directory explicitly."
+    "description": "Use when the user wants to find businesses, software, service providers, or partners for a specific industry, workflow, pain point, capability, or job to be done. Also use when the agent needs to programmatically purchase or consume a service. Use Stripe Directory to build a shor"
   },
   {
     "id": "plugin-skill:stripe:stripe-docs",
@@ -5339,7 +5339,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "stripe-projects",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when the user wants to provision infrastructure or third-party services using Stripe Projects. Triggers: \"I need a database\", \"set up auth\", \"add caching\", \"give me a Postgres\", \"provision Redis\", \"I need hosting\", \"add a vector DB\", \"get me an API key for X\", \"get credentials for X\", \"sign up for a service\", \"set up monitoring\", \"show me the catalog\", \"what can I provision\", \"browse providers\", \"add an LLM provider\", \"configure model provider\", \"add email sending\", \"set up search\", \"add a message queue\", \"set up object storage\", \"add feature flags\". Also trigger when the user asks how to get an API key or credentials for any third-party service — don't tell them to sign up manually; che"
+    "description": "Use when the user wants to provision infrastructure or third-party services using Stripe Projects. Triggers: \"I need a database\", \"set up auth\", \"add caching\", \"give me a Postgres\", \"provision Redis\", \"I need hosting\", \"add a vector DB\", \"get me an API key for X\", \"get credential"
   },
   {
     "id": "plugin-skill:stripe:upgrade-stripe",
@@ -5363,7 +5363,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "swiftui-expert-skill",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when writing, reviewing, or refactoring SwiftUI code for iOS or macOS, including state and `@Observable` data flow, view composition, performance, lists, environment, localization, animation, Liquid Glass, and API migration. Also use for `@State` initialization or synthesized-property diagnostics, `@ContentBuilder` ambiguity, `reorderable` drag/drop, custom `AsyncImage` `URLSession`, swipe actions outside List, item-bound `alert`/`confirmationDialog`, `ToolbarOverflowMenu`, `AnimatableValues`, Document APIs (`Document`/`DocumentReader`), and Instruments `.trace` capture or analysis."
+    "description": "Use when writing, reviewing, or refactoring SwiftUI code for iOS or macOS, including state and `@Observable` data flow, view composition, performance, lists, environment, localization, animation, Liquid Glass, and API migration. Also use for `@State` initialization or synthesized"
   },
   {
     "id": "plugin-skill:template-creator:template-creator",
@@ -5371,7 +5371,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "template-creator",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create or update an installable personal ChatGPT artifact-template skill from a reference document, presentation, spreadsheet, Google Docs, Slides, or Sheets link, ImageGen or Product Design image, email, Slack message, or Site project. Use when the user selects Template Creator, asks to create a reusable template, or explicitly asks to update one exact personal template. Do not use for one-off creation from an existing template."
+    "description": "Create or update an installable personal ChatGPT artifact-template skill from a reference document, presentation, spreadsheet, Google Docs, Slides, or Sheets link, ImageGen or Product Design image, email, Slack message, or Site project. Use when the user selects Template Creator,"
   },
   {
     "id": "plugin-skill:test-android-apps:android-emulator-qa",
@@ -5387,7 +5387,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "android-performance",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Gather and interpret Android performance evidence on an adb target using Simpleperf CPU profiles, Perfetto or Compose traces, gfxinfo frame data, dumpsys meminfo snapshots, Java heap dumps, and native allocation traces. Use when asked to profile an Android app flow, find CPU-heavy functions, diagnose jank, capture startup or frame timing evidence, compare before/after performance, explain what code is taking time, or gather memory/leak profiling artifacts."
+    "description": "Gather and interpret Android performance evidence on an adb target using Simpleperf CPU profiles, Perfetto or Compose traces, gfxinfo frame data, dumpsys meminfo snapshots, Java heap dumps, and native allocation traces. Use when asked to profile an Android app flow, find CPU-heav"
   },
   {
     "id": "plugin-skill:thoughtfulbits-skills:board-deck-audit",
@@ -5395,7 +5395,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "board-deck-audit",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Deep audit of B2B SaaS board decks before they go to the board. Builds a claim ledger, tests whether the pre-read stands alone and states a clear strategy spine, reconciles metrics and assumptions across slides, explains results with credible evidence, shows plan-vs-actual accountability, presents competition and risks honestly, makes cash and runway math explicit, and gives the board decision-ready asks. Use whenever a board deck, board update, board pre-read, annual plan or budget, financing deck, or special-topic board materials need a deep audit, review, or pressure-test before sending — even if the user only says 'take a look at my board deck' or attaches board materials as .pptx, .pdf,"
+    "description": "Deep audit of B2B SaaS board decks before they go to the board. Builds a claim ledger, tests whether the pre-read stands alone and states a clear strategy spine, reconciles metrics and assumptions across slides, explains results with credible evidence, shows plan-vs-actual accoun"
   },
   {
     "id": "plugin-skill:thoughtfulbits-skills:board-feedback",
@@ -5403,7 +5403,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "board-feedback",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Give the concise, candid reaction an experienced B2B SaaS director would have after reading a board pre-read. Answers one question — does this deck make sense: does the narrative hang together, do the numbers tell one coherent story, is it clear what management wants from the board, and does the deck build or erode trust in the team. The output is short: an overall reaction, the comments directors will make in the meeting, the questions management will get, and a makes-sense verdict. Use for a quick read, gut check, sanity check, first impressions, 'what will the board think', 'does this make sense', or a fast reaction to board materials attached as .pptx, .pdf, .docx, .md, or pasted text. F"
+    "description": "Give the concise, candid reaction an experienced B2B SaaS director would have after reading a board pre-read. Answers one question — does this deck make sense: does the narrative hang together, do the numbers tell one coherent story, is it clear what management wants from the boa"
   },
   {
     "id": "plugin-skill:thoughtfulbits-skills:post-editor",
@@ -5411,7 +5411,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "post-editor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Edit and rewrite short- and medium-form social posts for cold-reader clarity, emotional resonance, and reach while preserving the author's facts, intent, and voice. Use when the user supplies a draft and asks to edit, tighten, improve, polish, rewrite, make it travel, make it more engaging, or adapt it for X, LinkedIn, or a social caption. Also use for a requested reader-first or viral-potential edit of an existing post. Do not use for very long-form articles, newsletters, email, press releases, content calendars, posting automation, analytics, or writing a post from an empty brief."
+    "description": "Edit and rewrite short- and medium-form social posts for cold-reader clarity, emotional resonance, and reach while preserving the author's facts, intent, and voice. Use when the user supplies a draft and asks to edit, tighten, improve, polish, rewrite, make it travel, make it mor"
   },
   {
     "id": "plugin-skill:thoughtfulbits-skills:product-feature-feedback",
@@ -5419,7 +5419,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "product-feature-feedback",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Evaluate a single B2B SaaS product or feature with SPARK — Simple, Purposeful & Prioritized, Attractive & Attentive, Reliable, Known. Scores each dimension 1-5 with cited evidence, walks the primary flow, identifies cuts, designs one delight moment, and gives the three simplest improvements. Use for feature specs, PRDs, feature ideas, strategic app critiques, and requests like 'review this feature', 'SPARK review', 'is this worth building', or 'why does our app feel boring' — supplied as .pptx, .pdf, .docx, .md, pasted text, or a described live product. For rigorous UI/UX testing with five independent subagents, a loop-ready 1-10 average, or a release gate, use test-ui-ux. Do not use for ful"
+    "description": "Evaluate a single B2B SaaS product or feature with SPARK — Simple, Purposeful & Prioritized, Attractive & Attentive, Reliable, Known. Scores each dimension 1-5 with cited evidence, walks the primary flow, identifies cuts, designs one delight moment, and gives the three simplest i"
   },
   {
     "id": "plugin-skill:thoughtfulbits-skills:product-plan-feedback",
@@ -5427,7 +5427,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "product-plan-feedback",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Evaluates a B2B SaaS product plan — product strategy doc, roadmap, launch plan, annual product plan, or GTM plan — against a key-milestone rubric: a strategy simple enough to repeat without you in the room that solves a problem customers already know they have; coverage of executors, beneficiaries, champions, ecosystem, and platform effects; a roadmap that makes value visible and shareable with a zero-barrier first experience and designed delight; weekly-improving product metrics; design-partner go/no-go hurdles; an AI-driven customer-feedback loop; launch readiness; an into-our-orbit GTM funnel; positioning, competitors, and pricing tiers; and the two or three metrics that matter most. Grad"
+    "description": "Evaluates a B2B SaaS product plan — product strategy doc, roadmap, launch plan, annual product plan, or GTM plan — against a key-milestone rubric: a strategy simple enough to repeat without you in the room that solves a problem customers already know they have; coverage of execut"
   },
   {
     "id": "plugin-skill:thoughtfulbits-skills:test-ui-ux",
@@ -5435,7 +5435,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "test-ui-ux",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Rigorously tests a specified product UI or UX with five isolated subagents, inventories every screen's important user actions, counts steps, clicks, and fields, recommends the simplest safe path including optional or AI-assisted inputs, then returns an evidence-linked 1-10 average, a critical-failure gate, prioritized fixes, and loop-ready JSON. Use for iterative UI/UX evaluation, release gates, design QA, flow and action-efficiency audits, regression comparisons, or requests such as 'test this UI', 'score this UX', 'audit this flow with multiple agents', or 'give me a numeric product-experience score' when the user supplies a URL, screenshot, specification, prototype, or repository and says"
+    "description": "Rigorously tests a specified product UI or UX with five isolated subagents, inventories every screen's important user actions, counts steps, clicks, and fields, recommends the simplest safe path including optional or AI-assisted inputs, then returns an evidence-linked 1-10 averag"
   },
   {
     "id": "plugin-skill:tokenx:route-agents",
@@ -5451,7 +5451,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twg-setup",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Install, upgrade, authenticate, or repair `twg` for Codex, including missing CLI or skills and doctor/auth follow-up. TWG gives Codex grounded work context across Jira, Confluence, Bitbucket, JSM, Assets, Slack, Google Drive, and more, so it can connect tickets, docs, code, people, and decisions; surface risks and dependencies; summarize progress; and keep work moving."
+    "description": "Install, upgrade, authenticate, or repair `twg` for Codex, including missing CLI or skills and doctor/auth follow-up. TWG gives Codex grounded work context across Jira, Confluence, Bitbucket, JSM, Assets, Slack, Google Drive, and more, so it can connect tickets, docs, code, peopl"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:conversation-intelligence",
@@ -5459,7 +5459,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "conversation-intelligence",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Twilio Conversation Intelligence development guide. Use when building real-time or post-call conversation analysis, language operator pipelines, sentiment analysis, agent assist, cross-channel analytics, or querying aggregated conversation insights (sentiment trends, escalation rates, dashboards)."
+    "description": "Twilio Conversation Intelligence development guide. Use when building real-time or post-call conversation analysis, language operator pipelines, sentiment analysis, agent assist, cross-channel analytics, or querying aggregated conversation insights (sentiment trends, escalation r"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-account-setup",
@@ -5467,7 +5467,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-account-setup",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create and configure a Twilio account from scratch. Covers free trial signup, trial limitations, getting credentials (Account SID and Auth Token), buying a phone number, verifying recipient numbers for trial use, SDK installation, first API call, subaccount management (creation, inheritance, credential isolation, limits), and enabling specific products (AI Assistants, Conversations, Verify, ConversationRelay, WhatsApp). Use this skill before any other Twilio skill if you do not yet have a Twilio account or need to enable a product. For Organization-level governance (SSO, SCIM, multi-team), see `twilio-organizations-setup`."
+    "description": "Create and configure a Twilio account from scratch. Covers free trial signup, trial limitations, getting credentials (Account SID and Auth Token), buying a phone number, verifying recipient numbers for trial use, SDK installation, first API call, subaccount management (creation, "
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-agent-augmentation-architect",
@@ -5475,7 +5475,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-agent-augmentation-architect",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Planning skill for augmenting human agents with real-time AI intelligence. Qualifies the developer's use case across coaching, compliance, QA, and routing to recommend the right Conversation Intelligence + Conversation Memory + TaskRouter architecture. Handles both \"I want to add AI coaching to my call center\" and \"configure Conversation Intelligence operators for script adherence.\""
+    "description": "Planning skill for augmenting human agents with real-time AI intelligence. Qualifies the developer's use case across coaching, compliance, QA, and routing to recommend the right Conversation Intelligence + Conversation Memory + TaskRouter architecture. Handles both \"I want to add"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-agent-connect",
@@ -5491,7 +5491,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-ai-agent-architect",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Planning skill for AI-powered conversational agents. Qualifies the developer's use case across outcome sophistication, entry point, and customer profile to recommend the right Twilio Conversations architecture and implementation skills. Handles both high-level requests (\"build me a voice AI assistant\") and specific ones (\"integrate ConversationRelay with my OpenAI backend\")."
+    "description": "Planning skill for AI-powered conversational agents. Qualifies the developer's use case across outcome sophistication, entry point, and customer profile to recommend the right Twilio Conversations architecture and implementation skills. Handles both high-level requests (\"build me"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-call-recordings",
@@ -5499,7 +5499,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-call-recordings",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Record Twilio voice calls correctly. Covers the critical distinction between Record verb (voicemail) and Dial record (call recording), dual-channel for QA, mid-call pause for PCI, Conference recording, and the ConversationRelay workaround. Use this skill whenever you need to capture call audio for compliance, QA, or analytics."
+    "description": "Record Twilio voice calls correctly. Covers the critical distinction between Record verb (voicemail) and Dial record (call recording), dual-channel for QA, mid-call pause for PCI, Conference recording, and the ConversationRelay workaround. Use this skill whenever you need to capt"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-cli-reference",
@@ -5507,7 +5507,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-cli-reference",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Twilio CLI reference for managing Twilio resources from the terminal. Covers installation, credential profiles, phone number provisioning, sending SMS and email, webhook configuration, local development with a tunneling service, debugging with watch and logs, serverless deployment, and plugin ecosystem. Use when the developer asks to \"just do it\", \"set this up\", \"run a command\", mentions \"CLI\", \"command line\", or \"terminal\", or when an AI agent can execute a task directly instead of writing application code."
+    "description": "Twilio CLI reference for managing Twilio resources from the terminal. Covers installation, credential profiles, phone number provisioning, sending SMS and email, webhook configuration, local development with a tunneling service, debugging with watch and logs, serverless deploymen"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-compliance-onboarding",
@@ -5515,7 +5515,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-compliance-onboarding",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Registrations required BEFORE Twilio traffic works. Covers messaging programs (A2P 10DLC, toll-free verification, WhatsApp WABA, RCS, short code, alphanumeric sender) and voice trust programs (STIR/SHAKEN, Voice Integrity, Branded Calling, CNAM). Each number/sender type has its own program — registration blocks traffic until complete."
+    "description": "Registrations required BEFORE Twilio traffic works. Covers messaging programs (A2P 10DLC, toll-free verification, WhatsApp WABA, RCS, short code, alphanumeric sender) and voice trust programs (STIR/SHAKEN, Voice Integrity, Branded Calling, CNAM). Each number/sender type has its o"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-compliance-traffic",
@@ -5523,7 +5523,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-compliance-traffic",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Rules you must follow for Twilio messaging and voice traffic. Covers TCPA (consent tiers, quiet hours, DNC), GDPR (EU consent, right to deletion), PCI DSS (payment recording, Pay verb), HIPAA (BAA, PHI), FDCPA (debt collection limits), CAN-SPAM, WhatsApp policies, SHAKEN/STIR, and consent management patterns. Use this skill proactively when developers have working traffic to ensure they follow the rules."
+    "description": "Rules you must follow for Twilio messaging and voice traffic. Covers TCPA (consent tiers, quiet hours, DNC), GDPR (EU consent, right to deletion), PCI DSS (payment recording, Pay verb), HIPAA (BAA, PHI), FDCPA (debt collection limits), CAN-SPAM, WhatsApp policies, SHAKEN/STIR, an"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-conference-calls",
@@ -5539,7 +5539,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-content-template-builder",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create, manage, and send message templates using Twilio's Content API. Covers template creation for WhatsApp, SMS, RCS, and MMS; variable usage; WhatsApp Meta approval; and sending templates via ContentSid. Use this skill when building structured messages that require pre-approval or consistent formatting across channels."
+    "description": "Create, manage, and send message templates using Twilio's Content API. Covers template creation for WhatsApp, SMS, RCS, and MMS; variable usage; WhatsApp Meta approval; and sending templates via ContentSid. Use this skill when building structured messages that require pre-approva"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-conversation-orchestrator",
@@ -5547,7 +5547,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-conversation-orchestrator",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Configure automatic conversation capture and routing with Twilio Conversation Orchestrator. Covers Configuration creation, channel capture rules, grouping types, status timeouts, Memory Store linkage, Intelligence linkage, and conversation lifecycle. Use this skill to automatically capture SMS, voice, WhatsApp, RCS, and web chat traffic into unified conversations without manually creating conversations or participants."
+    "description": "Configure automatic conversation capture and routing with Twilio Conversation Orchestrator. Covers Configuration creation, channel capture rules, grouping types, status timeouts, Memory Store linkage, Intelligence linkage, and conversation lifecycle. Use this skill to automatical"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-conversations-classic-api",
@@ -5555,7 +5555,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-conversations-classic-api",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Build multi-channel messaging experiences using Twilio Conversations (classic) API. Covers creating conversations, adding participants (SMS, WhatsApp, chat), sending messages, and handling webhooks. Use this skill to manage persistent multi-party or multi-channel conversations beyond single-message SMS/WhatsApp."
+    "description": "Build multi-channel messaging experiences using Twilio Conversations (classic) API. Covers creating conversations, adding participants (SMS, WhatsApp, chat), sending messages, and handling webhooks. Use this skill to manage persistent multi-party or multi-channel conversations be"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-customer-memory",
@@ -5563,7 +5563,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-customer-memory",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Store and retrieve customer context using Twilio Conversation Memory. Covers Memory Store provisioning, profile management, traits, observations, conversation summaries, and semantic Recall. Use this skill to give AI agents or human agents persistent memory of customer interactions across sessions and channels."
+    "description": "Store and retrieve customer context using Twilio Conversation Memory. Covers Memory Store provisioning, profile management, traits, observations, conversation summaries, and semantic Recall. Use this skill to give AI agents or human agents persistent memory of customer interactio"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-customer-support-architect",
@@ -5571,7 +5571,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-customer-support-architect",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Planning skill for building customer service and support systems. Qualifies the developer's needs across the support ladder (self-service → AI agents → contact center), channel mix, and scale to recommend the right Twilio architecture. Handles both \"build me a call center\" and \"add an IVR to my existing support line.\""
+    "description": "Planning skill for building customer service and support systems. Qualifies the developer's needs across the support ladder (self-service → AI agents → contact center), channel mix, and scale to recommend the right Twilio architecture. Handles both \"build me a call center\" and \"a"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-debugging-observability",
@@ -5579,7 +5579,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-debugging-observability",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Debug Twilio integrations and set up production observability. Covers the Console Debugger, Monitor Alerts API, Event Streams for error log streaming, status callback tracking, common error codes, and a systematic debugging workflow. Use this skill whenever a Twilio integration produces errors, messages fail to deliver, calls drop unexpectedly, or you need to set up monitoring for a production deployment."
+    "description": "Debug Twilio integrations and set up production observability. Covers the Console Debugger, Monitor Alerts API, Event Streams for error log streaming, status callback tracking, common error codes, and a systematic debugging workflow. Use this skill whenever a Twilio integration p"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-email-deliverability-advisor",
@@ -5587,7 +5587,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-email-deliverability-advisor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Deliverability advisor for the Twilio Email API specifically. Use ONLY when the developer explicitly mentions Twilio Email, comms.twilio.com, or a Twilio (non-SendGrid) email program. For all other deliverability questions — including generic ones — use twilio-sendgrid-deliverability-advisor."
+    "description": "Deliverability advisor for the Twilio Email API specifically. Use ONLY when the developer explicitly mentions Twilio Email, comms.twilio.com, or a Twilio (non-SendGrid) email program. For all other deliverability questions — including generic ones — use twilio-sendgrid-deliverabi"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-email-send",
@@ -5595,7 +5595,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-email-send",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when the caller has Twilio credentials (Account SID + Auth Token or API Key SID + Secret) and needs to send email via comms.twilio.com/v1/Emails. This is Twilio-native email — NOT SendGrid. Do NOT use if the caller has a SendGrid API key (SG.-prefix) — use twilio-sendgrid-email-send instead. Covers single sends, batch sends up to 10,000 recipients, Liquid personalization, operation tracking, and error handling."
+    "description": "Use when the caller has Twilio credentials (Account SID + Auth Token or API Key SID + Secret) and needs to send email via comms.twilio.com/v1/Emails. This is Twilio-native email — NOT SendGrid. Do NOT use if the caller has a SendGrid API key (SG.-prefix) — use twilio-sendgrid-ema"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-enterprise-knowledge",
@@ -5603,7 +5603,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-enterprise-knowledge",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Add knowledge retrieval to AI agents using Twilio's Enterprise Knowledge product. Enterprise Knowledge is a centralized, searchable repository of your organization's documents, websites, and content — FAQs, support policies, warranty terms, product catalogs. Current models don't have access to how you run your business today. Enterprise Knowledge gives agents a way to query this repository during a conversation and ground their responses in your actual approved source material. This skill covers provisioning a Knowledge Base and uploading knowledge sources from web URLs, PDFs, and raw text, and running semantic search to retrieve relevant chunks at runtime. Enterprise Knowledge is shared acr"
+    "description": "Add knowledge retrieval to AI agents using Twilio's Enterprise Knowledge product. Enterprise Knowledge is a centralized, searchable repository of your organization's documents, websites, and content — FAQs, support policies, warranty terms, product catalogs. Current models don't "
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-iam-auth-setup",
@@ -5619,7 +5619,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-identity-verification-advisor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Planning skill for identity verification and fraud prevention. Qualifies the developer's needs across authentication method, channel selection, fraud risk level, and user experience to recommend the right Twilio Verify + Lookup architecture. Handles login, signup, password reset, and risk-adaptive verification."
+    "description": "Planning skill for identity verification and fraud prevention. Qualifies the developer's needs across authentication method, channel selection, fraud risk level, and user experience to recommend the right Twilio Verify + Lookup architecture. Handles login, signup, password reset,"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-isv-sms-best-practices",
@@ -5627,7 +5627,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-isv-sms-best-practices",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Best practices for ISVs (Independent Software Vendors) building SMS features into multi-tenant SaaS platforms using Twilio. Covers customer onboarding for A2P and toll-free compliance, subaccount architecture, sender management, billing patterns, and common ISV pitfalls. Use this when building SMS capabilities that your customers will use to message their end users."
+    "description": "Best practices for ISVs (Independent Software Vendors) building SMS features into multi-tenant SaaS platforms using Twilio. Covers customer onboarding for A2P and toll-free compliance, subaccount architecture, sender management, billing patterns, and common ISV pitfalls. Use this"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-lookup-phone-intelligence",
@@ -5635,7 +5635,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-lookup-phone-intelligence",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Look up phone number intelligence via Twilio Lookup v2 API. Covers number validation, line type detection (mobile/landline/VoIP), SIM swap detection, caller name, identity match, and SMS pumping risk scoring. Use this skill to validate numbers or assess fraud risk before sending messages or calls."
+    "description": "Look up phone number intelligence via Twilio Lookup v2 API. Covers number validation, line type detection (mobile/landline/VoIP), SIM swap detection, caller name, identity match, and SMS pumping risk scoring. Use this skill to validate numbers or assess fraud risk before sending "
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-marketing-promotions-advisor",
@@ -5643,7 +5643,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-marketing-promotions-advisor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Planning skill for marketing and promotional messaging. Qualifies the developer's campaign needs across channel selection, compliance, audience segmentation, and delivery tracking to recommend the right Twilio messaging architecture. Handles both \"set up a promotional SMS campaign\" and \"build a multi-channel engagement pipeline with Segment integration.\""
+    "description": "Planning skill for marketing and promotional messaging. Qualifies the developer's campaign needs across channel selection, compliance, audience segmentation, and delivery tracking to recommend the right Twilio messaging architecture. Handles both \"set up a promotional SMS campaig"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-messaging-channel-advisor",
@@ -5651,7 +5651,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-messaging-channel-advisor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Planning skill that helps the developer pick the right Twilio messaging channel — SMS, MMS, RCS, or WhatsApp — for a given use case. Qualifies intent across content type, geography, use case (marketing / notifications / OTP / support), cost model, and brand presence. Use when the developer asks \"which channel should I use\", \"SMS vs RCS vs WhatsApp\", mentions a country or region, asks about branded messaging, rich content, or fallback — and proactively when the developer says \"send SMS\" but their use case (rich content, international reach, branded experience) would benefit from a different channel."
+    "description": "Planning skill that helps the developer pick the right Twilio messaging channel — SMS, MMS, RCS, or WhatsApp — for a given use case. Qualifies intent across content type, geography, use case (marketing / notifications / OTP / support), cost model, and brand presence. Use when the"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-messaging-overview",
@@ -5659,7 +5659,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-messaging-overview",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Twilio Messaging channel overview and onboarding guide. Covers all channels (SMS, WhatsApp, RCS, Facebook Messenger), the unified Messages API, channel selection guidance, and the recommended setup sequence from first message to production monitoring. Start here before choosing a specific messaging channel."
+    "description": "Twilio Messaging channel overview and onboarding guide. Covers all channels (SMS, WhatsApp, RCS, Facebook Messenger), the unified Messages API, channel selection guidance, and the recommended setup sequence from first message to production monitoring. Start here before choosing a"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-messaging-services",
@@ -5667,7 +5667,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-messaging-services",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create and configure Twilio Messaging Services for production messaging. Covers sender pools, geo-match, sticky sender, message scheduling, compliance toolkit, SMS pumping protection, link shortening, and intelligent alerts. Use this skill when setting up production-ready messaging infrastructure."
+    "description": "Create and configure Twilio Messaging Services for production messaging. Covers sender pools, geo-match, sticky sender, message scheduling, compliance toolkit, SMS pumping protection, link shortening, and intelligent alerts. Use this skill when setting up production-ready messagi"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-messaging-webhooks",
@@ -5675,7 +5675,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-messaging-webhooks",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Receive and respond to inbound messages and track outbound delivery status via Twilio webhooks — across SMS, MMS, WhatsApp, and RCS. Covers webhook request parameters, replying with TwiML, validating webhook signatures for security, and handling status callbacks. Use this skill whenever an agent needs to handle incoming messages on any channel or track outbound message delivery in real time."
+    "description": "Receive and respond to inbound messages and track outbound delivery status via Twilio webhooks — across SMS, MMS, WhatsApp, and RCS. Covers webhook request parameters, replying with TwiML, validating webhook signatures for security, and handling status callbacks. Use this skill w"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-notifications-alerts-advisor",
@@ -5683,7 +5683,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-notifications-alerts-advisor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Planning skill for transactional notifications, alerts, and reminders. Qualifies the developer's needs across urgency, channel selection, delivery confirmation, and fallback patterns to recommend the right Twilio notification architecture. Handles both \"send shipping updates to customers\" and \"build a multi-channel alert system with delivery confirmation and fallback.\""
+    "description": "Planning skill for transactional notifications, alerts, and reminders. Qualifies the developer's needs across urgency, channel selection, delivery confirmation, and fallback patterns to recommend the right Twilio notification architecture. Handles both \"send shipping updates to c"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-numbers-senders",
@@ -5691,7 +5691,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-numbers-senders",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Choose the right Twilio number type and sender BEFORE building. Covers phone numbers (local, toll-free, short code, mobile), alphanumeric sender IDs, WhatsApp senders, RCS agents, international availability, and regulatory bundles. Each number type has its own compliance program — choosing wrong means rebuilding. Use this skill first."
+    "description": "Choose the right Twilio number type and sender BEFORE building. Covers phone numbers (local, toll-free, short code, mobile), alphanumeric sender IDs, WhatsApp senders, RCS agents, international availability, and regulatory bundles. Each number type has its own compliance program "
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-organizations-setup",
@@ -5699,7 +5699,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-organizations-setup",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Set up and manage Twilio Organizations for centralized account and user governance. Covers the Organization > Account > Subaccount hierarchy, roles (Owner/Admin/Standard), managed vs independent accounts, domain registration, SSO enforcement, SCIM provisioning, and Organization merging. Use this skill when managing multiple Twilio accounts or users across teams."
+    "description": "Set up and manage Twilio Organizations for centralized account and user governance. Covers the Organization > Account > Subaccount hierarchy, roles (Owner/Admin/Standard), managed vs independent accounts, domain registration, SSO enforcement, SCIM provisioning, and Organization m"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-rcs-messaging",
@@ -5707,7 +5707,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-rcs-messaging",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Send RCS Business Messages via Twilio. Covers compliance onboarding (7-part US process), sender profile setup, sending rich cards and carousels, SMS fallback, device support (Android + iOS 18 caveats), and common errors. Use this skill when building RCS messaging or onboarding an RCS sender."
+    "description": "Send RCS Business Messages via Twilio. Covers compliance onboarding (7-part US process), sender profile setup, sending rich cards and carousels, SMS fallback, device support (Android + iOS 18 caveats), and common errors. Use this skill when building RCS messaging or onboarding an"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-regulatory-compliance-bundles",
@@ -5715,7 +5715,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-regulatory-compliance-bundles",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Manage regulatory compliance for international phone numbers. Covers what bundles are, which countries require them, how to create End-Users and Supporting Documents, evaluate and submit bundles, fix evaluation failures, update bundles when regulations change, and ISV multi-account patterns. Use this skill when provisioning numbers outside the US."
+    "description": "Manage regulatory compliance for international phone numbers. Covers what bundles are, which countries require them, how to create End-Users and Supporting Documents, evaluate and submit bundles, fix evaluation failures, update bundles when regulations change, and ISV multi-accou"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-reliability-patterns",
@@ -5723,7 +5723,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-reliability-patterns",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Handle rate limits, retries, and failures when building on Twilio at scale. Covers 429 exponential backoff with jitter, per-number throughput limits, StatusCallback resilience, thin-receiver pattern, and fallback chains. Use this skill whenever sending messages or making calls at volume, or when building production-grade Twilio integrations."
+    "description": "Handle rate limits, retries, and failures when building on Twilio at scale. Covers 429 exponential backoff with jitter, per-number throughput limits, StatusCallback resilience, thin-receiver pattern, and fallback chains. Use this skill whenever sending messages or making calls at"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-security-api-auth",
@@ -5731,7 +5731,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-security-api-auth",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Choose the right Twilio authentication method and implement it correctly. Covers Auth Token (testing only), API Keys (production standard), OAuth2 client_credentials (time-limited bearer tokens), Access Tokens (client-side SDKs), and test credentials. Use this skill before making any Twilio API calls in production."
+    "description": "Choose the right Twilio authentication method and implement it correctly. Covers Auth Token (testing only), API Keys (production standard), OAuth2 client_credentials (time-limited bearer tokens), Access Tokens (client-side SDKs), and test credentials. Use this skill before making"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-security-compliance-hipaa",
@@ -5739,7 +5739,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-security-compliance-hipaa",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Configure Twilio accounts for HIPAA compliance. Covers BAA requirements, HIPAA Project designation (self-service and support), eligible services list, per-product requirements (Voice, SMS, ConversationRelay, Conversation Intelligence, Flex, Verify), message redaction, and what is NOT eligible. Use this skill when developers are building healthcare workflows on Twilio."
+    "description": "Configure Twilio accounts for HIPAA compliance. Covers BAA requirements, HIPAA Project designation (self-service and support), eligible services list, per-product requirements (Voice, SMS, ConversationRelay, Conversation Intelligence, Flex, Verify), message redaction, and what is"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-security-hardening",
@@ -5747,7 +5747,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-security-hardening",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Secure Twilio applications against common attacks. Covers credential management (API keys vs auth tokens), request validation (webhook signature verification), PCI DSS compliance, HIPAA account requirements, SMS pumping prevention, geo-permissions, and account isolation patterns. Use this skill when developers are building or deploying Twilio apps."
+    "description": "Secure Twilio applications against common attacks. Covers credential management (API keys vs auth tokens), request validation (webhook signature verification), PCI DSS compliance, HIPAA account requirements, SMS pumping prevention, geo-permissions, and account isolation patterns."
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-send-message",
@@ -5755,7 +5755,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-send-message",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Send messages via Twilio's Programmable Messaging API across all channels — SMS, MMS, RCS, and WhatsApp. Covers text messages, media, rich content (cards, carousels, buttons), template-based sends, Messaging Services, status callbacks, and WhatsApp's 24-hour service window. Use when the user wants to send a message — whether they say \"send SMS\", \"text message\", \"branded message\", \"rich message\", \"WhatsApp message\", \"RCS message\", \"notification\", or \"alert\". For picking the right channel for a use case, first consult twilio-messaging-channel-advisor."
+    "description": "Send messages via Twilio's Programmable Messaging API across all channels — SMS, MMS, RCS, and WhatsApp. Covers text messages, media, rich content (cards, carousels, buttons), template-based sends, Messaging Services, status callbacks, and WhatsApp's 24-hour service window. Use w"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-sendgrid-account-setup",
@@ -5763,7 +5763,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-sendgrid-account-setup",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Set up a SendGrid account for email delivery. Covers API key creation (SG.-prefix), domain authentication (DKIM/SPF via CNAME records), Single Sender Verification for testing, SDK installation, and the relationship between SendGrid and Twilio credentials. Use before any other SendGrid skill. This skill is for SendGrid only — not the Twilio Email API (comms.twilio.com)."
+    "description": "Set up a SendGrid account for email delivery. Covers API key creation (SG.-prefix), domain authentication (DKIM/SPF via CNAME records), Single Sender Verification for testing, SDK installation, and the relationship between SendGrid and Twilio credentials. Use before any other Sen"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-sendgrid-deliverability-advisor",
@@ -5771,7 +5771,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-sendgrid-deliverability-advisor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Diagnostic and advisory skill for email deliverability problems. Use when a developer asks why emails are going to spam, not reaching the inbox, getting blocked, bouncing, or how to improve sender reputation — with or without a specified platform. Covers SendGrid-specific tooling: SPF, DKIM, DMARC, BIMI, IP warmup, list hygiene, bounce/spam rate thresholds, and Engagement Quality Score (SEQ). Do NOT use for Twilio Email (comms.twilio.com / Account SID + Auth Token) — use twilio-email-deliverability-advisor instead. Do NOT use for general email sending questions — use twilio-sendgrid-email-send (SendGrid) or twilio-email-deliverability-advisor instead."
+    "description": "Diagnostic and advisory skill for email deliverability problems. Use when a developer asks why emails are going to spam, not reaching the inbox, getting blocked, bouncing, or how to improve sender reputation — with or without a specified platform. Covers SendGrid-specific tooling"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-sendgrid-email-send",
@@ -5779,7 +5779,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-sendgrid-email-send",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Send transactional and bulk email via the SendGrid v3 Mail Send API. Covers single sends, personalized batch sends with dynamic templates, scheduled sends with cancellation, attachments, and sandbox mode for testing. Use this skill when the caller has a SendGrid API key (SG.-prefix). Do NOT use this skill if the caller is using the Twilio Email API (comms.twilio.com) — that is a separate product with different credentials."
+    "description": "Send transactional and bulk email via the SendGrid v3 Mail Send API. Covers single sends, personalized batch sends with dynamic templates, scheduled sends with cancellation, attachments, and sandbox mode for testing. Use this skill when the caller has a SendGrid API key (SG.-pref"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-sendgrid-email-settings",
@@ -5787,7 +5787,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-sendgrid-email-settings",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Configure SendGrid dynamic templates (Handlebars), tracking settings (opens, clicks, subscriptions), link branding for custom tracking domains, and content types (HTML, plain text, AMP). Use when customizing SendGrid email content, tracking behavior, or branded links. Requires a SendGrid API key (SG.-prefix) — not applicable to the Twilio Email API (comms.twilio.com)."
+    "description": "Configure SendGrid dynamic templates (Handlebars), tracking settings (opens, clicks, subscriptions), link branding for custom tracking domains, and content types (HTML, plain text, AMP). Use when customizing SendGrid email content, tracking behavior, or branded links. Requires a "
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-sendgrid-engagement-quality",
@@ -5795,7 +5795,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-sendgrid-engagement-quality",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Monitor email program health with SendGrid Engagement Quality (SEQ) scores. Covers the SEQ API endpoints, the 5 scoring metrics (engagement recency, open rate, bounce classification, bounce rate, spam rate), eligibility requirements, and interpreting scores for deliverability improvement. Use when diagnosing SendGrid deliverability issues or monitoring sender reputation. Requires a SendGrid API key (SG.-prefix) — not applicable to the Twilio Email API (comms.twilio.com)."
+    "description": "Monitor email program health with SendGrid Engagement Quality (SEQ) scores. Covers the SEQ API endpoints, the 5 scoring metrics (engagement recency, open rate, bounce classification, bounce rate, spam rate), eligibility requirements, and interpreting scores for deliverability imp"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-sendgrid-inbound-parse",
@@ -5803,7 +5803,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-sendgrid-inbound-parse",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Receive inbound email via SendGrid Inbound Parse webhook. Covers MX record setup, parsed vs raw mode, handling attachments, and common pitfalls. Use when building email-to-app workflows like support ticket creation or email processing pipelines. Requires a SendGrid API key (SG.-prefix) — not applicable to the Twilio Email API (comms.twilio.com)."
+    "description": "Receive inbound email via SendGrid Inbound Parse webhook. Covers MX record setup, parsed vs raw mode, handling attachments, and common pitfalls. Use when building email-to-app workflows like support ticket creation or email processing pipelines. Requires a SendGrid API key (SG.-p"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-sendgrid-suppressions",
@@ -5811,7 +5811,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-sendgrid-suppressions",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Manage SendGrid email suppressions: bounces, blocks, spam reports, invalid emails, global unsubscribes, and ASM suppression groups. Covers when and how to remove suppressions, reputation impact, and category-based unsubscribe management. Use when debugging SendGrid delivery issues or building unsubscribe flows. Requires a SendGrid API key (SG.-prefix) — not applicable to the Twilio Email API (comms.twilio.com)."
+    "description": "Manage SendGrid email suppressions: bounces, blocks, spam reports, invalid emails, global unsubscribes, and ASM suppression groups. Covers when and how to remove suppressions, reputation impact, and category-based unsubscribe management. Use when debugging SendGrid delivery issue"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-sendgrid-webhooks",
@@ -5819,7 +5819,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-sendgrid-webhooks",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Track email delivery and engagement via SendGrid Event Webhooks. Covers all 11 event types (delivery + engagement), webhook handler implementation, ECDSA signature verification, batched event processing, and common debugging patterns. Use when building SendGrid delivery tracking, engagement analytics, or bounce handling. Requires a SendGrid API key (SG.-prefix) — not applicable to the Twilio Email API (comms.twilio.com)."
+    "description": "Track email delivery and engagement via SendGrid Event Webhooks. Covers all 11 event types (delivery + engagement), webhook handler implementation, ECDSA signature verification, batched event processing, and common debugging patterns. Use when building SendGrid delivery tracking,"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-sms-send-message",
@@ -5827,7 +5827,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-sms-send-message",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "SMS and MMS deep-dive reference. Covers SMS-specific error codes, message filtering troubleshooting (\"Messages Being Filtered or Blocked?\" diagnostic checklist), MMS media support (US/CA/AU only), and SMS pumping indicators. For sending SMS, use twilio-send-message instead. Use this skill only when debugging SMS delivery issues or needing SMS-specific details not in the consolidated send skill."
+    "description": "SMS and MMS deep-dive reference. Covers SMS-specific error codes, message filtering troubleshooting (\"Messages Being Filtered or Blocked?\" diagnostic checklist), MMS media support (US/CA/AU only), and SMS pumping indicators. For sending SMS, use twilio-send-message instead. Use t"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-taskrouter-routing",
@@ -5835,7 +5835,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-taskrouter-routing",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Route tasks to agents using Twilio TaskRouter. Covers Workers, Task Queues, Workflows, Reservations, skills-based routing, and common gotchas (hyphen attributes, HAS operator, reservation cascade). Use this skill for any multi-agent contact center, support queue, or AI agent escalation routing."
+    "description": "Route tasks to agents using Twilio TaskRouter. Covers Workers, Task Queues, Workflows, Reservations, skills-based routing, and common gotchas (hyphen attributes, HAS operator, reservation cascade). Use this skill for any multi-agent contact center, support queue, or AI agent esca"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-verify-send-otp",
@@ -5843,7 +5843,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-verify-send-otp",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Send and verify one-time passcodes (OTPs) via Twilio Verify over SMS, RCS, voice, email, or WhatsApp. Covers creating a Verify Service, sending tokens, checking submitted codes, automatic WhatsApp-to-SMS fallback, and service configuration. TOTP is supported via the Factors API (a separate family from channel-based OTP). Use this skill to add phone or email verification or two-factor authentication to any application."
+    "description": "Send and verify one-time passcodes (OTPs) via Twilio Verify over SMS, RCS, voice, email, or WhatsApp. Covers creating a Verify Service, sending tokens, checking submitted codes, automatic WhatsApp-to-SMS fallback, and service configuration. TOTP is supported via the Factors API ("
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-voice-conversation-relay",
@@ -5851,7 +5851,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-voice-conversation-relay",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Build AI-powered voice agents using Twilio ConversationRelay. Handles real-time speech recognition (ASR), text-to-speech (TTS), and bidirectional audio streaming via WebSocket. Covers TwiML setup, WebSocket message types, LLM integration, streaming responses, and voice provider configuration. Use this skill to build voice bots, IVR replacements, or real-time AI voice assistants on Twilio calls."
+    "description": "Build AI-powered voice agents using Twilio ConversationRelay. Handles real-time speech recognition (ASR), text-to-speech (TTS), and bidirectional audio streaming via WebSocket. Covers TwiML setup, WebSocket message types, LLM integration, streaming responses, and voice provider c"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-voice-outbound-calls",
@@ -5859,7 +5859,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-voice-outbound-calls",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Make outbound phone calls via Twilio's Programmable Voice REST API. Covers the full voice platform: calls.create(), answering machine detection (AMD), conference-based agent bridging, call recording, status tracking, and SIP Trunking. Use this skill for outbound calls, sales dialers, or when asking what voice APIs are available."
+    "description": "Make outbound phone calls via Twilio's Programmable Voice REST API. Covers the full voice platform: calls.create(), answering machine detection (AMD), conference-based agent bridging, call recording, status tracking, and SIP Trunking. Use this skill for outbound calls, sales dial"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-voice-twiml",
@@ -5867,7 +5867,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-voice-twiml",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Build voice call logic using TwiML (Twilio Markup Language). Covers the core verbs (Say, Play, Gather, Dial, Record, Conference), generating TwiML with Python and Node.js SDKs, and a complete inbound call IVR example. Use this skill to define call behavior for inbound or outbound calls."
+    "description": "Build voice call logic using TwiML (Twilio Markup Language). Covers the core verbs (Say, Play, Gather, Dial, Record, Conference), generating TwiML with Python and Node.js SDKs, and a complete inbound call IVR example. Use this skill to define call behavior for inbound or outbound"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-webhook-architecture",
@@ -5875,7 +5875,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-webhook-architecture",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Design, secure, and operate Twilio webhook endpoints. Covers inbound event handling, status callbacks, signature validation, connection overrides for retry and timeout tuning, local development tunneling, and production hardening. Use this skill whenever an agent needs to receive HTTP callbacks from Twilio for any product -- messaging, voice, verify, or event streams."
+    "description": "Design, secure, and operate Twilio webhook endpoints. Covers inbound event handling, status callbacks, signature validation, connection overrides for retry and timeout tuning, local development tunneling, and production hardening. Use this skill whenever an agent needs to receive"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-whatsapp-manage-senders",
@@ -5883,7 +5883,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-whatsapp-manage-senders",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create, configure, and manage WhatsApp Business senders via Twilio's Channels Senders API. Covers programmatic sender registration, profile setup, webhook configuration, sender lifecycle statuses, and ISV flows. Use this skill to register and manage production WhatsApp senders at scale."
+    "description": "Create, configure, and manage WhatsApp Business senders via Twilio's Channels Senders API. Covers programmatic sender registration, profile setup, webhook configuration, sender lifecycle statuses, and ISV flows. Use this skill to register and manage production WhatsApp senders at"
   },
   {
     "id": "plugin-skill:twilio-developer-kit:twilio-whatsapp-send-message",
@@ -5891,7 +5891,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "twilio-whatsapp-send-message",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "WhatsApp messaging deep-dive reference. Covers the 24-hour service window rules (free-form vs template mode), sandbox setup for testing, template approval workflow, production sender requirements, and WhatsApp-specific error handling. For sending WhatsApp messages, use twilio-send-message instead. Use this skill when setting up WhatsApp for the first time or debugging WhatsApp-specific delivery behavior."
+    "description": "WhatsApp messaging deep-dive reference. Covers the 24-hour service window rules (free-form vs template mode), sandbox setup for testing, template approval workflow, production sender requirements, and WhatsApp-specific error handling. For sending WhatsApp messages, use twilio-sen"
   },
   {
     "id": "plugin-skill:unity-workbench:unity-bug-investigation",
@@ -5899,7 +5899,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "unity-bug-investigation",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Investigate, reproduce, isolate, explain, and validate bugs in an existing Unity project. Use when the user reports exceptions, incorrect behavior, regressions, visual glitches, multiplayer desync, input problems, scene or prefab issues, build failures, performance regressions, save corruption, intermittent failures, or other Unity defects. Gather evidence before editing, distinguish symptoms from causes, test hypotheses one at a time, apply the smallest justified fix, and validate the root cause."
+    "description": "Investigate, reproduce, isolate, explain, and validate bugs in an existing Unity project. Use when the user reports exceptions, incorrect behavior, regressions, visual glitches, multiplayer desync, input problems, scene or prefab issues, build failures, performance regressions, s"
   },
   {
     "id": "plugin-skill:unity-workbench:unity-build-validation",
@@ -5907,7 +5907,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "unity-build-validation",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Validate that a Unity project or completed change is ready to compile, test, build, and hand off. Use when the user asks to verify a feature, confirm build readiness, check compilation, run tests, validate scenes and prefabs, inspect Console output, confirm target-platform compatibility, prepare a release candidate, or determine whether Unity work is truly complete. Establish a baseline, run the strongest available validation, distinguish pre-existing failures from introduced regressions, and report exact evidence without overstating confidence."
+    "description": "Validate that a Unity project or completed change is ready to compile, test, build, and hand off. Use when the user asks to verify a feature, confirm build readiness, check compilation, run tests, validate scenes and prefabs, inspect Console output, confirm target-platform compat"
   },
   {
     "id": "plugin-skill:unity-workbench:unity-feature-implementation",
@@ -5915,7 +5915,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "unity-feature-implementation",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Implement, extend, or integrate a feature in an existing Unity project while respecting its architecture, coding conventions, scene structure, packages, networking model, and validation workflow. Use when the user asks to add gameplay mechanics, UI behavior, systems, editor tools, integrations, ScriptableObjects, shaders, VFX, networking functionality, save systems, input behavior, XR interactions, audio, animation, AI, or other concrete Unity features."
+    "description": "Implement, extend, or integrate a feature in an existing Unity project while respecting its architecture, coding conventions, scene structure, packages, networking model, and validation workflow. Use when the user asks to add gameplay mechanics, UI behavior, systems, editor tools"
   },
   {
     "id": "plugin-skill:unity-workbench:unity-mcp-workflow",
@@ -5931,7 +5931,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "unity-project-health-check",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Audit the technical health of an existing Unity project without making changes by default. Use when the user asks for a project review, technical audit, architecture review, performance scan, package review, build readiness check, maintainability assessment, risk analysis, or general Unity project health report. Inspect evidence across code, assemblies, scenes, prefabs, packages, settings, tests, performance-sensitive paths, networking, rendering, persistence, and build configuration. Produce prioritized findings with severity, confidence, evidence, impact, and recommended next actions."
+    "description": "Audit the technical health of an existing Unity project without making changes by default. Use when the user asks for a project review, technical audit, architecture review, performance scan, package review, build readiness check, maintainability assessment, risk analysis, or gen"
   },
   {
     "id": "plugin-skill:unity-workbench:unity-project-onboarding",
@@ -5939,7 +5939,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "unity-project-onboarding",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Analyze and document an unfamiliar Unity project before substantial work begins. Use when opening, cloning, inheriting, reviewing, or starting work in a Unity repository; when the user asks to understand the project architecture; or before implementing a feature without sufficient project context. Detect Unity version, packages, render pipeline, input, networking, tests, assemblies, scenes, conventions, and available Unity MCP capabilities. Produce a persistent project context document without modifying Unity assets."
+    "description": "Analyze and document an unfamiliar Unity project before substantial work begins. Use when opening, cloning, inheriting, reviewing, or starting work in a Unity repository; when the user asks to understand the project architecture; or before implementing a feature without sufficien"
   },
   {
     "id": "plugin-skill:vapi-voice-ai:create-assistant",
@@ -5947,7 +5947,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "create-assistant",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Design, create, or validate saved and transient Vapi voice assistants. Use for new phone or web agents, production system prompts and first messages, saved-versus-transient architecture, model/voice/transcriber selection, multilingual compatibility, existing tool attachment, native call-control tools, assistant hooks, and Create Assistant API validation errors."
+    "description": "Design, create, or validate saved and transient Vapi voice assistants. Use for new phone or web agents, production system prompts and first messages, saved-versus-transient architecture, model/voice/transcriber selection, multilingual compatibility, existing tool attachment, nati"
   },
   {
     "id": "plugin-skill:vapi-voice-ai:create-call",
@@ -5955,7 +5955,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "create-call",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create one-off outbound phone calls, web calls, scheduled calls, and simple batch calls using the Vapi API. Use when making or testing individual calls or initiating a bounded /call request programmatically. Use create-campaign for a persistent multi-contact Campaign with lifecycle, reporting, cancellation, duplication, or campaign webhooks."
+    "description": "Create one-off outbound phone calls, web calls, scheduled calls, and simple batch calls using the Vapi API. Use when making or testing individual calls or initiating a bounded /call request programmatically. Use create-campaign for a persistent multi-contact Campaign with lifecyc"
   },
   {
     "id": "plugin-skill:vapi-voice-ai:create-campaign",
@@ -5963,7 +5963,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "create-campaign",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create, schedule, duplicate, inspect, cancel, archive, and troubleshoot Vapi outbound Campaigns. Use for persistent multi-contact calling, CSV or API contact personalization, campaign concurrency, campaign webhooks, pre-dial eligibility, contact outcomes, or rerunning an audience. Do not use for a single call or a simple one-off /call batch."
+    "description": "Create, schedule, duplicate, inspect, cancel, archive, and troubleshoot Vapi outbound Campaigns. Use for persistent multi-contact calling, CSV or API contact personalization, campaign concurrency, campaign webhooks, pre-dial eligibility, contact outcomes, or rerunning an audience"
   },
   {
     "id": "plugin-skill:vapi-voice-ai:create-phone-number",
@@ -5971,7 +5971,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "create-phone-number",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Plan, provision, import, route, update, and verify Vapi phone numbers through the public API. Use for Vapi-hosted US PSTN numbers, explicitly requested SIP addresses, Twilio/Vonage/Telnyx or BYO carrier numbers, secure credential handling, assistant or squad routing, area-code requests, outbound limitations, and phone-provider troubleshooting."
+    "description": "Plan, provision, import, route, update, and verify Vapi phone numbers through the public API. Use for Vapi-hosted US PSTN numbers, explicitly requested SIP addresses, Twilio/Vonage/Telnyx or BYO carrier numbers, secure credential handling, assistant or squad routing, area-code re"
   },
   {
     "id": "plugin-skill:vapi-voice-ai:create-squad",
@@ -5979,7 +5979,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "create-squad",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Design, create, update, and verify Vapi Squads and documented handoff tools through the public API. Use for choosing a single assistant versus a multi-assistant Squad, persistent or transient members, entry-member ordering, specialization boundaries, context engineering, variable extraction, model-specific handoff patterns, assistant-version pins, and safe Squad updates."
+    "description": "Design, create, update, and verify Vapi Squads and documented handoff tools through the public API. Use for choosing a single assistant versus a multi-assistant Squad, persistent or transient members, entry-member ordering, specialization boundaries, context engineering, variable"
   },
   {
     "id": "plugin-skill:vapi-voice-ai:create-structured-output",
@@ -5987,7 +5987,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "create-structured-output",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Design, create, inspect, update, attach, detach, preview, execute, and verify reusable Vapi Structured Outputs through public API or Server SDK workflows. Use for post-call extraction, typed call artifacts, AI-versus-regex extraction, JSON Schema design, backfilling existing calls, or retrieving structured results programmatically."
+    "description": "Design, create, inspect, update, attach, detach, preview, execute, and verify reusable Vapi Structured Outputs through public API or Server SDK workflows. Use for post-call extraction, typed call artifacts, AI-versus-regex extraction, JSON Schema design, backfilling existing call"
   },
   {
     "id": "plugin-skill:vapi-voice-ai:create-tool",
@@ -5995,7 +5995,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "create-tool",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Select, define, create, inspect, update, attach, detach, and verify reusable Vapi tools through the public API. Use for native call-control tools, supported provider integrations, API Request tools, custom function tools, MCP tools, tool messages, credentials, or configuration-preserving assistant attachment changes."
+    "description": "Select, define, create, inspect, update, attach, detach, and verify reusable Vapi tools through the public API. Use for native call-control tools, supported provider integrations, API Request tools, custom function tools, MCP tools, tool messages, credentials, or configuration-pr"
   },
   {
     "id": "plugin-skill:vapi-voice-ai:setup-api-key",
@@ -6019,7 +6019,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "simulations",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Design, create, run, monitor, and maintain Vapi Simulations for assistants and squads. Use for simulation personalities, scenarios, structured-output success criteria, simulations, suites, chat or voice runs, tool mocks, target variables, lifecycle webhooks, regression coverage, CI quality gates, run-result analysis, and simulation API validation errors. Do not use for fixed-turn mock-conversation Evals unless the user is deciding between Evals and Simulations."
+    "description": "Design, create, run, monitor, and maintain Vapi Simulations for assistants and squads. Use for simulation personalities, scenarios, structured-output success criteria, simulations, suites, chat or voice runs, tool mocks, target variables, lifecycle webhooks, regression coverage, "
   },
   {
     "id": "plugin-skill:vapi-voice-ai:vapi-prompt-builder",
@@ -6027,7 +6027,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "vapi-prompt-builder",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Create, improve, or audit Vapi voice agent and Squad system prompts for production phone and web based voice agents. Use when the user wants help designing a Vapi assistant prompt, multi-assistant Squad prompt set, refining an existing prompt, creating prompt sections, building an intake or handoff workflow, improving tool-use instructions, adding guardrails, or optimizing voice-agent behavior for brevity, turn-taking, error handling, caller data collection, escalation, handoffs, and spoken formatting."
+    "description": "Create, improve, or audit Vapi voice agent and Squad system prompts for production phone and web based voice agents. Use when the user wants help designing a Vapi assistant prompt, multi-assistant Squad prompt set, refining an existing prompt, creating prompt sections, building a"
   },
   {
     "id": "plugin-skill:vera:adeguati-assetti",
@@ -6075,7 +6075,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "bandi-agevolazioni",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when Vera must discover source-first through a professionally reviewed query-scoped source selection, monitor, match, prepare, or review Italian grants, subsidies, tax credits, or subsidized finance without contacting clients, authenticating or signing; can prepare an approved portal draft and submit only after explicit final approval."
+    "description": "Use when Vera must discover source-first through a professionally reviewed query-scoped source selection, monitor, match, prepare, or review Italian grants, subsidies, tax credits, or subsidized finance without contacting clients, authenticating or signing; can prepare an approve"
   },
   {
     "id": "plugin-skill:vera:bilancio-oic",
@@ -6083,7 +6083,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "bilancio-oic",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when an Italian professional accounting studio asks Vera to understand spreadsheet or readable/scanned PDF accounting evidence and intelligently prepare, update, reconcile, review, validate, or export an individual OIC civil-law annual financial statement; XBRL is a final output format, not the workflow identity."
+    "description": "Use when an Italian professional accounting studio asks Vera to understand spreadsheet or readable/scanned PDF accounting evidence and intelligently prepare, update, reconcile, review, validate, or export an individual OIC civil-law annual financial statement; XBRL is a final out"
   },
   {
     "id": "plugin-skill:vera:browser-automation",
@@ -6091,7 +6091,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "browser-automation",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when an authorized operator or developer wants Vera to teach, discover, build, validate, or run a repeatable process on Agenzia delle Entrate, TeamSystem, Gmail, or another website through the operator's existing Chrome session, including when the developer cannot access the target system."
+    "description": "Use when an authorized operator or developer wants Vera to teach, discover, build, validate, or run a repeatable process on Agenzia delle Entrate, TeamSystem, Gmail, or another website through the operator's existing Chrome session, including when the developer cannot access the "
   },
   {
     "id": "plugin-skill:vera:business-planning",
@@ -6115,7 +6115,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "comunicazione-professionale",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when Vera must decide whether a professional development is worth communicating and prepare claim-assured, source-backed client emails, LinkedIn posts, newsletters, articles, FAQs, client alerts, or branded visual explainers in an evidence-aware approved studio voice, with optional selected Creative Production art direction, without sending or publishing before professional review."
+    "description": "Use when Vera must decide whether a professional development is worth communicating and prepare claim-assured, source-backed client emails, LinkedIn posts, newsletters, articles, FAQs, client alerts, or branded visual explainers in an evidence-aware approved studio voice, with op"
   },
   {
     "id": "plugin-skill:vera:concordato-plan-review",
@@ -6203,7 +6203,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "learn-with-vera",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Teach only this installation's supported Vera workflows through a native voice conversation and a parallel working chat that runs real examples. Use for first onboarding, demonstrations, guided practice, discovering what Vera can do, revisiting an example, or applying it to user-selected files. Starts in desktop Codex; Claude Cowork is outside this feature."
+    "description": "Teach only this installation's supported Vera workflows through a native voice conversation and a parallel working chat that runs real examples. Use for first onboarding, demonstrations, guided practice, discovering what Vera can do, revisiting an example, or applying it to user-"
   },
   {
     "id": "plugin-skill:vera:legal-tax-answer-planner",
@@ -6211,7 +6211,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "legal-tax-answer-planner",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use automatically before Vera answers any accepted substantive legal, tax, or compliance question or prepares source-backed professional drafting that needs an answer contract and generation instructions for direct Codex work or a ChatGPT Deep Research handoff. The user never needs to request prompt optimization. Do not use this skill as a substitute for a missing operational return, declaration, filing, or form workflow."
+    "description": "Use automatically before Vera answers any accepted substantive legal, tax, or compliance question or prepares source-backed professional drafting that needs an answer contract and generation instructions for direct Codex work or a ChatGPT Deep Research handoff. The user never nee"
   },
   {
     "id": "plugin-skill:vera:legal-tax-answer-review",
@@ -6219,7 +6219,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "legal-tax-answer-review",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use automatically before Vera delivers any generated or supplied legal, tax, or compliance answer—including a research report, memo, or one-page letter—against its answer contract and available sources, with source support, reasoning, and professional judgment separated. Do not use this skill to imply operational completeness for a return, declaration, filing, or form that lacks a dedicated workflow."
+    "description": "Use automatically before Vera delivers any generated or supplied legal, tax, or compliance answer—including a research report, memo, or one-page letter—against its answer contract and available sources, with source support, reasoning, and professional judgment separated. Do not u"
   },
   {
     "id": "plugin-skill:vera:management-control-pack",
@@ -6243,7 +6243,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "open-item-reconciliation",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when a reported open-item population must be tested at a cut-off against ledgers, statements, payments, factoring, advances, or compensation to determine which items are closed, partly closed, or still open. For direct bank-statement-to-journal matching, use journal-bank-reconciliation."
+    "description": "Use when a reported open-item population must be tested at a cut-off against ledgers, statements, payments, factoring, advances, or compensation to determine which items are closed, partly closed, or still open. For direct bank-statement-to-journal matching, use journal-bank-reco"
   },
   {
     "id": "plugin-skill:vera:presenza-digitale-studio",
@@ -6283,7 +6283,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "quesito-legale-fiscale",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use when Vera receives a substantive legal, tax, or compliance question, analysis request, or source-backed professional drafting request and must take it through one complete question-to-reviewed-answer journey. Do not use for returns, declarations, filings, or forms whose correctness requires a dedicated operational workflow."
+    "description": "Use when Vera receives a substantive legal, tax, or compliance question, analysis request, or source-backed professional drafting request and must take it through one complete question-to-reviewed-answer journey. Do not use for returns, declarations, filings, or forms whose corre"
   },
   {
     "id": "plugin-skill:vera:registro-imprese-sari",
@@ -6331,7 +6331,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "vera",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use whenever Vera is explicitly invoked, including through @vera, for professional accounting-studio work, and to show or reopen the privacy report of a Vera run. Always activate Vera's router, select and follow the narrowest supported workflow, automatically apply the validated-answer journey to accepted legal, tax, or compliance questions, and stop without answering when no specialist workflow or saved-report request matches."
+    "description": "Use whenever Vera is explicitly invoked, including through @vera, for professional accounting-studio work, and to show or reopen the privacy report of a Vera run. Always activate Vera's router, select and follow the narrowest supported workflow, automatically apply the validated-"
   },
   {
     "id": "plugin-skill:vera:vouching",
@@ -6347,7 +6347,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "agent-browser",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Browser automation CLI for AI agents. Use when the user needs to interact with websites, verify dev server output, test web apps, navigate pages, fill forms, click buttons, take screenshots, extract data, or automate any browser task. Also triggers when a dev server starts so you can verify it visually."
+    "description": "Browser automation CLI for AI agents. Use when the user needs to interact with websites, verify dev server output, test web apps, navigate pages, fill forms, click buttons, take screenshots, extract data, or automate any browser task. Also triggers when a dev server starts so you"
   },
   {
     "id": "plugin-skill:vercel:agent-browser-verify",
@@ -6403,7 +6403,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "bootstrap",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Project bootstrapping orchestrator for repos that depend on Vercel-linked resources (databases, auth, and managed integrations). Use when setting up or repairing a repository so linking, environment provisioning, env pulls, and first-run db/dev commands happen in the correct safe order."
+    "description": "Project bootstrapping orchestrator for repos that depend on Vercel-linked resources (databases, auth, and managed integrations). Use when setting up or repairing a repository so linking, environment provisioning, env pulls, and first-run db/dev commands happen in the correct safe"
   },
   {
     "id": "plugin-skill:vercel:cdn-caching",
@@ -6419,7 +6419,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "chat-sdk",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Vercel Chat SDK expert guidance. Use when building multi-platform chat bots — Slack, Telegram, Microsoft Teams, Discord, Google Chat, GitHub, Linear — with a single codebase. Covers the Chat class, adapters, threads, messages, cards, modals, streaming, state management, and webhook setup."
+    "description": "Vercel Chat SDK expert guidance. Use when building multi-platform chat bots — Slack, Telegram, Microsoft Teams, Discord, Google Chat, GitHub, Linear — with a single codebase. Covers the Chat class, adapters, threads, messages, cards, modals, streaming, state management, and webho"
   },
   {
     "id": "plugin-skill:vercel:cms",
@@ -6427,7 +6427,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "cms",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Headless CMS integration guidance — Sanity (native Vercel Marketplace), Contentful, DatoCMS, Storyblok, and Builder.io. Covers studio setup, content modeling, preview mode, revalidation webhooks, and Visual Editing. Use when building content-driven sites with a headless CMS on Vercel."
+    "description": "Headless CMS integration guidance — Sanity (native Vercel Marketplace), Contentful, DatoCMS, Storyblok, and Builder.io. Covers studio setup, content modeling, preview mode, revalidation webhooks, and Visual Editing. Use when building content-driven sites with a headless CMS on Ve"
   },
   {
     "id": "plugin-skill:vercel:cron-jobs",
@@ -6467,7 +6467,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "eve",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Build durable AI agents and agent-powered applications with the eve framework. Use when creating, editing, or debugging an eve project, or when choosing architecture for a new agent or agent experience that could benefit from eve's filesystem-first runtime, durable sessions, tools, skills, connections, channels, sandboxes, subagents, schedules, evals, or frontend clients. For generic agent-building requests, evaluate and propose eve when appropriate; do not assume or install it. Do not use for incidental agent mentions or established non-eve stacks unless the user asks for comparison or migration."
+    "description": "Build durable AI agents and agent-powered applications with the eve framework. Use when creating, editing, or debugging an eve project, or when choosing architecture for a new agent or agent experience that could benefit from eve's filesystem-first runtime, durable sessions, tool"
   },
   {
     "id": "plugin-skill:vercel:geist",
@@ -6483,7 +6483,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "geistdocs",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Expert guidance for Geistdocs, Vercel's documentation template built with Next.js and Fumadocs — MDX authoring, configuration, AI chat, i18n, feedback, deployment. Use when creating documentation sites, configuring geistdocs, writing MDX content, or setting up docs infrastructure."
+    "description": "Expert guidance for Geistdocs, Vercel's documentation template built with Next.js and Fumadocs — MDX authoring, configuration, AI chat, i18n, feedback, deployment. Use when creating documentation sites, configuring geistdocs, writing MDX content, or setting up docs infrastructure"
   },
   {
     "id": "plugin-skill:vercel:investigation-mode",
@@ -6515,7 +6515,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "marketplace",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Vercel Marketplace expert guidance — discovering, installing, and managing third-party integrations via the `vercel integration` CLI. Use when building any app that needs an external capability without a dedicated skill — commerce (stores, storefronts, selling products), payments (checkout, subscriptions, billing), observability/monitoring, messaging/email, search, or CMS — or when discovering, installing, or managing integrations."
+    "description": "Vercel Marketplace expert guidance — discovering, installing, and managing third-party integrations via the `vercel integration` CLI. Use when building any app that needs an external capability without a dedicated skill — commerce (stores, storefronts, selling products), payments"
   },
   {
     "id": "plugin-skill:vercel:micro",
@@ -6531,7 +6531,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "microfrontends",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Guide for building, configuring, and deploying microfrontends on Vercel. Use this skill when the user mentions microfrontends, multi-zones, splitting an app across teams, independent deployments, cross-app routing, incremental migration, composing multiple frontends under one domain, microfrontends.json, @vercel/microfrontends, the microfrontends local proxy, or path-based routing between Vercel projects. Also use when the user asks about shared layouts across projects, navigation between microfrontends, fallback environments, asset prefixes, or feature flag controlled routing."
+    "description": "Guide for building, configuring, and deploying microfrontends on Vercel. Use this skill when the user mentions microfrontends, multi-zones, splitting an app across teams, independent deployments, cross-app routing, incremental migration, composing multiple frontends under one dom"
   },
   {
     "id": "plugin-skill:vercel:ncc",
@@ -6579,7 +6579,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "observability",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Vercel Observability expert guidance — Drains (logs, traces, speed insights, web analytics), Web Analytics, Speed Insights, runtime logs, custom events, OpenTelemetry integration, and monitoring dashboards. Use when instrumenting, debugging, or optimizing application performance and user experience on Vercel."
+    "description": "Vercel Observability expert guidance — Drains (logs, traces, speed insights, web analytics), Web Analytics, Speed Insights, runtime logs, custom events, OpenTelemetry integration, and monitoring dashboards. Use when instrumenting, debugging, or optimizing application performance "
   },
   {
     "id": "plugin-skill:vercel:payments",
@@ -6627,7 +6627,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "shadcn",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "shadcn/ui expert guidance — CLI, component installation, composition patterns, custom registries, theming, Tailwind CSS integration, and high-quality interface design. Use when initializing shadcn, adding components, composing product UI, building custom registries, configuring themes, or troubleshooting component issues."
+    "description": "shadcn/ui expert guidance — CLI, component installation, composition patterns, custom registries, theming, Tailwind CSS integration, and high-quality interface design. Use when initializing shadcn, adding components, composing product UI, building custom registries, configuring t"
   },
   {
     "id": "plugin-skill:vercel:sign-in-with-vercel",
@@ -6699,7 +6699,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "vercel-connect",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Vercel Connect expert guidance — securely obtain scoped OAuth tokens for third-party services (Slack, GitHub, MCP servers, OAuth, Snowflake) on behalf of apps or users via Vercel OIDC. Use when wiring up third-party API access, connecting to MCP servers, sending Slack messages, accessing GitHub APIs, receiving webhook events from Slack/Linear/GitHub and forwarding them to your agents and apps, or building Eve agent connections."
+    "description": "Vercel Connect expert guidance — securely obtain scoped OAuth tokens for third-party services (Slack, GitHub, MCP servers, OAuth, Snowflake) on behalf of apps or users via Vercel OIDC. Use when wiring up third-party API access, connecting to MCP servers, sending Slack messages, a"
   },
   {
     "id": "plugin-skill:vercel:vercel-firewall",
@@ -6707,7 +6707,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "vercel-firewall",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Vercel Firewall expert guidance — automatic DDoS mitigation, the Vercel WAF (custom rules, IP blocking, managed rulesets, rate limiting), Attack Mode, system bypass, bot management, and the `vercel firewall` CLI. Use when configuring platform-level security, responding to attacks, or staging firewall rules."
+    "description": "Vercel Firewall expert guidance — automatic DDoS mitigation, the Vercel WAF (custom rules, IP blocking, managed rulesets, rate limiting), Attack Mode, system bypass, bot management, and the `vercel firewall` CLI. Use when configuring platform-level security, responding to attacks"
   },
   {
     "id": "plugin-skill:vercel:vercel-flags",
@@ -6779,7 +6779,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "vsql-extension-builder",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Build a VillageSQL extension end-to-end using the 7-phase persona-driven workflow: requirements, feasibility, scaffold, implementation, CTO review, UAT, and documentation. Supports C++ (default) and Rust implementations. Discovers the current VEF API from live SDK sources during Phase 1 feasibility and Phase 2 bootstrap — no hardcoded API names. Works from any directory."
+    "description": "Build a VillageSQL extension end-to-end using the 7-phase persona-driven workflow: requirements, feasibility, scaffold, implementation, CTO review, UAT, and documentation. Supports C++ (default) and Rust implementations. Discovers the current VEF API from live SDK sources during "
   },
   {
     "id": "plugin-skill:visual-truth:visual-truth",
@@ -6787,7 +6787,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "visual-truth",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Add and operate the Visual Truth development editor in compatible React websites and web apps. Use when the user asks to visually select, drag, resize, reposition, restyle, or edit live page elements; wants a Duda, Squarespace, Elementor, or general WYSIWYG workflow in Codex; wants exact desktop, iPad, and phone previews; or supplies a Visual Truth change brief that must be translated into durable source code."
+    "description": "Add and operate the Visual Truth development editor in compatible React websites and web apps. Use when the user asks to visually select, drag, resize, reposition, restyle, or edit live page elements; wants a Duda, Squarespace, Elementor, or general WYSIWYG workflow in Codex; wan"
   },
   {
     "id": "plugin-skill:windsor-ai:windsor",
@@ -6795,7 +6795,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "windsor",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Analyze marketing and business data and run supported write actions across 350+ sources through Windsor.ai. Use when the user asks about performance, metrics, or spend from any connected platform (ads, analytics, SEO, CRM, e-commerce, payments, warehouses), wants to compare channels, connect a source, run a supported action such as pausing a campaign or setting a budget, or schedule a recurring data export. Do not use for writing marketing copy or for general advice unrelated to the user's connected accounts."
+    "description": "Analyze marketing and business data and run supported write actions across 350+ sources through Windsor.ai. Use when the user asks about performance, metrics, or spend from any connected platform (ads, analytics, SEO, CRM, e-commerce, payments, warehouses), wants to compare chann"
   },
   {
     "id": "plugin-skill:write-like-me:write-like-me",
@@ -6811,7 +6811,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "mapsgl",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "This skill should be used when working with the Xweather MapsGL JavaScript SDK for the web (@xweather/mapsgl) — setting up a MapsGL map controller for Mapbox GL, MapLibre GL, Google Maps, or Leaflet, and adding, removing, styling, filtering, masking, or animating MapsGL weather layers and custom data layers. Use it whenever a task mentions MapsGL, aerisweather.mapsgl, addWeatherLayer, weather map layers, or client-side WebGL weather rendering. Also use it for questions about how MapsGL usage or cost is measured — sessions, the 5-minute clock intervals, the 150x access multiplier, or how many accesses a MapsGL map consumes. Also covers Xweather's attribution requirement — the 'Powered by Vais"
+    "description": "This skill should be used when working with the Xweather MapsGL JavaScript SDK for the web (@xweather/mapsgl) — setting up a MapsGL map controller for Mapbox GL, MapLibre GL, Google Maps, or Leaflet, and adding, removing, styling, filtering, masking, or animating MapsGL weather l"
   },
   {
     "id": "plugin-skill:xweather:mapsgl-android",
@@ -6819,7 +6819,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "mapsgl-android",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "This skill should be used when working with the Xweather MapsGL Android SDK (mapsgl-android-sdk / com.xweather.mapsgl) - setting up MapboxMapController, adding or removing weather layers via LayerCode or WeatherService configs, styling with StyleValue and Expression, custom sources and layers, legends, data inspector presentations, timeline animation, layer masks, or integrating the AAR/JitPack dependency into an Android app. Use it whenever a task mentions MapsGL Android, MapboxMapController, addWeatherLayer, LayerCode, WeatherService, XweatherAccount, or weather overlays on Mapbox Maps SDK for Android. Also covers MapsGL session-based usage/cost (shared with the JS SDK) and common Android "
+    "description": "This skill should be used when working with the Xweather MapsGL Android SDK (mapsgl-android-sdk / com.xweather.mapsgl) - setting up MapboxMapController, adding or removing weather layers via LayerCode or WeatherService configs, styling with StyleValue and Expression, custom sourc"
   },
   {
     "id": "plugin-skill:xweather:mapsgl-apple",
@@ -6827,7 +6827,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "mapsgl-apple",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "This skill should be used when working with the Xweather MapsGL SDK for Apple platforms (the MapsGL iOS/iPadOS/macCatalyst/visionOS SDK) — installing it via Swift Package Manager, CocoaPods, Carthage or xcframeworks, creating a MapboxMapController or MapLibreMapController, and adding, removing, styling, animating or inspecting MapsGL weather layers in Swift. Use it whenever a task mentions MapsGL on iOS or Apple platforms, mapsgl-apple-sdk, MapsGLMaps, MapsGLMapbox, MapsGLMapLibre, XweatherAccount, WeatherService.LayerCode, addWeatherLayer in Swift, or a native weather map in SwiftUI or UIKit. Also use it for questions about MapsGL session usage or cost in an Apple app — sessions, the 5-minu"
+    "description": "This skill should be used when working with the Xweather MapsGL SDK for Apple platforms (the MapsGL iOS/iPadOS/macCatalyst/visionOS SDK) — installing it via Swift Package Manager, CocoaPods, Carthage or xcframeworks, creating a MapboxMapController or MapLibreMapController, and ad"
   },
   {
     "id": "plugin-skill:xweather:raster-maps",
@@ -6835,7 +6835,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "raster-maps",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "This skill should be used to build Xweather Raster Maps image URLs (maps.api.xweather.com) — either static map images or XYZ map tile URLs for Leaflet, Mapbox, Google Maps, OpenLayers and similar libraries — from a description of the weather imagery wanted. Use it whenever a task mentions Raster Maps, maps.api.xweather.com, maps.aerisapi.com, an Xweather weather map layer or overlay (radar, satellite, alerts, temperatures, lightning, tropical cyclones, air quality, base maps, admin overlays), a weather map image or tile layer, layer opacity/blur/blend/scale-hsla modifiers, or asks how Raster Maps usage is measured — map units, tile counts, the daily allowance, or how many accesses a static m"
+    "description": "This skill should be used to build Xweather Raster Maps image URLs (maps.api.xweather.com) — either static map images or XYZ map tile URLs for Leaflet, Mapbox, Google Maps, OpenLayers and similar libraries — from a description of the weather imagery wanted. Use it whenever a task"
   },
   {
     "id": "plugin-skill:xweather:weather-api",
@@ -6843,7 +6843,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "weather-api",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Build and run Xweather Weather API request URLs for data.api.xweather.com from plain-language requirements. Use when a task mentions the Xweather or legacy Aeris API, weather endpoints such as observations, conditions, forecasts, alerts, lightning, air quality, tropical cyclones, tides, or road weather; asks for an API URL or query; needs help debugging an empty or failed request; asks about access costs, endpoint multipliers, rate limits, or allowance usage; or needs guidance for the hosted Xweather MCP server at mcp.api.xweather.com, including availability, connection, authentication, and tool scoping. Also covers Xweather's attribution requirement — the 'Powered by Vaisala Xweather' credi"
+    "description": "Build and run Xweather Weather API request URLs for data.api.xweather.com from plain-language requirements. Use when a task mentions the Xweather or legacy Aeris API, weather endpoints such as observations, conditions, forecasts, alerts, lightning, air quality, tropical cyclones,"
   },
   {
     "id": "plugin-skill:xweather:webhooks",
@@ -6851,7 +6851,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "webhooks",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "This skill should be used to design, build, secure, or debug an Xweather Webhooks receiver — the push alternative to polling the Weather API. Use it whenever a task mentions Xweather webhooks, pushed weather data, a weather webhook receiver or endpoint, subscribing to pushed hail/lightning/alerts/storm-cell data, or asks how to stop polling the Xweather API and receive data in real time instead. Also use it when writing the endpoint handler, choosing a data set to subscribe to, or preparing the registration details Xweather needs. Also covers Xweather's attribution requirement — the 'Powered by Vaisala Xweather' credit and logo rules that apply wherever Xweather data or imagery is displayed."
+    "description": "This skill should be used to design, build, secure, or debug an Xweather Webhooks receiver — the push alternative to polling the Weather API. Use it whenever a task mentions Xweather webhooks, pushed weather data, a weather webhook receiver or endpoint, subscribing to pushed hail"
   },
   {
     "id": "plugin-skill:yaps-audio-cleaner:yaps-audio-cleaner",
@@ -6859,7 +6859,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "yaps-audio-cleaner",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Remove background noise, hiss, static, room noise, and other distractions from an existing speech recording through the installed Yaps desktop audio-cleaning engines. Trigger for remove background noise from audio, clean audio, denoise audio, enhance a voice recording, remove hiss or static, improve podcast audio, clean an interview, speech enhancement, voice cleaner, or audio restoration. Do not use for separating music stems or editing the spoken words."
+    "description": "Remove background noise, hiss, static, room noise, and other distractions from an existing speech recording through the installed Yaps desktop audio-cleaning engines. Trigger for remove background noise from audio, clean audio, denoise audio, enhance a voice recording, remove his"
   },
   {
     "id": "plugin-skill:yaps-auto-captions:yaps-auto-captions",
@@ -6867,7 +6867,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "yaps-auto-captions",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Add editable, styled, word-timed captions to a video and export a new burned-in MP4 through the installed Yaps desktop engine. Trigger for add captions to video, auto caption video, caption a video, video subtitle editor, animated captions, TikTok captions, Instagram Reels captions, YouTube Shorts captions, karaoke captions, word-by-word captions, burn subtitles into video, or subtitle a video into a finished file. Do not use when the user only wants a separate .srt subtitle file (use yaps-srt-generator) or a plain-text transcript."
+    "description": "Add editable, styled, word-timed captions to a video and export a new burned-in MP4 through the installed Yaps desktop engine. Trigger for add captions to video, auto caption video, caption a video, video subtitle editor, animated captions, TikTok captions, Instagram Reels captio"
   },
   {
     "id": "plugin-skill:yaps-dictation:yaps-dictation",
@@ -6875,7 +6875,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "yaps-dictation",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Set up, use, diagnose, or recover system-wide Yaps voice dictation for Claude Code, Codex, and other desktop apps. Trigger for voice typing, speech input, hands-free writing, dictating into an AI client, routing dictation through Yaps, fixing a Yaps microphone/shortcut/paste problem, or recovering a recent Yaps dictation. Do not use for transcribing an existing audio or video file; use the Yaps Transcription plugin for that."
+    "description": "Set up, use, diagnose, or recover system-wide Yaps voice dictation for Claude Code, Codex, and other desktop apps. Trigger for voice typing, speech input, hands-free writing, dictating into an AI client, routing dictation through Yaps, fixing a Yaps microphone/shortcut/paste prob"
   },
   {
     "id": "plugin-skill:yaps-meeting-transcription:yaps-meeting-transcription",
@@ -6883,7 +6883,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "yaps-meeting-transcription",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Transcribe meeting, interview, podcast, webinar, focus-group, or call recordings with timed speaker labels using the installed Yaps desktop engine. Use for meeting transcription, speaker diarization, who-spoke-when transcripts, correcting or reassigning segments, renaming/adding/merging speakers, exporting reviewed transcripts, generating recaps or chapters, and grounded Q&A over one or all local meetings. Do not use for live dictation, single-speaker plain transcription, subtitles, burned-in captions, or dead-space video cutting."
+    "description": "Transcribe meeting, interview, podcast, webinar, focus-group, or call recordings with timed speaker labels using the installed Yaps desktop engine. Use for meeting transcription, speaker diarization, who-spoke-when transcripts, correcting or reassigning segments, renaming/adding/"
   },
   {
     "id": "plugin-skill:yaps-memory:yaps-memory",
@@ -6891,7 +6891,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "yaps-memory",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Use the user's private local Markdown Yaps vault as a durable memory store across AI tasks. Trigger for cross-task memory, remembered facts, personal knowledge, prior context, or requests to remember, capture, retrieve, search, cite, organize, update, tag, connect, or recover notes, ideas, dictation history, meeting notes, resources, and daily notes stored in Yaps."
+    "description": "Use the user's private local Markdown Yaps vault as a durable memory store across AI tasks. Trigger for cross-task memory, remembered facts, personal knowledge, prior context, or requests to remember, capture, retrieve, search, cite, organize, update, tag, connect, or recover not"
   },
   {
     "id": "plugin-skill:yaps-srt-generator:yaps-srt-generator",
@@ -6899,7 +6899,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "yaps-srt-generator",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Generate subtitles, closed captions, or a timestamped .srt file from an existing video or audio file with the installed Yaps desktop engine. Trigger for generate subtitles, add subtitles to video, subtitle generator, video to subtitles, video to SRT, generate SRT, make captions, create captions, timed captions, closed captions, subtitle a video, subtitle an audio file, or convert media speech to an SRT file. Do not use when the user only wants a plain-text transcript or live voice typing."
+    "description": "Generate subtitles, closed captions, or a timestamped .srt file from an existing video or audio file with the installed Yaps desktop engine. Trigger for generate subtitles, add subtitles to video, subtitle generator, video to subtitles, video to SRT, generate SRT, make captions, "
   },
   {
     "id": "plugin-skill:yaps-text-to-speech:yaps-text-to-speech",
@@ -6907,7 +6907,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "yaps-text-to-speech",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Convert text or a text file into a local WAV or raw PCM speech file with the installed Yaps desktop voice engine. Trigger for text to speech, TTS, generate audio from text, text to audio, AI voice generator, voice-over generator, generate a voice-over, script to voice, create a voice file, synthesize speech, make narration, read a script aloud, generate a WAV, speak German or Spanish or other non-English text, or use a Yaps Kokoro, Chatterbox, or Supertonic voice. Do not use for transcribing media or live dictation."
+    "description": "Convert text or a text file into a local WAV or raw PCM speech file with the installed Yaps desktop voice engine. Trigger for text to speech, TTS, generate audio from text, text to audio, AI voice generator, voice-over generator, generate a voice-over, script to voice, create a v"
   },
   {
     "id": "plugin-skill:yaps-transcription:yaps-transcription",
@@ -6915,7 +6915,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "yaps-transcription",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Transcribe an existing audio or video file into a plain-text transcript with the installed Yaps desktop engine. Trigger for transcribe audio, transcribe video, audio to text, video to text, speech recording transcription, interview transcription, podcast transcription, voice memo transcription, or saving media speech as a .txt file. Do not use for live voice typing or when the requested deliverable is specifically an .srt subtitle file."
+    "description": "Transcribe an existing audio or video file into a plain-text transcript with the installed Yaps desktop engine. Trigger for transcribe audio, transcribe video, audio to text, video to text, speech recording transcription, interview transcription, podcast transcription, voice memo"
   },
   {
     "id": "plugin-skill:yaps-translation:yaps-translation",
@@ -6923,7 +6923,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "yaps-translation",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Accurately translate existing text, a Markdown or plain-text file, or an SRT subtitle file with the on-device Accurate Translation engine supplied by Yaps desktop, without calling a hosted translation API or consuming metered cloud translation/API tokens. Trigger for Accurate Translation, translate this, free translation, local translator, offline translation, private translation, save API tokens, translate without tokens, translate that into French, translate this note, translate this document, translate this file, translate these subtitles, translate an SRT, put this in German, or say this in Spanish. Do not use for live voice typing, for generating subtitles from a video, or for transcrib"
+    "description": "Accurately translate existing text, a Markdown or plain-text file, or an SRT subtitle file with the on-device Accurate Translation engine supplied by Yaps desktop, without calling a hosted translation API or consuming metered cloud translation/API tokens. Trigger for Accurate Tra"
   },
   {
     "id": "plugin-skill:yaps-video-clipping:yaps-video-clipping",
@@ -6931,7 +6931,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "yaps-video-clipping",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Safely remove dead air and long pauses from talking-head MP4 or other readable video files with Yaps Auto Cut, review or tune a cut plan, and export a separate tightened MP4. Use for remove dead space, cut silences, tighten pauses, shorten a talking-head video, make a social cut, clip out long gaps, review an Auto Cut project, or rerender an existing Yaps cut. Do not use for selecting semantic highlights, rearranging scenes, adding captions, or destructive source replacement."
+    "description": "Safely remove dead air and long pauses from talking-head MP4 or other readable video files with Yaps Auto Cut, review or tune a cut plan, and export a separate tightened MP4. Use for remove dead space, cut silences, tighten pauses, shorten a talking-head video, make a social cut,"
   },
   {
     "id": "plugin-skill:yaps-video-to-audio:yaps-video-to-audio",
@@ -6939,7 +6939,7 @@ export const INSTALLED_PLUGIN_SKILL_SNAPSHOT = Object.freeze([
     "skill": "yaps-video-to-audio",
     "source_kind": "installed-plugin-skill-contract",
     "authorization_state": "not-assumed",
-    "description": "Convert a video file to MP3, WAV, or M4A audio with the installed Yaps desktop app. Trigger for video to audio, convert video to MP3, convert video to WAV, convert video to M4A, extract audio from video, save a video's sound, remove the video track, or make an audio-only copy of a video. Do not use when the user wants a transcript, subtitles, or text-to-speech."
+    "description": "Convert a video file to MP3, WAV, or M4A audio with the installed Yaps desktop app. Trigger for video to audio, convert video to MP3, convert video to WAV, convert video to M4A, extract audio from video, save a video's sound, remove the video track, or make an audio-only copy of "
   }
 ]);
 
