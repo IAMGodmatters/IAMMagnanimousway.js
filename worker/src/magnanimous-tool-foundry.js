@@ -42,7 +42,7 @@ async function syncGapProposals(env,{tenant,uid}){
  return proposals;
 }
 
-export async function upsertApprovedTeachingTool(env,{submissionId=0,agentId='teacher',name='learned-workflow',purpose='',family='learned',risk='low',steps=[],requiredCapabilities=[],requiresConnection=false}={}){
+export async function upsertApprovedTeachingTool(env,{submissionId=0,agentId='teacher',name='learned-workflow',purpose='',family='learned',risk='low',steps=[],requiredCapabilities=[],requiresConnection=false,initiative={}}={}){
  if(!env?.DB||!String(purpose||'').trim())return null;
  await schema(env);
  const safeRisk=['low','medium','high'].includes(String(risk||'').toLowerCase())?String(risk).toLowerCase():'low';
@@ -50,7 +50,7 @@ export async function upsertApprovedTeachingTool(env,{submissionId=0,agentId='te
  const safeSteps=Array.isArray(steps)?steps.map((instruction,index)=>({type:index===0?'understand':index===steps.length-1?'verify':'execute',instruction:clip(instruction,1000)})).filter(x=>x.instruction).slice(0,20):[];
  const permissionStep={type:'authorize',instruction:requiresConnection?'Verify the required account/tool connection, tenant scope, and user authorization before any account-specific action.':'Verify permissions and require explicit approval before any consequential action.'};
  const recipeSteps=[permissionStep,...safeSteps,{type:'verify',instruction:'Verify the outcome against the approved teaching, report anything not completed, and never claim an external action succeeded without a real tool result.'}].slice(0,30);
- return upsertSpec(env,{tenant:GLOBAL_TOOL_TENANT,uid:GLOBAL_TOOL_USER,name,purpose,family,risk:safeRisk,status:safeRisk==='high'?'review-required':'proposed',inputs:{task:'string',authorized_context:'object',required_capabilities:safeCapabilities,requires_connection:Boolean(requiresConnection),teaching_submission_id:Number(submissionId)||0,agent_id:clip(agentId,120)},outputs:{result:'verified workflow result',actions_taken:'array',actions_pending_authorization:'array'},steps:recipeSteps});
+ return upsertSpec(env,{tenant:GLOBAL_TOOL_TENANT,uid:GLOBAL_TOOL_USER,name,purpose,family,risk:safeRisk,status:safeRisk==='high'?'review-required':'proposed',inputs:{task:'string',authorized_context:'object',required_capabilities:safeCapabilities,requires_connection:Boolean(requiresConnection),teaching_submission_id:Number(submissionId)||0,agent_id:clip(agentId,120),initiative:{suggestive:initiative?.suggestive===true,auto_initiate:initiative?.auto_initiate===true,requires_confirmation:initiative?.requires_confirmation===true,action_class:clip(initiative?.action_class||'',120),family:clip(initiative?.family||'',120)}},outputs:{result:'verified workflow result',actions_taken:'array',actions_pending_authorization:'array'},steps:recipeSteps});
 }
 
 export async function getMagnanimousToolFoundryContext(request,env,goal=''){
