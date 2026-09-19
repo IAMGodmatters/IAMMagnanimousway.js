@@ -52,6 +52,30 @@ jobs:
         working-directory: worker
         run: npx wrangler deploy --dry-run --outdir /tmp/magnanimous-worker-bundle
 
+      - name: Ensure persistent Worker session secret
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler secret list --format json > /tmp/magnanimous-worker-secrets.json
+          if python - <<'PY'
+          import json
+          data=json.load(open('/tmp/magnanimous-worker-secrets.json'))
+          names={str(x.get('name','')) for x in data if isinstance(x,dict)}
+          raise SystemExit(0 if 'SESSION_SECRET' in names else 1)
+          PY
+          then
+            echo "Persistent SESSION_SECRET is already configured on the Worker."
+          else
+            session_secret=$(openssl rand -hex 48)
+            printf '%s' "$session_secret" | npx wrangler secret put SESSION_SECRET >/dev/null
+            unset session_secret
+            echo "Created persistent SESSION_SECRET on the Worker without exposing its value."
+          fi
+
       - name: Apply D1 migrations
         working-directory: worker
         env:
@@ -80,10 +104,12 @@ jobs:
               elif isinstance(x,list):
                   for v in x: walk(v)
           walk(payload)
-          required={'tenant_settings','ads','settings','security_rate_limits','auth_events','auth_config'}
+          required={'tenant_settings','ads','settings','security_rate_limits','auth_events'}
           missing=required-names
           assert not missing, f"Cannot defer pending runtime migrations; production is missing required tables: {sorted(missing)}"
-          print("Pending runtime migrations safely deferred under confirmed D1 quota; required production tables already exist.")
+          auth_config_present='auth_config' in names
+          print("Pending runtime migrations safely deferred under confirmed D1 quota; required production tables already exist. auth_config_present=",auth_config_present)
+          print("SESSION_SECRET is ensured as the stable server-side auth signing source while auth_config is pending.")
           PY
               echo "D1_MIGRATION_DEFERRED=1" >> "$GITHUB_ENV"
             else
