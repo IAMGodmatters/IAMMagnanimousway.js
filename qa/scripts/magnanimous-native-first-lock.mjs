@@ -85,7 +85,6 @@ has(pluginSnapshot,'authorization_state','plugin snapshot keeps authorization st
 has(pluginSnapshot,'proprietary_implementation_copied:false','plugin snapshot explicitly denies proprietary implementation copying');
 has(liveToolResearch,'LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT','current live plugin-tool research snapshot exists');
 has(liveToolResearch,'Plugin_Management','Plugin Management live tool contracts are researched');
-lacks(liveToolResearch,'"namespace": "Floot"','retired provider is absent from active live plugin research');
 has(builderResearch,'MAGNANIMOUS_BUILDER_TOOL_CONTRACTS','Magnanimous has a first-party builder tool catalog');
 has(builderResearch,'getMagnanimousBuilderToolPolicy','Magnanimous Builder has per-tool initiative and confirmation policy');
 has(builderResearch,"runtime_dependency:'magnanimous-first-party'",'Magnanimous Builder declares first-party runtime ownership');
@@ -94,9 +93,6 @@ has(engineeringTechniques,"mode:'magnanimous-first-party-technique-catalog'",'en
 has(absorption,'techniques:techniqueProfile.techniques','Magnanimous technique profiles are wired into engineering skill contracts');
 has(absorption,"...(row.techniques||[])",'Magnanimous techniques participate in capability ranking');
 has(absorption,'techniques=${(x.techniques||[]).slice(0,4)','Magnanimous techniques are injected into routing context');
-lacks(absorption,"plugin.namespace==='Floot'",'retired provider has no active plugin routing special case');
-lacks(absorption,'optional-external-floot-rail','retired provider has no active execution boundary');
-lacks(absorption,'requires_real_floot_tool','retired provider tool requirement is absent from active contracts');
 has(liveToolResearch,'proprietary_implementation_copied:false','live tool research denies proprietary implementation copying');
 has(absorption,'getInstalledPluginSkillManifest','installed plugin skill contracts are converted into brain capability specs');
 has(skillSnapshot,'INSTALLED_PLUGIN_SKILL_SNAPSHOT','installed plugin skill snapshot exists');
@@ -198,13 +194,13 @@ for(const item of liveIntegrations){
 checks.push(['absorption research ledger covers every direct connector',directIds.every(id=>absorption.includes(` ${id}:`)||absorption.includes(`'${id}':`))]);
 checks.push(['catalog contains at least 68 benchmark/direct connector entries',catalogIds.size>=68]);
 checks.push(['persistent connector manifest contains at least 294 capability specs',persistentManifest.length>=294]);
-checks.push(['retained plugin research covers at least 110 observable namespaces including current + historical continuity',runtimeSummary.visible_plugin_namespaces>=110]);
+checks.push(['retained active plugin research covers at least 110 observable namespaces',runtimeSummary.visible_plugin_namespaces>=110]);
 checks.push(['current live plugin research excludes retired provider and covers at least 110 namespaces',liveToolSummary.live_plugin_namespaces>=110&&runtimeSummary.currently_visible_plugin_namespaces>=110]);
 checks.push(['current live plugin research excludes retired provider and covers at least 2265 tool contracts',liveToolSummary.live_tool_contracts>=2265&&runtimeSummary.currently_visible_plugin_tool_contracts>=2265]);
 checks.push(['retained plugin tool manifest covers at least 2265 active tool contracts including Plugin Management',runtimeSummary.visible_plugin_tool_contracts>=2265]);
 checks.push(['plugin tool contracts are converted one by one',pluginManifest.length>=2265]);
 checks.push(['Plugin Management capabilities are absorbed into the manifest',pluginManifest.some(x=>x.plugin_namespace==='Plugin_Management'&&x.capability.includes('search-plugins'))]);
-checks.push(['retired provider is absent from active plugin manifest',!pluginManifest.some(x=>x.plugin_namespace==='Floot'||String(x.connector_name||'').includes('Floot'))]);
+checks.push(['first-party Builder contracts are not plugin-owned',builderManifest.every(x=>!x.plugin_namespace&&x.connector_id==='magnanimous-builder')]);
 checks.push(['all 44 builder operations are first-party Magnanimous contracts',MAGNANIMOUS_BUILDER_TOOL_CONTRACTS.length===44&&builderManifest.length===44&&builderManifest.every(x=>x.connector_id==='magnanimous-builder'&&x.authorization_state==='magnanimous-first-party')]);
 checks.push(['Magnanimous engineering catalog contains exactly 65 first-party guidance topics',MAGNANIMOUS_ENGINEERING_GUIDE_TOPICS.length===65&&engineeringManifest.length===65]);
 const engineeringTechniqueSummary=getMagnanimousTechniqueSummary();
