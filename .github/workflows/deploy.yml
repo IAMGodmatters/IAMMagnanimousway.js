@@ -70,7 +70,7 @@ jobs:
           node qa/scripts/materialize-full-brain-d1.mjs /tmp/magnanimous-full-brain
           for file in /tmp/magnanimous-full-brain/*.sql; do
             echo "Applying $(basename "$file")"
-            (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --file="$file")
+            (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file="$file")
           done
 
           expected=$(python - <<'PY'
@@ -89,7 +89,11 @@ jobs:
           (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT
             (SELECT COUNT(*) FROM magnanimous_connector_capability_absorption WHERE status='tool-foundry-specified') AS ledger_count,
             (SELECT COUNT(*) FROM magnanimous_native_tool_specs WHERE tenant_id='__magnanimous_global__' AND user_id='system:auto-qa') AS tool_spec_count,
-            manifest_count,ledger_count AS recorded_ledger_count,tool_spec_count AS recorded_tool_spec_count,source_digest,status
+            magnanimous_capability_materialization_state.manifest_count AS manifest_count,
+            magnanimous_capability_materialization_state.ledger_count AS recorded_ledger_count,
+            magnanimous_capability_materialization_state.tool_spec_count AS recorded_tool_spec_count,
+            magnanimous_capability_materialization_state.source_digest AS source_digest,
+            magnanimous_capability_materialization_state.status AS status
             FROM magnanimous_capability_materialization_state WHERE id='full-brain';" > /tmp/magnanimous-full-brain/verify.json)
 
           EXPECTED="$expected" DIGEST="$digest" python - <<'PY'
