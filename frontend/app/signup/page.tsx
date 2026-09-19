@@ -38,6 +38,8 @@ export default function SignupPage() {
       const verify = await fetch(`${api}/api/auth/me`, { headers: { Authorization: `Bearer ${d.token}` } });
       if (!verify.ok) throw new Error('Your account was created, but the session could not be verified. Please sign in.');
       localStorage.setItem('iam_account_token', d.token);
+      if(Number(d.session_expires_at||0)>0)localStorage.setItem('iam_account_session_expires_at',String(Number(d.session_expires_at)*1000));
+      else localStorage.removeItem('iam_account_session_expires_at');
       localStorage.removeItem('odin_admin_token');
       sessionStorage.setItem('iam_session_active','user');
       window.location.replace('/start');
