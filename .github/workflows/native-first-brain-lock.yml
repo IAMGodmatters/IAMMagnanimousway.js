@@ -19,5 +19,9 @@ jobs:
           node-version: 22
       - name: Verify native-first brain and God Coding contracts
         run: node qa/scripts/magnanimous-native-first-lock.mjs
+      - name: Verify OGENIC GOD TOOLKIT absorption
+        run: node qa/scripts/magnanimous-ogenic-god-toolkit-lock.mjs
       - name: Syntax check native-first Worker runtime
         run: node --check worker/src/magnanimous-native-first.js
+      - name: Syntax check OGENIC GOD TOOLKIT runtime
+        run: node --check worker/src/magnanimous-ogenic-god-toolkit.js
