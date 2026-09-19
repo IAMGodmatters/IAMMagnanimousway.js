@@ -57,13 +57,15 @@ const authSecretBlock=adminCompat.slice(authSecretStart,authSecretEnd);
 add('admin compatibility runtime imports shared quota-aware failure handler',adminCompat.includes("import {unhandledRequestFailure} from './request-observability.js'"));
 add('admin compatibility outer catch delegates quota errors to shared handler',adminCompat.includes('return unhandledRequestFailure(request,e);'));
 add('admin compatibility table checks are read-only',compatTables.includes('SELECT id,name,slug')&&!compatTables.includes('CREATE TABLE')&&!compatTables.includes('CREATE INDEX'));
+add('auth_config fallback table is not required on every request when SESSION_SECRET is configured',!compatTables.includes("SELECT key,value FROM auth_config"));
 add('admin legacy compatibility is read-only',compatLegacy.includes('SELECT id,tenant_id,name')&&!compatLegacy.includes('ALTER TABLE')&&!compatLegacy.includes('UPDATE users'));
 add('auth secret lookup no longer creates schema at request time',authSecretBlock.includes('SELECT value FROM auth_config')&&!authSecretBlock.includes('CREATE TABLE'));
 
 add('deploy defers only exact D1 quota auth codes',deploy.includes('D1_DAILY_ROW_WRITE_LIMIT')&&deploy.includes('D1_DAILY_ROW_READ_LIMIT')&&deploy.includes('Production auth mutation smoke deferred because Cloudflare D1 reported'));
 add('migration defer requires exact Cloudflare D1 write-limit text',deploy.includes("exceeded D1's free tier daily row write limit")&&deploy.includes('Cannot defer pending runtime migrations'));
 add('migration confirmation is noninteractive without unsupported Wrangler flags',deploy.includes("printf 'y\\n' | npx wrangler d1 migrations apply iam-magnanimous-db --remote")&&!deploy.includes('migrations apply iam-magnanimous-db --remote --yes'));
-add('migration defer proves all required runtime/auth tables already exist',deploy.includes("'tenant_settings','ads','settings','security_rate_limits','auth_events','auth_config'")&&deploy.includes('required production tables already exist'));
+add('migration defer proves all always-required runtime/auth tables already exist',deploy.includes("required={'tenant_settings','ads','settings','security_rate_limits','auth_events'}")&&deploy.includes('required production tables already exist'));
+add('auth_config remains migration-owned but optional during quota deferral when SESSION_SECRET is configured',authMigration.includes('CREATE TABLE IF NOT EXISTS auth_config')&&deploy.includes('auth_config may remain pending because SESSION_SECRET'));
 add('non-quota migration failures still stop deployment',deploy.includes('else\n              exit "$rc"'));
 add('ordinary signup failures still fail deployment',deploy.includes('Signup smoke test returned HTTP $status')&&deploy.includes('exit 1'));
 add('quota branch never claims signup passed',deploy.includes('This is an external daily Free-plan limit, not a passing signup result.'));
