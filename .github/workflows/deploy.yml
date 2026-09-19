@@ -61,7 +61,7 @@ jobs:
         run: |
           set -euo pipefail
           set +e
-          output=$(npx wrangler d1 migrations apply iam-magnanimous-db --remote --yes 2>&1)
+          output=$(printf 'y\n' | npx wrangler d1 migrations apply iam-magnanimous-db --remote 2>&1)
           rc=$?
           set -e
           printf '%s\n' "$output"
