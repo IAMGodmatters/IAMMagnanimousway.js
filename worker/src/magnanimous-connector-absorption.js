@@ -4,6 +4,7 @@ import { CHATGPT_PLUGIN_CONTRACT_SNAPSHOT, getChatGPTPluginContractSummary } fro
 import { INSTALLED_PLUGIN_SKILL_SNAPSHOT, getInstalledPluginSkillSummary } from './magnanimous-installed-plugin-skill-snapshot.js';
 import { LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT, getLivePluginToolResearchSummary } from './magnanimous-live-plugin-tool-research-snapshot.js';
 import { LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT, getLivePluginSkillResearchSummary } from './magnanimous-live-plugin-skill-research-snapshot.js';
+import { getFlootNativeTarget, getFlootToolPolicy, getFlootCapabilitySummary } from './magnanimous-floot-capability-snapshot.js';
 
 // Research ledger for the account connectors that I AM Magnanimous Way can authorize directly.
 // These sources describe public API contracts only. They are not copied implementations.
@@ -130,7 +131,9 @@ export function getPersistentConnectorAbsorptionManifest(){
  return getConnectorAbsorptionCatalog().flatMap(item=>(item.capabilities||[]).map(cap=>capabilityRecipe(item,cap,item.absorption.boundary)));
 }
 function pluginNativeTarget(plugin){
- const hay=(plugin.namespace+' '+(plugin.tools||[]).join(' ')).toLowerCase();
+ const tools=plugin.tools||[];
+ if(plugin.namespace==='Floot'&&tools.length)return getFlootNativeTarget(tools[0]);
+ const hay=(plugin.namespace+' '+tools.join(' ')).toLowerCase();
  if(/mail|gmail|outlook|slack|discord|telegram|call|sms|whatsapp|voice|phone|record|transcri/.test(hay))return'communications-hub';
  if(/calendar|booking|schedule/.test(hay))return'scheduling-engine';
  if(/github|git|deploy|vercel|netlify|railway|digitalocean|aiven|appdeploy|shipstatic|val.town|replit|basicdeploy|manufact/.test(hay))return'deployment-operator';
@@ -146,7 +149,7 @@ function pluginNativeTarget(plugin){
  return'universal-tool-gateway';
 }
 function pluginCapabilityRecipe(plugin,tool){
- const capability=String(tool||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tool-action',native_target=pluginNativeTarget(plugin),research=liveToolResearch(plugin.namespace,tool);
+ const capability=String(tool||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tool-action',native_target=pluginNativeTarget(plugin),research=liveToolResearch(plugin.namespace,tool),floot=plugin.namespace==='Floot'?getFlootToolPolicy(tool):null;
  return{
   id:`${plugin.id}:${capability}`,connector_id:plugin.id,connector_name:plugin.name,category:'plugin-contract',capability,native_target,priority:'observed',
   source_kind:plugin.source_kind,direct_connector:false,boundary:'external-plugin-account-or-provider-rail-when-required',
@@ -157,7 +160,8 @@ function pluginCapabilityRecipe(plugin,tool){
   plugin_namespace:plugin.namespace,authorization_state:plugin.authorization_state,
   search_text:research?.purpose||tool,
   visibility_state:research?'live-visible':'historical-observed',
-  research:{captured_at:research?'2026-09-19':'historical',source_kind:research?'live-observable-plugin-tool-catalog':plugin.source_kind,public_purpose:research?.purpose||'',authorization_state:'not-assumed',proprietary_implementation_copied:false}
+  initiative:floot?{suggestive:true,auto_initiate:floot.auto_initiate,requires_confirmation:floot.requires_confirmation,action_class:floot.action_class}:undefined,
+  research:{captured_at:research?'2026-09-20':'historical',source_kind:research?'live-observable-plugin-tool-catalog':plugin.source_kind,public_purpose:research?.purpose||'',authorization_state:'not-assumed',proprietary_implementation_copied:false,...(floot?{floot_family:floot.family,floot_action_class:floot.action_class,requires_real_floot_tool:true}: {})}
  };
 }
 function liveOnlyPluginRecipes(){
@@ -186,7 +190,7 @@ function installedSkillRecipe(tuple){
   recipe:[`Apply the observable procedure goal of ${skill} through Magnanimous-owned planning and verification.`,'Use the concise skill purpose as routing guidance, not as authority to copy private implementation.','Prefer native Magnanimous workflows and open standards.','Use any external account/provider only when separately authorized and actually required.','Verify the result and learn reusable low-risk steps.'],
   plugin_namespace:plugin,skill_name:skill,search_text:live?.purpose||description,authorization_state:'not-assumed',
   visibility_state:live?'live-visible':'historical-observed',
-  research:{captured_at:live?'2026-09-19':'historical',source_kind:live?'live-observable-installed-skill-catalog':'observable-installed-skill-contract',public_purpose:live?.purpose||description,authorization_state:'not-assumed',private_skill_implementation_copied:false}
+  research:{captured_at:live?'2026-09-20':'historical',source_kind:live?'live-observable-installed-skill-catalog':'observable-installed-skill-contract',public_purpose:live?.purpose||description,authorization_state:'not-assumed',private_skill_implementation_copied:false}
  };
 }
 export function getInstalledPluginSkillManifest(){
@@ -197,7 +201,7 @@ export function getCapabilityAbsorptionManifest(){
 }
 
 export function getConnectorAbsorptionSummary(){
- const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),liveTools=getLivePluginToolResearchSummary(),liveSkills=getLivePluginSkillResearchSummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
+ const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),liveTools=getLivePluginToolResearchSummary(),liveSkills=getLivePluginSkillResearchSummary(),floot=getFlootCapabilitySummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
  const missingDirect=INTEGRATIONS.filter(x=>!directCatalogued.has(x.id)).map(x=>x.id);
  const pluginNamespaces=new Set([...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace),...LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>x.namespace)]);
  const skillNamespaces=new Set(INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>x[0]));
@@ -223,6 +227,7 @@ export function getConnectorAbsorptionSummary(){
   full_brain_capability_contracts:persistent.length+pluginManifest.length+skillManifest.length,
   plugin_authorization_state:'not-assumed',
   one_by_one_research:true,
+  floot,
   research_sources:['official direct connector API documentation','live observable plugin tool catalog','observable installed skill catalog','historical observable contracts retained for continuity'],
   native_targets:[...new Set([...catalog.map(x=>x.native_target).filter(Boolean),...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(pluginNativeTarget),...LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x.namespace,tools:[x.tool,x.purpose]})),...INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x[0],tools:[x[1],x[2]]}))])].sort(),
   direct_connector_coverage:{covered:INTEGRATIONS.length-missingDirect.length,total:INTEGRATIONS.length,missing:missingDirect},
