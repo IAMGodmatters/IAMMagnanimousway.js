@@ -14,10 +14,121 @@ function Refresh-Path {
   $env:Path = "$machine;$user"
 }
 
+function Test-PythonCandidate([string]$Executable,[string[]]$PrefixArgs=@()) {
+  if (-not $Executable) { return $null }
+  try {
+    $resolved = & $Executable @PrefixArgs -c "import os,sys; print(os.path.realpath(sys.executable))" 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $resolved) { return $null }
+    $real = ($resolved | Select-Object -Last 1).ToString().Trim()
+    if (-not $real -or -not (Test-Path $real)) { return $null }
+    if ($real -match '\\WindowsApps\\python(3)?\.exe
+
+function Install-WithWinget([string]$Id,[string]$Name) {
+  $winget = Get-Command winget -ErrorAction SilentlyContinue
+  if (-not $winget) { throw "$Name is required and Windows Package Manager (winget) is unavailable. Install $Name, then run this installer again." }
+  Write-Host "Installing $Name with winget..."
+  & $winget.Source install --id $Id -e --source winget --accept-package-agreements --accept-source-agreements --silent
+  if ($LASTEXITCODE -ne 0) { throw "$Name installation failed with exit code $LASTEXITCODE." }
+  Refresh-Path
+}
+
+$pythonExe = Find-Python
+if (-not $pythonExe) {
+  Install-WithWinget "Python.Python.3.13" "Python 3"
+  Refresh-Path
+  $pythonExe = Find-Python
+}
+if (-not $pythonExe) {
+  throw "Python 3 was installed or detected, but Windows is still exposing only the Microsoft Store App Execution Alias. Disable the python.exe/python3.exe aliases under Settings > Apps > Advanced app settings > App execution aliases, then run this activation file again."
+}
+Write-Host "Using Python: $pythonExe"
+
+if ($InstallGit -and -not (Get-Command git -ErrorAction SilentlyContinue)) {
+  Install-WithWinget "Git.Git" "Git"
+}
+
+if (-not $WorkspaceRoot) {
+  $WorkspaceRoot = Join-Path $env:USERPROFILE "Documents\MagnanimousWorkspace"
+}
+$WorkspaceRoot = [Environment]::ExpandEnvironmentVariables($WorkspaceRoot)
+New-Item -ItemType Directory -Force -Path $WorkspaceRoot | Out-Null
+$WorkspaceRoot = (Resolve-Path $WorkspaceRoot).Path
+
+if ($NetwalkToolkit) {
+  $NetwalkToolkit = [Environment]::ExpandEnvironmentVariables($NetwalkToolkit)
+  if (-not (Test-Path (Join-Path $NetwalkToolkit "scripts"))) {
+    throw "Netwalk toolkit path does not contain the expected scripts folder: $NetwalkToolkit"
+  }
+  $NetwalkToolkit = (Resolve-Path $NetwalkToolkit).Path
+}
+
+$homeDir = Join-Path $env:USERPROFILE ".magnanimous"
+New-Item -ItemType Directory -Force -Path $homeDir | Out-Null
+$agent = Join-Path $homeDir "bridge_agent.py"
+$source = "https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/bridge_agent.py"
+Write-Host "Downloading the Magnanimous Local Bridge agent..."
+Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $agent
+
+$argsList = @($agent, "pair", "--server", $Server, "--code", $PairingCode, "--root", $WorkspaceRoot)
+if ($NetwalkToolkit) { $argsList += @("--netwalk-toolkit", $NetwalkToolkit) }
+& $pythonExe @argsList
+if ($LASTEXITCODE -ne 0) { throw "Magnanimous Local Bridge pairing failed." }
+
+$taskName = "Magnanimous Local Bridge"
+$taskArgs = '"' + $agent + '" run'
+$action = New-ScheduledTaskAction -Execute $pythonExe -Argument $taskArgs
+$trigger = New-ScheduledTaskTrigger -AtLogOn
+$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1)
+Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Description "Outbound-only I AM MAGNANIMOUS WAY local execution bridge" -Force | Out-Null
+
+try { Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue } catch {}
+Start-ScheduledTask -TaskName $taskName
+
+$config = Join-Path $homeDir "local-bridge.json"
+Write-Host ""
+Write-Host "Magnanimous Local Bridge paired and started."
+Write-Host "Authorized workspace: $WorkspaceRoot"
+Write-Host "Configuration: $config"
+Write-Host "Startup task: $taskName"
+Write-Host "No inbound port was opened."
+Write-Host "Magnanimous will run an automatic health check to verify real execution."
+) { return $null }
+    return (Resolve-Path $real).Path
+  } catch { return $null }
+}
+
 function Find-Python {
-  $cmd = Get-Command python -ErrorAction SilentlyContinue
-  if (-not $cmd) { $cmd = Get-Command py -ErrorAction SilentlyContinue }
-  return $cmd
+  $candidates = @()
+
+  $py = Get-Command py -ErrorAction SilentlyContinue
+  if ($py) { $candidates += ,@($py.Source,@("-3")) }
+
+  $python = Get-Command python -ErrorAction SilentlyContinue
+  if ($python) { $candidates += ,@($python.Source,@()) }
+
+  $python3 = Get-Command python3 -ErrorAction SilentlyContinue
+  if ($python3) { $candidates += ,@($python3.Source,@()) }
+
+  foreach ($candidate in $candidates) {
+    $real = Test-PythonCandidate $candidate[0] $candidate[1]
+    if ($real) { return $real }
+  }
+
+  $searchRoots = @(
+    (Join-Path $env:LOCALAPPDATA "Programs\Python"),
+    (Join-Path $env:ProgramFiles "Python"),
+    (Join-Path ${env:ProgramFiles(x86)} "Python")
+  ) | Where-Object { $_ -and (Test-Path $_) }
+
+  foreach ($root in $searchRoots) {
+    $found = Get-ChildItem -Path $root -Filter python.exe -File -Recurse -ErrorAction SilentlyContinue |
+      Sort-Object FullName -Descending
+    foreach ($item in $found) {
+      $real = Test-PythonCandidate $item.FullName
+      if ($real) { return $real }
+    }
+  }
+  return $null
 }
 
 function Install-WithWinget([string]$Id,[string]$Name) {
