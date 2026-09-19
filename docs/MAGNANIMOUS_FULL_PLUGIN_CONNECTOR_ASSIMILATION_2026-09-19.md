@@ -76,6 +76,22 @@ The durable native-first materialization path now uses the **full brain manifest
 
 The owner God Coding control uses bounded batches to materialize the multi-thousand-contract ledger safely.
 
+### Automatic production materialization
+
+Production deployment no longer depends on the owner pressing the assimilation button.
+
+Every deployment to `main` now:
+
+1. generates the full provider-neutral manifest from the same connector/plugin/skill registry used by Magnanimous reasoning;
+2. rejects capability-key or normalized Tool Foundry name collisions;
+3. writes every retained capability into the durable D1 absorption ledger;
+4. writes every capability into the global Magnanimous Tool Foundry with its inferred risk level;
+5. keeps high-risk capabilities in `review-required` status instead of auto-promoting them;
+6. records a SHA-256 digest and exact manifest count in `magnanimous_capability_materialization_state`;
+7. queries production D1 and fails deployment unless the expected ledger count, Tool Foundry count, digest and completion state are present.
+
+The deployment materialization is idempotent. Existing proven `ready` Tool Foundry recipes remain `ready`; lower-confidence specs are refreshed from the current manifest without granting new account authorization or bypassing consequential-action controls.
+
 ## Native vs bridge boundary
 
 Magnanimous should independently own where practical:
