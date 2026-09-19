@@ -73,6 +73,24 @@ if (-not $pythonExe) {
 }
 Write-Host "Using Python: $pythonExe"
 
+Write-Host "Preparing Magnanimous Native Browser (Playwright + Chromium)..."
+$browserReady = $true
+& $pythonExe -m pip install --disable-pip-version-check --user "playwright==1.63.0"
+if ($LASTEXITCODE -ne 0) {
+  $browserReady = $false
+  Write-Warning "Playwright could not be installed. The Local Bridge will continue without native browser automation."
+}
+if ($browserReady) {
+  & $pythonExe -m playwright install chromium
+  if ($LASTEXITCODE -ne 0) {
+    $browserReady = $false
+    Write-Warning "Chromium could not be installed. The Local Bridge will continue without native browser automation."
+  }
+}
+if ($browserReady) {
+  Write-Host "Magnanimous Native Browser is installed."
+}
+
 if ($InstallGit -and -not (Get-Command git -ErrorAction SilentlyContinue)) {
   Install-WithWinget "Git.Git" "Git"
 }
@@ -153,4 +171,6 @@ Write-Host "Configuration: $config"
 Write-Host "Startup: $startupMode"
 Write-Host "Startup launcher: $startupLauncher"
 Write-Host "No inbound port was opened."
+if ($browserReady) { Write-Host "Native browser automation: READY (local Chromium; no TinyFish required for supported browser tasks)." }
+else { Write-Host "Native browser automation: NOT READY (re-run activation after resolving the Playwright/Chromium installation warning)." }
 Write-Host "Magnanimous will run an automatic health check to verify real execution."
