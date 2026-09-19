@@ -440,99 +440,36 @@ jobs:
           print('Magnanimous OGENIC initiative and Netwalk truth boundaries passed.')
           PY
 
-          status=$(curl -sS -o /tmp/local-bridge-overview.json -w '%{http_code}' "$BASE_URL/api/magnanimous/local-bridge" -H "Authorization: Bearer $token")
-          if [ "$status" != "200" ]; then echo "Local Bridge overview returned HTTP $status"; cat /tmp/local-bridge-overview.json || true; exit 1; fi
+          # Local Bridge is a platform-owner control surface. The ordinary tenant owner
+          # created by deployment smoke must never be able to pair/control a machine.
+          status=$(curl -sS -o /tmp/local-bridge-customer-denied.json -w '%{http_code}' "$BASE_URL/api/magnanimous/local-bridge" -H "Authorization: Bearer $token")
+          if [ "$status" != "403" ]; then echo "Local Bridge customer isolation expected HTTP 403, got $status"; cat /tmp/local-bridge-customer-denied.json || true; exit 1; fi
           python - <<'PY'
           import json
-          d=json.load(open('/tmp/local-bridge-overview.json'))
-          assert d.get('identity') == 'Magnanimous AI', d
-          assert d.get('mode') == 'outbound-local-bridge', d
-          assert (d.get('policy') or {}).get('transport') == 'outbound-polling-over-https', d
-          assert (d.get('policy') or {}).get('raw_shell_exposed') is False, d
-          assert (d.get('actions') or {}).get('apply_patch',{}).get('confirmation') is True, d
+          d=json.load(open('/tmp/local-bridge-customer-denied.json'))
+          assert 'platform owner' in str(d.get('detail','')).lower(), d
           PY
 
-          status=$(curl -sS -o /tmp/local-bridge-pairing.json -w '%{http_code}' -X POST "$BASE_URL/api/magnanimous/local-bridge/pairings" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"name":"Deployment Smoke Bridge"}')
-          if [ "$status" != "201" ]; then echo "Local Bridge pairing returned HTTP $status"; cat /tmp/local-bridge-pairing.json || true; exit 1; fi
-          pairing_code=$(python - <<'PY'
-          import json
-          d=json.load(open('/tmp/local-bridge-pairing.json'))
-          code=d.get('pairing_code') or ''
-          assert code.startswith('mbp_'), d
-          print(code)
-          PY
-          )
-
-          python - "$pairing_code" > /tmp/local-bridge-agent-pair.json <<'PY'
-          import json,sys
-          print(json.dumps({'code':sys.argv[1],'name':'Smoke Bridge','hostname':'smoke-host','platform':'linux-smoke','capabilities':['health','apply_patch']}))
-          PY
-          status=$(curl -sS -o /tmp/local-bridge-agent.json -w '%{http_code}' -X POST "$BASE_URL/api/magnanimous/local-bridge/agent/pair" -H 'content-type: application/json' --data-binary @/tmp/local-bridge-agent-pair.json)
-          if [ "$status" != "201" ]; then echo "Local Bridge agent pair returned HTTP $status"; cat /tmp/local-bridge-agent.json || true; exit 1; fi
-          readarray -t bridge_values < <(python - <<'PY'
-          import json
-          d=json.load(open('/tmp/local-bridge-agent.json'))
-          assert d.get('device_id'), d
-          assert (d.get('bridge_token') or '').startswith('mblb_'), d
-          print(d['device_id']);print(d['bridge_token'])
-          PY
-          )
-          bridge_device_id="${bridge_values[0]}"
-          bridge_token="${bridge_values[1]}"
-
-          python - "$bridge_device_id" > /tmp/local-bridge-health-task.json <<'PY'
-          import json,sys
-          print(json.dumps({'device_id':sys.argv[1],'action':'health','payload':{}}))
-          PY
-          status=$(curl -sS -o /tmp/local-bridge-task.json -w '%{http_code}' -X POST "$BASE_URL/api/magnanimous/local-bridge/tasks" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data-binary @/tmp/local-bridge-health-task.json)
-          if [ "$status" != "201" ]; then echo "Local Bridge task queue returned HTTP $status"; cat /tmp/local-bridge-task.json || true; exit 1; fi
-          bridge_task_id=$(python - <<'PY'
-          import json
-          d=json.load(open('/tmp/local-bridge-task.json'))
-          assert d.get('status') == 'queued', d
-          assert d.get('requires_confirmation') is False, d
-          print(d['id'])
-          PY
-          )
-
-          status=$(curl -sS -o /tmp/local-bridge-next.json -w '%{http_code}' "$BASE_URL/api/magnanimous/local-bridge/agent/next" -H "Authorization: Bridge $bridge_token")
-          if [ "$status" != "200" ]; then echo "Local Bridge claim returned HTTP $status"; cat /tmp/local-bridge-next.json || true; exit 1; fi
-          python - "$bridge_task_id" <<'PY'
-          import json,sys
-          d=json.load(open('/tmp/local-bridge-next.json'));t=d.get('task') or {}
-          assert t.get('id') == sys.argv[1], d
-          assert t.get('action') == 'health', d
-          PY
-
-          python - "$bridge_task_id" > /tmp/local-bridge-result.json <<'PY'
-          import json,sys
-          print(json.dumps({'task_id':sys.argv[1],'ok':True,'result':{'ok':True,'disk':{'free':123456}}}))
-          PY
-          status=$(curl -sS -o /tmp/local-bridge-result-response.json -w '%{http_code}' -X POST "$BASE_URL/api/magnanimous/local-bridge/agent/result" -H 'content-type: application/json' -H "Authorization: Bridge $bridge_token" --data-binary @/tmp/local-bridge-result.json)
-          if [ "$status" != "200" ]; then echo "Local Bridge result submit returned HTTP $status"; cat /tmp/local-bridge-result-response.json || true; exit 1; fi
-
-          status=$(curl -sS -o /tmp/local-bridge-task-final.json -w '%{http_code}' "$BASE_URL/api/magnanimous/local-bridge/tasks/$bridge_task_id" -H "Authorization: Bearer $token")
-          if [ "$status" != "200" ]; then echo "Local Bridge task receipt returned HTTP $status"; cat /tmp/local-bridge-task-final.json || true; exit 1; fi
+          check_get "Magnanimous Local Bridge public health" "$BASE_URL/api/magnanimous/health" /tmp/local-bridge-health.json
           python - <<'PY'
           import json
-          d=json.load(open('/tmp/local-bridge-task-final.json'))
-          assert d.get('status') == 'completed', d
-          assert (d.get('result') or {}).get('ok') is True, d
+          d=json.load(open('/tmp/local-bridge-health.json'))
+          assert d.get('ok') is True, d
+          assert d.get('local_bridge_runtime') is True, d
+          assert d.get('local_bridge_transport') == 'outbound-only', d
+          assert isinstance(d.get('local_bridge_configured'),bool), d
           PY
 
-          python - "$bridge_device_id" > /tmp/local-bridge-patch-task.json <<'PY'
-          import json,sys
-          print(json.dumps({'device_id':sys.argv[1],'action':'apply_patch','payload':{'workspace':'/tmp/smoke','patch':'--- a/a.txt\n+++ b/a.txt\n@@ -1 +1 @@\n-a\n+b\n'}}))
-          PY
-          status=$(curl -sS -o /tmp/local-bridge-patch-response.json -w '%{http_code}' -X POST "$BASE_URL/api/magnanimous/local-bridge/tasks" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data-binary @/tmp/local-bridge-patch-task.json)
-          if [ "$status" != "202" ]; then echo "Local Bridge mutation gate returned HTTP $status"; cat /tmp/local-bridge-patch-response.json || true; exit 1; fi
+          check_get "Magnanimous operator Local Bridge metadata" "$BASE_URL/api/operator/capabilities" /tmp/local-bridge-operator.json
           python - <<'PY'
           import json
-          d=json.load(open('/tmp/local-bridge-patch-response.json'))
-          assert d.get('status') == 'needs_confirmation', d
-          assert d.get('requires_confirmation') is True, d
-          assert d.get('confirmation_endpoint'), d
-          print('Magnanimous Local Bridge pairing, task receipt, and mutation gate passed.')
+          d=json.load(open('/tmp/local-bridge-operator.json'))
+          b=d.get('local_bridge') or {}
+          assert b.get('runtime') is True, d
+          assert b.get('transport') == 'outbound-only', d
+          assert b.get('raw_shell') is False, d
+          assert isinstance(b.get('connected'),bool), d
+          print('Magnanimous Local Bridge is live, outbound-only, raw-shell-free, and isolated to the platform owner.')
           PY
 
           # Magnanimous Business AI production smoke: verify the live catalog,
