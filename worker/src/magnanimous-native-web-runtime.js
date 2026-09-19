@@ -122,7 +122,7 @@ async function planBrowserGoal(env,{goal,start_url='',mode='read'}={}){
  const model=String(env.CLOUDFLARE_AI_MODEL||'@cf/meta/llama-3.3-70b-instruct-fp8-fast');
  const result=await env.AI.run(model,{messages:[{role:'user',content:prompt}],max_tokens:1800,temperature:.1});
  let text=typeof result==='string'?result:String(result?.response||result?.result?.response||result?.result||'');
- text=text.trim().replace(/^\`\`\`(?:json)?/i,'').replace(/\`\`\`$/,'').trim();
+ text=text.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
  const first=text.indexOf('{'),last=text.lastIndexOf('}');if(first<0||last<=first)throw new Error('Magnanimous browser planner returned no usable JSON plan.');
  const parsed=JSON.parse(text.slice(first,last+1)),steps=Array.isArray(parsed.steps)?parsed.steps.slice(0,30):[];
  if(!steps.length)throw new Error('Magnanimous browser planner returned an empty plan.');
