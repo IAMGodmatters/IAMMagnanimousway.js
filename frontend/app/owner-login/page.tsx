@@ -49,7 +49,7 @@ export default function OwnerLoginPage(){
    <form onSubmit={submit}>
     <input required type="email" autoComplete="username" placeholder="Owner email" value={email} onChange={e=>setEmail(e.target.value)}/>
     <input required type="password" autoComplete="current-password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)}/>
-    <div className="loginAssist"><span>Secure session: up to 12 hours</span><a href="/owner-login?forgot=1">Forgot password?</a></div>
+    <div className="loginAssist"><span>Secure session: up to 12 hours</span><a href="/forgot-password?portal=owner">Forgot password?</a></div>
     <button disabled={busy}>{busy?'VERIFYING…':'ACCESS OWNER DASHBOARD'}</button>
     {success&&<div className="success">{success}</div>}
     {error&&<div className="error">{error}</div>}
