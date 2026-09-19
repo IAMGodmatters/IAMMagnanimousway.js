@@ -280,11 +280,11 @@ function externalDependencyState(env,dep){
  return'connection-required';
 }
 function runtimeReadiness(env,id){
- const external=externalFor(id);
- if(!external.length)return{state:'native-ready',outside_action_required:false,checks:[]};
+ const external=externalFor(id),dependencies=CAPABILITY_ROUTES[id]?.dependencies||[],networkDependencies=dependencies.filter(x=>['open-license-search'].includes(String(x)));
+ if(!external.length)return{state:'native-ready',outside_action_required:false,checks:[],readiness_basis:'contract-and-routing',operational_verification_required:true,runtime_probe_required:networkDependencies.length>0,runtime_probe_dependencies:networkDependencies};
  const checks=external.map(dependency=>({dependency,state:externalDependencyState(env,dependency)})),states=checks.map(x=>x.state);
  const state=states.every(x=>x==='server-ready')?'server-ready':states.includes('server-engine-required')?'server-engine-required':states.includes('connection-required')?'connection-required':'approval-required';
- return{state,outside_action_required:true,checks};
+ return{state,outside_action_required:true,checks,readiness_basis:'server-configuration',operational_verification_required:true,runtime_probe_required:true,runtime_probe_dependencies:[...new Set([...external,...networkDependencies])]};
 }
 const SURFACE_ONLY_STEPS={
  'academy-wizard':/Publish to Learning\/Community/i,
@@ -425,6 +425,8 @@ if(toolPreflight&&request.method==='GET'){
   external_connections_required:external,
   outside_action_state:external.length?'connection-or-receipt-required':'no-external-action-required',
   runtime_readiness:runtimeReadiness(env,id),
+  verification_level:'contract-preflight',
+  operational_verification_required:true,
   safe_preflight:true,
   truthful_action_boundary:true
  });
