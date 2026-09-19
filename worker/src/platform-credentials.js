@@ -89,7 +89,8 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
  {id:'meta',name:'Meta',providers:['facebook','instagram','whatsapp'],fields:[
   {key:'META_APP_ID',label:'Meta App ID',secret:false,required:true},
   {key:'META_APP_SECRET',label:'Meta App Secret',secret:true,required:true},
-  {key:'WHATSAPP_CONFIG_ID',label:'WhatsApp Configuration ID',secret:false,required:false}
+  {key:'WHATSAPP_CONFIG_ID',label:'WhatsApp Configuration ID',secret:false,required:false},
+  {key:'WHATSAPP_VERIFY_TOKEN',label:'WhatsApp Webhook Verification Token',secret:true,required:false}
  ]},
  {id:'managed-email-auth',name:'Managed Email OAuth Fallback',providers:['google','outlook'],fields:[{key:'COMPOSIO_API_KEY',label:'Composio Project API Key (managed Gmail/Outlook OAuth fallback)',secret:true,required:true}]},
  {id:'google',name:'Google',providers:['google','google-calendar'],fields:[

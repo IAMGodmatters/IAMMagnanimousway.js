@@ -15,7 +15,12 @@ const TOOLS:Record<string,{name:string;src:string}>={
  receptionist:{name:'AI Receptionist',src:'/ai-receptionist'},
  'video-agents':{name:'Video Agents',src:'/video-agents'},
  'work-engine':{name:'Work Engine',src:'/work-engine'},
- rebilling:{name:'Usage Rebilling',src:'/agency-command?tab=billing'}
+ rebilling:{name:'Usage Rebilling',src:'/agency-command?tab=billing'},
+ invoice:{name:'Invoice Maker',src:'/white-label/native?tool=invoice'},
+ pos:{name:'Point of Sale',src:'/white-label/native?tool=pos'},
+ website:{name:'Website Builder',src:'/white-label/native?tool=website'},
+ 'app-builder':{name:'App Prototype Builder',src:'/white-label/native?tool=app'},
+ whatsapp:{name:'WhatsApp Product Inbox',src:'/white-label/whatsapp'}
 };
 async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||`Request failed (${r.status})`}}}
 

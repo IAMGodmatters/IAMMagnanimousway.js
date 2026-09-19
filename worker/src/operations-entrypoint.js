@@ -16,6 +16,8 @@ import {handleBusinessAISuite} from './magnanimous-business-ai-suite.js';
 import {handlePublicAgencyFunnel} from './public-agency-funnel-runtime.js';
 import {handleDataStudio} from './data-studio-runtime.js';
 import {handleMediaLibrary} from './media-library-runtime.js';
+import {handleWhiteLabelNativeProducts} from './white-label-native-products.js';
+import {handleWhiteLabelWhatsApp} from './white-label-whatsapp-inbox.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -187,6 +189,10 @@ async function operationsFetch(request,env,ctx){
 
 export default{
  async fetch(request,env,ctx){
+  const whatsapp=await handleWhiteLabelWhatsApp(request,env);
+  if(whatsapp)return whatsapp;
+  const native=await handleWhiteLabelNativeProducts(request,env);
+  if(native)return native;
   const brain=await handleWhiteLabelBrain(request,env,ctx,{fetch:operationsFetch});
   if(brain)return brain;
 

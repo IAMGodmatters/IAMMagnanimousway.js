@@ -72,7 +72,8 @@ function isProtectedAiPath(path) {
 }
 
 function isAgencyPath(path) {
-  return path.startsWith('/api/agency') || path.startsWith('/api/white-label/brain');
+  if (path === '/api/white-label/native/whatsapp/webhook') return false;
+  return path.startsWith('/api/agency') || path.startsWith('/api/white-label/brain') || path.startsWith('/api/white-label/native/');
 }
 
 function requiresStrongSession(request, path) {
