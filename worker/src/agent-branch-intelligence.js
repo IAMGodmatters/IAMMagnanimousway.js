@@ -46,7 +46,7 @@ const SKILL_RULES=[
  [/call center supervisor/i,['queue priorities','coaching','escalations','floor operations']],
  [/qa coach/i,['quality rubrics','call scoring','coaching evidence','root-cause analysis']],
  [/script builder/i,['inbound scripts','outbound scripts','disclosures','conversation branching']],
- [/workforce|queue/i,['staffing','break planning','service levels','coverage']],
+ [/workforce & queue|queue planner|workforce planner/i,['staffing','break planning','service levels','coverage']],
  [/training coach/i,['onboarding','roleplay','scorecards','coaching plans']],
  [/facebook|instagram|linkedin|x growth|youtube/i,['platform-native content','hooks','publishing cadence','audience growth']],
  [/content creator|content repurposer/i,['format adaptation','content systems','content atomization','cross-platform reuse','message consistency']],
