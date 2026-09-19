@@ -15,6 +15,7 @@ const progress=read('worker/src/progress-entrypoint.js');
 const provider=read('worker/src/provider-entrypoint.js');
 const page=read('frontend/app/local-bridge/page.tsx');
 const robots=read('frontend/public/robots.txt');
+const deploy=read('.github/workflows/deploy.yml');
 
 assert.equal(LOCAL_BRIDGE_POLICY.transport,'outbound-polling-over-https');
 assert.equal(LOCAL_BRIDGE_POLICY.inbound_listener_required,false);
@@ -67,6 +68,9 @@ assert(provider.includes("ogenicPlan.classification==='HYBRID'"),'chat must auto
 assert(page.includes('CREATE PAIRING CODE'));
 assert(page.includes('LOCAL BRIDGE REQUIRED'));
 assert(robots.includes('Disallow: /local-bridge/'));
+assert(deploy.includes('Local Bridge customer isolation expected HTTP 403'),'production smoke must preserve platform-owner-only Local Bridge control');
+assert(deploy.includes("assert d.get('local_bridge_runtime') is True"),'production smoke must verify Local Bridge runtime is live');
+assert(deploy.includes("assert b.get('raw_shell') is False"),'production smoke must verify raw shell stays disabled');
 
 const local=buildMagnanimousOgenicPlan('Check my local computer health',{MAGNANIMOUS_LOCAL_BRIDGE_READY:true});
 assert.equal(local.classification,'LOCAL');
