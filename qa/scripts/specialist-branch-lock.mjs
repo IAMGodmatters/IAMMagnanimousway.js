@@ -5,6 +5,7 @@ const must=(text,needle,label)=>{if(!text.includes(needle)){console.error(`SPECI
 
 const intelligence=read('worker/src/agent-branch-intelligence.js');
 const entry=read('worker/src/branch-consent-entrypoint.js');
+const mesh=read('worker/src/agent-mesh-runtime.js');
 const progress=read('worker/src/progress-entrypoint.js');
 const progressBase=read('worker/src/progress-entrypoint-base.js');
 const autoTeaching=read('worker/src/auto-teaching-runtime.js');
@@ -110,7 +111,7 @@ must(autoTeaching,'[AUTO-QA RETRY]','temporary reviewer failures must remain ret
 
 must(voice,"kind:'voice-transcript'",'voice transcripts must checkpoint before execution');
 must(voice,"kind:'voice-reply'",'spoken AI replies must checkpoint speaking progress');
-must(entry,"branchProfile, ensureBranchSchema, branchKnowledge, branchKnowledgeContext, teachBranch",'branch entrypoint must retain curriculum and teaching support');
+must(entry,"branchProfile, agenticCapabilityLadder, ensureBranchSchema, branchKnowledge, branchKnowledgeContext, teachBranch",'branch entrypoint must retain curriculum and teaching support');
 must(entry,"/api/agents/branch/teach",'direct owner/developer teaching endpoint must remain available');
 must(entry,"/api/agents/branch/submissions",'QA contributor training submission endpoint must remain available');
 must(entry,"/api/agents/branch/submissions/review",'platform-owner manual review/override endpoint must remain available');
