@@ -73,7 +73,13 @@ const AGENTS=[
  ['sally','Sally','Story Creator','Short stories, sales stories and narrative content.','creator'],
  ['study','Study','Study Coach','Study schedules, revision plans, practice questions and learning routines.','learning'],
  ['researcher','Researcher','Research Organizer','Turn a topic into research questions, source notes, comparisons and organized findings.','learning'],
- ['teacher','Teacher','General Tutor','Explain concepts step by step, adapt difficulty and create practice activities without doing dishonest assessed work.','learning']
+ ['teacher','Teacher','General Tutor','Explain concepts step by step, adapt difficulty and create practice activities without doing dishonest assessed work.','learning'],
+ ['foundation','Foundation','AI Foundations Mentor','Teach AI and machine-learning fundamentals, generative AI, grounding, evaluation, responsible AI, privacy and workload selection.','learning'],
+ ['appsmith','AppSmith','Intelligent App Builder','Design AI-first applications with tools, grounded knowledge, workflow integration, testing, deployment and lifecycle management.','learning'],
+ ['agentforge','AgentForge','AI Agent Builder','Design agents with goals, instructions, tools, knowledge, permissions, memory boundaries, handoffs, evaluations and multi-agent coordination.','learning'],
+ ['governor','Governor','Agent Administration','Plan access control, environment separation, connector governance, audit trails, monitoring, cost controls, data-loss prevention and agent lifecycle operations.','business'],
+ ['architect','Architect','Agentic Solution Architect','Design agentic solutions with architecture trade-offs, orchestration, approval boundaries, reliability, observability, deployment and governance.','business'],
+ ['transform','Transform','AI Transformation Leader','Map AI opportunities to business value, process redesign, workforce adoption, risk, ROI and responsible governance.','business']
 ].map(([id,name,title,description,group])=>({id,name,title,description,group}));
 
 const PROVIDERS=[
