@@ -50,6 +50,9 @@ has(runtime,'materializeConnectorCapabilityRecipes','one-by-one connector capabi
 has(runtime,'getCapabilityAbsorptionManifest','full connector + plugin tool + plugin skill manifest reaches durable materialization');
 has(runtime,"seedConnectorAbsorption(env,{scope:'full'})",'Tool Foundry materialization seeds the full brain manifest');
 has(runtime,"body.mode==='full-brain-capabilities'",'native-first API exposes full-brain one-by-one assimilation mode');
+has(runtime,'seed:body.seed!==false','full-brain API supports resumable batches without re-seeding the entire ledger');
+has(runtime,'absorbedRecipeRisk','full-brain Tool Foundry materialization infers action risk from capability contracts');
+has(runtime,"return'high'",'consequential absorbed actions remain high-risk and review-gated');
 has(runtime,'getCapabilityResearchRecord','durable ledger stores one-by-one research provenance');
 has(runtime,'magnanimous_connector_capability_absorption','runtime persists per-connector capability absorption state');
 has(absorption,'getCapabilityAbsorptionManifest','brain registry flattens connector capabilities one by one');
@@ -88,6 +91,7 @@ has(godCoding,'ASSIMILATE ALL CONNECTORS + PLUGIN TOOLS + SKILLS','owner can int
 has(godCoding,"mode:'full-brain-capabilities'",'God Coding uses full-brain materialization mode');
 has(godCoding,'passes<50','God Coding can process the entire multi-thousand-contract ledger in bounded batches');
 has(godCoding,'limit:100','God Coding uses bounded 100-contract Tool Foundry batches');
+has(godCoding,'seed:passes===0','God Coding seeds the full ledger once then resumes later batches idempotently');
 has(godCoding,"/api/magnanimous/native-first/self-develop",'God Coding invokes native self-development runtime');
 has(godCoding,'Outside model required: NO','native God Coding result does not require outside model compute');
 has(godCoding,"/api/magnanimous/compute-accelerator",'God Coding uses the dedicated compute accelerator instead of normal chat');
