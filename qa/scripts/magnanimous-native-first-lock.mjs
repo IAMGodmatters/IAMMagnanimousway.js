@@ -32,6 +32,7 @@ const materializationMigration=read('worker/migrations/0078_full_brain_materiali
 const realizationMigration=read('worker/migrations/0079_capability_realization.sql');
 const materializer=read('qa/scripts/materialize-full-brain-d1.mjs');
 const deployWorkflow=read('.github/workflows/deploy.yml');
+const d1MaintenanceWorkflow=read('.github/workflows/d1-deferred-maintenance.yml');
 const entrypoint=read('worker/src/entrypoint.js');
 
 const checks=[];
@@ -122,6 +123,11 @@ has(materializer,'Tool Foundry name collision','deployment materializer fails cl
 has(materializer,"risk==='high'?'review-required'",'deployment materializer preserves review-required status for high-risk capabilities');
 has(materializer,"status='tool-foundry-specified'",'deployment materializer marks persisted capability ledger rows as Tool Foundry specified');
 has(materializer,'source_digest','deployment materializer records a stable source digest');
+has(materializer,"000-prune-stale.sql",'deployment materializer emits an idempotent stale-manifest prune file');
+has(materializer,"connector_id NOT IN",'stale realization/ledger pruning removes retired connector identities generically');
+has(materializer,"capability_id NOT IN",'stale realization/ledger pruning removes retired capability identities within retained connectors');
+has(materializer,"name LIKE 'absorb-%'",'stale Tool Foundry cleanup is limited to materializer-owned absorb-* specs');
+has(materializer,"NOT EXISTS (",'stale absorb-* specs are preserved whenever a current realization still references them');
 has(materializer,'WHERE magnanimous_connector_capability_absorption.connector_name IS NOT excluded.connector_name','absorption ledger avoids semantic no-op writes');
 has(materializer,'WHERE magnanimous_native_tool_specs.purpose IS NOT excluded.purpose','Tool Foundry materialization avoids semantic no-op writes');
 has(materializer,'WHERE magnanimous_capability_realizations.tool_name IS NOT excluded.tool_name','realization materialization avoids semantic no-op writes');
@@ -133,6 +139,11 @@ has(deployWorkflow,'materialize-full-brain-d1.mjs','deployment calls the checked
 has(deployWorkflow,"status='tool-foundry-specified'",'deployment verifies durable full-brain ledger rows');
 has(deployWorkflow,'Full Magnanimous capability brain materialized','deployment fails unless production D1 count and digest verification succeeds');
 has(deployWorkflow,'Production D1 already matches full-brain digest','deployment skips full-brain writes when production digest already matches');
+has(deployWorkflow,'Applying current-manifest stale-row pruning','deployment always prunes obsolete full-brain rows before digest-based write skipping');
+has(deployWorkflow,'000-prune-stale.sql','deployment executes the dedicated stale-manifest prune file');
+has(deployWorkflow,'stale rows were pruned','matching digest cannot bypass stale-row cleanup');
+has(d1MaintenanceWorkflow,'Applying current-manifest stale-row pruning','scheduled D1 catch-up also prunes obsolete full-brain rows before digest checks');
+has(d1MaintenanceWorkflow,'000-prune-stale.sql','scheduled D1 catch-up executes the dedicated stale-manifest prune file');
 has(deployWorkflow,'free tier daily row write limit','only the known D1 daily write-quota condition can defer durable materialization');
 has(deployWorkflow,'Production mutation smoke remains authoritative and is not bypassed','D1 quota deferral does not weaken production mutation smoke');
 has(deployWorkflow,'realization_count','deployment verifies the complete capability realization ledger');

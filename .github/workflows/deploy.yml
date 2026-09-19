@@ -175,26 +175,48 @@ jobs:
           fi
 
           materialization_deferred=0
-          if [ -n "$current_digest" ] && [ "$current_digest" = "$digest" ]; then
-            echo "Production D1 already matches full-brain digest $digest; skipping all materialization writes."
-          else
-            echo "Full-brain digest changed; applying only new or semantically changed D1 rows."
-            for file in /tmp/magnanimous-full-brain/*.sql; do
-              echo "Applying $(basename "$file")"
-              set +e
-              output=$(cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file="$file" 2>&1)
-              rc=$?
-              set -e
-              printf '%s\n' "$output"
-              if [ "$rc" -ne 0 ]; then
-                if printf '%s' "$output" | grep -qi "free tier daily row write limit"; then
-                  materialization_deferred=1
-                  echo "::warning::Cloudflare D1 daily row-write quota is exhausted. The checked-in Magnanimous brain manifest remains authoritative in the deployed Worker; durable D1 materialization is deferred until write capacity is available."
-                  break
+
+          # Prune stale rows from previous manifest identities even when the current
+          # source digest already matches. This is intentionally limited to the
+          # materializer-owned full-brain ledger/realization rows and absorb-* specs.
+          echo "Applying current-manifest stale-row pruning"
+          set +e
+          prune_output=$(cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file=/tmp/magnanimous-full-brain/000-prune-stale.sql 2>&1)
+          prune_rc=$?
+          set -e
+          printf '%s\n' "$prune_output"
+          if [ "$prune_rc" -ne 0 ]; then
+            if printf '%s' "$prune_output" | grep -qi "free tier daily row write limit"; then
+              materialization_deferred=1
+              echo "::warning::Cloudflare D1 daily row-write quota blocked stale-row pruning. The checked-in Magnanimous brain manifest remains authoritative; durable cleanup will retry after quota reset."
+            else
+              exit "$prune_rc"
+            fi
+          fi
+
+          if [ "$materialization_deferred" -eq 0 ]; then
+            if [ -n "$current_digest" ] && [ "$current_digest" = "$digest" ]; then
+              echo "Production D1 already matches full-brain digest $digest; stale rows were pruned and unchanged materialization writes are skipped."
+            else
+              echo "Full-brain digest changed; applying only new or semantically changed D1 rows."
+              for file in /tmp/magnanimous-full-brain/*.sql; do
+                if [ "$(basename "$file")" = "000-prune-stale.sql" ]; then continue; fi
+                echo "Applying $(basename "$file")"
+                set +e
+                output=$(cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file="$file" 2>&1)
+                rc=$?
+                set -e
+                printf '%s\n' "$output"
+                if [ "$rc" -ne 0 ]; then
+                  if printf '%s' "$output" | grep -qi "free tier daily row write limit"; then
+                    materialization_deferred=1
+                    echo "::warning::Cloudflare D1 daily row-write quota is exhausted. The checked-in Magnanimous brain manifest remains authoritative in the deployed Worker; durable D1 materialization is deferred until write capacity is available."
+                    break
+                  fi
+                  exit "$rc"
                 fi
-                exit "$rc"
-              fi
-            done
+              done
+            fi
           fi
 
           if [ "$materialization_deferred" -eq 0 ]; then
