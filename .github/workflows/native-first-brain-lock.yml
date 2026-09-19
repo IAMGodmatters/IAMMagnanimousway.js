@@ -29,6 +29,10 @@ jobs:
           assert d['manifest_count'] >= 3426, d
           assert d['raw_manifest_count'] >= d['manifest_count'], d
           assert d['high_risk'] > 0 and d['medium_risk'] > 0 and d['low_risk'] > 0, d
+          assert d['native_ready'] > 0, d
+          assert d['hybrid_ready'] > 0, d
+          assert d['bridge_required'] + d['specified_only'] > 0, d
+          assert d['native_ready'] + d['hybrid_ready'] + d['bridge_required'] + d['specified_only'] == d['manifest_count'], d
           files=glob.glob('/tmp/magnanimous-full-brain-ci/*-materialize.sql')
           assert len(files) >= 17, (len(files),d)
           assert os.path.exists('/tmp/magnanimous-full-brain-ci/%03d-state.sql' % d['chunk_count']), d
@@ -66,5 +70,9 @@ jobs:
           }
       - name: Syntax check native-first Worker runtime
         run: node --check worker/src/magnanimous-native-first.js
+      - name: Syntax check capability realization runtime
+        run: node --check worker/src/magnanimous-capability-realization.js
+      - name: Syntax check full-brain materializer
+        run: node --check qa/scripts/materialize-full-brain-d1.mjs
       - name: Syntax check OGENIC GOD TOOLKIT runtime
         run: node --check worker/src/magnanimous-ogenic-god-toolkit.js
