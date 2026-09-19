@@ -201,24 +201,28 @@ export async function handleMagnanimousOgenic(request,env){
  const url=new URL(request.url),path=url.pathname;
  if(!path.startsWith('/api/magnanimous/ogenic'))return null;
  const user=await authUser(request,env);if(!user)return json({detail:'Sign in required.'},401);
- const localBridgeReady=await hasReadyLocalBridge(env,user.tenant_id),runtimeEnv=localBridgeReady?{...env,MAGNANIMOUS_LOCAL_BRIDGE_READY:true}:env;
+ const anyLocalBridgeReady=await hasReadyLocalBridge(env,user.tenant_id);
  if(request.method==='GET'&&path==='/api/magnanimous/ogenic')return json({
-  identity:'Magnanimous AI',mode:'native-ogenic-god-toolkit',skills:OGENIC_SKILL_SNAPSHOT,groups:OGENIC_CAPABILITY_GROUPS,tool_families:GOD_MODE_TOOL_FAMILIES,status_vocabulary:OGENIC_STATUS,initiative_policy:OGENIC_INITIATIVE_POLICY,netwalk:NETWALK_NATIVE_CONTRACT,local_bridge:{ready:localBridgeReady,transport:'outbound-only'},
+  identity:'Magnanimous AI',mode:'native-ogenic-god-toolkit',skills:OGENIC_SKILL_SNAPSHOT,groups:OGENIC_CAPABILITY_GROUPS,tool_families:GOD_MODE_TOOL_FAMILIES,status_vocabulary:OGENIC_STATUS,initiative_policy:OGENIC_INITIATIVE_POLICY,netwalk:NETWALK_NATIVE_CONTRACT,local_bridge:{ready:anyLocalBridgeReady,transport:'outbound-only'},
   note:'OGENIC observable capability patterns are absorbed into Magnanimous. Proprietary implementation is not copied; real external/local execution still requires the corresponding authorized surface.'
  });
  if(request.method==='POST'&&path==='/api/magnanimous/ogenic/plan'){
   const body=await request.json().catch(()=>({})),goal=clip(body.goal,4000);
   if(!goal)return json({detail:'Goal is required.'},400);
-  return json({ok:true,plan:buildMagnanimousOgenicPlan(goal,runtimeEnv)});
+  const requiredAction=localActionForGoal(goal,body),capableDevice=requiredAction?await findReadyLocalBridgeDevice(env,user.tenant_id,requiredAction):null;
+  const localBridgeReady=requiredAction?Boolean(capableDevice):anyLocalBridgeReady,runtimeEnv=localBridgeReady?{...env,MAGNANIMOUS_LOCAL_BRIDGE_READY:true}:env;
+  return json({ok:true,plan:buildMagnanimousOgenicPlan(goal,runtimeEnv),local_bridge:{ready:localBridgeReady,required_action:requiredAction||null,device:capableDevice?{id:capableDevice.id,name:capableDevice.name}:null}});
  }
  if(request.method==='POST'&&path==='/api/magnanimous/ogenic/initiate'){
   const body=await request.json().catch(()=>({})),goal=clip(body.goal,4000);
   if(!goal)return json({detail:'Goal is required.'},400);
+  const requiredAction=localActionForGoal(goal,body),capableDevice=requiredAction?await findReadyLocalBridgeDevice(env,user.tenant_id,requiredAction):null;
+  const localBridgeReady=requiredAction?Boolean(capableDevice):anyLocalBridgeReady,runtimeEnv=localBridgeReady?{...env,MAGNANIMOUS_LOCAL_BRIDGE_READY:true}:env;
   const plan=buildMagnanimousOgenicPlan(goal,runtimeEnv);
   if((plan.classification==='LOCAL'||plan.classification==='HYBRID')&&localBridgeReady){
    const local=await initiateLocalBridgeAction(request,env,user,goal,body);if(local)return local;
   }
-  if(plan.netwalk&&!localBridgeReady)return json({ok:false,initiated:false,plan,code:'LOCAL_BRIDGE_REQUIRED',detail:'The Netwalk capability contract is absorbed, but an authorized paired local bridge is required to reach private network devices. No scan was simulated.'},409);
+  if(plan.netwalk&&!localBridgeReady)return json({ok:false,initiated:false,plan,code:'LOCAL_BRIDGE_REQUIRED',detail:'Netwalk requires a paired online bridge that explicitly advertises the required Netwalk capability. No scan was simulated.'},409);
   if(plan.groups.some(x=>x.id==='code-system')&&Boolean(env?.GITHUB_PLATFORM_TOKEN)){
    const response=await initiateDeveloperPlan(request,env,goal,body);
    const data=await response.clone().json().catch(()=>({}));
