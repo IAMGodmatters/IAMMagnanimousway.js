@@ -42,7 +42,7 @@ mustContain(admin,'upgradePasswordIfNeeded','Successful legacy logins must upgra
 mustContain(admin,'password.length < 10','New-account minimum password length regressed.');
 mustNotContain(admin,'async function passwordHash(','Fast local password hashing must not return to the account runtime.');
 mustNotContain(admin,"return json({ detail: e?.message",'Unexpected account-service errors must not be reflected directly to clients.');
-mustContain(admin,'OWNER_SESSION_TTL_SECONDS = 12 * 60 * 60','Platform-owner sessions must expire after 12 hours.');
+mustContain(admin,'SESSION_TTL_SECONDS = 12 * 60 * 60','Every platform login session must expire after 12 hours.');
 
 mustContain(entry,"from './password-security.js'",'Owner bootstrap must use hardened password storage.');
 mustContain(entry,'ensureRuntimeBootstrap','Runtime bootstrap caching is missing.');
@@ -60,6 +60,8 @@ mustContain(security,"url.pathname === '/api/auth/logout'",'Legacy logout must r
 mustContain(security,"await revokeRequestSession(request, env, 'logout')",'Legacy logout must revoke the presented bearer session.');
 
 mustContain(authority,"const OPAQUE_PREFIX='ms1_'",'Versioned opaque session identifier is missing.');
+mustContain(authority,'SESSION_TTL_SECONDS=12*60*60','Opaque browser sessions must be capped at 12 hours.');
+mustContain(authority,'created_at+SESSION_TTL_SECONDS','Existing opaque sessions must not exceed the 12-hour cap.');
 mustContain(authority,'crypto.getRandomValues(new Uint8Array(32))','Opaque session IDs must use at least 256 bits of CSPRNG material.');
 mustContain(authority,"await sha256(token)",'Opaque session persistence must fingerprint tokens before storage.');
 mustNotContain(authority,'INSERT INTO auth_sessions(token,','Raw opaque bearer tokens must never be persisted.');
@@ -103,6 +105,7 @@ mustContain(runtime,"data-persist-draft",'Persistent draft storage must be expli
 mustContain(runtime,'mutation.addedNodes.forEach','DOM cleanup must remain incremental.');
 mustContain(runtime,"fetch('/api/auth/me'",'Protected client sessions must be periodically revalidated.');
 mustContain(runtime,"magnanimous_admin_session_expires_at",'Owner browser session expiry must remain persisted.');
+mustContain(runtime,"iam_account_session_expires_at",'Customer browser session expiry must remain persisted.');
 mustContain(runtime,"if(owner){safeSet(sessionStorage,'iam_session_active','owner')",'A valid persisted owner token must recover the active browser marker across navigation.');
 mustContain(runtime,'43200000','Recovered owner browser sessions must be limited to 12 hours.');
 mustContain(runtime,"script[data-iam-adsense=\"true\"],#iam-adsense",'Global ad loading must remain deduplicated.');
