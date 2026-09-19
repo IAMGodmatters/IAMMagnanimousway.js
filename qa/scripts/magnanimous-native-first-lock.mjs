@@ -5,6 +5,7 @@ import { getLivePluginToolResearchSummary } from '../../worker/src/magnanimous-l
 import { getLivePluginSkillResearchSummary } from '../../worker/src/magnanimous-live-plugin-skill-research-snapshot.js';
 import { MAGNANIMOUS_EXECUTION_SURFACES, classifyCapabilityRealization } from '../../worker/src/magnanimous-capability-realization.js';
 import { FLOOT_OBSERVABLE_TOOL_CONTRACTS, FLOOT_OBSERVABLE_GUIDE_TOPICS, getFlootToolPolicy } from '../../worker/src/magnanimous-floot-capability-snapshot.js';
+import { FLOOT_PUBLIC_TECHNIQUE_PROFILES, getFlootGuideTechniqueProfile, getFlootTechniqueSummary } from '../../worker/src/magnanimous-floot-technique-catalog.js';
 
 const read=p=>fs.readFileSync(p,'utf8');
 const runtime=read('worker/src/magnanimous-native-first.js');
@@ -22,6 +23,7 @@ const skillSnapshot=read('worker/src/magnanimous-installed-plugin-skill-snapshot
 const liveToolResearch=read('worker/src/magnanimous-live-plugin-tool-research-snapshot.js');
 const liveSkillResearch=read('worker/src/magnanimous-live-plugin-skill-research-snapshot.js');
 const flootResearch=read('worker/src/magnanimous-floot-capability-snapshot.js');
+const flootTechniques=read('worker/src/magnanimous-floot-technique-catalog.js');
 const realizationRuntime=read('worker/src/magnanimous-capability-realization.js');
 const integrations=read('worker/src/integrations.js');
 const catalog=read('worker/src/magnanimous-integration-catalog.js');
@@ -88,6 +90,11 @@ has(flootResearch,'FLOOT_OBSERVABLE_TOOL_CONTRACTS','Floot has a dedicated clean
 has(flootResearch,'FLOOT_OBSERVABLE_GUIDE_TOPICS','Floot public guide/skill topics are captured separately from private implementation');
 has(flootResearch,"proprietary_implementation_copied:false",'Floot research explicitly denies proprietary implementation copying');
 has(flootResearch,'getFlootToolPolicy','Floot has per-tool initiative and confirmation policy');
+has(flootTechniques,'FLOOT_PUBLIC_TECHNIQUE_PROFILES','Floot public guide techniques have a dedicated clean-room Magnanimous catalog');
+has(flootTechniques,'proprietary_implementation_copied:false','Floot technique synthesis explicitly denies proprietary implementation copying');
+has(absorption,'techniques:techniqueProfile.techniques','Floot technique profiles are wired into absorbed guide skill contracts');
+has(absorption,"...(row.techniques||[])",'Floot techniques participate in Magnanimous capability ranking');
+has(absorption,'techniques=${(x.techniques||[]).slice(0,4)','Floot techniques are injected into Magnanimous routing context');
 has(liveToolResearch,'proprietary_implementation_copied:false','live tool research denies proprietary implementation copying');
 has(absorption,'getInstalledPluginSkillManifest','installed plugin skill contracts are converted into brain capability specs');
 has(skillSnapshot,'INSTALLED_PLUGIN_SKILL_SNAPSHOT','installed plugin skill snapshot exists');
@@ -199,6 +206,10 @@ const flootManifest=pluginManifest.filter(x=>x.plugin_namespace==='Floot');
 checks.push(['all 44 Floot tools are absorbed one by one',FLOOT_OBSERVABLE_TOOL_CONTRACTS.length===44&&flootManifest.length===44]);
 checks.push(['Floot guide/skill research covers exactly the current 65 public topics',FLOOT_OBSERVABLE_GUIDE_TOPICS.length===65]);
 checks.push(['all 65 Floot public guide topics are first-class Magnanimous skill contracts',flootGuideManifest.length===65]);
+const flootTechniqueSummary=getFlootTechniqueSummary();
+checks.push(['all 65 Floot public guide topics have explicit Magnanimous technique profiles',Object.keys(FLOOT_PUBLIC_TECHNIQUE_PROFILES).length===65&&flootTechniqueSummary.guide_profiles===65]);
+checks.push(['every Floot public guide id resolves to a non-empty technique profile',FLOOT_OBSERVABLE_GUIDE_TOPICS.every(x=>getFlootGuideTechniqueProfile(x.id).techniques.length>0)]);
+checks.push(['every Floot guide skill carries reusable technique metadata',flootGuideManifest.every(x=>Array.isArray(x.techniques)&&x.techniques.length>0&&x.research?.techniques?.length>0)]);
 checks.push(['every Floot guide skill carries safe suggestive initiative metadata',flootGuideManifest.every(x=>x.initiative?.suggestive===true&&x.initiative?.auto_initiate===true&&x.initiative?.action_class==='skill-guidance')]);
 checks.push(['Floot list/read inspection can auto-initiate safely',getFlootToolPolicy('list_projects').auto_initiate===true&&getFlootToolPolicy('read_file').auto_initiate===true]);
 checks.push(['Floot SQL mutation and publishing remain confirmation-gated',getFlootToolPolicy('execute_sql').requires_confirmation===true&&getFlootToolPolicy('publish_app').requires_confirmation===true]);
@@ -219,6 +230,7 @@ checks.push(['every native-ready realization names a concrete internal route and
 checks.push(['plugin account authorization is not assumed',runtimeSummary.plugin_authorization_state==='not-assumed']);
 checks.push(['all absorbed plugin and skill contracts are suggestive-action aware',pluginManifest.every(x=>x.initiative?.suggestive===true)&&skillManifest.every(x=>x.initiative?.suggestive===true)]);
 checks.push(['Floot summary is exposed through the Magnanimous absorption overview',runtimeSummary.floot?.observable_tools===44&&runtimeSummary.floot?.guide_topics===65&&runtimeSummary.floot_public_guide_skills===65]);
+checks.push(['Floot technique assimilation summary is exposed through the Magnanimous absorption overview',runtimeSummary.floot_public_technique_profiles===65&&runtimeSummary.floot_reusable_techniques===flootTechniqueSummary.reusable_techniques&&runtimeSummary.floot_reusable_techniques>65]);
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} - ${name}`);
