@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { getCapabilityAbsorptionManifest, getCapabilityResearchRecord } from '../../worker/src/magnanimous-connector-absorption.js';
+import { classifyCapabilityRealization } from '../../worker/src/magnanimous-capability-realization.js';
 
 const outDir=process.argv[2];
 if(!outDir)throw new Error('Output directory argument is required.');
@@ -61,9 +62,10 @@ for(let offset=0;offset<rows.length;offset+=chunkSize){
    recipe:row.recipe,
    implementation_status:row.implementation_status
   };
-  const requiresConnection=String(row.boundary||'').includes('external')||String(row.boundary||'').includes('account')||String(row.boundary||'').includes('rail');
+  const realization=classifyCapabilityRealization(row);
+  const requiresConnection=realization.requires_external||String(row.boundary||'').includes('external')||String(row.boundary||'').includes('account')||String(row.boundary||'').includes('rail');
   const risk=absorbedRecipeRisk(row);
-  const status=risk==='high'?'review-required':'proposed';
+  const status=risk==='high'?'review-required':(risk==='low'&&realization.status==='native-ready'?'ready':'proposed');
   const name=normalizeName(`absorb-${row.connector_id}-${row.capability}`);
   const family=normalizeName(`native-${row.category||'general'}`);
   const purpose=clip(`Magnanimous-owned workflow specification for ${row.capability}, benchmarked against ${row.connector_name}. Magnanimous owns reasoning, memory, workflow and verification; any unavoidable outside account/data/network/compute boundary remains a replaceable adapter.`,2000);
@@ -85,16 +87,26 @@ ON CONFLICT(connector_id,capability_id) DO UPDATE SET connector_name=excluded.co
   statements.push(`INSERT INTO magnanimous_native_tool_specs(tenant_id,user_id,name,purpose,family,inputs_json,outputs_json,steps_json,risk,status,created_at,updated_at)
 VALUES(${q(GLOBAL_TOOL_TENANT)},${q(GLOBAL_TOOL_USER)},${q(name)},${q(purpose)},${q(family)},${q(JSON.stringify(inputs).slice(0,30000))},${q(JSON.stringify(outputs).slice(0,30000))},${q(JSON.stringify(steps).slice(0,50000))},${q(risk)},${q(status)},${now},${now})
 ON CONFLICT(tenant_id,user_id,name) DO UPDATE SET purpose=excluded.purpose,family=excluded.family,inputs_json=excluded.inputs_json,outputs_json=excluded.outputs_json,steps_json=excluded.steps_json,risk=excluded.risk,status=CASE WHEN magnanimous_native_tool_specs.status='ready' THEN 'ready' ELSE excluded.status END,updated_at=excluded.updated_at;`);
+
+  statements.push(`INSERT INTO magnanimous_capability_realizations(connector_id,capability_id,tool_name,native_target,mode,status,native_route,evidence_module,boundary,requires_external,proof_json,created_at,updated_at)
+VALUES(${q(row.connector_id)},${q(row.capability)},${q(name)},${q(realization.native_target)},${q(realization.mode)},${q(realization.status)},${q(realization.route)},${q(realization.evidence_module)},${q(row.boundary||'none')},${realization.requires_external?1:0},${q(JSON.stringify({proof:realization.proof,source:'evidence-gated-runtime-registry'}))},${now},${now})
+ON CONFLICT(connector_id,capability_id) DO UPDATE SET tool_name=excluded.tool_name,native_target=excluded.native_target,mode=excluded.mode,status=excluded.status,native_route=excluded.native_route,evidence_module=excluded.evidence_module,boundary=excluded.boundary,requires_external=excluded.requires_external,proof_json=excluded.proof_json,updated_at=excluded.updated_at;`);
  }
  const index=String(chunks.length+1).padStart(3,'0');
  const file=path.join(outDir,`${index}-materialize.sql`);
  fs.writeFileSync(file,statements.join('\n'));
  chunks.push(file);
 }
-const digest=crypto.createHash('sha256').update(rows.map(x=>JSON.stringify({id:x.id,connector_id:x.connector_id,capability:x.capability,source_kind:x.source_kind,boundary:x.boundary,native_target:x.native_target,recipe:x.recipe,research:getCapabilityResearchRecord(x),search_text:x.search_text||''})+'\n').join('')).digest('hex');
+const realizations=rows.map(x=>classifyCapabilityRealization(x));
+const realizationCounts={'native-ready':0,'hybrid-ready':0,'bridge-required':0,'specified-only':0};
+for(const x of realizations)realizationCounts[x.status]=(realizationCounts[x.status]||0)+1;
+const digest=crypto.createHash('sha256').update(rows.map((x,i)=>JSON.stringify({id:x.id,connector_id:x.connector_id,capability:x.capability,source_kind:x.source_kind,boundary:x.boundary,native_target:x.native_target,recipe:x.recipe,research:getCapabilityResearchRecord(x),search_text:x.search_text||'',realization:realizations[i]})+'\n').join('')).digest('hex');
 const finalSql=`INSERT INTO magnanimous_capability_materialization_state(id,manifest_count,ledger_count,tool_spec_count,source_digest,status,updated_at)
 VALUES('full-brain',${rows.length},${rows.length},${rows.length},${q(digest)},'complete',${now})
 ON CONFLICT(id) DO UPDATE SET manifest_count=excluded.manifest_count,ledger_count=excluded.ledger_count,tool_spec_count=excluded.tool_spec_count,source_digest=excluded.source_digest,status='complete',updated_at=excluded.updated_at;
+INSERT INTO magnanimous_capability_realization_state(id,manifest_count,native_ready_count,hybrid_ready_count,bridge_required_count,specified_only_count,source_digest,status,updated_at)
+VALUES('full-brain',${rows.length},${realizationCounts['native-ready']},${realizationCounts['hybrid-ready']},${realizationCounts['bridge-required']},${realizationCounts['specified-only']},${q(digest)},'complete',${now})
+ON CONFLICT(id) DO UPDATE SET manifest_count=excluded.manifest_count,native_ready_count=excluded.native_ready_count,hybrid_ready_count=excluded.hybrid_ready_count,bridge_required_count=excluded.bridge_required_count,specified_only_count=excluded.specified_only_count,source_digest=excluded.source_digest,status='complete',updated_at=excluded.updated_at;
 `;
 const finalFile=path.join(outDir,`${String(chunks.length+1).padStart(3,'0')}-state.sql`);
 fs.writeFileSync(finalFile,finalSql);
@@ -109,6 +121,10 @@ const metadata={
  high_risk:rows.filter(x=>absorbedRecipeRisk(x)==='high').length,
  medium_risk:rows.filter(x=>absorbedRecipeRisk(x)==='medium').length,
  low_risk:rows.filter(x=>absorbedRecipeRisk(x)==='low').length,
+ native_ready:realizationCounts['native-ready'],
+ hybrid_ready:realizationCounts['hybrid-ready'],
+ bridge_required:realizationCounts['bridge-required'],
+ specified_only:realizationCounts['specified-only'],
  global_tool_tenant:GLOBAL_TOOL_TENANT,
  global_tool_user:GLOBAL_TOOL_USER
 };
