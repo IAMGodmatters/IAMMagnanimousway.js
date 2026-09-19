@@ -1,0 +1,22 @@
+services:
+  magnanimous:
+    build:
+      context: ..
+      dockerfile: magnanimous-runtime/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8788:8788"
+    env_file:
+      - .env
+    environment:
+      PORT: "8788"
+      HOST: "0.0.0.0"
+      NODE_ENV: "production"
+      MAGNANIMOUS_DB_PATH: "/app/data/iam-magnanimous.sqlite"
+      MAGNANIMOUS_ASSETS_DIR: "/app/frontend/out"
+      MAGNANIMOUS_SCHEDULER_ENABLED: "true"
+    volumes:
+      - magnanimous_data:/app/data
+
+volumes:
+  magnanimous_data:
