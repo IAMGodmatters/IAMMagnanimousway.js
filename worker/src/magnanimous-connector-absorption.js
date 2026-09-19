@@ -97,8 +97,10 @@ function capabilityRecipe(item,capability,boundary){
 export function getConnectorAbsorptionCatalog(){
  return getIntegrationCatalog().map(item=>{
   const direct=DIRECT_BY_ID.get(item.id)||null,boundary=boundaryFor(item),research=DIRECT_CONNECTOR_RESEARCH[item.id]||{docs:[],verified_at:'',notes:'Capability benchmark captured from the current connector/plugin contract; provider-specific implementation remains replaceable.'};
+  const capabilities=[...new Set([...(item.capabilities||[]),...(direct?.capabilities||[])])];
   return{
    ...item,
+   capabilities,
    direct_connector:Boolean(direct),
    direct_contract:direct?{auth:direct.auth,scopes:[...(direct.scopes||[])],capabilities:[...(direct.capabilities||[])],secret_names:[...(direct.env||[])]}:null,
    research,
