@@ -1,4 +1,4 @@
-*{box-sizing:border-box}
+.page,.page *{box-sizing:border-box}
 .page{min-height:100vh;background:#05080b;color:#eaf9ff;padding:24px 30px 70px;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 85% 5%,rgba(52,211,255,.12),transparent 32%)}
 .header,.hero,.grid,.panel,.noticeOk,.noticeErr,.upgrade,.safety{max-width:1400px;margin-left:auto;margin-right:auto}
 .header{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.15em;color:#718b96}
