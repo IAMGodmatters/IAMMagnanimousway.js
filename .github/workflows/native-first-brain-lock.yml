@@ -26,7 +26,7 @@ jobs:
           python - <<'PY'
           import glob,json,os
           d=json.load(open('/tmp/magnanimous-full-brain-ci/manifest-metadata.json'))
-          assert d['manifest_count'] >= 3426, d
+          assert d['manifest_count'] >= 3535, d
           assert d['raw_manifest_count'] >= d['manifest_count'], d
           assert d['high_risk'] > 0 and d['medium_risk'] > 0 and d['low_risk'] > 0, d
           assert d['native_ready'] > 0, d
