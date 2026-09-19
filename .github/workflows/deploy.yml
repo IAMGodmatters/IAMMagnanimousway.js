@@ -393,6 +393,52 @@ jobs:
           print('All direct connector types are covered by the Magnanimous per-capability brain absorption registry.')
           PY
 
+          status=$(curl -sS -o /tmp/ogenic.json -w '%{http_code}' "$BASE_URL/api/magnanimous/ogenic" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "OGENIC GOD TOOLKIT catalog returned HTTP $status"; cat /tmp/ogenic.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/ogenic.json'))
+          assert d.get('identity') == 'Magnanimous AI', d
+          assert d.get('mode') == 'native-ogenic-god-toolkit', d
+          assert len((d.get('skills') or {}).get('skills') or []) == 8, d
+          assert len(d.get('groups') or []) == 4, d
+          assert len(d.get('tool_families') or []) == 9, d
+          assert (d.get('initiative_policy') or {}).get('default') == 'suggest-and-initiate-safe-actions', d
+          assert (d.get('netwalk') or {}).get('mode') == 'read-only-network-survey', d
+          print('Magnanimous OGENIC GOD TOOLKIT catalog is live.')
+          PY
+
+          python - <<'PY' >/tmp/ogenic-plan-payload.json
+          import json
+          print(json.dumps({'goal':'Inspect the repository, fix the frontend, run tests, and prepare deployment for the website.'}))
+          PY
+          status=$(curl -sS -o /tmp/ogenic-plan.json -w '%{http_code}' -X POST "$BASE_URL/api/magnanimous/ogenic/plan" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data-binary @/tmp/ogenic-plan-payload.json)
+          if [ "$status" != "200" ]; then echo "OGENIC GOD TOOLKIT planner returned HTTP $status"; cat /tmp/ogenic-plan.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/ogenic-plan.json'))
+          p=d.get('plan') or {}
+          groups={x.get('id') for x in p.get('groups') or []}
+          assert d.get('ok') is True, d
+          assert p.get('classification') == 'CLOUD', p
+          assert {'code-skill','code-system','code-delivery','code-website'}.issubset(groups), p
+          assert p.get('initiative') == 'stage-not-execute', p
+          assert p.get('status') in {'READY_CLOUD','CONFIGURATION_REQUIRED','CONNECTOR_REQUIRED'}, p
+          assert p.get('truth_boundary'), p
+          PY
+
+          status=$(curl -sS -o /tmp/ogenic-netwalk.json -w '%{http_code}' -X POST "$BASE_URL/api/magnanimous/ogenic/plan" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"goal":"Use netwalk to survey this LAN and diagnose the switches."}')
+          if [ "$status" != "200" ]; then echo "OGENIC Netwalk planner returned HTTP $status"; cat /tmp/ogenic-netwalk.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/ogenic-netwalk.json'));p=d.get('plan') or {}
+          assert p.get('classification') == 'LOCAL', p
+          assert p.get('status') in {'LOCAL_BRIDGE_REQUIRED','READY_LOCAL'}, p
+          assert (p.get('netwalk') or {}).get('mode') == 'read-only-network-survey', p
+          assert any('Credentials must never enter Magnanimous chat' in x for x in (p.get('netwalk') or {}).get('guarantees') or []), p
+          print('Magnanimous OGENIC initiative and Netwalk truth boundaries passed.')
+          PY
+
           # Magnanimous Business AI production smoke: verify the live catalog,
           # durable Work Engine linkage, tenant isolation, and truthful pre-verification state.
           status=$(curl -sS -o /tmp/business-ai-tools.json -w '%{http_code}' "$BASE_URL/api/business-ai/tools" -H "Authorization: Bearer $token")
