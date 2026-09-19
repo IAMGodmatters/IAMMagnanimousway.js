@@ -92,6 +92,23 @@ Every deployment to `main` now:
 
 The deployment materialization is idempotent. Existing proven `ready` Tool Foundry recipes remain `ready`; lower-confidence specs are refreshed from the current manifest without granting new account authorization or bypassing consequential-action controls.
 
+## Capability realization layer
+
+Materialization is not the same as execution. Magnanimous now maintains a separate evidence-gated realization registry for every absorbed capability.
+
+Each capability is classified into one of four states:
+
+- `native-ready` — a Magnanimous-owned runtime surface and concrete internal API route are proven, and no irreducible external boundary is required for the capability class.
+- `hybrid-ready` — Magnanimous owns the workflow/runtime layer but a real outside account, live-data source, network/payment rail, repository host, or provider authorization remains necessary.
+- `bridge-required` — an external boundary is known, but no complete Magnanimous runtime surface is yet proven for that capability.
+- `specified-only` — the provider-neutral behavior contract is understood and stored, but an independent runtime implementation is not yet proven.
+
+Low-risk capabilities are automatically promoted to Tool Foundry `ready` only when the realization registry classifies them as `native-ready`. Medium-risk capabilities remain proposed, and high-risk capabilities remain `review-required`.
+
+Current proven native execution surfaces include Magnanimous Agent Mesh, Workspace Suite, CRM, Data Studio, Evidence Notebook, Knowledge, Work Engine, Professional Workspace, Research, and tenant-owned workspace files. Hybrid surfaces include Unified Inbox/communications, Dev Agent engineering/deployment workflows, Media Library live catalogs, model compute routing, booking/calendar synchronization, social publishing, voice/PSTN calling, billing/payment settlement, and commerce account actions.
+
+Tool Foundry now injects these realization routes into Magnanimous planning so the brain prefers a proven internal route when one exists, preserves external authorization when a hybrid route is required, and never claims `bridge-required` or `specified-only` capabilities are native.
+
 ## Native vs bridge boundary
 
 Magnanimous should independently own where practical:
