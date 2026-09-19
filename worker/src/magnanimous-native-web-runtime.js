@@ -67,7 +67,7 @@ function publicMonitor(row){
  return{
   id:row.id,name:row.name,kind:row.kind,interval_minutes:Number(row.interval_minutes||0),status:row.status,
   last_task_id:row.last_task_id||null,last_run_at:Number(row.last_run_at||0),next_run_at:Number(row.next_run_at||0),
-  changed:Boolean(row.last_changed_at&&row.last_changed_at===row.last_run_at),
+  changed:Boolean(row.last_changed_at&&row.last_run_at&&Number(row.last_changed_at)>=Number(row.last_run_at)),
   last_changed_at:Number(row.last_changed_at||0),last_error:row.last_error||'',created_at:Number(row.created_at||0),updated_at:Number(row.updated_at||0)
  };
 }
@@ -100,7 +100,8 @@ async function queueRun(env,user,kind,body,allowConfirmation=true){
 
 async function confirmOrCancel(request,env,user,taskId,operation){
  const nestedUrl=new URL('/api/magnanimous/local-bridge/tasks/'+encodeURIComponent(taskId)+'/'+operation,request.url);
- const nested=new Request(nestedUrl,{method:'POST',headers:new Headers(request.headers),body:operation==='confirm'?JSON.stringify({confirm:true}):JSON.stringify({})});
+ const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
+ const nested=new Request(nestedUrl,{method:'POST',headers,body:operation==='confirm'?JSON.stringify({confirm:true}):JSON.stringify({})});
  return handleMagnanimousLocalBridge(nested,env);
 }
 
