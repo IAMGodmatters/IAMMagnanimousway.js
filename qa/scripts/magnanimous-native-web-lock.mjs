@@ -11,6 +11,7 @@ const provider=read('worker/src/provider-entrypoint.js');
 const universal=read('worker/src/magnanimous-universal-capabilities.js');
 const migration=read('worker/migrations/0077_magnanimous_native_web.sql');
 const ownerPage=read('frontend/app/owner-web-agent/page.tsx');
+const ownerLayout=read('frontend/app/owner-web-agent/layout.tsx');
 const localPage=read('frontend/app/local-bridge/page.tsx');
 const ownerCenter=read('frontend/app/owner-center/page.tsx');
 const docs=read('local-bridge/README.md');
@@ -95,6 +96,7 @@ assert(ownerPage.includes('Native Web Agent'),'owner Native Web dashboard missin
 assert(ownerPage.includes('/api/magnanimous/native-web/capabilities'),'owner dashboard must read native capability truth');
 assert(ownerPage.includes('TinyFish required:'),'owner dashboard must expose dependency truth');
 assert(ownerPage.includes('/api/magnanimous/native-web/goals'),'owner dashboard must expose plain-English browser goals');
+assert(ownerLayout.includes('index:false')&&ownerLayout.includes('follow:false'),'owner Native Web dashboard must be noindex/nofollow');
 assert(localPage.includes('NATIVE BROWSER UPDATE NEEDED'),'Local Bridge page must show browser-upgrade state');
 assert(ownerCenter.includes('/owner-web-agent'),'Owner Center must link Native Web Agent');
 assert(docs.includes('Magnanimous Native Browser'),'Local Bridge documentation must explain native browser capability');
