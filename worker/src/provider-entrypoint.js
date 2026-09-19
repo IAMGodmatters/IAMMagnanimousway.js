@@ -289,35 +289,36 @@ async function handle(request, env) {
   }
   if (url.pathname === '/api/chat' && request.method === 'POST') {
     const body = await request.json();
+    const computeOnly=body.compute_only===true;
     const message = String(body.message || '').trim();
     if (!message) return json({ detail: 'Message is required.' }, 400);
     const userMessage=originalUserMessage(message);
     const task=taskClass(userMessage,body);
     const capability=nativeCapability(userMessage,task);
-    let brainContext=extractBrainContext(message);
-    if(!brainContext){try{brainContext=await getMagnanimousMemoryContext(request,env)}catch{brainContext=''}}
+    let brainContext=computeOnly?'':extractBrainContext(message);
+    if(!computeOnly&&!brainContext){try{brainContext=await getMagnanimousMemoryContext(request,env)}catch{brainContext=''}}
 
-    const linkLearning=await learnFromLinks(request,env,userMessage,body.learn_links!==false);
+    const linkLearning=computeOnly?[]:await learnFromLinks(request,env,userMessage,body.learn_links!==false);
     const absorbedLinks=linkLearning.filter(x=>x.ok);
-    const autoResearch=body.live_search===true||body.news===true||(body.live_search!==false&&(task==='research'||needsFreshResearch(userMessage)));
-    const rememberResearch=body.remember_search!==false&&(autoResearch||absorbedLinks.length>0);
+    const autoResearch=computeOnly?false:(body.live_search===true||body.news===true||(body.live_search!==false&&(task==='research'||needsFreshResearch(userMessage))));
+    const rememberResearch=computeOnly?false:(body.remember_search!==false&&(autoResearch||absorbedLinks.length>0));
 
     let grounding={context:'',sources:[],search_configured:true};
-    if(body.use_knowledge!==false){
+    if(!computeOnly&&body.use_knowledge!==false){
       try{grounding=await getKnowledgeContext(request,env,userMessage,{liveSearch:autoResearch,news:Boolean(body.news),remember:rememberResearch,freshness:String(body.freshness||''),localLimit:8,webLimit:6,newsLimit:5})}catch(e){console.error('knowledge grounding failed',e)}
     }
     let toolPlanning={context:'',tools:[],recommended_integrations:[]};
-    if(body.use_tools!==false){
+    if(!computeOnly&&body.use_tools!==false){
       try{toolPlanning=await getMagnanimousToolFoundryContext(request,env,userMessage)}catch(e){console.error('tool planning context failed',e)}
     }
-    const observed=body.use_tools===false?null:await foundryCall(request,env,'/api/magnanimous/tool-foundry/observe',{capability,example_task:userMessage});
-    const learnedScores=await learnedProviderScores(request,env,task);
+    const observed=(computeOnly||body.use_tools===false)?null:await foundryCall(request,env,'/api/magnanimous/tool-foundry/observe',{capability,example_task:userMessage});
+    const learnedScores=computeOnly?new Map():await learnedProviderScores(request,env,task);
     const learningState=[...learnedScores.entries()].map(([provider,x])=>({provider,...x}));
-    const signedInUser=await currentUser(request,env).catch(()=>null),localBridgeReady=signedInUser?await hasReadyLocalBridge(env,signedInUser.tenant_id).catch(()=>false):false;
+    const signedInUser=computeOnly?null:await currentUser(request,env).catch(()=>null),localBridgeReady=signedInUser?await hasReadyLocalBridge(env,signedInUser.tenant_id).catch(()=>false):false;
     const ogenicRuntimeEnv=localBridgeReady?{...env,MAGNANIMOUS_LOCAL_BRIDGE_READY:true}:env;
-    const ogenicPlan=buildMagnanimousOgenicPlan(userMessage,ogenicRuntimeEnv),ogenicContext=getMagnanimousOgenicPrompt(userMessage);
+    const ogenicPlan=computeOnly?{classification:'CLOUD',groups:[],initiative:'disabled',status:'compute-only',network_direction:'none'}:buildMagnanimousOgenicPlan(userMessage,ogenicRuntimeEnv),ogenicContext=computeOnly?'':getMagnanimousOgenicPrompt(userMessage);
     let ogenicInitiative=null;
-    if(body.use_tools!==false&&body.ogenic_initiative!==false&&(ogenicPlan.groups.some(x=>x.id==='code-system')||ogenicPlan.classification==='LOCAL'||ogenicPlan.classification==='HYBRID')){
+    if(!computeOnly&&body.use_tools!==false&&body.ogenic_initiative!==false&&(ogenicPlan.groups.some(x=>x.id==='code-system')||ogenicPlan.classification==='LOCAL'||ogenicPlan.classification==='HYBRID')){
       try{
         const initiativeUrl=new URL('/api/magnanimous/ogenic/initiate',request.url),initiativeHeaders=new Headers(request.headers);
         initiativeHeaders.set('content-type','application/json');
@@ -327,9 +328,10 @@ async function handle(request, env) {
       }catch(error){ogenicInitiative={initiated:false,code:'INITIATIVE_ERROR',detail:String(error?.message||error).slice(0,300)}}
     }
     const initiativeContext=ogenicInitiative?`\nOGENIC SAFE INITIATIVE RESULT: ${JSON.stringify(ogenicInitiative)}\nUse this as evidence only. A plan/read action is not a write, merge or deployment.\n`:'';
-    const groundedMessage=`${COMMANDER_PROTOCOL}\n\n${ogenicContext}\n\nUSER REQUEST:\n${userMessage}${brainContext||''}${grounding.context||''}${toolPlanning.context||''}\n\nCURRENT MAGNANIMOUS ROUTING STATE:\nTask class: ${task}\nNative capability family: ${capability}\nLinks absorbed this turn: ${absorbedLinks.length}\nStored/fresh sources available: ${grounding.sources?.length||0}${initiativeContext}\nUse external execution engines only as needed; return one unified Magnanimous answer.`;
+    const groundedMessage=computeOnly?`MAGNANIMOUS COMPUTE-ONLY EXECUTION\nYou are a replaceable compute engine beneath Magnanimous AI. Advisory analysis only. You have no tool, memory, account, repository, approval, merge, deployment, publishing, payment, deletion, credential or security-policy authority. Never claim an external action occurred.\n\n${userMessage}`:`${COMMANDER_PROTOCOL}\n\n${ogenicContext}\n\nUSER REQUEST:\n${userMessage}${brainContext||''}${grounding.context||''}${toolPlanning.context||''}\n\nCURRENT MAGNANIMOUS ROUTING STATE:\nTask class: ${task}\nNative capability family: ${capability}\nLinks absorbed this turn: ${absorbedLinks.length}\nStored/fresh sources available: ${grounding.sources?.length||0}${initiativeContext}\nUse external execution engines only as needed; return one unified Magnanimous answer.`;
     const requested = String(body.provider || 'auto').toLowerCase();
-    const candidates = requested !== 'auto' ? availableProviders(env).filter(p => p.id === requested && configured(env,p)) : routeProviders(env,userMessage,body,learnedScores);
+    const acceleratorPool=computeOnly&&body.allow_metered_accelerator!==true?availableProviders(env).filter(p=>p.tier==='free-first'):availableProviders(env);
+    const candidates = requested !== 'auto' ? acceleratorPool.filter(p => p.id === requested && configured(env,p)) : routeProviders(env,userMessage,body,learnedScores).filter(p=>acceleratorPool.some(a=>a.id===p.id));
     if (!candidates.length) return json({ detail: requested === 'auto' ? 'Magnanimous AI has no configured execution engine. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested execution engine is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
     const errors = [];
     for (const p of candidates) {
@@ -337,15 +339,15 @@ async function handle(request, env) {
       try {
         const result = await callProvider(p.id, env, groundedMessage, body.model);
         if (!result?.text?.trim()) throw new Error('Provider returned an empty response');
-        await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:true,quality:.85,latency:Date.now()-started,notes:`capability=${capability}; grounded=${grounding.sources.length}; links=${absorbedLinks.length}`});
-        if(body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:true});
+        if(!computeOnly)await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:true,quality:.85,latency:Date.now()-started,notes:`capability=${capability}; grounded=${grounding.sources.length}; links=${absorbedLinks.length}`});
+        if(!computeOnly&&body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:true});
         return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, magnanimous: true, operator: true, command_role:'commander-in-chief', provider_role:'execution-engine', routed_automatically:requested==='auto', route_task:task, native_capability:capability, route_policy:String(body.quality||body.route_policy||'free-first'), fallback_candidates:candidates.map(x=>x.id), adaptive_provider_learning:true, provider_learning:learningState, grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured, automatic_research:autoResearch, remembered_research:rememberResearch, link_learning:{enabled:body.learn_links!==false,absorbed:absorbedLinks.length,results:linkLearning}, native_recipe_learning:{observed:true,gap_count:Number(observed?.gap_count||0),proposal:observed?.proposal||null}, tool_planning:{enabled:body.use_tools!==false,learned_tools:toolPlanning.tools?.map(x=>({name:x.name,status:x.status,risk:x.risk}))||[],recommended_integrations:toolPlanning.recommended_integrations?.map(x=>({id:x.id,name:x.name,priority:x.priority,capabilities:x.capabilities}))||[]}, ogenic:{classification:ogenicPlan.classification,groups:ogenicPlan.groups.map(x=>x.id),initiative:ogenicPlan.initiative,status:ogenicPlan.status,network_direction:ogenicPlan.network_direction,safe_initiative:ogenicInitiative} });
       } catch (e) {
         const detail=e?.message || 'provider failed';errors.push(`${p.name}: ${detail}`);
-        await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:false,quality:0,latency:Date.now()-started,notes:detail});
+        if(!computeOnly)await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:false,quality:0,latency:Date.now()-started,notes:detail});
       }
     }
-    if(body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:false});
+    if(!computeOnly&&body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:false});
     return json({ detail: `Magnanimous AI could not complete the request. ${errors.join(' | ')}`, code: 'AI_PROVIDER_FAILURE',route_task:task,native_capability:capability }, 502);
   }
   return null;

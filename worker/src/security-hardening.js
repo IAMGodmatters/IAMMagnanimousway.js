@@ -66,6 +66,7 @@ function corsHeaders(request, env) {
 
 function isProtectedAiPath(path) {
   return path === '/api/chat' ||
+    path === '/api/magnanimous/compute-accelerator' ||
     path === '/api/agents/chat' ||
     path === '/api/white-label/brain/chat' ||
     (path.startsWith('/api/agents/') && path.endsWith('/chat'));

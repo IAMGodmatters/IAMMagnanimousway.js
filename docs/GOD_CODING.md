@@ -21,7 +21,7 @@ The native-first runtime lives in `worker/src/magnanimous-native-first.js` and i
 
 The God Coding page defaults to a Magnanimous-native plan without requiring an outside model. Repository inspection, developer planning, self-development planning, capability assimilation, and verification policy remain Magnanimous-owned.
 
-An outside model can be enabled as optional compute acceleration. If it fails or is disabled, God Coding still returns the native plan and inspected evidence instead of treating the provider as the brain.
+An outside model can be enabled as optional compute acceleration. The owner UI sends that work only to `POST /api/magnanimous/compute-accelerator`, a dedicated advisory-only gateway. The gateway forces tools, Magnanimous memory access/writes, knowledge retrieval, link learning, live search, specialist routing, OGENIC initiative, repository authority, approvals, merges and deployments off. It uses free-first configured compute only; metered accelerator use is disabled by this route. Provider identity is stripped from the owner-facing accelerator response. If acceleration fails or is disabled, God Coding still returns the native plan and inspected evidence instead of treating a provider as the brain.
 
 ## Capability assimilation
 

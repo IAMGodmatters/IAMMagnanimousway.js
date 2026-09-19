@@ -5,6 +5,7 @@ import {specialistForMessage,specialistIntroduction} from './specialist-router.j
 import {handleMagnanimousNativeFirst} from './magnanimous-native-first.js';
 import {handleMagnanimousOgenic} from './magnanimous-ogenic-god-toolkit.js';
 import {handleMagnanimousLocalBridge} from './magnanimous-local-bridge-runtime.js';
+import {requirePlatformOwner} from './platform-owner-guard.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 
@@ -13,6 +14,61 @@ async function patchJson(response,patch){
  if(!data||typeof data!=='object'||Array.isArray(data))return response;
  const headers=new Headers(response.headers);headers.delete('content-length');headers.set('content-type','application/json; charset=utf-8');headers.set('cache-control','no-store');
  return new Response(JSON.stringify({...data,...patch(data)}),{status:response.status,statusText:response.statusText,headers});
+}
+
+async function runComputeAccelerator(request,env,ctx){
+ const denied=await requirePlatformOwner(request,env);if(denied)return denied;
+ const body=await request.clone().json().catch(()=>({}));
+ const prompt=String(body.prompt||body.message||'').trim();
+ if(!prompt)return json({detail:'Compute accelerator prompt is required.'},400);
+ if(prompt.length>60000)return json({detail:'Compute accelerator prompt is too large.'},413);
+ const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
+ const policy=`MAGNANIMOUS COMPUTE ACCELERATOR CONTRACT
+You are a replaceable compute accelerator beneath Magnanimous AI.
+You have advisory analysis authority only.
+Do not claim to be Magnanimous AI, do not create or own memory, do not call tools, do not initiate specialist actions, do not authorize repository writes, do not approve changes, do not merge, deploy, publish, message, call, purchase, pay, delete, alter credentials or change security policy.
+Return analysis/proposals only. Magnanimous retains identity, planning authority, memory, policy, skills, workflow ownership, verification and all consequential-action authority.
+
+REQUEST:
+${prompt}`;
+ const forwarded=new Request(new URL('/api/chat',request.url).toString(),{
+  method:'POST',headers,
+  body:JSON.stringify({
+   message:policy,
+   provider:'auto',
+   route_policy:'free-first',
+   compute_only:true,
+   allow_metered_accelerator:false,
+   use_tools:false,
+   use_knowledge:false,
+   learn_links:false,
+   live_search:false,
+   news:false,
+   remember_search:false,
+   specialist_routing:false,
+   ogenic_initiative:false
+  })
+ });
+ const response=await app.fetch(forwarded,env,ctx);
+ const data=await response.clone().json().catch(()=>({}));
+ if(!response.ok)return json({detail:String(data.detail||'Optional compute accelerator failed.'),code:String(data.code||'COMPUTE_ACCELERATOR_FAILURE'),accelerator_used:false,provider_details_private:true},response.status);
+ return json({
+  ok:true,
+  output:String(data.output||''),
+  accelerator_used:true,
+  advisory_only:true,
+  tools_enabled:false,
+  memory_access:false,
+  memory_write:false,
+  specialist_actions:false,
+  repository_authority:false,
+  approval_authority:false,
+  merge_authority:false,
+  deployment_authority:false,
+  metered_compute_allowed:false,
+  provider_details_private:true,
+  identity_owner:'Magnanimous AI'
+ });
 }
 
 function specialistResilienceAnswer(agent,message){
@@ -54,6 +110,9 @@ async function recoverSpecialistHandoff(request,path,response,chatBody){
 export default{
  async fetch(request,env,ctx){
   const path=new URL(request.url).pathname;
+  if(path==='/api/magnanimous/compute-accelerator'&&request.method==='POST'){
+   try{return await runComputeAccelerator(request,env,ctx)}catch(error){console.error('Magnanimous compute accelerator failed',error);return json({detail:'Optional compute accelerator could not complete this request.',code:'COMPUTE_ACCELERATOR_FAILURE'},500)}
+  }
   if(path.startsWith('/api/magnanimous/native-first')){
    try{
     const nativeFirst=await handleMagnanimousNativeFirst(request,env);
