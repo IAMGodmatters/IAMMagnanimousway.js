@@ -128,7 +128,7 @@ must(intelligence,'specialized branch of Magnanimous AI','specialists must remai
 must(intelligence,'AGENTIC_CAPABILITY_LADDER','agentic capability ladder must exist in runtime code');
 must(intelligence,'capability_ladder:ladder','specialist profiles must expose their ladder level when applicable');
 must(entry,'agenticCapabilityLadder','agent catalog must expose the native agentic capability ladder');
-for(const id of ["foundation","appsmith","agentforge","governor","architect","transform"])must(mesh,\`['\${id}'\`,'every agentic capability level must have a native specialist: '+id);
+for(const id of ["foundation","appsmith","agentforge","governor","architect","transform"])must(mesh,`['${id}'`,'every agentic capability level must have a native specialist: '+id);
 must(intelligence,'agent_branch_knowledge','branch-specific knowledge storage must remain available');
 must(intelligence,'agent_branch_training_submissions','QA proposal storage must remain available');
 must(intelligence,"GLOBAL_BRANCH_TENANT='__global__'",'global specialist knowledge must remain available across workspaces');
