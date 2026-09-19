@@ -456,6 +456,33 @@ export const FLOOT_CAPABILITY_FAMILIES=Object.freeze([
  {id:'platform-knowledge',tools:['get_guides','get_guide'],magnanimous_target:'knowledge-workspace'}
 ]);
 
+const FLOOT_SAFE_AUTO=new Set(['search','fetch','list_projects','list_resources','list_files','read_file','read_files','search_code','get_guides','get_guide','get_logs','typecheck','run_tests','navigate_preview','screenshot_preview','get_current_context','view_annotation','get_job_status','query_database','pull_database_schema','get_publish_status','get_preview_url']);
+const FLOOT_DESTRUCTIVE=new Set(['delete_file','remove_dependency','unpublish_app','cancel_request']);
+const FLOOT_PUBLISH=new Set(['publish_app']);
+const FLOOT_RESOURCE=new Set(['provision_resource','request_external_resource','request_user_upload']);
+const FLOOT_CODE_EXEC=new Set(['run_code_in_vm','run_code_in_browser']);
+const FLOOT_DB_WRITE=new Set(['execute_sql']);
+
+export function getFlootCapabilityFamily(tool=''){
+ const name=String(tool||'');
+ return FLOOT_CAPABILITY_FAMILIES.find(x=>x.tools.includes(name))||{id:'platform-capability',tools:[name],magnanimous_target:'universal-tool-gateway'};
+}
+export function getFlootNativeTarget(tool=''){
+ return getFlootCapabilityFamily(tool).magnanimous_target;
+}
+export function getFlootToolPolicy(tool=''){
+ const name=String(tool||''),family=getFlootCapabilityFamily(name);
+ let action_class='write-change',auto_initiate=false,requires_confirmation=false;
+ if(FLOOT_SAFE_AUTO.has(name)){action_class='read-inspect-verify';auto_initiate=true}
+ else if(FLOOT_DESTRUCTIVE.has(name)){action_class='destructive';requires_confirmation=true}
+ else if(FLOOT_PUBLISH.has(name)){action_class='publish-deploy';requires_confirmation=true}
+ else if(FLOOT_RESOURCE.has(name)){action_class='resource-or-credential';requires_confirmation=true}
+ else if(FLOOT_CODE_EXEC.has(name)){action_class='sandbox-code-execution';requires_confirmation=true}
+ else if(FLOOT_DB_WRITE.has(name)){action_class='database-mutation';requires_confirmation=true}
+ else if(['write_file','edit_file','apply_patch','rename_file','copy_file','add_dependency','create_checkpoint','update_project_metadata','generate_image','upload_asset','create_project'].includes(name)){action_class='project-write';requires_confirmation:false}
+ return{tool:name,family:family.id,native_target:family.magnanimous_target,suggestive:true,auto_initiate,requires_confirmation,action_class};
+}
+
 export const FLOOT_ASSIMILATION_POLICY=Object.freeze({
  identity_owner:'Magnanimous AI',
  mode:'clean-room-observable-capability-assimilation',
