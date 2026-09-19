@@ -91,12 +91,8 @@ async function sha256(value) {
 
 async function ensureRateSchema(env) {
   if (rateSchemaReady || !env?.DB) return;
-  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS security_rate_limits (
-    bucket_key TEXT PRIMARY KEY,
-    window_start INTEGER NOT NULL,
-    count INTEGER NOT NULL DEFAULT 0,
-    updated_at INTEGER NOT NULL
-  )`).run();
+  // Deployment migration 0080 owns this table. Live auth requests only verify it.
+  await env.DB.prepare('SELECT 1 FROM security_rate_limits LIMIT 1').first();
   rateSchemaReady = true;
 }
 
