@@ -19,6 +19,21 @@ jobs:
           node-version: 22
       - name: Verify native-first brain and God Coding contracts
         run: node qa/scripts/magnanimous-native-first-lock.mjs
+      - name: Verify full-brain D1 materializer
+        run: |
+          rm -rf /tmp/magnanimous-full-brain-ci
+          node qa/scripts/materialize-full-brain-d1.mjs /tmp/magnanimous-full-brain-ci
+          python - <<'PY'
+          import glob,json,os
+          d=json.load(open('/tmp/magnanimous-full-brain-ci/manifest-metadata.json'))
+          assert d['manifest_count'] >= 3426, d
+          assert d['raw_manifest_count'] >= d['manifest_count'], d
+          assert d['high_risk'] > 0 and d['medium_risk'] > 0 and d['low_risk'] > 0, d
+          files=glob.glob('/tmp/magnanimous-full-brain-ci/*-materialize.sql')
+          assert len(files) >= 40, (len(files),d)
+          assert os.path.exists('/tmp/magnanimous-full-brain-ci/%03d-state.sql' % d['chunk_count']), d
+          print('Full-brain materializer generated',d['manifest_count'],'specifications across',d['chunk_count'],'chunks.')
+          PY
       - name: Verify OGENIC GOD TOOLKIT absorption
         run: node qa/scripts/magnanimous-ogenic-god-toolkit-lock.mjs
       - name: Verify Magnanimous Local Bridge
