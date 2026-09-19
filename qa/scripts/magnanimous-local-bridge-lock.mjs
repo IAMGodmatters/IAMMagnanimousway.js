@@ -63,7 +63,12 @@ for(const needle of [
 
 assert(!agent.includes('shell=True'),'local agent must not enable shell execution');
 assert(!agent.includes('subprocess.Popen('),'local agent must not expose unsupervised background process spawning');
-assert(installer.includes('New-ScheduledTaskAction'),'Windows installer should create the outbound bridge startup task');
+assert(installer.includes('New-ScheduledTaskAction'),'Windows installer should retain Task Scheduler support when available');
+assert(installer.includes('GetFolderPath("Startup")'),'Windows installer must have a per-user startup fallback');
+assert(installer.includes('Magnanimous-Local-Bridge.cmd'),'Windows installer must create a per-user startup launcher');
+assert(installer.includes('Existing Magnanimous Local Bridge pairing found. Reusing device'),'Windows installer must reuse an already successful pairing');
+assert(installer.includes('Administrator access is not required.'),'Windows installer must clearly support non-admin startup');
+assert(installer.includes('Start-Process -FilePath $pythonExe'),'Windows installer must start the bridge immediately after activation');
 assert(installer.includes('Python.Python.3.13'),'Windows bootstrap should be able to install Python when missing');
 assert(installer.includes('Test-PythonCandidate'),'Windows bootstrap must execute-test Python candidates instead of trusting command discovery');
 assert(installer.includes('os.path.realpath(sys.executable)'),'Windows bootstrap must resolve the real Python executable');
@@ -74,7 +79,8 @@ assert(installer.includes('Git.Git'),'Windows bootstrap should optionally instal
 assert(installer.includes('MagnanimousWorkspace'),'Windows bootstrap should provide a safe default workspace');
 assert(installer.includes('automatic health check'),'Windows bootstrap should explain activation verification');
 assert(installer.includes('No inbound port was opened.'),'installer must state the inbound-listener boundary');
-assert(uninstaller.includes('Unregister-ScheduledTask'),'Windows uninstall must remove the startup task');
+assert(uninstaller.includes('Unregister-ScheduledTask'),'Windows uninstall must remove the startup task when present');
+assert(uninstaller.includes('Magnanimous-Local-Bridge.cmd'),'Windows uninstall must remove the per-user Startup launcher');
 assert(uninstaller.includes('Remove-Item -Path $homeDir -Recurse -Force'),'Windows uninstall must remove local bridge credentials/files');
 assert(migration.includes('magnanimous_local_bridge_devices'));
 assert(migration.includes('magnanimous_local_bridge_tasks'));
