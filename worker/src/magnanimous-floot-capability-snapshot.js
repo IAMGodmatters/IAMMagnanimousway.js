@@ -483,6 +483,34 @@ export function getFlootToolPolicy(tool=''){
  return{tool:name,family:family.id,native_target:family.magnanimous_target,suggestive:true,auto_initiate,requires_confirmation,action_class};
 }
 
+export function getFlootGuideNativeTarget(topic=''){
+ const id=String(topic||'').toLowerCase();
+ if(/^floot-agents(?:-|$)/.test(id)){
+  if(id.includes('memory'))return'memory-ingestion';
+  if(id.includes('collections'))return'data-platform';
+  if(id.includes('mcp'))return'universal-tool-gateway';
+  if(id.includes('telegram'))return'communications-hub';
+  return'agent-mesh';
+ }
+ if(/^floot-ai(?:-|$)/.test(id)){
+  if(id.includes('image'))return'creative-studio';
+  if(id.includes('embed'))return'knowledge-workspace';
+  return'model-router';
+ }
+ if(/design|examples|lottie|react-big-calendar|screenshot/.test(id))return'product-design-agent';
+ if(/publishing|custom-domain|native-mobile|ios-|android-|share-target|background-wake|native-system-bars|ssr|dynamic-sitemap/.test(id))return'tool-deployment';
+ if(/queue|scheduled|realtime|runcode/.test(id))return'agent-mesh';
+ if(/database|csv/.test(id))return'data-platform';
+ if(/pdf|zip|storage/.test(id))return'workspace-files';
+ if(/email|push-notification/.test(id))return'communications-hub';
+ if(/oauth|resources|auth-and-payment-challenges|microsoft|google-integrations|ai-byok/.test(id))return'universal-tool-gateway';
+ if(/testing|prod-backend-logs|hosting-cost-analysis|server-memory/.test(id))return'engineering-operator';
+ return'knowledge-workspace';
+}
+export function getFlootGuidePolicy(topic=''){
+ return{topic:String(topic||''),native_target:getFlootGuideNativeTarget(topic),suggestive:true,auto_initiate:true,requires_confirmation:false,action_class:'skill-guidance'};
+}
+
 export const FLOOT_ASSIMILATION_POLICY=Object.freeze({
  identity_owner:'Magnanimous AI',
  mode:'clean-room-observable-capability-assimilation',
