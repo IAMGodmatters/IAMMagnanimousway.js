@@ -387,13 +387,13 @@ const toolPreflight=u.pathname.match(/^\/api\/business-ai\/tools\/([^/]+)\/prefl
 if(toolPreflight&&request.method==='GET'){
  const id=decodeURIComponent(toolPreflight[1]),tool=BUSINESS_AI_SUITE.find(x=>x[0]===id);
  if(!tool)return json({detail:'Business AI tool not found.'},404);
- const route=CAPABILITY_ROUTES[id]||{},external=externalFor(id),specialized=['hyper-images','logo-maker','music-generator','deep-research','open-media-library'].includes(id),adapter=Boolean(DIRECT_EXECUTION[id]||specialized),playbook=PLAYBOOKS[id]||[],criteria=VERIFY_CRITERIA[id]||[];
+ const route=CAPABILITY_ROUTES[id]||{},external=externalFor(id),specialized=['hyper-images','logo-maker','music-generator','deep-research','open-media-library'].includes(id),adapter=Boolean(DIRECT_EXECUTION[id]||specialized),playbook=PLAYBOOKS[id]||[],criteria=VERIFY_CRITERIA[id]||[],accessibility=Array.isArray(route.accessibility)?route.accessibility:[],dependencies=Array.isArray(route.dependencies)?route.dependencies:[];
  return json({
-  ok:Boolean(route.surface&&adapter&&playbook.length&&criteria.length),
+  ok:Boolean(route.surface&&adapter&&playbook.length&&criteria.length&&accessibility.length&&dependencies.length),
   tool:{id,name:tool[1],description:tool[2],category:tool[3]},
   surface:route.surface||'',
-  accessibility:Array.isArray(route.accessibility)?route.accessibility:[],
-  dependencies:Array.isArray(route.dependencies)?route.dependencies:[],
+  accessibility,
+  dependencies,
   execution_mode:specialized?'native-specialized':'magnanimous-step-execution',
   execution_adapter_present:adapter,
   playbook_steps:playbook,
