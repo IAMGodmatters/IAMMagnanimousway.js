@@ -86,7 +86,7 @@ export default function LoginPage() {
       <form onSubmit={submit}>
         <label><span>Email address</span><input required type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} /></label>
         <label><span>Password</span><input required type="password" autoComplete="current-password" placeholder="Your password" value={password} onChange={e => setPassword(e.target.value)} /></label>
-        <div className="loginAssist"><span>Secure session: up to 12 hours</span><a href="/login?forgot=1">Forgot password?</a></div>
+        <div className="loginAssist"><span>Secure session: up to 12 hours</span><a href="/forgot-password?portal=customer">Forgot password?</a></div>
         <button className="enter" disabled={busy} type="submit">{busy ? 'VERIFYING SECURE ACCESS…' : 'ENTER MY WORKSPACE  ›'}</button>
         {error && <div role="alert" className="error">{error}</div>}
       </form>
