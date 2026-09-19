@@ -120,6 +120,13 @@ has(deployWorkflow,'Full Magnanimous capability brain materialized','deployment 
 has(deployWorkflow,'realization_count','deployment verifies the complete capability realization ledger');
 has(deployWorkflow,'native_ready_count','deployment verifies native-ready realization counts');
 has(deployWorkflow,'realization_digest','deployment verifies realization registry digest against the same full-brain source');
+has(deployWorkflow,'skipping D1 materialization writes','unchanged full-brain digest skips D1 writes');
+has(deployWorkflow,'Capability brain changed; applying delta-only D1 materialization.','changed manifests use delta-only materialization');
+has(deployWorkflow,"exceeded D1's free tier daily row write limit",'production smoke distinguishes Cloudflare D1 daily write quota exhaustion');
+has(deployWorkflow,'Production read-only smoke passed under externally exhausted D1 write quota.','quota fallback still requires production read-only health verification');
+has(materializer,'WHERE magnanimous_connector_capability_absorption.connector_name<>excluded.connector_name','capability ledger avoids no-op row rewrites');
+has(materializer,'WHERE magnanimous_native_tool_specs.purpose<>excluded.purpose','Tool Foundry avoids no-op row rewrites');
+has(materializer,'WHERE magnanimous_capability_realizations.tool_name<>excluded.tool_name','realization ledger avoids no-op row rewrites');
 
 has(runtime,"/api/magnanimous/native-first/self-develop",'self-development endpoint exists');
 has(runtime,'capability-assimilation','capability assimilation is a native learned skill');
