@@ -36,7 +36,7 @@ has(runtime,'codex_dependency_required:false','Magnanimous developer agent does 
 has(runtime,'upsertApprovedTeachingTool','developer skills seed through Magnanimous Tool Foundry');
 has(runtime,"family:'software-engineering'",'developer skills are stored as Magnanimous engineering recipes');
 has(cognitive,'MAGNANIMOUS_DEVELOPMENT_SKILLS','cognitive architecture preserves software-development competence');
-has(foundry,'Proven low-risk recipes can self-promote to READY','Tool Foundry supports measured native recipe growth');
+has(foundry,"row.risk==='low'&&row.status==='proposed'&&Number(row.uses||0)>=5",'Tool Foundry still requires measured low-risk usage before runtime self-promotion');
 has(catalog,"id:'github'",'GitHub remains a replaceable engineering adapter target');
 
 for(const id of ['repo-map','targeted-code-search','codebase-health','bug-fix','feature-build','refactor','code-review','security-review','ci-diagnosis','release-verify','pr-workflow','skill-learning']){

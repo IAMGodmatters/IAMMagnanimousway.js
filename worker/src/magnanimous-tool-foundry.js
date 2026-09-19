@@ -2,6 +2,7 @@ import { currentUser } from './integrations.js';
 import { getIntegrationCatalog, rankIntegrationTargets } from './magnanimous-integration-catalog.js';
 import { getMagnanimousCapabilityRadar, recordMagnanimousCapabilityGap } from './magnanimous-capability-radar.js';
 import { getConnectorAbsorptionCatalog, getConnectorAbsorptionPrompt, getConnectorAbsorptionSummary, rankAbsorbedCapabilities } from './magnanimous-connector-absorption.js';
+import { getCapabilityRealizationContext, getCapabilityRealizationSummary } from './magnanimous-capability-realization.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -61,11 +62,12 @@ export async function getMagnanimousToolFoundryContext(request,env,goal=''){
   const terms=String(goal||'').toLowerCase().split(/[^a-z0-9]+/).filter(x=>x.length>2);
   const ranked=results.map(x=>{const hay=`${x.name} ${x.purpose} ${x.family}`.toLowerCase();return{...x,match:terms.reduce((n,t)=>n+(hay.includes(t)?1:0),0)}}).sort((a,b)=>b.match-a.match||(a.status==='ready'?-1:1)-(b.status==='ready'?-1:1)||Number(b.successes||0)-Number(a.successes||0)).slice(0,10);
   const recommended=rankIntegrationTargets(goal).slice(0,6);
-  const absorbed=rankAbsorbedCapabilities(goal,10),lines=[];
+  const absorbed=rankAbsorbedCapabilities(goal,10),realization=await getCapabilityRealizationContext(env,goal),lines=[];
+  if(realization.context)lines.push(realization.context);
   if(ranked.length){lines.push('\n\nMAGNANIMOUS LEARNED NATIVE TOOL RECIPES:');for(const x of ranked){const rate=Number(x.uses||0)>0?`${Math.round(Number(x.successes||0)/Number(x.uses||1)*100)}% observed success`:'unscored';lines.push(`- ${x.name} [${x.status}/${x.risk}]: ${clip(x.purpose,500)} (${rate})`)}lines.push('READY recipes are proven low-risk patterns Magnanimous should reuse natively. PROPOSED recipes are approved workflow guidance that must route through real native or connected tools before claiming an action occurred. Never execute high-impact actions merely because a recipe exists; preserve account permissions and explicit approval requirements.');}
   if(recommended.length){lines.push('\nINTEGRATION ROUTING CANDIDATES:');for(const x of recommended)lines.push(`- ${x.name}: ${x.capabilities.join(', ')} [${x.priority}]`);lines.push('These are adapter targets, not automatically authorized accounts. Prefer Magnanimous native/free capability first; use a provider only when connected and materially better or required for live/account-specific capability.');}
   if(absorbed.length){lines.push('\n'+getConnectorAbsorptionPrompt(goal));}
-  return{context:lines.join('\n').slice(0,12000),tools:ranked,recommended_integrations:recommended,absorbed_capabilities:absorbed,absorption_summary:getConnectorAbsorptionSummary()};
+  return{context:lines.join('\n').slice(0,12000),tools:ranked,recommended_integrations:recommended,absorbed_capabilities:absorbed,realization_routes:realization.routes,realization_summary:await getCapabilityRealizationSummary(env),absorption_summary:getConnectorAbsorptionSummary()};
  }catch(e){return{context:getConnectorAbsorptionPrompt(goal),tools:[],recommended_integrations:rankIntegrationTargets(goal).slice(0,6),absorbed_capabilities:rankAbsorbedCapabilities(goal,10),error:clip(e?.message||e,500)}}
 }
 
@@ -80,7 +82,7 @@ export async function handleMagnanimousToolFoundry(request,env){
    env.DB.prepare('SELECT capability,example_task,count,status,updated_at FROM magnanimous_tool_gaps WHERE tenant_id=? AND user_id=? ORDER BY count DESC,updated_at DESC LIMIT 100').bind(tenant,uid).all(),
    env.DB.prepare('SELECT id,name,purpose,family,inputs_json,outputs_json,steps_json,risk,status,uses,successes,created_at,updated_at FROM magnanimous_native_tool_specs WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 300').bind(tenant,uid).all()
   ]);
-  return json({identity:'Magnanimous AI',mode:'native-tool-learning',command_role:'commander-in-chief',auto_promotion:{enabled:true,low_risk_only:true,min_scored_uses:5,min_success_rate:.8},capability_radar:'/api/magnanimous/tool-foundry/radar',gaps:gaps.results||[],tools:(specs.results||[]).map(x=>({...x,inputs:JSON.parse(x.inputs_json||'{}'),outputs:JSON.parse(x.outputs_json||'{}'),steps:JSON.parse(x.steps_json||'[]')})),integration_targets:getIntegrationCatalog().length,note:'Magnanimous learns reusable native tool recipes and provider-adapter specifications. Proven low-risk recipes can self-promote to READY. External services still require their own authorization; proprietary provider backends are not copied.'});
+  return json({identity:'Magnanimous AI',mode:'native-tool-learning',command_role:'commander-in-chief',auto_promotion:{enabled:true,low_risk_only:true,min_scored_uses:5,min_success_rate:.8},capability_radar:'/api/magnanimous/tool-foundry/radar',realization:await getCapabilityRealizationSummary(env),gaps:gaps.results||[],tools:(specs.results||[]).map(x=>({...x,inputs:JSON.parse(x.inputs_json||'{}'),outputs:JSON.parse(x.outputs_json||'{}'),steps:JSON.parse(x.steps_json||'[]')})),integration_targets:getIntegrationCatalog().length,note:'Magnanimous learns reusable native tool recipes and provider-adapter specifications. Low-risk recipes are only deployment-promoted to READY when the realization registry proves an internal Magnanimous execution surface. External services still require their own authorization; proprietary provider backends are not copied.'});
  }
  if(request.method==='GET'&&url.pathname==='/api/magnanimous/tool-foundry/radar'){
   await syncGapProposals(env,{tenant,uid});
@@ -92,7 +94,7 @@ export async function handleMagnanimousToolFoundry(request,env){
  }
  if(request.method==='GET'&&url.pathname==='/api/magnanimous/tool-foundry/absorption'){
   const goal=clip(url.searchParams.get('goal'),1000),summary=getConnectorAbsorptionSummary();
-  return json({identity:'Magnanimous AI',mode:'connector-capability-absorption',summary,catalog:goal?[]:getConnectorAbsorptionCatalog(),ranked:goal?rankAbsorbedCapabilities(goal,30):[],policy:summary.absorption_policy,note:'Each capability is absorbed as a provider-neutral Magnanimous workflow specification. Native implementation status remains evidence-gated.'});
+  return json({identity:'Magnanimous AI',mode:'connector-capability-absorption',summary,realization:await getCapabilityRealizationSummary(env),catalog:goal?[]:getConnectorAbsorptionCatalog(),ranked:goal?rankAbsorbedCapabilities(goal,30):[],policy:summary.absorption_policy,note:'Each capability is absorbed as a provider-neutral Magnanimous workflow specification. Native implementation status is evidence-gated by the capability realization registry.'});
  }
  if(request.method==='POST'&&url.pathname==='/api/magnanimous/tool-foundry/seed-integrations'){
   const b=await request.json().catch(()=>({}));const onlyPriority=Boolean(b.high_priority_only);const targets=getIntegrationCatalog().filter(x=>!onlyPriority||['critical','high'].includes(x.priority));const seeded=[];

@@ -3,6 +3,7 @@ import { INTEGRATIONS as liveIntegrations } from '../../worker/src/integrations.
 import { getConnectorAbsorptionCatalog as liveAbsorptionCatalog, getCapabilityAbsorptionManifest as liveCapabilityManifest, getPersistentConnectorAbsorptionManifest, getChatGPTPluginCapabilityManifest, getInstalledPluginSkillManifest, getConnectorAbsorptionSummary } from '../../worker/src/magnanimous-connector-absorption.js';
 import { getLivePluginToolResearchSummary } from '../../worker/src/magnanimous-live-plugin-tool-research-snapshot.js';
 import { getLivePluginSkillResearchSummary } from '../../worker/src/magnanimous-live-plugin-skill-research-snapshot.js';
+import { MAGNANIMOUS_EXECUTION_SURFACES, classifyCapabilityRealization } from '../../worker/src/magnanimous-capability-realization.js';
 
 const read=p=>fs.readFileSync(p,'utf8');
 const runtime=read('worker/src/magnanimous-native-first.js');
@@ -19,10 +20,12 @@ const pluginSnapshot=read('worker/src/magnanimous-chatgpt-plugin-capability-snap
 const skillSnapshot=read('worker/src/magnanimous-installed-plugin-skill-snapshot.js');
 const liveToolResearch=read('worker/src/magnanimous-live-plugin-tool-research-snapshot.js');
 const liveSkillResearch=read('worker/src/magnanimous-live-plugin-skill-research-snapshot.js');
+const realizationRuntime=read('worker/src/magnanimous-capability-realization.js');
 const integrations=read('worker/src/integrations.js');
 const catalog=read('worker/src/magnanimous-integration-catalog.js');
 const absorptionMigration=read('worker/migrations/0073_connector_capability_absorption.sql');
 const materializationMigration=read('worker/migrations/0078_full_brain_materialization.sql');
+const realizationMigration=read('worker/migrations/0079_capability_realization.sql');
 const materializer=read('qa/scripts/materialize-full-brain-d1.mjs');
 const deployWorkflow=read('.github/workflows/deploy.yml');
 
@@ -48,6 +51,8 @@ has(runtime,'Apply SOLID boundaries','native policy requires SOLID boundaries');
 has(runtime,'Favor composition and dependency injection through an explicit composition root','native policy requires composition and dependency injection');
 has(runtime,'engineering_architecture_policy','native-first overview exposes the engineering architecture policy');
 has(runtime,"/api/magnanimous/native-first/assimilate",'capability assimilation endpoint exists');
+has(runtime,"/api/magnanimous/native-first/realizations",'owner can inspect evidence-gated capability realizations');
+has(runtime,'capability_realization:realization','native-first overview exposes realization counts');
 has(runtime,"/api/magnanimous/native-first/connectors",'per-connector native-first absorption ledger endpoint exists');
 has(runtime,'materializeConnectorCapabilityRecipes','one-by-one connector capability specs can materialize into Tool Foundry');
 has(runtime,'getCapabilityAbsorptionManifest','full connector + plugin tool + plugin skill manifest reaches durable materialization');
@@ -77,20 +82,37 @@ has(skillSnapshot,"authorization_state:'not-assumed'",'installed skill visibilit
 has(liveSkillResearch,'LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT','current live installed-skill research snapshot exists');
 has(liveSkillResearch,'private_skill_implementation_copied:false','live skill research denies private skill implementation copying');
 has(toolFoundry,'getConnectorAbsorptionPrompt','Tool Foundry injects connector absorption knowledge into Magnanimous routing');
+has(toolFoundry,'getCapabilityRealizationContext','Tool Foundry injects evidence-gated native/hybrid execution routes into Magnanimous planning');
+has(toolFoundry,'realization_routes','Tool Foundry returns resolved capability execution routes');
 has(toolFoundry,"/api/magnanimous/tool-foundry/absorption",'signed-in absorption catalog endpoint exists');
 has(absorptionMigration,'magnanimous_connector_capability_absorption','connector capability absorption has durable D1 storage');
 has(materializationMigration,'magnanimous_native_tool_specs','Tool Foundry global specs exist through D1 migrations before deployment materialization');
 has(materializationMigration,'magnanimous_capability_materialization_state','deployment materialization state is durable in D1');
+has(realizationMigration,'magnanimous_capability_realizations','capability realization ledger is durable in D1');
+has(realizationMigration,'magnanimous_capability_realization_state','capability realization summary state is durable in D1');
+has(realizationRuntime,"status:'native-ready'",'realization runtime has an explicit evidence-gated native-ready state');
+has(realizationRuntime,"status:'hybrid-ready'",'realization runtime preserves hybrid execution states');
+has(realizationRuntime,"status:'bridge-required'",'realization runtime marks unresolved external boundaries bridge-required');
+has(realizationRuntime,"status:'specified-only'",'realization runtime marks unimplemented capability specs specified-only');
+has(realizationRuntime,"'crm-growth-engine'",'realization registry recognizes the native CRM execution surface');
+has(realizationRuntime,"'research-orchestrator'",'realization registry recognizes the native research execution surface');
+has(realizationRuntime,"'knowledge-workspace'",'realization registry recognizes the native knowledge execution surface');
 has(materializer,'getCapabilityAbsorptionManifest','deployment materializer derives directly from the full Magnanimous brain manifest');
 has(materializer,'Capability ledger key collision','deployment materializer fails closed on capability-key collisions');
 has(materializer,'Tool Foundry name collision','deployment materializer fails closed on normalized Tool Foundry name collisions');
-has(materializer,"risk==='high'?'review-required':'proposed'",'deployment materializer preserves review-required status for high-risk capabilities');
+has(materializer,"risk==='high'?'review-required'",'deployment materializer preserves review-required status for high-risk capabilities');
 has(materializer,"status='tool-foundry-specified'",'deployment materializer marks persisted capability ledger rows as Tool Foundry specified');
 has(materializer,'source_digest','deployment materializer records a stable source digest');
+has(materializer,'classifyCapabilityRealization','deployment materializer classifies every capability against proven Magnanimous execution surfaces');
+has(materializer,'magnanimous_capability_realizations','deployment persists a per-capability realization ledger');
+has(materializer,"realization.status==='native-ready'",'only low-risk native-ready realized specs can be deployment-promoted to READY');
 has(deployWorkflow,'Materialize full Magnanimous capability brain','every production deployment materializes the full brain manifest');
 has(deployWorkflow,'materialize-full-brain-d1.mjs','deployment calls the checked-in full-brain materializer');
 has(deployWorkflow,"status='tool-foundry-specified'",'deployment verifies durable full-brain ledger rows');
 has(deployWorkflow,'Full Magnanimous capability brain materialized','deployment fails unless production D1 count and digest verification succeeds');
+has(deployWorkflow,'realization_count','deployment verifies the complete capability realization ledger');
+has(deployWorkflow,'native_ready_count','deployment verifies native-ready realization counts');
+has(deployWorkflow,'realization_digest','deployment verifies realization registry digest against the same full-brain source');
 
 has(runtime,"/api/magnanimous/native-first/self-develop",'self-development endpoint exists');
 has(runtime,'capability-assimilation','capability assimilation is a native learned skill');
@@ -136,7 +158,7 @@ lacks(runtime,'copy provider source code','runtime never instructs provider sour
 
 const directIds=[...integrations.matchAll(/\{ id:'([^']+)'/g)].map(x=>x[1]);
 const catalogIds=new Set([...catalog.matchAll(/\{id:'([^']+)'/g)].map(x=>x[1]));
-const runtimeAbsorption=liveAbsorptionCatalog(),runtimeManifest=liveCapabilityManifest(),persistentManifest=getPersistentConnectorAbsorptionManifest(),pluginManifest=getChatGPTPluginCapabilityManifest(),skillManifest=getInstalledPluginSkillManifest(),runtimeSummary=getConnectorAbsorptionSummary(),liveToolSummary=getLivePluginToolResearchSummary(),liveSkillSummary=getLivePluginSkillResearchSummary();
+const runtimeAbsorption=liveAbsorptionCatalog(),runtimeManifest=liveCapabilityManifest(),persistentManifest=getPersistentConnectorAbsorptionManifest(),pluginManifest=getChatGPTPluginCapabilityManifest(),skillManifest=getInstalledPluginSkillManifest(),runtimeSummary=getConnectorAbsorptionSummary(),liveToolSummary=getLivePluginToolResearchSummary(),liveSkillSummary=getLivePluginSkillResearchSummary(),realizations=runtimeManifest.map(classifyCapabilityRealization);
 checks.push(['every live /connections connector exists in the Magnanimous absorption catalog',directIds.every(id=>catalogIds.has(id))]);
 checks.push(['all 13 direct platform connector types are covered',directIds.length===13&&liveIntegrations.length===13]);
 for(const item of liveIntegrations){
@@ -159,6 +181,12 @@ checks.push(['retained plugin skill snapshot covers at least 867 skill contracts
 checks.push(['installed plugin skills are converted one by one',skillManifest.length>=867]);
 checks.push(['full Magnanimous brain manifest covers connector, plugin tool, and skill contracts',runtimeManifest.length>=3426&&runtimeSummary.full_brain_capability_contracts>=3426]);
 checks.push(['one-by-one research state is explicit',runtimeSummary.one_by_one_research===true]);
+checks.push(['execution-surface registry has proven native and hybrid targets',Object.values(MAGNANIMOUS_EXECUTION_SURFACES).some(x=>x.mode==='native')&&Object.values(MAGNANIMOUS_EXECUTION_SURFACES).some(x=>x.mode==='hybrid')]);
+checks.push(['full manifest realization is total and lossless',realizations.length===runtimeManifest.length]);
+checks.push(['at least one capability is evidence-gated native-ready',realizations.some(x=>x.status==='native-ready')]);
+checks.push(['at least one capability preserves a hybrid external boundary',realizations.some(x=>x.status==='hybrid-ready')]);
+checks.push(['unproven capabilities remain explicitly non-native',realizations.some(x=>x.status==='bridge-required'||x.status==='specified-only')]);
+checks.push(['every native-ready realization names a concrete internal route and evidence module',realizations.filter(x=>x.status==='native-ready').every(x=>String(x.route).startsWith('/api/')&&String(x.evidence_module).startsWith('worker/src/'))]);
 checks.push(['plugin account authorization is not assumed',runtimeSummary.plugin_authorization_state==='not-assumed']);
 
 const failed=checks.filter(([,ok])=>!ok);

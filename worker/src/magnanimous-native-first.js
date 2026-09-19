@@ -4,6 +4,7 @@ import { getIntegrationCatalog } from './magnanimous-integration-catalog.js';
 import { upsertApprovedTeachingTool } from './magnanimous-tool-foundry.js';
 import { getPersistentConnectorAbsorptionManifest, getCapabilityAbsorptionManifest, getCapabilityResearchRecord, getConnectorAbsorptionCatalog, getConnectorAbsorptionSummary } from './magnanimous-connector-absorption.js';
 import { OGENIC_SKILL_SNAPSHOT, OGENIC_CAPABILITY_GROUPS, GOD_MODE_TOOL_FAMILIES, NETWALK_NATIVE_CONTRACT } from './magnanimous-ogenic-god-toolkit.js';
+import { getCapabilityRealizationSummary, listCapabilityRealizations } from './magnanimous-capability-realization.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -201,6 +202,7 @@ async function overview(env){
  await seedMatrix(env);await seedNativeRecipes(env);
  const {results=[]}=env?.DB?await env.DB.prepare('SELECT id,name,family,status,boundary,capabilities_json,benchmarks_json,notes,updated_at FROM magnanimous_native_capability_matrix ORDER BY CASE status WHEN \'native\' THEN 0 WHEN \'specified\' THEN 1 ELSE 2 END,name').all():{results:[]};
  const capabilities=results.map(x=>({...x,capabilities:JSON.parse(x.capabilities_json||'[]'),benchmarks:JSON.parse(x.benchmarks_json||'[]')}));
+ const realization=await getCapabilityRealizationSummary(env);
  return{
   identity:'Magnanimous AI',architecture:'native-first',brain_owner:'Magnanimous',god_coding_internal:true,self_development_enabled:true,
   external_plugins_required_for_core_brain:false,external_adapters_required_for_core_brain:false,
@@ -209,6 +211,7 @@ async function overview(env){
   engineering_architecture_policy:'Decompose large responsibilities, apply SOLID boundaries, and compose small services through dependency injection so external adapters remain replaceable.',
   capability_count:capabilities.length,native_count:capabilities.filter(x=>x.status==='native').length,specified_count:capabilities.filter(x=>x.status==='specified').length,
   connector_absorption:getConnectorAbsorptionSummary(),
+  capability_realization:realization,
   ogenic_god_toolkit:{absorbed:true,skill_count:OGENIC_SKILL_SNAPSHOT.skills.length,capability_group_count:OGENIC_CAPABILITY_GROUPS.length,tool_family_count:GOD_MODE_TOOL_FAMILIES.length,netwalk_mode:NETWALK_NATIVE_CONTRACT.mode,initiative:'suggest-and-initiate-safe-actions'},
   capabilities
  };
@@ -268,6 +271,11 @@ export async function handleMagnanimousNativeFirst(request,env){
   const {results=[]}=await env.DB.prepare(`SELECT connector_id,capability_id,connector_name,category,native_target,boundary,source_kind,status,research_json,spec_json,updated_at FROM magnanimous_connector_capability_absorption ${whereSql} ORDER BY connector_id,capability_id LIMIT ${limit} OFFSET ${offset}`).bind(...bind).all();
   const total=Number(countRow?.count||0);
   return json({identity:'Magnanimous AI',scope,summary:getConnectorAbsorptionSummary(),total,limit,offset,next_offset:offset+results.length<total?offset+results.length:null,capabilities:results.map(x=>({...x,research:JSON.parse(x.research_json||'{}'),spec:JSON.parse(x.spec_json||'{}'),research_json:undefined,spec_json:undefined})),policy:getConnectorAbsorptionSummary().absorption_policy});
+ }
+ if(request.method==='GET'&&path==='/api/magnanimous/native-first/realizations'){
+  const status=clip(url.searchParams.get('status'),40),goal=clip(url.searchParams.get('goal'),1000),limit=Math.max(1,Math.min(200,Number(url.searchParams.get('limit')||80))),offset=Math.max(0,Number(url.searchParams.get('offset')||0));
+  const rows=await listCapabilityRealizations(env,{status,goal,limit,offset}),summary=await getCapabilityRealizationSummary(env);
+  return json({identity:'Magnanimous AI',mode:'evidence-gated-capability-realization',summary,limit,offset,items:rows,note:'native-ready means a Magnanimous-owned runtime execution surface is proven. hybrid-ready preserves a real external boundary. bridge-required and specified-only are never falsely labeled native.'});
  }
  if(request.method==='POST'&&path==='/api/magnanimous/native-first/assimilate')return assimilate(request,env);
  if(request.method==='POST'&&path==='/api/magnanimous/native-first/self-develop')return selfDevelop(request,env,auth.user);

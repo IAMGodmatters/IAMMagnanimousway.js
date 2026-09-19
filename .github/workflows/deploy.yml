@@ -85,10 +85,23 @@ jobs:
           print(d['source_digest'])
           PY
           )
+          realization_counts=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/magnanimous-full-brain/manifest-metadata.json'))
+          print(','.join(str(d[k]) for k in ['native_ready','hybrid_ready','bridge_required','specified_only']))
+          PY
+          )
 
           (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT
             (SELECT COUNT(*) FROM magnanimous_connector_capability_absorption WHERE status='tool-foundry-specified') AS ledger_count,
             (SELECT COUNT(*) FROM magnanimous_native_tool_specs WHERE tenant_id='__magnanimous_global__' AND user_id='system:auto-qa') AS tool_spec_count,
+            (SELECT COUNT(*) FROM magnanimous_capability_realizations) AS realization_count,
+            (SELECT native_ready_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS native_ready_count,
+            (SELECT hybrid_ready_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS hybrid_ready_count,
+            (SELECT bridge_required_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS bridge_required_count,
+            (SELECT specified_only_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS specified_only_count,
+            (SELECT source_digest FROM magnanimous_capability_realization_state WHERE id='full-brain') AS realization_digest,
+            (SELECT status FROM magnanimous_capability_realization_state WHERE id='full-brain') AS realization_status,
             magnanimous_capability_materialization_state.manifest_count AS manifest_count,
             magnanimous_capability_materialization_state.ledger_count AS recorded_ledger_count,
             magnanimous_capability_materialization_state.tool_spec_count AS recorded_tool_spec_count,
@@ -96,7 +109,7 @@ jobs:
             magnanimous_capability_materialization_state.status AS status
             FROM magnanimous_capability_materialization_state WHERE id='full-brain';" > /tmp/magnanimous-full-brain/verify.json)
 
-          EXPECTED="$expected" DIGEST="$digest" python - <<'PY'
+          EXPECTED="$expected" DIGEST="$digest" REALIZATION_COUNTS="$realization_counts" python - <<'PY'
           import json, os
           payload=json.load(open('/tmp/magnanimous-full-brain/verify.json'))
           rows=[]
@@ -112,14 +125,23 @@ jobs:
           row=rows[-1]
           expected=int(os.environ['EXPECTED'])
           digest=os.environ['DIGEST']
+          native_ready,hybrid_ready,bridge_required,specified_only=map(int,os.environ['REALIZATION_COUNTS'].split(','))
           assert int(row['manifest_count']) == expected, row
           assert int(row['ledger_count']) >= expected, row
           assert int(row['tool_spec_count']) >= expected, row
           assert int(row['recorded_ledger_count']) == expected, row
           assert int(row['recorded_tool_spec_count']) == expected, row
+          assert int(row['realization_count']) == expected, row
+          assert int(row['native_ready_count']) == native_ready, row
+          assert int(row['hybrid_ready_count']) == hybrid_ready, row
+          assert int(row['bridge_required_count']) == bridge_required, row
+          assert int(row['specified_only_count']) == specified_only, row
+          assert native_ready+hybrid_ready+bridge_required+specified_only == expected, row
+          assert row['realization_digest'] == digest, row
+          assert row['realization_status'] == 'complete', row
           assert row['source_digest'] == digest, row
           assert row['status'] == 'complete', row
-          print(f"Full Magnanimous capability brain materialized: {expected} specifications.")
+          print(f"Full Magnanimous capability brain materialized: {expected} specifications; realization registry verified ({native_ready} native-ready, {hybrid_ready} hybrid-ready, {bridge_required} bridge-required, {specified_only} specified-only).")
           PY
 
       - name: Sync optional protected Worker secrets
