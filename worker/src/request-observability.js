@@ -46,6 +46,16 @@ export function applyPlatformResponseHeaders(request,response){
   return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
 }
 
+function d1DailyLimit(error){
+  const message=`${String(error?.message||'')} ${String(error?.cause?.message||'')}`.toLowerCase();
+  if(message.includes("exceeded d1's free tier daily row write limit"))return'write';
+  if(message.includes("exceeded d1's free tier daily row read limit"))return'read';
+  return'';
+}
+function nextUtcReset(){
+  const d=new Date();return new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+1,0,0,0)).toISOString();
+}
+
 export function unhandledRequestFailure(request,error){
   const id=requestCorrelationId(request);
   const url=new URL(request.url);
@@ -56,6 +66,15 @@ export function unhandledRequestFailure(request,error){
     path:url.pathname,
     error:message
   });
+  const d1Limit=d1DailyLimit(error);
+  if(url.pathname.startsWith('/api/')&&d1Limit){
+    return Response.json({
+      detail:'Database capacity is temporarily unavailable because the Cloudflare D1 Free daily row '+d1Limit+' limit has been reached.',
+      code:d1Limit==='write'?'D1_DAILY_ROW_WRITE_LIMIT':'D1_DAILY_ROW_READ_LIMIT',
+      request_id:id,
+      resets_at_utc:nextUtcReset()
+    },{status:503,headers:{'cache-control':'no-store','retry-after':'3600'}});
+  }
   if(url.pathname.startsWith('/api/')){
     return Response.json({detail:'An unexpected server error occurred.',code:'INTERNAL_ERROR',request_id:id},{status:500,headers:{'cache-control':'no-store'}});
   }
