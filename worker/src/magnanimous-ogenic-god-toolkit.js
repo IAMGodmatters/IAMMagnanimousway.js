@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { handleMagnanimousDevAgent } from './magnanimous-dev-agent.js';
+import { hasReadyLocalBridge, findReadyLocalBridgeDevice, handleMagnanimousLocalBridge } from './magnanimous-local-bridge-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const clip=(v,n=4000)=>String(v??'').trim().slice(0,n);
@@ -103,7 +104,7 @@ function consequence(goal){
  return'auto-initiate';
 }
 function surfaceStatus(goal,env={}){
- const mode=classifyMode(goal),localReady=Boolean(env?.MAGNANIMOUS_LOCAL_BRIDGE_URL),repoReady=Boolean(env?.GITHUB_PLATFORM_TOKEN);
+ const mode=classifyMode(goal),localReady=Boolean(env?.MAGNANIMOUS_LOCAL_BRIDGE_READY||env?.MAGNANIMOUS_LOCAL_BRIDGE_URL),repoReady=Boolean(env?.GITHUB_PLATFORM_TOKEN);
  if(mode==='LOCAL'&&!localReady)return'LOCAL_BRIDGE_REQUIRED';
  if(mode==='HYBRID'&&!localReady)return repoReady?'LOCAL_BRIDGE_REQUIRED':'CONNECTOR_REQUIRED';
  if(mode==='LOCAL'&&localReady)return'READY_LOCAL';
@@ -114,7 +115,7 @@ function surfaceStatus(goal,env={}){
 function isNetwalk(goal){return /netwalk|network survey|network audit|scan (?:my |the )?(?:lan|network|site)|router health|switch health|topology map/.test(String(goal||'').toLowerCase())}
 
 export function buildMagnanimousOgenicPlan(goal,env={}){
- const text=clip(goal,4000),mode=classifyMode(text),groups=requestGroups(text),initiative=consequence(text),status=isNetwalk(text)&&!env?.MAGNANIMOUS_LOCAL_BRIDGE_URL?'LOCAL_BRIDGE_REQUIRED':surfaceStatus(text,env);
+ const text=clip(goal,4000),mode=classifyMode(text),groups=requestGroups(text),initiative=consequence(text),localReady=Boolean(env?.MAGNANIMOUS_LOCAL_BRIDGE_READY||env?.MAGNANIMOUS_LOCAL_BRIDGE_URL),status=isNetwalk(text)&&!localReady?'LOCAL_BRIDGE_REQUIRED':surfaceStatus(text,env);
  const selected=OGENIC_CAPABILITY_GROUPS.filter(x=>groups.includes(x.id));
  const actions=[
   {step:'inspect',initiative:'auto-initiate',instruction:'Resolve the exact target and inspect the minimum current state before proposing a change.'},
@@ -162,24 +163,62 @@ async function initiateDeveloperPlan(request,env,goal,body){
  return handleMagnanimousDevAgent(nested,env);
 }
 
+function localActionForGoal(goal,body={}){
+ const g=String(goal||'').toLowerCase();
+ if(/system info|computer info|machine info/.test(g))return'system_info';
+ if(/health|disk space|computer status|machine status/.test(g))return'health';
+ if(/git status/.test(g))return'git_status';
+ if(/git diff|show diff/.test(g))return'git_diff';
+ if(/git log|commit history/.test(g))return'git_log';
+ if(/\btypecheck\b|type check/.test(g))return'project_typecheck';
+ if(/\blint\b/.test(g))return'project_lint';
+ if(/\btest(?:s|ing)?\b/.test(g))return'project_test';
+ if(/\bbuild\b/.test(g))return'project_build';
+ if(/netwalk.*probe|probe.*(?:router|switch|device)/.test(g))return'netwalk_probe';
+ if(/netwalk.*(?:survey|scan)|(?:survey|scan).*(?:lan|network)/.test(g))return'netwalk_scan';
+ if(/netwalk.*diag|diagnos.*(?:router|switch|network)/.test(g))return'netwalk_diag';
+ if(/topology map|netwalk.*map/.test(g))return'netwalk_map';
+ if(/netwalk.*report|network report/.test(g))return'netwalk_report';
+ if(/apply patch|patch (?:the )?(?:file|code)/.test(g)&&body?.local_payload?.patch)return'apply_patch';
+ if(/create (?:a )?(?:git )?branch/.test(g)&&body?.local_payload?.branch)return'git_create_branch';
+ if(/git commit|commit (?:the )?(?:changes|files)/.test(g)&&body?.local_payload?.message)return'git_commit';
+ if(/fetch (?:the )?(?:url|page)|web fetch/.test(g)&&body?.local_payload?.url)return'web_fetch';
+ return'';
+}
+async function initiateLocalBridgeAction(request,env,user,goal,body={}){
+ const action=localActionForGoal(goal,body);if(!action)return null;
+ const device=await findReadyLocalBridgeDevice(env,user.tenant_id,action);
+ if(!device)return json({ok:false,initiated:false,code:'LOCAL_CAPABILITY_NOT_READY',action,detail:'A local bridge is online, but no paired device currently advertises this exact capability.'},409);
+ const payload={...(body.local_payload||{})};
+ if(body.workspace&&!payload.workspace)payload.workspace=body.workspace;
+ const headers=new Headers(request.headers);headers.set('content-type','application/json');
+ const nested=new Request(new URL('/api/magnanimous/local-bridge/tasks',request.url),{method:'POST',headers,body:JSON.stringify({device_id:device.id,action,payload})});
+ const response=await handleMagnanimousLocalBridge(nested,env),data=await response.clone().json().catch(()=>({}));
+ return json({ok:response.ok,initiated:response.ok&&!data.requires_confirmation,initiative:'local-bridge-task',device:{id:device.id,name:device.name,platform:device.platform},action,task:data,truth_boundary:data.requires_confirmation?'The exact local mutation is staged and still requires separate owner confirmation.':'The action is queued only because a paired device explicitly advertises this capability.'},response.status);
+}
+
 export async function handleMagnanimousOgenic(request,env){
  const url=new URL(request.url),path=url.pathname;
  if(!path.startsWith('/api/magnanimous/ogenic'))return null;
  const user=await authUser(request,env);if(!user)return json({detail:'Sign in required.'},401);
+ const localBridgeReady=await hasReadyLocalBridge(env,user.tenant_id),runtimeEnv=localBridgeReady?{...env,MAGNANIMOUS_LOCAL_BRIDGE_READY:true}:env;
  if(request.method==='GET'&&path==='/api/magnanimous/ogenic')return json({
-  identity:'Magnanimous AI',mode:'native-ogenic-god-toolkit',skills:OGENIC_SKILL_SNAPSHOT,groups:OGENIC_CAPABILITY_GROUPS,tool_families:GOD_MODE_TOOL_FAMILIES,status_vocabulary:OGENIC_STATUS,initiative_policy:OGENIC_INITIATIVE_POLICY,netwalk:NETWALK_NATIVE_CONTRACT,
+  identity:'Magnanimous AI',mode:'native-ogenic-god-toolkit',skills:OGENIC_SKILL_SNAPSHOT,groups:OGENIC_CAPABILITY_GROUPS,tool_families:GOD_MODE_TOOL_FAMILIES,status_vocabulary:OGENIC_STATUS,initiative_policy:OGENIC_INITIATIVE_POLICY,netwalk:NETWALK_NATIVE_CONTRACT,local_bridge:{ready:localBridgeReady,transport:'outbound-only'},
   note:'OGENIC observable capability patterns are absorbed into Magnanimous. Proprietary implementation is not copied; real external/local execution still requires the corresponding authorized surface.'
  });
  if(request.method==='POST'&&path==='/api/magnanimous/ogenic/plan'){
   const body=await request.json().catch(()=>({})),goal=clip(body.goal,4000);
   if(!goal)return json({detail:'Goal is required.'},400);
-  return json({ok:true,plan:buildMagnanimousOgenicPlan(goal,env)});
+  return json({ok:true,plan:buildMagnanimousOgenicPlan(goal,runtimeEnv)});
  }
  if(request.method==='POST'&&path==='/api/magnanimous/ogenic/initiate'){
   const body=await request.json().catch(()=>({})),goal=clip(body.goal,4000);
   if(!goal)return json({detail:'Goal is required.'},400);
-  const plan=buildMagnanimousOgenicPlan(goal,env);
-  if(plan.netwalk&&!env?.MAGNANIMOUS_LOCAL_BRIDGE_URL)return json({ok:false,initiated:false,plan,code:'LOCAL_BRIDGE_REQUIRED',detail:'The Netwalk capability contract is absorbed, but an authorized local bridge is required to reach private network devices. No scan was simulated.'},409);
+  const plan=buildMagnanimousOgenicPlan(goal,runtimeEnv);
+  if((plan.classification==='LOCAL'||plan.classification==='HYBRID')&&localBridgeReady){
+   const local=await initiateLocalBridgeAction(request,env,user,goal,body);if(local)return local;
+  }
+  if(plan.netwalk&&!localBridgeReady)return json({ok:false,initiated:false,plan,code:'LOCAL_BRIDGE_REQUIRED',detail:'The Netwalk capability contract is absorbed, but an authorized paired local bridge is required to reach private network devices. No scan was simulated.'},409);
   if(plan.groups.some(x=>x.id==='code-system')&&Boolean(env?.GITHUB_PLATFORM_TOKEN)){
    const response=await initiateDeveloperPlan(request,env,goal,body);
    const data=await response.clone().json().catch(()=>({}));
