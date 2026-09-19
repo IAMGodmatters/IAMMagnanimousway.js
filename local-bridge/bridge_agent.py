@@ -559,6 +559,24 @@ def _browser_flow(config, payload, *, allow_actions):
                 amount = max(-6000, min(6000, int(step.get("pixels") or 800)))
                 page.mouse.wheel(0, amount)
                 outputs.append({"step": index+1, "op": op, "pixels": amount})
+            elif op == "extract_elements":
+                selector = str(step.get("css") or "a,button,input,select,textarea,[role]").strip()
+                limit = max(1, min(200, int(step.get("limit") or 80)))
+                elements = page.locator(selector).evaluate_all(
+                    """(els, limit) => els.slice(0, limit).map((el, i) => ({
+                        index:i, tag:el.tagName.toLowerCase(), role:el.getAttribute('role')||'',
+                        text:(el.innerText||el.textContent||'').trim().slice(0,500),
+                        name:el.getAttribute('name')||'', type:el.getAttribute('type')||'',
+                        placeholder:el.getAttribute('placeholder')||'', href:el.href||''
+                    }))""",
+                    limit
+                )
+                outputs.append({"step": index+1, "op": op, "elements": elements})
+            elif op == "screenshot":
+                data = page.screenshot(type="jpeg", quality=55, full_page=bool(step.get("full_page")))
+                if len(data) > 350000:
+                    raise RuntimeError("Screenshot exceeds the safe bridge result size.")
+                outputs.append({"step": index+1, "op": op, "content_type": "image/jpeg", "base64": base64.b64encode(data).decode("ascii")})
             elif allow_actions and op == "click":
                 _locator(page, step).click(timeout=max(1000, min(30000, int(step.get("timeout_ms") or 10000))))
                 outputs.append({"step": index+1, "op": op, "url": page.url})
@@ -582,15 +600,10 @@ def _browser_flow(config, payload, *, allow_actions):
                 value = str(step.get("value") or "")
                 _locator(page, step).select_option(value=value)
                 outputs.append({"step": index+1, "op": op, "selected": True})
-            elif allow_actions and op == "screenshot":
-                data = page.screenshot(type="jpeg", quality=55, full_page=bool(step.get("full_page")))
-                if len(data) > 350000:
-                    raise RuntimeError("Screenshot exceeds the safe bridge result size.")
-                outputs.append({"step": index+1, "op": op, "content_type": "image/jpeg", "base64": base64.b64encode(data).decode("ascii")})
             else:
-                allowed = ["goto","wait_ms","wait_for","extract_text","extract_links","snapshot","scroll"]
+                allowed = ["goto","wait_ms","wait_for","extract_text","extract_links","extract_elements","snapshot","scroll","screenshot"]
                 if allow_actions:
-                    allowed += ["click","fill","press","select","screenshot"]
+                    allowed += ["click","fill","press","select"]
                 raise RuntimeError(f"Browser operation '{op}' is not allowed. Allowed: {', '.join(allowed)}")
         return {"ok": True, "profile": profile, "final": _browser_snapshot(page, 30000), "steps": outputs, "native": True}
     finally:
