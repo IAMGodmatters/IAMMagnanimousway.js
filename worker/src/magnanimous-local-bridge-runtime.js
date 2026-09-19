@@ -114,6 +114,22 @@ export async function hasReadyLocalBridge(env,tenantId){
  const row=await env.DB.prepare("SELECT id FROM magnanimous_local_bridge_devices WHERE tenant_id=? AND status='active' AND last_seen_at>=? LIMIT 1").bind(String(tenantId),now()-ACTIVE_WINDOW).first();
  return Boolean(row?.id);
 }
+export async function hasAnyReadyLocalBridge(env){
+ if(!env?.DB)return false;
+ await ensureSchema(env);
+ const row=await env.DB.prepare("SELECT id FROM magnanimous_local_bridge_devices WHERE status='active' AND last_seen_at>=? LIMIT 1").bind(now()-ACTIVE_WINDOW).first();
+ return Boolean(row?.id);
+}
+export async function findReadyLocalBridgeDevice(env,tenantId,action=''){
+ if(!env?.DB||!tenantId)return null;
+ await ensureSchema(env);
+ const {results=[]}=await env.DB.prepare("SELECT * FROM magnanimous_local_bridge_devices WHERE tenant_id=? AND status='active' AND last_seen_at>=? ORDER BY last_seen_at DESC").bind(String(tenantId),now()-ACTIVE_WINDOW).all();
+ for(const row of results){
+  let caps=[];try{caps=JSON.parse(row.capabilities_json||'[]')}catch{}
+  if(!action||caps.includes(action))return publicDevice(row);
+ }
+ return null;
+}
 async function overview(env,user){
  const {results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_local_bridge_devices WHERE tenant_id=? ORDER BY last_seen_at DESC').bind(String(user.tenant_id)).all();
  const pending=Number((await env.DB.prepare("SELECT COUNT(*) n FROM magnanimous_local_bridge_tasks WHERE tenant_id=? AND status IN ('queued','claimed','needs_confirmation')").bind(String(user.tenant_id)).first())?.n||0);
