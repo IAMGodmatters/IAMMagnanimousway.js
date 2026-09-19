@@ -278,7 +278,12 @@ export function getConnectorAbsorptionPrompt(goal=''){
  const ranked=rankAbsorbedCapabilities(goal,10);
  if(!ranked.length)return'';
  const lines=['MAGNANIMOUS ABSORBED CONNECTOR / PLUGIN TOOL / PLUGIN SKILL SPECS:'];
- for(const x of ranked)lines.push(`- ${x.capability} → native target ${x.native_target||'Magnanimous core'}; boundary=${x.boundary}; benchmark=${x.connector_name}.`);
+ for(const x of ranked){
+  const initiative=x.initiative||{};
+  const action=initiative.auto_initiate?'safe-read/verification may be initiated when the required surface is available':initiative.requires_confirmation?'suggest/stage only until the existing confirmation/permission gate is satisfied':'suggest and route through the authorized execution surface';
+  lines.push(`- ${x.capability} → native target ${x.native_target||'Magnanimous core'}; boundary=${x.boundary}; benchmark=${x.connector_name}; initiative=${action}.`);
+ }
  lines.push('Treat these as Magnanimous-owned workflow/skill specifications, not proof that an external account is connected or that every capability is already fully native. ChatGPT-visible plugin and installed-skill contracts do not imply authorization inside I AM. Only observable skill purposes are learned; private skill implementation files are not copied. Keep provider-specific accounts and rails replaceable.');
+ lines.push('INITIATIVE RULE: suggest useful next actions proactively. Auto-initiate only read-only inspection, research, status, test, preview, and verification operations that are actually available and authorized. Writes, code execution, database mutation, provisioning, publishing/deployment, messaging/calling, payments, credentials, permissions, deletion, and destructive actions must use their existing confirmation/permission gates and real tool results.');
  return lines.join('\n');
 }
