@@ -51,7 +51,7 @@ for(const row of rows){
 const chunks=[];
 const chunkSize=80;
 for(let offset=0;offset<rows.length;offset+=chunkSize){
- const part=rows.slice(offset,offset+chunkSize),statements=['BEGIN TRANSACTION;'];
+ const part=rows.slice(offset,offset+chunkSize),statements=[];
  for(const row of part){
   const research=getCapabilityResearchRecord(row);
   const spec={
@@ -86,18 +86,15 @@ ON CONFLICT(connector_id,capability_id) DO UPDATE SET connector_name=excluded.co
 VALUES(${q(GLOBAL_TOOL_TENANT)},${q(GLOBAL_TOOL_USER)},${q(name)},${q(purpose)},${q(family)},${q(JSON.stringify(inputs).slice(0,30000))},${q(JSON.stringify(outputs).slice(0,30000))},${q(JSON.stringify(steps).slice(0,50000))},${q(risk)},${q(status)},${now},${now})
 ON CONFLICT(tenant_id,user_id,name) DO UPDATE SET purpose=excluded.purpose,family=excluded.family,inputs_json=excluded.inputs_json,outputs_json=excluded.outputs_json,steps_json=excluded.steps_json,risk=excluded.risk,status=CASE WHEN magnanimous_native_tool_specs.status='ready' THEN 'ready' ELSE excluded.status END,updated_at=excluded.updated_at;`);
  }
- statements.push('COMMIT;');
  const index=String(chunks.length+1).padStart(3,'0');
  const file=path.join(outDir,`${index}-materialize.sql`);
  fs.writeFileSync(file,statements.join('\n'));
  chunks.push(file);
 }
 const digest=crypto.createHash('sha256').update(rows.map(x=>`${x.connector_id}\t${x.capability}\t${x.source_kind}\n`).join('')).digest('hex');
-const finalSql=`BEGIN TRANSACTION;
-INSERT INTO magnanimous_capability_materialization_state(id,manifest_count,ledger_count,tool_spec_count,source_digest,status,updated_at)
+const finalSql=`INSERT INTO magnanimous_capability_materialization_state(id,manifest_count,ledger_count,tool_spec_count,source_digest,status,updated_at)
 VALUES('full-brain',${rows.length},${rows.length},${rows.length},${q(digest)},'complete',${now})
 ON CONFLICT(id) DO UPDATE SET manifest_count=excluded.manifest_count,ledger_count=excluded.ledger_count,tool_spec_count=excluded.tool_spec_count,source_digest=excluded.source_digest,status='complete',updated_at=excluded.updated_at;
-COMMIT;
 `;
 const finalFile=path.join(outDir,`${String(chunks.length+1).padStart(3,'0')}-state.sql`);
 fs.writeFileSync(finalFile,finalSql);
