@@ -67,7 +67,7 @@ assert(installer.includes('New-ScheduledTaskAction'),'Windows installer should c
 assert(installer.includes('Python.Python.3.13'),'Windows bootstrap should be able to install Python when missing');
 assert(installer.includes('Test-PythonCandidate'),'Windows bootstrap must execute-test Python candidates instead of trusting command discovery');
 assert(installer.includes('os.path.realpath(sys.executable)'),'Windows bootstrap must resolve the real Python executable');
-assert(installer.includes('WindowsApps\\\\python(3)?\\.exe
+assert(installer.includes('WindowsApps\\\\python'),'Windows bootstrap must reject Microsoft Store App Execution Alias stubs');
 assert(installer.includes('Git.Git'),'Windows bootstrap should optionally install Git when missing');
 assert(installer.includes('MagnanimousWorkspace'),'Windows bootstrap should provide a safe default workspace');
 assert(installer.includes('automatic health check'),'Windows bootstrap should explain activation verification');
