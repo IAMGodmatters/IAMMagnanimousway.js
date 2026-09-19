@@ -9,6 +9,7 @@ const adminCompat=read('worker/src/admin-compat-entrypoint.js');
 const migration=read('worker/migrations/0080_runtime_bootstrap_quota_hardening.sql');
 const authMigration=read('worker/migrations/0081_admin_auth_quota_hardening.sql');
 const deploy=read('.github/workflows/deploy.yml');
+const maintenance=read('.github/workflows/d1-deferred-maintenance.yml');
 
 const checks=[];
 const add=(name,ok)=>checks.push([name,Boolean(ok)]);
@@ -66,6 +67,9 @@ add('migration defer requires exact Cloudflare D1 write-limit text',deploy.inclu
 add('migration confirmation is noninteractive without unsupported Wrangler flags',deploy.includes("printf 'y\\n' | npx wrangler d1 migrations apply iam-magnanimous-db --remote")&&!deploy.includes('migrations apply iam-magnanimous-db --remote --yes'));
 add('migration defer proves all always-required runtime/auth tables already exist',deploy.includes("required={'tenant_settings','ads','settings','security_rate_limits','auth_events'}")&&deploy.includes('required production tables already exist'));
 add('auth_config remains migration-owned but optional during quota deferral when SESSION_SECRET is configured',authMigration.includes('CREATE TABLE IF NOT EXISTS auth_config')&&deploy.includes('auth_config may remain pending because SESSION_SECRET'));
+add('deploy guarantees a persistent Worker SESSION_SECRET without exposing its value',deploy.includes('Ensure persistent Worker session secret')&&deploy.includes('wrangler secret list --format json')&&deploy.includes('openssl rand -hex 48')&&deploy.includes('wrangler secret put SESSION_SECRET')&&deploy.includes('without exposing its value'));
+add('deferred D1 maintenance retries after the UTC quota reset',maintenance.includes("cron: '17 0 * * *'")&&maintenance.includes('Apply deferred D1 migrations')&&maintenance.includes('materialize-full-brain-d1.mjs'));
+add('deferred maintenance remains idempotent and verifies the checked-in brain digest',maintenance.includes('Production D1 already matches full-brain digest')&&maintenance.includes("assert row['source_digest'] == os.environ['DIGEST']")&&maintenance.includes("assert row['status'] == 'complete'"));
 add('non-quota migration failures still stop deployment',deploy.includes('else\n              exit "$rc"'));
 add('ordinary signup failures still fail deployment',deploy.includes('Signup smoke test returned HTTP $status')&&deploy.includes('exit 1'));
 add('quota branch never claims signup passed',deploy.includes('This is an external daily Free-plan limit, not a passing signup result.'));
