@@ -1,6 +1,6 @@
 import baseApp from './consent-entrypoint.js';
 import { currentUser } from './integrations.js';
-import { branchProfile, ensureBranchSchema, branchKnowledge, branchKnowledgeContext, teachBranch, submitBranchTraining, branchTrainingSubmissions, reviewBranchTrainingSubmission, isPlatformOwnerUser, GLOBAL_BRANCH_TENANT } from './agent-branch-intelligence.js';
+import { branchProfile, agenticCapabilityLadder, ensureBranchSchema, branchKnowledge, branchKnowledgeContext, teachBranch, submitBranchTraining, branchTrainingSubmissions, reviewBranchTrainingSubmission, isPlatformOwnerUser, GLOBAL_BRANCH_TENANT } from './agent-branch-intelligence.js';
 import { specialistForMessage, specialistIntroduction } from './specialist-router.js';
 
 const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...headers}});
@@ -144,7 +144,7 @@ async function branchRequest(request,env,ctx){
   const data=await response.clone().json().catch(()=>null);
   if(!data)return response;
   const publicData=publicProviderSummary(data);
-  return json({...publicData,agents:(data.agents||[]).map(a=>({...a,branch:branchProfile(a)})),architecture:'magnanimous-core-with-specialist-branches',qa_training_submission:true,automatic_qa_gate_for_contributor_learning:true,owner_oversight_required_for_held_learning:true,owner_approval_required_for_global_learning:true,legacy_qa_compatibility_note:'Legacy owner-approval flag means owner oversight remains authoritative; safe high-confidence teaching may still pass the Magnanimous automatic QA gate.'},response.status);
+  return json({...publicData,agents:(data.agents||[]).map(a=>({...a,branch:branchProfile(a)})),architecture:'magnanimous-core-with-specialist-branches',agentic_capability_ladder:agenticCapabilityLadder(),qa_training_submission:true,automatic_qa_gate_for_contributor_learning:true,owner_oversight_required_for_held_learning:true,owner_approval_required_for_global_learning:true,legacy_qa_compatibility_note:'Legacy owner-approval flag means owner oversight remains authoritative; safe high-confidence teaching may still pass the Magnanimous automatic QA gate.'},response.status);
  }
 
  const user=await currentUser(request,env);
