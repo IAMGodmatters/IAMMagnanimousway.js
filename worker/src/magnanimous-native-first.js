@@ -96,10 +96,10 @@ async function seedConnectorAbsorption(env){
  }
 }
 
-async function materializeConnectorCapabilityRecipes(env,{connector='',capability='',limit=80}={}){
+async function materializeConnectorCapabilityRecipes(env,{connector='',capability='',limit=60,pendingOnly=false}={}){
  await seedConnectorAbsorption(env);
- const where=[],bind=[];if(connector){where.push('connector_id=?');bind.push(connector)}if(capability){where.push('capability_id=?');bind.push(capability)}
- const safeLimit=Math.max(1,Math.min(120,Number(limit)||80));
+ const where=[],bind=[];if(connector){where.push('connector_id=?');bind.push(connector)}if(capability){where.push('capability_id=?');bind.push(capability)}if(pendingOnly)where.push("status!='tool-foundry-specified'");
+ const safeLimit=Math.max(1,Math.min(100,Number(limit)||60));
  const {results=[]}=await env.DB.prepare(`SELECT connector_id,capability_id,connector_name,category,native_target,boundary,source_kind,status,spec_json FROM magnanimous_connector_capability_absorption ${where.length?'WHERE '+where.join(' AND '):''} ORDER BY connector_id,capability_id LIMIT ${safeLimit}`).bind(...bind).all();
  const materialized=[];
  for(const row of results){
@@ -117,7 +117,8 @@ async function materializeConnectorCapabilityRecipes(env,{connector='',capabilit
   await env.DB.prepare("UPDATE magnanimous_connector_capability_absorption SET status='tool-foundry-specified',updated_at=? WHERE connector_id=? AND capability_id=?").bind(now(),row.connector_id,row.capability_id).run();
   materialized.push({connector_id:row.connector_id,capability:row.capability_id,native_target:row.native_target,boundary:row.boundary,status:'tool-foundry-specified'});
  }
- return materialized;
+ const remainingRow=pendingOnly?await env.DB.prepare("SELECT COUNT(*) count FROM magnanimous_connector_capability_absorption WHERE status!='tool-foundry-specified'").first():null;
+ return{items:materialized,remaining:Number(remainingRow?.count||0)};
 }
 
 async function seedNativeRecipes(env){
@@ -189,10 +190,10 @@ async function assimilate(request,env){
  const body=await request.json().catch(()=>({}));
  await seedMatrix(env);await seedNativeRecipes(env);
  const connector=clip(body.connector,120),capability=clip(body.capability,160);
- if(connector||capability){
-  const materialized=await materializeConnectorCapabilityRecipes(env,{connector,capability,limit:body.limit});
-  if(!materialized.length)return json({detail:'Connector capability not found.'},404);
-  return json({ok:true,native_first:true,mode:'one-by-one-connector-capability-absorption',materialized_count:materialized.length,capabilities:materialized,summary:getConnectorAbsorptionSummary(),note:'Each selected capability is now a reusable Magnanimous Tool Foundry specification. External account/data/network rails remain replaceable and are not falsely labeled native.'});
+ if(connector||capability||body.mode==='connector-capabilities'){
+  const bulk=body.mode==='connector-capabilities',materialized=await materializeConnectorCapabilityRecipes(env,{connector,capability,limit:body.limit,pendingOnly:bulk});
+  if(!bulk&&!materialized.items.length)return json({detail:'Connector capability not found.'},404);
+  return json({ok:true,native_first:true,mode:'one-by-one-connector-capability-absorption',materialized_count:materialized.items.length,remaining:materialized.remaining,capabilities:materialized.items,summary:getConnectorAbsorptionSummary(),note:'Each selected capability is now a reusable Magnanimous Tool Foundry specification. External account/data/network rails remain replaceable and are not falsely labeled native.'});
  }
  const requested=clip(body.target,120);
  const {results=[]}=await env.DB.prepare(`SELECT id,name,family,status,boundary,capabilities_json,benchmarks_json FROM magnanimous_native_capability_matrix ${requested?'WHERE id=?':''} ORDER BY name`).bind(...(requested?[requested]:[])).all();
