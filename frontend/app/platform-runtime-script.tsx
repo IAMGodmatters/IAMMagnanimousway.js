@@ -65,7 +65,9 @@ const runtime=`(function(){
     var active=safeGet(sessionStorage,'iam_session_active');
     var customer=safeGet(localStorage,'iam_account_token')||'';
     var owner=migrateMagnanimousSession();
+    var customerExpiresAt=Number(safeGet(localStorage,'iam_account_session_expires_at')||0);
     var ownerExpiresAt=Number(safeGet(localStorage,'magnanimous_admin_session_expires_at')||0);
+    if(customer&&customerExpiresAt&&Date.now()>=customerExpiresAt){safeRemove(localStorage,'iam_account_token');safeRemove(localStorage,'iam_account_session_expires_at');customer='';}
     if(owner&&ownerExpiresAt&&Date.now()>=ownerExpiresAt){safeRemove(localStorage,'magnanimous_admin_token');safeRemove(localStorage,'odin_admin_token');safeRemove(localStorage,'magnanimous_admin_session_expires_at');owner='';}
     if(active==='owner'&&owner)return{kind:'owner',token:owner};
     if(active==='user'&&customer)return{kind:'user',token:customer};
@@ -75,7 +77,7 @@ const runtime=`(function(){
   }
   function clearActiveSession(kind){
     if(kind==='owner'){safeRemove(localStorage,'magnanimous_admin_token');safeRemove(localStorage,'odin_admin_token');safeRemove(localStorage,'magnanimous_admin_session_expires_at');}
-    if(kind==='user')safeRemove(localStorage,'iam_account_token');
+    if(kind==='user'){safeRemove(localStorage,'iam_account_token');safeRemove(localStorage,'iam_account_session_expires_at');}
     safeRemove(sessionStorage,'iam_session_active');safeRemove(sessionStorage,'iam_session_validated_at');
   }
   function guardProtectedRoute(){
@@ -88,7 +90,7 @@ const runtime=`(function(){
     var session=activeSession();if(!session)return;
     var last=Number(safeGet(sessionStorage,'iam_session_validated_at')||0);if(last&&Date.now()-last<300000)return;
     fetch('/api/auth/me',{headers:{Authorization:'Bearer '+session.token},cache:'no-store'}).then(function(response){
-      if(response.ok){safeSet(sessionStorage,'iam_session_validated_at',String(Date.now()));if(session.kind==='owner'&&!Number(safeGet(localStorage,'magnanimous_admin_session_expires_at')||0))safeSet(localStorage,'magnanimous_admin_session_expires_at',String(Date.now()+43200000));return;}
+      if(response.ok){safeSet(sessionStorage,'iam_session_validated_at',String(Date.now()));if(session.kind==='owner'&&!Number(safeGet(localStorage,'magnanimous_admin_session_expires_at')||0))safeSet(localStorage,'magnanimous_admin_session_expires_at',String(Date.now()+43200000));if(session.kind==='user'&&!Number(safeGet(localStorage,'iam_account_session_expires_at')||0))safeSet(localStorage,'iam_account_session_expires_at',String(Date.now()+43200000));return;}
       if(response.status===401||response.status===403){clearActiveSession(session.kind);var returnTo=currentPath+(location.search||'');location.replace('/login?returnTo='+encodeURIComponent(returnTo));}
     }).catch(function(){});
   }
