@@ -41,6 +41,36 @@ for(const row of raw){
 }
 const rows=[...byLedgerKey.values()].sort((a,b)=>String(a.connector_id).localeCompare(String(b.connector_id))||String(a.capability).localeCompare(String(b.capability)));
 
+const capabilitiesByConnector=new Map();
+for(const row of rows){
+ const list=capabilitiesByConnector.get(row.connector_id)||[];
+ list.push(row.capability);
+ capabilitiesByConnector.set(row.connector_id,list);
+}
+const currentConnectorIds=[...capabilitiesByConnector.keys()].sort();
+if(!currentConnectorIds.length)throw new Error('Full-brain manifest must contain at least one connector/capability contract.');
+const currentConnectorSql=currentConnectorIds.map(q).join(',');
+const pruneStatements=[
+ `DELETE FROM magnanimous_capability_realizations WHERE connector_id NOT IN (${currentConnectorSql});`,
+ `DELETE FROM magnanimous_connector_capability_absorption WHERE status='tool-foundry-specified' AND connector_id NOT IN (${currentConnectorSql});`
+];
+for(const connectorId of currentConnectorIds){
+ const capabilities=[...new Set(capabilitiesByConnector.get(connectorId)||[])].sort();
+ const capabilitySql=capabilities.map(q).join(',');
+ pruneStatements.push(`DELETE FROM magnanimous_capability_realizations WHERE connector_id=${q(connectorId)} AND capability_id NOT IN (${capabilitySql});`);
+ pruneStatements.push(`DELETE FROM magnanimous_connector_capability_absorption WHERE status='tool-foundry-specified' AND connector_id=${q(connectorId)} AND capability_id NOT IN (${capabilitySql});`);
+}
+pruneStatements.push(`DELETE FROM magnanimous_native_tool_specs
+WHERE tenant_id=${q(GLOBAL_TOOL_TENANT)}
+ AND user_id=${q(GLOBAL_TOOL_USER)}
+ AND name LIKE 'absorb-%'
+ AND NOT EXISTS (
+  SELECT 1 FROM magnanimous_capability_realizations r
+  WHERE r.tool_name=magnanimous_native_tool_specs.name
+ );`);
+const pruneFile=path.join(outDir,'000-prune-stale.sql');
+fs.writeFileSync(pruneFile,pruneStatements.join('\n'));
+
 const toolNameOwner=new Map();
 for(const row of rows){
  const name=normalizeName(`absorb-${row.connector_id}-${row.capability}`);
@@ -164,7 +194,9 @@ const metadata={
  bridge_required:realizationCounts['bridge-required'],
  specified_only:realizationCounts['specified-only'],
  global_tool_tenant:GLOBAL_TOOL_TENANT,
- global_tool_user:GLOBAL_TOOL_USER
+ global_tool_user:GLOBAL_TOOL_USER,
+ prune_file:path.basename(pruneFile),
+ prune_strategy:'current-manifest-membership-only'
 };
 fs.writeFileSync(path.join(outDir,'manifest-metadata.json'),JSON.stringify(metadata,null,2));
 console.log(JSON.stringify(metadata));
