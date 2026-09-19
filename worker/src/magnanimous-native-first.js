@@ -98,8 +98,15 @@ async function seedConnectorAbsorption(env,{scope='direct'}={}){
  for(let i=0;i<statements.length;i+=50)await env.DB.batch(statements.slice(i,i+50));
 }
 
-async function materializeConnectorCapabilityRecipes(env,{connector='',capability='',limit=60,pendingOnly=false}={}){
- await seedConnectorAbsorption(env,{scope:'full'});
+function absorbedRecipeRisk(row){
+ const hay=`${row.category||''} ${row.capability_id||''} ${row.connector_name||''}`.toLowerCase();
+ if(/payment|charge|refund|payout|bank|transfer|delete|remove|revoke|uninstall|credential|secret|permission|security|firewall|domain|deploy|publish|send|reply|forward|call|sms|message|order|purchase|checkout/.test(hay))return'high';
+ if(/create|update|write|edit|commit|merge|branch|upload|invite|schedule|book|campaign|adset|advert|crm|sales|commerce|email|calendar|social|messaging|operations|deployment|engineering/.test(hay))return'medium';
+ return'low';
+}
+
+async function materializeConnectorCapabilityRecipes(env,{connector='',capability='',limit=60,pendingOnly=false,seed=true}={}){
+ if(seed)await seedConnectorAbsorption(env,{scope:'full'});
  const where=[],bind=[];if(connector){where.push('connector_id=?');bind.push(connector)}if(capability){where.push('capability_id=?');bind.push(capability)}if(pendingOnly)where.push("status!='tool-foundry-specified'");
  const safeLimit=Math.max(1,Math.min(100,Number(limit)||60));
  const {results=[]}=await env.DB.prepare(`SELECT connector_id,capability_id,connector_name,category,native_target,boundary,source_kind,status,spec_json FROM magnanimous_connector_capability_absorption ${where.length?'WHERE '+where.join(' AND '):''} ORDER BY connector_id,capability_id LIMIT ${safeLimit}`).bind(...bind).all();
@@ -110,7 +117,7 @@ async function materializeConnectorCapabilityRecipes(env,{connector='',capabilit
    agentId:'magnanimous-native-first',
    name:`absorb-${row.connector_id}-${row.capability_id}`,
    family:`native-${row.category}`,
-   risk:['payments','telephony'].includes(row.category)?'high':['sales','crm','marketing','commerce','operations','email','calendar','social','messaging','work','deployment','engineering'].includes(row.category)?'medium':'low',
+   risk:absorbedRecipeRisk(row),
    requiresConnection:String(row.boundary||'').includes('external')||String(row.boundary||'').includes('account')||String(row.boundary||'').includes('rail'),
    purpose:`Magnanimous-owned workflow specification for ${row.capability_id}, benchmarked against ${row.connector_name}. Magnanimous owns reasoning, memory, workflow and verification; any unavoidable outside account/data/network/compute boundary remains a replaceable adapter.`,
    requiredCapabilities:[row.capability_id],
@@ -212,7 +219,7 @@ async function assimilate(request,env){
  await seedMatrix(env);await seedNativeRecipes(env);
  const connector=clip(body.connector,120),capability=clip(body.capability,160);
  if(connector||capability||body.mode==='connector-capabilities'||body.mode==='full-brain-capabilities'){
-  const bulk=body.mode==='connector-capabilities'||body.mode==='full-brain-capabilities',materialized=await materializeConnectorCapabilityRecipes(env,{connector,capability,limit:body.limit,pendingOnly:bulk});
+  const bulk=body.mode==='connector-capabilities'||body.mode==='full-brain-capabilities',materialized=await materializeConnectorCapabilityRecipes(env,{connector,capability,limit:body.limit,pendingOnly:bulk,seed:body.seed!==false});
   if(!bulk&&!materialized.items.length)return json({detail:'Capability contract not found.'},404);
   return json({ok:true,native_first:true,mode:'one-by-one-full-brain-capability-absorption',materialized_count:materialized.items.length,remaining:materialized.remaining,capabilities:materialized.items,summary:getConnectorAbsorptionSummary(),note:'Direct connectors, observable plugin tools, and observable installed skill purposes use the same Magnanimous Tool Foundry materialization path. External authorization, live provider data, payment/network rails, hosting and specialized compute remain replaceable boundaries and are not falsely labeled native.'});
  }
