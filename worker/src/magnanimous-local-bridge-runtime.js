@@ -114,6 +114,26 @@ function validateTask(action,payload){
   let u;try{u=new URL(String(body.url||''))}catch{}
   if(!u||!['http:','https:'].includes(u.protocol))throw new Error('web_fetch requires an http(s) URL.');
  }
+ if(action==='browser_search'&&!clip(body.query,2000))throw new Error('browser_search requires query.');
+ if(['browser_fetch','browser_profile_setup'].includes(action)){
+  let u;try{u=new URL(String(body.url||''))}catch{}
+  if(!u||!['http:','https:'].includes(u.protocol))throw new Error(action+' requires an http(s) URL.');
+  const host=String(u.hostname||'').toLowerCase();
+  if(host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||/^127\.|^0\.|^169\.254\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host))throw new Error('Native browser private/local targets are blocked.');
+ }
+ if(['browser_read_flow','browser_action_flow'].includes(action)){
+  if(!Array.isArray(body.steps)||!body.steps.length||body.steps.length>60)throw new Error(action+' requires 1-60 browser steps.');
+  for(const step of body.steps){
+   if(!step||typeof step!=='object'||Array.isArray(step))throw new Error('Browser steps must be objects.');
+   if(String(step.op||'').toLowerCase()==='goto'){
+    let u;try{u=new URL(String(step.url||''))}catch{}
+    if(!u||!['http:','https:'].includes(u.protocol))throw new Error('Browser goto requires an http(s) URL.');
+    const host=String(u.hostname||'').toLowerCase();
+    if(host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||/^127\.|^0\.|^169\.254\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host))throw new Error('Native browser private/local targets are blocked.');
+   }
+   if(String(step.op||'').toLowerCase()==='fill'&&step.secret===true)throw new Error('Remote browser tasks cannot carry secret/password values. Use a local persistent profile.');
+  }
+ }
  if(['read_file','search_text','git_status','git_diff','git_log','project_test','project_lint','project_typecheck','project_build','apply_patch','git_create_branch','git_commit'].includes(action)&&!clip(body.workspace,1000))throw new Error('A paired workspace path/id is required.');
  if(action==='apply_patch'&&!clip(body.patch,200000))throw new Error('apply_patch requires a unified diff patch.');
  return{def,body};
