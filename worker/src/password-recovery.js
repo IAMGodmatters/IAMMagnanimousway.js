@@ -70,7 +70,7 @@ async function sendWithPlatformMailbox(env,to,copy){
 }
 async function sendWithCommunications(env,to,copy,idempotencyKey){
  let runtime;try{runtime=await getProviderRuntimeEnv(env)}catch{runtime=env}
- const apiKey=String(runtime?.INKBOX_API_KEY||'').trim(),mailbox=String(runtime?.INKBOX_EMAIL_ADDRESS||'').trim();
+ const apiKey=String(runtime?.INKBOX_API_KEY||'').trim(),mailbox=String(runtime?.INKBOX_EMAIL_ADDRESS||'iam@inkboxmail.com').trim();
  if(!apiKey||!mailbox)return{ok:false,code:'NO_COMMUNICATION_MAILBOX'};
  const base=normalizeBase(runtime?.INKBOX_BASE_URL),root=`${base}/mail/mailboxes/${encodeURIComponent(mailbox)}/drafts`;
  const headers={'X-API-Key':apiKey,'Accept':'application/json','Content-Type':'application/json','Idempotency-Key':String(idempotencyKey).slice(0,180)};
