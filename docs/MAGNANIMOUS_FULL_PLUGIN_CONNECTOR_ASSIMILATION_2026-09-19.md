@@ -211,8 +211,28 @@ Initiative rules are explicit:
 - writes, code execution, SQL mutation, resource provisioning, credential requests, publishing, unpublishing and destructive actions remain subject to existing confirmation and permission gates;
 - no external action is reported complete without a real tool result.
 
-The current connected Floot account has no projects yet. Magnanimous therefore does not create a throwaway Floot project merely to claim integration.
+The connected Floot account now has a real project named `I AM MAGNANIMOUS WAY™ — Magnanimous AI`, published at `https://i-am-magnanimous-way.floot.app`. It is a secondary build/verification/publishing surface beneath the main platform and does not replace the GitHub `main` source of truth or Magnanimous AI identity/memory ownership.
 
+
+
+
+### Floot public-guide technique assimilation
+
+The 65 Floot public guide/skill topics are no longer stored only as topic-level capability contracts. Magnanimous also maintains a clean-room technique profile for every guide in `worker/src/magnanimous-floot-technique-catalog.js`.
+
+Each profile extracts reusable engineering/product patterns such as:
+
+- design-system-first delivery and typed primitive separation;
+- durable background work, scheduled jobs and realtime pub/sub;
+- logs-first debugging, screenshot verification and publish-state evidence;
+- auth/resource inventory before provisioning and least-privilege boundaries;
+- native mobile configuration, entitlements, share targets and background wake;
+- SSR, SEO redirects, analytics consent and dynamic sitemap patterns;
+- storage, PDF/CSV/ZIP handling and structured document workflows;
+- provider-neutral model routing, multimodal embeddings and image generation;
+- persistent agent loops, subagents, memory, scheduling, remote agents, collections, access control and MCP tool registries.
+
+These are original provider-neutral Magnanimous patterns derived from public documentation. They do not copy Floot private implementation. Technique terms participate in Magnanimous capability ranking and are injected into the absorbed routing context so the brain can select and reuse them directly. QA requires all 65 public guide ids to resolve to non-empty technique profiles and requires every Floot guide skill contract to carry technique metadata.
 
 ### D1 quota-safe materialization
 
