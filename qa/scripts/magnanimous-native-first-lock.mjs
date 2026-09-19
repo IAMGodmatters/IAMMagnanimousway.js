@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { INTEGRATIONS as liveIntegrations } from '../../worker/src/integrations.js';
-import { getConnectorAbsorptionCatalog as liveAbsorptionCatalog, getCapabilityAbsorptionManifest as liveCapabilityManifest, getPersistentConnectorAbsorptionManifest, getChatGPTPluginCapabilityManifest, getInstalledPluginSkillManifest, getConnectorAbsorptionSummary } from '../../worker/src/magnanimous-connector-absorption.js';
+import { getConnectorAbsorptionCatalog as liveAbsorptionCatalog, getCapabilityAbsorptionManifest as liveCapabilityManifest, getPersistentConnectorAbsorptionManifest, getChatGPTPluginCapabilityManifest, getInstalledPluginSkillManifest, getFlootGuideSkillManifest, getConnectorAbsorptionSummary } from '../../worker/src/magnanimous-connector-absorption.js';
 import { getLivePluginToolResearchSummary } from '../../worker/src/magnanimous-live-plugin-tool-research-snapshot.js';
 import { getLivePluginSkillResearchSummary } from '../../worker/src/magnanimous-live-plugin-skill-research-snapshot.js';
 import { MAGNANIMOUS_EXECUTION_SURFACES, classifyCapabilityRealization } from '../../worker/src/magnanimous-capability-realization.js';
@@ -110,6 +110,7 @@ has(materializer,'Tool Foundry name collision','deployment materializer fails cl
 has(materializer,"risk==='high'?'review-required'",'deployment materializer preserves review-required status for high-risk capabilities');
 has(materializer,"status='tool-foundry-specified'",'deployment materializer marks persisted capability ledger rows as Tool Foundry specified');
 has(materializer,'source_digest','deployment materializer records a stable source digest');
+has(materializer,'initiative:row.initiative','deployment materializer persists capability initiative/confirmation policy');
 has(materializer,'classifyCapabilityRealization','deployment materializer classifies every capability against proven Magnanimous execution surfaces');
 has(materializer,'magnanimous_capability_realizations','deployment persists a per-capability realization ledger');
 has(materializer,"realization.status==='native-ready'",'only low-risk native-ready realized specs can be deployment-promoted to READY');
@@ -165,7 +166,7 @@ lacks(runtime,'copy provider source code','runtime never instructs provider sour
 
 const directIds=[...integrations.matchAll(/\{ id:'([^']+)'/g)].map(x=>x[1]);
 const catalogIds=new Set([...catalog.matchAll(/\{id:'([^']+)'/g)].map(x=>x[1]));
-const runtimeAbsorption=liveAbsorptionCatalog(),runtimeManifest=liveCapabilityManifest(),persistentManifest=getPersistentConnectorAbsorptionManifest(),pluginManifest=getChatGPTPluginCapabilityManifest(),skillManifest=getInstalledPluginSkillManifest(),runtimeSummary=getConnectorAbsorptionSummary(),liveToolSummary=getLivePluginToolResearchSummary(),liveSkillSummary=getLivePluginSkillResearchSummary(),realizations=runtimeManifest.map(classifyCapabilityRealization);
+const runtimeAbsorption=liveAbsorptionCatalog(),runtimeManifest=liveCapabilityManifest(),persistentManifest=getPersistentConnectorAbsorptionManifest(),pluginManifest=getChatGPTPluginCapabilityManifest(),skillManifest=getInstalledPluginSkillManifest(),flootGuideManifest=getFlootGuideSkillManifest(),runtimeSummary=getConnectorAbsorptionSummary(),liveToolSummary=getLivePluginToolResearchSummary(),liveSkillSummary=getLivePluginSkillResearchSummary(),realizations=runtimeManifest.map(classifyCapabilityRealization);
 checks.push(['every live /connections connector exists in the Magnanimous absorption catalog',directIds.every(id=>catalogIds.has(id))]);
 checks.push(['all 13 direct platform connector types are covered',directIds.length===13&&liveIntegrations.length===13]);
 for(const item of liveIntegrations){
@@ -185,6 +186,7 @@ checks.push(['Plugin Management capabilities are absorbed into the manifest',plu
 const flootManifest=pluginManifest.filter(x=>x.plugin_namespace==='Floot');
 checks.push(['all 44 Floot tools are absorbed one by one',FLOOT_OBSERVABLE_TOOL_CONTRACTS.length===44&&flootManifest.length===44]);
 checks.push(['Floot guide/skill research covers at least 65 public topics',FLOOT_OBSERVABLE_GUIDE_TOPICS.length>=65]);
+checks.push(['all Floot guide/skill topics are materialized one by one',flootGuideManifest.length===FLOOT_OBSERVABLE_GUIDE_TOPICS.length&&flootGuideManifest.every(x=>x.plugin_namespace==='Floot'&&x.initiative?.suggestive===true)]);
 checks.push(['Floot list/read inspection can auto-initiate safely',getFlootToolPolicy('list_projects').auto_initiate===true&&getFlootToolPolicy('read_file').auto_initiate===true]);
 checks.push(['Floot SQL mutation and publishing remain confirmation-gated',getFlootToolPolicy('execute_sql').requires_confirmation===true&&getFlootToolPolicy('publish_app').requires_confirmation===true]);
 checks.push(['every Floot manifest capability carries suggestive initiative metadata',flootManifest.every(x=>x.initiative?.suggestive===true&&typeof x.initiative?.auto_initiate==='boolean'&&typeof x.initiative?.requires_confirmation==='boolean')]);
@@ -192,7 +194,7 @@ checks.push(['retained plugin skill research covers at least 109 skill namespace
 checks.push(['current live skill catalog covers at least 107 namespaces and 855 skills',liveSkillSummary.live_skill_namespaces>=107&&liveSkillSummary.live_skill_contracts>=855&&runtimeSummary.currently_visible_plugin_skills>=855]);
 checks.push(['retained plugin skill snapshot covers at least 867 skill contracts for continuity',runtimeSummary.installed_plugin_skills>=867]);
 checks.push(['installed plugin skills are converted one by one',skillManifest.length>=867]);
-checks.push(['full Magnanimous brain manifest covers connector, plugin tool, and skill contracts',runtimeManifest.length>=3426&&runtimeSummary.full_brain_capability_contracts>=3426]);
+checks.push(['full Magnanimous brain manifest covers connector, plugin tool, installed skill, and Floot guide contracts',runtimeManifest.length>=3491&&runtimeSummary.full_brain_capability_contracts>=3491]);
 checks.push(['one-by-one research state is explicit',runtimeSummary.one_by_one_research===true]);
 checks.push(['execution-surface registry has proven native and hybrid targets',Object.values(MAGNANIMOUS_EXECUTION_SURFACES).some(x=>x.mode==='native')&&Object.values(MAGNANIMOUS_EXECUTION_SURFACES).some(x=>x.mode==='hybrid')]);
 checks.push(['full manifest realization is total and lossless',realizations.length===runtimeManifest.length]);
