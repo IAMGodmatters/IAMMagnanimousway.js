@@ -261,6 +261,7 @@ export function getConnectorAbsorptionSummary(){
   currently_visible_plugin_skill_namespaces:liveSkills.live_skill_namespaces,
   currently_visible_plugin_skills:liveSkills.live_skill_contracts,
   historical_plugin_skills:historicalSkillCount,
+  floot_guide_skill_contracts:flootGuideManifest.length,
   full_brain_capability_contracts:persistent.length+pluginManifest.length+skillManifest.length+flootGuideManifest.length,
   plugin_authorization_state:'not-assumed',
   one_by_one_research:true,
