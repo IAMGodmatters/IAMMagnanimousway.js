@@ -12,6 +12,7 @@ const overlay=read('frontend/app/password-recovery-overlay.tsx');
 const customerLogin=read('frontend/app/login/page.tsx');
 const ownerLogin=read('frontend/app/owner-login/page.tsx');
 const migration=read('worker/migrations/0069_password_recovery.sql');
+const deploy=read('.github/workflows/deploy.yml');
 const failures=[];
 const must=(condition,message)=>{if(!condition)failures.push(message)};
 
@@ -34,6 +35,12 @@ must(overlay.includes("params.get('forgot')==='1'")&&overlay.includes("setMode('
 must(customerLogin.includes('href="/login?forgot=1"')&&customerLogin.includes('Forgot password?'),'customer login must show an inline forgot-password link');
 must(ownerLogin.includes('href="/owner-login?forgot=1"')&&ownerLogin.includes('Forgot password?'),'owner login must show an inline forgot-password link');
 must(migration.includes('password_reset_tokens')&&migration.includes('token_hash TEXT PRIMARY KEY'),'D1 migration must create hashed reset-token storage');
+must(recovery.includes("INKBOX_EMAIL_ADDRESS||'iam@inkboxmail.com'"),'password recovery must retain the verified Magnanimous communications mailbox fallback');
+must(recovery.includes('draft.generation||1'),'communications delivery must keep generation-checked draft sending');
+must(deploy.includes('INKBOX_API_KEY: ${{ secrets.INKBOX_API_KEY }}'),'deploy must import the password recovery communications credential when configured');
+must(deploy.includes('INKBOX_EMAIL_ADDRESS: ${{ secrets.INKBOX_EMAIL_ADDRESS }}'),'deploy must import the communications mailbox override when configured');
+must(deploy.includes('sync_secret INKBOX_API_KEY "$INKBOX_API_KEY"'),'deploy must sync the communications credential into the Worker');
+must(deploy.includes('sync_secret INKBOX_EMAIL_ADDRESS "$INKBOX_EMAIL_ADDRESS"'),'deploy must sync the communications mailbox into the Worker');
 
 if(failures.length){
  console.error(`PASSWORD RECOVERY LOCK FAILURE (${failures.length})`);

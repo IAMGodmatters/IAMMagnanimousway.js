@@ -82,6 +82,9 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           INTEGRATION_CREDENTIALS_KEY: ${{ secrets.INTEGRATION_CREDENTIALS_KEY }}
+          INKBOX_API_KEY: ${{ secrets.INKBOX_API_KEY }}
+          INKBOX_EMAIL_ADDRESS: ${{ secrets.INKBOX_EMAIL_ADDRESS }}
+          INKBOX_BASE_URL: ${{ secrets.INKBOX_BASE_URL }}
         shell: bash
         run: |
           set -eo pipefail
@@ -111,6 +114,14 @@ jobs:
           sync_secret HF_TOKEN "$HF_TOKEN"
           sync_secret MISTRAL_API_KEY "$MISTRAL_API_KEY"
           sync_secret INTEGRATION_CREDENTIALS_KEY "$INTEGRATION_CREDENTIALS_KEY"
+          sync_secret INKBOX_API_KEY "$INKBOX_API_KEY"
+          sync_secret INKBOX_EMAIL_ADDRESS "$INKBOX_EMAIL_ADDRESS"
+          sync_secret INKBOX_BASE_URL "$INKBOX_BASE_URL"
+          if [ -n "$INKBOX_API_KEY" ]; then
+            echo "Password recovery communications credential is available for deployment."
+          else
+            echo "::warning::INKBOX_API_KEY is not configured in GitHub Actions; password recovery will rely on the encrypted Provider Vault or connected platform mailbox."
+          fi
 
       - name: Deploy Worker
         working-directory: worker
