@@ -47,19 +47,8 @@ async function sessionSecret(env){
 }
 async function ensureSchema(env){
   if(schemaReady||!env?.DB)return;
-  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS auth_sessions (
-    token_hash TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    tenant_id TEXT NOT NULL,
-    role TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    expires_at INTEGER NOT NULL,
-    revoked_at INTEGER,
-    revoke_reason TEXT NOT NULL DEFAULT ''
-  )`).run();
-  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_expiry ON auth_sessions(user_id,expires_at)').run();
-  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_auth_sessions_tenant_expiry ON auth_sessions(tenant_id,expires_at)').run();
-  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_auth_sessions_expiry ON auth_sessions(expires_at)').run();
+  // Migration 0057 owns the opaque session schema. Runtime auth only verifies it.
+  await env.DB.prepare('SELECT 1 FROM auth_sessions LIMIT 1').first();
   schemaReady=true;
 }
 function parseLegacyToken(token){
