@@ -10,6 +10,7 @@ const read=p=>fs.readFileSync(path.join(repoRoot,p),'utf8');
 const runtime=read('worker/src/magnanimous-local-bridge-runtime.js');
 const agent=read('local-bridge/bridge_agent.py');
 const installer=read('local-bridge/install.ps1');
+const uninstaller=read('local-bridge/uninstall.ps1');
 const migration=read('worker/migrations/0074_magnanimous_local_bridge.sql');
 const progress=read('worker/src/progress-entrypoint.js');
 const provider=read('worker/src/provider-entrypoint.js');
@@ -42,7 +43,11 @@ for(const needle of [
  "Recorded owner authorization is required for this Netwalk action.",
  "No local mutation has executed. Confirm this exact task separately.",
  "hasReadyLocalBridge",
- "findReadyLocalBridgeDevice"
+ "findReadyLocalBridgeDevice",
+ "activation_task_id",
+ "needs_confirmation",
+ "Device revocation requires confirm=true.",
+ "status='revoked'"
 ]) assert(runtime.includes(needle),`runtime contract missing: ${needle}`);
 
 for(const needle of [
@@ -52,20 +57,31 @@ for(const needle of [
  "git apply --check",
  "Core-Dv1 / Netwalk toolkit is not configured",
  "The Netwalk tool itself enforces scope.json authorization",
- "MAX_OUTPUT"
+ "MAX_OUTPUT",
+ "authorization was revoked or expired"
 ]) assert(agent.includes(needle),`agent safety contract missing: ${needle}`);
 
 assert(!agent.includes('shell=True'),'local agent must not enable shell execution');
 assert(!agent.includes('subprocess.Popen('),'local agent must not expose unsupervised background process spawning');
 assert(installer.includes('New-ScheduledTaskAction'),'Windows installer should create the outbound bridge startup task');
+assert(installer.includes('Python.Python.3.13'),'Windows bootstrap should be able to install Python when missing');
+assert(installer.includes('Git.Git'),'Windows bootstrap should optionally install Git when missing');
+assert(installer.includes('MagnanimousWorkspace'),'Windows bootstrap should provide a safe default workspace');
+assert(installer.includes('automatic health check'),'Windows bootstrap should explain activation verification');
 assert(installer.includes('No inbound port was opened.'),'installer must state the inbound-listener boundary');
+assert(uninstaller.includes('Unregister-ScheduledTask'),'Windows uninstall must remove the startup task');
+assert(uninstaller.includes('Remove-Item -Path $homeDir -Recurse -Force'),'Windows uninstall must remove local bridge credentials/files');
 assert(migration.includes('magnanimous_local_bridge_devices'));
 assert(migration.includes('magnanimous_local_bridge_tasks'));
 assert(progress.includes('handleMagnanimousLocalBridge'),'secured runtime must route local bridge endpoints');
 assert(provider.includes('hasAnyReadyLocalBridge'),'public health must use actual heartbeat state');
 assert(provider.includes("ogenicPlan.classification==='LOCAL'"),'chat must auto-initiate local OGENIC work when a bridge is available');
 assert(provider.includes("ogenicPlan.classification==='HYBRID'"),'chat must auto-initiate hybrid OGENIC work when a bridge is available');
-assert(page.includes('CREATE PAIRING CODE'));
+assert(page.includes('CREATE ACTIVATION'));
+assert(page.includes('DOWNLOAD WINDOWS ACTIVATION FILE'));
+assert(page.includes('READY LOCAL — VERIFIED'));
+assert(page.includes('REVOKE DEVICE'));
+assert(page.includes('DOWNLOAD WINDOWS REMOVAL FILE'));
 assert(page.includes('LOCAL BRIDGE REQUIRED'));
 assert(robots.includes('Disallow: /local-bridge/'));
 assert(deploy.includes('Local Bridge customer isolation expected HTTP 403'),'production smoke must preserve platform-owner-only Local Bridge control');

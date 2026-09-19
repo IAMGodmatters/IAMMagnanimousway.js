@@ -551,10 +551,16 @@ def run_loop(args):
                     "platform": platform.platform(),
                     "capabilities": capabilities(config),
                 })
+                if status == 401:
+                    print("Magnanimous Local Bridge authorization was revoked or expired. Re-pair this computer from the owner Local Bridge page.", file=sys.stderr)
+                    return
                 if status != 200:
                     raise RuntimeError(data.get("detail") or f"Heartbeat failed: HTTP {status}")
                 heartbeat_at = time.time() + 30
             status, data = _request(server, "/api/magnanimous/local-bridge/agent/next", token=token, timeout=35)
+            if status == 401:
+                print("Magnanimous Local Bridge authorization was revoked or expired. Re-pair this computer from the owner Local Bridge page.", file=sys.stderr)
+                return
             if status != 200:
                 raise RuntimeError(data.get("detail") or f"Task poll failed: HTTP {status}")
             task = data.get("task")
@@ -568,6 +574,9 @@ def run_loop(args):
             except Exception as exc:
                 error = f"{type(exc).__name__}: {exc}"[:5000]
             rstatus, rdata = _request(server, "/api/magnanimous/local-bridge/agent/result", method="POST", token=token, data={"task_id":task.get("id"),"ok":ok,"result":result,"error":error})
+            if rstatus == 401:
+                print("Magnanimous Local Bridge authorization was revoked before the task result could be returned. Re-pair this computer.", file=sys.stderr)
+                return
             if rstatus != 200:
                 print(f"Could not submit task result: {rdata}", file=sys.stderr)
         except KeyboardInterrupt:
