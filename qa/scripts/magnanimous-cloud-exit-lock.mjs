@@ -9,6 +9,11 @@ const codeFiles=[
   'magnanimous-runtime/src/d1-compat.mjs',
   'magnanimous-runtime/src/migrations.mjs',
   'magnanimous-runtime/src/ai-binding.mjs',
+  'magnanimous-runtime/src/object-store.mjs',
+  'magnanimous-runtime/src/kv-cache.mjs',
+  'magnanimous-runtime/src/durable-work.mjs',
+  'magnanimous-runtime/src/event-hub.mjs',
+  'magnanimous-runtime/src/rate-limit.mjs',
   'magnanimous-runtime/src/server.mjs',
   'magnanimous-runtime/Dockerfile',
   'magnanimous-runtime/docker-compose.yml',
@@ -32,12 +37,26 @@ must(server.includes("MAGNANIMOUS_RUNTIME: 'standalone-node'"),'Standalone runti
 must(server.includes('/__magnanimous_runtime/health'),'Standalone runtime health endpoint missing.');
 must(server.includes('app.fetch(request, env, work.ctx)'),'Existing Magnanimous request chain must run unchanged.');
 must(server.includes('app.scheduled'),'Standalone scheduler compatibility is missing.');
+must(server.includes('MAGNANIMOUS_OBJECT_STORE'),'Standalone runtime object-store binding missing.');
+must(server.includes('MAGNANIMOUS_KV'),'Standalone runtime KV/cache binding missing.');
+must(server.includes('MAGNANIMOUS_QUEUE'),'Standalone runtime durable queue binding missing.');
+must(server.includes('MAGNANIMOUS_WORKFLOWS'),'Standalone runtime workflow binding missing.');
+must(server.includes('MAGNANIMOUS_EVENTS'),'Standalone runtime event coordination binding missing.');
+must(server.includes('MAGNANIMOUS_RATE_LIMIT'),'Standalone application rate-limit response missing.');
+must(server.includes('/__magnanimous_runtime/capabilities'),'Standalone capability health surface missing.');
 
 const infra=read('worker/src/magnanimous-infrastructure-core.js');
 must(infra.includes("infrastructure_owner: 'Magnanimous AI'"),'Magnanimous must own infrastructure control.');
 must(infra.includes("architecture: 'provider-neutral-first-party-control-plane'"),'Provider-neutral infrastructure architecture missing.');
 must(infra.includes("production_cutover_complete: standalone"),'Cutover status must remain truthful.');
 must(infra.includes("external_network_required: true"),'Public-network external boundary must remain explicit.');
+for(const proof of [
+  'magnanimous-runtime/src/object-store.mjs',
+  'magnanimous-runtime/src/kv-cache.mjs',
+  'magnanimous-runtime/src/durable-work.mjs',
+  'magnanimous-runtime/src/event-hub.mjs',
+  'magnanimous-runtime/src/rate-limit.mjs'
+]) must(infra.includes(proof),'Infrastructure proof missing: '+proof);
 
 const security=read('worker/src/security-entrypoint.js');
 must(security.includes('handleMagnanimousInfrastructure'),'Infrastructure owner endpoint is not mounted.');
@@ -45,4 +64,4 @@ must(security.includes("'/api/magnanimous/infrastructure'")||infra.includes("'/a
 
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs'],{stdio:'inherit'});
 
-console.log('Magnanimous Cloud Exit Lock: standalone runtime, SQL compatibility, infrastructure ownership and full migration compatibility PASS');
+console.log('Magnanimous Cloud Exit Lock: standalone runtime, SQL, object storage, KV/cache, durable queue/workflows, event coordination, application rate limiting, infrastructure ownership and full migration compatibility PASS');
