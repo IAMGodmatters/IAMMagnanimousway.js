@@ -22,6 +22,7 @@ import { MagnanimousMetrics } from './metrics.mjs';
 import { MagnanimousImageGenerationBinding } from './image-generation-binding.mjs';
 import { openMagnanimousCloudControl } from './cloud-control.mjs';
 import { verifyGitHubActionsOidc, stageD1SqlExport, stageD1SqliteSnapshot } from './migration-stage.mjs';
+import { stageRuntimeSecrets } from './runtime-secret-store.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -214,7 +215,7 @@ async function readLimitedBody(req, maxBytes) {
 }
 
 async function handleMigrationStage(req, res, pathname) {
-  if (pathname !== '/__magnanimous_runtime/migration/stage-d1') return false;
+  if (!['/__magnanimous_runtime/migration/stage-d1','/__magnanimous_runtime/migration/stage-secrets'].includes(pathname)) return false;
   if (String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_ENABLED || '').toLowerCase() !== 'true') {
     res.statusCode = 404;
     res.setHeader('content-type', 'application/json; charset=utf-8');
@@ -239,14 +240,31 @@ async function handleMigrationStage(req, res, pathname) {
   }
 
   try {
+    const secretStage = pathname.endsWith('/stage-secrets');
     const source = await verifyGitHubActionsOidc(token, {
       audience: String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_AUDIENCE || 'magnanimous-production-data-stage'),
       repository: String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js'),
       ref: 'refs/heads/main',
-      workflowFile: '.github/workflows/magnanimous-production-data-stage.yml'
+      workflowFile: secretStage
+        ? '.github/workflows/magnanimous-runtime-secrets-stage.yml'
+        : '.github/workflows/magnanimous-production-data-stage.yml'
     });
-    const maxBytes = Math.max(1048576, Number(process.env.MAGNANIMOUS_MIGRATION_MAX_BYTES || 104857600));
+    const maxBytes = pathname.endsWith('/stage-secrets')
+      ? 262144
+      : Math.max(1048576, Number(process.env.MAGNANIMOUS_MIGRATION_MAX_BYTES || 104857600));
     const body = await readLimitedBody(req, maxBytes);
+    if (pathname.endsWith('/stage-secrets')) {
+      const payload = JSON.parse(body.toString('utf8'));
+      const result = await stageRuntimeSecrets(payload, {
+        root: String(process.env.MAGNANIMOUS_RUNTIME_SECRETS_ROOT || '/app/persist/secrets'),
+        targetPath: String(process.env.MAGNANIMOUS_RUNTIME_SECRETS_FILE || '/app/persist/secrets/runtime.json')
+      });
+      res.statusCode = 200;
+      res.setHeader('content-type', 'application/json; charset=utf-8');
+      res.setHeader('cache-control', 'no-store');
+      res.end(JSON.stringify({ ...result, source: { repository: source.repository, ref: source.ref, sha: source.sha } }));
+      return true;
+    }
     const contentType = String(req.headers['content-type'] || '').toLowerCase();
     const options = {
       migrationRoot: String(process.env.MAGNANIMOUS_MIGRATION_ROOT || '/app/persist/migration'),
