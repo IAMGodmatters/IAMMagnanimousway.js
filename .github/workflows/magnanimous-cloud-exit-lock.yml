@@ -92,7 +92,7 @@ jobs:
             });
           }catch(error){privateBlocked=String(error.message||error).includes('400')}
           if(!privateBlocked)throw new Error('Magnanimous browser private-network target was not blocked.');
-          const png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WlN2V0AAAAASUVORK5CYII=';
+          const png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==';
           const media=JSON.parse(await checked('http://media:8793/transform',{
             method:'POST',
             headers:{'content-type':'application/json','x-magnanimous-service-token':token},
