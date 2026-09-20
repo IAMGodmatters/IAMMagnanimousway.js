@@ -3,20 +3,27 @@ import { currentUser } from './integrations.js';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 
 function googleReady(env){return Boolean(String(env?.GOOGLE_API_KEY||'').trim())}
-function cloudflareReady(env){return env?.AI!=null}
+function cloudflareReady(env){return env?.AI!=null&&String(env?.MAGNANIMOUS_RUNTIME||'')!=='standalone-node'}
+function magnanimousImageReady(env){return env?.MAGNANIMOUS_IMAGE_GENERATOR?.configured===true}
+function imageReady(env){return magnanimousImageReady(env)||cloudflareReady(env)}
 function veoEnabled(env){return googleReady(env)&&String(env?.ENABLE_VEO_PROVIDER||'').toLowerCase()==='true'}
 
 export function visualProviderSnapshot(env){
  const providers=[
   {
    id:'iam-cinematic-free',name:'I AM Cinematic Free',type:'video-effects',tier:'free-first',free:true,
-   configured:cloudflareReady(env),enabled:cloudflareReady(env),
-   note:'Free-first cinematic pipeline. Uses Gemini 3.1 Flash-Lite as an optional scene director when configured, Cloudflare FLUX for the scene image, and browser animation for motion.'
+   configured:imageReady(env),enabled:imageReady(env),
+   note:'Free-first cinematic pipeline. Uses the Magnanimous/local image rail when configured, keeps the legacy edge image rail only as rollback, and uses browser animation for motion.'
   },
   {
-   id:'cloudflare-flux-free',name:'Cloudflare FLUX.1 Schnell',type:'image-generation',tier:'free-allocation',free:true,
+   id:'magnanimous-native-image',name:'Magnanimous Native Image',type:'image-generation',tier:'self-hosted-or-compatible',free:true,
+   configured:magnanimousImageReady(env),enabled:magnanimousImageReady(env),model:String(env?.MAGNANIMOUS_IMAGE_MODEL||'local-stable-diffusion'),
+   note:'Magnanimous-owned image-generation contract using a local Automatic1111/Stable Diffusion server or an OpenAI-compatible image endpoint. No Cloudflare runtime dependency.'
+  },
+  {
+   id:'cloudflare-flux-free',name:'Legacy Edge FLUX Fallback',type:'image-generation',tier:'rollback-only',free:true,
    configured:cloudflareReady(env),enabled:cloudflareReady(env),model:'@cf/black-forest-labs/flux-1-schnell',
-   note:'Text-to-image through the existing Workers AI binding and Cloudflare Workers AI daily free allocation.'
+   note:'Legacy production rollback path only while the old edge runtime remains active. Standalone Magnanimous does not depend on it.'
   },
   {
    id:'google-gemini-visual-director',name:'Google Gemini Visual Director',type:'visual-planning',tier:'free-tier',free:true,
@@ -71,7 +78,15 @@ async function generateFlux(env,prompt){
  const result=await env.AI.run(model,{prompt:String(prompt).slice(0,1800),seed:Math.floor(Math.random()*2_000_000_000)});
  const image=typeof result?.image==='string'?result.image:'';
  if(!image)throw new Error('The free visual provider returned no image.');
- return {image,model};
+ return {image,model,provider:'legacy-edge-image-fallback',content_type:'image/jpeg'};
+}
+
+async function generateImage(env,prompt){
+ if(magnanimousImageReady(env)){
+  const rendered=await env.MAGNANIMOUS_IMAGE_GENERATOR.generate(String(prompt).slice(0,1800),{seed:Math.floor(Math.random()*2_000_000_000)});
+  return {...rendered,provider:rendered.provider||'magnanimous-native-image'};
+ }
+ return generateFlux(env,prompt);
 }
 
 export async function handleVisual(request,env){
@@ -88,11 +103,11 @@ export async function handleVisual(request,env){
   const useGemini=body.director!=='built-in';
   const direction=useGemini?await geminiDirect(env,title,text,style):{prompt:baseScenePrompt(title,text,style),director:'built-in'};
   try{
-   const rendered=await generateFlux(env,direction.prompt);
+   const rendered=await generateImage(env,direction.prompt);
    return json({
     ok:true,provider:'iam-cinematic-free',director:direction.director,director_model:direction.model||null,
-    image_provider:'cloudflare-flux-free',image_model:rendered.model,prompt:direction.prompt,
-    image_data_uri:`data:image/jpeg;base64,${rendered.image}`,free_first:true
+    image_provider:rendered.provider,image_model:rendered.model,prompt:direction.prompt,
+    image_data_uri:`data:${rendered.content_type||'image/jpeg'};base64,${rendered.image}`,free_first:true
    });
   }catch(error){
    return json({detail:error?.message||'Free visual generation failed.',code:'VISUAL_GENERATION_FAILED'},502);
