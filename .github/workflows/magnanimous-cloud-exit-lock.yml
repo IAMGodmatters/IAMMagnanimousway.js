@@ -6,10 +6,10 @@ on:
       - 'magnanimous-runtime/**'
       - 'worker/src/magnanimous-infrastructure-core.js'
       - 'worker/src/security-entrypoint.js'
+      - 'worker/src/visual-runtime.js'
       - 'frontend/app/owner-infrastructure/**'
       - 'frontend/app/owner-center/page.tsx'
       - 'qa/scripts/magnanimous-cloud-exit-lock.mjs'
-      - 'qa/scripts/magnanimous-cloud-independence-readiness.mjs'
       - 'qa/scripts/magnanimous-cloud-independence-readiness.mjs'
       - '.github/workflows/magnanimous-cloud-exit-lock.yml'
       - 'worker/migrations/**'
@@ -19,9 +19,11 @@ on:
       - 'magnanimous-runtime/**'
       - 'worker/src/magnanimous-infrastructure-core.js'
       - 'worker/src/security-entrypoint.js'
+      - 'worker/src/visual-runtime.js'
       - 'frontend/app/owner-infrastructure/**'
       - 'frontend/app/owner-center/page.tsx'
       - 'qa/scripts/magnanimous-cloud-exit-lock.mjs'
+      - 'qa/scripts/magnanimous-cloud-independence-readiness.mjs'
       - '.github/workflows/magnanimous-cloud-exit-lock.yml'
       - 'worker/migrations/**'
   workflow_dispatch:
@@ -37,7 +39,56 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+      - name: Prepare isolated CI runtime configuration
+        run: |
+          cp magnanimous-runtime/.env.example magnanimous-runtime/.env
+          cat >> magnanimous-runtime/.env <<'EOF'
+          MAGNANIMOUS_INTERNAL_SERVICE_TOKEN=ci-magnanimous-internal-service-token-2026
+          MAGNANIMOUS_SECRETS_KEY=ci-magnanimous-secrets-key-2026
+          SESSION_SECRET=ci-magnanimous-session-secret-2026
+          INTEGRATION_CREDENTIALS_KEY=ci-magnanimous-credential-key-2026
+          MAGNANIMOUS_ACME_EMAIL=ci@example.invalid
+          EOF
       - name: Validate standalone Docker topology
         run: docker compose -f magnanimous-runtime/docker-compose.yml config >/dev/null
       - name: Verify Magnanimous standalone infrastructure
         run: node qa/scripts/magnanimous-cloud-exit-lock.mjs
+      - name: Build standalone runtime and isolated services
+        run: docker compose -f magnanimous-runtime/docker-compose.yml build magnanimous sandbox browser media
+      - name: Smoke standalone runtime and isolated services
+        run: |
+          docker compose -f magnanimous-runtime/docker-compose.yml up -d sandbox browser media magnanimous
+          sleep 6
+          docker compose -f magnanimous-runtime/docker-compose.yml exec -T magnanimous node - <<'NODE'
+          const token=process.env.MAGNANIMOUS_INTERNAL_SERVICE_TOKEN;
+          const checked=async(url,init={})=>{
+            const r=await fetch(url,init);
+            const text=await r.text();
+            if(!r.ok)throw new Error(url+' -> '+r.status+' '+text.slice(0,500));
+            return text;
+          };
+          await checked('http://127.0.0.1:8788/__magnanimous_runtime/health');
+          await checked('http://127.0.0.1:8788/__magnanimous_runtime/services',{headers:{'x-magnanimous-service-token':token}});
+          await checked('http://sandbox:8791/exec',{
+            method:'POST',
+            headers:{'content-type':'application/json','x-magnanimous-service-token':token},
+            body:JSON.stringify({argv:['node','-e',"console.log('magnanimous-sandbox-ok')"]})
+          });
+          const browser=JSON.parse(await checked('http://browser:8792/render',{
+            method:'POST',
+            headers:{'content-type':'application/json','x-magnanimous-service-token':token},
+            body:JSON.stringify({url:'https://example.com',mode:'dom',timeout_ms:45000})
+          }));
+          if(!String(browser.html||'').toLowerCase().includes('example domain'))throw new Error('Magnanimous browser renderer returned unexpected DOM.');
+          const png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WlN2V0AAAAASUVORK5CYII=';
+          const media=JSON.parse(await checked('http://media:8793/transform',{
+            method:'POST',
+            headers:{'content-type':'application/json','x-magnanimous-service-token':token},
+            body:JSON.stringify({base64:png,format:'png',width:2,height:2})
+          }));
+          if(!media.base64||media.bytes<1)throw new Error('Magnanimous media transform produced no output.');
+          console.log('Standalone Magnanimous runtime + sandbox + browser + media smoke PASS');
+          NODE
+      - name: Stop isolated CI services
+        if: always()
+        run: docker compose -f magnanimous-runtime/docker-compose.yml down -v --remove-orphans
