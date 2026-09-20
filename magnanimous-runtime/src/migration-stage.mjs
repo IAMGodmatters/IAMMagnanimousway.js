@@ -221,3 +221,99 @@ export async function stageD1SqliteSnapshot(snapshotBytes, {
   await fs.writeFile(finalPath + '.stage.json', JSON.stringify(metadata, null, 2), { mode: 0o600 });
   return metadata;
 }
+
+
+function credentialKeyDigest(source) {
+  return crypto.createHash('sha256').update('iam-platform-credentials-v1:' + String(source || '')).digest();
+}
+
+async function verifyCredentialCiphertext(value, source) {
+  const raw = String(value || '');
+  if (!raw.startsWith('enc1.')) throw new Error('Credential migration ciphertext is not encrypted.');
+  const parts = raw.split('.');
+  if (parts.length !== 3) throw new Error('Credential migration ciphertext format is invalid.');
+  const iv = Buffer.from(parts[1], 'base64');
+  const cipher = Buffer.from(parts[2], 'base64');
+  if (iv.length !== 12 || cipher.length < 17) throw new Error('Credential migration ciphertext payload is invalid.');
+  const key = await crypto.webcrypto.subtle.importKey(
+    'raw',
+    credentialKeyDigest(source),
+    { name: 'AES-GCM' },
+    false,
+    ['decrypt']
+  );
+  const plain = await crypto.webcrypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    cipher
+  );
+  if (!plain || plain.byteLength === 0) throw new Error('Credential migration ciphertext decrypted to an empty value.');
+}
+
+export async function stageCredentialVaultRewrap(payload, {
+  targetPath = '/app/persist/migration/production.sqlite',
+  runtimeSecretsFile = '/app/persist/secrets/runtime.json'
+} = {}) {
+  const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+  const declaredCount = Number(payload?.count ?? rows.length);
+  if (declaredCount !== rows.length) throw new Error('Credential migration row count is inconsistent.');
+
+  const secrets = JSON.parse(await fs.readFile(runtimeSecretsFile, 'utf8'));
+  const targetKey = String(secrets?.INTEGRATION_CREDENTIALS_KEY || '');
+  if (targetKey.length < 32) throw new Error('Standalone integration credential key is not staged.');
+
+  const dbPath = path.resolve(targetPath);
+  await fs.access(dbPath);
+
+  const db = new DatabaseSync(dbPath);
+  try {
+    const exists = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='platform_credentials'"
+    ).get();
+    if (!exists) {
+      if (rows.length) throw new Error('Staged database is missing platform_credentials.');
+      return { ok: true, count: 0, ciphertext_sha256: crypto.createHash('sha256').update('').digest('hex') };
+    }
+
+    const current = db.prepare('SELECT credential_key FROM platform_credentials ORDER BY credential_key').all()
+      .map(row => String(row.credential_key || ''));
+    const incoming = rows.map(row => String(row?.credential_key || '')).sort();
+    if (new Set(incoming).size !== incoming.length) throw new Error('Credential migration contains duplicate keys.');
+    if (JSON.stringify(current) !== JSON.stringify(incoming)) {
+      throw new Error('Credential migration key set does not match the staged database.');
+    }
+
+    for (const row of rows) {
+      const key = String(row?.credential_key || '');
+      const encrypted = String(row?.encrypted_value || '');
+      if (!key || !encrypted) throw new Error('Credential migration row is incomplete.');
+      await verifyCredentialCiphertext(encrypted, targetKey);
+    }
+
+    const update = db.prepare('UPDATE platform_credentials SET encrypted_value=? WHERE credential_key=?');
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      for (const row of rows) update.run(String(row.encrypted_value), String(row.credential_key));
+      db.exec('COMMIT;');
+    } catch (error) {
+      try { db.exec('ROLLBACK;'); } catch {}
+      throw error;
+    }
+
+    const digestInput = rows
+      .map(row => String(row.credential_key) + ':' + String(row.encrypted_value))
+      .sort()
+      .join('\n');
+    const ciphertextSha256 = crypto.createHash('sha256').update(digestInput).digest('hex');
+    const meta = {
+      ok: true,
+      staged_at: new Date().toISOString(),
+      count: rows.length,
+      ciphertext_sha256: ciphertextSha256
+    };
+    await fs.writeFile(dbPath + '.credentials.json', JSON.stringify(meta, null, 2), { mode: 0o600 });
+    return meta;
+  } finally {
+    db.close();
+  }
+}

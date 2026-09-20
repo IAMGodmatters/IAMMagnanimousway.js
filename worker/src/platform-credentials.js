@@ -136,11 +136,34 @@ async function vaultKey(env){const source=String(env?.INTEGRATION_CREDENTIALS_KE
 async function encrypt(value,env){const iv=crypto.getRandomValues(new Uint8Array(12)),key=await vaultKey(env),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,encoder.encode(String(value)));return`enc1.${b64(iv)}.${b64(new Uint8Array(cipher))}`}
 async function decrypt(value,env){const raw=String(value||'');if(!raw.startsWith('enc1.'))return raw;const[,ivPart,cipherPart]=raw.split('.'),key=await vaultKey(env),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(ivPart)},key,fromB64(cipherPart));return new TextDecoder().decode(plain)}
 async function ensureTables(env){await env.DB.prepare(`CREATE TABLE IF NOT EXISTS platform_credentials (credential_key TEXT PRIMARY KEY,encrypted_value TEXT NOT NULL,updated_at INTEGER NOT NULL,updated_by TEXT NOT NULL DEFAULT '')`).run();await env.DB.prepare(`CREATE TABLE IF NOT EXISTS platform_credential_audit (id INTEGER PRIMARY KEY AUTOINCREMENT,actor_user_id TEXT NOT NULL,credential_key TEXT NOT NULL,action TEXT NOT NULL,created_at INTEGER NOT NULL)`).run()}
-async function vaultRows(env){await ensureTables(env);const{results}=await env.DB.prepare('SELECT credential_key,encrypted_value,updated_at FROM platform_credentials').all();return results||[]}
+async function vaultRows(env){await ensureTables(env);const{results}=await env.DB.prepare('SELECT credential_key,encrypted_value,updated_at,updated_by FROM platform_credentials').all();return results||[]}
 
 export function isPlatformCredentialKey(key){return ALLOWED_KEYS.has(String(key||'').trim())}
 export async function setPlatformCredential(env,user,key,value){const normalized=String(key||'').trim();if(!ALLOWED_KEYS.has(normalized))throw new Error('Credential key is not allowed.');const clean=String(value||'').trim();if(!clean)throw new Error('Credential value is required.');await ensureTables(env);const encrypted=await encrypt(clean,env),ts=now(),actor=String(user?.id||user?.user_id||'owner');await env.DB.prepare('INSERT INTO platform_credentials (credential_key,encrypted_value,updated_at,updated_by) VALUES (?,?,?,?) ON CONFLICT(credential_key) DO UPDATE SET encrypted_value=excluded.encrypted_value,updated_at=excluded.updated_at,updated_by=excluded.updated_by').bind(normalized,encrypted,ts,actor).run();await env.DB.prepare('INSERT INTO platform_credential_audit (actor_user_id,credential_key,action,created_at) VALUES (?,?,?,?)').bind(actor,normalized,'set',ts).run();return {ok:true,key:normalized}}
 export async function deletePlatformCredential(env,user,key){const normalized=String(key||'').trim();if(!ALLOWED_KEYS.has(normalized))throw new Error('Credential key is not allowed.');await ensureTables(env);const ts=now(),actor=String(user?.id||user?.user_id||'owner');await env.DB.prepare('DELETE FROM platform_credentials WHERE credential_key=?').bind(normalized).run();await env.DB.prepare('INSERT INTO platform_credential_audit (actor_user_id,credential_key,action,created_at) VALUES (?,?,?,?)').bind(actor,normalized,'delete',ts).run();return {ok:true,key:normalized}}
+
+export async function rewrapPlatformCredentialsForMigration(env,targetSource){
+ const target=String(targetSource||'');
+ if(target.length<32)throw new Error('Target migration key is too short.');
+ const rows=await vaultRows(env);
+ const targetEnv={INTEGRATION_CREDENTIALS_KEY:target};
+ const migrated=[];
+ for(const row of rows){
+  const key=String(row.credential_key||'');
+  if(!ALLOWED_KEYS.has(key))throw new Error('Unexpected credential key in production vault.');
+  const plain=await decrypt(row.encrypted_value,env);
+  const encrypted=await encrypt(plain,targetEnv);
+  const verify=await decrypt(encrypted,targetEnv);
+  if(verify!==plain)throw new Error('Credential rewrap verification failed.');
+  migrated.push({
+   credential_key:key,
+   encrypted_value:encrypted,
+   updated_at:Number(row.updated_at||0),
+   updated_by:String(row.updated_by||'')
+  });
+ }
+ return{rows:migrated};
+}
 
 export async function getIntegrationRuntimeEnv(env){if(!env?.DB)return env;try{const rows=await vaultRows(env);if(!rows.length)return env;const merged={...env};for(const row of rows){if(!ALLOWED_KEYS.has(row.credential_key))continue;if(typeof merged[row.credential_key]==='string'&&merged[row.credential_key].trim())continue;merged[row.credential_key]=await decrypt(row.encrypted_value,env)}return merged}catch(error){console.error('platform credential runtime load failed',error);return env}}
 function callbackMap(request){const origin=new URL(request.url).origin,providers=[...new Set(PLATFORM_CREDENTIAL_GROUPS.flatMap(g=>g.providers))];return Object.fromEntries(providers.map(provider=>[provider,`${origin}/api/integrations/${provider}/callback`]))}

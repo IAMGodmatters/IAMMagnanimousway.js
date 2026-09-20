@@ -21,7 +21,7 @@ import { magnanimousServiceBindings } from './service-bindings.mjs';
 import { MagnanimousMetrics } from './metrics.mjs';
 import { MagnanimousImageGenerationBinding } from './image-generation-binding.mjs';
 import { openMagnanimousCloudControl } from './cloud-control.mjs';
-import { verifyGitHubActionsOidc, stageD1SqlExport, stageD1SqliteSnapshot } from './migration-stage.mjs';
+import { verifyGitHubActionsOidc, stageD1SqlExport, stageD1SqliteSnapshot, stageCredentialVaultRewrap } from './migration-stage.mjs';
 import { stageRuntimeSecrets } from './runtime-secret-store.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -215,7 +215,7 @@ async function readLimitedBody(req, maxBytes) {
 }
 
 async function handleMigrationStage(req, res, pathname) {
-  if (!['/__magnanimous_runtime/migration/stage-d1','/__magnanimous_runtime/migration/stage-secrets'].includes(pathname)) return false;
+  if (!['/__magnanimous_runtime/migration/stage-d1','/__magnanimous_runtime/migration/stage-secrets','/__magnanimous_runtime/migration/stage-credential-rewrap'].includes(pathname)) return false;
   if (String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_ENABLED || '').toLowerCase() !== 'true') {
     res.statusCode = 404;
     res.setHeader('content-type', 'application/json; charset=utf-8');
@@ -240,7 +240,7 @@ async function handleMigrationStage(req, res, pathname) {
   }
 
   try {
-    const secretStage = pathname.endsWith('/stage-secrets');
+    const secretStage = pathname.endsWith('/stage-secrets') || pathname.endsWith('/stage-credential-rewrap');
     const source = await verifyGitHubActionsOidc(token, {
       audience: String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_AUDIENCE || 'magnanimous-production-data-stage'),
       repository: String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js'),
@@ -249,8 +249,8 @@ async function handleMigrationStage(req, res, pathname) {
         ? '.github/workflows/magnanimous-runtime-secrets-stage.yml'
         : '.github/workflows/magnanimous-production-data-stage.yml'
     });
-    const maxBytes = pathname.endsWith('/stage-secrets')
-      ? 262144
+    const maxBytes = pathname.endsWith('/stage-secrets') || pathname.endsWith('/stage-credential-rewrap')
+      ? 1048576
       : Math.max(1048576, Number(process.env.MAGNANIMOUS_MIGRATION_MAX_BYTES || 104857600));
     const body = await readLimitedBody(req, maxBytes);
     if (pathname.endsWith('/stage-secrets')) {
@@ -258,6 +258,18 @@ async function handleMigrationStage(req, res, pathname) {
       const result = await stageRuntimeSecrets(payload, {
         root: String(process.env.MAGNANIMOUS_RUNTIME_SECRETS_ROOT || '/app/persist/secrets'),
         targetPath: String(process.env.MAGNANIMOUS_RUNTIME_SECRETS_FILE || '/app/persist/secrets/runtime.json')
+      });
+      res.statusCode = 200;
+      res.setHeader('content-type', 'application/json; charset=utf-8');
+      res.setHeader('cache-control', 'no-store');
+      res.end(JSON.stringify({ ...result, source: { repository: source.repository, ref: source.ref, sha: source.sha } }));
+      return true;
+    }
+    if (pathname.endsWith('/stage-credential-rewrap')) {
+      const payload = JSON.parse(body.toString('utf8'));
+      const result = await stageCredentialVaultRewrap(payload, {
+        targetPath: String(process.env.MAGNANIMOUS_MIGRATION_STAGE_PATH || '/app/persist/migration/production.sqlite'),
+        runtimeSecretsFile: String(process.env.MAGNANIMOUS_RUNTIME_SECRETS_FILE || '/app/persist/secrets/runtime.json')
       });
       res.statusCode = 200;
       res.setHeader('content-type', 'application/json; charset=utf-8');
