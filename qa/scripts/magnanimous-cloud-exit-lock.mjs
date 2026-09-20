@@ -23,6 +23,7 @@ const codeFiles=[
   'magnanimous-runtime/src/image-generation-binding.mjs',
   'magnanimous-runtime/src/cloud-control.mjs',
   'magnanimous-runtime/src/migration-stage.mjs',
+  'magnanimous-runtime/src/d1-snapshot-reconcile.mjs',
   'magnanimous-runtime/src/runtime-secret-store.mjs',
   'magnanimous-runtime/src/bootstrap.mjs',
   'magnanimous-runtime/services/sandbox-service.mjs',
@@ -86,6 +87,10 @@ must(logicalExporter.includes('PRAGMA table_list'),'FTS-safe logical D1 exporter
 must(logicalExporter.includes('knowledge_fts'),'FTS-safe logical D1 exporter must rebuild the knowledge FTS index.');
 must(logicalExporter.includes('PRAGMA foreign_key_check'),'Logical D1 snapshot must verify foreign keys.');
 must(!logicalExporter.includes("['wrangler','d1','export'"),'Cloud exit must not use blocked full D1 export while FTS5 exists.');
+must(logicalExporter.includes('reconcileForeignKeys(db,remoteQuery)'),'Cloud exit data path must repair referential closure after live D1 copy.');
+const snapshotReconcile=read('magnanimous-runtime/src/d1-snapshot-reconcile.mjs');
+must(snapshotReconcile.includes('Production currently contains a foreign-key violation'),'Snapshot reconciliation must fail closed on real production FK violations.');
+must(snapshotReconcile.includes('INSERT OR IGNORE'),'Snapshot reconciliation must not destructively replace parent rows.');
 
 const infra=read('worker/src/magnanimous-infrastructure-core.js');
 must(infra.includes("infrastructure_owner: 'Magnanimous AI'"),'Magnanimous must own infrastructure control.');
@@ -120,6 +125,7 @@ must(security.includes("'/api/magnanimous/infrastructure'")||infra.includes("'/a
 
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-migration-stage.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-d1-referential-closure.mjs'],{stdio:'inherit'});
 for(const file of ['worker/src/github-actions-oidc.js','worker/src/credential-vault-migration.js','worker/src/platform-credentials.js']) execFileSync(process.execPath,['--check',file],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime-secret-store.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
