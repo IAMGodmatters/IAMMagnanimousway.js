@@ -20,6 +20,7 @@ const codeFiles=[
   'magnanimous-runtime/src/pipeline.mjs',
   'magnanimous-runtime/src/service-bindings.mjs',
   'magnanimous-runtime/src/metrics.mjs',
+  'magnanimous-runtime/src/image-generation-binding.mjs',
   'magnanimous-runtime/services/sandbox-service.mjs',
   'magnanimous-runtime/services/browser-service.mjs',
   'magnanimous-runtime/services/media-service.mjs',
@@ -62,6 +63,7 @@ must(server.includes('MAGNANIMOUS_PIPELINE'),'Standalone pipeline binding missin
 must(server.includes('MAGNANIMOUS_SANDBOX'),'Standalone sandbox binding missing.');
 must(server.includes('MAGNANIMOUS_BROWSER'),'Standalone browser binding missing.');
 must(server.includes('MAGNANIMOUS_IMAGES'),'Standalone image transformation binding missing.');
+must(server.includes('MAGNANIMOUS_IMAGE_GENERATOR'),'Standalone image generation binding missing.');
 must(server.includes('/__magnanimous_runtime/metrics'),'Standalone metrics surface missing.');
 must(server.includes('/__magnanimous_runtime/services'),'Standalone internal service health surface missing.');
 must(server.includes('/__magnanimous_runtime/capabilities'),'Standalone capability health surface missing.');
