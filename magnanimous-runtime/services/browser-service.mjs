@@ -35,6 +35,15 @@ async function safeUrl(value){
  }
  return url.toString();
 }
+async function chromiumProxy(){
+ if(!proxy)return '';
+ const url=new URL(proxy);
+ const rows=await dns.lookup(url.hostname,{all:true,verbatim:true});
+ if(!rows.length)throw new Error('Magnanimous browser proxy could not be resolved.');
+ const selected=rows.find(r=>Number(r.family)===4)||rows[0];
+ const host=Number(selected.family)===6?'['+selected.address+']':selected.address;
+ return url.protocol+'//'+host+':'+(url.port||'80');
+}
 async function run(args,{timeout=45000,env={}}={}){
  return await new Promise((resolve,reject)=>{
   const child=spawn(chromium,args,{stdio:['ignore','pipe','pipe'],shell:false,env:{...process.env,...env}});
@@ -66,8 +75,8 @@ async function render(spec={}){
    '--user-data-dir='+profile,'--disk-cache-dir='+cache
   ];
   if(proxy){
-  const proxyHost=new URL(proxy).hostname;
-  common.push('--proxy-server='+proxy,'--proxy-bypass-list=<-loopback>','--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE '+proxyHost);
+  const resolvedProxy=await chromiumProxy();
+  common.push('--proxy-server='+resolvedProxy,'--proxy-bypass-list=<-loopback>','--host-resolver-rules=MAP * ~NOTFOUND');
  }
   if(mode==='dom'){
    const browserEnv={HOME:dir,XDG_CONFIG_HOME:config,XDG_CACHE_HOME:cache,XDG_RUNTIME_DIR:runtime,TMPDIR:dir};
