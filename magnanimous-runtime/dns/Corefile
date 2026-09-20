@@ -1,0 +1,15 @@
+. {
+  errors
+  log
+  health :8080
+  ready
+}
+
+iammagnanimousway.com:53 {
+  file /etc/coredns/zones/db.iammagnanimousway.com iammagnanimousway.com {
+    reload 30s
+  }
+  log
+  errors
+  prometheus :9153
+}
