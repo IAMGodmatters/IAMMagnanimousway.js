@@ -361,16 +361,28 @@ try{
       }
 
       let copied=0;
+      let readPageSize=pageSize;
       const whereClause=!withoutRowid&&sourceCount>0
         ? ' WHERE rowid <= '+boundarySql
         : singlePkBoundary&&sourceCount>0
           ? ' WHERE '+qname(singlePkBoundary)+' <= '+boundarySql
           : '';
       while(copied<sourceCount){
-        const rows=remoteQuery(
-          'SELECT '+selectQuoted+' FROM '+qname(table)+whereClause+
-          ' ORDER BY '+orderBy+' LIMIT '+pageSize+' OFFSET '+copied+';'
-        );
+        let rows;
+        for(;;){
+          try{
+            rows=remoteQuery(
+              'SELECT '+selectQuoted+' FROM '+qname(table)+whereClause+
+              ' ORDER BY '+orderBy+' LIMIT '+readPageSize+' OFFSET '+copied+';'
+            );
+            break;
+          }catch(error){
+            if(readPageSize<=1)throw error;
+            const nextPageSize=Math.max(1,Math.floor(readPageSize/2));
+            console.warn('Production table '+table+' page read failed at LIMIT '+readPageSize+' OFFSET '+copied+'; retrying with LIMIT '+nextPageSize+'.');
+            readPageSize=nextPageSize;
+          }
+        }
         if(!rows.length) break;
         const statements=[];
         for(const row of rows){
