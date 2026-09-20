@@ -138,6 +138,13 @@ must(observedToolContracts.length===54,'Expected all 54 visible DigitalOcean too
 for(const tool of ['droplet_create','droplet_delete','image_create','key_create','region_list','size_list','snapshot_droplet','billing_history_list'])
  must(observedToolContracts.includes(tool),'Visible DigitalOcean tool absorption missing: '+tool);
 
+for(const railwayContract of ['RAILWAY_VISIBLE_TOOL_CONTRACTS','RAILWAY_TOOL_ABSORPTION','RAILWAY_ARCHITECTURE_TECHNIQUES'])
+ must(cloudApi.includes(railwayContract),'Railway absorption contract missing: '+railwayContract);
+for(const tool of ['list_projects','create_deployment','get_service_metrics','list_variables','generate_domain','list_feature_flags','get_logs','redeploy','railway_agent'])
+ must(cloudApi.includes("'"+tool+"'"),'Visible Railway tool absorption missing: '+tool);
+for(const technique of ['workspace-project-environment-service-hierarchy','isolated-environments','ephemeral-pr-environments','private-service-networking','internal-dns-service-discovery','feature-flags-signals','monorepo-root-and-watch-paths','config-as-code','agent-assisted-infrastructure-operations'])
+ must(cloudApi.includes("id:'"+technique+"'"),'Railway architecture technique missing: '+technique);
+
 must(exists('magnanimous-runtime/scripts/export-d1-logical.mjs'),'Missing FTS-safe logical D1 snapshot exporter.');
 const migrationStage=read('magnanimous-runtime/src/migration-stage.mjs');
 for(const contract of [
