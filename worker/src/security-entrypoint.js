@@ -8,6 +8,7 @@ import { prepareCarrierWebhook, completeCarrierWebhook } from './carrier-webhook
 import { enforceAssistantActionPolicy, completeAssistantActionPolicy } from './assistant-action-policy.js';
 import { handleMagnanimousCloudflare } from './magnanimous-cloudflare-runtime.js';
 import { handleMagnanimousInfrastructure } from './magnanimous-infrastructure-core.js';
+import { handleMagnanimousCloudProvider } from './magnanimous-cloud-provider-core.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { currentUser } from './integrations.js';
 import { isPlatformOwnerUser } from './agent-branch-intelligence.js';
@@ -215,6 +216,13 @@ export default {
       const infrastructureResponse=await handleMagnanimousInfrastructure(policyRequest,env);
       if(infrastructureResponse){
         const assistantCompleted=await completeAssistantActionPolicy(assistantContext,infrastructureResponse,env);
+        const carrierCompleted=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
+        return finalizeResponse(request,await securityPostflight(policyRequest,carrierCompleted,env));
+      }
+
+      const magnanimousCloudResponse=await handleMagnanimousCloudProvider(policyRequest,env);
+      if(magnanimousCloudResponse){
+        const assistantCompleted=await completeAssistantActionPolicy(assistantContext,magnanimousCloudResponse,env);
         const carrierCompleted=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
         return finalizeResponse(request,await securityPostflight(policyRequest,carrierCompleted,env));
       }
