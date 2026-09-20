@@ -78,6 +78,7 @@ must(server.includes('/__magnanimous_runtime/services'),'Standalone internal ser
 must(server.includes('/__magnanimous_runtime/capabilities'),'Standalone capability health surface missing.');
 must(server.includes('/__magnanimous_runtime/migration/stage-d1'),'Standalone production-data staging route missing.');
 must(server.includes('/__magnanimous_runtime/migration/stage-secrets'),'Standalone runtime-secret staging route missing.');
+must(server.includes('/__magnanimous_runtime/migration/stage-credential-rewrap'),'Standalone credential-rewrap staging route missing.');
 must(server.includes('MAGNANIMOUS_GITHUB_MIGRATION_ENABLED'),'Production-data staging must be disabled unless explicitly enabled.');
 must(fs.existsSync('magnanimous-runtime/scripts/export-d1-logical.mjs'),'FTS-safe logical D1 exporter missing.');
 const logicalExporter=read('magnanimous-runtime/scripts/export-d1-logical.mjs');
@@ -114,10 +115,12 @@ for(const proof of [
 const security=read('worker/src/security-entrypoint.js');
 must(security.includes('handleMagnanimousInfrastructure'),'Infrastructure owner endpoint is not mounted.');
 must(security.includes('handleMagnanimousCloudProvider'),'Magnanimous Cloud owner endpoint is not mounted.');
+must(security.includes('handleCredentialVaultMigration'),'Signed production credential rewrap endpoint is not mounted.');
 must(security.includes("'/api/magnanimous/infrastructure'")||infra.includes("'/api/magnanimous/infrastructure'"),'Infrastructure endpoint missing.');
 
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-migration-stage.mjs'],{stdio:'inherit'});
+for(const file of ['worker/src/github-actions-oidc.js','worker/src/credential-vault-migration.js','worker/src/platform-credentials.js']) execFileSync(process.execPath,['--check',file],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime-secret-store.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['qa/scripts/magnanimous-cloud-independence-readiness.mjs'],{stdio:'inherit'});
