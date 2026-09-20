@@ -43,7 +43,9 @@ if [ -r /proc/meminfo ]; then
   fi
 fi
 
-MAGNANIMOUS_RELEASE_TAG="${MAGNANIMOUS_RELEASE_TAG:-local}" \
+release_tag="${MAGNANIMOUS_RELEASE_TAG:-$(read_env MAGNANIMOUS_RELEASE_TAG)}"
+release_tag="${release_tag:-local}"
+MAGNANIMOUS_RELEASE_TAG="$release_tag" \
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" config -q
 
-printf 'Magnanimous standalone host preflight PASS\n'
+printf 'Magnanimous standalone host preflight PASS (release tag: %s)\n' "$release_tag"
