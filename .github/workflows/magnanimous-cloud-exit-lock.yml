@@ -12,6 +12,7 @@ on:
       - 'qa/scripts/magnanimous-cloud-exit-lock.mjs'
       - 'qa/scripts/magnanimous-cloud-independence-readiness.mjs'
       - '.github/workflows/magnanimous-cloud-exit-lock.yml'
+      - '.github/workflows/magnanimous-standalone-release.yml'
       - 'worker/migrations/**'
   push:
     branches: [main]
@@ -25,6 +26,7 @@ on:
       - 'qa/scripts/magnanimous-cloud-exit-lock.mjs'
       - 'qa/scripts/magnanimous-cloud-independence-readiness.mjs'
       - '.github/workflows/magnanimous-cloud-exit-lock.yml'
+      - '.github/workflows/magnanimous-standalone-release.yml'
       - 'worker/migrations/**'
   workflow_dispatch:
 
