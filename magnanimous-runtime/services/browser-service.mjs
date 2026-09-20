@@ -72,21 +72,30 @@ async function run(args,{timeout=45000,env={}}={}){
 function snapshotHtml(snapshot){
  const type=String(snapshot.content_type||'').toLowerCase();
  const bytes=Buffer.from(String(snapshot.base64||''),'base64');
+ const policy='<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'; font-src data:; connect-src \'none\'; media-src \'none\'; object-src \'none\'; frame-src \'none\'; child-src \'none\'; form-action \'none\'; base-uri \'none\'">';
+ const injectPolicy=(html)=>{
+  if(/<head\b[^>]*>/i.test(html))return html.replace(/<head\b[^>]*>/i,match=>match+policy);
+  if(/<html\b[^>]*>/i.test(html))return html.replace(/<html\b[^>]*>/i,match=>match+'<head>'+policy+'</head>');
+  return '<!doctype html><head>'+policy+'</head><body>'+html+'</body>';
+ };
  if(type.includes('html')||type.startsWith('text/')){
   const html=bytes.toString('utf8');
   if(type.includes('html')){
-   return html
+   const sanitized=html
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')
     .replace(/<link\b[^>]*rel=["']?stylesheet["']?[^>]*>/gi,'')
+    .replace(/<meta\b[^>]*http-equiv=["']?refresh["']?[^>]*>/gi,'')
+    .replace(/<base\b[^>]*>/gi,'')
     .replace(/\s(src|href)=["']https?:\/\/[^"']+["']/gi,' data-magnanimous-$1=""');
+   return injectPolicy(sanitized);
   }
-  return '<!doctype html><meta charset="utf-8"><pre style="white-space:pre-wrap;font:16px/1.5 system-ui,sans-serif">'+
-   html.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</pre>';
+  return '<!doctype html><head>'+policy+'</head><body><pre style="white-space:pre-wrap;font:16px/1.5 system-ui,sans-serif">'+
+   html.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</pre></body>';
  }
  if(type.startsWith('image/')){
-  return '<!doctype html><style>html,body{margin:0;background:#111;min-height:100%;display:grid;place-items:center}img{max-width:100%;max-height:100vh}</style><img src="data:'+type+';base64,'+snapshot.base64+'">';
+  return '<!doctype html><head>'+policy+'</head><body><style>html,body{margin:0;background:#111;min-height:100%;display:grid;place-items:center}img{max-width:100%;max-height:100vh}</style><img src="data:'+type+';base64,'+snapshot.base64+'"></body>';
  }
- return '<!doctype html><meta charset="utf-8"><pre>Magnanimous browser snapshot: '+String(snapshot.url||'')+' ('+type+')</pre>';
+ return '<!doctype html><head>'+policy+'</head><body><pre>Magnanimous browser snapshot: '+String(snapshot.url||'')+' ('+type+')</pre></body>';
 }
 async function render(spec={}){
  const url=safeUrl(spec.url);
@@ -111,6 +120,7 @@ async function render(spec={}){
   const common=[
    '--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-sync',
    '--metrics-recording-only','--mute-audio','--noerrdialogs','--disable-crash-reporter','--disable-breakpad','--disable-quic',
+   '--disable-background-networking','--disable-features=AsyncDns,MediaRouter,OptimizationHints,AutofillServerCommunication',
    '--force-webrtc-ip-handling-policy=disable_non_proxied_udp','--window-size='+width+','+height,
    '--user-data-dir='+profile,'--disk-cache-dir='+cache
   ];
