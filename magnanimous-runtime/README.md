@@ -15,7 +15,11 @@ It runs the existing checked-in Magnanimous request chain on standard Node.js an
 - `MagnanimousKvStore` for SQLite-backed key/value data, TTL expiration, metadata and typed reads;
 - `MagnanimousDurableWork` for idempotent durable queues, leasing, retry state and checkpointed workflows;
 - `MagnanimousEventHub` for persistent event history plus live in-process publish/subscribe coordination;
-- `MagnanimousRateLimiter` for application-layer API and authentication abuse controls.
+- `MagnanimousRateLimiter` for application-layer API and authentication abuse controls;
+- `MagnanimousVectorStore` for local vector persistence and cosine-similarity retrieval;
+- `MagnanimousAnalyticsEngine` for indexed event/metric data points and local aggregation;
+- `MagnanimousSecretVault` for AES-256-GCM encrypted runtime secrets when `MAGNANIMOUS_SECRETS_KEY` is configured;
+- `MagnanimousPipeline` for durable NDJSON ingestion into the object store with analytics and queued processing.
 
 No Cloudflare package is required by this runtime.
 
@@ -46,4 +50,4 @@ Do not move production traffic until database export/import, authentication, mut
 
 ## Independence boundary
 
-These first-party primitives replace application dependencies on vendor-specific SQL, object storage, key/value, queue/workflow, event coordination and basic request-rate contracts. Global anycast delivery, carrier-grade DDoS absorption, public authoritative DNS, regulated telecom, and payment settlement still require real external network/infrastructure capacity. Those rails remain replaceable and must never own Magnanimous identity, memory, policy or orchestration.
+These first-party primitives replace application dependencies on vendor-specific SQL, object storage, key/value, queue/workflow, event coordination, vector storage/query, analytics events, durable ingestion, encrypted secrets and basic request-rate contracts. Global anycast delivery, carrier-grade DDoS absorption, public authoritative DNS, regulated telecom, and payment settlement still require real external network/infrastructure capacity. Those rails remain replaceable and must never own Magnanimous identity, memory, policy or orchestration.
