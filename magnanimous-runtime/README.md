@@ -63,6 +63,21 @@ Runtime health:
 /__magnanimous_runtime/metrics    # private service token required
 ```
 
+## Offline standalone release bundle
+
+The repository now has a separate release path that does not require source builds on the target server. The **Magnanimous Standalone Release** workflow builds the proven runtime, sandbox, safe snapshot browser, browser egress, media service, Caddy, and CoreDNS into one checksum-protected tarball. CI deletes its locally built images, reloads them from the tarball, and runs the standalone health/browser smoke from `docker-compose.release.yml` before publishing the artifact.
+
+On a real host, prepare a production `.env` from `.env.example`, then:
+
+```bash
+tar -xzf magnanimous-standalone-<tag>.tar.gz
+cd magnanimous-standalone-<tag>
+./standalone-host-preflight.sh . /path/to/production.env ./docker-compose.release.yml
+./install-release-bundle.sh . /path/to/production.env
+```
+
+The installer verifies `SHA256SUMS`, loads the bundled images locally, installs the release topology and migration/DNS tools, starts the standalone services, and verifies runtime plus internal-service health. No container registry is required after the bundle has been transferred to the host.
+
 ## Backup and migration
 
 Create a consistent SQLite/object-store backup:
