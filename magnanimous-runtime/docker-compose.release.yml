@@ -78,6 +78,8 @@ services:
     pids_limit: 256
     mem_limit: 1g
     shm_size: "256m"
+    networks:
+      - internal_services
 
   browser-egress:
     image: "iammagnanimous/browser-egress:${MAGNANIMOUS_RELEASE_TAG:-local}"
@@ -104,6 +106,9 @@ services:
       timeout: 2s
       retries: 15
       start_period: 1s
+    networks:
+      - default
+      - internal_services
 
   media:
     image: "iammagnanimous/media:${MAGNANIMOUS_RELEASE_TAG:-local}"
