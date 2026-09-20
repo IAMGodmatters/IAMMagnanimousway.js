@@ -33,7 +33,11 @@ const required=[
  'magnanimous-runtime/scripts/restore-runtime.mjs',
  'magnanimous-runtime/scripts/import-d1-export.mjs',
  'magnanimous-runtime/scripts/verify-data-parity.mjs',
- 'magnanimous-runtime/scripts/prepare-dns-zone.mjs'
+ 'magnanimous-runtime/scripts/prepare-dns-zone.mjs',
+ 'magnanimous-runtime/docker-compose.release.yml',
+ 'magnanimous-runtime/scripts/standalone-host-preflight.sh',
+ 'magnanimous-runtime/scripts/install-release-bundle.sh',
+ '.github/workflows/magnanimous-standalone-release.yml'
 ];
 for(const file of required)must(exists(file),'Missing cloud-independence component: '+file);
 
@@ -54,10 +58,23 @@ for(const contract of [
 ])must(server.includes(contract),'Standalone server contract missing: '+contract);
 
 const compose=read('magnanimous-runtime/docker-compose.yml');
+const releaseCompose=read('magnanimous-runtime/docker-compose.release.yml');
 for(const contract of ['sandbox:','browser:','browser-egress:','media:','authoritative-dns:','internal_services:','no-new-privileges:true','cap_drop:'])
  must(compose.includes(contract),'Hardened compose topology missing: '+contract);
 must(compose.includes('internal: true'),'Sandbox/media network must be internal-only.');
 must(compose.includes('condition: service_healthy'),'Browser startup must wait for healthy egress.');
+for(const image of ['iammagnanimous/runtime:','iammagnanimous/sandbox:','iammagnanimous/browser:','iammagnanimous/browser-egress:','iammagnanimous/media:'])
+ must(releaseCompose.includes(image),'Offline release topology missing image contract: '+image);
+must(releaseCompose.includes('MAGNANIMOUS_RUNTIME: "standalone-node"'),'Release topology must explicitly activate standalone runtime mode.');
+const releaseWorkflow=read('.github/workflows/magnanimous-standalone-release.yml');
+must(releaseWorkflow.includes('docker save'),'Standalone release must export offline-loadable images.');
+must(releaseWorkflow.includes('docker load'),'Standalone release must prove its own image bundle reloads.');
+must(releaseWorkflow.includes('Offline Magnanimous release bundle smoke PASS'),'Standalone release bundle smoke proof missing.');
+const hostPreflight=read('magnanimous-runtime/scripts/standalone-host-preflight.sh');
+must(hostPreflight.includes('Magnanimous standalone host preflight PASS'),'Standalone host preflight proof missing.');
+const installer=read('magnanimous-runtime/scripts/install-release-bundle.sh');
+must(installer.includes('sha256sum -c SHA256SUMS'),'Standalone installer must verify bundle checksums.');
+must(installer.includes('docker load -i'),'Standalone installer must load the offline image bundle.');
 
 const sandbox=read('magnanimous-runtime/services/sandbox-service.mjs');
 must(sandbox.includes("shell:false"),'Sandbox process execution must not use shell interpolation.');
