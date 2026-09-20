@@ -69,7 +69,10 @@ async function render(spec={}){
    const browserEnv={HOME:dir,XDG_CONFIG_HOME:config,XDG_CACHE_HOME:cache,XDG_RUNTIME_DIR:runtime,TMPDIR:dir};
    const r=await run([...common,'--dump-dom',url],{timeout:spec.timeout_ms,env:browserEnv});
    if(r.code!==0)throw new Error('Chromium render failed: '+r.stderr.toString('utf8').slice(-1200));
-   return{ok:true,mode,url,html:r.stdout.toString('utf8').slice(0,2000000)};
+   const html=r.stdout.toString('utf8').slice(0,2000000);
+   const netError=html.match(/ERR_[A-Z0-9_]+/);
+   if(netError||html.includes('error-code'))throw new Error('Chromium navigation failed: '+(netError?.[0]||'network error page'));
+   return{ok:true,mode,url,html};
   }
   const output=path.join(dir,mode==='pdf'?'page.pdf':'page.png');
   const flag=mode==='pdf'?'--print-to-pdf='+output:'--screenshot='+output;
