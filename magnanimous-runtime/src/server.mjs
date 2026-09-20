@@ -20,6 +20,7 @@ import { openMagnanimousPipeline } from './pipeline.mjs';
 import { magnanimousServiceBindings } from './service-bindings.mjs';
 import { MagnanimousMetrics } from './metrics.mjs';
 import { MagnanimousImageGenerationBinding } from './image-generation-binding.mjs';
+import { openMagnanimousCloudControl } from './cloud-control.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -52,6 +53,7 @@ const pipeline = openMagnanimousPipeline({ objectStore, work: durableWork, analy
 const services = magnanimousServiceBindings(process.env);
 const imageGenerator = new MagnanimousImageGenerationBinding(process.env);
 const metrics = new MagnanimousMetrics();
+const cloudControl = openMagnanimousCloudControl({ db, objectStore, env: process.env });
 
 const env = new Proxy(
   {
@@ -71,6 +73,7 @@ const env = new Proxy(
     MAGNANIMOUS_BROWSER: services.browser,
     MAGNANIMOUS_IMAGES: services.images,
     MAGNANIMOUS_IMAGE_GENERATOR: imageGenerator,
+    MAGNANIMOUS_CLOUD_CONTROL: cloudControl,
     OBJECT_STORE: objectStore,
     KV: kv,
     QUEUE: durableWork,
@@ -81,7 +84,8 @@ const env = new Proxy(
     PIPELINE: pipeline,
     SANDBOX: services.sandbox,
     BROWSER: services.browser,
-    IMAGES: services.images
+    IMAGES: services.images,
+    CLOUD_CONTROL: cloudControl
   },
   {
     get(target, key) {
@@ -250,10 +254,24 @@ const server = http.createServer(async (req, res) => {
             image_generation: imageGenerator.configured,
             prometheus_metrics: true,
             tls_reverse_proxy: true,
-            self_hosted_dns_profile: true
+            self_hosted_dns_profile: true,
+            magnanimous_cloud_control_plane: true
           }
         })
       );
+      metrics.observe(200, Date.now() - startedAt);
+      return;
+    }
+
+    if (pathname === '/__magnanimous_runtime/cloud') {
+      if (!internalAuthorized(req)) {
+        res.statusCode = 401;
+        res.setHeader('content-type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify({ detail: 'Magnanimous internal service token required.' }));
+        metrics.observe(401, Date.now() - startedAt);
+        return;
+      }
+      await send(res, Response.json(await cloudControl.summary(), { headers: { 'cache-control': 'no-store' } }));
       metrics.observe(200, Date.now() - startedAt);
       return;
     }

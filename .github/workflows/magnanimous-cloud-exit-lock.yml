@@ -5,6 +5,7 @@ on:
     paths:
       - 'magnanimous-runtime/**'
       - 'worker/src/magnanimous-infrastructure-core.js'
+      - 'worker/src/magnanimous-cloud-provider-core.js'
       - 'worker/src/security-entrypoint.js'
       - 'worker/src/visual-runtime.js'
       - 'frontend/app/owner-infrastructure/**'
@@ -20,6 +21,7 @@ on:
     paths:
       - 'magnanimous-runtime/**'
       - 'worker/src/magnanimous-infrastructure-core.js'
+      - 'worker/src/magnanimous-cloud-provider-core.js'
       - 'worker/src/security-entrypoint.js'
       - 'worker/src/visual-runtime.js'
       - 'frontend/app/owner-infrastructure/**'
@@ -99,6 +101,10 @@ jobs:
           };
           await checked('http://127.0.0.1:8788/__magnanimous_runtime/health');
           await checked('http://127.0.0.1:8788/__magnanimous_runtime/services',{headers:{'x-magnanimous-service-token':token}});
+          const cloud=JSON.parse(await checked('http://127.0.0.1:8788/__magnanimous_runtime/cloud',{headers:{'x-magnanimous-service-token':token}}));
+          if(cloud.identity!=='Magnanimous Cloud'||cloud.brain!=='Magnanimous AI'||cloud.external_provider_required_for_control_plane!==false)throw new Error('Magnanimous Cloud runtime contract failed.');
+          if(cloud.physical_capacity_required_for_compute!==true)throw new Error('Magnanimous Cloud must preserve the physical-capacity truth boundary.');
+          console.log('Magnanimous Cloud runtime control plane PASS');
           await checked('http://sandbox:8791/exec',{
             method:'POST',
             headers:{'content-type':'application/json','x-magnanimous-service-token':token},
@@ -137,7 +143,7 @@ jobs:
             body:JSON.stringify({base64:png,format:'png',width:2,height:2})
           }));
           if(!media.base64||media.bytes<1)throw new Error('Magnanimous media transform produced no output.');
-          console.log('Standalone Magnanimous runtime + sandbox + browser + media smoke PASS');
+          console.log('Standalone Magnanimous runtime + cloud control + sandbox + browser + media smoke PASS');
           NODE
       - name: Stop isolated CI services
         if: always()
