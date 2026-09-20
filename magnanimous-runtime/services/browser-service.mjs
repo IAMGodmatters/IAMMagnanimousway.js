@@ -55,6 +55,37 @@ async function run(args,{timeout=45000,env={}}={}){
   child.on('close',(code)=>{clearTimeout(timer);resolve({code,stdout:Buffer.concat(out),stderr:Buffer.concat(err)})});
  });
 }
+const sleep=(ms)=>new Promise(resolve=>setTimeout(resolve,ms));
+const transientNavigationErrors=new Set(['ERR_INTERNET_DISCONNECTED','ERR_PROXY_CONNECTION_FAILED','ERR_NAME_NOT_RESOLVED','ERR_TUNNEL_CONNECTION_FAILED','ERR_NETWORK_CHANGED']);
+async function ensureProxyReady(attempts=12){
+ if(!proxy)return;
+ const health=proxy.replace(/\/$/,'')+'/health';
+ let lastError='';
+ for(let attempt=0;attempt<attempts;attempt++){
+  try{
+   const response=await fetch(health,{headers:{'cache-control':'no-store'}});
+   if(response.ok)return;
+   lastError='HTTP '+response.status;
+  }catch(error){lastError=String(error?.message||error)}
+  await sleep(Math.min(1000,150+(attempt*100)));
+ }
+ throw new Error('Magnanimous browser egress is not ready: '+lastError);
+}
+async function navigateDom(common,url,browserEnv,timeout){
+ let lastError='network error page';
+ for(let attempt=0;attempt<3;attempt++){
+  await ensureProxyReady();
+  const result=await run([...common,'--dump-dom',url],{timeout,env:browserEnv});
+  if(result.code!==0)throw new Error('Chromium render failed: '+result.stderr.toString('utf8').slice(-1200));
+  const html=result.stdout.toString('utf8').slice(0,2000000);
+  const netError=html.match(/ERR_[A-Z0-9_]+/)?.[0]||'';
+  if(!netError&&!html.includes('error-code'))return html;
+  lastError=netError||'network error page';
+  if(!transientNavigationErrors.has(lastError)||attempt===2)break;
+  await sleep(400*(attempt+1));
+ }
+ throw new Error('Chromium navigation failed: '+lastError);
+}
 async function render(spec={}){
  const url=await safeUrl(spec.url);
  const mode=['dom','screenshot','pdf'].includes(spec.mode)?spec.mode:'dom';
@@ -78,18 +109,12 @@ async function render(spec={}){
   const resolvedProxy=await chromiumProxy();
   common.push('--proxy-server='+resolvedProxy,'--proxy-bypass-list=<-loopback>');
  }
-  if(mode==='dom'){
-   const browserEnv={HOME:dir,XDG_CONFIG_HOME:config,XDG_CACHE_HOME:cache,XDG_RUNTIME_DIR:runtime,TMPDIR:dir};
-   const r=await run([...common,'--dump-dom',url],{timeout:spec.timeout_ms,env:browserEnv});
-   if(r.code!==0)throw new Error('Chromium render failed: '+r.stderr.toString('utf8').slice(-1200));
-   const html=r.stdout.toString('utf8').slice(0,2000000);
-   const netError=html.match(/ERR_[A-Z0-9_]+/);
-   if(netError||html.includes('error-code'))throw new Error('Chromium navigation failed: '+(netError?.[0]||'network error page'));
-   return{ok:true,mode,url,html};
-  }
+  const browserEnv={HOME:dir,XDG_CONFIG_HOME:config,XDG_CACHE_HOME:cache,XDG_RUNTIME_DIR:runtime,TMPDIR:dir};
+  const html=await navigateDom(common,url,browserEnv,spec.timeout_ms);
+  if(mode==='dom')return{ok:true,mode,url,html};
   const output=path.join(dir,mode==='pdf'?'page.pdf':'page.png');
   const flag=mode==='pdf'?'--print-to-pdf='+output:'--screenshot='+output;
-  const browserEnv={HOME:dir,XDG_CONFIG_HOME:config,XDG_CACHE_HOME:cache,XDG_RUNTIME_DIR:runtime,TMPDIR:dir};
+  await ensureProxyReady();
   const r=await run([...common,flag,url],{timeout:spec.timeout_ms,env:browserEnv});
   if(r.code!==0)throw new Error('Chromium render failed: '+r.stderr.toString('utf8').slice(-1200));
   const value=await fs.readFile(output);
@@ -98,7 +123,11 @@ async function render(spec={}){
 }
 const server=http.createServer(async(req,res)=>{
  try{
-  if(req.url==='/health')return json(res,200,{ok:true,identity:'Magnanimous Browser',engine:'Chromium',private_network_targets:false,egress_proxy_required:true,egress_proxy_configured:Boolean(proxy)});
+  if(req.url==='/health'){
+   let egress_ready=!proxy;
+   if(proxy){try{await ensureProxyReady(2);egress_ready=true}catch{}}
+   return json(res,egress_ready?200:503,{ok:egress_ready,identity:'Magnanimous Browser',engine:'Chromium',private_network_targets:false,egress_proxy_required:true,egress_proxy_configured:Boolean(proxy),egress_ready});
+  }
   if(!authorized(req))return json(res,401,{detail:'Magnanimous internal service token required.'});
   if(req.method==='POST'&&req.url==='/render')return json(res,200,await render(await body(req)));
   return json(res,404,{detail:'Magnanimous browser route not found.'});
