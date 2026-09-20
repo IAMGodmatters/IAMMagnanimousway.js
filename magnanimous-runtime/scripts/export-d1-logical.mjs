@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -39,19 +40,25 @@ function collectResultRows(payload){
   return rows;
 }
 
-function remoteQuery(sql){
-  let result;
-  if(directD1Api){
-    const url='https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(cloudflareAccountId)+'/d1/database/'+encodeURIComponent(databaseId)+'/query';
-    result=spawnSync(
+function directApiQuery(sql){
+  const url='https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(cloudflareAccountId)+'/d1/database/'+encodeURIComponent(databaseId)+'/query';
+  const nonce=process.pid+'-'+crypto.randomUUID();
+  const headerFile=path.join(os.tmpdir(),'magnanimous-d1-'+nonce+'.headers');
+  const requestFile=path.join(os.tmpdir(),'magnanimous-d1-'+nonce+'.request.json');
+  const responseFile=path.join(os.tmpdir(),'magnanimous-d1-'+nonce+'.response.json');
+  fs.writeFileSync(headerFile,'Authorization: Bearer '+cloudflareApiToken+'\n',{mode:0o600});
+  fs.writeFileSync(requestFile,JSON.stringify({sql}),{mode:0o600});
+  try{
+    const result=spawnSync(
       'curl',
       [
         '-sS','--fail-with-body','--connect-timeout','10','--max-time','90',
         '--retry','3','--retry-delay','1','--retry-all-errors',
         '-X','POST',url,
         '-H','Content-Type: application/json',
-        '-H','Authorization: Bearer '+cloudflareApiToken,
-        '--data-binary',JSON.stringify({sql})
+        '-H','@'+headerFile,
+        '--data-binary','@'+requestFile,
+        '--output',responseFile
       ],
       {
         cwd:workerDir,
@@ -61,26 +68,44 @@ function remoteQuery(sql){
         stdio:['ignore','pipe','pipe']
       }
     );
-  }else{
-    result=spawnSync(
-      'npx',
-      ['wrangler','d1','execute',database,'--remote','--json','--command',sql],
-      {
-        cwd:workerDir,
-        env:process.env,
-        encoding:'utf8',
-        maxBuffer:256*1024*1024,
-        stdio:['ignore','pipe','pipe']
-      }
-    );
+    const body=fs.existsSync(responseFile)?fs.readFileSync(responseFile,'utf8'):'';
+    if(result.error)throw result.error;
+    if(result.status!==0){
+      const detail=String(result.stderr||body||'').replaceAll(cloudflareApiToken,'[redacted]');
+      throw new Error('D1 direct API query failed: '+detail.slice(-4000));
+    }
+    return body;
+  }finally{
+    for(const file of [headerFile,requestFile,responseFile]){
+      try{fs.rmSync(file,{force:true})}catch{}
+    }
   }
-  if(result.error) throw result.error;
+}
+
+function wranglerQuery(sql){
+  const result=spawnSync(
+    'npx',
+    ['wrangler','d1','execute',database,'--remote','--json','--command',sql],
+    {
+      cwd:workerDir,
+      env:process.env,
+      encoding:'utf8',
+      maxBuffer:256*1024*1024,
+      stdio:['ignore','pipe','pipe']
+    }
+  );
+  if(result.error)throw result.error;
   if(result.status!==0){
     const detail=String(result.stderr||result.stdout||'').replaceAll(cloudflareApiToken,'[redacted]');
-    throw new Error('D1 read query failed: '+detail.slice(-4000));
+    throw new Error('D1 Wrangler fallback query failed: '+detail.slice(-4000));
   }
+  return String(result.stdout||'');
+}
+
+function remoteQuery(sql){
+  const raw=directD1Api?directApiQuery(sql):wranglerQuery(sql);
   let payload;
-  try{payload=JSON.parse(result.stdout)}catch(error){
+  try{payload=JSON.parse(raw)}catch(error){
     throw new Error('D1 JSON response could not be parsed: '+String(error?.message||error));
   }
   if(payload?.success===false||Array.isArray(payload?.errors)&&payload.errors.length){
