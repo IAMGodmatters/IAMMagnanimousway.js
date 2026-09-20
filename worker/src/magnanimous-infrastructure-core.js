@@ -212,7 +212,7 @@ export function magnanimousInfrastructureSummary(env = {}) {
     dns_cutover_required: !standalone,
     rollback_required_until_cutover_verified: !standalone,
     remaining_external_boundaries: standalone ? [] : [
-      'Attach owner-controlled hardware or a replaceable capacity host for real CPU/RAM/disk/public-network capacity.'
+      'Attach owner-controlled hardware or a replaceable capacity host for real CPU/RAM/disk/public-network capacity.',
       'Export and import the current production database, then pass parity and mutation smoke tests.',
       'Configure real TLS/DNS host addresses and change registrar nameserver/glue records.',
       'Retain or purchase upstream anycast/DDoS/network capacity where global scale requires it.'
