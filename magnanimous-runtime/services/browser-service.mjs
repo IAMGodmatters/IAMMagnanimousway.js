@@ -24,9 +24,15 @@ function privateIp(ip=''){
 async function safeUrl(value){
  const url=new URL(String(value||''));
  if(!['http:','https:'].includes(url.protocol))throw new Error('Only public http(s) URLs are allowed.');
- if(['localhost','localhost.localdomain'].includes(url.hostname.toLowerCase()))throw new Error('Private browser targets are blocked.');
- const records=await dns.lookup(url.hostname,{all:true,verbatim:true});
- if(!records.length||records.some(r=>privateIp(r.address)))throw new Error('Private or local browser targets are blocked.');
+ const hostname=url.hostname.toLowerCase();
+ if(['localhost','localhost.localdomain'].includes(hostname)||hostname.endsWith('.local')||hostname.endsWith('.internal'))throw new Error('Private browser targets are blocked.');
+ if(/^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname)||hostname.includes(':')){
+  if(privateIp(hostname))throw new Error('Private or local browser targets are blocked.');
+ }
+ if(!proxy){
+  const records=await dns.lookup(hostname,{all:true,verbatim:true});
+  if(!records.length||records.some(r=>privateIp(r.address)))throw new Error('Private or local browser targets are blocked.');
+ }
  return url.toString();
 }
 async function run(args,{timeout=45000}={}){
