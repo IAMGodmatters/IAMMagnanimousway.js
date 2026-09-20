@@ -2,11 +2,20 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 
-import { stageD1SqlExport, stageD1SqliteSnapshot } from '../src/migration-stage.mjs';
+import { stageD1SqlExport, stageD1SqliteSnapshot, stageCredentialVaultRewrap } from '../src/migration-stage.mjs';
 
 const root = await fs.mkdtemp(path.join(os.tmpdir(), 'magnanimous-migration-stage-'));
+
+async function encryptCredential(value,source){
+  const digest=crypto.createHash('sha256').update('iam-platform-credentials-v1:'+source).digest();
+  const key=await crypto.webcrypto.subtle.importKey('raw',digest,{name:'AES-GCM'},false,['encrypt']);
+  const iv=crypto.randomBytes(12);
+  const cipher=Buffer.from(await crypto.webcrypto.subtle.encrypt({name:'AES-GCM',iv},key,Buffer.from(value)));
+  return 'enc1.'+iv.toString('base64')+'.'+cipher.toString('base64');
+}
 try {
   const sql = `
     CREATE TABLE users(id TEXT PRIMARY KEY, email TEXT NOT NULL);
@@ -55,6 +64,14 @@ try {
     );
     INSERT INTO knowledge_fts(title,content,url,tenant_id,source_id,chunk_id,source_type)
     SELECT title,content,url,tenant_id,CAST(source_id AS TEXT),CAST(id AS TEXT),source_type FROM knowledge_chunks;
+    CREATE TABLE platform_credentials(
+      credential_key TEXT PRIMARY KEY,
+      encrypted_value TEXT NOT NULL,
+      updated_at INTEGER NOT NULL,
+      updated_by TEXT NOT NULL DEFAULT ''
+    );
+    INSERT INTO platform_credentials(credential_key,encrypted_value,updated_at,updated_by)
+    VALUES('TWILIO_AUTH_TOKEN','enc1.b2xk.b2xkLWNpcGhlcg==',1,'owner');
   `);
   source.close();
 
@@ -73,12 +90,36 @@ try {
   assert.equal(snapshot.ok, true);
   assert.equal(snapshot.integrity, 'ok');
   assert.equal(snapshot.foreign_key_violations, 0);
-  assert.equal(snapshot.table_count, 2);
-  assert.deepEqual(snapshot.table_counts, { knowledge_chunks: 1, knowledge_fts: 1 });
+  assert.equal(snapshot.table_count, 3);
+  assert.deepEqual(snapshot.table_counts, { knowledge_chunks: 1, knowledge_fts: 1, platform_credentials: 1 });
   assert.ok(snapshot.sqlite_sha256);
   assert.ok(snapshot.schema_sha256);
   assert.equal((await fs.stat(target)).isFile(), true);
   assert.equal((await fs.stat(target + '.stage.json')).isFile(), true);
+
+  const secretFile=path.join(root,'runtime-secrets.json');
+  const targetKey='verification-target-key-0123456789abcdef0123456789abcdef';
+  await fs.writeFile(secretFile,JSON.stringify({INTEGRATION_CREDENTIALS_KEY:targetKey}),{mode:0o600});
+  const rewrapped=await encryptCredential('verification-provider-secret',targetKey);
+  const rewrapResult=await stageCredentialVaultRewrap({
+    count:1,
+    rows:[{credential_key:'TWILIO_AUTH_TOKEN',encrypted_value:rewrapped,updated_at:1,updated_by:'owner'}]
+  },{targetPath:target,runtimeSecretsFile:secretFile});
+  assert.equal(rewrapResult.ok,true);
+  assert.equal(rewrapResult.count,1);
+  assert.ok(rewrapResult.ciphertext_sha256);
+  const verifyDb=new DatabaseSync(target,{readOnly:true});
+  const credential=verifyDb.prepare('SELECT encrypted_value FROM platform_credentials WHERE credential_key=?').get('TWILIO_AUTH_TOKEN');
+  verifyDb.close();
+  assert.equal(credential.encrypted_value,rewrapped);
+
+  await assert.rejects(
+    () => stageCredentialVaultRewrap({
+      count:1,
+      rows:[{credential_key:'WRONG_KEY',encrypted_value:rewrapped}]
+    },{targetPath:target,runtimeSecretsFile:secretFile}),
+    /key set does not match/
+  );
 
   await assert.rejects(
     () => stageD1SqliteSnapshot(Buffer.from('not-a-database'), {
