@@ -62,6 +62,125 @@ function one(sql){
   return rows[0]||null;
 }
 
+function literal(value){
+  if(value===null||value===undefined)return 'NULL';
+  if(typeof value==='number')return Number.isFinite(value)?String(value):'NULL';
+  if(typeof value==='bigint')return value.toString();
+  if(value instanceof Uint8Array||Buffer.isBuffer(value))return "X'"+Buffer.from(value).toString('hex')+"'";
+  return qstr(String(value));
+}
+
+function tableColumns(db,table){
+  return db.prepare('PRAGMA table_xinfo('+qstr(table)+');').all()
+    .filter(row=>Number(row.hidden||0)===0)
+    .map(row=>String(row.name||''))
+    .filter(Boolean);
+}
+
+function primaryKeyColumns(db,table){
+  return db.prepare('PRAGMA table_xinfo('+qstr(table)+');').all()
+    .filter(row=>Number(row.pk||0)>0)
+    .sort((a,b)=>Number(a.pk)-Number(b.pk))
+    .map(row=>String(row.name||''))
+    .filter(Boolean);
+}
+
+function remoteQuotedRow(table,columns,whereSql){
+  const selectQuoted=columns.map(name=>'quote('+qname(name)+') AS '+qname(name)).join(',');
+  const rows=remoteQuery('SELECT '+selectQuoted+' FROM '+qname(table)+' WHERE '+whereSql+' LIMIT 2;');
+  if(rows.length>1)throw new Error('Foreign-key reconciliation matched multiple parent rows for '+table+'.');
+  return rows[0]||null;
+}
+
+function insertQuotedRow(db,table,columns,row){
+  const values=columns.map(name=>{
+    const value=row?.[name];
+    if(value===null||value===undefined)return 'NULL';
+    const text=String(value);
+    if(!/^(NULL|[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?|X'[0-9A-Fa-f]*'|'.*')$/s.test(text)){
+      throw new Error('Unexpected quoted D1 literal during reconciliation in '+table+'.'+name);
+    }
+    return text;
+  });
+  db.exec('INSERT OR REPLACE INTO '+qname(table)+' ('+columns.map(qname).join(',')+') VALUES ('+values.join(',')+');');
+}
+
+function reconcileForeignKeys(db){
+  const maxRounds=12;
+  let totalRepaired=0,totalPruned=0;
+  for(let round=1;round<=maxRounds;round++){
+    const violations=db.prepare('PRAGMA foreign_key_check').all();
+    if(!violations.length){
+      console.log('Foreign-key reconciliation PASS after '+(round-1)+' repair rounds; added '+totalRepaired+' missing parent rows; pruned '+totalPruned+' stale copied child rows.');
+      return {repaired:totalRepaired,pruned:totalPruned};
+    }
+    let changed=0;
+    for(const violation of violations){
+      const child=String(violation.table||'');
+      const parent=String(violation.parent||'');
+      const fkId=Number(violation.fkid);
+      if(!child||!parent||!Number.isInteger(fkId))throw new Error('Malformed foreign-key violation metadata.');
+
+      const fkRows=db.prepare('PRAGMA foreign_key_list('+qstr(child)+');').all()
+        .filter(row=>Number(row.id)===fkId)
+        .sort((a,b)=>Number(a.seq)-Number(b.seq));
+      if(!fkRows.length)throw new Error('Foreign-key definition not found for '+child+' -> '+parent+'.');
+
+      let childRow=null;
+      if(violation.rowid!==null&&violation.rowid!==undefined){
+        childRow=db.prepare('SELECT * FROM '+qname(child)+' WHERE rowid=?').get(violation.rowid);
+      }else{
+        const pk=primaryKeyColumns(db,child);
+        if(!pk.length)throw new Error('Cannot identify violating WITHOUT ROWID child in '+child+'.');
+        throw new Error('Foreign-key reconciliation for WITHOUT ROWID child requires an explicit row identity: '+child+'.');
+      }
+      if(!childRow)continue;
+
+      const predicates=[];
+      let nullReference=false;
+      for(const fk of fkRows){
+        const from=String(fk.from||''),to=String(fk.to||'');
+        if(!from||!to)throw new Error('Implicit parent primary-key foreign keys are not supported during reconciliation: '+child+' -> '+parent+'.');
+        const value=childRow[from];
+        if(value===null||value===undefined){nullReference=true;break;}
+        predicates.push(qname(to)+'='+literal(value));
+      }
+      if(nullReference)continue;
+
+      const parentColumns=tableColumns(db,parent);
+      const parentRemote=remoteQuotedRow(parent,parentColumns,predicates.join(' AND '));
+      if(parentRemote){
+        insertQuotedRow(db,parent,parentColumns,parentRemote);
+        totalRepaired++;changed++;
+        continue;
+      }
+
+      const childPk=primaryKeyColumns(db,child);
+      let childStillExists=false;
+      if(childPk.length){
+        const where=childPk.map(name=>qname(name)+'='+literal(childRow[name])).join(' AND ');
+        childStillExists=Boolean(one('SELECT 1 AS present FROM '+qname(child)+' WHERE '+where+' LIMIT 1;'));
+      }else if(violation.rowid!==null&&violation.rowid!==undefined){
+        childStillExists=Boolean(one('SELECT 1 AS present FROM '+qname(child)+' WHERE rowid='+literal(violation.rowid)+' LIMIT 1;'));
+      }
+
+      if(childStillExists){
+        throw new Error('Production currently contains a foreign-key violation: '+child+' -> '+parent+'.');
+      }
+
+      if(violation.rowid!==null&&violation.rowid!==undefined){
+        db.prepare('DELETE FROM '+qname(child)+' WHERE rowid=?').run(violation.rowid);
+        totalPruned++;changed++;
+      }else{
+        throw new Error('Unable to prune stale WITHOUT ROWID child during foreign-key reconciliation: '+child+'.');
+      }
+    }
+    if(!changed)throw new Error('Foreign-key reconciliation made no progress with '+violations.length+' violations remaining.');
+  }
+  const remaining=db.prepare('PRAGMA foreign_key_check').all();
+  throw new Error('Foreign-key reconciliation exceeded '+maxRounds+' rounds with '+remaining.length+' violations remaining.');
+}
+
 function logicalSummary(db){
   const listed=db.prepare('PRAGMA table_list').all()
     .filter(row=>String(row.schema||'')==='main')
@@ -243,9 +362,10 @@ try{
   }
 
   db.exec('PRAGMA foreign_keys=ON;');
+  const reconciliation=reconcileForeignKeys(db);
   const summary=logicalSummary(db);
   if(summary.integrity.toLowerCase()!=='ok') throw new Error('Logical D1 snapshot failed SQLite integrity_check.');
-  if(summary.foreign_key_violations!==0) throw new Error('Logical D1 snapshot has foreign-key violations.');
+  if(summary.foreign_key_violations!==0) throw new Error('Logical D1 snapshot has foreign-key violations after reconciliation.');
 
   db.exec('VACUUM;');
   db.close();
@@ -256,7 +376,8 @@ try{
     sqlite_sha256:crypto.createHash('sha256').update(bytes).digest('hex'),
     sqlite_bytes:bytes.length,
     ordinary_tables:ordinary.length,
-    virtual_tables:virtual
+    virtual_tables:virtual,
+    foreign_key_reconciliation:reconciliation
   };
   fs.writeFileSync(summaryPath,JSON.stringify(finalSummary,null,2),{mode:0o600});
   console.log('Magnanimous logical D1 snapshot PASS across '+finalSummary.table_count+' logical tables ('+bytes.length+' bytes).');
