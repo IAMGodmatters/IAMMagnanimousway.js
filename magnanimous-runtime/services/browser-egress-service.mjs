@@ -26,7 +26,8 @@ async function publicAddress(hostname){
  }
  const rows=await dns.lookup(name,{all:true,verbatim:true});
  if(!rows.length||rows.some(r=>blockedIp(r.address)))throw new Error('Private browser destination blocked.');
- return{name,address:rows[0].address,family:rows[0].family};
+ const selected=rows.find(r=>Number(r.family)===4)||rows[0];
+ return{name,address:selected.address,family:selected.family};
 }
 function deny(socketOrRes,status=403,message='Magnanimous browser egress blocked this destination.'){
  if(typeof socketOrRes.writeHead==='function'){socketOrRes.writeHead(status,{'content-type':'text/plain; charset=utf-8','connection':'close'});socketOrRes.end(message);return}
