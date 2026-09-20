@@ -10,7 +10,12 @@ It runs the existing checked-in Magnanimous request chain on standard Node.js an
 - static Next.js export serving from `frontend/out`;
 - the existing `security-entrypoint.js` API/runtime chain;
 - standard scheduled execution without vendor cron bindings;
-- a provider-neutral `env.AI.run()` compatibility surface using local Ollama, an OpenAI-compatible endpoint, or an explicitly configured metered fallback.
+- a provider-neutral `env.AI.run()` compatibility surface using local Ollama, an OpenAI-compatible endpoint, or an explicitly configured metered fallback;
+- `MagnanimousObjectStore` for persistent local-volume object/blob storage with metadata, hashing, list/get/put/delete contracts;
+- `MagnanimousKvStore` for SQLite-backed key/value data, TTL expiration, metadata and typed reads;
+- `MagnanimousDurableWork` for idempotent durable queues, leasing, retry state and checkpointed workflows;
+- `MagnanimousEventHub` for persistent event history plus live in-process publish/subscribe coordination;
+- `MagnanimousRateLimiter` for application-layer API and authentication abuse controls.
 
 No Cloudflare package is required by this runtime.
 
@@ -31,8 +36,14 @@ Runtime health:
 
 ```text
 /__magnanimous_runtime/health
+/__magnanimous_runtime/capabilities
 ```
 
 ## Cutover rule
 
 Do not move production traffic until database export/import, authentication, mutation smoke tests, scheduled work, static routes, AI fallback behavior, TLS, backup/restore, and rollback have all been verified against a production data copy.
+
+
+## Independence boundary
+
+These first-party primitives replace application dependencies on vendor-specific SQL, object storage, key/value, queue/workflow, event coordination and basic request-rate contracts. Global anycast delivery, carrier-grade DDoS absorption, public authoritative DNS, regulated telecom, and payment settlement still require real external network/infrastructure capacity. Those rails remain replaceable and must never own Magnanimous identity, memory, policy or orchestration.
