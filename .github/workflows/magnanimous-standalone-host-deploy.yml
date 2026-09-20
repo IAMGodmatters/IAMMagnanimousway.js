@@ -1,0 +1,175 @@
+name: Magnanimous Standalone Host Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_run_id:
+        description: Optional successful Magnanimous Standalone Release run ID. Blank uses latest successful main release.
+        required: false
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: magnanimous-standalone-production-host
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HOST: ${{ secrets.MAGNANIMOUS_STANDALONE_HOST }}
+      SSH_USER: ${{ secrets.MAGNANIMOUS_STANDALONE_SSH_USER }}
+      SSH_PORT: ${{ secrets.MAGNANIMOUS_STANDALONE_SSH_PORT }}
+      SSH_PRIVATE_KEY: ${{ secrets.MAGNANIMOUS_STANDALONE_SSH_PRIVATE_KEY }}
+      SSH_KNOWN_HOSTS: ${{ secrets.MAGNANIMOUS_STANDALONE_SSH_KNOWN_HOSTS }}
+      PRODUCTION_ENV_B64: ${{ secrets.MAGNANIMOUS_STANDALONE_ENV_B64 }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Require pinned standalone host configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in HOST SSH_USER SSH_PRIVATE_KEY SSH_KNOWN_HOSTS PRODUCTION_ENV_B64; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing required standalone-host secret: $name"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+          if [ -z "${SSH_PORT:-}" ]; then
+            echo "SSH_PORT=22" >> "$GITHUB_ENV"
+          fi
+
+      - name: Resolve proven standalone release
+        id: release
+        shell: bash
+        env:
+          REQUESTED_RUN_ID: ${{ inputs.release_run_id }}
+        run: |
+          set -euo pipefail
+          if [ -n "${REQUESTED_RUN_ID:-}" ]; then
+            case "$REQUESTED_RUN_ID" in *[!0-9]*) echo "::error::release_run_id must be numeric"; exit 1;; esac
+            run_id="$REQUESTED_RUN_ID"
+          else
+            run_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/magnanimous-standalone-release.yml/runs?branch=main&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          fi
+          [ -n "$run_id" ] || { echo "::error::No successful standalone release run is available."; exit 1; }
+
+          name="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.name')"
+          conclusion="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.conclusion')"
+          branch="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.head_branch')"
+          sha="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.head_sha')"
+          [ "$name" = "Magnanimous Standalone Release" ] || { echo "::error::Run $run_id is not the standalone release workflow."; exit 1; }
+          [ "$conclusion" = "success" ] || { echo "::error::Run $run_id is not successful."; exit 1; }
+          [ "$branch" = "main" ] || { echo "::error::Run $run_id is not from main."; exit 1; }
+
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Using proven standalone release run $run_id from $sha."
+
+      - name: Download and verify release artifact
+        id: bundle
+        shell: bash
+        env:
+          RELEASE_RUN_ID: ${{ steps.release.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          gh run download "$RELEASE_RUN_ID" --repo "$GITHUB_REPOSITORY" --dir dist
+          bundle="$(find dist -type f -name 'magnanimous-standalone-*.tar.gz' | head -n1)"
+          sumfile="$(find dist -type f -name 'magnanimous-standalone-*.tar.gz.sha256' | head -n1)"
+          [ -n "$bundle" ] && [ -f "$bundle" ] || { echo "::error::Standalone tarball missing."; exit 1; }
+          [ -n "$sumfile" ] && [ -f "$sumfile" ] || { echo "::error::Standalone checksum missing."; exit 1; }
+
+          expected="$(awk 'NR==1{print $1}' "$sumfile")"
+          actual="$(sha256sum "$bundle" | awk '{print $1}')"
+          [ "$expected" = "$actual" ] || { echo "::error::Standalone tarball checksum mismatch."; exit 1; }
+
+          printf '%s' "$PRODUCTION_ENV_B64" | base64 --decode > /tmp/magnanimous-production.env
+          chmod 600 /tmp/magnanimous-production.env
+          for key in MAGNANIMOUS_INTERNAL_SERVICE_TOKEN MAGNANIMOUS_SECRETS_KEY SESSION_SECRET INTEGRATION_CREDENTIALS_KEY MAGNANIMOUS_ACME_EMAIL; do
+            grep -q "^${key}=" /tmp/magnanimous-production.env || { echo "::error::Production env is missing $key."; exit 1; }
+          done
+
+          echo "bundle=$bundle" >> "$GITHUB_OUTPUT"
+          echo "sumfile=$sumfile" >> "$GITHUB_OUTPUT"
+          echo "Standalone artifact checksum PASS."
+
+      - name: Configure pinned SSH transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/magnanimous_host
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/magnanimous_host ~/.ssh/known_hosts
+          ssh-keygen -l -f ~/.ssh/magnanimous_host >/dev/null
+
+      - name: Transfer and install proven standalone release
+        shell: bash
+        env:
+          BUNDLE: ${{ steps.bundle.outputs.bundle }}
+          SUMFILE: ${{ steps.bundle.outputs.sumfile }}
+        run: |
+          set -euo pipefail
+          remote_stage=".cache/magnanimous/incoming/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          ssh_opts=(-i ~/.ssh/magnanimous_host -p "$SSH_PORT" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts")
+
+          ssh "${ssh_opts[@]}" "$SSH_USER@$HOST" "mkdir -p '$remote_stage' && chmod 700 '$remote_stage'"
+          scp -i ~/.ssh/magnanimous_host -P "$SSH_PORT" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            "$BUNDLE" "$SUMFILE" /tmp/magnanimous-production.env "$SSH_USER@$HOST:$remote_stage/"
+
+          bundle_name="$(basename "$BUNDLE")"
+          sum_name="$(basename "$SUMFILE")"
+          ssh "${ssh_opts[@]}" "$SSH_USER@$HOST" bash -s -- "$remote_stage" "$bundle_name" "$sum_name" <<'REMOTE'
+          set -euo pipefail
+          stage="$1"
+          bundle_name="$2"
+          sum_name="$3"
+          cd "$stage"
+          chmod 600 magnanimous-production.env
+
+          expected="$(awk 'NR==1{print $1}' "$sum_name")"
+          actual="$(sha256sum "$bundle_name" | awk '{print $1}')"
+          [ "$expected" = "$actual" ] || { echo "Remote release checksum mismatch." >&2; exit 1; }
+
+          tar -xzf "$bundle_name"
+          bundle_dir="$(find . -maxdepth 1 -mindepth 1 -type d -name 'magnanimous-standalone-*' | head -n1)"
+          [ -n "$bundle_dir" ] || { echo "Extracted standalone bundle directory missing." >&2; exit 1; }
+
+          "$bundle_dir/standalone-host-preflight.sh" "$bundle_dir" "$PWD/magnanimous-production.env" "$bundle_dir/docker-compose.release.yml"
+          "$bundle_dir/install-release-bundle.sh" "$bundle_dir" "$PWD/magnanimous-production.env"
+
+          if [ "$(id -u)" -eq 0 ]; then
+            install_root="/opt/magnanimous"
+          else
+            install_root="$HOME/.local/share/magnanimous"
+          fi
+          cd "$install_root"
+
+          persisted_tag="$(awk -F= '$1=="MAGNANIMOUS_RELEASE_TAG"{sub(/^[^=]*=/,"");print;exit}' .env | tr -d '\r')"
+          expected_tag="$(tr -d '\r\n' < RELEASE_TAG)"
+          [ -n "$persisted_tag" ] && [ "$persisted_tag" = "$expected_tag" ] || { echo "Persisted release tag verification failed." >&2; exit 1; }
+
+          docker compose --env-file .env -f docker-compose.release.yml config -q
+          docker compose --env-file .env -f docker-compose.release.yml exec -T magnanimous \
+            node -e "fetch('http://127.0.0.1:8788/__magnanimous_runtime/health').then(async r=>{if(!r.ok)process.exit(1); console.log('Standalone host runtime health PASS')}).catch(()=>process.exit(1))"
+
+          cd "$HOME"
+          rm -rf "$stage"
+          echo "Magnanimous standalone host deployment PASS."
+          REMOTE
+
+      - name: Record cutover boundary
+        shell: bash
+        run: |
+          echo "Standalone host installation is verified."
+          echo "DNS was NOT changed by this workflow."
+          echo "Cloudflare remains the rollback rail until data parity, public TLS, mail records, live mutations, scheduled work, billing, telecom, and rollback drills are verified."
