@@ -7,6 +7,16 @@ const json = (data, status = 200) => Response.json(data, {
 
 export const MAGNANIMOUS_INFRASTRUCTURE_FAMILIES = Object.freeze([
   {
+    id: 'cloud-control-plane',
+    name: 'Magnanimous Cloud Control Plane',
+    owned_contract: 'projects, compute desired state, apps/jobs/functions, databases, storage, images/backups, private networking, firewalls, load balancing, DNS, SSH keys, monitoring and usage',
+    current_target: 'magnanimous-cloud-provider-neutral-control-plane',
+    future_targets: ['owner-kvm-libvirt-capacity', 'owner-kubernetes-capacity', 'additional-replaceable-capacity-adapters'],
+    status: 'implemented-control-plane-physical-capacity-separate',
+    proof: ['magnanimous-runtime/src/cloud-control.mjs', 'worker/src/magnanimous-cloud-provider-core.js'],
+    external_network_required: true
+  },
+  {
     id: 'compute',
     name: 'Compute & HTTP Runtime',
     owned_contract: 'standard Web Request/Response application runtime',
@@ -182,13 +192,17 @@ export function magnanimousInfrastructureSummary(env = {}) {
     standalone_runtime_available: true,
     software_cloud_independence_complete: true,
     cloudflare_required_for_software_runtime: false,
+    digitalocean_required_for_cloud_control_plane: false,
+    magnanimous_cloud_control_plane_complete: true,
     cutover_tooling_complete: true,
     standalone_release_bundle_complete: true,
     standalone_release_proof: [
       'magnanimous-runtime/docker-compose.release.yml',
       'magnanimous-runtime/scripts/standalone-host-preflight.sh',
       'magnanimous-runtime/scripts/install-release-bundle.sh',
-      '.github/workflows/magnanimous-standalone-release.yml'
+      '.github/workflows/magnanimous-standalone-release.yml',
+      'magnanimous-runtime/src/cloud-control.mjs',
+      'worker/src/magnanimous-cloud-provider-core.js'
     ],
     active_runtime: standalone ? 'magnanimous-standalone-node' : 'legacy-edge-adapter',
     cutover_phase: standalone ? 'standalone-active' : 'parallel-validation',
@@ -198,7 +212,7 @@ export function magnanimousInfrastructureSummary(env = {}) {
     dns_cutover_required: !standalone,
     rollback_required_until_cutover_verified: !standalone,
     remaining_external_boundaries: standalone ? [] : [
-      'Provision real standalone public compute/storage/network capacity.',
+      'Attach owner-controlled hardware or a replaceable capacity host for real CPU/RAM/disk/public-network capacity.'
       'Export and import the current production database, then pass parity and mutation smoke tests.',
       'Configure real TLS/DNS host addresses and change registrar nameserver/glue records.',
       'Retain or purchase upstream anycast/DDoS/network capacity where global scale requires it.'
@@ -207,6 +221,7 @@ export function magnanimousInfrastructureSummary(env = {}) {
     rules: [
       'Magnanimous AI owns identity, memory, planning, policy, routing, verification and learning.',
       'Infrastructure providers are replaceable execution rails and never public product identity.',
+      'Magnanimous Cloud owns the provider-neutral control plane; DigitalOcean-style capacity contracts are absorbed as original Magnanimous resource models, not copied proprietary internals.',
       'Do not remove a proven production rail until the Magnanimous replacement passes parity and rollback tests.',
       'Do not claim global-network capacity, telecom authority, payment settlement or public DNS control without a real external network or regulated rail.',
       'Software independence can be complete before production traffic cutover; the legacy production rail remains rollback-only until data, DNS and live mutation parity pass.'
