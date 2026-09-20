@@ -23,11 +23,13 @@ const codeFiles=[
   'magnanimous-runtime/src/image-generation-binding.mjs',
   'magnanimous-runtime/services/sandbox-service.mjs',
   'magnanimous-runtime/services/browser-service.mjs',
+  'magnanimous-runtime/services/browser-egress-service.mjs',
   'magnanimous-runtime/services/media-service.mjs',
   'magnanimous-runtime/src/server.mjs',
   'magnanimous-runtime/Dockerfile',
   'magnanimous-runtime/Dockerfile.sandbox',
   'magnanimous-runtime/Dockerfile.browser',
+  'magnanimous-runtime/Dockerfile.browser-egress',
   'magnanimous-runtime/Dockerfile.media',
   'magnanimous-runtime/docker-compose.yml',
   'magnanimous-runtime/Caddyfile'
