@@ -9,6 +9,7 @@ const host=process.env.HOST||'0.0.0.0';
 const port=Number(process.env.PORT||8792);
 const token=String(process.env.MAGNANIMOUS_INTERNAL_SERVICE_TOKEN||'');
 const chromium=process.env.CHROMIUM_BIN||'/usr/bin/chromium';
+const proxy=String(process.env.MAGNANIMOUS_BROWSER_PROXY||'').trim();
 
 function json(res,status,data){res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});res.end(JSON.stringify(data))}
 function authorized(req){return token&&String(req.headers['x-magnanimous-service-token']||'')===token}
@@ -45,6 +46,7 @@ async function render(spec={}){
  const width=Math.max(320,Math.min(Number(spec.width||1440),3840));
  const height=Math.max(240,Math.min(Number(spec.height||1000),4000));
  const common=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-sync','--metrics-recording-only','--mute-audio','--window-size='+width+','+height];
+ if(proxy){common.push('--proxy-server='+proxy,'--proxy-bypass-list=<-loopback>');}
  if(mode==='dom'){
   const r=await run([...common,'--dump-dom',url],{timeout:spec.timeout_ms});
   if(r.code!==0)throw new Error('Chromium render failed: '+r.stderr.toString('utf8').slice(-1200));
@@ -62,7 +64,7 @@ async function render(spec={}){
 }
 const server=http.createServer(async(req,res)=>{
  try{
-  if(req.url==='/health')return json(res,200,{ok:true,identity:'Magnanimous Browser',engine:'Chromium',private_network_targets:false});
+  if(req.url==='/health')return json(res,200,{ok:true,identity:'Magnanimous Browser',engine:'Chromium',private_network_targets:false,egress_proxy_required:true,egress_proxy_configured:Boolean(proxy)});
   if(!authorized(req))return json(res,401,{detail:'Magnanimous internal service token required.'});
   if(req.method==='POST'&&req.url==='/render')return json(res,200,await render(await body(req)));
   return json(res,404,{detail:'Magnanimous browser route not found.'});
