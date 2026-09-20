@@ -1,0 +1,7 @@
+FROM node:24-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends imagemagick ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY magnanimous-runtime/services/media-service.mjs /opt/magnanimous/media-service.mjs
+RUN chown -R node:node /opt/magnanimous
+USER node
+EXPOSE 8793
+CMD ["node","/opt/magnanimous/media-service.mjs"]
