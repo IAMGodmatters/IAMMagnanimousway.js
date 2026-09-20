@@ -81,7 +81,6 @@ services:
     shm_size: "256m"
     networks:
       - default
-      - browser_services
 
   browser-egress:
     build:
@@ -105,7 +104,6 @@ services:
     cpus: 0.5
     networks:
       - default
-      - browser_services
 
   media:
     build:
@@ -160,8 +158,6 @@ services:
 
 networks:
   internal_services:
-    internal: true
-  browser_services:
     internal: true
 
 volumes:
