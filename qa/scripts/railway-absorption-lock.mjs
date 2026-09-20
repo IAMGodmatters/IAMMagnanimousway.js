@@ -29,8 +29,8 @@ must(registry.includes("provider_role:'replaceable infrastructure adapter'"),'Ra
 must(absorption.includes('getRailwayCapabilityManifest'),'Railway capability manifest is not wired into Magnanimous absorption');
 must(absorption.includes('getRailwayTechniqueManifest'),'Railway technique manifest is not wired into Magnanimous absorption');
 must(absorption.includes('railway_tool_contracts'),'Railway summary metrics are not exposed');
-must(migration.includes("credential-rewrap.pending.json"),'Vault rewrap queue path missing');
-must(migration.includes('applyPendingCredentialVaultRewrap'),'Queued vault rewrap is not applied during D1 staging');
+must(migration.includes("credential-rewrap.current.json"),'Persistent vault rewrap cache path missing');
+must(migration.includes('applyCachedCredentialVaultRewrap'),'Cached vault rewrap is not applied during D1 staging');
 must(verify.includes("queued-production.sqlite"),'Migration verification does not test vault-before-D1 ordering');
 
 console.log('Magnanimous Railway absorption and migration race verification PASS');
