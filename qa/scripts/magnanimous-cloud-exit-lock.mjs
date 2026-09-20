@@ -23,6 +23,7 @@ const codeFiles=[
   'magnanimous-runtime/src/image-generation-binding.mjs',
   'magnanimous-runtime/src/cloud-control.mjs',
   'magnanimous-runtime/src/migration-stage.mjs',
+  'magnanimous-runtime/scripts/export-d1-logical.mjs',
   'magnanimous-runtime/services/sandbox-service.mjs',
   'magnanimous-runtime/services/browser-service.mjs',
   'magnanimous-runtime/services/browser-egress-service.mjs',
@@ -76,6 +77,11 @@ must(server.includes('/__magnanimous_runtime/services'),'Standalone internal ser
 must(server.includes('/__magnanimous_runtime/capabilities'),'Standalone capability health surface missing.');
 must(server.includes('/__magnanimous_runtime/migration/stage-d1'),'Standalone production-data staging route missing.');
 must(server.includes('MAGNANIMOUS_GITHUB_MIGRATION_ENABLED'),'Production-data staging must be disabled unless explicitly enabled.');
+const logicalExporter=read('magnanimous-runtime/scripts/export-d1-logical.mjs');
+must(logicalExporter.includes('PRAGMA table_list'),'FTS-safe logical D1 exporter must enumerate logical tables.');
+must(logicalExporter.includes('knowledge_fts'),'FTS-safe logical D1 exporter must rebuild the knowledge FTS index.');
+must(logicalExporter.includes('PRAGMA foreign_key_check'),'Logical D1 snapshot must verify foreign keys.');
+must(!logicalExporter.includes("['wrangler','d1','export'"),'Cloud exit must not use blocked full D1 export while FTS5 exists.');
 
 const infra=read('worker/src/magnanimous-infrastructure-core.js');
 must(infra.includes("infrastructure_owner: 'Magnanimous AI'"),'Magnanimous must own infrastructure control.');
