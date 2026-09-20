@@ -21,6 +21,7 @@ const required=[
  'magnanimous-runtime/src/image-generation-binding.mjs',
  'magnanimous-runtime/src/cloud-control.mjs',
  'magnanimous-runtime/src/migration-stage.mjs',
+ 'magnanimous-runtime/src/d1-snapshot-reconcile.mjs',
  'magnanimous-runtime/src/runtime-secret-store.mjs',
  'magnanimous-runtime/src/bootstrap.mjs',
  'magnanimous-runtime/services/sandbox-service.mjs',
@@ -40,6 +41,7 @@ const required=[
  'magnanimous-runtime/scripts/prepare-dns-zone.mjs',
  'magnanimous-runtime/scripts/verify-cloud-control.mjs',
  'magnanimous-runtime/scripts/verify-migration-stage.mjs',
+ 'magnanimous-runtime/scripts/verify-d1-referential-closure.mjs',
  'magnanimous-runtime/scripts/verify-runtime-secret-store.mjs',
  'magnanimous-runtime/docker-compose.release.yml',
  'magnanimous-runtime/scripts/standalone-host-preflight.sh',
@@ -170,6 +172,12 @@ for(const contract of [
  'sqlite_sha256'
 ]) must(logicalExporter.includes(contract),'Logical D1 exporter contract missing: '+contract);
 must(!logicalExporter.includes("['wrangler','d1','export'"),'Logical D1 exporter must not call blocked full D1 export.');
+must(logicalExporter.includes("import { reconcileForeignKeys } from '../src/d1-snapshot-reconcile.mjs'"),'Logical D1 exporter must use the tested referential-closure engine.');
+must(logicalExporter.indexOf('reconcileForeignKeys(db,remoteQuery)')<logicalExporter.indexOf("if(virtual.includes('knowledge_fts'))"),'Foreign-key closure must run before FTS rebuild.');
+must(logicalExporter.indexOf('reconcileForeignKeys(db,remoteQuery)')<logicalExporter.indexOf('const objects=remoteQuery('),'Foreign-key closure must run before production triggers/views/indexes are recreated.');
+const snapshotReconcile=read('magnanimous-runtime/src/d1-snapshot-reconcile.mjs');
+for(const contract of ['PRAGMA foreign_key_check','PRAGMA foreign_key_list','INSERT OR IGNORE','Production currently contains a foreign-key violation','pruned','repaired'])
+ must(snapshotReconcile.includes(contract),'D1 referential-closure contract missing: '+contract);
 
 const runtimeSecretStore=read('magnanimous-runtime/src/runtime-secret-store.mjs');
 for(const contract of ['MAGNANIMOUS_RUNTIME_SECRET_KEYS','INTEGRATION_CREDENTIALS_KEY','stageRuntimeSecrets','loadRuntimeSecrets','0o600'])
@@ -247,6 +255,7 @@ for(const file of required.filter(p=>p.endsWith('.mjs'))){
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-migration-stage.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-d1-referential-closure.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime-secret-store.mjs'],{stdio:'inherit'});
 for(const file of ['worker/src/magnanimous-cloud-provider-core.js','worker/src/magnanimous-infrastructure-core.js','worker/src/security-entrypoint.js']){
  execFileSync(process.execPath,['--check',file],{stdio:'inherit'});
