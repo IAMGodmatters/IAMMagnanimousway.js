@@ -2,6 +2,13 @@ name: Magnanimous Standalone Release
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'magnanimous-runtime/**'
+      - 'worker/src/**'
+      - 'frontend/**'
+      - 'qa/scripts/magnanimous-cloud-*.mjs'
+      - '.github/workflows/magnanimous-standalone-release.yml'
   push:
     branches: [main]
     paths:
