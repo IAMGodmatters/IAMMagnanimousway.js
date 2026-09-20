@@ -18,8 +18,16 @@ const codeFiles=[
   'magnanimous-runtime/src/analytics-engine.mjs',
   'magnanimous-runtime/src/secret-vault.mjs',
   'magnanimous-runtime/src/pipeline.mjs',
+  'magnanimous-runtime/src/service-bindings.mjs',
+  'magnanimous-runtime/src/metrics.mjs',
+  'magnanimous-runtime/services/sandbox-service.mjs',
+  'magnanimous-runtime/services/browser-service.mjs',
+  'magnanimous-runtime/services/media-service.mjs',
   'magnanimous-runtime/src/server.mjs',
   'magnanimous-runtime/Dockerfile',
+  'magnanimous-runtime/Dockerfile.sandbox',
+  'magnanimous-runtime/Dockerfile.browser',
+  'magnanimous-runtime/Dockerfile.media',
   'magnanimous-runtime/docker-compose.yml',
   'magnanimous-runtime/Caddyfile'
 ];
@@ -51,6 +59,11 @@ must(server.includes('MAGNANIMOUS_VECTORIZE'),'Standalone vector binding missing
 must(server.includes('MAGNANIMOUS_ANALYTICS'),'Standalone analytics binding missing.');
 must(server.includes('MAGNANIMOUS_SECRETS'),'Standalone secrets binding missing.');
 must(server.includes('MAGNANIMOUS_PIPELINE'),'Standalone pipeline binding missing.');
+must(server.includes('MAGNANIMOUS_SANDBOX'),'Standalone sandbox binding missing.');
+must(server.includes('MAGNANIMOUS_BROWSER'),'Standalone browser binding missing.');
+must(server.includes('MAGNANIMOUS_IMAGES'),'Standalone image transformation binding missing.');
+must(server.includes('/__magnanimous_runtime/metrics'),'Standalone metrics surface missing.');
+must(server.includes('/__magnanimous_runtime/services'),'Standalone internal service health surface missing.');
 must(server.includes('/__magnanimous_runtime/capabilities'),'Standalone capability health surface missing.');
 
 const infra=read('worker/src/magnanimous-infrastructure-core.js');
@@ -67,7 +80,11 @@ for(const proof of [
   'magnanimous-runtime/src/vector-store.mjs',
   'magnanimous-runtime/src/analytics-engine.mjs',
   'magnanimous-runtime/src/secret-vault.mjs',
-  'magnanimous-runtime/src/pipeline.mjs'
+  'magnanimous-runtime/src/pipeline.mjs',
+  'magnanimous-runtime/services/sandbox-service.mjs',
+  'magnanimous-runtime/services/browser-service.mjs',
+  'magnanimous-runtime/services/media-service.mjs',
+  'magnanimous-runtime/src/metrics.mjs'
 ]) must(infra.includes(proof),'Infrastructure proof missing: '+proof);
 
 const security=read('worker/src/security-entrypoint.js');
@@ -75,5 +92,6 @@ must(security.includes('handleMagnanimousInfrastructure'),'Infrastructure owner 
 must(security.includes("'/api/magnanimous/infrastructure'")||infra.includes("'/api/magnanimous/infrastructure'"),'Infrastructure endpoint missing.');
 
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['qa/scripts/magnanimous-cloud-independence-readiness.mjs'],{stdio:'inherit'});
 
-console.log('Magnanimous Cloud Exit Lock: standalone runtime, SQL, object storage, KV/cache, durable queue/workflows, event coordination, application rate limiting, vector storage/query, analytics, encrypted secrets, ingestion pipelines, infrastructure ownership and full migration compatibility PASS');
+console.log('Magnanimous Cloud Exit Lock: standalone runtime, SQL, storage/cache, durable work, event coordination, rate limiting, vectors, analytics, encrypted secrets, pipelines, isolated sandbox, server browser rendering, media transforms, observability, cutover tooling and infrastructure ownership PASS');
