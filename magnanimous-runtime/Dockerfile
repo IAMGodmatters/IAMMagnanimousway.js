@@ -11,6 +11,7 @@ COPY --from=frontend-builder /app/frontend/out /app/frontend/out
 RUN mkdir -p /app/data /app/backups \
   && node magnanimous-runtime/scripts/verify-runtime.mjs \
   && node magnanimous-runtime/scripts/verify-cloud-control.mjs \
-  && node magnanimous-runtime/scripts/verify-migration-stage.mjs
+  && node magnanimous-runtime/scripts/verify-migration-stage.mjs \
+  && node magnanimous-runtime/scripts/verify-runtime-secret-store.mjs
 EXPOSE 8788
 CMD ["node","magnanimous-runtime/src/bootstrap.mjs"]
