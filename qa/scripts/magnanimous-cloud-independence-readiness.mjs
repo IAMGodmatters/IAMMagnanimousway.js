@@ -102,6 +102,13 @@ must(hostPreflight.includes('Magnanimous standalone host preflight PASS'),'Stand
 const installer=read('magnanimous-runtime/scripts/install-release-bundle.sh');
 must(installer.includes('sha256sum -c SHA256SUMS'),'Standalone installer must verify bundle checksums.');
 must(installer.includes('docker load -i'),'Standalone installer must load the offline image bundle.');
+must(installer.includes('upsert_env_key')&&installer.includes('MAGNANIMOUS_RELEASE_TAG'),'Standalone installer must persist the exact proven release tag.');
+must(hostPreflight.includes('read_env MAGNANIMOUS_RELEASE_TAG'),'Standalone host preflight must honor the persisted release tag.');
+const hostDeployWorkflow=read('.github/workflows/magnanimous-standalone-host-deploy.yml');
+must(hostDeployWorkflow.includes('gh run download'),'Standalone host deploy must consume a proven release artifact.');
+must(hostDeployWorkflow.includes('StrictHostKeyChecking=yes'),'Standalone host deploy must require strict SSH host verification.');
+must(hostDeployWorkflow.includes('MAGNANIMOUS_STANDALONE_SSH_KNOWN_HOSTS'),'Standalone host deploy must use pinned SSH known-host data.');
+must(hostDeployWorkflow.includes('DNS was NOT changed'),'Standalone host deploy must preserve the DNS cutover boundary.');
 
 const sandbox=read('magnanimous-runtime/services/sandbox-service.mjs');
 must(sandbox.includes("shell:false"),'Sandbox process execution must not use shell interpolation.');
