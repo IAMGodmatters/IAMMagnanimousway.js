@@ -103,7 +103,18 @@ function wranglerQuery(sql){
 }
 
 function remoteQuery(sql){
-  const raw=directD1Api?directApiQuery(sql):wranglerQuery(sql);
+  let raw;
+  if(directD1Api){
+    try{
+      raw=directApiQuery(sql);
+    }catch(error){
+      const detail=String(error?.message||error).replaceAll(cloudflareApiToken,'[redacted]');
+      console.warn('Magnanimous D1 direct read failed; using Wrangler fallback for this query: '+detail.slice(-1200));
+      raw=wranglerQuery(sql);
+    }
+  }else{
+    raw=wranglerQuery(sql);
+  }
   let payload;
   try{payload=JSON.parse(raw)}catch(error){
     throw new Error('D1 JSON response could not be parsed: '+String(error?.message||error));
