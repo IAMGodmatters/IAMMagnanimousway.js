@@ -86,18 +86,25 @@ function qname(name) {
 }
 
 function summarizeDatabase(db) {
-  const rows = db.prepare(
-    "SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
-  ).all();
+  const rows = db.prepare('PRAGMA table_list').all()
+    .filter(row => String(row.schema || '') === 'main')
+    .filter(row => ['table','virtual'].includes(String(row.type || '')))
+    .filter(row => !String(row.name || '').startsWith('sqlite_'))
+    .filter(row => !String(row.name || '').startsWith('_cf_'))
+    .sort((a,b) => String(a.name).localeCompare(String(b.name)));
   const tableCounts = {};
   const schema = [];
   for (const row of rows) {
-    tableCounts[row.name] = Number(db.prepare('SELECT COUNT(*) AS n FROM ' + qname(row.name)).get()?.n || 0);
-    schema.push([row.name, String(row.sql || '')]);
+    const name = String(row.name);
+    tableCounts[name] = Number(db.prepare('SELECT COUNT(*) AS n FROM ' + qname(name)).get()?.n || 0);
+    const master = db.prepare("SELECT sql FROM sqlite_master WHERE name=? AND type='table'").get(name);
+    schema.push([name, String(master?.sql || '')]);
   }
   const integrity = String(db.prepare('PRAGMA integrity_check').get()?.integrity_check || '');
+  const foreignKeyViolations = db.prepare('PRAGMA foreign_key_check').all().length;
   return {
     integrity,
+    foreign_key_violations: foreignKeyViolations,
     table_count: rows.length,
     table_counts: tableCounts,
     schema_sha256: crypto.createHash('sha256').update(JSON.stringify(schema)).digest('hex')
@@ -148,6 +155,61 @@ export async function stageD1SqlExport(sqlText, {
     target: finalPath,
     sql_sha256: sqlSha256,
     sqlite_sha256: sqliteSha256,
+    ...summary,
+    source: {
+      repository: String(source.repository || ''),
+      ref: String(source.ref || ''),
+      sha: String(source.sha || ''),
+      workflow_ref: String(source.workflow_ref || '')
+    }
+  };
+  await fs.writeFile(finalPath + '.stage.json', JSON.stringify(metadata, null, 2), { mode: 0o600 });
+  return metadata;
+}
+
+
+export async function stageD1SqliteSnapshot(snapshotBytes, {
+  migrationRoot = '/app/persist/migration',
+  targetPath = '',
+  source = {}
+} = {}) {
+  const bytes = Buffer.from(snapshotBytes || []);
+  if (!bytes.length) throw new Error('D1 SQLite snapshot body is empty.');
+
+  const root = path.resolve(migrationRoot);
+  const finalPath = path.resolve(targetPath || path.join(root, 'production.sqlite'));
+  if (finalPath !== root && !finalPath.startsWith(root + path.sep)) {
+    throw new Error('Migration target must remain inside the configured migration root.');
+  }
+
+  await fs.mkdir(root, { recursive: true });
+  const tempPath = path.join(root, '.production-' + crypto.randomUUID() + '.sqlite');
+  await fs.writeFile(tempPath, bytes, { mode: 0o600 });
+
+  let db;
+  let summary;
+  try {
+    db = new DatabaseSync(tempPath);
+    summary = summarizeDatabase(db);
+    if (summary.integrity.toLowerCase() !== 'ok') throw new Error('SQLite integrity_check failed for staged D1 snapshot.');
+    if (summary.foreign_key_violations !== 0) throw new Error('Foreign-key validation failed for staged D1 snapshot.');
+    db.close();
+    db = null;
+  } catch (error) {
+    try { db?.close(); } catch {}
+    await fs.rm(tempPath, { force: true });
+    throw error;
+  }
+
+  const sqliteSha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+  await fs.rm(finalPath, { force: true });
+  await fs.rename(tempPath, finalPath);
+  const metadata = {
+    ok: true,
+    staged_at: new Date().toISOString(),
+    target: finalPath,
+    sqlite_sha256: sqliteSha256,
+    sqlite_bytes: bytes.length,
     ...summary,
     source: {
       repository: String(source.repository || ''),
