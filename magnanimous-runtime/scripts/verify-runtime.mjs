@@ -17,6 +17,7 @@ import { openMagnanimousSecretVault } from '../src/secret-vault.mjs';
 import { openMagnanimousPipeline } from '../src/pipeline.mjs';
 import { magnanimousServiceBindings } from '../src/service-bindings.mjs';
 import { MagnanimousMetrics } from '../src/metrics.mjs';
+import { MagnanimousImageGenerationBinding } from '../src/image-generation-binding.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -153,10 +154,14 @@ try {
   assert.match(metricText,/magnanimous_http_requests_total 2/);
   assert.match(metricText,/magnanimous_http_errors_total 1/);
 
+  const imageGenerator=new MagnanimousImageGenerationBinding({AUTOMATIC1111_BASE_URL:'http://local-image:7860'});
+  assert.equal(imageGenerator.configured,true);
+  assert.equal(typeof imageGenerator.generate,'function');
+
   console.log(
     'Magnanimous standalone SQL compatibility verified across ' +
     result.total +
-    ' migrations; object store, KV/cache, durable queue/workflows, event coordination, rate limiting, vector query, analytics, encrypted secrets, ingestion pipelines, internal service bindings and native metrics verified.'
+    ' migrations; object store, KV/cache, durable queue/workflows, event coordination, rate limiting, vector query, analytics, encrypted secrets, ingestion pipelines, internal service bindings, native metrics and provider-neutral image generation contract verified.'
   );
 } finally {
   db.close();
