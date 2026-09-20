@@ -19,6 +19,7 @@ const required=[
  'magnanimous-runtime/src/service-bindings.mjs',
  'magnanimous-runtime/src/metrics.mjs',
  'magnanimous-runtime/src/image-generation-binding.mjs',
+ 'magnanimous-runtime/src/cloud-control.mjs',
  'magnanimous-runtime/services/sandbox-service.mjs',
  'magnanimous-runtime/services/browser-service.mjs',
  'magnanimous-runtime/services/browser-egress-service.mjs',
@@ -34,11 +35,13 @@ const required=[
  'magnanimous-runtime/scripts/import-d1-export.mjs',
  'magnanimous-runtime/scripts/verify-data-parity.mjs',
  'magnanimous-runtime/scripts/prepare-dns-zone.mjs',
+ 'magnanimous-runtime/scripts/verify-cloud-control.mjs',
  'magnanimous-runtime/docker-compose.release.yml',
  'magnanimous-runtime/scripts/standalone-host-preflight.sh',
  'magnanimous-runtime/scripts/install-release-bundle.sh',
  '.github/workflows/magnanimous-standalone-release.yml',
- '.github/workflows/magnanimous-cloud-exit-lock.yml'
+ '.github/workflows/magnanimous-cloud-exit-lock.yml',
+ 'worker/src/magnanimous-cloud-provider-core.js'
 ];
 for(const file of required)must(exists(file),'Missing cloud-independence component: '+file);
 
@@ -55,6 +58,7 @@ for(const contract of [
  'MAGNANIMOUS_OBJECT_STORE','MAGNANIMOUS_KV','MAGNANIMOUS_QUEUE','MAGNANIMOUS_WORKFLOWS',
  'MAGNANIMOUS_EVENTS','MAGNANIMOUS_VECTORIZE','MAGNANIMOUS_ANALYTICS','MAGNANIMOUS_SECRETS',
  'MAGNANIMOUS_PIPELINE','MAGNANIMOUS_SANDBOX','MAGNANIMOUS_BROWSER','MAGNANIMOUS_IMAGES','MAGNANIMOUS_IMAGE_GENERATOR',
+ 'MAGNANIMOUS_CLOUD_CONTROL','CLOUD_CONTROL','/__magnanimous_runtime/cloud',
  '/__magnanimous_runtime/metrics','/__magnanimous_runtime/services'
 ])must(server.includes(contract),'Standalone server contract missing: '+contract);
 
@@ -110,6 +114,15 @@ must(hostDeployWorkflow.includes('StrictHostKeyChecking=yes'),'Standalone host d
 must(hostDeployWorkflow.includes('MAGNANIMOUS_STANDALONE_SSH_KNOWN_HOSTS'),'Standalone host deploy must use pinned SSH known-host data.');
 must(hostDeployWorkflow.includes('DNS was NOT changed'),'Standalone host deploy must preserve the DNS cutover boundary.');
 
+const cloudControl=read('magnanimous-runtime/src/cloud-control.mjs');
+for(const contract of ['MagnanimousCloudControl','compute-instance','kubernetes-cluster','object-bucket','private-network','load-balancer','magnanimous_cloud_resources','staged-awaiting-capacity-executor','staged-requires-explicit-approval'])
+ must(cloudControl.includes(contract),'Magnanimous Cloud control-plane contract missing: '+contract);
+must(cloudControl.includes("external_provider_required_for_control_plane: false"),'Magnanimous Cloud must not require DigitalOcean or another provider for its software control plane.');
+const cloudApi=read('worker/src/magnanimous-cloud-provider-core.js');
+must(cloudApi.includes('MAGNANIMOUS_CLOUD_ABSORPTION_MAP'),'Magnanimous Cloud absorption registry missing.');
+must(cloudApi.includes('proprietary_copying: false'),'Cloud absorption must forbid proprietary copying.');
+must(cloudApi.includes('/api/magnanimous/cloud/resources'),'Magnanimous Cloud resource API missing.');
+
 const sandbox=read('magnanimous-runtime/services/sandbox-service.mjs');
 must(sandbox.includes("shell:false"),'Sandbox process execution must not use shell interpolation.');
 must(sandbox.includes('MAGNANIMOUS_INTERNAL_SERVICE_TOKEN'),'Sandbox token boundary missing.');
@@ -149,10 +162,14 @@ must(infra.includes('external_network_required: true'),'Real external network bo
 must(infra.includes('magnanimous-runtime/services/sandbox-service.mjs'),'Sandbox proof missing from infrastructure registry.');
 must(infra.includes('magnanimous-runtime/services/browser-service.mjs'),'Browser proof missing from infrastructure registry.');
 must(infra.includes('magnanimous-runtime/services/media-service.mjs'),'Media proof missing from infrastructure registry.');
+must(infra.includes("digitalocean_required_for_cloud_control_plane: false"),'DigitalOcean must remain optional to the Magnanimous Cloud control plane.');
+must(infra.includes("magnanimous_cloud_control_plane_complete: true"),'Magnanimous Cloud control-plane completion flag missing.');
+must(infra.includes('magnanimous-runtime/src/cloud-control.mjs'),'Magnanimous Cloud runtime proof missing from infrastructure registry.');
 
 for(const file of required.filter(p=>p.endsWith('.mjs'))){
  execFileSync(process.execPath,['--check',file],{stdio:'inherit'});
 }
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
 
 console.log('Magnanimous Cloud Independence Readiness: software replacement stack COMPLETE; production data/DNS/hosting cutover remains separately gated by real infrastructure.');
