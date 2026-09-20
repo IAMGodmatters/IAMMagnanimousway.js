@@ -21,6 +21,8 @@ const required=[
  'magnanimous-runtime/src/image-generation-binding.mjs',
  'magnanimous-runtime/src/cloud-control.mjs',
  'magnanimous-runtime/src/migration-stage.mjs',
+ 'magnanimous-runtime/src/runtime-secret-store.mjs',
+ 'magnanimous-runtime/src/bootstrap.mjs',
  'magnanimous-runtime/services/sandbox-service.mjs',
  'magnanimous-runtime/services/browser-service.mjs',
  'magnanimous-runtime/services/browser-egress-service.mjs',
@@ -38,12 +40,14 @@ const required=[
  'magnanimous-runtime/scripts/prepare-dns-zone.mjs',
  'magnanimous-runtime/scripts/verify-cloud-control.mjs',
  'magnanimous-runtime/scripts/verify-migration-stage.mjs',
+ 'magnanimous-runtime/scripts/verify-runtime-secret-store.mjs',
  'magnanimous-runtime/docker-compose.release.yml',
  'magnanimous-runtime/scripts/standalone-host-preflight.sh',
  'magnanimous-runtime/scripts/install-release-bundle.sh',
  '.github/workflows/magnanimous-standalone-release.yml',
  '.github/workflows/magnanimous-cloud-exit-lock.yml',
  '.github/workflows/magnanimous-production-data-stage.yml',
+ '.github/workflows/magnanimous-runtime-secrets-stage.yml',
  'worker/src/magnanimous-cloud-provider-core.js'
 ];
 for(const file of required)must(exists(file),'Missing cloud-independence component: '+file);
@@ -62,7 +66,7 @@ for(const contract of [
  'MAGNANIMOUS_EVENTS','MAGNANIMOUS_VECTORIZE','MAGNANIMOUS_ANALYTICS','MAGNANIMOUS_SECRETS',
  'MAGNANIMOUS_PIPELINE','MAGNANIMOUS_SANDBOX','MAGNANIMOUS_BROWSER','MAGNANIMOUS_IMAGES','MAGNANIMOUS_IMAGE_GENERATOR',
  'MAGNANIMOUS_CLOUD_CONTROL','CLOUD_CONTROL','/__magnanimous_runtime/cloud',
- '/__magnanimous_runtime/metrics','/__magnanimous_runtime/services','/__magnanimous_runtime/migration/stage-d1'
+ '/__magnanimous_runtime/metrics','/__magnanimous_runtime/services','/__magnanimous_runtime/migration/stage-d1','/__magnanimous_runtime/migration/stage-secrets'
 ])must(server.includes(contract),'Standalone server contract missing: '+contract);
 
 const compose=read('magnanimous-runtime/docker-compose.yml');
@@ -164,6 +168,19 @@ for(const contract of [
 ]) must(logicalExporter.includes(contract),'Logical D1 exporter contract missing: '+contract);
 must(!logicalExporter.includes("['wrangler','d1','export'"),'Logical D1 exporter must not call blocked full D1 export.');
 
+const runtimeSecretStore=read('magnanimous-runtime/src/runtime-secret-store.mjs');
+for(const contract of ['MAGNANIMOUS_RUNTIME_SECRET_KEYS','INTEGRATION_CREDENTIALS_KEY','stageRuntimeSecrets','loadRuntimeSecrets','0o600'])
+ must(runtimeSecretStore.includes(contract),'Runtime secret continuity contract missing: '+contract);
+const bootstrap=read('magnanimous-runtime/src/bootstrap.mjs');
+must(bootstrap.includes('loadRuntimeSecrets'),'Standalone bootstrap must load persistent runtime secrets before server startup.');
+must(bootstrap.indexOf('loadRuntimeSecrets')<bootstrap.indexOf("import('./server.mjs')"),'Persistent runtime secrets must load before the standalone server module.');
+const runtimeSecretsWorkflow=read('.github/workflows/magnanimous-runtime-secrets-stage.yml');
+must(runtimeSecretsWorkflow.includes('id-token: write'),'Runtime secret staging must use GitHub OIDC.');
+must(runtimeSecretsWorkflow.includes('INTEGRATION_CREDENTIALS_KEY: ${{ secrets.INTEGRATION_CREDENTIALS_KEY }}'),'Runtime secret staging must preserve the production integration vault key.');
+must(runtimeSecretsWorkflow.includes('/__magnanimous_runtime/migration/stage-secrets'),'Runtime secret staging must target the signed standalone endpoint.');
+must(runtimeSecretsWorkflow.includes('encrypted platform credential rows'),'Runtime secret staging must fail if encrypted vault rows exist without the production vault key.');
+must(!runtimeSecretsWorkflow.includes('upload-artifact'),'Runtime secrets must never be uploaded as workflow artifacts.');
+
 const sandbox=read('magnanimous-runtime/services/sandbox-service.mjs');
 must(sandbox.includes("shell:false"),'Sandbox process execution must not use shell interpolation.');
 must(sandbox.includes('MAGNANIMOUS_INTERNAL_SERVICE_TOKEN'),'Sandbox token boundary missing.');
@@ -213,6 +230,7 @@ for(const file of required.filter(p=>p.endsWith('.mjs'))){
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-migration-stage.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime-secret-store.mjs'],{stdio:'inherit'});
 for(const file of ['worker/src/magnanimous-cloud-provider-core.js','worker/src/magnanimous-infrastructure-core.js','worker/src/security-entrypoint.js']){
  execFileSync(process.execPath,['--check',file],{stdio:'inherit'});
 }
