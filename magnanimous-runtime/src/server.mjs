@@ -19,6 +19,7 @@ import { openMagnanimousSecretVault } from './secret-vault.mjs';
 import { openMagnanimousPipeline } from './pipeline.mjs';
 import { magnanimousServiceBindings } from './service-bindings.mjs';
 import { MagnanimousMetrics } from './metrics.mjs';
+import { MagnanimousImageGenerationBinding } from './image-generation-binding.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -49,6 +50,7 @@ const secretVault = process.env.MAGNANIMOUS_SECRETS_KEY
   : null;
 const pipeline = openMagnanimousPipeline({ objectStore, work: durableWork, analytics });
 const services = magnanimousServiceBindings(process.env);
+const imageGenerator = new MagnanimousImageGenerationBinding(process.env);
 const metrics = new MagnanimousMetrics();
 
 const env = new Proxy(
@@ -68,6 +70,7 @@ const env = new Proxy(
     MAGNANIMOUS_SANDBOX: services.sandbox,
     MAGNANIMOUS_BROWSER: services.browser,
     MAGNANIMOUS_IMAGES: services.images,
+    MAGNANIMOUS_IMAGE_GENERATOR: imageGenerator,
     OBJECT_STORE: objectStore,
     KV: kv,
     QUEUE: durableWork,
@@ -244,6 +247,7 @@ const server = http.createServer(async (req, res) => {
             isolated_sandbox: services.sandbox.configured,
             server_browser_rendering: services.browser.configured,
             image_transformation: services.images.configured,
+            image_generation: imageGenerator.configured,
             prometheus_metrics: true,
             tls_reverse_proxy: true,
             self_hosted_dns_profile: true
