@@ -100,6 +100,17 @@ jobs:
             [ "$attempt" -lt 30 ] || { docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" logs; exit 1; }
             sleep 1
           done
+          MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" exec -T browser node - <<'NODE'
+          const egress=await fetch('http://browser-egress:8794/health',{signal:AbortSignal.timeout(5000)});
+          if(!egress.ok)throw new Error('Release browser cannot reach the Magnanimous egress control path.');
+          let escaped=false;
+          try{
+            const response=await fetch('https://example.com',{signal:AbortSignal.timeout(5000)});
+            escaped=response.ok;
+          }catch{}
+          if(escaped)throw new Error('Release browser unexpectedly has direct public egress.');
+          console.log('Release browser direct-public-egress isolation PASS');
+          NODE
           token='release-proof-internal-service-token-2026'
           MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" exec -T magnanimous node - <<'NODE'
           const token=process.env.MAGNANIMOUS_INTERNAL_SERVICE_TOKEN;
@@ -118,6 +129,12 @@ jobs:
             body:JSON.stringify({url:'https://example.com',mode:'dom',timeout_ms:45000})
           }));
           if(!String(browser.html||'').toLowerCase().includes('example domain'))throw new Error('Release bundle browser render failed.');
+          const screenshot=JSON.parse(await checked('http://browser:8792/render',{
+            method:'POST',
+            headers:{'content-type':'application/json','x-magnanimous-service-token':token},
+            body:JSON.stringify({url:'https://example.com',mode:'screenshot',timeout_ms:45000})
+          }));
+          if(!screenshot.base64||Number(screenshot.bytes||0)<1||screenshot.content_type!=='image/png')throw new Error('Release bundle Chromium snapshot render failed.');
           console.log('Offline Magnanimous release bundle smoke PASS');
           NODE
 
