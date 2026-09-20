@@ -61,10 +61,14 @@ async function render(spec={}){
   await Promise.all([profile,config,cache,runtime,crash].map(p=>fs.mkdir(p,{recursive:true})));
   const common=[
    '--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-sync',
-   '--metrics-recording-only','--mute-audio','--noerrdialogs','--disable-crash-reporter','--disable-breakpad','--window-size='+width+','+height,
+   '--metrics-recording-only','--mute-audio','--noerrdialogs','--disable-crash-reporter','--disable-breakpad','--disable-quic',
+   '--force-webrtc-ip-handling-policy=disable_non_proxied_udp','--window-size='+width+','+height,
    '--user-data-dir='+profile,'--disk-cache-dir='+cache
   ];
-  if(proxy){common.push('--proxy-server='+proxy,'--proxy-bypass-list=<-loopback>');}
+  if(proxy){
+  const proxyHost=new URL(proxy).hostname;
+  common.push('--proxy-server='+proxy,'--proxy-bypass-list=<-loopback>','--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE '+proxyHost);
+ }
   if(mode==='dom'){
    const browserEnv={HOME:dir,XDG_CONFIG_HOME:config,XDG_CACHE_HOME:cache,XDG_RUNTIME_DIR:runtime,TMPDIR:dir};
    const r=await run([...common,'--dump-dom',url],{timeout:spec.timeout_ms,env:browserEnv});
