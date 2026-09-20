@@ -57,6 +57,7 @@ const compose=read('magnanimous-runtime/docker-compose.yml');
 for(const contract of ['sandbox:','browser:','browser-egress:','media:','authoritative-dns:','internal_services:','no-new-privileges:true','cap_drop:'])
  must(compose.includes(contract),'Hardened compose topology missing: '+contract);
 must(compose.includes('internal: true'),'Sandbox/media network must be internal-only.');
+must(compose.includes('condition: service_healthy'),'Browser startup must wait for healthy egress.');
 
 const sandbox=read('magnanimous-runtime/services/sandbox-service.mjs');
 must(sandbox.includes("shell:false"),'Sandbox process execution must not use shell interpolation.');
@@ -69,10 +70,13 @@ must(browser.includes("--proxy-server='+resolvedProxy"),'Browser HTTP(S) must be
 must(browser.includes('--proxy-bypass-list=<-loopback>'),'Browser loopback must not bypass the Magnanimous egress proxy.');
 must(browser.includes('force-webrtc-ip-handling-policy=disable_non_proxied_udp'),'Browser non-proxied WebRTC UDP must be disabled.');
 must(browser.includes('disable-quic'),'Browser QUIC bypass must be disabled.');
+must(browser.includes('ensureProxyReady'),'Browser must wait for Magnanimous egress readiness.');
+must(browser.includes('transientNavigationErrors'),'Browser must retry bounded transient startup network failures.');
 const egress=read('magnanimous-runtime/services/browser-egress-service.mjs');
 must(egress.includes('Private browser destination blocked.'),'Browser egress private-network block missing.');
 must(egress.includes('rows.some(r=>blockedIp(r.address))'),'Browser egress must reject DNS answers containing private/local addresses.');
 must(egress.includes("server.on('connect'"),'Browser HTTPS CONNECT proxy support missing.');
+must(egress.includes("req.url==='/health'"),'Browser egress readiness endpoint missing.');
 const media=read('magnanimous-runtime/services/media-service.mjs');
 must(media.includes("shell:false"),'Media transform must not use shell interpolation.');
 must(media.includes('MAGNANIMOUS_INTERNAL_SERVICE_TOKEN'),'Media token boundary missing.');
