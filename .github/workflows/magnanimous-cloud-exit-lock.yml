@@ -79,7 +79,10 @@ jobs:
             headers:{'content-type':'application/json','x-magnanimous-service-token':token},
             body:JSON.stringify({url:'https://example.com',mode:'dom',timeout_ms:45000})
           }));
-          if(!String(browser.html||'').toLowerCase().includes('example domain'))throw new Error('Magnanimous browser renderer returned unexpected DOM.');
+          if(!String(browser.html||'').toLowerCase().includes('example domain')){
+            console.error('Unexpected browser DOM:',String(browser.html||'').slice(0,1200));
+            throw new Error('Magnanimous browser renderer returned unexpected DOM.');
+          }
           let privateBlocked=false;
           try{
             await checked('http://browser:8792/render',{
