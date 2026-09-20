@@ -21,6 +21,7 @@ const codeFiles=[
   'magnanimous-runtime/src/service-bindings.mjs',
   'magnanimous-runtime/src/metrics.mjs',
   'magnanimous-runtime/src/image-generation-binding.mjs',
+  'magnanimous-runtime/src/cloud-control.mjs',
   'magnanimous-runtime/services/sandbox-service.mjs',
   'magnanimous-runtime/services/browser-service.mjs',
   'magnanimous-runtime/services/browser-egress-service.mjs',
@@ -66,6 +67,9 @@ must(server.includes('MAGNANIMOUS_SANDBOX'),'Standalone sandbox binding missing.
 must(server.includes('MAGNANIMOUS_BROWSER'),'Standalone browser binding missing.');
 must(server.includes('MAGNANIMOUS_IMAGES'),'Standalone image transformation binding missing.');
 must(server.includes('MAGNANIMOUS_IMAGE_GENERATOR'),'Standalone image generation binding missing.');
+must(server.includes('MAGNANIMOUS_CLOUD_CONTROL'),'Standalone Magnanimous Cloud binding missing.');
+must(server.includes('CLOUD_CONTROL'),'Standalone Magnanimous Cloud compatibility binding missing.');
+must(server.includes('/__magnanimous_runtime/cloud'),'Standalone Magnanimous Cloud internal health surface missing.');
 must(server.includes('/__magnanimous_runtime/metrics'),'Standalone metrics surface missing.');
 must(server.includes('/__magnanimous_runtime/services'),'Standalone internal service health surface missing.');
 must(server.includes('/__magnanimous_runtime/capabilities'),'Standalone capability health surface missing.');
@@ -75,6 +79,8 @@ must(infra.includes("infrastructure_owner: 'Magnanimous AI'"),'Magnanimous must 
 must(infra.includes("architecture: 'provider-neutral-first-party-control-plane'"),'Provider-neutral infrastructure architecture missing.');
 must(infra.includes("production_cutover_complete: standalone"),'Cutover status must remain truthful.');
 must(infra.includes("external_network_required: true"),'Public-network external boundary must remain explicit.');
+must(infra.includes("digitalocean_required_for_cloud_control_plane: false"),'DigitalOcean must not be required for the native cloud control plane.');
+must(infra.includes("magnanimous_cloud_control_plane_complete: true"),'Magnanimous Cloud control-plane completion flag missing.');
 for(const proof of [
   'magnanimous-runtime/src/object-store.mjs',
   'magnanimous-runtime/src/kv-cache.mjs',
@@ -88,14 +94,18 @@ for(const proof of [
   'magnanimous-runtime/services/sandbox-service.mjs',
   'magnanimous-runtime/services/browser-service.mjs',
   'magnanimous-runtime/services/media-service.mjs',
-  'magnanimous-runtime/src/metrics.mjs'
+  'magnanimous-runtime/src/metrics.mjs',
+  'magnanimous-runtime/src/cloud-control.mjs',
+  'worker/src/magnanimous-cloud-provider-core.js'
 ]) must(infra.includes(proof),'Infrastructure proof missing: '+proof);
 
 const security=read('worker/src/security-entrypoint.js');
 must(security.includes('handleMagnanimousInfrastructure'),'Infrastructure owner endpoint is not mounted.');
+must(security.includes('handleMagnanimousCloudProvider'),'Magnanimous Cloud owner endpoint is not mounted.');
 must(security.includes("'/api/magnanimous/infrastructure'")||infra.includes("'/api/magnanimous/infrastructure'"),'Infrastructure endpoint missing.');
 
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['qa/scripts/magnanimous-cloud-independence-readiness.mjs'],{stdio:'inherit'});
 
-console.log('Magnanimous Cloud Exit Lock: standalone runtime, SQL, storage/cache, durable work, event coordination, rate limiting, vectors, analytics, encrypted secrets, pipelines, isolated sandbox, server browser rendering, media transforms, observability, cutover tooling and infrastructure ownership PASS');
+console.log('Magnanimous Cloud Exit Lock: standalone runtime, Magnanimous Cloud control plane, SQL, storage/cache, durable work, event coordination, rate limiting, vectors, analytics, encrypted secrets, pipelines, isolated sandbox, server browser rendering, media transforms, observability, cutover tooling and infrastructure ownership PASS');
