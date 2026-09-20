@@ -37,7 +37,8 @@ const required=[
  'magnanimous-runtime/docker-compose.release.yml',
  'magnanimous-runtime/scripts/standalone-host-preflight.sh',
  'magnanimous-runtime/scripts/install-release-bundle.sh',
- '.github/workflows/magnanimous-standalone-release.yml'
+ '.github/workflows/magnanimous-standalone-release.yml',
+ '.github/workflows/magnanimous-cloud-exit-lock.yml'
 ];
 for(const file of required)must(exists(file),'Missing cloud-independence component: '+file);
 
@@ -59,10 +60,28 @@ for(const contract of [
 
 const compose=read('magnanimous-runtime/docker-compose.yml');
 const releaseCompose=read('magnanimous-runtime/docker-compose.release.yml');
+const serviceBlock=(yaml,name,next)=>{
+ const start='\n  '+name+':\n',end='\n  '+next+':\n';
+ const from=yaml.indexOf(start),to=yaml.indexOf(end,from+start.length);
+ must(from>=0&&to>from,'Compose service block missing: '+name);
+ return yaml.slice(from,to);
+};
+const browserCompose=serviceBlock(compose,'browser','browser-egress');
+const egressCompose=serviceBlock(compose,'browser-egress','media');
+const releaseBrowserCompose=serviceBlock(releaseCompose,'browser','browser-egress');
+const releaseEgressCompose=serviceBlock(releaseCompose,'browser-egress','media');
 for(const contract of ['sandbox:','browser:','browser-egress:','media:','authoritative-dns:','internal_services:','no-new-privileges:true','cap_drop:'])
  must(compose.includes(contract),'Hardened compose topology missing: '+contract);
-must(compose.includes('internal: true'),'Sandbox/media network must be internal-only.');
+must(compose.includes('internal: true'),'Internal service network must remain non-routable.');
 must(compose.includes('condition: service_healthy'),'Browser startup must wait for healthy egress.');
+for(const [label,browserService,egressService] of [
+ ['Development',browserCompose,egressCompose],
+ ['Release',releaseBrowserCompose,releaseEgressCompose]
+]){
+ must(browserService.includes('networks:\n      - internal_services'),label+' browser must use the non-routable internal service network.');
+ must(!browserService.includes('\n      - default'),label+' browser must not have direct access to the routable default network.');
+ must(egressService.includes('networks:\n      - default\n      - internal_services')||egressService.includes('networks:\n      - internal_services\n      - default'),label+' browser egress must bridge internal browser traffic to the routable network.');
+}
 for(const image of ['iammagnanimous/runtime:','iammagnanimous/sandbox:','iammagnanimous/browser:','iammagnanimous/browser-egress:','iammagnanimous/media:'])
  must(releaseCompose.includes(image),'Offline release topology missing image contract: '+image);
 must(releaseCompose.includes('MAGNANIMOUS_RUNTIME: "standalone-node"'),'Release topology must explicitly activate standalone runtime mode.');
@@ -73,6 +92,11 @@ const releaseWorkflow=read('.github/workflows/magnanimous-standalone-release.yml
 must(releaseWorkflow.includes('docker save'),'Standalone release must export offline-loadable images.');
 must(releaseWorkflow.includes('docker load'),'Standalone release must prove its own image bundle reloads.');
 must(releaseWorkflow.includes('Offline Magnanimous release bundle smoke PASS'),'Standalone release bundle smoke proof missing.');
+must(releaseWorkflow.includes('Release browser direct-public-egress isolation PASS'),'Standalone release must prove the browser has no direct public egress.');
+must(releaseWorkflow.includes("mode:'screenshot'"),'Standalone release must exercise the real Chromium snapshot renderer.');
+const cloudExitWorkflow=read('.github/workflows/magnanimous-cloud-exit-lock.yml');
+must(cloudExitWorkflow.includes('Browser direct-public-egress isolation PASS'),'Cloud Exit Lock must prove the browser has no direct public egress.');
+must(cloudExitWorkflow.includes("mode:'screenshot'"),'Cloud Exit Lock must exercise the real Chromium snapshot renderer.');
 const hostPreflight=read('magnanimous-runtime/scripts/standalone-host-preflight.sh');
 must(hostPreflight.includes('Magnanimous standalone host preflight PASS'),'Standalone host preflight proof missing.');
 const installer=read('magnanimous-runtime/scripts/install-release-bundle.sh');
@@ -91,6 +115,12 @@ must(browser.includes("network_mode:'safe-egress-snapshot'"),'Browser health mus
 must(browser.includes("target='file://'"),'Chromium must render validated local snapshots rather than requiring direct internet.');
 must(browser.includes('force-webrtc-ip-handling-policy=disable_non_proxied_udp'),'Browser non-proxied WebRTC UDP must be disabled.');
 must(browser.includes('disable-quic'),'Browser QUIC bypass must be disabled.');
+must(browser.includes('disable-background-networking'),'Chromium background networking must be disabled.');
+must(browser.includes('AsyncDns'),'Chromium direct asynchronous DNS must be disabled where supported.');
+must(browser.includes('Content-Security-Policy'),'Local Chromium snapshots must carry a deny-by-default CSP.');
+must(browser.includes("default-src \\'none\\'"),'Local Chromium snapshots must default-deny network/resource loads.');
+must(browser.includes("connect-src \\'none\\'"),'Local Chromium snapshots must block fetch/XHR/WebSocket connections.');
+must(browser.includes(`http-equiv=["']?refresh`),'Snapshot sanitization must remove meta-refresh navigation.');
 must(browser.includes('ensureProxyReady'),'Browser must wait for Magnanimous egress readiness.');
 const egress=read('magnanimous-runtime/services/browser-egress-service.mjs');
 must(egress.includes('Private browser destination blocked.'),'Browser egress private-network block missing.');
