@@ -167,9 +167,17 @@ for(const contract of [
  'quote(',
  'knowledge_fts',
  'PRAGMA foreign_key_check',
- 'sqlite_sha256'
+ 'sqlite_sha256',
+ 'reconcileForeignKeys',
+ 'Production D1 already reports foreign-key violations',
+ 'Foreign-key reconciliation PASS',
+ '/d1/database/',
+ '/query',
+ 'Wrangler fallback'
 ]) must(logicalExporter.includes(contract),'Logical D1 exporter contract missing: '+contract);
 must(!logicalExporter.includes("['wrangler','d1','export'"),'Logical D1 exporter must not call blocked full D1 export.');
+must(logicalExporter.includes("'curl'"),'Logical D1 exporter must use the direct read API when credentials are available.');
+must(logicalExporter.includes("['wrangler','d1','execute'"),'Logical D1 exporter must preserve a Wrangler read fallback.');
 
 const runtimeSecretStore=read('magnanimous-runtime/src/runtime-secret-store.mjs');
 for(const contract of ['MAGNANIMOUS_RUNTIME_SECRET_KEYS','INTEGRATION_CREDENTIALS_KEY','stageRuntimeSecrets','loadRuntimeSecrets','0o600'])
