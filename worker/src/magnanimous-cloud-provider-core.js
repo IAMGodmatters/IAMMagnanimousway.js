@@ -25,6 +25,42 @@ export const MAGNANIMOUS_CLOUD_ABSORPTION_MAP = Object.freeze([
   { benchmark: 'billing / invoices', magnanimous: 'usage ledger and billing integration boundaries', status: 'usage-native-payment-settlement-external' }
 ]);
 
+
+export const DIGITALOCEAN_VISIBLE_TOOL_CONTRACTS = Object.freeze([
+  'account_get_information','action_get','action_list','balance_get','billing_history_list',
+  'change_kernel_droplet','disable_backups_droplet','disable_backups_droplets_tag','droplet_action','droplet_backup_policy',
+  'droplet_create','droplet_delete','droplet_enable_private_net','droplet_get','droplet_kernels','droplet_list',
+  'enable_backups_droplet','enable_backups_droplets_tag','enable_ipv6_droplet','enable_ipv6_droplets_tag',
+  'enable_private_net_droplets_tag','get_invoice','image_action_convert','image_action_get','image_action_transfer',
+  'image_create','image_delete','image_get','image_list','image_update','invoice_list',
+  'key_create','key_delete','key_get','key_list','power_cycle_droplet','power_cycle_droplets_tag',
+  'power_off_droplet','power_off_droplets_tag','power_on_droplet','power_on_droplets_tag','reboot_droplet',
+  'rebuild_droplet','rebuild_droplet_by_slug','region_list','rename_droplet','reset_droplet_password',
+  'resize_droplet','restore_droplet','shutdown_droplet','shutdown_droplets_tag','size_list',
+  'snapshot_droplet','snapshot_droplets_tag'
+]);
+
+function nativeContractForObservedTool(tool) {
+  if (tool === 'account_get_information') return 'magnanimous-cloud-summary';
+  if (tool.startsWith('action_') || tool === 'droplet_action') return 'magnanimous-cloud-action-ledger';
+  if (/balance|billing|invoice/.test(tool)) return 'magnanimous-usage-ledger-plus-external-payment-settlement-boundary';
+  if (tool === 'region_list' || tool === 'size_list') return 'magnanimous-region-and-capacity-catalog';
+  if (tool.startsWith('key_')) return 'magnanimous-ssh-key-resource';
+  if (tool.startsWith('image_')) return 'magnanimous-image-and-snapshot-resource';
+  if (/backup|snapshot/.test(tool)) return 'magnanimous-backup-and-snapshot-policy';
+  if (/private_net|ipv6/.test(tool)) return 'magnanimous-private-network-resource';
+  if (/droplet|power_|reboot|rebuild|resize|restore|shutdown|kernel|rename|password/.test(tool)) return 'magnanimous-compute-instance-resource-and-staged-action';
+  return 'magnanimous-cloud-resource-action';
+}
+
+export const DIGITALOCEAN_TOOL_ABSORPTION = Object.freeze(
+  DIGITALOCEAN_VISIBLE_TOOL_CONTRACTS.map(tool => Object.freeze({
+    observed_tool: tool,
+    native_contract: nativeContractForObservedTool(tool),
+    proprietary_backend_copied: false
+  }))
+);
+
 export const MAGNANIMOUS_CLOUD_POLICY = Object.freeze({
   identity: 'Magnanimous Cloud',
   brain: 'Magnanimous AI',
@@ -45,6 +81,8 @@ function catalog(bindingActive = false) {
     ...MAGNANIMOUS_CLOUD_POLICY,
     native_control_plane_active: bindingActive,
     absorption_map: MAGNANIMOUS_CLOUD_ABSORPTION_MAP,
+    observed_digitalocean_tool_contract_count: DIGITALOCEAN_VISIBLE_TOOL_CONTRACTS.length,
+    observed_tool_absorption: DIGITALOCEAN_TOOL_ABSORPTION,
     resource_families: [
       'projects','regions-and-sizes','compute-instances','container-services','kubernetes',
       'apps-workers-jobs','functions','databases','object-storage','block-storage','file-storage',
