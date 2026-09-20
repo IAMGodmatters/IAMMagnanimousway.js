@@ -21,12 +21,13 @@ concurrency:
 jobs:
   stage:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       STANDALONE_ORIGIN: https://magnanimous-production.up.railway.app
       OIDC_AUDIENCE: magnanimous-production-data-stage
+      MAGNANIMOUS_D1_PAGE_SIZE: "1000"
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
