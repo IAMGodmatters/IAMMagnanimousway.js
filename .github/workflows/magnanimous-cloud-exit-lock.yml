@@ -54,10 +54,10 @@ jobs:
       - name: Verify Magnanimous standalone infrastructure
         run: node qa/scripts/magnanimous-cloud-exit-lock.mjs
       - name: Build standalone runtime and isolated services
-        run: docker compose -f magnanimous-runtime/docker-compose.yml build magnanimous sandbox browser media
+        run: docker compose -f magnanimous-runtime/docker-compose.yml build magnanimous sandbox browser browser-egress media
       - name: Smoke standalone runtime and isolated services
         run: |
-          docker compose -f magnanimous-runtime/docker-compose.yml up -d sandbox browser media magnanimous
+          docker compose -f magnanimous-runtime/docker-compose.yml up -d sandbox browser-egress browser media magnanimous
           sleep 6
           docker compose -f magnanimous-runtime/docker-compose.yml exec -T magnanimous node - <<'NODE'
           const token=process.env.MAGNANIMOUS_INTERNAL_SERVICE_TOKEN;
@@ -80,6 +80,15 @@ jobs:
             body:JSON.stringify({url:'https://example.com',mode:'dom',timeout_ms:45000})
           }));
           if(!String(browser.html||'').toLowerCase().includes('example domain'))throw new Error('Magnanimous browser renderer returned unexpected DOM.');
+          let privateBlocked=false;
+          try{
+            await checked('http://browser:8792/render',{
+              method:'POST',
+              headers:{'content-type':'application/json','x-magnanimous-service-token':token},
+              body:JSON.stringify({url:'http://127.0.0.1:8788/__magnanimous_runtime/health',mode:'dom',timeout_ms:10000})
+            });
+          }catch(error){privateBlocked=String(error.message||error).includes('400')}
+          if(!privateBlocked)throw new Error('Magnanimous browser private-network target was not blocked.');
           const png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WlN2V0AAAAASUVORK5CYII=';
           const media=JSON.parse(await checked('http://media:8793/transform',{
             method:'POST',
