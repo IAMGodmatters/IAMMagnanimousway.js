@@ -7,8 +7,32 @@ function migrationFiles(dir) {
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 }
 
+function ensureLegacyBootstrap(binding) {
+  // This repository's checked-in migration history starts after the original
+  // single-tenant auth bootstrap. Recreate only that pre-migration baseline
+  // so historical repair migrations can replay exactly as they did in production.
+  binding.db.exec(`
+    CREATE TABLE IF NOT EXISTS tenants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      role TEXT NOT NULL DEFAULT 'member',
+      password_hash TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+  `);
+}
+
 export function applyMagnanimousMigrations(binding, migrationsDir) {
   const dir = path.resolve(migrationsDir);
+
+  ensureLegacyBootstrap(binding);
 
   binding.db.exec(
     'CREATE TABLE IF NOT EXISTS magnanimous_runtime_migrations (' +
