@@ -155,14 +155,21 @@ must(migrationWorkflow.includes('table_counts'),'Production data staging must ve
 must(!migrationWorkflow.includes('upload-artifact'),'Production D1 data must not be uploaded as a workflow artifact.');
 const logicalExporter=read('magnanimous-runtime/scripts/export-d1-logical.mjs');
 for(const contract of [
- 'wrangler','d1','execute',
+ 'api.cloudflare.com/client/v4/accounts/',
+ 'CLOUDFLARE_API_TOKEN',
+ 'CLOUDFLARE_ACCOUNT_ID',
  'PRAGMA table_list',
  'quote(',
+ 'MAX(rowid)',
+ 'rowid <= ',
+ 'remoteStatements',
  'knowledge_fts',
  'PRAGMA foreign_key_check',
- 'sqlite_sha256'
+ 'sqlite_sha256',
+ 'per-table-rowid-boundary-with-post-copy-count-verification'
 ]) must(logicalExporter.includes(contract),'Logical D1 exporter contract missing: '+contract);
-must(!logicalExporter.includes("['wrangler','d1','export'"),'Logical D1 exporter must not call blocked full D1 export.');
+must(!logicalExporter.includes('spawnSync'),'Logical D1 exporter must use direct read-only D1 API calls instead of spawning Wrangler per query.');
+must(!logicalExporter.includes("'wrangler','d1','export'"),'Logical D1 exporter must not call blocked full D1 export.');
 
 const sandbox=read('magnanimous-runtime/services/sandbox-service.mjs');
 must(sandbox.includes("shell:false"),'Sandbox process execution must not use shell interpolation.');
