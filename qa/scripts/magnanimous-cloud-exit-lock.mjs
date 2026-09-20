@@ -78,10 +78,15 @@ must(server.includes('/__magnanimous_runtime/migration/stage-d1'),'Standalone pr
 must(server.includes('MAGNANIMOUS_GITHUB_MIGRATION_ENABLED'),'Production-data staging must be disabled unless explicitly enabled.');
 must(fs.existsSync('magnanimous-runtime/scripts/export-d1-logical.mjs'),'FTS-safe logical D1 exporter missing.');
 const logicalExporter=read('magnanimous-runtime/scripts/export-d1-logical.mjs');
+must(logicalExporter.includes('api.cloudflare.com/client/v4/accounts/'),'Logical D1 snapshot must use the direct D1 query API.');
 must(logicalExporter.includes('PRAGMA table_list'),'FTS-safe logical D1 exporter must enumerate logical tables.');
+must(logicalExporter.includes('MAX(rowid)'),'Append-active rowid tables must capture a stable upper boundary.');
+must(logicalExporter.includes('rowid <= '),'Rowid table reads must stay inside the captured upper boundary.');
+must(logicalExporter.includes('remoteStatements'),'D1 metadata reads must support batched query requests.');
 must(logicalExporter.includes('knowledge_fts'),'FTS-safe logical D1 exporter must rebuild the knowledge FTS index.');
 must(logicalExporter.includes('PRAGMA foreign_key_check'),'Logical D1 snapshot must verify foreign keys.');
-must(!logicalExporter.includes("['wrangler','d1','export'"),'Cloud exit must not use blocked full D1 export while FTS5 exists.');
+must(!logicalExporter.includes('spawnSync'),'Cloud exit D1 snapshot must not spawn Wrangler per query.');
+must(!logicalExporter.includes("'wrangler','d1','export'"),'Cloud exit must not use blocked full D1 export while FTS5 exists.');
 
 const infra=read('worker/src/magnanimous-infrastructure-core.js');
 must(infra.includes("infrastructure_owner: 'Magnanimous AI'"),'Magnanimous must own infrastructure control.');
