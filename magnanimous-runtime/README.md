@@ -24,7 +24,7 @@ It runs the existing application request chain on standard Node.js and reproduce
 - **Sandbox** — isolated internal container with bounded argv execution and scoped file I/O.
 - **Server browser rendering** — self-hosted Chromium DOM/screenshot/PDF service.
 - **Interactive browser automation** — the existing Magnanimous Native Web + Local Bridge flow remains the full click/fill/select/press path.
-- **Browser egress security** — Chromium has no direct network path; HTTP(S) goes through a Magnanimous proxy that blocks private/local/test networks and validates CONNECT destinations.
+- **Browser egress security** — Chromium HTTP(S) is forced through a Magnanimous proxy that blocks private/local/test networks and validates CONNECT destinations; direct hostname resolution, QUIC, and non-proxied WebRTC UDP are disabled.
 - **Image transformation** — isolated ImageMagick service.
 - **Application security** — native auth controls, request-rate limiting, private service tokens, tenant boundaries, and reverse-proxy security headers.
 - **TLS / reverse proxy** — Caddy.
