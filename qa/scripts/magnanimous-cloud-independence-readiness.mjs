@@ -156,6 +156,8 @@ for(const contract of [
  'stageD1SqlExport',
  'stageD1SqliteSnapshot',
  'stageCredentialVaultRewrap',
+ 'credential-rewrap.current.json',
+ 'applyCachedCredentialVaultRewrap',
  'SQLite integrity_check',
  'inside the configured migration root'
 ]) must(migrationStage.includes(contract),'Migration staging security contract missing: '+contract);
@@ -186,6 +188,8 @@ must(!logicalExporter.includes("['wrangler','d1','export'"),'Logical D1 exporter
 must(logicalExporter.includes("'curl'"),'Logical D1 exporter must use the direct read API when credentials are available.');
 must(logicalExporter.includes("['wrangler','d1','execute'"),'Logical D1 exporter must preserve a Wrangler read fallback.');
 must(logicalExporter.includes("'--output',responseFile"),'Direct D1 retries must write one final response file instead of concatenating response bodies.');
+must(logicalExporter.includes('using Wrangler read fallback'),'Direct D1 read failures must fail over to Wrangler.');
+must(logicalExporter.includes('D1 read failed on direct API and Wrangler fallback'),'D1 exporter must surface both transport failures when neither read path works.');
 must(logicalExporter.includes("'@'+headerFile"),'Direct D1 API authorization must be loaded from a private header file.');
 must(logicalExporter.includes("'@'+requestFile"),'Direct D1 SQL payloads must be loaded from a private request file.');
 must(logicalExporter.includes("{mode:0o600}"),'Direct D1 temporary auth/request files must be owner-only.');
