@@ -51,15 +51,23 @@ async function render(spec={}){
  const mode=['dom','screenshot','pdf'].includes(spec.mode)?spec.mode:'dom';
  const width=Math.max(320,Math.min(Number(spec.width||1440),3840));
  const height=Math.max(240,Math.min(Number(spec.height||1000),4000));
- const common=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-sync','--metrics-recording-only','--mute-audio','--window-size='+width+','+height];
- if(proxy){common.push('--proxy-server='+proxy,'--proxy-bypass-list=<-loopback>');}
- if(mode==='dom'){
-  const r=await run([...common,'--dump-dom',url],{timeout:spec.timeout_ms});
-  if(r.code!==0)throw new Error('Chromium render failed: '+r.stderr.toString('utf8').slice(-1200));
-  return{ok:true,mode,url,html:r.stdout.toString('utf8').slice(0,2000000)};
- }
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'magnanimous-browser-'));
  try{
+  const profile=path.join(dir,'profile');
+  const cache=path.join(dir,'cache');
+  await fs.mkdir(profile,{recursive:true});
+  await fs.mkdir(cache,{recursive:true});
+  const common=[
+   '--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-sync',
+   '--metrics-recording-only','--mute-audio','--window-size='+width+','+height,
+   '--user-data-dir='+profile,'--disk-cache-dir='+cache
+  ];
+  if(proxy){common.push('--proxy-server='+proxy,'--proxy-bypass-list=<-loopback>');}
+  if(mode==='dom'){
+   const r=await run([...common,'--dump-dom',url],{timeout:spec.timeout_ms});
+   if(r.code!==0)throw new Error('Chromium render failed: '+r.stderr.toString('utf8').slice(-1200));
+   return{ok:true,mode,url,html:r.stdout.toString('utf8').slice(0,2000000)};
+  }
   const output=path.join(dir,mode==='pdf'?'page.pdf':'page.png');
   const flag=mode==='pdf'?'--print-to-pdf='+output:'--screenshot='+output;
   const r=await run([...common,flag,url],{timeout:spec.timeout_ms});
