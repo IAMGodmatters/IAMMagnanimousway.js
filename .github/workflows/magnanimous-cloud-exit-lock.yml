@@ -58,9 +58,24 @@ jobs:
       - name: Smoke standalone runtime and isolated services
         run: |
           docker compose -f magnanimous-runtime/docker-compose.yml up -d sandbox browser-egress browser media magnanimous
-          sleep 6
           docker compose -f magnanimous-runtime/docker-compose.yml exec -T magnanimous node - <<'NODE'
           const token=process.env.MAGNANIMOUS_INTERNAL_SERVICE_TOKEN;
+          const sleep=(ms)=>new Promise(resolve=>setTimeout(resolve,ms));
+          const readiness=[
+            ['http://127.0.0.1:8788/__magnanimous_runtime/health',{}],
+            ['http://sandbox:8791/health',{}],
+            ['http://browser:8792/health',{headers:{'x-magnanimous-service-token':token}}],
+            ['http://media:8793/health',{}]
+          ];
+          for(let attempt=0;attempt<30;attempt++){
+            let ready=true;
+            for(const [url,init] of readiness){
+              try{const r=await fetch(url,init);if(!r.ok){ready=false;break}}catch{ready=false;break}
+            }
+            if(ready)break;
+            if(attempt===29)throw new Error('Standalone Magnanimous services did not become ready.');
+            await sleep(1000);
+          }
           const checked=async(url,init={})=>{
             const r=await fetch(url,init);
             const text=await r.text();
