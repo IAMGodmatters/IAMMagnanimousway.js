@@ -37,6 +37,11 @@ function deny(socketOrRes,status=403,message='Magnanimous browser egress blocked
 
 const server=http.createServer(async(req,res)=>{
  try{
+  if(req.url==='/health'){
+   res.writeHead(200,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});
+   res.end(JSON.stringify({ok:true,identity:'Magnanimous Browser Egress',private_network_blocking:true}));
+   return;
+  }
   const target=new URL(String(req.url||''));
   if(!['http:','https:'].includes(target.protocol))return deny(res,400,'Only HTTP(S) proxy targets are allowed.');
   const resolved=await publicAddress(target.hostname);
