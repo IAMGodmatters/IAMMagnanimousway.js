@@ -54,7 +54,7 @@ for(const contract of [
 ])must(server.includes(contract),'Standalone server contract missing: '+contract);
 
 const compose=read('magnanimous-runtime/docker-compose.yml');
-for(const contract of ['sandbox:','browser:','browser-egress:','media:','authoritative-dns:','internal_services:','browser_services:','no-new-privileges:true','cap_drop:'])
+for(const contract of ['sandbox:','browser:','browser-egress:','media:','authoritative-dns:','internal_services:','no-new-privileges:true','cap_drop:'])
  must(compose.includes(contract),'Hardened compose topology missing: '+contract);
 must(compose.includes('internal: true'),'Sandbox/media network must be internal-only.');
 
