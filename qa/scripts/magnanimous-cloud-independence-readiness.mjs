@@ -64,9 +64,10 @@ must(sandbox.includes('MAGNANIMOUS_INTERNAL_SERVICE_TOKEN'),'Sandbox token bound
 const browser=read('magnanimous-runtime/services/browser-service.mjs');
 must(browser.includes('Private or local browser targets are blocked.'),'Browser SSRF boundary missing.');
 must(browser.includes('MAGNANIMOUS_INTERNAL_SERVICE_TOKEN'),'Browser token boundary missing.');
-must(browser.includes('MAGNANIMOUS_BROWSER_PROXY'),'Browser must support controlled egress proxying.');
-must(browser.includes("--proxy-server='+resolvedProxy"),'Browser HTTP(S) must be forced through the resolved Magnanimous egress proxy.');
-must(browser.includes('--proxy-bypass-list=<-loopback>'),'Browser loopback must not bypass the Magnanimous egress proxy.');
+must(browser.includes('MAGNANIMOUS_BROWSER_PROXY'),'Browser must support controlled egress snapshot fetching.');
+must(browser.includes('fetchSnapshot'),'Browser must fetch public content through Magnanimous egress before rendering.');
+must(browser.includes("network_mode:'safe-egress-snapshot'"),'Browser health must report safe-egress snapshot mode.');
+must(browser.includes("target='file://'"),'Chromium must render validated local snapshots rather than requiring direct internet.');
 must(browser.includes('force-webrtc-ip-handling-policy=disable_non_proxied_udp'),'Browser non-proxied WebRTC UDP must be disabled.');
 must(browser.includes('disable-quic'),'Browser QUIC bypass must be disabled.');
 const egress=read('magnanimous-runtime/services/browser-egress-service.mjs');
