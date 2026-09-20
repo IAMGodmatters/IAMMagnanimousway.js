@@ -85,6 +85,8 @@ const logicalExporter=read('magnanimous-runtime/scripts/export-d1-logical.mjs');
 must(logicalExporter.includes('PRAGMA table_list'),'FTS-safe logical D1 exporter must enumerate logical tables.');
 must(logicalExporter.includes('knowledge_fts'),'FTS-safe logical D1 exporter must rebuild the knowledge FTS index.');
 must(logicalExporter.includes('PRAGMA foreign_key_check'),'Logical D1 snapshot must verify foreign keys.');
+must(logicalExporter.includes('reconcileForeignKeys'),'Logical D1 snapshot must repair live-copy referential gaps before staging.');
+must(logicalExporter.includes('/d1/database/'),'Logical D1 snapshot must support direct D1 API reads.');
 must(!logicalExporter.includes("['wrangler','d1','export'"),'Cloud exit must not use blocked full D1 export while FTS5 exists.');
 
 const infra=read('worker/src/magnanimous-infrastructure-core.js');
