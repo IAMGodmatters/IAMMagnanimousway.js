@@ -14,6 +14,10 @@ const codeFiles=[
   'magnanimous-runtime/src/durable-work.mjs',
   'magnanimous-runtime/src/event-hub.mjs',
   'magnanimous-runtime/src/rate-limit.mjs',
+  'magnanimous-runtime/src/vector-store.mjs',
+  'magnanimous-runtime/src/analytics-engine.mjs',
+  'magnanimous-runtime/src/secret-vault.mjs',
+  'magnanimous-runtime/src/pipeline.mjs',
   'magnanimous-runtime/src/server.mjs',
   'magnanimous-runtime/Dockerfile',
   'magnanimous-runtime/docker-compose.yml',
@@ -43,6 +47,10 @@ must(server.includes('MAGNANIMOUS_QUEUE'),'Standalone runtime durable queue bind
 must(server.includes('MAGNANIMOUS_WORKFLOWS'),'Standalone runtime workflow binding missing.');
 must(server.includes('MAGNANIMOUS_EVENTS'),'Standalone runtime event coordination binding missing.');
 must(server.includes('MAGNANIMOUS_RATE_LIMIT'),'Standalone application rate-limit response missing.');
+must(server.includes('MAGNANIMOUS_VECTORIZE'),'Standalone vector binding missing.');
+must(server.includes('MAGNANIMOUS_ANALYTICS'),'Standalone analytics binding missing.');
+must(server.includes('MAGNANIMOUS_SECRETS'),'Standalone secrets binding missing.');
+must(server.includes('MAGNANIMOUS_PIPELINE'),'Standalone pipeline binding missing.');
 must(server.includes('/__magnanimous_runtime/capabilities'),'Standalone capability health surface missing.');
 
 const infra=read('worker/src/magnanimous-infrastructure-core.js');
@@ -55,7 +63,11 @@ for(const proof of [
   'magnanimous-runtime/src/kv-cache.mjs',
   'magnanimous-runtime/src/durable-work.mjs',
   'magnanimous-runtime/src/event-hub.mjs',
-  'magnanimous-runtime/src/rate-limit.mjs'
+  'magnanimous-runtime/src/rate-limit.mjs',
+  'magnanimous-runtime/src/vector-store.mjs',
+  'magnanimous-runtime/src/analytics-engine.mjs',
+  'magnanimous-runtime/src/secret-vault.mjs',
+  'magnanimous-runtime/src/pipeline.mjs'
 ]) must(infra.includes(proof),'Infrastructure proof missing: '+proof);
 
 const security=read('worker/src/security-entrypoint.js');
@@ -64,4 +76,4 @@ must(security.includes("'/api/magnanimous/infrastructure'")||infra.includes("'/a
 
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs'],{stdio:'inherit'});
 
-console.log('Magnanimous Cloud Exit Lock: standalone runtime, SQL, object storage, KV/cache, durable queue/workflows, event coordination, application rate limiting, infrastructure ownership and full migration compatibility PASS');
+console.log('Magnanimous Cloud Exit Lock: standalone runtime, SQL, object storage, KV/cache, durable queue/workflows, event coordination, application rate limiting, vector storage/query, analytics, encrypted secrets, ingestion pipelines, infrastructure ownership and full migration compatibility PASS');
