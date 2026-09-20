@@ -132,6 +132,7 @@ must(observedToolContracts.length===54,'Expected all 54 visible DigitalOcean too
 for(const tool of ['droplet_create','droplet_delete','image_create','key_create','region_list','size_list','snapshot_droplet','billing_history_list'])
  must(observedToolContracts.includes(tool),'Visible DigitalOcean tool absorption missing: '+tool);
 
+must(exists('magnanimous-runtime/scripts/export-d1-logical.mjs'),'Missing FTS-safe logical D1 snapshot exporter.');
 const migrationStage=read('magnanimous-runtime/src/migration-stage.mjs');
 for(const contract of [
  'https://token.actions.githubusercontent.com',
@@ -140,16 +141,28 @@ for(const contract of [
  "claims.ref || ''",
  "claims.workflow_ref",
  'stageD1SqlExport',
+ 'stageD1SqliteSnapshot',
  'SQLite integrity_check',
  'inside the configured migration root'
 ]) must(migrationStage.includes(contract),'Migration staging security contract missing: '+contract);
 const migrationWorkflow=read('.github/workflows/magnanimous-production-data-stage.yml');
 must(migrationWorkflow.includes('id-token: write'),'Production data staging must use GitHub OIDC.');
-must(migrationWorkflow.includes('wrangler d1 export iam-magnanimous-db --remote'),'Production data staging must export the current remote D1 database.');
-must(migrationWorkflow.includes('MAGNANIMOUS_ALLOW_IMPORT=YES_I_UNDERSTAND'),'Production data staging must build an offline parity reference.');
+must(migrationWorkflow.includes('export-d1-logical.mjs'),'Production data staging must use the FTS-safe logical snapshot exporter.');
+must(migrationWorkflow.includes('application/vnd.sqlite3'),'Production data staging must send a verified SQLite snapshot.');
+must(!migrationWorkflow.includes('wrangler d1 export'),'Production data staging must not use full D1 export while FTS5 virtual tables exist.');
 must(migrationWorkflow.includes('/__magnanimous_runtime/migration/stage-d1'),'Production data staging must target the standalone-only staging endpoint.');
 must(migrationWorkflow.includes('table_counts'),'Production data staging must verify per-table row-count parity.');
 must(!migrationWorkflow.includes('upload-artifact'),'Production D1 data must not be uploaded as a workflow artifact.');
+const logicalExporter=read('magnanimous-runtime/scripts/export-d1-logical.mjs');
+for(const contract of [
+ 'wrangler','d1','execute',
+ 'PRAGMA table_list',
+ 'quote(',
+ 'knowledge_fts',
+ 'PRAGMA foreign_key_check',
+ 'sqlite_sha256'
+]) must(logicalExporter.includes(contract),'Logical D1 exporter contract missing: '+contract);
+must(!logicalExporter.includes("['wrangler','d1','export'"),'Logical D1 exporter must not call blocked full D1 export.');
 
 const sandbox=read('magnanimous-runtime/services/sandbox-service.mjs');
 must(sandbox.includes("shell:false"),'Sandbox process execution must not use shell interpolation.');
