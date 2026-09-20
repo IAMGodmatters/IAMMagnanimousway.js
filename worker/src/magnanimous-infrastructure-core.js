@@ -183,6 +183,13 @@ export function magnanimousInfrastructureSummary(env = {}) {
     software_cloud_independence_complete: true,
     cloudflare_required_for_software_runtime: false,
     cutover_tooling_complete: true,
+    standalone_release_bundle_complete: true,
+    standalone_release_proof: [
+      'magnanimous-runtime/docker-compose.release.yml',
+      'magnanimous-runtime/scripts/standalone-host-preflight.sh',
+      'magnanimous-runtime/scripts/install-release-bundle.sh',
+      '.github/workflows/magnanimous-standalone-release.yml'
+    ],
     active_runtime: standalone ? 'magnanimous-standalone-node' : 'legacy-edge-adapter',
     cutover_phase: standalone ? 'standalone-active' : 'parallel-validation',
     production_cutover_complete: standalone,

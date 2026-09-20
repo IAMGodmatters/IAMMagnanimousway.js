@@ -1,0 +1,140 @@
+name: Magnanimous Standalone Release
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'magnanimous-runtime/**'
+      - 'worker/src/**'
+      - 'frontend/**'
+      - 'qa/scripts/magnanimous-cloud-*.mjs'
+      - '.github/workflows/magnanimous-standalone-release.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'magnanimous-runtime/**'
+      - 'worker/src/**'
+      - 'frontend/**'
+      - 'qa/scripts/magnanimous-cloud-*.mjs'
+      - '.github/workflows/magnanimous-standalone-release.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-verify-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Verify source cloud-independence contracts
+        run: node qa/scripts/magnanimous-cloud-exit-lock.mjs
+
+      - name: Build named standalone images
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_SHA::12}"
+          echo "MAGNANIMOUS_RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
+          docker build -f magnanimous-runtime/Dockerfile -t "iammagnanimous/runtime:$TAG" .
+          docker build -f magnanimous-runtime/Dockerfile.sandbox -t "iammagnanimous/sandbox:$TAG" .
+          docker build -f magnanimous-runtime/Dockerfile.browser -t "iammagnanimous/browser:$TAG" .
+          docker build -f magnanimous-runtime/Dockerfile.browser-egress -t "iammagnanimous/browser-egress:$TAG" .
+          docker build -f magnanimous-runtime/Dockerfile.media -t "iammagnanimous/media:$TAG" .
+          docker pull caddy:2
+          docker pull coredns/coredns:1.12.4
+
+      - name: Assemble offline release bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="$MAGNANIMOUS_RELEASE_TAG"
+          OUT="dist/magnanimous-standalone-$TAG"
+          mkdir -p "$OUT/scripts"
+          docker save             "iammagnanimous/runtime:$TAG"             "iammagnanimous/sandbox:$TAG"             "iammagnanimous/browser:$TAG"             "iammagnanimous/browser-egress:$TAG"             "iammagnanimous/media:$TAG"             "caddy:2"             "coredns/coredns:1.12.4"             -o "$OUT/magnanimous-images.tar"
+          cp magnanimous-runtime/docker-compose.release.yml "$OUT/docker-compose.release.yml"
+          cp magnanimous-runtime/Caddyfile "$OUT/Caddyfile"
+          cp -R magnanimous-runtime/dns "$OUT/dns"
+          cp magnanimous-runtime/scripts/standalone-host-preflight.sh "$OUT/standalone-host-preflight.sh"
+          cp magnanimous-runtime/scripts/install-release-bundle.sh "$OUT/install-release-bundle.sh"
+          cp magnanimous-runtime/scripts/backup-runtime.mjs "$OUT/backup-runtime.mjs"
+          cp magnanimous-runtime/scripts/restore-runtime.mjs "$OUT/restore-runtime.mjs"
+          cp magnanimous-runtime/scripts/import-d1-export.mjs "$OUT/import-d1-export.mjs"
+          cp magnanimous-runtime/scripts/verify-data-parity.mjs "$OUT/verify-data-parity.mjs"
+          cp magnanimous-runtime/scripts/prepare-dns-zone.mjs "$OUT/prepare-dns-zone.mjs"
+          printf '%s\n' "$TAG" > "$OUT/RELEASE_TAG"
+          printf '%s\n' "$GITHUB_SHA" > "$OUT/SOURCE_COMMIT"
+          chmod 700 "$OUT/standalone-host-preflight.sh" "$OUT/install-release-bundle.sh"
+          (
+            cd "$OUT"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+          tar -C dist -czf "dist/magnanimous-standalone-$TAG.tar.gz" "magnanimous-standalone-$TAG"
+          sha256sum "dist/magnanimous-standalone-$TAG.tar.gz" > "dist/magnanimous-standalone-$TAG.tar.gz.sha256"
+
+      - name: Prove bundle reloads without source builds
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="$MAGNANIMOUS_RELEASE_TAG"
+          OUT="dist/magnanimous-standalone-$TAG"
+          docker image rm             "iammagnanimous/runtime:$TAG"             "iammagnanimous/sandbox:$TAG"             "iammagnanimous/browser:$TAG"             "iammagnanimous/browser-egress:$TAG"             "iammagnanimous/media:$TAG"             "caddy:2"             "coredns/coredns:1.12.4"
+          docker load -i "$OUT/magnanimous-images.tar"
+          cat > "$OUT/.env" <<'EOF'
+          MAGNANIMOUS_INTERNAL_SERVICE_TOKEN=release-proof-internal-service-token-2026
+          MAGNANIMOUS_SECRETS_KEY=release-proof-secrets-key-2026
+          SESSION_SECRET=release-proof-session-secret-2026
+          INTEGRATION_CREDENTIALS_KEY=release-proof-integration-key-2026
+          MAGNANIMOUS_ACME_EMAIL=release-proof@example.invalid
+          EOF
+          MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" config -q
+          MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" up -d sandbox browser-egress browser media magnanimous
+          for attempt in $(seq 1 30); do
+            if MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" exec -T magnanimous                 node -e "fetch('http://127.0.0.1:8788/__magnanimous_runtime/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+              break
+            fi
+            [ "$attempt" -lt 30 ] || { docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" logs; exit 1; }
+            sleep 1
+          done
+          token='release-proof-internal-service-token-2026'
+          MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" exec -T magnanimous node - <<'NODE'
+          const token=process.env.MAGNANIMOUS_INTERNAL_SERVICE_TOKEN;
+          const checked=async(url,init={})=>{
+            const r=await fetch(url,init);
+            const text=await r.text();
+            if(!r.ok)throw new Error(url+' -> '+r.status+' '+text.slice(0,500));
+            return text;
+          };
+          await checked('http://127.0.0.1:8788/__magnanimous_runtime/health');
+          const services=JSON.parse(await checked('http://127.0.0.1:8788/__magnanimous_runtime/services',{headers:{'x-magnanimous-service-token':token}}));
+          if(Object.values(services.services||{}).some(v=>v.configured&&!v.ok))throw new Error('Release bundle service health failed.');
+          const browser=JSON.parse(await checked('http://browser:8792/render',{
+            method:'POST',
+            headers:{'content-type':'application/json','x-magnanimous-service-token':token},
+            body:JSON.stringify({url:'https://example.com',mode:'dom',timeout_ms:45000})
+          }));
+          if(!String(browser.html||'').toLowerCase().includes('example domain'))throw new Error('Release bundle browser render failed.');
+          console.log('Offline Magnanimous release bundle smoke PASS');
+          NODE
+
+      - name: Stop release proof services
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${MAGNANIMOUS_RELEASE_TAG:-}" ] && [ -f "dist/magnanimous-standalone-${MAGNANIMOUS_RELEASE_TAG}/.env" ]; then
+            MAGNANIMOUS_RELEASE_TAG="$MAGNANIMOUS_RELEASE_TAG" docker compose               --env-file "dist/magnanimous-standalone-${MAGNANIMOUS_RELEASE_TAG}/.env"               -f "dist/magnanimous-standalone-${MAGNANIMOUS_RELEASE_TAG}/docker-compose.release.yml"               down -v --remove-orphans || true
+          fi
+
+      - name: Upload standalone release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: magnanimous-standalone-${{ env.MAGNANIMOUS_RELEASE_TAG }}
+          path: |
+            dist/magnanimous-standalone-${{ env.MAGNANIMOUS_RELEASE_TAG }}.tar.gz
+            dist/magnanimous-standalone-${{ env.MAGNANIMOUS_RELEASE_TAG }}.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 14

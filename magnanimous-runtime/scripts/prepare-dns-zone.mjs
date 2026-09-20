@@ -39,7 +39,7 @@ const zone=[
  extra.trim(),
  ''
 ].join('\n');
-const out=path.resolve('magnanimous-runtime/dns/generated/db.iammagnanimousway.com');
+const out=path.resolve(process.env.MAGNANIMOUS_DNS_OUTPUT||'magnanimous-runtime/dns/generated/db.iammagnanimousway.com');
 await fs.mkdir(path.dirname(out),{recursive:true});
 await fs.writeFile(out,zone);
 console.log(JSON.stringify({ok:true,zone:out,ns1,ns2,origin,serial,ttl,extra_records_file:extraFile||null},null,2));

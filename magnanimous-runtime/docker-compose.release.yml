@@ -1,8 +1,6 @@
 services:
   magnanimous:
-    build:
-      context: ..
-      dockerfile: magnanimous-runtime/Dockerfile
+    image: "iammagnanimous/runtime:${MAGNANIMOUS_RELEASE_TAG:-local}"
     restart: unless-stopped
     expose:
       - "8788"
@@ -12,6 +10,7 @@ services:
       PORT: "8788"
       HOST: "0.0.0.0"
       NODE_ENV: "production"
+      MAGNANIMOUS_RUNTIME: "standalone-node"
       MAGNANIMOUS_DB_PATH: "/app/data/iam-magnanimous.sqlite"
       MAGNANIMOUS_OBJECTS_PATH: "/app/data/object-store"
       MAGNANIMOUS_BACKUP_DIR: "/app/backups"
@@ -30,9 +29,7 @@ services:
       - internal_services
 
   sandbox:
-    build:
-      context: ..
-      dockerfile: magnanimous-runtime/Dockerfile.sandbox
+    image: "iammagnanimous/sandbox:${MAGNANIMOUS_RELEASE_TAG:-local}"
     restart: unless-stopped
     expose:
       - "8791"
@@ -57,12 +54,10 @@ services:
       - internal_services
 
   browser:
+    image: "iammagnanimous/browser:${MAGNANIMOUS_RELEASE_TAG:-local}"
     depends_on:
       browser-egress:
         condition: service_healthy
-    build:
-      context: ..
-      dockerfile: magnanimous-runtime/Dockerfile.browser
     restart: unless-stopped
     expose:
       - "8792"
@@ -83,13 +78,9 @@ services:
     pids_limit: 256
     mem_limit: 1g
     shm_size: "256m"
-    networks:
-      - default
 
   browser-egress:
-    build:
-      context: ..
-      dockerfile: magnanimous-runtime/Dockerfile.browser-egress
+    image: "iammagnanimous/browser-egress:${MAGNANIMOUS_RELEASE_TAG:-local}"
     restart: unless-stopped
     expose:
       - "8794"
@@ -113,13 +104,9 @@ services:
       timeout: 2s
       retries: 15
       start_period: 1s
-    networks:
-      - default
 
   media:
-    build:
-      context: ..
-      dockerfile: magnanimous-runtime/Dockerfile.media
+    image: "iammagnanimous/media:${MAGNANIMOUS_RELEASE_TAG:-local}"
     restart: unless-stopped
     expose:
       - "8793"
@@ -141,7 +128,7 @@ services:
       - internal_services
 
   edge:
-    image: caddy:2
+    image: "caddy:2"
     restart: unless-stopped
     depends_on:
       - magnanimous
@@ -156,7 +143,7 @@ services:
       - caddy_config:/config
 
   authoritative-dns:
-    image: coredns/coredns:1.12.4
+    image: "coredns/coredns:1.12.4"
     profiles: ["authoritative-dns"]
     restart: unless-stopped
     command: -conf /etc/coredns/Corefile
