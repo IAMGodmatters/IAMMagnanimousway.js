@@ -88,6 +88,8 @@ must(logicalExporter.includes('PRAGMA foreign_key_check'),'Logical D1 snapshot m
 must(logicalExporter.includes('reconcileForeignKeys'),'Logical D1 snapshot must repair live-copy referential gaps before staging.');
 must(logicalExporter.includes('/d1/database/'),'Logical D1 snapshot must support direct D1 API reads.');
 must(!logicalExporter.includes("['wrangler','d1','export'"),'Cloud exit must not use blocked full D1 export while FTS5 exists.');
+must(logicalExporter.includes("'--output',responseFile"),'Cloud exit D1 API retries must not concatenate JSON bodies.');
+must(!logicalExporter.includes("'-H','Authorization: Bearer '+cloudflareApiToken"),'Cloud exit D1 API token must stay out of process arguments.');
 
 const infra=read('worker/src/magnanimous-infrastructure-core.js');
 must(infra.includes("infrastructure_owner: 'Magnanimous AI'"),'Magnanimous must own infrastructure control.');
