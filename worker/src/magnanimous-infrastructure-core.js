@@ -93,9 +93,28 @@ export const MAGNANIMOUS_INFRASTRUCTURE_FAMILIES = Object.freeze([
     id: 'search-vector',
     name: 'Search & Vector Retrieval',
     owned_contract: 'Magnanimous knowledge retrieval',
-    current_target: 'sqlite-fts5',
+    current_target: 'sqlite-fts5-plus-magnanimous-vector-store',
     future_targets: ['pgvector', 'qdrant', 'sqlite-vector-extension'],
-    status: 'fts-implemented-vector-optional'
+    status: 'implemented-local-vector-query',
+    proof: ['magnanimous-runtime/src/vector-store.mjs']
+  },
+  {
+    id: 'streaming-data',
+    name: 'Streaming Data & Pipelines',
+    owned_contract: 'Magnanimous durable ingestion pipeline',
+    current_target: 'object-store-plus-durable-work-plus-analytics',
+    future_targets: ['postgresql-partitioning', 'apache-iceberg-compatible-export'],
+    status: 'implemented-local-durable-ingestion',
+    proof: ['magnanimous-runtime/src/pipeline.mjs', 'magnanimous-runtime/src/analytics-engine.mjs']
+  },
+  {
+    id: 'secrets',
+    name: 'Secrets & Runtime Credentials',
+    owned_contract: 'Magnanimous encrypted secret vault',
+    current_target: 'aes-256-gcm-plus-runtime-master-key',
+    future_targets: ['hardware-kms', 'os-keyring'],
+    status: 'implemented-when-master-key-configured',
+    proof: ['magnanimous-runtime/src/secret-vault.mjs']
   },
   {
     id: 'dns-tls',
@@ -119,9 +138,10 @@ export const MAGNANIMOUS_INFRASTRUCTURE_FAMILIES = Object.freeze([
     id: 'observability',
     name: 'Observability',
     owned_contract: 'Magnanimous logs metrics traces',
-    current_target: 'structured-stdout-and-audit-ledgers',
+    current_target: 'structured-stdout-audit-ledgers-plus-magnanimous-analytics',
     future_targets: ['opentelemetry'],
-    status: 'partial-expand-next'
+    status: 'implemented-local-analytics-expand-tracing-next',
+    proof: ['magnanimous-runtime/src/analytics-engine.mjs']
   }
 ]);
 
