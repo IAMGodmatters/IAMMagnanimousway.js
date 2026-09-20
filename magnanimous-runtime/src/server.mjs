@@ -7,6 +7,11 @@ import app from '../../worker/src/security-entrypoint.js';
 import { openMagnanimousDb } from './d1-compat.mjs';
 import { applyMagnanimousMigrations } from './migrations.mjs';
 import { MagnanimousAiBinding } from './ai-binding.mjs';
+import { openMagnanimousObjectStore } from './object-store.mjs';
+import { openMagnanimousKvStore } from './kv-cache.mjs';
+import { openMagnanimousDurableWork } from './durable-work.mjs';
+import { openMagnanimousEventHub } from './event-hub.mjs';
+import { MagnanimousRateLimiter } from './rate-limit.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -23,11 +28,29 @@ const migrationState = applyMagnanimousMigrations(
   path.join(root, 'worker/migrations')
 );
 
+const objectStore = openMagnanimousObjectStore(
+  process.env.MAGNANIMOUS_OBJECTS_PATH || path.join(root, 'data/object-store')
+);
+const kv = openMagnanimousKvStore(db, 'runtime');
+const durableWork = openMagnanimousDurableWork(db);
+const eventHub = openMagnanimousEventHub(db);
+const rateLimiter = new MagnanimousRateLimiter();
+
 const env = new Proxy(
   {
     DB: db,
     AI: new MagnanimousAiBinding(process.env),
-    MAGNANIMOUS_RUNTIME: 'standalone-node'
+    MAGNANIMOUS_RUNTIME: 'standalone-node',
+    MAGNANIMOUS_OBJECT_STORE: objectStore,
+    MAGNANIMOUS_KV: kv,
+    MAGNANIMOUS_QUEUE: durableWork,
+    MAGNANIMOUS_WORKFLOWS: durableWork,
+    MAGNANIMOUS_EVENTS: eventHub,
+    OBJECT_STORE: objectStore,
+    KV: kv,
+    QUEUE: durableWork,
+    WORKFLOWS: durableWork,
+    EVENTS: eventHub
   },
   {
     get(target, key) {
@@ -157,7 +180,7 @@ const server = http.createServer(async (req, res) => {
   try {
     const pathname = new URL(req.url || '/', 'http://local').pathname;
 
-    if (pathname === '/__magnanimous_runtime/health') {
+    if (pathname === '/__magnanimous_runtime/health' || pathname === '/__magnanimous_runtime/capabilities') {
       await send(
         res,
         Response.json({
@@ -166,10 +189,40 @@ const server = http.createServer(async (req, res) => {
           runtime: 'standalone-node',
           database: 'magnanimous-sqlite',
           migrations: migrationState,
-          cloud_vendor_required: false
+          cloud_vendor_required: false,
+          first_party_capabilities: {
+            relational_sql: true,
+            static_assets: true,
+            scheduled_work: true,
+            ai_binding: true,
+            object_storage: true,
+            key_value_cache: true,
+            durable_queue: true,
+            durable_workflows: true,
+            event_coordination: true,
+            application_rate_limiting: true
+          }
         })
       );
       return;
+    }
+
+    if (pathname.startsWith('/api/')) {
+      const remote = String(req.socket?.remoteAddress || 'unknown');
+      const sensitive = /^\/api\/auth\/(signup|login|forgot|reset)/.test(pathname);
+      const result = rateLimiter.check((sensitive ? 'auth:' : 'api:') + remote, sensitive
+        ? { limit: Number(process.env.MAGNANIMOUS_AUTH_RATE_LIMIT || 60), windowMs: 300000 }
+        : { limit: Number(process.env.MAGNANIMOUS_API_RATE_LIMIT || 1200), windowMs: 60000 });
+      res.setHeader('ratelimit-limit', String(result.limit));
+      res.setHeader('ratelimit-remaining', String(result.remaining));
+      res.setHeader('ratelimit-reset', String(Math.ceil(result.resetAt / 1000)));
+      if (!result.allowed) {
+        res.statusCode = 429;
+        res.setHeader('retry-after', String(Math.ceil(result.retryAfterMs / 1000)));
+        res.setHeader('content-type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify({ detail: 'Magnanimous request limit reached. Try again shortly.', code: 'MAGNANIMOUS_RATE_LIMIT' }));
+        return;
+      }
     }
 
     if (!workerFirst(pathname)) {
