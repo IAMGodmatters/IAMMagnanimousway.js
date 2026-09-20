@@ -15,6 +15,8 @@ import { openMagnanimousVectorStore } from '../src/vector-store.mjs';
 import { openMagnanimousAnalyticsEngine } from '../src/analytics-engine.mjs';
 import { openMagnanimousSecretVault } from '../src/secret-vault.mjs';
 import { openMagnanimousPipeline } from '../src/pipeline.mjs';
+import { magnanimousServiceBindings } from '../src/service-bindings.mjs';
+import { MagnanimousMetrics } from '../src/metrics.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -131,10 +133,30 @@ try {
   assert.equal(batch.records,2);
   assert.deepEqual(await pipeline.readBatch(batch.object_key),[{id:1},{id:2}]);
 
+  const serviceBindings=magnanimousServiceBindings({
+    MAGNANIMOUS_INTERNAL_SERVICE_TOKEN:'verification-token',
+    MAGNANIMOUS_SANDBOX_URL:'http://sandbox:8791',
+    MAGNANIMOUS_BROWSER_URL:'http://browser:8792',
+    MAGNANIMOUS_MEDIA_URL:'http://media:8793'
+  });
+  assert.equal(serviceBindings.sandbox.configured,true);
+  assert.equal(serviceBindings.browser.configured,true);
+  assert.equal(serviceBindings.images.configured,true);
+  assert.equal(typeof serviceBindings.sandbox.exec,'function');
+  assert.equal(typeof serviceBindings.browser.render,'function');
+  assert.equal(typeof serviceBindings.images.transform,'function');
+
+  const metrics=new MagnanimousMetrics();
+  metrics.observe(200,12);
+  metrics.observe(500,8);
+  const metricText=metrics.prometheus();
+  assert.match(metricText,/magnanimous_http_requests_total 2/);
+  assert.match(metricText,/magnanimous_http_errors_total 1/);
+
   console.log(
     'Magnanimous standalone SQL compatibility verified across ' +
     result.total +
-    ' migrations; object store, KV/cache, durable queue/workflows, event coordination, rate limiting, vector query, analytics, encrypted secrets and ingestion pipelines verified.'
+    ' migrations; object store, KV/cache, durable queue/workflows, event coordination, rate limiting, vector query, analytics, encrypted secrets, ingestion pipelines, internal service bindings and native metrics verified.'
   );
 } finally {
   db.close();
