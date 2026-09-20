@@ -55,7 +55,8 @@ export const MAGNANIMOUS_INFRASTRUCTURE_FAMILIES = Object.freeze([
     owned_contract: 'Magnanimous object store',
     current_target: 'local-persistent-volume',
     future_targets: ['s3-compatible'],
-    status: 'adapter-next',
+    status: 'implemented-local-volume',
+    proof: ['magnanimous-runtime/src/object-store.mjs', 'magnanimous-runtime/src/server.mjs'],
     active_legacy_binding_required: false
   },
   {
@@ -64,7 +65,8 @@ export const MAGNANIMOUS_INFRASTRUCTURE_FAMILIES = Object.freeze([
     owned_contract: 'Magnanimous cache contract',
     current_target: 'sqlite-or-memory',
     future_targets: ['redis-compatible'],
-    status: 'adapter-next',
+    status: 'implemented-sqlite-ttl-cache',
+    proof: ['magnanimous-runtime/src/kv-cache.mjs', 'magnanimous-runtime/src/server.mjs'],
     active_legacy_binding_required: false
   },
   {
@@ -73,15 +75,18 @@ export const MAGNANIMOUS_INFRASTRUCTURE_FAMILIES = Object.freeze([
     owned_contract: 'Magnanimous durable work queue',
     current_target: 'sql-backed-job-ledger',
     future_targets: ['redis-compatible-streams', 'postgresql-skip-locked'],
-    status: 'native-work-engine-present-expand-next',
+    status: 'implemented-durable-sql-ledger',
+    proof: ['magnanimous-runtime/src/durable-work.mjs', 'magnanimous-runtime/src/server.mjs'],
     active_legacy_binding_required: false
   },
   {
     id: 'realtime-coordination',
     name: 'Realtime Coordination',
     owned_contract: 'Magnanimous realtime session coordinator',
-    current_target: 'standard-websocket-plus-sql',
-    status: 'adapter-next',
+    current_target: 'persistent-event-log-plus-in-process-pubsub',
+    future_targets: ['standard-websocket-multi-node-broker'],
+    status: 'implemented-single-node-expand-for-multi-node',
+    proof: ['magnanimous-runtime/src/event-hub.mjs', 'magnanimous-runtime/src/server.mjs'],
     active_legacy_binding_required: false
   },
   {
@@ -104,9 +109,10 @@ export const MAGNANIMOUS_INFRASTRUCTURE_FAMILIES = Object.freeze([
     id: 'edge-security',
     name: 'Application & Edge Security',
     owned_contract: 'Magnanimous security policy',
-    current_target: 'application-security-plus-reverse-proxy',
+    current_target: 'application-security-plus-reverse-proxy-plus-native-rate-limit',
     future_targets: ['multi-origin-ddos-upstream'],
-    status: 'application-controls-present-network-capacity-external',
+    status: 'application-controls-and-node-rate-limit-implemented-network-capacity-external',
+    proof: ['magnanimous-runtime/src/rate-limit.mjs', 'magnanimous-runtime/src/server.mjs', 'magnanimous-runtime/Caddyfile'],
     external_network_required: true
   },
   {
