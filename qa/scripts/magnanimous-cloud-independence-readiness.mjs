@@ -162,6 +162,7 @@ must(!migrationWorkflow.includes('wrangler d1 export'),'Production data staging 
 must(migrationWorkflow.includes('/__magnanimous_runtime/migration/stage-d1'),'Production data staging must target the standalone-only staging endpoint.');
 must(migrationWorkflow.includes('table_counts'),'Production data staging must verify per-table row-count parity.');
 must(!migrationWorkflow.includes('upload-artifact'),'Production D1 data must not be uploaded as a workflow artifact.');
+must(migrationWorkflow.includes('MAGNANIMOUS_SOURCE_D1_ID'),'Production data staging must configure the direct D1 query identity.');
 const logicalExporter=read('magnanimous-runtime/scripts/export-d1-logical.mjs');
 for(const contract of [
  'wrangler','d1','execute',
@@ -169,7 +170,11 @@ for(const contract of [
  'quote(',
  'knowledge_fts',
  'PRAGMA foreign_key_check',
- 'sqlite_sha256'
+ 'sqlite_sha256',
+ 'api.cloudflare.com/client/v4/accounts',
+ 'MAGNANIMOUS_SOURCE_D1_ID',
+ 'directApiQuery',
+ 'wranglerQuery'
 ]) must(logicalExporter.includes(contract),'Logical D1 exporter contract missing: '+contract);
 must(!logicalExporter.includes("['wrangler','d1','export'"),'Logical D1 exporter must not call blocked full D1 export.');
 must(logicalExporter.includes("import { reconcileForeignKeys } from '../src/d1-snapshot-reconcile.mjs'"),'Logical D1 exporter must use the tested referential-closure engine.');
