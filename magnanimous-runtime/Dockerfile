@@ -12,5 +12,4 @@ RUN mkdir -p /app/data /app/backups \
   && node magnanimous-runtime/scripts/verify-runtime.mjs \
   && node magnanimous-runtime/scripts/verify-cloud-control.mjs
 EXPOSE 8788
-VOLUME ["/app/data", "/app/backups"]
 CMD ["node","magnanimous-runtime/src/server.mjs"]
