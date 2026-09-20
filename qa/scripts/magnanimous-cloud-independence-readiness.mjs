@@ -66,6 +66,9 @@ must(compose.includes('condition: service_healthy'),'Browser startup must wait f
 for(const image of ['iammagnanimous/runtime:','iammagnanimous/sandbox:','iammagnanimous/browser:','iammagnanimous/browser-egress:','iammagnanimous/media:'])
  must(releaseCompose.includes(image),'Offline release topology missing image contract: '+image);
 must(releaseCompose.includes('MAGNANIMOUS_RUNTIME: "standalone-node"'),'Release topology must explicitly activate standalone runtime mode.');
+must(releaseCompose.includes('magnanimous_backups:/app/backups'),'Release topology must persist standalone backups.');
+const dnsPrepare=read('magnanimous-runtime/scripts/prepare-dns-zone.mjs');
+must(dnsPrepare.includes('MAGNANIMOUS_DNS_OUTPUT'),'DNS zone generator must support an installed-host output path.');
 const releaseWorkflow=read('.github/workflows/magnanimous-standalone-release.yml');
 must(releaseWorkflow.includes('docker save'),'Standalone release must export offline-loadable images.');
 must(releaseWorkflow.includes('docker load'),'Standalone release must prove its own image bundle reloads.');
