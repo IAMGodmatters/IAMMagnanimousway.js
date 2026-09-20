@@ -18,6 +18,7 @@ const required=[
  'magnanimous-runtime/src/pipeline.mjs',
  'magnanimous-runtime/src/service-bindings.mjs',
  'magnanimous-runtime/src/metrics.mjs',
+ 'magnanimous-runtime/src/image-generation-binding.mjs',
  'magnanimous-runtime/services/sandbox-service.mjs',
  'magnanimous-runtime/services/browser-service.mjs',
  'magnanimous-runtime/services/media-service.mjs',
@@ -46,7 +47,7 @@ const server=read('magnanimous-runtime/src/server.mjs');
 for(const contract of [
  'MAGNANIMOUS_OBJECT_STORE','MAGNANIMOUS_KV','MAGNANIMOUS_QUEUE','MAGNANIMOUS_WORKFLOWS',
  'MAGNANIMOUS_EVENTS','MAGNANIMOUS_VECTORIZE','MAGNANIMOUS_ANALYTICS','MAGNANIMOUS_SECRETS',
- 'MAGNANIMOUS_PIPELINE','MAGNANIMOUS_SANDBOX','MAGNANIMOUS_BROWSER','MAGNANIMOUS_IMAGES',
+ 'MAGNANIMOUS_PIPELINE','MAGNANIMOUS_SANDBOX','MAGNANIMOUS_BROWSER','MAGNANIMOUS_IMAGES','MAGNANIMOUS_IMAGE_GENERATOR',
  '/__magnanimous_runtime/metrics','/__magnanimous_runtime/services'
 ])must(server.includes(contract),'Standalone server contract missing: '+contract);
 
