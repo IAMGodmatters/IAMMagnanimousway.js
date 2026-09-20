@@ -91,6 +91,7 @@ services:
     environment:
       PORT: "8794"
       HOST: "0.0.0.0"
+      MAGNANIMOUS_INTERNAL_SERVICE_TOKEN: "${MAGNANIMOUS_INTERNAL_SERVICE_TOKEN}"
     read_only: true
     tmpfs:
       - /tmp
