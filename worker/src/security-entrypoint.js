@@ -7,6 +7,7 @@ import { resolveSessionRequest, revokeOpaqueSession, upgradeAuthResponseToOpaque
 import { prepareCarrierWebhook, completeCarrierWebhook } from './carrier-webhook-security.js';
 import { enforceAssistantActionPolicy, completeAssistantActionPolicy } from './assistant-action-policy.js';
 import { handleMagnanimousCloudflare } from './magnanimous-cloudflare-runtime.js';
+import { handleMagnanimousInfrastructure } from './magnanimous-infrastructure-core.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { currentUser } from './integrations.js';
 import { isPlatformOwnerUser } from './agent-branch-intelligence.js';
@@ -211,6 +212,13 @@ export default {
       }
 
       const policyUrl=new URL(policyRequest.url);
+      const infrastructureResponse=await handleMagnanimousInfrastructure(policyRequest,env);
+      if(infrastructureResponse){
+        const assistantCompleted=await completeAssistantActionPolicy(assistantContext,infrastructureResponse,env);
+        const carrierCompleted=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
+        return finalizeResponse(request,await securityPostflight(policyRequest,carrierCompleted,env));
+      }
+
       let cloudflareResponse=null;
       if(policyUrl.pathname.startsWith('/api/cloudflare')){
         const cloudflareEnv=await getProviderRuntimeEnv(env);

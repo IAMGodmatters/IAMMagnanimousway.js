@@ -1,0 +1,39 @@
+name: Magnanimous Cloud Exit Lock
+
+on:
+  pull_request:
+    paths:
+      - 'magnanimous-runtime/**'
+      - 'worker/src/magnanimous-infrastructure-core.js'
+      - 'worker/src/security-entrypoint.js'
+      - 'frontend/app/owner-infrastructure/**'
+      - 'frontend/app/owner-center/page.tsx'
+      - 'qa/scripts/magnanimous-cloud-exit-lock.mjs'
+      - '.github/workflows/magnanimous-cloud-exit-lock.yml'
+      - 'worker/migrations/**'
+  push:
+    branches: [main]
+    paths:
+      - 'magnanimous-runtime/**'
+      - 'worker/src/magnanimous-infrastructure-core.js'
+      - 'worker/src/security-entrypoint.js'
+      - 'frontend/app/owner-infrastructure/**'
+      - 'frontend/app/owner-center/page.tsx'
+      - 'qa/scripts/magnanimous-cloud-exit-lock.mjs'
+      - '.github/workflows/magnanimous-cloud-exit-lock.yml'
+      - 'worker/migrations/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Verify Magnanimous standalone infrastructure
+        run: node qa/scripts/magnanimous-cloud-exit-lock.mjs

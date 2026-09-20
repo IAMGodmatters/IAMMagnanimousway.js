@@ -1,0 +1,26 @@
+{
+  email {$MAGNANIMOUS_ACME_EMAIL}
+}
+
+iammagnanimousway.com {
+  encode zstd gzip
+  reverse_proxy magnanimous:8788
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(self), microphone=(self), geolocation=(self)"
+    -Server
+  }
+
+  log {
+    output stdout
+    format json
+  }
+}
+
+www.iammagnanimousway.com {
+  redir https://iammagnanimousway.com{uri} permanent
+}
