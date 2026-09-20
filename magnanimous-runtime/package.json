@@ -16,6 +16,7 @@
     "parity": "node scripts/verify-data-parity.mjs",
     "dns:prepare": "node scripts/prepare-dns-zone.mjs",
     "verify:cloud": "node scripts/verify-cloud-control.mjs",
-    "verify:migration": "node scripts/verify-migration-stage.mjs"
+    "verify:migration": "node scripts/verify-migration-stage.mjs",
+    "verify:runtime-secrets": "node scripts/verify-runtime-secret-store.mjs"
   }
 }
