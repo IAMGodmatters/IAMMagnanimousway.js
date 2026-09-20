@@ -1,0 +1,37 @@
+name: Railway Absorption and Migration Race Lock
+
+on:
+  pull_request:
+    paths:
+      - 'magnanimous-runtime/src/migration-stage.mjs'
+      - 'magnanimous-runtime/src/server.mjs'
+      - 'magnanimous-runtime/scripts/verify-migration-stage.mjs'
+      - 'worker/src/magnanimous-railway-capability-registry.js'
+      - 'worker/src/magnanimous-connector-absorption.js'
+      - 'qa/scripts/railway-absorption-lock.mjs'
+      - '.github/workflows/railway-absorption-migration-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Syntax check changed runtime and absorption files
+        run: |
+          node --check magnanimous-runtime/src/migration-stage.mjs
+          node --check magnanimous-runtime/src/server.mjs
+          node --check worker/src/magnanimous-railway-capability-registry.js
+          node --check worker/src/magnanimous-connector-absorption.js
+          node --check qa/scripts/railway-absorption-lock.mjs
+      - name: Verify migration stage ordering and vault queue
+        run: node magnanimous-runtime/scripts/verify-migration-stage.mjs
+      - name: Verify Railway capability absorption contracts
+        run: node qa/scripts/railway-absorption-lock.mjs
