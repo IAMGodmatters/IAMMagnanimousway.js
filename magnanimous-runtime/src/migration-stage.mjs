@@ -147,8 +147,8 @@ export async function stageD1SqlExport(sqlText, {
   const sqlSha256 = crypto.createHash('sha256').update(sql).digest('hex');
   const sqliteBytes = await fs.readFile(tempPath);
   const sqliteSha256 = crypto.createHash('sha256').update(sqliteBytes).digest('hex');
-  const pendingCredentialRewrap = await applyPendingCredentialVaultRewrap(tempPath, {
-    pendingPath: finalPath + '.credential-rewrap.pending.json',
+  const cachedCredentialRewrap = await applyCachedCredentialVaultRewrap(tempPath, {
+    cachePath: finalPath + '.credential-rewrap.current.json',
     runtimeSecretsFile
   });
   const finalSqliteSha256 = crypto.createHash('sha256').update(await fs.readFile(tempPath)).digest('hex');
@@ -162,7 +162,7 @@ export async function stageD1SqlExport(sqlText, {
     sql_sha256: sqlSha256,
     sqlite_sha256: sqliteSha256,
     final_sqlite_sha256: finalSqliteSha256,
-    credential_rewrap: pendingCredentialRewrap,
+    credential_rewrap: cachedCredentialRewrap,
     ...summary,
     source: {
       repository: String(source.repository || ''),
@@ -172,8 +172,7 @@ export async function stageD1SqlExport(sqlText, {
     }
   };
   await fs.writeFile(finalPath + '.stage.json', JSON.stringify(metadata, null, 2), { mode: 0o600 });
-  if (pendingCredentialRewrap?.pending_path) await fs.rm(pendingCredentialRewrap.pending_path, { force: true });
-  return metadata;
+   return metadata;
 }
 
 
@@ -212,8 +211,8 @@ export async function stageD1SqliteSnapshot(snapshotBytes, {
   }
 
   const sqliteSha256 = crypto.createHash('sha256').update(bytes).digest('hex');
-  const pendingCredentialRewrap = await applyPendingCredentialVaultRewrap(tempPath, {
-    pendingPath: finalPath + '.credential-rewrap.pending.json',
+  const cachedCredentialRewrap = await applyCachedCredentialVaultRewrap(tempPath, {
+    cachePath: finalPath + '.credential-rewrap.current.json',
     runtimeSecretsFile
   });
   const finalSqliteSha256 = crypto.createHash('sha256').update(await fs.readFile(tempPath)).digest('hex');
@@ -225,7 +224,7 @@ export async function stageD1SqliteSnapshot(snapshotBytes, {
     target: finalPath,
     sqlite_sha256: sqliteSha256,
     final_sqlite_sha256: finalSqliteSha256,
-    credential_rewrap: pendingCredentialRewrap,
+    credential_rewrap: cachedCredentialRewrap,
     sqlite_bytes: bytes.length,
     ...summary,
     source: {
@@ -236,7 +235,6 @@ export async function stageD1SqliteSnapshot(snapshotBytes, {
     }
   };
   await fs.writeFile(finalPath + '.stage.json', JSON.stringify(metadata, null, 2), { mode: 0o600 });
-  if (pendingCredentialRewrap?.pending_path) await fs.rm(pendingCredentialRewrap.pending_path, { force: true });
   return metadata;
 }
 
@@ -354,16 +352,16 @@ async function readStandaloneVaultKey(runtimeSecretsFile) {
   return targetKey;
 }
 
-async function applyPendingCredentialVaultRewrap(dbPath, {
-  pendingPath,
+async function applyCachedCredentialVaultRewrap(dbPath, {
+  cachePath,
   runtimeSecretsFile
 } = {}) {
-  if (!pendingPath || !(await fileExists(pendingPath))) return null;
+  if (!cachePath || !(await fileExists(cachePath))) return null;
   const targetKey = await readStandaloneVaultKey(runtimeSecretsFile);
-  const payload = JSON.parse(await fs.readFile(pendingPath, 'utf8'));
+  const payload = JSON.parse(await fs.readFile(cachePath, 'utf8'));
   const validated = await validateCredentialVaultPayload(payload, targetKey);
   const result = await applyCredentialVaultRows(dbPath, validated.rows, targetKey);
-  return { ...result, pending_applied: true, pending_path: pendingPath };
+  return { ...result, cached_rewrap_applied: true };
 }
 
 export async function stageCredentialVaultRewrap(payload, {
@@ -373,17 +371,18 @@ export async function stageCredentialVaultRewrap(payload, {
   const targetKey = await readStandaloneVaultKey(runtimeSecretsFile);
   const validated = await validateCredentialVaultPayload(payload, targetKey);
   const dbPath = path.resolve(targetPath);
-  const pendingPath = dbPath + '.credential-rewrap.pending.json';
+  const cachePath = dbPath + '.credential-rewrap.current.json';
+
+  await fs.mkdir(path.dirname(dbPath), { recursive: true });
+  const tempCachePath = cachePath + '.' + crypto.randomUUID() + '.tmp';
+  await fs.writeFile(
+    tempCachePath,
+    JSON.stringify({ count: validated.count, rows: validated.rows }),
+    { mode: 0o600 }
+  );
+  await fs.rename(tempCachePath, cachePath);
 
   if (!(await fileExists(dbPath))) {
-    await fs.mkdir(path.dirname(dbPath), { recursive: true });
-    const tempPendingPath = pendingPath + '.' + crypto.randomUUID() + '.tmp';
-    await fs.writeFile(
-      tempPendingPath,
-      JSON.stringify({ count: validated.count, rows: validated.rows }),
-      { mode: 0o600 }
-    );
-    await fs.rename(tempPendingPath, pendingPath);
     return {
       ok: true,
       pending: true,
@@ -399,6 +398,5 @@ export async function stageCredentialVaultRewrap(payload, {
     staged_at: new Date().toISOString()
   };
   await fs.writeFile(dbPath + '.credentials.json', JSON.stringify(meta, null, 2), { mode: 0o600 });
-  await fs.rm(pendingPath, { force: true });
   return meta;
 }
