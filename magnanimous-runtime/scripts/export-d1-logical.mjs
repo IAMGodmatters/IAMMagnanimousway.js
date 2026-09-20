@@ -141,6 +141,7 @@ try{
     if(withoutRowid&&!orderBy){
       throw new Error('WITHOUT ROWID table has no primary-key ordering: '+table);
     }
+    const singlePkBoundary=withoutRowid&&pkColumns.length===1?pkColumns[0]:'';
 
     const selectQuoted=columns.map(name=>'quote('+qname(name)+') AS '+qname(name)).join(',');
     let copiedSuccessfully=false;
@@ -156,12 +157,21 @@ try{
         if(sourceCount>0&&!/^-?\d+$/.test(boundarySql)){
           throw new Error('Unexpected rowid boundary for '+table+': '+boundarySql);
         }
+      }else if(singlePkBoundary){
+        const boundary=one('SELECT quote(MAX('+qname(singlePkBoundary)+')) AS max_pk, COUNT(*) AS n FROM '+qname(table)+';')||{};
+        sourceCount=Number(boundary.n||0);
+        boundarySql=String(boundary.max_pk||'NULL');
+        if(sourceCount>0&&boundarySql==='NULL')throw new Error('Missing primary-key boundary for '+table);
       }else{
         sourceCount=Number(one('SELECT COUNT(*) AS n FROM '+qname(table)+';')?.n||0);
       }
 
       let copied=0;
-      const whereClause=!withoutRowid&&sourceCount>0?' WHERE rowid <= '+boundarySql:'';
+      const whereClause=!withoutRowid&&sourceCount>0
+        ? ' WHERE rowid <= '+boundarySql
+        : singlePkBoundary&&sourceCount>0
+          ? ' WHERE '+qname(singlePkBoundary)+' <= '+boundarySql
+          : '';
       while(copied<sourceCount){
         const rows=remoteQuery(
           'SELECT '+selectQuoted+' FROM '+qname(table)+whereClause+
@@ -189,13 +199,16 @@ try{
       }
 
       const localCount=Number(db.prepare('SELECT COUNT(*) AS n FROM '+qname(table)).get()?.n||0);
-      const finalSourceCount=withoutRowid
-        ? Number(one('SELECT COUNT(*) AS n FROM '+qname(table)+';')?.n||0)
-        : Number(one('SELECT COUNT(*) AS n FROM '+qname(table)+' WHERE rowid <= '+(sourceCount?boundarySql:'0')+';')?.n||0);
+      const finalSourceCount=!withoutRowid
+        ? Number(one('SELECT COUNT(*) AS n FROM '+qname(table)+' WHERE rowid <= '+(sourceCount?boundarySql:'0')+';')?.n||0)
+        : singlePkBoundary
+          ? Number(one('SELECT COUNT(*) AS n FROM '+qname(table)+(sourceCount?' WHERE '+qname(singlePkBoundary)+' <= '+boundarySql:' WHERE 0')+';')?.n||0)
+          : Number(one('SELECT COUNT(*) AS n FROM '+qname(table)+';')?.n||0);
 
       if(localCount===sourceCount&&finalSourceCount===sourceCount){
         copiedSuccessfully=true;
-        console.log('Copied production table '+table+' ('+localCount+' rows; attempt '+attempt+(withoutRowid?'':'; rowid boundary '+boundarySql)+').');
+        console.log('Copied production table '+table+' ('+localCount+' rows; attempt '+attempt+
+          (!withoutRowid?'; rowid boundary '+boundarySql:singlePkBoundary?'; primary-key boundary '+boundarySql:'')+').');
       }else if(attempt<4){
         console.warn('Production table '+table+' changed inside the selected snapshot boundary; retrying (source='+sourceCount+', final='+finalSourceCount+', local='+localCount+').');
       }else{
