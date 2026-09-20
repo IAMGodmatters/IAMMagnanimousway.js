@@ -62,6 +62,130 @@ function one(sql){
   return rows[0]||null;
 }
 
+function tableColumnRows(db,table){
+  return db.prepare('PRAGMA table_xinfo('+qstr(table)+')').all()
+    .filter(row=>Number(row.hidden||0)===0);
+}
+function quotedSelect(columns,prefix=''){
+  return columns.map(name=>'quote('+(prefix?prefix+'.':'')+qname(name)+') AS '+qname(name)).join(',');
+}
+function validQuotedLiteral(value){
+  return /^(NULL|[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?|X'[0-9A-Fa-f]*'|'.*')$/s.test(String(value));
+}
+function ensureQuotedLiteral(value,context){
+  const text=String(value);
+  if(!validQuotedLiteral(text))throw new Error('Unexpected quoted SQL literal in '+context);
+  return text;
+}
+function localViolationRow(db,violation,fkRows){
+  const child=String(violation.table||'');
+  const columns=tableColumnRows(db,child).map(row=>String(row.name));
+  if(violation.rowid!==null&&violation.rowid!==undefined){
+    const row=db.prepare('SELECT '+quotedSelect(columns)+' FROM '+qname(child)+' WHERE rowid=? LIMIT 1').get(violation.rowid);
+    if(!row)throw new Error('Foreign-key violation child row disappeared locally: '+child);
+    return{child,columns,row,deleteWhere:'rowid='+Number(violation.rowid)};
+  }
+
+  const pkRows=tableColumnRows(db,child)
+    .filter(row=>Number(row.pk||0)>0)
+    .sort((a,b)=>Number(a.pk)-Number(b.pk));
+  if(!pkRows.length)throw new Error('WITHOUT ROWID foreign-key violation has no primary key: '+child);
+  const parent=String(violation.parent||fkRows[0]?.table||'');
+  const parentPk=tableColumnRows(db,parent)
+    .filter(row=>Number(row.pk||0)>0)
+    .sort((a,b)=>Number(a.pk)-Number(b.pk))
+    .map(row=>String(row.name));
+  const parentCols=fkRows.map((row,index)=>String(row.to||parentPk[index]||''));
+  if(parentCols.some(name=>!name))throw new Error('Could not resolve parent key columns for '+child+' -> '+parent);
+  const match=fkRows.map((row,index)=>
+    'p.'+qname(parentCols[index])+' IS c.'+qname(String(row.from||''))
+  ).join(' AND ');
+  const nonNull=fkRows.map(row=>'c.'+qname(String(row.from||''))+' IS NOT NULL').join(' AND ');
+  const row=db.prepare(
+    'SELECT '+quotedSelect(columns,'c')+' FROM '+qname(child)+' c WHERE '+nonNull+
+    ' AND NOT EXISTS (SELECT 1 FROM '+qname(parent)+' p WHERE '+match+') LIMIT 1'
+  ).get();
+  if(!row)throw new Error('Could not identify WITHOUT ROWID foreign-key violation: '+child);
+  const deleteWhere=pkRows.map(pk=>qname(String(pk.name))+' IS '+ensureQuotedLiteral(row[String(pk.name)],child+'.'+String(pk.name))).join(' AND ');
+  return{child,columns,row,deleteWhere};
+}
+function remoteQuotedRow(table,columns,where){
+  const rows=remoteQuery('SELECT '+quotedSelect(columns)+' FROM '+qname(table)+' WHERE '+where+' LIMIT 1;');
+  return rows[0]||null;
+}
+function insertQuotedRow(db,table,columns,row){
+  const values=columns.map(name=>ensureQuotedLiteral(row[name],table+'.'+name));
+  db.exec('INSERT OR IGNORE INTO '+qname(table)+' ('+columns.map(qname).join(',')+') VALUES ('+values.join(',')+');');
+}
+function rowExistsRemote(table,columns,row){
+  const where=columns.map(name=>qname(name)+' IS '+ensureQuotedLiteral(row[name],table+'.'+name)).join(' AND ');
+  return remoteQuery('SELECT 1 AS present FROM '+qname(table)+' WHERE '+where+' LIMIT 1;').length>0;
+}
+function reconcileForeignKeys(db){
+  const sourceViolations=remoteQuery('PRAGMA foreign_key_check;');
+  if(sourceViolations.length){
+    throw new Error('Production D1 already reports foreign-key violations; migration will not hide source integrity problems.');
+  }
+
+  let insertedParents=0,removedStaleChildren=0;
+  for(let round=1;round<=12;round++){
+    const violations=db.prepare('PRAGMA foreign_key_check').all();
+    if(!violations.length){
+      console.log('Foreign-key reconciliation PASS after '+(round-1)+' repair rounds; added parents='+insertedParents+' removed stale children='+removedStaleChildren+'.');
+      return{insertedParents,removedStaleChildren,rounds:round-1};
+    }
+    let changed=0;
+    for(const violation of violations){
+      const child=String(violation.table||'');
+      const parent=String(violation.parent||'');
+      const fkid=Number(violation.fkid);
+      const fkRows=db.prepare('PRAGMA foreign_key_list('+qstr(child)+')').all()
+        .filter(row=>Number(row.id)===fkid)
+        .sort((a,b)=>Number(a.seq)-Number(b.seq));
+      if(!fkRows.length)throw new Error('Foreign-key metadata missing for '+child+' constraint '+fkid);
+      const descriptor=localViolationRow(db,violation,fkRows);
+      const childRow=descriptor.row;
+
+      const parentPk=tableColumnRows(db,parent)
+        .filter(row=>Number(row.pk||0)>0)
+        .sort((a,b)=>Number(a.pk)-Number(b.pk))
+        .map(row=>String(row.name));
+      const parentKeyColumns=fkRows.map((row,index)=>String(row.to||parentPk[index]||''));
+      if(parentKeyColumns.some(name=>!name))throw new Error('Parent key mapping is incomplete for '+child+' -> '+parent);
+      const childKeyColumns=fkRows.map(row=>String(row.from||''));
+      const keyLiterals=childKeyColumns.map(name=>ensureQuotedLiteral(childRow[name],child+'.'+name));
+      if(keyLiterals.some(value=>value==='NULL'))continue;
+      const parentWhere=parentKeyColumns.map((name,index)=>qname(name)+' IS '+keyLiterals[index]).join(' AND ');
+
+      const parentColumns=tableColumnRows(db,parent).map(row=>String(row.name));
+      const remoteParent=remoteQuotedRow(parent,parentColumns,parentWhere);
+      if(remoteParent){
+        insertQuotedRow(db,parent,parentColumns,remoteParent);
+        const localParent=db.prepare('SELECT 1 AS present FROM '+qname(parent)+' WHERE '+parentWhere+' LIMIT 1').get();
+        if(!localParent)throw new Error('Missing parent row could not be inserted for '+child+' -> '+parent);
+        insertedParents++;changed++;
+        continue;
+      }
+
+      const identifyColumns=tableColumnRows(db,child)
+        .filter(row=>Number(row.pk||0)>0)
+        .sort((a,b)=>Number(a.pk)-Number(b.pk))
+        .map(row=>String(row.name));
+      const remoteIdentity=identifyColumns.length?identifyColumns:descriptor.columns;
+      if(!rowExistsRemote(child,remoteIdentity,childRow)){
+        db.exec('DELETE FROM '+qname(child)+' WHERE '+descriptor.deleteWhere+';');
+        removedStaleChildren++;changed++;
+        continue;
+      }
+
+      throw new Error('Production child row still exists but referenced parent is missing: '+child+' -> '+parent);
+    }
+    console.log('Foreign-key reconciliation round '+round+': violations='+violations.length+' repaired='+changed+'.');
+    if(!changed)throw new Error('Foreign-key reconciliation made no progress.');
+  }
+  throw new Error('Foreign-key reconciliation did not converge.');
+}
+
 function logicalSummary(db){
   const listed=db.prepare('PRAGMA table_list').all()
     .filter(row=>String(row.schema||'')==='main')
@@ -217,6 +341,8 @@ try{
     }
   }
 
+  const fkRepair=reconcileForeignKeys(db);
+
   const objects=remoteQuery(
     "SELECT type,name,tbl_name,sql FROM sqlite_master WHERE type IN ('index','trigger','view') AND sql IS NOT NULL ORDER BY CASE type WHEN 'index' THEN 1 WHEN 'trigger' THEN 2 ELSE 3 END,name;"
   );
@@ -256,7 +382,10 @@ try{
     sqlite_sha256:crypto.createHash('sha256').update(bytes).digest('hex'),
     sqlite_bytes:bytes.length,
     ordinary_tables:ordinary.length,
-    virtual_tables:virtual
+    virtual_tables:virtual,
+    foreign_key_closure_rows:Number(fkRepair.insertedParents||0),
+    foreign_key_stale_rows_removed:Number(fkRepair.removedStaleChildren||0),
+    foreign_key_repair_rounds:Number(fkRepair.rounds||0)
   };
   fs.writeFileSync(summaryPath,JSON.stringify(finalSummary,null,2),{mode:0o600});
   console.log('Magnanimous logical D1 snapshot PASS across '+finalSummary.table_count+' logical tables ('+bytes.length+' bytes).');
