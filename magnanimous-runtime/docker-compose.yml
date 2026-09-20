@@ -26,7 +26,6 @@ services:
     networks:
       - default
       - internal_services
-      - browser_services
 
   sandbox:
     build:
