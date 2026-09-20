@@ -178,6 +178,11 @@ for(const contract of [
 must(!logicalExporter.includes("['wrangler','d1','export'"),'Logical D1 exporter must not call blocked full D1 export.');
 must(logicalExporter.includes("'curl'"),'Logical D1 exporter must use the direct read API when credentials are available.');
 must(logicalExporter.includes("['wrangler','d1','execute'"),'Logical D1 exporter must preserve a Wrangler read fallback.');
+must(logicalExporter.includes("'--output',responseFile"),'Direct D1 retries must write one final response file instead of concatenating response bodies.');
+must(logicalExporter.includes("'@'+headerFile"),'Direct D1 API authorization must be loaded from a private header file.');
+must(logicalExporter.includes("'@'+requestFile"),'Direct D1 SQL payloads must be loaded from a private request file.');
+must(logicalExporter.includes("{mode:0o600}"),'Direct D1 temporary auth/request files must be owner-only.');
+must(!logicalExporter.includes("'-H','Authorization: Bearer '+cloudflareApiToken"),'Direct D1 API token must not appear in curl process arguments.');
 
 const runtimeSecretStore=read('magnanimous-runtime/src/runtime-secret-store.mjs');
 for(const contract of ['MAGNANIMOUS_RUNTIME_SECRET_KEYS','INTEGRATION_CREDENTIALS_KEY','stageRuntimeSecrets','loadRuntimeSecrets','0o600'])
