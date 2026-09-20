@@ -1,0 +1,17 @@
+$ORIGIN iammagnanimousway.com.
+$TTL 300
+@ IN SOA ns1.iammagnanimousway.com. hostmaster.iammagnanimousway.com. (
+  2026092001 3600 900 1209600 300
+)
+@ IN NS ns1.iammagnanimousway.com.
+@ IN NS ns2.iammagnanimousway.com.
+
+; Replace these documentation-only addresses with two real, independent public DNS hosts before cutover.
+ns1 IN A 192.0.2.10
+ns2 IN A 192.0.2.11
+
+; Replace with the real standalone Magnanimous origin/load-balancer addresses.
+@   IN A 192.0.2.20
+www IN CNAME @
+
+; Preserve existing mail verification/MX/TXT records during cutover.

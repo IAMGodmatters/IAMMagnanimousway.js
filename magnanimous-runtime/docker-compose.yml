@@ -13,10 +13,120 @@ services:
       HOST: "0.0.0.0"
       NODE_ENV: "production"
       MAGNANIMOUS_DB_PATH: "/app/data/iam-magnanimous.sqlite"
+      MAGNANIMOUS_OBJECTS_PATH: "/app/data/object-store"
       MAGNANIMOUS_ASSETS_DIR: "/app/frontend/out"
       MAGNANIMOUS_SCHEDULER_ENABLED: "true"
+      MAGNANIMOUS_INTERNAL_SERVICE_TOKEN: "${MAGNANIMOUS_INTERNAL_SERVICE_TOKEN}"
+      MAGNANIMOUS_SANDBOX_URL: "http://sandbox:8791"
+      MAGNANIMOUS_BROWSER_URL: "http://browser:8792"
+      MAGNANIMOUS_MEDIA_URL: "http://media:8793"
+      MAGNANIMOUS_SECRETS_KEY: "${MAGNANIMOUS_SECRETS_KEY}"
     volumes:
       - magnanimous_data:/app/data
+    networks:
+      - default
+      - internal_services
+
+  sandbox:
+    build:
+      context: ..
+      dockerfile: magnanimous-runtime/Dockerfile.sandbox
+    restart: unless-stopped
+    expose:
+      - "8791"
+    environment:
+      PORT: "8791"
+      HOST: "0.0.0.0"
+      MAGNANIMOUS_INTERNAL_SERVICE_TOKEN: "${MAGNANIMOUS_INTERNAL_SERVICE_TOKEN}"
+      MAGNANIMOUS_SANDBOX_ROOT: "/workspace"
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - magnanimous_sandbox_work:/workspace
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+    networks:
+      - internal_services
+
+  browser:
+    build:
+      context: ..
+      dockerfile: magnanimous-runtime/Dockerfile.browser
+    restart: unless-stopped
+    expose:
+      - "8792"
+    environment:
+      PORT: "8792"
+      HOST: "0.0.0.0"
+      CHROMIUM_BIN: "/usr/bin/chromium"
+      MAGNANIMOUS_BROWSER_PROXY: "http://browser-egress:8794"
+      MAGNANIMOUS_INTERNAL_SERVICE_TOKEN: "${MAGNANIMOUS_INTERNAL_SERVICE_TOKEN}"
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/node
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 1g
+    shm_size: "256m"
+    networks:
+      - default
+
+  browser-egress:
+    build:
+      context: ..
+      dockerfile: magnanimous-runtime/Dockerfile.browser-egress
+    restart: unless-stopped
+    expose:
+      - "8794"
+    environment:
+      PORT: "8794"
+      HOST: "0.0.0.0"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: 0.5
+    networks:
+      - default
+
+  media:
+    build:
+      context: ..
+      dockerfile: magnanimous-runtime/Dockerfile.media
+    restart: unless-stopped
+    expose:
+      - "8793"
+    environment:
+      PORT: "8793"
+      HOST: "0.0.0.0"
+      MAGNANIMOUS_INTERNAL_SERVICE_TOKEN: "${MAGNANIMOUS_INTERNAL_SERVICE_TOKEN}"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 1.0
+    networks:
+      - internal_services
 
   edge:
     image: caddy:2
@@ -33,7 +143,24 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
+  authoritative-dns:
+    image: coredns/coredns:1.12.4
+    profiles: ["authoritative-dns"]
+    restart: unless-stopped
+    command: -conf /etc/coredns/Corefile
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    volumes:
+      - ./dns/Corefile:/etc/coredns/Corefile:ro
+      - ./dns/generated:/etc/coredns/zones:ro
+
+networks:
+  internal_services:
+    internal: true
+
 volumes:
   magnanimous_data:
+  magnanimous_sandbox_work:
   caddy_data:
   caddy_config:

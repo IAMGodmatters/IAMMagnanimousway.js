@@ -1,6 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import app from '../../worker/src/security-entrypoint.js';
@@ -16,6 +17,9 @@ import { openMagnanimousVectorStore } from './vector-store.mjs';
 import { openMagnanimousAnalyticsEngine } from './analytics-engine.mjs';
 import { openMagnanimousSecretVault } from './secret-vault.mjs';
 import { openMagnanimousPipeline } from './pipeline.mjs';
+import { magnanimousServiceBindings } from './service-bindings.mjs';
+import { MagnanimousMetrics } from './metrics.mjs';
+import { MagnanimousImageGenerationBinding } from './image-generation-binding.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -45,6 +49,9 @@ const secretVault = process.env.MAGNANIMOUS_SECRETS_KEY
   ? openMagnanimousSecretVault(db, process.env.MAGNANIMOUS_SECRETS_KEY)
   : null;
 const pipeline = openMagnanimousPipeline({ objectStore, work: durableWork, analytics });
+const services = magnanimousServiceBindings(process.env);
+const imageGenerator = new MagnanimousImageGenerationBinding(process.env);
+const metrics = new MagnanimousMetrics();
 
 const env = new Proxy(
   {
@@ -60,6 +67,10 @@ const env = new Proxy(
     MAGNANIMOUS_ANALYTICS: analytics,
     MAGNANIMOUS_SECRETS: secretVault,
     MAGNANIMOUS_PIPELINE: pipeline,
+    MAGNANIMOUS_SANDBOX: services.sandbox,
+    MAGNANIMOUS_BROWSER: services.browser,
+    MAGNANIMOUS_IMAGES: services.images,
+    MAGNANIMOUS_IMAGE_GENERATOR: imageGenerator,
     OBJECT_STORE: objectStore,
     KV: kv,
     QUEUE: durableWork,
@@ -67,7 +78,10 @@ const env = new Proxy(
     EVENTS: eventHub,
     VECTORIZE: vectorStore,
     ANALYTICS_ENGINE: analytics,
-    PIPELINE: pipeline
+    PIPELINE: pipeline,
+    SANDBOX: services.sandbox,
+    BROWSER: services.browser,
+    IMAGES: services.images
   },
   {
     get(target, key) {
@@ -178,6 +192,11 @@ async function send(res, response) {
   res.end(data);
 }
 
+function internalAuthorized(req) {
+  const expected = String(process.env.MAGNANIMOUS_INTERNAL_SERVICE_TOKEN || '');
+  return Boolean(expected) && String(req.headers['x-magnanimous-service-token'] || '') === expected;
+}
+
 function executionContext() {
   const pending = [];
 
@@ -194,6 +213,9 @@ function executionContext() {
 }
 
 const server = http.createServer(async (req, res) => {
+  const startedAt = Date.now();
+  const requestId = String(req.headers['x-request-id'] || crypto.randomUUID());
+  res.setHeader('x-request-id', requestId);
   try {
     const pathname = new URL(req.url || '/', 'http://local').pathname;
 
@@ -221,10 +243,53 @@ const server = http.createServer(async (req, res) => {
             vector_storage_query: true,
             analytics_engine: true,
             durable_ingestion_pipeline: true,
-            encrypted_secret_vault: Boolean(secretVault)
+            encrypted_secret_vault: Boolean(secretVault),
+            isolated_sandbox: services.sandbox.configured,
+            server_browser_rendering: services.browser.configured,
+            image_transformation: services.images.configured,
+            image_generation: imageGenerator.configured,
+            prometheus_metrics: true,
+            tls_reverse_proxy: true,
+            self_hosted_dns_profile: true
           }
         })
       );
+      metrics.observe(200, Date.now() - startedAt);
+      return;
+    }
+
+    if (pathname === '/__magnanimous_runtime/metrics') {
+      if (!internalAuthorized(req)) {
+        res.statusCode = 401;
+        res.setHeader('content-type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify({ detail: 'Magnanimous internal service token required.' }));
+        metrics.observe(401, Date.now() - startedAt);
+        return;
+      }
+      res.statusCode = 200;
+      res.setHeader('content-type', 'text/plain; version=0.0.4; charset=utf-8');
+      res.setHeader('cache-control', 'no-store');
+      res.end(metrics.prometheus());
+      metrics.observe(200, Date.now() - startedAt);
+      return;
+    }
+
+    if (pathname === '/__magnanimous_runtime/services') {
+      if (!internalAuthorized(req)) {
+        res.statusCode = 401;
+        res.setHeader('content-type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify({ detail: 'Magnanimous internal service token required.' }));
+        metrics.observe(401, Date.now() - startedAt);
+        return;
+      }
+      const checks = {};
+      for (const [name, service] of Object.entries(services)) {
+        if (!service.configured) { checks[name] = { configured: false, ok: false }; continue; }
+        try { checks[name] = { configured: true, ok: true, health: await service.health() }; }
+        catch (error) { checks[name] = { configured: true, ok: false, detail: String(error?.message || error) }; }
+      }
+      await send(res, Response.json({ identity: 'Magnanimous AI', services: checks }, { headers: { 'cache-control': 'no-store' } }));
+      metrics.observe(200, Date.now() - startedAt);
       return;
     }
 
@@ -242,6 +307,7 @@ const server = http.createServer(async (req, res) => {
         res.setHeader('retry-after', String(Math.ceil(result.retryAfterMs / 1000)));
         res.setHeader('content-type', 'application/json; charset=utf-8');
         res.end(JSON.stringify({ detail: 'Magnanimous request limit reached. Try again shortly.', code: 'MAGNANIMOUS_RATE_LIMIT' }));
+        metrics.observe(429, Date.now() - startedAt);
         return;
       }
     }
@@ -250,6 +316,7 @@ const server = http.createServer(async (req, res) => {
       const asset = await staticResponse(pathname);
       if (asset) {
         await send(res, asset);
+        metrics.observe(asset.status, Date.now() - startedAt);
         return;
       }
     }
@@ -259,6 +326,7 @@ const server = http.createServer(async (req, res) => {
     const response = await app.fetch(request, env, work.ctx);
 
     await send(res, response);
+    metrics.observe(response.status, Date.now() - startedAt);
     work.done().catch(() => {});
   } catch (error) {
     console.error('Magnanimous standalone request failed', error);
@@ -270,6 +338,7 @@ const server = http.createServer(async (req, res) => {
         code: 'MAGNANIMOUS_RUNTIME_ERROR'
       })
     );
+    metrics.observe(500, Date.now() - startedAt);
   }
 });
 

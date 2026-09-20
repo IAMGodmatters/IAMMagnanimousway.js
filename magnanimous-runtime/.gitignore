@@ -1,0 +1,7 @@
+.env
+data/
+backups/
+dns/generated/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

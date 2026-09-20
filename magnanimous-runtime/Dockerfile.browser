@@ -1,0 +1,7 @@
+FROM node:24-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends chromium ca-certificates fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
+COPY magnanimous-runtime/services/browser-service.mjs /opt/magnanimous/browser-service.mjs
+RUN chown -R node:node /opt/magnanimous
+USER node
+EXPOSE 8792
+CMD ["node","/opt/magnanimous/browser-service.mjs"]

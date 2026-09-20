@@ -117,11 +117,36 @@ export const MAGNANIMOUS_INFRASTRUCTURE_FAMILIES = Object.freeze([
     proof: ['magnanimous-runtime/src/secret-vault.mjs']
   },
   {
+    id: 'sandbox-execution',
+    name: 'Sandboxed Code & File Execution',
+    owned_contract: 'Magnanimous isolated execution contract',
+    current_target: 'self-hosted-hardened-container-service',
+    status: 'implemented-self-hosted',
+    proof: ['magnanimous-runtime/services/sandbox-service.mjs', 'magnanimous-runtime/Dockerfile.sandbox', 'magnanimous-runtime/src/service-bindings.mjs']
+  },
+  {
+    id: 'browser-execution',
+    name: 'Browser Execution & Rendering',
+    owned_contract: 'Magnanimous browser contract',
+    current_target: 'server-side-chromium-renderer-plus-native-local-bridge-interactive-browser',
+    status: 'implemented-self-hosted-and-native-local',
+    proof: ['magnanimous-runtime/services/browser-service.mjs', 'magnanimous-runtime/Dockerfile.browser', 'worker/src/magnanimous-native-web-runtime.js']
+  },
+  {
+    id: 'media-transform',
+    name: 'Image & Media Transformation',
+    owned_contract: 'Magnanimous media transformation contract',
+    current_target: 'self-hosted-imagemagick-service',
+    status: 'implemented-self-hosted',
+    proof: ['magnanimous-runtime/services/media-service.mjs', 'magnanimous-runtime/Dockerfile.media', 'magnanimous-runtime/src/service-bindings.mjs']
+  },
+  {
     id: 'dns-tls',
     name: 'DNS & TLS',
     owned_contract: 'Magnanimous DNS/TLS control contract',
-    current_target: 'registrar-dns-plus-caddy',
-    status: 'cutover-requires-public-dns-change',
+    current_target: 'self-hosted-coredns-plus-caddy-with-registrar-cutover',
+    status: 'software-implemented-public-cutover-required',
+    proof: ['magnanimous-runtime/dns/Corefile', 'magnanimous-runtime/scripts/prepare-dns-zone.mjs', 'magnanimous-runtime/Caddyfile'],
     external_network_required: true
   },
   {
@@ -138,10 +163,10 @@ export const MAGNANIMOUS_INFRASTRUCTURE_FAMILIES = Object.freeze([
     id: 'observability',
     name: 'Observability',
     owned_contract: 'Magnanimous logs metrics traces',
-    current_target: 'structured-stdout-audit-ledgers-plus-magnanimous-analytics',
+    current_target: 'structured-json-logs-plus-magnanimous-analytics-plus-prometheus-metrics',
     future_targets: ['opentelemetry'],
-    status: 'implemented-local-analytics-expand-tracing-next',
-    proof: ['magnanimous-runtime/src/analytics-engine.mjs']
+    status: 'implemented-native-observability',
+    proof: ['magnanimous-runtime/src/analytics-engine.mjs', 'magnanimous-runtime/src/metrics.mjs', 'magnanimous-runtime/Caddyfile']
   }
 ]);
 
@@ -155,6 +180,9 @@ export function magnanimousInfrastructureSummary(env = {}) {
     public_provider_identity: false,
     architecture: 'provider-neutral-first-party-control-plane',
     standalone_runtime_available: true,
+    software_cloud_independence_complete: true,
+    cloudflare_required_for_software_runtime: false,
+    cutover_tooling_complete: true,
     active_runtime: standalone ? 'magnanimous-standalone-node' : 'legacy-edge-adapter',
     cutover_phase: standalone ? 'standalone-active' : 'parallel-validation',
     production_cutover_complete: standalone,
@@ -162,12 +190,19 @@ export function magnanimousInfrastructureSummary(env = {}) {
     data_cutover_required: !standalone,
     dns_cutover_required: !standalone,
     rollback_required_until_cutover_verified: !standalone,
+    remaining_external_boundaries: standalone ? [] : [
+      'Provision real standalone public compute/storage/network capacity.',
+      'Export and import the current production database, then pass parity and mutation smoke tests.',
+      'Configure real TLS/DNS host addresses and change registrar nameserver/glue records.',
+      'Retain or purchase upstream anycast/DDoS/network capacity where global scale requires it.'
+    ],
     families: MAGNANIMOUS_INFRASTRUCTURE_FAMILIES,
     rules: [
       'Magnanimous AI owns identity, memory, planning, policy, routing, verification and learning.',
       'Infrastructure providers are replaceable execution rails and never public product identity.',
       'Do not remove a proven production rail until the Magnanimous replacement passes parity and rollback tests.',
-      'Do not claim global-network capacity, telecom authority, payment settlement or public DNS control without a real external network or regulated rail.'
+      'Do not claim global-network capacity, telecom authority, payment settlement or public DNS control without a real external network or regulated rail.',
+      'Software independence can be complete before production traffic cutover; the legacy production rail remains rollback-only until data, DNS and live mutation parity pass.'
     ]
   };
 }

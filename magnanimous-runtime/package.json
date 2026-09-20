@@ -6,6 +6,12 @@
   "engines": { "node": ">=24" },
   "scripts": {
     "start": "node src/server.mjs",
-    "verify": "node scripts/verify-runtime.mjs"
+    "verify": "node scripts/verify-runtime.mjs",
+    "readiness": "node ../qa/scripts/magnanimous-cloud-independence-readiness.mjs",
+    "backup": "node scripts/backup-runtime.mjs",
+    "restore": "node scripts/restore-runtime.mjs",
+    "import:d1": "node scripts/import-d1-export.mjs",
+    "parity": "node scripts/verify-data-parity.mjs",
+    "dns:prepare": "node scripts/prepare-dns-zone.mjs"
   }
 }
