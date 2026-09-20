@@ -14,6 +14,7 @@ services:
       NODE_ENV: "production"
       MAGNANIMOUS_DB_PATH: "/app/data/iam-magnanimous.sqlite"
       MAGNANIMOUS_OBJECTS_PATH: "/app/data/object-store"
+      MAGNANIMOUS_BACKUP_DIR: "/app/backups"
       MAGNANIMOUS_ASSETS_DIR: "/app/frontend/out"
       MAGNANIMOUS_SCHEDULER_ENABLED: "true"
       MAGNANIMOUS_INTERNAL_SERVICE_TOKEN: "${MAGNANIMOUS_INTERNAL_SERVICE_TOKEN}"
@@ -23,6 +24,7 @@ services:
       MAGNANIMOUS_SECRETS_KEY: "${MAGNANIMOUS_SECRETS_KEY}"
     volumes:
       - magnanimous_data:/app/data
+      - magnanimous_backups:/app/backups
     networks:
       - default
       - internal_services
@@ -171,6 +173,7 @@ networks:
 
 volumes:
   magnanimous_data:
+  magnanimous_backups:
   magnanimous_sandbox_work:
   caddy_data:
   caddy_config:
