@@ -11,7 +11,13 @@ const workerDir=path.join(repoRoot,'worker');
 const target=path.resolve(process.argv[2]||'/tmp/d1-production-logical.sqlite');
 const summaryPath=path.resolve(process.argv[3]||'/tmp/d1-production-logical-summary.json');
 const database=String(process.env.MAGNANIMOUS_SOURCE_D1||'iam-magnanimous-db');
-const pageSize=Math.max(50,Math.min(1000,Number(process.env.MAGNANIMOUS_D1_PAGE_SIZE||500)));
+const pageSize=Math.max(50,Math.min(1000,Number(process.env.MAGNANIMOUS_D1_PAGE_SIZE||1000)));
+const cloudflareAccountId=String(process.env.CLOUDFLARE_ACCOUNT_ID||'').trim();
+const cloudflareApiToken=String(process.env.CLOUDFLARE_API_TOKEN||'').trim();
+const wranglerConfig=fs.readFileSync(path.join(workerDir,'wrangler.jsonc'),'utf8');
+const configuredDatabaseId=(wranglerConfig.match(/"database_id"\s*:\s*"([^"]+)"/)||[])[1]||'';
+const databaseId=String(process.env.MAGNANIMOUS_SOURCE_D1_ID||configuredDatabaseId).trim();
+const directD1Api=Boolean(cloudflareAccountId&&cloudflareApiToken&&databaseId);
 
 function qname(name){return '"'+String(name).replaceAll('"','""')+'"'}
 function qstr(value){return "'"+String(value).replaceAll("'","''")+"'"}
@@ -34,25 +40,51 @@ function collectResultRows(payload){
 }
 
 function remoteQuery(sql){
-  const result=spawnSync(
-    'npx',
-    ['wrangler','d1','execute',database,'--remote','--json','--command',sql],
-    {
-      cwd:workerDir,
-      env:process.env,
-      encoding:'utf8',
-      maxBuffer:256*1024*1024,
-      stdio:['ignore','pipe','pipe']
-    }
-  );
+  let result;
+  if(directD1Api){
+    const url='https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(cloudflareAccountId)+'/d1/database/'+encodeURIComponent(databaseId)+'/query';
+    result=spawnSync(
+      'curl',
+      [
+        '-sS','--fail-with-body','--connect-timeout','10','--max-time','90',
+        '--retry','3','--retry-delay','1','--retry-all-errors',
+        '-X','POST',url,
+        '-H','Content-Type: application/json',
+        '-H','Authorization: Bearer '+cloudflareApiToken,
+        '--data-binary',JSON.stringify({sql})
+      ],
+      {
+        cwd:workerDir,
+        env:process.env,
+        encoding:'utf8',
+        maxBuffer:256*1024*1024,
+        stdio:['ignore','pipe','pipe']
+      }
+    );
+  }else{
+    result=spawnSync(
+      'npx',
+      ['wrangler','d1','execute',database,'--remote','--json','--command',sql],
+      {
+        cwd:workerDir,
+        env:process.env,
+        encoding:'utf8',
+        maxBuffer:256*1024*1024,
+        stdio:['ignore','pipe','pipe']
+      }
+    );
+  }
   if(result.error) throw result.error;
   if(result.status!==0){
-    const detail=String(result.stderr||result.stdout||'').replaceAll(String(process.env.CLOUDFLARE_API_TOKEN||''),'[redacted]');
+    const detail=String(result.stderr||result.stdout||'').replaceAll(cloudflareApiToken,'[redacted]');
     throw new Error('D1 read query failed: '+detail.slice(-4000));
   }
   let payload;
   try{payload=JSON.parse(result.stdout)}catch(error){
-    throw new Error('Wrangler D1 JSON response could not be parsed: '+String(error?.message||error));
+    throw new Error('D1 JSON response could not be parsed: '+String(error?.message||error));
+  }
+  if(payload?.success===false||Array.isArray(payload?.errors)&&payload.errors.length){
+    throw new Error('D1 read query API returned an error.');
   }
   return collectResultRows(payload);
 }
@@ -236,6 +268,8 @@ const unsupportedVirtual=virtual.filter(name=>name!=='knowledge_fts');
 if(unsupportedVirtual.length){
   throw new Error('Unsupported production virtual tables require an explicit rebuild strategy: '+unsupportedVirtual.join(', '));
 }
+
+console.log('Magnanimous logical D1 snapshot query transport: '+(directD1Api?'direct Cloudflare D1 API':'Wrangler fallback')+'.');
 
 const db=new DatabaseSync(target);
 try{
