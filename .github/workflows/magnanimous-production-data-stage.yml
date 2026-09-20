@@ -25,6 +25,7 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      MAGNANIMOUS_SOURCE_D1_ID: 7c9f798b-04d2-443c-a9e9-933c51899771
       STANDALONE_ORIGIN: https://magnanimous-production.up.railway.app
       OIDC_AUDIENCE: magnanimous-production-data-stage
     steps:
