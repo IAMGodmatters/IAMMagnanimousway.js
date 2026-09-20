@@ -21,7 +21,7 @@ import { magnanimousServiceBindings } from './service-bindings.mjs';
 import { MagnanimousMetrics } from './metrics.mjs';
 import { MagnanimousImageGenerationBinding } from './image-generation-binding.mjs';
 import { openMagnanimousCloudControl } from './cloud-control.mjs';
-import { verifyGitHubActionsOidc, stageD1SqlExport } from './migration-stage.mjs';
+import { verifyGitHubActionsOidc, stageD1SqlExport, stageD1SqliteSnapshot } from './migration-stage.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -247,11 +247,15 @@ async function handleMigrationStage(req, res, pathname) {
     });
     const maxBytes = Math.max(1048576, Number(process.env.MAGNANIMOUS_MIGRATION_MAX_BYTES || 104857600));
     const body = await readLimitedBody(req, maxBytes);
-    const result = await stageD1SqlExport(body.toString('utf8'), {
+    const contentType = String(req.headers['content-type'] || '').toLowerCase();
+    const options = {
       migrationRoot: String(process.env.MAGNANIMOUS_MIGRATION_ROOT || '/app/persist/migration'),
       targetPath: String(process.env.MAGNANIMOUS_MIGRATION_STAGE_PATH || ''),
       source
-    });
+    };
+    const result = contentType.includes('application/vnd.sqlite3')
+      ? await stageD1SqliteSnapshot(body, options)
+      : await stageD1SqlExport(body.toString('utf8'), options);
     res.statusCode = 200;
     res.setHeader('content-type', 'application/json; charset=utf-8');
     res.setHeader('cache-control', 'no-store');
