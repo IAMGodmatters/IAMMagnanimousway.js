@@ -1,0 +1,142 @@
+name: Magnanimous Production Data Parity
+
+on:
+  pull_request:
+    paths:
+      - 'magnanimous-runtime/**'
+      - '.github/workflows/magnanimous-production-data-parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - name: Install legacy export client
+        working-directory: worker
+        run: npm ci --no-audit --no-fund
+
+      - name: Export production D1 into ephemeral runner only
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          work=/tmp/magnanimous-production-parity
+          rm -rf "$work"
+          mkdir -p "$work"
+
+          query="SELECT
+            (SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%') AS table_count,
+            (SELECT COUNT(*) FROM tenants) AS tenants,
+            (SELECT COUNT(*) FROM users) AS users,
+            (SELECT COUNT(*) FROM auth_sessions) AS auth_sessions,
+            (SELECT COUNT(*) FROM tenant_settings) AS tenant_settings,
+            (SELECT COUNT(*) FROM settings) AS settings,
+            (SELECT COUNT(*) FROM ads) AS ads,
+            (SELECT COUNT(*) FROM magnanimous_connector_capability_absorption WHERE status='tool-foundry-specified') AS capability_ledger,
+            (SELECT COUNT(*) FROM magnanimous_capability_realizations) AS capability_realizations,
+            (SELECT manifest_count FROM magnanimous_capability_materialization_state WHERE id='full-brain') AS manifest_count,
+            (SELECT native_ready_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS native_ready,
+            (SELECT hybrid_ready_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS hybrid_ready,
+            (SELECT bridge_required_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS bridge_required,
+            (SELECT specified_only_count FROM magnanimous_capability_realization_state WHERE id='full-brain') AS specified_only;"
+
+          (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --json --command "$query" > "$work/source-stats.json")
+          (cd worker && npx wrangler d1 export iam-magnanimous-db --remote --output="$work/production.sql" --skip-confirmation >/dev/null)
+
+          test -s "$work/production.sql"
+          chmod 600 "$work/production.sql" "$work/source-stats.json"
+          echo "Production database export captured only inside the ephemeral runner."
+
+      - name: Import production copy into Magnanimous SQL
+        run: |
+          set -euo pipefail
+          work=/tmp/magnanimous-production-parity
+          node magnanimous-runtime/scripts/import-d1-export.mjs "$work/production.sql" "$work/production.sqlite"
+          node magnanimous-runtime/scripts/verify-production-parity.mjs "$work/production.sqlite" "$work/source-stats.json"
+
+      - name: Run standalone mutation and session smoke on disposable production copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          work=/tmp/magnanimous-production-parity
+          cp "$work/production.sqlite" "$work/smoke.sqlite"
+          cp "$work/production.sqlite-wal" "$work/smoke.sqlite-wal" 2>/dev/null || true
+          cp "$work/production.sqlite-shm" "$work/smoke.sqlite-shm" 2>/dev/null || true
+
+          export PORT=18788
+          export HOST=127.0.0.1
+          export NODE_ENV=test
+          export SESSION_SECRET="ci-parity-session-secret-not-production"
+          export MAGNANIMOUS_DB_PATH="$work/smoke.sqlite"
+          export MAGNANIMOUS_ASSETS_DIR="$PWD/frontend/out"
+          export MAGNANIMOUS_SCHEDULER_ENABLED=false
+
+          node magnanimous-runtime/src/server.mjs >"$work/runtime.log" 2>&1 &
+          runtime_pid=$!
+          trap 'kill "$runtime_pid" 2>/dev/null || true' EXIT
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18788/__magnanimous_runtime/health >"$work/runtime-health.json"; then break; fi
+            sleep 1
+          done
+
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/magnanimous-production-parity/runtime-health.json'))
+          assert d.get('status') == 'ok', d
+          assert d.get('runtime') == 'standalone-node', d
+          assert d.get('cloud_vendor_required') is False, d
+          PY
+
+          email="parity-$(date +%s)-$RANDOM@example.invalid"
+          python - "$email" >"$work/signup.json" <<'PY'
+          import json,sys
+          print(json.dumps({"name":"Magnanimous Parity","workspace":"Magnanimous Parity Test","email":sys.argv[1],"password":"Parity-Test-Password-2026!"}))
+          PY
+
+          status=$(curl -sS -o "$work/signup-result.json" -w '%{http_code}' -X POST             http://127.0.0.1:18788/api/auth/signup             -H 'content-type: application/json'             --data-binary @"$work/signup.json")
+          [ "$status" = "201" ] || { echo "Standalone signup failed with HTTP $status"; exit 1; }
+
+          token=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/magnanimous-production-parity/signup-result.json'))
+          assert d.get('token'), d
+          print(d['token'])
+          PY
+          )
+
+          status=$(curl -sS -o "$work/me.json" -w '%{http_code}'             http://127.0.0.1:18788/api/auth/me             -H "Authorization: Bearer $token")
+          [ "$status" = "200" ] || { echo "Standalone session verification failed with HTTP $status"; exit 1; }
+
+          kill "$runtime_pid" 2>/dev/null || true
+          wait "$runtime_pid" 2>/dev/null || true
+          trap - EXIT
+          echo "Standalone Magnanimous production-copy mutation/session smoke PASS."
+
+      - name: Destroy ephemeral production copy
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          work=/tmp/magnanimous-production-parity
+          if [ -d "$work" ]; then
+            find "$work" -type f -exec sh -c 'size=$(stat -c%s "$1" 2>/dev/null || echo 0); if [ "$size" -gt 0 ]; then dd if=/dev/zero of="$1" bs=1M count=$(( (size + 1048575) / 1048576 )) conv=notrunc status=none 2>/dev/null || true; fi' _ {} \;
+            rm -rf "$work"
+          fi
+          echo "Ephemeral production parity files destroyed."
