@@ -35,9 +35,9 @@ async function safeUrl(value){
  }
  return url.toString();
 }
-async function run(args,{timeout=45000}={}){
+async function run(args,{timeout=45000,env={}}={}){
  return await new Promise((resolve,reject)=>{
-  const child=spawn(chromium,args,{stdio:['ignore','pipe','pipe'],shell:false});
+  const child=spawn(chromium,args,{stdio:['ignore','pipe','pipe'],shell:false,env:{...process.env,...env}});
   const out=[],err=[];let osz=0,esz=0;const cap=8*1024*1024;
   child.stdout.on('data',c=>{if(osz<cap){const b=Buffer.from(c).subarray(0,cap-osz);out.push(b);osz+=b.length}});
   child.stderr.on('data',c=>{if(esz<cap){const b=Buffer.from(c).subarray(0,cap-esz);err.push(b);esz+=b.length}});
@@ -54,23 +54,27 @@ async function render(spec={}){
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'magnanimous-browser-'));
  try{
   const profile=path.join(dir,'profile');
+  const config=path.join(dir,'config');
   const cache=path.join(dir,'cache');
-  await fs.mkdir(profile,{recursive:true});
-  await fs.mkdir(cache,{recursive:true});
+  const runtime=path.join(dir,'runtime');
+  const crash=path.join(config,'chromium','Crash Reports');
+  await Promise.all([profile,config,cache,runtime,crash].map(p=>fs.mkdir(p,{recursive:true})));
   const common=[
    '--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-sync',
-   '--metrics-recording-only','--mute-audio','--window-size='+width+','+height,
+   '--metrics-recording-only','--mute-audio','--noerrdialogs','--disable-crash-reporter','--disable-breakpad','--window-size='+width+','+height,
    '--user-data-dir='+profile,'--disk-cache-dir='+cache
   ];
   if(proxy){common.push('--proxy-server='+proxy,'--proxy-bypass-list=<-loopback>');}
   if(mode==='dom'){
-   const r=await run([...common,'--dump-dom',url],{timeout:spec.timeout_ms});
+   const browserEnv={HOME:dir,XDG_CONFIG_HOME:config,XDG_CACHE_HOME:cache,XDG_RUNTIME_DIR:runtime,TMPDIR:dir};
+   const r=await run([...common,'--dump-dom',url],{timeout:spec.timeout_ms,env:browserEnv});
    if(r.code!==0)throw new Error('Chromium render failed: '+r.stderr.toString('utf8').slice(-1200));
    return{ok:true,mode,url,html:r.stdout.toString('utf8').slice(0,2000000)};
   }
   const output=path.join(dir,mode==='pdf'?'page.pdf':'page.png');
   const flag=mode==='pdf'?'--print-to-pdf='+output:'--screenshot='+output;
-  const r=await run([...common,flag,url],{timeout:spec.timeout_ms});
+  const browserEnv={HOME:dir,XDG_CONFIG_HOME:config,XDG_CACHE_HOME:cache,XDG_RUNTIME_DIR:runtime,TMPDIR:dir};
+  const r=await run([...common,flag,url],{timeout:spec.timeout_ms,env:browserEnv});
   if(r.code!==0)throw new Error('Chromium render failed: '+r.stderr.toString('utf8').slice(-1200));
   const value=await fs.readFile(output);
   return{ok:true,mode,url,content_type:mode==='pdf'?'application/pdf':'image/png',base64:value.toString('base64'),bytes:value.length,width,height};
