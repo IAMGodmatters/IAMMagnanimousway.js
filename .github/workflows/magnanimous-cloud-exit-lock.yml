@@ -9,6 +9,8 @@ on:
       - 'frontend/app/owner-infrastructure/**'
       - 'frontend/app/owner-center/page.tsx'
       - 'qa/scripts/magnanimous-cloud-exit-lock.mjs'
+      - 'qa/scripts/magnanimous-cloud-independence-readiness.mjs'
+      - 'qa/scripts/magnanimous-cloud-independence-readiness.mjs'
       - '.github/workflows/magnanimous-cloud-exit-lock.yml'
       - 'worker/migrations/**'
   push:
@@ -35,5 +37,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+      - name: Validate standalone Docker topology
+        run: docker compose -f magnanimous-runtime/docker-compose.yml config >/dev/null
       - name: Verify Magnanimous standalone infrastructure
         run: node qa/scripts/magnanimous-cloud-exit-lock.mjs
