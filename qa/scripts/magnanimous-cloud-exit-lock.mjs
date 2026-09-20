@@ -76,7 +76,7 @@ must(server.includes('/__magnanimous_runtime/services'),'Standalone internal ser
 must(server.includes('/__magnanimous_runtime/capabilities'),'Standalone capability health surface missing.');
 must(server.includes('/__magnanimous_runtime/migration/stage-d1'),'Standalone production-data staging route missing.');
 must(server.includes('MAGNANIMOUS_GITHUB_MIGRATION_ENABLED'),'Production-data staging must be disabled unless explicitly enabled.');
-must(exists('magnanimous-runtime/scripts/export-d1-logical.mjs'),'FTS-safe logical D1 exporter missing.');
+must(fs.existsSync('magnanimous-runtime/scripts/export-d1-logical.mjs'),'FTS-safe logical D1 exporter missing.');
 const logicalExporter=read('magnanimous-runtime/scripts/export-d1-logical.mjs');
 must(logicalExporter.includes('PRAGMA table_list'),'FTS-safe logical D1 exporter must enumerate logical tables.');
 must(logicalExporter.includes('knowledge_fts'),'FTS-safe logical D1 exporter must rebuild the knowledge FTS index.');
