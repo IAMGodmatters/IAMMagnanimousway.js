@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'magnanimous-runtime/**'
+      - '.github/workflows/magnanimous-production-data-stage.yml'
       - 'worker/src/magnanimous-infrastructure-core.js'
       - 'worker/src/magnanimous-cloud-provider-core.js'
       - 'worker/src/security-entrypoint.js'
@@ -20,6 +21,7 @@ on:
     branches: [main]
     paths:
       - 'magnanimous-runtime/**'
+      - '.github/workflows/magnanimous-production-data-stage.yml'
       - 'worker/src/magnanimous-infrastructure-core.js'
       - 'worker/src/magnanimous-cloud-provider-core.js'
       - 'worker/src/security-entrypoint.js'
