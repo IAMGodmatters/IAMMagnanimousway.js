@@ -37,7 +37,8 @@ const required=[
  'magnanimous-runtime/docker-compose.release.yml',
  'magnanimous-runtime/scripts/standalone-host-preflight.sh',
  'magnanimous-runtime/scripts/install-release-bundle.sh',
- '.github/workflows/magnanimous-standalone-release.yml'
+ '.github/workflows/magnanimous-standalone-release.yml',
+ '.github/workflows/magnanimous-cloud-exit-lock.yml'
 ];
 for(const file of required)must(exists(file),'Missing cloud-independence component: '+file);
 
@@ -91,6 +92,11 @@ const releaseWorkflow=read('.github/workflows/magnanimous-standalone-release.yml
 must(releaseWorkflow.includes('docker save'),'Standalone release must export offline-loadable images.');
 must(releaseWorkflow.includes('docker load'),'Standalone release must prove its own image bundle reloads.');
 must(releaseWorkflow.includes('Offline Magnanimous release bundle smoke PASS'),'Standalone release bundle smoke proof missing.');
+must(releaseWorkflow.includes('Release browser direct-public-egress isolation PASS'),'Standalone release must prove the browser has no direct public egress.');
+must(releaseWorkflow.includes("mode:'screenshot'"),'Standalone release must exercise the real Chromium snapshot renderer.');
+const cloudExitWorkflow=read('.github/workflows/magnanimous-cloud-exit-lock.yml');
+must(cloudExitWorkflow.includes('Browser direct-public-egress isolation PASS'),'Cloud Exit Lock must prove the browser has no direct public egress.');
+must(cloudExitWorkflow.includes("mode:'screenshot'"),'Cloud Exit Lock must exercise the real Chromium snapshot renderer.');
 const hostPreflight=read('magnanimous-runtime/scripts/standalone-host-preflight.sh');
 must(hostPreflight.includes('Magnanimous standalone host preflight PASS'),'Standalone host preflight proof missing.');
 const installer=read('magnanimous-runtime/scripts/install-release-bundle.sh');
@@ -114,7 +120,7 @@ must(browser.includes('AsyncDns'),'Chromium direct asynchronous DNS must be disa
 must(browser.includes('Content-Security-Policy'),'Local Chromium snapshots must carry a deny-by-default CSP.');
 must(browser.includes("default-src \\'none\\'"),'Local Chromium snapshots must default-deny network/resource loads.');
 must(browser.includes("connect-src \\'none\\'"),'Local Chromium snapshots must block fetch/XHR/WebSocket connections.');
-must(browser.includes('http-equiv=["\\']?refresh'),'Snapshot sanitization must remove meta-refresh navigation.');
+must(browser.includes(`http-equiv=["']?refresh`),'Snapshot sanitization must remove meta-refresh navigation.');
 must(browser.includes('ensureProxyReady'),'Browser must wait for Magnanimous egress readiness.');
 const egress=read('magnanimous-runtime/services/browser-egress-service.mjs');
 must(egress.includes('Private browser destination blocked.'),'Browser egress private-network block missing.');
