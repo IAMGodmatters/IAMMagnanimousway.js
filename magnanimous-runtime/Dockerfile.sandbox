@@ -1,0 +1,8 @@
+FROM node:24-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends python3 git ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace
+COPY magnanimous-runtime/services/sandbox-service.mjs /opt/magnanimous/sandbox-service.mjs
+RUN chown -R node:node /workspace /opt/magnanimous
+USER node
+EXPOSE 8791
+CMD ["node","/opt/magnanimous/sandbox-service.mjs"]
