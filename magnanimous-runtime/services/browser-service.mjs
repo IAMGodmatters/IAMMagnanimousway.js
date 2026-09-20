@@ -76,7 +76,7 @@ async function render(spec={}){
   ];
   if(proxy){
   const resolvedProxy=await chromiumProxy();
-  common.push('--proxy-server='+resolvedProxy,'--proxy-bypass-list=<-loopback>','--host-resolver-rules=MAP * ~NOTFOUND');
+  common.push('--proxy-server='+resolvedProxy,'--proxy-bypass-list=<-loopback>');
  }
   if(mode==='dom'){
    const browserEnv={HOME:dir,XDG_CONFIG_HOME:config,XDG_CACHE_HOME:cache,XDG_RUNTIME_DIR:runtime,TMPDIR:dir};
