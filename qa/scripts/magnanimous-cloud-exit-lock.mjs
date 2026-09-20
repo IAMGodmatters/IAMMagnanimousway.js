@@ -92,6 +92,8 @@ must(logicalExporter.includes("'--output',responseFile"),'Cloud exit D1 API retr
 must(!logicalExporter.includes("'-H','Authorization: Bearer '+cloudflareApiToken"),'Cloud exit D1 API token must stay out of process arguments.');
 must(logicalExporter.includes('raw=wranglerQuery(sql);'),'Cloud exit must fall back to Wrangler when a direct D1 read fails after retries.');
 must(logicalExporter.includes('Magnanimous D1 direct read failed; using Wrangler fallback'),'D1 fallback path must be explicit in sanitized diagnostics.');
+must(logicalExporter.includes('let readPageSize=pageSize'),'Cloud exit must adapt D1 snapshot page size after provider read failures.');
+must(logicalExporter.includes('Math.max(1,Math.floor(readPageSize/2))'),'Adaptive D1 paging must shrink down to single-row reads when necessary.');
 
 const infra=read('worker/src/magnanimous-infrastructure-core.js');
 must(infra.includes("infrastructure_owner: 'Magnanimous AI'"),'Magnanimous must own infrastructure control.');
