@@ -22,9 +22,9 @@ It runs the existing application request chain on standard Node.js and reproduce
 - **Pipelines** — durable NDJSON ingestion backed by object storage, analytics, and queued work.
 - **Encrypted secrets** — AES-256-GCM `MagnanimousSecretVault`.
 - **Sandbox** — isolated internal container with bounded argv execution and scoped file I/O.
-- **Server browser rendering** — self-hosted Chromium DOM/screenshot/PDF service.
+- **Server browser rendering** — Magnanimous safe-egress snapshot fetch plus local Chromium DOM/screenshot/PDF rendering, so DNS/private-IP checks and redirect revalidation happen before Chromium receives content.
 - **Interactive browser automation** — the existing Magnanimous Native Web + Local Bridge flow remains the full click/fill/select/press path.
-- **Browser egress security** — Chromium HTTP(S) is forced through a Magnanimous proxy that blocks private/local/test networks and validates CONNECT destinations; direct hostname resolution, QUIC, and non-proxied WebRTC UDP are disabled.
+- **Browser egress security** — public content is fetched by the Magnanimous egress service after DNS/private-IP and redirect revalidation, then Chromium renders the validated local snapshot; QUIC and non-proxied WebRTC UDP remain disabled.
 - **Image transformation** — isolated ImageMagick service.
 - **Application security** — native auth controls, request-rate limiting, private service tokens, tenant boundaries, and reverse-proxy security headers.
 - **TLS / reverse proxy** — Caddy.
