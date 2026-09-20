@@ -172,6 +172,7 @@ export async function stageD1SqlExport(sqlText, {
     }
   };
   await fs.writeFile(finalPath + '.stage.json', JSON.stringify(metadata, null, 2), { mode: 0o600 });
+  if (pendingCredentialRewrap?.pending_path) await fs.rm(pendingCredentialRewrap.pending_path, { force: true });
   return metadata;
 }
 
@@ -235,6 +236,7 @@ export async function stageD1SqliteSnapshot(snapshotBytes, {
     }
   };
   await fs.writeFile(finalPath + '.stage.json', JSON.stringify(metadata, null, 2), { mode: 0o600 });
+  if (pendingCredentialRewrap?.pending_path) await fs.rm(pendingCredentialRewrap.pending_path, { force: true });
   return metadata;
 }
 
@@ -361,8 +363,7 @@ async function applyPendingCredentialVaultRewrap(dbPath, {
   const payload = JSON.parse(await fs.readFile(pendingPath, 'utf8'));
   const validated = await validateCredentialVaultPayload(payload, targetKey);
   const result = await applyCredentialVaultRows(dbPath, validated.rows, targetKey);
-  await fs.rm(pendingPath, { force: true });
-  return { ...result, pending_applied: true };
+  return { ...result, pending_applied: true, pending_path: pendingPath };
 }
 
 export async function stageCredentialVaultRewrap(payload, {
