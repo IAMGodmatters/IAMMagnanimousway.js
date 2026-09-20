@@ -95,7 +95,8 @@ must(dnsPrepare.includes('MAGNANIMOUS_DNS_OUTPUT'),'DNS zone generator must supp
 const releaseWorkflow=read('.github/workflows/magnanimous-standalone-release.yml');
 must(releaseWorkflow.includes('docker save'),'Standalone release must export offline-loadable images.');
 must(releaseWorkflow.includes('docker load'),'Standalone release must prove its own image bundle reloads.');
-must(releaseWorkflow.includes('Offline Magnanimous release bundle smoke PASS'),'Standalone release bundle smoke proof missing.');
+must(releaseWorkflow.includes('Offline Magnanimous release bundle + cloud control smoke PASS'),'Standalone release bundle + cloud control smoke proof missing.');
+must(releaseWorkflow.includes('Release Magnanimous Cloud control plane PASS'),'Standalone release must exercise Magnanimous Cloud control plane.');
 must(releaseWorkflow.includes('Release browser direct-public-egress isolation PASS'),'Standalone release must prove the browser has no direct public egress.');
 must(releaseWorkflow.includes("mode:'screenshot'"),'Standalone release must exercise the real Chromium snapshot renderer.');
 const cloudExitWorkflow=read('.github/workflows/magnanimous-cloud-exit-lock.yml');
@@ -171,5 +172,8 @@ for(const file of required.filter(p=>p.endsWith('.mjs'))){
 }
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
+for(const file of ['worker/src/magnanimous-cloud-provider-core.js','worker/src/magnanimous-infrastructure-core.js','worker/src/security-entrypoint.js']){
+ execFileSync(process.execPath,['--check',file],{stdio:'inherit'});
+}
 
 console.log('Magnanimous Cloud Independence Readiness: software replacement stack COMPLETE; production data/DNS/hosting cutover remains separately gated by real infrastructure.');
