@@ -15,6 +15,7 @@
     "import:d1": "node scripts/import-d1-export.mjs",
     "parity": "node scripts/verify-data-parity.mjs",
     "dns:prepare": "node scripts/prepare-dns-zone.mjs",
-    "verify:cloud": "node scripts/verify-cloud-control.mjs"
+    "verify:cloud": "node scripts/verify-cloud-control.mjs",
+    "verify:migration": "node scripts/verify-migration-stage.mjs"
   }
 }

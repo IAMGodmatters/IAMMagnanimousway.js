@@ -21,6 +21,7 @@ import { magnanimousServiceBindings } from './service-bindings.mjs';
 import { MagnanimousMetrics } from './metrics.mjs';
 import { MagnanimousImageGenerationBinding } from './image-generation-binding.mjs';
 import { openMagnanimousCloudControl } from './cloud-control.mjs';
+import { verifyGitHubActionsOidc, stageD1SqlExport } from './migration-stage.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -196,6 +197,76 @@ async function send(res, response) {
   res.end(data);
 }
 
+async function readLimitedBody(req, maxBytes) {
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of req) {
+    const buffer = Buffer.from(chunk);
+    total += buffer.length;
+    if (total > maxBytes) {
+      const error = new Error('Migration export exceeds the configured maximum size.');
+      error.code = 'MIGRATION_TOO_LARGE';
+      throw error;
+    }
+    chunks.push(buffer);
+  }
+  return Buffer.concat(chunks);
+}
+
+async function handleMigrationStage(req, res, pathname) {
+  if (pathname !== '/__magnanimous_runtime/migration/stage-d1') return false;
+  if (String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_ENABLED || '').toLowerCase() !== 'true') {
+    res.statusCode = 404;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({ detail: 'Migration staging is disabled.' }));
+    return true;
+  }
+  if (req.method !== 'POST') {
+    res.statusCode = 405;
+    res.setHeader('allow', 'POST');
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({ detail: 'Method not allowed.' }));
+    return true;
+  }
+
+  const authorization = String(req.headers.authorization || '');
+  const token = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
+  if (!token) {
+    res.statusCode = 401;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({ detail: 'Signed GitHub Actions identity required.' }));
+    return true;
+  }
+
+  try {
+    const source = await verifyGitHubActionsOidc(token, {
+      audience: String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_AUDIENCE || 'magnanimous-production-data-stage'),
+      repository: String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js'),
+      ref: 'refs/heads/main',
+      workflowFile: '.github/workflows/magnanimous-production-data-stage.yml'
+    });
+    const maxBytes = Math.max(1048576, Number(process.env.MAGNANIMOUS_MIGRATION_MAX_BYTES || 104857600));
+    const body = await readLimitedBody(req, maxBytes);
+    const result = await stageD1SqlExport(body.toString('utf8'), {
+      migrationRoot: String(process.env.MAGNANIMOUS_MIGRATION_ROOT || '/app/persist/migration'),
+      targetPath: String(process.env.MAGNANIMOUS_MIGRATION_STAGE_PATH || ''),
+      source
+    });
+    res.statusCode = 200;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.setHeader('cache-control', 'no-store');
+    res.end(JSON.stringify(result));
+  } catch (error) {
+    const tooLarge = error?.code === 'MIGRATION_TOO_LARGE';
+    console.error('Magnanimous migration staging failed', String(error?.message || error));
+    res.statusCode = tooLarge ? 413 : 403;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.setHeader('cache-control', 'no-store');
+    res.end(JSON.stringify({ detail: 'Migration staging authorization or import failed.' }));
+  }
+  return true;
+}
+
 function internalAuthorized(req) {
   const expected = String(process.env.MAGNANIMOUS_INTERNAL_SERVICE_TOKEN || '');
   return Boolean(expected) && String(req.headers['x-magnanimous-service-token'] || '') === expected;
@@ -222,6 +293,11 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('x-request-id', requestId);
   try {
     const pathname = new URL(req.url || '/', 'http://local').pathname;
+
+    if (await handleMigrationStage(req, res, pathname)) {
+      metrics.observe(res.statusCode, Date.now() - startedAt);
+      return;
+    }
 
     if (pathname === '/__magnanimous_runtime/health' || pathname === '/__magnanimous_runtime/capabilities') {
       await send(

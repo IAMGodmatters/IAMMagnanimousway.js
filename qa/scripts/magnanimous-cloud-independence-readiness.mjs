@@ -20,6 +20,7 @@ const required=[
  'magnanimous-runtime/src/metrics.mjs',
  'magnanimous-runtime/src/image-generation-binding.mjs',
  'magnanimous-runtime/src/cloud-control.mjs',
+ 'magnanimous-runtime/src/migration-stage.mjs',
  'magnanimous-runtime/services/sandbox-service.mjs',
  'magnanimous-runtime/services/browser-service.mjs',
  'magnanimous-runtime/services/browser-egress-service.mjs',
@@ -36,11 +37,13 @@ const required=[
  'magnanimous-runtime/scripts/verify-data-parity.mjs',
  'magnanimous-runtime/scripts/prepare-dns-zone.mjs',
  'magnanimous-runtime/scripts/verify-cloud-control.mjs',
+ 'magnanimous-runtime/scripts/verify-migration-stage.mjs',
  'magnanimous-runtime/docker-compose.release.yml',
  'magnanimous-runtime/scripts/standalone-host-preflight.sh',
  'magnanimous-runtime/scripts/install-release-bundle.sh',
  '.github/workflows/magnanimous-standalone-release.yml',
  '.github/workflows/magnanimous-cloud-exit-lock.yml',
+ '.github/workflows/magnanimous-production-data-stage.yml',
  'worker/src/magnanimous-cloud-provider-core.js'
 ];
 for(const file of required)must(exists(file),'Missing cloud-independence component: '+file);
@@ -59,7 +62,7 @@ for(const contract of [
  'MAGNANIMOUS_EVENTS','MAGNANIMOUS_VECTORIZE','MAGNANIMOUS_ANALYTICS','MAGNANIMOUS_SECRETS',
  'MAGNANIMOUS_PIPELINE','MAGNANIMOUS_SANDBOX','MAGNANIMOUS_BROWSER','MAGNANIMOUS_IMAGES','MAGNANIMOUS_IMAGE_GENERATOR',
  'MAGNANIMOUS_CLOUD_CONTROL','CLOUD_CONTROL','/__magnanimous_runtime/cloud',
- '/__magnanimous_runtime/metrics','/__magnanimous_runtime/services'
+ '/__magnanimous_runtime/metrics','/__magnanimous_runtime/services','/__magnanimous_runtime/migration/stage-d1'
 ])must(server.includes(contract),'Standalone server contract missing: '+contract);
 
 const compose=read('magnanimous-runtime/docker-compose.yml');
@@ -129,6 +132,25 @@ must(observedToolContracts.length===54,'Expected all 54 visible DigitalOcean too
 for(const tool of ['droplet_create','droplet_delete','image_create','key_create','region_list','size_list','snapshot_droplet','billing_history_list'])
  must(observedToolContracts.includes(tool),'Visible DigitalOcean tool absorption missing: '+tool);
 
+const migrationStage=read('magnanimous-runtime/src/migration-stage.mjs');
+for(const contract of [
+ 'https://token.actions.githubusercontent.com',
+ 'crypto.verify',
+ "claims.repository || ''",
+ "claims.ref || ''",
+ "claims.workflow_ref",
+ 'stageD1SqlExport',
+ 'SQLite integrity_check',
+ 'inside the configured migration root'
+]) must(migrationStage.includes(contract),'Migration staging security contract missing: '+contract);
+const migrationWorkflow=read('.github/workflows/magnanimous-production-data-stage.yml');
+must(migrationWorkflow.includes('id-token: write'),'Production data staging must use GitHub OIDC.');
+must(migrationWorkflow.includes('wrangler d1 export iam-magnanimous-db --remote'),'Production data staging must export the current remote D1 database.');
+must(migrationWorkflow.includes('MAGNANIMOUS_ALLOW_IMPORT=YES_I_UNDERSTAND'),'Production data staging must build an offline parity reference.');
+must(migrationWorkflow.includes('/__magnanimous_runtime/migration/stage-d1'),'Production data staging must target the standalone-only staging endpoint.');
+must(migrationWorkflow.includes('table_counts'),'Production data staging must verify per-table row-count parity.');
+must(!migrationWorkflow.includes('upload-artifact'),'Production D1 data must not be uploaded as a workflow artifact.');
+
 const sandbox=read('magnanimous-runtime/services/sandbox-service.mjs');
 must(sandbox.includes("shell:false"),'Sandbox process execution must not use shell interpolation.');
 must(sandbox.includes('MAGNANIMOUS_INTERNAL_SERVICE_TOKEN'),'Sandbox token boundary missing.');
@@ -177,6 +199,7 @@ for(const file of required.filter(p=>p.endsWith('.mjs'))){
 }
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-migration-stage.mjs'],{stdio:'inherit'});
 for(const file of ['worker/src/magnanimous-cloud-provider-core.js','worker/src/magnanimous-infrastructure-core.js','worker/src/security-entrypoint.js']){
  execFileSync(process.execPath,['--check',file],{stdio:'inherit'});
 }

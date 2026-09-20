@@ -22,6 +22,7 @@ const codeFiles=[
   'magnanimous-runtime/src/metrics.mjs',
   'magnanimous-runtime/src/image-generation-binding.mjs',
   'magnanimous-runtime/src/cloud-control.mjs',
+  'magnanimous-runtime/src/migration-stage.mjs',
   'magnanimous-runtime/services/sandbox-service.mjs',
   'magnanimous-runtime/services/browser-service.mjs',
   'magnanimous-runtime/services/browser-egress-service.mjs',
@@ -73,6 +74,8 @@ must(server.includes('/__magnanimous_runtime/cloud'),'Standalone Magnanimous Clo
 must(server.includes('/__magnanimous_runtime/metrics'),'Standalone metrics surface missing.');
 must(server.includes('/__magnanimous_runtime/services'),'Standalone internal service health surface missing.');
 must(server.includes('/__magnanimous_runtime/capabilities'),'Standalone capability health surface missing.');
+must(server.includes('/__magnanimous_runtime/migration/stage-d1'),'Standalone production-data staging route missing.');
+must(server.includes('MAGNANIMOUS_GITHUB_MIGRATION_ENABLED'),'Production-data staging must be disabled unless explicitly enabled.');
 
 const infra=read('worker/src/magnanimous-infrastructure-core.js');
 must(infra.includes("infrastructure_owner: 'Magnanimous AI'"),'Magnanimous must own infrastructure control.');
@@ -105,6 +108,7 @@ must(security.includes('handleMagnanimousCloudProvider'),'Magnanimous Cloud owne
 must(security.includes("'/api/magnanimous/infrastructure'")||infra.includes("'/api/magnanimous/infrastructure'"),'Infrastructure endpoint missing.');
 
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-migration-stage.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['qa/scripts/magnanimous-cloud-independence-readiness.mjs'],{stdio:'inherit'});
 
