@@ -96,11 +96,11 @@ await fs.promises.rm(target+'-shm',{force:true});
 const tableList=remoteQuery('PRAGMA table_list;')
   .filter(row=>String(row.schema||'')==='main');
 
-const ordinary=tableList
+const ordinaryRows=tableList
   .filter(row=>String(row.type||'')==='table')
-  .map(row=>String(row.name||''))
-  .filter(name=>name&&!name.startsWith('sqlite_')&&!name.startsWith('_cf_'))
-  .sort();
+  .filter(row=>String(row.name||'')&&!String(row.name||'').startsWith('sqlite_')&&!String(row.name||'').startsWith('_cf_'))
+  .sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+const ordinary=ordinaryRows.map(row=>String(row.name));
 
 const virtual=tableList
   .filter(row=>String(row.type||'')==='virtual')
@@ -123,47 +123,85 @@ try{
     if(!schema) throw new Error('Missing production schema for table '+table);
     db.exec(schema+';');
 
-    const columns=remoteQuery('PRAGMA table_xinfo('+qstr(table)+');')
-      .filter(row=>Number(row.hidden||0)===0)
-      .map(row=>String(row.name||''))
-      .filter(Boolean);
+    const columnRows=remoteQuery('PRAGMA table_xinfo('+qstr(table)+');')
+      .filter(row=>Number(row.hidden||0)===0);
+    const columns=columnRows.map(row=>String(row.name||'')).filter(Boolean);
     if(!columns.length) continue;
 
-    const countRow=one('SELECT COUNT(*) AS n FROM '+qname(table)+';');
-    const sourceCount=Number(countRow?.n||0);
-    let copied=0;
+    const tableMeta=ordinaryRows.find(row=>String(row.name)===table)||{};
+    const withoutRowid=Number(tableMeta.wr||0)===1;
+    const pkColumns=columnRows
+      .filter(row=>Number(row.pk||0)>0)
+      .sort((a,b)=>Number(a.pk)-Number(b.pk))
+      .map(row=>String(row.name||''))
+      .filter(Boolean);
+    const orderBy=withoutRowid
+      ? (pkColumns.length?pkColumns.map(qname).join(','):'')
+      : 'rowid';
+    if(withoutRowid&&!orderBy){
+      throw new Error('WITHOUT ROWID table has no primary-key ordering: '+table);
+    }
+
     const selectQuoted=columns.map(name=>'quote('+qname(name)+') AS '+qname(name)).join(',');
+    let copiedSuccessfully=false;
+    for(let attempt=1;attempt<=4&&!copiedSuccessfully;attempt++){
+      db.exec('DELETE FROM '+qname(table)+';');
 
-    while(copied<sourceCount){
-      const rows=remoteQuery(
-        'SELECT '+selectQuoted+' FROM '+qname(table)+' LIMIT '+pageSize+' OFFSET '+copied+';'
-      );
-      if(!rows.length) break;
-      const statements=[];
-      for(const row of rows){
-        const values=columns.map(name=>{
-          const value=row[name];
-          if(value===null||value===undefined) return 'NULL';
-          const text=String(value);
-          if(!/^(NULL|[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?|X'[0-9A-Fa-f]*'|'.*')$/s.test(text)){
-            throw new Error('Unexpected quoted D1 literal in '+table+'.'+name);
-          }
-          return text;
-        });
-        statements.push(
-          'INSERT INTO '+qname(table)+' ('+columns.map(qname).join(',')+') VALUES ('+values.join(',')+');'
-        );
+      let sourceCount=0;
+      let boundarySql='';
+      if(!withoutRowid){
+        const boundary=one('SELECT quote(MAX(rowid)) AS max_rowid, COUNT(*) AS n FROM '+qname(table)+';')||{};
+        sourceCount=Number(boundary.n||0);
+        boundarySql=String(boundary.max_rowid||'NULL');
+        if(sourceCount>0&&!/^-?\d+$/.test(boundarySql)){
+          throw new Error('Unexpected rowid boundary for '+table+': '+boundarySql);
+        }
+      }else{
+        sourceCount=Number(one('SELECT COUNT(*) AS n FROM '+qname(table)+';')?.n||0);
       }
-      db.exec('BEGIN;'+statements.join('')+'COMMIT;');
-      copied+=rows.length;
-      if(rows.length<pageSize) break;
-    }
 
-    const localCount=Number(db.prepare('SELECT COUNT(*) AS n FROM '+qname(table)).get()?.n||0);
-    if(localCount!==sourceCount){
-      throw new Error('Production table changed or copy was incomplete for '+table+': source='+sourceCount+' local='+localCount);
+      let copied=0;
+      const whereClause=!withoutRowid&&sourceCount>0?' WHERE rowid <= '+boundarySql:'';
+      while(copied<sourceCount){
+        const rows=remoteQuery(
+          'SELECT '+selectQuoted+' FROM '+qname(table)+whereClause+
+          ' ORDER BY '+orderBy+' LIMIT '+pageSize+' OFFSET '+copied+';'
+        );
+        if(!rows.length) break;
+        const statements=[];
+        for(const row of rows){
+          const values=columns.map(name=>{
+            const value=row[name];
+            if(value===null||value===undefined) return 'NULL';
+            const text=String(value);
+            if(!/^(NULL|[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?|X'[0-9A-Fa-f]*'|'.*')$/s.test(text)){
+              throw new Error('Unexpected quoted D1 literal in '+table+'.'+name);
+            }
+            return text;
+          });
+          statements.push(
+            'INSERT INTO '+qname(table)+' ('+columns.map(qname).join(',')+') VALUES ('+values.join(',')+');'
+          );
+        }
+        db.exec('BEGIN;'+statements.join('')+'COMMIT;');
+        copied+=rows.length;
+        if(rows.length<pageSize) break;
+      }
+
+      const localCount=Number(db.prepare('SELECT COUNT(*) AS n FROM '+qname(table)).get()?.n||0);
+      const finalSourceCount=withoutRowid
+        ? Number(one('SELECT COUNT(*) AS n FROM '+qname(table)+';')?.n||0)
+        : Number(one('SELECT COUNT(*) AS n FROM '+qname(table)+' WHERE rowid <= '+(sourceCount?boundarySql:'0')+';')?.n||0);
+
+      if(localCount===sourceCount&&finalSourceCount===sourceCount){
+        copiedSuccessfully=true;
+        console.log('Copied production table '+table+' ('+localCount+' rows; attempt '+attempt+(withoutRowid?'':'; rowid boundary '+boundarySql)+').');
+      }else if(attempt<4){
+        console.warn('Production table '+table+' changed inside the selected snapshot boundary; retrying (source='+sourceCount+', final='+finalSourceCount+', local='+localCount+').');
+      }else{
+        throw new Error('Production table could not reach a stable copy boundary for '+table+': source='+sourceCount+' final='+finalSourceCount+' local='+localCount);
+      }
     }
-    console.log('Copied production table '+table+' ('+localCount+' rows).');
   }
 
   const objects=remoteQuery(
