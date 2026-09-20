@@ -5,6 +5,7 @@ on:
     paths:
       - 'magnanimous-runtime/**'
       - '.github/workflows/magnanimous-production-data-stage.yml'
+      - '.github/workflows/magnanimous-runtime-secrets-stage.yml'
       - 'worker/src/magnanimous-infrastructure-core.js'
       - 'worker/src/magnanimous-cloud-provider-core.js'
       - 'worker/src/security-entrypoint.js'
@@ -22,6 +23,7 @@ on:
     paths:
       - 'magnanimous-runtime/**'
       - '.github/workflows/magnanimous-production-data-stage.yml'
+      - '.github/workflows/magnanimous-runtime-secrets-stage.yml'
       - 'worker/src/magnanimous-infrastructure-core.js'
       - 'worker/src/magnanimous-cloud-provider-core.js'
       - 'worker/src/security-entrypoint.js'
