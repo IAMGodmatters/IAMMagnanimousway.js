@@ -61,13 +61,63 @@ export const DIGITALOCEAN_TOOL_ABSORPTION = Object.freeze(
   }))
 );
 
+export const RAILWAY_VISIBLE_TOOL_CONTRACTS = Object.freeze([
+  'whoami','list_workspaces','list_projects','create_project','create_deployment','create_service',
+  'update_service','list_services','get_service_config','get_service_metrics','list_variables',
+  'set_variables','list_domains','generate_domain','search_docs','fetch_docs','list_feature_flags',
+  'get_feature_flag','set_feature_flag','delete_feature_flag','list_deployments','get_status',
+  'get_logs','redeploy','accept_deploy','railway_agent'
+]);
+
+function nativeContractForRailwayTool(tool) {
+  if (/workspace|project/.test(tool)) return 'magnanimous-cloud-project-and-tenancy-model';
+  if (/service|deployment|redeploy|status/.test(tool)) return 'magnanimous-service-release-and-deployment-state';
+  if (/variable/.test(tool)) return 'magnanimous-secret-and-runtime-config-contract';
+  if (/domain/.test(tool)) return 'magnanimous-dns-and-ingress-contract';
+  if (/metric|logs/.test(tool)) return 'magnanimous-observability-contract';
+  if (/feature_flag/.test(tool)) return 'magnanimous-progressive-delivery-and-feature-policy';
+  if (/docs/.test(tool)) return 'magnanimous-provider-knowledge-adapter';
+  if (tool === 'railway_agent') return 'magnanimous-infrastructure-reasoning-and-action-orchestrator';
+  if (tool === 'whoami') return 'magnanimous-provider-account-context';
+  return 'magnanimous-cloud-resource-action';
+}
+
+export const RAILWAY_TOOL_ABSORPTION = Object.freeze(
+  RAILWAY_VISIBLE_TOOL_CONTRACTS.map(tool => Object.freeze({
+    observed_tool: tool,
+    native_contract: nativeContractForRailwayTool(tool),
+    proprietary_backend_copied: false
+  }))
+);
+
+export const RAILWAY_ARCHITECTURE_TECHNIQUES = Object.freeze([
+  { id:'workspace-project-environment-service-hierarchy', native_contract:'magnanimous-cloud-project-environment-service-hierarchy' },
+  { id:'isolated-environments', native_contract:'magnanimous-environment-isolation-and-config-plane' },
+  { id:'ephemeral-pr-environments', native_contract:'magnanimous-preview-environment-lifecycle' },
+  { id:'repo-image-service-sources', native_contract:'magnanimous-service-source-adapters' },
+  { id:'health-gated-deployments', native_contract:'magnanimous-release-health-gates' },
+  { id:'build-runtime-http-log-separation', native_contract:'magnanimous-observability-streams' },
+  { id:'service-metrics', native_contract:'magnanimous-runtime-resource-telemetry' },
+  { id:'private-service-networking', native_contract:'magnanimous-private-service-network' },
+  { id:'internal-dns-service-discovery', native_contract:'magnanimous-service-discovery' },
+  { id:'custom-and-generated-domains', native_contract:'magnanimous-ingress-and-domain-management' },
+  { id:'s3-compatible-object-storage', native_contract:'magnanimous-object-store-interface' },
+  { id:'persistent-volume-mounts', native_contract:'magnanimous-persistent-volume-contract' },
+  { id:'feature-flags-signals', native_contract:'magnanimous-feature-policy-and-progressive-delivery' },
+  { id:'monorepo-root-and-watch-paths', native_contract:'magnanimous-monorepo-build-scope' },
+  { id:'config-as-code', native_contract:'magnanimous-infrastructure-declarative-state' },
+  { id:'restart-and-recovery-policy', native_contract:'magnanimous-service-recovery-policy' },
+  { id:'oauth-scoped-remote-operations', native_contract:'magnanimous-provider-adapter-auth-boundary' },
+  { id:'agent-assisted-infrastructure-operations', native_contract:'magnanimous-ai-infrastructure-orchestration' }
+]);
+
 export const MAGNANIMOUS_CLOUD_POLICY = Object.freeze({
   identity: 'Magnanimous Cloud',
   brain: 'Magnanimous AI',
   architecture: 'provider-neutral-first-party-cloud-control-plane',
   proprietary_copying: false,
   learned_from: 'public capability classes, documented API behavior, open standards and existing first-party runtime contracts',
-  provider_rule: 'DigitalOcean and every other infrastructure vendor remain optional capacity adapters beneath Magnanimous.',
+  provider_rule: 'DigitalOcean, Railway and every other infrastructure vendor remain optional capacity adapters beneath Magnanimous.',
   truth_rule: 'A native control-plane contract does not create physical servers, public IP space, transit, datacenter operations, carrier-scale DDoS capacity or regulated authority.'
 });
 
@@ -82,7 +132,10 @@ function catalog(bindingActive = false) {
     native_control_plane_active: bindingActive,
     absorption_map: MAGNANIMOUS_CLOUD_ABSORPTION_MAP,
     observed_digitalocean_tool_contract_count: DIGITALOCEAN_VISIBLE_TOOL_CONTRACTS.length,
+    observed_railway_tool_contract_count: RAILWAY_VISIBLE_TOOL_CONTRACTS.length,
     observed_tool_absorption: DIGITALOCEAN_TOOL_ABSORPTION,
+    railway_tool_absorption: RAILWAY_TOOL_ABSORPTION,
+    railway_architecture_techniques: RAILWAY_ARCHITECTURE_TECHNIQUES,
     resource_families: [
       'projects','regions-and-sizes','compute-instances','container-services','kubernetes',
       'apps-workers-jobs','functions','databases','object-storage','block-storage','file-storage',
