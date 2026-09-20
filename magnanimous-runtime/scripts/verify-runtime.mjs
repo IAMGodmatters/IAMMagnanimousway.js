@@ -11,6 +11,10 @@ import { openMagnanimousKvStore } from '../src/kv-cache.mjs';
 import { openMagnanimousDurableWork } from '../src/durable-work.mjs';
 import { openMagnanimousEventHub } from '../src/event-hub.mjs';
 import { MagnanimousRateLimiter } from '../src/rate-limit.mjs';
+import { openMagnanimousVectorStore } from '../src/vector-store.mjs';
+import { openMagnanimousAnalyticsEngine } from '../src/analytics-engine.mjs';
+import { openMagnanimousSecretVault } from '../src/secret-vault.mjs';
+import { openMagnanimousPipeline } from '../src/pipeline.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -102,10 +106,35 @@ try {
   assert.equal(limiter.check('proof',{limit:1,windowMs:60000}).allowed,true);
   assert.equal(limiter.check('proof',{limit:1,windowMs:60000}).allowed,false);
 
+  const vectors=openMagnanimousVectorStore(db,'verify');
+  await vectors.upsert([
+    {id:'a',values:[1,0],metadata:{type:'alpha'}},
+    {id:'b',values:[0,1],metadata:{type:'beta'}}
+  ]);
+  const vectorQuery=await vectors.query([1,0],{topK:1});
+  assert.equal(vectorQuery.matches[0].id,'a');
+  assert.ok(vectorQuery.matches[0].score>.99);
+
+  const analytics=openMagnanimousAnalyticsEngine(db);
+  await analytics.writeDataPoint({indexes:['verify'],doubles:[1],blobs:['ok']},'runtime');
+  assert.equal(await analytics.aggregateCount({dataset:'runtime',index1:'verify'}),1);
+
+  const secrets=openMagnanimousSecretVault(db,'magnanimous-runtime-verification-key');
+  await secrets.put('proof','secret-value');
+  assert.equal(await secrets.get('proof'),'secret-value');
+  assert.equal((await secrets.list()).length,1);
+  await secrets.delete('proof');
+  assert.equal(await secrets.get('proof'),null);
+
+  const pipeline=openMagnanimousPipeline({objectStore:objects,work,analytics});
+  const batch=await pipeline.send([{id:1},{id:2}],{pipeline:'verify',idempotencyKey:'pipeline-proof'});
+  assert.equal(batch.records,2);
+  assert.deepEqual(await pipeline.readBatch(batch.object_key),[{id:1},{id:2}]);
+
   console.log(
     'Magnanimous standalone SQL compatibility verified across ' +
     result.total +
-    ' migrations; object store, KV/cache, durable queue/workflows, event coordination and rate limiting verified.'
+    ' migrations; object store, KV/cache, durable queue/workflows, event coordination, rate limiting, vector query, analytics, encrypted secrets and ingestion pipelines verified.'
   );
 } finally {
   db.close();

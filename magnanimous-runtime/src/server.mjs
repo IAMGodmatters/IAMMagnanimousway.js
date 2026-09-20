@@ -12,6 +12,10 @@ import { openMagnanimousKvStore } from './kv-cache.mjs';
 import { openMagnanimousDurableWork } from './durable-work.mjs';
 import { openMagnanimousEventHub } from './event-hub.mjs';
 import { MagnanimousRateLimiter } from './rate-limit.mjs';
+import { openMagnanimousVectorStore } from './vector-store.mjs';
+import { openMagnanimousAnalyticsEngine } from './analytics-engine.mjs';
+import { openMagnanimousSecretVault } from './secret-vault.mjs';
+import { openMagnanimousPipeline } from './pipeline.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -35,6 +39,12 @@ const kv = openMagnanimousKvStore(db, 'runtime');
 const durableWork = openMagnanimousDurableWork(db);
 const eventHub = openMagnanimousEventHub(db);
 const rateLimiter = new MagnanimousRateLimiter();
+const vectorStore = openMagnanimousVectorStore(db, 'runtime');
+const analytics = openMagnanimousAnalyticsEngine(db);
+const secretVault = process.env.MAGNANIMOUS_SECRETS_KEY
+  ? openMagnanimousSecretVault(db, process.env.MAGNANIMOUS_SECRETS_KEY)
+  : null;
+const pipeline = openMagnanimousPipeline({ objectStore, work: durableWork, analytics });
 
 const env = new Proxy(
   {
@@ -46,11 +56,18 @@ const env = new Proxy(
     MAGNANIMOUS_QUEUE: durableWork,
     MAGNANIMOUS_WORKFLOWS: durableWork,
     MAGNANIMOUS_EVENTS: eventHub,
+    MAGNANIMOUS_VECTORIZE: vectorStore,
+    MAGNANIMOUS_ANALYTICS: analytics,
+    MAGNANIMOUS_SECRETS: secretVault,
+    MAGNANIMOUS_PIPELINE: pipeline,
     OBJECT_STORE: objectStore,
     KV: kv,
     QUEUE: durableWork,
     WORKFLOWS: durableWork,
-    EVENTS: eventHub
+    EVENTS: eventHub,
+    VECTORIZE: vectorStore,
+    ANALYTICS_ENGINE: analytics,
+    PIPELINE: pipeline
   },
   {
     get(target, key) {
@@ -200,7 +217,11 @@ const server = http.createServer(async (req, res) => {
             durable_queue: true,
             durable_workflows: true,
             event_coordination: true,
-            application_rate_limiting: true
+            application_rate_limiting: true,
+            vector_storage_query: true,
+            analytics_engine: true,
+            durable_ingestion_pipeline: true,
+            encrypted_secret_vault: Boolean(secretVault)
           }
         })
       );
