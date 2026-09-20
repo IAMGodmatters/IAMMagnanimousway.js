@@ -281,6 +281,7 @@ async function handleMigrationStage(req, res, pathname) {
     const options = {
       migrationRoot: String(process.env.MAGNANIMOUS_MIGRATION_ROOT || '/app/persist/migration'),
       targetPath: String(process.env.MAGNANIMOUS_MIGRATION_STAGE_PATH || ''),
+      runtimeSecretsFile: String(process.env.MAGNANIMOUS_RUNTIME_SECRETS_FILE || '/app/persist/secrets/runtime.json'),
       source
     };
     const result = contentType.includes('application/vnd.sqlite3')

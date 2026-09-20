@@ -114,6 +114,7 @@ function summarizeDatabase(db) {
 export async function stageD1SqlExport(sqlText, {
   migrationRoot = '/app/persist/migration',
   targetPath = '',
+  runtimeSecretsFile = '/app/persist/secrets/runtime.json',
   source = {}
 } = {}) {
   const sql = String(sqlText || '');
@@ -146,6 +147,11 @@ export async function stageD1SqlExport(sqlText, {
   const sqlSha256 = crypto.createHash('sha256').update(sql).digest('hex');
   const sqliteBytes = await fs.readFile(tempPath);
   const sqliteSha256 = crypto.createHash('sha256').update(sqliteBytes).digest('hex');
+  const pendingCredentialRewrap = await applyPendingCredentialVaultRewrap(tempPath, {
+    pendingPath: finalPath + '.credential-rewrap.pending.json',
+    runtimeSecretsFile
+  });
+  const finalSqliteSha256 = crypto.createHash('sha256').update(await fs.readFile(tempPath)).digest('hex');
 
   await fs.rm(finalPath, { force: true });
   await fs.rename(tempPath, finalPath);
@@ -155,6 +161,8 @@ export async function stageD1SqlExport(sqlText, {
     target: finalPath,
     sql_sha256: sqlSha256,
     sqlite_sha256: sqliteSha256,
+    final_sqlite_sha256: finalSqliteSha256,
+    credential_rewrap: pendingCredentialRewrap,
     ...summary,
     source: {
       repository: String(source.repository || ''),
@@ -164,6 +172,7 @@ export async function stageD1SqlExport(sqlText, {
     }
   };
   await fs.writeFile(finalPath + '.stage.json', JSON.stringify(metadata, null, 2), { mode: 0o600 });
+  if (pendingCredentialRewrap?.pending_path) await fs.rm(pendingCredentialRewrap.pending_path, { force: true });
   return metadata;
 }
 
@@ -171,6 +180,7 @@ export async function stageD1SqlExport(sqlText, {
 export async function stageD1SqliteSnapshot(snapshotBytes, {
   migrationRoot = '/app/persist/migration',
   targetPath = '',
+  runtimeSecretsFile = '/app/persist/secrets/runtime.json',
   source = {}
 } = {}) {
   const bytes = Buffer.from(snapshotBytes || []);
@@ -202,6 +212,11 @@ export async function stageD1SqliteSnapshot(snapshotBytes, {
   }
 
   const sqliteSha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+  const pendingCredentialRewrap = await applyPendingCredentialVaultRewrap(tempPath, {
+    pendingPath: finalPath + '.credential-rewrap.pending.json',
+    runtimeSecretsFile
+  });
+  const finalSqliteSha256 = crypto.createHash('sha256').update(await fs.readFile(tempPath)).digest('hex');
   await fs.rm(finalPath, { force: true });
   await fs.rename(tempPath, finalPath);
   const metadata = {
@@ -209,6 +224,8 @@ export async function stageD1SqliteSnapshot(snapshotBytes, {
     staged_at: new Date().toISOString(),
     target: finalPath,
     sqlite_sha256: sqliteSha256,
+    final_sqlite_sha256: finalSqliteSha256,
+    credential_rewrap: pendingCredentialRewrap,
     sqlite_bytes: bytes.length,
     ...summary,
     source: {
@@ -219,6 +236,7 @@ export async function stageD1SqliteSnapshot(snapshotBytes, {
     }
   };
   await fs.writeFile(finalPath + '.stage.json', JSON.stringify(metadata, null, 2), { mode: 0o600 });
+  if (pendingCredentialRewrap?.pending_path) await fs.rm(pendingCredentialRewrap.pending_path, { force: true });
   return metadata;
 }
 
@@ -250,70 +268,137 @@ async function verifyCredentialCiphertext(value, source) {
   if (!plain || plain.byteLength === 0) throw new Error('Credential migration ciphertext decrypted to an empty value.');
 }
 
-export async function stageCredentialVaultRewrap(payload, {
-  targetPath = '/app/persist/migration/production.sqlite',
-  runtimeSecretsFile = '/app/persist/secrets/runtime.json'
-} = {}) {
+
+async function fileExists(filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function credentialRowsDigest(rows) {
+  const digestInput = rows
+    .map(row => String(row.credential_key) + ':' + String(row.encrypted_value))
+    .sort()
+    .join('\n');
+  return crypto.createHash('sha256').update(digestInput).digest('hex');
+}
+
+async function validateCredentialVaultPayload(payload, targetKey) {
   const rows = Array.isArray(payload?.rows) ? payload.rows : [];
   const declaredCount = Number(payload?.count ?? rows.length);
   if (declaredCount !== rows.length) throw new Error('Credential migration row count is inconsistent.');
 
-  const secrets = JSON.parse(await fs.readFile(runtimeSecretsFile, 'utf8'));
-  const targetKey = String(secrets?.INTEGRATION_CREDENTIALS_KEY || '');
-  if (targetKey.length < 32) throw new Error('Standalone integration credential key is not staged.');
+  const incoming = rows.map(row => String(row?.credential_key || '')).sort();
+  if (new Set(incoming).size !== incoming.length) throw new Error('Credential migration contains duplicate keys.');
 
-  const dbPath = path.resolve(targetPath);
-  await fs.access(dbPath);
+  for (const row of rows) {
+    const key = String(row?.credential_key || '');
+    const encrypted = String(row?.encrypted_value || '');
+    if (!key || !encrypted) throw new Error('Credential migration row is incomplete.');
+    await verifyCredentialCiphertext(encrypted, targetKey);
+  }
 
+  return {
+    rows,
+    count: rows.length,
+    ciphertext_sha256: credentialRowsDigest(rows)
+  };
+}
+
+async function applyCredentialVaultRows(dbPath, rows, targetKey) {
+  const validated = await validateCredentialVaultPayload({ count: rows.length, rows }, targetKey);
   const db = new DatabaseSync(dbPath);
   try {
     const exists = db.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='platform_credentials'"
     ).get();
     if (!exists) {
-      if (rows.length) throw new Error('Staged database is missing platform_credentials.');
-      return { ok: true, count: 0, ciphertext_sha256: crypto.createHash('sha256').update('').digest('hex') };
+      if (validated.rows.length) throw new Error('Staged database is missing platform_credentials.');
+      return { ok: true, count: 0, ciphertext_sha256: validated.ciphertext_sha256 };
     }
 
     const current = db.prepare('SELECT credential_key FROM platform_credentials ORDER BY credential_key').all()
       .map(row => String(row.credential_key || ''));
-    const incoming = rows.map(row => String(row?.credential_key || '')).sort();
-    if (new Set(incoming).size !== incoming.length) throw new Error('Credential migration contains duplicate keys.');
+    const incoming = validated.rows.map(row => String(row.credential_key || '')).sort();
     if (JSON.stringify(current) !== JSON.stringify(incoming)) {
       throw new Error('Credential migration key set does not match the staged database.');
-    }
-
-    for (const row of rows) {
-      const key = String(row?.credential_key || '');
-      const encrypted = String(row?.encrypted_value || '');
-      if (!key || !encrypted) throw new Error('Credential migration row is incomplete.');
-      await verifyCredentialCiphertext(encrypted, targetKey);
     }
 
     const update = db.prepare('UPDATE platform_credentials SET encrypted_value=? WHERE credential_key=?');
     db.exec('BEGIN IMMEDIATE;');
     try {
-      for (const row of rows) update.run(String(row.encrypted_value), String(row.credential_key));
+      for (const row of validated.rows) update.run(String(row.encrypted_value), String(row.credential_key));
       db.exec('COMMIT;');
     } catch (error) {
       try { db.exec('ROLLBACK;'); } catch {}
       throw error;
     }
 
-    const digestInput = rows
-      .map(row => String(row.credential_key) + ':' + String(row.encrypted_value))
-      .sort()
-      .join('\n');
-    const ciphertextSha256 = crypto.createHash('sha256').update(digestInput).digest('hex');
-    const meta = {
+    return {
       ok: true,
-      staged_at: new Date().toISOString(),
-      count: rows.length,
-      ciphertext_sha256: ciphertextSha256
+      count: validated.count,
+      ciphertext_sha256: validated.ciphertext_sha256
     };
-    await fs.writeFile(dbPath + '.credentials.json', JSON.stringify(meta, null, 2), { mode: 0o600 });
-    return meta;
   } finally {
     db.close();
   }
+}
+
+async function readStandaloneVaultKey(runtimeSecretsFile) {
+  const secrets = JSON.parse(await fs.readFile(runtimeSecretsFile, 'utf8'));
+  const targetKey = String(secrets?.INTEGRATION_CREDENTIALS_KEY || '');
+  if (targetKey.length < 32) throw new Error('Standalone integration credential key is not staged.');
+  return targetKey;
+}
+
+async function applyPendingCredentialVaultRewrap(dbPath, {
+  pendingPath,
+  runtimeSecretsFile
+} = {}) {
+  if (!pendingPath || !(await fileExists(pendingPath))) return null;
+  const targetKey = await readStandaloneVaultKey(runtimeSecretsFile);
+  const payload = JSON.parse(await fs.readFile(pendingPath, 'utf8'));
+  const validated = await validateCredentialVaultPayload(payload, targetKey);
+  const result = await applyCredentialVaultRows(dbPath, validated.rows, targetKey);
+  return { ...result, pending_applied: true, pending_path: pendingPath };
+}
+
+export async function stageCredentialVaultRewrap(payload, {
+  targetPath = '/app/persist/migration/production.sqlite',
+  runtimeSecretsFile = '/app/persist/secrets/runtime.json'
+} = {}) {
+  const targetKey = await readStandaloneVaultKey(runtimeSecretsFile);
+  const validated = await validateCredentialVaultPayload(payload, targetKey);
+  const dbPath = path.resolve(targetPath);
+  const pendingPath = dbPath + '.credential-rewrap.pending.json';
+
+  if (!(await fileExists(dbPath))) {
+    await fs.mkdir(path.dirname(dbPath), { recursive: true });
+    const tempPendingPath = pendingPath + '.' + crypto.randomUUID() + '.tmp';
+    await fs.writeFile(
+      tempPendingPath,
+      JSON.stringify({ count: validated.count, rows: validated.rows }),
+      { mode: 0o600 }
+    );
+    await fs.rename(tempPendingPath, pendingPath);
+    return {
+      ok: true,
+      pending: true,
+      count: validated.count,
+      ciphertext_sha256: validated.ciphertext_sha256
+    };
+  }
+
+  const result = await applyCredentialVaultRows(dbPath, validated.rows, targetKey);
+  const meta = {
+    ...result,
+    pending: false,
+    staged_at: new Date().toISOString()
+  };
+  await fs.writeFile(dbPath + '.credentials.json', JSON.stringify(meta, null, 2), { mode: 0o600 });
+  await fs.rm(pendingPath, { force: true });
+  return meta;
 }

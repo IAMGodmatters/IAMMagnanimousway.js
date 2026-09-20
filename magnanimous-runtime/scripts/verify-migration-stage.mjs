@@ -101,6 +101,36 @@ try {
   const targetKey='verification-target-key-0123456789abcdef0123456789abcdef';
   await fs.writeFile(secretFile,JSON.stringify({INTEGRATION_CREDENTIALS_KEY:targetKey}),{mode:0o600});
   const rewrapped=await encryptCredential('verification-provider-secret',targetKey);
+
+  const queuedTarget=path.join(root,'queued-production.sqlite');
+  const queuedResult=await stageCredentialVaultRewrap({
+    count:1,
+    rows:[{credential_key:'TWILIO_AUTH_TOKEN',encrypted_value:rewrapped,updated_at:1,updated_by:'owner'}]
+  },{targetPath:queuedTarget,runtimeSecretsFile:secretFile});
+  assert.equal(queuedResult.ok,true);
+  assert.equal(queuedResult.pending,true);
+  assert.equal(queuedResult.count,1);
+  assert.equal((await fs.stat(queuedTarget + '.credential-rewrap.pending.json')).isFile(),true);
+
+  const queuedStage=await stageD1SqliteSnapshot(await fs.readFile(sourcePath),{
+    migrationRoot:root,
+    targetPath:queuedTarget,
+    runtimeSecretsFile:secretFile,
+    source:{
+      repository:'IAMGodmatters/IAMMagnanimousway.js',
+      ref:'refs/heads/main',
+      sha:'verification-queued-rewrap',
+      workflow_ref:'IAMGodmatters/IAMMagnanimousway.js/.github/workflows/magnanimous-production-data-stage.yml@refs/heads/main'
+    }
+  });
+  assert.equal(queuedStage.ok,true);
+  assert.equal(queuedStage.credential_rewrap?.pending_applied,true);
+  assert.equal(await fs.access(queuedTarget + '.credential-rewrap.pending.json').then(()=>true,()=>false),false);
+  const queuedDb=new DatabaseSync(queuedTarget,{readOnly:true});
+  const queuedCredential=queuedDb.prepare('SELECT encrypted_value FROM platform_credentials WHERE credential_key=?').get('TWILIO_AUTH_TOKEN');
+  queuedDb.close();
+  assert.equal(queuedCredential.encrypted_value,rewrapped);
+
   const rewrapResult=await stageCredentialVaultRewrap({
     count:1,
     rows:[{credential_key:'TWILIO_AUTH_TOKEN',encrypted_value:rewrapped,updated_at:1,updated_by:'owner'}]
