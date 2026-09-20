@@ -14,6 +14,7 @@ import { currentUser } from './integrations.js';
 import { isPlatformOwnerUser } from './agent-branch-intelligence.js';
 import { handleVideoAgents } from './video-agent-runtime.js';
 import { handleRenderEngine } from './magnanimous-render-engine.js';
+import { handleProductionSecretBridge } from './magnanimous-production-secret-bridge.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -170,6 +171,8 @@ export default {
         database_independent:true
       },{headers:{'cache-control':'no-store'}}));
     }
+    const secretBridge=await handleProductionSecretBridge(request,env);
+    if(secretBridge)return finalizeResponse(request,secretBridge);
     const requestId=requestCorrelationId(request);
     let carrierContext=null;
     let assistantContext=null;
