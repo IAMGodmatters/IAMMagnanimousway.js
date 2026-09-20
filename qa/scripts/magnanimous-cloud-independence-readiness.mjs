@@ -48,7 +48,9 @@ const required=[
  '.github/workflows/magnanimous-cloud-exit-lock.yml',
  '.github/workflows/magnanimous-production-data-stage.yml',
  '.github/workflows/magnanimous-runtime-secrets-stage.yml',
- 'worker/src/magnanimous-cloud-provider-core.js'
+ 'worker/src/magnanimous-cloud-provider-core.js',
+ 'worker/src/github-actions-oidc.js',
+ 'worker/src/credential-vault-migration.js'
 ];
 for(const file of required)must(exists(file),'Missing cloud-independence component: '+file);
 
@@ -66,7 +68,7 @@ for(const contract of [
  'MAGNANIMOUS_EVENTS','MAGNANIMOUS_VECTORIZE','MAGNANIMOUS_ANALYTICS','MAGNANIMOUS_SECRETS',
  'MAGNANIMOUS_PIPELINE','MAGNANIMOUS_SANDBOX','MAGNANIMOUS_BROWSER','MAGNANIMOUS_IMAGES','MAGNANIMOUS_IMAGE_GENERATOR',
  'MAGNANIMOUS_CLOUD_CONTROL','CLOUD_CONTROL','/__magnanimous_runtime/cloud',
- '/__magnanimous_runtime/metrics','/__magnanimous_runtime/services','/__magnanimous_runtime/migration/stage-d1','/__magnanimous_runtime/migration/stage-secrets'
+ '/__magnanimous_runtime/metrics','/__magnanimous_runtime/services','/__magnanimous_runtime/migration/stage-d1','/__magnanimous_runtime/migration/stage-secrets','/__magnanimous_runtime/migration/stage-credential-rewrap'
 ])must(server.includes(contract),'Standalone server contract missing: '+contract);
 
 const compose=read('magnanimous-runtime/docker-compose.yml');
@@ -146,6 +148,7 @@ for(const contract of [
  "claims.workflow_ref",
  'stageD1SqlExport',
  'stageD1SqliteSnapshot',
+ 'stageCredentialVaultRewrap',
  'SQLite integrity_check',
  'inside the configured migration root'
 ]) must(migrationStage.includes(contract),'Migration staging security contract missing: '+contract);
@@ -176,10 +179,24 @@ must(bootstrap.includes('loadRuntimeSecrets'),'Standalone bootstrap must load pe
 must(bootstrap.indexOf('loadRuntimeSecrets')<bootstrap.indexOf("import('./server.mjs')"),'Persistent runtime secrets must load before the standalone server module.');
 const runtimeSecretsWorkflow=read('.github/workflows/magnanimous-runtime-secrets-stage.yml');
 must(runtimeSecretsWorkflow.includes('id-token: write'),'Runtime secret staging must use GitHub OIDC.');
-must(runtimeSecretsWorkflow.includes('INTEGRATION_CREDENTIALS_KEY: ${{ secrets.INTEGRATION_CREDENTIALS_KEY }}'),'Runtime secret staging must preserve the production integration vault key.');
-must(runtimeSecretsWorkflow.includes('/__magnanimous_runtime/migration/stage-secrets'),'Runtime secret staging must target the signed standalone endpoint.');
-must(runtimeSecretsWorkflow.includes('encrypted platform credential rows'),'Runtime secret staging must fail if encrypted vault rows exist without the production vault key.');
+must(runtimeSecretsWorkflow.includes('openssl rand -hex 32'),'Runtime secret staging must generate a fresh standalone vault key.');
+must(runtimeSecretsWorkflow.includes('magnanimous-credential-rewrap'),'Runtime secret staging must request a dedicated OIDC audience for production vault rewrap.');
+must(runtimeSecretsWorkflow.includes('/api/internal/migration/rewrap-platform-credentials'),'Runtime secret staging must call the signed production rewrap endpoint.');
+must(runtimeSecretsWorkflow.includes('/__magnanimous_runtime/migration/stage-secrets'),'Runtime secret staging must stage the fresh standalone key.');
+must(runtimeSecretsWorkflow.includes('/__magnanimous_runtime/migration/stage-credential-rewrap'),'Runtime secret staging must apply only rewrapped ciphertext to the staged database.');
+must(!runtimeSecretsWorkflow.includes('secrets.INTEGRATION_CREDENTIALS_KEY'),'Runtime secret staging must not require the old production vault key outside production.');
 must(!runtimeSecretsWorkflow.includes('upload-artifact'),'Runtime secrets must never be uploaded as workflow artifacts.');
+const workerOidc=read('worker/src/github-actions-oidc.js');
+for(const contract of ['token.actions.githubusercontent.com','RSASSA-PKCS1-v1_5','claims.repository','claims.ref','workflow_ref'])
+ must(workerOidc.includes(contract),'Worker GitHub OIDC contract missing: '+contract);
+const credentialMigration=read('worker/src/credential-vault-migration.js');
+must(credentialMigration.includes('magnanimous-credential-rewrap'),'Production credential rewrap must require the dedicated OIDC audience.');
+must(credentialMigration.includes('rewrapPlatformCredentialsForMigration'),'Production credential rewrap must remain inside the platform vault implementation.');
+const platformCredentials=read('worker/src/platform-credentials.js');
+must(platformCredentials.includes('rewrapPlatformCredentialsForMigration'),'Platform credential migration rewrap implementation missing.');
+must(platformCredentials.includes('const plain=await decrypt'),'Production vault migration must decrypt only inside the production runtime.');
+must(platformCredentials.includes('const encrypted=await encrypt'),'Production vault migration must re-encrypt before returning rows.');
+must(!credentialMigration.includes('plain'),'Migration handler must never return a plaintext credential field.');
 
 const sandbox=read('magnanimous-runtime/services/sandbox-service.mjs');
 must(sandbox.includes("shell:false"),'Sandbox process execution must not use shell interpolation.');
