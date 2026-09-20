@@ -121,6 +121,10 @@ jobs:
             return text;
           };
           await checked('http://127.0.0.1:8788/__magnanimous_runtime/health');
+          const cloud=JSON.parse(await checked('http://127.0.0.1:8788/__magnanimous_runtime/cloud',{headers:{'x-magnanimous-service-token':token}}));
+          if(cloud.identity!=='Magnanimous Cloud'||cloud.external_provider_required_for_control_plane!==false)throw new Error('Release bundle Magnanimous Cloud control plane failed.');
+          if(cloud.physical_capacity_required_for_compute!==true)throw new Error('Release bundle lost the physical-capacity truth boundary.');
+          console.log('Release Magnanimous Cloud control plane PASS');
           const services=JSON.parse(await checked('http://127.0.0.1:8788/__magnanimous_runtime/services',{headers:{'x-magnanimous-service-token':token}}));
           if(Object.values(services.services||{}).some(v=>v.configured&&!v.ok))throw new Error('Release bundle service health failed.');
           const browser=JSON.parse(await checked('http://browser:8792/render',{
@@ -135,7 +139,7 @@ jobs:
             body:JSON.stringify({url:'https://example.com',mode:'screenshot',timeout_ms:45000})
           }));
           if(!screenshot.base64||Number(screenshot.bytes||0)<1||screenshot.content_type!=='image/png')throw new Error('Release bundle Chromium snapshot render failed.');
-          console.log('Offline Magnanimous release bundle smoke PASS');
+          console.log('Offline Magnanimous release bundle + cloud control smoke PASS');
           NODE
 
       - name: Stop release proof services
