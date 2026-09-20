@@ -102,8 +102,7 @@ function wranglerQuery(sql){
   return String(result.stdout||'');
 }
 
-function remoteQuery(sql){
-  const raw=directD1Api?directApiQuery(sql):wranglerQuery(sql);
+function parseRemoteRows(raw){
   let payload;
   try{payload=JSON.parse(raw)}catch(error){
     throw new Error('D1 JSON response could not be parsed: '+String(error?.message||error));
@@ -112,6 +111,21 @@ function remoteQuery(sql){
     throw new Error('D1 read query API returned an error.');
   }
   return collectResultRows(payload);
+}
+
+function remoteQuery(sql){
+  if(!directD1Api)return parseRemoteRows(wranglerQuery(sql));
+  try{
+    return parseRemoteRows(directApiQuery(sql));
+  }catch(directError){
+    const message=String(directError?.message||directError);
+    console.warn('Magnanimous D1 direct API read failed; using Wrangler read fallback: '+message.slice(-500));
+    try{
+      return parseRemoteRows(wranglerQuery(sql));
+    }catch(fallbackError){
+      throw new Error('D1 read failed on direct API and Wrangler fallback. Direct: '+message.slice(-1500)+' Fallback: '+String(fallbackError?.message||fallbackError).slice(-1500));
+    }
+  }
 }
 
 function one(sql){
