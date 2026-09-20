@@ -21,9 +21,11 @@ const required=[
  'magnanimous-runtime/src/image-generation-binding.mjs',
  'magnanimous-runtime/services/sandbox-service.mjs',
  'magnanimous-runtime/services/browser-service.mjs',
+ 'magnanimous-runtime/services/browser-egress-service.mjs',
  'magnanimous-runtime/services/media-service.mjs',
  'magnanimous-runtime/Dockerfile.sandbox',
  'magnanimous-runtime/Dockerfile.browser',
+ 'magnanimous-runtime/Dockerfile.browser-egress',
  'magnanimous-runtime/Dockerfile.media',
  'magnanimous-runtime/Caddyfile',
  'magnanimous-runtime/dns/Corefile',
@@ -52,7 +54,7 @@ for(const contract of [
 ])must(server.includes(contract),'Standalone server contract missing: '+contract);
 
 const compose=read('magnanimous-runtime/docker-compose.yml');
-for(const contract of ['sandbox:','browser:','media:','authoritative-dns:','internal_services:','no-new-privileges:true','cap_drop:'])
+for(const contract of ['sandbox:','browser:','browser-egress:','media:','authoritative-dns:','internal_services:','browser_services:','no-new-privileges:true','cap_drop:'])
  must(compose.includes(contract),'Hardened compose topology missing: '+contract);
 must(compose.includes('internal: true'),'Sandbox/media network must be internal-only.');
 
@@ -62,6 +64,10 @@ must(sandbox.includes('MAGNANIMOUS_INTERNAL_SERVICE_TOKEN'),'Sandbox token bound
 const browser=read('magnanimous-runtime/services/browser-service.mjs');
 must(browser.includes('Private or local browser targets are blocked.'),'Browser SSRF boundary missing.');
 must(browser.includes('MAGNANIMOUS_INTERNAL_SERVICE_TOKEN'),'Browser token boundary missing.');
+must(browser.includes('MAGNANIMOUS_BROWSER_PROXY'),'Browser must support controlled egress proxying.');
+const egress=read('magnanimous-runtime/services/browser-egress-service.mjs');
+must(egress.includes('Private browser destination blocked.'),'Browser egress private-network block missing.');
+must(egress.includes("server.on('connect'"),'Browser HTTPS CONNECT proxy support missing.');
 const media=read('magnanimous-runtime/services/media-service.mjs');
 must(media.includes("shell:false"),'Media transform must not use shell interpolation.');
 must(media.includes('MAGNANIMOUS_INTERNAL_SERVICE_TOKEN'),'Media token boundary missing.');
