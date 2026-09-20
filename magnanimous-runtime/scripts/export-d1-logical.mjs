@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +13,9 @@ const workerDir=path.join(repoRoot,'worker');
 const target=path.resolve(process.argv[2]||'/tmp/d1-production-logical.sqlite');
 const summaryPath=path.resolve(process.argv[3]||'/tmp/d1-production-logical-summary.json');
 const database=String(process.env.MAGNANIMOUS_SOURCE_D1||'iam-magnanimous-db');
+const databaseId=String(process.env.MAGNANIMOUS_SOURCE_D1_ID||'').trim();
+const accountId=String(process.env.CLOUDFLARE_ACCOUNT_ID||'').trim();
+const apiToken=String(process.env.CLOUDFLARE_API_TOKEN||'').trim();
 const pageSize=Math.max(50,Math.min(1000,Number(process.env.MAGNANIMOUS_D1_PAGE_SIZE||500)));
 
 function qname(name){return '"'+String(name).replaceAll('"','""')+'"'}
@@ -34,7 +38,61 @@ function collectResultRows(payload){
   return rows;
 }
 
-function remoteQuery(sql){
+let apiHeaderFile='';
+function ensureApiHeaderFile(){
+  if(apiHeaderFile)return apiHeaderFile;
+  apiHeaderFile=path.join(os.tmpdir(),'magnanimous-d1-api-'+process.pid+'.headers');
+  fs.writeFileSync(
+    apiHeaderFile,
+    'Content-Type: application/json\nAuthorization: Bearer '+apiToken+'\n',
+    {mode:0o600}
+  );
+  return apiHeaderFile;
+}
+
+function directApiQuery(sql){
+  const endpoint='https://api.cloudflare.com/client/v4/accounts/'+encodeURIComponent(accountId)+
+    '/d1/database/'+encodeURIComponent(databaseId)+'/query';
+  const result=spawnSync(
+    'curl',
+    [
+      '-fsS',
+      '--retry','3',
+      '--retry-delay','1',
+      '--connect-timeout','10',
+      '--max-time','60',
+      '-H','@'+ensureApiHeaderFile(),
+      '--data-binary',JSON.stringify({sql}),
+      endpoint
+    ],
+    {
+      cwd:workerDir,
+      env:process.env,
+      encoding:'utf8',
+      maxBuffer:256*1024*1024,
+      stdio:['ignore','pipe','pipe']
+    }
+  );
+  if(result.error)throw result.error;
+  if(result.status!==0){
+    const detail=String(result.stderr||result.stdout||'').replaceAll(apiToken,'[redacted]');
+    throw new Error('D1 direct API query failed: '+detail.slice(-4000));
+  }
+  let payload;
+  try{payload=JSON.parse(result.stdout)}catch(error){
+    throw new Error('D1 direct API JSON response could not be parsed: '+String(error?.message||error));
+  }
+  if(payload?.success===false||Array.isArray(payload?.errors)&&payload.errors.length){
+    throw new Error('D1 direct API returned an error response.');
+  }
+  const queryResults=Array.isArray(payload?.result)?payload.result:[];
+  if(queryResults.some(item=>item&&item.success===false)){
+    throw new Error('D1 direct API query result reported failure.');
+  }
+  return collectResultRows(payload);
+}
+
+function wranglerQuery(sql){
   const result=spawnSync(
     'npx',
     ['wrangler','d1','execute',database,'--remote','--json','--command',sql],
@@ -48,14 +106,19 @@ function remoteQuery(sql){
   );
   if(result.error) throw result.error;
   if(result.status!==0){
-    const detail=String(result.stderr||result.stdout||'').replaceAll(String(process.env.CLOUDFLARE_API_TOKEN||''),'[redacted]');
-    throw new Error('D1 read query failed: '+detail.slice(-4000));
+    const detail=String(result.stderr||result.stdout||'').replaceAll(apiToken,'[redacted]');
+    throw new Error('D1 Wrangler fallback query failed: '+detail.slice(-4000));
   }
   let payload;
   try{payload=JSON.parse(result.stdout)}catch(error){
     throw new Error('Wrangler D1 JSON response could not be parsed: '+String(error?.message||error));
   }
   return collectResultRows(payload);
+}
+
+function remoteQuery(sql){
+  if(accountId&&apiToken&&databaseId)return directApiQuery(sql);
+  return wranglerQuery(sql);
 }
 
 function one(sql){
@@ -263,9 +326,11 @@ try{
     foreign_key_reconciliation:reconciliation
   };
   fs.writeFileSync(summaryPath,JSON.stringify(finalSummary,null,2),{mode:0o600});
+  if(apiHeaderFile)await fs.promises.rm(apiHeaderFile,{force:true});
   console.log('Magnanimous logical D1 snapshot PASS across '+finalSummary.table_count+' logical tables ('+bytes.length+' bytes).');
 }catch(error){
   try{db.close()}catch{}
+  if(apiHeaderFile)await fs.promises.rm(apiHeaderFile,{force:true});
   await fs.promises.rm(target,{force:true});
   await fs.promises.rm(target+'-wal',{force:true});
   await fs.promises.rm(target+'-shm',{force:true});
