@@ -91,6 +91,8 @@ must(logicalExporter.includes('reconcileForeignKeys(db,remoteQuery)'),'Cloud exi
 const snapshotReconcile=read('magnanimous-runtime/src/d1-snapshot-reconcile.mjs');
 must(snapshotReconcile.includes('Production currently contains a foreign-key violation'),'Snapshot reconciliation must fail closed on real production FK violations.');
 must(snapshotReconcile.includes('INSERT OR IGNORE'),'Snapshot reconciliation must not destructively replace parent rows.');
+must(logicalExporter.includes('api.cloudflare.com/client/v4/accounts'),'Cloud-exit snapshot must prefer the direct read-only D1 API fast path.');
+must(logicalExporter.includes('wranglerQuery'),'Cloud-exit snapshot must preserve a Wrangler fallback when direct API configuration is absent.');
 
 const infra=read('worker/src/magnanimous-infrastructure-core.js');
 must(infra.includes("infrastructure_owner: 'Magnanimous AI'"),'Magnanimous must own infrastructure control.');
