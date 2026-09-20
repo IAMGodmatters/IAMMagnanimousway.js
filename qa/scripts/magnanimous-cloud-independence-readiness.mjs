@@ -123,6 +123,11 @@ const cloudApi=read('worker/src/magnanimous-cloud-provider-core.js');
 must(cloudApi.includes('MAGNANIMOUS_CLOUD_ABSORPTION_MAP'),'Magnanimous Cloud absorption registry missing.');
 must(cloudApi.includes('proprietary_copying: false'),'Cloud absorption must forbid proprietary copying.');
 must(cloudApi.includes('/api/magnanimous/cloud/resources'),'Magnanimous Cloud resource API missing.');
+const visibleToolBlock=cloudApi.slice(cloudApi.indexOf('DIGITALOCEAN_VISIBLE_TOOL_CONTRACTS'),cloudApi.indexOf('function nativeContractForObservedTool'));
+const observedToolContracts=[...visibleToolBlock.matchAll(/'([a-z0-9_]+)'/g)].map(match=>match[1]);
+must(observedToolContracts.length===54,'Expected all 54 visible DigitalOcean tool contracts to be absorbed; found '+observedToolContracts.length+'.');
+for(const tool of ['droplet_create','droplet_delete','image_create','key_create','region_list','size_list','snapshot_droplet','billing_history_list'])
+ must(observedToolContracts.includes(tool),'Visible DigitalOcean tool absorption missing: '+tool);
 
 const sandbox=read('magnanimous-runtime/services/sandbox-service.mjs');
 must(sandbox.includes("shell:false"),'Sandbox process execution must not use shell interpolation.');
