@@ -351,7 +351,7 @@ async function handle(request, env) {
     const learningState=[...learnedScores.entries()].map(([provider,x])=>({provider,...x}));
     const signedInUser=computeOnly?null:await currentUser(request,env).catch(()=>null),localBridgeReady=signedInUser?await hasReadyLocalBridge(env,signedInUser.tenant_id).catch(()=>false):false;
     const ogenicRuntimeEnv=localBridgeReady?{...env,MAGNANIMOUS_LOCAL_BRIDGE_READY:true}:env;
-    const ogenicPlan=computeOnly?{classification:'CLOUD',groups:[],initiative:'disabled',status:'compute-only',network_direction:'none'}:buildMagnanimousOgenicPlan(userMessage,ogenicRuntimeEnv),ogenicContext=computeOnly?'':getMagnanimousOgenicPrompt(userMessage);
+    const ogenicPlan=computeOnly?{classification:'CLOUD',groups:[],initiative:'disabled',status:'compute-only',network_direction:'none'}:buildMagnanimousOgenicPlan(userMessage,ogenicRuntimeEnv),ogenicContext=computeOnly?'':getMagnanimousOgenicPrompt(userMessage),absorbedCapabilityContext=computeOnly?'':getConnectorAbsorptionPrompt(userMessage);
     let ogenicInitiative=null;
     if(!computeOnly&&body.use_tools!==false&&body.ogenic_initiative!==false&&(ogenicPlan.groups.some(x=>x.id==='code-system')||ogenicPlan.classification==='LOCAL'||ogenicPlan.classification==='HYBRID')){
       try{
