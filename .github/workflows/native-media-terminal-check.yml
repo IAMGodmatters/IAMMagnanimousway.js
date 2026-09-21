@@ -1,0 +1,46 @@
+name: Native Media and Terminal Independence
+
+on:
+  push:
+    paths:
+      - 'worker/src/magnanimous-native-media-studio.js'
+      - 'worker/src/magnanimous-native-terminal.js'
+      - 'worker/src/magnanimous-local-bridge-runtime.js'
+      - 'worker/src/magnanimous-capability-mesh.js'
+      - 'local-bridge/bridge_agent.py'
+      - 'qa/scripts/native-media-terminal-lock.mjs'
+      - '.github/workflows/native-media-terminal-check.yml'
+  pull_request:
+    paths:
+      - 'worker/src/magnanimous-native-media-studio.js'
+      - 'worker/src/magnanimous-native-terminal.js'
+      - 'worker/src/magnanimous-local-bridge-runtime.js'
+      - 'worker/src/magnanimous-capability-mesh.js'
+      - 'local-bridge/bridge_agent.py'
+      - 'qa/scripts/native-media-terminal-lock.mjs'
+      - '.github/workflows/native-media-terminal-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check worker/src/magnanimous-native-media-studio.js
+          node --check worker/src/magnanimous-native-terminal.js
+          node --check worker/src/magnanimous-local-bridge-runtime.js
+          node --check worker/src/magnanimous-capability-mesh.js
+      - name: Check Python syntax
+        run: python -m py_compile local-bridge/bridge_agent.py
+      - name: Verify independence and safety contracts
+        run: node qa/scripts/native-media-terminal-lock.mjs
+      - name: Verify patch whitespace
+        run: git diff --check HEAD^ HEAD || git diff --check
