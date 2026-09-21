@@ -170,24 +170,16 @@ async function branchRequest(request,env,ctx){
   if(!routed)return null;
   const agent=agents.find(a=>String(a.id)===String(routed.id))||routed;
   const profile=branchProfile(agent);
-  const knowledge=await branchKnowledge(env,user?.tenant_id||'',agent.id,12);
-  const context=branchKnowledgeContext(profile,knowledge);
-  const internal=`\n\nAUTOMATIC SPECIALIST HANDOFF — apply silently.\nMagnanimous has routed this request to ${agent.name}, its ${agent.title} specialist branch.\n${context}\n\nAnswer the user's request now as ${agent.name}. Do not ask a follow-up question instead of giving a useful answer when reasonable assumptions are enough. Ask only when safety, authorization, or a truly indispensable missing fact makes an answer impossible. Do not introduce yourself because the platform will add the specialist greeting automatically.`;
   const meshUrl=new URL(request.url);meshUrl.pathname='/api/agents/chat';meshUrl.search='';
-  const forwarded=new Request(meshUrl.toString(),{method:'POST',headers:request.headers,body:JSON.stringify({agent_id:agent.id,provider:'auto',message:`${original}${internal}`})});
+  const forwarded=new Request(meshUrl.toString(),{method:'POST',headers:request.headers,body:JSON.stringify({agent_id:agent.id,provider:'auto',message:original})});
   const response=await baseApp.fetch(forwarded,env,ctx);
-  if(user?.tenant_id){
-   try{
-    await env.DB.prepare("UPDATE agent_mesh_messages SET content=? WHERE id=(SELECT id FROM agent_mesh_messages WHERE tenant_id=? AND agent_id=? AND role='user' ORDER BY id DESC LIMIT 1)").bind(original,user.tenant_id,agent.id).run();
-   }catch{}
-  }
   const data=await response.clone().json().catch(()=>null);
   if(!data)return response;
   if(!response.ok)return sanitizeCustomerAiResponse(request,response);
   const intro=specialistIntroduction(routed);
   const answer=String(data.output||data.answer||'').trim();
   const publicData=stripExecutionMetadata(data);
-  return json({...publicData,output:`${intro}\n\n${answer}`,specialist_handoff:true,specialist:{id:agent.id,name:agent.name,title:agent.title,specialty:routed.specialty,introduction:intro,branch:profile},branch_knowledge_count:knowledge.length,global_branch_knowledge_count:knowledge.filter(x=>x.scope==='global').length,routed_by:'Magnanimous AI',handoff_execution:'agent-mesh-bounded'},response.status);
+  return json({...publicData,output:`${intro}\n\n${answer}`,specialist_handoff:true,specialist:{id:agent.id,name:agent.name,title:agent.title,specialty:routed.specialty,introduction:intro,branch:profile},branch_knowledge_count:Number(data.branch_knowledge_count||0),global_branch_knowledge_count:Number(data.global_branch_knowledge_count||0),routed_by:'Magnanimous AI',handoff_execution:'agent-mesh-bounded'},response.status);
  }
 
  if(!user)return null;
@@ -256,19 +248,13 @@ async function branchRequest(request,env,ctx){
   const agent=agents.find(a=>String(a.id).toLowerCase()===requestedId);
   if(!agent)return null;
   const cleanMessage=named?.cleaned||original;
-  const knowledge=await branchKnowledge(env,user.tenant_id,agent.id,20);
   const profile=branchProfile(agent);
-  const context=branchKnowledgeContext(profile,knowledge);
-  const internal=`\n\nSPECIALIST BRANCH CONTEXT — apply this silently; do not quote it back to the user.\n${context}\n\nThe user is speaking to ${agent.name}. Stay in ${agent.name}'s ${agent.title} responsibility unless a handoff is genuinely needed. Answer the request directly. Do not replace a useful answer with a follow-up question when reasonable assumptions are sufficient.`;
-  const forwarded=new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify({...body,agent_id:agent.id,message:`${cleanMessage}${internal}`})});
+  const forwarded=new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify({...body,agent_id:agent.id,message:cleanMessage})});
   const response=await baseApp.fetch(forwarded,env,ctx);
-  try{
-   await env.DB.prepare("UPDATE agent_mesh_messages SET content=? WHERE id=(SELECT id FROM agent_mesh_messages WHERE tenant_id=? AND agent_id=? AND role='user' ORDER BY id DESC LIMIT 1)").bind(cleanMessage,user.tenant_id,agent.id).run();
-  }catch{}
   const data=await response.clone().json().catch(()=>null);
   if(!data)return response;
   const publicData=stripExecutionMetadata(data);
-  return json({...publicData,agent:{...(data.agent||agent),branch:profile},branch_identity:true,branch_knowledge_count:knowledge.length,global_branch_knowledge_count:knowledge.filter(x=>x.scope==='global').length,spoken_name_routing:Boolean(named)},response.status);
+  return json({...publicData,agent:{...(data.agent||agent),branch:profile},branch_identity:true,branch_knowledge_count:Number(data.branch_knowledge_count||0),global_branch_knowledge_count:Number(data.global_branch_knowledge_count||0),spoken_name_routing:Boolean(named)},response.status);
  }
  return null;
 }
