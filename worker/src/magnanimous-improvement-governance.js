@@ -44,18 +44,18 @@ export const MAGNANIMOUS_IMPROVEMENT_GOVERNANCE=Object.freeze({
 });
 
 const ROWS=Object.freeze([
-  ['baseline-preservation','Baseline preservation and no-reset discipline','magnanimous-release-governance','none',['preserve-current-main','never-reset-to-stale-artifact','reconcile-newer-work-first']],
-  ['authority-precedence','Authority and precedence register','magnanimous-policy-core','none',['owner-requirements-first','reviewed-corrections-over-provisional-text','record-conflict-resolution']],
-  ['exact-release-identity','Exact release identity and acceptance receipts','magnanimous-release-governance','none',['commit-tree-schema-model-data-config-dependency-asset-identity','scope-bound-evidence']],
-  ['single-source-control','Single source of control with supersession edges','magnanimous-knowledge-governance','none',['canonical-authority-pointer','historical-superseded-by-edges','no-competing-default-master']],
-  ['source-rights-provenance','Operation-specific source rights and provenance','magnanimous-data-governance','authorized-source-boundary',['acquire-retain-train-process-rights-separated','unknown-not-approved','rights-evidence-ledger']],
-  ['capability-utilization-ledger','Capability utilization and loss ledger','magnanimous-capability-realization','none',['available-to-published-lifecycle','explicit-gap-states','consumer-use-evidence']],
-  ['bounded-worker-ownership','Bounded workers, leases and single-writer ownership','magnanimous-agent-orchestrator','none',['bounded-parallelism','one-writer-per-shared-source','single-integrator','independent-reviewer']],
-  ['repair-loop','Evidence-driven repair loop','magnanimous-verification-core','none',['baseline-implement-test-review-integrate-regress-canary','reopen-precise-failure','persist-resumable-state']],
-  ['release-gates','Evidence-backed release gates','magnanimous-verification-core','none',['mandatory-gates','positive-real-cases','independent-review','rollback-and-canary']],
+  ['baseline-preservation','Baseline preservation and no-reset discipline','evidence-auditor','none',['preserve-current-main','never-reset-to-stale-artifact','reconcile-newer-work-first']],
+  ['authority-precedence','Authority and precedence register','operations-hub','none',['owner-requirements-first','reviewed-corrections-over-provisional-text','record-conflict-resolution']],
+  ['exact-release-identity','Exact release identity and acceptance receipts','evidence-auditor','none',['commit-tree-schema-model-data-config-dependency-asset-identity','scope-bound-evidence']],
+  ['single-source-control','Single source of control with supersession edges','knowledge-workspace','none',['canonical-authority-pointer','historical-superseded-by-edges','no-competing-default-master']],
+  ['source-rights-provenance','Operation-specific source rights and provenance','knowledge-workspace','authorized-source-boundary',['acquire-retain-train-process-rights-separated','unknown-not-approved','rights-evidence-ledger']],
+  ['capability-utilization-ledger','Capability utilization and loss ledger','operations-hub','none',['available-to-published-lifecycle','explicit-gap-states','consumer-use-evidence']],
+  ['bounded-worker-ownership','Bounded workers, leases and single-writer ownership','agent-mesh','none',['bounded-parallelism','one-writer-per-shared-source','single-integrator','independent-reviewer']],
+  ['repair-loop','Evidence-driven repair loop','evidence-auditor','none',['baseline-implement-test-review-integrate-regress-canary','reopen-precise-failure','persist-resumable-state']],
+  ['release-gates','Evidence-backed release gates','evidence-auditor','none',['mandatory-gates','positive-real-cases','independent-review','rollback-and-canary']],
   ['evidence-state-separation','Observed, tested, reviewed and deployed state separation','magnanimous-observability','none',['no-state-collapsing','no-candidate-live-confusion','runtime-proof']],
-  ['handoff-honesty','Handoff and evidence honesty','magnanimous-verification-core','none',['direct-observation-separated-from-receipts','no-unperformed-action-claims','new-defects-become-owned-tasks']],
-  ['scope-preservation','Required-scope preservation','magnanimous-policy-core','none',['new-subsystem-does-not-erase-working-requirements','unsupported-does-not-equal-complete','no-quiet-scope-reduction']]
+  ['handoff-honesty','Handoff and evidence honesty','evidence-auditor','none',['direct-observation-separated-from-receipts','no-unperformed-action-claims','new-defects-become-owned-tasks']],
+  ['scope-preservation','Required-scope preservation','operations-hub','none',['new-subsystem-does-not-erase-working-requirements','unsupported-does-not-equal-complete','no-quiet-scope-reduction']]
 ]);
 
 export function getImprovementGovernanceManifest(){
