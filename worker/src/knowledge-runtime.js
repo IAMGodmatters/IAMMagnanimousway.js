@@ -5,8 +5,29 @@ const now=()=>Math.floor(Date.now()/1000);
 const MAX_SOURCE_CHARS=240000;
 const MAX_CHUNK_CHARS=2600;
 const MAX_CHUNKS=80;
+const SEARCH_TIMEOUT_MS=7000;
+const SEARCH_MEMORY_TIMEOUT_MS=2500;
+let knowledgeSchemaReady=false;
+let knowledgeSchemaPromise=null;
+
+async function fetchWithTimeout(input,init={},timeoutMs=SEARCH_TIMEOUT_MS){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort('search-timeout'),Math.max(1000,Number(timeoutMs)||SEARCH_TIMEOUT_MS));
+  try{return await fetch(input,{...init,signal:controller.signal})}finally{clearTimeout(timer)}
+}
+async function settleWithin(promise,timeoutMs,label='operation'){
+  let timer;
+  try{
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label} timed out`)),Math.max(500,Number(timeoutMs)||1000))})
+    ]);
+  }finally{clearTimeout(timer)}
+}
 
 async function ensureTables(env){
+  if(!env?.DB||knowledgeSchemaReady)return;
+  if(knowledgeSchemaPromise)return knowledgeSchemaPromise;
+  knowledgeSchemaPromise=(async()=>{
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS knowledge_sources (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tenant_id TEXT NOT NULL,
@@ -42,6 +63,9 @@ async function ensureTables(env){
     detail_json TEXT NOT NULL DEFAULT '{}',
     created_at INTEGER NOT NULL
   )`).run();
+  knowledgeSchemaReady=true;
+  })().catch(error=>{knowledgeSchemaPromise=null;throw error});
+  return knowledgeSchemaPromise;
 }
 
 function decodeEntities(s){return String(s||'').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>');}
@@ -124,12 +148,12 @@ function searchState(env){
 async function braveSearch(env,q,type='web',count=6,freshness=''){
   const key=String(env.BRAVE_SEARCH_API_KEY||'').trim();if(!key)return{configured:false,results:[]};
   const endpoint=type==='news'?'news':'web';const u=new URL(`https://api.search.brave.com/res/v1/${endpoint}/search`);u.searchParams.set('q',String(q).slice(0,400));u.searchParams.set('count',String(Math.max(1,Math.min(count,10))));u.searchParams.set('search_lang','en');if(freshness)u.searchParams.set('freshness',freshness);
-  const r=await fetch(u,{headers:{Accept:'application/json','X-Subscription-Token':key}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.message||d?.error?.message||`Brave search failed (${r.status})`);
+  const r=await fetchWithTimeout(u,{headers:{Accept:'application/json','X-Subscription-Token':key}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.message||d?.error?.message||`Brave search failed (${r.status})`);
   const raw=type==='news'?(d.results||[]):(d.web?.results||[]);return{configured:true,provider:type==='news'?'brave-news':'brave-search',results:raw.slice(0,count).map(x=>({title:String(x.title||'Result'),url:String(x.url||''),description:String(x.description||x.snippet||''),age:x.age||'',source:type==='news'?'brave-news':'brave-web'}))};
 }
 async function cl0qSearch(q,count=6){
   const u=new URL('https://cl0q.com/search');u.searchParams.set('q',String(q).slice(0,400));u.searchParams.set('limit',String(Math.max(1,Math.min(count,10))));u.searchParams.set('safe','1');
-  const r=await fetch(u,{headers:{Accept:'application/json','User-Agent':'I-AM-Magnanimous-Research/1.0'}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error||`Public web search failed (${r.status})`);
+  const r=await fetchWithTimeout(u,{headers:{Accept:'application/json','User-Agent':'I-AM-Magnanimous-Research/1.0'}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error||`Public web search failed (${r.status})`);
   const raw=Array.isArray(d?.results)?d.results:Array.isArray(d?.result)?d.result:[];
   return raw.slice(0,count).map(x=>({
     title:String(x.title||x.page_title||x.h1||x.domain||'Web result'),
@@ -141,12 +165,12 @@ async function cl0qSearch(q,count=6){
 }
 async function wikipediaSearch(q,count=6){
   const u=new URL('https://en.wikipedia.org/w/api.php');u.searchParams.set('action','query');u.searchParams.set('list','search');u.searchParams.set('srsearch',String(q).slice(0,300));u.searchParams.set('srlimit',String(Math.max(1,Math.min(count,10))));u.searchParams.set('format','json');u.searchParams.set('origin','*');
-  const r=await fetch(u,{headers:{Accept:'application/json','User-Agent':'I-AM-Magnanimous-Research/1.0'}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(`Reference search failed (${r.status})`);
+  const r=await fetchWithTimeout(u,{headers:{Accept:'application/json','User-Agent':'I-AM-Magnanimous-Research/1.0'}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(`Reference search failed (${r.status})`);
   return (d?.query?.search||[]).slice(0,count).map(x=>({title:String(x.title||'Reference result'),url:`https://en.wikipedia.org/?curid=${encodeURIComponent(String(x.pageid||''))}`,description:htmlToText(x.snippet||''),age:'',source:'wikipedia-reference'}));
 }
 async function googleNewsSearch(q,count=6){
   const u=new URL('https://news.google.com/rss/search');u.searchParams.set('q',String(q).slice(0,300));u.searchParams.set('hl','en-US');u.searchParams.set('gl','US');u.searchParams.set('ceid','US:en');
-  const r=await fetch(u,{headers:{Accept:'application/rss+xml, application/xml, text/xml','User-Agent':'I-AM-Magnanimous-News/1.0'}});if(!r.ok)throw new Error(`News search failed (${r.status})`);const xml=await r.text();
+  const r=await fetchWithTimeout(u,{headers:{Accept:'application/rss+xml, application/xml, text/xml','User-Agent':'I-AM-Magnanimous-News/1.0'}});if(!r.ok)throw new Error(`News search failed (${r.status})`);const xml=await r.text();
   return rssEntries(xml).slice(0,count).map(x=>({title:x.title,url:x.url,description:x.content||x.title,age:'',source:'google-news-rss'}));
 }
 async function webSearch(env,q,count=6,freshness=''){
@@ -169,10 +193,20 @@ async function rememberResults(env,user,results,sourceType){
 
 export async function getKnowledgeContext(request,env,query,opts={}){
   const state=searchState(env);if(!env?.DB)return{context:'',sources:[],user:null,search_configured:state.configured,search_state:state};await ensureTables(env);const user=await currentUser(request,env);if(!user)return{context:'',sources:[],user:null,search_configured:state.configured,search_state:state};
-  const tenant=String(user.tenant_id),local=await localSearch(env,tenant,query,Number(opts.localLimit||6));let web=[],news=[];
-  if(opts.liveSearch)web=await webSearch(env,query,Number(opts.webLimit||5),opts.freshness||'');
-  if(opts.news)news=await newsSearch(env,query,Number(opts.newsLimit||5),opts.freshness||'pw');
-  if(opts.remember){if(web.length)await rememberResults(env,user,web,'web-search');if(news.length)await rememberResults(env,user,news,'news-search');}
+  const tenant=String(user.tenant_id),local=await localSearch(env,tenant,query,Number(opts.localLimit||6));
+  const [webResult,newsResult]=await Promise.allSettled([
+    opts.liveSearch?webSearch(env,query,Number(opts.webLimit||5),opts.freshness||''):Promise.resolve([]),
+    opts.news?newsSearch(env,query,Number(opts.newsLimit||5),opts.freshness||'pw'):Promise.resolve([])
+  ]);
+  const web=webResult.status==='fulfilled'?webResult.value:[],news=newsResult.status==='fulfilled'?newsResult.value:[];
+  if(webResult.status==='rejected')console.error('bounded web search failed',webResult.reason);
+  if(newsResult.status==='rejected')console.error('bounded news search failed',newsResult.reason);
+  if(opts.remember){
+    const remembers=[];
+    if(web.length)remembers.push(settleWithin(rememberResults(env,user,web,'web-search'),SEARCH_MEMORY_TIMEOUT_MS,'web research memory'));
+    if(news.length)remembers.push(settleWithin(rememberResults(env,user,news,'news-search'),SEARCH_MEMORY_TIMEOUT_MS,'news research memory'));
+    if(remembers.length)await Promise.allSettled(remembers);
+  }
   const sources=[...local.map(x=>({title:x.title,url:x.url,description:x.content,source:x.source_type||'workspace'})),...web,...news].slice(0,16);
   const context=sources.length?`\n\nGROUNDING SOURCES (use these as context; do not claim unsupported facts):\n${sources.map((s,i)=>`[${i+1}] ${s.title}${s.url?` — ${s.url}`:''}\n${String(s.description||'').slice(0,1400)}`).join('\n\n')}\n\nWhen these sources support the answer, cite them as [1], [2], etc. Distinguish stored workspace knowledge from fresh web/news information.`:'';
   return{context,sources,user,search_configured:state.configured,search_state:state};
