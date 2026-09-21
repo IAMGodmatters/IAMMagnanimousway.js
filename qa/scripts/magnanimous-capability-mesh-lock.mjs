@@ -33,7 +33,7 @@ for(const needle of [
  'RAILWAY_ARCHITECTURE_TECHNIQUES',
  'magnanimousCloudflareSummary',
  'magnanimousDevAgentSummary',
- 'hasReadyLocalBridgeCapability',
+ 'findReadyLocalBridgeDevice',
  'magnanimous_capability_mesh_checks',
  'scheduledMagnanimousCapabilityMesh',
  'Mutations are delegated only to existing staged/confirmation-gated handlers'
