@@ -1,6 +1,7 @@
 import { currentUser } from './integrations.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { getB2BCapabilityManifest, getB2BConnectionCatalog, getB2BSummary, MAGNANIMOUS_B2B_POLICY } from './magnanimous-b2b-capability-registry.js';
+import { getB2BProtocolCatalog, getB2BStandardsCatalog, getB2BOpportunityCatalog } from './magnanimous-b2b-universal-fabric.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const clean=v=>String(v??'').trim();
@@ -18,7 +19,14 @@ const CONNECTION_READINESS=Object.freeze({
  travelopro:['TRAVELOPRO_API_KEY'],
  'brex-travel':['BREX_API_TOKEN'],
  navan:['NAVAN_API_TOKEN'],
- netsuite:['NETSUITE_ACCOUNT_ID','NETSUITE_CONSUMER_KEY','NETSUITE_CONSUMER_SECRET','NETSUITE_TOKEN_ID','NETSUITE_TOKEN_SECRET']
+ netsuite:['NETSUITE_ACCOUNT_ID','NETSUITE_CONSUMER_KEY','NETSUITE_CONSUMER_SECRET','NETSUITE_TOKEN_ID','NETSUITE_TOKEN_SECRET'],
+ coupa:['COUPA_BASE_URL','COUPA_CLIENT_ID','COUPA_CLIENT_SECRET'],
+ 'peppol-service-provider':['PEPPOL_ACCESS_POINT_URL','PEPPOL_ACCESS_POINT_TOKEN'],
+ ups:['UPS_CLIENT_ID','UPS_CLIENT_SECRET'],
+ fedex:['FEDEX_CLIENT_ID','FEDEX_CLIENT_SECRET'],
+ dhl:['DHL_API_KEY'],
+ maersk:['MAERSK_CONSUMER_KEY'],
+ travelgate:['TRAVELGATE_ACCESS_TOKEN','TRAVELGATE_PASSWORD']
 });
 
 function readiness(env,connections){
@@ -47,7 +55,12 @@ export const B2B_NORMALIZED_OBJECTS=Object.freeze({
  purchase_order:['id','buyer_id','supplier_id','po_number','items','ship_to','terms','status','receipts','invoice_refs'],
  travel_offer:['id','kind','supplier','source','traveler_scope','segments_or_stay','net_amount','sell_amount','currency','rules','expires_at'],
  travel_order:['id','kind','provider_ref','pnr_or_order_ref','travelers','items','payments','tickets_or_vouchers','status','servicing_actions'],
- settlement:['id','counterparty','type','gross','net','commission','markup','fees','tax','currency','due_at','status']
+ settlement:['id','counterparty','type','gross','net','commission','markup','fees','tax','currency','due_at','status'],
+ trading_document:['id','standard','document_type','sender','receiver','business_ref','payload_ref','validation_status','transport','ack_status'],
+ shipment:['id','mode','carrier','service','origin','destination','packages_or_units','rate','currency','tracking_refs','milestones','status'],
+ procurement_event:['id','buyer','event_type','requirements','suppliers','responses','deadline','evaluation','award_status'],
+ agency_identity:['id','legal_entity','country','tids_code','iata_code','arc_number','accreditation_type','ticketing_authority','verified_at'],
+ travel_settlement:['id','scheme','agency','supplier','period','sales','refunds','commissions','debits_credits','remittance','currency','status']
 });
 
 export const B2B_WORKFLOWS=Object.freeze({
@@ -78,28 +91,61 @@ export const B2B_WORKFLOWS=Object.freeze({
   'monitor schedule/booking changes and servicing queues',
   'support change/cancel/refund/reissue/amendment through the original authorized rail',
   'reconcile supplier settlement, commission, fees and corporate expense'
+ ],
+ procurement:[
+  'discover or receive an enterprise sourcing/procurement opportunity',
+  'normalize buyer requirements, supplier identity, catalog and contract context',
+  'select protocol: API, cXML, X12, EDIFACT, Peppol, SFTP/file or portal',
+  'qualify supplier and verify trading-partner authority',
+  'respond to RFI/RFQ/tender or publish/search supplier catalog',
+  'negotiate price, terms, MOQ, lead time and service levels',
+  'exchange PO / acknowledgement / ASN / receipt / invoice / remittance',
+  'perform three-way match and route exceptions',
+  'reconcile settlement, rebates, credits and supplier scorecards',
+  'retain normalized evidence while keeping outside procurement networks replaceable'
+ ],
+ logistics:[
+  'normalize origin, destination, goods, service level and trade terms',
+  'compare parcel, freight, ocean, warehouse or 3PL rails',
+  'verify live rate, capacity, cutoff and account authority',
+  'create shipment/booking only through an authorized carrier or forwarder',
+  'capture labels/documents/tracking or carrier booking reference',
+  'monitor milestones, exceptions, customs and proof of delivery',
+  'reconcile freight cost against quote/invoice and update landed cost'
+ ],
+ travel_accreditation:[
+  'determine operating country, business model and whether ticket issuance is needed',
+  'separate identification from ticketing authority: TIDS is not BSP accreditation',
+  'prepare business, tax, banking, licensing and recommendation evidence as required',
+  'select TIDS, IATA accreditation/BSP, ARC, host agency or consolidator route',
+  'store identifiers/status only after external approval is evidenced',
+  'verify ticketing and settlement authority before enabling issue/void/refund actions',
+  'track renewals, financial/security requirements and supplier appointments'
  ]
 });
 
 function buildPlan(goal,connections){
  const text=clean(goal).toLowerCase();
- const travel=/flight|airline|hotel|travel|tour|trip|booking|gds|ndc|car rental|transfer/.test(text);
- const sourcing=/wholesale|supplier|manufacturer|dropship|private label|oem|odm|merch|inventory|procurement/.test(text);
+ const travel=/flight|airline|hotel|travel|tour|trip|booking|gds|ndc|one order|bsp|arc|iata|tids|car rental|transfer|cruise|rail|ferry|mice/.test(text);
+ const sourcing=/wholesale|supplier|manufacturer|dropship|private label|oem|odm|merch|inventory|procurement|rfq|rfi|tender|edi|cxml|peppol|x12|edifact/.test(text);
+ const logistics=/shipping|freight|carrier|warehouse|3pl|parcel|ocean|container|tracking|landed cost/.test(text);
  const sales=/prospect|lead|b2b sales|outbound|account|reseller|dealer|distributor/.test(text);
  const families=[];
  if(travel)families.push('travel-distribution');
  if(sourcing)families.push('wholesale-sourcing');
  if(sales)families.push('b2b-sales');
+ if(logistics)families.push('logistics');
  if(!families.length)families.push('b2b-general');
  const recommended=connections.filter(c=>{
-  if(travel)return ['air-travel','hotel-distribution','tours-activities','travel-platform','corporate-travel','travel-metasearch','travel-marketplace','travel-research','payments'].includes(c.family);
-  if(sourcing)return ['commerce','wholesale-sourcing','erp','payments'].includes(c.family);
-  return ['commerce','erp','payments','corporate-travel','air-travel','hotel-distribution'].includes(c.family);
+  if(travel)return ['air-travel','airline-standard','travel-settlement','travel-settlement-us','travel-agency-identity','hotel-distribution','tours-activities','travel-platform','travel-distribution','corporate-travel','travel-metasearch','travel-marketplace','travel-research','ground-travel','payments'].includes(c.family);
+  if(logistics)return ['shipping-logistics','ocean-logistics','trade-data','erp','payments'].includes(c.family);
+  if(sourcing)return ['commerce','wholesale-sourcing','wholesale-marketplace','supplier-discovery','procurement-network','e-procurement','trade-data','erp','shipping-logistics','payments'].includes(c.family);
+  return ['commerce','erp','procurement-network','payments','corporate-travel','air-travel','hotel-distribution'].includes(c.family);
  }).slice(0,12);
  return {
   goal:clean(goal).slice(0,4000),
   families,
-  sequence:travel?B2B_WORKFLOWS.travel:sourcing?B2B_WORKFLOWS.wholesale:[
+  sequence:travel?B2B_WORKFLOWS.travel:logistics?B2B_WORKFLOWS.logistics:sourcing?( /rfq|rfi|tender|edi|cxml|peppol|x12|edifact|procurement/.test(text)?B2B_WORKFLOWS.procurement:B2B_WORKFLOWS.wholesale):[
    'define target business customer and transaction',
    'select the Magnanimous-owned normalized workflow',
    'connect only the outside account/data/settlement rails required for that transaction',
@@ -126,6 +172,9 @@ export async function handleMagnanimousB2B(request,env){
    policy:MAGNANIMOUS_B2B_POLICY,
    normalized_objects:B2B_NORMALIZED_OBJECTS,
    workflows:B2B_WORKFLOWS,
+   protocols:getB2BProtocolCatalog(),
+   standards:getB2BStandardsCatalog(),
+   opportunities:getB2BOpportunityCatalog(),
    connections,
    capabilities:getB2BCapabilityManifest()
   });
@@ -133,7 +182,13 @@ export async function handleMagnanimousB2B(request,env){
  if(request.method==='GET'&&(path==='/api/b2b/connections'||path==='/api/magnanimous/b2b/connections')){
   return json({identity:'Magnanimous AI',connections,transactional_connections_verified:connections.filter(x=>x.live_connection_verified).length,note:'Configured means credential material is present. It does not mean a commercial account, ticketing authority, merchant status or live transaction has been verified.'});
  }
- if(request.method==='GET'&&path==='/api/b2b/travel/workflows')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.travel,objects:['travel_offer','travel_order','settlement'],policy:MAGNANIMOUS_B2B_POLICY});
+ if(request.method==='GET'&&path==='/api/b2b/protocols')return json({identity:'Magnanimous AI',protocols:getB2BProtocolCatalog()});
+ if(request.method==='GET'&&path==='/api/b2b/standards')return json({identity:'Magnanimous AI',standards:getB2BStandardsCatalog()});
+ if(request.method==='GET'&&path==='/api/b2b/opportunities')return json({identity:'Magnanimous AI',opportunities:getB2BOpportunityCatalog()});
+ if(request.method==='GET'&&path==='/api/b2b/procurement/workflows')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.procurement,objects:['company','supplier','product','procurement_event','trading_document','purchase_order','settlement'],policy:MAGNANIMOUS_B2B_POLICY});
+ if(request.method==='GET'&&path==='/api/b2b/logistics/workflows')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.logistics,objects:['shipment','trading_document','settlement'],policy:MAGNANIMOUS_B2B_POLICY});
+ if(request.method==='GET'&&path==='/api/b2b/travel/accreditation')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.travel_accreditation,objects:['agency_identity','travel_settlement'],policy:MAGNANIMOUS_B2B_POLICY});
+  if(request.method==='GET'&&path==='/api/b2b/travel/workflows')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.travel,objects:['travel_offer','travel_order','settlement'],policy:MAGNANIMOUS_B2B_POLICY});
  if(request.method==='GET'&&path==='/api/b2b/wholesale/workflows')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.wholesale,objects:['company','supplier','product','quote','purchase_order','settlement'],policy:MAGNANIMOUS_B2B_POLICY});
  if(request.method==='POST'&&(path==='/api/b2b/plan'||path==='/api/magnanimous/b2b/plan')){
   const body=await request.json().catch(()=>({}));const goal=clean(body.goal||body.message);
