@@ -166,6 +166,7 @@ export function getB2BSummary(){
   protocol_adapters:universal.protocol_adapters,
   standards:universal.standards,
   opportunity_families:universal.opportunity_families,
+  reusable_skills:universal.skills,
   universal_capability_contracts:universal.capabilities,
   provider_identity_owner:false,
   provider_memory_owner:false,
