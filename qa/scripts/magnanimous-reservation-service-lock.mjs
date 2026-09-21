@@ -34,7 +34,7 @@ assert.ok(summary.provider_tool_contracts>=150,'Reservation provider graph must 
 for(const id of [
  'amadeus','sabre','travelport','duffel','hahnair','verteil','travelfusion','expedia-rapid',
  'hbx-hotelbeds','travelgate','ratehawk','tbo','zentrumhub','viator','getyourguide',
- 'direct-airline-ndc','host-consolidator','iata-bsp','arc','stripe'
+ 'airline-direct-ndc','host-consolidator','iata-bsp','arc','stripe'
 ])assert.ok(providers.some(x=>x.id===id),'Missing reservation provider graph node '+id);
 
 for(const p of providers){
