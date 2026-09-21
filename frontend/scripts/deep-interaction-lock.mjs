@@ -114,7 +114,7 @@ if(fs.existsSync(standalone)){
  const s=fs.readFileSync(standalone,'utf8');
  if(!/textarea/.test(s))failures.push('app/magnanimous/page.tsx: standalone composer textarea is missing');
  if(!/(onSubmit|type=["']submit["'])/.test(s))failures.push('app/magnanimous/page.tsx: standalone composer has no submit path');
- if(!s.includes("fetch('/api/chat'"))failures.push('app/magnanimous/page.tsx: standalone chat request path is missing');
+ if(!s.includes("postMagnanimousChat('/api/chat'"))failures.push('app/magnanimous/page.tsx: resilient standalone chat request path is missing');
 }
 
 const whiteLabel=path.join(appDir,'white-label','page.tsx');
