@@ -123,6 +123,11 @@ async function ensureSchema(env){
    completed_at INTEGER NOT NULL DEFAULT 0,updated_at INTEGER NOT NULL)`,
  'CREATE INDEX IF NOT EXISTS idx_magnanimous_runs_reconcile ON magnanimous_routine_runs(status,updated_at)',
  'CREATE INDEX IF NOT EXISTS idx_magnanimous_runs_tenant ON magnanimous_routine_runs(tenant_id,created_at DESC)',
+ `CREATE TABLE IF NOT EXISTS magnanimous_cloud_workspaces(
+   id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,root_key TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'active',
+   created_at INTEGER NOT NULL,last_active_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,
+   UNIQUE(tenant_id,user_id))`,
+ 'CREATE INDEX IF NOT EXISTS idx_magnanimous_cloud_workspaces_tenant ON magnanimous_cloud_workspaces(tenant_id,status,updated_at DESC)',
  `CREATE TABLE IF NOT EXISTS magnanimous_cloud_workspace_files(
    id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,path TEXT NOT NULL,mime TEXT NOT NULL DEFAULT 'text/plain',
    content_text TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,
@@ -136,6 +141,20 @@ async function owner(request,env){
  const denied=await requirePlatformOwner(request,env);if(denied)return{denied};
  const user=await currentUser(request,env);if(!user)return{denied:json({detail:'Platform owner sign-in required.'},401)};
  return{user};
+}
+
+async function ensureCloudWorkspace(env,user){
+ const tenant=String(user.tenant_id),userId=String(user.id),ts=now();
+ let row=await env.DB.prepare('SELECT * FROM magnanimous_cloud_workspaces WHERE tenant_id=? AND user_id=?').bind(tenant,userId).first();
+ if(!row){
+  const id=uid('mcw'),rootKey=('tenant-'+tenant+'-user-'+userId).replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,180);
+  await env.DB.prepare('INSERT INTO magnanimous_cloud_workspaces(id,tenant_id,user_id,root_key,status,created_at,last_active_at,updated_at) VALUES(?,?,?,?,\'active\',?,?,?)')
+   .bind(id,tenant,userId,rootKey,ts,ts,ts).run();
+  row=await env.DB.prepare('SELECT * FROM magnanimous_cloud_workspaces WHERE id=?').bind(id).first();
+ }else{
+  await env.DB.prepare('UPDATE magnanimous_cloud_workspaces SET last_active_at=?,updated_at=? WHERE id=?').bind(ts,ts,row.id).run();
+ }
+ return row;
 }
 
 async function upsertWorkspaceFile(env,user,path,mime,content){
@@ -158,20 +177,16 @@ async function aiStep(env,step,context){
  return{type:step.type,specialist_id:step.specialist_id||null,text:clip(typeof out==='string'?out:(out?.response||out?.result?.response||out?.result||''),30000)};
 }
 
-async function queueNativeWeb(env,user,step,approved){
+async function queueNativeWeb(env,user,step){
  const map={search:'browser_search',fetch:'browser_fetch',research:'browser_research',read_flow:'browser_read_flow',action_flow:'browser_action_flow'};
  const kind=step.type.slice('native-web.'.length),action=map[kind];if(!action)throw new Error('Unsupported native web skill action.');
  const queued=await queueLocalBridgeTask(env,user,{action,payload:step.payload||{},allowConfirmation:true});
  if(!queued.ok)throw new Error(queued.detail||queued.code||'Native web task could not be queued.');
- if(queued.requires_confirmation){
-  if(!approved)return{waiting_approval:true,task_id:queued.id,action};
-  await env.DB.prepare("UPDATE magnanimous_local_bridge_tasks SET status='queued',confirmed_at=? WHERE id=? AND tenant_id=? AND status='needs_confirmation'")
-   .bind(now(),queued.id,String(user.tenant_id)).run();
- }
+ if(queued.requires_confirmation)return{waiting_approval:true,task_id:queued.id,action};
  return{waiting_external:true,task_id:queued.id,action};
 }
 
-async function executeStep(env,user,step,context,{approved=false}={}){
+async function executeStep(env,user,step,context){
  if(step.type==='ai.prompt'||step.type==='agent.handoff')return aiStep(env,step,context);
  if(step.type==='cloud.browser.render'){
   const browser=env?.MAGNANIMOUS_BROWSER||env?.BROWSER;if(!browser?.render)throw new Error('Magnanimous cloud browser service is not configured.');
@@ -179,9 +194,12 @@ async function executeStep(env,user,step,context,{approved=false}={}){
  }
  if(step.type==='cloud.sandbox.exec'){
   const sandbox=env?.MAGNANIMOUS_SANDBOX||env?.SANDBOX;if(!sandbox?.exec)throw new Error('Magnanimous cloud sandbox service is not configured.');
-  const result=await sandbox.exec(step.argv,{cwd:step.cwd,timeout_ms:step.timeout_ms,allow_shell:step.allow_shell===true});
+  const workspace=await ensureCloudWorkspace(env,user),relative=clip(step.cwd,600).replace(/^\/+/, '');
+  if(relative.includes('..'))throw new Error('Sandbox cwd may not contain ..');
+  const scopedCwd='routine-workspaces/'+workspace.root_key+(relative&&relative!=='.'?'/'+relative:'');
+  const result=await sandbox.exec(step.argv,{cwd:scopedCwd,timeout_ms:step.timeout_ms,allow_shell:step.allow_shell===true});
   if(!result?.ok)throw new Error(clip(result?.stderr||'Magnanimous sandbox command failed.',4000));
-  return{type:step.type,exit_code:result.exit_code,stdout:clip(result.stdout,30000),stderr:clip(result.stderr,10000),truncated:Boolean(result.truncated)};
+  return{type:step.type,workspace_id:workspace.id,exit_code:result.exit_code,stdout:clip(result.stdout,30000),stderr:clip(result.stderr,10000),truncated:Boolean(result.truncated)};
  }
  if(step.type==='workspace.write')return{type:step.type,file:await upsertWorkspaceFile(env,user,step.path,step.mime,step.content)};
  if(step.type==='workspace.read'){
@@ -189,7 +207,7 @@ async function executeStep(env,user,step,context,{approved=false}={}){
   if(!row)throw new Error(`Workspace file not found: ${step.path}`);
   return{type:step.type,file:{id:row.id,path:row.path,mime:row.mime,content:row.content_text,created_at:Number(row.created_at||0),updated_at:Number(row.updated_at||0)}};
  }
- if(step.type.startsWith('native-web.'))return queueNativeWeb(env,user,step,approved);
+ if(step.type.startsWith('native-web.'))return queueNativeWeb(env,user,step);
  throw new Error(`Unsupported skill step: ${step.type}`);
 }
 
@@ -199,7 +217,7 @@ async function saveRunState(env,runId,status,state,result={},error=''){
   .bind(status,JSON.stringify(state).slice(0,400000),JSON.stringify(result).slice(0,400000),clip(error,8000),done?ts:0,ts,runId).run();
 }
 
-async function resumeRun(env,run,{approved=false}={}){
+async function resumeRun(env,run){
  const user=await env.DB.prepare('SELECT id,tenant_id,name,email,role,active FROM users WHERE id=? AND tenant_id=? AND active=1').bind(run.user_id,run.tenant_id).first();
  if(!user)throw new Error('Routine owner is no longer active.');
  const skill=await env.DB.prepare("SELECT * FROM magnanimous_skills WHERE id=? AND tenant_id=? AND status='active'").bind(run.skill_id,run.tenant_id).first();
@@ -218,7 +236,7 @@ async function resumeRun(env,run,{approved=false}={}){
 
  while(Number(state.step_index||0)<steps.length){
   const index=Number(state.step_index||0),step=steps[index];
-  const value=await executeStep(env,user,step,{results},{approved});
+  const value=await executeStep(env,user,step,{results});
   if(value?.waiting_approval){
    state.pending_task_id=value.task_id;state.results=results;
    await saveRunState(env,run.id,'needs_confirmation',state,{results},'Exact approval is required for this browser action.');
@@ -238,13 +256,13 @@ async function resumeRun(env,run,{approved=false}={}){
  return'completed';
 }
 
-async function createRun(env,user,{routine=null,skill,trigger_type='manual',approved=false}){
+async function createRun(env,user,{routine=null,skill,trigger_type='manual'}){
  const id=uid('mrr'),ts=now(),maxAttempts=Math.max(1,Math.min(Number(routine?.max_attempts||3),8));
  await env.DB.prepare(`INSERT INTO magnanimous_routine_runs(id,tenant_id,user_id,routine_id,skill_id,trigger_type,status,attempt,max_attempts,state_json,result_json,created_at,started_at,updated_at)
   VALUES(?,?,?,?,?,?,'running',1,?,'{"step_index":0,"results":[]}','{}',?,?,?)`)
   .bind(id,String(user.tenant_id),String(user.id),routine?.id||null,skill.id,trigger_type,maxAttempts,ts,ts,ts).run();
  const run=await env.DB.prepare('SELECT * FROM magnanimous_routine_runs WHERE id=?').bind(id).first();
- try{await resumeRun(env,run,{approved})}
+ try{await resumeRun(env,run)}
  catch(error){
   const latest=await env.DB.prepare('SELECT * FROM magnanimous_routine_runs WHERE id=?').bind(id).first(),attempt=Number(latest?.attempt||1);
   if(attempt<maxAttempts){
@@ -258,7 +276,7 @@ async function retryRun(env,row){
  const attempt=Number(row.attempt||0)+1;
  await env.DB.prepare("UPDATE magnanimous_routine_runs SET status='running',attempt=?,error_text='',updated_at=? WHERE id=?").bind(attempt,now(),row.id).run();
  const latest=await env.DB.prepare('SELECT * FROM magnanimous_routine_runs WHERE id=?').bind(row.id).first();
- try{return await resumeRun(env,latest,{approved:false})}catch(error){
+ try{return await resumeRun(env,latest)}catch(error){
   if(attempt<Number(row.max_attempts||1)){await env.DB.prepare("UPDATE magnanimous_routine_runs SET status='retry_wait',error_text=?,updated_at=? WHERE id=?").bind(clip(error?.message||error,8000),now(),row.id).run();return'retry_wait'}
   await saveRunState(env,row.id,'failed',parse(latest.state_json,{}),parse(latest.result_json,{}),error?.message||String(error));return'failed';
  }
@@ -302,6 +320,7 @@ export async function handleMagnanimousRoutineStudio(request,env){
  const auth=await owner(request,env);if(auth.denied)return auth.denied;const user=auth.user,tenant=String(user.tenant_id);
 
  if(request.method==='GET'&&path==='/api/magnanimous/routine-studio/overview'){
+  const workspace=await ensureCloudWorkspace(env,user);
   const [skills,routines,runs,files]=await Promise.all([
    env.DB.prepare("SELECT COUNT(*) n FROM magnanimous_skills WHERE tenant_id=? AND status!='archived'").bind(tenant).first(),
    env.DB.prepare("SELECT COUNT(*) n FROM magnanimous_routines WHERE tenant_id=? AND status='active'").bind(tenant).first(),
@@ -310,7 +329,7 @@ export async function handleMagnanimousRoutineStudio(request,env){
   ]);
   const runCounts=Object.fromEntries((runs.results||[]).map(x=>[x.status,Number(x.n||0)]));
   const browser=env?.MAGNANIMOUS_BROWSER||env?.BROWSER,sandbox=env?.MAGNANIMOUS_SANDBOX||env?.SANDBOX;
-  return json({policy:MAGNANIMOUS_ROUTINE_STUDIO_POLICY,skills:Number(skills?.n||0),active_routines:Number(routines?.n||0),workspace_files:Number(files?.n||0),runs:runCounts,cloud_workspace:{runtime:String(env.MAGNANIMOUS_RUNTIME||'edge-adapter'),browser_configured:Boolean(browser?.configured??browser?.render),sandbox_configured:Boolean(sandbox?.configured??sandbox?.exec),owner_machine_required_for_cloud_steps:false}});
+  return json({policy:MAGNANIMOUS_ROUTINE_STUDIO_POLICY,skills:Number(skills?.n||0),active_routines:Number(routines?.n||0),workspace_files:Number(files?.n||0),runs:runCounts,cloud_workspace:{id:workspace.id,status:workspace.status,root_key:workspace.root_key,runtime:String(env.MAGNANIMOUS_RUNTIME||'edge-adapter'),browser_configured:Boolean(browser?.configured??browser?.render),sandbox_configured:Boolean(sandbox?.configured??sandbox?.exec),tenant_scoped:true,owner_machine_required_for_cloud_steps:false}});
  }
 
  if(path==='/api/magnanimous/routine-studio/skills'){
@@ -370,8 +389,8 @@ export async function handleMagnanimousRoutineStudio(request,env){
  if(m&&request.method==='POST'){
   const routine=await env.DB.prepare('SELECT * FROM magnanimous_routines WHERE id=? AND tenant_id=?').bind(m[1],tenant).first();if(!routine)return json({detail:'Routine not found.'},404);
   const skill=await env.DB.prepare("SELECT * FROM magnanimous_skills WHERE id=? AND tenant_id=? AND status='active'").bind(routine.skill_id,tenant).first();if(!skill)return json({detail:'Routine skill is unavailable.'},409);
-  const body=await request.json().catch(()=>({})),approved=body.confirm_actions===true;
-  const run=await createRun(env,user,{routine,skill,trigger_type:'manual',approved});
+  await request.json().catch(()=>({}));
+  const run=await createRun(env,user,{routine,skill,trigger_type:'manual'});
   return json({run:publicRun(run),approval_note:run.status==='needs_confirmation'?'Re-run approval endpoint for this exact run after reviewing the skill steps.':null},202);
  }
 
@@ -388,7 +407,7 @@ export async function handleMagnanimousRoutineStudio(request,env){
   const state=parse(run.state_json,{});if(state.pending_task_id)await env.DB.prepare("UPDATE magnanimous_local_bridge_tasks SET status='queued',confirmed_at=? WHERE id=? AND tenant_id=? AND status='needs_confirmation'").bind(now(),state.pending_task_id,tenant).run();
   await env.DB.prepare("UPDATE magnanimous_routine_runs SET status='waiting_external',error_text='',updated_at=? WHERE id=?").bind(now(),run.id).run();
   const latest=await env.DB.prepare('SELECT * FROM magnanimous_routine_runs WHERE id=?').bind(run.id).first();
-  try{await resumeRun(env,latest,{approved:true})}catch(error){await saveRunState(env,run.id,'failed',parse(latest.state_json,{}),parse(latest.result_json,{}),error?.message||String(error))}
+  try{await resumeRun(env,latest)}catch(error){await saveRunState(env,run.id,'failed',parse(latest.state_json,{}),parse(latest.result_json,{}),error?.message||String(error))}
   return json({run:publicRun(await env.DB.prepare('SELECT * FROM magnanimous_routine_runs WHERE id=?').bind(run.id).first())});
  }
 
@@ -418,7 +437,7 @@ export async function scheduledMagnanimousRoutines(env){
     if(stamp-Number(row.updated_at||0)<Math.min(900,30*Math.max(1,Number(row.attempt||1))))continue;
     events.push({run_id:row.id,status:await retryRun(env,row)});continue;
    }
-   events.push({run_id:row.id,status:await resumeRun(env,row,{approved:false})});
+   events.push({run_id:row.id,status:await resumeRun(env,row)});
   }catch(error){
    const attempt=Number(row.attempt||1),max=Number(row.max_attempts||1);
    if(attempt<max)await env.DB.prepare("UPDATE magnanimous_routine_runs SET status='retry_wait',error_text=?,updated_at=? WHERE id=?").bind(clip(error?.message||error,8000),stamp,row.id).run();
@@ -433,7 +452,7 @@ export async function scheduledMagnanimousRoutines(env){
   const skill=await env.DB.prepare("SELECT * FROM magnanimous_skills WHERE id=? AND tenant_id=? AND status='active'").bind(routine.skill_id,routine.tenant_id).first();
   const user=await env.DB.prepare('SELECT id,tenant_id,name,email,role,active FROM users WHERE id=? AND tenant_id=? AND active=1').bind(routine.user_id,routine.tenant_id).first();
   if(!skill||!user){events.push({routine_id:routine.id,status:'skipped-unavailable'});continue}
-  const run=await createRun(env,user,{routine,skill,trigger_type:'scheduled',approved:false});
+  const run=await createRun(env,user,{routine,skill,trigger_type:'scheduled'});
   events.push({routine_id:routine.id,run_id:run.id,status:run.status});
  }
  return{ok:true,processed:events.length,events};
