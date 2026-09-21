@@ -39,9 +39,9 @@ jobs:
           assert len(providers) == 1, d
           p=providers[0]
           assert p.get('id') == 'auto', d
-          assert p.get('name') == 'Magnanimous AI routing', d
+          assert p.get('name') == 'Magnanimous AI', d
           assert p.get('configured') is True and p.get('enabled') is True, d
-          assert p.get('type') == 'private-execution', d
+          assert p.get('type') == 'magnanimous-private-routing', d
           video=d.get('talking_avatar') or {}
           assert video.get('free_browser_mode') is True, d
           assert video.get('browser_live_avatar') is True, d
