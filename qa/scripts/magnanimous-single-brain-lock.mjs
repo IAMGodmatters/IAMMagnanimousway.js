@@ -18,6 +18,7 @@ const business=read('frontend/app/business/page.tsx');
 const social=read('frontend/app/social-media/page.tsx');
 const apps=read('frontend/app/ai-apps/page.tsx');
 const start=read('frontend/app/start/page.tsx');
+const videoStudio=read('frontend/app/video-studio/page.tsx');
 const brain=read('frontend/app/magnanimous-brain/page.tsx');
 const connectors=read('frontend/app/ai-connectors/page.tsx');
 
@@ -49,7 +50,9 @@ for(const needle of [
  "'/api/magnanimous/single-brain'",
  "execution_routing:magnanimousPublicRoutingSummary",
  "single_brain:getMagnanimousSingleBrainSummary()",
- "manual_provider_override:false"
+ "manual_provider_override:false",
+ "getConnectorAbsorptionPrompt",
+ "absorbedCapabilityContext"
 ]) assert(provider.includes(needle),'provider command layer missing single-brain behavior: '+needle);
 
 assert(branch.includes("name:'Magnanimous AI'"),'customer provider summary must expose only Magnanimous AI');
@@ -64,7 +67,8 @@ const customerFiles=[
  ['business',business],
  ['social-media',social],
  ['ai-apps',apps],
- ['start',start]
+ ['start',start],
+ ['video-studio',videoStudio]
 ];
 const externalAi=/\b(?:OpenAI|Anthropic|Claude|Gemini|Groq|Mistral|OpenRouter|Cerebras|Hugging Face|Cloudflare Workers AI|Workers AI)\b/i;
 for(const [name,source] of customerFiles){
@@ -78,6 +82,7 @@ assert(video.includes('MAGNANIMOUS AI ONLY'),'live specialist surface must ident
 assert(video.includes('Magnanimous AI • automatic private routing'),'live specialist selector must remain Magnanimous-only');
 assert(!video.includes('{p.name}</option>'),'live specialist surface must not render selectable provider identities');
 assert(assistant.includes('Magnanimous AI private routing'),'virtual assistant must report Magnanimous routing instead of provider names');
+assert(provider.includes("${absorbedCapabilityContext?`\\n\\n${absorbedCapabilityContext}`:''}"),'absorbed tool/skill context must be injected into normal Magnanimous planning');
 assert(brain.includes('/api/magnanimous/single-brain'),'Brain page must consume the unified capability summary');
 assert(brain.includes('absorbed tool + skill contracts'),'Brain page must expose absorbed capability scale');
 
