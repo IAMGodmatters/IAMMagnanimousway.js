@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect,useRef,useState} from 'react';
+import {speakTextNaturally,stopNaturalSpeech} from '../lib/natural-speech';
 
 type SpeechRecognitionLike={
  lang:string;
@@ -214,7 +215,7 @@ function writeAndSend(transcript:string){
 
 export default function VoiceOrchestrator(){
  const[path,setPath]=useState(''),[persona,setPersona]=useState('Magnanimous AI'),[listening,setListening]=useState(false),[speaking,setSpeaking]=useState(false),[autoSpeak,setAutoSpeak]=useState(true),[micReady,setMicReady]=useState(false),[voiceReady,setVoiceReady]=useState(false),[notice,setNotice]=useState('');
- const recognitionRef=useRef<SpeechRecognitionLike|null>(null),lastSpoken=useRef(''),autoSpeakRef=useRef(true);
+ const recognitionRef=useRef<SpeechRecognitionLike|null>(null),lastSpoken=useRef(''),autoSpeakRef=useRef(true),speechTimer=useRef<number|null>(null),pendingReply=useRef('');
  useEffect(()=>{autoSpeakRef.current=autoSpeak},[autoSpeak]);
  useEffect(()=>{
   const w:any=window,p=location.pathname;
@@ -226,18 +227,24 @@ export default function VoiceOrchestrator(){
   const observer=new MutationObserver(()=>{
    const nextPersona=currentPersona();setPersona(v=>v===nextPersona?v:nextPersona);
    const text=latestReply(location.pathname);
-   if(text&&text!==lastSpoken.current){
-    lastSpoken.current=text;
-    if(autoSpeakRef.current&&'speechSynthesis'in window){
-     window.speechSynthesis.cancel();
-     const u=new SpeechSynthesisUtterance(text.slice(0,7000));applyVoiceProfile(u,nextPersona);
-     u.onstart=()=>{setNotice('');setSpeaking(true);emitCheckpoint({kind:'voice-reply',stage:'speaking',content:text,metadata:{persona:nextPersona,path:location.pathname}})};
-     u.onend=()=>{setSpeaking(false);emitCheckpoint({kind:'voice-reply',stage:'spoken',content:text,metadata:{persona:nextPersona,path:location.pathname}})};
-     u.onerror=()=>{setSpeaking(false);setNotice('I generated the reply, but your browser could not play the voice. Tap the speaker button once, then try again.');emitCheckpoint({kind:'voice-reply',stage:'speech-error',content:text,metadata:{persona:nextPersona,path:location.pathname}})};
-     window.speechSynthesis.resume?.();
-     window.speechSynthesis.speak(u);
-    }
-   }
+   if(!text||text===lastSpoken.current)return;
+   pendingReply.current=text;
+   if(speechTimer.current!==null)window.clearTimeout(speechTimer.current);
+   speechTimer.current=window.setTimeout(()=>{
+    speechTimer.current=null;
+    const settled=latestReply(location.pathname);
+    if(!settled||settled!==pendingReply.current||settled===lastSpoken.current)return;
+    lastSpoken.current=settled;
+    if(!autoSpeakRef.current||!('speechSynthesis'in window))return;
+    speakTextNaturally(settled,{
+     configure:(u)=>applyVoiceProfile(u,nextPersona),
+     maxChunkChars:240,
+     interChunkDelayMs:55,
+     onStart:()=>{setNotice('');setSpeaking(true);emitCheckpoint({kind:'voice-reply',stage:'speaking',content:settled,metadata:{persona:nextPersona,path:location.pathname}})},
+     onEnd:()=>{setSpeaking(false);emitCheckpoint({kind:'voice-reply',stage:'spoken',content:settled,metadata:{persona:nextPersona,path:location.pathname}})},
+     onError:()=>{setSpeaking(false);setNotice('I generated the reply, but your browser could not play the voice smoothly. Tap the speaker button once, then try again.');emitCheckpoint({kind:'voice-reply',stage:'speech-error',content:settled,metadata:{persona:nextPersona,path:location.pathname}})}
+    });
+   },950);
   });
   observer.observe(document.body,{subtree:true,childList:true,characterData:true});
 
@@ -261,20 +268,22 @@ export default function VoiceOrchestrator(){
    };
    try{window.fetch=wrappedFetch;cleanups.push(()=>{try{if(window.fetch===wrappedFetch)window.fetch=originalFetch}catch{}})}catch{}
   }
-  return()=>{observer.disconnect();synth?.removeEventListener?.('voiceschanged',refreshVoices);recognitionRef.current?.stop?.();for(const cleanup of cleanups)cleanup();routedPersonaHint=''};
+  return()=>{observer.disconnect();if(speechTimer.current!==null)window.clearTimeout(speechTimer.current);stopNaturalSpeech();synth?.removeEventListener?.('voiceschanged',refreshVoices);recognitionRef.current?.stop?.();for(const cleanup of cleanups)cleanup();routedPersonaHint=''};
  },[]);
 
  function speakSample(){
   if(!voiceReady)return;
-  window.speechSynthesis.cancel();
   primeSpeechSynthesis();
-  const u=new SpeechSynthesisUtterance(`This is ${persona}. I recognize my name and my specialist role.`);applyVoiceProfile(u,persona);
-  u.onstart=()=>{setNotice('');setSpeaking(true)};u.onend=()=>setSpeaking(false);u.onerror=()=>{setSpeaking(false);setNotice('Your browser could not play the voice. Check device volume and try again.')};window.speechSynthesis.resume?.();window.speechSynthesis.speak(u);
+  speakTextNaturally(`This is ${persona}. I recognize my name and my specialist role.`,{
+   configure:(u)=>applyVoiceProfile(u,persona),maxChunkChars:220,interChunkDelayMs:45,
+   onStart:()=>{setNotice('');setSpeaking(true)},onEnd:()=>setSpeaking(false),
+   onError:()=>{setSpeaking(false);setNotice('Your browser could not play the voice smoothly. Check device volume and try again.')}
+  });
  }
  function listen(){
   const w:any=window,SR=w.SpeechRecognition||w.webkitSpeechRecognition;
   if(!SR){setNotice('Microphone speech recognition is not supported in this browser. You can still type and use spoken replies.');return}
-  window.speechSynthesis?.cancel();setSpeaking(false);setNotice('');
+  stopNaturalSpeech();setSpeaking(false);setNotice('');
   primeSpeechSynthesis();
   const r:SpeechRecognitionLike=new SR();recognitionRef.current=r;r.lang=navigator.language||'en-US';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
   let receivedFinal=false;
@@ -302,7 +311,7 @@ export default function VoiceOrchestrator(){
  return <div className={`iam-voice-panel ${listening?'listening':''} ${speaking?'speaking':''}`} aria-label={`${persona} voice controls`}>
   <div className="voice-copy"><b>{persona}</b><span>{listening?'Listening for name + request…':speaking?'Speaking…':'Voice conversation'}</span></div>
   <button type="button" className="voice-mic" onClick={listen} disabled={!micReady} aria-label={`Talk to ${persona}`} title={micReady?`Talk to ${persona}`:'Speech recognition unavailable'}>{listening?'●':'🎙'}</button>
-  <button type="button" className="voice-sound" onClick={()=>{const next=!autoSpeak;setAutoSpeak(next);if(next)primeSpeechSynthesis();else window.speechSynthesis?.cancel()}} disabled={!voiceReady} aria-pressed={autoSpeak} title={autoSpeak?'Turn spoken replies off':'Turn spoken replies on'}>{autoSpeak?'🔊':'🔇'}</button>
+  <button type="button" className="voice-sound" onClick={()=>{const next=!autoSpeak;setAutoSpeak(next);if(next)primeSpeechSynthesis();else stopNaturalSpeech()}} disabled={!voiceReady} aria-pressed={autoSpeak} title={autoSpeak?'Turn spoken replies off':'Turn spoken replies on'}>{autoSpeak?'🔊':'🔇'}</button>
   <button type="button" className="voice-sample" onClick={speakSample} disabled={!voiceReady} title="Hear this AI voice">VOICE</button>
   {notice&&<div className="voice-notice" role="status">{notice}</div>}
   <style jsx>{`
