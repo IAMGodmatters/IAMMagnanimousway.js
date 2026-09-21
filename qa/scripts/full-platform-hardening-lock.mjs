@@ -72,6 +72,10 @@ mustContain(authority,"['/api/auth/signup','/api/auth/login','/api/admin/login']
 mustContain(authority,"SELECT role,tenant_id,active FROM users WHERE id=? AND tenant_id=? LIMIT 1",'Opaque session creation must refresh the authoritative account role after authentication.');
 mustContain(authority,'const effectiveRole=String(current.role','Opaque session role must come from the current D1 account record.');
 mustContain(authority,'role:effectiveRole','Authentication responses must expose the same role stored in the opaque session.');
+mustContain(authority,"opaqueSchemaAvailable(env,'upgrade')",'Authenticated logins must retain a safe signed-session recovery rail when opaque session storage is temporarily unavailable.');
+mustContain(authority,'return response;','Opaque-session persistence failure must not turn a successful authentication event into a generic server error.');
+mustContain(deploy,"'auth_sessions' not in names",'Deferred migration handling must explicitly detect missing opaque-session storage.');
+mustContain(deploy,'signed-session recovery rail','Deployment output must make the temporary auth fallback explicit rather than pretending opaque storage exists.');
 mustContain(authorityMigration,'CREATE TABLE IF NOT EXISTS auth_sessions','Opaque session migration is missing.');
 mustContain(authorityMigration,'token_hash TEXT PRIMARY KEY','Opaque session table must persist only a token fingerprint.');
 mustNotContain(authorityMigration,'token TEXT','Opaque session schema must never include a raw token column.');

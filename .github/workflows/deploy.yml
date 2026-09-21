@@ -92,7 +92,7 @@ jobs:
           if [ "$rc" -ne 0 ]; then
             if printf '%s' "$output" | grep -qi "exceeded D1's free tier daily row write limit"; then
               echo "::warning::D1 migration writes are temporarily blocked by the Cloudflare Free daily row-write limit. Verifying that all runtime-required bootstrap/auth tables already exist before deferring pending migrations."
-              npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('tenant_settings','ads','settings','security_rate_limits','auth_events','auth_config') ORDER BY name;" > /tmp/d1-migration-quota-schema.json
+              npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('tenant_settings','ads','settings','security_rate_limits','auth_events','auth_config','auth_sessions') ORDER BY name;" > /tmp/d1-migration-quota-schema.json
               python - <<'PY'
           import json
           payload=json.load(open('/tmp/d1-migration-quota-schema.json'))
@@ -107,6 +107,10 @@ jobs:
           required={'tenant_settings','ads','settings','security_rate_limits','auth_events'}
           missing=required-names
           assert not missing, f"Cannot defer pending runtime migrations; production is missing required tables: {sorted(missing)}"
+          if 'auth_sessions' not in names:
+              print("::warning::auth_sessions is still pending. Authentication will remain available through the hardened signed-session recovery rail until migration 0057 can be applied.")
+          else:
+              print("Opaque auth session storage is present.")
           print("Pending runtime migrations safely deferred under confirmed D1 quota; required production tables already exist. auth_config may remain pending because SESSION_SECRET can satisfy the secure auth-secret contract.")
           PY
               echo "D1_MIGRATION_DEFERRED=1" >> "$GITHUB_ENV"

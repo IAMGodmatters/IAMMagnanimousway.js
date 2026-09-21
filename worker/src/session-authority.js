@@ -51,6 +51,18 @@ async function ensureSchema(env){
   await env.DB.prepare('SELECT 1 FROM auth_sessions LIMIT 1').first();
   schemaReady=true;
 }
+async function opaqueSchemaAvailable(env,context='session'){
+  try{
+    await ensureSchema(env);
+    return true;
+  }catch(error){
+    console.warn('opaque session authority unavailable; keeping the signed-session recovery rail active',{
+      context,
+      error:String(error?.message||error||'unknown error').slice(0,240)
+    });
+    return false;
+  }
+}
 function parseLegacyToken(token){
   const parts=String(token||'').split('|');
   if(parts.length!==5)return null;
@@ -84,7 +96,9 @@ export async function resolveSessionRequest(request,env,requestId=''){
   const token=bearer(request);
   if(!isOpaqueToken(token))return{request,opaque:false};
   if(!env?.DB||!validOpaqueToken(token))return{request,opaque:true,response:json({detail:'Not authenticated.',code:'AUTH_REQUIRED'},401)};
-  await ensureSchema(env);
+  if(!await opaqueSchemaAvailable(env,'resolve')){
+    return{request,opaque:true,response:json({detail:'Secure session storage is temporarily unavailable. Sign in again to continue.',code:'SESSION_RENEWAL_REQUIRED'},503)};
+  }
   const hash=await sha256(token),t=now();
   const row=await env.DB.prepare(`SELECT s.user_id,s.tenant_id,s.role,s.created_at,s.expires_at,s.revoked_at,u.role AS current_role,u.active
     FROM auth_sessions s JOIN users u ON u.id=s.user_id AND u.tenant_id=s.tenant_id
@@ -112,7 +126,9 @@ export async function revokeOpaqueSession(request,env,reason='logout'){
   const token=bearer(request);
   if(!isOpaqueToken(token))return{handled:false};
   if(!env?.DB||!validOpaqueToken(token))return{handled:true,response:json({detail:'Not authenticated.',code:'AUTH_REQUIRED'},401)};
-  await ensureSchema(env);
+  if(!await opaqueSchemaAvailable(env,'revoke')){
+    return{handled:true,response:json({detail:'Secure session storage is temporarily unavailable. Sign in again to continue.',code:'SESSION_RENEWAL_REQUIRED'},503)};
+  }
   const hash=await sha256(token),t=now();
   const result=await env.DB.prepare('UPDATE auth_sessions SET revoked_at=?,revoke_reason=? WHERE token_hash=? AND revoked_at IS NULL AND expires_at>?')
     .bind(t,String(reason||'logout').slice(0,80),hash,t).run();
@@ -144,11 +160,19 @@ export async function upgradeAuthResponseToOpaque(request,response,env){
   const effectiveTenant=String(current.tenant_id||parts.tenant_id);
   if(effectiveTenant!==parts.tenant_id)return response;
 
-  await ensureSchema(env);
+  if(!await opaqueSchemaAvailable(env,'upgrade'))return response;
   const token=randomOpaqueToken(),hash=await sha256(token),t=now();
-  await env.DB.prepare(`INSERT INTO auth_sessions(token_hash,user_id,tenant_id,role,created_at,expires_at,revoked_at,revoke_reason)
-    VALUES(?,?,?,?,?,?,NULL,'')`).bind(hash,parts.user_id,effectiveTenant,effectiveRole,t,parts.expires_at).run();
-  await cleanupSessions(env,t);
+  try{
+    await env.DB.prepare(`INSERT INTO auth_sessions(token_hash,user_id,tenant_id,role,created_at,expires_at,revoked_at,revoke_reason)
+      VALUES(?,?,?,?,?,?,NULL,'')`).bind(hash,parts.user_id,effectiveTenant,effectiveRole,t,parts.expires_at).run();
+    await cleanupSessions(env,t);
+  }catch(error){
+    console.warn('opaque session persistence unavailable; returning the authenticated signed-session fallback',{
+      path,
+      error:String(error?.message||error||'unknown error').slice(0,240)
+    });
+    return response;
+  }
   const headers=new Headers(response.headers);headers.delete('content-length');headers.set('cache-control','no-store');headers.set('content-type','application/json; charset=utf-8');
   return new Response(JSON.stringify({...data,user:{...data.user,tenant_id:effectiveTenant,role:effectiveRole,active:Number(current.active)},token,session_expires_at:parts.expires_at}),{status:response.status,statusText:response.statusText,headers});
 }
