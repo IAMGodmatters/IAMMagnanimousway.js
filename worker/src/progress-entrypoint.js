@@ -5,6 +5,7 @@ import {specialistForMessage,specialistIntroduction} from './specialist-router.j
 import {handleMagnanimousNativeFirst} from './magnanimous-native-first.js';
 import {handleMagnanimousOgenic} from './magnanimous-ogenic-god-toolkit.js';
 import {handleMagnanimousLocalBridge} from './magnanimous-local-bridge-runtime.js';
+import {handleMagnanimousB2B} from './magnanimous-b2b-runtime.js';
 import {requirePlatformOwner} from './platform-owner-guard.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -120,6 +121,15 @@ export default{
    }catch(error){
     console.error('Magnanimous native-first runtime failed',error);
     return json({detail:'Magnanimous native-first runtime could not complete this request.'},500);
+   }
+  }
+  if(path.startsWith('/api/b2b')||path.startsWith('/api/magnanimous/b2b')){
+   try{
+    const b2b=await handleMagnanimousB2B(request,env);
+    if(b2b)return b2b;
+   }catch(error){
+    console.error('Magnanimous B2B runtime failed',error);
+    return json({detail:'Magnanimous B2B network could not complete this request.'},500);
    }
   }
   if(path.startsWith('/api/magnanimous/local-bridge')){

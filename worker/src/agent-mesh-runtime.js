@@ -41,6 +41,8 @@ const AGENTS=[
  ['office','Office','Workplace Assistant','Meeting preparation, professional messages, task follow-up and office workflow support.','career'],
  ['bobby','Bobby','Business Strategist','Business advice, planning, strategy, offers, growth and execution.','business'],
  ['cassie','Cassie','Client Onboarding','B2B client onboarding, kickoff, intake, SOPs and handoff planning.','business'],
+ ['wholesale','Wholesale','B2B Wholesale Strategist','Wholesale catalogs, supplier sourcing, RFQs, purchase orders, private label, dropshipping, margins, inventory and reseller networks.','business'],
+ ['travelpro','TravelPro','B2B Travel Distribution','Travel agency and sub-agent distribution, flights, GDS/NDC, hotels, tours, markups, corporate travel and post-booking servicing.','business'],
  ['cindy','Cindy','Customer Service Coach','Customer-service responses, policies, de-escalation and support coaching.','business'],
  ['victor','Victor','Virtual Support','Client product questions, support triage and solution guidance.','business'],
  ['adam','Adam','Ad Optimizer','Advertising copy, offers, calls to action and conversion-focused improvements.','business'],
@@ -102,7 +104,8 @@ const NATIVE_WORKSPACES=[
  {id:'knowledge',name:'Knowledge Center',href:'/knowledge',access:'through-platform-workspace'},
  {id:'assistant-actions',name:'Connected Assistant Actions',href:'/assistant-actions',access:'permission-and-confirmation-controlled'},
  {id:'phone',name:'Phone & Browser Calling',href:'/phone',access:'permission-and-consent-controlled'},
- {id:'video-studio',name:'Video Studio',href:'/video-studio',access:'through-platform-workspace'}
+ {id:'video-studio',name:'Video Studio',href:'/video-studio',access:'through-platform-workspace'},
+ {id:'b2b',name:'B2B Wholesale & Travel',href:'/b2b',access:'tenant-read-context-and-authorized-external-rails'}
 ];
 
 function agentById(id){return AGENTS.find(a=>a.id===String(id||'').toLowerCase())}

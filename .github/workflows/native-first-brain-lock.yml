@@ -21,6 +21,8 @@ jobs:
         run: node qa/scripts/magnanimous-native-first-lock.mjs
       - name: Verify Grok absorption and improvement governance
         run: node qa/scripts/magnanimous-grok-governance-lock.mjs
+      - name: Verify B2B wholesale and travel network
+        run: node qa/scripts/magnanimous-b2b-network-lock.mjs
       - name: Verify full-brain D1 materializer
         run: |
           rm -rf /tmp/magnanimous-full-brain-ci

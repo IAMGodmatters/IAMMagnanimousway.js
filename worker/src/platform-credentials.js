@@ -126,6 +126,36 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
  {id:'discord',name:'Discord',providers:['discord'],fields:[
   {key:'DISCORD_CLIENT_ID',label:'Discord Application / Client ID',secret:false,required:true},
   {key:'DISCORD_CLIENT_SECRET',label:'Discord Client Secret',secret:true,required:true}
+ ]},
+ {id:'b2b-air-travel',name:'B2B Air Travel Distribution',providers:[],fields:[
+  {key:'AMADEUS_CLIENT_ID',label:'Amadeus API Client ID',secret:false,required:false},
+  {key:'AMADEUS_CLIENT_SECRET',label:'Amadeus API Client Secret',secret:true,required:false},
+  {key:'SABRE_CLIENT_ID',label:'Sabre API Client ID / EPR credential reference',secret:false,required:false},
+  {key:'SABRE_CLIENT_SECRET',label:'Sabre API Client Secret / password',secret:true,required:false},
+  {key:'TRAVELPORT_CLIENT_ID',label:'Travelport API Client ID',secret:false,required:false},
+  {key:'TRAVELPORT_CLIENT_SECRET',label:'Travelport API Client Secret',secret:true,required:false},
+  {key:'DUFFEL_ACCESS_TOKEN',label:'Duffel Access Token',secret:true,required:false}
+ ]},
+ {id:'b2b-hotels-experiences',name:'B2B Hotels, Tours & Activities',providers:[],fields:[
+  {key:'HBX_API_KEY',label:'HBX / Hotelbeds API Key',secret:false,required:false},
+  {key:'HBX_SECRET',label:'HBX / Hotelbeds Secret',secret:true,required:false},
+  {key:'EXPEDIA_RAPID_API_KEY',label:'Expedia Rapid API Key',secret:false,required:false},
+  {key:'EXPEDIA_RAPID_SHARED_SECRET',label:'Expedia Rapid Shared Secret',secret:true,required:false},
+  {key:'VIATOR_API_KEY',label:'Viator Partner API Key',secret:true,required:false},
+  {key:'GETYOURGUIDE_API_TOKEN',label:'GetYourGuide Partner API Token',secret:true,required:false},
+  {key:'ZENTRUMHUB_API_KEY',label:'ZentrumHub API Key',secret:true,required:false},
+  {key:'TRAVELOPRO_API_KEY',label:'Travelopro API Key',secret:true,required:false}
+ ]},
+ {id:'b2b-corporate-travel',name:'B2B Corporate Travel & Expense',providers:[],fields:[
+  {key:'BREX_API_TOKEN',label:'Brex API Token (optional)',secret:true,required:false},
+  {key:'NAVAN_API_TOKEN',label:'Navan API Token (optional)',secret:true,required:false}
+ ]},
+ {id:'b2b-erp',name:'B2B ERP / Procurement',providers:[],fields:[
+  {key:'NETSUITE_ACCOUNT_ID',label:'NetSuite Account ID',secret:false,required:false},
+  {key:'NETSUITE_CONSUMER_KEY',label:'NetSuite Consumer Key',secret:false,required:false},
+  {key:'NETSUITE_CONSUMER_SECRET',label:'NetSuite Consumer Secret',secret:true,required:false},
+  {key:'NETSUITE_TOKEN_ID',label:'NetSuite Token ID',secret:false,required:false},
+  {key:'NETSUITE_TOKEN_SECRET',label:'NetSuite Token Secret',secret:true,required:false}
  ]}
 ];
 
