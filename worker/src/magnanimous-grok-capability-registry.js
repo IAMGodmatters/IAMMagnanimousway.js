@@ -48,15 +48,15 @@ const CAPABILITIES=Object.freeze([
   ['presentation-skill','Presentation generation','business-operating-system','none','slides; deck creation; reusable artifacts','low'],
   ['spreadsheet-skill','Spreadsheet generation and analysis','data-platform','none','tables; formulas; analysis; formatted workbooks','low'],
   ['pdf-skill','PDF creation and transformation','business-operating-system','none','create; merge; split; extract; transform','medium'],
-  ['web-search','Agentic web search','research-orchestrator','fresh-public-web-data','search; browse; source synthesis; citations','low'],
-  ['x-search','Real-time X search and thread retrieval','social-operations','live-x-data-adapter','keyword; semantic; user; thread search','low'],
+  ['web-search','Agentic web search','research-orchestrator','external-fresh-public-web-data','search; browse; source synthesis; citations','low'],
+  ['x-search','Real-time X search and thread retrieval','social-operations','external-live-x-data-adapter','keyword; semantic; user; thread search','low'],
   ['x-account-workflows','X timeline, mentions, trends and bookmarks workflows','social-operations','authorized-x-account-rail','timeline; mentions; trends; bookmarks','medium'],
   ['code-execution','Sandboxed code execution','engineering-operator','owner-or-host-compute-capacity','code interpreter; calculations; simulations; data analysis','medium'],
-  ['collections-search','Knowledge collection search','knowledge-workspace','none-or-authorized-source-adapter','RAG; collection search; citations','low'],
+  ['collections-search','Knowledge collection search','knowledge-workspace','none-or-authorized-external-source-adapter','RAG; collection search; citations','low'],
   ['attachment-search','Attachment and uploaded-file search','knowledge-workspace','none','file retrieval; attachment search; grounded extraction','low'],
   ['remote-mcp','Remote MCP tool interoperability','universal-tool-gateway','authorized-external-tool-rail','MCP discovery; invocation; normalization','medium'],
   ['function-calling','Structured function calling','universal-tool-gateway','none-or-authorized-tool-rail','tool schemas; argument validation; tool result normalization','medium'],
-  ['deep-research','Multi-hop deep research','research-orchestrator','fresh-public-or-authorized-data','iterative search; source comparison; evidence synthesis','low'],
+  ['deep-research','Multi-hop deep research','research-orchestrator','external-fresh-public-or-authorized-data','iterative search; source comparison; evidence synthesis','low'],
   ['vision-understanding','Image and visual input understanding','creative-studio','optional-model-compute','image input; visual analysis; grounded response','low'],
   ['voice-agent','Realtime speech-to-speech agent','voice-agent-runtime','device-audio-and-optional-compute','realtime conversation; interruptions; low-latency voice','medium'],
   ['speech-to-text','Speech transcription','voice-agent-runtime','device-audio-and-optional-compute','streaming transcription; batch transcription','low'],
@@ -66,7 +66,7 @@ const CAPABILITIES=Object.freeze([
   ['image-generation-editing','Image generation and localized editing','creative-studio','optional-image-compute','generation; editing; segmentation; localized change','medium'],
   ['video-generation-editing','Video generation and editing','cinema-engine','optional-video-compute','generation; editing; references; resolution controls','medium'],
   ['app-build-mode','Interactive app/site/dashboard builder','engineering-operator','repository-or-hosting-rail-when-publishing','build; preview; iterate; publish through guarded deployment','medium'],
-  ['evidence-backed-role-automation','Evidence-backed role automation','operations-hub','authorized-business-data-and-actions','role objective; dossiers; evidence gathering; next-step execution','medium'],
+  ['evidence-backed-role-automation','Evidence-backed role automation','operations-hub','authorized-external-business-data-and-actions','role objective; dossiers; evidence gathering; next-step execution','medium'],
   ['human-final-decision-boundary','Human final-decision boundary for consequential work','operations-hub','none','approval checkpoints; binding-action stop; audit trail','high']
 ]);
 
