@@ -20,6 +20,8 @@ export default function OwnerWebAgentPage(){
  const[runs,setRuns]=useState<Run[]>([]);
  const[monitors,setMonitors]=useState<Monitor[]>([]);
  const[query,setQuery]=useState('');
+ const[researchQuery,setResearchQuery]=useState('');
+ const[batchUrls,setBatchUrls]=useState('');
  const[goal,setGoal]=useState('');
  const[goalMode,setGoalMode]=useState<'read'|'action'>('read');
  const[url,setUrl]=useState('');
@@ -131,6 +133,8 @@ export default function OwnerWebAgentPage(){
   <section className={styles.grid}>
    <article className={styles.card}><small>NATIVE SEARCH</small><h2>Search the public web</h2><p>Uses local Chromium instead of a metered web-agent service.</p><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="What should Magnanimous search for?"/><button disabled={!browserReady||!query.trim()||!!busy} onClick={()=>queue('search',{query,limit:10})}>{busy==='search'?'QUEUING…':'RUN NATIVE SEARCH'}</button></article>
    <article className={styles.card}><small>RENDERED FETCH</small><h2>Read a JavaScript website</h2><p>Returns rendered text and links after the page loads.</p><input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://example.com"/><button disabled={!browserReady||!url.trim()||!!busy} onClick={()=>queue('fetch',{url,link_limit:60})}>{busy==='fetch'?'QUEUING…':'FETCH WITH NATIVE BROWSER'}</button></article>
+   <article className={styles.card}><small>SOURCE-BACKED RESEARCH</small><h2>Research without TinyFish credits</h2><p>Searches with local Chromium, collects source pages, then lets Magnanimous synthesize the evidence.</p><input value={researchQuery} onChange={e=>setResearchQuery(e.target.value)} placeholder="What should Magnanimous research?"/><button disabled={!browserReady||!researchQuery.trim()||!!busy} onClick={()=>queue('research',{query:researchQuery,limit:5})}>{busy==='research'?'QUEUING…':'RUN NATIVE RESEARCH'}</button></article>
+   <article className={styles.card}><small>BATCH FETCH</small><h2>Read up to 10 pages</h2><p>One public URL per line. Each page returns its own result or error without failing the whole batch.</p><textarea value={batchUrls} onChange={e=>setBatchUrls(e.target.value)} placeholder={'https://example.com/page-1\nhttps://example.com/page-2'}/><button disabled={!browserReady||!batchUrls.trim()||!!busy} onClick={()=>queue('fetch_batch',{urls:batchUrls.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0,10),link_limit:40})}>{busy==='fetch_batch'?'QUEUING…':'RUN BATCH FETCH'}</button></article>
   </section>
 
   <section className={styles.panel}><div className={styles.panelHead}><div><small>CAPABILITIES</small><h2>Native browser contract</h2></div><button onClick={()=>refresh().catch(e=>setError(e.message))}>REFRESH</button></div><div className={styles.caps}>{Object.entries(caps?.capabilities||{}).map(([id,c])=><span key={id} className={c.ready?styles.capReady:''}><b>{id.replaceAll('_',' ')}</b><small>{c.ready?'READY':'NOT READY'} • {c.confirmation?'CONFIRMATION':'AUTO/READ'}</small></span>)}</div></section>
@@ -139,6 +143,6 @@ export default function OwnerWebAgentPage(){
 
   <section className={styles.panel}><div className={styles.panelHead}><div><small>NATIVE MONITORING</small><h2>Watch a website</h2></div><span>15-minute minimum</span></div><form className={styles.monitorForm} onSubmit={createMonitor}><input value={monitorName} onChange={e=>setMonitorName(e.target.value)} placeholder="Monitor name"/><input required type="url" value={monitorUrl} onChange={e=>setMonitorUrl(e.target.value)} placeholder="https://example.com/page"/><button disabled={!browserReady||busy==='monitor'}>{busy==='monitor'?'CREATING…':'CREATE HOURLY NATIVE MONITOR'}</button></form>{monitors.map(m=><div className={styles.monitor} key={m.id}><b>{m.name}</b><span>{m.status.toUpperCase()} • every {m.interval_minutes} min</span><small>{m.changed?'CHANGE DETECTED':'No recorded change'}{m.last_error?' • '+m.last_error:''}</small></div>)}</section>
 
-  <section className={styles.safety}><b>Native safety boundary</b><span>No generic shell</span><span>No password values in remote browser tasks</span><span>Private-network targets blocked</span><span>Interactive actions require confirmation</span><span>Browser cookies stay in local profiles</span><span>External browser agents remain optional fallbacks only</span></section>
+  <section className={styles.safety}><b>Native safety boundary</b><span>No TinyFish wallet required for supported native runs</span><span>No generic shell</span><span>No password values in remote browser tasks</span><span>Private-network targets blocked</span><span>Interactive actions require confirmation</span><span>Browser cookies stay in local profiles</span><span>External browser agents remain optional fallbacks only</span></section>
  </main>
 }
