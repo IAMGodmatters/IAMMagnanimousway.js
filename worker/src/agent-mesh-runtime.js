@@ -89,7 +89,8 @@ const PROVIDERS=[
  {id:'mistral',name:'Mistral AI',tier:'free-mode',key:'MISTRAL_API_KEY',priority:4,note:'Mistral Studio/API Free mode supported.'},
  {id:'openrouter-free',name:'OpenRouter Free Models',tier:'free-tier',key:'OPENROUTER_API_KEY',priority:5,note:'Free-model router; subject to free-plan request limits.'},
  {id:'huggingface',name:'Hugging Face Inference Providers',tier:'free-credits',key:'HF_TOKEN',priority:6,note:'Small monthly free inference credit allocation.'},
- {id:'cerebras',name:'Cerebras Inference',tier:'trial-credits',key:'CEREBRAS_API_KEY',priority:7,note:'Free trial credits; Z.ai GLM default, never an OpenAI model.'}
+ {id:'cerebras',name:'Cerebras Inference',tier:'trial-credits',key:'CEREBRAS_API_KEY',priority:7,note:'Free trial credits; Z.ai GLM default, never an OpenAI model.'},
+ {id:'xai',name:'xAI Grok',tier:'metered-optional',key:'XAI_API_KEY',priority:8,note:'Optional metered compute adapter only. Magnanimous owns memory, tools, policy and orchestration.'}
 ];
 
 const NATIVE_WORKSPACES=[
@@ -284,6 +285,7 @@ async function runProvider(id,env,messages,requestedModel=''){
  if(id==='openrouter-free')return chatCompletionsCompatible('https://openrouter.ai/api/v1',env.OPENROUTER_API_KEY,requestedModel||env.OPENROUTER_MODEL||'openrouter/free',messages,'OpenRouter',{'HTTP-Referer':'https://iammagnanimousway.com','X-Title':'I AM Magnanimous Way Agent Mesh'});
  if(id==='huggingface')return chatCompletionsCompatible('https://router.huggingface.co/v1',env.HF_TOKEN,requestedModel||env.HUGGINGFACE_MODEL||'Qwen/Qwen2.5-7B-Instruct',messages,'Hugging Face');
  if(id==='cerebras')return chatCompletionsCompatible('https://api.cerebras.ai/v1',env.CEREBRAS_API_KEY,requestedModel||env.CEREBRAS_MODEL||'zai-glm-4.7',messages,'Cerebras',{'X-Cerebras-Version-Patch':'2'});
+ if(id==='xai')return chatCompletionsCompatible('https://api.x.ai/v1',env.XAI_API_KEY,requestedModel||env.XAI_MODEL||'grok-4.6',messages,'xAI Grok');
  throw new Error('Unknown Agent Mesh provider.');
 }
 
