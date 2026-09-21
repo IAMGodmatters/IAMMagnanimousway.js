@@ -3,6 +3,7 @@
 import { type CSSProperties, useEffect, useState } from "react";
 
 import ModeHero from "../../components/ModeHero";
+import AIProcessingIndicator from "../../components/AIProcessingIndicator";
 import {
   MODE_OPTIONS,
   MODE_VISUALS,
@@ -49,6 +50,7 @@ export default function AIChat() {
   const [mode, setMode] = useState<MagnanimousMode>("General");
   const [webSearchReady, setWebSearchReady] = useState(false);
   const [notice, setNotice] = useState("");
+  const [activeQuestion, setActiveQuestion] = useState("");
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -90,6 +92,7 @@ export default function AIChat() {
     const question = message.trim();
     if (!question || busy || !ready) return;
     setBusy(true);
+    setActiveQuestion(question);
     setNotice("");
     setMessage("");
 
@@ -140,6 +143,7 @@ export default function AIChat() {
       setNotice(error?.message || "Unable to reach Magnanimous AI.");
     } finally {
       setBusy(false);
+      setActiveQuestion("");
     }
   }
 
@@ -156,7 +160,7 @@ export default function AIChat() {
     window.history.replaceState({}, "", url);
   }
 
-  const status = checking ? "CHECKING" : ready ? "READY" : "SETUP NEEDED";
+  const status = checking ? "CHECKING" : busy ? "PROCESSING" : ready ? "READY" : "SETUP NEEDED";
   const researchLabel = webSearchReady
     ? "Live web and news search available"
     : "Live web search is not connected";
@@ -215,7 +219,7 @@ export default function AIChat() {
             <small>AI WORKSPACE · {activeMode.toUpperCase()}</small>
             <p>{activeVisual.subtitle}</p>
           </div>
-          <div className={`status ${ready ? "ready" : ""}`}>
+          <div className={`status ${ready ? "ready" : ""} ${busy ? "processing" : ""}`}>
             <b>{status}</b>
             <span>MAGNANIMOUS AI™ · PRIVATE ROUTING</span>
           </div>
@@ -280,6 +284,15 @@ export default function AIChat() {
                   )}
                 </article>
               ))}
+            </div>
+          )}
+          {busy && activeQuestion && (
+            <div className="pending-exchange">
+              <div className="question">
+                <b>YOU</b>
+                <p>{activeQuestion}</p>
+              </div>
+              <AIProcessingIndicator mode={activeMode} request={activeQuestion} />
             </div>
           )}
           <textarea
@@ -547,6 +560,10 @@ export default function AIChat() {
         .status.ready b {
           color: #83f1b3;
         }
+        .status.processing b {
+          color: var(--mode-accent);
+          animation: statusPulse 1.4s ease-in-out infinite;
+        }
         .status span {
           display: block;
           font-size: 10px;
@@ -643,6 +660,14 @@ export default function AIChat() {
         }
         .answer p {
           color: #e0d6ee;
+        }
+        .pending-exchange {
+          margin-top: 14px;
+          padding: 14px 0 2px;
+          border-top: 1px solid color-mix(in srgb, var(--mode-accent) 22%, transparent);
+        }
+        .pending-exchange .question {
+          margin-bottom: 6px;
         }
         .console textarea {
           width: 100%;
@@ -748,6 +773,13 @@ export default function AIChat() {
           color: #8f819a;
           font-size: 11px;
           margin-top: 5px;
+        }
+        @keyframes statusPulse {
+          0%, 100% { opacity: .62; }
+          50% { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .status.processing b { animation: none; }
         }
         @media (max-width: 800px) {
           .odin {

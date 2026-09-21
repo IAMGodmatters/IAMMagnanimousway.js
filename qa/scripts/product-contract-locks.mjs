@@ -36,6 +36,7 @@ const home = read('frontend/app/page.tsx');
 const standaloneLayout = read('frontend/app/magnanimous/layout.tsx');
 const standalonePage = read('frontend/app/magnanimous/page.tsx');
 const aiChatPage = read('frontend/app/ai-chat/page.tsx');
+const aiProcessingIndicator = read('frontend/components/AIProcessingIndicator.tsx');
 const shopPage = read('frontend/app/shop/page.tsx');
 const platformCredentials = read('worker/src/platform-credentials.js');
 const assistantIntegrations = read('worker/src/assistant-integrations.js');
@@ -51,6 +52,7 @@ includes(standalonePage, "fetch('/api/chat'", 'standalone: Magnanimous chat endp
 includes(standalonePage, '/login?returnTo=%2Fmagnanimous', 'standalone: persistent-memory sign-in return path remains locked');
 includes(standalonePage, 'Guest session', 'standalone: guest-session UI contract remains locked');
 includes(standalonePage, 'MAGNANIMOUS AI™', 'standalone: Magnanimous customer-facing identity remains locked');
+includes(standalonePage, "AIProcessingIndicator compact", 'standalone: long-running AI work remains visibly active');
 notMatches(standalonePage, /d\?\.(?:provider|provider_name|model)\b/, 'standalone: UI must not read provider/model identities');
 notMatches(standalonePage, /execution engine/i, 'standalone: UI must not display execution-engine language');
 notMatches(standalonePage, /\b(?:OpenAI|Anthropic|Claude|Gemini|Groq|Mistral|OpenRouter|Cerebras|Hugging Face|Cloudflare Workers AI)\b/i, 'standalone: third-party AI brands must not appear in customer-facing source');
@@ -80,6 +82,14 @@ includes(branchEntrypoint, 'return sanitizeProviderCatalog(request,chatResponse,
 notMatches(aiChatPage, /data\.(?:provider_name|provider|model)\b/, 'privacy: legacy AI Chat UI must not read execution provider/model identities');
 notMatches(aiChatPage, /item\.(?:provider|model)\b/, 'privacy: legacy AI Chat history must not display execution provider/model metadata');
 includes(aiChatPage, 'MAGNANIMOUS AI™ · PRIVATE ROUTING', 'privacy: legacy AI Chat status presents Magnanimous private routing');
+includes(aiChatPage, 'setActiveQuestion(question)', 'experience: submitted AI Chat request remains visibly represented while processing');
+includes(aiChatPage, '<AIProcessingIndicator mode={activeMode} request={activeQuestion} />', 'experience: main AI Chat mounts the live processing indicator');
+includes(aiChatPage, 'busy ? "PROCESSING"', 'experience: AI Chat header visibly enters processing state');
+includes(aiProcessingIndicator, 'MAGNANIMOUS AI IS WORKING', 'experience: processing indicator clearly says the AI is working');
+includes(aiProcessingIndicator, 'setInterval(tick,1000)', 'experience: processing indicator exposes a live elapsed timer');
+includes(aiProcessingIndicator, 'Long-running request is still active', 'experience: long-running requests remain visibly alive instead of appearing frozen');
+includes(aiProcessingIndicator, 'aria-busy="true"', 'experience: processing state remains accessible to assistive technology');
+includes(aiProcessingIndicator, '@media(prefers-reduced-motion:reduce)', 'experience: processing motion respects reduced-motion preferences');
 
 // 2) Main platform lock.
 const requiredPlatformRoutes = [
