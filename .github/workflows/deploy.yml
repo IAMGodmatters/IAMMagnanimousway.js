@@ -159,6 +159,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ "${D1_MIGRATION_DEFERRED:-0}" = "1" ]; then
+            echo "::warning::D1 migration/control-plane work was already deferred earlier in this deployment. Skipping durable full-brain D1 materialization and continuing with the checked-in Magnanimous runtime manifest; deferred maintenance will reconcile the durable cache later."
+            exit 0
+          fi
           rm -rf /tmp/magnanimous-full-brain
           node qa/scripts/materialize-full-brain-d1.mjs /tmp/magnanimous-full-brain
 
