@@ -562,6 +562,7 @@ jobs:
           echo "Encrypted Stripe webhook credential is loaded and signature verification is active."
 
           email="deploy-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
+          smoke_password="Smoke-Test-Only-2026!"
           tenant_id=""
           cleanup() {
             local exit_code=$?
@@ -642,10 +643,10 @@ jobs:
           }
           trap cleanup EXIT
 
-          python - "$email" > /tmp/signup-payload.json <<'PY'
+          python - "$email" "$smoke_password" > /tmp/signup-payload.json <<'PY'
           import json,sys
-          email=sys.argv[1]
-          print(json.dumps({'name':'Deployment Smoke Test','workspace':'Deployment Smoke Test','email':email,'password':'Smoke-Test-Only-2026!','accountProcessingConsent':True,'termsAccepted':True,'marketingConsent':False}))
+          email,password=sys.argv[1:3]
+          print(json.dumps({'name':'Deployment Smoke Test','workspace':'Deployment Smoke Test','email':email,'password':password,'accountProcessingConsent':True,'termsAccepted':True,'marketingConsent':False}))
           PY
 
           status=$(curl -sS -o /tmp/signup.json -w '%{http_code}' -X POST "$BASE_URL/api/auth/signup" -H 'content-type: application/json' --data-binary @/tmp/signup-payload.json)
@@ -688,6 +689,44 @@ jobs:
           )
           tenant_id="${signup_values[0]}"
           token="${signup_values[1]}"
+
+          refresh_smoke_session() {
+            python - "$email" "$smoke_password" > /tmp/login-payload.json <<'PY'
+          import json,sys
+          email,password=sys.argv[1:3]
+          print(json.dumps({'email':email,'password':password}))
+          PY
+            local login_status
+            login_status=$(curl -sS -o /tmp/login-refresh.json -w '%{http_code}' -X POST "$BASE_URL/api/auth/login" -H 'content-type: application/json' --data-binary @/tmp/login-payload.json)
+            if [ "$login_status" != "200" ]; then
+              echo "Smoke session refresh returned HTTP $login_status"
+              cat /tmp/login-refresh.json || true
+              return 1
+            fi
+            readarray -t refresh_values < <(python - "$tenant_id" <<'PY'
+          import json,sys,time
+          expected_tenant=sys.argv[1]
+          data=json.load(open('/tmp/login-refresh.json'))
+          user=data.get('user') or {}
+          token=data.get('token') or ''
+          assert user.get('tenant_id') == expected_tenant, data
+          assert token.startswith('ms1_'), data
+          assert '|' not in token, data
+          assert int(data.get('session_expires_at') or 0) > int(time.time()), data
+          print(user['tenant_id'])
+          print(token)
+          PY
+            )
+            token="${refresh_values[1]}"
+            local verify_status
+            verify_status=$(curl -sS -o /tmp/me-refresh.json -w '%{http_code}' "$BASE_URL/api/auth/me" -H "Authorization: Bearer $token")
+            if [ "$verify_status" != "200" ]; then
+              echo "Refreshed smoke session verification returned HTTP $verify_status"
+              cat /tmp/me-refresh.json || true
+              return 1
+            fi
+            echo "Refreshed deployment smoke session for tenant $tenant_id."
+          }
 
           status=$(curl -sS -o /tmp/me.json -w '%{http_code}' "$BASE_URL/api/auth/me" -H "Authorization: Bearer $token")
           if [ "$status" != "200" ]; then echo "Authenticated account check returned HTTP $status"; cat /tmp/me.json || true; exit 1; fi
@@ -1009,6 +1048,8 @@ jobs:
           print('Business AI live durable execution and truthful verification boundary passed.')
           PY
 
+          refresh_smoke_session
+
           check_protected_page "White Label public page" "$BASE_URL/white-label" /tmp/white-label.html
 
           white_label_status=$(curl -sS -o /tmp/white-label-denied.json -w '%{http_code}' "$BASE_URL/api/white-label-os/overview" -H "Authorization: Bearer $token")
@@ -1172,6 +1213,8 @@ jobs:
           credential_status=$(curl -sS -o /tmp/credentials-denied.json -w '%{http_code}' "$BASE_URL/api/integrations/platform-credentials" -H "Authorization: Bearer $token")
           if [ "$credential_status" != "403" ]; then echo "Customer platform-credential isolation expected HTTP 403, got $credential_status"; cat /tmp/credentials-denied.json || true; exit 1; fi
           echo "Customer workspaces are isolated from global platform controls."
+
+          refresh_smoke_session
 
           status=$(curl -sS -o /tmp/agent-chat.json -w '%{http_code}' -X POST "$BASE_URL/api/agents/chat" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"agent_id":"bobby","message":"Give one short sentence confirming the native I AM Agent Mesh is online."}')
           if [ "$status" != "200" ]; then echo "Agent Mesh chat returned HTTP $status"; cat /tmp/agent-chat.json || true; exit 1; fi
