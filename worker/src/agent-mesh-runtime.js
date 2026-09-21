@@ -245,6 +245,20 @@ function classifyAgentFailure(errors){
  return'unavailable';
 }
 
+function resilienceUserMessage(message){
+ const text=String(message||'');
+ const markers=[
+  '\n\nAUTOMATIC SPECIALIST HANDOFF — apply silently.',
+  '\n\nSPECIALIST BRANCH CONTEXT — apply this silently; do not quote it back to the user.'
+ ];
+ let cut=text.length;
+ for(const token of markers){
+  const i=text.indexOf(token);
+  if(i>=0&&i<cut)cut=i;
+ }
+ return text.slice(0,cut).trim();
+}
+
 function localResilienceResponse(agent,message,failureClass='unavailable'){
  const text=String(message||'').trim();
  const lower=text.toLowerCase();
@@ -373,7 +387,7 @@ export async function handleAgentMesh(request,env){
   }
   console.error('Agent Mesh execution failed',errors);
   const failureClass=classifyAgentFailure(errors);
-  const fallback=localResilienceResponse(agent,message,failureClass);
+  const fallback=localResilienceResponse(agent,resilienceUserMessage(message),failureClass);
   await saveMessage(env,user,agent.id,'assistant',fallback,'magnanimous-local-resilience','local-resilience-v1');
   return json({output:fallback,agent,provider:'magnanimous-local-resilience',provider_name:'Magnanimous AI routing',model:'local-resilience-v1',shared_memory:true,tenant_isolated:true,connected_tools:integrations,native_workspaces:NATIVE_WORKSPACES,native_context_used:true,platform_actions:'/assistant-actions',video_route:'/agent-video',openai_used:false,degraded:true,failure_class:failureClass});
  }
