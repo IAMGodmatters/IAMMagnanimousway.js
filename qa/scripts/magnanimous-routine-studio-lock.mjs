@@ -69,9 +69,9 @@ for(const needle of [
  'Routine Studio',
  'Teach repeatable work once',
  'TEACH BY DEMONSTRATION',
- 'Skill → Routine',
+ 'Skill &rarr; Routine',
  'PERSISTENT CLOUD WORKSPACE',
- 'Review approved → run',
+ 'Review approved &rarr; run',
  '/api/magnanimous/routine-studio/skills/teach',
  '/api/magnanimous/routine-studio/routines',
  '/api/magnanimous/routine-studio/workspace/files'
