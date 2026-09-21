@@ -1,7 +1,10 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 
-const read=path=>fs.readFileSync(path,'utf8');
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const runtime=read('worker/src/magnanimous-skill-routine-runtime.js');
 const operations=read('worker/src/operations-entrypoint.js');
 const universal=read('worker/src/magnanimous-universal-capabilities.js');
