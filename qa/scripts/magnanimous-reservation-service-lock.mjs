@@ -29,12 +29,23 @@ assert.ok(caps.length>=30,'Reservation capability contracts must cover the full 
 assert.equal(summary.providers,providers.length);
 assert.equal(summary.skills,skills.length);
 assert.equal(summary.capabilities,caps.length);
+assert.ok(summary.provider_tool_contracts>=150,'Reservation provider graph must expose broad public tool contracts.');
 
 for(const id of [
  'amadeus','sabre','travelport','duffel','hahnair','verteil','travelfusion','expedia-rapid',
  'hbx-hotelbeds','travelgate','ratehawk','tbo','zentrumhub','viator','getyourguide',
  'direct-airline-ndc','host-consolidator','iata-bsp','arc','stripe'
 ])assert.ok(providers.some(x=>x.id===id),'Missing reservation provider graph node '+id);
+
+for(const p of providers){
+ assert.ok(Array.isArray(p.connection_role)&&p.connection_role.length,'Provider role missing: '+p.id);
+ assert.ok(Array.isArray(p.products)&&p.products.length,'Provider products missing: '+p.id);
+ assert.ok(Array.isArray(p.lifecycle)&&p.lifecycle.length,'Provider lifecycle missing: '+p.id);
+ assert.ok(Array.isArray(p.upstream)&&p.upstream.length,'Provider upstream graph missing: '+p.id);
+ assert.ok(Array.isArray(p.downstream)&&p.downstream.length,'Provider downstream graph missing: '+p.id);
+ assert.ok(Array.isArray(p.tools)&&p.tools.length,'Provider tool contracts missing: '+p.id);
+ assert.ok(typeof p.authority==='string'&&p.authority.length>5,'Provider authority boundary missing: '+p.id);
+}
 
 for(const id of [
  'inventory-routing','multi-source-search','content-normalization','content-deduplication',
@@ -121,6 +132,13 @@ const env=fs.readFileSync('worker/src/provider-runtime-env.js','utf8');
 for(const key of ['VERTEIL_API_TOKEN','TRAVELFUSION_API_TOKEN','TBO_API_KEY','HAHNAIR_PARTNER_REFERENCE'])
  assert.ok(env.includes(key),'Runtime env must expose '+key);
 
+const reservationPage=fs.readFileSync('frontend/app/reservations/page.tsx','utf8');
+assert.ok(reservationPage.includes('MAGNANIMOUS RESERVATION SERVICE'));
+assert.ok(reservationPage.includes('TRANSACTION PREFLIGHT'));
+assert.ok(reservationPage.includes('PROVIDER CONNECTION GRAPH'));
+assert.ok(reservationPage.includes('PROVIDER TOOL CONTRACTS'));
+assert.ok(reservationPage.includes('Credentials do not equal authority'));
+
 const page=fs.readFileSync('frontend/app/b2b/page.tsx','utf8');
 assert.ok(page.includes('MAGNANIMOUS RESERVATION SERVICE'));
 assert.ok(page.includes('Provider dependency graph'));
@@ -128,5 +146,8 @@ assert.ok(page.includes('RESERVATION SKILL LIBRARY'));
 
 const agents=fs.readFileSync('worker/src/agent-mesh-runtime.js','utf8');
 assert.ok(agents.includes("'reserveops','ReserveOps','Reservation Service Orchestrator'"));
+assert.ok(agents.includes("'reserve','Reserve','Reservation Orchestrator'"));
+assert.ok(agents.includes("'serviceops','ServiceOps','Post-Booking Servicing'"));
+assert.ok(agents.includes("{id:'reservations',name:'Reservation Service',href:'/reservations'"));
 
 console.log('Magnanimous reservation service lock PASS',summary);
