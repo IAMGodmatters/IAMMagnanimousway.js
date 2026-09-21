@@ -22,6 +22,7 @@ const codeFiles=[
   'magnanimous-runtime/src/metrics.mjs',
   'magnanimous-runtime/src/image-generation-binding.mjs',
   'magnanimous-runtime/src/cloud-control.mjs',
+  'worker/src/magnanimous-native-infrastructure-compatibility.js',
   'magnanimous-runtime/src/migration-stage.mjs',
   'magnanimous-runtime/src/runtime-secret-store.mjs',
   'magnanimous-runtime/src/bootstrap.mjs',
@@ -132,5 +133,6 @@ for(const file of ['worker/src/github-actions-oidc.js','worker/src/credential-va
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime-secret-store.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['qa/scripts/magnanimous-cloud-independence-readiness.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['qa/scripts/native-infrastructure-independence-lock.mjs'],{stdio:'inherit'});
 
-console.log('Magnanimous Cloud Exit Lock: standalone runtime, Magnanimous Cloud control plane, SQL, storage/cache, durable work, event coordination, rate limiting, vectors, analytics, encrypted secrets, pipelines, isolated sandbox, server browser rendering, media transforms, observability, cutover tooling and infrastructure ownership PASS');
+console.log('Magnanimous Cloud Exit Lock: standalone runtime, Magnanimous Cloud control plane, SQL, storage/cache, durable work, event coordination, rate limiting, vectors, analytics, encrypted secrets, pipelines, isolated sandbox, server browser rendering, media transforms, observability, cutover tooling, provider-independent compatibility and infrastructure ownership PASS');
