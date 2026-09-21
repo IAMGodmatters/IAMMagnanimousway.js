@@ -135,7 +135,7 @@ jobs:
               break
             fi
 
-            if printf '%s' "$output" | grep -Eqi "internal error.*7500|code[^0-9]*7500|Network connection lost|connection reset|temporarily unavailable|timed out|Not currently importing anything"; then
+            if printf '%s' "$output" | grep -Eqi "internal error.*7500|code[^0-9]*7500|Network connection lost|connection reset|temporarily unavailable|timed out|Not currently importing anything|Currently processing a long-running import"; then
               if [ "$attempt" -lt 4 ]; then
                 echo "::warning::Transient Cloudflare D1 migration failure. Retrying migration application ($attempt/3)."
                 sleep $((attempt * 8))
@@ -217,19 +217,34 @@ jobs:
           # source digest already matches. This is intentionally limited to the
           # materializer-owned full-brain ledger/realization rows and absorb-* specs.
           echo "Applying current-manifest stale-row pruning"
-          set +e
-          prune_output=$(cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file=/tmp/magnanimous-full-brain/000-prune-stale.sql 2>&1)
-          prune_rc=$?
-          set -e
-          printf '%s\n' "$prune_output"
-          if [ "$prune_rc" -ne 0 ]; then
+          prune_attempt=1
+          while true; do
+            set +e
+            prune_output=$(cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file=/tmp/magnanimous-full-brain/000-prune-stale.sql 2>&1)
+            prune_rc=$?
+            set -e
+            printf '%s\n' "$prune_output"
+            if [ "$prune_rc" -eq 0 ]; then
+              break
+            fi
             if printf '%s' "$prune_output" | grep -qi "free tier daily row write limit"; then
               materialization_deferred=1
               echo "::warning::Cloudflare D1 daily row-write quota blocked stale-row pruning. The checked-in Magnanimous brain manifest remains authoritative; durable cleanup will retry after quota reset."
-            else
-              exit "$prune_rc"
+              break
             fi
-          fi
+            if printf '%s' "$prune_output" | grep -Eqi "Not currently importing anything|Currently processing a long-running import|Network connection lost|internal error.*7500|code[^0-9]*7500|connection reset|temporarily unavailable|timed out"; then
+              if [ "$prune_attempt" -lt 4 ]; then
+                echo "::warning::Transient Cloudflare D1 failure during stale-row pruning. Retrying idempotent prune ($prune_attempt/3)."
+                sleep $((prune_attempt * 8))
+                prune_attempt=$((prune_attempt + 1))
+                continue
+              fi
+              materialization_deferred=1
+              echo "::warning::Cloudflare D1 remained unavailable for stale-row pruning after bounded retries. Durable cleanup is deferred; Worker deployment will continue with the checked-in Magnanimous brain manifest."
+              break
+            fi
+            exit "$prune_rc"
+          done
 
           if [ "$materialization_deferred" -eq 0 ]; then
             if [ -n "$current_digest" ] && [ "$current_digest" = "$digest" ]; then
@@ -254,7 +269,7 @@ jobs:
                     echo "::warning::Cloudflare D1 daily row-write quota is exhausted. The checked-in Magnanimous brain manifest remains authoritative in the deployed Worker; durable D1 materialization is deferred until write capacity is available."
                     break
                   fi
-                  if printf '%s' "$output" | grep -Eqi "Not currently importing anything|Network connection lost|internal error.*7500|code[^0-9]*7500|connection reset|temporarily unavailable|timed out"; then
+                  if printf '%s' "$output" | grep -Eqi "Not currently importing anything|Currently processing a long-running import|Network connection lost|internal error.*7500|code[^0-9]*7500|connection reset|temporarily unavailable|timed out"; then
                     if [ "$attempt" -lt 4 ]; then
                       echo "::warning::Transient Cloudflare D1 failure while applying $(basename "$file"). Retrying the same idempotent materialization chunk ($attempt/3)."
                       sleep $((attempt * 8))
