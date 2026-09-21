@@ -16,8 +16,37 @@ function base64UrlText(value){
  return base64Url(new TextEncoder().encode(String(value)));
 }
 
+function derLength(length){
+ if(length<128)return new Uint8Array([length]);
+ const bytes=[];
+ let n=length;
+ while(n>0){bytes.unshift(n&255);n>>>=8;}
+ return new Uint8Array([0x80|bytes.length,...bytes]);
+}
+
+function concatBytes(...parts){
+ const total=parts.reduce((n,p)=>n+p.length,0);
+ const out=new Uint8Array(total);
+ let offset=0;
+ for(const part of parts){out.set(part,offset);offset+=part.length;}
+ return out;
+}
+
+function derWrap(tag,body){
+ return concatBytes(new Uint8Array([tag]),derLength(body.length),body);
+}
+
+function pkcs1ToPkcs8(pkcs1){
+ const version=new Uint8Array([0x02,0x01,0x00]);
+ const rsaAlgorithm=new Uint8Array([0x30,0x0d,0x06,0x09,0x2a,0x86,0x48,0x86,0xf7,0x0d,0x01,0x01,0x01,0x05,0x00]);
+ const privateKey=derWrap(0x04,pkcs1);
+ return derWrap(0x30,concatBytes(version,rsaAlgorithm,privateKey));
+}
+
 function pemBytes(pem){
- const body=String(pem||'')
+ const raw=String(pem||'').trim();
+ const pkcs1=/-----BEGIN RSA PRIVATE KEY-----/.test(raw);
+ const body=raw
   .replace(/-----BEGIN (?:RSA )?PRIVATE KEY-----/g,'')
   .replace(/-----END (?:RSA )?PRIVATE KEY-----/g,'')
   .replace(/\s+/g,'');
@@ -25,7 +54,7 @@ function pemBytes(pem){
  const binary=atob(body);
  const bytes=new Uint8Array(binary.length);
  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
- return bytes;
+ return pkcs1?pkcs1ToPkcs8(bytes):bytes;
 }
 
 function appId(env){
