@@ -6,6 +6,8 @@ import { MAGNANIMOUS_WEB_PARITY, handleMagnanimousNativeWeb } from './magnanimou
 import { MAGNANIMOUS_DEV_SKILLS, magnanimousDevAgentSummary, handleMagnanimousDevAgent } from './magnanimous-dev-agent.js';
 import { RAILWAY_VISIBLE_TOOL_CONTRACTS, RAILWAY_ARCHITECTURE_TECHNIQUES, handleMagnanimousCloudProvider } from './magnanimous-cloud-provider-core.js';
 import { findReadyLocalBridgeDevice, hasAnyReadyLocalBridgeCapability } from './magnanimous-local-bridge-runtime.js';
+import { MAGNANIMOUS_NATIVE_MEDIA_FAMILIES, MAGNANIMOUS_NATIVE_MEDIA_CAPABILITIES, HEYGEN_VISIBLE_BENCHMARK_TOOLS, getMagnanimousNativeMediaSummary, handleMagnanimousNativeMedia } from './magnanimous-native-media-studio.js';
+import { MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES, getMagnanimousNativeTerminalSummary, handleMagnanimousNativeTerminal } from './magnanimous-native-terminal.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -49,6 +51,19 @@ export const MAGNANIMOUS_CAPABILITY_MESH_ROUTES=Object.freeze({
  'railway.status':{surface:'railway-compatible-deployment-rail',mode:'read',provider_optional:true},
  'railway.catalog':{surface:'railway-compatible-deployment-rail',mode:'read',provider_optional:true},
  'railway.deploy_exact':{surface:'github-exact-deploy-workflow',mode:'staged-write',confirmation:true,provider_optional:true},
+ 'media.summary':{surface:'native-media-studio',mode:'read',native:true},
+ 'media.catalog':{surface:'native-media-studio',mode:'read',native:true},
+ 'media.plan':{surface:'native-media-studio',mode:'plan',native:true},
+ 'media.render_avatar':{surface:'native-media-studio',mode:'native-or-self-hosted-render',native:true},
+ 'media.glossary_apply':{surface:'native-media-studio',mode:'read-transform',native:true},
+ 'media.template_render':{surface:'native-media-studio',mode:'read-transform',native:true},
+ 'terminal.summary':{surface:'native-terminal',mode:'read',native:true},
+ 'terminal.catalog':{surface:'native-terminal',mode:'read',native:true},
+ 'terminal.classify':{surface:'native-terminal',mode:'read',native:true},
+ 'terminal.profiles':{surface:'native-terminal',mode:'local-read',native:true},
+ 'terminal.read':{surface:'native-terminal',mode:'local-read',native:true},
+ 'terminal.stage':{surface:'native-terminal',mode:'staged-write',confirmation:true,native:true},
+ 'terminal.interpret':{surface:'native-terminal',mode:'read-transform',native:true},
  'mesh.self_check':{surface:'capability-mesh',mode:'read',native:true}
 });
 
@@ -118,8 +133,12 @@ function cloudReadiness(env){
  };
 }
 
-function readinessRows({cloudflare,web,github,railway,cloud}){
+function readinessRows({cloudflare,web,github,railway,cloud,media,terminal}){
  return[
+  {id:'native-media-orchestration',ready:true,required:false,mode:'native',detail:'Magnanimous owns media planning, templates, brand rules, provider-neutral capability contracts and verification.'},
+  {id:'native-avatar-experience',ready:Boolean(media?.execution?.browser_live_avatar||media?.execution?.self_hosted_avatar_renderer_configured),required:false,mode:media?.execution?.self_hosted_avatar_renderer_configured?'self-hosted-renderer':'browser-native',detail:media?.execution?.self_hosted_avatar_renderer_configured?'Owner-controlled avatar renderer is configured.':'Free browser live-avatar mode is available; heavy rendering remains optional owner-controlled compute.'},
+  {id:'native-terminal-orchestration',ready:true,required:false,mode:'native',detail:'Command classification, redaction, rollback planning and confirmation policy are native Magnanimous capabilities.'},
+  {id:'native-ssh-execution',ready:Boolean(terminal?.local_ssh_ready),required:false,mode:'owner-local',detail:terminal?.local_ssh_ready?'A paired owner-controlled Local Bridge advertises native SSH execution.':'Native SSH code is installed; execution becomes live when an OpenSSH-capable paired Local Bridge is online.'},
   {id:'magnanimous-cloud',ready:Boolean(cloud.native_binding_active),required:false,mode:'native',detail:cloud.native_binding_active?'Native cloud control binding active.':'Native cloud control code is present; this execution rail does not expose the binding.'},
   {id:'native-web-search',ready:Boolean(web.core_read_ready),required:true,mode:'native-local',detail:web.core_read_ready?'Local Chromium search/fetch ready.':'Activate or update a paired Local Bridge to make native web execution live.'},
   {id:'native-web-research',ready:Boolean(web.research_ready),required:false,mode:'native-local',detail:web.research_ready?'Native source-backed research ready.':'Research contract is installed but its Local Bridge executor is not currently heartbeat-ready.'},
@@ -131,12 +150,13 @@ function readinessRows({cloudflare,web,github,railway,cloud}){
 }
 
 export async function getMagnanimousCapabilityMeshSummary(env,providerEnv=env,tenantId=''){
- const [web]=await Promise.all([nativeWebReadiness(env,tenantId)]);
+ const [web,terminal]=await Promise.all([nativeWebReadiness(env,tenantId),getMagnanimousNativeTerminalSummary(env,tenantId)]);
+ const media=getMagnanimousNativeMediaSummary(env);
  const github=magnanimousDevAgentSummary(env);
  const cloudflare=magnanimousCloudflareSummary(providerEnv||env);
  const railway=railwayReadiness(env,github);
  const cloud=cloudReadiness(env);
- const readiness=readinessRows({cloudflare,web,github,railway,cloud});
+ const readiness=readinessRows({cloudflare,web,github,railway,cloud,media,terminal});
  const readyCount=readiness.filter(x=>x.ready).length,totalCount=readiness.length;
  const requiredBlocked=readiness.filter(x=>x.required&&!x.ready);
  const status=requiredBlocked.length?'operable-with-native-executor-activation-needed':'operable-native-first';
@@ -145,6 +165,8 @@ export async function getMagnanimousCapabilityMeshSummary(env,providerEnv=env,te
  if(!github.repository_token_configured)suggestions.push({id:'configure-github-adapter',risk:'credential-owner-action',action:'Configure the server-side GitHub platform token if private repository writes or workflow dispatch are required from the live platform.'});
  if(!railway.direct_project_adapter_configured)suggestions.push({id:'railway-direct-fallback',risk:'credential-owner-action',action:'Keep Railway optional. Add a production-scoped Railway project token only if autonomous direct provider fallback is desired; do not make it Magnanimous identity.'});
  if(!cloud.native_binding_active)suggestions.push({id:'standalone-cloud-control',risk:'deployment',action:'Prefer the standalone Magnanimous runtime for the native cloud-control binding while keeping the current production rail available for rollback.'});
+ if(!terminal.local_ssh_ready)suggestions.push({id:'activate-native-ssh',risk:'local-owner-action',action:'Update or re-pair Magnanimous Local Bridge on an owner machine with OpenSSH installed to enable credential-local SSH execution without Hey Terminal.'});
+ if(!media.execution?.self_hosted_avatar_renderer_configured)suggestions.push({id:'optional-native-media-renderer',risk:'deployment',action:'Keep free browser avatar mode active; attach owner-controlled media/GPU workers only when photorealistic rendering, lip-sync, dubbing or batch generation is needed.'});
  return{
   ...MAGNANIMOUS_CAPABILITY_MESH_POLICY,
   status,
@@ -153,6 +175,8 @@ export async function getMagnanimousCapabilityMeshSummary(env,providerEnv=env,te
   readiness,
   surfaces:{
    native_web:web,
+   native_media:media,
+   native_terminal:terminal,
    github,
    cloudflare:{
     configured:Boolean(cloudflare.readiness?.configured),
@@ -172,6 +196,8 @@ export async function getMagnanimousCapabilityMeshSummary(env,providerEnv=env,te
    'Cloudflare and Railway may provide real network/hosting capacity, but neither owns Magnanimous identity, memory, policy or orchestration.',
    'GitHub remains an authorized repository/account system when live repository writes or workflow execution are required.',
    'TinyFish is not required for the supported native web path; proprietary anti-bot/proxy infrastructure is not falsely claimed as native.',
+   'HeyGen is not required for Magnanimous media orchestration; proprietary HeyGen code, prompts, weights and private internals are not copied.',
+   'Hey Terminal is not required for native SSH planning/execution; credentials remain on the owner-controlled Local Bridge machine.',
    'Real hardware, public IP space, Internet transit, registrar authority and other physical/regulated rails must exist somewhere.'
   ]
  };
@@ -281,6 +307,21 @@ async function routeCapability(request,env,providerEnv,body){
 
  if(capability==='railway.status')return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},...railwayStatusPayload(env)});
  if(capability==='railway.catalog')return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},contracts:RAILWAY_VISIBLE_TOOL_CONTRACTS,techniques:RAILWAY_ARCHITECTURE_TECHNIQUES,proprietary_backend_copied:false});
+ if(capability==='media.summary')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media','GET'),env),capability,def.surface);
+ if(capability==='media.catalog')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/catalog','GET'),env),capability,def.surface);
+ if(capability==='media.plan')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/plan','POST',input),env),capability,def.surface);
+ if(capability==='media.render_avatar')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/render-avatar','POST',input),env),capability,def.surface);
+ if(capability==='media.glossary_apply')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/glossary/apply','POST',input),env),capability,def.surface);
+ if(capability==='media.template_render')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/template/render','POST',input),env),capability,def.surface);
+
+ if(capability==='terminal.summary')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal','GET'),env),capability,def.surface);
+ if(capability==='terminal.catalog')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/catalog','GET'),env),capability,def.surface);
+ if(capability==='terminal.classify')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/classify','POST',input),env),capability,def.surface);
+ if(capability==='terminal.profiles')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/profiles','POST',input),env),capability,def.surface);
+ if(capability==='terminal.read')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/read','POST',input),env),capability,def.surface);
+ if(capability==='terminal.stage')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/stage','POST',input),env),capability,def.surface);
+ if(capability==='terminal.interpret')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/interpret','POST',input),env),capability,def.surface);
+
  if(capability==='railway.deploy_exact'){
   const commit=clip(input.commit_sha,64);
   if(commit&&!/^[0-9a-f]{40}$/i.test(commit))return json({detail:'commit_sha must be a full 40-character Git commit SHA when provided.'},400);
@@ -320,7 +361,11 @@ export async function handleMagnanimousCapabilityMesh(request,env,{providerEnv=e
    native_web_surfaces:MAGNANIMOUS_WEB_PARITY.surfaces,
    github_skills:MAGNANIMOUS_DEV_SKILLS.map(x=>({id:x.id,name:x.name,risk:x.risk})),
    railway_contracts:RAILWAY_VISIBLE_TOOL_CONTRACTS,
-   railway_techniques:RAILWAY_ARCHITECTURE_TECHNIQUES
+   railway_techniques:RAILWAY_ARCHITECTURE_TECHNIQUES,
+   native_media_families:MAGNANIMOUS_NATIVE_MEDIA_FAMILIES,
+   native_media_capabilities:MAGNANIMOUS_NATIVE_MEDIA_CAPABILITIES,
+   heygen_benchmark_tools:HEYGEN_VISIBLE_BENCHMARK_TOOLS,
+   native_terminal_capabilities:MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES
   });
  }
  if(request.method==='POST'&&path==='/api/magnanimous/capability-mesh/self-check'){
