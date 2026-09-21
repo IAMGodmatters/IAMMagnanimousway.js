@@ -21,7 +21,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'computer-browser-use',
     name: 'Computer, browser and application operation',
-    capabilities: ['screen-understanding','browser-navigation','browser-search','rendered-page-extraction','batch-web-fetch','source-backed-web-research','structured-web-extraction','form-entry','click-type-scroll','persistent-browser-profiles','persistent-browser-sessions','browser-task-lifecycle','browser-status-streaming','native-web-completion-webhooks','scheduled-web-monitoring','monitor-run-now','browser-usage-accounting','screenshot-capture','native-local-browser','desktop-operation','mobile-operation','ui-testing','workflow-automation','recovery-from-ui-change']
+    capabilities: ['screen-understanding','browser-navigation','browser-search','rendered-page-extraction','batch-web-fetch','source-backed-web-research','structured-web-extraction','form-entry','click-type-scroll','persistent-browser-profiles','persistent-browser-sessions','browser-task-lifecycle','browser-status-streaming','native-web-completion-webhooks','scheduled-web-monitoring','monitor-run-now','browser-usage-accounting','screenshot-capture','native-local-browser','cloud-browser-rendering','cloud-sandbox-compute','persistent-cloud-workspace','desktop-operation','mobile-operation','ui-testing','workflow-automation','recovery-from-ui-change']
   },
   {
     id: 'multimodal-intelligence',
@@ -51,7 +51,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'agents-subagents',
     name: 'Agent teams and delegated execution',
-    capabilities: ['specialist-agents','subagents','parallel-workstreams','handoffs','supervisor-agent','consensus-review','long-horizon-work','checkpoint-resume']
+    capabilities: ['specialist-agents','subagents','parallel-workstreams','handoffs','supervisor-agent','consensus-review','long-horizon-work','checkpoint-resume','teach-by-demonstration','reusable-skills','scheduled-routines','routine-retries','routine-run-history','cross-agent-workspace']
   },
   {
     id: 'tools-connectors',
@@ -105,6 +105,7 @@ export const MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL = {
     'Use sandboxed code/computer environments for generated code, browser automation and untrusted inputs when available.',
     'Verify important outputs against evidence, tests, schemas, permissions and actual tool results.',
     'Save reusable lessons, source-backed knowledge, successful plans and low-risk recipes back into Magnanimous memory.',
+    'Convert repeatable work into Magnanimous-owned skills and routines with durable run history, bounded retries and approval-aware execution.',
     'Never expose execution-provider identity to public customers unless owner policy explicitly allows it.'
   ]
 };
