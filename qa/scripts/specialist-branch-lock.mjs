@@ -31,6 +31,7 @@ const qaAcademy=read('frontend/app/qa-ai-academy/page.tsx');
 const ownerReview=read('frontend/app/owner-ai-training-review/page.tsx');
 const magnanimous=read('frontend/app/magnanimous/page.tsx');
 const ownerCenter=read('frontend/app/owner-center/page.tsx');
+const deployWorkflow=read('.github/workflows/deploy.yml');
 
 must(wrangler,'src/operations-entrypoint.js','production Worker must run through the non-destructive operations layer');
 must(operations,"import app from './progress-entrypoint.js'",'operations layer must preserve the progress entrypoint beneath it');
@@ -120,6 +121,10 @@ must(entry,'trainingFromUrl','safe public-web teaching must remain available');
 must(entry,'spokenAgent(original,agents)','backend spoken-name routing must remain active');
 must(entry,'specialistForMessage(original)','Magnanimous main-chat specialist routing must remain active');
 must(entry,'specialist_handoff:true','automatic specialist handoff metadata must remain public to the Magnanimous UI');
+must(entry,"meshUrl.pathname='/api/agents/chat'",'automatic main-chat specialist handoffs must execute through the bounded Agent Mesh runtime rather than re-entering heavyweight general chat orchestration');
+must(entry,"provider:'auto'",'automatic specialist handoffs must use Magnanimous private routing rather than force a named execution provider');
+must(entry,"handoff_execution:'agent-mesh-bounded'",'automatic specialist responses must expose the bounded handoff execution mode for verification');
+must(entry,"UPDATE agent_mesh_messages SET content=? WHERE id=(SELECT id FROM agent_mesh_messages",'automatic handoffs must scrub internal specialist context from persisted user history');
 must(entry,'specialistIntroduction(routed)','automatic specialist greeting must remain active');
 must(entry,'Do not ask a follow-up question instead of giving a useful answer','specialists must answer directly when reasonable assumptions are sufficient');
 must(entry,'branch_knowledge_count','specialist responses must expose branch-learning state');
@@ -170,5 +175,7 @@ must(magnanimous,'assistantName:specialist?','Magnanimous messages must visibly 
 must(magnanimous,'Magnanimous routed to ${specialist.name}','Magnanimous must show the handoff in response metadata');
 must(ownerCenter,'/owner-ai-training-review','Owner Center must link owner QA oversight');
 must(ownerCenter,'/qa-ai-academy','Owner Center must link the QA contributor lab');
+must(deployWorkflow,'"agent_id":"bobby","message":"Give one short sentence confirming the native I AM Agent Mesh is online."','production smoke must exercise Agent Mesh through Magnanimous private routing');
+must(deployWorkflow,'"message":"Create a social content post announcing a new product in a confident friendly voice."','production smoke must exercise automatic specialist routing without naming an execution provider');
 
 if(!process.exitCode)console.log('Specialist branches, guarded automatic QA teaching, owner override and curation, automatic routing, voice parity, privacy-hardened continuous autosave, Work Engine, Activity Restore, Evidence Notebook, integration contract, and owner operations lock passed.');
