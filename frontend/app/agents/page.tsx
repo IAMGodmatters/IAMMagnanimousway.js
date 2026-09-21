@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { speakTextNaturally, stopNaturalSpeech } from "../../lib/natural-speech";
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 type Agent = {
   id: string;
@@ -119,19 +120,24 @@ export default function AgentsPage() {
       !("speechSynthesis" in window)
     )
       return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text.slice(0, 5000));
-    u.rate = 0.98;
-    u.onstart = () => setSpeaking(true);
-    u.onend = () => setSpeaking(false);
-    u.onerror = () => setSpeaking(false);
-    const voices = window.speechSynthesis.getVoices();
-    const voice =
-      voices.find(
-        (v) => /^en/i.test(v.lang) && /natural|google|microsoft/i.test(v.name),
-      ) || voices.find((v) => /^en/i.test(v.lang));
-    if (voice) u.voice = voice;
-    window.speechSynthesis.speak(u);
+    speakTextNaturally(text, {
+      maxChunkChars: 240,
+      interChunkDelayMs: 55,
+      configure: (u) => {
+        u.rate = 0.96;
+        u.pitch = 1;
+        u.volume = 1;
+        const voices = window.speechSynthesis.getVoices();
+        const voice =
+          voices.find(
+            (v) => /^en/i.test(v.lang) && /natural|enhanced|premium|neural|siri|google|microsoft/i.test(v.name),
+          ) || voices.find((v) => /^en/i.test(v.lang));
+        if (voice) u.voice = voice;
+      },
+      onStart: () => setSpeaking(true),
+      onEnd: () => setSpeaking(false),
+      onError: () => setSpeaking(false),
+    });
   }
   function listen() {
     const w: any = window;
