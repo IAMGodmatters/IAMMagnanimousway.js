@@ -124,6 +124,8 @@ must(entry,'specialist_handoff:true','automatic specialist handoff metadata must
 must(entry,"meshUrl.pathname='/api/agents/chat'",'automatic main-chat specialist handoffs must execute through the bounded Agent Mesh runtime rather than re-entering heavyweight general chat orchestration');
 must(entry,"provider:'auto'",'automatic specialist handoffs must use Magnanimous private routing rather than force a named execution provider');
 must(entry,"handoff_execution:'agent-mesh-bounded'",'automatic specialist responses must expose the bounded handoff execution mode for verification');
+must(mesh,'function resilienceUserMessage(message)','Agent Mesh resilience must separate user text from internal specialist context');
+must(mesh,'localResilienceResponse(agent,resilienceUserMessage(message),failureClass)','capacity fallback must be generated only from user-visible text');
 must(entry,"UPDATE agent_mesh_messages SET content=? WHERE id=(SELECT id FROM agent_mesh_messages",'automatic handoffs must scrub internal specialist context from persisted user history');
 must(entry,'specialistIntroduction(routed)','automatic specialist greeting must remain active');
 must(entry,'Do not ask a follow-up question instead of giving a useful answer','specialists must answer directly when reasonable assumptions are sufficient');
