@@ -360,7 +360,7 @@ export default function VideoStudio() {
   useEffect(() => {
     fetch(`${api}/api/visual/providers`)
       .then(async (response) => {
-        if (!response.ok) throw new Error("Visual provider check failed.");
+        if (!response.ok) throw new Error("Magnanimous visual readiness check failed.");
         return response.json();
       })
       .then((data) => {
@@ -676,7 +676,7 @@ export default function VideoStudio() {
             {!visualCheckComplete
               ? "CHECKING"
               : readyVisuals.length
-                ? "AI VISUAL CONNECTED"
+                ? "MAGNANIMOUS VISUAL READY"
                 : "CLASSIC MODE"}
           </b>
         </div>
@@ -704,7 +704,7 @@ export default function VideoStudio() {
                 opacity: 0.78,
               }}
             >
-              AI VISUAL · {readyVisuals.length ? "CONNECTED" : "NOT CONNECTED"}
+              MAGNANIMOUS VISUAL · {readyVisuals.length ? "READY" : "CLASSIC MODE"}
             </span>
             <small style={{ opacity: 0.7, lineHeight: 1.4 }}>
               Generates a background scene through a Magnanimous visual routing,
