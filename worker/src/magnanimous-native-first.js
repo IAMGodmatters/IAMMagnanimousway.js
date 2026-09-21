@@ -206,6 +206,27 @@ async function owner(request,env){
  return{user};
 }
 
+function fullBrainIndependenceAudit(){
+ const rows=getCapabilityAbsorptionManifest();
+ const missingNativeTarget=rows.filter(x=>!String(x.native_target||'').trim());
+ const missingBoundary=rows.filter(x=>x.boundary===undefined||x.boundary===null||String(x.boundary).trim()==='');
+ const missingOwnership=rows.filter(x=>!Array.isArray(x.magnanimous_owned)||!x.magnanimous_owned.length);
+ const external=rows.filter(x=>/external|account|rail|compute|network|repository|deployment|device|host/i.test(String(x.boundary||'')));
+ return{
+  identity_owner:'Magnanimous AI',memory_owner:'Magnanimous AI',reasoning_owner:'Magnanimous AI',
+  orchestration_owner:'Magnanimous AI',learning_owner:'Magnanimous AI',verification_owner:'Magnanimous AI',
+  total_capabilities:rows.length,
+  external_boundary_capabilities:external.length,
+  provider_owned_capabilities:0,
+  missing_native_target:missingNativeTarget.length,
+  missing_boundary:missingBoundary.length,
+  missing_ownership_metadata:missingOwnership.length,
+  gaps:[...new Set([...missingNativeTarget,...missingBoundary,...missingOwnership].map(x=>x.id||x.capability).filter(Boolean))].slice(0,30),
+  status:missingNativeTarget.length||missingBoundary.length||missingOwnership.length?'metadata-gap':'provider-independent-contracts-complete',
+  rule:'External providers may supply authorized accounts, fresh data, network/payment rails, hosting or specialized compute; they never own Magnanimous identity, memory, reasoning, policy, orchestration, verification or learning.'
+ };
+}
+
 async function overview(env){
  await seedMatrix(env);await seedNativeRecipes(env);
  const {results=[]}=env?.DB?await env.DB.prepare('SELECT id,name,family,status,boundary,capabilities_json,benchmarks_json,notes,updated_at FROM magnanimous_native_capability_matrix ORDER BY CASE status WHEN \'native\' THEN 0 WHEN \'specified\' THEN 1 ELSE 2 END,name').all():{results:[]};
@@ -219,6 +240,7 @@ async function overview(env){
   engineering_architecture_policy:'Decompose large responsibilities, apply SOLID boundaries, and compose small services through dependency injection so external adapters remain replaceable.',
   capability_count:capabilities.length,native_count:capabilities.filter(x=>x.status==='native').length,specified_count:capabilities.filter(x=>x.status==='specified').length,
   connector_absorption:getConnectorAbsorptionSummary(),
+  full_brain_independence:fullBrainIndependenceAudit(),
   capability_realization:realization,
   ogenic_god_toolkit:{absorbed:true,skill_count:OGENIC_SKILL_SNAPSHOT.skills.length,capability_group_count:OGENIC_CAPABILITY_GROUPS.length,tool_family_count:GOD_MODE_TOOL_FAMILIES.length,netwalk_mode:NETWALK_NATIVE_CONTRACT.mode,initiative:'suggest-and-initiate-safe-actions'},
   capabilities
@@ -294,5 +316,6 @@ export async function handleMagnanimousNativeFirst(request,env){
  return json({detail:'Magnanimous native-first route not found.'},404);
 }
 
+export const getFullBrainIndependenceAudit=fullBrainIndependenceAudit;
 export const MAGNANIMOUS_NATIVE_CORE=CORE_NATIVE_CAPABILITIES;
 export const buildMagnanimousSelfDevelopmentPlan=selfDevelopmentPlan;
