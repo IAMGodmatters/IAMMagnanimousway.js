@@ -42,7 +42,7 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'INKBOX_BASE_URL',label:'Inkbox API Base URL (optional override)',secret:false,required:false}
  ]},
  {id:'tavus',name:'Tavus Human Video',providers:['tavus'],fields:[{key:'TAVUS_API_KEY',label:'Tavus API Key',secret:true,required:false}]},
- {id:'heygen',name:'HeyGen Presenter Video',providers:['heygen'],fields:[{key:'HEYGEN_API_KEY',label:'HeyGen API Key (optional presenter-video provider)',secret:true,required:false}]},
+ {id:'heygen',name:'Legacy Optional HeyGen Presenter Video',providers:['heygen'],fields:[{key:'HEYGEN_API_KEY',label:'HeyGen API Key (legacy optional adapter; never required by Magnanimous)',secret:true,required:false}]},
  {id:'mux',name:'Magnanimous Video Provider Credentials',providers:['mux'],fields:[
   {key:'MUX_TOKEN_ID',label:'Mux Access Token ID',secret:false,required:false},
   {key:'MUX_TOKEN_SECRET',label:'Mux Access Token Secret',secret:true,required:false},
@@ -82,6 +82,10 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
  {id:'free-avatar',name:'Self-Hosted Free Video Agents',providers:['liveportrait-compatible','wav2lip-compatible'],fields:[
   {key:'FREE_AVATAR_RENDERER_URL',label:'Avatar Renderer HTTPS Endpoint (optional)',secret:false,required:false},
   {key:'FREE_AVATAR_RENDERER_TOKEN',label:'Avatar Renderer Bearer Token (optional)',secret:true,required:false}
+ ]},
+ {id:'native-media-worker',name:'Magnanimous Native Media Worker',providers:[],fields:[
+  {key:'MAGNANIMOUS_MEDIA_WORKER_URL',label:'Owner-Controlled Magnanimous Media Worker HTTPS Endpoint',secret:false,required:false},
+  {key:'MAGNANIMOUS_MEDIA_WORKER_TOKEN',label:'Magnanimous Media Worker Bearer Token',secret:true,required:false}
  ]},
  {id:'web-research',name:'Web Research & News',providers:['brave-search'],fields:[{key:'BRAVE_SEARCH_API_KEY',label:'Brave Search API Key (optional live web/news research)',secret:true,required:false}]},
  {id:'adsense',name:'Google AdSense / Auto Ads',providers:['adsense'],fields:[
