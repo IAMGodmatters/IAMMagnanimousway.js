@@ -99,7 +99,7 @@ export const MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL = {
   strategy: [
     'Present Magnanimous AI as the single public AI identity across customer workspaces; specialist agents are Magnanimous departments, not separate AI products.',
     'Keep execution-provider and model selection private to Magnanimous routing except inside owner-only configuration, diagnostics or authorization surfaces.',
-    'Understand the goal and constraints before selecting tools or models.'
+    'Understand the goal and constraints before selecting tools or models.',
     'Retrieve Magnanimous memory, knowledge and proven native recipes first.',
     'Decompose long-horizon work into independently verifiable workstreams.',
     'Run independent low-risk workstreams in parallel when the runtime supports it.',
