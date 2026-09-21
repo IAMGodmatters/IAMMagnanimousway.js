@@ -68,14 +68,16 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
  {id:'luma',name:'Luma Dream Machine',providers:['luma'],fields:[
   {key:'LUMA_API_KEY',label:'Luma API Key',secret:true,required:false}
  ]},
- {id:'agent-brains',name:'Agent Mesh AI Brains',providers:['google-ai','groq','openrouter-free','huggingface','mistral','cerebras','nvidia-nim'],fields:[
+ {id:'agent-brains',name:'Agent Mesh AI Brains',providers:['google-ai','groq','openrouter-free','huggingface','mistral','cerebras','nvidia-nim','xai-grok'],fields:[
   {key:'GOOGLE_API_KEY',label:'Google Gemini API Key (free tier supported)',secret:true,required:false},
   {key:'GROQ_API_KEY',label:'Groq API Key (free plan supported)',secret:true,required:false},
   {key:'OPENROUTER_API_KEY',label:'OpenRouter API Key (Free Models Router supported)',secret:true,required:false},
   {key:'HF_TOKEN',label:'Hugging Face Token (free credits supported)',secret:true,required:false},
   {key:'MISTRAL_API_KEY',label:'Mistral API Key (Free mode supported)',secret:true,required:false},
   {key:'CEREBRAS_API_KEY',label:'Cerebras API Key (trial credits; GLM non-OpenAI default)',secret:true,required:false},
-  {key:'NVIDIA_API_KEY',label:'NVIDIA NIM API Key (free prototype endpoints for Kimi K3 / DeepSeek V4 when available)',secret:true,required:false}
+  {key:'NVIDIA_API_KEY',label:'NVIDIA NIM API Key (free prototype endpoints for Kimi K3 / DeepSeek V4 when available)',secret:true,required:false},
+  {key:'XAI_API_KEY',label:'xAI API Key (optional metered Grok compute adapter)',secret:true,required:false},
+  {key:'XAI_MODEL',label:'xAI model override (optional; default grok-4.6)',secret:false,required:false}
  ]},
  {id:'free-avatar',name:'Self-Hosted Free Video Agents',providers:['liveportrait-compatible','wav2lip-compatible'],fields:[
   {key:'FREE_AVATAR_RENDERER_URL',label:'Avatar Renderer HTTPS Endpoint (optional)',secret:false,required:false},
