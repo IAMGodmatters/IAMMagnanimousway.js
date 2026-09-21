@@ -83,7 +83,7 @@ export default function AIApps() {
             ? "CHECKING"
             : error
               ? "UNAVAILABLE"
-              : `${tools.length} HELPERS • ${providers} PROVIDER${providers === 1 ? "" : "S"} READY`}
+              : `${tools.length} MAGNANIMOUS HELPERS • PRIVATE ROUTING ${providers ? "READY" : "SETUP NEEDED"}`}
         </div>
       </header>
       <section className="hero">
@@ -92,8 +92,7 @@ export default function AIApps() {
           <h1>Start with the right prompt.</h1>
           <p>
             Each helper opens Magnanimous AI with a task-specific mode and
-            starter prompt. They use the same connected AI providers; these are
-            focused starting points, not separate AI systems.
+            starter prompt. They are focused departments of the same Magnanimous AI brain, sharing one routing, memory, verification and learning layer rather than acting as separate AI systems.
           </p>
           <a className="meshLaunch" href="/agents">
             VIEW AGENT WORKSPACE →
