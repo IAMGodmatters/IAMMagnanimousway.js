@@ -66,7 +66,7 @@ export const RAILWAY_PLATFORM_CAPABILITIES=Object.freeze([
   ['dockerfile-builds','Portable Dockerfile builds','magnanimous-deployment-operator','host-capacity'],
   ['buildpacks','Automatic source-to-container builds','magnanimous-deployment-operator','host-capacity'],
   ['github-autodeploys','Repository push triggered deployment','magnanimous-deployment-operator','external-repository'],
-  ['healthchecks','Health-gated deployment verification','magnanimous-observability','software-native'],
+  ['healthchecks','Health-gated deployment verification','magnanimous-health-verification','software-native'],
   ['scaling','Replica/resource desired state','magnanimous-cloud-control','host-capacity'],
   ['regions','Placement and region profiles','magnanimous-cloud-control','host-capacity'],
   ['volumes','Persistent mounted storage','magnanimous-object-storage','host-capacity'],
@@ -81,7 +81,7 @@ export const RAILWAY_PLATFORM_CAPABILITIES=Object.freeze([
   ['edge-routing','Global/edge traffic routing policy','magnanimous-network-gateway','external-network-capacity'],
   ['templates','Reusable multi-service application templates','magnanimous-template-catalog','software-native'],
   ['staged-changes','Stage then review infrastructure mutations','magnanimous-deployment-operator','software-native'],
-  ['network-diagnostics','Network and deployment diagnostics','magnanimous-observability','software-native'],
+  ['network-diagnostics','Network and deployment diagnostics','magnanimous-health-verification','software-native'],
   ['infrastructure-agent','Agent-assisted infrastructure operations','magnanimous-cloud-orchestrator','software-native']
 ].map(([capability,purpose,native_target,boundary])=>Object.freeze({capability,purpose,native_target,boundary})));
 
