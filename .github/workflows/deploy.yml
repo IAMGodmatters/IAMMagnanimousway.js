@@ -206,18 +206,33 @@ jobs:
               for file in /tmp/magnanimous-full-brain/*.sql; do
                 if [ "$(basename "$file")" = "000-prune-stale.sql" ]; then continue; fi
                 echo "Applying $(basename "$file")"
-                set +e
-                output=$(cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file="$file" 2>&1)
-                rc=$?
-                set -e
-                printf '%s\n' "$output"
-                if [ "$rc" -ne 0 ]; then
+                attempt=1
+                while true; do
+                  set +e
+                  output=$(cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file="$file" 2>&1)
+                  rc=$?
+                  set -e
+                  printf '%s\n' "$output"
+                  if [ "$rc" -eq 0 ]; then
+                    break
+                  fi
                   if printf '%s' "$output" | grep -qi "free tier daily row write limit"; then
                     materialization_deferred=1
                     echo "::warning::Cloudflare D1 daily row-write quota is exhausted. The checked-in Magnanimous brain manifest remains authoritative in the deployed Worker; durable D1 materialization is deferred until write capacity is available."
                     break
                   fi
+                  if printf '%s' "$output" | grep -qi "Not currently importing anything"; then
+                    if [ "$attempt" -lt 4 ]; then
+                      echo "::warning::Cloudflare D1 import state was temporarily unavailable while applying $(basename "$file"). Retrying the same idempotent materialization chunk ($attempt/3)."
+                      sleep $((attempt * 8))
+                      attempt=$((attempt + 1))
+                      continue
+                    fi
+                  fi
                   exit "$rc"
+                done
+                if [ "$materialization_deferred" -eq 1 ]; then
+                  break
                 fi
               done
             fi
