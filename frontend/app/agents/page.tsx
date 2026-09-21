@@ -148,6 +148,8 @@ export default function AgentsPage() {
       );
       return;
     }
+    stopNaturalSpeech();
+    setSpeaking(false);
     const r = new SR();
     r.lang = "en-US";
     r.interimResults = false;
