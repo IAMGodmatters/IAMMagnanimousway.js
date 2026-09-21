@@ -30,7 +30,7 @@ const lessons: Record<string, Lesson> = {
   },
   magnanimous: {
     purpose:
-      "Create answers, drafts, plans and research with a connected AI provider.",
+      "Create answers, drafts, plans and research with Magnanimous AI.",
     steps: [
       "Open Magnanimous AI or choose a task-focused role.",
       "Select the mode that fits your request.",
@@ -38,9 +38,9 @@ const lessons: Record<string, Lesson> = {
       "Review the answer, continue the conversation, or start a new one.",
     ],
     result:
-      "A generated response appears with the provider used and sources when available.",
+      "A Magnanimous AI response appears with sources when available.",
     requirement:
-      "At least one AI provider must show Ready. Live research also requires a search connection.",
+      "Magnanimous AI must show Ready. Live research also requires Magnanimous live-search readiness.",
   },
   "business-plan": {
     purpose: "Turn business information into an organized planning document.",
@@ -53,7 +53,7 @@ const lessons: Record<string, Lesson> = {
     result:
       "You receive a planning draft for review; approval, funding and profit are not guaranteed.",
     requirement:
-      "AI generation requires a connected provider. Accurate financial inputs remain the user’s responsibility.",
+      "Magnanimous AI generation must be ready. Accurate financial inputs remain the user’s responsibility.",
   },
   business: {
     purpose:
@@ -67,7 +67,7 @@ const lessons: Record<string, Lesson> = {
     result:
       "You receive a practical business draft or analysis, not legal or accounting approval.",
     requirement:
-      "AI requires a provider; current market research requires web search.",
+      "Magnanimous AI must be ready; current market research requires live web search.",
   },
   crm: {
     purpose: "Keep contacts, leads, customers and follow-up records organized.",
@@ -120,7 +120,7 @@ const lessons: Record<string, Lesson> = {
     result:
       "A video file appears when the browser supports local recording; the platform does not publish it automatically.",
     requirement:
-      "Classic mode needs browser MediaRecorder support. AI backgrounds need sign-in and a visual provider.",
+      "Classic mode needs browser MediaRecorder support. Magnanimous visual backgrounds need sign-in and a ready visual execution path.",
   },
   social: {
     purpose: "Prepare social posts, campaigns and captions for review.",
@@ -133,7 +133,7 @@ const lessons: Record<string, Lesson> = {
     result:
       "You receive a social-content draft. It is not posted automatically.",
     requirement:
-      "AI generation requires a provider; direct publishing requires an authorized social connection.",
+      "Magnanimous AI generation must be ready; direct publishing requires an authorized social connection.",
   },
   connections: {
     purpose: "Authorize outside services that support real platform actions.",
@@ -160,7 +160,7 @@ const lessons: Record<string, Lesson> = {
     result:
       "Saved material becomes available to AI requests in that private workspace.",
     requirement:
-      "Sign-in is required. Live web and news results require a search provider.",
+      "Sign-in is required. Live web and news results require Magnanimous live research to be ready.",
   },
   "finance-people": {
     purpose:

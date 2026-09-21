@@ -15,14 +15,11 @@ type Provider = {
   name: string;
   tier: string;
   configured: boolean;
-  openai: boolean;
 };
 type Msg = {
   id?: number;
   role: string;
   content: string;
-  provider?: string;
-  model?: string;
 };
 async function read(r: Response) {
   const t = await r.text();
@@ -187,14 +184,12 @@ export default function AgentsPage() {
       const d = await read(r);
       if (!r.ok) throw new Error(d.detail || "Agent request failed.");
       if (!String(d.output || "").trim())
-        throw new Error("The AI provider returned an empty response.");
+        throw new Error("Magnanimous AI returned an empty response.");
       setMessages((v) => [
         ...v,
         {
           role: "assistant",
           content: d.output,
-          provider: d.provider_name || d.provider,
-          model: d.model,
         },
       ]);
       speak(d.output);
@@ -229,7 +224,7 @@ export default function AgentsPage() {
       <header>
         <a href="/">← Dashboard</a>
         <span>
-          AI ROLE WORKSPACE •{" "}
+          MAGNANIMOUS SPECIALIST WORKSPACE •{" "}
           {!loaded
             ? "CHECKING"
             : loadError
@@ -242,14 +237,10 @@ export default function AgentsPage() {
       </header>
       <section className="hero">
         <div>
-          <small>AI FOR REAL LIFE + REAL WORK</small>
+          <small>MAGNANIMOUS AI FOR REAL LIFE + REAL WORK</small>
           <h1>Choose the role you need.</h1>
           <p>
-            These task-focused profiles use connected AI providers with
-            different instructions for everyday life, careers, business, call
-            centers, content and learning. When you are signed in, saved
-            conversations can provide context to another role in the same
-            private workspace.
+            These task-focused profiles are specialist departments of Magnanimous AI for everyday life, careers, business, call centers, content and learning. Magnanimous keeps one private memory and routing layer across the departments so you never have to choose an outside execution engine or model.
           </p>
         </div>
         <div className={`avatar ${speaking ? "speaking" : ""}`}>
@@ -281,7 +272,7 @@ export default function AgentsPage() {
       </section>
       <section className="providerBar">
         <div>
-          <b>AI PROVIDERS</b>
+          <b>MAGNANIMOUS AI</b>
           {providers.map((p) => (
             <span key={p.id} className={p.configured ? "ready" : ""}>
               {p.name} <i>{p.configured ? "READY" : "NOT CONNECTED"}</i>
@@ -375,7 +366,7 @@ export default function AgentsPage() {
               >
                 <small>
                   {m.role === "assistant" ? agent?.name : "YOU"}
-                  {m.provider ? ` • ${m.provider}` : ""}
+                  
                 </small>
                 <p>{m.content}</p>
                 {m.role === "assistant" && (
@@ -386,14 +377,14 @@ export default function AgentsPage() {
             {busy && (
               <article className="assistant thinking">
                 <small>{agent?.name}</small>
-                <p>Working with the Agent Mesh…</p>
+                <p>Magnanimous AI is working through this specialist department…</p>
               </article>
             )}
             <div ref={endRef} />
           </div>
           {!providerReady && loaded && !loadError && (
             <div className="notice">
-              An AI provider must be connected before these roles can respond.
+              Magnanimous AI needs at least one ready execution path before these specialist departments can respond.
             </div>
           )}
           {loadError && (
@@ -405,19 +396,8 @@ export default function AgentsPage() {
           {notice && <div className="notice">{notice}</div>}
           <form onSubmit={send}>
             <div className="controls">
-              <select
-                value={provider}
-                onChange={(e) => setProvider(e.target.value)}
-                disabled={!providerReady}
-              >
-                <option value="auto">Auto — free-first fallback</option>
-                {providers
-                  .filter((p) => p.configured)
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
+              <select value={provider} onChange={(e) => setProvider(e.target.value)} disabled={!providerReady}>
+                <option value="auto">Magnanimous AI — automatic private routing</option>
               </select>
               <button
                 type="button"

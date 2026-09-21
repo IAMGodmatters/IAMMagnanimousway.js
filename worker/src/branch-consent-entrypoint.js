@@ -22,13 +22,13 @@ function publicProviderSummary(data={}){
  const source=Array.isArray(data?.providers)?data.providers:[];
  const ready=source.some(p=>Boolean(p?.configured&&p?.enabled!==false));
  return {...data,
-  providers:[{id:'auto',name:'Magnanimous AI routing',configured:ready,enabled:ready,tier:'private-routing',type:'private-execution'}],
+  providers:[{id:'auto',name:'Magnanimous AI',configured:ready,enabled:ready,tier:'private-routing',type:'magnanimous-private-routing'}],
   configured_count:ready?1:0,
   free_configured_count:ready?1:0,
   magnanimous_ready:ready,
   operator_ready:ready,
   provider_details_private:true,
-  execution_disclosure:'Magnanimous AI may use private third-party execution services. Provider identities are not shown to customers.'
+  execution_disclosure:'Magnanimous AI privately selects authorized execution infrastructure. Specific infrastructure identities are owner-only.'
  };
 }
 async function sanitizeCustomerAiResponse(request,response){
@@ -50,6 +50,18 @@ async function sanitizeProviderCatalog(request,response,env){
  const data=await response.clone().json().catch(()=>null);
  if(!data)return response;
  return json(publicProviderSummary(data),response.status);
+}
+async function sanitizeCustomerAgentExecution(request,response){
+ const url=new URL(request.url);
+ const history=request.method==='GET'&&url.pathname==='/api/agents/history';
+ const video=request.method==='POST'&&url.pathname==='/api/agents/video/render';
+ if(!history&&!video)return response;
+ const data=await response.clone().json().catch(()=>null);
+ if(!data)return response;
+ if(history&&Array.isArray(data.messages)){
+  return json({...data,messages:data.messages.map(message=>stripExecutionMetadata(message)),execution_details_private:true},response.status);
+ }
+ return json({...stripExecutionMetadata(data),execution_details_private:true},response.status);
 }
 
 async function catalog(request,env,ctx){
@@ -263,6 +275,7 @@ export default {
   }catch(error){console.error('specialist branch layer failed',error)}
   const response=await baseApp.fetch(request,env,ctx);
   const chatResponse=await sanitizeCustomerAiResponse(request,response);
-  return sanitizeProviderCatalog(request,chatResponse,env);
+  const agentResponse=await sanitizeCustomerAgentExecution(request,chatResponse);
+  return sanitizeProviderCatalog(request,agentResponse,env);
  }
 };

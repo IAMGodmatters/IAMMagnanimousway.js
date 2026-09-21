@@ -89,9 +89,7 @@ export default function Business() {
           <small>I AM BUSINESS COMMAND</small>
           <h1>Turn ideas into operating plans.</h1>
           <p>
-            Create strategy, offers, sales scripts and planning drafts with a
-            configured AI provider. Review every result before using it for a
-            business decision.
+            Create strategy, offers, sales scripts and planning drafts with Magnanimous AI. Magnanimous privately routes the work through the best authorized execution path while keeping one memory, policy and verification layer.
           </p>
           <div className="links">
             <a href="/business-plan">Professional Business Launch</a>
@@ -187,7 +185,7 @@ export default function Business() {
             {busy
               ? "Building…"
               : aiReady === false
-                ? "AI PROVIDER REQUIRED"
+                ? "MAGNANIMOUS AI SETUP NEEDED"
                 : `Create ${mode} →`}
           </button>
           {output && <div className="result">{output}</div>}
