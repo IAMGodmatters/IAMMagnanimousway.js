@@ -149,7 +149,7 @@ function validateTask(action,payload){
   if(!command)throw new Error(action+' requires command.');
   if(/-----BEGIN [A-Z ]*PRIVATE KEY-----|\\b(?:password|passwd|token|secret|api[_-]?key)\\s*=\\s*\\S+/i.test(command))throw new Error('SSH task payloads must not contain credentials or private keys.');
   if(action==='ssh_read'){
-   if(/[;&|><`\\n\\r]|\\$\\(|\\$\\{|\\|\\||&&/.test(command))throw new Error('ssh_read does not allow shell composition or redirection.');
+   if(/[;&|><`\n\r]/.test(command)||command.includes('$(')||command.includes('${')||command.includes('||')||command.includes('&&'))throw new Error('ssh_read does not allow shell composition or redirection.');
    if(!/^(?:uptime|df(?:\\s|$)|free(?:\\s|$)|ps(?:\\s|$)|whoami(?:\\s|$)|hostname(?:\\s|$)|uname(?:\\s|$)|date(?:\\s|$)|id(?:\\s|$)|systemctl\\s+status\\b|journalctl(?:\\s|$))/i.test(command))throw new Error('ssh_read command is outside the native diagnostic allowlist.');
   }
  }
