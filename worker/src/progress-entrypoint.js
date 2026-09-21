@@ -6,6 +6,7 @@ import {handleMagnanimousNativeFirst} from './magnanimous-native-first.js';
 import {handleMagnanimousOgenic} from './magnanimous-ogenic-god-toolkit.js';
 import {handleMagnanimousLocalBridge} from './magnanimous-local-bridge-runtime.js';
 import {handleMagnanimousB2B} from './magnanimous-b2b-runtime.js';
+import {handleMagnanimousTravelAgency} from './magnanimous-travel-agency-runtime.js';
 import {requirePlatformOwner} from './platform-owner-guard.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -121,6 +122,15 @@ export default{
    }catch(error){
     console.error('Magnanimous native-first runtime failed',error);
     return json({detail:'Magnanimous native-first runtime could not complete this request.'},500);
+   }
+  }
+  if(path.startsWith('/api/travel-agency')||path.startsWith('/api/travel-source/v1')){
+   try{
+    const travel=await handleMagnanimousTravelAgency(request,env);
+    if(travel)return travel;
+   }catch(error){
+    console.error('Magnanimous Travel Agency runtime failed',error);
+    return json({detail:'Magnanimous Travel Agency could not complete this request.'},500);
    }
   }
   if(path.startsWith('/api/b2b')||path.startsWith('/api/magnanimous/b2b')){
