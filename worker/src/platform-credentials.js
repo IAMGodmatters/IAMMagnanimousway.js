@@ -155,7 +155,30 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'NETSUITE_CONSUMER_KEY',label:'NetSuite Consumer Key',secret:false,required:false},
   {key:'NETSUITE_CONSUMER_SECRET',label:'NetSuite Consumer Secret',secret:true,required:false},
   {key:'NETSUITE_TOKEN_ID',label:'NetSuite Token ID',secret:false,required:false},
-  {key:'NETSUITE_TOKEN_SECRET',label:'NetSuite Token Secret',secret:true,required:false}
+  {key:'NETSUITE_TOKEN_SECRET',label:'NetSuite Token Secret',secret:true,required:false},
+  {key:'COUPA_BASE_URL',label:'Coupa Instance Base URL',secret:false,required:false},
+  {key:'COUPA_CLIENT_ID',label:'Coupa OAuth Client ID',secret:false,required:false},
+  {key:'COUPA_CLIENT_SECRET',label:'Coupa OAuth Client Secret',secret:true,required:false},
+  {key:'PEPPOL_ACCESS_POINT_URL',label:'Peppol Service Provider / Access Point URL',secret:false,required:false},
+  {key:'PEPPOL_ACCESS_POINT_TOKEN',label:'Peppol Service Provider Token / Secret',secret:true,required:false}
+ ]},
+ {id:'b2b-logistics',name:'B2B Shipping, Freight & Logistics',providers:[],fields:[
+  {key:'UPS_CLIENT_ID',label:'UPS OAuth Client ID',secret:false,required:false},
+  {key:'UPS_CLIENT_SECRET',label:'UPS OAuth Client Secret',secret:true,required:false},
+  {key:'FEDEX_CLIENT_ID',label:'FedEx API Client ID / API Key',secret:false,required:false},
+  {key:'FEDEX_CLIENT_SECRET',label:'FedEx API Client Secret / Secret Key',secret:true,required:false},
+  {key:'DHL_API_KEY',label:'DHL API Key',secret:true,required:false},
+  {key:'DHL_API_SECRET',label:'DHL API Secret (when required by the selected API)',secret:true,required:false},
+  {key:'MAERSK_CONSUMER_KEY',label:'Maersk Consumer Key / Client ID',secret:false,required:false},
+  {key:'MAERSK_CONSUMER_SECRET',label:'Maersk Consumer Key Secret / Client Secret',secret:true,required:false}
+ ]},
+ {id:'b2b-travel-network',name:'Expanded B2B Travel Networks',providers:[],fields:[
+  {key:'TRAVELGATE_ACCESS_TOKEN',label:'Travelgate Access Token',secret:true,required:false},
+  {key:'TRAVELGATE_PASSWORD',label:'Travelgate Password',secret:true,required:false},
+  {key:'RATEHAWK_API_KEY',label:'RateHawk API Key',secret:true,required:false},
+  {key:'IATA_TIDS_CODE',label:'IATA TIDS Code (identifier only; not ticketing authority)',secret:false,required:false},
+  {key:'IATA_NUMERIC_CODE',label:'IATA Accredited Agent Numeric Code (only after approval)',secret:false,required:false},
+  {key:'ARC_NUMBER',label:'ARC Number (only after ARC approval)',secret:false,required:false}
  ]}
 ];
 
