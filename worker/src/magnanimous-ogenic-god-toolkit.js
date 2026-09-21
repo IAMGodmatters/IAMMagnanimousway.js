@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { handleMagnanimousDevAgent } from './magnanimous-dev-agent.js';
+import { githubRepositoryAuthConfigured } from './magnanimous-github-app-auth.js';
 import { hasReadyLocalBridge, findReadyLocalBridgeDevice, handleMagnanimousLocalBridge } from './magnanimous-local-bridge-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -104,7 +105,7 @@ function consequence(goal){
  return'auto-initiate';
 }
 function surfaceStatus(goal,env={}){
- const mode=classifyMode(goal),localReady=Boolean(env?.MAGNANIMOUS_LOCAL_BRIDGE_READY||env?.MAGNANIMOUS_LOCAL_BRIDGE_URL),repoReady=Boolean(env?.GITHUB_PLATFORM_TOKEN);
+ const mode=classifyMode(goal),localReady=Boolean(env?.MAGNANIMOUS_LOCAL_BRIDGE_READY||env?.MAGNANIMOUS_LOCAL_BRIDGE_URL),repoReady=githubRepositoryAuthConfigured(env);
  if(mode==='LOCAL'&&!localReady)return'LOCAL_BRIDGE_REQUIRED';
  if(mode==='HYBRID'&&!localReady)return repoReady?'LOCAL_BRIDGE_REQUIRED':'CONNECTOR_REQUIRED';
  if(mode==='LOCAL'&&localReady)return'READY_LOCAL';
@@ -223,7 +224,7 @@ export async function handleMagnanimousOgenic(request,env){
    const local=await initiateLocalBridgeAction(request,env,user,goal,body);if(local)return local;
   }
   if(plan.netwalk&&!localBridgeReady)return json({ok:false,initiated:false,plan,code:'LOCAL_BRIDGE_REQUIRED',detail:'Netwalk requires a paired online bridge that explicitly advertises the required Netwalk capability. No scan was simulated.'},409);
-  if(plan.groups.some(x=>x.id==='code-system')&&Boolean(env?.GITHUB_PLATFORM_TOKEN)){
+  if(plan.groups.some(x=>x.id==='code-system')&&githubRepositoryAuthConfigured(env)){
    const response=await initiateDeveloperPlan(request,env,goal,body);
    const data=await response.clone().json().catch(()=>({}));
    return json({ok:response.ok,initiated:response.ok,initiative:'developer-plan',plan,result:data,truth_boundary:'Repository planning/inspection may begin immediately; writes remain staged/approval-gated by Magnanimous Dev Agent.'},response.status);
