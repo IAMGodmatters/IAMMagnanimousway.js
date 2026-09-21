@@ -15,6 +15,7 @@ export const NATIVE_WEB_CAPABILITIES=Object.freeze({
  read_flow:{action:'browser_read_flow',mode:'read-only',confirmation:false,description:'Multi-step navigation, waiting, scrolling, snapshots and extraction without page writes.'},
  action_flow:{action:'browser_action_flow',mode:'interactive',confirmation:true,description:'Confirmed page-scoped click/fill/select/press workflows with screenshot capture.'},
  profiles:{action:'browser_profile_list',mode:'local-session',confirmation:false,description:'Persistent local Chromium session profiles. Credentials stay on the paired computer.'},
+ profile_setup:{action:'browser_profile_setup',mode:'local-session',confirmation:true,description:'Opens a visible local browser for manual sign-in without sending passwords through the platform.'},
  profile_create:{action:'browser_profile_create',mode:'local-session',confirmation:false,description:'Creates a Magnanimous-owned persistent local browser profile without exporting secrets.'},
  profile_delete:{action:'browser_profile_delete',mode:'local-session',confirmation:true,description:'Deletes a non-default local browser profile after exact confirmation.'},
  browser_sessions:{action:'browser_session_start',mode:'local-session',confirmation:false,description:'Persistent browser sessions controlled through outbound Magnanimous tasks instead of a paid remote CDP service.'},
@@ -49,9 +50,9 @@ export const MAGNANIMOUS_WEB_PARITY=Object.freeze({
  implementation:'clean-room first-party equivalents built from public/observable capability contracts',
  tinyfish_runtime_dependency:false,
  surfaces:{
-  agent:{sync_contract:true,async_runs:true,sse_progress:true,batch_runs:true,goal_planning:true,structured_extraction:true,webhooks:true},
+  agent:{blocking_sync_endpoint:false,async_runs:true,sse_status_stream:true,batch_runs:true,goal_planning:true,structured_extraction:true,webhooks:true},
   research:{source_search:true,source_fetch:true,source_backed_report:true,saved_run:true},
-  search:{ranked_results:true,location_locale_hints:true,usage_tracking:true},
+  search:{ranked_results:true,locale_hint:true,geo_location_hint:false,usage_tracking:true},
   fetch:{javascript_rendering:true,batch_up_to_10:true,links:true,html:true,structured_fields:true,per_url_errors:true},
   browser:{persistent_sessions:true,read_commands:true,confirmed_action_commands:true,screenshots:true,profile_reuse:true,remote_cdp_exposed:false},
   monitor:{page:true,topic:true,pause_resume:true,run_now:true,change_detection:true,webhook_delivery:true},
@@ -59,7 +60,7 @@ export const MAGNANIMOUS_WEB_PARITY=Object.freeze({
   credentials:{local_browser_profile_state:true,remote_secret_values:false,password_manager_dependency:false},
   proxy:{local_authenticated_proxy:true,per_run_unauthenticated_proxy:true,owned_geo_proxy_fleet:false},
   live_preview:{on_demand_session_screenshots:true,remote_video_stream:false},
-  cli_mcp:{provider_neutral_http_contract:true,universal_connector_layer:true},
+  cli_mcp:{provider_neutral_http_contract:true,dedicated_native_web_cli:false,universal_connector_layer:true},
   billing:{third_party_wallet_required:false,local_compute_owned_by_operator:true}
  },
  truth_boundaries:[
@@ -117,6 +118,7 @@ async function readiness(env,tenantId){
  const entries={};
  for(const [id,def] of Object.entries(NATIVE_WEB_CAPABILITIES)){
   if(id==='monitoring'){entries[id]={...def,ready:Boolean(await findReadyLocalBridgeDevice(env,tenantId,'browser_fetch'))};continue}
+  if(id==='webhooks'){entries[id]={...def,ready:Boolean(await findReadyLocalBridgeDevice(env,tenantId,'browser_fetch'))};continue}
   if(id==='goal_agent'){entries[id]={...def,ready:Boolean(env?.AI)&&Boolean(await findReadyLocalBridgeDevice(env,tenantId,'browser_read_flow'))};continue}
   entries[id]={...def,ready:Boolean(await findReadyLocalBridgeDevice(env,tenantId,def.action))};
  }
