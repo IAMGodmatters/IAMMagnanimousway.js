@@ -221,9 +221,9 @@ jobs:
                     echo "::warning::Cloudflare D1 daily row-write quota is exhausted. The checked-in Magnanimous brain manifest remains authoritative in the deployed Worker; durable D1 materialization is deferred until write capacity is available."
                     break
                   fi
-                  if printf '%s' "$output" | grep -qi "Not currently importing anything"; then
+                  if printf '%s' "$output" | grep -Eqi "Not currently importing anything|Network connection lost|internal error.*7500|code[^0-9]*7500|connection reset|temporarily unavailable|timed out"; then
                     if [ "$attempt" -lt 4 ]; then
-                      echo "::warning::Cloudflare D1 import state was temporarily unavailable while applying $(basename "$file"). Retrying the same idempotent materialization chunk ($attempt/3)."
+                      echo "::warning::Transient Cloudflare D1 failure while applying $(basename "$file"). Retrying the same idempotent materialization chunk ($attempt/3)."
                       sleep $((attempt * 8))
                       attempt=$((attempt + 1))
                       continue
