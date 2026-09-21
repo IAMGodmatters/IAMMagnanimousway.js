@@ -26,8 +26,31 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 2
+
+      - name: Detect standalone runtime impact
+        id: runtime-impact
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent="$(git rev-parse "$TARGET_SHA^")"
+          git diff --name-only "$parent" "$TARGET_SHA" >/tmp/magnanimous-changed-files.txt
+          if grep -Eq '^(magnanimous-runtime/|worker/|frontend/|video-gateway/|api/|package\.json$|package-lock\.json$)' /tmp/magnanimous-changed-files.txt; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Standalone runtime-impacting files changed; exact Railway promotion remains required."
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No standalone runtime-impacting files changed; production runtime promotion is intentionally skipped."
+          fi
+
+      - name: No Railway deployment required for control-plane-only change
+        if: steps.runtime-impact.outputs.changed != 'true'
+        shell: bash
+        run: |
+          echo "Tokenless deployment gate PASS: this commit changes CI, QA, docs, or other non-runtime control-plane files only."
 
       - name: Wait for Full Platform QA on this exact commit
+        if: steps.runtime-impact.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -48,6 +71,7 @@ jobs:
           [ "$success" = "1" ] || { echo "::error::Full Platform QA did not reach success in time."; exit 1; }
 
       - name: Wait for verified main auto-deploy or detect already live
+        if: steps.runtime-impact.outputs.changed == 'true'
         id: already-live
         shell: bash
         run: |
@@ -74,7 +98,7 @@ jobs:
           fi
 
       - name: Request exact-commit deployment through Magnanimous OIDC gateway
-        if: steps.already-live.outputs.live != 'true'
+        if: steps.runtime-impact.outputs.changed == 'true' && steps.already-live.outputs.live != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -104,6 +128,7 @@ jobs:
           PY
 
       - name: Verify the live standalone runtime is this exact commit
+        if: steps.runtime-impact.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -125,4 +150,4 @@ jobs:
         if: always()
         shell: bash
         run: |
-          rm -f /tmp/magnanimous-railway-deploy-request.json /tmp/magnanimous-railway-deploy-response.json /tmp/magnanimous-live-health.json
+          rm -f /tmp/magnanimous-changed-files.txt /tmp/magnanimous-railway-deploy-request.json /tmp/magnanimous-railway-deploy-response.json /tmp/magnanimous-live-health.json
