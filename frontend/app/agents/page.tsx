@@ -229,7 +229,7 @@ export default function AgentsPage() {
       <header>
         <a href="/">← Dashboard</a>
         <span>
-          AI ROLE WORKSPACE •{" "}
+          MAGNANIMOUS SPECIALIST WORKSPACE •{" "}
           {!loaded
             ? "CHECKING"
             : loadError
@@ -242,7 +242,7 @@ export default function AgentsPage() {
       </header>
       <section className="hero">
         <div>
-          <small>AI FOR REAL LIFE + REAL WORK</small>
+          <small>MAGNANIMOUS AI FOR REAL LIFE + REAL WORK</small>
           <h1>Choose the role you need.</h1>
           <p>
             These task-focused profiles are specialist departments of Magnanimous AI for everyday life, careers, business, call centers, content and learning. Magnanimous keeps one private memory and routing layer across the departments so you never have to choose an outside AI provider or model.
@@ -382,7 +382,7 @@ export default function AgentsPage() {
             {busy && (
               <article className="assistant thinking">
                 <small>{agent?.name}</small>
-                <p>Working with the Agent Mesh…</p>
+                <p>Magnanimous AI is working through this specialist department…</p>
               </article>
             )}
             <div ref={endRef} />
