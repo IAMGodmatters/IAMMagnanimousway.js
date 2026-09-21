@@ -34,6 +34,7 @@ assert.ok(reservationProviders.length>=20,'Reservation provider graph must cover
 assert.ok(reservationSkills.length>=70,'Reservation skill library must cover search, pricing, booking, fulfillment, servicing, payment, settlement and reliability.');
 assert.ok(reservationLifecycle.length>=14,'Reservation lifecycle must cover discover through settlement and learning.');
 assert.ok(Object.keys(RESERVATION_NORMALIZED_OBJECTS).length>=10,'Reservation service must define normalized reservation records.');
+assert.ok(reservationSummary.provider_tool_contracts>=150,'Reservation provider graph must expose broad provider tool contracts.');
 assert.equal(reservationSummary.status,'magnanimous-reservation-service-defined');
 
 for(const id of [
@@ -122,6 +123,7 @@ const reservationPage=fs.readFileSync('frontend/app/reservations/page.tsx','utf8
 assert.ok(reservationPage.includes('MAGNANIMOUS RESERVATION SERVICE'));
 assert.ok(reservationPage.includes('TRANSACTION PREFLIGHT'));
 assert.ok(reservationPage.includes('PROVIDER CONNECTION GRAPH'));
+assert.ok(reservationPage.includes('PROVIDER TOOL CONTRACTS'));
 const agents=fs.readFileSync('worker/src/agent-mesh-runtime.js','utf8');
 assert.ok(agents.includes("'wholesale','Wholesale','B2B Wholesale Strategist'"));
 assert.ok(agents.includes("'travelpro','TravelPro','B2B Travel Distribution'"));
