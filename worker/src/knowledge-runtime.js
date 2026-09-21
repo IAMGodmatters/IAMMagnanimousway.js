@@ -192,8 +192,18 @@ async function rememberResults(env,user,results,sourceType){
 }
 
 export async function getKnowledgeContext(request,env,query,opts={}){
-  const state=searchState(env);if(!env?.DB)return{context:'',sources:[],user:null,search_configured:state.configured,search_state:state};await ensureTables(env);const user=await currentUser(request,env);if(!user)return{context:'',sources:[],user:null,search_configured:state.configured,search_state:state};
-  const tenant=String(user.tenant_id),local=await localSearch(env,tenant,query,Number(opts.localLimit||6));
+  const state=searchState(env);
+  let user=null,local=[];
+  if(env?.DB){
+    try{
+      await ensureTables(env);
+      user=await currentUser(request,env);
+      if(user)local=await localSearch(env,String(user.tenant_id),query,Number(opts.localLimit||6));
+    }catch(error){
+      console.error('workspace knowledge unavailable; continuing with D1-independent research',error);
+      user=null;local=[];
+    }
+  }
   const [webResult,newsResult]=await Promise.allSettled([
     opts.liveSearch?webSearch(env,query,Number(opts.webLimit||5),opts.freshness||''):Promise.resolve([]),
     opts.news?newsSearch(env,query,Number(opts.newsLimit||5),opts.freshness||'pw'):Promise.resolve([])
@@ -201,14 +211,14 @@ export async function getKnowledgeContext(request,env,query,opts={}){
   const web=webResult.status==='fulfilled'?webResult.value:[],news=newsResult.status==='fulfilled'?newsResult.value:[];
   if(webResult.status==='rejected')console.error('bounded web search failed',webResult.reason);
   if(newsResult.status==='rejected')console.error('bounded news search failed',newsResult.reason);
-  if(opts.remember){
+  if(opts.remember&&env?.DB&&user){
     const remembers=[];
     if(web.length)remembers.push(settleWithin(rememberResults(env,user,web,'web-search'),SEARCH_MEMORY_TIMEOUT_MS,'web research memory'));
     if(news.length)remembers.push(settleWithin(rememberResults(env,user,news,'news-search'),SEARCH_MEMORY_TIMEOUT_MS,'news research memory'));
     if(remembers.length)await Promise.allSettled(remembers);
   }
   const sources=[...local.map(x=>({title:x.title,url:x.url,description:x.content,source:x.source_type||'workspace'})),...web,...news].slice(0,16);
-  const context=sources.length?`\n\nGROUNDING SOURCES (use these as context; do not claim unsupported facts):\n${sources.map((s,i)=>`[${i+1}] ${s.title}${s.url?` — ${s.url}`:''}\n${String(s.description||'').slice(0,1400)}`).join('\n\n')}\n\nWhen these sources support the answer, cite them as [1], [2], etc. Distinguish stored workspace knowledge from fresh web/news information.`:'';
+  const context=sources.length?'\n\nMAGNANIMOUS KNOWLEDGE AND RESEARCH\n'+sources.map((s,i)=>`[${i+1}] ${s.title||'Source'}${s.url?` — ${s.url}`:''}\n${String(s.description||'').slice(0,1600)}`).join('\n\n')+'\nUse these sources when relevant. Distinguish saved workspace knowledge from live research and do not invent citations.\n':'';
   return{context,sources,user,search_configured:state.configured,search_state:state};
 }
 
