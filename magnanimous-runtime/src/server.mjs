@@ -317,7 +317,8 @@ async function handleMigrationStage(req, res, pathname) {
       ref: 'refs/heads/main',
       workflowFile: secretStage
         ? '.github/workflows/magnanimous-runtime-secrets-stage.yml'
-        : '.github/workflows/magnanimous-production-data-stage.yml'
+        : '.github/workflows/magnanimous-production-data-stage.yml',
+      allowedEvents: ['push', 'workflow_dispatch']
     });
     const revision = runtimeRevision();
     if (revision && String(source.sha || '').trim() && revision !== String(source.sha || '').trim()) {
