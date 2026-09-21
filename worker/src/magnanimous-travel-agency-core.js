@@ -113,7 +113,7 @@ export function applyBps(amountMinor,bps){return Math.round(int(amountMinor)*int
 export function normalizeTravelOffer(input={}){
  const currency=String(input.currency||input.total_currency||'').trim().toUpperCase();
  const supplier=String(input.supplier||input.provider||'unknown').trim().toLowerCase();
- const net=int(input.net_minor??input.total_minor??amountToMinor(input.total_amount||input.amount||0));
+ const net=int(input.supplier_net_minor??input.net_minor??input.total_minor??amountToMinor(input.total_amount||input.amount||0));
  const taxes=int(input.tax_minor||0),mandatoryFees=int(input.mandatory_fee_minor||0),settlement=int(input.settlement_cost_minor||0);
  return{
   id:String(input.id||input.offer_id||crypto.randomUUID()),
