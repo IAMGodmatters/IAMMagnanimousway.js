@@ -134,7 +134,10 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'SABRE_CLIENT_SECRET',label:'Sabre API Client Secret / password',secret:true,required:false},
   {key:'TRAVELPORT_CLIENT_ID',label:'Travelport API Client ID',secret:false,required:false},
   {key:'TRAVELPORT_CLIENT_SECRET',label:'Travelport API Client Secret',secret:true,required:false},
-  {key:'DUFFEL_ACCESS_TOKEN',label:'Duffel Access Token',secret:true,required:false}
+  {key:'DUFFEL_ACCESS_TOKEN',label:'Duffel Access Token',secret:true,required:false},
+  {key:'VERTEIL_API_TOKEN',label:'Verteil commercial API token / credential supplied after onboarding',secret:true,required:false},
+  {key:'TRAVELFUSION_API_TOKEN',label:'Travelfusion commercial API credential supplied after onboarding',secret:true,required:false},
+  {key:'HAHNAIR_PARTNER_REFERENCE',label:'Hahnair agency / partner credential or reference (only after provider setup)',secret:true,required:false}
  ]},
  {id:'b2b-hotels-experiences',name:'B2B Hotels, Tours & Activities',providers:[],fields:[
   {key:'HBX_API_KEY',label:'HBX / Hotelbeds API Key',secret:false,required:false},
@@ -144,7 +147,8 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'VIATOR_API_KEY',label:'Viator Partner API Key',secret:true,required:false},
   {key:'GETYOURGUIDE_API_TOKEN',label:'GetYourGuide Partner API Token',secret:true,required:false},
   {key:'ZENTRUMHUB_API_KEY',label:'ZentrumHub API Key',secret:true,required:false},
-  {key:'TRAVELOPRO_API_KEY',label:'Travelopro API Key',secret:true,required:false}
+  {key:'TRAVELOPRO_API_KEY',label:'Travelopro API Key',secret:true,required:false},
+  {key:'TBO_API_KEY',label:'TBO API credential supplied after partner approval',secret:true,required:false}
  ]},
  {id:'b2b-corporate-travel',name:'B2B Corporate Travel & Expense',providers:[],fields:[
   {key:'BREX_API_TOKEN',label:'Brex API Token (optional)',secret:true,required:false},
