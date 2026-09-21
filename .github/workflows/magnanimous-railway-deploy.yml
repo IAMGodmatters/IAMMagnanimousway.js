@@ -85,35 +85,66 @@ jobs:
           done
           [ "$success" = "1" ] || { echo "::error::Full Platform QA did not reach success in time."; exit 1; }
 
-      - name: Wait for verified main auto-deploy or detect already live
+      - name: Wait for verified main auto-deploy or detect safe newer main revision
         if: steps.runtime-impact.outputs.changed == 'true'
         id: already-live
         shell: bash
         run: |
           set -euo pipefail
+
+          current_main() {
+            gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha'
+          }
+
+          is_safe_main_lineage() {
+            local candidate="$1" main_sha target_status main_status
+            [ -n "$candidate" ] || return 1
+            main_sha="$(current_main)"
+            target_status="$(gh api "repos/$GITHUB_REPOSITORY/compare/${TARGET_SHA}...${candidate}" --jq '.status' 2>/dev/null || true)"
+            main_status="$(gh api "repos/$GITHUB_REPOSITORY/compare/${candidate}...${main_sha}" --jq '.status' 2>/dev/null || true)"
+            [[ "$target_status" == "ahead" || "$target_status" == "identical" ]] &&
+            [[ "$main_status" == "ahead" || "$main_status" == "identical" ]]
+          }
+
           live=""
           success=0
           for attempt in $(seq 1 30); do
             if curl -fsS --connect-timeout 10 --max-time 30 "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/tmp/magnanimous-live-health.json; then
               live="$(python -c 'import json; print(json.load(open("/tmp/magnanimous-live-health.json")).get("deploy_revision",""))')"
-              if [ "$live" = "$TARGET_SHA" ]; then
+              if is_safe_main_lineage "$live"; then
                 success=1
                 break
               fi
             fi
-            echo "Waiting for Railway's GitHub main auto-deploy to make $TARGET_SHA healthy (live=${live:-unknown}, attempt $attempt/30)."
+            echo "Waiting for Railway main auto-deploy to make $TARGET_SHA or a newer verified main descendant healthy (live=${live:-unknown}, attempt $attempt/30)."
             sleep 10
           done
+
           if [ "$success" = "1" ]; then
             echo "live=true" >> "$GITHUB_OUTPUT"
-            echo "Exact commit $TARGET_SHA became healthy through the existing GitHub main auto-deploy; no Railway project token is required."
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+            if [ "$live" = "$TARGET_SHA" ]; then
+              echo "Exact commit $TARGET_SHA is healthy through Railway's existing GitHub main auto-deploy."
+            else
+              echo "A newer verified main descendant is already healthy on Railway: $live. Refusing to roll production backward to stale target $TARGET_SHA."
+            fi
+            exit 0
+          fi
+
+          main_sha="$(current_main)"
+          target_to_main="$(gh api "repos/$GITHUB_REPOSITORY/compare/${TARGET_SHA}...${main_sha}" --jq '.status' 2>/dev/null || true)"
+          if [ "$main_sha" != "$TARGET_SHA" ] && [ "$target_to_main" = "ahead" ]; then
+            echo "live=false" >> "$GITHUB_OUTPUT"
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "Target $TARGET_SHA is now stale; main is $main_sha. Exact deployment fallback is suppressed to prevent rollback. The verification step will wait for a safe main descendant."
           else
             echo "live=false" >> "$GITHUB_OUTPUT"
-            echo "GitHub main auto-deploy did not make $TARGET_SHA healthy during the grace window; falling back to the optional Magnanimous OIDC deploy gateway."
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+            echo "Current main still equals target $TARGET_SHA; optional Magnanimous OIDC deployment fallback remains eligible."
           fi
 
       - name: Request exact-commit deployment through Magnanimous OIDC gateway
-        if: steps.runtime-impact.outputs.changed == 'true' && steps.already-live.outputs.live != 'true'
+        if: steps.runtime-impact.outputs.changed == 'true' && steps.already-live.outputs.live != 'true' && steps.already-live.outputs.stale != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -142,24 +173,45 @@ jobs:
           print('Magnanimous exact-commit Railway deployment accepted: '+d['deployment_id'])
           PY
 
-      - name: Verify the live standalone runtime is this exact commit
+      - name: Verify live standalone runtime contains the target without rollback
         if: steps.runtime-impact.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
+
+          current_main() {
+            gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha'
+          }
+
+          is_safe_main_lineage() {
+            local candidate="$1" main_sha target_status main_status
+            [ -n "$candidate" ] || return 1
+            main_sha="$(current_main)"
+            target_status="$(gh api "repos/$GITHUB_REPOSITORY/compare/${TARGET_SHA}...${candidate}" --jq '.status' 2>/dev/null || true)"
+            main_status="$(gh api "repos/$GITHUB_REPOSITORY/compare/${candidate}...${main_sha}" --jq '.status' 2>/dev/null || true)"
+            [[ "$target_status" == "ahead" || "$target_status" == "identical" ]] &&
+            [[ "$main_status" == "ahead" || "$main_status" == "identical" ]]
+          }
+
           success=0
+          live=""
           for attempt in $(seq 1 90); do
             if curl -fsS --connect-timeout 10 --max-time 30 "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/tmp/magnanimous-live-health.json; then
               live="$(python -c 'import json; print(json.load(open("/tmp/magnanimous-live-health.json")).get("deploy_revision",""))')"
-              if [ "$live" = "$TARGET_SHA" ]; then success=1; break; fi
-              echo "Live Railway revision is $live; waiting for $TARGET_SHA (attempt $attempt/90)."
+              if is_safe_main_lineage "$live"; then success=1; break; fi
+              echo "Live Railway revision is ${live:-unknown}; waiting for target $TARGET_SHA or a newer verified main descendant (attempt $attempt/90)."
             else
               echo "Standalone health is temporarily unavailable during rollout (attempt $attempt/90)."
             fi
             sleep 10
           done
-          [ "$success" = "1" ] || { echo "::error::Railway did not make exact commit $TARGET_SHA healthy in time."; exit 1; }
-          echo "Magnanimous Railway exact-commit deployment PASS: $TARGET_SHA"
+
+          [ "$success" = "1" ] || { echo "::error::Railway did not make $TARGET_SHA or a verified newer main descendant healthy in time."; exit 1; }
+          if [ "$live" = "$TARGET_SHA" ]; then
+            echo "Magnanimous Railway exact-commit deployment PASS: $TARGET_SHA"
+          else
+            echo "Magnanimous Railway descendant-safe deployment PASS: target=$TARGET_SHA live=$live"
+          fi
 
       - name: Destroy transient deployment files
         if: always()
