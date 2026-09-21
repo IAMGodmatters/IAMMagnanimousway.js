@@ -136,7 +136,8 @@ async function enrichTrainingBody(body,agent,requireDirectPermission,user){
 async function branchRequest(request,env,ctx){
  const url=new URL(request.url);
  if(!url.pathname.startsWith('/api/agents')&&url.pathname!=='/api/chat')return null;
- await ensureBranchSchema(env);
+ if(url.pathname==='/api/chat')await ensureBranchSchema(env).catch(error=>console.error('specialist schema unavailable; continuing core chat',error));
+ else await ensureBranchSchema(env);
  const agents=await catalog(request,env,ctx);
 
  if(request.method==='GET'&&url.pathname==='/api/agents'){
@@ -147,7 +148,7 @@ async function branchRequest(request,env,ctx){
   return json({...publicData,agents:(data.agents||[]).map(a=>({...a,branch:branchProfile(a)})),architecture:'magnanimous-core-with-specialist-branches',agentic_capability_ladder:agenticCapabilityLadder(),qa_training_submission:true,automatic_qa_gate_for_contributor_learning:true,owner_oversight_required_for_held_learning:true,owner_approval_required_for_global_learning:true,legacy_qa_compatibility_note:'Legacy owner-approval flag means owner oversight remains authoritative; safe high-confidence teaching may still pass the Magnanimous automatic QA gate.'},response.status);
  }
 
- const user=await currentUser(request,env);
+ const user=url.pathname==='/api/chat'?await currentUser(request,env).catch(error=>{console.error('specialist identity unavailable; continuing core chat',error);return null}):await currentUser(request,env);
 
  if(request.method==='POST'&&url.pathname==='/api/chat'){
   const body=await request.clone().json().catch(()=>({}));
