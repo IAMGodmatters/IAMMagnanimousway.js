@@ -70,7 +70,9 @@ add('auth_config remains migration-owned but optional during quota deferral when
 add('deploy guarantees a persistent Worker SESSION_SECRET without exposing its value',deploy.includes('Ensure persistent Worker session secret')&&deploy.includes('wrangler secret list --format json')&&deploy.includes('openssl rand -hex 48')&&deploy.includes('wrangler secret put SESSION_SECRET')&&deploy.includes('without exposing its value'));
 add('deferred D1 maintenance retries after the UTC quota reset',maintenance.includes("cron: '5 0 * * *'")&&maintenance.includes('Apply deferred D1 migrations')&&maintenance.includes('materialize-full-brain-d1.mjs'));
 add('deferred maintenance remains idempotent and verifies the checked-in brain digest',maintenance.includes('Production D1 already matches full-brain digest')&&maintenance.includes("assert row['source_digest'] == os.environ['DIGEST']")&&maintenance.includes("assert row['status'] == 'complete'"));
-add('non-quota migration failures still stop deployment',deploy.includes('else\n              exit "$rc"'));
+add('transient D1 migration failures use bounded retry',deploy.includes('Transient Cloudflare D1 migration failure. Retrying migration application')&&deploy.includes('if [ "$attempt" -lt 4 ]'));
+add('transient migration defer is forbidden when migration files changed',deploy.includes('if [ "$migration_files_changed" -eq 0 ]')&&deploy.includes('this commit does not change worker/migrations'));
+add('schema-changing or non-transient migration failures still stop deployment',deploy.includes('migration_files_changed=1')&&deploy.includes('exit "$rc"'));
 add('ordinary signup failures still fail deployment',deploy.includes('Signup smoke test returned HTTP $status')&&deploy.includes('exit 1'));
 add('quota branch never claims signup passed',deploy.includes('This is an external daily Free-plan limit, not a passing signup result.'));
 
