@@ -48,6 +48,7 @@ const AGENTS=[
  ['tradedesk','TradeDesk','Global Trade & EDI','Import/export workflows, X12, UN/EDIFACT, Peppol, GS1 identifiers, cross-border documents and trading-partner interoperability.','business'],
  ['airretail','AirRetail','Airline Retailing Specialist','IATA NDC, ONE Order, offers/orders, ancillaries, direct airline connectivity, ticketing authority and airline retailing architecture.','business'],
  ['travelops','TravelOps','Travel Agency Operations','TIDS/IATA/ARC readiness, BSP/ARC settlement, consolidator/host workflows, exchanges, refunds, ADMs/ACMs and mid/back-office travel operations.','business'],
+ ['reserveops','ReserveOps','Reservation Service Orchestrator','Provider-aware search, repricing, holds, booking, ticket/voucher fulfillment, servicing, refunds, settlement, duplicate-booking prevention and reservation reconciliation across authorized travel rails.','business'],
  ['cindy','Cindy','Customer Service Coach','Customer-service responses, policies, de-escalation and support coaching.','business'],
  ['victor','Victor','Virtual Support','Client product questions, support triage and solution guidance.','business'],
  ['adam','Adam','Ad Optimizer','Advertising copy, offers, calls to action and conversion-focused improvements.','business'],
