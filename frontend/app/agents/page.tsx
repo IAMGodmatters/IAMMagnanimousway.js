@@ -17,13 +17,7 @@ type Provider = {
   configured: boolean;
   openai: boolean;
 };
-type Msg = {
-  id?: number;
-  role: string;
-  content: string;
-  provider?: string;
-  model?: string;
-};
+type Msg = {\n  id?: number;\n  role: string;\n  content: string;\n};
 async function read(r: Response) {
   const t = await r.text();
   try {
@@ -193,8 +187,6 @@ export default function AgentsPage() {
         {
           role: "assistant",
           content: d.output,
-          provider: d.provider_name || d.provider,
-          model: d.model,
         },
       ]);
       speak(d.output);
@@ -371,7 +363,7 @@ export default function AgentsPage() {
               >
                 <small>
                   {m.role === "assistant" ? agent?.name : "YOU"}
-                  {m.provider ? ` • ${m.provider}` : ""}
+                  
                 </small>
                 <p>{m.content}</p>
                 {m.role === "assistant" && (
