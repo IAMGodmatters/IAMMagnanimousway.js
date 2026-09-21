@@ -51,6 +51,18 @@ async function sanitizeProviderCatalog(request,response,env){
  if(!data)return response;
  return json(publicProviderSummary(data),response.status);
 }
+async function sanitizeCustomerAgentExecution(request,response){
+ const url=new URL(request.url);
+ const history=request.method==='GET'&&url.pathname==='/api/agents/history';
+ const video=request.method==='POST'&&url.pathname==='/api/agents/video/render';
+ if(!history&&!video)return response;
+ const data=await response.clone().json().catch(()=>null);
+ if(!data)return response;
+ if(history&&Array.isArray(data.messages)){
+  return json({...data,messages:data.messages.map(message=>stripExecutionMetadata(message)),execution_details_private:true},response.status);
+ }
+ return json({...stripExecutionMetadata(data),execution_details_private:true},response.status);
+}
 
 async function catalog(request,env,ctx){
  const url=new URL(request.url);url.pathname='/api/agents';url.search='';
@@ -263,6 +275,7 @@ export default {
   }catch(error){console.error('specialist branch layer failed',error)}
   const response=await baseApp.fetch(request,env,ctx);
   const chatResponse=await sanitizeCustomerAiResponse(request,response);
-  return sanitizeProviderCatalog(request,chatResponse,env);
+  const agentResponse=await sanitizeCustomerAgentExecution(request,chatResponse);
+  return sanitizeProviderCatalog(request,agentResponse,env);
  }
 };
