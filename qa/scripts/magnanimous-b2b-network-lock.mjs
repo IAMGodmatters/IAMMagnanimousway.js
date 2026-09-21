@@ -4,16 +4,25 @@ import { getB2BCapabilityManifest, getB2BConnectionCatalog, getB2BSummary, MAGNA
 import { getCapabilityAbsorptionManifest } from '../../worker/src/magnanimous-connector-absorption.js';
 import { classifyCapabilityRealization } from '../../worker/src/magnanimous-capability-realization.js';
 import { B2B_NORMALIZED_OBJECTS, B2B_WORKFLOWS } from '../../worker/src/magnanimous-b2b-runtime.js';
+import { getB2BProtocolCatalog, getB2BStandardsCatalog, getB2BOpportunityCatalog, getB2BSkillCatalog } from '../../worker/src/magnanimous-b2b-universal-fabric.js';
 
 const caps=getB2BCapabilityManifest();
 const connections=getB2BConnectionCatalog();
 const summary=getB2BSummary();
 const full=getCapabilityAbsorptionManifest();
+const protocols=getB2BProtocolCatalog();
+const standards=getB2BStandardsCatalog();
+const opportunities=getB2BOpportunityCatalog();
+const skills=getB2BSkillCatalog();
 
-assert.ok(caps.length>=50,'B2B registry must cover broad wholesale and travel operations.');
+assert.ok(caps.length>=90,'B2B registry must cover broad wholesale, procurement, logistics and travel operations.');
 assert.ok(summary.commerce_contracts>=20,'B2B commerce must cover wholesale/sourcing/procurement operations.');
 assert.ok(summary.travel_contracts>=20,'B2B travel must cover search, booking and servicing operations.');
-assert.ok(connections.length>=20,'B2B connection catalog must cover commerce, ERP and travel partners.');
+assert.ok(connections.length>=45,'B2B connection catalog must cover commerce, procurement, logistics and travel partners.');
+assert.ok(protocols.length>=18,'Universal B2B protocol fabric must cover API, EDI, Peppol, files and event transports.');
+assert.ok(standards.length>=8,'B2B standards catalog must cover airline, procurement and trade standards.');
+assert.ok(opportunities.length>=30,'B2B opportunity catalog must span broad business models.');
+assert.ok(skills.length>=75,'Reusable B2B skill library must cover sourcing, sales, procurement, logistics and travel.');
 
 for(const id of [
  'company-account-management','b2b-catalogs-pricing','rfq-quote-cpq','purchase-orders','net-terms-credit',
@@ -22,10 +31,11 @@ for(const id of [
  'travel-agency-accounts','travel-search-normalization','air-offer-search','air-offer-price','air-order-book','air-ticketing',
  'air-ancillaries','air-change-reshop','air-cancel-refund','hotel-search-book','hotel-modify-cancel','cars-transfers',
  'tours-activities','travel-packages','travel-markup-commission','travel-credit-ledger','corporate-travel-policy',
- 'corporate-travel-expense','traveler-profiles','group-travel','travel-white-label','travel-support-queue'
+ 'corporate-travel-expense','traveler-profiles','group-travel','travel-white-label','travel-support-queue',
+ 'universal-b2b-connector','marketplace-channel-operations','business-marketplace-procurement','edi-x12-mapping','edifact-mapping','cxml-procurement','peppol-eprocurement','gs1-master-data','supplier-punchout','three-way-match','supplier-scorecards','demand-forecasting','trade-document-pack','b2b-opportunity-discovery','tender-response','warehouse-3pl','parcel-carrier-routing','ocean-freight-routing','travel-accreditation-readiness','ndc-offer-order','one-order-lifecycle','airline-direct-connect','agency-identity-tids','bsp-settlement','arc-accreditation-settlement','air-consolidator-host','travelgate-hotel-network','mice-events','cruise-rail-ferry-bus','adm-acm-management','travel-mid-back-office'
 ])assert.ok(caps.some(x=>x.capability===id),'Missing B2B capability '+id);
 
-for(const id of ['shopify-b2b','alibaba-sourcing','amadeus','sabre','travelport','duffel','zentrumhub','hbx-hotelbeds','expedia-rapid','viator','getyourguide','brex-travel','netsuite'])
+for(const id of ['shopify-b2b','alibaba-sourcing','amazon-business','amazon-sp-api','walmart-marketplace','ebay-sell','amadeus','sabre','travelport','duffel','zentrumhub','hbx-hotelbeds','expedia-rapid','viator','getyourguide','brex-travel','netsuite','sap-business-network','coupa','peppol-service-provider','gs1','un-cefact','faire','thomasnet','ups','fedex','dhl','maersk','iata-ndc','iata-one-order','iata-tids','iata-bsp','arc','airline-direct-ndc','travelgate','ratehawk','tbo','hahnair','verteil','travelfusion'])
  assert.ok(connections.some(x=>x.id===id),'Missing B2B connection '+id);
 
 for(const row of caps){
@@ -49,20 +59,27 @@ assert.equal(MAGNANIMOUS_B2B_POLICY.regulated_travel_authority_not_assumed,true)
 assert.equal(MAGNANIMOUS_B2B_POLICY.merchant_of_record_not_assumed,true);
 assert.equal(MAGNANIMOUS_B2B_POLICY.iata_arc_accreditation_not_assumed,true);
 
-for(const key of ['company','supplier','product','quote','purchase_order','travel_offer','travel_order','settlement'])
+for(const key of ['company','supplier','product','quote','purchase_order','travel_offer','travel_order','settlement','trading_document','shipment','procurement_event','agency_identity','travel_settlement'])
  assert.ok(Array.isArray(B2B_NORMALIZED_OBJECTS[key])&&B2B_NORMALIZED_OBJECTS[key].length>3,'Missing normalized B2B object '+key);
 assert.ok(B2B_WORKFLOWS.wholesale.length>=10);
 assert.ok(B2B_WORKFLOWS.travel.length>=10);
+assert.ok(B2B_WORKFLOWS.procurement.length>=8);
+assert.ok(B2B_WORKFLOWS.logistics.length>=6);
+assert.ok(B2B_WORKFLOWS.travel_accreditation.length>=6);
 
 const runtime=fs.readFileSync('worker/src/magnanimous-b2b-runtime.js','utf8');
 assert.ok(runtime.includes("'/api/b2b/catalog'"));
 assert.ok(runtime.includes("live_connection_verified:false"));
+assert.ok(runtime.includes("'/api/b2b/protocols'"));
+assert.ok(runtime.includes("'/api/b2b/standards'"));
+assert.ok(runtime.includes("'/api/b2b/opportunities'"));
+assert.ok(runtime.includes("'/api/b2b/skills'"));
 assert.ok(runtime.includes('issue ticket/voucher only when the connected rail grants authority'));
 assert.ok(runtime.includes('Verify price, availability')||runtime.includes('reprice/recheck live availability'));
 assert.ok(runtime.includes('Magnanimous owns the plan, memory, policy, normalization and verification'));
 
 const creds=fs.readFileSync('worker/src/platform-credentials.js','utf8');
-for(const key of ['AMADEUS_CLIENT_ID','SABRE_CLIENT_ID','TRAVELPORT_CLIENT_ID','DUFFEL_ACCESS_TOKEN','HBX_API_KEY','EXPEDIA_RAPID_API_KEY','VIATOR_API_KEY','GETYOURGUIDE_API_TOKEN','ZENTRUMHUB_API_KEY','NETSUITE_ACCOUNT_ID'])
+for(const key of ['AMAZON_SPAPI_CLIENT_ID','AMAZON_SPAPI_CLIENT_SECRET','AMAZON_SPAPI_REFRESH_TOKEN','WALMART_CLIENT_ID','WALMART_CLIENT_SECRET','EBAY_CLIENT_ID','EBAY_CLIENT_SECRET','EBAY_REFRESH_TOKEN','AMADEUS_CLIENT_ID','SABRE_CLIENT_ID','TRAVELPORT_CLIENT_ID','DUFFEL_ACCESS_TOKEN','HBX_API_KEY','EXPEDIA_RAPID_API_KEY','VIATOR_API_KEY','GETYOURGUIDE_API_TOKEN','ZENTRUMHUB_API_KEY','NETSUITE_ACCOUNT_ID','COUPA_CLIENT_ID','PEPPOL_ACCESS_POINT_TOKEN','UPS_CLIENT_ID','FEDEX_CLIENT_ID','DHL_API_KEY','MAERSK_CONSUMER_KEY','TRAVELGATE_ACCESS_TOKEN','RATEHAWK_API_KEY','IATA_TIDS_CODE','IATA_NUMERIC_CODE','ARC_NUMBER'])
  assert.ok(creds.includes(key),'Platform credential vault must support '+key);
 
 const entry=fs.readFileSync('worker/src/progress-entrypoint.js','utf8');
@@ -70,8 +87,15 @@ assert.ok(entry.includes('handleMagnanimousB2B'));
 const page=fs.readFileSync('frontend/app/b2b/page.tsx','utf8');
 assert.ok(page.includes('Wholesale + Travel Distribution'));
 assert.ok(page.includes('CONNECTION FABRIC'));
+assert.ok(page.includes('OPEN STANDARDS'));
+assert.ok(page.includes('REUSABLE B2B SKILL LIBRARY'));
 const agents=fs.readFileSync('worker/src/agent-mesh-runtime.js','utf8');
 assert.ok(agents.includes("'wholesale','Wholesale','B2B Wholesale Strategist'"));
 assert.ok(agents.includes("'travelpro','TravelPro','B2B Travel Distribution'"));
+assert.ok(agents.includes("'procura','Procura','Procurement & Supplier Network'"));
+assert.ok(agents.includes("'freight','Freight','B2B Logistics Strategist'"));
+assert.ok(agents.includes("'tradedesk','TradeDesk','Global Trade & EDI'"));
+assert.ok(agents.includes("'airretail','AirRetail','Airline Retailing Specialist'"));
+assert.ok(agents.includes("'travelops','TravelOps','Travel Agency Operations'"));
 
 console.log('Magnanimous B2B wholesale + travel lock PASS',summary);
