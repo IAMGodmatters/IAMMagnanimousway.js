@@ -6,7 +6,7 @@ import { MAGNANIMOUS_WEB_PARITY, handleMagnanimousNativeWeb } from './magnanimou
 import { MAGNANIMOUS_DEV_SKILLS, magnanimousDevAgentSummary, handleMagnanimousDevAgent } from './magnanimous-dev-agent.js';
 import { RAILWAY_VISIBLE_TOOL_CONTRACTS, RAILWAY_ARCHITECTURE_TECHNIQUES, handleMagnanimousCloudProvider } from './magnanimous-cloud-provider-core.js';
 import { findReadyLocalBridgeDevice, hasAnyReadyLocalBridgeCapability } from './magnanimous-local-bridge-runtime.js';
-import { MAGNANIMOUS_NATIVE_MEDIA_FAMILIES, MAGNANIMOUS_NATIVE_MEDIA_CAPABILITIES, HEYGEN_VISIBLE_BENCHMARK_TOOLS, getMagnanimousNativeMediaSummary, handleMagnanimousNativeMedia } from './magnanimous-native-media-studio.js';
+import { MAGNANIMOUS_NATIVE_MEDIA_FAMILIES, MAGNANIMOUS_NATIVE_MEDIA_CAPABILITIES, MAGNANIMOUS_HEYGEN_PARITY_MAP, HEYGEN_VISIBLE_BENCHMARK_TOOLS, getMagnanimousNativeMediaSummary, handleMagnanimousNativeMedia } from './magnanimous-native-media-studio.js';
 import { MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES, getMagnanimousNativeTerminalSummary, handleMagnanimousNativeTerminal } from './magnanimous-native-terminal.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -53,6 +53,9 @@ export const MAGNANIMOUS_CAPABILITY_MESH_ROUTES=Object.freeze({
  'railway.deploy_exact':{surface:'github-exact-deploy-workflow',mode:'staged-write',confirmation:true,provider_optional:true},
  'media.summary':{surface:'native-media-studio',mode:'read',native:true},
  'media.catalog':{surface:'native-media-studio',mode:'read',native:true},
+ 'media.parity':{surface:'native-media-studio',mode:'read',native:true},
+ 'media.operation_spec':{surface:'native-media-studio',mode:'read',native:true},
+ 'media.operation_execute':{surface:'native-media-studio',mode:'owner-controlled-worker',native:true},
  'media.plan':{surface:'native-media-studio',mode:'plan',native:true},
  'media.render_avatar':{surface:'native-media-studio',mode:'native-or-self-hosted-render',native:true},
  'media.glossary_apply':{surface:'native-media-studio',mode:'read-transform',native:true},
@@ -60,6 +63,8 @@ export const MAGNANIMOUS_CAPABILITY_MESH_ROUTES=Object.freeze({
  'terminal.summary':{surface:'native-terminal',mode:'read',native:true},
  'terminal.catalog':{surface:'native-terminal',mode:'read',native:true},
  'terminal.classify':{surface:'native-terminal',mode:'read',native:true},
+ 'terminal.preview':{surface:'native-terminal',mode:'read',native:true},
+ 'terminal.interactive_plan':{surface:'native-terminal',mode:'owner-device-plan',native:true},
  'terminal.profiles':{surface:'native-terminal',mode:'local-read',native:true},
  'terminal.read':{surface:'native-terminal',mode:'local-read',native:true},
  'terminal.stage':{surface:'native-terminal',mode:'staged-write',confirmation:true,native:true},
@@ -137,6 +142,7 @@ function readinessRows({cloudflare,web,github,railway,cloud,media,terminal}){
  return[
   {id:'native-media-orchestration',ready:true,required:false,mode:'native',detail:'Magnanimous owns media planning, templates, brand rules, provider-neutral capability contracts and verification.'},
   {id:'native-avatar-experience',ready:Boolean(media?.execution?.browser_live_avatar||media?.execution?.self_hosted_avatar_renderer_configured),required:false,mode:media?.execution?.self_hosted_avatar_renderer_configured?'self-hosted-renderer':'browser-native',detail:media?.execution?.self_hosted_avatar_renderer_configured?'Owner-controlled avatar renderer is configured.':'Free browser live-avatar mode is available; heavy rendering remains optional owner-controlled compute.'},
+  {id:'native-media-worker',ready:Boolean(media?.execution?.magnanimous_media_worker_configured),required:false,mode:'owner-controlled-compute',detail:media?.execution?.magnanimous_media_worker_configured?'Magnanimous Media Worker is configured for provider-independent heavy media operations.':'Control-plane parity is installed; configure the optional owner-controlled Magnanimous Media Worker for heavy generation, dubbing, lip-sync, clipping and batch execution.'},
   {id:'native-terminal-orchestration',ready:true,required:false,mode:'native',detail:'Command classification, redaction, rollback planning and confirmation policy are native Magnanimous capabilities.'},
   {id:'native-ssh-execution',ready:Boolean(terminal?.local_ssh_ready),required:false,mode:'owner-local',detail:terminal?.local_ssh_ready?'A paired owner-controlled Local Bridge advertises native SSH execution.':'Native SSH code is installed; execution becomes live when an OpenSSH-capable paired Local Bridge is online.'},
   {id:'magnanimous-cloud',ready:Boolean(cloud.native_binding_active),required:false,mode:'native',detail:cloud.native_binding_active?'Native cloud control binding active.':'Native cloud control code is present; this execution rail does not expose the binding.'},
@@ -309,6 +315,9 @@ async function routeCapability(request,env,providerEnv,body){
  if(capability==='railway.catalog')return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},contracts:RAILWAY_VISIBLE_TOOL_CONTRACTS,techniques:RAILWAY_ARCHITECTURE_TECHNIQUES,proprietary_backend_copied:false});
  if(capability==='media.summary')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media','GET'),env),capability,def.surface);
  if(capability==='media.catalog')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/catalog','GET'),env),capability,def.surface);
+ if(capability==='media.parity')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/parity','GET'),env),capability,def.surface);
+ if(capability==='media.operation_spec')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/operation/spec','POST',input),env),capability,def.surface);
+ if(capability==='media.operation_execute')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/operation/execute','POST',input),env),capability,def.surface);
  if(capability==='media.plan')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/plan','POST',input),env),capability,def.surface);
  if(capability==='media.render_avatar')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/render-avatar','POST',input),env),capability,def.surface);
  if(capability==='media.glossary_apply')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/glossary/apply','POST',input),env),capability,def.surface);
@@ -317,6 +326,8 @@ async function routeCapability(request,env,providerEnv,body){
  if(capability==='terminal.summary')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal','GET'),env),capability,def.surface);
  if(capability==='terminal.catalog')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/catalog','GET'),env),capability,def.surface);
  if(capability==='terminal.classify')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/classify','POST',input),env),capability,def.surface);
+ if(capability==='terminal.preview')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/preview','POST',input),env),capability,def.surface);
+ if(capability==='terminal.interactive_plan')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/interactive-plan','POST',input),env),capability,def.surface);
  if(capability==='terminal.profiles')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/profiles','POST',input),env),capability,def.surface);
  if(capability==='terminal.read')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/read','POST',input),env),capability,def.surface);
  if(capability==='terminal.stage')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/stage','POST',input),env),capability,def.surface);
@@ -365,6 +376,7 @@ export async function handleMagnanimousCapabilityMesh(request,env,{providerEnv=e
    native_media_families:MAGNANIMOUS_NATIVE_MEDIA_FAMILIES,
    native_media_capabilities:MAGNANIMOUS_NATIVE_MEDIA_CAPABILITIES,
    heygen_benchmark_tools:HEYGEN_VISIBLE_BENCHMARK_TOOLS,
+   heygen_native_parity_map:MAGNANIMOUS_HEYGEN_PARITY_MAP,
    native_terminal_capabilities:MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES
   });
  }
