@@ -57,7 +57,7 @@ assert.ok(B2B_WORKFLOWS.travel.length>=10);
 const runtime=fs.readFileSync('worker/src/magnanimous-b2b-runtime.js','utf8');
 assert.ok(runtime.includes("'/api/b2b/catalog'"));
 assert.ok(runtime.includes("live_connection_verified:false"));
-assert.ok(runtime.includes('ticket issue'));
+assert.ok(runtime.includes('issue ticket/voucher only when the connected rail grants authority'));
 assert.ok(runtime.includes('Verify price, availability')||runtime.includes('reprice/recheck live availability'));
 assert.ok(runtime.includes('Magnanimous owns the plan, memory, policy, normalization and verification'));
 
