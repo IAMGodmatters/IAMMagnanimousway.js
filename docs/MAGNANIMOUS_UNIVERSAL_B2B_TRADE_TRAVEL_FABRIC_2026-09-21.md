@@ -102,6 +102,36 @@ Global Sources remains a sourcing/wholesale marketplace and trade-show ecosystem
 Reference:
 - https://www.globalsources.com/
 
+## Major business/marketplace commerce rails
+
+### Amazon Business
+Amazon Business supports PunchOut and Punch-in procurement integration. PunchOut connects an e-procurement system to the Amazon Business catalog, while Punch-in can return a cart into the buyer's procurement system using cXML-oriented workflows.
+
+References:
+- https://business.amazon.com/en/solutions/systems-integration/punchout
+- https://docs.business.amazon.com/docs/punch-in-integration-guide
+
+### Amazon Selling Partner API
+Amazon SP-API is a REST-based seller/vendor integration surface for catalog/listings, inventory, pricing, orders, fulfillment/shipping, FBA inbound, payments and notifications. Production use requires registered application and selling-partner authorization.
+
+References:
+- https://developer-docs.amazon.com/sp-api/docs/onboarding-overview
+- https://developer-docs.amazon.com/sp-api/docs/manage-product-listings-guide
+
+### Walmart Marketplace
+Walmart Marketplace APIs support approved sellers and solution providers with item/catalog, inventory, orders, pricing, promotions, reports and post-purchase workflows.
+
+References:
+- https://developer.walmart.com/us-marketplace/docs/introduction-to-marketplace-apis
+- https://developer.walmart.com/us-marketplace/docs/integrate-with-marketplace-apis
+
+### eBay Sell APIs
+eBay Sell APIs support seller inventory/offers, order fulfillment, shipping fulfillment, refunds, payment-dispute evidence and related selling workflows.
+
+References:
+- https://developer.ebay.com/develop/api/sell/fulfillment_api
+- https://developer.ebay.com/api-docs/sell/static/orders/order-fulfillment.html
+
 ## Verified shipping and logistics API opportunities
 
 ### UPS
