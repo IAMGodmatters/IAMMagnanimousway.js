@@ -53,7 +53,7 @@ const ROWS=Object.freeze([
   ['bounded-worker-ownership','Bounded workers, leases and single-writer ownership','agent-mesh','none',['bounded-parallelism','one-writer-per-shared-source','single-integrator','independent-reviewer']],
   ['repair-loop','Evidence-driven repair loop','evidence-auditor','none',['baseline-implement-test-review-integrate-regress-canary','reopen-precise-failure','persist-resumable-state']],
   ['release-gates','Evidence-backed release gates','evidence-auditor','none',['mandatory-gates','positive-real-cases','independent-review','rollback-and-canary']],
-  ['evidence-state-separation','Observed, tested, reviewed and deployed state separation','magnanimous-observability','none',['no-state-collapsing','no-candidate-live-confusion','runtime-proof']],
+  ['evidence-state-separation','Observed, tested, reviewed and deployed state separation','evidence-auditor','none',['no-state-collapsing','no-candidate-live-confusion','runtime-proof']],
   ['handoff-honesty','Handoff and evidence honesty','evidence-auditor','none',['direct-observation-separated-from-receipts','no-unperformed-action-claims','new-defects-become-owned-tasks']],
   ['scope-preservation','Required-scope preservation','operations-hub','none',['new-subsystem-does-not-erase-working-requirements','unsupported-does-not-equal-complete','no-quiet-scope-reduction']]
 ]);
