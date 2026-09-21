@@ -4,6 +4,7 @@ import { type CSSProperties, useEffect, useState } from "react";
 
 import ModeHero from "../../components/ModeHero";
 import AIProcessingIndicator from "../../components/AIProcessingIndicator";
+import { postMagnanimousChat } from "../../lib/magnanimous-chat-transport";
 import {
   MODE_OPTIONS,
   MODE_VISUALS,
@@ -108,18 +109,19 @@ export default function AIChat() {
     const research = mode === "Research" && webSearchReady;
 
     try {
-      const response = await fetch(`${api}/api/chat`, {
+      const response = await postMagnanimousChat(`${api}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...auth() },
         body: JSON.stringify({
           message: requestMessage,
           provider: "auto",
           use_knowledge: true,
+          use_tools: !research,
           live_search: research,
           news: research,
           freshness: research ? "pw" : "",
         }),
-      });
+      }, { retryTransientEdgeOnce: research });
       const data = await read(response);
       if (!response.ok)
         throw new Error(data.detail || `Request failed (${response.status}).`);
