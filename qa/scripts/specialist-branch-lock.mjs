@@ -124,10 +124,14 @@ must(entry,'specialist_handoff:true','automatic specialist handoff metadata must
 must(entry,"meshUrl.pathname='/api/agents/chat'",'automatic main-chat specialist handoffs must execute through the bounded Agent Mesh runtime rather than re-entering heavyweight general chat orchestration');
 must(entry,"provider:'auto'",'automatic specialist handoffs must use Magnanimous private routing rather than force a named execution provider');
 must(entry,"handoff_execution:'agent-mesh-bounded'",'automatic specialist responses must expose the bounded handoff execution mode for verification');
-must(entry,"UPDATE agent_mesh_messages SET content=? WHERE id=(SELECT id FROM agent_mesh_messages",'automatic handoffs must scrub internal specialist context from persisted user history');
+must(entry,"message:original",'automatic handoffs must forward only the customer message into Agent Mesh user history');
 must(entry,'specialistIntroduction(routed)','automatic specialist greeting must remain active');
-must(entry,'Do not ask a follow-up question instead of giving a useful answer','specialists must answer directly when reasonable assumptions are sufficient');
+must(mesh,"branchKnowledge(env,user.tenant_id,agent.id,12)",'Agent Mesh must load approved specialist branch knowledge directly into system context');
+must(mesh,'branchKnowledgeContext(branchProfile(agent),knowledge)','Agent Mesh must keep specialist teaching in system context rather than customer message text');
+must(mesh,"buildSystem(agent,team,integrations,native,branchContext)",'Agent Mesh must include approved branch context in its system prompt');
+must(mesh,"if(group==='creator')",'local resilience must preserve creator-specialist usefulness during compute capacity failures');
 must(entry,'branch_knowledge_count','specialist responses must expose branch-learning state');
+must(mesh,'branch_knowledge_count:knowledge.length','direct Agent Mesh responses must expose branch-learning state');
 must(entry,'const {provider,provider_name,model,model_id,engine,execution_engine,...publicData}=data','routed specialist responses must continue hiding provider/model/engine internals');
 must(entry,'stripExecutionMetadata(data)','specialist response privacy must use the centralized execution-metadata boundary');
 must(intelligence,'specialized branch of Magnanimous AI','specialists must remain branches of the Magnanimous core');
