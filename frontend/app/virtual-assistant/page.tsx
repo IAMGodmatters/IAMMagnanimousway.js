@@ -100,7 +100,7 @@ export default function VA() {
           (x: any) => x.configured && x.enabled !== false,
         );
         setReady(available.length > 0);
-        setProvider(available[0]?.name || "No AI provider connected");
+        setProvider(available.length ? "Magnanimous AI private routing" : "Magnanimous AI setup needed");
         setWebSearchReady(Boolean(health.web_search_configured));
         setName(me.user?.name || "");
       })
@@ -140,13 +140,13 @@ export default function VA() {
         d = await read(r);
       if (!r.ok) throw new Error(d.detail || "Assistant request failed.");
       if (!String(d.output || "").trim())
-        throw new Error("The AI provider returned an empty response.");
+        throw new Error("Magnanimous AI returned an empty response.");
       setOutput(d.output);
       setSources(d.sources || []);
-      setProvider(d.provider_name || d.provider || provider);
+      setProvider("Magnanimous AI private routing");
       if (type === "Research" && d.web_search_configured === false)
         setNotice(
-          "This result was created without live web search because no search provider is connected.",
+          "This result was created without live web search because Magnanimous live research is not ready.",
         );
     } catch (e: any) {
       setTask(request);
@@ -237,7 +237,7 @@ export default function VA() {
             M&nbsp;&nbsp;A&nbsp;&nbsp;G&nbsp;&nbsp;N&nbsp;&nbsp;A&nbsp;&nbsp;N&nbsp;&nbsp;I&nbsp;&nbsp;M&nbsp;&nbsp;O&nbsp;&nbsp;U&nbsp;&nbsp;S
           </div>
           <span className="online">
-            {ready ? "AI PROVIDER READY" : "AI PROVIDER NOT READY"}
+            {ready ? "MAGNANIMOUS AI READY" : "MAGNANIMOUS AI SETUP NEEDED"}
           </span>
         </div>
       </section>
@@ -260,7 +260,7 @@ export default function VA() {
             </button>
           ))}
           <div className="status">
-            <b>AI PROVIDER</b>
+            <b>MAGNANIMOUS AI</b>
             <span>{provider || "Checking connection"}</span>
             <b>WORKSPACE KNOWLEDGE</b>
             <span>Used when signed in and sources are saved</span>
@@ -307,7 +307,7 @@ export default function VA() {
           </div>
           {!ready && !checking && (
             <div className="notice">
-              An owner must connect an AI provider before assignments can run.
+              Magnanimous AI needs at least one ready execution path before assignments can run.
             </div>
           )}
           {notice && <div className="notice">{notice}</div>}
