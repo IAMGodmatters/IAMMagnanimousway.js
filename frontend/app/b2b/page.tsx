@@ -14,7 +14,7 @@ export default function B2BPage(){
  const connections=(data?.connections||[]).filter((x:any)=>filter==='all'||x.family===filter);
  const families=useMemo(()=>[...new Set((data?.connections||[]).map((x:any)=>x.family))].sort(),[data]);
  return <main className="page">
-  <header><div><small>MAGNANIMOUS B2B NETWORK</small><h1>Wholesale + Travel Distribution</h1><p>One Magnanimous-owned B2B control plane for wholesale merchandise, suppliers, procurement, resellers, corporate travel, flights, hotels, tours and sub-agents. Outside providers stay replaceable.</p></div><nav><a href="/business-ai">Business AI</a><a href="/crm">CRM</a><a href="/enterprise">Enterprise</a><a href="/connections">Connections</a></nav></header>
+  <header><div><small>MAGNANIMOUS B2B NETWORK</small><h1>Wholesale + Travel Distribution</h1><p>One Magnanimous-owned B2B control plane for wholesale merchandise, suppliers, procurement, resellers, corporate travel, flights, hotels, tours and sub-agents. Outside providers stay replaceable.</p></div><nav><a href="/reservations">Reservations</a><a href="/business-ai">Business AI</a><a href="/crm">CRM</a><a href="/enterprise">Enterprise</a><a href="/connections">Connections</a></nav></header>
   {error&&<div className="error">{error}</div>}
   <section className="stats">
    <article><small>B2B CAPABILITIES</small><b>{data?.summary?.capability_contracts||0}</b></article>
