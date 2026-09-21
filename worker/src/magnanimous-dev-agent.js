@@ -1,6 +1,7 @@
 import { currentUser } from './integrations.js';
 import { requirePlatformOwner } from './platform-owner-guard.js';
 import { upsertApprovedTeachingTool } from './magnanimous-tool-foundry.js';
+import { githubRepositoryAuthConfigured, githubRepositoryAuthSummary, githubRepositoryToken } from './magnanimous-github-app-auth.js';
 
 const GITHUB_API='https://api.github.com';
 const DEFAULT_REPO='IAMGodmatters/IAMMagnanimousway.js';
@@ -70,7 +71,6 @@ function normalizePath(value){
  return path;
 }
 function pathForApi(path){return normalizePath(path).split('/').map(encodeURIComponent).join('/');}
-function githubToken(env){return clip(env?.GITHUB_PLATFORM_TOKEN||env?.MAGNANIMOUS_GITHUB_TOKEN,10000);}
 function utf8ToBase64(text){const bytes=new TextEncoder().encode(String(text));let binary='';for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);return btoa(binary);}
 function base64ToUtf8(value){const binary=atob(String(value||'').replace(/\s/g,''));const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);return new TextDecoder().decode(bytes);}
 
@@ -82,7 +82,7 @@ async function ownerContext(request,env){
 
 async function githubRequest(env,method,path,body){
  const headers={Accept:'application/vnd.github+json','User-Agent':'Magnanimous-Dev-Agent','X-GitHub-Api-Version':'2022-11-28'};
- const token=githubToken(env);if(token)headers.Authorization=`Bearer ${token}`;
+ const token=await githubRepositoryToken(env,DEFAULT_REPO);if(token)headers.Authorization=`Bearer ${token}`;
  const options={method,headers};
  if(body!==undefined){headers['content-type']='application/json';options.body=JSON.stringify(body);}
  try{
@@ -98,7 +98,8 @@ export function magnanimousDevAgentSummary(env){
   brain:'Magnanimous AI',
   codex_dependency_required:false,
   repository_adapter:'GitHub-compatible REST',
-  repository_token_configured:Boolean(githubToken(env)),
+  repository_token_configured:githubRepositoryAuthConfigured(env),
+  repository_auth:githubRepositoryAuthSummary(env),
   public_repository_reads_without_token:true,
   allowed_repositories:[...allowedRepos(env)],
   staged_writes:true,
@@ -160,7 +161,7 @@ async function searchRepository(request,env){
  if(!repo)return json({detail:'Repository is not in the Magnanimous developer allowlist.'},403);
  if(!query)return json({detail:'Search query is required.'},400);
  const result=await githubRequest(env,'GET',`/search/code?q=${encodeURIComponent(`${query} repo:${repo}`)}&per_page=${limit}`);
- if(!result.ok)return json({detail:result.data?.message||'Repository search failed.',status:result.status,token_configured:Boolean(githubToken(env))},result.status);
+ if(!result.ok)return json({detail:result.data?.message||'Repository search failed.',status:result.status,token_configured:githubRepositoryAuthConfigured(env)},result.status);
  return json({repo,query,total_count:Number(result.data?.total_count||0),items:(result.data?.items||[]).map(x=>({name:x.name,path:x.path,sha:x.sha,url:x.html_url,repository:x.repository?.full_name}))});
 }
 
@@ -206,7 +207,7 @@ function validateActionPayload(action,payload){
 function actionRisk(action){return action==='merge_pr'?'high':'medium';}
 
 async function stageAction(request,env,user){
- if(!githubToken(env))return json({detail:'A server-side GITHUB_PLATFORM_TOKEN is required before repository writes can be staged.',code:'DEV_REPOSITORY_TOKEN_REQUIRED'},409);
+ if(!githubRepositoryAuthConfigured(env))return json({detail:'Server-side GitHub App credentials or a temporary repository token are required before repository writes can be staged.',code:'DEV_REPOSITORY_AUTH_REQUIRED'},409);
  const body=await request.json().catch(()=>({})),repo=normalizeRepo(body.repo,env),action=clip(body.action,80);
  if(!repo)return json({detail:'Repository is not in the Magnanimous developer allowlist.'},403);
  let payload;try{payload=validateActionPayload(action,body.payload)}catch(error){return json({detail:error?.message||'Invalid developer action.'},400)}
@@ -251,7 +252,7 @@ async function confirmAction(request,env,user,id){
   await env.DB.prepare("UPDATE magnanimous_dev_actions SET status='expired',error_text='confirmation expired' WHERE id=? AND tenant_id=? AND status='needs_confirmation'").bind(id,user.tenant_id).run();
   return json({detail:'This developer action approval expired. Stage a fresh action and review the current payload.',code:'DEV_ACTION_CONFIRMATION_EXPIRED'},410);
  }
- if(!githubToken(env))return json({detail:'Repository token is not configured.',code:'DEV_REPOSITORY_TOKEN_REQUIRED'},409);
+ if(!githubRepositoryAuthConfigured(env))return json({detail:'Repository authentication is not configured.',code:'DEV_REPOSITORY_AUTH_REQUIRED'},409);
  const claimed=await env.DB.prepare("UPDATE magnanimous_dev_actions SET status='running',confirmed_at=? WHERE id=? AND tenant_id=? AND status='needs_confirmation'").bind(now(),id,user.tenant_id).run();
  if(Number(claimed?.meta?.changes||0)!==1)return json({detail:'Developer action could not be claimed safely.'},409);
  let payload={};try{payload=JSON.parse(row.payload_json||'{}')}catch{}
