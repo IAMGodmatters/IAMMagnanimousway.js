@@ -228,6 +228,9 @@ jobs:
                       attempt=$((attempt + 1))
                       continue
                     fi
+                    materialization_deferred=1
+                    echo "::warning::Cloudflare D1 remained transiently unavailable after bounded retries. The checked-in Magnanimous brain manifest remains authoritative; durable D1 materialization is deferred and Worker deployment will continue."
+                    break
                   fi
                   exit "$rc"
                 done
