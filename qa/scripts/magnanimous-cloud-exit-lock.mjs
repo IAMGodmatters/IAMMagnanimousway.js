@@ -135,6 +135,7 @@ execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-migration-sta
 for(const file of ['worker/src/github-actions-oidc.js','worker/src/credential-vault-migration.js','worker/src/platform-credentials.js']) execFileSync(process.execPath,['--check',file],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime-secret-store.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-deployment-control.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['qa/scripts/magnanimous-cloud-independence-readiness.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['qa/scripts/native-infrastructure-independence-lock.mjs'],{stdio:'inherit'});
 
