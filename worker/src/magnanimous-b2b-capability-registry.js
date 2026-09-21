@@ -1,3 +1,5 @@
+import { getUniversalB2BCapabilityManifest, getUniversalB2BConnectionCatalog, getUniversalB2BSummary } from './magnanimous-b2b-universal-fabric.js';
+
 const VERIFIED_AT='2026-09-21';
 
 export const MAGNANIMOUS_B2B_POLICY=Object.freeze({
@@ -107,7 +109,7 @@ function initiative(risk,boundary){
  };
 }
 
-export function getB2BCapabilityManifest(){
+function getBaseB2BCapabilityManifest(){
  return CAPS.map(([id,name,native_target,boundary,techniques,risk])=>({
   id:'b2b:'+id,
   connector_id:'magnanimous-b2b-network',
@@ -149,16 +151,22 @@ export function getB2BCapabilityManifest(){
  }));
 }
 
-export function getB2BConnectionCatalog(){return B2B_CONNECTIONS.map(x=>({...x,capabilities:[...x.capabilities],docs:[...x.docs]}));}
+export function getB2BCapabilityManifest(){return [...getBaseB2BCapabilityManifest(),...getUniversalB2BCapabilityManifest()];}
+
+export function getB2BConnectionCatalog(){return [...B2B_CONNECTIONS.map(x=>({...x,capabilities:[...x.capabilities],docs:[...x.docs]})),...getUniversalB2BConnectionCatalog()];}
 
 export function getB2BSummary(){
- const rows=getB2BCapabilityManifest();
+ const rows=getB2BCapabilityManifest(),universal=getUniversalB2BSummary();
  return {
   verified_at:VERIFIED_AT,
   capability_contracts:rows.length,
   commerce_contracts:rows.filter(x=>x.category==='b2b-commerce').length,
   travel_contracts:rows.filter(x=>x.category==='b2b-travel').length,
-  connection_templates:B2B_CONNECTIONS.length,
+  connection_templates:B2B_CONNECTIONS.length+universal.connections,
+  protocol_adapters:universal.protocol_adapters,
+  standards:universal.standards,
+  opportunity_families:universal.opportunity_families,
+  universal_capability_contracts:universal.capabilities,
   provider_identity_owner:false,
   provider_memory_owner:false,
   provider_workflow_owner:false,
