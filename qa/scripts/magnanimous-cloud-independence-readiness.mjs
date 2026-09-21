@@ -156,6 +156,8 @@ for(const contract of [
  'stageD1SqlExport',
  'stageD1SqliteSnapshot',
  'stageCredentialVaultRewrap',
+ 'credential-rewrap.current.json',
+ 'applyCachedCredentialVaultRewrap',
  'SQLite integrity_check',
  'inside the configured migration root'
 ]) must(migrationStage.includes(contract),'Migration staging security contract missing: '+contract);
