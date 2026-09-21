@@ -204,6 +204,15 @@ References:
 
 ## Additional verified travel distribution networks
 
+### Additional air wholesale / NDC distribution rails
+Hahnair is a B2B airline distribution and ticketing provider for travel agencies and airlines, including partner-carrier ticketing on HR-169 and broad GDS/BSP/ARC distribution coverage. Verteil offers travel sellers a unified NDC portal/API with shopping, booking, ticketing, ancillaries and post-booking servicing. Travelfusion provides direct-connect XML/NDC aggregation across low-cost and scheduled airlines and related travel content/services.
+
+References:
+- https://www.hahnair.com/en/global-sales-ticketing
+- https://www.verteil.com/travel-seller
+- https://corporate.travelfusion.com/resources/xml-api
+- https://corporate.travelfusion.com/products-services
+
 ### Travelgate
 Travelgate provides buyer/seller APIs for hotel distribution. Its Hotel-X buyer API provides real-time supplier search, quote, booking and reservation management.
 
