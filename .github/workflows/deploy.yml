@@ -506,9 +506,9 @@ jobs:
           assert len(providers) == 1, data
           provider=providers[0]
           assert provider.get('id') == 'auto', data
-          assert provider.get('name') == 'Magnanimous AI routing', data
+          assert provider.get('name') == 'Magnanimous AI', data
           assert provider.get('configured') is True, data
-          assert provider.get('type') == 'private-execution', data
+          assert provider.get('type') == 'magnanimous-private-routing', data
           provider_text=json.dumps(providers).lower()
           for forbidden in ('openai','anthropic','claude','gemini','groq','mistral','openrouter','cerebras','hugging face','cloudflare'):
               assert forbidden not in provider_text, (forbidden, data)
@@ -525,9 +525,9 @@ jobs:
           assert len(providers) == 1, data
           provider=providers[0]
           assert provider.get('id') == 'auto', data
-          assert provider.get('name') == 'Magnanimous AI routing', data
+          assert provider.get('name') == 'Magnanimous AI', data
           assert provider.get('configured') is True, data
-          assert provider.get('type') == 'private-execution', data
+          assert provider.get('type') == 'magnanimous-private-routing', data
           provider_text=json.dumps(providers).lower()
           for forbidden in ('openai','anthropic','claude','gemini','groq','mistral','openrouter','cerebras','hugging face','cloudflare'):
               assert forbidden not in provider_text, (forbidden, data)
