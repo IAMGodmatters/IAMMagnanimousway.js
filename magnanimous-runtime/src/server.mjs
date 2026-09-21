@@ -23,7 +23,7 @@ import { MagnanimousImageGenerationBinding } from './image-generation-binding.mj
 import { openMagnanimousCloudControl } from './cloud-control.mjs';
 import { verifyGitHubActionsOidc, stageD1SqlExport, stageD1SqliteSnapshot, stageCredentialVaultRewrap } from './migration-stage.mjs';
 import { stageRuntimeSecrets, loadRuntimeSecrets } from './runtime-secret-store.mjs';
-import { deployRailwayCommit, railwayDeployConfig } from './railway-deploy.mjs';
+import { deployMagnanimousCommit, deploymentControlConfig } from './deployment-control.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -223,8 +223,8 @@ function runtimeRevision() {
   ).trim();
 }
 
-async function handleRailwayDeployment(req, res, pathname) {
-  if (pathname !== '/__magnanimous_runtime/deployment/railway') return false;
+async function handleDeployment(req, res, pathname) {
+  if (!['/__magnanimous_runtime/deployment','/__magnanimous_runtime/deployment/railway'].includes(pathname)) return false;
   if (req.method !== 'POST') {
     res.statusCode = 405;
     res.setHeader('allow', 'POST');
@@ -244,7 +244,7 @@ async function handleRailwayDeployment(req, res, pathname) {
 
   try {
     const source = await verifyGitHubActionsOidc(token, {
-      audience: String(process.env.MAGNANIMOUS_RAILWAY_DEPLOY_AUDIENCE || 'magnanimous-railway-deploy'),
+      audience: String(process.env.MAGNANIMOUS_DEPLOY_AUDIENCE || process.env.MAGNANIMOUS_RAILWAY_DEPLOY_AUDIENCE || 'magnanimous-railway-deploy'),
       repository: String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js'),
       ref: 'refs/heads/main',
       workflowFile: '.github/workflows/magnanimous-railway-deploy.yml'
@@ -253,9 +253,9 @@ async function handleRailwayDeployment(req, res, pathname) {
     const payload = JSON.parse(body.toString('utf8'));
     const commitSha = String(payload?.commit_sha || '').trim();
     if (!commitSha || commitSha !== String(source.sha || '').trim()) {
-      throw new Error('Requested Railway commit does not match the signed GitHub Actions commit.');
+      throw new Error('Requested deployment commit does not match the signed GitHub Actions commit.');
     }
-    const result = await deployRailwayCommit(commitSha, { env: process.env });
+    const result = await deployMagnanimousCommit(commitSha, { env: process.env });
     res.statusCode = 200;
     res.setHeader('content-type', 'application/json; charset=utf-8');
     res.setHeader('cache-control', 'no-store');
@@ -265,19 +265,19 @@ async function handleRailwayDeployment(req, res, pathname) {
     }));
   } catch (error) {
     const code = String(error?.code || '');
-    const notConfigured = ['RAILWAY_DEPLOY_DISABLED','RAILWAY_DEPLOY_NOT_CONFIGURED','RAILWAY_DEPLOY_SCOPE_MISSING'].includes(code);
+    const notConfigured = ['MAGNANIMOUS_DEPLOY_ADAPTER_DISABLED','MAGNANIMOUS_DEPLOY_ADAPTER_UNSUPPORTED','RAILWAY_DEPLOY_DISABLED','RAILWAY_DEPLOY_NOT_CONFIGURED','RAILWAY_DEPLOY_SCOPE_MISSING'].includes(code);
     const providerFailure = String(error?.message || '').startsWith('Railway exact-commit deployment failed') ||
       String(error?.message || '').includes('deployment API returned');
-    console.error('Magnanimous Railway deployment gateway failed', String(error?.message || error));
+    console.error('Magnanimous deployment gateway failed', String(error?.message || error));
     res.statusCode = notConfigured ? 503 : providerFailure ? 502 : 403;
     res.setHeader('content-type', 'application/json; charset=utf-8');
     res.setHeader('cache-control', 'no-store');
     res.end(JSON.stringify({
       detail: notConfigured
-        ? 'Magnanimous Railway deployment gateway is not configured.'
+        ? 'Magnanimous deployment capacity adapter is not configured.'
         : providerFailure
           ? 'Railway deployment provider request failed.'
-          : 'Railway deployment authorization failed.',
+          : 'Magnanimous deployment authorization failed.',
       code: code || (providerFailure ? 'RAILWAY_DEPLOY_PROVIDER_FAILED' : 'RAILWAY_DEPLOY_FORBIDDEN')
     }));
   }
@@ -411,7 +411,7 @@ const server = http.createServer(async (req, res) => {
   try {
     const pathname = new URL(req.url || '/', 'http://local').pathname;
 
-    if (await handleRailwayDeployment(req, res, pathname)) {
+    if (await handleDeployment(req, res, pathname)) {
       metrics.observe(res.statusCode, Date.now() - startedAt);
       return;
     }
@@ -432,13 +432,18 @@ const server = http.createServer(async (req, res) => {
           migrations: migrationState,
           deploy_revision: runtimeRevision() || null,
           deployment_automation: (() => {
-            const config = railwayDeployConfig(process.env);
+            const config = deploymentControlConfig(process.env);
             return {
-              provider_role: 'replaceable infrastructure adapter',
+              provider_role: config.provider_role,
+              provider: config.provider,
               enabled: config.enabled,
               configured: config.configured,
+              magnanimous_control_plane: config.magnanimous_control_plane,
+              provider_identity_owner: config.provider_identity_owner,
+              provider_memory_owner: config.provider_memory_owner,
+              provider_reasoning_owner: config.provider_reasoning_owner,
               oidc_gateway: true,
-              exact_commit: true
+              exact_commit: config.exact_commit
             };
           })(),
           cloud_vendor_required: false,
