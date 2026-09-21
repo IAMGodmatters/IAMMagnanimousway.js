@@ -195,6 +195,13 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'TRAVELFUSION_API_TOKEN',label:'Travelfusion API / commercial token',secret:true,required:false},
   {key:'TBO_API_KEY',label:'TBO API Key / partner credential',secret:true,required:false},
   {key:'HAHNAIR_PARTNER_REFERENCE',label:'Hahnair agency / partner reference (identifier only)',secret:false,required:false},
+  {key:'PKFARE_PARTNER_ID',label:'PKFARE Partner ID',secret:false,required:false},
+  {key:'PKFARE_API_KEY',label:'PKFARE API Key',secret:true,required:false},
+  {key:'MYSTIFLY_API_CREDENTIAL',label:'Mystifly SSP API Credential',secret:true,required:false},
+  {key:'WEBBEDS_API_CREDENTIAL',label:'WebBeds API Credential',secret:true,required:false},
+  {key:'STUBA_AUTH_API_KEY',label:'Stuba AuthApiKey',secret:true,required:false},
+  {key:'SKYSCANNER_API_KEY',label:'Skyscanner Travel API Key',secret:true,required:false},
+  {key:'JUNIPER_API_CREDENTIAL',label:'Juniper Web Services Credential',secret:true,required:false},
   {key:'IATA_TIDS_CODE',label:'IATA TIDS Code (identifier only; not ticketing authority)',secret:false,required:false},
   {key:'IATA_NUMERIC_CODE',label:'IATA Accredited Agent Numeric Code (only after approval)',secret:false,required:false},
   {key:'ARC_NUMBER',label:'ARC Number (only after ARC approval)',secret:false,required:false}
