@@ -1,4 +1,5 @@
 import { getUniversalB2BCapabilityManifest, getUniversalB2BConnectionCatalog, getUniversalB2BSummary } from './magnanimous-b2b-universal-fabric.js';
+import { getReservationCapabilityManifest, getReservationSummary } from './magnanimous-reservation-service-fabric.js';
 
 const VERIFIED_AT='2026-09-21';
 
@@ -151,12 +152,12 @@ function getBaseB2BCapabilityManifest(){
  }));
 }
 
-export function getB2BCapabilityManifest(){return [...getBaseB2BCapabilityManifest(),...getUniversalB2BCapabilityManifest()];}
+export function getB2BCapabilityManifest(){return [...getBaseB2BCapabilityManifest(),...getUniversalB2BCapabilityManifest(),...getReservationCapabilityManifest()];}
 
 export function getB2BConnectionCatalog(){return [...B2B_CONNECTIONS.map(x=>({...x,capabilities:[...x.capabilities],docs:[...x.docs]})),...getUniversalB2BConnectionCatalog()];}
 
 export function getB2BSummary(){
- const rows=getB2BCapabilityManifest(),universal=getUniversalB2BSummary();
+ const rows=getB2BCapabilityManifest(),universal=getUniversalB2BSummary(),reservation=getReservationSummary();
  return {
   verified_at:VERIFIED_AT,
   capability_contracts:rows.length,
@@ -168,6 +169,10 @@ export function getB2BSummary(){
   opportunity_families:universal.opportunity_families,
   reusable_skills:universal.skills,
   universal_capability_contracts:universal.capabilities,
+  reservation_capability_contracts:reservation.capabilities,
+  reservation_providers:reservation.providers,
+  reservation_skills:reservation.skills,
+  reservation_lifecycle_stages:reservation.lifecycle_stages,
   provider_identity_owner:false,
   provider_memory_owner:false,
   provider_workflow_owner:false,
