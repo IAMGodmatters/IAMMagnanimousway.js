@@ -240,6 +240,31 @@ export const RESERVATION_PROVIDER_GRAPH=Object.freeze([
  }
 ]);
 
+export const RESERVATION_PROVIDER_TOOLS=Object.freeze({
+ amadeus:['flight offer search','flight offer pricing','flight order creation','flight order management','hotel search/list','hotel booking where product access allows'],
+ sabre:['air shopping','offers/orders','NDC content','reservation creation','ticketing workflow','seat/ancillary workflow','hotel content/booking','car content/booking','agency servicing'],
+ travelport:['air search','air pricing','fare rules','seat map','ancillary shop/price/book','reservation workbench','reservation commit/retrieve','ticket issue/retrieve/void','NDC reshop/reprice/modify','queues','hotel search/availability/rules/book/retrieve/modify/cancel','multi-content reservation'],
+ duffel:['offer request','offer retrieval','order create','order hold','order payment','add services','order retrieve','change request/offers','cancel/refund workflow','airline-initiated change handling'],
+ hahnair:['HR-169 validating-carrier ticketing','H1-Air/X1-Air GDS access','partner-airline ticketing','GDS ticketing assistance','refund/ADM policy servicing','NDC distribution through provider products'],
+ verteil:['NDC shopping','branded/private/corporate fare search','ancillary shopping','booking hold','booking','ticketing','multiple forms of payment','void','cancel/refund','itinerary modification','post-ticket ancillary/EMD'],
+ travelfusion:['XML flight search','real-time availability','automated booking','direct-connect airline content','LCC/NDC aggregation','rail content','hotel/prepackaged content where contracted'],
+ 'expedia-rapid':['property/geography/content','lodging shopping','price check','hold/resume','lodging booking','retrieve itinerary','room change/hard change','cancel','flight shopping/booking/manage','car shopping/booking','activities shopping/booking','payment tokenization API','notifications/typeahead'],
+ 'hbx-hotelbeds':['hotel content','hotel cache','hotel availability','check rates','hotel booking','booking list/detail','cancel/modify','activities content/search/check rate/book/post-booking','transfer availability/confirm/amend/cancel/retrieve'],
+ travelgate:['Hotel-X search','quote/revalidation','book','booking query','cancel','buyer/seller mapping','supplier settings/context'],
+ ratehawk:['accommodation content','real-time availability','rate shopping','booking','supplier aggregation','reviews/content synchronization','partner certification workflow'],
+ tbo:['hotel/accommodation inventory','real-time pricing','availability','booking','cancellation-policy data','credit facility','card/VCC payment options','supplier aggregation'],
+ zentrumhub:['hotel supplier aggregation','search','availability/rate normalization','booking engine','supplier connect','B2B portal','B2C portal','markup/agent distribution'],
+ viator:['product content/search','bulk/modified content','real-time availability/pricing','booking questions','booking hold','cart booking','booking status','amendment check/quote/amend','cancel quote','cancel'],
+ getyourguide:['configuration','tour/product content','availability','create booking','retrieve booking','cancel booking','supplier availability notifications','ticket redemption notifications where supported'],
+ 'airline-direct-ndc':['AirShopping','OfferPrice','ServiceList','OrderCreate','OrderRetrieve','OrderChange','ancillary offers','airline-specific ticket/fulfillment and servicing subject to agreement'],
+ 'host-consolidator':['private/net fare access','sub-agent booking','ticket issue','exchange/reissue','void/refund','airline servicing','commission/settlement reporting subject to contract'],
+ 'iata-bsp':['sales reporting','remittance','settlement','BSPlink workflows','airline-agent financial reconciliation'],
+ arc:['agency status validation','ticketing-authority validation','sales/order reporting','settlement','refund/debit-credit reporting'],
+ stripe:['customer payment authorization','tokenized payment methods','capture','refund','payment status/webhooks','dispute/chargeback evidence'],
+ 'brex-travel':['corporate travel policy context','budgets','corporate cards','travel/expense capture','approval/reimbursement workflows'],
+ navan:['corporate travel policy','business travel booking context','expense workflow','corporate account controls']
+});
+
 export const RESERVATION_NORMALIZED_OBJECTS=Object.freeze({
  reservation_request:['id','tenant_id','requester','channel','trip_type','products','traveler_count','search_criteria','policy_context','created_at'],
  reservation_option:['id','request_id','product_type','provider','supplier','provider_offer_ref','segments_or_items','availability_status','net_amount','sell_amount','currency','commission','markup','fees','taxes','rules','expires_at','source_timestamp'],
@@ -433,7 +458,7 @@ export const RESERVATION_CONNECTION_READINESS=Object.freeze({
 });
 
 export function getReservationProviderGraph(){
- return RESERVATION_PROVIDER_GRAPH.map(x=>({...x,connection_role:[...x.connection_role],products:[...x.products],lifecycle:[...x.lifecycle],upstream:[...x.upstream],downstream:[...x.downstream],settlement:[...(Array.isArray(x.settlement)?x.settlement:[x.settlement])],docs:[...x.docs]}));
+ return RESERVATION_PROVIDER_GRAPH.map(x=>({...x,connection_role:[...x.connection_role],products:[...x.products],lifecycle:[...x.lifecycle],upstream:[...x.upstream],downstream:[...x.downstream],settlement:[...(Array.isArray(x.settlement)?x.settlement:[x.settlement])],tools:[...(RESERVATION_PROVIDER_TOOLS[x.id]||[])],docs:[...x.docs]}));
 }
 
 export function getReservationSkillCatalog(){return RESERVATION_SKILLS.map(x=>({...x}));}
@@ -446,6 +471,7 @@ export function getReservationSummary(){
   skills:RESERVATION_SKILLS.length,
   lifecycle_stages:RESERVATION_LIFECYCLE.length,
   normalized_objects:Object.keys(RESERVATION_NORMALIZED_OBJECTS).length,
+  provider_tool_contracts:Object.values(RESERVATION_PROVIDER_TOOLS).reduce((n,x)=>n+x.length,0),
   status:'magnanimous-reservation-service-defined'
  };
 }
