@@ -79,6 +79,47 @@ function finalizeResponse(request,response){
   return applyPlatformResponseHeaders(request,applyCanonicalRootHeaders(request,response));
 }
 
+
+function configuredStandaloneApiOrigin(env){
+  if(String(env?.MAGNANIMOUS_RUNTIME||'').trim()==='standalone-node')return'';
+  const raw=String(env?.MAGNANIMOUS_STANDALONE_API_ORIGIN||'').trim();
+  if(!raw)return'';
+  try{
+    const origin=new URL(raw);
+    if(origin.protocol!=='https:'||origin.username||origin.password)return'';
+    return origin.origin;
+  }catch{return'';}
+}
+
+async function proxyApiToStandalone(request,env){
+  const url=new URL(request.url);
+  if(!url.pathname.startsWith('/api/'))return null;
+  if(request.headers.get('x-magnanimous-standalone-proxy')==='1')return null;
+  const origin=configuredStandaloneApiOrigin(env);
+  if(!origin)return null;
+  const target=new URL(url.pathname+url.search,origin);
+  const headers=new Headers(request.headers);
+  headers.delete('host');
+  headers.set('x-magnanimous-standalone-proxy','1');
+  headers.set('x-forwarded-host',url.host);
+  headers.set('x-forwarded-proto',url.protocol.replace(':',''));
+  try{
+    const init={method:request.method,headers,redirect:'manual'};
+    if(!['GET','HEAD'].includes(request.method))init.body=request.body;
+    const response=await fetch(target.toString(),init);
+    const responseHeaders=new Headers(response.headers);
+    responseHeaders.delete('server');
+    responseHeaders.delete('via');
+    responseHeaders.delete('x-railway-request-id');
+    responseHeaders.delete('x-envoy-upstream-service-time');
+    responseHeaders.set('x-magnanimous-data-plane','standalone');
+    return new Response(response.body,{status:response.status,statusText:response.statusText,headers:responseHeaders});
+  }catch(error){
+    console.error('Magnanimous standalone API proxy unavailable; retaining Cloudflare rollback path.',String(error?.message||error));
+    return null;
+  }
+}
+
 function credentialVaultPath(request){
   return CREDENTIAL_VAULT_PATHS.has(new URL(request.url).pathname);
 }
@@ -172,6 +213,8 @@ export default {
         database_independent:true
       },{headers:{'cache-control':'no-store'}}));
     }
+    const standaloneApiResponse=await proxyApiToStandalone(request,env);
+    if(standaloneApiResponse)return finalizeResponse(request,await securityPostflight(request,standaloneApiResponse,env));
     const requestId=requestCorrelationId(request);
     let carrierContext=null;
     let assistantContext=null;
