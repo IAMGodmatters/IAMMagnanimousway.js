@@ -7,6 +7,8 @@ on:
       - 'worker/src/magnanimous-native-terminal.js'
       - 'worker/src/magnanimous-local-bridge-runtime.js'
       - 'worker/src/magnanimous-capability-mesh.js'
+      - 'worker/src/platform-credentials.js'
+      - 'worker/src/provider-runtime-env.js'
       - 'local-bridge/bridge_agent.py'
       - 'qa/scripts/native-media-terminal-lock.mjs'
       - '.github/workflows/native-media-terminal-check.yml'
@@ -16,6 +18,8 @@ on:
       - 'worker/src/magnanimous-native-terminal.js'
       - 'worker/src/magnanimous-local-bridge-runtime.js'
       - 'worker/src/magnanimous-capability-mesh.js'
+      - 'worker/src/platform-credentials.js'
+      - 'worker/src/provider-runtime-env.js'
       - 'local-bridge/bridge_agent.py'
       - 'qa/scripts/native-media-terminal-lock.mjs'
       - '.github/workflows/native-media-terminal-check.yml'
@@ -38,6 +42,8 @@ jobs:
           node --check worker/src/magnanimous-native-terminal.js
           node --check worker/src/magnanimous-local-bridge-runtime.js
           node --check worker/src/magnanimous-capability-mesh.js
+          node --check worker/src/platform-credentials.js
+          node --check worker/src/provider-runtime-env.js
       - name: Check Python syntax
         run: python -m py_compile local-bridge/bridge_agent.py
       - name: Verify independence and safety contracts
