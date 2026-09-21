@@ -156,7 +156,8 @@ must(!railwayDeploy.includes('console.log(token)'),'Railway deploy token must ne
 const railwayDeployWorkflow=read('.github/workflows/magnanimous-railway-deploy.yml');
 for(const contract of ['id-token: write','Full Platform QA','magnanimous-railway-deploy','/__magnanimous_runtime/deployment/railway','deploy_revision'])
  must(railwayDeployWorkflow.includes(contract),'Railway exact-commit workflow missing: '+contract);
-must(railwayDeployWorkflow.includes('Check whether this exact commit is already live'),'Railway deployment workflow must support bootstrap-safe exact-live detection.');
+must(railwayDeployWorkflow.includes('Wait for verified main auto-deploy or detect already live'),'Railway deployment workflow must wait for the verified GitHub main auto-deploy before requiring a provider token.');
+must(railwayDeployWorkflow.includes("no Railway project token is required"),'Railway deployment workflow must preserve a tokenless normal path when GitHub main auto-deploy succeeds.');
 must(railwayDeployWorkflow.includes("steps.already-live.outputs.live != 'true'"),'Railway deployment workflow must skip provider deployment when the exact commit is already healthy.');
 must(!railwayDeployWorkflow.includes('secrets.RAILWAY_TOKEN'),'GitHub must not own the Railway deployment credential.');
 
