@@ -15,7 +15,6 @@ type Provider = {
   name: string;
   tier: string;
   configured: boolean;
-  openai: boolean;
 };
 type Msg = {
   id?: number;
@@ -241,7 +240,7 @@ export default function AgentsPage() {
           <small>MAGNANIMOUS AI FOR REAL LIFE + REAL WORK</small>
           <h1>Choose the role you need.</h1>
           <p>
-            These task-focused profiles are specialist departments of Magnanimous AI for everyday life, careers, business, call centers, content and learning. Magnanimous keeps one private memory and routing layer across the departments so you never have to choose an outside AI provider or model.
+            These task-focused profiles are specialist departments of Magnanimous AI for everyday life, careers, business, call centers, content and learning. Magnanimous keeps one private memory and routing layer across the departments so you never have to choose an outside execution engine or model.
           </p>
         </div>
         <div className={`avatar ${speaking ? "speaking" : ""}`}>
