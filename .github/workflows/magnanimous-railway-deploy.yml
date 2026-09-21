@@ -72,14 +72,12 @@ jobs:
           success=0
           for attempt in $(seq 1 180); do
             json="$(gh run list --commit "$TARGET_SHA" --workflow "Full Platform QA" --limit 20 --json databaseId,status,conclusion,headSha 2>/dev/null || printf '[]')"
-            state="$(printf '%s' "$json" | TARGET_SHA="$TARGET_SHA" python -c 'import json,os,sys; rows=json.load(sys.stdin); sha=os.environ["TARGET_SHA"]; rows=[r for r in rows if r.get("headSha")==sha]; print((rows[0].get("conclusion") or rows[0].get("status") or "missing") if rows else "missing")')"
+            state="$(printf '%s' "$json" | TARGET_SHA="$TARGET_SHA" python -c 'import json,os,sys; rows=[r for r in json.load(sys.stdin) if r.get("headSha")==os.environ["TARGET_SHA"]]; states=[r.get("conclusion") or r.get("status") or "missing" for r in rows]; active={"queued","in_progress","requested","waiting","pending"}; print("success" if "success" in states else "pending" if any(x in active for x in states) else "failure" if states else "missing")')"
             if [ "$state" = "success" ]; then success=1; break; fi
-            case "$state" in
-              failure|cancelled|timed_out|action_required|startup_failure)
-                echo "::error::Full Platform QA ended with $state for $TARGET_SHA."
-                exit 1
-                ;;
-            esac
+            if [ "$state" = "failure" ]; then
+              echo "::error::All matching Full Platform QA runs are terminal and none succeeded for $TARGET_SHA."
+              exit 1
+            fi
             echo "Waiting for Full Platform QA on $TARGET_SHA (state=$state, attempt $attempt/180)."
             sleep 10
           done

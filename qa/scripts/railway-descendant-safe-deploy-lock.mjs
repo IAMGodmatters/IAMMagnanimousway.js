@@ -15,7 +15,9 @@ for(const needle of [
   'stale=true',
   "steps.already-live.outputs.stale != 'true'",
   'Verify live standalone runtime contains the target without rollback',
-  'Magnanimous Railway descendant-safe deployment PASS'
+  'Magnanimous Railway descendant-safe deployment PASS',
+  '"success" if "success" in states',
+  'All matching Full Platform QA runs are terminal and none succeeded'
 ]) assert(source.includes(needle),'Railway descendant-safe deployment contract missing: '+needle);
 
 assert(!source.includes('Verify the live standalone runtime is this exact commit'),'stale exact-only verification must not return');

@@ -31,9 +31,9 @@ jobs:
           assert len(providers) == 1, data
           p=providers[0]
           assert p.get('id') == 'auto', data
-          assert p.get('name') == 'Magnanimous AI routing', data
+          assert p.get('name') == 'Magnanimous AI', data
           assert p.get('configured') is True and p.get('enabled') is True, data
-          assert p.get('type') == 'private-execution', data
+          assert p.get('type') == 'magnanimous-private-routing', data
           public=json.dumps(data).lower()
           for hidden in ['openai','anthropic','claude','gemini','groq','mistral','openrouter','cerebras','hugging face','cloudflare-ai']:
             assert hidden not in public, (hidden,data)
