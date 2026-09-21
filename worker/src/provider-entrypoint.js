@@ -93,6 +93,8 @@ const PROVIDER_FETCH_TIMEOUT_MS=30000;
 const PROVIDER_REQUEST_BUDGET_MS=55000;
 const CLOUDFLARE_MODEL_BUDGET_MS=45000;
 const CLOUDFLARE_ATTEMPT_TIMEOUT_MS=18000;
+let outcomeSchemaReady=false;
+let outcomeSchemaPromise=null;
 
 async function providerFetch(input,init={},timeoutMs=PROVIDER_FETCH_TIMEOUT_MS){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort('provider-timeout'),Math.max(1000,Number(timeoutMs)||PROVIDER_FETCH_TIMEOUT_MS));
@@ -191,8 +193,12 @@ function taskClass(message,body={}){
   return'general';
 }
 async function ensureOutcomeSchema(env){
-  if(!env?.DB)return;
-  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_outcomes (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,capability TEXT NOT NULL,provider TEXT NOT NULL DEFAULT 'native',task TEXT NOT NULL DEFAULT '',success INTEGER NOT NULL DEFAULT 0,quality REAL NOT NULL DEFAULT 0,cost_hint REAL NOT NULL DEFAULT 0,latency_ms INTEGER NOT NULL DEFAULT 0,notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`).run();
+  if(!env?.DB||outcomeSchemaReady)return;
+  if(outcomeSchemaPromise)return outcomeSchemaPromise;
+  outcomeSchemaPromise=env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_outcomes (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,capability TEXT NOT NULL,provider TEXT NOT NULL DEFAULT 'native',task TEXT NOT NULL DEFAULT '',success INTEGER NOT NULL DEFAULT 0,quality REAL NOT NULL DEFAULT 0,cost_hint REAL NOT NULL DEFAULT 0,latency_ms INTEGER NOT NULL DEFAULT 0,notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`).run()
+    .then(()=>{outcomeSchemaReady=true})
+    .catch(error=>{outcomeSchemaPromise=null;throw error});
+  return outcomeSchemaPromise;
 }
 async function learnedProviderScores(request,env,task){
   if(!env?.DB)return new Map();
