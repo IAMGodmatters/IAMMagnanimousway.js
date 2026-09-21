@@ -176,6 +176,11 @@ async function branchRequest(request,env,ctx){
   const meshUrl=new URL(request.url);meshUrl.pathname='/api/agents/chat';meshUrl.search='';
   const forwarded=new Request(meshUrl.toString(),{method:'POST',headers:request.headers,body:JSON.stringify({agent_id:agent.id,provider:'auto',message:`${original}${internal}`})});
   const response=await baseApp.fetch(forwarded,env,ctx);
+  if(user?.tenant_id){
+   try{
+    await env.DB.prepare("UPDATE agent_mesh_messages SET content=? WHERE id=(SELECT id FROM agent_mesh_messages WHERE tenant_id=? AND agent_id=? AND role='user' ORDER BY id DESC LIMIT 1)").bind(original,user.tenant_id,agent.id).run();
+   }catch{}
+  }
   const data=await response.clone().json().catch(()=>null);
   if(!data)return response;
   if(!response.ok)return sanitizeCustomerAiResponse(request,response);
