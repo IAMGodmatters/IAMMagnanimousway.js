@@ -34,7 +34,7 @@ const CAPABILITIES=Object.freeze([
   ['computer-preview-takeover','Computer preview and owner takeover','universal-tool-gateway','owner-device-or-host-compute-capacity','preview; takeover; handback; human intervention','medium'],
   ['multi-agent-group-chat','Multi-agent shared project conversations','agent-mesh','none','shared project context; specialized memories; team collaboration','low'],
   ['agent-to-agent-handoff','Agent-to-agent task handoff','agent-mesh','none','routing; delegation; handoff evidence','low'],
-  ['agent-presence-state','Agent work-state presence','magnanimous-observability','none','idle; thinking; working; waiting; blocked; done','low'],
+  ['agent-presence-state','Agent work-state presence','evidence-auditor','none','idle; thinking; working; waiting; blocked; done','low'],
   ['artifact-workspace','Durable artifact workspace','business-operating-system','none','documents; code; data; designs; durable outputs','low'],
   ['structured-inline-widgets','Structured inline response widgets','business-operating-system','none','cards; action objects; visualizations; heterogeneous transcript','low'],
   ['permission-lines','Explicit permission lines and approval stops','operations-hub','none','always-allowed; approval-required; prohibited boundaries','medium'],
