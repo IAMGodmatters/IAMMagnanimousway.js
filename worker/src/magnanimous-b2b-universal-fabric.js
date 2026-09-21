@@ -65,6 +65,87 @@ export const B2B_OPPORTUNITY_FAMILIES=Object.freeze([
  ['procure-to-pay-services','Supplier onboarding, PO, receipt, invoice, approval, reconciliation and AP automation.']
 ].map(([id,description])=>({id,description}));
 
+export const B2B_SKILLS=Object.freeze([
+ ['supplier-discovery','sourcing','Find manufacturers, wholesalers, distributors and service suppliers using evidence-backed criteria.'],
+ ['supplier-qualification','sourcing','Evaluate supplier capabilities, certifications, geography, MOQ, lead time, quality and commercial fit.'],
+ ['supplier-risk-review','sourcing','Build evidence-based supplier risk reviews without inventing certifications or financial standing.'],
+ ['rfq-authoring','sourcing','Turn requirements into clear RFQs with specifications, quantities, terms and response structure.'],
+ ['rfi-authoring','sourcing','Create supplier capability/information requests and comparison matrices.'],
+ ['quote-comparison','sourcing','Normalize quotes across unit price, MOQ, lead time, freight, terms, warranty and total landed cost.'],
+ ['supplier-negotiation','sourcing','Prepare negotiation positions, concessions, alternatives and target terms.'],
+ ['sample-pilot-management','sourcing','Plan samples, pilots, acceptance criteria and production approval evidence.'],
+ ['oem-odm-private-label','sourcing','Manage product specifications, branding, packaging, samples, QA and supplier handoff.'],
+ ['moq-break-analysis','finance','Compare MOQ, price breaks, inventory carrying cost and reorder risk.'],
+ ['wholesale-pricing','finance','Design price lists, tiers, volume discounts, contract pricing and margin floors.'],
+ ['unit-economics','finance','Calculate landed cost, gross margin, contribution, rebates, fees and channel economics.'],
+ ['net-terms-policy','finance','Design B2B payment terms, deposits, credit limits and collection rules.'],
+ ['commission-rebate-design','finance','Model commissions, rebates, referral shares and settlement statements.'],
+ ['trade-finance-readiness','finance','Prepare data needed for external invoice finance, PO finance, credit insurance or guarantee providers.'],
+ ['company-account-design','commerce','Model B2B companies, locations, buyer roles, permissions, catalogs and terms.'],
+ ['catalog-normalization','commerce','Normalize supplier catalogs, variants, SKUs, identifiers, attributes, pricing and media.'],
+ ['pim-taxonomy','commerce','Map supplier product data into consistent PIM categories and attribute schemas.'],
+ ['quick-order-reorder','commerce','Design bulk ordering, CSV order entry and repeat-order workflows.'],
+ ['returns-rma','commerce','Plan B2B return authorization, inspection, credit and restock workflows.'],
+ ['marketplace-wholesale','commerce','Evaluate wholesale marketplace buying/selling opportunities and operational requirements.'],
+ ['reseller-program','sales','Design reseller/dealer tiers, territories, deal registration, commissions and support.'],
+ ['partner-program','sales','Build affiliate, referral, channel and strategic partnership programs.'],
+ ['b2b-prospecting','sales','Define ICPs and build evidence-backed company/contact prospecting workflows.'],
+ ['account-research','sales','Create company briefs, buying-center maps, opportunity hypotheses and account plans.'],
+ ['abm-planning','sales','Plan account-based marketing sequences, offers, content and measurement.'],
+ ['rfp-tender-response','sales','Build compliance matrices, response plans, pricing inputs, evidence packages and submission gates.'],
+ ['proposal-cpq','sales','Turn requirements into scoped proposals, quotes and approval-ready commercial packages.'],
+ ['contract-renewal','sales','Track commercial terms, obligations, expiry, renewal, pricing and approvals.'],
+ ['procure-to-pay','procurement','Model requisition, sourcing, PO, receipt, invoice, approval and payment evidence.'],
+ ['three-way-match','procurement','Match PO, receipt and invoice with tolerances and exception routing.'],
+ ['supplier-onboarding','procurement','Collect supplier identity, tax, banking, compliance and commercial setup evidence.'],
+ ['supplier-scorecard','procurement','Track price, delivery, quality, responsiveness, risk and improvement actions.'],
+ ['punchout-open-buy','procurement','Plan PunchOut/Open Buy catalog search, item detail and checkout handoffs.'],
+ ['cxml-mapping','integration','Map cXML orders, confirmations, ship notices and invoices into Magnanimous canonical objects.'],
+ ['x12-edi-mapping','integration','Map X12 850/855/856/810/846/820 transactions into canonical B2B objects.'],
+ ['edifact-mapping','integration','Map EDIFACT ORDERS/ORDRSP/DESADV/INVOIC and related messages.'],
+ ['peppol-bis-mapping','integration','Validate and normalize Peppol BIS/UBL procurement documents through an accredited service provider.'],
+ ['api-connector-design','integration','Plan REST/OpenAPI, GraphQL, SOAP/XML, OAuth and API-key business integrations.'],
+ ['webhook-event-design','integration','Define signed webhook events, idempotency, replay protection and reconciliation.'],
+ ['file-feed-integration','integration','Normalize SFTP, CSV, XLSX, JSON and XML supplier/trading-partner feeds.'],
+ ['gs1-identifiers','integration','Use GTIN, GLN, GDSN/EPCIS concepts for product, party and traceability normalization.'],
+ ['inventory-replenishment','operations','Plan stock synchronization, ATP, reorder points, lead time and safety stock.'],
+ ['demand-forecasting','operations','Build demand and replenishment forecasts with scenario and confidence boundaries.'],
+ ['warehouse-3pl','logistics','Plan receiving, putaway, pick-pack, kitting, outbound and returns through authorized 3PLs.'],
+ ['parcel-rate-shopping','logistics','Compare authorized carrier rates/services and select by cost, speed and constraints.'],
+ ['shipping-label-workflow','logistics','Prepare shipment creation, label, pickup and tracking workflows through carrier APIs.'],
+ ['freight-routing','logistics','Plan LTL/FTL/ocean/air freight routing, carrier/forwarder handoff and milestones.'],
+ ['ocean-schedule-planning','logistics','Use carrier schedule data for routing, transit and shipment planning.'],
+ ['landed-cost','logistics','Estimate freight, duty/tax, brokerage and other landed-cost components with current external data.'],
+ ['trade-documents','logistics','Prepare commercial invoice, packing list, origin and transport-document workflows.'],
+ ['shipment-exception','logistics','Monitor milestones, delay, customs, damage, delivery and proof-of-delivery exceptions.'],
+ ['travel-agency-model','travel','Design retail agency, corporate TMC, sub-agent, consolidator or host-agency operating models.'],
+ ['travel-supplier-selection','travel','Compare GDS, NDC, consolidator, bedbank, DMC and activity supplier roles.'],
+ ['travel-accreditation','travel','Prepare TIDS/IATA/ARC/host-consolidator readiness without claiming authority before approval.'],
+ ['ndc-offer-order','travel','Normalize IATA NDC shopping, offers, pricing, orders and services.'],
+ ['one-order','travel','Model ONE Order-style fulfilment, delivery, accounting and servicing lifecycle.'],
+ ['air-fare-analysis','travel','Compare fares, branded attributes, baggage, restrictions, refundability and total sell price.'],
+ ['air-ancillaries','travel','Handle seat, bag, meal and other ancillary offer/servicing workflows.'],
+ ['air-ticketing-boundary','travel','Determine whether a connected rail actually grants ticket issue/void authority.'],
+ ['air-exchange-reshop','travel','Plan reshop, exchange, residual/add-collect and reissue workflows.'],
+ ['air-refund-void','travel','Plan void/cancel/refund workflows with exact provider authority and evidence.'],
+ ['disruption-reaccommodation','travel','Handle schedule changes, disruptions, traveler notification and reaccommodation.'],
+ ['bsp-reconciliation','travel','Reconcile accredited-agent BSP sales, remittance, refunds and settlement evidence.'],
+ ['arc-reconciliation','travel','Reconcile ARC ticket/order reporting, settlement and authority evidence for US agency workflows.'],
+ ['adm-acm','travel','Manage airline debit/credit memo evidence, dispute and accounting workflows.'],
+ ['hotel-bedbank-routing','travel','Normalize hotel content/rates across bedbanks and select by commercial/servicing policy.'],
+ ['hotel-contracting','travel','Manage direct negotiated rates, allotments, corporate rates, blackout/release and commission terms.'],
+ ['dmc-ground-services','travel','Build transfers, guides, tours, local services and DMC package workflows.'],
+ ['tours-activities','travel','Normalize experience content, availability, pricing, booking and cancellation.'],
+ ['mice-group-travel','travel','Plan meetings, incentives, conferences, events, air groups, room blocks and transfers.'],
+ ['corporate-travel-policy','travel','Apply cabin, hotel, preferred supplier, budget, approval and exception policies.'],
+ ['traveler-profile','travel','Manage authorized traveler preference/loyalty references with privacy boundaries.'],
+ ['travel-duty-of-care','travel','Coordinate trip rosters, disruption/risk alerts, traveler outreach and escalation.'],
+ ['travel-mid-back-office','travel','Reconcile bookings/orders, client billing, supplier payables, commissions and settlement.'],
+ ['travel-markup-commission','travel','Apply service fees, markups, agent splits and commission policy transparently.'],
+ ['travel-support-queue','travel','Run post-booking queues for changes, cancellations, refunds and supplier escalation.'],
+ ['travel-white-label','travel','Design tenant/sub-agent portals with branding, markup, wallet, API and audit boundaries.']
+].map(([id,category,description])=>({id,category,description,owner:'Magnanimous AI'}));
+
 export const UNIVERSAL_B2B_CONNECTIONS=Object.freeze([
  {id:'sap-business-network',name:'SAP Business Network',family:'procurement-network',mode:'account-or-edi-connector',capabilities:['buyer/supplier collaboration','source-to-settle','PO','acknowledgement','ASN','invoice','cXML','X12','UN/EDIFACT'],status:'account-or-trading-partner-setup-required',docs:['https://www.sap.com/products/spend-management/ariba-network.html','https://help.sap.com/docs/business-network-for-trading-partners/introduction-to-business-network/how-suppliers-connect-to-sap-business-network']},
  {id:'coupa',name:'Coupa / Coupa Supplier Portal',family:'procurement-network',mode:'account-api-or-open-buy',capabilities:['supplier records','supplier portal','invoices','catalogs','PO','ASN','Open Buy search/detail/checkout','OAuth'],status:'account-permission-required',docs:['https://compass.coupa.com/en-us/products/product-documentation/integration-technical-documentation/coupa-supplier-portal-rest-api','https://compass.coupa.com/en-us/products/product-documentation/supplier-resources/for-suppliers/integration-resources/open-buy-api-reference']},
@@ -171,10 +252,11 @@ export function getUniversalB2BCapabilityManifest(){
 }
 
 export function getUniversalB2BConnectionCatalog(){return UNIVERSAL_B2B_CONNECTIONS.map(x=>({...x,capabilities:[...x.capabilities],docs:[...x.docs]}));}
+export function getB2BSkillCatalog(){return B2B_SKILLS.map(x=>({...x}));}
 export function getB2BProtocolCatalog(){return B2B_PROTOCOL_FABRIC.map(x=>({...x,use:[...x.use]}));}
 export function getB2BStandardsCatalog(){return B2B_STANDARDS.map(x=>({...x,docs:[...x.docs]}));}
 export function getB2BOpportunityCatalog(){return B2B_OPPORTUNITY_FAMILIES.map(x=>({...x}));}
 export function getUniversalB2BSummary(){
  const rows=getUniversalB2BCapabilityManifest();
- return{verified_at:VERIFIED_AT,capabilities:rows.length,connections:UNIVERSAL_B2B_CONNECTIONS.length,protocol_adapters:B2B_PROTOCOL_FABRIC.length,standards:B2B_STANDARDS.length,opportunity_families:B2B_OPPORTUNITY_FAMILIES.length,status:'universal-b2b-fabric-defined'};
+ return{verified_at:VERIFIED_AT,capabilities:rows.length,connections:UNIVERSAL_B2B_CONNECTIONS.length,protocol_adapters:B2B_PROTOCOL_FABRIC.length,standards:B2B_STANDARDS.length,opportunity_families:B2B_OPPORTUNITY_FAMILIES.length,skills:B2B_SKILLS.length,status:'universal-b2b-fabric-defined'};
 }
