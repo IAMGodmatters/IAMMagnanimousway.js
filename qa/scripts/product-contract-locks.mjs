@@ -51,7 +51,7 @@ includes(standaloneLayout, "title:'Magnanimous AI™ — Standalone'", 'standalo
 includes(standaloneLayout, "canonical:'/magnanimous'", 'standalone: canonical /magnanimous route remains locked');
 includes(standalonePage, 'className="mag-standalone"', 'standalone: isolated interface shell remains locked');
 includes(standalonePage, "fetch('/api/magnanimous/health'", 'standalone: Magnanimous health endpoint remains wired');
-includes(standalonePage, "fetch('/api/chat'", 'standalone: Magnanimous chat endpoint remains wired');
+includes(standalonePage, "postMagnanimousChat('/api/chat'", 'standalone: resilient Magnanimous chat endpoint remains wired');
 includes(standalonePage, '/login?returnTo=%2Fmagnanimous', 'standalone: persistent-memory sign-in return path remains locked');
 includes(standalonePage, 'Guest session', 'standalone: guest-session UI contract remains locked');
 includes(standalonePage, 'MAGNANIMOUS AI™', 'standalone: Magnanimous customer-facing identity remains locked');
