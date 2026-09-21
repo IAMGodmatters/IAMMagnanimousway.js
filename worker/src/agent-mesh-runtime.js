@@ -48,6 +48,9 @@ const AGENTS=[
  ['tradedesk','TradeDesk','Global Trade & EDI','Import/export workflows, X12, UN/EDIFACT, Peppol, GS1 identifiers, cross-border documents and trading-partner interoperability.','business'],
  ['airretail','AirRetail','Airline Retailing Specialist','IATA NDC, ONE Order, offers/orders, ancillaries, direct airline connectivity, ticketing authority and airline retailing architecture.','business'],
  ['travelops','TravelOps','Travel Agency Operations','TIDS/IATA/ARC readiness, BSP/ARC settlement, consolidator/host workflows, exchanges, refunds, ADMs/ACMs and mid/back-office travel operations.','business'],
+ ['reserve','Reserve','Reservation Orchestrator','Cross-provider search, repricing, availability, holds, reservation preflight, booking, ticket/voucher fulfillment, provider reconciliation and duplicate-booking prevention.','business'],
+ ['serviceops','ServiceOps','Post-Booking Servicing','Reservation retrieval, schedule changes, amendments, exchanges, cancellations, refunds, ancillaries, supplier queues and settlement reconciliation.','business'],
+ ['reserveops','ReserveOps','Reservation Service Orchestrator','Provider-aware search, repricing, holds, booking, ticket/voucher fulfillment, servicing, refunds, settlement, duplicate-booking prevention and reservation reconciliation across authorized travel rails.','business'],
  ['cindy','Cindy','Customer Service Coach','Customer-service responses, policies, de-escalation and support coaching.','business'],
  ['victor','Victor','Virtual Support','Client product questions, support triage and solution guidance.','business'],
  ['adam','Adam','Ad Optimizer','Advertising copy, offers, calls to action and conversion-focused improvements.','business'],
@@ -110,7 +113,8 @@ const NATIVE_WORKSPACES=[
  {id:'assistant-actions',name:'Connected Assistant Actions',href:'/assistant-actions',access:'permission-and-confirmation-controlled'},
  {id:'phone',name:'Phone & Browser Calling',href:'/phone',access:'permission-and-consent-controlled'},
  {id:'video-studio',name:'Video Studio',href:'/video-studio',access:'through-platform-workspace'},
- {id:'b2b',name:'B2B Wholesale & Travel',href:'/b2b',access:'tenant-read-context-and-authorized-external-rails'}
+ {id:'b2b',name:'B2B Wholesale & Travel',href:'/b2b',access:'tenant-read-context-and-authorized-external-rails'},
+ {id:'reservations',name:'Reservation Service',href:'/reservations',access:'tenant-read-context-and-authorized-external-rails'}
 ];
 
 function agentById(id){return AGENTS.find(a=>a.id===String(id||'').toLowerCase())}
