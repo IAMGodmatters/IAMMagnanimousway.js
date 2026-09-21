@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { magnanimousPublicRoutingSummary } from './magnanimous-single-brain-contract.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -333,10 +334,11 @@ export async function handleAgentMesh(request,env){
  if(!env?.DB)return json({detail:'Agent Mesh database is not configured.'},503);
  await ensureSchema(env);
  const providers=providerSnapshot(env);
+ const brain=magnanimousPublicRoutingSummary(providers);
  const video={browser_live_avatar:true,browser_voice:true,browser_mic:true,free_browser_mode:true,self_hosted_renderer_supported:true,self_hosted_renderer_configured:Boolean(String(env.FREE_AVATAR_RENDERER_URL||'').trim()),human_video_configured:Boolean(env.TAVUS_API_KEY),human_video_plan:'business',route:'/agent-video'};
- if(request.method==='GET'&&url.pathname==='/api/agents')return json({agents:AGENTS,groups:GROUPS,providers,agent_count:AGENTS.length,free_first:true,public_product:true,openai_used:false,talking_avatar:video,native_workspaces:NATIVE_WORKSPACES,platform_actions:'/assistant-actions'});
+ if(request.method==='GET'&&url.pathname==='/api/agents')return json({agents:AGENTS,groups:GROUPS,providers:[{id:'auto',name:'Magnanimous AI',configured:brain.ready,enabled:brain.ready,tier:'private-routing'}],brain,magnanimous_ready:brain.ready,agent_count:AGENTS.length,free_first:true,public_product:true,openai_used:false,talking_avatar:video,native_workspaces:NATIVE_WORKSPACES,platform_actions:'/assistant-actions'});
  const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use the Agent Mesh.'},401);
- if(request.method==='GET'&&url.pathname==='/api/agents/context')return json({agents:AGENTS,groups:GROUPS,providers,connected_tools:await connectedPlatformContext(env,user.tenant_id),native_workspaces:NATIVE_WORKSPACES,native_summary:await nativeWorkspaceContext(env,user.tenant_id),platform_actions:'/assistant-actions',shared_memory:true,tenant_isolated:true,talking_avatar:video});
+ if(request.method==='GET'&&url.pathname==='/api/agents/context')return json({agents:AGENTS,groups:GROUPS,providers:[{id:'auto',name:'Magnanimous AI',configured:brain.ready,enabled:brain.ready,tier:'private-routing'}],brain,magnanimous_ready:brain.ready,connected_tools:await connectedPlatformContext(env,user.tenant_id),native_workspaces:NATIVE_WORKSPACES,native_summary:await nativeWorkspaceContext(env,user.tenant_id),platform_actions:'/assistant-actions',shared_memory:true,tenant_isolated:true,talking_avatar:video});
  if(request.method==='GET'&&url.pathname==='/api/agents/history'){
   const agent=agentById(url.searchParams.get('agent_id'));if(!agent)return json({detail:'Unknown agent.'},404);return json({agent,messages:await history(env,user,agent.id)});
  }
