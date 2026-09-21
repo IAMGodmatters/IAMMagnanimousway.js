@@ -17,7 +17,11 @@ type Provider = {
   configured: boolean;
   openai: boolean;
 };
-type Msg = {\n  id?: number;\n  role: string;\n  content: string;\n};
+type Msg = {
+  id?: number;
+  role: string;
+  content: string;
+};
 async function read(r: Response) {
   const t = await r.text();
   try {
