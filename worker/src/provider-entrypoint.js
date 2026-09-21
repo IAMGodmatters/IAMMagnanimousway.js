@@ -89,21 +89,40 @@ function nativeCapability(message, task) {
   return `${task || 'general'}-workflow`;
 }
 
+const PROVIDER_FETCH_TIMEOUT_MS=30000;
+const PROVIDER_REQUEST_BUDGET_MS=55000;
+const CLOUDFLARE_MODEL_BUDGET_MS=45000;
+const CLOUDFLARE_ATTEMPT_TIMEOUT_MS=18000;
+
+async function providerFetch(input,init={},timeoutMs=PROVIDER_FETCH_TIMEOUT_MS){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort('provider-timeout'),Math.max(1000,Number(timeoutMs)||PROVIDER_FETCH_TIMEOUT_MS));
+  try{return await fetch(input,{...init,signal:controller.signal})}finally{clearTimeout(timer)}
+}
+async function withinProviderBudget(promise,timeoutMs,label='AI execution'){
+  let timer;
+  try{
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label} timed out`)),Math.max(1000,Number(timeoutMs)||1000))})
+    ]);
+  }finally{clearTimeout(timer)}
+}
+
 async function openai(env, message, model) {
-  const r = await fetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: model || env.OPENAI_MODEL || 'gpt-5.6', input: message }) });
+  const r = await providerFetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: model || env.OPENAI_MODEL || 'gpt-5.6', input: message }) });
   const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || 'OpenAI request failed'); return d.output_text || '';
 }
 async function anthropic(env, message, model) {
-  const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: model || env.ANTHROPIC_MODEL || 'claude-sonnet-4-5', max_tokens: 4096, messages: [{ role: 'user', content: message }] }) });
+  const r = await providerFetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: model || env.ANTHROPIC_MODEL || 'claude-sonnet-4-5', max_tokens: 4096, messages: [{ role: 'user', content: message }] }) });
   const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || 'Anthropic request failed'); return (d.content || []).map(x => x.text || '').join('');
 }
 async function google(env, message, model) {
   const m = model || env.GOOGLE_MODEL || 'gemini-2.5-flash';
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent?key=${encodeURIComponent(env.GOOGLE_API_KEY)}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: message }] }] }) });
+  const r = await providerFetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent?key=${encodeURIComponent(env.GOOGLE_API_KEY)}`,  { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: message }] }] }) });
   const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || 'Google Gemini request failed'); return (d.candidates?.[0]?.content?.parts || []).map(x => x.text || '').join('');
 }
 async function openaiCompatible(base, key, model, message, label) {
-  const r = await fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: JSON.stringify({ model, messages: [{ role: 'user', content: message }] }) });
+  const r = await providerFetch(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` }, body: JSON.stringify({ model, messages: [{ role: 'user', content: message }] }) });
   const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || `${label} request failed`); return d.choices?.[0]?.message?.content || '';
 }
 
@@ -127,16 +146,18 @@ async function cloudflare(env, message, model) {
     '@cf/meta/llama-3.2-1b-instruct',
     '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
   ].filter(Boolean))];
-  const errors = [];
+  const errors = [],deadline=Date.now()+CLOUDFLARE_MODEL_BUDGET_MS;
   for (const m of models) {
+    const remaining=deadline-Date.now();
+    if(remaining<1500){errors.push('Workers AI fallback budget exhausted');break}
     try {
-      const result = await env.AI.run(m, {
+      const result = await withinProviderBudget(env.AI.run(m, {
         messages: [
           { role: 'system', content: COMMANDER_PROTOCOL },
           { role: 'user', content: message }
         ],
         max_tokens: 1400
-      });
+      }),Math.min(CLOUDFLARE_ATTEMPT_TIMEOUT_MS,remaining),`Workers AI ${m}`);
       const text = extractCloudflareText(result).trim();
       if (text) return { text, model: m };
       errors.push(`${m}: empty response`);
@@ -144,7 +165,7 @@ async function cloudflare(env, message, model) {
       errors.push(`${m}: ${e?.message || 'inference failed'}`);
     }
   }
-  throw new Error(`Workers AI inference failed. ${errors.join(' | ')}`);
+  throw new Error(`Workers AI inference failed within the bounded request budget. ${errors.join(' | ')}`);
 }
 
 async function callProvider(id, env, message, model) {
@@ -335,11 +356,12 @@ async function handle(request, env) {
     const acceleratorPool=computeOnly&&body.allow_metered_accelerator!==true?availableProviders(env).filter(p=>p.tier==='free-first'):availableProviders(env);
     const candidates = requested !== 'auto' ? acceleratorPool.filter(p => p.id === requested && configured(env,p)) : routeProviders(env,userMessage,body,learnedScores).filter(p=>acceleratorPool.some(a=>a.id===p.id));
     if (!candidates.length) return json({ detail: requested === 'auto' ? 'Magnanimous AI has no configured execution engine. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested execution engine is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
-    const errors = [];
+    const errors = [],providerDeadline=Date.now()+PROVIDER_REQUEST_BUDGET_MS;
     for (const p of candidates) {
-      const started=Date.now();
+      const started=Date.now(),remaining=providerDeadline-started;
+      if(remaining<1500){errors.push('Magnanimous AI execution budget exhausted before another provider could start.');break}
       try {
-        const result = await callProvider(p.id, env, groundedMessage, body.model);
+        const result = await withinProviderBudget(callProvider(p.id, env, groundedMessage, body.model),Math.min(45000,remaining),`${p.name} execution`);
         if (!result?.text?.trim()) throw new Error('Provider returned an empty response');
         if(!computeOnly)await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:true,quality:.85,latency:Date.now()-started,notes:`capability=${capability}; grounded=${grounding.sources.length}; links=${absorbedLinks.length}`});
         if(!computeOnly&&body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:true});
