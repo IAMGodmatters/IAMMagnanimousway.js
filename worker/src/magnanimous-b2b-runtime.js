@@ -1,7 +1,7 @@
 import { currentUser } from './integrations.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { getB2BCapabilityManifest, getB2BConnectionCatalog, getB2BSummary, MAGNANIMOUS_B2B_POLICY } from './magnanimous-b2b-capability-registry.js';
-import { getB2BProtocolCatalog, getB2BStandardsCatalog, getB2BOpportunityCatalog } from './magnanimous-b2b-universal-fabric.js';
+import { getB2BProtocolCatalog, getB2BStandardsCatalog, getB2BOpportunityCatalog, getB2BSkillCatalog } from './magnanimous-b2b-universal-fabric.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const clean=v=>String(v??'').trim();
@@ -26,7 +26,8 @@ const CONNECTION_READINESS=Object.freeze({
  fedex:['FEDEX_CLIENT_ID','FEDEX_CLIENT_SECRET'],
  dhl:['DHL_API_KEY'],
  maersk:['MAERSK_CONSUMER_KEY'],
- travelgate:['TRAVELGATE_ACCESS_TOKEN','TRAVELGATE_PASSWORD']
+ travelgate:['TRAVELGATE_ACCESS_TOKEN','TRAVELGATE_PASSWORD'],
+ ratehawk:['RATEHAWK_API_KEY']
 });
 
 function readiness(env,connections){
@@ -175,6 +176,7 @@ export async function handleMagnanimousB2B(request,env){
    protocols:getB2BProtocolCatalog(),
    standards:getB2BStandardsCatalog(),
    opportunities:getB2BOpportunityCatalog(),
+   skills:getB2BSkillCatalog(),
    connections,
    capabilities:getB2BCapabilityManifest()
   });
@@ -185,6 +187,7 @@ export async function handleMagnanimousB2B(request,env){
  if(request.method==='GET'&&path==='/api/b2b/protocols')return json({identity:'Magnanimous AI',protocols:getB2BProtocolCatalog()});
  if(request.method==='GET'&&path==='/api/b2b/standards')return json({identity:'Magnanimous AI',standards:getB2BStandardsCatalog()});
  if(request.method==='GET'&&path==='/api/b2b/opportunities')return json({identity:'Magnanimous AI',opportunities:getB2BOpportunityCatalog()});
+ if(request.method==='GET'&&path==='/api/b2b/skills')return json({identity:'Magnanimous AI',skills:getB2BSkillCatalog()});
  if(request.method==='GET'&&path==='/api/b2b/procurement/workflows')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.procurement,objects:['company','supplier','product','procurement_event','trading_document','purchase_order','settlement'],policy:MAGNANIMOUS_B2B_POLICY});
  if(request.method==='GET'&&path==='/api/b2b/logistics/workflows')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.logistics,objects:['shipment','trading_document','settlement'],policy:MAGNANIMOUS_B2B_POLICY});
  if(request.method==='GET'&&path==='/api/b2b/travel/accreditation')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.travel_accreditation,objects:['agency_identity','travel_settlement'],policy:MAGNANIMOUS_B2B_POLICY});
