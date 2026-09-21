@@ -187,7 +187,7 @@ export default function AgentsPage() {
       const d = await read(r);
       if (!r.ok) throw new Error(d.detail || "Agent request failed.");
       if (!String(d.output || "").trim())
-        throw new Error("The AI provider returned an empty response.");
+        throw new Error("Magnanimous AI returned an empty response.");
       setMessages((v) => [
         ...v,
         {
@@ -245,11 +245,7 @@ export default function AgentsPage() {
           <small>AI FOR REAL LIFE + REAL WORK</small>
           <h1>Choose the role you need.</h1>
           <p>
-            These task-focused profiles use connected AI providers with
-            different instructions for everyday life, careers, business, call
-            centers, content and learning. When you are signed in, saved
-            conversations can provide context to another role in the same
-            private workspace.
+            These task-focused profiles are specialist departments of Magnanimous AI for everyday life, careers, business, call centers, content and learning. Magnanimous keeps one private memory and routing layer across the departments so you never have to choose an outside AI provider or model.
           </p>
         </div>
         <div className={`avatar ${speaking ? "speaking" : ""}`}>
@@ -281,7 +277,7 @@ export default function AgentsPage() {
       </section>
       <section className="providerBar">
         <div>
-          <b>AI PROVIDERS</b>
+          <b>MAGNANIMOUS AI</b>
           {providers.map((p) => (
             <span key={p.id} className={p.configured ? "ready" : ""}>
               {p.name} <i>{p.configured ? "READY" : "NOT CONNECTED"}</i>
@@ -393,7 +389,7 @@ export default function AgentsPage() {
           </div>
           {!providerReady && loaded && !loadError && (
             <div className="notice">
-              An AI provider must be connected before these roles can respond.
+              Magnanimous AI needs at least one ready execution path before these specialist departments can respond.
             </div>
           )}
           {loadError && (
@@ -405,19 +401,8 @@ export default function AgentsPage() {
           {notice && <div className="notice">{notice}</div>}
           <form onSubmit={send}>
             <div className="controls">
-              <select
-                value={provider}
-                onChange={(e) => setProvider(e.target.value)}
-                disabled={!providerReady}
-              >
-                <option value="auto">Auto — free-first fallback</option>
-                {providers
-                  .filter((p) => p.configured)
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
+              <select value={provider} onChange={(e) => setProvider(e.target.value)} disabled={!providerReady}>
+                <option value="auto">Magnanimous AI — automatic private routing</option>
               </select>
               <button
                 type="button"
