@@ -176,7 +176,7 @@ export const RESERVATION_PROVIDER_GRAPH=Object.freeze([
   docs:['https://api.getyourguide.com/','https://code.getyourguide.com/partner-api-spec/']
  },
  {
-  id:'direct-airline-ndc',name:'Direct airline NDC/API',family:'airline-direct',connection_role:['first-party-airline-inventory','offer-order-source'],
+  id:'airline-direct-ndc',name:'Direct airline NDC/API',family:'airline-direct',connection_role:['first-party-airline-inventory','offer-order-source'],
   products:['air','ancillaries'],lifecycle:['discover','revalidate','hold','reserve','fulfill','confirm','service','settle'],
   upstream:['individual airline reservation/retailing systems'],
   downstream:['approved sellers','TMCs','OTAs','Magnanimous adapter'],
