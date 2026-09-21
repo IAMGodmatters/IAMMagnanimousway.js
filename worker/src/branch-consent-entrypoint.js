@@ -170,11 +170,8 @@ async function branchRequest(request,env,ctx){
   if(!routed)return null;
   const agent=agents.find(a=>String(a.id)===String(routed.id))||routed;
   const profile=branchProfile(agent);
-  const knowledge=await branchKnowledge(env,user?.tenant_id||'',agent.id,12);
-  const context=branchKnowledgeContext(profile,knowledge);
-  const internal=`\n\nAUTOMATIC SPECIALIST HANDOFF — apply silently.\nMagnanimous has routed this request to ${agent.name}, its ${agent.title} specialist branch.\n${context}\n\nAnswer the user's request now as ${agent.name}. Do not ask a follow-up question instead of giving a useful answer when reasonable assumptions are enough. Ask only when safety, authorization, or a truly indispensable missing fact makes an answer impossible. Do not introduce yourself because the platform will add the specialist greeting automatically.`;
   const meshUrl=new URL(request.url);meshUrl.pathname='/api/agents/chat';meshUrl.search='';
-  const forwarded=new Request(meshUrl.toString(),{method:'POST',headers:request.headers,body:JSON.stringify({agent_id:agent.id,provider:'auto',message:`${original}${internal}`})});
+  const forwarded=new Request(meshUrl.toString(),{method:'POST',headers:request.headers,body:JSON.stringify({agent_id:agent.id,provider:'auto',message:original})});
   const response=await baseApp.fetch(forwarded,env,ctx);
   if(user?.tenant_id){
    try{
@@ -187,7 +184,7 @@ async function branchRequest(request,env,ctx){
   const intro=specialistIntroduction(routed);
   const answer=String(data.output||data.answer||'').trim();
   const publicData=stripExecutionMetadata(data);
-  return json({...publicData,output:`${intro}\n\n${answer}`,specialist_handoff:true,specialist:{id:agent.id,name:agent.name,title:agent.title,specialty:routed.specialty,introduction:intro,branch:profile},branch_knowledge_count:knowledge.length,global_branch_knowledge_count:knowledge.filter(x=>x.scope==='global').length,routed_by:'Magnanimous AI',handoff_execution:'agent-mesh-bounded'},response.status);
+  return json({...publicData,output:`${intro}\n\n${answer}`,specialist_handoff:true,specialist:{id:agent.id,name:agent.name,title:agent.title,specialty:routed.specialty,introduction:intro,branch:profile},branch_knowledge_count:Number(data.branch_knowledge_count||0),global_branch_knowledge_count:Number(data.global_branch_knowledge_count||0),routed_by:'Magnanimous AI',handoff_execution:'agent-mesh-bounded'},response.status);
  }
 
  if(!user)return null;
