@@ -224,16 +224,18 @@ export default function VoiceOrchestrator(){
   const synth=window.speechSynthesis;
   const refreshVoices=()=>setVoiceReady('speechSynthesis'in window);
   synth?.addEventListener?.('voiceschanged',refreshVoices);
-  const observer=new MutationObserver(()=>{
+  const scheduleReplySpeech=()=>{
    const nextPersona=currentPersona();setPersona(v=>v===nextPersona?v:nextPersona);
    const text=latestReply(location.pathname);
    if(!text||text===lastSpoken.current)return;
+   if(text===pendingReply.current&&speechTimer.current!==null)return;
    pendingReply.current=text;
    if(speechTimer.current!==null)window.clearTimeout(speechTimer.current);
    speechTimer.current=window.setTimeout(()=>{
     speechTimer.current=null;
     const settled=latestReply(location.pathname);
     if(!settled||settled!==pendingReply.current||settled===lastSpoken.current)return;
+    pendingReply.current='';
     lastSpoken.current=settled;
     if(!autoSpeakRef.current||!('speechSynthesis'in window))return;
     speakTextNaturally(settled,{
@@ -245,8 +247,10 @@ export default function VoiceOrchestrator(){
      onError:()=>{setSpeaking(false);setNotice('I generated the reply, but your browser could not play the voice smoothly. Tap the speaker button once, then try again.');emitCheckpoint({kind:'voice-reply',stage:'speech-error',content:settled,metadata:{persona:nextPersona,path:location.pathname}})}
     });
    },950);
-  });
+  };
+  const observer=new MutationObserver(scheduleReplySpeech);
   observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+  const replyPoll=window.setInterval(scheduleReplySpeech,600);
 
   const cleanups:Array<()=>void>=[];
   if((p==='/agents'||p.startsWith('/agents/'))&&'speechSynthesis'in window){
@@ -268,7 +272,7 @@ export default function VoiceOrchestrator(){
    };
    try{window.fetch=wrappedFetch;cleanups.push(()=>{try{if(window.fetch===wrappedFetch)window.fetch=originalFetch}catch{}})}catch{}
   }
-  return()=>{observer.disconnect();if(speechTimer.current!==null)window.clearTimeout(speechTimer.current);stopNaturalSpeech();synth?.removeEventListener?.('voiceschanged',refreshVoices);recognitionRef.current?.stop?.();for(const cleanup of cleanups)cleanup();routedPersonaHint=''};
+  return()=>{observer.disconnect();window.clearInterval(replyPoll);if(speechTimer.current!==null)window.clearTimeout(speechTimer.current);stopNaturalSpeech();synth?.removeEventListener?.('voiceschanged',refreshVoices);recognitionRef.current?.stop?.();for(const cleanup of cleanups)cleanup();routedPersonaHint=''};
  },[]);
 
  function speakSample(){
