@@ -76,7 +76,7 @@ export default{
   const startedAt=Date.now();
   const qaCapture=await captureQaObservationRequest(request);
   const shouldCheckpoint=MUTATING.has(request.method)&&path.startsWith('/api/');
-  const user=shouldCheckpoint?await currentUser(request,env):null;
+  const user=shouldCheckpoint?await currentUser(request,env).catch(error=>{console.error('progress identity lookup unavailable; continuing request without checkpointing',error);return null}):null;
   const payload=shouldCheckpoint?await payloadOf(request):{};
   const sensitive=isSensitiveProgressPath(path);
   const sessionKey=progressSessionKey(path,payload);
