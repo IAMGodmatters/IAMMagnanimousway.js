@@ -22,7 +22,6 @@ const codeFiles=[
   'magnanimous-runtime/src/metrics.mjs',
   'magnanimous-runtime/src/image-generation-binding.mjs',
   'magnanimous-runtime/src/cloud-control.mjs',
-  'worker/src/magnanimous-native-infrastructure-compatibility.js',
   'magnanimous-runtime/src/migration-stage.mjs',
   'magnanimous-runtime/src/runtime-secret-store.mjs',
   'magnanimous-runtime/src/bootstrap.mjs',
@@ -96,6 +95,10 @@ must(logicalExporter.includes('Magnanimous D1 direct read failed; using Wrangler
 must(logicalExporter.includes('let readPageSize=pageSize'),'Cloud exit must adapt D1 snapshot page size after provider read failures.');
 must(logicalExporter.includes('Math.max(1,Math.floor(readPageSize/2))'),'Adaptive D1 paging must shrink down to single-row reads when necessary.');
 
+const compatibility=read('worker/src/magnanimous-native-infrastructure-compatibility.js');
+must(!/@cloudflare\//i.test(compatibility),'Compatibility registry must not import Cloudflare runtime packages.');
+must(!/mcp\.cloudflare\.com/i.test(compatibility),'Compatibility registry must not call Cloudflare MCP.');
+must(!/api\.cloudflare\.com/i.test(compatibility),'Compatibility registry must not call Cloudflare API.');
 const infra=read('worker/src/magnanimous-infrastructure-core.js');
 must(infra.includes("infrastructure_owner: 'Magnanimous AI'"),'Magnanimous must own infrastructure control.');
 must(infra.includes("architecture: 'provider-neutral-first-party-control-plane'"),'Provider-neutral infrastructure architecture missing.');
