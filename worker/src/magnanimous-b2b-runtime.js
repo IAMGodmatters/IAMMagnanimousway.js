@@ -2,6 +2,7 @@ import { currentUser } from './integrations.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { getB2BCapabilityManifest, getB2BConnectionCatalog, getB2BSummary, MAGNANIMOUS_B2B_POLICY } from './magnanimous-b2b-capability-registry.js';
 import { getB2BProtocolCatalog, getB2BStandardsCatalog, getB2BOpportunityCatalog, getB2BSkillCatalog } from './magnanimous-b2b-universal-fabric.js';
+import { MAGNANIMOUS_RESERVATION_POLICY, RESERVATION_NORMALIZED_OBJECTS, RESERVATION_CONNECTION_READINESS, getReservationProviderGraph, getReservationSkillCatalog, getReservationLifecycle, getReservationSummary } from './magnanimous-reservation-service-fabric.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const clean=v=>String(v??'').trim();
@@ -30,7 +31,8 @@ const CONNECTION_READINESS=Object.freeze({
  dhl:['DHL_API_KEY'],
  maersk:['MAERSK_CONSUMER_KEY'],
  travelgate:['TRAVELGATE_ACCESS_TOKEN','TRAVELGATE_PASSWORD'],
- ratehawk:['RATEHAWK_API_KEY']
+ ratehawk:['RATEHAWK_API_KEY'],
+ ...RESERVATION_CONNECTION_READINESS
 });
 
 function readiness(env,connections){
@@ -64,7 +66,8 @@ export const B2B_NORMALIZED_OBJECTS=Object.freeze({
  shipment:['id','mode','carrier','service','origin','destination','packages_or_units','rate','currency','tracking_refs','milestones','status'],
  procurement_event:['id','buyer','event_type','requirements','suppliers','responses','deadline','evaluation','award_status'],
  agency_identity:['id','legal_entity','country','tids_code','iata_code','arc_number','accreditation_type','ticketing_authority','verified_at'],
- travel_settlement:['id','scheme','agency','supplier','period','sales','refunds','commissions','debits_credits','remittance','currency','status']
+ travel_settlement:['id','scheme','agency','supplier','period','sales','refunds','commissions','debits_credits','remittance','currency','status'],
+ ...RESERVATION_NORMALIZED_OBJECTS
 });
 
 export const B2B_WORKFLOWS=Object.freeze({
@@ -125,8 +128,53 @@ export const B2B_WORKFLOWS=Object.freeze({
   'store identifiers/status only after external approval is evidenced',
   'verify ticketing and settlement authority before enabling issue/void/refund actions',
   'track renewals, financial/security requirements and supplier appointments'
- ]
+ ],
+ reservation:getReservationLifecycle().map(x=>x.name+' — '+x.purpose)
 });
+
+function reservationPreflight(body,connections){
+ const product=clean(body?.product||body?.kind||'').toLowerCase();
+ const provider=clean(body?.provider||'').toLowerCase();
+ const action=clean(body?.action||'reserve').toLowerCase();
+ const consequential=['hold','reserve','book','ticket','issue','void','cancel','refund','change','exchange','reissue','settle'].some(x=>action.includes(x));
+ const row=provider?connections.find(x=>x.id===provider):null;
+ const authority={
+  credentials_present:!!row?.configured,
+  live_connection_verified:!!row?.live_connection_verified,
+  booking_authority_verified:false,
+  ticketing_authority_verified:false,
+  settlement_authority_verified:false,
+  merchant_of_record_verified:false
+ };
+ const missing=[];
+ if(!product)missing.push('product');
+ if(provider&&!row)missing.push('known provider');
+ if(consequential&&!row?.configured)missing.push('configured provider credentials');
+ if(consequential)missing.push('live provider handshake/authority verification');
+ return{
+  ok:missing.length===0&&!consequential,
+  product:product||null,
+  provider:provider||null,
+  action,
+  consequential,
+  authority,
+  missing,
+  next_steps:consequential?[
+   'revalidate live price and availability',
+   'verify the connected account is authorized for this exact action',
+   'verify customer/traveler approval and payment authority',
+   'generate an idempotency key and duplicate-booking guard',
+   'execute only through the original authorized supplier rail',
+   'retrieve/reconcile provider state before retrying any ambiguous response'
+  ]:[
+   'select eligible configured providers',
+   'search/read only',
+   'normalize and compare options',
+   'preserve provider references and expiry'
+  ],
+  rule:'Magnanimous owns the reservation record and workflow. A credential is not proof of booking, ticketing, refund or settlement authority.'
+ };
+}
 
 function buildPlan(goal,connections){
  const text=clean(goal).toLowerCase();
@@ -180,6 +228,7 @@ export async function handleMagnanimousB2B(request,env){
    standards:getB2BStandardsCatalog(),
    opportunities:getB2BOpportunityCatalog(),
    skills:getB2BSkillCatalog(),
+   reservation:{summary:getReservationSummary(),policy:MAGNANIMOUS_RESERVATION_POLICY,lifecycle:getReservationLifecycle(),providers:getReservationProviderGraph(),skills:getReservationSkillCatalog()},
    connections,
    capabilities:getB2BCapabilityManifest()
   });
@@ -191,7 +240,15 @@ export async function handleMagnanimousB2B(request,env){
  if(request.method==='GET'&&path==='/api/b2b/standards')return json({identity:'Magnanimous AI',standards:getB2BStandardsCatalog()});
  if(request.method==='GET'&&path==='/api/b2b/opportunities')return json({identity:'Magnanimous AI',opportunities:getB2BOpportunityCatalog()});
  if(request.method==='GET'&&path==='/api/b2b/skills')return json({identity:'Magnanimous AI',skills:getB2BSkillCatalog()});
- if(request.method==='GET'&&path==='/api/b2b/procurement/workflows')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.procurement,objects:['company','supplier','product','procurement_event','trading_document','purchase_order','settlement'],policy:MAGNANIMOUS_B2B_POLICY});
+ if(request.method==='GET'&&path==='/api/b2b/reservations')return json({identity:'Magnanimous AI',summary:getReservationSummary(),policy:MAGNANIMOUS_RESERVATION_POLICY,lifecycle:getReservationLifecycle(),providers:getReservationProviderGraph(),skills:getReservationSkillCatalog(),objects:RESERVATION_NORMALIZED_OBJECTS});
+ if(request.method==='GET'&&path==='/api/b2b/reservations/providers')return json({identity:'Magnanimous AI',providers:getReservationProviderGraph(),connections});
+ if(request.method==='GET'&&path==='/api/b2b/reservations/skills')return json({identity:'Magnanimous AI',skills:getReservationSkillCatalog()});
+ if(request.method==='GET'&&path==='/api/b2b/reservations/workflow')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.reservation,policy:MAGNANIMOUS_RESERVATION_POLICY});
+ if(request.method==='POST'&&path==='/api/b2b/reservations/preflight'){
+  const body=await request.json().catch(()=>({}));
+  return json({identity:'Magnanimous AI',preflight:reservationPreflight(body,connections)});
+ }
+  if(request.method==='GET'&&path==='/api/b2b/procurement/workflows')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.procurement,objects:['company','supplier','product','procurement_event','trading_document','purchase_order','settlement'],policy:MAGNANIMOUS_B2B_POLICY});
  if(request.method==='GET'&&path==='/api/b2b/logistics/workflows')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.logistics,objects:['shipment','trading_document','settlement'],policy:MAGNANIMOUS_B2B_POLICY});
  if(request.method==='GET'&&path==='/api/b2b/travel/accreditation')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.travel_accreditation,objects:['agency_identity','travel_settlement'],policy:MAGNANIMOUS_B2B_POLICY});
   if(request.method==='GET'&&path==='/api/b2b/travel/workflows')return json({identity:'Magnanimous AI',workflow:B2B_WORKFLOWS.travel,objects:['travel_offer','travel_order','settlement'],policy:MAGNANIMOUS_B2B_POLICY});
