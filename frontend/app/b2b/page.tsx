@@ -3,14 +3,14 @@ import {useEffect,useMemo,useState} from 'react';
 import {getPlatformAuthToken} from '../lib/magnanimous-session';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
-async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||\`Request failed (\${r.status})\`}}}
+async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t||`Request failed (${r.status})`}}}
 
 export default function B2BPage(){
  const[token,setToken]=useState(''),[data,setData]=useState<any>(null),[goal,setGoal]=useState('Build a wholesale and travel distribution network for businesses and sub-agents.'),[plan,setPlan]=useState<any>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[filter,setFilter]=useState('all');
  useEffect(()=>{const t=getPlatformAuthToken();if(!t){location.href='/login';return}setToken(t)},[]);
- async function get(path:string){const r=await fetch(\`\${api}\${path}\`,{headers:{Authorization:\`Bearer \${token}\`},cache:'no-store'}),d=await read(r);if(!r.ok)throw new Error(d.detail||'Request failed.');return d}
+ async function get(path:string){const r=await fetch(`${api}${path}`,{headers:{Authorization:`Bearer ${token}`},cache:'no-store'}),d=await read(r);if(!r.ok)throw new Error(d.detail||'Request failed.');return d}
  useEffect(()=>{if(!token)return;get('/api/b2b/catalog').then(setData).catch(e=>setError(e.message))},[token]);
- async function build(){setBusy(true);setError('');try{const r=await fetch(\`\${api}/api/b2b/plan\`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:\`Bearer \${token}\`},body:JSON.stringify({goal})}),d=await read(r);if(!r.ok)throw new Error(d.detail||'Plan failed.');setPlan(d.plan)}catch(e:any){setError(e.message)}finally{setBusy(false)}}
+ async function build(){setBusy(true);setError('');try{const r=await fetch(`${api}/api/b2b/plan`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({goal})}),d=await read(r);if(!r.ok)throw new Error(d.detail||'Plan failed.');setPlan(d.plan)}catch(e:any){setError(e.message)}finally{setBusy(false)}}
  const connections=(data?.connections||[]).filter((x:any)=>filter==='all'||x.family===filter);
  const families=useMemo(()=>[...new Set((data?.connections||[]).map((x:any)=>x.family))].sort(),[data]);
  return <main className="page">
@@ -34,8 +34,8 @@ export default function B2BPage(){
    <article className="panel"><small>WHOLESALE FLOW</small><h2>Supplier → buyer → fulfillment</h2>{(data?.workflows?.wholesale||[]).map((x:string,i:number)=><p key={i}><span>{i+1}</span>{x}</p>)}</article>
    <article className="panel"><small>TRAVEL FLOW</small><h2>Search → book → service</h2>{(data?.workflows?.travel||[]).map((x:string,i:number)=><p key={i}><span>{i+1}</span>{x}</p>)}</article>
   </section>
-  <style jsx>{\`
+  <style jsx>{`
    .page{min-height:100vh;background:#05090d;color:#edf7fa;font-family:Inter,system-ui,sans-serif;padding:28px}header{max-width:1320px;margin:auto;display:flex;justify-content:space-between;gap:24px;align-items:end;padding:30px 0}header small,.panel small{color:#63e9b0;font-weight:900;letter-spacing:.14em}h1{font-size:clamp(38px,6vw,72px);margin:6px 0}header p,.muted,.panel>p{color:#93a9b3;line-height:1.6;max-width:820px}nav{display:flex;gap:8px;flex-wrap:wrap}a{color:#d8edf4;text-decoration:none;border:1px solid #29404b;padding:10px;border-radius:9px}.stats{max-width:1320px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.stats article,.panel{border:1px solid #203a46;background:#081118;border-radius:16px;padding:18px}.stats small{display:block;color:#62e7b0;font-size:9px;letter-spacing:.12em}.stats b{display:block;font-size:30px;margin-top:8px}.grid{max-width:1320px;margin:14px auto;display:grid;grid-template-columns:1fr 1fr;gap:14px}.panel h2{margin:6px 0 12px}textarea,select,button{box-sizing:border-box;width:100%;padding:11px;border:1px solid #2a4652;border-radius:10px;background:#07151d;color:#eef9fc}textarea{min-height:120px;resize:vertical}button{margin-top:8px;background:#12462f;border-color:#2c845c;color:#c9ffe5;font-weight:900;cursor:pointer}.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:15px}.chips span{border:1px solid #285244;background:#0d201a;padding:7px 9px;border-radius:999px;font-size:11px;color:#aef1cf}.connections{max-width:1284px;margin:14px auto}.head{display:flex;justify-content:space-between;gap:16px;align-items:end}.head select{max-width:280px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.cards article{border:1px solid #273740;border-radius:12px;padding:12px;background:#061018}.cards article.ready{border-color:#2b7654}.cards b,.cards span,.cards em{display:block}.cards span{font-size:10px;color:#8298a3;margin-top:4px}.cards em{font-style:normal;font-size:9px;color:#e0a268;margin-top:9px}.cards .ready em{color:#6ce8ab}.cards p{font-size:11px;color:#8da1aa;line-height:1.45}.plan{margin-top:15px;border-top:1px solid #20333c;padding-top:12px}.plan p,.workflows p{display:flex;gap:10px;align-items:flex-start;color:#a8bbc3}.plan p span,.workflows p span{min-width:23px;height:23px;border-radius:50%;background:#123929;color:#80e8b4;display:inline-grid;place-items:center;font-size:10px;font-weight:900}.error{max-width:1320px;margin:0 auto 12px;border:1px solid #793b49;background:#2b1018;padding:12px;border-radius:10px}@media(max-width:980px){header{display:block}.stats{grid-template-columns:1fr 1fr}.cards{grid-template-columns:1fr 1fr}}@media(max-width:660px){.page{padding:16px}.stats,.grid,.cards{grid-template-columns:1fr}.head{display:block}.head select{max-width:none;margin-top:10px}}
-  \`}</style>
+  `}</style>
  </main>
 }
