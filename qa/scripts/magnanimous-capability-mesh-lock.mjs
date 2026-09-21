@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const read=path=>fs.readFileSync(path,'utf8');
+const root=fs.existsSync('worker/src/magnanimous-capability-mesh.js')?'.':'..';
+const read=path=>fs.readFileSync(`${root}/${path}`,'utf8');
 const mesh=read('worker/src/magnanimous-capability-mesh.js');
 const security=read('worker/src/security-entrypoint.js');
 const operations=read('worker/src/operations-entrypoint.js');
