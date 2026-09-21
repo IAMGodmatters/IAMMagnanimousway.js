@@ -3,7 +3,7 @@
 // It does not copy Railway proprietary implementation, private prompts, credentials, or internal code.
 
 export const RAILWAY_RESEARCH=Object.freeze({
-  verified_at:'2026-09-20',
+  verified_at:'2026-09-21',
   provider:'Railway',
   docs:[
     'https://docs.railway.com/projects',
@@ -15,7 +15,12 @@ export const RAILWAY_RESEARCH=Object.freeze({
     'https://docs.railway.com/feature-flags',
     'https://docs.railway.com/guides/preview-deployments-with-pr-environments',
     'https://docs.railway.com/guides/isolate-staging-production',
-    'https://docs.railway.com/ai/railway-agent'
+    'https://docs.railway.com/ai/railway-agent',
+    'https://docs.railway.com/ai/agent-skills',
+    'https://docs.railway.com/overview/the-basics',
+    'https://docs.railway.com/services',
+    'https://docs.railway.com/networking',
+    'https://docs.railway.com/templates'
   ],
   resource_model:['workspace','project','environment','service','bucket','deployment'],
   boundary:'Railway account, live infrastructure, billing, provider network and provider-managed execution remain external and replaceable.'
@@ -49,6 +54,36 @@ export const RAILWAY_TOOL_CONTRACTS=Object.freeze([
   ['accept_deploy','staged-change-commit','Commit staged Railway environment changes and deploy them.'],
   ['railway_agent','infrastructure-agent','Use provider-side infrastructure reasoning for complex authorized operations.']
 ].map(([tool,capability,purpose])=>Object.freeze({tool,capability,purpose})));
+
+export const RAILWAY_PLATFORM_CAPABILITIES=Object.freeze([
+  ['persistent-services','Long-running container services','magnanimous-cloud-control','host-capacity'],
+  ['scheduled-jobs','Cron/scheduled jobs','magnanimous-scheduler','software-native'],
+  ['functions','Single-purpose function workloads','magnanimous-cloud-control','host-capacity'],
+  ['environments','Isolated production/staging environments','magnanimous-cloud-control','software-native'],
+  ['ephemeral-environments','Disposable preview/PR environments','magnanimous-cloud-control','host-capacity'],
+  ['variables-secrets','Environment and service configuration/secrets','magnanimous-config-vault','software-native'],
+  ['config-as-code','Declarative infrastructure configuration','magnanimous-cloud-control','software-native'],
+  ['dockerfile-builds','Portable Dockerfile builds','magnanimous-deployment-operator','host-capacity'],
+  ['buildpacks','Automatic source-to-container builds','magnanimous-deployment-operator','host-capacity'],
+  ['github-autodeploys','Repository push triggered deployment','magnanimous-deployment-operator','external-repository'],
+  ['healthchecks','Health-gated deployment verification','magnanimous-health-verification','software-native'],
+  ['scaling','Replica/resource desired state','magnanimous-cloud-control','host-capacity'],
+  ['regions','Placement and region profiles','magnanimous-cloud-control','host-capacity'],
+  ['volumes','Persistent mounted storage','magnanimous-object-storage','host-capacity'],
+  ['backups','Backup and restore lineage','magnanimous-backup-restore','software-native'],
+  ['object-buckets','S3-compatible object buckets','magnanimous-object-storage','software-native'],
+  ['private-networking','Environment-isolated service networking and discovery','magnanimous-private-network','host-network'],
+  ['public-networking','Public HTTP/HTTPS ingress','magnanimous-dns-control','public-network'],
+  ['custom-domains','Custom domain routing and certificate lifecycle','magnanimous-dns-control','public-network'],
+  ['tcp-proxy','Public TCP ingress/proxying','magnanimous-network-gateway','public-network'],
+  ['outbound-networking','Controlled service egress','magnanimous-network-gateway','host-network'],
+  ['static-outbound-ips','Stable egress IP policy','magnanimous-network-gateway','public-network'],
+  ['edge-routing','Global/edge traffic routing policy','magnanimous-network-gateway','external-network-capacity'],
+  ['templates','Reusable multi-service application templates','magnanimous-template-catalog','software-native'],
+  ['staged-changes','Stage then review infrastructure mutations','magnanimous-deployment-operator','software-native'],
+  ['network-diagnostics','Network and deployment diagnostics','magnanimous-health-verification','software-native'],
+  ['infrastructure-agent','Agent-assisted infrastructure operations','magnanimous-cloud-orchestrator','software-native']
+].map(([capability,purpose,native_target,boundary])=>Object.freeze({capability,purpose,native_target,boundary})));
 
 export const RAILWAY_TECHNIQUES=Object.freeze([
   {id:'resource-hierarchy',purpose:'Model infrastructure as workspace → project → environment → service/bucket → deployment.'},
@@ -141,6 +176,34 @@ export function getRailwayCapabilityManifest(){
   }));
 }
 
+export function getRailwayPlatformCapabilityManifest(){
+  return RAILWAY_PLATFORM_CAPABILITIES.map(row=>({
+    id:'railway-platform:'+row.capability,
+    connector_id:'railway-platform',
+    connector_name:'Magnanimous Cloud / Railway public capability research',
+    category:'deployment',
+    capability:row.capability,
+    native_target:row.native_target,
+    priority:'public-observed',
+    source_kind:'public-platform-capability',
+    boundary:row.boundary,
+    absorption_status:'brain-spec-absorbed',
+    implementation_status:row.boundary==='software-native'?'native-or-control-plane-available':'native-contract-external-capacity-when-live',
+    magnanimous_owned:['intent-understanding','planning','policy','memory','resource-model','verification','failure-recovery','outcome-learning'],
+    external_only:row.boundary==='software-native'?[]:['real host/network/repository capacity when required'],
+    initiative:{suggestive:true,auto_initiate:row.boundary==='software-native',requires_confirmation:false,action_class:'provider-neutral-capability'},
+    search_text:row.purpose,
+    techniques:RAILWAY_TECHNIQUES.map(x=>x.id),
+    acceptance_tests:[
+      'Capability can be expressed through a Magnanimous-owned provider-neutral contract.',
+      'Provider branding and provider memory ownership are not required.',
+      'Real hardware/network/repository capacity remains explicit when physically necessary.',
+      'No proprietary Railway implementation is copied.'
+    ],
+    research:{...RAILWAY_RESEARCH,public_purpose:row.purpose,capability:row.capability,proprietary_implementation_copied:false}
+  }));
+}
+
 export function getRailwayTechniqueManifest(){
   return RAILWAY_TECHNIQUES.map(row=>({
     id:'railway-technique:'+row.id,
@@ -173,6 +236,7 @@ export function getRailwayAbsorptionSummary(){
     identity:'Magnanimous AI',
     provider_role:'replaceable infrastructure adapter',
     tool_contracts:RAILWAY_TOOL_CONTRACTS.length,
+    platform_capabilities:RAILWAY_PLATFORM_CAPABILITIES.length,
     techniques:RAILWAY_TECHNIQUES.length,
     resource_model:[...RAILWAY_RESEARCH.resource_model],
     proprietary_implementation_copied:false,

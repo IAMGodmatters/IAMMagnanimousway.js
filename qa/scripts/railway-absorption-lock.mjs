@@ -27,7 +27,9 @@ for(const technique of [
 must(registry.includes("proprietary_implementation_copied:false"),'Railway absorption must explicitly forbid proprietary implementation copying');
 must(registry.includes("provider_role:'replaceable infrastructure adapter'"),'Railway must remain a replaceable infrastructure adapter');
 must(absorption.includes('getRailwayCapabilityManifest'),'Railway capability manifest is not wired into Magnanimous absorption');
+must(absorption.includes('getRailwayPlatformCapabilityManifest'),'Railway platform capability manifest is not wired into Magnanimous absorption');
 must(absorption.includes('getRailwayTechniqueManifest'),'Railway technique manifest is not wired into Magnanimous absorption');
+for(const capability of ['persistent-services','scheduled-jobs','functions','environments','ephemeral-environments','variables-secrets','config-as-code','dockerfile-builds','github-autodeploys','healthchecks','scaling','regions','volumes','backups','object-buckets','private-networking','public-networking','custom-domains','tcp-proxy','outbound-networking','static-outbound-ips','edge-routing','templates','staged-changes','network-diagnostics']) must(registry.includes(`['${capability}'`),`Railway platform capability missing: ${capability}`);
 must(absorption.includes('railway_tool_contracts'),'Railway summary metrics are not exposed');
 must(migration.includes("credential-rewrap.current.json"),'Persistent vault rewrap cache path missing');
 must(migration.includes('applyCachedCredentialVaultRewrap'),'Cached vault rewrap is not applied during D1 staging');

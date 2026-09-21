@@ -6,7 +6,7 @@ import { LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT, getLivePluginToolResearchSummary } 
 import { LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT, getLivePluginSkillResearchSummary } from './magnanimous-live-plugin-skill-research-snapshot.js';
 import { MAGNANIMOUS_BUILDER_TOOL_CONTRACTS, getMagnanimousBuilderNativeTarget, getMagnanimousBuilderToolPolicy, getMagnanimousBuilderSummary } from './magnanimous-builder-capability-catalog.js';
 import { MAGNANIMOUS_ENGINEERING_GUIDE_TOPICS, getMagnanimousTechniqueProfile, getMagnanimousTechniqueSummary, getMagnanimousGuideNativeTarget, getMagnanimousGuidePolicy } from './magnanimous-engineering-technique-catalog.js';
-import { getRailwayCapabilityManifest, getRailwayTechniqueManifest, getRailwayAbsorptionSummary } from './magnanimous-railway-capability-registry.js';
+import { getRailwayCapabilityManifest, getRailwayPlatformCapabilityManifest, getRailwayTechniqueManifest, getRailwayAbsorptionSummary } from './magnanimous-railway-capability-registry.js';
 
 // Research ledger for the account connectors that I AM Magnanimous Way can authorize directly.
 // These sources describe public API contracts only. They are not copied implementations.
@@ -252,11 +252,11 @@ export function getMagnanimousEngineeringSkillManifest(){
  return MAGNANIMOUS_ENGINEERING_GUIDE_TOPICS.map(magnanimousEngineeringSkillRecipe);
 }
 export function getCapabilityAbsorptionManifest(){
- return [...getPersistentConnectorAbsorptionManifest(),...getChatGPTPluginCapabilityManifest(),...getInstalledPluginSkillManifest(),...getMagnanimousBuilderCapabilityManifest(),...getMagnanimousEngineeringSkillManifest(),...getRailwayCapabilityManifest(),...getRailwayTechniqueManifest()];
+ return [...getPersistentConnectorAbsorptionManifest(),...getChatGPTPluginCapabilityManifest(),...getInstalledPluginSkillManifest(),...getMagnanimousBuilderCapabilityManifest(),...getMagnanimousEngineeringSkillManifest(),...getRailwayCapabilityManifest(),...getRailwayPlatformCapabilityManifest(),...getRailwayTechniqueManifest()];
 }
 
 export function getConnectorAbsorptionSummary(){
- const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),builderManifest=getMagnanimousBuilderCapabilityManifest(),engineeringManifest=getMagnanimousEngineeringSkillManifest(),railwayManifest=getRailwayCapabilityManifest(),railwayTechniques=getRailwayTechniqueManifest(),railway=getRailwayAbsorptionSummary(),liveToolRows=LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT,liveSkills=getLivePluginSkillResearchSummary(),builder=getMagnanimousBuilderSummary(),engineering=getMagnanimousTechniqueSummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
+ const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),builderManifest=getMagnanimousBuilderCapabilityManifest(),engineeringManifest=getMagnanimousEngineeringSkillManifest(),railwayManifest=getRailwayCapabilityManifest(),railwayPlatform=getRailwayPlatformCapabilityManifest(),railwayTechniques=getRailwayTechniqueManifest(),railway=getRailwayAbsorptionSummary(),liveToolRows=LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT,liveSkills=getLivePluginSkillResearchSummary(),builder=getMagnanimousBuilderSummary(),engineering=getMagnanimousTechniqueSummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
  const missingDirect=INTEGRATIONS.filter(x=>!directCatalogued.has(x.id)).map(x=>x.id);
  const pluginNamespaces=new Set([...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace),...liveToolRows.map(x=>x.namespace)]);
  const liveTools={live_plugin_namespaces:new Set(liveToolRows.map(x=>x.namespace)).size,live_tool_contracts:liveToolRows.length};
@@ -293,7 +293,7 @@ export function getConnectorAbsorptionSummary(){
   one_by_one_research:true,
   builder,
   research_sources:['official direct connector API documentation','live observable plugin tool catalog excluding retired providers','observable installed skill catalog','Magnanimous first-party builder contracts','Magnanimous first-party engineering technique catalog','Railway public documentation and observable tool contracts','historical observable contracts retained for continuity'],
-  native_targets:[...new Set([...catalog.map(x=>x.native_target).filter(Boolean),...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(pluginNativeTarget),...liveToolRows.map(x=>pluginNativeTarget({namespace:x.namespace,tools:[x.tool,x.purpose]})),...INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x[0],tools:[x[1],x[2]]})),...MAGNANIMOUS_BUILDER_TOOL_CONTRACTS.map(x=>getMagnanimousBuilderNativeTarget(x.tool)),...MAGNANIMOUS_ENGINEERING_GUIDE_TOPICS.map(x=>getMagnanimousGuideNativeTarget(x.id)),...railwayManifest.map(x=>x.native_target),...railwayTechniques.map(x=>x.native_target)])].sort(),
+  native_targets:[...new Set([...catalog.map(x=>x.native_target).filter(Boolean),...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(pluginNativeTarget),...liveToolRows.map(x=>pluginNativeTarget({namespace:x.namespace,tools:[x.tool,x.purpose]})),...INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>pluginNativeTarget({namespace:x[0],tools:[x[1],x[2]]})),...MAGNANIMOUS_BUILDER_TOOL_CONTRACTS.map(x=>getMagnanimousBuilderNativeTarget(x.tool)),...MAGNANIMOUS_ENGINEERING_GUIDE_TOPICS.map(x=>getMagnanimousGuideNativeTarget(x.id)),...railwayManifest.map(x=>x.native_target),...railwayPlatform.map(x=>x.native_target),...railwayTechniques.map(x=>x.native_target)])].sort(),
   direct_connector_coverage:{covered:INTEGRATIONS.length-missingDirect.length,total:INTEGRATIONS.length,missing:missingDirect},
   absorption_policy:ABSORPTION_POLICY,
   status:missingDirect.length?'coverage-gap':'catalog-complete'

@@ -1,4 +1,5 @@
 import { requirePlatformOwner } from './platform-owner-guard.js';
+import { getNativeInfrastructureCompatibilitySummary, getNativeInfrastructureCompatibilityManifest } from './magnanimous-native-infrastructure-compatibility.js';
 
 const json = (data, status = 200) => Response.json(data, {
   status,
@@ -217,6 +218,7 @@ export function magnanimousInfrastructureSummary(env = {}) {
       'Configure real TLS/DNS host addresses and change registrar nameserver/glue records.',
       'Retain or purchase upstream anycast/DDoS/network capacity where global scale requires it.'
     ],
+    provider_independence: getNativeInfrastructureCompatibilitySummary(),
     families: MAGNANIMOUS_INFRASTRUCTURE_FAMILIES,
     rules: [
       'Magnanimous AI owns identity, memory, planning, policy, routing, verification and learning.',
@@ -231,11 +233,14 @@ export function magnanimousInfrastructureSummary(env = {}) {
 
 export async function handleMagnanimousInfrastructure(request, env) {
   const url = new URL(request.url);
-  if (url.pathname !== '/api/magnanimous/infrastructure') return null;
+  if (url.pathname !== '/api/magnanimous/infrastructure' && url.pathname !== '/api/magnanimous/infrastructure/compatibility') return null;
 
   const denied = await requirePlatformOwner(request, env);
   if (denied) return denied;
   if (request.method !== 'GET') return json({ detail: 'Method not allowed.' }, 405);
 
+  if (url.pathname === '/api/magnanimous/infrastructure/compatibility') {
+    return json({summary:getNativeInfrastructureCompatibilitySummary(),capabilities:getNativeInfrastructureCompatibilityManifest()});
+  }
   return json(magnanimousInfrastructureSummary(env));
 }

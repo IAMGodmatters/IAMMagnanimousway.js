@@ -95,6 +95,10 @@ must(logicalExporter.includes('Magnanimous D1 direct read failed; using Wrangler
 must(logicalExporter.includes('let readPageSize=pageSize'),'Cloud exit must adapt D1 snapshot page size after provider read failures.');
 must(logicalExporter.includes('Math.max(1,Math.floor(readPageSize/2))'),'Adaptive D1 paging must shrink down to single-row reads when necessary.');
 
+const compatibility=read('worker/src/magnanimous-native-infrastructure-compatibility.js');
+must(!/@cloudflare\//i.test(compatibility),'Compatibility registry must not import Cloudflare runtime packages.');
+must(!/mcp\.cloudflare\.com/i.test(compatibility),'Compatibility registry must not call Cloudflare MCP.');
+must(!/api\.cloudflare\.com/i.test(compatibility),'Compatibility registry must not call Cloudflare API.');
 const infra=read('worker/src/magnanimous-infrastructure-core.js');
 must(infra.includes("infrastructure_owner: 'Magnanimous AI'"),'Magnanimous must own infrastructure control.');
 must(infra.includes("architecture: 'provider-neutral-first-party-control-plane'"),'Provider-neutral infrastructure architecture missing.');
@@ -132,5 +136,6 @@ for(const file of ['worker/src/github-actions-oidc.js','worker/src/credential-va
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime-secret-store.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['qa/scripts/magnanimous-cloud-independence-readiness.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['qa/scripts/native-infrastructure-independence-lock.mjs'],{stdio:'inherit'});
 
-console.log('Magnanimous Cloud Exit Lock: standalone runtime, Magnanimous Cloud control plane, SQL, storage/cache, durable work, event coordination, rate limiting, vectors, analytics, encrypted secrets, pipelines, isolated sandbox, server browser rendering, media transforms, observability, cutover tooling and infrastructure ownership PASS');
+console.log('Magnanimous Cloud Exit Lock: standalone runtime, Magnanimous Cloud control plane, SQL, storage/cache, durable work, event coordination, rate limiting, vectors, analytics, encrypted secrets, pipelines, isolated sandbox, server browser rendering, media transforms, observability, cutover tooling, provider-independent compatibility and infrastructure ownership PASS');
