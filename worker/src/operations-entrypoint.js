@@ -19,6 +19,7 @@ import {handleMediaLibrary} from './media-library-runtime.js';
 import {handleWhiteLabelNativeProducts} from './white-label-native-products.js';
 import {handleWhiteLabelWhatsApp} from './white-label-whatsapp-inbox.js';
 import {handleMagnanimousNativeWeb,scheduledNativeWeb} from './magnanimous-native-web-runtime.js';
+import {scheduledMagnanimousCapabilityMesh} from './magnanimous-capability-mesh.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -214,7 +215,8 @@ export default{
   const origin=String(env.PUBLIC_SITE_URL||'https://iammagnanimousway.com').replace(/\/$/,'');
   const task=Promise.all([
    scheduledGrowth(env,origin).catch(error=>console.error('scheduled growth automation failed',error)),
-   scheduledNativeWeb(env).catch(error=>console.error('scheduled native web automation failed',error))
+   scheduledNativeWeb(env).catch(error=>console.error('scheduled native web automation failed',error)),
+   scheduledMagnanimousCapabilityMesh(env).catch(error=>console.error('scheduled capability mesh check failed',error))
   ]);
   if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
  }
