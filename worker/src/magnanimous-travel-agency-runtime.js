@@ -10,6 +10,12 @@ import {
  publicTravelOffer,
  amountToMinor
 } from './magnanimous-travel-agency-core.js';
+import {
+ MAGNANIMOUS_TRAVEL_APPLICATION_PROFILE,
+ SUPPLIER_ONBOARDING_STAGES,
+ TRAVEL_SUPPLIER_ONBOARDING,
+ onboardingSummary
+} from './magnanimous-travel-supplier-onboarding.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const clean=v=>String(v??'').trim();
@@ -17,6 +23,57 @@ const num=(v,d=0)=>{const n=Number(v);return Number.isFinite(n)?Math.round(n):d}
 const now=()=>Math.floor(Date.now()/1000);
 
 function ownerOnly(user){return String(user?.role||'').toLowerCase()==='owner'}
+
+async function supplierOnboardingRows(env,tenant,{includeInitial=false}={}){
+ const {results=[]}=await env.DB.prepare('SELECT supplier_id,status,priority,outreach_channel,contact_destination,last_outreach_at,next_action,external_reference,notes,updated_at FROM travel_supplier_onboarding WHERE tenant_id=?').bind(tenant).all().catch(()=>({results:[]}));
+ const saved=new Map(results.map(r=>[String(r.supplier_id),r]));
+ return TRAVEL_SUPPLIER_ONBOARDING.map(base=>{
+  const row=saved.get(base.id),initial=includeInitial?base.initial||{}:{};
+  return{
+   ...base,
+   status:String(row?.status||initial.status||'not_started'),
+   priority:Number(row?.priority??base.priority??50),
+   outreach_channel:String(row?.outreach_channel||initial.channel||''),
+   contact_destination:String(row?.contact_destination||initial.destination||''),
+   last_outreach_at:row?.last_outreach_at||null,
+   next_action:String(row?.next_action||base.action||''),
+   external_reference:String(row?.external_reference||''),
+   notes:String(row?.notes||initial.outcome||''),
+   updated_at:row?.updated_at||null
+  };
+ });
+}
+
+async function updateSupplierOnboarding(env,tenant,user,supplierId,body){
+ const base=TRAVEL_SUPPLIER_ONBOARDING.find(x=>x.id===supplierId);
+ if(!base)return json({detail:'Unknown travel supplier.'},404);
+ const status=clean(body.status||base.initial?.status||'not_started');
+ if(!SUPPLIER_ONBOARDING_STAGES.includes(status))return json({detail:'Invalid onboarding status.'},400);
+ const priority=Math.max(1,Math.min(num(body.priority,base.priority||50),100));
+ const channel=clean(body.outreach_channel);
+ const destination=clean(body.contact_destination);
+ const nextAction=clean(body.next_action||base.action||'');
+ const externalRef=clean(body.external_reference);
+ const notes=clean(body.notes);
+ const ts=now(),actor=String(user.id||'');
+ await env.DB.prepare(`INSERT INTO travel_supplier_onboarding
+  (tenant_id,supplier_id,status,priority,outreach_channel,contact_destination,last_outreach_at,next_action,external_reference,notes,updated_at,updated_by)
+  VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+  ON CONFLICT(tenant_id,supplier_id) DO UPDATE SET
+   status=excluded.status,priority=excluded.priority,outreach_channel=excluded.outreach_channel,
+   contact_destination=excluded.contact_destination,last_outreach_at=excluded.last_outreach_at,
+   next_action=excluded.next_action,external_reference=excluded.external_reference,notes=excluded.notes,
+   updated_at=excluded.updated_at,updated_by=excluded.updated_by`).bind(
+    tenant,supplierId,status,priority,channel,destination,
+    body.last_outreach_at==null?null:num(body.last_outreach_at),nextAction,externalRef,notes,ts,actor
+   ).run();
+ await env.DB.prepare(`INSERT INTO travel_supplier_onboarding_events
+  (id,tenant_id,supplier_id,event_type,status,channel,destination,external_reference,note,created_at,created_by)
+  VALUES(?,?,?,?,?,?,?,?,?,?,?)`).bind(
+   crypto.randomUUID(),tenant,supplierId,'status_update',status,channel,destination,externalRef,notes,ts,actor
+  ).run();
+ return json({ok:true,supplier_id:supplierId,status,priority,next_action:nextAction});
+}
 
 async function hashText(value){
  const bytes=new TextEncoder().encode(String(value));
@@ -202,6 +259,21 @@ export async function handleMagnanimousTravelAgency(request,env){
  const user=await currentUser(request,env);
  if(!user)return json({detail:'Sign in to use Magnanimous Travel Agency.'},401);
  const tenant=String(user.tenant_id||'');
+ if(request.method==='GET'&&path==='/api/travel-agency/application-profile'){
+  if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
+  return json({profile:MAGNANIMOUS_TRAVEL_APPLICATION_PROFILE,stages:SUPPLIER_ONBOARDING_STAGES});
+ }
+ if(request.method==='GET'&&path==='/api/travel-agency/supplier-onboarding'){
+  if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
+  const rows=await supplierOnboardingRows(env,tenant,{includeInitial:true});
+  return json({summary:onboardingSummary(rows),stages:SUPPLIER_ONBOARDING_STAGES,suppliers:rows,application_profile:MAGNANIMOUS_TRAVEL_APPLICATION_PROFILE});
+ }
+ const onboardingMatch=path.match(/^\/api\/travel-agency\/supplier-onboarding\/([^/]+)$/);
+ if(request.method==='PUT'&&onboardingMatch){
+  if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
+  const body=await request.json().catch(()=>({}));
+  return updateSupplierOnboarding(env,tenant,user,onboardingMatch[1],body);
+ }
  if(request.method==='GET'&&(path==='/api/travel-agency'||path==='/api/travel-agency/catalog')){
   const runtimeEnv=await getProviderRuntimeEnv(env),policy=await policyFor(env,tenant);
   return json({identity:'Magnanimous AI Travel Agency',summary:getTravelAgencySummary(),policy:MAGNANIMOUS_TRAVEL_AGENCY_POLICY,pricing_policy:policy,suppliers:getTravelSupplierReadiness(runtimeEnv),skills:TRAVEL_AGENCY_SKILLS,source_api:sourceApiSpec()});

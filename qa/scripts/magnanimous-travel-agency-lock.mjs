@@ -60,6 +60,25 @@ const global=fs.readFileSync('frontend/app/global-tools.tsx','utf8');assert.ok(g
 const agents=fs.readFileSync('worker/src/agent-mesh-runtime.js','utf8');assert.ok(agents.includes("'traveldeal','TravelDeal'"));
 const progress=fs.readFileSync('worker/src/progress-entrypoint.js','utf8');assert.ok(progress.includes('handleMagnanimousTravelAgency'));
 
+
+const onboarding=fs.readFileSync('worker/src/magnanimous-travel-supplier-onboarding.js','utf8');
+for(const token of ['SUPPLIER_ONBOARDING_STAGES','MAGNANIMOUS_TRAVEL_APPLICATION_PROFILE','TRAVEL_SUPPLIER_ONBOARDING',"'duffel',priority:1","'ratehawk',priority:1","'webbeds',priority:1","'stuba',priority:1"])
+ assert.ok(onboarding.includes(token),'Supplier onboarding missing '+token);
+for(const stage of ['contacted','application_submitted','sandbox_active','certification','approved','production_testing','live'])
+ assert.ok(onboarding.includes(stage),'Onboarding lifecycle missing '+stage);
+assert.ok(onboarding.includes("No IATA/ARC ticketing authority is assumed."));
+assert.ok(onboarding.includes("godmattersinc@iammagnanimousway.com"));
+
+const onboardingMigration=fs.readFileSync('worker/migrations/0083_travel_supplier_onboarding.sql','utf8');
+for(const table of ['travel_supplier_onboarding','travel_supplier_onboarding_events'])
+ assert.ok(onboardingMigration.includes('CREATE TABLE IF NOT EXISTS '+table),'Missing '+table);
+
+for(const route of ["'/api/travel-agency/application-profile'","'/api/travel-agency/supplier-onboarding'","supplier-onboarding\\/([^/]+)"])
+ assert.ok(runtime.includes(route),'Runtime missing onboarding route '+route);
+assert.ok(page.includes('SUPPLIER ACQUISITION CONTROL'));
+assert.ok(page.includes('Contact → sandbox → certification → production'));
+assert.ok(page.includes('No supplier becomes LIVE until production access is actually verified.'));
+
 const summary=getTravelAgencySummary();
 assert.ok(summary.suppliers>=20&&summary.skills>=40);
 console.log('Magnanimous Travel Agency Portal lock PASS',summary);
