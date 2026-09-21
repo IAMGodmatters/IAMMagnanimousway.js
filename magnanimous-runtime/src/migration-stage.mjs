@@ -36,7 +36,8 @@ export async function verifyGitHubActionsOidc(token, {
   audience = 'magnanimous-production-data-stage',
   repository = 'IAMGodmatters/IAMMagnanimousway.js',
   ref = 'refs/heads/main',
-  workflowFile = '.github/workflows/magnanimous-production-data-stage.yml'
+  workflowFile = '.github/workflows/magnanimous-production-data-stage.yml',
+  allowedEvents = ['push']
 } = {}) {
   const parts = String(token || '').split('.');
   if (parts.length !== 3) throw new Error('Invalid GitHub OIDC token.');
@@ -66,7 +67,9 @@ export async function verifyGitHubActionsOidc(token, {
   if (String(claims.repository || '') !== repository) throw new Error('Unexpected GitHub OIDC repository.');
   if (String(claims.ref || '') !== ref) throw new Error('Unexpected GitHub OIDC ref.');
   if (String(claims.repository_owner || '') !== 'IAMGodmatters') throw new Error('Unexpected GitHub OIDC repository owner.');
-  if (String(claims.event_name || '') !== 'push') throw new Error('Migration staging requires a main-branch push workflow.');
+  const eventName = String(claims.event_name || '');
+  const acceptedEvents = Array.isArray(allowedEvents) && allowedEvents.length ? allowedEvents.map(String) : ['push'];
+  if (!acceptedEvents.includes(eventName)) throw new Error('Unexpected GitHub OIDC workflow event.');
   const workflowRef = String(claims.workflow_ref || claims.job_workflow_ref || '');
   if (!workflowRef.includes('/' + workflowFile + '@refs/heads/main')) {
     throw new Error('Unexpected GitHub OIDC workflow.');
@@ -77,6 +80,7 @@ export async function verifyGitHubActionsOidc(token, {
     ref: claims.ref,
     sha: String(claims.sha || ''),
     actor: String(claims.actor || ''),
+    event_name: eventName,
     workflow_ref: workflowRef
   };
 }
