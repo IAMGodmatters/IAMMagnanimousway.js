@@ -6,6 +6,8 @@ const security=read('worker/src/security-hardening.js');
 const sessions=read('worker/src/session-authority.js');
 const obs=read('worker/src/request-observability.js');
 const adminCompat=read('worker/src/admin-compat-entrypoint.js');
+const securityEntry=read('worker/src/security-entrypoint.js');
+const wrangler=read('worker/wrangler.jsonc');
 const migration=read('worker/migrations/0080_runtime_bootstrap_quota_hardening.sql');
 const authMigration=read('worker/migrations/0081_admin_auth_quota_hardening.sql');
 const deploy=read('.github/workflows/deploy.yml');
@@ -45,6 +47,12 @@ add('D1 row write limit has explicit 503 code',obs.includes("D1_DAILY_ROW_WRITE_
 add('D1 row read limit has explicit 503 code',obs.includes("D1_DAILY_ROW_READ_LIMIT"));
 add('quota response reports UTC reset',obs.includes('resets_at_utc:nextUtcReset()'));
 add('generic internal errors remain 500',obs.includes("code:'INTERNAL_ERROR'"));
+
+add('Cloudflare API edge routes to standalone Magnanimous data plane before D1 work',securityEntry.includes('proxyApiToStandalone(request,env)')&&securityEntry.indexOf('proxyApiToStandalone(request,env)')<securityEntry.indexOf('requestCorrelationId(request)'));
+add('standalone runtime never self-proxies through the Cloudflare edge',securityEntry.includes("MAGNANIMOUS_RUNTIME||''")&&securityEntry.includes("==='standalone-node'"));
+add('standalone proxy has explicit loop protection',securityEntry.includes("x-magnanimous-standalone-proxy")&&securityEntry.includes("==='1'"));
+add('standalone proxy keeps Cloudflare as a truthful rollback path',securityEntry.includes('retaining Cloudflare rollback path')&&securityEntry.includes('return null;'));
+add('Cloudflare production config points API traffic at the Magnanimous standalone origin',wrangler.includes('"MAGNANIMOUS_STANDALONE_API_ORIGIN": "https://magnanimous-production.up.railway.app"'));
 
 const compatTablesStart=adminCompat.indexOf('async function ensureTables');
 const compatTablesEnd=adminCompat.indexOf('async function ensureLegacyCompatibility',compatTablesStart);

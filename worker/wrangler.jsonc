@@ -8,6 +8,7 @@
   // Production domain attachment is managed in Cloudflare outside this file.
   // The deploy token intentionally has Worker/D1 access but no zone-route mutation permission.
   "vars": {
+    "MAGNANIMOUS_STANDALONE_API_ORIGIN": "https://magnanimous-production.up.railway.app",
     "STRIPE_PRICE_PLUS": "price_1UGsdOBqx3ebIzujDBMRWFcm",
     "STRIPE_PRICE_BUSINESS": "price_1UGsdOBqx3ebIzujDBMRWFcm",
     "STRIPE_PRICE_PRO": "price_1UGsdOBqx3ebIzujDBMRWFcm",
