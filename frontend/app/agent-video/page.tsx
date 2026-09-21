@@ -29,14 +29,14 @@ export default function AgentVideo(){
  const ringCount=speaking?7:4;
  const portrait='/mode-images/virtual-assistant.webp';
  return <main className="page">
-  <header><a href="/agents">← Agent Mesh</a><b>I AM • MAGNANIMOUS LIVE SPECIALISTS</b><a href="/assistant-actions">Platform Actions →</a></header>
+  <header><a href="/agents">← Magnanimous Specialists</a><b>I AM • MAGNANIMOUS LIVE SPECIALISTS</b><a href="/assistant-actions">Platform Actions →</a></header>
   <section className="top">
-   <div><small>FREE-FIRST LIVE AGENT EXPERIENCE</small><h1>Give every agent a face, a voice and the same working mind.</h1><p>Choose any I AM specialist and talk naturally. The free mode runs with browser speech, microphone input and a live animated avatar while the Agent Mesh supplies the intelligence. The agent also receives tenant-safe context from the platform it was built to serve.</p></div>
+   <div><small>FREE-FIRST LIVE AGENT EXPERIENCE</small><h1>Give every agent a face, a voice and the same working mind.</h1><p>Choose any I AM specialist and talk naturally. The free mode runs with browser speech, microphone input and a live animated avatar while Magnanimous AI supplies the intelligence. The agent also receives tenant-safe context from the platform it was built to serve.</p></div>
    <div className="badges"><span>MAGNANIMOUS AI ONLY</span><span>FREE BROWSER VIDEO MODE</span><span>{readyProviders.length? 'PRIVATE ROUTING READY':'ROUTING SETUP NEEDED'}</span><span>{renderer?'SELF-HOSTED VIDEO READY':'SELF-HOSTED VIDEO OPTIONAL'}</span></div>
   </section>
 
   <section className="grid">
-   <aside><div className="asideTitle"><small>AGENT CAST</small><b>{agents.length} specialists</b></div><div className="agentList">{agents.map(a=><button key={a.id} className={a.id===selected?'active':''} onClick={()=>choose(a.id)}><i>{a.name.slice(0,1)}</i><span><b>{a.name}</b><small>{a.title}</small></span></button>)}</div></aside>
+   <aside><div className="asideTitle"><small>MAGNANIMOUS SPECIALISTS</small><b>{agents.length} specialists</b></div><div className="agentList">{agents.map(a=><button key={a.id} className={a.id===selected?'active':''} onClick={()=>choose(a.id)}><i>{a.name.slice(0,1)}</i><span><b>{a.name}</b><small>{a.title}</small></span></button>)}</div></aside>
 
    <section className="stage">
     <div className="stageTop"><div><small>{agent?.group||'AGENT'} • LIVE</small><h2>{agent?.name||'Agent'} <span>{agent?.title}</span></h2></div><label><input type="checkbox" checked={autoSpeak} onChange={e=>setAutoSpeak(e.target.checked)}/> Auto-speak</label></div>
@@ -51,7 +51,7 @@ export default function AgentVideo(){
     <form onSubmit={send}><div className="toolbar"><select value={provider} onChange={e=>setProvider(e.target.value)}><option value="auto">Magnanimous AI • automatic private routing</option></select><button type="button" onClick={listen} className={listening?'mic liveMic':'mic'}>{listening?'● Listening':'🎙 Speak'}</button></div><textarea value={input} onChange={e=>setInput(e.target.value)} placeholder={`Talk to ${agent?.name||'this agent'}…`} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}}/><button className="send" disabled={busy||!input.trim()}>{busy?'Working…':`Talk with ${agent?.name||'Agent'} →`}</button></form>
    </section>
 
-   <aside className="right"><div className="card"><small>PLATFORM MIND</small><h3>Connected to the business it serves</h3><p>Agents receive a tenant-safe summary of native workspace data before answering. Real write actions remain permission controlled.</p><div className="mini"><span>CRM <b>{native?.crm?.contacts??'—'}</b></span><span>Workers <b>{native?.people?.active??'—'}</b></span><span>Support <b>{native?.support?.active??'—'}</b></span><span>Call Center <b>{native?.call_center?.offered??'—'}</b></span></div><a href="/finance-people">Finance & HR →</a><a href="/call-center-health">Call Center Health →</a><a href="/crm">CRM →</a><a href="/support">Support →</a></div>
+   <aside className="right"><div className="card"><small>MAGNANIMOUS MIND</small><h3>Connected to the business it serves</h3><p>Agents receive a tenant-safe summary of native workspace data before answering. Real write actions remain permission controlled.</p><div className="mini"><span>CRM <b>{native?.crm?.contacts??'—'}</b></span><span>Workers <b>{native?.people?.active??'—'}</b></span><span>Support <b>{native?.support?.active??'—'}</b></span><span>Call Center <b>{native?.call_center?.offered??'—'}</b></span></div><a href="/finance-people">Finance & HR →</a><a href="/call-center-health">Call Center Health →</a><a href="/crm">CRM →</a><a href="/support">Support →</a></div>
     <div className="card"><small>MAGNANIMOUS BRAIN</small><h3>Automatic private routing</h3><div className="provider"><i className={readyProviders.length?'on':''}/><span><b>Magnanimous AI</b><small>{readyProviders.length?'READY':'SETUP NEEDED'}</small></span></div></div>
    </aside>
   </section>
