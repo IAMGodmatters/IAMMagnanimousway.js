@@ -256,7 +256,7 @@ export const RESERVATION_PROVIDER_TOOLS=Object.freeze({
  zentrumhub:['hotel supplier aggregation','search','availability/rate normalization','booking engine','supplier connect','B2B portal','B2C portal','markup/agent distribution'],
  viator:['product content/search','bulk/modified content','real-time availability/pricing','booking questions','booking hold','cart booking','booking status','amendment check/quote/amend','cancel quote','cancel'],
  getyourguide:['configuration','tour/product content','availability','create booking','retrieve booking','cancel booking','supplier availability notifications','ticket redemption notifications where supported'],
- 'airline-direct-ndc':['AirShopping','OfferPrice','ServiceList','OrderCreate','OrderRetrieve','OrderChange','ancillary offers','airline-specific ticket/fulfillment and servicing subject to agreement'],
+ 'direct-airline-ndc':['AirShopping','OfferPrice','ServiceList','OrderCreate','OrderRetrieve','OrderChange','ancillary offers','airline-specific ticket/fulfillment and servicing subject to agreement'],
  'host-consolidator':['private/net fare access','sub-agent booking','ticket issue','exchange/reissue','void/refund','airline servicing','commission/settlement reporting subject to contract'],
  'iata-bsp':['sales reporting','remittance','settlement','BSPlink workflows','airline-agent financial reconciliation'],
  arc:['agency status validation','ticketing-authority validation','sales/order reporting','settlement','refund/debit-credit reporting'],
