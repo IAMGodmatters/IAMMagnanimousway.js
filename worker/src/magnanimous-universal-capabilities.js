@@ -56,7 +56,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'tools-connectors',
     name: 'Tools, functions, MCP and connectors',
-    capabilities: ['function-calling','mcp','oauth-connectors','api-tools','direct-tool-calling','tool-discovery','tool-filtering','approval-gates','normalized-tool-contracts']
+    capabilities: ['function-calling','mcp','oauth-connectors','api-tools','direct-tool-calling','tool-discovery','tool-filtering','approval-gates','normalized-tool-contracts','capability-mesh','provider-readiness-routing','native-first-fallback-selection']
   },
   {
     id: 'business-operations',
@@ -100,6 +100,7 @@ export const MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL = {
     'Decompose long-horizon work into independently verifiable workstreams.',
     'Run independent low-risk workstreams in parallel when the runtime supports it.',
     'Use native/free capability first, then the best authorized connector or execution engine for missing capability.',
+    'Route infrastructure, web, repository and deployment work through the Magnanimous Capability Mesh so readiness, authorization and fallback state stay explicit.',
     'For supported public web automation, prefer the Magnanimous-owned Local Bridge + local Chromium path before any metered external web-agent provider; keep external browser agents optional fallbacks only.',
     'Use sandboxed code/computer environments for generated code, browser automation and untrusted inputs when available.',
     'Verify important outputs against evidence, tests, schemas, permissions and actual tool results.',

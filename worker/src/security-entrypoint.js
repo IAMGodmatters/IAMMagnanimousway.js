@@ -15,6 +15,7 @@ import { isPlatformOwnerUser } from './agent-branch-intelligence.js';
 import { handleVideoAgents } from './video-agent-runtime.js';
 import { handleRenderEngine } from './magnanimous-render-engine.js';
 import { handleCredentialVaultMigration } from './credential-vault-migration.js';
+import { handleMagnanimousCapabilityMesh } from './magnanimous-capability-mesh.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -216,6 +217,16 @@ export default {
       }
 
       const policyUrl=new URL(policyRequest.url);
+      if(policyUrl.pathname.startsWith('/api/magnanimous/capability-mesh')){
+        const meshProviderEnv=await getProviderRuntimeEnv(env);
+        const meshResponse=await handleMagnanimousCapabilityMesh(policyRequest,env,{providerEnv:meshProviderEnv});
+        if(meshResponse){
+          const assistantCompleted=await completeAssistantActionPolicy(assistantContext,meshResponse,env);
+          const carrierCompleted=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
+          return finalizeResponse(request,await securityPostflight(policyRequest,carrierCompleted,env));
+        }
+      }
+
       const infrastructureResponse=await handleMagnanimousInfrastructure(policyRequest,env);
       if(infrastructureResponse){
         const assistantCompleted=await completeAssistantActionPolicy(assistantContext,infrastructureResponse,env);

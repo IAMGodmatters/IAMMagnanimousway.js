@@ -92,7 +92,7 @@ async function githubRequest(env,method,path,body){
  }catch(error){return{ok:false,status:502,data:{message:'Repository adapter request failed.',detail:clip(error?.message||error,500)}};}
 }
 
-function readiness(env){
+export function magnanimousDevAgentSummary(env){
  return{
   identity:'Magnanimous Dev Agent',
   brain:'Magnanimous AI',
@@ -273,7 +273,7 @@ export async function handleMagnanimousDevAgent(request,env){
 
  if(request.method==='GET'&&path==='/api/magnanimous/dev-agent'){
   const {results=[]}=await env.DB.prepare('SELECT id,repo,action,risk_class,status,created_at,confirmed_at,completed_at,response_status,error_text FROM magnanimous_dev_actions WHERE tenant_id=? ORDER BY created_at DESC LIMIT 40').bind(user.tenant_id).all();
-  return json({...readiness(env),skill_count:MAGNANIMOUS_DEV_SKILLS.length,skills_endpoint:'/api/magnanimous/dev-agent/skills',actions:results});
+  return json({...magnanimousDevAgentSummary(env),skill_count:MAGNANIMOUS_DEV_SKILLS.length,skills_endpoint:'/api/magnanimous/dev-agent/skills',actions:results});
  }
  if(request.method==='GET'&&path==='/api/magnanimous/dev-agent/skills')return json({identity:'Magnanimous Dev Agent',skills:MAGNANIMOUS_DEV_SKILLS,codex_dependency_required:false,tool_foundry_seeded:true});
  if(request.method==='POST'&&path==='/api/magnanimous/dev-agent/plan'){

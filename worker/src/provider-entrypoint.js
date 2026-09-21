@@ -18,6 +18,7 @@ Magnanimous AI is the durable remembrance layer for the platform: decisions, use
 When the user supplies a public link, learn the readable information into the tenant knowledge workspace so the user does not have to keep supplying the same link. Do not copy secrets, credentials, paywalled material or proprietary backend code.
 Repeated successful low-risk workflows should become reusable Magnanimous-native recipes. External providers remain necessary only when they offer a capability, live data, account access or compute Magnanimous cannot truthfully reproduce natively.
 Specialist agents are execution arms. Magnanimous owns planning, continuity, routing, verification and learning across them.
+Use the Magnanimous Capability Mesh as the provider-neutral execution map for native web, GitHub engineering, Magnanimous Cloud, optional Cloudflare adapters and optional Railway capacity rails. Prefer native-ready surfaces, report degraded readiness truthfully, and never confuse an installed contract with a live authorized executor.
 Never claim an external action happened without an actual authorized tool result. Never bypass security, identity, payment or permission boundaries.`;
 
 const PROVIDERS = [
@@ -39,6 +40,7 @@ const TOOLS = [
   ['writing','Writing Helper','Create, rewrite, summarize and polish content.'],
   ['research','Research Helper','Research live web/news sources and private workspace knowledge.'],
   ['native-web','Native Web Agent','Magnanimous-owned browser search, rendered extraction, browser workflows, persistent local sessions and monitoring through a paired Local Bridge.'],
+  ['capability-mesh','Capability Mesh','Unified Magnanimous routing across native web, GitHub, Magnanimous Cloud, Cloudflare adapters and Railway deployment rails.'],
   ['bible-study','Bible Study','Study Scripture and organize biblical topics.'],
   ['marketing','Marketing Helper','Create campaigns, captions, offers and content plans.'],
   ['business','Business Helper','Business planning, ideas and analysis.'],
@@ -260,7 +262,7 @@ async function handle(request, env) {
     routing:{task_aware:true,automatic_failover:true,manual_provider_override:true,free_first_default:true,maximum_quality_option:true,learned_tool_planning:true,integration_ranking:true,adaptive_provider_learning:true,ogenic_god_toolkit:true,cloud_local_hybrid:true,suggestive_initiation:true},
     providers:PROVIDERS.map(p=>({id:p.id,name:p.name,tier:p.tier,configured:configured(env,p),enabled:p.tier!=='metered'||meteredEnabled(env)})),
     knowledge:{private_workspace_grounding:true,live_web_search:true,news_search:true,automatic_link_learning:true,remembered_research:true,brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY),fallback_enabled:true},
-    execution:{specialist_agent_mesh:true,connected_actions:true,crm:true,business_email:true,calling:true,video:true,social:true,professional_business_launch:true,tool_foundry:true,universal_tool_gateway:true,native_recipe_growth:true,ogenic_god_toolkit:true,netwalk_contract:true,safe_action_initiation:true,native_web_agent:true},
+    execution:{specialist_agent_mesh:true,connected_actions:true,crm:true,business_email:true,calling:true,video:true,social:true,professional_business_launch:true,tool_foundry:true,universal_tool_gateway:true,capability_mesh:true,native_recipe_growth:true,ogenic_god_toolkit:true,netwalk_contract:true,safe_action_initiation:true,native_web_agent:true},
     native_web:{runtime:true,browser_ready:nativeBrowserReady,search:true,rendered_fetch:true,batch_fetch:true,source_backed_research:true,read_flows:true,interactive_flows:true,persistent_local_profiles:true,persistent_browser_sessions:true,status_streaming:true,completion_webhooks:true,scheduled_monitoring:true,monitor_run_now:true,usage_accounting:true,free_first:true,tinyfish_required:false,remote_cdp_exposed:false,owned_geo_proxy_fleet:false,execution_surface:'Magnanimous Local Bridge + local Chromium'},
     learning_loop:['absorb links and sources','retrieve saved knowledge','plan centrally','route execution','verify outcome','score providers and recipes','promote successful low-risk recipes'],
     business_launch:{pipeline:['Intake','Clarify','Research','Validate','Financial Review','Draft','Hostile Review','Consistency Check','Audience Adaptation','Final Polish']},

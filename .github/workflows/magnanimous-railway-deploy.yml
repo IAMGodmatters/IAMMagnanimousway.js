@@ -3,6 +3,12 @@ name: Magnanimous Railway Exact Commit Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Optional exact 40-character commit SHA to promote. Defaults to the dispatched main revision.
+        required: false
+        type: string
 
 permissions:
   actions: read
@@ -20,13 +26,22 @@ jobs:
     env:
       STANDALONE_ORIGIN: https://magnanimous-production.up.railway.app
       DEPLOY_OIDC_AUDIENCE: magnanimous-railway-deploy
-      TARGET_SHA: ${{ github.sha }}
+      TARGET_SHA: ${{ inputs.commit_sha || github.sha }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.commit_sha || github.sha }}
           fetch-depth: 2
+
+      - name: Validate exact deployment target
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! [[ "$TARGET_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::error::TARGET_SHA must be a full 40-character Git commit SHA."
+            exit 1
+          fi
 
       - name: Detect standalone runtime impact
         id: runtime-impact
