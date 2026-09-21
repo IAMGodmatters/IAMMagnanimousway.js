@@ -25,6 +25,8 @@ jobs:
         run: node qa/scripts/magnanimous-b2b-network-lock.mjs
       - name: Verify Magnanimous reservation service
         run: node qa/scripts/magnanimous-reservation-service-lock.mjs
+      - name: Verify Magnanimous travel agency portal
+        run: node qa/scripts/magnanimous-travel-agency-lock.mjs
       - name: Verify full-brain D1 materializer
         run: |
           rm -rf /tmp/magnanimous-full-brain-ci
