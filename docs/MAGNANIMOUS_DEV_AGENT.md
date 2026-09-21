@@ -36,11 +36,11 @@ Repositories are restricted by `MAGNANIMOUS_DEV_REPOS`. Production defaults to:
 
 `IAMGodmatters/IAMMagnanimousway.js`
 
-Public repository reads can work without a write token where the repository provider permits it. Repository mutations require a protected Worker secret named:
+Public repository reads can work without authenticated write access where the repository provider permits it. Durable repository authentication uses the Magnanimous-owned GitHub App. Configure the App ID in `MAGNANIMOUS_GITHUB_APP_ID` and store the downloaded private key only as the protected server-side secret `MAGNANIMOUS_GITHUB_APP_PRIVATE_KEY`.
 
-`GITHUB_PLATFORM_TOKEN`
+Magnanimous signs a short-lived GitHub App JWT, discovers the installation attached to the target repository, and mints a short-lived installation token automatically. The installation token is cached only until shortly before expiration and is regenerated without owner intervention. GitHub App access remains limited by the repositories and permissions selected during installation.
 
-The token must be stored server-side only. It is never entered or rendered in the browser. Use least privilege. For this repository, prefer a fine-grained token or GitHub App installation token limited to the required repository and required permissions only.
+`GITHUB_PLATFORM_TOKEN` remains supported only as a temporary fallback during migration. It must stay server-side and should be revoked after the GitHub App path is verified in production.
 
 The platform does not inherit ChatGPT/Codex connector credentials automatically. External account authorization remains explicit.
 
