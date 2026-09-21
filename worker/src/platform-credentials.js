@@ -162,6 +162,17 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'PEPPOL_ACCESS_POINT_URL',label:'Peppol Service Provider / Access Point URL',secret:false,required:false},
   {key:'PEPPOL_ACCESS_POINT_TOKEN',label:'Peppol Service Provider Token / Secret',secret:true,required:false}
  ]},
+ {id:'b2b-marketplaces',name:'B2B / Marketplace Commerce Connections',providers:[],fields:[
+  {key:'AMAZON_SPAPI_CLIENT_ID',label:'Amazon SP-API Login with Amazon Client ID',secret:false,required:false},
+  {key:'AMAZON_SPAPI_CLIENT_SECRET',label:'Amazon SP-API Login with Amazon Client Secret',secret:true,required:false},
+  {key:'AMAZON_SPAPI_REFRESH_TOKEN',label:'Amazon SP-API Selling Partner Refresh Token',secret:true,required:false},
+  {key:'AMAZON_SPAPI_SELLER_ID',label:'Amazon Seller / Merchant ID',secret:false,required:false},
+  {key:'WALMART_CLIENT_ID',label:'Walmart Marketplace Client ID',secret:false,required:false},
+  {key:'WALMART_CLIENT_SECRET',label:'Walmart Marketplace Client Secret',secret:true,required:false},
+  {key:'EBAY_CLIENT_ID',label:'eBay OAuth Client ID',secret:false,required:false},
+  {key:'EBAY_CLIENT_SECRET',label:'eBay OAuth Client Secret',secret:true,required:false},
+  {key:'EBAY_REFRESH_TOKEN',label:'eBay Seller Refresh Token',secret:true,required:false}
+ ]},
  {id:'b2b-logistics',name:'B2B Shipping, Freight & Logistics',providers:[],fields:[
   {key:'UPS_CLIENT_ID',label:'UPS OAuth Client ID',secret:false,required:false},
   {key:'UPS_CLIENT_SECRET',label:'UPS OAuth Client Secret',secret:true,required:false},
