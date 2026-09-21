@@ -63,7 +63,7 @@ export const B2B_OPPORTUNITY_FAMILIES=Object.freeze([
  ['travel-support-bpo','24/7 booking support, disruptions, exchanges, refunds and traveler servicing.'],
  ['supplier-data-services','Catalog enrichment, PIM, product mapping, pricing and inventory data services.'],
  ['procure-to-pay-services','Supplier onboarding, PO, receipt, invoice, approval, reconciliation and AP automation.']
-].map(([id,description])=>({id,description}));
+].map(([id,description])=>({id,description})));
 
 export const B2B_SKILLS=Object.freeze([
  ['supplier-discovery','sourcing','Find manufacturers, wholesalers, distributors and service suppliers using evidence-backed criteria.'],
@@ -144,7 +144,7 @@ export const B2B_SKILLS=Object.freeze([
  ['travel-markup-commission','travel','Apply service fees, markups, agent splits and commission policy transparently.'],
  ['travel-support-queue','travel','Run post-booking queues for changes, cancellations, refunds and supplier escalation.'],
  ['travel-white-label','travel','Design tenant/sub-agent portals with branding, markup, wallet, API and audit boundaries.']
-].map(([id,category,description])=>({id,category,description,owner:'Magnanimous AI'}));
+].map(([id,category,description])=>({id,category,description,owner:'Magnanimous AI'})));
 
 export const UNIVERSAL_B2B_CONNECTIONS=Object.freeze([
  {id:'sap-business-network',name:'SAP Business Network',family:'procurement-network',mode:'account-or-edi-connector',capabilities:['buyer/supplier collaboration','source-to-settle','PO','acknowledgement','ASN','invoice','cXML','X12','UN/EDIFACT'],status:'account-or-trading-partner-setup-required',docs:['https://www.sap.com/products/spend-management/ariba-network.html','https://help.sap.com/docs/business-network-for-trading-partners/introduction-to-business-network/how-suppliers-connect-to-sap-business-network']},
