@@ -32,10 +32,10 @@ for(const id of [
  'air-ancillaries','air-change-reshop','air-cancel-refund','hotel-search-book','hotel-modify-cancel','cars-transfers',
  'tours-activities','travel-packages','travel-markup-commission','travel-credit-ledger','corporate-travel-policy',
  'corporate-travel-expense','traveler-profiles','group-travel','travel-white-label','travel-support-queue',
- 'universal-b2b-connector','edi-x12-mapping','edifact-mapping','cxml-procurement','peppol-eprocurement','gs1-master-data','supplier-punchout','three-way-match','supplier-scorecards','demand-forecasting','trade-document-pack','b2b-opportunity-discovery','tender-response','warehouse-3pl','parcel-carrier-routing','ocean-freight-routing','travel-accreditation-readiness','ndc-offer-order','one-order-lifecycle','airline-direct-connect','agency-identity-tids','bsp-settlement','arc-accreditation-settlement','air-consolidator-host','travelgate-hotel-network','mice-events','cruise-rail-ferry-bus','adm-acm-management','travel-mid-back-office'
+ 'universal-b2b-connector','marketplace-channel-operations','business-marketplace-procurement','edi-x12-mapping','edifact-mapping','cxml-procurement','peppol-eprocurement','gs1-master-data','supplier-punchout','three-way-match','supplier-scorecards','demand-forecasting','trade-document-pack','b2b-opportunity-discovery','tender-response','warehouse-3pl','parcel-carrier-routing','ocean-freight-routing','travel-accreditation-readiness','ndc-offer-order','one-order-lifecycle','airline-direct-connect','agency-identity-tids','bsp-settlement','arc-accreditation-settlement','air-consolidator-host','travelgate-hotel-network','mice-events','cruise-rail-ferry-bus','adm-acm-management','travel-mid-back-office'
 ])assert.ok(caps.some(x=>x.capability===id),'Missing B2B capability '+id);
 
-for(const id of ['shopify-b2b','alibaba-sourcing','amadeus','sabre','travelport','duffel','zentrumhub','hbx-hotelbeds','expedia-rapid','viator','getyourguide','brex-travel','netsuite','sap-business-network','coupa','peppol-service-provider','gs1','un-cefact','faire','thomasnet','ups','fedex','dhl','maersk','iata-ndc','iata-one-order','iata-tids','iata-bsp','arc','airline-direct-ndc','travelgate','ratehawk','tbo'])
+for(const id of ['shopify-b2b','alibaba-sourcing','amazon-business','amazon-sp-api','walmart-marketplace','ebay-sell','amadeus','sabre','travelport','duffel','zentrumhub','hbx-hotelbeds','expedia-rapid','viator','getyourguide','brex-travel','netsuite','sap-business-network','coupa','peppol-service-provider','gs1','un-cefact','faire','thomasnet','ups','fedex','dhl','maersk','iata-ndc','iata-one-order','iata-tids','iata-bsp','arc','airline-direct-ndc','travelgate','ratehawk','tbo'])
  assert.ok(connections.some(x=>x.id===id),'Missing B2B connection '+id);
 
 for(const row of caps){
@@ -79,7 +79,7 @@ assert.ok(runtime.includes('Verify price, availability')||runtime.includes('repr
 assert.ok(runtime.includes('Magnanimous owns the plan, memory, policy, normalization and verification'));
 
 const creds=fs.readFileSync('worker/src/platform-credentials.js','utf8');
-for(const key of ['AMADEUS_CLIENT_ID','SABRE_CLIENT_ID','TRAVELPORT_CLIENT_ID','DUFFEL_ACCESS_TOKEN','HBX_API_KEY','EXPEDIA_RAPID_API_KEY','VIATOR_API_KEY','GETYOURGUIDE_API_TOKEN','ZENTRUMHUB_API_KEY','NETSUITE_ACCOUNT_ID','COUPA_CLIENT_ID','PEPPOL_ACCESS_POINT_TOKEN','UPS_CLIENT_ID','FEDEX_CLIENT_ID','DHL_API_KEY','MAERSK_CONSUMER_KEY','TRAVELGATE_ACCESS_TOKEN','RATEHAWK_API_KEY','IATA_TIDS_CODE','IATA_NUMERIC_CODE','ARC_NUMBER'])
+for(const key of ['AMAZON_SPAPI_CLIENT_ID','AMAZON_SPAPI_CLIENT_SECRET','AMAZON_SPAPI_REFRESH_TOKEN','WALMART_CLIENT_ID','WALMART_CLIENT_SECRET','EBAY_CLIENT_ID','EBAY_CLIENT_SECRET','EBAY_REFRESH_TOKEN','AMADEUS_CLIENT_ID','SABRE_CLIENT_ID','TRAVELPORT_CLIENT_ID','DUFFEL_ACCESS_TOKEN','HBX_API_KEY','EXPEDIA_RAPID_API_KEY','VIATOR_API_KEY','GETYOURGUIDE_API_TOKEN','ZENTRUMHUB_API_KEY','NETSUITE_ACCOUNT_ID','COUPA_CLIENT_ID','PEPPOL_ACCESS_POINT_TOKEN','UPS_CLIENT_ID','FEDEX_CLIENT_ID','DHL_API_KEY','MAERSK_CONSUMER_KEY','TRAVELGATE_ACCESS_TOKEN','RATEHAWK_API_KEY','IATA_TIDS_CODE','IATA_NUMERIC_CODE','ARC_NUMBER'])
  assert.ok(creds.includes(key),'Platform credential vault must support '+key);
 
 const entry=fs.readFileSync('worker/src/progress-entrypoint.js','utf8');
