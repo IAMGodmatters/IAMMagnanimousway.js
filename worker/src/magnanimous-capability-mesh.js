@@ -183,7 +183,7 @@ async function saveCheck(env,summary){
  const id='mesh_'+crypto.randomUUID(),ts=now();
  await env.DB.prepare('INSERT INTO magnanimous_capability_mesh_checks(id,status,ready_count,total_count,result_json,created_at) VALUES(?,?,?,?,?,?)')
   .bind(id,summary.status,Number(summary.ready_count||0),Number(summary.total_readiness_checks||0),JSON.stringify(summary).slice(0,500000),ts).run();
- return{id,created_at:ts};
+ return{id,status:summary.status,ready_count:Number(summary.ready_count||0),total_count:Number(summary.total_readiness_checks||0),created_at:ts};
 }
 
 async function recentChecks(env){
