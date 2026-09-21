@@ -1,0 +1,101 @@
+name: Magnanimous Railway Exact Commit Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+
+concurrency:
+  group: magnanimous-railway-exact-commit-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      STANDALONE_ORIGIN: https://magnanimous-production.up.railway.app
+      DEPLOY_OIDC_AUDIENCE: magnanimous-railway-deploy
+      TARGET_SHA: ${{ github.sha }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Wait for Full Platform QA on this exact commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          success=0
+          for attempt in $(seq 1 180); do
+            json="$(gh run list --commit "$TARGET_SHA" --workflow "Full Platform QA" --limit 20 --json databaseId,status,conclusion,headSha 2>/dev/null || printf '[]')"
+            state="$(printf '%s' "$json" | TARGET_SHA="$TARGET_SHA" python -c 'import json,os,sys; rows=json.load(sys.stdin); sha=os.environ["TARGET_SHA"]; rows=[r for r in rows if r.get("headSha")==sha]; print((rows[0].get("conclusion") or rows[0].get("status") or "missing") if rows else "missing")')"
+            if [ "$state" = "success" ]; then success=1; break; fi
+            case "$state" in
+              failure|cancelled|timed_out|action_required|startup_failure)
+                echo "::error::Full Platform QA ended with $state for $TARGET_SHA."
+                exit 1
+                ;;
+            esac
+            echo "Waiting for Full Platform QA on $TARGET_SHA (state=$state, attempt $attempt/180)."
+            sleep 10
+          done
+          [ "$success" = "1" ] || { echo "::error::Full Platform QA did not reach success in time."; exit 1; }
+
+      - name: Request exact-commit deployment through Magnanimous OIDC gateway
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '{"commit_sha":"%s"}' "$TARGET_SHA" >/tmp/magnanimous-railway-deploy-request.json
+          success=0
+          for attempt in $(seq 1 30); do
+            oidc_json="$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${DEPLOY_OIDC_AUDIENCE}")"
+            oidc_token="$(printf '%s' "$oidc_json" | python -c 'import json,sys; print(json.load(sys.stdin)["value"])')"
+            status="$(curl -sS --connect-timeout 10 --max-time 60               -o /tmp/magnanimous-railway-deploy-response.json -w '%{http_code}'               -X POST               -H "Authorization: Bearer $oidc_token"               -H "Content-Type: application/json"               --data-binary @/tmp/magnanimous-railway-deploy-request.json               "$STANDALONE_ORIGIN/__magnanimous_runtime/deployment/railway" || true)"
+            if [ "$status" = "200" ]; then success=1; break; fi
+            if [ "$status" = "503" ]; then
+              echo "::error::Magnanimous Railway deploy gateway is not configured with its production-scoped Railway project token."
+              cat /tmp/magnanimous-railway-deploy-response.json 2>/dev/null || true
+              exit 1
+            fi
+            echo "Magnanimous deploy gateway not ready yet (HTTP $status, attempt $attempt/30)."
+            sleep 10
+          done
+          [ "$success" = "1" ] || { echo "::error::Exact-commit Railway deployment request failed."; exit 1; }
+          python - <<'PY'
+          import json,os
+          d=json.load(open('/tmp/magnanimous-railway-deploy-response.json'))
+          assert d.get('ok') is True,d
+          assert d.get('commit_sha') == os.environ['TARGET_SHA'],d
+          assert d.get('deployment_id'),d
+          print('Magnanimous exact-commit Railway deployment accepted: '+d['deployment_id'])
+          PY
+
+      - name: Verify the live standalone runtime is this exact commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          success=0
+          for attempt in $(seq 1 90); do
+            if curl -fsS --connect-timeout 10 --max-time 30 "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/tmp/magnanimous-live-health.json; then
+              live="$(python -c 'import json; print(json.load(open("/tmp/magnanimous-live-health.json")).get("deploy_revision",""))')"
+              if [ "$live" = "$TARGET_SHA" ]; then success=1; break; fi
+              echo "Live Railway revision is $live; waiting for $TARGET_SHA (attempt $attempt/90)."
+            else
+              echo "Standalone health is temporarily unavailable during rollout (attempt $attempt/90)."
+            fi
+            sleep 10
+          done
+          [ "$success" = "1" ] || { echo "::error::Railway did not make exact commit $TARGET_SHA healthy in time."; exit 1; }
+          echo "Magnanimous Railway exact-commit deployment PASS: $TARGET_SHA"
+
+      - name: Destroy transient deployment files
+        if: always()
+        shell: bash
+        run: |
+          rm -f /tmp/magnanimous-railway-deploy-request.json /tmp/magnanimous-railway-deploy-response.json /tmp/magnanimous-live-health.json

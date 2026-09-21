@@ -34,6 +34,23 @@ jobs:
         with:
           node-version: 24
 
+      - name: Wait for exact standalone revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          success=0
+          for attempt in $(seq 1 180); do
+            if curl -fsS --connect-timeout 10 --max-time 30 "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/tmp/magnanimous-runtime-health.json; then
+              live="$(python -c 'import json; print(json.load(open("/tmp/magnanimous-runtime-health.json")).get("deploy_revision",""))')"
+              if [ "$live" = "$GITHUB_SHA" ]; then success=1; break; fi
+              echo "Standalone revision is $live; waiting for $GITHUB_SHA (attempt $attempt/180)."
+            else
+              echo "Standalone health unavailable during deploy (attempt $attempt/180)."
+            fi
+            sleep 10
+          done
+          [ "$success" = "1" ] || { echo "::error::Standalone runtime never reached exact revision $GITHUB_SHA."; exit 1; }
+
       - name: Build FTS-safe logical production snapshot
         shell: bash
         run: |
@@ -104,7 +121,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          for file in /tmp/d1-production-logical.sqlite /tmp/d1-production-summary.json /tmp/stage-response.json; do
+          for file in /tmp/magnanimous-runtime-health.json /tmp/d1-production-logical.sqlite /tmp/d1-production-summary.json /tmp/stage-response.json; do
             if [ -f "$file" ]; then
               size="$(stat -c%s "$file" 2>/dev/null || echo 0)"
               if [ "$size" -gt 0 ]; then
