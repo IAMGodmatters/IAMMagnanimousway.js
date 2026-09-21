@@ -20,6 +20,7 @@ import {handleWhiteLabelNativeProducts} from './white-label-native-products.js';
 import {handleWhiteLabelWhatsApp} from './white-label-whatsapp-inbox.js';
 import {handleMagnanimousNativeWeb,scheduledNativeWeb} from './magnanimous-native-web-runtime.js';
 import {scheduledMagnanimousCapabilityMesh} from './magnanimous-capability-mesh.js';
+import {handleMagnanimousRoutineStudio,scheduledMagnanimousRoutines} from './magnanimous-skill-routine-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -125,6 +126,7 @@ async function operationsFetch(request,env,ctx){
 
   try{const developer=await handleMagnanimousDevAgent(request,env);if(developer)return developer}catch(error){console.error('Magnanimous developer agent failed',error);return json({detail:'Magnanimous developer agent could not complete this request.'},500)}
   try{const nativeWeb=await handleMagnanimousNativeWeb(request,env);if(nativeWeb)return nativeWeb}catch(error){console.error('Magnanimous Native Web failed',error);return json({detail:'Magnanimous Native Web could not complete this request.'},500)}
+  try{const routineStudio=await handleMagnanimousRoutineStudio(request,env);if(routineStudio)return routineStudio}catch(error){console.error('Magnanimous Routine Studio failed',error);return json({detail:error?.message||'Magnanimous Routine Studio could not complete this request.'},500)}
   try{const growth=await handleGrowthRecovery(request,env);if(growth)return growth}catch(error){console.error('growth recovery layer failed',error);return json({detail:'Growth Funnel could not complete this request.'},500)}
 
   try{
@@ -216,7 +218,8 @@ export default{
   const task=Promise.all([
    scheduledGrowth(env,origin).catch(error=>console.error('scheduled growth automation failed',error)),
    scheduledNativeWeb(env).catch(error=>console.error('scheduled native web automation failed',error)),
-   scheduledMagnanimousCapabilityMesh(env).catch(error=>console.error('scheduled capability mesh check failed',error))
+   scheduledMagnanimousCapabilityMesh(env).catch(error=>console.error('scheduled capability mesh check failed',error)),
+   scheduledMagnanimousRoutines(env).catch(error=>console.error('scheduled Magnanimous routines failed',error))
   ]);
   if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
  }
