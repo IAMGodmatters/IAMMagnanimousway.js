@@ -640,7 +640,7 @@ export default function VideoStudio() {
           <h1>Video Studio</h1>
           <p>
             Create a downloadable animated text video on this device. When a
-            visual AI provider is connected, Magnanimous can first generate a
+            Magnanimous visual generation is ready, Magnanimous can first generate a
             background scene; otherwise Classic mode uses the built-in graphic
             background.
           </p>
@@ -707,7 +707,7 @@ export default function VideoStudio() {
               AI VISUAL · {readyVisuals.length ? "CONNECTED" : "NOT CONNECTED"}
             </span>
             <small style={{ opacity: 0.7, lineHeight: 1.4 }}>
-              Generates a background scene through a connected visual provider,
+              Generates a background scene through a Magnanimous visual routing,
               then animates the title and text on this device.
             </small>
           </div>
@@ -732,7 +732,7 @@ export default function VideoStudio() {
             </span>
             <small style={{ opacity: 0.7, lineHeight: 1.4 }}>
               Creates an animated text video in browsers that support canvas
-              capture and MediaRecorder. No paid video provider is required.
+              capture and MediaRecorder. No paid video service is required.
             </small>
           </div>
         </div>
