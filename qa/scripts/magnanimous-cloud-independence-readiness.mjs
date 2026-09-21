@@ -72,7 +72,7 @@ for(const contract of [
  'MAGNANIMOUS_PIPELINE','MAGNANIMOUS_SANDBOX','MAGNANIMOUS_BROWSER','MAGNANIMOUS_IMAGES','MAGNANIMOUS_IMAGE_GENERATOR',
  'MAGNANIMOUS_CLOUD_CONTROL','CLOUD_CONTROL','/__magnanimous_runtime/cloud',
  '/__magnanimous_runtime/metrics','/__magnanimous_runtime/services','/__magnanimous_runtime/migration/stage-d1','/__magnanimous_runtime/migration/stage-secrets','/__magnanimous_runtime/migration/stage-credential-rewrap',
- '/__magnanimous_runtime/deployment/railway','RAILWAY_GIT_COMMIT_SHA','deploy_revision'
+ '/__magnanimous_runtime/deployment','/__magnanimous_runtime/deployment/railway','RAILWAY_GIT_COMMIT_SHA','deploy_revision'
 ])must(server.includes(contract),'Standalone server contract missing: '+contract);
 
 const compose=read('magnanimous-runtime/docker-compose.yml');
@@ -154,7 +154,7 @@ for(const contract of ['https://backboard.railway.com/graphql/v2','Project-Acces
  must(railwayDeploy.includes(contract),'First-party Railway deploy adapter missing: '+contract);
 must(!railwayDeploy.includes('console.log(token)'),'Railway deploy token must never be logged.');
 const railwayDeployWorkflow=read('.github/workflows/magnanimous-railway-deploy.yml');
-for(const contract of ['id-token: write','Full Platform QA','magnanimous-railway-deploy','/__magnanimous_runtime/deployment/railway','deploy_revision'])
+for(const contract of ['id-token: write','Full Platform QA','magnanimous-railway-deploy','/__magnanimous_runtime/deployment','deploy_revision'])
  must(railwayDeployWorkflow.includes(contract),'Railway exact-commit workflow missing: '+contract);
 must(railwayDeployWorkflow.includes('Wait for verified main auto-deploy or detect already live'),'Railway deployment workflow must wait for the verified GitHub main auto-deploy before requiring a provider token.');
 must(railwayDeployWorkflow.includes("no Railway project token is required"),'Railway deployment workflow must preserve a tokenless normal path when GitHub main auto-deploy succeeds.');
