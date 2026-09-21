@@ -167,18 +167,18 @@ export default function AIReceptionist() {
     <section className="hero">
       <div>
         <small>EASY VOICE + VIDEO</small>
-        <h1>Choose how you want your AI assistant to communicate.</h1>
-        <p>You do not need to understand phone carriers, video providers or technical setup. Start with the free options. Real phone-number calling and photorealistic live video appear automatically when those optional services are available for your plan.</p>
+        <h1>Choose how you want Magnanimous AI to communicate.</h1>
+        <p>You do not need to understand the private phone, video or compute rails. Start with the native/free Magnanimous options. Real phone-number calling and photorealistic live video appear automatically when those optional services are authorized and available for your plan.</p>
       </div>
       <div className="legend">
         <div><span className="on">●</span><b>READY</b><p>You can use it now.</p></div>
         <div><span className="free">●</span><b>FREE</b><p>No outside phone/video provider required.</p></div>
-        <div><span className="optional">○</span><b>OPTIONAL</b><p>Extra service that may have provider costs.</p></div>
+        <div><span className="optional">○</span><b>OPTIONAL</b><p>Extra service that may have outside service costs.</p></div>
       </div>
     </section>
 
     <section className="choices">
-      <a href="/agents" className="choice ready"><span>01</span><div><small>FREE • READY</small><h2>Talk to an AI agent</h2><p>Use your microphone or type. The agent can answer out loud with the free browser voice system.</p><b>Talk to an agent →</b></div></a>
+      <a href="/agents" className="choice ready"><span>01</span><div><small>FREE • READY</small><h2>Talk to a Magnanimous specialist</h2><p>Use your microphone or type. The agent can answer out loud with the free browser voice system.</p><b>Talk to an agent →</b></div></a>
       <a href="/phone" className="choice ready"><span>02</span><div><small>FREE • READY</small><h2>Make a browser call</h2><p>Call another signed-in browser user without a phone carrier. Useful for teams and simple call-center communication.</p><b>Open free calling →</b></div></a>
       <button className={`choice ${phoneReady?'ready':'optionalChoice'}`} onClick={()=>document.getElementById('real-phone')?.scrollIntoView({behavior:'smooth'})}><span>03</span><div><small>{phoneReady?'READY':'OPTIONAL'}</small><h2>Call a real phone number</h2><p>Have an AI assistant call a mobile phone or landline for reception, follow-up, sales or scheduling.</p><b>{phoneReady?'Set up a call →':'See what is needed →'}</b></div></button>
       <button className={`choice ${videoReady?'ready':'optionalChoice'}`} onClick={()=>document.getElementById('live-video')?.scrollIntoView({behavior:'smooth'})}><span>04</span><div><small>{videoReady?'READY':'OPTIONAL'}</small><h2>Start human-like live video</h2><p>Open a face-to-face AI conversation with a photorealistic video assistant when the video service is available.</p><b>{videoReady?'Start video setup →':'See what is needed →'}</b></div></button>
