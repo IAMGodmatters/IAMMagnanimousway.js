@@ -134,10 +134,12 @@ requireText(gateway, 'External tools extend Magnanimous.', 'tool gateway');
 requireText(provider, 'Never bypass security, identity, payment or permission boundaries.', 'provider entrypoint');
 
 // Standalone distribution must remain another front door into the SAME central brain, never a fork.
-requireText(standalone, "fetch('/api/chat'", 'standalone Magnanimous');
+requireText(standalone, "postMagnanimousChat('/api/chat'", 'standalone Magnanimous');
 requireText(standalone, 'use_knowledge:true', 'standalone Magnanimous');
-requireText(standalone, 'use_tools:true', 'standalone Magnanimous');
-requireText(standalone, 'learn_links:true', 'standalone Magnanimous');
+requireText(standalone, "const researchMode=activeMode.id==='research'", 'standalone Magnanimous');
+requireText(standalone, 'use_tools:!researchMode', 'standalone Magnanimous');
+requireText(standalone, 'learn_links:!researchMode', 'standalone Magnanimous');
+requireText(standalone, 'retryTransientEdgeOnce:researchMode', 'standalone Magnanimous');
 requireText(standalone, 'remember_search:true', 'standalone Magnanimous');
 requireText(standalone, 'specialist_routing:true', 'standalone Magnanimous');
 requireText(standalone, 'Magnanimous core', 'standalone Magnanimous');

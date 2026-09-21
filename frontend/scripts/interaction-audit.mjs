@@ -81,7 +81,7 @@ if(fs.existsSync(magnanimousPagePath)){
  const magnanimousPage=fs.readFileSync(magnanimousPagePath,'utf8');
  if(!/className\s*=\s*["']mag-standalone["']/.test(magnanimousPage))failures.push('app/magnanimous/page.tsx: standalone interface shell is missing');
  if(!magnanimousPage.includes("fetch('/api/magnanimous/health'"))failures.push('app/magnanimous/page.tsx: Magnanimous health check is missing');
- if(!magnanimousPage.includes("fetch('/api/chat'"))failures.push('app/magnanimous/page.tsx: Magnanimous chat endpoint is missing');
+ if(!magnanimousPage.includes("postMagnanimousChat('/api/chat'"))failures.push('app/magnanimous/page.tsx: resilient Magnanimous chat endpoint is missing');
  if(!magnanimousPage.includes('/login?returnTo=%2Fmagnanimous'))failures.push('app/magnanimous/page.tsx: persistent-memory sign-in return path is missing');
  if(!magnanimousPage.includes('Guest session'))failures.push('app/magnanimous/page.tsx: guest-session UI contract is missing');
 }

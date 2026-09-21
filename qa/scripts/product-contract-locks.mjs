@@ -42,13 +42,16 @@ const platformCredentials = read('worker/src/platform-credentials.js');
 const assistantIntegrations = read('worker/src/assistant-integrations.js');
 const providerEntrypoint = read('worker/src/provider-entrypoint.js');
 const branchEntrypoint = read('worker/src/branch-consent-entrypoint.js');
+const knowledgeRuntime = read('worker/src/knowledge-runtime.js');
+const progressEntrypoint = read('worker/src/progress-entrypoint-base.js');
+const chatTransport = read('frontend/lib/magnanimous-chat-transport.ts');
 
 // 1) Standalone Magnanimous AI lock.
 includes(standaloneLayout, "title:'Magnanimous AI™ — Standalone'", 'standalone: branded metadata title remains locked');
 includes(standaloneLayout, "canonical:'/magnanimous'", 'standalone: canonical /magnanimous route remains locked');
 includes(standalonePage, 'className="mag-standalone"', 'standalone: isolated interface shell remains locked');
 includes(standalonePage, "fetch('/api/magnanimous/health'", 'standalone: Magnanimous health endpoint remains wired');
-includes(standalonePage, "fetch('/api/chat'", 'standalone: Magnanimous chat endpoint remains wired');
+includes(standalonePage, "postMagnanimousChat('/api/chat'", 'standalone: resilient Magnanimous chat endpoint remains wired');
 includes(standalonePage, '/login?returnTo=%2Fmagnanimous', 'standalone: persistent-memory sign-in return path remains locked');
 includes(standalonePage, 'Guest session', 'standalone: guest-session UI contract remains locked');
 includes(standalonePage, 'MAGNANIMOUS AI™', 'standalone: Magnanimous customer-facing identity remains locked');
@@ -66,6 +69,21 @@ includes(layout, 'html[data-iam-standalone="true"] .iam-global-tools', 'standalo
 includes(platformRuntime, 'if(!standalone)loadAds()', 'standalone: advertising remains disabled');
 includes(providerEntrypoint, 'You are speaking as Magnanimous AI, the commander-in-chief orchestration brain', 'standalone: server-side Magnanimous command identity remains locked');
 includes(providerEntrypoint, 'They are never the platform identity or the final authority over the workflow.', 'standalone: external execution engines remain implementation details, not the product identity');
+includes(knowledgeRuntime, 'const SEARCH_TIMEOUT_MS=7000', 'reliability: live research sources retain bounded network timeouts');
+includes(knowledgeRuntime, 'Promise.allSettled([', 'reliability: web and news research can run concurrently instead of serially');
+includes(knowledgeRuntime, 'continuing with D1-independent research', 'reliability: live research remains available during transient D1 faults');
+includes(knowledgeRuntime, 'SEARCH_MEMORY_TIMEOUT_MS=2500', 'reliability: research-memory persistence cannot hold the answer open indefinitely');
+includes(providerEntrypoint, 'const PROVIDER_REQUEST_BUDGET_MS=55000', 'reliability: AI execution has a bounded total request budget');
+includes(providerEntrypoint, 'const CLOUDFLARE_ATTEMPT_TIMEOUT_MS=18000', 'reliability: individual Workers AI model attempts have a bounded timeout');
+includes(providerEntrypoint, 'providerDeadline=Date.now()+PROVIDER_REQUEST_BUDGET_MS', 'reliability: provider failover respects one overall request deadline');
+includes(progressEntrypoint, 'continuing request without checkpointing', 'reliability: transient D1 checkpoint failure cannot block chat execution');
+includes(branchEntrypoint, 'specialist schema unavailable; continuing core chat', 'reliability: specialist storage faults degrade to core chat instead of blocking it');
+includes(chatTransport, 'retryTransientEdgeOnce', 'reliability: research chat can retry one transient edge failure');
+includes(chatTransport, '[502,503,504]', 'reliability: automatic retry is limited to transient gateway/service errors');
+includes(aiChatPage, 'use_tools: !research', 'reliability: main Research mode is read-only when edge retry is enabled');
+includes(aiChatPage, 'retryTransientEdgeOnce: research', 'reliability: main Research mode retries transient HTML edge failures once');
+includes(standalonePage, 'use_tools:!researchMode', 'reliability: standalone Research mode is read-only when edge retry is enabled');
+includes(standalonePage, 'retryTransientEdgeOnce:researchMode', 'reliability: standalone Research mode retries transient HTML edge failures once');
 
 // 1b) Customer execution-provider privacy lock.
 includes(branchEntrypoint, 'function stripExecutionMetadata(data)', 'privacy: customer AI responses retain an execution-metadata stripping boundary');
