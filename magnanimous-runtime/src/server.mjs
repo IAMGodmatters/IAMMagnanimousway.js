@@ -22,7 +22,8 @@ import { MagnanimousMetrics } from './metrics.mjs';
 import { MagnanimousImageGenerationBinding } from './image-generation-binding.mjs';
 import { openMagnanimousCloudControl } from './cloud-control.mjs';
 import { verifyGitHubActionsOidc, stageD1SqlExport, stageD1SqliteSnapshot, stageCredentialVaultRewrap } from './migration-stage.mjs';
-import { stageRuntimeSecrets } from './runtime-secret-store.mjs';
+import { stageRuntimeSecrets, loadRuntimeSecrets } from './runtime-secret-store.mjs';
+import { deployRailwayCommit, railwayDeployConfig } from './railway-deploy.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -214,6 +215,75 @@ async function readLimitedBody(req, maxBytes) {
   return Buffer.concat(chunks);
 }
 
+function runtimeRevision() {
+  return String(
+    process.env.RAILWAY_GIT_COMMIT_SHA ||
+    process.env.MAGNANIMOUS_DEPLOY_REVISION ||
+    ''
+  ).trim();
+}
+
+async function handleRailwayDeployment(req, res, pathname) {
+  if (pathname !== '/__magnanimous_runtime/deployment/railway') return false;
+  if (req.method !== 'POST') {
+    res.statusCode = 405;
+    res.setHeader('allow', 'POST');
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({ detail: 'Method not allowed.' }));
+    return true;
+  }
+
+  const authorization = String(req.headers.authorization || '');
+  const token = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
+  if (!token) {
+    res.statusCode = 401;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({ detail: 'Signed GitHub Actions identity required.' }));
+    return true;
+  }
+
+  try {
+    const source = await verifyGitHubActionsOidc(token, {
+      audience: String(process.env.MAGNANIMOUS_RAILWAY_DEPLOY_AUDIENCE || 'magnanimous-railway-deploy'),
+      repository: String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js'),
+      ref: 'refs/heads/main',
+      workflowFile: '.github/workflows/magnanimous-railway-deploy.yml'
+    });
+    const body = await readLimitedBody(req, 65536);
+    const payload = JSON.parse(body.toString('utf8'));
+    const commitSha = String(payload?.commit_sha || '').trim();
+    if (!commitSha || commitSha !== String(source.sha || '').trim()) {
+      throw new Error('Requested Railway commit does not match the signed GitHub Actions commit.');
+    }
+    const result = await deployRailwayCommit(commitSha, { env: process.env });
+    res.statusCode = 200;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.setHeader('cache-control', 'no-store');
+    res.end(JSON.stringify({
+      ...result,
+      source: { repository: source.repository, ref: source.ref, sha: source.sha }
+    }));
+  } catch (error) {
+    const code = String(error?.code || '');
+    const notConfigured = ['RAILWAY_DEPLOY_DISABLED','RAILWAY_DEPLOY_NOT_CONFIGURED','RAILWAY_DEPLOY_SCOPE_MISSING'].includes(code);
+    const providerFailure = String(error?.message || '').startsWith('Railway exact-commit deployment failed') ||
+      String(error?.message || '').includes('deployment API returned');
+    console.error('Magnanimous Railway deployment gateway failed', String(error?.message || error));
+    res.statusCode = notConfigured ? 503 : providerFailure ? 502 : 403;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.setHeader('cache-control', 'no-store');
+    res.end(JSON.stringify({
+      detail: notConfigured
+        ? 'Magnanimous Railway deployment gateway is not configured.'
+        : providerFailure
+          ? 'Railway deployment provider request failed.'
+          : 'Railway deployment authorization failed.',
+      code: code || (providerFailure ? 'RAILWAY_DEPLOY_PROVIDER_FAILED' : 'RAILWAY_DEPLOY_FORBIDDEN')
+    }));
+  }
+  return true;
+}
+
 async function handleMigrationStage(req, res, pathname) {
   if (!['/__magnanimous_runtime/migration/stage-d1','/__magnanimous_runtime/migration/stage-secrets','/__magnanimous_runtime/migration/stage-credential-rewrap'].includes(pathname)) return false;
   if (String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_ENABLED || '').toLowerCase() !== 'true') {
@@ -249,20 +319,31 @@ async function handleMigrationStage(req, res, pathname) {
         ? '.github/workflows/magnanimous-runtime-secrets-stage.yml'
         : '.github/workflows/magnanimous-production-data-stage.yml'
     });
+    const revision = runtimeRevision();
+    if (revision && String(source.sha || '').trim() && revision !== String(source.sha || '').trim()) {
+      throw new Error('Migration staging revision mismatch: live runtime does not match the signed GitHub commit.');
+    }
     const maxBytes = pathname.endsWith('/stage-secrets') || pathname.endsWith('/stage-credential-rewrap')
       ? 1048576
       : Math.max(1048576, Number(process.env.MAGNANIMOUS_MIGRATION_MAX_BYTES || 104857600));
     const body = await readLimitedBody(req, maxBytes);
     if (pathname.endsWith('/stage-secrets')) {
       const payload = JSON.parse(body.toString('utf8'));
+      const secretFile = String(process.env.MAGNANIMOUS_RUNTIME_SECRETS_FILE || '/app/persist/secrets/runtime.json');
       const result = await stageRuntimeSecrets(payload, {
         root: String(process.env.MAGNANIMOUS_RUNTIME_SECRETS_ROOT || '/app/persist/secrets'),
-        targetPath: String(process.env.MAGNANIMOUS_RUNTIME_SECRETS_FILE || '/app/persist/secrets/runtime.json')
+        targetPath: secretFile
       });
+      const reloaded = await loadRuntimeSecrets({ file: secretFile, override: true });
       res.statusCode = 200;
       res.setHeader('content-type', 'application/json; charset=utf-8');
       res.setHeader('cache-control', 'no-store');
-      res.end(JSON.stringify({ ...result, source: { repository: source.repository, ref: source.ref, sha: source.sha } }));
+      res.end(JSON.stringify({
+        ...result,
+        reloaded: reloaded.loaded,
+        loaded_count: reloaded.count,
+        source: { repository: source.repository, ref: source.ref, sha: source.sha }
+      }));
       return true;
     }
     if (pathname.endsWith('/stage-credential-rewrap')) {
@@ -329,6 +410,11 @@ const server = http.createServer(async (req, res) => {
   try {
     const pathname = new URL(req.url || '/', 'http://local').pathname;
 
+    if (await handleRailwayDeployment(req, res, pathname)) {
+      metrics.observe(res.statusCode, Date.now() - startedAt);
+      return;
+    }
+
     if (await handleMigrationStage(req, res, pathname)) {
       metrics.observe(res.statusCode, Date.now() - startedAt);
       return;
@@ -343,6 +429,17 @@ const server = http.createServer(async (req, res) => {
           runtime: 'standalone-node',
           database: 'magnanimous-sqlite',
           migrations: migrationState,
+          deploy_revision: runtimeRevision() || null,
+          deployment_automation: (() => {
+            const config = railwayDeployConfig(process.env);
+            return {
+              provider_role: 'replaceable infrastructure adapter',
+              enabled: config.enabled,
+              configured: config.configured,
+              oidc_gateway: true,
+              exact_commit: true
+            };
+          })(),
           cloud_vendor_required: false,
           first_party_capabilities: {
             relational_sql: true,
