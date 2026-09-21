@@ -51,12 +51,12 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'agents-subagents',
     name: 'Agent teams and delegated execution',
-    capabilities: ['specialist-agents','subagents','parallel-workstreams','handoffs','supervisor-agent','consensus-review','long-horizon-work','checkpoint-resume','teach-by-demonstration','reusable-skills','scheduled-routines','routine-retries','routine-run-history','cross-agent-workspace']
+    capabilities: ['specialist-agents','subagents','parallel-workstreams','handoffs','supervisor-agent','consensus-review','long-horizon-work','checkpoint-resume','teach-by-demonstration','reusable-skills','scheduled-routines','routine-retries','routine-run-history','cross-agent-workspace','specialist-department-identity']
   },
   {
     id: 'tools-connectors',
     name: 'Tools, functions, MCP and connectors',
-    capabilities: ['function-calling','mcp','oauth-connectors','api-tools','direct-tool-calling','tool-discovery','tool-filtering','approval-gates','normalized-tool-contracts','capability-mesh','provider-readiness-routing','native-first-fallback-selection']
+    capabilities: ['function-calling','mcp','oauth-connectors','api-tools','direct-tool-calling','tool-discovery','tool-filtering','approval-gates','normalized-tool-contracts','capability-mesh','provider-readiness-routing','native-first-fallback-selection','single-public-ai-identity','private-execution-routing','unified-capability-directory']
   },
   {
     id: 'business-operations',
@@ -93,9 +93,13 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
 export const MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL = {
   identity: 'Magnanimous AI',
   role: 'central-orchestrator-and-learning-layer',
-  provider_model: 'replaceable-execution-engines',
+  provider_model: 'private-replaceable-execution-engines',
+  public_identity: 'Magnanimous AI only',
+  specialist_identity: 'Magnanimous AI departments',
   strategy: [
-    'Understand the goal and constraints before selecting tools or models.',
+    'Present Magnanimous AI as the single public AI identity across customer workspaces; specialist agents are Magnanimous departments, not separate AI products.',
+    'Keep execution-provider and model selection private to Magnanimous routing except inside owner-only configuration, diagnostics or authorization surfaces.',
+    'Understand the goal and constraints before selecting tools or models.'
     'Retrieve Magnanimous memory, knowledge and proven native recipes first.',
     'Decompose long-horizon work into independently verifiable workstreams.',
     'Run independent low-risk workstreams in parallel when the runtime supports it.',
@@ -106,7 +110,7 @@ export const MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL = {
     'Verify important outputs against evidence, tests, schemas, permissions and actual tool results.',
     'Save reusable lessons, source-backed knowledge, successful plans and low-risk recipes back into Magnanimous memory.',
     'Convert repeatable work into Magnanimous-owned skills and routines with durable run history, bounded retries and approval-aware execution.',
-    'Never expose execution-provider identity to public customers unless owner policy explicitly allows it.'
+    'Never expose execution-provider or model identity to public customers; owner-only configuration and diagnostics may show the real infrastructure needed to authorize, troubleshoot or replace it.'
   ]
 };
 
