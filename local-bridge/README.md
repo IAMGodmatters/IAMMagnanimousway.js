@@ -86,14 +86,20 @@ The Windows activation now attempts to install **Playwright 1.63.0 + Chromium** 
 
 - `browser_search` — fresh public-web search through local Chromium.
 - `browser_fetch` — JavaScript-rendered page text, links, optional HTML, and selector-based fields.
+- `browser_fetch_batch` — bounded 1–10 URL rendered-fetch batches with per-URL errors.
+- `browser_research` — search plus source-page collection for Magnanimous source-backed synthesis.
 - `browser_read_flow` — multi-step navigation, waiting, scrolling, snapshots, and extraction.
 - `browser_action_flow` — click/fill/select/press/screenshot workflows; these require exact task confirmation before execution.
-- `browser_profile_list` — lists persistent local Chromium profiles.
+- `browser_profile_list` / `browser_profile_create` — list or create persistent local Chromium profiles.
 - `browser_profile_setup` — opens a visible local browser so the owner can sign in manually.
+- `browser_profile_delete` — deletes a non-default local profile only after exact confirmation.
+- `browser_session_start` / `browser_session_read` / `browser_session_action` / `browser_session_end` — persistent bridge-process browser sessions; writes remain confirmation-gated.
 
 Browser session cookies and credentials stay in the local browser profile under the user's computer. Remote tasks refuse password/secret field filling. Public-web browser actions also reject localhost, private-network, link-local, and reserved targets.
 
-Magnanimous can therefore perform supported search, rendered extraction, browser workflows, session continuity, screenshots, and scheduled read-only monitoring without requiring TinyFish. TinyFish or another browser provider may remain an optional fallback for capabilities that Magnanimous does not truthfully reproduce, such as a provider-specific anti-bot network, managed residential proxy fleet, or proprietary browser-agent model.
+Magnanimous can therefore perform supported search, rendered extraction, batch fetch, source collection/research, browser workflows, persistent bridge sessions, local profile management, screenshots, status streaming, completion webhooks, run-now monitoring, and scheduled read-only monitoring without requiring TinyFish.
+
+The native implementation intentionally does **not** pretend to own TinyFish's proprietary anti-bot internals, managed residential/geo proxy fleet, remote browser/CDP infrastructure, hidden prompts, model weights, or private source code. Per-run unauthenticated proxies may be supplied, while authenticated proxy credentials stay configured locally on the bridge. Persistent browser sessions live in the Local Bridge process and end if that process restarts. TinyFish or another browser provider can remain an optional fallback only for capabilities that Magnanimous has not independently built and verified.
 
 ### Existing paired computers
 
