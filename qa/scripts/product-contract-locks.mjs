@@ -96,7 +96,10 @@ includes(branchEntrypoint, 'provider_details_private:true', 'privacy: customer c
 includes(branchEntrypoint, 'function sanitizeProviderCatalog(request,response,env)', 'privacy: provider catalog sanitization remains active');
 includes(branchEntrypoint, 'if(isBranchTrainer(user))return response;', 'privacy: owner/admin configuration can still inspect real provider details');
 includes(branchEntrypoint, 'const publicData=publicProviderSummary(data);', 'privacy: Agent Mesh catalog receives the private provider summary');
-includes(branchEntrypoint, 'return sanitizeProviderCatalog(request,chatResponse,env);', 'privacy: fallback provider-catalog responses are sanitized');
+includes(branchEntrypoint, 'function sanitizeCustomerAgentExecution(request,response)', 'privacy: stored agent history and video responses retain execution-metadata stripping');
+includes(branchEntrypoint, 'messages:data.messages.map(message=>stripExecutionMetadata(message))', 'privacy: stored agent messages cannot re-expose provider/model metadata');
+includes(branchEntrypoint, 'const agentResponse=await sanitizeCustomerAgentExecution(request,chatResponse);', 'privacy: fallback agent responses pass through execution-metadata sanitization');
+includes(branchEntrypoint, 'return sanitizeProviderCatalog(request,agentResponse,env);', 'privacy: provider catalog sanitization remains the final public response boundary');
 notMatches(aiChatPage, /data\.(?:provider_name|provider|model)\b/, 'privacy: legacy AI Chat UI must not read execution provider/model identities');
 notMatches(aiChatPage, /item\.(?:provider|model)\b/, 'privacy: legacy AI Chat history must not display execution provider/model metadata');
 includes(aiChatPage, 'MAGNANIMOUS AI™ · PRIVATE ROUTING', 'privacy: legacy AI Chat status presents Magnanimous private routing');
