@@ -35,6 +35,9 @@ export const LOCAL_BRIDGE_ACTIONS=Object.freeze({
  browser_session_read:{risk:'low',auto:true,confirmation:false,family:'native-web'},
  browser_session_action:{risk:'high',auto:false,confirmation:true,family:'native-web'},
  browser_session_end:{risk:'low',auto:true,confirmation:false,family:'native-web'},
+ ssh_profile_list:{risk:'low',auto:true,confirmation:false,family:'ssh'},
+ ssh_read:{risk:'low',auto:true,confirmation:false,family:'ssh'},
+ ssh_command:{risk:'high',auto:false,confirmation:true,family:'ssh'},
  netwalk_probe:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
  netwalk_scan:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
  netwalk_diag:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
@@ -56,6 +59,9 @@ export const LOCAL_BRIDGE_POLICY=Object.freeze({
  browser_private_network_targets:false,
  browser_profiles_local_only:true,
  browser_proxy_credentials_local_only:true,
+ ssh_credentials_local_only:true,
+ ssh_exact_command_only:true,
+ ssh_interactive_shell_exposed:false,
  native_webhooks_https_only:true,
  arbitrary_process_execution:false,
  workspace_roots_required:true,
@@ -137,6 +143,16 @@ function validateTask(action,payload){
   if(host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||/^127\.|^0\.|^169\.254\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host))throw new Error('Native browser private/local targets are blocked.');
  }
  if(['browser_profile_create','browser_profile_delete'].includes(action)&&!clip(body.profile,64))throw new Error(action+' requires profile.');
+ if(['ssh_read','ssh_command'].includes(action)){
+  const host=clip(body.host,128),command=clip(body.command,12000);
+  if(!/^[A-Za-z0-9._-]{1,128}$/.test(host))throw new Error(action+' requires a safe SSH config host alias.');
+  if(!command)throw new Error(action+' requires command.');
+  if(/-----BEGIN [A-Z ]*PRIVATE KEY-----|\\b(?:password|passwd|token|secret|api[_-]?key)\\s*=\\s*\\S+/i.test(command))throw new Error('SSH task payloads must not contain credentials or private keys.');
+  if(action==='ssh_read'){
+   if(/[;&|><`\n\r]/.test(command)||command.includes('$(')||command.includes('${')||command.includes('||')||command.includes('&&'))throw new Error('ssh_read does not allow shell composition or redirection.');
+   if(!/^(?:uptime|df(?:\\s|$)|free(?:\\s|$)|ps(?:\\s|$)|whoami(?:\\s|$)|hostname(?:\\s|$)|uname(?:\\s|$)|date(?:\\s|$)|id(?:\\s|$)|systemctl\\s+status\\b|journalctl(?:\\s|$))/i.test(command))throw new Error('ssh_read command is outside the native diagnostic allowlist.');
+  }
+ }
  if(['browser_session_start','browser_session_read','browser_session_action','browser_session_end'].includes(action)&&!clip(body.session_id,160))throw new Error(action+' requires session_id.');
  if(['browser_read_flow','browser_action_flow','browser_session_read','browser_session_action'].includes(action)){
   if(!Array.isArray(body.steps)||!body.steps.length||body.steps.length>60)throw new Error(action+' requires 1-60 browser steps.');

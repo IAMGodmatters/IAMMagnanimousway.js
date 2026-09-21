@@ -13,6 +13,7 @@ import json
 import os
 import platform
 import re
+import shlex
 import shutil
 import socket
 import subprocess
@@ -185,6 +186,8 @@ def capabilities(config):
                 caps.add(action)
     if _detect_netwalk(config):
         caps.update({"netwalk_probe","netwalk_scan","netwalk_diag","netwalk_map","netwalk_report"})
+    if shutil.which("ssh"):
+        caps.update({"ssh_profile_list","ssh_read","ssh_command"})
     try:
         import playwright.sync_api  # noqa: F401
         caps.update({
@@ -196,6 +199,94 @@ def capabilities(config):
     except Exception:
         pass
     return sorted(caps)
+
+
+def _ssh_alias(value):
+    host = str(value or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9._-]{1,128}", host):
+        raise RuntimeError("SSH host must be a safe alias from local SSH config.")
+    return host
+
+
+def _ssh_config_aliases():
+    path = Path.home() / ".ssh" / "config"
+    if not path.exists():
+        return []
+    aliases = []
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return []
+    for line in text.splitlines():
+        match = re.match(r"^\\s*Host\\s+(.+)$", line, re.IGNORECASE)
+        if not match:
+            continue
+        for token in match.group(1).split():
+            if "*" in token or "?" in token:
+                continue
+            if re.fullmatch(r"[A-Za-z0-9._-]{1,128}", token):
+                aliases.append(token)
+    return sorted(set(aliases))
+
+
+def _ssh_has_secret(command):
+    return bool(
+        re.search(r"-----BEGIN [A-Z ]*PRIVATE KEY-----", command, re.IGNORECASE)
+        or re.search(r"\\b(?:password|passwd|token|secret|api[_-]?key)\\s*=\\s*\\S+", command, re.IGNORECASE)
+        or re.search(r"\\b(?:sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{20,})\\b", command)
+    )
+
+
+def _ssh_read_only(command):
+    if re.search(r"[;&|><`\\n\\r]|\\$\\(|\\$\\{|\\|\\||&&", command):
+        return False
+    return bool(re.match(
+        r"^(?:uptime|df(?:\\s|$)|free(?:\\s|$)|ps(?:\\s|$)|whoami(?:\\s|$)|hostname(?:\\s|$)|uname(?:\\s|$)|date(?:\\s|$)|id(?:\\s|$)|systemctl\\s+status\\b|journalctl(?:\\s|$))",
+        command,
+        re.IGNORECASE,
+    ))
+
+
+def action_ssh_profile_list(config, payload):
+    return {
+        "ok": True,
+        "aliases": _ssh_config_aliases(),
+        "credentials_local_only": True,
+        "source": "~/.ssh/config",
+    }
+
+
+def _run_ssh(payload, *, read_only):
+    if not shutil.which("ssh"):
+        raise RuntimeError("OpenSSH client is not installed on this machine.")
+    host = _ssh_alias(payload.get("host"))
+    command = str(payload.get("command") or "").strip()
+    if not command or len(command) > 12000:
+        raise RuntimeError("SSH command is required and must be 12000 characters or fewer.")
+    if _ssh_has_secret(command):
+        raise RuntimeError("Do not place credentials, tokens, passwords, or private keys in SSH commands.")
+    if read_only and not _ssh_read_only(command):
+        raise RuntimeError("ssh_read only allows bounded diagnostic commands.")
+    timeout = max(10, min(120, int(payload.get("timeout") or 45)))
+    result = _run(
+        ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", host, command],
+        timeout=timeout,
+    )
+    return {
+        **result,
+        "host_alias": host,
+        "command": command,
+        "read_only": bool(read_only),
+        "credentials_local_only": True,
+    }
+
+
+def action_ssh_read(config, payload):
+    return _run_ssh(payload, read_only=True)
+
+
+def action_ssh_command(config, payload):
+    return _run_ssh(payload, read_only=False)
 
 
 def action_system_info(config, payload):
@@ -978,6 +1069,9 @@ HANDLERS = {
     "browser_session_read": action_browser_session_read,
     "browser_session_action": action_browser_session_action,
     "browser_session_end": action_browser_session_end,
+    "ssh_profile_list": action_ssh_profile_list,
+    "ssh_read": action_ssh_read,
+    "ssh_command": action_ssh_command,
     "apply_patch": action_apply_patch,
     "git_create_branch": action_git_create_branch,
     "git_commit": action_git_commit,
