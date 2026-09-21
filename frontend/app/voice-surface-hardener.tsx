@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect,useRef,useState} from 'react';
+import {cleanTextForSpeech,speakTextNaturally,stopNaturalSpeech} from '../lib/natural-speech';
 
 type RecognitionLike={
  lang:string;interimResults:boolean;continuous:boolean;maxAlternatives:number;
@@ -49,10 +50,19 @@ export default function VoiceSurfaceHardener(){
   const synth:any=window.speechSynthesis,original=synth.speak?.bind(synth);
   if(!original)return;
   const wrapped=(u:SpeechSynthesisUtterance)=>{
-   try{applyVoice(u,activePersona(location.pathname));synth.resume?.()}catch{}
-   const priorError=u.onerror;
-   u.onerror=(event:any)=>{setNotice('I generated the reply, but your browser could not play the voice. Check device volume, tap the speaker once, and try again.');priorError?.call(u,event)};
-   original(u);
+   let target=u;
+   try{
+    const cleaned=cleanTextForSpeech(u.text);
+    if(cleaned&&cleaned!==u.text){
+     target=new SpeechSynthesisUtterance(cleaned);
+     target.rate=u.rate;target.pitch=u.pitch;target.volume=u.volume;target.voice=u.voice;target.lang=u.lang;
+     target.onstart=u.onstart;target.onend=u.onend;target.onpause=u.onpause;target.onresume=u.onresume;target.onboundary=u.onboundary;target.onmark=u.onmark;
+    }
+    applyVoice(target,activePersona(location.pathname));synth.resume?.();
+   }catch{}
+   const priorError=target.onerror||u.onerror;
+   target.onerror=(event:any)=>{setNotice('I generated the reply, but your browser could not play the voice smoothly. Check device volume, tap the speaker once, and try again.');priorError?.call(target,event)};
+   original(target);
   };
   try{synth.speak=wrapped}catch{}
 
@@ -68,7 +78,7 @@ export default function VoiceSurfaceHardener(){
    const text=(document.querySelector('.work .result')?.textContent||'').trim();
    if(!text||text===lastVAResult.current)return;
    lastVAResult.current=text;voiceTurn.current=false;
-   try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text.slice(0,7000));applyVoice(u,'Virtual Assistant');window.speechSynthesis.resume?.();window.speechSynthesis.speak(u)}catch{setNotice('The reply is ready, but spoken playback could not start on this device.')}
+   try{speakTextNaturally(text,{configure:(u)=>applyVoice(u,'Virtual Assistant'),maxChunkChars:240,interChunkDelayMs:55,onError:()=>setNotice('The reply is ready, but spoken playback could not start smoothly on this device.')})}catch{setNotice('The reply is ready, but spoken playback could not start on this device.')}
   });
   observer.observe(document.body,{subtree:true,childList:true,characterData:true});
 
@@ -90,7 +100,7 @@ export default function VoiceSurfaceHardener(){
  function listen(){
   const w:any=window,SR=w.SpeechRecognition||w.webkitSpeechRecognition;
   if(!SR){setNotice('Microphone speech recognition is not supported in this browser. You can still type and use spoken replies.');return}
-  window.speechSynthesis?.cancel();setNotice('');primeSpeech();
+  stopNaturalSpeech();setNotice('');primeSpeech();
   const r:RecognitionLike=new SR();recognition.current=r;r.lang=navigator.language||'en-US';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
   let receivedFinal=false;
   r.onstart=()=>setListening(true);r.onend=()=>setListening(false);
