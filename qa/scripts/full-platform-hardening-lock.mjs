@@ -125,6 +125,9 @@ mustContain(deploy,'run: npm ci --no-audit --no-fund','Production deploy must in
 mustNotContain(deploy,'run: npm install\n','Production deploy must not resolve dependencies with npm install.');
 mustContain(deploy,"assert token.startswith('ms1_')",'Production smoke test must prove new sessions are opaque.');
 mustContain(deploy,"assert '|' not in token",'Production smoke test must prove browser session tokens do not embed legacy identity fields.');
+mustContain(deploy,'refresh_smoke_session()','Long production smoke phases must be able to renew the temporary smoke account without changing customer session TTL.');
+mustContain(deploy,'user.get(\'tenant_id\') == expected_tenant','Smoke reauthentication must verify it returns to the same temporary tenant.');
+mustContain(deploy,'Refreshed deployment smoke session for tenant','Production smoke must record successful phase-boundary session renewal.');
 mustContain(deploy,'Customer account global-admin isolation expected HTTP 403','Production smoke must prove workspace owners cannot enter global admin APIs.');
 mustContain(deploy,'Customer platform-credential isolation expected HTTP 403','Production smoke must prove workspace owners cannot read the platform credential vault.');
 mustContain(deploy,'Opaque-session logout returned HTTP','Production smoke test must exercise opaque logout.');
