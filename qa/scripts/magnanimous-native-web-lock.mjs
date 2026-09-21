@@ -97,7 +97,6 @@ for(const needle of [
  "third_party_wallet_required:false",
  "tinyfish_runtime_dependency:false",
  "sseRun",
- "deliverNativeWebWebhook",
  "Maximum 30 steps",
  "'/api/magnanimous/native-web/runs'"
 ])assert(runtime.includes(needle),'Magnanimous Native Web runtime contract missing: '+needle);
@@ -107,6 +106,7 @@ assert(!runtime.includes('sync_contract:true'),'Native Web must not falsely clai
 assert(!runtime.includes('owned_geo_proxy_fleet:true'),'Native Web must not falsely claim an owned geo/residential proxy fleet');
 assert(!runtime.includes('remote_cdp_exposed:true'),'Native Web must not falsely claim a remote CDP tunnel');
 assert(agent.includes('Remote browser tasks may not carry proxy credentials'),'authenticated proxy credentials must remain local');
+assert(bridge.includes('deliverNativeWebWebhook'),'native browser completion webhook delivery must remain wired through the Local Bridge result path');
 assert(agent.includes('Browser session is not active on this bridge.'),'persistent session lifecycle must fail truthfully after bridge/session loss');
 assert(operations.includes('handleMagnanimousNativeWeb'),'secured operations runtime must mount Native Web endpoints');
 assert(operations.includes('scheduledNativeWeb'),'platform cron must run native web monitors');
