@@ -2,6 +2,7 @@ import fs from 'node:fs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 const runtime=read('worker/src/magnanimous-dev-agent.js');
+const githubAuth=read('worker/src/magnanimous-github-app-auth.js');
 const operations=read('worker/src/operations-entrypoint.js');
 const security=read('worker/src/security-entrypoint.js');
 const wrangler=read('worker/wrangler.jsonc');
@@ -22,7 +23,11 @@ has(security,"import app from './operations-entrypoint.js'",'security entrypoint
 has(operations,"handleMagnanimousDevAgent",'developer agent is routed through the secured operations layer');
 has(runtime,"requirePlatformOwner",'developer agent requires platform-owner authorization');
 has(runtime,"const GITHUB_API='https://api.github.com'",'repository adapter uses a fixed GitHub API origin');
-has(runtime,'GITHUB_PLATFORM_TOKEN','repository credentials are server-side configuration');
+has(githubAuth,'MAGNANIMOUS_GITHUB_APP_ID','GitHub App ID is server-side configuration');
+has(githubAuth,'MAGNANIMOUS_GITHUB_APP_PRIVATE_KEY','GitHub App private key is server-side configuration');
+has(githubAuth,'githubRepositoryToken','GitHub App installation tokens are minted dynamically');
+has(githubAuth,'automatic_token_rotation','GitHub App auth summary reports automatic rotation');
+has(githubAuth,'GITHUB_PLATFORM_TOKEN','temporary legacy repository token fallback remains available during cutover');
 has(runtime,'MAGNANIMOUS_DEV_REPOS','repository access is allowlisted');
 has(runtime,'DEFAULT_REPO=\'IAMGodmatters/IAMMagnanimousway.js\'','default repository is explicitly scoped');
 has(runtime,"status:'needs_confirmation'",'repository writes are staged before execution');
@@ -52,7 +57,8 @@ has(ui,'REVIEWED — APPROVE & RUN','owner console has a separate approval contr
 has(ui,'aria-live="polite"','owner console announces status changes accessibly');
 has(ui,':focus-visible','owner console preserves visible keyboard focus');
 has(ui,'min-height:44px','owner console preserves practical touch-target sizing');
-has(ui,'GITHUB_PLATFORM_TOKEN','owner console identifies server-side repo token without collecting it');
+has(ui,'GitHub App auto-rotation','owner console reports durable GitHub App rotation');
+has(ui,'GITHUB_PLATFORM_TOKEN','owner console identifies the temporary token fallback without collecting it');
 lacks(ui,'type="password"','owner console never collects repository credentials in the browser');
 has(ownerCenter,'href="/developer-agent"','Owner Center links to Magnanimous Dev Agent');
 has(robots,'Disallow: /developer-agent/','private developer console is excluded from crawler indexing');
