@@ -134,7 +134,10 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'SABRE_CLIENT_SECRET',label:'Sabre API Client Secret / password',secret:true,required:false},
   {key:'TRAVELPORT_CLIENT_ID',label:'Travelport API Client ID',secret:false,required:false},
   {key:'TRAVELPORT_CLIENT_SECRET',label:'Travelport API Client Secret',secret:true,required:false},
-  {key:'DUFFEL_ACCESS_TOKEN',label:'Duffel Access Token',secret:true,required:false}
+  {key:'DUFFEL_ACCESS_TOKEN',label:'Duffel Access Token',secret:true,required:false},
+  {key:'VERTEIL_API_TOKEN',label:'Verteil commercial API token / credential supplied after onboarding',secret:true,required:false},
+  {key:'TRAVELFUSION_API_TOKEN',label:'Travelfusion commercial API credential supplied after onboarding',secret:true,required:false},
+  {key:'HAHNAIR_PARTNER_REFERENCE',label:'Hahnair agency / partner credential or reference (only after provider setup)',secret:true,required:false}
  ]},
  {id:'b2b-hotels-experiences',name:'B2B Hotels, Tours & Activities',providers:[],fields:[
   {key:'HBX_API_KEY',label:'HBX / Hotelbeds API Key',secret:false,required:false},
@@ -144,7 +147,8 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'VIATOR_API_KEY',label:'Viator Partner API Key',secret:true,required:false},
   {key:'GETYOURGUIDE_API_TOKEN',label:'GetYourGuide Partner API Token',secret:true,required:false},
   {key:'ZENTRUMHUB_API_KEY',label:'ZentrumHub API Key',secret:true,required:false},
-  {key:'TRAVELOPRO_API_KEY',label:'Travelopro API Key',secret:true,required:false}
+  {key:'TRAVELOPRO_API_KEY',label:'Travelopro API Key',secret:true,required:false},
+  {key:'TBO_API_KEY',label:'TBO API credential supplied after partner approval',secret:true,required:false}
  ]},
  {id:'b2b-corporate-travel',name:'B2B Corporate Travel & Expense',providers:[],fields:[
   {key:'BREX_API_TOKEN',label:'Brex API Token (optional)',secret:true,required:false},
@@ -187,6 +191,10 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'TRAVELGATE_ACCESS_TOKEN',label:'Travelgate Access Token',secret:true,required:false},
   {key:'TRAVELGATE_PASSWORD',label:'Travelgate Password',secret:true,required:false},
   {key:'RATEHAWK_API_KEY',label:'RateHawk API Key',secret:true,required:false},
+  {key:'VERTEIL_API_TOKEN',label:'Verteil API / partner token',secret:true,required:false},
+  {key:'TRAVELFUSION_API_TOKEN',label:'Travelfusion API / commercial token',secret:true,required:false},
+  {key:'TBO_API_KEY',label:'TBO API Key / partner credential',secret:true,required:false},
+  {key:'HAHNAIR_PARTNER_REFERENCE',label:'Hahnair agency / partner reference (identifier only)',secret:false,required:false},
   {key:'IATA_TIDS_CODE',label:'IATA TIDS Code (identifier only; not ticketing authority)',secret:false,required:false},
   {key:'IATA_NUMERIC_CODE',label:'IATA Accredited Agent Numeric Code (only after approval)',secret:false,required:false},
   {key:'ARC_NUMBER',label:'ARC Number (only after ARC approval)',secret:false,required:false}
