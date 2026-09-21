@@ -47,21 +47,30 @@ jobs:
           done
           [ "$success" = "1" ] || { echo "::error::Full Platform QA did not reach success in time."; exit 1; }
 
-      - name: Check whether this exact commit is already live
+      - name: Wait for verified main auto-deploy or detect already live
         id: already-live
         shell: bash
         run: |
           set -euo pipefail
           live=""
-          if curl -fsS --connect-timeout 10 --max-time 30 "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/tmp/magnanimous-live-health.json; then
-            live="$(python -c 'import json; print(json.load(open("/tmp/magnanimous-live-health.json")).get("deploy_revision",""))')"
-          fi
-          if [ "$live" = "$TARGET_SHA" ]; then
+          success=0
+          for attempt in $(seq 1 30); do
+            if curl -fsS --connect-timeout 10 --max-time 30 "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/tmp/magnanimous-live-health.json; then
+              live="$(python -c 'import json; print(json.load(open("/tmp/magnanimous-live-health.json")).get("deploy_revision",""))')"
+              if [ "$live" = "$TARGET_SHA" ]; then
+                success=1
+                break
+              fi
+            fi
+            echo "Waiting for Railway's GitHub main auto-deploy to make $TARGET_SHA healthy (live=${live:-unknown}, attempt $attempt/30)."
+            sleep 10
+          done
+          if [ "$success" = "1" ]; then
             echo "live=true" >> "$GITHUB_OUTPUT"
-            echo "Exact commit $TARGET_SHA is already healthy on Railway; no provider deploy call is needed."
+            echo "Exact commit $TARGET_SHA became healthy through the existing GitHub main auto-deploy; no Railway project token is required."
           else
             echo "live=false" >> "$GITHUB_OUTPUT"
-            echo "Live Railway revision is ${live:-unknown}; exact commit $TARGET_SHA still requires deployment."
+            echo "GitHub main auto-deploy did not make $TARGET_SHA healthy during the grace window; falling back to the optional Magnanimous OIDC deploy gateway."
           fi
 
       - name: Request exact-commit deployment through Magnanimous OIDC gateway
