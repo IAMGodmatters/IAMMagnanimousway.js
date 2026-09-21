@@ -22,13 +22,13 @@ function publicProviderSummary(data={}){
  const source=Array.isArray(data?.providers)?data.providers:[];
  const ready=source.some(p=>Boolean(p?.configured&&p?.enabled!==false));
  return {...data,
-  providers:[{id:'auto',name:'Magnanimous AI routing',configured:ready,enabled:ready,tier:'private-routing',type:'private-execution'}],
+  providers:[{id:'auto',name:'Magnanimous AI',configured:ready,enabled:ready,tier:'private-routing',type:'magnanimous-private-routing'}],
   configured_count:ready?1:0,
   free_configured_count:ready?1:0,
   magnanimous_ready:ready,
   operator_ready:ready,
   provider_details_private:true,
-  execution_disclosure:'Magnanimous AI may use private third-party execution services. Provider identities are not shown to customers.'
+  execution_disclosure:'Magnanimous AI privately selects authorized execution infrastructure. Specific infrastructure identities are owner-only.'
  };
 }
 async function sanitizeCustomerAiResponse(request,response){
