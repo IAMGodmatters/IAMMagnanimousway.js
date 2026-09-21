@@ -11,8 +11,9 @@ function gte(a,b){
   return true;
 }
 
-const pkg=JSON.parse(fs.readFileSync('frontend/package.json','utf8'));
-const lock=JSON.parse(fs.readFileSync('frontend/package-lock.json','utf8'));
+const prefix=fs.existsSync('frontend/package.json')?'frontend/':'';
+const pkg=JSON.parse(fs.readFileSync(prefix+'package.json','utf8'));
+const lock=JSON.parse(fs.readFileSync(prefix+'package-lock.json','utf8'));
 const declared=String(pkg.dependencies?.next||'');
 const locked=String(lock.packages?.['node_modules/next']?.version||'');
 const rootLocked=String(lock.packages?.['']?.dependencies?.next||'');
