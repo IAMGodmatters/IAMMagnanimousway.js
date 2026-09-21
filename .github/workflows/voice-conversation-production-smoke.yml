@@ -45,12 +45,22 @@ jobs:
 
           deploy_jobs = [job for job in payload.get('jobs', []) if job.get('name') == 'deploy']
           assert deploy_jobs, f'No deploy job found for workflow run {run_id}'
-          steps = {step.get('name'): step for step in deploy_jobs[0].get('steps', [])}
-          deployed = steps.get('Deploy Worker') or {}
-          assert deployed.get('conclusion') == 'success', (
-              f"Production deployment did not complete successfully; Deploy Worker conclusion={deployed.get('conclusion')!r}"
+          worker_jobs = []
+          for job in deploy_jobs:
+              steps = {step.get('name'): step for step in job.get('steps', [])}
+              if 'Deploy Worker' in steps:
+                  worker_jobs.append((job, steps))
+          assert worker_jobs, f'No deploy job containing a Deploy Worker step was found for workflow run {run_id}'
+          successful = [(job, steps) for job, steps in worker_jobs if (steps.get('Deploy Worker') or {}).get('conclusion') == 'success']
+          assert successful, (
+              'Production deployment did not complete successfully; '
+              + ', '.join(
+                  f"job={job.get('id')} Deploy Worker conclusion={(steps.get('Deploy Worker') or {}).get('conclusion')!r}"
+                  for job, steps in worker_jobs
+              )
           )
-          print(f'Production deploy step succeeded in workflow run {run_id}. Continuing with live voice verification.')
+          job, steps = successful[-1]
+          print(f"Production Deploy Worker step succeeded in workflow run {run_id}, job {job.get('id')}. Continuing with live voice verification.")
           PY
 
       - name: Checkout deployed main
