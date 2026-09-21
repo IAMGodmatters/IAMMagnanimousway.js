@@ -5,7 +5,7 @@ import { handleMagnanimousCloudflare } from './magnanimous-cloudflare-runtime.js
 import { MAGNANIMOUS_WEB_PARITY, handleMagnanimousNativeWeb } from './magnanimous-native-web-runtime.js';
 import { MAGNANIMOUS_DEV_SKILLS, magnanimousDevAgentSummary, handleMagnanimousDevAgent } from './magnanimous-dev-agent.js';
 import { RAILWAY_VISIBLE_TOOL_CONTRACTS, RAILWAY_ARCHITECTURE_TECHNIQUES, handleMagnanimousCloudProvider } from './magnanimous-cloud-provider-core.js';
-import { hasReadyLocalBridgeCapability, hasAnyReadyLocalBridgeCapability } from './magnanimous-local-bridge-runtime.js';
+import { findReadyLocalBridgeDevice, hasAnyReadyLocalBridgeCapability } from './magnanimous-local-bridge-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -90,7 +90,7 @@ function railwayReadiness(env,github){
 
 async function nativeWebReadiness(env,tenantId){
  const checker=tenantId
-  ? action=>hasReadyLocalBridgeCapability(env,tenantId,action)
+  ? async action=>Boolean(await findReadyLocalBridgeDevice(env,tenantId,action))
   : action=>hasAnyReadyLocalBridgeCapability(env,action);
  const actions=['browser_search','browser_fetch','browser_research','browser_read_flow','browser_action_flow','browser_session_start'];
  const pairs=await Promise.all(actions.map(async action=>[action,Boolean(await checker(action).catch(()=>false))]));
