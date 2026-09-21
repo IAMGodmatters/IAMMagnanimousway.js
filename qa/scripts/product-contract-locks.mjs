@@ -91,7 +91,7 @@ includes(branchEntrypoint, 'provider_name,model,model_id,engine,execution_engine
 includes(branchEntrypoint, 'function sanitizeCustomerAiResponse(request,response)', 'privacy: ordinary /api/chat responses are sanitized before customer delivery');
 includes(branchEntrypoint, "url.pathname!=='/api/chat'", 'privacy: generic chat sanitizer remains attached to /api/chat');
 includes(branchEntrypoint, 'function publicProviderSummary(data={})', 'privacy: provider catalog has a customer-safe summary');
-includes(branchEntrypoint, "name:'Magnanimous AI routing'", 'privacy: customer provider catalog uses Magnanimous identity rather than engine brands');
+includes(branchEntrypoint, "name:'Magnanimous AI'", 'privacy: customer provider catalog exposes Magnanimous AI rather than execution-engine brands');
 includes(branchEntrypoint, 'provider_details_private:true', 'privacy: customer catalog explicitly marks execution details private');
 includes(branchEntrypoint, 'function sanitizeProviderCatalog(request,response,env)', 'privacy: provider catalog sanitization remains active');
 includes(branchEntrypoint, 'if(isBranchTrainer(user))return response;', 'privacy: owner/admin configuration can still inspect real provider details');
