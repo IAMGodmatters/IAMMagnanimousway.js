@@ -4,12 +4,14 @@ import { getCapabilityAbsorptionManifest, ABSORPTION_POLICY } from '../../worker
 import { getGrokCapabilityManifest, getGrokAbsorptionSummary } from '../../worker/src/magnanimous-grok-capability-registry.js';
 import { MAGNANIMOUS_IMPROVEMENT_GOVERNANCE, getImprovementGovernanceManifest, getImprovementGovernanceSummary } from '../../worker/src/magnanimous-improvement-governance.js';
 import { classifyCapabilityRealization } from '../../worker/src/magnanimous-capability-realization.js';
+import { getFullBrainIndependenceAudit } from '../../worker/src/magnanimous-native-first.js';
 
 const full=getCapabilityAbsorptionManifest();
 const grok=getGrokCapabilityManifest();
 const governance=getImprovementGovernanceManifest();
 const grokSummary=getGrokAbsorptionSummary();
 const governanceSummary=getImprovementGovernanceSummary();
+const independence=getFullBrainIndependenceAudit();
 
 assert.ok(grok.length>=40,'Grok public capability absorption must cover the full observed agent/tool/skill surface.');
 for(const id of [
@@ -66,6 +68,14 @@ assert.equal(ABSORPTION_POLICY.orchestration_owner,'Magnanimous AI');
 assert.equal(ABSORPTION_POLICY.learning_owner,'Magnanimous AI');
 assert.equal(ABSORPTION_POLICY.verification_owner,'Magnanimous AI');
 assert.equal(ABSORPTION_POLICY.proprietary_copying,false);
+assert.equal(independence.identity_owner,'Magnanimous AI');
+assert.equal(independence.memory_owner,'Magnanimous AI');
+assert.equal(independence.reasoning_owner,'Magnanimous AI');
+assert.equal(independence.orchestration_owner,'Magnanimous AI');
+assert.equal(independence.learning_owner,'Magnanimous AI');
+assert.equal(independence.verification_owner,'Magnanimous AI');
+assert.equal(independence.provider_owned_capabilities,0);
+assert.equal(independence.total_capabilities,full.length);
 
 const agent=fs.readFileSync('worker/src/agent-mesh-runtime.js','utf8');
 assert.ok(agent.includes("{id:'xai',name:'xAI Grok',tier:'metered-optional'"),'xAI must be optional and explicitly metered.');
