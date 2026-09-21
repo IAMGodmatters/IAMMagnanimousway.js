@@ -22,6 +22,7 @@ const required=[
  'magnanimous-runtime/src/cloud-control.mjs',
  'magnanimous-runtime/src/migration-stage.mjs',
  'magnanimous-runtime/src/runtime-secret-store.mjs',
+ 'magnanimous-runtime/src/railway-deploy.mjs',
  'magnanimous-runtime/src/bootstrap.mjs',
  'magnanimous-runtime/services/sandbox-service.mjs',
  'magnanimous-runtime/services/browser-service.mjs',
@@ -41,6 +42,7 @@ const required=[
  'magnanimous-runtime/scripts/verify-cloud-control.mjs',
  'magnanimous-runtime/scripts/verify-migration-stage.mjs',
  'magnanimous-runtime/scripts/verify-runtime-secret-store.mjs',
+ 'magnanimous-runtime/scripts/verify-railway-deploy.mjs',
  'magnanimous-runtime/docker-compose.release.yml',
  'magnanimous-runtime/scripts/standalone-host-preflight.sh',
  'magnanimous-runtime/scripts/install-release-bundle.sh',
@@ -48,6 +50,7 @@ const required=[
  '.github/workflows/magnanimous-cloud-exit-lock.yml',
  '.github/workflows/magnanimous-production-data-stage.yml',
  '.github/workflows/magnanimous-runtime-secrets-stage.yml',
+ '.github/workflows/magnanimous-railway-deploy.yml',
  'worker/src/magnanimous-cloud-provider-core.js',
  'worker/src/github-actions-oidc.js',
  'worker/src/credential-vault-migration.js'
@@ -68,7 +71,8 @@ for(const contract of [
  'MAGNANIMOUS_EVENTS','MAGNANIMOUS_VECTORIZE','MAGNANIMOUS_ANALYTICS','MAGNANIMOUS_SECRETS',
  'MAGNANIMOUS_PIPELINE','MAGNANIMOUS_SANDBOX','MAGNANIMOUS_BROWSER','MAGNANIMOUS_IMAGES','MAGNANIMOUS_IMAGE_GENERATOR',
  'MAGNANIMOUS_CLOUD_CONTROL','CLOUD_CONTROL','/__magnanimous_runtime/cloud',
- '/__magnanimous_runtime/metrics','/__magnanimous_runtime/services','/__magnanimous_runtime/migration/stage-d1','/__magnanimous_runtime/migration/stage-secrets','/__magnanimous_runtime/migration/stage-credential-rewrap'
+ '/__magnanimous_runtime/metrics','/__magnanimous_runtime/services','/__magnanimous_runtime/migration/stage-d1','/__magnanimous_runtime/migration/stage-secrets','/__magnanimous_runtime/migration/stage-credential-rewrap',
+ '/__magnanimous_runtime/deployment/railway','RAILWAY_GIT_COMMIT_SHA','deploy_revision'
 ])must(server.includes(contract),'Standalone server contract missing: '+contract);
 
 const compose=read('magnanimous-runtime/docker-compose.yml');
@@ -145,6 +149,15 @@ for(const tool of ['list_projects','create_deployment','get_service_metrics','li
 for(const technique of ['workspace-project-environment-service-hierarchy','isolated-environments','ephemeral-pr-environments','private-service-networking','internal-dns-service-discovery','feature-flags-signals','monorepo-root-and-watch-paths','config-as-code','agent-assisted-infrastructure-operations'])
  must(cloudApi.includes("id:'"+technique+"'"),'Railway architecture technique missing: '+technique);
 
+const railwayDeploy=read('magnanimous-runtime/src/railway-deploy.mjs');
+for(const contract of ['https://backboard.railway.com/graphql/v2','Project-Access-Token','serviceInstanceDeployV2','commitSha','MAGNANIMOUS_RAILWAY_DEPLOY_TOKEN'])
+ must(railwayDeploy.includes(contract),'First-party Railway deploy adapter missing: '+contract);
+must(!railwayDeploy.includes('console.log(token)'),'Railway deploy token must never be logged.');
+const railwayDeployWorkflow=read('.github/workflows/magnanimous-railway-deploy.yml');
+for(const contract of ['id-token: write','Full Platform QA','magnanimous-railway-deploy','/__magnanimous_runtime/deployment/railway','deploy_revision'])
+ must(railwayDeployWorkflow.includes(contract),'Railway exact-commit workflow missing: '+contract);
+must(!railwayDeployWorkflow.includes('secrets.RAILWAY_TOKEN'),'GitHub must not own the Railway deployment credential.');
+
 must(exists('magnanimous-runtime/scripts/export-d1-logical.mjs'),'Missing FTS-safe logical D1 snapshot exporter.');
 const migrationStage=read('magnanimous-runtime/src/migration-stage.mjs');
 for(const contract of [
@@ -168,6 +181,8 @@ must(migrationWorkflow.includes('application/vnd.sqlite3'),'Production data stag
 must(!migrationWorkflow.includes('wrangler d1 export'),'Production data staging must not use full D1 export while FTS5 virtual tables exist.');
 must(migrationWorkflow.includes('/__magnanimous_runtime/migration/stage-d1'),'Production data staging must target the standalone-only staging endpoint.');
 must(migrationWorkflow.includes('table_counts'),'Production data staging must verify per-table row-count parity.');
+must(migrationWorkflow.includes('deploy_revision'),'Production data staging must wait for the exact deployed revision.');
+must(migrationWorkflow.includes('never reached exact revision'),'Production data staging must fail closed on revision mismatch.');
 must(!migrationWorkflow.includes('upload-artifact'),'Production D1 data must not be uploaded as a workflow artifact.');
 const logicalExporter=read('magnanimous-runtime/scripts/export-d1-logical.mjs');
 for(const contract of [
@@ -206,6 +221,10 @@ must(runtimeSecretsWorkflow.includes('magnanimous-credential-rewrap'),'Runtime s
 must(runtimeSecretsWorkflow.includes('/api/internal/migration/rewrap-platform-credentials'),'Runtime secret staging must call the signed production rewrap endpoint.');
 must(runtimeSecretsWorkflow.includes('/__magnanimous_runtime/migration/stage-secrets'),'Runtime secret staging must stage the fresh standalone key.');
 must(runtimeSecretsWorkflow.includes('/__magnanimous_runtime/migration/stage-credential-rewrap'),'Runtime secret staging must apply only rewrapped ciphertext to the staged database.');
+must(runtimeSecretsWorkflow.includes('deploy_revision'),'Runtime secret staging must wait for the exact deployed revision.');
+must(runtimeSecretsWorkflow.includes("response.get('reloaded') is True"),'Runtime secret staging must prove live in-process reload.');
+must(server.includes('loadRuntimeSecrets({ file: secretFile, override: true })'),'Standalone secret staging must hot-reload the staged runtime secret file.');
+must(server.includes('Migration staging revision mismatch'),'Standalone migration endpoint must reject a signed SHA that is not the live revision.');
 must(!runtimeSecretsWorkflow.includes('secrets.INTEGRATION_CREDENTIALS_KEY'),'Runtime secret staging must not require the old production vault key outside production.');
 must(!runtimeSecretsWorkflow.includes('upload-artifact'),'Runtime secrets must never be uploaded as workflow artifacts.');
 const workerOidc=read('worker/src/github-actions-oidc.js');
@@ -270,6 +289,7 @@ execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs']
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-migration-stage.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime-secret-store.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-railway-deploy.mjs'],{stdio:'inherit'});
 for(const file of ['worker/src/magnanimous-cloud-provider-core.js','worker/src/magnanimous-infrastructure-core.js','worker/src/security-entrypoint.js']){
  execFileSync(process.execPath,['--check',file],{stdio:'inherit'});
 }
