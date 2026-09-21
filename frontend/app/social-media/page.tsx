@@ -67,7 +67,7 @@ export default function Social() {
             ? "CHECKING AI"
             : aiReady
               ? "AI CONTENT GENERATOR AVAILABLE"
-              : "AI PROVIDER NOT AVAILABLE"}
+              : "MAGNANIMOUS AI NOT READY"}
         </div>
       </header>
       <section className="hero">
@@ -75,9 +75,7 @@ export default function Social() {
         <small>SOCIAL STUDIO</small>
         <h1>Create once. Adapt everywhere.</h1>
         <p>
-          Draft platform-specific campaigns with a configured AI provider. This
-          page creates content; it does not publish anything to a social
-          account.
+          Draft platform-specific campaigns with Magnanimous AI. Magnanimous handles private execution routing; this page creates content and does not publish anything to a social account.
         </p>
         <div className="platforms">
           {platforms.map((x) => (
@@ -139,7 +137,7 @@ export default function Social() {
             {busy
               ? "CREATING…"
               : aiReady === false
-                ? "AI PROVIDER REQUIRED"
+                ? "MAGNANIMOUS AI SETUP NEEDED"
                 : "CREATE CONTENT PACKAGE →"}
           </button>
           {output && <div className="result">{output}</div>}
