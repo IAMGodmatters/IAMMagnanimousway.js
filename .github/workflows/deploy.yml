@@ -84,12 +84,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          set +e
-          output=$(printf 'y\n' | npx wrangler d1 migrations apply iam-magnanimous-db --remote 2>&1)
-          rc=$?
-          set -e
-          printf '%s\n' "$output"
-          if [ "$rc" -ne 0 ]; then
+
+          migration_files_changed=0
+          if git -C .. rev-parse HEAD^ >/dev/null 2>&1; then
+            if ! git -C .. diff --quiet HEAD^ HEAD -- worker/migrations; then
+              migration_files_changed=1
+            fi
+          else
+            migration_files_changed=1
+          fi
+
+          attempt=1
+          while true; do
+            set +e
+            output=$(printf 'y\n' | npx wrangler d1 migrations apply iam-magnanimous-db --remote 2>&1)
+            rc=$?
+            set -e
+            printf '%s\n' "$output"
+
+            if [ "$rc" -eq 0 ]; then
+              break
+            fi
+
             if printf '%s' "$output" | grep -qi "exceeded D1's free tier daily row write limit"; then
               echo "::warning::D1 migration writes are temporarily blocked by the Cloudflare Free daily row-write limit. Verifying that all runtime-required bootstrap/auth tables already exist before deferring pending migrations."
               npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('tenant_settings','ads','settings','security_rate_limits','auth_events','auth_config','auth_sessions') ORDER BY name;" > /tmp/d1-migration-quota-schema.json
@@ -110,14 +126,29 @@ jobs:
           if 'auth_sessions' not in names:
               print("::warning::auth_sessions is still pending. Authentication will remain available through the hardened signed-session recovery rail until migration 0057 can be applied.")
           else:
-              print("Opaque auth session storage is present.")
+              print("Opaque auth session storage is already available.")
           print("Pending runtime migrations safely deferred under confirmed D1 quota; required production tables already exist. auth_config may remain pending because SESSION_SECRET can satisfy the secure auth-secret contract.")
           PY
               echo "D1_MIGRATION_DEFERRED=1" >> "$GITHUB_ENV"
-            else
-              exit "$rc"
+              break
             fi
-          fi
+
+            if printf '%s' "$output" | grep -Eqi "internal error.*7500|code[^0-9]*7500|Network connection lost|connection reset|temporarily unavailable|timed out|Not currently importing anything"; then
+              if [ "$attempt" -lt 4 ]; then
+                echo "::warning::Transient Cloudflare D1 migration failure. Retrying migration application ($attempt/3)."
+                sleep $((attempt * 8))
+                attempt=$((attempt + 1))
+                continue
+              fi
+              if [ "$migration_files_changed" -eq 0 ]; then
+                echo "::warning::Cloudflare D1 remained transiently unavailable after bounded retries, but this commit does not change worker/migrations. Deferring the migration control-plane check and continuing deployment with the previously verified production schema."
+                echo "D1_MIGRATION_DEFERRED=1" >> "$GITHUB_ENV"
+                break
+              fi
+            fi
+
+            exit "$rc"
+          done
 
       - name: Materialize full Magnanimous capability brain
         env:
