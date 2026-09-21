@@ -2,6 +2,7 @@
 
 import {FormEvent,useEffect,useMemo,useRef,useState} from 'react';
 import AIProcessingIndicator from '../../components/AIProcessingIndicator';
+import {postMagnanimousChat} from '../../lib/magnanimous-chat-transport';
 
 type Role='user'|'assistant';
 type ChatMessage={id:number;role:Role;content:string;meta?:string;sources?:Array<{title?:string;url?:string}>;assistantName?:string;assistantTitle?:string};
@@ -56,20 +57,21 @@ export default function StandaloneMagnanimous(){
    const headers:Record<string,string>={'content-type':'application/json'};
    if(token)headers.authorization=`Bearer ${token}`;
    const requestText=activeMode.id==='general'?text:`[${activeMode.label.toUpperCase()} MODE]\n${text}`;
-   const r=await fetch('/api/chat',{
+   const researchMode=activeMode.id==='research';
+   const r=await postMagnanimousChat('/api/chat',{
     method:'POST',headers,
     body:JSON.stringify({
      message:requestText,
      provider:'auto',
      use_knowledge:true,
-     use_tools:true,
-     learn_links:true,
+     use_tools:!researchMode,
+     learn_links:!researchMode,
      remember_search:true,
      specialist_routing:true,
      live_search:Boolean(activeMode.live),
      news:Boolean(activeMode.news)
     })
-   });
+   },{retryTransientEdgeOnce:researchMode});
    const d=await r.json().catch(()=>({}));
    if(!r.ok)throw new Error(String(d?.detail||d?.error||`Magnanimous returned ${r.status}`));
    const answer=String(d?.output||d?.answer||'Magnanimous completed the request but returned no text.');
