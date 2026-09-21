@@ -156,6 +156,8 @@ must(!railwayDeploy.includes('console.log(token)'),'Railway deploy token must ne
 const railwayDeployWorkflow=read('.github/workflows/magnanimous-railway-deploy.yml');
 for(const contract of ['id-token: write','Full Platform QA','magnanimous-railway-deploy','/__magnanimous_runtime/deployment/railway','deploy_revision'])
  must(railwayDeployWorkflow.includes(contract),'Railway exact-commit workflow missing: '+contract);
+must(railwayDeployWorkflow.includes('Check whether this exact commit is already live'),'Railway deployment workflow must support bootstrap-safe exact-live detection.');
+must(railwayDeployWorkflow.includes("steps.already-live.outputs.live != 'true'"),'Railway deployment workflow must skip provider deployment when the exact commit is already healthy.');
 must(!railwayDeployWorkflow.includes('secrets.RAILWAY_TOKEN'),'GitHub must not own the Railway deployment credential.');
 
 must(exists('magnanimous-runtime/scripts/export-d1-logical.mjs'),'Missing FTS-safe logical D1 snapshot exporter.');
