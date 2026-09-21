@@ -5,6 +5,7 @@ import { getMagnanimousMemoryContext } from './magnanimous-brain-runtime.js';
 import { getMagnanimousToolFoundryContext, handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
 import { getMagnanimousOgenicPrompt, buildMagnanimousOgenicPlan, handleMagnanimousOgenic } from './magnanimous-ogenic-god-toolkit.js';
 import { hasAnyReadyLocalBridge, hasReadyLocalBridge, hasAnyReadyLocalBridgeCapability } from './magnanimous-local-bridge-runtime.js';
+import { getMagnanimousSingleBrainSummary, magnanimousPublicRoutingSummary } from './magnanimous-single-brain-contract.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const now = () => Math.floor(Date.now() / 1000);
@@ -12,12 +13,12 @@ const MEMORY_MARKER = '\n\nMAGNANIMOUS CENTRAL BRAIN CONTEXT';
 
 const COMMANDER_PROTOCOL = `MAGNANIMOUS COMMAND LAYER
 You are speaking as Magnanimous AI, the commander-in-chief orchestration brain for I AM Magnanimous Way™.
-All outside AI models, search engines, plugins, MCP servers, SaaS products, carriers and generators are replaceable execution engines or tools under Magnanimous routing. They are never the platform identity or the final authority over the workflow.
+Magnanimous AI is the only public AI identity for the platform. Specialist agents are Magnanimous departments, not separate AI products. All outside AI models, search engines, plugins, MCP servers, SaaS products, carriers, browsers, hosts and generators are private replaceable execution engines or tools under Magnanimous routing. They are never the platform identity or the final authority over the workflow.
 Use Magnanimous private memory, learned lessons, stored knowledge and native tool recipes before reaching outward. Use fresh research when facts are current, stale, uncertain or source-dependent.
 Magnanimous AI is the durable remembrance layer for the platform: decisions, useful context, learned lessons, proven workflows and continuity belong to Magnanimous memory, never to a replaceable outside model.
 When the user supplies a public link, learn the readable information into the tenant knowledge workspace so the user does not have to keep supplying the same link. Do not copy secrets, credentials, paywalled material or proprietary backend code.
 Repeated successful low-risk workflows should become reusable Magnanimous-native recipes. External providers remain necessary only when they offer a capability, live data, account access or compute Magnanimous cannot truthfully reproduce natively.
-Specialist agents are execution arms. Magnanimous owns planning, continuity, routing, verification and learning across them.
+Specialist agents are Magnanimous departments. Magnanimous owns planning, continuity, routing, verification, memory and learning across them. Never ask ordinary customers to choose an outside provider or model; choose the best authorized path privately.
 Use the Magnanimous Capability Mesh as the provider-neutral execution map for native web, GitHub engineering, Magnanimous Cloud, optional Cloudflare adapters and optional Railway capacity rails. Prefer native-ready surfaces, report degraded readiness truthfully, and never confuse an installed contract with a live authorized executor.
 Never claim an external action happened without an actual authorized tool result. Never bypass security, identity, payment or permission boundaries.`;
 
@@ -283,11 +284,14 @@ async function handle(request, env) {
   if (url.pathname === '/api/operator/capabilities' && request.method === 'GET') {
     const localBridgeReady=await hasAnyReadyLocalBridge(env).catch(()=>false);
     const nativeBrowserReady=await hasAnyReadyLocalBridgeCapability(env,'browser_fetch').catch(()=>false);
+    const providerRows=PROVIDERS.map(p=>({configured:configured(env,p),enabled:p.tier!=='metered'||meteredEnabled(env)}));
     return json({
     operator:'Magnanimous AI',
     command_role:'commander-in-chief',
-    routing:{task_aware:true,automatic_failover:true,manual_provider_override:true,free_first_default:true,maximum_quality_option:true,learned_tool_planning:true,integration_ranking:true,adaptive_provider_learning:true,ogenic_god_toolkit:true,cloud_local_hybrid:true,suggestive_initiation:true},
-    providers:PROVIDERS.map(p=>({id:p.id,name:p.name,tier:p.tier,configured:configured(env,p),enabled:p.tier!=='metered'||meteredEnabled(env)})),
+    public_ai_identity:'Magnanimous AI',
+    routing:{task_aware:true,automatic_failover:true,manual_provider_override:false,private_execution_selection:true,free_first_default:true,maximum_quality_option:true,learned_tool_planning:true,integration_ranking:true,adaptive_provider_learning:true,ogenic_god_toolkit:true,cloud_local_hybrid:true,suggestive_initiation:true},
+    execution_routing:magnanimousPublicRoutingSummary(providerRows),
+    single_brain:getMagnanimousSingleBrainSummary(),
     knowledge:{private_workspace_grounding:true,live_web_search:true,news_search:true,automatic_link_learning:true,remembered_research:true,brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY),fallback_enabled:true},
     execution:{specialist_agent_mesh:true,connected_actions:true,crm:true,business_email:true,calling:true,video:true,social:true,professional_business_launch:true,tool_foundry:true,universal_tool_gateway:true,capability_mesh:true,native_recipe_growth:true,ogenic_god_toolkit:true,netwalk_contract:true,safe_action_initiation:true,native_web_agent:true},
     native_web:{runtime:true,browser_ready:nativeBrowserReady,search:true,rendered_fetch:true,batch_fetch:true,source_backed_research:true,read_flows:true,interactive_flows:true,persistent_local_profiles:true,persistent_browser_sessions:true,status_streaming:true,completion_webhooks:true,scheduled_monitoring:true,monitor_run_now:true,usage_accounting:true,free_first:true,tinyfish_required:false,remote_cdp_exposed:false,owned_geo_proxy_fleet:false,execution_surface:'Magnanimous Local Bridge + local Chromium'},
@@ -310,11 +314,12 @@ async function handle(request, env) {
     const ready = enabled.length > 0;
     return json({ free_first: true, metered_providers_enabled: meteredEnabled(env), command_role:'commander-in-chief', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, adaptive_provider_learning:true, automatic_link_learning:true, providers, configured_count: enabled.length, free_configured_count: enabled.filter(p => p.tier === 'free-first').length, magnanimous_ready: ready, operator_ready: ready });
   }
+  if (url.pathname === '/api/magnanimous/single-brain' && request.method === 'GET') return json(getMagnanimousSingleBrainSummary());
   if ((url.pathname === '/api/magnanimous/health' || url.pathname === '/api/odin/health') && request.method === 'GET') {
-    const providers = PROVIDERS.map(p => ({ id: p.id, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env) }));
+    const providers = PROVIDERS.map(p => ({ configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env) }));
     const localBridgeReady=await hasAnyReadyLocalBridge(env).catch(()=>false);
     const nativeBrowserReady=await hasAnyReadyLocalBridgeCapability(env,'browser_fetch').catch(()=>false);
-    return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', command_role:'commander-in-chief', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, adaptive_provider_learning:true, automatic_link_learning:true, native_recipe_growth:true, ogenic_god_toolkit:true, suggestive_initiation:true, local_bridge_runtime:true, local_bridge_configured:localBridgeReady, local_bridge_transport:'outbound-only', native_web_runtime:true, native_browser_ready:nativeBrowserReady, native_web_tinyfish_required:false, native_web_execution_surface:'Magnanimous Local Bridge + local Chromium', workers_ai_bound: env?.AI != null, web_search_configured:true, news_search_configured:true, brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY), research_fallback_enabled:true, providers });
+    return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', public_ai_identity:'Magnanimous AI', command_role:'commander-in-chief', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, adaptive_provider_learning:true, automatic_link_learning:true, native_recipe_growth:true, ogenic_god_toolkit:true, suggestive_initiation:true, local_bridge_runtime:true, local_bridge_configured:localBridgeReady, local_bridge_transport:'outbound-only', native_web_runtime:true, native_browser_ready:nativeBrowserReady, native_web_tinyfish_required:false, native_web_execution_surface:'Magnanimous Local Bridge + local Chromium', workers_ai_bound: env?.AI != null, web_search_configured:true, news_search_configured:true, brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY), research_fallback_enabled:true, routing:magnanimousPublicRoutingSummary(providers), single_brain:getMagnanimousSingleBrainSummary() });
   }
   if (url.pathname === '/api/chat' && request.method === 'POST') {
     const body = await request.json();
