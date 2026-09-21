@@ -10,23 +10,64 @@ const uid=prefix=>`${prefix}_${crypto.randomUUID()}`;
 export const NATIVE_WEB_CAPABILITIES=Object.freeze({
  search:{action:'browser_search',mode:'read-only',confirmation:false,description:'Fresh browser-based web search from a local Chromium session.'},
  fetch:{action:'browser_fetch',mode:'read-only',confirmation:false,description:'JavaScript-rendered page extraction with links, optional HTML and selector fields.'},
+ fetch_batch:{action:'browser_fetch_batch',mode:'read-only',confirmation:false,description:'Parallel-style batch contract for up to 10 public URLs, executed by Magnanimous-owned browser workers.'},
+ research:{action:'browser_research',mode:'read-only',confirmation:false,description:'Search, collect source evidence, and synthesize a source-backed report with Magnanimous reasoning.'},
  read_flow:{action:'browser_read_flow',mode:'read-only',confirmation:false,description:'Multi-step navigation, waiting, scrolling, snapshots and extraction without page writes.'},
  action_flow:{action:'browser_action_flow',mode:'interactive',confirmation:true,description:'Confirmed page-scoped click/fill/select/press workflows with screenshot capture.'},
  profiles:{action:'browser_profile_list',mode:'local-session',confirmation:false,description:'Persistent local Chromium session profiles. Credentials stay on the paired computer.'},
  profile_setup:{action:'browser_profile_setup',mode:'local-session',confirmation:true,description:'Opens a visible local browser for manual sign-in without sending passwords through the platform.'},
+ profile_create:{action:'browser_profile_create',mode:'local-session',confirmation:false,description:'Creates a Magnanimous-owned persistent local browser profile without exporting secrets.'},
+ profile_delete:{action:'browser_profile_delete',mode:'local-session',confirmation:true,description:'Deletes a non-default local browser profile after exact confirmation.'},
+ browser_sessions:{action:'browser_session_start',mode:'local-session',confirmation:false,description:'Persistent browser sessions controlled through outbound Magnanimous tasks instead of a paid remote CDP service.'},
+ session_read:{action:'browser_session_read',mode:'local-session',confirmation:false,description:'Read-only commands against a persistent Magnanimous browser session.'},
+ session_action:{action:'browser_session_action',mode:'interactive',confirmation:true,description:'Confirmed click/fill/select/press commands against a persistent Magnanimous browser session.'},
+ webhooks:{action:'native-webhook',mode:'delivery',confirmation:false,description:'Best-effort HTTPS completion callbacks from native browser runs.'},
  goal_agent:{action:'browser-goal-planner',mode:'planner',confirmation:true,description:'Magnanimous converts a plain-English web goal into a bounded native browser plan; interactive execution remains confirmation-gated.'},
-  monitoring:{action:'scheduled-native-web',mode:'read-only',confirmation:false,description:'15-minute-or-slower scheduled search/fetch monitoring through the paired native browser.'}
+ monitoring:{action:'scheduled-native-web',mode:'read-only',confirmation:false,description:'15-minute-or-slower scheduled search/fetch monitoring through the paired native browser.'}
 });
 
 const KIND_TO_ACTION=Object.freeze({
  search:'browser_search',
  fetch:'browser_fetch',
+ fetch_batch:'browser_fetch_batch',
+ research:'browser_research',
  read:'browser_read_flow',
  read_flow:'browser_read_flow',
  action:'browser_action_flow',
  action_flow:'browser_action_flow',
  profiles:'browser_profile_list',
- profile_setup:'browser_profile_setup'
+ profile_setup:'browser_profile_setup',
+ profile_create:'browser_profile_create',
+ profile_delete:'browser_profile_delete',
+ session_start:'browser_session_start',
+ session_read:'browser_session_read',
+ session_action:'browser_session_action',
+ session_end:'browser_session_end'
+});
+
+export const MAGNANIMOUS_WEB_PARITY=Object.freeze({
+ identity:'Magnanimous AI',
+ implementation:'clean-room first-party equivalents built from public/observable capability contracts',
+ tinyfish_runtime_dependency:false,
+ surfaces:{
+  agent:{blocking_sync_endpoint:false,async_runs:true,sse_status_stream:true,batch_runs:true,goal_planning:true,structured_extraction:true,webhooks:true},
+  research:{source_search:true,source_fetch:true,source_backed_report:true,saved_run:true},
+  search:{ranked_results:true,locale_hint:true,geo_location_hint:false,usage_tracking:true},
+  fetch:{javascript_rendering:true,batch_up_to_10:true,links:true,html:true,structured_fields:true,per_url_errors:true},
+  browser:{persistent_sessions:true,read_commands:true,confirmed_action_commands:true,screenshots:true,profile_reuse:true,remote_cdp_exposed:false},
+  monitor:{page:true,topic:true,pause_resume:true,run_now:true,change_detection:true,webhook_delivery:true},
+  profiles:{create:true,list:true,manual_login_setup:true,delete:true,cookies_local_only:true},
+  credentials:{local_browser_profile_state:true,remote_secret_values:false,password_manager_dependency:false},
+  proxy:{local_authenticated_proxy:true,per_run_unauthenticated_proxy:true,owned_geo_proxy_fleet:false},
+  live_preview:{on_demand_session_screenshots:true,remote_video_stream:false},
+  cli_mcp:{provider_neutral_http_contract:true,dedicated_native_web_cli:false,universal_connector_layer:true},
+  billing:{third_party_wallet_required:false,local_compute_owned_by_operator:true}
+ },
+ truth_boundaries:[
+  'No proprietary TinyFish source code, hidden prompts, model weights, anti-bot internals, residential proxy network, or credentials are copied.',
+  'Magnanimous does not claim an owned residential proxy fleet or remotely exposed CDP tunnel unless that infrastructure is actually deployed.',
+  'External websites, Internet access, and owner hardware remain physical dependencies.'
+ ]
 });
 
 async function sha(value){
@@ -77,18 +118,33 @@ async function readiness(env,tenantId){
  const entries={};
  for(const [id,def] of Object.entries(NATIVE_WEB_CAPABILITIES)){
   if(id==='monitoring'){entries[id]={...def,ready:Boolean(await findReadyLocalBridgeDevice(env,tenantId,'browser_fetch'))};continue}
+  if(id==='webhooks'){entries[id]={...def,ready:Boolean(await findReadyLocalBridgeDevice(env,tenantId,'browser_fetch'))};continue}
   if(id==='goal_agent'){entries[id]={...def,ready:Boolean(env?.AI)&&Boolean(await findReadyLocalBridgeDevice(env,tenantId,'browser_read_flow'))};continue}
   entries[id]={...def,ready:Boolean(await findReadyLocalBridgeDevice(env,tenantId,def.action))};
  }
  return entries;
 }
 
+function commonWeb(body){
+ return{
+  profile:clip(body.profile,64)||'default',
+  locale:clip(body.locale,20)||'en-US',
+  timeout_ms:body.timeout_ms,
+  webhook_url:clip(body.webhook_url,4000),
+  proxy_url:clip(body.proxy_url,4000)
+ };
+}
 function payloadFor(kind,body){
- if(kind==='search')return{query:clip(body.query,2000),limit:body.limit,profile:body.profile,locale:body.locale};
- if(kind==='fetch')return{url:clip(body.url,4000),selector:clip(body.selector,1000),max_chars:body.max_chars,link_limit:body.link_limit,include_html:body.include_html===true,fields:body.fields||{},profile:body.profile,locale:body.locale,settle_ms:body.settle_ms};
- if(kind==='read'||kind==='read_flow'||kind==='action'||kind==='action_flow')return{steps:Array.isArray(body.steps)?body.steps:[],profile:body.profile,locale:body.locale,timeout_ms:body.timeout_ms};
- if(kind==='profile_setup')return{url:clip(body.url,4000),profile:body.profile,seconds:body.seconds,locale:body.locale};
+ const common=commonWeb(body);
+ if(kind==='search')return{...common,query:clip(body.query,2000),limit:body.limit};
+ if(kind==='fetch')return{...common,url:clip(body.url,4000),selector:clip(body.selector,1000),max_chars:body.max_chars,link_limit:body.link_limit,include_html:body.include_html===true,fields:body.fields||{},settle_ms:body.settle_ms};
+ if(kind==='fetch_batch')return{...common,urls:(Array.isArray(body.urls)?body.urls:[]).slice(0,10).map(x=>clip(x,4000)),selector:clip(body.selector,1000),max_chars:body.max_chars,link_limit:body.link_limit,include_html:body.include_html===true,fields:body.fields||{},settle_ms:body.settle_ms};
+ if(kind==='research')return{...common,query:clip(body.query,2000),limit:body.limit,max_chars:body.max_chars,output_schema:body.output_schema||null};
+ if(kind==='read'||kind==='read_flow'||kind==='action'||kind==='action_flow')return{...common,steps:Array.isArray(body.steps)?body.steps:[]};
+ if(kind==='profile_setup')return{...common,url:clip(body.url,4000),seconds:body.seconds};
+ if(kind==='profile_create'||kind==='profile_delete')return{...common,profile:clip(body.profile,64)};
  if(kind==='profiles')return{};
+ if(['session_start','session_read','session_action','session_end'].includes(kind))return{...common,session_id:clip(body.session_id,160),url:clip(body.url,4000),steps:Array.isArray(body.steps)?body.steps:[]};
  return{};
 }
 
@@ -131,6 +187,49 @@ async function planBrowserGoal(env,{goal,start_url='',mode='read'}={}){
  return{mode:safeMode,steps,notes:clip(parsed.notes,1200),model_role:'replaceable planning engine beneath Magnanimous AI'};
 }
 
+async function enrichResearch(env,task){
+ if(!task||task.action!=='browser_research'||task.status!=='completed'||task.result?.report||!Array.isArray(task.result?.sources))return task;
+ const sources=task.result.sources.slice(0,8),schema=task.payload?.output_schema||null;
+ let report='';
+ if(env?.AI&&sources.length){
+  const evidence=sources.map((x,i)=>`SOURCE ${i+1}\nTITLE: ${clip(x.title,500)}\nURL: ${clip(x.url,2000)}\nTEXT: ${clip(x.text||x.snippet,5000)}`).join('\n\n');
+  const prompt=[
+   'You are the research synthesis department beneath Magnanimous AI.',
+   'Use only the supplied source evidence. Be explicit when evidence is incomplete or conflicting.',
+   schema?'Return JSON matching this requested schema as closely as possible: '+JSON.stringify(schema).slice(0,6000):'Return a concise source-backed report in plain text.',
+   evidence
+  ].join('\n\n');
+  try{
+   const model=String(env.CLOUDFLARE_AI_MODEL||'@cf/meta/llama-3.3-70b-instruct-fp8-fast');
+   const out=await env.AI.run(model,{messages:[{role:'user',content:prompt}],max_tokens:2200,temperature:.1});
+   report=typeof out==='string'?out:String(out?.response||out?.result?.response||out?.result||'');
+  }catch{}
+ }
+ if(!report)report=sources.map((x,i)=>`${i+1}. ${x.title||'Source'} — ${x.snippet||clip(x.text,700)} (${x.url})`).join('\n');
+ task.result={...task.result,report:clip(report,50000),magnanimous_synthesized:Boolean(env?.AI),source_count:sources.length};
+ try{await env.DB.prepare('UPDATE magnanimous_local_bridge_tasks SET result_json=? WHERE id=?').bind(JSON.stringify(task.result).slice(0,500000),task.id).run()}catch{}
+ return task;
+}
+
+function sseRun(env,tenantId,taskId){
+ const encoder=new TextEncoder();
+ return new Response(new ReadableStream({
+  async start(controller){
+   const emit=(type,data)=>controller.enqueue(encoder.encode(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`));
+   let last='';
+   for(let i=0;i<25;i++){
+    const task=await localBridgeTask(env,tenantId,taskId);
+    if(!task){emit('ERROR',{run_id:taskId,status:'NOT_FOUND'});break}
+    if(task.status!==last){emit(task.status==='completed'?'COMPLETE':task.status==='failed'?'FAILED':task.status==='cancelled'?'CANCELLED':'PROGRESS',{run_id:task.id,status:task.status,action:task.action,result:task.status==='completed'?task.result:undefined,error:task.error||undefined});last=task.status}
+    if(['completed','failed','cancelled'].includes(task.status))break;
+    await new Promise(resolve=>setTimeout(resolve,1000));
+    if(i>0&&i%10===0)emit('HEARTBEAT',{run_id:taskId,status:task.status});
+   }
+   controller.close();
+  }
+ }),{headers:{'content-type':'text/event-stream; charset=utf-8','cache-control':'no-store','connection':'keep-alive'}});
+}
+
 async function confirmOrCancel(request,env,user,taskId,operation){
  const nestedUrl=new URL('/api/magnanimous/local-bridge/tasks/'+encodeURIComponent(taskId)+'/'+operation,request.url);
  const headers=new Headers(request.headers);headers.set('content-type','application/json');headers.delete('content-length');
@@ -155,8 +254,77 @@ export async function handleMagnanimousNativeWeb(request,env){
    external_web_agent_required:false,
    secrets:'local browser profiles only; password fields are not accepted from remote browser tasks',
    private_network_targets:false,
-   capabilities
+   capabilities,
+   parity:MAGNANIMOUS_WEB_PARITY
   });
+ }
+
+ if(request.method==='GET'&&path==='/api/magnanimous/native-web/parity')return json(MAGNANIMOUS_WEB_PARITY);
+
+ if(request.method==='GET'&&path==='/api/magnanimous/native-web/usage'){
+  const {results=[]}=await env.DB.prepare("SELECT action,status,COUNT(*) n FROM magnanimous_local_bridge_tasks WHERE tenant_id=? AND action LIKE 'browser_%' GROUP BY action,status ORDER BY action,status").bind(tenantId).all();
+  const total=results.reduce((n,row)=>n+Number(row.n||0),0);
+  return json({native:true,tinyfish_required:false,third_party_wallet_required:false,total,runs:results});
+ }
+
+ if(request.method==='POST'&&path==='/api/magnanimous/native-web/research'){
+  const body=await request.json().catch(()=>({}));
+  if(!clip(body.query,2000))return json({detail:'Research query is required.'},400);
+  const queued=await queueRun(env,user,'research',body,false);
+  if(!queued.ok)return json({detail:queued.detail,code:queued.code},503);
+  return json({...queued,source_backed:true,native:true,tinyfish_required:false},201);
+ }
+
+ if(request.method==='POST'&&path==='/api/magnanimous/native-web/fetch-batch'){
+  const body=await request.json().catch(()=>({}));
+  if(!Array.isArray(body.urls)||!body.urls.length||body.urls.length>10)return json({detail:'Fetch batch requires 1-10 urls.'},400);
+  const queued=await queueRun(env,user,'fetch_batch',body,false);
+  if(!queued.ok)return json({detail:queued.detail,code:queued.code},503);
+  return json({...queued,native:true,tinyfish_required:false},201);
+ }
+
+ if(request.method==='POST'&&path==='/api/magnanimous/native-web/runs/batch'){
+  const body=await request.json().catch(()=>({})),items=Array.isArray(body.runs)?body.runs:[];
+  if(!items.length||items.length>100)return json({detail:'Batch requires 1-100 runs.'},400);
+  const runs=[];
+  for(const item of items){
+   const kind=clip(item?.kind||'fetch',40).toLowerCase();
+   try{runs.push(await queueRun(env,user,kind,item||{},true))}catch(error){runs.push({ok:false,kind,detail:error.message||'Could not queue run.'})}
+  }
+  return json({native:true,tinyfish_required:false,count:runs.length,runs},207);
+ }
+
+ if(request.method==='POST'&&path==='/api/magnanimous/native-web/profiles'){
+  const body=await request.json().catch(()=>({}));
+  const queued=await queueRun(env,user,'profile_create',body,false);
+  if(!queued.ok)return json({detail:queued.detail,code:queued.code},503);
+  return json(queued,201);
+ }
+ let profileMatch=path.match(/^\/api\/magnanimous\/native-web\/profiles\/([^/]+)$/);
+ if(request.method==='DELETE'&&profileMatch){
+  const queued=await queueRun(env,user,'profile_delete',{profile:decodeURIComponent(profileMatch[1])},true);
+  if(!queued.ok)return json({detail:queued.detail,code:queued.code},queued.code==='CONFIRMATION_REQUIRED'?409:503);
+  return json(queued,202);
+ }
+
+ if(request.method==='POST'&&path==='/api/magnanimous/native-web/sessions'){
+  const body=await request.json().catch(()=>({})),sessionId=uid('mbs');
+  const queued=await queueRun(env,user,'session_start',{...body,session_id:sessionId},false);
+  if(!queued.ok)return json({detail:queued.detail,code:queued.code},503);
+  return json({...queued,session_id:sessionId,control_transport:'outbound-magnanimous-task-control',remote_cdp_exposed:false},201);
+ }
+ let sessionMatch=path.match(/^\/api\/magnanimous\/native-web\/sessions\/([^/]+)\/(read|actions)$/);
+ if(request.method==='POST'&&sessionMatch){
+  const body=await request.json().catch(()=>({})),kind=sessionMatch[2]==='actions'?'session_action':'session_read';
+  const queued=await queueRun(env,user,kind,{...body,session_id:decodeURIComponent(sessionMatch[1])},true);
+  if(!queued.ok)return json({detail:queued.detail,code:queued.code},queued.code==='CONFIRMATION_REQUIRED'?409:503);
+  return json(queued,queued.requires_confirmation?202:201);
+ }
+ sessionMatch=path.match(/^\/api\/magnanimous\/native-web\/sessions\/([^/]+)$/);
+ if(request.method==='DELETE'&&sessionMatch){
+  const queued=await queueRun(env,user,'session_end',{session_id:decodeURIComponent(sessionMatch[1])},false);
+  if(!queued.ok)return json({detail:queued.detail,code:queued.code},503);
+  return json({...queued,idempotent:true},202);
  }
 
  if(request.method==='POST'&&path==='/api/magnanimous/native-web/goals'){
@@ -198,10 +366,13 @@ export async function handleMagnanimousNativeWeb(request,env){
 
  let match=path.match(/^\/api\/magnanimous\/native-web\/runs\/([^/]+)$/);
  if(request.method==='GET'&&match){
-  const task=await localBridgeTask(env,tenantId,decodeURIComponent(match[1]));
+  let task=await localBridgeTask(env,tenantId,decodeURIComponent(match[1]));
   if(!task)return json({detail:'Native web run not found.'},404);
+  task=await enrichResearch(env,task);
   return json({...task,native:true,tinyfish_required:false});
  }
+ const streamMatch=path.match(/^\/api\/magnanimous\/native-web\/runs\/([^/]+)\/stream$/);
+ if(request.method==='GET'&&streamMatch)return sseRun(env,tenantId,decodeURIComponent(streamMatch[1]));
 
  match=path.match(/^\/api\/magnanimous\/native-web\/runs\/([^/]+)\/(confirm|cancel)$/);
  if(request.method==='POST'&&match)return confirmOrCancel(request,env,user,decodeURIComponent(match[1]),match[2]);
@@ -224,6 +395,22 @@ export async function handleMagnanimousNativeWeb(request,env){
  }
 
  match=path.match(/^\/api\/magnanimous\/native-web\/monitors\/([^/]+)$/);
+ if(match&&request.method==='GET'){
+  const row=await env.DB.prepare('SELECT * FROM magnanimous_web_monitors WHERE id=? AND tenant_id=?').bind(decodeURIComponent(match[1]),tenantId).first();
+  if(!row)return json({detail:'Monitor not found.'},404);
+  return json({monitor:publicMonitor(row),native:true,tinyfish_required:false});
+ }
+ const runNow=path.match(/^\/api\/magnanimous\/native-web\/monitors\/([^/]+)\/runs$/);
+ if(runNow&&request.method==='POST'){
+  const id=decodeURIComponent(runNow[1]),row=await env.DB.prepare('SELECT * FROM magnanimous_web_monitors WHERE id=? AND tenant_id=?').bind(id,tenantId).first();
+  if(!row)return json({detail:'Monitor not found.'},404);
+  if(row.last_task_id)return json({detail:'Monitor already has a run in progress.',code:'RETRY_REQUIRED'},409);
+  let body={};try{body=JSON.parse(row.request_json||'{}')}catch{}
+  const queued=await queueRun(env,user,row.kind,body,false);
+  if(!queued.ok)return json({detail:queued.detail,code:queued.code},503);
+  const ts=now();await env.DB.prepare('UPDATE magnanimous_web_monitors SET last_task_id=?,last_run_at=?,updated_at=? WHERE id=? AND tenant_id=?').bind(queued.id,ts,ts,id,tenantId).run();
+  return json({run:queued,monitor:publicMonitor({...row,last_task_id:queued.id,last_run_at:ts,updated_at:ts}),native:true},201);
+ }
  if(match&&request.method==='DELETE'){
   const id=decodeURIComponent(match[1]),changed=await env.DB.prepare('DELETE FROM magnanimous_web_monitors WHERE id=? AND tenant_id=?').bind(id,tenantId).run();
   return json({deleted:Number(changed?.meta?.changes||0)>0,id});

@@ -19,12 +19,21 @@ const docs=read('local-bridge/README.md');
 for(const needle of [
  "browser_search:{risk:'low',auto:true,confirmation:false",
  "browser_fetch:{risk:'low',auto:true,confirmation:false",
+ "browser_fetch_batch:{risk:'low',auto:true,confirmation:false",
+ "browser_research:{risk:'low',auto:true,confirmation:false",
  "browser_read_flow:{risk:'low',auto:true,confirmation:false",
  "browser_action_flow:{risk:'high',auto:false,confirmation:true",
  "browser_profile_setup:{risk:'medium',auto:false,confirmation:true",
+ "browser_profile_delete:{risk:'high',auto:false,confirmation:true",
+ "browser_session_start:{risk:'low',auto:true,confirmation:false",
+ "browser_session_read:{risk:'low',auto:true,confirmation:false",
+ "browser_session_action:{risk:'high',auto:false,confirmation:true",
+ "browser_session_end:{risk:'low',auto:true,confirmation:false",
  "browser_secret_fill_from_remote_task:false",
  "browser_private_network_targets:false",
  "browser_profiles_local_only:true",
+ "browser_proxy_credentials_local_only:true",
+ "native_webhooks_https_only:true",
  "queueLocalBridgeTask",
  "localBridgeTask",
  "hasAnyReadyLocalBridgeCapability"
@@ -35,10 +44,18 @@ for(const needle of [
  'launch_persistent_context',
  'browser_search',
  'browser_fetch',
+ 'browser_fetch_batch',
+ 'browser_research',
  'browser_read_flow',
  'browser_action_flow',
  'browser_profile_list',
  'browser_profile_setup',
+ 'browser_profile_create',
+ 'browser_profile_delete',
+ 'browser_session_start',
+ 'browser_session_read',
+ 'browser_session_action',
+ 'browser_session_end',
  'Local/private browser targets are blocked',
  'Password/secret fields cannot be filled from a remote task',
  'BROWSER_DIR = APP_DIR / "browser-profiles"',
@@ -59,17 +76,38 @@ for(const needle of [
  "architecture:'native-first-local-browser'",
  "'/api/magnanimous/native-web/capabilities'",
  "'/api/magnanimous/native-web/runs'",
+ "'/api/magnanimous/native-web/research'",
+ "'/api/magnanimous/native-web/fetch-batch'",
+ "'/api/magnanimous/native-web/runs/batch'",
+ "'/api/magnanimous/native-web/parity'",
+ "'/api/magnanimous/native-web/usage'",
+ "'/api/magnanimous/native-web/sessions'",
+ "'/api/magnanimous/native-web/profiles'",
  "'/api/magnanimous/native-web/monitors'",
  "Math.max(15",
  "requirePlatformOwner",
  "scheduledNativeWeb",
  "'/api/magnanimous/native-web/goals'",
  "planBrowserGoal",
+ "MAGNANIMOUS_WEB_PARITY",
+ "blocking_sync_endpoint:false",
+ "dedicated_native_web_cli:false",
+ "remote_cdp_exposed:false",
+ "owned_geo_proxy_fleet:false",
+ "third_party_wallet_required:false",
+ "tinyfish_runtime_dependency:false",
+ "sseRun",
  "Maximum 30 steps",
  "'/api/magnanimous/native-web/runs'"
 ])assert(runtime.includes(needle),'Magnanimous Native Web runtime contract missing: '+needle);
 
 assert(!runtime.includes("from './tinyfish"),'Magnanimous Native Web must not import TinyFish as a required runtime');
+assert(!runtime.includes('sync_contract:true'),'Native Web must not falsely claim a blocking sync endpoint');
+assert(!runtime.includes('owned_geo_proxy_fleet:true'),'Native Web must not falsely claim an owned geo/residential proxy fleet');
+assert(!runtime.includes('remote_cdp_exposed:true'),'Native Web must not falsely claim a remote CDP tunnel');
+assert(agent.includes('Remote browser tasks may not carry proxy credentials'),'authenticated proxy credentials must remain local');
+assert(bridge.includes('deliverNativeWebWebhook'),'native browser completion webhook delivery must remain wired through the Local Bridge result path');
+assert(agent.includes('Browser session is not active on this bridge.'),'persistent session lifecycle must fail truthfully after bridge/session loss');
 assert(operations.includes('handleMagnanimousNativeWeb'),'secured operations runtime must mount Native Web endpoints');
 assert(operations.includes('scheduledNativeWeb'),'platform cron must run native web monitors');
 assert(migration.includes('CREATE TABLE IF NOT EXISTS magnanimous_web_monitors'),'native web monitor migration missing');
@@ -88,6 +126,10 @@ for(const needle of [
  'structured-web-extraction',
  'persistent-browser-profiles',
  'scheduled-web-monitoring',
+ 'batch-web-fetch',
+ 'source-backed-web-research',
+ 'persistent-browser-sessions',
+ 'native-web-completion-webhooks',
  'native-local-browser',
  'Magnanimous-owned Local Bridge + local Chromium'
 ])assert(universal.includes(needle),'Universal native browser capability missing: '+needle);

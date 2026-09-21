@@ -21,7 +21,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'computer-browser-use',
     name: 'Computer, browser and application operation',
-    capabilities: ['screen-understanding','browser-navigation','browser-search','rendered-page-extraction','structured-web-extraction','form-entry','click-type-scroll','persistent-browser-profiles','browser-task-lifecycle','scheduled-web-monitoring','screenshot-capture','native-local-browser','desktop-operation','mobile-operation','ui-testing','workflow-automation','recovery-from-ui-change']
+    capabilities: ['screen-understanding','browser-navigation','browser-search','rendered-page-extraction','batch-web-fetch','source-backed-web-research','structured-web-extraction','form-entry','click-type-scroll','persistent-browser-profiles','persistent-browser-sessions','browser-task-lifecycle','browser-status-streaming','native-web-completion-webhooks','scheduled-web-monitoring','monitor-run-now','browser-usage-accounting','screenshot-capture','native-local-browser','desktop-operation','mobile-operation','ui-testing','workflow-automation','recovery-from-ui-change']
   },
   {
     id: 'multimodal-intelligence',

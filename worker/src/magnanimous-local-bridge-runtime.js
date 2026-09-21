@@ -23,10 +23,18 @@ export const LOCAL_BRIDGE_ACTIONS=Object.freeze({
  web_fetch:{risk:'low',auto:true,confirmation:false,family:'network'},
  browser_search:{risk:'low',auto:true,confirmation:false,family:'native-web'},
  browser_fetch:{risk:'low',auto:true,confirmation:false,family:'native-web'},
+ browser_fetch_batch:{risk:'low',auto:true,confirmation:false,family:'native-web'},
+ browser_research:{risk:'low',auto:true,confirmation:false,family:'native-web'},
  browser_read_flow:{risk:'low',auto:true,confirmation:false,family:'native-web'},
  browser_action_flow:{risk:'high',auto:false,confirmation:true,family:'native-web'},
  browser_profile_list:{risk:'low',auto:true,confirmation:false,family:'native-web'},
  browser_profile_setup:{risk:'medium',auto:false,confirmation:true,family:'native-web'},
+ browser_profile_create:{risk:'low',auto:true,confirmation:false,family:'native-web'},
+ browser_profile_delete:{risk:'high',auto:false,confirmation:true,family:'native-web'},
+ browser_session_start:{risk:'low',auto:true,confirmation:false,family:'native-web'},
+ browser_session_read:{risk:'low',auto:true,confirmation:false,family:'native-web'},
+ browser_session_action:{risk:'high',auto:false,confirmation:true,family:'native-web'},
+ browser_session_end:{risk:'low',auto:true,confirmation:false,family:'native-web'},
  netwalk_probe:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
  netwalk_scan:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
  netwalk_diag:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
@@ -47,6 +55,8 @@ export const LOCAL_BRIDGE_POLICY=Object.freeze({
  browser_secret_fill_from_remote_task:false,
  browser_private_network_targets:false,
  browser_profiles_local_only:true,
+ browser_proxy_credentials_local_only:true,
+ native_webhooks_https_only:true,
  arbitrary_process_execution:false,
  workspace_roots_required:true,
  exact_capability_allowlist:true,
@@ -115,13 +125,20 @@ function validateTask(action,payload){
   if(!u||!['http:','https:'].includes(u.protocol))throw new Error('web_fetch requires an http(s) URL.');
  }
  if(action==='browser_search'&&!clip(body.query,2000))throw new Error('browser_search requires query.');
+ if(action==='browser_research'&&!clip(body.query,2000))throw new Error('browser_research requires query.');
+ if(action==='browser_fetch_batch'){
+  if(!Array.isArray(body.urls)||!body.urls.length||body.urls.length>10)throw new Error('browser_fetch_batch requires 1-10 urls.');
+  for(const value of body.urls){let u;try{u=new URL(String(value||''))}catch{}if(!u||!['http:','https:'].includes(u.protocol))throw new Error('browser_fetch_batch urls must use http(s).')}
+ }
  if(['browser_fetch','browser_profile_setup'].includes(action)){
   let u;try{u=new URL(String(body.url||''))}catch{}
   if(!u||!['http:','https:'].includes(u.protocol))throw new Error(action+' requires an http(s) URL.');
   const host=String(u.hostname||'').toLowerCase();
   if(host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||/^127\.|^0\.|^169\.254\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host))throw new Error('Native browser private/local targets are blocked.');
  }
- if(['browser_read_flow','browser_action_flow'].includes(action)){
+ if(['browser_profile_create','browser_profile_delete'].includes(action)&&!clip(body.profile,64))throw new Error(action+' requires profile.');
+ if(['browser_session_start','browser_session_read','browser_session_action','browser_session_end'].includes(action)&&!clip(body.session_id,160))throw new Error(action+' requires session_id.');
+ if(['browser_read_flow','browser_action_flow','browser_session_read','browser_session_action'].includes(action)){
   if(!Array.isArray(body.steps)||!body.steps.length||body.steps.length>60)throw new Error(action+' requires 1-60 browser steps.');
   for(const step of body.steps){
    if(!step||typeof step!=='object'||Array.isArray(step))throw new Error('Browser steps must be objects.');
@@ -134,10 +151,35 @@ function validateTask(action,payload){
    if(String(step.op||'').toLowerCase()==='fill'&&step.secret===true)throw new Error('Remote browser tasks cannot carry secret/password values. Use a local persistent profile.');
   }
  }
+ if(body.webhook_url){
+  let hook;try{hook=new URL(String(body.webhook_url))}catch{}
+  const host=String(hook?.hostname||'').toLowerCase();
+  if(!hook||hook.protocol!=='https:'||!host||host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||/^127\.|^0\.|^169\.254\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host))throw new Error('Native web webhook_url must be a public HTTPS URL.');
+ }
+ if(body.proxy_url){
+  let proxy;try{proxy=new URL(String(body.proxy_url))}catch{}
+  if(!proxy||!['http:','https:','socks5:'].includes(proxy.protocol)||proxy.username||proxy.password)throw new Error('Remote proxy_url must be an unauthenticated http(s)/socks5 URL. Keep proxy credentials on the Local Bridge.');
+ }
  if(['read_file','search_text','git_status','git_diff','git_log','project_test','project_lint','project_typecheck','project_build','apply_patch','git_create_branch','git_commit'].includes(action)&&!clip(body.workspace,1000))throw new Error('A paired workspace path/id is required.');
  if(action==='apply_patch'&&!clip(body.patch,200000))throw new Error('apply_patch requires a unified diff patch.');
  return{def,body};
 }
+async function deliverNativeWebWebhook(task,status,result,error){
+ let payload={};try{payload=JSON.parse(task.payload_json||'{}')}catch{}
+ const target=clip(payload.webhook_url,4000);if(!target)return;
+ let u;try{u=new URL(target)}catch{return}
+ const host=String(u.hostname||'').toLowerCase();
+ if(u.protocol!=='https:'||!host||host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||/^127\.|^0\.|^169\.254\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host))return;
+ const body=JSON.stringify({
+  event:status==='completed'?'run.completed':status==='cancelled'?'run.cancelled':'run.failed',
+  run_id:task.id,status:status.toUpperCase(),
+  data:{run_id:task.id,action:task.action,status:status.toUpperCase(),result:status==='completed'?result:null,error:status==='completed'?null:{message:error||'Native web task failed.'},completed_at:now()}
+ });
+ for(let attempt=0;attempt<3;attempt++){
+  try{const response=await fetch(target,{method:'POST',headers:{'content-type':'application/json','user-agent':'Magnanimous-Native-Web/1.0'},body});if(response.ok||response.status>=400&&response.status<500)return}catch{}
+ }
+}
+
 export async function hasReadyLocalBridge(env,tenantId){
  if(!env?.DB||!tenantId)return false;
  await ensureSchema(env);
@@ -242,10 +284,12 @@ export async function handleMagnanimousLocalBridge(request,env){
   if(request.method==='POST'&&path==='/api/magnanimous/local-bridge/agent/result'){
    const body=await request.json().catch(()=>({})),taskId=clip(body.task_id,120),ok=body.ok===true,ts=now();
    if(!taskId)return json({detail:'task_id is required.'},400);
-   const task=await env.DB.prepare("SELECT id FROM magnanimous_local_bridge_tasks WHERE id=? AND device_id=? AND status IN ('claimed','queued')").bind(taskId,device.id).first();
+   const task=await env.DB.prepare("SELECT * FROM magnanimous_local_bridge_tasks WHERE id=? AND device_id=? AND status IN ('claimed','queued')").bind(taskId,device.id).first();
    if(!task)return json({detail:'Task is not claimable by this bridge.'},409);
-   await env.DB.prepare("UPDATE magnanimous_local_bridge_tasks SET status=?,result_json=?,error_text=?,completed_at=? WHERE id=?").bind(ok?'completed':'failed',JSON.stringify(body.result??{}).slice(0,500000),clip(body.error,5000),ts,taskId).run();
-   return json({ok:true,task_id:taskId,status:ok?'completed':'failed'});
+   const status=ok?'completed':'failed',result=body.result??{},error=clip(body.error,5000);
+   await env.DB.prepare("UPDATE magnanimous_local_bridge_tasks SET status=?,result_json=?,error_text=?,completed_at=? WHERE id=?").bind(status,JSON.stringify(result).slice(0,500000),error,ts,taskId).run();
+   if(String(task.action||'').startsWith('browser_'))await deliverNativeWebWebhook(task,status,result,error);
+   return json({ok:true,task_id:taskId,status});
   }
   return json({detail:'Local bridge agent route not found.'},404);
  }

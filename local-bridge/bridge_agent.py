@@ -29,6 +29,7 @@ CONFIG_PATH = APP_DIR / "local-bridge.json"
 BROWSER_DIR = APP_DIR / "browser-profiles"
 MAX_OUTPUT = 250_000
 DEFAULT_SERVER = "https://iammagnanimousway.com"
+BROWSER_SESSIONS = {}
 SAFE_PROJECT_SCRIPTS = {
     "project_test": "test",
     "project_lint": "lint",
@@ -187,8 +188,10 @@ def capabilities(config):
     try:
         import playwright.sync_api  # noqa: F401
         caps.update({
-            "browser_search","browser_fetch","browser_read_flow","browser_action_flow",
-            "browser_profile_list","browser_profile_setup"
+            "browser_search","browser_fetch","browser_fetch_batch","browser_research",
+            "browser_read_flow","browser_action_flow",
+            "browser_profile_list","browser_profile_setup","browser_profile_create","browser_profile_delete",
+            "browser_session_start","browser_session_read","browser_session_action","browser_session_end"
         })
     except Exception:
         pass
@@ -368,13 +371,17 @@ def _browser_runtime():
         raise RuntimeError("Magnanimous Native Browser is not installed. Re-run the Local Bridge activation to install Playwright and Chromium.") from exc
 
 
-def _browser_proxy(config):
-    value = str(config.get("browser_proxy") or os.environ.get("MAGNANIMOUS_BROWSER_PROXY") or "").strip()
+def _browser_proxy(config, payload=None):
+    payload = payload or {}
+    remote = str(payload.get("proxy_url") or "").strip()
+    value = remote or str(config.get("browser_proxy") or os.environ.get("MAGNANIMOUS_BROWSER_PROXY") or "").strip()
     if not value:
         return None
     u = urllib.parse.urlparse(value)
     if u.scheme not in {"http","https","socks5"} or not u.hostname:
         raise RuntimeError("Configured browser proxy must use http, https, or socks5.")
+    if remote and (u.username or u.password):
+        raise RuntimeError("Remote browser tasks may not carry proxy credentials. Configure authenticated proxies locally on the bridge.")
     return {"server": value}
 
 
@@ -391,7 +398,7 @@ def _browser_open(config, payload, *, headed=False):
         "viewport": {"width": 1440, "height": 1000},
         "locale": str(payload.get("locale") or "en-US")[:20],
     }
-    proxy = _browser_proxy(config)
+    proxy = _browser_proxy(config, payload)
     if proxy:
         kwargs["proxy"] = proxy
     try:
@@ -451,6 +458,24 @@ def action_browser_profile_list(config, payload):
         if item.is_dir():
             profiles.append({"name": item.name, "updated_at": int(item.stat().st_mtime)})
     return {"profiles": profiles, "credential_storage": "local-browser-profile-only", "secrets_transmitted_to_platform": False}
+
+
+def action_browser_profile_create(config, payload):
+    profile = _profile_name(payload.get("profile"))
+    profile_dir = (BROWSER_DIR / profile).resolve()
+    BROWSER_DIR.mkdir(parents=True, exist_ok=True)
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    return {"created": True, "profile": profile, "path_owned_by_bridge": True, "secrets_transmitted_to_platform": False}
+
+
+def action_browser_profile_delete(config, payload):
+    profile = _profile_name(payload.get("profile"))
+    profile_dir = (BROWSER_DIR / profile).resolve()
+    if profile == "default":
+        raise RuntimeError("The default browser profile cannot be deleted remotely.")
+    if profile_dir.exists():
+        shutil.rmtree(profile_dir)
+    return {"deleted": True, "profile": profile, "secrets_transmitted_to_platform": False}
 
 
 def action_browser_profile_setup(config, payload):
@@ -521,6 +546,146 @@ def action_browser_fetch(config, payload):
         return result
     finally:
         _browser_close(manager, context)
+
+
+def action_browser_fetch_batch(config, payload):
+    urls = payload.get("urls") or []
+    if not isinstance(urls, list) or not urls or len(urls) > 10:
+        raise RuntimeError("browser_fetch_batch requires 1-10 urls.")
+    results, errors = [], []
+    for raw in urls:
+        try:
+            child = dict(payload)
+            child["url"] = raw
+            child.pop("urls", None)
+            results.append(action_browser_fetch(config, child))
+        except Exception as exc:
+            errors.append({"url": str(raw)[:4000], "error": f"{type(exc).__name__}: {exc}"[:2000]})
+    return {"results": results, "errors": errors, "native": True}
+
+
+def action_browser_research(config, payload):
+    query = str(payload.get("query") or "").strip()
+    if not query:
+        raise RuntimeError("browser_research requires query.")
+    limit = max(1, min(8, int(payload.get("limit") or 5)))
+    search = action_browser_search(config, {**payload, "query": query, "limit": limit})
+    sources, errors = [], []
+    for row in (search.get("results") or [])[:limit]:
+        try:
+            fetched = action_browser_fetch(config, {**payload, "url": row.get("url"), "max_chars": min(50000, int(payload.get("max_chars") or 18000)), "link_limit": 20})
+            sources.append({
+                "title": row.get("title") or fetched.get("title") or "",
+                "url": fetched.get("url") or row.get("url") or "",
+                "snippet": row.get("snippet") or "",
+                "text": fetched.get("text") or "",
+            })
+        except Exception as exc:
+            errors.append({"url": row.get("url") or "", "error": f"{type(exc).__name__}: {exc}"[:2000]})
+    return {"query": query, "sources": sources, "errors": errors, "native": True, "source_backed": True}
+
+
+def _session_cleanup(max_idle=1800):
+    cutoff = time.time() - max_idle
+    for session_id, item in list(BROWSER_SESSIONS.items()):
+        if item.get("last_used", 0) >= cutoff:
+            continue
+        try:
+            _browser_close(item["manager"], item["context"])
+        except Exception:
+            pass
+        BROWSER_SESSIONS.pop(session_id, None)
+
+
+def _session_id(payload):
+    value = str(payload.get("session_id") or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9._:-]{8,160}", value):
+        raise RuntimeError("A valid browser session_id is required.")
+    return value
+
+
+def action_browser_session_start(config, payload):
+    _session_cleanup()
+    session_id = _session_id(payload)
+    if session_id in BROWSER_SESSIONS:
+        raise RuntimeError("Browser session already exists.")
+    manager, context, page, profile = _browser_open(config, payload)
+    try:
+        if payload.get("url"):
+            page.goto(_public_web_url(payload.get("url")), wait_until="domcontentloaded", timeout=30000)
+        BROWSER_SESSIONS[session_id] = {"manager": manager, "context": context, "page": page, "profile": profile, "last_used": time.time()}
+        return {"session_id": session_id, "profile": profile, "status": "active", "url": page.url, "native": True, "transport": "magnanimous-outbound-task-control"}
+    except Exception:
+        _browser_close(manager, context)
+        raise
+
+
+def _session_steps(config, payload, allow_actions):
+    _session_cleanup()
+    session_id = _session_id(payload)
+    item = BROWSER_SESSIONS.get(session_id)
+    if not item:
+        raise RuntimeError("Browser session is not active on this bridge.")
+    page = item["page"]
+    steps = payload.get("steps") or []
+    if not isinstance(steps, list) or not steps or len(steps) > 60:
+        raise RuntimeError("Browser session command requires 1-60 steps.")
+    outputs = []
+    for index, step in enumerate(steps):
+        op = str((step or {}).get("op") or "").strip().lower()
+        if op == "goto":
+            page.goto(_public_web_url(step.get("url")), wait_until="domcontentloaded", timeout=30000)
+            outputs.append({"step": index+1, "op": op, "url": page.url})
+        elif op == "wait_ms":
+            ms = max(0, min(10000, int(step.get("ms") or 500))); page.wait_for_timeout(ms); outputs.append({"step": index+1, "op": op, "waited_ms": ms})
+        elif op == "extract_text":
+            loc = _locator(page, step) if any(step.get(k) for k in ("css","label","placeholder","text","testid","role")) else page.locator("body").first
+            outputs.append({"step": index+1, "op": op, "text": loc.inner_text(timeout=10000)[:max(100, min(50000, int(step.get("max_chars") or 12000)))]})
+        elif op == "extract_links":
+            outputs.append({"step": index+1, "op": op, "links": _extract_links(page, max(1, min(100, int(step.get("limit") or 40))))})
+        elif op == "snapshot":
+            outputs.append({"step": index+1, "op": op, **_browser_snapshot(page, max(1000, min(80000, int(step.get("max_chars") or 20000))))})
+        elif op == "scroll":
+            amount = max(-6000, min(6000, int(step.get("pixels") or 800))); page.mouse.wheel(0, amount); outputs.append({"step": index+1, "op": op, "pixels": amount})
+        elif op == "screenshot":
+            data = page.screenshot(type="jpeg", quality=55, full_page=bool(step.get("full_page")))
+            if len(data) > 350000: raise RuntimeError("Screenshot exceeds the safe bridge result size.")
+            outputs.append({"step": index+1, "op": op, "content_type": "image/jpeg", "base64": base64.b64encode(data).decode("ascii")})
+        elif allow_actions and op == "click":
+            _locator(page, step).click(timeout=max(1000, min(30000, int(step.get("timeout_ms") or 10000)))); outputs.append({"step": index+1, "op": op, "url": page.url})
+        elif allow_actions and op == "fill":
+            loc = _locator(page, step); field_type = str(loc.get_attribute("type") or "").lower()
+            if field_type == "password" or step.get("secret") is True: raise RuntimeError("Password/secret fields cannot be filled from a remote task. Use a local persistent browser profile instead.")
+            value = str(step.get("value") or "")
+            if len(value) > 20000: raise RuntimeError("Browser fill value exceeds the safety limit.")
+            loc.fill(value); outputs.append({"step": index+1, "op": op, "filled": True})
+        elif allow_actions and op == "press":
+            key = str(step.get("key") or "").strip()
+            if not key: raise RuntimeError("Browser press step requires key.")
+            _locator(page, step).press(key); outputs.append({"step": index+1, "op": op, "key": key})
+        elif allow_actions and op == "select":
+            value = str(step.get("value") or ""); _locator(page, step).select_option(value=value); outputs.append({"step": index+1, "op": op, "selected": True})
+        else:
+            allowed = ["goto","wait_ms","extract_text","extract_links","snapshot","scroll","screenshot"] + (["click","fill","press","select"] if allow_actions else [])
+            raise RuntimeError(f"Browser operation '{op}' is not allowed. Allowed: {', '.join(allowed)}")
+    item["last_used"] = time.time()
+    return {"session_id": session_id, "status": "active", "profile": item["profile"], "final": _browser_snapshot(page, 30000), "steps": outputs, "native": True}
+
+
+def action_browser_session_read(config, payload):
+    return _session_steps(config, payload, False)
+
+
+def action_browser_session_action(config, payload):
+    return _session_steps(config, payload, True)
+
+
+def action_browser_session_end(config, payload):
+    session_id = _session_id(payload)
+    item = BROWSER_SESSIONS.pop(session_id, None)
+    if item:
+        _browser_close(item["manager"], item["context"])
+    return {"session_id": session_id, "status": "ended", "native": True, "idempotent": True}
 
 
 def _browser_flow(config, payload, *, allow_actions):
@@ -801,10 +966,18 @@ HANDLERS = {
     "web_fetch": action_web_fetch,
     "browser_search": action_browser_search,
     "browser_fetch": action_browser_fetch,
+    "browser_fetch_batch": action_browser_fetch_batch,
+    "browser_research": action_browser_research,
     "browser_read_flow": action_browser_read_flow,
     "browser_action_flow": action_browser_action_flow,
     "browser_profile_list": action_browser_profile_list,
     "browser_profile_setup": action_browser_profile_setup,
+    "browser_profile_create": action_browser_profile_create,
+    "browser_profile_delete": action_browser_profile_delete,
+    "browser_session_start": action_browser_session_start,
+    "browser_session_read": action_browser_session_read,
+    "browser_session_action": action_browser_session_action,
+    "browser_session_end": action_browser_session_end,
     "apply_patch": action_apply_patch,
     "git_create_branch": action_git_create_branch,
     "git_commit": action_git_commit,
