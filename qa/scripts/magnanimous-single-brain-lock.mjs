@@ -21,6 +21,7 @@ const start=read('frontend/app/start/page.tsx');
 const videoStudio=read('frontend/app/video-studio/page.tsx');
 const brain=read('frontend/app/magnanimous-brain/page.tsx');
 const connectors=read('frontend/app/ai-connectors/page.tsx');
+const deployWorkflow=read('.github/workflows/deploy.yml');
 
 for(const needle of [
  "public_ai_identity:'Magnanimous AI'",
@@ -88,5 +89,9 @@ assert(brain.includes('absorbed tool + skill contracts'),'Brain page must expose
 
 assert(connectors.includes('ChatGPT')&&connectors.includes('Claude')&&connectors.includes('Gemini'),'owner connector setup must retain real destination names where authorization requires them');
 assert(connectors.includes('Magnanimous stays the command, memory, routing and verification layer.'),'external connection setup must retain Magnanimous ownership boundary');
+assert(deployWorkflow.includes("assert provider.get('name') == 'Magnanimous AI', data"),'production smoke must expect the Magnanimous-only public provider name');
+assert(deployWorkflow.includes("assert provider.get('type') == 'magnanimous-private-routing', data"),'production smoke must expect the Magnanimous private-routing compatibility type');
+assert(!deployWorkflow.includes("Magnanimous AI routing', data"),'production smoke must not retain the retired public provider name');
+assert(!deployWorkflow.includes("private-execution', data"),'production smoke must not retain the retired provider compatibility type');
 
 console.log('Magnanimous single-brain lock passed — one public AI identity, specialist departments, private execution routing, absorbed tools/skills, and owner-only infrastructure disclosure are enforced.');
