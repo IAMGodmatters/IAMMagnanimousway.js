@@ -43,7 +43,10 @@ export default function SignupPage() {
       localStorage.removeItem('odin_admin_token');
       sessionStorage.setItem('iam_session_active','user');
       sessionStorage.setItem('iam_totp_setup_prompt','1');
-      window.location.replace('/account?setup=authenticator');
+      if(Array.isArray(d.recovery_codes)&&d.recovery_codes.length){
+        sessionStorage.setItem('iam_initial_recovery_codes',JSON.stringify(d.recovery_codes));
+      }
+      window.location.replace('/account?setup=recovery');
     } catch (err: any) { setError(err?.message || 'Unable to create your account.'); }
     finally { setBusy(false); }
   }
