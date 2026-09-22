@@ -27,6 +27,10 @@ must(recovery.includes('createPasswordRecord(password,env)'),'new passwords must
 must(recovery.includes("revoke_reason='password_reset'"),'successful reset must revoke active opaque sessions');
 must(recovery.includes('GENERIC_MESSAGE'),'forgot-password response must use a generic anti-enumeration message');
 must(security.includes("'password-recovery'")&&security.includes("'password-reset'"),'recovery endpoints must be rate limited');
+must(security.includes("SECURITY_PASSWORD_RECOVERY_LIMIT || 8"),'password recovery must allow safe repeated reset-link requests');
+must(security.includes('localRateLimit')&&security.includes('durable rate limiter unavailable; using bounded local fallback'),'password recovery rate limiting must remain available when durable quota storage is unavailable');
+must(recovery.includes('A failed resend must never strand')&&recovery.includes("token_hash<>?"),'failed reset-email resend must preserve the previous working link until replacement delivery succeeds');
+must(dedicatedRecovery.includes('SEND ANOTHER RESET LINK')&&dedicatedRecovery.includes('request another link'),'dedicated recovery UI must expose an explicit resend path');
 must(security.includes('handlePasswordRecovery(request, env)'),'recovery routes must pass through the security preflight');
 must(template.includes('<PasswordRecoveryOverlay'),'shared template must mount password recovery on login portals');
 must(template.includes("path==='/login'")&&template.includes("path==='/owner-login'"),'both customer and owner login portals must expose recovery');
