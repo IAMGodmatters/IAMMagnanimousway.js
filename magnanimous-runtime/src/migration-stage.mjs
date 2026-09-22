@@ -89,6 +89,37 @@ function qname(name) {
   return '"' + String(name).replaceAll('"', '""') + '"';
 }
 
+const STAGE_TEMP_RE=/^\.production-[0-9a-f-]+\.sqlite(?:-(?:journal|wal|shm))?$/i;
+
+async function removeTempDatabase(tempPath) {
+  for (const candidate of [tempPath, tempPath + '-journal', tempPath + '-wal', tempPath + '-shm']) {
+    try { await fs.rm(candidate, { force: true }); } catch {}
+  }
+}
+
+async function pruneOrphanedStageTemps(root) {
+  let names;
+  try { names=await fs.readdir(root); }
+  catch (error) {
+    if (error?.code === 'ENOENT') return { removed: 0, bytes: 0 };
+    throw error;
+  }
+  let removed=0,bytes=0;
+  for (const name of names) {
+    if (!STAGE_TEMP_RE.test(String(name))) continue;
+    const candidate=path.join(root,name);
+    try {
+      const stat=await fs.stat(candidate);
+      if (!stat.isFile()) continue;
+      bytes+=Number(stat.size||0);
+      await fs.rm(candidate,{force:true});
+      removed+=1;
+    } catch {}
+  }
+  if (removed) console.warn('Pruned orphaned Magnanimous migration stage files',{removed,bytes});
+  return { removed, bytes };
+}
+
 function summarizeDatabase(db) {
   const rows = db.prepare('PRAGMA table_list').all()
     .filter(row => String(row.schema || '') === 'main')
@@ -131,35 +162,37 @@ export async function stageD1SqlExport(sqlText, {
   }
 
   await fs.mkdir(root, { recursive: true });
+  await pruneOrphanedStageTemps(root);
   const tempPath = path.join(root, '.production-' + crypto.randomUUID() + '.sqlite');
   const cleaned = sql.replace(/PRAGMA\s+defer_foreign_keys\s*=\s*TRUE\s*;?/ig, '');
-  const db = new DatabaseSync(tempPath);
+  let db;
   let summary;
+  let promoted=false;
   try {
+    db = new DatabaseSync(tempPath);
     db.exec('PRAGMA foreign_keys=OFF;');
     db.exec(cleaned);
     db.exec('PRAGMA foreign_keys=ON;');
     summary = summarizeDatabase(db);
     if (summary.integrity.toLowerCase() !== 'ok') throw new Error('SQLite integrity_check failed after staged D1 import.');
-  } catch (error) {
-    try { db.close(); } catch {}
-    await fs.rm(tempPath, { force: true });
-    throw error;
-  }
-  db.close();
+    db.close();
+    db=null;
 
-  const sqlSha256 = crypto.createHash('sha256').update(sql).digest('hex');
-  const sqliteBytes = await fs.readFile(tempPath);
-  const sqliteSha256 = crypto.createHash('sha256').update(sqliteBytes).digest('hex');
-  const cachedCredentialRewrap = await applyCachedCredentialVaultRewrap(tempPath, {
-    cachePath: finalPath + '.credential-rewrap.current.json',
-    runtimeSecretsFile
-  });
-  const finalSqliteSha256 = crypto.createHash('sha256').update(await fs.readFile(tempPath)).digest('hex');
+    const sqlSha256 = crypto.createHash('sha256').update(sql).digest('hex');
+    const sqliteBytes = await fs.readFile(tempPath);
+    const sqliteSha256 = crypto.createHash('sha256').update(sqliteBytes).digest('hex');
+    const cachedCredentialRewrap = await applyCachedCredentialVaultRewrap(tempPath, {
+      cachePath: finalPath + '.credential-rewrap.current.json',
+      runtimeSecretsFile
+    });
+    const finalSqliteSha256 = crypto.createHash('sha256').update(await fs.readFile(tempPath)).digest('hex');
 
-  await fs.rm(finalPath, { force: true });
-  await fs.rename(tempPath, finalPath);
-  const metadata = {
+    // tempPath and finalPath share the same persistent filesystem. POSIX rename
+    // atomically replaces the prior snapshot, so a failed import never deletes
+    // the last known-good production.sqlite first.
+    await fs.rename(tempPath, finalPath);
+    promoted=true;
+    const metadata = {
     ok: true,
     staged_at: new Date().toISOString(),
     target: finalPath,
@@ -175,8 +208,14 @@ export async function stageD1SqlExport(sqlText, {
       workflow_ref: String(source.workflow_ref || '')
     }
   };
-  await fs.writeFile(finalPath + '.stage.json', JSON.stringify(metadata, null, 2), { mode: 0o600 });
-   return metadata;
+    await fs.writeFile(finalPath + '.stage.json', JSON.stringify(metadata, null, 2), { mode: 0o600 });
+    return metadata;
+  } catch (error) {
+    try { db?.close(); } catch {}
+    throw error;
+  } finally {
+    if (!promoted) await removeTempDatabase(tempPath);
+  }
 }
 
 
@@ -196,33 +235,30 @@ export async function stageD1SqliteSnapshot(snapshotBytes, {
   }
 
   await fs.mkdir(root, { recursive: true });
+  await pruneOrphanedStageTemps(root);
   const tempPath = path.join(root, '.production-' + crypto.randomUUID() + '.sqlite');
-  await fs.writeFile(tempPath, bytes, { mode: 0o600 });
 
   let db;
   let summary;
+  let promoted=false;
   try {
+    await fs.writeFile(tempPath, bytes, { mode: 0o600 });
     db = new DatabaseSync(tempPath);
     summary = summarizeDatabase(db);
     if (summary.integrity.toLowerCase() !== 'ok') throw new Error('SQLite integrity_check failed for staged D1 snapshot.');
     if (summary.foreign_key_violations !== 0) throw new Error('Foreign-key validation failed for staged D1 snapshot.');
     db.close();
     db = null;
-  } catch (error) {
-    try { db?.close(); } catch {}
-    await fs.rm(tempPath, { force: true });
-    throw error;
-  }
 
-  const sqliteSha256 = crypto.createHash('sha256').update(bytes).digest('hex');
-  const cachedCredentialRewrap = await applyCachedCredentialVaultRewrap(tempPath, {
-    cachePath: finalPath + '.credential-rewrap.current.json',
-    runtimeSecretsFile
-  });
-  const finalSqliteSha256 = crypto.createHash('sha256').update(await fs.readFile(tempPath)).digest('hex');
-  await fs.rm(finalPath, { force: true });
-  await fs.rename(tempPath, finalPath);
-  const metadata = {
+    const sqliteSha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+    const cachedCredentialRewrap = await applyCachedCredentialVaultRewrap(tempPath, {
+      cachePath: finalPath + '.credential-rewrap.current.json',
+      runtimeSecretsFile
+    });
+    const finalSqliteSha256 = crypto.createHash('sha256').update(await fs.readFile(tempPath)).digest('hex');
+    await fs.rename(tempPath, finalPath);
+    promoted=true;
+    const metadata = {
     ok: true,
     staged_at: new Date().toISOString(),
     target: finalPath,
@@ -238,8 +274,14 @@ export async function stageD1SqliteSnapshot(snapshotBytes, {
       workflow_ref: String(source.workflow_ref || '')
     }
   };
-  await fs.writeFile(finalPath + '.stage.json', JSON.stringify(metadata, null, 2), { mode: 0o600 });
-  return metadata;
+    await fs.writeFile(finalPath + '.stage.json', JSON.stringify(metadata, null, 2), { mode: 0o600 });
+    return metadata;
+  } catch (error) {
+    try { db?.close(); } catch {}
+    throw error;
+  } finally {
+    if (!promoted) await removeTempDatabase(tempPath);
+  }
 }
 
 

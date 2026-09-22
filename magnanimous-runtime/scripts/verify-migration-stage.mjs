@@ -97,6 +97,36 @@ try {
   assert.equal((await fs.stat(target)).isFile(), true);
   assert.equal((await fs.stat(target + '.stage.json')).isFile(), true);
 
+  // Failed or interrupted stage attempts must never accumulate hidden partial
+  // SQLite files and fill the persistent production volume.
+  const orphanBase=path.join(root,'.production-11111111-1111-4111-8111-111111111111.sqlite');
+  await fs.writeFile(orphanBase,Buffer.alloc(4096,1));
+  await fs.writeFile(orphanBase+'-journal',Buffer.alloc(2048,2));
+  await stageD1SqliteSnapshot(await fs.readFile(sourcePath),{
+    migrationRoot:root,
+    targetPath:target,
+    source:{
+      repository:'IAMGodmatters/IAMMagnanimousway.js',
+      ref:'refs/heads/main',
+      sha:'verification-orphan-cleanup',
+      workflow_ref:'IAMGodmatters/IAMMagnanimousway.js/.github/workflows/magnanimous-production-data-stage.yml@refs/heads/main'
+    }
+  });
+  assert.equal(await fs.access(orphanBase).then(()=>true,()=>false),false);
+  assert.equal(await fs.access(orphanBase+'-journal').then(()=>true,()=>false),false);
+
+  const beforeInvalid=crypto.createHash('sha256').update(await fs.readFile(target)).digest('hex');
+  await assert.rejects(
+    () => stageD1SqliteSnapshot(Buffer.from('not-a-database'), {
+      migrationRoot: root,
+      targetPath: target
+    })
+  );
+  const afterInvalid=crypto.createHash('sha256').update(await fs.readFile(target)).digest('hex');
+  assert.equal(afterInvalid,beforeInvalid,'failed stage must preserve the last known-good production snapshot');
+  const leftovers=(await fs.readdir(root)).filter(name=>/^\.production-[0-9a-f-]+\.sqlite(?:-(?:journal|wal|shm))?$/i.test(name));
+  assert.deepEqual(leftovers,[],'failed stage must remove all partial staging files');
+
   const secretFile=path.join(root,'runtime-secrets.json');
   const targetKey='verification-target-key-0123456789abcdef0123456789abcdef';
   await fs.writeFile(secretFile,JSON.stringify({INTEGRATION_CREDENTIALS_KEY:targetKey}),{mode:0o600});
