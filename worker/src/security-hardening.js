@@ -1,6 +1,7 @@
 import { currentUser } from './integrations.js';
 import { isRequestSessionRevoked, revokeRequestSession } from './session-revocation.js';
 import { handlePasswordRecovery } from './password-recovery.js';
+import { handleRecoveryContacts } from './recovery-contacts.js';
 
 const now = () => Math.floor(Date.now() / 1000);
 const encoder = new TextEncoder();
@@ -83,7 +84,9 @@ function requiresStrongSession(request, path) {
     path === '/api/auth/login' ||
     path === '/api/auth/totp/login' ||
     path === '/api/auth/signup' ||
-    path === '/api/admin/login';
+    path === '/api/admin/login' ||
+    path === '/api/admin/email-code/request' ||
+    path === '/api/admin/email-code/verify';
 }
 
 async function sha256(value) {
@@ -220,6 +223,17 @@ export async function securityPreflight(request, env) {
   }
   if (url.pathname.startsWith('/api/auth/totp/') && url.pathname !== '/api/auth/totp/login') {
     const limited = await rateLimit(request, env, 'totp-management', Number(env?.SECURITY_TOTP_MANAGEMENT_LIMIT || 12), 900);
+    if (limited) return limited;
+  }
+
+  if (url.pathname.startsWith('/api/auth/recovery-contact')) {
+    const limited = await rateLimit(request, env, 'recovery-contact', Number(env?.SECURITY_RECOVERY_CONTACT_LIMIT || 12), 900);
+    if (limited) return limited;
+    const recoveryContactResponse=await handleRecoveryContacts(request,env);
+    if(recoveryContactResponse)return recoveryContactResponse;
+  }
+  if ((url.pathname === '/api/admin/email-code/request' || url.pathname === '/api/admin/email-code/verify') && request.method === 'POST') {
+    const limited = await rateLimit(request, env, 'owner-email-code', Number(env?.SECURITY_OWNER_EMAIL_CODE_LIMIT || 8), 900);
     if (limited) return limited;
   }
 
