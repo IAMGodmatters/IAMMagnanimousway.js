@@ -27,6 +27,7 @@ has(social,"linkedin:{name:'LinkedIn'",'Existing first-party LinkedIn provider c
 has(social,"https://api.linkedin.com/rest/posts",'Existing direct LinkedIn member publishing endpoint must remain present');
 has(social,"body.explicit_consent!==true",'Existing LinkedIn explicit-consent gate must remain present');
 has(social,"social_connections",'Social publishing connection truth must remain tenant scoped');
+has(connections,'href="/social-connect"','Main Connections surface must expose first-party social publishing connections');
 
 assert(!fabric.includes('access_token TEXT'),'Universal App Fabric must not create or expose its own token store');
 assert(!fabric.includes('client_secret'),'Universal App Fabric must not copy provider credentials into capability metadata');
