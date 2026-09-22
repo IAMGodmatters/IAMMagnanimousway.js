@@ -91,15 +91,9 @@ function configuredStandaloneApiOrigin(env){
   }catch{return'';}
 }
 
-const LOCAL_SECURITY_API_PATHS=new Set([
-  '/api/auth/forgot-password',
-  '/api/auth/reset-password'
-]);
-
 async function proxyApiToStandalone(request,env){
   const url=new URL(request.url);
   if(!url.pathname.startsWith('/api/'))return null;
-  if(LOCAL_SECURITY_API_PATHS.has(url.pathname))return null;
   if(request.headers.get('x-magnanimous-standalone-proxy')==='1')return null;
   const origin=configuredStandaloneApiOrigin(env);
   if(!origin)return null;
