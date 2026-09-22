@@ -41,6 +41,7 @@ async function ensureSchema(env){
  // password-reset request never spends D1 writes on DDL/index checks.
  await env.DB.prepare('SELECT 1 FROM password_reset_tokens LIMIT 1').first();
  await env.DB.prepare('SELECT 1 FROM account_recovery_codes LIMIT 1').first();
+ await env.DB.prepare('SELECT 1 FROM user_recovery_contacts LIMIT 1').first();
  schemaReady=true;
 }
 async function cleanup(env,t=now()){
@@ -99,8 +100,18 @@ async function requestReset(request,env){
  const body=await request.json().catch(()=>({})),email=normEmail(body.email),recoveryCode=normalizeRecoveryCode(body.recovery_code);
  if(!email||!validEmail(email))return json({ok:true,detail:GENERIC_MESSAGE});
  await ensureSchema(env);await cleanup(env);
- const user=await env.DB.prepare('SELECT id,tenant_id,email,role,active FROM users WHERE lower(email)=? AND active=1 ORDER BY created_at ASC LIMIT 1').bind(email).first();
- if(!user){await logAuth(env,null,'password_reset_requested',1,email);return json({ok:true,detail:GENERIC_MESSAGE,recovery_methods:['magnanimous-native-mail','trusted-session','recovery-code']})}
+ let user=await env.DB.prepare('SELECT id,tenant_id,email,role,active FROM users WHERE lower(email)=? AND active=1 ORDER BY created_at ASC LIMIT 1').bind(email).first();
+ let deliveryEmail=email,recoveryEmailMatch=false;
+ if(!user){
+  try{
+   user=await env.DB.prepare(`SELECT u.id,u.tenant_id,u.email,u.role,u.active
+     FROM user_recovery_contacts r JOIN users u ON u.id=r.user_id AND u.tenant_id=r.tenant_id
+     WHERE lower(r.recovery_email)=? AND r.recovery_email_verified_at>0 AND u.active=1
+     ORDER BY r.updated_at DESC LIMIT 1`).bind(email).first();
+   recoveryEmailMatch=Boolean(user);
+  }catch{}
+ }
+ if(!user){await logAuth(env,null,'password_reset_requested',1,email);return json({ok:true,detail:GENERIC_MESSAGE,recovery_methods:['magnanimous-native-mail','trusted-session','recovery-code','verified-recovery-email']})}
 
  const sessionUser=await activeSessionUser(request,env);
  if(sameUser(sessionUser,user)){
@@ -125,18 +136,18 @@ async function requestReset(request,env){
   VALUES(?,?,?,?,?,NULL,'','pending')`).bind(tokenHash,user.id,user.tenant_id,t,expires).run();
  const resetUrl=new URL('/forgot-password',safeSiteOrigin(env,request));resetUrl.searchParams.set('reset',token);resetUrl.searchParams.set('portal',String(user.role||'').toLowerCase()==='owner'?'owner':'customer');
  const copy=mailCopy(resetUrl.toString(),Math.ceil(ttl/60));
- const delivery=await deliverResetEmail(env,email,copy,`password-reset-${tokenHash.slice(0,32)}`);
+ const delivery=await deliverResetEmail(env,deliveryEmail,copy,`password-reset-${tokenHash.slice(0,32)}`);
  if(delivery.ok){
   await env.DB.prepare("UPDATE password_reset_tokens SET delivery_provider=?,delivery_status='sent' WHERE token_hash=?").bind(String(delivery.provider||'mail'),tokenHash).run();
   await env.DB.prepare('UPDATE password_reset_tokens SET used_at=? WHERE user_id=? AND token_hash<>? AND used_at IS NULL').bind(now(),user.id,tokenHash).run();
-  await logAuth(env,user,'password_reset_requested',1,email);
-  console.info('password reset delivery sent',{provider:String(delivery.provider||'mail'),user_id:user.id});
+  await logAuth(env,user,recoveryEmailMatch?'password_reset_requested_recovery_email':'password_reset_requested',1,deliveryEmail);
+  console.info('password reset delivery sent',{provider:String(delivery.provider||'mail'),user_id:user.id,recovery_email:recoveryEmailMatch});
  }else{
   await env.DB.prepare("UPDATE password_reset_tokens SET used_at=?,delivery_provider='',delivery_status='failed' WHERE token_hash=?").bind(now(),tokenHash).run();
-  await logAuth(env,user,'password_reset_delivery_failed',0,email);
+  await logAuth(env,user,'password_reset_delivery_failed',0,deliveryEmail);
   console.error('password reset delivery failed',{code:delivery.code,error:delivery.error,user_id:user.id});
  }
- return json({ok:true,detail:GENERIC_MESSAGE,recovery_methods:['magnanimous-native-mail','trusted-session','recovery-code']});
+ return json({ok:true,detail:GENERIC_MESSAGE,recovery_methods:['magnanimous-native-mail','trusted-session','recovery-code','verified-recovery-email']});
 }
 
 async function recoveryCodeStatus(request,env){
