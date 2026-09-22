@@ -1,10 +1,12 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const fabric=fs.readFileSync('worker/src/magnanimous-universal-app-fabric.js','utf8');
-const mesh=fs.readFileSync('worker/src/magnanimous-capability-mesh.js','utf8');
-const social=fs.readFileSync('worker/src/social-publishing-runtime.js','utf8');
-const connections=fs.readFileSync('frontend/app/connections/page.tsx','utf8');
+const root=fs.existsSync('worker/src/magnanimous-universal-app-fabric.js')?'.':'..';
+const read=path=>fs.readFileSync(`${root}/${path}`,'utf8');
+const fabric=read('worker/src/magnanimous-universal-app-fabric.js');
+const mesh=read('worker/src/magnanimous-capability-mesh.js');
+const social=read('worker/src/social-publishing-runtime.js');
+const connections=read('frontend/app/connections/page.tsx');
 
 function has(source,needle,message){assert(source.includes(needle),message)}
 
