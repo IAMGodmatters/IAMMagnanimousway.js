@@ -15,12 +15,18 @@ function b64url(bytes){let binary='';for(const byte of bytes)binary+=String.from
 function randomToken(){return b64url(crypto.getRandomValues(new Uint8Array(32)))}
 async function sha256(value){const digest=await crypto.subtle.digest('SHA-256',encoder.encode(String(value||'')));return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function ttlSeconds(env){const value=Number(env?.PASSWORD_RESET_TTL_SECONDS||1200);return Number.isFinite(value)?Math.max(600,Math.min(3600,Math.floor(value))):1200}
+const CANONICAL_SITE_ORIGIN='https://iammagnanimousway.com';
+function isAllowedRecoveryOrigin(url){
+ const host=String(url?.hostname||'').trim().toLowerCase().replace(/\.$/,'');
+ if(url?.protocol==='https:'&&(host==='iammagnanimousway.com'||host==='www.iammagnanimousway.com'))return true;
+ return (url?.protocol==='http:'||url?.protocol==='https:')&&(host==='localhost'||host==='127.0.0.1'||host==='[::1]');
+}
 function safeSiteOrigin(env,request){
- const candidates=[env?.PUBLIC_SITE_URL,request?.url,'https://iammagnanimousway.com'];
+ const candidates=[env?.PUBLIC_SITE_URL,request?.url];
  for(const candidate of candidates){
-  try{const url=new URL(String(candidate||''));if(url.protocol==='https:'||url.hostname==='localhost')return url.origin}catch{}
+  try{const url=new URL(String(candidate||''));if(isAllowedRecoveryOrigin(url))return url.origin}catch{}
  }
- return'https://iammagnanimousway.com';
+ return CANONICAL_SITE_ORIGIN;
 }
 function normalizeBase(value){
  const raw=String(value||'https://inkbox.ai/api/v1').trim();
@@ -50,8 +56,8 @@ async function logAuth(env,user,event,success,email=''){
 }
 function mailCopy(resetUrl,minutes){
  const subject='Reset your I AM Magnanimous Way password';
- const text=`A password reset was requested for your I AM MAGNANIMOUS WAY™ account.\n\nReset your password: ${resetUrl}\n\nThis secure link expires in ${minutes} minutes and can be used only once. If you did not request this change, you can ignore this email. Do not share this link with anyone.`;
- const html=`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#171717"><h2>I AM MAGNANIMOUS WAY™</h2><p>A password reset was requested for your account.</p><p><a href="${resetUrl}" style="display:inline-block;padding:12px 18px;background:#9d5700;color:#fff;text-decoration:none;border-radius:7px;font-weight:700">Reset my password</a></p><p>This secure link expires in ${minutes} minutes and can be used only once.</p><p>If you did not request this change, you can ignore this email. Do not share this link with anyone.</p></div>`;
+ const text=`A password reset was requested for your I AM MAGNANIMOUS WAY™ account.\n\nReset your password: ${resetUrl}\n\nThis secure link expires in ${minutes} minutes and can be used only once. For your security, password changes happen only on iammagnanimousway.com. If you did not request this change, you can ignore this email. Do not share this link with anyone.`;
+ const html=`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#171717"><h2>I AM MAGNANIMOUS WAY™</h2><p>A password reset was requested for your account.</p><p><a href="${resetUrl}" style="display:inline-block;padding:12px 18px;background:#9d5700;color:#fff;text-decoration:none;border-radius:7px;font-weight:700">Reset my password</a></p><p>This secure link expires in ${minutes} minutes and can be used only once.</p><p><strong>For your security, password changes happen only on iammagnanimousway.com.</strong></p><p>If you did not request this change, you can ignore this email. Do not share this link with anyone.</p></div>`;
  return{subject,text,html};
 }
 async function sendWithPlatformMailbox(env,to,copy){
