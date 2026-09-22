@@ -25,6 +25,10 @@ function randomEightDigitCode(){
   do{crypto.getRandomValues(data)}while(data[0]>=max);
   return String(data[0]%100000000).padStart(8,'0');
 }
+function deliveryFlag(env,name){
+  const value=String(env?.[name]||'').trim().toLowerCase();
+  return ['1','true','yes','on'].includes(value);
+}
 async function sha256Hex(value){const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value||'')));return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function maskEmail(value){const [name,domain]=normEmail(value).split('@');if(!name||!domain)return'';return (name.slice(0,2)||'*')+'***@'+domain}
 async function globalPlatformOwner(env,user){
@@ -248,6 +252,9 @@ async function sendOwnerLoginCode(env,owner,code,idempotencyKey){
 }
 async function requestOwnerEmailCode(request,env){
   if(!env?.DB)return json({detail:'Owner email login is temporarily unavailable.',code:'OWNER_EMAIL_LOGIN_UNAVAILABLE'},503);
+  if(!deliveryFlag(env,'MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE')){
+    return json({detail:'Owner email-code delivery is temporarily unavailable on the current host. Use the owner password fallback for now.',code:'OWNER_EMAIL_TRANSPORT_UNAVAILABLE',password_fallback:true},503);
+  }
   const body=await request.json().catch(()=>({})),email=normEmail(body.email);
   if(!email)return json({detail:'Enter your owner email.',code:'OWNER_EMAIL_REQUIRED'},400);
   const owner=await reservedPlatformOwnerByEmail(env,email);
