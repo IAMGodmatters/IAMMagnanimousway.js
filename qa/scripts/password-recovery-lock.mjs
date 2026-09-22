@@ -7,6 +7,7 @@ const root=path.resolve(here,'../..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const recovery=read('worker/src/password-recovery.js');
 const security=read('worker/src/security-hardening.js');
+const securityEntrypoint=read('worker/src/security-entrypoint.js');
 const template=read('frontend/app/template.tsx');
 const overlay=read('frontend/app/password-recovery-overlay.tsx');
 const customerLogin=read('frontend/app/login/page.tsx');
@@ -27,6 +28,9 @@ must(recovery.includes('createPasswordRecord(password,env)'),'new passwords must
 must(recovery.includes("revoke_reason='password_reset'"),'successful reset must revoke active opaque sessions');
 must(recovery.includes('GENERIC_MESSAGE'),'forgot-password response must use a generic anti-enumeration message');
 must(security.includes("'password-recovery'")&&security.includes("'password-reset'"),'recovery endpoints must be rate limited');
+must(security.includes("SECURITY_PASSWORD_RECOVERY_LIMIT || 8"),'password recovery must allow repeated resend attempts while preserving rate limiting');
+must(security.includes('localRateLimit')&&security.includes('durable rate limiter unavailable; using bounded local fallback'),'password recovery rate limiting must survive temporary D1 write-capacity failures');
+must(securityEntrypoint.includes("'/api/auth/forgot-password'")&&securityEntrypoint.includes("'/api/auth/reset-password'")&&securityEntrypoint.includes('LOCAL_SECURITY_API_PATHS.has(url.pathname)'),'password recovery APIs must bypass the standalone proxy and remain on the first-party security runtime');
 must(security.includes('handlePasswordRecovery(request, env)'),'recovery routes must pass through the security preflight');
 must(template.includes('<PasswordRecoveryOverlay'),'shared template must mount password recovery on login portals');
 must(template.includes("path==='/login'")&&template.includes("path==='/owner-login'"),'both customer and owner login portals must expose recovery');
@@ -36,6 +40,7 @@ must(dedicatedRecovery.includes('/api/auth/forgot-password'),'dedicated recovery
 must(dedicatedRecovery.includes('/api/auth/reset-password'),'dedicated recovery page must complete the secure reset flow');
 must(dedicatedRecovery.includes("mode==='request'"),'dedicated recovery page must default to the email-only request state');
 must(dedicatedRecovery.includes('Email address')&&!dedicatedRecovery.includes('current-password'),'initial recovery page must request email without asking for the current password');
+must(dedicatedRecovery.includes('SEND ANOTHER RESET LINK')&&dedicatedRecovery.includes('setRequested(true)'),'dedicated recovery page must let the user request another reset email');
 must(recovery.includes("new URL('/forgot-password'"),'emailed reset links must return to the dedicated recovery page rather than the sign-in page');
 must(recovery.includes("const CANONICAL_SITE_ORIGIN='https://iammagnanimousway.com'"),'password recovery must define the canonical first-party site origin');
 must(recovery.includes("host==='iammagnanimousway.com'")&&recovery.includes("host==='www.iammagnanimousway.com'"),'password reset links must allowlist only Magnanimous production web origins');
@@ -46,6 +51,7 @@ must(overlay.includes("params.get('forgot')==='1'")&&overlay.includes("setMode('
 must(customerLogin.includes('href="/forgot-password?portal=customer"')&&customerLogin.includes('Forgot password?'),'customer login must link to the dedicated email-first recovery page');
 must(ownerLogin.includes('href="/forgot-password?portal=owner"')&&ownerLogin.includes('Forgot password?'),'owner login must link to the dedicated email-first recovery page');
 must(migration.includes('password_reset_tokens')&&migration.includes('token_hash TEXT PRIMARY KEY'),'D1 migration must create hashed reset-token storage');
+must(recovery.includes("SELECT 1 FROM password_reset_tokens LIMIT 1")&&!recovery.includes('CREATE TABLE IF NOT EXISTS password_reset_tokens'),'runtime password recovery must verify its migrated schema without spending D1 writes on DDL');
 must(recovery.includes("INKBOX_EMAIL_ADDRESS||'iam@inkboxmail.com'"),'password recovery must retain the verified Magnanimous communications mailbox fallback');
 must(recovery.includes("scopeTenantId:'__platform__'"),'password recovery must resolve the canonical owner sender without depending on a literal owner tenant slug');
 must(!recovery.includes("SELECT id FROM tenants WHERE slug='owner' LIMIT 1"),'password recovery sender lookup must not depend on a literal owner tenant slug');

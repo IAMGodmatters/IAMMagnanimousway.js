@@ -34,18 +34,9 @@ function normalizeBase(value){
 }
 async function ensureSchema(env){
  if(schemaReady||!env?.DB)return;
- await env.DB.prepare(`CREATE TABLE IF NOT EXISTS password_reset_tokens(
-  token_hash TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  tenant_id TEXT NOT NULL,
-  created_at INTEGER NOT NULL,
-  expires_at INTEGER NOT NULL,
-  used_at INTEGER,
-  delivery_provider TEXT NOT NULL DEFAULT '',
-  delivery_status TEXT NOT NULL DEFAULT 'pending'
- )`).run();
- await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_password_reset_user_expiry ON password_reset_tokens(user_id,expires_at)').run();
- await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_password_reset_expiry ON password_reset_tokens(expires_at)').run();
+ // Migration 0069 owns this schema. Runtime recovery only verifies it so a
+ // password-reset request never spends D1 writes on DDL/index checks.
+ await env.DB.prepare('SELECT 1 FROM password_reset_tokens LIMIT 1').first();
  schemaReady=true;
 }
 async function cleanup(env,t=now()){
