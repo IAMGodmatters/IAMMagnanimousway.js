@@ -6,7 +6,7 @@ import {getPlatformAuthToken} from '../lib/magnanimous-session';
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{detail:t}}}
 
-export default function RecoveryContacts(){
+export default function RecoveryContacts({onChanged}:{onChanged?:()=>void}={}){
  const[recoveryEmail,setRecoveryEmail]=useState('');
  const[emailHint,setEmailHint]=useState('');
  const[emailVerified,setEmailVerified]=useState(false);
@@ -48,7 +48,7 @@ export default function RecoveryContacts(){
    const r=await fetch(`${api}/api/auth/recovery-contact/email/confirm`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({challenge_token:emailChallenge,code:emailCode})});
    const d=await read(r);if(!r.ok||!d.verified)throw new Error(d.detail||'Unable to verify recovery email.');
    setEmailVerified(true);setEmailChallenge('');setRecoveryEmail('');setEmailCode('');setEmailHint(String(d.recovery_email||emailHint));
-   setMessage(d.detail||'Recovery email verified.');
+   setMessage(d.detail||'Recovery email verified.');onChanged?.();
   }catch(err:any){setError(err?.message||'Unable to verify recovery email.')}
   finally{setBusy(false)}
  }
@@ -58,7 +58,7 @@ export default function RecoveryContacts(){
   try{
    const r=await fetch(`${api}/api/auth/recovery-contact/email`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}});
    const d=await read(r);if(!r.ok)throw new Error(d.detail||'Unable to remove recovery email.');
-   setEmailHint('');setEmailVerified(false);setEmailChallenge('');setMessage(d.detail||'Recovery email removed.');
+   setEmailHint('');setEmailVerified(false);setEmailChallenge('');setMessage(d.detail||'Recovery email removed.');onChanged?.();
   }catch(err:any){setError(err?.message||'Unable to remove recovery email.')}
   finally{setBusy(false)}
  }
@@ -68,7 +68,7 @@ export default function RecoveryContacts(){
   try{
    const r=await fetch(`${api}/api/auth/recovery-contact/phone`,{method:'PUT',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({phone})});
    const d=await read(r);if(!r.ok)throw new Error(d.detail||'Unable to save recovery phone.');
-   setPhoneHint(String(d.phone||''));setPhone('');setMessage(d.detail||'Optional recovery phone saved.');
+   setPhoneHint(String(d.phone||''));setPhone('');setMessage(d.detail||'Optional recovery phone saved.');onChanged?.();
   }catch(err:any){setError(err?.message||'Unable to save recovery phone.')}
   finally{setBusy(false)}
  }
