@@ -1,5 +1,6 @@
 'use client';
 import {FormEvent,useEffect,useState} from 'react';
+import {getPlatformAuthToken} from './lib/magnanimous-session';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 
@@ -13,6 +14,7 @@ async function readResponse(response:Response){
 
 export default function PasswordRecoveryOverlay({portal}:{portal:Portal}){
  const[email,setEmail]=useState('');
+ const[recoveryCode,setRecoveryCode]=useState('');
  const[password,setPassword]=useState('');
  const[confirm,setConfirm]=useState('');
  const[token,setToken]=useState('');
@@ -38,11 +40,17 @@ export default function PasswordRecoveryOverlay({portal}:{portal:Portal}){
  async function requestReset(event:FormEvent){
   event.preventDefault();setBusy(true);setError('');setMessage('');
   try{
-   const response=await fetch(`${api}/api/auth/forgot-password`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+   const auth=getPlatformAuthToken();
+   const headers:any={'Content-Type':'application/json'};
+   if(auth)headers.Authorization=`Bearer ${auth}`;
+   const response=await fetch(`${api}/api/auth/forgot-password`,{method:'POST',headers,body:JSON.stringify({email,recovery_code:recoveryCode})});
    const data=await readResponse(response);
    if(!response.ok)throw new Error(data.detail||'Password recovery is unavailable right now.');
-   setMessage(data.detail||'If an account exists for that email, a password reset link will be sent shortly.');
-  }catch(err:any){setError(err?.message||'Unable to request a password reset.');}
+   if(data.reset_token){
+    setToken(String(data.reset_token));setRecoveryCode('');setMode('reset');
+    setMessage(data.detail||'Identity verified by Magnanimous. Create your new password now.');
+   }else setMessage(data.detail||'Use a Magnanimous recovery code or a device where you are still signed in.');
+  }catch(err:any){setError(err?.message||'Unable to start account recovery.');}
   finally{setBusy(false)}
  }
 
@@ -70,10 +78,11 @@ export default function PasswordRecoveryOverlay({portal}:{portal:Portal}){
     <div className="iamRecoveryBrand">I AM MAGNANIMOUS WAY™</div>
     {mode==='forgot'&&<>
      <h2 id="iam-recovery-title">Forgot your password?</h2>
-     <p>Enter the email address you use for this platform. If an account exists, we will send a secure one-time reset link.</p>
+     <p>Recovery stays inside Magnanimous. Enter your email and a one-time recovery code, or continue from a device that still has a valid signed-in session.</p>
      <form onSubmit={requestReset}>
       <label><span>Email address</span><input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/></label>
-      <button className="iamRecoveryPrimary" type="submit" disabled={busy}>{busy?'SENDING SECURE LINK…':'SEND RESET LINK'}</button>
+      <label><span>Magnanimous recovery code (optional on a trusted signed-in device)</span><input type="text" autoComplete="one-time-code" value={recoveryCode} onChange={e=>setRecoveryCode(e.target.value)} placeholder="MAG-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"/></label>
+      <button className="iamRecoveryPrimary" type="submit" disabled={busy}>{busy?'VERIFYING WITH MAGNANIMOUS…':'CONTINUE SECURE RECOVERY'}</button>
      </form>
      {message&&<div className="iamRecoverySuccess" role="status">{message}</div>}
      {error&&<div className="iamRecoveryError" role="alert">{error}</div>}
@@ -88,7 +97,7 @@ export default function PasswordRecoveryOverlay({portal}:{portal:Portal}){
       <button className="iamRecoveryPrimary" type="submit" disabled={busy}>{busy?'SECURING ACCOUNT…':'RESET PASSWORD'}</button>
      </form>
      {error&&<div className="iamRecoveryError" role="alert">{error}</div>}
-     <button className="iamRecoveryText" type="button" onClick={()=>{setMode('forgot');setToken('');setPassword('');setConfirm('');setError('')}} disabled={busy}>Request a new reset link</button>
+     <button className="iamRecoveryText" type="button" onClick={()=>{setMode('forgot');setToken('');setPassword('');setConfirm('');setError('')}} disabled={busy}>Start recovery again</button>
     </>}
     {mode==='complete'&&<>
      <h2 id="iam-recovery-title">Password reset complete</h2>
