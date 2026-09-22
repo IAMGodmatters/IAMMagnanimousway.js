@@ -16,6 +16,7 @@ const entry=read('worker/src/security-entrypoint.js');
 const sessions=read('worker/src/session-authority.js');
 const ownerUi=read('frontend/app/owner-login/page.tsx');
 const accountUi=read('frontend/app/account/recovery-contacts.tsx');
+const forgotUi=read('frontend/app/forgot-password/page.tsx');
 const migration=read('worker/migrations/0088_recovery_contacts_owner_email_login.sql');
 
 must(admin.includes("randomOwnerChallenge(){return 'own1_'"),'owner login must use a dedicated random challenge');
@@ -39,17 +40,24 @@ must(contacts.includes("attempts>=5")||contacts.includes("attempts||0)>=5"),'rec
 must(contacts.includes("RECOVERY_EMAIL_MUST_DIFFER"),'recovery email must differ from primary sign-in email');
 must(recovery.includes('user_recovery_contacts')&&recovery.includes('recovery_email_verified_at>0'),'password recovery must accept only verified recovery emails');
 must(recovery.includes('verified-recovery-email'),'password recovery must advertise verified recovery email capability');
-must(accountUi.includes('SEND 8-DIGIT CODE')&&accountUi.includes('VERIFY EMAIL'),'account UI must support recovery-email verification');
-must(accountUi.includes('SAVE PHONE')&&accountUi.includes('SMS recovery stays off'),'account UI must clearly say SMS recovery is not active');
-must(contacts.includes('sms_recovery_available:false'),'backend must never claim optional-phone SMS recovery is available');
+must(accountUi.includes('SEND 8-DIGIT CODE')&&accountUi.includes('VERIFY EMAIL'),'account UI must support recovery-email verification when delivery is available');
+must(accountUi.includes('EMAIL DELIVERY UNAVAILABLE'),'account UI must not pretend recovery-email delivery works when transport is unavailable');
+must(accountUi.includes('No SMS verification message will be sent'),'account UI must clearly state when SMS transport is unavailable');
+must(contacts.includes("email_verification_available:deliveryFlag(env,'MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE')"),'backend must expose real recovery-email transport availability');
+must(contacts.includes("sms_recovery_available:deliveryFlag(env,'MAGNANIMOUS_SMS_DELIVERY_AVAILABLE')"),'backend must expose real SMS transport availability');
+must(contacts.includes('RECOVERY_EMAIL_TRANSPORT_UNAVAILABLE'),'recovery-email requests must fail safely when delivery transport is disabled');
+must(admin.includes('OWNER_EMAIL_TRANSPORT_UNAVAILABLE'),'owner email login must fail safely when email delivery transport is disabled');
 must(contacts.includes('/^\\+[1-9]\\d{7,14}$/'),'optional phone must use E.164-like international validation');
 must(migration.includes('user_recovery_contacts')&&migration.includes('owner_email_login_challenges'),'migration must create recovery-contact and owner-login stores');
 must(migration.includes('code_hash TEXT NOT NULL')&&migration.includes('token_hash TEXT PRIMARY KEY'),'sensitive verification material must be stored by hash');
 must(security.includes("'recovery-contact'"),'recovery contact endpoints must be rate limited');
+must(recovery.includes("password_recovery_totp_failed")&&recovery.includes("issueNativeReset(env,user,'authenticator')"),'password recovery must support Google Authenticator as a native fallback');
+must(recovery.includes("UPDATE user_totp SET last_counter=?")&&recovery.includes('AUTHENTICATOR_CODE_REUSED'),'authenticator recovery must prevent TOTP replay');
+must(forgotUi.includes('Google Authenticator code (optional)')&&forgotUi.includes('authenticator_code:authenticatorCode'),'Forgot Password UI must expose authenticator recovery');
 
 if(failures.length){
  console.error(`RECOVERY / OWNER EMAIL LOCK FAILURE (${failures.length})`);
  for(const failure of failures)console.error('- '+failure);
  process.exit(1);
 }
-console.log('Recovery/owner email lock: PASS — verified alternate email, optional non-SMS phone, hashed one-time owner codes, reserved-owner binding, rate limits, and password fallback are locked.');
+console.log('Recovery/owner email lock: PASS — transport-aware recovery contacts, authenticator fallback, optional non-SMS phone, hashed one-time owner codes, reserved-owner binding, rate limits, and password fallback are locked.');

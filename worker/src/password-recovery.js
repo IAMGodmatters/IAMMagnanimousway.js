@@ -1,4 +1,5 @@
 import {createPasswordRecord} from './password-security.js';
+import {decryptTotpSecret,verifyTotpCode} from './totp-auth.js';
 import {currentUser} from './integrations.js';
 
 const encoder=new TextEncoder();
@@ -97,7 +98,7 @@ async function issueNativeReset(env,user,source){
 
 async function requestReset(request,env){
  if(!env?.DB)return json({detail:'Password recovery is temporarily unavailable.',code:'PASSWORD_RECOVERY_UNAVAILABLE'},503);
- const body=await request.json().catch(()=>({})),email=normEmail(body.email),recoveryCode=normalizeRecoveryCode(body.recovery_code);
+ const body=await request.json().catch(()=>({})),email=normEmail(body.email),recoveryCode=normalizeRecoveryCode(body.recovery_code),authenticatorCode=String(body.authenticator_code||'').replace(/\D/g,'');
  if(!email||!validEmail(email))return json({ok:true,detail:GENERIC_MESSAGE});
  await ensureSchema(env);await cleanup(env);
  let user=await env.DB.prepare('SELECT id,tenant_id,email,role,active FROM users WHERE lower(email)=? AND active=1 ORDER BY created_at ASC LIMIT 1').bind(email).first();
@@ -111,11 +112,38 @@ async function requestReset(request,env){
    recoveryEmailMatch=Boolean(user);
   }catch{}
  }
- if(!user){await logAuth(env,null,'password_reset_requested',1,email);return json({ok:true,detail:GENERIC_MESSAGE,recovery_methods:['magnanimous-native-mail','trusted-session','recovery-code','verified-recovery-email']})}
+ if(!user){await logAuth(env,null,'password_reset_requested',1,email);return json({ok:true,detail:GENERIC_MESSAGE,recovery_methods:['magnanimous-native-mail','trusted-session','recovery-code','verified-recovery-email','authenticator']})}
 
  const sessionUser=await activeSessionUser(request,env);
  if(sameUser(sessionUser,user)){
   const issued=await issueNativeReset(env,user,'trusted-session');
+  return json({...issued,login_path:String(user.role||'').toLowerCase()==='owner'?'/owner-login':'/login'});
+ }
+ if(authenticatorCode){
+  if(!/^\d{6}$/.test(authenticatorCode))return json({detail:'Enter the current 6-digit code from your authenticator app.',code:'AUTHENTICATOR_CODE_INVALID'},400);
+  const totp=await env.DB.prepare('SELECT secret_ciphertext,enabled,last_counter FROM user_totp WHERE user_id=? AND tenant_id=? LIMIT 1').bind(user.id,user.tenant_id).first().catch(()=>null);
+  if(Number(totp?.enabled||0)!==1||!totp?.secret_ciphertext){
+   await logAuth(env,user,'password_recovery_totp_unavailable',0,email);
+   return json({detail:'Authenticator recovery is not enabled for this account.',code:'AUTHENTICATOR_RECOVERY_UNAVAILABLE'},400);
+  }
+  let secret,verified;
+  try{
+   secret=await decryptTotpSecret(totp.secret_ciphertext,env);
+   verified=await verifyTotpCode(secret,authenticatorCode,{lastCounter:Number(totp.last_counter??-1)});
+  }catch{
+   verified={ok:false,counter:null};
+  }
+  if(!verified?.ok){
+   await logAuth(env,user,'password_recovery_totp_failed',0,email);
+   return json({detail:'That authenticator code is invalid. Wait for a new 6-digit code and try again.',code:'AUTHENTICATOR_CODE_INVALID'},400);
+  }
+  const claimed=await env.DB.prepare('UPDATE user_totp SET last_counter=? WHERE user_id=? AND tenant_id=? AND enabled=1 AND last_counter<?')
+   .bind(verified.counter,user.id,user.tenant_id,verified.counter).run();
+  if(Number(claimed?.meta?.changes||0)!==1){
+   await logAuth(env,user,'password_recovery_totp_replay',0,email);
+   return json({detail:'That authenticator code was already used. Wait for a new 6-digit code and try again.',code:'AUTHENTICATOR_CODE_REUSED'},400);
+  }
+  const issued=await issueNativeReset(env,user,'authenticator');
   return json({...issued,login_path:String(user.role||'').toLowerCase()==='owner'?'/owner-login':'/login'});
  }
  if(recoveryCode){
@@ -147,7 +175,7 @@ async function requestReset(request,env){
   await logAuth(env,user,'password_reset_delivery_failed',0,deliveryEmail);
   console.error('password reset delivery failed',{code:delivery.code,error:delivery.error,user_id:user.id});
  }
- return json({ok:true,detail:GENERIC_MESSAGE,recovery_methods:['magnanimous-native-mail','trusted-session','recovery-code','verified-recovery-email']});
+ return json({ok:true,detail:GENERIC_MESSAGE,recovery_methods:['magnanimous-native-mail','trusted-session','recovery-code','verified-recovery-email','authenticator']});
 }
 
 async function recoveryCodeStatus(request,env){
