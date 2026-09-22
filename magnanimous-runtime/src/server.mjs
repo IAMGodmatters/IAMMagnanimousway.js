@@ -21,6 +21,7 @@ import { magnanimousServiceBindings } from './service-bindings.mjs';
 import { MagnanimousMetrics } from './metrics.mjs';
 import { MagnanimousImageGenerationBinding } from './image-generation-binding.mjs';
 import { openMagnanimousCloudControl } from './cloud-control.mjs';
+import { openMagnanimousMailer } from './native-mailer.mjs';
 import { verifyGitHubActionsOidc, stageD1SqlExport, stageD1SqliteSnapshot, stageCredentialVaultRewrap } from './migration-stage.mjs';
 import { stageRuntimeSecrets, loadRuntimeSecrets } from './runtime-secret-store.mjs';
 import { deployMagnanimousCommit, deploymentControlConfig } from './deployment-control.mjs';
@@ -57,6 +58,7 @@ const services = magnanimousServiceBindings(process.env);
 const imageGenerator = new MagnanimousImageGenerationBinding(process.env);
 const metrics = new MagnanimousMetrics();
 const cloudControl = openMagnanimousCloudControl({ db, objectStore, env: process.env });
+const mailer = openMagnanimousMailer({ db, env: process.env });
 
 const env = new Proxy(
   {
@@ -77,6 +79,7 @@ const env = new Proxy(
     MAGNANIMOUS_IMAGES: services.images,
     MAGNANIMOUS_IMAGE_GENERATOR: imageGenerator,
     MAGNANIMOUS_CLOUD_CONTROL: cloudControl,
+    MAGNANIMOUS_MAIL: mailer,
     OBJECT_STORE: objectStore,
     KV: kv,
     QUEUE: durableWork,
@@ -447,6 +450,7 @@ const server = http.createServer(async (req, res) => {
             };
           })(),
           cloud_vendor_required: false,
+          mail: mailer.status(),
           first_party_capabilities: {
             relational_sql: true,
             static_assets: true,
@@ -469,7 +473,8 @@ const server = http.createServer(async (req, res) => {
             prometheus_metrics: true,
             tls_reverse_proxy: true,
             self_hosted_dns_profile: true,
-            magnanimous_cloud_control_plane: true
+            magnanimous_cloud_control_plane: true,
+            native_transactional_mail: mailer.configured
           }
         })
       );
