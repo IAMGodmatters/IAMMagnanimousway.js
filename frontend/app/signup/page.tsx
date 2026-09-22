@@ -42,7 +42,8 @@ export default function SignupPage() {
       else localStorage.removeItem('iam_account_session_expires_at');
       localStorage.removeItem('odin_admin_token');
       sessionStorage.setItem('iam_session_active','user');
-      window.location.replace('/start');
+      sessionStorage.setItem('iam_totp_setup_prompt','1');
+      window.location.replace('/account?setup=authenticator');
     } catch (err: any) { setError(err?.message || 'Unable to create your account.'); }
     finally { setBusy(false); }
   }
