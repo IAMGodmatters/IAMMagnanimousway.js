@@ -13,6 +13,7 @@ async function readResponse(response:Response){
 export default function ForgotPasswordPage(){
  const[email,setEmail]=useState('');
  const[recoveryCode,setRecoveryCode]=useState('');
+ const[authenticatorCode,setAuthenticatorCode]=useState('');
  const[password,setPassword]=useState('');
  const[confirm,setConfirm]=useState('');
  const[token,setToken]=useState('');
@@ -39,11 +40,11 @@ export default function ForgotPasswordPage(){
    const auth=getPlatformAuthToken();
    const headers:any={'Content-Type':'application/json'};
    if(auth)headers.Authorization=`Bearer ${auth}`;
-   const response=await fetch(`${api}/api/auth/forgot-password`,{method:'POST',headers,body:JSON.stringify({email,recovery_code:recoveryCode})});
+   const response=await fetch(`${api}/api/auth/forgot-password`,{method:'POST',headers,body:JSON.stringify({email,recovery_code:recoveryCode,authenticator_code:authenticatorCode})});
    const data=await readResponse(response);
    if(!response.ok)throw new Error(data.detail||'Password recovery is unavailable right now.');
    if(data.reset_token){
-    setToken(String(data.reset_token));setRecoveryCode('');setMode('reset');
+    setToken(String(data.reset_token));setRecoveryCode('');setAuthenticatorCode('');setMode('reset');
     setMessage(data.detail||'Identity verified by Magnanimous. Create your new password now.');
    }else{
     setMessage(data.detail||'Use a Magnanimous recovery code or a device where you are still signed in.');setRequested(true);
@@ -75,10 +76,11 @@ export default function ForgotPasswordPage(){
    <div className="firstParty">iammagnanimousway.com • Magnanimous-native account recovery</div>
    {mode==='request'&&<>
     <h2>Forgot your password?</h2>
-    <p>Recovery stays inside Magnanimous. Enter your primary email or a verified recovery email and, if you have one, a one-time Magnanimous recovery code. If this device still has a valid signed-in session, Magnanimous can verify you directly without email.</p>
+    <p>Recovery stays inside Magnanimous. Enter your primary email or verified recovery email. You can recover with a one-time Magnanimous recovery code, a trusted signed-in device, or—when enabled on your customer account—the current 6-digit Google Authenticator code. Email delivery is used only when a working native mail transport is available.</p>
     <form onSubmit={requestReset}>
      <label><span>Primary or verified recovery email</span><input autoFocus required type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)}/></label>
      <label><span>Magnanimous recovery code (optional on a trusted signed-in device)</span><input type="text" autoComplete="one-time-code" placeholder="MAG-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" value={recoveryCode} onChange={e=>setRecoveryCode(e.target.value)}/></label>
+     {portal==='customer'&&<label><span>Google Authenticator code (optional)</span><input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="123456" value={authenticatorCode} onChange={e=>setAuthenticatorCode(e.target.value.replace(/\D/g,'').slice(0,6))}/></label>}
      <button disabled={busy} type="submit">{busy?'VERIFYING WITH MAGNANIMOUS…':requested?'TRY RECOVERY AGAIN':'CONTINUE SECURE RECOVERY'}</button>
     </form>
     {message&&<div className="success" role="status">{message}</div>}
