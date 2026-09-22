@@ -44,6 +44,10 @@ function normalizePhone(value){
  const clean=raw.replace(/[\s().-]/g,'');
  return /^\+[1-9]\d{7,14}$/.test(clean)?clean:'';
 }
+function deliveryFlag(env,name){
+ const value=String(env?.[name]||'').trim().toLowerCase();
+ return ['1','true','yes','on'].includes(value);
+}
 async function logAuth(env,user,event,success,email=''){
  try{await env.DB.prepare('INSERT INTO auth_events(user_id,tenant_id,email,event,success,created_at) VALUES(?,?,?,?,?,?)')
    .bind(user?.id||null,user?.tenant_id||null,email||user?.email||'',event,success?1:0,now()).run()}catch{}
@@ -74,7 +78,8 @@ async function status(request,env){
   phone:row?.phone_e164?maskPhone(row.phone_e164):'',
   phone_configured:Boolean(row?.phone_e164),
   phone_verified:Boolean(Number(row?.phone_verified_at||0)>0),
-  sms_recovery_available:false,
+  email_verification_available:deliveryFlag(env,'MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE'),
+  sms_recovery_available:deliveryFlag(env,'MAGNANIMOUS_SMS_DELIVERY_AVAILABLE'),
   updated_at:Number(row?.updated_at||0)
  });
 }
@@ -84,6 +89,9 @@ async function requestRecoveryEmail(request,env){
  if(!user)return json({detail:'Sign in to set a recovery email.',code:'AUTH_REQUIRED'},401);
  const body=await request.json().catch(()=>({})),target=normEmail(body.email);
  if(!validEmail(target))return json({detail:'Enter a valid recovery email address.',code:'RECOVERY_EMAIL_INVALID'},400);
+ if(!deliveryFlag(env,'MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE')){
+  return json({detail:'Recovery-email delivery is temporarily unavailable on the current host. Use Google Authenticator or a Magnanimous recovery code for recovery right now.',code:'RECOVERY_EMAIL_TRANSPORT_UNAVAILABLE',fallbacks:['authenticator','recovery-code']},503);
+ }
  if(target===normEmail(user.email))return json({detail:'Use a different email from your primary sign-in email.',code:'RECOVERY_EMAIL_MUST_DIFFER'},400);
  const token=randomToken(),code=randomEightDigitCode(),tokenHash=await sha256(token),codeHash=await sha256(code),t=now(),expires=t+600;
  try{await env.DB.prepare("UPDATE recovery_contact_challenges SET consumed_at=? WHERE user_id=? AND kind='email' AND consumed_at IS NULL").bind(t,user.id).run()}catch{}
@@ -144,7 +152,7 @@ async function savePhone(request,env){
   ON CONFLICT(user_id) DO UPDATE SET tenant_id=excluded.tenant_id,phone_e164=excluded.phone_e164,phone_verified_at=0,updated_at=excluded.updated_at`)
   .bind(user.id,user.tenant_id,phone,t).run();
  await logAuth(env,user,'recovery_phone_saved_unverified',1,user.email);
- return json({ok:true,phone:maskPhone(phone),verified:false,sms_recovery_available:false,detail:'Optional recovery phone saved. SMS recovery will stay disabled until Magnanimous has a verified native SMS delivery path.'});
+ return json({ok:true,phone:maskPhone(phone),verified:false,sms_recovery_available:deliveryFlag(env,'MAGNANIMOUS_SMS_DELIVERY_AVAILABLE'),detail:deliveryFlag(env,'MAGNANIMOUS_SMS_DELIVERY_AVAILABLE')?'Optional recovery phone saved. SMS verification can be completed when requested.':'Optional recovery phone saved. No SMS was sent because Magnanimous does not currently have an active native SMS delivery path.'});
 }
 async function clearRecoveryEmail(request,env){
  if(!env?.DB)return json({detail:'Recovery contacts are temporarily unavailable.'},503);
