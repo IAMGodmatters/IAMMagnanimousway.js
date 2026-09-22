@@ -229,8 +229,6 @@ export async function securityPreflight(request, env) {
   if (url.pathname.startsWith('/api/auth/recovery-contact')) {
     const limited = await rateLimit(request, env, 'recovery-contact', Number(env?.SECURITY_RECOVERY_CONTACT_LIMIT || 12), 900);
     if (limited) return limited;
-    const recoveryContactResponse=await handleRecoveryContacts(request,env);
-    if(recoveryContactResponse)return recoveryContactResponse;
   }
   if ((url.pathname === '/api/admin/email-code/request' || url.pathname === '/api/admin/email-code/verify') && request.method === 'POST') {
     const limited = await rateLimit(request, env, 'owner-email-code', Number(env?.SECURITY_OWNER_EMAIL_CODE_LIMIT || 8), 900);
@@ -249,6 +247,11 @@ export async function securityPreflight(request, env) {
     const result = await revokeRequestSession(request, env, 'logout');
     if (!result.revoked) return json({ detail: 'This session could not be signed out safely.', code: 'LOGOUT_FAILED' }, 400);
     return json({ ok: true, revoked: true });
+  }
+
+  if (url.pathname.startsWith('/api/auth/recovery-contact')) {
+    const recoveryContactResponse=await handleRecoveryContacts(request,env);
+    if(recoveryContactResponse)return recoveryContactResponse;
   }
 
   const entitlement = await enforceAgencyEntitlement(request, env, url.pathname);
