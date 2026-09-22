@@ -98,10 +98,14 @@ export async function handleBootstrap(request, env) {
   if (!env?.DB) return json({ detail: 'Database binding is not configured.' }, 503);
   try {
     const row = await getOrCreateKeypair(env);
+    const readiness = await getBootstrapSecrets(env);
     return json({
       algorithm: 'RSA-OAEP-2048-SHA256',
       public_spki_b64: row.public_spki_b64,
-      created_at: row.created_at
+      created_at: row.created_at,
+      bootstrap_secrets_ready: Object.keys(readiness).length > 0,
+      decryptable_secret_count: Object.keys(readiness).length,
+      stripe_webhook_ready: Boolean(String(readiness.STRIPE_WEBHOOK_SECRET || '').trim())
     });
   } catch (error) {
     return json({ detail: error?.message || 'Secure bootstrap key generation failed.' }, 500);
