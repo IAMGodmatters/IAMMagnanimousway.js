@@ -17,6 +17,7 @@ export default function ForgotPasswordPage(){
  const[mode,setMode]=useState<'request'|'reset'|'complete'>('request');
  const[busy,setBusy]=useState(false);
  const[message,setMessage]=useState('');
+ const[requested,setRequested]=useState(false);
  const[error,setError]=useState('');
  const[loginPath,setLoginPath]=useState('/login');
  const[portal,setPortal]=useState<'customer'|'owner'>('customer');
@@ -36,7 +37,7 @@ export default function ForgotPasswordPage(){
    const response=await fetch(`${api}/api/auth/forgot-password`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
    const data=await readResponse(response);
    if(!response.ok)throw new Error(data.detail||'Password recovery is unavailable right now.');
-   setMessage(data.detail||'If an account exists for that email, a password reset link will be sent shortly.');
+   setMessage(data.detail||'If an account exists for that email, a password reset link will be sent shortly.');setRequested(true);
   }catch(err:any){setError(err?.message||'Unable to request a password reset.');}
   finally{setBusy(false)}
  }
@@ -60,13 +61,14 @@ export default function ForgotPasswordPage(){
   <section className="card">
    <img className="brandLogo" src={brandLogo} alt="I AM MAGNANIMOUS WAY™"/>
    <small>SECURE ACCOUNT RECOVERY</small>
-   <h1>I AM MAGNANIMOUS WAY™</h1>\n   <div className="firstParty">iammagnanimousway.com • Secure password reset</div>
+   <h1>I AM MAGNANIMOUS WAY™</h1>
+   <div className="firstParty">iammagnanimousway.com • Secure password reset</div>
    {mode==='request'&&<>
     <h2>Forgot your password?</h2>
-    <p>Enter the email address for your account. We will send a secure one-time reset link if the account exists.</p>
+    <p>Enter the email address for your account. We will send a secure one-time reset link if the account exists. If it does not arrive, you can request another link.</p>
     <form onSubmit={requestReset}>
      <label><span>Email address</span><input autoFocus required type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)}/></label>
-     <button disabled={busy} type="submit">{busy?'SENDING SECURE LINK…':'SEND RESET LINK'}</button>
+     <button disabled={busy} type="submit">{busy?'SENDING SECURE LINK…':requested?'SEND ANOTHER RESET LINK':'SEND RESET LINK'}</button>
     </form>
     {message&&<div className="success" role="status">{message}</div>}
     {error&&<div className="error" role="alert">{error}</div>}
