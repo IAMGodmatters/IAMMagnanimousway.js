@@ -441,6 +441,10 @@ export default {
       await ensureTables(env);
       await ensureLegacyCompatibility(env);
       try{await reconcileConfiguredOwnerDeveloper(env)}catch(error){console.error('canonical owner/developer reconciliation failed',error)}
+      try{
+        const sessionUser=await auth(request,env);
+        if(sessionUser&&await matchesOwnerDeveloperEmail(sessionUser.email,env))await bindCanonicalOwnerDeveloper(env,sessionUser);
+      }catch(error){console.error('signed-in owner/developer reconciliation failed',error)}
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET,POST,PUT,DELETE,OPTIONS', 'access-control-allow-headers': 'Content-Type, Authorization' } });
       if (url.pathname === '/api/auth/signup' && request.method === 'POST') return await signup(request, env);
       if (url.pathname === '/api/auth/login' && request.method === 'POST') return await login(request, env);
@@ -450,8 +454,9 @@ export default {
       if (url.pathname === '/api/auth/totp/confirm' && request.method === 'POST') return await totpConfirm(request, env);
       if (url.pathname === '/api/auth/totp/disable' && request.method === 'POST') return await totpDisable(request, env);
       if (url.pathname === '/api/auth/me' && request.method === 'GET') {
-        const user=await auth(request,env);
+        let user=await auth(request,env);
         if(!user)return json({detail:'Not authenticated.'},401);
+        try{user=await bindCanonicalOwnerDeveloper(env,user)}catch{}
         const identity=await platformOwnerDeveloperIdentity(user,env).catch(()=>({owner:false,developer:false}));
         return json({user,platform_owner:Boolean(identity.owner),developer:Boolean(identity.developer)});
       }
