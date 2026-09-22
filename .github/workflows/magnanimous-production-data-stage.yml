@@ -8,6 +8,10 @@ on:
       - 'magnanimous-runtime/scripts/export-d1-logical.mjs'
       - 'magnanimous-runtime/src/migration-stage.mjs'
       - 'magnanimous-runtime/src/server.mjs'
+      - 'worker/src/password-recovery.js'
+      - 'worker/src/security-hardening.js'
+      - 'worker/src/security-entrypoint.js'
+      - 'worker/migrations/0069_password_recovery.sql'
   workflow_dispatch:
 
 permissions:
