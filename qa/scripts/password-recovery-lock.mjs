@@ -30,7 +30,7 @@ must(recovery.includes('GENERIC_MESSAGE'),'forgot-password response must use a g
 must(security.includes("'password-recovery'")&&security.includes("'password-reset'"),'recovery endpoints must be rate limited');
 must(security.includes("SECURITY_PASSWORD_RECOVERY_LIMIT || 8"),'password recovery must allow repeated resend attempts while preserving rate limiting');
 must(security.includes('localRateLimit')&&security.includes('durable rate limiter unavailable; using bounded local fallback'),'password recovery rate limiting must survive temporary D1 write-capacity failures');
-must(securityEntrypoint.includes("'/api/auth/forgot-password'")&&securityEntrypoint.includes("'/api/auth/reset-password'")&&securityEntrypoint.includes('LOCAL_SECURITY_API_PATHS.has(url.pathname)'),'password recovery APIs must bypass the standalone proxy and remain on the first-party security runtime');
+must(!securityEntrypoint.includes('LOCAL_SECURITY_API_PATHS')&&securityEntrypoint.includes('proxyApiToStandalone(request,env)'),'password recovery must follow the same first-party standalone API data plane as login so D1 quota cannot strand reset writes');
 must(security.includes('handlePasswordRecovery(request, env)'),'recovery routes must pass through the security preflight');
 must(template.includes('<PasswordRecoveryOverlay'),'shared template must mount password recovery on login portals');
 must(template.includes("path==='/login'")&&template.includes("path==='/owner-login'"),'both customer and owner login portals must expose recovery');
