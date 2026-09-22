@@ -14,7 +14,9 @@ const customerLogin=read('frontend/app/login/page.tsx');
 const ownerLogin=read('frontend/app/owner-login/page.tsx');
 const dedicatedRecovery=read('frontend/app/forgot-password/page.tsx');
 const migration=read('worker/migrations/0069_password_recovery.sql');
-const deploy=read('.github/workflows/deploy.yml');
+const nativeMailer=read('magnanimous-runtime/src/native-mailer.mjs');
+const standalone=read('magnanimous-runtime/src/server.mjs');
+const mailMigration=read('worker/migrations/0085_magnanimous_native_mail.sql');
 const failures=[];
 const must=(condition,message)=>{if(!condition)failures.push(message)};
 
@@ -53,15 +55,15 @@ must(ownerLogin.includes('href="/forgot-password?portal=owner"')&&ownerLogin.inc
 must(migration.includes('password_reset_tokens')&&migration.includes('token_hash TEXT PRIMARY KEY'),'D1 migration must create hashed reset-token storage');
 must(recovery.includes("SELECT 1 FROM password_reset_tokens LIMIT 1")&&!recovery.includes('CREATE TABLE IF NOT EXISTS password_reset_tokens'),'runtime password recovery must verify its migrated schema without spending D1 writes on DDL');
 must(recovery.includes('A failed resend must not strand')&&recovery.includes("token_hash<>?"),'failed reset-email resend must preserve the previous working link until replacement delivery succeeds');
-must(recovery.includes("INKBOX_EMAIL_ADDRESS||'iam@inkboxmail.com'"),'password recovery must retain the verified Magnanimous communications mailbox fallback');
-must(recovery.includes("scopeTenantId:'__platform__'"),'password recovery must resolve the canonical owner sender without depending on a literal owner tenant slug');
+must(recovery.includes('sendWithMagnanimousMail')&&recovery.includes('env?.MAGNANIMOUS_MAIL'),'password recovery must prefer the native Magnanimous mail capability');
+must(recovery.includes("scopeTenantId:'__platform__'"),'password recovery must retain the owner-controlled standard mailbox fallback');
+must(!recovery.includes('INKBOX_')&&!recovery.includes('inkbox.ai')&&!recovery.includes('sendWithCommunications'),'password recovery must not depend on Inkbox or another plug-in transport');
 must(!recovery.includes("SELECT id FROM tenants WHERE slug='owner' LIMIT 1"),'password recovery sender lookup must not depend on a literal owner tenant slug');
 must(recovery.includes("'PASSWORD_RESET_DELIVERY_FAILED'"),'password recovery must preserve a diagnosable transport failure code when configured senders fail');
-must(recovery.includes('draft.generation||1'),'communications delivery must keep generation-checked draft sending');
-must(deploy.includes('INKBOX_API_KEY: ${{ secrets.INKBOX_API_KEY }}'),'deploy must import the password recovery communications credential when configured');
-must(deploy.includes('INKBOX_EMAIL_ADDRESS: ${{ secrets.INKBOX_EMAIL_ADDRESS }}'),'deploy must import the communications mailbox override when configured');
-must(deploy.includes('sync_secret INKBOX_API_KEY "$INKBOX_API_KEY"'),'deploy must sync the communications credential into the Worker');
-must(deploy.includes('sync_secret INKBOX_EMAIL_ADDRESS "$INKBOX_EMAIL_ADDRESS"'),'deploy must sync the communications mailbox into the Worker');
+must(nativeMailer.includes('node:dns/promises')&&nativeMailer.includes('node:net')&&nativeMailer.includes('node:tls'),'Magnanimous native mail must implement protocol-level SMTP/direct-MX capability without a plug-in SDK');
+must(nativeMailer.includes('sensitive')&&mailMigration.includes('sensitive INTEGER'),'native mail audit must mark sensitive messages without persisting reset message bodies');
+must(mailMigration.includes('magnanimous_mail_outbox')&&!mailMigration.includes('body_text')&&!mailMigration.includes('body_html'),'native password-reset audit must not create plaintext email-body storage');
+must(standalone.includes('MAGNANIMOUS_MAIL: mailer')&&standalone.includes('native_transactional_mail: mailer.configured'),'standalone Magnanimous runtime must own the native mail binding and capability status');
 
 if(failures.length){
  console.error(`PASSWORD RECOVERY LOCK FAILURE (${failures.length})`);
