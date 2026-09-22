@@ -185,16 +185,58 @@ async function recoveryCodeStatus(request,env){
  const row=await env.DB.prepare('SELECT COUNT(*) AS active_count,MAX(created_at) AS last_created_at FROM account_recovery_codes WHERE user_id=? AND tenant_id=? AND used_at IS NULL').bind(user.id,user.tenant_id).first();
  return json({ok:true,active_count:Number(row?.active_count||0),last_created_at:Number(row?.last_created_at||0)});
 }
-async function rotateRecoveryCodes(request,env){
- if(!env?.DB)return json({detail:'Account recovery is temporarily unavailable.'},503);
- await ensureSchema(env);const user=await activeSessionUser(request,env);
- if(!user)return json({detail:'Sign in to create Magnanimous recovery codes.',code:'AUTH_REQUIRED'},401);
+export async function createRecoveryCodeSetForUser(env,user,{event='password_recovery_codes_rotated'}={}){
+ if(!env?.DB||!user?.id||!user?.tenant_id)throw new Error('Recovery-code storage is unavailable.');
+ await ensureSchema(env);
  const t=now(),codes=Array.from({length:RECOVERY_CODE_COUNT},()=>randomRecoveryCode());
  const hashes=await Promise.all(codes.map(code=>sha256(normalizeRecoveryCode(code))));
  await env.DB.prepare('UPDATE account_recovery_codes SET used_at=? WHERE user_id=? AND tenant_id=? AND used_at IS NULL').bind(t,user.id,user.tenant_id).run();
  for(let i=0;i<hashes.length;i+=1)await env.DB.prepare('INSERT INTO account_recovery_codes(user_id,tenant_id,code_hash,created_at,used_at) VALUES(?,?,?,?,NULL)').bind(user.id,user.tenant_id,hashes[i],t).run();
- await logAuth(env,user,'password_recovery_codes_rotated',1,user.email);
+ await logAuth(env,user,event,1,user.email||'');
+ return codes;
+}
+export async function ensureRecoveryCodesForUser(env,user,{event='automatic_recovery_codes_created'}={}){
+ if(!env?.DB||!user?.id||!user?.tenant_id)return[];
+ await ensureSchema(env);
+ const row=await env.DB.prepare('SELECT COUNT(*) AS n FROM account_recovery_codes WHERE user_id=? AND tenant_id=? AND used_at IS NULL').bind(user.id,user.tenant_id).first().catch(()=>({n:0}));
+ if(Number(row?.n||0)>0)return[];
+ return createRecoveryCodeSetForUser(env,user,{event});
+}
+async function rotateRecoveryCodes(request,env){
+ if(!env?.DB)return json({detail:'Account recovery is temporarily unavailable.'},503);
+ await ensureSchema(env);const user=await activeSessionUser(request,env);
+ if(!user)return json({detail:'Sign in to create Magnanimous recovery codes.',code:'AUTH_REQUIRED'},401);
+ const codes=await createRecoveryCodeSetForUser(env,user);
  return json({ok:true,codes,count:codes.length,detail:'New Magnanimous recovery codes created. Each code works once. Save them somewhere private; only their hashes are stored.'});
+}
+
+async function recoveryReadiness(request,env){
+ if(!env?.DB)return json({detail:'Account recovery is temporarily unavailable.'},503);
+ await ensureSchema(env);const user=await activeSessionUser(request,env);
+ if(!user)return json({detail:'Sign in to review account recovery readiness.',code:'AUTH_REQUIRED'},401);
+ const [codes,totp,contacts]=await Promise.all([
+  env.DB.prepare('SELECT COUNT(*) AS n FROM account_recovery_codes WHERE user_id=? AND tenant_id=? AND used_at IS NULL').bind(user.id,user.tenant_id).first().catch(()=>({n:0})),
+  env.DB.prepare('SELECT enabled FROM user_totp WHERE user_id=? AND tenant_id=? LIMIT 1').bind(user.id,user.tenant_id).first().catch(()=>null),
+  env.DB.prepare('SELECT recovery_email_verified_at,phone_verified_at FROM user_recovery_contacts WHERE user_id=? AND tenant_id=? LIMIT 1').bind(user.id,user.tenant_id).first().catch(()=>null)
+ ]);
+ const mailAvailable=['1','true','yes','on'].includes(String(env?.MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE||'').trim().toLowerCase());
+ const smsAvailable=['1','true','yes','on'].includes(String(env?.MAGNANIMOUS_SMS_DELIVERY_AVAILABLE||'').trim().toLowerCase());
+ const methods={
+  recovery_codes:Number(codes?.n||0)>0,
+  authenticator:Number(totp?.enabled||0)===1,
+  recovery_email:mailAvailable&&Number(contacts?.recovery_email_verified_at||0)>0,
+  recovery_phone:smsAvailable&&Number(contacts?.phone_verified_at||0)>0
+ };
+ const durableCount=Object.values(methods).filter(Boolean).length;
+ return json({
+  ok:true,
+  ready:durableCount>=2,
+  durable_method_count:durableCount,
+  methods,
+  active_recovery_codes:Number(codes?.n||0),
+  trusted_session:true,
+  recommendation:durableCount>=2?'Your account has multiple independent recovery paths.':'Add at least one more recovery method before relying on this account from a single device.'
+ });
 }
 
 async function completeReset(request,env){
@@ -225,5 +267,6 @@ export async function handlePasswordRecovery(request,env){
  if(request.method==='POST'&&url.pathname==='/api/auth/reset-password')return completeReset(request,env);
  if(request.method==='GET'&&url.pathname==='/api/auth/recovery-codes')return recoveryCodeStatus(request,env);
  if(request.method==='POST'&&url.pathname==='/api/auth/recovery-codes')return rotateRecoveryCodes(request,env);
+ if(request.method==='GET'&&url.pathname==='/api/auth/recovery-readiness')return recoveryReadiness(request,env);
  return null;
 }

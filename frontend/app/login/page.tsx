@@ -59,8 +59,21 @@ export default function LoginPage() {
     else localStorage.removeItem('iam_account_session_expires_at');
     localStorage.removeItem('odin_admin_token');
     sessionStorage.setItem('iam_session_active', 'user');
+    if(Array.isArray(d.automatic_recovery_codes)&&d.automatic_recovery_codes.length){
+      sessionStorage.setItem('iam_initial_recovery_codes',JSON.stringify(d.automatic_recovery_codes));
+    }
+    let recoveryReady=true;
+    try{
+      const rr=await fetch(`${api}/api/auth/recovery-readiness`,{headers:{Authorization:`Bearer ${d.token}`},cache:'no-store'});
+      const rd=await readResponse(rr);
+      if(rr.ok)recoveryReady=Boolean(rd.ready);
+    }catch{}
     const requested = new URLSearchParams(window.location.search).get('returnTo') || '';
     const returnTo = requested.startsWith('/') && !requested.startsWith('//') ? requested : '/?access=user';
+    if(!recoveryReady||sessionStorage.getItem('iam_initial_recovery_codes')){
+      window.location.replace('/account?setup=recovery');
+      return;
+    }
     window.location.replace(returnTo);
   }
 

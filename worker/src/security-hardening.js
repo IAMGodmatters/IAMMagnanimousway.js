@@ -2,6 +2,7 @@ import { currentUser } from './integrations.js';
 import { isRequestSessionRevoked, revokeRequestSession } from './session-revocation.js';
 import { handlePasswordRecovery } from './password-recovery.js';
 import { handleRecoveryContacts } from './recovery-contacts.js';
+import { platformOwnerDeveloperIdentity } from './platform-owner-guard.js';
 
 const now = () => Math.floor(Date.now() / 1000);
 const encoder = new TextEncoder();
@@ -145,8 +146,8 @@ async function rateLimit(request, env, bucket, max, windowSeconds) {
 async function platformOwner(request, env) {
   const user = await currentUser(request, env).catch(() => null);
   if (!user) return false;
-  const ownerEmail = normEmail(env?.ADMIN_EMAIL);
-  return Boolean(ownerEmail && normEmail(user.email) === ownerEmail && ['owner', 'admin'].includes(String(user.role || '').toLowerCase()));
+  const identity=await platformOwnerDeveloperIdentity(user,env).catch(()=>({authorized:false}));
+  return Boolean(identity?.authorized);
 }
 
 async function enforceAgencyEntitlement(request, env, path) {
@@ -213,6 +214,12 @@ export async function securityPreflight(request, env) {
   }
   if (url.pathname === '/api/auth/recovery-codes' && (request.method === 'GET' || request.method === 'POST')) {
     const limited = await rateLimit(request, env, 'recovery-codes', Number(env?.SECURITY_RECOVERY_CODE_LIMIT || 12), 900);
+    if (limited) return limited;
+    return await handlePasswordRecovery(request, env);
+  }
+
+  if (url.pathname === '/api/auth/recovery-readiness' && request.method === 'GET') {
+    const limited = await rateLimit(request, env, 'recovery-readiness', Number(env?.SECURITY_RECOVERY_READINESS_LIMIT || 30), 900);
     if (limited) return limited;
     return await handlePasswordRecovery(request, env);
   }

@@ -54,6 +54,9 @@ jobs:
       - name: Lock recovery contacts and owner email login
         run: node qa/scripts/recovery-owner-email-lock.mjs
 
+      - name: Lock universal anti-lockout and canonical owner developer identity
+        run: node qa/scripts/universal-anti-lockout-owner-identity-lock.mjs
+
       - name: Frontend typecheck and production build
         working-directory: frontend
         run: |

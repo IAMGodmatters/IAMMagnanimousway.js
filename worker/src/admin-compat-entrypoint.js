@@ -2,6 +2,8 @@ import providerApp from './provider-entrypoint.js';
 import {createPasswordRecord,verifyPassword,upgradePasswordIfNeeded} from './password-security.js';
 import {decryptTotpSecret,encryptTotpSecret,generateTotpSecret,totpAuthUri,verifyTotpCode} from './totp-auth.js';
 import {unhandledRequestFailure} from './request-observability.js';
+import {createRecoveryCodeSetForUser,ensureRecoveryCodesForUser} from './password-recovery.js';
+import {configuredOwnerDeveloperEmail,matchesOwnerDeveloperEmail,platformOwnerDeveloperIdentity} from './platform-owner-guard.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const now = () => Math.floor(Date.now() / 1000);
@@ -32,11 +34,41 @@ function deliveryFlag(env,name){
 async function sha256Hex(value){const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value||'')));return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function maskEmail(value){const [name,domain]=normEmail(value).split('@');if(!name||!domain)return'';return (name.slice(0,2)||'*')+'***@'+domain}
 async function globalPlatformOwner(env,user){
-  if(!env?.DB||!user)return false;
-  try{
-    const row=await env.DB.prepare("SELECT id FROM tenants WHERE id=? AND slug='owner' AND owner_user_id=? LIMIT 1").bind(user.tenant_id,user.id).first();
-    return Boolean(row?.id);
-  }catch{return false}
+  const identity=await platformOwnerDeveloperIdentity(user,env).catch(()=>({authorized:false}));
+  return Boolean(identity?.authorized);
+}
+
+async function bindCanonicalOwnerDeveloper(env,user){
+  if(!env?.DB||!user||!(await matchesOwnerDeveloperEmail(user.email,env)))return user;
+  const t=now();
+  let reserved=await env.DB.prepare("SELECT id,owner_user_id FROM tenants WHERE slug='owner' LIMIT 1").first().catch(()=>null);
+  if(!reserved){
+    const id=makeId();
+    await env.DB.prepare("INSERT INTO tenants(id,name,slug,owner_user_id,created_at) VALUES(?,?,?,?,?)")
+      .bind(id,'I AM Magnanimous Way Owner','owner',user.id,t).run();
+    reserved={id,owner_user_id:user.id};
+  }else if(String(reserved.owner_user_id||'')!==String(user.id)){
+    await env.DB.prepare("UPDATE tenants SET owner_user_id=? WHERE id=?").bind(user.id,reserved.id).run();
+  }
+  if(String(user.role||'').toLowerCase()!=='owner'||Number(user.active||0)!==1){
+    await env.DB.prepare("UPDATE users SET role='owner',active=1 WHERE id=?").bind(user.id).run();
+    user={...user,role:'owner',active:1};
+  }
+  return user;
+}
+
+async function reconcileConfiguredOwnerDeveloper(env){
+  if(!env?.DB)return null;
+  const configured=configuredOwnerDeveloperEmail(env);
+  if(configured){
+    const user=await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? ORDER BY active DESC,created_at ASC LIMIT 1').bind(configured).first().catch(()=>null);
+    if(user)return bindCanonicalOwnerDeveloper(env,user);
+  }
+  const reserved=await env.DB.prepare("SELECT owner_user_id FROM tenants WHERE slug='owner' LIMIT 1").first().catch(()=>null);
+  if(!reserved?.owner_user_id)return null;
+  const owner=await env.DB.prepare('SELECT * FROM users WHERE id=? LIMIT 1').bind(reserved.owner_user_id).first().catch(()=>null);
+  if(owner&&await matchesOwnerDeveloperEmail(owner.email,env))return bindCanonicalOwnerDeveloper(env,owner);
+  return null;
 }
 async function activeTotp(env,user){
   if(!env?.DB||!user)return null;
@@ -116,7 +148,16 @@ async function signup(request, env) {
   await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,active,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid, tid, name, email, 'owner', passwordRecord.password_hash, passwordRecord.password_salt, 1, created).run();
   await logAuth(env, { id: uid, tenant_id: tid, email }, 'signup', 1, email);
   const user = { id: uid, tenant_id: tid, name, email, role: 'owner', active: 1, created_at: created };
-  return json({ token: await makeSession(user, env), user }, 201);
+  let recoveryCodes=[];
+  try{recoveryCodes=await createRecoveryCodeSetForUser(env,user,{event:'signup_recovery_codes_created'})}
+  catch(error){console.error('initial recovery code creation failed',error)}
+  return json({
+    token: await makeSession(user, env),
+    user,
+    recovery_codes:recoveryCodes,
+    recovery_setup_required:recoveryCodes.length===0,
+    recovery_detail:recoveryCodes.length?'Save these one-time recovery codes before leaving Account Security.':'Create recovery codes from Account Security before relying on this account.'
+  }, 201);
 }
 async function login(request, env) {
   const b = await request.json(), email = normEmail(b.email), password = String(b.password || '');
@@ -133,6 +174,7 @@ async function login(request, env) {
   let verification;try{verification=await verifyPassword(password,user.password_hash,user.password_salt,env)}catch(_){verification={valid:false,needs_upgrade:false}}
   if (!verification.valid) { await logAuth(env, user, 'login', 0, email); return json({ detail: 'Invalid email or password.' }, 401); }
   try{await upgradePasswordIfNeeded(env,user,password,verification)}catch(error){console.error('password hash upgrade failed',error)}
+  try{user=await bindCanonicalOwnerDeveloper(env,user)}catch(error){console.error('canonical owner/developer binding failed',error)}
   const totp=await activeTotp(env,user);
   if(Number(totp?.enabled||0)===1){
     const challenge=await issueMfaChallenge(env,user);
@@ -147,8 +189,18 @@ async function login(request, env) {
       detail:'Enter the 6-digit code from your authenticator app.'
     });
   }
+  let automaticRecoveryCodes=[];
+  try{automaticRecoveryCodes=await ensureRecoveryCodesForUser(env,user,{event:'login_recovery_codes_created'})}catch(error){console.error('automatic recovery code creation failed',error)}
   await logAuth(env, user, 'login', 1, email);
-  return json({ token: await makeSession(user, env), user: { id: user.id, tenant_id: user.tenant_id, name: user.name, email: user.email, role: user.role, active: user.active } });
+  const identity=await platformOwnerDeveloperIdentity(user,env).catch(()=>({owner:false,developer:false}));
+  return json({
+    token: await makeSession(user, env),
+    user: { id: user.id, tenant_id: user.tenant_id, name: user.name, email: user.email, role: user.role, active: user.active },
+    platform_owner:Boolean(identity.owner),
+    developer:Boolean(identity.developer),
+    automatic_recovery_codes:automaticRecoveryCodes,
+    recovery_setup_required:automaticRecoveryCodes.length>0
+  });
 }
 
 async function totpStatus(request,env){
@@ -186,8 +238,18 @@ async function totpConfirm(request,env){
   if(!verified.ok){await logAuth(env,user,'totp_enrollment_failed',0,user.email);return json({detail:'That authenticator code is invalid. Wait for a new code and try again.',code:'TOTP_INVALID'},400)}
   const t=now();
   await env.DB.prepare('UPDATE user_totp SET enabled=1,verified_at=?,last_counter=? WHERE user_id=? AND tenant_id=?').bind(t,verified.counter,user.id,user.tenant_id).run();
+  let recoveryCodes=[];
+  try{
+    const existing=await env.DB.prepare('SELECT COUNT(*) AS n FROM account_recovery_codes WHERE user_id=? AND tenant_id=? AND used_at IS NULL').bind(user.id,user.tenant_id).first();
+    if(Number(existing?.n||0)===0)recoveryCodes=await createRecoveryCodeSetForUser(env,user,{event:'totp_backup_recovery_codes_created'});
+  }catch(error){console.error('totp backup recovery code creation failed',error)}
   await logAuth(env,user,'totp_enabled',1,user.email);
-  return json({ok:true,enabled:true,detail:'Authenticator protection is now enabled for this account.'});
+  return json({
+    ok:true,
+    enabled:true,
+    backup_recovery_codes:recoveryCodes,
+    detail:recoveryCodes.length?'Authenticator protection is enabled. Save the backup recovery codes shown now before signing out.':'Authenticator protection is now enabled for this account.'
+  });
 }
 async function totpDisable(request,env){
   const user=await auth(request,env);if(!user)return json({detail:'Not authenticated.'},401);
@@ -229,17 +291,28 @@ async function totpLogin(request,env){
   const claimed=await env.DB.prepare('UPDATE auth_mfa_challenges SET consumed_at=? WHERE token_hash=? AND consumed_at IS NULL AND expires_at>?').bind(t,hash,t).run();
   if(Number(claimed?.meta?.changes||0)!==1)return json({detail:'This authenticator challenge is no longer active. Sign in again.',code:'MFA_CHALLENGE_INVALID'},401);
   await env.DB.prepare('UPDATE user_totp SET last_counter=? WHERE user_id=? AND tenant_id=? AND enabled=1').bind(verified.counter,row.user_id,row.tenant_id).run();
-  const user={id:row.user_id,tenant_id:row.tenant_id,name:row.name,email:row.email,role:row.role,active:row.active};
+  let user={id:row.user_id,tenant_id:row.tenant_id,name:row.name,email:row.email,role:row.role,active:row.active};
+  try{user=await bindCanonicalOwnerDeveloper(env,user)}catch(error){console.error('canonical owner/developer MFA binding failed',error)}
+  let automaticRecoveryCodes=[];
+  try{automaticRecoveryCodes=await ensureRecoveryCodesForUser(env,user,{event:'mfa_login_recovery_codes_created'})}catch(error){console.error('MFA recovery code creation failed',error)}
+  const identity=await platformOwnerDeveloperIdentity(user,env).catch(()=>({owner:false,developer:false}));
   await logAuth(env,user,'login_mfa_verified',1,row.email);
-  return json({token:await makeSession(user,env),user});
+  return json({
+    token:await makeSession(user,env),
+    user,
+    platform_owner:Boolean(identity.owner),
+    developer:Boolean(identity.developer),
+    automatic_recovery_codes:automaticRecoveryCodes,
+    recovery_setup_required:automaticRecoveryCodes.length>0
+  });
 }
 
 async function reservedPlatformOwnerByEmail(env,email){
-  if(!env?.DB||!email)return null;
-  return env.DB.prepare(`SELECT u.* FROM users u
-    JOIN tenants t ON t.id=u.tenant_id
-    WHERE lower(u.email)=? AND u.active=1 AND u.role='owner' AND t.slug='owner' AND t.owner_user_id=u.id
-    LIMIT 1`).bind(normEmail(email)).first();
+  if(!env?.DB||!email||!(await matchesOwnerDeveloperEmail(email,env)))return null;
+  const user=await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND active=1 ORDER BY created_at ASC LIMIT 1').bind(normEmail(email)).first().catch(()=>null);
+  if(!user)return null;
+  const bound=await bindCanonicalOwnerDeveloper(env,user);
+  return await globalPlatformOwner(env,bound)?bound:null;
 }
 async function sendOwnerLoginCode(env,owner,code,idempotencyKey){
   const mailer=env?.MAGNANIMOUS_MAIL;
@@ -294,7 +367,7 @@ async function verifyOwnerEmailCode(request,env){
       u.name,u.email,u.role,u.active,t.slug,t.owner_user_id
     FROM owner_email_login_challenges c
     JOIN users u ON u.id=c.user_id AND u.tenant_id=c.tenant_id
-    JOIN tenants t ON t.id=u.tenant_id
+    JOIN tenants t ON t.slug='owner' AND t.owner_user_id=u.id
     WHERE c.token_hash=? LIMIT 1`).bind(hash).first();
   if(!row||Number(row.active||0)!==1||row.role!=='owner'||row.slug!=='owner'||String(row.owner_user_id||'')!==String(row.user_id)||row.delivery_status!=='sent'||row.consumed_at!=null||Number(row.expires_at||0)<=t||Number(row.attempts||0)>=5){
     return json({detail:'That owner login challenge is invalid or expired. Request a new code.',code:'OWNER_EMAIL_CHALLENGE_INVALID'},401);
@@ -316,16 +389,21 @@ async function verifyOwnerEmailCode(request,env){
 async function adminLogin(request, env) {
   const b = await request.json(), email = normEmail(b.email), password = String(b.password || '');
   if (!email || !password) return json({ detail: 'Owner email and password are required.' }, 400);
+  if(!(await matchesOwnerDeveloperEmail(email,env))){
+    await logAuth(env,null,'owner_login',0,email);
+    return json({detail:'Invalid owner email or password.'},401);
+  }
   const existing = await env.DB.prepare("SELECT * FROM users WHERE email=? AND active=1 ORDER BY created_at ASC LIMIT 1").bind(email).first();
-  if (existing && existing.role === 'owner') {
+  if (existing) {
     let verification;try{verification=await verifyPassword(password,existing.password_hash,existing.password_salt,env)}catch(_){verification={valid:false,needs_upgrade:false}}
     if (!verification.valid) {
       await logAuth(env, existing, 'owner_login', 0, email);
       return json({ detail: 'Invalid owner email or password.' }, 401);
     }
     try{await upgradePasswordIfNeeded(env,existing,password,verification)}catch(error){console.error('owner password hash upgrade failed',error)}
-    await logAuth(env, existing, 'owner_login', 1, email);
-    return json({ token: await makeSession(existing, env), user: { id: existing.id, tenant_id: existing.tenant_id, name: existing.name, email: existing.email, role: 'owner', active: existing.active } });
+    const bound=await bindCanonicalOwnerDeveloper(env,existing);
+    await logAuth(env,bound,'owner_login',1,email);
+    return json({ token: await makeSession(bound, env), user: { id: bound.id, tenant_id: bound.tenant_id, name: bound.name, email: bound.email, role: 'owner', active: bound.active }, platform_owner:true, developer:true });
   }
 
   const configuredEmail = normEmail(env.ADMIN_EMAIL);
@@ -348,12 +426,12 @@ async function adminLogin(request, env) {
     await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,active,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid, tenant.id, 'I AM Magnanimous Way Owner', configuredEmail, 'owner', record.password_hash, record.password_salt, 1, created).run();
     await env.DB.prepare("UPDATE tenants SET owner_user_id=? WHERE id=?").bind(uid, tenant.id).run();
     owner = await env.DB.prepare('SELECT * FROM users WHERE id=?').bind(uid).first();
-  } else if (owner.role !== 'owner' || owner.tenant_id !== tenant.id) {
-    await env.DB.prepare("UPDATE users SET role='owner',tenant_id=?,active=1 WHERE id=?").bind(tenant.id, owner.id).run();
-    owner = await env.DB.prepare('SELECT * FROM users WHERE id=?').bind(owner.id).first();
+  } else {
+    owner=await bindCanonicalOwnerDeveloper(env,owner);
   }
+  if(String(tenant.owner_user_id||'')!==String(owner.id))await env.DB.prepare('UPDATE tenants SET owner_user_id=? WHERE id=?').bind(owner.id,tenant.id).run();
   await logAuth(env, owner, 'owner_login', 1, configuredEmail);
-  return json({ token: await makeSession(owner, env), user: { id: owner.id, tenant_id: owner.tenant_id, name: owner.name, email: owner.email, role: 'owner', active: owner.active } });
+  return json({ token: await makeSession(owner, env), user: { id: owner.id, tenant_id: owner.tenant_id, name: owner.name, email: owner.email, role: 'owner', active: owner.active }, platform_owner:true, developer:true });
 }
 
 export default {
@@ -362,6 +440,11 @@ export default {
     try {
       await ensureTables(env);
       await ensureLegacyCompatibility(env);
+      try{await reconcileConfiguredOwnerDeveloper(env)}catch(error){console.error('canonical owner/developer reconciliation failed',error)}
+      try{
+        const sessionUser=await auth(request,env);
+        if(sessionUser&&await matchesOwnerDeveloperEmail(sessionUser.email,env))await bindCanonicalOwnerDeveloper(env,sessionUser);
+      }catch(error){console.error('signed-in owner/developer reconciliation failed',error)}
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET,POST,PUT,DELETE,OPTIONS', 'access-control-allow-headers': 'Content-Type, Authorization' } });
       if (url.pathname === '/api/auth/signup' && request.method === 'POST') return await signup(request, env);
       if (url.pathname === '/api/auth/login' && request.method === 'POST') return await login(request, env);
@@ -370,14 +453,20 @@ export default {
       if (url.pathname === '/api/auth/totp/enroll' && request.method === 'POST') return await totpEnroll(request, env);
       if (url.pathname === '/api/auth/totp/confirm' && request.method === 'POST') return await totpConfirm(request, env);
       if (url.pathname === '/api/auth/totp/disable' && request.method === 'POST') return await totpDisable(request, env);
-      if (url.pathname === '/api/auth/me' && request.method === 'GET') { const user = await auth(request, env); return user ? json({ user }) : json({ detail: 'Not authenticated.' }, 401); }
+      if (url.pathname === '/api/auth/me' && request.method === 'GET') {
+        let user=await auth(request,env);
+        if(!user)return json({detail:'Not authenticated.'},401);
+        try{user=await bindCanonicalOwnerDeveloper(env,user)}catch{}
+        const identity=await platformOwnerDeveloperIdentity(user,env).catch(()=>({owner:false,developer:false}));
+        return json({user,platform_owner:Boolean(identity.owner),developer:Boolean(identity.developer)});
+      }
       if (url.pathname === '/api/auth/logout' && request.method === 'POST') return json({ ok: true });
-      if (url.pathname === '/api/auth/audit' && request.method === 'GET') { const owner = await auth(request, env); if (!owner || owner.role !== 'owner') return json({ detail: 'Owner access required.' }, 401); const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 100), 1), 500); const { results } = await env.DB.prepare('SELECT id,user_id,tenant_id,email,event,success,created_at FROM auth_events ORDER BY id DESC LIMIT ?').bind(limit).all(); return json({ events: results || [] }); }
+      if (url.pathname === '/api/auth/audit' && request.method === 'GET') { const owner = await auth(request, env); if (!owner || !(await globalPlatformOwner(env,owner))) return json({ detail: 'Platform owner/developer access required.' }, 403); const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 100), 1), 500); const { results } = await env.DB.prepare('SELECT id,user_id,tenant_id,email,event,success,created_at FROM auth_events ORDER BY id DESC LIMIT ?').bind(limit).all(); return json({ events: results || [] }); }
       if (url.pathname.startsWith('/api/admin/')) {
         if (url.pathname === '/api/admin/email-code/request' && request.method === 'POST') return await requestOwnerEmailCode(request, env);
         if (url.pathname === '/api/admin/email-code/verify' && request.method === 'POST') return await verifyOwnerEmailCode(request, env);
         if (url.pathname === '/api/admin/login' && request.method === 'POST') return await adminLogin(request, env);
-        const user = await auth(request, env); if (!user || user.role !== 'owner') return json({ detail: 'Owner access required' }, 401);
+        const user=await auth(request,env); if(!user||!(await globalPlatformOwner(env,user)))return json({detail:'Platform owner/developer access required'},403);
         if (url.pathname === '/api/admin/settings' && request.method === 'GET') { const { results } = await env.DB.prepare('SELECT key,value FROM settings').all(); const data = Object.fromEntries(results.map(r => [r.key, r.value])); return json({ site_name: data.site_name || 'I AM Magnanimous AI Platform', tagline: data.tagline || 'Free AI tools, Magnanimous AI orchestration, and creator tools in one place.', canva_url: data.canva_url || '' }); }
         if (url.pathname === '/api/admin/settings' && request.method === 'PUT') { const b = await request.json(); const entries = [['site_name', b.site_name || 'I AM Magnanimous AI Platform'], ['tagline', b.tagline || ''], ['canva_url', b.canva_url || '']]; for (const [k,v] of entries) await env.DB.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').bind(k,String(v)).run(); return json({ ok: true }); }
         if (url.pathname === '/api/admin/ads' && request.method === 'GET') { const { results } = await env.DB.prepare('SELECT id,title,url,label,placement,active FROM ads ORDER BY id DESC').all(); return json({ ads: results }); }
