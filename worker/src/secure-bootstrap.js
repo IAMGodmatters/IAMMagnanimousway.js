@@ -31,6 +31,11 @@ async function getOrCreateKeypair(env) {
   let row = await env.DB.prepare('SELECT * FROM bootstrap_keypair WHERE id=1').first();
   if (row) return row;
 
+  const existingSecrets = await env.DB.prepare('SELECT COUNT(*) AS n FROM bootstrap_secrets').first();
+  if (Number(existingSecrets?.n || 0) > 0) {
+    throw new Error('Bootstrap keypair is missing while encrypted bootstrap secrets still exist. Refusing silent key rotation; rekey the stored ciphertext to a deliberately created replacement keypair.');
+  }
+
   const pair = await crypto.subtle.generateKey({
     name: 'RSA-OAEP',
     modulusLength: 2048,
