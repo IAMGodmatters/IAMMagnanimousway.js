@@ -101,7 +101,7 @@ async function processEvent(env,event){
 
 export async function handleHardenedStripeWebhook(request,env){
  const url=new URL(request.url);if(url.pathname!=='/api/billing/webhook'||request.method!=='POST')return null;
- const runtimeEnv=await getProviderRuntimeEnv(env),secret=String(runtimeEnv.STRIPE_WEBHOOK_SECRET||'').trim();if(!secret)return json({detail:'Stripe webhook verification is not configured.'},503);
+ const runtimeEnv=String(env?.STRIPE_WEBHOOK_SECRET||'').trim()?env:await getProviderRuntimeEnv(env),secret=String(runtimeEnv.STRIPE_WEBHOOK_SECRET||'').trim();if(!secret)return json({detail:'Stripe webhook verification is not configured.'},503);
  await ensureSchema(runtimeEnv);const raw=await request.text(),signature=request.headers.get('stripe-signature')||'';
  if(!await verify(raw,signature,secret))return json({detail:'Invalid Stripe webhook signature.'},401);
  let event;try{event=JSON.parse(raw)}catch{return json({detail:'Invalid Stripe webhook payload.'},400)}
