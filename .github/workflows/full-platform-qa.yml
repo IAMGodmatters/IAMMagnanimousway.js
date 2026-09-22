@@ -52,6 +52,9 @@ jobs:
         run: node qa/scripts/totp-auth-lock.mjs
 
       - name: Lock recovery contacts and owner email login
+        run: node qa/scripts/recovery-auth-lock.mjs
+
+      - name: Lock recovery contacts and owner email login
         run: node qa/scripts/recovery-owner-email-lock.mjs
 
       - name: Frontend typecheck and production build
