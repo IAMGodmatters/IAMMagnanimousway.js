@@ -48,6 +48,9 @@ jobs:
       - name: Lock Magnanimous native developer agent
         run: node qa/scripts/magnanimous-dev-agent-lock.mjs
 
+      - name: Lock customer Google Authenticator security
+        run: node qa/scripts/totp-auth-lock.mjs
+
       - name: Frontend typecheck and production build
         working-directory: frontend
         run: |
