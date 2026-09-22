@@ -2,6 +2,7 @@ import providerApp from './provider-entrypoint.js';
 import {createPasswordRecord,verifyPassword,upgradePasswordIfNeeded} from './password-security.js';
 import {decryptTotpSecret,encryptTotpSecret,generateTotpSecret,totpAuthUri,verifyTotpCode} from './totp-auth.js';
 import {unhandledRequestFailure} from './request-observability.js';
+import {createRecoveryCodeSetForUser} from './password-recovery.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const now = () => Math.floor(Date.now() / 1000);
@@ -116,7 +117,16 @@ async function signup(request, env) {
   await env.DB.prepare('INSERT INTO users(id,tenant_id,name,email,role,password_hash,password_salt,active,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid, tid, name, email, 'owner', passwordRecord.password_hash, passwordRecord.password_salt, 1, created).run();
   await logAuth(env, { id: uid, tenant_id: tid, email }, 'signup', 1, email);
   const user = { id: uid, tenant_id: tid, name, email, role: 'owner', active: 1, created_at: created };
-  return json({ token: await makeSession(user, env), user }, 201);
+  let recoveryCodes=[];
+  try{recoveryCodes=await createRecoveryCodeSetForUser(env,user,{event:'signup_recovery_codes_created'})}
+  catch(error){console.error('initial recovery code creation failed',error)}
+  return json({
+    token: await makeSession(user, env),
+    user,
+    recovery_codes:recoveryCodes,
+    recovery_setup_required:recoveryCodes.length===0,
+    recovery_detail:recoveryCodes.length?'Save these one-time recovery codes before leaving Account Security.':'Create recovery codes from Account Security before relying on this account.'
+  }, 201);
 }
 async function login(request, env) {
   const b = await request.json(), email = normEmail(b.email), password = String(b.password || '');
@@ -186,8 +196,18 @@ async function totpConfirm(request,env){
   if(!verified.ok){await logAuth(env,user,'totp_enrollment_failed',0,user.email);return json({detail:'That authenticator code is invalid. Wait for a new code and try again.',code:'TOTP_INVALID'},400)}
   const t=now();
   await env.DB.prepare('UPDATE user_totp SET enabled=1,verified_at=?,last_counter=? WHERE user_id=? AND tenant_id=?').bind(t,verified.counter,user.id,user.tenant_id).run();
+  let recoveryCodes=[];
+  try{
+    const existing=await env.DB.prepare('SELECT COUNT(*) AS n FROM account_recovery_codes WHERE user_id=? AND tenant_id=? AND used_at IS NULL').bind(user.id,user.tenant_id).first();
+    if(Number(existing?.n||0)===0)recoveryCodes=await createRecoveryCodeSetForUser(env,user,{event:'totp_backup_recovery_codes_created'});
+  }catch(error){console.error('totp backup recovery code creation failed',error)}
   await logAuth(env,user,'totp_enabled',1,user.email);
-  return json({ok:true,enabled:true,detail:'Authenticator protection is now enabled for this account.'});
+  return json({
+    ok:true,
+    enabled:true,
+    backup_recovery_codes:recoveryCodes,
+    detail:recoveryCodes.length?'Authenticator protection is enabled. Save the backup recovery codes shown now before signing out.':'Authenticator protection is now enabled for this account.'
+  });
 }
 async function totpDisable(request,env){
   const user=await auth(request,env);if(!user)return json({detail:'Not authenticated.'},401);
