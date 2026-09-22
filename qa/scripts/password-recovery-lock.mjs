@@ -52,6 +52,7 @@ must(customerLogin.includes('href="/forgot-password?portal=customer"')&&customer
 must(ownerLogin.includes('href="/forgot-password?portal=owner"')&&ownerLogin.includes('Forgot password?'),'owner login must link to the dedicated email-first recovery page');
 must(migration.includes('password_reset_tokens')&&migration.includes('token_hash TEXT PRIMARY KEY'),'D1 migration must create hashed reset-token storage');
 must(recovery.includes("SELECT 1 FROM password_reset_tokens LIMIT 1")&&!recovery.includes('CREATE TABLE IF NOT EXISTS password_reset_tokens'),'runtime password recovery must verify its migrated schema without spending D1 writes on DDL');
+must(recovery.includes('A failed resend must not strand')&&recovery.includes("token_hash<>?"),'failed reset-email resend must preserve the previous working link until replacement delivery succeeds');
 must(recovery.includes("INKBOX_EMAIL_ADDRESS||'iam@inkboxmail.com'"),'password recovery must retain the verified Magnanimous communications mailbox fallback');
 must(recovery.includes("scopeTenantId:'__platform__'"),'password recovery must resolve the canonical owner sender without depending on a literal owner tenant slug');
 must(!recovery.includes("SELECT id FROM tenants WHERE slug='owner' LIMIT 1"),'password recovery sender lookup must not depend on a literal owner tenant slug');
