@@ -67,7 +67,7 @@ must(security.includes("'totp-login'")&&security.includes("'totp-management'"),'
 must(login.includes('/api/auth/totp/login')&&login.includes('GOOGLE AUTHENTICATOR VERIFICATION'),'customer login must render and submit the authenticator challenge');
 must(account.includes('/api/auth/totp/enroll')&&account.includes('/api/auth/totp/confirm'),'account page must support authenticator enrollment and confirmation');
 must(account.includes('SET UP GOOGLE AUTHENTICATOR'),'account page must expose authenticator setup');
-must(signup.includes("/account?setup=authenticator"),'new accounts must be guided to the authenticator setup page');
+must(signup.includes("iam_totp_setup_prompt")&&signup.includes("/account?setup=recovery"),'new accounts must be guided through recovery setup with authenticator enrollment prompted');
 must(migration.includes('user_totp')&&migration.includes('secret_ciphertext'),'TOTP migration must store encrypted secret ciphertext');
 must(migration.includes('auth_mfa_challenges')&&migration.includes('token_hash TEXT PRIMARY KEY'),'MFA challenge migration must store challenge hashes');
 
