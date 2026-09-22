@@ -96,7 +96,9 @@ async function requestReset(request,env){
  const user=await env.DB.prepare('SELECT id,tenant_id,email,role,active FROM users WHERE lower(email)=? AND active=1 ORDER BY created_at ASC LIMIT 1').bind(email).first();
  if(!user){await logAuth(env,null,'password_reset_requested',1,email);return json({ok:true,detail:GENERIC_MESSAGE})}
  const token=randomToken(),tokenHash=await sha256(token),t=now(),ttl=ttlSeconds(env),expires=t+ttl;
- await env.DB.prepare('UPDATE password_reset_tokens SET used_at=? WHERE user_id=? AND used_at IS NULL').bind(t,user.id).run();
+ // Do not invalidate an older delivered reset link until the replacement email
+ // is actually accepted by a mail transport. A failed resend must not strand
+ // the user with no working recovery link.
  await env.DB.prepare(`INSERT INTO password_reset_tokens(token_hash,user_id,tenant_id,created_at,expires_at,used_at,delivery_provider,delivery_status)
   VALUES(?,?,?,?,?,NULL,'','pending')`).bind(tokenHash,user.id,user.tenant_id,t,expires).run();
  const resetUrl=new URL('/forgot-password',safeSiteOrigin(env,request));resetUrl.searchParams.set('reset',token);resetUrl.searchParams.set('portal',String(user.role||'').toLowerCase()==='owner'?'owner':'customer');
@@ -104,6 +106,7 @@ async function requestReset(request,env){
  const delivery=await deliverResetEmail(env,email,copy,`password-reset-${tokenHash.slice(0,32)}`);
  if(delivery.ok){
   await env.DB.prepare("UPDATE password_reset_tokens SET delivery_provider=?,delivery_status='sent' WHERE token_hash=?").bind(String(delivery.provider||'mail'),tokenHash).run();
+  await env.DB.prepare('UPDATE password_reset_tokens SET used_at=? WHERE user_id=? AND token_hash<>? AND used_at IS NULL').bind(now(),user.id,tokenHash).run();
   await logAuth(env,user,'password_reset_requested',1,email);
   console.info('password reset delivery sent',{provider:String(delivery.provider||'mail'),user_id:user.id});
  }else{
