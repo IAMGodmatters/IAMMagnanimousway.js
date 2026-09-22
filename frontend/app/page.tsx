@@ -18,6 +18,7 @@ const systems=[
  ['◈','Knowledge Center','Saved workspace knowledge and configured research tools','/knowledge'],
  ['⌘','Connected Assistant','Prepare or run actions when an event happens','/assistant-actions'],
  ['↻','Routine Studio','Teach reusable skills, schedule always-on routines and review run history','/routine-studio'],
+ ['◉','Magnanimous Companion','Show a screen, ask by voice or text, and get visual guidance','/companion'],
  ['☎','AI Receptionist','Inbound routing and AI voice reception','/ai-receptionist'],
  ['▶','Video Studio','Text-to-video, visual agents and media creation','/video-studio'],
  ['⌁','Contact Center','Queues, campaigns, IVR, QA and agent operations','/contact-center'],
