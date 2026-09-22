@@ -120,6 +120,14 @@ async function pruneOrphanedStageTemps(root) {
   return { removed, bytes };
 }
 
+export async function cleanupOrphanedMigrationStageFiles({
+  migrationRoot='/app/persist/migration'
+}={}) {
+  const root=path.resolve(migrationRoot);
+  await fs.mkdir(root,{recursive:true});
+  return pruneOrphanedStageTemps(root);
+}
+
 function summarizeDatabase(db) {
   const rows = db.prepare('PRAGMA table_list').all()
     .filter(row => String(row.schema || '') === 'main')
