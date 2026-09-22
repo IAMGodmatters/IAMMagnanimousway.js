@@ -8,6 +8,8 @@ import { RAILWAY_VISIBLE_TOOL_CONTRACTS, RAILWAY_ARCHITECTURE_TECHNIQUES, handle
 import { findReadyLocalBridgeDevice, hasAnyReadyLocalBridgeCapability } from './magnanimous-local-bridge-runtime.js';
 import { MAGNANIMOUS_NATIVE_MEDIA_FAMILIES, MAGNANIMOUS_NATIVE_MEDIA_CAPABILITIES, MAGNANIMOUS_HEYGEN_PARITY_MAP, HEYGEN_VISIBLE_BENCHMARK_TOOLS, getMagnanimousNativeMediaSummary, handleMagnanimousNativeMedia } from './magnanimous-native-media-studio.js';
 import { MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES, getMagnanimousNativeTerminalSummary, handleMagnanimousNativeTerminal } from './magnanimous-native-terminal.js';
+import { getMagnanimousUniversalAppFabricSummary, getUniversalCapabilityCatalog, getUniversalCapabilityIndexSummary, resolveUniversalCapabilities } from './magnanimous-universal-app-fabric.js';
+import { handleSocialPublishing } from './social-publishing-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -69,6 +71,14 @@ export const MAGNANIMOUS_CAPABILITY_MESH_ROUTES=Object.freeze({
  'terminal.read':{surface:'native-terminal',mode:'local-read',native:true},
  'terminal.stage':{surface:'native-terminal',mode:'staged-write',confirmation:true,native:true},
  'terminal.interpret':{surface:'native-terminal',mode:'read-transform',native:true},
+ 'apps.summary':{surface:'universal-app-fabric',mode:'read',native:true},
+ 'apps.catalog':{surface:'universal-app-fabric',mode:'read',native:true},
+ 'apps.resolve':{surface:'universal-app-fabric',mode:'read',native:true},
+ 'connections.summary':{surface:'universal-app-fabric',mode:'read',native:true},
+ 'social.connections':{surface:'first-party-social-publishing',mode:'read',native_contract:true},
+ 'social.linkedin.publish':{surface:'first-party-social-publishing',mode:'external-write',confirmation:true,native_contract:true},
+ 'social.tiktok.publish':{surface:'first-party-social-publishing',mode:'external-write',confirmation:true,native_contract:true},
+ 'social.youtube.publish':{surface:'first-party-social-publishing',mode:'external-write',confirmation:true,native_contract:true},
  'mesh.self_check':{surface:'capability-mesh',mode:'read',native:true}
 });
 
@@ -138,8 +148,10 @@ function cloudReadiness(env){
  };
 }
 
-function readinessRows({cloudflare,web,github,railway,cloud,media,terminal}){
+function readinessRows({cloudflare,web,github,railway,cloud,media,terminal,apps}){
  return[
+  {id:'universal-app-fabric',ready:true,required:false,mode:'native-registry',detail:`${Number(apps?.absorbed_capability_specs||0)} absorbed capability specifications are available to Magnanimous routing with authorization truth kept separate.`},
+  {id:'unified-account-connections',ready:true,required:false,mode:'tenant-authorized-adapters',detail:`${Number(apps?.connected_account_count||0)} real tenant connection records are visible across the platform connection stores without inferring authorization from plugin visibility.`},
   {id:'native-media-orchestration',ready:true,required:false,mode:'native',detail:'Magnanimous owns media planning, templates, brand rules, provider-neutral capability contracts and verification.'},
   {id:'native-avatar-experience',ready:Boolean(media?.execution?.browser_live_avatar||media?.execution?.self_hosted_avatar_renderer_configured),required:false,mode:media?.execution?.self_hosted_avatar_renderer_configured?'self-hosted-renderer':'browser-native',detail:media?.execution?.self_hosted_avatar_renderer_configured?'Owner-controlled avatar renderer is configured.':'Free browser live-avatar mode is available; heavy rendering remains optional owner-controlled compute.'},
   {id:'native-media-worker',ready:Boolean(media?.execution?.magnanimous_media_worker_configured),required:false,mode:'owner-controlled-compute',detail:media?.execution?.magnanimous_media_worker_configured?'Magnanimous Media Worker is configured for provider-independent heavy media operations.':'Control-plane parity is installed; configure the optional owner-controlled Magnanimous Media Worker for heavy generation, dubbing, lip-sync, clipping and batch execution.'},
@@ -156,13 +168,13 @@ function readinessRows({cloudflare,web,github,railway,cloud,media,terminal}){
 }
 
 export async function getMagnanimousCapabilityMeshSummary(env,providerEnv=env,tenantId=''){
- const [web,terminal]=await Promise.all([nativeWebReadiness(env,tenantId),getMagnanimousNativeTerminalSummary(env,tenantId)]);
+ const [web,terminal,apps]=await Promise.all([nativeWebReadiness(env,tenantId),getMagnanimousNativeTerminalSummary(env,tenantId),getMagnanimousUniversalAppFabricSummary(env,tenantId)]);
  const media=getMagnanimousNativeMediaSummary(env);
  const github=magnanimousDevAgentSummary(env);
  const cloudflare=magnanimousCloudflareSummary(providerEnv||env);
  const railway=railwayReadiness(env,github);
  const cloud=cloudReadiness(env);
- const readiness=readinessRows({cloudflare,web,github,railway,cloud,media,terminal});
+ const readiness=readinessRows({cloudflare,web,github,railway,cloud,media,terminal,apps});
  const readyCount=readiness.filter(x=>x.ready).length,totalCount=readiness.length;
  const requiredBlocked=readiness.filter(x=>x.required&&!x.ready);
  const status=requiredBlocked.length?'operable-with-native-executor-activation-needed':'operable-native-first';
@@ -193,7 +205,8 @@ export async function getMagnanimousCapabilityMeshSummary(env,providerEnv=env,te
     provider_required:false
    },
    railway,
-   magnanimous_cloud:cloud
+   magnanimous_cloud:cloud,
+   universal_apps:apps
   },
   route_count:Object.keys(MAGNANIMOUS_CAPABILITY_MESH_ROUTES).length,
   routes:MAGNANIMOUS_CAPABILITY_MESH_ROUTES,
@@ -333,6 +346,33 @@ async function routeCapability(request,env,providerEnv,body){
  if(capability==='terminal.stage')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/stage','POST',input),env),capability,def.surface);
  if(capability==='terminal.interpret')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/interpret','POST',input),env),capability,def.surface);
 
+ if(capability==='apps.summary'||capability==='connections.summary'){
+  const user=await currentUser(request,env).catch(()=>null);
+  return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},...await getMagnanimousUniversalAppFabricSummary(env,user?.tenant_id||'')});
+ }
+ if(capability==='apps.catalog'){
+  return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},...getUniversalCapabilityCatalog({
+   query:input.query||'',native_target:input.native_target||'',source_kind:input.source_kind||'',limit:input.limit||200,offset:input.offset||0
+  })});
+ }
+ if(capability==='apps.resolve'){
+  return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},...resolveUniversalCapabilities(input.goal||input.query||'',input.limit||20)});
+ }
+ if(capability==='social.connections'){
+  return wrap(await handleSocialPublishing(delegatedRequest(request,'/api/social-connect/connections','GET'),env),capability,def.surface);
+ }
+ const socialPublish={
+  'social.linkedin.publish':'linkedin',
+  'social.tiktok.publish':'tiktok',
+  'social.youtube.publish':'youtube'
+ };
+ if(socialPublish[capability]){
+  if(input.confirm!==true)return json({detail:'Explicit confirmation is required before publishing to an external social account.',confirmation_required:true,capability},409);
+  const provider=socialPublish[capability],payload={...input};delete payload.confirm;
+  if(provider==='linkedin'||provider==='tiktok')payload.explicit_consent=true;
+  return wrap(await handleSocialPublishing(delegatedRequest(request,`/api/social-connect/${provider}/publish`,'POST',payload),env),capability,def.surface);
+ }
+
  if(capability==='railway.deploy_exact'){
   const commit=clip(input.commit_sha,64);
   if(commit&&!/^[0-9a-f]{40}$/i.test(commit))return json({detail:'commit_sha must be a full 40-character Git commit SHA when provided.'},400);
@@ -377,7 +417,8 @@ export async function handleMagnanimousCapabilityMesh(request,env,{providerEnv=e
    native_media_capabilities:MAGNANIMOUS_NATIVE_MEDIA_CAPABILITIES,
    heygen_benchmark_tools:HEYGEN_VISIBLE_BENCHMARK_TOOLS,
    heygen_native_parity_map:MAGNANIMOUS_HEYGEN_PARITY_MAP,
-   native_terminal_capabilities:MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES
+   native_terminal_capabilities:MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES,
+   universal_app_fabric:getUniversalCapabilityIndexSummary()
   });
  }
  if(request.method==='POST'&&path==='/api/magnanimous/capability-mesh/self-check'){

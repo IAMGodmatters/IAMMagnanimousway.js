@@ -69,8 +69,10 @@ export default function Connections(){
       <small>YOUR ACCOUNTS • YOUR PERMISSION • NO OWNER APPROVAL</small>
       <h1>{category==='email'?'Connect your business mailbox without leaving the I AM workflow.':'Connect your accounts directly to your personal assistant.'}</h1>
       <p>Every user connects their own social, email, commerce and work accounts through the provider’s official authorization flow. Provider authorization opens securely while I AM remains the control center. The platform owner does not approve individual connections or actions.</p>
-      <div className="links"><a href="/assistant-actions">OPEN CONNECTED ASSISTANT →</a><a href="/business-email">BUSINESS EMAIL SETUP</a><a href="/pricing">FREE / $49 BUSINESS</a>{category&&<a href="/connections">SHOW ALL CONNECTIONS</a>}</div>
+      <div className="links"><a href="/assistant-actions">OPEN CONNECTED ASSISTANT →</a><a href="/social-connect">LINKEDIN • TIKTOK • YOUTUBE PUBLISHING →</a><a href="/business-email">BUSINESS EMAIL SETUP</a><a href="/pricing">FREE / $49 BUSINESS</a>{category&&<a href="/connections">SHOW ALL CONNECTIONS</a>}</div>
     </section>
+
+    <section className="emailCard"><div><small>FIRST-PARTY SOCIAL PUBLISHING</small><h2>LinkedIn, TikTok and YouTube connections are already part of Magnanimous.</h2><p>Use the platform’s own social authorization and publishing rail. Magnanimous keeps planning, memory, verification and routing while the social network keeps account authorization and delivery.</p></div><a href="/social-connect">OPEN SOCIAL CONNECTIONS →</a></section>
 
     <section className="rules">
       <div><b>1</b><span>User chooses Connect</span></div><div><b>2</b><span>Provider opens secure authorization</span></div><div><b>3</b><span>User grants permission</span></div><div><b>4</b><span>I AM resumes automatically</span></div>
