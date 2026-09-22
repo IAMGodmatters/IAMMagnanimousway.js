@@ -42,6 +42,9 @@ must(customerLogin.includes('href="/forgot-password?portal=customer"')&&customer
 must(ownerLogin.includes('href="/forgot-password?portal=owner"')&&ownerLogin.includes('Forgot password?'),'owner login must link to the dedicated email-first recovery page');
 must(migration.includes('password_reset_tokens')&&migration.includes('token_hash TEXT PRIMARY KEY'),'D1 migration must create hashed reset-token storage');
 must(recovery.includes("INKBOX_EMAIL_ADDRESS||'iam@inkboxmail.com'"),'password recovery must retain the verified Magnanimous communications mailbox fallback');
+must(recovery.includes("scopeTenantId:'__platform__'"),'password recovery must resolve the canonical owner sender without depending on a literal owner tenant slug');
+must(!recovery.includes("SELECT id FROM tenants WHERE slug='owner' LIMIT 1"),'password recovery sender lookup must not depend on a literal owner tenant slug');
+must(recovery.includes("'PASSWORD_RESET_DELIVERY_FAILED'"),'password recovery must preserve a diagnosable transport failure code when configured senders fail');
 must(recovery.includes('draft.generation||1'),'communications delivery must keep generation-checked draft sending');
 must(deploy.includes('INKBOX_API_KEY: ${{ secrets.INKBOX_API_KEY }}'),'deploy must import the password recovery communications credential when configured');
 must(deploy.includes('INKBOX_EMAIL_ADDRESS: ${{ secrets.INKBOX_EMAIL_ADDRESS }}'),'deploy must import the communications mailbox override when configured');
