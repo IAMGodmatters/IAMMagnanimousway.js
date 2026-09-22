@@ -1,17 +1,25 @@
 import {createPasswordRecord} from './password-security.js';
-import {sendGrowthEmail} from './growth-email-transport.js';
+import {currentUser} from './integrations.js';
 
 const encoder=new TextEncoder();
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const GENERIC_MESSAGE='If an account exists for that email, a password reset link will be sent shortly.';
 const INVALID_TOKEN_MESSAGE='This reset link is invalid or expired. Request a new password reset link.';
+const RECOVERY_CODE_COUNT=8;
+const RECOVERY_ALPHABET='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 let schemaReady=false;
 
 function normEmail(value){return String(value||'').trim().toLowerCase()}
 function validEmail(value){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||''))}
 function b64url(bytes){let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function randomToken(){return b64url(crypto.getRandomValues(new Uint8Array(32)))}
+function randomRecoveryCode(){
+ const bytes=crypto.getRandomValues(new Uint8Array(24));let body='';
+ for(let i=0;i<bytes.length;i+=1)body+=RECOVERY_ALPHABET[bytes[i]&31];
+ return 'MAG-'+body.match(/.{1,4}/g).join('-');
+}
+function normalizeRecoveryCode(value){return String(value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'')}
 async function sha256(value){const digest=await crypto.subtle.digest('SHA-256',encoder.encode(String(value||'')));return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function ttlSeconds(env){const value=Number(env?.PASSWORD_RESET_TTL_SECONDS||1200);return Number.isFinite(value)?Math.max(600,Math.min(3600,Math.floor(value))):1200}
 const CANONICAL_SITE_ORIGIN='https://iammagnanimousway.com';
@@ -32,6 +40,7 @@ async function ensureSchema(env){
  // Migration 0069 owns this schema. Runtime recovery only verifies it so a
  // password-reset request never spends D1 writes on DDL/index checks.
  await env.DB.prepare('SELECT 1 FROM password_reset_tokens LIMIT 1').first();
+ await env.DB.prepare('SELECT 1 FROM account_recovery_codes LIMIT 1').first();
  schemaReady=true;
 }
 async function cleanup(env,t=now()){
@@ -45,14 +54,6 @@ function mailCopy(resetUrl,minutes){
  const text=`A password reset was requested for your I AM MAGNANIMOUS WAY™ account.\n\nReset your password: ${resetUrl}\n\nThis secure link expires in ${minutes} minutes and can be used only once. For your security, password changes happen only on iammagnanimousway.com. If you did not request this change, you can ignore this email. Do not share this link with anyone.`;
  const html=`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#171717"><h2>I AM MAGNANIMOUS WAY™</h2><p>A password reset was requested for your account.</p><p><a href="${resetUrl}" style="display:inline-block;padding:12px 18px;background:#9d5700;color:#fff;text-decoration:none;border-radius:7px;font-weight:700">Reset my password</a></p><p>This secure link expires in ${minutes} minutes and can be used only once.</p><p><strong>For your security, password changes happen only on iammagnanimousway.com.</strong></p><p>If you did not request this change, you can ignore this email. Do not share this link with anyone.</p></div>`;
  return{subject,text,html};
-}
-async function sendWithPlatformMailbox(env,to,copy){
- // Resolve the platform owner sender through the same canonical owner-tenant
- // lookup used by the growth email transport. Do not depend on a literal
- // tenants.slug='owner' row here: imported or migrated production databases
- // can preserve the owner user while carrying a different tenant slug.
- try{return await sendGrowthEmail(env,{scopeTenantId:'__platform__',to,subject:copy.subject,text:copy.text,senderName:'I AM Magnanimous Way'})}
- catch(error){return{ok:false,code:'PLATFORM_MAIL_ERROR',error:String(error?.message||error||'Platform mail failed.')}}
 }
 async function sendWithMagnanimousMail(env,to,copy,idempotencyKey){
  const mailer=env?.MAGNANIMOUS_MAIL;
@@ -72,25 +73,50 @@ async function sendWithMagnanimousMail(env,to,copy,idempotencyKey){
  }
 }
 async function deliverResetEmail(env,to,copy,idempotencyKey){
- const native=await sendWithMagnanimousMail(env,to,copy,idempotencyKey);if(native?.ok)return{ok:true,provider:String(native.provider||'magnanimous-native-mail')};
- const platform=await sendWithPlatformMailbox(env,to,copy);if(platform?.ok)return{ok:true,provider:'platform-mail'};
+ const native=await sendWithMagnanimousMail(env,to,copy,idempotencyKey);
+ if(native?.ok)return{ok:true,provider:String(native.provider||'magnanimous-native-mail')};
  const nativeCode=String(native?.code||'NO_NATIVE_MAGNANIMOUS_MAIL');
- const platformCode=String(platform?.code||'NO_PLATFORM_MAILBOX');
- const configuredFailure=!['NO_NATIVE_MAGNANIMOUS_MAIL','MAGNANIMOUS_MAIL_NOT_CONFIGURED'].includes(nativeCode)||!['NO_PLATFORM_MAILBOX','NO_SENDER'].includes(platformCode);
  return{
   ok:false,
-  code:configuredFailure?'PASSWORD_RESET_DELIVERY_FAILED':'NO_MAIL_TRANSPORT',
-  error:`native=${nativeCode}: ${String(native?.error||'unavailable')}; platform=${platformCode}: ${String(platform?.error||'unavailable')}`
+  code:['NO_NATIVE_MAGNANIMOUS_MAIL','MAGNANIMOUS_MAIL_NOT_CONFIGURED'].includes(nativeCode)?'NO_MAIL_TRANSPORT':'PASSWORD_RESET_DELIVERY_FAILED',
+  error:`native=${nativeCode}: ${String(native?.error||'unavailable')}`
  };
+}
+
+async function activeSessionUser(request,env){try{return await currentUser(request,env)}catch{return null}}
+function sameUser(left,right){return Boolean(left&&right&&String(left.id||'')===String(right.id||'')&&String(left.tenant_id||'')===String(right.tenant_id||''))}
+async function issueNativeReset(env,user,source){
+ const token=randomToken(),tokenHash=await sha256(token),t=now(),ttl=ttlSeconds(env),expires=t+ttl;
+ await env.DB.prepare(`INSERT INTO password_reset_tokens(token_hash,user_id,tenant_id,created_at,expires_at,used_at,delivery_provider,delivery_status)
+  VALUES(?,?,?,?,?,NULL,'magnanimous-native','ready')`).bind(tokenHash,user.id,user.tenant_id,t,expires).run();
+ await env.DB.prepare('UPDATE password_reset_tokens SET used_at=? WHERE user_id=? AND token_hash<>? AND used_at IS NULL').bind(t,user.id,tokenHash).run();
+ await logAuth(env,user,`password_reset_native_${String(source||'recovery').slice(0,40)}`,1,user.email);
+ return{ok:true,reset_token:token,expires_in_seconds:ttl,recovery_method:String(source||'magnanimous-native'),detail:'Identity verified by Magnanimous. Create your new password now.'};
 }
 
 async function requestReset(request,env){
  if(!env?.DB)return json({detail:'Password recovery is temporarily unavailable.',code:'PASSWORD_RECOVERY_UNAVAILABLE'},503);
- const body=await request.json().catch(()=>({})),email=normEmail(body.email);
+ const body=await request.json().catch(()=>({})),email=normEmail(body.email),recoveryCode=normalizeRecoveryCode(body.recovery_code);
  if(!email||!validEmail(email))return json({ok:true,detail:GENERIC_MESSAGE});
  await ensureSchema(env);await cleanup(env);
  const user=await env.DB.prepare('SELECT id,tenant_id,email,role,active FROM users WHERE lower(email)=? AND active=1 ORDER BY created_at ASC LIMIT 1').bind(email).first();
- if(!user){await logAuth(env,null,'password_reset_requested',1,email);return json({ok:true,detail:GENERIC_MESSAGE})}
+ if(!user){await logAuth(env,null,'password_reset_requested',1,email);return json({ok:true,detail:GENERIC_MESSAGE,recovery_methods:['magnanimous-native-mail','trusted-session','recovery-code']})}
+
+ const sessionUser=await activeSessionUser(request,env);
+ if(sameUser(sessionUser,user)){
+  const issued=await issueNativeReset(env,user,'trusted-session');
+  return json({...issued,login_path:String(user.role||'').toLowerCase()==='owner'?'/owner-login':'/login'});
+ }
+ if(recoveryCode){
+  if(!/^MAG[A-Z0-9]{24}$/.test(recoveryCode))return json({detail:'That Magnanimous recovery code is invalid or already used.',code:'RECOVERY_CODE_INVALID'},400);
+  const codeHash=await sha256(recoveryCode);
+  const codeRow=await env.DB.prepare('SELECT id FROM account_recovery_codes WHERE user_id=? AND tenant_id=? AND code_hash=? AND used_at IS NULL LIMIT 1').bind(user.id,user.tenant_id,codeHash).first();
+  if(!codeRow){await logAuth(env,user,'password_recovery_code_failed',0,email);return json({detail:'That Magnanimous recovery code is invalid or already used.',code:'RECOVERY_CODE_INVALID'},400)}
+  const claimed=await env.DB.prepare('UPDATE account_recovery_codes SET used_at=? WHERE id=? AND used_at IS NULL').bind(now(),codeRow.id).run();
+  if(Number(claimed?.meta?.changes||0)!==1)return json({detail:'That Magnanimous recovery code is invalid or already used.',code:'RECOVERY_CODE_INVALID'},400);
+  const issued=await issueNativeReset(env,user,'recovery-code');
+  return json({...issued,login_path:String(user.role||'').toLowerCase()==='owner'?'/owner-login':'/login'});
+ }
  const token=randomToken(),tokenHash=await sha256(token),t=now(),ttl=ttlSeconds(env),expires=t+ttl;
  // Do not invalidate an older delivered reset link until the replacement email
  // is actually accepted by a mail transport. A failed resend must not strand
@@ -110,7 +136,26 @@ async function requestReset(request,env){
   await logAuth(env,user,'password_reset_delivery_failed',0,email);
   console.error('password reset delivery failed',{code:delivery.code,error:delivery.error,user_id:user.id});
  }
- return json({ok:true,detail:GENERIC_MESSAGE});
+ return json({ok:true,detail:GENERIC_MESSAGE,recovery_methods:['magnanimous-native-mail','trusted-session','recovery-code']});
+}
+
+async function recoveryCodeStatus(request,env){
+ if(!env?.DB)return json({detail:'Account recovery is temporarily unavailable.'},503);
+ await ensureSchema(env);const user=await activeSessionUser(request,env);
+ if(!user)return json({detail:'Sign in to manage Magnanimous recovery codes.',code:'AUTH_REQUIRED'},401);
+ const row=await env.DB.prepare('SELECT COUNT(*) AS active_count,MAX(created_at) AS last_created_at FROM account_recovery_codes WHERE user_id=? AND tenant_id=? AND used_at IS NULL').bind(user.id,user.tenant_id).first();
+ return json({ok:true,active_count:Number(row?.active_count||0),last_created_at:Number(row?.last_created_at||0)});
+}
+async function rotateRecoveryCodes(request,env){
+ if(!env?.DB)return json({detail:'Account recovery is temporarily unavailable.'},503);
+ await ensureSchema(env);const user=await activeSessionUser(request,env);
+ if(!user)return json({detail:'Sign in to create Magnanimous recovery codes.',code:'AUTH_REQUIRED'},401);
+ const t=now(),codes=Array.from({length:RECOVERY_CODE_COUNT},()=>randomRecoveryCode());
+ const hashes=await Promise.all(codes.map(code=>sha256(normalizeRecoveryCode(code))));
+ await env.DB.prepare('UPDATE account_recovery_codes SET used_at=? WHERE user_id=? AND tenant_id=? AND used_at IS NULL').bind(t,user.id,user.tenant_id).run();
+ for(let i=0;i<hashes.length;i+=1)await env.DB.prepare('INSERT INTO account_recovery_codes(user_id,tenant_id,code_hash,created_at,used_at) VALUES(?,?,?,?,NULL)').bind(user.id,user.tenant_id,hashes[i],t).run();
+ await logAuth(env,user,'password_recovery_codes_rotated',1,user.email);
+ return json({ok:true,codes,count:codes.length,detail:'New Magnanimous recovery codes created. Each code works once. Save them somewhere private; only their hashes are stored.'});
 }
 
 async function completeReset(request,env){
@@ -139,5 +184,7 @@ export async function handlePasswordRecovery(request,env){
  const url=new URL(request.url);
  if(request.method==='POST'&&url.pathname==='/api/auth/forgot-password')return requestReset(request,env);
  if(request.method==='POST'&&url.pathname==='/api/auth/reset-password')return completeReset(request,env);
+ if(request.method==='GET'&&url.pathname==='/api/auth/recovery-codes')return recoveryCodeStatus(request,env);
+ if(request.method==='POST'&&url.pathname==='/api/auth/recovery-codes')return rotateRecoveryCodes(request,env);
  return null;
 }
