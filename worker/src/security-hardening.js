@@ -81,6 +81,7 @@ function isAgencyPath(path) {
 function requiresStrongSession(request, path) {
   return Boolean(request.headers.get('authorization')) ||
     path === '/api/auth/login' ||
+    path === '/api/auth/totp/login' ||
     path === '/api/auth/signup' ||
     path === '/api/admin/login';
 }
@@ -211,6 +212,15 @@ export async function securityPreflight(request, env) {
     const limited = await rateLimit(request, env, 'recovery-codes', Number(env?.SECURITY_RECOVERY_CODE_LIMIT || 12), 900);
     if (limited) return limited;
     return await handlePasswordRecovery(request, env);
+  }
+
+  if (url.pathname === '/api/auth/totp/login' && request.method === 'POST') {
+    const limited = await rateLimit(request, env, 'totp-login', Number(env?.SECURITY_TOTP_LOGIN_LIMIT || 10), 300);
+    if (limited) return limited;
+  }
+  if (url.pathname.startsWith('/api/auth/totp/') && url.pathname !== '/api/auth/totp/login') {
+    const limited = await rateLimit(request, env, 'totp-management', Number(env?.SECURITY_TOTP_MANAGEMENT_LIMIT || 12), 900);
+    if (limited) return limited;
   }
 
   if (requiresStrongSession(request, url.pathname) && !strongSecret(await sessionSecret(env))) {

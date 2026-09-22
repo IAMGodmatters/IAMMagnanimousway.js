@@ -140,7 +140,7 @@ export async function revokeOpaqueSession(request,env,reason='logout'){
 export async function upgradeAuthResponseToOpaque(request,response,env){
   if(!env?.DB||request.method!=='POST'||!response?.ok)return response;
   const path=new URL(request.url).pathname;
-  if(!['/api/auth/signup','/api/auth/login','/api/admin/login'].includes(path))return response;
+  if(!['/api/auth/signup','/api/auth/login','/api/auth/totp/login','/api/admin/login'].includes(path))return response;
   if(!String(response.headers.get('content-type')||'').toLowerCase().includes('application/json'))return response;
   const data=await response.clone().json().catch(()=>null);
   const legacyToken=String(data?.token||'');
