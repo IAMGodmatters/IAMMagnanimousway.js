@@ -1,5 +1,5 @@
 // Generated observable live plugin-tool research snapshot.
-// Refreshed from the current ChatGPT connector/tool catalog on 2026-09-20.
+// Refreshed from the current ChatGPT connector/tool catalog through 2026-09-22.
 // Stores public/observable tool names and concise purposes only. No private implementation,
 // credentials, hidden prompts, model weights, account data, or authorization state is copied.
 // Retired provider namespaces are excluded from active Magnanimous research materialization.
@@ -11328,9 +11328,80 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
     "namespace": "Zoho_CRM",
     "tool": "ZohoMCP_listTools",
     "purpose": "List available tools with their names and descriptions. IMPORTANT - Call ZohoMCP_getFeatures first to discover feature groups, then pass matching group names here to get only relevant tools. If no group matches or has_groups was false, omit the groups parameter to list all tools. Use ZohoMCP_getSchema to get the full input schema before executing with ZohoMCP_executeTool. Results are paginated - keep calling with incremented page numbers until has_more is false. For compound intents (e.g. \"send email and create tas"
+  },
+  {
+    "namespace": "Acumen_by_Talarion",
+    "tool": "search",
+    "purpose": "Returns verified, dated, sourced facts about what's recently happened in the world. Pass `model_id` to filter to facts that postdate your training cutoff. Acumen will help guide you down productive research paths and protect you from troubling errors by omission. Expect results to return very quickly. Results are plain-text record blocks, one per fact, separated by a blank line — each with `Q:` (question), `A:` (answer), `true_by:` (the date the fact was known true by, when available), and a `sources:` list of the upstream URL(s) the fact came from. A response is never empty; a question returns the nearest available facts."
+  },
+  {
+    "namespace": "Acumen_by_Talarion",
+    "tool": "feedback",
+    "purpose": "Tell us how a research_brief landed. All reactions are welcome and useful — when research_brief is interesting/helpful to you in choosing what to focus on or search for, and when it is not. This is free and optional; share however you feel. Your feedback helps improve the knowledge base."
+  },
+  {
+    "namespace": "Hercules",
+    "tool": "org_read",
+    "purpose": "Reads organization identity, plan, remaining credits, and recent apps. For the full app list, call app_list instead."
+  },
+  {
+    "namespace": "Hercules",
+    "tool": "app_list",
+    "purpose": "Lists the user's Hercules apps. For full details about a single app, call app_read instead."
+  },
+  {
+    "namespace": "Hercules",
+    "tool": "app_read",
+    "purpose": "Reads details for a specific Hercules app by name, slug, or ID. To list all apps, call app_list instead. To edit an app, call message_send instead."
+  },
+  {
+    "namespace": "Hercules",
+    "tool": "app_create",
+    "purpose": "Creates a new Hercules app or website from scratch. Provide initialMessage with detailed build instructions for the Hercules AI agent. The returned preview is a non-interactive screenshot; open the Hercules App Builder or Published URL to interact with the app. To edit an existing app, call message_send instead."
+  },
+  {
+    "namespace": "Hercules",
+    "tool": "thread_list",
+    "purpose": "Lists conversation threads for an app, optionally searching thread titles. To read or search messages inside a thread, call thread_read instead."
+  },
+  {
+    "namespace": "Hercules",
+    "tool": "thread_read",
+    "purpose": "Reads messages from a specific conversation thread. Searches only messages inside the provided thread when query is supplied. To search thread titles, call thread_list instead."
+  },
+  {
+    "namespace": "Hercules",
+    "tool": "message_send",
+    "purpose": "Edits, updates, or changes an existing Hercules app. Pass the same threadId on subsequent calls to continue iterating on prior changes. To create a new app, call app_create instead."
+  },
+  {
+    "namespace": "Tavily",
+    "tool": "tavily_search",
+    "purpose": "Search the web for current information on any topic. Use for news, facts, or data beyond your knowledge cutoff. Returns snippets and source URLs."
+  },
+  {
+    "namespace": "Tavily",
+    "tool": "tavily_extract",
+    "purpose": "Extract content from URLs. Returns raw page content in markdown or text format."
+  },
+  {
+    "namespace": "Tavily",
+    "tool": "tavily_crawl",
+    "purpose": "Crawl a website starting from a URL. Extracts content from pages with configurable depth and breadth."
+  },
+  {
+    "namespace": "Tavily",
+    "tool": "tavily_map",
+    "purpose": "Map a website's structure. Returns a list of URLs found starting from the base URL."
+  },
+  {
+    "namespace": "Tavily",
+    "tool": "tavily_research",
+    "purpose": "Perform comprehensive research on a given topic or question. Use this tool when you need to gather information from multiple sources, including web pages, documents, and other resources, to answer a question or complete a task. Returns a detailed response based on the research findings. Rate limit: 20 requests per minute."
+  },
+  {
+    "namespace": "Tavily",
+    "tool": "tavily_feedback",
+    "purpose": "Prepare rich POST /feedback for a search request or session. Maximize useful signal whenever you call this tool: 1) Scope: set request_id from the search response (and/or session_id). 2) Per-result urls_scores first — MANDATORY when scoring a search: include an entry for EVERY result in the search response, HELPFUL and WEAK/IRRELEVANT/HARMFUL alike, by id (1 perfect ... 0 irrelevant ... -1 harmful). Vary scores honestly; do not reuse one default value. Never submit an agent_score with empty urls_scores. 3) Overall agent_score: derive from those urls_scores (and whether you could answer well). Never default to 0.7. Also set response_delivered. 4) Provenance: set used_ids for every result you relied on; add used_citations for key snippets when available. 5) Explain failures: any score < 0.5 needs comment (overall and/or per-result). 6) Optional depth: extra_scores (e.g. freshness, authorit"
   }
 ]);
-export function getLivePluginToolResearchSummary(){
- const namespaces=new Set(LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>x.namespace));
- return{captured_at:'2026-09-20',live_plugin_namespaces:namespaces.size,live_tool_contracts:LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.length,source_kind:'live-observable-plugin-tool-catalog',proprietary_implementation_copied:false,authorization_state:'not-assumed'};
-}
