@@ -14,4 +14,7 @@ if(!bootstrap.includes("'STRIPE_WEBHOOK_SECRET'")||bootstrap.includes('whsec_'))
 for(const s of ['Ensure encrypted Stripe webhook bootstrap fallback','migrations/0084_stripe_webhook_rekey_current_bootstrap.sql','ciphertext_length','Encrypted Stripe webhook bootstrap record restored without exposing plaintext.'])if(!deploy.includes(s))throw Error('Stripe deploy bootstrap continuity '+s);
 if(deploy.includes('whsec_'))throw Error('Deployment workflow must never embed a Stripe webhook signing secret.');
 if(!secureBootstrap.includes('Refusing silent key rotation'))throw Error('Secure bootstrap must refuse silent key rotation when encrypted secrets exist.');
+const secretReader=secureBootstrap.slice(secureBootstrap.indexOf('export async function getBootstrapSecrets'),secureBootstrap.indexOf('export async function handleBootstrap'));
+if(secretReader.includes('ensureTables(')||secretReader.includes('getOrCreateKeypair('))throw Error('Runtime bootstrap secret reads must remain read-only and must not create tables or rotate keys.');
+for(const q of ["SELECT credential_key,ciphertext_b64 FROM bootstrap_secrets","SELECT * FROM bootstrap_keypair WHERE id=1"])if(!secretReader.includes(q))throw Error('Read-only bootstrap secret path missing '+q);
 console.log('Agency consent, signed checkout identity, paid entitlement, payment-link fallback, and encrypted webhook bootstrap passed.');
