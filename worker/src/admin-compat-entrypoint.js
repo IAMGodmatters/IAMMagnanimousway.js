@@ -175,8 +175,6 @@ async function login(request, env) {
   if (!verification.valid) { await logAuth(env, user, 'login', 0, email); return json({ detail: 'Invalid email or password.' }, 401); }
   try{await upgradePasswordIfNeeded(env,user,password,verification)}catch(error){console.error('password hash upgrade failed',error)}
   try{user=await bindCanonicalOwnerDeveloper(env,user)}catch(error){console.error('canonical owner/developer binding failed',error)}
-  let automaticRecoveryCodes=[];
-  try{automaticRecoveryCodes=await ensureRecoveryCodesForUser(env,user,{event:'login_recovery_codes_created'})}catch(error){console.error('automatic recovery code creation failed',error)}
   const totp=await activeTotp(env,user);
   if(Number(totp?.enabled||0)===1){
     const challenge=await issueMfaChallenge(env,user);
@@ -191,6 +189,8 @@ async function login(request, env) {
       detail:'Enter the 6-digit code from your authenticator app.'
     });
   }
+  let automaticRecoveryCodes=[];
+  try{automaticRecoveryCodes=await ensureRecoveryCodesForUser(env,user,{event:'login_recovery_codes_created'})}catch(error){console.error('automatic recovery code creation failed',error)}
   await logAuth(env, user, 'login', 1, email);
   const identity=await platformOwnerDeveloperIdentity(user,env).catch(()=>({owner:false,developer:false}));
   return json({
@@ -291,9 +291,20 @@ async function totpLogin(request,env){
   const claimed=await env.DB.prepare('UPDATE auth_mfa_challenges SET consumed_at=? WHERE token_hash=? AND consumed_at IS NULL AND expires_at>?').bind(t,hash,t).run();
   if(Number(claimed?.meta?.changes||0)!==1)return json({detail:'This authenticator challenge is no longer active. Sign in again.',code:'MFA_CHALLENGE_INVALID'},401);
   await env.DB.prepare('UPDATE user_totp SET last_counter=? WHERE user_id=? AND tenant_id=? AND enabled=1').bind(verified.counter,row.user_id,row.tenant_id).run();
-  const user={id:row.user_id,tenant_id:row.tenant_id,name:row.name,email:row.email,role:row.role,active:row.active};
+  let user={id:row.user_id,tenant_id:row.tenant_id,name:row.name,email:row.email,role:row.role,active:row.active};
+  try{user=await bindCanonicalOwnerDeveloper(env,user)}catch(error){console.error('canonical owner/developer MFA binding failed',error)}
+  let automaticRecoveryCodes=[];
+  try{automaticRecoveryCodes=await ensureRecoveryCodesForUser(env,user,{event:'mfa_login_recovery_codes_created'})}catch(error){console.error('MFA recovery code creation failed',error)}
+  const identity=await platformOwnerDeveloperIdentity(user,env).catch(()=>({owner:false,developer:false}));
   await logAuth(env,user,'login_mfa_verified',1,row.email);
-  return json({token:await makeSession(user,env),user});
+  return json({
+    token:await makeSession(user,env),
+    user,
+    platform_owner:Boolean(identity.owner),
+    developer:Boolean(identity.developer),
+    automatic_recovery_codes:automaticRecoveryCodes,
+    recovery_setup_required:automaticRecoveryCodes.length>0
+  });
 }
 
 async function reservedPlatformOwnerByEmail(env,email){
@@ -356,7 +367,7 @@ async function verifyOwnerEmailCode(request,env){
       u.name,u.email,u.role,u.active,t.slug,t.owner_user_id
     FROM owner_email_login_challenges c
     JOIN users u ON u.id=c.user_id AND u.tenant_id=c.tenant_id
-    JOIN tenants t ON t.id=u.tenant_id
+    JOIN tenants t ON t.slug='owner' AND t.owner_user_id=u.id
     WHERE c.token_hash=? LIMIT 1`).bind(hash).first();
   if(!row||Number(row.active||0)!==1||row.role!=='owner'||row.slug!=='owner'||String(row.owner_user_id||'')!==String(row.user_id)||row.delivery_status!=='sent'||row.consumed_at!=null||Number(row.expires_at||0)<=t||Number(row.attempts||0)>=5){
     return json({detail:'That owner login challenge is invalid or expired. Request a new code.',code:'OWNER_EMAIL_CHALLENGE_INVALID'},401);
