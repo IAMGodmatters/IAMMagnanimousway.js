@@ -15,6 +15,7 @@ const DEFAULT_ORIGINS = new Set([
 ]);
 
 let rateSchemaReady = false;
+const localRateLimits = new Map();
 
 function normEmail(value) {
   return String(value || '').trim().toLowerCase();
@@ -96,22 +97,45 @@ async function ensureRateSchema(env) {
   rateSchemaReady = true;
 }
 
+function localRateLimit(key,max,windowSeconds,t=now()){
+  if(localRateLimits.size>2000){
+    for(const [entryKey,entry] of localRateLimits){
+      if(Number(entry?.window_start||0)<=t-windowSeconds)localRateLimits.delete(entryKey);
+      if(localRateLimits.size<=1500)break;
+    }
+  }
+  const current=localRateLimits.get(key);
+  if(!current||Number(current.window_start||0)<=t-windowSeconds){
+    localRateLimits.set(key,{window_start:t,count:1});
+    return null;
+  }
+  current.count=Number(current.count||0)+1;
+  localRateLimits.set(key,current);
+  if(current.count<=max)return null;
+  return json({ detail: 'Too many requests. Please wait and try again.', code: 'RATE_LIMITED' }, 429, { 'retry-after': String(windowSeconds) });
+}
+
 async function rateLimit(request, env, bucket, max, windowSeconds) {
-  if (!env?.DB) return null;
-  await ensureRateSchema(env);
   const rawIp = String(request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim();
   const key = `${bucket}:${await sha256(`${bucket}:${rawIp}`)}`;
   const t = now();
-  const row = await env.DB.prepare('SELECT window_start,count FROM security_rate_limits WHERE bucket_key=?').bind(key).first();
-  if (!row || Number(row.window_start || 0) <= t - windowSeconds) {
-    await env.DB.prepare(`INSERT INTO security_rate_limits(bucket_key,window_start,count,updated_at) VALUES(?,?,1,?)
-      ON CONFLICT(bucket_key) DO UPDATE SET window_start=excluded.window_start,count=1,updated_at=excluded.updated_at`).bind(key, t, t).run();
-    return null;
+  if (!env?.DB) return localRateLimit(key,max,windowSeconds,t);
+  try {
+    await ensureRateSchema(env);
+    const row = await env.DB.prepare('SELECT window_start,count FROM security_rate_limits WHERE bucket_key=?').bind(key).first();
+    if (!row || Number(row.window_start || 0) <= t - windowSeconds) {
+      await env.DB.prepare(`INSERT INTO security_rate_limits(bucket_key,window_start,count,updated_at) VALUES(?,?,1,?)
+        ON CONFLICT(bucket_key) DO UPDATE SET window_start=excluded.window_start,count=1,updated_at=excluded.updated_at`).bind(key, t, t).run();
+      return null;
+    }
+    const count = Number(row.count || 0) + 1;
+    await env.DB.prepare('UPDATE security_rate_limits SET count=?,updated_at=? WHERE bucket_key=?').bind(count, t, key).run();
+    if (count <= max) return null;
+    return json({ detail: 'Too many requests. Please wait and try again.', code: 'RATE_LIMITED' }, 429, { 'retry-after': String(windowSeconds) });
+  } catch (error) {
+    console.warn('durable rate limiter unavailable; using bounded local fallback',bucket,String(error?.message||error));
+    return localRateLimit(key,max,windowSeconds,t);
   }
-  const count = Number(row.count || 0) + 1;
-  await env.DB.prepare('UPDATE security_rate_limits SET count=?,updated_at=? WHERE bucket_key=?').bind(count, t, key).run();
-  if (count <= max) return null;
-  return json({ detail: 'Too many requests. Please wait and try again.', code: 'RATE_LIMITED' }, 429, { 'retry-after': String(windowSeconds) });
 }
 
 async function platformOwner(request, env) {
@@ -174,7 +198,7 @@ export async function securityPreflight(request, env) {
   if (isProtectedAiPath(url.pathname) && size > 160_000) return json({ detail: 'AI request is too large.' }, 413);
 
   if (url.pathname === '/api/auth/forgot-password' && request.method === 'POST') {
-    const limited = await rateLimit(request, env, 'password-recovery', Number(env?.SECURITY_PASSWORD_RECOVERY_LIMIT || 5), 900);
+    const limited = await rateLimit(request, env, 'password-recovery', Number(env?.SECURITY_PASSWORD_RECOVERY_LIMIT || 8), 900);
     if (limited) return limited;
     return await handlePasswordRecovery(request, env);
   }
