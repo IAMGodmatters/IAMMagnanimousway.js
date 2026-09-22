@@ -196,7 +196,7 @@ jobs:
 
           echo "::warning::Protected Actions secret is empty and the encrypted Stripe webhook bootstrap row is missing. Restoring only the checked-in RSA-OAEP ciphertext fallback."
           set +e
-          restore_output=$(npx wrangler d1 execute iam-magnanimous-db --remote --yes --file=migrations/0070_stripe_platform_billing_webhook.sql 2>&1)
+          restore_output=$(npx wrangler d1 execute iam-magnanimous-db --remote --yes --file=migrations/0084_stripe_webhook_rekey_current_bootstrap.sql 2>&1)
           restore_rc=$?
           set -e
           printf '%s\n' "$restore_output"
