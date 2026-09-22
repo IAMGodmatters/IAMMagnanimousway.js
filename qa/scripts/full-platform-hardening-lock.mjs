@@ -68,7 +68,10 @@ mustNotContain(authority,'INSERT INTO auth_sessions(token,','Raw opaque bearer t
 mustContain(authority,'JOIN users u ON u.id=s.user_id AND u.tenant_id=s.tenant_id','Opaque sessions must revalidate user and tenant identity server-side.');
 mustContain(authority,"revoke_reason='role_changed'",'Privilege changes must force opaque-session renewal.');
 mustContain(authority,'now()+60','Legacy compatibility credentials must remain short-lived and internal only.');
-mustContain(authority,"['/api/auth/signup','/api/auth/login','/api/admin/login']",'Successful account authentication must be upgraded to opaque browser sessions.');
+mustContain(authority,"'/api/auth/signup'",'Signup authentication must be upgraded to opaque browser sessions.');
+mustContain(authority,"'/api/auth/login'",'Customer authentication must be upgraded to opaque browser sessions.');
+mustContain(authority,"'/api/admin/login'",'Owner password authentication must be upgraded to opaque browser sessions.');
+mustContain(authority,"'/api/admin/email-code/verify'",'Owner email-code authentication must be upgraded to opaque browser sessions.');
 mustContain(authority,"SELECT role,tenant_id,active FROM users WHERE id=? AND tenant_id=? LIMIT 1",'Opaque session creation must refresh the authoritative account role after authentication.');
 mustContain(authority,'const effectiveRole=String(current.role','Opaque session role must come from the current D1 account record.');
 mustContain(authority,'role:effectiveRole','Authentication responses must expose the same role stored in the opaque session.');
