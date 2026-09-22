@@ -11405,3 +11405,7 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
     "purpose": "Prepare rich POST /feedback for a search request or session. Maximize useful signal whenever you call this tool: 1) Scope: set request_id from the search response (and/or session_id). 2) Per-result urls_scores first — MANDATORY when scoring a search: include an entry for EVERY result in the search response, HELPFUL and WEAK/IRRELEVANT/HARMFUL alike, by id (1 perfect ... 0 irrelevant ... -1 harmful). Vary scores honestly; do not reuse one default value. Never submit an agent_score with empty urls_scores. 3) Overall agent_score: derive from those urls_scores (and whether you could answer well). Never default to 0.7. Also set response_delivered. 4) Provenance: set used_ids for every result you relied on; add used_citations for key snippets when available. 5) Explain failures: any score < 0.5 needs comment (overall and/or per-result). 6) Optional depth: extra_scores (e.g. freshness, authorit"
   }
 ]);
+export function getLivePluginToolResearchSummary(){
+ const namespaces=new Set(LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>x.namespace));
+ return{captured_at:'2026-09-20',live_plugin_namespaces:namespaces.size,live_tool_contracts:LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.length,source_kind:'live-observable-plugin-tool-catalog',proprietary_implementation_copied:false,authorization_state:'not-assumed'};
+}
