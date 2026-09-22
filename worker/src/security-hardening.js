@@ -207,6 +207,11 @@ export async function securityPreflight(request, env) {
     if (limited) return limited;
     return await handlePasswordRecovery(request, env);
   }
+  if (url.pathname === '/api/auth/recovery-codes' && (request.method === 'GET' || request.method === 'POST')) {
+    const limited = await rateLimit(request, env, 'recovery-codes', Number(env?.SECURITY_RECOVERY_CODE_LIMIT || 12), 900);
+    if (limited) return limited;
+    return await handlePasswordRecovery(request, env);
+  }
 
   if (requiresStrongSession(request, url.pathname) && !strongSecret(await sessionSecret(env))) {
     return json({ detail: 'Authentication is temporarily unavailable because secure session configuration is incomplete.', code: 'SECURE_SESSION_REQUIRED' }, 503);
