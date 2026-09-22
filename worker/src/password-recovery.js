@@ -1,5 +1,4 @@
 import {createPasswordRecord} from './password-security.js';
-import {getProviderRuntimeEnv} from './provider-runtime-env.js';
 import {sendGrowthEmail} from './growth-email-transport.js';
 
 const encoder=new TextEncoder();
@@ -28,10 +27,6 @@ function safeSiteOrigin(env,request){
  }
  return CANONICAL_SITE_ORIGIN;
 }
-function normalizeBase(value){
- const raw=String(value||'https://inkbox.ai/api/v1').trim();
- try{const url=new URL(raw);if(url.protocol!=='https:')return'https://inkbox.ai/api/v1';return`${url.origin}${url.pathname.replace(/\/$/,'')}`}catch{return'https://inkbox.ai/api/v1'}
-}
 async function ensureSchema(env){
  if(schemaReady||!env?.DB)return;
  // Migration 0069 owns this schema. Runtime recovery only verifies it so a
@@ -59,32 +54,33 @@ async function sendWithPlatformMailbox(env,to,copy){
  try{return await sendGrowthEmail(env,{scopeTenantId:'__platform__',to,subject:copy.subject,text:copy.text,senderName:'I AM Magnanimous Way'})}
  catch(error){return{ok:false,code:'PLATFORM_MAIL_ERROR',error:String(error?.message||error||'Platform mail failed.')}}
 }
-async function sendWithCommunications(env,to,copy,idempotencyKey){
- let runtime;try{runtime=await getProviderRuntimeEnv(env)}catch{runtime=env}
- const apiKey=String(runtime?.INKBOX_API_KEY||'').trim(),mailbox=String(runtime?.INKBOX_EMAIL_ADDRESS||'iam@inkboxmail.com').trim();
- if(!apiKey||!mailbox)return{ok:false,code:'NO_COMMUNICATION_MAILBOX'};
- const base=normalizeBase(runtime?.INKBOX_BASE_URL),root=`${base}/mail/mailboxes/${encodeURIComponent(mailbox)}/drafts`;
- const headers={'X-API-Key':apiKey,'Accept':'application/json','Content-Type':'application/json','Idempotency-Key':String(idempotencyKey).slice(0,180)};
+async function sendWithMagnanimousMail(env,to,copy,idempotencyKey){
+ const mailer=env?.MAGNANIMOUS_MAIL;
+ if(!mailer||typeof mailer.send!=='function')return{ok:false,code:'NO_NATIVE_MAGNANIMOUS_MAIL'};
  try{
-  const created=await fetch(root,{method:'POST',headers,body:JSON.stringify({recipients:{to:[to]},subject:copy.subject,body_text:copy.text,body_html:copy.html,track_opens:false})});
-  const draft=await created.json().catch(()=>({}));
-  if(!created.ok||!draft?.id)return{ok:false,code:'COMMUNICATION_DRAFT_FAILED',error:String(draft?.detail||draft?.error||`Draft creation failed (${created.status}).`)};
-  const sent=await fetch(`${root}/${encodeURIComponent(String(draft.id))}/send`,{method:'POST',headers:{'X-API-Key':apiKey,'Accept':'application/json','Content-Type':'application/json','Idempotency-Key':`${String(idempotencyKey).slice(0,150)}-send`},body:JSON.stringify({generation:Number(draft.generation||1)})});
-  const receipt=await sent.json().catch(()=>({}));
-  if(!sent.ok)return{ok:false,code:'COMMUNICATION_SEND_FAILED',error:String(receipt?.detail||receipt?.error||`Email send failed (${sent.status}).`)};
-  return{ok:true,provider:'communications'};
- }catch(error){return{ok:false,code:'COMMUNICATION_TRANSPORT_ERROR',error:String(error?.message||error||'Communication transport failed.')}}
+  return await mailer.send({
+   kind:'password-reset',
+   to,
+   subject:copy.subject,
+   text:copy.text,
+   html:copy.html,
+   idempotencyKey,
+   sensitive:true
+  });
+ }catch(error){
+  return{ok:false,code:'MAGNANIMOUS_MAIL_ERROR',error:String(error?.message||error||'Magnanimous mail failed.')};
+ }
 }
 async function deliverResetEmail(env,to,copy,idempotencyKey){
+ const native=await sendWithMagnanimousMail(env,to,copy,idempotencyKey);if(native?.ok)return{ok:true,provider:String(native.provider||'magnanimous-native-mail')};
  const platform=await sendWithPlatformMailbox(env,to,copy);if(platform?.ok)return{ok:true,provider:'platform-mail'};
- const communications=await sendWithCommunications(env,to,copy,idempotencyKey);if(communications?.ok)return communications;
+ const nativeCode=String(native?.code||'NO_NATIVE_MAGNANIMOUS_MAIL');
  const platformCode=String(platform?.code||'NO_PLATFORM_MAILBOX');
- const communicationsCode=String(communications?.code||'NO_COMMUNICATION_MAILBOX');
- const configuredFailure=!['NO_PLATFORM_MAILBOX','NO_SENDER'].includes(platformCode)||communicationsCode!=='NO_COMMUNICATION_MAILBOX';
+ const configuredFailure=!['NO_NATIVE_MAGNANIMOUS_MAIL','MAGNANIMOUS_MAIL_NOT_CONFIGURED'].includes(nativeCode)||!['NO_PLATFORM_MAILBOX','NO_SENDER'].includes(platformCode);
  return{
   ok:false,
   code:configuredFailure?'PASSWORD_RESET_DELIVERY_FAILED':'NO_MAIL_TRANSPORT',
-  error:`platform=${platformCode}: ${String(platform?.error||'unavailable')}; communications=${communicationsCode}: ${String(communications?.error||'unavailable')}`
+  error:`native=${nativeCode}: ${String(native?.error||'unavailable')}; platform=${platformCode}: ${String(platform?.error||'unavailable')}`
  };
 }
 
