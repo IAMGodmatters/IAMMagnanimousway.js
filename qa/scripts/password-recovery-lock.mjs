@@ -41,8 +41,7 @@ must(recovery.includes("const CANONICAL_SITE_ORIGIN='https://iammagnanimousway.c
 must(recovery.includes("host==='iammagnanimousway.com'")&&recovery.includes("host==='www.iammagnanimousway.com'"),'password reset links must allowlist only Magnanimous production web origins');
 must(!recovery.includes("url.protocol==='https:'||url.hostname==='localhost'"),'password reset links must never trust arbitrary HTTPS origins');
 must(recovery.includes('password changes happen only on iammagnanimousway.com'),'password reset email must tell users the first-party reset domain');
-must(dedicatedRecovery.includes('src="/iam-magnanimous-way-logo.webp"'),'dedicated reset page must show the I AM MAGNANIMOUS WAY brand logo');
-must(fs.existsSync(path.join(root,'frontend/public/iam-magnanimous-way-logo.webp')),'password reset brand logo asset must exist');
+must(dedicatedRecovery.includes("const brandLogo='data:image/webp;base64,")&&dedicatedRecovery.includes('src={brandLogo}'),'dedicated reset page must show the approved I AM MAGNANIMOUS WAY brand logo');
 must(overlay.includes("params.get('forgot')==='1'")&&overlay.includes("setMode('forgot')"),'visible forgot-password links must open the recovery flow');
 must(customerLogin.includes('href="/forgot-password?portal=customer"')&&customerLogin.includes('Forgot password?'),'customer login must link to the dedicated email-first recovery page');
 must(ownerLogin.includes('href="/forgot-password?portal=owner"')&&ownerLogin.includes('Forgot password?'),'owner login must link to the dedicated email-first recovery page');
