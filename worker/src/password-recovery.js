@@ -195,6 +195,13 @@ export async function createRecoveryCodeSetForUser(env,user,{event='password_rec
  await logAuth(env,user,event,1,user.email||'');
  return codes;
 }
+export async function ensureRecoveryCodesForUser(env,user,{event='automatic_recovery_codes_created'}={}){
+ if(!env?.DB||!user?.id||!user?.tenant_id)return[];
+ await ensureSchema(env);
+ const row=await env.DB.prepare('SELECT COUNT(*) AS n FROM account_recovery_codes WHERE user_id=? AND tenant_id=? AND used_at IS NULL').bind(user.id,user.tenant_id).first().catch(()=>({n:0}));
+ if(Number(row?.n||0)>0)return[];
+ return createRecoveryCodeSetForUser(env,user,{event});
+}
 async function rotateRecoveryCodes(request,env){
  if(!env?.DB)return json({detail:'Account recovery is temporarily unavailable.'},503);
  await ensureSchema(env);const user=await activeSessionUser(request,env);
