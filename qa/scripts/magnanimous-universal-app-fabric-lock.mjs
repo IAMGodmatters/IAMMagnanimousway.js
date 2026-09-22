@@ -7,6 +7,7 @@ const fabric=read('worker/src/magnanimous-universal-app-fabric.js');
 const mesh=read('worker/src/magnanimous-capability-mesh.js');
 const social=read('worker/src/social-publishing-runtime.js');
 const connections=read('frontend/app/connections/page.tsx');
+const liveSnapshot=read('worker/src/magnanimous-live-plugin-tool-research-snapshot.js');
 
 function has(source,needle,message){assert(source.includes(needle),message)}
 
@@ -32,6 +33,8 @@ has(social,"social_connections",'Social publishing connection truth must remain 
 has(connections,'href="/social-connect"','Main Connections surface must expose first-party social publishing connections');
 
 assert(!fabric.includes('access_token TEXT'),'Universal App Fabric must not create or expose its own token store');
+for(const namespace of ['Acumen_by_Talarion','Hercules','Tavily'])has(liveSnapshot,`\"namespace\": \"${namespace}\"`,`Current visible plugin namespace must be absorbed: ${namespace}`);
+
 assert(!fabric.includes('client_secret'),'Universal App Fabric must not copy provider credentials into capability metadata');
 
 console.log('Magnanimous Universal App Fabric lock passed.');
