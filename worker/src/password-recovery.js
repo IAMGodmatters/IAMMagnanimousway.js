@@ -54,18 +54,12 @@ function mailCopy(resetUrl,minutes){
  const html=`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#171717"><h2>I AM MAGNANIMOUS WAY™</h2><p>A password reset was requested for your account.</p><p><a href="${resetUrl}" style="display:inline-block;padding:12px 18px;background:#9d5700;color:#fff;text-decoration:none;border-radius:7px;font-weight:700">Reset my password</a></p><p>This secure link expires in ${minutes} minutes and can be used only once.</p><p>If you did not request this change, you can ignore this email. Do not share this link with anyone.</p></div>`;
  return{subject,text,html};
 }
-async function ownerMailConnection(env){
- if(!env?.DB)return null;
- try{
-  const tenant=await env.DB.prepare("SELECT id FROM tenants WHERE slug='owner' LIMIT 1").first();
-  if(!tenant?.id)return null;
-  const connection=await env.DB.prepare("SELECT external_account_id FROM integrations WHERE tenant_id=? AND provider IN ('google','outlook') ORDER BY updated_at DESC LIMIT 1").bind(tenant.id).first();
-  return connection?{tenant_id:String(tenant.id)}:null;
- }catch{return null}
-}
 async function sendWithPlatformMailbox(env,to,copy){
- const connection=await ownerMailConnection(env);if(!connection)return{ok:false,code:'NO_PLATFORM_MAILBOX'};
- try{return await sendGrowthEmail(env,{scopeTenantId:connection.tenant_id,to,subject:copy.subject,text:copy.text,senderName:'I AM Magnanimous Way'})}
+ // Resolve the platform owner sender through the same canonical owner-tenant
+ // lookup used by the growth email transport. Do not depend on a literal
+ // tenants.slug='owner' row here: imported or migrated production databases
+ // can preserve the owner user while carrying a different tenant slug.
+ try{return await sendGrowthEmail(env,{scopeTenantId:'__platform__',to,subject:copy.subject,text:copy.text,senderName:'I AM Magnanimous Way'})}
  catch(error){return{ok:false,code:'PLATFORM_MAIL_ERROR',error:String(error?.message||error||'Platform mail failed.')}}
 }
 async function sendWithCommunications(env,to,copy,idempotencyKey){
@@ -87,7 +81,14 @@ async function sendWithCommunications(env,to,copy,idempotencyKey){
 async function deliverResetEmail(env,to,copy,idempotencyKey){
  const platform=await sendWithPlatformMailbox(env,to,copy);if(platform?.ok)return{ok:true,provider:'platform-mail'};
  const communications=await sendWithCommunications(env,to,copy,idempotencyKey);if(communications?.ok)return communications;
- return{ok:false,code:communications?.code||platform?.code||'NO_MAIL_TRANSPORT',error:communications?.error||platform?.error||'No password recovery mail transport is configured.'};
+ const platformCode=String(platform?.code||'NO_PLATFORM_MAILBOX');
+ const communicationsCode=String(communications?.code||'NO_COMMUNICATION_MAILBOX');
+ const configuredFailure=!['NO_PLATFORM_MAILBOX','NO_SENDER'].includes(platformCode)||communicationsCode!=='NO_COMMUNICATION_MAILBOX';
+ return{
+  ok:false,
+  code:configuredFailure?'PASSWORD_RESET_DELIVERY_FAILED':'NO_MAIL_TRANSPORT',
+  error:`platform=${platformCode}: ${String(platform?.error||'unavailable')}; communications=${communicationsCode}: ${String(communications?.error||'unavailable')}`
+ };
 }
 
 async function requestReset(request,env){
@@ -107,6 +108,7 @@ async function requestReset(request,env){
  if(delivery.ok){
   await env.DB.prepare("UPDATE password_reset_tokens SET delivery_provider=?,delivery_status='sent' WHERE token_hash=?").bind(String(delivery.provider||'mail'),tokenHash).run();
   await logAuth(env,user,'password_reset_requested',1,email);
+  console.info('password reset delivery sent',{provider:String(delivery.provider||'mail'),user_id:user.id});
  }else{
   await env.DB.prepare("UPDATE password_reset_tokens SET used_at=?,delivery_provider='',delivery_status='failed' WHERE token_hash=?").bind(now(),tokenHash).run();
   await logAuth(env,user,'password_reset_delivery_failed',0,email);
