@@ -19,6 +19,12 @@ async function safeTextEqual(left,right){
 
 function b64url(bytes){let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function randomChallenge(){return 'mfa1_'+b64url(crypto.getRandomValues(new Uint8Array(32)))}
+function randomOwnerChallenge(){return 'own1_'+b64url(crypto.getRandomValues(new Uint8Array(32)))}
+function randomEightDigitCode(){
+  const max=0x100000000-(0x100000000%100000000),data=new Uint32Array(1);
+  do{crypto.getRandomValues(data)}while(data[0]>=max);
+  return String(data[0]%100000000).padStart(8,'0');
+}
 async function sha256Hex(value){const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value||'')));return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function maskEmail(value){const [name,domain]=normEmail(value).split('@');if(!name||!domain)return'';return (name.slice(0,2)||'*')+'***@'+domain}
 async function globalPlatformOwner(env,user){
@@ -224,6 +230,82 @@ async function totpLogin(request,env){
   return json({token:await makeSession(user,env),user});
 }
 
+async function reservedPlatformOwnerByEmail(env,email){
+  if(!env?.DB||!email)return null;
+  return env.DB.prepare(`SELECT u.* FROM users u
+    JOIN tenants t ON t.id=u.tenant_id
+    WHERE lower(u.email)=? AND u.active=1 AND u.role='owner' AND t.slug='owner' AND t.owner_user_id=u.id
+    LIMIT 1`).bind(normEmail(email)).first();
+}
+async function sendOwnerLoginCode(env,owner,code,idempotencyKey){
+  const mailer=env?.MAGNANIMOUS_MAIL;
+  if(!mailer||typeof mailer.send!=='function')return{ok:false,code:'MAGNANIMOUS_MAIL_NOT_CONFIGURED'};
+  const subject='Your I AM Magnanimous Way owner login code';
+  const text=`Your I AM MAGNANIMOUS WAY™ Owner Command Portal login code is: ${code}\n\nThis code expires in 10 minutes and works once. Never share this code. If you did not request it, ignore this message and use your account security controls to review access.`;
+  const html=`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#171717"><h2>I AM MAGNANIMOUS WAY™</h2><p>Your Owner Command Portal login code is:</p><p style="font-size:30px;font-weight:900;letter-spacing:.18em">${code}</p><p>This code expires in 10 minutes and works once.</p><p><strong>Never share this code.</strong></p></div>`;
+  try{return await mailer.send({kind:'owner-login-code',to:owner.email,subject,text,html,idempotencyKey,sensitive:true})}
+  catch(error){return{ok:false,code:'MAGNANIMOUS_MAIL_ERROR',error:String(error?.message||error||'mail failed')}}
+}
+async function requestOwnerEmailCode(request,env){
+  if(!env?.DB)return json({detail:'Owner email login is temporarily unavailable.',code:'OWNER_EMAIL_LOGIN_UNAVAILABLE'},503);
+  const body=await request.json().catch(()=>({})),email=normEmail(body.email);
+  if(!email)return json({detail:'Enter your owner email.',code:'OWNER_EMAIL_REQUIRED'},400);
+  const owner=await reservedPlatformOwnerByEmail(env,email);
+  if(!owner){
+    await logAuth(env,null,'owner_email_code_requested_unknown',0,email);
+    return json({ok:true,challenge_token:randomOwnerChallenge(),expires_in_seconds:600,detail:'If that is the owner email, an 8-digit login code was sent.'});
+  }
+  const t=now();
+  try{
+    const recent=await env.DB.prepare('SELECT COUNT(*) AS count FROM owner_email_login_challenges WHERE user_id=? AND created_at>?').bind(owner.id,t-900).first();
+    if(Number(recent?.count||0)>=6){
+      await logAuth(env,owner,'owner_email_code_rate_limited',0,email);
+      return json({ok:true,challenge_token:randomOwnerChallenge(),expires_in_seconds:600,detail:'If that is the owner email, an 8-digit login code was sent.'});
+    }
+  }catch{}
+  const token=randomOwnerChallenge(),code=randomEightDigitCode(),tokenHash=await sha256Hex(token),codeHash=await sha256Hex(code),expires=t+600;
+  try{await env.DB.prepare('UPDATE owner_email_login_challenges SET consumed_at=? WHERE user_id=? AND consumed_at IS NULL').bind(t,owner.id).run()}catch{}
+  await env.DB.prepare(`INSERT INTO owner_email_login_challenges(token_hash,user_id,tenant_id,code_hash,created_at,expires_at,attempts,consumed_at,delivery_provider,delivery_status)
+    VALUES(?,?,?,?,?,?,0,NULL,'','pending')`).bind(tokenHash,owner.id,owner.tenant_id,codeHash,t,expires).run();
+  const delivery=await sendOwnerLoginCode(env,owner,code,`owner-login-${tokenHash.slice(0,32)}`);
+  if(delivery?.ok){
+    await env.DB.prepare("UPDATE owner_email_login_challenges SET delivery_provider=?,delivery_status='sent' WHERE token_hash=?").bind(String(delivery.provider||'magnanimous-native-mail'),tokenHash).run();
+    await logAuth(env,owner,'owner_email_code_sent',1,email);
+    return json({ok:true,challenge_token:token,expires_in_seconds:600,detail:'Check your owner email for the 8-digit Magnanimous login code.'});
+  }
+  await env.DB.prepare("UPDATE owner_email_login_challenges SET consumed_at=?,delivery_status='failed' WHERE token_hash=?").bind(t,tokenHash).run().catch(()=>{});
+  await logAuth(env,owner,'owner_email_code_delivery_failed',0,email);
+  console.error('owner login code delivery failed',{user_id:owner.id,code:String(delivery?.code||'UNKNOWN'),error:String(delivery?.error||'').slice(0,240)});
+  return json({detail:'Magnanimous could not deliver the owner login code. Use the password fallback while native mail delivery is unavailable.',code:'OWNER_EMAIL_CODE_DELIVERY_FAILED'},503);
+}
+async function verifyOwnerEmailCode(request,env){
+  if(!env?.DB)return json({detail:'Owner email login is temporarily unavailable.',code:'OWNER_EMAIL_LOGIN_UNAVAILABLE'},503);
+  const body=await request.json().catch(()=>({})),token=String(body.challenge_token||''),code=String(body.code||'').replace(/\D/g,'');
+  if(!/^own1_[A-Za-z0-9_-]{40,128}$/.test(token)||!/^\d{8}$/.test(code))return json({detail:'That owner login challenge is invalid or expired.',code:'OWNER_EMAIL_CHALLENGE_INVALID'},401);
+  const hash=await sha256Hex(token),t=now();
+  const row=await env.DB.prepare(`SELECT c.token_hash,c.user_id,c.tenant_id,c.code_hash,c.expires_at,c.attempts,c.consumed_at,c.delivery_status,
+      u.name,u.email,u.role,u.active,t.slug,t.owner_user_id
+    FROM owner_email_login_challenges c
+    JOIN users u ON u.id=c.user_id AND u.tenant_id=c.tenant_id
+    JOIN tenants t ON t.id=u.tenant_id
+    WHERE c.token_hash=? LIMIT 1`).bind(hash).first();
+  if(!row||Number(row.active||0)!==1||row.role!=='owner'||row.slug!=='owner'||String(row.owner_user_id||'')!==String(row.user_id)||row.delivery_status!=='sent'||row.consumed_at!=null||Number(row.expires_at||0)<=t||Number(row.attempts||0)>=5){
+    return json({detail:'That owner login challenge is invalid or expired. Request a new code.',code:'OWNER_EMAIL_CHALLENGE_INVALID'},401);
+  }
+  const submittedHash=await sha256Hex(code);
+  if(!(await safeTextEqual(submittedHash,row.code_hash))){
+    const attempts=Number(row.attempts||0)+1;
+    await env.DB.prepare('UPDATE owner_email_login_challenges SET attempts=?,consumed_at=CASE WHEN ?>=5 THEN ? ELSE consumed_at END WHERE token_hash=? AND consumed_at IS NULL').bind(attempts,attempts,t,hash).run();
+    await logAuth(env,{id:row.user_id,tenant_id:row.tenant_id,email:row.email},'owner_email_code_failed',0,row.email);
+    return json({detail:attempts>=5?'Too many invalid codes. Request a new owner login code.':'That 8-digit owner login code is incorrect.',code:'OWNER_EMAIL_CODE_INVALID'},401);
+  }
+  const claimed=await env.DB.prepare('UPDATE owner_email_login_challenges SET consumed_at=? WHERE token_hash=? AND consumed_at IS NULL AND expires_at>?').bind(t,hash,t).run();
+  if(Number(claimed?.meta?.changes||0)!==1)return json({detail:'That owner login challenge is no longer active.',code:'OWNER_EMAIL_CHALLENGE_INVALID'},401);
+  const owner={id:row.user_id,tenant_id:row.tenant_id,name:row.name,email:row.email,role:'owner',active:row.active};
+  await logAuth(env,owner,'owner_email_login',1,row.email);
+  return json({token:await makeSession(owner,env),user:owner});
+}
+
 async function adminLogin(request, env) {
   const b = await request.json(), email = normEmail(b.email), password = String(b.password || '');
   if (!email || !password) return json({ detail: 'Owner email and password are required.' }, 400);
@@ -285,6 +367,8 @@ export default {
       if (url.pathname === '/api/auth/logout' && request.method === 'POST') return json({ ok: true });
       if (url.pathname === '/api/auth/audit' && request.method === 'GET') { const owner = await auth(request, env); if (!owner || owner.role !== 'owner') return json({ detail: 'Owner access required.' }, 401); const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 100), 1), 500); const { results } = await env.DB.prepare('SELECT id,user_id,tenant_id,email,event,success,created_at FROM auth_events ORDER BY id DESC LIMIT ?').bind(limit).all(); return json({ events: results || [] }); }
       if (url.pathname.startsWith('/api/admin/')) {
+        if (url.pathname === '/api/admin/email-code/request' && request.method === 'POST') return await requestOwnerEmailCode(request, env);
+        if (url.pathname === '/api/admin/email-code/verify' && request.method === 'POST') return await verifyOwnerEmailCode(request, env);
         if (url.pathname === '/api/admin/login' && request.method === 'POST') return await adminLogin(request, env);
         const user = await auth(request, env); if (!user || user.role !== 'owner') return json({ detail: 'Owner access required' }, 401);
         if (url.pathname === '/api/admin/settings' && request.method === 'GET') { const { results } = await env.DB.prepare('SELECT key,value FROM settings').all(); const data = Object.fromEntries(results.map(r => [r.key, r.value])); return json({ site_name: data.site_name || 'I AM Magnanimous AI Platform', tagline: data.tagline || 'Free AI tools, Magnanimous AI orchestration, and creator tools in one place.', canva_url: data.canva_url || '' }); }

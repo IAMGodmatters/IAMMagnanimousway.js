@@ -149,8 +149,9 @@ async function enforcePlatformOwnerBoundary(request,env){
     return Response.json({detail:'Invalid owner email or password.'},{status:401,headers:{'cache-control':'no-store'}});
   }
 
+  const publicOwnerAuth=path==='/api/admin/login'||path==='/api/admin/email-code/request'||path==='/api/admin/email-code/verify';
   const restricted=path==='/api/auth/audit'||
-    (path.startsWith('/api/admin/')&&path!=='/api/admin/login')||
+    (path.startsWith('/api/admin/')&&!publicOwnerAuth)||
     credentialVaultPath(request);
   if(!restricted)return null;
 
