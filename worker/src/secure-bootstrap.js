@@ -64,10 +64,16 @@ async function importPrivateKey(row) {
 export async function getBootstrapSecrets(env) {
   if (!env?.DB) return {};
   try {
-    await ensureTables(env);
+    // Runtime secret reads must stay read-only. DDL here can consume D1 writes and
+    // fail under a write-quota incident, which would make healthy encrypted
+    // credentials appear "not configured".
     const { results } = await env.DB.prepare('SELECT credential_key,ciphertext_b64 FROM bootstrap_secrets').all();
     if (!results?.length) return {};
-    const keypair = await getOrCreateKeypair(env);
+    const keypair = await env.DB.prepare('SELECT * FROM bootstrap_keypair WHERE id=1').first();
+    if (!keypair) {
+      console.error('bootstrap keypair missing while encrypted bootstrap secrets exist');
+      return {};
+    }
     const privateKey = await importPrivateKey(keypair);
     const out = {};
     for (const row of results) {
