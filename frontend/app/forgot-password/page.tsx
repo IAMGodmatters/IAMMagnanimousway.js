@@ -75,9 +75,9 @@ export default function ForgotPasswordPage(){
    <div className="firstParty">iammagnanimousway.com • Magnanimous-native account recovery</div>
    {mode==='request'&&<>
     <h2>Forgot your password?</h2>
-    <p>Recovery stays inside Magnanimous. Enter your email and, if you have one, a one-time Magnanimous recovery code. If this device still has a valid signed-in session, Magnanimous can verify you directly without email.</p>
+    <p>Recovery stays inside Magnanimous. Enter your primary email or a verified recovery email and, if you have one, a one-time Magnanimous recovery code. If this device still has a valid signed-in session, Magnanimous can verify you directly without email.</p>
     <form onSubmit={requestReset}>
-     <label><span>Email address</span><input autoFocus required type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)}/></label>
+     <label><span>Primary or verified recovery email</span><input autoFocus required type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)}/></label>
      <label><span>Magnanimous recovery code (optional on a trusted signed-in device)</span><input type="text" autoComplete="one-time-code" placeholder="MAG-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" value={recoveryCode} onChange={e=>setRecoveryCode(e.target.value)}/></label>
      <button disabled={busy} type="submit">{busy?'VERIFYING WITH MAGNANIMOUS…':requested?'TRY RECOVERY AGAIN':'CONTINUE SECURE RECOVERY'}</button>
     </form>
