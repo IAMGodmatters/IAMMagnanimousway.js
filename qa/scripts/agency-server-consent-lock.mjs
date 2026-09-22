@@ -8,7 +8,7 @@ const secureBootstrap=read('worker/src/secure-bootstrap.js');
 const deploy=read('.github/workflows/deploy.yml');
 for(const s of ['TERMS_ACCEPTANCE_REQUIRED','metadata[terms_version]','metadata[terms_accepted]','subscription_data[metadata][terms_version]'])if(!agency.includes(s))throw Error('agency legal consent '+s);
 for(const s of ['makeAgencyReference','parseAgencyReference','SESSION_SECRET','client_reference_id','signed_webhook','payment_status','status===\'active\'','STRIPE_PAYMENT_LINK_AGENCY','STRIPE_PAYMENT_LINK_AGENCY_PRO'])if(!agency.includes(s))throw Error('agency checkout safety '+s);
-for(const s of ['getProviderRuntimeEnv','AGENCY_PLANS','Invalid Stripe webhook signature.','Math.abs(now()-stamp)>300','billing_webhook_events'])if(!webhook.includes(s))throw Error('platform billing webhook '+s);
+for(const s of ['getProviderRuntimeEnv','String(env?.STRIPE_WEBHOOK_SECRET','AGENCY_PLANS','Invalid Stripe webhook signature.','Math.abs(now()-stamp)>300','billing_webhook_events'])if(!webhook.includes(s))throw Error('platform billing webhook '+s);
 for(const s of ['STRIPE_PAYMENT_LINK_AGENCY','STRIPE_PAYMENT_LINK_AGENCY_PRO','price_1UEs75Bqx3ebIzujqlWosJKu','price_1UEs7EBqx3ebIzujT5pbI3QH'])if(!wrangler.includes(s))throw Error('agency live Stripe config '+s);
 if(!bootstrap.includes("'STRIPE_WEBHOOK_SECRET'")||bootstrap.includes('whsec_'))throw Error('Stripe webhook bootstrap must store encrypted ciphertext only.');
 for(const s of ['Ensure encrypted Stripe webhook bootstrap fallback','migrations/0084_stripe_webhook_rekey_current_bootstrap.sql','ciphertext_length','Encrypted Stripe webhook bootstrap record restored without exposing plaintext.'])if(!deploy.includes(s))throw Error('Stripe deploy bootstrap continuity '+s);
@@ -17,4 +17,6 @@ if(!secureBootstrap.includes('Refusing silent key rotation'))throw Error('Secure
 const secretReader=secureBootstrap.slice(secureBootstrap.indexOf('export async function getBootstrapSecrets'),secureBootstrap.indexOf('export async function handleBootstrap'));
 if(secretReader.includes('ensureTables(')||secretReader.includes('getOrCreateKeypair('))throw Error('Runtime bootstrap secret reads must remain read-only and must not create tables or rotate keys.');
 for(const q of ["SELECT credential_key,ciphertext_b64 FROM bootstrap_secrets","SELECT * FROM bootstrap_keypair WHERE id=1"])if(!secretReader.includes(q))throw Error('Read-only bootstrap secret path missing '+q);
+for(const s of ['bootstrap_secrets_ready','decryptable_secret_count','stripe_webhook_ready'])if(!secureBootstrap.includes(s))throw Error('Safe bootstrap readiness signal missing '+s);
+if(secureBootstrap.includes('STRIPE_WEBHOOK_SECRET: readiness.STRIPE_WEBHOOK_SECRET'))throw Error('Bootstrap readiness must never expose the webhook secret value.');
 console.log('Agency consent, signed checkout identity, paid entitlement, payment-link fallback, and encrypted webhook bootstrap passed.');
