@@ -1,4 +1,4 @@
-*{box-sizing:border-box}
+.page,.page *{box-sizing:border-box}
 .page{min-height:100vh;padding:28px;background:#040b17;color:#edfaff;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 15% 10%,rgba(39,229,196,.09),transparent 28%),radial-gradient(circle at 88% 12%,rgba(40,132,255,.13),transparent 30%)}
 .header,.grid,.resultGrid,.capabilities,.notice,.error{max-width:1320px;margin-left:auto;margin-right:auto}
 .header{display:flex;justify-content:space-between;gap:26px;align-items:flex-start}
