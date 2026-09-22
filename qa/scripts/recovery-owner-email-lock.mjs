@@ -40,7 +40,8 @@ must(contacts.includes("RECOVERY_EMAIL_MUST_DIFFER"),'recovery email must differ
 must(recovery.includes('user_recovery_contacts')&&recovery.includes('recovery_email_verified_at>0'),'password recovery must accept only verified recovery emails');
 must(recovery.includes('verified-recovery-email'),'password recovery must advertise verified recovery email capability');
 must(accountUi.includes('SEND 8-DIGIT CODE')&&accountUi.includes('VERIFY EMAIL'),'account UI must support recovery-email verification');
-must(accountUi.includes('SAVE PHONE')&&accountUi.includes('sms_recovery_available:false'),'optional phone must not pretend SMS recovery is available');
+must(accountUi.includes('SAVE PHONE')&&accountUi.includes('SMS recovery stays off'),'account UI must clearly say SMS recovery is not active');
+must(contacts.includes('sms_recovery_available:false'),'backend must never claim optional-phone SMS recovery is available');
 must(contacts.includes('/^\\+[1-9]\\d{7,14}$/'),'optional phone must use E.164-like international validation');
 must(migration.includes('user_recovery_contacts')&&migration.includes('owner_email_login_challenges'),'migration must create recovery-contact and owner-login stores');
 must(migration.includes('code_hash TEXT NOT NULL')&&migration.includes('token_hash TEXT PRIMARY KEY'),'sensitive verification material must be stored by hash');
