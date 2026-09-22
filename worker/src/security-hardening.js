@@ -217,6 +217,12 @@ export async function securityPreflight(request, env) {
     return await handlePasswordRecovery(request, env);
   }
 
+  if (url.pathname === '/api/auth/recovery-readiness' && request.method === 'GET') {
+    const limited = await rateLimit(request, env, 'recovery-readiness', Number(env?.SECURITY_RECOVERY_READINESS_LIMIT || 30), 900);
+    if (limited) return limited;
+    return await handlePasswordRecovery(request, env);
+  }
+
   if (url.pathname === '/api/auth/totp/login' && request.method === 'POST') {
     const limited = await rateLimit(request, env, 'totp-login', Number(env?.SECURITY_TOTP_LOGIN_LIMIT || 10), 300);
     if (limited) return limited;
