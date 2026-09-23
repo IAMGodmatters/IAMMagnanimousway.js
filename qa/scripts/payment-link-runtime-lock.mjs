@@ -16,6 +16,6 @@ must(runtime.includes("tier_checkout_configured"),'payment-link runtime must mar
 must(!deploy.includes('INSERT INTO billing_subscriptions'),'production deployment smoke must never fabricate paid entitlements by direct database mutation');
 must(deploy.includes('Agency access must remain payment-locked after checkout creation'),'production smoke must prove checkout creation does not grant Agency access before confirmed payment');
 must(standaloneRelease.includes('verify-agency-paid-depth.mjs'),'standalone release proof must execute isolated paid Agency depth');
-must(isolatedAgencySmoke.includes("billing_subscriptions")&&isolatedAgencySmoke.includes("plan!=='agency'")===false,'isolated Agency smoke must seed only the disposable standalone database and verify Agency entitlement');
+must(isolatedAgencySmoke.includes("billing_subscriptions")&&isolatedAgencySmoke.includes("billing?.plan!=='agency'"),'isolated Agency smoke must seed only the disposable standalone database and verify Agency entitlement');
 must(isolatedAgencySmoke.includes('/api/agency/automations')&&isolatedAgencySmoke.includes('/api/white-label-os/projects'),'isolated Agency smoke must exercise paid automation and Studio depth');
 console.log('Payment-link runtime lock: PASS — configured Stripe payment links are wired into checkout, plans, and billing status.');
