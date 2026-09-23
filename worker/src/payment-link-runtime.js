@@ -11,7 +11,9 @@ export async function handlePaymentLinkBilling(request, env) {
   const url = new URL(request.url);
   if (url.pathname !== '/api/billing/checkout' || request.method !== 'POST') return null;
   const body=await request.clone().json().catch(()=>({}));
-  const plan=normalizePaidPlan(body.plan||'business');
+  const requestedPlan=String(body.plan||'business').trim().toLowerCase();
+  if(requestedPlan==='agency'||requestedPlan==='agency_pro')return null;
+  const plan=normalizePaidPlan(requestedPlan);
   if(!plan)return json({detail:'Choose a valid paid plan: plus, business, pro, or scale.',code:'INVALID_PLAN'},400);
   const link=paymentLink(env,plan);
   if(!link)return null;
