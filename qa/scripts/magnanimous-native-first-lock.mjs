@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { INTEGRATIONS as liveIntegrations } from '../../worker/src/integrations.js';
-import { getConnectorAbsorptionCatalog as liveAbsorptionCatalog, getCapabilityAbsorptionManifest as liveCapabilityManifest, getPersistentConnectorAbsorptionManifest, getChatGPTPluginCapabilityManifest, getInstalledPluginSkillManifest, getMagnanimousBuilderCapabilityManifest, getMagnanimousEngineeringSkillManifest, getConnectorAbsorptionSummary } from '../../worker/src/magnanimous-connector-absorption.js';
+import { getConnectorAbsorptionCatalog as liveAbsorptionCatalog, getCapabilityAbsorptionManifest as liveCapabilityManifest, getPersistentConnectorAbsorptionManifest, getChatGPTPluginCapabilityManifest, getInstalledPluginSkillManifest, getMagnanimousBuilderCapabilityManifest, getMagnanimousEngineeringSkillManifest, getConnectorAbsorptionSummary, getPluginIndependenceReadiness } from '../../worker/src/magnanimous-connector-absorption.js';
 import { getLivePluginToolResearchSummary } from '../../worker/src/magnanimous-live-plugin-tool-research-snapshot.js';
 import { getLivePluginSkillResearchSummary } from '../../worker/src/magnanimous-live-plugin-skill-research-snapshot.js';
 import { MAGNANIMOUS_EXECUTION_SURFACES, classifyCapabilityRealization } from '../../worker/src/magnanimous-capability-realization.js';
@@ -63,6 +63,8 @@ has(runtime,'Favor composition and dependency injection through an explicit comp
 has(runtime,'engineering_architecture_policy','native-first overview exposes the engineering architecture policy');
 has(runtime,"/api/magnanimous/native-first/assimilate",'capability assimilation endpoint exists');
 has(runtime,"/api/magnanimous/native-first/realizations",'owner can inspect evidence-gated capability realizations');
+has(runtime,"/api/magnanimous/native-first/independence",'owner can inspect execution-backed plugin independence readiness');
+has(runtime,'plugin_independence:getPluginIndependenceReadiness()','native-first overview exposes plugin independence readiness');
 has(runtime,'capability_realization:realization','native-first overview exposes realization counts');
 has(runtime,"/api/magnanimous/native-first/connectors",'per-connector native-first absorption ledger endpoint exists');
 has(runtime,'materializeConnectorCapabilityRecipes','one-by-one connector capability specs can materialize into Tool Foundry');
@@ -192,6 +194,12 @@ has(robots,'Disallow: /god-coding/','private God Coding route remains excluded f
 lacks(runtime,'copy provider source code','runtime never instructs provider source-code copying');
 
 
+const independence=getPluginIndependenceReadiness();
+checks.push(['plugin independence readiness covers the full capability manifest',independence.total_capability_contracts===liveCapabilityManifest().length]);
+checks.push(['plugin independence readiness is backed by realization surfaces',independence.targets.every(x=>x.replacement_surface_ready===x.native_ready+x.hybrid_ready)]);
+checks.push(['plugin adapter candidates never include unresolved bridge/spec-only contracts',independence.targets.filter(x=>x.plugin_adapter_candidate).every(x=>x.bridge_required===0&&x.specified_only===0)]);
+checks.push(['external-system-free status is stricter than plugin adapter candidacy',independence.targets.filter(x=>x.external_system_free).every(x=>x.plugin_adapter_candidate&&x.requires_external===0)]);
+
 const directIds=[...integrations.matchAll(/\{ id:'([^']+)'/g)].map(x=>x[1]);
 const catalogIds=new Set([...catalog.matchAll(/\{id:'([^']+)'/g)].map(x=>x[1]));
 const runtimeAbsorption=liveAbsorptionCatalog(),runtimeManifest=liveCapabilityManifest(),persistentManifest=getPersistentConnectorAbsorptionManifest(),pluginManifest=getChatGPTPluginCapabilityManifest(),skillManifest=getInstalledPluginSkillManifest(),builderManifest=getMagnanimousBuilderCapabilityManifest(),engineeringManifest=getMagnanimousEngineeringSkillManifest(),runtimeSummary=getConnectorAbsorptionSummary(),liveToolSummary=getLivePluginToolResearchSummary(),liveSkillSummary=getLivePluginSkillResearchSummary(),realizations=runtimeManifest.map(classifyCapabilityRealization);
@@ -211,6 +219,9 @@ checks.push(['current live plugin research excludes retired provider and covers 
 checks.push(['retained plugin tool manifest covers at least 2265 active tool contracts including Plugin Management',runtimeSummary.visible_plugin_tool_contracts>=2265]);
 checks.push(['plugin tool contracts are converted one by one',pluginManifest.length>=2265]);
 checks.push(['Plugin Management capabilities are absorbed into the manifest',pluginManifest.some(x=>x.plugin_namespace==='Plugin_Management'&&x.capability.includes('search-plugins'))]);
+for(const ns of ['3Min_API','API_Documentation_Checker','API_Impact_Mapper','API_Lessons','Apixel','SignatureAPI','Sugra_API']){
+ checks.push([`new live plugin tools absorbed: ${ns}`,pluginManifest.some(x=>x.plugin_namespace===ns)]);
+}
 checks.push(['first-party Builder contracts are not plugin-owned',builderManifest.every(x=>!x.plugin_namespace&&x.connector_id==='magnanimous-builder')]);
 checks.push(['all 44 builder operations are first-party Magnanimous contracts',MAGNANIMOUS_BUILDER_TOOL_CONTRACTS.length===44&&builderManifest.length===44&&builderManifest.every(x=>x.connector_id==='magnanimous-builder'&&x.authorization_state==='magnanimous-first-party')]);
 checks.push(['Magnanimous engineering catalog contains exactly 65 first-party guidance topics',MAGNANIMOUS_ENGINEERING_GUIDE_TOPICS.length===65&&engineeringManifest.length===65]);
@@ -226,6 +237,10 @@ checks.push(['retained plugin skill research covers at least 109 skill namespace
 checks.push(['current live skill catalog covers at least 107 namespaces and 855 skills',liveSkillSummary.live_skill_namespaces>=107&&liveSkillSummary.live_skill_contracts>=855&&runtimeSummary.currently_visible_plugin_skills>=855]);
 checks.push(['retained plugin skill snapshot covers at least 867 skill contracts for continuity',runtimeSummary.installed_plugin_skills>=867]);
 checks.push(['installed plugin skills are converted one by one',skillManifest.length>=867]);
+for(const ns of ['app-69f271663a288191ac98f46bed7cb032','app-6a0bcefe6dbc8191acf88ce22e2eef3a','treg']){
+ checks.push([`new live-only plugin skills absorbed: ${ns}`,skillManifest.some(x=>x.plugin_namespace===ns)]);
+}
+checks.push(['live-only skill namespaces are included in combined manifest',runtimeSummary.live_only_plugin_skill_namespaces>=3]);
 checks.push(['full Magnanimous brain manifest covers connectors, active plugin tools, installed skills, first-party Builder, and Magnanimous Engineering',runtimeManifest.length>=3535&&runtimeSummary.full_brain_capability_contracts>=3535]);
 checks.push(['one-by-one research state is explicit',runtimeSummary.one_by_one_research===true]);
 checks.push(['execution-surface registry has proven native and hybrid targets',Object.values(MAGNANIMOUS_EXECUTION_SURFACES).some(x=>x.mode==='native')&&Object.values(MAGNANIMOUS_EXECUTION_SURFACES).some(x=>x.mode==='hybrid')]);

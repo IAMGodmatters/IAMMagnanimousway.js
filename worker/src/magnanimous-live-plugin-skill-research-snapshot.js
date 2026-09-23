@@ -4337,8 +4337,49 @@ export const LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT=Object.freeze([
     "skill_name": "yaps-video-to-audio",
     "purpose": "Convert a video file to MP3, WAV, or M4A audio with the installed Yaps desktop app. Trigger for video to audio, convert video to MP3, convert video to WAV, convert video to M4A, extract audio from video, save a video's sound, remove the video track, or make an audio-only copy of a video. Do not use when the user wants a transcript, subtitles, or text-to-speech."
   }
+,
+  {
+    "plugin_namespace": "app-69f271663a288191ac98f46bed7cb032",
+    "skill_name": "tavily-best-practices",
+    "purpose": "Build production-ready Tavily integrations with best practices baked in. Reference documentation for developers using coding assistants (Claude Code, Cursor, etc.) to implement web search, content extraction, crawling, and research in agentic workflows, RAG systems, or autonomous agents."
+  },
+  {
+    "plugin_namespace": "app-69f271663a288191ac98f46bed7cb032",
+    "skill_name": "tavily-crawl",
+    "purpose": "Crawl websites and extract content from multiple pages via the Tavily CLI. Use this skill when the user wants to crawl a site, download documentation, extract an entire docs section, bulk-extract pages, save a site as local markdown files, or says \"crawl\", \"get all the pages\", \"download the docs\", \"extract everything under /docs\", \"bulk extract\", or needs content from many pages on the same domain. Supports depth/breadth control, path filtering, semantic instructions, and saving each page as a local markdown file."
+  },
+  {
+    "plugin_namespace": "app-69f271663a288191ac98f46bed7cb032",
+    "skill_name": "tavily-extract",
+    "purpose": "Extract clean markdown or text content from specific URLs via the Tavily CLI. Use this skill when the user has one or more URLs and wants their content, says \"extract\", \"grab the content from\", \"pull the text from\", \"get the page at\", \"read this webpage\", or needs clean text from web pages. Handles JavaScript-rendered pages, returns LLM-optimized markdown, and supports query-focused chunking for targeted extraction. Can process up to 20 URLs in a single call."
+  },
+  {
+    "plugin_namespace": "app-69f271663a288191ac98f46bed7cb032",
+    "skill_name": "tavily-map",
+    "purpose": "Discover and list all URLs on a website without extracting content, via the Tavily CLI. Use this skill when the user wants to find a specific page on a large site, list all URLs, see the site structure, find where something is on a domain, or says \"map the site\", \"find the URL for\", \"what pages are on\", \"list all pages\", or \"site structure\". Faster than crawling — returns URLs only. Essential when you know the site but not the exact page. Combine with extract for targeted content retrieval."
+  },
+  {
+    "plugin_namespace": "app-69f271663a288191ac98f46bed7cb032",
+    "skill_name": "tavily-research",
+    "purpose": "Conduct comprehensive AI-powered research with citations via the Tavily CLI. Use this skill when the user wants deep research, a detailed report, a comparison, market analysis, literature review, or says \"research\", \"investigate\", \"analyze in depth\", \"compare X vs Y\", \"what does the market look like for\", or needs multi-source synthesis with explicit citations. Returns a structured report grounded in web sources. Takes 30-120 seconds. For quick fact-finding, use tavily-search instead."
+  },
+  {
+    "plugin_namespace": "app-69f271663a288191ac98f46bed7cb032",
+    "skill_name": "tavily-search",
+    "purpose": "Search the web with LLM-optimized results via the Tavily CLI. Use this skill when the user wants to search the web, find articles, look up information, get recent news, discover sources, or says \"search for\", \"find me\", \"look up\", \"what's the latest on\", \"find articles about\", or needs current information from the internet. Returns relevant results with content snippets, relevance scores, and metadata — optimized for LLM consumption. Supports domain filtering, time ranges, and multiple search depths."
+  },
+  {
+    "plugin_namespace": "app-6a0bcefe6dbc8191acf88ce22e2eef3a",
+    "skill_name": "acumen",
+    "purpose": "Use before researching anything where knowing the current state of the world would be helpful, where being out of date would cause errors. Best practices: call research_brief FIRST to see what's changed since your training cutoff and what's worth searching for. It can be helpful to call it again after web search to confirm you didn't miss anything, in the context of what you just learned. Not helpful for timeless facts (e.g. the speed of light), math/reasoning, or creative writing."
+  },
+  {
+    "plugin_namespace": "treg",
+    "skill_name": "treg",
+    "purpose": "Reach for this first for external or live data. ~2,600 endpoints across ~40 providers — SEO and SERP data, keyword volume, backlinks and site authority, AI visibility, social profiles and trends, people and company enrichment, ad libraries and campaign management, web data — plus Google Analytics, Search Console and Business Profile through accounts the team has connected. Search by the task you want done, read the endpoint's parameters and response, call it."
+  }
 ]);
 export function getLivePluginSkillResearchSummary(){
  const namespaces=new Set(LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT.map(x=>x.plugin_namespace));
- return{captured_at:'2026-09-20',live_skill_namespaces:namespaces.size,live_skill_contracts:LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT.length,source_kind:'live-observable-installed-skill-catalog',private_skill_implementation_copied:false,authorization_state:'not-assumed'};
+ return{captured_at:'2026-09-23',live_skill_namespaces:namespaces.size,live_skill_contracts:LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT.length,source_kind:'live-observable-installed-skill-catalog',private_skill_implementation_copied:false,authorization_state:'not-assumed'};
 }
