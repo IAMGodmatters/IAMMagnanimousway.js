@@ -392,6 +392,157 @@ function internalAuthorized(req) {
   return Boolean(expected) && String(req.headers['x-magnanimous-service-token'] || '') === expected;
 }
 
+const DEPLOY_SMOKE_TENANT_TABLES = [
+  'auth_sessions',
+  'agent_branch_training_submissions',
+  'agent_branch_knowledge',
+  'agent_mesh_messages',
+  'white_label_brain_signals',
+  'white_label_brain_memory',
+  'magnanimous_outcomes',
+  'agency_client_apps',
+  'agency_automation_runs',
+  'agency_automations',
+  'agency_affiliate_referrals',
+  'agency_affiliate_programs',
+  'agency_community_spaces',
+  'agency_portal_pages',
+  'agency_learning_assets',
+  'agency_contracts',
+  'agency_projects',
+  'agency_catalog_items',
+  'agency_usage_rebill',
+  'agency_reputation_items',
+  'agency_funnels',
+  'agency_bookings',
+  'agency_client_settings',
+  'unified_inbox_audit',
+  'unified_inbox_messages',
+  'unified_inbox_threads',
+  'media_library_assets',
+  'magnanimous_local_bridge_tasks',
+  'magnanimous_local_bridge_devices',
+  'magnanimous_local_bridge_pairings',
+  'data_studio_workbooks',
+  'magnanimous_business_ai_jobs',
+  'magnanimous_work_steps',
+  'magnanimous_work_items',
+  'bpo_audit_events',
+  'bpo_work_items',
+  'bpo_programs',
+  'bpo_clients',
+  'crm_activities',
+  'crm_opportunities',
+  'crm_contacts',
+  'billing_usage_guard',
+  'billing_management_requests',
+  'voice_agent_turns',
+  'voice_do_not_call',
+  'voice_agents',
+  'tenant_settings',
+  'billing_subscriptions',
+  'qa_observations'
+];
+
+async function handleDeploymentSmokeControl(req, res, pathname) {
+  if (pathname !== '/__magnanimous_runtime/smoke/tenant') return false;
+  if (req.method !== 'POST') {
+    res.statusCode = 405;
+    res.setHeader('allow', 'POST');
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({ detail: 'Method not allowed.' }));
+    return true;
+  }
+
+  const authorization = String(req.headers.authorization || '');
+  const token = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
+  if (!token) {
+    res.statusCode = 401;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({ detail: 'Signed GitHub Actions identity required.' }));
+    return true;
+  }
+
+  try {
+    const source = await verifyGitHubActionsOidc(token, {
+      audience: String(process.env.MAGNANIMOUS_DEPLOY_SMOKE_AUDIENCE || 'magnanimous-deploy-smoke'),
+      repository: String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js'),
+      ref: 'refs/heads/main',
+      workflowFile: '.github/workflows/deploy.yml',
+      allowedEvents: ['push', 'workflow_dispatch']
+    });
+    const revision = runtimeRevision();
+    if (!revision || revision !== String(source.sha || '').trim()) {
+      throw new Error('Deployment smoke control revision mismatch.');
+    }
+
+    const payload = JSON.parse((await readLimitedBody(req, 16384)).toString('utf8'));
+    const tenantId = String(payload?.tenant_id || '').trim();
+    const action = String(payload?.action || '').trim().toLowerCase();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId)) {
+      throw new Error('Invalid deployment smoke tenant identifier.');
+    }
+
+    const tenant = await db.prepare('SELECT id,name FROM tenants WHERE id=? LIMIT 1').bind(tenantId).first();
+    const smokeUser = await db.prepare("SELECT id,email,name FROM users WHERE tenant_id=? AND lower(email) LIKE 'deploy-smoke-%@example.com' AND name='Deployment Smoke Test' LIMIT 1").bind(tenantId).first();
+    if (!tenant?.id || tenant?.name !== 'Deployment Smoke Test' || !smokeUser?.id) {
+      res.statusCode = 404;
+      res.setHeader('content-type', 'application/json; charset=utf-8');
+      res.setHeader('cache-control', 'no-store');
+      res.end(JSON.stringify({ detail: 'Disposable deployment smoke tenant not found.' }));
+      return true;
+    }
+
+    if (action === 'grant_agency') {
+      const now = Math.floor(Date.now() / 1000);
+      await db.batch([
+        db.prepare(`INSERT INTO billing_subscriptions(tenant_id,plan,stripe_customer_id,stripe_subscription_id,status,current_period_end,created_at,updated_at)
+          VALUES(?,?,?,?,?,?,?,?)
+          ON CONFLICT(tenant_id) DO UPDATE SET plan=excluded.plan,status=excluded.status,updated_at=excluded.updated_at`)
+          .bind(tenantId, 'agency', null, null, 'active', null, now, now),
+        db.prepare("UPDATE tenants SET plan='agency' WHERE id=?").bind(tenantId)
+      ]);
+      res.statusCode = 200;
+      res.setHeader('content-type', 'application/json; charset=utf-8');
+      res.setHeader('cache-control', 'no-store');
+      res.end(JSON.stringify({ ok: true, action, tenant_id: tenantId, plan: 'agency', source_sha: source.sha }));
+      return true;
+    }
+
+    if (action === 'cleanup') {
+      const tableRows = await db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+      const existing = new Set((tableRows.results || []).map((row) => String(row.name || '')));
+      const statements = [];
+      for (const table of DEPLOY_SMOKE_TENANT_TABLES) {
+        if (existing.has(table)) statements.push(db.prepare(`DELETE FROM ${table} WHERE tenant_id=?`).bind(tenantId));
+      }
+      if (existing.has('consent_records') && existing.has('users')) {
+        statements.push(db.prepare('DELETE FROM consent_records WHERE user_id IN (SELECT id FROM users WHERE tenant_id=?)').bind(tenantId));
+      }
+      statements.push(db.prepare('DELETE FROM users WHERE tenant_id=?').bind(tenantId));
+      statements.push(db.prepare('DELETE FROM tenants WHERE id=?').bind(tenantId));
+      await db.batch(statements);
+      res.statusCode = 200;
+      res.setHeader('content-type', 'application/json; charset=utf-8');
+      res.setHeader('cache-control', 'no-store');
+      res.end(JSON.stringify({ ok: true, action, tenant_id: tenantId, source_sha: source.sha }));
+      return true;
+    }
+
+    res.statusCode = 400;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.setHeader('cache-control', 'no-store');
+    res.end(JSON.stringify({ detail: 'Unsupported deployment smoke action.' }));
+  } catch (error) {
+    console.error('Magnanimous deployment smoke control failed', String(error?.message || error));
+    res.statusCode = 403;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.setHeader('cache-control', 'no-store');
+    res.end(JSON.stringify({ detail: 'Deployment smoke authorization or control failed.' }));
+  }
+  return true;
+}
+
 function executionContext() {
   const pending = [];
 
@@ -420,6 +571,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (await handleMigrationStage(req, res, pathname)) {
+      metrics.observe(res.statusCode, Date.now() - startedAt);
+      return;
+    }
+
+    if (await handleDeploymentSmokeControl(req, res, pathname)) {
       metrics.observe(res.statusCode, Date.now() - startedAt);
       return;
     }
