@@ -21,6 +21,7 @@ import {handleWhiteLabelWhatsApp} from './white-label-whatsapp-inbox.js';
 import {handleMagnanimousNativeWeb,scheduledNativeWeb} from './magnanimous-native-web-runtime.js';
 import {scheduledMagnanimousCapabilityMesh} from './magnanimous-capability-mesh.js';
 import {handleMagnanimousRoutineStudio,scheduledMagnanimousRoutines} from './magnanimous-skill-routine-runtime.js';
+import {handlePaymentLinkBilling,augmentBillingResponse} from './payment-link-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -130,6 +131,17 @@ async function operationsFetch(request,env,ctx){
   try{const growth=await handleGrowthRecovery(request,env);if(growth)return growth}catch(error){console.error('growth recovery layer failed',error);return json({detail:'Growth Funnel could not complete this request.'},500)}
 
   try{
+   const paymentLink=await handlePaymentLinkBilling(request,env);
+   if(paymentLink){
+    if(path==='/api/billing/checkout'&&request.method==='POST'&&paymentLink.ok){
+     const [body,user,data]=await Promise.all([bodyOf(request),signedIn(request,env),responseJson(paymentLink)]);
+     if(user&&data?.url)queueAutomation(ctx,recordPlatformCheckout(env,user,body,data));
+    }
+    return paymentLink;
+   }
+  }catch(error){console.error('payment-link billing layer failed',error);return json({detail:'Billing checkout could not complete this request.'},500)}
+
+  try{
    const agencyBilling=await handleAgencyBillingBefore(request,env);
    if(agencyBilling){
     if(path==='/api/billing/checkout'&&request.method==='POST'&&agencyBilling.ok){
@@ -177,8 +189,13 @@ async function operationsFetch(request,env,ctx){
   const response=await app.fetch(request,env,ctx);
 
   if(path==='/api/plans'&&request.method==='GET'&&response.ok){
-   const data=await responseJson(response);if(data)return json(extendPlansPayload(data,env),response.status);
+   const data=await responseJson(response);
+   if(data){
+    const extended=json(extendPlansPayload(data,env),response.status);
+    return augmentBillingResponse(request,extended,env);
+   }
   }
+  if(path==='/api/billing/status'&&request.method==='GET'&&response.ok)return augmentBillingResponse(request,response,env);
   if(signupBody&&response.ok){
    const data=await responseJson(response);if(data?.user?.id)queueAutomation(ctx,recordSignupLead(env,data.user,signupBody));
   }
