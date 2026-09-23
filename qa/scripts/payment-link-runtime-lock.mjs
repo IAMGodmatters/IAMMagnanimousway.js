@@ -8,5 +8,6 @@ must(operations.includes("await handlePaymentLinkBilling(request,env)"),'checkou
 must(operations.includes("return augmentBillingResponse(request,extended,env)"),'plans response must expose payment-link readiness');
 must(operations.includes("return augmentBillingResponse(request,response,env)"),'billing status must expose payment-link readiness');
 must(runtime.includes("client_reference_id"),'payment links must carry tenant/plan reference');
+must(runtime.includes("requestedPlan==='agency'||requestedPlan==='agency_pro'"),'ordinary payment-link fallback must yield agency plans to the dedicated Agency billing handler');
 must(runtime.includes("tier_checkout_configured"),'payment-link runtime must mark paid tiers configured');
 console.log('Payment-link runtime lock: PASS — configured Stripe payment links are wired into checkout, plans, and billing status.');
