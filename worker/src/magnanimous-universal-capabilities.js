@@ -41,7 +41,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'files-documents',
     name: 'Files, documents and knowledge work',
-    capabilities: ['file-search','document-understanding','document-generation','spreadsheets','presentations','pdfs','knowledge-bases','semantic-retrieval','document-citations']
+    capabilities: ['file-search','document-understanding','document-generation','spreadsheets','presentations','pdfs','knowledge-bases','semantic-retrieval','document-citations','document-comments','structured-sheet-editing','presentation-editing']
   },
   {
     id: 'memory-personalization',
@@ -56,12 +56,12 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'tools-connectors',
     name: 'Tools, functions, MCP and connectors',
-    capabilities: ['function-calling','mcp','oauth-connectors','api-tools','direct-tool-calling','tool-discovery','tool-filtering','approval-gates','normalized-tool-contracts','capability-mesh','provider-readiness-routing','native-first-fallback-selection','single-public-ai-identity','private-execution-routing','unified-capability-directory']
+    capabilities: ['function-calling','mcp','oauth-connectors','api-tools','direct-tool-calling','tool-discovery','tool-filtering','approval-gates','normalized-tool-contracts','capability-mesh','provider-readiness-routing','native-first-fallback-selection','single-public-ai-identity','private-execution-routing','unified-capability-directory','plugin-capability-inventory','capability-pattern-extraction','native-skill-synthesis','provider-exit-readiness','dependency-retirement-gates']
   },
   {
     id: 'business-operations',
     name: 'Business and operational intelligence',
-    capabilities: ['crm','sales','marketing','finance','customer-service','commerce','project-management','analytics','scheduling','communications','business-planning']
+    capabilities: ['crm','sales','marketing','finance','customer-service','commerce','project-management','analytics','scheduling','communications','business-planning','payments-and-subscriptions','pipeline-hygiene','customer-prep','content-publishing','social-operations']
   },
   {
     id: 'dns-domain-operations',
@@ -81,7 +81,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'accessibility-language',
     name: 'Language and accessibility',
-    capabilities: ['translation','multilingual-dialogue','plain-language','captioning','transcription','screen-reader-friendly-output','localization','tone-adaptation']
+    capabilities: ['translation','multilingual-dialogue','plain-language','captioning','transcription','screen-reader-friendly-output','localization','tone-adaptation','offline-translation','timed-video-captions']
   },
   {
     id: 'future-adapters',
@@ -110,6 +110,8 @@ export const MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL = {
     'Verify important outputs against evidence, tests, schemas, permissions and actual tool results.',
     'Save reusable lessons, source-backed knowledge, successful plans and low-risk recipes back into Magnanimous memory.',
     'Convert repeatable work into Magnanimous-owned skills and routines with durable run history, bounded retries and approval-aware execution.',
+    'Inventory authorized plugin capabilities as learning inputs, map each capability to a provider-neutral contract, and prefer a Magnanimous-owned implementation whenever it can be built legally and reliably.',
+    'Treat plugin independence as a measured migration: native implementation, parity tests, security tests, production canary, rollback proof, then optional dependency retirement. Never remove a working provider before the native path proves equivalent behavior.',
     'Never expose execution-provider or model identity to public customers; owner-only configuration and diagnostics may show the real infrastructure needed to authorize, troubleshoot or replace it.'
   ]
 };
@@ -141,6 +143,10 @@ export const MAGNANIMOUS_SELF_EVOLUTION_PROTOCOL = {
       'sandbox experiments',
       'capability-gap detection',
       'documentation and skill synthesis',
+      'authorized plugin capability inventory',
+      'provider-neutral contract generation',
+      'native replacement test generation',
+      'dependency exit-readiness scoring',
       'rollback of failed canary skills'
     ],
     thresholds: {
@@ -165,6 +171,7 @@ export const MAGNANIMOUS_SELF_EVOLUTION_PROTOCOL = {
     'Self-learning does not mean silently retraining a public foundation model on private user data.',
     'Self-improvement must not remove authentication, authorization, tenant isolation, secret protection or legal/safety controls. It may improve recipes, routing, memory, tests and adapters only within those boundaries.',
     'Magnanimous may learn the public behavior and workflow pattern of another AI capability, but must not copy proprietary weights, hidden prompts, private code, stolen credentials or restricted data.',
+    'Owning a plugin connection or API authorization does not transfer ownership of the provider software, private implementation, models, datasets, trademarks or other proprietary technology. Magnanimous may build original interoperable equivalents from public contracts, open standards, licensed components and authorized observations.',
     'A capability is not claimed as working until the current runtime proves it through an actual tool result, test or configured adapter.',
     'Every autonomous change must be observable, attributable, testable and reversible.'
   ]
@@ -175,6 +182,7 @@ export const MAGNANIMOUS_SOURCE_OF_CAPABILITY = {
   native_growth_rule: 'When a repeated capability can be implemented with Magnanimous-owned code, open standards, authorized data and proven recipes, migrate more of that capability into the native platform over time.',
   native_web_rule: 'Search, rendered extraction, browser workflows, persistent sessions and scheduled monitoring should use Magnanimous-owned contracts and local Chromium execution when available; provider-specific anti-bot or proxy infrastructure remains optional and must not be misrepresented as native.',
   adapter_rule: 'When a capability requires proprietary compute, live external data or an authorized account, keep a normalized adapter so providers remain replaceable.',
+  plugin_independence_rule: 'For every authorized plugin, record the user-visible capability, inputs, outputs, permissions, failure modes and verification contract; implement an original native equivalent where practical; prove parity and rollback before making the plugin optional.',
   knowledge_rule: 'Continuously refresh changeable facts from current sources instead of freezing stale claims into permanent memory.',
   quality_rule: 'Superior means better verified outcomes, reliability, continuity, privacy, adaptability and tool execution—not pretending limits do not exist.'
 };
