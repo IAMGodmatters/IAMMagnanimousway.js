@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {LATEST_PLUGIN_CAPABILITY_DELTA,getLatestPluginCapabilityDeltaSummary} from '../../worker/src/magnanimous-latest-plugin-capability-delta.js';
+import {getChatGPTPluginCapabilityManifest,getConnectorAbsorptionSummary} from '../../worker/src/magnanimous-connector-absorption.js';
+const required=['3Min_API','API_Documentation_Checker','API_Impact_Mapper','Sugra_API','Acumen_by_Talarion'];
+const summary=getLatestPluginCapabilityDeltaSummary();
+assert.equal(summary.authorization_state,'not-assumed');
+assert.equal(summary.proprietary_copying,false);
+for(const namespace of required)assert.ok(LATEST_PLUGIN_CAPABILITY_DELTA.some(x=>x.namespace===namespace),namespace+' missing from latest plugin delta');
+const manifest=getChatGPTPluginCapabilityManifest();
+for(const namespace of required)assert.ok(manifest.some(x=>x.plugin_namespace===namespace),namespace+' missing from Magnanimous manifest');
+const full=getConnectorAbsorptionSummary();
+assert.ok(full.latest_plugin_delta.tool_contracts>=LATEST_PLUGIN_CAPABILITY_DELTA.length);
+console.log('Latest plugin capability delta lock passed:',summary);
