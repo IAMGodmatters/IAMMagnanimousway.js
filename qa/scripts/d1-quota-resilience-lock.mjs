@@ -7,6 +7,7 @@ const sessions=read('worker/src/session-authority.js');
 const obs=read('worker/src/request-observability.js');
 const adminCompat=read('worker/src/admin-compat-entrypoint.js');
 const securityEntry=read('worker/src/security-entrypoint.js');
+const standaloneServer=read('magnanimous-runtime/src/server.mjs');
 const wrangler=read('worker/wrangler.jsonc');
 const migration=read('worker/migrations/0080_runtime_bootstrap_quota_hardening.sql');
 const authMigration=read('worker/migrations/0081_admin_auth_quota_hardening.sql');
@@ -51,6 +52,9 @@ add('generic internal errors remain 500',obs.includes("code:'INTERNAL_ERROR'"));
 add('Cloudflare API edge routes to standalone Magnanimous data plane before D1 work',securityEntry.includes('proxyApiToStandalone(request,env)')&&securityEntry.indexOf('proxyApiToStandalone(request,env)')<securityEntry.indexOf('requestCorrelationId(request)'));
 add('standalone runtime never self-proxies through the Cloudflare edge',securityEntry.includes("MAGNANIMOUS_RUNTIME||''")&&securityEntry.includes("==='standalone-node'"));
 add('standalone proxy has explicit loop protection',securityEntry.includes("x-magnanimous-standalone-proxy")&&securityEntry.includes("==='1'"));
+add('hosted funnels share the standalone data plane with the API that creates them',securityEntry.includes("url.pathname.startsWith('/api/')||url.pathname.startsWith('/funnels/')"));
+add('standalone proxy preserves the canonical Magnanimous public origin',securityEntry.includes("headers.set('x-magnanimous-public-origin',url.origin)"));
+add('standalone runtime accepts only trusted Magnanimous public origins',standaloneServer.includes('trustedMagnanimousPublicOrigin')&&standaloneServer.includes('MAGNANIMOUS_PUBLIC_ORIGINS')&&standaloneServer.includes('https://iammagnanimousway.com'));
 add('standalone proxy keeps Cloudflare as a truthful rollback path',securityEntry.includes('retaining Cloudflare rollback path')&&securityEntry.includes('return null;'));
 add('Cloudflare production config points API traffic at the Magnanimous standalone origin',wrangler.includes('"MAGNANIMOUS_STANDALONE_API_ORIGIN": "https://magnanimous-production.up.railway.app"'));
 

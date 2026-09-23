@@ -94,7 +94,8 @@ function configuredStandaloneApiOrigin(env){
 
 async function proxyApiToStandalone(request,env){
   const url=new URL(request.url);
-  if(!url.pathname.startsWith('/api/'))return null;
+  const standaloneDataPlaneRoute=url.pathname.startsWith('/api/')||url.pathname.startsWith('/funnels/');
+  if(!standaloneDataPlaneRoute)return null;
   if(request.headers.get('x-magnanimous-standalone-proxy')==='1')return null;
   const origin=configuredStandaloneApiOrigin(env);
   if(!origin)return null;
@@ -102,6 +103,7 @@ async function proxyApiToStandalone(request,env){
   const headers=new Headers(request.headers);
   headers.delete('host');
   headers.set('x-magnanimous-standalone-proxy','1');
+  headers.set('x-magnanimous-public-origin',url.origin);
   headers.set('x-forwarded-host',url.host);
   headers.set('x-forwarded-proto',url.protocol.replace(':',''));
   try{
@@ -116,7 +118,7 @@ async function proxyApiToStandalone(request,env){
     responseHeaders.set('x-magnanimous-data-plane','standalone');
     return new Response(response.body,{status:response.status,statusText:response.statusText,headers:responseHeaders});
   }catch(error){
-    console.error('Magnanimous standalone API proxy unavailable; retaining Cloudflare rollback path.',String(error?.message||error));
+    console.error('Magnanimous standalone data-plane proxy unavailable; retaining Cloudflare rollback path.',String(error?.message||error));
     return null;
   }
 }
