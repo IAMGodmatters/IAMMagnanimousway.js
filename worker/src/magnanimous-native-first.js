@@ -2,7 +2,7 @@ import { currentUser } from './integrations.js';
 import { requirePlatformOwner } from './platform-owner-guard.js';
 import { getIntegrationCatalog } from './magnanimous-integration-catalog.js';
 import { upsertApprovedTeachingTool } from './magnanimous-tool-foundry.js';
-import { getPersistentConnectorAbsorptionManifest, getCapabilityAbsorptionManifest, getCapabilityResearchRecord, getConnectorAbsorptionCatalog, getConnectorAbsorptionSummary } from './magnanimous-connector-absorption.js';
+import { getPersistentConnectorAbsorptionManifest, getCapabilityAbsorptionManifest, getCapabilityResearchRecord, getConnectorAbsorptionCatalog, getConnectorAbsorptionSummary, getPluginIndependenceReadiness } from './magnanimous-connector-absorption.js';
 import { OGENIC_SKILL_SNAPSHOT, OGENIC_CAPABILITY_GROUPS, GOD_MODE_TOOL_FAMILIES, NETWALK_NATIVE_CONTRACT } from './magnanimous-ogenic-god-toolkit.js';
 import { getCapabilityRealizationSummary, listCapabilityRealizations } from './magnanimous-capability-realization.js';
 
@@ -240,6 +240,7 @@ async function overview(env){
   engineering_architecture_policy:'Decompose large responsibilities, apply SOLID boundaries, and compose small services through dependency injection so external adapters remain replaceable.',
   capability_count:capabilities.length,native_count:capabilities.filter(x=>x.status==='native').length,specified_count:capabilities.filter(x=>x.status==='specified').length,
   connector_absorption:getConnectorAbsorptionSummary(),
+  plugin_independence:getPluginIndependenceReadiness(),
   full_brain_independence:fullBrainIndependenceAudit(),
   capability_realization:realization,
   ogenic_god_toolkit:{absorbed:true,skill_count:OGENIC_SKILL_SNAPSHOT.skills.length,capability_group_count:OGENIC_CAPABILITY_GROUPS.length,tool_family_count:GOD_MODE_TOOL_FAMILIES.length,netwalk_mode:NETWALK_NATIVE_CONTRACT.mode,initiative:'suggest-and-initiate-safe-actions'},
@@ -302,6 +303,7 @@ export async function handleMagnanimousNativeFirst(request,env){
   const total=Number(countRow?.count||0);
   return json({identity:'Magnanimous AI',scope,summary:getConnectorAbsorptionSummary(),total,limit,offset,next_offset:offset+results.length<total?offset+results.length:null,capabilities:results.map(x=>({...x,research:JSON.parse(x.research_json||'{}'),spec:JSON.parse(x.spec_json||'{}'),research_json:undefined,spec_json:undefined})),policy:getConnectorAbsorptionSummary().absorption_policy});
  }
+ if(request.method==='GET'&&path==='/api/magnanimous/native-first/independence')return json(getPluginIndependenceReadiness());
  if(request.method==='GET'&&path==='/api/magnanimous/native-first/realizations'){
   const status=clip(url.searchParams.get('status'),40),goal=clip(url.searchParams.get('goal'),1000),limit=Math.max(1,Math.min(200,Number(url.searchParams.get('limit')||80))),offset=Math.max(0,Number(url.searchParams.get('offset')||0));
   const rows=await listCapabilityRealizations(env,{status,goal,limit,offset}),summary=await getCapabilityRealizationSummary(env);
