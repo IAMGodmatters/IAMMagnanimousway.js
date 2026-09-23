@@ -11404,8 +11404,209 @@ export const LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT=Object.freeze([
     "tool": "tavily_feedback",
     "purpose": "Prepare rich POST /feedback for a search request or session. Maximize useful signal whenever you call this tool: 1) Scope: set request_id from the search response (and/or session_id). 2) Per-result urls_scores first — MANDATORY when scoring a search: include an entry for EVERY result in the search response, HELPFUL and WEAK/IRRELEVANT/HARMFUL alike, by id (1 perfect ... 0 irrelevant ... -1 harmful). Vary scores honestly; do not reuse one default value. Never submit an agent_score with empty urls_scores. 3) Overall agent_score: derive from those urls_scores (and whether you could answer well). Never default to 0.7. Also set response_delivered. 4) Provenance: set used_ids for every result you relied on; add used_citations for key snippets when available. 5) Explain failures: any score < 0.5 needs comment (overall and/or per-result). 6) Optional depth: extra_scores (e.g. freshness, authorit"
   }
+,
+  {
+    "namespace": "3Min_API",
+    "tool": "worker_list",
+    "purpose": "Use this when the user refers to one of their workers — by name, by what it does, or by asking what is available — and a worker name is needed to start a task. Examples: \"What workers do I have?\", \"Send this to our ERP\", \"Is there a worker that handles invoices?\" Returns each worker's name and description, 10 per page with keyset pagination, optionally narrowed by a name search. A worker is the user's own HTTP endpoint: 3Min API delivers each task to it as a signed POST, and the worker sets that task's status by calling the status report API with its callback key. How to build a worker is in help(topic: \"tasks\"). Workers are registered, edited and deleted only on the 3Min API dashboard, beca"
+  },
+  {
+    "namespace": "3Min_API",
+    "tool": "task_create",
+    "purpose": "Use this when the user wants a job handed to one of their registered workers. Examples: \"Ask the inventory worker to restock SKU 1042\", \"Run the monthly report on my reporting worker now\" 3Min API does not run the job: it delivers the JSON input to the worker as a signed POST and returns a task id with status \"working\". The worker then sets the status through the status report API — progress messages while working, then completed with a result or failed with an error. How to implement that is in help(topic: \"tasks\"). Two separate time limits apply. A task not reported completed or failed within 24 hours is marked failed, as is one that could not be delivered. A finished task's record — statu"
+  },
+  {
+    "namespace": "3Min_API",
+    "tool": "task_list",
+    "purpose": "Use this when the user asks about their tasks without a specific task id at hand — what is running, what has finished, or what happened to something started earlier, including in a previous conversation. Examples: \"How did that order I sent go?\", \"Show my recent tasks\", \"Is the import still running?\" Returns a summary of every task within retention — all statuses, most recently updated first, 25 per page (up to 100) with keyset pagination. Each row has the task id, worker name, status, status_message and timestamps. status and status_message are set by the worker through the status report API (implementation: help(topic: \"tasks\")), or by 3Min API when delivery fails, 24 hours pass, or the ta"
+  },
+  {
+    "namespace": "3Min_API",
+    "tool": "task_get",
+    "purpose": "Use this when a specific task id is at hand and the user wants that task's current status or its outcome. Examples: \"Is it done yet?\", \"What did the worker send back?\" Returns the full task in any status: status (working, completed, failed or cancelled), status_message, and — once finished — the result or error, passed through unmodified, up to about 100 KB. These values come from the worker's calls to the status report API (implementation: help(topic: \"tasks\")). 3Min API itself sets failed, with its own error, when delivery fails or 24 hours pass without a final report, and cancelled on cancellation. A working task returns the same response until one of those happens. A task id from another"
+  },
+  {
+    "namespace": "3Min_API",
+    "tool": "task_cancel",
+    "purpose": "Use this when the user wants to stop one or more tasks that have not finished. Examples: \"Cancel that order\", \"Stop all the imports I just started\" Takes up to 100 task ids and returns a result for each: cancelled, already_terminal (with the final status), or not_found. Some ids being cancelled while others are not is a normal outcome. Cancelling marks the task cancelled and stops any further delivery attempts. A worker that has already received the task is not notified and may still carry it out; its later call to the status report API is rejected (help(topic: \"tasks\")). Completed, failed and cancelled tasks never change status. ```ts mcp__3Min_API__task_cancel(args: { // (required) Task id"
+  },
+  {
+    "namespace": "3Min_API",
+    "tool": "help",
+    "purpose": "Guide a newly connected user all the way to their first working endpoint — don't just hand them a reference, take them there. The 3Min API onboarding and service guide. Call with no topic when a user first connects or asks \"what can this do?\": you'll get an onboarding script that walks them from zero to a live API in about 30 seconds. Lead with action — offer to build a working endpoint right now, then test it — instead of dumping documentation. If the user mentions WordPress, a blog, or a WP site at any point, propose the `wordpress_plugin` tool to embed the endpoint into their site. When to use: - On first connection, or when a user asks what the service can do (no topic → onboarding) - Wh"
+  },
+  {
+    "namespace": "3Min_API",
+    "tool": "endpoints",
+    "purpose": "Create and manage an HTTP endpoint that receives JSON from anywhere — a form, a script, a partner's system, or an AI agent — and stores each record. Records reach the user's own system by webhook, by poll, or by direct read. List, create, update, and deploy your endpoints to production. Use help(topic: \"endpoints\") for field rules and error codes. Workflow: 1. create — new endpoint 2. api_call — test in sandbox (create already runs the first one for you) 3. update with webhook_url — forward every call to the user's own system. Almost every production user consumes their data this way, so ask for a receiving URL instead of waiting to be asked; help(topic: \"webhooks\") covers the receiver side."
+  },
+  {
+    "namespace": "3Min_API",
+    "tool": "api_call",
+    "purpose": "Send data to an endpoint and read its records — test calls, real writes, and the /poll and /search read paths, all from here. Runs your endpoint with its own default API key. Use help(topic: \"api\") for error codes. Workflow: 1. endpoints(action: \"get\") — REQUIRED before first POST/PUT: load field_definitions (api_call uses the default key automatically — no API key needed) 2. api_call(environment: \"sandbox\") — test with sandbox 3. logs — verify the result 4. collaborators — create keys and invite partners 5. endpoints(action: \"deploy\") — deploy to production (when all testing is done) Only do what the user asks. After completing a step, briefly list what else is available and let the user ch"
+  },
+  {
+    "namespace": "3Min_API",
+    "tool": "logs",
+    "purpose": "Find the data that came in — form submissions, orders, job requests, events — and check how it was received and delivered. Search records by keyword, look one up to verify an API call result, or list the calls that were rejected. Three modes: record lookup (by record_id), text search (by search_text), or failed-records listing (status: \"failed\" with no search_text). Provide record_id or search_text, not both — or neither of them with status: \"failed\". When to use this tool: - \"Show me orders containing John\" → text search (search_text: \"John\") - \"Check if my test call went through\" → record lookup (record_id from api_call response) - \"Why are my calls failing?\" → failed-records listing (stat"
+  },
+  {
+    "namespace": "3Min_API",
+    "tool": "stats",
+    "purpose": "See how much you've handled this month and whether you're near your plan limit, so you know what to do next. Monthly summary plus a daily breakdown of creates, reads, updates, and deletes with success/failure counts and average response time. Use help(topic: \"stats\") for field details. Workflow: 1. stats — check current month usage 2. subscription — compare usage against plan limit Based on volume, the response's next_action suggests a next step (deploy to production, invite a collaborator, or send a first test call) — surface it to the user. Note: Statistics may have slight delays. Response time excludes Read operations. Supported: monthly summary, daily breakdown, historical months. Not su"
+  },
+  {
+    "namespace": "3Min_API",
+    "tool": "collaborators",
+    "purpose": "Let partners use your API and control exactly what each one can do — issue access keys and invite collaborators by email. Use help(topic: \"collaborators\") for permission rules and error codes. Workflow: 1. list_keys — view existing collaboration keys 2. create_key — create a key for a new partner 3. update_permissions — set CRUD permissions per environment 4. invite — send email invitation to a collaborator 5. list_invitations — check invitation status Only do what the user asks. After completing a step, briefly list what else is available and let the user choose. Supported: list keys, create key, update permissions, list invitations, invite by email. Not supported (web only): view full API "
+  },
+  {
+    "namespace": "3Min_API",
+    "tool": "subscription",
+    "purpose": "Check your current plan, this month's usage, and billing period. Includes a comparison list of all available plans. No parameters needed. Use help(topic: \"subscription\") for field details. Workflow: 1. subscription — check usage percentage and plan limits 2. The response's next_action summarizes the current usage status — relay it to the user as-is Plan changes are handled on the web dashboard. Supported: view current plan, usage, billing period, available plans. Not supported (web only): change plan, cancel, reactivate, payment management. ```ts mcp__3Min_API__subscription(args: object): Promise<{ success: true, data: { current_plan: { id: string, name: string, price: number, monthly_limit:"
+  },
+  {
+    "namespace": "3Min_API",
+    "tool": "wordpress_plugin",
+    "purpose": "Add data collection to a WordPress site without coding — generate the snippet that drops a 3Min API endpoint into any post or page. Returns context and the codegen prompt for the 3Min API WordPress plugin (https://3minapi.com/wordpress). Reach for this whenever the user mentions WordPress, a blog, or a WP site, or picks WordPress as where they'll use their API during onboarding. Primary use: generate plugin-compatible HTML/CSS/JS snippet code by retrieving the codegen system prompt (section=\"ai_codegen_prompt\", method=get_record|get_list|post). The returned prompt is a verbatim mirror of the plugin's \"Copy AI prompt\" button output, so the generated code follows the same authoring rules and t"
+  },
+  {
+    "namespace": "Apixel",
+    "tool": "generate_image",
+    "purpose": "Generates an image from a text prompt, edits an existing image, or creates variations based on a reference image. The generated result is displayed in a read-only UI widget. ```ts mcp__Apixel__generate_image(args: { // The image generation prompt based on the user's request. prompt: string, // Aspect ratio for the generated image. Defaults to '1:1'. ratio?: \"1:1\" | \"2:3\" | \"3:2\" | \"3:4\" | \"4:3\" | \"4:5\" | \"5:4\" | \"9:16\" | \"16:9\" | \"21:9\", // Image resolution. Defaults to 2k. quality?: \"2k\" | \"4k\", // Reference images provided by the user for editing or variation. reference_image?: string[], }): Promise<unknown>; ```"
+  },
+  {
+    "namespace": "Apixel",
+    "tool": "personal_center",
+    "purpose": "Show the user their personal center information including credits, subscription status, and other settings. ```ts mcp__Apixel__personal_center(args: { // Optional action to perform, e.g. \"view\" action?: string, }): Promise<unknown>; ```"
+  },
+  {
+    "namespace": "API_Lessons",
+    "tool": "getLessons",
+    "purpose": "Use this tool to search for short lessons on APIs, MCP, Product Management, Technical PM Careers, and ChatGPT Apps. Lessons are either available On Demand (watch the recording) or Scheduled (sign up for upcoming live training). DO NOT use if they are looking for education topics outside software, technology, or business. How it works: a partial text search returns matching lessons with full details including title, description, learning outcomes, instructor, guest speakers, related course, and signup URL. The search covers all of these fields. Supports broad queries like \"all\" or \"every\" as well as specific topic searches. ```ts mcp__API_Lessons__getLessons(args: { // Partial text search que"
+  },
+  {
+    "namespace": "API_Documentation_Checker",
+    "tool": "extract_api_contract",
+    "purpose": "Use this when the user wants to extract explicitly stated API endpoints, parameters, request fields, responses, and error definitions from provided API materials. It accepts user-provided API specifications, OpenAPI fragments, interface descriptions, or response examples and returns a structured API contract with source evidence. Do not call APIs, test service availability, infer undocumented behavior, evaluate architecture, or modify source material. ```ts mcp__API_Documentation_Checker__extract_api_contract(args: { // User-provided API specification, OpenAPI fragment, interface description, or response example to extract. source_text: string, // Optional label identifying the source materi"
+  },
+  {
+    "namespace": "API_Documentation_Checker",
+    "tool": "check_api_documentation_coverage",
+    "purpose": "Use this when the user provides an API contract and API documentation and wants to identify which explicitly stated endpoints, parameters, request fields, responses, and error definitions are covered, partially covered, or missing. Treat the provided contract as the fact source and return coverage findings with source evidence. Do not call APIs, test service availability, infer undocumented equivalence, evaluate architecture, or modify documentation. ```ts mcp__API_Documentation_Checker__check_api_documentation_coverage(args: { // API contract used as the fact source for the coverage check. contract_text: string, // API documentation to check against the supplied contract. documentation_text"
+  },
+  {
+    "namespace": "API_Documentation_Checker",
+    "tool": "compare_api_contract_versions",
+    "purpose": "Use this when the user provides two API contract versions and wants an exact comparison of endpoints, parameters, request fields, responses, and error definitions. Return added, removed, modified, and unchanged items with source evidence. Match items by explicit identifiers only and do not infer renames. Do not call APIs, evaluate architecture, determine compatibility, or modify either contract. ```ts mcp__API_Documentation_Checker__compare_api_contract_versions(args: { // The older API contract version. old_contract_text: string, // The newer API contract version. new_contract_text: string, // Optional label for the older contract version. old_version_label?: string, // Optional label for t"
+  },
+  {
+    "namespace": "API_Impact_Mapper",
+    "tool": "extract_api_changes",
+    "purpose": "Use this tool when the user provides API change material and needs explicit API changes extracted into a fact base. It returns confirmed changes, missing fields, evidence, and structured errors from only the user-provided material. It does not read external systems, fill in facts the user did not provide, or determine complete impact scope. ```ts mcp__API_Impact_Mapper__extract_api_changes(args: { // User-provided API change material. source_text: string, // Relevant confirmed context. context?: object, }): Promise<{ status: \"success\" | \"partial\" | \"error\", summary: string, api_changes_items: { change_id: string, change_type: string, location: string, before: string, after: string, descripti"
+  },
+  {
+    "namespace": "API_Impact_Mapper",
+    "tool": "classify_breaking_changes",
+    "purpose": "Use this tool when the user provides API change material and needs each explicit change classified against the frozen breaking-change categories. It returns classifications, unclassified items, missing fields, evidence, and structured errors from only the user-provided material. It uses cannot_determine when evidence is insufficient and does not infer unsupported facts. ```ts mcp__API_Impact_Mapper__classify_breaking_changes(args: { // User-provided API change material. source_text: string, // Relevant confirmed context. context?: object, // Additional user-provided classification rules. rules?: string[], }): Promise<{ status: \"success\" | \"partial\" | \"error\", summary: string, classifications"
+  },
+  {
+    "namespace": "API_Impact_Mapper",
+    "tool": "generate_impact_map",
+    "purpose": "Use this tool when the user provides API impact material and needs API changes, breaking classifications, consumers, tests, and documentation evidence organized into a final impact map. It returns impact items, included items, limitations, missing fields, evidence, and structured errors from only the user-provided material. It does not access repositories, gateways, logs, or external systems. ```ts mcp__API_Impact_Mapper__generate_impact_map(args: { // User-provided API impact material. source_text: string, // Relevant confirmed context. context?: object, // Previously confirmed structured findings. confirmed_items?: object[], }): Promise<{ status: \"success\" | \"partial\" | \"error\", summary: s"
+  },
+  {
+    "namespace": "Sugra_API",
+    "tool": "sugra_entity_screen",
+    "purpose": "Screen a person or organization name against the Sugra sanctions corpus. Returns a SCREENING SIGNAL, not a compliance determination. Sugra is a technology provider, not a sanctions authority or consumer reporting agency. PEP and adverse-media coverage is supplementary and non-comprehensive - a `clear` result is not proof of absence, and a `hit` is a candidate match to review, not a finding. Output is COMPACT to protect the agent context budget: `{status, matches:[{name, score, list, type}], disclaimer}`. The verdict `status` is one of `clear`, `review`, or `hit`. The heavy raw fields (match rationale, source ids, publish dates) are dropped; use the Sugra API directly when the full screening "
+  },
+  {
+    "namespace": "Sugra_API",
+    "tool": "sugra_entity_lookup",
+    "purpose": "Resolve an entity by identifier and return its composed KYB envelope. `anchor` is `lei` (Legal Entity Identifier, resolved via the GLEIF registry) or `vat` (EU VAT number, validated via the EU VIES service). The result weaves identity, a sanctions screening signal, and - on request - ownership and adverse-media slices. The screening verdict is a SCREENING SIGNAL, not a compliance determination, and any PEP / adverse-media content is supplementary and non-comprehensive. The `disclaimer` field carries this and is always present. Output is COMPACT by default to protect the agent context budget: `{entity:{name, anchor, value, status, country}, screening:{status, top_matches:[...3], hit_count}, i"
+  },
+  {
+    "namespace": "Sugra_API",
+    "tool": "search_endpoints",
+    "purpose": "Search the bundled Sugra endpoint catalog by natural-language query. Use this to pick an operation_id. It does not fetch data. Typical loop: 1. search_endpoints(query) -> ranked hits with required_parameters 2. describe_endpoint(operation_id) -> params, request_body_schema, agent_hints 3. call_endpoint(operation_id, params=..., body=...) or fetch_data(query, params=...) Filter with toolset or source only after list_toolsets / list_sources; a misspelled filter is an error, not a silent empty result. Examples: - search_endpoints(\"US CPI inflation\") - search_endpoints(\"AAPL price\", toolset=\"markets\") - search_endpoints(\"container ship AIS\", toolset=\"network\") ```ts mcp__Sugra_API__search_endpoi"
+  },
+  {
+    "namespace": "Sugra_API",
+    "tool": "describe_endpoint",
+    "purpose": "Describe one Sugra API endpoint by operation_id. Includes agent_hints (duration_class fast/slow/heavy, max_concurrency, bulk billing) so you can budget timeouts and parallelism before calling. POST endpoints with a JSON body also carry request_body_schema (the resolved JSON schema) - construct the `body` argument from it instead of guessing key names. Call this after search_endpoints and before call_endpoint when you need the exact parameter names and examples. ```ts mcp__Sugra_API__describe_endpoint(args: // describe_endpointArguments { // Operation Id // // Catalog operation_id from search_endpoints (or from list_toolsets drill-down). Unknown ids return error unknown_operation_id. operatio"
+  },
+  {
+    "namespace": "Sugra_API",
+    "tool": "call_endpoint",
+    "purpose": "Call a Sugra API endpoint by operation_id from the bundled catalog. Plan calls with describe_endpoint's agent_hints: duration_class \"fast\" usually responds in under ~2s, \"slow\" usually 1-5s and occasionally 15s+ on a cold upstream, \"heavy\" can exceed the gateway timeout - keep parallel calls within max_concurrency and prefer small batches. Bulk endpoints bill 1 request credit per body item. Failures return structured errors {error, reason, status_code, elapsed_ms, retry_hint}; after \"upstream_timeout\" a single retry often succeeds because the aborted attempt warms upstream caches. ```ts mcp__Sugra_API__call_endpoint(args: // call_endpointArguments { // Operation Id operation_id: string, // P"
+  },
+  {
+    "namespace": "Sugra_API",
+    "tool": "list_toolsets",
+    "purpose": "List catalog groups with endpoint counts and short descriptions. Use the group names as the toolset filter on search_endpoints. This does not call the Sugra API; it reads the bundled catalog. ```ts mcp__Sugra_API__list_toolsets(args: // list_toolsetsArguments object): Promise<// list_toolsetsDictOutput { [key: string]: any }>; ```"
+  },
+  {
+    "namespace": "Sugra_API",
+    "tool": "fetch_data",
+    "purpose": "One-step fetch: find the best Sugra endpoint for the query and call it. Combines search_endpoints + call_endpoint into a single round trip. Use this when you want data without manually picking an operation_id. The full search_endpoints + describe_endpoint + call_endpoint dance is still available when you need explicit control, but for most natural-language queries this tool is enough. Behavior: 1. Search the bundled catalog for the query. Top match wins. 2. If the matched endpoint has required parameters and they are all provided in `params`, call it and return the response. 3. If required parameters are missing, return the candidate endpoints and the missing-params list so the LLM can retry"
+  },
+  {
+    "namespace": "Sugra_API",
+    "tool": "list_sources",
+    "purpose": "List source families in the bundled catalog with endpoint counts. Use the family names as the source filter on search_endpoints. This does not call the Sugra API. ```ts mcp__Sugra_API__list_sources(args: // list_sourcesArguments object): Promise<// list_sourcesDictOutput { [key: string]: any }>; ```"
+  },
+  {
+    "namespace": "Sugra_API",
+    "tool": "resolve_entity",
+    "purpose": "Resolve free text to a canonical market or macro entity. Turns a ticker, company name, macro indicator, coin, or currency pair into the agent plane's ``{namespace, ids}`` entity for use with get_snapshot and get_timeseries. A cross-namespace collision (e.g. a ticker that is both an equity and a coin) returns status \"ambiguous\" with ranked candidates and NEVER silently picks one; pass type_hint (e.g. \"equity\", \"etf\", \"coin\") to narrow the universe. Crypto aliases resolve too (e.g. \"bitcoin\" -> the BTC coin entity). Status \"low_confidence\" means the best match cleared resolution but scored weakly - verify the returned entity before building on it, or re-query with a more specific name or type_"
+  },
+  {
+    "namespace": "Sugra_API",
+    "tool": "get_snapshot",
+    "purpose": "Composed current view of an entity via a named recipe. Executes a fixed server-side recipe (company_snapshot, etf_snapshot, quote_snapshot, macro_indicator_snapshot, macro_calendar, earnings_snapshot, debt_snapshot) and returns one envelope with freshness, provenance, per-component coverage, and billing. Composed calls charge the recipe's fixed cost (1-2 units) from the daily quota. status \"partial\" means an optional component was unavailable - the present components are still trustworthy; honor the freshness block (stale=true means the data aged past its budget). Args: recipe: Recipe name from the fixed manifest. entity: Entity dict from resolve_entity ({\"namespace\": ..., \"ids\": ...}). ```t"
+  },
+  {
+    "namespace": "Sugra_API",
+    "tool": "get_timeseries",
+    "purpose": "Bounded timeseries for an entity: price, macro_series, etf_flows or etf_monthly_flows. Returns points oldest-first with an explicit downsampling flag when the raw series exceeded max_points. Times are UTC. Costs 1 unit per call. The two ETF flow metrics answer different questions and are not interchangeable. ``etf_flows`` is an ESTIMATE at filing cadence: one point per SEC filing refresh, so ``t`` is a filing date and even a wide window yields a handful of points. ``etf_monthly_flows`` is the fund's own creations and redemptions from its NPORT-P filing, so ``t`` is a calendar month (``YYYY-MM``) and each point carries the three filed components - sales, reinvestment, redemption - beside the "
+  },
+  {
+    "namespace": "SignatureAPI",
+    "tool": "create_envelope",
+    "purpose": "Create a new SignatureAPI envelope. At minimum you must provide `title`, `documents`, and `recipients`. Documents reference uploads created via `upload_file`. If required information (e.g. recipient name/email) is missing from the user, ask before calling. Use only non-sensitive data that is necessary for the requested e-signature workflow. ```ts mcp__SignatureAPI__create_envelope(args: { // Envelope title shown to recipients. title: string, // minLength: 1, maxLength: 500 // Internal label not shown to recipients. label?: | string // minLength: 1, maxLength: 500 | null , // Optional non-sensitive metadata as explicit key/value entries. // maxItems: 10 metadata?: Array< { // Metadata key, su"
+  },
+  {
+    "namespace": "SignatureAPI",
+    "tool": "upload_file",
+    "purpose": "Upload a file provided by ChatGPT Apps file handling into SignatureAPI. Use this when the user has uploaded or selected a PDF, DOCX, or PNG in ChatGPT and wants to use it as a SignatureAPI document, template, logo, or symbol asset. The `file` input is a ChatGPT file parameter; do not invent URLs. Let ChatGPT populate it from the user's uploaded or selected file. Returns a SignatureAPI upload URL. Pass `url` as `document.url` in create_envelope. ```ts mcp__SignatureAPI__upload_file(args: { // A ChatGPT Apps file reference. file: string, }): Promise<{ url: string, reference: string, file_id: string, file_name: string | null, mime_type: string, size: number, sha256: string, expires_in: number }"
+  },
+  {
+    "namespace": "SignatureAPI",
+    "tool": "get_envelope",
+    "purpose": "Fetch a SignatureAPI envelope by id. ```ts mcp__SignatureAPI__get_envelope(args: { // Envelope id (UUID), as returned by create_envelope. envelope_id: string, // format: \"uuid\" }): Promise<unknown>; ```"
+  },
+  {
+    "namespace": "SignatureAPI",
+    "tool": "cancel_envelope",
+    "purpose": "Cancel an in-progress SignatureAPI envelope. The envelope transitions to `canceled`. Pending recipients won't be able to access the ceremonies. Already-completed envelopes cannot be canceled (the api returns 409). If the user wants to undo a completed envelope, you must explain that signed envelopes are immutable. ```ts mcp__SignatureAPI__cancel_envelope(args: { // Envelope id (UUID) to cancel. envelope_id: string, // format: \"uuid\" // Optional human-readable cancellation reason shown to recipients. reason?: string, // minLength: 1, maxLength: 2000 }): Promise<unknown>; ```"
+  },
+  {
+    "namespace": "SignatureAPI",
+    "tool": "delete_envelope",
+    "purpose": "Permanently delete a SignatureAPI envelope and its associated data. This is irreversible — CONFIRM with the user before calling, and prefer cancel_envelope if the envelope is in progress. Returns no body on success. ```ts mcp__SignatureAPI__delete_envelope(args: { // Envelope id (UUID) to delete. envelope_id: string, // format: \"uuid\" }): Promise<{ deleted: boolean, envelope_id: string }>; ```"
+  },
+  {
+    "namespace": "SignatureAPI",
+    "tool": "list_envelopes",
+    "purpose": "List envelopes for the authenticated account, most-recent first, with cursor pagination. Use this to discover existing envelopes before asking the user for an id, to check whether an envelope you'd be about to create already exists, or to answer 'what envelopes do I have?' style questions. Returns a paginated response with `data` (array of envelopes) and `links.next` / `links.previous` (opaque cursor URLs — extract the `cursor` query param to paginate). ```ts mcp__SignatureAPI__list_envelopes(args: { // Filter by envelope status. status?: \"draft\" | \"processing\" | \"in_progress\" | \"completed\" | \"failed\" | \"canceled\", // Filter by envelope topic. topic?: string, // Pagination cursor from a prev"
+  },
+  {
+    "namespace": "SignatureAPI",
+    "tool": "search_documentation",
+    "purpose": "Search the public SignatureAPI documentation and return ranked excerpts with source URLs. Use this BEFORE create_envelope (or any envelope-shape question) whenever you're unsure about: field names, accepted enum values, recipient/document/place schemas, supported file formats, webhook events, authentication, embedded signing, or any concept-level question (test mode, deliverables, ceremonies, attestation, etc.). It is cheaper to search than to guess and have the envelope rejected. Returns up to `max_results` results; each result has a `title`, `url`, and a short `snippet`. Cite the `url` back to the user when explaining how something works. ```ts mcp__SignatureAPI__search_documentation(args:"
+  }
 ]);
 export function getLivePluginToolResearchSummary(){
  const namespaces=new Set(LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.map(x=>x.namespace));
- return{captured_at:'2026-09-20',live_plugin_namespaces:namespaces.size,live_tool_contracts:LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.length,source_kind:'live-observable-plugin-tool-catalog',proprietary_implementation_copied:false,authorization_state:'not-assumed'};
+ return{captured_at:'2026-09-23',live_plugin_namespaces:namespaces.size,live_tool_contracts:LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT.length,source_kind:'live-observable-plugin-tool-catalog',proprietary_implementation_copied:false,authorization_state:'not-assumed'};
 }
