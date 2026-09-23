@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(new URL('../../'+p,import.meta.url),'utf8');
+const operations=read('worker/src/operations-entrypoint.js');
+const runtime=read('worker/src/payment-link-runtime.js');
+const must=(v,m)=>{if(!v)throw new Error(m)};
+must(operations.includes("handlePaymentLinkBilling,augmentBillingResponse"),'operations runtime must import payment-link fallback');
+must(operations.includes("await handlePaymentLinkBilling(request,env)"),'checkout must execute payment-link fallback before Stripe API checkout');
+must(operations.includes("return augmentBillingResponse(request,extended,env)"),'plans response must expose payment-link readiness');
+must(operations.includes("return augmentBillingResponse(request,response,env)"),'billing status must expose payment-link readiness');
+must(runtime.includes("client_reference_id"),'payment links must carry tenant/plan reference');
+must(runtime.includes("tier_checkout_configured"),'payment-link runtime must mark paid tiers configured');
+console.log('Payment-link runtime lock: PASS — configured Stripe payment links are wired into checkout, plans, and billing status.');
