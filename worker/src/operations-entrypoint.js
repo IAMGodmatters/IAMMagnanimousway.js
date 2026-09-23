@@ -22,6 +22,7 @@ import {handleMagnanimousNativeWeb,scheduledNativeWeb} from './magnanimous-nativ
 import {scheduledMagnanimousCapabilityMesh} from './magnanimous-capability-mesh.js';
 import {handleMagnanimousRoutineStudio,scheduledMagnanimousRoutines} from './magnanimous-skill-routine-runtime.js';
 import {handlePaymentLinkBilling,augmentBillingResponse} from './payment-link-runtime.js';
+import {handleMagnanimousApiContractIntelligence} from './magnanimous-api-contract-intelligence.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -152,6 +153,7 @@ async function operationsFetch(request,env,ctx){
    }
   }catch(error){console.error('agency billing layer failed',error);return json({detail:'Agency billing could not complete this request.'},500)}
 
+  try{const apiContract=await handleMagnanimousApiContractIntelligence(request,env);if(apiContract)return apiContract}catch(error){console.error('Magnanimous API Contract Intelligence failed',error);return json({detail:'Magnanimous API Contract Intelligence could not complete this request.'},500)}
   try{const dataStudio=await handleDataStudio(request,env);if(dataStudio)return dataStudio}catch(error){console.error('Data Studio failed',error);return json({detail:'Data Studio could not complete this request.'},500)}
   try{const mediaLibrary=await handleMediaLibrary(request,env);if(mediaLibrary)return mediaLibrary}catch(error){console.error('Media Library failed',error);return json({detail:'Media Library could not complete this request.'},500)}
   try{const businessAI=await handleBusinessAISuite(request,env,ctx,app);if(businessAI)return businessAI}catch(error){console.error('Business AI Suite failed',error);return json({detail:'Business AI Suite could not complete this request.'},500)}
