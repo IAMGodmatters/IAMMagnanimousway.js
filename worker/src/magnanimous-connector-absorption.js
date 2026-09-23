@@ -217,8 +217,14 @@ function installedSkillRecipe(tuple){
   research:{captured_at:live?'2026-09-20':'historical',source_kind:live?'live-observable-installed-skill-catalog':'observable-installed-skill-contract',public_purpose:live?.purpose||description,authorization_state:'not-assumed',private_skill_implementation_copied:false}
  };
 }
+function liveOnlySkillRecipes(){
+ const installedKeys=new Set(INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>`${x[0]}/${x[1]}`));
+ return LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT
+  .filter(row=>!installedKeys.has(`${row.plugin_namespace}/${row.skill_name}`))
+  .map(row=>installedSkillRecipe([row.plugin_namespace,row.skill_name,row.purpose]));
+}
 export function getInstalledPluginSkillManifest(){
- return INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(installedSkillRecipe);
+ return [...INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(installedSkillRecipe),...liveOnlySkillRecipes()];
 }
 function magnanimousBuilderCapabilityRecipe(row){
  const tool=String(row?.tool||'tool-action'),capability=tool.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tool-action',policy=getMagnanimousBuilderToolPolicy(tool);
@@ -264,10 +270,12 @@ export function getConnectorAbsorptionSummary(){
  const missingDirect=INTEGRATIONS.filter(x=>!directCatalogued.has(x.id)).map(x=>x.id);
  const pluginNamespaces=new Set([...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace),...liveToolRows.map(x=>x.namespace)]);
  const liveTools={live_plugin_namespaces:new Set(liveToolRows.map(x=>x.namespace)).size,live_tool_contracts:liveToolRows.length};
- const skillNamespaces=new Set(INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>x[0]));
+ const skillNamespaces=new Set(skillManifest.map(x=>x.plugin_namespace));
  const historicalToolNamespaces=[...new Set(CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace))].filter(x=>!LIVE_TOOL_BY_NAMESPACE.has(x));
  const liveOnlyToolNamespaces=[...new Set(liveToolRows.map(x=>x.namespace))].filter(x=>!CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.some(p=>p.namespace===x));
  const historicalSkillCount=INSTALLED_PLUGIN_SKILL_SNAPSHOT.filter(x=>!LIVE_SKILL_BY_KEY.has(`${x[0]}/${x[1]}`)).length;
+ const historicalSkillNamespaces=[...new Set(INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>x[0]))].filter(x=>!LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT.some(r=>r.plugin_namespace===x));
+ const liveOnlySkillNamespaces=[...new Set(LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT.map(x=>x.plugin_namespace))].filter(x=>!INSTALLED_PLUGIN_SKILL_SNAPSHOT.some(r=>r[0]===x));
  return{
   identity:'Magnanimous AI',
   connector_benchmarks:catalog.length,
@@ -281,6 +289,8 @@ export function getConnectorAbsorptionSummary(){
   live_only_plugin_namespaces:liveOnlyToolNamespaces.length,
   installed_plugin_skill_namespaces:skillNamespaces.size,
   installed_plugin_skills:skillManifest.length,
+  historical_plugin_skill_namespaces:historicalSkillNamespaces.length,
+  live_only_plugin_skill_namespaces:liveOnlySkillNamespaces.length,
   magnanimous_builder_tools:builderManifest.length,
   magnanimous_engineering_skills:engineeringManifest.length,
   magnanimous_engineering_technique_profiles:engineering.guide_profiles,
