@@ -1,4 +1,5 @@
 import fs from'node:fs';
+import {BUSINESS_AI_SUITE} from '../../worker/src/magnanimous-business-ai-suite.js';
 const r=p=>fs.readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 const wl=r('worker/src/white-label-os-runtime.js'),apps=r('frontend/app/white-label/client-apps/page.tsx'),os=r('frontend/app/white-label-os/page.tsx'),biz=r('frontend/app/business-ai/page.tsx'),paidSmoke=r('magnanimous-runtime/scripts/verify-agency-paid-depth.mjs');
 for(const s of ["import {BUSINESS_AI_SUITE}","CORE_CLIENT_APPS","'business-ai:'+id","catalog_count:CLIENT_APP_CATALOG.length","authorization_boundary"])if(!wl.includes(s))throw Error('White Label expanded client catalog missing '+s);
