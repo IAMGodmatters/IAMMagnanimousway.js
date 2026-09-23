@@ -1,5 +1,5 @@
 import {currentUser} from './integrations.js';
-import {createWork,addWorkStep,getWork,updateWorkStep} from './work-engine-runtime.js';
+import {ensureWorkSchema,createWork,addWorkStep,getWork,updateWorkStep} from './work-engine-runtime.js';
 import {handleMediaLibrary} from './media-library-runtime.js';
 const json=(d,s=200)=>Response.json(d,{status:s,headers:{'cache-control':'no-store'}}),now=()=>Math.floor(Date.now()/1000),txt=(v,n=12000)=>String(v||'').trim().slice(0,n);
 export const BUSINESS_AI_SUITE=[
@@ -442,7 +442,7 @@ if(executionProbe&&request.method==='GET'){
  if(!tool)return json({detail:'Business AI tool not found.'},404);
  return json(executionPathProbe(id));
 }
-await ensure(env);await claimLegacyJobs(env,user);
+await ensure(env);await ensureWorkSchema(env);await claimLegacyJobs(env,user);
 if(u.pathname==='/api/business-ai/jobs'&&request.method==='GET'){const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_business_ai_jobs WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 100').bind(tenant,userId).all();const items=[];for(const row of results)items.push(await jobView(env,user,row));return json({items})}
 const jobMatch=u.pathname.match(/^\/api\/business-ai\/jobs\/([^/]+)(?:\/(verify|execute))?$/);
 if(jobMatch&&request.method==='GET'){const row=await env.DB.prepare('SELECT * FROM magnanimous_business_ai_jobs WHERE id=? AND tenant_id=? AND user_id=?').bind(jobMatch[1],tenant,userId).first();if(!row)return json({detail:'Business AI job not found.'},404);return json(await jobView(env,user,row))}
