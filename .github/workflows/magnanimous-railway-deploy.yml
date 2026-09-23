@@ -49,14 +49,26 @@ jobs:
         run: |
           set -euo pipefail
           parent="$(git rev-parse "$TARGET_SHA^")"
-          git diff --name-only "$parent" "$TARGET_SHA" >/tmp/magnanimous-changed-files.txt
+          base="$parent"
+          live=""
+          if curl -fsS --connect-timeout 5 --max-time 15 "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/tmp/magnanimous-impact-health.json 2>/dev/null; then
+            live="$(python -c 'import json; print(json.load(open("/tmp/magnanimous-impact-health.json")).get("deploy_revision",""))' 2>/dev/null || true)"
+            if [[ "$live" =~ ^[0-9a-fA-F]{40}$ ]]; then
+              git fetch --no-tags --depth=1 origin "$live" >/dev/null 2>&1 || true
+              if git cat-file -e "$live^{commit}" 2>/dev/null; then
+                base="$live"
+              fi
+            fi
+          fi
+          git diff --name-only "$base" "$TARGET_SHA" >/tmp/magnanimous-changed-files.txt
           if grep -Eq '^(magnanimous-runtime/|worker/|frontend/|video-gateway/|api/|package\.json$|package-lock\.json$)' /tmp/magnanimous-changed-files.txt; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Standalone runtime-impacting files changed; exact Railway promotion remains required."
+            echo "Standalone runtime-impacting files differ between live/base revision $base and target $TARGET_SHA; exact Railway promotion remains required."
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No standalone runtime-impacting files changed; production runtime promotion is intentionally skipped."
+            echo "No standalone runtime-impacting files differ between live/base revision $base and target $TARGET_SHA; production runtime promotion is intentionally skipped."
           fi
+          rm -f /tmp/magnanimous-impact-health.json
 
       - name: No Railway deployment required for control-plane-only change
         if: steps.runtime-impact.outputs.changed != 'true'
@@ -106,7 +118,7 @@ jobs:
 
           live=""
           success=0
-          for attempt in $(seq 1 120); do
+          for attempt in $(seq 1 12); do
             if curl -fsS --connect-timeout 10 --max-time 30 "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/tmp/magnanimous-live-health.json; then
               live="$(python -c 'import json; print(json.load(open("/tmp/magnanimous-live-health.json")).get("deploy_revision",""))')"
               if is_safe_main_lineage "$live"; then
@@ -114,7 +126,7 @@ jobs:
                 break
               fi
             fi
-            echo "Waiting for Railway main auto-deploy to make $TARGET_SHA or a newer verified main descendant healthy (live=${live:-unknown}, attempt $attempt/120)."
+            echo "Waiting for Railway main auto-deploy to make $TARGET_SHA or a newer verified main descendant healthy (live=${live:-unknown}, attempt $attempt/12)."
             sleep 10
           done
 
