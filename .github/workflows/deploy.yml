@@ -320,7 +320,7 @@ jobs:
           # consuming row-write quota when production already has this exact digest.
           current_digest=""
           set +e
-          (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT source_digest,status,manifest_count FROM magnanimous_capability_materialization_state WHERE id='full-brain';" > /tmp/magnanimous-full-brain/current-state.json 2>/tmp/magnanimous-full-brain/current-state.err)
+          (cd worker && timeout 90s npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT source_digest,status,manifest_count FROM magnanimous_capability_materialization_state WHERE id='full-brain';" > /tmp/magnanimous-full-brain/current-state.json 2>/tmp/magnanimous-full-brain/current-state.err)
           state_rc=$?
           set -e
           if [ "$state_rc" -eq 0 ]; then
@@ -355,11 +355,16 @@ jobs:
           prune_attempt=1
           while true; do
             set +e
-            prune_output=$(cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file=/tmp/magnanimous-full-brain/000-prune-stale.sql 2>&1)
+            prune_output=$(cd worker && timeout 90s npx wrangler d1 execute iam-magnanimous-db --remote --yes --file=/tmp/magnanimous-full-brain/000-prune-stale.sql 2>&1)
             prune_rc=$?
             set -e
             printf '%s\n' "$prune_output"
             if [ "$prune_rc" -eq 0 ]; then
+              break
+            fi
+            if [ "$prune_rc" -eq 124 ]; then
+              materialization_deferred=1
+              echo "::warning::Cloudflare D1 stale-row pruning exceeded the 90-second command budget. Durable cleanup is deferred; deployment continues with the checked-in Magnanimous brain manifest."
               break
             fi
             if printf '%s' "$prune_output" | grep -qi "free tier daily row write limit"; then
@@ -392,11 +397,16 @@ jobs:
                 attempt=1
                 while true; do
                   set +e
-                  output=$(cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --yes --file="$file" 2>&1)
+                  output=$(cd worker && timeout 90s npx wrangler d1 execute iam-magnanimous-db --remote --yes --file="$file" 2>&1)
                   rc=$?
                   set -e
                   printf '%s\n' "$output"
                   if [ "$rc" -eq 0 ]; then
+                    break
+                  fi
+                  if [ "$rc" -eq 124 ]; then
+                    materialization_deferred=1
+                    echo "::warning::Cloudflare D1 materialization command exceeded the 90-second command budget. Durable cache reconciliation is deferred; deployment continues with the checked-in Magnanimous brain manifest."
                     break
                   fi
                   if printf '%s' "$output" | grep -qi "free tier daily row write limit"; then
@@ -425,7 +435,7 @@ jobs:
           fi
 
           if [ "$materialization_deferred" -eq 0 ]; then
-            (cd worker && npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT
+            (cd worker && timeout 90s npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT
               (SELECT COUNT(*) FROM magnanimous_connector_capability_absorption WHERE status='tool-foundry-specified') AS ledger_count,
               (SELECT COUNT(*) FROM magnanimous_native_tool_specs WHERE tenant_id='__magnanimous_global__' AND user_id='system:auto-qa') AS tool_spec_count,
               (SELECT COUNT(*) FROM magnanimous_capability_realizations) AS realization_count,
