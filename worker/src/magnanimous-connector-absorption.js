@@ -174,12 +174,12 @@ function pluginNativeTarget(plugin){
  return'universal-tool-gateway';
 }
 function pluginCapabilityRecipe(plugin,tool){
- const capability=String(tool||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tool-action',native_target=pluginNativeTarget(plugin),research=liveToolResearch(plugin.namespace,tool),genericInitiative=initiativePolicy(tool,research?.purpose||plugin.name,'external-plugin-account-or-provider-rail-when-required');
+ const capability=String(tool||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tool-action',native_target=pluginNativeTarget(plugin),research=liveToolResearch(plugin.namespace,tool),boundary=native_target==='api-contract-intelligence'?'none':'external-plugin-account-or-provider-rail-when-required',genericInitiative=initiativePolicy(tool,research?.purpose||plugin.name,boundary);
  return{
   id:`${plugin.id}:${capability}`,connector_id:plugin.id,connector_name:plugin.name,category:'plugin-contract',capability,native_target,priority:'observed',
-  source_kind:plugin.source_kind,direct_connector:false,boundary:'external-plugin-account-or-provider-rail-when-required',
-  absorption_status:'brain-spec-absorbed',implementation_status:'specified-not-assumed-native',
-  magnanimous_owned:ownedParts(),external_only:['plugin/account authorization when required','live provider data or delivery when required'],
+  source_kind:plugin.source_kind,direct_connector:false,boundary,
+  absorption_status:'brain-spec-absorbed',implementation_status:native_target==='api-contract-intelligence'?'native-runtime-proven':'specified-not-assumed-native',
+  magnanimous_owned:ownedParts(),external_only:native_target==='api-contract-intelligence'?[]:['plugin/account authorization when required','live provider data or delivery when required'],
   acceptance_tests:['Provider-independent input/output contract can be described.','Magnanimous owns planning, memory, policy, normalization and verification.','Account authorization is never inferred from tool visibility.','Native status requires independent runtime evidence.'],
   recipe:[`Understand the observable outcome of ${tool} without copying provider internals.`,'Map inputs/outputs into a stable Magnanimous tool contract.','Reuse native Magnanimous services first.','Use the plugin/provider only when authorized or when live provider data/compute is genuinely required.','Verify the result and record reusable outcome lessons.'],
   plugin_namespace:plugin.namespace,authorization_state:plugin.authorization_state,
