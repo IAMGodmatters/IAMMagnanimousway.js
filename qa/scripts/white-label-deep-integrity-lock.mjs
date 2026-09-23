@@ -53,6 +53,8 @@ must(operations.includes('handlePublicAgencyFunnel'),'Hosted public funnels must
 must(wrangler.includes('"/funnels/*"'),'Dynamic hosted funnel URLs must run through the Worker.');
 for(const term of ["visits=visits+1","leads=leads+1","INSERT INTO crm_contacts","white-label-funnel","safeHttpUrl"])must(publicFunnel.includes(term),'Hosted funnel runtime missing '+term);
 must(agency.includes('public_url'),'Agency funnel API must return the hosted public URL.');
+must(agency.includes('PUBLIC_SITE_URL'),'Agency funnel public URLs must prefer the configured branded public site origin.');
+must(agency.includes('publicSiteOrigin(env,url)'),'Agency funnel list and create flows must use the canonical public-site resolver.');
 must(agencyUi.includes('Open live ↗'),'Agency UI must expose the live hosted funnel.');
 
 must(automation.includes("An active White Label Agency subscription is required."),'Agency Automations must be behind Agency billing.');
