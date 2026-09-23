@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   deploy:
@@ -535,12 +536,31 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           BASE_URL: https://iammagnanimousway.com
+          STANDALONE_ORIGIN: https://magnanimous-production.up.railway.app
         shell: bash
         run: |
           set -eo pipefail
 
           curl() {
             command curl --connect-timeout 10 --max-time 120 "$@"
+          }
+
+          deployment_smoke_oidc() {
+            local oidc_json
+            oidc_json=$(command curl -fsS --connect-timeout 10 --max-time 30 \
+              -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=magnanimous-deploy-smoke")
+            python -c 'import json,sys; print(json.load(sys.stdin)["value"])' <<<"$oidc_json"
+          }
+
+          native_smoke_control() {
+            local action="$1" tenant="$2" output="$3" oidc
+            oidc="$(deployment_smoke_oidc)"
+            command curl -sS --connect-timeout 10 --max-time 60 -o "$output" -w '%{http_code}' \
+              -X POST "$STANDALONE_ORIGIN/__magnanimous_runtime/smoke/tenant" \
+              -H 'content-type: application/json' \
+              -H "Authorization: Bearer $oidc" \
+              --data "{\"action\":\"$action\",\"tenant_id\":\"$tenant\"}"
           }
 
           check_get() {
@@ -680,6 +700,15 @@ jobs:
                 return 1
               fi
               local cleanup_failed=0
+              local native_cleanup_status
+              native_cleanup_status="$(native_smoke_control cleanup "$tenant_id" /tmp/deploy-smoke-native-cleanup.json || true)"
+              if [ "$native_cleanup_status" != "200" ]; then
+                echo "::error::Standalone smoke-test cleanup returned HTTP ${native_cleanup_status:-request-failed}."
+                cat /tmp/deploy-smoke-native-cleanup.json 2>/dev/null || true
+                cleanup_failed=1
+              else
+                echo "Cleaned standalone deployment smoke-test tenant $tenant_id."
+              fi
               local cleanup_statements=(
                 "DELETE FROM auth_sessions WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM agent_branch_training_submissions WHERE tenant_id='${tenant_id}';"
@@ -1184,10 +1213,22 @@ jobs:
           PY
 
           # Production White Label depth smoke: use this temporary tenant only.
-          # This creates a test entitlement directly in D1 so no real Stripe payment is made.
-          smoke_ts=$(date +%s)
-          npx wrangler d1 execute iam-magnanimous-db --remote --command="INSERT INTO billing_subscriptions(tenant_id,plan,stripe_customer_id,stripe_subscription_id,status,current_period_end,created_at,updated_at) VALUES('${tenant_id}','agency',NULL,NULL,'active',NULL,${smoke_ts},${smoke_ts}) ON CONFLICT(tenant_id) DO UPDATE SET plan='agency',status='active',updated_at=${smoke_ts};" >/tmp/agency-smoke-entitlement.log
-          npx wrangler d1 execute iam-magnanimous-db --remote --command="UPDATE tenants SET plan='agency' WHERE id='${tenant_id}';" >>/tmp/agency-smoke-entitlement.log
+          # Grant the disposable test entitlement in the active standalone session/data plane.
+          # The runtime endpoint is GitHub-OIDC locked to this main-branch workflow and only
+          # accepts deploy-smoke tenants, so no real Stripe payment or customer entitlement is altered.
+          agency_grant_status="$(native_smoke_control grant_agency "$tenant_id" /tmp/agency-smoke-entitlement.json)"
+          if [ "$agency_grant_status" != "200" ]; then
+            echo "Standalone Agency smoke entitlement returned HTTP $agency_grant_status"
+            cat /tmp/agency-smoke-entitlement.json || true
+            exit 1
+          fi
+          python - "$tenant_id" <<'PY'
+          import json,sys
+          tenant=sys.argv[1]
+          d=json.load(open('/tmp/agency-smoke-entitlement.json'))
+          assert d.get('ok') is True and d.get('action') == 'grant_agency', d
+          assert d.get('tenant_id') == tenant and d.get('plan') == 'agency', d
+          PY
 
           status=$(curl -sS -o /tmp/agency-status.json -w '%{http_code}' "$BASE_URL/api/billing/status" -H "Authorization: Bearer $token")
           if [ "$status" != "200" ]; then echo "Agency billing status returned HTTP $status"; cat /tmp/agency-status.json || true; exit 1; fi
