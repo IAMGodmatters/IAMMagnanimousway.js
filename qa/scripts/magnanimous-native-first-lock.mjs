@@ -153,6 +153,9 @@ has(deployWorkflow,'timeout 90s npx wrangler d1 execute iam-magnanimous-db --rem
 has(deployWorkflow,'Cloudflare D1 materialization command exceeded the 90-second command budget','D1 materialization commands have bounded command timeouts and defer safely');
 has(deployWorkflow,'timeout 90s npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT','D1 materialization verification query has a bounded command timeout');
 has(deployWorkflow,'Production mutation smoke remains authoritative and is not bypassed','D1 quota deferral does not weaken production mutation smoke');
+has(deployWorkflow,'Wait for standalone runtime parity before proxied API smoke','production smoke waits for standalone runtime parity');
+has(deployWorkflow,'Standalone runtime parity PASS: target=$GITHUB_SHA live=$live','runtime parity gate records the exact target and live revision');
+has(deployWorkflow,'Refusing to run proxied production smoke against mismatched code','stale standalone runtime cannot be mistaken for a product regression');
 has(deployWorkflow,'realization_count','deployment verifies the complete capability realization ledger');
 has(deployWorkflow,'native_ready_count','deployment verifies native-ready realization counts');
 has(deployWorkflow,'realization_digest','deployment verifies realization registry digest against the same full-brain source');

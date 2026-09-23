@@ -490,6 +490,53 @@ jobs:
             echo "Durable D1 materialization verification deferred because write quota is exhausted; deployment continues with the checked-in runtime manifest. Production mutation smoke remains authoritative and is not bypassed."
           fi
 
+      - name: Wait for standalone runtime parity before proxied API smoke
+        env:
+          STANDALONE_ORIGIN: https://magnanimous-production.up.railway.app
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent="$(git rev-parse "$GITHUB_SHA^" 2>/dev/null || true)"
+          if [ -z "$parent" ]; then
+            echo "::warning::Unable to resolve the parent commit; requiring standalone parity as the safe default."
+          else
+            git diff --name-only "$parent" "$GITHUB_SHA" >/tmp/magnanimous-runtime-parity-files.txt
+            if ! grep -Eq '^(magnanimous-runtime/|worker/|frontend/|video-gateway/|api/|package\.json$|package-lock\.json$)' /tmp/magnanimous-runtime-parity-files.txt; then
+              echo "No standalone runtime-impacting files changed; proxied API smoke does not need a Railway revision gate."
+              exit 0
+            fi
+          fi
+
+          current_main() {
+            gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha'
+          }
+
+          safe_main_lineage() {
+            local live="$1" main_sha target_status main_status
+            [ -n "$live" ] || return 1
+            main_sha="$(current_main)"
+            target_status="$(gh api "repos/$GITHUB_REPOSITORY/compare/${GITHUB_SHA}...${live}" --jq '.status' 2>/dev/null || true)"
+            main_status="$(gh api "repos/$GITHUB_REPOSITORY/compare/${live}...${main_sha}" --jq '.status' 2>/dev/null || true)"
+            [[ "$target_status" == "ahead" || "$target_status" == "identical" ]] &&
+            [[ "$main_status" == "ahead" || "$main_status" == "identical" ]]
+          }
+
+          live=""
+          for attempt in $(seq 1 120); do
+            if curl -fsS --connect-timeout 10 --max-time 30 "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/tmp/magnanimous-runtime-parity-health.json; then
+              live="$(python -c 'import json; print(json.load(open("/tmp/magnanimous-runtime-parity-health.json")).get("deploy_revision",""))')"
+              if [ "$live" = "$GITHUB_SHA" ] || safe_main_lineage "$live"; then
+                echo "Standalone runtime parity PASS: target=$GITHUB_SHA live=$live"
+                exit 0
+              fi
+            fi
+            echo "Waiting for standalone runtime parity before proxied API smoke (target=$GITHUB_SHA live=${live:-unknown}, attempt $attempt/120)."
+            sleep 5
+          done
+
+          echo "::error::Standalone runtime is stale for this runtime-impacting commit. Refusing to run proxied production smoke against mismatched code."
+          exit 1
       - name: Production smoke test
         working-directory: worker
         env:
