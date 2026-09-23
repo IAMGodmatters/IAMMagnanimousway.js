@@ -131,17 +131,6 @@ async function operationsFetch(request,env,ctx){
   try{const growth=await handleGrowthRecovery(request,env);if(growth)return growth}catch(error){console.error('growth recovery layer failed',error);return json({detail:'Growth Funnel could not complete this request.'},500)}
 
   try{
-   const paymentLink=await handlePaymentLinkBilling(request,env);
-   if(paymentLink){
-    if(path==='/api/billing/checkout'&&request.method==='POST'&&paymentLink.ok){
-     const [body,user,data]=await Promise.all([bodyOf(request),signedIn(request,env),responseJson(paymentLink)]);
-     if(user&&data?.url)queueAutomation(ctx,recordPlatformCheckout(env,user,body,data));
-    }
-    return paymentLink;
-   }
-  }catch(error){console.error('payment-link billing layer failed',error);return json({detail:'Billing checkout could not complete this request.'},500)}
-
-  try{
    const agencyBilling=await handleAgencyBillingBefore(request,env);
    if(agencyBilling){
     if(path==='/api/billing/checkout'&&request.method==='POST'&&agencyBilling.ok){
@@ -151,6 +140,17 @@ async function operationsFetch(request,env,ctx){
     return agencyBilling;
    }
   }catch(error){console.error('agency billing layer failed',error);return json({detail:'Agency billing could not complete this request.'},500)}
+
+  try{
+   const paymentLink=await handlePaymentLinkBilling(request,env);
+   if(paymentLink){
+    if(path==='/api/billing/checkout'&&request.method==='POST'&&paymentLink.ok){
+     const [body,user,data]=await Promise.all([bodyOf(request),signedIn(request,env),responseJson(paymentLink)]);
+     if(user&&data?.url)queueAutomation(ctx,recordPlatformCheckout(env,user,body,data));
+    }
+    return paymentLink;
+   }
+  }catch(error){console.error('payment-link billing layer failed',error);return json({detail:'Billing checkout could not complete this request.'},500)}
 
   try{const dataStudio=await handleDataStudio(request,env);if(dataStudio)return dataStudio}catch(error){console.error('Data Studio failed',error);return json({detail:'Data Studio could not complete this request.'},500)}
   try{const mediaLibrary=await handleMediaLibrary(request,env);if(mediaLibrary)return mediaLibrary}catch(error){console.error('Media Library failed',error);return json({detail:'Media Library could not complete this request.'},500)}
