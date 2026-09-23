@@ -112,6 +112,8 @@ jobs:
           console.log('Release browser direct-public-egress isolation PASS');
           NODE
           token='release-proof-internal-service-token-2026'
+          MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" exec -T magnanimous \
+            node magnanimous-runtime/scripts/verify-agency-paid-depth.mjs
           MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" exec -T magnanimous node - <<'NODE'
           const token=process.env.MAGNANIMOUS_INTERNAL_SERVICE_TOKEN;
           const checked=async(url,init={})=>{
