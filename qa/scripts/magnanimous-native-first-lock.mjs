@@ -40,6 +40,10 @@ const has=(text,needle,name)=>checks.push([name,text.includes(needle)]);
 const lacks=(text,needle,name)=>checks.push([name,!text.includes(needle)]);
 
 has(security,"import app from './operations-entrypoint.js'",'central security entrypoint still wraps operations');
+has(security,"import { handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';",'security entrypoint owns authenticated Tool Foundry routing');
+has(security,"const toolFoundryResponse=await handleMagnanimousToolFoundry(policyRequest,env);",'Tool Foundry receives the session-resolved policy request');
+checks.push(['Tool Foundry routing occurs after opaque-session resolution',security.indexOf('resolveSessionRequest(guardedRequest')>=0&&security.indexOf('resolveSessionRequest(guardedRequest')<security.indexOf('const toolFoundryResponse=await handleMagnanimousToolFoundry(policyRequest,env);')]);
+checks.push(['Tool Foundry routing occurs before downstream app dispatch',security.indexOf('const toolFoundryResponse=await handleMagnanimousToolFoundry(policyRequest,env);')>=0&&security.indexOf('const toolFoundryResponse=await handleMagnanimousToolFoundry(policyRequest,env);')<security.indexOf('const rawResponse = await app.fetch(policyRequest, env, ctx);')]);
 has(security,"outerUrl.pathname==='/health'",'outermost Worker entrypoint handles health before downstream D1-aware layers');
 checks.push(['outer health shortcut precedes session resolution',security.indexOf("outerUrl.pathname==='/health'")>=0&&security.indexOf("outerUrl.pathname==='/health'")<security.indexOf('resolveSessionRequest(guardedRequest')]);
 has(security,'database_independent:true','outer health response explicitly declares database independence');
