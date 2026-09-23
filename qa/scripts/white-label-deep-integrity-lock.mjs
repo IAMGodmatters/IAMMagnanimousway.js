@@ -12,6 +12,7 @@ const bpo=read('worker/src/bpo-operations-runtime.js');
 const auth=read('worker/src/admin-compat-entrypoint.js');
 const publicFunnel=read('worker/src/public-agency-funnel-runtime.js');
 const operations=read('worker/src/operations-entrypoint.js');
+const security=read('worker/src/security-entrypoint.js');
 const wrangler=read('worker/wrangler.jsonc');
 const shell=read('frontend/app/white-label/app/page.tsx');
 const os=read('frontend/app/white-label-os/page.tsx');
@@ -51,6 +52,7 @@ must(studio.includes("method:editId?'PATCH':'POST'")&&studio.includes("method:'D
 
 must(operations.includes('handlePublicAgencyFunnel'),'Hosted public funnels must be routed by the production operations layer.');
 must(wrangler.includes('"/funnels/*"'),'Dynamic hosted funnel URLs must run through the Worker.');
+must(security.includes("url.pathname==='/funnels'||url.pathname.startsWith('/funnels/')"),'Branded hosted funnel traffic must stay on the standalone data plane that owns Agency funnel records.');
 for(const term of ["visits=visits+1","leads=leads+1","INSERT INTO crm_contacts","white-label-funnel","safeHttpUrl"])must(publicFunnel.includes(term),'Hosted funnel runtime missing '+term);
 must(agency.includes('public_url'),'Agency funnel API must return the hosted public URL.');
 must(agency.includes('PUBLIC_SITE_URL'),'Agency funnel public URLs must prefer the configured branded public site origin.');
