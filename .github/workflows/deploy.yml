@@ -490,6 +490,45 @@ jobs:
             echo "Durable D1 materialization verification deferred because write quota is exhausted; deployment continues with the checked-in runtime manifest. Production mutation smoke remains authoritative and is not bypassed."
           fi
 
+      - name: Wait for standalone session plane revision
+        env:
+          STANDALONE_ORIGIN: https://magnanimous-production.up.railway.app
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          current_main() {
+            gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha'
+          }
+
+          is_safe_main_lineage() {
+            local candidate="$1" main_sha target_status main_status
+            [ -n "$candidate" ] || return 1
+            main_sha="$(current_main)"
+            target_status="$(gh api "repos/$GITHUB_REPOSITORY/compare/${GITHUB_SHA}...${candidate}" --jq '.status' 2>/dev/null || true)"
+            main_status="$(gh api "repos/$GITHUB_REPOSITORY/compare/${candidate}...${main_sha}" --jq '.status' 2>/dev/null || true)"
+            [[ "$target_status" == "ahead" || "$target_status" == "identical" ]] &&
+            [[ "$main_status" == "ahead" || "$main_status" == "identical" ]]
+          }
+
+          success=0
+          live=""
+          for attempt in $(seq 1 90); do
+            if curl -fsS --connect-timeout 10 --max-time 30 "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/tmp/magnanimous-session-plane-health.json; then
+              live="$(python -c 'import json; print(json.load(open("/tmp/magnanimous-session-plane-health.json")).get("deploy_revision",""))')"
+              if is_safe_main_lineage "$live"; then
+                success=1
+                break
+              fi
+            fi
+            echo "Waiting for Railway session plane to contain $GITHUB_SHA or a newer verified main descendant (live=${live:-unknown}, attempt $attempt/90)."
+            sleep 10
+          done
+
+          [ "$success" = "1" ] || { echo "::error::Railway session plane did not catch up before production smoke."; exit 1; }
+          echo "Shared session plane ready for smoke: target=$GITHUB_SHA live=$live"
+          rm -f /tmp/magnanimous-session-plane-health.json
       - name: Production smoke test
         working-directory: worker
         env:

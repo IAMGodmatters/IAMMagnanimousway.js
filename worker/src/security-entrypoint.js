@@ -95,7 +95,6 @@ function configuredStandaloneApiOrigin(env){
 async function proxyApiToStandalone(request,env){
   const url=new URL(request.url);
   if(!url.pathname.startsWith('/api/'))return null;
-  if(url.pathname.startsWith('/api/magnanimous/tool-foundry'))return null;
   if(request.headers.get('x-magnanimous-standalone-proxy')==='1')return null;
   const origin=configuredStandaloneApiOrigin(env);
   if(!origin)return null;
