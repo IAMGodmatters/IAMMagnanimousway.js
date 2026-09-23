@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { INTEGRATIONS as liveIntegrations } from '../../worker/src/integrations.js';
-import { getConnectorAbsorptionCatalog as liveAbsorptionCatalog, getCapabilityAbsorptionManifest as liveCapabilityManifest, getPersistentConnectorAbsorptionManifest, getChatGPTPluginCapabilityManifest, getInstalledPluginSkillManifest, getMagnanimousBuilderCapabilityManifest, getMagnanimousEngineeringSkillManifest, getConnectorAbsorptionSummary } from '../../worker/src/magnanimous-connector-absorption.js';
+import { getConnectorAbsorptionCatalog as liveAbsorptionCatalog, getCapabilityAbsorptionManifest as liveCapabilityManifest, getPersistentConnectorAbsorptionManifest, getChatGPTPluginCapabilityManifest, getInstalledPluginSkillManifest, getMagnanimousBuilderCapabilityManifest, getMagnanimousEngineeringSkillManifest, getConnectorAbsorptionSummary, getPluginIndependenceReadiness } from '../../worker/src/magnanimous-connector-absorption.js';
 import { getLivePluginToolResearchSummary } from '../../worker/src/magnanimous-live-plugin-tool-research-snapshot.js';
 import { getLivePluginSkillResearchSummary } from '../../worker/src/magnanimous-live-plugin-skill-research-snapshot.js';
 import { MAGNANIMOUS_EXECUTION_SURFACES, classifyCapabilityRealization } from '../../worker/src/magnanimous-capability-realization.js';
@@ -63,6 +63,8 @@ has(runtime,'Favor composition and dependency injection through an explicit comp
 has(runtime,'engineering_architecture_policy','native-first overview exposes the engineering architecture policy');
 has(runtime,"/api/magnanimous/native-first/assimilate",'capability assimilation endpoint exists');
 has(runtime,"/api/magnanimous/native-first/realizations",'owner can inspect evidence-gated capability realizations');
+has(runtime,"/api/magnanimous/native-first/independence",'owner can inspect execution-backed plugin independence readiness');
+has(runtime,'plugin_independence:getPluginIndependenceReadiness()','native-first overview exposes plugin independence readiness');
 has(runtime,'capability_realization:realization','native-first overview exposes realization counts');
 has(runtime,"/api/magnanimous/native-first/connectors",'per-connector native-first absorption ledger endpoint exists');
 has(runtime,'materializeConnectorCapabilityRecipes','one-by-one connector capability specs can materialize into Tool Foundry');
@@ -191,6 +193,12 @@ has(godCoding,'Optional compute was unavailable, so God Coding completed with it
 has(robots,'Disallow: /god-coding/','private God Coding route remains excluded from crawlers');
 lacks(runtime,'copy provider source code','runtime never instructs provider source-code copying');
 
+
+const independence=getPluginIndependenceReadiness();
+checks.push(['plugin independence readiness covers the full capability manifest',independence.total_capability_contracts===liveCapabilityManifest().length]);
+checks.push(['plugin independence readiness is backed by realization surfaces',independence.targets.every(x=>x.replacement_surface_ready===x.native_ready+x.hybrid_ready)]);
+checks.push(['plugin adapter candidates never include unresolved bridge/spec-only contracts',independence.targets.filter(x=>x.plugin_adapter_candidate).every(x=>x.bridge_required===0&&x.specified_only===0)]);
+checks.push(['external-system-free status is stricter than plugin adapter candidacy',independence.targets.filter(x=>x.external_system_free).every(x=>x.plugin_adapter_candidate&&x.requires_external===0)]);
 
 const directIds=[...integrations.matchAll(/\{ id:'([^']+)'/g)].map(x=>x[1]);
 const catalogIds=new Set([...catalog.matchAll(/\{id:'([^']+)'/g)].map(x=>x[1]));
