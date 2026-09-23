@@ -158,6 +158,7 @@ export function getPersistentConnectorAbsorptionManifest(){
 function pluginNativeTarget(plugin){
  const tools=plugin.tools||[];
  const hay=(plugin.namespace+' '+tools.join(' ')).toLowerCase();
+ if(/api.documentation.checker|api.impact.mapper|openapi|api contract|breaking change/.test(hay))return'api-contract-intelligence';
  if(/mail|gmail|outlook|slack|discord|telegram|call|sms|whatsapp|voice|phone|record|transcri/.test(hay))return'communications-hub';
  if(/calendar|booking|schedule/.test(hay))return'scheduling-engine';
  if(/github|git|deploy|vercel|netlify|railway|digitalocean|aiven|appdeploy|shipstatic|val.town|replit|basicdeploy|manufact/.test(hay))return'deployment-operator';
