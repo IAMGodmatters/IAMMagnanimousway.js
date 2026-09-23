@@ -162,7 +162,27 @@ async function staticResponse(pathname) {
   return null;
 }
 
+function trustedMagnanimousPublicOrigin(req) {
+  const raw = String(req.headers['x-magnanimous-public-origin'] || '').split(',')[0].trim();
+  if (!raw) return '';
+  try {
+    const origin = new URL(raw);
+    if (origin.protocol !== 'https:' || origin.username || origin.password) return '';
+    const configured = String(
+      process.env.MAGNANIMOUS_PUBLIC_ORIGINS ||
+      'https://iammagnanimousway.com,https://www.iammagnanimousway.com'
+    ).split(',').map((value) => value.trim()).filter(Boolean);
+    const allowed = configured.some((value) => {
+      try { return new URL(value).origin === origin.origin; } catch { return false; }
+    });
+    return allowed ? origin.origin : '';
+  } catch {
+    return '';
+  }
+}
+
 async function nodeRequest(req) {
+  const publicOrigin = trustedMagnanimousPublicOrigin(req);
   const proto = String(
     req.headers['x-forwarded-proto'] ||
     process.env.MAGNANIMOUS_PUBLIC_PROTO ||
@@ -170,7 +190,7 @@ async function nodeRequest(req) {
   ).split(',')[0].trim();
 
   const host = String(req.headers['x-forwarded-host'] || req.headers.host || 'localhost');
-  const url = proto + '://' + host + (req.url || '/');
+  const url = (publicOrigin || (proto + '://' + host)) + (req.url || '/');
 
   const init = {
     method: req.method,
