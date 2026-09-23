@@ -4,6 +4,7 @@ import { CHATGPT_PLUGIN_CONTRACT_SNAPSHOT, getChatGPTPluginContractSummary } fro
 import { INSTALLED_PLUGIN_SKILL_SNAPSHOT, getInstalledPluginSkillSummary } from './magnanimous-installed-plugin-skill-snapshot.js';
 import { LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT, getLivePluginToolResearchSummary } from './magnanimous-live-plugin-tool-research-snapshot.js';
 import { LIVE_PLUGIN_SKILL_RESEARCH_SNAPSHOT, getLivePluginSkillResearchSummary } from './magnanimous-live-plugin-skill-research-snapshot.js';
+import { LATEST_PLUGIN_CAPABILITY_DELTA, getLatestPluginCapabilityDeltaSummary } from './magnanimous-latest-plugin-capability-delta.js';
 import { MAGNANIMOUS_BUILDER_TOOL_CONTRACTS, getMagnanimousBuilderNativeTarget, getMagnanimousBuilderToolPolicy, getMagnanimousBuilderSummary } from './magnanimous-builder-capability-catalog.js';
 import { MAGNANIMOUS_ENGINEERING_GUIDE_TOPICS, getMagnanimousTechniqueProfile, getMagnanimousTechniqueSummary, getMagnanimousGuideNativeTarget, getMagnanimousGuidePolicy } from './magnanimous-engineering-technique-catalog.js';
 import { getRailwayCapabilityManifest, getRailwayPlatformCapabilityManifest, getRailwayTechniqueManifest, getRailwayAbsorptionSummary } from './magnanimous-railway-capability-registry.js';
@@ -199,7 +200,16 @@ function liveOnlyPluginRecipes(){
 }
 export function getChatGPTPluginCapabilityManifest(){
  const historical=CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.flatMap(plugin=>(plugin.tools||[]).map(tool=>pluginCapabilityRecipe(plugin,tool)));
- return [...historical,...liveOnlyPluginRecipes()];
+ const existing=[...historical,...liveOnlyPluginRecipes()];
+ const keys=new Set(existing.map(x=>String(x.plugin_namespace)+'::'+String(x.capability).replace(/^tool-/,'')));
+ const delta=[];
+ for(const row of LATEST_PLUGIN_CAPABILITY_DELTA){
+  const slug=String(row.namespace||'plugin').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'plugin';
+  const recipe=pluginCapabilityRecipe({id:`chatgpt-plugin:${slug}`,namespace:row.namespace,name:String(row.namespace).replaceAll('_',' '),source_kind:'live-observable-plugin-tool-catalog',authorization_state:'not-assumed',tools:[row.tool]},row.tool);
+  const key=String(recipe.plugin_namespace)+'::'+String(recipe.capability).replace(/^tool-/,'');
+  if(!keys.has(key)){recipe.search_text=row.purpose;recipe.visibility_state='live-visible';recipe.research={captured_at:'2026-09-23',source_kind:'live-observable-plugin-tool-catalog',public_purpose:row.purpose,authorization_state:'not-assumed',proprietary_implementation_copied:false};delta.push(recipe);keys.add(key);}
+ }
+ return [...existing,...delta];
 }
 function installedSkillRecipe(tuple){
  const [plugin,skill,description]=tuple,live=LIVE_SKILL_BY_KEY.get(`${plugin}/${skill}`)||null,native_target=pluginNativeTarget({namespace:plugin,tools:[skill,live?.purpose||description]}),initiative=initiativePolicy(skill,live?.purpose||description,'external-plugin-account-or-provider-rail-when-required');
@@ -261,7 +271,8 @@ export function getCapabilityAbsorptionManifest(){
 export function getConnectorAbsorptionSummary(){
  const catalog=getConnectorAbsorptionCatalog(),persistent=getPersistentConnectorAbsorptionManifest(),historicalPlugins=getChatGPTPluginContractSummary(),pluginManifest=getChatGPTPluginCapabilityManifest(),historicalSkills=getInstalledPluginSkillSummary(),skillManifest=getInstalledPluginSkillManifest(),builderManifest=getMagnanimousBuilderCapabilityManifest(),engineeringManifest=getMagnanimousEngineeringSkillManifest(),railwayManifest=getRailwayCapabilityManifest(),railwayPlatform=getRailwayPlatformCapabilityManifest(),railwayTechniques=getRailwayTechniqueManifest(),railway=getRailwayAbsorptionSummary(),grokManifest=getGrokCapabilityManifest(),grok=getGrokAbsorptionSummary(),governanceManifest=getImprovementGovernanceManifest(),governance=getImprovementGovernanceSummary(),b2bManifest=getB2BCapabilityManifest(),b2b=getB2BSummary(),liveToolRows=LIVE_PLUGIN_TOOL_RESEARCH_SNAPSHOT,liveSkills=getLivePluginSkillResearchSummary(),builder=getMagnanimousBuilderSummary(),engineering=getMagnanimousTechniqueSummary(),directCatalogued=new Set(catalog.filter(x=>x.direct_connector).map(x=>x.id));
  const missingDirect=INTEGRATIONS.filter(x=>!directCatalogued.has(x.id)).map(x=>x.id);
- const pluginNamespaces=new Set([...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace),...liveToolRows.map(x=>x.namespace)]);
+ const latestPluginDelta=getLatestPluginCapabilityDeltaSummary();
+ const pluginNamespaces=new Set([...CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace),...liveToolRows.map(x=>x.namespace),...LATEST_PLUGIN_CAPABILITY_DELTA.map(x=>x.namespace)]);
  const liveTools={live_plugin_namespaces:new Set(liveToolRows.map(x=>x.namespace)).size,live_tool_contracts:liveToolRows.length};
  const skillNamespaces=new Set(INSTALLED_PLUGIN_SKILL_SNAPSHOT.map(x=>x[0]));
  const historicalToolNamespaces=[...new Set(CHATGPT_PLUGIN_CONTRACT_SNAPSHOT.map(x=>x.namespace))].filter(x=>!LIVE_TOOL_BY_NAMESPACE.has(x));
@@ -275,7 +286,8 @@ export function getConnectorAbsorptionSummary(){
   visible_plugin_namespaces:pluginNamespaces.size,
   visible_plugin_tool_contracts:pluginManifest.length,
   currently_visible_plugin_namespaces:liveTools.live_plugin_namespaces,
-  currently_visible_plugin_tool_contracts:liveTools.live_tool_contracts,
+  currently_visible_plugin_tool_contracts:liveTools.live_tool_contracts+latestPluginDelta.tool_contracts,
+  latest_plugin_delta:latestPluginDelta,
   historical_plugin_namespaces:historicalToolNamespaces.length,
   live_only_plugin_namespaces:liveOnlyToolNamespaces.length,
   installed_plugin_skill_namespaces:skillNamespaces.size,
