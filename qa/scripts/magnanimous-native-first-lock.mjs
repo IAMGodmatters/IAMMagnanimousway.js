@@ -107,6 +107,8 @@ has(toolFoundry,'getConnectorAbsorptionPrompt','Tool Foundry injects connector a
 has(toolFoundry,'getCapabilityRealizationContext','Tool Foundry injects evidence-gated native/hybrid execution routes into Magnanimous planning');
 has(toolFoundry,'realization_routes','Tool Foundry returns resolved capability execution routes');
 has(toolFoundry,"/api/magnanimous/tool-foundry/absorption",'signed-in absorption catalog endpoint exists');
+has(provider,"url.pathname.startsWith('/api/magnanimous/tool-foundry')",'provider entrypoint dispatches Tool Foundry APIs directly');
+has(provider,'handleMagnanimousToolFoundry(request, env)','direct Tool Foundry dispatch preserves the authenticated runtime request');
 has(absorptionMigration,'magnanimous_connector_capability_absorption','connector capability absorption has durable D1 storage');
 has(materializationMigration,'magnanimous_native_tool_specs','Tool Foundry global specs exist through D1 migrations before deployment materialization');
 has(materializationMigration,'magnanimous_capability_materialization_state','deployment materialization state is durable in D1');
