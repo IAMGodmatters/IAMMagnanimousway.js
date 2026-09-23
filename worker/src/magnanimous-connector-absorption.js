@@ -309,6 +309,31 @@ export function getConnectorAbsorptionSummary(){
  };
 }
 
+export function getPluginIndependenceReadiness(){
+ const rows=getCapabilityAbsorptionManifest();
+ const byTarget=new Map();
+ for(const row of rows){
+  const target=row.native_target||'magnanimous-core';
+  const bucket=byTarget.get(target)||{native_target:target,total:0,first_party:0,external_benchmarks:0,confirmation_gated:0};
+  bucket.total++;
+  if(row.category==='magnanimous-first-party'||row.category==='magnanimous-skill'||row.priority==='first-party')bucket.first_party++;
+  else bucket.external_benchmarks++;
+  if(row.initiative?.requires_confirmation)bucket.confirmation_gated++;
+  byTarget.set(target,bucket);
+ }
+ const targets=[...byTarget.values()].map(x=>({...x,native_coverage_ratio:x.total?Number((x.first_party/x.total).toFixed(3)):0,provider_optional:x.external_benchmarks===0})).sort((a,b)=>a.native_coverage_ratio-b.native_coverage_ratio||b.external_benchmarks-a.external_benchmarks);
+ return{
+  identity:'Magnanimous AI',
+  status:targets.every(x=>x.provider_optional)?'native-independent':'migration-in-progress',
+  total_capability_contracts:rows.length,
+  native_targets:targets.length,
+  provider_optional_targets:targets.filter(x=>x.provider_optional).length,
+  targets,
+  next_native_targets:targets.filter(x=>!x.provider_optional).slice(0,12),
+  retirement_rule:'A provider is optional only when the required user outcome has an independently implemented Magnanimous runtime, contract tests, security verification, production canary evidence and rollback proof. Contract inventory alone never qualifies.'
+ };
+}
+
 export function getCapabilityResearchRecord(row){
  if(row?.connector_id==='railway'||row?.connector_id==='railway-techniques')return{...(row.research||{}),capability:row.capability,connector_id:row.connector_id,one_by_one_researched:true};
  if(row?.direct_connector){
