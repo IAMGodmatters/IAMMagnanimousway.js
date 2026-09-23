@@ -10,6 +10,7 @@ import { getRailwayCapabilityManifest, getRailwayPlatformCapabilityManifest, get
 import { getGrokCapabilityManifest, getGrokAbsorptionSummary } from './magnanimous-grok-capability-registry.js';
 import { getImprovementGovernanceManifest, getImprovementGovernanceSummary } from './magnanimous-improvement-governance.js';
 import { getB2BCapabilityManifest, getB2BSummary } from './magnanimous-b2b-capability-registry.js';
+import { classifyCapabilityRealization } from './magnanimous-capability-realization.js';
 
 // Research ledger for the account connectors that I AM Magnanimous Way can authorize directly.
 // These sources describe public API contracts only. They are not copied implementations.
@@ -314,23 +315,42 @@ export function getPluginIndependenceReadiness(){
  const byTarget=new Map();
  for(const row of rows){
   const target=row.native_target||'magnanimous-core';
-  const bucket=byTarget.get(target)||{native_target:target,total:0,first_party:0,external_benchmarks:0,confirmation_gated:0};
+  const realization=classifyCapabilityRealization(row);
+  const bucket=byTarget.get(target)||{
+   native_target:target,total:0,native_ready:0,hybrid_ready:0,bridge_required:0,specified_only:0,
+   replacement_surface_ready:0,requires_external:0,confirmation_gated:0
+  };
   bucket.total++;
-  if(row.category==='magnanimous-first-party'||row.category==='magnanimous-skill'||row.priority==='first-party')bucket.first_party++;
-  else bucket.external_benchmarks++;
+  if(realization.status==='native-ready')bucket.native_ready++;
+  else if(realization.status==='hybrid-ready')bucket.hybrid_ready++;
+  else if(realization.status==='bridge-required')bucket.bridge_required++;
+  else bucket.specified_only++;
+  if(realization.status==='native-ready'||realization.status==='hybrid-ready')bucket.replacement_surface_ready++;
+  if(realization.requires_external)bucket.requires_external++;
   if(row.initiative?.requires_confirmation)bucket.confirmation_gated++;
   byTarget.set(target,bucket);
  }
- const targets=[...byTarget.values()].map(x=>({...x,native_coverage_ratio:x.total?Number((x.first_party/x.total).toFixed(3)):0,provider_optional:x.external_benchmarks===0})).sort((a,b)=>a.native_coverage_ratio-b.native_coverage_ratio||b.external_benchmarks-a.external_benchmarks);
+ const targets=[...byTarget.values()].map(x=>({
+  ...x,
+  replacement_surface_ratio:x.total?Number((x.replacement_surface_ready/x.total).toFixed(3)):0,
+  plugin_adapter_candidate:x.total>0&&x.replacement_surface_ready===x.total,
+  external_system_free:x.total>0&&x.native_ready===x.total&&x.requires_external===0,
+  needs_runtime_canary:x.replacement_surface_ready>0
+ })).sort((a,b)=>a.replacement_surface_ratio-b.replacement_surface_ratio||b.bridge_required-a.bridge_required||b.specified_only-a.specified_only);
+ const candidateTargets=targets.filter(x=>x.plugin_adapter_candidate);
  return{
   identity:'Magnanimous AI',
-  status:targets.every(x=>x.provider_optional)?'native-independent':'migration-in-progress',
+  status:targets.every(x=>x.plugin_adapter_candidate)?'replacement-surfaces-complete':'migration-in-progress',
   total_capability_contracts:rows.length,
   native_targets:targets.length,
-  provider_optional_targets:targets.filter(x=>x.provider_optional).length,
+  replacement_surface_ready_contracts:targets.reduce((n,x)=>n+x.replacement_surface_ready,0),
+  plugin_adapter_candidate_targets:candidateTargets.length,
+  external_system_free_targets:targets.filter(x=>x.external_system_free).length,
   targets,
-  next_native_targets:targets.filter(x=>!x.provider_optional).slice(0,12),
-  retirement_rule:'A provider is optional only when the required user outcome has an independently implemented Magnanimous runtime, contract tests, security verification, production canary evidence and rollback proof. Contract inventory alone never qualifies.'
+  next_native_targets:targets.filter(x=>!x.plugin_adapter_candidate).slice(0,12),
+  canary_targets:candidateTargets.filter(x=>x.needs_runtime_canary).slice(0,12),
+  truth:'Replacement readiness is based on a real Magnanimous execution surface classification, not on first-party naming or contract inventory alone.',
+  retirement_rule:'A plugin adapter can be retired only after its required outcomes have Magnanimous execution surfaces, contract tests, security verification, production canary evidence and rollback proof. External systems such as payment networks, social networks, email providers, marketplaces, carriers, hosting targets or fresh data sources may still be required for the real-world action.'
  };
 }
 
