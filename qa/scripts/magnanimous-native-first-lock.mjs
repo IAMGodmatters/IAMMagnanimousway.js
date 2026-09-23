@@ -107,6 +107,8 @@ has(toolFoundry,'getConnectorAbsorptionPrompt','Tool Foundry injects connector a
 has(toolFoundry,'getCapabilityRealizationContext','Tool Foundry injects evidence-gated native/hybrid execution routes into Magnanimous planning');
 has(toolFoundry,'realization_routes','Tool Foundry returns resolved capability execution routes');
 has(toolFoundry,"/api/magnanimous/tool-foundry/absorption",'signed-in absorption catalog endpoint exists');
+has(provider,"url.pathname.startsWith('/api/magnanimous/tool-foundry')",'provider entrypoint dispatches Tool Foundry APIs directly');
+has(provider,'handleMagnanimousToolFoundry(request, env)','direct Tool Foundry dispatch preserves the authenticated runtime request');
 has(absorptionMigration,'magnanimous_connector_capability_absorption','connector capability absorption has durable D1 storage');
 has(materializationMigration,'magnanimous_native_tool_specs','Tool Foundry global specs exist through D1 migrations before deployment materialization');
 has(materializationMigration,'magnanimous_capability_materialization_state','deployment materialization state is durable in D1');
@@ -147,6 +149,9 @@ has(deployWorkflow,'stale rows were pruned','matching digest cannot bypass stale
 has(d1MaintenanceWorkflow,'Applying current-manifest stale-row pruning','scheduled D1 catch-up also prunes obsolete full-brain rows before digest checks');
 has(d1MaintenanceWorkflow,'000-prune-stale.sql','scheduled D1 catch-up executes the dedicated stale-manifest prune file');
 has(deployWorkflow,'free tier daily row write limit','only the known D1 daily write-quota condition can defer durable materialization');
+has(deployWorkflow,'timeout 90s npx wrangler d1 execute iam-magnanimous-db --remote --yes --file=/tmp/magnanimous-full-brain/000-prune-stale.sql','D1 stale-row pruning has a bounded command timeout');
+has(deployWorkflow,'Cloudflare D1 materialization command exceeded the 90-second command budget','D1 materialization commands have bounded command timeouts and defer safely');
+has(deployWorkflow,'timeout 90s npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT','D1 materialization verification query has a bounded command timeout');
 has(deployWorkflow,'Production mutation smoke remains authoritative and is not bypassed','D1 quota deferral does not weaken production mutation smoke');
 has(deployWorkflow,'realization_count','deployment verifies the complete capability realization ledger');
 has(deployWorkflow,'native_ready_count','deployment verifies native-ready realization counts');

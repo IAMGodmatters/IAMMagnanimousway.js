@@ -281,6 +281,11 @@ async function handle(request, env) {
     if (handled) return handled;
   }
 
+  if (url.pathname.startsWith('/api/magnanimous/tool-foundry')) {
+    const handled = await handleMagnanimousToolFoundry(request, env);
+    if (handled) return handled;
+  }
+
   if (url.pathname === '/api/tools' && request.method === 'GET') return json({ tools: TOOLS });
   if (url.pathname === '/api/operator/capabilities' && request.method === 'GET') {
     const localBridgeReady=await hasAnyReadyLocalBridge(env).catch(()=>false);
