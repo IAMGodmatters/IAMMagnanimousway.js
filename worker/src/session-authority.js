@@ -92,6 +92,28 @@ async function cleanupSessions(env,t=now()){
 
 export function requestUsesOpaqueSession(request){return isOpaqueToken(bearer(request))}
 
+export async function authenticatedSessionUser(request,env){
+  const token=bearer(request);
+  if(!token||!env?.DB)return null;
+  if(isOpaqueToken(token)){
+    if(!validOpaqueToken(token)||!await opaqueSchemaAvailable(env,'authenticate-user'))return null;
+    const hash=await sha256(token),t=now();
+    const row=await env.DB.prepare(`SELECT u.id,u.tenant_id,u.name,u.email,u.role,u.active,u.created_at,
+      s.role AS session_role,s.created_at AS session_created_at,s.expires_at,s.revoked_at
+      FROM auth_sessions s JOIN users u ON u.id=s.user_id AND u.tenant_id=s.tenant_id
+      WHERE s.token_hash=? LIMIT 1`).bind(hash).first();
+    const createdAt=Number(row?.session_created_at||0),serverExpiry=Number(row?.expires_at||0);
+    const cappedExpiry=createdAt>0?Math.min(serverExpiry,createdAt+SESSION_TTL_SECONDS):serverExpiry;
+    if(!row||Number(row.active||0)!==1||cappedExpiry<=t||row.revoked_at!=null)return null;
+    if(String(row.session_role||'')!==String(row.role||''))return null;
+    return{id:row.id,tenant_id:row.tenant_id,name:row.name,email:row.email,role:row.role,active:row.active,created_at:row.created_at};
+  }
+  const parts=await verifiedLegacyParts(token,env);
+  if(!parts)return null;
+  return env.DB.prepare('SELECT id,tenant_id,name,email,role,active,created_at FROM users WHERE id=? AND tenant_id=? AND active=1')
+    .bind(parts.user_id,parts.tenant_id).first();
+}
+
 export async function resolveSessionRequest(request,env,requestId=''){
   const token=bearer(request);
   if(!isOpaqueToken(token))return{request,opaque:false};
