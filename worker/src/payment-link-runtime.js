@@ -35,6 +35,10 @@ export async function augmentBillingResponse(request, response, env) {
     data.tier_checkout_configured={...(data.tier_checkout_configured||{}),...Object.fromEntries(Object.entries(links).map(([k,v])=>[k,Boolean(v)||Boolean(data?.tier_checkout_configured?.[k])]))};
     data.business_checkout_configured=Boolean(links.business)||Boolean(data.business_checkout_configured);
     data.payment_link_fallbacks=links;
+    data.agency_payment_link_fallbacks={
+      agency:Boolean(links.agency)||Boolean(data?.agency_payment_link_fallbacks?.agency),
+      agency_pro:Boolean(links.agency_pro)||Boolean(data?.agency_payment_link_fallbacks?.agency_pro)
+    };
   }
   if (path === '/api/billing/status') {
     data.billing_configured = Object.values(links).some(Boolean)||Boolean(data.billing_configured);
