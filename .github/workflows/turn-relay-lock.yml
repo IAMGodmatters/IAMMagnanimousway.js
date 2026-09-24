@@ -1,0 +1,79 @@
+name: Magnanimous TURN Relay Lock
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'telecom-core/turn-relay/**'
+      - 'telecom-core/docker-compose.yml'
+      - 'telecom-core/.env.owned.example'
+      - 'qa/scripts/telecom-deep-architecture-lock.mjs'
+      - '.github/workflows/turn-relay-lock.yml'
+  pull_request:
+    paths:
+      - 'telecom-core/turn-relay/**'
+      - 'telecom-core/docker-compose.yml'
+      - 'telecom-core/.env.owned.example'
+      - 'qa/scripts/telecom-deep-architecture-lock.mjs'
+      - '.github/workflows/turn-relay-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  turn-relay-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate relay entrypoint syntax
+        run: sh -n telecom-core/turn-relay/entrypoint.sh
+
+      - name: Validate opt-in Telecom Compose profile
+        env:
+          MAGNANIMOUS_SIP_DOMAIN: relay.test
+          SIP_DB_PASSWORD: ci-db-value
+          TELECOM_API_TOKEN: ci-api-value
+          TELECOM_WEBHOOK_SECRET: ci-webhook-value
+          ASTERISK_ARI_USER: ci-ari
+          ASTERISK_ARI_PASSWORD: ci-ari-value
+          MAGNANIMOUS_AI_PASSWORD: ci-ai-value
+          MAGNANIMOUS_ADMIN_PASSWORD: ci-admin-value
+          MAGNANIMOUS_TURN_REALM: relay.test
+          MAGNANIMOUS_TURN_AUTH_SECRET: ci-turn-value
+        run: docker compose --profile turn-relay -f telecom-core/docker-compose.yml config -q
+
+      - name: Build owned TURN relay image
+        run: docker build -t magnanimous-turn-relay:ci telecom-core/turn-relay
+
+      - name: Start coturn with ephemeral TLS and REST auth
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/magnanimous-turn-ci/certs
+          openssl req -x509 -nodes -newkey rsa:2048 \
+            -keyout /tmp/magnanimous-turn-ci/certs/privkey.pem \
+            -out /tmp/magnanimous-turn-ci/certs/fullchain.pem \
+            -days 1 \
+            -subj '/CN=localhost' \
+            -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1'
+          docker run -d --name magnanimous-turn-relay-ci --network host \
+            -v /tmp/magnanimous-turn-ci/certs:/certs:ro \
+            -e MAGNANIMOUS_TURN_REALM=relay.test \
+            -e MAGNANIMOUS_TURN_AUTH_SECRET=ci-turn-value \
+            -e MAGNANIMOUS_TURN_TLS_CERT_FILE=/certs/fullchain.pem \
+            -e MAGNANIMOUS_TURN_TLS_KEY_FILE=/certs/privkey.pem \
+            -e MAGNANIMOUS_TURN_PORT=34790 \
+            -e MAGNANIMOUS_TURN_TLS_PORT=53490 \
+            -e MAGNANIMOUS_TURN_MIN_PORT=49260 \
+            -e MAGNANIMOUS_TURN_MAX_PORT=49270 \
+            magnanimous-turn-relay:ci
+          sleep 3
+          test "$(docker inspect -f '{{.State.Running}}' magnanimous-turn-relay-ci)" = "true"
+          docker logs magnanimous-turn-relay-ci
+
+      - name: Stop relay
+        if: always()
+        run: docker rm -f magnanimous-turn-relay-ci >/dev/null 2>&1 || true
