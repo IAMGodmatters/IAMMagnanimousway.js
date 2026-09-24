@@ -20,7 +20,9 @@ There is **no paid-shape fallback**. If A1 Always Free capacity is unavailable, 
 
 An Oracle Cloud account/tenancy is required. Account creation, identity verification, and any card/phone verification are user-only Oracle steps.
 
-Configure the OCI Terraform provider using a normal OCI CLI/API-key profile or another Oracle-supported authentication method. Never commit private keys, API tokens, `terraform.tfvars`, state files, or provider credentials.
+**Preferred path: use OCI Cloud Shell.** Oracle Cloud Shell is already authenticated when you open it from the OCI Console, so you do not need to generate or download an API signing private key merely to run this module. Clone the public repository in Cloud Shell, enter `telecom-core/oci`, and supply only the non-secret deployment inputs such as region, compartment OCID, administrator CIDR, and your SSH public key.
+
+If you run Terraform outside Cloud Shell, configure the OCI provider using a normal OCI-supported authentication method. Never commit private keys, API tokens, `terraform.tfvars`, state files, or provider credentials.
 
 Copy the example inputs:
 
