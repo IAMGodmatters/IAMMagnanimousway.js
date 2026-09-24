@@ -21,9 +21,10 @@ function telecomCoreConfig(env){
  if(!runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE))return null;
  const raw=clean(env.TELECOM_CORE_URL),token=clean(env.TELECOM_CORE_TOKEN);if(!raw||!token)return null;
  try{
-  const u=new URL(raw),host=u.hostname.toLowerCase();
+  const u=new URL(raw),host=u.hostname.toLowerCase().replace(/^\[|\]$/g,'');
   const privateV4=/^(?:10\.|127\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/;
-  if(u.protocol!=='https:'||u.username||u.password||host==='localhost'||host.endsWith('.local')||privateV4.test(host))return null;
+  const privateV6=host==='::1'||host.startsWith('fc')||host.startsWith('fd')||host.startsWith('fe80:');
+  if(u.protocol!=='https:'||u.username||u.password||host==='localhost'||host.endsWith('.local')||privateV4.test(host)||privateV6)return null;
   return{base:u.origin+u.pathname.replace(/\/+$/,''),token}
  }catch{return null}
 }
@@ -31,7 +32,7 @@ function nativeSoftphoneReady(env){return Boolean(telecomCoreConfig(env))}
 async function telecomCoreRequest(env,path,options={}){
  const cfg=telecomCoreConfig(env);if(!cfg)return null;
  const headers=new Headers(options.headers||{});headers.set('Authorization',`Bearer ${cfg.token}`);if(options.body&&!headers.has('Content-Type'))headers.set('Content-Type','application/json');
- try{return await fetch(`${cfg.base}${path}`,{...options,headers})}catch{return null}
+ try{return await fetch(`${cfg.base}${path}`,{...options,headers,redirect:'error'})}catch{return null}
 }
 function genericReady(env){return Boolean(env.VOIP_PROVIDER_URL&&env.VOIP_PROVIDER_TOKEN)}
 function telnyxReady(env){return Boolean(env.TELNYX_API_KEY&&env.TELNYX_CONNECTION_ID&&env.TELNYX_PHONE_NUMBER)}
