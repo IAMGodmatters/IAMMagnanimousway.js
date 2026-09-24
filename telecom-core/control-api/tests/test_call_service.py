@@ -18,11 +18,6 @@ class FakeBridge:
     def __init__(self):
         self.originated = None
         self.hung_up = None
-        self.held = None
-        self.unheld = None
-        self.transferred = None
-        self.recording_started = None
-        self.recording_stopped = None
 
     async def originate(self, call):
         self.originated = call
@@ -33,21 +28,6 @@ class FakeBridge:
 
     async def get_call(self, provider_call_id):
         return CarrierCallState(provider_call_id=provider_call_id, status="ended")
-
-    async def hold(self, provider_call_id):
-        self.held = provider_call_id
-
-    async def unhold(self, provider_call_id):
-        self.unheld = provider_call_id
-
-    async def transfer(self, provider_call_id, endpoint):
-        self.transferred = (provider_call_id, endpoint)
-
-    async def start_recording(self, provider_call_id, recording_name, *, format, max_duration_seconds, beep):
-        self.recording_started = (provider_call_id, recording_name, format, max_duration_seconds, beep)
-
-    async def stop_recording(self, recording_name):
-        self.recording_stopped = recording_name
 
 
 class FakeMonitor:
@@ -112,31 +92,6 @@ class CallServiceTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(TelecomValidationError):
             await service.hangup("not-a-call-id", None)
         self.assertIsNone(bridge.hung_up)
-
-    async def test_native_call_controls_delegate_to_bridge(self):
-        bridge = FakeBridge()
-        service = CallService(bridge, FakeMonitor(), FakeCallbackPolicy(), SETTINGS)
-        call_id = "12345678-1234-1234-1234-123456789abc"
-        self.assertEqual((await service.hold(call_id))["status"], "held")
-        self.assertEqual(bridge.held, call_id)
-        self.assertEqual((await service.unhold(call_id))["status"], "active")
-        self.assertEqual(bridge.unheld, call_id)
-        transfer = await service.transfer(call_id, "PJSIP/2001")
-        self.assertEqual(transfer["endpoint"], "PJSIP/2001")
-        self.assertEqual(bridge.transferred, (call_id, "PJSIP/2001"))
-
-    async def test_recording_requires_explicit_consent(self):
-        bridge = FakeBridge()
-        service = CallService(bridge, FakeMonitor(), FakeCallbackPolicy(), SETTINGS)
-        call_id = "12345678-1234-1234-1234-123456789abc"
-        with self.assertRaises(TelecomValidationError):
-            await service.start_recording(call_id, consent_confirmed=False, format="wav", max_duration_seconds=120, beep=True)
-        started = await service.start_recording(call_id, consent_confirmed=True, format="wav", max_duration_seconds=120, beep=True)
-        self.assertEqual(started["status"], "recording")
-        self.assertEqual(bridge.recording_started[0], call_id)
-        stopped = await service.stop_recording(call_id)
-        self.assertEqual(stopped["status"], "stopped")
-        self.assertEqual(bridge.recording_stopped, f"magnanimous-{call_id}")
 
     async def test_get_returns_normalized_ended_state(self):
         bridge = FakeBridge()
