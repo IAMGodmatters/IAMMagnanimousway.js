@@ -53,8 +53,8 @@ Completed on the active branch:
 - [x] Added and wired the durable development checkpoint QA lock.
 
 Still required before this branch is complete:
-- [ ] Expand permanent telecom QA locks for the new WSS/TLS, telemetry, rate-cap and UI truth contracts.
-- [ ] Version the deep research/architecture evidence with current carrier, Asterisk, CCaaS and NTC references.
+- [x] Expanded permanent telecom QA locks for WSS/TLS, telemetry, rate-cap and UI truth contracts.
+- [x] Versioned the deep research/architecture evidence with current carrier, Asterisk, CCaaS and NTC references.
 - [ ] Run source/build/QA on the branch and fix any failures.
 - [ ] Merge only when CI is green.
 - [ ] Deploy the existing production service and verify exact-commit production smoke.
@@ -69,7 +69,7 @@ Do not write SUCCESS here until the exact new merge commit has passed CI, deploy
 
 If interrupted, resume from this file first. Then:
 - inspect the active branch diff against main;
-- continue the first unchecked item in **Active work**; currently that is expanding the permanent telecom QA locks;
+- continue the first unchecked item in **Active work**; currently that is running source/build/QA on the branch;
 - do not recreate already-merged PRs #367-#369;
 - do not create a new Railway project/service;
 - do not enable a paid carrier or purchase numbers without an explicit paid-action gate;
