@@ -218,23 +218,6 @@ async function campaignRoutes(request,env,user,url){
 function gatherTwiml(action,greeting){return `<?xml version="1.0" encoding="UTF-8"?><Response><Gather input="dtmf speech" numDigits="1" timeout="6" speechTimeout="auto" action="${esc(action)}" method="POST"><Say>${esc(greeting)}</Say></Gather><Redirect method="POST">${esc(action)}</Redirect></Response>`}
 function sayHangup(text){return `<?xml version="1.0" encoding="UTF-8"?><Response><Say>${esc(text)}</Say><Hangup/></Response>`}
 
-async function queueDialTwiml(env,tenant,queueId,message='Please hold while I connect you.'){
- let agents=[];
- try{
-  if(queueId){
-   const q=await env.DB.prepare(`SELECT a.user_id,a.id,a.name FROM call_center_agents a JOIN call_queue_members m ON m.agent_id=a.id WHERE a.tenant_id=? AND a.active=1 AND a.status='available' AND m.queue_id=? ORDER BY COALESCE(a.last_assigned_at,0) ASC,a.updated_at ASC LIMIT 10`).bind(tenant,queueId).all();
-   agents=q.results||[];
-  }
-  if(!agents.length){
-   const q=await env.DB.prepare(`SELECT user_id,id,name FROM call_center_agents WHERE tenant_id=? AND active=1 AND status='available' ORDER BY COALESCE(last_assigned_at,0) ASC,updated_at ASC LIMIT 10`).bind(tenant).all();
-   agents=q.results||[];
-  }
- }catch(_){agents=[]}
- const clients=agents.filter(a=>a.user_id).map(a=>softphoneIdentity({id:a.user_id},tenant));
- if(!clients.length)return null;
- return `<?xml version="1.0" encoding="UTF-8"?><Response><Say>${esc(message)}</Say><Dial answerOnBridge="true" timeout="25">${clients.map(identity=>`<Client>${esc(identity)}</Client>`).join('')}</Dial><Say>No agent answered. Please try again or request a callback.</Say></Response>`;
-}
-
 async function twilioIncoming(request,env){
  if(!twilioReady(env))return xml(sayHangup('Telephone service is not configured.'),503);if(!await validTwilio(request,env))return xml(sayHangup('This call could not be authenticated.'),403);const form=await request.formData(),sid=clean(form.get('CallSid')),from=phone(form.get('From')),to=phone(form.get('To'));let tenant=clean(env.TWILIO_DEFAULT_TENANT_ID);if(!tenant){const r=await env.DB.prepare("SELECT id FROM tenants WHERE slug='owner' LIMIT 1").first();tenant=clean(r?.id)}if(!tenant)return xml(sayHangup('This line has not been assigned yet.'),503);await ensure(env);await seed(env,tenant);
  const blocked=from?await env.DB.prepare('SELECT phone FROM voice_do_not_call WHERE tenant_id=? AND phone=?').bind(tenant,from).first():null;if(blocked)return xml(sayHangup('This number is on our do-not-call list. Goodbye.'));
@@ -248,12 +231,7 @@ async function ivrStep(request,env,url){
  const call=callId?await env.DB.prepare('SELECT * FROM phone_calls WHERE id=? AND tenant_id=?').bind(callId,tenant).first():null;const from=phone(call?.caller||form.get('From'));
  if(node.type==='ai')return xml(`<?xml version="1.0" encoding="UTF-8"?><Response><Redirect method="POST">${esc(new URL('/api/voice-agent/twilio/incoming',request.url).toString())}</Redirect></Response>`);
  if(node.type==='forward'&&validE164(node.number))return xml(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>${esc(node.message||'Please hold while I connect you.')}</Say><Dial>${esc(phone(node.number))}</Dial></Response>`);
- if(node.type==='queue'){
-  const queueId=node.queue_id||flow.default_queue_id||null,twiml=twilioSoftphoneReady(env)?await queueDialTwiml(env,tenant,queueId,node.message||'Please hold while I connect you to an available agent.'):null;
-  if(twiml)return xml(twiml);
-  const id=crypto.randomUUID(),ts=now();if(from)await env.DB.prepare('INSERT INTO cc_callbacks(id,tenant_id,queue_id,phone,display_name,status,requested_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,tenant,queueId,from,'','pending',ts,ts,ts).run();return xml(sayHangup('No agent is available right now. Your callback request has been saved.'));
- }
- if(node.type==='callback'){
+ if(node.type==='callback'||node.type==='queue'){
   const id=crypto.randomUUID(),ts=now();if(from)await env.DB.prepare('INSERT INTO cc_callbacks(id,tenant_id,queue_id,phone,display_name,status,requested_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,tenant,node.queue_id||flow.default_queue_id||null,from,'','pending',ts,ts,ts).run();return xml(sayHangup(node.message||'Your callback request has been saved. We will contact you as soon as possible.'));
  }
  if(node.type==='voicemail'){
