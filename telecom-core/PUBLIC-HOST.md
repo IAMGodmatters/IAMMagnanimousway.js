@@ -47,6 +47,16 @@ Railway can expose a raw TCP service through TCP Proxy and its private network s
 
 This source support does **not** make Railway, coturn, or any relay production-live. A relay deployment must still prove trusted signaling plus real bidirectional browser media from an external network before `TELECOM_NATIVE_WEBRTC_LIVE=true`.
 
+## Free-first Oracle Cloud A1 path
+
+For a no-recurring-VPS-cost activation target, the repository now has a guarded Oracle Cloud Always Free A1 path in `OCI-ALWAYS-FREE-HOST.md` plus `deploy/oci-always-free-preflight.sh`.
+
+That path is intentionally restricted to `VM.Standard.A1.Flex`, ARM64, at least 2 OCPUs, at least 8 GiB RAM, Ubuntu/Debian, and a globally routable public IPv4. A dedicated GitHub ARM64 workflow builds the exact Asterisk, Kamailio, control API, coturn and PostgreSQL stack before OCI A1 compatibility is treated as source-ready.
+
+Oracle account creation and any required phone/card verification remain user-only external steps. Do not upgrade to a paid OCI resource or silently select a paid shape when Always Free A1 capacity is unavailable.
+
+This free-first option does not weaken the production truth gate: external public Chromium verification is still required before `TELECOM_NATIVE_WEBRTC_LIVE=true`.
+
 ## Safe bootstrap
 
 On the chosen host:

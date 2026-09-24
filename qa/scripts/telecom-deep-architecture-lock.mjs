@@ -40,9 +40,15 @@ const providerEnv=read('worker/src/provider-runtime-env.js');
 const nativeSoftphone=read('frontend/app/softphone/native-webrtc.ts');
 const turnDocker=read('telecom-core/turn-relay/Dockerfile');
 const turnEntrypoint=read('telecom-core/turn-relay/entrypoint.sh');
+const ociPreflight=read('telecom-core/deploy/oci-always-free-preflight.sh');
+const ociHostDoc=read('telecom-core/OCI-ALWAYS-FREE-HOST.md');
+const ociArmWorkflow=read('.github/workflows/telecom-oci-arm64-lock.yml');
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
+file('telecom-core/OCI-ALWAYS-FREE-HOST.md','free-first OCI Telecom host guide is versioned');
+file('telecom-core/deploy/oci-always-free-preflight.sh','OCI public-host preflight is versioned');
+file('.github/workflows/telecom-oci-arm64-lock.yml','OCI ARM64 build proof workflow is versioned');
 
 has(pjsip,'#include pjsip-webrtc.conf','base PJSIP includes gated native WebRTC fragment');
 has(webrtc,'protocol=wss','native WebRTC uses secure WebSocket transport');
@@ -182,6 +188,18 @@ has(contact,'ice_transport_policy:iceTransportPolicy','platform passes the valid
 has(webrtcProbe,'WEBRTC_ICE_SERVERS_JSON','real Chromium proof can consume the same ICE server contract as production');
 has(providerEnv,"'TELECOM_CORE_URL'",'server-side runtime can receive the native Telecom Core URL from the protected vault');
 has(providerEnv,"'TELECOM_CORE_TOKEN'",'server-side runtime can receive the native Telecom Core token from the protected vault');
+has(ociPreflight,'VM.Standard.A1.Flex','OCI free-first preflight requires the intended Always Free A1 shape');
+has(ociPreflight,'ip.is_global','OCI free-first preflight requires globally routable public IPv4');
+has(ociPreflight,'8 * 1024 * 1024','OCI free-first preflight enforces minimum host memory');
+has(ociPreflight,'cpu < 2','OCI free-first preflight enforces minimum CPU allocation');
+lacks(ociPreflight,'droplet_create','OCI preflight does not create paid infrastructure');
+has(ociHostDoc,'TELECOM_NATIVE_WEBRTC_LIVE','OCI host guide preserves the native WebRTC truth gate');
+has(ociHostDoc,'stop rather than silently choosing a paid shape','OCI host guide preserves the free-first cost gate');
+has(ociArmWorkflow,'runs-on: ubuntu-24.04-arm','OCI compatibility is proven on a native GitHub ARM64 runner');
+has(ociArmWorkflow,'Build Asterisk 22 ARM64 image','OCI ARM64 lock builds the owned Asterisk image');
+has(ociArmWorkflow,'Build Kamailio SIP core ARM64 image','OCI ARM64 lock builds the SIP core image');
+has(ociArmWorkflow,'Build coturn ARM64 image','OCI ARM64 lock builds the TURN relay image');
+has(ociArmWorkflow,'Verify PostgreSQL ARM64 runtime image','OCI ARM64 lock verifies the SIP database runtime image');
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [label,ok] of checks)console.log((ok?'PASS':'FAIL')+': '+label);
