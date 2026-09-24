@@ -1,0 +1,15 @@
+# Copy to terraform.tfvars only after an Oracle Cloud tenancy exists.
+# Do not commit terraform.tfvars, private keys, API tokens, or tenancy credentials.
+
+region          = "ap-singapore-1"
+compartment_id = "ocid1.compartment.oc1..replace_me"
+admin_ssh_cidr = "203.0.113.20/32"
+ssh_public_key = "ssh-ed25519 AAAA_REPLACE_WITH_YOUR_PUBLIC_KEY owner"
+
+availability_domain_index = 0
+instance_name              = "magnanimous-telecom"
+enable_turn_relay          = false
+
+# Keep the public Magnanimous repository unless an explicitly reviewed source is required.
+repo_url = "https://github.com/IAMGodmatters/IAMMagnanimousway.js.git"
+repo_ref = "main"
