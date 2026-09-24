@@ -1283,7 +1283,12 @@ jobs:
               href=app.get('href') or ''
               provider=app.get('provider') or {}
               assert app.get('link_registered') is True and href.startswith('/'), app
-              assert provider.get('id') and provider.get('name') and provider.get('status') in {'native-ready','connected','setup-required'}, app
+              assert provider.get('id') and provider.get('name') and provider.get('status') in {'native-ready','connected'}, app
+              transport=provider.get('external_transport')
+              if transport:
+                  assert transport.get('id') and transport.get('name'), app
+                  assert transport.get('status') in {'connected','setup-required'}, app
+                  assert transport.get('required_for_delivery') is True, app
               hrefs.append(href)
           open('/tmp/wl-app-hrefs.txt','w').write('\n'.join(sorted(set(hrefs)))+'\n')
           for app in apps:
