@@ -12,6 +12,7 @@ const envExample=read('.env.example');
 const providerEnv=read('worker/src/provider-runtime-env.js');
 const platformCredentials=read('worker/src/platform-credentials.js');
 const frontendPackage=read('frontend/package.json');
+const frontendLock=read('frontend/package-lock.json');
 
 const checks=[];
 const has=(src,needle,label)=>checks.push([label,src.includes(needle)]);
@@ -59,6 +60,7 @@ lacks(softphone,'TELECOM_CORE_TOKEN','frontend never embeds the private Telecom 
 has(providerEnv,"'TELECOM_CORE_TOKEN'",'private Telecom Core token is eligible for server-side provider-vault overlay');
 has(platformCredentials,"id:'magnanimous-telecom-core'",'owner integrations expose protected native Telecom Core setup');
 has(frontendPackage,'"sip.js": "0.21.2"','frontend pins the proven SIP.js native browser client');
+has(frontendLock,'"node_modules/sip.js"','committed frontend lockfile contains the pinned SIP.js dependency');
 has(envExample,'TELECOM_CORE_URL=','environment contract documents native Telecom Core URL');
 has(envExample,'TELECOM_CORE_TOKEN=','environment contract documents native Telecom Core token');
 has(autoDial,'/dial-start','auto dialer start route is backed by server contract');
