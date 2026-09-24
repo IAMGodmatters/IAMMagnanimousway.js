@@ -24,6 +24,12 @@ const study=read('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md');
 const webrtcWorkflow=read('.github/workflows/native-webrtc-e2e.yml');
 const webrtcProbe=read('telecom-core/webrtc-e2e/run.mjs');
 const extensions=read('telecom-core/asterisk/templates/extensions.conf.template');
+const publicWorkflow=read('.github/workflows/public-webrtc-verification.yml');
+const publicValidator=read('telecom-core/webrtc-e2e/validate-public-target.mjs');
+const publicBootstrap=read('telecom-core/deploy/bootstrap-public-host.sh');
+const publicTlsSync=read('telecom-core/deploy/sync-public-tls.sh');
+const publicHostDoc=read('telecom-core/PUBLIC-HOST.md');
+const compose=read('telecom-core/docker-compose.yml');
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
@@ -83,6 +89,23 @@ has(webrtcProbe,'--use-file-for-fake-audio-capture','Chromium probe sends a dete
 has(webrtcProbe,'pjsip show contacts','probe independently verifies Asterisk registered the browser contact');
 has(webrtcProbe,'inboundBytes > 0 && p.outboundBytes > 0','probe requires RTP bytes in both directions');
 has(webrtcProbe,'remoteAudioTracks > 0','probe requires a real remote browser audio track');
+has(webrtc,'#include pjsip-webrtc-public-address.conf','native WSS transport accepts a gated public/NAT address fragment');
+has(entry,'external_signaling_address=%s','startup renders explicit public WebRTC signaling address when configured');
+has(entry,'external_media_address=%s','startup renders explicit public WebRTC RTP/media address when configured');
+has(entry,'install -o asterisk -g asterisk -m 0600','TLS private key is copied into a private Asterisk-owned runtime path');
+has(compose,'ASTERISK_CERTS_DIR:-./certs','certificate staging directory is replaceable without exposing host key permissions');
+has(publicWorkflow,'name: Public Telecom WebRTC Verification','strict public WebRTC workflow is versioned');
+has(publicWorkflow,"WEBRTC_ALLOW_INSECURE_TLS: 'false'",'public WebRTC workflow forbids certificate bypass');
+has(publicWorkflow,'-verify_hostname','public workflow verifies TLS hostname');
+has(publicWorkflow,'-verify_return_error','public workflow rejects certificate verification errors');
+has(publicWorkflow,'WEBRTC_SERVER_ASSERT_MODE: remote','public workflow verifies from an external browser path without local Docker assumptions');
+has(publicValidator,'Public verification cannot target a local hostname','public verifier rejects local hostnames');
+has(publicValidator,'parts[0] === 192 && parts[1] === 168','public verifier rejects RFC1918 IPv4 targets');
+has(publicValidator,'parts[0] === 100 && parts[1] >= 64','public verifier rejects CGNAT IPv4 targets');
+has(publicBootstrap,'ENABLE_UFW=true requires ADMIN_SSH_CIDR','firewall bootstrap refuses to risk SSH lockout');
+has(publicBootstrap,'ufw allow 10000:20000/udp','public bootstrap exposes the Asterisk RTP range when explicitly enabled');
+has(publicTlsSync,'install -m 0600','host certificate sync preserves root-only private key permissions');
+has(publicHostDoc,'Do not set `TELECOM_NATIVE_WEBRTC_LIVE=true` before the public verification workflow succeeds.','public host guide preserves the live-verification truth gate');
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [label,ok] of checks)console.log((ok?'PASS':'FAIL')+': '+label);
