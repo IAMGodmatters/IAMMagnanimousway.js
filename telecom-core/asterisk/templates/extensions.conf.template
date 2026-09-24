@@ -7,8 +7,18 @@ clearglobalvars=no
 MAGNANIMOUS_AI_EXTENSION=${MAGNANIMOUS_AI_EXTENSION}
 MAGNANIMOUS_ADMIN_EXTENSION=${MAGNANIMOUS_ADMIN_EXTENSION}
 MAGNANIMOUS_WEBRTC_EXTENSION=${MAGNANIMOUS_WEBRTC_EXTENSION}
+MAGNANIMOUS_WEBRTC_ECHO_EXTENSION=${MAGNANIMOUS_WEBRTC_ECHO_EXTENSION}
 CARRIER_SIP_ENDPOINT=${CARRIER_SIP_ENDPOINT}
 CARRIER_SIP_SECONDARY_ENDPOINT=${CARRIER_SIP_SECONDARY_ENDPOINT}
+
+[magnanimous-webrtc]
+; Authenticated browser agents receive the normal internal dialplan plus a
+; loopback media diagnostic. Echo proves browser->Asterisk and Asterisk->browser
+; RTP without consuming PSTN minutes or depending on an external carrier.
+include => magnanimous-internal
+exten => ${MAGNANIMOUS_WEBRTC_ECHO_EXTENSION},1,Answer()
+ same => n,Echo()
+ same => n,Hangup()
 
 [magnanimous-internal]
 ; Existing direct Asterisk extensions remain available for backward compatibility.
