@@ -23,6 +23,18 @@ if [ "$relay_local_media" = yes ] && [ -n "${TELECOM_PUBLIC_IP:-}" ]; then
   echo "Relay-local media mode must not set TELECOM_PUBLIC_IP." >&2
   exit 1
 fi
+if [ "$relay_local_media" = yes ]; then
+  : "${MAGNANIMOUS_TURN_ALLOWED_PEER_IP:?Relay-local media mode requires MAGNANIMOUS_TURN_ALLOWED_PEER_IP}"
+  printf '%s\n' "$MAGNANIMOUS_TURN_ALLOWED_PEER_IP" | awk -F. '
+    NF != 4 { exit 1 }
+    {
+      for (i = 1; i <= 4; i++) {
+        if ($i !~ /^[0-9]+$/ || $i < 0 || $i > 255) exit 1
+      }
+    }
+    END { if (NF == 4) exit 0 }
+  ' || { echo "MAGNANIMOUS_TURN_ALLOWED_PEER_IP must be a valid IPv4 address." >&2; exit 1; }
+fi
 
 listen_port="${MAGNANIMOUS_TURN_PORT:-3478}"
 tls_port="${MAGNANIMOUS_TURN_TLS_PORT:-5349}"
@@ -61,6 +73,16 @@ no-loopback-peers
 cert=$MAGNANIMOUS_TURN_TLS_CERT_FILE
 pkey=$MAGNANIMOUS_TURN_TLS_KEY_FILE
 EOF
+
+if [ "$relay_local_media" = yes ]; then
+  {
+    printf 'relay-ip=%s\n' "$MAGNANIMOUS_TURN_ALLOWED_PEER_IP"
+    printf 'allocation-default-address-family=ipv4\n'
+    printf 'denied-peer-ip=0.0.0.0-255.255.255.255\n'
+    printf 'denied-peer-ip=::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff\n'
+    printf 'allowed-peer-ip=%s\n' "$MAGNANIMOUS_TURN_ALLOWED_PEER_IP"
+  } >> "$config"
+fi
 
 if [ -n "${TELECOM_PUBLIC_IP:-}" ]; then
   printf 'external-ip=%s\n' "$TELECOM_PUBLIC_IP" >> "$config"
