@@ -29,6 +29,8 @@ has(runtime,'upstream_accounts_configured:upstreamAccounts','contact center trac
 has(runtime,"truth_boundary:'An upstream account is not counted as a live call route",'provider readiness explicitly separates credentials from live routing');
 has(runtime,"/dial-start$/",'campaign dial-start lifecycle endpoint exists');
 has(runtime,"/dial-cancel$/",'campaign dial-cancel lifecycle endpoint exists');
+has(runtime,'async function queueBrowserAgents','IVR queue can ring available registered browser agents');
+has(runtime,'clients.map(identity=>','IVR queue routes through registered browser softphone identities');
 has(runtime,"NOT EXISTS(SELECT 1 FROM voice_do_not_call",'campaign dialing retains server-side DNC enforcement');
 has(runtime,"Campaign calling is limited to 08:00–20:00",'campaign dialing retains quiet-hour enforcement');
 has(softphone,"/api/contact-center/softphone/config",'softphone frontend matches server config route');
