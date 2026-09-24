@@ -11,6 +11,8 @@ const main=read('telecom-core/control-api/app/main.py');
 const service=read('telecom-core/control-api/app/services/sip_accounts.py');
 const adapter=read('telecom-core/control-api/app/adapters/sip_subscribers.py');
 const docs=read('telecom-core/OWNED_SIP_PSTN.md');
+const sessionService=read('telecom-core/control-api/app/services/webrtc_sessions.py');
+const sorcery=read('telecom-core/asterisk/templates/sorcery.conf.template');
 
 const checks=[];
 const has=(text,needle,name)=>checks.push([name,text.includes(needle)]);
@@ -37,6 +39,9 @@ lacks(adapter,'password =','subscriber adapter never stores cleartext password v
 has(adapter,"VALUES($1,$2,'',$3,'',TRUE)",'database insert stores blank cleartext password field');
 has(docs,'authorized interconnect','documentation keeps public PSTN authority truthful');
 has(docs,'do not advertise emergency calling','emergency-calling boundary remains explicit');
+has(sorcery,'endpoint=astdb,ps_endpoints','owned PBX can create dynamic native browser endpoints');
+has(sessionService,'"pstn_direct": False','temporary browser identity cannot bypass PSTN policy');
+has(sessionService,'"password_returned_once": True','temporary browser credential is returned once instead of stored in frontend source');
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} - ${name}`);

@@ -8,12 +8,14 @@ from fastapi.responses import JSONResponse
 from .container import ApplicationContainer, get_container
 from .errors import TelecomError
 from .models import HangupRequest, OutboundCall, SipAccountCreate
+from .lifecycle import lifespan
 
 app = FastAPI(
     title="Magnanimous Telecom Core",
-    version="0.5.0",
+    version="0.6.0",
     docs_url="/docs",
     redoc_url=None,
+    lifespan=lifespan,
 )
 
 
@@ -84,6 +86,21 @@ async def webrtc(container: ApplicationContainer = Depends(get_container)) -> di
         "credentials_included": False,
         "truth_boundary": "configured means the owned core was explicitly enabled; live status still requires a successful browser registration and media probe",
     }
+
+
+@app.post("/v1/webrtc/sessions", status_code=201, dependencies=[Depends(require_token)])
+async def create_webrtc_session(
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.webrtc_sessions.create()
+
+
+@app.delete("/v1/webrtc/sessions/{session_id}", dependencies=[Depends(require_token)])
+async def delete_webrtc_session(
+    session_id: str,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.webrtc_sessions.delete(session_id)
 
 
 @app.get("/v1/sip/health", dependencies=[Depends(require_token)])

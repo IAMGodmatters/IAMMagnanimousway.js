@@ -66,6 +66,9 @@ jobs:
       - name: Build native Asterisk WebRTC core
         run: docker build -t magnanimous-webrtc-e2e:ci telecom-core/asterisk
 
+      - name: Build Telecom Core API
+        run: docker build -t magnanimous-telecom-api:webrtc-ci telecom-core/control-api
+
       - name: Start native Asterisk WebRTC core
         shell: bash
         run: |
@@ -87,6 +90,39 @@ jobs:
           docker logs magnanimous-webrtc-e2e || true
           exit 1
 
+      - name: Start Telecom Core API for ephemeral browser credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run -d --name magnanimous-webrtc-api --network host             -e TELECOM_API_TOKEN='ci-telecom-token-6f1e9c2d'             -e TELECOM_WEBHOOK_SECRET='ci-webhook-secret'             -e ASTERISK_ARI_URL=http://127.0.0.1:8088/ari             -e ASTERISK_ARI_USER=ci-ari             -e ASTERISK_ARI_PASSWORD='ci-ari-password-3fe92bf4'             -e ASTERISK_WEBRTC_ENABLED=true             -e ASTERISK_WEBRTC_PUBLIC_URL=wss://localhost:8089/ws             -e ASTERISK_WEBRTC_DYNAMIC_SESSIONS_ENABLED=true             -e ASTERISK_WEBRTC_SESSION_TTL_SECONDS=900             -e MAGNANIMOUS_SIP_DOMAIN=webrtc.test             magnanimous-telecom-api:webrtc-ci
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/health >/tmp/magnanimous-webrtc-e2e/api-health.json; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs magnanimous-webrtc-api || true
+          exit 1
+
+      - name: Issue ephemeral native browser credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -X POST             -H 'Authorization: Bearer ci-telecom-token-6f1e9c2d'             http://127.0.0.1:8080/v1/webrtc/sessions             > /tmp/magnanimous-webrtc-e2e/session.json
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const d=JSON.parse(fs.readFileSync('/tmp/magnanimous-webrtc-e2e/session.json','utf8'));
+          for (const [k,v] of Object.entries({
+            WEBRTC_EXTENSION:d.username,
+            WEBRTC_PASSWORD:d.password,
+            WEBRTC_DOMAIN:d.domain,
+            WEBRTC_WSS_URL:d.wss_url,
+            WEBRTC_SESSION_ID:d.session_id
+          })) fs.appendFileSync(process.env.GITHUB_ENV,`${k}=${v}\n`);
+          if (d.pstn_direct !== false) throw new Error('Ephemeral browser session must not permit direct PSTN dialing');
+          if (!Array.isArray(d.allowed_call_scope) || !d.allowed_call_scope.includes('diagnostic-echo')) throw new Error('Diagnostic scope missing');
+          NODE
+
       - name: Build native browser probe
         working-directory: telecom-core/webrtc-e2e
         run: npm run build
@@ -107,10 +143,6 @@ jobs:
         working-directory: telecom-core/webrtc-e2e
         env:
           WEBRTC_TEST_PAGE: http://127.0.0.1:4173/
-          WEBRTC_WSS_URL: wss://localhost:8089/ws
-          WEBRTC_EXTENSION: '1100'
-          WEBRTC_PASSWORD: ci-webrtc-password-8b1a2fd7
-          WEBRTC_DOMAIN: webrtc.test
           WEBRTC_ECHO_EXTENSION: '6000'
           FAKE_AUDIO_WAV: /tmp/magnanimous-webrtc-e2e/tone.wav
           ASTERISK_CONTAINER: magnanimous-webrtc-e2e
@@ -118,15 +150,46 @@ jobs:
           WEBRTC_SERVER_ASSERT_MODE: local-docker
         run: npm run probe
 
+      - name: Revoke ephemeral native browser credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${WEBRTC_SESSION_ID:-}"
+          curl -fsS -X DELETE \
+            -H 'Authorization: Bearer ci-telecom-token-6f1e9c2d' \
+            "http://127.0.0.1:8080/v1/webrtc/sessions/${WEBRTC_SESSION_ID}" \
+            > /tmp/magnanimous-webrtc-e2e/session-delete.json
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const d=JSON.parse(fs.readFileSync('/tmp/magnanimous-webrtc-e2e/session-delete.json','utf8'));
+          if (!d.ok || !d.deleted || d.session_id !== process.env.WEBRTC_SESSION_ID) {
+            throw new Error('Telecom Core did not confirm ephemeral session deletion');
+          }
+          NODE
+
+      - name: Verify Asterisk removed ephemeral endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(docker exec magnanimous-webrtc-e2e asterisk -rx "pjsip show endpoint ${WEBRTC_EXTENSION}" 2>&1 || true)"
+          printf '%s\n' "$output" | tee /tmp/magnanimous-webrtc-e2e/asterisk-endpoint-after-delete.txt
+          if printf '%s\n' "$output" | grep -Eq "Endpoint:[[:space:]]+${WEBRTC_EXTENSION}"; then
+            echo 'Ephemeral WebRTC endpoint still exists after revocation.' >&2
+            exit 1
+          fi
+
       - name: Capture Asterisk WebRTC evidence
         if: always()
         shell: bash
         run: |
           mkdir -p /tmp/magnanimous-webrtc-e2e
           docker exec magnanimous-webrtc-e2e asterisk -rx 'http show status' > /tmp/magnanimous-webrtc-e2e/asterisk-http.txt 2>&1 || true
-          docker exec magnanimous-webrtc-e2e asterisk -rx 'pjsip show endpoint 1100' > /tmp/magnanimous-webrtc-e2e/asterisk-endpoint.txt 2>&1 || true
+          if [ -n "${WEBRTC_EXTENSION:-}" ]; then
+            docker exec magnanimous-webrtc-e2e asterisk -rx "pjsip show endpoint ${WEBRTC_EXTENSION}" > /tmp/magnanimous-webrtc-e2e/asterisk-endpoint-after-delete.txt 2>&1 || true
+          fi
           docker exec magnanimous-webrtc-e2e asterisk -rx 'pjsip show contacts' > /tmp/magnanimous-webrtc-e2e/asterisk-contacts.txt 2>&1 || true
           docker logs magnanimous-webrtc-e2e > /tmp/magnanimous-webrtc-e2e/asterisk.log 2>&1 || true
+          docker logs magnanimous-webrtc-api > /tmp/magnanimous-webrtc-e2e/control-api.log 2>&1 || true
 
       - name: Upload WebRTC proof evidence
         if: always()
@@ -142,4 +205,5 @@ jobs:
         shell: bash
         run: |
           if [ -f /tmp/magnanimous-webrtc-e2e/web.pid ]; then kill "$(cat /tmp/magnanimous-webrtc-e2e/web.pid)" 2>/dev/null || true; fi
+          docker rm -f magnanimous-webrtc-api >/dev/null 2>&1 || true
           docker rm -f magnanimous-webrtc-e2e >/dev/null 2>&1 || true

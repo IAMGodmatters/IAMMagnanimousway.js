@@ -1,0 +1,23 @@
+[res_pjsip]
+; Dynamic WebRTC browser sessions are pushed through ARI into AstDB while the
+; existing static pjsip.conf remains the fallback for owned PBX/trunk objects.
+auth=astdb,ps_auths
+auth=config,pjsip.conf,criteria=type=auth
+aor=astdb,ps_aors
+aor=config,pjsip.conf,criteria=type=aor
+endpoint=astdb,ps_endpoints
+endpoint=config,pjsip.conf,criteria=type=endpoint
+domain_alias=config,pjsip.conf,criteria=type=domain_alias
+global=config,pjsip.conf,criteria=type=global
+system=config,pjsip.conf,criteria=type=system
+transport=config,pjsip.conf,criteria=type=transport
+contact=astdb,registrator
+
+[res_pjsip_endpoint_identifier_ip]
+identify=config,pjsip.conf,criteria=type=identify
+
+[res_pjsip_outbound_publish]
+outbound-publish=config,pjsip.conf,criteria=type=outbound-publish
+
+[res_pjsip_outbound_registration]
+registration=config,pjsip.conf,criteria=type=registration

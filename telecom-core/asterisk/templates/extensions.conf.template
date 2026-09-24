@@ -12,12 +12,31 @@ CARRIER_SIP_ENDPOINT=${CARRIER_SIP_ENDPOINT}
 CARRIER_SIP_SECONDARY_ENDPOINT=${CARRIER_SIP_SECONDARY_ENDPOINT}
 
 [magnanimous-webrtc]
-; Authenticated browser agents receive the normal internal dialplan plus a
-; loopback media diagnostic. Echo proves browser->Asterisk and Asterisk->browser
-; RTP without consuming PSTN minutes or depending on an external carrier.
+; Legacy/static native browser endpoint. Preserved for diagnostics and fallback.
 include => magnanimous-internal
 exten => ${MAGNANIMOUS_WEBRTC_ECHO_EXTENSION},1,Answer()
  same => n,Echo()
+ same => n,Hangup()
+
+[magnanimous-webrtc-session]
+; Ephemeral browser identities are intentionally restricted. They may reach
+; Magnanimous internal SIP endpoints and the carrier-free echo diagnostic, but
+; they cannot dial public E.164 destinations directly and therefore cannot
+; bypass platform billing, consent, DNC, or regulated-network controls.
+exten => ${MAGNANIMOUS_WEBRTC_ECHO_EXTENSION},1,Answer()
+ same => n,Echo()
+ same => n,Hangup()
+exten => 911,1,Playback(ss-noservice)
+ same => n,Hangup()
+exten => 112,1,Playback(ss-noservice)
+ same => n,Hangup()
+exten => _+X.,1,Playback(ss-noservice)
+ same => n,Hangup()
+exten => ${MAGNANIMOUS_ADMIN_EXTENSION},1,Dial(PJSIP/${MAGNANIMOUS_ADMIN_EXTENSION},45)
+ same => n,Hangup()
+exten => ${MAGNANIMOUS_AI_EXTENSION},1,Dial(PJSIP/${MAGNANIMOUS_AI_EXTENSION},45)
+ same => n,Hangup()
+exten => _X.,1,Dial(PJSIP/${EXTEN}@magnanimous-sip-core,45)
  same => n,Hangup()
 
 [magnanimous-internal]

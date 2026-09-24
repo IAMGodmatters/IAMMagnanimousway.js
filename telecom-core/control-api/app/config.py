@@ -54,6 +54,10 @@ class TelecomSettings:
     webrtc_enabled: bool = False
     webrtc_public_url: str = ""
     webrtc_https_port: int = 8089
+    webrtc_dynamic_sessions_enabled: bool = False
+    webrtc_session_ttl_seconds: int = 3600
+    webrtc_runtime_tls_cert_file: str = "/var/lib/asterisk/tls/fullchain.pem"
+    webrtc_runtime_tls_key_file: str = "/var/lib/asterisk/tls/privkey.pem"
     sip_db_host: str = "127.0.0.1"
     sip_db_port: int = 5433
     sip_db_name: str = "magnanimous_sip"
@@ -85,6 +89,10 @@ class TelecomSettings:
             webrtc_enabled=_env_bool("ASTERISK_WEBRTC_ENABLED", False),
             webrtc_public_url=_env("ASTERISK_WEBRTC_PUBLIC_URL"),
             webrtc_https_port=max(1, _env_int("ASTERISK_HTTPS_PORT", 8089)),
+            webrtc_dynamic_sessions_enabled=_env_bool("ASTERISK_WEBRTC_DYNAMIC_SESSIONS_ENABLED", False),
+            webrtc_session_ttl_seconds=max(300, min(3600, _env_int("ASTERISK_WEBRTC_SESSION_TTL_SECONDS", 3600))),
+            webrtc_runtime_tls_cert_file=_env("ASTERISK_RUNTIME_TLS_CERT_FILE", "/var/lib/asterisk/tls/fullchain.pem"),
+            webrtc_runtime_tls_key_file=_env("ASTERISK_RUNTIME_TLS_KEY_FILE", "/var/lib/asterisk/tls/privkey.pem"),
             sip_db_host=_env("SIP_DB_HOST", "127.0.0.1"),
             sip_db_port=max(1, _env_int("SIP_DB_PORT", 5433)),
             sip_db_name=_env("SIP_DB_NAME", "magnanimous_sip"),
