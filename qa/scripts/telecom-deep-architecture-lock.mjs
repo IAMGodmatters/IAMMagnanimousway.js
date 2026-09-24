@@ -139,12 +139,6 @@ has(turnEntrypoint,'no-udp','TURN relay can disable public UDP client ingress fo
 has(turnEntrypoint,'no-tcp-relay','TURN relay keeps relay allocations on UDP for Asterisk media');
 lacks(turnEntrypoint,'no-udp-relay','TURN relay does not disable the UDP relay path Asterisk media requires');
 has(env,'MAGNANIMOUS_TURN_FORCE_RELAY=false','owned environment keeps relay-only mode disabled by default');
-has(compose,'profiles: ["turn-relay"]','owned coturn service is opt-in and cannot start during ordinary compose startup');
-has(turnDocker,'coturn/coturn:4.18.0-r0','owned TURN runtime pins the verified coturn release image');
-has(turnEntrypoint,'use-auth-secret','owned TURN relay requires secret-backed REST authentication');
-has(turnEntrypoint,'static-auth-secret=$MAGNANIMOUS_TURN_AUTH_SECRET','owned TURN relay receives its shared secret only from protected runtime configuration');
-has(turnEntrypoint,'no-udp','browser TURN listener is TCP/TLS-first');
-has(turnEntrypoint,'no-tcp-relay','TURN peer relay remains UDP rather than opening arbitrary TCP relay endpoints');
 has(turnEntrypoint,'cert=$MAGNANIMOUS_TURN_TLS_CERT_FILE','TURN TLS listener requires an explicit certificate');
 has(turnEntrypoint,'pkey=$MAGNANIMOUS_TURN_TLS_KEY_FILE','TURN TLS listener requires an explicit private key');
 has(publicBootstrap,'ENABLE_TURN_RELAY','public firewall exposes TURN ports only through an explicit deployment gate');
