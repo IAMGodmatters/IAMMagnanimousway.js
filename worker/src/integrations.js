@@ -44,7 +44,11 @@ async function currentUser(request,env){
   const raw=request.headers.get('authorization')||'';if(!raw.startsWith('Bearer '))return null;
   const token=raw.slice(7).trim();
   if(token.startsWith('ms1_')){
-    const resolved=await resolveSessionRequest(request,env);
+    // Authentication only needs URL + headers. Never reconstruct the caller's
+    // POST/PUT/PATCH Request here: doing so can disturb its body stream and make
+    // downstream JSON parsing fail with "Body is unusable".
+    const authRequest=new Request(request.url,{method:'GET',headers:request.headers});
+    const resolved=await resolveSessionRequest(authRequest,env);
     if(resolved.response||!resolved.request)return null;
     return currentUser(resolved.request,env);
   }
