@@ -32,6 +32,8 @@ const ownerReview=read('frontend/app/owner-ai-training-review/page.tsx');
 const magnanimous=read('frontend/app/magnanimous/page.tsx');
 const ownerCenter=read('frontend/app/owner-center/page.tsx');
 const deployWorkflow=read('.github/workflows/deploy.yml');
+const providerRuntime=read('worker/src/provider-runtime-env.js');
+const platformCredentials=read('worker/src/platform-credentials.js');
 
 must(wrangler,'src/operations-entrypoint.js','production Worker must run through the non-destructive operations layer');
 must(operations,"import app from './progress-entrypoint.js'",'operations layer must preserve the progress entrypoint beneath it');
@@ -135,6 +137,10 @@ must(mesh,"buildSystem(agent,team,integrations,native,branchContext)",'Agent Mes
 must(mesh,"if(group==='creator')",'creator specialists must retain useful local resilience during compute capacity failures');
 must(entry,'branch_knowledge_count','specialist responses must expose branch-learning state');
 must(mesh,'branch_knowledge_count:knowledge.length','direct Agent Mesh responses must expose branch-learning state');
+must(platformCredentials,"return new Proxy(own,{get(target,key){return Reflect.has(target,key)?Reflect.get(target,key):base?.[key]}})",'Platform credential overlays must preserve runtime-only auth/environment values.');
+must(providerRuntime,"return new Proxy(own,{get(target,key){return Reflect.has(target,key)?Reflect.get(target,key):base?.[key]}})",'Provider overlays must preserve inherited runtime identity/session values.');
+must(providerRuntime,'const integrated = await getIntegrationRuntimeEnv(env);','Agent/provider runtime enrichment must build on the auth-preserving integration environment.');
+must(providerRuntime,'return overlayRuntimeEnv(integrated,values);','Provider bootstrap enrichment must not flatten away the session authority.');
 must(entry,'const {provider,provider_name,model,model_id,engine,execution_engine,...publicData}=data','routed specialist responses must continue hiding provider/model/engine internals');
 must(entry,'stripExecutionMetadata(data)','specialist response privacy must use the centralized execution-metadata boundary');
 must(intelligence,'specialized branch of Magnanimous AI','specialists must remain branches of the Magnanimous core');
