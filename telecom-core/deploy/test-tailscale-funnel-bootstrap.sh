@@ -24,6 +24,10 @@ if [[ "$1" = "status" && "${2:-}" = "--json" ]]; then
   printf '%s\n' '{"Self":{"DNSName":"magnanimous-telecom.tail-test.ts.net."}}'
   exit 0
 fi
+if [[ "$1" = "ip" && "${2:-}" = "-4" ]]; then
+  printf '%s\n' '100.64.0.10'
+  exit 0
+fi
 if [[ "$1" = "cert" ]]; then
   cert=""
   key=""
@@ -96,6 +100,7 @@ grep -Fx 'MAGNANIMOUS_SIP_DOMAIN=magnanimous-telecom.tail-test.ts.net' "${edge}"
 grep -Fx 'TELECOM_PUBLIC_IP=' "${edge}"
 grep -Fx 'ASTERISK_STUN_SERVER=' "${edge}"
 grep -Fx 'MAGNANIMOUS_RELAY_LOCAL_MEDIA=true' "${edge}"
+grep -Fx 'MAGNANIMOUS_TURN_ALLOWED_PEER_IP=100.64.0.10' "${edge}"
 grep -Fx 'MAGNANIMOUS_TURN_FORCE_RELAY=true' "${edge}"
 grep -Fx 'ASTERISK_WEBRTC_PUBLIC_URL=wss://magnanimous-telecom.tail-test.ts.net/ws' "${edge}"
 grep -Fx 'MAGNANIMOUS_TURN_URLS=turns:magnanimous-telecom.tail-test.ts.net:8443?transport=tcp' "${edge}"
