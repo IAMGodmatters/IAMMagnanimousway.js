@@ -1,5 +1,7 @@
 # Guarded OCI Always Free Terraform
 
+For the simplest browser-only activation path, use Oracle Cloud Shell and follow [CLOUD-SHELL.md](./CLOUD-SHELL.md). The helper defaults to plan-only mode and requires a separate explicit `--apply`.
+
 This module prepares the **public Linux host only** for Magnanimous Telecom. It does not purchase a carrier, number, paid VM, domain, or regulated telecom service, and it never enables `TELECOM_NATIVE_WEBRTC_LIVE`.
 
 The module is intentionally pinned to:

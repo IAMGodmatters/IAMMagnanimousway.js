@@ -47,6 +47,8 @@ const ociTerraform=read('telecom-core/oci/main.tf');
 const ociTerraformVersions=read('telecom-core/oci/versions.tf');
 const ociPlanGuard=read('telecom-core/oci/verify_free_plan.py');
 const ociTerraformWorkflow=read('.github/workflows/telecom-oci-terraform-lock.yml');
+const ociCloudShell=read('telecom-core/oci/cloud-shell-plan.sh');
+const ociCloudShellDoc=read('telecom-core/oci/CLOUD-SHELL.md');
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
@@ -56,6 +58,8 @@ file('.github/workflows/telecom-oci-arm64-lock.yml','OCI ARM64 build proof workf
 file('telecom-core/oci/main.tf','guarded OCI Terraform module is versioned');
 file('telecom-core/oci/verify_free_plan.py','OCI Terraform free-plan verifier is versioned');
 file('.github/workflows/telecom-oci-terraform-lock.yml','OCI Terraform free-profile CI lock is versioned');
+file('telecom-core/oci/cloud-shell-plan.sh','OCI Cloud Shell guarded plan/apply helper is versioned');
+file('telecom-core/oci/CLOUD-SHELL.md','OCI browser-only Cloud Shell activation guide is versioned');
 
 has(pjsip,'#include pjsip-webrtc.conf','base PJSIP includes gated native WebRTC fragment');
 has(webrtc,'protocol=wss','native WebRTC uses secure WebSocket transport');
@@ -224,6 +228,12 @@ has(ociTerraformWorkflow,'hashicorp/setup-terraform@v4','OCI Terraform CI uses t
 has(ociTerraformWorkflow,'terraform -chdir=telecom-core/oci validate','OCI Terraform CI validates the exact module');
 lacks(ociTerraform,'VM.Standard3','OCI Terraform has no paid Standard3 fallback');
 lacks(ociTerraform,'oci_core_load_balancer','OCI Terraform does not create a load balancer');
+has(ociCloudShell,'MODE="plan"','OCI Cloud Shell defaults to plan-only mode');
+has(ociCloudShell,'"--apply"','OCI Cloud Shell requires an explicit apply mode');
+has(ociCloudShell,'python3 verify_free_plan.py tfplan.json','OCI Cloud Shell verifies the Terraform plan before apply');
+has(ociCloudShell,'ADMIN_SSH_CIDR is required','OCI Cloud Shell refuses unrestricted implicit SSH setup');
+lacks(ociCloudShell,'terraform apply -auto-approve','OCI Cloud Shell never auto-approves infrastructure creation');
+has(ociCloudShellDoc,'Do not enable `TELECOM_NATIVE_WEBRTC_LIVE`','Cloud Shell guide preserves the external WebRTC truth gate');
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [label,ok] of checks)console.log((ok?'PASS':'FAIL')+': '+label);

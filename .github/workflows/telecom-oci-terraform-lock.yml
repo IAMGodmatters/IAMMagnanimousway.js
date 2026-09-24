@@ -41,6 +41,23 @@ jobs:
           terraform_version: 1.16.4
           terraform_wrapper: false
 
+      - name: Validate Cloud Shell helper syntax
+        run: bash -n telecom-core/oci/cloud-shell-plan.sh
+
+      - name: Lock Cloud Shell helper safety behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'MODE="plan"' telecom-core/oci/cloud-shell-plan.sh
+          grep -q '"--apply"' telecom-core/oci/cloud-shell-plan.sh
+          grep -q 'python3 verify_free_plan.py tfplan.json' telecom-core/oci/cloud-shell-plan.sh
+          grep -q 'No resources were created.' telecom-core/oci/cloud-shell-plan.sh
+          grep -q 'ADMIN_SSH_CIDR is required' telecom-core/oci/cloud-shell-plan.sh
+          if grep -q 'terraform apply -auto-approve' telecom-core/oci/cloud-shell-plan.sh; then
+            echo 'Cloud Shell helper must never auto-approve an apply.' >&2
+            exit 1
+          fi
+
       - name: Terraform format check
         run: terraform fmt -check -recursive telecom-core/oci
 
