@@ -7,7 +7,7 @@ const GENERATION_MODULES=new Set(['business-demand','daily-assistant','email-rep
 const RESEARCH_MODULES=new Set(['business-demand','research','leads','press','ad-planner']);
 
 function recoverableExecutionFailure(text){
-  return /(4006|daily free allocation|quota|rate[ -]?limit|workers ai|cloudflare ai|ai generation failed|ai engine is not available|model[^\n]{0,80}(unavailable|failed|capacity)|capacity[^\n]{0,80}(model|generation|execution))/i.test(String(text||''));
+  return /(4006|daily free allocation|quota|rate[ -]?limit|workers ai|cloudflare ai|ai generation failed|ai engine is not available|no magnanimous ai execution rail is configured|execution rail[^\n]{0,80}(not configured|unavailable)|model[^\n]{0,80}(unavailable|failed|capacity)|capacity[^\n]{0,80}(model|generation|execution))/i.test(String(text||''));
 }
 
 async function ensureRecordTable(env){
