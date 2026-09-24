@@ -545,6 +545,11 @@ jobs:
             command curl --connect-timeout 10 --max-time 120 "$@"
           }
 
+          safe_get_status() {
+            local output="$1" url="$2"; shift 2
+            command curl -sS --connect-timeout 10 --max-time 120               --retry 4 --retry-delay 2 --retry-max-time 45 --retry-all-errors               -o "$output" -w '%{http_code}' "$url" "$@"
+          }
+
           deployment_smoke_oidc() {
             local oidc_json
             oidc_json=$(command curl -fsS --connect-timeout 10 --max-time 30 \
@@ -1002,7 +1007,7 @@ jobs:
           PY
 
           while IFS= read -r business_ai_tool_id; do
-            status=$(curl -sS -o /tmp/business-ai-preflight.json -w '%{http_code}' "$BASE_URL/api/business-ai/tools/$business_ai_tool_id/preflight" -H "Authorization: Bearer $token")
+            status=$(safe_get_status /tmp/business-ai-preflight.json "$BASE_URL/api/business-ai/tools/$business_ai_tool_id/preflight" -H "Authorization: Bearer $token")
             if [ "$status" != "200" ]; then
               echo "Business AI preflight failed for $business_ai_tool_id with HTTP $status"
               cat /tmp/business-ai-preflight.json || true
@@ -1036,7 +1041,7 @@ jobs:
           echo "All 47 Business AI tools passed individual live preflight."
 
           while IFS= read -r business_ai_tool_id; do
-            status=$(curl -sS -o /tmp/business-ai-execution-probe.json -w '%{http_code}' "$BASE_URL/api/business-ai/tools/$business_ai_tool_id/execution-probe" -H "Authorization: Bearer $token")
+            status=$(safe_get_status /tmp/business-ai-execution-probe.json "$BASE_URL/api/business-ai/tools/$business_ai_tool_id/execution-probe" -H "Authorization: Bearer $token")
             if [ "$status" != "200" ]; then
               echo "Business AI execution-path probe failed for $business_ai_tool_id with HTTP $status"
               cat /tmp/business-ai-execution-probe.json || true
