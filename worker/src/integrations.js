@@ -1,3 +1,4 @@
+import { resolveSessionRequest } from './session-authority.js';
 const INTEGRATIONS = [
   { id:'google', name:'Google / Gmail', category:'email', auth:'oauth2', env:['GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET'], scopes:['openid','email','https://www.googleapis.com/auth/gmail.readonly','https://www.googleapis.com/auth/gmail.send'], capabilities:['read_mail','send_mail'] },
   { id:'facebook', name:'Facebook Pages', category:'social', auth:'meta-oauth', env:['META_APP_ID','META_APP_SECRET'], scopes:['pages_show_list','pages_read_engagement','pages_manage_posts'], capabilities:['read_pages','read_engagement','publish_posts'] },
@@ -41,7 +42,13 @@ async function hmacHex(secret,value){
 async function sha256b64url(value){return b64url(new Uint8Array(await crypto.subtle.digest('SHA-256',encoder.encode(String(value)))))}
 async function currentUser(request,env){
   const raw=request.headers.get('authorization')||'';if(!raw.startsWith('Bearer '))return null;
-  const p=raw.slice(7).split('|');if(p.length!==5||Number(p[3])<now())return null;
+  const token=raw.slice(7).trim();
+  if(token.startsWith('ms1_')){
+    const resolved=await resolveSessionRequest(request,env);
+    if(resolved.response||!resolved.request)return null;
+    return currentUser(resolved.request,env);
+  }
+  const p=token.split('|');if(p.length!==5||Number(p[3])<now())return null;
   const [userId,tenantId,role,exp,sig]=p,secret=await sessionSecret(env);
   if(!secret||sig!==await hmacHex(secret,`${userId}|${tenantId}|${role}|${exp}`))return null;
   return env.DB.prepare('SELECT id,tenant_id,name,email,role,active FROM users WHERE id=? AND tenant_id=? AND active=1').bind(userId,tenantId).first();
