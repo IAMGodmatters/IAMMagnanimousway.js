@@ -62,6 +62,11 @@ has(networkUi,"<option value='least-cost'>",'owner UI exposes least-cost preview
 has(networkUi,"<option value='PH'>Philippines</option>",'carrier-access number search includes Philippines');
 has(deploy,'/api/contact-center/capabilities','production deploy proves Contact Center is live after rollout');
 has(deploy,'/api/contact-center/softphone/config','production deploy proves Softphone readiness contract after rollout');
+has(deploy,'safe_get_status /tmp/connector-absorption.json','production smoke retries transient connector-catalog read failures');
+has(deploy,'safe_get_status /tmp/contact-center-capabilities.json','production smoke retries transient contact-center capability reads');
+has(deploy,'safe_get_status /tmp/contact-center-softphone.json','production smoke retries transient softphone readiness reads');
+has(deploy,'safe_expected_status /tmp/admin-denied.json 403','production smoke retries transient expected authorization boundaries without mutating state');
+has(deploy,'safe_expected_status /tmp/revoked-me.json 401','production smoke retries transient revoked-session reads without weakening expected status');
 has(audit,'source project but is not represented as a separate production Railway service','audit distinguishes source-ready Telecom from deployed Telecom');
 has(audit,'Credentials alone do not mean a carrier is live.','audit locks the provider truth boundary');
 has(audit,'Supervisor monitor/whisper/barge is **not** marked live.','audit refuses to overclaim unfinished supervisor audio');
