@@ -161,6 +161,14 @@ has(turnEntrypoint,'pkey=$MAGNANIMOUS_TURN_TLS_KEY_FILE','TURN TLS listener requ
 has(entry,'Relay-local media mode must not set TELECOM_PUBLIC_IP.','Asterisk relay-local mode rejects public media advertisement');
 has(entry,'Relay-local media mode must not set ASTERISK_STUN_SERVER.','Asterisk relay-local mode rejects STUN discovery');
 has(turnEntrypoint,'Relay-local media mode must not set TELECOM_PUBLIC_IP.','coturn relay-local mode rejects public-IP advertisement');
+has(turnEntrypoint,'MAGNANIMOUS_TURN_ALLOWED_PEER_IP','coturn relay-local mode requires an explicit Asterisk peer IP');
+has(turnEntrypoint,'denied-peer-ip=0.0.0.0-255.255.255.255','coturn relay-local mode denies all IPv4 peers by default');
+has(turnEntrypoint,'denied-peer-ip=::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff','coturn relay-local mode denies all IPv6 peers by default');
+has(turnEntrypoint,'allowed-peer-ip=%s','coturn relay-local mode re-allows only the explicit Asterisk peer');
+has(turnEntrypoint,'relay-ip=%s','coturn relay allocation binds to the explicit Tailscale media IP');
+has(entry,"printf 'ice_deny=0.0.0.0/0","Asterisk relay-local ICE rejects all IPv4 host candidates by default");
+has(entry,"printf 'ice_deny=::/0","Asterisk relay-local ICE rejects all IPv6 host candidates by default");
+has(entry,"printf 'ice_permit=%s/32","Asterisk relay-local ICE advertises only the explicit Tailscale media IP");
 has(compose,'MAGNANIMOUS_RELAY_LOCAL_MEDIA','Compose carries the relay-local media safety gate');
 has(env,'MAGNANIMOUS_RELAY_LOCAL_MEDIA=false','relay-local media remains disabled by default');
 has(tailscaleBootstrap,'tailscale cert','free edge bootstrap obtains a trusted tailnet certificate');
@@ -168,6 +176,8 @@ has(tailscaleBootstrap,'tailscale funnel --bg --tcp=443','free edge exposes Aste
 has(tailscaleBootstrap,'tailscale funnel --bg --tcp=8443','free edge exposes TURN/TLS through raw TCP 8443');
 has(tailscaleBootstrap,'tailscale funnel --bg --https=10000','free edge exposes protected Telecom Core API through HTTPS 10000');
 has(tailscaleBootstrap,'MAGNANIMOUS_TURN_FORCE_RELAY=true','free edge forces browser media through TURN');
+has(tailscaleBootstrap,'tailscale ip -4','free edge discovers the local Tailscale IPv4 for media isolation');
+has(tailscaleBootstrap,'MAGNANIMOUS_TURN_ALLOWED_PEER_IP=${TAILSCALE_IPV4}','free edge pins TURN peer access to the local Tailscale IPv4');
 has(tailscaleBootstrap,'TELECOM_PUBLIC_IP=','free edge deliberately clears direct public media advertisement');
 has(tailscaleBootstrap,'ASTERISK_STUN_SERVER=','free edge deliberately clears STUN discovery');
 has(tailscaleBootstrap,'-verify_hostname','free edge verifies trusted public TLS hostnames before success');
