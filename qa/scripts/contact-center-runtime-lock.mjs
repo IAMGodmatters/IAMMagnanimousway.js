@@ -11,6 +11,7 @@ const envExample=read('.env.example');
 const providerEnv=read('worker/src/provider-runtime-env.js');
 const platformCredentials=read('worker/src/platform-credentials.js');
 const frontendPackage=read('frontend/package.json');
+const nativeSoftphone=read('frontend/app/softphone/native-webrtc.ts');
 
 const checks=[];
 const has=(src,needle,label)=>checks.push([label,src.includes(needle)]);
@@ -47,10 +48,13 @@ has(runtime,"u.protocol!=='https:'",'native Telecom Core bridge requires HTTPS')
 has(runtime,'runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE)','native Telecom Core bridge is gated by the production live-verification flag');
 has(runtime,"data?.pstn_direct!==false",'worker rejects native browser credentials that could directly dial PSTN');
 has(runtime,'tenant_id=? AND user_id=?','native session revocation is scoped to the signed-in tenant and user');
-has(softphone,"from 'sip.js'",'agent softphone includes the native SIP.js transport');
+has(softphone,"from './native-webrtc'",'agent softphone mounts the native Magnanimous WebRTC client');
+has(nativeSoftphone,"from 'sip.js'",'native Magnanimous WebRTC client uses SIP.js transport');
 has(softphone,'/api/contact-center/softphone/native-session','agent softphone obtains native credentials only through the signed-in platform');
 has(softphone,"device.connect({params:{To:to}})",'ordinary-number dialing remains on the compatibility transport');
-lacks(softphone,'new Inviter','native SIP.js handoff cannot directly bypass platform PSTN policy');
+lacks(softphone,'new Inviter','main agent page cannot directly bypass platform PSTN policy');
+lacks(nativeSoftphone,'+X.','native client does not contain an E.164 direct-PSTN dial pattern');
+has(nativeSoftphone,"extension==='911'||extension==='112'",'native client blocks emergency-code dialing until compliant service exists');
 lacks(softphone,'TELECOM_CORE_TOKEN','frontend never embeds the private Telecom Core token');
 has(providerEnv,"'TELECOM_CORE_TOKEN'",'private Telecom Core token is eligible for server-side provider-vault overlay');
 has(platformCredentials,"id:'magnanimous-telecom-core'",'owner integrations expose protected native Telecom Core setup');
