@@ -17,11 +17,22 @@ function owner(user){return user?.role==='owner'||user?.role==='admin'}
 function runtimeTrue(v){return ['1','true','yes','on'].includes(String(v||'').trim().toLowerCase())}
 function twilioReady(env){return Boolean(env.TWILIO_ACCOUNT_SID&&env.TWILIO_AUTH_TOKEN&&env.TWILIO_PHONE_NUMBER)}
 function twilioSoftphoneReady(env){return Boolean(twilioReady(env)&&env.TWILIO_API_KEY_SID&&env.TWILIO_API_KEY_SECRET&&env.TWILIO_TWIML_APP_SID)}
+function telecomCoreConfig(env){
+ if(!runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE))return null;
+ const raw=clean(env.TELECOM_CORE_URL),token=clean(env.TELECOM_CORE_TOKEN);if(!raw||!token)return null;
+ try{const u=new URL(raw);if(u.protocol!=='https:'||u.username||u.password)return null;return{base:raw.replace(/\/+$/,''),token}}catch{return null}
+}
+function nativeSoftphoneReady(env){return Boolean(telecomCoreConfig(env))}
+async function telecomCoreRequest(env,path,options={}){
+ const cfg=telecomCoreConfig(env);if(!cfg)return null;
+ const headers=new Headers(options.headers||{});headers.set('Authorization',`Bearer ${cfg.token}`);if(options.body&&!headers.has('Content-Type'))headers.set('Content-Type','application/json');
+ try{return await fetch(`${cfg.base}${path}`,{...options,headers})}catch{return null}
+}
 function genericReady(env){return Boolean(env.VOIP_PROVIDER_URL&&env.VOIP_PROVIDER_TOKEN)}
 function telnyxReady(env){return Boolean(env.TELNYX_API_KEY&&env.TELNYX_CONNECTION_ID&&env.TELNYX_PHONE_NUMBER)}
 function plivoReady(env){return Boolean(env.PLIVO_AUTH_ID&&env.PLIVO_AUTH_TOKEN&&env.PLIVO_PHONE_NUMBER)}
 function providerSnapshot(env){
- const byoc=genericReady(env),telnyx=telnyxReady(env),plivo=plivoReady(env),twilio=twilioReady(env),softphone=twilioSoftphoneReady(env),nativeWebrtcLive=runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE);
+ const byoc=genericReady(env),telnyx=telnyxReady(env),plivo=plivoReady(env),twilio=twilioReady(env),softphone=twilioSoftphoneReady(env),nativeWebrtcLive=runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE),nativeSession=nativeSoftphoneReady(env);
  const livePstn=byoc||twilio;
  const upstreamAccounts=[telnyx,plivo,twilio].filter(Boolean).length;
  const mode=String(env.VOIP_BILLING_MODE||'metered').trim().toLowerCase();
@@ -29,7 +40,7 @@ function providerSnapshot(env){
   provider_details_private:true,
   browser_calling:{configured:true,free_first:true,inbound:true,outbound:true,note:'Peer-to-peer browser calling for signed-in users.'},
   magnanimous_carrier:{configured:livePstn,inbound:byoc||twilio,outbound:livePstn,byoc,flat_rate:['flat-rate','unlimited','channel'].includes(mode),billing_mode:byoc?mode:'metered',least_cost_routing:true,live_route_count:[byoc,twilio].filter(Boolean).length,upstream_accounts_configured:upstreamAccounts,truth_boundary:'An upstream account is not counted as a live call route until it is attached to the Magnanimous carrier bridge or an authenticated compatibility transport.'},
-  agent_softphone:{configured:softphone,provider_identity:'Magnanimous Carrier',native_pbx_target:'Asterisk WebRTC',native_pbx_live:nativeWebrtcLive,compatibility_transport:softphone,transport_preference:nativeWebrtcLive?'native-asterisk-webrtc':'compatibility-until-native-verification'},
+  agent_softphone:{configured:softphone||nativeSession,provider_identity:'Magnanimous Carrier',native_pbx_target:'Asterisk WebRTC',native_pbx_live:nativeWebrtcLive,native_session_ready:nativeSession,compatibility_transport:softphone,transport_preference:nativeSession?'native-asterisk-webrtc-with-compatibility-pstn':'compatibility-until-native-verification'},
   ai_assist:{configured:Boolean(env.AI),free_first:Boolean(env.AI)},
   optional_video:{configured:Boolean(env.TAVUS_API_KEY||env.HEYGEN_API_KEY),premium:true}
  };
@@ -46,7 +57,8 @@ async function ensure(env){
   `CREATE TABLE IF NOT EXISTS cc_agent_assist_rules(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,trigger_phrase TEXT NOT NULL,guidance TEXT NOT NULL,queue_id TEXT,priority INTEGER NOT NULL DEFAULT 100,active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS cc_call_intelligence(call_id INTEGER NOT NULL,tenant_id TEXT NOT NULL,summary TEXT NOT NULL DEFAULT '',sentiment TEXT NOT NULL DEFAULT 'unknown',topics_json TEXT NOT NULL DEFAULT '[]',action_items_json TEXT NOT NULL DEFAULT '[]',qa_flags_json TEXT NOT NULL DEFAULT '[]',compliance_risk TEXT NOT NULL DEFAULT 'none',generated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,call_id))`,
   `CREATE TABLE IF NOT EXISTS cc_interactions(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,channel TEXT NOT NULL,direction TEXT NOT NULL DEFAULT 'inbound',customer_key TEXT NOT NULL DEFAULT '',customer_name TEXT NOT NULL DEFAULT '',subject TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'open',priority INTEGER NOT NULL DEFAULT 50,queue_id TEXT,assigned_agent_id TEXT,sentiment TEXT NOT NULL DEFAULT 'unknown',metadata_json TEXT NOT NULL DEFAULT '{}',last_message_at INTEGER NOT NULL,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS cc_interaction_messages(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,interaction_id TEXT NOT NULL,sender_type TEXT NOT NULL,sender_key TEXT NOT NULL DEFAULT '',body TEXT NOT NULL,provider_message_id TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`
+  `CREATE TABLE IF NOT EXISTS cc_interaction_messages(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,interaction_id TEXT NOT NULL,sender_type TEXT NOT NULL,sender_key TEXT NOT NULL DEFAULT '',body TEXT NOT NULL,provider_message_id TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS cc_native_webrtc_sessions(session_id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL)`
  ];
  for(const q of qs)await env.DB.prepare(q).run();
 }
