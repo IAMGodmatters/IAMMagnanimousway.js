@@ -136,14 +136,14 @@ if(first>=0){
 
 replaceIfPresent(
  "  console.error('Agent Mesh execution failed',errors);\n  return json({detail:`Agent Mesh could not complete the request. ${errors.join(' | ')}`,code:'AGENT_PROVIDER_FAILURE',failure_class:classifyAgentFailure(errors)},502);",
- "  console.error('Agent Mesh execution failed',errors);\n  const failureClass=classifyAgentFailure(errors);\n  const fallback=localResilienceResponse(agent,message,failureClass);\n  await saveMessage(env,user,agent.id,'assistant',fallback,'magnanimous-local-resilience','local-resilience-v1');\n  return json({output:fallback,agent,provider:'magnanimous-local-resilience',provider_name:'Magnanimous AI routing',model:'local-resilience-v1',shared_memory:true,tenant_isolated:true,connected_tools:integrations,native_workspaces:NATIVE_WORKSPACES,native_context_used:true,platform_actions:'/assistant-actions',video_route:'/agent-video',openai_used:false,degraded:true,failure_class:failureClass});",
+ "  const failureClass=classifyAgentFailure(errors);\n  console.warn('Agent Mesh provider rail degraded; local resilience engaged',JSON.stringify({failure_class:failureClass,attempted_providers:errors.length}));\n  const fallback=localResilienceResponse(agent,message,failureClass);\n  await saveMessage(env,user,agent.id,'assistant',fallback,'magnanimous-local-resilience','local-resilience-v1');\n  return json({output:fallback,agent,provider:'magnanimous-local-resilience',provider_name:'Magnanimous AI routing',model:'local-resilience-v1',shared_memory:true,tenant_isolated:true,connected_tools:integrations,native_workspaces:NATIVE_WORKSPACES,native_context_used:true,platform_actions:'/assistant-actions',video_route:'/agent-video',openai_used:false,degraded:true,failure_class:failureClass});",
  'zero-cost Agent Mesh capacity resilience path'
 );
 
 const occurrences=(text.match(/function localResilienceResponse\(/g)||[]).length;
 const timeoutReady=text.includes('const AGENT_MODEL_TIMEOUT_MS=25000;')&&text.includes('const AGENT_PROVIDER_TIMEOUT_MS=30000;');
 const schemaReady=text.includes("'@cf/meta/llama-3.2-1b-instruct'")&&text.includes('max_tokens:AGENT_MAX_TOKENS')&&text.includes('cloudflareAccountLevelError');
-const diagnosticReady=text.includes('failure_class:failureClass')&&text.includes("console.error('Agent Mesh execution failed',errors)");
+const diagnosticReady=text.includes('failure_class:failureClass')&&text.includes("console.warn('Agent Mesh provider rail degraded; local resilience engaged'");
 const routingReady=text.includes("const candidates=preferred?[preferred,...ordered.filter(p=>p.id!==preferred.id)]:ordered;");
 const localResilienceReady=occurrences===1&&text.includes("'magnanimous-local-resilience','local-resilience-v1'")&&text.includes('degraded:true');
 if(!timeoutReady||!schemaReady||!diagnosticReady||!routingReady||!localResilienceReady)throw new Error('Agent Mesh resilience repair insertion points were not found; refusing to make an unsafe partial edit.');
