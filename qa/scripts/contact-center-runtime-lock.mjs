@@ -4,6 +4,7 @@ const read=p=>fs.readFileSync(p,'utf8');
 const entry=read('worker/src/entrypoint.js');
 const security=read('worker/src/security-entrypoint.js');
 const runtime=read('worker/src/contact-center-runtime.js');
+const compatSoftphone=read('worker/src/twilio-softphone-runtime.js');
 const softphone=read('frontend/app/softphone/page.tsx');
 const autoDial=read('frontend/app/auto-dialer/page.tsx');
 const envExample=read('.env.example');
@@ -23,6 +24,8 @@ has(runtime,'twilioVoiceToken','browser softphone token is generated server-side
 has(runtime,'TWILIO_API_KEY_SECRET','Twilio API key secret never needs to enter frontend');
 has(runtime,"provider:'Magnanimous Carrier'",'softphone keeps Magnanimous Carrier as public identity');
 has(runtime,"native_pbx_target:'Asterisk WebRTC'",'softphone exposes Asterisk WebRTC as native PBX target');
+has(compatSoftphone,"provider:'Magnanimous Carrier'",'compatibility softphone keeps Magnanimous Carrier as public identity');
+has(compatSoftphone,"native_pbx_target:'Asterisk WebRTC'",'compatibility softphone preserves Asterisk WebRTC as native PBX target');
 has(runtime,"provider_details_private:true",'contact center keeps provider details private');
 has(runtime,'live_route_count:[byoc,twilio].filter(Boolean).length','contact center counts only actually wired PSTN routes as live');
 has(runtime,'upstream_accounts_configured:upstreamAccounts','contact center tracks configured upstream accounts without calling them live routes');
