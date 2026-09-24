@@ -24,6 +24,7 @@ export default function NetworkAuthorityPage(){
  const[routeDestination,setRouteDestination]=useState('+63');
  const[routeMode,setRouteMode]=useState('balanced');
  const[routePlan,setRoutePlan]=useState<any>(null);
+ const routeDestinationValid=/^\+[1-9]\d{6,14}$/.test(routeDestination);
 
  useEffect(()=>{
   const saved=localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||'';
@@ -114,18 +115,36 @@ export default function NetworkAuthorityPage(){
    <form className={styles.card} onSubmit={previewRoute}>
     <label>E.164 destination<input value={routeDestination} onChange={e=>setRouteDestination(e.target.value)} placeholder='+639171234567'/></label>
     <label>Routing policy<select value={routeMode} onChange={e=>setRouteMode(e.target.value)}><option value='balanced'>Balanced quality + cost</option><option value='least-cost'>Least cost</option><option value='priority'>Configured priority</option></select></label>
-    <button disabled={busy||!/^\+[1-9]\d{6,14}$/.test(routeDestination)}>PREVIEW ROUTE</button>
+    <button disabled={busy||!routeDestinationValid}>PREVIEW ROUTE</button>
     <p className={styles.muted}>Longest destination prefix wins first. Unhealthy routes are avoided. Balanced mode prefers configured quality then rate; least-cost prefers rate then quality; priority mode follows your route priorities first.</p>
    </form>
-   {routePlan&&<div className={styles.grid}>
-    <article className={styles.card}>
-     <small>SELECTED ROUTE</small>
-     <h2>{routePlan.selected?.route||'No route'}</h2>
-     <p>{routePlan.selected?.interconnect||'Configure an interconnect and destination route.'}</p>
-     <p className={styles.muted}>Health: {routePlan.selected?.health||'—'} · Quality: {routePlan.selected?.quality_score??'—'} · Estimated rate: {routePlan.selected?.estimated_rate==null?'not entered':'$'+routePlan.selected.estimated_rate+'/min'}</p>
-    </article>
-    <article className={styles.card}><small>POLICY</small><h2>{routePlan.selection_mode||routeMode}</h2><p className={styles.muted}>{routePlan.policy}</p><p>{(routePlan.matches||[]).length} matching route(s)</p></article>
-   </div>}
+   {routePlan ? (
+    <div className={styles.grid}>
+     <article className={styles.card}>
+      <small>SELECTED ROUTE</small>
+      <h2>{routePlan.selected?.route||'No route'}</h2>
+      <p>{routePlan.selected?.interconnect||'Configure an interconnect and destination route.'}</p>
+      <p className={styles.muted}>Health: {routePlan.selected?.health||'—'} · Quality: {routePlan.selected?.quality_score??'—'} · Estimated rate: {routePlan.selected?.estimated_rate==null?'not entered':('
+  </section>
+
+  {numberResults.length>0&&<section className={styles.inventory}><div className={styles.title}><div><small>AVAILABLE NUMBERS</small><h2>Read-only results</h2></div></div><div className={styles.table}>{numberResults.map((item:any)=><article key={item.phone_number}><div><b>{item.phone_number}</b><span>{item.cost_information?.currency||''} {item.cost_information?.monthly_cost||''}/mo</span></div><p>{(item.region_information||[]).map((region:any)=>region.region_name).filter(Boolean).join(', ')||'Available inventory'}</p><small>No purchase was made.</small></article>)}</div></section>}
+
+  <section className={styles.inventory}><div className={styles.title}><div><small>UNITED STATES</small><h2>FCC / network readiness</h2></div></div><div className={styles.grid}>{renderCases('US')}</div></section>
+  <section className={styles.inventory}><div className={styles.title}><div><small>PHILIPPINES</small><h2>NTC / network readiness</h2></div></div><div className={styles.grid}>{renderCases('PH')}</div></section>
+
+  <section className={styles.guardrail}><h2>What Magnanimous can absorb versus what must be granted</h2><p>APIs, routing, provisioning workflows, SIM/eSIM lifecycle, number ordering, emergency-service integrations and provider switching can live inside Magnanimous. Government licenses, spectrum rights, direct numbering authorization, host-network agreements and interconnection contracts must come from the authorized regulator/network party. This dashboard tracks those external grants without pretending code created them.</p></section>
+ </main>
+}
++routePlan.selected.estimated_rate+'/min')}</p>
+     </article>
+     <article className={styles.card}>
+      <small>POLICY</small>
+      <h2>{routePlan.selection_mode||routeMode}</h2>
+      <p className={styles.muted}>{routePlan.policy}</p>
+      <p>{(routePlan.matches||[]).length} matching route(s)</p>
+     </article>
+    </div>
+   ) : null}
   </section>
 
   {numberResults.length>0&&<section className={styles.inventory}><div className={styles.title}><div><small>AVAILABLE NUMBERS</small><h2>Read-only results</h2></div></div><div className={styles.table}>{numberResults.map((item:any)=><article key={item.phone_number}><div><b>{item.phone_number}</b><span>{item.cost_information?.currency||''} {item.cost_information?.monthly_cost||''}/mo</span></div><p>{(item.region_information||[]).map((region:any)=>region.region_name).filter(Boolean).join(', ')||'Available inventory'}</p><small>No purchase was made.</small></article>)}</div></section>}
