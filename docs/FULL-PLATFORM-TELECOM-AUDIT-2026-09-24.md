@@ -73,7 +73,8 @@ Remaining enterprise-floor work should be completed natively rather than by repl
 4. bridge-level recording with jurisdiction/consent policy;
 5. skill/priority routing over the native PBX;
 6. route-quality telemetry and automatic cost/quality routing;
-7. production deployment of the standalone telecom core when hosting/budget and regulatory prerequisites are ready.
+7. production deployment of the standalone telecom core when hosting/budget and regulatory prerequisites are ready;
+8. use the Carrier Route Planner to validate balanced, least-cost, or priority routing before changing production interconnect policy.
 
 ## Carrier research and provider roles
 
@@ -98,7 +99,7 @@ Current Philippines references:
 - https://www.plivo.com/voice/pricing/ph/
 - https://www.plivo.com/sip-trunking/pricing/ph/
 
-Philippine PSTN public rates are comparatively high, while browser/SIP interface pricing can be low. This is a concrete example of why the platform must not select one global carrier by brand alone.
+For Philippine SIP trunking, Plivo currently publishes local outbound starting at $0.153/min and mobile outbound at $0.198/min, with local DID rental at $25/month. This can beat Twilio's published Philippine SIP termination on some routes, but it is still destination- and contract-dependent.
 
 ### Compatibility carrier — Twilio
 
@@ -108,7 +109,7 @@ Current Philippines references:
 - https://www.twilio.com/en-us/voice/pricing/ph
 - https://www.twilio.com/en-us/sip-trunking/pricing/ph
 
-The current browser carrier softphone can use the Voice SDK compatibility path. The long-term native target remains Asterisk WebRTC.
+The current browser carrier softphone can use the Voice SDK compatibility path. The long-term native target remains Asterisk WebRTC. Twilio currently publishes Philippine SIP termination starting at $0.2026/min and mobile at $0.2898/min, so it should not be assumed to be the lowest-cost Philippine PSTN route.
 
 ### Other useful upstream candidates
 
@@ -160,7 +161,7 @@ At the audit start, current-main production workflows covering the web platform,
 
 Railway production showed the Magnanimous service and sandbox/browser/browser-egress/media services with successful last-known deployments. The exact runtime promotion is commit-sensitive: CI-only commits do not force an unnecessary runtime rebuild.
 
-A Railway production environment patch remains staged. Its content was **not** successfully returned by the read-only Railway inspection attempt, so this audit does not approve, deploy or discard it. It must be identified before mutation.
+A later read-only Railway status check showed no non-empty staged production changes (`stagedChanges: null`, `unmergedChangesCount: null`). An earlier inspection call timed out, but no unresolved production-drift mutation remains approved or pending from this audit.
 
 The standalone telecom core exists as a tested deployable source project but is not represented as a separate production Railway service in the audited Railway project. It should not be described as a live public carrier core until a real host, domain, SIP interconnect and production health verification exist.
 
@@ -182,4 +183,4 @@ Sometimes, but not universally. Philippine rates demonstrate why pricing must be
 No. Do not enable them until outbound/inbound agent calls are migrated into a tested Stasis-managed bridge lifecycle.
 
 **What should be built next?**  
-Native Asterisk WebRTC agent media + Stasis bridge lifecycle, then supervisor controls and bridge recording, followed by quality-aware least-cost routing using measured ASR/ACD/PDD/error rates rather than provider brand alone.
+Native Asterisk WebRTC agent media + Stasis bridge lifecycle, then supervisor controls and bridge recording. The carrier planner now supports balanced, least-cost and priority selection from configured route quality/rate data; the next routing step is to feed it measured ASR/ACD/PDD/error telemetry rather than relying only on configured scores.
