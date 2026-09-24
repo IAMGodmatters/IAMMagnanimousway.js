@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import base64
 import hashlib
-import hmac
 import secrets
 import time
 from typing import Any, TYPE_CHECKING
@@ -11,6 +9,7 @@ from urllib.parse import quote
 
 from ..config import TelecomSettings
 from ..errors import CarrierRejectedError, TelecomConfigurationError
+from .turn_credentials import build_turn_ice_servers
 
 if TYPE_CHECKING:
     from ..adapters.asterisk import AsteriskAriClient
@@ -36,38 +35,13 @@ class WebRtcSessionService:
             raise TelecomConfigurationError("MAGNANIMOUS_SIP_DOMAIN is required for browser sessions.")
 
     def _turn_ice_servers(self, session_id: str, expires_at: int) -> list[dict[str, Any]]:
-        urls = self._settings.webrtc_turn_urls
-        if not urls:
-            if self._settings.webrtc_turn_force_relay:
-                raise TelecomConfigurationError(
-                    "MAGNANIMOUS_TURN_FORCE_RELAY requires MAGNANIMOUS_TURN_URLS."
-                )
-            return []
-        if not self._settings.webrtc_turn_auth_secret:
-            raise TelecomConfigurationError(
-                "MAGNANIMOUS_TURN_AUTH_SECRET is required when TURN URLs are configured."
-            )
-        for url in urls:
-            if not (url.startswith("turn:") or url.startswith("turns:")):
-                raise TelecomConfigurationError(
-                    "MAGNANIMOUS_TURN_URLS entries must use turn: or turns:."
-                )
-
-        username = f"{expires_at}:{session_id}"
-        digest = hmac.new(
-            self._settings.webrtc_turn_auth_secret.encode("utf-8"),
-            username.encode("utf-8"),
-            hashlib.sha1,
-        ).digest()
-        credential = base64.b64encode(digest).decode("ascii")
-        return [
-            {
-                "urls": list(urls),
-                "username": username,
-                "credential": credential,
-                "credentialType": "password",
-            }
-        ]
+        return build_turn_ice_servers(
+            urls=self._settings.webrtc_turn_urls,
+            auth_secret=self._settings.webrtc_turn_auth_secret,
+            force_relay=self._settings.webrtc_turn_force_relay,
+            session_id=session_id,
+            expires_at=expires_at,
+        )
 
     @staticmethod
     def _fields(values: dict[str, str]) -> dict[str, Any]:
