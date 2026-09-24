@@ -51,6 +51,17 @@ if [[ -z "${TAILSCALE_FQDN}" || "${TAILSCALE_FQDN}" != *.ts.net ]]; then
   exit 1
 fi
 
+TAILSCALE_IPV4="$(tailscale ip -4 2>/dev/null | head -n1 | tr -d '[:space:]')"
+python3 - "${TAILSCALE_IPV4}" <<'PY'
+import ipaddress,sys
+try:
+    ip=ipaddress.ip_address(sys.argv[1])
+except ValueError as exc:
+    raise SystemExit(f"Invalid Tailscale IPv4 address: {exc}")
+if ip.version != 4:
+    raise SystemExit("Relay-local media requires a Tailscale IPv4 address.")
+PY
+
 install -d -m 0700 "${TELECOM_ROOT}" "${CERT_DIR}"
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "${tmpdir}"' EXIT
@@ -71,6 +82,7 @@ ASTERISK_WEBRTC_DYNAMIC_SESSIONS_ENABLED=true
 ASTERISK_WEBRTC_PUBLIC_URL=wss://${TAILSCALE_FQDN}/ws
 ASTERISK_STUN_SERVER=
 MAGNANIMOUS_RELAY_LOCAL_MEDIA=true
+MAGNANIMOUS_TURN_ALLOWED_PEER_IP=${TAILSCALE_IPV4}
 MAGNANIMOUS_TURN_URLS=turns:${TAILSCALE_FQDN}:8443?transport=tcp
 MAGNANIMOUS_TURN_REALM=${TAILSCALE_FQDN}
 MAGNANIMOUS_TURN_FORCE_RELAY=true
