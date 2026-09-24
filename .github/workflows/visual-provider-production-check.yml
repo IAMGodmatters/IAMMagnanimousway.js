@@ -55,10 +55,12 @@ jobs:
           assert data.get('free_first') is True, data
           assert int(data.get('free_configured_count') or 0) >= 2, data
           assert by_id.get('iam-cinematic-free',{}).get('configured') is True, data
-          assert by_id.get('cloudflare-flux-free',{}).get('configured') is True, data
-          assert by_id.get('cloudflare-flux-free',{}).get('free') is True, data
+          assert by_id.get('magnanimous-native-procedural-scene',{}).get('configured') is True, data
+          assert by_id.get('magnanimous-native-procedural-scene',{}).get('free') is True, data
+          assert by_id.get('cloudflare-flux-free',{}).get('configured') is False, data
+          assert by_id.get('cloudflare-flux-free',{}).get('tier') == 'rollback-only', data
           assert by_id.get('google-veo-3.1-lite',{}).get('free') is False, data
-          print('Free cinematic stack is configured; Veo remains correctly marked as paid API.')
+          print('Free Magnanimous-native cinematic fallback is configured; legacy edge FLUX remains rollback-only and Veo remains paid API.')
           PY
 
       - name: Verify visual generation requires a signed-in user
