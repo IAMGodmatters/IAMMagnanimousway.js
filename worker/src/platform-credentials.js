@@ -34,6 +34,10 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'VOIP_PROVIDER_TOKEN',label:'Carrier Bridge Bearer Token',secret:true,required:false},
   {key:'VOIP_WEBHOOK_SECRET',label:'Carrier Bridge Webhook Secret',secret:true,required:false}
  ]},
+ {id:'magnanimous-telecom-core',name:'Magnanimous Native Telecom Core',providers:[],fields:[
+  {key:'TELECOM_CORE_URL',label:'Magnanimous Telecom Core HTTPS Base URL',secret:false,required:false},
+  {key:'TELECOM_CORE_TOKEN',label:'Magnanimous Telecom Core Bearer Token',secret:true,required:false}
+ ]},
  {id:'inkbox',name:'Magnanimous Communications via Inkbox',providers:['inkbox'],fields:[
   {key:'INKBOX_API_KEY',label:'Inkbox API Key',secret:true,required:false},
   {key:'INKBOX_AGENT_IDENTITY_ID',label:'Inkbox Agent Identity ID',secret:false,required:false},
