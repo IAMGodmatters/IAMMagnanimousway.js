@@ -101,6 +101,60 @@ function localHour(timezone){
 function insideCallingWindow(campaign){const h=localHour(campaign?.timezone||'UTC');return h>=8&&h<20}
 async function outboundCount(env,tenant,campaignId,since){const r=await env.DB.prepare('SELECT COUNT(*) n FROM cc_campaign_members WHERE tenant_id=? AND campaign_id=? AND last_attempt_at>=?').bind(tenant,campaignId,since).first();return Number(r?.n||0)}
 
+function skillList(value){
+ const input=Array.isArray(value)?value:String(value||'').split(',');
+ return [...new Set(input.map(x=>clean(x).toLowerCase()).filter(Boolean))].slice(0,30);
+}
+
+async function recommendAgent(env,tenant,{queue_id='',required_skills=[]}={}){
+ const queueId=clean(queue_id),required=skillList(required_skills);
+ let rows=[];
+ if(queueId){
+  const queue=await env.DB.prepare('SELECT id,name,strategy FROM call_queues WHERE id=? AND tenant_id=? AND active=1').bind(queueId,tenant).first();
+  if(!queue)return {queue:null,required_skills:required,recommended:null,candidates:[],detail:'Queue not found or inactive.'};
+  const result=await env.DB.prepare(`SELECT a.id,a.name,a.extension,a.status,a.skills,a.last_seen_at,m.priority FROM call_queue_members m JOIN call_center_agents a ON a.id=m.agent_id WHERE m.queue_id=? AND a.tenant_id=? AND a.active=1 AND a.status='available' ORDER BY m.priority ASC,COALESCE(a.last_seen_at,0) ASC,a.name ASC LIMIT 200`).bind(queueId,tenant).all();
+  rows=result.results||[];
+  const ranked=rows.map(row=>{const skills=skillList(row.skills),matched=required.filter(skill=>skills.includes(skill));return{id:row.id,name:row.name,extension:row.extension,status:row.status,skills,priority:Number(row.priority||100),last_seen_at:Number(row.last_seen_at||0),matched_skills:matched,matched_count:matched.length,all_required_skills:required.length===0||matched.length===required.length}}).sort((a,b)=>Number(b.all_required_skills)-Number(a.all_required_skills)||b.matched_count-a.matched_count||a.priority-b.priority||a.last_seen_at-b.last_seen_at||String(a.name).localeCompare(String(b.name)));
+  const eligible=ranked.filter(x=>x.all_required_skills);
+  return {queue,required_skills:required,recommended:eligible[0]||null,candidates:ranked.slice(0,25),routing_basis:required.length?'all-required-skills + queue priority + longest idle':'queue priority + longest idle'};
+ }
+ const result=await env.DB.prepare("SELECT id,name,extension,status,skills,last_seen_at FROM call_center_agents WHERE tenant_id=? AND active=1 AND status='available' ORDER BY COALESCE(last_seen_at,0) ASC,name ASC LIMIT 200").bind(tenant).all();
+ rows=result.results||[];
+ const ranked=rows.map(row=>{const skills=skillList(row.skills),matched=required.filter(skill=>skills.includes(skill));return{id:row.id,name:row.name,extension:row.extension,status:row.status,skills,priority:100,last_seen_at:Number(row.last_seen_at||0),matched_skills:matched,matched_count:matched.length,all_required_skills:required.length===0||matched.length===required.length}}).sort((a,b)=>Number(b.all_required_skills)-Number(a.all_required_skills)||b.matched_count-a.matched_count||a.last_seen_at-b.last_seen_at||String(a.name).localeCompare(String(b.name)));
+ const eligible=ranked.filter(x=>x.all_required_skills);
+ return {queue:null,required_skills:required,recommended:eligible[0]||null,candidates:ranked.slice(0,25),routing_basis:required.length?'all-required-skills + longest idle':'longest idle'};
+}
+
+async function crmScreenPop(env,tenant,url){
+ const callId=Number(url.searchParams.get('call_id')||0),requestedContactId=Number(url.searchParams.get('contact_id')||0),requestedPhone=phone(url.searchParams.get('phone')),email=clean(url.searchParams.get('email')).toLowerCase();
+ let call=null,contact=null,matchBasis='';
+ if(callId){
+  call=await env.DB.prepare('SELECT id,contact_id,direction,caller,callee,status,agent_id,queue_id,created_at FROM phone_calls WHERE id=? AND tenant_id=? LIMIT 1').bind(callId,tenant).first();
+  if(!call)return {found:false,call:null,detail:'Call not found in this workspace.'};
+ }
+ const contactId=requestedContactId||Number(call?.contact_id||0);
+ if(contactId){
+  contact=await env.DB.prepare('SELECT id,first_name,last_name,email,phone,company,status,source,tags,notes,created_at,updated_at FROM crm_contacts WHERE id=? AND tenant_id=? LIMIT 1').bind(contactId,tenant).first();
+  if(contact)matchBasis='contact_id';
+ }
+ if(!contact&&email){
+  contact=await env.DB.prepare('SELECT id,first_name,last_name,email,phone,company,status,source,tags,notes,created_at,updated_at FROM crm_contacts WHERE tenant_id=? AND lower(email)=? ORDER BY updated_at DESC LIMIT 1').bind(tenant,email).first();
+  if(contact)matchBasis='email';
+ }
+ const targetPhone=requestedPhone||phone(call?.direction==='inbound'?call?.caller:call?.callee);
+ if(!contact&&targetPhone){
+  const result=await env.DB.prepare("SELECT id,first_name,last_name,email,phone,company,status,source,tags,notes,created_at,updated_at FROM crm_contacts WHERE tenant_id=? AND phone<>'' ORDER BY updated_at DESC LIMIT 500").bind(tenant).all();
+  contact=(result.results||[]).find(row=>phone(row.phone)===targetPhone)||null;
+  if(contact)matchBasis='phone';
+ }
+ if(!contact)return {found:false,call,target:{phone:targetPhone||'',email},detail:'No CRM contact matched this call or lookup.'};
+ const [activities,opportunities]=await Promise.all([
+  env.DB.prepare('SELECT id,type,title,body,due_at,completed,created_at FROM crm_activities WHERE tenant_id=? AND contact_id=? ORDER BY created_at DESC LIMIT 10').bind(tenant,contact.id).all().catch(()=>({results:[]})),
+  env.DB.prepare('SELECT id,name,stage,value,probability,expected_close_at,notes,created_at,updated_at FROM crm_opportunities WHERE tenant_id=? AND contact_id=? ORDER BY updated_at DESC LIMIT 10').bind(tenant,contact.id).all().catch(()=>({results:[]}))
+ ]);
+ return {found:true,match_basis:matchBasis,call,contact,activities:activities.results||[],opportunities:opportunities.results||[],crm_href:'/crm'};
+}
+
 async function overview(env,tenant){
  const day=now()-86400;
  const [agents,available,queues,activeCalls,todayCalls,campaigns,callbacks,voicemails,openInteractions]=await Promise.all([
@@ -200,8 +254,10 @@ export async function handleContactCenter(request,env){
   if(path==='/api/contact-center/ivr/step'&&request.method==='POST')return ivrStep(request,env,url);
   if(path==='/api/contact-center/voicemail/recording'&&request.method==='POST')return voicemailRecording(request,env,url);
   await ensure(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use the contact center.'},401);const tenant=String(user.tenant_id);await seed(env,tenant);
-  if(path==='/api/contact-center/capabilities'&&request.method==='GET')return json({ok:true,providers:providerSnapshot(env),features:{acd:true,skills_routing:false,ivr:true,callbacks:true,voicemail:true,dnc:true,outbound_campaigns:true,dialer_modes:['preview','progressive','power'],predictive_mass_dialing:false,reason:'High-volume predictive automation is intentionally not enabled without carrier/compliance controls.',agent_presence:true,crm_screen_pop:false,recording:false,voicemail_recording:true,ai_call_intelligence:Boolean(env.AI),agent_assist:true,workforce_management:true,quality_management:true,analytics:true,omnichannel_inbox:true,free_browser_calling:true},feature_readiness:{acd:'operational',skills_routing:'specified-only',ivr:'operational',callbacks:'operational',voicemail:'operational',dnc:'operational',outbound_campaigns:'operational',agent_presence:'operational',crm_screen_pop:'specified-only',call_recording:'specified-only',voicemail_recording:'operational',ai_call_intelligence:env.AI?'operational':'setup-required',agent_assist:'operational',workforce_management:'operational',quality_management:'operational',analytics:'operational',omnichannel_inbox:'operational',supervisor_audio:'specified-only'},truth_boundary:'A feature is marked operational only when an executable runtime path exists. Skills routing, CRM screen pop, full-call recording, and supervisor monitor/whisper/barge remain specified-only until their runtime and UI paths are implemented and verified.',inbound_webhook:`${url.origin}/api/contact-center/carrier/incoming`});
+  if(path==='/api/contact-center/capabilities'&&request.method==='GET')return json({ok:true,providers:providerSnapshot(env),features:{acd:true,skills_routing:true,ivr:true,callbacks:true,voicemail:true,dnc:true,outbound_campaigns:true,dialer_modes:['preview','progressive','power'],predictive_mass_dialing:false,reason:'High-volume predictive automation is intentionally not enabled without carrier/compliance controls.',agent_presence:true,crm_screen_pop:true,recording:false,voicemail_recording:true,ai_call_intelligence:Boolean(env.AI),agent_assist:true,workforce_management:true,quality_management:true,analytics:true,omnichannel_inbox:true,free_browser_calling:true},feature_readiness:{acd:'operational',skills_routing:'operational',ivr:'operational',callbacks:'operational',voicemail:'operational',dnc:'operational',outbound_campaigns:'operational',agent_presence:'operational',crm_screen_pop:'operational',call_recording:'specified-only',voicemail_recording:'operational',ai_call_intelligence:env.AI?'operational':'setup-required',agent_assist:'operational',workforce_management:'operational',quality_management:'operational',analytics:'operational',omnichannel_inbox:'operational',supervisor_audio:'specified-only'},truth_boundary:'A feature is marked operational only when an executable runtime path exists. Full-call recording and supervisor monitor/whisper/barge remain specified-only until their media-control paths are implemented and verified.',inbound_webhook:`${url.origin}/api/contact-center/carrier/incoming`});
   if(path==='/api/contact-center/overview'&&request.method==='GET')return json({ok:true,...await overview(env,tenant)});
+  if(path==='/api/contact-center/routing/recommend'&&request.method==='POST'){const b=await request.json().catch(()=>({}));const result=await recommendAgent(env,tenant,{queue_id:b.queue_id,required_skills:b.required_skills});return result.recommended?json({ok:true,...result}):json({ok:false,...result,detail:result.detail||'No available agent satisfies every required skill.'},404)}
+  if(path==='/api/contact-center/screen-pop'&&request.method==='GET'){const result=await crmScreenPop(env,tenant,url);return json({ok:true,...result})}
   const campaign=await campaignRoutes(request,env,user,url);if(campaign)return campaign;
   if(path==='/api/contact-center/ivr'&&request.method==='GET'){const {results=[]}=await env.DB.prepare('SELECT * FROM cc_ivr_flows WHERE tenant_id=? ORDER BY active DESC,updated_at DESC').bind(tenant).all();return json({flows:results.map(x=>({...x,nodes:safeJson(x.nodes_json,{}),business_hours:safeJson(x.business_hours_json,{})}))})}
   if(path==='/api/contact-center/ivr'&&request.method==='POST'){if(!owner(user))return json({detail:'Workspace owner access required.'},403);const b=await request.json().catch(()=>({})),id=crypto.randomUUID(),ts=now();await env.DB.prepare('INSERT INTO cc_ivr_flows(id,tenant_id,name,active,greeting,invalid_message,timeout_message,after_hours_message,business_hours_json,nodes_json,default_queue_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,clean(b.name)||'IVR Flow',b.active?1:0,clean(b.greeting),clean(b.invalid_message)||'That selection was not recognized.',clean(b.timeout_message)||'I did not receive a selection.',clean(b.after_hours_message)||'We are currently closed.',JSON.stringify(b.business_hours||{}),JSON.stringify(b.nodes||{}),b.default_queue_id||null,ts,ts).run();if(b.active)await env.DB.prepare('UPDATE cc_ivr_flows SET active=0 WHERE tenant_id=? AND id<>?').bind(tenant,id).run();return json({id},201)}
