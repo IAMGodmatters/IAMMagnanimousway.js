@@ -22,6 +22,8 @@ Oracle may reclaim idle Always Free compute. Do not represent this free-first ho
 
 ## Guarded Terraform provisioning
 
+For the lowest-friction browser-only route after Oracle account creation, use `telecom-core/oci/cloud-shell-plan.sh` from OCI Cloud Shell. Oracle Cloud Shell is pre-authenticated, so this path does not require creating a separate local API signing key.
+
 The repository also contains `telecom-core/oci/`, a Terraform module that creates only the public-host infrastructure required for this path. It is pinned to Terraform 1.16.4 and OCI provider 8.29.0, hard-codes `VM.Standard.A1.Flex` at 2 OCPUs / 12 GiB RAM with a 50 GB boot volume, and has no paid-shape fallback.
 
 Before any apply:
