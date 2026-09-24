@@ -6,10 +6,13 @@ const security=read('worker/src/security-entrypoint.js');
 const runtime=read('worker/src/contact-center-runtime.js');
 const compatSoftphone=read('worker/src/twilio-softphone-runtime.js');
 const softphone=read('frontend/app/softphone/page.tsx');
+const nativeSoftphone=read('frontend/app/softphone/native-webrtc.ts');
 const autoDial=read('frontend/app/auto-dialer/page.tsx');
 const envExample=read('.env.example');
 const providerRuntime=read('worker/src/provider-runtime-env.js');
 const credentialRuntime=read('worker/src/platform-credentials.js');
+const frontendPackage=read('frontend/package.json');
+const frontendLock=read('frontend/package-lock.json');
 
 const checks=[];
 const has=(src,needle,label)=>checks.push([label,src.includes(needle)]);
@@ -33,6 +36,9 @@ has(runtime,"previous native browser session could not be safely revoked",'nativ
 has(runtime,"Magnanimous Telecom Core is unavailable, so revocation could not be verified.",'native session deletion fails closed when remote revocation cannot be verified');
 has(runtime,'remote_revocation_verified:true','successful native session delete explicitly reports verified remote revocation');
 has(runtime,"data?.pstn_direct!==false",'platform rejects native browser credentials that could directly dial PSTN');
+has(compatSoftphone,"path==='/api/contact-center/softphone/native-session'||path.startsWith('/api/contact-center/softphone/native-session/')",'compatibility handler yields native-session routes to the contact-center runtime');
+has(runtime,"host.startsWith('fc')||host.startsWith('fd')||host.startsWith('fe80:')",'Telecom Core live bridge rejects private/link-local IPv6 targets');
+has(runtime,"redirect:'error'",'Telecom Core control requests refuse redirects instead of following to an unvalidated host');
 has(providerRuntime,"'TELECOM_CORE_URL'",'provider runtime can load the private Telecom Core URL');
 has(providerRuntime,"'TELECOM_CORE_TOKEN'",'provider runtime can load the private Telecom Core token');
 has(credentialRuntime,"id:'magnanimous-telecom-core'",'owner credential vault includes native Telecom Core configuration');
@@ -59,6 +65,18 @@ has(runtime,"NOT EXISTS(SELECT 1 FROM voice_do_not_call",'campaign dialing retai
 has(runtime,"Campaign calling is limited to 08:00–20:00",'campaign dialing retains quiet-hour enforcement');
 has(softphone,"/api/contact-center/softphone/config",'softphone frontend matches server config route');
 has(softphone,"/api/contact-center/softphone/claim",'softphone frontend matches server claim route');
+has(softphone,"from './native-webrtc'",'agent softphone mounts the native Magnanimous WebRTC client');
+has(nativeSoftphone,"from 'sip.js'",'native Magnanimous WebRTC client uses SIP.js transport');
+has(softphone,'/api/contact-center/softphone/native-session','agent softphone obtains native credentials only through the signed-in platform');
+has(softphone,"device.connect({params:{To:to}})",'ordinary-number dialing remains on the compatibility transport');
+has(softphone,"if(internal)",'internal Magnanimous extensions can use the native PBX when registered');
+lacks(softphone,'new Inviter','main agent page cannot directly bypass platform PSTN policy');
+lacks(nativeSoftphone,'+X.','native client does not contain an E.164 direct-PSTN dial pattern');
+has(nativeSoftphone,"extension==='911'||extension==='112'",'native client blocks emergency-code dialing until compliant service exists');
+lacks(nativeSoftphone,'TELECOM_CORE_TOKEN','native client never embeds the private Telecom Core bearer token');
+lacks(nativeSoftphone,'TELECOM_CORE_URL','native client never embeds the private Telecom Core control URL');
+has(frontendPackage,'"sip.js": "0.21.2"','frontend pins the proven SIP.js native browser client');
+has(frontendLock,'"node_modules/sip.js"','committed frontend lockfile contains the pinned SIP.js dependency');
 has(autoDial,'/dial-start','auto dialer start route is backed by server contract');
 has(autoDial,'/dial-cancel','auto dialer cancel route is backed by server contract');
 for(const key of ['TWILIO_API_KEY_SID=','TWILIO_API_KEY_SECRET=','TWILIO_TWIML_APP_SID=','TELNYX_API_KEY=','TELNYX_CONNECTION_ID=','TELNYX_PHONE_NUMBER=','PLIVO_AUTH_ID=','PLIVO_AUTH_TOKEN=','PLIVO_PHONE_NUMBER=','TELECOM_CORE_URL=','TELECOM_CORE_TOKEN=']){

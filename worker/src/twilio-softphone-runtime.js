@@ -39,6 +39,7 @@ async function queueComplete(request,env,url){if(!await validTwilio(request,env)
 
 export async function handleTwilioSoftphone(request,env){
  const url=new URL(request.url),path=url.pathname;if(!path.startsWith('/api/contact-center/softphone'))return null;
+ if(path==='/api/contact-center/softphone/native-session'||path.startsWith('/api/contact-center/softphone/native-session/'))return null;
  try{
   if(path==='/api/contact-center/softphone/outgoing'&&request.method==='POST')return outgoing(request,env);
   if(path==='/api/contact-center/softphone/complete'&&request.method==='POST')return complete(request,env,url);
