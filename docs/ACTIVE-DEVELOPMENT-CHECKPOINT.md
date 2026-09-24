@@ -166,6 +166,20 @@ Production smoke evidence included successful White Label depth, Agent Mesh, bil
 
 Native WebRTC proof on the latest public-host-readiness merged main used real Chromium and the actual owned Asterisk 22.11.0 stack. The browser registered extension `1100`, the authenticated diagnostic call reached `Established`, Asterisk confirmed the registered contact and Echo media channel, and Chromium reported `784` inbound bytes / `784` outbound bytes, `10` packets in each direction, and `1` remote audio track with no error. This proves the native browser/Asterisk software-media path still works after the stricter certificate and public-address changes. `TELECOM_NATIVE_WEBRTC_LIVE` remains deliberately **false** until the public external workflow passes against a dedicated public Telecom Core host with a trusted public WSS certificate and real network/NAT path.
 
+## Public host investigation — 2026-09-24
+
+The platform-facing native softphone handoff is merged and deployed. The remaining blocker is external public Telecom Core hosting, not application code.
+
+Verified infrastructure state:
+- Railway production still contains the existing purpose-specific services `magnanimous`, `sandbox`, `browser-egress`, `browser`, and `media`; none should be repurposed because that would risk working functionality.
+- Railway public networking supports HTTP/HTTPS and public TCP proxying, while UDP is available on Railway private networking only. The current direct public Asterisk RTP design therefore cannot be truthfully marked live on the existing Railway public edge without a different TURN/relay architecture.
+- DigitalOcean connector currently exposes no Droplets, no SSH keys, and no billing history, while the account reports its Droplet quota as already full. Do not create or assume a DigitalOcean host until that account inconsistency is resolved.
+- No paid VPS, new Railway service, carrier resource, number, or other billable telecom infrastructure was created during this investigation.
+
+Exact next external action:
+- connect or approve a dedicated public Linux/VPS host with stable public IPv4 and public UDP RTP reachability, **or** explicitly approve a separately cost-reviewed relay architecture;
+- then configure DNS + trusted TLS, deploy Telecom Core, run `Public Telecom WebRTC Verification`, and only on a green external proof promote `TELECOM_NATIVE_WEBRTC_LIVE=true`.
+
 ## Unfinished work / exact resume point
 
 If interrupted, resume from this file first.
