@@ -6,6 +6,7 @@ const security=read('worker/src/security-entrypoint.js');
 const runtime=read('worker/src/contact-center-runtime.js');
 const compatSoftphone=read('worker/src/twilio-softphone-runtime.js');
 const softphone=read('frontend/app/softphone/page.tsx');
+const nativeSoftphone=read('frontend/app/softphone/native-webrtc.ts');
 const autoDial=read('frontend/app/auto-dialer/page.tsx');
 const envExample=read('.env.example');
 const providerEnv=read('worker/src/provider-runtime-env.js');
