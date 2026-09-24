@@ -87,6 +87,7 @@ if [[ "${EUID}" -eq 0 ]]; then
   env "${run_env[@]}" bash "${REPO_ROOT}/telecom-core/deploy/bootstrap-tailscale-funnel.sh"
 else
   sudo env "${run_env[@]}" bash "${REPO_ROOT}/telecom-core/deploy/bootstrap-tailscale-funnel.sh"
+  sudo chown -R "$(id -u):$(id -g)" "${tmp}"
 fi
 
 edge="${tmp}/telecom/tailscale-funnel.env"
