@@ -57,6 +57,9 @@ jobs:
       - name: Lock deep telecom architecture
         run: node qa/scripts/telecom-deep-architecture-lock.mjs
 
+      - name: Lock native softphone broker boundary
+        run: node qa/scripts/native-softphone-broker-lock.mjs
+
       - name: Lock Magnanimous native developer agent
         run: node qa/scripts/magnanimous-dev-agent-lock.mjs
 
