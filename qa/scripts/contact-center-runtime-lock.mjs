@@ -8,6 +8,8 @@ const compatSoftphone=read('worker/src/twilio-softphone-runtime.js');
 const softphone=read('frontend/app/softphone/page.tsx');
 const autoDial=read('frontend/app/auto-dialer/page.tsx');
 const envExample=read('.env.example');
+const providerRuntime=read('worker/src/provider-runtime-env.js');
+const credentialRuntime=read('worker/src/platform-credentials.js');
 
 const checks=[];
 const has=(src,needle,label)=>checks.push([label,src.includes(needle)]);
@@ -18,6 +20,25 @@ has(entry,'const contactCenter=await handleContactCenter(request,env);','contact
 has(security,"/^\\/api\\/(?:phone|contact-center|telecom|voice-agent)",'telecom/contact-center routes receive provider-vault runtime credentials');
 has(runtime,"path==='/api/contact-center/softphone/config'",'softphone config backend exists');
 has(runtime,"path==='/api/contact-center/softphone/claim'",'softphone claim backend exists');
+has(runtime,"path==='/api/contact-center/softphone/native-session'&&request.method==='POST'",'authenticated native softphone session creation route exists');
+has(runtime,"nativeSessionPath&&request.method==='DELETE'",'authenticated native softphone session revocation route exists');
+has(runtime,"if(!runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE))return null",'native softphone bridge cannot activate before the verified live gate');
+has(runtime,"u.protocol!=='https:'",'Telecom Core control plane requires HTTPS');
+has(runtime,"u.username||u.password",'Telecom Core URL rejects embedded credentials');
+has(runtime,"host==='localhost'||host.endsWith('.local')",'Telecom Core live bridge rejects local hostnames');
+has(runtime,'privateV4.test(host)','Telecom Core live bridge rejects private or CGNAT IPv4 literals');
+has(runtime,"headers.set('Authorization',`Bearer ${cfg.token}`)",'Telecom Core bearer token is attached only by server runtime');
+has(runtime,"SELECT session_id FROM cc_native_webrtc_sessions WHERE tenant_id=? AND user_id=? AND expires_at>?",'native session creation finds prior active sessions for the same signed-in user');
+has(runtime,"previous native browser session could not be safely revoked",'native session rotation fails closed when prior credential revocation cannot be verified');
+has(runtime,"Magnanimous Telecom Core is unavailable, so revocation could not be verified.",'native session deletion fails closed when remote revocation cannot be verified');
+has(runtime,'remote_revocation_verified:true','successful native session delete explicitly reports verified remote revocation');
+has(runtime,"data?.pstn_direct!==false",'platform rejects native browser credentials that could directly dial PSTN');
+has(providerRuntime,"'TELECOM_CORE_URL'",'provider runtime can load the private Telecom Core URL');
+has(providerRuntime,"'TELECOM_CORE_TOKEN'",'provider runtime can load the private Telecom Core token');
+has(credentialRuntime,"id:'magnanimous-telecom-core'",'owner credential vault includes native Telecom Core configuration');
+has(credentialRuntime,"{key:'TELECOM_CORE_TOKEN',label:'Magnanimous Telecom Core Bearer Token',secret:true",'Telecom Core bearer token is marked secret in the owner vault');
+lacks(softphone,'TELECOM_CORE_TOKEN','frontend never embeds Telecom Core bearer token');
+lacks(softphone,'TELECOM_CORE_URL','frontend never embeds private Telecom Core control URL');
 has(runtime,"path==='/api/contact-center/softphone/outgoing'",'signed softphone outgoing TwiML route exists');
 has(runtime,"path==='/api/contact-center/softphone/status'",'signed softphone status callback exists');
 has(runtime,'twilioVoiceToken','browser softphone token is generated server-side');
@@ -40,7 +61,7 @@ has(softphone,"/api/contact-center/softphone/config",'softphone frontend matches
 has(softphone,"/api/contact-center/softphone/claim",'softphone frontend matches server claim route');
 has(autoDial,'/dial-start','auto dialer start route is backed by server contract');
 has(autoDial,'/dial-cancel','auto dialer cancel route is backed by server contract');
-for(const key of ['TWILIO_API_KEY_SID=','TWILIO_API_KEY_SECRET=','TWILIO_TWIML_APP_SID=','TELNYX_API_KEY=','TELNYX_CONNECTION_ID=','TELNYX_PHONE_NUMBER=','PLIVO_AUTH_ID=','PLIVO_AUTH_TOKEN=','PLIVO_PHONE_NUMBER=']){
+for(const key of ['TWILIO_API_KEY_SID=','TWILIO_API_KEY_SECRET=','TWILIO_TWIML_APP_SID=','TELNYX_API_KEY=','TELNYX_CONNECTION_ID=','TELNYX_PHONE_NUMBER=','PLIVO_AUTH_ID=','PLIVO_AUTH_TOKEN=','PLIVO_PHONE_NUMBER=','TELECOM_CORE_URL=','TELECOM_CORE_TOKEN=']){
   has(envExample,key,`environment contract documents ${key.slice(0,-1)}`);
 }
 lacks(softphone,'TWILIO_API_KEY_SECRET','frontend never embeds Twilio API secret');
