@@ -1,0 +1,139 @@
+name: Public Telecom WebRTC Verification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-telecom-webrtc-verification
+  cancel-in-progress: false
+
+jobs:
+  external-browser-media:
+    name: External Chromium to public Asterisk WSS/RTP
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      WEBRTC_WSS_URL: ${{ vars.TELECOM_PUBLIC_WSS_URL }}
+      WEBRTC_DOMAIN: ${{ vars.TELECOM_PUBLIC_SIP_DOMAIN }}
+      WEBRTC_EXTENSION: ${{ vars.TELECOM_PUBLIC_WEBRTC_EXTENSION }}
+      WEBRTC_ECHO_EXTENSION: ${{ vars.TELECOM_PUBLIC_ECHO_EXTENSION }}
+      WEBRTC_PASSWORD: ${{ secrets.TELECOM_PUBLIC_WEBRTC_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Require public verification configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${WEBRTC_WSS_URL}" || { echo 'Missing TELECOM_PUBLIC_WSS_URL repository variable.' >&2; exit 1; }
+          test -n "${WEBRTC_DOMAIN}" || { echo 'Missing TELECOM_PUBLIC_SIP_DOMAIN repository variable.' >&2; exit 1; }
+          test -n "${WEBRTC_EXTENSION}" || { echo 'Missing TELECOM_PUBLIC_WEBRTC_EXTENSION repository variable.' >&2; exit 1; }
+          test -n "${WEBRTC_ECHO_EXTENSION}" || { echo 'Missing TELECOM_PUBLIC_ECHO_EXTENSION repository variable.' >&2; exit 1; }
+          test -n "${WEBRTC_PASSWORD}" || { echo 'Missing TELECOM_PUBLIC_WEBRTC_PASSWORD repository secret.' >&2; exit 1; }
+
+      - name: Reject local or private verification targets
+        working-directory: telecom-core/webrtc-e2e
+        run: node validate-public-target.mjs
+
+      - name: Resolve strict TLS target
+        id: target
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const url = new URL(process.env.WEBRTC_WSS_URL);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `host=${url.hostname}\nport=${url.port || '443'}\n`);
+          NODE
+
+      - name: Verify trusted public TLS chain and hostname
+        shell: bash
+        env:
+          TLS_HOST: ${{ steps.target.outputs.host }}
+          TLS_PORT: ${{ steps.target.outputs.port }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/magnanimous-public-webrtc
+          openssl s_client \
+            -connect "${TLS_HOST}:${TLS_PORT}" \
+            -servername "${TLS_HOST}" \
+            -verify_hostname "${TLS_HOST}" \
+            -verify_return_error \
+            </dev/null 2>&1 | tee /tmp/magnanimous-public-webrtc/tls-verification.txt
+
+      - name: Install browser probe dependencies
+        working-directory: telecom-core/webrtc-e2e
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium
+        working-directory: telecom-core/webrtc-e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate deterministic microphone audio
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/magnanimous-public-webrtc
+          python3 - <<'PY'
+          import math, struct, wave
+          path='/tmp/magnanimous-public-webrtc/tone.wav'
+          rate=48000
+          seconds=60
+          frequency=440.0
+          amplitude=0.18
+          with wave.open(path,'wb') as wav:
+              wav.setnchannels(1)
+              wav.setsampwidth(2)
+              wav.setframerate(rate)
+              for n in range(rate*seconds):
+                  sample=int(32767*amplitude*math.sin(2*math.pi*frequency*n/rate))
+                  wav.writeframesraw(struct.pack('<h',sample))
+          PY
+
+      - name: Build browser probe
+        working-directory: telecom-core/webrtc-e2e
+        run: npm run build
+
+      - name: Start local probe page
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory telecom-core/webrtc-e2e/dist >/tmp/magnanimous-public-webrtc/web.log 2>&1 &
+          echo $! >/tmp/magnanimous-public-webrtc/web.pid
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/magnanimous-public-webrtc/web.log >&2 || true
+          exit 1
+
+      - name: Prove public registration and bidirectional RTP
+        working-directory: telecom-core/webrtc-e2e
+        env:
+          WEBRTC_TEST_PAGE: http://127.0.0.1:4173/
+          FAKE_AUDIO_WAV: /tmp/magnanimous-public-webrtc/tone.wav
+          WEBRTC_ALLOW_INSECURE_TLS: 'false'
+          WEBRTC_SERVER_ASSERT_MODE: remote
+        run: npm run probe 2>&1 | tee /tmp/magnanimous-public-webrtc/browser-proof.txt
+
+      - name: Upload public WebRTC evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-telecom-webrtc-${{ github.run_number }}
+          path: /tmp/magnanimous-public-webrtc/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Stop probe page
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/magnanimous-public-webrtc/web.pid ]; then
+            kill "$(cat /tmp/magnanimous-public-webrtc/web.pid)" 2>/dev/null || true
+          fi

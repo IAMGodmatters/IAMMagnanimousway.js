@@ -114,6 +114,8 @@ jobs:
           WEBRTC_ECHO_EXTENSION: '6000'
           FAKE_AUDIO_WAV: /tmp/magnanimous-webrtc-e2e/tone.wav
           ASTERISK_CONTAINER: magnanimous-webrtc-e2e
+          WEBRTC_ALLOW_INSECURE_TLS: 'true'
+          WEBRTC_SERVER_ASSERT_MODE: local-docker
         run: npm run probe
 
       - name: Capture Asterisk WebRTC evidence

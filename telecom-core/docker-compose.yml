@@ -80,7 +80,7 @@ services:
       PSTN_TRUNK_FROM_DOMAIN: ${PSTN_TRUNK_FROM_DOMAIN:-}
       TELECOM_PUBLIC_IP: ${TELECOM_PUBLIC_IP:-}
     volumes:
-      - ./certs:/certs:ro
+      - ${ASTERISK_CERTS_DIR:-./certs}:/certs:ro
       - asterisk-data:/var/lib/asterisk
       - asterisk-spool:/var/spool/asterisk
       - asterisk-log:/var/log/asterisk

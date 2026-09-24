@@ -10,24 +10,36 @@ const domain = process.env.WEBRTC_DOMAIN || "webrtc.test";
 const echoExtension = process.env.WEBRTC_ECHO_EXTENSION || "6000";
 const fakeAudio = process.env.FAKE_AUDIO_WAV;
 const asteriskContainer = process.env.ASTERISK_CONTAINER || "magnanimous-webrtc-e2e";
+const allowInsecureTls = /^(1|true|yes|on)$/i.test(process.env.WEBRTC_ALLOW_INSECURE_TLS || "");
+const serverAssertMode = process.env.WEBRTC_SERVER_ASSERT_MODE || "local-docker";
 
 if (!password) throw new Error("WEBRTC_PASSWORD is required");
 if (!fakeAudio) throw new Error("FAKE_AUDIO_WAV is required");
+const signalingUrl = new URL(wss);
+if (signalingUrl.protocol !== "wss:") throw new Error("WEBRTC_WSS_URL must use wss://");
+if (!allowInsecureTls && ["localhost", "127.0.0.1", "::1"].includes(signalingUrl.hostname)) {
+  throw new Error("Strict public WebRTC verification cannot target localhost.");
+}
+if (!["local-docker", "remote"].includes(serverAssertMode)) {
+  throw new Error("WEBRTC_SERVER_ASSERT_MODE must be local-docker or remote");
+}
 
-const browser = await chromium.launch({
-  headless: true,
-  args: [
-    "--ignore-certificate-errors",
+const launchArgs = [
     "--autoplay-policy=no-user-gesture-required",
     "--use-fake-ui-for-media-stream",
     "--use-fake-device-for-media-stream",
     `--use-file-for-fake-audio-capture=${path.resolve(fakeAudio)}`
-  ]
+  ];
+if (allowInsecureTls) launchArgs.unshift("--ignore-certificate-errors");
+
+const browser = await chromium.launch({
+  headless: true,
+  args: launchArgs
 });
 
 try {
   const context = await browser.newContext({
-    ignoreHTTPSErrors: true,
+    ignoreHTTPSErrors: allowInsecureTls,
     permissions: ["microphone"]
   });
   const page = await context.newPage();
@@ -44,28 +56,36 @@ try {
   await page.goto(url.toString(), { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => window.__webrtcProbe?.registered === true, null, { timeout: 30000 });
 
-  const contacts = execFileSync(
-    "docker",
-    ["exec", asteriskContainer, "asterisk", "-rx", "pjsip show contacts"],
-    { encoding: "utf8" }
-  );
-  if (!contacts.includes(extension)) {
-    throw new Error(`Asterisk did not report registered WebRTC contact ${extension}:\n${contacts}`);
+  if (serverAssertMode === "local-docker") {
+    const contacts = execFileSync(
+      "docker",
+      ["exec", asteriskContainer, "asterisk", "-rx", "pjsip show contacts"],
+      { encoding: "utf8" }
+    );
+    if (!contacts.includes(extension)) {
+      throw new Error(`Asterisk did not report registered WebRTC contact ${extension}:\n${contacts}`);
+    }
+    console.log("Asterisk server-side contact registration verified.");
+  } else {
+    console.log("Remote-host mode: SIP REGISTER success verified from Chromium without host-side Docker access.");
   }
-  console.log("Asterisk server-side contact registration verified.");
 
   await page.evaluate(() => window.startCall());
   await page.waitForFunction(() => window.__webrtcProbe?.established === true, null, { timeout: 30000 });
 
-  const channels = execFileSync(
-    "docker",
-    ["exec", asteriskContainer, "asterisk", "-rx", "core show channels concise"],
-    { encoding: "utf8" }
-  );
-  if (!channels.includes(echoExtension)) {
-    throw new Error(`Asterisk did not show the diagnostic echo channel ${echoExtension}:\n${channels}`);
+  if (serverAssertMode === "local-docker") {
+    const channels = execFileSync(
+      "docker",
+      ["exec", asteriskContainer, "asterisk", "-rx", "core show channels concise"],
+      { encoding: "utf8" }
+    );
+    if (!channels.includes(echoExtension)) {
+      throw new Error(`Asterisk did not show the diagnostic echo channel ${echoExtension}:\n${channels}`);
+    }
+    console.log("Asterisk echo media channel verified.");
+  } else {
+    console.log("Remote-host mode: established echo session verifies the public Asterisk dial path.");
   }
-  console.log("Asterisk echo media channel verified.");
 
   await page.waitForFunction(
     () => {
@@ -81,7 +101,7 @@ try {
   console.log("Magnanimous native WebRTC browser proof:", JSON.stringify(result));
 
   await page.evaluate(() => window.endCall());
-  console.log("PASS: real Chromium SIP registration and bidirectional WebRTC audio through Asterisk Echo().");
+  console.log(`PASS: real Chromium SIP registration and bidirectional WebRTC audio through Asterisk Echo() [mode=${serverAssertMode}, insecure_tls=${allowInsecureTls}].`);
 } finally {
   await browser.close();
 }

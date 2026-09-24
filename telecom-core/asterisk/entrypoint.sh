@@ -49,6 +49,17 @@ if [ "$ASTERISK_WEBRTC_ENABLED" = yes ]; then
   require_var MAGNANIMOUS_WEBRTC_PASSWORD
   [ -r "$ASTERISK_TLS_CERT_FILE" ] || { echo "WebRTC is enabled but TLS certificate is not readable: $ASTERISK_TLS_CERT_FILE" >&2; exit 1; }
   [ -r "$ASTERISK_TLS_KEY_FILE" ] || { echo "WebRTC is enabled but TLS private key is not readable: $ASTERISK_TLS_KEY_FILE" >&2; exit 1; }
+
+  # Host certificate material may remain root-only. Copy it into a private
+  # container runtime directory owned by Asterisk before dropping privileges.
+  source_tls_cert="$ASTERISK_TLS_CERT_FILE"
+  source_tls_key="$ASTERISK_TLS_KEY_FILE"
+  runtime_tls_dir=/var/lib/asterisk/tls
+  install -d -o asterisk -g asterisk -m 0700 "$runtime_tls_dir"
+  install -o asterisk -g asterisk -m 0644 "$source_tls_cert" "$runtime_tls_dir/fullchain.pem"
+  install -o asterisk -g asterisk -m 0600 "$source_tls_key" "$runtime_tls_dir/privkey.pem"
+  ASTERISK_TLS_CERT_FILE="$runtime_tls_dir/fullchain.pem"
+  ASTERISK_TLS_KEY_FILE="$runtime_tls_dir/privkey.pem"
 fi
 
 export ASTERISK_ARI_USER ASTERISK_ARI_PASSWORD ASTERISK_SIP_PORT ASTERISK_HTTPS_PORT ASTERISK_WEBRTC_ENABLED ASTERISK_TLS_CERT_FILE ASTERISK_TLS_KEY_FILE ASTERISK_STUN_SERVER
@@ -68,6 +79,17 @@ for template in /etc/asterisk/templates/*.template; do
   chown root:asterisk "$target"
   chmod 0640 "$target"
 done
+
+if [ "$ASTERISK_WEBRTC_ENABLED" = yes ] && [ -n "$TELECOM_PUBLIC_IP" ]; then
+  {
+    printf 'external_signaling_address=%s\n' "$TELECOM_PUBLIC_IP"
+    printf 'external_media_address=%s\n' "$TELECOM_PUBLIC_IP"
+  } > /etc/asterisk/pjsip-webrtc-public-address.conf
+else
+  printf '; Direct public interface or ICE/STUN discovery is used; no explicit external address configured.\n' > /etc/asterisk/pjsip-webrtc-public-address.conf
+fi
+chown root:asterisk /etc/asterisk/pjsip-webrtc-public-address.conf
+chmod 0640 /etc/asterisk/pjsip-webrtc-public-address.conf
 
 if [ "$ASTERISK_WEBRTC_ENABLED" = yes ]; then
   envsubst "$SUBST_VARS" < /etc/asterisk/templates/pjsip-webrtc.conf.optional > /etc/asterisk/pjsip-webrtc.conf

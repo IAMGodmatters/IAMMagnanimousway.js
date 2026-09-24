@@ -24,6 +24,7 @@ on:
       - 'worker/migrations/0046_magnanimous_telecom_charging_policy.sql'
       - 'worker/migrations/0047_magnanimous_telecom_charging_integrity.sql'
       - '.github/workflows/telecom-core-check.yml'
+      - '.github/workflows/public-webrtc-verification.yml'
   pull_request:
     paths:
       - 'telecom-core/**'
@@ -46,6 +47,7 @@ on:
       - 'worker/migrations/0046_magnanimous_telecom_charging_policy.sql'
       - 'worker/migrations/0047_magnanimous_telecom_charging_integrity.sql'
       - '.github/workflows/telecom-core-check.yml'
+      - '.github/workflows/public-webrtc-verification.yml'
 
 permissions:
   contents: read
@@ -72,6 +74,12 @@ jobs:
 
       - name: Validate Asterisk bootstrap shell
         run: sh -n telecom-core/asterisk/entrypoint.sh
+
+      - name: Validate public Telecom host tooling
+        run: |
+          bash -n telecom-core/deploy/bootstrap-public-host.sh
+          bash -n telecom-core/deploy/sync-public-tls.sh
+          node --check telecom-core/webrtc-e2e/validate-public-target.mjs
 
       - name: Validate Compose model
         env:
