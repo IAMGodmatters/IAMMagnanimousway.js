@@ -33,6 +33,8 @@ const compose=read('telecom-core/docker-compose.yml');
 const sessionService=read('telecom-core/control-api/app/services/webrtc_sessions.py');
 const lifecycle=read('telecom-core/control-api/app/lifecycle.py');
 const sorcery=read('telecom-core/asterisk/templates/sorcery.conf.template');
+const agentSoftphone=read('frontend/app/softphone/page.tsx');
+const providerEnv=read('worker/src/provider-runtime-env.js');
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
@@ -125,6 +127,17 @@ has(extensions,'[magnanimous-webrtc-session]','ephemeral browser identities use 
 has(extensions,'exten => _+X.,1,Playback(ss-noservice)','ephemeral browser context blocks direct public-number dialing');
 has(webrtcWorkflow,'Issue ephemeral native browser credential','real Chromium test obtains its browser credential from Telecom Core');
 has(webrtcWorkflow,'Verify Asterisk removed ephemeral endpoint','real Chromium test proves endpoint revocation after use');
+has(contact,'async function createNativeSoftphoneSession','platform has an authenticated native PBX browser-session handoff');
+has(contact,'async function revokeNativeSoftphoneSession','platform can revoke its user-scoped native PBX browser session');
+has(contact,'cc_native_webrtc_sessions','platform persists native session ownership without persisting the SIP password');
+has(contact,"u.protocol!=='https:'",'private Telecom Core bridge refuses non-HTTPS endpoints');
+has(contact,'data?.pstn_direct!==false','platform refuses a native credential that grants direct PSTN scope');
+has(agentSoftphone,"from 'sip.js'",'main agent softphone can pre-register the owned Asterisk WebRTC rail');
+has(agentSoftphone,'compatibility_transport_ready','main agent softphone preserves compatibility PSTN fallback');
+has(agentSoftphone,'ordinary-number dialing remains on the compatibility rail','main agent UI states the native PSTN bridge remains policy-gated');
+lacks(agentSoftphone,'TELECOM_CORE_TOKEN','private Telecom Core bearer token never enters frontend source');
+has(providerEnv,"'TELECOM_CORE_URL'",'server-side runtime can receive the native Telecom Core URL from the protected vault');
+has(providerEnv,"'TELECOM_CORE_TOKEN'",'server-side runtime can receive the native Telecom Core token from the protected vault');
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [label,ok] of checks)console.log((ok?'PASS':'FAIL')+': '+label);
