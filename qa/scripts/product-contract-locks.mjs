@@ -91,6 +91,10 @@ includes(standaloneServer, "const fullSha = /^[0-9a-f]{40}$/i", 'deployment smok
 includes(deployWorkflow, 'id: runtime-plane', 'deployment smoke: verified runtime target is exported by the session-plane gate');
 includes(deployWorkflow, 'MAGNANIMOUS_SMOKE_RUNTIME_SHA: ${{ steps.runtime-plane.outputs.runtime_target }}', 'deployment smoke: production smoke receives the verified live runtime revision');
 includes(deployWorkflow, '\\"workflow_sha\\":\\"$GITHUB_SHA\\",\\"runtime_sha\\":\\"$MAGNANIMOUS_SMOKE_RUNTIME_SHA\\"', 'deployment smoke: internal entitlement control is bound to both workflow and live runtime revisions');
+includes(deployWorkflow, 'for attempt in 1 2 3 4 5; do', 'deployment smoke: read-only production probes use explicit bounded retries');
+includes(deployWorkflow, '[[ "$status" =~ ^(000|502|503|504)$ ]]', 'deployment smoke: transient gateway and transport failures are explicitly classified for retry');
+includes(deployWorkflow, 'safe_smoke_cleanup_status()', 'deployment smoke: disposable tenant cleanup has a dedicated desired-state retry path');
+includes(deployWorkflow, "grep -q 'Disposable deployment smoke tenant not found'", 'deployment smoke: cleanup only treats verified already-absent smoke tenants as success');
 
 // 1b) Customer execution-provider privacy lock.
 includes(branchEntrypoint, 'function stripExecutionMetadata(data)', 'privacy: customer AI responses retain an execution-metadata stripping boundary');
