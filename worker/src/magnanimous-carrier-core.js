@@ -4,7 +4,7 @@ const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control
 const now=()=>Math.floor(Date.now()/1000);
 const clip=(v,n=4000)=>String(v??'').trim().slice(0,n);
 const STAGES=['software-provider','voip-reseller','interconnected-voip','direct-numbering','direct-interconnect'];
-const INTERCONNECT_TYPES=['sip-trunk','byoc-bridge','inkbox','twilio','telnyx','plivo','peer','direct-pstn'];
+const INTERCONNECT_TYPES=['sip-trunk','byoc-bridge','inkbox','twilio','telnyx','plivo','bandwidth','signalwire','vonage','infobip','peer','direct-pstn'];
 
 function manager(user){return ['owner','admin'].includes(String(user?.role||'').toLowerCase())}
 function e164(v){const s=clip(v,32);return /^\+[1-9]\d{1,14}$/.test(s)?s:null}
@@ -73,25 +73,45 @@ function numericRate(rate,route){
  const values=[route?.estimated_rate,rate?.outbound_per_minute,rate?.per_minute,rate?.rate,rate?.cost_per_minute].map(Number).filter(Number.isFinite);
  return values.length?Math.max(0,values[0]):null;
 }
+function measuredQuality(rows){
+ const attempts=rows.length;
+ if(!attempts)return{sample_count:0,answered:0,asr:null,acd_seconds:null,pdd_ms:null,network_failure_rate:null,measured_quality_score:null,latest_at:null,fresh:false};
+ const answeredRows=rows.filter(x=>Number(x.answered_at||0)>0||['answered','completed','complete'].includes(String(x.status||'').toLowerCase()));
+ const networkFailures=rows.filter(x=>['failed','error','congestion','unavailable','chanunavail','network-error'].includes(String(x.status||'').toLowerCase()));
+ const durations=answeredRows.map(x=>Number(x.duration_seconds||0)).filter(x=>Number.isFinite(x)&&x>=0);
+ const pdds=answeredRows.map(x=>Number(x.answered_at||0)&&Number(x.started_at||0)?Math.max(0,(Number(x.answered_at)-Number(x.started_at))*1000):null).filter(Number.isFinite);
+ const asr=answeredRows.length/attempts,networkFailureRate=networkFailures.length/attempts;
+ const acd=durations.length?durations.reduce((a,b)=>a+b,0)/durations.length:null,pdd=pdds.length?pdds.reduce((a,b)=>a+b,0)/pdds.length:null;
+ const networkScore=(1-networkFailureRate)*50,pddScore=pdd==null?12.5:Math.max(0,1-Math.min(pdd,8000)/8000)*25,asrScore=asr*20,acdScore=acd==null?2.5:Math.min(1,acd/180)*5;
+ const latest=rows.reduce((n,x)=>Math.max(n,Number(x.created_at||x.ended_at||x.started_at||0)),0)||null;
+ return{sample_count:attempts,answered:answeredRows.length,asr:Number(asr.toFixed(4)),acd_seconds:acd==null?null:Number(acd.toFixed(1)),pdd_ms:pdd==null?null:Math.round(pdd),network_failure_rate:Number(networkFailureRate.toFixed(4)),measured_quality_score:Number((networkScore+pddScore+asrScore+acdScore).toFixed(1)),latest_at:latest,fresh:Boolean(latest&&latest>=now()-604800)};
+}
 async function routePlan(env,user,to,mode='balanced'){
  const destination=e164(to);if(!destination)return{error:'A valid E.164 destination is required.'};
  const selectionMode=['balanced','least-cost','priority'].includes(String(mode))?String(mode):'balanced';
- const {results=[]}=await env.DB.prepare(`SELECT r.*,i.name interconnect_name,i.type interconnect_type,i.endpoint,i.health_status,i.enabled interconnect_enabled,i.priority interconnect_priority,i.rate_json
+ const [{results=[]},{results:cdrRows=[]}]=await Promise.all([
+  env.DB.prepare(`SELECT r.*,i.name interconnect_name,i.type interconnect_type,i.endpoint,i.health_status,i.enabled interconnect_enabled,i.priority interconnect_priority,i.rate_json
  FROM magnanimous_carrier_routes r JOIN magnanimous_carrier_interconnects i ON i.id=r.interconnect_id AND i.tenant_id=r.tenant_id
- WHERE r.tenant_id=? AND r.enabled=1 AND i.enabled=1 AND i.outbound=1 ORDER BY LENGTH(r.destination_prefix) DESC,r.priority ASC,i.priority ASC,r.id ASC`).bind(String(user.tenant_id)).all();
+ WHERE r.tenant_id=? AND r.enabled=1 AND i.enabled=1 AND i.outbound=1 ORDER BY LENGTH(r.destination_prefix) DESC,r.priority ASC,i.priority ASC,r.id ASC`).bind(String(user.tenant_id)).all(),
+  env.DB.prepare('SELECT interconnect_id,status,started_at,answered_at,ended_at,duration_seconds,to_number,created_at FROM magnanimous_carrier_cdr WHERE tenant_id=? AND interconnect_id IS NOT NULL ORDER BY id DESC LIMIT 500').bind(String(user.tenant_id)).all()
+ ]);
  const matches=results.filter(x=>!x.destination_prefix||destination.startsWith(String(x.destination_prefix))).map(x=>{
-  const policy=parsedObject(x.policy_json),rate=parsedObject(x.rate_json),estimatedRate=numericRate(rate,policy),quality=Math.max(0,Math.min(100,Number(policy.quality_score??rate.quality_score??50)));
-  return{route_id:x.id,route:x.name,destination_prefix:String(x.destination_prefix||''),interconnect_id:x.interconnect_id,interconnect:x.interconnect_name,type:x.interconnect_type,health:x.health_status,max_rate:x.max_rate,estimated_rate:estimatedRate,quality_score:quality,priority:Number(x.priority||100),interconnect_priority:Number(x.interconnect_priority||100),jurisdiction:x.jurisdiction,policy};
+  const policy=parsedObject(x.policy_json),rate=parsedObject(x.rate_json),estimatedRate=numericRate(rate,policy),configuredQuality=Math.max(0,Math.min(100,Number(policy.quality_score??rate.quality_score??50)));
+  const routePrefix=String(x.destination_prefix||''),samples=cdrRows.filter(c=>Number(c.interconnect_id)===Number(x.interconnect_id)&&(!routePrefix||String(c.to_number||'').startsWith(routePrefix))).slice(0,100),observed=measuredQuality(samples);
+  const measuredEligible=observed.fresh&&observed.sample_count>=10&&observed.measured_quality_score!=null;
+  const quality=measuredEligible?observed.measured_quality_score:configuredQuality,maxRate=x.max_rate==null?null:Number(x.max_rate),overRateCap=maxRate!=null&&estimatedRate!=null&&estimatedRate>maxRate;
+  return{route_id:x.id,route:x.name,destination_prefix:routePrefix,interconnect_id:x.interconnect_id,interconnect:x.interconnect_name,type:x.interconnect_type,health:x.health_status,max_rate:maxRate,estimated_rate:estimatedRate,over_rate_cap:overRateCap,quality_score:quality,quality_source:measuredEligible?'measured':'configured',configured_quality_score:configuredQuality,observed,priority:Number(x.priority||100),interconnect_priority:Number(x.interconnect_priority||100),jurisdiction:x.jurisdiction,policy};
  });
- const longest=matches.reduce((n,x)=>Math.max(n,x.destination_prefix.length),0),specific=matches.filter(x=>x.destination_prefix.length===longest),healthy=specific.filter(x=>!['down','unavailable','failed'].includes(String(x.health||'').toLowerCase())),pool=healthy.length?healthy:specific;
+ const longest=matches.reduce((n,x)=>Math.max(n,x.destination_prefix.length),0),specific=matches.filter(x=>x.destination_prefix.length===longest);
+ const healthy=specific.filter(x=>!['down','unavailable','failed'].includes(String(x.health||'').toLowerCase())&&!x.over_rate_cap),pool=healthy;
  const rateValue=x=>x.estimated_rate==null?Number.POSITIVE_INFINITY:Number(x.estimated_rate);
  const sorted=pool.slice().sort((a,b)=>{
   if(selectionMode==='least-cost')return rateValue(a)-rateValue(b)||b.quality_score-a.quality_score||a.priority-b.priority||a.interconnect_priority-b.interconnect_priority;
   if(selectionMode==='priority')return a.priority-b.priority||a.interconnect_priority-b.interconnect_priority||rateValue(a)-rateValue(b)||b.quality_score-a.quality_score;
   return b.quality_score-a.quality_score||rateValue(a)-rateValue(b)||a.priority-b.priority||a.interconnect_priority-b.interconnect_priority;
  });
- const selected=sorted[0]||matches[0]||null;
- return{destination,selection_mode:selectionMode,matches,selected,policy:'longest destination prefix first; unhealthy routes avoided; balanced mode prefers quality then rate, least-cost prefers rate then quality, priority mode honors configured priorities first'};
+ const selected=sorted[0]||null;
+ return{destination,selection_mode:selectionMode,matches,selected,eligible_routes:sorted.length,telemetry_policy:{sample_floor:10,freshness_seconds:604800,window_per_route:100,signals:['network_failure_rate','PDD','ASR','ACD'],fallback:'configured quality score until measured evidence is fresh and sufficient'},policy:'longest destination prefix first; down/unavailable/failed routes and routes above max_rate are excluded; balanced mode prefers fresh measured quality then rate; least-cost prefers rate then quality; priority mode honors configured priorities first'};
 }
 
 export async function handleMagnanimousCarrierCore(request,env){

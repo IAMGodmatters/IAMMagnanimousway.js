@@ -14,13 +14,14 @@ const INTERACTION_STATES=new Set(['open','pending','resolved','closed']);
 function validE164(v){return /^\+[1-9]\d{7,14}$/.test(phone(v))}
 function safeJson(value,fallback={}){try{return JSON.parse(value||'')}catch{return fallback}}
 function owner(user){return user?.role==='owner'||user?.role==='admin'}
+function runtimeTrue(v){return ['1','true','yes','on'].includes(String(v||'').trim().toLowerCase())}
 function twilioReady(env){return Boolean(env.TWILIO_ACCOUNT_SID&&env.TWILIO_AUTH_TOKEN&&env.TWILIO_PHONE_NUMBER)}
 function twilioSoftphoneReady(env){return Boolean(twilioReady(env)&&env.TWILIO_API_KEY_SID&&env.TWILIO_API_KEY_SECRET&&env.TWILIO_TWIML_APP_SID)}
 function genericReady(env){return Boolean(env.VOIP_PROVIDER_URL&&env.VOIP_PROVIDER_TOKEN)}
 function telnyxReady(env){return Boolean(env.TELNYX_API_KEY&&env.TELNYX_CONNECTION_ID&&env.TELNYX_PHONE_NUMBER)}
 function plivoReady(env){return Boolean(env.PLIVO_AUTH_ID&&env.PLIVO_AUTH_TOKEN&&env.PLIVO_PHONE_NUMBER)}
 function providerSnapshot(env){
- const byoc=genericReady(env),telnyx=telnyxReady(env),plivo=plivoReady(env),twilio=twilioReady(env),softphone=twilioSoftphoneReady(env);
+ const byoc=genericReady(env),telnyx=telnyxReady(env),plivo=plivoReady(env),twilio=twilioReady(env),softphone=twilioSoftphoneReady(env),nativeWebrtcLive=runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE);
  const livePstn=byoc||twilio;
  const upstreamAccounts=[telnyx,plivo,twilio].filter(Boolean).length;
  const mode=String(env.VOIP_BILLING_MODE||'metered').trim().toLowerCase();
@@ -28,7 +29,7 @@ function providerSnapshot(env){
   provider_details_private:true,
   browser_calling:{configured:true,free_first:true,inbound:true,outbound:true,note:'Peer-to-peer browser calling for signed-in users.'},
   magnanimous_carrier:{configured:livePstn,inbound:byoc||twilio,outbound:livePstn,byoc,flat_rate:['flat-rate','unlimited','channel'].includes(mode),billing_mode:byoc?mode:'metered',least_cost_routing:true,live_route_count:[byoc,twilio].filter(Boolean).length,upstream_accounts_configured:upstreamAccounts,truth_boundary:'An upstream account is not counted as a live call route until it is attached to the Magnanimous carrier bridge or an authenticated compatibility transport.'},
-  agent_softphone:{configured:softphone,provider_identity:'Magnanimous Carrier',native_pbx_target:'Asterisk WebRTC',compatibility_transport:softphone},
+  agent_softphone:{configured:softphone,provider_identity:'Magnanimous Carrier',native_pbx_target:'Asterisk WebRTC',native_pbx_live:nativeWebrtcLive,compatibility_transport:softphone,transport_preference:nativeWebrtcLive?'native-asterisk-webrtc':'compatibility-until-native-verification'},
   ai_assist:{configured:Boolean(env.AI),free_first:Boolean(env.AI)},
   optional_video:{configured:Boolean(env.TAVUS_API_KEY||env.HEYGEN_API_KEY),premium:true}
  };

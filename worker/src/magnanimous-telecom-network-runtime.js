@@ -60,6 +60,7 @@ function providerReadiness(env){
   emergency_enabled:truthy(env?.TELECOM_EMERGENCY_LIVE),
   direct_numbering_authorized:truthy(env?.TELECOM_DIRECT_NUMBERING_AUTHORIZED),
   carrier_authorized:truthy(env?.TELECOM_CARRIER_AUTHORIZED),
+  native_webrtc_live:truthy(env?.TELECOM_NATIVE_WEBRTC_LIVE),
   purchases_enabled:truthy(env?.TELECOM_PURCHASE_ACTIONS_ENABLED),
   regulated_actions_enabled:truthy(env?.TELECOM_REGULATED_ACTIONS_ENABLED)
  };
@@ -120,11 +121,23 @@ export async function handleMagnanimousTelecomNetwork(request,env){
    readiness:providerReadiness(env),
    routing_policy:{
     order:['free-browser','magnanimous-asterisk-pbx','workspace-byoc-primary','workspace-byoc-secondary','metered-compatibility'],
-    least_cost_and_quality_routing:true,
+    route_planner_enabled:true,
+    measured_quality_signals:['ASR','ACD','PDD','network_failure_rate'],
+    max_rate_enforced:true,
+    live_execution_uses_route_planner:false,
+    execution_note:'The planner is authoritative for preview/control policy now; existing live phone adapters remain on their compatibility execution paths until they are migrated behind the same selected-route contract.',
     failover_boundary:'A secondary SIP interconnect is used only for network-unavailable or congestion outcomes; real busy/no-answer results are not redialed through another carrier.'
    },
    owned_service_core:{provider_key:'magnanimous-telecom',role:'PBX, SIP registrar, routing, policy, CDR and contact-center control',native_pbx:'Asterisk',provider_owned_identity:true},
-   preferred_upstream_candidate:{provider_key:'telnyx',role:'primary SIP/number/API candidate',connected:Boolean(String(env?.TELNYX_API_KEY||'').trim()),note:'Preferred as an upstream candidate where its destination pricing, number availability, quality and contract terms fit. Credentials alone do not make it a live voice route.'},
+   preferred_upstream_candidate:{provider_key:'telnyx',role:'default benchmark SIP/number/API candidate',connected:Boolean(String(env?.TELNYX_API_KEY||'').trim()),note:'A strong programmable candidate where destination economics, coverage and measured quality fit; it is not hard-wired as universally best. Credentials alone do not make it a live voice route.'},
+   upstream_candidates:[
+    {provider_key:'telnyx',role:'programmable SIP, numbers, network APIs',adapter_state:'implemented for regulated-network API actions; voice-route activation still requires a real interconnect',connected:Boolean(String(env?.TELNYX_API_KEY||'').trim())},
+    {provider_key:'bandwidth',role:'direct-network/BYOC benchmark, especially U.S. and supported international numbering',adapter_state:'candidate; no dedicated Magnanimous adapter is claimed live',connected:false},
+    {provider_key:'plivo',role:'SIP/API route candidate, useful where destination rates and coverage fit',adapter_state:'compatibility carrier adapter exists',connected:Boolean(String(env?.PLIVO_AUTH_ID||'').trim()&&String(env?.PLIVO_AUTH_TOKEN||'').trim())},
+    {provider_key:'signalwire',role:'SIP/WebRTC benchmark for supported geographies',adapter_state:'candidate; no dedicated Magnanimous adapter is claimed live',connected:false},
+    {provider_key:'twilio',role:'broad compatibility and browser Voice SDK fallback',adapter_state:'compatibility softphone/voice adapter exists',connected:Boolean(String(env?.TWILIO_ACCOUNT_SID||'').trim()&&String(env?.TWILIO_AUTH_TOKEN||'').trim())}
+   ],
+   native_browser_target:{provider_key:'magnanimous-asterisk-webrtc',role:'owned browser-agent signaling/media target',live:truthy(env?.TELECOM_NATIVE_WEBRTC_LIVE),truth_boundary:'Source readiness is not live readiness; live requires TLS/WSS plus successful browser registration and two-way media verification.'},
    secondary_upstream_candidate:{provider_key:'plivo',role:'secondary SIP/API candidate',connected:Boolean(String(env?.PLIVO_AUTH_ID||'').trim()&&String(env?.PLIVO_AUTH_TOKEN||'').trim()),note:'Use only where route economics, coverage and quality beat the primary path.'},
    compatibility_upstream:{provider_key:'twilio',role:'browser Voice SDK / compatibility carrier',connected:Boolean(String(env?.TWILIO_ACCOUNT_SID||'').trim()&&String(env?.TWILIO_AUTH_TOKEN||'').trim()),note:'Retained for compatibility and browser-agent transport while the native Asterisk WebRTC desk is completed.'},
    mobile_alternative:{provider_key:'gigs',role:'MVNO/mobile subscription adapter',capabilities:['physical_sim','esim','mobile_plans','subscriptions']},

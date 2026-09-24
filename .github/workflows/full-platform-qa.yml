@@ -51,6 +51,12 @@ jobs:
       - name: Lock full provider and standalone service audit boundaries
         run: node qa/scripts/full-platform-provider-service-audit-lock.mjs
 
+      - name: Lock durable active development checkpoint
+        run: node qa/scripts/development-checkpoint-lock.mjs
+
+      - name: Lock deep telecom architecture
+        run: node qa/scripts/telecom-deep-architecture-lock.mjs
+
       - name: Lock Magnanimous native developer agent
         run: node qa/scripts/magnanimous-dev-agent-lock.mjs
 

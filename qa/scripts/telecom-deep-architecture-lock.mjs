@@ -1,0 +1,83 @@
+import fs from 'node:fs';
+
+const read=p=>fs.readFileSync(p,'utf8');
+const checks=[];
+const has=(src,text,label)=>checks.push([label,src.includes(text)]);
+const lacks=(src,text,label)=>checks.push([label,!src.includes(text)]);
+const file=(p,label)=>checks.push([label,fs.existsSync(p)]);
+
+const carrier=read('worker/src/magnanimous-carrier-core.js');
+const network=read('worker/src/magnanimous-telecom-network-runtime.js');
+const contact=read('worker/src/contact-center-runtime.js');
+const compat=read('worker/src/twilio-softphone-runtime.js');
+const ui=read('frontend/app/telecom/network/page.tsx');
+const pjsip=read('telecom-core/asterisk/templates/pjsip.conf.template');
+const webrtc=read('telecom-core/asterisk/templates/pjsip-webrtc.conf.optional');
+const http=read('telecom-core/asterisk/templates/http.conf.template');
+const rtp=read('telecom-core/asterisk/templates/rtp.conf.template');
+const entry=read('telecom-core/asterisk/entrypoint.sh');
+const env=read('telecom-core/.env.owned.example');
+const rootEnv=read('.env.example');
+const api=read('telecom-core/control-api/app/main.py');
+const health=read('telecom-core/control-api/app/services/health.py');
+const study=read('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md');
+
+file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
+file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
+
+has(pjsip,'#include pjsip-webrtc.conf','base PJSIP includes gated native WebRTC fragment');
+has(webrtc,'protocol=wss','native WebRTC uses secure WebSocket transport');
+has(webrtc,'webrtc=yes','native endpoint enables Asterisk WebRTC semantics');
+has(webrtc,'media_encryption=dtls','native endpoint requires DTLS media encryption');
+has(webrtc,'dtls_verify=fingerprint','native endpoint verifies DTLS fingerprint');
+has(webrtc,'ice_support=yes','native endpoint enables ICE');
+has(webrtc,'rtcp_mux=yes','native endpoint enables RTCP mux');
+has(webrtc,'allow=opus,ulaw,alaw','native endpoint prefers Opus with G711 fallbacks');
+has(http,'tlsenable=','Asterisk HTTP config declares TLS enablement');
+has(http,'ASTERISK_WEBRTC_ENABLED','Asterisk TLS listener is gated by explicit WebRTC enablement');
+has(http,'tlsbindaddr=0.0.0.0:','native WSS listener has an explicit secure bind');
+has(http,'ASTERISK_HTTPS_PORT','native WSS listener uses configured HTTPS port');
+has(entry,'WebRTC is enabled but TLS certificate is not readable','WebRTC startup refuses missing TLS certificate');
+has(entry,'WebRTC is enabled but TLS private key is not readable','WebRTC startup refuses missing TLS key');
+has(entry,'pjsip-webrtc.conf.optional','WebRTC endpoint is rendered only through the startup gate');
+lacks(rtp,'stun.l.google.com','RTP configuration has no hard-coded third-party STUN dependency');
+has(entry,'ASTERISK_STUN_SERVER','STUN is operator-selected and optional');
+has(env,'ASTERISK_WEBRTC_ENABLED=false','self-hosted environment keeps native WebRTC disabled by default');
+has(rootEnv,'TELECOM_NATIVE_WEBRTC_LIVE=false','platform environment has an explicit live-verification truth gate');
+has(api,'@app.get("/v1/webrtc"','Telecom control API exposes protected WebRTC readiness');
+has(api,'"credentials_included": False','WebRTC readiness API does not expose credentials');
+has(health,'configured-not-live-verified','public health distinguishes source configuration from live verification');
+
+has(carrier,'function measuredQuality(rows)','carrier planner computes measured route quality');
+has(carrier,"signals:['network_failure_rate','PDD','ASR','ACD']",'carrier planner declares measured quality signals');
+has(carrier,'sample_floor:10','carrier planner requires a sample floor');
+has(carrier,'freshness_seconds:604800','carrier planner requires fresh evidence');
+has(carrier,'over_rate_cap','carrier planner computes rate-cap exclusion');
+has(carrier,'&&!x.over_rate_cap','routes above max-rate are excluded from the eligible pool');
+has(carrier,"'bandwidth','signalwire'","carrier inventory supports additional replaceable interconnect types");
+has(network,'live_execution_uses_route_planner:false','network API does not falsely claim all live adapters use the planner');
+has(network,"provider_key:'magnanimous-asterisk-webrtc'",'network API names the owned native browser target');
+has(network,"provider_key:'bandwidth'",'network API exposes Bandwidth as a candidate, not identity');
+has(network,"provider_key:'signalwire'",'network API exposes SignalWire as a candidate, not identity');
+has(contact,'native_pbx_live:nativeWebrtcLive','contact-center snapshot exposes native PBX truth state');
+has(compat,'compatibility_transport_ready:true','compatibility softphone reports compatibility readiness separately');
+has(compat,'native_pbx_live:','compatibility softphone reports native PBX live truth separately');
+
+has(ui,'Carrier candidate matrix','owner UI exposes replaceable carrier candidates');
+has(ui,'SOURCE READY / NOT LIVE','owner UI refuses to overclaim native WebRTC');
+has(ui,'ASR:','owner UI exposes measured route quality');
+has(ui,'eligible after health/rate policy','owner UI exposes route eligibility after health/rate policy');
+has(ui,'Credentials ≠ live route','owner UI preserves provider truth boundary');
+
+has(study,'## Current carrier benchmark','deep study contains carrier comparison evidence');
+has(study,'## Philippine regulatory truth boundary','deep study contains Philippine NTC boundary');
+has(study,'## Contact-center benchmark and structure','deep study contains contact-center benchmark');
+has(study,'## Promotion rule','deep study contains a no-overclaim promotion rule');
+
+const failed=checks.filter(([,ok])=>!ok);
+for(const [label,ok] of checks)console.log((ok?'PASS':'FAIL')+': '+label);
+if(failed.length){
+  console.error('\n'+failed.length+' deep telecom architecture contract(s) failed.');
+  process.exit(1);
+}
+console.log('\nDeep telecom architecture lock passed: '+checks.length+' contracts.');

@@ -11,7 +11,7 @@ from .models import HangupRequest, OutboundCall, SipAccountCreate
 
 app = FastAPI(
     title="Magnanimous Telecom Core",
-    version="0.4.0",
+    version="0.5.0",
     docs_url="/docs",
     redoc_url=None,
 )
@@ -49,14 +49,40 @@ async def carrier_health(container: ApplicationContainer = Depends(get_container
 
 @app.get("/v1/sip", dependencies=[Depends(require_token)])
 async def sip_core(container: ApplicationContainer = Depends(get_container)) -> dict[str, Any]:
+    transports = ["udp", "tcp"]
+    if container.settings.webrtc_enabled:
+        transports.append("wss")
     return {
         "identity": "Magnanimous Telecom",
         "service": "Magnanimous SIP Core",
         "domain": container.settings.sip_domain,
         "registrar_port": 5060,
-        "transports": ["udp", "tcp"],
+        "transports": transports,
         "pbx_media": "Magnanimous-owned Asterisk",
+        "native_browser_media": "Asterisk WebRTC" if container.settings.webrtc_enabled else "disabled until TLS/runtime verification",
         "pstn_boundary": "replaceable interconnect until direct carrier authority is obtained",
+    }
+
+
+@app.get("/v1/webrtc", dependencies=[Depends(require_token)])
+async def webrtc(container: ApplicationContainer = Depends(get_container)) -> dict[str, Any]:
+    settings = container.settings
+    public_url = settings.webrtc_public_url or (
+        f"wss://{settings.sip_domain}:{settings.webrtc_https_port}/ws"
+        if settings.webrtc_enabled and settings.sip_domain
+        else ""
+    )
+    return {
+        "identity": "Magnanimous Telecom",
+        "provider": "Magnanimous Carrier",
+        "configured": settings.webrtc_enabled,
+        "signaling_url": public_url,
+        "native_pbx": "Asterisk",
+        "signaling": "SIP over secure WebSocket (WSS)",
+        "media_security": ["DTLS-SRTP", "ICE", "RTCP mux"],
+        "preferred_codec": "Opus",
+        "credentials_included": False,
+        "truth_boundary": "configured means the owned core was explicitly enabled; live status still requires a successful browser registration and media probe",
     }
 
 

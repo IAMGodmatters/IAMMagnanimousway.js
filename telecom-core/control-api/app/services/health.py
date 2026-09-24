@@ -27,6 +27,12 @@ class HealthService:
             "public_number": self._settings.caller_id or None,
             "identity": "Magnanimous",
             "active_monitors": self._monitor.active_count,
+            "native_webrtc": {
+                "configured": self._settings.webrtc_enabled,
+                "signaling_url_configured": bool(self._settings.webrtc_public_url),
+                "state": "configured-not-live-verified" if self._settings.webrtc_enabled else "disabled",
+                "truth_boundary": "Live requires a successful browser registration and two-way media probe.",
+            },
         }
 
     async def carrier_health(self) -> dict[str, Any]:
