@@ -14,7 +14,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: full-platform-qa-${{ github.ref }}
+  group: full-platform-qa-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:

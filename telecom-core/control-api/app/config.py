@@ -56,6 +56,9 @@ class TelecomSettings:
     webrtc_https_port: int = 8089
     webrtc_dynamic_sessions_enabled: bool = False
     webrtc_session_ttl_seconds: int = 3600
+    webrtc_turn_urls: tuple[str, ...] = ()
+    webrtc_turn_auth_secret: str = ""
+    webrtc_turn_force_relay: bool = False
     webrtc_runtime_tls_cert_file: str = "/var/lib/asterisk/tls/fullchain.pem"
     webrtc_runtime_tls_key_file: str = "/var/lib/asterisk/tls/privkey.pem"
     sip_db_host: str = "127.0.0.1"
@@ -69,6 +72,11 @@ class TelecomSettings:
         hosts = tuple(
             item.strip().lower()
             for item in _env("MAGNANIMOUS_WEBHOOK_HOSTS", "iammagnanimousway.com").split(",")
+            if item.strip()
+        )
+        turn_urls = tuple(
+            item.strip()
+            for item in _env("MAGNANIMOUS_TURN_URLS").split(",")
             if item.strip()
         )
         return cls(
@@ -91,6 +99,9 @@ class TelecomSettings:
             webrtc_https_port=max(1, _env_int("ASTERISK_HTTPS_PORT", 8089)),
             webrtc_dynamic_sessions_enabled=_env_bool("ASTERISK_WEBRTC_DYNAMIC_SESSIONS_ENABLED", False),
             webrtc_session_ttl_seconds=max(300, min(3600, _env_int("ASTERISK_WEBRTC_SESSION_TTL_SECONDS", 3600))),
+            webrtc_turn_urls=turn_urls,
+            webrtc_turn_auth_secret=_env("MAGNANIMOUS_TURN_AUTH_SECRET"),
+            webrtc_turn_force_relay=_env_bool("MAGNANIMOUS_TURN_FORCE_RELAY", False),
             webrtc_runtime_tls_cert_file=_env("ASTERISK_RUNTIME_TLS_CERT_FILE", "/var/lib/asterisk/tls/fullchain.pem"),
             webrtc_runtime_tls_key_file=_env("ASTERISK_RUNTIME_TLS_KEY_FILE", "/var/lib/asterisk/tls/privkey.pem"),
             sip_db_host=_env("SIP_DB_HOST", "127.0.0.1"),

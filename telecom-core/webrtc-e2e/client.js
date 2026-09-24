@@ -6,6 +6,12 @@ const password = params.get("password") || "";
 const domain = params.get("domain") || "webrtc.test";
 const wss = params.get("wss") || "wss://localhost:8089/ws";
 const echoExtension = params.get("echo") || "6000";
+const iceTransportPolicy = params.get("icePolicy") === "relay" ? "relay" : "all";
+let iceServers = [];
+try {
+  const parsed = JSON.parse(params.get("ice") || "[]");
+  if (Array.isArray(parsed)) iceServers = parsed;
+} catch {}
 const statusEl = document.getElementById("status");
 const remoteAudio = document.getElementById("remoteAudio");
 
@@ -22,7 +28,9 @@ const probe = {
   error: "",
   extension,
   echoExtension,
-  wss
+  wss,
+  iceServerCount: iceServers.length,
+  iceTransportPolicy
 };
 window.__webrtcProbe = probe;
 
@@ -105,7 +113,8 @@ const userAgent = new UserAgent({
   delegate: {},
   sessionDescriptionHandlerFactoryOptions: {
     peerConnectionConfiguration: {
-      iceServers: []
+      iceServers,
+      iceTransportPolicy
     }
   }
 });

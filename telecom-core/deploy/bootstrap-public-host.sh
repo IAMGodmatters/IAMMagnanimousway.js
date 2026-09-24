@@ -10,7 +10,11 @@ fi
 : "${ACME_EMAIL:?Set ACME_EMAIL for certificate expiry notices}"
 TELECOM_ROOT="${TELECOM_ROOT:-/opt/magnanimous-telecom}"
 ENABLE_UFW="${ENABLE_UFW:-false}"
+ENABLE_TURN_RELAY="${ENABLE_TURN_RELAY:-false}"
 ADMIN_SSH_CIDR="${ADMIN_SSH_CIDR:-}"
+TURN_TLS_PORT="${MAGNANIMOUS_TURN_TLS_PORT:-5349}"
+TURN_MIN_PORT="${MAGNANIMOUS_TURN_MIN_PORT:-49160}"
+TURN_MAX_PORT="${MAGNANIMOUS_TURN_MAX_PORT:-49260}"
 
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git openssl ufw certbot docker.io
@@ -32,6 +36,10 @@ if [[ "${ENABLE_UFW,,}" =~ ^(1|true|yes|on)$ ]]; then
   ufw allow 80/tcp comment 'ACME HTTP-01 only'
   ufw allow 8089/tcp comment 'Magnanimous Asterisk WSS'
   ufw allow 10000:20000/udp comment 'Magnanimous WebRTC RTP'
+  if [[ "${ENABLE_TURN_RELAY,,}" =~ ^(1|true|yes|on)$ ]]; then
+    ufw allow "${TURN_TLS_PORT}/tcp" comment 'Magnanimous TURN over TLS/TCP'
+    ufw allow "${TURN_MIN_PORT}:${TURN_MAX_PORT}/udp" comment 'Magnanimous TURN relay UDP'
+  fi
   ufw --force enable
 else
   echo "UFW rules were not activated. Set ENABLE_UFW=true with ADMIN_SSH_CIDR after confirming remote access."

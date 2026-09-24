@@ -21,6 +21,9 @@ jobs:
       WEBRTC_EXTENSION: ${{ vars.TELECOM_PUBLIC_WEBRTC_EXTENSION }}
       WEBRTC_ECHO_EXTENSION: ${{ vars.TELECOM_PUBLIC_ECHO_EXTENSION }}
       WEBRTC_PASSWORD: ${{ secrets.TELECOM_PUBLIC_WEBRTC_PASSWORD }}
+      WEBRTC_ICE_TRANSPORT_POLICY: ${{ vars.TELECOM_PUBLIC_ICE_TRANSPORT_POLICY }}
+      WEBRTC_TURN_URLS: ${{ vars.TELECOM_PUBLIC_TURN_URLS }}
+      WEBRTC_TURN_AUTH_SECRET: ${{ secrets.TELECOM_PUBLIC_TURN_AUTH_SECRET }}
     steps:
       - uses: actions/checkout@v7
 
@@ -37,6 +40,50 @@ jobs:
           test -n "${WEBRTC_EXTENSION}" || { echo 'Missing TELECOM_PUBLIC_WEBRTC_EXTENSION repository variable.' >&2; exit 1; }
           test -n "${WEBRTC_ECHO_EXTENSION}" || { echo 'Missing TELECOM_PUBLIC_ECHO_EXTENSION repository variable.' >&2; exit 1; }
           test -n "${WEBRTC_PASSWORD}" || { echo 'Missing TELECOM_PUBLIC_WEBRTC_PASSWORD repository secret.' >&2; exit 1; }
+          if [ "${WEBRTC_ICE_TRANSPORT_POLICY:-all}" = "relay" ]; then
+            test -n "${WEBRTC_TURN_URLS}" || { echo 'Relay verification requires TELECOM_PUBLIC_TURN_URLS.' >&2; exit 1; }
+            test -n "${WEBRTC_TURN_AUTH_SECRET}" || { echo 'Relay verification requires TELECOM_PUBLIC_TURN_AUTH_SECRET.' >&2; exit 1; }
+          fi
+
+      - name: Build short-lived TURN verification credential
+        if: env.WEBRTC_ICE_TRANSPORT_POLICY == 'relay'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const crypto=require('node:crypto');
+          const fs=require('node:fs');
+          const urls=(process.env.WEBRTC_TURN_URLS||'').split(',').map(v=>v.trim()).filter(Boolean);
+          if(!urls.length) throw new Error('No TURN URLs configured');
+          if(urls.some(v=>!v.startsWith('turns:'))) throw new Error('Strict relay verification requires turns: URLs');
+          const expires=Math.floor(Date.now()/1000)+900;
+          const username=`${expires}:${process.env.WEBRTC_EXTENSION}`;
+          const credential=crypto.createHmac('sha1',process.env.WEBRTC_TURN_AUTH_SECRET).update(username).digest('base64');
+          const ice=[{urls,username,credential,credentialType:'password'}];
+          fs.appendFileSync(process.env.GITHUB_ENV,`WEBRTC_ICE_SERVERS_JSON=${JSON.stringify(ice)}\n`);
+          fs.mkdirSync('/tmp/magnanimous-public-webrtc',{recursive:true});
+          const targets=urls.map(value=>{
+            const authority=value.slice('turns:'.length).split('?')[0];
+            const parsed=new URL('https://'+authority);
+            return `${parsed.hostname}|${parsed.port||'5349'}`;
+          });
+          fs.writeFileSync('/tmp/magnanimous-public-webrtc/turn-tls-targets.txt',targets.join('\n')+'\n');
+          NODE
+
+      - name: Verify TURN TLS chains and hostnames
+        if: env.WEBRTC_ICE_TRANSPORT_POLICY == 'relay'
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS='|' read -r host port; do
+            test -n "${host}" || continue
+            openssl s_client \
+              -connect "${host}:${port}" \
+              -servername "${host}" \
+              -verify_hostname "${host}" \
+              -verify_return_error \
+              </dev/null
+          done < /tmp/magnanimous-public-webrtc/turn-tls-targets.txt
 
       - name: Reject local or private verification targets
         working-directory: telecom-core/webrtc-e2e

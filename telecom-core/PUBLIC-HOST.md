@@ -21,6 +21,32 @@ Use a dedicated Linux host with:
 
 SIP/PSTN port 5060 does **not** need to be opened just to prove native browser WebRTC. Keep unnecessary telecom ports closed.
 
+### Additive TURN/TLS relay alternative
+
+If the hosting edge cannot expose public UDP RTP directly, Magnanimous may use an owned TURN relay as an additive media path instead of weakening the production truth gate. The browser may reach TURN over TCP/TLS while the TURN relay forwards media to Asterisk over a network path Asterisk can actually reach. coturn supports TURN over TCP/TLS and time-limited REST credentials.
+
+The Telecom Core supports this without exposing the long-term TURN secret to the browser:
+
+- set `MAGNANIMOUS_TURN_URLS` to one or more `turn:` / `turns:` URLs;
+- set the server-only `MAGNANIMOUS_TURN_AUTH_SECRET` to the same shared secret configured in coturn;
+- optionally set `MAGNANIMOUS_TURN_FORCE_RELAY=true` only when the relay topology is intentionally required and externally verified.
+
+Each browser SIP session receives only a timestamped temporary username and HMAC-derived temporary TURN credential. Relay-only mode fails closed when TURN is absent or malformed.
+
+The repository also includes an opt-in owned coturn runtime. It is disabled in normal Compose startup and only starts with the explicit profile:
+
+```bash
+docker compose --profile turn-relay up -d turn-relay
+```
+
+Before starting it, set the TURN realm, shared auth secret, TLS certificate/key paths, and relay port range in `telecom-core/.env`. The coturn image is pinned to `4.18.0-r0`; its runtime disables anonymous access, disables UDP client listeners for the TCP/TLS-first browser path, keeps UDP relay endpoints available for media forwarding, and refuses startup when the TLS files or shared secret are missing.
+
+For a dedicated public Linux host, set `ENABLE_TURN_RELAY=true` during the safe firewall bootstrap only when this relay is intentionally being deployed. That opens the configured TURN TLS/TCP listener and relay UDP range in addition to the existing Asterisk rules. Leave it false otherwise.
+
+Railway can expose a raw TCP service through TCP Proxy and its private network supports UDP between services. That makes a future **separate** TURN-over-TCP/TLS edge plus private-UDP Asterisk topology technically testable, but it is not enabled here and it would require creating/configuring telecom-specific Railway services. Do not create those services or incur additional runtime cost without the existing paid-resource approval gate.
+
+This source support does **not** make Railway, coturn, or any relay production-live. A relay deployment must still prove trusted signaling plus real bidirectional browser media from an external network before `TELECOM_NATIVE_WEBRTC_LIVE=true`.
+
 ## Safe bootstrap
 
 On the chosen host:
@@ -76,6 +102,14 @@ Configure this GitHub repository secret:
 
 - `TELECOM_PUBLIC_WEBRTC_PASSWORD`
 
+For a TURN/relay verification, also configure:
+
+- repository variable `TELECOM_PUBLIC_TURN_URLS` with one or more comma-separated `turns:` URLs;
+- repository secret `TELECOM_PUBLIC_TURN_AUTH_SECRET` with the same server-side coturn REST shared secret used by the relay;
+- repository variable `TELECOM_PUBLIC_ICE_TRANSPORT_POLICY=relay` to force relay-only ICE during the proof.
+
+The workflow derives a fresh 15-minute TURN credential on the GitHub runner, verifies every TURN TLS hostname/chain, and sends only the temporary credential to Chromium. The long-term TURN secret is never embedded in the browser probe.
+
 Then manually run **Public Telecom WebRTC Verification**.
 
 That workflow:
@@ -87,7 +121,7 @@ That workflow:
 5. establishes the authenticated Asterisk `Echo()` call;
 6. requires inbound and outbound RTP bytes/packets plus a remote audio track.
 
-Only a successful result from that workflow is sufficient evidence to promote `TELECOM_NATIVE_WEBRTC_LIVE=true`.
+Only a successful result from that workflow is sufficient evidence to promote `TELECOM_NATIVE_WEBRTC_LIVE=true`. If TURN relay mode is used, the proof must run with the same ICE/TURN policy that production browsers receive; a direct-media success does not validate a relay-only deployment.
 
 ## Compatibility fallback
 

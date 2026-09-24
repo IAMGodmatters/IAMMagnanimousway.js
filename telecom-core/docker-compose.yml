@@ -85,6 +85,25 @@ services:
       - asterisk-spool:/var/spool/asterisk
       - asterisk-log:/var/log/asterisk
 
+  turn-relay:
+    profiles: ["turn-relay"]
+    build:
+      context: ./turn-relay
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      MAGNANIMOUS_TURN_REALM: ${MAGNANIMOUS_TURN_REALM:-}
+      MAGNANIMOUS_TURN_AUTH_SECRET: ${MAGNANIMOUS_TURN_AUTH_SECRET:-}
+      MAGNANIMOUS_TURN_PORT: ${MAGNANIMOUS_TURN_PORT:-3478}
+      MAGNANIMOUS_TURN_TLS_PORT: ${MAGNANIMOUS_TURN_TLS_PORT:-5349}
+      MAGNANIMOUS_TURN_MIN_PORT: ${MAGNANIMOUS_TURN_MIN_PORT:-49160}
+      MAGNANIMOUS_TURN_MAX_PORT: ${MAGNANIMOUS_TURN_MAX_PORT:-49260}
+      MAGNANIMOUS_TURN_TLS_CERT_FILE: ${MAGNANIMOUS_TURN_TLS_CERT_FILE:-/certs/fullchain.pem}
+      MAGNANIMOUS_TURN_TLS_KEY_FILE: ${MAGNANIMOUS_TURN_TLS_KEY_FILE:-/certs/privkey.pem}
+      TELECOM_PUBLIC_IP: ${TELECOM_PUBLIC_IP:-}
+    volumes:
+      - ${ASTERISK_CERTS_DIR:-./certs}:/certs:ro
+
   control-api:
     build:
       context: ./control-api
@@ -108,6 +127,9 @@ services:
       ASTERISK_WEBRTC_PUBLIC_URL: ${ASTERISK_WEBRTC_PUBLIC_URL:-}
       ASTERISK_WEBRTC_DYNAMIC_SESSIONS_ENABLED: ${ASTERISK_WEBRTC_DYNAMIC_SESSIONS_ENABLED:-false}
       ASTERISK_WEBRTC_SESSION_TTL_SECONDS: ${ASTERISK_WEBRTC_SESSION_TTL_SECONDS:-3600}
+      MAGNANIMOUS_TURN_URLS: ${MAGNANIMOUS_TURN_URLS:-}
+      MAGNANIMOUS_TURN_AUTH_SECRET: ${MAGNANIMOUS_TURN_AUTH_SECRET:-}
+      MAGNANIMOUS_TURN_FORCE_RELAY: ${MAGNANIMOUS_TURN_FORCE_RELAY:-false}
       ASTERISK_RUNTIME_TLS_CERT_FILE: ${ASTERISK_RUNTIME_TLS_CERT_FILE:-/var/lib/asterisk/tls/fullchain.pem}
       ASTERISK_RUNTIME_TLS_KEY_FILE: ${ASTERISK_RUNTIME_TLS_KEY_FILE:-/var/lib/asterisk/tls/privkey.pem}
       SIP_DB_HOST: 127.0.0.1

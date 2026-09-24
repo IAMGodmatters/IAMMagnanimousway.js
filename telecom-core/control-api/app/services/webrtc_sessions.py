@@ -4,12 +4,15 @@ import asyncio
 import hashlib
 import secrets
 import time
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from urllib.parse import quote
 
-from ..adapters.asterisk import AsteriskAriClient
 from ..config import TelecomSettings
 from ..errors import CarrierRejectedError, TelecomConfigurationError
+from .turn_credentials import build_turn_ice_servers
+
+if TYPE_CHECKING:
+    from ..adapters.asterisk import AsteriskAriClient
 
 
 class WebRtcSessionService:
@@ -30,6 +33,15 @@ class WebRtcSessionService:
             raise TelecomConfigurationError("ASTERISK_WEBRTC_PUBLIC_URL is required for browser sessions.")
         if not self._settings.sip_domain:
             raise TelecomConfigurationError("MAGNANIMOUS_SIP_DOMAIN is required for browser sessions.")
+
+    def _turn_ice_servers(self, session_id: str, expires_at: int) -> list[dict[str, Any]]:
+        return build_turn_ice_servers(
+            urls=self._settings.webrtc_turn_urls,
+            auth_secret=self._settings.webrtc_turn_auth_secret,
+            force_relay=self._settings.webrtc_turn_force_relay,
+            session_id=session_id,
+            expires_at=expires_at,
+        )
 
     @staticmethod
     def _fields(values: dict[str, str]) -> dict[str, Any]:
@@ -175,6 +187,7 @@ class WebRtcSessionService:
                     pass
             raise
 
+        ice_servers = self._turn_ice_servers(session_id, expires_at)
         return {
             "identity": "Magnanimous Telecom",
             "provider": "Magnanimous Carrier",
@@ -184,6 +197,9 @@ class WebRtcSessionService:
             "password_returned_once": True,
             "domain": domain,
             "wss_url": self._settings.webrtc_public_url,
+            "ice_servers": ice_servers,
+            "ice_transport_policy": "relay" if self._settings.webrtc_turn_force_relay else "all",
+            "turn_relay_configured": bool(ice_servers),
             "expires_at": expires_at,
             "expires_in": self._settings.webrtc_session_ttl_seconds,
             "allowed_call_scope": ["internal-magnanimous", "diagnostic-echo"],
