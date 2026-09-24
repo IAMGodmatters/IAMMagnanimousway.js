@@ -570,6 +570,23 @@ jobs:
             printf '%s' "$status"
           }
 
+          safe_expected_status() {
+            local output="$1" expected="$2"; shift 2
+            local status="" attempt
+            for attempt in 1 2 3 4 5; do
+              status="$(command curl -sS --connect-timeout 10 --max-time 120 -o "$output" -w '%{http_code}' "$@" || true)"
+              case "$status" in
+                "$expected") break ;;
+                000|502|503|504)
+                  echo "Transient non-mutating validation smoke response HTTP ${status:-request-failed}; retrying ${attempt}/5." >&2
+                  sleep 2
+                  ;;
+                *) break ;;
+              esac
+            done
+            printf '%s' "$status"
+          }
+
           deployment_smoke_oidc() {
             local oidc_json
             oidc_json=$(command curl -fsS --connect-timeout 10 --max-time 30 \
@@ -1150,7 +1167,7 @@ jobs:
           print('Data Studio live workbook persistence and summary passed.')
           PY
 
-          status=$(curl -sS -o /tmp/data-studio-empty.json -w '%{http_code}' -X PATCH "$BASE_URL/api/data-studio/workbooks/$data_workbook_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"columns":[],"rows":[]}')
+          status=$(safe_expected_status /tmp/data-studio-empty.json 400 -X PATCH "$BASE_URL/api/data-studio/workbooks/$data_workbook_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"columns":[],"rows":[]}')
           if [ "$status" != "400" ]; then echo "Data Studio empty-column update expected HTTP 400, got $status"; cat /tmp/data-studio-empty.json || true; exit 1; fi
           status=$(curl -sS -o /tmp/data-studio-update.json -w '%{http_code}' -X PATCH "$BASE_URL/api/data-studio/workbooks/$data_workbook_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"title":"Deployment Data Smoke Updated","columns":["Name","Value"],"rows":[["Alpha","11"],["Beta","22"]],"visibility":"workspace"}')
           if [ "$status" != "200" ]; then echo "Data Studio update returned HTTP $status"; cat /tmp/data-studio-update.json || true; exit 1; fi
@@ -1188,7 +1205,7 @@ jobs:
           print(d['id'])
           PY
           )
-          status=$(curl -sS -o /tmp/media-unconfirmed.json -w '%{http_code}' -X PATCH "$BASE_URL/api/media-library/assets/$media_asset_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"license_checked":true}')
+          status=$(safe_expected_status /tmp/media-unconfirmed.json 400 -X PATCH "$BASE_URL/api/media-library/assets/$media_asset_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"license_checked":true}')
           if [ "$status" != "400" ]; then echo "Media Library must reject unconfirmed source/license checks; got HTTP $status"; cat /tmp/media-unconfirmed.json || true; exit 1; fi
           status=$(curl -sS -o /tmp/media-checked.json -w '%{http_code}' -X PATCH "$BASE_URL/api/media-library/assets/$media_asset_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"license_checked":true,"confirm_source_review":true}')
           if [ "$status" != "200" ]; then echo "Media Library attestation returned HTTP $status"; cat /tmp/media-checked.json || true; exit 1; fi
