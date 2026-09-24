@@ -38,5 +38,7 @@ const request=new Request('https://iammagnanimousway.com/api/agents/chat',{
 
 const resolved=await currentUser(request,{DB:db,SESSION_SECRET:secret});
 assert.deepEqual(resolved,user);
+assert.equal(request.bodyUsed,false,'opaque authentication must not consume the original request body');
+assert.deepEqual(await request.json(),{agent_id:'bobby',message:'opaque session downstream auth lock'});
 
-console.log('Opaque downstream session auth lock: PASS');
+console.log('Opaque downstream session auth and POST-body preservation lock: PASS');
