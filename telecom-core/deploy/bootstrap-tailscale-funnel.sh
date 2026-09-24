@@ -11,11 +11,12 @@ TELECOM_ROOT="${TELECOM_ROOT:-/opt/magnanimous-telecom}"
 TELECOM_ENV_FILE="${TELECOM_ENV_FILE:-${REPO_ROOT}/telecom-core/.env}"
 CERT_DIR="${TELECOM_CERTS_DIR:-${TELECOM_ROOT}/certs}"
 EDGE_ENV="${TAILSCALE_EDGE_ENV_FILE:-${TELECOM_ROOT}/tailscale-funnel.env}"
-ASTERISK_WSS_LOCAL_PORT="${ASTERISK_HTTPS_PORT:-8089}"
-TURN_TLS_LOCAL_PORT="${MAGNANIMOUS_TURN_TLS_PORT:-5349}"
-CONTROL_API_LOCAL_PORT="${TELECOM_CONTROL_API_PORT:-8080}"
 INSTALL_TAILSCALE="${INSTALL_TAILSCALE:-false}"
 INSTALL_CERT_RENEWAL_TIMER="${INSTALL_CERT_RENEWAL_TIMER:-true}"
+
+for required in python3 openssl curl install mktemp; do
+  command -v "${required}" >/dev/null 2>&1 || { echo "Missing required command: ${required}" >&2; exit 1; }
+done
 
 if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
   echo "Docker with Compose v2 is required before enabling the Tailscale edge." >&2
@@ -87,6 +88,10 @@ source "${TELECOM_ENV_FILE}"
 # shellcheck disable=SC1090
 source "${EDGE_ENV}"
 set +a
+
+ASTERISK_WSS_LOCAL_PORT="${ASTERISK_HTTPS_PORT:-8089}"
+TURN_TLS_LOCAL_PORT="${MAGNANIMOUS_TURN_TLS_PORT:-5349}"
+CONTROL_API_LOCAL_PORT="${TELECOM_CONTROL_API_PORT:-8080}"
 
 if [[ -n "${TELECOM_PUBLIC_IP:-}" ]]; then
   echo "Relay-local Funnel mode refuses TELECOM_PUBLIC_IP." >&2
