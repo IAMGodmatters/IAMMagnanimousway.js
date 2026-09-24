@@ -30,6 +30,9 @@ class HealthService:
             "native_webrtc": {
                 "configured": self._settings.webrtc_enabled,
                 "signaling_url_configured": bool(self._settings.webrtc_public_url),
+                "relay_local_media": self._settings.webrtc_relay_local_media,
+                "turn_relay_configured": bool(self._settings.webrtc_turn_urls),
+                "ice_transport_policy": "relay" if self._settings.webrtc_turn_force_relay else "all",
                 "state": "configured-not-live-verified" if self._settings.webrtc_enabled else "disabled",
                 "truth_boundary": "Live requires a successful browser registration and two-way media probe.",
             },

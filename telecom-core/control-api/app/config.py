@@ -59,6 +59,7 @@ class TelecomSettings:
     webrtc_turn_urls: tuple[str, ...] = ()
     webrtc_turn_auth_secret: str = ""
     webrtc_turn_force_relay: bool = False
+    webrtc_relay_local_media: bool = False
     webrtc_runtime_tls_cert_file: str = "/var/lib/asterisk/tls/fullchain.pem"
     webrtc_runtime_tls_key_file: str = "/var/lib/asterisk/tls/privkey.pem"
     sip_db_host: str = "127.0.0.1"
@@ -102,6 +103,7 @@ class TelecomSettings:
             webrtc_turn_urls=turn_urls,
             webrtc_turn_auth_secret=_env("MAGNANIMOUS_TURN_AUTH_SECRET"),
             webrtc_turn_force_relay=_env_bool("MAGNANIMOUS_TURN_FORCE_RELAY", False),
+            webrtc_relay_local_media=_env_bool("MAGNANIMOUS_RELAY_LOCAL_MEDIA", False),
             webrtc_runtime_tls_cert_file=_env("ASTERISK_RUNTIME_TLS_CERT_FILE", "/var/lib/asterisk/tls/fullchain.pem"),
             webrtc_runtime_tls_key_file=_env("ASTERISK_RUNTIME_TLS_KEY_FILE", "/var/lib/asterisk/tls/privkey.pem"),
             sip_db_host=_env("SIP_DB_HOST", "127.0.0.1"),
