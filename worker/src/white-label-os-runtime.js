@@ -38,9 +38,68 @@ async function agencyAccess(env,user){if(await isPlatformOwnerUser(env,user))ret
 export async function handleWhiteLabelOS(request,env){const u=new URL(request.url);if(!u.pathname.startsWith('/api/white-label-os'))return null;const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);if(!await agencyAccess(env,user))return json({detail:'An active White Label Agency subscription is required.'},402);await ensure(env);const tenant=String(user.tenant_id);
 if(u.pathname==='/api/white-label-os/overview'&&request.method==='GET')return json({name:'Magnanimous White Label OS',brain:'Magnanimous AI',modules:WHITE_LABEL_MODULES,principles:['your brand','your clients','your pricing','tenant isolation','provider independence','no hidden provider identity','action receipts','transparent metered costs']});
 const CORE_CLIENT_APPS=[
- ['branded-ai','Branded AI','core'],['crm','CRM','core'],['inbox','Unified Inbox','core'],['booking','Booking','core'],['funnel','Funnel Builder','core'],['reputation','Reputation','core'],['automations','Automations','core'],['work-engine','Work Engine','core'],['receptionist','AI Receptionist','core'],['video-agents','Video Agents','core'],['rebilling','Usage Rebilling','core']
+ ['branded-ai','Branded AI','core','/white-label/branded-ai','magnanimous-native'],
+ ['crm','CRM','core','/crm','magnanimous-native'],
+ ['inbox','Unified Inbox','core','/inbox','magnanimous-native'],
+ ['booking','Booking','core','/agency-command?tab=booking','magnanimous-native'],
+ ['funnel','Funnel Builder','core','/white-label/funnel','magnanimous-native'],
+ ['reputation','Reputation','core','/agency-command?tab=reputation','magnanimous-native'],
+ ['automations','Automations','core','/agency-automations','magnanimous-native'],
+ ['work-engine','Work Engine','core','/work-engine','magnanimous-native'],
+ ['receptionist','AI Receptionist','core','/ai-receptionist','magnanimous-voice'],
+ ['video-agents','Video Agents','core','/video-agents','magnanimous-video'],
+ ['rebilling','Usage Rebilling','core','/agency-command?tab=billing','magnanimous-native'],
+ ['invoice','Invoice Maker','core','/white-label/native?tool=invoice','magnanimous-native'],
+ ['pos','Point of Sale','core','/white-label/native?tool=pos','magnanimous-native'],
+ ['website','Website Builder','core','/white-label/native?tool=website','magnanimous-native'],
+ ['app-builder','App Prototype Builder','core','/white-label/native?tool=app','magnanimous-native'],
+ ['whatsapp','WhatsApp Product Inbox','core','/white-label/whatsapp','meta-whatsapp']
 ];
-const CLIENT_APP_CATALOG=[...CORE_CLIENT_APPS,...BUSINESS_AI_SUITE.map(([id,name])=>['business-ai:'+id,name,'business-ai'])];
+const WHITE_LABEL_HOME_APPS=[
+ ['funnel','Funnel Builder','/white-label/funnel','magnanimous-native'],
+ ['branded-ai','Branded AI','/white-label/branded-ai','magnanimous-native'],
+ ['client-apps','Client Apps','/white-label/client-apps','magnanimous-native'],
+ ['booking','Booking','/agency-command?tab=booking','magnanimous-native'],
+ ['reputation','Reputation','/agency-command?tab=reputation','magnanimous-native'],
+ ['automations','Automations','/agency-automations','magnanimous-native'],
+ ['inbox','Unified Inbox','/inbox','magnanimous-native'],
+ ['crm','CRM','/crm','magnanimous-native'],
+ ['receptionist','AI Receptionist','/ai-receptionist','magnanimous-voice'],
+ ['video-agents','Video Agents','/video-agents','magnanimous-video'],
+ ['work-engine','Work Engine','/work-engine','magnanimous-native'],
+ ['rebilling','Usage Rebilling','/agency-command?tab=billing','magnanimous-native'],
+ ['invoice','Invoice Maker','/white-label/native?tool=invoice','magnanimous-native'],
+ ['pos','Point of Sale','/white-label/native?tool=pos','magnanimous-native'],
+ ['website','Website Builder','/white-label/native?tool=website','magnanimous-native'],
+ ['app-builder','App Prototype Builder','/white-label/native?tool=app','magnanimous-native'],
+ ['whatsapp','WhatsApp Product Inbox','/white-label/whatsapp','meta-whatsapp']
+];
+const CLIENT_APP_CATALOG=[
+ ...CORE_CLIENT_APPS,
+ ...BUSINESS_AI_SUITE.map(([id,name])=>['business-ai:'+id,name,'business-ai','/business-ai?tool='+encodeURIComponent(id),'magnanimous-business-ai'])
+];
+function providerDetails(providerId,env){
+ if(providerId==='meta-whatsapp'){
+  const platformConfigured=Boolean(env.META_APP_ID&&env.META_APP_SECRET&&env.WHATSAPP_VERIFY_TOKEN);
+  return {provider_id:providerId,provider:'Meta WhatsApp Business',provider_mode:'external-required',provider_status:platformConfigured?'configured':'setup-required',connection_required:true,provider_note:platformConfigured?'Platform provider credentials are present; each client still needs an approved connected WhatsApp Business account/number.':'Meta/WhatsApp provider credentials must be configured before messages can be sent or received.'};
+ }
+ if(providerId==='magnanimous-voice'){
+  return {provider_id:providerId,provider:'Magnanimous Voice Runtime',provider_mode:'hybrid',provider_status:'ready',connection_required:false,external_adapters:{twilio:Boolean(env.TWILIO_ACCOUNT_SID&&env.TWILIO_AUTH_TOKEN&&env.TWILIO_PHONE_NUMBER),tavus:Boolean(env.TAVUS_API_KEY)},provider_note:'Browser voice is Magnanimous-native. PSTN calling and photorealistic live video are optional provider-backed extensions.'};
+ }
+ if(providerId==='magnanimous-video'){
+  return {provider_id:providerId,provider:'Magnanimous Video Agent Runtime',provider_mode:'hybrid',provider_status:'ready',connection_required:false,external_adapters:{tavus:Boolean(env.TAVUS_API_KEY),mux:Boolean(env.MUX_TOKEN_ID&&env.MUX_TOKEN_SECRET),veo:Boolean(env.GOOGLE_API_KEY),runway:Boolean(env.RUNWAYML_API_SECRET),luma:Boolean(env.LUMA_API_KEY)},provider_note:'The White Label video workspace has a Magnanimous-native execution surface; optional render/live-video adapters are used only when configured.'};
+ }
+ if(providerId==='magnanimous-business-ai'){
+  return {provider_id:providerId,provider:'Magnanimous Business AI Runtime',provider_mode:'native',provider_status:'ready',connection_required:false,provider_note:'Executed through the Magnanimous Business AI capability surface; individual external actions still obey Connections permissions.'};
+ }
+ return {provider_id:'magnanimous-native',provider:'Magnanimous Native Runtime',provider_mode:'native',provider_status:'ready',connection_required:false,provider_note:'First-party Magnanimous runtime and tenant data plane.'};
+}
+const describeApp=(row,env)=>{const[app_id,name,group_or_route,route_or_provider,maybe_provider]=row;const group=maybe_provider?group_or_route:'core';const route=maybe_provider?route_or_provider:group_or_route;const providerId=maybe_provider||route_or_provider;return{app_id,name,group,route,...providerDetails(providerId,env)}};
+if(u.pathname==='/api/white-label-os/provider-readiness'&&request.method==='GET'){
+ const apps=WHITE_LABEL_HOME_APPS.map(row=>describeApp(row,env));
+ const summary={total:apps.length,ready:apps.filter(x=>x.provider_status==='ready').length,configured:apps.filter(x=>x.provider_status==='configured').length,setup_required:apps.filter(x=>x.provider_status==='setup-required').length};
+ return json({brain:'Magnanimous AI',apps,summary,rule:'Every White Label home link must resolve to a live route and declare its execution provider. Provider-required actions must remain setup-required until the runtime can verify configuration.'});
+}
 if(u.pathname==='/api/white-label-os/client-apps'){
  const clientId=txt(u.searchParams.get('client_id'),80);
  if(!clientId)return json({detail:'Choose a client first.'},400);
@@ -49,8 +108,8 @@ if(u.pathname==='/api/white-label-os/client-apps'){
  if(request.method==='GET'){
   const{results=[]}=await env.DB.prepare('SELECT app_id,label,enabled,sort_order FROM agency_client_apps WHERE tenant_id=? AND client_id=? ORDER BY sort_order,app_id').bind(tenant,clientId).all();
   const saved=new Map(results.map(x=>[String(x.app_id),x]));
-  const apps=CLIENT_APP_CATALOG.map(([app_id,name,group],index)=>{const row=saved.get(app_id);return{app_id,name,group,label:row?.label||name,enabled:row?Boolean(row.enabled):true,sort_order:row?Number(row.sort_order||0):index}});
-  return json({client,apps,available_apps:CLIENT_APP_CATALOG.map(([app_id,name,group])=>({app_id,name,group})),catalog_count:CLIENT_APP_CATALOG.length,authorization_boundary:'Client app selections control menu visibility and packaging. They do not become a security authorization boundary until the signed-in end user is reliably mapped to this client account.'});
+  const apps=CLIENT_APP_CATALOG.map((entry,index)=>{const base=describeApp(entry,env),row=saved.get(base.app_id);return{...base,label:row?.label||base.name,enabled:row?Boolean(row.enabled):true,sort_order:row?Number(row.sort_order||0):index}});
+  return json({client,apps,available_apps:CLIENT_APP_CATALOG.map(entry=>describeApp(entry,env)),catalog_count:CLIENT_APP_CATALOG.length,provider_assurance:true,authorization_boundary:'Client app selections control menu visibility and packaging. They do not become a security authorization boundary until the signed-in end user is reliably mapped to this client account.'});
  }
  if(request.method==='PUT'){
   if(!owner(user))return json({detail:'Owner or admin access required.'},403);
