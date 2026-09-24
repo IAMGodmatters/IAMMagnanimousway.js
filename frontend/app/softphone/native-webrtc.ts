@@ -68,6 +68,7 @@ export class MagnanimousNativePhone{
 
  async callInternal(extension:string){
   if(!/^\d{2,8}$/.test(extension))throw new Error('Native calls require a Magnanimous internal extension.');
+  if(extension==='911'||extension==='112')throw new Error('Emergency calling is not enabled on the native Magnanimous PBX.');
   await this.phone.call(`sip:${extension}@${this.session.domain}`);
  }
 
