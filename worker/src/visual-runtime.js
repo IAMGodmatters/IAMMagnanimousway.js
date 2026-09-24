@@ -117,6 +117,16 @@ async function generateImage(env,prompt){
  return generateProceduralScene(prompt);
 }
 
+export async function renderVisualScene(env,{title='',text='',style='cinematic',director='auto'}={}){
+ const direction=director==='built-in'?{prompt:baseScenePrompt(title,text,style),director:'built-in'}:await geminiDirect(env,title,text,style);
+ const rendered=await generateImage(env,direction.prompt);
+ return{
+  provider:'iam-cinematic-free',director:direction.director,director_model:direction.model||null,
+  image_provider:rendered.provider,image_model:rendered.model,prompt:direction.prompt,
+  image_data_uri:`data:${rendered.content_type||'image/jpeg'};base64,${rendered.image}`,free_first:true
+ };
+}
+
 export async function handleVisual(request,env){
  const url=new URL(request.url);
  if(!url.pathname.startsWith('/api/visual'))return null;
