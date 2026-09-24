@@ -109,12 +109,21 @@ async function generateFlux(env,prompt){
 }
 
 async function generateImage(env,prompt){
+ const safePrompt=String(prompt).slice(0,1800);
  if(magnanimousImageReady(env)){
-  const rendered=await env.MAGNANIMOUS_IMAGE_GENERATOR.generate(String(prompt).slice(0,1800),{seed:Math.floor(Math.random()*2_000_000_000)});
-  return {...rendered,provider:rendered.provider||'magnanimous-native-image'};
+  try{
+   const rendered=await env.MAGNANIMOUS_IMAGE_GENERATOR.generate(safePrompt,{seed:Math.floor(Math.random()*2_000_000_000)});
+   if(rendered?.image)return {...rendered,provider:rendered.provider||'magnanimous-native-image'};
+   console.error('Magnanimous image provider returned no usable image; falling back to first-party procedural rendering.');
+  }catch(error){
+   console.error('Magnanimous image provider unavailable; falling back to first-party procedural rendering.',String(error?.message||error));
+  }
  }
- if(cloudflareReady(env))return generateFlux(env,prompt);
- return generateProceduralScene(prompt);
+ if(cloudflareReady(env)){
+  try{return await generateFlux(env,safePrompt)}
+  catch(error){console.error('Legacy edge image provider unavailable; falling back to first-party procedural rendering.',String(error?.message||error))}
+ }
+ return generateProceduralScene(safePrompt);
 }
 
 export async function renderVisualScene(env,{title='',text='',style='cinematic',director='auto'}={}){
