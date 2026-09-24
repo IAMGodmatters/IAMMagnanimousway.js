@@ -74,6 +74,13 @@ async function sessionSecret(env){
 }
 function safeEqual(a,b){a=String(a||'');b=String(b||'');if(a.length!==b.length)return false;let d=0;for(let i=0;i<a.length;i++)d|=a.charCodeAt(i)^b.charCodeAt(i);return d===0}
 async function hmacSha1(secret,value){const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-1'},false,['sign']);const out=new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(value)));let s='';for(const b of out)s+=String.fromCharCode(b);return btoa(s)}
+function b64urlText(value){return btoa(String(value)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+function b64urlBytes(bytes){let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+async function hmacSha256Url(secret,value){const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(String(secret)),{name:'HMAC',hash:'SHA-256'},false,['sign']);return b64urlBytes(new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(value))))}
+function softphoneIdentity(user,tenant){return (`cc_${String(tenant||'tenant')}_${String(user?.id||user?.user_id||'agent')}`).replace(/[^A-Za-z0-9_]/g,'_').slice(0,100)}
+function twilioSoftphoneReady(env){return Boolean(env.TWILIO_ACCOUNT_SID&&env.TWILIO_AUTH_TOKEN&&env.TWILIO_PHONE_NUMBER&&env.TWILIO_API_KEY_SID&&env.TWILIO_API_KEY_SECRET&&env.TWILIO_TWIML_APP_SID)}
+async function twilioAccessToken(env,identity,ttl=3600){const issued=now(),expires=issued+Math.max(300,Math.min(43200,Number(ttl)||3600)),header={cty:'twilio-fpa;v=1',typ:'JWT',alg:'HS256'},payload={jti:`${env.TWILIO_API_KEY_SID}-${crypto.randomUUID()}`,grants:{identity,voice:{incoming:{allow:true},outgoing:{application_sid:String(env.TWILIO_TWIML_APP_SID)}}},iat:issued,exp:expires,iss:String(env.TWILIO_API_KEY_SID),sub:String(env.TWILIO_ACCOUNT_SID)},unsigned=`${b64urlText(JSON.stringify(header))}.${b64urlText(JSON.stringify(payload))}`;return{token:`${unsigned}.${await hmacSha256Url(env.TWILIO_API_KEY_SECRET,unsigned)}`,expires}}
+
 async function validTwilio(request,env){
  if(!env.TWILIO_AUTH_TOKEN)return false;const supplied=request.headers.get('x-twilio-signature')||'';if(!supplied)return false;
  let form;try{form=await request.clone().formData()}catch{return false}
@@ -207,6 +214,17 @@ async function campaignRoutes(request,env,user,url){
   if(member.status==='dialing')await env.DB.prepare("UPDATE cc_campaign_members SET status='ready',last_attempt_at=NULL,updated_at=? WHERE id=? AND tenant_id=?").bind(now(),member.id,tenant).run();
   return json({ok:true,member_id:member.id,status:member.status==='dialing'?'ready':member.status});
  }
+ const dialStart=path.match(/^\/api\/contact-center\/campaigns\/([^/]+)\/dial-start$/);
+ if(dialStart&&request.method==='POST'){
+  const campaign=await env.DB.prepare('SELECT id,status FROM cc_campaigns WHERE id=? AND tenant_id=?').bind(dialStart[1],tenant).first();if(!campaign)return json({detail:'Campaign not found.'},404);if(campaign.status!=='active')return json({detail:'Campaign must be active before dialing.',code:'CAMPAIGN_NOT_ACTIVE'},409);
+  const b=await request.json().catch(()=>({})),memberId=String(b.member_id||''),member=await env.DB.prepare('SELECT id,status FROM cc_campaign_members WHERE id=? AND campaign_id=? AND tenant_id=?').bind(memberId,dialStart[1],tenant).first();if(!member)return json({detail:'Campaign contact not found.'},404);if(member.status!=='ready')return json({detail:'Campaign contact is not reserved for dialing.',code:'CONTACT_NOT_RESERVED'},409);
+  await env.DB.prepare("UPDATE cc_campaign_members SET status='dialing',updated_at=? WHERE id=? AND campaign_id=? AND tenant_id=? AND status='ready'").bind(now(),memberId,dialStart[1],tenant).run();return json({ok:true,status:'dialing'});
+ }
+ const dialCancel=path.match(/^\/api\/contact-center\/campaigns\/([^/]+)\/dial-cancel$/);
+ if(dialCancel&&request.method==='POST'){
+  const b=await request.json().catch(()=>({})),memberId=String(b.member_id||''),member=await env.DB.prepare('SELECT id,status FROM cc_campaign_members WHERE id=? AND campaign_id=? AND tenant_id=?').bind(memberId,dialCancel[1],tenant).first();if(!member)return json({detail:'Campaign contact not found.'},404);
+  if(member.status==='dialing')await env.DB.prepare("UPDATE cc_campaign_members SET status='ready',updated_at=? WHERE id=? AND campaign_id=? AND tenant_id=?").bind(now(),memberId,dialCancel[1],tenant).run();return json({ok:true,status:member.status==='dialing'?'ready':member.status});
+ }
  const result=path.match(/^\/api\/contact-center\/campaigns\/([^/]+)\/result$/);
  if(result&&request.method==='POST'){
   const campaign=await env.DB.prepare('SELECT * FROM cc_campaigns WHERE id=? AND tenant_id=?').bind(result[1],tenant).first();if(!campaign)return json({detail:'Campaign not found.'},404);const b=await request.json().catch(()=>({})),member=await env.DB.prepare('SELECT * FROM cc_campaign_members WHERE id=? AND campaign_id=? AND tenant_id=?').bind(String(b.member_id||''),campaign.id,tenant).first();if(!member)return json({detail:'Campaign contact not found.'},404);const code=clean(b.disposition)||'connected',disp=await env.DB.prepare('SELECT * FROM cc_dispositions WHERE tenant_id=? AND code=?').bind(tenant,code).first(),attempts=Number(member.attempts||0)+1,retry=disp?.retryable&&attempts<Number(campaign.max_attempts),state=code==='dnc'?'completed':retry?'retry':'completed',nextAt=retry?now()+Number(disp?.retry_seconds||campaign.retry_seconds):null;
@@ -217,6 +235,31 @@ async function campaignRoutes(request,env,user,url){
 
 function gatherTwiml(action,greeting){return `<?xml version="1.0" encoding="UTF-8"?><Response><Gather input="dtmf speech" numDigits="1" timeout="6" speechTimeout="auto" action="${esc(action)}" method="POST"><Say>${esc(greeting)}</Say></Gather><Redirect method="POST">${esc(action)}</Redirect></Response>`}
 function sayHangup(text){return `<?xml version="1.0" encoding="UTF-8"?><Response><Say>${esc(text)}</Say><Hangup/></Response>`}
+
+async function softphoneOutgoing(request,env){
+ if(!twilioReady(env))return xml(sayHangup('Carrier voice is not configured.'),503);
+ if(!await validTwilio(request,env))return xml(sayHangup('This call could not be authenticated.'),403);
+ const form=await request.formData(),to=phone(form.get('To'));
+ if(!validE164(to))return xml(sayHangup('The destination number is invalid.'),400);
+ const caller=phone(env.TWILIO_PHONE_NUMBER);
+ return xml(`<?xml version="1.0" encoding="UTF-8"?><Response><Dial answerOnBridge="true" callerId="${esc(caller)}"><Number>${esc(to)}</Number></Dial></Response>`);
+}
+async function queueDialTwiml(env,tenant,queueId,message='Please hold while I connect you.'){
+ let agents=[];
+ try{
+  if(queueId){
+   const q=await env.DB.prepare(`SELECT a.user_id,a.id,a.name FROM call_center_agents a JOIN call_queue_members m ON m.agent_id=a.id WHERE a.tenant_id=? AND a.active=1 AND a.status='available' AND m.queue_id=? ORDER BY COALESCE(a.last_assigned_at,0) ASC,a.updated_at ASC LIMIT 10`).bind(tenant,queueId).all();
+   agents=q.results||[];
+  }
+  if(!agents.length){
+   const q=await env.DB.prepare(`SELECT user_id,id,name FROM call_center_agents WHERE tenant_id=? AND active=1 AND status='available' ORDER BY COALESCE(last_assigned_at,0) ASC,updated_at ASC LIMIT 10`).bind(tenant).all();
+   agents=q.results||[];
+  }
+ }catch(_){agents=[]}
+ const clients=agents.filter(a=>a.user_id).map(a=>softphoneIdentity({id:a.user_id},tenant));
+ if(!clients.length)return null;
+ return `<?xml version="1.0" encoding="UTF-8"?><Response><Say>${esc(message)}</Say><Dial answerOnBridge="true" timeout="25">${clients.map(identity=>`<Client>${esc(identity)}</Client>`).join('')}</Dial><Say>No agent answered. Please try again or request a callback.</Say></Response>`;
+}
 
 async function twilioIncoming(request,env){
  if(!twilioReady(env))return xml(sayHangup('Telephone service is not configured.'),503);if(!await validTwilio(request,env))return xml(sayHangup('This call could not be authenticated.'),403);const form=await request.formData(),sid=clean(form.get('CallSid')),from=phone(form.get('From')),to=phone(form.get('To'));let tenant=clean(env.TWILIO_DEFAULT_TENANT_ID);if(!tenant){const r=await env.DB.prepare("SELECT id FROM tenants WHERE slug='owner' LIMIT 1").first();tenant=clean(r?.id)}if(!tenant)return xml(sayHangup('This line has not been assigned yet.'),503);await ensure(env);await seed(env,tenant);
@@ -231,7 +274,12 @@ async function ivrStep(request,env,url){
  const call=callId?await env.DB.prepare('SELECT * FROM phone_calls WHERE id=? AND tenant_id=?').bind(callId,tenant).first():null;const from=phone(call?.caller||form.get('From'));
  if(node.type==='ai')return xml(`<?xml version="1.0" encoding="UTF-8"?><Response><Redirect method="POST">${esc(new URL('/api/voice-agent/twilio/incoming',request.url).toString())}</Redirect></Response>`);
  if(node.type==='forward'&&validE164(node.number))return xml(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>${esc(node.message||'Please hold while I connect you.')}</Say><Dial>${esc(phone(node.number))}</Dial></Response>`);
- if(node.type==='callback'||node.type==='queue'){
+ if(node.type==='queue'){
+  const queueId=node.queue_id||flow.default_queue_id||null,twiml=await queueDialTwiml(env,tenant,queueId,node.message||'Please hold while I connect you to an available agent.');
+  if(twiml)return xml(twiml);
+  const id=crypto.randomUUID(),ts=now();if(from)await env.DB.prepare('INSERT INTO cc_callbacks(id,tenant_id,queue_id,phone,display_name,status,requested_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,tenant,queueId,from,'','pending',ts,ts,ts).run();return xml(sayHangup('No agent is available right now. Your callback request has been saved.'));
+ }
+ if(node.type==='callback'){
   const id=crypto.randomUUID(),ts=now();if(from)await env.DB.prepare('INSERT INTO cc_callbacks(id,tenant_id,queue_id,phone,display_name,status,requested_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,tenant,node.queue_id||flow.default_queue_id||null,from,'','pending',ts,ts,ts).run();return xml(sayHangup(node.message||'Your callback request has been saved. We will contact you as soon as possible.'));
  }
  if(node.type==='voicemail'){
@@ -255,12 +303,27 @@ async function analyzeCall(env,tenant,callId){
 export async function handleContactCenter(request,env){
  const url=new URL(request.url),path=url.pathname;if(!path.startsWith('/api/contact-center'))return null;if(!env?.DB)return json({detail:'Contact center database is not configured.'},503);
  try{
+  if(path==='/api/contact-center/softphone/outgoing'&&request.method==='POST')return softphoneOutgoing(request,env);
   if((path==='/api/contact-center/carrier/incoming'||path==='/api/contact-center/twilio/incoming')&&request.method==='POST')return twilioIncoming(request,env);
   if(path==='/api/contact-center/ivr/step'&&request.method==='POST')return ivrStep(request,env,url);
   if(path==='/api/contact-center/voicemail/recording'&&request.method==='POST')return voicemailRecording(request,env,url);
   if(path==='/api/contact-center/softphone/outgoing'&&request.method==='POST')return softphoneOutgoing(request,env);
   if(path==='/api/contact-center/softphone/status'&&request.method==='POST')return softphoneStatus(request,env,url);
   await ensure(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use the contact center.'},401);const tenant=String(user.tenant_id);await seed(env,tenant);
+  if(path==='/api/contact-center/softphone/config'&&request.method==='GET'){
+   const required=['TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_PHONE_NUMBER','TWILIO_API_KEY_SID','TWILIO_API_KEY_SECRET','TWILIO_TWIML_APP_SID'].filter(key=>!clean(env[key])),identity=softphoneIdentity(user,tenant);
+   if(required.length)return json({configured:false,identity,required,caller_id:clean(env.TWILIO_PHONE_NUMBER),free_browser_phone:'/phone',note:'Carrier softphone needs the protected Twilio Voice SDK credentials listed in required. Free browser calling remains available.'});
+   const access=await twilioAccessToken(env,identity,3600),origin=url.origin;
+   return json({configured:true,identity,token:access.token,expires_at:access.expires,caller_id:clean(env.TWILIO_PHONE_NUMBER),twiml_app_voice_url:`${origin}/api/contact-center/softphone/outgoing`,queue_voice_url:`${origin}/api/contact-center/carrier/incoming`,free_browser_phone:'/phone',note:'Recording is off by default. Configure the TwiML App voice URL to the returned softphone outbound URL and the phone-number voice webhook to the queue voice URL.'});
+  }
+  if(path==='/api/contact-center/softphone/claim'&&request.method==='POST'){
+   const b=await request.json().catch(()=>({})),sid=clean(b.call_sid);if(!sid)return json({detail:'call_sid is required.'},400);
+   const agent=await env.DB.prepare('SELECT id FROM call_center_agents WHERE tenant_id=? AND user_id=? AND active=1 LIMIT 1').bind(tenant,String(user.id||user.user_id||'')).first().catch(()=>null);
+   const call=await env.DB.prepare('SELECT id FROM phone_calls WHERE tenant_id=? AND provider_call_id=? ORDER BY id DESC LIMIT 1').bind(tenant,sid).first().catch(()=>null);
+   if(agent)await env.DB.prepare("UPDATE call_center_agents SET status='busy',last_assigned_at=?,updated_at=? WHERE id=? AND tenant_id=?").bind(now(),now(),agent.id,tenant).run().catch(()=>{});
+   if(call&&agent)await env.DB.prepare("UPDATE phone_calls SET agent_id=?,status='in-progress',started_at=COALESCE(started_at,?),updated_at=? WHERE id=? AND tenant_id=?").bind(agent.id,now(),now(),call.id,tenant).run();
+   return json({ok:true,claimed:Boolean(call&&agent),call_id:call?.id||null,agent_id:agent?.id||null});
+  }
   if(path==='/api/contact-center/softphone/config'&&request.method==='GET')return softphoneConfig(env,user,request);
   if(path==='/api/contact-center/softphone/claim'&&request.method==='POST')return softphoneClaim(env,user,await request.json().catch(()=>({})));
   if(path==='/api/contact-center/capabilities'&&request.method==='GET')return json({ok:true,providers:providerSnapshot(env),features:{acd:true,skills_routing:true,ivr:true,callbacks:true,voicemail:true,dnc:true,outbound_campaigns:true,dialer_modes:['preview','progressive','power'],predictive_mass_dialing:false,reason:'High-volume predictive automation is intentionally not enabled without carrier/compliance controls.',agent_presence:true,crm_screen_pop:true,recording:true,ai_call_intelligence:Boolean(env.AI),agent_assist:true,workforce_management:true,quality_management:true,analytics:true,omnichannel_inbox:true,free_browser_calling:true},inbound_webhook:`${url.origin}/api/contact-center/carrier/incoming`});
