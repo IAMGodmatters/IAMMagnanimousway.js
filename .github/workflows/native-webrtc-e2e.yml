@@ -151,11 +151,31 @@ jobs:
         run: npm run probe
 
       - name: Revoke ephemeral native browser credential
-        if: always()
         shell: bash
         run: |
-          if [ -n "${WEBRTC_SESSION_ID:-}" ]; then
-            curl -sS -X DELETE               -H 'Authorization: Bearer ci-telecom-token-6f1e9c2d'               "http://127.0.0.1:8080/v1/webrtc/sessions/${WEBRTC_SESSION_ID}"               > /tmp/magnanimous-webrtc-e2e/session-delete.json || true
+          set -euo pipefail
+          test -n "${WEBRTC_SESSION_ID:-}"
+          curl -fsS -X DELETE \
+            -H 'Authorization: Bearer ci-telecom-token-6f1e9c2d' \
+            "http://127.0.0.1:8080/v1/webrtc/sessions/${WEBRTC_SESSION_ID}" \
+            > /tmp/magnanimous-webrtc-e2e/session-delete.json
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const d=JSON.parse(fs.readFileSync('/tmp/magnanimous-webrtc-e2e/session-delete.json','utf8'));
+          if (!d.ok || !d.deleted || d.session_id !== process.env.WEBRTC_SESSION_ID) {
+            throw new Error('Telecom Core did not confirm ephemeral session deletion');
+          }
+          NODE
+
+      - name: Verify Asterisk removed ephemeral endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(docker exec magnanimous-webrtc-e2e asterisk -rx "pjsip show endpoint ${WEBRTC_EXTENSION}" 2>&1 || true)"
+          printf '%s\n' "$output" | tee /tmp/magnanimous-webrtc-e2e/asterisk-endpoint-after-delete.txt
+          if printf '%s\n' "$output" | grep -Eq "Endpoint:[[:space:]]+${WEBRTC_EXTENSION}"; then
+            echo 'Ephemeral WebRTC endpoint still exists after revocation.' >&2
+            exit 1
           fi
 
       - name: Capture Asterisk WebRTC evidence
