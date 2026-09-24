@@ -1,0 +1,29 @@
+#cloud-config
+package_update: true
+packages:
+  - ca-certificates
+  - curl
+  - git
+  - jq
+
+write_files:
+  - path: /etc/motd.d/99-magnanimous-telecom
+    permissions: "0644"
+    content: |
+      I AM MAGNANIMOUS WAY - Magnanimous Telecom Core host
+      Repository: ${repo_url}
+      Ref: ${repo_ref}
+
+      Run the read-only OCI preflight:
+        cd /opt/IAMMagnanimousway.js
+        bash telecom-core/deploy/oci-always-free-preflight.sh
+
+      Do not set TELECOM_NATIVE_WEBRTC_LIVE=true until the external
+      Public Telecom WebRTC Verification workflow passes.
+
+runcmd:
+  - [ mkdir, -p, /opt ]
+  - [ git, clone, --depth=1, --branch, "${repo_ref}", "${repo_url}", /opt/IAMMagnanimousway.js ]
+  - [ chown, -R, ubuntu:ubuntu, /opt/IAMMagnanimousway.js ]
+  - [ bash, -lc, "cd /opt/IAMMagnanimousway.js && bash telecom-core/deploy/oci-always-free-preflight.sh > /home/ubuntu/oci-telecom-preflight.txt 2>&1 || true" ]
+  - [ chown, ubuntu:ubuntu, /home/ubuntu/oci-telecom-preflight.txt ]

@@ -20,6 +20,26 @@ Do not use the 1 GB `VM.Standard.E2.1.Micro` shape for the full Telecom Core. Th
 
 Oracle may reclaim idle Always Free compute. Do not represent this free-first host as equivalent to a paid dedicated production SLA. It is appropriate for activation, verification, development, and early service while usage/reliability are monitored. A later dedicated host can replace it without changing the Magnanimous Telecom identity.
 
+## Guarded Terraform provisioning
+
+The repository also contains `telecom-core/oci/`, a Terraform module that creates only the public-host infrastructure required for this path. It is pinned to Terraform 1.16.4 and OCI provider 8.29.0, hard-codes `VM.Standard.A1.Flex` at 2 OCPUs / 12 GiB RAM with a 50 GB boot volume, and has no paid-shape fallback.
+
+Before any apply:
+
+```bash
+cd telecom-core/oci
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform validate
+terraform plan -out=tfplan
+terraform show -json tfplan > tfplan.json
+python3 verify_free_plan.py tfplan.json
+```
+
+Do not apply when the plan guard fails. The verifier rejects unexpected resource-create types, paid/other instance shapes, oversized A1 CPU or memory, oversized boot volume, private-only networking, and multiple instance creates.
+
+The module does not store telecom secrets. It installs only a public SSH key and a secret-free cloud-init that clones the public repository and runs the read-only OCI host preflight.
+
 ## User-only account step
 
 Creating an Oracle Cloud tenancy is outside the repository and outside the currently connected ChatGPT tools. Oracle states that signup commonly requires a mobile number and credit card, and the card is not charged unless the account is upgraded.

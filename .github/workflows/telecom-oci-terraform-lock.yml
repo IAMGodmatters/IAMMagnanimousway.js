@@ -1,0 +1,67 @@
+name: Magnanimous OCI Terraform Free Guard
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'telecom-core/oci/**'
+      - '.github/workflows/telecom-oci-terraform-lock.yml'
+  pull_request:
+    paths:
+      - 'telecom-core/oci/**'
+      - '.github/workflows/telecom-oci-terraform-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oci-terraform-free-guard-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Test OCI plan guard
+        working-directory: telecom-core/oci
+        run: python -m unittest -v test_verify_free_plan.py
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.16.4
+          terraform_wrapper: false
+
+      - name: Terraform format check
+        run: terraform fmt -check -recursive telecom-core/oci
+
+      - name: Initialize OCI provider without backend
+        run: terraform -chdir=telecom-core/oci init -backend=false -input=false
+
+      - name: Validate guarded OCI module
+        run: terraform -chdir=telecom-core/oci validate
+
+      - name: Lock Terraform module safety contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'VM.Standard.A1.Flex' telecom-core/oci/main.tf
+          grep -q 'ocpus          = 2' telecom-core/oci/main.tf
+          grep -q 'memory_gib     = 12' telecom-core/oci/main.tf
+          grep -q 'boot_volume_gb = 50' telecom-core/oci/main.tf
+          grep -q 'assign_public_ip = true' telecom-core/oci/main.tf
+          grep -q 'admin_ssh_cidr' telecom-core/oci/main.tf
+          grep -q 'MAX_BOOT_VOLUME_GB = 50' telecom-core/oci/verify_free_plan.py
+          if grep -R --line-number -E 'VM.Standard[0-9]|VM.DenseIO|BM\.|oci_core_load_balancer|oci_database_' telecom-core/oci --include='*.tf'; then
+            echo 'Unexpected paid compute/database/load-balancer construct found in guarded OCI Terraform source.' >&2
+            exit 1
+          fi
