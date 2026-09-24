@@ -23,7 +23,7 @@ DigitalOcean is not required for Magnanimous Telecom. It is a convenient low-cos
 - **Magnanimous Telecom API** — provider-neutral FastAPI control plane used by the existing `VOIP_PROVIDER_URL` bridge in the Cloudflare Worker.
 - **Magnanimous AI route** — reserved SIP extension/context for connecting calls to the Magnanimous voice agent.
 - **PSTN trunk adapter** — replaceable SIP interconnect. No third-party carrier is exposed as the public identity.
-- **Native WebRTC edge (source-ready, gated)** — Asterisk WSS + DTLS-SRTP + ICE + RTCP mux + Opus configuration now exists behind `ASTERISK_WEBRTC_ENABLED`. It is deliberately not advertised as live until a trusted TLS hostname/certificate, browser registration, and two-way media test are verified.
+- **Native WebRTC edge (software-media verified, public-host gated)** — Asterisk WSS + DTLS-SRTP + ICE + RTCP mux + Opus is proven with real Chromium/SIP.js registration and bidirectional RTP through the owned Asterisk `Echo()` path in CI. It is still not advertised as public-production live until the same proof passes on a dedicated public Telecom Core host with trusted public TLS and the real network/NAT path.
 
 ## Worker integration
 
@@ -92,7 +92,7 @@ Source readiness includes:
 - optional STUN instead of a hard-coded public dependency;
 - a protected control-API `/v1/webrtc` readiness contract.
 
-The existing compatibility browser carrier path remains available while the native rail is being deployed. Set `TELECOM_NATIVE_WEBRTC_LIVE=true` in the platform runtime only after the native telecom host has a trusted public WSS endpoint and a real browser has completed registration plus two-way audio.
+The existing compatibility browser carrier path remains available while the native rail is being deployed. The repository now includes a strict `Native WebRTC Browser Media E2E` workflow that runs real Chromium against the actual Asterisk image, verifies server-side registration, establishes the authenticated echo call, and requires RTP bytes/packets in both directions plus a remote audio track. Set `TELECOM_NATIVE_WEBRTC_LIVE=true` in the platform runtime only after that same proof is repeated on the native public telecom host with a trusted public WSS endpoint and real-network/NAT media.
 ## Emergency calling
 
 The dialplan intentionally does not advertise or provide 911/E911 service yet. Emergency calling must remain disabled until compliant emergency-routing and registered-location services are integrated and tested.
