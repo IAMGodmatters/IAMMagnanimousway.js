@@ -21,6 +21,9 @@ const rootEnv=read('.env.example');
 const api=read('telecom-core/control-api/app/main.py');
 const health=read('telecom-core/control-api/app/services/health.py');
 const study=read('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md');
+const webrtcWorkflow=read('.github/workflows/native-webrtc-e2e.yml');
+const webrtcProbe=read('telecom-core/webrtc-e2e/run.mjs');
+const extensions=read('telecom-core/asterisk/templates/extensions.conf.template');
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
@@ -73,6 +76,13 @@ has(study,'## Current carrier benchmark','deep study contains carrier comparison
 has(study,'## Philippine regulatory truth boundary','deep study contains Philippine NTC boundary');
 has(study,'## Contact-center benchmark and structure','deep study contains contact-center benchmark');
 has(study,'## Promotion rule','deep study contains a no-overclaim promotion rule');
+has(extensions,'Echo()','authenticated WebRTC diagnostic uses Asterisk Echo for carrier-free bidirectional media proof');
+has(webrtcWorkflow,'Real Chromium registration and two-way media','dedicated CI job runs a real Chromium WebRTC media proof');
+has(webrtcWorkflow,'wss://localhost:8089/ws','browser probe uses the native Asterisk WSS endpoint');
+has(webrtcWorkflow,'--use-file-for-fake-audio-capture','Chromium probe sends a deterministic microphone stream');
+has(webrtcProbe,'pjsip show contacts','probe independently verifies Asterisk registered the browser contact');
+has(webrtcProbe,'inboundBytes > 0 && p.outboundBytes > 0','probe requires RTP bytes in both directions');
+has(webrtcProbe,'remoteAudioTracks > 0','probe requires a real remote browser audio track');
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [label,ok] of checks)console.log((ok?'PASS':'FAIL')+': '+label);
