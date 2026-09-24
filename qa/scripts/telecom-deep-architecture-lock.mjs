@@ -129,6 +129,11 @@ has(sessionService,'"pstn_direct": False','ephemeral browser session contract fo
 has(telecomConfig,'MAGNANIMOUS_TURN_URLS','Telecom Core accepts operator-selected TURN URLs without hard-coding a provider');
 has(telecomConfig,'MAGNANIMOUS_TURN_AUTH_SECRET','TURN shared secret remains a server-side Telecom Core setting');
 has(telecomConfig,'MAGNANIMOUS_TURN_FORCE_RELAY','relay-only ICE is an explicit operator gate');
+has(telecomConfig,'MAGNANIMOUS_RELAY_LOCAL_MEDIA','Telecom Core records relay-local media mode explicitly');
+has(health,'"relay_local_media": self._settings.webrtc_relay_local_media','public health exposes relay-local media truth state');
+has(health,'"ice_transport_policy": "relay" if self._settings.webrtc_turn_force_relay else "all"','public health exposes effective ICE transport policy');
+has(api,'"relay_local_media": settings.webrtc_relay_local_media','protected WebRTC readiness exposes relay-local topology');
+has(sessionService,'"relay_local_media": self._settings.webrtc_relay_local_media','browser-session contract preserves relay-local topology evidence');
 has(turnCredentials,'hmac.new(','browser TURN credentials are derived per session rather than storing a browser-facing static password');
 has(turnCredentials,'credentialType": "password"','TURN ICE server contract uses browser password credentials');
 has(sessionService,'build_turn_ice_servers(','WebRTC session issuance delegates TURN credential generation to the isolated helper');
