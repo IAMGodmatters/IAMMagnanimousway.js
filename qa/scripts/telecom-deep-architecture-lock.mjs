@@ -35,6 +35,7 @@ const lifecycle=read('telecom-core/control-api/app/lifecycle.py');
 const sorcery=read('telecom-core/asterisk/templates/sorcery.conf.template');
 const agentSoftphone=read('frontend/app/softphone/page.tsx');
 const providerEnv=read('worker/src/provider-runtime-env.js');
+const nativeSoftphone=read('frontend/app/softphone/native-webrtc.ts');
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
@@ -132,10 +133,13 @@ has(contact,'async function revokeNativeSoftphoneSession','platform can revoke i
 has(contact,'cc_native_webrtc_sessions','platform persists native session ownership without persisting the SIP password');
 has(contact,"u.protocol!=='https:'",'private Telecom Core bridge refuses non-HTTPS endpoints');
 has(contact,'data?.pstn_direct!==false','platform refuses a native credential that grants direct PSTN scope');
-has(agentSoftphone,"from 'sip.js'",'main agent softphone can pre-register the owned Asterisk WebRTC rail');
+has(agentSoftphone,"from './native-webrtc'",'main agent softphone mounts the owned Magnanimous WebRTC client');
+has(nativeSoftphone,"from 'sip.js'",'native Magnanimous client is backed by SIP.js');
 has(agentSoftphone,'compatibility_transport_ready','main agent softphone preserves compatibility PSTN fallback');
 has(agentSoftphone,'ordinary-number dialing remains on the compatibility rail','main agent UI states the native PSTN bridge remains policy-gated');
-lacks(agentSoftphone,'TELECOM_CORE_TOKEN','private Telecom Core bearer token never enters frontend source');
+lacks(agentSoftphone,'TELECOM_CORE_TOKEN','private Telecom Core bearer token never enters main softphone source');
+lacks(nativeSoftphone,'TELECOM_CORE_TOKEN','private Telecom Core bearer token never enters native WebRTC client source');
+has(nativeSoftphone,"extension==='911'||extension==='112'",'native browser client keeps emergency calling disabled');
 has(providerEnv,"'TELECOM_CORE_URL'",'server-side runtime can receive the native Telecom Core URL from the protected vault');
 has(providerEnv,"'TELECOM_CORE_TOKEN'",'server-side runtime can receive the native Telecom Core token from the protected vault');
 
