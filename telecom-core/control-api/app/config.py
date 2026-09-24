@@ -18,6 +18,13 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = _env(name)
+    if not raw:
+        return default
+    return raw.lower() in {"1", "true", "yes", "on"}
+
+
 def _env_float(name: str, default: float) -> float:
     raw = _env(name)
     if not raw:
@@ -44,6 +51,9 @@ class TelecomSettings:
     monitor_interval_seconds: float
     monitor_max_polls: int
     sip_domain: str = ""
+    webrtc_enabled: bool = False
+    webrtc_public_url: str = ""
+    webrtc_https_port: int = 8089
     sip_db_host: str = "127.0.0.1"
     sip_db_port: int = 5433
     sip_db_name: str = "magnanimous_sip"
@@ -72,6 +82,9 @@ class TelecomSettings:
             monitor_interval_seconds=max(0.5, _env_float("CARRIER_MONITOR_INTERVAL_SECONDS", 2.0)),
             monitor_max_polls=max(1, _env_int("CARRIER_MONITOR_MAX_POLLS", 1800)),
             sip_domain=_env("MAGNANIMOUS_SIP_DOMAIN"),
+            webrtc_enabled=_env_bool("ASTERISK_WEBRTC_ENABLED", False),
+            webrtc_public_url=_env("ASTERISK_WEBRTC_PUBLIC_URL"),
+            webrtc_https_port=max(1, _env_int("ASTERISK_HTTPS_PORT", 8089)),
             sip_db_host=_env("SIP_DB_HOST", "127.0.0.1"),
             sip_db_port=max(1, _env_int("SIP_DB_PORT", 5433)),
             sip_db_name=_env("SIP_DB_NAME", "magnanimous_sip"),
