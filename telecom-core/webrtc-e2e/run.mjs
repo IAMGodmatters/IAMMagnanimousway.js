@@ -12,6 +12,14 @@ const fakeAudio = process.env.FAKE_AUDIO_WAV;
 const asteriskContainer = process.env.ASTERISK_CONTAINER || "magnanimous-webrtc-e2e";
 const allowInsecureTls = /^(1|true|yes|on)$/i.test(process.env.WEBRTC_ALLOW_INSECURE_TLS || "");
 const serverAssertMode = process.env.WEBRTC_SERVER_ASSERT_MODE || "local-docker";
+const iceTransportPolicy = process.env.WEBRTC_ICE_TRANSPORT_POLICY === "relay" ? "relay" : "all";
+let iceServers = [];
+try {
+  iceServers = JSON.parse(process.env.WEBRTC_ICE_SERVERS_JSON || "[]");
+} catch {
+  throw new Error("WEBRTC_ICE_SERVERS_JSON must be valid JSON");
+}
+if (!Array.isArray(iceServers)) throw new Error("WEBRTC_ICE_SERVERS_JSON must be an array");
 
 if (!password) throw new Error("WEBRTC_PASSWORD is required");
 if (!fakeAudio) throw new Error("FAKE_AUDIO_WAV is required");
@@ -52,6 +60,8 @@ try {
   url.searchParams.set("domain", domain);
   url.searchParams.set("wss", wss);
   url.searchParams.set("echo", echoExtension);
+  url.searchParams.set("ice", JSON.stringify(iceServers));
+  url.searchParams.set("icePolicy", iceTransportPolicy);
 
   await page.goto(url.toString(), { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => window.__webrtcProbe?.registered === true, null, { timeout: 30000 });
