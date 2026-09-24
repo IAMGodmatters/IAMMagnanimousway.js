@@ -21,6 +21,20 @@ Use a dedicated Linux host with:
 
 SIP/PSTN port 5060 does **not** need to be opened just to prove native browser WebRTC. Keep unnecessary telecom ports closed.
 
+### Additive TURN/TLS relay alternative
+
+If the hosting edge cannot expose public UDP RTP directly, Magnanimous may use an owned TURN relay as an additive media path instead of weakening the production truth gate. The browser may reach TURN over TCP/TLS while the TURN relay forwards media to Asterisk over a network path Asterisk can actually reach. coturn supports TURN over TCP/TLS and time-limited REST credentials.
+
+The Telecom Core supports this without exposing the long-term TURN secret to the browser:
+
+- set `MAGNANIMOUS_TURN_URLS` to one or more `turn:` / `turns:` URLs;
+- set the server-only `MAGNANIMOUS_TURN_AUTH_SECRET` to the same shared secret configured in coturn;
+- optionally set `MAGNANIMOUS_TURN_FORCE_RELAY=true` only when the relay topology is intentionally required and externally verified.
+
+Each browser SIP session receives only a timestamped temporary username and HMAC-derived temporary TURN credential. Relay-only mode fails closed when TURN is absent or malformed.
+
+This source support does **not** make Railway, coturn, or any relay production-live. A relay deployment must still prove trusted signaling plus real bidirectional browser media from an external network before `TELECOM_NATIVE_WEBRTC_LIVE=true`.
+
 ## Safe bootstrap
 
 On the chosen host:
@@ -87,7 +101,7 @@ That workflow:
 5. establishes the authenticated Asterisk `Echo()` call;
 6. requires inbound and outbound RTP bytes/packets plus a remote audio track.
 
-Only a successful result from that workflow is sufficient evidence to promote `TELECOM_NATIVE_WEBRTC_LIVE=true`.
+Only a successful result from that workflow is sufficient evidence to promote `TELECOM_NATIVE_WEBRTC_LIVE=true`. If TURN relay mode is used, the proof must run with the same ICE/TURN policy that production browsers receive; a direct-media success does not validate a relay-only deployment.
 
 ## Compatibility fallback
 
