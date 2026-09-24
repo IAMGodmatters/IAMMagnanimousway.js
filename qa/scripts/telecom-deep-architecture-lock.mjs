@@ -72,7 +72,7 @@ has(network,"provider_key:'magnanimous-asterisk-webrtc'",'network API names the 
 has(network,"provider_key:'bandwidth'",'network API exposes Bandwidth as a candidate, not identity');
 has(network,"provider_key:'signalwire'",'network API exposes SignalWire as a candidate, not identity');
 has(contact,'native_pbx_live:nativeWebrtcLive','contact-center snapshot exposes native PBX truth state');
-has(compat,'compatibility_transport_ready:true','compatibility softphone reports compatibility readiness separately');
+has(compat,'compatibility_transport_ready:compatibility','compatibility softphone reports actual compatibility readiness separately');
 has(compat,'native_pbx_live:','compatibility softphone reports native PBX live truth separately');
 
 has(ui,'Carrier candidate matrix','owner UI exposes replaceable carrier candidates');
