@@ -165,6 +165,25 @@ A later read-only Railway status check showed no non-empty staged production cha
 
 The standalone telecom core exists as a tested deployable source project but is not represented as a separate production Railway service in the audited Railway project. It should not be described as a live public carrier core until a real host, domain, SIP interconnect and production health verification exist.
 
+## Standalone inventory matrix
+
+| Component | Audit state | Provider/service boundary |
+| --- | --- | --- |
+| Magnanimous standalone runtime | **Verified live in the audited Railway production project** | Magnanimous-owned runtime; outside compute/providers remain replaceable |
+| Sandbox | **Verified Railway service** | Isolated execution capacity; not the Magnanimous identity |
+| Browser egress | **Verified Railway service** | Network/browser support rail |
+| Browser | **Verified Railway service** | Browser execution support rail |
+| Media | **Verified Railway service** | Media capacity rail; this audit does not equate it to every source renderer without exact deployment metadata |
+| Edge Worker | **Production-deploy workflow verified; exact post-merge runtime must be re-smoked after this branch lands** | Secured API/edge compatibility layer |
+| Telecom core (Asterisk + SIP registrar + control API + Postgres) | **Source-ready and test-gated; not a separate live Railway service in the audited project** | Owned PBX/SIP target with replaceable authorized PSTN interconnects |
+| Music engine | **Source-ready; live hosting not proven by this audit** | GPU-oriented Magnanimous adapter; no provider should be reported live without health evidence |
+| Video renderer | **Source-ready; independent live hosting not proven by this audit** | Replaceable renderer behind Magnanimous video contracts |
+| Video gateway | **Source-ready; independent live hosting not proven by this audit** | Edge/gateway adapter |
+| Local Bridge | **Device-bound readiness; no specific paired device was promoted to live by this audit** | Owner-controlled local execution; health requires a real paired heartbeat |
+| Legacy/backend FastAPI source | **Source-ready; no separate live Railway service verified** | Compatibility/service code, not an independently proven production service |
+
+**Audit rule:** source code, a manifest, a Docker image, a stored credential, or a provider account is not enough to claim a service is live. Live status requires runtime/deployment evidence or a successful authenticated health/capability probe.
+
 ## Q&A / operating decisions
 
 **Should Magnanimous switch to Genesys, Five9, NiCE, Talkdesk, RingCX or Amazon Connect?**  
