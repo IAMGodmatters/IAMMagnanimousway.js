@@ -313,7 +313,9 @@ export default {
         const nativeOperationsResponse = await handleNativeWorkCrm(policyRequest, env);
         if (nativeOperationsResponse) return finalizeResponse(request,await securityPostflight(policyRequest, nativeOperationsResponse, env));
       }
-      const rawResponse = await app.fetch(policyRequest, env, ctx);
+      const providerAwarePath=/^\/api\/(?:phone|contact-center|telecom|voice-agent)(?:\/|$)/.test(routedUrl.pathname);
+      const executionEnv=providerAwarePath?await getProviderRuntimeEnv(env):env;
+      const rawResponse = await app.fetch(policyRequest, executionEnv, ctx);
       const response = await hideServerOnlyCredentialMetadata(policyRequest,rawResponse);
       const resilientResponse = continuityRequest ? await recoverProfessionalGeneration(continuityRequest, env, response) : response;
       const sessionResponse=await upgradeAuthResponseToOpaque(request,resilientResponse,env);
