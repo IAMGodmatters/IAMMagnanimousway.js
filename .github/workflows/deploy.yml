@@ -17,7 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          fetch-depth: 2
+          fetch-depth: 50
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -503,11 +503,16 @@ jobs:
             gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha'
           }
 
+          runtime_target="$(git rev-list -1 "$GITHUB_SHA" -- magnanimous-runtime/ worker/ frontend/ video-gateway/ api/ package.json package-lock.json)"
+          if [ -z "$runtime_target" ]; then
+            runtime_target="$GITHUB_SHA"
+          fi
+
           is_safe_main_lineage() {
             local candidate="$1" main_sha target_status main_status
             [ -n "$candidate" ] || return 1
             main_sha="$(current_main)"
-            target_status="$(gh api "repos/$GITHUB_REPOSITORY/compare/${GITHUB_SHA}...${candidate}" --jq '.status' 2>/dev/null || true)"
+            target_status="$(gh api "repos/$GITHUB_REPOSITORY/compare/${runtime_target}...${candidate}" --jq '.status' 2>/dev/null || true)"
             main_status="$(gh api "repos/$GITHUB_REPOSITORY/compare/${candidate}...${main_sha}" --jq '.status' 2>/dev/null || true)"
             [[ "$target_status" == "ahead" || "$target_status" == "identical" ]] &&
             [[ "$main_status" == "ahead" || "$main_status" == "identical" ]]
@@ -523,12 +528,12 @@ jobs:
                 break
               fi
             fi
-            echo "Waiting for Railway session plane to contain $GITHUB_SHA or a newer verified main descendant (live=${live:-unknown}, attempt $attempt/90)."
+            echo "Waiting for Railway session plane to contain runtime target $runtime_target or a newer verified main descendant (live=${live:-unknown}, workflow_sha=$GITHUB_SHA, attempt $attempt/90)."
             sleep 10
           done
 
           [ "$success" = "1" ] || { echo "::error::Railway session plane did not catch up before production smoke."; exit 1; }
-          echo "Shared session plane ready for smoke: target=$GITHUB_SHA live=$live"
+          echo "Shared session plane ready for smoke: workflow_sha=$GITHUB_SHA runtime_target=$runtime_target live=$live"
           rm -f /tmp/magnanimous-session-plane-health.json
       - name: Production smoke test
         working-directory: worker
