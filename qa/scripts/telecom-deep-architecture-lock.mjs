@@ -43,6 +43,7 @@ const turnEntrypoint=read('telecom-core/turn-relay/entrypoint.sh');
 const tailscaleBootstrap=read('telecom-core/deploy/bootstrap-tailscale-funnel.sh');
 const tailscaleRenew=read('telecom-core/deploy/renew-tailscale-funnel-tls.sh');
 const tailscaleRenewInstaller=read('telecom-core/deploy/install-tailscale-funnel-renewal.sh');
+const tailscaleBootstrapTest=read('telecom-core/deploy/test-tailscale-funnel-bootstrap.sh');
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
@@ -170,6 +171,9 @@ has(tailscaleRenew,'openssl x509 -checkend','certificate renewal avoids unnecess
 has(tailscaleRenewInstaller,'OnUnitActiveSec=1d','root-owned systemd timer checks certificate age daily');
 has(tailscaleRenewInstaller,'Persistent=true','certificate renewal timer catches up after downtime');
 has(tailscaleRenewInstaller,'ExecStart=/usr/bin/env bash','certificate renewal runs the checked-in Magnanimous helper explicitly');
+has(tailscaleBootstrapTest,'Tailscale Funnel bootstrap simulation passed.','free edge bootstrap has a deterministic no-network CI simulation');
+has(tailscaleBootstrapTest,'ASTERISK_HTTPS_PORT=9443','free edge simulation proves configured local WSS port forwarding');
+has(tailscaleBootstrapTest,'MAGNANIMOUS_TURN_TLS_PORT=9555','free edge simulation proves configured local TURN port forwarding');
 has(publicHostDoc,'### Free-first Tailscale Funnel edge','public host guide documents the no-additional-cost TCP/TLS edge');
 has(publicBootstrap,'ENABLE_TURN_RELAY','public firewall exposes TURN ports only through an explicit deployment gate');
 has(publicWorkflow,'TELECOM_PUBLIC_TURN_URLS','strict public verification receives operator-selected TURN URLs');
