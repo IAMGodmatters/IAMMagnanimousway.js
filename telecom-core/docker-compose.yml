@@ -104,25 +104,6 @@ services:
     volumes:
       - ${ASTERISK_CERTS_DIR:-./certs}:/certs:ro
 
-  turn-relay:
-    profiles: ["turn-relay"]
-    build:
-      context: ./turn-relay
-    restart: unless-stopped
-    network_mode: host
-    environment:
-      MAGNANIMOUS_TURN_REALM: ${MAGNANIMOUS_TURN_REALM:-${MAGNANIMOUS_SIP_DOMAIN}}
-      MAGNANIMOUS_TURN_AUTH_SECRET: ${MAGNANIMOUS_TURN_AUTH_SECRET}
-      MAGNANIMOUS_TURN_TLS_CERT_FILE: ${MAGNANIMOUS_TURN_TLS_CERT_FILE:-/certs/fullchain.pem}
-      MAGNANIMOUS_TURN_TLS_KEY_FILE: ${MAGNANIMOUS_TURN_TLS_KEY_FILE:-/certs/privkey.pem}
-      MAGNANIMOUS_TURN_PORT: ${MAGNANIMOUS_TURN_PORT:-3478}
-      MAGNANIMOUS_TURN_TLS_PORT: ${MAGNANIMOUS_TURN_TLS_PORT:-5349}
-      MAGNANIMOUS_TURN_MIN_PORT: ${MAGNANIMOUS_TURN_MIN_PORT:-49160}
-      MAGNANIMOUS_TURN_MAX_PORT: ${MAGNANIMOUS_TURN_MAX_PORT:-49260}
-      TELECOM_PUBLIC_IP: ${TELECOM_PUBLIC_IP:-}
-    volumes:
-      - ${ASTERISK_CERTS_DIR:-./certs}:/certs:ro
-
   control-api:
     build:
       context: ./control-api
