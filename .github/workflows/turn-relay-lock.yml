@@ -6,6 +6,10 @@ on:
     paths:
       - 'telecom-core/turn-relay/**'
       - 'telecom-core/asterisk/entrypoint.sh'
+      - 'telecom-core/control-api/app/config.py'
+      - 'telecom-core/control-api/app/main.py'
+      - 'telecom-core/control-api/app/services/health.py'
+      - 'telecom-core/control-api/app/services/webrtc_sessions.py'
       - 'telecom-core/deploy/bootstrap-tailscale-funnel.sh'
       - 'telecom-core/deploy/renew-tailscale-funnel-tls.sh'
       - 'telecom-core/deploy/install-tailscale-funnel-renewal.sh'
@@ -17,6 +21,10 @@ on:
     paths:
       - 'telecom-core/turn-relay/**'
       - 'telecom-core/asterisk/entrypoint.sh'
+      - 'telecom-core/control-api/app/config.py'
+      - 'telecom-core/control-api/app/main.py'
+      - 'telecom-core/control-api/app/services/health.py'
+      - 'telecom-core/control-api/app/services/webrtc_sessions.py'
       - 'telecom-core/deploy/bootstrap-tailscale-funnel.sh'
       - 'telecom-core/deploy/renew-tailscale-funnel-tls.sh'
       - 'telecom-core/deploy/install-tailscale-funnel-renewal.sh'
@@ -39,6 +47,7 @@ jobs:
       - name: Validate relay and free-edge script syntax
         run: |
           sh -n telecom-core/turn-relay/entrypoint.sh
+          sh -n telecom-core/asterisk/entrypoint.sh
           bash -n telecom-core/deploy/bootstrap-tailscale-funnel.sh
           bash -n telecom-core/deploy/renew-tailscale-funnel-tls.sh
           bash -n telecom-core/deploy/install-tailscale-funnel-renewal.sh
@@ -86,6 +95,29 @@ jobs:
           sleep 3
           test "$(docker inspect -f '{{.State.Running}}' magnanimous-turn-relay-ci)" = "true"
           docker logs magnanimous-turn-relay-ci
+
+      - name: Reject contradictory Asterisk relay-local settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          common_env=(
+            ASTERISK_ARI_USER=ci-ari
+            ASTERISK_ARI_PASSWORD=ci-ari-value
+            MAGNANIMOUS_AI_PASSWORD=ci-ai-value
+            MAGNANIMOUS_ADMIN_PASSWORD=ci-admin-value
+            MAGNANIMOUS_SIP_DOMAIN=relay.test
+            MAGNANIMOUS_RELAY_LOCAL_MEDIA=true
+          )
+          if env "${common_env[@]}" TELECOM_PUBLIC_IP=203.0.113.10 \
+            sh telecom-core/asterisk/entrypoint.sh true; then
+            echo "Asterisk relay-local mode incorrectly accepted TELECOM_PUBLIC_IP" >&2
+            exit 1
+          fi
+          if env "${common_env[@]}" ASTERISK_STUN_SERVER=stun.example.test:3478 \
+            sh telecom-core/asterisk/entrypoint.sh true; then
+            echo "Asterisk relay-local mode incorrectly accepted ASTERISK_STUN_SERVER" >&2
+            exit 1
+          fi
 
       - name: Reject public IP in relay-local media mode
         shell: bash
