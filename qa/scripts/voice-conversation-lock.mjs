@@ -7,6 +7,7 @@ const natural = fs.readFileSync('frontend/lib/natural-speech.ts', 'utf8');
 const agents = fs.readFileSync('frontend/app/agents/page.tsx', 'utf8');
 const videoAgents = fs.readFileSync('frontend/app/agent-video/page.tsx', 'utf8');
 const virtualAssistant = fs.readFileSync('frontend/app/virtual-assistant/page.tsx', 'utf8');
+const productionSmoke = fs.readFileSync('.github/workflows/voice-conversation-production-smoke.yml', 'utf8');
 
 const contracts = [
   ['speech output is primed from a user gesture', /function primeSpeechSynthesis\(\)/, source],
@@ -39,6 +40,10 @@ const contracts = [
   ['agent workspace uses shared natural speech', /speakTextNaturally\(text/, agents],
   ['live video agents use shared natural speech', /speakTextNaturally\(text/, videoAgents],
   ['virtual assistant uses shared natural speech', /speakTextNaturally\(output/, virtualAssistant],
+  ['production voice smoke waits for finalized deploy metadata', /for attempt in range\(1, 13\)/, productionSmoke],
+  ['production voice smoke accepts docs-only deploy skips without false failure', /deploy_conclusion == 'skipped'/, productionSmoke],
+  ['production voice smoke binds QA checkout to the triggering deployed SHA', /deployed_sha=\{trigger_sha\}/, productionSmoke],
+  ['production voice smoke verifies the triggering workflow succeeded', /trigger_conclusion != 'success'/, productionSmoke],
 ];
 
 let failed = false;
