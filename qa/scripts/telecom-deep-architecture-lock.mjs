@@ -30,6 +30,9 @@ const publicBootstrap=read('telecom-core/deploy/bootstrap-public-host.sh');
 const publicTlsSync=read('telecom-core/deploy/sync-public-tls.sh');
 const publicHostDoc=read('telecom-core/PUBLIC-HOST.md');
 const compose=read('telecom-core/docker-compose.yml');
+const sessionService=read('telecom-core/control-api/app/services/webrtc_sessions.py');
+const lifecycle=read('telecom-core/control-api/app/lifecycle.py');
+const sorcery=read('telecom-core/asterisk/templates/sorcery.conf.template');
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
@@ -106,6 +109,22 @@ has(publicBootstrap,'ENABLE_UFW=true requires ADMIN_SSH_CIDR','firewall bootstra
 has(publicBootstrap,'ufw allow 10000:20000/udp','public bootstrap exposes the Asterisk RTP range when explicitly enabled');
 has(publicTlsSync,'install -m 0600','host certificate sync preserves root-only private key permissions');
 has(publicHostDoc,'Do not set `TELECOM_NATIVE_WEBRTC_LIVE=true` before the public verification workflow succeeds.','public host guide preserves the live-verification truth gate');
+has(sorcery,'auth=astdb,ps_auths','Asterisk Sorcery stores dynamic WebRTC auth objects outside static config');
+has(sorcery,'endpoint=astdb,ps_endpoints','Asterisk Sorcery supports runtime-created browser endpoints');
+has(sessionService,'PREFIX = "web_"','ephemeral browser endpoints have a dedicated revocable namespace');
+has(sessionService,'secrets.token_urlsafe(24)','ephemeral browser credentials use generated high-entropy secrets');
+has(sessionService,'"password_returned_once": True','ephemeral browser password is explicitly one-time return data');
+has(sessionService,'"max_contacts": "1"','each ephemeral browser identity is limited to one registered contact');
+has(sessionService,'"pstn_direct": False','ephemeral browser session contract forbids direct PSTN dialing');
+has(sessionService,'"allowed_call_scope": ["internal-magnanimous", "diagnostic-echo"]','ephemeral browser call scope remains internal and diagnostic');
+has(sessionService,'webrtc_session_ttl_seconds','ephemeral browser session lifetime is bounded');
+has(sessionService,'await self.reap_expired()','new session issuance reaps stale dynamic endpoints');
+has(lifecycle,'reap_loop()','Telecom Core runs background cleanup for expired browser identities');
+lacks(api,'import asyncio','HTTP route layer does not own WebRTC session cleanup lifecycle');
+has(extensions,'[magnanimous-webrtc-session]','ephemeral browser identities use a dedicated restricted Asterisk context');
+has(extensions,'exten => _+X.,1,Playback(ss-noservice)','ephemeral browser context blocks direct public-number dialing');
+has(webrtcWorkflow,'Issue ephemeral native browser credential','real Chromium test obtains its browser credential from Telecom Core');
+has(webrtcWorkflow,'Verify Asterisk removed ephemeral endpoint','real Chromium test proves endpoint revocation after use');
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [label,ok] of checks)console.log((ok?'PASS':'FAIL')+': '+label);
