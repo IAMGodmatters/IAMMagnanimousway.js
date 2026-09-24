@@ -15,6 +15,15 @@ if [ ! -r "$MAGNANIMOUS_TURN_TLS_KEY_FILE" ]; then
   exit 1
 fi
 
+case "$(printf '%s' "${MAGNANIMOUS_RELAY_LOCAL_MEDIA:-false}" | tr '[:upper:]' '[:lower:]')" in
+  1|true|yes|on) relay_local_media=yes ;;
+  *) relay_local_media=no ;;
+esac
+if [ "$relay_local_media" = yes ] && [ -n "${TELECOM_PUBLIC_IP:-}" ]; then
+  echo "Relay-local media mode must not set TELECOM_PUBLIC_IP." >&2
+  exit 1
+fi
+
 listen_port="${MAGNANIMOUS_TURN_PORT:-3478}"
 tls_port="${MAGNANIMOUS_TURN_TLS_PORT:-5349}"
 min_port="${MAGNANIMOUS_TURN_MIN_PORT:-49160}"
