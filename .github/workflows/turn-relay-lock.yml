@@ -13,6 +13,7 @@ on:
       - 'telecom-core/deploy/bootstrap-tailscale-funnel.sh'
       - 'telecom-core/deploy/renew-tailscale-funnel-tls.sh'
       - 'telecom-core/deploy/install-tailscale-funnel-renewal.sh'
+      - 'telecom-core/deploy/test-tailscale-funnel-bootstrap.sh'
       - 'telecom-core/docker-compose.yml'
       - 'telecom-core/.env.owned.example'
       - 'qa/scripts/telecom-deep-architecture-lock.mjs'
@@ -28,6 +29,7 @@ on:
       - 'telecom-core/deploy/bootstrap-tailscale-funnel.sh'
       - 'telecom-core/deploy/renew-tailscale-funnel-tls.sh'
       - 'telecom-core/deploy/install-tailscale-funnel-renewal.sh'
+      - 'telecom-core/deploy/test-tailscale-funnel-bootstrap.sh'
       - 'telecom-core/docker-compose.yml'
       - 'telecom-core/.env.owned.example'
       - 'qa/scripts/telecom-deep-architecture-lock.mjs'
@@ -51,6 +53,10 @@ jobs:
           bash -n telecom-core/deploy/bootstrap-tailscale-funnel.sh
           bash -n telecom-core/deploy/renew-tailscale-funnel-tls.sh
           bash -n telecom-core/deploy/install-tailscale-funnel-renewal.sh
+          bash -n telecom-core/deploy/test-tailscale-funnel-bootstrap.sh
+
+      - name: Simulate free Tailscale Funnel bootstrap
+        run: bash telecom-core/deploy/test-tailscale-funnel-bootstrap.sh
 
       - name: Validate opt-in Telecom Compose profile
         env:
