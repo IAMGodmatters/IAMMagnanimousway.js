@@ -8,6 +8,8 @@ on:
       - 'telecom-core/asterisk/entrypoint.sh'
       - 'telecom-core/deploy/bootstrap-tailscale-funnel.sh'
       - 'telecom-core/deploy/renew-tailscale-funnel-tls.sh'
+      - 'telecom-core/deploy/install-tailscale-funnel-renewal.sh'
+      - 'telecom-core/deploy/install-tailscale-funnel-renewal.sh'
       - 'telecom-core/docker-compose.yml'
       - 'telecom-core/.env.owned.example'
       - 'qa/scripts/telecom-deep-architecture-lock.mjs'
@@ -39,6 +41,7 @@ jobs:
           sh -n telecom-core/turn-relay/entrypoint.sh
           bash -n telecom-core/deploy/bootstrap-tailscale-funnel.sh
           bash -n telecom-core/deploy/renew-tailscale-funnel-tls.sh
+          bash -n telecom-core/deploy/install-tailscale-funnel-renewal.sh
 
       - name: Validate opt-in Telecom Compose profile
         env:
