@@ -130,6 +130,7 @@ has(sessionService,'credentialType": "password"','TURN ICE server contract uses 
 has(sessionService,'"turn_relay_configured": bool(ice_servers)','session truthfully reports whether relay settings were actually issued');
 has(compose,'MAGNANIMOUS_TURN_AUTH_SECRET','compose passes TURN auth only into the protected Telecom Core control plane');
 has(compose,'profiles: ["turn-relay"]','owned TURN relay is opt-in and cannot start in the default Telecom Core profile');
+checks.push(['compose defines exactly one TURN relay service',(compose.match(/\n  turn-relay:/g)||[]).length===1]);
 has(compose,'context: ./turn-relay','compose can build the owned TURN relay when explicitly enabled');
 has(turnDocker,'coturn/coturn:4.18.0-r0','owned TURN relay pins the verified coturn release');
 has(turnEntrypoint,'use-auth-secret','TURN relay uses coturn REST secret authentication');
