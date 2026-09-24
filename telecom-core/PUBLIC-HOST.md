@@ -33,6 +33,18 @@ The Telecom Core supports this without exposing the long-term TURN secret to the
 
 Each browser SIP session receives only a timestamped temporary username and HMAC-derived temporary TURN credential. Relay-only mode fails closed when TURN is absent or malformed.
 
+The repository also includes an opt-in owned coturn runtime. It is disabled in normal Compose startup and only starts with the explicit profile:
+
+```bash
+docker compose --profile turn-relay up -d turn-relay
+```
+
+Before starting it, set the TURN realm, shared auth secret, TLS certificate/key paths, and relay port range in `telecom-core/.env`. The coturn image is pinned to `4.18.0-r0`; its runtime disables anonymous access, disables UDP client listeners for the TCP/TLS-first browser path, keeps UDP relay endpoints available for media forwarding, and refuses startup when the TLS files or shared secret are missing.
+
+For a dedicated public Linux host, set `ENABLE_TURN_RELAY=true` during the safe firewall bootstrap only when this relay is intentionally being deployed. That opens the configured TURN TLS/TCP listener and relay UDP range in addition to the existing Asterisk rules. Leave it false otherwise.
+
+Railway can expose a raw TCP service through TCP Proxy and its private network supports UDP between services. That makes a future **separate** TURN-over-TCP/TLS edge plus private-UDP Asterisk topology technically testable, but it is not enabled here and it would require creating/configuring telecom-specific Railway services. Do not create those services or incur additional runtime cost without the existing paid-resource approval gate.
+
 This source support does **not** make Railway, coturn, or any relay production-live. A relay deployment must still prove trusted signaling plus real bidirectional browser media from an external network before `TELECOM_NATIVE_WEBRTC_LIVE=true`.
 
 ## Safe bootstrap
