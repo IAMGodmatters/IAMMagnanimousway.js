@@ -21,6 +21,7 @@ import { handleCallCenterHealth } from './call-center-health-runtime.js';
 import { handleContactCenter } from './contact-center-runtime.js';
 import { handleContactCenterDialGuard } from './contact-center-dial-runtime.js';
 import { handleProfessionalIvrStep } from './contact-center-ivr-routing-runtime.js';
+import { handleNativeSoftphone } from './native-softphone-runtime.js';
 import { handleTwilioSoftphone } from './twilio-softphone-runtime.js';
 import { handleBpoOperations } from './bpo-operations-runtime.js';
 import { handleEnterpriseCommercialization } from './enterprise-commercialization-runtime.js';
@@ -58,7 +59,7 @@ export default{async fetch(request,env,ctx){const url=new URL(request.url);if(re
  const premium=await premiumPreflight(request,providerEnv);if(premium.response)return withCors(premium.response);request=premium.request||request;
  if(url.pathname.startsWith('/api/enterprise')){const r=await handleEnterpriseCommercialization(request,providerEnv);if(r)return withCors(r);}
  if(url.pathname.startsWith('/api/social-connect')){const r=await handleSocialPublishing(request,providerEnv);if(r)return withCors(r);}
- if(url.pathname.startsWith('/api/contact-center')){const a=await handleTwilioSoftphone(request,providerEnv);if(a)return withCors(a);const b=await handleProfessionalIvrStep(request,providerEnv);if(b)return withCors(b);const c=await handleContactCenterDialGuard(request,providerEnv);if(c)return withCors(c);const d=await handleContactCenter(request,providerEnv);if(d)return withCors(await premiumPostprocess(d,providerEnv,premium.context));}
+ if(url.pathname.startsWith('/api/contact-center')){const native=await handleNativeSoftphone(request,providerEnv);if(native)return withCors(native);const a=await handleTwilioSoftphone(request,providerEnv);if(a)return withCors(a);const b=await handleProfessionalIvrStep(request,providerEnv);if(b)return withCors(b);const c=await handleContactCenterDialGuard(request,providerEnv);if(c)return withCors(c);const d=await handleContactCenter(request,providerEnv);if(d)return withCors(await premiumPostprocess(d,providerEnv,premium.context));}
  if(url.pathname.startsWith('/api/bpo')){const r=await handleBpoOperations(request,env);if(r)return withCors(r);}
  if(url.pathname.startsWith('/api/wellness')){const r=await handleWellness(request,providerEnv);if(r)return withCors(r);}
  if(url.pathname.startsWith('/api/magnanimous/sovereign')){const r=await handleMagnanimousSovereign(request,providerEnv);if(r)return withCors(r);}
