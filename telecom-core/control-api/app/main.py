@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from .container import ApplicationContainer, get_container
 from .errors import TelecomError
-from .models import HangupRequest, OutboundCall, SipAccountCreate
+from .models import HangupRequest, OutboundCall, RecordingRequest, SipAccountCreate, TransferRequest
 
 app = FastAPI(
     title="Magnanimous Telecom Core",
@@ -109,3 +109,51 @@ async def get_call(
     container: ApplicationContainer = Depends(get_container),
 ) -> dict[str, Any]:
     return await container.calls.get(provider_call_id)
+
+
+@app.post("/v1/calls/{provider_call_id}/hold", dependencies=[Depends(require_token)])
+async def hold_call(
+    provider_call_id: str,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.calls.hold(provider_call_id)
+
+
+@app.delete("/v1/calls/{provider_call_id}/hold", dependencies=[Depends(require_token)])
+async def unhold_call(
+    provider_call_id: str,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.calls.unhold(provider_call_id)
+
+
+@app.post("/v1/calls/{provider_call_id}/transfer", dependencies=[Depends(require_token)])
+async def transfer_call(
+    provider_call_id: str,
+    request: TransferRequest,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.calls.transfer(provider_call_id, request.endpoint)
+
+
+@app.post("/v1/calls/{provider_call_id}/recording", dependencies=[Depends(require_token)])
+async def start_call_recording(
+    provider_call_id: str,
+    request: RecordingRequest,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.calls.start_recording(
+        provider_call_id,
+        consent_confirmed=request.consent_confirmed,
+        format=request.format,
+        max_duration_seconds=request.max_duration_seconds,
+        beep=request.beep,
+    )
+
+
+@app.delete("/v1/calls/{provider_call_id}/recording", dependencies=[Depends(require_token)])
+async def stop_call_recording(
+    provider_call_id: str,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.calls.stop_recording(provider_call_id)
