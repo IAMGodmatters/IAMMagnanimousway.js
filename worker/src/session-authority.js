@@ -119,7 +119,7 @@ export async function resolveSessionRequest(request,env,requestId=''){
   const headers=new Headers(request.headers);
   headers.set('authorization',`Bearer ${compat}`);
   if(requestId)headers.set('x-request-id',requestId);
-  return{request:new Request(request,{headers}),opaque:true,session:{token_hash:hash,user_id:row.user_id,tenant_id:row.tenant_id,role:row.role,expires_at:cappedExpiry}};
+  return{request:new Request(request.clone(),{headers}),opaque:true,session:{token_hash:hash,user_id:row.user_id,tenant_id:row.tenant_id,role:row.role,expires_at:cappedExpiry}};
 }
 
 export async function revokeOpaqueSession(request,env,reason='logout'){
