@@ -97,6 +97,7 @@ jobs:
             -e MAGNANIMOUS_TURN_MIN_PORT=49260 \
             -e MAGNANIMOUS_TURN_MAX_PORT=49270 \
             -e MAGNANIMOUS_RELAY_LOCAL_MEDIA=true \
+            -e MAGNANIMOUS_TURN_ALLOWED_PEER_IP=100.64.0.10 \
             magnanimous-turn-relay:ci
           sleep 3
           test "$(docker inspect -f '{{.State.Running}}' magnanimous-turn-relay-ci)" = "true"
@@ -113,6 +114,7 @@ jobs:
             MAGNANIMOUS_ADMIN_PASSWORD=ci-admin-value
             MAGNANIMOUS_SIP_DOMAIN=relay.test
             MAGNANIMOUS_RELAY_LOCAL_MEDIA=true
+            MAGNANIMOUS_TURN_ALLOWED_PEER_IP=100.64.0.10
           )
           if env "${common_env[@]}" TELECOM_PUBLIC_IP=203.0.113.10 \
             sh telecom-core/asterisk/entrypoint.sh true; then
@@ -136,11 +138,22 @@ jobs:
             -e MAGNANIMOUS_TURN_TLS_CERT_FILE=/certs/fullchain.pem \
             -e MAGNANIMOUS_TURN_TLS_KEY_FILE=/certs/privkey.pem \
             -e MAGNANIMOUS_RELAY_LOCAL_MEDIA=true \
+            -e MAGNANIMOUS_TURN_ALLOWED_PEER_IP=100.64.0.10 \
             -e TELECOM_PUBLIC_IP=203.0.113.10 \
             magnanimous-turn-relay:ci; then
             echo "relay-local mode incorrectly accepted TELECOM_PUBLIC_IP" >&2
             exit 1
           fi
+
+      - name: Verify relay-local TURN peer isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec magnanimous-turn-relay-ci sh -c \
+            "grep -Fx 'relay-ip=100.64.0.10' /tmp/magnanimous-turnserver.conf &&
+             grep -Fx 'denied-peer-ip=0.0.0.0-255.255.255.255' /tmp/magnanimous-turnserver.conf &&
+             grep -Fx 'denied-peer-ip=::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff' /tmp/magnanimous-turnserver.conf &&
+             grep -Fx 'allowed-peer-ip=100.64.0.10' /tmp/magnanimous-turnserver.conf"
 
       - name: Stop relay
         if: always()
