@@ -15,6 +15,7 @@ ASTERISK_WSS_LOCAL_PORT="${ASTERISK_HTTPS_PORT:-8089}"
 TURN_TLS_LOCAL_PORT="${MAGNANIMOUS_TURN_TLS_PORT:-5349}"
 CONTROL_API_LOCAL_PORT="${TELECOM_CONTROL_API_PORT:-8080}"
 INSTALL_TAILSCALE="${INSTALL_TAILSCALE:-false}"
+INSTALL_CERT_RENEWAL_TIMER="${INSTALL_CERT_RENEWAL_TIMER:-true}"
 
 if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
   echo "Docker with Compose v2 is required before enabling the Tailscale edge." >&2
@@ -125,6 +126,14 @@ openssl s_client \
   </dev/null >/dev/null
 
 curl -fsS --connect-timeout 10 --max-time 30 "https://${TAILSCALE_FQDN}:10000/health" >/dev/null
+
+if [[ "${INSTALL_CERT_RENEWAL_TIMER,,}" =~ ^(1|true|yes|on)$ ]] && command -v systemctl >/dev/null 2>&1; then
+  MAGNANIMOUS_REPO_PATH="${REPO_ROOT}" \
+  TELECOM_ROOT="${TELECOM_ROOT}" \
+  TELECOM_ENV_FILE="${TELECOM_ENV_FILE}" \
+  TAILSCALE_EDGE_ENV_FILE="${EDGE_ENV}" \
+    bash "${REPO_ROOT}/telecom-core/deploy/install-tailscale-funnel-renewal.sh"
+fi
 
 echo
 echo "Magnanimous Telecom free TCP/TLS edge is prepared:"
