@@ -56,6 +56,8 @@ A no-additional-cost proof/edge topology is also source-ready for an **always-on
 
 This mode uses the trusted Tailscale `*.ts.net` certificate on Asterisk and coturn, forces browser ICE to TURN relay mode, and deliberately leaves `TELECOM_PUBLIC_IP` and `ASTERISK_STUN_SERVER` empty. Set `MAGNANIMOUS_RELAY_LOCAL_MEDIA=true`; the Asterisk and coturn entrypoints fail closed if a public-IP advertisement is accidentally combined with this topology.
 
+The bootstrap also discovers the node's Tailscale IPv4 and sets it as `MAGNANIMOUS_TURN_ALLOWED_PEER_IP`. In relay-local mode, Asterisk's ICE ACL advertises only that exact host candidate. Coturn binds its relay address to the same Tailscale IPv4, denies all IPv4/IPv6 peers by default, and explicitly re-allows only that exact address. This prevents a temporary TURN credential from becoming a general relay into the host LAN or other reachable networks.
+
 The host bootstrap is:
 
 ```bash
