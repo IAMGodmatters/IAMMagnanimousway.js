@@ -31,6 +31,13 @@ const telecomEnv=read('telecom-core/.env.owned.example');
 const networkUi=read('frontend/app/telecom/network/page.tsx');
 const deploy=read('.github/workflows/deploy.yml');
 const audit=read('docs/FULL-PLATFORM-TELECOM-AUDIT-2026-09-24.md');
+const legacyBackend=read('backend/app/main.py');
+const videoRenderer=read('video-renderer/server.py');
+const musicEngine=read('music-engine/app.py');
+const videoGateway=read('video-gateway/src/index.js');
+const telecomApi=read('telecom-core/control-api/app/main.py');
+const runtimeServer=read('magnanimous-runtime/src/server.mjs');
+const envExample=read('.env.example');
 
 has(entry,"import { handleContactCenter } from './contact-center-runtime.js';",'live Worker imports Contact Center');
 has(entry,'env=await getProviderRuntimeEnv(env);','live Worker overlays protected Provider Vault credentials');
@@ -58,6 +65,18 @@ has(deploy,'/api/contact-center/softphone/config','production deploy proves Soft
 has(audit,'source project but is not represented as a separate production Railway service','audit distinguishes source-ready Telecom from deployed Telecom');
 has(audit,'Credentials alone do not mean a carrier is live.','audit locks the provider truth boundary');
 has(audit,'Supervisor monitor/whisper/barge is **not** marked live.','audit refuses to overclaim unfinished supervisor audio');
+has(legacyBackend,"os.getenv('SESSION_SECRET', '')",'legacy standalone backend requires an explicit session secret');
+has(legacyBackend,"len(SESSION_SECRET) < 32",'legacy standalone backend rejects weak session secrets');
+has(legacyBackend,"len(ADMIN_PASSWORD) < 14",'legacy standalone backend rejects weak admin passwords');
+lacks(legacyBackend,"change-this-session-secret')",'legacy standalone backend has no active hard-coded session-secret fallback');
+lacks(legacyBackend,"change-this-password')",'legacy standalone backend has no active hard-coded admin-password fallback');
+has(legacyBackend,"CORS_ORIGINS",'legacy standalone backend uses an explicit browser-origin boundary');
+has(envExample,'CORS_ORIGINS=','standalone environment contract documents trusted CORS origins');
+has(videoRenderer,'@app.get("/health")','video renderer exposes a health endpoint');
+has(musicEngine,'@app.get("/health")','music engine exposes a health endpoint');
+has(videoGateway,'url.pathname === "/health"','video gateway exposes a health endpoint');
+has(telecomApi,'/health','telecom control API exposes a health endpoint');
+has(runtimeServer,"'/health'",'standalone Magnanimous runtime exposes a health endpoint');
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [label,ok] of checks) console.log((ok?'PASS':'FAIL')+': '+label);
