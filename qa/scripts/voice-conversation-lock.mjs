@@ -41,7 +41,8 @@ const contracts = [
   ['live video agents use shared natural speech', /speakTextNaturally\(text/, videoAgents],
   ['virtual assistant uses shared natural speech', /speakTextNaturally\(output/, virtualAssistant],
   ['production voice smoke waits for finalized deploy metadata', /for attempt in range\(1, 13\)/, productionSmoke],
-  ['production voice smoke accepts docs-only deploy skips without false failure', /deploy_conclusion == 'skipped'/, productionSmoke],
+  ['production voice smoke accepts fully skipped deploy jobs without false failure', /deploy_job_conclusion == 'skipped'/, productionSmoke],
+  ['production voice smoke accepts skipped deploy steps without false failure', /deploy_step_conclusion == 'skipped'/, productionSmoke],
   ['production voice smoke binds QA checkout to the triggering deployed SHA', /deployed_sha=\{trigger_sha\}/, productionSmoke],
   ['production voice smoke verifies the triggering workflow succeeded', /trigger_conclusion != 'success'/, productionSmoke],
 ];
