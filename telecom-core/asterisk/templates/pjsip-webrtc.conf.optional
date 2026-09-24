@@ -1,4 +1,9 @@
 ; Rendered only when ASTERISK_WEBRTC_ENABLED=true.
+[transport-wss]
+type=transport
+protocol=wss
+bind=0.0.0.0
+
 [${MAGNANIMOUS_WEBRTC_EXTENSION}]
 type=aor
 max_contacts=5
