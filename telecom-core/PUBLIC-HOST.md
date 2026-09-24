@@ -90,6 +90,11 @@ Configure this GitHub repository secret:
 
 - `TELECOM_PUBLIC_WEBRTC_PASSWORD`
 
+For a TURN/relay verification, also configure:
+
+- optional repository secret `TELECOM_PUBLIC_ICE_SERVERS_JSON` containing the temporary `RTCIceServer[]` JSON used by the external browser proof;
+- optional repository variable `TELECOM_PUBLIC_ICE_TRANSPORT_POLICY=relay` to force relay-only ICE during the proof.
+
 Then manually run **Public Telecom WebRTC Verification**.
 
 That workflow:
