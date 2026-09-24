@@ -62,12 +62,6 @@ class AsteriskSipCarrierBridge:
                 "sms": False,
                 "sim_esim_provisioning": False,
                 "number_provisioning": False,
-                "hold": True,
-                "transfer": True,
-                "recording": True,
-                "supervisor_monitor": False,
-                "supervisor_whisper": False,
-                "supervisor_barge": False,
             },
         }
 
@@ -115,49 +109,6 @@ class AsteriskSipCarrierBridge:
             caller=channel.get("caller", {}),
             connected=channel.get("connected", {}),
         )
-
-    async def hold(self, provider_call_id: str) -> None:
-        response = await self._ari.request("POST", f"/channels/{provider_call_id}/hold")
-        if response.status_code not in (204,):
-            raise CarrierRejectedError(response.text[:1000] or "Unable to place the call on hold.")
-
-    async def unhold(self, provider_call_id: str) -> None:
-        response = await self._ari.request("DELETE", f"/channels/{provider_call_id}/hold")
-        if response.status_code not in (204,):
-            raise CarrierRejectedError(response.text[:1000] or "Unable to remove the call from hold.")
-
-    async def transfer(self, provider_call_id: str, endpoint: str) -> None:
-        response = await self._ari.request("POST", f"/channels/{provider_call_id}/redirect", params={"endpoint": endpoint})
-        if response.status_code not in (204,):
-            raise CarrierRejectedError(response.text[:1000] or "Unable to transfer the call.")
-
-    async def start_recording(
-        self,
-        provider_call_id: str,
-        recording_name: str,
-        *,
-        format: str,
-        max_duration_seconds: int,
-        beep: bool,
-    ) -> None:
-        response = await self._ari.request(
-            "POST",
-            f"/channels/{provider_call_id}/record",
-            params={
-                "name": recording_name,
-                "format": format,
-                "maxDurationSeconds": max_duration_seconds,
-                "ifExists": "fail",
-                "beep": str(bool(beep)).lower(),
-            },
-        )
-        if response.status_code not in (200, 201):
-            raise CarrierRejectedError(response.text[:1000] or "Unable to start call recording.")
-
-    async def stop_recording(self, recording_name: str) -> None:
-        response = await self._ari.request("POST", f"/recordings/live/{recording_name}/stop")
-        if response.status_code not in (204, 404):
-            raise CarrierRejectedError(response.text[:1000] or "Unable to stop call recording.")
 
     async def health(self) -> dict[str, Any]:
         asterisk = await self._ari.request("GET", "/asterisk/info")
