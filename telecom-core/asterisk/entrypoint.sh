@@ -80,6 +80,17 @@ for template in /etc/asterisk/templates/*.template; do
   chmod 0640 "$target"
 done
 
+if [ "$ASTERISK_WEBRTC_ENABLED" = yes ] && [ -n "$TELECOM_PUBLIC_IP" ]; then
+  {
+    printf 'external_signaling_address=%s\n' "$TELECOM_PUBLIC_IP"
+    printf 'external_media_address=%s\n' "$TELECOM_PUBLIC_IP"
+  } > /etc/asterisk/pjsip-webrtc-public-address.conf
+else
+  printf '; Direct public interface or ICE/STUN discovery is used; no explicit external address configured.\n' > /etc/asterisk/pjsip-webrtc-public-address.conf
+fi
+chown root:asterisk /etc/asterisk/pjsip-webrtc-public-address.conf
+chmod 0640 /etc/asterisk/pjsip-webrtc-public-address.conf
+
 if [ "$ASTERISK_WEBRTC_ENABLED" = yes ]; then
   envsubst "$SUBST_VARS" < /etc/asterisk/templates/pjsip-webrtc.conf.optional > /etc/asterisk/pjsip-webrtc.conf
 else
