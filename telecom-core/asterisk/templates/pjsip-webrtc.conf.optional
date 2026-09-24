@@ -3,6 +3,7 @@
 type=transport
 protocol=wss
 bind=0.0.0.0
+#include pjsip-webrtc-public-address.conf
 
 [${MAGNANIMOUS_WEBRTC_EXTENSION}]
 type=aor
