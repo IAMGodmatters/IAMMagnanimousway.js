@@ -80,19 +80,25 @@ const PROVIDER_KEYS = new Set([
   'VIDEO_RENDERER_TOKEN'
 ]);
 
+function overlayRuntimeEnv(base,values={}){
+  const own={...base,...values};
+  return new Proxy(own,{get(target,key){return Reflect.has(target,key)?Reflect.get(target,key):base?.[key]}});
+}
 export async function getProviderRuntimeEnv(env) {
-  let merged = await getIntegrationRuntimeEnv(env);
+  const integrated = await getIntegrationRuntimeEnv(env);
   try {
     const bootstrap = await getBootstrapSecrets(env);
-    if (!bootstrap || !Object.keys(bootstrap).length) return merged;
-    merged = { ...merged };
+    if (!bootstrap || !Object.keys(bootstrap).length) return integrated;
+    const values = {};
     for (const [key, value] of Object.entries(bootstrap)) {
       if (!PROVIDER_KEYS.has(key)) continue;
-      if (typeof merged[key] === 'string' && merged[key].trim()) continue;
-      if (typeof value === 'string' && value.trim()) merged[key] = value.trim();
+      const existing=integrated?.[key];
+      if (typeof existing === 'string' && existing.trim()) continue;
+      if (typeof value === 'string' && value.trim()) values[key] = value.trim();
     }
+    return overlayRuntimeEnv(integrated,values);
   } catch (error) {
     console.error('provider runtime bootstrap merge failed', error);
   }
-  return merged;
+  return integrated;
 }
