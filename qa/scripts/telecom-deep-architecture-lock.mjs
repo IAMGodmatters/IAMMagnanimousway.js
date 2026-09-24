@@ -20,6 +20,7 @@ const env=read('telecom-core/.env.owned.example');
 const rootEnv=read('.env.example');
 const api=read('telecom-core/control-api/app/main.py');
 const health=read('telecom-core/control-api/app/services/health.py');
+const telecomConfig=read('telecom-core/control-api/app/config.py');
 const study=read('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md');
 const webrtcWorkflow=read('.github/workflows/native-webrtc-e2e.yml');
 const webrtcProbe=read('telecom-core/webrtc-e2e/run.mjs');
@@ -119,6 +120,14 @@ has(sessionService,'secrets.token_urlsafe(24)','ephemeral browser credentials us
 has(sessionService,'"password_returned_once": True','ephemeral browser password is explicitly one-time return data');
 has(sessionService,'"max_contacts": "1"','each ephemeral browser identity is limited to one registered contact');
 has(sessionService,'"pstn_direct": False','ephemeral browser session contract forbids direct PSTN dialing');
+has(telecomConfig,'MAGNANIMOUS_TURN_URLS','Telecom Core accepts operator-selected TURN URLs without hard-coding a provider');
+has(telecomConfig,'MAGNANIMOUS_TURN_AUTH_SECRET','TURN shared secret remains a server-side Telecom Core setting');
+has(telecomConfig,'MAGNANIMOUS_TURN_FORCE_RELAY','relay-only ICE is an explicit operator gate');
+has(sessionService,'hmac.new(','browser TURN credentials are derived per session rather than storing a browser-facing static password');
+has(sessionService,'credentialType": "password"','TURN ICE server contract uses browser password credentials');
+has(sessionService,'"turn_relay_configured": bool(ice_servers)','session truthfully reports whether relay settings were actually issued');
+has(compose,'MAGNANIMOUS_TURN_AUTH_SECRET','compose passes TURN auth only into the protected Telecom Core control plane');
+has(env,'MAGNANIMOUS_TURN_FORCE_RELAY=false','owned environment keeps relay-only mode disabled by default');
 has(sessionService,'"allowed_call_scope": ["internal-magnanimous", "diagnostic-echo"]','ephemeral browser call scope remains internal and diagnostic');
 has(sessionService,'webrtc_session_ttl_seconds','ephemeral browser session lifetime is bounded');
 has(sessionService,'await self.reap_expired()','new session issuance reaps stale dynamic endpoints');
@@ -142,6 +151,12 @@ has(agentSoftphone,"device.connect({params:{To:to}})",'main agent softphone keep
 lacks(agentSoftphone,'TELECOM_CORE_TOKEN','private Telecom Core bearer token never enters main softphone source');
 lacks(nativeSoftphone,'TELECOM_CORE_TOKEN','private Telecom Core bearer token never enters native WebRTC client source');
 has(nativeSoftphone,"extension==='911'||extension==='112'",'native browser client keeps emergency calling disabled');
+has(nativeSoftphone,'iceServers:Array.isArray(session.ice_servers)?session.ice_servers:[]','native browser client consumes only session-scoped ICE servers');
+has(nativeSoftphone,"iceTransportPolicy:session.ice_transport_policy==='relay'?'relay':'all'",'native browser client honors the explicit relay-only gate');
+lacks(nativeSoftphone,'MAGNANIMOUS_TURN_AUTH_SECRET','long-term TURN secret never enters the browser client');
+has(contact,"!/^turns?:/i.test(url)",'platform bridge rejects non-TURN ICE URLs returned by Telecom Core');
+has(contact,'ice_transport_policy:iceTransportPolicy','platform passes the validated ICE transport policy to the signed-in browser');
+has(webrtcProbe,'WEBRTC_ICE_SERVERS_JSON','real Chromium proof can consume the same ICE server contract as production');
 has(providerEnv,"'TELECOM_CORE_URL'",'server-side runtime can receive the native Telecom Core URL from the protected vault');
 has(providerEnv,"'TELECOM_CORE_TOKEN'",'server-side runtime can receive the native Telecom Core token from the protected vault');
 
