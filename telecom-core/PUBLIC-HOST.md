@@ -104,8 +104,11 @@ Configure this GitHub repository secret:
 
 For a TURN/relay verification, also configure:
 
-- optional repository secret `TELECOM_PUBLIC_ICE_SERVERS_JSON` containing the temporary `RTCIceServer[]` JSON used by the external browser proof;
-- optional repository variable `TELECOM_PUBLIC_ICE_TRANSPORT_POLICY=relay` to force relay-only ICE during the proof.
+- repository variable `TELECOM_PUBLIC_TURN_URLS` with one or more comma-separated `turns:` URLs;
+- repository secret `TELECOM_PUBLIC_TURN_AUTH_SECRET` with the same server-side coturn REST shared secret used by the relay;
+- repository variable `TELECOM_PUBLIC_ICE_TRANSPORT_POLICY=relay` to force relay-only ICE during the proof.
+
+The workflow derives a fresh 15-minute TURN credential on the GitHub runner, verifies every TURN TLS hostname/chain, and sends only the temporary credential to Chromium. The long-term TURN secret is never embedded in the browser probe.
 
 Then manually run **Public Telecom WebRTC Verification**.
 
