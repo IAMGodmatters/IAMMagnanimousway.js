@@ -15,6 +15,13 @@ EDGE_ENV="${TAILSCALE_EDGE_ENV_FILE:-${TELECOM_ROOT}/tailscale-funnel.env}"
 [[ -f "${TELECOM_ENV_FILE}" ]] || { echo "Missing ${TELECOM_ENV_FILE}" >&2; exit 1; }
 [[ -f "${EDGE_ENV}" ]] || { echo "Missing ${EDGE_ENV}; run bootstrap-tailscale-funnel.sh first." >&2; exit 1; }
 
+if [[ -s "${CERT_DIR}/fullchain.pem" && ! "${FORCE_TAILSCALE_CERT_RENEWAL:-false}" =~ ^(1|true|yes|on)$ ]]; then
+  if openssl x509 -checkend $((21 * 24 * 60 * 60)) -noout -in "${CERT_DIR}/fullchain.pem" >/dev/null 2>&1; then
+    echo "Tailscale TLS certificate is valid for more than 21 days; renewal not needed."
+    exit 0
+  fi
+fi
+
 status_json="$(tailscale status --json)"
 TAILSCALE_FQDN="$(printf '%s' "${status_json}" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(str((d.get("Self") or {}).get("DNSName") or "").rstrip("."))')"
 [[ "${TAILSCALE_FQDN}" == *.ts.net ]] || { echo "Invalid Tailscale Funnel hostname." >&2; exit 1; }
