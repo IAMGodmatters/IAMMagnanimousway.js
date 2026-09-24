@@ -5,6 +5,9 @@ on:
     branches: ['**']
     paths:
       - 'telecom-core/turn-relay/**'
+      - 'telecom-core/asterisk/entrypoint.sh'
+      - 'telecom-core/deploy/bootstrap-tailscale-funnel.sh'
+      - 'telecom-core/deploy/renew-tailscale-funnel-tls.sh'
       - 'telecom-core/docker-compose.yml'
       - 'telecom-core/.env.owned.example'
       - 'qa/scripts/telecom-deep-architecture-lock.mjs'
@@ -12,6 +15,9 @@ on:
   pull_request:
     paths:
       - 'telecom-core/turn-relay/**'
+      - 'telecom-core/asterisk/entrypoint.sh'
+      - 'telecom-core/deploy/bootstrap-tailscale-funnel.sh'
+      - 'telecom-core/deploy/renew-tailscale-funnel-tls.sh'
       - 'telecom-core/docker-compose.yml'
       - 'telecom-core/.env.owned.example'
       - 'qa/scripts/telecom-deep-architecture-lock.mjs'
@@ -28,8 +34,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Validate relay entrypoint syntax
-        run: sh -n telecom-core/turn-relay/entrypoint.sh
+      - name: Validate relay and free-edge script syntax
+        run: |
+          sh -n telecom-core/turn-relay/entrypoint.sh
+          bash -n telecom-core/deploy/bootstrap-tailscale-funnel.sh
+          bash -n telecom-core/deploy/renew-tailscale-funnel-tls.sh
 
       - name: Validate opt-in Telecom Compose profile
         env:
@@ -69,10 +78,28 @@ jobs:
             -e MAGNANIMOUS_TURN_TLS_PORT=53490 \
             -e MAGNANIMOUS_TURN_MIN_PORT=49260 \
             -e MAGNANIMOUS_TURN_MAX_PORT=49270 \
+            -e MAGNANIMOUS_RELAY_LOCAL_MEDIA=true \
             magnanimous-turn-relay:ci
           sleep 3
           test "$(docker inspect -f '{{.State.Running}}' magnanimous-turn-relay-ci)" = "true"
           docker logs magnanimous-turn-relay-ci
+
+      - name: Reject public IP in relay-local media mode
+        shell: bash
+        run: |
+          set -euo pipefail
+          if docker run --rm --network host \
+            -v /tmp/magnanimous-turn-ci/certs:/certs:ro \
+            -e MAGNANIMOUS_TURN_REALM=relay.test \
+            -e MAGNANIMOUS_TURN_AUTH_SECRET=ci-turn-value \
+            -e MAGNANIMOUS_TURN_TLS_CERT_FILE=/certs/fullchain.pem \
+            -e MAGNANIMOUS_TURN_TLS_KEY_FILE=/certs/privkey.pem \
+            -e MAGNANIMOUS_RELAY_LOCAL_MEDIA=true \
+            -e TELECOM_PUBLIC_IP=203.0.113.10 \
+            magnanimous-turn-relay:ci; then
+            echo "relay-local mode incorrectly accepted TELECOM_PUBLIC_IP" >&2
+            exit 1
+          fi
 
       - name: Stop relay
         if: always()
