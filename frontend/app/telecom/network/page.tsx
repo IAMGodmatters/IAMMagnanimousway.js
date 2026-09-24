@@ -109,7 +109,8 @@ export default function NetworkAuthorityPage(){
    <form className={styles.card} onSubmit={searchNumbers}><small>SAFE LIVE ACTION</small><h2>Search telephone numbers</h2><label>Country<select value={country} onChange={e=>setCountry(e.target.value)}><option value='US'>United States</option><option value='CA'>Canada</option><option value='PH'>Philippines</option></select></label><label>Area / destination code<input value={areaCode} onChange={e=>setAreaCode(e.target.value)} placeholder='Example: 512'/></label><button disabled={busy||!overview.readiness.telnyx}>SEARCH — NO PURCHASE</button><p className={styles.muted}>Paid number orders remain double-locked by a runtime enable flag plus an explicit purchase confirmation.</p></form>
   </section>
 
-  <section className={styles.inventory}><div className={styles.title}><div><small>MAGNANIMOUS CARRIER ROUTING</small><h2>Carrier Route Planner</h2></div><span>Preview only · no call is placed</span></div>
+  <section className={styles.inventory}>
+   <div className={styles.title}><div><small>MAGNANIMOUS CARRIER ROUTING</small><h2>Carrier Route Planner</h2></div><span>Preview only · no call is placed</span></div>
    <form className={styles.card} onSubmit={previewRoute}>
     <label>E.164 destination<input value={routeDestination} onChange={e=>setRouteDestination(e.target.value)} placeholder='+639171234567'/></label>
     <label>Routing policy<select value={routeMode} onChange={e=>setRouteMode(e.target.value)}><option value='balanced'>Balanced quality + cost</option><option value='least-cost'>Least cost</option><option value='priority'>Configured priority</option></select></label>
@@ -117,15 +118,12 @@ export default function NetworkAuthorityPage(){
     <p className={styles.muted}>Longest destination prefix wins first. Unhealthy routes are avoided. Balanced mode prefers configured quality then rate; least-cost prefers rate then quality; priority mode follows your route priorities first.</p>
    </form>
    {routePlan&&<div className={styles.grid}>
-    <article className={styles.card}><small>SELECTED ROUTE</small><h2>{routePlan.selected?.route||'No route'}</h2><p>{routePlan.selected?.interconnect||'Configure an interconnect and destination route.'}</p><p className={styles.muted}>Health: {routePlan.selected?.health||'—'} · Quality: {routePlan.selected?.quality_score??'—'} · Estimated rate: {routePlan.selected?.estimated_rate==null?'not entered':'<div className={styles.title}><div><small>AVAILABLE NUMBERS</small><h2>Read-only results</h2></div></div><div className={styles.table}>{numberResults.map((item:any)=><article key={item.phone_number}><div><b>{item.phone_number}</b><span>{item.cost_information?.currency||''} {item.cost_information?.monthly_cost||''}/mo</span></div><p>{(item.region_information||[]).map((region:any)=>region.region_name).filter(Boolean).join(', ')||'Available inventory'}</p><small>No purchase was made.</small></article>)}</div></section>}
-
-  <section className={styles.inventory}><div className={styles.title}><div><small>UNITED STATES</small><h2>FCC / network readiness</h2></div></div><div className={styles.grid}>{renderCases('US')}</div></section>
-  <section className={styles.inventory}><div className={styles.title}><div><small>PHILIPPINES</small><h2>NTC / network readiness</h2></div></div><div className={styles.grid}>{renderCases('PH')}</div></section>
-
-  <section className={styles.guardrail}><h2>What Magnanimous can absorb versus what must be granted</h2><p>APIs, routing, provisioning workflows, SIM/eSIM lifecycle, number ordering, emergency-service integrations and provider switching can live inside Magnanimous. Government licenses, spectrum rights, direct numbering authorization, host-network agreements and interconnection contracts must come from the authorized regulator/network party. This dashboard tracks those external grants without pretending code created them.</p></section>
- </main>
-}
-+routePlan.selected.estimated_rate+'/min'}</p></article>
+    <article className={styles.card}>
+     <small>SELECTED ROUTE</small>
+     <h2>{routePlan.selected?.route||'No route'}</h2>
+     <p>{routePlan.selected?.interconnect||'Configure an interconnect and destination route.'}</p>
+     <p className={styles.muted}>Health: {routePlan.selected?.health||'—'} · Quality: {routePlan.selected?.quality_score??'—'} · Estimated rate: {routePlan.selected?.estimated_rate==null?'not entered':'$'+routePlan.selected.estimated_rate+'/min'}</p>
+    </article>
     <article className={styles.card}><small>POLICY</small><h2>{routePlan.selection_mode||routeMode}</h2><p className={styles.muted}>{routePlan.policy}</p><p>{(routePlan.matches||[]).length} matching route(s)</p></article>
    </div>}
   </section>
