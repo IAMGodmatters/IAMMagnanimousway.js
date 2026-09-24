@@ -42,6 +42,7 @@ const turnDocker=read('telecom-core/turn-relay/Dockerfile');
 const turnEntrypoint=read('telecom-core/turn-relay/entrypoint.sh');
 const tailscaleBootstrap=read('telecom-core/deploy/bootstrap-tailscale-funnel.sh');
 const tailscaleRenew=read('telecom-core/deploy/renew-tailscale-funnel-tls.sh');
+const tailscaleRenewInstaller=read('telecom-core/deploy/install-tailscale-funnel-renewal.sh');
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
@@ -160,6 +161,10 @@ has(tailscaleBootstrap,'ASTERISK_STUN_SERVER=','free edge deliberately clears ST
 has(tailscaleBootstrap,'-verify_hostname','free edge verifies trusted public TLS hostnames before success');
 has(tailscaleBootstrap,'Do not set TELECOM_NATIVE_WEBRTC_LIVE=true','free edge preserves the external-proof truth gate');
 has(tailscaleRenew,'docker compose --profile turn-relay restart asterisk turn-relay','certificate renewal reloads both TLS consumers');
+has(tailscaleRenew,'openssl x509 -checkend','certificate renewal avoids unnecessary ACME requests until expiry approaches');
+has(tailscaleRenewInstaller,'OnUnitActiveSec=1d','root-owned systemd timer checks certificate age daily');
+has(tailscaleRenewInstaller,'Persistent=true','certificate renewal timer catches up after downtime');
+has(tailscaleRenewInstaller,'ExecStart=/usr/bin/env bash','certificate renewal runs the checked-in Magnanimous helper explicitly');
 has(publicHostDoc,'### Free-first Tailscale Funnel edge','public host guide documents the no-additional-cost TCP/TLS edge');
 has(publicBootstrap,'ENABLE_TURN_RELAY','public firewall exposes TURN ports only through an explicit deployment gate');
 has(publicWorkflow,'TELECOM_PUBLIC_TURN_URLS','strict public verification receives operator-selected TURN URLs');
