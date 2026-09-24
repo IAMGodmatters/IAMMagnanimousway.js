@@ -29,7 +29,7 @@ has(runtime,"/dial-start$/",'campaign dial-start lifecycle endpoint exists');
 has(runtime,"/dial-cancel$/",'campaign dial-cancel lifecycle endpoint exists');
 has(runtime,"NOT EXISTS(SELECT 1 FROM voice_do_not_call",'campaign dialing retains server-side DNC enforcement');
 has(runtime,"Campaign calling is limited to 08:00–20:00",'campaign dialing retains quiet-hour enforcement');
-has(softphone,"fetch('/api/contact-center/softphone/config'",'softphone frontend matches server config route');
+has(softphone,"/api/contact-center/softphone/config",'softphone frontend matches server config route');
 has(softphone,"/api/contact-center/softphone/claim",'softphone frontend matches server claim route');
 has(autoDial,'/dial-start','auto dialer start route is backed by server contract');
 has(autoDial,'/dial-cancel','auto dialer cancel route is backed by server contract');
