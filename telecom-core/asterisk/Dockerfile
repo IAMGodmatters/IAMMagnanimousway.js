@@ -1,6 +1,6 @@
 FROM debian:bookworm-slim
 
-ARG ASTERISK_VERSION=22.10.1
+ARG ASTERISK_VERSION=22.11.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential ca-certificates curl wget xz-utils pkg-config gettext-base \
