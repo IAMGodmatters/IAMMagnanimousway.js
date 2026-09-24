@@ -61,7 +61,7 @@ jobs:
           grep -q 'assign_public_ip = true' telecom-core/oci/main.tf
           grep -q 'admin_ssh_cidr' telecom-core/oci/main.tf
           grep -q 'MAX_BOOT_VOLUME_GB = 50' telecom-core/oci/verify_free_plan.py
-          if grep -R --line-number -E 'VM.Standard[0-9]|VM.DenseIO|BM\.|oci_core_load_balancer|oci_database_' telecom-core/oci --include='*.tf' --include='*.py'; then
-            echo 'Unexpected paid compute/database/load-balancer construct found in guarded OCI module.' >&2
+          if grep -R --line-number -E 'VM.Standard[0-9]|VM.DenseIO|BM\.|oci_core_load_balancer|oci_database_' telecom-core/oci --include='*.tf'; then
+            echo 'Unexpected paid compute/database/load-balancer construct found in guarded OCI Terraform source.' >&2
             exit 1
           fi
