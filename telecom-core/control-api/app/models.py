@@ -18,3 +18,14 @@ class HangupRequest(BaseModel):
 class SipAccountCreate(BaseModel):
     username: str = Field(min_length=2, max_length=64, pattern=r"^[A-Za-z0-9_.-]+$")
     password: str | None = Field(default=None, min_length=12, max_length=128)
+
+
+class TransferRequest(BaseModel):
+    endpoint: str = Field(min_length=3, max_length=200, pattern=r"^[A-Za-z0-9_@:+./-]+$")
+
+
+class RecordingRequest(BaseModel):
+    consent_confirmed: bool = False
+    format: str = Field(default="wav", pattern=r"^(wav|ulaw|alaw|gsm)$")
+    max_duration_seconds: int = Field(default=3600, ge=1, le=14400)
+    beep: bool = True
