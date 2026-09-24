@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
+import hmac
 import secrets
 import time
 from typing import Any
@@ -30,6 +32,40 @@ class WebRtcSessionService:
             raise TelecomConfigurationError("ASTERISK_WEBRTC_PUBLIC_URL is required for browser sessions.")
         if not self._settings.sip_domain:
             raise TelecomConfigurationError("MAGNANIMOUS_SIP_DOMAIN is required for browser sessions.")
+
+    def _turn_ice_servers(self, session_id: str, expires_at: int) -> list[dict[str, Any]]:
+        urls = self._settings.webrtc_turn_urls
+        if not urls:
+            if self._settings.webrtc_turn_force_relay:
+                raise TelecomConfigurationError(
+                    "MAGNANIMOUS_TURN_FORCE_RELAY requires MAGNANIMOUS_TURN_URLS."
+                )
+            return []
+        if not self._settings.webrtc_turn_auth_secret:
+            raise TelecomConfigurationError(
+                "MAGNANIMOUS_TURN_AUTH_SECRET is required when TURN URLs are configured."
+            )
+        for url in urls:
+            if not (url.startswith("turn:") or url.startswith("turns:")):
+                raise TelecomConfigurationError(
+                    "MAGNANIMOUS_TURN_URLS entries must use turn: or turns:."
+                )
+
+        username = f"{expires_at}:{session_id}"
+        digest = hmac.new(
+            self._settings.webrtc_turn_auth_secret.encode("utf-8"),
+            username.encode("utf-8"),
+            hashlib.sha1,
+        ).digest()
+        credential = base64.b64encode(digest).decode("ascii")
+        return [
+            {
+                "urls": list(urls),
+                "username": username,
+                "credential": credential,
+                "credentialType": "password",
+            }
+        ]
 
     @staticmethod
     def _fields(values: dict[str, str]) -> dict[str, Any]:
@@ -175,6 +211,7 @@ class WebRtcSessionService:
                     pass
             raise
 
+        ice_servers = self._turn_ice_servers(session_id, expires_at)
         return {
             "identity": "Magnanimous Telecom",
             "provider": "Magnanimous Carrier",
@@ -184,6 +221,9 @@ class WebRtcSessionService:
             "password_returned_once": True,
             "domain": domain,
             "wss_url": self._settings.webrtc_public_url,
+            "ice_servers": ice_servers,
+            "ice_transport_policy": "relay" if self._settings.webrtc_turn_force_relay else "all",
+            "turn_relay_configured": bool(ice_servers),
             "expires_at": expires_at,
             "expires_in": self._settings.webrtc_session_ttl_seconds,
             "allowed_call_scope": ["internal-magnanimous", "diagnostic-echo"],
