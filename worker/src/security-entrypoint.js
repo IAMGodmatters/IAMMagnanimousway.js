@@ -226,8 +226,8 @@ export default {
       const url=new URL(request.url);
       const credentialMigrationResponse=await handleCredentialVaultMigration(request,env);
       if(credentialMigrationResponse)return finalizeResponse(request,await securityPostflight(request,credentialMigrationResponse,env));
-      if(url.pathname.startsWith('/api/video-agents/render-engine')){const rr=await handleRenderEngine(request,env,await currentUser(request,env).catch(()=>null));if(rr)return finalizeResponse(request,await securityPostflight(request,rr,env));}
-      if(url.pathname.startsWith('/api/video-agents')){const vr=await handleVideoAgents(request,env);if(vr)return finalizeResponse(request,await securityPostflight(request,vr,env));}
+      if(url.pathname.startsWith('/api/video-agents/render-engine')){const videoProviderEnv=await getProviderRuntimeEnv(env);const rr=await handleRenderEngine(request,videoProviderEnv,await currentUser(request,env).catch(()=>null));if(rr)return finalizeResponse(request,await securityPostflight(request,rr,env));}
+      if(url.pathname.startsWith('/api/video-agents')){const videoProviderEnv=await getProviderRuntimeEnv(env);const vr=await handleVideoAgents(request,videoProviderEnv);if(vr)return finalizeResponse(request,await securityPostflight(request,vr,env));}
       if(request.method==='POST'&&url.pathname==='/api/auth/logout'){
         const logout=await revokeOpaqueSession(request,env,'logout');
         if(logout.handled)return finalizeResponse(request,await securityPostflight(request,logout.response,env));
