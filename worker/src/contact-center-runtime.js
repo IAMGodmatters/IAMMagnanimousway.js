@@ -20,7 +20,12 @@ function twilioSoftphoneReady(env){return Boolean(twilioReady(env)&&env.TWILIO_A
 function telecomCoreConfig(env){
  if(!runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE))return null;
  const raw=clean(env.TELECOM_CORE_URL),token=clean(env.TELECOM_CORE_TOKEN);if(!raw||!token)return null;
- try{const u=new URL(raw);if(u.protocol!=='https:'||u.username||u.password)return null;return{base:raw.replace(/\/+$/,''),token}}catch{return null}
+ try{
+  const u=new URL(raw),host=u.hostname.toLowerCase();
+  const privateV4=/^(?:10\.|127\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/;
+  if(u.protocol!=='https:'||u.username||u.password||host==='localhost'||host.endsWith('.local')||privateV4.test(host))return null;
+  return{base:u.origin+u.pathname.replace(/\/+$/,''),token}
+ }catch{return null}
 }
 function nativeSoftphoneReady(env){return Boolean(telecomCoreConfig(env))}
 async function telecomCoreRequest(env,path,options={}){
@@ -143,6 +148,12 @@ async function softphoneConfig(env,user,request){
 async function createNativeSoftphoneSession(env,user){
  const core=telecomCoreConfig(env);if(!core)return json({detail:'Native Magnanimous PBX sessions are not live and configured yet.',fallback:'compatibility'},503);
  await env.DB.prepare('DELETE FROM cc_native_webrtc_sessions WHERE expires_at<=?').bind(now()).run().catch(()=>{});
+ const previous=await env.DB.prepare('SELECT session_id FROM cc_native_webrtc_sessions WHERE tenant_id=? AND user_id=?').bind(String(user.tenant_id),String(user.id)).all().catch(()=>({results:[]}));
+ for(const row of previous.results||[]){
+  const prior=clean(row?.session_id);if(!prior)continue;
+  await telecomCoreRequest(env,`/v1/webrtc/sessions/${encodeURIComponent(prior)}`,{method:'DELETE'}).catch(()=>null);
+  await env.DB.prepare('DELETE FROM cc_native_webrtc_sessions WHERE session_id=? AND tenant_id=? AND user_id=?').bind(prior,String(user.tenant_id),String(user.id)).run().catch(()=>{});
+ }
  const response=await telecomCoreRequest(env,'/v1/webrtc/sessions',{method:'POST'});if(!response)return json({detail:'Magnanimous Telecom Core is unavailable.',fallback:'compatibility'},502);
  const data=await response.json().catch(()=>null);if(!response.ok)return json({detail:'Magnanimous Telecom Core rejected the native browser session.',status:response.status,fallback:'compatibility'},502);
  const sessionId=clean(data?.session_id),username=clean(data?.username),password=clean(data?.password),domain=clean(data?.domain),wssUrl=clean(data?.wss_url),expiresAt=Number(data?.expires_at||0);
