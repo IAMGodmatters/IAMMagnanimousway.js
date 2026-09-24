@@ -1,4 +1,4 @@
-import { getIntegrationRuntimeEnv } from './platform-credentials.js';
+import { getIntegrationRuntimeEnv, overlayRuntimeEnv } from './platform-credentials.js';
 import { getBootstrapSecrets } from './secure-bootstrap.js';
 
 const PROVIDER_KEYS = new Set([
@@ -85,12 +85,13 @@ export async function getProviderRuntimeEnv(env) {
   try {
     const bootstrap = await getBootstrapSecrets(env);
     if (!bootstrap || !Object.keys(bootstrap).length) return merged;
-    merged = { ...merged };
+    const overrides = {};
     for (const [key, value] of Object.entries(bootstrap)) {
       if (!PROVIDER_KEYS.has(key)) continue;
-      if (typeof merged[key] === 'string' && merged[key].trim()) continue;
-      if (typeof value === 'string' && value.trim()) merged[key] = value.trim();
+      if (typeof merged?.[key] === 'string' && merged[key].trim()) continue;
+      if (typeof value === 'string' && value.trim()) overrides[key] = value.trim();
     }
+    if (Object.keys(overrides).length) merged = overlayRuntimeEnv(merged, overrides);
   } catch (error) {
     console.error('provider runtime bootstrap merge failed', error);
   }
