@@ -43,12 +43,19 @@ const turnEntrypoint=read('telecom-core/turn-relay/entrypoint.sh');
 const ociPreflight=read('telecom-core/deploy/oci-always-free-preflight.sh');
 const ociHostDoc=read('telecom-core/OCI-ALWAYS-FREE-HOST.md');
 const ociArmWorkflow=read('.github/workflows/telecom-oci-arm64-lock.yml');
+const ociTerraform=read('telecom-core/oci/main.tf');
+const ociTerraformVersions=read('telecom-core/oci/versions.tf');
+const ociPlanGuard=read('telecom-core/oci/verify_free_plan.py');
+const ociTerraformWorkflow=read('.github/workflows/telecom-oci-terraform-lock.yml');
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
 file('telecom-core/OCI-ALWAYS-FREE-HOST.md','free-first OCI Telecom host guide is versioned');
 file('telecom-core/deploy/oci-always-free-preflight.sh','OCI public-host preflight is versioned');
 file('.github/workflows/telecom-oci-arm64-lock.yml','OCI ARM64 build proof workflow is versioned');
+file('telecom-core/oci/main.tf','guarded OCI Terraform module is versioned');
+file('telecom-core/oci/verify_free_plan.py','OCI Terraform free-plan verifier is versioned');
+file('.github/workflows/telecom-oci-terraform-lock.yml','OCI Terraform free-profile CI lock is versioned');
 
 has(pjsip,'#include pjsip-webrtc.conf','base PJSIP includes gated native WebRTC fragment');
 has(webrtc,'protocol=wss','native WebRTC uses secure WebSocket transport');
@@ -200,6 +207,23 @@ has(ociArmWorkflow,'Build Asterisk 22 ARM64 image','OCI ARM64 lock builds the ow
 has(ociArmWorkflow,'Build Kamailio SIP core ARM64 image','OCI ARM64 lock builds the SIP core image');
 has(ociArmWorkflow,'Build coturn ARM64 image','OCI ARM64 lock builds the TURN relay image');
 has(ociArmWorkflow,'Verify PostgreSQL ARM64 runtime image','OCI ARM64 lock verifies the SIP database runtime image');
+has(ociTerraformVersions,'version = "= 8.29.0"','OCI Terraform pins the reviewed Oracle provider');
+has(ociTerraform,'instance_shape = "VM.Standard.A1.Flex"','OCI Terraform hard-codes the Always Free A1 shape');
+has(ociTerraform,'ocpus          = 2','OCI Terraform hard-codes the current Always Free A1 CPU allowance');
+has(ociTerraform,'memory_gib     = 12','OCI Terraform hard-codes the current Always Free A1 memory allowance');
+has(ociTerraform,'boot_volume_gb = 50','OCI Terraform keeps the boot volume inside the guarded free profile');
+has(ociTerraform,'security_list_ids          = [oci_core_security_list.telecom.id]','OCI Terraform does not inherit the default subnet security list');
+has(ociTerraform,'assign_public_ip = true','OCI Terraform explicitly requests public IPv4 for the external media proof');
+has(ociTerraform,'source = var.admin_ssh_cidr','OCI Terraform restricts SSH to the explicit admin CIDR');
+has(ociPlanGuard,'ALLOWED_CREATE_TYPES','OCI plan verifier allowlists resource create types');
+has(ociPlanGuard,'EXPECTED_SHAPE = "VM.Standard.A1.Flex"','OCI plan verifier rejects shape drift');
+has(ociPlanGuard,'EXPECTED_OCPUS = 2','OCI plan verifier rejects CPU drift');
+has(ociPlanGuard,'EXPECTED_MEMORY_GIB = 12','OCI plan verifier rejects memory drift');
+has(ociPlanGuard,'MAX_BOOT_VOLUME_GB = 50','OCI plan verifier rejects oversized boot volumes');
+has(ociTerraformWorkflow,'hashicorp/setup-terraform@v4','OCI Terraform CI uses the reviewed HashiCorp setup action');
+has(ociTerraformWorkflow,'terraform -chdir=telecom-core/oci validate','OCI Terraform CI validates the exact module');
+lacks(ociTerraform,'VM.Standard3','OCI Terraform has no paid Standard3 fallback');
+lacks(ociTerraform,'oci_core_load_balancer','OCI Terraform does not create a load balancer');
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [label,ok] of checks)console.log((ok?'PASS':'FAIL')+': '+label);
