@@ -105,9 +105,10 @@ async function ensureSoftphoneAgent(env,user){
  return env.DB.prepare('SELECT * FROM call_center_agents WHERE id=? AND tenant_id=?').bind(id,user.tenant_id).first();
 }
 async function softphoneConfig(env,user,request){
- const agent=await ensureSoftphoneAgent(env,user),access=await twilioVoiceToken(env,user);
- if(!access)return json({configured:false,provider:'Magnanimous Carrier',identity:softphoneIdentity(user),required:['TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_PHONE_NUMBER','TWILIO_API_KEY_SID','TWILIO_API_KEY_SECRET','TWILIO_TWIML_APP_SID'],free_browser_phone:'/phone',native_pbx_target:'Asterisk WebRTC',note:'The agent desk remains available; ordinary-number browser audio needs either the native PBX WebRTC rail or the optional compatibility softphone transport.'});
- return json({configured:true,provider:'Magnanimous Carrier',identity:access.identity,token:access.token,expires_at:access.expires_at,caller_id:String(env.TWILIO_PHONE_NUMBER||''),twiml_app_voice_url:`${new URL(request.url).origin}/api/contact-center/softphone/outgoing`,queue_voice_url:`${new URL(request.url).origin}/api/contact-center/carrier/incoming`,free_browser_phone:'/phone',agent_id:agent.id,native_pbx_target:'Asterisk WebRTC',note:'Carrier identity remains Magnanimous. Recording is off by default.'});
+ const agent=await env.DB.prepare('SELECT id FROM call_center_agents WHERE tenant_id=? AND user_id=? AND active=1 LIMIT 1').bind(user.tenant_id,user.id).first().catch(()=>null);
+ const access=await twilioVoiceToken(env,user);
+ if(!access)return json({configured:false,provider:'Magnanimous Carrier',identity:softphoneIdentity(user),required:['TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_PHONE_NUMBER','TWILIO_API_KEY_SID','TWILIO_API_KEY_SECRET','TWILIO_TWIML_APP_SID'],free_browser_phone:'/phone',agent_id:agent?.id||null,native_pbx_target:'Asterisk WebRTC',note:'The agent desk remains available; ordinary-number browser audio needs either the native PBX WebRTC rail or the optional compatibility softphone transport.'});
+ return json({configured:true,provider:'Magnanimous Carrier',identity:access.identity,token:access.token,expires_at:access.expires_at,caller_id:String(env.TWILIO_PHONE_NUMBER||''),twiml_app_voice_url:`${new URL(request.url).origin}/api/contact-center/softphone/outgoing`,queue_voice_url:`${new URL(request.url).origin}/api/contact-center/carrier/incoming`,free_browser_phone:'/phone',agent_id:agent?.id||null,native_pbx_target:'Asterisk WebRTC',note:'Carrier identity remains Magnanimous. Recording is off by default.'});
 }
 async function softphoneOutgoing(request,env){
  if(!twilioSoftphoneReady(env))return xml(sayHangup('The carrier softphone is not configured.'),503);
