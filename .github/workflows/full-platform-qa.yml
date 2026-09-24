@@ -48,6 +48,9 @@ jobs:
       - name: Lock live contact center and carrier contracts
         run: node qa/scripts/contact-center-runtime-lock.mjs
 
+      - name: Lock full provider and standalone service audit boundaries
+        run: node qa/scripts/full-platform-provider-service-audit-lock.mjs
+
       - name: Lock Magnanimous native developer agent
         run: node qa/scripts/magnanimous-dev-agent-lock.mjs
 
