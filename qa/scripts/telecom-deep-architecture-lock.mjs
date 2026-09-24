@@ -142,8 +142,13 @@ has(env,'MAGNANIMOUS_TURN_FORCE_RELAY=false','owned environment keeps relay-only
 has(turnEntrypoint,'cert=$MAGNANIMOUS_TURN_TLS_CERT_FILE','TURN TLS listener requires an explicit certificate');
 has(turnEntrypoint,'pkey=$MAGNANIMOUS_TURN_TLS_KEY_FILE','TURN TLS listener requires an explicit private key');
 has(publicBootstrap,'ENABLE_TURN_RELAY','public firewall exposes TURN ports only through an explicit deployment gate');
-has(publicWorkflow,'TELECOM_PUBLIC_ICE_SERVERS_JSON','strict public verification can receive temporary TURN ICE settings');
+has(publicWorkflow,'TELECOM_PUBLIC_TURN_URLS','strict public verification receives operator-selected TURN URLs');
+has(publicWorkflow,'TELECOM_PUBLIC_TURN_AUTH_SECRET','strict public verification keeps the long-term TURN secret in GitHub Secrets');
+has(publicWorkflow,"createHmac('sha1'","strict public verification derives a fresh coturn REST credential at run time");
+has(publicWorkflow,"urls.some(v=>!v.startsWith('turns:'))",'strict relay proof requires TURN over TLS');
+has(publicWorkflow,'-verify_hostname','strict public verification checks both public signaling/TURN TLS hostnames');
 has(publicWorkflow,'TELECOM_PUBLIC_ICE_TRANSPORT_POLICY','strict public verification can force relay-only ICE');
+lacks(publicWorkflow,'TELECOM_PUBLIC_ICE_SERVERS_JSON','public workflow does not depend on a manually stored expiring TURN credential');
 has(sessionService,'"allowed_call_scope": ["internal-magnanimous", "diagnostic-echo"]','ephemeral browser call scope remains internal and diagnostic');
 has(sessionService,'webrtc_session_ttl_seconds','ephemeral browser session lifetime is bounded');
 has(sessionService,'await self.reap_expired()','new session issuance reaps stale dynamic endpoints');
