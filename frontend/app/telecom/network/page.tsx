@@ -6,8 +6,9 @@ import styles from '../sim/sim.module.css';
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 
 type RegulatoryCase={id:string;jurisdiction:string;authority_key:string;authority_name:string;status:string;application_reference?:string;evidence_reference?:string;notes?:string};
-type Overview={identity:string;brain:string;architecture:string;readiness:Record<string,boolean>;preferred_bridge:{provider_key:string;role:string;capabilities:string[]};mobile_alternative:{provider_key:string;role:string;capabilities:string[]};regulatory_cases:RegulatoryCase[];authority_note:string};
-const empty:Overview={identity:'Magnanimous Telecom',brain:'Magnanimous AI',architecture:'provider-neutral regulated-network control',readiness:{},preferred_bridge:{provider_key:'telnyx',role:'wholesale multi-capability bridge',capabilities:[]},mobile_alternative:{provider_key:'gigs',role:'MVNO/mobile subscription adapter',capabilities:[]},regulatory_cases:[],authority_note:'Software readiness is not regulatory authority.'};
+type ProviderCandidate={provider_key:string;role:string;adapter_state?:string;connected?:boolean};
+type Overview={identity:string;brain:string;architecture:string;readiness:Record<string,boolean>;owned_service_core?:{provider_key:string;role:string;native_pbx:string;provider_owned_identity:boolean};upstream_candidates?:ProviderCandidate[];native_browser_target?:{provider_key:string;role:string;live:boolean;truth_boundary:string};routing_policy?:{measured_quality_signals?:string[];max_rate_enforced?:boolean;live_execution_uses_route_planner?:boolean;execution_note?:string};mobile_alternative:{provider_key:string;role:string;capabilities:string[]};regulatory_cases:RegulatoryCase[];authority_note:string};
+const empty:Overview={identity:'Magnanimous Telecom',brain:'Magnanimous AI',architecture:'provider-neutral regulated-network control',readiness:{},owned_service_core:{provider_key:'magnanimous-telecom',role:'PBX, SIP registrar, routing, policy, CDR and contact-center control',native_pbx:'Asterisk',provider_owned_identity:true},upstream_candidates:[],native_browser_target:{provider_key:'magnanimous-asterisk-webrtc',role:'owned browser-agent signaling/media target',live:false,truth_boundary:'Source readiness is not live readiness.'},routing_policy:{measured_quality_signals:['ASR','ACD','PDD','network_failure_rate'],max_rate_enforced:true,live_execution_uses_route_planner:false},mobile_alternative:{provider_key:'gigs',role:'MVNO/mobile subscription adapter',capabilities:[]},regulatory_cases:[],authority_note:'Software readiness is not regulatory authority.'};
 
 async function parse(response:Response){const text=await response.text();try{return JSON.parse(text)}catch{return{detail:text||`Request failed (${response.status})`}}}
 
@@ -98,6 +99,7 @@ export default function NetworkAuthorityPage(){
    <article><small>TELNYX BRIDGE</small><strong>{overview.readiness.telnyx?'READY':'LOCKED'}</strong></article>
    <article><small>GIGS MOBILE</small><strong>{overview.readiness.gigs?'READY':'LOCKED'}</strong></article>
    <article><small>PSTN BRIDGE</small><strong>{overview.readiness.wholesale_voice?'READY':'LOCKED'}</strong></article>
+   <article><small>NATIVE WEBRTC</small><strong>{overview.readiness.native_webrtc_live?'VERIFIED':'NOT LIVE'}</strong></article>
    <article><small>E911 LIVE</small><strong>{overview.readiness.emergency_enabled?'VERIFIED':'OFF'}</strong></article>
    <article><small>DIRECT NUMBERING</small><strong>{overview.readiness.direct_numbering_authorized?'VERIFIED':'LATER'}</strong></article>
   </section>
@@ -105,9 +107,14 @@ export default function NetworkAuthorityPage(){
   <section className={styles.status}><div><span className={styles.good}/><b>Magnanimous remains the public identity and AI command layer.</b></div><p>{overview.authority_note}</p></section>
 
   <section className={styles.grid}>
-   <article className={styles.card}><small>NETWORK / API ADAPTER</small><h2>Telnyx adapter</h2><p className={styles.muted}>Strong programmable carrier option for numbers, SIP and network APIs. It is not hard-wired as the cheapest route; Magnanimous can choose among healthy interconnects by destination, quality, configured rate and policy.</p><ul><li>Phone numbers + porting</li><li>SIP/PSTN interconnect</li><li>E911 provisioning</li><li>STIR/SHAKEN voice identity path</li><li>Physical SIM + eSIM</li><li>Mobile voice</li></ul><p className={styles.muted}>{overview.readiness.telnyx?'Encrypted TELNYX_API_KEY detected.':'Add TELNYX_API_KEY as an encrypted Worker secret to activate the adapter.'}</p></article>
-   <article className={styles.card}><small>MOBILE ALTERNATIVE</small><h2>Gigs adapter</h2><p className={styles.muted}>Second path for branded wireless/MVNO subscriptions, physical SIM and eSIM lifecycle.</p><ul><li>pSIM + eSIM</li><li>Mobile plans</li><li>Subscriptions</li><li>Provider diversity</li></ul><p className={styles.muted}>{overview.readiness.gigs?'Encrypted Gigs project credentials detected.':'Add GIGS_API_TOKEN and GIGS_PROJECT_ID as encrypted Worker secrets when a Gigs project exists.'}</p></article>
+   <article className={styles.card}><small>OWNED TELECOM CORE</small><h2>{overview.owned_service_core?.native_pbx||'Asterisk'} + Magnanimous SIP</h2><p className={styles.muted}>{overview.owned_service_core?.role||'PBX, SIP, routing, policy and contact-center control stay under Magnanimous.'}</p><ul><li>Magnanimous public identity</li><li>Provider-neutral SIP/PSTN boundary</li><li>Owned CDR + routing policy</li><li>Free browser path first</li></ul></article>
+   <article className={styles.card}><small>NATIVE BROWSER TARGET</small><h2>Asterisk WebRTC</h2><p className={styles.muted}>{overview.native_browser_target?.truth_boundary||'Native browser media is not marked live until registration and two-way media are verified.'}</p><p><b>{overview.native_browser_target?.live?'LIVE VERIFIED':'SOURCE READY / NOT LIVE'}</b></p><ul><li>WSS signaling</li><li>DTLS-SRTP media</li><li>ICE + RTCP mux</li><li>Opus preferred</li></ul></article>
    <form className={styles.card} onSubmit={searchNumbers}><small>SAFE LIVE ACTION</small><h2>Search telephone numbers</h2><label>Country<select value={country} onChange={e=>setCountry(e.target.value)}><option value='US'>United States</option><option value='CA'>Canada</option><option value='PH'>Philippines</option></select></label><label>Area / destination code<input value={areaCode} onChange={e=>setAreaCode(e.target.value)} placeholder='Example: 512'/></label><button disabled={busy||!overview.readiness.telnyx}>SEARCH — NO PURCHASE</button><p className={styles.muted}>Paid number orders remain double-locked by a runtime enable flag plus an explicit purchase confirmation.</p></form>
+  </section>
+
+  <section className={styles.inventory}>
+   <div className={styles.title}><div><small>REPLACEABLE UPSTREAMS</small><h2>Carrier candidate matrix</h2></div><span>Credentials ≠ live route</span></div>
+   <div className={styles.grid}>{(overview.upstream_candidates||[]).map(item=><article className={styles.card} key={item.provider_key}><small>{item.connected?'ACCOUNT DETECTED':'CANDIDATE'}</small><h2>{item.provider_key.toUpperCase()}</h2><p>{item.role}</p><p className={styles.muted}>{item.adapter_state||'No dedicated live adapter is claimed.'}</p></article>)}</div>
   </section>
 
   <section className={styles.inventory}>
@@ -116,7 +123,7 @@ export default function NetworkAuthorityPage(){
     <label>E.164 destination<input value={routeDestination} onChange={e=>setRouteDestination(e.target.value)} placeholder='+639171234567'/></label>
     <label>Routing policy<select value={routeMode} onChange={e=>setRouteMode(e.target.value)}><option value='balanced'>Balanced quality + cost</option><option value='least-cost'>Least cost</option><option value='priority'>Configured priority</option></select></label>
     <button disabled={busy||!routeDestinationValid}>PREVIEW ROUTE</button>
-    <p className={styles.muted}>Longest destination prefix wins first. Unhealthy routes are avoided. Balanced mode prefers configured quality then rate; least-cost prefers rate then quality; priority mode follows your route priorities first.</p>
+    <p className={styles.muted}>Longest destination prefix wins first. Down/unavailable/failed routes and routes above their configured max-rate cap are excluded. Balanced mode uses fresh measured quality (ASR, ACD, PDD and network failures) when enough samples exist, then falls back to configured quality.</p>
    </form>
    {routePlan ? (
     <div className={styles.grid}>
@@ -125,14 +132,16 @@ export default function NetworkAuthorityPage(){
       <h2>{routePlan.selected?.route||'No route'}</h2>
       <p>{routePlan.selected?.interconnect||'Configure an interconnect and destination route.'}</p>
       <p className={styles.muted}>
-       Health: {routePlan.selected?.health||'—'} · Quality: {routePlan.selected?.quality_score??'—'} · Estimated rate: {routePlan.selected?.estimated_rate==null?'not entered':String(routePlan.selected.estimated_rate)}
+       Health: {routePlan.selected?.health||'—'} · Quality: {routePlan.selected?.quality_score??'—'} ({routePlan.selected?.quality_source||'configured'}) · Estimated rate: {routePlan.selected?.estimated_rate==null?'not entered':String(routePlan.selected.estimated_rate)}
       </p>
+      <p className={styles.muted}>ASR: {routePlan.selected?.observed?.asr==null?'—':String(routePlan.selected.observed.asr)} · ACD: {routePlan.selected?.observed?.acd_seconds==null?'—':routePlan.selected.observed.acd_seconds+'s'} · PDD: {routePlan.selected?.observed?.pdd_ms==null?'—':routePlan.selected.observed.pdd_ms+'ms'} · Network failure: {routePlan.selected?.observed?.network_failure_rate==null?'—':String(routePlan.selected.observed.network_failure_rate)} · Samples: {routePlan.selected?.observed?.sample_count??0}</p>
      </article>
      <article className={styles.card}>
       <small>POLICY</small>
       <h2>{routePlan.selection_mode||routeMode}</h2>
       <p className={styles.muted}>{routePlan.policy}</p>
-      <p>{(routePlan.matches||[]).length} matching route(s)</p>
+      <p>{(routePlan.matches||[]).length} matching route(s) · {routePlan.eligible_routes??0} eligible after health/rate policy</p>
+      <p className={styles.muted}>{overview.routing_policy?.execution_note||'Preview/control policy does not claim that every legacy compatibility adapter already executes through the same selected-route contract.'}</p>
      </article>
     </div>
    ) : null}
