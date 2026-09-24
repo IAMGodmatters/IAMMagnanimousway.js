@@ -13,6 +13,9 @@ export type NativeBrowserSession={
  pstn_direct:false;
  allowed_call_scope?:string[];
  compatibility_fallback?:boolean;
+ ice_servers?:RTCIceServer[];
+ ice_transport_policy?:RTCIceTransportPolicy;
+ turn_relay_configured?:boolean;
 };
 
 export type NativePhoneEvents={
@@ -43,7 +46,13 @@ export class MagnanimousNativePhone{
    userAgentOptions:{
     authorizationUsername:session.username,
     authorizationPassword:session.password,
-    logBuiltinEnabled:false
+    logBuiltinEnabled:false,
+    sessionDescriptionHandlerFactoryOptions:{
+     peerConnectionConfiguration:{
+      iceServers:Array.isArray(session.ice_servers)?session.ice_servers:[],
+      iceTransportPolicy:session.ice_transport_policy==='relay'?'relay':'all'
+     }
+    }
    },
    delegate:{
     onRegistered:()=>this.events.onRegistered?.(),
