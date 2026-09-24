@@ -84,7 +84,8 @@ add('stale-row pruning can defer after bounded transient retries',deploy.include
 add('deferred maintenance remains idempotent and verifies the checked-in brain digest',maintenance.includes('Production D1 already matches full-brain digest')&&maintenance.includes("assert row['source_digest'] == os.environ['DIGEST']")&&maintenance.includes("assert row['status'] == 'complete'"));
 add('transient D1 migration failures use bounded retry',deploy.includes('Transient Cloudflare D1 migration failure. Retrying migration application')&&deploy.includes('if [ "$attempt" -lt 4 ]'));
 add('transient migration defer is forbidden when migration files changed',deploy.includes('if [ "$migration_files_changed" -eq 0 ]')&&deploy.includes('this commit does not change worker/migrations'));
-add('deploy checkout includes parent commit for migration diff safety',deploy.includes('fetch-depth: 2')&&deploy.includes('git -C .. diff --quiet HEAD^ HEAD -- worker/migrations'));
+const fetchDepth=Number((deploy.match(/fetch-depth:\\s*(\\d+)/)||[])[1]||0);
+add('deploy checkout includes parent commit for migration diff safety',fetchDepth>=2&&deploy.includes('git -C .. diff --quiet HEAD^ HEAD -- worker/migrations'));
 add('schema-changing or non-transient migration failures still stop deployment',deploy.includes('migration_files_changed=1')&&deploy.includes('exit "$rc"'));
 add('ordinary signup failures still fail deployment',deploy.includes('Signup smoke test returned HTTP $status')&&deploy.includes('exit 1'));
 add('quota branch never claims signup passed',deploy.includes('This is an external daily Free-plan limit, not a passing signup result.'));
