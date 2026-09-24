@@ -45,6 +45,9 @@ jobs:
       - name: Lock specialist branch architecture
         run: node qa/scripts/specialist-branch-lock.mjs
 
+      - name: Lock live contact center and carrier contracts
+        run: node qa/scripts/contact-center-runtime-lock.mjs
+
       - name: Lock Magnanimous native developer agent
         run: node qa/scripts/magnanimous-dev-agent-lock.mjs
 
