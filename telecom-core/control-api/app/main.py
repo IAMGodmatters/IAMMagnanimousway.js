@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-from contextlib import asynccontextmanager, suppress
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header
@@ -10,18 +8,7 @@ from fastapi.responses import JSONResponse
 from .container import ApplicationContainer, get_container
 from .errors import TelecomError
 from .models import HangupRequest, OutboundCall, SipAccountCreate
-
-@asynccontextmanager
-async def lifespan(_app: FastAPI):
-    container = get_container()
-    reaper = asyncio.create_task(container.webrtc_sessions.reap_loop())
-    try:
-        yield
-    finally:
-        reaper.cancel()
-        with suppress(asyncio.CancelledError):
-            await reaper
-
+from .lifecycle import lifespan
 
 app = FastAPI(
     title="Magnanimous Telecom Core",
