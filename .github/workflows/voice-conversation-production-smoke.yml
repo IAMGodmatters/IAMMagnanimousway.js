@@ -19,46 +19,93 @@ jobs:
       QA_BASE_URL: https://iammagnanimousway.com
     steps:
       - name: Confirm triggering deployment reached production
+        id: deployment
         if: github.event_name == 'workflow_run'
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
           TRIGGER_RUN_ID: ${{ github.event.workflow_run.id }}
         shell: bash
+        env:
+          TRIGGER_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          TRIGGER_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json, os, urllib.request
+          import json, os, time, urllib.request
 
           repo = os.environ['REPOSITORY']
           run_id = os.environ['TRIGGER_RUN_ID']
           token = os.environ['GH_TOKEN']
+          trigger_conclusion = os.environ.get('TRIGGER_CONCLUSION', '')
+          trigger_sha = os.environ.get('TRIGGER_HEAD_SHA', '').strip()
+
+          if trigger_conclusion != 'success':
+              raise SystemExit(
+                  f'Triggering deployment workflow did not succeed: conclusion={trigger_conclusion!r}'
+              )
+          if len(trigger_sha) != 40:
+              raise SystemExit(f'Triggering deployment SHA is invalid: {trigger_sha!r}')
+
           url = f'https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100'
-          req = urllib.request.Request(url, headers={
+          headers = {
               'Authorization': f'Bearer {token}',
               'Accept': 'application/vnd.github+json',
               'X-GitHub-Api-Version': '2022-11-28',
               'User-Agent': 'magnanimous-voice-production-smoke',
-          })
-          with urllib.request.urlopen(req, timeout=30) as response:
-              payload = json.load(response)
+          }
 
-          deploy_jobs = [job for job in payload.get('jobs', []) if job.get('name') == 'deploy']
-          assert deploy_jobs, f'No deploy job found for workflow run {run_id}'
-          steps = {step.get('name'): step for step in deploy_jobs[0].get('steps', [])}
-          deployed = steps.get('Deploy Worker') or {}
-          assert deployed.get('conclusion') == 'success', (
-              f"Production deployment did not complete successfully; Deploy Worker conclusion={deployed.get('conclusion')!r}"
-          )
-          print(f'Production deploy step succeeded in workflow run {run_id}. Continuing with live voice verification.')
+          deploy_conclusion = None
+          for attempt in range(1, 13):
+              req = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  payload = json.load(response)
+
+              deploy_jobs = [job for job in payload.get('jobs', []) if job.get('name') == 'deploy']
+              if deploy_jobs:
+                  steps = {step.get('name'): step for step in deploy_jobs[0].get('steps', [])}
+                  deployed = steps.get('Deploy Worker') or {}
+                  deploy_conclusion = deployed.get('conclusion')
+                  if deploy_conclusion in {'success', 'skipped', 'failure', 'cancelled'}:
+                      break
+
+              print(
+                  f'Deploy Worker metadata is not finalized yet '
+                  f'(attempt {attempt}/12, conclusion={deploy_conclusion!r}); retrying.'
+              )
+              time.sleep(5)
+
+          if deploy_conclusion == 'success':
+              deployed = 'true'
+              print(
+                  f'Production deploy step succeeded in workflow run {run_id}. '
+                  'Continuing with live voice verification.'
+              )
+          elif deploy_conclusion == 'skipped':
+              deployed = 'false'
+              print(
+                  f'Production deploy step was skipped in workflow run {run_id}; '
+                  'this is a control/docs-only release, so live voice smoke is not required.'
+              )
+          else:
+              raise SystemExit(
+                  f'Production deployment did not reach a valid terminal Deploy Worker state; '
+                  f'conclusion={deploy_conclusion!r}'
+              )
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as fh:
+              fh.write(f'deployed={deployed}\n')
+              fh.write(f'deployed_sha={trigger_sha}\n')
           PY
 
-      - name: Checkout deployed main
+      - name: Checkout deployed revision
+        if: github.event_name == 'workflow_dispatch' || steps.deployment.outputs.deployed == 'true'
         uses: actions/checkout@v7
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_run' && steps.deployment.outputs.deployed_sha || 'main' }}
 
       - name: Setup Node
+        if: github.event_name == 'workflow_dispatch' || steps.deployment.outputs.deployed == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -66,14 +113,17 @@ jobs:
           cache-dependency-path: qa/package.json
 
       - name: Install QA dependencies
+        if: github.event_name == 'workflow_dispatch' || steps.deployment.outputs.deployed == 'true'
         working-directory: qa
         run: npm install --no-audit --no-fund
 
       - name: Install Chromium and WebKit
+        if: github.event_name == 'workflow_dispatch' || steps.deployment.outputs.deployed == 'true'
         working-directory: qa
         run: npx playwright install --with-deps chromium webkit
 
       - name: Verify deployed spoken voice conversation
+        if: github.event_name == 'workflow_dispatch' || steps.deployment.outputs.deployed == 'true'
         working-directory: qa
         run: npx playwright test --config=playwright.voice.config.ts
 
