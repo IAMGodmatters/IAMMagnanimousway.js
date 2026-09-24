@@ -18,6 +18,7 @@ has(broker,'TELECOM_NATIVE_WEBRTC_LIVE','native broker is gated by the productio
 has(broker,'TELECOM_CORE_URL','native broker uses a protected server-side Telecom Core URL');
 has(broker,'TELECOM_API_TOKEN','native broker authenticates server-to-server with the Telecom Core token');
 has(broker,"url.protocol!=='https:'","non-local Telecom Core traffic requires HTTPS");
+has(broker,"redirect:'error'","Telecom Core requests refuse redirects so the server-side bearer token cannot be forwarded");
 has(broker,'PRIMARY KEY(tenant_id,user_id)','native broker binds one active session slot to each signed-in user');
 has(broker,'await revokeCore(env,existing.session_id)','new issuance revokes the previous native browser credential first');
 has(broker,"data.pstn_direct===false",'native broker rejects any Telecom Core session that permits direct PSTN');
