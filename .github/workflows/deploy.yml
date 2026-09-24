@@ -555,7 +555,19 @@ jobs:
 
           safe_get_status() {
             local output="$1" url="$2"; shift 2
-            command curl -sS --connect-timeout 10 --max-time 120               --retry 4 --retry-delay 2 --retry-max-time 45 --retry-all-errors               -o "$output" -w '%{http_code}' "$url" "$@"
+            local status="" attempt
+            for attempt in 1 2 3 4 5; do
+              status="$(command curl -sS --connect-timeout 10 --max-time 120 -o "$output" -w '%{http_code}' "$url" "$@" || true)"
+              case "$status" in
+                200) break ;;
+                000|502|503|504)
+                  echo "Transient read-only smoke response HTTP ${status:-request-failed}; retrying ${attempt}/5." >&2
+                  sleep 2
+                  ;;
+                *) break ;;
+              esac
+            done
+            printf '%s' "$status"
           }
 
           deployment_smoke_oidc() {
@@ -567,13 +579,25 @@ jobs:
           }
 
           native_smoke_control() {
-            local action="$1" tenant="$2" output="$3" oidc
-            oidc="$(deployment_smoke_oidc)"
-            command curl -sS --connect-timeout 10 --max-time 60 -o "$output" -w '%{http_code}' \
-              -X POST "$STANDALONE_ORIGIN/__magnanimous_runtime/smoke/tenant" \
-              -H 'content-type: application/json' \
-              -H "Authorization: Bearer $oidc" \
-              --data "{\"action\":\"$action\",\"tenant_id\":\"$tenant\",\"workflow_sha\":\"$GITHUB_SHA\",\"runtime_sha\":\"$MAGNANIMOUS_SMOKE_RUNTIME_SHA\"}"
+            local action="$1" tenant="$2" output="$3"
+            local oidc="" status="" attempt
+            for attempt in 1 2 3 4; do
+              oidc="$(deployment_smoke_oidc)"
+              status="$(command curl -sS --connect-timeout 10 --max-time 60 -o "$output" -w '%{http_code}' \
+                -X POST "$STANDALONE_ORIGIN/__magnanimous_runtime/smoke/tenant" \
+                -H 'content-type: application/json' \
+                -H "Authorization: Bearer $oidc" \
+                --data "{\"action\":\"$action\",\"tenant_id\":\"$tenant\",\"workflow_sha\":\"$GITHUB_SHA\",\"runtime_sha\":\"$MAGNANIMOUS_SMOKE_RUNTIME_SHA\"}" || true)"
+              case "$status" in
+                200) break ;;
+                000|502|503|504)
+                  echo "Transient standalone smoke-control response HTTP ${status:-request-failed}; retrying ${attempt}/4." >&2
+                  sleep 2
+                  ;;
+                *) break ;;
+              esac
+            done
+            printf '%s' "$status"
           }
 
           check_get() {
