@@ -6,8 +6,9 @@ import styles from '../sim/sim.module.css';
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 
 type RegulatoryCase={id:string;jurisdiction:string;authority_key:string;authority_name:string;status:string;application_reference?:string;evidence_reference?:string;notes?:string};
-type Overview={identity:string;brain:string;architecture:string;readiness:Record<string,boolean>;preferred_bridge:{provider_key:string;role:string;capabilities:string[]};mobile_alternative:{provider_key:string;role:string;capabilities:string[]};regulatory_cases:RegulatoryCase[];authority_note:string};
-const empty:Overview={identity:'Magnanimous Telecom',brain:'Magnanimous AI',architecture:'provider-neutral regulated-network control',readiness:{},preferred_bridge:{provider_key:'telnyx',role:'wholesale multi-capability bridge',capabilities:[]},mobile_alternative:{provider_key:'gigs',role:'MVNO/mobile subscription adapter',capabilities:[]},regulatory_cases:[],authority_note:'Software readiness is not regulatory authority.'};
+type ProviderRole={provider_key:string;role:string;capabilities?:string[];usage?:string;limits?:string[]};
+type Overview={identity:string;brain:string;architecture:string;readiness:Record<string,boolean>;preferred_bridge:ProviderRole;recommended_upstream:ProviderRole;fallback_policy:ProviderRole[];routing_policy:string;mobile_alternative:ProviderRole;regulatory_cases:RegulatoryCase[];authority_note:string};
+const empty:Overview={identity:'Magnanimous Telecom',brain:'Magnanimous AI',architecture:'Magnanimous-owned PBX/SIP core with replaceable upstream carriers',readiness:{},preferred_bridge:{provider_key:'magnanimous-owned-sip',role:'carrier-neutral PBX/control bridge',capabilities:[]},recommended_upstream:{provider_key:'telnyx',role:'preferred upstream',capabilities:[]},fallback_policy:[],routing_policy:'Free browser → owned SIP/PBX → low-cost fallback → compatibility fallback.',mobile_alternative:{provider_key:'gigs',role:'MVNO/mobile subscription adapter',capabilities:[]},regulatory_cases:[],authority_note:'Software readiness is not regulatory authority.'};
 
 async function parse(response:Response){const text=await response.text();try{return JSON.parse(text)}catch{return{detail:text||`Request failed (${response.status})`}}}
 
@@ -45,7 +46,7 @@ export default function NetworkAuthorityPage(){
  async function searchNumbers(event:FormEvent){
   event.preventDefault();setBusy(true);setNotice('');setError('');setNumberResults([]);
   try{
-   const data=await call('/api/telecom/network/telnyx/number-search',{method:'POST',body:JSON.stringify({country_code:country,area_code:areaCode,emergency_capable:true})});
+   const data=await call('/api/telecom/network/telnyx/number-search',{method:'POST',body:JSON.stringify({country_code:country,area_code:areaCode,emergency_capable:country==='US'||country==='CA'})});
    setNumberResults(data.data||[]);setNotice(`Found ${(data.data||[]).length} available number option(s). Search is read-only and does not purchase anything.`);
   }catch(caught:any){setError(caught?.message||'Unable to search numbers.')}finally{setBusy(false)}
  }
@@ -81,19 +82,21 @@ export default function NetworkAuthorityPage(){
   {error&&<div className={styles.error}>{error}</div>}{notice&&<div className={styles.notice}>{notice}</div>}
 
   <section className={styles.metrics}>
-   <article><small>TELNYX BRIDGE</small><strong>{overview.readiness.telnyx?'READY':'LOCKED'}</strong></article>
-   <article><small>GIGS MOBILE</small><strong>{overview.readiness.gigs?'READY':'LOCKED'}</strong></article>
-   <article><small>PSTN BRIDGE</small><strong>{overview.readiness.wholesale_voice?'READY':'LOCKED'}</strong></article>
-   <article><small>E911 LIVE</small><strong>{overview.readiness.emergency_enabled?'VERIFIED':'OFF'}</strong></article>
+   <article><small>OWNED SIP CORE</small><strong>{overview.readiness.owned_sip_bridge?'CONNECTED':'DEPLOY / CONNECT'}</strong></article>
+   <article><small>TELNYX UPSTREAM</small><strong>{overview.readiness.telnyx_provisioning?'PROVISIONING READY':'SETUP'}</strong></article>
+   <article><small>PLIVO FALLBACK</small><strong>{overview.readiness.plivo_fallback?'READY':'OPTIONAL'}</strong></article>
+   <article><small>TWILIO FALLBACK</small><strong>{overview.readiness.twilio_fallback?'READY':'OPTIONAL'}</strong></article>
    <article><small>DIRECT NUMBERING</small><strong>{overview.readiness.direct_numbering_authorized?'VERIFIED':'LATER'}</strong></article>
   </section>
 
   <section className={styles.status}><div><span className={styles.good}/><b>Magnanimous remains the public identity and AI command layer.</b></div><p>{overview.authority_note}</p></section>
 
   <section className={styles.grid}>
-   <article className={styles.card}><small>PRIMARY WHOLESALE BRIDGE</small><h2>Telnyx adapter</h2><p className={styles.muted}>Internal owner integration only. Provider branding stays out of ordinary customer-facing Telecom screens.</p><ul><li>Phone numbers + porting</li><li>SIP/PSTN interconnect</li><li>E911 provisioning</li><li>STIR/SHAKEN voice identity path</li><li>Physical SIM + eSIM</li><li>Mobile voice</li></ul><p className={styles.muted}>{overview.readiness.telnyx?'Encrypted TELNYX_API_KEY detected.':'Add TELNYX_API_KEY as an encrypted Worker secret to activate the adapter.'}</p></article>
+   <article className={styles.card}><small>PRIMARY CONTROL PLANE</small><h2>Magnanimous-owned SIP / PBX</h2><p className={styles.muted}>Asterisk and the Magnanimous Telecom control API stay in charge of agent extensions, IVR/ACD control and carrier routing. Upstream carriers remain replaceable.</p><ul>{(overview.preferred_bridge.capabilities||[]).slice(0,6).map(item=><li key={item}>{item.replaceAll('_',' ')}</li>)}</ul><p className={styles.muted}>{overview.readiness.owned_sip_bridge?'The authenticated PBX bridge is configured.':'The owned telecom-core is code-ready, but an authenticated public PBX bridge is not yet proven connected in this runtime.'}</p></article>
+   <article className={styles.card}><small>RECOMMENDED UPSTREAM</small><h2>Telnyx behind Magnanimous</h2><p className={styles.muted}>{overview.recommended_upstream.usage||'Use Telnyx as a replaceable SIP/numbering upstream where its rates, coverage and local requirements fit.'}</p><ul><li>SIP/PSTN trunking</li><li>Phone numbers + porting</li><li>Emergency-service provisioning</li><li>WebRTC / voice APIs</li><li>Mobile connectivity options</li></ul><p className={styles.muted}>{overview.readiness.telnyx_provisioning?'Encrypted Telnyx provisioning credentials are detected.':'Telnyx remains an available upstream once its encrypted credentials/account are connected.'}</p></article>
+   <article className={styles.card}><small>ROUTING POLICY</small><h2>Cost + coverage failover</h2><p className={styles.muted}>{overview.routing_policy}</p><ul>{(overview.fallback_policy||[]).map(item=><li key={item.provider_key}><b>{item.provider_key}</b> — {item.role}</li>)}</ul><p className={styles.muted}>No vendor is assumed cheapest for every country. Magnanimous should select by destination, number availability, compliance, quality and current rate card.</p></article>
    <article className={styles.card}><small>MOBILE ALTERNATIVE</small><h2>Gigs adapter</h2><p className={styles.muted}>Second path for branded wireless/MVNO subscriptions, physical SIM and eSIM lifecycle.</p><ul><li>pSIM + eSIM</li><li>Mobile plans</li><li>Subscriptions</li><li>Provider diversity</li></ul><p className={styles.muted}>{overview.readiness.gigs?'Encrypted Gigs project credentials detected.':'Add GIGS_API_TOKEN and GIGS_PROJECT_ID as encrypted Worker secrets when a Gigs project exists.'}</p></article>
-   <form className={styles.card} onSubmit={searchNumbers}><small>SAFE LIVE ACTION</small><h2>Search telephone numbers</h2><label>Country<select value={country} onChange={e=>setCountry(e.target.value)}><option value='US'>United States</option><option value='CA'>Canada</option></select></label><label>Area / destination code<input value={areaCode} onChange={e=>setAreaCode(e.target.value)} placeholder='Example: 512'/></label><button disabled={busy||!overview.readiness.telnyx}>SEARCH — NO PURCHASE</button><p className={styles.muted}>Paid number orders remain double-locked by a runtime enable flag plus an explicit purchase confirmation.</p></form>
+   <form className={styles.card} onSubmit={searchNumbers}><small>SAFE LIVE ACTION</small><h2>Search telephone numbers</h2><label>Country<select value={country} onChange={e=>setCountry(e.target.value)}><option value='US'>United States</option><option value='CA'>Canada</option><option value='PH'>Philippines</option></select></label><label>Area / destination code<input value={areaCode} onChange={e=>setAreaCode(e.target.value)} placeholder='Example: 512'/></label><button disabled={busy||!overview.readiness.telnyx_provisioning}>SEARCH — NO PURCHASE</button><p className={styles.muted}>Number inventory and documentation requirements vary by country. Paid orders remain double-locked by a runtime flag plus explicit purchase confirmation.</p></form>
   </section>
 
   {numberResults.length>0&&<section className={styles.inventory}><div className={styles.title}><div><small>AVAILABLE NUMBERS</small><h2>Read-only results</h2></div></div><div className={styles.table}>{numberResults.map((item:any)=><article key={item.phone_number}><div><b>{item.phone_number}</b><span>{item.cost_information?.currency||''} {item.cost_information?.monthly_cost||''}/mo</span></div><p>{(item.region_information||[]).map((region:any)=>region.region_name).filter(Boolean).join(', ')||'Available inventory'}</p><small>No purchase was made.</small></article>)}</div></section>}
