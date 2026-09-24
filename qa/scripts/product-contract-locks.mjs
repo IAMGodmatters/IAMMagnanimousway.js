@@ -48,6 +48,13 @@ const chatTransport = read('frontend/lib/magnanimous-chat-transport.ts');
 const standaloneServer = read('magnanimous-runtime/src/server.mjs');
 const deployWorkflow = read('.github/workflows/deploy.yml');
 
+
+includes(deployWorkflow, 'id: impact', 'deploy: runtime impact detector remains versioned');
+includes(deployWorkflow, "if: needs.runtime-impact.outputs.changed == 'true'", 'deploy: production mutation work stays gated by runtime impact');
+includes(deployWorkflow, 'No production runtime files changed; skipping Worker/Railway deployment and D1 mutation work.', 'deploy: docs/control-plane commits explicitly skip production mutation work');
+includes(deployWorkflow, 'Manual production deployment requested.', 'deploy: workflow_dispatch still forces an explicit production deployment');
+matches(deployWorkflow, /magnanimous-runtime\/\|worker\/\|frontend\/\|video-gateway\/\|api\//, 'deploy: runtime impact detector covers all standalone web runtime paths');
+
 // 1) Standalone Magnanimous AI lock.
 includes(standaloneLayout, "title:'Magnanimous AI™ — Standalone'", 'standalone: branded metadata title remains locked');
 includes(standaloneLayout, "canonical:'/magnanimous'", 'standalone: canonical /magnanimous route remains locked');
