@@ -5,7 +5,9 @@ on:
     paths:
       - 'magnanimous-runtime/src/migration-stage.mjs'
       - 'magnanimous-runtime/src/server.mjs'
+      - 'magnanimous-runtime/src/deploy-smoke-lineage.mjs'
       - 'magnanimous-runtime/scripts/verify-migration-stage.mjs'
+      - 'qa/scripts/deploy-smoke-runtime-lineage-lock.mjs'
       - 'worker/src/magnanimous-railway-capability-registry.js'
       - 'worker/src/magnanimous-connector-absorption.js'
       - 'qa/scripts/railway-absorption-lock.mjs'
@@ -28,6 +30,8 @@ jobs:
         run: |
           node --check magnanimous-runtime/src/migration-stage.mjs
           node --check magnanimous-runtime/src/server.mjs
+          node --check magnanimous-runtime/src/deploy-smoke-lineage.mjs
+          node --check qa/scripts/deploy-smoke-runtime-lineage-lock.mjs
           node --check worker/src/magnanimous-railway-capability-registry.js
           node --check worker/src/magnanimous-connector-absorption.js
           node --check qa/scripts/railway-absorption-lock.mjs
@@ -35,3 +39,5 @@ jobs:
         run: node magnanimous-runtime/scripts/verify-migration-stage.mjs
       - name: Verify Railway capability absorption contracts
         run: node qa/scripts/railway-absorption-lock.mjs
+      - name: Verify deployment smoke runtime lineage authorization
+        run: node qa/scripts/deploy-smoke-runtime-lineage-lock.mjs
