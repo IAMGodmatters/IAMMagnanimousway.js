@@ -25,6 +25,7 @@ import { openMagnanimousMailer } from './native-mailer.mjs';
 import { verifyGitHubActionsOidc, stageD1SqlExport, stageD1SqliteSnapshot, stageCredentialVaultRewrap } from './migration-stage.mjs';
 import { stageRuntimeSecrets, loadRuntimeSecrets } from './runtime-secret-store.mjs';
 import { deployMagnanimousCommit, deploymentControlConfig } from './deployment-control.mjs';
+import { deploymentSmokeRevisionAllowed } from './deploy-smoke-lineage.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -224,47 +225,6 @@ function runtimeRevision() {
     process.env.MAGNANIMOUS_DEPLOY_REVISION ||
     ''
   ).trim();
-}
-
-const RUNTIME_IMPACT_PATH = /^(magnanimous-runtime\/|worker\/|frontend\/|video-gateway\/|api\/|package\.json$|package-lock\.json$)/;
-
-async function deploymentSmokeRevisionAllowed(sourceSha, revision, repository) {
-  const source = String(sourceSha || '').trim();
-  const live = String(revision || '').trim();
-  const repo = String(repository || '').trim();
-
-  if (!/^[0-9a-f]{40}$/i.test(source) || !/^[0-9a-f]{40}$/i.test(live) || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) {
-    return false;
-  }
-  if (source === live) return true;
-
-  // A deploy workflow may legitimately run from a CI/control-plane-only commit
-  // while Railway remains on the latest runtime-impacting ancestor. Verify that
-  // relationship against GitHub instead of trusting a caller-supplied claim.
-  const compareUrl = 'https://api.github.com/repos/' + repo + '/compare/' + live + '...' + source;
-  const response = await fetch(compareUrl, {
-    headers: {
-      accept: 'application/vnd.github+json',
-      'user-agent': 'magnanimous-runtime-smoke-lineage'
-    }
-  });
-  if (!response.ok) return false;
-
-  const comparison = await response.json();
-  if (comparison?.status !== 'ahead') return false;
-  const aheadBy = Number(comparison?.ahead_by || 0);
-  const totalCommits = Number(comparison?.total_commits || 0);
-  const files = Array.isArray(comparison?.files) ? comparison.files : [];
-
-  // GitHub's compare response can truncate very large file sets. Smoke control
-  // is only intended to bridge a short run of control-plane-only main commits.
-  if (aheadBy < 1 || aheadBy > 50 || totalCommits < 1 || totalCommits > 50 || files.length >= 300) return false;
-  if (!files.length) return false;
-
-  return files.every((entry) => {
-    const filename = String(entry?.filename || '');
-    return filename && !RUNTIME_IMPACT_PATH.test(filename);
-  });
 }
 
 async function handleDeployment(req, res, pathname) {
