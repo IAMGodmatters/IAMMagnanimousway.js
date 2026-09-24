@@ -5,7 +5,8 @@ const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control
 function googleReady(env){return Boolean(String(env?.GOOGLE_API_KEY||'').trim())}
 function cloudflareReady(env){return env?.AI!=null&&String(env?.MAGNANIMOUS_RUNTIME||'')!=='standalone-node'}
 function magnanimousImageReady(env){return env?.MAGNANIMOUS_IMAGE_GENERATOR?.configured===true}
-function imageReady(env){return magnanimousImageReady(env)||cloudflareReady(env)}
+function nativeCanvasReady(){return true}
+function imageReady(env){return nativeCanvasReady()||magnanimousImageReady(env)||cloudflareReady(env)}
 function veoEnabled(env){return googleReady(env)&&String(env?.ENABLE_VEO_PROVIDER||'').toLowerCase()==='true'}
 
 export function visualProviderSnapshot(env){
@@ -13,7 +14,12 @@ export function visualProviderSnapshot(env){
   {
    id:'iam-cinematic-free',name:'I AM Cinematic Free',type:'video-effects',tier:'free-first',free:true,
    configured:imageReady(env),enabled:imageReady(env),
-   note:'Free-first cinematic pipeline. Uses the Magnanimous/local image rail when configured, keeps the legacy edge image rail only as rollback, and uses browser animation for motion.'
+   note:'Free-first cinematic pipeline. Uses Magnanimous Native Canvas when no image model is configured, upgrades to a Magnanimous/local image rail when available, keeps the legacy edge image rail only as rollback, and uses browser animation for motion.'
+  },
+  {
+   id:'magnanimous-native-canvas',name:'Magnanimous Native Canvas',type:'procedural-visual-generation',tier:'first-party-native',free:true,
+   configured:nativeCanvasReady(),enabled:nativeCanvasReady(),model:'magnanimous-svg-canvas-v1',
+   note:'Always-available first-party procedural cinematic scene fallback. It creates an original abstract SVG visual locally and does not claim photorealistic AI image generation.'
   },
   {
    id:'magnanimous-native-image',name:'Magnanimous Native Image',type:'image-generation',tier:'self-hosted-or-compatible',free:true,
@@ -81,12 +87,59 @@ async function generateFlux(env,prompt){
  return {image,model,provider:'legacy-edge-image-fallback',content_type:'image/jpeg'};
 }
 
+function canvasSeed(value){
+ let h=2166136261;
+ for(const ch of String(value||'')){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}
+ return h>>>0;
+}
+
+function svgBase64(svg){
+ const bytes=new TextEncoder().encode(svg);
+ let binary='';
+ for(const byte of bytes)binary+=String.fromCharCode(byte);
+ return btoa(binary);
+}
+
+function generateNativeCanvas(prompt){
+ const seed=canvasSeed(prompt);
+ const hueA=seed%360,hueB=(hueA+70+(seed%90))%360,hueC=(hueB+80)%360;
+ const x1=20+(seed%55),y1=20+((seed>>>5)%55),x2=25+((seed>>>11)%50),y2=30+((seed>>>17)%45);
+ const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Magnanimous native cinematic canvas">
+ <defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+   <stop offset="0%" stop-color="hsl(${hueA} 66% 12%)"/>
+   <stop offset="52%" stop-color="hsl(${hueB} 58% 20%)"/>
+   <stop offset="100%" stop-color="hsl(${hueC} 72% 10%)"/>
+  </linearGradient>
+  <radialGradient id="glow" cx="${x1}%" cy="${y1}%" r="60%">
+   <stop offset="0%" stop-color="hsl(${hueB} 90% 72% / .72)"/>
+   <stop offset="100%" stop-color="hsl(${hueB} 80% 42% / 0)"/>
+  </radialGradient>
+  <radialGradient id="glow2" cx="${x2}%" cy="${y2}%" r="58%">
+   <stop offset="0%" stop-color="hsl(${hueC} 92% 68% / .55)"/>
+   <stop offset="100%" stop-color="hsl(${hueC} 80% 38% / 0)"/>
+  </radialGradient>
+  <filter id="blur"><feGaussianBlur stdDeviation="24"/></filter>
+ </defs>
+ <rect width="1024" height="1024" fill="url(#bg)"/>
+ <rect width="1024" height="1024" fill="url(#glow)"/>
+ <rect width="1024" height="1024" fill="url(#glow2)"/>
+ <ellipse cx="512" cy="790" rx="430" ry="120" fill="hsl(${hueA} 80% 4% / .5)" filter="url(#blur)"/>
+ <path d="M0 760 C180 650 320 710 470 620 C650 510 770 600 1024 470 L1024 1024 L0 1024 Z" fill="hsl(${hueB} 42% 8% / .78)"/>
+ <path d="M0 850 C220 730 390 810 570 705 C770 590 870 670 1024 610 L1024 1024 L0 1024 Z" fill="hsl(${hueC} 48% 6% / .72)"/>
+ <circle cx="760" cy="225" r="78" fill="hsl(${hueB} 95% 82% / .75)" filter="url(#blur)"/>
+ <circle cx="760" cy="225" r="34" fill="hsl(${hueB} 100% 90% / .96)"/>
+</svg>`;
+ return{image:svgBase64(svg),content_type:'image/svg+xml',provider:'magnanimous-native-canvas',model:'magnanimous-svg-canvas-v1'};
+}
+
 async function generateImage(env,prompt){
  if(magnanimousImageReady(env)){
   const rendered=await env.MAGNANIMOUS_IMAGE_GENERATOR.generate(String(prompt).slice(0,1800),{seed:Math.floor(Math.random()*2_000_000_000)});
   return {...rendered,provider:rendered.provider||'magnanimous-native-image'};
  }
- return generateFlux(env,prompt);
+ if(cloudflareReady(env))return generateFlux(env,prompt);
+ return generateNativeCanvas(prompt);
 }
 
 export async function handleVisual(request,env){
