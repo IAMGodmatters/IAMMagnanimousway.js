@@ -24,7 +24,9 @@ has(runtime,'TWILIO_API_KEY_SECRET','Twilio API key secret never needs to enter 
 has(runtime,"provider:'Magnanimous Carrier'",'softphone keeps Magnanimous Carrier as public identity');
 has(runtime,"native_pbx_target:'Asterisk WebRTC'",'softphone exposes Asterisk WebRTC as native PBX target');
 has(runtime,"provider_details_private:true",'contact center keeps provider details private');
-has(runtime,'configured_route_count:[byoc,telnyx,plivo,twilio].filter(Boolean).length','contact center readiness includes BYOC, Telnyx, Plivo and Twilio');
+has(runtime,'live_route_count:[byoc,twilio].filter(Boolean).length','contact center counts only actually wired PSTN routes as live');
+has(runtime,'upstream_accounts_configured:upstreamAccounts','contact center tracks configured upstream accounts without calling them live routes');
+has(runtime,"truth_boundary:'An upstream account is not counted as a live call route",'provider readiness explicitly separates credentials from live routing');
 has(runtime,"/dial-start$/",'campaign dial-start lifecycle endpoint exists');
 has(runtime,"/dial-cancel$/",'campaign dial-cancel lifecycle endpoint exists');
 has(runtime,"NOT EXISTS(SELECT 1 FROM voice_do_not_call",'campaign dialing retains server-side DNC enforcement');
