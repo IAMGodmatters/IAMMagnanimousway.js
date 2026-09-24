@@ -136,7 +136,8 @@ has(contact,'data?.pstn_direct!==false','platform refuses a native credential th
 has(agentSoftphone,"from './native-webrtc'",'main agent softphone mounts the owned Magnanimous WebRTC client');
 has(nativeSoftphone,"from 'sip.js'",'native Magnanimous client is backed by SIP.js');
 has(agentSoftphone,'compatibility_transport_ready','main agent softphone preserves compatibility PSTN fallback');
-has(agentSoftphone,'ordinary-number dialing remains on the compatibility rail','main agent UI states the native PSTN bridge remains policy-gated');
+has(agentSoftphone,"if(internal)",'main agent softphone routes internal extensions through the native PBX path');
+has(agentSoftphone,"device.connect({params:{To:to}})",'main agent softphone keeps public-number dialing on the guarded compatibility path');
 lacks(agentSoftphone,'TELECOM_CORE_TOKEN','private Telecom Core bearer token never enters main softphone source');
 lacks(nativeSoftphone,'TELECOM_CORE_TOKEN','private Telecom Core bearer token never enters native WebRTC client source');
 has(nativeSoftphone,"extension==='911'||extension==='112'",'native browser client keeps emergency calling disabled');
