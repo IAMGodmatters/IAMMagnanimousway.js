@@ -89,33 +89,6 @@ jobs:
         working-directory: telecom-core/webrtc-e2e
         run: node validate-public-target.mjs
 
-      - name: Prepare optional short-lived TURN credentials
-        shell: bash
-        run: |
-          set -euo pipefail
-          node - <<'NODE'
-          const crypto = require('node:crypto');
-          const fs = require('node:fs');
-          const raw = String(process.env.TELECOM_PUBLIC_TURN_URLS || '').trim();
-          const policy = process.env.WEBRTC_ICE_TRANSPORT_POLICY === 'relay' ? 'relay' : 'all';
-          const urls = raw ? raw.split(',').map(v => v.trim()).filter(Boolean) : [];
-          if (urls.some(url => !/^turns?:/i.test(url))) {
-            throw new Error('TELECOM_PUBLIC_TURN_URLS entries must use turn: or turns:');
-          }
-          if (!urls.length) {
-            if (policy === 'relay') throw new Error('Relay-only verification requires TELECOM_PUBLIC_TURN_URLS');
-            fs.appendFileSync(process.env.GITHUB_ENV, 'WEBRTC_ICE_SERVERS_JSON=[]\n');
-            process.exit(0);
-          }
-          const secret = String(process.env.TELECOM_PUBLIC_TURN_AUTH_SECRET || '');
-          if (!secret) throw new Error('TELECOM_PUBLIC_TURN_AUTH_SECRET is required when TURN URLs are configured');
-          const expires = Math.floor(Date.now() / 1000) + 900;
-          const username = expires + ':github-public-proof-' + String(process.env.GITHUB_RUN_ID || 'run');
-          const credential = crypto.createHmac('sha1', secret).update(username).digest('base64');
-          const ice = [{ urls, username, credential, credentialType: 'password' }];
-          fs.appendFileSync(process.env.GITHUB_ENV, 'WEBRTC_ICE_SERVERS_JSON=' + JSON.stringify(ice) + '\n');
-          NODE
-
       - name: Resolve strict TLS target
         id: target
         shell: bash
