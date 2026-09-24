@@ -1241,6 +1241,32 @@ jobs:
           assert d.get('usage_rebilling') is True, d
           PY
 
+          status=$(curl -sS -o /tmp/wl-provider-readiness.json -w '%{http_code}' "$BASE_URL/api/white-label-os/provider-readiness" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "White Label provider readiness returned HTTP $status"; cat /tmp/wl-provider-readiness.json || true; exit 1; fi
+          python - <<'PY' >/tmp/wl-provider-routes.txt
+          import json
+          d=json.load(open('/tmp/wl-provider-readiness.json'))
+          apps=d.get('apps') or []
+          assert len(apps) == 17, d
+          ids={x.get('app_id') for x in apps}
+          assert ids == {'funnel','branded-ai','client-apps','booking','reputation','automations','inbox','crm','receptionist','video-agents','work-engine','rebilling','invoice','pos','website','app-builder','whatsapp'}, ids
+          for app in apps:
+              assert app.get('route','').startswith('/'), app
+              assert app.get('provider'), app
+              assert app.get('provider_id'), app
+              assert app.get('provider_mode') in {'native','hybrid','external-required'}, app
+              assert app.get('provider_status') in {'ready','configured','setup-required'}, app
+              print(app['route'])
+          PY
+          while IFS= read -r white_label_route; do
+            route_status=$(curl -sS -o /tmp/wl-provider-route.html -w '%{http_code}' "$BASE_URL$white_label_route")
+            if [ "$route_status" != "200" ]; then
+              echo "White Label provider-backed route $white_label_route returned HTTP $route_status"
+              exit 1
+            fi
+          done </tmp/wl-provider-routes.txt
+          echo "White Label provider assurance passed: all 17 home links are live and declare an execution provider."
+
           status=$(curl -sS -o /tmp/wl-client.json -w '%{http_code}' -X POST "$BASE_URL/api/bpo/clients" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"name":"White Label Smoke Client","industry":"QA","service_lines":["Customer Service","Marketing"]}')
           if [ "$status" != "201" ]; then echo "White Label client creation returned HTTP $status"; cat /tmp/wl-client.json || true; exit 1; fi
           client_id=$(python - <<'PY'
@@ -1258,8 +1284,8 @@ jobs:
           import json
           d=json.load(open('/tmp/client-apps.json'))
           apps=d.get('apps') or []
-          assert len(apps) == 58, d
-          assert d.get('catalog_count') == 58, d
+          assert len(apps) == 63, d
+          assert d.get('catalog_count') == 63, d
           ids={app.get('app_id') for app in apps}
           assert all(x in ids for x in ['business-ai:podcast-studio','business-ai:deep-research','business-ai:logo-maker','business-ai:accounting-books','business-ai:data-studio','business-ai:open-media-library']), ids
           assert d.get('authorization_boundary'), d
