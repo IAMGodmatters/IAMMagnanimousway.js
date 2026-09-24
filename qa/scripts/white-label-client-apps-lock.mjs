@@ -1,8 +1,12 @@
 import fs from'node:fs';
-const r=p=>fs.readFileSync(new URL('../../'+p,import.meta.url),'utf8');
-const wl=r('worker/src/white-label-os-runtime.js'),apps=r('frontend/app/white-label/client-apps/page.tsx'),os=r('frontend/app/white-label-os/page.tsx'),biz=r('frontend/app/business-ai/page.tsx'),deploy=r('.github/workflows/deploy.yml');
-for(const s of ["import {BUSINESS_AI_SUITE}","CORE_CLIENT_APPS","'business-ai:'+id","catalog_count:CLIENT_APP_CATALOG.length","authorization_boundary"])if(!wl.includes(s))throw Error('White Label expanded client catalog missing '+s);
-for(const s of ["client-app-search","client-app-group","business-ai?tool=","security authorization boundary","/agency-command?tab=funnels"])if(!apps.includes(s)&&!os.includes(s))throw Error('White Label client app UX/route missing '+s);
+const root=p=>new URL('../../'+p,import.meta.url),r=p=>fs.readFileSync(root(p),'utf8'),exists=p=>fs.existsSync(root(p));
+const wl=r('worker/src/white-label-os-runtime.js'),apps=r('frontend/app/white-label/client-apps/page.tsx'),home=r('frontend/app/white-label/page.tsx'),os=r('frontend/app/white-label-os/page.tsx'),biz=r('frontend/app/business-ai/page.tsx'),deploy=r('.github/workflows/deploy.yml');
+for(const s of ["import {BUSINESS_AI_SUITE}","CORE_CLIENT_APPS","WHITE_LABEL_HOME_APPS","providerDetails","provider-readiness","'business-ai:'+id","catalog_count:CLIENT_APP_CATALOG.length","provider_assurance:true","authorization_boundary"])if(!wl.includes(s))throw Error('White Label expanded client/provider catalog missing '+s);
+for(const s of ["invoice','Invoice Maker","pos','Point of Sale","website','Website Builder","app-builder','App Prototype Builder","whatsapp','WhatsApp Product Inbox"])if(!wl.includes(s))throw Error('White Label client catalog missing '+s);
+for(const s of ["client-app-search","client-app-group","business-ai?tool=","security authorization boundary","provider_status","provider_note","FALLBACK_DEST"])if(!apps.includes(s)&&!os.includes(s))throw Error('White Label client app UX/provider route missing '+s);
+for(const s of ["providerMap","provider-readiness","PROVIDER READY","SETUP REQUIRED"])if(!home.includes(s))throw Error('White Label home provider assurance missing '+s);
 if(!biz.includes("get('tool')")||!biz.includes("setPick(found)"))throw Error('Business AI deep-link preselection missing');
-for(const s of ["len(apps) == 58","catalog_count') == 58","business-ai:podcast-studio","business-ai:logo-maker","business-ai:accounting-books","business-ai:data-studio","business-ai:open-media-library"])if(!deploy.includes(s))throw Error('White Label production smoke missing '+s);
-console.log('White Label 58-app client catalog and route integrity passed.');
+const routeMatches=[...wl.matchAll(/\['[^']+','[^']+','(?:core'|'\/)[^\n]*?'(\/[^']+)'/g)].map(x=>x[1].split('?')[0]);
+for(const route of new Set(routeMatches)){if(route==='/')continue;const page='frontend/app'+route+'/page.tsx';if(!exists(page))throw Error('White Label provider registry route has no page: '+route)}
+for(const s of ["len(apps) == 63","catalog_count') == 63","provider-readiness","provider_status","business-ai:podcast-studio","business-ai:logo-maker","business-ai:accounting-books","business-ai:data-studio","business-ai:open-media-library"])if(!deploy.includes(s))throw Error('White Label production smoke missing '+s);
+console.log('White Label 63-app client catalog, 17-link provider registry, and route integrity passed.');
