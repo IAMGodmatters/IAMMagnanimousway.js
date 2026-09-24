@@ -492,6 +492,7 @@ jobs:
           fi
 
       - name: Wait for standalone session plane revision
+        id: runtime-plane
         env:
           STANDALONE_ORIGIN: https://magnanimous-production.up.railway.app
           GH_TOKEN: ${{ github.token }}
@@ -534,6 +535,7 @@ jobs:
 
           [ "$success" = "1" ] || { echo "::error::Railway session plane did not catch up before production smoke."; exit 1; }
           echo "Shared session plane ready for smoke: workflow_sha=$GITHUB_SHA runtime_target=$runtime_target live=$live"
+          echo "runtime_target=$live" >> "$GITHUB_OUTPUT"
           rm -f /tmp/magnanimous-session-plane-health.json
       - name: Production smoke test
         working-directory: worker
@@ -542,6 +544,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           BASE_URL: https://iammagnanimousway.com
           STANDALONE_ORIGIN: https://magnanimous-production.up.railway.app
+          MAGNANIMOUS_SMOKE_RUNTIME_SHA: ${{ steps.runtime-plane.outputs.runtime_target }}
         shell: bash
         run: |
           set -eo pipefail
@@ -570,7 +573,7 @@ jobs:
               -X POST "$STANDALONE_ORIGIN/__magnanimous_runtime/smoke/tenant" \
               -H 'content-type: application/json' \
               -H "Authorization: Bearer $oidc" \
-              --data "{\"action\":\"$action\",\"tenant_id\":\"$tenant\"}"
+              --data "{\"action\":\"$action\",\"tenant_id\":\"$tenant\",\"workflow_sha\":\"$GITHUB_SHA\",\"runtime_sha\":\"$MAGNANIMOUS_SMOKE_RUNTIME_SHA\"}"
           }
 
           check_get() {

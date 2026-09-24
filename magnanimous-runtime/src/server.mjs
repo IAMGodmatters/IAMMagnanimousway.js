@@ -471,12 +471,16 @@ async function handleDeploymentSmokeControl(req, res, pathname) {
       workflowFile: '.github/workflows/deploy.yml',
       allowedEvents: ['push', 'workflow_dispatch']
     });
-    const revision = runtimeRevision();
-    if (!revision || revision !== String(source.sha || '').trim()) {
-      throw new Error('Deployment smoke control revision mismatch.');
+    const payload = JSON.parse((await readLimitedBody(req, 16384)).toString('utf8'));
+    const revision = String(runtimeRevision() || '').trim();
+    const sourceSha = String(source.sha || '').trim();
+    const workflowSha = String(payload?.workflow_sha || '').trim();
+    const requestedRuntimeSha = String(payload?.runtime_sha || '').trim();
+    const fullSha = /^[0-9a-f]{40}$/i;
+    if (!fullSha.test(revision) || !fullSha.test(sourceSha) || workflowSha !== sourceSha || requestedRuntimeSha !== revision) {
+      throw new Error('Deployment smoke control revision binding mismatch.');
     }
 
-    const payload = JSON.parse((await readLimitedBody(req, 16384)).toString('utf8'));
     const tenantId = String(payload?.tenant_id || '').trim();
     const action = String(payload?.action || '').trim().toLowerCase();
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId)) {
