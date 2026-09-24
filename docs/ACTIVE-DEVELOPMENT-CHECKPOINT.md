@@ -41,15 +41,25 @@ Also preserve enough durable state that a chat or streaming interruption cannot 
 
 ## Active work
 
-1. Make the existing Asterisk WSS placeholder a truthful, secure WebRTC-ready configuration with explicit TLS/certificate readiness gates.
-2. Preserve ordinary SIP/Kamailio behavior while adding native browser-agent transport rather than replacing it.
-3. Add route-quality telemetry contracts (ASR, ACD, PDD, failures/sample size/freshness) and make balanced routing prefer measured quality when enough fresh evidence exists.
-4. Enforce route maximum-rate policy instead of merely storing it.
-5. Expand carrier candidates without hard-wiring any one vendor as Magnanimous identity.
-6. Update the owner telecom/network surface so provider roles, measured route quality and readiness are visible without falsely claiming a connection.
-7. Keep Twilio/other compatibility rails available while native transport is completed.
-8. Add durable QA locks for the continuation checkpoint and the new telecom contracts.
-9. Run source/build/QA, merge only when green, deploy the existing production service, and verify production.
+Completed on the active branch:
+- [x] Replaced the unusable WSS placeholder with gated Asterisk WSS + TLS + DTLS-SRTP + ICE + RTCP mux + Opus source configuration.
+- [x] Preserved ordinary Kamailio/SIP behavior and kept WebRTC disabled by default until verified.
+- [x] Removed the hard-coded public STUN dependency; STUN is now optional and operator-selected.
+- [x] Added route-quality telemetry contracts (ASR, ACD, PDD, network failures, sample floor and freshness) with configured-quality fallback.
+- [x] Enforced route maximum-rate policy in carrier selection.
+- [x] Expanded carrier candidate types without changing Magnanimous public identity.
+- [x] Updated the owner telecom/network surface to show the owned core, native WebRTC truth state, carrier candidates and measured route metrics.
+- [x] Kept the compatibility softphone rail and exposed native-vs-compatibility readiness truthfully.
+- [x] Added and wired the durable development checkpoint QA lock.
+
+Still required before this branch is complete:
+- [ ] Expand permanent telecom QA locks for the new WSS/TLS, telemetry, rate-cap and UI truth contracts.
+- [ ] Version the deep research/architecture evidence with current carrier, Asterisk, CCaaS and NTC references.
+- [ ] Run source/build/QA on the branch and fix any failures.
+- [ ] Merge only when CI is green.
+- [ ] Deploy the existing production service and verify exact-commit production smoke.
+- [ ] Do not mark native WebRTC live until a dedicated Telecom Core host/domain/TLS endpoint completes real browser registration and two-way media verification.
+- [ ] Do not move legacy live carrier adapters behind route-plan execution until each adapter has an explicit selected-route mapping and authenticated health proof.
 
 ## Production verification
 
@@ -59,7 +69,7 @@ Do not write SUCCESS here until the exact new merge commit has passed CI, deploy
 
 If interrupted, resume from this file first. Then:
 - inspect the active branch diff against main;
-- continue the first unchecked item in **Active work**;
+- continue the first unchecked item in **Active work**; currently that is expanding the permanent telecom QA locks;
 - do not recreate already-merged PRs #367-#369;
 - do not create a new Railway project/service;
 - do not enable a paid carrier or purchase numbers without an explicit paid-action gate;
