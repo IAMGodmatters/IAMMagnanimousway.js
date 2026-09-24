@@ -1,5 +1,7 @@
 import app from './index.js';
 import { handleLeadPhone } from './lead-phone.js';
+import { handleContactCenter } from './contact-center-runtime.js';
+import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { handleIntegrations } from './integrations.js';
 import { handleSponsoredAds } from './sponsored-ad-runtime.js';
 import { handleVisual } from './visual-runtime.js';
@@ -95,6 +97,7 @@ export default {
     }
     ensureWhatsAppIntegrationCompatibility();
     await ensureRuntimeBootstrap(env);
+    env=await getProviderRuntimeEnv(env);
     const visual=await handleVisual(request,env);
     if(visual)return visual;
     const sponsored=await handleSponsoredAds(request,env);
@@ -135,6 +138,8 @@ export default {
     if(telecom)return telecom;
     const integration=await handleIntegrations(request,env);
     if(integration)return integration;
+    const contactCenter=await handleContactCenter(request,env);
+    if(contactCenter)return contactCenter;
     const feature=await handleLeadPhone(request,env);
     if(feature)return feature;
     return app.fetch(request,env,ctx);

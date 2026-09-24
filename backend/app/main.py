@@ -8,11 +8,12 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 app = FastAPI(title='I AM Magnanimous Way™ AI Platform', version='2.0.0')
-app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
+ALLOWED_ORIGINS=[x.strip() for x in os.getenv('CORS_ORIGINS','https://iammagnanimousway.com,http://localhost:3000,http://127.0.0.1:3000').split(',') if x.strip()]
+app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 DB_PATH = Path(os.getenv('DATABASE_PATH', './iamagnanimous.db'))
-ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@iamagnanimous.local')
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'change-this-password')
-SESSION_SECRET = os.getenv('SESSION_SECRET', 'change-this-session-secret')
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', '').strip().lower()
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', '')
+SESSION_SECRET = os.getenv('SESSION_SECRET', '')
 TOOLS = [{'id':'magnanimous','name':'Magnanimous AI','description':'Routes requests across configured AI providers and platform tools.'},{'id':'ai-chat','name':'AI Chat','description':'General-purpose AI assistant.'},{'id':'writing','name':'Writing Helper','description':'Create, rewrite, summarize and polish content.'},{'id':'research','name':'Research Helper','description':'Organize research questions, sources and briefs.'},{'id':'bible-study','name':'Bible Study','description':'Study Scripture and organize biblical topics.'},{'id':'marketing','name':'Marketing Helper','description':'Create campaigns, captions, offers and content plans.'},{'id':'business','name':'Business Helper','description':'Business planning, ideas and analysis.'},{'id':'coding','name':'Coding Helper','description':'Explain, generate and troubleshoot code.'},{'id':'video-studio','name':'Text → Video Studio','description':'Turn text into a captioned MP4 using free/local rendering.'},{'id':'social','name':'Social Media Helper','description':'Create platform-ready social posts and scripts.'},{'id':'video-script','name':'Video Script Helper','description':'Create short- and long-form video scripts.'},{'id':'travel','name':'Travel Helper','description':'Build travel plans and itineraries.'},{'id':'customer-service','name':'Customer Service Helper','description':'Draft helpful customer responses.'}]
 PROVIDERS=[{'id':'openai','name':'OpenAI','configured':bool(os.getenv('OPENAI_API_KEY'))},{'id':'groq','name':'Groq','configured':bool(os.getenv('GROQ_API_KEY'))},{'id':'gemini','name':'Google Gemini','configured':bool(os.getenv('GEMINI_API_KEY'))},{'id':'ollama','name':'Ollama / Local AI','configured':bool(os.getenv('OLLAMA_BASE_URL'))},{'id':'local-video','name':'Local Video Renderer (FFmpeg)','configured':True}]
 def db():
@@ -38,12 +39,15 @@ class AdRequest(BaseModel): title:str=Field(min_length=1,max_length=120); url:st
 class SettingRequest(BaseModel): site_name:str=Field(min_length=1,max_length=120); tagline:str=Field(min_length=1,max_length=240); canva_url:str=Field(default='',max_length=2000)
 @app.on_event('startup')
 def startup():
+ if not ADMIN_EMAIL or '@' not in ADMIN_EMAIL: raise RuntimeError('ADMIN_EMAIL must be configured for the standalone backend.')
+ if len(ADMIN_PASSWORD) < 14 or ADMIN_PASSWORD in {'change-this-password','CHANGE_ME_NOW'}: raise RuntimeError('ADMIN_PASSWORD must be a strong deployment secret of at least 14 characters.')
+ if len(SESSION_SECRET) < 32 or SESSION_SECRET in {'change-this-session-secret','CHANGE_ME_TO_A_LONG_RANDOM_SECRET'}: raise RuntimeError('SESSION_SECRET must be a unique deployment secret of at least 32 characters.')
  c=db()
  if c.execute("SELECT 1 FROM settings WHERE key='admin_password_hash'").fetchone() is None:
   c.execute("INSERT INTO settings(key,value) VALUES('admin_password_hash',?)",(hash_password(ADMIN_PASSWORD),)); c.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('site_name','I AM Magnanimous AI Platform')"); c.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('tagline','Free AI tools, Magnanimous AI orchestration, and creator tools in one place.')"); c.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('canva_url','')"); c.commit()
  c.close()
 @app.get('/health')
-def health():return {'status':'ok','service':'iamagnanimous-ai','version':'2.0.0'}
+def health():return {'status':'ok','service':'iamagnanimous-ai','version':'2.0.0','auth_configured':True}
 @app.get('/api/tools')
 def tools():return {'tools':TOOLS}
 @app.get('/api/providers')

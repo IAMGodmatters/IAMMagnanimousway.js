@@ -45,6 +45,12 @@ jobs:
       - name: Lock specialist branch architecture
         run: node qa/scripts/specialist-branch-lock.mjs
 
+      - name: Lock live contact center and carrier contracts
+        run: node qa/scripts/contact-center-runtime-lock.mjs
+
+      - name: Lock full provider and standalone service audit boundaries
+        run: node qa/scripts/full-platform-provider-service-audit-lock.mjs
+
       - name: Lock Magnanimous native developer agent
         run: node qa/scripts/magnanimous-dev-agent-lock.mjs
 
@@ -80,9 +86,9 @@ jobs:
             find video-gateway/src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
           fi
 
-      - name: Python service syntax check
+      - name: Python standalone service syntax check
         run: |
-          python -m compileall -q backend video-renderer
+          python -m compileall -q backend video-renderer music-engine telecom-core/control-api/app
 
   browser-qa:
     name: Browser and functional QA

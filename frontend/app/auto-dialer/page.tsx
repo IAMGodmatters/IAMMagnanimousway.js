@@ -112,7 +112,7 @@ export default function AutoDialer(){
  const current=useMemo(()=>campaigns.find(x=>x.id===selected),[campaigns,selected]);
  return <main style={{maxWidth:1120,margin:'0 auto',padding:'28px 18px 60px',fontFamily:'Arial,Helvetica,sans-serif'}}>
   <header style={{display:'flex',justifyContent:'space-between',gap:20,alignItems:'flex-start',flexWrap:'wrap'}}>
-   <div><a href="/contact-center">← Contact Center</a><p style={{letterSpacing:1,fontSize:12,marginTop:18}}>I AM MAGNANIMOUS WAY™ · OPTIONAL CALLING MODULE</p><h1 style={{fontSize:42,margin:'6px 0 8px'}}>Auto Dialer</h1><p style={{maxWidth:760,lineHeight:1.55}}>Automatically works through an active campaign while keeping the existing manual campaign dialer, AI receptionist, free browser phone and Twilio carrier softphone available as separate options.</p></div>
+   <div><a href="/contact-center">← Contact Center</a><p style={{letterSpacing:1,fontSize:12,marginTop:18}}>I AM MAGNANIMOUS WAY™ · OPTIONAL CALLING MODULE</p><h1 style={{fontSize:42,margin:'6px 0 8px'}}>Auto Dialer</h1><p style={{maxWidth:760,lineHeight:1.55}}>Automatically works through an active campaign while keeping the existing manual campaign dialer, AI receptionist, free browser phone and carrier softphone available as separate options.</p></div>
    <div style={{padding:'10px 14px',border:'1px solid #bbb',borderRadius:999,fontWeight:700}}>{running?'● AUTO DIAL ACTIVE':'○ STOPPED'}</div>
   </header>
 

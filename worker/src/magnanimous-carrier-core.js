@@ -68,13 +68,30 @@ function readiness(p){
  };
 }
 async function interconnects(env,user){const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_carrier_interconnects WHERE tenant_id=? ORDER BY enabled DESC,priority,id').bind(String(user.tenant_id)).all();return results.map(x=>({...x,inbound:!!x.inbound,outbound:!!x.outbound,enabled:!!x.enabled,countries:(()=>{try{return JSON.parse(x.countries_json)}catch{return[]}})(),rate:(()=>{try{return JSON.parse(x.rate_json)}catch{return{}}})()}))}
-async function routePlan(env,user,to){
+function parsedObject(value){try{const x=JSON.parse(value||'{}');return x&&typeof x==='object'&&!Array.isArray(x)?x:{}}catch{return{}}}
+function numericRate(rate,route){
+ const values=[route?.estimated_rate,rate?.outbound_per_minute,rate?.per_minute,rate?.rate,rate?.cost_per_minute].map(Number).filter(Number.isFinite);
+ return values.length?Math.max(0,values[0]):null;
+}
+async function routePlan(env,user,to,mode='balanced'){
  const destination=e164(to);if(!destination)return{error:'A valid E.164 destination is required.'};
- const {results=[]}=await env.DB.prepare(`SELECT r.*,i.name interconnect_name,i.type interconnect_type,i.endpoint,i.health_status,i.enabled interconnect_enabled
+ const selectionMode=['balanced','least-cost','priority'].includes(String(mode))?String(mode):'balanced';
+ const {results=[]}=await env.DB.prepare(`SELECT r.*,i.name interconnect_name,i.type interconnect_type,i.endpoint,i.health_status,i.enabled interconnect_enabled,i.priority interconnect_priority,i.rate_json
  FROM magnanimous_carrier_routes r JOIN magnanimous_carrier_interconnects i ON i.id=r.interconnect_id AND i.tenant_id=r.tenant_id
  WHERE r.tenant_id=? AND r.enabled=1 AND i.enabled=1 AND i.outbound=1 ORDER BY LENGTH(r.destination_prefix) DESC,r.priority ASC,i.priority ASC,r.id ASC`).bind(String(user.tenant_id)).all();
- const matches=results.filter(x=>!x.destination_prefix||destination.startsWith(String(x.destination_prefix))).map(x=>({route_id:x.id,route:x.name,interconnect_id:x.interconnect_id,interconnect:x.interconnect_name,type:x.interconnect_type,health:x.health_status,max_rate:x.max_rate,priority:x.priority,jurisdiction:x.jurisdiction}));
- return{destination,matches,selected:matches.find(x=>x.health!=='down')||matches[0]||null,policy:'longest-prefix then route priority then interconnect priority'};
+ const matches=results.filter(x=>!x.destination_prefix||destination.startsWith(String(x.destination_prefix))).map(x=>{
+  const policy=parsedObject(x.policy_json),rate=parsedObject(x.rate_json),estimatedRate=numericRate(rate,policy),quality=Math.max(0,Math.min(100,Number(policy.quality_score??rate.quality_score??50)));
+  return{route_id:x.id,route:x.name,destination_prefix:String(x.destination_prefix||''),interconnect_id:x.interconnect_id,interconnect:x.interconnect_name,type:x.interconnect_type,health:x.health_status,max_rate:x.max_rate,estimated_rate:estimatedRate,quality_score:quality,priority:Number(x.priority||100),interconnect_priority:Number(x.interconnect_priority||100),jurisdiction:x.jurisdiction,policy};
+ });
+ const longest=matches.reduce((n,x)=>Math.max(n,x.destination_prefix.length),0),specific=matches.filter(x=>x.destination_prefix.length===longest),healthy=specific.filter(x=>!['down','unavailable','failed'].includes(String(x.health||'').toLowerCase())),pool=healthy.length?healthy:specific;
+ const rateValue=x=>x.estimated_rate==null?Number.POSITIVE_INFINITY:Number(x.estimated_rate);
+ const sorted=pool.slice().sort((a,b)=>{
+  if(selectionMode==='least-cost')return rateValue(a)-rateValue(b)||b.quality_score-a.quality_score||a.priority-b.priority||a.interconnect_priority-b.interconnect_priority;
+  if(selectionMode==='priority')return a.priority-b.priority||a.interconnect_priority-b.interconnect_priority||rateValue(a)-rateValue(b)||b.quality_score-a.quality_score;
+  return b.quality_score-a.quality_score||rateValue(a)-rateValue(b)||a.priority-b.priority||a.interconnect_priority-b.interconnect_priority;
+ });
+ const selected=sorted[0]||matches[0]||null;
+ return{destination,selection_mode:selectionMode,matches,selected,policy:'longest destination prefix first; unhealthy routes avoided; balanced mode prefers quality then rate, least-cost prefers rate then quality, priority mode honors configured priorities first'};
 }
 
 export async function handleMagnanimousCarrierCore(request,env){
@@ -106,7 +123,7 @@ export async function handleMagnanimousCarrierCore(request,env){
  if(request.method==='POST'&&path==='/api/magnanimous/carrier/routes'){
   if(!manager(user))return json({detail:'Owner or admin role required.'},403);const b=await request.json().catch(()=>({}));const interconnectId=Number(b.interconnect_id||0);if(!interconnectId)return json({detail:'interconnect_id is required.'},400);const ic=await env.DB.prepare('SELECT id FROM magnanimous_carrier_interconnects WHERE tenant_id=? AND id=?').bind(String(user.tenant_id),interconnectId).first();if(!ic)return json({detail:'Interconnect not found.'},404);const ts=now();const r=await env.DB.prepare(`INSERT INTO magnanimous_carrier_routes(tenant_id,name,destination_prefix,interconnect_id,priority,enabled,max_rate,jurisdiction,policy_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`).bind(String(user.tenant_id),clip(b.name||'Carrier route',120),clip(b.destination_prefix,32),interconnectId,Math.max(0,Number(b.priority||100)),b.enabled===false?0:1,b.max_rate==null?null:Number(b.max_rate),clip(b.jurisdiction,80),JSON.stringify(b.policy&&typeof b.policy==='object'?b.policy:{}).slice(0,8000),ts,ts).run();await audit(env,user,'route.create',String(r.meta?.last_row_id||''),String(interconnectId));return json({ok:true,id:r.meta?.last_row_id||null},201);
  }
- if(request.method==='GET'&&path==='/api/magnanimous/carrier/route-plan')return json(await routePlan(env,user,url.searchParams.get('to')));
+ if(request.method==='GET'&&path==='/api/magnanimous/carrier/route-plan')return json(await routePlan(env,user,url.searchParams.get('to'),url.searchParams.get('mode')||'balanced'));
  if(request.method==='POST'&&path==='/api/magnanimous/carrier/cdr'){
   if(!manager(user))return json({detail:'Owner or admin role required.'},403);const b=await request.json().catch(()=>({})),callId=clip(b.call_id,160);if(!callId)return json({detail:'call_id is required.'},400);await env.DB.prepare(`INSERT INTO magnanimous_carrier_cdr(tenant_id,call_id,provider_call_id,direction,from_number,to_number,interconnect_id,route_id,status,started_at,answered_at,ended_at,duration_seconds,billable_seconds,wholesale_cost,customer_charge,currency,stir_attestation,emergency_call,metadata_json,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,call_id) DO UPDATE SET provider_call_id=excluded.provider_call_id,status=excluded.status,answered_at=excluded.answered_at,ended_at=excluded.ended_at,duration_seconds=excluded.duration_seconds,billable_seconds=excluded.billable_seconds,wholesale_cost=excluded.wholesale_cost,customer_charge=excluded.customer_charge,stir_attestation=excluded.stir_attestation,metadata_json=excluded.metadata_json`).bind(String(user.tenant_id),callId,clip(b.provider_call_id,160),clip(b.direction||'outbound',20),clip(b.from_number,32),clip(b.to_number,32),b.interconnect_id?Number(b.interconnect_id):null,b.route_id?Number(b.route_id):null,clip(b.status,40),b.started_at?Number(b.started_at):null,b.answered_at?Number(b.answered_at):null,b.ended_at?Number(b.ended_at):null,Math.max(0,Number(b.duration_seconds||0)),Math.max(0,Number(b.billable_seconds||0)),Math.max(0,Number(b.wholesale_cost||0)),Math.max(0,Number(b.customer_charge||0)),clip(b.currency||'USD',8),clip(b.stir_attestation,8),bool(b.emergency_call)?1:0,JSON.stringify(b.metadata&&typeof b.metadata==='object'?b.metadata:{}).slice(0,12000),now()).run();await audit(env,user,'cdr.upsert',callId,clip(b.status,40));return json({ok:true,call_id:callId});
  }
