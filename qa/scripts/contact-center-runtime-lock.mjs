@@ -8,6 +8,9 @@ const compatSoftphone=read('worker/src/twilio-softphone-runtime.js');
 const softphone=read('frontend/app/softphone/page.tsx');
 const autoDial=read('frontend/app/auto-dialer/page.tsx');
 const envExample=read('.env.example');
+const providerEnv=read('worker/src/provider-runtime-env.js');
+const platformCredentials=read('worker/src/platform-credentials.js');
+const frontendPackage=read('frontend/package.json');
 
 const checks=[];
 const has=(src,needle,label)=>checks.push([label,src.includes(needle)]);
@@ -38,6 +41,22 @@ has(runtime,"NOT EXISTS(SELECT 1 FROM voice_do_not_call",'campaign dialing retai
 has(runtime,"Campaign calling is limited to 08:00–20:00",'campaign dialing retains quiet-hour enforcement');
 has(softphone,"/api/contact-center/softphone/config",'softphone frontend matches server config route');
 has(softphone,"/api/contact-center/softphone/claim",'softphone frontend matches server claim route');
+has(runtime,"path==='/api/contact-center/softphone/native-session'",'signed-in contact-center route can request a native PBX browser session');
+has(runtime,'cc_native_webrtc_sessions','native PBX sessions are bound to tenant/user ownership in platform storage');
+has(runtime,"u.protocol!=='https:'",'native Telecom Core bridge requires HTTPS');
+has(runtime,'runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE)','native Telecom Core bridge is gated by the production live-verification flag');
+has(runtime,"data?.pstn_direct!==false",'worker rejects native browser credentials that could directly dial PSTN');
+has(runtime,'tenant_id=? AND user_id=?','native session revocation is scoped to the signed-in tenant and user');
+has(softphone,"from 'sip.js'",'agent softphone includes the native SIP.js transport');
+has(softphone,'/api/contact-center/softphone/native-session','agent softphone obtains native credentials only through the signed-in platform');
+has(softphone,"device.connect({params:{To:to}})",'ordinary-number dialing remains on the compatibility transport');
+lacks(softphone,'new Inviter','native SIP.js handoff cannot directly bypass platform PSTN policy');
+lacks(softphone,'TELECOM_CORE_TOKEN','frontend never embeds the private Telecom Core token');
+has(providerEnv,"'TELECOM_CORE_TOKEN'",'private Telecom Core token is eligible for server-side provider-vault overlay');
+has(platformCredentials,"id:'magnanimous-telecom-core'",'owner integrations expose protected native Telecom Core setup');
+has(frontendPackage,'"sip.js": "0.21.2"','frontend pins the proven SIP.js native browser client');
+has(envExample,'TELECOM_CORE_URL=','environment contract documents native Telecom Core URL');
+has(envExample,'TELECOM_CORE_TOKEN=','environment contract documents native Telecom Core token');
 has(autoDial,'/dial-start','auto dialer start route is backed by server contract');
 has(autoDial,'/dial-cancel','auto dialer cancel route is backed by server contract');
 for(const key of ['TWILIO_API_KEY_SID=','TWILIO_API_KEY_SECRET=','TWILIO_TWIML_APP_SID=','TELNYX_API_KEY=','TELNYX_CONNECTION_ID=','TELNYX_PHONE_NUMBER=','PLIVO_AUTH_ID=','PLIVO_AUTH_TOKEN=','PLIVO_PHONE_NUMBER=']){
