@@ -79,6 +79,7 @@ has(nativeSoftphone,"extension==='911'||extension==='112'",'native adapter block
 has(nativeSoftphone,'logBuiltinEnabled:false','native SIP.js built-in logging is disabled around temporary credentials');
 has(frontendPackage,'"sip.js": "0.21.2"','frontend pins SIP.js to the verified 0.21.2 API');
 has(frontendLock,'"node_modules/sip.js"','frontend lockfile contains SIP.js');
+checks.push(['frontend lockfile contains exactly one SIP.js package entry',(frontendLock.match(/"node_modules\\/sip\\.js"/g)||[]).length===1]);
 has(frontendLock,'"sha512-tSqTcIgrOd2IhP/rd70JablvAp+fSfLSxO4hGNY6LkWRY1SKygTO7OtJEV/BQb8oIxtMRx0LE7nUF2MaqGbFzA=="','frontend lockfile pins the verified SIP.js artifact integrity');
 lacks(nativeSoftphone,'TELECOM_CORE_TOKEN','native frontend adapter never receives the Telecom Core bearer token');
 lacks(nativeSoftphone,'TELECOM_CORE_URL','native frontend adapter never receives the private Telecom Core URL');
