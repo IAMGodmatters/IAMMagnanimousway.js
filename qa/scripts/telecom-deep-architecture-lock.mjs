@@ -79,7 +79,7 @@ has(study,'## Promotion rule','deep study contains a no-overclaim promotion rule
 has(extensions,'Echo()','authenticated WebRTC diagnostic uses Asterisk Echo for carrier-free bidirectional media proof');
 has(webrtcWorkflow,'Real Chromium registration and two-way media','dedicated CI job runs a real Chromium WebRTC media proof');
 has(webrtcWorkflow,'wss://localhost:8089/ws','browser probe uses the native Asterisk WSS endpoint');
-has(webrtcWorkflow,'--use-file-for-fake-audio-capture','Chromium probe sends a deterministic microphone stream');
+has(webrtcProbe,'--use-file-for-fake-audio-capture','Chromium probe sends a deterministic microphone stream');
 has(webrtcProbe,'pjsip show contacts','probe independently verifies Asterisk registered the browser contact');
 has(webrtcProbe,'inboundBytes > 0 && p.outboundBytes > 0','probe requires RTP bytes in both directions');
 has(webrtcProbe,'remoteAudioTracks > 0','probe requires a real remote browser audio track');
