@@ -21,12 +21,13 @@ function telnyxReady(env){return Boolean(env.TELNYX_API_KEY&&env.TELNYX_CONNECTI
 function plivoReady(env){return Boolean(env.PLIVO_AUTH_ID&&env.PLIVO_AUTH_TOKEN&&env.PLIVO_PHONE_NUMBER)}
 function providerSnapshot(env){
  const byoc=genericReady(env),telnyx=telnyxReady(env),plivo=plivoReady(env),twilio=twilioReady(env),softphone=twilioSoftphoneReady(env);
- const ordinary=byoc||telnyx||plivo||twilio;
+ const livePstn=byoc||twilio;
+ const upstreamAccounts=[telnyx,plivo,twilio].filter(Boolean).length;
  const mode=String(env.VOIP_BILLING_MODE||'metered').trim().toLowerCase();
  return {
   provider_details_private:true,
   browser_calling:{configured:true,free_first:true,inbound:true,outbound:true,note:'Peer-to-peer browser calling for signed-in users.'},
-  magnanimous_carrier:{configured:ordinary,inbound:byoc||twilio,outbound:ordinary,byoc,flat_rate:['flat-rate','unlimited','channel'].includes(mode),billing_mode:byoc?mode:'metered',least_cost_routing:true,configured_route_count:[byoc,telnyx,plivo,twilio].filter(Boolean).length},
+  magnanimous_carrier:{configured:livePstn,inbound:byoc||twilio,outbound:livePstn,byoc,flat_rate:['flat-rate','unlimited','channel'].includes(mode),billing_mode:byoc?mode:'metered',least_cost_routing:true,live_route_count:[byoc,twilio].filter(Boolean).length,upstream_accounts_configured:upstreamAccounts,truth_boundary:'An upstream account is not counted as a live call route until it is attached to the Magnanimous carrier bridge or an authenticated compatibility transport.'},
   agent_softphone:{configured:softphone,provider_identity:'Magnanimous Carrier',native_pbx_target:'Asterisk WebRTC',compatibility_transport:softphone},
   ai_assist:{configured:Boolean(env.AI),free_first:Boolean(env.AI)},
   optional_video:{configured:Boolean(env.TAVUS_API_KEY||env.HEYGEN_API_KEY),premium:true}
