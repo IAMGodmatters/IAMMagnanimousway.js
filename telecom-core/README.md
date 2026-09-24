@@ -23,7 +23,7 @@ DigitalOcean is not required for Magnanimous Telecom. It is a convenient low-cos
 - **Magnanimous Telecom API** — provider-neutral FastAPI control plane used by the existing `VOIP_PROVIDER_URL` bridge in the Cloudflare Worker.
 - **Magnanimous AI route** — reserved SIP extension/context for connecting calls to the Magnanimous voice agent.
 - **PSTN trunk adapter** — replaceable SIP interconnect. No third-party carrier is exposed as the public identity.
-- **Future WebRTC edge** — browser calling is deliberately not advertised as ready until WSS/TLS/TURN are deployed and tested.
+- **Native WebRTC edge (source-ready, gated)** — Asterisk WSS + DTLS-SRTP + ICE + RTCP mux + Opus configuration now exists behind `ASTERISK_WEBRTC_ENABLED`. It is deliberately not advertised as live until a trusted TLS hostname/certificate, browser registration, and two-way media test are verified.
 
 ## Worker integration
 
@@ -61,7 +61,9 @@ Deploy on a Linux VM or owner-owned Linux server with a stable public IPv4 addre
 - UDP 10000-20000 for RTP
 - TCP 8080 for the Telecom API, preferably behind HTTPS/reverse proxy and firewall rules
 - Asterisk ARI on 8088 remains loopback/private and must not be exposed publicly
-- WSS/WebRTC is not opened until TLS/TURN hardening is completed
+- TCP 8089 for Asterisk secure WebSocket signaling only when `ASTERISK_WEBRTC_ENABLED=true` and a trusted TLS certificate/key are mounted
+- STUN is optional and explicitly configured; TURN should be added where restrictive NAT requires relay media
+- WSS/WebRTC remains disabled by default and must not be called live until browser registration + two-way audio are verified
 
 ## Start
 
@@ -75,6 +77,22 @@ Deploy on a Linux VM or owner-owned Linux server with a stable public IPv4 addre
 8. Point the existing Worker `VOIP_PROVIDER_URL` to `/v1/calls`.
 9. Set `VOIP_CALLER_ID` only to a number Magnanimous is actually authorized to present.
 
+## Native browser-agent WebRTC readiness
+
+The owned browser-media target is Asterisk, not a permanent third-party browser Voice SDK dependency.
+
+Source readiness includes:
+
+- secure SIP-over-WebSocket transport (`WSS`);
+- `webrtc=yes` PJSIP endpoint behavior;
+- DTLS-SRTP media;
+- ICE and RTCP multiplexing;
+- Opus with G.711 fallbacks;
+- explicit TLS certificate/key startup gates;
+- optional STUN instead of a hard-coded public dependency;
+- a protected control-API `/v1/webrtc` readiness contract.
+
+The existing compatibility browser carrier path remains available while the native rail is being deployed. Set `TELECOM_NATIVE_WEBRTC_LIVE=true` in the platform runtime only after the native telecom host has a trusted public WSS endpoint and a real browser has completed registration plus two-way audio.
 ## Emergency calling
 
 The dialplan intentionally does not advertise or provide 911/E911 service yet. Emergency calling must remain disabled until compliant emergency-routing and registered-location services are integrated and tested.
