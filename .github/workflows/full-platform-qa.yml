@@ -86,9 +86,9 @@ jobs:
             find video-gateway/src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
           fi
 
-      - name: Python service syntax check
+      - name: Python standalone service syntax check
         run: |
-          python -m compileall -q backend video-renderer
+          python -m compileall -q backend video-renderer music-engine telecom-core/control-api/app
 
   browser-qa:
     name: Browser and functional QA
