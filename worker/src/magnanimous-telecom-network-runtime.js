@@ -53,9 +53,19 @@ async function event(env,tenant,user,eventType,providerKey='',jurisdiction='',de
 }
 
 function providerReadiness(env){
+ const ownedSipBridge=Boolean(String(env?.VOIP_PROVIDER_URL||'').trim()&&String(env?.VOIP_PROVIDER_TOKEN||'').trim());
+ const telnyxProvisioning=Boolean(String(env?.TELNYX_API_KEY||'').trim());
+ const telnyxVoiceProfile=Boolean(telnyxProvisioning&&String(env?.TELNYX_CONNECTION_ID||'').trim()&&String(env?.TELNYX_PHONE_NUMBER||'').trim());
+ const plivo=Boolean(String(env?.PLIVO_AUTH_ID||'').trim()&&String(env?.PLIVO_AUTH_TOKEN||'').trim()&&String(env?.PLIVO_PHONE_NUMBER||'').trim());
+ const twilio=Boolean(String(env?.TWILIO_ACCOUNT_SID||'').trim()&&String(env?.TWILIO_AUTH_TOKEN||'').trim()&&String(env?.TWILIO_PHONE_NUMBER||'').trim());
  return{
-  wholesale_voice:Boolean(String(env?.VOIP_PROVIDER_URL||'').trim()&&String(env?.VOIP_PROVIDER_TOKEN||'').trim()),
-  telnyx:Boolean(String(env?.TELNYX_API_KEY||'').trim()),
+  wholesale_voice:ownedSipBridge,
+  owned_sip_bridge:ownedSipBridge,
+  telnyx:telnyxProvisioning,
+  telnyx_provisioning:telnyxProvisioning,
+  telnyx_voice_profile:telnyxVoiceProfile,
+  plivo_fallback:plivo,
+  twilio_fallback:twilio,
   gigs:Boolean(String(env?.GIGS_API_TOKEN||'').trim()&&String(env?.GIGS_PROJECT_ID||'').trim()),
   emergency_enabled:truthy(env?.TELECOM_EMERGENCY_LIVE),
   direct_numbering_authorized:truthy(env?.TELECOM_DIRECT_NUMBERING_AUTHORIZED),
@@ -116,12 +126,18 @@ export async function handleMagnanimousTelecomNetwork(request,env){
    env.DB.prepare('SELECT id,jurisdiction,authority_key,authority_name,status,application_reference,evidence_reference,notes,updated_at FROM telecom_regulatory_cases WHERE tenant_id=? ORDER BY jurisdiction,authority_name').bind(tenant).all()
   ]);
   return json({
-   identity:'Magnanimous Telecom',brain:'Magnanimous AI',architecture:'provider-neutral regulated-network control',
+   identity:'Magnanimous Telecom',brain:'Magnanimous AI',architecture:'Magnanimous-owned PBX/SIP core with replaceable upstream carriers',
    readiness:providerReadiness(env),
-   preferred_bridge:{provider_key:'telnyx',role:'wholesale multi-capability bridge',capabilities:['phone_numbers','sip_pstn','number_porting','e911','stir_shaken_voice_identity','physical_sim','esim','mobile_voice']},
+   preferred_bridge:{provider_key:'magnanimous-owned-sip',role:'carrier-neutral PBX/control bridge',capabilities:['webrtc_agents','sip_extensions','acd_control','ivr_control','pstn_trunk_routing','provider_failover','call_state','tenant_isolation']},
+   recommended_upstream:{provider_key:'telnyx',role:'preferred SIP/numbering upstream where price, coverage and local rules fit',capabilities:['phone_numbers','sip_pstn','number_porting','e911','stir_shaken_voice_identity','webrtc','mobile_connectivity'],usage:'Prefer as an upstream trunk/provisioning provider behind Magnanimous-owned Asterisk. Do not make provider-specific APIs the platform brain.'},
+   fallback_policy:[
+    {provider_key:'plivo',role:'low-cost direct API fallback',limits:['outbound-first','coverage-and-rate-dependent']},
+    {provider_key:'twilio',role:'compatibility and ecosystem fallback',limits:['premium-metered','use when compatibility or feature coverage justifies cost']}
+   ],
+   routing_policy:'Free browser calling first; owned SIP/PBX next; then destination-aware low-cost fallback; compatibility carrier last. Re-evaluate rates and local number requirements per destination before purchase.',
    mobile_alternative:{provider_key:'gigs',role:'MVNO/mobile subscription adapter',capabilities:['physical_sim','esim','mobile_plans','subscriptions']},
    providers:providers.results||[],regulatory_cases:cases.results||[],
-   authority_note:'Software readiness is not regulatory authority. External approvals and provider contracts remain required until completed.'
+   authority_note:'Software readiness is not regulatory authority. A configured API key, number, or SIP trunk does not by itself grant carrier, numbering, emergency-service, resale, or spectrum authority.'
   });
  }
 
