@@ -15,11 +15,6 @@ type=transport
 protocol=tcp
 bind=0.0.0.0:${ASTERISK_SIP_PORT}
 
-[transport-wss]
-type=transport
-protocol=wss
-bind=0.0.0.0
-
 ; Trusted loopback route to the Magnanimous SIP registrar/proxy.
 [magnanimous-sip-core]
 type=aor
@@ -94,5 +89,6 @@ rewrite_contact=yes
 ; Browser/WebRTC clients can keep using the Asterisk WSS endpoint where needed.
 ; General SIP subscribers register against the Magnanimous SIP Core on port 5060.
 
+#include pjsip-webrtc.conf
 #include pjsip-trunk.conf
 #include pjsip-trunk-secondary.conf
