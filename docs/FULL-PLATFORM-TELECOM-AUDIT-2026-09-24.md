@@ -37,6 +37,8 @@ Upstream carriers are replaceable transport. Credentials alone do not mean a car
 - Added an optional secondary SIP interconnect to the owned Asterisk core.
 - Secondary routing is attempted only after network-level `CHANUNAVAIL` or `CONGESTION`, not after a real busy/no-answer result.
 - Corrected the owner telecom overview to show the owned Magnanimous/Asterisk core separately from replaceable upstream candidates.
+- Hardened the legacy Python standalone backend so it refuses weak/default admin or session secrets, uses an explicit trusted-origin CORS list, and cannot silently boot with known placeholder credentials.
+- Expanded Full Platform QA syntax coverage across the legacy backend, video renderer, music engine and Telecom control API.
 
 ### Deliberately not claimed as complete
 
@@ -181,6 +183,7 @@ The standalone telecom core exists as a tested deployable source project but is 
 | Video gateway | **Source-ready; independent live hosting not proven by this audit** | Edge/gateway adapter |
 | Local Bridge | **Device-bound readiness; no specific paired device was promoted to live by this audit** | Owner-controlled local execution; health requires a real paired heartbeat |
 | Legacy/backend FastAPI source | **Source-ready; no separate live Railway service verified** | Compatibility/service code, not an independently proven production service |
+| GPU render node | **Contract-only; implementation/health/deployment not proven by this audit** | Future owner-controlled real-time renderer boundary; must not be reported live until implemented and health-verified |
 
 **Audit rule:** source code, a manifest, a Docker image, a stored credential, or a provider account is not enough to claim a service is live. Live status requires runtime/deployment evidence or a successful authenticated health/capability probe.
 
