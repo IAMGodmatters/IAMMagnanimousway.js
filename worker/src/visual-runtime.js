@@ -5,7 +5,8 @@ const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control
 function googleReady(env){return Boolean(String(env?.GOOGLE_API_KEY||'').trim())}
 function cloudflareReady(env){return env?.AI!=null&&String(env?.MAGNANIMOUS_RUNTIME||'')!=='standalone-node'}
 function magnanimousImageReady(env){return env?.MAGNANIMOUS_IMAGE_GENERATOR?.configured===true}
-function imageReady(env){return magnanimousImageReady(env)||cloudflareReady(env)}
+function proceduralImageReady(){return true}
+function imageReady(env){return magnanimousImageReady(env)||cloudflareReady(env)||proceduralImageReady()}
 function veoEnabled(env){return googleReady(env)&&String(env?.ENABLE_VEO_PROVIDER||'').toLowerCase()==='true'}
 
 export function visualProviderSnapshot(env){
@@ -13,7 +14,12 @@ export function visualProviderSnapshot(env){
   {
    id:'iam-cinematic-free',name:'I AM Cinematic Free',type:'video-effects',tier:'free-first',free:true,
    configured:imageReady(env),enabled:imageReady(env),
-   note:'Free-first cinematic pipeline. Uses the Magnanimous/local image rail when configured, keeps the legacy edge image rail only as rollback, and uses browser animation for motion.'
+   note:'Free-first cinematic pipeline. Uses the Magnanimous/local image rail when configured, otherwise falls back to Magnanimous-owned procedural scene rendering with no external image provider required.'
+  },
+  {
+   id:'magnanimous-native-procedural-scene',name:'Magnanimous Native Procedural Scene',type:'image-generation',tier:'first-party-zero-cost',free:true,
+   configured:true,enabled:true,model:'magnanimous-procedural-v1',
+   note:'First-party deterministic SVG scene renderer. It preserves free visual output when no external or self-hosted generative image model is configured.'
   },
   {
    id:'magnanimous-native-image',name:'Magnanimous Native Image',type:'image-generation',tier:'self-hosted-or-compatible',free:true,
@@ -72,6 +78,27 @@ async function geminiDirect(env,title,text,style){
  }
 }
 
+function proceduralHash(value){
+ let h=2166136261;
+ for(const ch of String(value||'')){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}
+ return h>>>0;
+}
+export function generateProceduralScene(prompt){
+ const seed=proceduralHash(prompt);
+ const palettes=[
+  ['#101828','#344054','#98A2B3','#F2F4F7'],
+  ['#0B1F33','#164E63','#67E8F9','#ECFEFF'],
+  ['#1F1534','#53389E','#B692F6','#F4EBFF'],
+  ['#172B1A','#2F6B3B','#86CB92','#EFF8F0'],
+  ['#321B14','#854A2F','#F3B27A','#FFF3E8']
+ ];
+ const p=palettes[seed%palettes.length];
+ const x1=140+(seed%420),y1=100+((seed>>>4)%260),x2=720+((seed>>>9)%380),y2=180+((seed>>>13)%300);
+ const ridge1=380+((seed>>>3)%120),ridge2=430+((seed>>>7)%100);
+ const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${p[0]}"/><stop offset="0.58" stop-color="${p[1]}"/><stop offset="1" stop-color="${p[0]}"/></linearGradient><radialGradient id="g1"><stop offset="0" stop-color="${p[2]}" stop-opacity=".78"/><stop offset="1" stop-color="${p[2]}" stop-opacity="0"/></radialGradient><radialGradient id="g2"><stop offset="0" stop-color="${p[3]}" stop-opacity=".48"/><stop offset="1" stop-color="${p[3]}" stop-opacity="0"/></radialGradient></defs><rect width="1280" height="720" fill="url(#bg)"/><circle cx="${x1}" cy="${y1}" r="330" fill="url(#g1)"/><circle cx="${x2}" cy="${y2}" r="420" fill="url(#g2)"/><path d="M0 ${ridge1} C180 ${ridge1-110} 320 ${ridge1+70} 520 ${ridge1-20} S880 ${ridge1+90} 1280 ${ridge1-40} V720 H0Z" fill="${p[0]}" opacity=".48"/><path d="M0 ${ridge2} C220 ${ridge2-80} 420 ${ridge2+50} 650 ${ridge2-35} S1010 ${ridge2+65} 1280 ${ridge2-15} V720 H0Z" fill="${p[1]}" opacity=".64"/><ellipse cx="640" cy="685" rx="520" ry="90" fill="${p[3]}" opacity=".08"/></svg>`;
+ return{image:btoa(svg),model:'magnanimous-procedural-v1',provider:'magnanimous-native-procedural-scene',content_type:'image/svg+xml',procedural:true};
+}
+
 async function generateFlux(env,prompt){
  if(!cloudflareReady(env))throw new Error('Cloudflare Workers AI image generation is not configured.');
  const model='@cf/black-forest-labs/flux-1-schnell';
@@ -86,7 +113,8 @@ async function generateImage(env,prompt){
   const rendered=await env.MAGNANIMOUS_IMAGE_GENERATOR.generate(String(prompt).slice(0,1800),{seed:Math.floor(Math.random()*2_000_000_000)});
   return {...rendered,provider:rendered.provider||'magnanimous-native-image'};
  }
- return generateFlux(env,prompt);
+ if(cloudflareReady(env))return generateFlux(env,prompt);
+ return generateProceduralScene(prompt);
 }
 
 export async function handleVisual(request,env){
