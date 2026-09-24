@@ -15,6 +15,7 @@ const phoneCarrier=read('worker/src/phone-carrier-runtime.js');
 const contactCenter=read('worker/src/contact-center-runtime.js');
 const telecomNetwork=read('worker/src/magnanimous-telecom-network-runtime.js');
 const providerEnv=read('worker/src/provider-runtime-env.js');
+const agentDesk=read('frontend/app/agent-desk/page.tsx');
 
 const checks=[];
 const has=(source,text,label)=>checks.push([label,source.includes(text)]);
@@ -40,8 +41,16 @@ has(phoneCarrier,'const carrierCore = await handleMagnanimousCarrierPhoneAlias(r
 has(phoneCarrier,'if (plivoReady(env))','Plivo remains an optional low-cost direct fallback');
 has(phoneCarrier,'if (!twilioReady(env)) return null;','Twilio remains an optional compatibility fallback rather than the primary route');
 has(contactCenter,"primary_route:byoc?'owned-sip-core'","contact-center provider readiness prefers the owned SIP core when connected");
-has(contactCenter,"skills_routing:false",'contact-center does not claim skills routing operational before a routing engine exists');
-has(contactCenter,"crm_screen_pop:false",'contact-center does not claim CRM screen pop operational before an executable UI flow exists');
+has(contactCenter,"path==='/api/contact-center/routing/recommend'&&request.method==='POST'",'skills routing has an executable tenant-scoped recommendation endpoint');
+has(contactCenter,"async function recommendAgent",'skills routing uses native queue membership, availability and agent skills');
+has(contactCenter,"skills_routing:true",'contact-center only advertises skills routing after the executable route exists');
+has(contactCenter,"skills_routing:'operational'",'skills routing readiness is explicitly operational');
+has(contactCenter,"path==='/api/contact-center/screen-pop'&&request.method==='GET'",'CRM screen pop has an executable tenant-scoped endpoint');
+has(contactCenter,"async function crmScreenPop",'CRM screen pop resolves call/contact/email/phone context against the native CRM');
+has(contactCenter,"crm_screen_pop:true",'contact-center only advertises CRM screen pop after the executable route exists');
+has(contactCenter,"crm_screen_pop:'operational'",'CRM screen-pop readiness is explicitly operational');
+has(agentDesk,"/api/contact-center/routing/recommend",'Agent Desk exposes skills-based routing to human agents');
+has(agentDesk,"/api/contact-center/screen-pop",'Agent Desk exposes native CRM screen-pop lookup');
 has(contactCenter,"recording:false",'contact-center does not claim full-call recording from voicemail recording alone');
 has(contactCenter,"supervisor_audio:'specified-only'",'contact-center truthfully classifies supervisor audio as specified-only');
 has(telecomNetwork,"provider_key:'magnanimous-owned-sip'",'owner telecom topology names the Magnanimous-owned SIP/PBX core as the preferred bridge');
