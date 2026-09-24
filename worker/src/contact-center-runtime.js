@@ -161,14 +161,24 @@ async function createNativeSoftphoneSession(env,user){
  const response=await telecomCoreRequest(env,'/v1/webrtc/sessions',{method:'POST'});if(!response)return json({detail:'Magnanimous Telecom Core is unavailable.',fallback:'compatibility'},502);
  const data=await response.json().catch(()=>null);if(!response.ok)return json({detail:'Magnanimous Telecom Core rejected the native browser session.',status:response.status,fallback:'compatibility'},502);
  const sessionId=clean(data?.session_id),username=clean(data?.username),password=clean(data?.password),domain=clean(data?.domain),wssUrl=clean(data?.wss_url),expiresAt=Number(data?.expires_at||0);
+ const iceServers=[];
+ let iceValid=true;
+ for(const item of Array.isArray(data?.ice_servers)?data.ice_servers:[]){
+  const urls=(Array.isArray(item?.urls)?item.urls:[item?.urls]).map(clean).filter(Boolean);
+  const turnUser=clean(item?.username),turnCredential=clean(item?.credential);
+  if(!urls.length||urls.some(url=>!/^turns?:/i.test(url))||!turnUser||!turnCredential){iceValid=false;break}
+  iceServers.push({urls,username:turnUser,credential:turnCredential,credentialType:'password'});
+ }
+ const iceTransportPolicy=data?.ice_transport_policy==='relay'?'relay':'all';
+ if(iceTransportPolicy==='relay'&&!iceServers.length)iceValid=false;
  let wss;try{wss=new URL(wssUrl)}catch{}
- if(!/^web_\d+_[a-f0-9]{16}$/i.test(sessionId)||username!==sessionId||!password||!domain||!wss||wss.protocol!=='wss:'||!Number.isFinite(expiresAt)||expiresAt<=now()||data?.pstn_direct!==false){
+ if(!/^web_\d+_[a-f0-9]{16}$/i.test(sessionId)||username!==sessionId||!password||!domain||!wss||wss.protocol!=='wss:'||!Number.isFinite(expiresAt)||expiresAt<=now()||data?.pstn_direct!==false||!iceValid){
   if(sessionId)await telecomCoreRequest(env,`/v1/webrtc/sessions/${encodeURIComponent(sessionId)}`,{method:'DELETE'}).catch(()=>null);
   return json({detail:'Magnanimous Telecom Core returned an invalid native browser session.',fallback:'compatibility'},502);
  }
  const agent=await ensureSoftphoneAgent(env,user);
  await env.DB.prepare('INSERT OR REPLACE INTO cc_native_webrtc_sessions(session_id,tenant_id,user_id,expires_at,created_at) VALUES(?,?,?,?,?)').bind(sessionId,String(user.tenant_id),String(user.id),expiresAt,now()).run();
- return json({ok:true,provider:'Magnanimous Carrier',transport:'native-asterisk-webrtc',session_id:sessionId,username,password,domain,wss_url:wssUrl,expires_at:expiresAt,expires_in:Number(data?.expires_in||0),agent_id:agent.id,pstn_direct:false,allowed_call_scope:Array.isArray(data?.allowed_call_scope)?data.allowed_call_scope:[],compatibility_fallback:twilioSoftphoneReady(env)},201);
+ return json({ok:true,provider:'Magnanimous Carrier',transport:'native-asterisk-webrtc',session_id:sessionId,username,password,domain,wss_url:wssUrl,ice_servers:iceServers,ice_transport_policy:iceTransportPolicy,turn_relay_configured:iceServers.length>0,expires_at:expiresAt,expires_in:Number(data?.expires_in||0),agent_id:agent.id,pstn_direct:false,allowed_call_scope:Array.isArray(data?.allowed_call_scope)?data.allowed_call_scope:[],compatibility_fallback:twilioSoftphoneReady(env)},201);
 }
 async function revokeNativeSoftphoneSession(env,user,sessionId){
  sessionId=clean(sessionId);if(!/^web_\d+_[a-f0-9]{16}$/i.test(sessionId))return json({detail:'Invalid native WebRTC session identifier.'},400);
