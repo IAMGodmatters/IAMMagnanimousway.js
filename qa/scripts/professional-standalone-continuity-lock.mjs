@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const source=fs.readFileSync('worker/src/professional-resilience-runtime.js','utf8');
+const source=fs.readFileSync('../worker/src/professional-resilience-runtime.js','utf8');
 
 assert.match(source,/no magnanimous ai execution rail is configured/i);
 assert.match(source,/execution rail[^\n]{0,80}\(not configured\|unavailable\)/i);
