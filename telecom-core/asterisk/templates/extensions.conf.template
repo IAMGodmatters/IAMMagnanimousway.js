@@ -65,7 +65,7 @@ exten => _+X.,1,NoOp(Magnanimous outbound PSTN bridge call to ${EXTEN})
  same => n,GotoIf($["${CARRIER_SIP_SECONDARY_ENDPOINT}"=""]?done)
  same => n,GotoIf($["${DIALSTATUS}"="CHANUNAVAIL"]?secondary)
  same => n,GotoIf($["${DIALSTATUS}"="CONGESTION"]?secondary:done)
- same => n(secondary),NoOp(Primary carrier unavailable; trying Magnanimous secondary SIP interconnect)
+ same => n(secondary),NoOp(Primary carrier unavailable - trying Magnanimous secondary SIP interconnect)
  same => n,Dial(PJSIP/${EXTEN}@${CARRIER_SIP_SECONDARY_ENDPOINT},60)
  same => n(done),Hangup()
 
