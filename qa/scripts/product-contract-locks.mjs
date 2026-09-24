@@ -45,6 +45,8 @@ const branchEntrypoint = read('worker/src/branch-consent-entrypoint.js');
 const knowledgeRuntime = read('worker/src/knowledge-runtime.js');
 const progressEntrypoint = read('worker/src/progress-entrypoint-base.js');
 const chatTransport = read('frontend/lib/magnanimous-chat-transport.ts');
+const standaloneServer = read('magnanimous-runtime/src/server.mjs');
+const deployWorkflow = read('.github/workflows/deploy.yml');
 
 // 1) Standalone Magnanimous AI lock.
 includes(standaloneLayout, "title:'Magnanimous AI™ — Standalone'", 'standalone: branded metadata title remains locked');
@@ -84,6 +86,11 @@ includes(aiChatPage, 'use_tools: !research', 'reliability: main Research mode is
 includes(aiChatPage, 'retryTransientEdgeOnce: research', 'reliability: main Research mode retries transient HTML edge failures once');
 includes(standalonePage, 'use_tools:!researchMode', 'reliability: standalone Research mode is read-only when edge retry is enabled');
 includes(standalonePage, 'retryTransientEdgeOnce:researchMode', 'reliability: standalone Research mode retries transient HTML edge failures once');
+includes(standaloneServer, "workflowSha !== sourceSha || requestedRuntimeSha !== revision", 'deployment smoke: OIDC workflow SHA and verified live runtime SHA are independently bound');
+includes(standaloneServer, "const fullSha = /^[0-9a-f]{40}$/i", 'deployment smoke: workflow/runtime revision bindings require full commit SHAs');
+includes(deployWorkflow, 'id: runtime-plane', 'deployment smoke: verified runtime target is exported by the session-plane gate');
+includes(deployWorkflow, 'MAGNANIMOUS_SMOKE_RUNTIME_SHA: ${{ steps.runtime-plane.outputs.runtime_target }}', 'deployment smoke: production smoke receives the verified live runtime revision');
+includes(deployWorkflow, '\\"workflow_sha\\":\\"$GITHUB_SHA\\",\\"runtime_sha\\":\\"$MAGNANIMOUS_SMOKE_RUNTIME_SHA\\"', 'deployment smoke: internal entitlement control is bound to both workflow and live runtime revisions');
 
 // 1b) Customer execution-provider privacy lock.
 includes(branchEntrypoint, 'function stripExecutionMetadata(data)', 'privacy: customer AI responses retain an execution-metadata stripping boundary');
