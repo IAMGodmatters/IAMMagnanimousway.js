@@ -12,7 +12,6 @@ const envExample=read('.env.example');
 const providerEnv=read('worker/src/provider-runtime-env.js');
 const platformCredentials=read('worker/src/platform-credentials.js');
 const frontendPackage=read('frontend/package.json');
-const nativeSoftphone=read('frontend/app/softphone/native-webrtc.ts');
 
 const checks=[];
 const has=(src,needle,label)=>checks.push([label,src.includes(needle)]);
