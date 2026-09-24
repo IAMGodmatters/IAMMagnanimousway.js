@@ -17,11 +17,27 @@ function owner(user){return user?.role==='owner'||user?.role==='admin'}
 function runtimeTrue(v){return ['1','true','yes','on'].includes(String(v||'').trim().toLowerCase())}
 function twilioReady(env){return Boolean(env.TWILIO_ACCOUNT_SID&&env.TWILIO_AUTH_TOKEN&&env.TWILIO_PHONE_NUMBER)}
 function twilioSoftphoneReady(env){return Boolean(twilioReady(env)&&env.TWILIO_API_KEY_SID&&env.TWILIO_API_KEY_SECRET&&env.TWILIO_TWIML_APP_SID)}
+function telecomCoreConfig(env){
+ if(!runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE))return null;
+ const raw=clean(env.TELECOM_CORE_URL),token=clean(env.TELECOM_CORE_TOKEN);if(!raw||!token)return null;
+ try{
+  const u=new URL(raw),host=u.hostname.toLowerCase();
+  const privateV4=/^(?:10\.|127\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/;
+  if(u.protocol!=='https:'||u.username||u.password||host==='localhost'||host.endsWith('.local')||privateV4.test(host))return null;
+  return{base:u.origin+u.pathname.replace(/\/+$/,''),token}
+ }catch{return null}
+}
+function nativeSoftphoneReady(env){return Boolean(telecomCoreConfig(env))}
+async function telecomCoreRequest(env,path,options={}){
+ const cfg=telecomCoreConfig(env);if(!cfg)return null;
+ const headers=new Headers(options.headers||{});headers.set('Authorization',`Bearer ${cfg.token}`);if(options.body&&!headers.has('Content-Type'))headers.set('Content-Type','application/json');
+ try{return await fetch(`${cfg.base}${path}`,{...options,headers})}catch{return null}
+}
 function genericReady(env){return Boolean(env.VOIP_PROVIDER_URL&&env.VOIP_PROVIDER_TOKEN)}
 function telnyxReady(env){return Boolean(env.TELNYX_API_KEY&&env.TELNYX_CONNECTION_ID&&env.TELNYX_PHONE_NUMBER)}
 function plivoReady(env){return Boolean(env.PLIVO_AUTH_ID&&env.PLIVO_AUTH_TOKEN&&env.PLIVO_PHONE_NUMBER)}
 function providerSnapshot(env){
- const byoc=genericReady(env),telnyx=telnyxReady(env),plivo=plivoReady(env),twilio=twilioReady(env),softphone=twilioSoftphoneReady(env),nativeWebrtcLive=runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE);
+ const byoc=genericReady(env),telnyx=telnyxReady(env),plivo=plivoReady(env),twilio=twilioReady(env),softphone=twilioSoftphoneReady(env),nativeWebrtcLive=runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE),nativeSession=nativeSoftphoneReady(env);
  const livePstn=byoc||twilio;
  const upstreamAccounts=[telnyx,plivo,twilio].filter(Boolean).length;
  const mode=String(env.VOIP_BILLING_MODE||'metered').trim().toLowerCase();
@@ -29,7 +45,7 @@ function providerSnapshot(env){
   provider_details_private:true,
   browser_calling:{configured:true,free_first:true,inbound:true,outbound:true,note:'Peer-to-peer browser calling for signed-in users.'},
   magnanimous_carrier:{configured:livePstn,inbound:byoc||twilio,outbound:livePstn,byoc,flat_rate:['flat-rate','unlimited','channel'].includes(mode),billing_mode:byoc?mode:'metered',least_cost_routing:true,live_route_count:[byoc,twilio].filter(Boolean).length,upstream_accounts_configured:upstreamAccounts,truth_boundary:'An upstream account is not counted as a live call route until it is attached to the Magnanimous carrier bridge or an authenticated compatibility transport.'},
-  agent_softphone:{configured:softphone,provider_identity:'Magnanimous Carrier',native_pbx_target:'Asterisk WebRTC',native_pbx_live:nativeWebrtcLive,compatibility_transport:softphone,transport_preference:nativeWebrtcLive?'native-asterisk-webrtc':'compatibility-until-native-verification'},
+  agent_softphone:{configured:softphone||nativeSession,provider_identity:'Magnanimous Carrier',native_pbx_target:'Asterisk WebRTC',native_pbx_live:nativeWebrtcLive,native_session_ready:nativeSession,compatibility_transport:softphone,transport_preference:nativeSession?'native-asterisk-webrtc-with-compatibility-pstn':'compatibility-until-native-verification'},
   ai_assist:{configured:Boolean(env.AI),free_first:Boolean(env.AI)},
   optional_video:{configured:Boolean(env.TAVUS_API_KEY||env.HEYGEN_API_KEY),premium:true}
  };
@@ -46,7 +62,8 @@ async function ensure(env){
   `CREATE TABLE IF NOT EXISTS cc_agent_assist_rules(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,trigger_phrase TEXT NOT NULL,guidance TEXT NOT NULL,queue_id TEXT,priority INTEGER NOT NULL DEFAULT 100,active INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS cc_call_intelligence(call_id INTEGER NOT NULL,tenant_id TEXT NOT NULL,summary TEXT NOT NULL DEFAULT '',sentiment TEXT NOT NULL DEFAULT 'unknown',topics_json TEXT NOT NULL DEFAULT '[]',action_items_json TEXT NOT NULL DEFAULT '[]',qa_flags_json TEXT NOT NULL DEFAULT '[]',compliance_risk TEXT NOT NULL DEFAULT 'none',generated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,call_id))`,
   `CREATE TABLE IF NOT EXISTS cc_interactions(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,channel TEXT NOT NULL,direction TEXT NOT NULL DEFAULT 'inbound',customer_key TEXT NOT NULL DEFAULT '',customer_name TEXT NOT NULL DEFAULT '',subject TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'open',priority INTEGER NOT NULL DEFAULT 50,queue_id TEXT,assigned_agent_id TEXT,sentiment TEXT NOT NULL DEFAULT 'unknown',metadata_json TEXT NOT NULL DEFAULT '{}',last_message_at INTEGER NOT NULL,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS cc_interaction_messages(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,interaction_id TEXT NOT NULL,sender_type TEXT NOT NULL,sender_key TEXT NOT NULL DEFAULT '',body TEXT NOT NULL,provider_message_id TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`
+  `CREATE TABLE IF NOT EXISTS cc_interaction_messages(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,interaction_id TEXT NOT NULL,sender_type TEXT NOT NULL,sender_key TEXT NOT NULL DEFAULT '',body TEXT NOT NULL,provider_message_id TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS cc_native_webrtc_sessions(session_id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL)`
  ];
  for(const q of qs)await env.DB.prepare(q).run();
 }
@@ -107,9 +124,60 @@ async function ensureSoftphoneAgent(env,user){
 }
 async function softphoneConfig(env,user,request){
  const agent=await env.DB.prepare('SELECT id FROM call_center_agents WHERE tenant_id=? AND user_id=? AND active=1 LIMIT 1').bind(user.tenant_id,user.id).first().catch(()=>null);
- const access=await twilioVoiceToken(env,user);
- if(!access)return json({configured:false,provider:'Magnanimous Carrier',identity:softphoneIdentity(user),required:['TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_PHONE_NUMBER','TWILIO_API_KEY_SID','TWILIO_API_KEY_SECRET','TWILIO_TWIML_APP_SID'],free_browser_phone:'/phone',agent_id:agent?.id||null,native_pbx_target:'Asterisk WebRTC',note:'The agent desk remains available; ordinary-number browser audio needs either the native PBX WebRTC rail or the optional compatibility softphone transport.'});
- return json({configured:true,provider:'Magnanimous Carrier',identity:access.identity,token:access.token,expires_at:access.expires_at,caller_id:String(env.TWILIO_PHONE_NUMBER||''),twiml_app_voice_url:`${new URL(request.url).origin}/api/contact-center/softphone/outgoing`,queue_voice_url:`${new URL(request.url).origin}/api/contact-center/carrier/incoming`,free_browser_phone:'/phone',agent_id:agent?.id||null,native_pbx_target:'Asterisk WebRTC',note:'Carrier identity remains Magnanimous. Recording is off by default.'});
+ const access=await twilioVoiceToken(env,user),nativeLive=runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE),nativeSessionReady=nativeSoftphoneReady(env),origin=new URL(request.url).origin;
+ return json({
+  configured:Boolean(access||nativeSessionReady),
+  provider:'Magnanimous Carrier',
+  identity:access?.identity||softphoneIdentity(user),
+  ...(access?{token:access.token,expires_at:access.expires_at}:{}),
+  caller_id:String(env.TWILIO_PHONE_NUMBER||''),
+  twiml_app_voice_url:`${origin}/api/contact-center/softphone/outgoing`,
+  queue_voice_url:`${origin}/api/contact-center/carrier/incoming`,
+  native_session_url:`${origin}/api/contact-center/softphone/native-session`,
+  free_browser_phone:'/phone',
+  agent_id:agent?.id||null,
+  native_pbx_target:'Asterisk WebRTC',
+  native_pbx_live:nativeLive,
+  native_session_ready:nativeSessionReady,
+  compatibility_transport_ready:Boolean(access),
+  transport_preference:nativeSessionReady?'native-asterisk-webrtc-with-compatibility-pstn':'compatibility-until-native-verification',
+  required:access?[]:['TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_PHONE_NUMBER','TWILIO_API_KEY_SID','TWILIO_API_KEY_SECRET','TWILIO_TWIML_APP_SID'],
+  note:nativeSessionReady?'Owned Asterisk WebRTC can register a short-lived browser identity. Ordinary-number dialing remains on the compatibility transport until the native PSTN bridge is separately policy-controlled.':'The agent desk remains available; native browser media stays gated until the public PBX is verified, with the compatibility transport preserved.'
+ });
+}
+async function createNativeSoftphoneSession(env,user){
+ const core=telecomCoreConfig(env);if(!core)return json({detail:'Native Magnanimous PBX sessions are not live and configured yet.',fallback:'compatibility'},503);
+ const ts=now();
+ const priorRows=(await env.DB.prepare('SELECT session_id FROM cc_native_webrtc_sessions WHERE tenant_id=? AND user_id=? AND expires_at>? ORDER BY created_at DESC').bind(String(user.tenant_id),String(user.id),ts).all().catch(()=>({results:[]}))).results||[];
+ for(const row of priorRows){
+  const prior=clean(row?.session_id);if(!prior)continue;
+  const revoked=await telecomCoreRequest(env,`/v1/webrtc/sessions/${encodeURIComponent(prior)}`,{method:'DELETE'});
+  if(!revoked)return json({detail:'Magnanimous Telecom Core is unavailable, so the previous native browser session could not be safely revoked.',fallback:'compatibility'},502);
+  if(revoked.status!==404&&!revoked.ok)return json({detail:'The previous native browser session could not be revoked safely.',status:revoked.status,fallback:'compatibility'},502);
+  await env.DB.prepare('DELETE FROM cc_native_webrtc_sessions WHERE session_id=? AND tenant_id=? AND user_id=?').bind(prior,String(user.tenant_id),String(user.id)).run();
+ }
+ await env.DB.prepare('DELETE FROM cc_native_webrtc_sessions WHERE expires_at<=?').bind(ts).run().catch(()=>{});
+ const response=await telecomCoreRequest(env,'/v1/webrtc/sessions',{method:'POST'});if(!response)return json({detail:'Magnanimous Telecom Core is unavailable.',fallback:'compatibility'},502);
+ const data=await response.json().catch(()=>null);if(!response.ok)return json({detail:'Magnanimous Telecom Core rejected the native browser session.',status:response.status,fallback:'compatibility'},502);
+ const sessionId=clean(data?.session_id),username=clean(data?.username),password=clean(data?.password),domain=clean(data?.domain),wssUrl=clean(data?.wss_url),expiresAt=Number(data?.expires_at||0);
+ let wss;try{wss=new URL(wssUrl)}catch{}
+ if(!/^web_\d+_[a-f0-9]{16}$/i.test(sessionId)||username!==sessionId||!password||!domain||!wss||wss.protocol!=='wss:'||!Number.isFinite(expiresAt)||expiresAt<=now()||data?.pstn_direct!==false){
+  if(sessionId)await telecomCoreRequest(env,`/v1/webrtc/sessions/${encodeURIComponent(sessionId)}`,{method:'DELETE'}).catch(()=>null);
+  return json({detail:'Magnanimous Telecom Core returned an invalid native browser session.',fallback:'compatibility'},502);
+ }
+ const agent=await ensureSoftphoneAgent(env,user);
+ await env.DB.prepare('INSERT OR REPLACE INTO cc_native_webrtc_sessions(session_id,tenant_id,user_id,expires_at,created_at) VALUES(?,?,?,?,?)').bind(sessionId,String(user.tenant_id),String(user.id),expiresAt,now()).run();
+ return json({ok:true,provider:'Magnanimous Carrier',transport:'native-asterisk-webrtc',session_id:sessionId,username,password,domain,wss_url:wssUrl,expires_at:expiresAt,expires_in:Number(data?.expires_in||0),agent_id:agent.id,pstn_direct:false,allowed_call_scope:Array.isArray(data?.allowed_call_scope)?data.allowed_call_scope:[],compatibility_fallback:twilioSoftphoneReady(env)},201);
+}
+async function revokeNativeSoftphoneSession(env,user,sessionId){
+ sessionId=clean(sessionId);if(!/^web_\d+_[a-f0-9]{16}$/i.test(sessionId))return json({detail:'Invalid native WebRTC session identifier.'},400);
+ const owned=await env.DB.prepare('SELECT session_id FROM cc_native_webrtc_sessions WHERE session_id=? AND tenant_id=? AND user_id=?').bind(sessionId,String(user.tenant_id),String(user.id)).first().catch(()=>null);
+ if(!owned)return json({detail:'Native WebRTC session not found.'},404);
+ const response=await telecomCoreRequest(env,`/v1/webrtc/sessions/${encodeURIComponent(sessionId)}`,{method:'DELETE'});
+ if(!response)return json({detail:'Magnanimous Telecom Core is unavailable, so revocation could not be verified.',fallback:'compatibility'},502);
+ if(response.status!==404&&!response.ok)return json({detail:'Magnanimous Telecom Core could not revoke the native browser session.',status:response.status,fallback:'compatibility'},502);
+ await env.DB.prepare('DELETE FROM cc_native_webrtc_sessions WHERE session_id=? AND tenant_id=? AND user_id=?').bind(sessionId,String(user.tenant_id),String(user.id)).run();
+ return json({ok:true,session_id:sessionId,deleted:true,remote_revocation_verified:true});
 }
 async function softphoneOutgoing(request,env){
  if(!twilioSoftphoneReady(env))return xml(sayHangup('The carrier softphone is not configured.'),503);
@@ -287,6 +355,8 @@ export async function handleContactCenter(request,env){
   if(path==='/api/contact-center/softphone/status'&&request.method==='POST')return softphoneStatus(request,env,url);
   await ensure(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use the contact center.'},401);const tenant=String(user.tenant_id);await seed(env,tenant);
   if(path==='/api/contact-center/softphone/config'&&request.method==='GET')return softphoneConfig(env,user,request);
+  if(path==='/api/contact-center/softphone/native-session'&&request.method==='POST')return createNativeSoftphoneSession(env,user);
+  const nativeSessionPath=path.match(/^\/api\/contact-center\/softphone\/native-session\/([^/]+)$/);if(nativeSessionPath&&request.method==='DELETE')return revokeNativeSoftphoneSession(env,user,decodeURIComponent(nativeSessionPath[1]));
   if(path==='/api/contact-center/softphone/claim'&&request.method==='POST')return softphoneClaim(env,user,await request.json().catch(()=>({})));
   if(path==='/api/contact-center/capabilities'&&request.method==='GET')return json({ok:true,providers:providerSnapshot(env),features:{acd:true,skills_routing:true,ivr:true,callbacks:true,voicemail:true,dnc:true,outbound_campaigns:true,dialer_modes:['preview','progressive','power'],predictive_mass_dialing:false,reason:'High-volume predictive automation is intentionally not enabled without carrier/compliance controls.',agent_presence:true,crm_screen_pop:true,recording:true,ai_call_intelligence:Boolean(env.AI),agent_assist:true,workforce_management:true,quality_management:true,analytics:true,omnichannel_inbox:true,free_browser_calling:true},inbound_webhook:`${url.origin}/api/contact-center/carrier/incoming`});
   if(path==='/api/contact-center/overview'&&request.method==='GET')return json({ok:true,...await overview(env,tenant)});
