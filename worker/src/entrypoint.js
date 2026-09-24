@@ -1,5 +1,6 @@
 import app from './index.js';
 import { handleLeadPhone } from './lead-phone.js';
+import { handleContactCenter } from './contact-center-runtime.js';
 import { handleIntegrations } from './integrations.js';
 import { handleSponsoredAds } from './sponsored-ad-runtime.js';
 import { handleVisual } from './visual-runtime.js';
@@ -135,6 +136,8 @@ export default {
     if(telecom)return telecom;
     const integration=await handleIntegrations(request,env);
     if(integration)return integration;
+    const contactCenter=await handleContactCenter(request,env);
+    if(contactCenter)return contactCenter;
     const feature=await handleLeadPhone(request,env);
     if(feature)return feature;
     return app.fetch(request,env,ctx);
