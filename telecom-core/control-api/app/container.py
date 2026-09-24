@@ -11,6 +11,7 @@ from .services.calls import CallService
 from .services.health import HealthService
 from .services.monitoring import CarrierCallMonitor
 from .services.sip_accounts import SipAccountService
+from .services.webrtc_sessions import WebRtcSessionService
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,7 @@ class ApplicationContainer:
     calls: CallService
     health: HealthService
     sip_accounts: SipAccountService
+    webrtc_sessions: WebRtcSessionService
 
 
 def build_container(settings: TelecomSettings | None = None) -> ApplicationContainer:
@@ -36,6 +38,7 @@ def build_container(settings: TelecomSettings | None = None) -> ApplicationConta
     auth = TelecomTokenAuthenticator(resolved)
     subscriber_store = PostgresSipSubscriberStore(resolved)
     sip_accounts = SipAccountService(subscriber_store, resolved)
+    webrtc_sessions = WebRtcSessionService(ari, resolved)
     return ApplicationContainer(
         settings=resolved,
         auth=auth,
@@ -43,6 +46,7 @@ def build_container(settings: TelecomSettings | None = None) -> ApplicationConta
         calls=calls,
         health=health,
         sip_accounts=sip_accounts,
+        webrtc_sessions=webrtc_sessions,
     )
 
 
