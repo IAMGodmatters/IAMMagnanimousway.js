@@ -6,12 +6,14 @@ import hashlib
 import hmac
 import secrets
 import time
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from urllib.parse import quote
 
-from ..adapters.asterisk import AsteriskAriClient
 from ..config import TelecomSettings
 from ..errors import CarrierRejectedError, TelecomConfigurationError
+
+if TYPE_CHECKING:
+    from ..adapters.asterisk import AsteriskAriClient
 
 
 class WebRtcSessionService:
