@@ -37,6 +37,8 @@ const sorcery=read('telecom-core/asterisk/templates/sorcery.conf.template');
 const agentSoftphone=read('frontend/app/softphone/page.tsx');
 const providerEnv=read('worker/src/provider-runtime-env.js');
 const nativeSoftphone=read('frontend/app/softphone/native-webrtc.ts');
+const turnDocker=read('telecom-core/turn-relay/Dockerfile');
+const turnEntrypoint=read('telecom-core/turn-relay/entrypoint.sh');
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
@@ -127,6 +129,14 @@ has(sessionService,'hmac.new(','browser TURN credentials are derived per session
 has(sessionService,'credentialType": "password"','TURN ICE server contract uses browser password credentials');
 has(sessionService,'"turn_relay_configured": bool(ice_servers)','session truthfully reports whether relay settings were actually issued');
 has(compose,'MAGNANIMOUS_TURN_AUTH_SECRET','compose passes TURN auth only into the protected Telecom Core control plane');
+has(compose,'profiles: ["turn-relay"]','owned TURN relay is opt-in and cannot start in the default Telecom Core profile');
+has(compose,'context: ./turn-relay','compose can build the owned TURN relay when explicitly enabled');
+has(turnDocker,'coturn/coturn:4.18.0-r0','owned TURN relay pins the verified coturn release');
+has(turnEntrypoint,'use-auth-secret','TURN relay uses coturn REST secret authentication');
+has(turnEntrypoint,'static-auth-secret=$MAGNANIMOUS_TURN_AUTH_SECRET','TURN relay receives the shared auth secret only at runtime');
+has(turnEntrypoint,'no-udp','TURN relay can disable public UDP client ingress for TCP/TLS-edge deployments');
+has(turnEntrypoint,'no-tcp-relay','TURN relay keeps relay allocations on UDP for Asterisk media');
+lacks(turnEntrypoint,'no-udp-relay','TURN relay does not disable the UDP relay path Asterisk media requires');
 has(env,'MAGNANIMOUS_TURN_FORCE_RELAY=false','owned environment keeps relay-only mode disabled by default');
 has(sessionService,'"allowed_call_scope": ["internal-magnanimous", "diagnostic-echo"]','ephemeral browser call scope remains internal and diagnostic');
 has(sessionService,'webrtc_session_ttl_seconds','ephemeral browser session lifetime is bounded');
