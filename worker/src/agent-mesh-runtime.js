@@ -391,8 +391,8 @@ export async function handleAgentMesh(request,env){
     return json({output:result.text,agent,provider:p.id,provider_name:p.name,model:result.model,shared_memory:true,tenant_isolated:true,connected_tools:integrations,native_workspaces:NATIVE_WORKSPACES,native_context_used:true,branch_knowledge_count:knowledge.length,global_branch_knowledge_count:knowledge.filter(x=>x.scope==='global').length,platform_actions:'/assistant-actions',video_route:'/agent-video',openai_used:false});
    }catch(e){errors.push(`${p.name}: ${e?.message||'failed'}`)}
   }
-  console.error('Agent Mesh execution failed',errors);
   const failureClass=classifyAgentFailure(errors);
+  console.warn('Agent Mesh provider rail degraded; local resilience engaged',JSON.stringify({failure_class:failureClass,attempted_providers:errors.length}));
   const fallback=localResilienceResponse(agent,resilienceUserMessage(message),failureClass);
   await saveMessage(env,user,agent.id,'assistant',fallback,'magnanimous-local-resilience','local-resilience-v1');
   return json({output:fallback,agent,provider:'magnanimous-local-resilience',provider_name:'Magnanimous AI routing',model:'local-resilience-v1',shared_memory:true,tenant_isolated:true,connected_tools:integrations,native_workspaces:NATIVE_WORKSPACES,native_context_used:true,branch_knowledge_count:knowledge.length,global_branch_knowledge_count:knowledge.filter(x=>x.scope==='global').length,platform_actions:'/assistant-actions',video_route:'/agent-video',openai_used:false,degraded:true,failure_class:failureClass});
