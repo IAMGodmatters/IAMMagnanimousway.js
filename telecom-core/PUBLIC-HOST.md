@@ -45,7 +45,35 @@ For a dedicated public Linux host, set `ENABLE_TURN_RELAY=true` during the safe 
 
 Railway can expose a raw TCP service through TCP Proxy and its private network supports UDP between services. That makes a future **separate** TURN-over-TCP/TLS edge plus private-UDP Asterisk topology technically testable, but it is not enabled here and it would require creating/configuring telecom-specific Railway services. Do not create those services or incur additional runtime cost without the existing paid-resource approval gate.
 
-This source support does **not** make Railway, coturn, or any relay production-live. A relay deployment must still prove trusted signaling plus real bidirectional browser media from an external network before `TELECOM_NATIVE_WEBRTC_LIVE=true`.
+### Free-first Tailscale Funnel edge
+
+A no-additional-cost proof/edge topology is also source-ready for an **always-on Linux machine that already belongs to a Tailscale tailnet**. Tailscale Funnel can expose TLS-protected public TCP on ports 443, 8443 and 10000. Magnanimous uses those allowed public ports without making Tailscale the telecom identity:
+
+- public TCP 443 → local Asterisk TLS/WSS 8089;
+- public TCP 8443 → local coturn TLS 5349;
+- public HTTPS 10000 → local protected Telecom Core API 8080;
+- coturn and Asterisk remain colocated, so TURN can relay UDP to Asterisk locally and no public RTP/UDP listener is required.
+
+This mode uses the trusted Tailscale `*.ts.net` certificate on Asterisk and coturn, forces browser ICE to TURN relay mode, and deliberately leaves `TELECOM_PUBLIC_IP` and `ASTERISK_STUN_SERVER` empty. Set `MAGNANIMOUS_RELAY_LOCAL_MEDIA=true`; the Asterisk and coturn entrypoints fail closed if a public-IP advertisement is accidentally combined with this topology.
+
+The host bootstrap is:
+
+```bash
+sudo tailscale up
+# Complete the one-time tailnet/Funnel/HTTPS authorization if Tailscale asks for it.
+sudo MAGNANIMOUS_REPO_PATH=/path/to/IAMMagnanimousway.js \
+  bash ./telecom-core/deploy/bootstrap-tailscale-funnel.sh
+```
+
+The script requires the protected `telecom-core/.env` secrets to already exist, obtains the node's trusted `*.ts.net` certificate, writes only non-secret computed edge settings under `/opt/magnanimous-telecom`, starts the existing Telecom Core plus the opt-in coturn profile, configures all three Funnel listeners, and verifies WSS/TURN TLS plus the public control API health endpoint.
+
+For certificate renewal, run `telecom-core/deploy/renew-tailscale-funnel-tls.sh` from a root-owned periodic service/timer. Tailscale file certificates are short-lived and must be renewed when you manage the certificate files yourself.
+
+For platform handoff use the Funnel API URL (for example `https://node.tailnet.ts.net:10000`) as the owner-managed Telecom Core URL. The bearer token remains the existing protected `TELECOM_API_TOKEN`; do not expose it to browsers.
+
+Tailscale remains a replaceable public TCP edge only. Magnanimous Telecom/Magnanimous Carrier remain the public telecom identity, and this path is not production-live until the same strict external GitHub Chromium relay proof passes.
+
+This source support does **not** make Railway, Tailscale, coturn, or any relay production-live. A relay deployment must still prove trusted signaling plus real bidirectional browser media from an external network before `TELECOM_NATIVE_WEBRTC_LIVE=true`.
 
 ## Safe bootstrap
 
