@@ -95,3 +95,4 @@ rewrite_contact=yes
 ; General SIP subscribers register against the Magnanimous SIP Core on port 5060.
 
 #include pjsip-trunk.conf
+#include pjsip-trunk-secondary.conf
