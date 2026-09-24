@@ -1258,17 +1258,56 @@ jobs:
           import json
           d=json.load(open('/tmp/client-apps.json'))
           apps=d.get('apps') or []
-          assert len(apps) == 58, d
-          assert d.get('catalog_count') == 58, d
+          assert len(apps) == 63, d
+          assert d.get('catalog_count') == 63, d
           ids={app.get('app_id') for app in apps}
           assert all(x in ids for x in ['business-ai:podcast-studio','business-ai:deep-research','business-ai:logo-maker','business-ai:accounting-books','business-ai:data-studio','business-ai:open-media-library']), ids
+          assert all(x in ids for x in ['invoice','pos','website','app-builder','whatsapp']), ids
           assert d.get('authorization_boundary'), d
+          assert d.get('provider_policy'), d
+          hrefs=[]
+          for app in apps:
+              href=app.get('href') or ''
+              provider=app.get('provider') or {}
+              assert app.get('link_registered') is True and href.startswith('/'), app
+              assert provider.get('id') and provider.get('name') and provider.get('status') in {'native-ready','connected','setup-required'}, app
+              hrefs.append(href)
+          open('/tmp/wl-app-hrefs.txt','w').write('\n'.join(sorted(set(hrefs)))+'\n')
           for app in apps:
               app['enabled']=app['app_id'] in {'branded-ai','crm','inbox','booking','funnel','automations','work-engine','business-ai:sticky-notes'}
           print(json.dumps({'apps':apps}))
           PY
           status=$(curl -sS -o /tmp/client-apps-saved.json -w '%{http_code}' -X PUT "$BASE_URL/api/white-label-os/client-apps?client_id=$client_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data-binary @/tmp/client-apps-save.json)
           if [ "$status" != "200" ]; then echo "Client Apps save returned HTTP $status"; cat /tmp/client-apps-saved.json || true; exit 1; fi
+
+          while IFS= read -r href; do
+            [ -n "$href" ] || continue
+            status=$(curl -sS -o /tmp/wl-link.html -w '%{http_code}' "$BASE_URL$href")
+            case "$status" in 200|301|302|307|308) ;; *) echo "White Label app link $href returned HTTP $status"; exit 1;; esac
+          done </tmp/wl-app-hrefs.txt
+          echo "All White Label client app links resolved to live pages."
+
+          status=$(curl -sS -o /tmp/video-agents.json -w '%{http_code}' "$BASE_URL/api/video-agents" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Video Agents provider catalog returned HTTP $status"; cat /tmp/video-agents.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/video-agents.json'))
+          assert d.get('providers',{}).get('free_cinematic') is True, d
+          assert d.get('providers',{}).get('browser_assembly') is True, d
+          agents=d.get('agents') or []
+          assert any(a.get('id')=='social-short' and a.get('ready') is True for a in agents), d
+          PY
+          status=$(curl -sS -o /tmp/video-storyboard.json -w '%{http_code}' -X POST "$BASE_URL/api/video-agents/storyboard" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"agent_id":"social-short","title":"White Label Provider Smoke","message":"Verify native provider-backed White Label video scenes. Keep every scene provider explicit.","scenes":3,"format":"9:16","style":"business","visual_direction":"professional provider readiness verification"}')
+          if [ "$status" != "201" ]; then echo "Video Agents storyboard returned HTTP $status"; cat /tmp/video-storyboard.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/video-storyboard.json'))
+          scenes=d.get('scenes') or []
+          assert len(scenes)==3, d
+          assert all(s.get('image_data_uri','').startswith('data:') and s.get('provider') and s.get('image_provider') for s in scenes), d
+          assert d.get('assembly',{}).get('provider')=='magnanimous-browser-assembly', d
+          PY
+          echo "White Label Video Agents native provider smoke passed."
 
           start_at=$((smoke_ts+3600)); end_at=$((smoke_ts+5400))
           status=$(curl -sS -o /tmp/wl-booking.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/bookings" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"contact_name\":\"Smoke Booking\",\"contact_email\":\"booking@example.com\",\"service\":\"Consultation\",\"start_at\":$start_at,\"end_at\":$end_at}")
