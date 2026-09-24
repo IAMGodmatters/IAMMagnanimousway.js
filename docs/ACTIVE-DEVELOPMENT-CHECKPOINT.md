@@ -3,7 +3,7 @@
 Last updated: 2026-09-24
 Repository: IAMGodmatters/IAMMagnanimousway.js
 Production: https://iammagnanimousway.com/
-Status: **Deep telecom/carrier/contact-center software architecture pass completed and production-verified.**
+Status: **Deep telecom/carrier/contact-center software architecture pass completed; native Chromium↔Asterisk WebRTC registration and bidirectional media proof is merged and verified. Public telecom-host activation remains separately gated.**
 
 ## Original task
 
@@ -43,6 +43,7 @@ Full research evidence is versioned in:
 - PR #369 / `5278519e54416a99936fffc0e5826be47c4e7545` — compatibility softphone aligned with Magnanimous Carrier contract.
 - PR #370 / `e55f81ec528b0c018cef4f46349958097d237a2e` — deep telecom architecture, gated native WebRTC source, measured route quality, max-rate enforcement, carrier matrix, owner UI and durable checkpoint.
 - PR #371 / `5674b48199e6839128ce43c59165aafeb5d9cc30` — bounded transient retry protection across read-only/expected-status production smoke probes after a rollout-time 502.
+- PR #373 / `4db2487c3a4d734aa3b9938e8085646687631786` — real Chromium + SIP.js registration against owned Asterisk WSS, authenticated Echo() media diagnostic, bidirectional RTP assertions, stable Asterisk 22.11.0 image pin, and corrected secondary-carrier dialplan syntax.
 
 ## Active work
 
@@ -65,10 +66,18 @@ Completed:
 - [x] Merged and deployed the runtime-changing architecture commit.
 - [x] Hardened production smoke against transient rollout-time 502/503/504 reads without retrying mutations.
 - [x] Re-ran production verification successfully.
+- [x] Added a real Chromium/SIP.js native browser test against the owned Asterisk WebRTC endpoint.
+- [x] Verified Asterisk server-side browser contact registration.
+- [x] Verified authenticated WebRTC call establishment through Asterisk `Echo()` without PSTN/carrier minutes.
+- [x] Verified inbound and outbound RTP bytes/packets plus a real remote audio track in Chromium.
+- [x] Fixed the invalid Asterisk `22.10.1` image pin by moving the Telecom Core image to stable `22.11.0`.
+- [x] Fixed the secondary-carrier failover dialplan `NoOp` syntax issue exposed by the real Asterisk run.
+- [x] Replaced the stale `/httpstatus` readiness probe with actual TLS socket + Asterisk `/ws` + PJSIP endpoint evidence.
 
 Intentionally gated follow-on work, not falsely marked live:
 - [ ] Deploy a dedicated public Telecom Core host/domain with trusted WSS TLS and required SIP/RTP exposure.
-- [ ] Complete a real browser SIP registration plus two-way audio/media verification; only then set `TELECOM_NATIVE_WEBRTC_LIVE=true`.
+- [x] Complete a real browser SIP registration plus two-way audio/media verification in CI against the actual owned Asterisk stack.
+- [ ] Repeat that verification on the dedicated public Telecom Core host with a trusted public certificate and real network/NAT path; only then set `TELECOM_NATIVE_WEBRTC_LIVE=true`.
 - [ ] Migrate the main agent softphone from compatibility SDK media to the verified native WebRTC client while preserving fallback.
 - [ ] Map every live carrier adapter to explicit selected-route execution and authenticated carrier health before allowing the route planner to control all production calls.
 - [ ] Implement/verify the full Stasis-managed native bridge lifecycle before activating supervisor monitor/whisper/barge and bridge recording.
@@ -89,7 +98,10 @@ Existing Railway production service:
 - status: **SUCCESS**
 - no new Railway project or service was created.
 
-Final smoke-hardening main commit before this checkpoint-only closeout:
+Latest native WebRTC verification main commit:
+- `4db2487c3a4d734aa3b9938e8085646687631786`
+
+Previous smoke-hardening main commit:
 - `5674b48199e6839128ce43c59165aafeb5d9cc30`
 
 Verified GitHub runs:
@@ -98,17 +110,24 @@ Verified GitHub runs:
 - Build and Deploy I AM: `35963686281` — SUCCESS, including production smoke
 - Verify Magnanimous Telecom Production: `35963896100` — SUCCESS
 - Voice Conversation Production Smoke: `35963896097` — SUCCESS
+- Native WebRTC Browser Media E2E (merged main): `35966916101` — SUCCESS
+- Full Platform QA (merged main): `35966916059` — SUCCESS
+- Magnanimous Telecom Core Verification (merged main): `35966916332` — SUCCESS
+- Build and Deploy I AM (merged main): `35966916377` — SUCCESS, including production smoke
+- Railway exact-commit classification (merged main): `35966916148` — SUCCESS; no standalone Railway redeploy required for this Telecom Core/QA-only change
 
-Production smoke evidence included successful White Label depth, Agent Mesh, billing, AI Receptionist, Contact Center capabilities, Contact Center softphone readiness, Magnanimous health, auth revocation and cleanup. The native WebRTC source remains deliberately **not marked live** because a dedicated telecom host/browser media probe has not yet been completed.
+Production smoke evidence included successful White Label depth, Agent Mesh, billing, AI Receptionist, Contact Center capabilities, Contact Center softphone readiness, Magnanimous health, auth revocation and cleanup.
+
+Native WebRTC proof on merged main used real Chromium and the actual owned Asterisk 22.11.0 stack. The browser registered extension `1100`, the authenticated diagnostic call reached `Established`, Asterisk confirmed the registered contact and Echo media channel, and Chromium reported `725` inbound bytes / `725` outbound bytes, `10` packets in each direction, and `1` remote audio track with no error. This proves the native browser/Asterisk software-media path. `TELECOM_NATIVE_WEBRTC_LIVE` remains deliberately **false** until the same proof is repeated on a dedicated public Telecom Core host with a trusted public WSS certificate and real network/NAT path.
 
 ## Unfinished work / exact resume point
 
 If interrupted, resume from this file first.
 
-The completed deep software/production pass should **not** be recreated. The next telecom phase begins with the first intentionally gated follow-on item above: dedicated Telecom Core hosting and native browser WebRTC runtime verification.
+The completed deep software/production pass and native Chromium/Asterisk media proof should **not** be recreated. The next telecom phase begins with dedicated public Telecom Core hosting, trusted public WSS TLS, real-network/NAT browser verification, then migration of the main agent softphone to the verified native client while preserving compatibility fallback.
 
 Rules:
-- do not recreate PRs #367-#371;
+- do not recreate PRs #367-#373;
 - do not create a new Railway project/service for the existing Magnanimous web runtime;
 - do not enable a paid carrier, buy numbers, or activate paid telecom resources without the applicable explicit approval gate;
 - do not mark native WebRTC, emergency calling, direct numbering, supervisor whisper/barge, a carrier interconnect, or regulatory authority live without direct evidence;
