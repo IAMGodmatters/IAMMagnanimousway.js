@@ -30,7 +30,7 @@ export TELECOM_DOMAIN=telecom.example.com
 export ACME_EMAIL=owner@example.com
 export ADMIN_SSH_CIDR=203.0.113.20/32
 export ENABLE_UFW=true
-sudo -E ./telecom-core/deploy/bootstrap-public-host.sh
+sudo -E bash ./telecom-core/deploy/bootstrap-public-host.sh
 ```
 
 The script refuses to enable UFW unless an explicit admin SSH CIDR is supplied.
@@ -56,7 +56,7 @@ After Certbot has issued the certificate:
 export TELECOM_DOMAIN=telecom.example.com
 export MAGNANIMOUS_REPO_PATH=/path/to/IAMMagnanimousway.js
 export TELECOM_CERTS_DIR=/opt/magnanimous-telecom/certs
-sudo -E ./telecom-core/deploy/sync-public-tls.sh
+sudo -E bash ./telecom-core/deploy/sync-public-tls.sh
 ```
 
 The host copy of `privkey.pem` remains mode `0600`. The Asterisk container entrypoint copies the key into a private Asterisk-owned runtime directory before the PBX drops privileges.
