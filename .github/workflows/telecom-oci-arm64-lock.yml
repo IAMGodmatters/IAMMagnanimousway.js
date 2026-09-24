@@ -1,0 +1,138 @@
+name: Magnanimous OCI ARM64 Telecom Lock
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'telecom-core/asterisk/**'
+      - 'telecom-core/control-api/**'
+      - 'telecom-core/sip-core/**'
+      - 'telecom-core/turn-relay/**'
+      - 'telecom-core/deploy/oci-always-free-preflight.sh'
+      - 'telecom-core/OCI-ALWAYS-FREE-HOST.md'
+      - 'telecom-core/docker-compose.yml'
+      - '.github/workflows/telecom-oci-arm64-lock.yml'
+  pull_request:
+    paths:
+      - 'telecom-core/asterisk/**'
+      - 'telecom-core/control-api/**'
+      - 'telecom-core/sip-core/**'
+      - 'telecom-core/turn-relay/**'
+      - 'telecom-core/deploy/oci-always-free-preflight.sh'
+      - 'telecom-core/OCI-ALWAYS-FREE-HOST.md'
+      - 'telecom-core/docker-compose.yml'
+      - '.github/workflows/telecom-oci-arm64-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oci-arm64-telecom-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  arm64-telecom:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Verify native ARM64 runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = 'aarch64'
+          docker info >/dev/null
+
+      - name: Validate OCI preflight syntax
+        run: bash -n telecom-core/deploy/oci-always-free-preflight.sh
+
+      - name: Prove OCI A1 preflight accepts only the guarded host profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          cat >"$tmp/instance.json" <<'JSON'
+          {"shape":"VM.Standard.A1.Flex","region":"ap-singapore-1","displayName":"magnanimous-telecom-ci"}
+          JSON
+          cat >"$tmp/vnics.json" <<'JSON'
+          [{"publicIp":"1.1.1.1","privateIp":"10.0.0.10"}]
+          JSON
+          OCI_INSTANCE_JSON_FILE="$tmp/instance.json" OCI_VNICS_JSON_FILE="$tmp/vnics.json" \
+            bash telecom-core/deploy/oci-always-free-preflight.sh | tee "$tmp/pass.txt"
+          grep -q '^OCI_ALWAYS_FREE_PREFLIGHT=PASS$' "$tmp/pass.txt"
+          grep -q '^OCI_SHAPE=VM.Standard.A1.Flex$' "$tmp/pass.txt"
+          grep -q '^TELECOM_PUBLIC_IP=1.1.1.1$' "$tmp/pass.txt"
+
+          cat >"$tmp/instance-reject.json" <<'JSON'
+          {"shape":"VM.Standard.E2.1.Micro","region":"ap-singapore-1","displayName":"too-small"}
+          JSON
+          if OCI_INSTANCE_JSON_FILE="$tmp/instance-reject.json" OCI_VNICS_JSON_FILE="$tmp/vnics.json" \
+            bash telecom-core/deploy/oci-always-free-preflight.sh >/dev/null 2>&1; then
+            echo 'E2.1.Micro must not pass the full Telecom Core preflight.' >&2
+            exit 1
+          fi
+
+          cat >"$tmp/vnics-private.json" <<'JSON'
+          [{"publicIp":"10.0.0.8","privateIp":"10.0.0.8"}]
+          JSON
+          if OCI_INSTANCE_JSON_FILE="$tmp/instance.json" OCI_VNICS_JSON_FILE="$tmp/vnics-private.json" \
+            bash telecom-core/deploy/oci-always-free-preflight.sh >/dev/null 2>&1; then
+            echo 'Private-only OCI networking must not pass public Telecom preflight.' >&2
+            exit 1
+          fi
+
+      - name: Build Asterisk 22 ARM64 image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build -t magnanimous-asterisk:oci-arm64 telecom-core/asterisk
+          test "$(docker image inspect magnanimous-asterisk:oci-arm64 --format '{{.Architecture}}')" = 'arm64'
+          docker image rm magnanimous-asterisk:oci-arm64 >/dev/null
+
+      - name: Build Telecom control API ARM64 image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build -t magnanimous-telecom-api:oci-arm64 telecom-core/control-api
+          test "$(docker image inspect magnanimous-telecom-api:oci-arm64 --format '{{.Architecture}}')" = 'arm64'
+          docker image rm magnanimous-telecom-api:oci-arm64 >/dev/null
+
+      - name: Build Kamailio SIP core ARM64 image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build -t magnanimous-sip-core:oci-arm64 telecom-core/sip-core
+          test "$(docker image inspect magnanimous-sip-core:oci-arm64 --format '{{.Architecture}}')" = 'arm64'
+          docker image rm magnanimous-sip-core:oci-arm64 >/dev/null
+
+      - name: Build coturn ARM64 image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build -t magnanimous-turn:oci-arm64 telecom-core/turn-relay
+          test "$(docker image inspect magnanimous-turn:oci-arm64 --format '{{.Architecture}}')" = 'arm64'
+          docker image rm magnanimous-turn:oci-arm64 >/dev/null
+
+      - name: Verify PostgreSQL ARM64 runtime image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull postgres:16-bookworm
+          test "$(docker image inspect postgres:16-bookworm --format '{{.Architecture}}')" = 'arm64'
+
+      - name: Validate guarded Telecom Compose model on ARM64
+        shell: bash
+        env:
+          MAGNANIMOUS_SIP_DOMAIN: telecom.example.com
+          SIP_DB_PASSWORD: ci-db-value
+          TELECOM_API_TOKEN: ci-api-value
+          TELECOM_WEBHOOK_SECRET: ci-webhook-value
+          ASTERISK_ARI_USER: ci-ari
+          ASTERISK_ARI_PASSWORD: ci-ari-value
+          MAGNANIMOUS_AI_PASSWORD: ci-ai-value
+          MAGNANIMOUS_ADMIN_PASSWORD: ci-admin-value
+          MAGNANIMOUS_TURN_AUTH_SECRET: ci-turn-value
+        run: docker compose --profile turn-relay -f telecom-core/docker-compose.yml config -q
