@@ -1510,6 +1510,38 @@ jobs:
           assert 'tavus_configured' in data, data
           PY
 
+          status=$(curl -sS -o /tmp/contact-center-capabilities.json -w '%{http_code}' "$BASE_URL/api/contact-center/capabilities" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Contact Center capabilities returned HTTP $status"; cat /tmp/contact-center-capabilities.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/contact-center-capabilities.json'))
+          assert data.get('ok') is True, data
+          providers=data.get('providers') or {}
+          assert providers.get('provider_details_private') is True, data
+          carrier=providers.get('magnanimous_carrier') or {}
+          assert 'configured' in carrier and 'live_route_count' in carrier and 'upstream_accounts_configured' in carrier, data
+          assert carrier.get('truth_boundary'), data
+          assert (providers.get('agent_softphone') or {}).get('native_pbx_target') == 'Asterisk WebRTC', data
+          features=data.get('features') or {}
+          for key in ['acd','ivr','callbacks','voicemail','dnc','outbound_campaigns','agent_presence','workforce_management','quality_management','analytics','omnichannel_inbox']:
+              assert features.get(key) is True, (key,data)
+          PY
+
+          status=$(curl -sS -o /tmp/contact-center-softphone.json -w '%{http_code}' "$BASE_URL/api/contact-center/softphone/config" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Contact Center softphone config returned HTTP $status"; cat /tmp/contact-center-softphone.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/contact-center-softphone.json'))
+          assert data.get('provider') == 'Magnanimous Carrier', data
+          assert data.get('native_pbx_target') == 'Asterisk WebRTC', data
+          assert 'configured' in data, data
+          if data.get('configured'):
+              assert data.get('token') and data.get('identity') and data.get('twiml_app_voice_url'), data
+          else:
+              assert data.get('required'), data
+          PY
+          echo "Contact Center live mount, provider privacy, native PBX target and softphone readiness contract passed."
+
           check_get "Magnanimous AI health endpoint" "$BASE_URL/api/magnanimous/health" /tmp/magnanimous.json
           python - <<'PY'
           import json
