@@ -124,18 +124,9 @@ export default function NetworkAuthorityPage(){
       <small>SELECTED ROUTE</small>
       <h2>{routePlan.selected?.route||'No route'}</h2>
       <p>{routePlan.selected?.interconnect||'Configure an interconnect and destination route.'}</p>
-      <p className={styles.muted}>Health: {routePlan.selected?.health||'—'} · Quality: {routePlan.selected?.quality_score??'—'} · Estimated rate: {routePlan.selected?.estimated_rate==null?'not entered':('
-  </section>
-
-  {numberResults.length>0&&<section className={styles.inventory}><div className={styles.title}><div><small>AVAILABLE NUMBERS</small><h2>Read-only results</h2></div></div><div className={styles.table}>{numberResults.map((item:any)=><article key={item.phone_number}><div><b>{item.phone_number}</b><span>{item.cost_information?.currency||''} {item.cost_information?.monthly_cost||''}/mo</span></div><p>{(item.region_information||[]).map((region:any)=>region.region_name).filter(Boolean).join(', ')||'Available inventory'}</p><small>No purchase was made.</small></article>)}</div></section>}
-
-  <section className={styles.inventory}><div className={styles.title}><div><small>UNITED STATES</small><h2>FCC / network readiness</h2></div></div><div className={styles.grid}>{renderCases('US')}</div></section>
-  <section className={styles.inventory}><div className={styles.title}><div><small>PHILIPPINES</small><h2>NTC / network readiness</h2></div></div><div className={styles.grid}>{renderCases('PH')}</div></section>
-
-  <section className={styles.guardrail}><h2>What Magnanimous can absorb versus what must be granted</h2><p>APIs, routing, provisioning workflows, SIM/eSIM lifecycle, number ordering, emergency-service integrations and provider switching can live inside Magnanimous. Government licenses, spectrum rights, direct numbering authorization, host-network agreements and interconnection contracts must come from the authorized regulator/network party. This dashboard tracks those external grants without pretending code created them.</p></section>
- </main>
-}
-+routePlan.selected.estimated_rate+'/min')}</p>
+      <p className={styles.muted}>
+       Health: {routePlan.selected?.health||'—'} · Quality: {routePlan.selected?.quality_score??'—'} · Estimated rate: {routePlan.selected?.estimated_rate==null?'not entered':String(routePlan.selected.estimated_rate)}
+      </p>
      </article>
      <article className={styles.card}>
       <small>POLICY</small>
