@@ -25,6 +25,7 @@ import { openMagnanimousMailer } from './native-mailer.mjs';
 import { verifyGitHubActionsOidc, stageD1SqlExport, stageD1SqliteSnapshot, stageCredentialVaultRewrap } from './migration-stage.mjs';
 import { stageRuntimeSecrets, loadRuntimeSecrets } from './runtime-secret-store.mjs';
 import { deployMagnanimousCommit, deploymentControlConfig } from './deployment-control.mjs';
+import { deploymentSmokeRevisionAllowed } from './deploy-smoke-lineage.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -472,7 +473,8 @@ async function handleDeploymentSmokeControl(req, res, pathname) {
       allowedEvents: ['push', 'workflow_dispatch']
     });
     const revision = runtimeRevision();
-    if (!revision || revision !== String(source.sha || '').trim()) {
+    const repository = String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js');
+    if (!await deploymentSmokeRevisionAllowed(source.sha, revision, repository)) {
       throw new Error('Deployment smoke control revision mismatch.');
     }
 
