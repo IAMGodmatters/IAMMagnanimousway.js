@@ -10,6 +10,7 @@ const monitoring=read('telecom-core/control-api/app/services/monitoring.py');
 const entrypoint=read('telecom-core/asterisk/entrypoint.sh');
 const dialplan=read('telecom-core/asterisk/templates/extensions.conf.template');
 const trunk=read('telecom-core/asterisk/templates/pjsip-trunk.conf.optional');
+const secondaryTrunk=read('telecom-core/asterisk/templates/pjsip-trunk-secondary.conf.optional');
 const compose=read('telecom-core/docker-compose.yml');
 
 const checks=[];
@@ -32,6 +33,12 @@ has(entrypoint,'CARRIER_SIP_HOST','carrier-neutral configuration is supported');
 has(dialplan,'@${CARRIER_SIP_ENDPOINT}','dialplan routes through replaceable carrier endpoint');
 has(trunk,'[${CARRIER_SIP_ENDPOINT}]','SIP endpoint identity is configurable');
 has(compose,'CARRIER_DIAL_CONTEXT','container configuration exposes the carrier bridge route');
+has(entrypoint,'CARRIER_SIP_SECONDARY_HOST','Asterisk runtime supports an optional secondary carrier');
+has(secondaryTrunk,'[${CARRIER_SIP_SECONDARY_ENDPOINT}]','secondary SIP endpoint is provider-neutral and configurable');
+has(dialplan,'DIALSTATUS}"="CHANUNAVAIL','carrier failover is limited to network-unavailable outcomes');
+has(dialplan,'DIALSTATUS}"="CONGESTION','carrier failover covers carrier/network congestion');
+has(dialplan,'@${CARRIER_SIP_SECONDARY_ENDPOINT}','dialplan can route to the secondary carrier endpoint');
+has(compose,'CARRIER_SIP_SECONDARY_ENDPOINT','container configuration passes the secondary carrier endpoint');
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [label,ok] of checks)console.log(`${ok?'PASS':'FAIL'}: ${label}`);
