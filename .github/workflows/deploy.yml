@@ -555,7 +555,21 @@ jobs:
 
           safe_get_status() {
             local output="$1" url="$2"; shift 2
-            command curl -sS --connect-timeout 10 --max-time 120               --retry 4 --retry-delay 2 --retry-max-time 45 --retry-all-errors               -o "$output" -w '%{http_code}' "$url" "$@"
+            local attempt status
+            for attempt in 1 2 3 4 5; do
+              status="$(command curl -sS --connect-timeout 10 --max-time 120 -o "$output" -w '%{http_code}' "$url" "$@" || true)"
+              if [ "$status" = "200" ]; then
+                printf '%s' "$status"
+                return 0
+              fi
+              if [[ "$status" =~ ^(000|502|503|504)$ ]] && [ "$attempt" -lt 5 ]; then
+                echo "::warning::Transient read-only GET HTTP ${status:-request-failed}; retrying ($attempt/4)." >&2
+                sleep $((attempt * 2))
+                continue
+              fi
+              printf '%s' "${status:-000}"
+              return 0
+            done
           }
 
           deployment_smoke_oidc() {
@@ -574,6 +588,29 @@ jobs:
               -H 'content-type: application/json' \
               -H "Authorization: Bearer $oidc" \
               --data "{\"action\":\"$action\",\"tenant_id\":\"$tenant\",\"workflow_sha\":\"$GITHUB_SHA\",\"runtime_sha\":\"$MAGNANIMOUS_SMOKE_RUNTIME_SHA\"}"
+          }
+
+          safe_smoke_cleanup_status() {
+            local tenant="$1" output="$2"
+            local attempt status
+            for attempt in 1 2 3 4; do
+              status="$(native_smoke_control cleanup "$tenant" "$output" || true)"
+              if [ "$status" = "200" ]; then
+                printf '200'
+                return 0
+              fi
+              if [ "$status" = "404" ] && grep -q 'Disposable deployment smoke tenant not found' "$output" 2>/dev/null; then
+                printf '200'
+                return 0
+              fi
+              if [[ "$status" =~ ^(000|502|503|504)$ ]] && [ "$attempt" -lt 4 ]; then
+                echo "::warning::Transient standalone cleanup HTTP ${status:-request-failed}; retrying idempotent desired-state cleanup ($attempt/3)." >&2
+                sleep $((attempt * 3))
+                continue
+              fi
+              printf '%s' "${status:-000}"
+              return 0
+            done
           }
 
           check_get() {
@@ -714,7 +751,7 @@ jobs:
               fi
               local cleanup_failed=0
               local native_cleanup_status
-              native_cleanup_status="$(native_smoke_control cleanup "$tenant_id" /tmp/deploy-smoke-native-cleanup.json || true)"
+              native_cleanup_status="$(safe_smoke_cleanup_status "$tenant_id" /tmp/deploy-smoke-native-cleanup.json)"
               if [ "$native_cleanup_status" != "200" ]; then
                 echo "::error::Standalone smoke-test cleanup returned HTTP ${native_cleanup_status:-request-failed}."
                 cat /tmp/deploy-smoke-native-cleanup.json 2>/dev/null || true
