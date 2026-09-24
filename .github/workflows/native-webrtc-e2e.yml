@@ -1,0 +1,138 @@
+name: Native WebRTC Browser Media E2E
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'telecom-core/**'
+      - '.github/workflows/native-webrtc-e2e.yml'
+  pull_request:
+    paths:
+      - 'telecom-core/**'
+      - '.github/workflows/native-webrtc-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-webrtc-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-media:
+    name: Real Chromium registration and two-way media
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install browser probe dependencies
+        working-directory: telecom-core/webrtc-e2e
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium
+        working-directory: telecom-core/webrtc-e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate ephemeral test TLS certificate and audio
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p telecom-core/certs /tmp/magnanimous-webrtc-e2e
+          openssl req -x509 -nodes -newkey rsa:2048             -keyout telecom-core/certs/privkey.pem             -out telecom-core/certs/fullchain.pem             -days 1             -subj '/CN=localhost'             -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1'
+          chmod 0644 telecom-core/certs/privkey.pem telecom-core/certs/fullchain.pem
+          python3 - <<'PY'
+          import math, struct, wave
+          path='/tmp/magnanimous-webrtc-e2e/tone.wav'
+          rate=48000
+          seconds=60
+          frequency=440.0
+          amplitude=0.18
+          with wave.open(path,'wb') as wav:
+              wav.setnchannels(1)
+              wav.setsampwidth(2)
+              wav.setframerate(rate)
+              for n in range(rate*seconds):
+                  sample=int(32767*amplitude*math.sin(2*math.pi*frequency*n/rate))
+                  wav.writeframesraw(struct.pack('<h',sample))
+          print(path)
+          PY
+
+      - name: Build native Asterisk WebRTC core
+        run: docker build -t magnanimous-webrtc-e2e:ci telecom-core/asterisk
+
+      - name: Start native Asterisk WebRTC core
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run -d --name magnanimous-webrtc-e2e --network host             -v "$GITHUB_WORKSPACE/telecom-core/certs:/certs:ro"             -e ASTERISK_ARI_USER=ci-ari             -e ASTERISK_ARI_PASSWORD='ci-ari-password-3fe92bf4'             -e ASTERISK_WEBRTC_ENABLED=true             -e ASTERISK_HTTPS_PORT=8089             -e ASTERISK_TLS_CERT_FILE=/certs/fullchain.pem             -e ASTERISK_TLS_KEY_FILE=/certs/privkey.pem             -e MAGNANIMOUS_SIP_DOMAIN=webrtc.test             -e MAGNANIMOUS_WEBRTC_EXTENSION=1100             -e MAGNANIMOUS_WEBRTC_ECHO_EXTENSION=6000             -e MAGNANIMOUS_WEBRTC_PASSWORD='ci-webrtc-password-8b1a2fd7'             -e MAGNANIMOUS_AI_EXTENSION=9000             -e MAGNANIMOUS_AI_PASSWORD='ci-ai-password-18e3a499'             -e MAGNANIMOUS_ADMIN_EXTENSION=1000             -e MAGNANIMOUS_ADMIN_PASSWORD='ci-admin-password-52d8941c'             magnanimous-webrtc-e2e:ci
+          for attempt in $(seq 1 60); do
+            if curl -kfsS --connect-timeout 2 --max-time 5 https://127.0.0.1:8089/httpstatus >/tmp/magnanimous-webrtc-e2e/httpstatus.txt 2>/dev/null &&                docker exec magnanimous-webrtc-e2e asterisk -rx 'pjsip show endpoint 1100' >/tmp/magnanimous-webrtc-e2e/endpoint.txt 2>/dev/null; then
+              echo 'Asterisk WSS/WebRTC endpoint is ready.'
+              cat /tmp/magnanimous-webrtc-e2e/endpoint.txt
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs magnanimous-webrtc-e2e || true
+          exit 1
+
+      - name: Build native browser probe
+        working-directory: telecom-core/webrtc-e2e
+        run: npm run build
+
+      - name: Start local probe page
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory telecom-core/webrtc-e2e/dist >/tmp/magnanimous-webrtc-e2e/web.log 2>&1 &
+          echo $! >/tmp/magnanimous-webrtc-e2e/web.pid
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/magnanimous-webrtc-e2e/web.log || true
+          exit 1
+
+      - name: Prove real browser registration and bidirectional audio
+        working-directory: telecom-core/webrtc-e2e
+        env:
+          WEBRTC_TEST_PAGE: http://127.0.0.1:4173/
+          WEBRTC_WSS_URL: wss://localhost:8089/ws
+          WEBRTC_EXTENSION: '1100'
+          WEBRTC_PASSWORD: ci-webrtc-password-8b1a2fd7
+          WEBRTC_DOMAIN: webrtc.test
+          WEBRTC_ECHO_EXTENSION: '6000'
+          FAKE_AUDIO_WAV: /tmp/magnanimous-webrtc-e2e/tone.wav
+          ASTERISK_CONTAINER: magnanimous-webrtc-e2e
+        run: npm run probe
+
+      - name: Capture Asterisk WebRTC evidence
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p /tmp/magnanimous-webrtc-e2e
+          docker exec magnanimous-webrtc-e2e asterisk -rx 'http show status' > /tmp/magnanimous-webrtc-e2e/asterisk-http.txt 2>&1 || true
+          docker exec magnanimous-webrtc-e2e asterisk -rx 'pjsip show endpoint 1100' > /tmp/magnanimous-webrtc-e2e/asterisk-endpoint.txt 2>&1 || true
+          docker exec magnanimous-webrtc-e2e asterisk -rx 'pjsip show contacts' > /tmp/magnanimous-webrtc-e2e/asterisk-contacts.txt 2>&1 || true
+          docker logs magnanimous-webrtc-e2e > /tmp/magnanimous-webrtc-e2e/asterisk.log 2>&1 || true
+
+      - name: Upload WebRTC proof evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: magnanimous-native-webrtc-e2e-${{ github.run_number }}
+          path: /tmp/magnanimous-webrtc-e2e/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Stop WebRTC test services
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/magnanimous-webrtc-e2e/web.pid ]; then kill "$(cat /tmp/magnanimous-webrtc-e2e/web.pid)" 2>/dev/null || true; fi
+          docker rm -f magnanimous-webrtc-e2e >/dev/null 2>&1 || true
