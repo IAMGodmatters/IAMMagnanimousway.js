@@ -15,16 +15,32 @@ function validE164(v){return /^\+[1-9]\d{7,14}$/.test(phone(v))}
 function safeJson(value,fallback={}){try{return JSON.parse(value||'')}catch{return fallback}}
 function owner(user){return user?.role==='owner'||user?.role==='admin'}
 function twilioReady(env){return Boolean(env.TWILIO_ACCOUNT_SID&&env.TWILIO_AUTH_TOKEN&&env.TWILIO_PHONE_NUMBER)}
+function plivoReady(env){return Boolean(env.PLIVO_AUTH_ID&&env.PLIVO_AUTH_TOKEN&&env.PLIVO_PHONE_NUMBER)}
 function genericReady(env){return Boolean(env.VOIP_PROVIDER_URL&&env.VOIP_PROVIDER_TOKEN)}
 function telnyxReady(env){return Boolean(env.TELNYX_API_KEY&&env.TELNYX_CONNECTION_ID&&env.TELNYX_PHONE_NUMBER)}
 function providerSnapshot(env){
- const byoc=genericReady(env);
- const ordinary=byoc||twilioReady(env);
+ const byoc=genericReady(env),plivo=plivoReady(env),twilio=twilioReady(env),telnyx=telnyxReady(env);
+ const ordinary=byoc||plivo||twilio;
  const mode=String(env.VOIP_BILLING_MODE||'metered').trim().toLowerCase();
  return {
   provider_details_private:true,
   browser_calling:{configured:true,free_first:true,inbound:true,outbound:true,note:'Peer-to-peer browser calling for signed-in users.'},
-  magnanimous_carrier:{configured:ordinary,inbound:ordinary,outbound:ordinary,byoc,flat_rate:['flat-rate','unlimited','channel'].includes(mode),billing_mode:byoc?mode:'metered',least_cost_routing:true},
+  magnanimous_carrier:{
+   configured:ordinary,
+   inbound:byoc||twilio,
+   outbound:ordinary,
+   byoc,
+   flat_rate:byoc&&['flat-rate','unlimited','channel'].includes(mode),
+   billing_mode:byoc?mode:'metered',
+   least_cost_routing:true,
+   primary_route:byoc?'owned-sip-core':plivo?'low-cost-api-fallback':twilio?'compatibility-api-fallback':'setup-required',
+   route_policy:['free-browser','owned-sip-core','low-cost-api-fallback','compatibility-api-fallback']
+  },
+  carrier_extensions:{
+   provisioning_upstream:{configured:telnyx,call_control_runtime:false,note:'Numbering and telecom provisioning may use the preferred upstream adapter; ordinary calling stays behind the Magnanimous-owned SIP core unless an explicit fallback route is implemented.'},
+   low_cost_api_fallback:{configured:plivo,outbound:true,inbound:false},
+   compatibility_api_fallback:{configured:twilio,outbound:true,inbound:true}
+  },
   ai_assist:{configured:Boolean(env.AI),free_first:Boolean(env.AI)},
   optional_video:{configured:Boolean(env.TAVUS_API_KEY||env.HEYGEN_API_KEY),premium:true}
  };
@@ -184,7 +200,7 @@ export async function handleContactCenter(request,env){
   if(path==='/api/contact-center/ivr/step'&&request.method==='POST')return ivrStep(request,env,url);
   if(path==='/api/contact-center/voicemail/recording'&&request.method==='POST')return voicemailRecording(request,env,url);
   await ensure(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use the contact center.'},401);const tenant=String(user.tenant_id);await seed(env,tenant);
-  if(path==='/api/contact-center/capabilities'&&request.method==='GET')return json({ok:true,providers:providerSnapshot(env),features:{acd:true,skills_routing:true,ivr:true,callbacks:true,voicemail:true,dnc:true,outbound_campaigns:true,dialer_modes:['preview','progressive','power'],predictive_mass_dialing:false,reason:'High-volume predictive automation is intentionally not enabled without carrier/compliance controls.',agent_presence:true,crm_screen_pop:true,recording:true,ai_call_intelligence:Boolean(env.AI),agent_assist:true,workforce_management:true,quality_management:true,analytics:true,omnichannel_inbox:true,free_browser_calling:true},inbound_webhook:`${url.origin}/api/contact-center/carrier/incoming`});
+  if(path==='/api/contact-center/capabilities'&&request.method==='GET')return json({ok:true,providers:providerSnapshot(env),features:{acd:true,skills_routing:false,ivr:true,callbacks:true,voicemail:true,dnc:true,outbound_campaigns:true,dialer_modes:['preview','progressive','power'],predictive_mass_dialing:false,reason:'High-volume predictive automation is intentionally not enabled without carrier/compliance controls.',agent_presence:true,crm_screen_pop:false,recording:false,voicemail_recording:true,ai_call_intelligence:Boolean(env.AI),agent_assist:true,workforce_management:true,quality_management:true,analytics:true,omnichannel_inbox:true,free_browser_calling:true},feature_readiness:{acd:'operational',skills_routing:'specified-only',ivr:'operational',callbacks:'operational',voicemail:'operational',dnc:'operational',outbound_campaigns:'operational',agent_presence:'operational',crm_screen_pop:'specified-only',call_recording:'specified-only',voicemail_recording:'operational',ai_call_intelligence:env.AI?'operational':'setup-required',agent_assist:'operational',workforce_management:'operational',quality_management:'operational',analytics:'operational',omnichannel_inbox:'operational',supervisor_audio:'specified-only'},truth_boundary:'A feature is marked operational only when an executable runtime path exists. Skills routing, CRM screen pop, full-call recording, and supervisor monitor/whisper/barge remain specified-only until their runtime and UI paths are implemented and verified.',inbound_webhook:`${url.origin}/api/contact-center/carrier/incoming`});
   if(path==='/api/contact-center/overview'&&request.method==='GET')return json({ok:true,...await overview(env,tenant)});
   const campaign=await campaignRoutes(request,env,user,url);if(campaign)return campaign;
   if(path==='/api/contact-center/ivr'&&request.method==='GET'){const {results=[]}=await env.DB.prepare('SELECT * FROM cc_ivr_flows WHERE tenant_id=? ORDER BY active DESC,updated_at DESC').bind(tenant).all();return json({flows:results.map(x=>({...x,nodes:safeJson(x.nodes_json,{}),business_hours:safeJson(x.business_hours_json,{})}))})}
