@@ -250,7 +250,16 @@ export async function rewrapPlatformCredentialsForMigration(env,targetSource){
  return{rows:migrated};
 }
 
-export async function getIntegrationRuntimeEnv(env){if(!env?.DB)return env;try{const rows=await vaultRows(env);if(!rows.length)return env;const merged={...env};for(const row of rows){if(!ALLOWED_KEYS.has(row.credential_key))continue;if(typeof merged[row.credential_key]==='string'&&merged[row.credential_key].trim())continue;merged[row.credential_key]=await decrypt(row.encrypted_value,env)}return merged}catch(error){console.error('platform credential runtime load failed',error);return env}}
+export function overlayRuntimeEnv(env,overrides={}){
+ const source=env||{};
+ const local={...(overrides||{})};
+ return new Proxy(local,{
+  get(target,key){return Object.prototype.hasOwnProperty.call(target,key)?target[key]:source?.[key]},
+  has(target,key){return Object.prototype.hasOwnProperty.call(target,key)||key in Object(source)},
+  set(target,key,value){target[key]=value;return true}
+ });
+}
+export async function getIntegrationRuntimeEnv(env){if(!env?.DB)return env;try{const rows=await vaultRows(env);if(!rows.length)return env;const overrides={};for(const row of rows){if(!ALLOWED_KEYS.has(row.credential_key))continue;const existing=env?.[row.credential_key];if(typeof existing==='string'&&existing.trim())continue;overrides[row.credential_key]=await decrypt(row.encrypted_value,env)}return Object.keys(overrides).length?overlayRuntimeEnv(env,overrides):env}catch(error){console.error('platform credential runtime load failed',error);return env}}
 function callbackMap(request){const origin=new URL(request.url).origin,providers=[...new Set(PLATFORM_CREDENTIAL_GROUPS.flatMap(g=>g.providers))];return Object.fromEntries(providers.map(provider=>[provider,`${origin}/api/integrations/${provider}/callback`]))}
 
 export async function handlePlatformCredentials(request,env){
