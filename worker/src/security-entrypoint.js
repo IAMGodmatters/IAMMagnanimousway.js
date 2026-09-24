@@ -95,6 +95,7 @@ function configuredStandaloneApiOrigin(env){
 async function proxyApiToStandalone(request,env){
   const url=new URL(request.url);
   const standaloneDataPlanePath=url.pathname.startsWith('/api/')||url.pathname==='/funnels'||url.pathname.startsWith('/funnels/');
+  if(url.pathname==='/api/internal/migration/rewrap-platform-credentials')return null;
   if(!standaloneDataPlanePath)return null;
   if(request.headers.get('x-magnanimous-standalone-proxy')==='1')return null;
   const origin=configuredStandaloneApiOrigin(env);
