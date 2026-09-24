@@ -72,8 +72,13 @@ jobs:
           set -euo pipefail
           docker run -d --name magnanimous-webrtc-e2e --network host             -v "$GITHUB_WORKSPACE/telecom-core/certs:/certs:ro"             -e ASTERISK_ARI_USER=ci-ari             -e ASTERISK_ARI_PASSWORD='ci-ari-password-3fe92bf4'             -e ASTERISK_WEBRTC_ENABLED=true             -e ASTERISK_HTTPS_PORT=8089             -e ASTERISK_TLS_CERT_FILE=/certs/fullchain.pem             -e ASTERISK_TLS_KEY_FILE=/certs/privkey.pem             -e MAGNANIMOUS_SIP_DOMAIN=webrtc.test             -e MAGNANIMOUS_WEBRTC_EXTENSION=1100             -e MAGNANIMOUS_WEBRTC_ECHO_EXTENSION=6000             -e MAGNANIMOUS_WEBRTC_PASSWORD='ci-webrtc-password-8b1a2fd7'             -e MAGNANIMOUS_AI_EXTENSION=9000             -e MAGNANIMOUS_AI_PASSWORD='ci-ai-password-18e3a499'             -e MAGNANIMOUS_ADMIN_EXTENSION=1000             -e MAGNANIMOUS_ADMIN_PASSWORD='ci-admin-password-52d8941c'             magnanimous-webrtc-e2e:ci
           for attempt in $(seq 1 60); do
-            if curl -kfsS --connect-timeout 2 --max-time 5 https://127.0.0.1:8089/httpstatus >/tmp/magnanimous-webrtc-e2e/httpstatus.txt 2>/dev/null &&                docker exec magnanimous-webrtc-e2e asterisk -rx 'pjsip show endpoint 1100' >/tmp/magnanimous-webrtc-e2e/endpoint.txt 2>/dev/null; then
-              echo 'Asterisk WSS/WebRTC endpoint is ready.'
+            if printf '' | openssl s_client -connect 127.0.0.1:8089 -servername localhost >/tmp/magnanimous-webrtc-e2e/tls.txt 2>&1 && \
+               docker exec magnanimous-webrtc-e2e asterisk -rx 'http show status' >/tmp/magnanimous-webrtc-e2e/httpstatus.txt 2>/dev/null && \
+               grep -q '/ws => Asterisk HTTP WebSocket' /tmp/magnanimous-webrtc-e2e/httpstatus.txt && \
+               docker exec magnanimous-webrtc-e2e asterisk -rx 'pjsip show endpoint 1100' >/tmp/magnanimous-webrtc-e2e/endpoint.txt 2>/dev/null && \
+               grep -Eq 'webrtc[[:space:]]*: yes' /tmp/magnanimous-webrtc-e2e/endpoint.txt; then
+              echo 'Asterisk TLS/WSS/WebRTC endpoint is ready.'
+              cat /tmp/magnanimous-webrtc-e2e/httpstatus.txt
               cat /tmp/magnanimous-webrtc-e2e/endpoint.txt
               exit 0
             fi
