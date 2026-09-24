@@ -6,10 +6,13 @@ const security=read('worker/src/security-entrypoint.js');
 const runtime=read('worker/src/contact-center-runtime.js');
 const compatSoftphone=read('worker/src/twilio-softphone-runtime.js');
 const softphone=read('frontend/app/softphone/page.tsx');
+const nativeSoftphone=read('frontend/app/softphone/native-webrtc.ts');
 const autoDial=read('frontend/app/auto-dialer/page.tsx');
 const envExample=read('.env.example');
 const providerRuntime=read('worker/src/provider-runtime-env.js');
 const credentialRuntime=read('worker/src/platform-credentials.js');
+const frontendPackage=read('frontend/package.json');
+const frontendLock=read('frontend/package-lock.json');
 
 const checks=[];
 const has=(src,needle,label)=>checks.push([label,src.includes(needle)]);
@@ -27,6 +30,8 @@ has(runtime,"u.protocol!=='https:'",'Telecom Core control plane requires HTTPS')
 has(runtime,"u.username||u.password",'Telecom Core URL rejects embedded credentials');
 has(runtime,"host==='localhost'||host.endsWith('.local')",'Telecom Core live bridge rejects local hostnames');
 has(runtime,'privateV4.test(host)','Telecom Core live bridge rejects private or CGNAT IPv4 literals');
+has(runtime,"host.startsWith('fc')||host.startsWith('fd')||host.startsWith('fe80:')",'Telecom Core live bridge rejects private/link-local IPv6 literals');
+has(runtime,"redirect:'error'",'Telecom Core bridge refuses HTTP redirects');
 has(runtime,"headers.set('Authorization',`Bearer ${cfg.token}`)",'Telecom Core bearer token is attached only by server runtime');
 has(runtime,"SELECT session_id FROM cc_native_webrtc_sessions WHERE tenant_id=? AND user_id=? AND expires_at>?",'native session creation finds prior active sessions for the same signed-in user');
 has(runtime,"previous native browser session could not be safely revoked",'native session rotation fails closed when prior credential revocation cannot be verified');
@@ -59,6 +64,20 @@ has(runtime,"NOT EXISTS(SELECT 1 FROM voice_do_not_call",'campaign dialing retai
 has(runtime,"Campaign calling is limited to 08:00–20:00",'campaign dialing retains quiet-hour enforcement');
 has(softphone,"/api/contact-center/softphone/config",'softphone frontend matches server config route');
 has(softphone,"/api/contact-center/softphone/claim",'softphone frontend matches server claim route');
+has(compatSoftphone,"path==='/api/contact-center/softphone/native-session'||path.startsWith('/api/contact-center/softphone/native-session/')",'compatibility handler passes native-session routes to the contact-center runtime');
+has(softphone,"import {MagnanimousNativePhone,type NativeBrowserSession} from './native-webrtc';",'agent softphone mounts the isolated native WebRTC client');
+has(softphone,'/api/contact-center/softphone/native-session','agent softphone obtains native browser credentials only through the signed-in platform');
+has(softphone,"internal=/^\\d{2,8}$/.test(to)",'dialer distinguishes bounded internal extensions from public numbers');
+has(softphone,"if(internal)",'internal extension calls select the native Magnanimous PBX path');
+has(softphone,"device.connect({params:{To:to}})",'ordinary public-number dialing remains on the guarded compatibility transport');
+has(nativeSoftphone,"from 'sip.js'",'native Magnanimous WebRTC client uses SIP.js');
+has(nativeSoftphone,"if(extension==='911'||extension==='112')",'native internal client blocks emergency-number attempts');
+has(nativeSoftphone,"if(!/^\\d{2,8}$/.test(extension))",'native client only accepts bounded internal extensions');
+lacks(nativeSoftphone,'+X.','native client contains no direct E.164 PSTN dial pattern');
+lacks(nativeSoftphone,'TELECOM_CORE_TOKEN','native browser client never embeds the Telecom Core bearer token');
+lacks(nativeSoftphone,'TELECOM_CORE_URL','native browser client never embeds the private Telecom Core URL');
+has(frontendPackage,'"sip.js": "0.21.2"','frontend pins the native SIP.js dependency');
+has(frontendLock,'"node_modules/sip.js"','committed frontend lockfile contains the SIP.js dependency');
 has(autoDial,'/dial-start','auto dialer start route is backed by server contract');
 has(autoDial,'/dial-cancel','auto dialer cancel route is backed by server contract');
 for(const key of ['TWILIO_API_KEY_SID=','TWILIO_API_KEY_SECRET=','TWILIO_TWIML_APP_SID=','TELNYX_API_KEY=','TELNYX_CONNECTION_ID=','TELNYX_PHONE_NUMBER=','PLIVO_AUTH_ID=','PLIVO_AUTH_TOKEN=','PLIVO_PHONE_NUMBER=','TELECOM_CORE_URL=','TELECOM_CORE_TOKEN=']){
