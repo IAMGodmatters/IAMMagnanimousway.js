@@ -21,6 +21,9 @@ export default function NetworkAuthorityPage(){
  const[areaCode,setAreaCode]=useState('');
  const[numberResults,setNumberResults]=useState<any[]>([]);
  const[caseDrafts,setCaseDrafts]=useState<Record<string,{status:string;application_reference:string;evidence_reference:string;notes:string}>>({});
+ const[routeDestination,setRouteDestination]=useState('+63');
+ const[routeMode,setRouteMode]=useState('balanced');
+ const[routePlan,setRoutePlan]=useState<any>(null);
 
  useEffect(()=>{
   const saved=localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||'';
@@ -45,9 +48,19 @@ export default function NetworkAuthorityPage(){
  async function searchNumbers(event:FormEvent){
   event.preventDefault();setBusy(true);setNotice('');setError('');setNumberResults([]);
   try{
-   const data=await call('/api/telecom/network/telnyx/number-search',{method:'POST',body:JSON.stringify({country_code:country,area_code:areaCode,emergency_capable:true})});
+   const data=await call('/api/telecom/network/telnyx/number-search',{method:'POST',body:JSON.stringify({country_code:country,area_code:areaCode,emergency_capable:['US','CA'].includes(country)})});
    setNumberResults(data.data||[]);setNotice(`Found ${(data.data||[]).length} available number option(s). Search is read-only and does not purchase anything.`);
   }catch(caught:any){setError(caught?.message||'Unable to search numbers.')}finally{setBusy(false)}
+ }
+
+ async function previewRoute(event:FormEvent){
+  event.preventDefault();setBusy(true);setNotice('');setError('');setRoutePlan(null);
+  try{
+   const params=new URLSearchParams({to:routeDestination,mode:routeMode});
+   const data=await call('/api/magnanimous/carrier/route-plan?'+params.toString());
+   if(data.error)throw new Error(data.error);setRoutePlan(data);
+   setNotice(data.selected?'Route preview selected '+data.selected.interconnect+' using '+data.selection_mode+' policy. No call was placed.':'No matching live route is configured yet. No call was placed.');
+  }catch(caught:any){setError(caught?.message||'Unable to preview the carrier route.')}finally{setBusy(false)}
  }
 
  async function saveCase(item:RegulatoryCase){
@@ -91,9 +104,30 @@ export default function NetworkAuthorityPage(){
   <section className={styles.status}><div><span className={styles.good}/><b>Magnanimous remains the public identity and AI command layer.</b></div><p>{overview.authority_note}</p></section>
 
   <section className={styles.grid}>
-   <article className={styles.card}><small>PRIMARY WHOLESALE BRIDGE</small><h2>Telnyx adapter</h2><p className={styles.muted}>Internal owner integration only. Provider branding stays out of ordinary customer-facing Telecom screens.</p><ul><li>Phone numbers + porting</li><li>SIP/PSTN interconnect</li><li>E911 provisioning</li><li>STIR/SHAKEN voice identity path</li><li>Physical SIM + eSIM</li><li>Mobile voice</li></ul><p className={styles.muted}>{overview.readiness.telnyx?'Encrypted TELNYX_API_KEY detected.':'Add TELNYX_API_KEY as an encrypted Worker secret to activate the adapter.'}</p></article>
+   <article className={styles.card}><small>NETWORK / API ADAPTER</small><h2>Telnyx adapter</h2><p className={styles.muted}>Strong programmable carrier option for numbers, SIP and network APIs. It is not hard-wired as the cheapest route; Magnanimous can choose among healthy interconnects by destination, quality, configured rate and policy.</p><ul><li>Phone numbers + porting</li><li>SIP/PSTN interconnect</li><li>E911 provisioning</li><li>STIR/SHAKEN voice identity path</li><li>Physical SIM + eSIM</li><li>Mobile voice</li></ul><p className={styles.muted}>{overview.readiness.telnyx?'Encrypted TELNYX_API_KEY detected.':'Add TELNYX_API_KEY as an encrypted Worker secret to activate the adapter.'}</p></article>
    <article className={styles.card}><small>MOBILE ALTERNATIVE</small><h2>Gigs adapter</h2><p className={styles.muted}>Second path for branded wireless/MVNO subscriptions, physical SIM and eSIM lifecycle.</p><ul><li>pSIM + eSIM</li><li>Mobile plans</li><li>Subscriptions</li><li>Provider diversity</li></ul><p className={styles.muted}>{overview.readiness.gigs?'Encrypted Gigs project credentials detected.':'Add GIGS_API_TOKEN and GIGS_PROJECT_ID as encrypted Worker secrets when a Gigs project exists.'}</p></article>
-   <form className={styles.card} onSubmit={searchNumbers}><small>SAFE LIVE ACTION</small><h2>Search telephone numbers</h2><label>Country<select value={country} onChange={e=>setCountry(e.target.value)}><option value='US'>United States</option><option value='CA'>Canada</option></select></label><label>Area / destination code<input value={areaCode} onChange={e=>setAreaCode(e.target.value)} placeholder='Example: 512'/></label><button disabled={busy||!overview.readiness.telnyx}>SEARCH — NO PURCHASE</button><p className={styles.muted}>Paid number orders remain double-locked by a runtime enable flag plus an explicit purchase confirmation.</p></form>
+   <form className={styles.card} onSubmit={searchNumbers}><small>SAFE LIVE ACTION</small><h2>Search telephone numbers</h2><label>Country<select value={country} onChange={e=>setCountry(e.target.value)}><option value='US'>United States</option><option value='CA'>Canada</option><option value='PH'>Philippines</option></select></label><label>Area / destination code<input value={areaCode} onChange={e=>setAreaCode(e.target.value)} placeholder='Example: 512'/></label><button disabled={busy||!overview.readiness.telnyx}>SEARCH — NO PURCHASE</button><p className={styles.muted}>Paid number orders remain double-locked by a runtime enable flag plus an explicit purchase confirmation.</p></form>
+  </section>
+
+  <section className={styles.inventory}><div className={styles.title}><div><small>MAGNANIMOUS CARRIER ROUTING</small><h2>Carrier Route Planner</h2></div><span>Preview only · no call is placed</span></div>
+   <form className={styles.card} onSubmit={previewRoute}>
+    <label>E.164 destination<input value={routeDestination} onChange={e=>setRouteDestination(e.target.value)} placeholder='+639171234567'/></label>
+    <label>Routing policy<select value={routeMode} onChange={e=>setRouteMode(e.target.value)}><option value='balanced'>Balanced quality + cost</option><option value='least-cost'>Least cost</option><option value='priority'>Configured priority</option></select></label>
+    <button disabled={busy||!/^\+[1-9]\d{6,14}$/.test(routeDestination)}>PREVIEW ROUTE</button>
+    <p className={styles.muted}>Longest destination prefix wins first. Unhealthy routes are avoided. Balanced mode prefers configured quality then rate; least-cost prefers rate then quality; priority mode follows your route priorities first.</p>
+   </form>
+   {routePlan&&<div className={styles.grid}>
+    <article className={styles.card}><small>SELECTED ROUTE</small><h2>{routePlan.selected?.route||'No route'}</h2><p>{routePlan.selected?.interconnect||'Configure an interconnect and destination route.'}</p><p className={styles.muted}>Health: {routePlan.selected?.health||'—'} · Quality: {routePlan.selected?.quality_score??'—'} · Estimated rate: {routePlan.selected?.estimated_rate==null?'not entered':'<div className={styles.title}><div><small>AVAILABLE NUMBERS</small><h2>Read-only results</h2></div></div><div className={styles.table}>{numberResults.map((item:any)=><article key={item.phone_number}><div><b>{item.phone_number}</b><span>{item.cost_information?.currency||''} {item.cost_information?.monthly_cost||''}/mo</span></div><p>{(item.region_information||[]).map((region:any)=>region.region_name).filter(Boolean).join(', ')||'Available inventory'}</p><small>No purchase was made.</small></article>)}</div></section>}
+
+  <section className={styles.inventory}><div className={styles.title}><div><small>UNITED STATES</small><h2>FCC / network readiness</h2></div></div><div className={styles.grid}>{renderCases('US')}</div></section>
+  <section className={styles.inventory}><div className={styles.title}><div><small>PHILIPPINES</small><h2>NTC / network readiness</h2></div></div><div className={styles.grid}>{renderCases('PH')}</div></section>
+
+  <section className={styles.guardrail}><h2>What Magnanimous can absorb versus what must be granted</h2><p>APIs, routing, provisioning workflows, SIM/eSIM lifecycle, number ordering, emergency-service integrations and provider switching can live inside Magnanimous. Government licenses, spectrum rights, direct numbering authorization, host-network agreements and interconnection contracts must come from the authorized regulator/network party. This dashboard tracks those external grants without pretending code created them.</p></section>
+ </main>
+}
++routePlan.selected.estimated_rate+'/min'}</p></article>
+    <article className={styles.card}><small>POLICY</small><h2>{routePlan.selection_mode||routeMode}</h2><p className={styles.muted}>{routePlan.policy}</p><p>{(routePlan.matches||[]).length} matching route(s)</p></article>
+   </div>}
   </section>
 
   {numberResults.length>0&&<section className={styles.inventory}><div className={styles.title}><div><small>AVAILABLE NUMBERS</small><h2>Read-only results</h2></div></div><div className={styles.table}>{numberResults.map((item:any)=><article key={item.phone_number}><div><b>{item.phone_number}</b><span>{item.cost_information?.currency||''} {item.cost_information?.monthly_cost||''}/mo</span></div><p>{(item.region_information||[]).map((region:any)=>region.region_name).filter(Boolean).join(', ')||'Available inventory'}</p><small>No purchase was made.</small></article>)}</div></section>}
