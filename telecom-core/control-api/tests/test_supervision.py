@@ -7,7 +7,7 @@ if str(CONTROL_API_ROOT) not in sys.path:
     sys.path.insert(0, str(CONTROL_API_ROOT))
 
 from app.config import TelecomSettings
-from app.errors import TelecomValidationError
+from app.errors import CarrierRejectedError, TelecomValidationError
 from app.services.supervision import SupervisorService
 
 
@@ -42,6 +42,7 @@ class FakeAri:
         self.requests = []
         self.stored_recordings = set()
         self.live_stop_status = 204
+        self.store_on_stop = True
 
     async def request(self, method, path, *, params=None, body=None):
         self.requests.append((method, path, params, body))
@@ -68,7 +69,7 @@ class FakeAri:
             return FakeResponse(200, {"id": params.get("channelId")})
         if method == "POST" and path.startswith("/recordings/live/") and path.endswith("/stop"):
             name = path.split("/recordings/live/", 1)[1].rsplit("/stop", 1)[0]
-            if self.live_stop_status == 204:
+            if self.live_stop_status == 204 and self.store_on_stop:
                 self.stored_recordings.add(name)
             return FakeResponse(self.live_stop_status, {})
         if method == "DELETE":
@@ -166,6 +167,23 @@ class SupervisionTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(stopped["recording"])
         self.assertTrue(stopped["stored"])
         self.assertFalse(stopped["recording_file_exposed"])
+
+    async def test_recording_storage_verification_failure_still_cleans_bridge_resources(self):
+        ari = FakeAri()
+        ari.store_on_stop = False
+        service = SupervisorService(ari, FakeEvents(), SETTINGS)
+        result = await service.start_call_recording(
+            target_channel_id="12345678-1234-1234-1234-123456789abc",
+            consent_confirmed=True,
+            notice_confirmed=True,
+            jurisdiction="US-CA",
+            max_duration_seconds=600,
+        )
+        with self.assertRaises(CarrierRejectedError):
+            await service.stop_call_recording(result["session_id"])
+        deleted = [request[1] for request in ari.requests if request[0] == "DELETE"]
+        self.assertIn(f"/channels/{result['snoop_channel_id']}", deleted)
+        self.assertIn(f"/bridges/{result['bridge_id']}", deleted)
 
     async def test_invalid_session_id_never_reaches_ari(self):
         ari = FakeAri()
