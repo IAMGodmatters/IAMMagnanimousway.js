@@ -4,7 +4,7 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 const xml=(message,status=200)=>new Response(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>${String(message).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]))}</Say><Hangup/></Response>`,{status,headers:{'content-type':'application/xml; charset=utf-8','cache-control':'no-store'}});
 // Treat every outside AI account that can accrue usage charges as metered at
 // the I AM boundary, even when the provider also offers a free/trial allowance.
-const METERED_AI=new Set(['openai','anthropic','google','groq','mistral','cerebras','xai']);
+const METERED_AI=new Set(['openai','anthropic','google','groq','mistral','cerebras','xai','openrouter-free','nvidia-kimi','nvidia-deepseek-pro','nvidia-deepseek-flash']);
 
 async function bodyJson(request){try{return await request.clone().json()}catch{return{}}}
 function rewriteJsonRequest(request,body){return new Request(request.url,{method:request.method,headers:request.headers,body:JSON.stringify(body)})}
@@ -45,7 +45,8 @@ export async function premiumPreflight(request,env){
    const rewritten=rewriteJsonRequest(request,{...body,provider:'cloudflare-ai',quality:'free-first',route_policy:'free-first'});
    return{request:rewritten,context:{kind:'chat',user,downgraded_to_free_first:true}};
   }
-  return{request,context:{kind:'chat',user,premium_allowed:true,estimated_cost_usd:estimate,requested_provider:provider,requested_model:String(body.model||'')}};
+  const fundedRequest=rewriteJsonRequest(request,{...body,allow_metered_provider:true});
+  return{request:fundedRequest,context:{kind:'chat',user,premium_allowed:true,estimated_cost_usd:estimate,requested_provider:provider,requested_model:String(body.model||'')}};
  }
  if((path==='/api/phone/calls/outbound'||path==='/api/voice-agent/call')&&request.method==='POST'){
   if(!user)return{response:json({detail:'Sign in required.',code:'SIGN_IN_REQUIRED'},401)};
