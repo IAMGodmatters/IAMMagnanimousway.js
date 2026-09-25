@@ -377,7 +377,7 @@ async function phoneRoutes(request, env, user, path, url) {
     ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
       tenantId, body.contact_id || null, 'outbound', from, to, 'dialing', timestamp,
       String(env.VOIP_PROVIDER_NAME || 'carrier-bridge'), body.queue_id || null,
-      body.agent_id || null, JSON.stringify({ requested_by: user.id }), timestamp
+      body.agent_id || null, JSON.stringify({ requested_by: user.id, route_id: body.route_id || null, interconnect_id: body.interconnect_id || null, route_key: body.route_key || null }), timestamp
     ).run();
     const callId = created.meta.last_row_id;
     try {
@@ -388,7 +388,10 @@ async function phoneRoutes(request, env, user, path, url) {
         from,
         agent_id: body.agent_id || null,
         queue_id: body.queue_id || null,
-        webhook_url: `${url.origin}/api/phone/webhook`
+        webhook_url: `${url.origin}/api/phone/webhook`,
+        route_key: body.route_key || null,
+        route_id: body.route_id || null,
+        interconnect_id: body.interconnect_id || null
       });
       const providerCallId = String(provider.provider_call_id || provider.call_id || provider.id || '');
       const status = String(provider.status || 'dialing');
