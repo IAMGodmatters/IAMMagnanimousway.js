@@ -131,6 +131,7 @@ export async function probeGenericByocRouteContract(env) {
   try {
     const response = await fetch(target, {
       method: 'GET',
+      redirect: 'error',
       headers: {
         accept: 'application/json',
         authorization: `Bearer ${env.VOIP_PROVIDER_TOKEN}`,
@@ -433,6 +434,11 @@ async function phoneRoutes(request, env, user, path, url) {
       console.error('Carrier route planner unavailable; preserving compatibility path', error);
     }
     const selected = routePlan?.selected || null;
+    const routeAttribution = selected ? {
+      route_id: selected.route_id,
+      interconnect_id: selected.interconnect_id,
+      selection_mode: routePlan?.selection_mode || 'balanced'
+    } : null;
     const protectedRouteType = selected && ['sip-trunk','byoc-bridge','direct-pstn'].includes(String(selected.type || ''));
     let selectedRoute = magnanimousCoreBridgeReady(env) && protectedRouteType && String(selected.execution_endpoint || '').trim()
       ? {
@@ -458,10 +464,7 @@ async function phoneRoutes(request, env, user, path, url) {
       selectedRoute = {
         contract: GENERIC_BYOC_ROUTE_CONTRACT,
         selected_route_required: true,
-        route_key: String(selected.bridge_route_key).trim(),
-        route_id: selected.route_id,
-        interconnect_id: selected.interconnect_id,
-        selection_mode: routePlan.selection_mode
+        route_key: String(selected.bridge_route_key).trim()
       };
     }
 
@@ -505,14 +508,21 @@ async function phoneRoutes(request, env, user, path, url) {
       const status = String(provider.status || 'dialing');
       await env.DB.prepare(
         'UPDATE phone_calls SET provider_call_id=?,status=?,metadata_json=?,updated_at=? WHERE id=? AND tenant_id=?'
-      ).bind(providerCallId, status, JSON.stringify({...provider,route_plan:selectedRoute?{selected:selectedRoute,selection_mode:routePlan?.selection_mode}:null}).slice(0, 20000), now(), callId, tenantId).run();
+      ).bind(providerCallId, status, JSON.stringify({
+        ...provider,
+        route_plan: routeAttribution ? {
+          selected: routeAttribution,
+          selected_route_requested: Boolean(selectedRoute),
+          selected_route_applied: provider?.selected_route_applied === true
+        } : null
+      }).slice(0, 20000), now(), callId, tenantId).run();
       await logEvent(env, tenantId, callId, 'outbound-requested', status, '', provider);
       return json({
         id: callId,
         provider_call_id: providerCallId,
         status,
-        route_id: selectedRoute?.route_id || null,
-        interconnect_id: selectedRoute?.interconnect_id || null,
+        route_id: routeAttribution?.route_id || null,
+        interconnect_id: routeAttribution?.interconnect_id || null,
         selected_route_requested: Boolean(selectedRoute),
         selected_route_applied: provider?.selected_route_applied === true
       }, 201);
