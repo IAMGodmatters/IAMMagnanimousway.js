@@ -150,7 +150,7 @@ export async function selfHealingSnapshot(env,origin,{record=false}={}){
     production_health:production,
     provider_health:provider,
     voice_audio_health:{
-      ...premiumVoiceHealth(env),
+      ...(await premiumVoiceHealth(env)),
       note:'Browser/native speech remains the default. Optional premium synthesis is used only when commercially authorized and funded; synthesis requests are not auto-retried.'
     },
     deployment_revision:runtimeRevision(env),
