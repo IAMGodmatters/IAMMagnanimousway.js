@@ -217,6 +217,12 @@ must(logicalExporter.includes("'@'+requestFile"),'Direct D1 SQL payloads must be
 must(logicalExporter.includes("{mode:0o600}"),'Direct D1 temporary auth/request files must be owner-only.');
 must(!logicalExporter.includes("'-H','Authorization: Bearer '+cloudflareApiToken"),'Direct D1 API token must not appear in curl process arguments.');
 
+const aiBinding=read('magnanimous-runtime/src/ai-binding.mjs');
+for(const contract of ['/api/chat/compute','magnanimous-worker-free-first','allow_metered_accelerator: false','ENABLE_METERED_PROVIDERS'])
+ must(aiBinding.includes(contract),'Standalone free-first AI compute fallback contract missing: '+contract);
+must(aiBinding.indexOf('workerFreeCompute(this.env, messages)')<aiBinding.indexOf("fetch('https://api.openai.com/v1/responses'"),'Standalone must try free-first Worker compute before metered OpenAI.');
+must(aiBinding.includes("String(this.env.ENABLE_METERED_PROVIDERS || '').toLowerCase() === 'true'"),'Standalone metered OpenAI fallback must remain explicitly opt-in.');
+
 const runtimeSecretStore=read('magnanimous-runtime/src/runtime-secret-store.mjs');
 for(const contract of ['MAGNANIMOUS_RUNTIME_SECRET_KEYS','INTEGRATION_CREDENTIALS_KEY','stageRuntimeSecrets','loadRuntimeSecrets','0o600'])
  must(runtimeSecretStore.includes(contract),'Runtime secret continuity contract missing: '+contract);
@@ -298,6 +304,7 @@ execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs']
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-migration-stage.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime-secret-store.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-ai-binding.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-railway-deploy.mjs'],{stdio:'inherit'});
 for(const file of ['worker/src/magnanimous-cloud-provider-core.js','worker/src/magnanimous-infrastructure-core.js','worker/src/security-entrypoint.js']){
  execFileSync(process.execPath,['--check',file],{stdio:'inherit'});
