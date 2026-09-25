@@ -24,7 +24,7 @@ export default function OwnerSelfHealing(){
   finally{setBusy(false)}
  }
  useEffect(()=>{load(false)},[]);
- const p=data?.production_health||{},provider=data?.provider_health||{},voice=data?.voice_audio_health||{};
+ const p=data?.production_health||{},provider=data?.provider_health||{},voice=data?.voice_audio_health||{},media=data?.movie_maker_health||{};
  return <main className="page">
   <header><a href="/owner-operations">← Operations</a><span>MAGNANIMOUS SELF-HEALING</span><button disabled={busy} onClick={()=>load(true)}>{busy?'CHECKING…':'RUN SAFE CHECK NOW'}</button></header>
   <section className="hero"><small>I AM MAGNANIMOUS WAY™ • OWNER ONLY</small><h1>Detect, retry, verify, and escalate without hiding failures.</h1><p>Safe transient repairs use capped retries. Persistent faults remain visible and do not authorize unfunded paid fallback, weaker authentication, or bypasses around billing, privacy, tenant isolation, consent, or deployment safeguards.</p></section>
@@ -33,6 +33,7 @@ export default function OwnerSelfHealing(){
    <section className="cards">
     <article className={p.status==='healthy'?'good':'warn'}><small>PRODUCTION HEALTH</small><b>{String(p.status||'unknown').toUpperCase()}</b><span>HTTP {p.http_status||'—'} • {p.latency_ms||0} ms • {p.attempt_count||0} attempt(s)</span></article>
     <article className={provider.free_first_ready?'good':'warn'}><small>FREE-FIRST AI</small><b>{provider.free_first_ready?'READY':'ATTENTION'}</b><span>{provider.paid_fallback_required?'Paid fallback would be required.':'Paid fallback is not required.'}</span></article>
+    <article className={media.status==='healthy'?'good':'warn'}><small>MOVIE MAKER</small><b>{String(media.status||'unknown').toUpperCase()}</b><span>Renderer {media.free_renderer?.status||'unknown'} • Storage {media.object_storage?.status||'unknown'} • Studio {media.optional_studio?.status||'unknown'}</span></article>
     <article><small>VOICE / AUDIO</small><b>{String(voice.status||'unknown').toUpperCase()}</b><span>{voice.note||'No voice health detail.'}</span></article>
     <article><small>DEPLOYMENT REVISION</small><b className="sha">{data.deployment_revision||'unreported'}</b><span>Production self-report; no credential values are shown.</span></article>
     <article className={count(data.current_incidents)?'warn':'good'}><small>CURRENT INCIDENTS</small><b>{count(data.current_incidents)}</b><span>{count(data.failed_repairs)} failed/escalated records • {count(data.successful_repairs)} successful repairs</span></article>
