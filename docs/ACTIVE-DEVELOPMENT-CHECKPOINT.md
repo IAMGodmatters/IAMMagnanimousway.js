@@ -102,7 +102,8 @@ Intentionally gated follow-on work, not falsely marked live:
 - [ ] Configure the public host's GitHub variables/secret and run `Public Telecom WebRTC Verification` from the external GitHub runner.
 - [ ] Repeat browser registration + two-way RTP on the dedicated public Telecom Core host with a trusted public certificate and real network/NAT path; only then set `TELECOM_NATIVE_WEBRTC_LIVE=true`.
 - [x] Migrate the main agent softphone to the verified native WebRTC client for approved internal calling while preserving the compatibility SDK as the PSTN fallback.
-- [ ] Map every live carrier adapter to explicit selected-route execution and authenticated carrier health before allowing the route planner to control all production calls.
+- [x] Migrate the native/BYOC outbound carrier bridge to the planner's explicit selected-route contract. The Telecom Core now allowlists the selected PJSIP endpoint, checks it through authenticated Asterisk ARI health before origination, carries route/interconnect IDs into the call, and prevents a planner-selected attempt from silently failing over to another trunk.
+- [ ] Map every remaining live compatibility carrier adapter (including Twilio/Plivo where actually live) to the same explicit selected-route execution and authenticated carrier-health contract before allowing the route planner to control all production calls. `live_execution_uses_route_planner` remains false until that is complete.
 - [ ] Implement/verify the full Stasis-managed native bridge lifecycle before activating supervisor monitor/whisper/barge and bridge recording.
 - [ ] Obtain required NTC/FCC/other authorizations, carrier agreements, numbering/emergency-service arrangements before representing those regulated capabilities as live.
 
