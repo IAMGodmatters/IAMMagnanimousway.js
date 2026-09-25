@@ -164,19 +164,25 @@ async function generateFreeImage(request,env,user,body,plan){
 async function generateStudioImage(request,env,user,body,plan){
  if(!mediaPolicy(plan).premium_studio_allowed)return json({detail:'Studio media starts with Business. Free and Plus Movie Maker remain available with a Magnanimous watermark.',code:'BUSINESS_REQUIRED'},402);
  if(!googleReady(env))return json({detail:'Studio media is not enabled. Free-first Movie Maker remains available.',code:'STUDIO_MEDIA_NOT_CONFIGURED'},503);
- const prompt=cleanText(body.prompt||body.text,4000),title=cleanText(body.title||'Magnanimous studio image',180),size=IMAGE_SIZES.has(String(body.image_size))?String(body.image_size):'2K',aspect=ASPECTS.has(body.aspect_ratio)?body.aspect_ratio:'16:9';
+ const prompt=cleanText(body.prompt||body.text,4000),title=cleanText(body.title||'Magnanimous studio image',180),aspect=ASPECTS.has(body.aspect_ratio)?body.aspect_ratio:'16:9';
  if(!prompt)return json({detail:'Describe the picture first.'},400);
- const reserve=googleImageReserveUsd(size),gate=await canUsePremium(env,user.tenant_id,{category:'studio image',estimated_provider_origin_cost_usd:reserve,required_plan:'business',entitlement:'metered_ai'});
+ const selection=imageModelFor(body.quality,IMAGE_SIZES.has(String(body.image_size))?String(body.image_size):'2K');
+ const billingMode=providerBillingMode(env,'google');
+ if(!['free','paid'].includes(billingMode))return json({detail:'Studio media billing mode must be verified as free or paid before generation.',code:'BILLING_MODE_UNVERIFIED'},503);
+ const reserve=billingMode==='free'?0:googleImageReserveUsd(selection.size,selection.model);
+ if(reserve==null)return json({detail:'Current image pricing is not verified for this quality setting.',code:'PRICING_NOT_VERIFIED'},503);
+ const gate=await canUsePremium(env,user.tenant_id,{category:'studio image',estimated_provider_origin_cost_usd:reserve,required_plan:'business',entitlement:'metered_ai'});
  if(!gate.ok)return json({detail:gate.detail,code:gate.code,free_first_available:true,estimated_customer_charge_usd:gate.estimated_variable_customer_charge_usd},402);
  const input=[{type:'text',text:prompt}];
  for(const raw of Array.isArray(body.reference_images)?body.reference_images.slice(0,8):[]){const p=parseDataUri(raw);if(p)input.unshift({type:'image',mime_type:p.content_type,data:p.base64})}
- const d=await googleInteraction(env,{model:'gemini-3.1-flash-image',input,response_format:{type:'image',mime_type:'image/png',aspect_ratio:aspect,image_size:size},generation_config:{thinking_level:'high'}});
+ const d=await googleInteraction(env,{model:selection.model,input,response_format:{type:'image',mime_type:'image/png',aspect_ratio:aspect,image_size:selection.size},generation_config:{thinking_level:selection.quality==='max'?'high':'medium'}});
  const out=extractOutput(d,'image');if(!out?.data)throw new Error('Studio image generation returned no image bytes.');
- const priced=googleImageOriginCost({image_size:size,usage:d.usage||{}});if(!priced.ok)throw new Error(priced.code);
+ const priced=billingMode==='free'?{ok:true,provider_origin_cost_usd:0,pricing_source:'verified-free-tier',pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT}:googleImageOriginCost({model:selection.model,image_size:selection.size,usage:d.usage||{}});
+ if(!priced.ok)throw new Error(priced.code||'IMAGE_PRICING_RECONCILIATION_FAILED');
  const variable=variableCustomerCharge(priced.provider_origin_cost_usd),ref=`movie-image:${d.id||crypto.randomUUID()}`;
  await recordUsage(env,user.tenant_id,{category:'movie-maker-image',provider:'managed-studio-image',units:1,provider_origin_cost_usd:priced.provider_origin_cost_usd,reference_id:ref,pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at});
  const bytes=bytesFromB64(out.data),persisted=await persistAsset(env,request,user,{kind:'image',title,bytes,content_type:out.mime_type||out.mimeType||'image/png',watermarked:false,origin:priced.provider_origin_cost_usd,customer:variable.customer_charge_usd});
- return json({ok:true,mode:'studio',identity:'Magnanimous AI',plan,policy:mediaPolicy(plan),asset:{...persisted,data_uri:persisted.asset_url?null:`data:image/png;base64,${out.data}`,content_type:'image/png'},billing:{provider_origin_cost_usd:priced.provider_origin_cost_usd,markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,customer_charge_usd:variable.customer_charge_usd},provider_details_private:true});
+ return json({ok:true,mode:'studio',quality:selection.quality,identity:'Magnanimous AI',plan,policy:mediaPolicy(plan),asset:{...persisted,data_uri:persisted.asset_url?null:`data:image/png;base64,${out.data}`,content_type:'image/png'},billing:{provider_origin_cost_usd:priced.provider_origin_cost_usd,markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,customer_charge_usd:variable.customer_charge_usd,billing_mode:billingMode},provider_details_private:true});
 }
 async function createStudioVoice(request,env,user,body,plan){
  if(!mediaPolicy(plan).premium_studio_allowed)return json({detail:'Studio narration starts with Business. Free browser narration remains available on every plan.',code:'BUSINESS_REQUIRED'},402);
