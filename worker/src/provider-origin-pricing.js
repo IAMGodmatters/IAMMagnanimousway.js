@@ -146,33 +146,59 @@ export function voiceOriginCost({provider='elevenlabs-v3',characters=0}={}){
 }
 
 
-const GOOGLE_IMAGE_OUTPUT_USD=Object.freeze({'0.5K':0.045,'1K':0.067,'2K':0.101,'4K':0.151});
+const GOOGLE_IMAGE_PRICING=Object.freeze({
+ 'gemini-3.1-flash-lite-image':Object.freeze({
+  input_per_million_usd:.25,text_thought_output_per_million_usd:1.5,image_output_per_million_usd:30,
+  fixed:Object.freeze({'1K':.0336})
+ }),
+ 'gemini-3.1-flash-image':Object.freeze({
+  input_per_million_usd:.50,text_thought_output_per_million_usd:3,image_output_per_million_usd:60,
+  fixed:Object.freeze({'0.5K':.045,'1K':.067,'2K':.101,'4K':.151})
+ }),
+ 'gemini-3-pro-image':Object.freeze({
+  input_per_million_usd:2,text_thought_output_per_million_usd:12,image_output_per_million_usd:120,
+  fixed:Object.freeze({'1K':.134,'2K':.134,'4K':.24})
+ })
+});
 const modalityTokens=(usage={},field,modality)=>{
- const rows=Array.isArray(usage?.[field])?usage[field]:[];
- return n(rows.find(x=>String(x?.modality||'').toLowerCase()===String(modality||'').toLowerCase())?.tokens);
+ const rows=Array.isArray(usage?.[field])?usage[field]:Array.isArray(usage?.[field?.replace(/_([a-z])/g,(_,x)=>x.toUpperCase())])?usage[field.replace(/_([a-z])/g,(_,x)=>x.toUpperCase())]:[];
+ return n(rows.find(x=>String(x?.modality||x?.type||'').toLowerCase()===String(modality||'').toLowerCase())?.tokens);
+};
+const usageNumber=(usage,...keys)=>{
+ for(const key of keys){const value=usage?.[key];if(value!=null&&Number.isFinite(Number(value)))return n(value)}
+ return 0;
 };
 
-export function googleImageOriginCost({image_size='2K',usage={}}={}){
- const size=String(image_size||'2K').toUpperCase()==='0.5K'?'0.5K':String(image_size||'2K').toUpperCase();
- const fixed=GOOGLE_IMAGE_OUTPUT_USD[size];
+export function googleImageOriginCost({model='gemini-3.1-flash-image',image_size='2K',usage={}}={}){
+ const modelId=String(model||'gemini-3.1-flash-image'),rate=GOOGLE_IMAGE_PRICING[modelId];
+ if(!rate)return{ok:false,code:'IMAGE_MODEL_PRICING_NOT_VERIFIED'};
+ const requested=String(image_size||'2K').toUpperCase()==='0.5K'?'0.5K':String(image_size||'2K').toUpperCase();
+ const size=modelId==='gemini-3.1-flash-lite-image'?'1K':requested;
+ const fixed=rate.fixed[size];
  if(fixed==null)return{ok:false,code:'IMAGE_SIZE_PRICING_NOT_VERIFIED'};
- const input=n(usage?.total_input_tokens),thought=n(usage?.total_thought_tokens);
+ const input=usageNumber(usage,'total_input_tokens','input_tokens','totalInputTokens','inputTokens');
+ const thought=usageNumber(usage,'total_thought_tokens','thought_tokens','totalThoughtTokens','thoughtTokens');
  const imageTokens=modalityTokens(usage,'output_tokens_by_modality','image');
- const totalOut=n(usage?.total_output_tokens);
+ const totalOut=usageNumber(usage,'total_output_tokens','output_tokens','totalOutputTokens','outputTokens');
  const nonImage=Math.max(0,totalOut-imageTokens);
- const imageCost=imageTokens>0?imageTokens*60/1_000_000:fixed;
- const origin=round(input*.50/1_000_000+(nonImage+thought)*3/1_000_000+imageCost);
- return{ok:true,provider_origin_cost_usd:origin,image_size:size,pricing_source:SOURCES.google_media,pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT,usage:{input_tokens:input,output_tokens:totalOut,thought_tokens:thought,image_tokens:imageTokens},rates:{input_per_million_usd:.50,text_thought_output_per_million_usd:3,image_output_per_million_usd:60,fixed_image_output_usd:imageCost}};
+ const imageCost=imageTokens>0?imageTokens*rate.image_output_per_million_usd/1_000_000:fixed;
+ const origin=round(input*rate.input_per_million_usd/1_000_000+(nonImage+thought)*rate.text_thought_output_per_million_usd/1_000_000+imageCost);
+ return{ok:true,model:modelId,provider_origin_cost_usd:origin,image_size:size,pricing_source:SOURCES.google_media,pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT,usage:{input_tokens:input,output_tokens:totalOut,thought_tokens:thought,image_tokens:imageTokens},rates:{...rate,fixed_image_output_usd:imageCost}};
 }
 
-export function googleImageReserveUsd(image_size='2K'){
- const size=String(image_size||'2K').toUpperCase()==='0.5K'?'0.5K':String(image_size||'2K').toUpperCase();
- const fixed=GOOGLE_IMAGE_OUTPUT_USD[size];
- return fixed==null?null:round(fixed+.02);
+export function googleImageReserveUsd(image_size='2K',model='gemini-3.1-flash-image'){
+ const modelId=String(model||'gemini-3.1-flash-image'),rate=GOOGLE_IMAGE_PRICING[modelId];
+ if(!rate)return null;
+ const requested=String(image_size||'2K').toUpperCase()==='0.5K'?'0.5K':String(image_size||'2K').toUpperCase();
+ const size=modelId==='gemini-3.1-flash-lite-image'?'1K':requested;
+ const fixed=rate.fixed[size];
+ return fixed==null?null:round(fixed+.03);
 }
 
 export function googleOmniVideoOriginCost({seconds=0,resolution='720p',usage={}}={}){
- const input=n(usage?.total_input_tokens),thought=n(usage?.total_thought_tokens),totalOut=n(usage?.total_output_tokens);
+ const input=usageNumber(usage,'total_input_tokens','input_tokens','totalInputTokens','inputTokens');
+ const thought=usageNumber(usage,'total_thought_tokens','thought_tokens','totalThoughtTokens','thoughtTokens');
+ const totalOut=usageNumber(usage,'total_output_tokens','output_tokens','totalOutputTokens','outputTokens');
  const videoTokens=modalityTokens(usage,'output_tokens_by_modality','video');
  const textTokens=Math.max(0,totalOut-videoTokens);
  let videoCost=0;
@@ -185,7 +211,24 @@ export function googleOmniVideoOriginCost({seconds=0,resolution='720p',usage={}}
 
 export function googleOmniVideoReserveUsd({seconds=10,resolution='720p'}={}){
  const s=Math.max(3,Math.min(10,n(seconds)||10));
- // Reserve is authorization headroom only; actual customer billing always uses provider-reported usage.
  const base=String(resolution||'720p').toLowerCase()==='720p'?s*5792*17.50/1_000_000:3;
  return round(base+.05);
 }
+
+const VEO_VIDEO_RATES=Object.freeze({
+ 'veo-3.1-lite-generate-preview':Object.freeze({'720p':.05,'1080p':.08}),
+ 'veo-3.1-fast-generate-preview':Object.freeze({'720p':.10,'1080p':.12,'4k':.30}),
+ 'veo-3.1-generate-preview':Object.freeze({'720p':.40,'1080p':.40,'4k':.60})
+});
+
+export function googleVeoOriginCost({model='veo-3.1-lite-generate-preview',seconds=8,resolution='720p'}={}){
+ const modelId=String(model||'veo-3.1-lite-generate-preview'),res=String(resolution||'720p').toLowerCase(),rate=VEO_VIDEO_RATES[modelId]?.[res];
+ if(rate==null)return{ok:false,code:'VEO_PRICING_NOT_VERIFIED'};
+ const duration=[4,6,8].includes(Number(seconds))?Number(seconds):8;
+ const origin=round(duration*rate);
+ return{ok:true,model:modelId,resolution:res,seconds:duration,provider_origin_cost_usd:origin,pricing_source:SOURCES.google_media,pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT,rate_per_second_usd:rate};
+}
+export function googleVeoReserveUsd(options={}){
+ const priced=googleVeoOriginCost(options);return priced.ok?round(priced.provider_origin_cost_usd+.05):null;
+}
+
