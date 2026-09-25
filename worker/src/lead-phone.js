@@ -108,6 +108,11 @@ function magnanimousCoreBridgeReady(env) {
   }
 }
 
+function workspaceByocPlannerReady(env) {
+  return Boolean(env.VOIP_PROVIDER_URL && env.VOIP_PROVIDER_TOKEN)
+    && String(env.VOIP_BYOC_ROUTE_CONTRACT || '').trim() === 'magnanimous-route-v1';
+}
+
 async function placeCarrierCall(env, payload) {
   if (!carrierConfig(env).pstnConfigured) {
     const error = new Error('Connect a carrier bridge before calling an ordinary phone number.');
@@ -390,11 +395,13 @@ async function phoneRoutes(request, env, user, path, url) {
       console.error('Carrier route planner unavailable; preserving compatibility path', error);
     }
     const selected = routePlan?.selected || null;
-    const selectedRoute = magnanimousCoreBridgeReady(env) && selected && ['sip-trunk','byoc-bridge','direct-pstn'].includes(String(selected.type || '')) && String(selected.execution_endpoint || '').trim()
+    const selectedType = String(selected?.type || '');
+    const protectedCoreSelectedRoute = magnanimousCoreBridgeReady(env) && selected && ['sip-trunk','byoc-bridge','direct-pstn'].includes(selectedType) && String(selected.execution_endpoint || '').trim()
       ? {
           route_id: selected.route_id,
           interconnect_id: selected.interconnect_id,
           endpoint: String(selected.execution_endpoint).trim(),
+          execution_adapter: 'magnanimous-telecom-core',
           selection_mode: routePlan.selection_mode,
           health: selected.health,
           quality_score: selected.quality_score,
@@ -402,6 +409,28 @@ async function phoneRoutes(request, env, user, path, url) {
           estimated_rate: selected.estimated_rate
         }
       : null;
+    const workspaceByocSelectedRoute = workspaceByocPlannerReady(env) && selectedType === 'byoc-bridge' && String(selected?.bridge_route_key || '').trim() && !String(selected?.execution_endpoint || '').trim()
+      ? {
+          route_id: selected.route_id,
+          interconnect_id: selected.interconnect_id,
+          route_key: String(selected.bridge_route_key).trim(),
+          execution_adapter: 'workspace-byoc',
+          selection_mode: routePlan.selection_mode,
+          health: selected.health,
+          quality_score: selected.quality_score,
+          quality_source: selected.quality_source,
+          estimated_rate: selected.estimated_rate
+        }
+      : null;
+    const selectedRoute = protectedCoreSelectedRoute || workspaceByocSelectedRoute;
+    if (selected && ['sip-trunk','byoc-bridge','direct-pstn'].includes(selectedType) && !selectedRoute) {
+      return json({
+        detail: selectedType === 'byoc-bridge'
+          ? 'The selected BYOC route is not explicitly bound to a supported execution contract.'
+          : 'The selected native carrier route is not connected to the protected Telecom Core.',
+        code: selectedType === 'byoc-bridge' ? 'SELECTED_BYOC_ROUTE_NOT_BOUND' : 'SELECTED_ROUTE_NOT_CONNECTED'
+      }, 503);
+    }
     const created = await env.DB.prepare(`INSERT INTO phone_calls(
       tenant_id,contact_id,direction,caller,callee,status,created_at,provider,
       queue_id,agent_id,metadata_json,updated_at
