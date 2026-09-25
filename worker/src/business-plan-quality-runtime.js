@@ -50,8 +50,8 @@ function baseRules(){return `You are the senior consulting board inside I AM Mag
 
 async function cloudflare(env,prompt,{strong=true,maxTokens=2600}={}){
  if(!env?.AI)throw new Error('I AM free-first reasoning is temporarily unavailable.');
- const requested=String(strong?env.BUSINESS_PLAN_FREE_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8':env.CLOUDFLARE_AI_MODEL||'').trim();
- const models=[...new Set([requested,'@cf/qwen/qwen3-30b-a3b-fp8','@cf/zai-org/glm-4.7-flash','@cf/meta/llama-3.3-70b-instruct-fp8-fast'].filter(Boolean))];
+ const requested=String(strong?env.BUSINESS_PLAN_FREE_MODEL||'@cf/nvidia/nemotron-3-120b-a12b':env.CLOUDFLARE_AI_MODEL||'@cf/zai-org/glm-4.7-flash').trim();
+ const models=[...new Set([requested,'@cf/zai-org/glm-4.7-flash','@cf/nvidia/nemotron-3-120b-a12b','@cf/google/gemma-4-26b-a4b-it'].filter(Boolean))];
  const errors=[];
  for(const model of models){
   try{
@@ -104,8 +104,7 @@ async function entitlement(env,user,project){
  return{ok:false,reason:'purchase_required',metered:false,plan};
 }
 async function canSpendMetered(env,user,ent,prompt){
- if(!ent?.metered)return false;
- if(ent.reason==='business_plan_purchase'||ent.reason==='business_plan_subscription'||ent.reason==='platform_owner')return true;
+ if(!ent?.metered||String(env.ENABLE_METERED_PROVIDERS||'').toLowerCase()!=='true')return false;
  const candidates=[
   ['anthropic',env.BUSINESS_PLAN_ANTHROPIC_MODEL||'claude-sonnet-5',env.ANTHROPIC_API_KEY],
   ['google',env.BUSINESS_PLAN_GOOGLE_MODEL||'gemini-3.8-flash',env.GOOGLE_API_KEY],
@@ -119,8 +118,15 @@ async function canSpendMetered(env,user,ent,prompt){
   reserve=Math.max(reserve,Number(item.provider_origin_cost_usd||0));
  }
  if(reserve<=0)return true;
- const gate=await canUsePremium(env,user.tenant_id,{category:'professional business-plan reasoning',estimated_cost_usd:reserve,required_plan:'business',entitlement:'metered_ai'});
- return Boolean(gate.ok);
+ if(ent.reason==='full_business'){
+  const gate=await canUsePremium(env,user.tenant_id,{category:'professional business-plan reasoning',estimated_provider_origin_cost_usd:reserve,required_plan:'business',entitlement:'metered_ai'});
+  return Boolean(gate.ok);
+ }
+ const included=Math.max(0,Number(env.BUSINESS_PLAN_METERED_INCLUDED_USD||0));
+ if(included<=0)return false;
+ const d=new Date(),periodStart=Math.floor(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),1)/1000);
+ const row=await env.DB.prepare('SELECT COALESCE(SUM(provider_origin_cost_usd),0) used FROM business_plan_provider_usage WHERE tenant_id=? AND user_id=? AND created_at>=?').bind(String(user.tenant_id),String(user.id),periodStart).first().catch(()=>null);
+ return Number(row?.used||0)+reserve<=included+1e-9;
 }
 async function usage(env,user,projectId,phase,result,ent){
  let priced={ok:true,provider_origin_cost_usd:0,pricing_source:'free-first',pricing_verified_at:'2026-09-25',usage:{}};
@@ -132,7 +138,7 @@ async function usage(env,user,projectId,phase,result,ent){
  await env.DB.prepare('INSERT INTO business_plan_provider_usage(tenant_id,user_id,project_id,phase,provider,model,estimated_cost_usd,provider_origin_cost_usd,pricing_source,pricing_verified_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)')
   .bind(user.tenant_id,user.id,projectId,phase,result.provider||'iam-native',result.model||'',cost,cost,String(priced.pricing_source||''),String(priced.pricing_verified_at||''),now()).run();
  if(cost>0&&ent?.reason==='full_business'){
-  await recordUsage(env,user.tenant_id,{category:'business-plan-premium-ai',provider:result.provider,units:Number(priced.usage?.input_tokens||0)+Number(priced.usage?.output_tokens||0),direct_cost_usd:cost,reference_id:ref,pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at});
+  await recordUsage(env,user.tenant_id,{category:'business-plan-premium-ai',provider:result.provider,units:Number(priced.usage?.input_tokens||0)+Number(priced.usage?.output_tokens||0),provider_origin_cost_usd:cost,reference_id:ref,pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at});
  }
 }
 
@@ -182,7 +188,7 @@ async function finalize(request,env,user,body){
 
 export async function handleBusinessPlanQuality(request,env){
  const url=new URL(request.url),path=url.pathname;
- if(path==='/api/business-plan/quality'&&request.method==='GET')return json({quality_router:true,free_draft:{provider_class:'I AM free-first',primary_model:'@cf/qwen/qwen3-30b-a3b-fp8',fallback_models:['@cf/zai-org/glm-4.7-flash','@cf/meta/llama-3.3-70b-instruct-fp8-fast'],live_research:true},professional_final:{requires_i_am_purchase:true,external_provider_checkout:false,managed_provider_costs:true,strong_model_fallback:true,preferred_models:['claude-sonnet-5','gemini-3.8-flash']},billing_rule:'Customers pay I AM. Outside AI providers are server-side execution engines and are never a customer checkout destination.'});
+ if(path==='/api/business-plan/quality'&&request.method==='GET')return json({quality_router:true,free_draft:{provider_class:'I AM free-first',primary_model:'@cf/nvidia/nemotron-3-120b-a12b',fallback_models:['@cf/zai-org/glm-4.7-flash','@cf/google/gemma-4-26b-a4b-it'],live_research:true},professional_final:{requires_i_am_purchase:true,external_provider_checkout:false,managed_provider_costs:true,strong_model_fallback:true,preferred_models:['claude-sonnet-5','gemini-3.8-flash']},billing_rule:'Customers pay I AM. Outside AI providers are server-side execution engines and are never a customer checkout destination.'});
  if(!['/api/business-plan/draft','/api/business-plan/final'].includes(path)||request.method!=='POST')return null;
  if(!env?.DB)return json({detail:'Business-plan storage is unavailable.'},503);
  await ensureSchema(env);
