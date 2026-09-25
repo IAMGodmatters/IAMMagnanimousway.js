@@ -202,7 +202,7 @@ class WebRtcSessionService:
             "turn_relay_configured": bool(ice_servers),
             "expires_at": expires_at,
             "expires_in": self._settings.webrtc_session_ttl_seconds,
-            "allowed_call_scope": ["internal-magnanimous", "diagnostic-echo"],
+            "allowed_call_scope": ["internal-magnanimous", "diagnostic-echo", "diagnostic-stasis"],
             "pstn_direct": False,
             "truth_boundary": "This browser credential cannot directly dial PSTN; ordinary-number calling remains behind Magnanimous billing/compliance controls.",
         }
