@@ -68,14 +68,36 @@ export function quoteTextUsage(args={}){
   const origin=estimateTextOriginCostUsd(args);
   return{origin_cost_usd:origin,customer_cost_usd:customerPriceFromOrigin(origin),markup_percent:CUSTOMER_UPSELL_PERCENT,price:textModelPrice(args.provider,args.model)};
 }
+function publicLabel(row){
+  if(row.kind==='voice'){
+    if(row.provider==='browser')return'Device Voice';
+    if(row.provider==='cloudflare-ai')return'Magnanimous Standard Voice';
+    return'Premium Neural Voice';
+  }
+  if(row.provider==='cloudflare-ai')return'Magnanimous Free-First AI';
+  if(row.provider==='openrouter-free'||row.provider.startsWith('nvidia-'))return'Magnanimous Free Compute';
+  return /haiku|lite|small|20b/i.test(String(row.model||''))?'Premium Efficient AI':'Premium Advanced AI';
+}
 export function publicProviderPricing(){
   const rows=[...Object.values(TEXT_MODEL_PRICING),...Object.values(VOICE_MODEL_PRICING)];
   return rows.map(row=>({
-    ...row,
+    kind:row.kind,
+    public_name:publicLabel(row),
+    public_model_class:row.kind==='voice'?'voice':(/haiku|lite|small|20b|flash/i.test(String(row.model||''))?'efficient':'advanced'),
+    unit:row.unit,
+    input_usd_per_million:row.kind==='text'?row.input_usd_per_million:undefined,
+    output_usd_per_million:row.kind==='text'?row.output_usd_per_million:undefined,
+    origin_usd:row.kind==='voice'?row.origin_usd:undefined,
     customer_input_usd_per_million:row.kind==='text'?money(row.input_usd_per_million*CUSTOMER_UPSELL_MULTIPLIER):undefined,
     customer_output_usd_per_million:row.kind==='text'?money(row.output_usd_per_million*CUSTOMER_UPSELL_MULTIPLIER):undefined,
     customer_usd:row.kind==='voice'?customerPriceFromOrigin(row.origin_usd):undefined,
-    markup_percent:CUSTOMER_UPSELL_PERCENT
+    markup_percent:CUSTOMER_UPSELL_PERCENT,
+    verified_at:row.verified_at,
+    free:Boolean(row.free),
+    free_plan_eligible:Boolean(row.free_plan_eligible),
+    free_tier_available:Boolean(row.free_tier_available),
+    free_plan_limits_available:Boolean(row.free_plan_limits_available),
+    origin_verified:true
   }));
 }
 export function providerPricingMeta(){
