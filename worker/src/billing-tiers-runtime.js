@@ -1,3 +1,5 @@
+import { CUSTOMER_UPSELL_PERCENT,providerPricingMeta } from './provider-cost-catalog.js';
+
 const now = () => Math.floor(Date.now() / 1000);
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -65,7 +67,9 @@ function publicPlan(env, id) {
   return {
     ...plan,
     checkout_configured: id === 'free' ? true : Boolean(env.STRIPE_SECRET_KEY && planPrice(env, id)),
-    target_gross_margin_percent: targetMargin(env)
+    target_gross_margin_percent: targetMargin(env),
+    provider_usage_markup_percent: CUSTOMER_UPSELL_PERCENT,
+    provider_pricing: providerPricingMeta()
   };
 }
 
@@ -274,6 +278,7 @@ async function status(env, user) {
     plan: planId, plan_name: plan.name, subscription: row || null,
     entitlements: plan.entitlements,
     target_gross_margin_percent: targetMargin(env),
+    provider_usage_markup_percent: CUSTOMER_UPSELL_PERCENT,
     direct_variable_cost_usd: cost,
     cost_ceiling_usd: ceiling,
     premium_usage_allowed: planId !== 'free' && cost < ceiling,
@@ -284,9 +289,10 @@ async function status(env, user) {
 
 export async function handleTierBilling(request, env) {
   const url = new URL(request.url); const path = url.pathname;
-  const relevant = path === '/api/plans' || ['/api/billing/checkout','/api/billing/confirm','/api/billing/status','/api/billing/entitlements','/api/billing/webhook'].includes(path);
+  const relevant = path === '/api/plans' || ['/api/billing/checkout','/api/billing/confirm','/api/billing/status','/api/billing/entitlements','/api/billing/webhook','/api/billing/provider-pricing'].includes(path);
   if (!relevant) return null;
   await ensureSchema(env);
+  if (path === '/api/billing/provider-pricing' && request.method === 'GET') return json({...providerPricingMeta(),consumer_protection:{free_first_default:true,no_silent_metered_upgrade:true,prepaid_required:true,hard_plan_caps:true}});
   if (path === '/api/plans' && request.method === 'GET') return json({
     free_first: true,
     plans: PLAN_ORDER.map(id => publicPlan(env, id)),
