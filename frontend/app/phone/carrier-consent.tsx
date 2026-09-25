@@ -6,7 +6,7 @@ const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 export default function CarrierConsent() {
   const [visible, setVisible] = useState(false);
-  const [provider, setProvider] = useState('Twilio AI carrier');
+  const [provider, setProvider] = useState('Magnanimous Carrier');
   const [contactPermission, setContactPermission] = useState(false);
   const [aiDisclosure, setAiDisclosure] = useState(true);
   const consentRef = useRef(false);
@@ -26,7 +26,7 @@ export default function CarrierConsent() {
       const data = await response.json().catch(() => ({}));
       if (response.ok && data?.aiCarrier) {
         setVisible(true);
-        setProvider(data.provider || 'Twilio AI carrier');
+        setProvider('Magnanimous Carrier');
       }
     }).catch(() => {});
 
