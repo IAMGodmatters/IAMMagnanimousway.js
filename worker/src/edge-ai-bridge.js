@@ -1,4 +1,4 @@
-const EDGE_AI_BRIDGE_VERSION='2026-09-25.1';
+const EDGE_AI_BRIDGE_VERSION='2026-09-25.2';
 
 function json(data,status=200){
   return new Response(JSON.stringify(data),{
