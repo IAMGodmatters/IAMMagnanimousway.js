@@ -67,6 +67,8 @@ has(leadPhone,'magnanimousRouteControlReady','manual route control requires the 
 has(leadPhone,"bridge.origin === core.origin",'manual route control verifies the call bridge and native core share the same trusted origin');
 has(leadPhone,"...(body.route_id ? { route_id: routeId } : {})",'generic BYOC payload stays unchanged unless an owner explicitly selects a verified Magnanimous route');
 has(leadPhone,'ROUTE_CONTROL_NOT_READY','manual route selection fails closed when the native core route contract is unavailable');
+has(leadPhone,'requested_route_id: body.route_id ? routeId : null','call metadata does not pretend generic BYOC received a native route id');
+has(leadPhone,'route_control_applied: Boolean(executedRouteId)','call response declares route control only when the bridge actually applied or accepted a route');
 has(leadPhone,'automatic_route_planner: false','platform records that automatic planner execution is disabled');
 has(contactCenter,"/api/contact-center/carrier/routes",'owner contact-center surface can inspect private route inventory');
 has(contactCenter,'live_route_planner_execution:false','contact-center route surface cannot imply planner cutover');
