@@ -41,11 +41,6 @@ async function transform(spec={}){
   }
   const watermark=String(spec.watermark_text||'').trim().slice(0,240);
   if(watermark){
-   const point=Math.max(18,Math.min(52,Math.round((width||1600)/42)));
-   args.push('-gravity','southeast','-font','DejaVu-Sans-Bold','-pointsize',String(point),'-fill','rgba(255,255,255,0.94)','-stroke','rgba(0,0,0,0.75)','-strokewidth','2','-annotate','+28+24',watermark);
-  }
-  const watermark=String(spec.watermark_text||'').trim().slice(0,240);
-  if(watermark){
    const position=String(spec.watermark_position||'bottom-right');
    const gravity=position==='bottom-left'?'SouthWest':position==='top-left'?'NorthWest':position==='top-right'?'NorthEast':'SouthEast';
    const point=Math.max(14,Math.min(84,Number(spec.watermark_size||Math.round((width||1280)/48))));
