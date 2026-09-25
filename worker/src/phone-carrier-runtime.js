@@ -1,6 +1,8 @@
 import { handleVoiceAgent } from './voice-agent-runtime.js';
 import { handlePlivoCarrier, plivoReady } from './plivo-carrier-runtime.js';
 import { handleMagnanimousCarrierPhoneAlias } from './magnanimous-carrier-phone-alias.js';
+import { currentUser } from './integrations.js';
+import { planCarrierRoute } from './magnanimous-carrier-core.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -13,6 +15,75 @@ function twilioReady(env) {
 
 function genericBridgeReady(env) {
   return Boolean(env.VOIP_PROVIDER_URL && env.VOIP_PROVIDER_TOKEN);
+}
+
+const NATIVE_ROUTE_TYPES = new Set(['sip-trunk','byoc-bridge','direct-pstn']);
+
+async function fetchJsonWithTimeout(url, init = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    const data = await response.json().catch(() => ({}));
+    return { response, data };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function twilioAccountHealth(env) {
+  if (!twilioReady(env)) return { ok: false, state: 'not-configured' };
+  try {
+    const auth = btoa(`${String(env.TWILIO_ACCOUNT_SID)}:${String(env.TWILIO_AUTH_TOKEN)}`);
+    const { response, data } = await fetchJsonWithTimeout(
+      `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(String(env.TWILIO_ACCOUNT_SID))}.json`,
+      { headers: { authorization: `Basic ${auth}` } }
+    );
+    const state = String(data?.status || (response.ok ? 'unknown' : 'unavailable')).toLowerCase();
+    return { ok: response.ok && state === 'active', state };
+  } catch (error) {
+    return { ok: false, state: error?.name === 'AbortError' ? 'timeout' : 'unavailable' };
+  }
+}
+
+async function plivoAccountHealth(env) {
+  if (!plivoReady(env)) return { ok: false, state: 'not-configured' };
+  try {
+    const auth = btoa(`${String(env.PLIVO_AUTH_ID)}:${String(env.PLIVO_AUTH_TOKEN)}`);
+    const { response, data } = await fetchJsonWithTimeout(
+      `https://api.plivo.com/v1/Account/${encodeURIComponent(String(env.PLIVO_AUTH_ID))}/`,
+      { headers: { authorization: `Basic ${auth}` } }
+    );
+    if (!response.ok) return { ok: false, state: 'unavailable' };
+    const billingMode = String(data?.billing_mode || '').toLowerCase();
+    const credits = Number(data?.cash_credits);
+    if (billingMode === 'prepaid' && (!Number.isFinite(credits) || credits <= 0)) {
+      return { ok: false, state: 'unfunded' };
+    }
+    return { ok: true, state: billingMode || 'authenticated' };
+  } catch (error) {
+    return { ok: false, state: error?.name === 'AbortError' ? 'timeout' : 'unavailable' };
+  }
+}
+
+async function outboundRouting(request, env) {
+  const url = new URL(request.url);
+  if (url.pathname !== '/api/phone/calls/outbound' || request.method !== 'POST') return null;
+  const user = await currentUser(request, env).catch(() => null);
+  if (!user) return { response: json({ detail: 'Sign in required.' }, 401) };
+  const body = await request.clone().json().catch(() => ({}));
+  let plan = null;
+  try {
+    plan = await planCarrierRoute(env, user, body.to, String(body.route_mode || 'balanced'));
+  } catch (error) {
+    console.error('Compatibility carrier route planning failed; preserving no-route legacy fallback', error);
+  }
+  const matches = Array.isArray(plan?.matches) ? plan.matches : [];
+  if (!matches.length) return { explicit: false, user, body, plan };
+  if (!plan?.selected) {
+    return { response: json({ detail: 'No healthy carrier route is currently eligible for this destination.', code: 'NO_ELIGIBLE_CARRIER_ROUTE' }, 503) };
+  }
+  return { explicit: true, user, body, plan, selected: plan.selected };
 }
 
 function billingMode(env) {
@@ -45,6 +116,11 @@ export async function handlePhoneCarrier(request, env) {
   const carrierCore = await handleMagnanimousCarrierPhoneAlias(request, env);
   if (carrierCore) return carrierCore;
 
+  const routing = await outboundRouting(request, env);
+  if (routing?.response) return routing.response;
+  const selectedType = String(routing?.selected?.type || '');
+  const routeContext = routing?.explicit ? { selectedRoute: routing.selected, selectionMode: routing.plan?.selection_mode || 'balanced' } : {};
+
   // A workspace-supplied carrier bridge is intentionally first. This lets an
   // owner use a self-hosted Asterisk/FreeSWITCH gateway plus a flat-rate or
   // wholesale SIP trunk instead of forcing the platform through a premium
@@ -70,10 +146,31 @@ export async function handlePhoneCarrier(request, env) {
           : 'Workspace BYOC calling is connected. Free browser calls remain first choice and the carrier bridge can use wholesale or metered routing.'
       });
     }
-    return null;
+    if (!routing?.explicit || NATIVE_ROUTE_TYPES.has(selectedType)) return null;
   }
 
-  if (plivoReady(env)) {
+  if (routing?.explicit && NATIVE_ROUTE_TYPES.has(selectedType)) {
+    return json({ detail: 'The selected native carrier route is not connected to the protected Telecom Core.', code: 'SELECTED_ROUTE_NOT_CONNECTED' }, 503);
+  }
+
+  if (routing?.explicit && selectedType === 'plivo') {
+    if (!plivoReady(env)) return json({ detail: 'The selected carrier route is not configured.', code: 'SELECTED_ROUTE_NOT_CONFIGURED' }, 503);
+    const health = await plivoAccountHealth(env);
+    if (!health.ok) return json({ detail: 'The selected carrier route is unavailable or unfunded.', code: 'SELECTED_ROUTE_UNHEALTHY' }, 503);
+    const response = await handlePlivoCarrier(request, env, routeContext);
+    if (response) return response;
+    return json({ detail: 'The selected carrier route could not execute this request.', code: 'SELECTED_ROUTE_EXECUTION_FAILED' }, 503);
+  }
+
+  if (routing?.explicit && selectedType === 'twilio') {
+    if (!twilioReady(env)) return json({ detail: 'The selected carrier route is not configured.', code: 'SELECTED_ROUTE_NOT_CONFIGURED' }, 503);
+    const health = await twilioAccountHealth(env);
+    if (!health.ok) return json({ detail: 'The selected carrier route is unavailable.', code: 'SELECTED_ROUTE_UNHEALTHY' }, 503);
+  } else if (routing?.explicit) {
+    return json({ detail: 'The selected carrier route does not have an active execution adapter.', code: 'SELECTED_ROUTE_ADAPTER_UNAVAILABLE' }, 503);
+  }
+
+  if (!routing?.explicit && plivoReady(env)) {
     const response = await handlePlivoCarrier(request, env);
     if (response) return response;
   }
@@ -127,7 +224,8 @@ export async function handlePhoneCarrier(request, env) {
         ai_disclosure_accepted: true,
         time_limit_seconds: body.time_limit_seconds || 900
       }),
-      env
+      env,
+      routeContext
     );
     if (!voiceResponse) return json({ detail: 'The configured carrier route is unavailable.' }, 503);
     const data = await voiceResponse.clone().json().catch(() => ({}));
@@ -138,7 +236,10 @@ export async function handlePhoneCarrier(request, env) {
       provider_call_id: data.provider_call_id,
       status: data.status,
       provider: 'magnanimous-carrier',
-      agent: data.agent || null
+      agent: data.agent || null,
+      route_id: data.route_id || null,
+      interconnect_id: data.interconnect_id || null,
+      selected_route_applied: data.selected_route_applied === true
     }, voiceResponse.status || 201);
   }
 
