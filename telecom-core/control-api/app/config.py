@@ -46,7 +46,10 @@ class TelecomSettings:
     ari_password: str
     caller_id: str
     carrier_endpoint: str
-    carrier_dial_context: str
+    carrier_secondary_endpoint: str = ""
+    carrier_dial_context: str = "magnanimous-outbound"
+    carrier_primary_dial_context: str = "magnanimous-outbound-primary"
+    carrier_secondary_dial_context: str = "magnanimous-outbound-secondary"
     carrier_timeout_ms: int
     monitor_interval_seconds: float
     monitor_max_polls: int
@@ -89,7 +92,10 @@ class TelecomSettings:
             ari_password=_env("ASTERISK_ARI_PASSWORD"),
             caller_id=_env("MAGNANIMOUS_CALLER_ID"),
             carrier_endpoint=_env("CARRIER_SIP_ENDPOINT", "pstn-trunk"),
+            carrier_secondary_endpoint=_env("CARRIER_SIP_SECONDARY_ENDPOINT"),
             carrier_dial_context=_env("CARRIER_DIAL_CONTEXT", "magnanimous-outbound"),
+            carrier_primary_dial_context=_env("CARRIER_PRIMARY_DIAL_CONTEXT", "magnanimous-outbound-primary"),
+            carrier_secondary_dial_context=_env("CARRIER_SECONDARY_DIAL_CONTEXT", "magnanimous-outbound-secondary"),
             carrier_timeout_ms=max(1000, _env_int("CARRIER_CALL_TIMEOUT_MS", 60000)),
             monitor_interval_seconds=max(0.5, _env_float("CARRIER_MONITOR_INTERVAL_SECONDS", 2.0)),
             monitor_max_polls=max(1, _env_int("CARRIER_MONITOR_MAX_POLLS", 1800)),
