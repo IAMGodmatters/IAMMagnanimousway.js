@@ -8,6 +8,10 @@ const truthy=value=>String(value||'').toLowerCase()==='true';
 const ownerOnly=user=>user?.role==='owner';
 const GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT=20;
 const money=value=>Math.round((Number(value)+Number.EPSILON)*100)/100;
+const enrollmentTtlSeconds=15*60;
+function b64url(bytes){let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+function randomEnrollmentToken(){return 'mge1_'+b64url(crypto.getRandomValues(new Uint8Array(32)))}
+async function sha256Hex(value){const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value||'')));return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 
 function globalMobileBlueprint(env,readiness=null){
  const globalMobileFlag=truthy(env?.TELECOM_GLOBAL_MOBILE_LIVE);
@@ -182,7 +186,9 @@ async function ensureSchema(env){
   `CREATE TABLE IF NOT EXISTS telecom_country_capabilities (tenant_id TEXT NOT NULL,country_code TEXT NOT NULL,capability TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'unavailable',evidence_reference TEXT NOT NULL DEFAULT '',provider_ref TEXT NOT NULL DEFAULT '',notes TEXT NOT NULL DEFAULT '',production_verified INTEGER NOT NULL DEFAULT 0,updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,country_code,capability))`,
   `CREATE TABLE IF NOT EXISTS telecom_mobile_wholesale_offers (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,adapter_key TEXT NOT NULL,network_group TEXT NOT NULL DEFAULT '',country_code TEXT NOT NULL,currency TEXT NOT NULL DEFAULT 'USD',origin_reference TEXT NOT NULL,origin_cost_verified INTEGER NOT NULL DEFAULT 0,commercial_authorized INTEGER NOT NULL DEFAULT 0,country_verified INTEGER NOT NULL DEFAULT 0,data_supported INTEGER NOT NULL DEFAULT 0,voice_supported INTEGER NOT NULL DEFAULT 0,sms_supported INTEGER NOT NULL DEFAULT 0,local_breakout INTEGER NOT NULL DEFAULT 0,backup_eligible INTEGER NOT NULL DEFAULT 0,origin_monthly_cost REAL NOT NULL DEFAULT 0,included_high_speed_gb REAL NOT NULL DEFAULT 0,origin_variable_cost_per_gb REAL NOT NULL DEFAULT 0,funded_variable_cost_cap REAL NOT NULL DEFAULT 0,mandatory_taxes_and_fees REAL NOT NULL DEFAULT 0,observed_latency_ms REAL NOT NULL DEFAULT 0,quality_score REAL NOT NULL DEFAULT 0.5,status TEXT NOT NULL DEFAULT 'draft',valid_from INTEGER,valid_to INTEGER,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS telecom_mobile_access_profiles (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,line_id TEXT,sim_id TEXT,adapter_key TEXT NOT NULL,provider_profile_ref TEXT NOT NULL DEFAULT '',network_group TEXT NOT NULL DEFAULT '',country_code TEXT NOT NULL DEFAULT '',profile_role TEXT NOT NULL DEFAULT 'primary',apn_profile_id TEXT,status TEXT NOT NULL DEFAULT 'planned',last_verified_at INTEGER,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS telecom_mobile_connectivity_events (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,profile_id TEXT NOT NULL,line_id TEXT,country_code TEXT NOT NULL DEFAULT '',serving_network_ref TEXT NOT NULL DEFAULT '',event_type TEXT NOT NULL,latency_ms REAL NOT NULL DEFAULT 0,packet_loss_percent REAL NOT NULL DEFAULT 0,downlink_mbps REAL NOT NULL DEFAULT 0,uplink_mbps REAL NOT NULL DEFAULT 0,failover_reason TEXT NOT NULL DEFAULT '',metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL)`
+  `CREATE TABLE IF NOT EXISTS telecom_mobile_connectivity_events (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,profile_id TEXT NOT NULL,line_id TEXT,country_code TEXT NOT NULL DEFAULT '',serving_network_ref TEXT NOT NULL DEFAULT '',event_type TEXT NOT NULL,latency_ms REAL NOT NULL DEFAULT 0,packet_loss_percent REAL NOT NULL DEFAULT 0,downlink_mbps REAL NOT NULL DEFAULT 0,uplink_mbps REAL NOT NULL DEFAULT 0,failover_reason TEXT NOT NULL DEFAULT '',metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS telecom_mobile_enrollment_tokens (token_hash TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,profile_id TEXT NOT NULL,line_id TEXT,purpose TEXT NOT NULL DEFAULT 'profile_enrollment',status TEXT NOT NULL DEFAULT 'active',expires_at INTEGER NOT NULL,redeemed_at INTEGER,redeemed_by TEXT NOT NULL DEFAULT '',device_ref TEXT NOT NULL DEFAULT '',created_by TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS telecom_mobile_failover_proofs (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,line_id TEXT,primary_profile_id TEXT NOT NULL,backup_profile_id TEXT NOT NULL,primary_network_group TEXT NOT NULL,backup_network_group TEXT NOT NULL,trigger_event_id TEXT NOT NULL,backup_event_id TEXT NOT NULL,restoration_event_id TEXT NOT NULL DEFAULT '',evidence_reference TEXT NOT NULL DEFAULT '',independent_network_verified INTEGER NOT NULL DEFAULT 0,observed_failover INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'verified',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`
  ];
  for(const sql of statements){try{await env.DB.prepare(sql).run()}catch(error){console.error('telecom network schema repair failed',error)}}
 }
@@ -228,11 +234,11 @@ function mobileOfferRow(row){return{
  quality_score:Number(row.quality_score??0.5)
 }}
 
-export function evaluateGlobalMobileReadiness({live_flag_enabled=false,countryRows=[],offer=null,profile=null,connectivity=null,backupProfile=null,backupConnectivity=null,policy=null}={}){
+export function evaluateGlobalMobileReadiness({live_flag_enabled=false,countryRows=[],offer=null,profile=null,connectivity=null,backupProfile=null,backupConnectivity=null,failoverProof=null,policy=null}={}){
  const verifiedCountries=(countryRows||[]).filter(row=>String(row.state||'')==='production_verified'&&bool(row.production_verified)&&String(row.evidence_reference||'').trim()).map(row=>String(row.country_code||'')).filter(Boolean);
  const countryMatch=Boolean(offer?.country_code&&verifiedCountries.includes(String(offer.country_code)));
  const profileMatch=Boolean(profile?.country_code&&verifiedCountries.includes(String(profile.country_code))&&String(profile.adapter_key||'')===String(offer?.adapter_key||''));
- const resilienceVerified=Boolean(backupProfile&&backupConnectivity&&String(backupProfile.network_group||'')&&String(backupProfile.network_group)!==String(profile?.network_group||''));
+ const resilienceVerified=Boolean(backupProfile&&backupConnectivity&&failoverProof&&bool(failoverProof.independent_network_verified)&&bool(failoverProof.observed_failover)&&String(backupProfile.network_group||'')&&String(backupProfile.network_group)!==String(profile?.network_group||''));
  const gates={
   live_flag_enabled:live_flag_enabled===true,
   verified_country_mobile_data:verifiedCountries.length>0,
@@ -252,6 +258,7 @@ export function evaluateGlobalMobileReadiness({live_flag_enabled=false,countryRo
    connectivity_event_id:connectivity?.id||'',
    backup_profile_id:backupProfile?.id||'',
    backup_connectivity_event_id:backupConnectivity?.id||'',
+   failover_proof_id:failoverProof?.id||'',
    policy_id:policy?.id||''
   },
   truth_boundary:'The environment flag cannot make global mobile live by itself. Database-backed country, commercial, profile, connectivity and cost-control evidence must all pass.'
@@ -260,7 +267,7 @@ export function evaluateGlobalMobileReadiness({live_flag_enabled=false,countryRo
 
 async function globalMobileReadiness(env,tenant){
  const cutoff=now()-604800;
- let countryRows=[],offer=null,profile=null,connectivity=null,backupProfile=null,backupConnectivity=null,policy=null;
+ let countryRows=[],offer=null,profile=null,connectivity=null,backupProfile=null,backupConnectivity=null,failoverProof=null,policy=null;
  try{
   countryRows=(await env.DB.prepare("SELECT country_code,capability,state,evidence_reference,production_verified FROM telecom_country_capabilities WHERE tenant_id=? AND capability='mobile_data' AND state='production_verified' AND production_verified=1 AND evidence_reference<>'' ORDER BY country_code").bind(tenant).all()).results||[];
   const ts=now();
@@ -269,11 +276,12 @@ async function globalMobileReadiness(env,tenant){
   if(profile?.id)connectivity=await env.DB.prepare("SELECT id,event_type,country_code,serving_network_ref,latency_ms,packet_loss_percent,created_at FROM telecom_mobile_connectivity_events WHERE tenant_id=? AND profile_id=? AND created_at>=? AND event_type IN ('attach','quality','recovery') AND serving_network_ref<>'' ORDER BY created_at DESC LIMIT 1").bind(tenant,profile.id,cutoff).first();
   if(profile?.id)backupProfile=await env.DB.prepare("SELECT id,line_id,sim_id,adapter_key,network_group,country_code,last_verified_at FROM telecom_mobile_access_profiles WHERE tenant_id=? AND profile_role='backup' AND status='active' AND provider_profile_ref<>'' AND last_verified_at IS NOT NULL AND country_code=? AND network_group<>? ORDER BY last_verified_at DESC LIMIT 1").bind(tenant,profile.country_code,String(profile.network_group||'')).first();
   if(backupProfile?.id)backupConnectivity=await env.DB.prepare("SELECT id,event_type,country_code,serving_network_ref,latency_ms,packet_loss_percent,created_at FROM telecom_mobile_connectivity_events WHERE tenant_id=? AND profile_id=? AND created_at>=? AND event_type IN ('attach','quality','recovery') AND serving_network_ref<>'' ORDER BY created_at DESC LIMIT 1").bind(tenant,backupProfile.id,cutoff).first();
+  if(profile?.id&&backupProfile?.id)failoverProof=await env.DB.prepare("SELECT id,independent_network_verified,observed_failover,evidence_reference,created_at FROM telecom_mobile_failover_proofs WHERE tenant_id=? AND primary_profile_id=? AND backup_profile_id=? AND status='verified' AND independent_network_verified=1 AND observed_failover=1 AND evidence_reference<>'' ORDER BY created_at DESC LIMIT 1").bind(tenant,profile.id,backupProfile.id).first();
   policy=await env.DB.prepare("SELECT id,fair_use_units,throttle_kbps,max_daily_spend,status FROM telecom_policy_profiles WHERE tenant_id=? AND service_type IN ('data','roaming_data') AND status='active' AND (fair_use_units>0 OR throttle_kbps>0 OR max_daily_spend>0) ORDER BY updated_at DESC LIMIT 1").bind(tenant).first();
  }catch(error){console.error('global mobile readiness query failed',error)}
  return evaluateGlobalMobileReadiness({
   live_flag_enabled:truthy(env?.TELECOM_GLOBAL_MOBILE_LIVE),
-  countryRows,offer,profile,connectivity,backupProfile,backupConnectivity,policy
+  countryRows,offer,profile,connectivity,backupProfile,backupConnectivity,failoverProof,policy
  });
 }
 
@@ -332,9 +340,29 @@ export async function handleMagnanimousTelecomNetwork(request,env){
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type','access-control-allow-methods':'GET,POST,PUT,OPTIONS'}});
  const user=await currentUser(request,env);
  if(!user)return json({detail:'Sign in to Magnanimous Telecom.'},401);
- if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
  await ensureSchema(env);
  const tenant=String(user.tenant_id||'');
+
+ if(path==='/api/telecom/network/global-mobile/enrollment/redeem'&&request.method==='POST'){
+  const body=await request.json().catch(()=>({})),token=String(body.enrollment_token||'').trim(),deviceRef=String(body.device_ref||'').trim().slice(0,200);
+  if(!token||!deviceRef)return json({detail:'enrollment_token and a non-secret device_ref are required.'},422);
+  const tokenHash=await sha256Hex(token),ts=now();
+  const row=await env.DB.prepare("SELECT token_hash,profile_id,line_id,purpose,status,expires_at FROM telecom_mobile_enrollment_tokens WHERE tenant_id=? AND token_hash=?").bind(tenant,tokenHash).first();
+  if(!row)return json({detail:'Enrollment token is invalid.'},404);
+  if(row.status!=='active')return json({detail:'Enrollment token is no longer active.'},409);
+  if(Number(row.expires_at||0)<=ts){await env.DB.prepare("UPDATE telecom_mobile_enrollment_tokens SET status='expired' WHERE tenant_id=? AND token_hash=?").bind(tenant,tokenHash).run();return json({detail:'Enrollment token expired.'},410)}
+  const profile=await env.DB.prepare("SELECT id,line_id,adapter_key,network_group,country_code,profile_role,status FROM telecom_mobile_access_profiles WHERE tenant_id=? AND id=?").bind(tenant,row.profile_id).first();
+  if(!profile)return json({detail:'Enrollment profile no longer exists.'},409);
+  await env.DB.prepare("UPDATE telecom_mobile_enrollment_tokens SET status='redeemed',redeemed_at=?,redeemed_by=?,device_ref=? WHERE tenant_id=? AND token_hash=? AND status='active'").bind(ts,String(user.id||user.user_id||''),deviceRef,tenant,tokenHash).run();
+  return json({
+   ok:true,profile_id:profile.id,line_id:profile.line_id||row.line_id||null,country_code:profile.country_code,profile_role:profile.profile_role,
+   magnanimous_enrollment_complete:true,carrier_profile_status:profile.status,provider_activation_required:profile.status!=='active',
+   carrier_activation_secret_issued:false,raw_sim_credentials_exposed:false,
+   note:'This one-time Magnanimous enrollment token binds the signed-in tenant user/device to an authorized profile record. It is not an SM-DP+ activation code or SIM authentication secret.'
+  });
+ }
+
+ if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
  await seedCases(env,tenant);
 
  if(path==='/api/telecom/network/overview'&&request.method==='GET'){
@@ -468,6 +496,51 @@ export async function handleMagnanimousTelecomNetwork(request,env){
   if(['attach','quality','recovery'].includes(type))await env.DB.prepare("UPDATE telecom_mobile_access_profiles SET status='active',last_verified_at=?,updated_at=? WHERE tenant_id=? AND id=?").bind(ts,ts,tenant,profileId).run();
   await event(env,tenant,user,'global_mobile.connectivity_evidence',profile.adapter_key,String(profile.country_code||''),{event_id:eventId,profile_id:profileId,event_type:type});
   return json({ok:true,id:eventId,profile_id:profileId,event_type:type,raw_credentials_exposed:false},201);
+ }
+
+ if(path==='/api/telecom/network/global-mobile/enrollment-tokens'&&request.method==='GET'){
+  const {results}=await env.DB.prepare("SELECT profile_id,line_id,purpose,status,expires_at,redeemed_at,redeemed_by,device_ref,created_at FROM telecom_mobile_enrollment_tokens WHERE tenant_id=? ORDER BY created_at DESC LIMIT 100").bind(tenant).all();
+  return json({items:results||[],raw_tokens_returned:false});
+ }
+
+ if(path==='/api/telecom/network/global-mobile/enrollment-tokens'&&request.method==='POST'){
+  const body=await request.json().catch(()=>({})),profileId=String(body.profile_id||'').trim(),purpose=String(body.purpose||'profile_enrollment').trim();
+  if(!['profile_enrollment','backup_enrollment'].includes(purpose))return json({detail:'Unsupported enrollment purpose.'},422);
+  const profile=await env.DB.prepare("SELECT id,line_id,profile_role,status FROM telecom_mobile_access_profiles WHERE tenant_id=? AND id=?").bind(tenant,profileId).first();
+  if(!profile)return json({detail:'Unknown mobile access profile.'},404);
+  if(!['provisioning','active'].includes(String(profile.status||'')))return json({detail:'Only provisioning or active profiles can issue an enrollment token.'},409);
+  if(purpose==='backup_enrollment'&&profile.profile_role!=='backup')return json({detail:'backup_enrollment requires a backup profile.'},409);
+  const token=randomEnrollmentToken(),tokenHash=await sha256Hex(token),ts=now(),ttl=Math.max(300,Math.min(1800,Number(body.ttl_seconds||enrollmentTtlSeconds)));
+  await env.DB.prepare("INSERT INTO telecom_mobile_enrollment_tokens(token_hash,tenant_id,profile_id,line_id,purpose,status,expires_at,created_by,created_at) VALUES(?,?,?,?,?,'active',?,?,?)").bind(tokenHash,tenant,profileId,profile.line_id||null,purpose,ts+ttl,String(user.id||user.user_id||''),ts).run();
+  await event(env,tenant,user,'global_mobile.enrollment_token.issued','', '',{profile_id:profileId,purpose,expires_at:ts+ttl});
+  return json({
+   ok:true,profile_id:profileId,purpose,enrollment_token:token,expires_at:ts+ttl,returned_once:true,stored_as_hash_only:true,
+   carrier_activation_secret:false,note:'This is a Magnanimous control-plane enrollment token only. It cannot authenticate to an MNO/MVNO/SM-DP+ network.'
+  },201);
+ }
+
+ if(path==='/api/telecom/network/global-mobile/failover-proof'&&request.method==='POST'){
+  const body=await request.json().catch(()=>({}));
+  const primaryId=String(body.primary_profile_id||'').trim(),backupId=String(body.backup_profile_id||'').trim(),triggerId=String(body.trigger_event_id||'').trim(),backupEventId=String(body.backup_event_id||'').trim();
+  const evidenceReference=String(body.evidence_reference||'').trim().slice(0,500);
+  if(!primaryId||!backupId||!triggerId||!backupEventId||!evidenceReference)return json({detail:'primary_profile_id, backup_profile_id, trigger_event_id, backup_event_id and evidence_reference are required.'},422);
+  const primary=await env.DB.prepare("SELECT id,line_id,profile_role,network_group,country_code FROM telecom_mobile_access_profiles WHERE tenant_id=? AND id=?").bind(tenant,primaryId).first();
+  const backup=await env.DB.prepare("SELECT id,line_id,profile_role,network_group,country_code FROM telecom_mobile_access_profiles WHERE tenant_id=? AND id=?").bind(tenant,backupId).first();
+  if(!primary||!backup)return json({detail:'Both access profiles must exist in this tenant.'},404);
+  if(primary.profile_role!=='primary'||backup.profile_role!=='backup')return json({detail:'Failover proof requires a primary profile and a backup profile.'},409);
+  if(String(primary.country_code)!==String(backup.country_code))return json({detail:'Primary and backup failover evidence must be from the same verified country.'},409);
+  if(!primary.network_group||!backup.network_group||String(primary.network_group)===String(backup.network_group))return json({detail:'Backup proof must use an independent network_group.'},409);
+  const trigger=await env.DB.prepare("SELECT id,profile_id,event_type,created_at FROM telecom_mobile_connectivity_events WHERE tenant_id=? AND id=? AND profile_id=?").bind(tenant,triggerId,primaryId).first();
+  const backupEvent=await env.DB.prepare("SELECT id,profile_id,event_type,serving_network_ref,created_at FROM telecom_mobile_connectivity_events WHERE tenant_id=? AND id=? AND profile_id=?").bind(tenant,backupEventId,backupId).first();
+  if(!trigger||!backupEvent)return json({detail:'Failover evidence events must exist and match their respective profiles.'},409);
+  if(!['detach','failover'].includes(String(trigger.event_type)))return json({detail:'The primary trigger must be a recorded detach or failover event.'},409);
+  if(!['attach','quality','recovery'].includes(String(backupEvent.event_type))||!String(backupEvent.serving_network_ref||'').trim())return json({detail:'The backup event must prove successful observed service on the backup network.'},409);
+  if(Number(backupEvent.created_at||0)<Number(trigger.created_at||0))return json({detail:'Backup service evidence must occur after the primary failover trigger.'},409);
+  const proofId=id('mobile_failover'),ts=now();
+  await env.DB.prepare("INSERT INTO telecom_mobile_failover_proofs(id,tenant_id,line_id,primary_profile_id,backup_profile_id,primary_network_group,backup_network_group,trigger_event_id,backup_event_id,restoration_event_id,evidence_reference,independent_network_verified,observed_failover,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,1,1,'verified',?,?)")
+   .bind(proofId,tenant,primary.line_id||backup.line_id||null,primaryId,backupId,String(primary.network_group),String(backup.network_group),triggerId,backupEventId,String(body.restoration_event_id||'').trim().slice(0,100),evidenceReference,ts,ts).run();
+  await event(env,tenant,user,'global_mobile.failover_proof.verified','',String(primary.country_code),{proof_id:proofId,primary_profile_id:primaryId,backup_profile_id:backupId});
+  return json({ok:true,id:proofId,status:'verified',independent_network_verified:true,observed_failover:true,evidence_reference:evidenceReference},201);
  }
 
  if(path==='/api/telecom/network/global-mobile/offer-plan'&&request.method==='POST'){
