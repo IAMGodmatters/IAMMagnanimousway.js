@@ -85,9 +85,26 @@ class CallServiceTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(bridge.originated.destination, "+15559876543")
         self.assertEqual(bridge.originated.caller_id, "+15551234567")
+        self.assertEqual(bridge.originated.route_id, "auto")
         self.assertEqual(result["provider"], "Magnanimous Telecom")
+        self.assertEqual(result["route_id"], "auto")
         self.assertEqual(result["provider_call_id"], str(fixed_id))
         self.assertEqual(monitor.started[0], str(fixed_id))
+
+    async def test_explicit_route_is_delegated_without_changing_default_behavior(self):
+        bridge = FakeBridge()
+        monitor = FakeMonitor()
+        service = CallService(bridge, monitor, FakeCallbackPolicy(), SETTINGS)
+        result = await service.place(
+            OutboundCall(
+                call_id=43,
+                tenant_id="tenant-1",
+                to="+15559876543",
+                route_id="secondary",
+            )
+        )
+        self.assertEqual(bridge.originated.route_id, "secondary")
+        self.assertEqual(result["route_id"], "secondary")
 
     async def test_invalid_call_id_is_rejected_before_bridge_hangup(self):
         bridge = FakeBridge()
