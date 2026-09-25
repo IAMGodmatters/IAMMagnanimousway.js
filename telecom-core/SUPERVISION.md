@@ -70,7 +70,8 @@ The workflow is intentionally manual because it requires a real, active, consent
 
 - repository variable `TELECOM_PUBLIC_CONTROL_API_URL` — HTTPS origin of the protected public Telecom Core control API;
 - repository secret `TELECOM_PUBLIC_CONTROL_API_TOKEN` — the bearer token for that protected API;
-- repository variable `TELECOM_NATIVE_WEBRTC_LIVE=true` **only after** the separate Public Telecom WebRTC Verification has already passed, and only when monitor/whisper/barge lifecycle verification is requested.
+- repository variable `TELECOM_NATIVE_WEBRTC_LIVE=true` **only after** the separate Public Telecom WebRTC Verification has already passed, and only when monitor/whisper/barge lifecycle verification is requested;
+- the successful **Public Telecom WebRTC Verification** Actions run ID from `main` when supervisor-audio lifecycle verification is requested. The Stasis workflow fetches that run through the GitHub Actions API and refuses any run that is not successful, not from `main`, or not the dedicated manual public-WebRTC workflow.
 
 Each manual run supplies the active Asterisk target channel ID, recording jurisdiction, optional online supervisor PJSIP endpoint, and an explicit confirmation that all test-call participants received the required consent/notice.
 
