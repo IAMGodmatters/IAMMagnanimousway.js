@@ -5,7 +5,7 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 const xml=(message,status=200)=>new Response(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>${String(message).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]))}</Say><Hangup/></Response>`,{status,headers:{'content-type':'application/xml; charset=utf-8','cache-control':'no-store'}});
 // Treat every outside AI account that can accrue usage charges as metered at
 // the I AM boundary, even when the provider also offers a free/trial allowance.
-const METERED_AI=new Set(['openai','anthropic','google','groq','mistral','cerebras']);
+const METERED_AI=new Set(['openai','anthropic','google','groq','mistral','cerebras','xai','nvidia-kimi','nvidia-deepseek-pro','nvidia-deepseek-flash']);
 
 async function bodyJson(request){try{return await request.clone().json()}catch{return{}}}
 function rewriteJsonRequest(request,body){return new Request(request.url,{method:request.method,headers:request.headers,body:JSON.stringify(body)})}
@@ -19,7 +19,7 @@ export async function premiumPreflight(request,env){
  const url=new URL(request.url),path=url.pathname;
  if(!env?.DB)return{request,context:null};
  const user=await currentUserFromRequest(request,env);
- if(path==='/api/chat'&&request.method==='POST'){
+ if((path==='/api/chat'||path==='/api/agents/chat')&&request.method==='POST'){
   const body=await bodyJson(request),provider=String(body.provider||'auto').toLowerCase(),quality=String(body.quality||body.route_policy||'').toLowerCase();
   const explicitlyMetered=METERED_AI.has(provider),asksMaximum=['max','maximum','quality'].includes(quality);
 
