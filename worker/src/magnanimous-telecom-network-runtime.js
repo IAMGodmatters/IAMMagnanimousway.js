@@ -5,6 +5,152 @@ const now=()=>Math.floor(Date.now()/1000);
 const id=prefix=>`${prefix}_${crypto.randomUUID()}`;
 const truthy=value=>String(value||'').toLowerCase()==='true';
 const ownerOnly=user=>user?.role==='owner';
+const GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT=20;
+const money=value=>Math.round((Number(value)+Number.EPSILON)*100)/100;
+
+function globalMobileBlueprint(env){
+ const globalMobileLive=truthy(env?.TELECOM_GLOBAL_MOBILE_LIVE);
+ return{
+  identity:'Magnanimous Telecom',
+  brain:'Magnanimous AI',
+  architecture:'provider-neutral SIM/eSIM packet access plus Magnanimous-owned communications, policy, charging and AI control',
+  production_verified:globalMobileLive,
+  provider_brand_customer_visible:false,
+  access_paths:{
+   primary_sim_esim:'authorized mobile adapter',
+   backup_esim:'supported when an independently authorized backup profile/network is provisioned',
+   network_selection:'quality/cost/coverage-aware with manual recovery path',
+   local_profile_substitution:'required where permanent-roaming policy or regulation demands it'
+  },
+  communications_plane:{
+   app_voice_fallback:true,
+   app_messaging_fallback:true,
+   multiple_number_identity:true,
+   number_portability:'adapter-and-jurisdiction-gated',
+   voicemail:true,
+   ai_call_assistance:'optional and consent-aware',
+   native_sms_2fa_guaranteed:false
+  },
+  cost_policy:{
+   retail_markup_percent:GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT,
+   verified_origin_cost_required:true,
+   competitor_retail_price_is_not_origin_cost:true,
+   funded_variable_capacity_required:true,
+   hard_variable_cost_cap_required:true,
+   silent_paid_fallback:false,
+   fair_use_model:'high-speed allowance plus documented throttle/QoS only when supported by the wholesale agreement'
+  },
+  owner_research:{
+   provider_details_private:true,
+   wholesale_candidates:[
+    {key:'gigs',role:'wireless subscription/SIM/porting/usage API',commercial_status:'account-and-contract-required',public_wholesale_rate_card:false},
+    {key:'1global',role:'global telco-as-a-service and eSIM subscription API',commercial_status:'commercial-agreement-required',public_wholesale_rate_card:false},
+    {key:'telna',role:'API-first global eSIM/network lifecycle and multi-network access',commercial_status:'commercial-agreement-required',public_wholesale_rate_card:false},
+    {key:'bics',role:'global roaming/eSIM/MVNO infrastructure candidate',commercial_status:'product-eligibility-and-commercial-agreement-required',public_wholesale_rate_card:false}
+   ],
+   retail_benchmarks:{
+    fonus:{reseller_application_public:true,wholesale_rate_public:false,pricing_role:'benchmark-only-until-contract-quote'},
+    popcorn:{architecture_benchmark_only:true,resale_allowed_by_public_policy:false,pricing_role:'retail-benchmark-only'}
+   }
+  },
+  truth_boundaries:{
+   global_mobile_live_flag:'TELECOM_GLOBAL_MOBILE_LIVE',
+   provider_credentials_do_not_prove_live_service:true,
+   country_coverage_requires_capability_verification:true,
+   esim_coverage_does_not_imply_emergency_calling:true,
+   voip_numbers_do_not_guarantee_short_code_or_bank_2fa:true,
+   regulatory_authority_is_external:true
+  }
+ };
+}
+
+function finiteAmount(value,max){
+ const parsed=Number(value);
+ return Number.isFinite(parsed)&&parsed>=0&&parsed<=max?parsed:null;
+}
+function validOriginReference(value){
+ const ref=String(value||'').trim();
+ return /^https:\/\/\S{6,}$/i.test(ref)||/^(contract|rate-card|provider-quote|invoice):\S{2,}$/i.test(ref);
+}
+
+export function planGlobalMobileOffers(body){
+ const country=String(body?.country_code||'').trim().toUpperCase();
+ if(!/^[A-Z]{2}$/.test(country))return {error:'country_code must be ISO 3166-1 alpha-2.'};
+ const expectedGb=finiteAmount(body?.expected_high_speed_gb,10000);
+ if(expectedGb===null)return {error:'expected_high_speed_gb must be a finite non-negative amount.'};
+ const offers=Array.isArray(body?.offers)?body.offers.slice(0,50):[];
+ if(!offers.length)return {error:'At least one verified wholesale offer is required.'};
+ const eligible=[],rejected=[];
+ for(const raw of offers){
+  const offer=raw&&typeof raw==='object'?raw:{};
+  const adapterKey=String(offer.adapter_key||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,80);
+  const reference=String(offer.origin_reference||'').trim().slice(0,500);
+  const networkGroup=String(offer.network_group||adapterKey||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,80);
+  const monthly=finiteAmount(offer.origin_monthly_cost,100000);
+  const perGb=finiteAmount(offer.origin_variable_cost_per_gb||0,10000);
+  const includedGb=finiteAmount(offer.included_high_speed_gb||0,10000);
+  const fundedCap=finiteAmount(offer.funded_variable_cost_cap||0,1000000);
+  const fees=finiteAmount(offer.mandatory_taxes_and_fees||0,100000);
+  const latency=finiteAmount(offer.observed_latency_ms||0,60000);
+  const qualityRaw=Number(offer.quality_score??0.5);
+  const quality=Number.isFinite(qualityRaw)?Math.max(0,Math.min(1,qualityRaw)):0.5;
+  const reasons=[];
+  if(!adapterKey)reasons.push('adapter_key_missing');
+  if(!validOriginReference(reference)||offer.origin_cost_verified!==true)reasons.push('origin_cost_not_verified');
+  if(offer.commercial_authorized!==true)reasons.push('commercial_authorization_not_verified');
+  if(offer.country_verified!==true)reasons.push('country_coverage_not_verified');
+  if(offer.data_supported!==true)reasons.push('data_not_supported');
+  if([monthly,perGb,includedGb,fundedCap,fees,latency].some(v=>v===null))reasons.push('invalid_cost_or_quality_input');
+  const meteredGb=Math.max(0,expectedGb-(includedGb||0));
+  const variableExposure=(perGb||0)*meteredGb;
+  if(variableExposure>0&&(fundedCap||0)+1e-9<variableExposure)reasons.push('variable_cost_not_fully_funded');
+  if(reasons.length){rejected.push({adapter_key:adapterKey||'unknown',reasons});continue}
+  const landedOrigin=money((monthly||0)+variableExposure);
+  const retailBeforeFees=money(landedOrigin*(1+GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT/100));
+  eligible.push({
+   adapter_key:adapterKey,
+   network_group:networkGroup||adapterKey,
+   origin_reference:reference,
+   country_code:country,
+   expected_high_speed_gb:expectedGb,
+   included_high_speed_gb:includedGb,
+   metered_high_speed_gb:money(meteredGb),
+   origin_monthly_cost:money(monthly),
+   origin_variable_cost_per_gb:money(perGb),
+   variable_cost_exposure:money(variableExposure),
+   funded_variable_cost_cap:money(fundedCap),
+   landed_origin_cost:landedOrigin,
+   mandatory_taxes_and_fees:money(fees),
+   retail_monthly_total:money(retailBeforeFees+(fees||0)),
+   retail_markup_percent:GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT,
+   observed_latency_ms:latency,
+   quality_score:quality,
+   voice_supported:offer.voice_supported===true,
+   sms_supported:offer.sms_supported===true,
+   local_breakout:offer.local_breakout===true,
+   backup_eligible:offer.backup_eligible===true
+  });
+ }
+ eligible.sort((a,b)=>a.retail_monthly_total-b.retail_monthly_total||b.quality_score-a.quality_score||a.observed_latency_ms-b.observed_latency_ms);
+ const selected=eligible[0]||null;
+ const backup=selected?eligible.find(x=>x.backup_eligible&&x.adapter_key!==selected.adapter_key&&x.network_group!==selected.network_group)
+  ||eligible.find(x=>x.backup_eligible&&x.adapter_key!==selected.adapter_key)||null:null;
+ return{
+  identity:'Magnanimous Telecom',
+  brain:'Magnanimous AI',
+  preview_only:true,
+  purchase_performed:false,
+  provider_details_private:true,
+  country_code:country,
+  expected_high_speed_gb:expectedGb,
+  pricing_rule:{verified_origin_cost_required:true,retail_markup_percent:GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT},
+  selected,
+  backup,
+  eligible_offers:eligible,
+  rejected_offers:rejected,
+  truth_boundary:'Selection is a quote/planning result only. It does not activate service, prove regulatory authority, or mark any country/provider live.'
+ };
+}
 
 const US_CASES=[
  ['fcc_frn','FCC Registration Number (FRN)'],
@@ -61,6 +207,7 @@ function providerReadiness(env){
   direct_numbering_authorized:truthy(env?.TELECOM_DIRECT_NUMBERING_AUTHORIZED),
   carrier_authorized:truthy(env?.TELECOM_CARRIER_AUTHORIZED),
   native_webrtc_live:truthy(env?.TELECOM_NATIVE_WEBRTC_LIVE),
+  global_mobile_live:truthy(env?.TELECOM_GLOBAL_MOBILE_LIVE),
   purchases_enabled:truthy(env?.TELECOM_PURCHASE_ACTIONS_ENABLED),
   regulated_actions_enabled:truthy(env?.TELECOM_REGULATED_ACTIONS_ENABLED)
  };
@@ -142,8 +289,65 @@ export async function handleMagnanimousTelecomNetwork(request,env){
    secondary_upstream_candidate:{provider_key:'plivo',role:'secondary SIP/API candidate',connected:Boolean(String(env?.PLIVO_AUTH_ID||'').trim()&&String(env?.PLIVO_AUTH_TOKEN||'').trim()),note:'Use only where route economics, coverage and quality beat the primary path.'},
    compatibility_upstream:{provider_key:'twilio',role:'browser Voice SDK / compatibility carrier',connected:Boolean(String(env?.TWILIO_ACCOUNT_SID||'').trim()&&String(env?.TWILIO_AUTH_TOKEN||'').trim()),note:'Retained for compatibility and browser-agent transport while the native Asterisk WebRTC desk is completed.'},
    mobile_alternative:{provider_key:'gigs',role:'MVNO/mobile subscription adapter',capabilities:['physical_sim','esim','mobile_plans','subscriptions']},
+   global_mobile:globalMobileBlueprint(env),
    providers:providers.results||[],regulatory_cases:cases.results||[],
    authority_note:'Software readiness is not regulatory authority. External approvals and provider contracts remain required until completed.'
+  });
+ }
+
+ if(path==='/api/telecom/network/global-mobile/blueprint'&&request.method==='GET'){
+  return json(globalMobileBlueprint(env));
+ }
+
+ if(path==='/api/telecom/network/global-mobile/offer-plan'&&request.method==='POST'){
+  const body=await request.json().catch(()=>({}));
+  const plan=planGlobalMobileOffers(body);
+  if(plan.error)return json({detail:plan.error},422);
+  return json(plan);
+ }
+
+ if(path==='/api/telecom/network/global-mobile/retail-quote'&&request.method==='POST'){
+  const body=await request.json().catch(()=>({}));
+  const originCost=Number(body.origin_monthly_cost);
+  const mandatoryFees=Number(body.mandatory_taxes_and_fees||0);
+  const variableOrigin=Number(body.origin_variable_cost_per_gb||0);
+  const fundedCap=Number(body.funded_variable_cost_cap||0);
+  const currency=String(body.currency||'USD').trim().toUpperCase();
+  const originReference=String(body.origin_reference||'').trim().slice(0,500);
+  if(body.origin_cost_verified!==true||!validOriginReference(originReference))return json({detail:'Owner-confirmed origin-cost evidence is required. Use an https:// evidence URL or a contract:, rate-card:, provider-quote:, or invoice: reference. Competitor retail pricing is not an origin wholesale cost.'},422);
+  if(!Number.isFinite(originCost)||originCost<0||originCost>100000)return json({detail:'origin_monthly_cost must be a finite non-negative amount.'},422);
+  if(!Number.isFinite(mandatoryFees)||mandatoryFees<0||mandatoryFees>100000)return json({detail:'mandatory_taxes_and_fees must be a finite non-negative amount.'},422);
+  if(!Number.isFinite(variableOrigin)||variableOrigin<0||variableOrigin>10000)return json({detail:'origin_variable_cost_per_gb must be a finite non-negative amount.'},422);
+  if(!Number.isFinite(fundedCap)||fundedCap<0||fundedCap>1000000)return json({detail:'funded_variable_cost_cap must be a finite non-negative amount.'},422);
+  if(!/^[A-Z]{3}$/.test(currency))return json({detail:'currency must be a three-letter currency code.'},422);
+  if(variableOrigin>0&&fundedCap<=0)return json({detail:'Variable-cost mobile usage requires a funded_variable_cost_cap greater than zero.'},409);
+  const markupFactor=1+(GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT/100);
+  const retailBase=money(originCost*markupFactor);
+  const variableRetailPerGb=money(variableOrigin*markupFactor);
+  return json({
+   identity:'Magnanimous Telecom',
+   brain:'Magnanimous AI',
+   quote_only:true,
+   purchase_performed:false,
+   service_live_claimed:false,
+   provider_brand_customer_visible:false,
+   origin:{monthly_cost:money(originCost),currency,reference:originReference,verified:true,verification_mode:'owner-confirmed-evidence-reference'},
+   pricing:{
+    markup_percent:GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT,
+    retail_monthly_before_mandatory_fees:retailBase,
+    mandatory_taxes_and_fees:money(mandatoryFees),
+    retail_monthly_total:money(retailBase+mandatoryFees),
+    origin_variable_cost_per_gb:money(variableOrigin),
+    retail_variable_price_per_gb:variableRetailPerGb,
+    funded_variable_cost_cap:money(fundedCap)
+   },
+   safeguards:{
+    verified_origin_cost_required:true,
+    competitor_retail_price_rejected_as_wholesale_basis:true,
+    variable_usage_requires_funded_cap:variableOrigin>0,
+    silent_paid_fallback:false,
+    live_activation_requires_separate_provider_and_regulatory_verification:true
+   }
   });
  }
 

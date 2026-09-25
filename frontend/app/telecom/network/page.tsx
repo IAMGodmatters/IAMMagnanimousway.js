@@ -7,7 +7,7 @@ const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 
 type RegulatoryCase={id:string;jurisdiction:string;authority_key:string;authority_name:string;status:string;application_reference?:string;evidence_reference?:string;notes?:string};
 type ProviderCandidate={provider_key:string;role:string;adapter_state?:string;connected?:boolean};
-type Overview={identity:string;brain:string;architecture:string;readiness:Record<string,boolean>;owned_service_core?:{provider_key:string;role:string;native_pbx:string;provider_owned_identity:boolean};upstream_candidates?:ProviderCandidate[];native_browser_target?:{provider_key:string;role:string;live:boolean;truth_boundary:string};routing_policy?:{measured_quality_signals?:string[];max_rate_enforced?:boolean;live_execution_uses_route_planner?:boolean;execution_note?:string};mobile_alternative:{provider_key:string;role:string;capabilities:string[]};regulatory_cases:RegulatoryCase[];authority_note:string};
+type Overview={identity:string;brain:string;architecture:string;readiness:Record<string,boolean>;owned_service_core?:{provider_key:string;role:string;native_pbx:string;provider_owned_identity:boolean};upstream_candidates?:ProviderCandidate[];native_browser_target?:{provider_key:string;role:string;live:boolean;truth_boundary:string};routing_policy?:{measured_quality_signals?:string[];max_rate_enforced?:boolean;live_execution_uses_route_planner?:boolean;execution_note?:string};mobile_alternative:{provider_key:string;role:string;capabilities:string[]};global_mobile?:any;regulatory_cases:RegulatoryCase[];authority_note:string};
 const empty:Overview={identity:'Magnanimous Telecom',brain:'Magnanimous AI',architecture:'provider-neutral regulated-network control',readiness:{},owned_service_core:{provider_key:'magnanimous-telecom',role:'PBX, SIP registrar, routing, policy, CDR and contact-center control',native_pbx:'Asterisk',provider_owned_identity:true},upstream_candidates:[],native_browser_target:{provider_key:'magnanimous-asterisk-webrtc',role:'owned browser-agent signaling/media target',live:false,truth_boundary:'Source readiness is not live readiness.'},routing_policy:{measured_quality_signals:['ASR','ACD','PDD','network_failure_rate'],max_rate_enforced:true,live_execution_uses_route_planner:false},mobile_alternative:{provider_key:'gigs',role:'MVNO/mobile subscription adapter',capabilities:[]},regulatory_cases:[],authority_note:'Software readiness is not regulatory authority.'};
 
 async function parse(response:Response){const text=await response.text();try{return JSON.parse(text)}catch{return{detail:text||`Request failed (${response.status})`}}}
@@ -25,6 +25,13 @@ export default function NetworkAuthorityPage(){
  const[routeDestination,setRouteDestination]=useState('+63');
  const[routeMode,setRouteMode]=useState('balanced');
  const[routePlan,setRoutePlan]=useState<any>(null);
+ const[originCost,setOriginCost]=useState('10');
+ const[originVariableCost,setOriginVariableCost]=useState('0');
+ const[fundedVariableCap,setFundedVariableCap]=useState('0');
+ const[mandatoryFees,setMandatoryFees]=useState('0');
+ const[originReference,setOriginReference]=useState('');
+ const[originVerified,setOriginVerified]=useState(false);
+ const[globalQuote,setGlobalQuote]=useState<any>(null);
  const routeDestinationValid=/^\+[1-9]\d{6,14}$/.test(routeDestination);
 
  useEffect(()=>{
@@ -65,6 +72,23 @@ export default function NetworkAuthorityPage(){
   }catch(caught:any){setError(caught?.message||'Unable to preview the carrier route.')}finally{setBusy(false)}
  }
 
+ async function quoteGlobalMobile(event:FormEvent){
+  event.preventDefault();setBusy(true);setNotice('');setError('');setGlobalQuote(null);
+  try{
+   const data=await call('/api/telecom/network/global-mobile/retail-quote',{method:'POST',body:JSON.stringify({
+    origin_monthly_cost:Number(originCost),
+    origin_variable_cost_per_gb:Number(originVariableCost),
+    funded_variable_cost_cap:Number(fundedVariableCap),
+    mandatory_taxes_and_fees:Number(mandatoryFees),
+    currency:'USD',
+    origin_reference:originReference,
+    origin_cost_verified:originVerified
+   })});
+   setGlobalQuote(data);
+   setNotice('Global mobile retail quote calculated from the verified origin cost. No purchase or service activation occurred.');
+  }catch(caught:any){setError(caught?.message||'Unable to calculate the global mobile quote.')}finally{setBusy(false)}
+ }
+
  async function saveCase(item:RegulatoryCase){
   const draft=caseDrafts[item.id];if(!draft)return;setBusy(true);setNotice('');setError('');
   try{
@@ -100,6 +124,7 @@ export default function NetworkAuthorityPage(){
    <article><small>GIGS MOBILE</small><strong>{overview.readiness.gigs?'READY':'LOCKED'}</strong></article>
    <article><small>PSTN BRIDGE</small><strong>{overview.readiness.wholesale_voice?'READY':'LOCKED'}</strong></article>
    <article><small>NATIVE WEBRTC</small><strong>{overview.readiness.native_webrtc_live?'VERIFIED':'NOT LIVE'}</strong></article>
+   <article><small>GLOBAL MOBILE</small><strong>{overview.readiness.global_mobile_live?'VERIFIED':'NOT LIVE'}</strong></article>
    <article><small>E911 LIVE</small><strong>{overview.readiness.emergency_enabled?'VERIFIED':'OFF'}</strong></article>
    <article><small>DIRECT NUMBERING</small><strong>{overview.readiness.direct_numbering_authorized?'VERIFIED':'LATER'}</strong></article>
   </section>
@@ -115,6 +140,30 @@ export default function NetworkAuthorityPage(){
   <section className={styles.inventory}>
    <div className={styles.title}><div><small>REPLACEABLE UPSTREAMS</small><h2>Carrier candidate matrix</h2></div><span>Credentials ≠ live route</span></div>
    <div className={styles.grid}>{(overview.upstream_candidates||[]).map(item=><article className={styles.card} key={item.provider_key}><small>{item.connected?'ACCOUNT DETECTED':'CANDIDATE'}</small><h2>{item.provider_key.toUpperCase()}</h2><p>{item.role}</p><p className={styles.muted}>{item.adapter_state||'No dedicated live adapter is claimed.'}</p></article>)}</div>
+  </section>
+
+  <section className={styles.inventory}>
+   <div className={styles.title}><div><small>MAGNANIMOUS GLOBAL MOBILE</small><h2>Global SIM/eSIM retail blueprint</h2></div><span>{overview.global_mobile?.production_verified?'LIVE VERIFIED':'SOURCE READY / NOT LIVE'}</span></div>
+   <div className={styles.grid}>
+    <article className={styles.card}><small>ACCESS LAYER</small><h2>Multi-network eSIM strategy</h2><p className={styles.muted}>{overview.global_mobile?.architecture||'Provider-neutral mobile access beneath Magnanimous.'}</p><ul><li>Primary SIM/eSIM</li><li>Optional backup profile</li><li>Quality/cost-aware network selection</li><li>Local profiles where permanent roaming requires them</li></ul></article>
+    <article className={styles.card}><small>COMMUNICATIONS LAYER</small><h2>Magnanimous number + app fallback</h2><ul><li>Multiple number identity</li><li>App voice and messaging fallback</li><li>Voicemail + optional AI call assistance</li><li>2FA compatibility reported honestly per number type</li></ul><p className={styles.muted}>A VoIP number is never advertised as guaranteed to receive every bank or short-code message.</p></article>
+    <article className={styles.card}><small>COST CONTROL</small><h2>Funded fair-use economics</h2><ul><li>{overview.global_mobile?.cost_policy?.retail_markup_percent??20}% verified-origin uplift</li><li>High-speed allowance + documented throttle/QoS when supported</li><li>Hard variable-cost cap</li><li>No silent paid fallback</li></ul><p className={styles.muted}>Competitor retail prices are benchmarks, not Magnanimous wholesale cost.</p></article>
+   </div>
+   <form className={styles.card} onSubmit={quoteGlobalMobile}>
+    <small>SAFE PRICING TOOL</small><h2>Quote from verified wholesale cost</h2>
+    <label>Verified origin monthly cost (USD)<input type='number' min='0' step='0.01' value={originCost} onChange={e=>setOriginCost(e.target.value)}/></label>
+    <label>Mandatory taxes/fees (USD)<input type='number' min='0' step='0.01' value={mandatoryFees} onChange={e=>setMandatoryFees(e.target.value)}/></label>
+    <label>Origin variable data cost / GB<input type='number' min='0' step='0.0001' value={originVariableCost} onChange={e=>setOriginVariableCost(e.target.value)}/></label>
+    <label>Funded variable-cost cap (USD)<input type='number' min='0' step='0.01' value={fundedVariableCap} onChange={e=>setFundedVariableCap(e.target.value)}/></label>
+    <label>Origin cost evidence/reference<input value={originReference} onChange={e=>{setOriginReference(e.target.value);setOriginVerified(false)}} placeholder='https://… or contract:/rate-card:/provider-quote:/invoice: reference'/></label>
+    <label><input type='checkbox' checked={originVerified} onChange={e=>setOriginVerified(e.target.checked)}/> I confirmed this origin cost against the referenced provider evidence.</label>
+    <button disabled={busy||!originReference.trim()||!originVerified}>CALCULATE — NO PURCHASE</button>
+    <p className={styles.muted}>This tool only prices a verified origin cost. It does not activate a SIM, purchase capacity, or mark global service live.</p>
+   </form>
+   {globalQuote&&<div className={styles.grid}>
+    <article className={styles.card}><small>MONTHLY RETAIL</small><h2>{globalQuote.origin?.currency||'USD'} {Number(globalQuote.pricing?.retail_monthly_total||0).toFixed(2)}</h2><p>Base after 20% uplift: {Number(globalQuote.pricing?.retail_monthly_before_mandatory_fees||0).toFixed(2)}</p><p className={styles.muted}>Mandatory taxes/fees: {Number(globalQuote.pricing?.mandatory_taxes_and_fees||0).toFixed(2)} · Quote only</p></article>
+    <article className={styles.card}><small>VARIABLE DATA</small><h2>{Number(globalQuote.pricing?.retail_variable_price_per_gb||0).toFixed(4)} / GB</h2><p>Funded cost cap: {Number(globalQuote.pricing?.funded_variable_cost_cap||0).toFixed(2)}</p><p className={styles.muted}>No variable usage is allowed without a funded cap when the origin has metered data cost.</p></article>
+   </div>}
   </section>
 
   <section className={styles.inventory}>

@@ -46,7 +46,8 @@ Call recording uses a headless Stasis path so a supervisor browser does not need
 3. add the snoop channel to that bridge;
 4. start an Asterisk bridge recording with `beep=true`;
 5. enforce a bounded maximum duration;
-6. keep the raw recording file private to the Telecom host.
+6. stop the live recording through ARI and verify the corresponding stored-recording metadata (including recordings that auto-complete before an explicit stop);
+7. keep the raw recording file private to the Telecom host.
 
 Recording additionally requires a non-empty jurisdiction value. The Worker stores only tenant-scoped recording session/audit state. It does not return an Asterisk spool path or downloadable recording file.
 
@@ -75,7 +76,7 @@ The workflow is intentionally manual because it requires a real, active, consent
 
 Each manual run supplies the active Asterisk target channel ID, recording jurisdiction, optional online supervisor PJSIP endpoint, and an explicit confirmation that all test-call participants received the required consent/notice.
 
-The verifier always proves the negative consent gate first. Recording verification then proves the real host can create the snoop channel and mixing bridge, start a beep-enabled recording, stop it, clean up, and keep raw recording paths private.
+The verifier always proves the negative consent gate first. Recording verification then proves the real host can create the snoop channel and mixing bridge, start a beep-enabled recording, stop it, verify the stored Asterisk recording object, clean up, and keep raw recording paths private.
 
 Monitor/whisper/barge lifecycle verification is a separate optional path. It refuses to run unless the WebRTC live gate is already true and an online supervisor endpoint is supplied. It proves that the real host creates the expected snoop/supervisor/bridge resources and cleans them up for all three modes. It **does not** claim that acoustic semantics were automatically proven; a final production promotion still requires observed monitor/whisper/barge behavior on the consented real call.
 
@@ -91,7 +92,8 @@ Before activation, verify all of the following on the real Telecom Core host:
 - registered supervisor endpoint rings and joins the supervision bridge;
 - monitor, whisper and barge behave as labeled;
 - consent/notice rejection happens before any ARI media action;
-- bridge recording beeps and stops cleanly;
+- bridge recording beeps, stops cleanly and is confirmed in Asterisk's stored-recording lifecycle;
+- auto-completed recordings are recognized from stored metadata rather than falsely reported as missing;
 - recording lifecycle does not expose raw file paths or ARI credentials;
 - tenant/owner authorization and audit rows are correct;
 - cleanup succeeds after call/session termination;
