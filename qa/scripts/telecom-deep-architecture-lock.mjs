@@ -170,6 +170,10 @@ has(stasisLiveWorkflow,'name: Telecom Stasis Live Verification','strict Stasis r
 has(stasisLiveWorkflow,'consent_and_notice_confirmed','live supervision verification requires explicit consent/notice confirmation');
 has(stasisLiveWorkflow,'TELECOM_PUBLIC_CONTROL_API_TOKEN','real-host workflow consumes the protected Telecom API token only as a secret');
 has(stasisLiveWorkflow,'TELECOM_NATIVE_WEBRTC_LIVE','supervisor-audio verification remains behind the separate public WebRTC live gate');
+has(stasisLiveWorkflow,'public_webrtc_run_id','supervisor-audio verification requires a concrete public WebRTC evidence run');
+has(stasisLiveWorkflow,".github/workflows/public-webrtc-verification.yml",'supervisor-audio evidence must come from the dedicated public WebRTC workflow');
+has(stasisLiveWorkflow,"test \"${branch}\" = \"main\"",'supervisor-audio evidence must come from main');
+has(stasisLiveWorkflow,"test \"${event}\" = \"workflow_dispatch\"",'supervisor-audio evidence must come from a deliberate external verification run');
 has(stasisLiveWorkflow,'actions/upload-artifact@v7','live Stasis verification uploads evidence for later audit');
 lacks(stasisLiveWorkflow,'gh variable set TELECOM_NATIVE_WEBRTC_LIVE','verification workflow cannot promote the browser live flag');
 lacks(stasisLiveWorkflow,'ASTERISK_SUPERVISOR_CONTROL_ENABLED=true','verification workflow cannot promote supervisor control automatically');
