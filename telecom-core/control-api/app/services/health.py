@@ -6,13 +6,15 @@ from ..config import TelecomSettings
 from ..errors import TelecomError
 from ..ports import CarrierBridge
 from .monitoring import CarrierCallMonitor
+from .stasis_control import StasisCallControlService
 
 
 class HealthService:
-    def __init__(self, bridge: CarrierBridge, monitor: CarrierCallMonitor, settings: TelecomSettings):
+    def __init__(self, bridge: CarrierBridge, monitor: CarrierCallMonitor, settings: TelecomSettings, stasis: StasisCallControlService):
         self._bridge = bridge
         self._monitor = monitor
         self._settings = settings
+        self._stasis = stasis
 
     async def public_health(self) -> dict[str, Any]:
         try:
@@ -33,6 +35,7 @@ class HealthService:
                 "state": "configured-not-live-verified" if self._settings.webrtc_enabled else "disabled",
                 "truth_boundary": "Live requires a successful browser registration and two-way media probe.",
             },
+            "stasis_call_control": self._stasis.status(),
         }
 
     async def carrier_health(self) -> dict[str, Any]:
