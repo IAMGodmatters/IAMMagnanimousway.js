@@ -99,11 +99,12 @@ function applyVoiceProfile(utterance:SpeechSynthesisUtterance,label:string){
 
 function primeSpeechSynthesis(){
  if(speechPrimed||typeof window==='undefined'||!('speechSynthesis'in window))return;
+ if(appleMobileVoiceRuntime()){speechPrimed=true;return}
  try{
   const u=new SpeechSynthesisUtterance(' ');
   u.volume=0;u.rate=2;
   window.speechSynthesis.speak(u);
-  window.speechSynthesis.resume?.();
+  if((window.speechSynthesis as any).paused)window.speechSynthesis.resume?.();
   speechPrimed=true;
  }catch{}
 }
