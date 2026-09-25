@@ -60,6 +60,9 @@ jobs:
       - name: Exercise Telecom compatibility carrier router
         run: node qa/scripts/telecom-compatibility-router-lock.mjs
 
+      - name: Lock generic BYOC selected-route contract
+        run: node qa/scripts/byoc-route-contract-lock.mjs
+
       - name: Lock Magnanimous native developer agent
         run: node qa/scripts/magnanimous-dev-agent-lock.mjs
 
