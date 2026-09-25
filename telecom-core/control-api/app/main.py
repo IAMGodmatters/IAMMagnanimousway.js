@@ -7,12 +7,18 @@ from fastapi.responses import JSONResponse
 
 from .container import ApplicationContainer, get_container
 from .errors import TelecomError
-from .models import HangupRequest, OutboundCall, SipAccountCreate
+from .models import (
+    HangupRequest,
+    OutboundCall,
+    SipAccountCreate,
+    SupervisorRecordingStart,
+    SupervisorSessionStart,
+)
 from .lifecycle import lifespan
 
 app = FastAPI(
     title="Magnanimous Telecom Core",
-    version="0.6.0",
+    version="0.7.0",
     docs_url="/docs",
     redoc_url=None,
     lifespan=lifespan,
@@ -152,3 +158,70 @@ async def get_call(
     container: ApplicationContainer = Depends(get_container),
 ) -> dict[str, Any]:
     return await container.calls.get(provider_call_id)
+
+
+@app.get("/v1/supervision", dependencies=[Depends(require_token)])
+async def supervision_capabilities(
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return container.supervision.capabilities()
+
+
+@app.post("/v1/supervision/sessions", status_code=201, dependencies=[Depends(require_token)])
+async def start_supervision(
+    request: SupervisorSessionStart,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.supervision.start(
+        target_channel_id=request.target_channel_id,
+        supervisor_endpoint=request.supervisor_endpoint,
+        mode=request.mode,
+        consent_confirmed=request.consent_confirmed,
+        notice_confirmed=request.notice_confirmed,
+    )
+
+
+@app.get("/v1/supervision/sessions/{session_id}", dependencies=[Depends(require_token)])
+async def supervision_status(
+    session_id: str,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.supervision.status(session_id)
+
+
+@app.delete("/v1/supervision/sessions/{session_id}", dependencies=[Depends(require_token)])
+async def stop_supervision(
+    session_id: str,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.supervision.stop(session_id)
+
+
+@app.post(
+    "/v1/supervision/sessions/{session_id}/recording",
+    status_code=201,
+    dependencies=[Depends(require_token)],
+)
+async def start_supervision_recording(
+    session_id: str,
+    request: SupervisorRecordingStart,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.supervision.start_recording(
+        session_id,
+        consent_confirmed=request.consent_confirmed,
+        notice_confirmed=request.notice_confirmed,
+        jurisdiction=request.jurisdiction,
+        max_duration_seconds=request.max_duration_seconds,
+    )
+
+
+@app.delete(
+    "/v1/supervision/sessions/{session_id}/recording",
+    dependencies=[Depends(require_token)],
+)
+async def stop_supervision_recording(
+    session_id: str,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.supervision.stop_recording(session_id)
