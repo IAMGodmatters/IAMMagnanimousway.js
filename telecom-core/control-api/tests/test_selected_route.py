@@ -93,7 +93,7 @@ class SelectedRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ari.requests, [])
 
     async def test_unhealthy_selected_route_fails_before_origination(self):
-        ari = FakeAri("unavailable")
+        ari = FakeAri("offline")
         bridge = AsteriskSipCarrierBridge(ari, SETTINGS)
         with self.assertRaises(CarrierUnavailableError):
             await bridge.originate(request())
