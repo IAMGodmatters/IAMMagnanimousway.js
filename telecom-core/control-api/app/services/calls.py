@@ -40,6 +40,9 @@ class CallService:
                 caller_id=caller_id,
                 agent_id=request.agent_id or "",
                 queue_id=request.queue_id or "",
+                route_key=request.route_key or "",
+                route_id=request.route_id,
+                interconnect_id=request.interconnect_id,
             )
         )
         self._monitor.start(provider_call_id, self._callback_policy.resolve(request.webhook_url))
@@ -50,6 +53,9 @@ class CallService:
             "provider": "Magnanimous Telecom",
             "to": destination,
             "from": caller_id,
+            "route_key": request.route_key or "compatibility",
+            "route_id": request.route_id,
+            "interconnect_id": request.interconnect_id,
         }
 
     async def hangup(self, provider_call_id: str, request: HangupRequest | None) -> dict[str, Any]:
