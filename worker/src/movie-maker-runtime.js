@@ -80,8 +80,14 @@ async function ensureSchema(env){
   id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,kind TEXT NOT NULL,status TEXT NOT NULL,
   interaction_id TEXT NOT NULL DEFAULT '',prompt TEXT NOT NULL DEFAULT '',title TEXT NOT NULL DEFAULT '',
   resolution TEXT NOT NULL DEFAULT '',aspect_ratio TEXT NOT NULL DEFAULT '16:9',seconds INTEGER NOT NULL DEFAULT 0,
+  engine TEXT NOT NULL DEFAULT 'omni',model TEXT NOT NULL DEFAULT '',billing_mode TEXT NOT NULL DEFAULT 'paid',
   error_text TEXT NOT NULL DEFAULT '',asset_id TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL
  )`).run();
+ for(const sql of [
+  "ALTER TABLE movie_maker_jobs ADD COLUMN engine TEXT NOT NULL DEFAULT 'omni'",
+  "ALTER TABLE movie_maker_jobs ADD COLUMN model TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE movie_maker_jobs ADD COLUMN billing_mode TEXT NOT NULL DEFAULT 'paid'"
+ ]){try{await env.DB.prepare(sql).run()}catch{}}
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_movie_assets_tenant ON movie_maker_assets(tenant_id,created_at DESC)').run();
 }
 async function planFor(env,user){const p=await tenantPlan(env,user.tenant_id);return p.plan||'free'}
@@ -150,6 +156,23 @@ async function googleInteraction(env,payload){
 async function googleInteractionGet(env,id){
  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions/${encodeURIComponent(id)}`,{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY),'Api-Revision':'2026-05-20'}});
  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||`Studio media status failed (${r.status}).`);return d;
+}
+async function googleVeoStart(env,{model,prompt,aspect_ratio,resolution,seconds,reference_image}){
+ const duration=[4,6,8].includes(Number(seconds))?Number(seconds):8;
+ const high=String(resolution).toLowerCase()!=='720p';const effectiveSeconds=high?8:duration;
+ const instance={prompt};
+ const ref=parseDataUri(reference_image||'');
+ if(ref)instance.image={bytesBase64Encoded:ref.base64,mimeType:ref.content_type};
+ const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:predictLongRunning`,{
+  method:'POST',headers:{'content-type':'application/json','x-goog-api-key':String(env.GOOGLE_API_KEY)},
+  body:JSON.stringify({instances:[instance],parameters:{aspectRatio:aspect_ratio,resolution:String(resolution).toLowerCase(),durationSeconds:String(effectiveSeconds),numberOfVideos:1}})
+ });
+ const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||`Studio video request failed (${r.status}).`);
+ return{operation:String(d.name||''),seconds:effectiveSeconds};
+}
+async function googleVeoGet(env,operation){
+ const op=String(operation||'').replace(/^\/+/,''),r=await fetch(`https://generativelanguage.googleapis.com/v1beta/${op}`,{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY)}});
+ const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||`Studio video status failed (${r.status}).`);return d;
 }
 async function generateFreeImage(request,env,user,body,plan){
  const title=cleanText(body.title||'Magnanimous creation',180),prompt=cleanText(body.prompt||body.text,4000),style=cleanText(body.style||'cinematic',40),aspect=ASPECTS.has(body.aspect_ratio)?body.aspect_ratio:'16:9';
