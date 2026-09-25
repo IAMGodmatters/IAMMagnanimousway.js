@@ -187,31 +187,27 @@ async function generateStudioImage(request,env,user,body,plan){
 async function createStudioVoice(request,env,user,body,plan){
  if(!mediaPolicy(plan).premium_studio_allowed)return json({detail:'Studio narration starts with Business. Free browser narration remains available on every plan.',code:'BUSINESS_REQUIRED'},402);
  if(!studioVoiceReady(env))return json({detail:'Studio narration is not configured yet. Free browser narration remains available.',code:'STUDIO_VOICE_NOT_CONFIGURED'},503);
- const text=cleanText(body.text||body.narration||body.script,5000),title=cleanText(body.title||'Magnanimous narration',180);
+ const text=cleanText(body.text||body.narration||body.script,12000),title=cleanText(body.title||'Magnanimous narration',180);
  if(!text)return json({detail:'Add narration text first.'},400);
- const quality=String(body.quality||'expressive').toLowerCase()==='fast'?'fast':'expressive';
- const pricingKey=quality==='fast'?'elevenlabs-flash-v2.5':'elevenlabs-v3';
- const priced=voiceOriginCost({provider:pricingKey,characters:text.length});
- if(!priced.ok)return json({detail:priced.detail||priced.code,code:priced.code},409);
- const gate=await canUsePremium(env,user.tenant_id,{category:'studio narration',estimated_provider_origin_cost_usd:priced.provider_origin_cost_usd,required_plan:'business',entitlement:'metered_ai'});
+ const quality=['max','studio','expressive'].includes(String(body.quality||'max').toLowerCase())?'max':'economy';
+ const model=quality==='max'?'gemini-3.8-flash-tts':'gemini-3.8-flash-lite-tts';
+ const billingMode=providerBillingMode(env,'google');
+ if(!['free','paid'].includes(billingMode))return json({detail:'Studio narration billing mode must be verified as free or paid before generation.',code:'BILLING_MODE_UNVERIFIED'},503);
+ const reserve=billingMode==='free'?0:googleTtsReserveUsd({model,characters:text.length});
+ const gate=await canUsePremium(env,user.tenant_id,{category:'studio narration',estimated_provider_origin_cost_usd:reserve,required_plan:'business',entitlement:'metered_ai'});
  if(!gate.ok)return json({detail:gate.detail,code:gate.code,free_browser_voice:true,estimated_customer_charge_usd:gate.estimated_variable_customer_charge_usd},402);
- const modelId=quality==='fast'?'eleven_flash_v2_5':'eleven_v3';
- const voiceId=String(env.ELEVENLABS_VOICE_ID||'').trim();
- const response=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,{
-  method:'POST',
-  headers:{'xi-api-key':String(env.ELEVENLABS_API_KEY),'content-type':'application/json','accept':'audio/mpeg'},
-  body:JSON.stringify({text,model_id:modelId})
- });
- if(!response.ok){
-  const detail=await response.json().catch(()=>({}));throw new Error(detail?.detail?.message||detail?.detail||`Studio narration failed (${response.status}).`);
- }
- const bytes=new Uint8Array(await response.arrayBuffer()),requestId=String(response.headers.get('request-id')||crypto.randomUUID());
- await recordUsage(env,user.tenant_id,{category:'movie-maker-voice',provider:'managed-studio-voice',units:text.length,provider_origin_cost_usd:priced.provider_origin_cost_usd,reference_id:`movie-voice:${requestId}`,pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at});
- const variable=variableCustomerCharge(priced.provider_origin_cost_usd);
- const persisted=await persistAsset(env,request,user,{kind:'audio',title,bytes,content_type:'audio/mpeg',watermarked:false,origin:priced.provider_origin_cost_usd,customer:variable.customer_charge_usd});
- return json({ok:true,mode:'studio',identity:'Magnanimous AI',asset:{...persisted,content_type:'audio/mpeg'},billing:{provider_origin_cost_usd:priced.provider_origin_cost_usd,markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,customer_charge_usd:variable.customer_charge_usd},quality,provider_details_private:true});
+ const voice=cleanText(body.voice||env.MAGNANIMOUS_STUDIO_VOICE||'Kore',120),style=cleanText(body.style||'natural, warm, clear cinematic narration',300);
+ const d=await googleInteraction(env,{model,input:[{type:'user_input',content:[{type:'text',text,annotations:[{type:'speech_metadata',style}]}]}],response_format:{type:'audio'},generation_config:{speech_config:[{voice}]}});
+ const audio=d.output_audio||d.outputAudio||d?.output?.find?.(x=>x?.type==='audio');
+ const base64=audio?.data;if(!base64)throw new Error('Studio narration returned no audio bytes.');
+ const bytes=bytesFromB64(base64),seconds=wavDurationSeconds(bytes);
+ const priced=googleTtsOriginCost({model,usage:d.usage||{},audio_seconds:seconds,billing_mode:billingMode});
+ if(!priced.ok)throw new Error(priced.detail||priced.code||'TTS_PRICING_RECONCILIATION_FAILED');
+ const variable=variableCustomerCharge(priced.provider_origin_cost_usd),ref=`movie-voice:${d.id||crypto.randomUUID()}`;
+ await recordUsage(env,user.tenant_id,{category:'movie-maker-voice',provider:'managed-studio-voice',units:seconds||text.length,provider_origin_cost_usd:priced.provider_origin_cost_usd,reference_id:ref,pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at});
+ const persisted=await persistAsset(env,request,user,{kind:'audio',title,bytes,content_type:audio?.mime_type||audio?.mimeType||'audio/wav',watermarked:false,origin:priced.provider_origin_cost_usd,customer:variable.customer_charge_usd});
+ return json({ok:true,mode:'studio',quality,identity:'Magnanimous AI',asset:{...persisted,content_type:audio?.mime_type||audio?.mimeType||'audio/wav'},billing:{provider_origin_cost_usd:priced.provider_origin_cost_usd,markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,customer_charge_usd:variable.customer_charge_usd,billing_mode:billingMode},free_browser_voice:true,provider_details_private:true});
 }
-
 async function freeVideo(request,env,user,body,plan){
  const prompt=cleanText(body.prompt||body.text,4000),title=cleanText(body.title||'Magnanimous Movie',180),style=cleanText(body.style||'cinematic',40);
  if(!prompt)return json({detail:'Describe the movie scene first.'},400);
