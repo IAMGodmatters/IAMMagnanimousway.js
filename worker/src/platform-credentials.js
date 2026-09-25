@@ -29,6 +29,7 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
  ]},
  {id:'carrier-bridge',name:'Bring Your Own Carrier / SIP Bridge',providers:['carrier-bridge'],fields:[
   {key:'VOIP_PROVIDER_URL',label:'Carrier Bridge HTTPS Call Endpoint',secret:false,required:false},
+  {key:'VOIP_PROVIDER_ROUTE_CONTRACT_URL',label:'Carrier Bridge Route Contract URL (same HTTPS origin)',secret:false,required:false},
   {key:'VOIP_PROVIDER_NAME',label:'Carrier / Bridge Display Name',secret:false,required:false},
   {key:'VOIP_CALLER_ID',label:'Carrier Caller ID (E.164)',secret:false,required:false},
   {key:'VOIP_PROVIDER_TOKEN',label:'Carrier Bridge Bearer Token',secret:true,required:false},
