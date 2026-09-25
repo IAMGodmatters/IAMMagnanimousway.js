@@ -11,7 +11,7 @@ import uuid
 from websockets.asyncio.client import connect
 
 from ..config import TelecomSettings
-from ..errors import CarrierRejectedError, CarrierUnavailableError, TelecomConfigurationError, TelecomValidationError
+from ..errors import CarrierRejectedError, CarrierUnavailableError, TelecomConfigurationError, TelecomNotFoundError, TelecomValidationError
 from ..models import StasisRecordingStart, SupervisorSessionStart
 from ..ports import CarrierCallRequest, CarrierCallState
 
@@ -60,6 +60,22 @@ class AsteriskStasisBridgeService:
         if not call:
             return None
         return CarrierCallState(provider_call_id=provider_call_id, status=call.status)
+
+    def call_topology(self, provider_call_id: str) -> dict[str, Any]:
+        self._require_ready()
+        call = self._calls.get(provider_call_id)
+        if not call:
+            raise TelecomNotFoundError("Managed Stasis call not found.")
+        return {
+            "provider_call_id": provider_call_id,
+            "bridge_id": call.bridge_id,
+            "customer_channel_id": call.customer_channel_id,
+            "agent_channel_id": call.agent_channel_id,
+            "status": call.status,
+            "customer_joined": call.customer_joined,
+            "agent_joined": call.agent_joined,
+            "provider": "Magnanimous Telecom",
+        }
 
     def status(self) -> dict[str, Any]:
         return {
