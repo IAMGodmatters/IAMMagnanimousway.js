@@ -158,6 +158,10 @@ export default function Social() {
             <b>Other Connections</b>
             <span>Review supported and unsupported account connections →</span>
           </a>
+          <a href="/creator-growth">
+            <b>Creator Growth</b>
+            <span>Research titles, keywords, trends, outliers, comments and channel analytics →</span>
+          </a>
           <a href="/video-studio">
             <b>Create Video</b>
             <span>Generate or prepare a video source →</span>
