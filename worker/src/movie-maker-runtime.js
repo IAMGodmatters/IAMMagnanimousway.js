@@ -262,73 +262,55 @@ async function startStudioVideo(request,env,user,body,plan){
  if(!googleReady(env))return json({detail:'Studio video is not enabled. Free-first Movie Maker remains available.',code:'STUDIO_MEDIA_NOT_CONFIGURED'},503);
  const prompt=cleanText(body.prompt||body.text,4000),title=cleanText(body.title||'Magnanimous Studio Movie',180),aspect=['16:9','9:16'].includes(body.aspect_ratio)?body.aspect_ratio:'16:9';
  if(!prompt)return json({detail:'Describe the movie scene first.'},400);
- const selection=videoModelFor(body.quality,body.resolution);
- let seconds=Math.max(3,Math.min(10,Number(body.seconds||6))),reserve=0,billingMode='paid';
- if(selection.engine==='veo'){
-  seconds=[4,6,8].includes(Number(seconds))?Number(seconds):8;
-  if(selection.resolution!=='720p')seconds=8;
-  reserve=googleVeoReserveUsd({model:selection.model,seconds,resolution:selection.resolution});
-  if(reserve==null)return json({detail:'Current cinematic video pricing is not verified.',code:'PRICING_NOT_VERIFIED'},503);
- }else{
-  billingMode=providerBillingMode(env,'google');
-  if(!['free','paid'].includes(billingMode))return json({detail:'Editable studio video billing mode must be verified as free or paid before generation.',code:'BILLING_MODE_UNVERIFIED'},503);
-  reserve=billingMode==='free'?0:googleOmniVideoReserveUsd({seconds,resolution:selection.resolution});
- }
+ const selected=videoModelFor(body.quality,body.resolution),ref=parseDataUri(body.reference_image||'');
+ let seconds;
+ if(selected.engine==='veo'){const requested=Number(body.seconds||8);seconds=[4,6,8].includes(requested)?requested:8;if(ref||selected.resolution==='1080p'||selected.resolution==='4k')seconds=8}
+ else seconds=Math.max(3,Math.min(10,Number(body.seconds||6)));
+ const reserve=selected.engine==='veo'?googleVeoReserveUsd({model:selected.model,seconds,resolution:selected.resolution}):googleOmniVideoReserveUsd({seconds,resolution:selected.resolution});
+ if(reserve==null)return json({detail:'Current pricing is not verified for this video quality.',code:'VIDEO_PRICING_NOT_VERIFIED'},409);
  const gate=await canUsePremium(env,user.tenant_id,{category:'studio video',estimated_provider_origin_cost_usd:reserve,required_plan:'business',entitlement:'metered_ai'});
  if(!gate.ok)return json({detail:gate.detail,code:gate.code,free_first_available:true,estimated_customer_charge_usd:gate.estimated_variable_customer_charge_usd},402);
- let operation='',status='in_progress';
- if(selection.engine==='veo'){
-  const started=await googleVeoStart(env,{model:selection.model,prompt,aspect_ratio:aspect,resolution:selection.resolution,seconds,reference_image:body.reference_image});
-  operation=started.operation;seconds=started.seconds;
-  if(!operation)throw new Error('Cinematic video provider returned no operation identifier.');
+ let operationId='',status='in_progress';
+ if(selected.engine==='veo'){
+  const instance={prompt};if(ref)instance.image={inlineData:{mimeType:ref.content_type,data:ref.base64}};
+  const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(selected.model)}:predictLongRunning`,{method:'POST',headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY),'content-type':'application/json'},body:JSON.stringify({instances:[instance],parameters:{numberOfVideos:1,aspectRatio:aspect,resolution:selected.resolution,durationSeconds:String(seconds),personGeneration:ref?'allow_adult':'allow_all'}})});
+  const d=await response.json().catch(()=>({}));if(!response.ok)throw new Error(d?.error?.message||`Studio video request failed (${response.status}).`);operationId=String(d.name||'');if(!operationId)throw new Error('Studio video provider returned no operation id.');
  }else{
-  let input=prompt;const ref=parseDataUri(body.reference_image||'');if(ref)input=[{type:'image',mime_type:ref.content_type,data:ref.base64},{type:'text',text:prompt}];
-  const d=await googleInteraction(env,{model:selection.model,input,background:true,store:true,response_format:{type:'video',delivery:'uri',aspect_ratio:aspect,resolution:selection.resolution}});
-  operation=String(d.id||'');status=String(d.status||'in_progress');if(!operation)throw new Error('Editable video provider returned no operation identifier.');
+  let input=prompt;if(ref)input=[{type:'image',mime_type:ref.content_type,data:ref.base64},{type:'text',text:prompt}];
+  const d=await googleInteraction(env,{model:selected.model,input,background:true,store:true,response_format:{type:'video',delivery:'uri',aspect_ratio:aspect,resolution:selected.resolution}});
+  operationId=String(d.id||'');status=String(d.status||'in_progress');if(!operationId)throw new Error('Editable studio video returned no operation id.');
  }
  const job=crypto.randomUUID(),ts=now();await ensureSchema(env);
- await env.DB.prepare('INSERT INTO movie_maker_jobs(id,tenant_id,user_id,kind,status,interaction_id,prompt,title,resolution,aspect_ratio,seconds,engine,model,billing_mode,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-  .bind(job,String(user.tenant_id),String(user.id),'video',status,operation,prompt,title,selection.resolution,aspect,seconds,selection.engine,selection.model,billingMode,ts,ts).run();
- return json({ok:true,job_id:job,status,poll_url:`/api/movie-maker/jobs/${job}`,mode:'studio',quality:selection.quality,identity:'Magnanimous AI',plan,policy:mediaPolicy(plan),estimated_reserve:{provider_origin_usd:reserve,customer_variable_usd:variableCustomerCharge(reserve).customer_charge_usd},provider_details_private:true},202);
+ await env.DB.prepare('INSERT INTO movie_maker_jobs(id,tenant_id,user_id,kind,status,interaction_id,prompt,title,resolution,aspect_ratio,seconds,engine,model,billing_mode,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(job,String(user.tenant_id),String(user.id),'video',status,operationId,prompt,title,selected.resolution,aspect,seconds,selected.engine,selected.model,'paid',ts,ts).run();
+ return json({ok:true,job_id:job,status,poll_url:`/api/movie-maker/jobs/${job}`,mode:'studio',quality:selected.quality,identity:'Magnanimous AI',plan,policy:mediaPolicy(plan),estimated_reserve:{provider_origin_usd:reserve,retail_reference_usd:variableCustomerCharge(reserve).customer_charge_usd},provider_details_private:true},202);
 }
 async function pollStudioVideo(request,env,user,jobId){
  await ensureSchema(env);const job=await env.DB.prepare('SELECT * FROM movie_maker_jobs WHERE id=? AND tenant_id=? AND user_id=?').bind(jobId,String(user.tenant_id),String(user.id)).first();
  if(!job)return json({detail:'Movie job not found.'},404);
  if(job.asset_id){const asset=await env.DB.prepare('SELECT * FROM movie_maker_assets WHERE id=?').bind(job.asset_id).first();return json({job_id:job.id,status:'completed',asset:{asset_url:asset?.source_url||null,download_url:asset?.source_url||null,watch_url:asset?.share_token?`${new URL(request.url).origin}/movie?asset=${asset.share_token}`:null,watermarked:Boolean(asset?.watermarked)},provider_details_private:true})}
  if(job.status==='billing_reconciliation_failed'||job.status==='failed')return json({job_id:job.id,status:job.status,detail:job.error_text||'Movie generation failed.'},job.status==='failed'?502:409);
- let bytes,contentType='video/mp4',priced=null,providerRef=String(job.interaction_id),pendingStatus='in_progress';
- if(String(job.engine||'omni')==='veo'){
-  const d=await googleVeoGet(env,job.interaction_id);
-  if(!d.done){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,updated_at=? WHERE id=?').bind('in_progress',now(),job.id).run();return json({job_id:job.id,status:'in_progress',provider_details_private:true},202)}
-  if(d.error){const detail=cleanText(d.error?.message||'Cinematic video generation failed.',600);await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('failed',detail,now(),job.id).run();return json({job_id:job.id,status:'failed',detail},502)}
-  const uri=String(d?.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri||d?.response?.generatedVideos?.[0]?.video?.uri||'');
-  if(!uri)throw new Error('Cinematic video completed without a downloadable asset.');
-  const vr=await fetch(uri,{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY)},redirect:'follow'});if(!vr.ok)throw new Error('Generated cinematic movie download failed.');
-  bytes=new Uint8Array(await vr.arrayBuffer());contentType=vr.headers.get('content-type')||'video/mp4';
+ let d,status,out,bytes,contentType='video/mp4',priced;
+ if(job.engine==='veo'){
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/${String(job.interaction_id).replace(/^\/+/, '')}`,{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY)}});d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||`Studio movie status failed (${r.status}).`);
+  if(!d.done)return json({job_id:job.id,status:'in_progress',provider_details_private:true},202);
+  if(d.error){const detail=cleanText(d.error?.message||'Studio movie generation failed.',600);await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('failed',detail,now(),job.id).run();return json({job_id:job.id,status:'failed',detail},502)}
+  const uri=d?.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;if(!uri)throw new Error('Completed studio movie had no downloadable video.');
+  const vr=await fetch(String(uri),{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY)}});if(!vr.ok)throw new Error('Generated studio movie download failed.');bytes=new Uint8Array(await vr.arrayBuffer());contentType=vr.headers.get('content-type')||'video/mp4';
   priced=googleVeoOriginCost({model:job.model,seconds:Number(job.seconds||8),resolution:job.resolution});
  }else{
-  const d=await googleInteractionGet(env,job.interaction_id),status=String(d.status||'in_progress');
+  d=await googleInteractionGet(env,job.interaction_id);status=String(d.status||'in_progress');
   if(!['completed','failed','cancelled','incomplete'].includes(status)){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,updated_at=? WHERE id=?').bind(status,now(),job.id).run();return json({job_id:job.id,status,provider_details_private:true},202)}
   if(status!=='completed'){const detail=cleanText(d?.error?.message||`Studio video ended with status ${status}.`,600);await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('failed',detail,now(),job.id).run();return json({job_id:job.id,status:'failed',detail},502)}
-  const out=extractOutput(d,'video');if(!out?.uri&&!out?.data)throw new Error('Studio video completed without downloadable video.');
-  if(out.data)bytes=bytesFromB64(out.data);
-  else{
-   const fileId=String(out.uri).split('/').pop(),metaUrl=`https://generativelanguage.googleapis.com/v1beta/files/${encodeURIComponent(fileId)}`;
-   const metaRes=await fetch(metaUrl,{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY)}}),meta=await metaRes.json().catch(()=>({}));
-   if(!metaRes.ok)throw new Error(meta?.error?.message||'Generated movie file metadata was unavailable.');
-   const state=String(meta.state||'');if(state==='FAILED')throw new Error('Generated movie file processing failed.');if(state!=='ACTIVE')return json({job_id:job.id,status:'processing-file',provider_details_private:true},202);
-   const download=String(meta.downloadUri||meta.download_uri||out.uri),vr=await fetch(download,{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY)}});if(!vr.ok)throw new Error('Generated movie download failed.');
-   bytes=new Uint8Array(await vr.arrayBuffer());contentType=vr.headers.get('content-type')||'video/mp4';
-  }
-  priced=String(job.billing_mode)==='free'?{ok:true,provider_origin_cost_usd:0,pricing_source:'verified-free-tier',pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT}:googleOmniVideoOriginCost({seconds:Number(job.seconds||0),resolution:job.resolution,usage:d.usage||{}});
+  out=extractOutput(d,'video');if(!out?.uri&&!out?.data)throw new Error('Studio video completed without downloadable video.');
+  if(out.data)bytes=bytesFromB64(out.data);else{const fileId=String(out.uri).split('/').pop(),metaUrl=`https://generativelanguage.googleapis.com/v1beta/files/${encodeURIComponent(fileId)}`;const metaRes=await fetch(metaUrl,{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY)}}),meta=await metaRes.json().catch(()=>({}));if(!metaRes.ok)throw new Error(meta?.error?.message||'Generated movie file metadata was unavailable.');const state=String(meta.state||'');if(state==='FAILED')throw new Error('Generated movie file processing failed.');if(state!=='ACTIVE')return json({job_id:job.id,status:'processing-file',provider_details_private:true},202);const download=String(meta.downloadUri||meta.download_uri||out.uri);const vr=await fetch(download,{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY)}});if(!vr.ok)throw new Error('Generated movie download failed.');bytes=new Uint8Array(await vr.arrayBuffer());contentType=vr.headers.get('content-type')||'video/mp4'}
+  priced=googleOmniVideoOriginCost({seconds:Number(job.seconds||0),resolution:job.resolution,usage:d.usage||{}});
  }
- if(!priced?.ok){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('billing_reconciliation_failed',priced?.detail||priced?.code||'pricing reconciliation failed',now(),job.id).run();return json({job_id:job.id,status:'billing_reconciliation_failed',detail:'Movie was generated but exact provider cost could not be verified, so the asset was withheld.',free_first_available:true},409)}
+ if(!priced?.ok){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('billing_reconciliation_failed',priced?.detail||priced?.code||'Pricing verification failed',now(),job.id).run();return json({job_id:job.id,status:'billing_reconciliation_failed',detail:'Movie was generated but exact origin cost could not be verified, so the asset was withheld.',free_first_available:true},409)}
  const variable=variableCustomerCharge(priced.provider_origin_cost_usd);
- try{await recordUsage(env,user.tenant_id,{category:'movie-maker-video',provider:'managed-studio-video',units:Number(job.seconds||0),provider_origin_cost_usd:priced.provider_origin_cost_usd,reference_id:`movie-video:${providerRef}`,pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at})}
- catch(error){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('billing_reconciliation_failed',String(error?.message||error),now(),job.id).run();return json({job_id:job.id,status:'billing_reconciliation_failed',detail:'Movie was generated but funded billing reconciliation failed, so the asset was withheld.',free_first_available:true},409)}
+ try{await recordUsage(env,user.tenant_id,{category:'movie-maker-video',provider:'managed-studio-video',units:Number(job.seconds||0),provider_origin_cost_usd:priced.provider_origin_cost_usd,reference_id:`movie-video:${job.interaction_id}`,pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at})}catch(error){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('billing_reconciliation_failed',String(error?.message||error),now(),job.id).run();return json({job_id:job.id,status:'billing_reconciliation_failed',detail:'Movie was generated but funded billing reconciliation failed, so the asset was withheld.',free_first_available:true},409)}
  const persisted=await persistAsset(env,request,user,{kind:'video',title:job.title,bytes,content_type:contentType,watermarked:false,origin:priced.provider_origin_cost_usd,customer:variable.customer_charge_usd});
  await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,asset_id=?,updated_at=? WHERE id=?').bind('completed',persisted.id,now(),job.id).run();
- return json({job_id:job.id,status:'completed',asset:{...persisted,content_type:contentType,watermarked:false},billing:{provider_origin_cost_usd:priced.provider_origin_cost_usd,markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,customer_charge_usd:variable.customer_charge_usd},provider_details_private:true});
+ return json({job_id:job.id,status:'completed',asset:{...persisted,content_type:contentType,watermarked:false},billing:{provider_origin_cost_usd:priced.provider_origin_cost_usd,markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,retail_reference_usd:variable.customer_charge_usd},provider_details_private:true});
 }
 function splitScenes(text,maxScenes=12){
  const parts=String(text||'').split(/(?<=[.!?])\s+|\n+/).map(x=>x.trim()).filter(Boolean);const chosen=(parts.length?parts:[String(text||'')]).slice(0,Math.max(1,Math.min(maxScenes,20)));
