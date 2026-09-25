@@ -22,16 +22,6 @@ class SipAccountCreate(BaseModel):
     username: str = Field(min_length=2, max_length=64, pattern=r"^[A-Za-z0-9_.-]+$")
     password: str | None = Field(default=None, min_length=12, max_length=128)
 
-class StasisBridgeCreate(BaseModel):
-    bridge_id: str | None = Field(default=None, min_length=1, max_length=96, pattern=r"^[A-Za-z0-9_.:-]+$")
-    name: str = Field(default="Magnanimous managed call", max_length=120)
-    channels: list[str] = Field(default_factory=list, max_length=16)
-
-
-class StasisBridgeChannels(BaseModel):
-    channels: list[str] = Field(min_length=1, max_length=16)
-
-
 class StasisRecordingStart(BaseModel):
     consent_confirmed: bool = False
     jurisdiction: str = Field(default="", max_length=120)
