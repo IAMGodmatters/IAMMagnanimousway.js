@@ -1,7 +1,7 @@
 import {currentUser} from './integrations.js';
 import {tenantPlan,canUsePremium,recordUsage} from './usage-guard.js';
 import {renderVisualScene} from './visual-runtime.js';
-import {googleImageOriginCost,googleImageReserveUsd,googleOmniVideoOriginCost,googleOmniVideoReserveUsd,voiceOriginCost,variableCustomerCharge,PROVIDER_PRICE_MARKUP_PERCENT,PROVIDER_PRICING_VERIFIED_AT} from './provider-origin-pricing.js';
+import {googleImageOriginCost,googleImageReserveUsd,googleOmniVideoOriginCost,googleOmniVideoReserveUsd,googleVeoOriginCost,googleVeoReserveUsd,googleTtsOriginCost,googleTtsReserveUsd,providerBillingMode,variableCustomerCharge,PROVIDER_PRICE_MARKUP_PERCENT,PROVIDER_PRICING_VERIFIED_AT} from './provider-origin-pricing.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -11,8 +11,9 @@ const VIDEO_RESOLUTIONS=new Set(['360p','720p','1080p','4k']);
 const ASPECTS=new Set(['1:1','3:2','2:3','4:3','3:4','16:9','9:16','5:4','4:5','21:9','1:4','4:1','1:8','8:1']);
 
 const enabled=env=>String(env?.ENABLE_PREMIUM_MEDIA||'').toLowerCase()==='true';
-const googleReady=env=>enabled(env)&&Boolean(String(env?.GOOGLE_API_KEY||'').trim());
-const studioVoiceReady=env=>enabled(env)&&Boolean(String(env?.ELEVENLABS_API_KEY||'').trim())&&Boolean(String(env?.ELEVENLABS_VOICE_ID||'').trim());
+const googleApiReady=env=>Boolean(String(env?.GOOGLE_API_KEY||'').trim());
+const googleReady=env=>enabled(env)&&googleApiReady(env);
+const studioVoiceReady=env=>googleApiReady(env);
 const freeRendererBase=env=>String(env?.MAGNANIMOUS_VIDEO_GATEWAY_URL||env?.VIDEO_GATEWAY_URL||env?.NEXT_PUBLIC_VIDEO_API_BASE_URL||'https://iam-magnanimous-video-gateway.iam-magnanimous.workers.dev').replace(/\/$/,'');
 const cleanText=(value,max=4000)=>String(value||'').replace(/\u0000/g,'').trim().slice(0,max);
 const watermarkRequired=plan=>['free','plus'].includes(String(plan||'free').toLowerCase());
@@ -22,10 +23,37 @@ function parseDataUri(value){
  const m=String(value||'').match(/^data:([^;,]+);base64,(.+)$/s);
  if(!m)return null;return{content_type:m[1],base64:m[2],bytes:bytesFromB64(m[2])};
 }
-function extFor(contentType){const t=String(contentType||'').toLowerCase();if(t.includes('png'))return'png';if(t.includes('svg'))return'svg';if(t.includes('webp'))return'webp';if(t.includes('jpeg')||t.includes('jpg'))return'jpg';if(t.includes('mpeg'))return'mp3';return'mp4'}
+function extFor(contentType){const t=String(contentType||'').toLowerCase();if(t.includes('png'))return'png';if(t.includes('svg'))return'svg';if(t.includes('webp'))return'webp';if(t.includes('jpeg')||t.includes('jpg'))return'jpg';if(t.includes('wav'))return'wav';if(t.includes('mpeg'))return'mp3';return'mp4'}
 function xmlEscape(v){return String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]))}
 function aspectViewBox(aspect){
  const [a,b]=String(aspect||'16:9').split(':').map(Number);const w=1600,h=Math.round(w*(b||9)/(a||16));return{w,h};
+}
+function imageModelFor(quality,size){
+ const q=String(quality||'balanced').toLowerCase();
+ if(q==='economy')return{quality:'economy',model:'gemini-3.1-flash-lite-image',size:'1K'};
+ if(q==='max'||q==='pro')return{quality:'max',model:'gemini-3-pro-image',size:String(size||'2K').toUpperCase()==='0.5K'?'1K':String(size||'2K').toUpperCase()};
+ return{quality:'balanced',model:'gemini-3.1-flash-image',size:String(size||'2K').toUpperCase()==='0.5K'?'0.5K':String(size||'2K').toUpperCase()};
+}
+function videoModelFor(quality,resolution){
+ const q=String(quality||'economy').toLowerCase(),requested=String(resolution||'720p').toLowerCase();
+ if(q==='max'||q==='cinematic')return{quality:'max',engine:'veo',model:'veo-3.1-generate-preview',resolution:['720p','1080p','4k'].includes(requested)?requested:'4k'};
+ if(q==='fast')return{quality:'fast',engine:'veo',model:'veo-3.1-fast-generate-preview',resolution:['720p','1080p','4k'].includes(requested)?requested:'1080p'};
+ if(q==='editable'||q==='balanced')return{quality:'editable',engine:'omni',model:'gemini-omni-1.1-flash',resolution:VIDEO_RESOLUTIONS.has(requested)?requested:'720p'};
+ return{quality:'economy',engine:'veo',model:'veo-3.1-lite-generate-preview',resolution:['720p','1080p'].includes(requested)?requested:'720p'};
+}
+function wavDurationSeconds(bytes){
+ try{
+  const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+  if(bytes.byteLength<44||String.fromCharCode(...bytes.slice(0,4))!=='RIFF')return 0;
+  let offset=12,sampleRate=24000,channels=1,bits=16,dataSize=0;
+  while(offset+8<=bytes.byteLength){
+   const id=String.fromCharCode(...bytes.slice(offset,offset+4)),size=view.getUint32(offset+4,true),body=offset+8;
+   if(id==='fmt '&&body+16<=bytes.byteLength){channels=view.getUint16(body+2,true)||1;sampleRate=view.getUint32(body+4,true)||24000;bits=view.getUint16(body+14,true)||16}
+   if(id==='data'){dataSize=size;break}
+   offset=body+size+(size%2);
+  }
+  const bytesPerSecond=sampleRate*channels*Math.max(1,bits/8);return bytesPerSecond?dataSize/bytesPerSecond:0;
+ }catch{return 0}
 }
 async function watermarkImage(env,dataUri,aspect){
  const parsed=parseDataUri(dataUri);if(!parsed)throw new Error('Generated image data is invalid.');
