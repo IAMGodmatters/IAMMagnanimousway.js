@@ -1523,6 +1523,9 @@ jobs:
           if [ "$review_status" != "403" ]; then echo "QA global approval must be platform-owner-only; got HTTP $review_status"; cat /tmp/qa-review-denied.json || true; exit 1; fi
           echo "QA contributors can submit training, but cannot publish global specialist knowledge."
 
+          # Renew immediately before the AI chat probe so earlier authorization-boundary tests cannot invalidate this temporary smoke session.
+          refresh_smoke_session
+
           status=$(curl -sS -o /tmp/specialist-handoff.json -w '%{http_code}' -X POST "$BASE_URL/api/chat" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"message":"Create a social content post announcing a new product in a confident friendly voice.","use_knowledge":false,"use_tools":false,"learn_links":false,"specialist_routing":true}')
           if [ "$status" != "200" ]; then echo "Magnanimous specialist handoff returned HTTP $status"; cat /tmp/specialist-handoff.json || true; exit 1; fi
           python - <<'PY'
