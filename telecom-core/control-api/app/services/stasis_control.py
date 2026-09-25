@@ -400,6 +400,18 @@ class StasisCallControlService:
             "requested_by": actor,
         }
 
+    async def _cleanup_supervisor_session(self, session: SupervisorSession) -> None:
+        try:
+            await self._ari_ok("DELETE", f"/channels/{session.snoop_channel_id}", accepted=(204, 404))
+        except Exception:
+            pass
+        try:
+            await self._ari_ok("DELETE", f"/bridges/{session.supervisor_bridge_id}", accepted=(204, 404))
+        except Exception:
+            pass
+        async with self._lock:
+            self._supervisor_sessions.pop(session.session_id, None)
+
     async def stop_supervisor(self, session_id: str) -> dict[str, Any]:
         self._require_ready()
         clean = self._clean_id(session_id, "session_id")
@@ -407,11 +419,57 @@ class StasisCallControlService:
             session = self._supervisor_sessions.get(clean)
         if not session:
             raise TelecomValidationError("Supervisor session was not found.")
-        await self._ari_ok("DELETE", f"/channels/{session.snoop_channel_id}", accepted=(204, 404))
-        await self._ari_ok("DELETE", f"/bridges/{session.supervisor_bridge_id}", accepted=(204, 404))
-        async with self._lock:
-            self._supervisor_sessions.pop(clean, None)
+        await self._cleanup_supervisor_session(session)
         return {"ok": True, "session_id": clean, "stopped": True}
+
+    async def reap_once(self) -> None:
+        if not self._settings.stasis_enabled or not self._listener.connected:
+            return
+        async with self._lock:
+            sessions = list(self._supervisor_sessions.values())
+            recordings = list(self._recordings.values())
+            bridges = list(self._bridges.values())
+
+        for session in sessions:
+            if not self._listener.owns_channel(session.target_channel_id) or not self._listener.owns_channel(session.supervisor_channel_id):
+                await self._cleanup_supervisor_session(session)
+
+        for recording in recordings:
+            try:
+                response = await self._ari.request("GET", f"/recordings/live/{recording.recording_name}")
+            except Exception:
+                continue
+            if response.status_code == 404:
+                async with self._lock:
+                    self._recordings.pop(recording.recording_name, None)
+
+        missing_bridges: list[str] = []
+        for bridge in bridges:
+            try:
+                response = await self._ari.request("GET", f"/bridges/{bridge.bridge_id}")
+            except Exception:
+                continue
+            if response.status_code == 404:
+                missing_bridges.append(bridge.bridge_id)
+        if missing_bridges:
+            async with self._lock:
+                for bridge_id in missing_bridges:
+                    self._bridges.pop(bridge_id, None)
+                    for name, recording in list(self._recordings.items()):
+                        if recording.bridge_id == bridge_id:
+                            self._recordings.pop(name, None)
+
+    async def reap_loop(self) -> None:
+        if not self._settings.stasis_enabled:
+            return
+        while True:
+            await asyncio.sleep(5)
+            try:
+                await self.reap_once()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                continue
 
     async def start_recording(
         self,
