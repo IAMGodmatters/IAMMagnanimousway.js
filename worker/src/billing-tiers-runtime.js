@@ -1,3 +1,5 @@
+import { PREMIUM_MARKUP_PERCENT, ORIGIN_COSTS_VERIFIED_AT, publicPremiumCatalog, ownerPremiumCostCatalog } from './premium-origin-costs.js';
+
 const now = () => Math.floor(Date.now() / 1000);
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -284,7 +286,7 @@ async function status(env, user) {
 
 export async function handleTierBilling(request, env) {
   const url = new URL(request.url); const path = url.pathname;
-  const relevant = path === '/api/plans' || ['/api/billing/checkout','/api/billing/confirm','/api/billing/status','/api/billing/entitlements','/api/billing/webhook'].includes(path);
+  const relevant = path === '/api/plans' || path === '/api/admin/billing/origin-costs' || ['/api/billing/checkout','/api/billing/confirm','/api/billing/status','/api/billing/entitlements','/api/billing/webhook'].includes(path);
   if (!relevant) return null;
   await ensureSchema(env);
   if (path === '/api/plans' && request.method === 'GET') return json({
@@ -292,11 +294,17 @@ export async function handleTierBilling(request, env) {
     plans: PLAN_ORDER.map(id => publicPlan(env, id)),
     business_checkout_configured: Boolean(env.STRIPE_SECRET_KEY && planPrice(env, 'business')),
     tier_checkout_configured: Object.fromEntries(PLAN_ORDER.filter(id=>id!=='free').map(id=>[id,Boolean(env.STRIPE_SECRET_KEY && planPrice(env,id))])),
-    target_gross_margin_percent: targetMargin(env)
+    target_gross_margin_percent: PREMIUM_MARKUP_PERCENT,
+    premium_services: publicPremiumCatalog(),
+    premium_costs_verified_at: ORIGIN_COSTS_VERIFIED_AT
   });
   if (path === '/api/billing/webhook' && request.method === 'POST') return webhook(request, env);
   const user = await currentUser(request, env);
   if (!user) return json({ detail: 'Sign in required.' }, 401);
+  if (path === '/api/admin/billing/origin-costs' && request.method === 'GET') {
+    if (!['owner','admin'].includes(String(user.role||'').toLowerCase())) return json({detail:'Owner access required.'},403);
+    return json({markup_percent:PREMIUM_MARKUP_PERCENT,verified_at:ORIGIN_COSTS_VERIFIED_AT,costs:ownerPremiumCostCatalog(),consumer_branding:'Magnanimous-only'});
+  }
   if ((path === '/api/billing/status' || path === '/api/billing/entitlements') && request.method === 'GET') return status(env, user);
   if (path === '/api/billing/checkout' && request.method === 'POST') return createCheckout(request, env, user);
   if (path === '/api/billing/confirm' && request.method === 'POST') return confirmCheckout(request, env, user);
