@@ -33,8 +33,16 @@ export async function ensureUsageSchema(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS billing_usage_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,period_key TEXT NOT NULL,
   category TEXT NOT NULL,provider TEXT NOT NULL DEFAULT '',units REAL NOT NULL DEFAULT 0,
-  direct_cost_usd REAL NOT NULL DEFAULT 0,reference_id TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL
+  direct_cost_usd REAL NOT NULL DEFAULT 0,origin_cost_usd REAL NOT NULL DEFAULT 0,
+  customer_charge_usd REAL NOT NULL DEFAULT 0,markup_percent REAL NOT NULL DEFAULT 0,
+  origin_ref TEXT NOT NULL DEFAULT '',reference_id TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL
  )`).run();
+ for(const sql of [
+  "ALTER TABLE billing_usage_events ADD COLUMN origin_cost_usd REAL NOT NULL DEFAULT 0",
+  "ALTER TABLE billing_usage_events ADD COLUMN customer_charge_usd REAL NOT NULL DEFAULT 0",
+  "ALTER TABLE billing_usage_events ADD COLUMN markup_percent REAL NOT NULL DEFAULT 0",
+  "ALTER TABLE billing_usage_events ADD COLUMN origin_ref TEXT NOT NULL DEFAULT ''"
+ ]){try{await env.DB.prepare(sql).run()}catch(_){}}
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS billing_usage_wallet (
   tenant_id TEXT PRIMARY KEY,balance_usd REAL NOT NULL DEFAULT 0,total_funded_usd REAL NOT NULL DEFAULT 0,
   total_consumed_usd REAL NOT NULL DEFAULT 0,updated_at INTEGER NOT NULL
@@ -94,7 +102,7 @@ export async function usageStatus(env,tenantId){
   walletStatus(env,tenantId)
  ]);
  const used=Number(row?.direct_variable_cost_usd||0),ceiling=Number(p.limits.cost_ceiling_usd||0),remainingIncluded=Math.max(0,ceiling-used),spendable=remainingIncluded+Number(wallet.balance_usd||0);
- return{...p,period_key:key,direct_variable_cost_usd:used,cost_ceiling_usd:ceiling,remaining_cost_usd:remainingIncluded,prepaid_balance_usd:Number(wallet.balance_usd||0),prepaid_total_funded_usd:Number(wallet.total_funded_usd||0),prepaid_total_consumed_usd:Number(wallet.total_consumed_usd||0),premium_spendable_usd:spendable,premium_usage_allowed:p.plan!=='free'&&spendable>0};
+ return{...p,period_key:key,direct_variable_cost_usd:used,customer_usage_charge_usd:used,cost_ceiling_usd:ceiling,remaining_cost_usd:remainingIncluded,prepaid_balance_usd:Number(wallet.balance_usd||0),prepaid_total_funded_usd:Number(wallet.total_funded_usd||0),prepaid_total_consumed_usd:Number(wallet.total_consumed_usd||0),premium_spendable_usd:spendable,premium_usage_allowed:p.plan!=='free'&&spendable>0};
 }
 
 export async function canUsePremium(env,tenantId,{category='premium',estimated_cost_usd=0,required_plan='business',entitlement=''}={}){
@@ -105,15 +113,20 @@ export async function canUsePremium(env,tenantId,{category='premium',estimated_c
  return{ok:true,...s};
 }
 
-export async function recordUsage(env,tenantId,{category='premium',provider='',units=0,direct_cost_usd=0,reference_id=''}={}){
- if(!env?.DB||!tenantId)return null;await ensureUsageSchema(env);const before=await usageStatus(env,tenantId),key=periodKey(),cost=Math.max(0,Number(direct_cost_usd||0));
- const overage=Math.max(0,cost-before.remaining_cost_usd);
- if(overage>0)await debitWallet(env,tenantId,overage,{reference_id:String(reference_id||crypto.randomUUID()),detail:`${category} via ${provider||'provider'}`});
- await env.DB.prepare(`INSERT INTO billing_usage_events(tenant_id,period_key,category,provider,units,direct_cost_usd,reference_id,created_at)
-  VALUES(?,?,?,?,?,?,?,?)`).bind(tenantId,key,String(category),String(provider),Number(units||0),cost,String(reference_id||''),now()).run();
+export async function recordUsage(env,tenantId,{category='premium',provider='',units=0,direct_cost_usd=0,customer_charge_usd=null,markup_percent=0,origin_ref='',reference_id=''}={}){
+ if(!env?.DB||!tenantId)return null;
+ await ensureUsageSchema(env);
+ const before=await usageStatus(env,tenantId),key=periodKey(),originCost=Math.max(0,Number(direct_cost_usd||0));
+ const customerCharge=Math.max(0,Number(customer_charge_usd==null?originCost:customer_charge_usd));
+ const markup=Math.max(0,Number(markup_percent||0));
+ const overage=Math.max(0,customerCharge-before.remaining_cost_usd);
+ const ref=String(reference_id||crypto.randomUUID());
+ if(overage>0)await debitWallet(env,tenantId,overage,{reference_id:ref,detail:`${category} premium usage`});
+ await env.DB.prepare(`INSERT INTO billing_usage_events(tenant_id,period_key,category,provider,units,direct_cost_usd,origin_cost_usd,customer_charge_usd,markup_percent,origin_ref,reference_id,created_at)
+  VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).bind(tenantId,key,String(category),String(provider),Number(units||0),originCost,originCost,customerCharge,markup,String(origin_ref||''),ref,now()).run();
  await env.DB.prepare(`INSERT INTO billing_usage_guard(tenant_id,period_key,direct_variable_cost_usd,updated_at) VALUES(?,?,?,?)
   ON CONFLICT(tenant_id,period_key) DO UPDATE SET direct_variable_cost_usd=billing_usage_guard.direct_variable_cost_usd+excluded.direct_variable_cost_usd,updated_at=excluded.updated_at`)
-  .bind(tenantId,key,cost,now()).run();
+  .bind(tenantId,key,customerCharge,now()).run();
  return usageStatus(env,tenantId);
 }
 
