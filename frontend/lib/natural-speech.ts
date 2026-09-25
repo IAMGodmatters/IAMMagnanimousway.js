@@ -1,6 +1,25 @@
 'use client';
 
 let speechGeneration=0;
+let speechFailureCount=0;
+let speechSafeModeUntil=0;
+
+const SAFE_MODE_MS=15*60*1000;
+const RETRYABLE_SPEECH_ERRORS=new Set(['audio-busy','network','synthesis-unavailable','synthesis-failed','language-unavailable','voice-unavailable','text-too-long','interrupted','synthesis-timeout']);
+
+function speechErrorCode(event:any){
+ return String(event?.error||event?.name||'synthesis-failed').toLowerCase();
+}
+function retryableSpeechError(event:any){
+ return RETRYABLE_SPEECH_ERRORS.has(speechErrorCode(event));
+}
+function activateSpeechSafeMode(){
+ speechFailureCount++;
+ speechSafeModeUntil=Math.max(speechSafeModeUntil,Date.now()+SAFE_MODE_MS);
+}
+export function speechSelfHealStatus(){
+ return{failureCount:speechFailureCount,safeMode:Date.now()<speechSafeModeUntil,safeModeUntil:speechSafeModeUntil};
+}
 
 function appleMobileSpeechRuntime(){
   if(typeof navigator==='undefined')return false;
@@ -73,6 +92,7 @@ type NaturalSpeechOptions={
   configure?:(utterance:SpeechSynthesisUtterance)=>void;
   onStart?:()=>void;
   onEnd?:()=>void;
+  onRetry?:(event:any)=>void;
   onError?:(event:any)=>void;
   maxChunkChars?:number;
   interChunkDelayMs?:number;
@@ -86,28 +106,32 @@ export function stopNaturalSpeech(){
 export function speakTextNaturally(input:string,options:NaturalSpeechOptions={}){
   if(typeof window==='undefined'||!('speechSynthesis'in window))return false;
   const appleMobile=appleMobileSpeechRuntime();
-  const maxChunkChars=appleMobile?Math.min(options.maxChunkChars||260,140):(options.maxChunkChars||260);
-  const interChunkDelayMs=appleMobile?Math.max(options.interChunkDelayMs??45,90):(options.interChunkDelayMs??45);
-  const chunks=splitSpeechText(input,maxChunkChars);
-  if(!chunks.length)return false;
+  let safeMode=appleMobile||Date.now()<speechSafeModeUntil;
+  const maxChunkChars=safeMode?Math.min(options.maxChunkChars||260,140):(options.maxChunkChars||260);
+  const queue=[...splitSpeechText(input,maxChunkChars)];
+  if(!queue.length)return false;
 
   const synth=window.speechSynthesis;
   const generation=++speechGeneration;
-  let index=0,started=false,finished=false;
+  let started=false,finished=false,retryBudget=1;
 
   synth.cancel();
   const next=()=>{
     if(generation!==speechGeneration||finished)return;
-    if(index>=chunks.length){
+    if(!queue.length){
       finished=true;
+      speechFailureCount=0;
       options.onEnd?.();
       return;
     }
-    const utterance=new SpeechSynthesisUtterance(chunks[index++]);
+    const text=String(queue.shift()||'').trim();
+    if(!text){window.setTimeout(next,safeMode?110:(options.interChunkDelayMs??45));return}
+    const utterance=new SpeechSynthesisUtterance(text);
     options.configure?.(utterance);
-    if(appleMobile){
-      utterance.rate=Math.max(.88,Math.min(1,Number(utterance.rate)||.94));
-      utterance.pitch=Math.max(.95,Math.min(1.05,Number(utterance.pitch)||1));
+    if(safeMode){
+      try{utterance.voice=null}catch{}
+      utterance.rate=Math.max(.90,Math.min(.98,Number(utterance.rate)||.94));
+      utterance.pitch=Math.max(.98,Math.min(1.02,Number(utterance.pitch)||1));
     }
     utterance.onstart=()=>{
       if(generation!==speechGeneration)return;
@@ -115,15 +139,31 @@ export function speakTextNaturally(input:string,options:NaturalSpeechOptions={})
     };
     utterance.onend=()=>{
       if(generation!==speechGeneration)return;
-      window.setTimeout(next,interChunkDelayMs);
+      window.setTimeout(next,safeMode?Math.max(options.interChunkDelayMs??55,110):(options.interChunkDelayMs??45));
     };
     utterance.onerror=(event:any)=>{
       if(generation!==speechGeneration)return;
+      if(retryBudget>0&&retryableSpeechError(event)){
+        retryBudget--;
+        activateSpeechSafeMode();
+        safeMode=true;
+        const safeChunks=splitSpeechText(text,95);
+        queue.unshift(...(safeChunks.length?safeChunks:[text]));
+        try{synth.cancel()}catch{}
+        options.onRetry?.(event);
+        window.setTimeout(next,130);
+        return;
+      }
       finished=true;
+      activateSpeechSafeMode();
       options.onError?.(event);
     };
-    synth.resume?.();
-    synth.speak(utterance);
+    try{
+      synth.resume?.();
+      synth.speak(utterance);
+    }catch(error){
+      utterance.onerror?.({error:'synthesis-failed',cause:error} as any);
+    }
   };
   next();
   return true;
