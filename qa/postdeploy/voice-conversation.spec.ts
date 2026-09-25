@@ -89,3 +89,63 @@ test('deployed voice transcript auto-sends, ignores late recognition errors, and
     'I am doing well. I am Magnanimous AI, here to help you think, create, research, and get things done.'
   );
 });
+
+
+test('standalone service failures stay visible but are never spoken as garbled audio', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('iam_account_token', 'voice-postdeploy-qa');
+    sessionStorage.setItem('iam_session_active', 'user');
+
+    class FakeUtterance {
+      text: string;
+      voice: any = null;
+      rate = 1;
+      pitch = 1;
+      volume = 1;
+      onstart: null | (() => void) = null;
+      onend: null | (() => void) = null;
+      onerror: null | (() => void) = null;
+      constructor(text: string) { this.text = text; }
+    }
+
+    const spoken: string[] = [];
+    Object.defineProperty(window, '__iamSpoken', { value: spoken, configurable: true });
+    Object.defineProperty(window, 'SpeechSynthesisUtterance', { value: FakeUtterance, configurable: true });
+    Object.defineProperty(window, 'speechSynthesis', {
+      configurable: true,
+      value: {
+        paused: false,
+        getVoices: () => [{ name: 'QA Natural Voice', lang: 'en-US', localService: true }],
+        cancel: () => {},
+        resume: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        speak: (utterance: FakeUtterance) => {
+          spoken.push(utterance.text);
+          window.setTimeout(() => {
+            utterance.onstart?.();
+            utterance.onend?.();
+          }, 5);
+        }
+      }
+    });
+  });
+
+  await page.route('**/api/magnanimous/health', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) }));
+  await page.route('**/api/chat', route => route.fulfill({
+    status: 502,
+    contentType: 'application/json',
+    body: JSON.stringify({ code: 'AI_PROVIDER_FAILURE', detail: 'provider-specific diagnostic that must not be spoken' })
+  }));
+
+  await page.goto('/magnanimous', { waitUntil: 'domcontentloaded' });
+  await page.locator('.mag-compose textarea').fill('Tell me something useful');
+  await page.getByRole('button', { name: /Send/i }).click();
+
+  const lastAssistant=page.locator('.mag-message.assistant').last();
+  await expect(lastAssistant).toHaveAttribute('data-iam-speak','off');
+  await expect(lastAssistant.locator('.mag-bubble p')).toContainText('technical failure will not be read aloud');
+  await page.waitForTimeout(1200);
+  const spoken=await page.evaluate(() => ((window as any).__iamSpoken as string[]).filter(text => text.trim()));
+  expect(spoken).not.toContain(expect.stringMatching(/provider-specific|technical failure|502/i));
+});
