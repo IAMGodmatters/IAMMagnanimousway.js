@@ -7,6 +7,7 @@ import { getMagnanimousOgenicPrompt, buildMagnanimousOgenicPlan, handleMagnanimo
 import { hasAnyReadyLocalBridge, hasReadyLocalBridge, hasAnyReadyLocalBridgeCapability } from './magnanimous-local-bridge-runtime.js';
 import { getMagnanimousSingleBrainSummary, magnanimousPublicRoutingSummary } from './magnanimous-single-brain-contract.js';
 import { getConnectorAbsorptionPrompt } from './magnanimous-connector-absorption.js';
+import { filterHealthyProviders,recordProviderFailure,recordProviderSuccess } from './self-heal-runtime.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const now = () => Math.floor(Date.now() / 1000);
