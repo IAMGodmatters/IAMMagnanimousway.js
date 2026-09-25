@@ -107,7 +107,7 @@ has(carrierAdapter,'await self._endpoint_health(selected_endpoint)','selected ro
 has(carrierAdapter,'Selected carrier route is not authorized','unapproved selected endpoints fail closed');
 has(extensions,'MAG_SELECTED_ENDPOINT','Asterisk dialplan consumes only the server-validated selected endpoint variable');
 has(extensions,'$["${MAG_CARRIER_ENDPOINT}"!=""]?done','explicit selected routes do not silently fail over to another carrier');
-has(network,'selected_route_execution:{native_byoc:true,twilio_compatibility:false,plivo_compatibility:false}','network truth reports only the migrated native/BYOC route path');
+has(network,'selected_route_execution:{native_telecom_core:true,generic_byoc_requires_bridge_confirmation:true,twilio_compatibility:false,plivo_compatibility:false}','network truth reports only the confirmed native route path and bridge-confirmation boundary');
 has(telecomWorkflow,"python -m unittest discover -s telecom-core/control-api/tests -p 'test_*.py'",'Telecom CI runs control API unit tests');
 has(telecomWorkflow,'node --check worker/src/magnanimous-carrier-core.js','Telecom CI syntax-checks the carrier planner');
 has(telecomWorkflow,'node --check worker/src/lead-phone.js','Telecom CI syntax-checks the outbound selected-route handoff');
