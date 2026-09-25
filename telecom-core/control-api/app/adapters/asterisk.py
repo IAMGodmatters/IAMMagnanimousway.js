@@ -6,7 +6,7 @@ import httpx
 
 from ..config import TelecomSettings
 from ..domain import map_channel_state
-from ..errors import CarrierRejectedError, CarrierUnavailableError, TelecomConfigurationError
+from ..errors import CarrierRejectedError, CarrierUnavailableError, TelecomConfigurationError, TelecomValidationError
 from ..ports import CarrierCallRequest, CarrierCallState
 
 
@@ -48,6 +48,42 @@ class AsteriskSipCarrierBridge:
         self._ari = ari
         self._settings = settings
 
+    def routes(self) -> list[dict[str, Any]]:
+        secondary_configured = bool(self._settings.carrier_secondary_endpoint)
+        return [
+            {
+                "id": "auto",
+                "mode": "compatibility-failover",
+                "dial_context": self._settings.carrier_dial_context,
+                "configured": bool(self._settings.carrier_endpoint),
+                "primary_endpoint": self._settings.carrier_endpoint,
+                "secondary_configured": secondary_configured,
+            },
+            {
+                "id": "primary",
+                "mode": "explicit",
+                "dial_context": self._settings.carrier_primary_dial_context,
+                "configured": bool(self._settings.carrier_endpoint),
+                "endpoint": self._settings.carrier_endpoint,
+            },
+            {
+                "id": "secondary",
+                "mode": "explicit",
+                "dial_context": self._settings.carrier_secondary_dial_context,
+                "configured": secondary_configured,
+                "endpoint": self._settings.carrier_secondary_endpoint,
+            },
+        ]
+
+    def _route(self, route_id: str | None) -> dict[str, Any]:
+        normalized = str(route_id or "auto").strip().lower()
+        route = next((item for item in self.routes() if item["id"] == normalized), None)
+        if route is None:
+            raise TelecomValidationError("Unsupported carrier route. Use auto, primary, or secondary.")
+        if not route.get("configured"):
+            raise TelecomConfigurationError(f"Carrier route '{normalized}' is not configured.")
+        return route
+
     def describe(self) -> dict[str, Any]:
         return {
             "identity": "Magnanimous Telecom",
@@ -55,6 +91,8 @@ class AsteriskSipCarrierBridge:
             "control_owner": "Magnanimous",
             "carrier_endpoint": self._settings.carrier_endpoint,
             "dial_context": self._settings.carrier_dial_context,
+            "routes": self.routes(),
+            "route_planner_live_execution": False,
             "upstream_provider_exposed": False,
             "capabilities": {
                 "outbound_voice": True,
@@ -66,8 +104,9 @@ class AsteriskSipCarrierBridge:
         }
 
     async def originate(self, call: CarrierCallRequest) -> CarrierCallState:
+        route = self._route(call.route_id)
         params = {
-            "endpoint": f"Local/{call.destination}@{self._settings.carrier_dial_context}/n",
+            "endpoint": f"Local/{call.destination}@{route['dial_context']}/n",
             "context": "magnanimous-ai",
             "extension": "s",
             "priority": 1,
@@ -83,6 +122,8 @@ class AsteriskSipCarrierBridge:
             "MAG_TO": call.destination,
             "MAG_AGENT_ID": call.agent_id,
             "MAG_QUEUE_ID": call.queue_id,
+            "MAG_ROUTE_ID": route["id"],
+            "MAG_ROUTE_CONTEXT": route["dial_context"],
         }
         response = await self._ari.request("POST", "/channels", params=params, body={"variables": variables})
         if not response.is_success:
@@ -110,22 +151,47 @@ class AsteriskSipCarrierBridge:
             connected=channel.get("connected", {}),
         )
 
-    async def health(self) -> dict[str, Any]:
+    async def _endpoint_health(self, endpoint_name: str) -> str:
+        if not endpoint_name:
+            return "not-configured"
+        response = await self._ari.request("GET", f"/endpoints/PJSIP/{endpoint_name}")
+        if response.status_code == 404:
+            return "not-configured"
+        if not response.is_success:
+            return "unavailable"
+        data = response.json()
+        return str(data.get("state") or "available").lower()
+
+    async def health(self, route_id: str | None = None) -> dict[str, Any]:
         asterisk = await self._ari.request("GET", "/asterisk/info")
         asterisk_ready = asterisk.is_success
-        trunk_state = "unknown"
+        requested = str(route_id or "").strip().lower()
+        if requested and requested not in {"auto", "primary", "secondary"}:
+            raise TelecomValidationError("Unsupported carrier route. Use auto, primary, or secondary.")
+
+        primary_state = "unavailable"
+        secondary_state = "not-configured"
         if asterisk_ready:
-            endpoint = await self._ari.request("GET", f"/endpoints/PJSIP/{self._settings.carrier_endpoint}")
-            if endpoint.status_code == 404:
-                trunk_state = "not-configured"
-            elif endpoint.is_success:
-                data = endpoint.json()
-                trunk_state = str(data.get("state") or "available").lower()
-            else:
-                trunk_state = "unavailable"
+            primary_state = await self._endpoint_health(self._settings.carrier_endpoint)
+            secondary_state = await self._endpoint_health(self._settings.carrier_secondary_endpoint)
+
+        routes = []
+        for route in self.routes():
+            state = primary_state
+            if route["id"] == "secondary":
+                state = secondary_state
+            elif route["id"] == "auto":
+                state = primary_state if primary_state not in {"not-configured", "unavailable"} else secondary_state
+            routes.append({**route, "health": state, "ready": asterisk_ready and state not in {"not-configured", "unavailable", "offline"}})
+
+        selected = next((item for item in routes if item["id"] == requested), None) if requested else None
         return {
-            "ok": asterisk_ready,
+            "ok": asterisk_ready and (selected["ready"] if selected else any(item["ready"] for item in routes)),
             "asterisk": "ready" if asterisk_ready else "unavailable",
-            "carrier_bridge": trunk_state,
+            "carrier_bridge": primary_state,
             "carrier_endpoint": self._settings.carrier_endpoint,
+            "routes": routes,
+            "selected_route": selected,
+            "authenticated_health": True,
+            "route_planner_live_execution": False,
         }
