@@ -23,6 +23,7 @@ class SipAccountCreate(BaseModel):
     password: str | None = Field(default=None, min_length=12, max_length=128)
 
 class StasisRecordingStart(BaseModel):
+    tenant_id: str = Field(min_length=1, max_length=200)
     consent_confirmed: bool = False
     jurisdiction: str = Field(default="", max_length=120)
     name: str | None = Field(default=None, min_length=1, max_length=160, pattern=r"^[A-Za-z0-9_.-]+$")
@@ -31,10 +32,15 @@ class StasisRecordingStart(BaseModel):
     max_duration_seconds: int | None = Field(default=None, ge=60, le=28800)
 
 
+class StasisRecordingStop(BaseModel):
+    tenant_id: str = Field(min_length=1, max_length=200)
+
+
 class SupervisorSessionStart(BaseModel):
     mode: Literal["monitor", "whisper", "barge"]
-    call_bridge_id: str = Field(min_length=1, max_length=96, pattern=r"^[A-Za-z0-9_.:-]+$")
-    target_channel_id: str = Field(min_length=1, max_length=160)
+    provider_call_id: str = Field(min_length=1, max_length=160)
+    tenant_id: str = Field(min_length=1, max_length=200)
+    target_role: Literal["agent", "customer"] = "agent"
     supervisor_channel_id: str = Field(min_length=1, max_length=160)
     consent_confirmed: bool = False
     jurisdiction: str = Field(default="", max_length=120)
