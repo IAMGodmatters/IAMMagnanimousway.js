@@ -47,6 +47,7 @@ class AsteriskStasisBridgeService:
         self._last_error = ""
         self._consecutive_failures = 0
         self._supervisor_sessions: dict[str, dict[str, str]] = {}
+        self._active_recordings: dict[str, dict[str, str]] = {}
 
     @property
     def enabled(self) -> bool:
@@ -61,11 +62,15 @@ class AsteriskStasisBridgeService:
             return None
         return CarrierCallState(provider_call_id=provider_call_id, status=call.status)
 
-    def call_topology(self, provider_call_id: str) -> dict[str, Any]:
-        self._require_ready()
+    def _managed_call_for_tenant(self, provider_call_id: str, tenant_id: str) -> ManagedStasisCall:
         call = self._calls.get(provider_call_id)
-        if not call:
+        if not call or call.tenant_id != str(tenant_id):
             raise TelecomNotFoundError("Managed Stasis call not found.")
+        return call
+
+    def call_topology(self, provider_call_id: str, tenant_id: str) -> dict[str, Any]:
+        self._require_ready()
+        call = self._managed_call_for_tenant(provider_call_id, tenant_id)
         return {
             "provider_call_id": provider_call_id,
             "bridge_id": call.bridge_id,
@@ -92,6 +97,7 @@ class AsteriskStasisBridgeService:
             "supervisor_whisper_live": False,
             "supervisor_barge_live": False,
             "active_supervisor_sessions": len(self._supervisor_sessions),
+            "active_recordings": len(self._active_recordings),
             "bridge_recording_configured": self._settings.bridge_recording_enabled,
             "bridge_recording_runtime_ready": bool(self._ready and self._settings.bridge_recording_enabled),
             "bridge_recording_live": False,
@@ -151,23 +157,19 @@ class AsteriskStasisBridgeService:
         except ValueError:
             return None
 
-    async def bridge(self, bridge_id: str) -> dict[str, Any]:
-        self._require_ready()
-        data = await self._expect("GET", f"/bridges/{bridge_id}", ok=(200,))
-        return data if isinstance(data, dict) else {"id": bridge_id}
-
-    async def start_recording(self, bridge_id: str, request: StasisRecordingStart) -> dict[str, Any]:
+    async def start_recording(self, provider_call_id: str, request: StasisRecordingStart) -> dict[str, Any]:
         self._require_recording()
         self._require_consent(request.consent_confirmed, request.jurisdiction)
+        call = self._managed_call_for_tenant(provider_call_id, request.tenant_id)
         recording_format = request.format or self._settings.bridge_recording_format
         max_duration = min(
             request.max_duration_seconds or self._settings.bridge_recording_max_seconds,
             self._settings.bridge_recording_max_seconds,
         )
-        name = request.name or f"mag-{bridge_id[:48]}-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+        name = request.name or f"mag-{provider_call_id[:48]}-{int(time.time())}-{uuid.uuid4().hex[:8]}"
         data = await self._expect(
             "POST",
-            f"/bridges/{bridge_id}/record",
+            f"/bridges/{call.bridge_id}/record",
             params={
                 "name": name,
                 "format": recording_format,
@@ -179,9 +181,15 @@ class AsteriskStasisBridgeService:
             },
             ok=(200, 201),
         )
+        self._active_recordings[name] = {
+            "tenant_id": call.tenant_id,
+            "provider_call_id": provider_call_id,
+            "bridge_id": call.bridge_id,
+        }
         return {
             "ok": True,
-            "bridge_id": bridge_id,
+            "provider_call_id": provider_call_id,
+            "bridge_id": call.bridge_id,
             "recording_name": name,
             "format": recording_format,
             "max_duration_seconds": max_duration,
@@ -189,8 +197,8 @@ class AsteriskStasisBridgeService:
             "state": data.get("state", "recording") if isinstance(data, dict) else "recording",
         }
 
-    async def stop_recording(self, recording_name: str) -> dict[str, Any]:
-        self._require_recording()
+    async def _cleanup_recording(self, recording_name: str) -> dict[str, Any]:
+        self._active_recordings.pop(recording_name, None)
         await self._expect(
             "POST",
             f"/recordings/live/{recording_name}/stop",
@@ -199,18 +207,27 @@ class AsteriskStasisBridgeService:
         )
         return {"ok": True, "recording_name": recording_name, "status": "stored-or-already-ended"}
 
+    async def stop_recording(self, recording_name: str, tenant_id: str) -> dict[str, Any]:
+        self._require_recording()
+        recording = self._active_recordings.get(recording_name)
+        if not recording or recording.get("tenant_id") != str(tenant_id):
+            raise TelecomNotFoundError("Active Stasis recording not found.")
+        return await self._cleanup_recording(recording_name)
+
     async def start_supervisor(self, request: SupervisorSessionStart) -> dict[str, Any]:
         self._require_supervisor()
         self._require_consent(request.consent_confirmed, request.jurisdiction)
-        await self._expect("GET", f"/bridges/{request.call_bridge_id}", ok=(200,))
+        call = self._managed_call_for_tenant(request.provider_call_id, request.tenant_id)
+        target_channel_id = call.agent_channel_id if request.target_role == "agent" else call.customer_channel_id
+        await self._expect("GET", f"/bridges/{call.bridge_id}", ok=(200,))
         await self._expect("GET", f"/channels/{request.supervisor_channel_id}", ok=(200,))
-        await self._expect("GET", f"/channels/{request.target_channel_id}", ok=(200,))
+        await self._expect("GET", f"/channels/{target_channel_id}", ok=(200,))
 
         session_id = f"mag-supervisor-{uuid.uuid4().hex}"
         if request.mode == "barge":
             await self._expect(
                 "POST",
-                f"/bridges/{request.call_bridge_id}/addChannel",
+                f"/bridges/{call.bridge_id}/addChannel",
                 params={
                     "channel": request.supervisor_channel_id,
                     "role": "supervisor",
@@ -220,9 +237,11 @@ class AsteriskStasisBridgeService:
                 ok=(204,),
             )
             self._supervisor_sessions[session_id] = {
+                "tenant_id": call.tenant_id,
+                "provider_call_id": request.provider_call_id,
                 "mode": request.mode,
-                "call_bridge_id": request.call_bridge_id,
-                "target_channel_id": request.target_channel_id,
+                "call_bridge_id": call.bridge_id,
+                "target_channel_id": target_channel_id,
                 "supervisor_channel_id": request.supervisor_channel_id,
                 "supervisor_bridge_id": "",
                 "snoop_channel_id": "",
@@ -230,8 +249,9 @@ class AsteriskStasisBridgeService:
             return {
                 "session_id": session_id,
                 "mode": request.mode,
-                "call_bridge_id": request.call_bridge_id,
-                "target_channel_id": request.target_channel_id,
+                "provider_call_id": request.provider_call_id,
+                "call_bridge_id": call.bridge_id,
+                "target_channel_id": target_channel_id,
                 "supervisor_channel_id": request.supervisor_channel_id,
                 "jurisdiction": request.jurisdiction,
             }
@@ -247,7 +267,7 @@ class AsteriskStasisBridgeService:
         try:
             await self._expect(
                 "POST",
-                f"/channels/{request.target_channel_id}/snoop/{snoop_channel_id}",
+                f"/channels/{target_channel_id}/snoop/{snoop_channel_id}",
                 params={
                     "spy": "both",
                     "whisper": "out" if request.mode == "whisper" else "none",
@@ -272,9 +292,11 @@ class AsteriskStasisBridgeService:
             raise
 
         self._supervisor_sessions[session_id] = {
+            "tenant_id": call.tenant_id,
+            "provider_call_id": request.provider_call_id,
             "mode": request.mode,
-            "call_bridge_id": request.call_bridge_id,
-            "target_channel_id": request.target_channel_id,
+            "call_bridge_id": call.bridge_id,
+            "target_channel_id": target_channel_id,
             "supervisor_channel_id": request.supervisor_channel_id,
             "supervisor_bridge_id": supervisor_bridge_id,
             "snoop_channel_id": snoop_channel_id,
@@ -282,18 +304,22 @@ class AsteriskStasisBridgeService:
         return {
             "session_id": session_id,
             "mode": request.mode,
-            "call_bridge_id": request.call_bridge_id,
-            "target_channel_id": request.target_channel_id,
+            "provider_call_id": request.provider_call_id,
+            "call_bridge_id": call.bridge_id,
+            "target_channel_id": target_channel_id,
             "supervisor_channel_id": request.supervisor_channel_id,
             "supervisor_bridge_id": supervisor_bridge_id,
             "snoop_channel_id": snoop_channel_id,
             "jurisdiction": request.jurisdiction,
         }
 
-    async def _cleanup_supervisor(self, session_id: str) -> dict[str, Any]:
-        session = self._supervisor_sessions.pop(session_id, None)
+    async def _cleanup_supervisor(self, session_id: str, tenant_id: str | None = None) -> dict[str, Any]:
+        session = self._supervisor_sessions.get(session_id)
         if not session:
             return {"ok": True, "session_id": session_id, "status": "already-ended"}
+        if tenant_id is not None and session.get("tenant_id") != str(tenant_id):
+            raise TelecomNotFoundError("Supervisor session not found.")
+        self._supervisor_sessions.pop(session_id, None)
         if session["mode"] == "barge":
             await self._expect(
                 "POST",
@@ -307,11 +333,16 @@ class AsteriskStasisBridgeService:
             await self._expect("DELETE", f"/bridges/{session['supervisor_bridge_id']}", allow_missing=True)
         return {"ok": True, "session_id": session_id, "status": "ended"}
 
-    async def stop_supervisor(self, session_id: str) -> dict[str, Any]:
+    async def stop_supervisor(self, session_id: str, tenant_id: str) -> dict[str, Any]:
         self._require_supervisor()
-        return await self._cleanup_supervisor(session_id)
+        return await self._cleanup_supervisor(session_id, tenant_id)
 
     async def close(self) -> None:
+        for recording_name in list(self._active_recordings):
+            try:
+                await self._cleanup_recording(recording_name)
+            except Exception:
+                self._active_recordings.pop(recording_name, None)
         for session_id in list(self._supervisor_sessions):
             try:
                 await self._cleanup_supervisor(session_id)
