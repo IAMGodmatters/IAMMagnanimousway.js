@@ -296,24 +296,35 @@ async function pollStudioVideo(request,env,user,jobId){
  if(!job)return json({detail:'Movie job not found.'},404);
  if(job.asset_id){const asset=await env.DB.prepare('SELECT * FROM movie_maker_assets WHERE id=?').bind(job.asset_id).first();return json({job_id:job.id,status:'completed',asset:{asset_url:asset?.source_url||null,download_url:asset?.source_url||null,watch_url:asset?.share_token?`${new URL(request.url).origin}/movie?asset=${asset.share_token}`:null,watermarked:Boolean(asset?.watermarked)},provider_details_private:true})}
  if(job.status==='billing_reconciliation_failed'||job.status==='failed')return json({job_id:job.id,status:job.status,detail:job.error_text||'Movie generation failed.'},job.status==='failed'?502:409);
- const d=await googleInteractionGet(env,job.interaction_id),status=String(d.status||'in_progress');
- if(!['completed','failed','cancelled','incomplete'].includes(status)){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,updated_at=? WHERE id=?').bind(status,now(),job.id).run();return json({job_id:job.id,status,provider_details_private:true},202)}
- if(status!=='completed'){const detail=cleanText(d?.error?.message||`Studio video ended with status ${status}.`,600);await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('failed',detail,now(),job.id).run();return json({job_id:job.id,status:'failed',detail},502)}
- const out=extractOutput(d,'video');if(!out?.uri&&!out?.data)throw new Error('Studio video completed without downloadable video.');
- let bytes,contentType='video/mp4';
- if(out.data)bytes=bytesFromB64(out.data);
- else{
-  const fileId=String(out.uri).split('/').pop(),metaUrl=`https://generativelanguage.googleapis.com/v1beta/files/${encodeURIComponent(fileId)}`;
-  const metaRes=await fetch(metaUrl,{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY)}}),meta=await metaRes.json().catch(()=>({}));
-  if(!metaRes.ok)throw new Error(meta?.error?.message||'Generated movie file metadata was unavailable.');
-  const state=String(meta.state||'');if(state==='FAILED')throw new Error('Generated movie file processing failed.');if(state!=='ACTIVE')return json({job_id:job.id,status:'processing-file',provider_details_private:true},202);
-  const download=String(meta.downloadUri||meta.download_uri||out.uri);const vr=await fetch(download,{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY)}});
-  if(!vr.ok)throw new Error('Generated movie download failed.');bytes=new Uint8Array(await vr.arrayBuffer());contentType=vr.headers.get('content-type')||'video/mp4';
+ let bytes,contentType='video/mp4',priced=null,providerRef=String(job.interaction_id),pendingStatus='in_progress';
+ if(String(job.engine||'omni')==='veo'){
+  const d=await googleVeoGet(env,job.interaction_id);
+  if(!d.done){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,updated_at=? WHERE id=?').bind('in_progress',now(),job.id).run();return json({job_id:job.id,status:'in_progress',provider_details_private:true},202)}
+  if(d.error){const detail=cleanText(d.error?.message||'Cinematic video generation failed.',600);await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('failed',detail,now(),job.id).run();return json({job_id:job.id,status:'failed',detail},502)}
+  const uri=String(d?.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri||d?.response?.generatedVideos?.[0]?.video?.uri||'');
+  if(!uri)throw new Error('Cinematic video completed without a downloadable asset.');
+  const vr=await fetch(uri,{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY)},redirect:'follow'});if(!vr.ok)throw new Error('Generated cinematic movie download failed.');
+  bytes=new Uint8Array(await vr.arrayBuffer());contentType=vr.headers.get('content-type')||'video/mp4';
+  priced=googleVeoOriginCost({model:job.model,seconds:Number(job.seconds||8),resolution:job.resolution});
+ }else{
+  const d=await googleInteractionGet(env,job.interaction_id),status=String(d.status||'in_progress');
+  if(!['completed','failed','cancelled','incomplete'].includes(status)){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,updated_at=? WHERE id=?').bind(status,now(),job.id).run();return json({job_id:job.id,status,provider_details_private:true},202)}
+  if(status!=='completed'){const detail=cleanText(d?.error?.message||`Studio video ended with status ${status}.`,600);await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('failed',detail,now(),job.id).run();return json({job_id:job.id,status:'failed',detail},502)}
+  const out=extractOutput(d,'video');if(!out?.uri&&!out?.data)throw new Error('Studio video completed without downloadable video.');
+  if(out.data)bytes=bytesFromB64(out.data);
+  else{
+   const fileId=String(out.uri).split('/').pop(),metaUrl=`https://generativelanguage.googleapis.com/v1beta/files/${encodeURIComponent(fileId)}`;
+   const metaRes=await fetch(metaUrl,{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY)}}),meta=await metaRes.json().catch(()=>({}));
+   if(!metaRes.ok)throw new Error(meta?.error?.message||'Generated movie file metadata was unavailable.');
+   const state=String(meta.state||'');if(state==='FAILED')throw new Error('Generated movie file processing failed.');if(state!=='ACTIVE')return json({job_id:job.id,status:'processing-file',provider_details_private:true},202);
+   const download=String(meta.downloadUri||meta.download_uri||out.uri),vr=await fetch(download,{headers:{'x-goog-api-key':String(env.GOOGLE_API_KEY)}});if(!vr.ok)throw new Error('Generated movie download failed.');
+   bytes=new Uint8Array(await vr.arrayBuffer());contentType=vr.headers.get('content-type')||'video/mp4';
+  }
+  priced=String(job.billing_mode)==='free'?{ok:true,provider_origin_cost_usd:0,pricing_source:'verified-free-tier',pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT}:googleOmniVideoOriginCost({seconds:Number(job.seconds||0),resolution:job.resolution,usage:d.usage||{}});
  }
- const priced=googleOmniVideoOriginCost({seconds:Number(job.seconds||0),resolution:job.resolution,usage:d.usage||{}});
- if(!priced.ok){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('billing_reconciliation_failed',priced.detail||priced.code,now(),job.id).run();return json({job_id:job.id,status:'billing_reconciliation_failed',detail:'Movie was generated but exact provider usage could not be verified, so the asset was withheld.',free_first_available:true},409)}
+ if(!priced?.ok){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('billing_reconciliation_failed',priced?.detail||priced?.code||'pricing reconciliation failed',now(),job.id).run();return json({job_id:job.id,status:'billing_reconciliation_failed',detail:'Movie was generated but exact provider cost could not be verified, so the asset was withheld.',free_first_available:true},409)}
  const variable=variableCustomerCharge(priced.provider_origin_cost_usd);
- try{await recordUsage(env,user.tenant_id,{category:'movie-maker-video',provider:'managed-studio-video',units:Number(job.seconds||0),provider_origin_cost_usd:priced.provider_origin_cost_usd,reference_id:`movie-video:${job.interaction_id}`,pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at})}
+ try{await recordUsage(env,user.tenant_id,{category:'movie-maker-video',provider:'managed-studio-video',units:Number(job.seconds||0),provider_origin_cost_usd:priced.provider_origin_cost_usd,reference_id:`movie-video:${providerRef}`,pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at})}
  catch(error){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('billing_reconciliation_failed',String(error?.message||error),now(),job.id).run();return json({job_id:job.id,status:'billing_reconciliation_failed',detail:'Movie was generated but funded billing reconciliation failed, so the asset was withheld.',free_first_available:true},409)}
  const persisted=await persistAsset(env,request,user,{kind:'video',title:job.title,bytes,content_type:contentType,watermarked:false,origin:priced.provider_origin_cost_usd,customer:variable.customer_charge_usd});
  await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,asset_id=?,updated_at=? WHERE id=?').bind('completed',persisted.id,now(),job.id).run();
