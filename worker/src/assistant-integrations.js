@@ -74,7 +74,11 @@ async function execute(env,user,provider,action,payload,external=''){
   }
   if(provider==='instagram'){
     const igId=conn.external_account_id;
-    if(action==='read_profile')return providerFetch(`https://graph.facebook.com/${metaVersion}/${encodeURIComponent(igId)}?fields=id,username,followers_count,media_count&access_token=${encodeURIComponent(conn.access_token)}`);
+    if(action==='read_profile')return providerFetch(`https://graph.facebook.com/${metaVersion}/${encodeURIComponent(igId)}?fields=id,username,followers_count,media_count,profile_picture_url&access_token=${encodeURIComponent(conn.access_token)}`);
+    if(action==='read_media'){
+      const limit=Math.max(1,Math.min(50,Number(payload.limit||25)));
+      return providerFetch(`https://graph.facebook.com/${metaVersion}/${encodeURIComponent(igId)}/media?fields=id,caption,media_type,media_product_type,permalink,timestamp,thumbnail_url,media_url&limit=${limit}&access_token=${encodeURIComponent(conn.access_token)}`);
+    }
     if(action==='publish_media'){
       const imageUrl=String(payload.image_url||'').trim(),caption=String(payload.caption||'').trim();if(!imageUrl)throw new Error('A public image URL is required for Instagram publishing.');
       const created=await providerFetch(`https://graph.facebook.com/${metaVersion}/${encodeURIComponent(igId)}/media`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({image_url:imageUrl,caption,access_token:conn.access_token})});

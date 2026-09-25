@@ -1,5 +1,6 @@
-import {currentUser} from './integrations.js';
+import {currentUser,decrypt} from './integrations.js';
 import {connectedYouTubeContext} from './social-publishing-runtime.js';
+import {handleMovieMaker} from './movie-maker-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,Number(v)||0));
@@ -43,7 +44,12 @@ const NATIVE_CAPABILITIES=Object.freeze([
  ['youtube-video-update','Update owned video metadata only after explicit confirmation','authorized-official-api'],
  ['youtube-comment-reply','Post a reply on an owned video only after explicit confirmation','authorized-official-api'],
  ['bookmarks','Save creator research inside Magnanimous','native-storage'],
- ['competitor-tracking','Track creator competitors per workspace','native-storage']
+ ['competitor-tracking','Track creator competitors per workspace','native-storage'],
+ ['instagram-connected-accounts','List authorized Instagram Business connections','authorized-official-api'],
+ ['instagram-profile','Read an authorized Instagram Business profile','authorized-official-api'],
+ ['instagram-reels','Read recent authorized Instagram Reels','authorized-official-api'],
+ ['creator-feedback','Save Creator Growth product feedback','native-storage'],
+ ['job-poll','Poll existing Magnanimous media jobs','magnanimous-native']
 ].map(([id,name,implementation])=>({id,name,implementation})));
 
 async function ensureSchema(env){
@@ -65,6 +71,12 @@ async function ensureSchema(env){
   tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,channel_id TEXT NOT NULL,title TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,user_id,channel_id)
  )`).run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS creator_feedback(
+  id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,rating INTEGER NOT NULL DEFAULT 0,
+  area TEXT NOT NULL DEFAULT '',message TEXT NOT NULL DEFAULT '',context_json TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL
+ )`).run();
+ await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_creator_feedback_tenant ON creator_feedback(tenant_id,user_id,created_at DESC)').run();
 }
 
 async function authContext(env,user){
@@ -371,6 +383,45 @@ async function addCompetitor(env,user,input){
 async function listCompetitors(env,user){
  const rows=(await env.DB.prepare('SELECT channel_id,title,created_at,updated_at FROM creator_competitors WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC').bind(String(user.tenant_id),String(user.id)).all()).results||[];return rows;
 }
+async function instagramReadAllowed(env,user){
+ try{const row=await env.DB.prepare('SELECT can_read FROM assistant_permissions WHERE tenant_id=? AND provider=?').bind(String(user.tenant_id),'instagram').first();return row?Boolean(row.can_read):true}catch{return true}
+}
+async function instagramAccounts(env,user){
+ if(!await instagramReadAllowed(env,user))throw new Error('Instagram read access is disabled for this workspace.');
+ const rows=(await env.DB.prepare("SELECT external_account_id,display_name,token_expires_at,created_at,updated_at FROM integrations WHERE tenant_id=? AND provider='instagram' ORDER BY updated_at DESC").bind(String(user.tenant_id)).all()).results||[];
+ return rows.map(x=>({external_account_id:x.external_account_id,display_name:x.display_name,token_expires_at:x.token_expires_at,created_at:x.created_at,updated_at:x.updated_at}));
+}
+async function instagramConnection(env,user,external=''){
+ if(!await instagramReadAllowed(env,user))throw new Error('Instagram read access is disabled for this workspace.');
+ const row=external
+  ?await env.DB.prepare("SELECT * FROM integrations WHERE tenant_id=? AND provider='instagram' AND external_account_id=? ORDER BY updated_at DESC LIMIT 1").bind(String(user.tenant_id),clean(external,120)).first()
+  :await env.DB.prepare("SELECT * FROM integrations WHERE tenant_id=? AND provider='instagram' ORDER BY updated_at DESC LIMIT 1").bind(String(user.tenant_id)).first();
+ if(!row)throw new Error('Connect an Instagram Business account first.');
+ return{...row,access_token:await decrypt(row.access_token,env)};
+}
+async function instagramGraph(env,user,body,kind){
+ const conn=await instagramConnection(env,user,body.external_account_id||body.account_id||''),version=String(env.META_GRAPH_VERSION||'v23.0'),id=encodeURIComponent(conn.external_account_id),token=encodeURIComponent(conn.access_token);
+ if(kind==='profile'){
+  const r=await fetch(`https://graph.facebook.com/${version}/${id}?fields=id,username,followers_count,media_count,profile_picture_url&access_token=${token}`),d=await r.json().catch(()=>({}));
+  if(!r.ok||d?.error)throw new Error(d?.error?.message||`Instagram profile request failed (${r.status}).`);
+  return{account:{external_account_id:conn.external_account_id,display_name:conn.display_name},profile:d,source:'authorized-official-api'};
+ }
+ const limit=clamp(body.limit||25,1,50),r=await fetch(`https://graph.facebook.com/${version}/${id}/media?fields=id,caption,media_type,media_product_type,permalink,timestamp,thumbnail_url,media_url&limit=${limit}&access_token=${token}`),d=await r.json().catch(()=>({}));
+ if(!r.ok||d?.error)throw new Error(d?.error?.message||`Instagram media request failed (${r.status}).`);
+ const all=Array.isArray(d.data)?d.data:[],reels=all.filter(x=>String(x.media_product_type||'').toUpperCase()==='REELS');
+ return{account:{external_account_id:conn.external_account_id,display_name:conn.display_name},reels,media_sample:all.slice(0,limit),source:'authorized-official-api'};
+}
+async function saveCreatorFeedback(env,user,body){
+ const message=clean(body.message||body.feedback,4000);if(!message)throw new Error('Feedback message is required.');
+ const rating=Math.round(clamp(body.rating||0,0,5)),area=clean(body.area||'creator-growth',80),id=crypto.randomUUID();
+ await env.DB.prepare('INSERT INTO creator_feedback(id,tenant_id,user_id,rating,area,message,context_json,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(id,String(user.tenant_id),String(user.id),rating,area,message,JSON.stringify(body.context||{}).slice(0,12000),now()).run();
+ return{id,rating,area,message,created_at:now()};
+}
+async function pollMagnanimousJob(request,env,jobId){
+ const id=clean(jobId,120);if(!id)throw new Error('job_id is required.');
+ const u=new URL(request.url);u.pathname=`/api/movie-maker/jobs/${encodeURIComponent(id)}`;u.search='';
+ return handleMovieMaker(new Request(u.toString(),{method:'GET',headers:request.headers}),env);
+}
 
 export async function handleCreatorGrowth(request,env){
  const url=new URL(request.url),path=url.pathname;if(!path.startsWith('/api/creator-growth'))return null;
@@ -379,7 +430,7 @@ export async function handleCreatorGrowth(request,env){
  try{
   await ensureSchema(env);
   if(request.method==='GET'&&path==='/api/creator-growth/capabilities'){
-   const auth=await authContext(env,user);return json({identity:'Magnanimous AI',product:'Creator Growth',capabilities:NATIVE_CAPABILITIES,public_youtube_data_ready:Boolean(auth.apiKey||auth.connected),owned_youtube_connected:Boolean(auth.connected),analytics_ready:Boolean(auth.connected?.analytics_scope),youtube_owner_write_ready:Boolean(auth.connected?.write_scope),provider_details_private:true});
+   const auth=await authContext(env,user),instagram=await instagramAccounts(env,user).catch(()=>[]);return json({identity:'Magnanimous AI',product:'Creator Growth',capabilities:NATIVE_CAPABILITIES,public_youtube_data_ready:Boolean(auth.apiKey||auth.connected),owned_youtube_connected:Boolean(auth.connected),analytics_ready:Boolean(auth.connected?.analytics_scope),youtube_owner_write_ready:Boolean(auth.connected?.write_scope),instagram_connected_count:instagram.length,provider_details_private:true});
   }
   if(request.method==='POST'&&path==='/api/creator-growth/title-score'){const b=await request.json().catch(()=>({}));return json(titleScore(b.title,b.type))}
   if(request.method==='POST'&&path==='/api/creator-growth/title-ideas'){const b=await request.json().catch(()=>({}));return json({titles:titleIdeas(b.topic||b.keyword,b.type,b.count)})}
@@ -408,6 +459,11 @@ export async function handleCreatorGrowth(request,env){
   if(request.method==='POST'&&path==='/api/creator-growth/owned-transcript'){return json(await ownedTranscript(env,user,await request.json().catch(()=>({}))))}
   if(request.method==='POST'&&path==='/api/creator-growth/youtube-video-update'){return json(await updateOwnedVideo(env,user,await request.json().catch(()=>({}))))}
   if(request.method==='POST'&&path==='/api/creator-growth/youtube-comment-reply'){return json(await postOwnedCommentReply(env,user,await request.json().catch(()=>({}))))}
+  if(request.method==='GET'&&path==='/api/creator-growth/instagram/accounts'){return json({accounts:await instagramAccounts(env,user),source:'authorized-official-api'})}
+  if(request.method==='POST'&&path==='/api/creator-growth/instagram/profile'){return json(await instagramGraph(env,user,await request.json().catch(()=>({})),'profile'))}
+  if(request.method==='POST'&&path==='/api/creator-growth/instagram/reels'){return json(await instagramGraph(env,user,await request.json().catch(()=>({})),'reels'))}
+  if(request.method==='POST'&&path==='/api/creator-growth/feedback'){return json({saved:await saveCreatorFeedback(env,user,await request.json().catch(()=>({})))},201)}
+  if(request.method==='POST'&&path==='/api/creator-growth/job-poll'){const b=await request.json().catch(()=>({}));return pollMagnanimousJob(request,env,b.job_id)}
   if(request.method==='POST'&&path==='/api/creator-growth/bookmarks'){return json({saved:await saveBookmark(env,user,await request.json().catch(()=>({})))},201)}
   if(request.method==='GET'&&path==='/api/creator-growth/bookmarks'){return json({items:await listBookmarks(env,user,url)})}
   const bm=path.match(/^\/api\/creator-growth\/bookmarks\/([^/]+)$/);if(bm&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM creator_bookmarks WHERE id=? AND tenant_id=? AND user_id=?').bind(bm[1],String(user.tenant_id),String(user.id)).run();return json({ok:true,removed:bm[1]})}
