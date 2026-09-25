@@ -3,6 +3,35 @@ import { MagnanimousAiBinding } from '../src/ai-binding.mjs';
 
 const originalFetch=globalThis.fetch;
 
+async function privateEdgeBridgeFirst(){
+  const calls=[];
+  globalThis.fetch=async(url,init={})=>{
+    calls.push({url:String(url),init});
+    return new Response(JSON.stringify({ok:true,response:'Private edge bridge works.',result:{response:'Private edge bridge works.'}}),{
+      status:200,headers:{'content-type':'application/json'}
+    });
+  };
+  const binding=new MagnanimousAiBinding({
+    MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN:'bridge-secret',
+    MAGNANIMOUS_EDGE_AI_BRIDGE_URL:'https://iammagnanimousway.com/api/internal/edge-ai/run',
+    CLOUDFLARE_PLATFORM_API_TOKEN:'bad-rest-token',
+    CLOUDFLARE_PLATFORM_ACCOUNT_ID:'test-platform-account-id',
+    ENABLE_METERED_PROVIDERS:'false'
+  });
+  const result=await binding.run('@cf/meta/llama-3.1-8b-instruct-fast',{
+    messages:[{role:'user',content:'Say hello.'}],
+    max_tokens:123
+  });
+  assert.equal(result.response,'Private edge bridge works.');
+  assert.equal(result.provider,'magnanimous-private-edge-ai');
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].url,'https://iammagnanimousway.com/api/internal/edge-ai/run');
+  assert.equal(calls[0].init.headers.authorization,'Bearer bridge-secret');
+  const body=JSON.parse(calls[0].init.body);
+  assert.equal(body.model,'@cf/meta/llama-3.1-8b-instruct-fast');
+  assert.equal(body.max_tokens,123);
+}
+
 async function workersAiFreeFirst(){
   const calls=[];
   globalThis.fetch=async(url,init={})=>{
@@ -76,6 +105,7 @@ async function meteredRequiresExplicitOptIn(){
 }
 
 try{
+  await privateEdgeBridgeFirst();
   await workersAiFreeFirst();
   await meteredDisabledByDefault();
   await meteredRequiresExplicitOptIn();

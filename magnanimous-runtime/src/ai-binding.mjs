@@ -45,10 +45,26 @@ export class MagnanimousAiBinding {
       2200
     );
 
+    const requestedModel = String(_legacyModel || this.env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast').trim();
+    const edgeBridgeToken = String(this.env.MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN || '').trim();
+    const edgeBridgeUrl = String(this.env.MAGNANIMOUS_EDGE_AI_BRIDGE_URL || '').trim();
+    if (edgeBridgeToken && edgeBridgeUrl && requestedModel.startsWith('@cf/')) {
+      const response = await fetch(edgeBridgeUrl, {
+        method: 'POST',
+        headers: {'content-type':'application/json',authorization:'Bearer '+edgeBridgeToken},
+        body: JSON.stringify({model:requestedModel,messages,max_tokens:maxTokens})
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        const text = String(data?.response || data?.result?.response || '').trim();
+        if (text) return {response:text,result:{response:text},provider:'magnanimous-private-edge-ai'};
+      }
+    }
+
     const cloudflareToken = String(this.env.CLOUDFLARE_PLATFORM_API_TOKEN || this.env.CLOUDFLARE_API_TOKEN || '').trim();
     const cloudflareAccount = String(this.env.CLOUDFLARE_PLATFORM_ACCOUNT_ID || this.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
     if (cloudflareToken && cloudflareAccount) {
-      const model = String(_legacyModel || this.env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast').trim();
+      const model = requestedModel;
       if (model.startsWith('@cf/')) {
         const response = await fetch(
           `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(cloudflareAccount)}/ai/run/${cloudflareModelPath(model)}`,
@@ -134,7 +150,7 @@ export class MagnanimousAiBinding {
     }
 
     throw new Error(
-      'No free-first Magnanimous AI execution rail is configured. Set protected Cloudflare Workers AI REST credentials, OLLAMA_BASE_URL, or MAGNANIMOUS_AI_BASE_URL; metered OPENAI_API_KEY is used only when ENABLE_METERED_PROVIDERS=true.'
+      'No free-first Magnanimous AI execution rail is configured. Set the private Edge AI bridge, protected Cloudflare Workers AI REST credentials, OLLAMA_BASE_URL, or MAGNANIMOUS_AI_BASE_URL; metered OPENAI_API_KEY is used only when ENABLE_METERED_PROVIDERS=true.'
     );
   }
 }

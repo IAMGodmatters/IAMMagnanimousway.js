@@ -17,6 +17,7 @@ import { handleRenderEngine } from './magnanimous-render-engine.js';
 import { handleCredentialVaultMigration } from './credential-vault-migration.js';
 import { handleMagnanimousCapabilityMesh } from './magnanimous-capability-mesh.js';
 import { handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
+import { handleEdgeAiBridge } from './edge-ai-bridge.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -98,7 +99,7 @@ async function proxyApiToStandalone(request,env){
   // and conversation persistence remain on one authoritative runtime. Standalone AI
   // execution falls back to the protected free-first Workers AI REST rail.
   const standaloneDataPlanePath=url.pathname.startsWith('/api/')||url.pathname==='/funnels'||url.pathname.startsWith('/funnels/');
-  if(url.pathname==='/api/internal/migration/rewrap-platform-credentials')return null;
+  if(url.pathname==='/api/internal/migration/rewrap-platform-credentials'||url.pathname==='/api/internal/edge-ai/run')return null;
   if(!standaloneDataPlanePath)return null;
   if(request.headers.get('x-magnanimous-standalone-proxy')==='1')return null;
   const origin=configuredStandaloneApiOrigin(env);
@@ -211,6 +212,8 @@ export default {
     const canonicalOrLegacy=canonicalOrLegacyResponse(request);
     if(canonicalOrLegacy)return finalizeResponse(request,canonicalOrLegacy);
     const outerUrl=new URL(request.url);
+    const edgeAiResponse=await handleEdgeAiBridge(request,env);
+    if(edgeAiResponse)return finalizeResponse(request,await securityPostflight(request,edgeAiResponse,env));
     if(request.method==='GET'&&outerUrl.pathname==='/health'){
       return finalizeResponse(request,Response.json({
         status:'ok',
