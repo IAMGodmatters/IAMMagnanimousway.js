@@ -68,6 +68,10 @@ class TelecomSettings:
     sip_db_password: str = ""
     carrier_secondary_endpoint: str = ""
     carrier_allowed_endpoints: tuple[str, ...] = ()
+    supervisor_control_enabled: bool = False
+    supervisor_stasis_app: str = "magnanimous-supervisor"
+    supervisor_recording_format: str = "wav"
+    supervisor_recording_max_seconds: int = 14400
 
     @classmethod
     def from_env(cls) -> "TelecomSettings":
@@ -122,4 +126,8 @@ class TelecomSettings:
             sip_db_password=_env("SIP_DB_PASSWORD"),
             carrier_secondary_endpoint=carrier_secondary_endpoint,
             carrier_allowed_endpoints=carrier_allowed,
+            supervisor_control_enabled=_env_bool("ASTERISK_SUPERVISOR_CONTROL_ENABLED", False),
+            supervisor_stasis_app=_env("ASTERISK_SUPERVISOR_STASIS_APP", "magnanimous-supervisor"),
+            supervisor_recording_format=_env("ASTERISK_SUPERVISOR_RECORDING_FORMAT", "wav"),
+            supervisor_recording_max_seconds=max(60, min(28800, _env_int("ASTERISK_SUPERVISOR_RECORDING_MAX_SECONDS", 14400))),
         )
