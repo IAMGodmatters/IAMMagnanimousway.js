@@ -43,6 +43,7 @@ Typical request:
   "from": "+14155550100",
   "agent_id": "agent-id",
   "queue_id": "queue-id",
+  "route_id": "auto",
   "webhook_url": "https://iammagnanimousway.com/api/phone/webhook"
 }
 ```
@@ -57,6 +58,8 @@ The bridge should return a provider-neutral response:
 ```
 
 Status callbacks to the supplied webhook should include `provider_call_id`, `status`, and optional `recording_url` or non-sensitive call metadata.
+
+The owned Telecom Core accepts three private execution-route IDs: `auto` preserves the existing primary-then-network-failure-only-secondary behavior, `primary` uses only the primary SIP interconnect, and `secondary` uses only the explicitly configured secondary interconnect. Manual route selection is owner/admin-only at the platform boundary. The route planner remains preview/control policy and does not automatically move production calls until every selected route has authenticated health and production proof.
 
 ## Environment variables
 
