@@ -28,7 +28,11 @@ async function ensureSchema(env){
  const statements=[
   `CREATE TABLE IF NOT EXISTS telecom_network_providers (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,provider_key TEXT NOT NULL,display_name TEXT NOT NULL,role TEXT NOT NULL DEFAULT 'wholesale',status TEXT NOT NULL DEFAULT 'planned',capabilities_json TEXT NOT NULL DEFAULT '{}',secret_binding_name TEXT NOT NULL DEFAULT '',account_reference TEXT NOT NULL DEFAULT '',notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(tenant_id,provider_key,role))`,
   `CREATE TABLE IF NOT EXISTS telecom_regulatory_cases (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,jurisdiction TEXT NOT NULL,authority_key TEXT NOT NULL,authority_name TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'not_started',application_reference TEXT NOT NULL DEFAULT '',evidence_reference TEXT NOT NULL DEFAULT '',notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(tenant_id,jurisdiction,authority_key))`,
-  `CREATE TABLE IF NOT EXISTS telecom_network_events (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,actor_user_id TEXT NOT NULL DEFAULT '',event_type TEXT NOT NULL,provider_key TEXT NOT NULL DEFAULT '',jurisdiction TEXT NOT NULL DEFAULT '',detail_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL)`
+  `CREATE TABLE IF NOT EXISTS telecom_network_events (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,actor_user_id TEXT NOT NULL DEFAULT '',event_type TEXT NOT NULL,provider_key TEXT NOT NULL DEFAULT '',jurisdiction TEXT NOT NULL DEFAULT '',detail_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS telecom_mobile_home_identities (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,label TEXT NOT NULL DEFAULT 'Magnanimous Home Network',country_code TEXT NOT NULL DEFAULT '',mcc TEXT NOT NULL DEFAULT '',mnc TEXT NOT NULL DEFAULT '',hni TEXT NOT NULL DEFAULT '',identity_type TEXT NOT NULL DEFAULT 'mvno',assignment_status TEXT NOT NULL DEFAULT 'planned',authority_reference TEXT NOT NULL DEFAULT '',evidence_reference TEXT NOT NULL DEFAULT '',provider_contract_reference TEXT NOT NULL DEFAULT '',notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(tenant_id,hni))`,
+  `CREATE TABLE IF NOT EXISTS telecom_mobile_wholesale_agreements (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,provider_key TEXT NOT NULL,agreement_type TEXT NOT NULL DEFAULT 'host_mno',status TEXT NOT NULL DEFAULT 'planned',home_identity_id TEXT,services_json TEXT NOT NULL DEFAULT '[]',countries_json TEXT NOT NULL DEFAULT '[]',effective_from INTEGER,effective_to INTEGER,evidence_reference TEXT NOT NULL DEFAULT '',pricing_reference TEXT NOT NULL DEFAULT '',notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS telecom_mobile_roaming_coverage (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,agreement_id TEXT NOT NULL,country_code TEXT NOT NULL,network_code TEXT NOT NULL DEFAULT '',network_label TEXT NOT NULL DEFAULT '',services_json TEXT NOT NULL DEFAULT '[]',access_json TEXT NOT NULL DEFAULT '[]',status TEXT NOT NULL DEFAULT 'planned',breakout_region TEXT NOT NULL DEFAULT '',quality_score REAL NOT NULL DEFAULT 50,latency_ms INTEGER NOT NULL DEFAULT 0,data_cost_micros_per_mb INTEGER NOT NULL DEFAULT 0,voice_cost_micros_per_minute INTEGER NOT NULL DEFAULT 0,sms_cost_micros INTEGER NOT NULL DEFAULT 0,origin_currency TEXT NOT NULL DEFAULT 'USD',origin_cost_reference TEXT NOT NULL DEFAULT '',origin_cost_verified_at INTEGER,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(tenant_id,agreement_id,country_code,network_code))`,
+  `CREATE TABLE IF NOT EXISTS telecom_mobile_access_policies (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL DEFAULT 'Global mobile default',primary_sim_id TEXT NOT NULL DEFAULT '',backup_sim_id TEXT NOT NULL DEFAULT '',selection_mode TEXT NOT NULL DEFAULT 'balanced',manual_network_selection INTEGER NOT NULL DEFAULT 1,max_data_cost_micros_per_mb INTEGER NOT NULL DEFAULT 0,max_voice_cost_micros_per_minute INTEGER NOT NULL DEFAULT 0,max_sms_cost_micros INTEGER NOT NULL DEFAULT 0,max_latency_ms INTEGER NOT NULL DEFAULT 0,min_quality_score REAL NOT NULL DEFAULT 0,preferred_breakout_regions_json TEXT NOT NULL DEFAULT '[]',fallback_order_json TEXT NOT NULL DEFAULT '["primary","backup","app_dialer"]',status TEXT NOT NULL DEFAULT 'draft',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`
  ];
  for(const sql of statements){try{await env.DB.prepare(sql).run()}catch(error){console.error('telecom network schema repair failed',error)}}
 }
@@ -89,6 +93,80 @@ async function gigs(env,path){
  return data;
 }
 
+
+const MOBILE_SERVICES=['data','voice','sms'];
+const MOBILE_AGREEMENT_TYPES=['host_mno','roaming_hub','direct_roaming','smdp','esim_platform'];
+const MOBILE_AGREEMENT_STATES=['planned','negotiating','executed','verified','suspended','retired'];
+const MOBILE_IDENTITY_STATES=['planned','applied','assigned','verified','rejected','retired'];
+const MOBILE_SELECTION_MODES=['balanced','least_cost','quality','priority'];
+const ORIGIN_RATE_FRESHNESS_SECONDS=30*86400;
+
+function arrayJson(value){return JSON.stringify(Array.isArray(value)?value:[])}
+function cleanCountry(value){return String(value||'').trim().toUpperCase().replace(/[^A-Z]/g,'').slice(0,2)}
+function nonNegativeInt(value){const n=Number(value);return Number.isSafeInteger(n)&&n>=0?n:null}
+function parsedArray(value){try{const out=JSON.parse(value||'[]');return Array.isArray(out)?out:[]}catch{return[]}}
+function mobileUnitCost(row,service){
+ if(service==='voice')return Number(row.voice_cost_micros_per_minute||0);
+ if(service==='sms')return Number(row.sms_cost_micros||0);
+ return Number(row.data_cost_micros_per_mb||0);
+}
+function verifiedOriginPrice(row,service){
+ const origin=mobileUnitCost(row,service),verifiedAt=Number(row.origin_cost_verified_at||0),reference=String(row.origin_cost_reference||'').trim();
+ const fresh=Boolean(reference&&verifiedAt&&verifiedAt>=now()-ORIGIN_RATE_FRESHNESS_SECONDS);
+ return{origin_cost_micros:origin,origin_cost_reference:reference||null,origin_cost_verified_at:verifiedAt||null,origin_cost_fresh:fresh,customer_price_micros:fresh?Math.ceil(origin*1.2):null,markup_percent:fresh?20:null,billable:fresh};
+}
+async function globalMobileSummary(env,tenant){
+ const [identity,agreements,coverage,policies]=await Promise.all([
+  env.DB.prepare("SELECT COUNT(*) n,SUM(CASE WHEN assignment_status IN ('assigned','verified') AND evidence_reference<>'' THEN 1 ELSE 0 END) verified FROM telecom_mobile_home_identities WHERE tenant_id=?").bind(tenant).first(),
+  env.DB.prepare("SELECT COUNT(*) n,SUM(CASE WHEN status IN ('executed','verified') AND evidence_reference<>'' THEN 1 ELSE 0 END) verified FROM telecom_mobile_wholesale_agreements WHERE tenant_id=?").bind(tenant).first(),
+  env.DB.prepare("SELECT COUNT(DISTINCT country_code) countries,SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) active FROM telecom_mobile_roaming_coverage WHERE tenant_id=?").bind(tenant).first(),
+  env.DB.prepare("SELECT COUNT(*) n,SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) active FROM telecom_mobile_access_policies WHERE tenant_id=?").bind(tenant).first()
+ ]);
+ const agreementReady=Number(agreements?.verified||0)>0,coverageReady=Number(coverage?.active||0)>0;
+ return{
+  software_control_ready:true,
+  home_network_identity_ready:Number(identity?.verified||0)>0,
+  wholesale_agreement_ready:agreementReady,
+  roaming_coverage_ready:coverageReady,
+  roaming_coverage_countries:Number(coverage?.countries||0),
+  active_access_policy:Number(policies?.active||0)>0,
+  global_mobile_live:truthy(env?.TELECOM_GLOBAL_MOBILE_LIVE)&&agreementReady&&coverageReady,
+  pricing_policy:'verified exact origin cost + 20%; no customer price when origin rate evidence is absent or stale',
+  origin_rate_freshness_seconds:ORIGIN_RATE_FRESHNESS_SECONDS,
+  primary_backup_strategy:'primary eSIM/SIM + backup eSIM/SIM + app/VoIP fallback, controlled by Magnanimous policy',
+  data_breakout_strategy:'prefer configured regional breakout to reduce roaming hairpin latency; never claim local breakout unless the agreement/coverage record proves it',
+  truth_boundary:'Software, HNI metadata and route planning do not create an MVNO contract, roaming agreement, spectrum right or regulator authorization. Global mobile stays NOT LIVE until external agreements, coverage and live verification exist.'
+ };
+}
+async function globalMobilePlan(env,tenant,country,service='data',mode='balanced',policyId=''){
+ const cc=cleanCountry(country),svc=MOBILE_SERVICES.includes(String(service))?String(service):'data',selection=MOBILE_SELECTION_MODES.includes(String(mode))?String(mode):'balanced';
+ if(!cc)return{error:'A two-letter country code is required.'};
+ const policy=policyId
+  ?await env.DB.prepare("SELECT * FROM telecom_mobile_access_policies WHERE tenant_id=? AND id=?").bind(tenant,String(policyId)).first()
+  :await env.DB.prepare("SELECT * FROM telecom_mobile_access_policies WHERE tenant_id=? AND status='active' ORDER BY updated_at DESC LIMIT 1").bind(tenant).first();
+ const {results=[]}=await env.DB.prepare(`SELECT c.*,a.provider_key,a.agreement_type,a.status agreement_status,a.evidence_reference agreement_evidence,a.pricing_reference
+ FROM telecom_mobile_roaming_coverage c JOIN telecom_mobile_wholesale_agreements a ON a.id=c.agreement_id AND a.tenant_id=c.tenant_id
+ WHERE c.tenant_id=? AND c.country_code=? AND c.status='active' AND a.status IN ('executed','verified') AND a.evidence_reference<>'' ORDER BY c.quality_score DESC,c.latency_ms ASC,c.id ASC`).bind(tenant,cc).all();
+ const maxCost=svc==='voice'?Number(policy?.max_voice_cost_micros_per_minute||0):svc==='sms'?Number(policy?.max_sms_cost_micros||0):Number(policy?.max_data_cost_micros_per_mb||0);
+ const maxLatency=Number(policy?.max_latency_ms||0),minQuality=Number(policy?.min_quality_score||0),preferred=parsedArray(policy?.preferred_breakout_regions_json);
+ const eligible=results.map(row=>{
+  const services=parsedArray(row.services_json),access=parsedArray(row.access_json),price=verifiedOriginPrice(row,svc),cost=price.origin_cost_micros,quality=Number(row.quality_score||0),latency=Number(row.latency_ms||0),breakout=String(row.breakout_region||'');
+  const supports=!services.length||services.includes(svc),underCost=!maxCost||cost<=maxCost,underLatency=!maxLatency||!latency||latency<=maxLatency,qualityOk=!minQuality||quality>=minQuality;
+  const preferredBreakout=preferred.includes(breakout);
+  return{coverage_id:row.id,agreement_id:row.agreement_id,provider_key:row.provider_key,agreement_type:row.agreement_type,country_code:row.country_code,network_code:row.network_code,network_label:row.network_label,services,access,breakout_region:breakout,quality_score:quality,latency_ms:latency,...price,eligible:supports&&underCost&&underLatency&&qualityOk,policy_checks:{supports_service:supports,under_cost_cap:underCost,under_latency_cap:underLatency,min_quality_met:qualityOk,preferred_breakout:preferredBreakout}};
+ }).filter(x=>x.eligible);
+ const sorter=(a,b)=>{
+  if(selection==='least_cost')return a.origin_cost_micros-b.origin_cost_micros||b.quality_score-a.quality_score||a.latency_ms-b.latency_ms;
+  if(selection==='quality')return b.quality_score-a.quality_score||a.latency_ms-b.latency_ms||a.origin_cost_micros-b.origin_cost_micros;
+  if(selection==='priority')return Number(b.policy_checks.preferred_breakout)-Number(a.policy_checks.preferred_breakout)||b.quality_score-a.quality_score||a.origin_cost_micros-b.origin_cost_micros;
+  const aScore=a.quality_score-(a.latency_ms?Math.min(a.latency_ms,1000)/50:0)-(a.origin_cost_micros/1000000),bScore=b.quality_score-(b.latency_ms?Math.min(b.latency_ms,1000)/50:0)-(b.origin_cost_micros/1000000);
+  return bScore-aScore;
+ };
+ eligible.sort(sorter);const selected=eligible[0]||null;
+ const summary=await globalMobileSummary(env,tenant);
+ return{country_code:cc,service:svc,selection_mode:selection,policy_id:policy?.id||null,selected,eligible_routes:eligible.length,global_mobile_live:summary.global_mobile_live,execution_authorized:Boolean(summary.global_mobile_live&&selected?.billable),execution_note:'This control-plane route plan does not itself attach to a radio network. Live execution requires a verified host/roaming agreement, authorized provisioning adapter, active coverage, verified fresh origin pricing and TELECOM_GLOBAL_MOBILE_LIVE=true.',pricing_note:'Customer unit price is generated only from a verified fresh origin cost and is exactly origin cost + 20%.'};
+}
+
 function requirePurchaseGate(env,body){
  if(!truthy(env?.TELECOM_PURCHASE_ACTIONS_ENABLED))return 'Paid telecom actions are locked. Set TELECOM_PURCHASE_ACTIONS_ENABLED=true only when the owner is ready for purchases.';
  if(body?.confirm_purchase!==true)return 'Explicit confirm_purchase=true is required for a paid telecom action.';
@@ -142,6 +220,7 @@ export async function handleMagnanimousTelecomNetwork(request,env){
    secondary_upstream_candidate:{provider_key:'plivo',role:'secondary SIP/API candidate',connected:Boolean(String(env?.PLIVO_AUTH_ID||'').trim()&&String(env?.PLIVO_AUTH_TOKEN||'').trim()),note:'Use only where route economics, coverage and quality beat the primary path.'},
    compatibility_upstream:{provider_key:'twilio',role:'browser Voice SDK / compatibility carrier',connected:Boolean(String(env?.TWILIO_ACCOUNT_SID||'').trim()&&String(env?.TWILIO_AUTH_TOKEN||'').trim()),note:'Retained for compatibility and browser-agent transport while the native Asterisk WebRTC desk is completed.'},
    mobile_alternative:{provider_key:'gigs',role:'MVNO/mobile subscription adapter',capabilities:['physical_sim','esim','mobile_plans','subscriptions']},
+   global_mobile:await globalMobileSummary(env,tenant),
    providers:providers.results||[],regulatory_cases:cases.results||[],
    authority_note:'Software readiness is not regulatory authority. External approvals and provider contracts remain required until completed.'
   });
@@ -171,6 +250,64 @@ export async function handleMagnanimousTelecomNetwork(request,env){
   await env.DB.prepare('UPDATE telecom_regulatory_cases SET status=?,application_reference=?,evidence_reference=?,notes=?,updated_at=? WHERE id=?').bind(status,appRef,evidence,notes,ts,existing.id).run();
   await event(env,tenant,user,'regulatory.case.updated','',jurisdiction,{authority_key:key,status});
   return json({ok:true,jurisdiction,authority_key:key,status});
+ }
+
+
+ if(path==='/api/telecom/network/global-mobile/home-identities'&&request.method==='GET'){
+  const{results=[]}=await env.DB.prepare('SELECT * FROM telecom_mobile_home_identities WHERE tenant_id=? ORDER BY updated_at DESC').bind(tenant).all();return json({identities:results});
+ }
+ if(path==='/api/telecom/network/global-mobile/home-identities'&&request.method==='POST'){
+  const body=await request.json().catch(()=>({})),country=cleanCountry(body.country_code),mcc=String(body.mcc||'').replace(/\D/g,'').slice(0,3),mnc=String(body.mnc||'').replace(/\D/g,'').slice(0,3),hni=String(body.hni||((mcc&&mnc)?`${mcc}-${mnc}`:'')).trim().slice(0,16),status=String(body.assignment_status||'planned');
+  if(!country||!mcc||!mnc||!hni)return json({detail:'country_code, MCC, MNC and HNI are required.'},422);
+  if(!MOBILE_IDENTITY_STATES.includes(status))return json({detail:'Unsupported home-network identity status.'},422);
+  const authority=String(body.authority_reference||'').trim().slice(0,500),evidence=String(body.evidence_reference||'').trim().slice(0,500);
+  if(['assigned','verified'].includes(status)&&(!authority||!evidence))return json({detail:'Assigned/verified HNI status requires authority_reference and evidence_reference.'},409);
+  const ts=now(),identityId=id('hni');
+  await env.DB.prepare(`INSERT INTO telecom_mobile_home_identities(id,tenant_id,label,country_code,mcc,mnc,hni,identity_type,assignment_status,authority_reference,evidence_reference,provider_contract_reference,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,hni) DO UPDATE SET label=excluded.label,country_code=excluded.country_code,mcc=excluded.mcc,mnc=excluded.mnc,identity_type=excluded.identity_type,assignment_status=excluded.assignment_status,authority_reference=excluded.authority_reference,evidence_reference=excluded.evidence_reference,provider_contract_reference=excluded.provider_contract_reference,notes=excluded.notes,updated_at=excluded.updated_at`).bind(identityId,tenant,String(body.label||'Magnanimous Home Network').trim().slice(0,120),country,mcc,mnc,hni,String(body.identity_type||'mvno').trim().slice(0,40),status,authority,evidence,String(body.provider_contract_reference||'').trim().slice(0,500),String(body.notes||'').trim().slice(0,2000),ts,ts).run();
+  await event(env,tenant,user,'global_mobile.home_identity.updated','',country,{hni,status});return json({ok:true,hni,assignment_status:status},201);
+ }
+ if(path==='/api/telecom/network/global-mobile/agreements'&&request.method==='GET'){
+  const{results=[]}=await env.DB.prepare('SELECT * FROM telecom_mobile_wholesale_agreements WHERE tenant_id=? ORDER BY updated_at DESC').bind(tenant).all();return json({agreements:results.map(row=>({...row,services:parsedArray(row.services_json),countries:parsedArray(row.countries_json)}))});
+ }
+ if(path==='/api/telecom/network/global-mobile/agreements'&&request.method==='POST'){
+  const body=await request.json().catch(()=>({})),providerKey=String(body.provider_key||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,80),type=String(body.agreement_type||'host_mno'),status=String(body.status||'planned'),evidence=String(body.evidence_reference||'').trim().slice(0,500);
+  if(!providerKey)return json({detail:'provider_key is required.'},422);
+  if(!MOBILE_AGREEMENT_TYPES.includes(type)||!MOBILE_AGREEMENT_STATES.includes(status))return json({detail:'Unsupported agreement type or status.'},422);
+  if(['executed','verified'].includes(status)&&!evidence)return json({detail:'Executed/verified wholesale agreements require an evidence_reference.'},409);
+  const homeIdentity=String(body.home_identity_id||'').trim();if(homeIdentity){const found=await env.DB.prepare('SELECT id FROM telecom_mobile_home_identities WHERE tenant_id=? AND id=?').bind(tenant,homeIdentity).first();if(!found)return json({detail:'home_identity_id was not found for this tenant.'},404)}
+  const ts=now(),agreementId=id('mobagr');
+  await env.DB.prepare(`INSERT INTO telecom_mobile_wholesale_agreements(id,tenant_id,provider_key,agreement_type,status,home_identity_id,services_json,countries_json,effective_from,effective_to,evidence_reference,pricing_reference,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(agreementId,tenant,providerKey,type,status,homeIdentity||null,arrayJson(body.services),arrayJson((body.countries||[]).map(cleanCountry).filter(Boolean)),body.effective_from?Number(body.effective_from):null,body.effective_to?Number(body.effective_to):null,evidence,String(body.pricing_reference||'').trim().slice(0,500),String(body.notes||'').trim().slice(0,2000),ts,ts).run();
+  await event(env,tenant,user,'global_mobile.agreement.created',providerKey,'',{agreement_id:agreementId,type,status});return json({ok:true,id:agreementId,status},201);
+ }
+ if(path==='/api/telecom/network/global-mobile/coverage'&&request.method==='GET'){
+  const country=cleanCountry(url.searchParams.get('country'));const bind=country?[tenant,country]:[tenant],where=country?'tenant_id=? AND country_code=?':'tenant_id=?';
+  const{results=[]}=await env.DB.prepare(`SELECT * FROM telecom_mobile_roaming_coverage WHERE ${where} ORDER BY country_code,quality_score DESC,latency_ms ASC`).bind(...bind).all();return json({coverage:results.map(row=>({...row,services:parsedArray(row.services_json),access:parsedArray(row.access_json)}))});
+ }
+ if(path==='/api/telecom/network/global-mobile/coverage'&&request.method==='POST'){
+  const body=await request.json().catch(()=>({})),agreementId=String(body.agreement_id||'').trim(),country=cleanCountry(body.country_code),status=String(body.status||'planned');
+  if(!agreementId||!country)return json({detail:'agreement_id and country_code are required.'},422);
+  if(!['planned','testing','active','suspended','retired'].includes(status))return json({detail:'Unsupported coverage status.'},422);
+  const agreement=await env.DB.prepare('SELECT id,status,evidence_reference FROM telecom_mobile_wholesale_agreements WHERE tenant_id=? AND id=?').bind(tenant,agreementId).first();if(!agreement)return json({detail:'Wholesale agreement not found.'},404);
+  if(status==='active'&&(!['executed','verified'].includes(String(agreement.status))||!String(agreement.evidence_reference||'').trim()))return json({detail:'Active roaming coverage requires an executed/verified wholesale agreement with evidence.'},409);
+  const dataCost=nonNegativeInt(body.data_cost_micros_per_mb??0),voiceCost=nonNegativeInt(body.voice_cost_micros_per_minute??0),smsCost=nonNegativeInt(body.sms_cost_micros??0);if([dataCost,voiceCost,smsCost].some(v=>v===null))return json({detail:'Origin costs must be non-negative integer micros.'},422);
+  const originRef=String(body.origin_cost_reference||'').trim().slice(0,500),verifiedAt=body.origin_cost_verified_at?Number(body.origin_cost_verified_at):null;
+  if((dataCost||voiceCost||smsCost)&&(!originRef||!verifiedAt))return json({detail:'Any non-zero origin cost requires origin_cost_reference and origin_cost_verified_at.'},409);
+  const ts=now(),coverageId=id('cov');
+  await env.DB.prepare(`INSERT INTO telecom_mobile_roaming_coverage(id,tenant_id,agreement_id,country_code,network_code,network_label,services_json,access_json,status,breakout_region,quality_score,latency_ms,data_cost_micros_per_mb,voice_cost_micros_per_minute,sms_cost_micros,origin_currency,origin_cost_reference,origin_cost_verified_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,agreement_id,country_code,network_code) DO UPDATE SET network_label=excluded.network_label,services_json=excluded.services_json,access_json=excluded.access_json,status=excluded.status,breakout_region=excluded.breakout_region,quality_score=excluded.quality_score,latency_ms=excluded.latency_ms,data_cost_micros_per_mb=excluded.data_cost_micros_per_mb,voice_cost_micros_per_minute=excluded.voice_cost_micros_per_minute,sms_cost_micros=excluded.sms_cost_micros,origin_currency=excluded.origin_currency,origin_cost_reference=excluded.origin_cost_reference,origin_cost_verified_at=excluded.origin_cost_verified_at,updated_at=excluded.updated_at`).bind(coverageId,tenant,agreementId,country,String(body.network_code||'').trim().slice(0,32),String(body.network_label||'').trim().slice(0,120),arrayJson((body.services||[]).filter(x=>MOBILE_SERVICES.includes(String(x)))),arrayJson(body.access),status,String(body.breakout_region||'').trim().slice(0,80),Math.max(0,Math.min(100,Number(body.quality_score??50))),Math.max(0,Number(body.latency_ms||0)),dataCost,voiceCost,smsCost,String(body.origin_currency||'USD').trim().toUpperCase().slice(0,8),originRef,verifiedAt,ts,ts).run();
+  await event(env,tenant,user,'global_mobile.coverage.updated','',country,{agreement_id:agreementId,status,network_code:String(body.network_code||'')});return json({ok:true,id:coverageId,country_code:country,status},201);
+ }
+ if(path==='/api/telecom/network/global-mobile/policies'&&request.method==='GET'){
+  const{results=[]}=await env.DB.prepare('SELECT * FROM telecom_mobile_access_policies WHERE tenant_id=? ORDER BY status DESC,updated_at DESC').bind(tenant).all();return json({policies:results.map(row=>({...row,preferred_breakout_regions:parsedArray(row.preferred_breakout_regions_json),fallback_order:parsedArray(row.fallback_order_json)}))});
+ }
+ if(path==='/api/telecom/network/global-mobile/policies'&&request.method==='POST'){
+  const body=await request.json().catch(()=>({})),mode=String(body.selection_mode||'balanced'),status=String(body.status||'draft');if(!MOBILE_SELECTION_MODES.includes(mode))return json({detail:'Unsupported mobile selection mode.'},422);if(!['draft','active','retired'].includes(status))return json({detail:'Unsupported policy status.'},422);
+  const costs=['max_data_cost_micros_per_mb','max_voice_cost_micros_per_minute','max_sms_cost_micros'].map(k=>nonNegativeInt(body[k]??0));if(costs.some(v=>v===null))return json({detail:'Mobile policy cost caps must be non-negative integer micros.'},422);
+  const ts=now(),policyId=id('mobpol');if(status==='active')await env.DB.prepare("UPDATE telecom_mobile_access_policies SET status='retired',updated_at=? WHERE tenant_id=? AND status='active'").bind(ts,tenant).run();
+  await env.DB.prepare(`INSERT INTO telecom_mobile_access_policies(id,tenant_id,name,primary_sim_id,backup_sim_id,selection_mode,manual_network_selection,max_data_cost_micros_per_mb,max_voice_cost_micros_per_minute,max_sms_cost_micros,max_latency_ms,min_quality_score,preferred_breakout_regions_json,fallback_order_json,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(policyId,tenant,String(body.name||'Global mobile default').trim().slice(0,120),String(body.primary_sim_id||'').trim().slice(0,120),String(body.backup_sim_id||'').trim().slice(0,120),mode,body.manual_network_selection===false?0:1,costs[0],costs[1],costs[2],Math.max(0,Number(body.max_latency_ms||0)),Math.max(0,Math.min(100,Number(body.min_quality_score||0))),arrayJson(body.preferred_breakout_regions),arrayJson(Array.isArray(body.fallback_order)?body.fallback_order:['primary','backup','app_dialer']),status,ts,ts).run();
+  await event(env,tenant,user,'global_mobile.policy.created','', '',{policy_id:policyId,status,selection_mode:mode});return json({ok:true,id:policyId,status},201);
+ }
+ if(path==='/api/telecom/network/global-mobile/route-plan'&&request.method==='GET'){
+  return json(await globalMobilePlan(env,tenant,url.searchParams.get('country'),url.searchParams.get('service')||'data',url.searchParams.get('mode')||'balanced',url.searchParams.get('policy_id')||''));
  }
 
  if(path==='/api/telecom/network/telnyx/number-search'&&request.method==='POST'){
