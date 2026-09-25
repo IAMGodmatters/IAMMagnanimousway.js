@@ -36,7 +36,7 @@ const ok=await handleEdgeAiBridge(new Request(url,{method:'POST',headers:{'conte
 assert.equal(ok.status,200);
 const data=await ok.json();
 assert.equal(data.ok,true);
-assert.equal(data.bridge_version,'2026-09-25.1');
+assert.equal(data.bridge_version,'2026-09-25.2');
 assert.equal(data.response,'Private edge AI bridge verification passed.');
 assert.equal(calls,1);
 
