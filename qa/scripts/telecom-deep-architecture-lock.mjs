@@ -178,6 +178,14 @@ has(webrtcProbe,'--use-file-for-fake-audio-capture','Chromium probe sends a dete
 has(webrtcProbe,'pjsip show contacts','probe independently verifies Asterisk registered the browser contact');
 has(webrtcProbe,'inboundBytes > 0 && p.outboundBytes > 0','probe requires RTP bytes in both directions');
 has(webrtcProbe,'remoteAudioTracks > 0','probe requires a real remote browser audio track');
+has(webrtcProbe,'WEBRTC_REQUIRE_MEDIA','browser probe keeps the normal media proof strict while supporting a separate signaling-only diagnostic mode');
+has(webrtcProbe,'WEBRTC_HOLD_MS','Stasis diagnostic probe can hold the real channel long enough for server-side event verification');
+has(webrtcWorkflow,'Prove real browser channel enters private Stasis app','real Chromium workflow proves a carrier-free channel enters the private Stasis application');
+has(webrtcWorkflow,"WEBRTC_ECHO_EXTENSION: '6001'",'Stasis integration proof uses the carrier-free diagnostic extension');
+has(webrtcWorkflow,"WEBRTC_REQUIRE_MEDIA: 'false'",'Stasis integration proof does not weaken the separate Echo media requirement');
+has(webrtcWorkflow,"d.configured !== true || d.connected !== true",'Stasis integration proof requires the private event listener to be configured and connected');
+has(webrtcWorkflow,"Number(d.tracked_channels || 0) < 1",'Stasis integration proof requires a real tracked Stasis channel');
+has(webrtcWorkflow,"d.public_ari_exposed !== false",'Stasis integration proof preserves private ARI truth');
 has(webrtc,'#include pjsip-webrtc-public-address.conf','native WSS transport accepts a gated public/NAT address fragment');
 has(entry,'external_signaling_address=%s','startup renders explicit public WebRTC signaling address when configured');
 has(entry,'external_media_address=%s','startup renders explicit public WebRTC RTP/media address when configured');
