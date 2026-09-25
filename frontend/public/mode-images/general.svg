@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="t d">
+<title id="t">Magnanimous AI</title><desc id="d">General help, guidance, ideas and conversation.. Original Magnanimous mode artwork.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07101c"/><stop offset=".58" stop-color="#122a4c"/><stop offset="1" stop-color="#04070d"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#7fb6ff" stop-opacity=".72"/><stop offset="1" stop-color="#7fb6ff" stop-opacity="0"/></radialGradient>
+ <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+</defs>
+<rect width="1200" height="1200" rx="70" fill="url(#bg)"/>
+<circle cx="875" cy="260" r="310" fill="url(#glow)" opacity=".7"/>
+<circle cx="300" cy="820" r="280" fill="#7fb6ff" opacity=".08" filter="url(#soft)"/>
+<g opacity=".16" stroke="#7fb6ff" fill="none"><circle cx="600" cy="560" r="410"/><circle cx="600" cy="560" r="330"/><path d="M120 640H1080M600 120V970"/></g>
+<g><ellipse cx="510" cy="735" rx="195" ry="235" fill="#101b2b" stroke="#9be7ff" stroke-width="3"/><circle cx="510" cy="385" r="135" fill="#172438" stroke="#d9f7ff" stroke-width="4"/><path d="M390 390c20-135 218-166 256 0-30-40-61-58-105-63-54-6-102 13-151 63z" fill="#29384c"/><path d="M445 444c28 24 97 25 126 0" fill="none" stroke="#bfe8f1" stroke-width="7" stroke-linecap="round"/><circle cx="458" cy="397" r="8" fill="#bfe8f1"/><circle cx="558" cy="397" r="8" fill="#bfe8f1"/><path d="M380 690c69-116 194-136 260-8v195H380z" fill="#14253a"/><path d="M441 570l69 72 72-72" fill="none" stroke="#d6f8ff" stroke-width="10"/></g>
+<g transform="translate(835 150)"><circle cx="90" cy="90" r="86" fill="#07111d" stroke="#7fb6ff" stroke-width="3"/><text x="90" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="74" font-weight="700" fill="#7fb6ff">M</text></g>
+<text x="78" y="975" font-family="Arial,sans-serif" font-size="34" font-weight="800" fill="#fff">Magnanimous AI</text>
+<text x="78" y="1020" font-family="Arial,sans-serif" font-size="22" fill="#c7d7e8">General help, guidance, ideas and conversation.</text>
+<rect x="68" y="1070" width="1064" height="65" rx="18" fill="#020408" opacity=".7"/>
+<text x="600" y="1111" text-anchor="middle" font-family="Arial,sans-serif" font-size="21" font-weight="700" fill="#fff">I Am Magnanimous Way, Trademark.</text>
+</svg>
