@@ -1,8 +1,10 @@
+import { PASS_THROUGH_MARKUP_PERCENT,customerChargeUsd,originCapacityFromCustomerFunds,standardAiRequestCost } from './provider-cost-catalog.js';
+
 const now=()=>Math.floor(Date.now()/1000);
 
 export const PLAN_LIMITS={
  free:{rank:0,metered_ai:false,pstn_minutes:0,avatar_minutes:0,premium_video_credits:0,cost_ceiling_usd:0},
- plus:{rank:1,metered_ai:false,pstn_minutes:0,avatar_minutes:0,premium_video_credits:0,cost_ceiling_usd:8},
+ plus:{rank:1,metered_ai:true,pstn_minutes:0,avatar_minutes:0,premium_video_credits:0,cost_ceiling_usd:8},
  business:{rank:2,metered_ai:true,pstn_minutes:30,avatar_minutes:10,premium_video_credits:10,cost_ceiling_usd:24},
  pro:{rank:3,metered_ai:true,pstn_minutes:90,avatar_minutes:30,premium_video_credits:30,cost_ceiling_usd:54},
  scale:{rank:4,metered_ai:true,pstn_minutes:180,avatar_minutes:60,premium_video_credits:60,cost_ceiling_usd:112},
@@ -35,6 +37,12 @@ export async function ensureUsageSchema(env){
   category TEXT NOT NULL,provider TEXT NOT NULL DEFAULT '',units REAL NOT NULL DEFAULT 0,
   direct_cost_usd REAL NOT NULL DEFAULT 0,reference_id TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL
  )`).run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS billing_pass_through_charges (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,period_key TEXT NOT NULL,
+  category TEXT NOT NULL,provider TEXT NOT NULL DEFAULT '',reference_id TEXT NOT NULL DEFAULT '',
+  origin_cost_usd REAL NOT NULL DEFAULT 0,markup_percent REAL NOT NULL DEFAULT 20,
+  customer_charge_usd REAL NOT NULL DEFAULT 0,created_at INTEGER NOT NULL
+ )`).run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS billing_usage_wallet (
   tenant_id TEXT PRIMARY KEY,balance_usd REAL NOT NULL DEFAULT 0,total_funded_usd REAL NOT NULL DEFAULT 0,
   total_consumed_usd REAL NOT NULL DEFAULT 0,updated_at INTEGER NOT NULL
@@ -45,6 +53,7 @@ export async function ensureUsageSchema(env){
   UNIQUE(tenant_id,event_type,reference_id)
  )`).run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_billing_usage_events_tenant_period ON billing_usage_events(tenant_id,period_key,created_at DESC)').run();
+ await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_billing_pass_through_tenant_period ON billing_pass_through_charges(tenant_id,period_key,created_at DESC)').run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_usage_wallet_events_tenant ON billing_usage_wallet_events(tenant_id,created_at DESC)').run();
 }
 
@@ -93,8 +102,8 @@ export async function usageStatus(env,tenantId){
   env.DB.prepare('SELECT direct_variable_cost_usd FROM billing_usage_guard WHERE tenant_id=? AND period_key=?').bind(tenantId,key).first(),
   walletStatus(env,tenantId)
  ]);
- const used=Number(row?.direct_variable_cost_usd||0),ceiling=Number(p.limits.cost_ceiling_usd||0),remainingIncluded=Math.max(0,ceiling-used),spendable=remainingIncluded+Number(wallet.balance_usd||0);
- return{...p,period_key:key,direct_variable_cost_usd:used,cost_ceiling_usd:ceiling,remaining_cost_usd:remainingIncluded,prepaid_balance_usd:Number(wallet.balance_usd||0),prepaid_total_funded_usd:Number(wallet.total_funded_usd||0),prepaid_total_consumed_usd:Number(wallet.total_consumed_usd||0),premium_spendable_usd:spendable,premium_usage_allowed:p.plan!=='free'&&spendable>0};
+ const used=Number(row?.direct_variable_cost_usd||0),ceiling=Number(p.limits.cost_ceiling_usd||0),remainingIncluded=Math.max(0,ceiling-used),walletOriginCapacity=originCapacityFromCustomerFunds(Number(wallet.balance_usd||0)),spendable=remainingIncluded+walletOriginCapacity;
+ return{...p,period_key:key,direct_variable_cost_usd:used,cost_ceiling_usd:ceiling,remaining_cost_usd:remainingIncluded,prepaid_balance_usd:Number(wallet.balance_usd||0),prepaid_origin_capacity_usd:walletOriginCapacity,prepaid_total_funded_usd:Number(wallet.total_funded_usd||0),prepaid_total_consumed_usd:Number(wallet.total_consumed_usd||0),pass_through_markup_percent:PASS_THROUGH_MARKUP_PERCENT,premium_spendable_usd:spendable,premium_usage_allowed:p.plan!=='free'&&spendable>0};
 }
 
 export async function canUsePremium(env,tenantId,{category='premium',estimated_cost_usd=0,required_plan='business',entitlement=''}={}){
@@ -107,24 +116,27 @@ export async function canUsePremium(env,tenantId,{category='premium',estimated_c
 
 export async function recordUsage(env,tenantId,{category='premium',provider='',units=0,direct_cost_usd=0,reference_id=''}={}){
  if(!env?.DB||!tenantId)return null;await ensureUsageSchema(env);const before=await usageStatus(env,tenantId),key=periodKey(),cost=Math.max(0,Number(direct_cost_usd||0));
- const overage=Math.max(0,cost-before.remaining_cost_usd);
- if(overage>0)await debitWallet(env,tenantId,overage,{reference_id:String(reference_id||crypto.randomUUID()),detail:`${category} via ${provider||'provider'}`});
+ const overage=Math.max(0,cost-before.remaining_cost_usd),customerCharge=overage>0?customerChargeUsd(overage):0,ref=String(reference_id||crypto.randomUUID());
+ if(customerCharge>0)await debitWallet(env,tenantId,customerCharge,{reference_id:ref,detail:`${category} via ${provider||'provider'} • origin ${overage.toFixed(6)} + ${PASS_THROUGH_MARKUP_PERCENT}%`});
  await env.DB.prepare(`INSERT INTO billing_usage_events(tenant_id,period_key,category,provider,units,direct_cost_usd,reference_id,created_at)
-  VALUES(?,?,?,?,?,?,?,?)`).bind(tenantId,key,String(category),String(provider),Number(units||0),cost,String(reference_id||''),now()).run();
+  VALUES(?,?,?,?,?,?,?,?)`).bind(tenantId,key,String(category),String(provider),Number(units||0),cost,ref,now()).run();
+ if(customerCharge>0)await env.DB.prepare(`INSERT INTO billing_pass_through_charges(tenant_id,period_key,category,provider,reference_id,origin_cost_usd,markup_percent,customer_charge_usd,created_at)
+  VALUES(?,?,?,?,?,?,?,?,?)`).bind(tenantId,key,String(category),String(provider),ref,overage,PASS_THROUGH_MARKUP_PERCENT,customerCharge,now()).run();
  await env.DB.prepare(`INSERT INTO billing_usage_guard(tenant_id,period_key,direct_variable_cost_usd,updated_at) VALUES(?,?,?,?)
   ON CONFLICT(tenant_id,period_key) DO UPDATE SET direct_variable_cost_usd=billing_usage_guard.direct_variable_cost_usd+excluded.direct_variable_cost_usd,updated_at=excluded.updated_at`)
   .bind(tenantId,key,cost,now()).run();
  return usageStatus(env,tenantId);
 }
 
-export function estimateAiCostUsd(provider){
+export function estimateAiCostUsd(provider,model=''){
  const p=String(provider||'').toLowerCase();
  if(p==='cloudflare-ai')return 0;
- if(p==='groq'||p==='cerebras')return 0.01;
- if(p==='google'||p==='mistral')return 0.02;
- if(p==='openai')return 0.03;
- if(p==='anthropic')return 0.04;
- return 0.02;
+ const quote=standardAiRequestCost(p,model);
+ if(quote?.priced&&Number(quote.origin_cost_usd)>=0)return Math.max(.001,Number(quote.origin_cost_usd));
+ if(p==='cerebras')return .01;
+ if(p==='mistral')return .02;
+ if(p==='anthropic'||p==='xai')return .04;
+ return .02;
 }
 
 export function estimatePstnReserveUsd(seconds=900){
