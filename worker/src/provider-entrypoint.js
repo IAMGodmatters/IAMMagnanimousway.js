@@ -64,7 +64,7 @@ function configured(env, p) {
 function meteredEnabled(env) { return String(env?.ENABLE_METERED_PROVIDERS || '').toLowerCase() === 'true'; }
 function effectiveTier(env,p){
   const billing=providerBillingMode(env,p.id);
-  return billing==='paid'&&p.tier==='free-first'?'metered':p.tier;
+  return billing!=='free'&&p.tier==='free-first'?'metered':p.tier;
 }
 function providerEnabled(env,p){return effectiveTier(env,p)!=='metered'||meteredEnabled(env)}
 function originalUserMessage(message) {
@@ -334,7 +334,7 @@ async function handle(request, env) {
   }
   if (url.pathname === '/api/magnanimous/single-brain' && request.method === 'GET') return json(getMagnanimousSingleBrainSummary());
   if ((url.pathname === '/api/magnanimous/health' || url.pathname === '/api/odin/health') && request.method === 'GET') {
-    const providers = PROVIDERS.map(p => ({ configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env) }));
+    const providers = PROVIDERS.map(p => ({ configured: configured(env, p), enabled: providerEnabled(env,p), tier:effectiveTier(env,p) }));
     const localBridgeReady=await hasAnyReadyLocalBridge(env).catch(()=>false);
     const nativeBrowserReady=await hasAnyReadyLocalBridgeCapability(env,'browser_fetch').catch(()=>false);
     return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', public_ai_identity:'Magnanimous AI', command_role:'commander-in-chief', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, adaptive_provider_learning:true, automatic_link_learning:true, native_recipe_growth:true, ogenic_god_toolkit:true, suggestive_initiation:true, local_bridge_runtime:true, local_bridge_configured:localBridgeReady, local_bridge_transport:'outbound-only', native_web_runtime:true, native_browser_ready:nativeBrowserReady, native_web_tinyfish_required:false, native_web_execution_surface:'Magnanimous Local Bridge + local Chromium', workers_ai_bound: env?.AI != null, web_search_configured:true, news_search_configured:true, brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY), research_fallback_enabled:true, routing:magnanimousPublicRoutingSummary(providers), single_brain:getMagnanimousSingleBrainSummary() });
