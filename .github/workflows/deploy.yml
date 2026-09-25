@@ -704,8 +704,9 @@ jobs:
           import json
           data=json.load(open('/tmp/edge-ai-bridge.json'))
           assert data.get('ok') is True, data
+          assert data.get('bridge_version') == '2026-09-25.1', data
           assert str(data.get('response') or '').strip(), data
-          print('Private Edge AI bridge live inference passed.')
+          print('Private Edge AI bridge live inference passed at version 2026-09-25.1.')
           PY
 
           # These are intentionally protected pages. Following the redirect verifies
