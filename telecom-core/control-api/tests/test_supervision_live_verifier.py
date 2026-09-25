@@ -1,11 +1,13 @@
 import importlib.util
 from pathlib import Path
+import sys
 import unittest
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "verify-supervision-live.py"
 SPEC = importlib.util.spec_from_file_location("verify_supervision_live", SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
+sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 
