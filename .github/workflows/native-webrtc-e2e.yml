@@ -94,7 +94,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker run -d --name magnanimous-webrtc-api --network host             -e TELECOM_API_TOKEN='ci-telecom-token-6f1e9c2d'             -e TELECOM_WEBHOOK_SECRET='ci-webhook-secret'             -e ASTERISK_ARI_URL=http://127.0.0.1:8088/ari             -e ASTERISK_ARI_USER=ci-ari             -e ASTERISK_ARI_PASSWORD='ci-ari-password-3fe92bf4'             -e ASTERISK_WEBRTC_ENABLED=true             -e ASTERISK_WEBRTC_PUBLIC_URL=wss://localhost:8089/ws             -e ASTERISK_WEBRTC_DYNAMIC_SESSIONS_ENABLED=true             -e ASTERISK_STASIS_ENABLED=true             -e ASTERISK_STASIS_APP=magnanimous-call-control             -e ASTERISK_STASIS_RECONNECT_SECONDS=0.5             -e ASTERISK_STASIS_CHANNEL_WAIT_SECONDS=2             -e ASTERISK_WEBRTC_SESSION_TTL_SECONDS=900             -e MAGNANIMOUS_SIP_DOMAIN=webrtc.test             magnanimous-telecom-api:webrtc-ci
+          docker run -d --name magnanimous-webrtc-db \
+            -e POSTGRES_DB=magnanimous_sip \
+            -e POSTGRES_USER=magnanimous_sip \
+            -e POSTGRES_PASSWORD='ci-sip-db-password-0edc88df' \
+            -p 127.0.0.1:55432:5432 \
+            -v "$GITHUB_WORKSPACE/telecom-core/sip-core/db/init.sql:/docker-entrypoint-initdb.d/001-magnanimous-sip.sql:ro" \
+            postgres:16-bookworm
+          for attempt in $(seq 1 60); do
+            if docker exec magnanimous-webrtc-db pg_isready -U magnanimous_sip -d magnanimous_sip >/dev/null 2>&1; then
+              break
+            fi
+            if [ "$attempt" = 60 ]; then
+              docker logs magnanimous-webrtc-db || true
+              exit 1
+            fi
+            sleep 1
+          done
+          docker run -d --name magnanimous-webrtc-api --network host             -e TELECOM_API_TOKEN='ci-telecom-token-6f1e9c2d'             -e TELECOM_WEBHOOK_SECRET='ci-webhook-secret'             -e ASTERISK_ARI_URL=http://127.0.0.1:8088/ari             -e ASTERISK_ARI_USER=ci-ari             -e ASTERISK_ARI_PASSWORD='ci-ari-password-3fe92bf4'             -e ASTERISK_WEBRTC_ENABLED=true             -e ASTERISK_WEBRTC_PUBLIC_URL=wss://localhost:8089/ws             -e ASTERISK_WEBRTC_DYNAMIC_SESSIONS_ENABLED=true             -e ASTERISK_STASIS_ENABLED=true             -e ASTERISK_STASIS_APP=magnanimous-call-control             -e ASTERISK_STASIS_RECONNECT_SECONDS=0.5             -e ASTERISK_STASIS_CHANNEL_WAIT_SECONDS=2             -e ASTERISK_WEBRTC_SESSION_TTL_SECONDS=900             -e MAGNANIMOUS_SIP_DOMAIN=webrtc.test             -e SIP_DB_HOST=127.0.0.1             -e SIP_DB_PORT=55432             -e SIP_DB_NAME=magnanimous_sip             -e SIP_DB_USER=magnanimous_sip             -e SIP_DB_PASSWORD='ci-sip-db-password-0edc88df'             magnanimous-telecom-api:webrtc-ci
           for attempt in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8080/health >/tmp/magnanimous-webrtc-e2e/api-health.json; then
               exit 0
@@ -175,6 +192,7 @@ jobs:
           const d=JSON.parse(fs.readFileSync('/tmp/magnanimous-webrtc-e2e/stasis-status.json','utf8'));
           if (d.identity !== 'Magnanimous Telecom') process.exit(1);
           if (d.configured !== true || d.connected !== true) process.exit(1);
+          if (d.persistent_state_ready !== true || d.restart_recovery_enabled !== true) process.exit(1);
           if (Number(d.tracked_channels || 0) < 1 || Number(d.event_count || 0) < 1) process.exit(1);
           if (d.public_ari_exposed !== false) process.exit(1);
           NODE
@@ -230,6 +248,7 @@ jobs:
           docker exec magnanimous-webrtc-e2e asterisk -rx 'pjsip show contacts' > /tmp/magnanimous-webrtc-e2e/asterisk-contacts.txt 2>&1 || true
           docker logs magnanimous-webrtc-e2e > /tmp/magnanimous-webrtc-e2e/asterisk.log 2>&1 || true
           docker logs magnanimous-webrtc-api > /tmp/magnanimous-webrtc-e2e/control-api.log 2>&1 || true
+          docker logs magnanimous-webrtc-db > /tmp/magnanimous-webrtc-e2e/postgres.log 2>&1 || true
 
       - name: Upload WebRTC proof evidence
         if: always()
@@ -246,4 +265,5 @@ jobs:
         run: |
           if [ -f /tmp/magnanimous-webrtc-e2e/web.pid ]; then kill "$(cat /tmp/magnanimous-webrtc-e2e/web.pid)" 2>/dev/null || true; fi
           docker rm -f magnanimous-webrtc-api >/dev/null 2>&1 || true
+          docker rm -f magnanimous-webrtc-db >/dev/null 2>&1 || true
           docker rm -f magnanimous-webrtc-e2e >/dev/null 2>&1 || true
