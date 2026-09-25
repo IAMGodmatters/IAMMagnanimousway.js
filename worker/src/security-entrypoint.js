@@ -18,6 +18,7 @@ import { handleCredentialVaultMigration } from './credential-vault-migration.js'
 import { handleMagnanimousCapabilityMesh } from './magnanimous-capability-mesh.js';
 import { handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
 import { handleEdgeAiBridge } from './edge-ai-bridge.js';
+import { premiumPreflight, premiumPostprocess } from './premium-runtime-guard.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -246,11 +247,14 @@ export default {
       const sessionResolution=await resolveSessionRequest(guardedRequest,env,requestId);
       if(sessionResolution.response)return finalizeResponse(request,await securityPostflight(guardedRequest,sessionResolution.response,env));
       const routedRequest=sessionResolution.request;
+      const premium=await premiumPreflight(routedRequest,env);
+      if(premium.response)return finalizeResponse(request,await securityPostflight(routedRequest,premium.response,env));
+      const premiumRequest=premium.request||routedRequest;
 
-      const ownerBoundary=await enforcePlatformOwnerBoundary(routedRequest,env);
+      const ownerBoundary=await enforcePlatformOwnerBoundary(premiumRequest,env);
       if(ownerBoundary)return finalizeResponse(request,await securityPostflight(routedRequest,ownerBoundary,env));
 
-      const assistantPolicy=await enforceAssistantActionPolicy(routedRequest,env);
+      const assistantPolicy=await enforceAssistantActionPolicy(premiumRequest,env);
       if(assistantPolicy instanceof Response)return finalizeResponse(request,await securityPostflight(routedRequest,assistantPolicy,env));
       const policyRequest=assistantPolicy?.request||routedRequest;
       assistantContext=assistantPolicy?.context||null;
@@ -322,7 +326,8 @@ export default {
       const providerAwarePath=/^\/api\/(?:phone|contact-center|telecom|voice-agent)(?:\/|$)/.test(routedUrl.pathname);
       const executionEnv=providerAwarePath?await getProviderRuntimeEnv(env):env;
       const rawResponse = await app.fetch(policyRequest, executionEnv, ctx);
-      const response = await hideServerOnlyCredentialMetadata(policyRequest,rawResponse);
+      const meteredResponse=await premiumPostprocess(rawResponse,env,premium.context);
+      const response = await hideServerOnlyCredentialMetadata(policyRequest,meteredResponse);
       const resilientResponse = continuityRequest ? await recoverProfessionalGeneration(continuityRequest, env, response) : response;
       const sessionResponse=await upgradeAuthResponseToOpaque(request,resilientResponse,env);
       const assistantResponse=await completeAssistantActionPolicy(assistantContext,sessionResponse,env);
