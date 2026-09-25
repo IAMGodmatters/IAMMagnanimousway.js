@@ -46,6 +46,12 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'INKBOX_BASE_URL',label:'Inkbox API Base URL (optional override)',secret:false,required:false}
  ]},
  {id:'tavus',name:'Tavus Human Video',providers:['tavus'],fields:[{key:'TAVUS_API_KEY',label:'Tavus API Key',secret:true,required:false}]},
+ {id:'premium-neural-voice',name:'Premium Neural Voice',providers:[],fields:[
+  {key:'MAGNANIMOUS_PREMIUM_VOICE_API_KEY',label:'Premium Neural Voice API Key',secret:true,required:false},
+  {key:'MAGNANIMOUS_PREMIUM_VOICE_ID',label:'Premium Neural Voice ID',secret:false,required:false},
+  {key:'MAGNANIMOUS_PREMIUM_VOICE_MODEL',label:'Premium Neural Voice model override (optional)',secret:false,required:false},
+  {key:'MAGNANIMOUS_PREMIUM_VOICE_COMMERCIAL_OK',label:'Commercial use approved (true/false)',secret:false,required:false}
+ ]},
  {id:'heygen',name:'Legacy Optional HeyGen Presenter Video',providers:['heygen'],fields:[{key:'HEYGEN_API_KEY',label:'HeyGen API Key (legacy optional adapter; never required by Magnanimous)',secret:true,required:false}]},
  {id:'mux',name:'Magnanimous Video Provider Credentials',providers:['mux'],fields:[
   {key:'MUX_TOKEN_ID',label:'Mux Access Token ID',secret:false,required:false},
