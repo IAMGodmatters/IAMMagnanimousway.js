@@ -7,7 +7,8 @@ const SOURCES=Object.freeze({
  anthropic:'https://www.anthropic.com/news/claude-sonnet-5',
  google:'https://ai.google.dev/gemini-api/docs/pricing',
  groq:'https://console.groq.com/docs/model/openai/gpt-oss-120b',
- mistral:'https://docs.mistral.ai/inference/pricing'
+ mistral:'https://mistral.ai/pricing/api/',
+ elevenlabs:'https://elevenlabs.io/pricing/api'
 });
 
 const price=(input,output,{cachedInput=null,cacheWrite=null,effectiveUntil='',next=null,longContext=null}={})=>({
@@ -22,8 +23,8 @@ const price=(input,output,{cachedInput=null,cacheWrite=null,effectiveUntil='',ne
 
 const CATALOG=Object.freeze({
  openai:Object.freeze({
-  'gpt-5.6':price(4,20,{cachedInput:.4,cacheWrite:5,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),
-  'gpt-5.6-sol':price(4,20,{cachedInput:.4,cacheWrite:5,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),
+  'gpt-5.6':price(4,20,{cachedInput:.4,cacheWrite:4,effectiveUntil:'2026-11-21T23:59:59Z',next:price(5,30,{cachedInput:.5,cacheWrite:5,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),
+  'gpt-5.6-sol':price(4,20,{cachedInput:.4,cacheWrite:4,effectiveUntil:'2026-11-21T23:59:59Z',next:price(5,30,{cachedInput:.5,cacheWrite:5,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),
   'gpt-5.6-terra':price(2,12,{cachedInput:.2,cacheWrite:2.5,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),
   'gpt-5.6-luna':price(.2,1.2,{cachedInput:.02,cacheWrite:.25,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}})
  }),
@@ -130,4 +131,14 @@ export function variableCustomerCharge(providerOriginCostUsd){
 
 export function verifiedPricingCatalog(){
  return{verified_at:PROVIDER_PRICING_VERIFIED_AT,sources:SOURCES,providers:Object.keys(CATALOG)};
+}
+
+
+export function voiceOriginCost({provider='elevenlabs-v3',characters=0}={}){
+ const chars=Math.max(0,Number(characters)||0),p=String(provider||'').toLowerCase();
+ if(p==='browser-native')return{ok:true,provider:'browser-native',provider_origin_cost_usd:0,customer_charge_usd:0,markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,pricing_source:'browser-native',pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT,characters:chars};
+ const perThousand=p==='elevenlabs-v3'?0.10:p==='elevenlabs-v3-conversational'?0.05:null;
+ if(perThousand==null)return{ok:false,code:'VOICE_PRICING_NOT_VERIFIED',detail:'No verified current origin price is registered for this voice model.'};
+ const origin=round(chars/1000*perThousand),customer=variableCustomerCharge(origin);
+ return{ok:true,provider:p,characters:chars,origin_usd_per_1000_characters:perThousand,provider_origin_cost_usd:origin,customer_charge_usd:customer.customer_charge_usd,markup_usd:customer.markup_usd,markup_percent:customer.markup_percent,pricing_source:SOURCES.elevenlabs,pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT};
 }
