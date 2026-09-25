@@ -632,6 +632,23 @@ jobs:
             printf '%s' "$status"
           }
 
+          safe_idempotent_put_status() {
+            local output="$1" url="$2"; shift 2
+            local status="" attempt
+            for attempt in 1 2 3 4 5; do
+              status="$(command curl -sS --connect-timeout 10 --max-time 120 -o "$output" -w '%{http_code}' -X PUT "$url" "$@" || true)"
+              case "$status" in
+                200) break ;;
+                000|502|503|504)
+                  echo "Transient idempotent PUT smoke response HTTP ${status:-request-failed}; retrying ${attempt}/5." >&2
+                  sleep 2
+                  ;;
+                *) break ;;
+              esac
+            done
+            printf '%s' "$status"
+          }
+
           deployment_smoke_oidc() {
             local oidc_json
             oidc_json=$(command curl -fsS --connect-timeout 10 --max-time 30 \
@@ -704,9 +721,9 @@ jobs:
           import json
           data=json.load(open('/tmp/edge-ai-bridge.json'))
           assert data.get('ok') is True, data
-          assert data.get('bridge_version') == '2026-09-25.1', data
+          assert data.get('bridge_version') == '2026-09-25.2', data
           assert str(data.get('response') or '').strip(), data
-          print('Private Edge AI bridge live inference passed at version 2026-09-25.1.')
+          print('Private Edge AI bridge live inference passed at version 2026-09-25.2.')
           PY
 
           # These are intentionally protected pages. Following the redirect verifies
@@ -1399,7 +1416,7 @@ jobs:
               app['enabled']=app['app_id'] in {'branded-ai','crm','inbox','booking','funnel','automations','work-engine','business-ai:sticky-notes'}
           print(json.dumps({'apps':apps}))
           PY
-          status=$(curl -sS -o /tmp/client-apps-saved.json -w '%{http_code}' -X PUT "$BASE_URL/api/white-label-os/client-apps?client_id=$client_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data-binary @/tmp/client-apps-save.json)
+          status=$(safe_idempotent_put_status /tmp/client-apps-saved.json "$BASE_URL/api/white-label-os/client-apps?client_id=$client_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data-binary @/tmp/client-apps-save.json)
           if [ "$status" != "200" ]; then echo "Client Apps save returned HTTP $status"; cat /tmp/client-apps-saved.json || true; exit 1; fi
 
           while IFS= read -r href; do
