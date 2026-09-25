@@ -78,7 +78,7 @@ async function premiumReasoning(env,prompt,allowMetered){
  if(allowMetered&&String(env.ANTHROPIC_API_KEY||'').trim())candidates.push(()=>anthropic(env,prompt));
  if(allowMetered&&String(env.GOOGLE_API_KEY||'').trim())candidates.push(()=>gemini(env,prompt));
  if(allowMetered&&String(env.MISTRAL_API_KEY||'').trim())candidates.push(()=>compatible('https://api.mistral.ai/v1',env.MISTRAL_API_KEY,env.BUSINESS_PLAN_MISTRAL_MODEL||'mistral-medium-latest',prompt,'mistral',.10));
- if(allowMetered&&String(env.GROQ_API_KEY||'').trim())candidates.push(()=>compatible('https://api.groq.com/openai/v1',env.GROQ_API_KEY,env.BUSINESS_PLAN_GROQ_MODEL||'llama-3.3-70b-versatile',prompt,'groq',.05));
+ if(allowMetered&&String(env.GROQ_API_KEY||'').trim())candidates.push(()=>compatible('https://api.groq.com/openai/v1',env.GROQ_API_KEY,env.BUSINESS_PLAN_GROQ_MODEL||'openai/gpt-oss-120b',prompt,'groq',.05));
  candidates.push(()=>cloudflare(env,prompt,{strong:true,maxTokens:5000}));
  const errors=[];
  for(const call of candidates){
