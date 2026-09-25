@@ -1454,10 +1454,11 @@ jobs:
 
           start_at=$((smoke_ts+3600)); end_at=$((smoke_ts+5400))
           booking_email="booking-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
+          booking_idempotency_key="smoke-booking-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           booking_payload="{\"client_id\":\"$client_id\",\"contact_name\":\"Smoke Booking\",\"contact_email\":\"$booking_email\",\"service\":\"Consultation\",\"start_at\":$start_at,\"end_at\":$end_at}"
           status=""
           for attempt in 1 2 3 4 5; do
-            status=$(command curl -sS --connect-timeout 10 --max-time 120 -o /tmp/wl-booking.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/bookings" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "$booking_payload" || true)
+            status=$(command curl -sS --connect-timeout 10 --max-time 120 -o /tmp/wl-booking.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/bookings" -H 'content-type: application/json' -H "Authorization: Bearer $token" -H "Idempotency-Key: $booking_idempotency_key" --data "$booking_payload" || true)
             if [ "$status" = "201" ]; then break; fi
             case "$status" in
               000|409|502|503|504)
@@ -1483,6 +1484,14 @@ PY
             esac
           done
           if [ "$status" != "201" ]; then echo "White Label booking returned HTTP $status"; cat /tmp/wl-booking.json || true; exit 1; fi
+          replay_status=$(command curl -sS --connect-timeout 10 --max-time 120 -o /tmp/wl-booking-replay.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/bookings" -H 'content-type: application/json' -H "Authorization: Bearer $token" -H "Idempotency-Key: $booking_idempotency_key" --data "$booking_payload" || true)
+          if [ "$replay_status" != "201" ]; then echo "Idempotent booking replay returned HTTP $replay_status"; cat /tmp/wl-booking-replay.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-booking-replay.json'))
+          assert d.get('ok') is True and d.get('idempotent') is True and d.get('replayed') is True and d.get('id'),d
+          print('Agency booking idempotency replay verified without a duplicate booking.')
+          PY
 
           status=$(curl -sS -o /tmp/wl-funnel.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/funnels" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"name\":\"Smoke Funnel\",\"slug\":\"smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}\",\"headline\":\"Smoke Funnel Headline\",\"offer\":\"Production White Label funnel verification.\",\"cta_label\":\"Get started\",\"status\":\"active\"}")
           if [ "$status" != "201" ]; then echo "White Label funnel creation returned HTTP $status"; cat /tmp/wl-funnel.json || true; exit 1; fi
