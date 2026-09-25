@@ -78,6 +78,17 @@ Primary-source implementation basis:
 | 62 | `generate_video` | Movie Maker + Native Video Stack | native media / optional funded capacity |
 | 63 | `edit_media` | Native Video Stack | native media |
 
+
+## Official YouTube owner actions added after reconciliation
+
+- Owned caption retrieval now uses YouTube's authorized captions list/download path and only for videos owned by the connected channel.
+- Owned video metadata updates now use the official `videos.update` path, preserve omitted fields, verify channel ownership, and require an explicit publish action.
+- YouTube comment replies now use the official `comments.insert` path, verify that the parent comment belongs to a video owned by the connected channel, and require an explicit publish action.
+- These owner operations require `https://www.googleapis.com/auth/youtube.force-ssl`. Existing YouTube connections may need one reconnect before owner actions become available.
+- Read-only Creator Growth research remains usable independently when public API-key or read-only OAuth access is available.
+
+These additions close the native workflow gap without consuming vidIQ credits or copying vidIQ implementation details. Public discovery and official owner actions remain subject to YouTube quota, OAuth approval, and account permissions.
+
 ## Non-copy rule
 
 A native equivalent may reproduce the user-visible *function* of a benchmark where lawful and technically available, but it must not represent proprietary vidIQ data, code, ranking models, archived assets, private subscriber-overlap data, or secret prompts as Magnanimous-owned technology. Magnanimous-native results must identify when they use official platform data, Magnanimous-observed history, or heuristic/proxy analysis.
