@@ -28,6 +28,14 @@ function xmlEscape(v){return String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','
 function aspectViewBox(aspect){
  const [a,b]=String(aspect||'16:9').split(':').map(Number);const w=1600,h=Math.round(w*(b||9)/(a||16));return{w,h};
 }
+function engagementPackage(title,source=''){
+ const cleanTitle=cleanText(title||'Magnanimous creation',120).replace(/[.!?]+$/,'');
+ const cleanSource=cleanText(source,280).replace(/\s+/g,' ');
+ const hook=cleanTitle.length>=18?cleanTitle:`${cleanTitle} — See What Happens`;
+ const description=cleanSource||`Watch this original creation made with Magnanimous AI.`;
+ const caption=`${hook}. ${description}`.slice(0,360);
+ return{headline:hook,description,share_caption:caption,policy:'truthful-engagement-only'};
+}
 function googleImageApiSize(size){return String(size||'2K').toUpperCase()==='0.5K'?'512':String(size||'2K').toUpperCase()}
 function imageModelFor(quality,size){
  const q=String(quality||'balanced').toLowerCase();
@@ -75,8 +83,9 @@ async function ensureSchema(env){
   kind TEXT NOT NULL,title TEXT NOT NULL DEFAULT '',object_key TEXT NOT NULL DEFAULT '',source_url TEXT NOT NULL DEFAULT '',
   content_type TEXT NOT NULL,watermarked INTEGER NOT NULL DEFAULT 1,ad_supported INTEGER NOT NULL DEFAULT 0,
   provider_origin_cost_usd REAL NOT NULL DEFAULT 0,customer_charge_usd REAL NOT NULL DEFAULT 0,
-  created_at INTEGER NOT NULL,expires_at INTEGER
+  share_caption TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,expires_at INTEGER
  )`).run();
+ try{await env.DB.prepare("ALTER TABLE movie_maker_assets ADD COLUMN share_caption TEXT NOT NULL DEFAULT ''").run()}catch{}
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS movie_maker_jobs(
   id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,kind TEXT NOT NULL,status TEXT NOT NULL,
   interaction_id TEXT NOT NULL DEFAULT '',prompt TEXT NOT NULL DEFAULT '',title TEXT NOT NULL DEFAULT '',
@@ -121,22 +130,22 @@ function priceCard(){
   billing_rule:'Paid variable usage is reconciled at verified provider origin cost. Retail reference is origin cost + exactly 20%; included allowance can reduce the separate prepaid-wallet debit.'
  };
 }
-async function persistAsset(env,request,user,{kind,title,bytes,content_type,watermarked,origin=0,customer=0,source_url=''}) {
- const id=crypto.randomUUID(),share=crypto.randomUUID().replace(/-/g,''),extension=extFor(content_type),key=`movie-maker/${user.tenant_id}/${id}.${extension}`;
+async function persistAsset(env,request,user,{kind,title,bytes,content_type,watermarked,origin=0,customer=0,source_url='',source_text=''}) {
+ const id=crypto.randomUUID(),share=crypto.randomUUID().replace(/-/g,''),extension=extFor(content_type),key=`movie-maker/${user.tenant_id}/${id}.${extension}`,engagement=engagementPackage(title,source_text);
  let objectKey='',publicSource=source_url;
  if(bytes?.byteLength&&env?.MAGNANIMOUS_OBJECT_STORE?.put){
   await env.MAGNANIMOUS_OBJECT_STORE.put(key,bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),{httpMetadata:{contentType:content_type,cacheControl:'public, max-age=31536000, immutable'},customMetadata:{tenant_id:String(user.tenant_id),kind:String(kind)}});
   objectKey=key;publicSource=`${new URL(request.url).origin}/api/movie-maker/share/${share}`;
  }
- await env.DB.prepare(`INSERT INTO movie_maker_assets(id,share_token,tenant_id,user_id,kind,title,object_key,source_url,content_type,watermarked,ad_supported,provider_origin_cost_usd,customer_charge_usd,created_at)
-  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,share,String(user.tenant_id),String(user.id),String(kind),cleanText(title,180),objectKey,publicSource,String(content_type),watermarked?1:0,(await planFor(env,user))==='free'?1:0,Number(origin||0),Number(customer||0),now()).run();
- return{id,share_token:share,asset_url:publicSource||null,download_url:publicSource||null,watch_url:`${new URL(request.url).origin}/movie?asset=${encodeURIComponent(share)}`,social_publish_url:publicSource?`/social-connect?video_url=${encodeURIComponent(publicSource)}&title=${encodeURIComponent(cleanText(title,120))}`:null,storage_persistent:Boolean(objectKey)};
+ await env.DB.prepare(`INSERT INTO movie_maker_assets(id,share_token,tenant_id,user_id,kind,title,object_key,source_url,content_type,watermarked,ad_supported,provider_origin_cost_usd,customer_charge_usd,share_caption,created_at)
+  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,share,String(user.tenant_id),String(user.id),String(kind),engagement.headline,objectKey,publicSource,String(content_type),watermarked?1:0,(await planFor(env,user))==='free'?1:0,Number(origin||0),Number(customer||0),engagement.share_caption,now()).run();
+ return{id,share_token:share,title:engagement.headline,share_caption:engagement.share_caption,asset_url:publicSource||null,download_url:publicSource||null,watch_url:`${new URL(request.url).origin}/movie?asset=${encodeURIComponent(share)}`,social_publish_url:publicSource?`/social-connect?video_url=${encodeURIComponent(publicSource)}&title=${encodeURIComponent(engagement.headline)}`:null,storage_persistent:Boolean(objectKey)};
 }
 async function shareAsset(request,env,token,metaOnly=false){
  if(!env?.DB)return json({detail:'Asset storage is unavailable.'},503);
  await ensureSchema(env);const row=await env.DB.prepare('SELECT * FROM movie_maker_assets WHERE share_token=?').bind(String(token||'')).first();
  if(!row)return json({detail:'Shared movie asset not found.'},404);
- if(metaOnly)return json({title:row.title,kind:row.kind,content_type:row.content_type,watermarked:Boolean(row.watermarked),ad_supported:Boolean(row.ad_supported),asset_url:`${new URL(request.url).origin}/api/movie-maker/share/${row.share_token}`,watch_url:`${new URL(request.url).origin}/movie?asset=${row.share_token}`});
+ if(metaOnly)return json({title:row.title,share_caption:row.share_caption||'',kind:row.kind,content_type:row.content_type,watermarked:Boolean(row.watermarked),ad_supported:Boolean(row.ad_supported),asset_url:`${new URL(request.url).origin}/api/movie-maker/share/${row.share_token}`,watch_url:`${new URL(request.url).origin}/movie?asset=${row.share_token}`});
  if(row.object_key&&env?.MAGNANIMOUS_OBJECT_STORE?.get){
   const object=await env.MAGNANIMOUS_OBJECT_STORE.get(row.object_key);if(!object)return json({detail:'Movie asset bytes are unavailable.'},404);
   const bytes=new Uint8Array(await object.arrayBuffer());return new Response(bytes,{headers:{'content-type':row.content_type,'cache-control':'public, max-age=31536000, immutable','content-disposition':`inline; filename="magnanimous-${row.kind}.${extFor(row.content_type)}"`}});
@@ -181,7 +190,7 @@ async function generateFreeImage(request,env,user,body,plan){
  const scene=await renderVisualScene(env,{title,text:prompt,style,director:'built-in'}),parsed=parseDataUri(scene.image_data_uri);if(!parsed)throw new Error('Free-first visual output was invalid.');
  let output={bytes:parsed.bytes,content_type:parsed.content_type,watermarked:false};
  if(watermarkRequired(plan))output=await watermarkImage(env,scene.image_data_uri,aspect);
- const persisted=await persistAsset(env,request,user,{kind:'image',title,bytes:output.bytes,content_type:output.content_type,watermarked:watermarkRequired(plan)});
+ const persisted=await persistAsset(env,request,user,{kind:'image',title,bytes:output.bytes,content_type:output.content_type,watermarked:watermarkRequired(plan),source_text:prompt});
  const dataUri=persisted.asset_url?null:`data:${output.content_type};base64,${b64FromBytes(output.bytes)}`;
  return json({ok:true,mode:'free-first',identity:'Magnanimous AI',plan,policy:mediaPolicy(plan),asset:{...persisted,data_uri:dataUri,content_type:output.content_type},provider_details_private:true});
 }
@@ -202,7 +211,7 @@ async function generateStudioImage(request,env,user,body,plan){
  const priced=googleImageOriginCost({model:selected.model,image_size:selected.size,usage:d.usage||{}});if(!priced.ok)throw new Error(priced.code);
  const variable=variableCustomerCharge(priced.provider_origin_cost_usd),ref=`movie-image:${d.id||crypto.randomUUID()}`;
  await recordUsage(env,user.tenant_id,{category:'movie-maker-image',provider:'managed-studio-image',units:1,provider_origin_cost_usd:priced.provider_origin_cost_usd,reference_id:ref,pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at});
- const bytes=bytesFromB64(out.data),persisted=await persistAsset(env,request,user,{kind:'image',title,bytes,content_type:out.mime_type||out.mimeType||'image/png',watermarked:false,origin:priced.provider_origin_cost_usd,customer:variable.customer_charge_usd});
+ const bytes=bytesFromB64(out.data),persisted=await persistAsset(env,request,user,{kind:'image',title,bytes,content_type:out.mime_type||out.mimeType||'image/png',watermarked:false,origin:priced.provider_origin_cost_usd,customer:variable.customer_charge_usd,source_text:prompt});
  return json({ok:true,mode:'studio',quality:selected.quality,identity:'Magnanimous AI',plan,policy:mediaPolicy(plan),asset:{...persisted,data_uri:persisted.asset_url?null:`data:image/png;base64,${out.data}`,content_type:'image/png'},billing:{provider_origin_cost_usd:priced.provider_origin_cost_usd,markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,retail_reference_usd:variable.customer_charge_usd},provider_details_private:true});
 }
 async function createStudioVoice(request,env,user,body,plan){
@@ -240,7 +249,7 @@ async function createStudioVoice(request,env,user,body,plan){
   await recordUsage(env,user.tenant_id,{category:'movie-maker-voice',provider:'managed-studio-voice',units:seconds||text.length,provider_origin_cost_usd:origin,reference_id:`movie-voice:${requestId}`,pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at});
   billing={provider_origin_cost_usd:origin,markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,retail_reference_usd:retail,billing_mode:'paid'};
  }
- const persisted=await persistAsset(env,request,user,{kind:'audio',title,bytes,content_type:contentType,watermarked:false,origin,customer:retail});
+ const persisted=await persistAsset(env,request,user,{kind:'audio',title,bytes,content_type:contentType,watermarked:false,origin,customer:retail,source_text:text});
  return json({ok:true,mode:billingMode==='free'?'free-provider-tier':'studio',quality,identity:'Magnanimous AI',asset:{...persisted,content_type:contentType,duration_seconds:seconds||null},billing,free_browser_voice:true,provider_details_private:true});
 }
 async function freeVideo(request,env,user,body,plan){
@@ -309,7 +318,7 @@ async function pollStudioVideo(request,env,user,jobId){
  if(!priced?.ok){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('billing_reconciliation_failed',priced?.detail||priced?.code||'Pricing verification failed',now(),job.id).run();return json({job_id:job.id,status:'billing_reconciliation_failed',detail:'Movie was generated but exact origin cost could not be verified, so the asset was withheld.',free_first_available:true},409)}
  const variable=variableCustomerCharge(priced.provider_origin_cost_usd);
  try{await recordUsage(env,user.tenant_id,{category:'movie-maker-video',provider:'managed-studio-video',units:Number(job.seconds||0),provider_origin_cost_usd:priced.provider_origin_cost_usd,reference_id:`movie-video:${job.interaction_id}`,pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at})}catch(error){await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,error_text=?,updated_at=? WHERE id=?').bind('billing_reconciliation_failed',String(error?.message||error),now(),job.id).run();return json({job_id:job.id,status:'billing_reconciliation_failed',detail:'Movie was generated but funded billing reconciliation failed, so the asset was withheld.',free_first_available:true},409)}
- const persisted=await persistAsset(env,request,user,{kind:'video',title:job.title,bytes,content_type:contentType,watermarked:false,origin:priced.provider_origin_cost_usd,customer:variable.customer_charge_usd});
+ const persisted=await persistAsset(env,request,user,{kind:'video',title:job.title,bytes,content_type:contentType,watermarked:false,origin:priced.provider_origin_cost_usd,customer:variable.customer_charge_usd,source_text:prompt});
  await env.DB.prepare('UPDATE movie_maker_jobs SET status=?,asset_id=?,updated_at=? WHERE id=?').bind('completed',persisted.id,now(),job.id).run();
  return json({job_id:job.id,status:'completed',asset:{...persisted,content_type:contentType,watermarked:false},billing:{provider_origin_cost_usd:priced.provider_origin_cost_usd,markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,retail_reference_usd:variable.customer_charge_usd},provider_details_private:true});
 }
