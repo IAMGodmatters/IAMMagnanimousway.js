@@ -1,7 +1,23 @@
 import sys
+import types
 from dataclasses import replace
 from pathlib import Path
 import unittest
+
+# The repository-wide Python job intentionally installs only backend requirements.
+# This route unit test injects the minimal httpx import surface when the Telecom
+# package dependency is absent; the dedicated Telecom workflow installs real httpx.
+try:
+    import httpx  # noqa: F401
+except ModuleNotFoundError:
+    httpx = types.ModuleType("httpx")
+    class HTTPError(Exception):
+        pass
+    class AsyncClient:
+        pass
+    httpx.HTTPError = HTTPError
+    httpx.AsyncClient = AsyncClient
+    sys.modules["httpx"] = httpx
 
 CONTROL_API_ROOT = Path(__file__).resolve().parents[1]
 if str(CONTROL_API_ROOT) not in sys.path:
