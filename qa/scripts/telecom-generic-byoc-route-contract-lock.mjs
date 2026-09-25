@@ -4,6 +4,10 @@ import { probeGenericByocRouteContract } from '../../worker/src/lead-phone.js';
 
 const leadPhone=fs.readFileSync('worker/src/lead-phone.js','utf8');
 const carrierCore=fs.readFileSync('worker/src/magnanimous-carrier-core.js','utf8');
+const providerEnv=fs.readFileSync('worker/src/provider-runtime-env.js','utf8');
+const platformCredentials=fs.readFileSync('worker/src/platform-credentials.js','utf8');
+const telecomNetwork=fs.readFileSync('worker/src/magnanimous-telecom-network-runtime.js','utf8');
+const telecomNetworkUi=fs.readFileSync('frontend/app/telecom/network/page.tsx','utf8');
 
 const originalFetch=globalThis.fetch;
 try {
@@ -102,5 +106,11 @@ assert.ok(
   carrierCore.includes("if(executionEndpoint&&bridgeRouteKey)return json"),
   'ambiguous route execution contracts must fail at route creation'
 );
+assert.ok(providerEnv.includes("'VOIP_PROVIDER_ROUTE_CONTRACT_URL'"),'protected runtime env must allow the BYOC contract URL');
+assert.ok(platformCredentials.includes("VOIP_PROVIDER_ROUTE_CONTRACT_URL"),'owner credential schema must expose the BYOC contract URL');
+assert.ok(telecomNetwork.includes("generic_byoc_contract:true"),'network truth must report contract-capable BYOC');
+assert.ok(telecomNetwork.includes("generic_byoc_legacy_fallback:true"),'network truth must keep the legacy fallback visible until retired');
+assert.ok(telecomNetworkUi.includes('Contract-capable generic BYOC'),'owner Telecom UI must expose BYOC contract migration state');
+assert.ok(telecomNetworkUi.includes('Legacy generic/no-route fallback'),'owner Telecom UI must expose the remaining fallback state');
 
 console.log('Magnanimous generic BYOC selected-route contract lock passed.');
