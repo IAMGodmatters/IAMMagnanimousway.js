@@ -62,6 +62,23 @@ The Worker records supervision and recording lifecycle state in:
 
 Deployment smoke cleanup deletes disposable rows for these tenant-scoped tables in both the Worker data plane and standalone runtime.
 
+## Real-host verification workflow
+
+The repository includes **Telecom Stasis Live Verification** (`.github/workflows/telecom-stasis-live-verification.yml`) plus the external verifier at `telecom-core/scripts/verify-supervision-live.py`.
+
+The workflow is intentionally manual because it requires a real, active, consented test call and cannot safely invent one. Configure:
+
+- repository variable `TELECOM_PUBLIC_CONTROL_API_URL` — HTTPS origin of the protected public Telecom Core control API;
+- repository secret `TELECOM_PUBLIC_CONTROL_API_TOKEN` — the bearer token for that protected API;
+- repository variable `TELECOM_NATIVE_WEBRTC_LIVE=true` **only after** the separate Public Telecom WebRTC Verification has already passed, and only when monitor/whisper/barge lifecycle verification is requested.
+
+Each manual run supplies the active Asterisk target channel ID, recording jurisdiction, optional online supervisor PJSIP endpoint, and an explicit confirmation that all test-call participants received the required consent/notice.
+
+The verifier always proves the negative consent gate first. Recording verification then proves the real host can create the snoop channel and mixing bridge, start a beep-enabled recording, stop it, clean up, and keep raw recording paths private.
+
+Monitor/whisper/barge lifecycle verification is a separate optional path. It refuses to run unless the WebRTC live gate is already true and an online supervisor endpoint is supplied. It proves that the real host creates the expected snoop/supervisor/bridge resources and cleans them up for all three modes. It **does not** claim that acoustic semantics were automatically proven; a final production promotion still requires observed monitor/whisper/barge behavior on the consented real call.
+
+The workflow uploads a 30-day evidence artifact. It never writes either live flag and never promotes `ASTERISK_SUPERVISOR_CONTROL_ENABLED` or `TELECOM_NATIVE_WEBRTC_LIVE` automatically.
 ## Activation checklist
 
 Do not set `ASTERISK_SUPERVISOR_CONTROL_ENABLED=true` merely because the source code exists.
