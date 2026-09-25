@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+import json
 
 import asyncpg
 
@@ -118,8 +119,18 @@ class PostgresStasisStateStore:
                 ORDER BY created_at
                 """
             )
+            bridge_rows = []
+            for row in bridges:
+                item = dict(row)
+                raw = item.get("channel_ids")
+                if isinstance(raw, str):
+                    try:
+                        item["channel_ids"] = json.loads(raw)
+                    except json.JSONDecodeError:
+                        item["channel_ids"] = []
+                bridge_rows.append(item)
             return {
-                "bridges": [dict(row) for row in bridges],
+                "bridges": bridge_rows,
                 "supervisors": [dict(row) for row in supervisors],
                 "recordings": [dict(row) for row in recordings],
             }
@@ -149,7 +160,7 @@ class PostgresStasisStateStore:
                 """,
                 bridge_id,
                 call_id,
-                list(channel_ids),
+                json.dumps(list(channel_ids)),
                 created_at,
             )
         finally:
