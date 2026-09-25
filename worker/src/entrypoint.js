@@ -1,5 +1,6 @@
 import app from './index.js';
 import { handleLeadPhone } from './lead-phone.js';
+import { handlePhoneCarrier } from './phone-carrier-runtime.js';
 import { handleContactCenter } from './contact-center-runtime.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { handleIntegrations } from './integrations.js';
@@ -140,6 +141,8 @@ export default {
     if(integration)return integration;
     const contactCenter=await handleContactCenter(request,env);
     if(contactCenter)return contactCenter;
+    const phoneCarrier=await handlePhoneCarrier(request,env);
+    if(phoneCarrier)return phoneCarrier;
     const feature=await handleLeadPhone(request,env);
     if(feature)return feature;
     return app.fetch(request,env,ctx);
