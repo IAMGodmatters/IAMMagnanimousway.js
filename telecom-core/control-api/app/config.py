@@ -68,6 +68,10 @@ class TelecomSettings:
     sip_db_password: str = ""
     carrier_secondary_endpoint: str = ""
     carrier_allowed_endpoints: tuple[str, ...] = ()
+    stasis_enabled: bool = False
+    stasis_app: str = "magnanimous-call-control"
+    stasis_reconnect_seconds: float = 2.0
+    stasis_channel_wait_seconds: float = 3.0
 
     @classmethod
     def from_env(cls) -> "TelecomSettings":
@@ -122,4 +126,8 @@ class TelecomSettings:
             sip_db_password=_env("SIP_DB_PASSWORD"),
             carrier_secondary_endpoint=carrier_secondary_endpoint,
             carrier_allowed_endpoints=carrier_allowed,
+            stasis_enabled=_env_bool("ASTERISK_STASIS_ENABLED", False),
+            stasis_app=_env("ASTERISK_STASIS_APP", "magnanimous-call-control"),
+            stasis_reconnect_seconds=max(0.5, min(30.0, _env_float("ASTERISK_STASIS_RECONNECT_SECONDS", 2.0))),
+            stasis_channel_wait_seconds=max(0.5, min(10.0, _env_float("ASTERISK_STASIS_CHANNEL_WAIT_SECONDS", 3.0))),
         )

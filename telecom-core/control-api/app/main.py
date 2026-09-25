@@ -7,12 +7,19 @@ from fastapi.responses import JSONResponse
 
 from .container import ApplicationContainer, get_container
 from .errors import TelecomError
-from .models import HangupRequest, OutboundCall, SipAccountCreate
+from .models import (
+    BridgeRecordingStart,
+    HangupRequest,
+    OutboundCall,
+    SipAccountCreate,
+    StasisBridgeCreate,
+    SupervisorSessionCreate,
+)
 from .lifecycle import lifespan
 
 app = FastAPI(
     title="Magnanimous Telecom Core",
-    version="0.6.0",
+    version="0.7.0",
     docs_url="/docs",
     redoc_url=None,
     lifespan=lifespan,
@@ -101,6 +108,76 @@ async def delete_webrtc_session(
     container: ApplicationContainer = Depends(get_container),
 ) -> dict[str, Any]:
     return await container.webrtc_sessions.delete(session_id)
+
+
+@app.get("/v1/stasis", dependencies=[Depends(require_token)])
+async def stasis_status(container: ApplicationContainer = Depends(get_container)) -> dict[str, Any]:
+    return {
+        "identity": "Magnanimous Telecom",
+        "service": "Stasis Call Control",
+        **container.stasis_control.status(),
+    }
+
+
+@app.post("/v1/stasis/bridges", status_code=201, dependencies=[Depends(require_token)])
+async def create_stasis_bridge(
+    request: StasisBridgeCreate,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.stasis_control.create_bridge(request.call_id, request.channel_ids)
+
+
+@app.delete("/v1/stasis/bridges/{bridge_id}", dependencies=[Depends(require_token)])
+async def delete_stasis_bridge(
+    bridge_id: str,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.stasis_control.destroy_bridge(bridge_id)
+
+
+@app.post("/v1/stasis/supervisor", status_code=201, dependencies=[Depends(require_token)])
+async def start_supervisor_session(
+    request: SupervisorSessionCreate,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.stasis_control.start_supervisor(
+        call_bridge_id=request.call_bridge_id,
+        target_channel_id=request.target_channel_id,
+        supervisor_channel_id=request.supervisor_channel_id,
+        mode=request.mode,
+        requested_by=request.requested_by,
+    )
+
+
+@app.delete("/v1/stasis/supervisor/{session_id}", dependencies=[Depends(require_token)])
+async def stop_supervisor_session(
+    session_id: str,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.stasis_control.stop_supervisor(session_id)
+
+
+@app.post("/v1/stasis/recordings", status_code=201, dependencies=[Depends(require_token)])
+async def start_bridge_recording(
+    request: BridgeRecordingStart,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.stasis_control.start_recording(
+        bridge_id=request.bridge_id,
+        requested_by=request.requested_by,
+        consent_confirmed=request.consent_confirmed,
+        consent_basis=request.consent_basis,
+        beep=request.beep,
+        max_duration_seconds=request.max_duration_seconds,
+    )
+
+
+@app.post("/v1/stasis/recordings/{recording_name}/stop", dependencies=[Depends(require_token)])
+async def stop_bridge_recording(
+    recording_name: str,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.stasis_control.stop_recording(recording_name)
 
 
 @app.get("/v1/sip/health", dependencies=[Depends(require_token)])

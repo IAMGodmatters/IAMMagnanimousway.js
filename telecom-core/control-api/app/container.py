@@ -5,12 +5,14 @@ from dataclasses import dataclass
 from .adapters.asterisk import AsteriskAriClient, AsteriskSipCarrierBridge
 from .adapters.callbacks import CallbackUrlPolicy, WebhookStatusPublisher
 from .adapters.sip_subscribers import PostgresSipSubscriberStore
+from .adapters.stasis_state import PostgresStasisStateStore
 from .config import TelecomSettings
 from .security import TelecomTokenAuthenticator
 from .services.calls import CallService
 from .services.health import HealthService
 from .services.monitoring import CarrierCallMonitor
 from .services.sip_accounts import SipAccountService
+from .services.stasis_control import StasisCallControlService, StasisEventListener
 from .services.webrtc_sessions import WebRtcSessionService
 
 
@@ -23,6 +25,8 @@ class ApplicationContainer:
     health: HealthService
     sip_accounts: SipAccountService
     webrtc_sessions: WebRtcSessionService
+    stasis_events: StasisEventListener
+    stasis_control: StasisCallControlService
 
 
 def build_container(settings: TelecomSettings | None = None) -> ApplicationContainer:
@@ -34,7 +38,10 @@ def build_container(settings: TelecomSettings | None = None) -> ApplicationConta
     publisher = WebhookStatusPublisher(resolved)
     monitor = CarrierCallMonitor(bridge, publisher, resolved)
     calls = CallService(bridge, monitor, callback_policy, resolved)
-    health = HealthService(bridge, monitor, resolved)
+    stasis_events = StasisEventListener(ari, resolved)
+    stasis_state = PostgresStasisStateStore(resolved)
+    stasis_control = StasisCallControlService(ari, stasis_events, stasis_state, resolved)
+    health = HealthService(bridge, monitor, resolved, stasis_control)
     auth = TelecomTokenAuthenticator(resolved)
     subscriber_store = PostgresSipSubscriberStore(resolved)
     sip_accounts = SipAccountService(subscriber_store, resolved)
@@ -47,6 +54,8 @@ def build_container(settings: TelecomSettings | None = None) -> ApplicationConta
         health=health,
         sip_accounts=sip_accounts,
         webrtc_sessions=webrtc_sessions,
+        stasis_events=stasis_events,
+        stasis_control=stasis_control,
     )
 
 
