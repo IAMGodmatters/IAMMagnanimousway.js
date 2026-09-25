@@ -86,9 +86,9 @@ class AsteriskSipCarrierBridge:
                 "sms": False,
                 "sim_esim_provisioning": False,
                 "number_provisioning": False,
-                "managed_stasis_bridge": bool(self._stasis is not None and self._stasis.enabled),
-                "supervisor_audio": bool(self._stasis is not None and self._stasis.status().get("supervisor_audio_configured")),
-                "bridge_recording": bool(self._stasis is not None and self._stasis.status().get("bridge_recording_configured")),
+                "managed_stasis_bridge_configured": bool(self._stasis is not None and self._stasis.enabled),
+                "supervisor_audio_configured": bool(self._stasis is not None and self._stasis.status().get("supervisor_audio_configured")),
+                "bridge_recording_configured": bool(self._stasis is not None and self._stasis.status().get("bridge_recording_configured")),
             },
         }
 
