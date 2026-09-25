@@ -34,7 +34,7 @@ class SupervisorService:
         self._ari = ari
         self._events = events
         self._settings = settings
-        self._tasks: set[asyncio.Task[Any]] = set()
+        self._tasks: dict[str, asyncio.Task[Any]] = {}
 
     def capabilities(self) -> dict[str, Any]:
         return {
@@ -56,6 +56,10 @@ class SupervisorService:
 
     @staticmethod
     def _resources(session_id: str) -> dict[str, str]:
+        try:
+            session_id = str(uuid.UUID(str(session_id)))
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise TelecomValidationError("Invalid supervision session identifier.") from exc
         token = session_id.replace("-", "")
         return {
             "session_id": session_id,
@@ -160,8 +164,8 @@ class SupervisorService:
             task = asyncio.create_task(
                 self._attach_when_ready(resources["bridge_id"], resources["supervisor_channel_id"])
             )
-            self._tasks.add(task)
-            task.add_done_callback(self._tasks.discard)
+            self._tasks[session_id] = task
+            task.add_done_callback(lambda _task, sid=session_id: self._tasks.pop(sid, None))
 
             return {
                 **resources,
@@ -388,6 +392,9 @@ class SupervisorService:
     async def stop(self, session_id: str) -> dict[str, Any]:
         self._require_ready()
         resources = self._resources(session_id)
+        task = self._tasks.pop(resources["session_id"], None)
+        if task is not None:
+            task.cancel()
         live = await self._ari.request("GET", f"/recordings/live/{resources['recording_name']}")
         if live.is_success:
             await self._ari.request("POST", f"/recordings/live/{resources['recording_name']}/stop")
@@ -397,6 +404,14 @@ class SupervisorService:
             ("bridge", resources["bridge_id"]),
         ])
         return {**resources, "stopped": True}
+
+    async def shutdown(self) -> None:
+        tasks = list(self._tasks.values())
+        self._tasks.clear()
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _cleanup(self, resources: list[tuple[str, str]]) -> None:
         for kind, resource_id in reversed(resources):
