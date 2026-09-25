@@ -101,6 +101,18 @@ The native control plane should represent these independently:
 - Popcorn fair-use rules: https://popcorn.space/rules
 - Popcorn help center: https://help.popcorn.space/en/
 
+### Global roaming retail and dual-path communications
+Public Fonus and Popcorn research is permanently recorded in `docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md`. The absorbed pattern is not either provider's private implementation. Magnanimous separates the mobile access plane from the communications plane so an authorized SIM/eSIM supplies packet access while Magnanimous can independently provide app voice/text fallback, number identity, voicemail and optional AI call handling.
+
+The target global-mobile control plane supports a primary SIM/eSIM, optional backup profile, multiple eligible visited networks, per-country capability truth, latency/quality measurement, fair-use/high-speed buckets, hard variable-cost ceilings, and local-profile substitution where permanent roaming restrictions require it. Number identity stays independent from the SIM so multiple numbers and porting can be supported when the authorized numbering adapter permits it.
+
+"Unlimited" remains a retail policy, not an unfunded promise. Magnanimous may use a high-speed allowance followed by documented throttling/QoS only when the wholesale agreement supports that state. Expensive usage requires funded/reserved capacity and may not silently fall through to an unbounded paid provider path.
+
+2FA and bank-message delivery are capability-specific. VoIP numbers can be blocked by third-party short-code or financial systems, so Magnanimous must report number/SMS capability truth instead of guaranteeing all authentication traffic.
+
+### Verified-origin 20% pricing
+Competitor retail pricing is benchmark information only and is never treated as Magnanimous wholesale cost. Retail quote generation requires a verified origin/wholesale cost reference and applies the existing 20% Magnanimous uplift after the source amount is verified. Taxes, regulatory fees, currency conversion, usage exposure and any funded variable-cost reserve remain separate inputs where applicable.
+
 ## Starter deployment versus scale-out
 
 The starter Singapore/owner-hosted node stays intentionally small. Do not run every carrier component on the 2 GB starter node.
@@ -138,6 +150,11 @@ Scale-out modules when needed:
 - SigScale: https://github.com/sigscale
 - HOMER/HEP: https://github.com/sipcapture/homer
 - Gigs API: https://developers.gigs.com/
+- 1GLOBAL Connect API: https://docs.connect-api.1global.com/
+- Telna Connect/eSIM: https://www.telna.com/connect
+- BICS global connectivity/eSIM: https://www.bics.com/iot/iot-esim/
+- Fonus public retail benchmark: https://www.fonusmobile.com/
+- Popcorn public retail benchmark: https://popcorn.space/
 - Soracom API: https://developers.soracom.io/en/api/
 - Soracom usage/billing-unit reference: https://developers.soracom.io/en/docs/reference/data-usage-calculation/
 - Smart public prepaid offers (retail product-pattern research): https://store.smart.com.ph/
