@@ -5,7 +5,7 @@ function verified(overrides={}){
  return {
   adapter_key:'primary',
   network_group:'network-a',
-  origin_reference:'contract-rate-card-1',
+  origin_reference:'contract:rate-card-1',
   origin_cost_verified:true,
   commercial_authorized:true,
   country_verified:true,
@@ -57,6 +57,16 @@ function verified(overrides={}){
  });
  assert.equal(result.selected,null);
  assert.ok(result.rejected_offers[0].reasons.includes('commercial_authorization_not_verified'));
+}
+
+{
+ const result=planGlobalMobileOffers({
+  country_code:'US',
+  expected_high_speed_gb:1,
+  offers:[verified({origin_reference:'typed-without-evidence-scheme'})]
+ });
+ assert.equal(result.selected,null);
+ assert.ok(result.rejected_offers[0].reasons.includes('origin_cost_not_verified'));
 }
 
 {
