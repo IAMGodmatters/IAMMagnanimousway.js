@@ -1,10 +1,11 @@
-import { canUsePremium,currentUserFromRequest,estimateAiCostUsd,estimatePstnReserveUsd,recordUsage } from './usage-guard.js';
+import { canUsePremium,currentUserFromRequest,estimatePstnReserveUsd,recordUsage } from './usage-guard.js';
+import {conservativeProviderReserve,providerBillingMode} from './provider-origin-pricing.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const xml=(message,status=200)=>new Response(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>${String(message).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]))}</Say><Hangup/></Response>`,{status,headers:{'content-type':'application/xml; charset=utf-8','cache-control':'no-store'}});
 // Treat every outside AI account that can accrue usage charges as metered at
 // the I AM boundary, even when the provider also offers a free/trial allowance.
-const METERED_AI=new Set(['openai','anthropic','google','groq','mistral','cerebras']);
+const METERED_AI=new Set(['openai','anthropic','google','groq','mistral']);
 
 async function bodyJson(request){try{return await request.clone().json()}catch{return{}}}
 function rewriteJsonRequest(request,body){return new Request(request.url,{method:request.method,headers:request.headers,body:JSON.stringify(body)})}
@@ -38,7 +39,16 @@ export async function premiumPreflight(request,env){
    return{request:rewritten,context:null};
   }
 
-  const estimate=explicitlyMetered?Math.max(.01,estimateAiCostUsd(provider)):0.05;
+  const model=String(body.model||(
+   provider==='openai'?env.OPENAI_MODEL||'gpt-5.6':
+   provider==='anthropic'?env.ANTHROPIC_MODEL||'claude-sonnet-5':
+   provider==='google'?env.GOOGLE_MODEL||'gemini-3.8-flash':
+   provider==='groq'?env.GROQ_MODEL||'openai/gpt-oss-120b':
+   provider==='mistral'?env.MISTRAL_MODEL||'mistral-large-latest':''
+  ));
+  const reserve=explicitlyMetered?conservativeProviderReserve({provider,model,input_text:String(body.message||''),max_output_tokens:4096,billing_mode:providerBillingMode(env,provider)}):{ok:true,provider_origin_cost_usd:0};
+  if(explicitlyMetered&&!reserve.ok)return{response:json({detail:'Premium provider pricing is not verified for this request. Free-first Magnanimous AI remains available.',code:reserve.code||'PRICING_NOT_VERIFIED',free_first_available:true,provider_checkout_required:false},402)};
+  const estimate=Number(reserve.provider_origin_cost_usd||0);
   const gate=await canUsePremium(env,user.tenant_id,{category:'premium AI',estimated_cost_usd:estimate,required_plan:'business',entitlement:'metered_ai'});
   if(!gate.ok){
    if(explicitlyMetered)return{response:json({detail:gate.detail,code:gate.code,plan:gate.plan,remaining_cost_usd:gate.remaining_cost_usd,prepaid_balance_usd:gate.prepaid_balance_usd,free_first_available:true,provider_checkout_required:false,billing_owner:'I AM Magnanimous Way'},402)};
@@ -77,15 +87,24 @@ export async function premiumPostprocess(response,env,context){
  try{
   const data=await response.clone().json().catch(()=>({}));
   if(context.kind==='chat'){
-   const provider=String(data?.provider||'').toLowerCase(),cost=estimateAiCostUsd(provider);
-   if(cost>0)await recordUsage(env,context.user.tenant_id,{category:'premium-ai',provider,units:1,direct_cost_usd:cost,reference_id:String(data?.model||'')});
-  }else if(context.kind==='pstn'){
-   await recordUsage(env,context.user.tenant_id,{category:'pstn-call-reserve',provider:String(data?.provider||'twilio-ai'),units:Number(context.seconds||0)/60,direct_cost_usd:Number(context.reserve||0),reference_id:String(data?.provider_call_id||data?.call_id||'')});
-  }else if(context.kind==='pstn-inbound'){
-   await recordUsage(env,context.user.tenant_id,{category:'pstn-inbound-reserve',provider:'twilio-contact-center',units:1,direct_cost_usd:Number(context.reserve||0),reference_id:''});
-  }else if(context.kind==='avatar'){
-   await recordUsage(env,context.user.tenant_id,{category:'avatar-video-reserve',provider:String(data?.provider||'tavus'),units:1,direct_cost_usd:Number(context.reserve||0),reference_id:String(data?.conversation_id||'')});
+   // AI origin-cost accounting is owned by the provider runtime, which has the
+   // provider's exact token-usage response. Do not double-charge here.
+   return response;
   }
- }catch(error){console.error('premium usage recording failed',error)}
+  const origin=Math.max(0,Number(data?.provider_origin_cost_usd||0));
+  const pricingSource=String(data?.pricing_source||''),pricingVerifiedAt=String(data?.pricing_verified_at||'');
+  if(origin<=0||!pricingSource||!pricingVerifiedAt){
+   console.warn('Premium provider completed without auditable origin-cost evidence; reserve was not posted as actual usage.',{kind:context.kind});
+   return response;
+  }
+  const provider=String(data?.provider||data?.provider_id||'managed-provider');
+  const reference=String(data?.provider_call_id||data?.call_id||data?.conversation_id||crypto.randomUUID());
+  const units=context.kind==='pstn'?Number(context.seconds||0)/60:1;
+  await recordUsage(env,context.user.tenant_id,{
+   category:context.kind==='pstn'?'pstn-call':context.kind==='pstn-inbound'?'pstn-inbound':'avatar-video',
+   provider,units,direct_cost_usd:origin,reference_id:reference,
+   pricing_source:pricingSource,pricing_verified_at:pricingVerifiedAt
+  });
+ }catch(error){console.error('premium usage reconciliation failed',error)}
  return response;
 }
