@@ -54,7 +54,12 @@ class AsteriskSipCarrierBridge:
             "bridge_type": "sip-interconnect",
             "control_owner": "Magnanimous",
             "carrier_endpoint": self._settings.carrier_endpoint,
+            "secondary_carrier_endpoint": self._settings.carrier_secondary_endpoint or None,
             "dial_context": self._settings.carrier_dial_context,
+            "selected_route_contexts": {
+                "primary": self._settings.carrier_primary_dial_context,
+                "secondary": self._settings.carrier_secondary_dial_context,
+            },
             "upstream_provider_exposed": False,
             "capabilities": {
                 "outbound_voice": True,
@@ -66,8 +71,17 @@ class AsteriskSipCarrierBridge:
         }
 
     async def originate(self, call: CarrierCallRequest) -> CarrierCallState:
+        route_key = str(call.route_key or "").lower()
+        if route_key == "primary":
+            dial_context = self._settings.carrier_primary_dial_context
+        elif route_key == "secondary":
+            if not self._settings.carrier_secondary_endpoint:
+                raise CarrierRejectedError("The selected secondary carrier route is not configured.")
+            dial_context = self._settings.carrier_secondary_dial_context
+        else:
+            dial_context = self._settings.carrier_dial_context
         params = {
-            "endpoint": f"Local/{call.destination}@{self._settings.carrier_dial_context}/n",
+            "endpoint": f"Local/{call.destination}@{dial_context}/n",
             "context": "magnanimous-ai",
             "extension": "s",
             "priority": 1,
@@ -83,6 +97,9 @@ class AsteriskSipCarrierBridge:
             "MAG_TO": call.destination,
             "MAG_AGENT_ID": call.agent_id,
             "MAG_QUEUE_ID": call.queue_id,
+            "MAG_ROUTE_KEY": route_key,
+            "MAG_ROUTE_ID": str(call.route_id or ""),
+            "MAG_INTERCONNECT_ID": str(call.interconnect_id or ""),
         }
         response = await self._ari.request("POST", "/channels", params=params, body={"variables": variables})
         if not response.is_success:
@@ -110,22 +127,32 @@ class AsteriskSipCarrierBridge:
             connected=channel.get("connected", {}),
         )
 
+    async def _endpoint_health(self, endpoint_name: str) -> dict[str, Any]:
+        if not endpoint_name:
+            return {"configured": False, "ready": False, "state": "not-configured", "endpoint": ""}
+        response = await self._ari.request("GET", f"/endpoints/PJSIP/{endpoint_name}")
+        if response.status_code == 404:
+            return {"configured": False, "ready": False, "state": "not-configured", "endpoint": endpoint_name}
+        if not response.is_success:
+            return {"configured": True, "ready": False, "state": "unavailable", "endpoint": endpoint_name}
+        data = response.json()
+        state = str(data.get("state") or "available").lower()
+        ready = state not in {"offline", "unavailable", "failed", "not-configured"}
+        return {"configured": True, "ready": ready, "state": state, "endpoint": endpoint_name}
+
     async def health(self) -> dict[str, Any]:
         asterisk = await self._ari.request("GET", "/asterisk/info")
         asterisk_ready = asterisk.is_success
-        trunk_state = "unknown"
+        primary = {"configured": False, "ready": False, "state": "asterisk-unavailable", "endpoint": self._settings.carrier_endpoint}
+        secondary = {"configured": False, "ready": False, "state": "asterisk-unavailable", "endpoint": self._settings.carrier_secondary_endpoint}
         if asterisk_ready:
-            endpoint = await self._ari.request("GET", f"/endpoints/PJSIP/{self._settings.carrier_endpoint}")
-            if endpoint.status_code == 404:
-                trunk_state = "not-configured"
-            elif endpoint.is_success:
-                data = endpoint.json()
-                trunk_state = str(data.get("state") or "available").lower()
-            else:
-                trunk_state = "unavailable"
+            primary = await self._endpoint_health(self._settings.carrier_endpoint)
+            secondary = await self._endpoint_health(self._settings.carrier_secondary_endpoint)
         return {
-            "ok": asterisk_ready,
+            "ok": asterisk_ready and bool(primary.get("ready") or secondary.get("ready")),
             "asterisk": "ready" if asterisk_ready else "unavailable",
-            "carrier_bridge": trunk_state,
+            "carrier_bridge": primary.get("state", "unknown"),
             "carrier_endpoint": self._settings.carrier_endpoint,
+            "routes": {"primary": primary, "secondary": secondary},
+            "selected_route_health_authenticated": True,
         }
