@@ -16,9 +16,9 @@ const aiBinding=read('magnanimous-runtime/src/ai-binding.mjs');
 const envExample=read('.env.example');
 const carrierConsent=read('frontend/app/phone/carrier-consent.tsx');
 
-for(const s of ['maxAttempts:3','retryMethods:[\'GET\',\'HEAD\']','scheduledSelfHealing','paid_fallback_required','current_incidents','audit_evidence_available'])assert.ok(heal.includes(s),'self-healing contract missing '+s);
+for(const s of ['maxAttempts:3','retryMethods:[\'GET\',\'HEAD\']','scheduledSelfHealing','paid_fallback_required','current_incidents','audit_evidence_available','mediaProbe','movie_maker_health','free-movie-rendering-degraded'])assert.ok(heal.includes(s),'self-healing contract missing '+s);
 for(const s of ['handleSelfHealing','scheduledSelfHealing'])assert.ok(ops.includes(s),'operations wiring missing '+s);
-for(const s of ['CURRENT INCIDENTS','PRODUCTION HEALTH','FREE-FIRST AI','VOICE / AUDIO','COST IMPACT','Recent repair evidence'])assert.ok(page.includes(s),'owner self-healing UI missing '+s);
+for(const s of ['CURRENT INCIDENTS','PRODUCTION HEALTH','FREE-FIRST AI','MOVIE MAKER','VOICE / AUDIO','COST IMPACT','Recent repair evidence'])assert.ok(page.includes(s),'owner self-healing UI missing '+s);
 
 assert.equal(PROVIDER_PRICE_MARKUP_PERCENT,20);
 assert.deepEqual(variableCustomerCharge(1),{
