@@ -8,6 +8,8 @@ on:
       - 'frontend/app/telecom/**'
       - 'worker/src/magnanimous-telecom-runtime.js'
       - 'worker/src/magnanimous-telecom-network-runtime.js'
+      - 'worker/src/magnanimous-carrier-core.js'
+      - 'worker/src/lead-phone.js'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
       - 'worker/src/magnanimous-telecom-bss-admin-runtime.js'
@@ -31,6 +33,8 @@ on:
       - 'frontend/app/telecom/**'
       - 'worker/src/magnanimous-telecom-runtime.js'
       - 'worker/src/magnanimous-telecom-network-runtime.js'
+      - 'worker/src/magnanimous-carrier-core.js'
+      - 'worker/src/lead-phone.js'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
       - 'worker/src/magnanimous-telecom-bss-admin-runtime.js'
@@ -72,6 +76,9 @@ jobs:
       - name: Compile Telecom API
         run: python -m py_compile telecom-core/control-api/app/main.py
 
+      - name: Run Telecom control API unit tests
+        run: python -m unittest discover -s telecom-core/control-api/tests -p 'test_*.py'
+
       - name: Validate Asterisk bootstrap shell
         run: sh -n telecom-core/asterisk/entrypoint.sh
 
@@ -98,6 +105,8 @@ jobs:
         run: |
           node --check worker/src/magnanimous-telecom-runtime.js
           node --check worker/src/magnanimous-telecom-network-runtime.js
+          node --check worker/src/magnanimous-carrier-core.js
+          node --check worker/src/lead-phone.js
           node --check worker/src/magnanimous-telecom-service-runtime.js
           node --check worker/src/magnanimous-telecom-operations-runtime.js
           node --check worker/src/magnanimous-telecom-bss-admin-runtime.js
