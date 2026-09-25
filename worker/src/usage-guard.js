@@ -1,3 +1,5 @@
+import { CUSTOMER_UPSELL_MULTIPLIER,CUSTOMER_UPSELL_PERCENT,customerPriceFromOrigin,defaultModelForProvider,estimateTextOriginCostUsd } from './provider-cost-catalog.js';
+
 const now=()=>Math.floor(Date.now()/1000);
 
 export const PLAN_LIMITS={
@@ -93,22 +95,22 @@ export async function usageStatus(env,tenantId){
   env.DB.prepare('SELECT direct_variable_cost_usd FROM billing_usage_guard WHERE tenant_id=? AND period_key=?').bind(tenantId,key).first(),
   walletStatus(env,tenantId)
  ]);
- const used=Number(row?.direct_variable_cost_usd||0),ceiling=Number(p.limits.cost_ceiling_usd||0),remainingIncluded=Math.max(0,ceiling-used),spendable=remainingIncluded+Number(wallet.balance_usd||0);
- return{...p,period_key:key,direct_variable_cost_usd:used,cost_ceiling_usd:ceiling,remaining_cost_usd:remainingIncluded,prepaid_balance_usd:Number(wallet.balance_usd||0),prepaid_total_funded_usd:Number(wallet.total_funded_usd||0),prepaid_total_consumed_usd:Number(wallet.total_consumed_usd||0),premium_spendable_usd:spendable,premium_usage_allowed:p.plan!=='free'&&spendable>0};
+ const used=Number(row?.direct_variable_cost_usd||0),ceiling=Number(p.limits.cost_ceiling_usd||0),remainingIncluded=Math.max(0,ceiling-used),walletRetail=Number(wallet.balance_usd||0),walletOriginCapacity=walletRetail/CUSTOMER_UPSELL_MULTIPLIER,originCapacity=remainingIncluded+walletOriginCapacity;
+ return{...p,period_key:key,direct_variable_cost_usd:used,cost_ceiling_usd:ceiling,remaining_cost_usd:remainingIncluded,prepaid_balance_usd:walletRetail,prepaid_total_funded_usd:Number(wallet.total_funded_usd||0),prepaid_total_consumed_usd:Number(wallet.total_consumed_usd||0),premium_spendable_usd:originCapacity,premium_origin_capacity_usd:originCapacity,prepaid_origin_capacity_usd:walletOriginCapacity,usage_markup_percent:CUSTOMER_UPSELL_PERCENT,premium_usage_allowed:p.plan!=='free'&&originCapacity>0};
 }
 
 export async function canUsePremium(env,tenantId,{category='premium',estimated_cost_usd=0,required_plan='business',entitlement=''}={}){
  const s=await usageStatus(env,tenantId),required=PLAN_LIMITS[normalizePlan(required_plan)]?.rank??2;
  if((s.limits?.rank??0)<required)return{ok:false,code:'PLAN_REQUIRED',detail:`${required_plan} or higher is required for ${category}.`,...s};
  if(entitlement&&s.limits?.[entitlement]!==true&&Number(s.limits?.[entitlement]||0)<=0)return{ok:false,code:'ENTITLEMENT_REQUIRED',detail:`Your plan does not include ${category}.`,...s};
- if(Number(estimated_cost_usd||0)>s.premium_spendable_usd)return{ok:false,code:'PREMIUM_BUDGET_EXHAUSTED',detail:'Your included premium allowance and prepaid usage balance are exhausted. Use a free-first option, upgrade, or add prepaid credits.',...s};
+ if(Number(estimated_cost_usd||0)>s.premium_origin_capacity_usd)return{ok:false,code:'PREMIUM_BUDGET_EXHAUSTED',detail:'Your included premium allowance and prepaid usage balance are exhausted. Use a free-first option, upgrade, or add prepaid credits.',estimated_customer_charge_usd:customerPriceFromOrigin(Math.max(0,Number(estimated_cost_usd||0)-s.remaining_cost_usd)),...s};
  return{ok:true,...s};
 }
 
 export async function recordUsage(env,tenantId,{category='premium',provider='',units=0,direct_cost_usd=0,reference_id=''}={}){
  if(!env?.DB||!tenantId)return null;await ensureUsageSchema(env);const before=await usageStatus(env,tenantId),key=periodKey(),cost=Math.max(0,Number(direct_cost_usd||0));
- const overage=Math.max(0,cost-before.remaining_cost_usd);
- if(overage>0)await debitWallet(env,tenantId,overage,{reference_id:String(reference_id||crypto.randomUUID()),detail:`${category} via ${provider||'provider'}`});
+ const overage=Math.max(0,cost-before.remaining_cost_usd),retailOverage=customerPriceFromOrigin(overage);
+ if(retailOverage>0)await debitWallet(env,tenantId,retailOverage,{reference_id:String(reference_id||crypto.randomUUID()),detail:`${category} via ${provider||'provider'}; origin=${overage.toFixed(6)}; retail=${retailOverage.toFixed(6)}; markup=${CUSTOMER_UPSELL_PERCENT}%`});
  await env.DB.prepare(`INSERT INTO billing_usage_events(tenant_id,period_key,category,provider,units,direct_cost_usd,reference_id,created_at)
   VALUES(?,?,?,?,?,?,?,?)`).bind(tenantId,key,String(category),String(provider),Number(units||0),cost,String(reference_id||''),now()).run();
  await env.DB.prepare(`INSERT INTO billing_usage_guard(tenant_id,period_key,direct_variable_cost_usd,updated_at) VALUES(?,?,?,?)
@@ -117,14 +119,15 @@ export async function recordUsage(env,tenantId,{category='premium',provider='',u
  return usageStatus(env,tenantId);
 }
 
-export function estimateAiCostUsd(provider){
+export function estimateAiCostUsd(provider,{model='',inputText='',outputText='',inputTokens,outputTokens,maxOutputTokens=1200}={}){
  const p=String(provider||'').toLowerCase();
- if(p==='cloudflare-ai')return 0;
- if(p==='groq'||p==='cerebras')return 0.01;
- if(p==='google'||p==='mistral')return 0.02;
- if(p==='openai')return 0.03;
- if(p==='anthropic')return 0.04;
- return 0.02;
+ const resolved=String(model||defaultModelForProvider(p,'budget')||'');
+ const known=estimateTextOriginCostUsd({provider:p,model:resolved,inputText,outputText,inputTokens,outputTokens,maxOutputTokens});
+ if(known>0)return known;
+ // Unknown metered rails are denied a zero-cost assumption. Keep a conservative
+ // reserve until a verified origin price is added to provider-cost-catalog.js.
+ if(['openai','anthropic','google','groq','mistral','cerebras'].includes(p))return 0.05;
+ return 0;
 }
 
 export function estimatePstnReserveUsd(seconds=900){
