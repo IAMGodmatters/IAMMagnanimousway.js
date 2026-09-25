@@ -65,7 +65,7 @@ has(service,'linked_supervisors = [','natural call end enumerates linked supervi
 has(adapter,'self._stasis is not None and self._stasis.enabled','carrier bridge switches to Stasis only through the explicit feature gate');
 has(adapter,'await self._stasis.originate(call, selected_endpoint)','selected carrier route is preserved through managed Stasis origination');
 has(adapter,'"stasis_bridge": self._stasis.status()','protected carrier health reports Stasis truth state');
-has(container,'stasis = AsteriskStasisBridgeService(ari, resolved)','composition root owns one Stasis service');
+has(container,'stasis = AsteriskStasisBridgeService(ari, resolved, webrtc_sessions)','composition root owns one Stasis service with the tenant-owned WebRTC registry');
 has(lifecycle,'container.stasis.run()','application lifecycle starts the Stasis event stream');
 has(lifecycle,'await container.stasis.close()','application lifecycle cleans Stasis calls/supervisor sessions');
 
