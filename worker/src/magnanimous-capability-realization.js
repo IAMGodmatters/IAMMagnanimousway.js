@@ -3,6 +3,7 @@ const norm=v=>clip(v,160).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-
 
 export const MAGNANIMOUS_EXECUTION_SURFACES=Object.freeze({
  'agent-mesh':{mode:'native',route:'/api/agents/chat',module:'worker/src/agent-mesh-runtime.js',proof:'Native Agent Mesh chat/runtime exists and is production-smoke-tested.'},
+ 'api-contract-intelligence':{mode:'native',route:'/api/magnanimous/api-contract',module:'worker/src/magnanimous-api-contract-intelligence.js',proof:'Magnanimous owns API contract extraction, documentation coverage, version comparison, breaking-change classification and explicit-evidence impact mapping without an outside plugin.'},
  'business-operating-system':{mode:'native',route:'/api/operations/suite',module:'worker/src/magnanimous-workspace-suite.js',proof:'Magnanimous Workspace Suite owns tenant work objects, docs, sheets, slides, forms, chat, automations and search.'},
  'crm-growth-engine':{mode:'native',route:'/api/operations/crm/studio',module:'worker/src/native-work-crm-runtime.js',proof:'Native CRM runtime owns records, pipelines, scoring, sequences, accounts, deals and CRM intelligence.'},
  'data-platform':{mode:'native',route:'/api/data-studio/workbooks',module:'worker/src/data-studio-runtime.js',proof:'Data Studio owns workbook storage, transforms and summaries in Magnanimous D1.'},
