@@ -45,7 +45,7 @@ export default function AIConnectors() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
   const [platform, setPlatform] = useState('openai-chatgpt');
-  const [name, setName] = useState('ChatGPT / Magnanimous');
+  const [name, setName] = useState('Magnanimous External Client');
   const [scopes, setScopes] = useState<string[]>(SAFE);
   const [issued, setIssued] = useState<IssuedToken | null>(null);
 
@@ -97,7 +97,7 @@ export default function AIConnectors() {
 
   useEffect(() => {
     const selectedPlatform = data?.platforms?.find((item) => item.id === platform);
-    if (selectedPlatform) setName(`${selectedPlatform.name} / Magnanimous`);
+    if (selectedPlatform) setName(`Magnanimous ${selectedPlatform.protocol || 'External'} Client`);
   }, [platform, data]);
 
   const selected = useMemo(
@@ -169,9 +169,9 @@ export default function AIConnectors() {
         <small>ONE GATEWAY • MANY AI PLATFORMS</small>
         <h1>Install Magnanimous into other AI platforms.</h1>
         <p>
-          Magnanimous stays the command, memory, routing and verification layer. ChatGPT, Claude,
-          Gemini, Copilot and future MCP/OpenAPI clients connect through scoped, revocable tokens
-          instead of receiving your owner login or provider secrets.
+          Magnanimous stays the command, memory, routing and verification layer. External MCP/OpenAPI
+          clients connect through scoped, revocable tokens instead of receiving your owner login,
+          provider details or secrets.
         </p>
         <div className="badges">
           <b>MCP 2026-07-28</b>
@@ -205,7 +205,7 @@ export default function AIConnectors() {
                 className={platform === item.id ? 'active' : ''}
                 onClick={() => setPlatform(item.id)}
               >
-                <strong>{item.name}</strong>
+                <strong>{item.protocol || 'External'} Client</strong>
                 <span>
                   {item.protocol} • {item.transport}
                 </span>
@@ -216,8 +216,8 @@ export default function AIConnectors() {
           <section className="builder">
             <div>
               <small>SELECTED PLATFORM</small>
-              <h2>{selected?.name}</h2>
-              <p>{selected?.install}</p>
+              <h2>{selected?.protocol || 'External'} Client</h2>
+              <p>Use the scoped Magnanimous endpoint and token in the destination client. Provider-specific execution remains private behind Magnanimous AI.</p>
 
               <label>
                 Connection name
@@ -252,7 +252,7 @@ export default function AIConnectors() {
               <div className="scope danger">
                 <h3>Optional write access</h3>
                 <p>
-                  Only enable these if you want that outside AI to perform account changes.
+                  Only enable these if you want that external client to request account changes.
                   Magnanimous still enforces confirmation and destructive/sensitive gates.
                 </p>
                 {WRITES.map((scope) => (
@@ -289,7 +289,7 @@ export default function AIConnectors() {
               <small>SHOWN ONCE</small>
               <h2>Connector token created</h2>
               <p>
-                Paste this only into the destination AI platform’s authorization/secret field. Do
+                Paste this only into the destination client’s authorization/secret field. Do
                 not put it in source code or public screenshots.
               </p>
               <code>{issued.token}</code>
@@ -309,7 +309,7 @@ export default function AIConnectors() {
                 <article key={token.id}>
                   <div>
                     <strong>{token.name}</strong>
-                    <span>{token.platform}</span>
+                    <span>Magnanimous external client</span>
                     <small>{token.scopes.join(' • ')}</small>
                   </div>
                   <div className="right">
