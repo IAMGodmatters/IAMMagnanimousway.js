@@ -40,9 +40,9 @@ has(runtime,"Magnanimous Telecom Core is unavailable, so revocation could not be
 has(runtime,'remote_revocation_verified:true','successful native session delete explicitly reports verified remote revocation');
 has(runtime,'function telecomCorePrivateConfig','server-side supervision can use the protected Telecom Core without relaxing the browser WebRTC live gate');
 has(runtime,"metadata?.control_plane==='magnanimous-telecom-core'",'supervision controls fail closed unless the call is marked as native Telecom Core');
-has(runtime,"/api/contact-center/supervisor/calls/",'owner supervisor start route exists');
+has(runtime,"const startSupervision=path.match(/^\\/api\\/contact-center\\/supervisor\\/calls\\/",'owner supervisor start route exists');
 has(runtime,"Supervisor audio remains gated until native public WebRTC is externally verified.",'backend monitor/whisper/barge route cannot bypass the verified public WebRTC gate');
-has(runtime,"/api/contact-center/calls/",'contact-center call recording route exists');
+has(runtime,"const callRecording=path.match(/^\\/api\\/contact-center\\/calls\\/",'contact-center call recording route exists');
 has(runtime,'cc_supervisor_sessions','supervisor actions persist tenant-scoped audit state');
 has(runtime,'cc_recording_sessions','recording actions persist tenant-scoped audit state');
 has(runtime,'covert_monitoring:false','runtime explicitly denies covert-monitoring semantics');
