@@ -40,6 +40,8 @@ class FakeEvents:
 class FakeAri:
     def __init__(self):
         self.requests = []
+        self.stored_recordings = set()
+        self.live_stop_status = 204
 
     async def request(self, method, path, *, params=None, body=None):
         self.requests.append((method, path, params, body))
@@ -51,6 +53,9 @@ class FakeAri:
             return FakeResponse(200, {"id": path.rsplit("/", 1)[-1]})
         if method == "GET" and path.startswith("/recordings/live/"):
             return FakeResponse(404, {})
+        if method == "GET" and path.startswith("/recordings/stored/"):
+            name = path.rsplit("/", 1)[-1]
+            return FakeResponse(200, {"name": name}) if name in self.stored_recordings else FakeResponse(404, {})
         if method == "POST" and "/snoop/" in path:
             return FakeResponse(200, {"id": path.rsplit("/", 1)[-1]})
         if method == "POST" and path.startswith("/bridges/") and path.endswith("/addChannel"):
@@ -62,7 +67,10 @@ class FakeAri:
         if method == "POST" and path == "/channels":
             return FakeResponse(200, {"id": params.get("channelId")})
         if method == "POST" and path.startswith("/recordings/live/") and path.endswith("/stop"):
-            return FakeResponse(204, {})
+            name = path.split("/recordings/live/", 1)[1].rsplit("/stop", 1)[0]
+            if self.live_stop_status == 204:
+                self.stored_recordings.add(name)
+            return FakeResponse(self.live_stop_status, {})
         if method == "DELETE":
             return FakeResponse(204, {})
         return FakeResponse(200, {})
@@ -139,6 +147,24 @@ class SupervisionTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result["covert_recording"])
         stopped = await service.stop_call_recording(result["session_id"])
         self.assertFalse(stopped["recording"])
+        self.assertTrue(stopped["stored"])
+        self.assertFalse(stopped["recording_file_exposed"])
+
+    async def test_already_completed_recording_reports_actual_stored_state(self):
+        ari = FakeAri()
+        service = SupervisorService(ari, FakeEvents(), SETTINGS)
+        result = await service.start_call_recording(
+            target_channel_id="12345678-1234-1234-1234-123456789abc",
+            consent_confirmed=True,
+            notice_confirmed=True,
+            jurisdiction="US-CA",
+            max_duration_seconds=600,
+        )
+        ari.live_stop_status = 404
+        ari.stored_recordings.add(result["recording_name"])
+        stopped = await service.stop_call_recording(result["session_id"])
+        self.assertFalse(stopped["recording"])
+        self.assertTrue(stopped["stored"])
         self.assertFalse(stopped["recording_file_exposed"])
 
     async def test_invalid_session_id_never_reaches_ari(self):
