@@ -280,6 +280,7 @@ async function updateOwnedVideo(env,user,body){
   const s=current.snippet||{};if(!s.title||!s.categoryId)throw new Error('Current YouTube title/category could not be loaded safely.');
   const next={title:String(s.title),categoryId:String(s.categoryId),description:String(s.description||'')};
   if(Array.isArray(s.tags))next.tags=s.tags;
+  if(s.defaultLanguage)next.defaultLanguage=String(s.defaultLanguage);
   if(Object.prototype.hasOwnProperty.call(body,'title')){const v=clean(body.title,100);if(!v)throw new Error('YouTube title cannot be empty.');next.title=v;updated.push('title')}
   if(Object.prototype.hasOwnProperty.call(body,'description')){next.description=String(body.description??'').slice(0,5000);updated.push('description')}
   if(Object.prototype.hasOwnProperty.call(body,'tags')){next.tags=Array.isArray(body.tags)?body.tags.map(x=>clean(x,500)).filter(Boolean).slice(0,500):[];updated.push('tags')}
@@ -294,6 +295,10 @@ async function updateOwnedVideo(env,user,body){
   const next={privacyStatus:privacy};
   if(typeof currentStatus.embeddable==='boolean')next.embeddable=currentStatus.embeddable;
   if(currentStatus.license)next.license=currentStatus.license;
+  if(typeof currentStatus.publicStatsViewable==='boolean')next.publicStatsViewable=currentStatus.publicStatsViewable;
+  if(typeof currentStatus.selfDeclaredMadeForKids==='boolean')next.selfDeclaredMadeForKids=currentStatus.selfDeclaredMadeForKids;
+  if(typeof currentStatus.containsSyntheticMedia==='boolean')next.containsSyntheticMedia=currentStatus.containsSyntheticMedia;
+  if(currentStatus.publishAt&&!Object.prototype.hasOwnProperty.call(body,'publish_at')&&privacy==='private')next.publishAt=currentStatus.publishAt;
   if(body.publish_at){const publishAt=new Date(String(body.publish_at));if(!Number.isFinite(publishAt.getTime())||publishAt.getTime()<=Date.now())throw new Error('publish_at must be a future ISO 8601 time.');next.publishAt=publishAt.toISOString();updated.push('publish_at')}
   if(Object.prototype.hasOwnProperty.call(body,'privacy_status'))updated.push('privacy_status');
   resource.status=next;parts.push('status');
