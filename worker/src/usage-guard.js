@@ -1,6 +1,4 @@
-import {auditableVariableCharge,VARIABLE_USAGE_MARKUP_PERCENT} from './magnanimous-billing-policy.js';
-
-import {variableCustomerCharge} from './provider-origin-pricing.js';
+import {PROVIDER_PRICE_MARKUP_PERCENT,variableCustomerCharge} from './provider-origin-pricing.js';
 const now=()=>Math.floor(Date.now()/1000);
 
 export const PLAN_LIMITS={
@@ -108,15 +106,15 @@ export async function usageStatus(env,tenantId){
   walletStatus(env,tenantId)
  ]);
  const used=Number(row?.direct_variable_cost_usd||0),ceiling=Number(p.limits.cost_ceiling_usd||0),remainingIncluded=Math.max(0,ceiling-used);
- const prepaidBalance=Number(wallet.balance_usd||0),prepaidOriginCapacity=prepaidBalance/(1+VARIABLE_USAGE_MARKUP_PERCENT/100),originSpendable=remainingIncluded+prepaidOriginCapacity;
- return{...p,period_key:key,direct_variable_cost_usd:used,cost_ceiling_usd:ceiling,remaining_cost_usd:remainingIncluded,prepaid_balance_usd:prepaidBalance,prepaid_provider_origin_capacity_usd:prepaidOriginCapacity,prepaid_total_funded_usd:Number(wallet.total_funded_usd||0),prepaid_total_consumed_usd:Number(wallet.total_consumed_usd||0),premium_spendable_usd:originSpendable,provider_origin_spendable_usd:originSpendable,variable_markup_percent:VARIABLE_USAGE_MARKUP_PERCENT,premium_usage_allowed:p.plan!=='free'&&originSpendable>0};
+ const prepaidBalance=Number(wallet.balance_usd||0),prepaidOriginCapacity=prepaidBalance/(1+PROVIDER_PRICE_MARKUP_PERCENT/100),originSpendable=remainingIncluded+prepaidOriginCapacity;
+ return{...p,period_key:key,direct_variable_cost_usd:used,cost_ceiling_usd:ceiling,remaining_cost_usd:remainingIncluded,prepaid_balance_usd:prepaidBalance,prepaid_provider_origin_capacity_usd:prepaidOriginCapacity,prepaid_total_funded_usd:Number(wallet.total_funded_usd||0),prepaid_total_consumed_usd:Number(wallet.total_consumed_usd||0),premium_spendable_usd:originSpendable,provider_origin_spendable_usd:originSpendable,variable_markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,premium_usage_allowed:p.plan!=='free'&&originSpendable>0};
 }
 
-export async function canUsePremium(env,tenantId,{category='premium',estimated_cost_usd=0,required_plan='business',entitlement=''}={}){
+export async function canUsePremium(env,tenantId,{category='premium',estimated_provider_origin_cost_usd=null,estimated_cost_usd=0,required_plan='business',entitlement=''}={}){
  const s=await usageStatus(env,tenantId),required=PLAN_LIMITS[normalizePlan(required_plan)]?.rank??2;
  if((s.limits?.rank??0)<required)return{ok:false,code:'PLAN_REQUIRED',detail:`${required_plan} or higher is required for ${category}.`,...s};
  if(entitlement&&s.limits?.[entitlement]!==true&&Number(s.limits?.[entitlement]||0)<=0)return{ok:false,code:'ENTITLEMENT_REQUIRED',detail:`Your plan does not include ${category}.`,...s};
- const estimatedOrigin=Math.max(0,Number(estimated_cost_usd||0));
+ const estimatedOrigin=Math.max(0,Number(estimated_provider_origin_cost_usd??estimated_cost_usd??0)||0);
  const overageOrigin=Math.max(0,estimatedOrigin-Number(s.remaining_cost_usd||0));
  const variable=variableCustomerCharge(overageOrigin);
  if(variable.customer_charge_usd>Number(s.prepaid_balance_usd||0)+1e-9)return{
@@ -129,10 +127,10 @@ export async function canUsePremium(env,tenantId,{category='premium',estimated_c
  return{ok:true,estimated_provider_origin_cost_usd:estimatedOrigin,estimated_variable_customer_charge_usd:variable.customer_charge_usd,...s};
 }
 
-export async function recordUsage(env,tenantId,{category='premium',provider='',units=0,direct_cost_usd=0,reference_id='',pricing_source='',pricing_verified_at=''}={}){
+export async function recordUsage(env,tenantId,{category='premium',provider='',units=0,provider_origin_cost_usd=null,direct_cost_usd=0,reference_id='',pricing_source='',pricing_verified_at=''}={}){
  if(!env?.DB||!tenantId)return null;
  await ensureUsageSchema(env);
- const key=periodKey(),originCost=Math.max(0,Number(direct_cost_usd||0)),ref=String(reference_id||crypto.randomUUID());
+ const key=periodKey(),originCost=Math.max(0,Number(provider_origin_cost_usd??direct_cost_usd??0)||0),ref=String(reference_id||crypto.randomUUID());
  if(reference_id){
   const existing=await env.DB.prepare('SELECT id FROM billing_usage_events WHERE tenant_id=? AND category=? AND reference_id=? LIMIT 1').bind(String(tenantId),String(category),ref).first();
   if(existing)return usageStatus(env,tenantId);
