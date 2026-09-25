@@ -12,6 +12,7 @@ from urllib.parse import urlencode, urlsplit, urlunsplit
 from websockets.asyncio.client import connect
 
 from ..adapters.asterisk import AsteriskAriClient
+from ..adapters.stasis_state import PostgresStasisStateStore
 from ..config import TelecomSettings
 from ..errors import (
     CarrierRejectedError,
@@ -52,13 +53,16 @@ class ManagedRecording:
     bridge_id: str
     requested_by: str
     consent_basis: str
+    beep: bool
+    max_duration_seconds: int
     created_at: int
 
 
 class StasisEventListener:
     """Maintains the private ARI event subscription needed to own Stasis channels."""
 
-    def __init__(self, settings: TelecomSettings):
+    def __init__(self, ari: AsteriskAriClient, settings: TelecomSettings):
+        self._ari = ari
         self._settings = settings
         self._connected = False
         self._channels: dict[str, dict[str, Any]] = {}
@@ -139,6 +143,35 @@ class StasisEventListener:
         except TimeoutError:
             return False
 
+    async def _seed_existing_channels(self) -> None:
+        try:
+            response = await self._ari.request(
+                "GET", f"/applications/{self._settings.stasis_app}"
+            )
+        except Exception:
+            return
+        if not response.is_success:
+            return
+        data = response.json()
+        channel_ids = data.get("channel_ids") if isinstance(data, dict) else []
+        if not isinstance(channel_ids, list):
+            return
+        async with self._condition:
+            for raw in channel_ids:
+                channel_id = str(raw or "")
+                if channel_id:
+                    self._channels.setdefault(
+                        channel_id,
+                        {
+                            "id": channel_id,
+                            "name": "",
+                            "state": "",
+                            "args": ["restored"],
+                            "entered_at": int(time.time()),
+                        },
+                    )
+            self._condition.notify_all()
+
     async def run(self) -> None:
         if not self._settings.stasis_enabled:
             return
@@ -155,6 +188,7 @@ class StasisEventListener:
                     ping_timeout=20,
                     max_size=1_000_000,
                 ) as websocket:
+                    await self._seed_existing_channels()
                     self._connected = True
                     delay = self._settings.stasis_reconnect_seconds
                     async for raw in websocket:
