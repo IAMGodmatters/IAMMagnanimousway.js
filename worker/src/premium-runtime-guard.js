@@ -4,7 +4,7 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 const xml=(message,status=200)=>new Response(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>${String(message).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]))}</Say><Hangup/></Response>`,{status,headers:{'content-type':'application/xml; charset=utf-8','cache-control':'no-store'}});
 // Treat every outside AI account that can accrue usage charges as metered at
 // the I AM boundary, even when the provider also offers a free/trial allowance.
-const METERED_AI=new Set(['openai','anthropic','google','groq','mistral','cerebras']);
+const METERED_AI=new Set(['openai','anthropic','google','groq','mistral','cerebras','xai']);
 
 async function bodyJson(request){try{return await request.clone().json()}catch{return{}}}
 function rewriteJsonRequest(request,body){return new Request(request.url,{method:request.method,headers:request.headers,body:JSON.stringify(body)})}
@@ -38,14 +38,14 @@ export async function premiumPreflight(request,env){
    return{request:rewritten,context:null};
   }
 
-  const estimate=explicitlyMetered?Math.max(.01,estimateAiCostUsd(provider)):0.05;
-  const gate=await canUsePremium(env,user.tenant_id,{category:'premium AI',estimated_cost_usd:estimate,required_plan:'business',entitlement:'metered_ai'});
+  const estimate=explicitlyMetered?Math.max(.001,estimateAiCostUsd(provider,String(body.model||''))):0.05;
+  const gate=await canUsePremium(env,user.tenant_id,{category:'premium AI',estimated_cost_usd:estimate,required_plan:'plus',entitlement:'metered_ai'});
   if(!gate.ok){
    if(explicitlyMetered)return{response:json({detail:gate.detail,code:gate.code,plan:gate.plan,remaining_cost_usd:gate.remaining_cost_usd,prepaid_balance_usd:gate.prepaid_balance_usd,free_first_available:true,provider_checkout_required:false,billing_owner:'I AM Magnanimous Way'},402)};
    const rewritten=rewriteJsonRequest(request,{...body,provider:'cloudflare-ai',quality:'free-first',route_policy:'free-first'});
    return{request:rewritten,context:{kind:'chat',user,downgraded_to_free_first:true}};
   }
-  return{request,context:{kind:'chat',user,premium_allowed:true,estimated_cost_usd:estimate}};
+  return{request,context:{kind:'chat',user,premium_allowed:true,estimated_cost_usd:estimate,requested_provider:provider,requested_model:String(body.model||'')}};
  }
  if((path==='/api/phone/calls/outbound'||path==='/api/voice-agent/call')&&request.method==='POST'){
   if(!user)return{response:json({detail:'Sign in required.',code:'SIGN_IN_REQUIRED'},401)};
@@ -77,7 +77,7 @@ export async function premiumPostprocess(response,env,context){
  try{
   const data=await response.clone().json().catch(()=>({}));
   if(context.kind==='chat'){
-   const provider=String(data?.provider||'').toLowerCase(),cost=estimateAiCostUsd(provider);
+   const provider=String(data?.provider||'').toLowerCase(),model=String(data?.model||context.requested_model||''),cost=estimateAiCostUsd(provider,model);
    if(cost>0)await recordUsage(env,context.user.tenant_id,{category:'premium-ai',provider,units:1,direct_cost_usd:cost,reference_id:String(data?.model||'')});
   }else if(context.kind==='pstn'){
    await recordUsage(env,context.user.tenant_id,{category:'pstn-call-reserve',provider:String(data?.provider||'twilio-ai'),units:Number(context.seconds||0)/60,direct_cost_usd:Number(context.reserve||0),reference_id:String(data?.provider_call_id||data?.call_id||'')});
