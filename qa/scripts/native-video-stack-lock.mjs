@@ -15,7 +15,7 @@ for(const s of [
  "'ready_to_play'","'canceled'","'failed'","accept-ranges","content-range",
  "video_stack_access_tokens","expires=N()+900","private, max-age=0",
  "preload_next","tags_json","metadata_json","tenantPlan(env,user.tenant_id)",
- "['free','plus']","/api/video/edit","browser-webrtc","tenant_isolation:true"
+ "['free','plus']","/api/video/edit","/api/video/media-edit","media-edit","browser-webrtc","tenant_isolation:true"
 ])assert.ok(runtime.includes(s),'native video stack missing '+s);
 
 assert.ok(!runtime.includes('VIDEO_IO_APP_TOKEN'),'outside master token must not be part of native video stack');
@@ -26,13 +26,13 @@ for(const s of [
  'class EditSegment(BaseModel)','class EditRequest(BaseModel)',
  'approved_media_url','/api/video-stack/access/','MAGNANIMOUS_PUBLIC_MEDIA_HOSTS',
  'media_has_audio','anullsrc','-f", "concat"','watermark_required',
- '@app.post("/api/video/edit")','private_edit_sources_only'
+ '@app.post("/api/video/edit")','@app.post("/api/video/media-edit")','probe_media','extract_audio','extract_thumbnail','normalize_loudness','private_edit_sources_only'
 ])assert.ok(renderer.includes(s),'renderer edit safety/feature missing '+s);
 
 for(const s of [
  'navigator.mediaDevices.getUserMedia','new MediaRecorder','PART=8*1024*1024',
  '/api/video-stack/uploads','/api/video-stack/playlists','Finalize selected clips',
- 'Create live session','ready to play','Record • Upload • Edit'
+ 'Create live session','ready to play','Record • Upload • Edit','Probe','Extract audio','Normalize audio'
 ])assert.ok(ui.includes(s),'video stack UI missing '+s);
 
 assert.ok(movie.includes('href="/video-stack"'),'Movie Maker must link to native video stack');
