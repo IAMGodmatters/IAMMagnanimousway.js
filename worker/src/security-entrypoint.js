@@ -81,6 +81,59 @@ function finalizeResponse(request,response){
 }
 
 
+async function bridgeTokenMatches(presented,expected){
+  const encoder=new TextEncoder();
+  const [a,b]=await Promise.all([
+    crypto.subtle.digest('SHA-256',encoder.encode(String(presented||''))),
+    crypto.subtle.digest('SHA-256',encoder.encode(String(expected||'')))
+  ]);
+  const aa=new Uint8Array(a),bb=new Uint8Array(b);
+  let diff=aa.length^bb.length;
+  for(let i=0;i<Math.max(aa.length,bb.length);i++)diff|=(aa[i]||0)^(bb[i]||0);
+  return diff===0&&String(presented||'').length>0;
+}
+
+function bridgeAiText(result){
+  if(typeof result==='string'&&result.trim())return result.trim();
+  return String(result?.response||result?.result?.response||result?.result||'').trim();
+}
+
+async function handleInternalWorkersAiBridge(request,env){
+  const url=new URL(request.url);
+  if(url.pathname!=='/api/internal/ai/run')return null;
+  if(request.method!=='POST')return Response.json({detail:'Method not allowed.'},{status:405,headers:{allow:'POST','cache-control':'no-store'}});
+  const expected=String(env?.MAGNANIMOUS_WORKERS_AI_BRIDGE_TOKEN||'').trim();
+  const auth=String(request.headers.get('authorization')||'');
+  const presented=auth.startsWith('Bearer ')?auth.slice(7).trim():'';
+  if(!expected||!(await bridgeTokenMatches(presented,expected))){
+    return Response.json({detail:'Internal AI bridge authorization failed.',code:'AI_BRIDGE_FORBIDDEN'},{status:403,headers:{'cache-control':'no-store'}});
+  }
+  if(!env?.AI||typeof env.AI.run!=='function'){
+    return Response.json({detail:'Workers AI binding is unavailable.',code:'AI_BRIDGE_UNAVAILABLE'},{status:503,headers:{'cache-control':'no-store'}});
+  }
+  const raw=await request.text();
+  if(raw.length>65536)return Response.json({detail:'AI bridge request is too large.',code:'AI_BRIDGE_REQUEST_TOO_LARGE'},{status:413,headers:{'cache-control':'no-store'}});
+  let body={};
+  try{body=raw?JSON.parse(raw):{}}catch{return Response.json({detail:'Invalid JSON body.',code:'AI_BRIDGE_BAD_JSON'},{status:400,headers:{'cache-control':'no-store'}})}
+  const model=String(body?.model||env.CLOUDFLARE_AI_MODEL||'@cf/meta/llama-3.1-8b-instruct-fast').trim();
+  if(!model.startsWith('@cf/')||model.length>200)return Response.json({detail:'Model is not allowed.',code:'AI_BRIDGE_MODEL_NOT_ALLOWED'},{status:400,headers:{'cache-control':'no-store'}});
+  const messages=(Array.isArray(body?.messages)?body.messages:[]).slice(-40).map(item=>({
+    role:['system','assistant','user'].includes(String(item?.role||''))?String(item.role):'user',
+    content:String(item?.content||'').slice(0,16000)
+  })).filter(item=>item.content);
+  if(!messages.length)return Response.json({detail:'At least one message is required.',code:'AI_BRIDGE_MESSAGES_REQUIRED'},{status:400,headers:{'cache-control':'no-store'}});
+  const maxTokens=Math.max(64,Math.min(4096,Number(body?.max_tokens||1200)||1200));
+  try{
+    const result=await env.AI.run(model,{messages,max_tokens:maxTokens});
+    const response=bridgeAiText(result);
+    if(!response)return Response.json({detail:'Workers AI returned no text.',code:'AI_BRIDGE_EMPTY_RESPONSE'},{status:502,headers:{'cache-control':'no-store'}});
+    return Response.json({ok:true,response},{headers:{'cache-control':'no-store'}});
+  }catch(error){
+    console.error('Magnanimous internal Workers AI bridge failed',String(error?.message||error));
+    return Response.json({detail:'Workers AI execution failed.',code:'AI_BRIDGE_UPSTREAM_FAILED'},{status:502,headers:{'cache-control':'no-store'}});
+  }
+}
+
 function configuredStandaloneApiOrigin(env){
   if(String(env?.MAGNANIMOUS_RUNTIME||'').trim()==='standalone-node')return'';
   const raw=String(env?.MAGNANIMOUS_STANDALONE_API_ORIGIN||'').trim();
@@ -98,7 +151,7 @@ async function proxyApiToStandalone(request,env){
   // and conversation persistence remain on one authoritative runtime. Standalone AI
   // execution falls back to the protected free-first Workers AI REST rail.
   const standaloneDataPlanePath=url.pathname.startsWith('/api/')||url.pathname==='/funnels'||url.pathname.startsWith('/funnels/');
-  if(url.pathname==='/api/internal/migration/rewrap-platform-credentials')return null;
+  if(url.pathname==='/api/internal/migration/rewrap-platform-credentials'||url.pathname==='/api/internal/ai/run')return null;
   if(!standaloneDataPlanePath)return null;
   if(request.headers.get('x-magnanimous-standalone-proxy')==='1')return null;
   const origin=configuredStandaloneApiOrigin(env);
@@ -220,6 +273,8 @@ export default {
         database_independent:true
       },{headers:{'cache-control':'no-store'}}));
     }
+    const workersAiBridgeResponse=await handleInternalWorkersAiBridge(request,env);
+    if(workersAiBridgeResponse)return finalizeResponse(request,workersAiBridgeResponse);
     const standaloneApiResponse=await proxyApiToStandalone(request,env);
     if(standaloneApiResponse)return finalizeResponse(request,await securityPostflight(request,standaloneApiResponse,env));
     const requestId=requestCorrelationId(request);
