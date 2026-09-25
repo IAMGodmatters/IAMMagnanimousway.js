@@ -247,10 +247,15 @@ must(runtimeSecretsWorkflow.includes('magnanimous-credential-rewrap'),'Runtime s
 must(runtimeSecretsWorkflow.includes('/api/internal/migration/rewrap-platform-credentials'),'Runtime secret staging must call the signed production rewrap endpoint.');
 must(runtimeSecretsWorkflow.includes('/__magnanimous_runtime/migration/stage-secrets'),'Runtime secret staging must stage the fresh standalone key.');
 must(runtimeSecretsWorkflow.includes('/__magnanimous_runtime/migration/stage-credential-rewrap'),'Runtime secret staging must apply only rewrapped ciphertext to the staged database.');
-must(runtimeSecretsWorkflow.includes('deploy_revision'),'Runtime secret staging must wait for the exact deployed revision.');
+must(runtimeSecretsWorkflow.includes('TARGET_RUNTIME_SHA'),'Runtime secret staging must bind work to an explicit target runtime revision.');
+must(runtimeSecretsWorkflow.includes('fetch-depth: 2'),'Runtime secret staging must inspect the triggering commit before reusing a live runtime revision.');
+must(runtimeSecretsWorkflow.includes('workflow_only=1'),'Workflow-only secret changes must be distinguishable from runtime-impacting changes.');
+must(runtimeSecretsWorkflow.includes('X-Magnanimous-Runtime-Revision: $TARGET_RUNTIME_SHA'),'Secret staging calls must carry the explicit live runtime target.');
 must(runtimeSecretsWorkflow.includes("response.get('reloaded') is True"),'Runtime secret staging must prove live in-process reload.');
 must(server.includes('loadRuntimeSecrets({ file: secretFile, override: true })'),'Standalone secret staging must hot-reload the staged runtime secret file.');
-must(server.includes('Migration staging revision mismatch'),'Standalone migration endpoint must reject a signed SHA that is not the live revision.');
+must(server.includes('Migration staging revision mismatch'),'Standalone data migration endpoint must reject a signed SHA that is not the live revision.');
+must(server.includes("x-magnanimous-runtime-revision"),'Standalone secret staging must require an explicit target runtime revision.');
+must(server.includes('Secret staging target revision mismatch'),'Standalone secret staging must reject requests not bound to the live runtime.');
 must(!runtimeSecretsWorkflow.includes('secrets.INTEGRATION_CREDENTIALS_KEY'),'Runtime secret staging must not require the old production vault key outside production.');
 must(!runtimeSecretsWorkflow.includes('upload-artifact'),'Runtime secrets must never be uploaded as workflow artifacts.');
 const workerOidc=read('worker/src/github-actions-oidc.js');
