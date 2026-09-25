@@ -10,28 +10,34 @@ const target=path.join(root,'runtime.json');
 const previous=process.env.INTEGRATION_CREDENTIALS_KEY;
 const previousCloudflareToken=process.env.CLOUDFLARE_API_TOKEN;
 const previousCloudflareAccount=process.env.CLOUDFLARE_ACCOUNT_ID;
+const previousBridgeToken=process.env.MAGNANIMOUS_WORKERS_AI_BRIDGE_TOKEN;
+const previousBridgeUrl=process.env.MAGNANIMOUS_WORKERS_AI_BRIDGE_URL;
 
 try{
   const staged=await stageRuntimeSecrets({
     INTEGRATION_CREDENTIALS_KEY:'verification-integration-key-2026',
     CLOUDFLARE_API_TOKEN:'verification-cloudflare-token-2026',
     CLOUDFLARE_ACCOUNT_ID:'verification-cloudflare-account-2026',
+    MAGNANIMOUS_WORKERS_AI_BRIDGE_TOKEN:'verification-bridge-token-2026',
+    MAGNANIMOUS_WORKERS_AI_BRIDGE_URL:'https://example.test/api/internal/ai/run',
     TWILIO_ACCOUNT_SID:'AC-verification'
   },{root,targetPath:target});
 
   assert.equal(staged.ok,true);
-  assert.equal(staged.count,4);
-  assert.deepEqual(staged.keys,['CLOUDFLARE_ACCOUNT_ID','CLOUDFLARE_API_TOKEN','INTEGRATION_CREDENTIALS_KEY','TWILIO_ACCOUNT_SID']);
+  assert.equal(staged.count,6);
+  assert.deepEqual(staged.keys,['CLOUDFLARE_ACCOUNT_ID','CLOUDFLARE_API_TOKEN','INTEGRATION_CREDENTIALS_KEY','MAGNANIMOUS_WORKERS_AI_BRIDGE_TOKEN','MAGNANIMOUS_WORKERS_AI_BRIDGE_URL','TWILIO_ACCOUNT_SID']);
   const stat=await fs.stat(target);
   assert.equal(stat.mode & 0o777,0o600);
 
   process.env.INTEGRATION_CREDENTIALS_KEY='stale-value';
   const loaded=await loadRuntimeSecrets({file:target,override:true});
   assert.equal(loaded.loaded,true);
-  assert.equal(loaded.count,4);
+  assert.equal(loaded.count,6);
   assert.equal(process.env.INTEGRATION_CREDENTIALS_KEY,'verification-integration-key-2026');
   assert.equal(process.env.CLOUDFLARE_API_TOKEN,'verification-cloudflare-token-2026');
   assert.equal(process.env.CLOUDFLARE_ACCOUNT_ID,'verification-cloudflare-account-2026');
+  assert.equal(process.env.MAGNANIMOUS_WORKERS_AI_BRIDGE_TOKEN,'verification-bridge-token-2026');
+  assert.equal(process.env.MAGNANIMOUS_WORKERS_AI_BRIDGE_URL,'https://example.test/api/internal/ai/run');
   assert.equal(process.env.TWILIO_ACCOUNT_SID,'AC-verification');
 
   await assert.rejects(
@@ -51,6 +57,10 @@ try{
   else process.env.CLOUDFLARE_API_TOKEN=previousCloudflareToken;
   if(previousCloudflareAccount===undefined)delete process.env.CLOUDFLARE_ACCOUNT_ID;
   else process.env.CLOUDFLARE_ACCOUNT_ID=previousCloudflareAccount;
+  if(previousBridgeToken===undefined)delete process.env.MAGNANIMOUS_WORKERS_AI_BRIDGE_TOKEN;
+  else process.env.MAGNANIMOUS_WORKERS_AI_BRIDGE_TOKEN=previousBridgeToken;
+  if(previousBridgeUrl===undefined)delete process.env.MAGNANIMOUS_WORKERS_AI_BRIDGE_URL;
+  else process.env.MAGNANIMOUS_WORKERS_AI_BRIDGE_URL=previousBridgeUrl;
   delete process.env.TWILIO_ACCOUNT_SID;
   await fs.rm(root,{recursive:true,force:true});
 }
