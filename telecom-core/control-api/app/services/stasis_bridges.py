@@ -232,7 +232,8 @@ class AsteriskStasisBridgeService:
             ok=(200,),
         )
         supervisor_name = str((supervisor_channel or {}).get("name") or "")
-        if not supervisor_name.startswith(f"PJSIP/{request.supervisor_session_id}-"):
+        supervisor_endpoint_prefix = f"PJSIP/{request.supervisor_session_id}-"
+        if not supervisor_name.startswith(supervisor_endpoint_prefix):
             raise TelecomNotFoundError("Supervisor channel does not belong to the tenant-owned WebRTC session.")
         await self._expect("GET", f"/channels/{target_channel_id}", ok=(200,))
 
