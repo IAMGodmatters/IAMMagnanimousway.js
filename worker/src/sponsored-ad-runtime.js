@@ -71,6 +71,8 @@ async function ensureSchema(env) {
     event_type TEXT NOT NULL,
     processed_at INTEGER NOT NULL
   )`).run();
+  try { await env.DB.prepare('ALTER TABLE ads ADD COLUMN revenue_authorized INTEGER NOT NULL DEFAULT 0').run(); } catch (_) {}
+  try { await env.DB.prepare('ALTER TABLE ads ADD COLUMN owner_owned INTEGER NOT NULL DEFAULT 0').run(); } catch (_) {}
   try { await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_sponsored_ad_subscription ON sponsored_ad_orders(stripe_subscription_id)').run(); } catch (_) {}
 }
 
@@ -110,7 +112,7 @@ async function activateFromCheckout(env, object) {
   if (!sessionId) return true;
   const existing = await env.DB.prepare('SELECT ad_id FROM sponsored_ad_orders WHERE stripe_checkout_session_id=?').bind(sessionId).first();
   if (existing?.ad_id) {
-    await env.DB.prepare('UPDATE ads SET active=1 WHERE id=?').bind(existing.ad_id).run();
+    await env.DB.prepare('UPDATE ads SET active=1,revenue_authorized=1 WHERE id=?').bind(existing.ad_id).run();
     return true;
   }
 
@@ -123,7 +125,7 @@ async function activateFromCheckout(env, object) {
   const label = copy ? `Sponsored · ${copy}`.slice(0, 240) : 'Sponsored';
   const created = now();
   const insert = await env.DB.prepare(
-    'INSERT INTO ads(title,url,label,placement,active,created_at) VALUES(?,?,?,?,?,?)'
+    'INSERT INTO ads(title,url,label,placement,active,created_at,revenue_authorized,owner_owned) VALUES(?,?,?,?,?,?,1,0)'
   ).bind(headline, destination, label, 'home', 1, created).run();
   const adId = Number(insert?.meta?.last_row_id || 0) || null;
   await env.DB.prepare(`
