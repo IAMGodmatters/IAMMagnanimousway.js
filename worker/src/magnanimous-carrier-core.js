@@ -101,7 +101,8 @@ async function routePlan(env,user,to,mode='balanced'){
   const measuredEligible=observed.fresh&&observed.sample_count>=10&&observed.measured_quality_score!=null;
   const quality=measuredEligible?observed.measured_quality_score:configuredQuality,maxRate=x.max_rate==null?null:Number(x.max_rate),overRateCap=maxRate!=null&&estimatedRate!=null&&estimatedRate>maxRate;
   const executionEndpoint=String(policy.asterisk_endpoint||policy.endpoint_key||'').trim().slice(0,80);
-  return{route_id:x.id,route:x.name,destination_prefix:routePrefix,interconnect_id:x.interconnect_id,interconnect:x.interconnect_name,type:x.interconnect_type,endpoint:String(x.endpoint||''),execution_endpoint:executionEndpoint,health:x.health_status,max_rate:maxRate,estimated_rate:estimatedRate,over_rate_cap:overRateCap,quality_score:quality,quality_source:measuredEligible?'measured':'configured',configured_quality_score:configuredQuality,observed,priority:Number(x.priority||100),interconnect_priority:Number(x.interconnect_priority||100),jurisdiction:x.jurisdiction,policy};
+  const bridgeRouteKey=String(policy.bridge_route_key||'').trim().slice(0,120);
+  return{route_id:x.id,route:x.name,destination_prefix:routePrefix,interconnect_id:x.interconnect_id,interconnect:x.interconnect_name,type:x.interconnect_type,endpoint:String(x.endpoint||''),execution_endpoint:executionEndpoint,bridge_route_key:bridgeRouteKey,health:x.health_status,max_rate:maxRate,estimated_rate:estimatedRate,over_rate_cap:overRateCap,quality_score:quality,quality_source:measuredEligible?'measured':'configured',configured_quality_score:configuredQuality,observed,priority:Number(x.priority||100),interconnect_priority:Number(x.interconnect_priority||100),jurisdiction:x.jurisdiction,policy};
  });
  const longest=matches.reduce((n,x)=>Math.max(n,x.destination_prefix.length),0),specific=matches.filter(x=>x.destination_prefix.length===longest);
  const healthy=specific.filter(x=>!['down','unavailable','failed'].includes(String(x.health||'').toLowerCase())&&!x.over_rate_cap),pool=healthy;
@@ -154,12 +155,18 @@ export async function handleMagnanimousCarrierCore(request,env){
   if(!ic)return json({detail:'Interconnect not found.'},404);
   const policy=b.policy&&typeof b.policy==='object'&&!Array.isArray(b.policy)?{...b.policy}:{};
   const executionEndpoint=String(policy.asterisk_endpoint||policy.endpoint_key||'').trim();
+  const bridgeRouteKey=String(policy.bridge_route_key||'').trim();
   if(executionEndpoint&&!/^[A-Za-z0-9_.-]{1,80}$/.test(executionEndpoint))return json({detail:'asterisk_endpoint must be an Asterisk PJSIP endpoint key.'},422);
   if(executionEndpoint&&!['sip-trunk','byoc-bridge','direct-pstn'].includes(String(ic.type||'')))return json({detail:'Only migrated SIP/BYOC interconnect types can declare asterisk_endpoint.'},422);
+  if(bridgeRouteKey&&!/^[A-Za-z0-9_.:-]{1,120}$/.test(bridgeRouteKey))return json({detail:'bridge_route_key must be an opaque bridge route identifier.'},422);
+  if(bridgeRouteKey&&String(ic.type||'')!=='byoc-bridge')return json({detail:'bridge_route_key is only supported for byoc-bridge interconnects.'},422);
+  if(executionEndpoint&&bridgeRouteKey)return json({detail:'Choose either asterisk_endpoint or bridge_route_key for one route, not both.'},422);
   if(executionEndpoint){policy.asterisk_endpoint=executionEndpoint;delete policy.endpoint_key}
+  if(bridgeRouteKey)policy.bridge_route_key=bridgeRouteKey;else delete policy.bridge_route_key;
   const ts=now(),r=await env.DB.prepare(`INSERT INTO magnanimous_carrier_routes(tenant_id,name,destination_prefix,interconnect_id,priority,enabled,max_rate,jurisdiction,policy_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`).bind(String(user.tenant_id),clip(b.name||'Carrier route',120),clip(b.destination_prefix,32),interconnectId,Math.max(0,Number(b.priority||100)),b.enabled===false?0:1,b.max_rate==null?null:Number(b.max_rate),clip(b.jurisdiction,80),JSON.stringify(policy).slice(0,8000),ts,ts).run();
   await audit(env,user,'route.create',String(r.meta?.last_row_id||''),String(interconnectId));
-  return json({ok:true,id:r.meta?.last_row_id||null,selected_route_execution:executionEndpoint?'magnanimous-telecom-core':'preview-only'},201);
+  const executionMode=executionEndpoint?'magnanimous-telecom-core':bridgeRouteKey?'generic-byoc-contract':'preview-only';
+  return json({ok:true,id:r.meta?.last_row_id||null,selected_route_execution:executionMode},201);
  }
  if(request.method==='GET'&&path==='/api/magnanimous/carrier/route-plan'){
   if(!manager(user))return json({detail:'Owner or admin role required.'},403);

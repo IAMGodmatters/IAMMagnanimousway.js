@@ -117,7 +117,7 @@ has(carrier,"asterisk_endpoint must be an Asterisk PJSIP endpoint key.",'route e
 has(carrier,"if(!manager(user))return json({detail:'Owner or admin role required.'},403);\n  return json(await planCarrierRoute",'detailed route-plan diagnostics are owner/admin only');
 has(leadPhone,'selected.execution_endpoint','outbound live handoff uses only the explicitly opted-in Asterisk endpoint');
 lacks(leadPhone,'endpoint: String(selected.endpoint).trim()','legacy interconnect endpoint cannot become a live dialplan key implicitly');
-has(leadPhone,'selected_route_applied: provider?.selected_route_applied === true','platform only claims selected-route execution when the bridge confirms it');
+has(leadPhone,'selected_route_applied: selectedRouteApplied','platform only claims selected-route execution when a route was requested and the bridge confirms it');
 has(leadPhone,'selected_route: selectedRoute','outbound bridge handoff can carry a selected route privately');
 has(leadPhone,'function magnanimousCoreBridgeReady','selected-route payload has an explicit private Telecom Core origin gate');
 has(leadPhone,"provider.origin === core.origin",'selected-route payload is never sent to a different bridge origin');
@@ -131,7 +131,7 @@ has(carrierAdapter,'await self._endpoint_health(selected_endpoint)','selected ro
 has(carrierAdapter,'Selected carrier route is not authorized','unapproved selected endpoints fail closed');
 has(extensions,'MAG_SELECTED_ENDPOINT','Asterisk dialplan consumes only the server-validated selected endpoint variable');
 has(extensions,'$["${MAG_CARRIER_ENDPOINT}"!=""]?done','explicit selected routes do not silently fail over to another carrier');
-has(network,'selected_route_execution:{native_telecom_core:true,generic_byoc:false,twilio_compatibility:true,plivo_compatibility:true}','network truth reports explicit Twilio/Plivo routing without falsely migrating generic BYOC');
+has(network,'selected_route_execution:{native_telecom_core:true,generic_byoc_contract:true,generic_byoc_legacy_fallback:true,twilio_compatibility:true,plivo_compatibility:true}','network truth reports opt-in generic BYOC route execution while preserving the legacy fallback boundary');
 has(telecomWorkflow,'python -m pip install -r telecom-core/control-api/requirements.txt','Telecom CI installs control API dependencies before tests');
 has(telecomWorkflow,"python -m unittest discover -s telecom-core/control-api/tests -p 'test_*.py'",'Telecom CI runs control API unit tests');
 has(telecomWorkflow,'node --check worker/src/magnanimous-carrier-core.js','Telecom CI syntax-checks the carrier planner');

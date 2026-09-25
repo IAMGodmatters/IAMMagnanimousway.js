@@ -7,7 +7,7 @@ const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 
 type RegulatoryCase={id:string;jurisdiction:string;authority_key:string;authority_name:string;status:string;application_reference?:string;evidence_reference?:string;notes?:string};
 type ProviderCandidate={provider_key:string;role:string;adapter_state?:string;connected?:boolean};
-type Overview={identity:string;brain:string;architecture:string;readiness:Record<string,boolean>;owned_service_core?:{provider_key:string;role:string;native_pbx:string;provider_owned_identity:boolean};upstream_candidates?:ProviderCandidate[];native_browser_target?:{provider_key:string;role:string;live:boolean;truth_boundary:string};routing_policy?:{measured_quality_signals?:string[];max_rate_enforced?:boolean;live_execution_uses_route_planner?:boolean;execution_note?:string};mobile_alternative:{provider_key:string;role:string;capabilities:string[]};regulatory_cases:RegulatoryCase[];authority_note:string};
+type Overview={identity:string;brain:string;architecture:string;readiness:Record<string,boolean>;owned_service_core?:{provider_key:string;role:string;native_pbx:string;provider_owned_identity:boolean};upstream_candidates?:ProviderCandidate[];native_browser_target?:{provider_key:string;role:string;live:boolean;truth_boundary:string};routing_policy?:{measured_quality_signals?:string[];max_rate_enforced?:boolean;live_execution_uses_route_planner?:boolean;selected_route_execution?:{native_telecom_core?:boolean;generic_byoc_contract?:boolean;generic_byoc_legacy_fallback?:boolean;twilio_compatibility?:boolean;plivo_compatibility?:boolean};execution_note?:string};mobile_alternative:{provider_key:string;role:string;capabilities:string[]};regulatory_cases:RegulatoryCase[];authority_note:string};
 const empty:Overview={identity:'Magnanimous Telecom',brain:'Magnanimous AI',architecture:'provider-neutral regulated-network control',readiness:{},owned_service_core:{provider_key:'magnanimous-telecom',role:'PBX, SIP registrar, routing, policy, CDR and contact-center control',native_pbx:'Asterisk',provider_owned_identity:true},upstream_candidates:[],native_browser_target:{provider_key:'magnanimous-asterisk-webrtc',role:'owned browser-agent signaling/media target',live:false,truth_boundary:'Source readiness is not live readiness.'},routing_policy:{measured_quality_signals:['ASR','ACD','PDD','network_failure_rate'],max_rate_enforced:true,live_execution_uses_route_planner:false},mobile_alternative:{provider_key:'gigs',role:'MVNO/mobile subscription adapter',capabilities:[]},regulatory_cases:[],authority_note:'Software readiness is not regulatory authority.'};
 
 async function parse(response:Response){const text=await response.text();try{return JSON.parse(text)}catch{return{detail:text||`Request failed (${response.status})`}}}
@@ -142,6 +142,13 @@ export default function NetworkAuthorityPage(){
       <p className={styles.muted}>{routePlan.policy}</p>
       <p>{(routePlan.matches||[]).length} matching route(s) · {routePlan.eligible_routes??0} eligible after health/rate policy</p>
       <p className={styles.muted}>{overview.routing_policy?.execution_note||'Preview/control policy does not claim that every legacy compatibility adapter already executes through the same selected-route contract.'}</p>
+      <ul>
+       <li>Protected Telecom Core: {overview.routing_policy?.selected_route_execution?.native_telecom_core?'planner-controlled':'not migrated'}</li>
+       <li>Contract-capable generic BYOC: {overview.routing_policy?.selected_route_execution?.generic_byoc_contract?'planner-controlled when opted in':'not migrated'}</li>
+       <li>Twilio compatibility: {overview.routing_policy?.selected_route_execution?.twilio_compatibility?'planner-controlled when explicitly routed':'not migrated'}</li>
+       <li>Plivo compatibility: {overview.routing_policy?.selected_route_execution?.plivo_compatibility?'planner-controlled when explicitly routed':'not migrated'}</li>
+       <li>Legacy generic/no-route fallback: {overview.routing_policy?.selected_route_execution?.generic_byoc_legacy_fallback?'still enabled until tenant migration':'retired'}</li>
+      </ul>
      </article>
     </div>
    ) : null}
