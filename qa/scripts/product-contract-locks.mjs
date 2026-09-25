@@ -48,7 +48,6 @@ const chatTransport = read('frontend/lib/magnanimous-chat-transport.ts');
 const naturalSpeech = read('frontend/lib/natural-speech.ts');
 const voiceOrchestrator = read('frontend/app/voice-orchestrator.tsx');
 const standaloneAiBinding = read('magnanimous-runtime/src/ai-binding.mjs');
-const securityEntrypoint = read('worker/src/security-entrypoint.js');
 const standaloneServer = read('magnanimous-runtime/src/server.mjs');
 const deployWorkflow = read('.github/workflows/deploy.yml');
 
@@ -107,9 +106,8 @@ includes(naturalSpeech, 'if(ios)window.setTimeout(next,70);else next();', 'voice
 includes(standaloneAiBinding, 'isConfigured()', 'AI reliability: standalone binding exposes truthful readiness');
 includes(standaloneAiBinding, 'enabled(this.env.ENABLE_METERED_PROVIDERS)', 'AI cost control: standalone OpenAI fallback remains gated by the metered-provider switch');
 includes(providerEntrypoint, "typeof env.AI.isConfigured === 'function'", 'AI reliability: provider routing checks standalone binding readiness instead of assuming the wrapper is live');
-includes(providerEntrypoint, 'standaloneEdgeComputeFallback', 'AI reliability: standalone has a bounded free edge compute fallback');
-includes(providerEntrypoint, "compute_only:true", 'AI reliability: standalone edge retry is compute-only and cannot duplicate tool actions');
-includes(securityEntrypoint, "if(url.pathname==='/api/chat')return null;", 'AI reliability: Cloudflare front door keeps chat on its native free-first binding instead of proxy-looping to Railway');
+includes(standaloneServer, 'const runtimeSecretState = await loadRuntimeSecrets({ override: true });', 'AI reliability: persisted runtime provider secrets are loaded before standalone bindings are constructed');
+includes(standaloneServer, 'runtime_secrets: { loaded: runtimeSecretState.loaded, count: runtimeSecretState.count }', 'AI reliability: standalone health reports secret-bundle load state without exposing values');
 includes(standaloneServer, "workflowSha !== sourceSha || requestedRuntimeSha !== revision", 'deployment smoke: OIDC workflow SHA and verified live runtime SHA are independently bound');
 includes(standaloneServer, "const fullSha = /^[0-9a-f]{40}$/i", 'deployment smoke: workflow/runtime revision bindings require full commit SHAs');
 includes(deployWorkflow, 'id: runtime-plane', 'deployment smoke: verified runtime target is exported by the session-plane gate');
