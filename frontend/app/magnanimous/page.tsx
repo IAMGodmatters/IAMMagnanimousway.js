@@ -61,21 +61,30 @@ export default function StandaloneMagnanimous(){
    if(token)headers.authorization=`Bearer ${token}`;
    const requestText=requestMode.id==='general'?text:`[${requestMode.label.toUpperCase()} MODE]\n${text}`;
    const researchMode=activeMode.id==='research';
-   const requestResearchMode=retry?requestMode.id==='research':researchMode;
+   const payload={
+    message:requestText,
+    provider:'auto',
+    use_knowledge:true,
+    use_tools:!researchMode,
+    learn_links:!researchMode,
+    remember_search:true,
+    specialist_routing:true,
+    live_search:Boolean(activeMode.live),
+    news:Boolean(activeMode.news)
+   };
+   const transportOptions={retryTransientEdgeOnce:researchMode};
+   if(retry&&requestMode.id!==activeMode.id){
+    const retryResearchMode=requestMode.id==='research';
+    payload.use_tools=!retryResearchMode;
+    payload.learn_links=!retryResearchMode;
+    payload.live_search=Boolean(requestMode.live);
+    payload.news=Boolean(requestMode.news);
+    transportOptions.retryTransientEdgeOnce=retryResearchMode;
+   }
    const r=await postMagnanimousChat('/api/chat',{
     method:'POST',headers,
-    body:JSON.stringify({
-     message:requestText,
-     provider:'auto',
-     use_knowledge:true,
-     use_tools:!requestResearchMode,
-     learn_links:!requestResearchMode,
-     remember_search:true,
-     specialist_routing:true,
-     live_search:Boolean(requestMode.live),
-     news:Boolean(requestMode.news)
-    })
-   },{retryTransientEdgeOnce:requestResearchMode});
+    body:JSON.stringify(payload)
+   },transportOptions);
    const d=await r.json().catch(()=>({}));
    if(!r.ok)throw new Error(String(d?.detail||d?.error||`Magnanimous returned ${r.status}`));
    const answer=String(d?.output||d?.answer||'Magnanimous completed the request but returned no text.');
