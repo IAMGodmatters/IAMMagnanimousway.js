@@ -19,7 +19,7 @@ const lacks=(source,text,label)=>checks.push([label,!source.includes(text)]);
 
 has(ports,'class CarrierBridge(Protocol)','carrier bridge uses an explicit dependency-inversion port');
 has(container,'def build_container','telecom uses a composition root');
-has(container,'AsteriskSipCarrierBridge(ari, resolved)','concrete carrier adapter is injected at the composition root');
+has(container,'AsteriskSipCarrierBridge(ari, resolved, stasis)','concrete carrier adapter is injected at the composition root with the gated Stasis lifecycle');
 has(calls,'class CallService','call business use-cases live outside HTTP routes');
 has(monitoring,'class CarrierCallMonitor','monitor lifecycle is decomposed from call business logic');
 has(adapter,'class AsteriskAriClient','ARI transport has one focused adapter');
