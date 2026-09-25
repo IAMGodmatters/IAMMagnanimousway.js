@@ -42,7 +42,8 @@ export async function premiumPreflight(request,env){
   const quoteProvider=explicitlyMetered?provider:String(env.OPENAI_API_KEY?'openai':env.ANTHROPIC_API_KEY?'anthropic':env.GOOGLE_API_KEY?'google':env.GROQ_API_KEY?'groq':env.MISTRAL_API_KEY?'mistral':'cloudflare-ai');
   const quoteQuality=asksMaximum?'quality':'budget';
   const quoteModel=String(body.model||defaultModelForProvider(quoteProvider,quoteQuality)||'');
-  const estimate=Math.max(quoteProvider==='cloudflare-ai'&&String(env.BILL_CLOUDFLARE_AI_OVERAGE||'').toLowerCase()!=='true'?0:0.000001,estimateAiCostUsd(quoteProvider,{model:quoteModel,inputText:String(body.message||''),maxOutputTokens:1600}));
+  const quoteIsUnbilledCloudflare=quoteProvider==='cloudflare-ai'&&String(env.BILL_CLOUDFLARE_AI_OVERAGE||'').toLowerCase()!=='true';
+  const estimate=quoteIsUnbilledCloudflare?0:Math.max(0.000001,estimateAiCostUsd(quoteProvider,{model:quoteModel,inputText:String(body.message||''),maxOutputTokens:1600}));
   const gate=await canUsePremium(env,user.tenant_id,{category:'premium AI',estimated_cost_usd:estimate,required_plan:'business',entitlement:'metered_ai'});
   if(!gate.ok){
    if(explicitlyMetered)return{response:json({detail:gate.detail,code:gate.code,plan:gate.plan,remaining_cost_usd:gate.remaining_cost_usd,prepaid_balance_usd:gate.prepaid_balance_usd,free_first_available:true,provider_checkout_required:false,billing_owner:'I AM Magnanimous Way'},402)};
