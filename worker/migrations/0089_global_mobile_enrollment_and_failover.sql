@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS telecom_mobile_enrollment_tokens (
   status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','redeemed','expired','revoked')),
   expires_at INTEGER NOT NULL,
   redeemed_at INTEGER,
+  redeemed_by TEXT NOT NULL DEFAULT '',
+  device_ref TEXT NOT NULL DEFAULT '',
   created_by TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL
 );
