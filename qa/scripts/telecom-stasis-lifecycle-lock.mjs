@@ -34,14 +34,24 @@ has(service,'while self._consecutive_failures < max_failures','Stasis WebSocket 
 has(service,'"public_live_verified": False','source/runtime readiness cannot claim public live verification');
 has(service,'Explicit recording/supervisor consent confirmation is required.','recording and supervisor audio require explicit consent');
 has(service,'Jurisdiction is required for recording or supervisor audio.','recording and supervisor audio require a jurisdiction');
-has(service,'f"/bridges/{bridge_id}/record"','recording is performed on the mixed Asterisk bridge');
+has(service,'f"/bridges/{call.bridge_id}/record"','recording is performed only on the tenant-owned managed Asterisk bridge');
 has(service,'f"/recordings/live/{recording_name}/stop"','live bridge recordings have an explicit stop/store path');
 has(service,'"spy": "both"','monitor/whisper use Asterisk snoop channels');
 has(service,'"whisper": "out" if request.mode == "whisper" else "none"','whisper injects only through the isolated snoop path');
 has(service,'if request.mode == "barge"','barge has a distinct direct-bridge path');
 has(service,'"role": "supervisor"','barge supervisor membership is explicit');
-has(service,'await self.stop_supervisor(session_id)','shutdown cleans active supervisor sessions');
+has(service,'await self._cleanup_supervisor(session_id)','shutdown and natural call cleanup can remove supervisor sessions even after event readiness drops');
 has(service,'await self.hangup(provider_call_id)','shutdown cleans active managed calls');
+has(service,'def _managed_call_for_tenant','Stasis call controls resolve through tenant ownership');
+has(service,'call.tenant_id != str(tenant_id)','cross-tenant managed call IDs fail closed');
+has(service,'recording.get("tenant_id") != str(tenant_id)','recording stop is tenant scoped');
+has(service,'session.get("tenant_id") != str(tenant_id)','supervisor stop is tenant scoped');
+has(service,'"supervisor_audio_runtime_ready"','local runtime readiness is reported separately from public live state');
+has(service,'"bridge_recording_runtime_ready"','recording runtime readiness is reported separately from public live state');
+has(service,'"supervisor_monitor_live": False','monitor is never called public-live from source/runtime readiness alone');
+has(service,'"bridge_recording_live": False','recording is never called public-live from source/runtime readiness alone');
+has(service,'linked_recordings = [','natural call end enumerates linked recordings for cleanup');
+has(service,'linked_supervisors = [','natural call end enumerates linked supervisor sessions for cleanup');
 
 has(adapter,'self._stasis is not None and self._stasis.enabled','carrier bridge switches to Stasis only through the explicit feature gate');
 has(adapter,'await self._stasis.originate(call, selected_endpoint)','selected carrier route is preserved through managed Stasis origination');
@@ -53,8 +63,7 @@ has(lifecycle,'await container.stasis.close()','application lifecycle cleans Sta
 for(const route of [
   '/v1/stasis',
   '/v1/stasis/calls/{provider_call_id}',
-  '/v1/stasis/bridges/{bridge_id}',
-  '/v1/stasis/bridges/{bridge_id}/recordings',
+  '/v1/stasis/calls/{provider_call_id}/recordings',
   '/v1/stasis/recordings/{recording_name}/stop',
   '/v1/stasis/supervisor',
   '/v1/stasis/supervisor/{session_id}'
@@ -62,8 +71,12 @@ for(const route of [
 has(main,'dependencies=[Depends(require_token)]','Stasis control API remains bearer-token protected');
 
 has(models,'class StasisRecordingStart','recording request contract exists');
+has(models,'class StasisRecordingStop','recording stop has a tenant-scoped request contract');
+has(models,'tenant_id: str = Field(min_length=1, max_length=200)','Stasis control requests carry tenant ownership');
 has(models,'consent_confirmed: bool = False','consent defaults fail closed');
 has(models,'class SupervisorSessionStart','supervisor request contract exists');
+has(models,'provider_call_id: str = Field(min_length=1, max_length=160)','supervisor controls identify a managed call rather than a raw bridge');
+has(models,'target_role: Literal["agent", "customer"]','supervisor targets a managed call leg role rather than an arbitrary target channel');
 has(models,'Literal["monitor", "whisper", "barge"]','supervisor modes are enumerated');
 
 for(const variable of [
@@ -81,9 +94,12 @@ has(env,'ASTERISK_SUPERVISOR_AUDIO_ENABLED=false','owned environment keeps super
 has(env,'ASTERISK_BRIDGE_RECORDING_ENABLED=false','owned environment keeps bridge recording disabled by default');
 
 has(tests,'test_managed_call_builds_two_leg_bridge_and_cleans_on_end','unit tests prove managed bridge lifecycle');
-has(tests,'test_recording_requires_explicit_consent_and_jurisdiction','unit tests prove recording consent gate');
+has(tests,'test_recording_requires_consent_tenant_and_jurisdiction','unit tests prove recording consent and tenant gate');
 has(tests,'test_monitor_and_whisper_use_isolated_snoop_bridge','unit tests prove isolated monitor/whisper path');
-has(tests,'test_barge_joins_supervisor_directly_to_managed_call_bridge','unit tests prove distinct barge path');
+has(tests,'test_barge_joins_supervisor_directly_to_tenant_call_bridge','unit tests prove distinct tenant-owned barge path');
+has(tests,'test_topology_is_tenant_scoped','unit tests prove cross-tenant topology lookup fails closed');
+has(tests,'test_natural_call_end_cleans_recording_and_supervisor_children','unit tests prove child media cleanup when the parent call ends');
+has(tests,'test_shutdown_cleanup_does_not_depend_on_ready_flag','unit tests prove disconnect-safe shutdown cleanup');
 
 has(contact,'supervisor_audio:{monitor:false,whisper:false,barge:false','platform still refuses to advertise supervisor audio live before public activation');
 
