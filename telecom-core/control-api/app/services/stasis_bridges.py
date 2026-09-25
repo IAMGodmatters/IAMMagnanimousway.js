@@ -87,12 +87,14 @@ class AsteriskStasisBridgeService:
             "consecutive_failures": self._consecutive_failures,
             "last_error": self._last_error or None,
             "supervisor_audio_configured": self._settings.supervisor_audio_enabled,
-            "supervisor_monitor_live": bool(self._ready and self._settings.supervisor_audio_enabled),
-            "supervisor_whisper_live": bool(self._ready and self._settings.supervisor_audio_enabled),
-            "supervisor_barge_live": bool(self._ready and self._settings.supervisor_audio_enabled),
+            "supervisor_audio_runtime_ready": bool(self._ready and self._settings.supervisor_audio_enabled),
+            "supervisor_monitor_live": False,
+            "supervisor_whisper_live": False,
+            "supervisor_barge_live": False,
             "active_supervisor_sessions": len(self._supervisor_sessions),
             "bridge_recording_configured": self._settings.bridge_recording_enabled,
-            "bridge_recording_live": bool(self._ready and self._settings.bridge_recording_enabled),
+            "bridge_recording_runtime_ready": bool(self._ready and self._settings.bridge_recording_enabled),
+            "bridge_recording_live": False,
             "recording_format": self._settings.bridge_recording_format,
             "recording_max_seconds": self._settings.bridge_recording_max_seconds,
             "recording_consent_required": True,
@@ -288,8 +290,7 @@ class AsteriskStasisBridgeService:
             "jurisdiction": request.jurisdiction,
         }
 
-    async def stop_supervisor(self, session_id: str) -> dict[str, Any]:
-        self._require_supervisor()
+    async def _cleanup_supervisor(self, session_id: str) -> dict[str, Any]:
         session = self._supervisor_sessions.pop(session_id, None)
         if not session:
             return {"ok": True, "session_id": session_id, "status": "already-ended"}
@@ -306,10 +307,14 @@ class AsteriskStasisBridgeService:
             await self._expect("DELETE", f"/bridges/{session['supervisor_bridge_id']}", allow_missing=True)
         return {"ok": True, "session_id": session_id, "status": "ended"}
 
+    async def stop_supervisor(self, session_id: str) -> dict[str, Any]:
+        self._require_supervisor()
+        return await self._cleanup_supervisor(session_id)
+
     async def close(self) -> None:
         for session_id in list(self._supervisor_sessions):
             try:
-                await self.stop_supervisor(session_id)
+                await self._cleanup_supervisor(session_id)
             except Exception:
                 self._supervisor_sessions.pop(session_id, None)
         for provider_call_id in list(self._calls):
