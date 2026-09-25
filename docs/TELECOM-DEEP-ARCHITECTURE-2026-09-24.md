@@ -341,3 +341,36 @@ Still external or runtime-gated:
 Do not mark any carrier, native WebRTC path, emergency route, direct numbering authority, supervisor media feature or standalone telecom service as live without runtime/deployment evidence.
 
 Do not remove a working compatibility transport merely because the native replacement exists in source. Promote the native path only after it is independently verified, then keep the compatibility path as fallback until operational evidence shows it can safely be retired.
+
+
+## 2026-09-26 Popcorn global-mobile benchmark
+
+Popcorn is useful as an architecture benchmark for a future Magnanimous mobile/eSIM lane, but **not** as a carrier feed for the current call-center product.
+
+Verified current facts:
+- Popcorn publicly sells one US-number eSIM plan for $69/month including taxes with talk/text/data in 180+ countries. Its own help center says the primary service uses a US-based eSIM worldwide and relies on roaming/local network selection.
+- Popcorn's public Global page describes a free backup eSIM that can reach AT&T, Verizon, and many networks worldwide. This is a multi-network/wholesale-roaming architecture, not a single global radio network.
+- FCC public notice ITC-214-20240124-00017 records Popcorn Labs, Inc. receiving international Section 214 authority on 2024-11-05 for facilities-based and resale service.
+- FCC Form 499 lists Popcorn Labs, Inc. as filer 837077.
+- IMSI Admin currently lists Popcorn Labs HNI/PLMN assignments 314-970 and 316-060 as an MVNO/public network operator. Those assignments are evidence of its own mobile-network identity/core direction and ability to form roaming relationships; they do not mean Popcorn owns nationwide radio towers.
+- Popcorn does not name a single US radio host on the official pages reviewed. Current community reports consistently describe T-Mobile as the primary US network and a TELNA-backed data eSIM for AT&T/Verizon access. Treat that as community evidence, not an official contractual disclosure.
+- The economics are bounded, not literally infinite: Popcorn's Play by the Rules / terms say usage approaching about 50 GB/month is abnormal and prohibit resale, sharing, and commercial use such as a call center.
+
+Architectural lesson for Magnanimous:
+1. Keep the customer identity, subscriber policy, routing, billing, support, and eventually mobile core under Magnanimous control.
+2. Use eSIM + HNI/PLMN/mobile-core capability and negotiated wholesale roaming/MVNO relationships to make radio access replaceable across countries and networks.
+3. Pool wholesale cost across normal-use subscribers and enforce transparent fair-use/cost caps instead of pretending network capacity is free.
+4. Never use a consumer plan that forbids resale/commercial use as the upstream for Magnanimous Telecom.
+5. Treat direct mobile service as a regulated, contract-dependent future lane. Software alone cannot create spectrum rights, numbering authority, roaming agreements, emergency-service obligations, or MVNO/MNO authorization.
+
+Sources reviewed:
+- https://popcorn.space/
+- https://popcorn.space/global
+- https://popcorn.space/pricing
+- https://popcorn.space/rules
+- https://popcorn.space/terms
+- https://help.popcorn.space/en/articles/10922885-what-can-i-do-if-i-have-spotty-service
+- https://docs.fcc.gov/public/attachments/DA-24-1126A1_Rcd.pdf
+- https://apps.fcc.gov/cgb/form499/499results.cfm
+- https://imsiadmin.com/hni-codes/popcorn-labs-inc-314-970/
+- https://imsiadmin.com/hni-codes/popcorn-labs-inc-316-060/
