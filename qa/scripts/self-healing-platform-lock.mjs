@@ -1,6 +1,6 @@
 import fs from'node:fs';
 import assert from'node:assert/strict';
-import {auditableVariableCharge,VARIABLE_USAGE_MARKUP_PERCENT} from '../../worker/src/magnanimous-billing-policy.js';
+import {PROVIDER_PRICE_MARKUP_PERCENT,variableCustomerCharge} from '../../worker/src/provider-origin-pricing.js';
 
 const read=p=>fs.readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 const heal=read('worker/src/self-healing-runtime.js');
@@ -14,12 +14,12 @@ for(const s of ['maxAttempts:3','retryMethods:[\'GET\',\'HEAD\']','scheduledSelf
 for(const s of ['handleSelfHealing','scheduledSelfHealing'])assert.ok(ops.includes(s),'operations wiring missing '+s);
 for(const s of ['CURRENT INCIDENTS','PRODUCTION HEALTH','FREE-FIRST AI','VOICE / AUDIO','COST IMPACT','Recent repair evidence'])assert.ok(page.includes(s),'owner self-healing UI missing '+s);
 
-assert.equal(VARIABLE_USAGE_MARKUP_PERCENT,20);
-assert.deepEqual(auditableVariableCharge({providerOriginCostMicros:1_000_000}),{
- provider_origin_cost_micros:1_000_000,markup_percent:20,markup_micros:200_000,customer_charge_micros:1_200_000
+assert.equal(PROVIDER_PRICE_MARKUP_PERCENT,20);
+assert.deepEqual(variableCustomerCharge(1),{
+ provider_origin_cost_usd:1,markup_percent:20,markup_usd:.2,customer_charge_usd:1.2
 });
-assert.deepEqual(auditableVariableCharge({providerOriginCostMicros:1}),{
- provider_origin_cost_micros:1,markup_percent:20,markup_micros:1,customer_charge_micros:2
+assert.deepEqual(variableCustomerCharge(.01),{
+ provider_origin_cost_usd:.01,markup_percent:20,markup_usd:.002,customer_charge_usd:.012
 });
 
 for(const s of ['MAGNANIMOUS_SPONSORED_ADS_ENABLED','owner_controlled: true','pending_owner_enable'])assert.ok(ads.includes(s),'owner ad control missing '+s);
