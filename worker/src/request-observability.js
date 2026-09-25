@@ -6,7 +6,7 @@ const PRIVATE_PAGE_PREFIXES=[
   '/billing','/connections','/contact-center','/crm','/customer-service','/email','/finance-people',
   '/grants','/integrations','/knowledge','/leads','/login','/magnanimous','/bible-study','/marketing',
   '/mux','/phone','/qa-','/research','/signup','/social-media','/space','/support','/telecom',
-  '/tool-foundry','/travel','/video-studio','/virtual-assistant'
+  '/tool-foundry','/travel','/video-studio','/movie-maker','/virtual-assistant'
 ];
 
 function acceptableIncomingId(value){
