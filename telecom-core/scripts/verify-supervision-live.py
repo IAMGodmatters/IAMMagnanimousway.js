@@ -280,6 +280,8 @@ def main() -> int:
             ).data
             if stopped.get("recording") is not False:
                 raise VerificationError("Recording stop did not report recording=false.")
+            if stopped.get("stored") is not True:
+                raise VerificationError("Recording stop did not verify stored Asterisk recording metadata.")
             if stopped.get("recording_file_exposed") is not False:
                 raise VerificationError("Recording stop exposed a raw recording file.")
             evidence["checks"].append({
