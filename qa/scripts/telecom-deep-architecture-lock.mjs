@@ -230,7 +230,7 @@ has(publicWorkflow,"urls.some(v=>!v.startsWith('turns:'))",'strict relay proof r
 has(publicWorkflow,'-verify_hostname','strict public verification checks both public signaling/TURN TLS hostnames');
 has(publicWorkflow,'TELECOM_PUBLIC_ICE_TRANSPORT_POLICY','strict public verification can force relay-only ICE');
 lacks(publicWorkflow,'TELECOM_PUBLIC_ICE_SERVERS_JSON','public workflow does not depend on a manually stored expiring TURN credential');
-has(sessionService,'"allowed_call_scope": ["internal-magnanimous", "diagnostic-echo"]','ephemeral browser call scope remains internal and diagnostic');
+has(sessionService,'"allowed_call_scope": ["internal-magnanimous", "diagnostic-echo", "diagnostic-stasis"]','ephemeral browser call scope remains internal and carrier-free diagnostic only');
 has(sessionService,'webrtc_session_ttl_seconds','ephemeral browser session lifetime is bounded');
 has(sessionService,'await self.reap_expired()','new session issuance reaps stale dynamic endpoints');
 has(lifecycle,'reap_loop()','Telecom Core runs background cleanup for expired browser identities');
