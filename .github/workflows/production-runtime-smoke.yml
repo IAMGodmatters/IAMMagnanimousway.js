@@ -1,0 +1,274 @@
+name: Magnanimous Production Runtime Smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'magnanimous-runtime/**'
+      - 'worker/**'
+      - 'frontend/**'
+      - 'video-gateway/**'
+      - 'api/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy.yml'
+      - '.github/workflows/production-runtime-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: magnanimous-production-runtime-smoke
+  cancel-in-progress: true
+
+jobs:
+  production-runtime-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      STANDALONE_ORIGIN: https://magnanimous-production.up.railway.app
+      PUBLIC_ORIGIN: https://iammagnanimousway.com
+    steps:
+      - name: Wait for exact standalone revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=0
+          for attempt in $(seq 1 90); do
+            if curl -fsS --connect-timeout 10 --max-time 30 "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/tmp/runtime-health.json; then
+              live="$(python - <<'PY'
+          import json
+          print(json.load(open('/tmp/runtime-health.json')).get('deploy_revision') or '')
+          PY
+              )"
+              if [ "$live" = "$GITHUB_SHA" ]; then
+                ready=1
+                break
+              fi
+            fi
+            echo "Waiting for exact standalone revision $GITHUB_SHA (attempt $attempt/90; live=${live:-unknown})."
+            sleep 5
+          done
+          if [ "$ready" != "1" ]; then
+            echo "::error::Standalone production did not reach exact revision $GITHUB_SHA."
+            cat /tmp/runtime-health.json 2>/dev/null || true
+            exit 1
+          fi
+          python - <<'PY'
+          import json,os
+          d=json.load(open('/tmp/runtime-health.json'))
+          assert d.get('status') == 'ok', d
+          assert d.get('identity') == 'Magnanimous AI', d
+          assert d.get('deploy_revision') == os.environ['GITHUB_SHA'], d
+          PY
+
+      - name: Verify public health and booking idempotency
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl_cmd() {
+            command curl --connect-timeout 10 --max-time 90 "$@"
+          }
+
+          oidc_token() {
+            local raw
+            raw="$(curl_cmd -fsS               -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}"               "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=magnanimous-deploy-smoke")"
+            python -c 'import json,sys; print(json.load(sys.stdin)["value"])' <<<"$raw"
+          }
+
+          smoke_control() {
+            local action="$1" tenant="$2" output="$3" oidc status
+            oidc="$(oidc_token)"
+            status="$(curl_cmd -sS -o "$output" -w '%{http_code}'               -X POST "$STANDALONE_ORIGIN/__magnanimous_runtime/smoke/tenant"               -H 'content-type: application/json'               -H "Authorization: Bearer $oidc"               --data "{\"action\":\"$action\",\"tenant_id\":\"$tenant\",\"workflow_sha\":\"$GITHUB_SHA\",\"runtime_sha\":\"$GITHUB_SHA\"}" || true)"
+            printf '%s' "$status"
+          }
+
+          tenant_id=""
+          token=""
+          cleanup_smoke() {
+            local original=$?
+            trap - EXIT
+            if [ -n "${tenant_id:-}" ]; then
+              cleanup_status="$(smoke_control cleanup "$tenant_id" /tmp/runtime-smoke-cleanup.json || true)"
+              if [ "$cleanup_status" != "200" ]; then
+                echo "::error::Disposable runtime-smoke tenant cleanup returned HTTP ${cleanup_status:-request-failed}."
+                cat /tmp/runtime-smoke-cleanup.json 2>/dev/null || true
+                original=1
+              else
+                echo "Disposable runtime-smoke tenant cleaned."
+              fi
+            fi
+            exit "$original"
+          }
+          trap cleanup_smoke EXIT
+
+          public_status="$(curl_cmd -sS -o /tmp/public-health.json -w '%{http_code}' "$PUBLIC_ORIGIN/health" || true)"
+          if [ "$public_status" != "200" ]; then
+            echo "::error::Public production health returned HTTP $public_status."
+            cat /tmp/public-health.json 2>/dev/null || true
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/public-health.json'))
+          assert d.get('status') == 'ok', d
+          PY
+
+          email="deploy-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
+          password="Smoke-Test-Only-2026!"
+          python - "$email" "$password" >/tmp/runtime-smoke-signup-payload.json <<'PY'
+          import json,sys
+          email,password=sys.argv[1:3]
+          print(json.dumps({
+            'name':'Deployment Smoke Test',
+            'workspace':'Deployment Smoke Test',
+            'email':email,
+            'password':password,
+            'accountProcessingConsent':True,
+            'termsAccepted':True,
+            'marketingConsent':False
+          }))
+          PY
+
+          signup_status="$(curl_cmd -sS -o /tmp/runtime-smoke-signup.json -w '%{http_code}'             -X POST "$STANDALONE_ORIGIN/api/auth/signup"             -H 'content-type: application/json'             --data-binary @/tmp/runtime-smoke-signup-payload.json || true)"
+          if [ "$signup_status" != "201" ]; then
+            echo "::error::Standalone disposable signup returned HTTP $signup_status."
+            cat /tmp/runtime-smoke-signup.json 2>/dev/null || true
+            exit 1
+          fi
+
+          readarray -t signup_values < <(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/runtime-smoke-signup.json'))
+          u=d.get('user') or {}
+          t=d.get('token') or ''
+          assert u.get('tenant_id'),d
+          assert u.get('role') == 'owner',d
+          assert t.startswith('ms1_') and '|' not in t,d
+          print(u['tenant_id'])
+          print(t)
+          PY
+          )
+          tenant_id="${signup_values[0]}"
+          token="${signup_values[1]}"
+
+          grant_status="$(smoke_control grant_agency "$tenant_id" /tmp/runtime-smoke-grant.json || true)"
+          if [ "$grant_status" != "200" ]; then
+            echo "::error::Standalone smoke grant returned HTTP $grant_status."
+            cat /tmp/runtime-smoke-grant.json 2>/dev/null || true
+            exit 1
+          fi
+
+          client_status="$(curl_cmd -sS -o /tmp/runtime-smoke-client.json -w '%{http_code}'             -X POST "$STANDALONE_ORIGIN/api/bpo/clients"             -H 'content-type: application/json'             -H "Authorization: Bearer $token"             --data '{"name":"Runtime Idempotency Smoke Client","industry":"QA","service_lines":["Customer Service"]}' || true)"
+          if [ "$client_status" != "201" ]; then
+            echo "::error::Standalone smoke client creation returned HTTP $client_status."
+            cat /tmp/runtime-smoke-client.json 2>/dev/null || true
+            exit 1
+          fi
+          client_id="$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/runtime-smoke-client.json'));assert d.get('id'),d;print(d['id'])
+          PY
+          )"
+
+          overview_status="$(curl_cmd -sS -o /tmp/runtime-smoke-agency-overview.json -w '%{http_code}'             "$STANDALONE_ORIGIN/api/agency/overview"             -H "Authorization: Bearer $token" || true)"
+          if [ "$overview_status" != "200" ]; then
+            echo "::error::Agency overview returned HTTP $overview_status."
+            cat /tmp/runtime-smoke-agency-overview.json 2>/dev/null || true
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/runtime-smoke-agency-overview.json'))
+          r=d.get('booking_reliability') or {}
+          assert r.get('idempotency_key_supported') is True,d
+          assert r.get('duplicate_replay_safe') is True,d
+          assert r.get('bounded_transient_client_retries') is True,d
+          assert r.get('retry_statuses') == [502,503,504],d
+          PY
+
+          now="$(date +%s)"
+          start_at="$((now+3600))"
+          end_at="$((now+5400))"
+          booking_key="runtime-smoke-booking-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          booking_payload="{\"client_id\":\"$client_id\",\"contact_name\":\"Runtime Smoke Booking\",\"contact_email\":\"booking-${GITHUB_RUN_ID}@example.com\",\"service\":\"Consultation\",\"start_at\":$start_at,\"end_at\":$end_at}"
+
+          first_status="$(curl_cmd -sS -o /tmp/runtime-smoke-booking-first.json -w '%{http_code}'             -X POST "$STANDALONE_ORIGIN/api/agency/bookings"             -H 'content-type: application/json'             -H "Authorization: Bearer $token"             -H "Idempotency-Key: $booking_key"             --data "$booking_payload" || true)"
+          if [ "$first_status" != "201" ]; then
+            echo "::error::First idempotent booking returned HTTP $first_status."
+            cat /tmp/runtime-smoke-booking-first.json 2>/dev/null || true
+            exit 1
+          fi
+          booking_id="$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/runtime-smoke-booking-first.json'))
+          assert d.get('ok') is True,d
+          assert d.get('idempotent') is True,d
+          assert d.get('replayed') is False,d
+          assert d.get('id'),d
+          print(d['id'])
+          PY
+          )"
+
+          replay_status="$(curl_cmd -sS -o /tmp/runtime-smoke-booking-replay.json -w '%{http_code}'             -X POST "$STANDALONE_ORIGIN/api/agency/bookings"             -H 'content-type: application/json'             -H "Authorization: Bearer $token"             -H "Idempotency-Key: $booking_key"             --data "$booking_payload" || true)"
+          if [ "$replay_status" != "201" ]; then
+            echo "::error::Idempotent booking replay returned HTTP $replay_status."
+            cat /tmp/runtime-smoke-booking-replay.json 2>/dev/null || true
+            exit 1
+          fi
+          python - "$booking_id" <<'PY'
+          import json,sys
+          expected=sys.argv[1]
+          d=json.load(open('/tmp/runtime-smoke-booking-replay.json'))
+          assert d.get('ok') is True,d
+          assert d.get('idempotent') is True,d
+          assert d.get('replayed') is True,d
+          assert d.get('id') == expected,(expected,d)
+          PY
+
+          changed_payload="${booking_payload%?},\"notes\":\"changed payload must be rejected\"}"
+          changed_status="$(curl_cmd -sS -o /tmp/runtime-smoke-booking-changed.json -w '%{http_code}'             -X POST "$STANDALONE_ORIGIN/api/agency/bookings"             -H 'content-type: application/json'             -H "Authorization: Bearer $token"             -H "Idempotency-Key: $booking_key"             --data "$changed_payload" || true)"
+          if [ "$changed_status" != "409" ]; then
+            echo "::error::Changed payload with reused booking key expected HTTP 409, got $changed_status."
+            cat /tmp/runtime-smoke-booking-changed.json 2>/dev/null || true
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/runtime-smoke-booking-changed.json'))
+          assert d.get('code') == 'IDEMPOTENCY_KEY_REUSED',d
+          PY
+
+          list_status="$(curl_cmd -sS -o /tmp/runtime-smoke-bookings.json -w '%{http_code}'             "$STANDALONE_ORIGIN/api/agency/bookings?client_id=$client_id"             -H "Authorization: Bearer $token" || true)"
+          if [ "$list_status" != "200" ]; then
+            echo "::error::Booking list verification returned HTTP $list_status."
+            cat /tmp/runtime-smoke-bookings.json 2>/dev/null || true
+            exit 1
+          fi
+          python - "$booking_id" <<'PY'
+          import json,sys
+          expected=sys.argv[1]
+          rows=(json.load(open('/tmp/runtime-smoke-bookings.json')).get('bookings') or [])
+          matches=[x for x in rows if x.get('id') == expected]
+          assert len(matches) == 1,(expected,rows)
+          PY
+
+          cleanup_status="$(smoke_control cleanup "$tenant_id" /tmp/runtime-smoke-cleanup.json || true)"
+          if [ "$cleanup_status" != "200" ]; then
+            echo "::error::Disposable runtime-smoke tenant cleanup returned HTTP $cleanup_status."
+            cat /tmp/runtime-smoke-cleanup.json 2>/dev/null || true
+            exit 1
+          fi
+          tenant_id=""
+
+          me_status="$(curl_cmd -sS -o /tmp/runtime-smoke-after-cleanup.json -w '%{http_code}'             "$STANDALONE_ORIGIN/api/auth/me"             -H "Authorization: Bearer $token" || true)"
+          if [ "$me_status" != "401" ]; then
+            echo "::error::Cleaned smoke session expected HTTP 401, got $me_status."
+            cat /tmp/runtime-smoke-after-cleanup.json 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "Magnanimous exact-revision production runtime smoke passed: public health, disposable auth, Agency reliability status, booking idempotency, replay convergence, key-reuse rejection, single-row persistence, and cleanup."
