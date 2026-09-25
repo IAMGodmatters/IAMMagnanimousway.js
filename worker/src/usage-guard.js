@@ -1,3 +1,5 @@
+import {auditableVariableCharge,VARIABLE_USAGE_MARKUP_PERCENT} from './magnanimous-billing-policy.js';
+
 import {variableCustomerCharge} from './provider-origin-pricing.js';
 const now=()=>Math.floor(Date.now()/1000);
 
@@ -105,8 +107,9 @@ export async function usageStatus(env,tenantId){
   env.DB.prepare('SELECT direct_variable_cost_usd FROM billing_usage_guard WHERE tenant_id=? AND period_key=?').bind(tenantId,key).first(),
   walletStatus(env,tenantId)
  ]);
- const used=Number(row?.direct_variable_cost_usd||0),ceiling=Number(p.limits.cost_ceiling_usd||0),remainingIncluded=Math.max(0,ceiling-used),spendable=remainingIncluded+Number(wallet.balance_usd||0);
- return{...p,period_key:key,direct_variable_cost_usd:used,cost_ceiling_usd:ceiling,remaining_cost_usd:remainingIncluded,prepaid_balance_usd:Number(wallet.balance_usd||0),prepaid_total_funded_usd:Number(wallet.total_funded_usd||0),prepaid_total_consumed_usd:Number(wallet.total_consumed_usd||0),premium_spendable_usd:spendable,premium_usage_allowed:p.plan!=='free'&&spendable>0};
+ const used=Number(row?.direct_variable_cost_usd||0),ceiling=Number(p.limits.cost_ceiling_usd||0),remainingIncluded=Math.max(0,ceiling-used);
+ const prepaidBalance=Number(wallet.balance_usd||0),prepaidOriginCapacity=prepaidBalance/(1+VARIABLE_USAGE_MARKUP_PERCENT/100),originSpendable=remainingIncluded+prepaidOriginCapacity;
+ return{...p,period_key:key,direct_variable_cost_usd:used,cost_ceiling_usd:ceiling,remaining_cost_usd:remainingIncluded,prepaid_balance_usd:prepaidBalance,prepaid_provider_origin_capacity_usd:prepaidOriginCapacity,prepaid_total_funded_usd:Number(wallet.total_funded_usd||0),prepaid_total_consumed_usd:Number(wallet.total_consumed_usd||0),premium_spendable_usd:originSpendable,provider_origin_spendable_usd:originSpendable,variable_markup_percent:VARIABLE_USAGE_MARKUP_PERCENT,premium_usage_allowed:p.plan!=='free'&&originSpendable>0};
 }
 
 export async function canUsePremium(env,tenantId,{category='premium',estimated_cost_usd=0,required_plan='business',entitlement=''}={}){
