@@ -1,10 +1,11 @@
-import { canUsePremium,currentUserFromRequest,estimateAiCostUsd,estimatePstnReserveUsd,recordUsage } from './usage-guard.js';
+import { canUsePremium,currentUserFromRequest,estimatePstnReserveUsd,recordUsage } from './usage-guard.js';
+import { premiumCostQuote } from './premium-origin-costs.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const xml=(message,status=200)=>new Response(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>${String(message).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]))}</Say><Hangup/></Response>`,{status,headers:{'content-type':'application/xml; charset=utf-8','cache-control':'no-store'}});
 // Treat every outside AI account that can accrue usage charges as metered at
 // the I AM boundary, even when the provider also offers a free/trial allowance.
-const METERED_AI=new Set(['openai','anthropic','google','groq','mistral','cerebras']);
+const HIDDEN_DIRECT_AI=new Set(['openai','anthropic','google','groq','mistral','cerebras','openrouter-free','nvidia-kimi','nvidia-deepseek-pro','nvidia-deepseek-flash']);
 
 async function bodyJson(request){try{return await request.clone().json()}catch{return{}}}
 function rewriteJsonRequest(request,body){return new Request(request.url,{method:request.method,headers:request.headers,body:JSON.stringify(body)})}
@@ -20,12 +21,13 @@ export async function premiumPreflight(request,env){
  const user=await currentUserFromRequest(request,env);
  if(path==='/api/chat'&&request.method==='POST'){
   const body=await bodyJson(request),provider=String(body.provider||'auto').toLowerCase(),quality=String(body.quality||body.route_policy||'').toLowerCase();
-  const explicitlyMetered=METERED_AI.has(provider),asksMaximum=['max','maximum','quality'].includes(quality);
+  const directHidden=HIDDEN_DIRECT_AI.has(provider),asksMaximum=['max','maximum','quality','magnanimous-premium'].includes(quality);
+  const premiumUnit=premiumCostQuote('premium_compute',1);
 
   // Default Free requests are pinned to I AM's own free-first Cloudflare path.
   // This prevents a third-party free quota from silently rolling into charges.
-  if(!explicitlyMetered&&!asksMaximum){
-   if(provider==='auto'||!provider){
+  if(!asksMaximum){
+   if(provider==='auto'||!provider||directHidden){
     const rewritten=rewriteJsonRequest(request,{...body,provider:'cloudflare-ai',quality:'free-first',route_policy:'free-first'});
     return{request:rewritten,context:user?{kind:'chat',user,free_first:true}:null};
    }
@@ -33,19 +35,18 @@ export async function premiumPreflight(request,env){
   }
 
   if(!user){
-   if(explicitlyMetered)return{response:json({detail:'Sign in and purchase an eligible I AM plan before using premium AI. Free-first Magnanimous AI remains available.',code:'I_AM_PURCHASE_REQUIRED',provider_checkout_required:false},401)};
    const rewritten=rewriteJsonRequest(request,{...body,provider:'cloudflare-ai',quality:'free-first',route_policy:'free-first'});
    return{request:rewritten,context:null};
   }
 
-  const estimate=explicitlyMetered?Math.max(.01,estimateAiCostUsd(provider)):0.05;
+  const estimate=Math.max(0,Number(premiumUnit?.origin_cost_usd||0.011));
   const gate=await canUsePremium(env,user.tenant_id,{category:'premium AI',estimated_cost_usd:estimate,required_plan:'business',entitlement:'metered_ai'});
   if(!gate.ok){
-   if(explicitlyMetered)return{response:json({detail:gate.detail,code:gate.code,plan:gate.plan,remaining_cost_usd:gate.remaining_cost_usd,prepaid_balance_usd:gate.prepaid_balance_usd,free_first_available:true,provider_checkout_required:false,billing_owner:'I AM Magnanimous Way'},402)};
    const rewritten=rewriteJsonRequest(request,{...body,provider:'cloudflare-ai',quality:'free-first',route_policy:'free-first'});
    return{request:rewritten,context:{kind:'chat',user,downgraded_to_free_first:true}};
   }
-  return{request,context:{kind:'chat',user,premium_allowed:true,estimated_cost_usd:estimate}};
+  const rewritten=rewriteJsonRequest(request,{...body,provider:'cloudflare-ai',model:String(env.MAGNANIMOUS_HEAVY_MODEL||env.CLOUDFLARE_AI_MODEL||''),quality:'magnanimous-premium',route_policy:'magnanimous-premium'});
+  return{request:rewritten,context:{kind:'chat',user,premium_allowed:true,estimated_cost_usd:estimate,premium_unit_id:'premium_compute'}};
  }
  if((path==='/api/phone/calls/outbound'||path==='/api/voice-agent/call')&&request.method==='POST'){
   if(!user)return{response:json({detail:'Sign in required.',code:'SIGN_IN_REQUIRED'},401)};
@@ -76,9 +77,9 @@ export async function premiumPostprocess(response,env,context){
  if(!context?.user||!response?.ok)return response;
  try{
   const data=await response.clone().json().catch(()=>({}));
-  if(context.kind==='chat'){
-   const provider=String(data?.provider||'').toLowerCase(),cost=estimateAiCostUsd(provider);
-   if(cost>0)await recordUsage(env,context.user.tenant_id,{category:'premium-ai',provider,units:1,direct_cost_usd:cost,reference_id:String(data?.model||'')});
+  if(context.kind==='chat'&&context.premium_allowed){
+   const cost=Math.max(0,Number(context.estimated_cost_usd||0));
+   if(cost>0)await recordUsage(env,context.user.tenant_id,{category:'premium-ai',provider:'magnanimous-premium-compute',units:1,direct_cost_usd:cost,reference_id:String(context.premium_unit_id||'premium_compute')});
   }else if(context.kind==='pstn'){
    await recordUsage(env,context.user.tenant_id,{category:'pstn-call-reserve',provider:String(data?.provider||'twilio-ai'),units:Number(context.seconds||0)/60,direct_cost_usd:Number(context.reserve||0),reference_id:String(data?.provider_call_id||data?.call_id||'')});
   }else if(context.kind==='pstn-inbound'){
