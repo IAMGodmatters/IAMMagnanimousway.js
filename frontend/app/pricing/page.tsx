@@ -5,12 +5,19 @@ import {PremiumAgreementConsent} from '../../components/PremiumAgreementConsent'
 
 type Entitlements={metered_ai?:boolean;pstn_minutes?:number;avatar_minutes?:number;premium_video_credits?:number;cost_ceiling_usd?:number};
 type Plan={id:string;name:string;price_usd:number;cadence:string;primary?:boolean;description:string;features:string[];note?:string;checkout_configured?:boolean;checkout_mode?:string;entitlements?:Entitlements};
-type Usage={direct_variable_cost_usd:number;cost_ceiling_usd:number;premium_usage_allowed:boolean;entitlements?:Entitlements;subscription?:any};
+type Usage={direct_variable_cost_usd:number;cost_ceiling_usd:number;premium_usage_allowed:boolean;prepaid_balance_usd?:number;prepaid_origin_capacity_usd?:number;pass_through_markup_percent?:number;entitlements?:Entitlements;subscription?:any};
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 async function read(r:Response){const text=await r.text();try{return JSON.parse(text)}catch{return{detail:text}}}
+function marked(value:any){return Number(value||0)*1.2}
+function providerRateLine(provider:any){
+ const model=provider?.models?.[0]||{};
+ if(model.input_per_million_usd!==undefined&&model.output_per_million_usd!==undefined)return `${model.model} • origin ${Number(model.input_per_million_usd).toFixed(3)}/M input + ${Number(model.output_per_million_usd).toFixed(3)}/M output • customer ${marked(model.input_per_million_usd).toFixed(3)} + ${marked(model.output_per_million_usd).toFixed(3)}`;
+ if(provider?.free_allowance)return provider.free_allowance;
+ return 'Optional provider pricing is shown from the linked origin source.';
+}
 
 export default function PricingPage(){
- const[plans,setPlans]=useState<Plan[]>([]),[currentPlan,setCurrentPlan]=useState('free'),[portalReady,setPortalReady]=useState(false),[busy,setBusy]=useState(''),[message,setMessage]=useState(''),[usage,setUsage]=useState<Usage|null>(null);
+ const[plans,setPlans]=useState<Plan[]>([]),[currentPlan,setCurrentPlan]=useState('free'),[portalReady,setPortalReady]=useState(false),[busy,setBusy]=useState(''),[message,setMessage]=useState(''),[usage,setUsage]=useState<Usage|null>(null),[providerCosts,setProviderCosts]=useState<any>(null);
  const[token,setToken]=useState(''),[termsAccepted,setTermsAccepted]=useState(false),[selectedPaidPlan,setSelectedPaidPlan]=useState('plus');
  useEffect(()=>{
   const t=getPlatformAuthToken();setToken(t);
