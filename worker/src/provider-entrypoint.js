@@ -387,26 +387,43 @@ async function handle(request, env) {
     const initiativeContext=ogenicInitiative?`\nOGENIC SAFE INITIATIVE RESULT: ${JSON.stringify(ogenicInitiative)}\nUse this as evidence only. A plan/read action is not a write, merge or deployment.\n`:'';
     const groundedMessage=computeOnly?`MAGNANIMOUS COMPUTE-ONLY EXECUTION\nYou are a replaceable compute engine beneath Magnanimous AI. Advisory analysis only. You have no tool, memory, account, repository, approval, merge, deployment, publishing, payment, deletion, credential or security-policy authority. Never claim an external action occurred.\n\n${userMessage}`:`${COMMANDER_PROTOCOL}\n\n${ogenicContext}\n\nUSER REQUEST:\n${userMessage}${brainContext||''}${grounding.context||''}${toolPlanning.context||''}${absorbedCapabilityContext?`\n\n${absorbedCapabilityContext}`:''}\n\nCURRENT MAGNANIMOUS ROUTING STATE:\nTask class: ${task}\nNative capability family: ${capability}\nLinks absorbed this turn: ${absorbedLinks.length}\nStored/fresh sources available: ${grounding.sources?.length||0}${initiativeContext}\nUse external execution engines only as needed; return one unified Magnanimous answer.`;
     const requested = String(body.provider || 'auto').toLowerCase();
-    const acceleratorPool=computeOnly&&body.allow_metered_accelerator!==true?availableProviders(env).filter(p=>p.tier==='free-first'):availableProviders(env);
-    const candidates = requested !== 'auto' ? acceleratorPool.filter(p => p.id === requested && configured(env,p)) : routeProviders(env,userMessage,body,learnedScores).filter(p=>acceleratorPool.some(a=>a.id===p.id));
-    if (!candidates.length) return json({ detail: requested === 'auto' ? 'Magnanimous AI has no configured execution engine. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested execution engine is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
+    const fundedProvider=body.allow_metered_provider===true;
+    const allowExternalFreeTier=String(env.ALLOW_EXTERNAL_FREE_TIER_FALLBACK||'').toLowerCase()==='true';
+    const basePool=availableProviders(env);
+    const acceleratorPool=computeOnly&&body.allow_metered_accelerator!==true
+      ?basePool.filter(p=>p.tier==='free-first')
+      :basePool.filter(p=>p.tier==='free-first'||fundedProvider||(allowExternalFreeTier&&p.tier==='external-optional'));
+    const candidates = requested !== 'auto'
+      ? acceleratorPool.filter(p => p.id === requested && configured(env,p))
+      : routeProviders(env,userMessage,body,learnedScores).filter(p=>acceleratorPool.some(a=>a.id===p.id));
+    if (!candidates.length) {
+      if(requested!=='auto')return json({detail:'The requested execution engine is not configured, funded, or enabled.',code:'NO_AI_PROVIDER',free_first_available:true},503);
+      const fallback=localAiResilienceResponse(userMessage,task);
+      return json({output:fallback,provider:'magnanimous-local-resilience',provider_name:'Magnanimous AI routing',model:'local-resilience-v1',magnanimous:true,degraded:true,failure_class:'unavailable',route_task:task,native_capability:capability,free_first:true},200);
+    }
+    const healthyCandidates=await filterHealthyProviders(env,candidates);
     const errors = [],providerDeadline=Date.now()+PROVIDER_REQUEST_BUDGET_MS;
-    for (const p of candidates) {
+    if(!healthyCandidates.length)errors.push('Self-heal circuit temporarily quarantined the configured provider rail.');
+    for (const p of healthyCandidates) {
       const started=Date.now(),remaining=providerDeadline-started;
       if(remaining<1500){errors.push('Magnanimous AI execution budget exhausted before another provider could start.');break}
       try {
         const result = await withinProviderBudget(callProvider(p.id, env, groundedMessage, body.model),Math.min(45000,remaining),`${p.name} execution`);
         if (!result?.text?.trim()) throw new Error('Provider returned an empty response');
+        await recordProviderSuccess(env,p.id,{latencyMs:Date.now()-started,model:result.model});
         if(!computeOnly)await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:true,quality:.85,latency:Date.now()-started,notes:`capability=${capability}; grounded=${grounding.sources.length}; links=${absorbedLinks.length}`});
         if(!computeOnly&&body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:true});
-        return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, magnanimous: true, operator: true, command_role:'commander-in-chief', provider_role:'execution-engine', routed_automatically:requested==='auto', route_task:task, native_capability:capability, route_policy:String(body.quality||body.route_policy||'free-first'), fallback_candidates:candidates.map(x=>x.id), adaptive_provider_learning:true, provider_learning:learningState, grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured, automatic_research:autoResearch, remembered_research:rememberResearch, link_learning:{enabled:body.learn_links!==false,absorbed:absorbedLinks.length,results:linkLearning}, native_recipe_learning:{observed:true,gap_count:Number(observed?.gap_count||0),proposal:observed?.proposal||null}, tool_planning:{enabled:body.use_tools!==false,learned_tools:toolPlanning.tools?.map(x=>({name:x.name,status:x.status,risk:x.risk}))||[],recommended_integrations:toolPlanning.recommended_integrations?.map(x=>({id:x.id,name:x.name,priority:x.priority,capabilities:x.capabilities}))||[]}, ogenic:{classification:ogenicPlan.classification,groups:ogenicPlan.groups.map(x=>x.id),initiative:ogenicPlan.initiative,status:ogenicPlan.status,network_direction:ogenicPlan.network_direction,safe_initiative:ogenicInitiative} });
+        return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, magnanimous: true, operator: true, command_role:'commander-in-chief', provider_role:'execution-engine', routed_automatically:requested==='auto', route_task:task, native_capability:capability, route_policy:String(body.quality||body.route_policy||'free-first'), fallback_candidates:healthyCandidates.map(x=>x.id), self_healed_failover:errors.length>0, adaptive_provider_learning:true, provider_learning:learningState, grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured, automatic_research:autoResearch, remembered_research:rememberResearch, link_learning:{enabled:body.learn_links!==false,absorbed:absorbedLinks.length,results:linkLearning}, native_recipe_learning:{observed:true,gap_count:Number(observed?.gap_count||0),proposal:observed?.proposal||null}, tool_planning:{enabled:body.use_tools!==false,learned_tools:toolPlanning.tools?.map(x=>({name:x.name,status:x.status,risk:x.risk}))||[],recommended_integrations:toolPlanning.recommended_integrations?.map(x=>({id:x.id,name:x.name,priority:x.priority,capabilities:x.capabilities}))||[]}, ogenic:{classification:ogenicPlan.classification,groups:ogenicPlan.groups.map(x=>x.id),initiative:ogenicPlan.initiative,status:ogenicPlan.status,network_direction:ogenicPlan.network_direction,safe_initiative:ogenicInitiative} });
       } catch (e) {
         const detail=e?.message || 'provider failed';errors.push(`${p.name}: ${detail}`);
+        await recordProviderFailure(env,p.id,{failureClass:selfHealFailureClass(e),model:String(body.model||'')});
         if(!computeOnly)await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:false,quality:0,latency:Date.now()-started,notes:detail});
       }
     }
     if(!computeOnly&&body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:false});
-    return json({ detail: `Magnanimous AI could not complete the request. ${errors.join(' | ')}`, code: 'AI_PROVIDER_FAILURE',route_task:task,native_capability:capability }, 502);
+    const failureClass=errors.some(x=>/quota|capacity|3036|429/i.test(x))?'capacity':errors.some(x=>/timeout|timed out/i.test(x))?'timeout':'unavailable';
+    const fallback=localAiResilienceResponse(userMessage,task);
+    return json({output:fallback,provider:'magnanimous-local-resilience',provider_name:'Magnanimous AI routing',model:'local-resilience-v1',magnanimous:true,degraded:true,failure_class:failureClass,route_task:task,native_capability:capability,free_first:true},200);
   }
   return null;
 }
