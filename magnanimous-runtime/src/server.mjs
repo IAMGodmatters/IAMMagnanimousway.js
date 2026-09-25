@@ -435,6 +435,8 @@ const DEPLOY_SMOKE_TENANT_TABLES = [
   'unified_inbox_audit',
   'unified_inbox_messages',
   'unified_inbox_threads',
+  'cc_supervisor_sessions',
+  'cc_recording_sessions',
   'creator_feedback',
   'creator_bookmarks',
   'creator_competitors',

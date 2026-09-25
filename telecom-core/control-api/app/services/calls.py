@@ -55,6 +55,7 @@ class CallService:
             "call_id": provider_call_id,
             "status": state.status,
             "provider": "Magnanimous Telecom",
+            "control_plane": "magnanimous-telecom-core",
             "to": destination,
             "from": caller_id,
             "selected_route_applied": bool(carrier_endpoint),
