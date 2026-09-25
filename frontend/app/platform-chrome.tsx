@@ -2,9 +2,9 @@
 import {useEffect,useMemo,useState} from 'react';
 
 type Suggestion={label:string;href:string};
-const publicPaths=['/login','/signup','/owner-login','/privacy','/terms'];
+const publicPaths=['/login','/signup','/owner-login','/privacy','/terms','/movie'];
 const nav=[
- ['⌂','Dashboard','/'],['◫','Business','/business'],['◎','Social','/social-media'],['✦','Magnanimous','/ai-chat'],['◇','Assistant','/virtual-assistant'],['▦','CRM','/crm'],['☎','Phone','/phone'],['▶','Video','/video-studio'],['◉','Mux','/mux'],['✣','AI Apps','/ai-apps'],['⌁','Tools','/free-tools'],['⛓','Connections','/connections']
+ ['⌂','Dashboard','/'],['◫','Business','/business'],['◎','Social','/social-media'],['✦','Magnanimous','/ai-chat'],['◇','Assistant','/virtual-assistant'],['▦','CRM','/crm'],['☎','Phone','/phone'],['🎬','Movies','/movie-maker'],['▶','Video','/video-studio'],['◉','Mux','/mux'],['✣','AI Apps','/ai-apps'],['⌁','Tools','/free-tools'],['⛓','Connections','/connections']
 ];
 const themes:Record<string,{title:string;accent:string;accent2:string;glyph:string;suggestions:Suggestion[]}>= {
  '/':{title:'COMMAND NEXUS',accent:'#36d7ff',accent2:'#ffb42d',glyph:'M',suggestions:[{label:'Build a business growth plan',href:'/business'},{label:'Create a social campaign',href:'/social-media'},{label:'Organize today with the AI assistant',href:'/virtual-assistant'}]},

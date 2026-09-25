@@ -39,11 +39,23 @@ async function transform(spec={}){
    args.push('-resize',geometry);
    if(fit==='cover'&&width&&height)args.push('-gravity','center','-extent',String(width)+'x'+String(height));
   }
+  const watermark=String(spec.watermark_text||'').trim().slice(0,240);
+  if(watermark){
+   const position=String(spec.watermark_position||'bottom-right');
+   const gravity=position==='bottom-left'?'SouthWest':position==='top-left'?'NorthWest':position==='top-right'?'NorthEast':'SouthEast';
+   const point=Math.max(14,Math.min(84,Number(spec.watermark_size||Math.round((width||1280)/48))));
+   args.push(
+    '-gravity',gravity,
+    '-fill','rgba(0,0,0,0.56)','-stroke','rgba(0,0,0,0.56)','-strokewidth','16',
+    '-pointsize',String(point),'-annotate','+24+24',watermark,
+    '-fill','white','-stroke','none','-pointsize',String(point),'-annotate','+24+24',watermark
+   );
+  }
   args.push('-strip','-quality',String(quality),output);
   const r=await run(args,spec.timeout_ms);
   if(r.code!==0)throw new Error('Image transform failed: '+r.stderr.slice(-1200));
   const value=await fs.readFile(output);
-  return{ok:true,format:format==='jpg'?'jpeg':format,content_type:'image/'+(format==='jpg'?'jpeg':format),base64:value.toString('base64'),bytes:value.length,width:width||null,height:height||null,quality,fit};
+  return{ok:true,format:format==='jpg'?'jpeg':format,content_type:'image/'+(format==='jpg'?'jpeg':format),base64:value.toString('base64'),bytes:value.length,width:width||null,height:height||null,quality,fit,watermarked:Boolean(watermark)};
  }finally{await fs.rm(dir,{recursive:true,force:true})}
 }
 const server=http.createServer(async(req,res)=>{

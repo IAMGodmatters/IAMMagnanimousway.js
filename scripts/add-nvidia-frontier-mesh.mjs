@@ -30,7 +30,7 @@ provider=replaceOnce(
 provider=replaceOnce(
   provider,
   "  if (id === 'mistral') return { text: await openaiCompatible('https://api.mistral.ai/v1', env.MISTRAL_API_KEY, model || env.MISTRAL_MODEL || 'mistral-large-latest', message, 'Mistral'), model: model || env.MISTRAL_MODEL || 'mistral-large-latest' };\n  if (id === 'cloudflare-ai') return cloudflare(env, message, model);",
-  "  if (id === 'mistral') return { text: await openaiCompatible('https://api.mistral.ai/v1', env.MISTRAL_API_KEY, model || env.MISTRAL_MODEL || 'mistral-large-latest', message, 'Mistral'), model: model || env.MISTRAL_MODEL || 'mistral-large-latest' };\n  if (id === 'nvidia-kimi') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_KIMI_MODEL || 'moonshotai/kimi-k3', message, 'NVIDIA Kimi'), model: model || env.NVIDIA_KIMI_MODEL || 'moonshotai/kimi-k3' };\n  if (id === 'nvidia-deepseek-pro') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_DEEPSEEK_PRO_MODEL || 'deepseek-ai/deepseek-v4-pro-0813', message, 'NVIDIA DeepSeek Pro'), model: model || env.NVIDIA_DEEPSEEK_PRO_MODEL || 'deepseek-ai/deepseek-v4-pro-0813' };\n  if (id === 'nvidia-deepseek-flash') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_DEEPSEEK_FLASH_MODEL || 'deepseek-ai/deepseek-v4-flash-0731', message, 'NVIDIA DeepSeek Flash'), model: model || env.NVIDIA_DEEPSEEK_FLASH_MODEL || 'deepseek-ai/deepseek-v4-flash-0731' };\n  if (id === 'cloudflare-ai') return cloudflare(env, message, model);",
+  "  if (id === 'mistral') return { text: await openaiCompatible('https://api.mistral.ai/v1', env.MISTRAL_API_KEY, model || env.MISTRAL_MODEL || 'mistral-large-latest', message, 'Mistral'), model: model || env.MISTRAL_MODEL || 'mistral-large-latest' };\n  if (id === 'nvidia-kimi') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_KIMI_MODEL || 'moonshotai/kimi-k3', message, 'NVIDIA Kimi'), model: model || env.NVIDIA_KIMI_MODEL || 'moonshotai/kimi-k3' };\n  if (id === 'nvidia-deepseek-pro') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_DEEPSEEK_PRO_MODEL || 'deepseek-ai/deepseek-v4-pro-0813', message, 'NVIDIA DeepSeek Pro'), model: model || env.NVIDIA_DEEPSEEK_PRO_MODEL || 'deepseek-ai/deepseek-v4-pro-0813' };\n  if (id === 'nvidia-deepseek-flash') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_DEEPSEEK_FLASH_MODEL || 'deepseek-ai/deepseek-v4.1-flash', message, 'NVIDIA DeepSeek Flash'), model: model || env.NVIDIA_DEEPSEEK_FLASH_MODEL || 'deepseek-ai/deepseek-v4.1-flash' };\n  if (id === 'cloudflare-ai') return cloudflare(env, message, model);",
   'provider calls'
 );
 provider=replaceOnce(
@@ -84,9 +84,9 @@ if(!envText.includes('NVIDIA_API_KEY=')){
   const idx=envText.indexOf(anchor);
   if(idx>=0){
     const end=envText.indexOf('\n',idx);
-    envText=envText.slice(0,end+1)+"NVIDIA_API_KEY=\nNVIDIA_KIMI_MODEL=moonshotai/kimi-k3\nNVIDIA_DEEPSEEK_PRO_MODEL=deepseek-ai/deepseek-v4-pro-0813\nNVIDIA_DEEPSEEK_FLASH_MODEL=deepseek-ai/deepseek-v4-flash-0731\n"+envText.slice(end+1);
+    envText=envText.slice(0,end+1)+"NVIDIA_API_KEY=\nNVIDIA_KIMI_MODEL=moonshotai/kimi-k3\nNVIDIA_DEEPSEEK_PRO_MODEL=deepseek-ai/deepseek-v4-pro-0813\nNVIDIA_DEEPSEEK_FLASH_MODEL=deepseek-ai/deepseek-v4.1-flash\n"+envText.slice(end+1);
   }else{
-    envText+="\n# Optional NVIDIA NIM free prototype endpoints; availability and quotas are provider-controlled.\nNVIDIA_API_KEY=\nNVIDIA_KIMI_MODEL=moonshotai/kimi-k3\nNVIDIA_DEEPSEEK_PRO_MODEL=deepseek-ai/deepseek-v4-pro-0813\nNVIDIA_DEEPSEEK_FLASH_MODEL=deepseek-ai/deepseek-v4-flash-0731\n";
+    envText+="\n# Optional NVIDIA NIM free prototype endpoints; availability and quotas are provider-controlled.\nNVIDIA_API_KEY=\nNVIDIA_KIMI_MODEL=moonshotai/kimi-k3\nNVIDIA_DEEPSEEK_PRO_MODEL=deepseek-ai/deepseek-v4-pro-0813\nNVIDIA_DEEPSEEK_FLASH_MODEL=deepseek-ai/deepseek-v4.1-flash\n";
   }
 }
 write(envPath,envText);
@@ -94,7 +94,7 @@ write(envPath,envText);
 const checks=[
   [provider.includes("id: 'nvidia-kimi'"),'Kimi provider'],
   [provider.includes("deepseek-ai/deepseek-v4-pro-0813"),'DeepSeek Pro model'],
-  [provider.includes("deepseek-ai/deepseek-v4-flash-0731"),'DeepSeek Flash model'],
+  [provider.includes("deepseek-ai/deepseek-v4.1-flash"),'DeepSeek Flash model'],
   [provider.includes('durable remembrance layer'),'commander remembrance'],
   [runtime.includes("'NVIDIA_API_KEY'"),'runtime secret'],
   [credentials.includes("key:'NVIDIA_API_KEY'"),'owner credential'],

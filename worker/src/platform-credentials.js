@@ -46,6 +46,12 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'INKBOX_BASE_URL',label:'Inkbox API Base URL (optional override)',secret:false,required:false}
  ]},
  {id:'tavus',name:'Tavus Human Video',providers:['tavus'],fields:[{key:'TAVUS_API_KEY',label:'Tavus API Key',secret:true,required:false}]},
+ {id:'premium-voice',name:'Premium Voice Execution',providers:['elevenlabs'],fields:[
+  {key:'ELEVENLABS_API_KEY',label:'Premium Voice API Key',secret:true,required:false},
+  {key:'ELEVENLABS_VOICE_ID',label:'Premium Voice ID',secret:false,required:false},
+  {key:'ENABLE_PREMIUM_VOICE',label:'Enable Premium Voice (true/false)',secret:false,required:false},
+  {key:'ELEVENLABS_COMMERCIAL_PLAN_CONFIRMED',label:'Commercial Provider Plan Confirmed (true/false)',secret:false,required:false}
+ ]},
  {id:'heygen',name:'Legacy Optional HeyGen Presenter Video',providers:['heygen'],fields:[{key:'HEYGEN_API_KEY',label:'HeyGen API Key (legacy optional adapter; never required by Magnanimous)',secret:true,required:false}]},
  {id:'mux',name:'Magnanimous Video Provider Credentials',providers:['mux'],fields:[
   {key:'MUX_TOKEN_ID',label:'Mux Access Token ID',secret:false,required:false},
@@ -61,6 +67,13 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
  {id:'porkbun',name:'Magnanimous Registrar / DNS Control',providers:[],fields:[
   {key:'PORKBUN_API_KEY',label:'Porkbun API Key (use a domain-scoped or sandbox key when possible)',secret:true,required:false},
   {key:'PORKBUN_SECRET_API_KEY',label:'Porkbun Secret API Key',secret:true,required:false}
+ ]},
+ {id:'movie-studio',name:'Magnanimous Movie Maker Studio Compute',providers:['managed-media'],fields:[
+  {key:'GOOGLE_API_KEY',label:'Studio Media API Key',secret:true,required:false},
+  {key:'GOOGLE_API_BILLING_MODE',label:'Studio Media Billing Mode (free or paid; leave blank until verified)',secret:false,required:false},
+  {key:'ENABLE_PREMIUM_MEDIA',label:'Enable Paid Studio Image / Video (true/false)',secret:false,required:false},
+  {key:'ELEVENLABS_API_KEY',label:'Studio Voice API Key',secret:true,required:false},
+  {key:'ELEVENLABS_VOICE_ID',label:'Default Studio Voice ID',secret:false,required:false}
  ]},
  {id:'veo',name:'Google Veo Cinematic Video',providers:['veo'],fields:[
   {key:'GOOGLE_API_KEY',label:'Google Gemini / Veo API Key',secret:true,required:false},
@@ -92,9 +105,11 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'MAGNANIMOUS_MEDIA_WORKER_TOKEN',label:'Magnanimous Media Worker Bearer Token',secret:true,required:false}
  ]},
  {id:'web-research',name:'Web Research & News',providers:['brave-search'],fields:[{key:'BRAVE_SEARCH_API_KEY',label:'Brave Search API Key (optional live web/news research)',secret:true,required:false}]},
- {id:'adsense',name:'Google AdSense / Auto Ads',providers:['adsense'],fields:[
-  {key:'ADSENSE_CLIENT_ID',label:'AdSense Publisher ID (ca-pub-...)',secret:false,required:true},
-  {key:'ADSENSE_SLOT_HOME',label:'Homepage Ad Unit Slot ID (optional for Auto Ads)',secret:false,required:false}
+ {id:'adsense',name:'Magnanimous Revenue Advertising',providers:['adsense'],fields:[
+  {key:'MAGNANIMOUS_AD_NETWORK_ENABLED',label:'Enable Revenue Ad Network (true/false)',secret:false,required:false},
+  {key:'ADSENSE_CLIENT_ID',label:'Publisher ID (ca-pub-...)',secret:false,required:true},
+  {key:'ADSENSE_SLOT_HOME',label:'Homepage Ad Unit Slot ID (optional)',secret:false,required:false},
+  {key:'ADSENSE_SLOT_MOVIE',label:'Free Movie Watch Ad Unit Slot ID (optional)',secret:false,required:false}
  ]},
  {id:'meta',name:'Meta',providers:['facebook','instagram','whatsapp'],fields:[
   {key:'META_APP_ID',label:'Meta App ID',secret:false,required:true},

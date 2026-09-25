@@ -201,7 +201,7 @@ has(provider,"let brainContext=computeOnly?'':extractBrainContext(message)",'com
 has(provider,'const linkLearning=computeOnly?[]','compute-only path cannot learn supplied links');
 has(provider,'const learnedScores=computeOnly?new Map()','compute-only path does not read adaptive provider memory');
 has(provider,'if(!computeOnly)await recordProviderOutcome','compute-only path does not write provider outcome memory');
-has(provider,"filter(p=>p.tier==='free-first')",'compute-only route stays on free-first provider pool unless explicitly enabled server-side');
+has(provider,"filter(p=>effectiveTier(env,p)==='free-first')",'compute-only route stays on verified free-first provider pool unless explicitly enabled server-side');
 has(securityHardening,"path === '/api/magnanimous/compute-accelerator'",'security preflight recognizes the accelerator as protected AI');
 has(godCoding,'Optional compute was unavailable, so God Coding completed with its Magnanimous-native plan instead.','God Coding falls back to native plan when outside compute fails');
 has(robots,'Disallow: /god-coding/','private God Coding route remains excluded from crawlers');

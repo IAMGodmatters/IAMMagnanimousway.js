@@ -1,5 +1,6 @@
 import { currentUserFromRequest, tenantPlan, canUsePremium, recordUsage } from './usage-guard.js';
 import { getKnowledgeContext } from './knowledge-runtime.js';
+import {conservativeProviderReserve,providerBillingMode,providerOriginCost} from './provider-origin-pricing.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -17,8 +18,14 @@ async function ensureSchema(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS business_plan_provider_usage(
   id INTEGER PRIMARY KEY AUTOINCREMENT, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL,
   project_id TEXT NOT NULL, phase TEXT NOT NULL, provider TEXT NOT NULL, model TEXT NOT NULL,
-  estimated_cost_usd REAL NOT NULL DEFAULT 0, created_at INTEGER NOT NULL
+  estimated_cost_usd REAL NOT NULL DEFAULT 0, provider_origin_cost_usd REAL NOT NULL DEFAULT 0,
+  pricing_source TEXT NOT NULL DEFAULT '', pricing_verified_at TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL
  )`).run();
+ for(const ddl of [
+  'ALTER TABLE business_plan_provider_usage ADD COLUMN provider_origin_cost_usd REAL NOT NULL DEFAULT 0',
+  "ALTER TABLE business_plan_provider_usage ADD COLUMN pricing_source TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE business_plan_provider_usage ADD COLUMN pricing_verified_at TEXT NOT NULL DEFAULT ''"
+ ]){try{await env.DB.prepare(ddl).run()}catch(_){}}
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_bp_provider_usage_project ON business_plan_provider_usage(project_id,created_at DESC)').run();
 }
 
@@ -43,8 +50,8 @@ function baseRules(){return `You are the senior consulting board inside I AM Mag
 
 async function cloudflare(env,prompt,{strong=true,maxTokens=2600}={}){
  if(!env?.AI)throw new Error('I AM free-first reasoning is temporarily unavailable.');
- const requested=String(strong?env.BUSINESS_PLAN_FREE_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8':env.CLOUDFLARE_AI_MODEL||'').trim();
- const models=[...new Set([requested,'@cf/qwen/qwen3-30b-a3b-fp8','@cf/zai-org/glm-4.7-flash','@cf/meta/llama-3.3-70b-instruct-fp8-fast'].filter(Boolean))];
+ const requested=String(strong?env.BUSINESS_PLAN_FREE_MODEL||'@cf/nvidia/nemotron-3-120b-a12b':env.CLOUDFLARE_AI_MODEL||'@cf/zai-org/glm-4.7-flash').trim();
+ const models=[...new Set([requested,'@cf/zai-org/glm-4.7-flash','@cf/nvidia/nemotron-3-120b-a12b','@cf/google/gemma-4-26b-a4b-it'].filter(Boolean))];
  const errors=[];
  for(const model of models){
   try{
@@ -60,25 +67,25 @@ async function anthropic(env,prompt){
  const model=env.BUSINESS_PLAN_ANTHROPIC_MODEL||'claude-sonnet-5';
  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':env.ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01'},body:JSON.stringify({model,max_tokens:5000,system:baseRules(),messages:[{role:'user',content:prompt}]})});
  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||`premium reasoning failed (${r.status})`);
- return{text:(d.content||[]).map(x=>x?.text||'').join('\n').trim(),provider:'anthropic',model,estimated_cost_usd:.18};
+ return{text:(d.content||[]).map(x=>x?.text||'').join('\n').trim(),provider:'anthropic',model,usage:d.usage||{}};
 }
 async function gemini(env,prompt){
- const model=env.BUSINESS_PLAN_GOOGLE_MODEL||'gemini-3.7-flash';
+ const model=env.BUSINESS_PLAN_GOOGLE_MODEL||'gemini-3.8-flash';
  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(env.GOOGLE_API_KEY)}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:baseRules()}]},contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:5000}})});
  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||`premium reasoning failed (${r.status})`);
- return{text:(d.candidates?.[0]?.content?.parts||[]).map(x=>x?.text||'').join('\n').trim(),provider:'google',model,estimated_cost_usd:.08};
+ return{text:(d.candidates?.[0]?.content?.parts||[]).map(x=>x?.text||'').join('\n').trim(),provider:'google',model,usage:d.usageMetadata||{}};
 }
-async function compatible(base,key,model,prompt,provider,cost){
+async function compatible(base,key,model,prompt,provider){
  const r=await fetch(`${base}/chat/completions`,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`},body:JSON.stringify({model,max_tokens:5000,messages:[{role:'system',content:baseRules()},{role:'user',content:prompt}]})});
  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||`premium reasoning failed (${r.status})`);
- return{text:String(d.choices?.[0]?.message?.content||'').trim(),provider,model,estimated_cost_usd:cost};
+ return{text:String(d.choices?.[0]?.message?.content||'').trim(),provider,model,usage:d.usage||{}};
 }
 async function premiumReasoning(env,prompt,allowMetered){
  const candidates=[];
  if(allowMetered&&String(env.ANTHROPIC_API_KEY||'').trim())candidates.push(()=>anthropic(env,prompt));
  if(allowMetered&&String(env.GOOGLE_API_KEY||'').trim())candidates.push(()=>gemini(env,prompt));
- if(allowMetered&&String(env.MISTRAL_API_KEY||'').trim())candidates.push(()=>compatible('https://api.mistral.ai/v1',env.MISTRAL_API_KEY,env.BUSINESS_PLAN_MISTRAL_MODEL||'mistral-medium-latest',prompt,'mistral',.10));
- if(allowMetered&&String(env.GROQ_API_KEY||'').trim())candidates.push(()=>compatible('https://api.groq.com/openai/v1',env.GROQ_API_KEY,env.BUSINESS_PLAN_GROQ_MODEL||'llama-3.3-70b-versatile',prompt,'groq',.05));
+ if(allowMetered&&String(env.MISTRAL_API_KEY||'').trim())candidates.push(()=>compatible('https://api.mistral.ai/v1',env.MISTRAL_API_KEY,env.BUSINESS_PLAN_MISTRAL_MODEL||'mistral-large-latest',prompt,'mistral'));
+ if(allowMetered&&String(env.GROQ_API_KEY||'').trim())candidates.push(()=>compatible('https://api.groq.com/openai/v1',env.GROQ_API_KEY,env.BUSINESS_PLAN_GROQ_MODEL||'openai/gpt-oss-120b',prompt,'groq'));
  candidates.push(()=>cloudflare(env,prompt,{strong:true,maxTokens:5000}));
  const errors=[];
  for(const call of candidates){
@@ -96,17 +103,42 @@ async function entitlement(env,user,project){
  if((plan.limits?.rank||0)>=2&&ACTIVE.has(String(plan.status||'')))return{ok:true,reason:'full_business',metered:true,plan};
  return{ok:false,reason:'purchase_required',metered:false,plan};
 }
-async function canSpendMetered(env,user,ent,estimated=.25){
- if(!ent?.metered)return false;
- if(ent.reason==='business_plan_purchase'||ent.reason==='business_plan_subscription'||ent.reason==='platform_owner')return true;
- const gate=await canUsePremium(env,user.tenant_id,{category:'professional business-plan reasoning',estimated_cost_usd:estimated,required_plan:'business',entitlement:'metered_ai'});
- return Boolean(gate.ok);
+async function canSpendMetered(env,user,ent,prompt){
+ if(!ent?.metered||String(env.ENABLE_METERED_PROVIDERS||'').toLowerCase()!=='true')return false;
+ const candidates=[
+  ['anthropic',env.BUSINESS_PLAN_ANTHROPIC_MODEL||'claude-sonnet-5',env.ANTHROPIC_API_KEY],
+  ['google',env.BUSINESS_PLAN_GOOGLE_MODEL||'gemini-3.8-flash',env.GOOGLE_API_KEY],
+  ['mistral',env.BUSINESS_PLAN_MISTRAL_MODEL||'mistral-large-latest',env.MISTRAL_API_KEY],
+  ['groq',env.BUSINESS_PLAN_GROQ_MODEL||'openai/gpt-oss-120b',env.GROQ_API_KEY]
+ ].filter(([, ,key])=>String(key||'').trim());
+ let reserve=0;
+ for(const [provider,model] of candidates){
+  const item=conservativeProviderReserve({provider,model,input_text:`${baseRules()}\n\n${prompt}`,max_output_tokens:5000,billing_mode:providerBillingMode(env,provider)});
+  if(!item.ok)return false;
+  reserve=Math.max(reserve,Number(item.provider_origin_cost_usd||0));
+ }
+ if(reserve<=0)return true;
+ if(ent.reason==='full_business'){
+  const gate=await canUsePremium(env,user.tenant_id,{category:'professional business-plan reasoning',estimated_provider_origin_cost_usd:reserve,required_plan:'business',entitlement:'metered_ai'});
+  return Boolean(gate.ok);
+ }
+ const included=Math.max(0,Number(env.BUSINESS_PLAN_METERED_INCLUDED_USD||0));
+ if(included<=0)return false;
+ const d=new Date(),periodStart=Math.floor(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),1)/1000);
+ const row=await env.DB.prepare('SELECT COALESCE(SUM(provider_origin_cost_usd),0) used FROM business_plan_provider_usage WHERE tenant_id=? AND user_id=? AND created_at>=?').bind(String(user.tenant_id),String(user.id),periodStart).first().catch(()=>null);
+ return Number(row?.used||0)+reserve<=included+1e-9;
 }
 async function usage(env,user,projectId,phase,result,ent){
- const cost=Math.max(0,Number(result?.estimated_cost_usd||0));
- await env.DB.prepare('INSERT INTO business_plan_provider_usage(tenant_id,user_id,project_id,phase,provider,model,estimated_cost_usd,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(user.tenant_id,user.id,projectId,phase,result.provider||'iam-native',result.model||'',cost,now()).run();
+ let priced={ok:true,provider_origin_cost_usd:0,pricing_source:'free-first',pricing_verified_at:'2026-09-25',usage:{}};
+ if(result?.provider&&result.provider!=='cloudflare-ai'){
+  priced=providerOriginCost({provider:result.provider,model:result.model,usage:result.usage,billing_mode:providerBillingMode(env,result.provider)});
+  if(!priced.ok)throw new Error(`BILLING_EVIDENCE_REQUIRED: ${priced.code||priced.detail||'provider origin cost unavailable'}`);
+ }
+ const cost=Math.max(0,Number(priced.provider_origin_cost_usd||0)),ref=`${projectId}:${phase}:${crypto.randomUUID()}`;
+ await env.DB.prepare('INSERT INTO business_plan_provider_usage(tenant_id,user_id,project_id,phase,provider,model,estimated_cost_usd,provider_origin_cost_usd,pricing_source,pricing_verified_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)')
+  .bind(user.tenant_id,user.id,projectId,phase,result.provider||'iam-native',result.model||'',cost,cost,String(priced.pricing_source||''),String(priced.pricing_verified_at||''),now()).run();
  if(cost>0&&ent?.reason==='full_business'){
-  try{await recordUsage(env,user.tenant_id,{category:'business-plan-premium-ai',provider:result.provider,units:1,direct_cost_usd:cost,reference_id:`${projectId}:${phase}:${now()}`})}catch(e){console.error('business plan usage record failed',e)}
+  await recordUsage(env,user.tenant_id,{category:'business-plan-premium-ai',provider:result.provider,units:Number(priced.usage?.input_tokens||0)+Number(priced.usage?.output_tokens||0),provider_origin_cost_usd:cost,reference_id:ref,pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at});
  }
 }
 
@@ -140,10 +172,13 @@ async function finalize(request,env,user,body){
  try{
   await env.DB.prepare('UPDATE business_plan_projects SET status=?,updated_at=? WHERE id=?').bind('finalizing',now(),id).run();
   const intake=JSON.parse(project.intake_json||'{}'),work=JSON.parse(project.work_json||'{}'),raw=intakeText(intake),sources=JSON.parse(project.sources_json||'[]');
-  const allowMetered=await canSpendMetered(env,user,ent,.35);
-  const critique=await premiumReasoning(env,`PROFESSIONAL REVIEW BOARD\n\nAudience: ${String(body.audience||intake.audience||'business planning')}\n\nINTAKE:\n${raw}\n\nFREE DRAFT ANALYSIS:\n${String(work.analysis||'').slice(0,18000)}\n\nAct simultaneously as skeptical lender/investor, operations leader and conservative financial reviewer. Identify every material weakness, unsupported claim, missing expense, cash-flow risk, pricing flaw, market-evidence gap, staffing dependency, legal/regulatory issue and audience mismatch. Produce explicit corrections and a reconciliation ledger.`,allowMetered);
+  const critiquePrompt=`PROFESSIONAL REVIEW BOARD\n\nAudience: ${String(body.audience||intake.audience||'business planning')}\n\nINTAKE:\n${raw}\n\nFREE DRAFT ANALYSIS:\n${String(work.analysis||'').slice(0,18000)}\n\nAct simultaneously as skeptical lender/investor, operations leader and conservative financial reviewer. Identify every material weakness, unsupported claim, missing expense, cash-flow risk, pricing flaw, market-evidence gap, staffing dependency, legal/regulatory issue and audience mismatch. Produce explicit corrections and a reconciliation ledger.`;
+  const allowCritiqueMetered=await canSpendMetered(env,user,ent,critiquePrompt);
+  const critique=await premiumReasoning(env,critiquePrompt,allowCritiqueMetered);
   await usage(env,user,id,'professional-review',critique,ent);
-  const final=await premiumReasoning(env,`FINAL PROFESSIONAL BUSINESS PLAN\n\nCreate a complete, presentation-ready plan after applying every justified correction below. Write the Executive Summary last in your reasoning but place it first. Include Company & Concept; Opportunity; Product/Service & Pricing; Customer Segments; Market Evidence; Competitors; Business Model; Marketing & Sales; Operations; Staffing; Technology/Suppliers; Legal/Regulatory questions; Startup Budget; Revenue Assumptions; COGS; Operating Expenses; Cash Flow; Break-Even; Funding Requirement and Use of Funds; Base/Downside/Upside framework; 3–5 Year Forecast Assumptions; Milestones; Risk Register; Audience-Specific Notes; Evidence Register; Remaining Assumptions; Appendix Checklist. Never fabricate exact numbers where inputs are missing—show formulas/ranges and label verification required.\n\nINTAKE:\n${raw}\n\nFREE ANALYSIS:\n${String(work.analysis||'').slice(0,14000)}\n\nPROFESSIONAL REVIEW/CORRECTIONS:\n${critique.text}\n\nAVAILABLE SOURCES:\n${JSON.stringify(sources).slice(0,9000)}`,allowMetered);
+  const finalPrompt=`FINAL PROFESSIONAL BUSINESS PLAN\n\nCreate a complete, presentation-ready plan after applying every justified correction below. Write the Executive Summary last in your reasoning but place it first. Include Company & Concept; Opportunity; Product/Service & Pricing; Customer Segments; Market Evidence; Competitors; Business Model; Marketing & Sales; Operations; Staffing; Technology/Suppliers; Legal/Regulatory questions; Startup Budget; Revenue Assumptions; COGS; Operating Expenses; Cash Flow; Break-Even; Funding Requirement and Use of Funds; Base/Downside/Upside framework; 3–5 Year Forecast Assumptions; Milestones; Risk Register; Audience-Specific Notes; Evidence Register; Remaining Assumptions; Appendix Checklist. Never fabricate exact numbers where inputs are missing—show formulas/ranges and label verification required.\n\nINTAKE:\n${raw}\n\nFREE ANALYSIS:\n${String(work.analysis||'').slice(0,14000)}\n\nPROFESSIONAL REVIEW/CORRECTIONS:\n${critique.text}\n\nAVAILABLE SOURCES:\n${JSON.stringify(sources).slice(0,9000)}`;
+  const allowFinalMetered=await canSpendMetered(env,user,ent,finalPrompt);
+  const final=await premiumReasoning(env,finalPrompt,allowFinalMetered);
   await usage(env,user,id,'final-publication',final,ent);
   work.final_reviews={professional_board:critique.text};work.final_model=final.model;work.final_provider_class=final.provider==='cloudflare-ai'?'iam-free-first':'iam-managed-premium';
   await env.DB.prepare('UPDATE business_plan_projects SET work_json=?,final_text=?,status=?,updated_at=? WHERE id=?').bind(JSON.stringify(work),final.text,'final_ready',now(),id).run();
@@ -153,7 +188,7 @@ async function finalize(request,env,user,body){
 
 export async function handleBusinessPlanQuality(request,env){
  const url=new URL(request.url),path=url.pathname;
- if(path==='/api/business-plan/quality'&&request.method==='GET')return json({quality_router:true,free_draft:{provider_class:'I AM free-first',primary_model:'@cf/qwen/qwen3-30b-a3b-fp8',fallback_models:['@cf/zai-org/glm-4.7-flash','@cf/meta/llama-3.3-70b-instruct-fp8-fast'],live_research:true},professional_final:{requires_i_am_purchase:true,external_provider_checkout:false,managed_provider_costs:true,strong_model_fallback:true,preferred_models:['claude-sonnet-5','gemini-3.7-flash']},billing_rule:'Customers pay I AM. Outside AI providers are server-side execution engines and are never a customer checkout destination.'});
+ if(path==='/api/business-plan/quality'&&request.method==='GET')return json({quality_router:true,identity:'Magnanimous AI',free_draft:{provider_class:'Magnanimous AI free-first',private_execution:true,live_research:true},professional_final:{requires_i_am_purchase:true,external_provider_checkout:false,managed_provider_costs:true,strong_model_fallback:true,private_execution:true},provider_details_private:true,billing_rule:'Customers pay I AM MAGNANIMOUS WAY™. Outside execution engines remain private and are never a customer checkout destination.'});
  if(!['/api/business-plan/draft','/api/business-plan/final'].includes(path)||request.method!=='POST')return null;
  if(!env?.DB)return json({detail:'Business-plan storage is unavailable.'},503);
  await ensureSchema(env);

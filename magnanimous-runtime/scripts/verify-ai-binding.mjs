@@ -96,44 +96,27 @@ async function workersAiFreeFirst(){
   assert.deepEqual(body.messages,[{role:'user',content:'Say hello.'}]);
 }
 
-async function meteredDisabledByDefault(){
+async function meteredNeverBypassesTenantBilling(){
   let called=false;
-  globalThis.fetch=async()=>{called=true;throw new Error('metered provider must not be called')};
-  const binding=new MagnanimousAiBinding({
-    OPENAI_API_KEY:'present-but-disabled',
-    ENABLE_METERED_PROVIDERS:'false'
-  });
-  await assert.rejects(
-    ()=>binding.run('legacy',{prompt:'Do not spend money.'}),
-    /ENABLE_METERED_PROVIDERS=true/
-  );
-  assert.equal(called,false);
-}
-
-async function meteredRequiresExplicitOptIn(){
-  const calls=[];
-  globalThis.fetch=async(url)=>{
-    calls.push(String(url));
-    return new Response(JSON.stringify({output_text:'Explicit paid fallback works.'}),{
-      status:200,headers:{'content-type':'application/json'}
+  globalThis.fetch=async()=>{called=true;throw new Error('metered provider must not be called from standalone binding')};
+  for(const enabled of ['false','true']){
+    const binding=new MagnanimousAiBinding({
+      OPENAI_API_KEY:'present-but-not-tenant-authorized',
+      ENABLE_METERED_PROVIDERS:enabled
     });
-  };
-  const binding=new MagnanimousAiBinding({
-    OPENAI_API_KEY:'test-openai-key',
-    ENABLE_METERED_PROVIDERS:'true'
-  });
-  const result=await binding.run('legacy',{prompt:'Paid fallback is explicitly enabled.'});
-  assert.equal(result.response,'Explicit paid fallback works.');
-  assert.equal(result.provider,'magnanimous-metered-fallback');
-  assert.deepEqual(calls,['https://api.openai.com/v1/responses']);
+    await assert.rejects(
+      ()=>binding.run('legacy',{prompt:'Do not spend money.'}),
+      /tenant-aware billing guard/
+    );
+  }
+  assert.equal(called,false);
 }
 
 try{
   await privateEdgeBridgeFirst();
   await privateEdgeBridgeIntegrationFallback();
   await workersAiFreeFirst();
-  await meteredDisabledByDefault();
-  await meteredRequiresExplicitOptIn();
+  await meteredNeverBypassesTenantBilling();
   console.log('Magnanimous standalone free-first AI binding verification PASS');
 }finally{
   globalThis.fetch=originalFetch;

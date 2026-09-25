@@ -53,7 +53,7 @@ export class MagnanimousAiBinding {
       2200
     );
 
-    const requestedModel = String(_legacyModel || this.env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast').trim();
+    const requestedModel = String(_legacyModel || this.env.CLOUDFLARE_AI_MODEL || '@cf/zai-org/glm-4.7-flash').trim();
     const edgeBridgeToken = String(this.env.MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN || '').trim()
       || await integrationDerivedToken(this.env.INTEGRATION_CREDENTIALS_KEY);
     const edgeBridgeUrl = String(this.env.MAGNANIMOUS_EDGE_AI_BRIDGE_URL || 'https://iammagnanimousway.com/api/internal/edge-ai/run').trim();
@@ -97,7 +97,8 @@ export class MagnanimousAiBinding {
     }
 
     const compatibleBase = String(this.env.MAGNANIMOUS_AI_BASE_URL || '').replace(/\/$/, '');
-    if (compatibleBase) {
+    const compatibleMode=String(this.env.MAGNANIMOUS_AI_BASE_BILLING_MODE||'unverified').trim().toLowerCase();
+    if (compatibleBase && ['free','self-hosted'].includes(compatibleMode)) {
       const model = String(this.env.MAGNANIMOUS_AI_MODEL || this.env.OPENAI_MODEL || 'magnanimous-default');
       const headers = { 'content-type': 'application/json' };
       if (this.env.MAGNANIMOUS_AI_API_KEY) {
@@ -136,30 +137,9 @@ export class MagnanimousAiBinding {
       return { response: text, result: { response: text }, provider: 'magnanimous-local' };
     }
 
-    const meteredEnabled = String(this.env.ENABLE_METERED_PROVIDERS || '').toLowerCase() === 'true';
-    if (this.env.OPENAI_API_KEY && meteredEnabled) {
-      const response = await fetch('https://api.openai.com/v1/responses', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: 'Bearer ' + this.env.OPENAI_API_KEY
-        },
-        body: JSON.stringify({
-          model: this.env.OPENAI_MODEL || 'gpt-5.6-sol',
-          input: messages,
-          max_output_tokens: maxTokens
-        })
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error('Configured AI execution rail returned HTTP ' + response.status);
-
-      const text = textFromResponses(data);
-      if (!text) throw new Error('Configured AI execution rail returned no text.');
-      return { response: text, result: { response: text }, provider: 'magnanimous-metered-fallback' };
-    }
 
     throw new Error(
-      'No free-first Magnanimous AI execution rail is configured. Set the private Edge AI bridge, protected Cloudflare Workers AI REST credentials, OLLAMA_BASE_URL, or MAGNANIMOUS_AI_BASE_URL; metered OPENAI_API_KEY is used only when ENABLE_METERED_PROVIDERS=true.'
+      'No funded free-first Magnanimous AI execution rail is available. Use the private Edge AI bridge, protected Workers AI rail, local model, or an explicitly free/self-hosted compatible rail. Metered providers are routed only through the tenant-aware billing guard.'
     );
   }
 }

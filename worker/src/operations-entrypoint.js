@@ -22,6 +22,8 @@ import {handleMagnanimousNativeWeb,scheduledNativeWeb} from './magnanimous-nativ
 import {scheduledMagnanimousCapabilityMesh} from './magnanimous-capability-mesh.js';
 import {handleMagnanimousRoutineStudio,scheduledMagnanimousRoutines} from './magnanimous-skill-routine-runtime.js';
 import {handlePaymentLinkBilling,augmentBillingResponse} from './payment-link-runtime.js';
+import {handleSelfHealing,scheduledSelfHealing} from './self-healing-runtime.js';
+import {handlePremiumVoice} from './premium-voice-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -180,6 +182,8 @@ async function operationsFetch(request,env,ctx){
     return agency;
    }
   }catch(error){console.error('agency command layer failed',error);return json({detail:'Agency Command could not complete this request.'},500)}
+  try{const premiumVoice=await handlePremiumVoice(request,env);if(premiumVoice)return premiumVoice}catch(error){console.error('premium voice runtime failed',error);return json({detail:'Premium voice could not complete this request. Browser-native Magnanimous voice remains available.',code:'PREMIUM_VOICE_RUNTIME_FAILURE'},500)}
+  try{const selfHealing=await handleSelfHealing(request,env);if(selfHealing)return selfHealing}catch(error){console.error('self-healing control plane failed',error);return json({detail:'Self-healing control plane could not complete this request.'},500)}
   try{const handled=await operationsRequest(request,env);if(handled)return handled}catch(error){console.error('operations layer failed',error);return json({detail:'Operations workspace could not complete this request.'},500)}
 
   const signupBody=path==='/api/auth/signup'&&request.method==='POST'?await bodyOf(request):null;
@@ -236,7 +240,8 @@ export default{
    scheduledGrowth(env,origin).catch(error=>console.error('scheduled growth automation failed',error)),
    scheduledNativeWeb(env).catch(error=>console.error('scheduled native web automation failed',error)),
    scheduledMagnanimousCapabilityMesh(env).catch(error=>console.error('scheduled capability mesh check failed',error)),
-   scheduledMagnanimousRoutines(env).catch(error=>console.error('scheduled Magnanimous routines failed',error))
+   scheduledMagnanimousRoutines(env).catch(error=>console.error('scheduled Magnanimous routines failed',error)),
+   scheduledSelfHealing(env,origin).catch(error=>console.error('scheduled self-healing check failed',error))
   ]);
   if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
  }

@@ -365,10 +365,21 @@ export async function handleBilling(request, env) {
     return json({ free_first: true, plans: PLANS, business_checkout_configured: Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_PRICE_BUSINESS) });
   }
   if (path === '/api/monetization/config' && request.method === 'GET') {
+    const ownerEnabled=String(env.MAGNANIMOUS_AD_NETWORK_ENABLED||'').trim().toLowerCase()==='true';
+    const client=ownerEnabled?String(env.ADSENSE_CLIENT_ID||'').trim():'';
+    const homeSlot=ownerEnabled?String(env.ADSENSE_SLOT_HOME||'').trim():'';
+    const movieSlot=ownerEnabled?String(env.ADSENSE_SLOT_MOVIE||'').trim():'';
     return json({
-      adsense_client: String(env.ADSENSE_CLIENT_ID || ''),
-      ads_enabled: Boolean(env.ADSENSE_CLIENT_ID),
-      business_checkout_configured: Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_PRICE_BUSINESS)
+      adsense_client:client,
+      adsense_client_id:client||null,
+      ads_enabled:Boolean(client),
+      adsense_configured:Boolean(client),
+      adsense_home_slot:homeSlot||null,
+      adsense_movie_slot:movieSlot||null,
+      movie_ads_ready:Boolean(client&&movieSlot),
+      owner_enabled:ownerEnabled,
+      business_checkout_configured:Boolean(env.STRIPE_SECRET_KEY&&env.STRIPE_PRICE_BUSINESS),
+      policy:'Advertising is owner-controlled, clearly separated from AI answers, optional to engage with, and never uses incentivized clicks or artificial impressions.'
     });
   }
   if (path === '/api/billing/webhook' && request.method === 'POST') return stripeWebhook(request, env);
