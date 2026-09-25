@@ -40,6 +40,19 @@ function globalMobileBlueprint(env){
    silent_paid_fallback:false,
    fair_use_model:'high-speed allowance plus documented throttle/QoS only when supported by the wholesale agreement'
   },
+  owner_research:{
+   provider_details_private:true,
+   wholesale_candidates:[
+    {key:'gigs',role:'wireless subscription/SIM/porting/usage API',commercial_status:'account-and-contract-required',public_wholesale_rate_card:false},
+    {key:'1global',role:'global telco-as-a-service and eSIM subscription API',commercial_status:'commercial-agreement-required',public_wholesale_rate_card:false},
+    {key:'telna',role:'API-first global eSIM/network lifecycle and multi-network access',commercial_status:'commercial-agreement-required',public_wholesale_rate_card:false},
+    {key:'bics',role:'global roaming/eSIM/MVNO infrastructure candidate',commercial_status:'product-eligibility-and-commercial-agreement-required',public_wholesale_rate_card:false}
+   ],
+   retail_benchmarks:{
+    fonus:{reseller_application_public:true,wholesale_rate_public:false,pricing_role:'benchmark-only-until-contract-quote'},
+    popcorn:{architecture_benchmark_only:true,resale_allowed_by_public_policy:false,pricing_role:'retail-benchmark-only'}
+   }
+  },
   truth_boundaries:{
    global_mobile_live_flag:'TELECOM_GLOBAL_MOBILE_LIVE',
    provider_credentials_do_not_prove_live_service:true,
@@ -48,6 +61,90 @@ function globalMobileBlueprint(env){
    voip_numbers_do_not_guarantee_short_code_or_bank_2fa:true,
    regulatory_authority_is_external:true
   }
+ };
+}
+
+function finiteAmount(value,max){
+ const parsed=Number(value);
+ return Number.isFinite(parsed)&&parsed>=0&&parsed<=max?parsed:null;
+}
+
+function globalMobileOfferPlan(body){
+ const country=String(body?.country_code||'').trim().toUpperCase();
+ if(!/^[A-Z]{2}$/.test(country))return {error:'country_code must be ISO 3166-1 alpha-2.'};
+ const expectedGb=finiteAmount(body?.expected_high_speed_gb,10000);
+ if(expectedGb===null)return {error:'expected_high_speed_gb must be a finite non-negative amount.'};
+ const offers=Array.isArray(body?.offers)?body.offers.slice(0,50):[];
+ if(!offers.length)return {error:'At least one verified wholesale offer is required.'};
+ const eligible=[],rejected=[];
+ for(const raw of offers){
+  const offer=raw&&typeof raw==='object'?raw:{};
+  const adapterKey=String(offer.adapter_key||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,80);
+  const reference=String(offer.origin_reference||'').trim().slice(0,500);
+  const networkGroup=String(offer.network_group||adapterKey||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,80);
+  const monthly=finiteAmount(offer.origin_monthly_cost,100000);
+  const perGb=finiteAmount(offer.origin_variable_cost_per_gb||0,10000);
+  const includedGb=finiteAmount(offer.included_high_speed_gb||0,10000);
+  const fundedCap=finiteAmount(offer.funded_variable_cost_cap||0,1000000);
+  const fees=finiteAmount(offer.mandatory_taxes_and_fees||0,100000);
+  const latency=finiteAmount(offer.observed_latency_ms||0,60000);
+  const qualityRaw=Number(offer.quality_score??0.5);
+  const quality=Number.isFinite(qualityRaw)?Math.max(0,Math.min(1,qualityRaw)):0.5;
+  const reasons=[];
+  if(!adapterKey)reasons.push('adapter_key_missing');
+  if(!reference||offer.origin_cost_verified!==true)reasons.push('origin_cost_not_verified');
+  if(offer.commercial_authorized!==true)reasons.push('commercial_authorization_not_verified');
+  if(offer.country_verified!==true)reasons.push('country_coverage_not_verified');
+  if(offer.data_supported!==true)reasons.push('data_not_supported');
+  if([monthly,perGb,includedGb,fundedCap,fees,latency].some(v=>v===null))reasons.push('invalid_cost_or_quality_input');
+  const meteredGb=Math.max(0,expectedGb-(includedGb||0));
+  const variableExposure=(perGb||0)*meteredGb;
+  if(variableExposure>0&&(fundedCap||0)+1e-9<variableExposure)reasons.push('variable_cost_not_fully_funded');
+  if(reasons.length){rejected.push({adapter_key:adapterKey||'unknown',reasons});continue}
+  const landedOrigin=money((monthly||0)+variableExposure);
+  const retailBeforeFees=money(landedOrigin*(1+GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT/100));
+  eligible.push({
+   adapter_key:adapterKey,
+   network_group:networkGroup||adapterKey,
+   origin_reference:reference,
+   country_code:country,
+   expected_high_speed_gb:expectedGb,
+   included_high_speed_gb:includedGb,
+   metered_high_speed_gb:money(meteredGb),
+   origin_monthly_cost:money(monthly),
+   origin_variable_cost_per_gb:money(perGb),
+   variable_cost_exposure:money(variableExposure),
+   funded_variable_cost_cap:money(fundedCap),
+   landed_origin_cost:landedOrigin,
+   mandatory_taxes_and_fees:money(fees),
+   retail_monthly_total:money(retailBeforeFees+(fees||0)),
+   retail_markup_percent:GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT,
+   observed_latency_ms:latency,
+   quality_score:quality,
+   voice_supported:offer.voice_supported===true,
+   sms_supported:offer.sms_supported===true,
+   local_breakout:offer.local_breakout===true,
+   backup_eligible:offer.backup_eligible===true
+  });
+ }
+ eligible.sort((a,b)=>a.retail_monthly_total-b.retail_monthly_total||b.quality_score-a.quality_score||a.observed_latency_ms-b.observed_latency_ms);
+ const selected=eligible[0]||null;
+ const backup=selected?eligible.find(x=>x.backup_eligible&&x.adapter_key!==selected.adapter_key&&x.network_group!==selected.network_group)
+  ||eligible.find(x=>x.backup_eligible&&x.adapter_key!==selected.adapter_key)||null:null;
+ return{
+  identity:'Magnanimous Telecom',
+  brain:'Magnanimous AI',
+  preview_only:true,
+  purchase_performed:false,
+  provider_details_private:true,
+  country_code:country,
+  expected_high_speed_gb:expectedGb,
+  pricing_rule:{verified_origin_cost_required:true,retail_markup_percent:GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT},
+  selected,
+  backup,
+  eligible_offers:eligible,
+  rejected_offers:rejected,
+  truth_boundary:'Selection is a quote/planning result only. It does not activate service, prove regulatory authority, or mark any country/provider live.'
  };
 }
 
@@ -196,6 +293,13 @@ export async function handleMagnanimousTelecomNetwork(request,env){
 
  if(path==='/api/telecom/network/global-mobile/blueprint'&&request.method==='GET'){
   return json(globalMobileBlueprint(env));
+ }
+
+ if(path==='/api/telecom/network/global-mobile/offer-plan'&&request.method==='POST'){
+  const body=await request.json().catch(()=>({}));
+  const plan=globalMobileOfferPlan(body);
+  if(plan.error)return json({detail:plan.error},422);
+  return json(plan);
  }
 
  if(path==='/api/telecom/network/global-mobile/retail-quote'&&request.method==='POST'){
