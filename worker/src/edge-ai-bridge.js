@@ -20,6 +20,13 @@ async function secureEqual(a,b){
   return diff===0;
 }
 
+async function integrationDerivedToken(value){
+  const raw=String(value||'').trim();
+  if(!raw)return'';
+  const bytes=await digest('magnanimous-edge-ai-bridge-integration-v1\0'+raw);
+  return[...bytes].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
 function extractText(result){
   if(typeof result==='string')return result.trim();
   if(typeof result?.response==='string')return result.response.trim();
@@ -59,9 +66,11 @@ export async function handleEdgeAiBridge(request,env){
   if(request.method!=='POST')return json({detail:'Method not allowed.'},405);
 
   const expected=String(env?.MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN||'').trim();
+  const integrationFallback=await integrationDerivedToken(env?.INTEGRATION_CREDENTIALS_KEY);
   const authorization=String(request.headers.get('authorization')||'');
   const supplied=authorization.toLowerCase().startsWith('bearer ')?authorization.slice(7).trim():'';
-  if(!expected||!await secureEqual(expected,supplied))return json({detail:'Unauthorized.'},401);
+  const authorized=(expected&&await secureEqual(expected,supplied))||(integrationFallback&&await secureEqual(integrationFallback,supplied));
+  if(!authorized)return json({detail:'Unauthorized.'},401);
   if(!env?.AI||typeof env.AI.run!=='function')return json({detail:'Workers AI binding unavailable.'},503);
 
   const contentLength=Number(request.headers.get('content-length')||0);
