@@ -222,15 +222,59 @@ class StasisCallControlService:
         self,
         ari: AsteriskAriClient,
         listener: StasisEventListener,
+        state_store: PostgresStasisStateStore,
         settings: TelecomSettings,
     ):
         self._ari = ari
         self._listener = listener
+        self._state_store = state_store
         self._settings = settings
         self._bridges: dict[str, ManagedBridge] = {}
         self._supervisor_sessions: dict[str, SupervisorSession] = {}
         self._recordings: dict[str, ManagedRecording] = {}
         self._lock = asyncio.Lock()
+
+    async def initialize(self) -> None:
+        if not self._settings.stasis_enabled:
+            return
+        await self._state_store.ensure()
+        active = await self._state_store.load_active()
+        async with self._lock:
+            self._bridges = {
+                str(row["bridge_id"]): ManagedBridge(
+                    bridge_id=str(row["bridge_id"]),
+                    call_id=str(row["call_id"]),
+                    channel_ids=tuple(str(x) for x in (row.get("channel_ids") or []) if str(x)),
+                    created_at=int(row["created_at"]),
+                )
+                for row in active.get("bridges", [])
+            }
+            self._supervisor_sessions = {
+                str(row["session_id"]): SupervisorSession(
+                    session_id=str(row["session_id"]),
+                    call_bridge_id=str(row["call_bridge_id"]),
+                    supervisor_bridge_id=str(row["supervisor_bridge_id"]),
+                    snoop_channel_id=str(row["snoop_channel_id"]),
+                    target_channel_id=str(row["target_channel_id"]),
+                    supervisor_channel_id=str(row["supervisor_channel_id"]),
+                    mode=str(row["mode"]),
+                    requested_by=str(row["requested_by"]),
+                    created_at=int(row["created_at"]),
+                )
+                for row in active.get("supervisors", [])
+            }
+            self._recordings = {
+                str(row["recording_name"]): ManagedRecording(
+                    recording_name=str(row["recording_name"]),
+                    bridge_id=str(row["bridge_id"]),
+                    requested_by=str(row["requested_by"]),
+                    consent_basis=str(row["consent_basis"]),
+                    beep=bool(row.get("beep")),
+                    max_duration_seconds=int(row.get("max_duration_seconds") or 0),
+                    created_at=int(row["created_at"]),
+                )
+                for row in active.get("recordings", [])
+            }
 
     def status(self) -> dict[str, Any]:
         return {
@@ -240,12 +284,16 @@ class StasisCallControlService:
             "active_recordings": len(self._recordings),
             "supervisor_modes": sorted(self._SUPERVISOR_MODES),
             "recording_requires_explicit_consent": True,
+            "persistent_state_ready": self._state_store.ready,
+            "restart_recovery_enabled": self._settings.stasis_enabled and self._state_store.ready,
             "public_ari_exposed": False,
         }
 
     def _require_ready(self) -> None:
         if not self._settings.stasis_enabled:
             raise TelecomConfigurationError("Stasis call control is disabled.")
+        if not self._state_store.ready:
+            raise TelecomConfigurationError("Stasis durable state is not ready.")
         if not self._listener.connected:
             raise CarrierUnavailableError("Stasis event control is not connected to Asterisk.")
 
