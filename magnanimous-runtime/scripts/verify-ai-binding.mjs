@@ -32,6 +32,30 @@ async function privateEdgeBridgeFirst(){
   assert.equal(body.max_tokens,123);
 }
 
+async function privateEdgeBridgeIntegrationFallback(){
+  const calls=[];
+  globalThis.fetch=async(url,init={})=>{
+    calls.push({url:String(url),init});
+    return new Response(JSON.stringify({ok:true,response:'Derived bridge fallback works.',result:{response:'Derived bridge fallback works.'}}),{
+      status:200,headers:{'content-type':'application/json'}
+    });
+  };
+  const binding=new MagnanimousAiBinding({
+    INTEGRATION_CREDENTIALS_KEY:'verification-shared-integration-key-2026',
+    ENABLE_METERED_PROVIDERS:'false'
+  });
+  const result=await binding.run('@cf/meta/llama-3.1-8b-instruct-fast',{
+    messages:[{role:'user',content:'Say hello.'}],
+    max_tokens:99
+  });
+  assert.equal(result.response,'Derived bridge fallback works.');
+  assert.equal(result.provider,'magnanimous-private-edge-ai');
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].url,'https://iammagnanimousway.com/api/internal/edge-ai/run');
+  assert.match(calls[0].init.headers.authorization,/^Bearer [0-9a-f]{64}$/);
+  assert.notEqual(calls[0].init.headers.authorization,'Bearer verification-shared-integration-key-2026');
+}
+
 async function workersAiFreeFirst(){
   const calls=[];
   globalThis.fetch=async(url,init={})=>{
@@ -106,6 +130,7 @@ async function meteredRequiresExplicitOptIn(){
 
 try{
   await privateEdgeBridgeFirst();
+  await privateEdgeBridgeIntegrationFallback();
   await workersAiFreeFirst();
   await meteredDisabledByDefault();
   await meteredRequiresExplicitOptIn();
