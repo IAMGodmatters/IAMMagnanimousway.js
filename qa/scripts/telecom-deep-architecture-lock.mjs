@@ -22,6 +22,7 @@ const api=read('telecom-core/control-api/app/main.py');
 const health=read('telecom-core/control-api/app/services/health.py');
 const telecomConfig=read('telecom-core/control-api/app/config.py');
 const study=read('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md');
+const globalMobileBenchmark=read('docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md');
 const webrtcWorkflow=read('.github/workflows/native-webrtc-e2e.yml');
 const webrtcProbe=read('telecom-core/webrtc-e2e/run.mjs');
 const extensions=read('telecom-core/asterisk/templates/extensions.conf.template');
@@ -66,6 +67,7 @@ const stasisLiveVerifier=read('telecom-core/scripts/verify-supervision-live.py')
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
+file('docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md','Fonus/Popcorn global mobile benchmark is durably versioned');
 file('telecom-core/OCI-ALWAYS-FREE-HOST.md','free-first OCI Telecom host guide is versioned');
 file('telecom-core/deploy/oci-always-free-preflight.sh','OCI public-host preflight is versioned');
 file('.github/workflows/telecom-oci-arm64-lock.yml','OCI ARM64 build proof workflow is versioned');
@@ -96,6 +98,7 @@ lacks(rtp,'stun.l.google.com','RTP configuration has no hard-coded third-party S
 has(entry,'ASTERISK_STUN_SERVER','STUN is operator-selected and optional');
 has(env,'ASTERISK_WEBRTC_ENABLED=false','self-hosted environment keeps native WebRTC disabled by default');
 has(rootEnv,'TELECOM_NATIVE_WEBRTC_LIVE=false','platform environment has an explicit live-verification truth gate');
+has(rootEnv,'TELECOM_GLOBAL_MOBILE_LIVE=false','global mobile has a separate production truth gate');
 has(api,'@app.get("/v1/webrtc"','Telecom control API exposes protected WebRTC readiness');
 has(api,'"credentials_included": False','WebRTC readiness API does not expose credentials');
 has(health,'configured-not-live-verified','public health distinguishes source configuration from live verification');
@@ -166,6 +169,8 @@ has(supervision,'/snoop/','supervisor audio uses the Asterisk ARI snoop primitiv
 has(supervision,'/bridges/{resources[\'bridge_id\']}/record','recording is bridge-level under Stasis control');
 has(supervision,'"beep": "true"','bridge recording always emits an Asterisk recording beep');
 has(supervision,'"recording_file_exposed": False','Telecom Core does not expose raw recording files through the supervision API');
+has(supervision,'/recordings/stored/','recording lifecycle verifies stored Asterisk metadata after stop/auto-completion');
+has(supervision,'Asterisk stopped the recording but stored recording metadata was not found.','recording stop fails closed when stored metadata cannot be verified');
 has(stasisLiveWorkflow,'name: Telecom Stasis Live Verification','strict Stasis real-host workflow is versioned');
 has(stasisLiveWorkflow,'consent_and_notice_confirmed','live supervision verification requires explicit consent/notice confirmation');
 has(stasisLiveWorkflow,'TELECOM_PUBLIC_CONTROL_API_TOKEN','real-host workflow consumes the protected Telecom API token only as a secret');
@@ -183,6 +188,7 @@ has(stasisLiveVerifier,'headless-bridge-recording','verifier proves headless bri
 has(stasisLiveVerifier,'for mode in ("monitor", "whisper", "barge")','verifier covers all three supervisor lifecycle modes');
 has(stasisLiveVerifier,'acoustic_semantics_automatically_proven": False','verifier does not overclaim acoustic monitor/whisper/barge semantics');
 has(stasisLiveVerifier,'recording_file_exposed','verifier evidence locks raw recording file privacy');
+has(stasisLiveVerifier,'Recording stop did not verify stored Asterisk recording metadata.','real-host verifier requires stored recording proof');
 has(stasisLiveVerifier,'does not promote TELECOM_NATIVE_WEBRTC_LIVE or ASTERISK_SUPERVISOR_CONTROL_ENABLED','evidence explicitly remains non-promotional');
 has(telecomWorkflow,'python -m py_compile telecom-core/scripts/verify-supervision-live.py','Telecom CI syntax-checks the real-host Stasis verifier');
 has(contactCenter,"metadata?.control_plane==='magnanimous-telecom-core'",'Worker applies native supervision only to calls marked as protected Telecom Core');
@@ -195,6 +201,12 @@ has(network,'live_execution_uses_route_planner:false','network API does not fals
 has(network,"provider_key:'magnanimous-asterisk-webrtc'",'network API names the owned native browser target');
 has(network,"provider_key:'bandwidth'",'network API exposes Bandwidth as a candidate, not identity');
 has(network,"provider_key:'signalwire'",'network API exposes SignalWire as a candidate, not identity');
+has(network,'GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT=20','global mobile pricing keeps the existing 20% uplift rule');
+has(network,'provider_brand_customer_visible:false','global mobile contract keeps upstream branding private');
+has(network,'competitor_retail_price_is_not_origin_cost:true','competitor retail pricing cannot masquerade as wholesale origin cost');
+has(network,'origin_cost_verified!==true','retail quote refuses unverified origin cost');
+has(network,'funded_variable_cost_cap','metered global data requires an explicit funded variable-cost cap');
+has(network,'TELECOM_GLOBAL_MOBILE_LIVE','global mobile live state is independent from source readiness');
 has(contact,'native_pbx_live:nativeWebrtcLive','contact-center snapshot exposes native PBX truth state');
 has(compat,'compatibility_transport_ready:true','compatibility softphone reports compatibility readiness separately');
 has(compat,'native_pbx_live:','compatibility softphone reports native PBX live truth separately');
@@ -204,11 +216,18 @@ has(ui,'SOURCE READY / NOT LIVE','owner UI refuses to overclaim native WebRTC');
 has(ui,'ASR:','owner UI exposes measured route quality');
 has(ui,'eligible after health/rate policy','owner UI exposes route eligibility after health/rate policy');
 has(ui,'Credentials ≠ live route','owner UI preserves provider truth boundary');
+has(ui,'Global SIM/eSIM retail blueprint','owner UI exposes the Magnanimous-native global mobile blueprint');
+has(ui,'Competitor retail prices are benchmarks, not Magnanimous wholesale cost.','owner UI preserves verified-origin pricing truth');
+has(ui,'CALCULATE — NO PURCHASE','global mobile pricing tool is explicitly non-purchasing');
 
 has(study,'## Current carrier benchmark','deep study contains carrier comparison evidence');
 has(study,'## Philippine regulatory truth boundary','deep study contains Philippine NTC boundary');
 has(study,'## Contact-center benchmark and structure','deep study contains contact-center benchmark');
 has(study,'## Promotion rule','deep study contains a no-overclaim promotion rule');
+has(globalMobileBenchmark,'### Fonus','Fonus global retail patterns are durably retained');
+has(globalMobileBenchmark,'### Popcorn','Popcorn global retail patterns are durably retained');
+has(globalMobileBenchmark,'Competitor retail prices are benchmarks only.','global benchmark forbids treating retail price as wholesale cost');
+has(globalMobileBenchmark,'No 2FA delivery guarantee is made for VoIP numbers.','global benchmark preserves 2FA truth boundary');
 has(extensions,'Echo()','authenticated WebRTC diagnostic uses Asterisk Echo for carrier-free bidirectional media proof');
 has(webrtcWorkflow,'Real Chromium registration and two-way media','dedicated CI job runs a real Chromium WebRTC media proof');
 has(webrtcWorkflow,'wss://localhost:8089/ws','browser probe uses the native Asterisk WSS endpoint');
