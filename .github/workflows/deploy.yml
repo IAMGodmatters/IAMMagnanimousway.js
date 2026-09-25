@@ -257,6 +257,8 @@ jobs:
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
           TAVUS_API_KEY: ${{ secrets.TAVUS_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
           VOIP_PROVIDER_TOKEN: ${{ secrets.VOIP_PROVIDER_TOKEN }}
           VOIP_WEBHOOK_SECRET: ${{ secrets.VOIP_WEBHOOK_SECRET }}
           VIDEO_RENDERER_TOKEN: ${{ secrets.VIDEO_RENDERER_TOKEN }}
@@ -289,6 +291,8 @@ jobs:
           sync_secret TWILIO_AUTH_TOKEN "$TWILIO_AUTH_TOKEN"
           sync_secret TWILIO_PHONE_NUMBER "$TWILIO_PHONE_NUMBER"
           sync_secret TAVUS_API_KEY "$TAVUS_API_KEY"
+          sync_secret ELEVENLABS_API_KEY "$ELEVENLABS_API_KEY"
+          sync_secret ELEVENLABS_VOICE_ID "$ELEVENLABS_VOICE_ID"
           sync_secret VOIP_PROVIDER_TOKEN "$VOIP_PROVIDER_TOKEN"
           sync_secret VOIP_WEBHOOK_SECRET "$VOIP_WEBHOOK_SECRET"
           sync_secret VIDEO_RENDERER_TOKEN "$VIDEO_RENDERER_TOKEN"
