@@ -95,6 +95,10 @@ function configuredStandaloneApiOrigin(env){
 async function proxyApiToStandalone(request,env){
   const url=new URL(request.url);
   const standaloneDataPlanePath=url.pathname.startsWith('/api/')||url.pathname==='/funnels'||url.pathname.startsWith('/funnels/');
+  // Keep chat on the Worker when Cloudflare is the front door so its native free-first
+  // AI binding remains a real execution rail and the standalone runtime can use it as
+  // a bounded compute fallback without proxying straight back to Railway.
+  if(url.pathname==='/api/chat')return null;
   if(url.pathname==='/api/internal/migration/rewrap-platform-credentials')return null;
   if(!standaloneDataPlanePath)return null;
   if(request.headers.get('x-magnanimous-standalone-proxy')==='1')return null;
