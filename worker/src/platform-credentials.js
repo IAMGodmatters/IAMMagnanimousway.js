@@ -47,6 +47,11 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
  ]},
  {id:'tavus',name:'Tavus Human Video',providers:['tavus'],fields:[{key:'TAVUS_API_KEY',label:'Tavus API Key',secret:true,required:false}]},
  {id:'heygen',name:'Legacy Optional HeyGen Presenter Video',providers:['heygen'],fields:[{key:'HEYGEN_API_KEY',label:'HeyGen API Key (legacy optional adapter; never required by Magnanimous)',secret:true,required:false}]},
+ {id:'premium-voice',name:'Magnanimous HQ Voice Origin',providers:[],fields:[
+  {key:'ELEVENLABS_API_KEY',label:'HQ Voice Origin API Key (owner-only)',secret:true,required:false},
+  {key:'ELEVENLABS_VOICE_ID',label:'HQ Voice Origin Voice ID (owner-only)',secret:false,required:false},
+  {key:'ELEVENLABS_TTS_MODEL',label:'HQ Voice Origin Model Override (optional)',secret:false,required:false}
+ ]},
  {id:'mux',name:'Magnanimous Video Provider Credentials',providers:['mux'],fields:[
   {key:'MUX_TOKEN_ID',label:'Mux Access Token ID',secret:false,required:false},
   {key:'MUX_TOKEN_SECRET',label:'Mux Access Token Secret',secret:true,required:false},
