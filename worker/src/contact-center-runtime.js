@@ -29,6 +29,21 @@ function telecomCoreConfig(env){
  }catch{return null}
 }
 function nativeSoftphoneReady(env){return Boolean(telecomCoreConfig(env))}
+function telecomCorePrivateConfig(env){
+ const raw=clean(env.TELECOM_CORE_URL),token=clean(env.TELECOM_CORE_TOKEN);if(!raw||!token)return null;
+ try{
+  const u=new URL(raw),host=u.hostname.toLowerCase().replace(/^\[|\]$/g,'');
+  const privateV4=/^(?:10\.|127\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/;
+  const privateV6=host==='::1'||host.startsWith('fc')||host.startsWith('fd')||host.startsWith('fe80:');
+  if(u.protocol!=='https:'||u.username||u.password||host==='localhost'||host.endsWith('.local')||privateV4.test(host)||privateV6)return null;
+  return{base:u.origin+u.pathname.replace(/\/+$/,''),token}
+ }catch{return null}
+}
+async function telecomCoreControlRequest(env,path,options={}){
+ const cfg=telecomCorePrivateConfig(env);if(!cfg)return null;
+ const headers=new Headers(options.headers||{});headers.set('Authorization',`Bearer ${cfg.token}`);if(options.body&&!headers.has('Content-Type'))headers.set('Content-Type','application/json');
+ try{return await fetch(`${cfg.base}${path}`,{...options,headers,redirect:'error'})}catch{return null}
+}
 async function telecomCoreRequest(env,path,options={}){
  const cfg=telecomCoreConfig(env);if(!cfg)return null;
  const headers=new Headers(options.headers||{});headers.set('Authorization',`Bearer ${cfg.token}`);if(options.body&&!headers.has('Content-Type'))headers.set('Content-Type','application/json');
@@ -64,7 +79,9 @@ async function ensure(env){
   `CREATE TABLE IF NOT EXISTS cc_call_intelligence(call_id INTEGER NOT NULL,tenant_id TEXT NOT NULL,summary TEXT NOT NULL DEFAULT '',sentiment TEXT NOT NULL DEFAULT 'unknown',topics_json TEXT NOT NULL DEFAULT '[]',action_items_json TEXT NOT NULL DEFAULT '[]',qa_flags_json TEXT NOT NULL DEFAULT '[]',compliance_risk TEXT NOT NULL DEFAULT 'none',generated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,call_id))`,
   `CREATE TABLE IF NOT EXISTS cc_interactions(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,channel TEXT NOT NULL,direction TEXT NOT NULL DEFAULT 'inbound',customer_key TEXT NOT NULL DEFAULT '',customer_name TEXT NOT NULL DEFAULT '',subject TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'open',priority INTEGER NOT NULL DEFAULT 50,queue_id TEXT,assigned_agent_id TEXT,sentiment TEXT NOT NULL DEFAULT 'unknown',metadata_json TEXT NOT NULL DEFAULT '{}',last_message_at INTEGER NOT NULL,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS cc_interaction_messages(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,interaction_id TEXT NOT NULL,sender_type TEXT NOT NULL,sender_key TEXT NOT NULL DEFAULT '',body TEXT NOT NULL,provider_message_id TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS cc_native_webrtc_sessions(session_id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL)`
+  `CREATE TABLE IF NOT EXISTS cc_native_webrtc_sessions(session_id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS cc_supervisor_sessions(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,call_id INTEGER NOT NULL,supervisor_user_id TEXT NOT NULL,mode TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'active',core_session_id TEXT NOT NULL,target_channel_id TEXT NOT NULL,consent_confirmed INTEGER NOT NULL DEFAULT 0,notice_confirmed INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS cc_recording_sessions(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,call_id INTEGER NOT NULL,supervisor_user_id TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'active',core_session_id TEXT NOT NULL,target_channel_id TEXT NOT NULL,jurisdiction TEXT NOT NULL,consent_confirmed INTEGER NOT NULL DEFAULT 0,notice_confirmed INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`
  ];
  for(const q of qs)await env.DB.prepare(q).run();
 }
@@ -348,6 +365,43 @@ async function voicemailRecording(request,env,url){
  if(!await validTwilio(request,env))return xml(sayHangup('This recording could not be authenticated.'),403);const tenant=clean(url.searchParams.get('tenant_id')),callId=Number(url.searchParams.get('call_id')||0),queueId=clean(url.searchParams.get('queue_id'))||null,form=await request.formData(),recording=clean(form.get('RecordingUrl')),sid=clean(form.get('CallSid')),call=callId?await env.DB.prepare('SELECT * FROM phone_calls WHERE id=? AND tenant_id=?').bind(callId,tenant).first():null,from=phone(call?.caller||form.get('From')),id=crypto.randomUUID(),ts=now();await env.DB.prepare('INSERT INTO cc_voicemails(id,tenant_id,queue_id,phone,provider_call_id,recording_url,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,tenant,queueId,from,sid,recording,'new',ts,ts).run();if(callId)await env.DB.prepare("UPDATE phone_calls SET recording_url=?,status='completed',updated_at=? WHERE id=? AND tenant_id=?").bind(recording,ts,callId,tenant).run();return xml(sayHangup('Thank you. Your voicemail has been saved. Goodbye.'));
 }
 
+function nativeCoreCall(call){
+ const metadata=safeJson(call?.metadata_json,{});
+ return Boolean(
+  call&&clean(call.provider_call_id)&&
+  metadata?.control_plane==='magnanimous-telecom-core'
+ );
+}
+async function callById(env,tenant,callId){
+ return env.DB.prepare('SELECT * FROM phone_calls WHERE id=? AND tenant_id=?').bind(Number(callId),tenant).first();
+}
+async function activeSupervisorEndpoint(env,user){
+ const row=await env.DB.prepare('SELECT session_id,expires_at FROM cc_native_webrtc_sessions WHERE tenant_id=? AND user_id=? AND expires_at>? ORDER BY created_at DESC LIMIT 1').bind(String(user.tenant_id),String(user.id),now()).first().catch(()=>null);
+ return clean(row?.session_id);
+}
+async function coreJson(response){
+ if(!response)return{ok:false,status:502,data:{detail:'Magnanimous Telecom Core is unavailable.'}};
+ const data=await response.json().catch(()=>({}));
+ return{ok:response.ok,status:response.status,data};
+}
+async function supervisorCapabilities(env){
+ const response=await telecomCoreControlRequest(env,'/v1/supervision',{method:'GET'});
+ const result=await coreJson(response);
+ if(!result.ok)return{enabled:false,event_stream_connected:false,monitor:false,whisper:false,barge:false,bridge_recording:false,consent_required:true,notice_required:true,covert_monitoring:false};
+ const data=result.data||{};
+ return{
+  enabled:Boolean(data.enabled),
+  event_stream_connected:Boolean(data.event_stream?.connected),
+  monitor:Boolean(data.monitor),
+  whisper:Boolean(data.whisper),
+  barge:Boolean(data.barge),
+  bridge_recording:Boolean(data.bridge_recording),
+  consent_required:true,
+  notice_required:true,
+  covert_monitoring:false
+ };
+}
+
 async function analyzeCall(env,tenant,callId){
  const existing=await env.DB.prepare('SELECT * FROM cc_call_intelligence WHERE tenant_id=? AND call_id=?').bind(tenant,callId).first();if(existing)return {...existing,topics:safeJson(existing.topics_json,[]),action_items:safeJson(existing.action_items_json,[]),qa_flags:safeJson(existing.qa_flags_json,[])};
  const call=await env.DB.prepare('SELECT * FROM phone_calls WHERE id=? AND tenant_id=?').bind(callId,tenant).first();if(!call)throw new Error('Call not found.');const turns=(await env.DB.prepare('SELECT speaker,text FROM voice_agent_turns WHERE tenant_id=? AND call_id=? ORDER BY id ASC LIMIT 100').bind(tenant,callId).all().catch(()=>({results:[]}))).results||[];const transcript=turns.map(x=>`${x.speaker}: ${x.text}`).join('\n').slice(0,16000)||`Call from ${call.caller||''} to ${call.callee||''}. Disposition: ${call.disposition||'unknown'}. Notes: ${call.notes||''}`;
@@ -369,7 +423,7 @@ export async function handleContactCenter(request,env){
   if(path==='/api/contact-center/softphone/native-session'&&request.method==='POST')return createNativeSoftphoneSession(env,user);
   const nativeSessionPath=path.match(/^\/api\/contact-center\/softphone\/native-session\/([^/]+)$/);if(nativeSessionPath&&request.method==='DELETE')return revokeNativeSoftphoneSession(env,user,decodeURIComponent(nativeSessionPath[1]));
   if(path==='/api/contact-center/softphone/claim'&&request.method==='POST')return softphoneClaim(env,user,await request.json().catch(()=>({})));
-  if(path==='/api/contact-center/capabilities'&&request.method==='GET')return json({ok:true,providers:providerSnapshot(env),features:{acd:true,skills_routing:true,ivr:true,callbacks:true,voicemail:true,dnc:true,outbound_campaigns:true,dialer_modes:['preview','progressive','power'],predictive_mass_dialing:false,reason:'High-volume predictive automation is intentionally not enabled without carrier/compliance controls.',agent_presence:true,crm_screen_pop:true,recording:true,ai_call_intelligence:Boolean(env.AI),agent_assist:true,workforce_management:true,quality_management:true,analytics:true,omnichannel_inbox:true,free_browser_calling:true},inbound_webhook:`${url.origin}/api/contact-center/carrier/incoming`});
+  if(path==='/api/contact-center/capabilities'&&request.method==='GET'){const supervision=await supervisorCapabilities(env);return json({ok:true,providers:providerSnapshot(env),features:{acd:true,skills_routing:true,ivr:true,callbacks:true,voicemail:true,dnc:true,outbound_campaigns:true,dialer_modes:['preview','progressive','power'],predictive_mass_dialing:false,reason:'High-volume predictive automation is intentionally not enabled without carrier/compliance controls.',agent_presence:true,crm_screen_pop:true,recording:true,native_bridge_recording:supervision.bridge_recording,supervisor_audio:{monitor:supervision.monitor,whisper:supervision.whisper,barge:supervision.barge,consent_required:true,notice_required:true,covert_monitoring:false},ai_call_intelligence:Boolean(env.AI),agent_assist:true,workforce_management:true,quality_management:true,analytics:true,omnichannel_inbox:true,free_browser_calling:true},inbound_webhook:`${url.origin}/api/contact-center/carrier/incoming`})}
   if(path==='/api/contact-center/overview'&&request.method==='GET')return json({ok:true,...await overview(env,tenant)});
   const campaign=await campaignRoutes(request,env,user,url);if(campaign)return campaign;
   if(path==='/api/contact-center/ivr'&&request.method==='GET'){const {results=[]}=await env.DB.prepare('SELECT * FROM cc_ivr_flows WHERE tenant_id=? ORDER BY active DESC,updated_at DESC').bind(tenant).all();return json({flows:results.map(x=>({...x,nodes:safeJson(x.nodes_json,{}),business_hours:safeJson(x.business_hours_json,{})}))})}
@@ -386,7 +440,64 @@ export async function handleContactCenter(request,env){
   if(path==='/api/contact-center/agent-assist/match'&&request.method==='POST'){const b=await request.json().catch(()=>({})),text=clean(b.text).toLowerCase(),{results=[]}=await env.DB.prepare('SELECT * FROM cc_agent_assist_rules WHERE tenant_id=? AND active=1 ORDER BY priority LIMIT 100').bind(tenant).all();return json({matches:results.filter(r=>text.includes(String(r.trigger_phrase||'').toLowerCase())).slice(0,8)})}
   const intel=path.match(/^\/api\/contact-center\/calls\/(\d+)\/intelligence$/);if(intel&&request.method==='GET'){const row=await env.DB.prepare('SELECT * FROM cc_call_intelligence WHERE tenant_id=? AND call_id=?').bind(tenant,Number(intel[1])).first();return row?json({...row,topics:safeJson(row.topics_json,[]),action_items:safeJson(row.action_items_json,[]),qa_flags:safeJson(row.qa_flags_json,[])}):json({detail:'No analysis has been generated yet.'},404)}
   if(intel&&request.method==='POST')return json(await analyzeCall(env,tenant,Number(intel[1])));
-  if(path==='/api/contact-center/supervisor/live'&&request.method==='GET'){const [calls,agents,rules]=await Promise.all([env.DB.prepare(`SELECT p.*,a.name agent_name,q.name queue_name FROM phone_calls p LEFT JOIN call_center_agents a ON a.id=p.agent_id LEFT JOIN call_queues q ON q.id=p.queue_id WHERE p.tenant_id=? AND p.status IN ('created','queued','dialing','ringing','connected','in-progress') ORDER BY p.created_at DESC LIMIT 100`).bind(tenant).all().catch(()=>({results:[]})),env.DB.prepare('SELECT * FROM call_center_agents WHERE tenant_id=? AND active=1 ORDER BY status,name').bind(tenant).all().catch(()=>({results:[]})),env.DB.prepare('SELECT * FROM cc_agent_assist_rules WHERE tenant_id=? AND active=1 ORDER BY priority').bind(tenant).all()]);return json({calls:calls.results||[],agents:agents.results||[],assist_rules:rules.results||[],supervisor_audio:{monitor:false,whisper:false,barge:false,note:'Audio monitor/whisper/barge requires a conference-capable carrier bridge or Twilio Voice SDK worker setup; live status and AI coaching are available now.'}})}
+  if(path==='/api/contact-center/supervisor/live'&&request.method==='GET'){const [calls,agents,rules,supervisorAudio]=await Promise.all([env.DB.prepare(`SELECT p.*,a.name agent_name,q.name queue_name FROM phone_calls p LEFT JOIN call_center_agents a ON a.id=p.agent_id LEFT JOIN call_queues q ON q.id=p.queue_id WHERE p.tenant_id=? AND p.status IN ('created','queued','dialing','ringing','connected','in-progress') ORDER BY p.created_at DESC LIMIT 100`).bind(tenant).all().catch(()=>({results:[]})),env.DB.prepare('SELECT * FROM call_center_agents WHERE tenant_id=? AND active=1 ORDER BY status,name').bind(tenant).all().catch(()=>({results:[]})),env.DB.prepare('SELECT * FROM cc_agent_assist_rules WHERE tenant_id=? AND active=1 ORDER BY priority').bind(tenant).all(),owner(user)?supervisorCapabilities(env):Promise.resolve({monitor:false,whisper:false,barge:false,bridge_recording:false,consent_required:true,notice_required:true,covert_monitoring:false})]);return json({calls:calls.results||[],agents:agents.results||[],assist_rules:rules.results||[],supervisor_audio:supervisorAudio})}
+  if(path==='/api/contact-center/supervisor/sessions'&&request.method==='GET'){
+   if(!owner(user))return json({detail:'Workspace owner access required.'},403);
+   const rows=(await env.DB.prepare('SELECT * FROM cc_supervisor_sessions WHERE tenant_id=? ORDER BY created_at DESC LIMIT 200').bind(tenant).all()).results||[];
+   return json({sessions:rows,covert_monitoring:false});
+  }
+  const startSupervision=path.match(/^\/api\/contact-center\/supervisor\/calls\/(\d+)\/session$/);
+  if(startSupervision&&request.method==='POST'){
+   if(!owner(user))return json({detail:'Workspace owner access required.'},403);
+   const b=await request.json().catch(()=>({})),mode=['monitor','whisper','barge'].includes(String(b.mode))?String(b.mode):'monitor';
+   if(b.consent_confirmed!==true||b.notice_confirmed!==true)return json({detail:'Supervisor audio requires confirmed participant consent and supervision notice.'},422);
+   const call=await callById(env,tenant,Number(startSupervision[1]));if(!call)return json({detail:'Call not found.'},404);
+   if(!['connected','in-progress'].includes(String(call.status)))return json({detail:'Supervisor audio requires an active connected call.'},409);
+   if(!nativeCoreCall(call))return json({detail:'This call is not controlled by the protected Magnanimous Telecom Core.'},409);
+   const endpoint=await activeSupervisorEndpoint(env,user);if(!endpoint)return json({detail:'Open a verified native supervisor softphone session before starting supervisor audio.'},409);
+   const response=await telecomCoreControlRequest(env,'/v1/supervision/sessions',{method:'POST',body:JSON.stringify({target_channel_id:String(call.provider_call_id),supervisor_endpoint:endpoint,mode,consent_confirmed:true,notice_confirmed:true})});
+   const result=await coreJson(response);if(!result.ok)return json({detail:clean(result.data?.detail)||'Magnanimous Telecom Core rejected supervisor audio.',status:result.status},result.status===422?422:502);
+   const id=crypto.randomUUID(),ts=now(),coreSession=clean(result.data?.session_id);if(!coreSession)return json({detail:'Magnanimous Telecom Core returned an invalid supervisor session.'},502);
+   await env.DB.prepare('INSERT INTO cc_supervisor_sessions(id,tenant_id,call_id,supervisor_user_id,mode,status,core_session_id,target_channel_id,consent_confirmed,notice_confirmed,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,Number(call.id),String(user.id),mode,'active',coreSession,String(call.provider_call_id),1,1,ts,ts).run();
+   await env.DB.prepare('INSERT INTO call_events(tenant_id,call_id,event_type,status,detail,payload_json,created_at) VALUES(?,?,?,?,?,?,?)').bind(tenant,Number(call.id),'supervision-started',String(call.status),mode,JSON.stringify({session_id:id,mode,consent_confirmed:true,notice_confirmed:true}),ts).run().catch(()=>{});
+   return json({id,call_id:Number(call.id),mode,status:'active',consent_confirmed:true,notice_confirmed:true,covert_monitoring:false},201);
+  }
+  const stopSupervision=path.match(/^\/api\/contact-center\/supervisor\/sessions\/([^/]+)$/);
+  if(stopSupervision&&request.method==='DELETE'){
+   if(!owner(user))return json({detail:'Workspace owner access required.'},403);
+   const row=await env.DB.prepare('SELECT * FROM cc_supervisor_sessions WHERE id=? AND tenant_id=?').bind(stopSupervision[1],tenant).first();if(!row)return json({detail:'Supervisor session not found.'},404);
+   const response=await telecomCoreControlRequest(env,`/v1/supervision/sessions/${encodeURIComponent(row.core_session_id)}`,{method:'DELETE'});const result=await coreJson(response);
+   if(!result.ok&&result.status!==404)return json({detail:clean(result.data?.detail)||'Unable to stop supervisor audio.'},502);
+   const ts=now();await env.DB.prepare("UPDATE cc_supervisor_sessions SET status='stopped',updated_at=? WHERE id=? AND tenant_id=?").bind(ts,row.id,tenant).run();
+   await env.DB.prepare('INSERT INTO call_events(tenant_id,call_id,event_type,status,detail,payload_json,created_at) VALUES(?,?,?,?,?,?,?)').bind(tenant,Number(row.call_id),'supervision-stopped','stopped',String(row.mode),JSON.stringify({session_id:row.id}),ts).run().catch(()=>{});
+   return json({ok:true,id:row.id,status:'stopped'});
+  }
+  const callRecording=path.match(/^\/api\/contact-center\/calls\/(\d+)\/recording$/);
+  if(callRecording&&request.method==='POST'){
+   if(!owner(user))return json({detail:'Workspace owner access required.'},403);
+   const b=await request.json().catch(()=>({})),jurisdiction=clean(b.jurisdiction).slice(0,120);
+   if(b.consent_confirmed!==true||b.notice_confirmed!==true||jurisdiction.length<2)return json({detail:'Recording requires confirmed participant consent, recording notice, and jurisdiction.'},422);
+   const call=await callById(env,tenant,Number(callRecording[1]));if(!call)return json({detail:'Call not found.'},404);
+   if(!['connected','in-progress'].includes(String(call.status)))return json({detail:'Recording requires an active connected call.'},409);
+   if(!nativeCoreCall(call))return json({detail:'This call is not controlled by the protected Magnanimous Telecom Core.'},409);
+   const active=await env.DB.prepare("SELECT id FROM cc_recording_sessions WHERE tenant_id=? AND call_id=? AND status='active' LIMIT 1").bind(tenant,Number(call.id)).first();if(active)return json({detail:'This call already has an active recording session.'},409);
+   const response=await telecomCoreControlRequest(env,'/v1/recordings',{method:'POST',body:JSON.stringify({target_channel_id:String(call.provider_call_id),consent_confirmed:true,notice_confirmed:true,jurisdiction,max_duration_seconds:b.max_duration_seconds||null})});
+   const result=await coreJson(response);if(!result.ok)return json({detail:clean(result.data?.detail)||'Magnanimous Telecom Core rejected recording.',status:result.status},result.status===422?422:502);
+   const id=crypto.randomUUID(),ts=now(),coreSession=clean(result.data?.session_id);if(!coreSession)return json({detail:'Magnanimous Telecom Core returned an invalid recording session.'},502);
+   await env.DB.prepare('INSERT INTO cc_recording_sessions(id,tenant_id,call_id,supervisor_user_id,status,core_session_id,target_channel_id,jurisdiction,consent_confirmed,notice_confirmed,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,Number(call.id),String(user.id),'active',coreSession,String(call.provider_call_id),jurisdiction,1,1,ts,ts).run();
+   await env.DB.prepare('INSERT INTO call_events(tenant_id,call_id,event_type,status,detail,payload_json,created_at) VALUES(?,?,?,?,?,?,?)').bind(tenant,Number(call.id),'recording-started',String(call.status),jurisdiction,JSON.stringify({session_id:id,jurisdiction,consent_confirmed:true,notice_confirmed:true,recording_file_exposed:false}),ts).run().catch(()=>{});
+   return json({id,call_id:Number(call.id),status:'active',jurisdiction,consent_confirmed:true,notice_confirmed:true,recording_file_exposed:false},201);
+  }
+  if(callRecording&&request.method==='DELETE'){
+   if(!owner(user))return json({detail:'Workspace owner access required.'},403);
+   const call=await callById(env,tenant,Number(callRecording[1]));if(!call)return json({detail:'Call not found.'},404);
+   const row=await env.DB.prepare("SELECT * FROM cc_recording_sessions WHERE tenant_id=? AND call_id=? AND status='active' ORDER BY created_at DESC LIMIT 1").bind(tenant,Number(call.id)).first();if(!row)return json({detail:'No active recording session exists for this call.'},404);
+   const response=await telecomCoreControlRequest(env,`/v1/recordings/${encodeURIComponent(row.core_session_id)}`,{method:'DELETE'});const result=await coreJson(response);
+   if(!result.ok&&result.status!==404)return json({detail:clean(result.data?.detail)||'Unable to stop recording.'},502);
+   const ts=now();await env.DB.prepare("UPDATE cc_recording_sessions SET status='stopped',updated_at=? WHERE id=? AND tenant_id=?").bind(ts,row.id,tenant).run();
+   await env.DB.prepare('INSERT INTO call_events(tenant_id,call_id,event_type,status,detail,payload_json,created_at) VALUES(?,?,?,?,?,?,?)').bind(tenant,Number(call.id),'recording-stopped','stopped',String(row.jurisdiction),JSON.stringify({session_id:row.id,recording_file_exposed:false}),ts).run().catch(()=>{});
+   return json({ok:true,id:row.id,status:'stopped',recording_file_exposed:false});
+  }
   if(path==='/api/contact-center/inbox'&&request.method==='GET'){const {results=[]}=await env.DB.prepare('SELECT * FROM cc_interactions WHERE tenant_id=? ORDER BY CASE status WHEN \'open\' THEN 0 WHEN \'pending\' THEN 1 ELSE 2 END,priority DESC,last_message_at DESC LIMIT 500').bind(tenant).all();const callbacks=(await env.DB.prepare("SELECT * FROM cc_callbacks WHERE tenant_id=? AND status IN ('pending','scheduled','assigned') ORDER BY requested_at DESC LIMIT 100").bind(tenant).all()).results||[],voicemails=(await env.DB.prepare("SELECT * FROM cc_voicemails WHERE tenant_id=? AND status IN ('new','assigned') ORDER BY created_at DESC LIMIT 100").bind(tenant).all()).results||[];return json({interactions:results,callbacks,voicemails})}
   if(path==='/api/contact-center/inbox'&&request.method==='POST'){const b=await request.json().catch(()=>({})),body=clean(b.body);if(!body)return json({detail:'Message body is required.'},400);const id=crypto.randomUUID(),mid=crypto.randomUUID(),ts=now(),channel=clean(b.channel)||'internal';await env.DB.prepare('INSERT INTO cc_interactions(id,tenant_id,channel,direction,customer_key,customer_name,subject,status,priority,queue_id,assigned_agent_id,sentiment,metadata_json,last_message_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,channel,clean(b.direction)||'inbound',clean(b.customer_key),clean(b.customer_name),clean(b.subject),INTERACTION_STATES.has(String(b.status))?String(b.status):'open',Math.min(Math.max(Number(b.priority||50),0),100),b.queue_id||null,b.assigned_agent_id||null,'unknown',JSON.stringify(b.metadata||{}),ts,ts,ts).run();await env.DB.prepare('INSERT INTO cc_interaction_messages(id,tenant_id,interaction_id,sender_type,sender_key,body,provider_message_id,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(mid,tenant,id,clean(b.sender_type)||'customer',clean(b.sender_key),body.slice(0,12000),clean(b.provider_message_id),ts).run();return json({id,message_id:mid},201)}
   return json({detail:'Contact center endpoint not found.'},404);
