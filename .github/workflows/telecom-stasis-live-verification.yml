@@ -1,0 +1,156 @@
+name: Telecom Stasis Live Verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_channel_id:
+        description: Active Asterisk channel ID for a consented test call
+        required: true
+        type: string
+      supervisor_endpoint:
+        description: Online PJSIP supervisor endpoint key; required only for monitor/whisper/barge lifecycle verification
+        required: false
+        type: string
+      jurisdiction:
+        description: Recording jurisdiction/notice label for the consented test call
+        required: true
+        default: verification
+        type: string
+      verify_recording:
+        description: Prove consent-gated headless bridge recording start/beep/stop/cleanup
+        required: true
+        default: true
+        type: boolean
+      verify_supervisor_audio_lifecycle:
+        description: Prove monitor/whisper/barge bridge lifecycles; requires TELECOM_NATIVE_WEBRTC_LIVE=true
+        required: true
+        default: false
+        type: boolean
+      consent_and_notice_confirmed:
+        description: Confirm all test-call participants gave the required consent and supervision/recording notice
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telecom-stasis-live-verification
+  cancel-in-progress: false
+
+jobs:
+  verify-real-host-stasis:
+    name: Real-host Stasis supervision and recording
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TELECOM_CORE_URL: ${{ vars.TELECOM_PUBLIC_CONTROL_API_URL }}
+      TELECOM_API_TOKEN: ${{ secrets.TELECOM_PUBLIC_CONTROL_API_TOKEN }}
+      TELECOM_NATIVE_WEBRTC_LIVE: ${{ vars.TELECOM_NATIVE_WEBRTC_LIVE }}
+      TELECOM_TARGET_CHANNEL_ID: ${{ inputs.target_channel_id }}
+      TELECOM_SUPERVISOR_ENDPOINT: ${{ inputs.supervisor_endpoint }}
+      TELECOM_RECORDING_JURISDICTION: ${{ inputs.jurisdiction }}
+      TELECOM_SUPERVISION_EVIDENCE: /tmp/magnanimous-supervision/evidence.json
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Require explicit legal/consent confirmation and protected host configuration
+        shell: bash
+        env:
+          VERIFY_RECORDING: ${{ inputs.verify_recording }}
+          VERIFY_AUDIO: ${{ inputs.verify_supervisor_audio_lifecycle }}
+          CONSENT_NOTICE: ${{ inputs.consent_and_notice_confirmed }}
+        run: |
+          set -euo pipefail
+          test "${CONSENT_NOTICE}" = "true" || {
+            echo 'Explicit participant consent and supervision/recording notice confirmation is required.' >&2
+            exit 1
+          }
+          test -n "${TELECOM_CORE_URL}" || {
+            echo 'Missing TELECOM_PUBLIC_CONTROL_API_URL repository variable.' >&2
+            exit 1
+          }
+          test -n "${TELECOM_API_TOKEN}" || {
+            echo 'Missing TELECOM_PUBLIC_CONTROL_API_TOKEN repository secret.' >&2
+            exit 1
+          }
+          test -n "${TELECOM_TARGET_CHANNEL_ID}" || {
+            echo 'An active consented target channel ID is required.' >&2
+            exit 1
+          }
+          if [ "${VERIFY_RECORDING}" != "true" ] && [ "${VERIFY_AUDIO}" != "true" ]; then
+            echo 'Select recording verification, supervisor-audio lifecycle verification, or both.' >&2
+            exit 1
+          fi
+          if [ "${VERIFY_AUDIO}" = "true" ]; then
+            test "${TELECOM_NATIVE_WEBRTC_LIVE:-false}" = "true" || {
+              echo 'Supervisor audio verification is blocked until TELECOM_NATIVE_WEBRTC_LIVE=true has already passed the separate external browser proof.' >&2
+              exit 1
+            }
+            test -n "${TELECOM_SUPERVISOR_ENDPOINT}" || {
+              echo 'Supervisor audio verification requires an online PJSIP supervisor endpoint.' >&2
+              exit 1
+            }
+          fi
+
+      - name: Validate verifier syntax
+        run: python -m py_compile telecom-core/scripts/verify-supervision-live.py
+
+      - name: Verify consent-gated Stasis lifecycle on the real Telecom host
+        shell: bash
+        env:
+          VERIFY_RECORDING: ${{ inputs.verify_recording }}
+          VERIFY_AUDIO: ${{ inputs.verify_supervisor_audio_lifecycle }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/magnanimous-supervision
+          args=(
+            --base-url "${TELECOM_CORE_URL}"
+            --token "${TELECOM_API_TOKEN}"
+            --target-channel-id "${TELECOM_TARGET_CHANNEL_ID}"
+            --jurisdiction "${TELECOM_RECORDING_JURISDICTION}"
+            --evidence "${TELECOM_SUPERVISION_EVIDENCE}"
+          )
+          if [ "${VERIFY_RECORDING}" = "true" ]; then
+            args+=(--verify-recording)
+          fi
+          if [ "${VERIFY_AUDIO}" = "true" ]; then
+            args+=(
+              --verify-supervisor-audio-lifecycle
+              --allow-supervisor-audio
+              --supervisor-endpoint "${TELECOM_SUPERVISOR_ENDPOINT}"
+            )
+          fi
+          python telecom-core/scripts/verify-supervision-live.py "${args[@]}" \
+            2>&1 | tee /tmp/magnanimous-supervision/run.log
+
+      - name: Assert evidence never promotes live flags automatically
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          path='/tmp/magnanimous-supervision/evidence.json'
+          d=json.load(open(path))
+          assert d.get('passed') is True, d
+          assert d.get('credentials_exposed') is False, d
+          assert d.get('recording_file_exposed') is False, d
+          boundary=str(d.get('truth_boundary') or '')
+          assert 'does not promote' in boundary.lower(), boundary
+          print('Stasis evidence is green and remains non-promotional by design.')
+          PY
+
+      - name: Upload Stasis live-verification evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: telecom-stasis-live-verification-${{ github.run_number }}
+          path: /tmp/magnanimous-supervision/
+          if-no-files-found: warn
+          retention-days: 30
