@@ -653,6 +653,23 @@ jobs:
             printf '%s' "$status"
           }
 
+          safe_idempotent_post_status() {
+            local output="$1" expected="$2" url="$3" key="$4"; shift 4
+            local status="" attempt
+            for attempt in 1 2 3 4 5; do
+              status="$(command curl -sS --connect-timeout 10 --max-time 120 -o "$output" -w '%{http_code}' -X POST "$url" -H "Idempotency-Key: $key" "$@" || true)"
+              case "$status" in
+                "$expected") break ;;
+                000|502|503|504)
+                  echo "Transient idempotent POST smoke response HTTP ${status:-request-failed}; retrying ${attempt}/5 with the same key." >&2
+                  sleep 2
+                  ;;
+                *) break ;;
+              esac
+            done
+            printf '%s' "$status"
+          }
+
           deployment_smoke_oidc() {
             local oidc_json
             oidc_json=$(command curl -fsS --connect-timeout 10 --max-time 30 \
@@ -1453,8 +1470,13 @@ jobs:
           echo "White Label Video Agents native provider smoke passed."
 
           start_at=$((smoke_ts+3600)); end_at=$((smoke_ts+5400))
-          status=$(curl -sS -o /tmp/wl-booking.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/bookings" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"contact_name\":\"Smoke Booking\",\"contact_email\":\"booking@example.com\",\"service\":\"Consultation\",\"start_at\":$start_at,\"end_at\":$end_at}")
+          booking_idempotency_key="smoke-booking-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          status=$(safe_idempotent_post_status /tmp/wl-booking.json 201 "$BASE_URL/api/agency/bookings" "$booking_idempotency_key" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"contact_name\":\"Smoke Booking\",\"contact_email\":\"booking@example.com\",\"service\":\"Consultation\",\"start_at\":$start_at,\"end_at\":$end_at}")
           if [ "$status" != "201" ]; then echo "White Label booking returned HTTP $status"; cat /tmp/wl-booking.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/wl-booking.json'));assert d.get('ok') is True and d.get('idempotent') is True,d
+          PY
 
           status=$(curl -sS -o /tmp/wl-funnel.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/funnels" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"name\":\"Smoke Funnel\",\"slug\":\"smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}\",\"headline\":\"Smoke Funnel Headline\",\"offer\":\"Production White Label funnel verification.\",\"cta_label\":\"Get started\",\"status\":\"active\"}")
           if [ "$status" != "201" ]; then echo "White Label funnel creation returned HTTP $status"; cat /tmp/wl-funnel.json || true; exit 1; fi
