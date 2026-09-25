@@ -228,21 +228,12 @@ function mobileOfferRow(row){return{
  quality_score:Number(row.quality_score??0.5)
 }}
 
-async function globalMobileReadiness(env,tenant){
- const cutoff=now()-604800;
- let countryRows=[],offer=null,profile=null,connectivity=null,policy=null;
- try{
-  countryRows=(await env.DB.prepare("SELECT country_code,capability,state,evidence_reference,production_verified FROM telecom_country_capabilities WHERE tenant_id=? AND capability='mobile_data' AND state='production_verified' AND production_verified=1 AND evidence_reference<>'' ORDER BY country_code").bind(tenant).all()).results||[];
-  offer=await env.DB.prepare("SELECT id,adapter_key,country_code,origin_reference,funded_variable_cost_cap FROM telecom_mobile_wholesale_offers WHERE tenant_id=? AND status='active' AND origin_cost_verified=1 AND commercial_authorized=1 AND country_verified=1 AND data_supported=1 AND origin_reference<>'' ORDER BY updated_at DESC LIMIT 1").bind(tenant).first();
-  profile=await env.DB.prepare("SELECT id,line_id,sim_id,adapter_key,country_code,last_verified_at FROM telecom_mobile_access_profiles WHERE tenant_id=? AND profile_role='primary' AND status='active' AND provider_profile_ref<>'' AND last_verified_at IS NOT NULL ORDER BY last_verified_at DESC LIMIT 1").bind(tenant).first();
-  if(profile?.id)connectivity=await env.DB.prepare("SELECT id,event_type,country_code,serving_network_ref,latency_ms,packet_loss_percent,created_at FROM telecom_mobile_connectivity_events WHERE tenant_id=? AND profile_id=? AND created_at>=? AND event_type IN ('attach','quality','recovery') AND serving_network_ref<>'' ORDER BY created_at DESC LIMIT 1").bind(tenant,profile.id,cutoff).first();
-  policy=await env.DB.prepare("SELECT id,fair_use_units,throttle_kbps,max_daily_spend,status FROM telecom_policy_profiles WHERE tenant_id=? AND service_type IN ('data','roaming_data') AND status='active' AND (fair_use_units>0 OR throttle_kbps>0 OR max_daily_spend>0) ORDER BY updated_at DESC LIMIT 1").bind(tenant).first();
- }catch(error){console.error('global mobile readiness query failed',error)}
- const verifiedCountries=countryRows.map(row=>String(row.country_code||'')).filter(Boolean);
+export function evaluateGlobalMobileReadiness({live_flag_enabled=false,countryRows=[],offer=null,profile=null,connectivity=null,policy=null}={}){
+ const verifiedCountries=(countryRows||[]).filter(row=>String(row.state||'')==='production_verified'&&bool(row.production_verified)&&String(row.evidence_reference||'').trim()).map(row=>String(row.country_code||'')).filter(Boolean);
  const countryMatch=Boolean(offer?.country_code&&verifiedCountries.includes(String(offer.country_code)));
  const profileMatch=Boolean(profile?.country_code&&verifiedCountries.includes(String(profile.country_code)));
  const gates={
-  live_flag_enabled:truthy(env?.TELECOM_GLOBAL_MOBILE_LIVE),
+  live_flag_enabled:live_flag_enabled===true,
   verified_country_mobile_data:verifiedCountries.length>0,
   active_verified_wholesale_offer:Boolean(offer&&countryMatch),
   active_primary_access_profile:Boolean(profile&&profileMatch),
@@ -261,6 +252,22 @@ async function globalMobileReadiness(env,tenant){
   },
   truth_boundary:'The environment flag cannot make global mobile live by itself. Database-backed country, commercial, profile, connectivity and cost-control evidence must all pass.'
  };
+}
+
+async function globalMobileReadiness(env,tenant){
+ const cutoff=now()-604800;
+ let countryRows=[],offer=null,profile=null,connectivity=null,policy=null;
+ try{
+  countryRows=(await env.DB.prepare("SELECT country_code,capability,state,evidence_reference,production_verified FROM telecom_country_capabilities WHERE tenant_id=? AND capability='mobile_data' AND state='production_verified' AND production_verified=1 AND evidence_reference<>'' ORDER BY country_code").bind(tenant).all()).results||[];
+  offer=await env.DB.prepare("SELECT id,adapter_key,country_code,origin_reference,funded_variable_cost_cap FROM telecom_mobile_wholesale_offers WHERE tenant_id=? AND status='active' AND origin_cost_verified=1 AND commercial_authorized=1 AND country_verified=1 AND data_supported=1 AND origin_reference<>'' ORDER BY updated_at DESC LIMIT 1").bind(tenant).first();
+  profile=await env.DB.prepare("SELECT id,line_id,sim_id,adapter_key,country_code,last_verified_at FROM telecom_mobile_access_profiles WHERE tenant_id=? AND profile_role='primary' AND status='active' AND provider_profile_ref<>'' AND last_verified_at IS NOT NULL ORDER BY last_verified_at DESC LIMIT 1").bind(tenant).first();
+  if(profile?.id)connectivity=await env.DB.prepare("SELECT id,event_type,country_code,serving_network_ref,latency_ms,packet_loss_percent,created_at FROM telecom_mobile_connectivity_events WHERE tenant_id=? AND profile_id=? AND created_at>=? AND event_type IN ('attach','quality','recovery') AND serving_network_ref<>'' ORDER BY created_at DESC LIMIT 1").bind(tenant,profile.id,cutoff).first();
+  policy=await env.DB.prepare("SELECT id,fair_use_units,throttle_kbps,max_daily_spend,status FROM telecom_policy_profiles WHERE tenant_id=? AND service_type IN ('data','roaming_data') AND status='active' AND (fair_use_units>0 OR throttle_kbps>0 OR max_daily_spend>0) ORDER BY updated_at DESC LIMIT 1").bind(tenant).first();
+ }catch(error){console.error('global mobile readiness query failed',error)}
+ return evaluateGlobalMobileReadiness({
+  live_flag_enabled:truthy(env?.TELECOM_GLOBAL_MOBILE_LIVE),
+  countryRows,offer,profile,connectivity,policy
+ });
 }
 
 function providerReadiness(env){
