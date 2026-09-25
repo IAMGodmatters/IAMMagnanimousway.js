@@ -10,6 +10,8 @@ const security=read('worker/src/security-entrypoint.js');
 const benchmark=read('docs/MAGNANIMOUS-CREATOR-GROWTH-VIDIQ-BENCHMARK-2026-09-25.md');
 const home=read('frontend/app/page.tsx');
 const catalog=read('frontend/app/interaction-catalog.ts');
+const deploy=read('.github/workflows/deploy.yml');
+const standalone=read('magnanimous-runtime/src/server.mjs');
 
 for(const s of [
  '/api/creator-growth/keyword-research','/api/creator-growth/outliers','/api/creator-growth/channel-search',
@@ -40,5 +42,8 @@ assert.ok(benchmark.includes('| 63 |'),'benchmark must cover all 63 live vidIQ c
 assert.ok(benchmark.includes('does **not** copy proprietary code'),'benchmark must preserve the non-copy boundary');
 assert.ok(home.includes("'/creator-growth'"),'Main Systems grid must expose Creator Growth');
 assert.ok(catalog.includes("'/creator-growth':'social'"),'Interaction guidance must route Creator Growth into social/creator help');
+for(const s of ['/api/creator-growth/capabilities','/api/creator-growth/instagram/accounts','/api/creator-growth/feedback','/api/creator-growth/job-poll','Creator Growth capability map is live and provider-private.'])assert.ok(deploy.includes(s),'Creator Growth production smoke missing '+s);
+for(const s of ['DELETE FROM creator_feedback WHERE tenant_id','DELETE FROM creator_bookmarks WHERE tenant_id','DELETE FROM creator_competitors WHERE tenant_id'])assert.ok(deploy.includes(s),'Worker smoke cleanup missing '+s);
+for(const s of ["'creator_feedback'","'creator_bookmarks'","'creator_competitors'"])assert.ok(standalone.includes(s),'Standalone smoke cleanup missing '+s);
 
 console.log('Magnanimous native Creator Growth benchmark and safety lock passed.');
