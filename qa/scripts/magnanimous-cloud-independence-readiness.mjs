@@ -222,8 +222,10 @@ const runtimeSecretStore=read('magnanimous-runtime/src/runtime-secret-store.mjs'
 const standaloneAiBinding=read('magnanimous-runtime/src/ai-binding.mjs');
 for(const contract of ['MAGNANIMOUS_RUNTIME_SECRET_KEYS','INTEGRATION_CREDENTIALS_KEY','CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID','stageRuntimeSecrets','loadRuntimeSecrets','0o600'])
  must(runtimeSecretStore.includes(contract),'Runtime secret continuity contract missing: '+contract);
-for(const contract of ['api.cloudflare.com/client/v4/accounts/','/ai/run/','cloudflare-workers-ai-rest','CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID'])
+for(const contract of ['api.cloudflare.com/client/v4/accounts/','/ai/run/','cloudflare-workers-ai-rest','CLOUDFLARE_PLATFORM_API_TOKEN','CLOUDFLARE_PLATFORM_ACCOUNT_ID'])
  must(standaloneAiBinding.includes(contract),'Standalone free-first Workers AI REST rail missing: '+contract);
+must(server.includes("getProviderRuntimeEnv"),'Standalone AI must resolve encrypted provider-vault credentials at request time.');
+must(server.includes("AI: aiBinding"),'Standalone env.AI must use the vault-backed dynamic binding.');
 const bootstrap=read('magnanimous-runtime/src/bootstrap.mjs');
 must(bootstrap.includes('loadRuntimeSecrets'),'Standalone bootstrap must load persistent runtime secrets before server startup.');
 must(bootstrap.indexOf('loadRuntimeSecrets')<bootstrap.indexOf("import('./server.mjs')"),'Persistent runtime secrets must load before the standalone server module.');

@@ -16,8 +16,10 @@ async function workersAiFreeFirst(){
   };
 
   const binding=new MagnanimousAiBinding({
-    CLOUDFLARE_API_TOKEN:'test-workers-ai-token',
-    CLOUDFLARE_ACCOUNT_ID:'test-account-id',
+    CLOUDFLARE_PLATFORM_API_TOKEN:'test-platform-workers-ai-token',
+    CLOUDFLARE_PLATFORM_ACCOUNT_ID:'test-platform-account-id',
+    CLOUDFLARE_API_TOKEN:'broad-deploy-token-must-not-win',
+    CLOUDFLARE_ACCOUNT_ID:'broad-account-must-not-win',
     OPENAI_API_KEY:'must-not-be-used',
     ENABLE_METERED_PROVIDERS:'false'
   });
@@ -32,10 +34,10 @@ async function workersAiFreeFirst(){
   assert.equal(calls.length,1);
   assert.equal(
     calls[0].url,
-    'https://api.cloudflare.com/client/v4/accounts/test-account-id/ai/run/%40cf/meta/llama-3.1-8b-instruct-fast'
+    'https://api.cloudflare.com/client/v4/accounts/test-platform-account-id/ai/run/%40cf/meta/llama-3.1-8b-instruct-fast'
   );
   assert.equal(calls[0].init.method,'POST');
-  assert.equal(calls[0].init.headers.authorization,'Bearer test-workers-ai-token');
+  assert.equal(calls[0].init.headers.authorization,'Bearer test-platform-workers-ai-token');
   const body=JSON.parse(calls[0].init.body);
   assert.equal(body.max_tokens,321);
   assert.deepEqual(body.messages,[{role:'user',content:'Say hello.'}]);

@@ -45,8 +45,8 @@ export class MagnanimousAiBinding {
       2200
     );
 
-    const cloudflareToken = String(this.env.CLOUDFLARE_API_TOKEN || '').trim();
-    const cloudflareAccount = String(this.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
+    const cloudflareToken = String(this.env.CLOUDFLARE_PLATFORM_API_TOKEN || this.env.CLOUDFLARE_API_TOKEN || '').trim();
+    const cloudflareAccount = String(this.env.CLOUDFLARE_PLATFORM_ACCOUNT_ID || this.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
     if (cloudflareToken && cloudflareAccount) {
       const model = String(_legacyModel || this.env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast').trim();
       if (model.startsWith('@cf/')) {

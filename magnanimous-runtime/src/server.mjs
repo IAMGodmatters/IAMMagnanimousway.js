@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import app from '../../worker/src/security-entrypoint.js';
+import { getProviderRuntimeEnv } from '../../worker/src/provider-runtime-env.js';
 import { openMagnanimousDb } from './d1-compat.mjs';
 import { applyMagnanimousMigrations } from './migrations.mjs';
 import { MagnanimousAiBinding } from './ai-binding.mjs';
@@ -60,10 +61,18 @@ const metrics = new MagnanimousMetrics();
 const cloudControl = openMagnanimousCloudControl({ db, objectStore, env: process.env });
 const mailer = openMagnanimousMailer({ db, env: process.env });
 
-const env = new Proxy(
+let env;
+const aiBinding = {
+  async run(model, input) {
+    const runtimeEnv = await getProviderRuntimeEnv(env || process.env);
+    return new MagnanimousAiBinding(runtimeEnv).run(model, input);
+  }
+};
+
+env = new Proxy(
   {
     DB: db,
-    AI: new MagnanimousAiBinding(process.env),
+    AI: aiBinding,
     MAGNANIMOUS_RUNTIME: 'standalone-node',
     MAGNANIMOUS_OBJECT_STORE: objectStore,
     MAGNANIMOUS_KV: kv,
