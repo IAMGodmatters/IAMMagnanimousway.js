@@ -49,6 +49,24 @@ async def carrier_health(container: ApplicationContainer = Depends(get_container
     return await container.health.carrier_health()
 
 
+@app.get("/v1/carrier/routes", dependencies=[Depends(require_token)])
+async def carrier_routes(container: ApplicationContainer = Depends(get_container)) -> dict[str, Any]:
+    return {
+        "identity": "Magnanimous Telecom",
+        "routes": container.carrier_bridge.routes(),
+        "live_execution_uses_route_planner": False,
+        "truth_boundary": "Explicit route selection is available, but automatic route-planner execution stays disabled until every production route is authenticated and verified.",
+    }
+
+
+@app.get("/v1/carrier/routes/{route_id}/health", dependencies=[Depends(require_token)])
+async def carrier_route_health(
+    route_id: str,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.carrier_bridge.health(route_id)
+
+
 @app.get("/v1/sip", dependencies=[Depends(require_token)])
 async def sip_core(container: ApplicationContainer = Depends(get_container)) -> dict[str, Any]:
     transports = ["udp", "tcp"]

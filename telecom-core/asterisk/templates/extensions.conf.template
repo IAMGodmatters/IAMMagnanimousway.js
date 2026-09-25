@@ -88,6 +88,24 @@ exten => _+X.,1,NoOp(Magnanimous outbound PSTN bridge call to ${EXTEN})
  same => n,Dial(PJSIP/${EXTEN}@${CARRIER_SIP_SECONDARY_ENDPOINT},60)
  same => n(done),Hangup()
 
+[magnanimous-outbound-primary]
+; Explicit route: use only the primary interconnect. No automatic carrier failover.
+exten => _+X.,1,NoOp(Magnanimous explicit primary PSTN route to ${EXTEN})
+ same => n,Set(CALLERID(num)=${MAG_FROM})
+ same => n,Dial(PJSIP/${EXTEN}@${CARRIER_SIP_ENDPOINT},60)
+ same => n,Hangup()
+
+[magnanimous-outbound-secondary]
+; Explicit route: use only the configured secondary interconnect. The private
+; Telecom API rejects this route when the secondary endpoint is not configured.
+exten => _+X.,1,NoOp(Magnanimous explicit secondary PSTN route to ${EXTEN})
+ same => n,GotoIf($["${CARRIER_SIP_SECONDARY_ENDPOINT}"=""]?unavailable)
+ same => n,Set(CALLERID(num)=${MAG_FROM})
+ same => n,Dial(PJSIP/${EXTEN}@${CARRIER_SIP_SECONDARY_ENDPOINT},60)
+ same => n,Hangup()
+ same => n(unavailable),Playback(ss-noservice)
+ same => n,Hangup()
+
 [magnanimous-ai]
 ; The public party is bridged to the Magnanimous AI SIP endpoint after answer.
 exten => s,1,NoOp(Connecting call ${MAG_CALL_ID} to Magnanimous AI)

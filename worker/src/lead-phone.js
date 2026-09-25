@@ -52,14 +52,30 @@ function scoreLead(lead) {
   return { fit, engagement, score, status: score >= 70 ? 'hot' : score >= 40 ? 'warm' : 'cold' };
 }
 
+function magnanimousRouteControlReady(env) {
+  if (!['1', 'true', 'yes', 'on'].includes(String(env.TELECOM_NATIVE_WEBRTC_LIVE || '').trim().toLowerCase())) return false;
+  if (!env.VOIP_PROVIDER_URL || !env.VOIP_PROVIDER_TOKEN || !env.TELECOM_CORE_URL || !env.TELECOM_CORE_TOKEN) return false;
+  try {
+    const bridge = new URL(String(env.VOIP_PROVIDER_URL));
+    const core = new URL(String(env.TELECOM_CORE_URL));
+    return bridge.protocol === 'https:' && core.protocol === 'https:' && bridge.origin === core.origin;
+  } catch {
+    return false;
+  }
+}
+
 function carrierConfig(env) {
   const configured = Boolean(env.VOIP_PROVIDER_URL && env.VOIP_PROVIDER_TOKEN);
+  const routeControl = configured && magnanimousRouteControlReady(env);
   return {
     browserCalling: true,
     pstnConfigured: configured,
     provider: configured ? String(env.VOIP_PROVIDER_NAME || 'carrier-bridge') : null,
     inboundConfigured: configured && Boolean(env.VOIP_WEBHOOK_SECRET),
     callerId: configured ? String(env.VOIP_CALLER_ID || '') : '',
+    manualRouteSelection: routeControl,
+    liveRoutePlannerExecution: false,
+    allowedManualRoutes: routeControl ? ['auto', 'primary', 'secondary'] : [],
     stun: 'stun:stun.l.google.com:19302',
     message: configured
       ? 'The carrier bridge is ready for ordinary telephone numbers.'
@@ -363,7 +379,15 @@ async function phoneRoutes(request, env, user, path, url) {
     const body = await request.json();
     const to = cleanPhone(body.to);
     const from = cleanPhone(body.from || env.VOIP_CALLER_ID);
+    const routeId = String(body.route_id || 'auto').trim().toLowerCase();
     if (!/^\+?[1-9]\d{6,14}$/.test(to)) return json({ detail: 'Enter a valid international phone number.' }, 400);
+    if (!['auto', 'primary', 'secondary'].includes(routeId)) return json({ detail: 'route_id must be auto, primary, or secondary.' }, 400);
+    if (body.route_id && !['owner', 'admin'].includes(String(user.role || '').toLowerCase())) {
+      return json({ detail: 'Owner or admin access is required to select a carrier route manually.' }, 403);
+    }
+    if (body.route_id && !magnanimousRouteControlReady(env)) {
+      return json({ detail: 'Explicit carrier route selection is available only through the verified Magnanimous Telecom Core.', code: 'ROUTE_CONTROL_NOT_READY' }, 409);
+    }
     if (!carrierConfig(env).pstnConfigured) {
       return json({
         detail: 'Connect a carrier bridge before calling an ordinary phone number.',
@@ -377,7 +401,7 @@ async function phoneRoutes(request, env, user, path, url) {
     ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
       tenantId, body.contact_id || null, 'outbound', from, to, 'dialing', timestamp,
       String(env.VOIP_PROVIDER_NAME || 'carrier-bridge'), body.queue_id || null,
-      body.agent_id || null, JSON.stringify({ requested_by: user.id }), timestamp
+      body.agent_id || null, JSON.stringify({ requested_by: user.id, requested_route_id: body.route_id ? routeId : null, automatic_route_planner: false }), timestamp
     ).run();
     const callId = created.meta.last_row_id;
     try {
@@ -388,6 +412,7 @@ async function phoneRoutes(request, env, user, path, url) {
         from,
         agent_id: body.agent_id || null,
         queue_id: body.queue_id || null,
+        ...(body.route_id ? { route_id: routeId } : {}),
         webhook_url: `${url.origin}/api/phone/webhook`
       });
       const providerCallId = String(provider.provider_call_id || provider.call_id || provider.id || '');
@@ -396,7 +421,8 @@ async function phoneRoutes(request, env, user, path, url) {
         'UPDATE phone_calls SET provider_call_id=?,status=?,metadata_json=?,updated_at=? WHERE id=? AND tenant_id=?'
       ).bind(providerCallId, status, JSON.stringify(provider).slice(0, 20000), now(), callId, tenantId).run();
       await logEvent(env, tenantId, callId, 'outbound-requested', status, '', provider);
-      return json({ id: callId, provider_call_id: providerCallId, status }, 201);
+      const executedRouteId = provider.route_id ? String(provider.route_id) : (body.route_id ? routeId : null);
+      return json({ id: callId, provider_call_id: providerCallId, status, route_id: executedRouteId, route_control_applied: Boolean(executedRouteId) }, 201);
     } catch (error) {
       await env.DB.prepare("UPDATE phone_calls SET status='failed',updated_at=? WHERE id=? AND tenant_id=?")
         .bind(now(), callId, tenantId).run();

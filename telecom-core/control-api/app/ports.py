@@ -14,6 +14,7 @@ class CarrierCallRequest:
     caller_id: str
     agent_id: str = ""
     queue_id: str = ""
+    route_id: str = "auto"
 
 
 @dataclass(frozen=True)
@@ -40,9 +41,11 @@ class CarrierBridge(Protocol):
 
     async def get_call(self, provider_call_id: str) -> CarrierCallState: ...
 
-    async def health(self) -> dict[str, Any]: ...
+    async def health(self, route_id: str | None = None) -> dict[str, Any]: ...
 
     def describe(self) -> dict[str, Any]: ...
+
+    def routes(self) -> list[dict[str, Any]]: ...
 
 
 class StatusPublisher(Protocol):
