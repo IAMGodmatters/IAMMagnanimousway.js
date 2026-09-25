@@ -46,6 +46,8 @@ const knowledgeRuntime = read('worker/src/knowledge-runtime.js');
 const progressEntrypoint = read('worker/src/progress-entrypoint-base.js');
 const chatTransport = read('frontend/lib/magnanimous-chat-transport.ts');
 const standaloneServer = read('magnanimous-runtime/src/server.mjs');
+const standaloneAiBinding = read('magnanimous-runtime/src/ai-binding.mjs');
+const securityEntrypoint = read('worker/src/security-entrypoint.js');
 const deployWorkflow = read('.github/workflows/deploy.yml');
 
 
@@ -64,6 +66,13 @@ includes(standalonePage, "postMagnanimousChat('/api/chat'", 'standalone: resilie
 includes(standalonePage, '/login?returnTo=%2Fmagnanimous', 'standalone: persistent-memory sign-in return path remains locked');
 includes(standalonePage, 'Guest session', 'standalone: guest-session UI contract remains locked');
 includes(standalonePage, 'MAGNANIMOUS AI™', 'standalone: Magnanimous customer-facing identity remains locked');
+includes(securityEntrypoint, "if(url.pathname==='/api/chat'&&!request.headers.get('authorization'))return null;", 'standalone: authenticated chat remains on the durable standalone session plane');
+includes(providerEntrypoint, 'standaloneWorkerComputeFallback', 'standalone: failed local inference can fall back to free Worker compute');
+includes(providerEntrypoint, 'compute_only:true', 'standalone: Worker fallback is compute-only and cannot repeat tools or actions');
+includes(providerEntrypoint, "allow_metered_accelerator:false", 'standalone: Worker fallback stays free-first');
+includes(providerEntrypoint, "headers:{'content-type':'application/json','x-magnanimous-edge-fallback':'1'}", 'standalone: Worker fallback carries explicit loop metadata without forwarding customer authorization');
+includes(standaloneAiBinding, 'isConfigured()', 'standalone: AI binding reports whether a real local execution rail exists');
+includes(standaloneAiBinding, 'enabled(this.env.ENABLE_METERED_PROVIDERS)', 'standalone: metered OpenAI fallback remains explicitly gated');
 includes(standalonePage, "AIProcessingIndicator compact", 'standalone: long-running AI work remains visibly active');
 notMatches(standalonePage, /d\?\.(?:provider|provider_name|model)\b/, 'standalone: UI must not read provider/model identities');
 notMatches(standalonePage, /execution engine/i, 'standalone: UI must not display execution-engine language');
