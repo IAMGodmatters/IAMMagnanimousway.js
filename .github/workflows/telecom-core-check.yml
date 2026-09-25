@@ -73,6 +73,9 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Install Telecom control API dependencies
+        run: python -m pip install -r telecom-core/control-api/requirements.txt
+
       - name: Compile Telecom API
         run: python -m py_compile telecom-core/control-api/app/main.py
 
