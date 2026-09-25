@@ -181,7 +181,7 @@ class AsteriskSipCarrierBridge:
             if route["id"] == "secondary":
                 state = secondary_state
             elif route["id"] == "auto":
-                state = primary_state if primary_state not in {"not-configured", "unavailable"} else secondary_state
+                state = primary_state if primary_state not in {"not-configured", "unavailable", "offline"} else secondary_state
             routes.append({**route, "health": state, "ready": asterisk_ready and state not in {"not-configured", "unavailable", "offline"}})
 
         selected = next((item for item in routes if item["id"] == requested), None) if requested else None
