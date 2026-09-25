@@ -32,7 +32,7 @@ assert.ok(security.includes("url.pathname.startsWith('/api/creator-growth')"),'C
 assert.ok(social.includes('https://www.googleapis.com/auth/yt-analytics.readonly'),'YouTube connection must request read-only analytics scope');
 assert.ok(social.includes('https://www.googleapis.com/auth/youtube.force-ssl'),'YouTube connection must request the official owner write scope');
 for(const s of ['explicit_consent!==true','not owned by the connected YouTube channel','youtube_owner_write_ready','defaultLanguage','publicStatsViewable','selfDeclaredMadeForKids','containsSyntheticMedia'])assert.ok(runtime.includes(s),'guarded YouTube owner action missing '+s);
-for(const s of ["provider='instagram'","action==='read_media'","media_product_type","profile_picture_url"])assert.ok(assistant.includes(s),'Instagram assistant read capability missing '+s);
+for(const s of ["provider==='instagram'","action==='read_media'","media_product_type","profile_picture_url"])assert.ok(assistant.includes(s),'Instagram assistant read capability missing '+s);
 for(const s of ["assistant_permissions","can_read","decrypt(row.access_token,env)","source:'authorized-official-api'","creator_feedback","handleMovieMaker","/api/movie-maker/jobs/"])assert.ok(runtime.includes(s),'Creator Growth benchmark closure missing '+s);
 assert.ok(benchmark.includes('Final mapped-gap closure'),'benchmark must record closure of the remaining mapped capabilities');
 assert.ok(!benchmark.includes('| mapped |'),'all 63 benchmark rows must now have a concrete native/authorized implementation status');
