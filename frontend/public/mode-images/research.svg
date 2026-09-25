@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="t d">
+<title id="t">Research Center</title><desc id="d">Explore, question, analyze and synthesize information.. Original Magnanimous mode artwork.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07101c"/><stop offset=".58" stop-color="#15284f"/><stop offset="1" stop-color="#04070d"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#7aa7ff" stop-opacity=".72"/><stop offset="1" stop-color="#7aa7ff" stop-opacity="0"/></radialGradient>
+ <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+</defs>
+<rect width="1200" height="1200" rx="70" fill="url(#bg)"/>
+<circle cx="875" cy="260" r="310" fill="url(#glow)" opacity=".7"/>
+<circle cx="300" cy="820" r="280" fill="#7aa7ff" opacity=".08" filter="url(#soft)"/>
+<g opacity=".16" stroke="#7aa7ff" fill="none"><circle cx="600" cy="560" r="410"/><circle cx="600" cy="560" r="330"/><path d="M120 640H1080M600 120V970"/></g>
+<g><circle cx="485" cy="398" r="128" fill="#17223b" stroke="#bdd1ff" stroke-width="4"/><path d="M365 400c42-125 197-145 245-5-43-42-88-61-130-57-47 4-79 24-115 62z" fill="#293967"/><path d="M344 852c15-195 84-285 143-285 70 0 143 93 162 285z" fill="#172a4c"/><g transform="translate(640 525)" fill="none" stroke="#8eb2ff" stroke-width="12"><circle cx="82" cy="82" r="72"/><path d="M136 136l105 105"/></g><g stroke="#91afff" stroke-width="8" fill="none" opacity=".9"><path d="M710 330c78-80 156-85 228-12M730 385c85-47 169-46 252 13"/></g></g>
+<g transform="translate(835 150)"><circle cx="90" cy="90" r="86" fill="#07111d" stroke="#7aa7ff" stroke-width="3"/><text x="90" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="74" font-weight="700" fill="#7aa7ff">R</text></g>
+<text x="78" y="975" font-family="Arial,sans-serif" font-size="34" font-weight="800" fill="#fff">Research Center</text>
+<text x="78" y="1020" font-family="Arial,sans-serif" font-size="22" fill="#c7d7e8">Explore, question, analyze and synthesize information.</text>
+<rect x="68" y="1070" width="1064" height="65" rx="18" fill="#020408" opacity=".7"/>
+<text x="600" y="1111" text-anchor="middle" font-family="Arial,sans-serif" font-size="21" font-weight="700" fill="#fff">I Am Magnanimous Way, Trademark.</text>
+</svg>

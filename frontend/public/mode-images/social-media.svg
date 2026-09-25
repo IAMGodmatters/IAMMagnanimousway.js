@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="t d">
+<title id="t">Social Studio</title><desc id="d">Content, creativity, campaigns and audience growth.. Original Magnanimous mode artwork.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07101c"/><stop offset=".58" stop-color="#3b173c"/><stop offset="1" stop-color="#04070d"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#ff87dc" stop-opacity=".72"/><stop offset="1" stop-color="#ff87dc" stop-opacity="0"/></radialGradient>
+ <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+</defs>
+<rect width="1200" height="1200" rx="70" fill="url(#bg)"/>
+<circle cx="875" cy="260" r="310" fill="url(#glow)" opacity=".7"/>
+<circle cx="300" cy="820" r="280" fill="#ff87dc" opacity=".08" filter="url(#soft)"/>
+<g opacity=".16" stroke="#ff87dc" fill="none"><circle cx="600" cy="560" r="410"/><circle cx="600" cy="560" r="330"/><path d="M120 640H1080M600 120V970"/></g>
+<g><circle cx="500" cy="410" r="132" fill="#311a38" stroke="#ffd0f4" stroke-width="4"/><path d="M370 409c50-139 230-151 270 8-51-55-95-70-143-68-53 2-83 23-127 60z" fill="#582860"/><path d="M350 850c22-215 86-292 151-292 83 0 159 90 170 292z" fill="#421a4e"/><rect x="664" y="520" width="230" height="160" rx="30" fill="#0a0d17" stroke="#ff8ddd" stroke-width="5"/><circle cx="779" cy="600" r="54" fill="none" stroke="#ff8ddd" stroke-width="9"/><circle cx="844" cy="555" r="12" fill="#ff8ddd"/><g fill="#ffc8f0"><circle cx="395" cy="420" r="8"/><circle cx="502" cy="420" r="8"/></g><path d="M440 470c40 24 82 24 122 0" fill="none" stroke="#ffd9f5" stroke-width="7" stroke-linecap="round"/></g>
+<g transform="translate(835 150)"><circle cx="90" cy="90" r="86" fill="#07111d" stroke="#ff87dc" stroke-width="3"/><text x="90" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="74" font-weight="700" fill="#ff87dc">S</text></g>
+<text x="78" y="975" font-family="Arial,sans-serif" font-size="34" font-weight="800" fill="#fff">Social Studio</text>
+<text x="78" y="1020" font-family="Arial,sans-serif" font-size="22" fill="#c7d7e8">Content, creativity, campaigns and audience growth.</text>
+<rect x="68" y="1070" width="1064" height="65" rx="18" fill="#020408" opacity=".7"/>
+<text x="600" y="1111" text-anchor="middle" font-family="Arial,sans-serif" font-size="21" font-weight="700" fill="#fff">I Am Magnanimous Way, Trademark.</text>
+</svg>
