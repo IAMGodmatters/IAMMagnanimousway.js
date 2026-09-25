@@ -14,6 +14,7 @@ from .models import (
     StasisRecordingStart,
     StasisRecordingStop,
     SupervisorSessionStart,
+    WebRtcSessionCreate,
 )
 from .lifecycle import lifespan
 
@@ -97,9 +98,13 @@ async def webrtc(container: ApplicationContainer = Depends(get_container)) -> di
 
 @app.post("/v1/webrtc/sessions", status_code=201, dependencies=[Depends(require_token)])
 async def create_webrtc_session(
+    request: WebRtcSessionCreate | None = None,
     container: ApplicationContainer = Depends(get_container),
 ) -> dict[str, Any]:
-    return await container.webrtc_sessions.create()
+    return await container.webrtc_sessions.create(
+        tenant_id=request.tenant_id if request else "",
+        user_id=request.user_id if request else "",
+    )
 
 
 @app.delete("/v1/webrtc/sessions/{session_id}", dependencies=[Depends(require_token)])
