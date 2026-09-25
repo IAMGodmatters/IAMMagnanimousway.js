@@ -1,0 +1,49 @@
+name: Sync Verified Premium Origin Pricing
+
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: premium-origin-pricing-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Read official origin pricing and update only verified rates
+        run: node scripts/sync-premium-origin-pricing.mjs --write
+
+      - name: Verify billing, brand and safety contracts
+        run: |
+          node qa/scripts/self-heal-brand-billing-lock.mjs
+          node qa/scripts/billing-cost-shield-lock.mjs
+          node qa/scripts/heavy-use-billing-lock.mjs
+          node --check worker/src/premium-origin-costs.js
+          node --check worker/src/usage-guard.js
+
+      - name: Commit verified rate changes
+        shell: bash
+        run: |
+          if git diff --quiet -- worker/src/premium-origin-costs.js; then
+            echo "Official origin rates unchanged."
+            exit 0
+          fi
+          git config user.name "Magnanimous Pricing Sync"
+          git config user.email "actions@users.noreply.github.com"
+          git add worker/src/premium-origin-costs.js
+          git commit -m "Sync verified premium origin pricing"
+          git push origin HEAD:main
