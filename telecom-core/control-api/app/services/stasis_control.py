@@ -361,6 +361,19 @@ class StasisCallControlService:
             channel_ids=channels,
             created_at=int(time.time()),
         )
+        try:
+            await self._state_store.put_bridge(
+                managed.bridge_id,
+                managed.call_id,
+                managed.channel_ids,
+                managed.created_at,
+            )
+        except Exception:
+            try:
+                await self._ari_ok("DELETE", f"/bridges/{bridge_id}", accepted=(204, 404))
+            except Exception:
+                pass
+            raise
         async with self._lock:
             self._bridges[bridge_id] = managed
         return {
@@ -384,6 +397,7 @@ class StasisCallControlService:
                 "Stop active recording and supervisor sessions before destroying the managed call bridge."
             )
         await self._ari_ok("DELETE", f"/bridges/{clean}", accepted=(204, 404))
+        await self._state_store.end_bridge(clean, int(time.time()))
         async with self._lock:
             self._bridges.pop(clean, None)
         return {"ok": True, "bridge_id": clean, "destroyed": True}
@@ -470,6 +484,30 @@ class StasisCallControlService:
             requested_by=actor,
             created_at=int(time.time()),
         )
+        try:
+            await self._state_store.put_supervisor(
+                {
+                    "session_id": session.session_id,
+                    "call_bridge_id": session.call_bridge_id,
+                    "supervisor_bridge_id": session.supervisor_bridge_id,
+                    "snoop_channel_id": session.snoop_channel_id,
+                    "target_channel_id": session.target_channel_id,
+                    "supervisor_channel_id": session.supervisor_channel_id,
+                    "mode": session.mode,
+                    "requested_by": session.requested_by,
+                    "created_at": session.created_at,
+                }
+            )
+        except Exception:
+            try:
+                await self._ari_ok("DELETE", f"/channels/{snoop_id}", accepted=(204, 404))
+            except Exception:
+                pass
+            try:
+                await self._ari_ok("DELETE", f"/bridges/{supervisor_bridge_id}", accepted=(204, 404))
+            except Exception:
+                pass
+            raise
         async with self._lock:
             self._supervisor_sessions[session_id] = session
         return {
@@ -491,6 +529,7 @@ class StasisCallControlService:
             await self._ari_ok("DELETE", f"/bridges/{session.supervisor_bridge_id}", accepted=(204, 404))
         except Exception:
             pass
+        await self._state_store.end_supervisor(session.session_id, int(time.time()))
         async with self._lock:
             self._supervisor_sessions.pop(session.session_id, None)
 
@@ -599,8 +638,32 @@ class StasisCallControlService:
             bridge_id=clean_bridge,
             requested_by=actor,
             consent_basis=basis,
+            beep=bool(beep),
+            max_duration_seconds=duration,
             created_at=int(time.time()),
         )
+        try:
+            await self._state_store.put_recording(
+                {
+                    "recording_name": recording.recording_name,
+                    "bridge_id": recording.bridge_id,
+                    "requested_by": recording.requested_by,
+                    "consent_basis": recording.consent_basis,
+                    "beep": recording.beep,
+                    "max_duration_seconds": recording.max_duration_seconds,
+                    "created_at": recording.created_at,
+                }
+            )
+        except Exception:
+            try:
+                await self._ari_ok(
+                    "POST",
+                    f"/recordings/live/{recording_name}/stop",
+                    accepted=(204, 404),
+                )
+            except Exception:
+                pass
+            raise
         async with self._lock:
             self._recordings[recording_name] = recording
         return {
@@ -624,6 +687,7 @@ class StasisCallControlService:
         if not recording:
             raise TelecomValidationError("Managed recording was not found.")
         await self._ari_ok("POST", f"/recordings/live/{clean}/stop", accepted=(204, 404))
+        await self._state_store.end_recording(clean, int(time.time()))
         async with self._lock:
             self._recordings.pop(clean, None)
         return {
