@@ -31,7 +31,7 @@ Primary-source implementation basis:
 | 15 | `get_channels_by_ids` | Creator Growth workspace | native storage/data |
 | 16 | `balance` | Creator Growth workspace | native storage/data |
 | 17 | `user_channels` | Creator Growth workspace | native storage/data |
-| 18 | `channel_videos` | Creator Growth workspace | mapped |
+| 18 | `channel_videos` | Creator Growth workspace | native / authorized official data |
 | 19 | `video_transcript` | Creator Growth research | native / native-equivalent |
 | 20 | `video_comments` | Creator Growth research | native / native-equivalent |
 | 21 | `channel_performance_trends` | Creator Growth analytics | native / authorized official data |
@@ -40,7 +40,7 @@ Primary-source implementation basis:
 | 24 | `trend_categories` | Creator Growth research | native / native-equivalent |
 | 25 | `similar_channels` | Creator Growth research | native / native-equivalent |
 | 26 | `similar_videos` | Creator Growth research | native / native-equivalent |
-| 27 | `submit_feedback` | Creator Growth workspace | mapped |
+| 27 | `submit_feedback` | Creator Growth workspace | native storage/data |
 | 28 | `score_title` | Creator Growth optimization | native / native-equivalent |
 | 29 | `score_thumbnail` | Creator Growth optimization | native / native-equivalent |
 | 30 | `generate_titles` | Creator Growth optimization | native / native-equivalent |
@@ -49,10 +49,10 @@ Primary-source implementation basis:
 | 33 | `refine_thumbnail` | Movie Maker image studio | native media |
 | 34 | `video_watch` | Creator Growth research | native / native-equivalent |
 | 35 | `watch_shortform_content` | Creator Growth research | native / native-equivalent |
-| 36 | `ig_profile` | Creator Growth workspace | mapped |
-| 37 | `ig_profile_reels` | Creator Growth workspace | mapped |
+| 36 | `ig_profile` | Creator Growth workspace | authorized official API / native tracking |
+| 37 | `ig_profile_reels` | Creator Growth workspace | authorized official API / native tracking |
 | 38 | `instagram_publish_reel` | Social Connect + Creator Growth | authorized official API / native tracking |
-| 39 | `instagram_connected_accounts` | Creator Growth workspace | mapped |
+| 39 | `instagram_connected_accounts` | Creator Growth workspace | authorized official API / native tracking |
 | 40 | `instagram_tiktok_outlier_search` | Creator Growth research | native / native-equivalent |
 | 41 | `ig_accounts_from_outliers` | Creator Growth research | native / native-equivalent |
 | 42 | `list_competitors` | Social Connect + Creator Growth | authorized official API / native tracking |
@@ -71,13 +71,26 @@ Primary-source implementation basis:
 | 55 | `voiceover_clone` | Movie Maker + Native Video Stack | native media / optional funded capacity |
 | 56 | `voiceover_clone_start` | Movie Maker + Native Video Stack | native media / optional funded capacity |
 | 57 | `jobs_list` | Creator Growth workspace | native storage/data |
-| 58 | `job_poll` | Creator Growth workspace | mapped |
+| 58 | `job_poll` | Creator Growth workspace | native orchestration |
 | 59 | `generate_clips` | Movie Maker + Native Video Stack | native media / optional funded capacity |
 | 60 | `generate_script` | Creator Growth optimization | native / native-equivalent |
 | 61 | `video_upload` | Native Video Stack | native media |
 | 62 | `generate_video` | Movie Maker + Native Video Stack | native media / optional funded capacity |
 | 63 | `edit_media` | Native Video Stack | native media |
 
+
+
+## Final mapped-gap closure
+
+The remaining benchmark-only mappings were reconciled against the current Magnanimous runtime:
+
+- `channel_videos` was already a live native route backed by the official YouTube Data API; the benchmark status was corrected.
+- `submit_feedback` now persists tenant- and user-scoped Creator Growth feedback in Magnanimous-owned storage.
+- `ig_profile`, `ig_profile_reels`, and `instagram_connected_accounts` now read only from an authorized Instagram Business connection through the official Meta graph rail. Access tokens remain server-side and workspace read permissions are honored.
+- The existing Instagram assistant integration now actually implements its advertised `read_media` capability rather than exposing a capability that could not execute.
+- `job_poll` now delegates to the existing Magnanimous Movie Maker job engine so Creator Growth does not create a competing queue or duplicate billing/reconciliation logic.
+
+No private vidIQ index, scoring formula, prompt, dataset, credential, or proprietary implementation is used by these routes.
 
 ## Official YouTube owner actions added after reconciliation
 
