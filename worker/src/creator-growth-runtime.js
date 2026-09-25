@@ -39,6 +39,9 @@ const NATIVE_CAPABILITIES=Object.freeze([
  ['similar-channels','Related creator discovery','official-api-plus-native-ranking'],
  ['channel-search','YouTube channel discovery','official-api'],
  ['comment-replies','Draft audience replies by tone','native-analysis'],
+ ['owned-transcript','Read caption tracks for videos owned by the connected YouTube channel','authorized-official-api'],
+ ['youtube-video-update','Update owned video metadata only after explicit confirmation','authorized-official-api'],
+ ['youtube-comment-reply','Post a reply on an owned video only after explicit confirmation','authorized-official-api'],
  ['bookmarks','Save creator research inside Magnanimous','native-storage'],
  ['competitor-tracking','Track creator competitors per workspace','native-storage']
 ].map(([id,name,implementation])=>({id,name,implementation})));
@@ -235,6 +238,82 @@ function scriptPlan(body){
 }
 
 
+async function youtubeOwnerContext(env,user){
+ const ctx=await connectedYouTubeContext(env,user.tenant_id);
+ if(!ctx)throw new Error('Connect YouTube first.');
+ if(!ctx.write_scope)throw new Error('Reconnect YouTube once to grant the official owner write scope.');
+ return ctx;
+}
+async function youtubeOwnerJson(ctx,path,params={},init={}){
+ const u=new URL('https://www.googleapis.com/youtube/v3'+path);
+ for(const[k,v]of Object.entries(params))if(v!==undefined&&v!==null&&String(v)!=='')u.searchParams.set(k,String(v));
+ const r=await fetch(u.toString(),{...init,headers:{authorization:`Bearer ${ctx.access_token}`,'content-type':'application/json',...(init.headers||{})}});
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok)throw new Error(d?.error?.message||`YouTube owner request failed (${r.status}).`);
+ return d;
+}
+async function ownedVideoResource(ctx,videoId,parts='snippet,status'){
+ const id=clean(videoId,40);if(!id)throw new Error('video_id is required.');
+ const d=await youtubeOwnerJson(ctx,'/videos',{part:parts,id});
+ const video=d.items?.[0];if(!video)throw new Error('Owned YouTube video was not found.');
+ if(String(video.snippet?.channelId||'')!==String(ctx.channel_id||''))throw new Error('This video is not owned by the connected YouTube channel.');
+ return video;
+}
+async function ownedTranscript(env,user,body){
+ const ctx=await youtubeOwnerContext(env,user),video=await ownedVideoResource(ctx,body.video_id,'snippet'),language=clean(body.language,35).toLowerCase();
+ const tracks=await youtubeOwnerJson(ctx,'/captions',{part:'id,snippet',videoId:video.id});
+ let candidates=(tracks.items||[]).filter(x=>x?.id);
+ if(language)candidates=candidates.filter(x=>String(x.snippet?.language||'').toLowerCase()===language);
+ const track=candidates.find(x=>x.snippet?.trackKind!=='ASR')||candidates[0];
+ if(!track)throw new Error(language?'No caption track exists in the requested language for this owned video.':'No downloadable caption track exists for this owned video.');
+ const u=new URL(`https://www.googleapis.com/youtube/v3/captions/${encodeURIComponent(track.id)}`);u.searchParams.set('tfmt','vtt');
+ const r=await fetch(u.toString(),{headers:{authorization:`Bearer ${ctx.access_token}`}});
+ if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d?.error?.message||`YouTube caption download failed (${r.status}).`)}
+ return{video_id:video.id,title:video.snippet?.title||'',language:track.snippet?.language||null,track_name:track.snippet?.name||'',track_kind:track.snippet?.trackKind||'',format:'vtt',transcript:await r.text(),source:'authorized-official-api',disclosure:'YouTube caption download is available only when the connected account has permission to edit the owned video.'};
+}
+async function updateOwnedVideo(env,user,body){
+ if(body.explicit_consent!==true)throw new Error('Explicit confirmation is required before changing YouTube video metadata.');
+ const ctx=await youtubeOwnerContext(env,user),current=await ownedVideoResource(ctx,body.video_id,'snippet,status');
+ const resource={id:current.id},parts=[],updated=[];
+ const wantsSnippet=['title','description','tags','category_id'].some(k=>Object.prototype.hasOwnProperty.call(body,k));
+ if(wantsSnippet){
+  const s=current.snippet||{};if(!s.title||!s.categoryId)throw new Error('Current YouTube title/category could not be loaded safely.');
+  const next={title:String(s.title),categoryId:String(s.categoryId),description:String(s.description||'')};
+  if(Array.isArray(s.tags))next.tags=s.tags;
+  if(Object.prototype.hasOwnProperty.call(body,'title')){const v=clean(body.title,100);if(!v)throw new Error('YouTube title cannot be empty.');next.title=v;updated.push('title')}
+  if(Object.prototype.hasOwnProperty.call(body,'description')){next.description=String(body.description??'').slice(0,5000);updated.push('description')}
+  if(Object.prototype.hasOwnProperty.call(body,'tags')){next.tags=Array.isArray(body.tags)?body.tags.map(x=>clean(x,500)).filter(Boolean).slice(0,500):[];updated.push('tags')}
+  if(Object.prototype.hasOwnProperty.call(body,'category_id')){const v=clean(body.category_id,20);if(!v)throw new Error('category_id cannot be empty.');next.categoryId=v;updated.push('category_id')}
+  resource.snippet=next;parts.push('snippet');
+ }
+ const wantsStatus=Object.prototype.hasOwnProperty.call(body,'privacy_status')||Object.prototype.hasOwnProperty.call(body,'publish_at');
+ if(wantsStatus){
+  const currentStatus=current.status||{},privacy=Object.prototype.hasOwnProperty.call(body,'privacy_status')?String(body.privacy_status):String(currentStatus.privacyStatus||'private');
+  if(!['private','unlisted','public'].includes(privacy))throw new Error('privacy_status must be private, unlisted, or public.');
+  if(body.publish_at&&privacy!=='private')throw new Error('Scheduled publishing requires privacy_status to remain private until YouTube publishes it.');
+  const next={privacyStatus:privacy};
+  if(typeof currentStatus.embeddable==='boolean')next.embeddable=currentStatus.embeddable;
+  if(currentStatus.license)next.license=currentStatus.license;
+  if(body.publish_at){const publishAt=new Date(String(body.publish_at));if(!Number.isFinite(publishAt.getTime())||publishAt.getTime()<=Date.now())throw new Error('publish_at must be a future ISO 8601 time.');next.publishAt=publishAt.toISOString();updated.push('publish_at')}
+  if(Object.prototype.hasOwnProperty.call(body,'privacy_status'))updated.push('privacy_status');
+  resource.status=next;parts.push('status');
+ }
+ if(!parts.length)throw new Error('Provide at least one supported video field to update.');
+ const result=await youtubeOwnerJson(ctx,'/videos',{part:parts.join(',')},{method:'PUT',body:JSON.stringify(resource)});
+ const v=result||{};return{ok:true,video_id:current.id,updated_fields:[...new Set(updated)],video:{title:v.snippet?.title||resource.snippet?.title||current.snippet?.title||'',description:v.snippet?.description??resource.snippet?.description??current.snippet?.description??'',tags:v.snippet?.tags??resource.snippet?.tags??current.snippet?.tags??[],privacy_status:v.status?.privacyStatus||resource.status?.privacyStatus||current.status?.privacyStatus||'',publish_at:v.status?.publishAt||resource.status?.publishAt||null},source:'authorized-official-api'};
+}
+async function postOwnedCommentReply(env,user,body){
+ if(body.explicit_consent!==true)throw new Error('Explicit confirmation is required before posting a YouTube reply.');
+ const parent=clean(body.parent_comment_id,120),text=clean(body.text||body.reply,10000);if(!parent||!text)throw new Error('parent_comment_id and reply text are required.');
+ const ctx=await youtubeOwnerContext(env,user),comment=await youtubeOwnerJson(ctx,'/comments',{part:'snippet',id:parent});
+ const top=comment.items?.[0];if(!top)throw new Error('The parent YouTube comment was not found.');
+ const videoId=clean(top.snippet?.videoId,40);if(!videoId)throw new Error('The parent comment is not associated with a video.');
+ await ownedVideoResource(ctx,videoId,'snippet');
+ const created=await youtubeOwnerJson(ctx,'/comments',{part:'snippet'},{method:'POST',body:JSON.stringify({snippet:{parentId:parent,textOriginal:text}})});
+ return{ok:true,video_id:videoId,parent_comment_id:parent,reply_id:created.id||'',text:created.snippet?.textOriginal||text,source:'authorized-official-api'};
+}
+
+
 async function channelSearch(env,user,query,limit=20){
  const d=await ytFetch(env,user,'/search',{part:'snippet',type:'channel',q:clean(query,180),maxResults:clamp(limit,1,25),order:'relevance'});
  const ids=(d.items||[]).map(x=>x.id?.channelId).filter(Boolean);if(!ids.length)return[];
@@ -295,7 +374,7 @@ export async function handleCreatorGrowth(request,env){
  try{
   await ensureSchema(env);
   if(request.method==='GET'&&path==='/api/creator-growth/capabilities'){
-   const auth=await authContext(env,user);return json({identity:'Magnanimous AI',product:'Creator Growth',capabilities:NATIVE_CAPABILITIES,public_youtube_data_ready:Boolean(auth.apiKey||auth.connected),owned_youtube_connected:Boolean(auth.connected),analytics_ready:Boolean(auth.connected?.analytics_scope),provider_details_private:true});
+   const auth=await authContext(env,user);return json({identity:'Magnanimous AI',product:'Creator Growth',capabilities:NATIVE_CAPABILITIES,public_youtube_data_ready:Boolean(auth.apiKey||auth.connected),owned_youtube_connected:Boolean(auth.connected),analytics_ready:Boolean(auth.connected?.analytics_scope),youtube_owner_write_ready:Boolean(auth.connected?.write_scope),provider_details_private:true});
   }
   if(request.method==='POST'&&path==='/api/creator-growth/title-score'){const b=await request.json().catch(()=>({}));return json(titleScore(b.title,b.type))}
   if(request.method==='POST'&&path==='/api/creator-growth/title-ideas'){const b=await request.json().catch(()=>({}));return json({titles:titleIdeas(b.topic||b.keyword,b.type,b.count)})}
@@ -321,6 +400,9 @@ export async function handleCreatorGrowth(request,env){
   if(request.method==='POST'&&path==='/api/creator-growth/similar-videos'){const b=await request.json().catch(()=>({}));return json(await similarVideos(env,user,clean(b.video_id,40),b.limit))}
   if(request.method==='POST'&&path==='/api/creator-growth/similar-channels'){const b=await request.json().catch(()=>({}));return json(await similarChannels(env,user,b.channel||b.channel_id||'',b.limit))}
   if(request.method==='POST'&&path==='/api/creator-growth/comment-replies'){const b=await request.json().catch(()=>({}));return json(draftCommentReplies(b.comment,b.tones))}
+  if(request.method==='POST'&&path==='/api/creator-growth/owned-transcript'){return json(await ownedTranscript(env,user,await request.json().catch(()=>({}))))}
+  if(request.method==='POST'&&path==='/api/creator-growth/youtube-video-update'){return json(await updateOwnedVideo(env,user,await request.json().catch(()=>({}))))}
+  if(request.method==='POST'&&path==='/api/creator-growth/youtube-comment-reply'){return json(await postOwnedCommentReply(env,user,await request.json().catch(()=>({}))))}
   if(request.method==='POST'&&path==='/api/creator-growth/bookmarks'){return json({saved:await saveBookmark(env,user,await request.json().catch(()=>({})))},201)}
   if(request.method==='GET'&&path==='/api/creator-growth/bookmarks'){return json({items:await listBookmarks(env,user,url)})}
   const bm=path.match(/^\/api\/creator-growth\/bookmarks\/([^/]+)$/);if(bm&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM creator_bookmarks WHERE id=? AND tenant_id=? AND user_id=?').bind(bm[1],String(user.tenant_id),String(user.id)).run();return json({ok:true,removed:bm[1]})}
