@@ -96,31 +96,22 @@ function mediaPolicy(plan){
  };
 }
 function priceCard(){
- const flashImages=Object.fromEntries(['0.5K','1K','2K','4K'].map(size=>{const reserve=googleImageReserveUsd(size,'gemini-3.1-flash-image'),origin=Math.max(0,Number(reserve||0)-.03),charge=variableCustomerCharge(origin);return[size,{provider_origin_usd:origin,customer_variable_usd:charge.customer_charge_usd}]}));
- const proImages=Object.fromEntries(['1K','2K','4K'].map(size=>{const reserve=googleImageReserveUsd(size,'gemini-3-pro-image'),origin=Math.max(0,Number(reserve||0)-.03),charge=variableCustomerCharge(origin);return[size,{provider_origin_usd:origin,customer_variable_usd:charge.customer_charge_usd}]}));
+ const flashImages=Object.fromEntries(['0.5K','1K','2K','4K'].map(size=>{const reserve=googleImageReserveUsd(size,'gemini-3.1-flash-image'),origin=Math.max(0,Number(reserve||0)-.03);return[size,{provider_origin_usd:origin,retail_at_20pct_usd:variableCustomerCharge(origin).customer_charge_usd}]}));
+ const proImages=Object.fromEntries(['1K','2K','4K'].map(size=>{const reserve=googleImageReserveUsd(size,'gemini-3-pro-image'),origin=Math.max(0,Number(reserve||0)-.03);return[size,{provider_origin_usd:origin,retail_at_20pct_usd:variableCustomerCharge(origin).customer_charge_usd}]}));
  const liteOrigin=Math.max(0,Number(googleImageReserveUsd('1K','gemini-3.1-flash-lite-image')||0)-.03);
  const omniSecond=Number((5792*17.50/1_000_000).toFixed(6));
  return{
   markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,
-  premium_image:{
-   economy_1k:{provider_origin_usd:liteOrigin,customer_variable_usd:variableCustomerCharge(liteOrigin).customer_charge_usd},
-   balanced:flashImages,
-   max:proImages
-  },
+  premium_image:{economy_1k:{provider_origin_usd:liteOrigin,retail_at_20pct_usd:variableCustomerCharge(liteOrigin).customer_charge_usd},balanced:flashImages,max:proImages},
   premium_video:{
-   economy_720p_per_second:{provider_origin_usd:.05,customer_variable_usd:.06},
-   economy_1080p_per_second:{provider_origin_usd:.08,customer_variable_usd:.096},
-   editable_720p_per_second:{provider_origin_usd:omniSecond,customer_variable_usd:variableCustomerCharge(omniSecond).customer_charge_usd},
-   max_4k_per_second:{provider_origin_usd:.60,customer_variable_usd:.72}
+   economy_720p_per_second:{provider_origin_usd:.05,retail_at_20pct_usd:.06},
+   economy_1080p_per_second:{provider_origin_usd:.08,retail_at_20pct_usd:.096},
+   editable_720p_per_second:{provider_origin_usd:omniSecond,retail_at_20pct_usd:variableCustomerCharge(omniSecond).customer_charge_usd},
+   max_4k_per_second:{provider_origin_usd:.60,retail_at_20pct_usd:.72}
   },
-  premium_voice:{
-   browser_native_customer_usd:0,
-   api_free_tier_supported:true,
-   economy_route:'/api/movie-maker/voice',
-   studio_route:'/api/movie-maker/voice'
-  },
+  premium_voice:{free_browser_customer_usd:0,provider_free_tier_supported:true,studio_route:'/api/movie-maker/voice'},
   pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT,
-  billing_rule:'Actual paid usage is reconciled from verified provider-origin usage and customer variable pricing is origin cost plus exactly 20%. Free provider-tier usage remains $0 variable cost.'
+  billing_rule:'Paid variable usage is reconciled at verified provider origin cost. Retail reference is origin cost + exactly 20%; included allowance can reduce the separate prepaid-wallet debit.'
  };
 }
 async function persistAsset(env,request,user,{kind,title,bytes,content_type,watermarked,origin=0,customer=0,source_url=''}) {
