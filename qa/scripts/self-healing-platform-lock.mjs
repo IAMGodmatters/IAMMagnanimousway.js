@@ -14,6 +14,8 @@ const voice=read('worker/src/premium-voice-runtime.js');
 const businessPlan=read('worker/src/business-plan-quality-runtime.js');
 const aiBinding=read('magnanimous-runtime/src/ai-binding.mjs');
 const envExample=read('.env.example');
+const carrierConsent=read('frontend/app/phone/carrier-consent.tsx');
+const aiConnectors=read('frontend/app/ai-connectors/page.tsx');
 
 for(const s of ['maxAttempts:3','retryMethods:[\'GET\',\'HEAD\']','scheduledSelfHealing','paid_fallback_required','current_incidents','audit_evidence_available'])assert.ok(heal.includes(s),'self-healing contract missing '+s);
 for(const s of ['handleSelfHealing','scheduledSelfHealing'])assert.ok(ops.includes(s),'operations wiring missing '+s);
@@ -48,5 +50,8 @@ assert.ok(!businessPlan.includes("preferred_models:"),'customer business-plan qu
 assert.ok(aiBinding.includes('tenant-aware billing guard'),'standalone binding must reject tenant-unaware paid fallback');
 assert.ok(!aiBinding.includes("fetch('https://api.openai.com/v1/responses'"),'standalone binding must not directly invoke metered OpenAI');
 for(const s of ['ENABLE_PREMIUM_VOICE=false','ELEVENLABS_COMMERCIAL_PLAN_CONFIRMED=false','OPENAI_MODEL=gpt-6-luna','OPENAI_QUALITY_MODEL=gpt-6-sol'])assert.ok(envExample.includes(s),'environment contract missing '+s);
+assert.ok(!carrierConsent.includes('Twilio AI carrier'),'customer carrier consent must not expose provider branding');
+for(const phrase of ['ChatGPT / Magnanimous','ChatGPT, Claude','Gemini, Copilot'])assert.ok(!aiConnectors.includes(phrase),'customer connector UI exposes outside AI branding: '+phrase);
+assert.ok(aiConnectors.includes('Provider-specific execution remains private behind Magnanimous AI.'),'customer connector UI must explain private provider execution');
 
 console.log('Self-healing, exact variable markup, current routing, premium voice, ad control and provider-brand privacy lock passed.');
