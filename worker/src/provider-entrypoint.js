@@ -74,6 +74,20 @@ function effectiveTier(env,p){
   return billing!=='free'&&p.tier==='free-first'?'metered':p.tier;
 }
 function providerEnabled(env,p){return effectiveTier(env,p)!=='metered'||meteredEnabled(env)}
+function selectedExecutionModel(env,p,body={}){
+ const explicit=String(body.model||'').trim();if(explicit)return explicit;
+ const quality=String(body.quality||body.route_policy||'').toLowerCase();
+ if(p.id==='openai')return ['max','maximum','quality'].includes(quality)?String(env.OPENAI_QUALITY_MODEL||'gpt-6-sol'):String(env.OPENAI_MODEL||'gpt-6-luna');
+ if(p.id==='anthropic')return String(env.ANTHROPIC_MODEL||'claude-sonnet-5');
+ if(p.id==='google')return String(env.GOOGLE_MODEL||'gemini-3.8-flash');
+ if(p.id==='groq')return String(env.GROQ_MODEL||'openai/gpt-oss-120b');
+ if(p.id==='mistral')return String(env.MISTRAL_MODEL||'mistral-large-latest');
+ if(p.id==='openrouter-free')return String(env.OPENROUTER_FREE_MODEL||'openrouter/free');
+ if(p.id==='nvidia-kimi')return String(env.NVIDIA_KIMI_MODEL||'moonshotai/kimi-k3');
+ if(p.id==='nvidia-deepseek-pro')return String(env.NVIDIA_DEEPSEEK_PRO_MODEL||'deepseek-ai/deepseek-v4-pro-0813');
+ if(p.id==='nvidia-deepseek-flash')return String(env.NVIDIA_DEEPSEEK_FLASH_MODEL||'deepseek-ai/deepseek-v4.1-flash');
+ return'';
+}
 function originalUserMessage(message) {
   const text = String(message || '');
   const i = text.indexOf(MEMORY_MARKER);
@@ -127,7 +141,7 @@ async function withinProviderBudget(promise,timeoutMs,label='AI execution'){
 }
 
 async function openai(env, message, model) {
-  const r = await providerFetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: model || env.OPENAI_MODEL || 'gpt-5.6-luna', input: message }) });
+  const r = await providerFetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: model || env.OPENAI_MODEL || 'gpt-6-luna', input: message }) });
   const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || 'OpenAI request failed');
   return {text:d.output_text || '',usage:d.usage||{}};
 }
@@ -191,7 +205,7 @@ async function cloudflare(env, message, model) {
 }
 
 async function callProvider(id, env, message, model) {
-  if (id === 'openai') {const m=model || env.OPENAI_MODEL || 'gpt-5.6-luna',out=await openai(env,message,m);return {...out,model:m};}
+  if (id === 'openai') {const m=model || env.OPENAI_MODEL || 'gpt-6-luna',out=await openai(env,message,m);return {...out,model:m};}
   if (id === 'anthropic') {const m=model || env.ANTHROPIC_MODEL || 'claude-sonnet-5',out=await anthropic(env,message,m);return {...out,model:m};}
   if (id === 'google') {const m=model || env.GOOGLE_MODEL || 'gemini-3.8-flash',out=await google(env,message,m);return {...out,model:m};}
   if (id === 'groq') {const m=model || env.GROQ_MODEL || 'openai/gpt-oss-120b',out=await openaiCompatible('https://api.groq.com/openai/v1',env.GROQ_API_KEY,m,message,'Groq');return {...out,model:m};}
@@ -398,22 +412,16 @@ async function handle(request, env) {
       if(remaining<1500){errors.push('Magnanimous AI execution budget exhausted before another provider could start.');break}
       try {
         const billingMode=providerBillingMode(env,p.id),paidExecution=billingMode==='paid'||effectiveTier(env,p)==='metered';
+        const executionModel=selectedExecutionModel(env,p,body);
         let reserve=null;
         if(paidExecution){
           if(!signedInUser){errors.push(`${p.name}: paid execution requires a signed-in funded workspace`);continue}
-          const modelForReserve=String(body.model||(
-            p.id==='openai'?env.OPENAI_MODEL||'gpt-5.6-luna':
-            p.id==='anthropic'?env.ANTHROPIC_MODEL||'claude-sonnet-5':
-            p.id==='google'?env.GOOGLE_MODEL||'gemini-3.8-flash':
-            p.id==='groq'?env.GROQ_MODEL||'openai/gpt-oss-120b':
-            p.id==='mistral'?env.MISTRAL_MODEL||'mistral-large-latest':''
-          ));
-          reserve=conservativeProviderReserve({provider:p.id,model:modelForReserve,input_text:groundedMessage,max_output_tokens:4096,billing_mode:billingMode});
+          reserve=conservativeProviderReserve({provider:p.id,model:executionModel,input_text:groundedMessage,max_output_tokens:4096,billing_mode:billingMode});
           if(!reserve.ok){errors.push(`${p.name}: ${reserve.code||'origin pricing is not verified'}`);continue}
-          const gate=await canUsePremium(env,signedInUser.tenant_id,{category:'premium AI',estimated_cost_usd:reserve.provider_origin_cost_usd,required_plan:'business',entitlement:'metered_ai'});
+          const gate=await canUsePremium(env,signedInUser.tenant_id,{category:'premium AI',estimated_provider_origin_cost_usd:reserve.provider_origin_cost_usd,required_plan:'business',entitlement:'metered_ai'});
           if(!gate.ok){errors.push(`${p.name}: ${gate.code||'premium budget unavailable'}`);continue}
         }
-        const result = await withinProviderBudget(callProvider(p.id, env, groundedMessage, body.model),Math.min(45000,remaining),`${p.name} execution`);
+        const result = await withinProviderBudget(callProvider(p.id, env, groundedMessage, executionModel),Math.min(45000,remaining),`${p.name} execution`);
         if (!result?.text?.trim()) throw new Error('Provider returned an empty response');
         if(paidExecution){
           const priced=providerOriginCost({provider:p.id,model:result.model,usage:result.usage,billing_mode:billingMode});
@@ -421,7 +429,7 @@ async function handle(request, env) {
           if(priced.provider_origin_cost_usd>0){
             await recordUsage(env,signedInUser.tenant_id,{
               category:'premium-ai',provider:p.id,units:Number(priced.usage?.input_tokens||0)+Number(priced.usage?.output_tokens||0),
-              direct_cost_usd:priced.provider_origin_cost_usd,
+              provider_origin_cost_usd:priced.provider_origin_cost_usd,
               reference_id:`${p.id}:${result.model}:${crypto.randomUUID()}`,
               pricing_source:priced.pricing_source,pricing_verified_at:priced.pricing_verified_at
             });
