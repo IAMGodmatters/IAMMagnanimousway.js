@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect,useRef,useState} from 'react';
-import {speakTextNaturally,stopNaturalSpeech} from '../lib/natural-speech';
+import {isIosSpeechRuntime,speakTextNaturally,stopNaturalSpeech} from '../lib/natural-speech';
 
 type SpeechRecognitionLike={
  lang:string;
@@ -75,16 +75,21 @@ function currentPersona(){
 }
 
 function chooseVoice(label:string){
- const synth=window.speechSynthesis,all=synth.getVoices();
+ const synth=window.speechSynthesis,all=synth.getVoices(),ios=isIosSpeechRuntime();
+ const preferredLocale=String(navigator.language||'en-US').toLowerCase();
  const english=all.filter(v=>/^en(?:-|$)/i.test(v.lang));
- const natural=english.filter(v=>/natural|enhanced|premium|neural|siri|google|microsoft/i.test(v.name));
- const pool=natural.length?natural:english.length?english:all;
+ const exact=english.filter(v=>String(v.lang||'').toLowerCase()===preferredLocale);
+ const quality=(v:SpeechSynthesisVoice)=>/samantha|ava|siri|natural|enhanced|premium|neural/i.test(v.name);
+ const local=(v:SpeechSynthesisVoice)=>(v as any).localService!==false;
+ const ranked=[...exact.filter(quality),...exact.filter(local),...english.filter(quality),...english.filter(local),...english,...all];
+ const unique=ranked.filter((voice,index,list)=>list.findIndex(v=>(v.voiceURI||v.name)===((voice.voiceURI)||voice.name))===index);
  const h=hash(label.toLowerCase());
- const voice=pool.length?pool[h%pool.length]:undefined;
- if(label==='Magnanimous AI')return{voice,rate:.96,pitch:.9};
- const rate=.90+((h>>>4)%7)*.025;
- const pitch=.82+((h>>>9)%9)*.045;
- return{voice,rate:Math.min(1.08,rate),pitch:Math.min(1.18,pitch)};
+ const voice=unique.length?unique[ios?0:h%Math.min(unique.length,3)]:undefined;
+ if(ios)return{voice,rate:.91,pitch:1};
+ if(label==='Magnanimous AI')return{voice,rate:.94,pitch:1};
+ const rate=.92+((h>>>4)%5)*.02;
+ const pitch=.96+((h>>>9)%5)*.02;
+ return{voice,rate:Math.min(1.02,rate),pitch:Math.min(1.04,pitch)};
 }
 
 function applyVoiceProfile(utterance:SpeechSynthesisUtterance,label:string){
@@ -97,21 +102,28 @@ function applyVoiceProfile(utterance:SpeechSynthesisUtterance,label:string){
 
 function primeSpeechSynthesis(){
  if(speechPrimed||typeof window==='undefined'||!('speechSynthesis'in window))return;
+ if(isIosSpeechRuntime()){speechPrimed=true;return}
  try{
   const u=new SpeechSynthesisUtterance(' ');
   u.volume=0;u.rate=2;
   window.speechSynthesis.speak(u);
-  window.speechSynthesis.resume?.();
+  if((window.speechSynthesis as any).paused)window.speechSynthesis.resume?.();
   speechPrimed=true;
  }catch{}
 }
 
 function latestReply(path:string){
- let nodes:NodeListOf<Element>;
- if(path==='/magnanimous'||path.startsWith('/magnanimous/'))nodes=document.querySelectorAll('.mag-message.assistant .mag-bubble p');
- else if(path==='/ai-chat'||path.startsWith('/ai-chat/'))nodes=document.querySelectorAll('.history article .answer p');
- else return'';
- return nodes.length?(nodes[nodes.length-1].textContent||'').trim():'';
+ if(path==='/magnanimous'||path.startsWith('/magnanimous/')){
+  const messages=document.querySelectorAll('.mag-message.assistant');
+  const latest=messages.length?messages[messages.length-1] as HTMLElement:null;
+  if(!latest||latest.dataset.iamSpeak==='off')return'';
+  return(latest.querySelector('.mag-bubble p')?.textContent||'').trim();
+ }
+ if(path==='/ai-chat'||path.startsWith('/ai-chat/')){
+  const nodes=document.querySelectorAll('.history article .answer p');
+  return nodes.length?(nodes[nodes.length-1].textContent||'').trim():'';
+ }
+ return'';
 }
 
 function emitCheckpoint(detail:{kind:string;stage:string;content:string;metadata?:Record<string,string|number|boolean>}){
@@ -238,10 +250,11 @@ export default function VoiceOrchestrator(){
     pendingReply.current='';
     lastSpoken.current=settled;
     if(!autoSpeakRef.current||!('speechSynthesis'in window))return;
+    const iosSpeech=isIosSpeechRuntime();
     speakTextNaturally(settled,{
      configure:(u)=>applyVoiceProfile(u,nextPersona),
-     maxChunkChars:240,
-     interChunkDelayMs:55,
+     maxChunkChars:iosSpeech?145:220,
+     interChunkDelayMs:iosSpeech?125:60,
      onStart:()=>{setNotice('');setSpeaking(true);emitCheckpoint({kind:'voice-reply',stage:'speaking',content:settled,metadata:{persona:nextPersona,path:location.pathname}})},
      onEnd:()=>{setSpeaking(false);emitCheckpoint({kind:'voice-reply',stage:'spoken',content:settled,metadata:{persona:nextPersona,path:location.pathname}})},
      onError:()=>{setSpeaking(false);setNotice('I generated the reply, but your browser could not play the voice smoothly. Tap the speaker button once, then try again.');emitCheckpoint({kind:'voice-reply',stage:'speech-error',content:settled,metadata:{persona:nextPersona,path:location.pathname}})}
@@ -278,8 +291,9 @@ export default function VoiceOrchestrator(){
  function speakSample(){
   if(!voiceReady)return;
   primeSpeechSynthesis();
+  const iosSpeech=isIosSpeechRuntime();
   speakTextNaturally(`This is ${persona}. I recognize my name and my specialist role.`,{
-   configure:(u)=>applyVoiceProfile(u,persona),maxChunkChars:220,interChunkDelayMs:45,
+   configure:(u)=>applyVoiceProfile(u,persona),maxChunkChars:iosSpeech?145:210,interChunkDelayMs:iosSpeech?125:55,
    onStart:()=>{setNotice('');setSpeaking(true)},onEnd:()=>setSpeaking(false),
    onError:()=>{setSpeaking(false);setNotice('Your browser could not play the voice smoothly. Check device volume and try again.')}
   });
