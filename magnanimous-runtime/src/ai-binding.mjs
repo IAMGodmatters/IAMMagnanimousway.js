@@ -8,6 +8,18 @@ function textFromResponses(data) {
   return '';
 }
 
+function cloudflareModelPath(model) {
+  return String(model || '').split('/').filter(Boolean).map((part) => encodeURIComponent(part)).join('/');
+}
+
+function cloudflareText(data) {
+  const result = data?.result;
+  if (typeof result === 'string' && result.trim()) return result.trim();
+  if (typeof result?.response === 'string' && result.response.trim()) return result.response.trim();
+  if (typeof data?.response === 'string' && data.response.trim()) return data.response.trim();
+  return '';
+}
+
 function normalizeMessages(input) {
   if (Array.isArray(input?.messages)) {
     return input.messages.map((item) => ({
@@ -32,6 +44,32 @@ export class MagnanimousAiBinding {
       this.env.MAGNANIMOUS_AI_MAX_TOKENS ||
       2200
     );
+
+    const cloudflareToken = String(this.env.CLOUDFLARE_API_TOKEN || '').trim();
+    const cloudflareAccount = String(this.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
+    if (cloudflareToken && cloudflareAccount) {
+      const model = String(_legacyModel || this.env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast').trim();
+      if (model.startsWith('@cf/')) {
+        const response = await fetch(
+          `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(cloudflareAccount)}/ai/run/${cloudflareModelPath(model)}`,
+          {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              authorization: 'Bearer ' + cloudflareToken
+            },
+            body: JSON.stringify({ messages, max_tokens: maxTokens })
+          }
+        );
+        const data = await response.json().catch(() => ({}));
+        if (response.ok) {
+          const text = cloudflareText(data);
+          if (text) return { response: text, result: { response: text }, provider: 'cloudflare-workers-ai-rest' };
+        }
+        const detail = String(data?.errors?.[0]?.message || data?.messages?.[0]?.message || '').trim();
+        throw new Error('Cloudflare Workers AI REST rail returned HTTP ' + response.status + (detail ? ': ' + detail : ''));
+      }
+    }
 
     const compatibleBase = String(this.env.MAGNANIMOUS_AI_BASE_URL || '').replace(/\/$/, '');
     if (compatibleBase) {
@@ -95,7 +133,7 @@ export class MagnanimousAiBinding {
     }
 
     throw new Error(
-      'No Magnanimous AI execution rail is configured. Set OLLAMA_BASE_URL or MAGNANIMOUS_AI_BASE_URL; metered OPENAI_API_KEY remains optional.'
+      'No Magnanimous AI execution rail is configured. Set protected Cloudflare Workers AI REST credentials, OLLAMA_BASE_URL, or MAGNANIMOUS_AI_BASE_URL; metered OPENAI_API_KEY remains optional.'
     );
   }
 }
