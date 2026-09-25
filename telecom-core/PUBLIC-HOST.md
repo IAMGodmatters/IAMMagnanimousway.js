@@ -133,6 +133,19 @@ That workflow:
 
 Only a successful result from that workflow is sufficient evidence to promote `TELECOM_NATIVE_WEBRTC_LIVE=true`. If TURN relay mode is used, the proof must run with the same ICE/TURN policy that production browsers receive; a direct-media success does not validate a relay-only deployment.
 
+## Real-host Stasis supervision evidence
+
+After the public Telecom Core exists, keep supervision disabled for ordinary production traffic until the consented real-host proof is complete.
+
+Configure:
+
+- repository variable `TELECOM_PUBLIC_CONTROL_API_URL` with the protected HTTPS control-API origin;
+- repository secret `TELECOM_PUBLIC_CONTROL_API_TOKEN`;
+- `TELECOM_NATIVE_WEBRTC_LIVE=true` only after the public Chromium/WSS/RTP workflow above has passed.
+
+Then use **Telecom Stasis Live Verification** with an active consented test-call channel ID. Recording-only verification can be run independently of browser supervisor audio, provided the test host has its private Stasis supervisor control enabled for the verification window and the ARI event stream is healthy. Monitor/whisper/barge lifecycle verification remains blocked until the native WebRTC live gate is already true.
+
+A green Stasis workflow is evidence, not an automatic feature promotion. Review the uploaded artifact and observed real-call behavior before promoting ordinary production supervisor control.
 ## Compatibility fallback
 
 The existing compatibility softphone remains available until the public native rail has passed the external proof and a secure production browser-credential strategy is active. Do not remove it during migration.
