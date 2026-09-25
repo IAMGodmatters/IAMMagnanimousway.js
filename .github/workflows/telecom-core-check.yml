@@ -27,6 +27,8 @@ on:
       - 'worker/migrations/0047_magnanimous_telecom_charging_integrity.sql'
       - '.github/workflows/telecom-core-check.yml'
       - '.github/workflows/public-webrtc-verification.yml'
+      - 'qa/scripts/telecom-stasis-lifecycle-lock.mjs'
+      - 'qa/scripts/telecom-stasis-lifecycle-lock.mjs'
   pull_request:
     paths:
       - 'telecom-core/**'
@@ -76,14 +78,14 @@ jobs:
       - name: Install Telecom control API dependencies
         run: python -m pip install -r telecom-core/control-api/requirements.txt
 
-      - name: Install Telecom control API dependencies
-        run: python -m pip install -r telecom-core/control-api/requirements.txt
-
       - name: Compile Telecom API
         run: python -m py_compile telecom-core/control-api/app/main.py
 
       - name: Run Telecom control API unit tests
         run: python -m unittest discover -s telecom-core/control-api/tests -p 'test_*.py'
+
+      - name: Lock native Stasis bridge lifecycle
+        run: node qa/scripts/telecom-stasis-lifecycle-lock.mjs
 
       - name: Validate Asterisk bootstrap shell
         run: sh -n telecom-core/asterisk/entrypoint.sh
