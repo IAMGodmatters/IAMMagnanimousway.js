@@ -80,7 +80,11 @@ exten => _X.,1,Dial(PJSIP/${EXTEN}@magnanimous-sip-core,45)
 [magnanimous-outbound]
 exten => _+X.,1,NoOp(Magnanimous outbound PSTN bridge call to ${EXTEN})
  same => n,Set(CALLERID(num)=${MAG_FROM})
- same => n,Dial(PJSIP/${EXTEN}@${CARRIER_SIP_ENDPOINT},60)
+ same => n,Set(MAG_SELECTED_ENDPOINT=${IF($["${MAG_CARRIER_ENDPOINT}"!=""]?${MAG_CARRIER_ENDPOINT}:${CARRIER_SIP_ENDPOINT})})
+ same => n,Dial(PJSIP/${EXTEN}@${MAG_SELECTED_ENDPOINT},60)
+ ; An explicit planner-selected route is authoritative for this attempt. Do not
+ ; silently move it to another carrier; the control plane must make failover decisions.
+ same => n,GotoIf($["${MAG_CARRIER_ENDPOINT}"!=""]?done)
  same => n,GotoIf($["${CARRIER_SIP_SECONDARY_ENDPOINT}"=""]?done)
  same => n,GotoIf($["${DIALSTATUS}"="CHANUNAVAIL"]?secondary)
  same => n,GotoIf($["${DIALSTATUS}"="CONGESTION"]?secondary:done)
