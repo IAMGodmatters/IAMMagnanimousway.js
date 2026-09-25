@@ -1,0 +1,65 @@
+name: Self-Heal and Provider Cost Lock
+
+on:
+  pull_request:
+    paths:
+      - 'worker/src/provider-cost-catalog.js'
+      - 'worker/src/self-heal-runtime.js'
+      - 'worker/src/agent-mesh-runtime.js'
+      - 'worker/src/usage-guard.js'
+      - 'worker/src/premium-runtime-guard.js'
+      - 'worker/src/billing-tiers-runtime.js'
+      - 'worker/src/payment-link-runtime.js'
+      - 'worker/src/operations-entrypoint.js'
+      - 'worker/wrangler.jsonc'
+      - 'frontend/lib/natural-speech.ts'
+      - 'frontend/app/voice-orchestrator.tsx'
+      - 'frontend/app/pricing/page.tsx'
+      - 'scripts/repair-agent-mesh-timeouts.mjs'
+      - '.github/workflows/repair-agent-mesh-timeouts.yml'
+      - 'qa/scripts/self-heal-cost-lock.mjs'
+      - '.github/workflows/self-heal-cost-lock.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/provider-cost-catalog.js'
+      - 'worker/src/self-heal-runtime.js'
+      - 'worker/src/agent-mesh-runtime.js'
+      - 'worker/src/usage-guard.js'
+      - 'worker/src/premium-runtime-guard.js'
+      - 'worker/src/billing-tiers-runtime.js'
+      - 'worker/src/payment-link-runtime.js'
+      - 'worker/src/operations-entrypoint.js'
+      - 'worker/wrangler.jsonc'
+      - 'frontend/lib/natural-speech.ts'
+      - 'frontend/app/voice-orchestrator.tsx'
+      - 'frontend/app/pricing/page.tsx'
+      - 'scripts/repair-agent-mesh-timeouts.mjs'
+      - '.github/workflows/repair-agent-mesh-timeouts.yml'
+      - 'qa/scripts/self-heal-cost-lock.mjs'
+      - '.github/workflows/self-heal-cost-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Verify self-heal and cost contracts
+        run: node qa/scripts/self-heal-cost-lock.mjs
+      - name: Verify Worker syntax
+        run: |
+          node --check worker/src/provider-cost-catalog.js
+          node --check worker/src/self-heal-runtime.js
+          node --check worker/src/agent-mesh-runtime.js
+          node --check worker/src/usage-guard.js
+          node --check worker/src/premium-runtime-guard.js
+          node --check worker/src/billing-tiers-runtime.js
+          node --check worker/src/payment-link-runtime.js
+          node --check worker/src/operations-entrypoint.js
