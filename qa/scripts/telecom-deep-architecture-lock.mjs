@@ -206,6 +206,7 @@ has(network,'GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT=20','global mobile pricing keep
 has(network,'provider_brand_customer_visible:false','global mobile contract keeps upstream branding private');
 has(network,'competitor_retail_price_is_not_origin_cost:true','competitor retail pricing cannot masquerade as wholesale origin cost');
 has(network,'origin_cost_verified!==true','retail quote refuses unverified origin cost');
+has(network,'validOriginReference','origin-cost verification requires a durable evidence reference shape');
 has(network,'funded_variable_cost_cap','metered global data requires an explicit funded variable-cost cap');
 has(network,'export function planGlobalMobileOffers','global mobile has a reusable verified wholesale offer planner');
 has(network,'commercial_authorization_not_verified','offer planner rejects unverified commercial authority');
@@ -225,6 +226,7 @@ has(ui,'Credentials ≠ live route','owner UI preserves provider truth boundary'
 has(ui,'Global SIM/eSIM retail blueprint','owner UI exposes the Magnanimous-native global mobile blueprint');
 has(ui,'Competitor retail prices are benchmarks, not Magnanimous wholesale cost.','owner UI preserves verified-origin pricing truth');
 has(ui,'CALCULATE — NO PURCHASE','global mobile pricing tool is explicitly non-purchasing');
+has(ui,'I confirmed this origin cost against the referenced provider evidence.','owner must explicitly attest the origin-price evidence before quoting');
 
 has(study,'## Current carrier benchmark','deep study contains carrier comparison evidence');
 has(study,'## Philippine regulatory truth boundary','deep study contains Philippine NTC boundary');
