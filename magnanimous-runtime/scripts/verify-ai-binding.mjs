@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import { MagnanimousAiBinding } from '../src/ai-binding.mjs';
 
 const originalFetch=globalThis.fetch;
-const calls=[];
 
-try{
+async function workersAiFreeFirst(){
+  const calls=[];
   globalThis.fetch=async(url,init={})=>{
     calls.push({url:String(url),init});
     return new Response(JSON.stringify({
@@ -17,7 +17,9 @@ try{
 
   const binding=new MagnanimousAiBinding({
     CLOUDFLARE_API_TOKEN:'test-workers-ai-token',
-    CLOUDFLARE_ACCOUNT_ID:'test-account-id'
+    CLOUDFLARE_ACCOUNT_ID:'test-account-id',
+    OPENAI_API_KEY:'must-not-be-used',
+    ENABLE_METERED_PROVIDERS:'false'
   });
 
   const result=await binding.run('@cf/meta/llama-3.1-8b-instruct-fast',{
@@ -37,8 +39,45 @@ try{
   const body=JSON.parse(calls[0].init.body);
   assert.equal(body.max_tokens,321);
   assert.deepEqual(body.messages,[{role:'user',content:'Say hello.'}]);
+}
 
-  console.log('Magnanimous standalone Workers AI REST binding verification PASS');
+async function meteredDisabledByDefault(){
+  let called=false;
+  globalThis.fetch=async()=>{called=true;throw new Error('metered provider must not be called')};
+  const binding=new MagnanimousAiBinding({
+    OPENAI_API_KEY:'present-but-disabled',
+    ENABLE_METERED_PROVIDERS:'false'
+  });
+  await assert.rejects(
+    ()=>binding.run('legacy',{prompt:'Do not spend money.'}),
+    /ENABLE_METERED_PROVIDERS=true/
+  );
+  assert.equal(called,false);
+}
+
+async function meteredRequiresExplicitOptIn(){
+  const calls=[];
+  globalThis.fetch=async(url)=>{
+    calls.push(String(url));
+    return new Response(JSON.stringify({output_text:'Explicit paid fallback works.'}),{
+      status:200,headers:{'content-type':'application/json'}
+    });
+  };
+  const binding=new MagnanimousAiBinding({
+    OPENAI_API_KEY:'test-openai-key',
+    ENABLE_METERED_PROVIDERS:'true'
+  });
+  const result=await binding.run('legacy',{prompt:'Paid fallback is explicitly enabled.'});
+  assert.equal(result.response,'Explicit paid fallback works.');
+  assert.equal(result.provider,'magnanimous-metered-fallback');
+  assert.deepEqual(calls,['https://api.openai.com/v1/responses']);
+}
+
+try{
+  await workersAiFreeFirst();
+  await meteredDisabledByDefault();
+  await meteredRequiresExplicitOptIn();
+  console.log('Magnanimous standalone free-first AI binding verification PASS');
 }finally{
   globalThis.fetch=originalFetch;
 }
