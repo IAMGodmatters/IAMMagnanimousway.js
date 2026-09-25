@@ -629,7 +629,7 @@ export default function VideoStudio() {
     <main className="module-page">
       <header className="module-header">
         <a href="/">← Back to I Am Magnanimous Way™</a>
-        <span className="module-status">VIDEO CREATOR</span>
+        <div style={{display:"flex",gap:10,alignItems:"center"}}><a href="/video-stack">Record • Upload • Edit</a><a href="/creator-growth">Creator Growth</a><span className="module-status">VIDEO CREATOR</span></div>
       </header>
       <section className="module-hero">
         <div className="module-icon">▶</div>

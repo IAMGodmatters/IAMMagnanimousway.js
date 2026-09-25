@@ -5,6 +5,8 @@ import subprocess
 import textwrap
 import urllib.error
 import urllib.request
+import urllib.parse
+import shutil
 import uuid
 import os
 import re
@@ -29,6 +31,21 @@ class VideoRequest(BaseModel):
     watermark_required: bool = False
     publish_to_mux: bool = False
     mux_playback_policy: str = Field(default="public", max_length=16)
+
+class EditSegment(BaseModel):
+    url: str = Field(max_length=1600)
+    trim_start_ms: int = Field(default=0, ge=0, le=86_400_000)
+    trim_end_ms: int | None = Field(default=None, ge=1, le=86_400_000)
+
+
+class EditRequest(BaseModel):
+    title: str = Field(default="Magnanimous edit", max_length=200)
+    segments: list[EditSegment] = Field(min_length=1, max_length=40)
+    width: int = Field(default=1280, ge=320, le=1920)
+    height: int = Field(default=720, ge=240, le=1920)
+    watermark_text: str = Field(default="", max_length=240)
+    watermark_required: bool = False
+
 
 
 def wrap_for_video(value: str, max_chars: int) -> str:
@@ -57,6 +74,49 @@ def decode_image_data_uri(value: str):
     subtype = match.group(1).split("/", 1)[1].lower()
     ext = "jpg" if subtype in {"jpeg", "jpg"} else "svg" if subtype == "svg+xml" else subtype
     return data, ext
+
+
+def approved_media_url(value: str) -> str:
+    parsed = urllib.parse.urlparse((value or "").strip())
+    allowed = {x.strip().lower() for x in os.getenv("MAGNANIMOUS_PUBLIC_MEDIA_HOSTS", "iammagnanimousway.com,www.iammagnanimousway.com").split(",") if x.strip()}
+    if parsed.scheme != "https" or (parsed.hostname or "").lower() not in allowed:
+        raise ValueError("Edit sources must use an approved Magnanimous HTTPS host.")
+    if not parsed.path.startswith("/api/video-stack/access/"):
+        raise ValueError("Edit sources must use short-lived Magnanimous media access links.")
+    if parsed.username or parsed.password or parsed.port not in {None, 443}:
+        raise ValueError("Edit source URL is not allowed.")
+    return urllib.parse.urlunparse(parsed)
+
+
+def download_media_source(url: str, target: Path, max_bytes: int = 180 * 1024 * 1024):
+    approved = approved_media_url(url)
+    request = urllib.request.Request(approved, headers={"User-Agent": "Magnanimous-Video-Editor/1.0"})
+    total = 0
+    try:
+        with urllib.request.urlopen(request, timeout=90) as response, target.open("wb") as out:
+            final_url = response.geturl()
+            approved_media_url(final_url)
+            while True:
+                chunk = response.read(1024 * 1024)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > max_bytes:
+                    raise ValueError("Edit source exceeds the per-clip safety limit.")
+                out.write(chunk)
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"Magnanimous edit source returned {exc.code}.")
+    if total <= 0:
+        raise ValueError("Edit source was empty.")
+    return total
+
+
+def media_has_audio(path: Path) -> bool:
+    probe = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=codec_type", "-of", "csv=p=0", str(path)],
+        capture_output=True, text=True, timeout=30
+    )
+    return probe.returncode == 0 and "audio" in probe.stdout.lower()
 
 
 def mux_configured():
@@ -126,6 +186,8 @@ def health():
         "free_renderer": True,
         "scene_backgrounds": True,
         "burned_watermark": True,
+        "clip_editor": True,
+        "private_edit_sources_only": True,
         "mux_configured": mux_configured(),
         "mux_provider_writes_enabled": mux_provider_writes_enabled(),
     }
@@ -222,6 +284,97 @@ def render_video(req: VideoRequest):
         "watermarked": bool(watermark),
         "scene_background": bool(req.background_image_data_uri),
         "mux": mux,
+    }
+
+
+@app.post("/api/video/edit")
+def edit_video(req: EditRequest):
+    job = uuid.uuid4().hex
+    work = OUT / f"{job}-edit"
+    work.mkdir(parents=True, exist_ok=True)
+    outfile = OUT / f"{job}.mp4"
+    watermark_file = work / "watermark.txt"
+    try:
+        rendered = []
+        for index, segment in enumerate(req.segments):
+            source = work / f"source-{index:03d}.mp4"
+            clip = work / f"clip-{index:03d}.mp4"
+            download_media_source(segment.url, source)
+            start = max(0, segment.trim_start_ms) / 1000.0
+            duration = None
+            if segment.trim_end_ms is not None:
+                duration = max(0.05, (segment.trim_end_ms - segment.trim_start_ms) / 1000.0)
+            has_audio = media_has_audio(source)
+            cmd = ["ffmpeg", "-y"]
+            if start > 0:
+                cmd += ["-ss", f"{start:.3f}"]
+            cmd += ["-i", str(source)]
+            if not has_audio:
+                cmd += ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]
+            if duration is not None:
+                cmd += ["-t", f"{duration:.3f}"]
+            vf = (
+                f"scale={req.width}:{req.height}:force_original_aspect_ratio=decrease,"
+                f"pad={req.width}:{req.height}:(ow-iw)/2:(oh-ih)/2:black,fps=24"
+            )
+            cmd += ["-map", "0:v:0"]
+            cmd += ["-map", "0:a:0" if has_audio else "1:a:0"]
+            cmd += [
+                "-vf", vf, "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
+                "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-ac", "2",
+                "-pix_fmt", "yuv420p", "-movflags", "+faststart"
+            ]
+            if not has_audio:
+                cmd += ["-shortest"]
+            cmd += [str(clip)]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=360)
+            if result.returncode != 0:
+                raise RuntimeError(f"Clip {index + 1} normalization failed: {result.stderr[-1800:]}")
+            rendered.append(clip)
+
+        concat_file = work / "concat.txt"
+        concat_file.write_text("\n".join("file '" + str(p).replace("'", "'\\''") + "'" for p in rendered), encoding="utf-8")
+        merged = work / "merged.mp4"
+        merged_result = subprocess.run(
+            ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(concat_file), "-c", "copy", "-movflags", "+faststart", str(merged)],
+            capture_output=True, text=True, timeout=360
+        )
+        if merged_result.returncode != 0:
+            raise RuntimeError("Clip concatenation failed: " + merged_result.stderr[-1800:])
+
+        watermark = (req.watermark_text or "").strip()
+        if req.watermark_required and not watermark:
+            watermark = "Magnanimous AI • I AM MAGNANIMOUS WAY™"
+        if watermark:
+            watermark_file.write_text(watermark, encoding="utf-8")
+            font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            size = max(17, req.width // 58)
+            vf = (
+                f"drawtext=fontfile={font}:textfile={watermark_file}:fontcolor=white@0.94:fontsize={size}:"
+                "x=w-text_w-24:y=h-text_h-22:box=1:boxcolor=black@0.48:boxborderw=12"
+            )
+            final_result = subprocess.run(
+                ["ffmpeg", "-y", "-i", str(merged), "-vf", vf, "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
+                 "-c:a", "copy", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(outfile)],
+                capture_output=True, text=True, timeout=360
+            )
+            if final_result.returncode != 0:
+                raise RuntimeError("Final watermark render failed: " + final_result.stderr[-1800:])
+        else:
+            shutil.copyfile(merged, outfile)
+    except Exception as exc:
+        outfile.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"Video edit failed: {exc}")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+    return {
+        "download_url": f"/api/video/download/{outfile.name}",
+        "filename": outfile.name,
+        "renderer": "Magnanimous Native Video Editor",
+        "segments": len(req.segments),
+        "watermarked": bool(req.watermark_required or req.watermark_text),
+        "ready_to_play": True,
     }
 
 
