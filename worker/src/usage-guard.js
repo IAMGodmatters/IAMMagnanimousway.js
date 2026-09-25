@@ -119,6 +119,21 @@ export async function recordUsage(env,tenantId,{category='premium',provider='',u
  return usageStatus(env,tenantId);
 }
 
+export async function recordPrepaidPassThroughUsage(env,tenantId,{category='pass-through',provider='',units=0,direct_cost_usd=0,reference_id=''}={}){
+ if(!env?.DB||!tenantId)return null;
+ await ensureUsageSchema(env);
+ const cost=Math.max(0,Number(direct_cost_usd||0)),retail=customerPriceFromOrigin(cost),ref=String(reference_id||crypto.randomUUID()),key=periodKey();
+ const wallet=await walletStatus(env,tenantId);
+ if(retail>wallet.balance_usd+1e-9)throw new Error('PREPAID_USAGE_BALANCE_EXHAUSTED');
+ if(retail>0)await debitWallet(env,tenantId,retail,{reference_id:ref,detail:`${category}; origin=${cost.toFixed(6)}; customer=${retail.toFixed(6)}; markup=${CUSTOMER_UPSELL_PERCENT}%`});
+ await env.DB.prepare(`INSERT INTO billing_usage_events(tenant_id,period_key,category,provider,units,direct_cost_usd,reference_id,created_at)
+  VALUES(?,?,?,?,?,?,?,?)`).bind(String(tenantId),key,String(category),String(provider),Number(units||0),cost,ref,now()).run();
+ await env.DB.prepare(`INSERT INTO billing_usage_guard(tenant_id,period_key,direct_variable_cost_usd,updated_at) VALUES(?,?,?,?)
+  ON CONFLICT(tenant_id,period_key) DO UPDATE SET direct_variable_cost_usd=billing_usage_guard.direct_variable_cost_usd+excluded.direct_variable_cost_usd,updated_at=excluded.updated_at`)
+  .bind(String(tenantId),key,cost,now()).run();
+ return{origin_cost_usd:cost,customer_cost_usd:retail,markup_percent:CUSTOMER_UPSELL_PERCENT,wallet:await walletStatus(env,tenantId)};
+}
+
 export function estimateAiCostUsd(provider,{model='',inputText='',outputText='',inputTokens,outputTokens,maxOutputTokens=1200}={}){
  const p=String(provider||'').toLowerCase();
  const resolved=String(model||defaultModelForProvider(p,'budget')||'');
