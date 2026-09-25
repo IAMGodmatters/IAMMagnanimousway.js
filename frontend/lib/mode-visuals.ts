@@ -17,21 +17,21 @@ export const MODE_OPTIONS: MagnanimousMode[] = [
 
 export const MODE_VISUALS = {
   General: {
-    image: "/mode-images/general.webp",
+    image: "/mode-images/general.svg",
     themeClass: "mode-theme-general",
     accent: "#7fb6ff",
     title: "Magnanimous AI",
     subtitle: "General help, guidance, ideas and conversation.",
   },
   Business: {
-    image: "/mode-images/business.webp",
+    image: "/mode-images/business.svg",
     themeClass: "mode-theme-business",
     accent: "#8ee3a1",
     title: "Business Command",
     subtitle: "Plans, operations, growth, strategy and execution.",
   },
   "Social Media": {
-    image: "/mode-images/social-media.webp",
+    image: "/mode-images/social-media.svg",
     themeClass: "mode-theme-social",
     accent: "#ff87dc",
     title: "Social Studio",
@@ -45,14 +45,14 @@ export const MODE_VISUALS = {
     subtitle: "Tasks, follow-up, organization and daily support.",
   },
   Research: {
-    image: "/mode-images/research.webp",
+    image: "/mode-images/research.svg",
     themeClass: "mode-theme-research",
     accent: "#7aa7ff",
     title: "Research Center",
     subtitle: "Explore, question, analyze and synthesize information.",
   },
   Writing: {
-    image: "/mode-images/writing.webp",
+    image: "/mode-images/writing.svg",
     themeClass: "mode-theme-writing",
     accent: "#d39bff",
     title: "Writing Studio",
