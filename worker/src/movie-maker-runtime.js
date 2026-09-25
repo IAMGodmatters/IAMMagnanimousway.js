@@ -120,12 +120,18 @@ function priceCard(){
   markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,
   premium_image:{economy_1k:{provider_origin_usd:liteOrigin,retail_at_20pct_usd:variableCustomerCharge(liteOrigin).customer_charge_usd},balanced:flashImages,max:proImages},
   premium_video:{
-   economy_720p_per_second:{provider_origin_usd:.05,retail_at_20pct_usd:.06},
-   economy_1080p_per_second:{provider_origin_usd:.08,retail_at_20pct_usd:.096},
-   editable_720p_per_second:{provider_origin_usd:omniSecond,retail_at_20pct_usd:variableCustomerCharge(omniSecond).customer_charge_usd},
-   max_4k_per_second:{provider_origin_usd:.60,retail_at_20pct_usd:.72}
+   economy:{'720p':{provider_origin_usd:.05,retail_at_20pct_usd:.06},'1080p':{provider_origin_usd:.08,retail_at_20pct_usd:.096}},
+   fast:{'720p':{provider_origin_usd:.10,retail_at_20pct_usd:.12},'1080p':{provider_origin_usd:.12,retail_at_20pct_usd:.144},'4k':{provider_origin_usd:.30,retail_at_20pct_usd:.36}},
+   editable:{'720p':{provider_origin_usd:omniSecond,retail_at_20pct_usd:variableCustomerCharge(omniSecond).customer_charge_usd},'1080p':{usage_based:true},'4k':{usage_based:true}},
+   max:{'720p':{provider_origin_usd:.40,retail_at_20pct_usd:.48},'1080p':{provider_origin_usd:.40,retail_at_20pct_usd:.48},'4k':{provider_origin_usd:.60,retail_at_20pct_usd:.72}}
   },
-  premium_voice:{free_browser_customer_usd:0,provider_free_tier_supported:true,studio_route:'/api/movie-maker/voice'},
+  premium_voice:{
+   free_browser_customer_usd:0,
+   provider_free_tier_supported:true,
+   economy_paid_10_seconds:{provider_origin_usd:.0015,retail_at_20pct_usd:.0018},
+   studio_paid_10_seconds:{provider_origin_usd:.00225,retail_at_20pct_usd:.0027},
+   studio_route:'/api/movie-maker/voice'
+  },
   pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT,
   billing_rule:'Paid variable usage is reconciled at verified provider origin cost. Retail reference is origin cost + exactly 20%; included allowance can reduce the separate prepaid-wallet debit.'
  };
