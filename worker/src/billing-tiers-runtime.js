@@ -16,8 +16,8 @@ const PLAN_CONFIG = {
   plus: {
     id: 'plus', name: 'Magnanimous Unlimited Fair-Use', price_usd: 19.99, cadence: 'month',
     description: 'Affordable expanded access while high-variable-cost services stay controlled.',
-    features: ['Everything in Free', 'Higher workflow capacity', 'Expanded business tools', 'Priority free-first routing'],
-    entitlements: { metered_ai: false, pstn_minutes: 0, avatar_minutes: 0, premium_video_credits: 0, cost_ceiling_usd: 8 }
+    features: ['Everything in Free', 'Higher workflow capacity', 'Expanded business tools', 'Priority free-first routing', 'Optional funded premium AI at verified origin cost + 20%'],
+    entitlements: { metered_ai: true, pstn_minutes: 0, avatar_minutes: 0, premium_video_credits: 0, cost_ceiling_usd: 8 }
   },
   business: {
     id: 'business', name: 'Magnanimous Unlimited Fair-Use', price_usd: 19.99, cadence: 'month',
