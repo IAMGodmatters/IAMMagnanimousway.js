@@ -31,7 +31,7 @@ const PROVIDERS = [
   { id: 'openrouter-free', name: 'OpenRouter Free Models', key: 'OPENROUTER_API_KEY', tier: 'free-first' },
   { id: 'nvidia-kimi', name: 'NVIDIA NIM — Kimi K3', key: 'NVIDIA_API_KEY', tier: 'free-first' },
   { id: 'nvidia-deepseek-pro', name: 'NVIDIA NIM — DeepSeek V4 Pro', key: 'NVIDIA_API_KEY', tier: 'free-first' },
-  { id: 'nvidia-deepseek-flash', name: 'NVIDIA NIM — DeepSeek V4 Flash', key: 'NVIDIA_API_KEY', tier: 'free-first' },
+  { id: 'nvidia-deepseek-flash', name: 'NVIDIA NIM — DeepSeek V4.1 Flash', key: 'NVIDIA_API_KEY', tier: 'free-first' },
   { id: 'openai', name: 'OpenAI', key: 'OPENAI_API_KEY', tier: 'metered' },
   { id: 'anthropic', name: 'Anthropic', key: 'ANTHROPIC_API_KEY', tier: 'metered' }
 ];
