@@ -561,6 +561,7 @@ class StasisCallControlService:
             except Exception:
                 continue
             if response.status_code == 404:
+                await self._state_store.end_recording(recording.recording_name, int(time.time()))
                 async with self._lock:
                     self._recordings.pop(recording.recording_name, None)
 
@@ -572,13 +573,28 @@ class StasisCallControlService:
                 continue
             if response.status_code == 404:
                 missing_bridges.append(bridge.bridge_id)
-        if missing_bridges:
+
+        for bridge_id in missing_bridges:
             async with self._lock:
-                for bridge_id in missing_bridges:
-                    self._bridges.pop(bridge_id, None)
-                    for name, recording in list(self._recordings.items()):
-                        if recording.bridge_id == bridge_id:
-                            self._recordings.pop(name, None)
+                bridge_sessions = [
+                    session
+                    for session in self._supervisor_sessions.values()
+                    if session.call_bridge_id == bridge_id
+                ]
+                bridge_recordings = [
+                    recording
+                    for recording in self._recordings.values()
+                    if recording.bridge_id == bridge_id
+                ]
+            for session in bridge_sessions:
+                await self._cleanup_supervisor_session(session)
+            for recording in bridge_recordings:
+                await self._state_store.end_recording(recording.recording_name, int(time.time()))
+                async with self._lock:
+                    self._recordings.pop(recording.recording_name, None)
+            await self._state_store.end_bridge(bridge_id, int(time.time()))
+            async with self._lock:
+                self._bridges.pop(bridge_id, None)
 
     async def reap_loop(self) -> None:
         if not self._settings.stasis_enabled:
