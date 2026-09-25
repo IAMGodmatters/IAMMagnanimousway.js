@@ -197,7 +197,7 @@ export default function NetworkAuthorityPage(){
    <article><small>GIGS MOBILE</small><strong>{overview.readiness.gigs?'READY':'LOCKED'}</strong></article>
    <article><small>PSTN BRIDGE</small><strong>{overview.readiness.wholesale_voice?'READY':'LOCKED'}</strong></article>
    <article><small>NATIVE WEBRTC</small><strong>{overview.readiness.native_webrtc_live?'VERIFIED':'NOT LIVE'}</strong></article>
-   <article><small>GLOBAL MOBILE</small><strong>{overview.readiness.global_mobile_live?'VERIFIED':'NOT LIVE'}</strong></article>
+   <article><small>GLOBAL MOBILE</small><strong>{overview.global_mobile?.production_verified?'VERIFIED':'NOT LIVE'}</strong></article>
    <article><small>E911 LIVE</small><strong>{overview.readiness.emergency_enabled?'VERIFIED':'OFF'}</strong></article>
    <article><small>DIRECT NUMBERING</small><strong>{overview.readiness.direct_numbering_authorized?'VERIFIED':'LATER'}</strong></article>
   </section>
