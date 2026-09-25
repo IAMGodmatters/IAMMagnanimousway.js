@@ -34,6 +34,9 @@ const wrangler=read('worker/wrangler.jsonc');
 const notFound=read('frontend/app/not-found.tsx');
 const notFoundRecovery=read('frontend/app/not-found-recovery.tsx');
 const packageJson=read('frontend/package.json');
+const productionRuntimeSmoke=read('.github/workflows/production-runtime-smoke.yml');
+const standaloneServer=read('magnanimous-runtime/src/server.mjs');
+const migrationStage=read('magnanimous-runtime/src/migration-stage.mjs');
 
 // Option A — Reliability First.
 includes(standaloneLayout,"iam_standalone_voice_hidden",'reliability: standalone voice controls retain persistent hide/show state');
@@ -84,6 +87,17 @@ includes(agencyRuntime,"pricing_position:{agency:299,agency_pro:499,ordinary_max
 includes(agencyUI,'BUSINESS / AGENCY POWERHOUSE','agency: Agency Command UI remains present');
 includes(agencyRuntime,'booking_reliability:{idempotency_key_supported:true,duplicate_replay_safe:true,bounded_transient_client_retries:true','agency: reliability status exposes booking idempotency and bounded retries');
 includes(agencyUI,'Booking retry protection: tenant-scoped idempotency + bounded transient retries','agency: owner-facing Agency UI exposes booking retry protection');
+includes(productionRuntimeSmoke,'name: Magnanimous Production Runtime Smoke','agency: independent production runtime smoke workflow exists');
+includes(productionRuntimeSmoke,'STANDALONE_ORIGIN: https://magnanimous-production.up.railway.app','agency: independent smoke targets the existing standalone production service');
+includes(productionRuntimeSmoke,'if [ "$live" = "$GITHUB_SHA" ]','agency: independent smoke waits for the exact pushed standalone revision');
+includes(productionRuntimeSmoke,'audience=magnanimous-deploy-smoke','agency: independent smoke uses signed GitHub OIDC rather than a stored control token');
+includes(productionRuntimeSmoke,'Idempotency-Key: $booking_key','agency: independent smoke proves the real booking idempotency contract');
+includes(productionRuntimeSmoke,"d.get('replayed') is True",'agency: independent smoke requires duplicate replay convergence');
+includes(productionRuntimeSmoke,"IDEMPOTENCY_KEY_REUSED",'agency: independent smoke requires changed-payload key reuse to fail closed');
+includes(productionRuntimeSmoke,'Disposable runtime-smoke tenant cleaned.','agency: independent smoke cleans its disposable standalone tenant');
+notMatches(productionRuntimeSmoke,/CLOUDFLARE_API_TOKEN|STRIPE_SECRET_KEY|RAILWAY_TOKEN/,'agency: independent smoke does not require paid/provider control credentials');
+includes(standaloneServer,"workflowFiles: ['.github/workflows/deploy.yml','.github/workflows/production-runtime-smoke.yml']",'agency: standalone smoke control explicitly allowlists only deploy and independent smoke workflows');
+includes(migrationStage,'acceptedWorkflowFiles.some','agency: GitHub OIDC verifier supports explicit workflow allowlists without weakening repository/ref checks');
 includes(agencyUI,'These are the live White Label subscription prices','agency: UI truthfully identifies Agency pricing as live subscriptions');
 includes(automationRuntime,'CREATE TABLE IF NOT EXISTS agency_automations','agency: persistent automation rules exist');
 includes(automationRuntime,'CREATE TABLE IF NOT EXISTS agency_automation_runs','agency: automation execution receipts exist');
