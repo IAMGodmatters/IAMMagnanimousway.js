@@ -52,17 +52,30 @@ function scoreLead(lead) {
   return { fit, engagement, score, status: score >= 70 ? 'hot' : score >= 40 ? 'warm' : 'cold' };
 }
 
+function magnanimousRouteControlReady(env) {
+  if (!['1', 'true', 'yes', 'on'].includes(String(env.TELECOM_NATIVE_WEBRTC_LIVE || '').trim().toLowerCase())) return false;
+  if (!env.VOIP_PROVIDER_URL || !env.VOIP_PROVIDER_TOKEN || !env.TELECOM_CORE_URL || !env.TELECOM_CORE_TOKEN) return false;
+  try {
+    const bridge = new URL(String(env.VOIP_PROVIDER_URL));
+    const core = new URL(String(env.TELECOM_CORE_URL));
+    return bridge.protocol === 'https:' && core.protocol === 'https:' && bridge.origin === core.origin;
+  } catch {
+    return false;
+  }
+}
+
 function carrierConfig(env) {
   const configured = Boolean(env.VOIP_PROVIDER_URL && env.VOIP_PROVIDER_TOKEN);
+  const routeControl = configured && magnanimousRouteControlReady(env);
   return {
     browserCalling: true,
     pstnConfigured: configured,
     provider: configured ? String(env.VOIP_PROVIDER_NAME || 'carrier-bridge') : null,
     inboundConfigured: configured && Boolean(env.VOIP_WEBHOOK_SECRET),
     callerId: configured ? String(env.VOIP_CALLER_ID || '') : '',
-    manualRouteSelection: configured,
+    manualRouteSelection: routeControl,
     liveRoutePlannerExecution: false,
-    allowedManualRoutes: configured ? ['auto', 'primary', 'secondary'] : [],
+    allowedManualRoutes: routeControl ? ['auto', 'primary', 'secondary'] : [],
     stun: 'stun:stun.l.google.com:19302',
     message: configured
       ? 'The carrier bridge is ready for ordinary telephone numbers.'
@@ -372,6 +385,9 @@ async function phoneRoutes(request, env, user, path, url) {
     if (body.route_id && !['owner', 'admin'].includes(String(user.role || '').toLowerCase())) {
       return json({ detail: 'Owner or admin access is required to select a carrier route manually.' }, 403);
     }
+    if (body.route_id && !magnanimousRouteControlReady(env)) {
+      return json({ detail: 'Explicit carrier route selection is available only through the verified Magnanimous Telecom Core.', code: 'ROUTE_CONTROL_NOT_READY' }, 409);
+    }
     if (!carrierConfig(env).pstnConfigured) {
       return json({
         detail: 'Connect a carrier bridge before calling an ordinary phone number.',
@@ -396,7 +412,7 @@ async function phoneRoutes(request, env, user, path, url) {
         from,
         agent_id: body.agent_id || null,
         queue_id: body.queue_id || null,
-        route_id: routeId,
+        ...(body.route_id ? { route_id: routeId } : {}),
         webhook_url: `${url.origin}/api/phone/webhook`
       });
       const providerCallId = String(provider.provider_call_id || provider.call_id || provider.id || '');
