@@ -1,3 +1,4 @@
+import { planCarrierRoute } from './magnanimous-carrier-core.js';
 const now = () => Math.floor(Date.now() / 1000);
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -94,6 +95,17 @@ async function logEvent(env, tenantId, callId, eventType, status = '', detail = 
     JSON.stringify(payload || {}).slice(0, 20000),
     now()
   ).run();
+}
+
+function magnanimousCoreBridgeReady(env) {
+  try {
+    if (!env.TELECOM_CORE_URL || !env.TELECOM_CORE_TOKEN || !env.VOIP_PROVIDER_URL || !env.VOIP_PROVIDER_TOKEN) return false;
+    const provider = new URL(String(env.VOIP_PROVIDER_URL));
+    const core = new URL(String(env.TELECOM_CORE_URL));
+    return provider.protocol === 'https:' && core.protocol === 'https:' && provider.origin === core.origin;
+  } catch {
+    return false;
+  }
 }
 
 async function placeCarrierCall(env, payload) {
@@ -371,6 +383,25 @@ async function phoneRoutes(request, env, user, path, url) {
       }, 409);
     }
     const timestamp = now();
+    let routePlan = null;
+    try {
+      routePlan = await planCarrierRoute(env, user, to, String(body.route_mode || 'balanced'));
+    } catch (error) {
+      console.error('Carrier route planner unavailable; preserving compatibility path', error);
+    }
+    const selected = routePlan?.selected || null;
+    const selectedRoute = magnanimousCoreBridgeReady(env) && selected && ['sip-trunk','byoc-bridge','direct-pstn'].includes(String(selected.type || '')) && String(selected.execution_endpoint || '').trim()
+      ? {
+          route_id: selected.route_id,
+          interconnect_id: selected.interconnect_id,
+          endpoint: String(selected.execution_endpoint).trim(),
+          selection_mode: routePlan.selection_mode,
+          health: selected.health,
+          quality_score: selected.quality_score,
+          quality_source: selected.quality_source,
+          estimated_rate: selected.estimated_rate
+        }
+      : null;
     const created = await env.DB.prepare(`INSERT INTO phone_calls(
       tenant_id,contact_id,direction,caller,callee,status,created_at,provider,
       queue_id,agent_id,metadata_json,updated_at
@@ -388,15 +419,24 @@ async function phoneRoutes(request, env, user, path, url) {
         from,
         agent_id: body.agent_id || null,
         queue_id: body.queue_id || null,
-        webhook_url: `${url.origin}/api/phone/webhook`
+        webhook_url: `${url.origin}/api/phone/webhook`,
+        selected_route: selectedRoute
       });
       const providerCallId = String(provider.provider_call_id || provider.call_id || provider.id || '');
       const status = String(provider.status || 'dialing');
       await env.DB.prepare(
         'UPDATE phone_calls SET provider_call_id=?,status=?,metadata_json=?,updated_at=? WHERE id=? AND tenant_id=?'
-      ).bind(providerCallId, status, JSON.stringify(provider).slice(0, 20000), now(), callId, tenantId).run();
+      ).bind(providerCallId, status, JSON.stringify({...provider,route_plan:selectedRoute?{selected:selectedRoute,selection_mode:routePlan?.selection_mode}:null}).slice(0, 20000), now(), callId, tenantId).run();
       await logEvent(env, tenantId, callId, 'outbound-requested', status, '', provider);
-      return json({ id: callId, provider_call_id: providerCallId, status }, 201);
+      return json({
+        id: callId,
+        provider_call_id: providerCallId,
+        status,
+        route_id: selectedRoute?.route_id || null,
+        interconnect_id: selectedRoute?.interconnect_id || null,
+        selected_route_requested: Boolean(selectedRoute),
+        selected_route_applied: provider?.selected_route_applied === true
+      }, 201);
     } catch (error) {
       await env.DB.prepare("UPDATE phone_calls SET status='failed',updated_at=? WHERE id=? AND tenant_id=?")
         .bind(now(), callId, tenantId).run();

@@ -66,6 +66,8 @@ class TelecomSettings:
     sip_db_name: str = "magnanimous_sip"
     sip_db_user: str = "magnanimous_sip"
     sip_db_password: str = ""
+    carrier_secondary_endpoint: str = ""
+    carrier_allowed_endpoints: tuple[str, ...] = ()
 
     @classmethod
     def from_env(cls) -> "TelecomSettings":
@@ -79,6 +81,15 @@ class TelecomSettings:
             for item in _env("MAGNANIMOUS_TURN_URLS").split(",")
             if item.strip()
         )
+        carrier_endpoint = _env("CARRIER_SIP_ENDPOINT", "pstn-trunk")
+        carrier_secondary_endpoint = _env("CARRIER_SIP_SECONDARY_ENDPOINT")
+        carrier_allowed = tuple(dict.fromkeys(
+            item for item in [
+                carrier_endpoint,
+                carrier_secondary_endpoint,
+                *[x.strip() for x in _env("CARRIER_SIP_ALLOWED_ENDPOINTS").split(",") if x.strip()],
+            ] if item
+        ))
         return cls(
             api_token=_env("TELECOM_API_TOKEN"),
             webhook_secret=_env("TELECOM_WEBHOOK_SECRET"),
@@ -88,7 +99,7 @@ class TelecomSettings:
             ari_user=_env("ASTERISK_ARI_USER"),
             ari_password=_env("ASTERISK_ARI_PASSWORD"),
             caller_id=_env("MAGNANIMOUS_CALLER_ID"),
-            carrier_endpoint=_env("CARRIER_SIP_ENDPOINT", "pstn-trunk"),
+            carrier_endpoint=carrier_endpoint,
             carrier_dial_context=_env("CARRIER_DIAL_CONTEXT", "magnanimous-outbound"),
             carrier_timeout_ms=max(1000, _env_int("CARRIER_CALL_TIMEOUT_MS", 60000)),
             monitor_interval_seconds=max(0.5, _env_float("CARRIER_MONITOR_INTERVAL_SECONDS", 2.0)),
@@ -109,4 +120,6 @@ class TelecomSettings:
             sip_db_name=_env("SIP_DB_NAME", "magnanimous_sip"),
             sip_db_user=_env("SIP_DB_USER", "magnanimous_sip"),
             sip_db_password=_env("SIP_DB_PASSWORD"),
+            carrier_secondary_endpoint=carrier_secondary_endpoint,
+            carrier_allowed_endpoints=carrier_allowed,
         )

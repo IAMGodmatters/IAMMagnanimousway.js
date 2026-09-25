@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+import re
 
 import httpx
 
@@ -44,9 +45,31 @@ class AsteriskAriClient:
 class AsteriskSipCarrierBridge:
     """Carrier-neutral bridge: Magnanimous controls calls; Asterisk reaches the configured SIP interconnect."""
 
+    _ENDPOINT = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
+
     def __init__(self, ari: AsteriskAriClient, settings: TelecomSettings):
         self._ari = ari
         self._settings = settings
+
+    def _selected_endpoint(self, call: CarrierCallRequest) -> str:
+        endpoint = str(call.carrier_endpoint or "").strip()
+        if not endpoint:
+            return self._settings.carrier_endpoint
+        allowed = set(self._settings.carrier_allowed_endpoints or (self._settings.carrier_endpoint,))
+        if not self._ENDPOINT.fullmatch(endpoint) or endpoint not in allowed:
+            raise CarrierRejectedError("Selected carrier route is not authorized by this Telecom Core.")
+        return endpoint
+
+    async def _endpoint_health(self, endpoint: str) -> dict[str, Any]:
+        response = await self._ari.request("GET", f"/endpoints/PJSIP/{endpoint}")
+        if response.status_code == 404:
+            return {"ok": False, "state": "not-configured", "endpoint": endpoint}
+        if not response.is_success:
+            return {"ok": False, "state": "unavailable", "endpoint": endpoint}
+        data = response.json()
+        state = str(data.get("state") or "available").strip().lower()
+        unhealthy = state in {"down", "offline", "unavailable", "failed", "unknown"}
+        return {"ok": not unhealthy, "state": state, "endpoint": endpoint}
 
     def describe(self) -> dict[str, Any]:
         return {
@@ -66,6 +89,13 @@ class AsteriskSipCarrierBridge:
         }
 
     async def originate(self, call: CarrierCallRequest) -> CarrierCallState:
+        selected_endpoint = self._selected_endpoint(call)
+        if call.carrier_endpoint:
+            route_health = await self._endpoint_health(selected_endpoint)
+            if not route_health["ok"]:
+                raise CarrierUnavailableError(
+                    f"Selected carrier route {selected_endpoint} is not healthy ({route_health['state']})."
+                )
         params = {
             "endpoint": f"Local/{call.destination}@{self._settings.carrier_dial_context}/n",
             "context": "magnanimous-ai",
@@ -83,6 +113,9 @@ class AsteriskSipCarrierBridge:
             "MAG_TO": call.destination,
             "MAG_AGENT_ID": call.agent_id,
             "MAG_QUEUE_ID": call.queue_id,
+            "MAG_ROUTE_ID": call.route_id,
+            "MAG_INTERCONNECT_ID": call.interconnect_id,
+            "MAG_CARRIER_ENDPOINT": selected_endpoint if call.carrier_endpoint else "",
         }
         response = await self._ari.request("POST", "/channels", params=params, body={"variables": variables})
         if not response.is_success:
@@ -113,19 +146,17 @@ class AsteriskSipCarrierBridge:
     async def health(self) -> dict[str, Any]:
         asterisk = await self._ari.request("GET", "/asterisk/info")
         asterisk_ready = asterisk.is_success
-        trunk_state = "unknown"
+        route_health: list[dict[str, Any]] = []
         if asterisk_ready:
-            endpoint = await self._ari.request("GET", f"/endpoints/PJSIP/{self._settings.carrier_endpoint}")
-            if endpoint.status_code == 404:
-                trunk_state = "not-configured"
-            elif endpoint.is_success:
-                data = endpoint.json()
-                trunk_state = str(data.get("state") or "available").lower()
-            else:
-                trunk_state = "unavailable"
+            for endpoint in self._settings.carrier_allowed_endpoints or (self._settings.carrier_endpoint,):
+                route_health.append(await self._endpoint_health(endpoint))
+        primary = next((item for item in route_health if item["endpoint"] == self._settings.carrier_endpoint), None)
+        trunk_state = primary["state"] if primary else ("unknown" if asterisk_ready else "unavailable")
         return {
             "ok": asterisk_ready,
             "asterisk": "ready" if asterisk_ready else "unavailable",
             "carrier_bridge": trunk_state,
             "carrier_endpoint": self._settings.carrier_endpoint,
+            "authenticated_route_health": route_health,
+            "selected_route_health_supported": True,
         }

@@ -30,7 +30,8 @@ lacks(main,'httpx','thin HTTP layer does not perform carrier/network transport')
 lacks(main,'asyncio','thin HTTP layer does not own monitor lifecycle');
 has(entrypoint,'PSTN_TRUNK_HOST','legacy PSTN configuration remains backward compatible');
 has(entrypoint,'CARRIER_SIP_HOST','carrier-neutral configuration is supported');
-has(dialplan,'@${CARRIER_SIP_ENDPOINT}','dialplan routes through replaceable carrier endpoint');
+has(dialplan,'MAG_SELECTED_ENDPOINT=${IF($["${MAG_CARRIER_ENDPOINT}"!=""]?${MAG_CARRIER_ENDPOINT}:${CARRIER_SIP_ENDPOINT})}','dialplan defaults selected routing to the replaceable primary carrier endpoint');
+has(dialplan,'@${MAG_SELECTED_ENDPOINT}','dialplan routes through the validated selected carrier endpoint');
 has(trunk,'[${CARRIER_SIP_ENDPOINT}]','SIP endpoint identity is configurable');
 has(compose,'CARRIER_DIAL_CONTEXT','container configuration exposes the carrier bridge route');
 has(entrypoint,'CARRIER_SIP_SECONDARY_HOST','Asterisk runtime supports an optional secondary carrier');

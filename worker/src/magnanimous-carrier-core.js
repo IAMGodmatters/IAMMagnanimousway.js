@@ -100,7 +100,8 @@ async function routePlan(env,user,to,mode='balanced'){
   const routePrefix=String(x.destination_prefix||''),samples=cdrRows.filter(c=>Number(c.interconnect_id)===Number(x.interconnect_id)&&(!routePrefix||String(c.to_number||'').startsWith(routePrefix))).slice(0,100),observed=measuredQuality(samples);
   const measuredEligible=observed.fresh&&observed.sample_count>=10&&observed.measured_quality_score!=null;
   const quality=measuredEligible?observed.measured_quality_score:configuredQuality,maxRate=x.max_rate==null?null:Number(x.max_rate),overRateCap=maxRate!=null&&estimatedRate!=null&&estimatedRate>maxRate;
-  return{route_id:x.id,route:x.name,destination_prefix:routePrefix,interconnect_id:x.interconnect_id,interconnect:x.interconnect_name,type:x.interconnect_type,health:x.health_status,max_rate:maxRate,estimated_rate:estimatedRate,over_rate_cap:overRateCap,quality_score:quality,quality_source:measuredEligible?'measured':'configured',configured_quality_score:configuredQuality,observed,priority:Number(x.priority||100),interconnect_priority:Number(x.interconnect_priority||100),jurisdiction:x.jurisdiction,policy};
+  const executionEndpoint=String(policy.asterisk_endpoint||policy.endpoint_key||'').trim().slice(0,80);
+  return{route_id:x.id,route:x.name,destination_prefix:routePrefix,interconnect_id:x.interconnect_id,interconnect:x.interconnect_name,type:x.interconnect_type,endpoint:String(x.endpoint||''),execution_endpoint:executionEndpoint,health:x.health_status,max_rate:maxRate,estimated_rate:estimatedRate,over_rate_cap:overRateCap,quality_score:quality,quality_source:measuredEligible?'measured':'configured',configured_quality_score:configuredQuality,observed,priority:Number(x.priority||100),interconnect_priority:Number(x.interconnect_priority||100),jurisdiction:x.jurisdiction,policy};
  });
  const longest=matches.reduce((n,x)=>Math.max(n,x.destination_prefix.length),0),specific=matches.filter(x=>x.destination_prefix.length===longest);
  const healthy=specific.filter(x=>!['down','unavailable','failed'].includes(String(x.health||'').toLowerCase())&&!x.over_rate_cap),pool=healthy;
@@ -112,6 +113,11 @@ async function routePlan(env,user,to,mode='balanced'){
  });
  const selected=sorted[0]||null;
  return{destination,selection_mode:selectionMode,matches,selected,eligible_routes:sorted.length,telemetry_policy:{sample_floor:10,freshness_seconds:604800,window_per_route:100,signals:['network_failure_rate','PDD','ASR','ACD'],fallback:'configured quality score until measured evidence is fresh and sufficient'},policy:'longest destination prefix first; down/unavailable/failed routes and routes above max_rate are excluded; balanced mode prefers fresh measured quality then rate; least-cost prefers rate then quality; priority mode honors configured priorities first'};
+}
+
+export async function planCarrierRoute(env,user,to,mode='balanced'){
+ await schema(env);
+ return routePlan(env,user,to,mode);
 }
 
 export async function handleMagnanimousCarrierCore(request,env){
@@ -141,9 +147,24 @@ export async function handleMagnanimousCarrierCore(request,env){
   const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_carrier_routes WHERE tenant_id=? ORDER BY priority,id').bind(String(user.tenant_id)).all();return json({routes:results.map(x=>({...x,enabled:!!x.enabled,policy:(()=>{try{return JSON.parse(x.policy_json)}catch{return{}}})()}))});
  }
  if(request.method==='POST'&&path==='/api/magnanimous/carrier/routes'){
-  if(!manager(user))return json({detail:'Owner or admin role required.'},403);const b=await request.json().catch(()=>({}));const interconnectId=Number(b.interconnect_id||0);if(!interconnectId)return json({detail:'interconnect_id is required.'},400);const ic=await env.DB.prepare('SELECT id FROM magnanimous_carrier_interconnects WHERE tenant_id=? AND id=?').bind(String(user.tenant_id),interconnectId).first();if(!ic)return json({detail:'Interconnect not found.'},404);const ts=now();const r=await env.DB.prepare(`INSERT INTO magnanimous_carrier_routes(tenant_id,name,destination_prefix,interconnect_id,priority,enabled,max_rate,jurisdiction,policy_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`).bind(String(user.tenant_id),clip(b.name||'Carrier route',120),clip(b.destination_prefix,32),interconnectId,Math.max(0,Number(b.priority||100)),b.enabled===false?0:1,b.max_rate==null?null:Number(b.max_rate),clip(b.jurisdiction,80),JSON.stringify(b.policy&&typeof b.policy==='object'?b.policy:{}).slice(0,8000),ts,ts).run();await audit(env,user,'route.create',String(r.meta?.last_row_id||''),String(interconnectId));return json({ok:true,id:r.meta?.last_row_id||null},201);
+  if(!manager(user))return json({detail:'Owner or admin role required.'},403);
+  const b=await request.json().catch(()=>({})),interconnectId=Number(b.interconnect_id||0);
+  if(!interconnectId)return json({detail:'interconnect_id is required.'},400);
+  const ic=await env.DB.prepare('SELECT id,type FROM magnanimous_carrier_interconnects WHERE tenant_id=? AND id=?').bind(String(user.tenant_id),interconnectId).first();
+  if(!ic)return json({detail:'Interconnect not found.'},404);
+  const policy=b.policy&&typeof b.policy==='object'&&!Array.isArray(b.policy)?{...b.policy}:{};
+  const executionEndpoint=String(policy.asterisk_endpoint||policy.endpoint_key||'').trim();
+  if(executionEndpoint&&!/^[A-Za-z0-9_.-]{1,80}$/.test(executionEndpoint))return json({detail:'asterisk_endpoint must be an Asterisk PJSIP endpoint key.'},422);
+  if(executionEndpoint&&!['sip-trunk','byoc-bridge','direct-pstn'].includes(String(ic.type||'')))return json({detail:'Only migrated SIP/BYOC interconnect types can declare asterisk_endpoint.'},422);
+  if(executionEndpoint){policy.asterisk_endpoint=executionEndpoint;delete policy.endpoint_key}
+  const ts=now(),r=await env.DB.prepare(`INSERT INTO magnanimous_carrier_routes(tenant_id,name,destination_prefix,interconnect_id,priority,enabled,max_rate,jurisdiction,policy_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`).bind(String(user.tenant_id),clip(b.name||'Carrier route',120),clip(b.destination_prefix,32),interconnectId,Math.max(0,Number(b.priority||100)),b.enabled===false?0:1,b.max_rate==null?null:Number(b.max_rate),clip(b.jurisdiction,80),JSON.stringify(policy).slice(0,8000),ts,ts).run();
+  await audit(env,user,'route.create',String(r.meta?.last_row_id||''),String(interconnectId));
+  return json({ok:true,id:r.meta?.last_row_id||null,selected_route_execution:executionEndpoint?'magnanimous-telecom-core':'preview-only'},201);
  }
- if(request.method==='GET'&&path==='/api/magnanimous/carrier/route-plan')return json(await routePlan(env,user,url.searchParams.get('to'),url.searchParams.get('mode')||'balanced'));
+ if(request.method==='GET'&&path==='/api/magnanimous/carrier/route-plan'){
+  if(!manager(user))return json({detail:'Owner or admin role required.'},403);
+  return json(await planCarrierRoute(env,user,url.searchParams.get('to'),url.searchParams.get('mode')||'balanced'));
+ }
  if(request.method==='POST'&&path==='/api/magnanimous/carrier/cdr'){
   if(!manager(user))return json({detail:'Owner or admin role required.'},403);const b=await request.json().catch(()=>({})),callId=clip(b.call_id,160);if(!callId)return json({detail:'call_id is required.'},400);await env.DB.prepare(`INSERT INTO magnanimous_carrier_cdr(tenant_id,call_id,provider_call_id,direction,from_number,to_number,interconnect_id,route_id,status,started_at,answered_at,ended_at,duration_seconds,billable_seconds,wholesale_cost,customer_charge,currency,stir_attestation,emergency_call,metadata_json,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,call_id) DO UPDATE SET provider_call_id=excluded.provider_call_id,status=excluded.status,answered_at=excluded.answered_at,ended_at=excluded.ended_at,duration_seconds=excluded.duration_seconds,billable_seconds=excluded.billable_seconds,wholesale_cost=excluded.wholesale_cost,customer_charge=excluded.customer_charge,stir_attestation=excluded.stir_attestation,metadata_json=excluded.metadata_json`).bind(String(user.tenant_id),callId,clip(b.provider_call_id,160),clip(b.direction||'outbound',20),clip(b.from_number,32),clip(b.to_number,32),b.interconnect_id?Number(b.interconnect_id):null,b.route_id?Number(b.route_id):null,clip(b.status,40),b.started_at?Number(b.started_at):null,b.answered_at?Number(b.answered_at):null,b.ended_at?Number(b.ended_at):null,Math.max(0,Number(b.duration_seconds||0)),Math.max(0,Number(b.billable_seconds||0)),Math.max(0,Number(b.wholesale_cost||0)),Math.max(0,Number(b.customer_charge||0)),clip(b.currency||'USD',8),clip(b.stir_attestation,8),bool(b.emergency_call)?1:0,JSON.stringify(b.metadata&&typeof b.metadata==='object'?b.metadata:{}).slice(0,12000),now()).run();await audit(env,user,'cdr.upsert',callId,clip(b.status,40));return json({ok:true,call_id:callId});
  }

@@ -78,12 +78,17 @@ class CallServiceTests(unittest.IsolatedAsyncioTestCase):
                 tenant_id="tenant-1",
                 to="+1 (555) 987-6543",
                 webhook_url="https://iammagnanimousway.com/api/voice/carrier/status",
+                selected_route={"route_id": 7, "interconnect_id": 3, "endpoint": "pstn-secondary"},
             )
         )
         self.assertEqual(bridge.originated.destination, "+15559876543")
         self.assertEqual(bridge.originated.caller_id, "+15551234567")
         self.assertEqual(result["provider"], "Magnanimous Telecom")
         self.assertEqual(result["provider_call_id"], str(fixed_id))
+        self.assertTrue(result["selected_route_applied"])
+        self.assertEqual(result["route_id"], "7")
+        self.assertEqual(result["interconnect_id"], "3")
+        self.assertEqual(bridge.originated.carrier_endpoint, "pstn-secondary")
         self.assertEqual(monitor.started[0], str(fixed_id))
 
     async def test_invalid_call_id_is_rejected_before_bridge_hangup(self):
