@@ -8,6 +8,7 @@ const agents = fs.readFileSync('frontend/app/agents/page.tsx', 'utf8');
 const videoAgents = fs.readFileSync('frontend/app/agent-video/page.tsx', 'utf8');
 const virtualAssistant = fs.readFileSync('frontend/app/virtual-assistant/page.tsx', 'utf8');
 const productionSmoke = fs.readFileSync('.github/workflows/voice-conversation-production-smoke.yml', 'utf8');
+const standalone = fs.readFileSync('frontend/app/magnanimous/page.tsx', 'utf8');
 
 const contracts = [
   ['speech output is primed from a user gesture', /function primeSpeechSynthesis\(\)/, source],
@@ -35,6 +36,11 @@ const contracts = [
   ['speech cleanup strips markdown emphasis and heading marks', /replace\(\/\[\\\*_~#\\\`\]\/g,''\)/, natural],
   ['speech cleanup removes bare web addresses before playback', /replace\(\/https\?:\\\/\\\/\\S\+\/gi,' '\)/, natural],
   ['speech playback is split into sentence-sized chunks', /export function splitSpeechText[\s\S]*?maxChars=260/, natural],
+  ['iPhone speech uses shorter chunks and a wider handoff delay', /appleMobileSpeechRuntime[\s\S]*?Math\.min\(options\.maxChunkChars\|\|260,140\)[\s\S]*?Math\.max\(options\.interChunkDelayMs\?\?45,90\)/, natural],
+  ['iPhone speech clamps unstable rate and pitch extremes', /utterance\.rate=Math\.max\(\.88[\s\S]*?utterance\.pitch=Math\.max\(\.95/, natural],
+  ['iPhone voice selection prefers the stable platform default', /appleMobileVoiceRuntime\(\)[\s\S]*?return\{voice:undefined,rate:\.94,pitch:1\}/, source],
+  ['voice reply detection skips intentionally silent failure bubbles', /assistant:not\(\.voice-silent\)/, source],
+  ['standalone failed replies are explicitly silent for auto-speech', /silentVoice:true/, standalone],
   ['speech playback ignores stale callbacks after cancellation', /generation!==speechGeneration/, natural],
   ['speech chunks continue only after the prior chunk ends', /utterance\.onend=[\s\S]*?setTimeout\(next/, natural],
   ['agent workspace uses shared natural speech', /speakTextNaturally\(text/, agents],
