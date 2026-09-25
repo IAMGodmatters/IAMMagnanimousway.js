@@ -1,6 +1,6 @@
 const now = () => Math.floor(Date.now() / 1000);
 const AD_PAYMENT_LINK = 'https://buy.stripe.com/3cI9ATeZkeY62rCgId6kg01';
-const AD_PRICE_USD = 49;
+const AD_PRICE_USD = 49;\nconst sponsoredAdsEnabled=env=>String(env?.MAGNANIMOUS_SPONSORED_ADS_ENABLED||'').trim().toLowerCase()==='true';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -124,7 +124,7 @@ async function activateFromCheckout(env, object) {
   const created = now();
   const insert = await env.DB.prepare(
     'INSERT INTO ads(title,url,label,placement,active,created_at) VALUES(?,?,?,?,?,?)'
-  ).bind(headline, destination, label, 'home', 1, created).run();
+  ).bind(headline, destination, label, 'home', enabled?1:0, created).run();
   const adId = Number(insert?.meta?.last_row_id || 0) || null;
   await env.DB.prepare(`
     INSERT INTO sponsored_ad_orders(
@@ -151,7 +151,7 @@ async function syncSubscriptionStatus(env, type, object) {
   const subscriptionId = String(object?.id || '').trim();
   if (!subscriptionId) return true;
   const status = String(object?.status || (type.endsWith('.deleted') ? 'canceled' : 'inactive'));
-  const active = ['active', 'trialing'].includes(status) && !type.endsWith('.deleted');
+  const active = sponsoredAdsEnabled(env) && ['active', 'trialing'].includes(status) && !type.endsWith('.deleted');
   const row = await env.DB.prepare('SELECT ad_id FROM sponsored_ad_orders WHERE stripe_subscription_id=?').bind(subscriptionId).first();
   if (row?.ad_id) await env.DB.prepare('UPDATE ads SET active=? WHERE id=?').bind(active ? 1 : 0, row.ad_id).run();
   await env.DB.prepare('UPDATE sponsored_ad_orders SET status=?,updated_at=? WHERE stripe_subscription_id=?')
@@ -179,7 +179,7 @@ export async function handleSponsoredAds(request, env) {
       price_usd: AD_PRICE_USD,
       cadence: 'month',
       payment_link: AD_PAYMENT_LINK,
-      automatic_activation: true
+      automatic_activation: sponsoredAdsEnabled(env)
     });
   }
 
