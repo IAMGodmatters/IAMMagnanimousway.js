@@ -12,9 +12,12 @@ from .container import get_container
 async def lifespan(_app: FastAPI):
     container = get_container()
     reaper = asyncio.create_task(container.webrtc_sessions.reap_loop())
+    stasis_events = asyncio.create_task(container.stasis_events.run())
     try:
         yield
     finally:
-        reaper.cancel()
-        with suppress(asyncio.CancelledError):
-            await reaper
+        for task in (reaper, stasis_events):
+            task.cancel()
+        for task in (reaper, stasis_events):
+            with suppress(asyncio.CancelledError):
+                await task
