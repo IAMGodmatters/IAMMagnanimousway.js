@@ -13,6 +13,7 @@ on:
       - 'worker/src/phone-carrier-runtime.js'
       - 'worker/src/plivo-carrier-runtime.js'
       - 'worker/src/voice-agent-runtime.js'
+      - 'qa/scripts/telecom-compatibility-router-lock.mjs'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
       - 'worker/src/magnanimous-telecom-bss-admin-runtime.js'
@@ -41,6 +42,7 @@ on:
       - 'worker/src/phone-carrier-runtime.js'
       - 'worker/src/plivo-carrier-runtime.js'
       - 'worker/src/voice-agent-runtime.js'
+      - 'qa/scripts/telecom-compatibility-router-lock.mjs'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
       - 'worker/src/magnanimous-telecom-bss-admin-runtime.js'
@@ -119,6 +121,7 @@ jobs:
           node --check worker/src/phone-carrier-runtime.js
           node --check worker/src/plivo-carrier-runtime.js
           node --check worker/src/voice-agent-runtime.js
+          node qa/scripts/telecom-compatibility-router-lock.mjs
           node --check worker/src/magnanimous-telecom-service-runtime.js
           node --check worker/src/magnanimous-telecom-operations-runtime.js
           node --check worker/src/magnanimous-telecom-bss-admin-runtime.js
