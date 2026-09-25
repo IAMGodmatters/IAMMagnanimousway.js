@@ -46,6 +46,16 @@ async function ensureSchema(env){
   PRIMARY KEY(video_id,observed_at)
  )`).run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_creator_snapshots_video ON creator_video_snapshots(video_id,observed_at DESC)').run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS creator_bookmarks(
+  id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,kind TEXT NOT NULL,
+  reference_id TEXT NOT NULL DEFAULT '',payload_json TEXT NOT NULL DEFAULT '{}',
+  tags_json TEXT NOT NULL DEFAULT '[]',created_at INTEGER NOT NULL
+ )`).run();
+ await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_creator_bookmarks_owner ON creator_bookmarks(tenant_id,user_id,created_at DESC)').run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS creator_competitors(
+  tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,channel_id TEXT NOT NULL,title TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,user_id,channel_id)
+ )`).run();
 }
 
 async function authContext(env,user){
@@ -218,6 +228,76 @@ function scriptPlan(body){
  ],retention_notes:['Open loops should be resolved, not dragged out artificially.','Add a meaningful visual/pacing change when the idea changes.','Cut repeated setup and filler before adding more effects.']};
 }
 
+async function channelBatch(env,user,ids){
+ const unique=[...new Set((ids||[]).map(x=>clean(x,80)).filter(Boolean))].slice(0,50);if(!unique.length)return[];
+ const d=await ytFetch(env,user,'/channels',{part:'snippet,statistics,contentDetails,status',id:unique.join(','),maxResults:50});
+ return(d.items||[]).map(x=>({channel_id:x.id,title:x.snippet?.title||'',description:x.snippet?.description||'',thumbnail_url:x.snippet?.thumbnails?.high?.url||x.snippet?.thumbnails?.medium?.url||'',country:x.snippet?.country||null,subscribers:Number(x.statistics?.subscriberCount||0),views:Number(x.statistics?.viewCount||0),videos:Number(x.statistics?.videoCount||0)}));
+}
+async function channelSearch(env,user,query,limit=20){
+ const d=await ytFetch(env,user,'/search',{part:'snippet',type:'channel',q:clean(query,180),maxResults:clamp(limit,1,25),order:'relevance'});
+ const ids=(d.items||[]).map(x=>x.id?.channelId).filter(Boolean),full=await channelBatch(env,user,ids),map=new Map(full.map(x=>[x.channel_id,x]));
+ return ids.map(id=>map.get(id)).filter(Boolean);
+}
+function discoveryTerms(text,max=6){
+ return wordTokens(text).filter(x=>!STOP.has(x)&&x.length>3).slice(0,max).join(' ');
+}
+async function similarVideos(env,user,videoId,limit=20){
+ const seed=(await enrichVideos(env,user,[clean(videoId,40)]))[0];if(!seed)throw new Error('Seed video not found.');
+ const q=discoveryTerms(seed.title+' '+seed.description,7)||seed.title;
+ const found=await searchVideos(env,user,{q,max:clamp(limit,1,25),order:'relevance'});
+ return{seed,query_basis:q,videos:found.filter(x=>x.video_id!==seed.video_id),disclosure:'Similarity uses public title/description/topic signals plus current YouTube relevance ranking; it is not a copy of a proprietary similarity index.'};
+}
+async function similarChannels(env,user,input,limit=20){
+ const seed=await channelStats(env,user,input),q=discoveryTerms(seed.title+' '+seed.description,6)||seed.title,channels=await channelSearch(env,user,q,limit);
+ return{seed,query_basis:q,channels:channels.filter(x=>x.channel_id!==seed.channel_id),disclosure:'Similarity uses public channel metadata and current YouTube relevance results.'};
+}
+async function categories(env,user,region='US'){
+ const d=await ytFetch(env,user,'/videoCategories',{part:'snippet',regionCode:clean(region,2).toUpperCase()||'US'});
+ return(d.items||[]).filter(x=>x.snippet?.assignable!==false).map(x=>({id:x.id,title:x.snippet?.title||''}));
+}
+function commentReplyDrafts(comment,tones=['warm','helpful','short']){
+ const text=clean(comment,1000);if(!text)return[];
+ const topic=text.replace(/[?!]+$/,'').slice(0,180);
+ const library={
+  warm:`Thank you for sharing this. I appreciate you taking the time to watch and comment. ${topic.length<90?'I hear what you’re saying.':''}`.trim(),
+  helpful:`Thank you for the question. The key point is to take it one step at a time and focus on the part that applies to your situation. I can cover this in more detail in a follow-up.`,
+  short:`Thank you for watching and for the comment. I appreciate it.`,
+  encouraging:`Thank you for being here. Keep going, keep learning, and don’t be afraid to ask questions along the way.`,
+  professional:`Thank you for the thoughtful feedback. I appreciate the perspective and will keep it in mind for future content.`
+ };
+ return[...new Set((tones||[]).map(x=>String(x||'').toLowerCase()))].slice(0,5).map(t=>({tone:t,reply:library[t]||library.helpful}));
+}
+async function dailyIdeas(env,user,body={}){
+ let seed=clean(body.topic,180),evidence=[];
+ if(seed){
+  const proxy=await keywordProxy(env,user,seed,body.region_code||'US');evidence=proxy.sample||[];
+ }else{
+  const stats=await channelStats(env,user,body.channel||'');seed=discoveryTerms(stats.title+' '+stats.description,6)||stats.title;
+  evidence=await searchVideos(env,user,{channel_id:stats.channel_id,max:12,order:'date'});
+ }
+ const ideas=titleIdeas(seed,body.type||'long',clamp(body.limit||10,1,20)).map((x,i)=>({
+  rank:i+1,title:x.title,title_score:x.score,angle:i%3===0?'Answer a clear audience question':i%3===1?'Show a before/after or result':'Challenge a common assumption',
+  evidence_video:evidence[i%evidence.length]?.title||null,evidence_video_id:evidence[i%evidence.length]?.video_id||null
+ }));
+ return{seed,ideas,disclosure:'Ideas are generated from the supplied topic or your public channel/video evidence. They are not guaranteed view predictions.'};
+}
+async function saveBookmark(env,user,body){
+ const kind=clean(body.kind||'video',40),reference=clean(body.reference_id||body.video_id||body.channel_id||body.keyword,180),id=crypto.randomUUID(),tags=[...new Set((Array.isArray(body.tags)?body.tags:[]).map(x=>clean(x,40)).filter(Boolean))].slice(0,20),payload=body.payload&&typeof body.payload==='object'?body.payload:{};
+ await env.DB.prepare('INSERT INTO creator_bookmarks(id,tenant_id,user_id,kind,reference_id,payload_json,tags_json,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(id,String(user.tenant_id),String(user.id),kind,reference,JSON.stringify(payload),JSON.stringify(tags),now()).run();
+ return{id,kind,reference_id:reference,tags,payload};
+}
+async function listBookmarks(env,user,kind='',limit=50){
+ const params=[String(user.tenant_id),String(user.id)],where=['tenant_id=?','user_id=?'];if(kind){where.push('kind=?');params.push(clean(kind,40))}
+ const{results=[]}=await env.DB.prepare(`SELECT * FROM creator_bookmarks WHERE ${where.join(' AND ')} ORDER BY created_at DESC LIMIT ?`).bind(...params,clamp(limit,1,100)).all();
+ return results.map(r=>({id:r.id,kind:r.kind,reference_id:r.reference_id,payload:(()=>{try{return JSON.parse(r.payload_json||'{}')}catch{return{}}})(),tags:(()=>{try{return JSON.parse(r.tags_json||'[]')}catch{return[]}})(),created_at:Number(r.created_at||0)}));
+}
+async function addCompetitor(env,user,input){
+ const stats=await channelStats(env,user,input);await env.DB.prepare('INSERT INTO creator_competitors(tenant_id,user_id,channel_id,title,created_at) VALUES(?,?,?,?,?) ON CONFLICT(tenant_id,user_id,channel_id) DO UPDATE SET title=excluded.title').bind(String(user.tenant_id),String(user.id),stats.channel_id,stats.title,now()).run();return stats;
+}
+async function listCompetitors(env,user){
+ const{results=[]}=await env.DB.prepare('SELECT channel_id,title,created_at FROM creator_competitors WHERE tenant_id=? AND user_id=? ORDER BY created_at DESC').bind(String(user.tenant_id),String(user.id)).all();return results;
+}
+
 export async function handleCreatorGrowth(request,env){
  const url=new URL(request.url),path=url.pathname;if(!path.startsWith('/api/creator-growth'))return null;
  if(!env?.DB)return json({detail:'Creator intelligence storage is unavailable.'},503);
@@ -227,6 +307,20 @@ export async function handleCreatorGrowth(request,env){
   if(request.method==='GET'&&path==='/api/creator-growth/capabilities'){
    const auth=await authContext(env,user);return json({identity:'Magnanimous AI',product:'Creator Growth',capabilities:NATIVE_CAPABILITIES,public_youtube_data_ready:Boolean(auth.apiKey||auth.connected),owned_youtube_connected:Boolean(auth.connected),analytics_ready:Boolean(auth.connected?.analytics_scope),provider_details_private:true});
   }
+  if(request.method==='GET'&&path==='/api/creator-growth/categories'){return json({categories:await categories(env,user,url.searchParams.get('region')||'US')})}
+  if(request.method==='POST'&&path==='/api/creator-growth/videos-batch'){const b=await request.json().catch(()=>({}));return json({videos:await enrichVideos(env,user,Array.isArray(b.video_ids)?b.video_ids:[])})}
+  if(request.method==='POST'&&path==='/api/creator-growth/channels-batch'){const b=await request.json().catch(()=>({}));return json({channels:await channelBatch(env,user,Array.isArray(b.channel_ids)?b.channel_ids:[])})}
+  if(request.method==='POST'&&path==='/api/creator-growth/channel-search'){const b=await request.json().catch(()=>({}));return json({channels:await channelSearch(env,user,b.query,b.limit)})}
+  if(request.method==='POST'&&path==='/api/creator-growth/similar-videos'){const b=await request.json().catch(()=>({}));return json(await similarVideos(env,user,b.video_id,b.limit))}
+  if(request.method==='POST'&&path==='/api/creator-growth/similar-channels'){const b=await request.json().catch(()=>({}));return json(await similarChannels(env,user,b.channel||b.channel_id||'',b.limit))}
+  if(request.method==='POST'&&path==='/api/creator-growth/comment-replies'){const b=await request.json().catch(()=>({}));return json({replies:commentReplyDrafts(b.comment,b.tones)})}
+  if(request.method==='POST'&&path==='/api/creator-growth/daily-ideas'){return json(await dailyIdeas(env,user,await request.json().catch(()=>({}))))}
+  if(request.method==='GET'&&path==='/api/creator-growth/bookmarks'){return json({bookmarks:await listBookmarks(env,user,url.searchParams.get('kind')||'',url.searchParams.get('limit')||50)})}
+  if(request.method==='POST'&&path==='/api/creator-growth/bookmarks'){return json({bookmark:await saveBookmark(env,user,await request.json().catch(()=>({})))},201)}
+  const bookmarkDelete=path.match(/^\/api\/creator-growth\/bookmarks\/([^/]+)$/);if(bookmarkDelete&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM creator_bookmarks WHERE id=? AND tenant_id=? AND user_id=?').bind(bookmarkDelete[1],String(user.tenant_id),String(user.id)).run();return json({ok:true,removed:bookmarkDelete[1]})}
+  if(request.method==='GET'&&path==='/api/creator-growth/competitors'){return json({competitors:await listCompetitors(env,user)})}
+  if(request.method==='POST'&&path==='/api/creator-growth/competitors'){const b=await request.json().catch(()=>({}));return json({competitor:await addCompetitor(env,user,b.channel||b.channel_id||'')},201)}
+  const competitorDelete=path.match(/^\/api\/creator-growth\/competitors\/([^/]+)$/);if(competitorDelete&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM creator_competitors WHERE tenant_id=? AND user_id=? AND channel_id=?').bind(String(user.tenant_id),String(user.id),competitorDelete[1]).run();return json({ok:true,removed:competitorDelete[1]})}
   if(request.method==='POST'&&path==='/api/creator-growth/title-score'){const b=await request.json().catch(()=>({}));return json(titleScore(b.title,b.type))}
   if(request.method==='POST'&&path==='/api/creator-growth/title-ideas'){const b=await request.json().catch(()=>({}));return json({titles:titleIdeas(b.topic||b.keyword,b.type,b.count)})}
   if(request.method==='POST'&&path==='/api/creator-growth/thumbnail-brief'){return json(thumbnailBrief(await request.json().catch(()=>({}))))}
