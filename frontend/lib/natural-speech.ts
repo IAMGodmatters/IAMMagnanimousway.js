@@ -93,7 +93,7 @@ export function speakTextNaturally(input:string,options:NaturalSpeechOptions={})
 
   const synth=window.speechSynthesis;
   const generation=++speechGeneration;
-  let index=0,started=false,finished=false;
+  let index=0,started=false,finished=false,retryCount=0,safeMode=false;
 
   synth.cancel();
   const next=()=>{
@@ -109,16 +109,32 @@ export function speakTextNaturally(input:string,options:NaturalSpeechOptions={})
       utterance.rate=Math.max(.88,Math.min(1,Number(utterance.rate)||.94));
       utterance.pitch=Math.max(.95,Math.min(1.05,Number(utterance.pitch)||1));
     }
+    if(safeMode){
+      utterance.voice=null;
+      utterance.rate=appleMobile?.90:.94;
+      utterance.pitch=1;
+      utterance.volume=1;
+    }
     utterance.onstart=()=>{
       if(generation!==speechGeneration)return;
       if(!started){started=true;options.onStart?.()}
     };
     utterance.onend=()=>{
       if(generation!==speechGeneration)return;
+      retryCount=0;
+      safeMode=false;
       window.setTimeout(next,interChunkDelayMs);
     };
     utterance.onerror=(event:any)=>{
       if(generation!==speechGeneration)return;
+      if(retryCount<1){
+        retryCount++;
+        safeMode=true;
+        index=Math.max(0,index-1);
+        synth.cancel();
+        window.setTimeout(next,appleMobile?160:90);
+        return;
+      }
       finished=true;
       options.onError?.(event);
     };
