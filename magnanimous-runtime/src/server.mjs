@@ -333,7 +333,13 @@ async function handleMigrationStage(req, res, pathname) {
       allowedEvents: ['push', 'workflow_dispatch']
     });
     const revision = runtimeRevision();
-    if (revision && String(source.sha || '').trim() && revision !== String(source.sha || '').trim()) {
+    const sourceRevision = String(source.sha || '').trim();
+    const requestedRuntimeRevision = String(req.headers['x-magnanimous-runtime-revision'] || '').trim();
+    if (secretStage) {
+      if (!revision || !requestedRuntimeRevision || revision !== requestedRuntimeRevision) {
+        throw new Error('Secret staging target revision mismatch: request is not bound to the live standalone runtime.');
+      }
+    } else if (revision && sourceRevision && revision !== sourceRevision) {
       throw new Error('Migration staging revision mismatch: live runtime does not match the signed GitHub commit.');
     }
     const maxBytes = pathname.endsWith('/stage-secrets') || pathname.endsWith('/stage-credential-rewrap')
@@ -355,7 +361,8 @@ async function handleMigrationStage(req, res, pathname) {
         ...result,
         reloaded: reloaded.loaded,
         loaded_count: reloaded.count,
-        source: { repository: source.repository, ref: source.ref, sha: source.sha }
+        source: { repository: source.repository, ref: source.ref, sha: source.sha },
+        target_revision: revision
       }));
       return true;
     }
@@ -368,7 +375,7 @@ async function handleMigrationStage(req, res, pathname) {
       res.statusCode = 200;
       res.setHeader('content-type', 'application/json; charset=utf-8');
       res.setHeader('cache-control', 'no-store');
-      res.end(JSON.stringify({ ...result, source: { repository: source.repository, ref: source.ref, sha: source.sha } }));
+      res.end(JSON.stringify({ ...result, source: { repository: source.repository, ref: source.ref, sha: source.sha }, target_revision: revision }));
       return true;
     }
     const contentType = String(req.headers['content-type'] || '').toLowerCase();
