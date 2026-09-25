@@ -221,7 +221,7 @@ async function chatCompletionsCompatible(base,key,model,messages,label,extraHead
  const r=await withTimeout(()=>fetch(`${base}/chat/completions`,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`,...extraHeaders},body:JSON.stringify({model,messages,temperature:.45,max_tokens:AGENT_MAX_TOKENS})}),AGENT_PROVIDER_TIMEOUT_MS,label);
  const d=await r.json().catch(()=>({}));
  if(!r.ok)throw new Error(d?.error?.message||d?.message||`${label} request failed (${r.status})`);
- return {text:String(d?.choices?.[0]?.message?.content||''),model};
+ return {text:String(d?.choices?.[0]?.message?.content||''),model,usage:d?.usage||null};
 }
 
 function extractCloudflareText(result){
@@ -310,13 +310,13 @@ async function runProvider(id,env,messages,requestedModel=''){
   throw new Error(errors.join(' | '));
  }
  if(id==='google'){
-  const model=requestedModel||env.GOOGLE_MODEL||'gemini-3.7-flash';
+  const model=requestedModel||env.GOOGLE_MODEL||'gemini-3.8-flash';
   const system=messages.filter(m=>m.role==='system').map(m=>m.content).join('\n\n');
   const contents=messages.filter(m=>m.role!=='system').map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
   const r=await withTimeout(()=>fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(env.GOOGLE_API_KEY)}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({system_instruction:{parts:[{text:system}]},contents,generationConfig:{temperature:.45,maxOutputTokens:AGENT_MAX_TOKENS}})}),AGENT_PROVIDER_TIMEOUT_MS,'Google Gemini');
-  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||'Gemini request failed');return{text:(d.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('').trim(),model};
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||'Gemini request failed');return{text:(d.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('').trim(),model,usage:{prompt_tokens:Number(d?.usageMetadata?.promptTokenCount||0),completion_tokens:Number(d?.usageMetadata?.candidatesTokenCount||0)}};
  }
- if(id==='groq')return chatCompletionsCompatible('https://api.groq.com/openai/v1',env.GROQ_API_KEY,requestedModel||env.GROQ_MODEL||'qwen/qwen3.6-27b',messages,'Groq');
+ if(id==='groq')return chatCompletionsCompatible('https://api.groq.com/openai/v1',env.GROQ_API_KEY,requestedModel||env.GROQ_MODEL||'openai/gpt-oss-20b',messages,'Groq');
  if(id==='mistral')return chatCompletionsCompatible('https://api.mistral.ai/v1',env.MISTRAL_API_KEY,requestedModel||env.MISTRAL_MODEL||'mistral-small-latest',messages,'Mistral');
  if(id==='openrouter-free')return chatCompletionsCompatible('https://openrouter.ai/api/v1',env.OPENROUTER_API_KEY,requestedModel||env.OPENROUTER_MODEL||'openrouter/free',messages,'OpenRouter',{'HTTP-Referer':'https://iammagnanimousway.com','X-Title':'I AM Magnanimous Way Agent Mesh'});
  if(id==='huggingface')return chatCompletionsCompatible('https://router.huggingface.co/v1',env.HF_TOKEN,requestedModel||env.HUGGINGFACE_MODEL||'Qwen/Qwen2.5-7B-Instruct',messages,'Hugging Face');
