@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from .container import ApplicationContainer, get_container
 from .errors import TelecomError
 from .models import (
+    CallRecordingStart,
     HangupRequest,
     OutboundCall,
     SipAccountCreate,
@@ -225,3 +226,25 @@ async def stop_supervision_recording(
     container: ApplicationContainer = Depends(get_container),
 ) -> dict[str, Any]:
     return await container.supervision.stop_recording(session_id)
+
+
+@app.post("/v1/recordings", status_code=201, dependencies=[Depends(require_token)])
+async def start_call_recording(
+    request: CallRecordingStart,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.supervision.start_call_recording(
+        target_channel_id=request.target_channel_id,
+        consent_confirmed=request.consent_confirmed,
+        notice_confirmed=request.notice_confirmed,
+        jurisdiction=request.jurisdiction,
+        max_duration_seconds=request.max_duration_seconds,
+    )
+
+
+@app.delete("/v1/recordings/{session_id}", dependencies=[Depends(require_token)])
+async def stop_call_recording(
+    session_id: str,
+    container: ApplicationContainer = Depends(get_container),
+) -> dict[str, Any]:
+    return await container.supervision.stop_call_recording(session_id)
