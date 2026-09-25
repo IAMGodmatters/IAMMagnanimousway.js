@@ -32,7 +32,7 @@ for(const s of [
 for(const s of [
  'navigator.mediaDevices.getUserMedia','new MediaRecorder','PART=8*1024*1024',
  '/api/video-stack/uploads','/api/video-stack/playlists','Finalize selected clips',
- 'Create live session','ready to play','Record • Upload • Edit'
+ 'Create live session','ready to play','RECORD • UPLOAD • PLAY • EDIT • LIVE'
 ])assert.ok(ui.includes(s),'video stack UI missing '+s);
 
 assert.ok(movie.includes('href="/video-stack"'),'Movie Maker must link to native video stack');
