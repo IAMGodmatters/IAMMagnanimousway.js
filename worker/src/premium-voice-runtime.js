@@ -1,5 +1,6 @@
 import {currentUserFromRequest,canUsePremium,recordUsage} from './usage-guard.js';
 import {PROVIDER_PRICE_MARKUP_PERCENT,voiceOriginCost} from './provider-origin-pricing.js';
+import {getProviderRuntimeEnv} from './provider-runtime-env.js';
 
 const MAX_CHARS=4000;
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -123,14 +124,15 @@ async function generate(request,env){
 
 export async function handlePremiumVoice(request,env){
  const path=new URL(request.url).pathname;
- if(path==='/api/voice/premium-tts/config'&&request.method==='GET')return json(config(env));
- if(path==='/api/voice/premium-tts'&&request.method==='POST')return generate(request,env);
- if(path.startsWith('/api/voice/premium-tts'))return json({detail:'Method not allowed.'},405);
- return null;
+ if(!path.startsWith('/api/voice/premium-tts'))return null;
+ const runtimeEnv=await getProviderRuntimeEnv(env);
+ if(path==='/api/voice/premium-tts/config'&&request.method==='GET')return json(config(runtimeEnv));
+ if(path==='/api/voice/premium-tts'&&request.method==='POST')return generate(request,runtimeEnv);
+ return json({detail:'Method not allowed.'},405);
 }
 
-export function premiumVoiceHealth(env){
- const cfg=config(env);
+export async function premiumVoiceHealth(env){
+ const cfg=config(await getProviderRuntimeEnv(env));
  return{
   status:cfg.premium.available?'optional-premium-ready':'browser-native-default',
   free_default:true,
