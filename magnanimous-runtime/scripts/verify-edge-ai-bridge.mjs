@@ -7,6 +7,12 @@ const body=JSON.stringify({
   messages:[{role:'user',content:'Confirm edge bridge.'}],
   max_tokens:64
 });
+async function derived(value){
+  const bytes=new TextEncoder().encode('magnanimous-edge-ai-bridge-integration-v1\0'+value);
+  const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));
+  return[...hash].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
 let calls=0;
 const env={
   MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN:'verification-bridge-secret',
@@ -34,8 +40,18 @@ assert.equal(data.bridge_version,'2026-09-25.1');
 assert.equal(data.response,'Private edge AI bridge verification passed.');
 assert.equal(calls,1);
 
+const integrationKey='verification-shared-integration-key-2026';
+const fallbackToken=await derived(integrationKey);
+const fallback=await handleEdgeAiBridge(new Request(url,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+fallbackToken},body}),{
+  INTEGRATION_CREDENTIALS_KEY:integrationKey,
+  AI:env.AI
+});
+assert.equal(fallback.status,200);
+assert.equal((await fallback.json()).response,'Private edge AI bridge verification passed.');
+assert.equal(calls,2);
+
 const standalone=await handleEdgeAiBridge(new Request(url,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer verification-bridge-secret'},body}),{...env,MAGNANIMOUS_RUNTIME:'standalone-node'});
 assert.equal(standalone.status,404);
-assert.equal(calls,1);
+assert.equal(calls,2);
 
 console.log('Magnanimous private Edge AI bridge verification PASS');

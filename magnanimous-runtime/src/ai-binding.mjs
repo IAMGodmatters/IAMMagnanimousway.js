@@ -8,6 +8,14 @@ function textFromResponses(data) {
   return '';
 }
 
+async function integrationDerivedToken(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const bytes = new TextEncoder().encode('magnanimous-edge-ai-bridge-integration-v1\0' + raw);
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  return [...hash].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+
 function cloudflareModelPath(model) {
   return String(model || '').split('/').filter(Boolean).map((part) => encodeURIComponent(part)).join('/');
 }
@@ -46,8 +54,9 @@ export class MagnanimousAiBinding {
     );
 
     const requestedModel = String(_legacyModel || this.env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast').trim();
-    const edgeBridgeToken = String(this.env.MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN || '').trim();
-    const edgeBridgeUrl = String(this.env.MAGNANIMOUS_EDGE_AI_BRIDGE_URL || '').trim();
+    const edgeBridgeToken = String(this.env.MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN || '').trim()
+      || await integrationDerivedToken(this.env.INTEGRATION_CREDENTIALS_KEY);
+    const edgeBridgeUrl = String(this.env.MAGNANIMOUS_EDGE_AI_BRIDGE_URL || 'https://iammagnanimousway.com/api/internal/edge-ai/run').trim();
     if (edgeBridgeToken && edgeBridgeUrl && requestedModel.startsWith('@cf/')) {
       const response = await fetch(edgeBridgeUrl, {
         method: 'POST',
