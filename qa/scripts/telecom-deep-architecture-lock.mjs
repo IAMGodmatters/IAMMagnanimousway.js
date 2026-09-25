@@ -78,6 +78,7 @@ file('telecom-core/oci/cloud-shell-plan.sh','OCI Cloud Shell guarded plan/apply 
 file('telecom-core/oci/CLOUD-SHELL.md','OCI browser-only Cloud Shell activation guide is versioned');
 file('.github/workflows/telecom-stasis-live-verification.yml','real-host Stasis live-verification workflow is versioned');
 file('telecom-core/scripts/verify-supervision-live.py','real-host Stasis verifier is versioned');
+file('qa/scripts/global-mobile-offer-planner-lock.mjs','global mobile offer planner has executable QA coverage');
 
 has(pjsip,'#include pjsip-webrtc.conf','base PJSIP includes gated native WebRTC fragment');
 has(webrtc,'protocol=wss','native WebRTC uses secure WebSocket transport');
@@ -206,6 +207,11 @@ has(network,'provider_brand_customer_visible:false','global mobile contract keep
 has(network,'competitor_retail_price_is_not_origin_cost:true','competitor retail pricing cannot masquerade as wholesale origin cost');
 has(network,'origin_cost_verified!==true','retail quote refuses unverified origin cost');
 has(network,'funded_variable_cost_cap','metered global data requires an explicit funded variable-cost cap');
+has(network,'export function planGlobalMobileOffers','global mobile has a reusable verified wholesale offer planner');
+has(network,'commercial_authorization_not_verified','offer planner rejects unverified commercial authority');
+has(network,'country_coverage_not_verified','offer planner rejects unverified country coverage');
+has(network,'variable_cost_not_fully_funded','offer planner rejects unfunded metered exposure');
+has(network,'network_group!==selected.network_group','backup selection prefers an independently grouped network path');
 has(network,'TELECOM_GLOBAL_MOBILE_LIVE','global mobile live state is independent from source readiness');
 has(contact,'native_pbx_live:nativeWebrtcLive','contact-center snapshot exposes native PBX truth state');
 has(compat,'compatibility_transport_ready:true','compatibility softphone reports compatibility readiness separately');
@@ -225,7 +231,9 @@ has(study,'## Philippine regulatory truth boundary','deep study contains Philipp
 has(study,'## Contact-center benchmark and structure','deep study contains contact-center benchmark');
 has(study,'## Promotion rule','deep study contains a no-overclaim promotion rule');
 has(globalMobileBenchmark,'### Fonus','Fonus global retail patterns are durably retained');
+has(globalMobileBenchmark,'reseller application for B2C, B2B, or both','Fonus public reseller path is retained without inventing wholesale pricing');
 has(globalMobileBenchmark,'### Popcorn','Popcorn global retail patterns are durably retained');
+has(globalMobileBenchmark,'architecture/product benchmark rather than treated as a wholesale upstream','Popcorn no-resale boundary is retained');
 has(globalMobileBenchmark,'Competitor retail prices are benchmarks only.','global benchmark forbids treating retail price as wholesale cost');
 has(globalMobileBenchmark,'No 2FA delivery guarantee is made for VoIP numbers.','global benchmark preserves 2FA truth boundary');
 has(extensions,'Echo()','authenticated WebRTC diagnostic uses Asterisk Echo for carrier-free bidirectional media proof');
