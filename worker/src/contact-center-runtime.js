@@ -389,12 +389,14 @@ async function supervisorCapabilities(env){
  const result=await coreJson(response);
  if(!result.ok)return{enabled:false,event_stream_connected:false,monitor:false,whisper:false,barge:false,bridge_recording:false,consent_required:true,notice_required:true,covert_monitoring:false};
  const data=result.data||{};
+ const browserSupervisorReady=runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE);
  return{
   enabled:Boolean(data.enabled),
   event_stream_connected:Boolean(data.event_stream?.connected),
-  monitor:Boolean(data.monitor),
-  whisper:Boolean(data.whisper),
-  barge:Boolean(data.barge),
+  browser_supervisor_ready:browserSupervisorReady,
+  monitor:Boolean(data.monitor)&&browserSupervisorReady,
+  whisper:Boolean(data.whisper)&&browserSupervisorReady,
+  barge:Boolean(data.barge)&&browserSupervisorReady,
   bridge_recording:Boolean(data.bridge_recording),
   consent_required:true,
   notice_required:true,
@@ -440,7 +442,7 @@ export async function handleContactCenter(request,env){
   if(path==='/api/contact-center/agent-assist/match'&&request.method==='POST'){const b=await request.json().catch(()=>({})),text=clean(b.text).toLowerCase(),{results=[]}=await env.DB.prepare('SELECT * FROM cc_agent_assist_rules WHERE tenant_id=? AND active=1 ORDER BY priority LIMIT 100').bind(tenant).all();return json({matches:results.filter(r=>text.includes(String(r.trigger_phrase||'').toLowerCase())).slice(0,8)})}
   const intel=path.match(/^\/api\/contact-center\/calls\/(\d+)\/intelligence$/);if(intel&&request.method==='GET'){const row=await env.DB.prepare('SELECT * FROM cc_call_intelligence WHERE tenant_id=? AND call_id=?').bind(tenant,Number(intel[1])).first();return row?json({...row,topics:safeJson(row.topics_json,[]),action_items:safeJson(row.action_items_json,[]),qa_flags:safeJson(row.qa_flags_json,[])}):json({detail:'No analysis has been generated yet.'},404)}
   if(intel&&request.method==='POST')return json(await analyzeCall(env,tenant,Number(intel[1])));
-  if(path==='/api/contact-center/supervisor/live'&&request.method==='GET'){const [calls,agents,rules,supervisorAudio]=await Promise.all([env.DB.prepare(`SELECT p.*,a.name agent_name,q.name queue_name FROM phone_calls p LEFT JOIN call_center_agents a ON a.id=p.agent_id LEFT JOIN call_queues q ON q.id=p.queue_id WHERE p.tenant_id=? AND p.status IN ('created','queued','dialing','ringing','connected','in-progress') ORDER BY p.created_at DESC LIMIT 100`).bind(tenant).all().catch(()=>({results:[]})),env.DB.prepare('SELECT * FROM call_center_agents WHERE tenant_id=? AND active=1 ORDER BY status,name').bind(tenant).all().catch(()=>({results:[]})),env.DB.prepare('SELECT * FROM cc_agent_assist_rules WHERE tenant_id=? AND active=1 ORDER BY priority').bind(tenant).all(),owner(user)?supervisorCapabilities(env):Promise.resolve({monitor:false,whisper:false,barge:false,bridge_recording:false,consent_required:true,notice_required:true,covert_monitoring:false})]);return json({calls:calls.results||[],agents:agents.results||[],assist_rules:rules.results||[],supervisor_audio:supervisorAudio})}
+  if(path==='/api/contact-center/supervisor/live'&&request.method==='GET'){const isOwner=owner(user),[calls,agents,rules,supervisorAudio,sessions,recordings]=await Promise.all([env.DB.prepare(`SELECT p.*,a.name agent_name,q.name queue_name FROM phone_calls p LEFT JOIN call_center_agents a ON a.id=p.agent_id LEFT JOIN call_queues q ON q.id=p.queue_id WHERE p.tenant_id=? AND p.status IN ('created','queued','dialing','ringing','connected','in-progress') ORDER BY p.created_at DESC LIMIT 100`).bind(tenant).all().catch(()=>({results:[]})),env.DB.prepare('SELECT * FROM call_center_agents WHERE tenant_id=? AND active=1 ORDER BY status,name').bind(tenant).all().catch(()=>({results:[]})),env.DB.prepare('SELECT * FROM cc_agent_assist_rules WHERE tenant_id=? AND active=1 ORDER BY priority').bind(tenant).all(),isOwner?supervisorCapabilities(env):Promise.resolve({monitor:false,whisper:false,barge:false,bridge_recording:false,consent_required:true,notice_required:true,covert_monitoring:false}),isOwner?env.DB.prepare("SELECT id,call_id,mode,status,created_at FROM cc_supervisor_sessions WHERE tenant_id=? AND status='active' ORDER BY created_at DESC").bind(tenant).all():Promise.resolve({results:[]}),isOwner?env.DB.prepare("SELECT id,call_id,status,jurisdiction,created_at FROM cc_recording_sessions WHERE tenant_id=? AND status='active' ORDER BY created_at DESC").bind(tenant).all():Promise.resolve({results:[]})]);return json({calls:calls.results||[],agents:agents.results||[],assist_rules:rules.results||[],supervisor_audio:supervisorAudio,supervisor_sessions:sessions.results||[],recording_sessions:recordings.results||[]})}
   if(path==='/api/contact-center/supervisor/sessions'&&request.method==='GET'){
    if(!owner(user))return json({detail:'Workspace owner access required.'},403);
    const rows=(await env.DB.prepare('SELECT * FROM cc_supervisor_sessions WHERE tenant_id=? ORDER BY created_at DESC LIMIT 200').bind(tenant).all()).results||[];
