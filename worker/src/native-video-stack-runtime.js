@@ -11,7 +11,7 @@ function jsonText(v,fallback){try{return JSON.stringify(v??fallback)}catch{retur
 function parseJson(v,fallback){try{return JSON.parse(String(v||''))}catch{return fallback}}
 function safeTags(v){return[...new Set((Array.isArray(v)?v:[]).map(x=>S(x,60)).filter(Boolean))].slice(0,24)}
 function contentType(v){const t=String(v||'video/mp4').toLowerCase();return /^video\/(mp4|webm|quicktime|x-m4v)$/.test(t)?t:'video/mp4'}
-function ext(t){return t.includes('webm')?'webm':t.includes('quicktime')?'mov':'mp4'}
+function ext(t){const v=String(t||'').toLowerCase();if(v.includes('webm'))return'webm';if(v.includes('quicktime'))return'mov';if(v.includes('mpeg'))return'mp3';if(v.includes('wav'))return'wav';if(v.includes('aac'))return'aac';if(v.includes('flac'))return'flac';if(v.includes('ogg'))return'ogg';if(v.includes('jpeg'))return'jpg';if(v.includes('png'))return'png';if(v.includes('image/webp'))return'webp';return'mp4'}
 function objectStore(env){return env?.MAGNANIMOUS_OBJECT_STORE||env?.OBJECT_STORE||null}
 async function schema(env){
  for(const q of[
@@ -132,6 +132,23 @@ async function finalizeEditor(request,env,user,id){
  await env.DB.prepare('INSERT INTO video_stack_assets(id,tenant_id,user_id,title,object_key,content_type,bytes,status,tags_json,metadata_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(assetId,String(user.tenant_id),String(user.id),row.title,key,'video/mp4',bytes.byteLength,'ready_to_play','[]',JSON.stringify({editor_project_id:id,watermarked:watermark}),ts,ts).run();
  await env.DB.prepare('UPDATE video_stack_editor_projects SET status=?,progress=?,output_asset_id=?,updated_at=? WHERE id=?').bind('ready_to_play',1,assetId,ts,id).run();const asset=await env.DB.prepare('SELECT * FROM video_stack_assets WHERE id=?').bind(assetId).first();return J({project_id:id,status:'ready_to_play',asset:publicAsset(asset),watermarked:watermark});
 }
+async function mediaEdit(request,env,user,assetId){
+ const row=await env.DB.prepare('SELECT * FROM video_stack_assets WHERE id=? AND tenant_id=?').bind(assetId,String(user.tenant_id)).first();if(!row)return J({detail:'Media asset not found.'},404);
+ const body=await request.json().catch(()=>({})),op=S(body.op,40),allowed=new Set(['trim_media','extract_audio','extract_thumbnail','normalize_loudness','probe_media']);
+ if(!allowed.has(op))return J({detail:'Unsupported media edit operation.'},400);
+ const access=await makeAccess(request,env,user,assetId,'media-edit'),a=await access.clone().json(),gateway=String(env?.MAGNANIMOUS_VIDEO_GATEWAY_URL||env?.VIDEO_GATEWAY_URL||'https://iam-magnanimous-video-gateway.iam-magnanimous.workers.dev').replace(/\/$/,'');
+ const payload={source_url:a.url,op,start_seconds:Number(body.start_seconds||0),end_seconds:body.end_seconds==null?null:Number(body.end_seconds),at_seconds:Number(body.at_seconds||0),width:Number(body.width||1280),height:Number(body.height||720),output_format:S(body.output_format,12),bitrate_kbps:Number(body.bitrate_kbps||160),sample_rate_hz:Number(body.sample_rate_hz||48000),channels:Number(body.channels||2),target_lufs:Number(body.target_lufs??-16)};
+ const r=await fetch(gateway+'/api/video/media-edit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)}),d=await r.json().catch(()=>({}));
+ if(!r.ok)return J({detail:d.detail||'Media edit failed.',code:'MEDIA_EDIT_FAILED'},r.status>=400&&r.status<600?r.status:502);
+ if(op==='probe_media')return J({asset_id:assetId,operation:op,metadata:d.metadata||{}});
+ if(!d.download_url)return J({detail:'Media edit returned no output file.',code:'MEDIA_EDIT_OUTPUT_MISSING'},502);
+ const source=new URL(String(d.download_url),gateway).toString(),out=await fetch(source);if(!out.ok)return J({detail:'Edited media output could not be fetched.'},502);
+ const bytes=new Uint8Array(await out.arrayBuffer()),type=String(d.content_type||out.headers.get('content-type')||'application/octet-stream'),id=ID(),key=`video-stack/assets/${user.tenant_id}/${id}.${ext(type)}`,store=objectStore(env),ts=N();
+ await store.put(key,bytes,{httpMetadata:{contentType:type,cacheControl:'private, max-age=0'},customMetadata:{tenant_id:String(user.tenant_id),asset_id:id,source:'magnanimous-media-edit',parent_asset_id:assetId,operation:op}});
+ await env.DB.prepare('INSERT INTO video_stack_assets(id,tenant_id,user_id,title,object_key,content_type,bytes,status,tags_json,metadata_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,String(user.tenant_id),String(user.id),S(body.title||`${row.title} — ${op}`,220),key,type,bytes.byteLength,'ready_to_play',row.tags_json||'[]',JSON.stringify({parent_asset_id:assetId,operation:op}),ts,ts).run();
+ const asset=await env.DB.prepare('SELECT * FROM video_stack_assets WHERE id=?').bind(id).first();return J({operation:op,asset:publicAsset(asset),ready:true},201);
+}
+
 async function live(request,env,user){
  const b=request.method==='POST'?await request.json().catch(()=>({})):{};if(request.method==='POST'){const id=ID(),ts=N(),mode=S(b.mode||'browser-webrtc',40);await env.DB.prepare('INSERT INTO video_stack_live_sessions(id,tenant_id,user_id,title,mode,status,audience,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,String(user.tenant_id),String(user.id),S(b.title||'Live stream',180),mode,'created',0,ts,ts).run();return J({live_id:id,status:'created',mode,free_first:mode==='browser-webrtc',note:'Browser WebRTC is the free-first live mode. Server-scale live distribution remains an optional configured capacity rail.'},201)}
  const{results=[]}=await env.DB.prepare('SELECT id,title,mode,status,audience,created_at,updated_at FROM video_stack_live_sessions WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 50').bind(String(user.tenant_id),String(user.id)).all();return J({sessions:results});
@@ -141,7 +158,7 @@ export async function handleNativeVideoStack(request,env){
  if(p==='/api/video-stack/session'&&request.method==='POST')return makeSession(request,env);
  if(p.startsWith('/api/video-stack/access/')&&request.method==='GET')return publicAccess(request,env,p.split('/').pop());
  const user=await mediaUser(request,env);if(!user)return J({detail:'Sign in or use a valid short-lived Magnanimous media session.'},401);
- if(p==='/api/video-stack/capabilities'&&request.method==='GET')return J({identity:'Magnanimous Video Stack',recording:{browser_media_recorder:true,multipart_clips:true,state_events:true},upload:{chunked:true,chunk_max_bytes:CHUNK_MAX,max_upload_bytes:maxUpload(env),states:['initializing','uploading','uploaded','ready_to_play','failed','canceled']},player:{range_requests:true,preload_next:true,playlists:true},playlist:{pagination:true,tags:true,metadata:true,tenant_scope:true},editor:{reorder:true,trim:true,finalize_mp4:true,watermark_by_plan:true},live:{browser_webrtc_free_first:true,server_scale_optional:true},security:{opaque_media_sessions:true,private_assets_default:true,temp_playback_links:true,tenant_isolation:true},provider_details_private:true});
+ if(p==='/api/video-stack/capabilities'&&request.method==='GET')return J({identity:'Magnanimous Video Stack',recording:{browser_media_recorder:true,multipart_clips:true,state_events:true},upload:{chunked:true,chunk_max_bytes:CHUNK_MAX,max_upload_bytes:maxUpload(env),states:['initializing','uploading','uploaded','ready_to_play','failed','canceled']},player:{range_requests:true,preload_next:true,playlists:true},playlist:{pagination:true,tags:true,metadata:true,tenant_scope:true},editor:{reorder:true,trim:true,finalize_mp4:true,watermark_by_plan:true,media_edit:['trim_media','extract_audio','extract_thumbnail','normalize_loudness','probe_media']},live:{browser_webrtc_free_first:true,server_scale_optional:true},security:{opaque_media_sessions:true,private_assets_default:true,temp_playback_links:true,tenant_isolation:true},provider_details_private:true});
  if(p==='/api/video-stack/uploads'&&request.method==='POST')return createUpload(request,env,user);
  const part=p.match(/^\/api\/video-stack\/uploads\/([^/]+)\/parts\/(\d+)$/);if(part&&request.method==='PUT')return uploadPart(request,env,user,part[1],Number(part[2]));
  const fin=p.match(/^\/api\/video-stack\/uploads\/([^/]+)\/finalize$/);if(fin&&request.method==='POST')return finalizeUpload(request,env,user,fin[1]);
@@ -150,6 +167,7 @@ export async function handleNativeVideoStack(request,env){
  if(p==='/api/video-stack/playlists'&&request.method==='GET')return listPlaylist(request,env,user);
  const manifestMatch=p.match(/^\/api\/video-stack\/assets\/([^/]+)\/manifest$/);if(manifestMatch&&request.method==='GET')return manifest(request,env,user,manifestMatch[1]);
  const accessMatch=p.match(/^\/api\/video-stack\/assets\/([^/]+)\/access$/);if(accessMatch&&request.method==='POST')return makeAccess(request,env,user,accessMatch[1],S((await request.json().catch(()=>({}))).purpose||'playback',30));
+ const mediaEditMatch=p.match(/^\/api\/video-stack\/assets\/([^/]+)\/media-edit$/);if(mediaEditMatch&&request.method==='POST')return mediaEdit(request,env,user,mediaEditMatch[1]);
  const assetMatch=p.match(/^\/api\/video-stack\/assets\/([^/]+)$/);if(assetMatch&&request.method==='GET')return streamAsset(request,env,user,assetMatch[1]);
  if(p==='/api/video-stack/editor/projects'&&request.method==='POST')return createEditor(request,env,user);
  const edit=p.match(/^\/api\/video-stack\/editor\/projects\/([^/]+)$/);if(edit&&request.method==='PATCH')return updateEditor(request,env,user,edit[1]);
