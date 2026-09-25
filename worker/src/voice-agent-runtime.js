@@ -166,7 +166,7 @@ async function aiReply(env, agent, history, callerText) {
   return 'I am having trouble reaching my AI service right now. Please try again later.';
 }
 
-async function createTwilioCall(request, env, user, body) {
+async function createTwilioCall(request, env, user, body, internalContext = {}) {
   if (!twilioReady(env)) return json({ detail: 'Twilio is not configured yet.', code: 'TWILIO_NOT_CONFIGURED' }, 503);
   const access = await tenantAccess(env, user);
   if (!access.business && !access.platformOwner) return json({ detail: 'AI telephone calling is included with Full Business.', code: 'BUSINESS_PLAN_REQUIRED' }, 402);
@@ -189,7 +189,7 @@ async function createTwilioCall(request, env, user, body) {
   ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
     user.tenant_id, body.contact_id || null, 'outbound', String(env.TWILIO_PHONE_NUMBER), to,
     'queued', ts, 'twilio-ai', body.queue_id || null, body.agent_id || null,
-    JSON.stringify({ requested_by: user.id, voice_agent_id: agent.id, ai_disclosure: true, consent_confirmed: true }), ts
+    JSON.stringify({ requested_by: user.id, voice_agent_id: agent.id, ai_disclosure: true, consent_confirmed: true, carrier_route: internalContext.selectedRoute ? { route_id: internalContext.selectedRoute.route_id, interconnect_id: internalContext.selectedRoute.interconnect_id, selection_mode: internalContext.selectionMode || null } : null }), ts
   ).run();
   const callId = Number(created.meta.last_row_id);
   const origin = new URL(request.url).origin;
@@ -222,7 +222,7 @@ async function createTwilioCall(request, env, user, body) {
     .bind(String(data.sid), String(data.status || 'queued'), now(), callId, user.tenant_id).run();
   await env.DB.prepare('INSERT INTO voice_agent_turns(tenant_id,call_id,provider_call_id,speaker,text,created_at) VALUES(?,?,?,?,?,?)')
     .bind(user.tenant_id, callId, String(data.sid), 'assistant', opening, now()).run();
-  return json({ call_id: callId, provider_call_id: data.sid, status: data.status || 'queued', provider: 'twilio-ai', agent: { id: agent.id, name: agent.name } }, 201);
+  return json({ call_id: callId, provider_call_id: data.sid, status: data.status || 'queued', provider: 'twilio-ai', agent: { id: agent.id, name: agent.name }, route_id: internalContext.selectedRoute?.route_id || null, interconnect_id: internalContext.selectedRoute?.interconnect_id || null, selected_route_applied: Boolean(internalContext.selectedRoute) }, 201);
 }
 
 async function twilioTurn(request, env, url) {
@@ -342,7 +342,7 @@ async function createAvatarConversation(request, env, user, body) {
   return json({ provider: 'tavus', conversation_id: data.conversation_id, conversation_url: data.conversation_url, status: data.status || 'active', agent: { id: agent.id, name: agent.name } }, 201);
 }
 
-async function agentRoutes(request, env, user, path) {
+async function agentRoutes(request, env, user, path, internalContext = {}) {
   await ensureSchema(env);
   if (path === '/api/voice-agent/config' && request.method === 'GET') {
     const access = await tenantAccess(env, user);
@@ -393,7 +393,7 @@ async function agentRoutes(request, env, user, path) {
       ).run();
     return json({ ok: true });
   }
-  if (path === '/api/voice-agent/call' && request.method === 'POST') return createTwilioCall(request, env, user, await request.json().catch(() => ({})));
+  if (path === '/api/voice-agent/call' && request.method === 'POST') return createTwilioCall(request, env, user, await request.json().catch(() => ({})), internalContext);
   if (path === '/api/voice-agent/avatar' && request.method === 'POST') return createAvatarConversation(request, env, user, await request.json().catch(() => ({})));
   if (path === '/api/voice-agent/do-not-call' && request.method === 'GET') {
     const { results } = await env.DB.prepare('SELECT phone,reason,created_at FROM voice_do_not_call WHERE tenant_id=? ORDER BY created_at DESC').bind(user.tenant_id).all();
@@ -402,7 +402,7 @@ async function agentRoutes(request, env, user, path) {
   return json({ detail: 'Voice agent route not found.' }, 404);
 }
 
-export async function handleVoiceAgent(request, env) {
+export async function handleVoiceAgent(request, env, internalContext = {}) {
   const url = new URL(request.url);
   const path = url.pathname;
   if (!path.startsWith('/api/voice-agent')) return null;
@@ -412,5 +412,5 @@ export async function handleVoiceAgent(request, env) {
   if (path === '/api/voice-agent/twilio/incoming' && request.method === 'POST') return twilioIncoming(request, env);
   const user = await currentUser(request, env);
   if (!user) return json({ detail: 'Sign in required.' }, 401);
-  return agentRoutes(request, env, user, path);
+  return agentRoutes(request, env, user, path, internalContext);
 }
