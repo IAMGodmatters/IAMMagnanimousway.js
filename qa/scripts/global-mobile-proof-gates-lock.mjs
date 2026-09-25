@@ -7,8 +7,8 @@ const countryRows=[{
  production_verified:1,
  evidence_reference:'contract:country-mobile-data-proof'
 }];
-const offer={id:'offer-1',country_code:'PH'};
-const profile={id:'profile-1',country_code:'PH'};
+const offer={id:'offer-1',adapter_key:'primary',network_group:'network-a',country_code:'PH'};
+const profile={id:'profile-1',adapter_key:'primary',network_group:'network-a',country_code:'PH'};
 const connectivity={id:'event-1'};
 const policy={id:'policy-1'};
 
@@ -29,6 +29,26 @@ const policy={id:'policy-1'};
  assert.equal(result.evidence.profile_id,'profile-1');
  assert.equal(result.evidence.connectivity_event_id,'event-1');
  assert.equal(result.evidence.policy_id,'policy-1');
+ assert.equal(result.multi_network_resilience_verified,false);
+}
+
+{
+ const result=evaluateGlobalMobileReadiness({
+  live_flag_enabled:true,countryRows,offer,profile,connectivity,
+  backupProfile:{id:'backup-1',adapter_key:'backup',network_group:'network-b',country_code:'PH'},
+  backupConnectivity:{id:'backup-event-1'},policy
+ });
+ assert.equal(result.launch_ready,true);
+ assert.equal(result.multi_network_resilience_verified,true);
+}
+
+{
+ const result=evaluateGlobalMobileReadiness({
+  live_flag_enabled:true,countryRows,offer,
+  profile:{...profile,adapter_key:'wrong-adapter'},connectivity,policy
+ });
+ assert.equal(result.launch_ready,false);
+ assert.equal(result.gates.active_primary_access_profile,false);
 }
 
 {
