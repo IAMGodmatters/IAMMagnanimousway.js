@@ -3,7 +3,7 @@ const now=()=>Math.floor(Date.now()/1000);
 
 export const PLAN_LIMITS={
  free:{rank:0,metered_ai:false,pstn_minutes:0,avatar_minutes:0,premium_video_credits:0,cost_ceiling_usd:0},
- plus:{rank:1,metered_ai:false,pstn_minutes:0,avatar_minutes:0,premium_video_credits:0,cost_ceiling_usd:8},
+ plus:{rank:1,metered_ai:true,pstn_minutes:0,avatar_minutes:0,premium_video_credits:0,cost_ceiling_usd:8},
  business:{rank:2,metered_ai:true,pstn_minutes:30,avatar_minutes:10,premium_video_credits:10,cost_ceiling_usd:24},
  pro:{rank:3,metered_ai:true,pstn_minutes:90,avatar_minutes:30,premium_video_credits:30,cost_ceiling_usd:54},
  scale:{rank:4,metered_ai:true,pstn_minutes:180,avatar_minutes:60,premium_video_credits:60,cost_ceiling_usd:112},
@@ -48,6 +48,7 @@ export async function ensureUsageSchema(env){
  )`).run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_billing_usage_events_tenant_period ON billing_usage_events(tenant_id,period_key,created_at DESC)').run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_usage_wallet_events_tenant ON billing_usage_wallet_events(tenant_id,created_at DESC)').run();
+ await env.DB.prepare('SELECT customer_charge_usd FROM billing_usage_events LIMIT 1').first();
 }
 
 export async function tenantPlan(env,tenantId){
