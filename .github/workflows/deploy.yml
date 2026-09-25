@@ -1464,13 +1464,13 @@ jobs:
               000|409|502|503|504)
                 verify_status=$(safe_get_status /tmp/wl-booking-verify.json "$BASE_URL/api/agency/bookings?client_id=$client_id" -H "Authorization: Bearer $token")
                 if [ "$verify_status" = "200" ] && python - "$client_id" "$booking_email" "$start_at" "$end_at" <<'PY'
-import json,sys
-client_id,email,start_at,end_at=sys.argv[1],sys.argv[2],int(sys.argv[3]),int(sys.argv[4])
-data=json.load(open('/tmp/wl-booking-verify.json'))
-rows=data.get('bookings') or []
-match=next((x for x in rows if str(x.get('client_id') or '')==client_id and str(x.get('contact_email') or '')==email and int(x.get('start_at') or 0)==start_at and int(x.get('end_at') or 0)==end_at),None)
-raise SystemExit(0 if match else 1)
-PY
+                import json,sys
+                client_id,email,start_at,end_at=sys.argv[1],sys.argv[2],int(sys.argv[3]),int(sys.argv[4])
+                data=json.load(open('/tmp/wl-booking-verify.json'))
+                rows=data.get('bookings') or []
+                match=next((x for x in rows if str(x.get('client_id') or '')==client_id and str(x.get('contact_email') or '')==email and int(x.get('start_at') or 0)==start_at and int(x.get('end_at') or 0)==end_at),None)
+                raise SystemExit(0 if match else 1)
+                PY
                 then
                   echo "Booking already committed despite transient response; treating verified record as success."
                   status=201
