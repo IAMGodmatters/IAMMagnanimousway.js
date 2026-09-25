@@ -40,6 +40,7 @@ class CallService:
                 caller_id=caller_id,
                 agent_id=request.agent_id or "",
                 queue_id=request.queue_id or "",
+                route_id=request.route_id,
             )
         )
         self._monitor.start(provider_call_id, self._callback_policy.resolve(request.webhook_url))
@@ -48,6 +49,7 @@ class CallService:
             "call_id": provider_call_id,
             "status": state.status,
             "provider": "Magnanimous Telecom",
+            "route_id": request.route_id,
             "to": destination,
             "from": caller_id,
         }
