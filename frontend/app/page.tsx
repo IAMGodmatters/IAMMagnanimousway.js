@@ -19,6 +19,7 @@ const systems=[
  ['⌘','Connected Assistant','Prepare or run actions when an event happens','/assistant-actions'],
  ['↻','Routine Studio','Teach reusable skills, schedule always-on routines and review run history','/routine-studio'],
  ['☎','AI Receptionist','Inbound routing and AI voice reception','/ai-receptionist'],
+ ['🎬','Movie Maker','Pictures, movies, narration, sharing and social publishing','/movie-maker'],
  ['▶','Video Studio','Text-to-video, visual agents and media creation','/video-studio'],
  ['⌁','Contact Center','Queues, campaigns, IVR, QA and agent operations','/contact-center'],
  ['▧','White Label Studio','Your separate branded client platform, funnels, apps and agency tools','/white-label']
