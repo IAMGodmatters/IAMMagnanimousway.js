@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -8,6 +10,7 @@ class OutboundCall(BaseModel):
     from_: str | None = Field(default=None, alias="from")
     agent_id: str | None = None
     queue_id: str | None = None
+    route_id: Literal["auto", "primary", "secondary"] = "auto"
     webhook_url: str | None = None
 
 
