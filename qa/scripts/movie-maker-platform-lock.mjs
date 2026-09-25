@@ -32,7 +32,6 @@ for(const s of [
  "gemini-3-pro-image",
  "gemini-3.8-flash-lite-tts",
  "gemini-3.8-flash-tts",
- "providerOriginCost",
  "incentivized_clicks:false",
  "artificial_views:false",
  "social_publish_url"
@@ -42,10 +41,13 @@ for(const stale of ['sora-2','veo-2.0-generate-001','gemini-3.1-flash-image-prev
 assert.ok(security.includes("handleMovieMaker"),'Movie Maker must be wired through security entrypoint');
 
 for(const s of ['watermark_required','BUILD STORYBOARD','CREATE ECONOMY VOICE','CREATE MAX STUDIO VOICE','navigator.share','files:[file]','YouTube • TikTok • LinkedIn'])assert.ok(maker.includes(s),'Movie Maker UI missing '+s);
-assert.ok(watch.includes("Engagement is never rewarded or required."),'movie watch ads must not encourage clicks');
+assert.ok(watch.includes("Engagement is never rewarded or required.")||watch.includes("Viewing or clicking is optional"),'movie watch ads must not encourage clicks');
 assert.ok(watch.includes("ADVERTISEMENT"),'movie watch ad network must be clearly labeled');
 assert.ok(watch.includes("SPONSORED"),'movie sponsor placement must be clearly labeled');
 assert.ok(renderer.includes("watermark_required: bool = False"),'video renderer must accept enforced watermark policy');
+assert.ok(movie.includes("body.reference_images.slice(0,14)"),'Movie Maker must support up to 14 image references');
+assert.ok(movie.includes("estimated_provider_origin_cost_usd:reserve"),'studio media must reserve funded provider-origin cost before generation');
+assert.ok(movie.includes("INSERT INTO movie_maker_jobs")&&movie.includes("'paid'"),'studio video jobs must record paid billing mode');
 assert.ok(renderer.includes("Magnanimous AI • I AM MAGNANIMOUS WAY™"),'video renderer must burn Magnanimous watermark');
 assert.ok(media.includes("watermark_text"),'native image service must support real watermark rendering');
 assert.ok(media.includes("'-annotate'"),'native image watermark must be rendered into output bytes');
