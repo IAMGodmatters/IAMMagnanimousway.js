@@ -60,7 +60,8 @@ for(const s of [
  'Editable',
  'Maximum / 4K',
  'HEAR FREE NARRATION',
- 'CREATE STUDIO VOICE',
+ 'CREATE ECONOMY VOICE',
+ 'CREATE MAX STUDIO VOICE',
  'Download',
  'Copy link',
  'Share',
@@ -70,7 +71,7 @@ for(const s of [
 
 for(const s of ['SPONSORED','Viewing or clicking is optional','Created with Magnanimous AI'])assert.ok(watch.includes(s),'Movie watch contract missing '+s);
 for(const s of ['background_image_data_uri','watermark_text','watermark_required','burned_watermark','drawtext'])assert.ok(renderer.includes(s),'Free renderer watermark contract missing '+s);
-for(const s of ['watermark_text','watermarked:Boolean(watermark)'])assert.ok(media.includes(s),'Native image watermark contract missing '+s);
+for(const s of ['watermark_text','watermarked:Boolean(watermark)','-annotate'])assert.ok(media.includes(s),'Native image watermark contract missing '+s);
 assert.ok(security.includes("url.pathname.startsWith('/api/movie-maker')"),'Movie Maker must be routed through secured runtime');
 assert.ok(runtimeRoutes.includes("'/movie'"),'public Movie watch route missing');
 assert.ok(!runtimeRoutes.match(/publicPaths=\[[^;]*'\/movie-maker'/),'Movie Maker workspace must remain protected');
