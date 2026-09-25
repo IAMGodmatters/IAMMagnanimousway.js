@@ -144,7 +144,7 @@ const occurrences=(text.match(/function localResilienceResponse\(/g)||[]).length
 const timeoutReady=text.includes('const AGENT_MODEL_TIMEOUT_MS=25000;')&&text.includes('const AGENT_PROVIDER_TIMEOUT_MS=30000;');
 const schemaReady=text.includes("'@cf/meta/llama-3.2-1b-instruct'")&&text.includes('max_tokens:AGENT_MAX_TOKENS')&&text.includes('cloudflareAccountLevelError');
 const diagnosticReady=text.includes('failure_class:failureClass')&&text.includes("console.error('Agent Mesh execution failed',errors)");
-const routingReady=text.includes("const candidates=preferred?[preferred,...ordered.filter(p=>p.id!==preferred.id)]:ordered;");
+const routingReady=text.includes('filterHealthyProviders(env,configuredCandidates)')&&text.includes("const automatic=ordered.filter(p=>p.auto_route")&&text.includes("const candidates=preferred?[preferred,...ordered.filter(p=>p.id==='cloudflare-ai'");
 const localResilienceReady=occurrences===1&&text.includes("'magnanimous-local-resilience','local-resilience-v1'")&&text.includes('degraded:true');
 if(!timeoutReady||!schemaReady||!diagnosticReady||!routingReady||!localResilienceReady)throw new Error('Agent Mesh resilience repair insertion points were not found; refusing to make an unsafe partial edit.');
 
