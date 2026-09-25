@@ -14,6 +14,7 @@ import { currentUser } from './integrations.js';
 import { isPlatformOwnerUser } from './agent-branch-intelligence.js';
 import { handleVideoAgents } from './video-agent-runtime.js';
 import { handleMovieMaker } from './movie-maker-runtime.js';
+import { handleNativeVideoStack } from './native-video-stack-runtime.js';
 import { handleRenderEngine } from './magnanimous-render-engine.js';
 import { handleCredentialVaultMigration } from './credential-vault-migration.js';
 import { handleMagnanimousCapabilityMesh } from './magnanimous-capability-mesh.js';
@@ -233,6 +234,7 @@ export default {
       const url=new URL(request.url);
       const credentialMigrationResponse=await handleCredentialVaultMigration(request,env);
       if(credentialMigrationResponse)return finalizeResponse(request,await securityPostflight(request,credentialMigrationResponse,env));
+      if(url.pathname.startsWith('/api/video-stack')){const videoStackEnv=await getProviderRuntimeEnv(env);const nativeVideo=await handleNativeVideoStack(request,videoStackEnv);if(nativeVideo)return finalizeResponse(request,await securityPostflight(request,nativeVideo,env));}
       if(url.pathname.startsWith('/api/movie-maker')){const movieProviderEnv=await getProviderRuntimeEnv(env);const movie=await handleMovieMaker(request,movieProviderEnv);if(movie)return finalizeResponse(request,await securityPostflight(request,movie,env));}
       if(url.pathname.startsWith('/api/video-agents/render-engine')){const videoProviderEnv=await getProviderRuntimeEnv(env);const rr=await handleRenderEngine(request,videoProviderEnv,await currentUser(request,env).catch(()=>null));if(rr)return finalizeResponse(request,await securityPostflight(request,rr,env));}
       if(url.pathname.startsWith('/api/video-agents')){const videoProviderEnv=await getProviderRuntimeEnv(env);const vr=await handleVideoAgents(request,videoProviderEnv);if(vr)return finalizeResponse(request,await securityPostflight(request,vr,env));}
