@@ -11,6 +11,10 @@ on:
         description: Online PJSIP supervisor endpoint key; required only for monitor/whisper/barge lifecycle verification
         required: false
         type: string
+      public_webrtc_run_id:
+        description: Successful Public Telecom WebRTC Verification run ID from main; required for supervisor audio
+        required: false
+        type: string
       jurisdiction:
         description: Recording jurisdiction/notice label for the consented test call
         required: true
@@ -34,6 +38,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: telecom-stasis-live-verification
@@ -51,6 +56,7 @@ jobs:
       TELECOM_TARGET_CHANNEL_ID: ${{ inputs.target_channel_id }}
       TELECOM_SUPERVISOR_ENDPOINT: ${{ inputs.supervisor_endpoint }}
       TELECOM_RECORDING_JURISDICTION: ${{ inputs.jurisdiction }}
+      PUBLIC_WEBRTC_RUN_ID: ${{ inputs.public_webrtc_run_id }}
       TELECOM_SUPERVISION_EVIDENCE: /tmp/magnanimous-supervision/evidence.json
     steps:
       - uses: actions/checkout@v7
@@ -96,7 +102,38 @@ jobs:
               echo 'Supervisor audio verification requires an online PJSIP supervisor endpoint.' >&2
               exit 1
             }
+            test -n "${PUBLIC_WEBRTC_RUN_ID}" || {
+              echo 'Supervisor audio verification requires the successful Public Telecom WebRTC Verification run ID.' >&2
+              exit 1
+            }
           fi
+
+      - name: Verify public WebRTC evidence before supervisor audio
+        if: inputs.verify_supervisor_audio_lifecycle == true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          proof="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${PUBLIC_WEBRTC_RUN_ID}" --jq '[.conclusion,.path,.head_branch,.event] | join("|")')"
+          IFS='|' read -r conclusion path branch event <<<"${proof}"
+          test "${conclusion}" = "success" || {
+            echo "Public WebRTC evidence run did not succeed: ${conclusion}" >&2
+            exit 1
+          }
+          test "${path}" = ".github/workflows/public-webrtc-verification.yml" || {
+            echo "Run ${PUBLIC_WEBRTC_RUN_ID} is not Public Telecom WebRTC Verification." >&2
+            exit 1
+          }
+          test "${branch}" = "main" || {
+            echo "Public WebRTC evidence must come from main." >&2
+            exit 1
+          }
+          test "${event}" = "workflow_dispatch" || {
+            echo "Public WebRTC evidence must be a manual external verification run." >&2
+            exit 1
+          }
+          echo "Verified successful public WebRTC evidence run ${PUBLIC_WEBRTC_RUN_ID}."
 
       - name: Validate verifier syntax
         run: python -m py_compile telecom-core/scripts/verify-supervision-live.py
