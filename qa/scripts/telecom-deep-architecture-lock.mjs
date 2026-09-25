@@ -97,6 +97,10 @@ has(carrier,'&&!x.over_rate_cap','routes above max-rate are excluded from the el
 has(carrier,"'bandwidth','signalwire'","carrier inventory supports additional replaceable interconnect types");
 has(carrier,'export async function planCarrierRoute','carrier planner exports one reusable selected-route decision contract');
 has(carrier,"endpoint:String(x.endpoint||'')",'carrier planner includes the selected interconnect endpoint key');
+has(carrier,"policy.asterisk_endpoint||policy.endpoint_key",'live Asterisk execution requires an explicit policy endpoint key');
+has(carrier,'execution_endpoint:executionEndpoint','route planner keeps explicit execution endpoint separate from legacy interconnect endpoint');
+has(leadPhone,'selected.execution_endpoint','outbound live handoff uses only the explicitly opted-in Asterisk endpoint');
+lacks(leadPhone,'endpoint: String(selected.endpoint).trim()','legacy interconnect endpoint cannot become a live dialplan key implicitly');
 has(leadPhone,'selected_route_applied: provider?.selected_route_applied === true','platform only claims selected-route execution when the bridge confirms it');
 has(leadPhone,'selected_route: selectedRoute','outbound bridge handoff can carry a selected route privately');
 has(leadPhone,'function magnanimousCoreBridgeReady','selected-route payload has an explicit private Telecom Core origin gate');
