@@ -72,6 +72,12 @@ async function outboundRouting(request, env) {
   const user = await currentUser(request, env).catch(() => null);
   if (!user) return { response: json({ detail: 'Sign in required.' }, 401) };
   const body = await request.clone().json().catch(() => ({}));
+  if (body.consent_confirmed !== true || body.ai_disclosure_accepted !== true) {
+    return { response: json({
+      detail: 'Confirm contact permission and AI disclosure before placing an automated carrier call.',
+      code: 'CALL_CONSENT_REQUIRED'
+    }, 400) };
+  }
   let plan = null;
   try {
     plan = await planCarrierRoute(env, user, body.to, String(body.route_mode || 'balanced'));
@@ -116,7 +122,11 @@ export async function handlePhoneCarrier(request, env) {
   const carrierCore = await handleMagnanimousCarrierPhoneAlias(request, env);
   if (carrierCore) return carrierCore;
 
-  const publicCarrierWebhook = path === '/api/phone/plivo/answer' || path === '/api/phone/webhook';
+  if (path === '/api/phone/plivo/answer') {
+    const response = await handlePlivoCarrier(request, env);
+    if (response) return response;
+  }
+  const publicCarrierWebhook = path === '/api/phone/webhook';
   if (!publicCarrierWebhook && !await currentUser(request, env).catch(() => null)) {
     return json({ detail: 'Sign in required.' }, 401);
   }
