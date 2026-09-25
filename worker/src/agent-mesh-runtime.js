@@ -325,6 +325,13 @@ async function runProvider(id,env,messages,requestedModel=''){
  throw new Error('Unknown Agent Mesh provider.');
 }
 
+function meteredProviderCost(provider,model,usage){
+ const inputTokens=Number(usage?.prompt_tokens||usage?.input_tokens||0);
+ const outputTokens=Number(usage?.completion_tokens||usage?.output_tokens||0);
+ const quote=quoteProviderCost({provider,model,input_tokens:inputTokens||2000,output_tokens:outputTokens||800});
+ return quote?.priced?Number(quote.origin_cost_usd||0):estimateAiCostUsd(provider,model);
+}
+
 async function saveMessage(env,user,agentId,role,content,provider='',model=''){
  await env.DB.prepare('INSERT INTO agent_mesh_messages(tenant_id,user_id,agent_id,role,content,provider,model,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(user.tenant_id,user.id,agentId,role,String(content).slice(0,20000),provider,model,now()).run();
 }
@@ -382,17 +389,45 @@ export async function handleAgentMesh(request,env){
   const requested=String(body.provider||'auto').toLowerCase();
   const ordered=[...PROVIDERS].sort((a,b)=>a.priority-b.priority);
   const preferred=requested==='auto'?null:ordered.find(p=>p.id===requested);
-  const candidates=preferred?[preferred,...ordered.filter(p=>p.id!==preferred.id)]:ordered;
-  const ready=candidates.filter(p=>configured(env,p));
-  if(!ready.length)return json({detail:requested==='auto'?'No non-OpenAI Agent Mesh provider is configured. Cloudflare Workers AI is the built-in free-first brain and should normally be available.':'The selected provider is not configured.',code:'NO_AGENT_PROVIDER'},503);
+  if(requested!=='auto'&&!preferred)return json({detail:'The selected provider is not recognized.',code:'UNKNOWN_AGENT_PROVIDER'},400);
+
+  const externalFreeFallback=String(env.ALLOW_EXTERNAL_FREE_TIER_FALLBACK||'').toLowerCase()==='true';
+  const automatic=ordered.filter(p=>p.auto_route||(externalFreeFallback&&p.tier!=='metered-optional'));
+  const candidates=preferred?[preferred,...ordered.filter(p=>p.id==='cloudflare-ai'&&p.id!==preferred.id)]:automatic;
+  const configuredCandidates=candidates.filter(p=>configured(env,p));
+  if(preferred&&!configured(env,preferred))return json({detail:'The selected provider is not configured.',code:'NO_AGENT_PROVIDER'},503);
+
+  let premiumGate=null;
+  if(preferred&&preferred.id!=='cloudflare-ai'){
+   const estimate=Math.max(.001,estimateAiCostUsd(preferred.id,String(body.model||'')));
+   premiumGate=await canUsePremium(env,user.tenant_id,{category:`${preferred.name} Agent Mesh AI`,estimated_cost_usd:estimate,required_plan:'plus',entitlement:'metered_ai'});
+   if(!premiumGate.ok)return json({detail:premiumGate.detail,code:premiumGate.code,free_first_available:true,prepaid_balance_usd:premiumGate.prepaid_balance_usd,pass_through_markup_percent:premiumGate.pass_through_markup_percent},402);
+  }
+
+  const ready=await filterHealthyProviders(env,configuredCandidates);
   const errors=[];
+  if(!configuredCandidates.length)errors.push('No automatic provider is configured; using Magnanimous local resilience.');
+  else if(!ready.length)errors.push('Self-heal circuit has temporarily quarantined the configured provider rail.');
   for(const p of ready){
+   const started=Date.now();
    try{
     const result=await runProvider(p.id,env,messages,String(body.model||''));
     if(!result.text.trim())throw new Error('empty response');
+    await recordProviderSuccess(env,p.id,{latencyMs:Date.now()-started,model:result.model});
+    if(preferred&&p.id===preferred.id&&p.id!=='cloudflare-ai'){
+     const directCost=meteredProviderCost(p.id,result.model,result.usage);
+     if(directCost>0){
+      try{await recordUsage(env,user.tenant_id,{category:'agent-mesh-premium-ai',provider:p.id,units:1,direct_cost_usd:directCost,reference_id:crypto.randomUUID()})}
+      catch(error){console.error('Agent Mesh premium usage recording failed',String(error?.message||error))}
+     }
+    }
     await saveMessage(env,user,agent.id,'assistant',result.text,p.id,result.model);
-    return json({output:result.text,agent,provider:p.id,provider_name:p.name,model:result.model,shared_memory:true,tenant_isolated:true,connected_tools:integrations,native_workspaces:NATIVE_WORKSPACES,native_context_used:true,branch_knowledge_count:knowledge.length,global_branch_knowledge_count:knowledge.filter(x=>x.scope==='global').length,platform_actions:'/assistant-actions',video_route:'/agent-video',openai_used:false});
-   }catch(e){errors.push(`${p.name}: ${e?.message||'failed'}`)}
+    return json({output:result.text,agent,provider:p.id,provider_name:p.name,model:result.model,shared_memory:true,tenant_isolated:true,connected_tools:integrations,native_workspaces:NATIVE_WORKSPACES,native_context_used:true,branch_knowledge_count:knowledge.length,global_branch_knowledge_count:knowledge.filter(x=>x.scope==='global').length,platform_actions:'/assistant-actions',video_route:'/agent-video',openai_used:false,self_healed_failover:errors.length>0,customer_funded_provider:Boolean(preferred&&p.id===preferred.id&&p.id!=='cloudflare-ai')});
+   }catch(e){
+    const failureClass=classifyAgentFailure([String(e?.message||'failed')]);
+    await recordProviderFailure(env,p.id,{failureClass,model:String(body.model||'')});
+    errors.push(`${p.name}: ${e?.message||'failed'}`);
+   }
   }
   console.error('Agent Mesh execution failed',errors);
   const failureClass=classifyAgentFailure(errors);
