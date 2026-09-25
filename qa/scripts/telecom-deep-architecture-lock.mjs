@@ -105,6 +105,8 @@ has(leadPhone,"['sip-trunk','byoc-bridge','direct-pstn']",'only migrated SIP/BYO
 has(leadPhone,'route_mode','outbound BYOC can select balanced, least-cost or priority planning mode');
 has(callService,'carrier_endpoint = str(selected_route.get("endpoint")','Telecom call service maps selected route endpoint into the private carrier request');
 has(carrierAdapter,'carrier_allowed_endpoints','Telecom Core validates selected endpoints against an owner-controlled allowlist');
+has(compose,'CARRIER_SIP_ALLOWED_ENDPOINTS: ${CARRIER_SIP_ALLOWED_ENDPOINTS:-}','Compose passes the selected-route allowlist only into the protected Telecom control API');
+has(compose,'CARRIER_SIP_SECONDARY_ENDPOINT: ${CARRIER_SIP_SECONDARY_ENDPOINT:-}','Compose passes the configured secondary endpoint into the protected Telecom control API');
 has(carrierAdapter,'await self._endpoint_health(selected_endpoint)','selected routes require authenticated Asterisk endpoint health before origination');
 has(carrierAdapter,'Selected carrier route is not authorized','unapproved selected endpoints fail closed');
 has(extensions,'MAG_SELECTED_ENDPOINT','Asterisk dialplan consumes only the server-validated selected endpoint variable');
