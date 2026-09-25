@@ -70,6 +70,12 @@ for(const route of ['/work-engine','/activity','/research-notebook','/inbox'])in
 includes(bpoRuntime,'CREATE TABLE IF NOT EXISTS bpo_clients','agency: existing BPO client workspace remains the canonical client identity');
 includes(agencyRuntime,"client_identity_source:'bpo_clients'",'agency: Agency Command explicitly reuses BPO client identity');
 includes(agencyRuntime,'CREATE TABLE IF NOT EXISTS agency_bookings','agency: booking storage exists');
+includes(agencyRuntime,"request.headers.get('Idempotency-Key')",'agency: booking creation accepts a request idempotency key');
+includes(agencyRuntime,'idempotentBookingId','agency: booking idempotency uses a deterministic tenant-scoped request identity');
+includes(agencyRuntime,'IDEMPOTENCY_KEY_REUSED','agency: reused booking keys with changed payload fail closed');
+includes(agencyRuntime,'replayed:true','agency: identical ambiguous booking retries converge on the original booking');
+includes(agencyUI,"'Idempotency-Key':key",'agency: booking UI retries keep one idempotency key');
+includes(agencyUI,'[502,503,504].includes(r.status)','agency: booking UI only retries bounded transient gateway failures');
 includes(agencyRuntime,'CREATE TABLE IF NOT EXISTS agency_funnels','agency: funnel storage exists');
 includes(agencyRuntime,'CREATE TABLE IF NOT EXISTS agency_reputation_items','agency: reputation queue storage exists');
 includes(agencyRuntime,'CREATE TABLE IF NOT EXISTS agency_client_settings','agency: white-label client settings exist');
