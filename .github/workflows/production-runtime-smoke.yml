@@ -73,6 +73,23 @@ jobs:
             command curl --connect-timeout 10 --max-time 90 "$@"
           }
 
+          safe_get_status() {
+            local output="$1" url="$2"; shift 2
+            local status="" attempt
+            for attempt in 1 2 3 4; do
+              status="$(curl_cmd -sS -o "$output" -w '%{http_code}' "$url" "$@" || true)"
+              case "$status" in
+                200|401|403|404) break ;;
+                000|502|503|504)
+                  echo "Transient read-only production-smoke response HTTP ${status:-request-failed}; retrying ${attempt}/4." >&2
+                  sleep 2
+                  ;;
+                *) break ;;
+              esac
+            done
+            printf '%s' "$status"
+          }
+
           oidc_token() {
             local raw
             raw="$(curl_cmd -fsS               -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}"               "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=magnanimous-deploy-smoke")"
@@ -80,9 +97,19 @@ jobs:
           }
 
           smoke_control() {
-            local action="$1" tenant="$2" output="$3" oidc status
-            oidc="$(oidc_token)"
-            status="$(curl_cmd -sS -o "$output" -w '%{http_code}'               -X POST "$STANDALONE_ORIGIN/__magnanimous_runtime/smoke/tenant"               -H 'content-type: application/json'               -H "Authorization: Bearer $oidc"               --data "{\"action\":\"$action\",\"tenant_id\":\"$tenant\",\"workflow_sha\":\"$GITHUB_SHA\",\"runtime_sha\":\"$GITHUB_SHA\"}" || true)"
+            local action="$1" tenant="$2" output="$3" oidc status attempt
+            for attempt in 1 2 3; do
+              oidc="$(oidc_token)"
+              status="$(curl_cmd -sS -o "$output" -w '%{http_code}'               -X POST "$STANDALONE_ORIGIN/__magnanimous_runtime/smoke/tenant"               -H 'content-type: application/json'               -H "Authorization: Bearer $oidc"               --data "{\"action\":\"$action\",\"tenant_id\":\"$tenant\",\"workflow_sha\":\"$GITHUB_SHA\",\"runtime_sha\":\"$GITHUB_SHA\"}" || true)"
+              case "$status" in
+                200) break ;;
+                000|502|503|504)
+                  echo "Transient idempotent smoke-control response HTTP ${status:-request-failed}; retrying ${attempt}/3." >&2
+                  sleep 2
+                  ;;
+                *) break ;;
+              esac
+            done
             printf '%s' "$status"
           }
 
@@ -105,7 +132,7 @@ jobs:
           }
           trap cleanup_smoke EXIT
 
-          public_status="$(curl_cmd -sS -o /tmp/public-health.json -w '%{http_code}' "$PUBLIC_ORIGIN/health" || true)"
+          public_status="$(safe_get_status /tmp/public-health.json "$PUBLIC_ORIGIN/health")"
           if [ "$public_status" != "200" ]; then
             echo "::error::Public production health returned HTTP $public_status."
             cat /tmp/public-health.json 2>/dev/null || true
@@ -174,7 +201,7 @@ jobs:
           PY
           )"
 
-          overview_status="$(curl_cmd -sS -o /tmp/runtime-smoke-agency-overview.json -w '%{http_code}'             "$STANDALONE_ORIGIN/api/agency/overview"             -H "Authorization: Bearer $token" || true)"
+          overview_status="$(safe_get_status /tmp/runtime-smoke-agency-overview.json "$STANDALONE_ORIGIN/api/agency/overview" -H "Authorization: Bearer $token")"
           if [ "$overview_status" != "200" ]; then
             echo "::error::Agency overview returned HTTP $overview_status."
             cat /tmp/runtime-smoke-agency-overview.json 2>/dev/null || true
@@ -242,7 +269,7 @@ jobs:
           assert d.get('code') == 'IDEMPOTENCY_KEY_REUSED',d
           PY
 
-          list_status="$(curl_cmd -sS -o /tmp/runtime-smoke-bookings.json -w '%{http_code}'             "$STANDALONE_ORIGIN/api/agency/bookings?client_id=$client_id"             -H "Authorization: Bearer $token" || true)"
+          list_status="$(safe_get_status /tmp/runtime-smoke-bookings.json "$STANDALONE_ORIGIN/api/agency/bookings?client_id=$client_id" -H "Authorization: Bearer $token")"
           if [ "$list_status" != "200" ]; then
             echo "::error::Booking list verification returned HTTP $list_status."
             cat /tmp/runtime-smoke-bookings.json 2>/dev/null || true
@@ -264,7 +291,7 @@ jobs:
           fi
           tenant_id=""
 
-          me_status="$(curl_cmd -sS -o /tmp/runtime-smoke-after-cleanup.json -w '%{http_code}'             "$STANDALONE_ORIGIN/api/auth/me"             -H "Authorization: Bearer $token" || true)"
+          me_status="$(safe_get_status /tmp/runtime-smoke-after-cleanup.json "$STANDALONE_ORIGIN/api/auth/me" -H "Authorization: Bearer $token")"
           if [ "$me_status" != "401" ]; then
             echo "::error::Cleaned smoke session expected HTTP 401, got $me_status."
             cat /tmp/runtime-smoke-after-cleanup.json 2>/dev/null || true
