@@ -48,14 +48,15 @@ function freeFirstProviderState(env){
   const local=Boolean(String(env?.OLLAMA_BASE_URL||'').trim());
   const compatible=Boolean(String(env?.MAGNANIMOUS_AI_BASE_URL||'').trim());
   const metered=String(env?.ENABLE_METERED_PROVIDERS||'').toLowerCase()==='true'&&Boolean(String(env?.OPENAI_API_KEY||'').trim());
-  const freeReady=privateEdge||local||compatible;
+  const freeReady=privateEdge||local;
   return {
     free_first_ready:freeReady,
     private_edge_bridge:{configured:privateEdge,status:privateEdge?'ready':'not-configured'},
     local_model:{configured:local,status:local?'ready':'not-configured'},
-    compatible_private_rail:{configured:compatible,status:compatible?'ready':'not-configured'},
+    compatible_private_rail:{configured:compatible,status:compatible?'configured-cost-unverified':'not-configured'},
     paid_fallback:{configured:metered,status:metered?'available-if-funded':'disabled'},
-    paid_fallback_required:!freeReady&&metered
+    paid_fallback_required:!freeReady&&(compatible||metered),
+    funding_verification_required:!freeReady&&compatible
   };
 }
 
@@ -137,11 +138,11 @@ function summarizeEvents(rows=[]){
 
 export async function selfHealingSnapshot(env,origin,{record=false}={}){
   const owner=await ownerAuditUser(env);
-  const [production,provider,rows]=await Promise.all([
+  const [production,provider]=await Promise.all([
     productionProbe(env,origin,owner,{record}),
-    providerProbe(env,owner,{record}),
-    owner?listProgressCheckpoints(env,owner,{limit:300}).catch(()=>[]):Promise.resolve([])
+    providerProbe(env,owner,{record})
   ]);
+  const rows=owner?await listProgressCheckpoints(env,owner,{limit:300}).catch(()=>[]):[];
   return {
     identity:'Magnanimous AI',
     policy:SELF_HEAL_POLICY,
