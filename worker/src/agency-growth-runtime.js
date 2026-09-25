@@ -6,6 +6,15 @@ const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control
 const text=(v,n=8000)=>String(v||'').trim().slice(0,n);
 const clamp=(v,min,max)=>Math.min(max,Math.max(min,Number(v||0)));
 const money=v=>Math.round(Number(v||0)*100)/100;
+const bookingKey=v=>String(v||'').trim().slice(0,180);
+async function idempotentBookingId(tenant,key){
+ const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(`agency-booking\0${tenant}\0${key}`)));
+ const hex=[...bytes].map(x=>x.toString(16).padStart(2,'0')).join('');
+ return `booking_${hex.slice(0,40)}`;
+}
+function sameBooking(row,b){
+ return Boolean(row)&&String(row.client_id)===String(b.client_id)&&String(row.contact_name)===String(b.contact_name)&&String(row.contact_email||'')===String(b.contact_email||'')&&String(row.contact_phone||'')===String(b.contact_phone||'')&&String(row.service||'')===String(b.service||'')&&Number(row.start_at)===Number(b.start_at)&&Number(row.end_at)===Number(b.end_at)&&String(row.status)===String(b.status)&&String(row.notes||'')===String(b.notes||'');
+}
 function publicSiteOrigin(env,url){
  const configured=String(env?.PUBLIC_SITE_URL||'').trim().replace(/\/+$/,'');
  if(configured){try{const parsed=new URL(configured);if(['https:','http:'].includes(parsed.protocol))return parsed.origin}catch{}}
@@ -60,7 +69,16 @@ export async function handleAgencyGrowth(request,env){
 
   if(url.pathname==='/api/agency/bookings'){
    if(request.method==='GET'){const clientId=text(url.searchParams.get('client_id'),80);let sql='SELECT b.*,c.name client_name FROM agency_bookings b JOIN bpo_clients c ON c.id=b.client_id WHERE b.tenant_id=?';const args=[tenant];if(clientId){sql+=' AND b.client_id=?';args.push(clientId)}sql+=' ORDER BY b.start_at DESC LIMIT 300';const{results=[]}=await env.DB.prepare(sql).bind(...args).all();return json({bookings:results})}
-   if(request.method==='POST'){const b=await request.json().catch(()=>({})),c=await client(env,tenant,text(b.client_id,80));if(!c)return json({detail:'Choose a valid client account.'},400);const name=text(b.contact_name,180),start=Number(b.start_at||0),end=Number(b.end_at||0),status=['booked','completed','cancelled'].includes(String(b.status||'booked'))?String(b.status||'booked'):'booked';if(!name||!start||!end||end<=start)return json({detail:'Contact, start time and a valid end time are required.'},400);const conflict=await env.DB.prepare("SELECT id,contact_name,start_at,end_at FROM agency_bookings WHERE tenant_id=? AND client_id=? AND status NOT IN ('completed','cancelled') AND start_at<? AND end_at>? LIMIT 1").bind(tenant,c.id,end,start).first();if(conflict)return json({detail:'That client already has a booking that overlaps this time.',code:'BOOKING_CONFLICT',conflict:{id:conflict.id,contact_name:conflict.contact_name,start_at:conflict.start_at,end_at:conflict.end_at}},409);const id=crypto.randomUUID(),ts=now();await env.DB.prepare('INSERT INTO agency_bookings(id,tenant_id,client_id,contact_name,contact_email,contact_phone,service,start_at,end_at,status,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,c.id,name,text(b.contact_email,240),text(b.contact_phone,80),text(b.service,180),start,end,status,text(b.notes,3000),ts,ts).run();return json({ok:true,id},201)}
+   if(request.method==='POST'){
+    const b=await request.json().catch(()=>({})),c=await client(env,tenant,text(b.client_id,80));if(!c)return json({detail:'Choose a valid client account.'},400);
+    const name=text(b.contact_name,180),start=Number(b.start_at||0),end=Number(b.end_at||0),status=['booked','completed','cancelled'].includes(String(b.status||'booked'))?String(b.status||'booked'):'booked';if(!name||!start||!end||end<=start)return json({detail:'Contact, start time and a valid end time are required.'},400);
+    const normalized={client_id:c.id,contact_name:name,contact_email:text(b.contact_email,240),contact_phone:text(b.contact_phone,80),service:text(b.service,180),start_at:start,end_at:end,status,notes:text(b.notes,3000)};
+    const key=bookingKey(request.headers.get('Idempotency-Key')||b.idempotency_key),id=key?await idempotentBookingId(tenant,key):crypto.randomUUID();
+    if(key){const replay=await env.DB.prepare('SELECT * FROM agency_bookings WHERE id=? AND tenant_id=?').bind(id,tenant).first();if(replay){if(!sameBooking(replay,normalized))return json({detail:'That idempotency key was already used for different booking data.',code:'IDEMPOTENCY_KEY_REUSED'},409);return json({ok:true,id,replayed:true,idempotent:true},201)}}
+    const conflict=await env.DB.prepare("SELECT id,contact_name,start_at,end_at FROM agency_bookings WHERE tenant_id=? AND client_id=? AND status NOT IN ('completed','cancelled') AND start_at<? AND end_at>? LIMIT 1").bind(tenant,c.id,end,start).first();if(conflict)return json({detail:'That client already has a booking that overlaps this time.',code:'BOOKING_CONFLICT',conflict:{id:conflict.id,contact_name:conflict.contact_name,start_at:conflict.start_at,end_at:conflict.end_at}},409);
+    const ts=now();try{await env.DB.prepare('INSERT INTO agency_bookings(id,tenant_id,client_id,contact_name,contact_email,contact_phone,service,start_at,end_at,status,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,normalized.client_id,normalized.contact_name,normalized.contact_email,normalized.contact_phone,normalized.service,normalized.start_at,normalized.end_at,normalized.status,normalized.notes,ts,ts).run()}catch(error){if(key){const replay=await env.DB.prepare('SELECT * FROM agency_bookings WHERE id=? AND tenant_id=?').bind(id,tenant).first();if(replay&&sameBooking(replay,normalized))return json({ok:true,id,replayed:true,idempotent:true},201)}throw error}
+    return json({ok:true,id,replayed:false,idempotent:Boolean(key)},201)
+   }
   }
   m=url.pathname.match(/^\/api\/agency\/bookings\/([^/]+)$/);if(m&&request.method==='PATCH'){const row=await env.DB.prepare('SELECT * FROM agency_bookings WHERE id=? AND tenant_id=?').bind(m[1],tenant).first();if(!row)return json({detail:'Booking not found.'},404);const b=await request.json().catch(()=>({})),status=b.status===undefined?row.status:String(b.status);if(!['booked','completed','cancelled'].includes(status))return json({detail:'Booking status must be booked, completed, or cancelled.'},400);await env.DB.prepare('UPDATE agency_bookings SET status=?,notes=?,updated_at=? WHERE id=? AND tenant_id=?').bind(status,text(b.notes===undefined?row.notes:b.notes,3000),now(),m[1],tenant).run();return json({ok:true,status})}
 
