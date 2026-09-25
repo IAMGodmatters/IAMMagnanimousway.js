@@ -19,6 +19,64 @@ function normalizeMessages(input) {
   return [{ role: 'user', content: String(input?.input || '') }];
 }
 
+function promptFromMessages(messages) {
+  return messages.map((item) => `${String(item.role || 'user').toUpperCase()}:\n${String(item.content || '')}`).join('\n\n');
+}
+
+function timeoutSignal(ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error('worker-compute-timeout')), ms);
+  return { signal: controller.signal, clear: () => clearTimeout(timer) };
+}
+
+async function workerFreeCompute(env, messages) {
+  const configured = String(env.MAGNANIMOUS_WORKER_COMPUTE_URL || env.PUBLIC_SITE_URL || '').trim();
+  if (!configured) throw new Error('Magnanimous Worker compute URL is not configured.');
+  const endpoint = new URL('/api/chat/compute', configured);
+  const railwayHost = String(env.RAILWAY_PUBLIC_DOMAIN || '').trim().toLowerCase();
+  if (railwayHost && endpoint.hostname.toLowerCase() === railwayHost) {
+    throw new Error('Magnanimous Worker compute URL resolves to the standalone service.');
+  }
+
+  const payload = JSON.stringify({
+    message: promptFromMessages(messages),
+    compute_only: true,
+    provider: 'auto',
+    allow_metered_accelerator: false,
+    use_knowledge: false,
+    use_tools: false,
+    learn_links: false,
+    remember_search: false,
+    specialist_routing: false,
+    live_search: false,
+    news: false
+  });
+
+  let lastError = null;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const timeout = timeoutSignal(50000);
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-magnanimous-compute-client': 'standalone' },
+        body: payload,
+        signal: timeout.signal
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(`Worker compute returned HTTP ${response.status}: ${String(data?.detail || data?.error || 'request failed').slice(0, 300)}`);
+      const text = String(data?.output || data?.answer || '').trim();
+      if (!text) throw new Error('Worker compute returned no text.');
+      return { response: text, result: { response: text }, provider: 'magnanimous-worker-free-first' };
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 350));
+    } finally {
+      timeout.clear();
+    }
+  }
+  throw lastError || new Error('Magnanimous Worker compute failed.');
+}
+
 export class MagnanimousAiBinding {
   constructor(env = process.env) {
     this.env = env;
@@ -73,7 +131,16 @@ export class MagnanimousAiBinding {
       return { response: text, result: { response: text }, provider: 'magnanimous-local' };
     }
 
-    if (this.env.OPENAI_API_KEY) {
+    let workerComputeError = null;
+    try {
+      return await workerFreeCompute(this.env, messages);
+    } catch (error) {
+      workerComputeError = error;
+      console.warn('Magnanimous free-first Worker compute unavailable; evaluating allowed fallbacks.', String(error?.message || error));
+    }
+
+    const meteredEnabled = String(this.env.ENABLE_METERED_PROVIDERS || '').toLowerCase() === 'true';
+    if (this.env.OPENAI_API_KEY && meteredEnabled) {
       const response = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
@@ -95,7 +162,7 @@ export class MagnanimousAiBinding {
     }
 
     throw new Error(
-      'No Magnanimous AI execution rail is configured. Set OLLAMA_BASE_URL or MAGNANIMOUS_AI_BASE_URL; metered OPENAI_API_KEY remains optional.'
+      `No usable free-first Magnanimous AI execution rail is available. ${String(workerComputeError?.message || '').slice(0, 500)} Metered OpenAI remains disabled unless ENABLE_METERED_PROVIDERS=true.`
     );
   }
 }
