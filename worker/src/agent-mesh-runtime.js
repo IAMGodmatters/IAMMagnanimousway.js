@@ -1,6 +1,8 @@
 import { currentUser } from './integrations.js';
 import { magnanimousPublicRoutingSummary } from './magnanimous-single-brain-contract.js';
 import { branchKnowledge, branchProfile, branchKnowledgeContext } from './agent-branch-intelligence.js';
+import { defaultModelForProvider } from './provider-cost-catalog.js';
+import { providerAttemptAllowed,recordProviderFailure,recordProviderSuccess } from './magnanimous-self-heal-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -97,9 +99,9 @@ const AGENTS=[
 
 const PROVIDERS=[
  {id:'cloudflare-ai',name:'Cloudflare Workers AI',tier:'built-in-free',key:'AI',priority:1,note:'Built in; free allocation on Workers AI.'},
- {id:'google',name:'Google Gemini',tier:'free-tier',key:'GOOGLE_API_KEY',priority:2,note:'Developer API free tier where available.'},
- {id:'groq',name:'Groq',tier:'free-tier',key:'GROQ_API_KEY',priority:3,note:'Free plan rate limits; non-OpenAI Qwen default.'},
- {id:'mistral',name:'Mistral AI',tier:'free-mode',key:'MISTRAL_API_KEY',priority:4,note:'Mistral Studio/API Free mode supported.'},
+ {id:'google',name:'Google Gemini',tier:'conditional-metered',key:'GOOGLE_API_KEY',priority:2,note:'A free tier exists, but paid projects can incur usage charges; gated by Magnanimous premium funding.'},
+ {id:'groq',name:'Groq',tier:'conditional-metered',key:'GROQ_API_KEY',priority:3,note:'A free plan exists, but paid accounts can incur usage charges; gated by Magnanimous premium funding.'},
+ {id:'mistral',name:'Mistral AI',tier:'conditional-metered',key:'MISTRAL_API_KEY',priority:4,note:'External API usage is treated as metered unless explicitly funded.'},
  {id:'openrouter-free',name:'OpenRouter Free Models',tier:'free-tier',key:'OPENROUTER_API_KEY',priority:5,note:'Free-model router; subject to free-plan request limits.'},
  {id:'huggingface',name:'Hugging Face Inference Providers',tier:'free-credits',key:'HF_TOKEN',priority:6,note:'Small monthly free inference credit allocation.'},
  {id:'cerebras',name:'Cerebras Inference',tier:'trial-credits',key:'CEREBRAS_API_KEY',priority:7,note:'Free trial credits; Z.ai GLM default, never an OpenAI model.'},
@@ -122,7 +124,8 @@ const NATIVE_WORKSPACES=[
 
 function agentById(id){return AGENTS.find(a=>a.id===String(id||'').toLowerCase())}
 function configured(env,p){return p.id==='cloudflare-ai'?env?.AI!=null:Boolean(String(env?.[p.key]||'').trim())}
-function providerSnapshot(env){return [...PROVIDERS].sort((a,b)=>a.priority-b.priority).map(p=>({id:p.id,name:p.name,tier:p.tier,configured:configured(env,p),openai:false,note:p.note,priority:p.priority}))}
+function providerEnabled(env,p){return !['conditional-metered','metered-optional'].includes(p.tier)||String(env?.ENABLE_METERED_PROVIDERS||'').toLowerCase()==='true'}
+function providerSnapshot(env){return [...PROVIDERS].sort((a,b)=>a.priority-b.priority).map(p=>({id:p.id,name:p.name,tier:p.tier,configured:configured(env,p),enabled:providerEnabled(env,p),openai:false,note:p.note,priority:p.priority}))}
 
 async function ensureSchema(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS agent_mesh_messages (
@@ -280,7 +283,7 @@ function localResilienceResponse(agent,message,failureClass='unavailable'){
 
 async function runProvider(id,env,messages,requestedModel=''){
  if(id==='cloudflare-ai'){
-  const models=[requestedModel,String(env.AGENT_CLOUDFLARE_MODEL||''),String(env.CLOUDFLARE_AI_MODEL||''),'@cf/meta/llama-3.2-1b-instruct','@cf/meta/llama-3.1-8b-instruct-fast','@cf/zai-org/glm-4.7-flash','@cf/qwen/qwen3-30b-a3b-fp8','@cf/google/gemma-4-26b-a4b-it','@cf/nvidia/nemotron-3-120b-a12b','@cf/meta/llama-3.3-70b-instruct-fp8-fast'].filter(Boolean);
+  const models=[requestedModel,String(env.AGENT_CLOUDFLARE_MODEL||''),String(env.CLOUDFLARE_AI_MODEL||''),'@cf/zai-org/glm-4.7-flash','@cf/google/gemma-4-26b-a4b-it','@cf/qwen/qwen3-30b-a3b-fp8','@cf/nvidia/nemotron-3-120b-a12b','@cf/openai/gpt-oss-20b','@cf/meta/llama-3.2-1b-instruct','@cf/meta/llama-3.1-8b-instruct-fast','@cf/meta/llama-3.3-70b-instruct-fp8-fast'].filter(Boolean);
   const errors=[];
   for(const model of [...new Set(models)].slice(0,7)){
    try{
@@ -307,13 +310,13 @@ async function runProvider(id,env,messages,requestedModel=''){
   throw new Error(errors.join(' | '));
  }
  if(id==='google'){
-  const model=requestedModel||env.GOOGLE_MODEL||'gemini-3.7-flash';
+  const model=requestedModel||env.GOOGLE_MODEL||'gemini-3.1-flash-lite';
   const system=messages.filter(m=>m.role==='system').map(m=>m.content).join('\n\n');
   const contents=messages.filter(m=>m.role!=='system').map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
   const r=await withTimeout(()=>fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(env.GOOGLE_API_KEY)}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({system_instruction:{parts:[{text:system}]},contents,generationConfig:{temperature:.45,maxOutputTokens:AGENT_MAX_TOKENS}})}),AGENT_PROVIDER_TIMEOUT_MS,'Google Gemini');
   const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||'Gemini request failed');return{text:(d.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('').trim(),model};
  }
- if(id==='groq')return chatCompletionsCompatible('https://api.groq.com/openai/v1',env.GROQ_API_KEY,requestedModel||env.GROQ_MODEL||'qwen/qwen3.6-27b',messages,'Groq');
+ if(id==='groq')return chatCompletionsCompatible('https://api.groq.com/openai/v1',env.GROQ_API_KEY,requestedModel||env.GROQ_MODEL||'openai/gpt-oss-20b',messages,'Groq');
  if(id==='mistral')return chatCompletionsCompatible('https://api.mistral.ai/v1',env.MISTRAL_API_KEY,requestedModel||env.MISTRAL_MODEL||'mistral-small-latest',messages,'Mistral');
  if(id==='openrouter-free')return chatCompletionsCompatible('https://openrouter.ai/api/v1',env.OPENROUTER_API_KEY,requestedModel||env.OPENROUTER_MODEL||'openrouter/free',messages,'OpenRouter',{'HTTP-Referer':'https://iammagnanimousway.com','X-Title':'I AM Magnanimous Way Agent Mesh'});
  if(id==='huggingface')return chatCompletionsCompatible('https://router.huggingface.co/v1',env.HF_TOKEN,requestedModel||env.HUGGINGFACE_MODEL||'Qwen/Qwen2.5-7B-Instruct',messages,'Hugging Face');
@@ -380,16 +383,20 @@ export async function handleAgentMesh(request,env){
   const ordered=[...PROVIDERS].sort((a,b)=>a.priority-b.priority);
   const preferred=requested==='auto'?null:ordered.find(p=>p.id===requested);
   const candidates=preferred?[preferred,...ordered.filter(p=>p.id!==preferred.id)]:ordered;
-  const ready=candidates.filter(p=>configured(env,p));
+  const ready=candidates.filter(p=>configured(env,p)&&providerEnabled(env,p));
   if(!ready.length)return json({detail:requested==='auto'?'No non-OpenAI Agent Mesh provider is configured. Cloudflare Workers AI is the built-in free-first brain and should normally be available.':'The selected provider is not configured.',code:'NO_AGENT_PROVIDER'},503);
   const errors=[];
   for(const p of ready){
+   const selectedModel=String(body.model||defaultModelForProvider(p.id,'budget')||'');
+   const circuit=providerAttemptAllowed(p.id,selectedModel);
+   if(!circuit.allowed){errors.push(`${p.name}: self-heal cooldown active`);continue}
    try{
-    const result=await runProvider(p.id,env,messages,String(body.model||''));
+    const result=await runProvider(p.id,env,messages,selectedModel);
     if(!result.text.trim())throw new Error('empty response');
+    recordProviderSuccess(p.id,result.model||selectedModel);
     await saveMessage(env,user,agent.id,'assistant',result.text,p.id,result.model);
     return json({output:result.text,agent,provider:p.id,provider_name:p.name,model:result.model,shared_memory:true,tenant_isolated:true,connected_tools:integrations,native_workspaces:NATIVE_WORKSPACES,native_context_used:true,branch_knowledge_count:knowledge.length,global_branch_knowledge_count:knowledge.filter(x=>x.scope==='global').length,platform_actions:'/assistant-actions',video_route:'/agent-video',openai_used:false});
-   }catch(e){errors.push(`${p.name}: ${e?.message||'failed'}`)}
+   }catch(e){const detail=e?.message||'failed';recordProviderFailure(p.id,selectedModel,detail);errors.push(`${p.name}: ${detail}`)}
   }
   console.error('Agent Mesh execution failed',errors);
   const failureClass=classifyAgentFailure(errors);
