@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -9,6 +11,7 @@ class OutboundCall(BaseModel):
     agent_id: str | None = None
     queue_id: str | None = None
     webhook_url: str | None = None
+    selected_route: dict[str, Any] | None = None
 
 
 class HangupRequest(BaseModel):
