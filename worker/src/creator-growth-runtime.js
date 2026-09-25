@@ -34,7 +34,13 @@ const NATIVE_CAPABILITIES=Object.freeze([
  ['movie-maker','Image, movie and narration generation','magnanimous-native'],
  ['media-compose','Scene composition, overlays, narration and music','magnanimous-native'],
  ['media-edit','Trim, audio extraction, thumbnails, loudness and probe','magnanimous-native'],
- ['social-publishing','Authorized YouTube, TikTok and LinkedIn publishing','authorized-official-api']
+ ['social-publishing','Authorized YouTube, TikTok and LinkedIn publishing','authorized-official-api'],
+ ['similar-videos','High-performing related video discovery','official-api-plus-native-ranking'],
+ ['similar-channels','Related creator discovery','official-api-plus-native-ranking'],
+ ['channel-search','YouTube channel discovery','official-api'],
+ ['comment-replies','Draft audience replies by tone','native-analysis'],
+ ['bookmarks','Save creator research inside Magnanimous','native-storage'],
+ ['competitor-tracking','Track creator competitors per workspace','native-storage']
 ].map(([id,name,implementation])=>({id,name,implementation})));
 
 async function ensureSchema(env){
@@ -46,6 +52,16 @@ async function ensureSchema(env){
   PRIMARY KEY(video_id,observed_at)
  )`).run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_creator_snapshots_video ON creator_video_snapshots(video_id,observed_at DESC)').run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS creator_bookmarks(
+  id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,kind TEXT NOT NULL,
+  external_id TEXT NOT NULL DEFAULT '',title TEXT NOT NULL DEFAULT '',url TEXT NOT NULL DEFAULT '',
+  payload_json TEXT NOT NULL DEFAULT '{}',tags_json TEXT NOT NULL DEFAULT '[]',created_at INTEGER NOT NULL
+ )`).run();
+ await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_creator_bookmarks_tenant ON creator_bookmarks(tenant_id,user_id,created_at DESC)').run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS creator_competitors(
+  tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,channel_id TEXT NOT NULL,title TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,user_id,channel_id)
+ )`).run();
 }
 
 async function authContext(env,user){
@@ -218,6 +234,60 @@ function scriptPlan(body){
  ],retention_notes:['Open loops should be resolved, not dragged out artificially.','Add a meaningful visual/pacing change when the idea changes.','Cut repeated setup and filler before adding more effects.']};
 }
 
+
+async function channelSearch(env,user,query,limit=20){
+ const d=await ytFetch(env,user,'/search',{part:'snippet',type:'channel',q:clean(query,180),maxResults:clamp(limit,1,25),order:'relevance'});
+ const ids=(d.items||[]).map(x=>x.id?.channelId).filter(Boolean);if(!ids.length)return[];
+ const detail=await ytFetch(env,user,'/channels',{part:'snippet,statistics',id:ids.join(','),maxResults:50});
+ const byId=new Map((detail.items||[]).map(x=>[x.id,x]));
+ return ids.map(id=>byId.get(id)).filter(Boolean).map(x=>({channel_id:x.id,title:x.snippet?.title||'',description:x.snippet?.description||'',thumbnail_url:x.snippet?.thumbnails?.high?.url||x.snippet?.thumbnails?.default?.url||'',subscribers:Number(x.statistics?.subscriberCount||0),views:Number(x.statistics?.viewCount||0),videos:Number(x.statistics?.videoCount||0)}));
+}
+async function similarVideos(env,user,videoId,limit=20){
+ const seed=(await enrichVideos(env,user,[videoId]))[0];if(!seed)throw new Error('Seed video not found.');
+ const query=clean(seed.title.replace(/[|:—-].*$/,'').split(/\s+/).slice(0,9).join(' '),180);
+ const candidates=await searchVideos(env,user,{q:query,max:clamp(limit,1,25),order:'relevance'});
+ const terms=new Set(wordTokens(seed.title+' '+seed.description).filter(x=>!STOP.has(x)));
+ const scored=candidates.filter(v=>v.video_id!==seed.video_id).map(v=>{const words=new Set(wordTokens(v.title+' '+v.description).filter(x=>!STOP.has(x)));let overlap=0;for(const t of terms)if(words.has(t))overlap++;const semantic=terms.size?overlap/terms.size:0;const perf=Math.log10(1+v.views_per_hour);return{...v,similarity_signals:{shared_terms:overlap,term_overlap:Number(semantic.toFixed(3)),views_per_hour:v.views_per_hour},native_similarity_score:Number((semantic*70+Math.min(30,perf*8)).toFixed(2))}}).sort((a,b)=>b.native_similarity_score-a.native_similarity_score);
+ return{seed,query,results:scored.slice(0,clamp(limit,1,25)),disclosure:'Similarity uses Magnanimous-owned lexical/topic overlap plus public performance signals; it is not vidIQ’s proprietary similarity index.'};
+}
+async function similarChannels(env,user,input,limit=20){
+ const seed=await channelStats(env,user,input),recent=await searchVideos(env,user,{channel_id:seed.channel_id,max:12,order:'date'});
+ const topic=clean(recent.map(v=>v.title).join(' ').split(/\s+/).filter(w=>w.length>4).slice(0,18).join(' '),180)||seed.title;
+ const videos=await searchVideos(env,user,{q:topic,max:25,order:'relevance'}),agg=new Map();
+ for(const v of videos){if(v.channel_id===seed.channel_id)continue;const cur=agg.get(v.channel_id)||{channel_id:v.channel_id,title:v.channel_title,matched_videos:0,views_per_hour:0,engagement_rate:0};cur.matched_videos++;cur.views_per_hour+=v.views_per_hour;cur.engagement_rate+=v.engagement_rate;agg.set(v.channel_id,cur)}
+ const rows=[...agg.values()].map(x=>({...x,views_per_hour:Number((x.views_per_hour/x.matched_videos).toFixed(2)),engagement_rate:Number((x.engagement_rate/x.matched_videos).toFixed(3)),native_match_score:Number((x.matched_videos*12+Math.log10(1+x.views_per_hour)*10).toFixed(2))})).sort((a,b)=>b.native_match_score-a.native_match_score).slice(0,clamp(limit,1,25));
+ return{seed:{channel_id:seed.channel_id,title:seed.title},topic_basis:topic,channels:rows,disclosure:'Related channels are ranked from public YouTube topic/performance evidence collected by Magnanimous.'};
+}
+function draftCommentReplies(comment,tones=['warm','helpful','concise']){
+ const text=clean(comment,1000),topic=clean(text.replace(/https?:\/\/\S+/g,'').slice(0,160),160);
+ const templates={
+  warm:`Thank you for sharing that. I appreciate you taking the time to watch and comment. ${topic?'I hear what you’re saying about '+topic+'.':''}`,
+  helpful:`Thank you for the question. ${topic?'On '+topic+', ':''}I’ll keep this in mind and make the next explanation as clear and practical as possible.`,
+  concise:`Thank you for watching and for the feedback. I appreciate it.`,
+  encouraging:`Thank you for being here. Keep going, and I hope the next video gives you something useful you can apply right away.`,
+  professional:`Thank you for the thoughtful comment. I appreciate the feedback and will consider it in future content.`
+ };
+ return{comment:text,replies:[...new Set((Array.isArray(tones)?tones:['warm']).slice(0,5).map(x=>String(x).toLowerCase()))].map(t=>({tone:t,text:templates[t]||templates.helpful}))};
+}
+async function saveBookmark(env,user,body){
+ const id=crypto.randomUUID(),kind=clean(body.kind||'creator-item',40),external=clean(body.external_id||body.video_id||body.channel_id||body.keyword,180),title=clean(body.title||external,240),url=clean(body.url,1000),tags=Array.isArray(body.tags)?body.tags.map(x=>clean(x,50)).filter(Boolean).slice(0,20):[];
+ await env.DB.prepare('INSERT INTO creator_bookmarks(id,tenant_id,user_id,kind,external_id,title,url,payload_json,tags_json,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,String(user.tenant_id),String(user.id),kind,external,title,url,JSON.stringify(body.payload||body.data||{}),JSON.stringify(tags),now()).run();
+ return{id,kind,external_id:external,title,url,tags};
+}
+async function listBookmarks(env,user,url){
+ const kind=clean(url.searchParams.get('kind'),40),limit=clamp(url.searchParams.get('limit')||30,1,50),where=['tenant_id=?','user_id=?'],args=[String(user.tenant_id),String(user.id)];
+ if(kind){where.push('kind=?');args.push(kind)}
+ const rows=(await env.DB.prepare(`SELECT * FROM creator_bookmarks WHERE ${where.join(' AND ')} ORDER BY created_at DESC LIMIT ?`).bind(...args,limit).all()).results||[];
+ return rows.map(r=>({id:r.id,kind:r.kind,external_id:r.external_id,title:r.title,url:r.url,tags:JSON.parse(r.tags_json||'[]'),payload:JSON.parse(r.payload_json||'{}'),created_at:r.created_at}));
+}
+async function addCompetitor(env,user,input){
+ const stats=await channelStats(env,user,input),ts=now();await env.DB.prepare(`INSERT INTO creator_competitors(tenant_id,user_id,channel_id,title,created_at,updated_at) VALUES(?,?,?,?,?,?)
+ ON CONFLICT(tenant_id,user_id,channel_id) DO UPDATE SET title=excluded.title,updated_at=excluded.updated_at`).bind(String(user.tenant_id),String(user.id),stats.channel_id,stats.title,ts,ts).run();return stats;
+}
+async function listCompetitors(env,user){
+ const rows=(await env.DB.prepare('SELECT channel_id,title,created_at,updated_at FROM creator_competitors WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC').bind(String(user.tenant_id),String(user.id)).all()).results||[];return rows;
+}
+
 export async function handleCreatorGrowth(request,env){
  const url=new URL(request.url),path=url.pathname;if(!path.startsWith('/api/creator-growth'))return null;
  if(!env?.DB)return json({detail:'Creator intelligence storage is unavailable.'},503);
@@ -247,6 +317,16 @@ export async function handleCreatorGrowth(request,env){
   if(request.method==='POST'&&path==='/api/creator-growth/best-time'){const b=await request.json().catch(()=>({}));return json({windows:await bestPostingWindows(env,user,b.channel||b.channel_id||'') ,disclosure:'These are historical performance windows from observed upload results, not a claim that subscribers are online at those exact times.'})}
   if(request.method==='GET'&&path==='/api/creator-growth/change-history'){return json(await changeHistory(env,clean(url.searchParams.get('video_id'),40)))}
   if(request.method==='GET'&&path==='/api/creator-growth/performance-history'){return json(await performanceHistory(env,clean(url.searchParams.get('video_id'),40)))}
+  if(request.method==='POST'&&path==='/api/creator-growth/channel-search'){const b=await request.json().catch(()=>({}));return json({channels:await channelSearch(env,user,b.query||b.keyword,b.limit)})}
+  if(request.method==='POST'&&path==='/api/creator-growth/similar-videos'){const b=await request.json().catch(()=>({}));return json(await similarVideos(env,user,clean(b.video_id,40),b.limit))}
+  if(request.method==='POST'&&path==='/api/creator-growth/similar-channels'){const b=await request.json().catch(()=>({}));return json(await similarChannels(env,user,b.channel||b.channel_id||'',b.limit))}
+  if(request.method==='POST'&&path==='/api/creator-growth/comment-replies'){const b=await request.json().catch(()=>({}));return json(draftCommentReplies(b.comment,b.tones))}
+  if(request.method==='POST'&&path==='/api/creator-growth/bookmarks'){return json({saved:await saveBookmark(env,user,await request.json().catch(()=>({})))},201)}
+  if(request.method==='GET'&&path==='/api/creator-growth/bookmarks'){return json({items:await listBookmarks(env,user,url)})}
+  const bm=path.match(/^\/api\/creator-growth\/bookmarks\/([^/]+)$/);if(bm&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM creator_bookmarks WHERE id=? AND tenant_id=? AND user_id=?').bind(bm[1],String(user.tenant_id),String(user.id)).run();return json({ok:true,removed:bm[1]})}
+  if(request.method==='POST'&&path==='/api/creator-growth/competitors'){const b=await request.json().catch(()=>({}));return json({competitor:await addCompetitor(env,user,b.channel||b.channel_id||'')},201)}
+  if(request.method==='GET'&&path==='/api/creator-growth/competitors'){return json({competitors:await listCompetitors(env,user)})}
+  const cm=path.match(/^\/api\/creator-growth\/competitors\/([^/]+)$/);if(cm&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM creator_competitors WHERE tenant_id=? AND user_id=? AND channel_id=?').bind(String(user.tenant_id),String(user.id),cm[1]).run();return json({ok:true,removed:cm[1]})}
   return json({detail:'Unsupported Creator Growth operation.'},405);
  }catch(error){console.error('creator growth runtime error',error);return json({detail:error?.message||'Creator Growth failed.',code:'CREATOR_GROWTH_ERROR'},502)}
 }
