@@ -28,6 +28,7 @@ function xmlEscape(v){return String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','
 function aspectViewBox(aspect){
  const [a,b]=String(aspect||'16:9').split(':').map(Number);const w=1600,h=Math.round(w*(b||9)/(a||16));return{w,h};
 }
+function googleImageApiSize(size){return String(size||'2K').toUpperCase()==='0.5K'?'512':String(size||'2K').toUpperCase()}
 function imageModelFor(quality,size){
  const q=String(quality||'balanced').toLowerCase();
  if(q==='economy')return{quality:'economy',model:'gemini-3.1-flash-lite-image',size:'1K'};
@@ -196,7 +197,7 @@ async function generateStudioImage(request,env,user,body,plan){
  if(!gate.ok)return json({detail:gate.detail,code:gate.code,free_first_available:true,estimated_customer_charge_usd:gate.estimated_variable_customer_charge_usd},402);
  const input=[{type:'text',text:prompt}];
  for(const raw of Array.isArray(body.reference_images)?body.reference_images.slice(0,14):[]){const p=parseDataUri(raw);if(p)input.unshift({type:'image',mime_type:p.content_type,data:p.base64})}
- const d=await googleInteraction(env,{model:selected.model,input,response_format:{type:'image',mime_type:'image/png',aspect_ratio:aspect,image_size:selected.size},generation_config:{thinking_level:selected.quality==='economy'?'low':'high'}});
+ const d=await googleInteraction(env,{model:selected.model,input,response_format:{type:'image',mime_type:'image/png',aspect_ratio:aspect,image_size:googleImageApiSize(selected.size)},generation_config:{thinking_level:selected.quality==='economy'?'low':'high'}});
  const out=extractOutput(d,'image');if(!out?.data)throw new Error('Studio image generation returned no image bytes.');
  const priced=googleImageOriginCost({model:selected.model,image_size:selected.size,usage:d.usage||{}});if(!priced.ok)throw new Error(priced.code);
  const variable=variableCustomerCharge(priced.provider_origin_cost_usd),ref=`movie-image:${d.id||crypto.randomUUID()}`;
