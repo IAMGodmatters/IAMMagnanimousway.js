@@ -17,6 +17,10 @@ const compose=read('telecom-core/docker-compose.yml');
 const env=read('telecom-core/.env.owned.example');
 const tests=read('telecom-core/control-api/tests/test_stasis_bridges.py');
 const contact=read('worker/src/contact-center-runtime.js');
+const webrtcSessions=read('telecom-core/control-api/app/services/webrtc_sessions.py');
+const extensions=read('telecom-core/asterisk/templates/extensions.conf.template');
+const entrypoint=read('telecom-core/asterisk/entrypoint.sh');
+const webrtcOwnershipTests=read('telecom-core/control-api/tests/test_webrtc_sessions.py');
 
 checks.push(['Stasis app setting is defined exactly once',count(config,'stasis_app: str =')===1]);
 has(config,'stasis_bridge_enabled: bool = False','managed Stasis call bridge is disabled by default');
@@ -46,6 +50,11 @@ has(service,'def _managed_call_for_tenant','Stasis call controls resolve through
 has(service,'call.tenant_id != str(tenant_id)','cross-tenant managed call IDs fail closed');
 has(service,'recording.get("tenant_id") != str(tenant_id)','recording stop is tenant scoped');
 has(service,'session.get("tenant_id") != str(tenant_id)','supervisor stop is tenant scoped');
+has(service,'self._webrtc_sessions.owns_session','supervisor startup requires a tenant-owned browser session');
+has(service,'async def _supervisor_channel_for_session','Telecom Core resolves the active supervisor channel itself');
+has(service,'app_name == "stasis"','resolved supervisor channel must actually be inside Stasis');
+has(service,'app_data.startswith(f"{self._settings.stasis_app},supervisor")','resolved channel must be inside the supervisor Stasis entry');
+has(service,'len(matches) != 1','zero or ambiguous supervisor Stasis channels fail closed');
 has(service,'"supervisor_audio_runtime_ready"','local runtime readiness is reported separately from public live state');
 has(service,'"bridge_recording_runtime_ready"','recording runtime readiness is reported separately from public live state');
 has(service,'"supervisor_monitor_live": False','monitor is never called public-live from source/runtime readiness alone');
@@ -77,6 +86,9 @@ has(models,'consent_confirmed: bool = False','consent defaults fail closed');
 has(models,'class SupervisorSessionStart','supervisor request contract exists');
 has(models,'provider_call_id: str = Field(min_length=1, max_length=160)','supervisor controls identify a managed call rather than a raw bridge');
 has(models,'target_role: Literal["agent", "customer"]','supervisor targets a managed call leg role rather than an arbitrary target channel');
+has(models,'supervisor_session_id: str = Field','supervisor request identifies a tenant-owned WebRTC session');
+lacks(models,'supervisor_channel_id:','public request contract never accepts a raw Asterisk supervisor channel ID');
+has(models,'class WebRtcSessionCreate','protected browser-session request can carry tenant/user ownership metadata');
 has(models,'Literal["monitor", "whisper", "barge"]','supervisor modes are enumerated');
 
 for(const variable of [
@@ -93,11 +105,23 @@ has(env,'ASTERISK_STASIS_BRIDGE_ENABLED=false','owned environment keeps managed 
 has(env,'ASTERISK_SUPERVISOR_AUDIO_ENABLED=false','owned environment keeps supervisor audio disabled by default');
 has(env,'ASTERISK_BRIDGE_RECORDING_ENABLED=false','owned environment keeps bridge recording disabled by default');
 
+has(webrtcSessions,'self._owners: dict[str, dict[str, Any]] = {}','Telecom Core keeps ephemeral browser ownership metadata server-side');
+has(webrtcSessions,'def owns_session(self, session_id: str, tenant_id: str)','supervisor authorization can verify tenant-owned browser sessions');
+has(webrtcSessions,'self._owners.pop(session_id, None)','browser-session revocation removes ownership metadata');
+has(contact,"body:JSON.stringify({tenant_id:String(user.tenant_id),user_id:String(user.id)})",'platform passes signed-in tenant/user ownership only over the private Telecom Core request');
+has(extensions,'MAGNANIMOUS_SUPERVISOR_EXTENSION=${MAGNANIMOUS_SUPERVISOR_EXTENSION}','Asterisk dialplan has a configurable internal supervisor extension');
+has(extensions,'Stasis(${ASTERISK_STASIS_APP},supervisor)','ephemeral supervisor entry places the browser channel inside the protected Stasis app');
+has(extensions,'exten => _+X.,1,Playback(ss-noservice)','ephemeral WebRTC context still blocks direct PSTN dialing');
+has(entrypoint,'MAGNANIMOUS_SUPERVISOR_EXTENSION:=6100','Asterisk gives the internal supervisor entry a bounded default extension');
+has(webrtcOwnershipTests,'test_owned_session_is_tenant_bound_and_revocation_clears_owner','unit tests prove browser-session tenant ownership and revocation');
+has(webrtcOwnershipTests,'test_unowned_diagnostic_session_cannot_be_used_for_supervision','unowned CI diagnostic sessions cannot become supervisor sessions');
+
 has(tests,'test_managed_call_builds_two_leg_bridge_and_cleans_on_end','unit tests prove managed bridge lifecycle');
 has(tests,'test_recording_requires_consent_tenant_and_jurisdiction','unit tests prove recording consent and tenant gate');
 has(tests,'test_monitor_and_whisper_use_isolated_snoop_bridge','unit tests prove isolated monitor/whisper path');
 has(tests,'test_barge_joins_supervisor_directly_to_tenant_call_bridge','unit tests prove distinct tenant-owned barge path');
 has(tests,'test_topology_is_tenant_scoped','unit tests prove cross-tenant topology lookup fails closed');
+has(tests,'test_supervisor_requires_tenant_owned_webrtc_session_and_matching_channel','unit tests prove supervisor browser ownership and Stasis-channel binding');
 has(tests,'test_natural_call_end_cleans_recording_and_supervisor_children','unit tests prove child media cleanup when the parent call ends');
 has(tests,'test_shutdown_cleanup_does_not_depend_on_ready_flag','unit tests prove disconnect-safe shutdown cleanup');
 
