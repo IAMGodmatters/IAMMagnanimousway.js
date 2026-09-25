@@ -1,3 +1,5 @@
+const EDGE_AI_BRIDGE_VERSION='2026-09-25.1';
+
 function json(data,status=200){
   return new Response(JSON.stringify(data),{
     status,
@@ -79,7 +81,7 @@ export async function handleEdgeAiBridge(request,env){
     catch(_){result=await env.AI.run(model,{messages});}
     const text=extractText(result);
     if(!text)return json({detail:'Workers AI returned no text.'},502);
-    return json({ok:true,response:text,result:{response:text}});
+    return json({ok:true,bridge_version:EDGE_AI_BRIDGE_VERSION,response:text,result:{response:text}});
   }catch(error){
     console.error('Private edge AI bridge execution failed',String(error?.message||error));
     return json({detail:'Private edge AI bridge execution failed.'},502);
