@@ -18,6 +18,8 @@ import { handleCredentialVaultMigration } from './credential-vault-migration.js'
 import { handleMagnanimousCapabilityMesh } from './magnanimous-capability-mesh.js';
 import { handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
 import { handleEdgeAiBridge } from './edge-ai-bridge.js';
+import { premiumPreflight,premiumPostprocess } from './premium-runtime-guard.js';
+import { handleMagnanimousPremiumVoice } from './premium-voice-runtime.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -228,6 +230,7 @@ export default {
     const requestId=requestCorrelationId(request);
     let carrierContext=null;
     let assistantContext=null;
+    let premiumContext=null;
     try{
       const url=new URL(request.url);
       const credentialMigrationResponse=await handleCredentialVaultMigration(request,env);
@@ -252,7 +255,7 @@ export default {
 
       const assistantPolicy=await enforceAssistantActionPolicy(routedRequest,env);
       if(assistantPolicy instanceof Response)return finalizeResponse(request,await securityPostflight(routedRequest,assistantPolicy,env));
-      const policyRequest=assistantPolicy?.request||routedRequest;
+      let policyRequest=assistantPolicy?.request||routedRequest;
       assistantContext=assistantPolicy?.context||null;
 
       const credentialWriteBlock=await blockServerOnlyCredentialBrowserWrite(policyRequest);
@@ -267,6 +270,23 @@ export default {
         const assistantCompleted=await completeAssistantActionPolicy(assistantContext,blocked,env);
         const completed=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
         return finalizeResponse(request,await securityPostflight(policyRequest,completed,env));
+      }
+
+      const premium=await premiumPreflight(policyRequest,env);
+      if(premium?.response){
+        const assistantCompleted=await completeAssistantActionPolicy(assistantContext,premium.response,env);
+        const completed=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
+        return finalizeResponse(request,await securityPostflight(policyRequest,completed,env));
+      }
+      policyRequest=premium?.request||policyRequest;
+      premiumContext=premium?.context||null;
+
+      const premiumVoiceEnv=await getProviderRuntimeEnv(env);
+      const premiumVoiceResponse=await handleMagnanimousPremiumVoice(policyRequest,premiumVoiceEnv);
+      if(premiumVoiceResponse){
+        const assistantCompleted=await completeAssistantActionPolicy(assistantContext,premiumVoiceResponse,env);
+        const carrierCompleted=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
+        return finalizeResponse(request,await securityPostflight(policyRequest,carrierCompleted,env));
       }
 
       const policyUrl=new URL(policyRequest.url);
@@ -324,7 +344,8 @@ export default {
       const rawResponse = await app.fetch(policyRequest, executionEnv, ctx);
       const response = await hideServerOnlyCredentialMetadata(policyRequest,rawResponse);
       const resilientResponse = continuityRequest ? await recoverProfessionalGeneration(continuityRequest, env, response) : response;
-      const sessionResponse=await upgradeAuthResponseToOpaque(request,resilientResponse,env);
+      const premiumResponse=await premiumPostprocess(resilientResponse,env,premiumContext);
+      const sessionResponse=await upgradeAuthResponseToOpaque(request,premiumResponse,env);
       const assistantResponse=await completeAssistantActionPolicy(assistantContext,sessionResponse,env);
       const carrierResponse=await completeCarrierWebhook(carrierContext,assistantResponse,env);
       const securedResponse=await securityPostflight(policyRequest, carrierResponse, env);
