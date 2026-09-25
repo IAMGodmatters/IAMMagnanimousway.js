@@ -146,9 +146,10 @@ async function cloudflare(env, message, model) {
   const requested = String(model || env.CLOUDFLARE_AI_MODEL || '').trim();
   const models = [...new Set([
     requested,
-    '@cf/meta/llama-3.1-8b-instruct-fast',
-    '@cf/meta/llama-3.2-1b-instruct',
-    '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+    '@cf/zai-org/glm-4.7-flash',
+    '@cf/google/gemma-4-26b-a4b-it',
+    '@cf/nvidia/nemotron-3-120b-a12b',
+    '@cf/meta/llama-3.1-8b-instruct-fast'
   ].filter(Boolean))];
   const errors = [],deadline=Date.now()+CLOUDFLARE_MODEL_BUDGET_MS;
   for (const m of models) {
@@ -310,7 +311,7 @@ async function handle(request, env) {
   if (url.pathname === '/api/ads' && request.method === 'GET') {
     try {
       const placement = url.searchParams.get('placement') || 'home';
-      const { results } = await env.DB.prepare('SELECT id,title,url,label,placement,active FROM ads WHERE active=1 AND placement=? ORDER BY id DESC').bind(placement).all();
+      const { results } = await env.DB.prepare('SELECT id,title,url,label,placement,active,owner_owned,revenue_approved FROM ads WHERE active=1 AND placement=? AND (owner_owned=1 OR revenue_approved=1) ORDER BY id DESC').bind(placement).all();
       return json({ ads: results || [] });
     } catch (_) { return json({ ads: [] }); }
   }
