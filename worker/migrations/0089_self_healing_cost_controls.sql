@@ -24,5 +24,18 @@ CREATE TABLE IF NOT EXISTS magnanimous_self_heal_events (
 CREATE INDEX IF NOT EXISTS idx_self_heal_events_time
  ON magnanimous_self_heal_events(created_at DESC);
 
-ALTER TABLE billing_usage_events ADD COLUMN markup_percent REAL NOT NULL DEFAULT 20;
-ALTER TABLE billing_usage_events ADD COLUMN customer_charge_usd REAL NOT NULL DEFAULT 0;
+CREATE TABLE IF NOT EXISTS billing_pass_through_charges (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ tenant_id TEXT NOT NULL,
+ period_key TEXT NOT NULL,
+ category TEXT NOT NULL,
+ provider TEXT NOT NULL DEFAULT '',
+ reference_id TEXT NOT NULL DEFAULT '',
+ origin_cost_usd REAL NOT NULL DEFAULT 0,
+ markup_percent REAL NOT NULL DEFAULT 20,
+ customer_charge_usd REAL NOT NULL DEFAULT 0,
+ created_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_billing_pass_through_tenant_period
+ ON billing_pass_through_charges(tenant_id,period_key,created_at DESC);
