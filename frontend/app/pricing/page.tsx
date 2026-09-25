@@ -22,6 +22,7 @@ export default function PricingPage(){
  useEffect(()=>{
   const t=getPlatformAuthToken();setToken(t);
   fetch(`${api}/api/plans`,{cache:'no-store'}).then(read).then(d=>setPlans((d.plans||[]).filter((p:Plan)=>!p.id.startsWith('agency')))).catch(()=>{});
+  fetch(`${api}/api/provider-costs`,{cache:'no-store'}).then(read).then(d=>setProviderCosts(d?.providers?d:null)).catch(()=>{});
   const load=()=>t?fetch(`${api}/api/billing/status`,{headers:{Authorization:`Bearer ${t}`},cache:'no-store'}).then(read).then(d=>{if(d.plan)setCurrentPlan(d.plan);setPortalReady(!!d.portal_configured);setUsage({direct_variable_cost_usd:Number(d.direct_variable_cost_usd||0),cost_ceiling_usd:Number(d.cost_ceiling_usd||0),premium_usage_allowed:!!d.premium_usage_allowed,entitlements:d.entitlements,subscription:d.subscription});return d}).catch(()=>null):Promise.resolve(null);
   const q=new URLSearchParams(location.search),state=q.get('checkout'),sessionId=q.get('session_id')||'',requested=q.get('plan')||'';
   if(state==='success'&&t&&sessionId){
