@@ -124,8 +124,8 @@ const runtime=`(function(){
 
   function loadAds(){
     fetch('/api/monetization/config',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(c){
-      if(!c)return;var configured=!!(c.adsense_configured||c.auto_ads_ready||c.ads_enabled);var client=c.adsense_client_id||c.adsense_client||'';
-      if(!configured||!client||document.querySelector('script[data-iam-adsense="true"],#iam-adsense'))return;
+      if(!c)return;var configured=!!(c.adsense_configured||c.auto_ads_ready||c.ads_enabled);var client=c.adsense_client_id||c.adsense_client||'';var paid=c.revenue_authorized===true;
+      if(!configured||!paid||!client||document.querySelector('script[data-iam-adsense="true"],#iam-adsense'))return;
       var s=document.createElement('script');s.id='iam-adsense';s.dataset.iamAdsense='true';s.async=true;s.crossOrigin='anonymous';s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+encodeURIComponent(client);document.head.appendChild(s);
     }).catch(function(){});
   }
