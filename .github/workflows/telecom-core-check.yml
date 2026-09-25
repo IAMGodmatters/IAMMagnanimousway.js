@@ -10,6 +10,8 @@ on:
       - 'worker/src/magnanimous-telecom-network-runtime.js'
       - 'worker/src/magnanimous-carrier-core.js'
       - 'worker/src/lead-phone.js'
+      - 'worker/src/byoc-route-contract.js'
+      - 'qa/scripts/byoc-route-contract-lock.mjs'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
       - 'worker/src/magnanimous-telecom-bss-admin-runtime.js'
@@ -35,6 +37,8 @@ on:
       - 'worker/src/magnanimous-telecom-network-runtime.js'
       - 'worker/src/magnanimous-carrier-core.js'
       - 'worker/src/lead-phone.js'
+      - 'worker/src/byoc-route-contract.js'
+      - 'qa/scripts/byoc-route-contract-lock.mjs'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
       - 'worker/src/magnanimous-telecom-bss-admin-runtime.js'
@@ -113,6 +117,8 @@ jobs:
           node --check worker/src/magnanimous-telecom-network-runtime.js
           node --check worker/src/magnanimous-carrier-core.js
           node --check worker/src/lead-phone.js
+          node --check worker/src/byoc-route-contract.js
+          node qa/scripts/byoc-route-contract-lock.mjs
           node --check worker/src/magnanimous-telecom-service-runtime.js
           node --check worker/src/magnanimous-telecom-operations-runtime.js
           node --check worker/src/magnanimous-telecom-bss-admin-runtime.js
