@@ -1,6 +1,7 @@
 import { currentUser } from './integrations.js';
 
 const now=()=>Math.floor(Date.now()/1000);
+let schemaReady=false;
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 
 export const SELF_HEAL_POLICY=Object.freeze({
@@ -15,6 +16,7 @@ export const SELF_HEAL_POLICY=Object.freeze({
 
 async function ensureSchema(env){
  if(!env?.DB)return false;
+ if(schemaReady)return true;
  try{
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_provider_health (
    provider TEXT PRIMARY KEY,status TEXT NOT NULL DEFAULT 'healthy',consecutive_failures INTEGER NOT NULL DEFAULT 0,
@@ -26,6 +28,7 @@ async function ensureSchema(env){
    action TEXT NOT NULL,status TEXT NOT NULL,detail TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL
   )`).run();
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_self_heal_events_time ON magnanimous_self_heal_events(created_at DESC)').run();
+  schemaReady=true;
   return true;
  }catch(error){console.error('self-heal schema unavailable',String(error?.message||error));return false}
 }
@@ -66,11 +69,13 @@ export async function recordProviderSuccess(env,provider,{latencyMs=0,model=''}=
  if(!env?.DB||!provider)return;
  try{
   if(!await ensureSchema(env))return;
+  const current=await env.DB.prepare('SELECT status,consecutive_failures,cooldown_until FROM magnanimous_provider_health WHERE provider=?').bind(String(provider)).first();
+  if(!current)return;
+  if(String(current.status||'')==='healthy'&&Number(current.consecutive_failures||0)===0&&Number(current.cooldown_until||0)===0)return;
   const ts=now();
-  await env.DB.prepare(`INSERT INTO magnanimous_provider_health(provider,status,consecutive_failures,last_failure_class,cooldown_until,last_success_at,last_latency_ms,last_model,updated_at)
-   VALUES(?, 'healthy',0,'',0,?,?,?,?)
-   ON CONFLICT(provider) DO UPDATE SET status='healthy',consecutive_failures=0,last_failure_class='',cooldown_until=0,last_success_at=excluded.last_success_at,last_latency_ms=excluded.last_latency_ms,last_model=excluded.last_model,updated_at=excluded.updated_at`)
-   .bind(String(provider),ts,Math.max(0,Math.round(Number(latencyMs||0))),String(model||'').slice(0,160),ts).run();
+  await env.DB.prepare(`UPDATE magnanimous_provider_health SET status='healthy',consecutive_failures=0,last_failure_class='',cooldown_until=0,last_success_at=?,last_latency_ms=?,last_model=?,updated_at=? WHERE provider=?`)
+   .bind(ts,Math.max(0,Math.round(Number(latencyMs||0))),String(model||'').slice(0,160),ts,String(provider)).run();
+  await event(env,'ai-provider',provider,'circuit-recovered','healthy','Provider succeeded after a degraded/cooldown state.');
  }catch(error){console.error('provider success self-heal write failed',String(error?.message||error))}
 }
 
