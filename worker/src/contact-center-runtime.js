@@ -451,6 +451,7 @@ export async function handleContactCenter(request,env){
   const startSupervision=path.match(/^\/api\/contact-center\/supervisor\/calls\/(\d+)\/session$/);
   if(startSupervision&&request.method==='POST'){
    if(!owner(user))return json({detail:'Workspace owner access required.'},403);
+   if(!runtimeTrue(env.TELECOM_NATIVE_WEBRTC_LIVE))return json({detail:'Supervisor audio remains gated until native public WebRTC is externally verified.'},409);
    const b=await request.json().catch(()=>({})),mode=['monitor','whisper','barge'].includes(String(b.mode))?String(b.mode):'monitor';
    if(b.consent_confirmed!==true||b.notice_confirmed!==true)return json({detail:'Supervisor audio requires confirmed participant consent and supervision notice.'},422);
    const call=await callById(env,tenant,Number(startSupervision[1]));if(!call)return json({detail:'Call not found.'},404);
