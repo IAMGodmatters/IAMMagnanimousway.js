@@ -1,4 +1,5 @@
 import {currentUser} from './integrations.js';
+import {tenantPlan} from './usage-guard.js';
 
 const J=(d,s=200)=>Response.json(d,{status:s,headers:{'cache-control':'no-store'}});
 const N=()=>Math.floor(Date.now()/1000),ID=()=>crypto.randomUUID(),S=(v,n=1000)=>String(v??'').trim().slice(0,n);
@@ -76,7 +77,7 @@ async function finalizeUpload(request,env,user,uploadId){
  await store.put(key,merged,{httpMetadata:{contentType:type,cacheControl:'private, max-age=0'},customMetadata:{tenant_id:String(user.tenant_id),asset_id:assetId,source:'magnanimous-video-stack'}});
  await env.DB.prepare('INSERT INTO video_stack_assets(id,tenant_id,user_id,title,object_key,content_type,bytes,status,tags_json,metadata_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(assetId,String(user.tenant_id),String(user.id),row.title,key,type,total,'ready_to_play',row.tags_json,row.metadata_json,ts,ts).run();
  await env.DB.prepare('UPDATE video_stack_uploads SET status=?,received_bytes=?,part_count=?,asset_id=?,updated_at=? WHERE id=?').bind('ready_to_play',total,results.length,assetId,ts,uploadId).run();
- for(const part of results)await store.delete?.(part.object_key).catch(()=>null);await env.DB.prepare('DELETE FROM video_stack_parts WHERE upload_id=?').bind(uploadId).run();
+ for(const part of results)if(store.delete)await store.delete(part.object_key).catch(()=>null);await env.DB.prepare('DELETE FROM video_stack_parts WHERE upload_id=?').bind(uploadId).run();
  const asset=await env.DB.prepare('SELECT * FROM video_stack_assets WHERE id=?').bind(assetId).first();
  return J({upload_id:uploadId,status:'ready_to_play',asset:publicAsset(asset),detail:'Upload finalized and verified ready for playback.'},201);
 }
@@ -122,7 +123,7 @@ async function finalizeEditor(request,env,user,id){
  const row=await env.DB.prepare('SELECT * FROM video_stack_editor_projects WHERE id=? AND tenant_id=? AND user_id=?').bind(id,String(user.tenant_id),String(user.id)).first();if(!row)return J({detail:'Edit project not found.'},404);if(row.output_asset_id){const asset=await env.DB.prepare('SELECT * FROM video_stack_assets WHERE id=?').bind(row.output_asset_id).first();return J({project_id:id,status:'ready_to_play',asset:publicAsset(asset)})}
  const segments=parseJson(row.segments_json,[]);if(!segments.length)return J({detail:'Edit project has no clips.'},409);
  const renderSegments=[];for(const seg of segments){const access=await makeAccess(request,env,user,seg.asset_id,'render'),d=await access.clone().json();renderSegments.push({url:d.url,trim_start_ms:seg.trim_start_ms||0,trim_end_ms:seg.trim_end_ms||null})}
- const planRow=await env.DB.prepare("SELECT plan FROM tenants WHERE id=?").bind(String(user.tenant_id)).first().catch(()=>null),watermark=['free','plus'].includes(String(planRow?.plan||'free').toLowerCase()),gateway=String(env?.MAGNANIMOUS_VIDEO_GATEWAY_URL||env?.VIDEO_GATEWAY_URL||'https://iam-magnanimous-video-gateway.iam-magnanimous.workers.dev').replace(/\/$/,'');
+ const planState=await tenantPlan(env,user.tenant_id),watermark=['free','plus'].includes(String(planState?.plan||'free').toLowerCase()),gateway=String(env?.MAGNANIMOUS_VIDEO_GATEWAY_URL||env?.VIDEO_GATEWAY_URL||'https://iam-magnanimous-video-gateway.iam-magnanimous.workers.dev').replace(/\/$/,'');
  await env.DB.prepare('UPDATE video_stack_editor_projects SET status=?,progress=?,updated_at=? WHERE id=?').bind('finalizing',.2,N(),id).run();
  const r=await fetch(gateway+'/api/video/edit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({title:row.title,segments:renderSegments,watermark_required:watermark,watermark_text:watermark?'Magnanimous AI • I AM MAGNANIMOUS WAY™':''})}),d=await r.json().catch(()=>({}));
  if(!r.ok||!d.download_url){await env.DB.prepare('UPDATE video_stack_editor_projects SET status=?,error_text=?,updated_at=? WHERE id=?').bind('failed',S(d.detail||`Renderer failed (${r.status}).`,700),N(),id).run();return J({detail:d.detail||'Video edit finalization failed.',code:'VIDEO_EDIT_RENDER_FAILED'},502)}
