@@ -106,7 +106,6 @@ export async function connectedYouTubeContext(env,tenantId){
   display_name:String(row.display_name||''),
   access_token:accessToken,
   scopes,
-  analytics_scope:scopes.includes('https://www.googleapis.com/auth/yt-analytics.readonly'),
-  monetary_scope:scopes.includes('https://www.googleapis.com/auth/yt-analytics-monetary.readonly')
+  analytics_scope:scopes.includes('https://www.googleapis.com/auth/yt-analytics.readonly')
  };
 }
