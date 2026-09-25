@@ -56,7 +56,11 @@ const TOOLS = [
 ].map(([id,name,description]) => ({ id, name, description }));
 
 function configured(env, p) {
-  if (p.id === 'cloudflare-ai') return env?.AI != null;
+  if (p.id === 'cloudflare-ai') {
+    if (env?.AI == null) return false;
+    if (typeof env.AI.isConfigured === 'function') return Boolean(env.AI.isConfigured());
+    return true;
+  }
   return typeof env?.[p.key] === 'string' && env[p.key].trim().length > 0;
 }
 function meteredEnabled(env) { return String(env?.ENABLE_METERED_PROVIDERS || '').toLowerCase() === 'true'; }
@@ -101,6 +105,40 @@ let outcomeSchemaPromise=null;
 async function providerFetch(input,init={},timeoutMs=PROVIDER_FETCH_TIMEOUT_MS){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort('provider-timeout'),Math.max(1000,Number(timeoutMs)||PROVIDER_FETCH_TIMEOUT_MS));
   try{return await fetch(input,{...init,signal:controller.signal})}finally{clearTimeout(timer)}
+}
+
+async function standaloneWorkerComputeFallback(request,env,message){
+  if(String(env?.MAGNANIMOUS_RUNTIME||'').trim()!=='standalone-node')return null;
+  if(request.headers.get('x-magnanimous-edge-fallback')==='1')return null;
+  const raw=String(env?.MAGNANIMOUS_EDGE_AI_URL||'https://iammagnanimousway.com/api/chat').trim();
+  let target;
+  try{
+    target=new URL(raw);
+    const current=new URL(request.url);
+    if(target.protocol!=='https:'||target.username||target.password||target.host.toLowerCase()===current.host.toLowerCase())return null;
+  }catch{return null}
+  const response=await providerFetch(target.toString(),{
+    method:'POST',
+    headers:{'content-type':'application/json','x-magnanimous-edge-fallback':'1'},
+    body:JSON.stringify({
+      message:String(message||''),
+      provider:'auto',
+      compute_only:true,
+      allow_metered_accelerator:false,
+      use_knowledge:false,
+      use_tools:false,
+      learn_links:false,
+      remember_search:false,
+      specialist_routing:false,
+      live_search:false,
+      news:false
+    })
+  },25000);
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(String(data?.detail||data?.error||`free Worker compute returned HTTP ${response.status}`));
+  const text=String(data?.output||data?.answer||data?.reply||'').trim();
+  if(!text)throw new Error('free Worker compute returned no text');
+  return{text,model:String(data?.model||'worker-free-first')};
 }
 async function withinProviderBudget(promise,timeoutMs,label='AI execution'){
   let timer;
@@ -372,7 +410,15 @@ async function handle(request, env) {
     const requested = String(body.provider || 'auto').toLowerCase();
     const acceleratorPool=computeOnly&&body.allow_metered_accelerator!==true?availableProviders(env).filter(p=>p.tier==='free-first'):availableProviders(env);
     const candidates = requested !== 'auto' ? acceleratorPool.filter(p => p.id === requested && configured(env,p)) : routeProviders(env,userMessage,body,learnedScores).filter(p=>acceleratorPool.some(a=>a.id===p.id));
-    if (!candidates.length) return json({ detail: requested === 'auto' ? 'Magnanimous AI has no configured execution engine. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested execution engine is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
+    if (!candidates.length) {
+      if(requested==='auto'){
+        try{
+          const edge=await standaloneWorkerComputeFallback(request,env,groundedMessage);
+          if(edge)return json({output:edge.text,provider:'magnanimous-worker-free',provider_name:'Magnanimous free Worker compute',model:edge.model,magnanimous:true,operator:true,command_role:'commander-in-chief',provider_role:'replaceable-execution-engine',routed_automatically:true,route_task:task,native_capability:capability,route_policy:'free-first',fallback_candidates:[],standalone_worker_fallback:true,grounded:grounding.sources.length>0,sources:grounding.sources,link_learning:{enabled:body.learn_links!==false,absorbed:absorbedLinks.length,results:linkLearning}});
+        }catch(error){console.error('Magnanimous standalone Worker compute fallback failed',String(error?.message||error))}
+      }
+      return json({ detail: requested === 'auto' ? 'Magnanimous AI has no healthy execution engine available right now.' : 'The requested execution engine is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
+    }
     const errors = [],providerDeadline=Date.now()+PROVIDER_REQUEST_BUDGET_MS;
     for (const p of candidates) {
       const started=Date.now(),remaining=providerDeadline-started;
@@ -389,6 +435,12 @@ async function handle(request, env) {
       }
     }
     if(!computeOnly&&body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:false});
+    if(requested==='auto'){
+      try{
+        const edge=await standaloneWorkerComputeFallback(request,env,groundedMessage);
+        if(edge)return json({output:edge.text,provider:'magnanimous-worker-free',provider_name:'Magnanimous free Worker compute',model:edge.model,magnanimous:true,operator:true,command_role:'commander-in-chief',provider_role:'replaceable-execution-engine',routed_automatically:true,route_task:task,native_capability:capability,route_policy:'free-first',fallback_candidates:candidates.map(x=>x.id),standalone_worker_fallback:true,grounded:grounding.sources.length>0,sources:grounding.sources,link_learning:{enabled:body.learn_links!==false,absorbed:absorbedLinks.length,results:linkLearning}});
+      }catch(error){errors.push(`Magnanimous free Worker compute: ${error?.message||'fallback failed'}`)}
+    }
     return json({ detail: `Magnanimous AI could not complete the request. ${errors.join(' | ')}`, code: 'AI_PROVIDER_FAILURE',route_task:task,native_capability:capability }, 502);
   }
   return null;
