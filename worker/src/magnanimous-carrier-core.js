@@ -86,7 +86,7 @@ function measuredQuality(rows){
  const latest=rows.reduce((n,x)=>Math.max(n,Number(x.created_at||x.ended_at||x.started_at||0)),0)||null;
  return{sample_count:attempts,answered:answeredRows.length,asr:Number(asr.toFixed(4)),acd_seconds:acd==null?null:Number(acd.toFixed(1)),pdd_ms:pdd==null?null:Math.round(pdd),network_failure_rate:Number(networkFailureRate.toFixed(4)),measured_quality_score:Number((networkScore+pddScore+asrScore+acdScore).toFixed(1)),latest_at:latest,fresh:Boolean(latest&&latest>=now()-604800)};
 }
-async function routePlan(env,user,to,mode='balanced'){
+export async function routePlan(env,user,to,mode='balanced'){
  const destination=e164(to);if(!destination)return{error:'A valid E.164 destination is required.'};
  const selectionMode=['balanced','least-cost','priority'].includes(String(mode))?String(mode):'balanced';
  const [{results=[]},{results:cdrRows=[]}]=await Promise.all([
@@ -111,7 +111,38 @@ async function routePlan(env,user,to,mode='balanced'){
   return b.quality_score-a.quality_score||rateValue(a)-rateValue(b)||a.priority-b.priority||a.interconnect_priority-b.interconnect_priority;
  });
  const selected=sorted[0]||null;
- return{destination,selection_mode:selectionMode,matches,selected,eligible_routes:sorted.length,telemetry_policy:{sample_floor:10,freshness_seconds:604800,window_per_route:100,signals:['network_failure_rate','PDD','ASR','ACD'],fallback:'configured quality score until measured evidence is fresh and sufficient'},policy:'longest destination prefix first; down/unavailable/failed routes and routes above max_rate are excluded; balanced mode prefers fresh measured quality then rate; least-cost prefers rate then quality; priority mode honors configured priorities first'};
+ return{destination,selection_mode:selectionMode,configured_route_count:results.length,matched_routes:matches.length,matches,ranked_routes:sorted,selected,eligible_routes:sorted.length,telemetry_policy:{sample_floor:10,freshness_seconds:604800,window_per_route:100,signals:['network_failure_rate','PDD','ASR','ACD'],fallback:'configured quality score until measured evidence is fresh and sufficient'},policy:'longest destination prefix first; down/unavailable/failed routes and routes above max_rate are excluded; balanced mode prefers fresh measured quality then rate; least-cost prefers rate then quality; priority mode honors configured priorities first'};
+}
+
+
+export async function recordCarrierExecution(env,user,entry={}){
+ await schema(env);
+ const callId=clip(entry.call_id,160);
+ if(!callId)return{ok:false,reason:'call_id-required'};
+ const metadata=entry.metadata&&typeof entry.metadata==='object'?entry.metadata:{};
+ await env.DB.prepare(`INSERT INTO magnanimous_carrier_cdr(
+  tenant_id,call_id,provider_call_id,direction,from_number,to_number,interconnect_id,route_id,status,
+  started_at,answered_at,ended_at,duration_seconds,billable_seconds,wholesale_cost,customer_charge,
+  currency,stir_attestation,emergency_call,metadata_json,created_at
+ ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+ ON CONFLICT(tenant_id,call_id) DO UPDATE SET
+  provider_call_id=excluded.provider_call_id,interconnect_id=excluded.interconnect_id,route_id=excluded.route_id,
+  status=excluded.status,started_at=COALESCE(excluded.started_at,magnanimous_carrier_cdr.started_at),
+  answered_at=COALESCE(excluded.answered_at,magnanimous_carrier_cdr.answered_at),
+  ended_at=COALESCE(excluded.ended_at,magnanimous_carrier_cdr.ended_at),
+  duration_seconds=excluded.duration_seconds,billable_seconds=excluded.billable_seconds,
+  wholesale_cost=excluded.wholesale_cost,customer_charge=excluded.customer_charge,
+  metadata_json=excluded.metadata_json`).bind(
+   String(user.tenant_id),callId,clip(entry.provider_call_id,160),clip(entry.direction||'outbound',20),
+   clip(entry.from_number,32),clip(entry.to_number,32),entry.interconnect_id?Number(entry.interconnect_id):null,
+   entry.route_id?Number(entry.route_id):null,clip(entry.status,40),entry.started_at?Number(entry.started_at):null,
+   entry.answered_at?Number(entry.answered_at):null,entry.ended_at?Number(entry.ended_at):null,
+   Math.max(0,Number(entry.duration_seconds||0)),Math.max(0,Number(entry.billable_seconds||0)),
+   Math.max(0,Number(entry.wholesale_cost||0)),Math.max(0,Number(entry.customer_charge||0)),
+   clip(entry.currency||'USD',8),clip(entry.stir_attestation,8),bool(entry.emergency_call)?1:0,
+   JSON.stringify(metadata).slice(0,12000),now()
+  ).run();
+ return{ok:true,call_id:callId};
 }
 
 export async function handleMagnanimousCarrierCore(request,env){
@@ -145,7 +176,7 @@ export async function handleMagnanimousCarrierCore(request,env){
  }
  if(request.method==='GET'&&path==='/api/magnanimous/carrier/route-plan')return json(await routePlan(env,user,url.searchParams.get('to'),url.searchParams.get('mode')||'balanced'));
  if(request.method==='POST'&&path==='/api/magnanimous/carrier/cdr'){
-  if(!manager(user))return json({detail:'Owner or admin role required.'},403);const b=await request.json().catch(()=>({})),callId=clip(b.call_id,160);if(!callId)return json({detail:'call_id is required.'},400);await env.DB.prepare(`INSERT INTO magnanimous_carrier_cdr(tenant_id,call_id,provider_call_id,direction,from_number,to_number,interconnect_id,route_id,status,started_at,answered_at,ended_at,duration_seconds,billable_seconds,wholesale_cost,customer_charge,currency,stir_attestation,emergency_call,metadata_json,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,call_id) DO UPDATE SET provider_call_id=excluded.provider_call_id,status=excluded.status,answered_at=excluded.answered_at,ended_at=excluded.ended_at,duration_seconds=excluded.duration_seconds,billable_seconds=excluded.billable_seconds,wholesale_cost=excluded.wholesale_cost,customer_charge=excluded.customer_charge,stir_attestation=excluded.stir_attestation,metadata_json=excluded.metadata_json`).bind(String(user.tenant_id),callId,clip(b.provider_call_id,160),clip(b.direction||'outbound',20),clip(b.from_number,32),clip(b.to_number,32),b.interconnect_id?Number(b.interconnect_id):null,b.route_id?Number(b.route_id):null,clip(b.status,40),b.started_at?Number(b.started_at):null,b.answered_at?Number(b.answered_at):null,b.ended_at?Number(b.ended_at):null,Math.max(0,Number(b.duration_seconds||0)),Math.max(0,Number(b.billable_seconds||0)),Math.max(0,Number(b.wholesale_cost||0)),Math.max(0,Number(b.customer_charge||0)),clip(b.currency||'USD',8),clip(b.stir_attestation,8),bool(b.emergency_call)?1:0,JSON.stringify(b.metadata&&typeof b.metadata==='object'?b.metadata:{}).slice(0,12000),now()).run();await audit(env,user,'cdr.upsert',callId,clip(b.status,40));return json({ok:true,call_id:callId});
+  if(!manager(user))return json({detail:'Owner or admin role required.'},403);const b=await request.json().catch(()=>({})),callId=clip(b.call_id,160);if(!callId)return json({detail:'call_id is required.'},400);await recordCarrierExecution(env,user,b);await audit(env,user,'cdr.upsert',callId,clip(b.status,40));return json({ok:true,call_id:callId});
  }
  if(request.method==='GET'&&path==='/api/magnanimous/carrier/cdr'){
   const{results=[]}=await env.DB.prepare('SELECT * FROM magnanimous_carrier_cdr WHERE tenant_id=? ORDER BY id DESC LIMIT 500').bind(String(user.tenant_id)).all();return json({cdr:results});
