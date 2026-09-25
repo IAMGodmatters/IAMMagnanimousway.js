@@ -55,6 +55,7 @@ async function event(env,tenant,user,eventType,providerKey='',jurisdiction='',de
 function providerReadiness(env){
  return{
   wholesale_voice:Boolean(String(env?.VOIP_PROVIDER_URL||'').trim()&&String(env?.VOIP_PROVIDER_TOKEN||'').trim()),
+  generic_byoc_selected_route:Boolean(truthy(env?.VOIP_PROVIDER_ROUTE_CONTROL_ENABLED)&&String(env?.VOIP_PROVIDER_HEALTH_URL||'').trim()&&String(env?.VOIP_PROVIDER_URL||'').trim()&&String(env?.VOIP_PROVIDER_TOKEN||'').trim()),
   telnyx:Boolean(String(env?.TELNYX_API_KEY||'').trim()),
   gigs:Boolean(String(env?.GIGS_API_TOKEN||'').trim()&&String(env?.GIGS_PROJECT_ID||'').trim()),
   emergency_enabled:truthy(env?.TELECOM_EMERGENCY_LIVE),
@@ -125,8 +126,8 @@ export async function handleMagnanimousTelecomNetwork(request,env){
     measured_quality_signals:['ASR','ACD','PDD','network_failure_rate'],
     max_rate_enforced:true,
     live_execution_uses_route_planner:false,
-    selected_route_execution:{native_telecom_core:true,generic_byoc:false,twilio_compatibility:false,plivo_compatibility:false},
-    execution_note:'Only the protected Magnanimous Telecom Core receives the explicit planner-selected SIP route, after endpoint allowlisting and authenticated Asterisk health validation. Generic BYOC and Twilio/Plivo compatibility adapters remain outside this contract, so all-live-route authority remains false.',
+    selected_route_execution:{native_telecom_core:true,generic_byoc_contract_gated:Boolean(truthy(env?.VOIP_PROVIDER_ROUTE_CONTROL_ENABLED)&&String(env?.VOIP_PROVIDER_HEALTH_URL||'').trim()),twilio_compatibility:false,plivo_compatibility:false},
+    execution_note:'The protected Magnanimous Telecom Core executes selected SIP routes after Asterisk health validation. A generic BYOC bridge can also receive a selected route only when the owner explicitly enables the Magnanimous selected-route contract, its same-origin HTTPS health endpoint verifies the non-secret bridge_route_key before dialing, and the bridge confirms the exact applied route afterward. Twilio/Plivo compatibility paths remain outside this contract, so all-live-route authority remains false.',
     failover_boundary:'A secondary SIP interconnect is used only for network-unavailable or congestion outcomes; real busy/no-answer results are not redialed through another carrier.'
    },
    owned_service_core:{provider_key:'magnanimous-telecom',role:'PBX, SIP registrar, routing, policy, CDR and contact-center control',native_pbx:'Asterisk',provider_owned_identity:true},
