@@ -6,10 +6,11 @@ export const PRICING_EFFECTIVE_DATE='2026-09-25';
 const perMillion=(input,output)=>({unit:'tokens',input_per_million_usd:input,output_per_million_usd:output});
 export const ORIGIN_PRICING=Object.freeze({
   'cloudflare:glm-4.7-flash':{...perMillion(0.0605,0.40),tier:'free-first',source:'https://developers.cloudflare.com/workers-ai/models/glm-4.7-flash/'},
-  'cloudflare:gemma-4-26b-a4b-it':{...perMillion(0.10,0.30),tier:'free-first',source:'https://developers.cloudflare.com/workers-ai/models/gemma-3-12b-it/'},
+  'cloudflare:gemma-4-26b-a4b-it':{...perMillion(0.10,0.30),tier:'free-first',source:'https://developers.cloudflare.com/ai/models/%40cf/google/gemma-4-26b-a4b-it/'},
   'cloudflare:llama-3.1-8b-instruct-fast':{...perMillion(0.045,0.384),tier:'free-first',source:'https://developers.cloudflare.com/workers-ai/platform/pricing/'},
   'cloudflare:llama-3.3-70b-instruct-fp8-fast':{...perMillion(0.293,2.253),tier:'free-first',source:'https://developers.cloudflare.com/workers-ai/platform/pricing/'},
   'cloudflare:nemotron-3-120b-a12b':{...perMillion(0.50,1.50),tier:'free-first',source:'https://developers.cloudflare.com/workers-ai/models/nemotron-3-120b-a12b/'},
+  'google:gemini-3.8-flash':{...perMillion(0.75,3.75),tier:'metered',source:'https://ai.google.dev/gemini-api/docs/pricing'},
   'openai:gpt-6-luna':{...perMillion(0.10,0.50),tier:'metered',source:'https://openai.com/api/pricing/'},
   'openai:gpt-6-sol':{...perMillion(2.00,10.00),tier:'metered',source:'https://openai.com/api/pricing/'},
   'openai:gpt-6-astra':{...perMillion(10.00,50.00),tier:'metered',source:'https://openai.com/api/pricing/'},
