@@ -22,11 +22,21 @@ Store these values as Cloudflare secrets or deployment variables. Never place to
 ```text
 VOIP_PROVIDER_NAME=
 VOIP_PROVIDER_URL=
+VOIP_PROVIDER_ROUTE_CONTRACT_URL=
 VOIP_PROVIDER_TOKEN=
 VOIP_WEBHOOK_SECRET=
 VOIP_CALLER_ID=
 ```
 
+For legacy generic BYOC bridges, leave `VOIP_PROVIDER_ROUTE_CONTRACT_URL` empty and behavior remains unchanged.
+
+For planner-controlled generic BYOC, set `VOIP_PROVIDER_ROUTE_CONTRACT_URL` to a capability endpoint on the **same HTTPS origin** as `VOIP_PROVIDER_URL`. That endpoint must authenticate the same bearer token and return:
+
+```json
+{"contract":"magnanimous.carrier-route.v1","selected_route_execution":true,"route_key":true}
+```
+
+A route then opts in with `policy.bridge_route_key`. Magnanimous sends only the opaque route key and contract marker to the bridge; internal route/interconnect IDs stay local for audit/CDR attribution. The bridge must echo the exact route key/contract and `selected_route_applied:true` in the call response or the call fails closed.
 The platform sends an authenticated JSON `POST` to `VOIP_PROVIDER_URL`:
 
 ```json
