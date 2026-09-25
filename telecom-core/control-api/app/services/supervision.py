@@ -207,6 +207,119 @@ class SupervisorService:
             "event_stream_connected": self._events.ready,
         }
 
+    async def start_call_recording(
+        self,
+        *,
+        target_channel_id: str,
+        consent_confirmed: bool,
+        notice_confirmed: bool,
+        jurisdiction: str,
+        max_duration_seconds: int | None,
+    ) -> dict[str, Any]:
+        self._require_ready()
+        target = target_channel_id.strip()
+        if not self._ID.fullmatch(target):
+            raise TelecomValidationError("Invalid target channel identifier.")
+        if not consent_confirmed or not notice_confirmed:
+            raise TelecomValidationError(
+                "Recording requires confirmed participant consent and recording notice."
+            )
+        jurisdiction = jurisdiction.strip()
+        if len(jurisdiction) < 2:
+            raise TelecomValidationError("Recording jurisdiction is required.")
+        if not await self._channel_exists(target):
+            raise CarrierRejectedError("The target call channel is not active.")
+
+        session_id = str(uuid.uuid4())
+        resources = self._resources(session_id)
+        app = self._settings.supervisor_stasis_app
+        created: list[tuple[str, str]] = []
+        try:
+            snoop = await self._ari.request(
+                "POST",
+                f"/channels/{target}/snoop/{resources['snoop_channel_id']}",
+                params={
+                    "spy": "both",
+                    "whisper": "none",
+                    "app": app,
+                    "appArgs": f"recording,{session_id},snoop",
+                },
+            )
+            if not snoop.is_success:
+                raise CarrierRejectedError(snoop.text[:1000] or "Asterisk rejected the recording snoop channel.")
+            created.append(("channel", resources["snoop_channel_id"]))
+
+            bridge = await self._ari.request(
+                "POST",
+                f"/bridges/{resources['bridge_id']}",
+                params={"type": "mixing", "name": f"Magnanimous recording {session_id}"},
+            )
+            if not bridge.is_success:
+                raise CarrierRejectedError(bridge.text[:1000] or "Asterisk rejected the recording bridge.")
+            created.append(("bridge", resources["bridge_id"]))
+
+            add = await self._ari.request(
+                "POST",
+                f"/bridges/{resources['bridge_id']}/addChannel",
+                params={"channel": resources["snoop_channel_id"]},
+            )
+            if not add.is_success:
+                raise CarrierRejectedError(add.text[:1000] or "Unable to attach the recording snoop channel.")
+
+            maximum = max_duration_seconds or self._settings.supervisor_recording_max_seconds
+            maximum = max(60, min(maximum, self._settings.supervisor_recording_max_seconds))
+            recording = await self._ari.request(
+                "POST",
+                f"/bridges/{resources['bridge_id']}/record",
+                params={
+                    "name": resources["recording_name"],
+                    "format": self._settings.supervisor_recording_format,
+                    "maxDurationSeconds": maximum,
+                    "ifExists": "fail",
+                    "beep": "true",
+                    "terminateOn": "none",
+                },
+            )
+            if not recording.is_success:
+                raise CarrierRejectedError(recording.text[:1000] or "Asterisk rejected bridge recording.")
+
+            return {
+                **resources,
+                "target_channel_id": target,
+                "recording": True,
+                "jurisdiction": jurisdiction,
+                "consent_confirmed": True,
+                "notice_confirmed": True,
+                "beep": True,
+                "format": self._settings.supervisor_recording_format,
+                "max_duration_seconds": maximum,
+                "recording_file_exposed": False,
+                "covert_recording": False,
+            }
+        except Exception:
+            await self._cleanup(created)
+            raise
+
+    async def stop_call_recording(self, session_id: str) -> dict[str, Any]:
+        self._require_ready()
+        resources = self._resources(session_id)
+        response = await self._ari.request(
+            "POST",
+            f"/recordings/live/{resources['recording_name']}/stop",
+        )
+        if response.status_code not in (204, 404):
+            raise CarrierRejectedError(response.text[:1000] or "Asterisk rejected recording stop.")
+        await self._cleanup([
+            ("channel", resources["snoop_channel_id"]),
+            ("bridge", resources["bridge_id"]),
+        ])
+        return {
+            **resources,
+            "recording": False,
+            "stored": response.status_code == 204,
+            "recording_file_exposed": False,
+        }
+
     async def start_recording(
         self,
         session_id: str,
