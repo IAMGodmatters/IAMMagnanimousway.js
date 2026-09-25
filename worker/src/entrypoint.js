@@ -28,6 +28,7 @@ import { ensureMagnanimousSuperhumanMailSeed } from './superhuman-mail-tool-seed
 import { ensureMagnanimousCloudflareToolSeed } from './cloudflare-tool-seed.js';
 import { createPasswordRecord } from './password-security.js';
 import { handleMagnanimousPremiumVoice } from './magnanimous-premium-voice-runtime.js';
+import { handleMagnanimousEconomics } from './magnanimous-economics-runtime.js';
 
 const CRM_TABLES=['crm_contacts','crm_activities','crm_opportunities'];
 let bootstrapReady=false;
@@ -99,6 +100,8 @@ export default {
     ensureWhatsAppIntegrationCompatibility();
     await ensureRuntimeBootstrap(env);
     env=await getProviderRuntimeEnv(env);
+    const economics=await handleMagnanimousEconomics(request,env);
+    if(economics)return economics;
     const premiumVoice=await handleMagnanimousPremiumVoice(request,env);
     if(premiumVoice)return premiumVoice;
     const visual=await handleVisual(request,env);
