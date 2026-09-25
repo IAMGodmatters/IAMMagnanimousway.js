@@ -1,5 +1,6 @@
+import {VARIABLE_USAGE_MARKUP_PERCENT} from './magnanimous-billing-policy.js';
 export const PROVIDER_PRICING_VERIFIED_AT='2026-09-25';
-export const PROVIDER_PRICE_MARKUP_PERCENT=20;
+export const PROVIDER_PRICE_MARKUP_PERCENT=VARIABLE_USAGE_MARKUP_PERCENT;
 
 const SOURCES=Object.freeze({
  openai:'https://developers.openai.com/api/docs/models/gpt-5.6-sol',
@@ -48,9 +49,9 @@ const mode=value=>String(value||'paid').trim().toLowerCase();
 export function providerBillingMode(env,provider){
  const p=String(provider||'').toLowerCase();
  if(p==='cloudflare-ai'||p==='openrouter-free'||p.startsWith('nvidia-'))return'free';
- if(p==='google')return mode(env?.GOOGLE_API_BILLING_MODE||'free');
- if(p==='groq')return mode(env?.GROQ_API_BILLING_MODE||'free');
- if(p==='mistral')return mode(env?.MISTRAL_API_BILLING_MODE||'paid');
+ if(p==='google')return mode(env?.GOOGLE_API_BILLING_MODE||'unverified');
+ if(p==='groq')return mode(env?.GROQ_API_BILLING_MODE||'unverified');
+ if(p==='mistral')return mode(env?.MISTRAL_API_BILLING_MODE||'unverified');
  return'paid';
 }
 
@@ -64,7 +65,8 @@ export function pricingFor(provider,model,at=new Date()){
 
 export function normalizedTokenUsage(usage={}){
  const input=n(usage.input_tokens??usage.prompt_tokens??usage.promptTokenCount);
- const output=n(usage.output_tokens??usage.completion_tokens??usage.candidatesTokenCount);
+ const directOutput=usage.output_tokens??usage.completion_tokens;
+ const output=directOutput==null?n(usage.candidatesTokenCount)+n(usage.thoughtsTokenCount):n(directOutput);
  const details=usage.input_tokens_details||usage.prompt_tokens_details||usage.promptTokensDetails||{};
  const cached=Math.min(input,n(details.cached_tokens??details.cachedTokens??usage.cached_input_tokens));
  const cacheWrite=Math.min(input-cached,n(details.cache_write_tokens??details.cacheWriteTokens??usage.cache_write_tokens));
