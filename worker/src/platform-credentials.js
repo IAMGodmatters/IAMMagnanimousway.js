@@ -68,6 +68,12 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'PORKBUN_API_KEY',label:'Porkbun API Key (use a domain-scoped or sandbox key when possible)',secret:true,required:false},
   {key:'PORKBUN_SECRET_API_KEY',label:'Porkbun Secret API Key',secret:true,required:false}
  ]},
+ {id:'movie-studio',name:'Magnanimous Movie Maker Studio Compute',providers:['google-media','elevenlabs-voice'],fields:[
+  {key:'GOOGLE_API_KEY',label:'Google Gemini Media API Key',secret:true,required:false},
+  {key:'ENABLE_PREMIUM_MEDIA',label:'Enable Premium Media (true/false)',secret:false,required:false},
+  {key:'ELEVENLABS_API_KEY',label:'Studio Voice API Key',secret:true,required:false},
+  {key:'ELEVENLABS_VOICE_ID',label:'Default Studio Voice ID',secret:false,required:false}
+ ]},
  {id:'veo',name:'Google Veo Cinematic Video',providers:['veo'],fields:[
   {key:'GOOGLE_API_KEY',label:'Google Gemini / Veo API Key',secret:true,required:false},
   {key:'ENABLE_VEO_PROVIDER',label:'Enable Veo Provider (true/false)',secret:false,required:false}
