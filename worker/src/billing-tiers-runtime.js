@@ -1,3 +1,4 @@
+import {usageStatus} from './usage-guard.js';
 const now = () => Math.floor(Date.now() / 1000);
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -268,15 +269,19 @@ function periodKey() { const d = new Date(); return `${d.getUTCFullYear()}-${Str
 async function status(env, user) {
   const row = await refreshSubscription(env, user);
   const planId = normalizedPlan(row?.plan || 'free'); const plan = PLAN_CONFIG[planId];
-  const usage = await env.DB.prepare('SELECT direct_variable_cost_usd FROM billing_usage_guard WHERE tenant_id=? AND period_key=?').bind(user.tenant_id, periodKey()).first();
-  const cost = Number(usage?.direct_variable_cost_usd || 0); const ceiling = Number(plan.entitlements.cost_ceiling_usd || 0);
+  const usage=await usageStatus(env,user.tenant_id);
   return json({
     plan: planId, plan_name: plan.name, subscription: row || null,
     entitlements: plan.entitlements,
     target_gross_margin_percent: targetMargin(env),
-    direct_variable_cost_usd: cost,
-    cost_ceiling_usd: ceiling,
-    premium_usage_allowed: planId !== 'free' && cost < ceiling,
+    direct_variable_cost_usd: Number(usage.direct_variable_cost_usd||0),
+    cost_ceiling_usd: Number(usage.cost_ceiling_usd||0),
+    remaining_cost_usd: Number(usage.remaining_cost_usd||0),
+    prepaid_balance_usd: Number(usage.prepaid_balance_usd||0),
+    prepaid_origin_capacity_usd: Number(usage.prepaid_origin_capacity_usd||0),
+    pass_through_markup_percent: Number(usage.pass_through_markup_percent||20),
+    premium_spendable_usd: Number(usage.premium_spendable_usd||0),
+    premium_usage_allowed: Boolean(usage.premium_usage_allowed),
     billing_configured: Boolean(env.STRIPE_SECRET_KEY),
     portal_configured: Boolean(env.STRIPE_SECRET_KEY)
   });
