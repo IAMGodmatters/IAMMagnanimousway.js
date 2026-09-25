@@ -47,6 +47,21 @@ class EditRequest(BaseModel):
     watermark_required: bool = False
 
 
+class MediaEditRequest(BaseModel):
+    source_url: str = Field(max_length=1600)
+    op: str = Field(max_length=40)
+    start_seconds: float = Field(default=0, ge=0, le=86400)
+    end_seconds: float | None = Field(default=None, gt=0, le=86400)
+    at_seconds: float = Field(default=0, ge=0, le=86400)
+    width: int = Field(default=1280, ge=16, le=4096)
+    height: int = Field(default=720, ge=16, le=4096)
+    output_format: str = Field(default="", max_length=12)
+    bitrate_kbps: int = Field(default=160, ge=32, le=320)
+    sample_rate_hz: int = Field(default=48000)
+    channels: int = Field(default=2, ge=1, le=2)
+    target_lufs: float = Field(default=-16, ge=-30, le=-5)
+
+
 
 def wrap_for_video(value: str, max_chars: int) -> str:
     lines = []
@@ -187,6 +202,7 @@ def health():
         "scene_backgrounds": True,
         "burned_watermark": True,
         "clip_editor": True,
+        "media_edit": ["trim_media","extract_audio","extract_thumbnail","normalize_loudness","probe_media"],
         "private_edit_sources_only": True,
         "mux_configured": mux_configured(),
         "mux_provider_writes_enabled": mux_provider_writes_enabled(),
@@ -378,11 +394,109 @@ def edit_video(req: EditRequest):
     }
 
 
+@app.post("/api/video/media-edit")
+def media_edit(req: MediaEditRequest):
+    allowed_ops = {"probe_media", "trim_media", "extract_audio", "extract_thumbnail", "normalize_loudness"}
+    if req.op not in allowed_ops:
+        raise HTTPException(status_code=400, detail="Unsupported media edit operation")
+    job = uuid.uuid4().hex
+    work = OUT / f"{job}-media"
+    work.mkdir(parents=True, exist_ok=True)
+    source = work / "source.mp4"
+    try:
+        download_media_source(req.source_url, source)
+        if req.op == "probe_media":
+            probe = subprocess.run(
+                ["ffprobe","-v","error","-show_entries","format=duration,size,bit_rate:stream=index,codec_type,codec_name,width,height,r_frame_rate,sample_rate,channels","-of","json",str(source)],
+                capture_output=True,text=True,timeout=45
+            )
+            if probe.returncode != 0:
+                raise RuntimeError("Media probe failed: " + probe.stderr[-1200:])
+            data = json.loads(probe.stdout or "{}")
+            return {"ok": True, "operation": req.op, "metadata": data}
+
+        start = max(0.0, float(req.start_seconds or 0))
+        duration = None
+        if req.end_seconds is not None:
+            if req.end_seconds <= start:
+                raise ValueError("end_seconds must be after start_seconds")
+            duration = float(req.end_seconds) - start
+
+        if req.op == "trim_media":
+            fmt = req.output_format.lower() if req.output_format.lower() in {"mp4","mov","webm","mkv"} else "mp4"
+            outfile = OUT / f"{job}.{fmt}"
+            cmd = ["ffmpeg","-y"]
+            if start > 0: cmd += ["-ss", f"{start:.3f}"]
+            cmd += ["-i", str(source)]
+            if duration is not None: cmd += ["-t", f"{duration:.3f}"]
+            if fmt == "webm":
+                cmd += ["-c:v","libvpx-vp9","-crf","32","-b:v","0","-c:a","libopus"]
+            else:
+                cmd += ["-c:v","libx264","-preset","veryfast","-crf","22","-c:a","aac","-b:a","160k","-pix_fmt","yuv420p","-movflags","+faststart"]
+            cmd += [str(outfile)]
+            media_type = "video/webm" if fmt == "webm" else "video/mp4" if fmt == "mp4" else "video/quicktime" if fmt == "mov" else "video/x-matroska"
+
+        elif req.op == "extract_audio":
+            fmt = req.output_format.lower() if req.output_format.lower() in {"mp3","wav","aac","flac","ogg"} else "mp3"
+            outfile = OUT / f"{job}.{fmt}"
+            cmd = ["ffmpeg","-y"]
+            if start > 0: cmd += ["-ss", f"{start:.3f}"]
+            cmd += ["-i", str(source)]
+            if duration is not None: cmd += ["-t", f"{duration:.3f}"]
+            cmd += ["-vn","-ar",str(req.sample_rate_hz),"-ac",str(req.channels)]
+            if fmt == "mp3": cmd += ["-c:a","libmp3lame","-b:a",f"{req.bitrate_kbps}k"]
+            elif fmt == "aac": cmd += ["-c:a","aac","-b:a",f"{req.bitrate_kbps}k"]
+            elif fmt == "ogg": cmd += ["-c:a","libvorbis","-b:a",f"{req.bitrate_kbps}k"]
+            elif fmt == "flac": cmd += ["-c:a","flac"]
+            else: cmd += ["-c:a","pcm_s16le"]
+            cmd += [str(outfile)]
+            media_type = {"mp3":"audio/mpeg","wav":"audio/wav","aac":"audio/aac","flac":"audio/flac","ogg":"audio/ogg"}[fmt]
+
+        elif req.op == "extract_thumbnail":
+            fmt = req.output_format.lower() if req.output_format.lower() in {"jpg","png","webp"} else "jpg"
+            outfile = OUT / f"{job}.{fmt}"
+            vf = f"scale={req.width}:{req.height}:force_original_aspect_ratio=decrease,pad={req.width}:{req.height}:(ow-iw)/2:(oh-ih)/2:black"
+            cmd = ["ffmpeg","-y","-ss",f"{max(0.0,float(req.at_seconds or 0)):.3f}","-i",str(source),"-frames:v","1","-vf",vf,str(outfile)]
+            media_type = {"jpg":"image/jpeg","png":"image/png","webp":"image/webp"}[fmt]
+
+        else:
+            fmt = req.output_format.lower() if req.output_format.lower() in {"mp3","wav","aac"} else "mp3"
+            outfile = OUT / f"{job}.{fmt}"
+            cmd = ["ffmpeg","-y","-i",str(source),"-vn","-af",f"loudnorm=I={req.target_lufs}:TP=-1.5:LRA=11","-ar",str(req.sample_rate_hz),"-ac",str(req.channels)]
+            if fmt == "mp3": cmd += ["-c:a","libmp3lame","-b:a",f"{req.bitrate_kbps}k"]
+            elif fmt == "aac": cmd += ["-c:a","aac","-b:a",f"{req.bitrate_kbps}k"]
+            else: cmd += ["-c:a","pcm_s16le"]
+            cmd += [str(outfile)]
+            media_type = {"mp3":"audio/mpeg","wav":"audio/wav","aac":"audio/aac"}[fmt]
+
+        result = subprocess.run(cmd,capture_output=True,text=True,timeout=360)
+        if result.returncode != 0:
+            raise RuntimeError(f"{req.op} failed: " + result.stderr[-1800:])
+        return {
+            "ok": True, "operation": req.op, "download_url": f"/api/video/download/{outfile.name}",
+            "filename": outfile.name, "content_type": media_type, "bytes": outfile.stat().st_size
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Media edit failed: {exc}")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 @app.get("/api/video/download/{filename}")
 def download_video(filename: str):
-    if Path(filename).name != filename or not filename.endswith(".mp4"):
-        raise HTTPException(status_code=400, detail="Invalid video filename")
+    if Path(filename).name != filename:
+        raise HTTPException(status_code=400, detail="Invalid media filename")
+    suffix = Path(filename).suffix.lower()
+    media = {
+        ".mp4":"video/mp4",".webm":"video/webm",".mov":"video/quicktime",".mkv":"video/x-matroska",
+        ".mp3":"audio/mpeg",".wav":"audio/wav",".aac":"audio/aac",".flac":"audio/flac",".ogg":"audio/ogg",
+        ".jpg":"image/jpeg",".jpeg":"image/jpeg",".png":"image/png",".webp":"image/webp"
+    }.get(suffix)
+    if not media:
+        raise HTTPException(status_code=400, detail="Unsupported media filename")
     path = OUT / filename
     if not path.exists():
-        raise HTTPException(status_code=404, detail="Video not found or expired")
-    return FileResponse(path, media_type="video/mp4", filename=filename)
+        raise HTTPException(status_code=404, detail="Media not found or expired")
+    return FileResponse(path, media_type=media, filename=filename)
