@@ -1,6 +1,7 @@
 const now = () => Math.floor(Date.now() / 1000);
 const AD_PAYMENT_LINK = 'https://buy.stripe.com/3cI9ATeZkeY62rCgId6kg01';
-const AD_PRICE_USD = 49;\nconst sponsoredAdsEnabled=env=>String(env?.MAGNANIMOUS_SPONSORED_ADS_ENABLED||'').trim().toLowerCase()==='true';
+const AD_PRICE_USD = 49;
+const sponsoredAdsEnabled=env=>String(env?.MAGNANIMOUS_SPONSORED_ADS_ENABLED||'').trim().toLowerCase()==='true';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -110,7 +111,7 @@ async function activateFromCheckout(env, object) {
   if (!sessionId) return true;
   const existing = await env.DB.prepare('SELECT ad_id FROM sponsored_ad_orders WHERE stripe_checkout_session_id=?').bind(sessionId).first();
   if (existing?.ad_id) {
-    await env.DB.prepare('UPDATE ads SET active=1 WHERE id=?').bind(existing.ad_id).run();
+    await env.DB.prepare('UPDATE ads SET active=? WHERE id=?').bind(sponsoredAdsEnabled(env)?1:0,existing.ad_id).run();
     return true;
   }
 
@@ -121,6 +122,7 @@ async function activateFromCheckout(env, object) {
   if (!destination) return true;
 
   const label = copy ? `Sponsored · ${copy}`.slice(0, 240) : 'Sponsored';
+  const enabled=sponsoredAdsEnabled(env);
   const created = now();
   const insert = await env.DB.prepare(
     'INSERT INTO ads(title,url,label,placement,active,created_at) VALUES(?,?,?,?,?,?)'
@@ -139,7 +141,7 @@ async function activateFromCheckout(env, object) {
     headline,
     destination,
     copy,
-    'active',
+    enabled?'active':'pending_owner_enable',
     created,
     created
   ).run();
@@ -174,7 +176,8 @@ export async function handleSponsoredAds(request, env) {
 
   if (url.pathname === '/api/advertising/config' && request.method === 'GET') {
     return json({
-      enabled: true,
+      enabled: sponsoredAdsEnabled(env),
+      owner_controlled: true,
       placement: 'free_tier',
       price_usd: AD_PRICE_USD,
       cadence: 'month',
