@@ -8,6 +8,8 @@ MAGNANIMOUS_AI_EXTENSION=${MAGNANIMOUS_AI_EXTENSION}
 MAGNANIMOUS_ADMIN_EXTENSION=${MAGNANIMOUS_ADMIN_EXTENSION}
 MAGNANIMOUS_WEBRTC_EXTENSION=${MAGNANIMOUS_WEBRTC_EXTENSION}
 MAGNANIMOUS_WEBRTC_ECHO_EXTENSION=${MAGNANIMOUS_WEBRTC_ECHO_EXTENSION}
+MAGNANIMOUS_SUPERVISOR_EXTENSION=${MAGNANIMOUS_SUPERVISOR_EXTENSION}
+ASTERISK_STASIS_APP=${ASTERISK_STASIS_APP}
 CARRIER_SIP_ENDPOINT=${CARRIER_SIP_ENDPOINT}
 CARRIER_SIP_SECONDARY_ENDPOINT=${CARRIER_SIP_SECONDARY_ENDPOINT}
 
@@ -25,6 +27,12 @@ exten => ${MAGNANIMOUS_WEBRTC_ECHO_EXTENSION},1,Answer()
 ; bypass platform billing, consent, DNC, or regulated-network controls.
 exten => ${MAGNANIMOUS_WEBRTC_ECHO_EXTENSION},1,Answer()
  same => n,Echo()
+ same => n,Hangup()
+; An ephemeral browser may enter Stasis only for server-authorized supervisor
+; workflows. The browser still receives no Telecom Core token and this context
+; retains the direct-PSTN block below.
+exten => ${MAGNANIMOUS_SUPERVISOR_EXTENSION},1,Answer()
+ same => n,Stasis(${ASTERISK_STASIS_APP},supervisor)
  same => n,Hangup()
 exten => 911,1,Playback(ss-noservice)
  same => n,Hangup()
