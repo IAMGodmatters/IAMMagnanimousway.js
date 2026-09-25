@@ -1,6 +1,7 @@
 import {currentUser} from './integrations.js';
 import {requirePlatformOwner} from './platform-owner-guard.js';
 import {checkpointProgress,listProgressCheckpoints} from './progress-checkpoint-runtime.js';
+import {premiumVoiceHealth} from './premium-voice-runtime.js';
 
 const RETRYABLE_STATUS=new Set([408,425,429,500,502,503,504]);
 export const SELF_HEAL_POLICY=Object.freeze({
@@ -149,10 +150,8 @@ export async function selfHealingSnapshot(env,origin,{record=false}={}){
     production_health:production,
     provider_health:provider,
     voice_audio_health:{
-      status:'browser-native-default',
-      free_default:true,
-      server_synthesis_required:false,
-      note:'Browser/native speech remains the default. Voice failures are capped locally and do not authorize paid synthesis automatically.'
+      ...premiumVoiceHealth(env),
+      note:'Browser/native speech remains the default. Optional premium synthesis is used only when commercially authorized and funded; synthesis requests are not auto-retried.'
     },
     deployment_revision:runtimeRevision(env),
     cost_impact_usd:0,
