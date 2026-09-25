@@ -95,6 +95,9 @@ includes(productionRuntimeSmoke,'Idempotency-Key: $booking_key','agency: indepen
 includes(productionRuntimeSmoke,"d.get('replayed') is True",'agency: independent smoke requires duplicate replay convergence');
 includes(productionRuntimeSmoke,"IDEMPOTENCY_KEY_REUSED",'agency: independent smoke requires changed-payload key reuse to fail closed');
 includes(productionRuntimeSmoke,'Disposable runtime-smoke tenant cleaned.','agency: independent smoke cleans its disposable standalone tenant');
+includes(productionRuntimeSmoke,'Transient read-only production-smoke response HTTP','agency: independent smoke bounds retries to transient read-only probes');
+includes(productionRuntimeSmoke,'Transient idempotent smoke-control response HTTP','agency: independent smoke retries only idempotent control actions after transient gateway faults');
+notMatches(productionRuntimeSmoke,/signup_status=.*for attempt|client_status=.*for attempt/,'agency: independent smoke never blindly retries ordinary signup or client-creation mutations');
 notMatches(productionRuntimeSmoke,/CLOUDFLARE_API_TOKEN|STRIPE_SECRET_KEY|RAILWAY_TOKEN/,'agency: independent smoke does not require paid/provider control credentials');
 includes(standaloneServer,"workflowFiles: ['.github/workflows/deploy.yml','.github/workflows/production-runtime-smoke.yml']",'agency: standalone smoke control explicitly allowlists only deploy and independent smoke workflows');
 includes(migrationStage,'acceptedWorkflowFiles.some','agency: GitHub OIDC verifier supports explicit workflow allowlists without weakening repository/ref checks');
