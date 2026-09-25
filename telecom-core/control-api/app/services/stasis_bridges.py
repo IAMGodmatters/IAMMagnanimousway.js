@@ -558,6 +558,24 @@ class AsteriskStasisBridgeService:
         call.cleaning = True
         call.status = "ended"
         try:
+            linked_recordings = [
+                name for name, recording in self._active_recordings.items()
+                if recording.get("provider_call_id") == call.provider_call_id
+            ]
+            for recording_name in linked_recordings:
+                try:
+                    await self._cleanup_recording(recording_name)
+                except Exception:
+                    self._active_recordings.pop(recording_name, None)
+            linked_supervisors = [
+                session_id for session_id, session in self._supervisor_sessions.items()
+                if session.get("provider_call_id") == call.provider_call_id
+            ]
+            for session_id in linked_supervisors:
+                try:
+                    await self._cleanup_supervisor(session_id)
+                except Exception:
+                    self._supervisor_sessions.pop(session_id, None)
             for channel_id in (call.customer_channel_id, call.agent_channel_id):
                 if not channel_id or channel_id == ended_channel:
                     continue
