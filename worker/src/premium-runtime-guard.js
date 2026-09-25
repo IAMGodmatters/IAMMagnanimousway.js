@@ -1,4 +1,5 @@
 import { canUsePremium,currentUserFromRequest,estimateAiCostUsd,estimatePstnReserveUsd,recordUsage } from './usage-guard.js';
+import { CUSTOMER_UPSELL_PERCENT,defaultModelForProvider,quoteTextUsage } from './provider-cost-catalog.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const xml=(message,status=200)=>new Response(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>${String(message).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]))}</Say><Hangup/></Response>`,{status,headers:{'content-type':'application/xml; charset=utf-8','cache-control':'no-store'}});
@@ -38,14 +39,17 @@ export async function premiumPreflight(request,env){
    return{request:rewritten,context:null};
   }
 
-  const estimate=explicitlyMetered?Math.max(.01,estimateAiCostUsd(provider)):0.05;
+  const quoteProvider=explicitlyMetered?provider:String(env.OPENAI_API_KEY?'openai':env.ANTHROPIC_API_KEY?'anthropic':env.GOOGLE_API_KEY?'google':env.GROQ_API_KEY?'groq':env.MISTRAL_API_KEY?'mistral':'cloudflare-ai');
+  const quoteQuality=asksMaximum?'quality':'budget';
+  const quoteModel=String(body.model||defaultModelForProvider(quoteProvider,quoteQuality)||'');
+  const estimate=Math.max(quoteProvider==='cloudflare-ai'&&String(env.BILL_CLOUDFLARE_AI_OVERAGE||'').toLowerCase()!=='true'?0:0.000001,estimateAiCostUsd(quoteProvider,{model:quoteModel,inputText:String(body.message||''),maxOutputTokens:1600}));
   const gate=await canUsePremium(env,user.tenant_id,{category:'premium AI',estimated_cost_usd:estimate,required_plan:'business',entitlement:'metered_ai'});
   if(!gate.ok){
    if(explicitlyMetered)return{response:json({detail:gate.detail,code:gate.code,plan:gate.plan,remaining_cost_usd:gate.remaining_cost_usd,prepaid_balance_usd:gate.prepaid_balance_usd,free_first_available:true,provider_checkout_required:false,billing_owner:'I AM Magnanimous Way'},402)};
    const rewritten=rewriteJsonRequest(request,{...body,provider:'cloudflare-ai',quality:'free-first',route_policy:'free-first'});
    return{request:rewritten,context:{kind:'chat',user,downgraded_to_free_first:true}};
   }
-  return{request,context:{kind:'chat',user,premium_allowed:true,estimated_cost_usd:estimate}};
+  return{request,context:{kind:'chat',user,premium_allowed:true,estimated_cost_usd:estimate,quoted_provider:quoteProvider,quoted_model:quoteModel,request_message:String(body.message||'')}};
  }
  if((path==='/api/phone/calls/outbound'||path==='/api/voice-agent/call')&&request.method==='POST'){
   if(!user)return{response:json({detail:'Sign in required.',code:'SIGN_IN_REQUIRED'},401)};
@@ -77,8 +81,14 @@ export async function premiumPostprocess(response,env,context){
  try{
   const data=await response.clone().json().catch(()=>({}));
   if(context.kind==='chat'){
-   const provider=String(data?.provider||'').toLowerCase(),cost=estimateAiCostUsd(provider);
-   if(cost>0)await recordUsage(env,context.user.tenant_id,{category:'premium-ai',provider,units:1,direct_cost_usd:cost,reference_id:String(data?.model||'')});
+   if(context.free_first)return response;
+   const provider=String(data?.provider||context.quoted_provider||'').toLowerCase(),model=String(data?.model||context.quoted_model||''),output=String(data?.output||data?.response||'');
+   const cloudflareBillable=provider!=='cloudflare-ai'||String(env.BILL_CLOUDFLARE_AI_OVERAGE||'').toLowerCase()==='true';
+   const cost=cloudflareBillable?estimateAiCostUsd(provider,{model,inputText:String(context.request_message||''),outputText:output,maxOutputTokens:0}):0;
+   if(cost>0){
+    const quote=quoteTextUsage({provider,model,inputText:String(context.request_message||''),outputText:output});
+    await recordUsage(env,context.user.tenant_id,{category:'premium-ai',provider,units:1,direct_cost_usd:cost,reference_id:`${model}|${quote.customer_cost_usd}|markup=${CUSTOMER_UPSELL_PERCENT}%`});
+   }
   }else if(context.kind==='pstn'){
    await recordUsage(env,context.user.tenant_id,{category:'pstn-call-reserve',provider:String(data?.provider||'twilio-ai'),units:Number(context.seconds||0)/60,direct_cost_usd:Number(context.reserve||0),reference_id:String(data?.provider_call_id||data?.call_id||'')});
   }else if(context.kind==='pstn-inbound'){
