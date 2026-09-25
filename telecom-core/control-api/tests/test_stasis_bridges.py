@@ -308,6 +308,47 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
             )
         self.assertEqual(ari.requests, [])
 
+    async def test_natural_call_end_cleans_recording_and_supervisor_children(self):
+        ari = FakeAri()
+        service = AsteriskStasisBridgeService(
+            ari,
+            settings(
+                stasis_bridge_enabled=True,
+                supervisor_audio_enabled=True,
+                bridge_recording_enabled=True,
+            ),
+        )
+        service._ready = True
+        call, topology = await prepare_managed_call(service)
+        supervisor = await service.start_supervisor(
+            SupervisorSessionStart(
+                mode="monitor",
+                provider_call_id=call.provider_call_id,
+                tenant_id=call.tenant_id,
+                target_role="agent",
+                supervisor_channel_id="supervisor-channel",
+                consent_confirmed=True,
+                jurisdiction="US-CA",
+            )
+        )
+        recording = await service.start_recording(
+            call.provider_call_id,
+            StasisRecordingStart(
+                tenant_id=call.tenant_id,
+                consent_confirmed=True,
+                jurisdiction="US-CA",
+            ),
+        )
+
+        await service.handle_event({"type": "StasisEnd", "channel": {"id": call.provider_call_id}})
+
+        self.assertFalse(service.owns(call.provider_call_id))
+        self.assertEqual(service.status()["active_supervisor_sessions"], 0)
+        self.assertEqual(service.status()["active_recordings"], 0)
+        self.assertTrue(any(x[1] == f"/channels/{supervisor['snoop_channel_id']}" for x in ari.requests))
+        self.assertTrue(any(x[1] == f"/recordings/live/{recording['recording_name']}/stop" for x in ari.requests))
+        self.assertTrue(any(x[1] == f"/bridges/{topology['bridge_id']}" and x[0] == "DELETE" for x in ari.requests))
+
     async def test_shutdown_cleanup_does_not_depend_on_ready_flag(self):
         ari = FakeAri()
         service = AsteriskStasisBridgeService(
