@@ -42,6 +42,7 @@ const required=[
  'magnanimous-runtime/scripts/verify-cloud-control.mjs',
  'magnanimous-runtime/scripts/verify-migration-stage.mjs',
  'magnanimous-runtime/scripts/verify-runtime-secret-store.mjs',
+ 'magnanimous-runtime/scripts/verify-ai-binding.mjs',
  'magnanimous-runtime/scripts/verify-railway-deploy.mjs',
  'magnanimous-runtime/docker-compose.release.yml',
  'magnanimous-runtime/scripts/standalone-host-preflight.sh',
@@ -302,6 +303,7 @@ execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs']
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-migration-stage.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime-secret-store.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-ai-binding.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-railway-deploy.mjs'],{stdio:'inherit'});
 for(const file of ['worker/src/magnanimous-cloud-provider-core.js','worker/src/magnanimous-infrastructure-core.js','worker/src/security-entrypoint.js']){
  execFileSync(process.execPath,['--check',file],{stdio:'inherit'});
