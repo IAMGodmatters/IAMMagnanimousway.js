@@ -94,10 +94,15 @@ function configuredStandaloneApiOrigin(env){
 
 async function proxyApiToStandalone(request,env){
   const url=new URL(request.url);
-  // Keep conversational inference on the Worker AI rail. The standalone node remains
-  // the preferred data plane, but it must not turn a missing/failed node model rail
-  // into a customer-facing 502 while the free-first Worker AI binding is healthy.
-  if(url.pathname==='/api/chat')return null;
+  // Browser/customer chat stays on the standalone data plane so its opaque session,
+  // tenant memory and durable records remain authoritative there. Only the stateless
+  // compute-only fallback stays on the Worker AI rail.
+  if(url.pathname==='/api/chat/compute'){
+    if(String(env?.MAGNANIMOUS_RUNTIME||'').trim()==='standalone-node'){
+      return Response.json({detail:'Worker compute fallback is not available on the standalone origin.',code:'WORKER_COMPUTE_UNAVAILABLE'},{status:503,headers:{'cache-control':'no-store'}});
+    }
+    return null;
+  }
   const standaloneDataPlanePath=url.pathname.startsWith('/api/')||url.pathname==='/funnels'||url.pathname.startsWith('/funnels/');
   if(url.pathname==='/api/internal/migration/rewrap-platform-credentials')return null;
   if(!standaloneDataPlanePath)return null;
@@ -125,6 +130,38 @@ async function proxyApiToStandalone(request,env){
     console.error('Magnanimous standalone API proxy unavailable; retaining Cloudflare rollback path.',String(error?.message||error));
     return null;
   }
+}
+
+async function prepareWorkerComputeRequest(request){
+  const url=new URL(request.url);
+  if(url.pathname!=='/api/chat/compute'||request.method!=='POST')return request;
+  const body=await request.clone().json().catch(()=>({}));
+  const target=new URL('/api/chat',request.url);
+  const headers=new Headers(request.headers);
+  // Compute-only is deliberately stateless. Never forward browser cookies or bearer
+  // sessions across data planes; the standalone brain keeps identity, memory and tools.
+  headers.delete('authorization');
+  headers.delete('cookie');
+  headers.delete('content-length');
+  headers.set('content-type','application/json');
+  headers.set('x-magnanimous-compute-only','1');
+  return new Request(target.toString(),{
+    method:'POST',
+    headers,
+    body:JSON.stringify({
+      message:String(body?.message||'').slice(0,120000),
+      provider:'auto',
+      compute_only:true,
+      allow_metered_accelerator:false,
+      use_knowledge:false,
+      use_tools:false,
+      learn_links:false,
+      remember_search:false,
+      specialist_routing:false,
+      live_search:false,
+      news:false
+    })
+  });
 }
 
 function credentialVaultPath(request){
@@ -223,6 +260,7 @@ export default {
     }
     const standaloneApiResponse=await proxyApiToStandalone(request,env);
     if(standaloneApiResponse)return finalizeResponse(request,await securityPostflight(request,standaloneApiResponse,env));
+    request=await prepareWorkerComputeRequest(request);
     const requestId=requestCorrelationId(request);
     let carrierContext=null;
     let assistantContext=null;
