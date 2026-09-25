@@ -111,7 +111,7 @@ has(carrier,"asterisk_endpoint must be an Asterisk PJSIP endpoint key.",'route e
 has(carrier,"if(!manager(user))return json({detail:'Owner or admin role required.'},403);\n  return json(await planCarrierRoute",'detailed route-plan diagnostics are owner/admin only');
 has(leadPhone,'selected.execution_endpoint','outbound live handoff uses only the explicitly opted-in Asterisk endpoint');
 lacks(leadPhone,'endpoint: String(selected.endpoint).trim()','legacy interconnect endpoint cannot become a live dialplan key implicitly');
-has(leadPhone,'selected_route_applied: provider?.selected_route_applied === true','platform only claims selected-route execution when the bridge confirms it');
+has(leadPhone,'const routeApplied = selectedRouteConfirmed(provider, selectedRoute);','platform computes route application only through exact contract confirmation');
 has(leadPhone,'selected_route: selectedRoute','outbound bridge handoff can carry a selected route privately');
 has(leadPhone,'function magnanimousCoreBridgeReady','selected-route payload has an explicit private Telecom Core origin gate');
 has(leadPhone,"provider.origin === core.origin",'selected-route payload is never sent to a different bridge origin');
