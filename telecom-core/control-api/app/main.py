@@ -12,6 +12,7 @@ from .models import (
     OutboundCall,
     SipAccountCreate,
     StasisRecordingStart,
+    StasisRecordingStop,
     SupervisorSessionStart,
 )
 from .lifecycle import lifespan
@@ -143,34 +144,28 @@ async def stasis_status(container: ApplicationContainer = Depends(get_container)
 @app.get("/v1/stasis/calls/{provider_call_id}", dependencies=[Depends(require_token)])
 async def stasis_call(
     provider_call_id: str,
+    tenant_id: str,
     container: ApplicationContainer = Depends(get_container),
 ) -> dict[str, Any]:
-    return container.stasis.call_topology(provider_call_id)
+    return container.stasis.call_topology(provider_call_id, tenant_id)
 
 
-@app.get("/v1/stasis/bridges/{bridge_id}", dependencies=[Depends(require_token)])
-async def stasis_bridge(
-    bridge_id: str,
-    container: ApplicationContainer = Depends(get_container),
-) -> dict[str, Any]:
-    return await container.stasis.bridge(bridge_id)
-
-
-@app.post("/v1/stasis/bridges/{bridge_id}/recordings", status_code=201, dependencies=[Depends(require_token)])
+@app.post("/v1/stasis/calls/{provider_call_id}/recordings", status_code=201, dependencies=[Depends(require_token)])
 async def start_bridge_recording(
-    bridge_id: str,
+    provider_call_id: str,
     request: StasisRecordingStart,
     container: ApplicationContainer = Depends(get_container),
 ) -> dict[str, Any]:
-    return await container.stasis.start_recording(bridge_id, request)
+    return await container.stasis.start_recording(provider_call_id, request)
 
 
 @app.post("/v1/stasis/recordings/{recording_name}/stop", dependencies=[Depends(require_token)])
 async def stop_bridge_recording(
     recording_name: str,
+    request: StasisRecordingStop,
     container: ApplicationContainer = Depends(get_container),
 ) -> dict[str, Any]:
-    return await container.stasis.stop_recording(recording_name)
+    return await container.stasis.stop_recording(recording_name, request.tenant_id)
 
 
 @app.post("/v1/stasis/supervisor", status_code=201, dependencies=[Depends(require_token)])
@@ -184,9 +179,10 @@ async def start_supervisor_audio(
 @app.delete("/v1/stasis/supervisor/{session_id}", dependencies=[Depends(require_token)])
 async def stop_supervisor_audio(
     session_id: str,
+    tenant_id: str,
     container: ApplicationContainer = Depends(get_container),
 ) -> dict[str, Any]:
-    return await container.stasis.stop_supervisor(session_id)
+    return await container.stasis.stop_supervisor(session_id, tenant_id)
 
 
 @app.post("/v1/calls", status_code=201, dependencies=[Depends(require_token)])
