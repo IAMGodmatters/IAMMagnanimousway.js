@@ -484,7 +484,7 @@ async function handleDeploymentSmokeControl(req, res, pathname) {
       audience: String(process.env.MAGNANIMOUS_DEPLOY_SMOKE_AUDIENCE || 'magnanimous-deploy-smoke'),
       repository: String(process.env.MAGNANIMOUS_GITHUB_MIGRATION_REPOSITORY || 'IAMGodmatters/IAMMagnanimousway.js'),
       ref: 'refs/heads/main',
-      workflowFile: '.github/workflows/deploy.yml',
+      workflowFiles: ['.github/workflows/deploy.yml','.github/workflows/production-runtime-smoke.yml'],
       allowedEvents: ['push', 'workflow_dispatch']
     });
     const payload = JSON.parse((await readLimitedBody(req, 16384)).toString('utf8'));
