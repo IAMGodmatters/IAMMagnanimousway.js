@@ -70,6 +70,9 @@ for(const text of [
   "redirect: 'error'",
   "SELECTED_BYOC_ROUTE_CONTRACT_UNAVAILABLE",
   "SELECTED_BYOC_ROUTE_NOT_CONFIRMED",
+  "SELECTED_ROUTE_EXECUTION_AMBIGUOUS",
+  "planned_route_id: routeAttribution?.route_id || null",
+  "route_id: selectedRouteApplied ? (routeAttribution?.route_id || null) : null",
   "String(provider?.route_key || '') === String(selectedRoute.route_key)",
   "routeAttribution = selected ?",
 ]) assert.ok(leadPhone.includes(text),`lead-phone BYOC contract guard missing: ${text}`);
@@ -90,6 +93,14 @@ assert.ok(
 assert.ok(
   !leadPhone.includes("route_key: String(selected.bridge_route_key).trim(),\n        route_id:"),
   'generic BYOC provider payload must not expose internal route IDs'
+);
+assert.ok(
+  leadPhone.includes("selectedRouteApplied = Boolean(selectedRoute) && provider?.selected_route_applied === true"),
+  'route IDs may only be reported as applied after bridge confirmation'
+);
+assert.ok(
+  carrierCore.includes("if(executionEndpoint&&bridgeRouteKey)return json"),
+  'ambiguous route execution contracts must fail at route creation'
 );
 
 console.log('Magnanimous generic BYOC selected-route contract lock passed.');
