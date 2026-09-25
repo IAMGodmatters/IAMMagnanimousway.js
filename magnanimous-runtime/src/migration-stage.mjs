@@ -37,6 +37,7 @@ export async function verifyGitHubActionsOidc(token, {
   repository = 'IAMGodmatters/IAMMagnanimousway.js',
   ref = 'refs/heads/main',
   workflowFile = '.github/workflows/magnanimous-production-data-stage.yml',
+  workflowFiles = null,
   allowedEvents = ['push']
 } = {}) {
   const parts = String(token || '').split('.');
@@ -71,7 +72,10 @@ export async function verifyGitHubActionsOidc(token, {
   const acceptedEvents = Array.isArray(allowedEvents) && allowedEvents.length ? allowedEvents.map(String) : ['push'];
   if (!acceptedEvents.includes(eventName)) throw new Error('Unexpected GitHub OIDC workflow event.');
   const workflowRef = String(claims.workflow_ref || claims.job_workflow_ref || '');
-  if (!workflowRef.includes('/' + workflowFile + '@refs/heads/main')) {
+  const acceptedWorkflowFiles = Array.isArray(workflowFiles) && workflowFiles.length
+    ? workflowFiles.map(value => String(value || '').trim()).filter(Boolean)
+    : [String(workflowFile || '').trim()].filter(Boolean);
+  if (!acceptedWorkflowFiles.length || !acceptedWorkflowFiles.some(file => workflowRef.includes('/' + file + '@refs/heads/main'))) {
     throw new Error('Unexpected GitHub OIDC workflow.');
   }
 
