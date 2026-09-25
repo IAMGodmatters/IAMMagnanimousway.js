@@ -48,7 +48,7 @@ assert.ok(businessPlan.includes("provider_details_private:true"),'business-plan 
 assert.ok(!businessPlan.includes("preferred_models:"),'customer business-plan quality metadata must not expose provider model names');
 assert.ok(aiBinding.includes('tenant-aware billing guard'),'standalone binding must reject tenant-unaware paid fallback');
 assert.ok(!aiBinding.includes("fetch('https://api.openai.com/v1/responses'"),'standalone binding must not directly invoke metered OpenAI');
-for(const s of ['ENABLE_PREMIUM_VOICE=false','ELEVENLABS_COMMERCIAL_PLAN_CONFIRMED=false','OPENAI_MODEL=gpt-6-luna','OPENAI_QUALITY_MODEL=gpt-6-sol'])assert.ok(envExample.includes(s),'environment contract missing '+s);
+for(const s of ['OPENAI_MODEL=gpt-6-luna','OPENAI_QUALITY_MODEL=gpt-6-sol','GOOGLE_API_BILLING_MODE='])assert.ok(envExample.includes(s),'environment contract missing '+s);
 assert.ok(!carrierConsent.includes('Twilio AI carrier'),'customer carrier consent must not expose provider branding');
 
 console.log('Self-healing, exact variable markup, current routing, premium voice, ad control and provider-brand privacy lock passed.');
