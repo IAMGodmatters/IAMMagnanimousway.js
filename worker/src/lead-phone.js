@@ -108,6 +108,50 @@ function magnanimousCoreBridgeReady(env) {
   }
 }
 
+const GENERIC_BYOC_ROUTE_CONTRACT = 'magnanimous.carrier-route.v1';
+
+function genericByocContractTarget(env) {
+  try {
+    if (!env.VOIP_PROVIDER_URL || !env.VOIP_PROVIDER_TOKEN || !env.VOIP_PROVIDER_ROUTE_CONTRACT_URL) return null;
+    const provider = new URL(String(env.VOIP_PROVIDER_URL));
+    const contract = new URL(String(env.VOIP_PROVIDER_ROUTE_CONTRACT_URL));
+    if (provider.protocol !== 'https:' || contract.protocol !== 'https:') return null;
+    if (provider.origin !== contract.origin) return null;
+    return contract.toString();
+  } catch {
+    return null;
+  }
+}
+
+export async function probeGenericByocRouteContract(env) {
+  const target = genericByocContractTarget(env);
+  if (!target) return { ok: false, state: 'not-configured-or-untrusted-origin' };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch(target, {
+      method: 'GET',
+      redirect: 'error',
+      headers: {
+        accept: 'application/json',
+        authorization: `Bearer ${env.VOIP_PROVIDER_TOKEN}`,
+        'x-iam-platform': 'I-AM-Magnanimous-Way'
+      },
+      signal: controller.signal
+    });
+    const data = await response.json().catch(() => ({}));
+    const ok = response.ok
+      && String(data.contract || '') === GENERIC_BYOC_ROUTE_CONTRACT
+      && data.selected_route_execution === true
+      && data.route_key === true;
+    return { ok, state: ok ? 'ready' : 'unsupported', contract: ok ? GENERIC_BYOC_ROUTE_CONTRACT : null };
+  } catch (error) {
+    return { ok: false, state: error?.name === 'AbortError' ? 'timeout' : 'unavailable' };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function placeCarrierCall(env, payload) {
   if (!carrierConfig(env).pstnConfigured) {
     const error = new Error('Connect a carrier bridge before calling an ordinary phone number.');
@@ -390,7 +434,13 @@ async function phoneRoutes(request, env, user, path, url) {
       console.error('Carrier route planner unavailable; preserving compatibility path', error);
     }
     const selected = routePlan?.selected || null;
-    const selectedRoute = magnanimousCoreBridgeReady(env) && selected && ['sip-trunk','byoc-bridge','direct-pstn'].includes(String(selected.type || '')) && String(selected.execution_endpoint || '').trim()
+    const routeAttribution = selected ? {
+      route_id: selected.route_id,
+      interconnect_id: selected.interconnect_id,
+      selection_mode: routePlan?.selection_mode || 'balanced'
+    } : null;
+    const protectedRouteType = selected && ['sip-trunk','byoc-bridge','direct-pstn'].includes(String(selected.type || ''));
+    let selectedRoute = magnanimousCoreBridgeReady(env) && protectedRouteType && String(selected.execution_endpoint || '').trim()
       ? {
           route_id: selected.route_id,
           interconnect_id: selected.interconnect_id,
@@ -402,6 +452,28 @@ async function phoneRoutes(request, env, user, path, url) {
           estimated_rate: selected.estimated_rate
         }
       : null;
+
+    if (!selectedRoute && selected && String(selected.type || '') === 'byoc-bridge' && String(selected.bridge_route_key || '').trim()) {
+      const contract = await probeGenericByocRouteContract(env);
+      if (!contract.ok) {
+        return json({
+          detail: 'The selected BYOC route requires a compatible bridge route contract, but the configured bridge did not verify it.',
+          code: 'SELECTED_BYOC_ROUTE_CONTRACT_UNAVAILABLE'
+        }, 503);
+      }
+      selectedRoute = {
+        contract: GENERIC_BYOC_ROUTE_CONTRACT,
+        selected_route_required: true,
+        route_key: String(selected.bridge_route_key).trim()
+      };
+    }
+
+    if (!selectedRoute && protectedRouteType && String(selected.execution_endpoint || '').trim()) {
+      return json({
+        detail: 'The selected protected carrier route is not connected to the Magnanimous Telecom Core.',
+        code: 'SELECTED_ROUTE_NOT_CONNECTED'
+      }, 503);
+    }
     const created = await env.DB.prepare(`INSERT INTO phone_calls(
       tenant_id,contact_id,direction,caller,callee,status,created_at,provider,
       queue_id,agent_id,metadata_json,updated_at
@@ -422,18 +494,35 @@ async function phoneRoutes(request, env, user, path, url) {
         webhook_url: `${url.origin}/api/phone/webhook`,
         selected_route: selectedRoute
       });
+      if (selectedRoute?.contract === GENERIC_BYOC_ROUTE_CONTRACT) {
+        const confirmed = provider?.selected_route_applied === true
+          && String(provider?.route_contract || '') === GENERIC_BYOC_ROUTE_CONTRACT
+          && String(provider?.route_key || '') === String(selectedRoute.route_key);
+        if (!confirmed) {
+          const error = new Error('The BYOC bridge did not confirm the required selected route contract.');
+          error.code = 'SELECTED_BYOC_ROUTE_NOT_CONFIRMED';
+          throw error;
+        }
+      }
       const providerCallId = String(provider.provider_call_id || provider.call_id || provider.id || '');
       const status = String(provider.status || 'dialing');
       await env.DB.prepare(
         'UPDATE phone_calls SET provider_call_id=?,status=?,metadata_json=?,updated_at=? WHERE id=? AND tenant_id=?'
-      ).bind(providerCallId, status, JSON.stringify({...provider,route_plan:selectedRoute?{selected:selectedRoute,selection_mode:routePlan?.selection_mode}:null}).slice(0, 20000), now(), callId, tenantId).run();
+      ).bind(providerCallId, status, JSON.stringify({
+        ...provider,
+        route_plan: routeAttribution ? {
+          selected: routeAttribution,
+          selected_route_requested: Boolean(selectedRoute),
+          selected_route_applied: provider?.selected_route_applied === true
+        } : null
+      }).slice(0, 20000), now(), callId, tenantId).run();
       await logEvent(env, tenantId, callId, 'outbound-requested', status, '', provider);
       return json({
         id: callId,
         provider_call_id: providerCallId,
         status,
-        route_id: selectedRoute?.route_id || null,
-        interconnect_id: selectedRoute?.interconnect_id || null,
+        route_id: routeAttribution?.route_id || null,
+        interconnect_id: routeAttribution?.interconnect_id || null,
         selected_route_requested: Boolean(selectedRoute),
         selected_route_applied: provider?.selected_route_applied === true
       }, 201);
