@@ -1,6 +1,9 @@
 import { currentUser } from './integrations.js';
 import { magnanimousPublicRoutingSummary } from './magnanimous-single-brain-contract.js';
 import { branchKnowledge, branchProfile, branchKnowledgeContext } from './agent-branch-intelligence.js';
+import { canUsePremium,estimateAiCostUsd,recordUsage } from './usage-guard.js';
+import { quoteProviderCost } from './provider-cost-catalog.js';
+import { filterHealthyProviders,recordProviderFailure,recordProviderSuccess } from './self-heal-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
