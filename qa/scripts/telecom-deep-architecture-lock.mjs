@@ -55,6 +55,8 @@ const leadPhone=read('worker/src/lead-phone.js');
 const telecomWorkflow=read('.github/workflows/telecom-core-check.yml');
 const stasisControl=read('telecom-core/control-api/app/services/stasis_control.py');
 const stasisTests=read('telecom-core/control-api/tests/test_stasis_control.py');
+const stasisState=read('telecom-core/control-api/app/adapters/stasis_state.py');
+const sipDbInit=read('telecom-core/sip-core/db/init.sql');
 const telecomRequirements=read('telecom-core/control-api/requirements.txt');
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
@@ -107,6 +109,21 @@ has(stasisControl,'Recording requires explicit consent confirmation and a consen
 has(stasisControl,'/bridges/{clean_bridge}/record','recording is performed at the managed Asterisk bridge');
 has(stasisControl,'/recordings/live/{clean}/stop','recording stop stores the live bridge recording');
 has(stasisControl,'async def reap_loop','Stasis lifecycle reaps orphan supervisor/recording state');
+has(stasisControl,'async def initialize(self)','Stasis control restores durable state before activation');
+has(stasisControl,'self._state_store.ready','Stasis actions require the durable state store to be ready');
+has(stasisControl,'await self._state_store.put_bridge','managed bridge creation is durably recorded');
+has(stasisControl,'await self._state_store.put_supervisor','supervisor session creation is durably recorded');
+has(stasisControl,'await self._state_store.put_recording','recording consent/lifecycle is durably recorded');
+has(stasisControl,'await self._state_store.end_recording','recording stop/orphan cleanup updates durable state');
+has(stasisControl,'_seed_existing_channels','ARI reconnect restores current Stasis application channel ownership');
+has(stasisState,'class PostgresStasisStateStore','Stasis control uses the owned PostgreSQL state adapter');
+has(stasisState,'consent_confirmed BOOLEAN NOT NULL','persistent recording audit requires consent confirmation');
+has(stasisState,'consent_basis VARCHAR(500) NOT NULL','persistent recording audit stores the stated consent basis');
+has(stasisState,"status='ended'",'Stasis state retains ended lifecycle audit records rather than deleting them');
+has(sipDbInit,'CREATE TABLE IF NOT EXISTS stasis_managed_bridges','clean Telecom database installs durable Stasis bridge state');
+has(sipDbInit,'CREATE TABLE IF NOT EXISTS stasis_supervisor_sessions','clean Telecom database installs durable supervisor state');
+has(sipDbInit,'CREATE TABLE IF NOT EXISTS stasis_recordings','clean Telecom database installs durable recording consent state');
+has(lifecycle,'await container.stasis_control.initialize()','Telecom startup requires durable Stasis recovery before background control tasks');
 has(api,'@app.post("/v1/stasis/supervisor"','supervisor control remains behind the protected Telecom API token');
 has(api,'@app.post("/v1/stasis/recordings"','bridge recording remains behind the protected Telecom API token');
 has(health,'"stasis_call_control": self._stasis.status()','public health reports Stasis truth without credentials');
@@ -114,6 +131,9 @@ has(lifecycle,'container.stasis_events.run()','Telecom lifecycle owns the ARI ev
 has(lifecycle,'container.stasis_control.reap_loop()','Telecom lifecycle owns Stasis orphan cleanup');
 has(stasisTests,'test_disabled_control_fails_closed','unit tests prove the default Stasis gate fails closed');
 has(stasisTests,'test_create_supervise_record_and_cleanup_lifecycle','unit tests cover bridge supervisor recording and cleanup lifecycle');
+has(stasisTests,'test_enabled_control_requires_durable_state_ready','unit tests prove Stasis cannot operate with an unavailable durable state plane');
+has(stasisTests,'test_initialize_restores_active_state_for_restart_recovery','unit tests prove active Stasis state can be restored after restart');
+has(stasisTests,'test_reconnect_seeds_existing_application_channels','unit tests prove ARI reconnect recovers current application channels');
 has(api,'"credentials_included": False','WebRTC readiness API does not expose credentials');
 has(health,'configured-not-live-verified','public health distinguishes source configuration from live verification');
 
@@ -184,6 +204,9 @@ has(webrtcWorkflow,'Prove real browser channel enters private Stasis app','real 
 has(webrtcWorkflow,"WEBRTC_ECHO_EXTENSION: '6001'",'Stasis integration proof uses the carrier-free diagnostic extension');
 has(webrtcWorkflow,"WEBRTC_REQUIRE_MEDIA: 'false'",'Stasis integration proof does not weaken the separate Echo media requirement');
 has(webrtcWorkflow,"d.configured !== true || d.connected !== true",'Stasis integration proof requires the private event listener to be configured and connected');
+has(webrtcWorkflow,"d.persistent_state_ready !== true || d.restart_recovery_enabled !== true",'Stasis integration proof requires durable state and restart recovery to be ready');
+has(webrtcWorkflow,'magnanimous-webrtc-db','real Stasis integration proof runs the owned PostgreSQL state plane');
+has(webrtcWorkflow,'telecom-core/sip-core/db/init.sql','real Stasis integration proof boots the versioned owned Telecom schema');
 has(webrtcWorkflow,"Number(d.tracked_channels || 0) < 1",'Stasis integration proof requires a real tracked Stasis channel');
 has(webrtcWorkflow,"d.public_ari_exposed !== false",'Stasis integration proof preserves private ARI truth');
 has(webrtc,'#include pjsip-webrtc-public-address.conf','native WSS transport accepts a gated public/NAT address fragment');
