@@ -17,6 +17,21 @@ function genericBridgeReady(env) {
   return Boolean(env.VOIP_PROVIDER_URL && env.VOIP_PROVIDER_TOKEN);
 }
 
+function magnanimousCoreBridgeReady(env) {
+  try {
+    if (!genericBridgeReady(env) || !env.TELECOM_CORE_URL || !env.TELECOM_CORE_TOKEN) return false;
+    const provider = new URL(String(env.VOIP_PROVIDER_URL));
+    const core = new URL(String(env.TELECOM_CORE_URL));
+    return provider.protocol === 'https:' && core.protocol === 'https:' && provider.origin === core.origin;
+  } catch {
+    return false;
+  }
+}
+
+function workspaceByocPlannerReady(env) {
+  return genericBridgeReady(env) && String(env.VOIP_BYOC_ROUTE_CONTRACT || '').trim() === 'magnanimous-route-v1';
+}
+
 const NATIVE_ROUTE_TYPES = new Set(['sip-trunk','byoc-bridge','direct-pstn']);
 
 async function fetchJsonWithTimeout(url, init = {}, timeoutMs = 10000) {
@@ -134,6 +149,8 @@ export async function handlePhoneCarrier(request, env) {
   const routing = await outboundRouting(request, env);
   if (routing?.response) return routing.response;
   const selectedType = String(routing?.selected?.type || '');
+  const selectedExecutionEndpoint = String(routing?.selected?.execution_endpoint || '').trim();
+  const selectedBridgeRouteKey = String(routing?.selected?.bridge_route_key || '').trim();
   const routeContext = routing?.explicit ? { selectedRoute: routing.selected, selectionMode: routing.plan?.selection_mode || 'balanced' } : {};
 
   // A workspace-supplied carrier bridge is intentionally first. This lets an
@@ -152,6 +169,7 @@ export async function handlePhoneCarrier(request, env) {
         billing_mode: mode,
         flatRateConfigured: isFlatRate(mode),
         leastCostRouting: true,
+        plannerSelectedByoc: workspaceByocPlannerReady(env),
         routeOrder: ['free-browser', 'workspace-byoc', 'metered-fallback', 'premium-fallback'],
         callerId: String(env.VOIP_CALLER_ID || ''),
         accessGranted: true,
@@ -161,7 +179,18 @@ export async function handlePhoneCarrier(request, env) {
           : 'Workspace BYOC calling is connected. Free browser calls remain first choice and the carrier bridge can use wholesale or metered routing.'
       });
     }
-    if (!routing?.explicit || NATIVE_ROUTE_TYPES.has(selectedType)) return null;
+    if (!routing?.explicit) return null;
+    if (selectedType === 'byoc-bridge' && selectedBridgeRouteKey && workspaceByocPlannerReady(env)) return null;
+    if (NATIVE_ROUTE_TYPES.has(selectedType) && selectedExecutionEndpoint && magnanimousCoreBridgeReady(env)) return null;
+  }
+
+  if (routing?.explicit && selectedType === 'byoc-bridge' && !selectedExecutionEndpoint) {
+    return json({
+      detail: selectedBridgeRouteKey
+        ? 'The selected workspace BYOC route requires the explicit magnanimous-route-v1 bridge contract.'
+        : 'The selected workspace BYOC route is preview-only until byoc_route_key is configured.',
+      code: 'SELECTED_BYOC_ROUTE_NOT_BOUND'
+    }, 503);
   }
 
   if (routing?.explicit && NATIVE_ROUTE_TYPES.has(selectedType)) {
