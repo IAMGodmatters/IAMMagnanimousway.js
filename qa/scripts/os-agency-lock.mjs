@@ -82,6 +82,8 @@ includes(agencyRuntime,'CREATE TABLE IF NOT EXISTS agency_client_settings','agen
 includes(agencyRuntime,'CREATE TABLE IF NOT EXISTS agency_usage_rebill','agency: usage rebilling ledger exists');
 includes(agencyRuntime,"pricing_position:{agency:299,agency_pro:499,ordinary_max:199}",'agency: Agency and Agency Pro live pricing remains separate from ordinary plans');
 includes(agencyUI,'BUSINESS / AGENCY POWERHOUSE','agency: Agency Command UI remains present');
+includes(agencyRuntime,'booking_reliability:{idempotency_key_supported:true,duplicate_replay_safe:true,bounded_transient_client_retries:true','agency: reliability status exposes booking idempotency and bounded retries');
+includes(agencyUI,'Booking retry protection: tenant-scoped idempotency + bounded transient retries','agency: owner-facing Agency UI exposes booking retry protection');
 includes(agencyUI,'These are the live White Label subscription prices','agency: UI truthfully identifies Agency pricing as live subscriptions');
 includes(automationRuntime,'CREATE TABLE IF NOT EXISTS agency_automations','agency: persistent automation rules exist');
 includes(automationRuntime,'CREATE TABLE IF NOT EXISTS agency_automation_runs','agency: automation execution receipts exist');

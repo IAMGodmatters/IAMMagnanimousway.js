@@ -48,7 +48,7 @@ async function overview(env,tenant){
   scalar("SELECT COUNT(*) n FROM agency_reputation_items WHERE tenant_id=? AND status='needs-response'"),
   env.DB.prepare("SELECT COALESCE(SUM(customer_charge_usd),0) total FROM agency_usage_rebill WHERE tenant_id=? AND status='unbilled'").bind(tenant).first()
  ]);
- return{ok:true,clients:clientRows.length,upcoming_bookings:bookings,active_funnels:activeFunnels,reviews_needing_response:reviews,unbilled_usage_usd:money(unbilled?.total||0),pricing_position:{agency:299,agency_pro:499,ordinary_max:199},client_identity_source:'bpo_clients'};
+ return{ok:true,clients:clientRows.length,upcoming_bookings:bookings,active_funnels:activeFunnels,reviews_needing_response:reviews,unbilled_usage_usd:money(unbilled?.total||0),pricing_position:{agency:299,agency_pro:499,ordinary_max:199},client_identity_source:'bpo_clients',booking_reliability:{idempotency_key_supported:true,duplicate_replay_safe:true,bounded_transient_client_retries:true,retry_statuses:[502,503,504]}};
 }
 
 export async function handleAgencyGrowth(request,env){
