@@ -37,9 +37,10 @@ class ManagedStasisCall:
 class AsteriskStasisBridgeService:
     """Owns the gated ARI/Stasis mixing-bridge lifecycle for native Magnanimous calls."""
 
-    def __init__(self, ari: Any, settings: TelecomSettings):
+    def __init__(self, ari: Any, settings: TelecomSettings, webrtc_sessions: Any | None = None):
         self._ari = ari
         self._settings = settings
+        self._webrtc_sessions = webrtc_sessions
         self._calls: dict[str, ManagedStasisCall] = {}
         self._by_channel: dict[str, str] = {}
         self._state = "disabled" if not settings.stasis_bridge_enabled else "starting"
@@ -218,9 +219,21 @@ class AsteriskStasisBridgeService:
         self._require_supervisor()
         self._require_consent(request.consent_confirmed, request.jurisdiction)
         call = self._managed_call_for_tenant(request.provider_call_id, request.tenant_id)
+        if self._webrtc_sessions is None or not self._webrtc_sessions.owns_session(
+            request.supervisor_session_id,
+            request.tenant_id,
+        ):
+            raise TelecomNotFoundError("Tenant-owned supervisor WebRTC session not found.")
         target_channel_id = call.agent_channel_id if request.target_role == "agent" else call.customer_channel_id
         await self._expect("GET", f"/bridges/{call.bridge_id}", ok=(200,))
-        await self._expect("GET", f"/channels/{request.supervisor_channel_id}", ok=(200,))
+        supervisor_channel = await self._expect(
+            "GET",
+            f"/channels/{request.supervisor_channel_id}",
+            ok=(200,),
+        )
+        supervisor_name = str((supervisor_channel or {}).get("name") or "")
+        if not supervisor_name.startswith(f"PJSIP/{request.supervisor_session_id}-"):
+            raise TelecomNotFoundError("Supervisor channel does not belong to the tenant-owned WebRTC session.")
         await self._expect("GET", f"/channels/{target_channel_id}", ok=(200,))
 
         session_id = f"mag-supervisor-{uuid.uuid4().hex}"
@@ -239,6 +252,7 @@ class AsteriskStasisBridgeService:
             self._supervisor_sessions[session_id] = {
                 "tenant_id": call.tenant_id,
                 "provider_call_id": request.provider_call_id,
+                "supervisor_session_id": request.supervisor_session_id,
                 "mode": request.mode,
                 "call_bridge_id": call.bridge_id,
                 "target_channel_id": target_channel_id,
@@ -294,6 +308,7 @@ class AsteriskStasisBridgeService:
         self._supervisor_sessions[session_id] = {
             "tenant_id": call.tenant_id,
             "provider_call_id": request.provider_call_id,
+            "supervisor_session_id": request.supervisor_session_id,
             "mode": request.mode,
             "call_bridge_id": call.bridge_id,
             "target_channel_id": target_channel_id,
