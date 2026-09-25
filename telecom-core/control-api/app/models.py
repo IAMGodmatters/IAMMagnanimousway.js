@@ -9,6 +9,9 @@ class OutboundCall(BaseModel):
     agent_id: str | None = None
     queue_id: str | None = None
     webhook_url: str | None = None
+    route_key: str | None = Field(default=None, pattern=r"^(primary|secondary)$")
+    route_id: int | None = None
+    interconnect_id: int | None = None
 
 
 class HangupRequest(BaseModel):
