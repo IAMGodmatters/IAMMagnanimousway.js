@@ -36,7 +36,7 @@ export default function OwnerSelfHealing(){
     <article><small>VOICE / AUDIO</small><b>{String(voice.status||'unknown').toUpperCase()}</b><span>{voice.note||'No voice health detail.'}</span></article>
     <article><small>DEPLOYMENT REVISION</small><b className="sha">{data.deployment_revision||'unreported'}</b><span>Production self-report; no credential values are shown.</span></article>
     <article className={count(data.current_incidents)?'warn':'good'}><small>CURRENT INCIDENTS</small><b>{count(data.current_incidents)}</b><span>{count(data.failed_repairs)} failed/escalated records • {count(data.successful_repairs)} successful repairs</span></article>
-    <article><small>COST IMPACT</small><b>$${Number(data.cost_impact_usd||0).toFixed(2)}</b><span>{data.paid_fallback_required?'Paid fallback required before continuation.':'No paid fallback required by this check.'}</span></article>
+    <article><small>COST IMPACT</small><b>${Number(data.cost_impact_usd||0).toFixed(2)}</b><span>{data.paid_fallback_required?'Paid fallback required before continuation.':'No paid fallback required by this check.'}</span></article>
    </section>
    <section className="provider"><h2>Private execution health</h2><p>Provider identities stay owner-only. Consumers continue to see Magnanimous AI.</p><div className="providerGrid">
     {Object.entries(provider).filter(([k,v])=>v&&typeof v==='object').map(([key,value]:any)=><div key={key}><small>{key.replaceAll('_',' ').toUpperCase()}</small><b>{String(value.status||'unknown').toUpperCase()}</b><span>{value.configured?'Configured':'Not configured'}</span></div>)}
