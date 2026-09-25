@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+  schedule:
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -34,6 +36,8 @@ jobs:
         run: |
           node --check worker/src/agent-mesh-runtime.js
           node --check worker/src/contact-center-runtime.js
+          node --check worker/src/self-heal-runtime.js
+          node --check worker/src/provider-cost-catalog.js
 
       - name: Commit repair
         run: |
