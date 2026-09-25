@@ -23,16 +23,19 @@
     "STRIPE_PAYMENT_LINK_AGENCY_PRO": "https://buy.stripe.com/3cI9AS77f9Qw2D04psbV60d",
     "STRIPE_PAYMENT_LINK_USAGE_TOPUP": "https://buy.stripe.com/4gM00j2cyeY60jucrX6kg06",
     "ENABLE_METERED_PROVIDERS": "false",
-    // Magnanimous AI remains the platform brain. These are internal execution helpers only.
+    "ALLOW_EXTERNAL_FREE_TIER_FALLBACK": "false",
+    // Magnanimous AI remains the platform brain. Outside providers never enter automatic routing merely because they advertise a free quota.
     "CLOUDFLARE_AI_MODEL": "@cf/zai-org/glm-4.7-flash",
     // Agent Mesh starts with a fast reasoning worker; the runtime retains bounded GLM/Gemma/Nemotron fallbacks beneath Magnanimous.
     "AGENT_CLOUDFLARE_MODEL": "@cf/qwen/qwen3-30b-a3b-fp8",
     "MAGNANIMOUS_VISION_MODEL": "@cf/google/gemma-4-26b-a4b-it",
     "MAGNANIMOUS_HEAVY_MODEL": "@cf/nvidia/nemotron-3-120b-a12b",
     "BUSINESS_PLAN_FREE_MODEL": "@cf/nvidia/nemotron-3-120b-a12b",
-    "OPENAI_MODEL": "gpt-5.6-sol",
-    "BUSINESS_PLAN_MODEL": "gpt-5.6-sol",
-    "BUSINESS_PLAN_FINAL_MODEL": "gpt-5.6-sol",
+    "GOOGLE_MODEL": "gemini-3.8-flash",
+    "GROQ_MODEL": "openai/gpt-oss-20b",
+    "OPENAI_MODEL": "gpt-6-luna",
+    "BUSINESS_PLAN_MODEL": "gpt-6-luna",
+    "BUSINESS_PLAN_FINAL_MODEL": "gpt-6-sol",
     "TARGET_GROSS_MARGIN_PERCENT": "20",
     // Magnanimous Dev Agent is restricted to explicitly allowed repositories.
     // Repository credentials remain protected Worker secrets and never appear here.
