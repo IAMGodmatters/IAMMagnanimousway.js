@@ -112,6 +112,16 @@ class CarrierRouteTests(unittest.IsolatedAsyncioTestCase):
         ids = {item["id"] for item in result["routes"]}
         self.assertEqual(ids, {"auto", "primary", "secondary"})
 
+    async def test_auto_health_uses_secondary_when_primary_is_offline(self):
+        ari = FakeAri()
+        ari.set("GET", "/asterisk/info", FakeResponse(200, {"system": {}}))
+        ari.set("GET", "/endpoints/PJSIP/pstn-trunk", FakeResponse(200, {"state": "offline"}))
+        ari.set("GET", "/endpoints/PJSIP/pstn-secondary", FakeResponse(200, {"state": "online"}))
+        bridge = AsteriskSipCarrierBridge(ari, SETTINGS)
+        result = await bridge.health("auto")
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["selected_route"]["health"], "online")
+
 
 if __name__ == "__main__":
     unittest.main()
