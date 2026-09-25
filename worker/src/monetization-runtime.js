@@ -23,6 +23,9 @@ export async function handleMonetization(request, env) {
     adsense_home_slot: homeSlot || null,
     auto_ads_ready: Boolean(client),
     sponsored_placements_endpoint: '/api/ads?placement=home',
-    policy: 'Ads are displayed only through owner-provided sponsored links or an approved ad-network publisher configuration.'
+    owner_promotions_allowed: true,
+    outside_ads_require_revenue_approval: true,
+    ad_network_is_revenue_share: Boolean(client),
+    policy: 'Public advertising is limited to Magnanimous-owned promotions or revenue-approved paid placements. Approved ad-network inventory is allowed only when configured to pay the platform.'
   });
 }
