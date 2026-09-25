@@ -23,6 +23,8 @@ const health=read('telecom-core/control-api/app/services/health.py');
 const telecomConfig=read('telecom-core/control-api/app/config.py');
 const study=read('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md');
 const globalMobileBenchmark=read('docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md');
+const globalMobileMigration=read('worker/migrations/0087_global_mobile_proof_gates.sql');
+const globalMobileGateQa=read('qa/scripts/global-mobile-proof-gates-lock.mjs');
 const webrtcWorkflow=read('.github/workflows/native-webrtc-e2e.yml');
 const webrtcProbe=read('telecom-core/webrtc-e2e/run.mjs');
 const extensions=read('telecom-core/asterisk/templates/extensions.conf.template');
@@ -68,6 +70,8 @@ const stasisLiveVerifier=read('telecom-core/scripts/verify-supervision-live.py')
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
 file('docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md','Fonus/Popcorn global mobile benchmark is durably versioned');
+file('worker/migrations/0087_global_mobile_proof_gates.sql','global mobile evidence tables are durably versioned');
+file('qa/scripts/global-mobile-proof-gates-lock.mjs','global mobile live proof-gate test is versioned');
 file('telecom-core/OCI-ALWAYS-FREE-HOST.md','free-first OCI Telecom host guide is versioned');
 file('telecom-core/deploy/oci-always-free-preflight.sh','OCI public-host preflight is versioned');
 file('.github/workflows/telecom-oci-arm64-lock.yml','OCI ARM64 build proof workflow is versioned');
@@ -214,6 +218,13 @@ has(network,'country_coverage_not_verified','offer planner rejects unverified co
 has(network,'variable_cost_not_fully_funded','offer planner rejects unfunded metered exposure');
 has(network,'network_group!==selected.network_group','backup selection prefers an independently grouped network path');
 has(network,'TELECOM_GLOBAL_MOBILE_LIVE','global mobile live state is independent from source readiness');
+has(network,'evaluateGlobalMobileReadiness','global mobile launch truth is evidence-gated');
+has(network,'recent_real_connectivity','global mobile requires recent subscriber connectivity evidence');
+has(network,'active_cost_fair_use_policy','global mobile requires an active cost/fair-use policy');
+has(network,"global-mobile/countries",'owner API records country capability evidence');
+has(network,"global-mobile/offers",'owner API records authorized verified wholesale offers');
+has(network,"global-mobile/profiles",'owner API records opaque mobile access profiles');
+has(network,"global-mobile/connectivity",'owner API records real connectivity evidence');
 has(contact,'native_pbx_live:nativeWebrtcLive','contact-center snapshot exposes native PBX truth state');
 has(compat,'compatibility_transport_ready:true','compatibility softphone reports compatibility readiness separately');
 has(compat,'native_pbx_live:','compatibility softphone reports native PBX live truth separately');
@@ -226,6 +237,9 @@ has(ui,'Credentials ≠ live route','owner UI preserves provider truth boundary'
 has(ui,'Global SIM/eSIM retail blueprint','owner UI exposes the Magnanimous-native global mobile blueprint');
 has(ui,'Competitor retail prices are benchmarks, not Magnanimous wholesale cost.','owner UI preserves verified-origin pricing truth');
 has(ui,'CALCULATE — NO PURCHASE','global mobile pricing tool is explicitly non-purchasing');
+has(ui,'LIVE PROOF GATES','owner UI exposes every global mobile launch gate');
+has(ui,'SAVE VERIFIED WHOLESALE OFFER','owner UI can store verified commercial offer evidence');
+has(ui,'SAVE REAL CONNECTIVITY PROOF','owner UI can record subscriber connectivity proof');
 has(ui,'I confirmed this origin cost against the referenced provider evidence.','owner must explicitly attest the origin-price evidence before quoting');
 
 has(study,'## Current carrier benchmark','deep study contains carrier comparison evidence');
@@ -238,6 +252,11 @@ has(globalMobileBenchmark,'### Popcorn','Popcorn global retail patterns are dura
 has(globalMobileBenchmark,'architecture/product benchmark rather than treated as a wholesale upstream','Popcorn no-resale boundary is retained');
 has(globalMobileBenchmark,'Competitor retail prices are benchmarks only.','global benchmark forbids treating retail price as wholesale cost');
 has(globalMobileBenchmark,'No 2FA delivery guarantee is made for VoIP numbers.','global benchmark preserves 2FA truth boundary');
+has(globalMobileMigration,'telecom_country_capabilities','global mobile country truth is durable');
+has(globalMobileMigration,'telecom_mobile_wholesale_offers','global mobile wholesale evidence is durable');
+has(globalMobileMigration,'telecom_mobile_access_profiles','global mobile access profiles are durable');
+has(globalMobileMigration,'telecom_mobile_connectivity_events','global mobile connectivity evidence is durable');
+has(globalMobileGateQa,'live_flag_enabled:true','proof-gate QA explicitly tests a live flag without evidence');
 has(extensions,'Echo()','authenticated WebRTC diagnostic uses Asterisk Echo for carrier-free bidirectional media proof');
 has(webrtcWorkflow,'Real Chromium registration and two-way media','dedicated CI job runs a real Chromium WebRTC media proof');
 has(webrtcWorkflow,'wss://localhost:8089/ws','browser probe uses the native Asterisk WSS endpoint');
