@@ -1,0 +1,116 @@
+name: Magnanimous Autonomous Health Repair
+
+on:
+  schedule:
+    - cron: '37 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+  issues: write
+
+concurrency:
+  group: magnanimous-autonomous-health-repair
+  cancel-in-progress: true
+
+jobs:
+  health-repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_URL: https://iammagnanimousway.com
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout authoritative main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Probe production health and real compute
+        id: probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          probe() {
+            health_status="$(curl -sS --connect-timeout 10 --max-time 30 -o /tmp/magnanimous-health.json -w '%{http_code}' "$BASE_URL/api/magnanimous/health" || true)"
+            chat_status="$(curl -sS --connect-timeout 10 --max-time 45 -o /tmp/magnanimous-chat.json -w '%{http_code}'               -X POST "$BASE_URL/api/chat"               -H 'content-type: application/json'               --data '{"message":"Reply briefly: Magnanimous autonomous health check.","compute_only":true,"live_search":false,"use_knowledge":false,"use_tools":false,"specialist_routing":false}' || true)"
+            python - "$health_status" "$chat_status" <<'PY'
+import json,sys
+health_status,chat_status=sys.argv[1:3]
+ok=health_status=='200' and chat_status=='200'
+try:
+    health=json.load(open('/tmp/magnanimous-health.json'))
+    ok=ok and health.get('ok') is True
+except Exception:
+    ok=False
+try:
+    chat=json.load(open('/tmp/magnanimous-chat.json'))
+    answer=str(chat.get('output') or chat.get('response') or '').strip()
+    ok=ok and bool(answer)
+except Exception:
+    ok=False
+raise SystemExit(0 if ok else 1)
+PY
+          }
+          success=0
+          for attempt in 1 2 3; do
+            if probe; then success=1; break; fi
+            echo "Production probe failed (attempt $attempt/3); allowing transient recovery."
+            sleep $((attempt*12))
+          done
+          if [ "$success" = "1" ]; then
+            echo "healthy=true" >> "$GITHUB_OUTPUT"
+            echo "Magnanimous production health + compute PASS."
+          else
+            echo "healthy=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Magnanimous production probe remained unhealthy after retries."
+          fi
+
+      - name: Redeploy current verified main automatically
+        if: steps.probe.outputs.healthy != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          main_sha="$(git rev-parse HEAD)"
+          echo "Self-heal action: redeploying verified main $main_sha through existing production workflow."
+          gh workflow run deploy.yml --ref main
+
+      - name: Verify recovery after automatic repair
+        if: steps.probe.outputs.healthy != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          success=0
+          for attempt in $(seq 1 10); do
+            sleep 30
+            health_status="$(curl -sS --connect-timeout 10 --max-time 30 -o /tmp/magnanimous-health-after.json -w '%{http_code}' "$BASE_URL/api/magnanimous/health" || true)"
+            chat_status="$(curl -sS --connect-timeout 10 --max-time 45 -o /tmp/magnanimous-chat-after.json -w '%{http_code}'               -X POST "$BASE_URL/api/chat"               -H 'content-type: application/json'               --data '{"message":"Reply briefly: Magnanimous repair verification.","compute_only":true,"live_search":false,"use_knowledge":false,"use_tools":false,"specialist_routing":false}' || true)"
+            if HEALTH="$health_status" CHAT="$chat_status" python - <<'PY'
+import json,os
+ok=os.environ['HEALTH']=='200' and os.environ['CHAT']=='200'
+try:
+    h=json.load(open('/tmp/magnanimous-health-after.json')); ok=ok and h.get('ok') is True
+    c=json.load(open('/tmp/magnanimous-chat-after.json')); ok=ok and bool(str(c.get('output') or c.get('response') or '').strip())
+except Exception:
+    ok=False
+raise SystemExit(0 if ok else 1)
+PY
+            then success=1; break; fi
+            echo "Waiting for automatic recovery (attempt $attempt/10)."
+          done
+          if [ "$success" != "1" ]; then
+            title="Magnanimous autonomous repair needs investigation"
+            existing="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')"
+            if [ -z "$existing" ]; then
+              gh issue create --title "$title" --body "The hourly self-heal probe detected a persistent production health/compute failure and automatically dispatched the verified main deployment, but recovery verification still failed. No paid provider, billing setting, credential, or customer data was modified by the repair loop."
+            fi
+            echo "::error::Automatic redeployment did not restore the health + compute probe."
+            exit 1
+          fi
+          echo "Magnanimous autonomous production repair PASS."
+
+      - name: Record no-action healthy state
+        if: steps.probe.outputs.healthy == 'true'
+        run: echo "No repair was needed. Production remained healthy."
