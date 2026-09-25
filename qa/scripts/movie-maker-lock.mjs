@@ -44,7 +44,7 @@ for(const s of [
  "artificial_views:false",
  "googleImageApiSize",
  "image_size:googleImageApiSize(selected.size)",
- "duration:`${seconds}s`",
+ "durationSeconds:String(seconds)",
  "gemini-omni-1.1-flash",
  "veo-3.1-lite-generate-preview",
  "veo-3.1-fast-generate-preview",
