@@ -7,7 +7,8 @@ const SOURCES=Object.freeze({
  google:'https://ai.google.dev/gemini-api/docs/pricing',
  groq:'https://console.groq.com/docs/model/openai/gpt-oss-120b',
  mistral:'https://mistral.ai/pricing/api/',
- elevenlabs:'https://elevenlabs.io/pricing/api'
+ elevenlabs:'https://elevenlabs.io/pricing/api',
+ google_media:'https://ai.google.dev/gemini-api/docs/pricing'
 });
 
 const price=(input,output,{cachedInput=null,cacheWrite=null,effectiveUntil='',next=null,longContext=null}={})=>({
@@ -142,4 +143,49 @@ export function voiceOriginCost({provider='elevenlabs-v3',characters=0}={}){
  if(perThousand==null)return{ok:false,code:'VOICE_PRICING_NOT_VERIFIED',detail:'No verified current origin price is registered for this voice model.'};
  const origin=round(chars/1000*perThousand),customer=variableCustomerCharge(origin);
  return{ok:true,provider:p,characters:chars,origin_usd_per_1000_characters:perThousand,provider_origin_cost_usd:origin,customer_charge_usd:customer.customer_charge_usd,markup_usd:customer.markup_usd,markup_percent:customer.markup_percent,pricing_source:SOURCES.elevenlabs,pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT};
+}
+
+
+const GOOGLE_IMAGE_OUTPUT_USD=Object.freeze({'0.5K':0.045,'1K':0.067,'2K':0.101,'4K':0.151});
+const modalityTokens=(usage={},field,modality)=>{
+ const rows=Array.isArray(usage?.[field])?usage[field]:[];
+ return n(rows.find(x=>String(x?.modality||'').toLowerCase()===String(modality||'').toLowerCase())?.tokens);
+};
+
+export function googleImageOriginCost({image_size='2K',usage={}}={}){
+ const size=String(image_size||'2K').toUpperCase()==='0.5K'?'0.5K':String(image_size||'2K').toUpperCase();
+ const fixed=GOOGLE_IMAGE_OUTPUT_USD[size];
+ if(fixed==null)return{ok:false,code:'IMAGE_SIZE_PRICING_NOT_VERIFIED'};
+ const input=n(usage?.total_input_tokens),thought=n(usage?.total_thought_tokens);
+ const imageTokens=modalityTokens(usage,'output_tokens_by_modality','image');
+ const totalOut=n(usage?.total_output_tokens);
+ const nonImage=Math.max(0,totalOut-imageTokens);
+ const imageCost=imageTokens>0?imageTokens*60/1_000_000:fixed;
+ const origin=round(input*.50/1_000_000+(nonImage+thought)*3/1_000_000+imageCost);
+ return{ok:true,provider_origin_cost_usd:origin,image_size:size,pricing_source:SOURCES.google_media,pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT,usage:{input_tokens:input,output_tokens:totalOut,thought_tokens:thought,image_tokens:imageTokens},rates:{input_per_million_usd:.50,text_thought_output_per_million_usd:3,image_output_per_million_usd:60,fixed_image_output_usd:imageCost}};
+}
+
+export function googleImageReserveUsd(image_size='2K'){
+ const size=String(image_size||'2K').toUpperCase()==='0.5K'?'0.5K':String(image_size||'2K').toUpperCase();
+ const fixed=GOOGLE_IMAGE_OUTPUT_USD[size];
+ return fixed==null?null:round(fixed+.02);
+}
+
+export function googleOmniVideoOriginCost({seconds=0,resolution='720p',usage={}}={}){
+ const input=n(usage?.total_input_tokens),thought=n(usage?.total_thought_tokens),totalOut=n(usage?.total_output_tokens);
+ const videoTokens=modalityTokens(usage,'output_tokens_by_modality','video');
+ const textTokens=Math.max(0,totalOut-videoTokens);
+ let videoCost=0;
+ if(videoTokens>0)videoCost=videoTokens*17.50/1_000_000;
+ else if(String(resolution||'720p').toLowerCase()==='720p'&&n(seconds)>0)videoCost=n(seconds)*5792*17.50/1_000_000;
+ else return{ok:false,code:'VIDEO_USAGE_EVIDENCE_REQUIRED',detail:'Exact non-720p video pricing requires provider-reported video output token usage.'};
+ const origin=round(input*1.50/1_000_000+(textTokens+thought)*9/1_000_000+videoCost);
+ return{ok:true,provider_origin_cost_usd:origin,resolution:String(resolution||'720p'),seconds:n(seconds),pricing_source:SOURCES.google_media,pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT,usage:{input_tokens:input,output_tokens:totalOut,thought_tokens:thought,video_tokens:videoTokens},rates:{input_per_million_usd:1.50,text_thought_output_per_million_usd:9,video_output_per_million_usd:17.50,video_tokens_per_second_720p:5792}};
+}
+
+export function googleOmniVideoReserveUsd({seconds=10,resolution='720p'}={}){
+ const s=Math.max(3,Math.min(10,n(seconds)||10));
+ // Reserve is authorization headroom only; actual customer billing always uses provider-reported usage.
+ const base=String(resolution||'720p').toLowerCase()==='720p'?s*5792*17.50/1_000_000:3;
+ return round(base+.05);
 }
