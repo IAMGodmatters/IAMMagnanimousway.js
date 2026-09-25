@@ -79,7 +79,10 @@ export default function ContactCenter(){
       const [o,c,ca,cb,vm,di,su,iv,pc,ib]=await Promise.all([
         get('/api/contact-center/overview',active),get('/api/contact-center/capabilities',active),get('/api/contact-center/campaigns',active),get('/api/contact-center/callbacks',active),get('/api/contact-center/voicemails',active),get('/api/contact-center/dispositions',active),get('/api/contact-center/supervisor/live',active),get('/api/contact-center/ivr',active),get('/api/phone/calls',active),get('/api/contact-center/inbox',active)
       ]);
-      setOverview(o);setCaps(c);setCampaigns(ca.campaigns||[]);setCallbacks(cb.callbacks||[]);setVoicemails(vm.voicemails||[]);setDispositions(di.dispositions||[]);setSupervisor(su);setFlows(iv.flows||[]);setCalls(pc.calls||[]);setInbox(ib);setError('');
+      setOverview(o);setCaps(c);setCampaigns(ca.campaigns||[]);setCallbacks(cb.callbacks||[]);setVoicemails(vm.voicemails||[]);setDispositions(di.dispositions||[]);setSupervisor(su);setFlows(iv.flows||[]);setCalls(pc.calls||[]);setInbox(ib);
+      setActiveSupervision(Object.fromEntries((su.supervisor_sessions||[]).map((x:Row)=>[String(x.call_id),String(x.id)])));
+      setActiveRecording(Object.fromEntries((su.recording_sessions||[]).map((x:Row)=>[String(x.call_id),String(x.id)])));
+      setError('');
     }catch(e:any){setError(e?.message||'Unable to load the contact center.')}finally{if(showBusy)setBusy('')}
   }
   async function createCampaign(){
