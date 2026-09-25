@@ -78,6 +78,7 @@ assert.ok(!runtimeRoutes.match(/publicPaths=\[[^;]*'\/movie-maker'/),'Movie Make
 assert.ok(template.includes("'/movie'"),'template public Movie watch route missing');
 for(const s of ['MAGNANIMOUS_AD_NETWORK_ENABLED','ADSENSE_SLOT_MOVIE','movie_ads_ready','Incentivized clicks and artificial impressions are prohibited'])assert.ok(monetization.includes(s),'movie ad network must remain owner-controlled: '+s);
 for(const s of ['MAGNANIMOUS_AD_NETWORK_ENABLED','ADSENSE_SLOT_MOVIE'])assert.ok(credentials.includes(s)&&providerEnv.includes(s)&&envExample.includes(s),'owner movie-ad configuration is not wired end-to-end: '+s);
+assert.ok(credentials.includes('GOOGLE_API_BILLING_MODE')&&providerEnv.includes('GOOGLE_API_BILLING_MODE')&&envExample.includes('GOOGLE_API_BILLING_MODE='),'Movie Maker free/paid billing mode must be owner-configurable and explicit.');
 
 for(const forbidden of [
  'reward users for clicking',
