@@ -42,6 +42,7 @@ import { handleBusinessEmail } from './business-email-runtime.js';
 import { handleBusinessPlan } from './business-plan-subscription-runtime.js';
 import { handleVisual } from './visual-runtime.js';
 import { handleVideoAgents } from './video-agents-runtime.js';
+import { handleMagnanimousPremiumVoice } from './magnanimous-premium-voice-runtime.js';
 import { premiumPreflight, premiumPostprocess } from './premium-runtime-guard.js';
 
 const corsHeaders={'access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,PUT,DELETE,OPTIONS','access-control-allow-headers':'Content-Type, Authorization, Stripe-Signature, X-Twilio-Signature','access-control-expose-headers':'Content-Type'};
@@ -61,6 +62,7 @@ export default{async fetch(request,env,ctx){const url=new URL(request.url);if(re
  if(url.pathname.startsWith('/api/contact-center')){const a=await handleTwilioSoftphone(request,providerEnv);if(a)return withCors(a);const b=await handleProfessionalIvrStep(request,providerEnv);if(b)return withCors(b);const c=await handleContactCenterDialGuard(request,providerEnv);if(c)return withCors(c);const d=await handleContactCenter(request,providerEnv);if(d)return withCors(await premiumPostprocess(d,providerEnv,premium.context));}
  if(url.pathname.startsWith('/api/bpo')){const r=await handleBpoOperations(request,env);if(r)return withCors(r);}
  if(url.pathname.startsWith('/api/wellness')){const r=await handleWellness(request,providerEnv);if(r)return withCors(r);}
+ const premiumVoiceResponse=await handleMagnanimousPremiumVoice(request,providerEnv);if(premiumVoiceResponse)return withCors(premiumVoiceResponse);
  if(url.pathname.startsWith('/api/magnanimous/sovereign')){const r=await handleMagnanimousSovereign(request,providerEnv);if(r)return withCors(r);}
  if(url.pathname.startsWith('/api/magnanimous/tool-foundry')){const r=await handleMagnanimousToolFoundry(request,providerEnv);if(r)return withCors(r);}
  if(url.pathname.startsWith('/api/magnanimous/inkbox')){const r=await handleMagnanimousInkboxRouter(request,providerEnv);if(r)return withCors(r);}
