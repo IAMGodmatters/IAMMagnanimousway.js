@@ -263,7 +263,7 @@ async function freeVideo(request,env,user,body,plan){
  const source=new URL(String(d.download_url||''),freeRendererBase(env)).toString();
  let persisted={asset_url:source,download_url:source,watch_url:null,social_publish_url:`/social-connect?video_url=${encodeURIComponent(source)}&title=${encodeURIComponent(title)}`,storage_persistent:false};
  if(env?.MAGNANIMOUS_OBJECT_STORE?.put){
-  const vr=await fetch(source);if(vr.ok){const bytes=new Uint8Array(await vr.arrayBuffer());persisted=await persistAsset(env,request,user,{kind:'video',title,bytes,content_type:vr.headers.get('content-type')||'video/mp4',watermarked:watermarkRequired(plan),source_url:source})}
+  const vr=await fetch(source);if(vr.ok){const bytes=new Uint8Array(await vr.arrayBuffer());persisted=await persistAsset(env,request,user,{kind:'video',title,bytes,content_type:vr.headers.get('content-type')||'video/mp4',watermarked:watermarkRequired(plan),source_url:source,source_text:prompt})}
  }
  return json({ok:true,mode:'free-first',identity:'Magnanimous AI',plan,policy:mediaPolicy(plan),asset:{...persisted,content_type:'video/mp4'},provider_details_private:true});
 }
