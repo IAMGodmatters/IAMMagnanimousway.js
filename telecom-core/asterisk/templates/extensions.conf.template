@@ -88,6 +88,20 @@ exten => _+X.,1,NoOp(Magnanimous outbound PSTN bridge call to ${EXTEN})
  same => n,Dial(PJSIP/${EXTEN}@${CARRIER_SIP_SECONDARY_ENDPOINT},60)
  same => n(done),Hangup()
 
+[magnanimous-outbound-primary]
+; Explicit planner-selected primary route. No automatic cross-carrier retry occurs here.
+exten => _+X.,1,NoOp(Magnanimous selected primary PSTN route call to ${EXTEN})
+ same => n,Set(CALLERID(num)=${MAG_FROM})
+ same => n,Dial(PJSIP/${EXTEN}@${CARRIER_SIP_ENDPOINT},60)
+ same => n,Hangup()
+
+[magnanimous-outbound-secondary]
+; Explicit planner-selected secondary route. The control API refuses this route unless configured.
+exten => _+X.,1,NoOp(Magnanimous selected secondary PSTN route call to ${EXTEN})
+ same => n,Set(CALLERID(num)=${MAG_FROM})
+ same => n,Dial(PJSIP/${EXTEN}@${CARRIER_SIP_SECONDARY_ENDPOINT},60)
+ same => n,Hangup()
+
 [magnanimous-ai]
 ; The public party is bridged to the Magnanimous AI SIP endpoint after answer.
 exten => s,1,NoOp(Connecting call ${MAG_CALL_ID} to Magnanimous AI)
