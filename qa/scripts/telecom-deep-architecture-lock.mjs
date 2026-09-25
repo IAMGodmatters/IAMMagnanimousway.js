@@ -96,6 +96,8 @@ has(carrier,'over_rate_cap','carrier planner computes rate-cap exclusion');
 has(carrier,'&&!x.over_rate_cap','routes above max-rate are excluded from the eligible pool');
 has(carrier,"'bandwidth','signalwire'","carrier inventory supports additional replaceable interconnect types");
 has(carrier,'export async function planCarrierRoute','carrier planner exports one reusable selected-route decision contract');
+has(carrier,"endpoint:String(x.endpoint||'')",'carrier planner includes the selected interconnect endpoint key');
+has(leadPhone,'selected_route_applied: provider?.selected_route_applied === true','platform only claims selected-route execution when the bridge confirms it');
 has(leadPhone,'selected_route: selectedRoute','BYOC outbound handoff forwards the selected route privately');
 has(leadPhone,"['sip-trunk','byoc-bridge','direct-pstn']",'only migrated SIP/BYOC route types are applied to the generic bridge');
 has(leadPhone,'route_mode','outbound BYOC can select balanced, least-cost or priority planning mode');
