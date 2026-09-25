@@ -80,6 +80,33 @@ class SupervisorService:
         state = str(response.json().get("state") or "").strip().lower()
         return state == "online"
 
+    async def _stored_recording_exists(self, recording_name: str, attempts: int = 8) -> bool:
+        for attempt in range(max(1, attempts)):
+            response = await self._ari.request("GET", f"/recordings/stored/{recording_name}")
+            if response.is_success:
+                return True
+            if response.status_code != 404:
+                raise CarrierRejectedError(
+                    response.text[:1000] or "Asterisk stored-recording lookup failed."
+                )
+            if attempt + 1 < attempts:
+                await asyncio.sleep(0.1)
+        return False
+
+    async def _stop_live_recording(self, recording_name: str) -> bool:
+        response = await self._ari.request(
+            "POST",
+            f"/recordings/live/{recording_name}/stop",
+        )
+        if response.status_code not in (204, 404):
+            raise CarrierRejectedError(response.text[:1000] or "Asterisk rejected recording stop.")
+        stored = await self._stored_recording_exists(recording_name)
+        if response.status_code == 204 and not stored:
+            raise CarrierRejectedError(
+                "Asterisk stopped the recording but stored recording metadata was not found."
+            )
+        return stored
+
     async def start(
         self,
         *,
@@ -202,12 +229,14 @@ class SupervisorService:
         supervisor = await self._ari.request("GET", f"/channels/{resources['supervisor_channel_id']}")
         snoop = await self._ari.request("GET", f"/channels/{resources['snoop_channel_id']}")
         recording = await self._ari.request("GET", f"/recordings/live/{resources['recording_name']}")
+        recording_stored = await self._stored_recording_exists(resources["recording_name"], attempts=1)
         return {
             **resources,
             "bridge_active": bridge.is_success,
             "supervisor_channel_active": supervisor.is_success,
             "snoop_channel_active": snoop.is_success,
             "recording_active": recording.is_success,
+            "recording_stored": recording_stored,
             "event_stream_connected": self._events.ready,
         }
 
@@ -307,12 +336,7 @@ class SupervisorService:
     async def stop_call_recording(self, session_id: str) -> dict[str, Any]:
         self._require_ready()
         resources = self._resources(session_id)
-        response = await self._ari.request(
-            "POST",
-            f"/recordings/live/{resources['recording_name']}/stop",
-        )
-        if response.status_code not in (204, 404):
-            raise CarrierRejectedError(response.text[:1000] or "Asterisk rejected recording stop.")
+        stored = await self._stop_live_recording(resources["recording_name"])
         await self._cleanup([
             ("channel", resources["snoop_channel_id"]),
             ("bridge", resources["bridge_id"]),
@@ -320,7 +344,7 @@ class SupervisorService:
         return {
             **resources,
             "recording": False,
-            "stored": response.status_code == 204,
+            "stored": stored,
             "recording_file_exposed": False,
         }
 
@@ -376,16 +400,11 @@ class SupervisorService:
     async def stop_recording(self, session_id: str) -> dict[str, Any]:
         self._require_ready()
         resources = self._resources(session_id)
-        response = await self._ari.request(
-            "POST",
-            f"/recordings/live/{resources['recording_name']}/stop",
-        )
-        if response.status_code not in (204, 404):
-            raise CarrierRejectedError(response.text[:1000] or "Asterisk rejected recording stop.")
+        stored = await self._stop_live_recording(resources["recording_name"])
         return {
             **resources,
             "recording": False,
-            "stored": response.status_code == 204,
+            "stored": stored,
             "recording_file_exposed": False,
         }
 
@@ -397,7 +416,7 @@ class SupervisorService:
             task.cancel()
         live = await self._ari.request("GET", f"/recordings/live/{resources['recording_name']}")
         if live.is_success:
-            await self._ari.request("POST", f"/recordings/live/{resources['recording_name']}/stop")
+            await self._stop_live_recording(resources["recording_name"])
         await self._cleanup([
             ("channel", resources["supervisor_channel_id"]),
             ("channel", resources["snoop_channel_id"]),
