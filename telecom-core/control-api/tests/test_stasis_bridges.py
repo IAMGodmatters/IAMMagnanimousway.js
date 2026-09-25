@@ -39,19 +39,26 @@ class FakeWebRtcSessions:
 class FakeAri:
     def __init__(self):
         self.requests = []
-        self.channel_names = {
-            "supervisor-channel": f"PJSIP/{SUPERVISOR_SESSION}-00000001",
-        }
+        self.supervisor_channels = [{
+            "id": "supervisor-channel",
+            "name": f"PJSIP/{SUPERVISOR_SESSION}-00000001",
+            "dialplan": {
+                "app_name": "Stasis",
+                "app_data": "magnanimous-native-call,supervisor",
+            },
+        }]
 
     async def request(self, method, path, *, params=None, body=None):
         self.requests.append((method, path, params or {}, body))
         if method == "POST" and path.startswith("/recordings/live/"):
             return FakeResponse(204)
+        if method == "GET" and path == "/channels":
+            return FakeResponse(200, self.supervisor_channels)
         if method == "GET" and path.startswith("/bridges/"):
             return FakeResponse(200, {"id": path.rsplit("/", 1)[-1]})
         if method == "GET" and path.startswith("/channels/"):
             channel_id = path.rsplit("/", 1)[-1]
-            return FakeResponse(200, {"id": channel_id, "name": self.channel_names.get(channel_id, "")})
+            return FakeResponse(200, {"id": channel_id, "name": f"PJSIP/{channel_id}-00000001"})
         if method == "POST" and path.endswith("/record"):
             return FakeResponse(200, {"state": "recording"})
         if method == "POST" and "/snoop/" in path:
@@ -253,7 +260,6 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                         tenant_id=call.tenant_id,
                         target_role="agent",
                         supervisor_session_id=SUPERVISOR_SESSION,
-                        supervisor_channel_id="supervisor-channel",
                         consent_confirmed=True,
                         jurisdiction="US-CA",
                     )
@@ -287,7 +293,6 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 tenant_id=call.tenant_id,
                 target_role="agent",
                 supervisor_session_id=SUPERVISOR_SESSION,
-                supervisor_channel_id="supervisor-channel",
                 consent_confirmed=True,
                 jurisdiction="US-CA",
             )
@@ -324,13 +329,19 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                     tenant_id="tenant-2",
                     target_role="agent",
                     supervisor_session_id=SUPERVISOR_SESSION,
-                    supervisor_channel_id="supervisor-channel",
-                    consent_confirmed=True,
+                        consent_confirmed=True,
                     jurisdiction="US-CA",
                 )
             )
 
-        ari.channel_names["supervisor-channel"] = "PJSIP/different-endpoint-00000001"
+        ari.supervisor_channels = [{
+            "id": "supervisor-channel",
+            "name": "PJSIP/different-endpoint-00000001",
+            "dialplan": {
+                "app_name": "Stasis",
+                "app_data": "magnanimous-native-call,supervisor",
+            },
+        }]
         with self.assertRaises(TelecomNotFoundError):
             await service.start_supervisor(
                 SupervisorSessionStart(
@@ -339,8 +350,7 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                     tenant_id=call.tenant_id,
                     target_role="agent",
                     supervisor_session_id=SUPERVISOR_SESSION,
-                    supervisor_channel_id="supervisor-channel",
-                    consent_confirmed=True,
+                        consent_confirmed=True,
                     jurisdiction="US-CA",
                 )
             )
@@ -360,8 +370,7 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                     provider_call_id=call_request().provider_call_id,
                     tenant_id="tenant-1",
                     target_role="agent",
-                    supervisor_channel_id="supervisor-channel",
-                    consent_confirmed=True,
+                        consent_confirmed=True,
                     jurisdiction="US-CA",
                 )
             )
@@ -376,6 +385,7 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 supervisor_audio_enabled=True,
                 bridge_recording_enabled=True,
             ),
+            FakeWebRtcSessions(),
         )
         service._ready = True
         call, topology = await prepare_managed_call(service)
@@ -386,7 +396,6 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 tenant_id=call.tenant_id,
                 target_role="agent",
                 supervisor_session_id=SUPERVISOR_SESSION,
-                supervisor_channel_id="supervisor-channel",
                 consent_confirmed=True,
                 jurisdiction="US-CA",
             )
@@ -418,6 +427,7 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 supervisor_audio_enabled=True,
                 bridge_recording_enabled=True,
             ),
+            FakeWebRtcSessions(),
         )
         service._ready = True
         call, _ = await prepare_managed_call(service)
@@ -428,7 +438,6 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 tenant_id=call.tenant_id,
                 target_role="agent",
                 supervisor_session_id=SUPERVISOR_SESSION,
-                supervisor_channel_id="supervisor-channel",
                 consent_confirmed=True,
                 jurisdiction="US-CA",
             )
