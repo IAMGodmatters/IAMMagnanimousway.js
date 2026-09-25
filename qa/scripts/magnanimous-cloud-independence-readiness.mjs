@@ -43,6 +43,8 @@ const required=[
  'magnanimous-runtime/scripts/verify-migration-stage.mjs',
  'magnanimous-runtime/scripts/verify-runtime-secret-store.mjs',
  'magnanimous-runtime/scripts/verify-ai-binding.mjs',
+ 'magnanimous-runtime/scripts/verify-edge-ai-bridge.mjs',
+ 'worker/src/edge-ai-bridge.js',
  'magnanimous-runtime/scripts/verify-railway-deploy.mjs',
  'magnanimous-runtime/docker-compose.release.yml',
  'magnanimous-runtime/scripts/standalone-host-preflight.sh',
@@ -220,10 +222,15 @@ must(!logicalExporter.includes("'-H','Authorization: Bearer '+cloudflareApiToken
 
 const runtimeSecretStore=read('magnanimous-runtime/src/runtime-secret-store.mjs');
 const standaloneAiBinding=read('magnanimous-runtime/src/ai-binding.mjs');
-for(const contract of ['MAGNANIMOUS_RUNTIME_SECRET_KEYS','INTEGRATION_CREDENTIALS_KEY','CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID','stageRuntimeSecrets','loadRuntimeSecrets','0o600'])
+for(const contract of ['MAGNANIMOUS_RUNTIME_SECRET_KEYS','INTEGRATION_CREDENTIALS_KEY','MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN','MAGNANIMOUS_EDGE_AI_BRIDGE_URL','stageRuntimeSecrets','loadRuntimeSecrets','0o600'])
  must(runtimeSecretStore.includes(contract),'Runtime secret continuity contract missing: '+contract);
+for(const contract of ['MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN','MAGNANIMOUS_EDGE_AI_BRIDGE_URL','magnanimous-private-edge-ai'])
+ must(standaloneAiBinding.includes(contract),'Standalone private Edge AI rail missing: '+contract);
 for(const contract of ['api.cloudflare.com/client/v4/accounts/','/ai/run/','cloudflare-workers-ai-rest','CLOUDFLARE_PLATFORM_API_TOKEN','CLOUDFLARE_PLATFORM_ACCOUNT_ID'])
- must(standaloneAiBinding.includes(contract),'Standalone free-first Workers AI REST rail missing: '+contract);
+ must(standaloneAiBinding.includes(contract),'Standalone free-first Workers AI REST compatibility rail missing: '+contract);
+const edgeAiBridge=read('worker/src/edge-ai-bridge.js');
+for(const contract of ['MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN','/api/internal/edge-ai/run','secureEqual','standalone-node','env.AI.run'])
+ must(edgeAiBridge.includes(contract),'Private Edge AI bridge contract missing: '+contract);
 must(server.includes("getProviderRuntimeEnv"),'Standalone AI must resolve encrypted provider-vault credentials at request time.');
 must(server.includes("AI: aiBinding"),'Standalone env.AI must use the vault-backed dynamic binding.');
 const bootstrap=read('magnanimous-runtime/src/bootstrap.mjs');
@@ -232,7 +239,10 @@ must(bootstrap.indexOf('loadRuntimeSecrets')<bootstrap.indexOf("import('./server
 const runtimeSecretsWorkflow=read('.github/workflows/magnanimous-runtime-secrets-stage.yml');
 must(runtimeSecretsWorkflow.includes('id-token: write'),'Runtime secret staging must use GitHub OIDC.');
 must(runtimeSecretsWorkflow.includes('openssl rand -hex 32'),'Runtime secret staging must generate a fresh standalone vault key.');
-must(runtimeSecretsWorkflow.includes("'CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID'"),'Runtime secret staging must include protected free-first Workers AI REST credentials.');
+must(runtimeSecretsWorkflow.includes('magnanimous-edge-ai-bridge-v1'),'Runtime secret staging must derive the private Edge AI bridge token.');
+must(runtimeSecretsWorkflow.includes("payload['MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN']"),'Runtime secret staging must stage the derived private bridge token.');
+must(runtimeSecretsWorkflow.includes("payload['MAGNANIMOUS_EDGE_AI_BRIDGE_URL']='https://iammagnanimousway.com/api/internal/edge-ai/run'"),'Runtime secret staging must stage the canonical private bridge URL.');
+must(!runtimeSecretsWorkflow.includes("'CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID',\n            'STRIPE_SECRET_KEY'"),'Standalone runtime secret payload must not copy the broad Cloudflare deployment token.');
 must(runtimeSecretsWorkflow.includes('magnanimous-credential-rewrap'),'Runtime secret staging must request a dedicated OIDC audience for production vault rewrap.');
 must(runtimeSecretsWorkflow.includes('/api/internal/migration/rewrap-platform-credentials'),'Runtime secret staging must call the signed production rewrap endpoint.');
 must(runtimeSecretsWorkflow.includes('/__magnanimous_runtime/migration/stage-secrets'),'Runtime secret staging must stage the fresh standalone key.');
@@ -306,6 +316,7 @@ execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-migration-stage.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime-secret-store.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-ai-binding.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-edge-ai-bridge.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-railway-deploy.mjs'],{stdio:'inherit'});
 for(const file of ['worker/src/magnanimous-cloud-provider-core.js','worker/src/magnanimous-infrastructure-core.js','worker/src/security-entrypoint.js']){
  execFileSync(process.execPath,['--check',file],{stdio:'inherit'});
