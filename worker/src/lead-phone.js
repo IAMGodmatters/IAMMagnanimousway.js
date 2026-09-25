@@ -434,6 +434,12 @@ async function phoneRoutes(request, env, user, path, url) {
       console.error('Carrier route planner unavailable; preserving compatibility path', error);
     }
     const selected = routePlan?.selected || null;
+    if (selected && String(selected.execution_endpoint || '').trim() && String(selected.bridge_route_key || '').trim()) {
+      return json({
+        detail: 'The selected route has conflicting execution contracts and cannot be used until its route policy is corrected.',
+        code: 'SELECTED_ROUTE_EXECUTION_AMBIGUOUS'
+      }, 503);
+    }
     const routeAttribution = selected ? {
       route_id: selected.route_id,
       interconnect_id: selected.interconnect_id,
@@ -506,6 +512,7 @@ async function phoneRoutes(request, env, user, path, url) {
       }
       const providerCallId = String(provider.provider_call_id || provider.call_id || provider.id || '');
       const status = String(provider.status || 'dialing');
+      const selectedRouteApplied = Boolean(selectedRoute) && provider?.selected_route_applied === true;
       await env.DB.prepare(
         'UPDATE phone_calls SET provider_call_id=?,status=?,metadata_json=?,updated_at=? WHERE id=? AND tenant_id=?'
       ).bind(providerCallId, status, JSON.stringify({
@@ -513,7 +520,7 @@ async function phoneRoutes(request, env, user, path, url) {
         route_plan: routeAttribution ? {
           selected: routeAttribution,
           selected_route_requested: Boolean(selectedRoute),
-          selected_route_applied: provider?.selected_route_applied === true
+          selected_route_applied: selectedRouteApplied
         } : null
       }).slice(0, 20000), now(), callId, tenantId).run();
       await logEvent(env, tenantId, callId, 'outbound-requested', status, '', provider);
@@ -521,10 +528,12 @@ async function phoneRoutes(request, env, user, path, url) {
         id: callId,
         provider_call_id: providerCallId,
         status,
-        route_id: routeAttribution?.route_id || null,
-        interconnect_id: routeAttribution?.interconnect_id || null,
+        route_id: selectedRouteApplied ? (routeAttribution?.route_id || null) : null,
+        interconnect_id: selectedRouteApplied ? (routeAttribution?.interconnect_id || null) : null,
+        planned_route_id: routeAttribution?.route_id || null,
+        planned_interconnect_id: routeAttribution?.interconnect_id || null,
         selected_route_requested: Boolean(selectedRoute),
-        selected_route_applied: provider?.selected_route_applied === true
+        selected_route_applied: selectedRouteApplied
       }, 201);
     } catch (error) {
       await env.DB.prepare("UPDATE phone_calls SET status='failed',updated_at=? WHERE id=? AND tenant_id=?")
