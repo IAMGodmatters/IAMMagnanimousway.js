@@ -1,6 +1,5 @@
-import {VARIABLE_USAGE_MARKUP_PERCENT} from './magnanimous-billing-policy.js';
 export const PROVIDER_PRICING_VERIFIED_AT='2026-09-25';
-export const PROVIDER_PRICE_MARKUP_PERCENT=VARIABLE_USAGE_MARKUP_PERCENT;
+export const PROVIDER_PRICE_MARKUP_PERCENT=20;
 
 const SOURCES=Object.freeze({
  openai:'https://developers.openai.com/api/docs/models/gpt-5.6-sol',
