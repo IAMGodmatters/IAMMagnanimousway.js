@@ -205,6 +205,26 @@ jobs:
             exit 0
           fi
 
+          payment_bootstrap_sensitive=0
+          if git -C .. rev-parse HEAD^ >/dev/null 2>&1; then
+            changed_files="$(git -C .. diff --name-only HEAD^ HEAD)"
+            if printf '%s\n' "$changed_files" | grep -Eq '^(worker/migrations/0084_|worker/src/[^/]*(stripe|billing|payment|checkout|pricing|premium)[^/]*\.js$|frontend/app/(billing|pricing|checkout)/|api/(stripe|billing|payment)/)'; then
+              payment_bootstrap_sensitive=1
+            fi
+          else
+            payment_bootstrap_sensitive=1
+          fi
+
+          if [ "${D1_MIGRATION_DEFERRED:-0}" = "1" ]; then
+            if [ "$payment_bootstrap_sensitive" -eq 1 ]; then
+              echo "::error::Cloudflare D1 is quota-deferred and this commit changes payment/bootstrap-sensitive code. Stripe webhook bootstrap verification cannot be deferred safely."
+              exit 1
+            fi
+            echo "::warning::Cloudflare D1 is already quota-deferred and this commit does not change payment/bootstrap-sensitive code. Preserving the previously verified encrypted Stripe bootstrap state and deferring only this read-only verification until D1 access resumes."
+            echo "STRIPE_BOOTSTRAP_CHECK_DEFERRED=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
           check_row() {
             npx wrangler d1 execute iam-magnanimous-db --remote --json --command               "SELECT credential_key, length(ciphertext_b64) AS ciphertext_length FROM bootstrap_secrets WHERE credential_key='STRIPE_WEBHOOK_SECRET';"               > /tmp/stripe-webhook-bootstrap-row.json
             python - <<'PY'
