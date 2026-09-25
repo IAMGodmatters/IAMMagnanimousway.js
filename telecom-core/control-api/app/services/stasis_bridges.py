@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 import json
+import time
 from typing import Any
 from urllib.parse import urlencode, urlsplit, urlunsplit
 import uuid
@@ -10,7 +11,8 @@ import uuid
 from websockets.asyncio.client import connect
 
 from ..config import TelecomSettings
-from ..errors import CarrierRejectedError, CarrierUnavailableError
+from ..errors import CarrierRejectedError, CarrierUnavailableError, TelecomConfigurationError, TelecomValidationError
+from ..models import StasisRecordingStart, SupervisorSessionStart
 from ..ports import CarrierCallRequest, CarrierCallState
 
 
@@ -44,6 +46,7 @@ class AsteriskStasisBridgeService:
         self._ready = False
         self._last_error = ""
         self._consecutive_failures = 0
+        self._supervisor_sessions: dict[str, dict[str, str]] = {}
 
     @property
     def enabled(self) -> bool:
@@ -67,15 +70,237 @@ class AsteriskStasisBridgeService:
             "active_bridges": len(self._calls),
             "consecutive_failures": self._consecutive_failures,
             "last_error": self._last_error or None,
-            "supervisor_monitor_live": False,
-            "supervisor_whisper_live": False,
-            "supervisor_barge_live": False,
-            "bridge_recording_live": False,
+            "supervisor_audio_configured": self._settings.supervisor_audio_enabled,
+            "supervisor_monitor_live": bool(self._ready and self._settings.supervisor_audio_enabled),
+            "supervisor_whisper_live": bool(self._ready and self._settings.supervisor_audio_enabled),
+            "supervisor_barge_live": bool(self._ready and self._settings.supervisor_audio_enabled),
+            "active_supervisor_sessions": len(self._supervisor_sessions),
+            "bridge_recording_configured": self._settings.bridge_recording_enabled,
+            "bridge_recording_live": bool(self._ready and self._settings.bridge_recording_enabled),
+            "recording_format": self._settings.bridge_recording_format,
+            "recording_max_seconds": self._settings.bridge_recording_max_seconds,
+            "recording_consent_required": True,
+            "public_live_verified": False,
             "truth_boundary": (
-                "Bridge lifecycle readiness does not activate supervisor audio or recording. "
-                "Those controls require their own consent, authorization, and production verification."
+                "Source and local runtime readiness do not prove public production media. "
+                "Supervisor audio and recording remain separately gated and require consent, authorization, "
+                "and external host verification before public activation."
             ),
         }
+
+    def _require_ready(self) -> None:
+        if not self.enabled:
+            raise TelecomConfigurationError("Native Stasis bridge lifecycle is disabled.")
+        if not self._ready:
+            raise TelecomConfigurationError("Native Stasis bridge event stream is not ready.")
+
+    def _require_supervisor(self) -> None:
+        self._require_ready()
+        if not self._settings.supervisor_audio_enabled:
+            raise TelecomConfigurationError("Native supervisor audio is disabled.")
+
+    def _require_recording(self) -> None:
+        self._require_ready()
+        if not self._settings.bridge_recording_enabled:
+            raise TelecomConfigurationError("Native bridge recording is disabled.")
+
+    @staticmethod
+    def _require_consent(consent_confirmed: bool, jurisdiction: str) -> None:
+        if not consent_confirmed:
+            raise TelecomValidationError("Explicit recording/supervisor consent confirmation is required.")
+        if not str(jurisdiction or "").strip():
+            raise TelecomValidationError("Jurisdiction is required for recording or supervisor audio.")
+
+    async def _expect(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        body: Any = None,
+        ok: tuple[int, ...] = (200, 201, 204),
+        allow_missing: bool = False,
+    ) -> Any:
+        response = await self._ari.request(method, path, params=params, body=body)
+        if allow_missing and response.status_code == 404:
+            return None
+        if response.status_code not in ok:
+            raise CarrierRejectedError(response.text[:1000] or f"Asterisk rejected {method} {path}.")
+        if response.status_code == 204 or not getattr(response, "content", b""):
+            return None
+        try:
+            return response.json()
+        except ValueError:
+            return None
+
+    async def bridge(self, bridge_id: str) -> dict[str, Any]:
+        self._require_ready()
+        data = await self._expect("GET", f"/bridges/{bridge_id}", ok=(200,))
+        return data if isinstance(data, dict) else {"id": bridge_id}
+
+    async def start_recording(self, bridge_id: str, request: StasisRecordingStart) -> dict[str, Any]:
+        self._require_recording()
+        self._require_consent(request.consent_confirmed, request.jurisdiction)
+        recording_format = request.format or self._settings.bridge_recording_format
+        max_duration = min(
+            request.max_duration_seconds or self._settings.bridge_recording_max_seconds,
+            self._settings.bridge_recording_max_seconds,
+        )
+        name = request.name or f"mag-{bridge_id[:48]}-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+        data = await self._expect(
+            "POST",
+            f"/bridges/{bridge_id}/record",
+            params={
+                "name": name,
+                "format": recording_format,
+                "maxDurationSeconds": max_duration,
+                "maxSilenceSeconds": 0,
+                "ifExists": "fail",
+                "beep": str(bool(request.beep)).lower(),
+                "terminateOn": "none",
+            },
+            ok=(200, 201),
+        )
+        return {
+            "ok": True,
+            "bridge_id": bridge_id,
+            "recording_name": name,
+            "format": recording_format,
+            "max_duration_seconds": max_duration,
+            "jurisdiction": request.jurisdiction,
+            "state": data.get("state", "recording") if isinstance(data, dict) else "recording",
+        }
+
+    async def stop_recording(self, recording_name: str) -> dict[str, Any]:
+        self._require_recording()
+        await self._expect(
+            "POST",
+            f"/recordings/live/{recording_name}/stop",
+            ok=(204,),
+            allow_missing=True,
+        )
+        return {"ok": True, "recording_name": recording_name, "status": "stored-or-already-ended"}
+
+    async def start_supervisor(self, request: SupervisorSessionStart) -> dict[str, Any]:
+        self._require_supervisor()
+        self._require_consent(request.consent_confirmed, request.jurisdiction)
+        await self._expect("GET", f"/bridges/{request.call_bridge_id}", ok=(200,))
+        await self._expect("GET", f"/channels/{request.supervisor_channel_id}", ok=(200,))
+        await self._expect("GET", f"/channels/{request.target_channel_id}", ok=(200,))
+
+        session_id = f"mag-supervisor-{uuid.uuid4().hex}"
+        if request.mode == "barge":
+            await self._expect(
+                "POST",
+                f"/bridges/{request.call_bridge_id}/addChannel",
+                params={
+                    "channel": request.supervisor_channel_id,
+                    "role": "supervisor",
+                    "absorbDTMF": "true",
+                    "inhibitConnectedLineUpdates": "true",
+                },
+                ok=(204,),
+            )
+            self._supervisor_sessions[session_id] = {
+                "mode": request.mode,
+                "call_bridge_id": request.call_bridge_id,
+                "target_channel_id": request.target_channel_id,
+                "supervisor_channel_id": request.supervisor_channel_id,
+                "supervisor_bridge_id": "",
+                "snoop_channel_id": "",
+            }
+            return {
+                "session_id": session_id,
+                "mode": request.mode,
+                "call_bridge_id": request.call_bridge_id,
+                "target_channel_id": request.target_channel_id,
+                "supervisor_channel_id": request.supervisor_channel_id,
+                "jurisdiction": request.jurisdiction,
+            }
+
+        supervisor_bridge_id = f"mag-supervisor-bridge-{uuid.uuid4().hex}"
+        snoop_channel_id = f"mag-snoop-{uuid.uuid4().hex}"
+        await self._expect(
+            "POST",
+            f"/bridges/{supervisor_bridge_id}",
+            params={"type": "mixing,proxy_media", "name": f"Magnanimous {request.mode}"},
+            ok=(200, 201),
+        )
+        try:
+            await self._expect(
+                "POST",
+                f"/channels/{request.target_channel_id}/snoop/{snoop_channel_id}",
+                params={
+                    "spy": "both",
+                    "whisper": "out" if request.mode == "whisper" else "none",
+                    "app": self._settings.stasis_app,
+                    "appArgs": f"supervisor,{request.mode},{session_id}",
+                },
+                ok=(200, 201),
+            )
+            await self._expect(
+                "POST",
+                f"/bridges/{supervisor_bridge_id}/addChannel",
+                params={
+                    "channel": f"{request.supervisor_channel_id},{snoop_channel_id}",
+                    "absorbDTMF": "true",
+                    "inhibitConnectedLineUpdates": "true",
+                },
+                ok=(204,),
+            )
+        except Exception:
+            await self._expect("DELETE", f"/channels/{snoop_channel_id}", allow_missing=True)
+            await self._expect("DELETE", f"/bridges/{supervisor_bridge_id}", allow_missing=True)
+            raise
+
+        self._supervisor_sessions[session_id] = {
+            "mode": request.mode,
+            "call_bridge_id": request.call_bridge_id,
+            "target_channel_id": request.target_channel_id,
+            "supervisor_channel_id": request.supervisor_channel_id,
+            "supervisor_bridge_id": supervisor_bridge_id,
+            "snoop_channel_id": snoop_channel_id,
+        }
+        return {
+            "session_id": session_id,
+            "mode": request.mode,
+            "call_bridge_id": request.call_bridge_id,
+            "target_channel_id": request.target_channel_id,
+            "supervisor_channel_id": request.supervisor_channel_id,
+            "supervisor_bridge_id": supervisor_bridge_id,
+            "snoop_channel_id": snoop_channel_id,
+            "jurisdiction": request.jurisdiction,
+        }
+
+    async def stop_supervisor(self, session_id: str) -> dict[str, Any]:
+        self._require_supervisor()
+        session = self._supervisor_sessions.pop(session_id, None)
+        if not session:
+            return {"ok": True, "session_id": session_id, "status": "already-ended"}
+        if session["mode"] == "barge":
+            await self._expect(
+                "POST",
+                f"/bridges/{session['call_bridge_id']}/removeChannel",
+                params={"channel": session["supervisor_channel_id"]},
+                ok=(204,),
+                allow_missing=True,
+            )
+        else:
+            await self._expect("DELETE", f"/channels/{session['snoop_channel_id']}", allow_missing=True)
+            await self._expect("DELETE", f"/bridges/{session['supervisor_bridge_id']}", allow_missing=True)
+        return {"ok": True, "session_id": session_id, "status": "ended"}
+
+    async def close(self) -> None:
+        for session_id in list(self._supervisor_sessions):
+            try:
+                await self.stop_supervisor(session_id)
+            except Exception:
+                self._supervisor_sessions.pop(session_id, None)
+        for provider_call_id in list(self._calls):
+            try:
+                await self.hangup(provider_call_id)
+            except Exception:
+                self._calls.pop(provider_call_id, None)
 
     def _events_url(self) -> str:
         source = urlsplit(self._settings.ari_url)
