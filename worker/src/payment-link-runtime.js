@@ -1,5 +1,5 @@
 import { currentUser } from './integrations.js';
-import { encodePlanPaymentReference, normalizePaidPlan } from './payment-reference.js';
+import { encodePlanPaymentReference, encodeTopupPaymentReference, normalizePaidPlan } from './payment-reference.js';
 
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'cache-control': 'no-store' } });
 const LINK_KEYS={plus:'STRIPE_PAYMENT_LINK_PLUS',business:'STRIPE_PAYMENT_LINK_BUSINESS',pro:'STRIPE_PAYMENT_LINK_PRO',scale:'STRIPE_PAYMENT_LINK_SCALE'};
@@ -9,7 +9,16 @@ function appendQuery(url, key, value) {const parsed = new URL(url);parsed.search
 
 export async function handlePaymentLinkBilling(request, env) {
   const url = new URL(request.url);
-  if (url.pathname !== '/api/billing/checkout' || request.method !== 'POST') return null;
+  if (!['/api/billing/checkout','/api/billing/topup'].includes(url.pathname) || request.method !== 'POST') return null;
+  const user = await currentUser(request, env);
+  if (!user) return json({ detail: 'Sign in required.' }, 401);
+  const tenantId = String(user.tenant_id || '').trim();
+  if (!tenantId) return json({ detail: 'Workspace is missing.' }, 409);
+  if(url.pathname==='/api/billing/topup'){
+   const link=String(env?.STRIPE_PAYMENT_LINK_USAGE_TOPUP||'').trim();
+   if(!link)return json({detail:'Premium usage top-up checkout is not configured.'},503);
+   return json({url:appendQuery(link,'client_reference_id',encodeTopupPaymentReference(tenantId)),purpose:'premium_usage_topup',markup_percent:20,activation:'confirmed Stripe payment only'});
+  }
   const body=await request.clone().json().catch(()=>({}));
   const requestedPlan=String(body.plan||'business').trim().toLowerCase();
   if(requestedPlan==='agency'||requestedPlan==='agency_pro')return null;
@@ -17,10 +26,6 @@ export async function handlePaymentLinkBilling(request, env) {
   if(!plan)return json({detail:'Choose a valid paid plan: plus, business, pro, or scale.',code:'INVALID_PLAN'},400);
   const link=paymentLink(env,plan);
   if(!link)return null;
-  const user = await currentUser(request, env);
-  if (!user) return json({ detail: 'Sign in required.' }, 401);
-  const tenantId = String(user.tenant_id || '').trim();
-  if (!tenantId) return json({ detail: 'Workspace is missing.' }, 409);
   const paymentReference=encodePlanPaymentReference(tenantId,plan);
   return json({url:appendQuery(link,'client_reference_id',paymentReference),plan,mode:'payment_link'});
 }
