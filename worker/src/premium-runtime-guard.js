@@ -22,7 +22,7 @@ export async function premiumPreflight(request,env){
  if(path==='/api/chat'&&request.method==='POST'){
   const body=await bodyJson(request),provider=String(body.provider||'auto').toLowerCase(),quality=String(body.quality||body.route_policy||'').toLowerCase();
   const directHidden=HIDDEN_DIRECT_AI.has(provider),asksMaximum=['max','maximum','quality','magnanimous-premium'].includes(quality);
-  const premiumUnit=premiumCostQuote('premium_compute',1);
+  const premiumUnit=premiumCostQuote('premium_compute',3);
 
   // Default Free requests are pinned to I AM's own free-first Cloudflare path.
   // This prevents a third-party free quota from silently rolling into charges.
@@ -45,7 +45,7 @@ export async function premiumPreflight(request,env){
    const rewritten=rewriteJsonRequest(request,{...body,provider:'cloudflare-ai',quality:'free-first',route_policy:'free-first'});
    return{request:rewritten,context:{kind:'chat',user,downgraded_to_free_first:true}};
   }
-  const rewritten=rewriteJsonRequest(request,{...body,provider:'cloudflare-ai',model:String(env.MAGNANIMOUS_HEAVY_MODEL||env.CLOUDFLARE_AI_MODEL||''),quality:'magnanimous-premium',route_policy:'magnanimous-premium'});
+  const rewritten=rewriteJsonRequest(request,{...body,provider:'cloudflare-ai',model:String(env.MAGNANIMOUS_PREMIUM_MODEL||env.MAGNANIMOUS_HEAVY_MODEL||env.CLOUDFLARE_AI_MODEL||''),quality:'magnanimous-premium',route_policy:'magnanimous-premium'});
   return{request:rewritten,context:{kind:'chat',user,premium_allowed:true,estimated_cost_usd:estimate,premium_unit_id:'premium_compute'}};
  }
  if((path==='/api/phone/calls/outbound'||path==='/api/voice-agent/call')&&request.method==='POST'){
@@ -78,8 +78,11 @@ export async function premiumPostprocess(response,env,context){
  try{
   const data=await response.clone().json().catch(()=>({}));
   if(context.kind==='chat'&&context.premium_allowed){
-   const cost=Math.max(0,Number(context.estimated_cost_usd||0));
-   if(cost>0)await recordUsage(env,context.user.tenant_id,{category:'premium-ai',provider:'magnanimous-premium-compute',units:1,direct_cost_usd:cost,reference_id:String(context.premium_unit_id||'premium_compute')});
+   const satisfied=response.headers.get('x-magnanimous-premium-satisfied')==='1';
+   const actual=Math.max(0,Number(response.headers.get('x-magnanimous-origin-cost-usd')||0));
+   const headers=new Headers(response.headers);headers.delete('x-magnanimous-premium-satisfied');headers.delete('x-magnanimous-origin-cost-usd');headers.delete('x-magnanimous-origin-model');
+   if(satisfied&&actual>0)await recordUsage(env,context.user.tenant_id,{category:'premium-ai',provider:'magnanimous-premium-compute',units:1,direct_cost_usd:actual,reference_id:String(context.premium_unit_id||'premium_compute')});
+   return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
   }else if(context.kind==='pstn'){
    await recordUsage(env,context.user.tenant_id,{category:'pstn-call-reserve',provider:String(data?.provider||'twilio-ai'),units:Number(context.seconds||0)/60,direct_cost_usd:Number(context.reserve||0),reference_id:String(data?.provider_call_id||data?.call_id||'')});
   }else if(context.kind==='pstn-inbound'){
