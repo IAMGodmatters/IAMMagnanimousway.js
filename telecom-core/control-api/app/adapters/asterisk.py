@@ -47,9 +47,10 @@ class AsteriskSipCarrierBridge:
 
     _ENDPOINT = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
 
-    def __init__(self, ari: AsteriskAriClient, settings: TelecomSettings):
+    def __init__(self, ari: AsteriskAriClient, settings: TelecomSettings, stasis: Any | None = None):
         self._ari = ari
         self._settings = settings
+        self._stasis = stasis
 
     def _selected_endpoint(self, call: CarrierCallRequest) -> str:
         endpoint = str(call.carrier_endpoint or "").strip()
@@ -85,6 +86,9 @@ class AsteriskSipCarrierBridge:
                 "sms": False,
                 "sim_esim_provisioning": False,
                 "number_provisioning": False,
+                "managed_stasis_bridge": bool(self._stasis is not None and self._stasis.enabled),
+                "supervisor_audio": bool(self._stasis is not None and self._stasis.status().get("supervisor_audio_configured")),
+                "bridge_recording": bool(self._stasis is not None and self._stasis.status().get("bridge_recording_configured")),
             },
         }
 
@@ -96,6 +100,9 @@ class AsteriskSipCarrierBridge:
                 raise CarrierUnavailableError(
                     f"Selected carrier route {selected_endpoint} is not healthy ({route_health['state']})."
                 )
+        if self._stasis is not None and self._stasis.enabled:
+            return await self._stasis.originate(call, selected_endpoint)
+
         params = {
             "endpoint": f"Local/{call.destination}@{self._settings.carrier_dial_context}/n",
             "context": "magnanimous-ai",
@@ -124,11 +131,18 @@ class AsteriskSipCarrierBridge:
         return CarrierCallState(provider_call_id=call.provider_call_id, status="dialing")
 
     async def hangup(self, provider_call_id: str) -> None:
+        if self._stasis is not None and self._stasis.owns(provider_call_id):
+            await self._stasis.hangup(provider_call_id)
+            return
         response = await self._ari.request("DELETE", f"/channels/{provider_call_id}")
         if response.status_code not in (204, 404):
             raise CarrierRejectedError(response.text[:1000] or "Carrier bridge rejected the hangup.")
 
     async def get_call(self, provider_call_id: str) -> CarrierCallState:
+        if self._stasis is not None:
+            managed = self._stasis.call_state(provider_call_id)
+            if managed is not None:
+                return managed
         response = await self._ari.request("GET", f"/channels/{provider_call_id}")
         if response.status_code == 404:
             return CarrierCallState(provider_call_id=provider_call_id, status="ended")
@@ -159,4 +173,8 @@ class AsteriskSipCarrierBridge:
             "carrier_endpoint": self._settings.carrier_endpoint,
             "authenticated_route_health": route_health,
             "selected_route_health_supported": True,
+            "stasis_bridge": self._stasis.status() if self._stasis is not None else {
+                "configured": False,
+                "ready": False,
+            },
         }
