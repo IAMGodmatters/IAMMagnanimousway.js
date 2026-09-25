@@ -401,7 +401,7 @@ async function phoneRoutes(request, env, user, path, url) {
     ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
       tenantId, body.contact_id || null, 'outbound', from, to, 'dialing', timestamp,
       String(env.VOIP_PROVIDER_NAME || 'carrier-bridge'), body.queue_id || null,
-      body.agent_id || null, JSON.stringify({ requested_by: user.id, route_id: routeId, automatic_route_planner: false }), timestamp
+      body.agent_id || null, JSON.stringify({ requested_by: user.id, requested_route_id: body.route_id ? routeId : null, automatic_route_planner: false }), timestamp
     ).run();
     const callId = created.meta.last_row_id;
     try {
@@ -421,7 +421,8 @@ async function phoneRoutes(request, env, user, path, url) {
         'UPDATE phone_calls SET provider_call_id=?,status=?,metadata_json=?,updated_at=? WHERE id=? AND tenant_id=?'
       ).bind(providerCallId, status, JSON.stringify(provider).slice(0, 20000), now(), callId, tenantId).run();
       await logEvent(env, tenantId, callId, 'outbound-requested', status, '', provider);
-      return json({ id: callId, provider_call_id: providerCallId, status, route_id: String(provider.route_id || routeId) }, 201);
+      const executedRouteId = provider.route_id ? String(provider.route_id) : (body.route_id ? routeId : null);
+      return json({ id: callId, provider_call_id: providerCallId, status, route_id: executedRouteId, route_control_applied: Boolean(executedRouteId) }, 201);
     } catch (error) {
       await env.DB.prepare("UPDATE phone_calls SET status='failed',updated_at=? WHERE id=? AND tenant_id=?")
         .bind(now(), callId, tenantId).run();
