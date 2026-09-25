@@ -116,6 +116,11 @@ export async function handlePhoneCarrier(request, env) {
   const carrierCore = await handleMagnanimousCarrierPhoneAlias(request, env);
   if (carrierCore) return carrierCore;
 
+  const publicCarrierWebhook = path === '/api/phone/plivo/answer' || path === '/api/phone/webhook';
+  if (!publicCarrierWebhook && !await currentUser(request, env).catch(() => null)) {
+    return json({ detail: 'Sign in required.' }, 401);
+  }
+
   const routing = await outboundRouting(request, env);
   if (routing?.response) return routing.response;
   const selectedType = String(routing?.selected?.type || '');
