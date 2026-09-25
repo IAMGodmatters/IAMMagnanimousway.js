@@ -46,6 +46,12 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'INKBOX_BASE_URL',label:'Inkbox API Base URL (optional override)',secret:false,required:false}
  ]},
  {id:'tavus',name:'Tavus Human Video',providers:['tavus'],fields:[{key:'TAVUS_API_KEY',label:'Tavus API Key',secret:true,required:false}]},
+ {id:'premium-voice',name:'Premium Voice Execution',providers:['elevenlabs'],fields:[
+  {key:'ELEVENLABS_API_KEY',label:'Premium Voice API Key',secret:true,required:false},
+  {key:'ELEVENLABS_VOICE_ID',label:'Premium Voice ID',secret:false,required:false},
+  {key:'ENABLE_PREMIUM_VOICE',label:'Enable Premium Voice (true/false)',secret:false,required:false},
+  {key:'ELEVENLABS_COMMERCIAL_PLAN_CONFIRMED',label:'Commercial Provider Plan Confirmed (true/false)',secret:false,required:false}
+ ]},
  {id:'heygen',name:'Legacy Optional HeyGen Presenter Video',providers:['heygen'],fields:[{key:'HEYGEN_API_KEY',label:'HeyGen API Key (legacy optional adapter; never required by Magnanimous)',secret:true,required:false}]},
  {id:'mux',name:'Magnanimous Video Provider Credentials',providers:['mux'],fields:[
   {key:'MUX_TOKEN_ID',label:'Mux Access Token ID',secret:false,required:false},
