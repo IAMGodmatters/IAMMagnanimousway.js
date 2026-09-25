@@ -220,10 +220,16 @@ must(!logicalExporter.includes("'-H','Authorization: Bearer '+cloudflareApiToken
 
 const runtimeSecretStore=read('magnanimous-runtime/src/runtime-secret-store.mjs');
 const standaloneAiBinding=read('magnanimous-runtime/src/ai-binding.mjs');
-for(const contract of ['MAGNANIMOUS_RUNTIME_SECRET_KEYS','INTEGRATION_CREDENTIALS_KEY','CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID','stageRuntimeSecrets','loadRuntimeSecrets','0o600'])
+const securityEntry=read('worker/src/security-entrypoint.js');
+for(const contract of ['MAGNANIMOUS_RUNTIME_SECRET_KEYS','INTEGRATION_CREDENTIALS_KEY','MAGNANIMOUS_WORKERS_AI_BRIDGE_TOKEN','MAGNANIMOUS_WORKERS_AI_BRIDGE_URL','stageRuntimeSecrets','loadRuntimeSecrets','0o600'])
  must(runtimeSecretStore.includes(contract),'Runtime secret continuity contract missing: '+contract);
-for(const contract of ['api.cloudflare.com/client/v4/accounts/','/ai/run/','cloudflare-workers-ai-rest','CLOUDFLARE_PLATFORM_API_TOKEN','CLOUDFLARE_PLATFORM_ACCOUNT_ID'])
- must(standaloneAiBinding.includes(contract),'Standalone free-first Workers AI REST rail missing: '+contract);
+for(const contract of ['MAGNANIMOUS_WORKERS_AI_BRIDGE_TOKEN','MAGNANIMOUS_WORKERS_AI_BRIDGE_URL','magnanimous-workers-ai-bridge','CLOUDFLARE_PLATFORM_API_TOKEN','CLOUDFLARE_PLATFORM_ACCOUNT_ID'])
+ must(standaloneAiBinding.includes(contract),'Standalone free-first AI execution rail missing: '+contract);
+must(!standaloneAiBinding.includes("this.env.CLOUDFLARE_API_TOKEN || ''"),'Standalone AI must not reuse the broad deployment Cloudflare token for inference.');
+for(const contract of ['handleInternalWorkersAiBridge','/api/internal/ai/run','MAGNANIMOUS_WORKERS_AI_BRIDGE_TOKEN','env.AI.run','AI_BRIDGE_FORBIDDEN','AI_BRIDGE_UPSTREAM_FAILED'])
+ must(securityEntry.includes(contract),'Private Worker AI bridge contract missing: '+contract);
+must(securityEntry.includes("url.pathname==='/api/internal/migration/rewrap-platform-credentials'||url.pathname==='/api/internal/ai/run'"),'Private AI bridge must bypass the standalone API proxy.');
+must(securityEntry.indexOf('handleInternalWorkersAiBridge(request,env)')<securityEntry.indexOf('proxyApiToStandalone(request,env)'),'Private AI bridge must execute on the Worker before standalone proxying.');
 must(server.includes("getProviderRuntimeEnv"),'Standalone AI must resolve encrypted provider-vault credentials at request time.');
 must(server.includes("AI: aiBinding"),'Standalone env.AI must use the vault-backed dynamic binding.');
 const bootstrap=read('magnanimous-runtime/src/bootstrap.mjs');
@@ -232,7 +238,10 @@ must(bootstrap.indexOf('loadRuntimeSecrets')<bootstrap.indexOf("import('./server
 const runtimeSecretsWorkflow=read('.github/workflows/magnanimous-runtime-secrets-stage.yml');
 must(runtimeSecretsWorkflow.includes('id-token: write'),'Runtime secret staging must use GitHub OIDC.');
 must(runtimeSecretsWorkflow.includes('openssl rand -hex 32'),'Runtime secret staging must generate a fresh standalone vault key.');
-must(runtimeSecretsWorkflow.includes("'CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID'"),'Runtime secret staging must include protected free-first Workers AI REST credentials.');
+must(runtimeSecretsWorkflow.includes('MAGNANIMOUS_WORKERS_AI_BRIDGE_TOKEN'),'Runtime secret staging must install a private Workers AI bridge token.');
+must(runtimeSecretsWorkflow.includes("k not in {'CLOUDFLARE_API_TOKEN'}"),'Runtime secret staging must keep the broad deployment Cloudflare token out of the product runtime bundle.');
+must(runtimeSecretsWorkflow.includes('wrangler secret put MAGNANIMOUS_WORKERS_AI_BRIDGE_TOKEN'),'Runtime secret staging must install the matching bridge secret on the Worker.');
+must(runtimeSecretsWorkflow.includes('Private Workers AI bridge inference PASS.'),'Runtime secret staging must prove real bridge inference before passing.');
 must(runtimeSecretsWorkflow.includes('magnanimous-credential-rewrap'),'Runtime secret staging must request a dedicated OIDC audience for production vault rewrap.');
 must(runtimeSecretsWorkflow.includes('/api/internal/migration/rewrap-platform-credentials'),'Runtime secret staging must call the signed production rewrap endpoint.');
 must(runtimeSecretsWorkflow.includes('/__magnanimous_runtime/migration/stage-secrets'),'Runtime secret staging must stage the fresh standalone key.');
