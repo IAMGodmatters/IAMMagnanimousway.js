@@ -34,7 +34,13 @@ const NATIVE_CAPABILITIES=Object.freeze([
  ['movie-maker','Image, movie and narration generation','magnanimous-native'],
  ['media-compose','Scene composition, overlays, narration and music','magnanimous-native'],
  ['media-edit','Trim, audio extraction, thumbnails, loudness and probe','magnanimous-native'],
- ['social-publishing','Authorized YouTube, TikTok and LinkedIn publishing','authorized-official-api']
+ ['social-publishing','Authorized YouTube, TikTok and LinkedIn publishing','authorized-official-api'],
+ ['bookmarks','Save creator research, keywords, videos and channels','magnanimous-native'],
+ ['competitor-tracking','Track creator competitors in your workspace','magnanimous-native-plus-official-api'],
+ ['similar-discovery','Discover similar videos and channels from public metadata','official-api-plus-native-ranking'],
+ ['comment-replies','Draft replies in multiple tones','magnanimous-native'],
+ ['daily-ideas','Generate evidence-grounded daily creator ideas','magnanimous-native-plus-official-api'],
+ ['categories','Discover official YouTube video categories by region','official-api']
 ].map(([id,name,implementation])=>({id,name,implementation})));
 
 async function ensureSchema(env){
