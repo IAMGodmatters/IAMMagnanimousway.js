@@ -34,7 +34,9 @@ for(const s of [
 ])assert.ok(social.includes(s),'YouTube authorization context missing '+s);
 
 for(const s of [
- 'TITLE LAB','KEYWORD / TRENDS','OUTLIERS','CHANNEL','VIDEO','COMMENTS','OWNED ANALYTICS',
+ 'Ideas & titles','Keyword research','Outliers','Channel','Video','Comments','Analytics',
+ 'Score title','Generate title ideas','Research demand','Trending now','Find breakout videos',
+ 'Best historical posting windows','Audience insights','Retention curve',
  '/api/creator-growth/keyword-research','/api/creator-growth/outliers','/api/creator-growth/analytics'
 ])assert.ok(ui.includes(s),'Creator Growth UI missing '+s);
 
