@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="t d">
+<title id="t">Business Command</title><desc id="d">Plans, operations, growth, strategy and execution.. Original Magnanimous mode artwork.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07101c"/><stop offset=".58" stop-color="#103329"/><stop offset="1" stop-color="#04070d"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#8ee3a1" stop-opacity=".72"/><stop offset="1" stop-color="#8ee3a1" stop-opacity="0"/></radialGradient>
+ <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+</defs>
+<rect width="1200" height="1200" rx="70" fill="url(#bg)"/>
+<circle cx="875" cy="260" r="310" fill="url(#glow)" opacity=".7"/>
+<circle cx="300" cy="820" r="280" fill="#8ee3a1" opacity=".08" filter="url(#soft)"/>
+<g opacity=".16" stroke="#8ee3a1" fill="none"><circle cx="600" cy="560" r="410"/><circle cx="600" cy="560" r="330"/><path d="M120 640H1080M600 120V970"/></g>
+<g><ellipse cx="500" cy="760" rx="210" ry="225" fill="#0d1d19" stroke="#88f0b0" stroke-width="3"/><circle cx="500" cy="390" r="130" fill="#142b25" stroke="#d8ffe7" stroke-width="4"/><path d="M390 390c30-120 194-150 230 0-50-45-89-56-128-53-39 4-70 19-102 53z" fill="#233e35"/><path d="M392 690c66-109 154-130 220-17l35 200H355z" fill="#0b2b22"/><path d="M500 580l-38 80 38 49 39-49z" fill="#74e9a0"/><g transform="translate(650 580)" fill="none" stroke="#a6ffd0" stroke-width="12"><path d="M0 210V80M75 210V35M150 210V125"/><path d="M-18 210H185"/></g></g>
+<g transform="translate(835 150)"><circle cx="90" cy="90" r="86" fill="#07111d" stroke="#8ee3a1" stroke-width="3"/><text x="90" y="115" text-anchor="middle" font-family="Arial,sans-serif" font-size="74" font-weight="700" fill="#8ee3a1">B</text></g>
+<text x="78" y="975" font-family="Arial,sans-serif" font-size="34" font-weight="800" fill="#fff">Business Command</text>
+<text x="78" y="1020" font-family="Arial,sans-serif" font-size="22" fill="#c7d7e8">Plans, operations, growth, strategy and execution.</text>
+<rect x="68" y="1070" width="1064" height="65" rx="18" fill="#020408" opacity=".7"/>
+<text x="600" y="1111" text-anchor="middle" font-family="Arial,sans-serif" font-size="21" font-weight="700" fill="#fff">I Am Magnanimous Way, Trademark.</text>
+</svg>
