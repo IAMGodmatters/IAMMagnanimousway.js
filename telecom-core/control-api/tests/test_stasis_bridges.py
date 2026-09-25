@@ -28,16 +28,30 @@ class FakeResponse:
         return self._data
 
 
+SUPERVISOR_SESSION = "web_1800000000_0123456789abcdef"
+
+
+class FakeWebRtcSessions:
+    def owns_session(self, session_id, tenant_id):
+        return session_id == SUPERVISOR_SESSION and tenant_id == "tenant-1"
+
+
 class FakeAri:
     def __init__(self):
         self.requests = []
+        self.channel_names = {
+            "supervisor-channel": f"PJSIP/{SUPERVISOR_SESSION}-00000001",
+        }
 
     async def request(self, method, path, *, params=None, body=None):
         self.requests.append((method, path, params or {}, body))
         if method == "POST" and path.startswith("/recordings/live/"):
             return FakeResponse(204)
-        if method == "GET" and (path.startswith("/bridges/") or path.startswith("/channels/")):
+        if method == "GET" and path.startswith("/bridges/"):
             return FakeResponse(200, {"id": path.rsplit("/", 1)[-1]})
+        if method == "GET" and path.startswith("/channels/"):
+            channel_id = path.rsplit("/", 1)[-1]
+            return FakeResponse(200, {"id": channel_id, "name": self.channel_names.get(channel_id, "")})
         if method == "POST" and path.endswith("/record"):
             return FakeResponse(200, {"state": "recording"})
         if method == "POST" and "/snoop/" in path:
@@ -116,6 +130,7 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 supervisor_audio_enabled=True,
                 bridge_recording_enabled=True,
             ),
+            FakeWebRtcSessions(),
         )
         service._ready = True
         status = service.status()
@@ -227,6 +242,7 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 service = AsteriskStasisBridgeService(
                     ari,
                     settings(stasis_bridge_enabled=True, supervisor_audio_enabled=True),
+                    FakeWebRtcSessions(),
                 )
                 service._ready = True
                 call, topology = await prepare_managed_call(service)
@@ -236,6 +252,7 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                         provider_call_id=call.provider_call_id,
                         tenant_id=call.tenant_id,
                         target_role="agent",
+                        supervisor_session_id=SUPERVISOR_SESSION,
                         supervisor_channel_id="supervisor-channel",
                         consent_confirmed=True,
                         jurisdiction="US-CA",
@@ -259,6 +276,7 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
         service = AsteriskStasisBridgeService(
             ari,
             settings(stasis_bridge_enabled=True, supervisor_audio_enabled=True),
+            FakeWebRtcSessions(),
         )
         service._ready = True
         call, topology = await prepare_managed_call(service)
@@ -268,6 +286,7 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 provider_call_id=call.provider_call_id,
                 tenant_id=call.tenant_id,
                 target_role="agent",
+                supervisor_session_id=SUPERVISOR_SESSION,
                 supervisor_channel_id="supervisor-channel",
                 consent_confirmed=True,
                 jurisdiction="US-CA",
@@ -287,11 +306,51 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
             for x in ari.requests
         ))
 
+    async def test_supervisor_requires_tenant_owned_webrtc_session_and_matching_channel(self):
+        ari = FakeAri()
+        service = AsteriskStasisBridgeService(
+            ari,
+            settings(stasis_bridge_enabled=True, supervisor_audio_enabled=True),
+            FakeWebRtcSessions(),
+        )
+        service._ready = True
+        call, _ = await prepare_managed_call(service)
+
+        with self.assertRaises(TelecomNotFoundError):
+            await service.start_supervisor(
+                SupervisorSessionStart(
+                    mode="monitor",
+                    provider_call_id=call.provider_call_id,
+                    tenant_id="tenant-2",
+                    target_role="agent",
+                    supervisor_session_id=SUPERVISOR_SESSION,
+                    supervisor_channel_id="supervisor-channel",
+                    consent_confirmed=True,
+                    jurisdiction="US-CA",
+                )
+            )
+
+        ari.channel_names["supervisor-channel"] = "PJSIP/different-endpoint-00000001"
+        with self.assertRaises(TelecomNotFoundError):
+            await service.start_supervisor(
+                SupervisorSessionStart(
+                    mode="monitor",
+                    provider_call_id=call.provider_call_id,
+                    tenant_id=call.tenant_id,
+                    target_role="agent",
+                    supervisor_session_id=SUPERVISOR_SESSION,
+                    supervisor_channel_id="supervisor-channel",
+                    consent_confirmed=True,
+                    jurisdiction="US-CA",
+                )
+            )
+
     async def test_supervisor_gate_fails_closed_before_ari(self):
         ari = FakeAri()
         service = AsteriskStasisBridgeService(
             ari,
             settings(stasis_bridge_enabled=True, supervisor_audio_enabled=False),
+            FakeWebRtcSessions(),
         )
         service._ready = True
         with self.assertRaises(TelecomConfigurationError):
@@ -326,6 +385,7 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 provider_call_id=call.provider_call_id,
                 tenant_id=call.tenant_id,
                 target_role="agent",
+                supervisor_session_id=SUPERVISOR_SESSION,
                 supervisor_channel_id="supervisor-channel",
                 consent_confirmed=True,
                 jurisdiction="US-CA",
@@ -367,6 +427,7 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 provider_call_id=call.provider_call_id,
                 tenant_id=call.tenant_id,
                 target_role="agent",
+                supervisor_session_id=SUPERVISOR_SESSION,
                 supervisor_channel_id="supervisor-channel",
                 consent_confirmed=True,
                 jurisdiction="US-CA",
