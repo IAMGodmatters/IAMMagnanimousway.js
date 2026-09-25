@@ -42,6 +42,7 @@ const required=[
  'magnanimous-runtime/scripts/verify-cloud-control.mjs',
  'magnanimous-runtime/scripts/verify-migration-stage.mjs',
  'magnanimous-runtime/scripts/verify-runtime-secret-store.mjs',
+ 'magnanimous-runtime/scripts/verify-ai-binding.mjs',
  'magnanimous-runtime/scripts/verify-railway-deploy.mjs',
  'magnanimous-runtime/docker-compose.release.yml',
  'magnanimous-runtime/scripts/standalone-host-preflight.sh',
@@ -218,14 +219,18 @@ must(logicalExporter.includes("{mode:0o600}"),'Direct D1 temporary auth/request 
 must(!logicalExporter.includes("'-H','Authorization: Bearer '+cloudflareApiToken"),'Direct D1 API token must not appear in curl process arguments.');
 
 const runtimeSecretStore=read('magnanimous-runtime/src/runtime-secret-store.mjs');
-for(const contract of ['MAGNANIMOUS_RUNTIME_SECRET_KEYS','INTEGRATION_CREDENTIALS_KEY','stageRuntimeSecrets','loadRuntimeSecrets','0o600'])
+const standaloneAiBinding=read('magnanimous-runtime/src/ai-binding.mjs');
+for(const contract of ['MAGNANIMOUS_RUNTIME_SECRET_KEYS','INTEGRATION_CREDENTIALS_KEY','CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID','stageRuntimeSecrets','loadRuntimeSecrets','0o600'])
  must(runtimeSecretStore.includes(contract),'Runtime secret continuity contract missing: '+contract);
+for(const contract of ['api.cloudflare.com/client/v4/accounts/','/ai/run/','cloudflare-workers-ai-rest','CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID'])
+ must(standaloneAiBinding.includes(contract),'Standalone free-first Workers AI REST rail missing: '+contract);
 const bootstrap=read('magnanimous-runtime/src/bootstrap.mjs');
 must(bootstrap.includes('loadRuntimeSecrets'),'Standalone bootstrap must load persistent runtime secrets before server startup.');
 must(bootstrap.indexOf('loadRuntimeSecrets')<bootstrap.indexOf("import('./server.mjs')"),'Persistent runtime secrets must load before the standalone server module.');
 const runtimeSecretsWorkflow=read('.github/workflows/magnanimous-runtime-secrets-stage.yml');
 must(runtimeSecretsWorkflow.includes('id-token: write'),'Runtime secret staging must use GitHub OIDC.');
 must(runtimeSecretsWorkflow.includes('openssl rand -hex 32'),'Runtime secret staging must generate a fresh standalone vault key.');
+must(runtimeSecretsWorkflow.includes("'CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID'"),'Runtime secret staging must include protected free-first Workers AI REST credentials.');
 must(runtimeSecretsWorkflow.includes('magnanimous-credential-rewrap'),'Runtime secret staging must request a dedicated OIDC audience for production vault rewrap.');
 must(runtimeSecretsWorkflow.includes('/api/internal/migration/rewrap-platform-credentials'),'Runtime secret staging must call the signed production rewrap endpoint.');
 must(runtimeSecretsWorkflow.includes('/__magnanimous_runtime/migration/stage-secrets'),'Runtime secret staging must stage the fresh standalone key.');
@@ -298,6 +303,7 @@ execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime.mjs']
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-migration-stage.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-runtime-secret-store.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-ai-binding.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-railway-deploy.mjs'],{stdio:'inherit'});
 for(const file of ['worker/src/magnanimous-cloud-provider-core.js','worker/src/magnanimous-infrastructure-core.js','worker/src/security-entrypoint.js']){
  execFileSync(process.execPath,['--check',file],{stdio:'inherit'});
