@@ -163,11 +163,11 @@ class AsteriskSipCarrierBridge:
         return str(data.get("state") or "available").lower()
 
     async def health(self, route_id: str | None = None) -> dict[str, Any]:
-        asterisk = await self._ari.request("GET", "/asterisk/info")
-        asterisk_ready = asterisk.is_success
         requested = str(route_id or "").strip().lower()
         if requested and requested not in {"auto", "primary", "secondary"}:
             raise TelecomValidationError("Unsupported carrier route. Use auto, primary, or secondary.")
+        asterisk = await self._ari.request("GET", "/asterisk/info")
+        asterisk_ready = asterisk.is_success
 
         primary_state = "unavailable"
         secondary_state = "not-configured"
