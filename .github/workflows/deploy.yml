@@ -874,6 +874,9 @@ jobs:
                 "DELETE FROM unified_inbox_audit WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM unified_inbox_messages WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM unified_inbox_threads WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM creator_feedback WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM creator_bookmarks WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM creator_competitors WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM media_library_assets WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM magnanimous_local_bridge_tasks WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM magnanimous_local_bridge_devices WHERE tenant_id='${tenant_id}';"
@@ -1005,6 +1008,54 @@ jobs:
 
           status=$(safe_get_status /tmp/me.json "$BASE_URL/api/auth/me" -H "Authorization: Bearer $token")
           if [ "$status" != "200" ]; then echo "Authenticated account check returned HTTP $status"; cat /tmp/me.json || true; exit 1; fi
+
+          status=$(safe_get_status /tmp/creator-growth-capabilities.json "$BASE_URL/api/creator-growth/capabilities" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Creator Growth capabilities returned HTTP $status"; cat /tmp/creator-growth-capabilities.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/creator-growth-capabilities.json'))
+          ids={x.get('id') for x in d.get('capabilities') or []}
+          assert d.get('identity') == 'Magnanimous AI', d
+          assert d.get('product') == 'Creator Growth', d
+          assert d.get('provider_details_private') is True, d
+          assert int(d.get('instagram_connected_count') or 0) == 0, d
+          required={'channel-videos','instagram-connected-accounts','instagram-profile','instagram-reels','creator-feedback','job-poll'}
+          assert required.issubset(ids), (required-ids,d)
+          assert 'vidiq' not in json.dumps(d).lower(), d
+          print('Creator Growth capability map is live and provider-private.')
+          PY
+
+          status=$(safe_get_status /tmp/creator-growth-instagram-accounts.json "$BASE_URL/api/creator-growth/instagram/accounts" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Creator Growth Instagram accounts returned HTTP $status"; cat /tmp/creator-growth-instagram-accounts.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/creator-growth-instagram-accounts.json'))
+          assert d.get('accounts') == [], d
+          assert d.get('source') == 'authorized-official-api', d
+          assert 'access_token' not in json.dumps(d).lower(), d
+          PY
+
+          status=$(curl -sS -o /tmp/creator-growth-feedback.json -w '%{http_code}' -X POST "$BASE_URL/api/creator-growth/feedback" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"message":"Deployment smoke verifies Creator Growth production persistence.","area":"deployment-smoke","rating":5}')
+          if [ "$status" != "201" ]; then echo "Creator Growth feedback returned HTTP $status"; cat /tmp/creator-growth-feedback.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/creator-growth-feedback.json'))
+          saved=d.get('saved') or {}
+          assert saved.get('id'), d
+          assert saved.get('area') == 'deployment-smoke', d
+          assert saved.get('rating') == 5, d
+          assert 'production persistence' in str(saved.get('message') or ''), d
+          PY
+
+          creator_job_smoke_id=$(python -c 'import uuid; print(uuid.uuid4())')
+          status=$(safe_expected_status /tmp/creator-growth-job-missing.json 404 -X POST "$BASE_URL/api/creator-growth/job-poll" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"job_id\":\"$creator_job_smoke_id\"}")
+          if [ "$status" != "404" ]; then echo "Creator Growth job-poll missing-job proof expected HTTP 404, got $status"; cat /tmp/creator-growth-job-missing.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/creator-growth-job-missing.json'))
+          assert 'movie job not found' in str(d.get('detail') or '').lower(), d
+          print('Creator Growth feedback persistence, Instagram account privacy, and Movie Maker job delegation passed.')
+          PY
 
           status=$(safe_get_status /tmp/connector-absorption.json "$BASE_URL/api/magnanimous/tool-foundry/absorption?goal=email%20social%20commerce" -H "Authorization: Bearer $token")
           if [ "$status" != "200" ]; then echo "Connector capability absorption endpoint returned HTTP $status"; cat /tmp/connector-absorption.json || true; exit 1; fi
@@ -1464,13 +1515,13 @@ jobs:
               000|409|502|503|504)
                 verify_status=$(safe_get_status /tmp/wl-booking-verify.json "$BASE_URL/api/agency/bookings?client_id=$client_id" -H "Authorization: Bearer $token")
                 if [ "$verify_status" = "200" ] && python - "$client_id" "$booking_email" "$start_at" "$end_at" <<'PY'
-                import json,sys
-                client_id,email,start_at,end_at=sys.argv[1],sys.argv[2],int(sys.argv[3]),int(sys.argv[4])
-                data=json.load(open('/tmp/wl-booking-verify.json'))
-                rows=data.get('bookings') or []
-                match=next((x for x in rows if str(x.get('client_id') or '')==client_id and str(x.get('contact_email') or '')==email and int(x.get('start_at') or 0)==start_at and int(x.get('end_at') or 0)==end_at),None)
-                raise SystemExit(0 if match else 1)
-                PY
+          import json,sys
+          client_id,email,start_at,end_at=sys.argv[1],sys.argv[2],int(sys.argv[3]),int(sys.argv[4])
+          data=json.load(open('/tmp/wl-booking-verify.json'))
+          rows=data.get('bookings') or []
+          match=next((x for x in rows if str(x.get('client_id') or '')==client_id and str(x.get('contact_email') or '')==email and int(x.get('start_at') or 0)==start_at and int(x.get('end_at') or 0)==end_at),None)
+          raise SystemExit(0 if match else 1)
+          PY
                 then
                   echo "Booking already committed despite transient response; treating verified record as success."
                   status=201

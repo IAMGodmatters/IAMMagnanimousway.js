@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {spawnSync} from 'node:child_process';
 
 const read=p=>fs.readFileSync(p,'utf8');
 const base=read('worker/src/index.js');
@@ -12,6 +13,19 @@ const migration=read('worker/migrations/0080_runtime_bootstrap_quota_hardening.s
 const authMigration=read('worker/migrations/0081_admin_auth_quota_hardening.sql');
 const deploy=read('.github/workflows/deploy.yml');
 const maintenance=read('.github/workflows/d1-deferred-maintenance.yml');
+
+function productionSmokeShell(){
+  const lines=deploy.split(/\r?\n/);
+  const nameIndex=lines.findIndex(line=>line.includes('- name: Production smoke test'));
+  if(nameIndex<0)return '';
+  const runIndex=lines.findIndex((line,index)=>index>nameIndex&&line.trim()==='run: |');
+  if(runIndex<0)return '';
+  let end=lines.findIndex((line,index)=>index>runIndex&&/^      - name: /.test(line));
+  if(end<0)end=lines.length;
+  return lines.slice(runIndex+1,end).map(line=>line.startsWith('          ')?line.slice(10):line).join('\n');
+}
+const smokeShell=productionSmokeShell();
+const smokeShellSyntax=spawnSync('bash',['-n'],{input:smokeShell,encoding:'utf8'});
 
 const checks=[];
 const add=(name,ok)=>checks.push([name,Boolean(ok)]);
@@ -84,7 +98,8 @@ add('deploy derives and syncs a private edge AI bridge token without exposing it
 add('production smoke proves private edge AI live inference',deploy.includes('Private Edge AI bridge live inference passed')&&deploy.includes("bridge_version') == '2026-09-25.2'")&&deploy.includes('/api/internal/edge-ai/run'));
 add('deployment smoke retries transient idempotent Client Apps writes during host cutover',deploy.includes('safe_idempotent_put_status')&&deploy.includes('Transient idempotent PUT smoke response HTTP')&&deploy.includes('safe_idempotent_put_status /tmp/client-apps-saved.json'));
 add('booking create smoke verifies persistence before replaying after a transient host cutover response',deploy.includes('booking-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com')&&deploy.includes('Booking already committed despite transient response; treating verified record as success.')&&deploy.includes('Transient booking create response HTTP')&&deploy.includes("if [ \"$status\" = \"409\" ]; then break; fi"));
-add('deploy workflow keeps embedded booking verification heredoc inside the YAML run block',!deploy.includes("\nimport json,sys\nclient_id,email,start_at,end_at=")&&deploy.includes("                import json,sys\n                client_id,email,start_at,end_at="));
+add('deploy workflow keeps embedded booking verification heredoc shell-valid after YAML deindent',deploy.includes("                if [ \"$verify_status\" = \"200\" ] && python - \"$client_id\" \"$booking_email\" \"$start_at\" \"$end_at\" <<'PY'\n          import json,sys\n          client_id,email,start_at,end_at=")&&deploy.includes("\n          PY\n                then")&&!deploy.includes("\n                PY\n                then"));
+add('production smoke shell passes bash syntax validation',Boolean(smokeShell)&&smokeShellSyntax.status===0);
 add('booking smoke verifies API request idempotency after cutover recovery',deploy.includes('smoke-booking-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}')&&deploy.includes('Idempotency-Key: $booking_idempotency_key')&&deploy.includes("d.get('replayed') is True")&&deploy.includes('Agency booking idempotency replay verified without a duplicate booking.'));
 add('deferred D1 maintenance retries after the UTC quota reset',maintenance.includes("cron: '5 0 * * *'")&&maintenance.includes('Apply deferred D1 migrations')&&maintenance.includes('materialize-full-brain-d1.mjs'));
 add('full-brain D1 materialization skips immediately when migration access was deferred',deploy.includes('D1_MIGRATION_DEFERRED:-0')&&deploy.includes('Skipping durable full-brain D1 materialization')&&deploy.includes('deferred maintenance will reconcile the durable cache later'));
@@ -97,6 +112,8 @@ add('deploy checkout includes parent commit for migration diff safety',/fetch-de
 add('schema-changing or non-transient migration failures still stop deployment',deploy.includes('migration_files_changed=1')&&deploy.includes('exit "$rc"'));
 add('ordinary signup failures still fail deployment',deploy.includes('Signup smoke test returned HTTP $status')&&deploy.includes('exit 1'));
 add('quota branch never claims signup passed',deploy.includes('This is an external daily Free-plan limit, not a passing signup result.'));
+
+if(smokeShellSyntax.status!==0&&smokeShellSyntax.stderr)console.error(smokeShellSyntax.stderr.trim());
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} - ${name}`);
