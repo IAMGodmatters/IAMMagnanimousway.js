@@ -26,13 +26,13 @@ Never claim an external action happened without an actual authorized tool result
 
 const PROVIDERS = [
   { id: 'cloudflare-ai', name: 'Cloudflare Workers AI', key: 'AI', tier: 'free-first' },
-  { id: 'google', name: 'Google Gemini', key: 'GOOGLE_API_KEY', tier: 'free-first' },
-  { id: 'groq', name: 'Groq', key: 'GROQ_API_KEY', tier: 'free-first' },
-  { id: 'mistral', name: 'Mistral AI', key: 'MISTRAL_API_KEY', tier: 'free-first' },
-  { id: 'openrouter-free', name: 'OpenRouter Free Models', key: 'OPENROUTER_API_KEY', tier: 'free-first' },
-  { id: 'nvidia-kimi', name: 'NVIDIA NIM — Kimi K3', key: 'NVIDIA_API_KEY', tier: 'free-first' },
-  { id: 'nvidia-deepseek-pro', name: 'NVIDIA NIM — DeepSeek V4 Pro', key: 'NVIDIA_API_KEY', tier: 'free-first' },
-  { id: 'nvidia-deepseek-flash', name: 'NVIDIA NIM — DeepSeek V4 Flash', key: 'NVIDIA_API_KEY', tier: 'free-first' },
+  { id: 'google', name: 'Google Gemini', key: 'GOOGLE_API_KEY', tier: 'external-optional' },
+  { id: 'groq', name: 'Groq', key: 'GROQ_API_KEY', tier: 'external-optional' },
+  { id: 'mistral', name: 'Mistral AI', key: 'MISTRAL_API_KEY', tier: 'external-optional' },
+  { id: 'openrouter-free', name: 'OpenRouter Free Models', key: 'OPENROUTER_API_KEY', tier: 'external-optional' },
+  { id: 'nvidia-kimi', name: 'NVIDIA NIM — Kimi K3', key: 'NVIDIA_API_KEY', tier: 'external-optional' },
+  { id: 'nvidia-deepseek-pro', name: 'NVIDIA NIM — DeepSeek V4 Pro', key: 'NVIDIA_API_KEY', tier: 'external-optional' },
+  { id: 'nvidia-deepseek-flash', name: 'NVIDIA NIM — DeepSeek V4 Flash', key: 'NVIDIA_API_KEY', tier: 'external-optional' },
   { id: 'openai', name: 'OpenAI', key: 'OPENAI_API_KEY', tier: 'metered' },
   { id: 'anthropic', name: 'Anthropic', key: 'ANTHROPIC_API_KEY', tier: 'metered' }
 ];
