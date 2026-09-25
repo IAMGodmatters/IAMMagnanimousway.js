@@ -22,6 +22,8 @@ import {handleMagnanimousNativeWeb,scheduledNativeWeb} from './magnanimous-nativ
 import {scheduledMagnanimousCapabilityMesh} from './magnanimous-capability-mesh.js';
 import {handleMagnanimousRoutineStudio,scheduledMagnanimousRoutines} from './magnanimous-skill-routine-runtime.js';
 import {handlePaymentLinkBilling,augmentBillingResponse} from './payment-link-runtime.js';
+import {publicProviderCostCatalog} from './provider-cost-catalog.js';
+import {handleSelfHeal,scheduledSelfHeal} from './self-heal-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -120,6 +122,8 @@ async function whiteLabelObservationPayload(request){
 async function operationsFetch(request,env,ctx){
   const url=new URL(request.url),path=url.pathname;
   if(request.method==='GET'&&LEGACY_ROUTES[path])return Response.redirect(new URL(LEGACY_ROUTES[path],url.origin).toString(),308);
+  if(request.method==='GET'&&path==='/api/provider-costs')return json(publicProviderCostCatalog());
+  try{const selfHeal=await handleSelfHeal(request,env);if(selfHeal)return selfHeal}catch(error){console.error('Magnanimous self-heal control failed',error);return json({detail:'Self-heal control could not complete this request.'},500)}
   try{const publicFunnel=await handlePublicAgencyFunnel(request,env);if(publicFunnel)return publicFunnel}catch(error){console.error('public White Label funnel failed',error);return new Response('Funnel temporarily unavailable.',{status:500,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'}})}
 
   const consequential=await requireConsequentialActionConfirmation(request);
@@ -236,7 +240,8 @@ export default{
    scheduledGrowth(env,origin).catch(error=>console.error('scheduled growth automation failed',error)),
    scheduledNativeWeb(env).catch(error=>console.error('scheduled native web automation failed',error)),
    scheduledMagnanimousCapabilityMesh(env).catch(error=>console.error('scheduled capability mesh check failed',error)),
-   scheduledMagnanimousRoutines(env).catch(error=>console.error('scheduled Magnanimous routines failed',error))
+   scheduledMagnanimousRoutines(env).catch(error=>console.error('scheduled Magnanimous routines failed',error)),
+   scheduledSelfHeal(env).catch(error=>console.error('scheduled Magnanimous self-heal failed',error))
   ]);
   if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
  }
