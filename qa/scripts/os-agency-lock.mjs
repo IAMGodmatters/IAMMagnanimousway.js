@@ -102,6 +102,7 @@ includes(growthUI,'Magnanimous Revenue Recovery','growth: owner funnel surface e
 includes(operations,'recordSignupLead','growth: signup events feed lead memory');
 includes(operations,'recordPlatformCheckout','growth: platform checkout events feed lead recovery');
 includes(operations,'recordStripeGrowthEvent','growth: Stripe payment events close recovered leads');
+must(operations.indexOf('const agencyBilling=await handleAgencyBillingBefore(request,env);')>=0&&operations.indexOf('const paymentLink=await handlePaymentLinkBilling(request,env);')>=0&&operations.indexOf('const agencyBilling=await handleAgencyBillingBefore(request,env);')<operations.indexOf('const paymentLink=await handlePaymentLinkBilling(request,env);'),'billing: Agency checkout routes before the generic paid-plan payment-link validator');
 includes(operations,'scheduledGrowth','growth: recurring automation worker remains wired');
 
 // White-label pricing + real billing enforcement.
