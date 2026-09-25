@@ -16,6 +16,8 @@ const NATIVE_CAPABILITIES=Object.freeze([
  ['outlier-discovery','Channel-relative breakout discovery','official-api-plus-native-math'],
  ['channel-stats','Channel statistics','official-api'],
  ['video-stats','Video statistics and velocity','official-api-plus-native-history'],
+ ['videos-by-ids','Batch YouTube video metadata lookup','official-api'],
+ ['channels-by-ids','Batch YouTube channel metadata lookup','official-api'],
  ['channel-videos','Long-form / Shorts / live inventory','official-api'],
  ['comments','Comment threads and replies','official-api'],
  ['comment-insights','Audience questions, requests and pain points','native-analysis'],
@@ -110,6 +112,11 @@ async function enrichVideos(env,user,ids){
  const unique=[...new Set(ids.filter(Boolean))].slice(0,50);if(!unique.length)return[];
  const d=await ytFetch(env,user,'/videos',{part:'snippet,statistics,contentDetails,status',id:unique.join(','),maxResults:50});
  const out=(d.items||[]).map(videoView);await recordSnapshots(env,out);return out;
+}
+async function channelsByIds(env,user,ids){
+ const unique=[...new Set((Array.isArray(ids)?ids:[]).map(x=>clean(x,80)).filter(Boolean))].slice(0,50);if(!unique.length)return[];
+ const d=await ytFetch(env,user,'/channels',{part:'snippet,statistics,contentDetails,status',id:unique.join(','),maxResults:50});
+ return(d.items||[]).map(x=>({channel_id:x.id,title:x.snippet?.title||'',description:x.snippet?.description||'',thumbnail_url:x.snippet?.thumbnails?.high?.url||x.snippet?.thumbnails?.medium?.url||'',country:x.snippet?.country||null,subscribers:Number(x.statistics?.subscriberCount||0),views:Number(x.statistics?.viewCount||0),videos:Number(x.statistics?.videoCount||0),uploads_playlist:x.contentDetails?.relatedPlaylists?.uploads||null}));
 }
 async function recordSnapshots(env,videos){
  if(!env?.DB||!Array.isArray(videos)||!videos.length)return;await ensureSchema(env);const ts=now();
@@ -426,6 +433,8 @@ export async function handleCreatorGrowth(request,env){
   if(request.method==='POST'&&path==='/api/creator-growth/channel-stats'){const b=await request.json().catch(()=>({}));return json(await channelStats(env,user,b.channel||b.channel_id||''))}
   if(request.method==='POST'&&path==='/api/creator-growth/channel-videos'){const b=await request.json().catch(()=>({})),id=await resolveChannelId(env,user,b.channel||b.channel_id||'');return json({channel_id:id,videos:await searchVideos(env,user,{channel_id:id,max:b.limit||25,order:b.order||'date',duration:b.duration||'any'})})}
   if(request.method==='POST'&&path==='/api/creator-growth/video-stats'){const b=await request.json().catch(()=>({})),videos=await enrichVideos(env,user,[b.video_id]);return videos[0]?json(videos[0]):json({detail:'Video not found.'},404)}
+  if(request.method==='POST'&&path==='/api/creator-growth/videos-by-ids'){const b=await request.json().catch(()=>({}));return json({videos:await enrichVideos(env,user,Array.isArray(b.video_ids)?b.video_ids:[])})}
+  if(request.method==='POST'&&path==='/api/creator-growth/channels-by-ids'){const b=await request.json().catch(()=>({}));return json({channels:await channelsByIds(env,user,Array.isArray(b.channel_ids)?b.channel_ids:[])})}
   if(request.method==='GET'&&path==='/api/creator-growth/trending'){const region=clean(url.searchParams.get('region')||'US',2).toUpperCase(),d=await ytFetch(env,user,'/videos',{part:'snippet,statistics,contentDetails',chart:'mostPopular',regionCode:region,maxResults:clamp(url.searchParams.get('limit')||20,1,50)}),videos=(d.items||[]).map(videoView);await recordSnapshots(env,videos);return json({region_code:region,videos})}
   if(request.method==='POST'&&path==='/api/creator-growth/comments'){const b=await request.json().catch(()=>({})),comments=await fetchComments(env,user,{video_id:b.video_id,channel_id:b.channel_id,max:b.limit||50});return json({comments})}
   if(request.method==='POST'&&path==='/api/creator-growth/comment-insights'){const b=await request.json().catch(()=>({}));let comments=Array.isArray(b.comments)?b.comments:[];if(!comments.length&&(b.video_id||b.channel_id))comments=await fetchComments(env,user,{video_id:b.video_id,channel_id:b.channel_id,max:b.limit||100});return json(analyzeComments(comments))}
