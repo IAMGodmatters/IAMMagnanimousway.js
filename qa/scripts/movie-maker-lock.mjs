@@ -17,6 +17,10 @@ const media=read('magnanimous-runtime/services/media-service.mjs');
 const security=read('worker/src/security-entrypoint.js');
 const runtimeRoutes=read('frontend/app/platform-runtime-script.tsx');
 const template=read('frontend/app/template.tsx');
+const monetization=read('worker/src/monetization-runtime.js');
+const credentials=read('worker/src/platform-credentials.js');
+const providerEnv=read('worker/src/provider-runtime-env.js');
+const envExample=read('.env.example');
 
 assert.equal(PROVIDER_PRICE_MARKUP_PERCENT,20);
 assert.equal(variableCustomerCharge(.05).customer_charge_usd,.06);
@@ -71,6 +75,8 @@ assert.ok(security.includes("url.pathname.startsWith('/api/movie-maker')"),'Movi
 assert.ok(runtimeRoutes.includes("'/movie'"),'public Movie watch route missing');
 assert.ok(!runtimeRoutes.match(/publicPaths=\[[^;]*'\/movie-maker'/),'Movie Maker workspace must remain protected');
 assert.ok(template.includes("'/movie'"),'template public Movie watch route missing');
+for(const s of ['MAGNANIMOUS_AD_NETWORK_ENABLED','ADSENSE_SLOT_MOVIE','movie_ads_ready','Incentivized clicks and artificial impressions are prohibited'])assert.ok(monetization.includes(s),'movie ad network must remain owner-controlled: '+s);
+for(const s of ['MAGNANIMOUS_AD_NETWORK_ENABLED','ADSENSE_SLOT_MOVIE'])assert.ok(credentials.includes(s)&&providerEnv.includes(s)&&envExample.includes(s),'owner movie-ad configuration is not wired end-to-end: '+s);
 
 for(const forbidden of [
  'reward users for clicking',
