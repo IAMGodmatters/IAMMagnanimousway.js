@@ -60,21 +60,22 @@ export default function StandaloneMagnanimous(){
    const headers:Record<string,string>={'content-type':'application/json'};
    if(token)headers.authorization=`Bearer ${token}`;
    const requestText=requestMode.id==='general'?text:`[${requestMode.label.toUpperCase()} MODE]\n${text}`;
-   const researchMode=requestMode.id==='research';
+   const researchMode=activeMode.id==='research';
+   const requestResearchMode=retry?requestMode.id==='research':researchMode;
    const r=await postMagnanimousChat('/api/chat',{
     method:'POST',headers,
     body:JSON.stringify({
      message:requestText,
      provider:'auto',
      use_knowledge:true,
-     use_tools:!researchMode,
-     learn_links:!researchMode,
+     use_tools:!requestResearchMode,
+     learn_links:!requestResearchMode,
      remember_search:true,
      specialist_routing:true,
      live_search:Boolean(requestMode.live),
      news:Boolean(requestMode.news)
     })
-   },{retryTransientEdgeOnce:researchMode});
+   },{retryTransientEdgeOnce:requestResearchMode});
    const d=await r.json().catch(()=>({}));
    if(!r.ok)throw new Error(String(d?.detail||d?.error||`Magnanimous returned ${r.status}`));
    const answer=String(d?.output||d?.answer||'Magnanimous completed the request but returned no text.');
