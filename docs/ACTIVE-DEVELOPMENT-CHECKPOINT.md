@@ -1,9 +1,9 @@
 # Active Development Checkpoint
 
-Last updated: 2026-09-24
+Last updated: 2026-09-26
 Repository: IAMGodmatters/IAMMagnanimousway.js
 Production: https://iammagnanimousway.com/
-Status: **Deep telecom/carrier/contact-center software architecture pass completed; native Chromium↔Asterisk WebRTC registration and bidirectional media proof is merged and verified; strict public-host readiness is merged; ephemeral per-browser SIP sessions and the platform-facing native SIP.js softphone handoff are merged, deployed, and production-smoke verified. Actual public-host activation remains separately gated.**
+Status: **Deep telecom/carrier/contact-center software architecture is merged; protected selected-route execution covers Magnanimous Telecom Core plus explicit Twilio/Plivo routes; consent-gated Stasis supervision/recording source is merged; native Chromium↔Asterisk media is CI-verified. Public-host activation, real-host Stasis evidence, regulatory authority and remaining generic BYOC migration stay separately gated.**
 
 ## Original task
 
@@ -48,6 +48,10 @@ Full research evidence is versioned in:
 - PR #377 / `a5e6fc85772db42d95c6ee9cc397fdf330f11f71` — short-lived per-browser native WebRTC credentials through Asterisk ARI/Sorcery, bounded TTL, one-contact identities, restricted no-direct-PSTN context, automatic reaping, explicit revocation, and Chromium proof of issuance → registration → bidirectional RTP → revocation → endpoint removal.
 - PR #379 / `f4ccc473dda3b10cbe806f689266194c803ba599` — gated platform server handoff to the private Telecom Core using protected owner-managed URL/token settings; fail-closed session proxy without exposing the control-plane token to browsers.
 - PR #382 / `9a0c5e6cc97cff324ae409142c9329e70f9875fe` — native SIP.js client mounted into the main agent softphone, native internal-call preference when verified/live, compatibility PSTN fallback preserved, production routing boundary repaired, private/local Telecom Core targets rejected, and platform-facing migration locked in QA.
+- PR #441 / `fc397a47e4793e25b50998719daec0371aa8a372` — protected Magnanimous Telecom Core selected-route execution with endpoint allowlisting, authenticated Asterisk health, fail-closed explicit routing and route/interconnect attribution.
+- PR #444 / `98128d9c4820a2286cc741163b0bdc4c646712fc` — consent-gated private Stasis event stream, monitor/whisper/barge bridge lifecycle, headless bridge recording, owner/admin controls, UI, unit tests and cleanup locks without claiming production-live supervision.
+- PR #445 / `b7960fc1e683bea07ea47284266feeb31251a323` — explicit Twilio/Plivo carrier routes moved behind Magnanimous planner execution with authenticated account health and fail-closed routing.
+- PR #447 / `1ae099403e838ba005ea0ea238b7727cd1d3084e` — D1 read-quota deployment resilience without weakening payment/bootstrap verification.
 
 ## Active work
 
@@ -106,7 +110,8 @@ Intentionally gated follow-on work, not falsely marked live:
 - [x] Migrate explicit Twilio/Plivo carrier route types to Magnanimous planner execution. When a tenant has matching carrier routes, the selected compatibility adapter must be configured, pass an authenticated account-health check, and execute with route/interconnect attribution; unhealthy, unfunded or unsupported selections fail closed.
 - [ ] Migrate the remaining generic BYOC compatibility path and retire no-route legacy Plivo/Twilio fallback only after affected tenants have explicit route configuration. Until then `live_execution_uses_route_planner` remains false even though configured Twilio/Plivo routes and the protected Telecom Core are planner-controlled.
 - [x] Implement the consent-gated Stasis supervision/recording software path: private ARI event stream, monitor/whisper/barge snoop bridge, headless bridge recording, owner/admin controls, explicit consent + notice + jurisdiction gates, tenant audit tables, UI controls, unit tests and cleanup locks. Source implementation alone does **not** make the feature production-live.
-- [ ] Verify the Stasis supervision lifecycle on the real Telecom Core host with an active native call and registered supervisor endpoint: prove monitor/whisper/barge behavior, recording beep/start/stop, audit state and cleanup. Only after that verification may `ASTERISK_SUPERVISOR_CONTROL_ENABLED=true` be promoted. Browser supervisor audio additionally remains blocked until `TELECOM_NATIVE_WEBRTC_LIVE=true` passes the separate external public-host proof.
+- [x] Add a guarded external Stasis verification harness: `Telecom Stasis Live Verification` plus `telecom-core/scripts/verify-supervision-live.py` now require a real HTTPS Telecom Core target, protected API token, active consented call channel, explicit consent/notice confirmation, negative-gate proof, evidence artifact and cleanup; monitor/whisper/barge lifecycle remains additionally blocked behind `TELECOM_NATIVE_WEBRTC_LIVE=true`.
+- [ ] Run that Stasis verification on the real Telecom Core host with an active native call and registered supervisor endpoint: prove recording beep/start/stop and cleanup, then prove monitor/whisper/barge bridge lifecycle and **observe the actual acoustic behavior** on the consented call. Only after that evidence may `ASTERISK_SUPERVISOR_CONTROL_ENABLED=true` be promoted for ordinary production use. Browser supervisor audio additionally remains blocked until `TELECOM_NATIVE_WEBRTC_LIVE=true` passes the separate external public-host proof.
 - [ ] Obtain required NTC/FCC/other authorizations, carrier agreements, numbering/emergency-service arrangements before representing those regulated capabilities as live.
 
 ## Production verification
@@ -210,7 +215,7 @@ Exact next external action:
 
 If interrupted, resume from this file first.
 
-The completed deep software/production pass, native Chromium/Asterisk media proof, ephemeral native browser sessions, platform server handoff, SIP.js agent softphone migration, selected-route execution through the protected Telecom Core, TURN readiness, OCI A1 preflight, ARM64 proof, guarded Terraform module, Cloud Shell plan/apply helper, and the current consent-gated Stasis supervision source work should **not** be recreated. The next external telecom phase remains user creation/sign-in of the Oracle Cloud tenancy, then using the already-versioned Cloud Shell helper to plan/apply the free A1 host, configuring DNS + trusted certificate + protected Telecom Core secrets, running the external public WebRTC workflow, and only after that promoting `TELECOM_NATIVE_WEBRTC_LIVE=true`. The Stasis supervision branch must also pass CI/merge/deploy and then receive a real-host active-call verification before `ASTERISK_SUPERVISOR_CONTROL_ENABLED=true` is promoted. If OCI Always Free A1 capacity is unavailable, do not substitute a paid shape without a separate explicit cost review/approval. Once public proof is green, the existing native softphone path can activate without removing the compatibility PSTN fallback.
+The completed deep software/production pass, native Chromium/Asterisk media proof, ephemeral native browser sessions, platform server handoff, SIP.js agent softphone migration, selected-route execution through the protected Telecom Core and explicit Twilio/Plivo routes, TURN readiness, OCI A1 preflight/ARM64/Terraform/Cloud Shell work, and the merged consent-gated Stasis supervision source path should **not** be recreated. The new guarded real-host Stasis verifier is the remaining software-side evidence harness; its workflow still requires a real public Telecom Core, protected API token and active consented call. Public browser supervisor audio remains blocked until the existing external public WebRTC workflow passes and `TELECOM_NATIVE_WEBRTC_LIVE=true` is truthfully promoted. Real-host Stasis recording/lifecycle evidence and observed acoustic monitor/whisper/barge behavior must then pass before `ASTERISK_SUPERVISOR_CONTROL_ENABLED=true` is promoted for ordinary production use. If OCI Always Free A1 capacity is unavailable, do not substitute a paid shape without a separate explicit cost review/approval.
 
 Rules:
 - do not recreate PRs #367-#382;
