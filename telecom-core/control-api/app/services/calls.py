@@ -31,6 +31,10 @@ class CallService:
         destination = normalize_number(request.to)
         caller_id = normalize_number(request.from_ or self._settings.caller_id)
         provider_call_id = str(self._id_factory())
+        selected_route = request.selected_route if isinstance(request.selected_route, dict) else {}
+        route_id = str(selected_route.get("route_id") or "")
+        interconnect_id = str(selected_route.get("interconnect_id") or "")
+        carrier_endpoint = str(selected_route.get("endpoint") or selected_route.get("carrier_endpoint") or "").strip()
         state = await self._bridge.originate(
             CarrierCallRequest(
                 provider_call_id=provider_call_id,
@@ -40,6 +44,9 @@ class CallService:
                 caller_id=caller_id,
                 agent_id=request.agent_id or "",
                 queue_id=request.queue_id or "",
+                route_id=route_id,
+                interconnect_id=interconnect_id,
+                carrier_endpoint=carrier_endpoint,
             )
         )
         self._monitor.start(provider_call_id, self._callback_policy.resolve(request.webhook_url))
@@ -50,6 +57,9 @@ class CallService:
             "provider": "Magnanimous Telecom",
             "to": destination,
             "from": caller_id,
+            "selected_route_applied": bool(carrier_endpoint),
+            "route_id": route_id or None,
+            "interconnect_id": interconnect_id or None,
         }
 
     async def hangup(self, provider_call_id: str, request: HangupRequest | None) -> dict[str, Any]:
