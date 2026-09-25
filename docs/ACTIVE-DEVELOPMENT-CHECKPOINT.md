@@ -106,6 +106,11 @@ Completed:
 - [x] Added a reusable verified wholesale offer planner that excludes unverified commercial/country coverage and unfunded metered exposure, then prefers the lowest eligible landed retail cost and an independently grouped backup path when available.
 - [x] Added executable global-mobile planner QA and Telecom CI/watch-path coverage so the Fonus/Popcorn work is not silently lost or regressed.
 - [x] Hardened Asterisk recording stop state so Telecom Core verifies the corresponding stored-recording object, including already auto-completed recordings, without exposing the raw media file.
+- [x] Added durable global-mobile launch evidence tables for country capability, verified wholesale offers, primary/backup access profiles and real connectivity observations.
+- [x] Changed global-mobile live truth so `TELECOM_GLOBAL_MOBILE_LIVE=true` alone is insufficient; launch additionally requires production-verified country mobile data, a matching authorized/funded active wholesale offer, a matching active primary access profile, recent real connectivity evidence and an active data cost/fair-use policy.
+- [x] Added separate multi-network-resilience truth that requires a recently verified backup profile on an independent network group; it is not implied by primary service readiness.
+- [x] Added owner Carrier Access workflows to record verified country evidence, verified origin/commercial offer evidence, opaque access-profile references and measured subscriber connectivity without storing eSIM activation/authentication secrets.
+- [x] Added executable global-mobile live-proof QA and Telecom CI coverage.
 
 Intentionally gated follow-on work, not falsely marked live:
 - [ ] Deploy a dedicated public Telecom Core host/domain with trusted WSS TLS and required SIP/RTP exposure. No paid host has been created by this work.
@@ -119,7 +124,7 @@ Intentionally gated follow-on work, not falsely marked live:
 - [x] Implement the consent-gated Stasis supervision/recording software path: private ARI event stream, monitor/whisper/barge snoop bridge, headless bridge recording, owner/admin controls, explicit consent + notice + jurisdiction gates, tenant audit tables, UI controls, unit tests and cleanup locks. Source implementation alone does **not** make the feature production-live.
 - [x] Add a guarded external Stasis verification harness: `Telecom Stasis Live Verification` plus `telecom-core/scripts/verify-supervision-live.py` now require a real HTTPS Telecom Core target, protected API token, active consented call channel, explicit consent/notice confirmation, negative-gate proof, evidence artifact and cleanup; monitor/whisper/barge lifecycle remains additionally blocked behind `TELECOM_NATIVE_WEBRTC_LIVE=true`.
 - [ ] Run that Stasis verification on the real Telecom Core host with an active native call and registered supervisor endpoint: prove recording beep/start/stop and cleanup, then prove monitor/whisper/barge bridge lifecycle and **observe the actual acoustic behavior** on the consented call. Only after that evidence may `ASTERISK_SUPERVISOR_CONTROL_ENABLED=true` be promoted for ordinary production use. Browser supervisor audio additionally remains blocked until `TELECOM_NATIVE_WEBRTC_LIVE=true` passes the separate external public-host proof.
-- [ ] Keep `TELECOM_GLOBAL_MOBILE_LIVE=false` until an authorized mobile/MVNO/eSIM agreement, per-country capability matrix, actual eSIM provisioning, real subscriber data connectivity, billing/fair-use controls, and applicable regulatory requirements are verified.
+- [ ] Keep `TELECOM_GLOBAL_MOBILE_LIVE=false` until the new durable proof gates can be populated from real external evidence: an authorized mobile/MVNO/eSIM agreement, production-verified country capability, actual provider-issued eSIM/SIM profile, real subscriber data connectivity, active fair-use/spend controls and applicable regulatory requirements. The runtime now refuses to honor the flag without those records.
 - [ ] Obtain real commercial wholesale quotes/contracts for candidate global-mobile providers before generating customer sell prices; Fonus retail pricing and Popcorn retail pricing remain benchmarks, not origin cost.
 - [ ] Connect and verify at least one authorized primary mobile adapter and an independently grouped backup path before claiming multi-network production resilience.
 - [ ] Obtain required NTC/FCC/other authorizations, carrier agreements, numbering/emergency-service arrangements before representing those regulated capabilities as live.
@@ -128,15 +133,15 @@ Intentionally gated follow-on work, not falsely marked live:
 
 **SUCCESS for the completed software/runtime scope.**
 
-Latest verified authoritative production commit before the current unmerged supervision branch:
-- `fc397a47e4793e25b50998719daec0371aa8a372`
+Latest verified authoritative production commit before this new global-mobile-proof branch:
+- `fddcdfe841f37b38f7f8f3f4b3eb1591a065b533` — PR #450, stored-recording hardening + Fonus/Popcorn global-mobile architecture.
 
 Existing Railway production service:
 - project: `88bfb25b-3b34-40bd-87cb-188549b96a43`
 - environment: `3cb0deba-a700-4fdb-a92d-d7da98172f1e`
 - service: `71f6ecd9-4114-4431-8796-3fe4395bfd95`
-- exact runtime deployment: `2cfac1da-6fa1-450a-b49f-9ab34129c89c`
-- deployed commit: `fc397a47e4793e25b50998719daec0371aa8a372`
+- exact runtime deployment: `b06c880a-43a8-4924-8808-6716a2ffa309`
+- deployed commit: `fddcdfe841f37b38f7f8f3f4b3eb1591a065b533`
 - status: **SUCCESS**
 - no new Railway project or service was created.
 
