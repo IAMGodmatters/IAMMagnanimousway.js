@@ -11,6 +11,7 @@ from .container import get_container
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     container = get_container()
+    await container.stasis_control.initialize()
     reaper = asyncio.create_task(container.webrtc_sessions.reap_loop())
     stasis_events = asyncio.create_task(container.stasis_events.run())
     stasis_reaper = asyncio.create_task(container.stasis_control.reap_loop())
