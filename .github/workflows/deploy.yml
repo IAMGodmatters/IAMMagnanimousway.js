@@ -306,11 +306,11 @@ jobs:
           sync_secret INKBOX_BASE_URL "$INKBOX_BASE_URL"
           if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
             edge_bridge_token="$(python - <<'PY'
-import hashlib,os
-seed='magnanimous-edge-ai-bridge-v1\0'+os.environ['CLOUDFLARE_API_TOKEN']+'\0'+os.environ['CLOUDFLARE_ACCOUNT_ID']
-print(hashlib.sha256(seed.encode()).hexdigest())
-PY
-)"
+            import hashlib,os
+            seed='magnanimous-edge-ai-bridge-v1\0'+os.environ['CLOUDFLARE_API_TOKEN']+'\0'+os.environ['CLOUDFLARE_ACCOUNT_ID']
+            print(hashlib.sha256(seed.encode()).hexdigest())
+            PY
+            )"
             sync_secret MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN "$edge_bridge_token"
             unset edge_bridge_token
             echo "Synced protected private Edge AI bridge token without exposing its value."
