@@ -7,6 +7,8 @@ const page=read('frontend/app/creator-growth/page.tsx');
 const social=read('worker/src/social-publishing-runtime.js');
 const security=read('worker/src/security-entrypoint.js');
 const benchmark=read('docs/MAGNANIMOUS-CREATOR-GROWTH-VIDIQ-BENCHMARK-2026-09-25.md');
+const home=read('frontend/app/page.tsx');
+const catalog=read('frontend/app/interaction-catalog.ts');
 
 for(const s of [
  '/api/creator-growth/keyword-research','/api/creator-growth/outliers','/api/creator-growth/channel-search',
@@ -26,5 +28,7 @@ assert.ok(security.includes("url.pathname.startsWith('/api/creator-growth')"),'C
 assert.ok(social.includes('https://www.googleapis.com/auth/yt-analytics.readonly'),'YouTube connection must request read-only analytics scope');
 assert.ok(benchmark.includes('| 63 |'),'benchmark must cover all 63 live vidIQ capability contracts observed on 2026-09-25');
 assert.ok(benchmark.includes('does **not** copy proprietary code'),'benchmark must preserve the non-copy boundary');
+assert.ok(home.includes("'/creator-growth'"),'Main Systems grid must expose Creator Growth');
+assert.ok(catalog.includes("'/creator-growth':'social'"),'Interaction guidance must route Creator Growth into social/creator help');
 
 console.log('Magnanimous native Creator Growth benchmark and safety lock passed.');
