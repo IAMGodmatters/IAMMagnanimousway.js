@@ -215,6 +215,30 @@ class AsteriskStasisBridgeService:
             raise TelecomNotFoundError("Active Stasis recording not found.")
         return await self._cleanup_recording(recording_name)
 
+    async def _supervisor_channel_for_session(self, session_id: str) -> str:
+        data = await self._expect("GET", "/channels", ok=(200,))
+        channels = data if isinstance(data, list) else []
+        prefix = f"PJSIP/{session_id}-"
+        matches: list[str] = []
+        for channel in channels:
+            if not isinstance(channel, dict):
+                continue
+            name = str(channel.get("name") or "")
+            dialplan = channel.get("dialplan") if isinstance(channel.get("dialplan"), dict) else {}
+            app_name = str(dialplan.get("app_name") or "").lower()
+            app_data = str(dialplan.get("app_data") or "")
+            if (
+                name.startswith(prefix)
+                and app_name == "stasis"
+                and app_data.startswith(f"{self._settings.stasis_app},supervisor")
+            ):
+                channel_id = str(channel.get("id") or "")
+                if channel_id:
+                    matches.append(channel_id)
+        if len(matches) != 1:
+            raise TelecomNotFoundError("Exactly one active tenant supervisor Stasis channel is required.")
+        return matches[0]
+
     async def start_supervisor(self, request: SupervisorSessionStart) -> dict[str, Any]:
         self._require_supervisor()
         self._require_consent(request.consent_confirmed, request.jurisdiction)
@@ -226,15 +250,7 @@ class AsteriskStasisBridgeService:
             raise TelecomNotFoundError("Tenant-owned supervisor WebRTC session not found.")
         target_channel_id = call.agent_channel_id if request.target_role == "agent" else call.customer_channel_id
         await self._expect("GET", f"/bridges/{call.bridge_id}", ok=(200,))
-        supervisor_channel = await self._expect(
-            "GET",
-            f"/channels/{request.supervisor_channel_id}",
-            ok=(200,),
-        )
-        supervisor_name = str((supervisor_channel or {}).get("name") or "")
-        supervisor_endpoint_prefix = f"PJSIP/{request.supervisor_session_id}-"
-        if not supervisor_name.startswith(supervisor_endpoint_prefix):
-            raise TelecomNotFoundError("Supervisor channel does not belong to the tenant-owned WebRTC session.")
+        supervisor_channel_id = await self._supervisor_channel_for_session(request.supervisor_session_id)
         await self._expect("GET", f"/channels/{target_channel_id}", ok=(200,))
 
         session_id = f"mag-supervisor-{uuid.uuid4().hex}"
@@ -243,7 +259,7 @@ class AsteriskStasisBridgeService:
                 "POST",
                 f"/bridges/{call.bridge_id}/addChannel",
                 params={
-                    "channel": request.supervisor_channel_id,
+                    "channel": supervisor_channel_id,
                     "role": "supervisor",
                     "absorbDTMF": "true",
                     "inhibitConnectedLineUpdates": "true",
@@ -257,7 +273,7 @@ class AsteriskStasisBridgeService:
                 "mode": request.mode,
                 "call_bridge_id": call.bridge_id,
                 "target_channel_id": target_channel_id,
-                "supervisor_channel_id": request.supervisor_channel_id,
+                "supervisor_channel_id": supervisor_channel_id,
                 "supervisor_bridge_id": "",
                 "snoop_channel_id": "",
             }
@@ -267,7 +283,7 @@ class AsteriskStasisBridgeService:
                 "provider_call_id": request.provider_call_id,
                 "call_bridge_id": call.bridge_id,
                 "target_channel_id": target_channel_id,
-                "supervisor_channel_id": request.supervisor_channel_id,
+                "supervisor_channel_id": supervisor_channel_id,
                 "jurisdiction": request.jurisdiction,
             }
 
@@ -295,7 +311,7 @@ class AsteriskStasisBridgeService:
                 "POST",
                 f"/bridges/{supervisor_bridge_id}/addChannel",
                 params={
-                    "channel": f"{request.supervisor_channel_id},{snoop_channel_id}",
+                    "channel": f"{supervisor_channel_id},{snoop_channel_id}",
                     "absorbDTMF": "true",
                     "inhibitConnectedLineUpdates": "true",
                 },
@@ -313,7 +329,7 @@ class AsteriskStasisBridgeService:
             "mode": request.mode,
             "call_bridge_id": call.bridge_id,
             "target_channel_id": target_channel_id,
-            "supervisor_channel_id": request.supervisor_channel_id,
+            "supervisor_channel_id": supervisor_channel_id,
             "supervisor_bridge_id": supervisor_bridge_id,
             "snoop_channel_id": snoop_channel_id,
         }
@@ -323,7 +339,7 @@ class AsteriskStasisBridgeService:
             "provider_call_id": request.provider_call_id,
             "call_bridge_id": call.bridge_id,
             "target_channel_id": target_channel_id,
-            "supervisor_channel_id": request.supervisor_channel_id,
+            "supervisor_channel_id": supervisor_channel_id,
             "supervisor_bridge_id": supervisor_bridge_id,
             "snoop_channel_id": snoop_channel_id,
             "jurisdiction": request.jurisdiction,
