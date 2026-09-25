@@ -98,7 +98,9 @@ has(carrier,"'bandwidth','signalwire'","carrier inventory supports additional re
 has(carrier,'export async function planCarrierRoute','carrier planner exports one reusable selected-route decision contract');
 has(carrier,"endpoint:String(x.endpoint||'')",'carrier planner includes the selected interconnect endpoint key');
 has(leadPhone,'selected_route_applied: provider?.selected_route_applied === true','platform only claims selected-route execution when the bridge confirms it');
-has(leadPhone,'selected_route: selectedRoute','BYOC outbound handoff forwards the selected route privately');
+has(leadPhone,'selected_route: selectedRoute','outbound bridge handoff can carry a selected route privately');
+has(leadPhone,'function magnanimousCoreBridgeReady','selected-route payload has an explicit private Telecom Core origin gate');
+has(leadPhone,"provider.origin === core.origin",'selected-route payload is never sent to a different bridge origin');
 has(leadPhone,"['sip-trunk','byoc-bridge','direct-pstn']",'only migrated SIP/BYOC route types are applied to the generic bridge');
 has(leadPhone,'route_mode','outbound BYOC can select balanced, least-cost or priority planning mode');
 has(callService,'carrier_endpoint = str(selected_route.get("endpoint")','Telecom call service maps selected route endpoint into the private carrier request');
@@ -107,7 +109,8 @@ has(carrierAdapter,'await self._endpoint_health(selected_endpoint)','selected ro
 has(carrierAdapter,'Selected carrier route is not authorized','unapproved selected endpoints fail closed');
 has(extensions,'MAG_SELECTED_ENDPOINT','Asterisk dialplan consumes only the server-validated selected endpoint variable');
 has(extensions,'$["${MAG_CARRIER_ENDPOINT}"!=""]?done','explicit selected routes do not silently fail over to another carrier');
-has(network,'selected_route_execution:{native_telecom_core:true,generic_byoc_requires_bridge_confirmation:true,twilio_compatibility:false,plivo_compatibility:false}','network truth reports only the confirmed native route path and bridge-confirmation boundary');
+has(network,'selected_route_execution:{native_telecom_core:true,generic_byoc:false,twilio_compatibility:false,plivo_compatibility:false}','network truth reports only the migrated protected Telecom Core route path');
+has(telecomWorkflow,'python -m pip install -r telecom-core/control-api/requirements.txt','Telecom CI installs control API dependencies before tests');
 has(telecomWorkflow,"python -m unittest discover -s telecom-core/control-api/tests -p 'test_*.py'",'Telecom CI runs control API unit tests');
 has(telecomWorkflow,'node --check worker/src/magnanimous-carrier-core.js','Telecom CI syntax-checks the carrier planner');
 has(telecomWorkflow,'node --check worker/src/lead-phone.js','Telecom CI syntax-checks the outbound selected-route handoff');
