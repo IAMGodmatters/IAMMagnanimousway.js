@@ -99,13 +99,13 @@ const AGENTS=[
 ].map(([id,name,title,description,group])=>({id,name,title,description,group}));
 
 const PROVIDERS=[
- {id:'cloudflare-ai',name:'Cloudflare Workers AI',tier:'built-in-free',key:'AI',priority:1,note:'Built in; free allocation on Workers AI.'},
- {id:'google',name:'Google Gemini',tier:'free-tier',key:'GOOGLE_API_KEY',priority:2,note:'Developer API free tier where available.'},
- {id:'groq',name:'Groq',tier:'free-tier',key:'GROQ_API_KEY',priority:3,note:'Free plan rate limits; non-OpenAI Qwen default.'},
- {id:'mistral',name:'Mistral AI',tier:'free-mode',key:'MISTRAL_API_KEY',priority:4,note:'Mistral Studio/API Free mode supported.'},
- {id:'openrouter-free',name:'OpenRouter Free Models',tier:'free-tier',key:'OPENROUTER_API_KEY',priority:5,note:'Free-model router; subject to free-plan request limits.'},
- {id:'huggingface',name:'Hugging Face Inference Providers',tier:'free-credits',key:'HF_TOKEN',priority:6,note:'Small monthly free inference credit allocation.'},
- {id:'cerebras',name:'Cerebras Inference',tier:'trial-credits',key:'CEREBRAS_API_KEY',priority:7,note:'Free trial credits; Z.ai GLM default, never an OpenAI model.'},
+ {id:'cloudflare-ai',name:'Cloudflare Workers AI',tier:'built-in-free',key:'AI',priority:1,auto_route:true,note:'Built in; free allocation on Workers AI.'},
+ {id:'google',name:'Google Gemini',tier:'optional-funded',key:'GOOGLE_API_KEY',priority:2,auto_route:false,note:'Gemini 3.8 Flash; explicit funded upgrade by default.'},
+ {id:'groq',name:'Groq',tier:'optional-funded',key:'GROQ_API_KEY',priority:3,auto_route:false,note:'GPT-OSS 20B; explicit funded upgrade by default.'},
+ {id:'mistral',name:'Mistral AI',tier:'optional-funded',key:'MISTRAL_API_KEY',priority:4,auto_route:false,note:'External API; explicit funded upgrade by default.'},
+ {id:'openrouter-free',name:'OpenRouter Free Models',tier:'free-tier-optional',key:'OPENROUTER_API_KEY',priority:5,auto_route:false,note:'Free-model router; never assumed free when an account could carry paid credit.'},
+ {id:'huggingface',name:'Hugging Face Inference Providers',tier:'free-credit-optional',key:'HF_TOKEN',priority:6,auto_route:false,note:'Free credits are quota-limited; never assumed owner-funded.'},
+ {id:'cerebras',name:'Cerebras Inference',tier:'optional-funded',key:'CEREBRAS_API_KEY',priority:7,auto_route:false,note:'Trial or paid capacity is optional and never used automatically.'},
  {id:'xai',name:'xAI Grok',tier:'metered-optional',key:'XAI_API_KEY',priority:8,note:'Optional metered compute adapter only. Magnanimous owns memory, tools, policy and orchestration.'}
 ];
 
@@ -125,7 +125,7 @@ const NATIVE_WORKSPACES=[
 
 function agentById(id){return AGENTS.find(a=>a.id===String(id||'').toLowerCase())}
 function configured(env,p){return p.id==='cloudflare-ai'?env?.AI!=null:Boolean(String(env?.[p.key]||'').trim())}
-function providerSnapshot(env){return [...PROVIDERS].sort((a,b)=>a.priority-b.priority).map(p=>({id:p.id,name:p.name,tier:p.tier,configured:configured(env,p),openai:false,note:p.note,priority:p.priority}))}
+function providerSnapshot(env){return [...PROVIDERS].sort((a,b)=>a.priority-b.priority).map(p=>({id:p.id,name:p.name,tier:p.tier,configured:configured(env,p),openai:false,note:p.note,priority:p.priority,auto_route:Boolean(p.auto_route)}))}
 
 async function ensureSchema(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS agent_mesh_messages (
