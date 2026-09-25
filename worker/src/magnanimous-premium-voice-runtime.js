@@ -24,7 +24,8 @@ function publicStatus(env){
     premium_available:ready(env),
     premium_brand:'Magnanimous Voice',
     billing:{unit:'1K characters',price_usd:PUBLIC_RATE_USD_PER_1000,markup_percent:CUSTOMER_MARKUP_PERCENT,prepaid:true,hard_cap_characters_per_request:MAX_CHARS},
-    outside_branding:false
+    outside_branding:false,
+    requires_plan:'plus'
   };
 }
 
@@ -47,7 +48,7 @@ export async function handleMagnanimousPremiumVoice(request,env){
     category:'premium Magnanimous Voice',
     estimated_cost_usd:quote.origin_cost_usd,
     estimated_customer_charge_usd:quote.customer_charge_usd,
-    required_plan:'free'
+    required_plan:'plus'
   });
   if(!gate.ok)return json({
     detail:gate.detail,
