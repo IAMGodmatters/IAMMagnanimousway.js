@@ -44,11 +44,21 @@ export default function NetworkAuthorityPage(){
  const[profileNetwork,setProfileNetwork]=useState('');
  const[mobileProfiles,setMobileProfiles]=useState<any[]>([]);
  const[connectProfile,setConnectProfile]=useState('');
+ const[connectEventType,setConnectEventType]=useState('quality');
+ const[failoverReason,setFailoverReason]=useState('');
  const[servingNetwork,setServingNetwork]=useState('');
  const[latencyMs,setLatencyMs]=useState('0');
  const[packetLoss,setPacketLoss]=useState('0');
  const[downlinkMbps,setDownlinkMbps]=useState('0');
  const[uplinkMbps,setUplinkMbps]=useState('0');
+ const[enrollmentProfile,setEnrollmentProfile]=useState('');
+ const[enrollmentToken,setEnrollmentToken]=useState('');
+ const[enrollmentExpires,setEnrollmentExpires]=useState(0);
+ const[primaryProofProfile,setPrimaryProofProfile]=useState('');
+ const[backupProofProfile,setBackupProofProfile]=useState('');
+ const[triggerEventId,setTriggerEventId]=useState('');
+ const[backupEventId,setBackupEventId]=useState('');
+ const[failoverEvidence,setFailoverEvidence]=useState('');
  const routeDestinationValid=/^\+[1-9]\d{6,14}$/.test(routeDestination);
 
  useEffect(()=>{
@@ -69,7 +79,11 @@ export default function NetworkAuthorityPage(){
     call('/api/telecom/network/global-mobile/profiles',{},activeToken).catch(()=>({items:[]}))
    ]);
    setOverview({...empty,...data});setMobileProfiles(profiles.items||[]);
-   if(!connectProfile&&(profiles.items||[]).length)setConnectProfile(String(profiles.items[0].id||''));
+   const items=profiles.items||[];
+   if(!connectProfile&&items.length)setConnectProfile(String(items[0].id||''));
+   if(!enrollmentProfile&&items.length)setEnrollmentProfile(String(items[0].id||''));
+   if(!primaryProofProfile){const primary=items.find((item:any)=>item.profile_role==='primary');if(primary)setPrimaryProofProfile(String(primary.id||''))}
+   if(!backupProofProfile){const backup=items.find((item:any)=>item.profile_role==='backup');if(backup)setBackupProofProfile(String(backup.id||''))}
    const drafts:Record<string,{status:string;application_reference:string;evidence_reference:string;notes:string}>={};
    for(const item of data.regulatory_cases||[])drafts[item.id]={status:item.status||'not_started',application_reference:item.application_reference||'',evidence_reference:item.evidence_reference||'',notes:item.notes||''};
    setCaseDrafts(drafts);setError('');
@@ -154,12 +168,35 @@ export default function NetworkAuthorityPage(){
   event.preventDefault();setBusy(true);setNotice('');setError('');
   try{
    const data=await call('/api/telecom/network/global-mobile/connectivity',{method:'POST',body:JSON.stringify({
-    profile_id:connectProfile,event_type:'quality',serving_network_ref:servingNetwork,
+    profile_id:connectProfile,event_type:connectEventType,serving_network_ref:servingNetwork,
     latency_ms:Number(latencyMs),packet_loss_percent:Number(packetLoss),
-    downlink_mbps:Number(downlinkMbps),uplink_mbps:Number(uplinkMbps)
+    downlink_mbps:Number(downlinkMbps),uplink_mbps:Number(uplinkMbps),failover_reason:failoverReason
    })});
-   setNotice('Real connectivity evidence '+data.id+' recorded and the profile was marked active.');await refresh();
+   setNotice('Connectivity evidence '+data.id+' recorded for '+connectEventType+'. Keep this event ID for any independent-backup proof.');await refresh();
   }catch(caught:any){setError(caught?.message||'Unable to record connectivity evidence.')}finally{setBusy(false)}
+ }
+
+ async function issueEnrollmentToken(event:FormEvent){
+  event.preventDefault();setBusy(true);setNotice('');setError('');setEnrollmentToken('');setEnrollmentExpires(0);
+  try{
+   const profile=mobileProfiles.find(item=>item.id===enrollmentProfile);
+   const data=await call('/api/telecom/network/global-mobile/enrollment-tokens',{method:'POST',body:JSON.stringify({
+    profile_id:enrollmentProfile,purpose:profile?.profile_role==='backup'?'backup_enrollment':'profile_enrollment'
+   })});
+   setEnrollmentToken(data.enrollment_token||'');setEnrollmentExpires(Number(data.expires_at||0));
+   setNotice('One-time Magnanimous enrollment token issued. It is returned once and stored only as a hash.');
+  }catch(caught:any){setError(caught?.message||'Unable to issue enrollment token.')}finally{setBusy(false)}
+ }
+
+ async function verifyFailoverProof(event:FormEvent){
+  event.preventDefault();setBusy(true);setNotice('');setError('');
+  try{
+   const data=await call('/api/telecom/network/global-mobile/failover-proof',{method:'POST',body:JSON.stringify({
+    primary_profile_id:primaryProofProfile,backup_profile_id:backupProofProfile,
+    trigger_event_id:triggerEventId,backup_event_id:backupEventId,evidence_reference:failoverEvidence
+   })});
+   setNotice('Independent backup failover proof '+data.id+' verified from observed events on different network groups.');await refresh();
+  }catch(caught:any){setError(caught?.message||'Unable to verify independent backup evidence.')}finally{setBusy(false)}
  }
 
  async function saveCase(item:RegulatoryCase){
@@ -225,7 +262,7 @@ export default function NetworkAuthorityPage(){
    <div className={styles.grid}>
     <article className={styles.card}><small>LIVE PROOF GATES</small><h2>{overview.global_mobile?.launch_readiness?.launch_ready?'ALL PROOF PASSED':'NOT YET LIVE'}</h2><ul>
      {Object.entries(overview.global_mobile?.launch_readiness?.gates||{}).map(([key,value])=><li key={key}>{value?'✓':'○'} {key.replaceAll('_',' ')}</li>)}
-    </ul><p className={styles.muted}>{overview.global_mobile?.launch_readiness?.truth_boundary||'The environment flag cannot make service live without durable proof.'}</p></article>
+    </ul><p><b>Independent backup:</b> {overview.global_mobile?.launch_readiness?.multi_network_resilience_verified?'VERIFIED':'NOT VERIFIED'}</p><p className={styles.muted}>{overview.global_mobile?.launch_readiness?.truth_boundary||'The environment flag cannot make service live without durable proof.'}</p></article>
     <form className={styles.card} onSubmit={verifyMobileCountry}><small>COUNTRY PROOF</small><h2>Verify mobile-data capability</h2>
      <label>Country code<input maxLength={2} value={mobileCountry} onChange={e=>{setMobileCountry(e.target.value.toUpperCase());setCountryVerified(false)}} placeholder='PH'/></label>
      <label>Evidence reference<input value={countryEvidence} onChange={e=>{setCountryEvidence(e.target.value);setCountryVerified(false)}} placeholder='Official agreement/compliance evidence reference'/></label>
@@ -248,13 +285,29 @@ export default function NetworkAuthorityPage(){
      <p className={styles.muted}>Never paste QR payloads, activation codes, Ki, OPc, ADM, or other SIM secrets here.</p>
     </form>
     <form className={styles.card} onSubmit={recordConnectivity}><small>REAL CONNECTIVITY PROOF</small><h2>Record subscriber network evidence</h2>
-     <label>Access profile<select value={connectProfile} onChange={e=>setConnectProfile(e.target.value)}><option value=''>Select profile</option>{mobileProfiles.map(item=><option value={item.id} key={item.id}>{item.profile_role} · {item.adapter_key} · {item.country_code}</option>)}</select></label>
-     <label>Serving network reference<input value={servingNetwork} onChange={e=>setServingNetwork(e.target.value)} placeholder='Observed network/operator reference'/></label>
+     <label>Access profile<select value={connectProfile} onChange={e=>setConnectProfile(e.target.value)}><option value=''>Select profile</option>{mobileProfiles.map(item=><option value={item.id} key={item.id}>{item.profile_role} · {item.adapter_key} · {item.network_group} · {item.country_code}</option>)}</select></label>
+     <label>Observed event<select value={connectEventType} onChange={e=>setConnectEventType(e.target.value)}><option value='quality'>Quality sample</option><option value='attach'>Attach / service acquired</option><option value='detach'>Primary service lost</option><option value='failover'>Failover trigger</option><option value='recovery'>Recovered service</option></select></label>
+     <label>Serving network reference<input value={servingNetwork} onChange={e=>setServingNetwork(e.target.value)} placeholder={['detach','failover'].includes(connectEventType)?'Optional for loss/trigger':'Observed network/operator reference'}/></label>
+     <label>Failover / observation reason<input value={failoverReason} onChange={e=>setFailoverReason(e.target.value)} placeholder='What was observed?'/></label>
      <label>Latency ms<input type='number' min='0' value={latencyMs} onChange={e=>setLatencyMs(e.target.value)}/></label>
      <label>Packet loss %<input type='number' min='0' max='100' step='0.01' value={packetLoss} onChange={e=>setPacketLoss(e.target.value)}/></label>
      <label>Downlink Mbps<input type='number' min='0' step='0.01' value={downlinkMbps} onChange={e=>setDownlinkMbps(e.target.value)}/></label>
      <label>Uplink Mbps<input type='number' min='0' step='0.01' value={uplinkMbps} onChange={e=>setUplinkMbps(e.target.value)}/></label>
-     <button disabled={busy||!connectProfile||!servingNetwork.trim()}>SAVE REAL CONNECTIVITY PROOF</button>
+     <button disabled={busy||!connectProfile||(!['detach','failover'].includes(connectEventType)&&!servingNetwork.trim())}>SAVE OBSERVED CONNECTIVITY EVENT</button>
+    </form>
+    <form className={styles.card} onSubmit={issueEnrollmentToken}><small>MAGNANIMOUS ACTIVATION</small><h2>Issue one-time enrollment secret</h2>
+     <label>Access profile<select value={enrollmentProfile} onChange={e=>{setEnrollmentProfile(e.target.value);setEnrollmentToken('')}}><option value=''>Select profile</option>{mobileProfiles.map(item=><option value={item.id} key={item.id}>{item.profile_role} · {item.adapter_key} · {item.country_code}</option>)}</select></label>
+     <button disabled={busy||!enrollmentProfile}>ISSUE ONE-TIME MAGNANIMOUS TOKEN</button>
+     {enrollmentToken&&<><label>Returned once<input readOnly value={enrollmentToken}/></label><p className={styles.muted}>Expires {enrollmentExpires?new Date(enrollmentExpires*1000).toLocaleString():'soon'}. Stored only as a SHA-256 hash. This is not a carrier/SM-DP+ activation code.</p></>}
+    </form>
+    <form className={styles.card} onSubmit={verifyFailoverProof}><small>INDEPENDENT BACKUP</small><h2>Verify observed failover path</h2>
+     <label>Primary profile<select value={primaryProofProfile} onChange={e=>setPrimaryProofProfile(e.target.value)}><option value=''>Select primary</option>{mobileProfiles.filter(item=>item.profile_role==='primary').map(item=><option value={item.id} key={item.id}>{item.adapter_key} · {item.network_group}</option>)}</select></label>
+     <label>Backup profile<select value={backupProofProfile} onChange={e=>setBackupProofProfile(e.target.value)}><option value=''>Select backup</option>{mobileProfiles.filter(item=>item.profile_role==='backup').map(item=><option value={item.id} key={item.id}>{item.adapter_key} · {item.network_group}</option>)}</select></label>
+     <label>Primary detach/failover event ID<input value={triggerEventId} onChange={e=>setTriggerEventId(e.target.value)} placeholder='mobile_net_…'/></label>
+     <label>Later successful backup event ID<input value={backupEventId} onChange={e=>setBackupEventId(e.target.value)} placeholder='mobile_net_…'/></label>
+     <label>Evidence reference<input value={failoverEvidence} onChange={e=>setFailoverEvidence(e.target.value)} placeholder='Test log, incident, measurement, or provider evidence reference'/></label>
+     <button disabled={busy||!primaryProofProfile||!backupProofProfile||!triggerEventId.trim()||!backupEventId.trim()||!failoverEvidence.trim()}>VERIFY INDEPENDENT BACKUP EVIDENCE</button>
+     <p className={styles.muted}>This passes only when the primary trigger is recorded first, the backup later proves service, and the two profiles use different network groups.</p>
     </form>
     <article className={styles.card}><small>COST / FAIR-USE GATE</small><h2>{overview.global_mobile?.launch_readiness?.gates?.active_cost_fair_use_policy?'ACTIVE':'REQUIRED'}</h2><p>Global mobile requires an active data/roaming-data policy with a fair-use threshold, throttle, or daily spend limit before launch.</p><p><a href='/telecom/charging'>Open Telecom Charging →</a></p></article>
    </div>
