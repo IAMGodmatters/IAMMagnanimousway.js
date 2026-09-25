@@ -63,7 +63,7 @@ async function anthropic(env,prompt){
  return{text:(d.content||[]).map(x=>x?.text||'').join('\n').trim(),provider:'anthropic',model,estimated_cost_usd:.18};
 }
 async function gemini(env,prompt){
- const model=env.BUSINESS_PLAN_GOOGLE_MODEL||'gemini-3.7-flash';
+ const model=env.BUSINESS_PLAN_GOOGLE_MODEL||'gemini-3.8-flash';
  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(env.GOOGLE_API_KEY)}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:baseRules()}]},contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:5000}})});
  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error?.message||`premium reasoning failed (${r.status})`);
  return{text:(d.candidates?.[0]?.content?.parts||[]).map(x=>x?.text||'').join('\n').trim(),provider:'google',model,estimated_cost_usd:.08};
@@ -153,7 +153,7 @@ async function finalize(request,env,user,body){
 
 export async function handleBusinessPlanQuality(request,env){
  const url=new URL(request.url),path=url.pathname;
- if(path==='/api/business-plan/quality'&&request.method==='GET')return json({quality_router:true,free_draft:{provider_class:'I AM free-first',primary_model:'@cf/qwen/qwen3-30b-a3b-fp8',fallback_models:['@cf/zai-org/glm-4.7-flash','@cf/meta/llama-3.3-70b-instruct-fp8-fast'],live_research:true},professional_final:{requires_i_am_purchase:true,external_provider_checkout:false,managed_provider_costs:true,strong_model_fallback:true,preferred_models:['claude-sonnet-5','gemini-3.7-flash']},billing_rule:'Customers pay I AM. Outside AI providers are server-side execution engines and are never a customer checkout destination.'});
+ if(path==='/api/business-plan/quality'&&request.method==='GET')return json({quality_router:true,free_draft:{provider_class:'I AM free-first',primary_model:'@cf/qwen/qwen3-30b-a3b-fp8',fallback_models:['@cf/zai-org/glm-4.7-flash','@cf/meta/llama-3.3-70b-instruct-fp8-fast'],live_research:true},professional_final:{requires_i_am_purchase:true,external_provider_checkout:false,managed_provider_costs:true,strong_model_fallback:true,preferred_models:['claude-sonnet-5','gemini-3.8-flash']},billing_rule:'Customers pay I AM. Outside AI providers are server-side execution engines and are never a customer checkout destination.'});
  if(!['/api/business-plan/draft','/api/business-plan/final'].includes(path)||request.method!=='POST')return null;
  if(!env?.DB)return json({detail:'Business-plan storage is unavailable.'},503);
  await ensureSchema(env);
