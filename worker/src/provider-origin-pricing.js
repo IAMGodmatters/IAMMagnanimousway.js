@@ -232,3 +232,26 @@ export function googleVeoReserveUsd(options={}){
  const priced=googleVeoOriginCost(options);return priced.ok?round(priced.provider_origin_cost_usd+.05):null;
 }
 
+
+const GOOGLE_TTS_RATE=Object.freeze({
+ 'gemini-3.8-flash-tts':Object.freeze({input_per_million_usd:.50,audio_output_per_million_usd:9,audio_usd_per_10_seconds:.00225}),
+ 'gemini-3.8-flash-lite-tts':Object.freeze({input_per_million_usd:.50,audio_output_per_million_usd:6,audio_usd_per_10_seconds:.0015})
+});
+export function googleTtsOriginCost({model='gemini-3.8-flash-tts',usage={},audio_seconds=0,billing_mode='paid'}={}){
+ const billing=mode(billing_mode),modelId=String(model||'gemini-3.8-flash-tts'),rate=GOOGLE_TTS_RATE[modelId];
+ if(!rate)return{ok:false,code:'TTS_PRICING_NOT_VERIFIED'};
+ if(billing==='free')return{ok:true,model:modelId,billing_mode:'free',provider_origin_cost_usd:0,pricing_source:SOURCES.google_media,pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT};
+ if(billing!=='paid')return{ok:false,code:'BILLING_MODE_UNVERIFIED',detail:'Google media billing mode must be explicitly free or paid before metered speech is allowed.'};
+ const input=usageNumber(usage,'promptTokenCount','prompt_token_count','input_tokens','total_input_tokens','inputTokens','totalInputTokens');
+ const output=usageNumber(usage,'candidatesTokenCount','candidates_token_count','output_tokens','total_output_tokens','outputTokens','totalOutputTokens');
+ let origin=0;
+ if(output>0)origin=input*rate.input_per_million_usd/1_000_000+output*rate.audio_output_per_million_usd/1_000_000;
+ else if(n(audio_seconds)>0)origin=input*rate.input_per_million_usd/1_000_000+(n(audio_seconds)/10)*rate.audio_usd_per_10_seconds;
+ else return{ok:false,code:'TTS_USAGE_MISSING',detail:'Speech usage evidence was not returned.'};
+ return{ok:true,model:modelId,billing_mode:'paid',provider_origin_cost_usd:round(origin),pricing_source:SOURCES.google_media,pricing_verified_at:PROVIDER_PRICING_VERIFIED_AT,usage:{input_tokens:input,output_audio_tokens:output,audio_seconds:n(audio_seconds)},rates:rate};
+}
+export function googleTtsReserveUsd({model='gemini-3.8-flash-tts',characters=0,estimated_seconds=0}={}){
+ const rate=GOOGLE_TTS_RATE[String(model||'gemini-3.8-flash-tts')];if(!rate)return null;
+ const seconds=Math.max(n(estimated_seconds),Math.max(1,n(characters)/14));
+ return round((seconds/10)*rate.audio_usd_per_10_seconds+.01);
+}
