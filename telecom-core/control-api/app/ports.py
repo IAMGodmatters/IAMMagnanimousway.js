@@ -14,6 +14,9 @@ class CarrierCallRequest:
     caller_id: str
     agent_id: str = ""
     queue_id: str = ""
+    route_key: str = ""
+    route_id: int | None = None
+    interconnect_id: int | None = None
 
 
 @dataclass(frozen=True)
