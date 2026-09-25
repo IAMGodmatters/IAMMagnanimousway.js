@@ -4,7 +4,7 @@ const now=()=>Math.floor(Date.now()/1000);
 const encoder=new TextEncoder();
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const PROVIDERS={
- youtube:{name:'YouTube',credential_keys:['GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET'],scopes:['openid','email','https://www.googleapis.com/auth/youtube.readonly','https://www.googleapis.com/auth/youtube.upload','https://www.googleapis.com/auth/yt-analytics.readonly'],approval:'Google OAuth consent, YouTube Data API and YouTube Analytics API must be enabled. Existing connections may need to reconnect once to grant analytics scope. New/unverified upload projects can be restricted by YouTube.'},
+ youtube:{name:'YouTube',credential_keys:['GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET'],scopes:['openid','email','https://www.googleapis.com/auth/youtube.readonly','https://www.googleapis.com/auth/youtube.upload','https://www.googleapis.com/auth/youtube.force-ssl','https://www.googleapis.com/auth/yt-analytics.readonly'],approval:'Google OAuth consent, YouTube Data API and YouTube Analytics API must be enabled. Existing connections may need to reconnect once to grant analytics scope. New/unverified upload projects can be restricted by YouTube.'},
  tiktok:{name:'TikTok',credential_keys:['TIKTOK_CLIENT_KEY','TIKTOK_CLIENT_SECRET'],scopes:['user.info.basic','video.list','video.upload','video.publish'],approval:'TikTok Login Kit and Content Posting API/scopes require TikTok developer approval. Unaudited direct-post clients can be limited to private posts.'},
  linkedin:{name:'LinkedIn',credential_keys:['LINKEDIN_CLIENT_ID','LINKEDIN_CLIENT_SECRET'],scopes:['openid','profile','email','w_member_social'],approval:'A LinkedIn developer app and member authorization are required. Posting permissions are controlled by LinkedIn.'}
 };
@@ -107,6 +107,7 @@ export async function connectedYouTubeContext(env,tenantId){
   access_token:accessToken,
   scopes,
   analytics_scope:scopes.includes('https://www.googleapis.com/auth/yt-analytics.readonly'),
+  write_scope:scopes.includes('https://www.googleapis.com/auth/youtube.force-ssl')||scopes.includes('https://www.googleapis.com/auth/youtube'),
   monetary_scope:scopes.includes('https://www.googleapis.com/auth/yt-analytics-monetary.readonly')
  };
 }
