@@ -7,6 +7,8 @@ import { getMagnanimousOgenicPrompt, buildMagnanimousOgenicPlan, handleMagnanimo
 import { hasAnyReadyLocalBridge, hasReadyLocalBridge, hasAnyReadyLocalBridgeCapability } from './magnanimous-local-bridge-runtime.js';
 import { getMagnanimousSingleBrainSummary, magnanimousPublicRoutingSummary } from './magnanimous-single-brain-contract.js';
 import { getConnectorAbsorptionPrompt } from './magnanimous-connector-absorption.js';
+import { defaultModelForProvider } from './provider-cost-catalog.js';
+import { SELF_HEAL_POLICY,providerAttemptAllowed,recordProviderFailure,recordProviderSuccess,selfHealSnapshot } from './magnanimous-self-heal-runtime.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const now = () => Math.floor(Date.now() / 1000);
@@ -25,13 +27,13 @@ Never claim an external action happened without an actual authorized tool result
 
 const PROVIDERS = [
   { id: 'cloudflare-ai', name: 'Cloudflare Workers AI', key: 'AI', tier: 'free-first' },
-  { id: 'google', name: 'Google Gemini', key: 'GOOGLE_API_KEY', tier: 'free-first' },
-  { id: 'groq', name: 'Groq', key: 'GROQ_API_KEY', tier: 'free-first' },
-  { id: 'mistral', name: 'Mistral AI', key: 'MISTRAL_API_KEY', tier: 'free-first' },
   { id: 'openrouter-free', name: 'OpenRouter Free Models', key: 'OPENROUTER_API_KEY', tier: 'free-first' },
   { id: 'nvidia-kimi', name: 'NVIDIA NIM — Kimi K3', key: 'NVIDIA_API_KEY', tier: 'free-first' },
   { id: 'nvidia-deepseek-pro', name: 'NVIDIA NIM — DeepSeek V4 Pro', key: 'NVIDIA_API_KEY', tier: 'free-first' },
   { id: 'nvidia-deepseek-flash', name: 'NVIDIA NIM — DeepSeek V4 Flash', key: 'NVIDIA_API_KEY', tier: 'free-first' },
+  { id: 'google', name: 'Google Gemini', key: 'GOOGLE_API_KEY', tier: 'metered-with-free-tier' },
+  { id: 'groq', name: 'Groq', key: 'GROQ_API_KEY', tier: 'metered-with-free-tier' },
+  { id: 'mistral', name: 'Mistral AI', key: 'MISTRAL_API_KEY', tier: 'metered-with-free-tier' },
   { id: 'openai', name: 'OpenAI', key: 'OPENAI_API_KEY', tier: 'metered' },
   { id: 'anthropic', name: 'Anthropic', key: 'ANTHROPIC_API_KEY', tier: 'metered' }
 ];
@@ -60,6 +62,7 @@ function configured(env, p) {
   return typeof env?.[p.key] === 'string' && env[p.key].trim().length > 0;
 }
 function meteredEnabled(env) { return String(env?.ENABLE_METERED_PROVIDERS || '').toLowerCase() === 'true'; }
+function providerEnabled(env,p){return p.tier==='free-first'||meteredEnabled(env)}
 function originalUserMessage(message) {
   const text = String(message || '');
   const i = text.indexOf(MEMORY_MARKER);
@@ -113,15 +116,15 @@ async function withinProviderBudget(promise,timeoutMs,label='AI execution'){
 }
 
 async function openai(env, message, model) {
-  const r = await providerFetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: model || env.OPENAI_MODEL || 'gpt-5.6', input: message }) });
+  const r = await providerFetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: model || env.OPENAI_MODEL || 'gpt-6-luna', input: message }) });
   const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || 'OpenAI request failed'); return d.output_text || '';
 }
 async function anthropic(env, message, model) {
-  const r = await providerFetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: model || env.ANTHROPIC_MODEL || 'claude-sonnet-4-5', max_tokens: 4096, messages: [{ role: 'user', content: message }] }) });
+  const r = await providerFetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: model || env.ANTHROPIC_MODEL || 'claude-haiku-4-5', max_tokens: 4096, messages: [{ role: 'user', content: message }] }) });
   const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || 'Anthropic request failed'); return (d.content || []).map(x => x.text || '').join('');
 }
 async function google(env, message, model) {
-  const m = model || env.GOOGLE_MODEL || 'gemini-2.5-flash';
+  const m = model || env.GOOGLE_MODEL || 'gemini-3.1-flash-lite';
   const r = await providerFetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent?key=${encodeURIComponent(env.GOOGLE_API_KEY)}`,  { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: message }] }] }) });
   const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || 'Google Gemini request failed'); return (d.candidates?.[0]?.content?.parts || []).map(x => x.text || '').join('');
 }
@@ -146,6 +149,11 @@ async function cloudflare(env, message, model) {
   const requested = String(model || env.CLOUDFLARE_AI_MODEL || '').trim();
   const models = [...new Set([
     requested,
+    '@cf/zai-org/glm-4.7-flash',
+    '@cf/google/gemma-4-26b-a4b-it',
+    '@cf/qwen/qwen3-30b-a3b-fp8',
+    '@cf/nvidia/nemotron-3-120b-a12b',
+    '@cf/openai/gpt-oss-20b',
     '@cf/meta/llama-3.1-8b-instruct-fast',
     '@cf/meta/llama-3.2-1b-instruct',
     '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
@@ -173,11 +181,11 @@ async function cloudflare(env, message, model) {
 }
 
 async function callProvider(id, env, message, model) {
-  if (id === 'openai') return { text: await openai(env, message, model), model: model || env.OPENAI_MODEL || 'gpt-5.6' };
-  if (id === 'anthropic') return { text: await anthropic(env, message, model), model: model || env.ANTHROPIC_MODEL || 'claude-sonnet-4-5' };
-  if (id === 'google') return { text: await google(env, message, model), model: model || env.GOOGLE_MODEL || 'gemini-2.5-flash' };
-  if (id === 'groq') return { text: await openaiCompatible('https://api.groq.com/openai/v1', env.GROQ_API_KEY, model || env.GROQ_MODEL || 'llama-3.3-70b-versatile', message, 'Groq'), model: model || env.GROQ_MODEL || 'llama-3.3-70b-versatile' };
-  if (id === 'mistral') return { text: await openaiCompatible('https://api.mistral.ai/v1', env.MISTRAL_API_KEY, model || env.MISTRAL_MODEL || 'mistral-large-latest', message, 'Mistral'), model: model || env.MISTRAL_MODEL || 'mistral-large-latest' };
+  if (id === 'openai') return { text: await openai(env, message, model), model: model || env.OPENAI_MODEL || 'gpt-6-luna' };
+  if (id === 'anthropic') return { text: await anthropic(env, message, model), model: model || env.ANTHROPIC_MODEL || 'claude-haiku-4-5' };
+  if (id === 'google') return { text: await google(env, message, model), model: model || env.GOOGLE_MODEL || 'gemini-3.1-flash-lite' };
+  if (id === 'groq') return { text: await openaiCompatible('https://api.groq.com/openai/v1', env.GROQ_API_KEY, model || env.GROQ_MODEL || 'openai/gpt-oss-20b', message, 'Groq'), model: model || env.GROQ_MODEL || 'openai/gpt-oss-20b' };
+  if (id === 'mistral') return { text: await openaiCompatible('https://api.mistral.ai/v1', env.MISTRAL_API_KEY, model || env.MISTRAL_MODEL || 'mistral-small-latest', message, 'Mistral'), model: model || env.MISTRAL_MODEL || 'mistral-small-latest' };
   if (id === 'openrouter-free') return { text: await openaiCompatible('https://openrouter.ai/api/v1', env.OPENROUTER_API_KEY, model || env.OPENROUTER_FREE_MODEL || 'openrouter/free', message, 'OpenRouter Free'), model: model || env.OPENROUTER_FREE_MODEL || 'openrouter/free' };
   if (id === 'nvidia-kimi') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_KIMI_MODEL || 'moonshotai/kimi-k3', message, 'NVIDIA Kimi'), model: model || env.NVIDIA_KIMI_MODEL || 'moonshotai/kimi-k3' };
   if (id === 'nvidia-deepseek-pro') return { text: await openaiCompatible('https://integrate.api.nvidia.com/v1', env.NVIDIA_API_KEY, model || env.NVIDIA_DEEPSEEK_PRO_MODEL || 'deepseek-ai/deepseek-v4-pro-0813', message, 'NVIDIA DeepSeek Pro'), model: model || env.NVIDIA_DEEPSEEK_PRO_MODEL || 'deepseek-ai/deepseek-v4-pro-0813' };
@@ -185,7 +193,8 @@ async function callProvider(id, env, message, model) {
   if (id === 'cloudflare-ai') return cloudflare(env, message, model);
   throw new Error('Unknown AI provider');
 }
-function availableProviders(env) { return PROVIDERS.filter(p => p.tier !== 'metered' || meteredEnabled(env)); }
+function availableProviders(env) { return PROVIDERS.filter(p => providerEnabled(env,p)); }
+function effectiveModel(providerId,body={}){return String(body.model||defaultModelForProvider(providerId,String(body.quality||body.route_policy||'budget'))||'')}
 function taskClass(message,body={}){
   const m=String(message||'').toLowerCase();
   if(body.live_search||body.news||/research|latest|current|source|cite|market size|competitor/.test(m))return'research';
@@ -290,7 +299,7 @@ async function handle(request, env) {
   if (url.pathname === '/api/operator/capabilities' && request.method === 'GET') {
     const localBridgeReady=await hasAnyReadyLocalBridge(env).catch(()=>false);
     const nativeBrowserReady=await hasAnyReadyLocalBridgeCapability(env,'browser_fetch').catch(()=>false);
-    const providerRows=PROVIDERS.map(p=>({configured:configured(env,p),enabled:p.tier!=='metered'||meteredEnabled(env)}));
+    const providerRows=PROVIDERS.map(p=>({configured:configured(env,p),enabled:providerEnabled(env,p)}));
     return json({
     operator:'Magnanimous AI',
     command_role:'commander-in-chief',
@@ -315,17 +324,17 @@ async function handle(request, env) {
     } catch (_) { return json({ ads: [] }); }
   }
   if (url.pathname === '/api/providers' && request.method === 'GET') {
-    const providers = PROVIDERS.map(p => ({ id: p.id, name: p.name, configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env), tier: p.tier, type: 'execution-engine' }));
+    const providers = PROVIDERS.map(p => ({ id: p.id, name: p.name, configured: configured(env, p), enabled: providerEnabled(env,p), tier: p.tier, type: 'execution-engine' }));
     const enabled = providers.filter(p => p.configured && p.enabled);
     const ready = enabled.length > 0;
     return json({ free_first: true, metered_providers_enabled: meteredEnabled(env), command_role:'commander-in-chief', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, adaptive_provider_learning:true, automatic_link_learning:true, providers, configured_count: enabled.length, free_configured_count: enabled.filter(p => p.tier === 'free-first').length, magnanimous_ready: ready, operator_ready: ready });
   }
   if (url.pathname === '/api/magnanimous/single-brain' && request.method === 'GET') return json(getMagnanimousSingleBrainSummary());
   if ((url.pathname === '/api/magnanimous/health' || url.pathname === '/api/odin/health') && request.method === 'GET') {
-    const providers = PROVIDERS.map(p => ({ configured: configured(env, p), enabled: p.tier !== 'metered' || meteredEnabled(env) }));
+    const providers = PROVIDERS.map(p => ({ configured: configured(env, p), enabled: providerEnabled(env,p) }));
     const localBridgeReady=await hasAnyReadyLocalBridge(env).catch(()=>false);
     const nativeBrowserReady=await hasAnyReadyLocalBridgeCapability(env,'browser_fetch').catch(()=>false);
-    return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', public_ai_identity:'Magnanimous AI', command_role:'commander-in-chief', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, adaptive_provider_learning:true, automatic_link_learning:true, native_recipe_growth:true, ogenic_god_toolkit:true, suggestive_initiation:true, local_bridge_runtime:true, local_bridge_configured:localBridgeReady, local_bridge_transport:'outbound-only', native_web_runtime:true, native_browser_ready:nativeBrowserReady, native_web_tinyfish_required:false, native_web_execution_surface:'Magnanimous Local Bridge + local Chromium', workers_ai_bound: env?.AI != null, web_search_configured:true, news_search_configured:true, brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY), research_fallback_enabled:true, routing:magnanimousPublicRoutingSummary(providers), single_brain:getMagnanimousSingleBrainSummary() });
+    return json({ ok: true, magnanimous: 'online', operator: 'Magnanimous AI', public_ai_identity:'Magnanimous AI', command_role:'commander-in-chief', task_aware_routing:true, automatic_failover:true, learned_tool_planning:true, adaptive_provider_learning:true, automatic_link_learning:true, native_recipe_growth:true, ogenic_god_toolkit:true, suggestive_initiation:true, local_bridge_runtime:true, local_bridge_configured:localBridgeReady, local_bridge_transport:'outbound-only', native_web_runtime:true, native_browser_ready:nativeBrowserReady, native_web_tinyfish_required:false, native_web_execution_surface:'Magnanimous Local Bridge + local Chromium', workers_ai_bound: env?.AI != null, web_search_configured:true, news_search_configured:true, brave_search_configured:Boolean(env?.BRAVE_SEARCH_API_KEY), research_fallback_enabled:true, routing:magnanimousPublicRoutingSummary(providers), self_heal:{policy:SELF_HEAL_POLICY,circuits:selfHealSnapshot()}, single_brain:getMagnanimousSingleBrainSummary() });
   }
   if (url.pathname === '/api/chat' && request.method === 'POST') {
     const body = await request.json();
@@ -375,16 +384,19 @@ async function handle(request, env) {
     if (!candidates.length) return json({ detail: requested === 'auto' ? 'Magnanimous AI has no configured execution engine. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested execution engine is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
     const errors = [],providerDeadline=Date.now()+PROVIDER_REQUEST_BUDGET_MS;
     for (const p of candidates) {
-      const started=Date.now(),remaining=providerDeadline-started;
+      const started=Date.now(),remaining=providerDeadline-started,selectedModel=effectiveModel(p.id,body);
       if(remaining<1500){errors.push('Magnanimous AI execution budget exhausted before another provider could start.');break}
+      const circuit=providerAttemptAllowed(p.id,selectedModel);
+      if(!circuit.allowed){errors.push(`${p.name} self-heal cooldown active (${Math.ceil((circuit.retry_after_ms||0)/1000)}s)`);continue}
       try {
-        const result = await withinProviderBudget(callProvider(p.id, env, groundedMessage, body.model),Math.min(45000,remaining),`${p.name} execution`);
+        const result = await withinProviderBudget(callProvider(p.id, env, groundedMessage, selectedModel),Math.min(45000,remaining),`${p.name} execution`);
         if (!result?.text?.trim()) throw new Error('Provider returned an empty response');
+        recordProviderSuccess(p.id,result.model||selectedModel);
         if(!computeOnly)await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:true,quality:.85,latency:Date.now()-started,notes:`capability=${capability}; grounded=${grounding.sources.length}; links=${absorbedLinks.length}`});
         if(!computeOnly&&body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:true});
         return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, magnanimous: true, operator: true, command_role:'commander-in-chief', provider_role:'execution-engine', routed_automatically:requested==='auto', route_task:task, native_capability:capability, route_policy:String(body.quality||body.route_policy||'free-first'), fallback_candidates:candidates.map(x=>x.id), adaptive_provider_learning:true, provider_learning:learningState, grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured, automatic_research:autoResearch, remembered_research:rememberResearch, link_learning:{enabled:body.learn_links!==false,absorbed:absorbedLinks.length,results:linkLearning}, native_recipe_learning:{observed:true,gap_count:Number(observed?.gap_count||0),proposal:observed?.proposal||null}, tool_planning:{enabled:body.use_tools!==false,learned_tools:toolPlanning.tools?.map(x=>({name:x.name,status:x.status,risk:x.risk}))||[],recommended_integrations:toolPlanning.recommended_integrations?.map(x=>({id:x.id,name:x.name,priority:x.priority,capabilities:x.capabilities}))||[]}, ogenic:{classification:ogenicPlan.classification,groups:ogenicPlan.groups.map(x=>x.id),initiative:ogenicPlan.initiative,status:ogenicPlan.status,network_direction:ogenicPlan.network_direction,safe_initiative:ogenicInitiative} });
       } catch (e) {
-        const detail=e?.message || 'provider failed';errors.push(`${p.name}: ${detail}`);
+        const detail=e?.message || 'provider failed';errors.push(`${p.name}: ${detail}`);recordProviderFailure(p.id,effectiveModel(p.id,body),detail);
         if(!computeOnly)await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:false,quality:0,latency:Date.now()-started,notes:detail});
       }
     }
