@@ -15,9 +15,14 @@ for(const s of [
  '/api/creator-growth/comments','/api/creator-growth/comment-insights','/api/creator-growth/analytics',
  '/api/creator-growth/best-time','/api/creator-growth/change-history','/api/creator-growth/performance-history',
  '/api/creator-growth/chapters','/api/creator-growth/clip-plan','/api/creator-growth/script-plan',
- '/api/creator-growth/earnings-estimate','monthly_search_volume:null',
+ '/api/creator-growth/earnings-estimate','/api/creator-growth/channel-search',
+ '/api/creator-growth/similar-videos','/api/creator-growth/similar-channels',
+ '/api/creator-growth/videos-batch','/api/creator-growth/channels-batch',
+ '/api/creator-growth/categories','/api/creator-growth/comment-replies',
+ '/api/creator-growth/daily-ideas','/api/creator-growth/bookmarks','/api/creator-growth/competitors',
+ 'monthly_search_volume:null',
  'YouTube does not expose official keyword search volume','channel_recent_median_views',
- 'History begins when Magnanimous first observes the video','not a claim that subscribers are online'
+ 'History begins when Magnanimous first observes the video','not a claim that subscribers are online','Similarity uses public','not guaranteed view predictions'
 ])assert.ok(runtime.includes(s),'Creator Growth runtime missing '+s);
 
 assert.ok(security.includes("handleCreatorGrowth"),'Creator Growth must pass through secured runtime');
