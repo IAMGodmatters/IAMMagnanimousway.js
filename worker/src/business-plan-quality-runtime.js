@@ -188,7 +188,7 @@ async function finalize(request,env,user,body){
 
 export async function handleBusinessPlanQuality(request,env){
  const url=new URL(request.url),path=url.pathname;
- if(path==='/api/business-plan/quality'&&request.method==='GET')return json({quality_router:true,free_draft:{provider_class:'I AM free-first',primary_model:'@cf/nvidia/nemotron-3-120b-a12b',fallback_models:['@cf/zai-org/glm-4.7-flash','@cf/google/gemma-4-26b-a4b-it'],live_research:true},professional_final:{requires_i_am_purchase:true,external_provider_checkout:false,managed_provider_costs:true,strong_model_fallback:true,preferred_models:['claude-sonnet-5','gemini-3.8-flash']},billing_rule:'Customers pay I AM. Outside AI providers are server-side execution engines and are never a customer checkout destination.'});
+ if(path==='/api/business-plan/quality'&&request.method==='GET')return json({quality_router:true,identity:'Magnanimous AI',free_draft:{provider_class:'Magnanimous AI free-first',private_execution:true,live_research:true},professional_final:{requires_i_am_purchase:true,external_provider_checkout:false,managed_provider_costs:true,strong_model_fallback:true,private_execution:true},provider_details_private:true,billing_rule:'Customers pay I AM MAGNANIMOUS WAY™. Outside execution engines remain private and are never a customer checkout destination.'});
  if(!['/api/business-plan/draft','/api/business-plan/final'].includes(path)||request.method!=='POST')return null;
  if(!env?.DB)return json({detail:'Business-plan storage is unavailable.'},503);
  await ensureSchema(env);
