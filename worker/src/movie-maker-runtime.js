@@ -260,16 +260,36 @@ async function freeVideo(request,env,user,body,plan){
 async function startStudioVideo(request,env,user,body,plan){
  if(!mediaPolicy(plan).premium_studio_allowed)return json({detail:'Studio video starts with Business. Free and Plus Movie Maker remain available with a Magnanimous watermark.',code:'BUSINESS_REQUIRED'},402);
  if(!googleReady(env))return json({detail:'Studio video is not enabled. Free-first Movie Maker remains available.',code:'STUDIO_MEDIA_NOT_CONFIGURED'},503);
- const prompt=cleanText(body.prompt||body.text,4000),title=cleanText(body.title||'Magnanimous Studio Movie',180),seconds=Math.max(3,Math.min(10,Number(body.seconds||6))),resolution=VIDEO_RESOLUTIONS.has(String(body.resolution).toLowerCase())?String(body.resolution).toLowerCase():'720p',aspect=['16:9','9:16'].includes(body.aspect_ratio)?body.aspect_ratio:'16:9';
+ const prompt=cleanText(body.prompt||body.text,4000),title=cleanText(body.title||'Magnanimous Studio Movie',180),aspect=['16:9','9:16'].includes(body.aspect_ratio)?body.aspect_ratio:'16:9';
  if(!prompt)return json({detail:'Describe the movie scene first.'},400);
- const reserve=googleOmniVideoReserveUsd({seconds,resolution}),gate=await canUsePremium(env,user.tenant_id,{category:'studio video',estimated_provider_origin_cost_usd:reserve,required_plan:'business',entitlement:'metered_ai'});
+ const selection=videoModelFor(body.quality,body.resolution);
+ let seconds=Math.max(3,Math.min(10,Number(body.seconds||6))),reserve=0,billingMode='paid';
+ if(selection.engine==='veo'){
+  seconds=[4,6,8].includes(Number(seconds))?Number(seconds):8;
+  if(selection.resolution!=='720p')seconds=8;
+  reserve=googleVeoReserveUsd({model:selection.model,seconds,resolution:selection.resolution});
+  if(reserve==null)return json({detail:'Current cinematic video pricing is not verified.',code:'PRICING_NOT_VERIFIED'},503);
+ }else{
+  billingMode=providerBillingMode(env,'google');
+  if(!['free','paid'].includes(billingMode))return json({detail:'Editable studio video billing mode must be verified as free or paid before generation.',code:'BILLING_MODE_UNVERIFIED'},503);
+  reserve=billingMode==='free'?0:googleOmniVideoReserveUsd({seconds,resolution:selection.resolution});
+ }
+ const gate=await canUsePremium(env,user.tenant_id,{category:'studio video',estimated_provider_origin_cost_usd:reserve,required_plan:'business',entitlement:'metered_ai'});
  if(!gate.ok)return json({detail:gate.detail,code:gate.code,free_first_available:true,estimated_customer_charge_usd:gate.estimated_variable_customer_charge_usd},402);
- let input=prompt;const ref=parseDataUri(body.reference_image||'');if(ref)input=[{type:'image',mime_type:ref.content_type,data:ref.base64},{type:'text',text:prompt}];
- const d=await googleInteraction(env,{model:'gemini-omni-1.1-flash',input,background:true,store:true,response_format:{type:'video',delivery:'uri',aspect_ratio:aspect,resolution}});
+ let operation='',status='in_progress';
+ if(selection.engine==='veo'){
+  const started=await googleVeoStart(env,{model:selection.model,prompt,aspect_ratio:aspect,resolution:selection.resolution,seconds,reference_image:body.reference_image});
+  operation=started.operation;seconds=started.seconds;
+  if(!operation)throw new Error('Cinematic video provider returned no operation identifier.');
+ }else{
+  let input=prompt;const ref=parseDataUri(body.reference_image||'');if(ref)input=[{type:'image',mime_type:ref.content_type,data:ref.base64},{type:'text',text:prompt}];
+  const d=await googleInteraction(env,{model:selection.model,input,background:true,store:true,response_format:{type:'video',delivery:'uri',aspect_ratio:aspect,resolution:selection.resolution}});
+  operation=String(d.id||'');status=String(d.status||'in_progress');if(!operation)throw new Error('Editable video provider returned no operation identifier.');
+ }
  const job=crypto.randomUUID(),ts=now();await ensureSchema(env);
- await env.DB.prepare('INSERT INTO movie_maker_jobs(id,tenant_id,user_id,kind,status,interaction_id,prompt,title,resolution,aspect_ratio,seconds,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
-  .bind(job,String(user.tenant_id),String(user.id),'video',String(d.status||'in_progress'),String(d.id||''),prompt,title,resolution,aspect,seconds,ts,ts).run();
- return json({ok:true,job_id:job,status:String(d.status||'in_progress'),poll_url:`/api/movie-maker/jobs/${job}`,mode:'studio',identity:'Magnanimous AI',plan,policy:mediaPolicy(plan),estimated_reserve:{provider_origin_usd:reserve,customer_variable_usd:variableCustomerCharge(reserve).customer_charge_usd},provider_details_private:true},202);
+ await env.DB.prepare('INSERT INTO movie_maker_jobs(id,tenant_id,user_id,kind,status,interaction_id,prompt,title,resolution,aspect_ratio,seconds,engine,model,billing_mode,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+  .bind(job,String(user.tenant_id),String(user.id),'video',status,operation,prompt,title,selection.resolution,aspect,seconds,selection.engine,selection.model,billingMode,ts,ts).run();
+ return json({ok:true,job_id:job,status,poll_url:`/api/movie-maker/jobs/${job}`,mode:'studio',quality:selection.quality,identity:'Magnanimous AI',plan,policy:mediaPolicy(plan),estimated_reserve:{provider_origin_usd:reserve,customer_variable_usd:variableCustomerCharge(reserve).customer_charge_usd},provider_details_private:true},202);
 }
 async function pollStudioVideo(request,env,user,jobId){
  await ensureSchema(env);const job=await env.DB.prepare('SELECT * FROM movie_maker_jobs WHERE id=? AND tenant_id=? AND user_id=?').bind(jobId,String(user.tenant_id),String(user.id)).first();
