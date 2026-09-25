@@ -336,11 +336,13 @@ class SupervisorService:
     async def stop_call_recording(self, session_id: str) -> dict[str, Any]:
         self._require_ready()
         resources = self._resources(session_id)
-        stored = await self._stop_live_recording(resources["recording_name"])
-        await self._cleanup([
-            ("channel", resources["snoop_channel_id"]),
-            ("bridge", resources["bridge_id"]),
-        ])
+        try:
+            stored = await self._stop_live_recording(resources["recording_name"])
+        finally:
+            await self._cleanup([
+                ("channel", resources["snoop_channel_id"]),
+                ("bridge", resources["bridge_id"]),
+            ])
         return {
             **resources,
             "recording": False,
@@ -415,13 +417,19 @@ class SupervisorService:
         if task is not None:
             task.cancel()
         live = await self._ari.request("GET", f"/recordings/live/{resources['recording_name']}")
+        stop_error: Exception | None = None
         if live.is_success:
-            await self._stop_live_recording(resources["recording_name"])
+            try:
+                await self._stop_live_recording(resources["recording_name"])
+            except Exception as exc:
+                stop_error = exc
         await self._cleanup([
             ("channel", resources["supervisor_channel_id"]),
             ("channel", resources["snoop_channel_id"]),
             ("bridge", resources["bridge_id"]),
         ])
+        if stop_error is not None:
+            raise stop_error
         return {**resources, "stopped": True}
 
     async def shutdown(self) -> None:
