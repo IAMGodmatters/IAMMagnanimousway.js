@@ -27,6 +27,8 @@ class SupervisorSessionStart(BaseModel):
     target_channel_id: str = Field(min_length=1, max_length=160, pattern=r"^[A-Za-z0-9_.:-]+$")
     supervisor_endpoint: str = Field(min_length=2, max_length=80, pattern=r"^[A-Za-z0-9_.-]+$")
     mode: str = Field(default="monitor", pattern=r"^(monitor|whisper|barge)$")
+    consent_confirmed: bool = False
+    notice_confirmed: bool = False
 
 
 class SupervisorRecordingStart(BaseModel):
