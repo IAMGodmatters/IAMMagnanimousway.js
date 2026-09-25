@@ -36,3 +36,11 @@ class SupervisorRecordingStart(BaseModel):
     notice_confirmed: bool = False
     jurisdiction: str = Field(min_length=2, max_length=120)
     max_duration_seconds: int | None = Field(default=None, ge=60, le=28800)
+
+
+class CallRecordingStart(BaseModel):
+    target_channel_id: str = Field(min_length=1, max_length=160, pattern=r"^[A-Za-z0-9_.:-]+$")
+    consent_confirmed: bool = False
+    notice_confirmed: bool = False
+    jurisdiction: str = Field(min_length=2, max_length=120)
+    max_duration_seconds: int | None = Field(default=None, ge=60, le=28800)
