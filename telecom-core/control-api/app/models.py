@@ -21,3 +21,16 @@ class HangupRequest(BaseModel):
 class SipAccountCreate(BaseModel):
     username: str = Field(min_length=2, max_length=64, pattern=r"^[A-Za-z0-9_.-]+$")
     password: str | None = Field(default=None, min_length=12, max_length=128)
+
+
+class SupervisorSessionStart(BaseModel):
+    target_channel_id: str = Field(min_length=1, max_length=160, pattern=r"^[A-Za-z0-9_.:-]+$")
+    supervisor_endpoint: str = Field(min_length=2, max_length=80, pattern=r"^[A-Za-z0-9_.-]+$")
+    mode: str = Field(default="monitor", pattern=r"^(monitor|whisper|barge)$")
+
+
+class SupervisorRecordingStart(BaseModel):
+    consent_confirmed: bool = False
+    notice_confirmed: bool = False
+    jurisdiction: str = Field(min_length=2, max_length=120)
+    max_duration_seconds: int | None = Field(default=None, ge=60, le=28800)
