@@ -26,6 +26,8 @@ const NATIVE_CAPABILITIES=Object.freeze([
  ['chapters','Timestamp chapter planning from supplied captions','native-analysis'],
  ['script-plan','Long-form script structure and hook plan','native-analysis'],
  ['clip-plan','Short-form clip selection from supplied transcript','native-analysis'],
+ ['feedback','Save Creator Growth feedback inside the signed-in Magnanimous workspace','native-storage'],
+ ['creator-jobs','List persisted Movie Maker jobs and canonical poll links','native-storage'],
  ['earnings-estimate','RPM-based earnings range calculator','native-math'],
  ['owned-channel-analytics','Views, watch time, retention, traffic and geography','authorized-official-api'],
  ['best-time-to-post','Historical publishing-performance windows','official-api-plus-native-math'],
@@ -65,6 +67,11 @@ async function ensureSchema(env){
   tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,channel_id TEXT NOT NULL,title TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,user_id,channel_id)
  )`).run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS creator_feedback(
+  id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,category TEXT NOT NULL DEFAULT 'general',
+  message TEXT NOT NULL,context_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL
+ )`).run();
+ await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_creator_feedback_tenant ON creator_feedback(tenant_id,user_id,created_at DESC)').run();
 }
 
 async function authContext(env,user){
@@ -372,6 +379,31 @@ async function listCompetitors(env,user){
  const rows=(await env.DB.prepare('SELECT channel_id,title,created_at,updated_at FROM creator_competitors WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC').bind(String(user.tenant_id),String(user.id)).all()).results||[];return rows;
 }
 
+async function saveCreatorFeedback(env,user,body){
+ const category=['bug','feature','quality','general'].includes(String(body.category||'').toLowerCase())?String(body.category).toLowerCase():'general',message=clean(body.message,3000);
+ if(!message)throw new Error('Feedback message is required.');
+ const id=crypto.randomUUID(),context=body.context&&typeof body.context==='object'?body.context:{};
+ await env.DB.prepare('INSERT INTO creator_feedback(id,tenant_id,user_id,category,message,context_json,created_at) VALUES(?,?,?,?,?,?,?)').bind(id,String(user.tenant_id),String(user.id),category,message,JSON.stringify(context),now()).run();
+ return{id,category,message,created_at:now(),scope:'magnanimous-workspace',external_submission:false};
+}
+async function listCreatorFeedback(env,user,url){
+ const limit=clamp(url.searchParams.get('limit')||20,1,50),rows=(await env.DB.prepare('SELECT id,category,message,context_json,created_at FROM creator_feedback WHERE tenant_id=? AND user_id=? ORDER BY created_at DESC LIMIT ?').bind(String(user.tenant_id),String(user.id),limit).all()).results||[];
+ return rows.map(r=>({id:r.id,category:r.category,message:r.message,context:JSON.parse(r.context_json||'{}'),created_at:r.created_at}));
+}
+async function movieJobsTableReady(env){
+ const row=await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='movie_maker_jobs'").first();return Boolean(row?.name);
+}
+async function listCreatorJobs(env,user,url){
+ if(!await movieJobsTableReady(env))return[];
+ const limit=clamp(url.searchParams.get('limit')||30,1,50),rows=(await env.DB.prepare('SELECT id,kind,status,title,resolution,aspect_ratio,seconds,billing_mode,error_text,asset_id,created_at,updated_at FROM movie_maker_jobs WHERE tenant_id=? AND user_id=? ORDER BY updated_at DESC LIMIT ?').bind(String(user.tenant_id),String(user.id),limit).all()).results||[];
+ return rows.map(r=>({...r,seconds:Number(r.seconds||0),poll_url:`/api/movie-maker/jobs/${r.id}`,provider_details_private:true}));
+}
+async function creatorJobState(env,user,id){
+ if(!await movieJobsTableReady(env))return null;
+ const r=await env.DB.prepare('SELECT id,kind,status,title,resolution,aspect_ratio,seconds,billing_mode,error_text,asset_id,created_at,updated_at FROM movie_maker_jobs WHERE id=? AND tenant_id=? AND user_id=?').bind(clean(id,120),String(user.tenant_id),String(user.id)).first();
+ return r?{...r,seconds:Number(r.seconds||0),poll_url:`/api/movie-maker/jobs/${r.id}`,state_source:'Magnanimous persisted Movie Maker job state',provider_details_private:true}:null;
+}
+
 export async function handleCreatorGrowth(request,env){
  const url=new URL(request.url),path=url.pathname;if(!path.startsWith('/api/creator-growth'))return null;
  if(!env?.DB)return json({detail:'Creator intelligence storage is unavailable.'},503);
@@ -410,6 +442,10 @@ export async function handleCreatorGrowth(request,env){
   if(request.method==='POST'&&path==='/api/creator-growth/youtube-comment-reply'){return json(await postOwnedCommentReply(env,user,await request.json().catch(()=>({}))))}
   if(request.method==='POST'&&path==='/api/creator-growth/bookmarks'){return json({saved:await saveBookmark(env,user,await request.json().catch(()=>({})))},201)}
   if(request.method==='GET'&&path==='/api/creator-growth/bookmarks'){return json({items:await listBookmarks(env,user,url)})}
+  if(request.method==='POST'&&path==='/api/creator-growth/feedback'){return json({saved:await saveCreatorFeedback(env,user,await request.json().catch(()=>({})))},201)}
+  if(request.method==='GET'&&path==='/api/creator-growth/feedback'){return json({items:await listCreatorFeedback(env,user,url),external_submission:false})}
+  if(request.method==='GET'&&path==='/api/creator-growth/jobs'){return json({jobs:await listCreatorJobs(env,user,url),canonical_poll:'Use each poll_url to refresh an active Movie Maker job.'})}
+  const jm=path.match(/^\/api\/creator-growth\/jobs\/([^/]+)$/);if(jm&&request.method==='GET'){const job=await creatorJobState(env,user,jm[1]);return job?json(job):json({detail:'Creator job not found.'},404)}
   const bm=path.match(/^\/api\/creator-growth\/bookmarks\/([^/]+)$/);if(bm&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM creator_bookmarks WHERE id=? AND tenant_id=? AND user_id=?').bind(bm[1],String(user.tenant_id),String(user.id)).run();return json({ok:true,removed:bm[1]})}
   if(request.method==='POST'&&path==='/api/creator-growth/competitors'){const b=await request.json().catch(()=>({}));return json({competitor:await addCompetitor(env,user,b.channel||b.channel_id||'')},201)}
   if(request.method==='GET'&&path==='/api/creator-growth/competitors'){return json({competitors:await listCompetitors(env,user)})}
