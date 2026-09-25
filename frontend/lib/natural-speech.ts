@@ -2,6 +2,11 @@
 
 let speechGeneration=0;
 
+function appleMobileSpeechRuntime(){
+  if(typeof navigator==='undefined')return false;
+  return /iP(?:hone|ad|od)/i.test(String(navigator.userAgent||''));
+}
+
 export function cleanTextForSpeech(input:string){
   return String(input||'')
     .replace(/\`\`\`[\s\S]*?\`\`\`/g,' ')
@@ -80,7 +85,10 @@ export function stopNaturalSpeech(){
 
 export function speakTextNaturally(input:string,options:NaturalSpeechOptions={}){
   if(typeof window==='undefined'||!('speechSynthesis'in window))return false;
-  const chunks=splitSpeechText(input,options.maxChunkChars||260);
+  const appleMobile=appleMobileSpeechRuntime();
+  const maxChunkChars=appleMobile?Math.min(options.maxChunkChars||260,140):(options.maxChunkChars||260);
+  const interChunkDelayMs=appleMobile?Math.max(options.interChunkDelayMs??45,90):(options.interChunkDelayMs??45);
+  const chunks=splitSpeechText(input,maxChunkChars);
   if(!chunks.length)return false;
 
   const synth=window.speechSynthesis;
@@ -97,13 +105,17 @@ export function speakTextNaturally(input:string,options:NaturalSpeechOptions={})
     }
     const utterance=new SpeechSynthesisUtterance(chunks[index++]);
     options.configure?.(utterance);
+    if(appleMobile){
+      utterance.rate=Math.max(.88,Math.min(1,Number(utterance.rate)||.94));
+      utterance.pitch=Math.max(.95,Math.min(1.05,Number(utterance.pitch)||1));
+    }
     utterance.onstart=()=>{
       if(generation!==speechGeneration)return;
       if(!started){started=true;options.onStart?.()}
     };
     utterance.onend=()=>{
       if(generation!==speechGeneration)return;
-      window.setTimeout(next,options.interChunkDelayMs??45);
+      window.setTimeout(next,interChunkDelayMs);
     };
     utterance.onerror=(event:any)=>{
       if(generation!==speechGeneration)return;

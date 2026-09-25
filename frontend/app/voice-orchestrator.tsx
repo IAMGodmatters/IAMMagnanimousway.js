@@ -74,7 +74,9 @@ function currentPersona(){
  return'Magnanimous AI';
 }
 
+function appleMobileVoiceRuntime(){return typeof navigator!=='undefined'&&/iP(?:hone|ad|od)/i.test(String(navigator.userAgent||''))}
 function chooseVoice(label:string){
+ if(appleMobileVoiceRuntime())return{voice:undefined,rate:.94,pitch:1};
  const synth=window.speechSynthesis,all=synth.getVoices();
  const english=all.filter(v=>/^en(?:-|$)/i.test(v.lang));
  const natural=english.filter(v=>/natural|enhanced|premium|neural|siri|google|microsoft/i.test(v.name));
@@ -108,7 +110,7 @@ function primeSpeechSynthesis(){
 
 function latestReply(path:string){
  let nodes:NodeListOf<Element>;
- if(path==='/magnanimous'||path.startsWith('/magnanimous/'))nodes=document.querySelectorAll('.mag-message.assistant .mag-bubble p');
+ if(path==='/magnanimous'||path.startsWith('/magnanimous/'))nodes=document.querySelectorAll('.mag-message.assistant:not(.voice-silent) .mag-bubble p');
  else if(path==='/ai-chat'||path.startsWith('/ai-chat/'))nodes=document.querySelectorAll('.history article .answer p');
  else return'';
  return nodes.length?(nodes[nodes.length-1].textContent||'').trim():'';

@@ -5,7 +5,7 @@ import AIProcessingIndicator from '../../components/AIProcessingIndicator';
 import {postMagnanimousChat} from '../../lib/magnanimous-chat-transport';
 
 type Role='user'|'assistant';
-type ChatMessage={id:number;role:Role;content:string;meta?:string;sources?:Array<{title?:string;url?:string}>;assistantName?:string;assistantTitle?:string};
+type ChatMessage={id:number;role:Role;content:string;meta?:string;sources?:Array<{title?:string;url?:string}>;assistantName?:string;assistantTitle?:string;silentVoice?:boolean};
 type Mode={id:string;label:string;hint:string;live?:boolean;news?:boolean};
 
 const MODES:Mode[]=[
@@ -81,7 +81,7 @@ export default function StandaloneMagnanimous(){
    const parts=[specialist?`Magnanimous routed to ${specialist.name}`:'',learned?`learned ${learned} link${learned===1?'':'s'}`:'',grounded?`${grounded} source${grounded===1?'':'s'}`:''].filter(Boolean);
    setMessages(v=>[...v,{id:userId+1,role:'assistant',content:answer,assistantName:specialist?String(specialist.name||'Specialist'):'Magnanimous AI',assistantTitle:specialist?String(specialist.title||specialist.specialty||'Specialist branch'):'',meta:parts.join(' • '),sources:extractSources(d?.sources)}]);
   }catch(err:any){
-   setMessages(v=>[...v,{id:userId+1,role:'assistant',assistantName:'Magnanimous AI',content:`I could not complete that request: ${String(err?.message||err)}. ${signedIn?'Try again in a moment.':'You can also sign in if this task needs persistent memory or connected-account access.'}`}]);
+   setMessages(v=>[...v,{id:userId+1,role:'assistant',assistantName:'Magnanimous AI',silentVoice:true,content:`I could not complete that request: ${String(err?.message||err)}. ${signedIn?'Try again in a moment.':'You can also sign in if this task needs persistent memory or connected-account access.'}`}]);
   }finally{setBusy(false)}
  }
 
@@ -113,7 +113,7 @@ export default function StandaloneMagnanimous(){
    <section className="mag-chat" aria-label="Magnanimous conversation">
     <div className="mag-modebar"><div><small>ACTIVE MODE</small><b>{activeMode.label}</b></div><span>Magnanimous core • automatic named specialist handoff when the subject matches</span></div>
     <div className="mag-thread" aria-live="polite">
-     {messages.map(m=>{const name=m.role==='assistant'?(m.assistantName||'Magnanimous AI'):'YOU';return <article key={m.id} className={`mag-message ${m.role}`}>
+     {messages.map(m=>{const name=m.role==='assistant'?(m.assistantName||'Magnanimous AI'):'YOU';return <article key={m.id} className={`mag-message ${m.role}${m.silentVoice?' voice-silent':''}`}>
       <div className="mag-avatar">{m.role==='assistant'?initials(name):'YOU'}</div>
       <div className="mag-bubble"><small>{name.toUpperCase()}{m.role==='assistant'&&m.assistantTitle?` • ${m.assistantTitle.toUpperCase()}`:''}</small><p>{m.content}</p>{m.meta&&<div className="mag-meta">{m.meta}</div>}{m.sources&&m.sources.length>0&&<div className="mag-sources"><b>Sources</b>{m.sources.map((s,i)=>s.url?<a key={`${s.url}-${i}`} href={s.url} target="_blank" rel="noreferrer">{s.title||s.url}</a>:<span key={i}>{s.title}</span>)}</div>}</div>
      </article>})}
