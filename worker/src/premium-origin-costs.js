@@ -55,6 +55,18 @@ export function retailFromOriginUsd(originUsd,markupPercent=MARKUP_PERCENT){
   return round(origin*(1+markup/100));
 }
 
+export function cloudflarePremiumTokenCostUsd(model,usage={}){
+  const rates={
+    '@cf/zai-org/glm-5.3-flash':{input:0.15,output:0.50}
+  };
+  const rate=rates[String(model||'')];
+  if(!rate)return null;
+  const input=Math.max(0,Number(usage?.prompt_tokens??usage?.input_tokens??0));
+  const output=Math.max(0,Number(usage?.completion_tokens??usage?.output_tokens??0));
+  if(!Number.isFinite(input)||!Number.isFinite(output))return null;
+  return round((input/1_000_000)*rate.input+(output/1_000_000)*rate.output);
+}
+
 export function premiumCostQuote(id,units=1){
   const row=PREMIUM_ORIGIN_COSTS[id];
   if(!row)return null;
