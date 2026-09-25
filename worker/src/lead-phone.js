@@ -97,6 +97,17 @@ async function logEvent(env, tenantId, callId, eventType, status = '', detail = 
   ).run();
 }
 
+function magnanimousCoreBridgeReady(env) {
+  try {
+    if (!env.TELECOM_CORE_URL || !env.TELECOM_CORE_TOKEN || !env.VOIP_PROVIDER_URL || !env.VOIP_PROVIDER_TOKEN) return false;
+    const provider = new URL(String(env.VOIP_PROVIDER_URL));
+    const core = new URL(String(env.TELECOM_CORE_URL));
+    return provider.protocol === 'https:' && core.protocol === 'https:' && provider.origin === core.origin;
+  } catch {
+    return false;
+  }
+}
+
 async function placeCarrierCall(env, payload) {
   if (!carrierConfig(env).pstnConfigured) {
     const error = new Error('Connect a carrier bridge before calling an ordinary phone number.');
@@ -379,7 +390,7 @@ async function phoneRoutes(request, env, user, path, url) {
       console.error('Carrier route planner unavailable; preserving compatibility path', error);
     }
     const selected = routePlan?.selected || null;
-    const selectedRoute = selected && ['sip-trunk','byoc-bridge','direct-pstn'].includes(String(selected.type || '')) && String(selected.endpoint || '').trim()
+    const selectedRoute = magnanimousCoreBridgeReady(env) && selected && ['sip-trunk','byoc-bridge','direct-pstn'].includes(String(selected.type || '')) && String(selected.endpoint || '').trim()
       ? {
           route_id: selected.route_id,
           interconnect_id: selected.interconnect_id,
