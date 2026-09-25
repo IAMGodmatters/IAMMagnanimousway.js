@@ -40,3 +40,8 @@ class SipAccountConflictError(TelecomError):
 class SipAccountNotFoundError(TelecomError):
     status_code = 404
     code = "SIP_ACCOUNT_NOT_FOUND"
+
+class TelecomNotFoundError(TelecomError):
+    status_code = 404
+    code = "TELECOM_NOT_FOUND"
+

@@ -68,6 +68,15 @@ class TelecomSettings:
     sip_db_password: str = ""
     carrier_secondary_endpoint: str = ""
     carrier_allowed_endpoints: tuple[str, ...] = ()
+    stasis_bridge_enabled: bool = False
+    stasis_app: str = "magnanimous-native-call"
+    stasis_agent_endpoint: str = "PJSIP/9000"
+    stasis_reconnect_attempts: int = 5
+    stasis_reconnect_delay_seconds: float = 1.0
+    supervisor_audio_enabled: bool = False
+    bridge_recording_enabled: bool = False
+    bridge_recording_format: str = "wav"
+    bridge_recording_max_seconds: int = 14400
 
     @classmethod
     def from_env(cls) -> "TelecomSettings":
@@ -90,6 +99,7 @@ class TelecomSettings:
                 *[x.strip() for x in _env("CARRIER_SIP_ALLOWED_ENDPOINTS").split(",") if x.strip()],
             ] if item
         ))
+        ai_extension = _env("MAGNANIMOUS_AI_EXTENSION", "9000")
         return cls(
             api_token=_env("TELECOM_API_TOKEN"),
             webhook_secret=_env("TELECOM_WEBHOOK_SECRET"),
@@ -122,4 +132,13 @@ class TelecomSettings:
             sip_db_password=_env("SIP_DB_PASSWORD"),
             carrier_secondary_endpoint=carrier_secondary_endpoint,
             carrier_allowed_endpoints=carrier_allowed,
+            stasis_bridge_enabled=_env_bool("ASTERISK_STASIS_BRIDGE_ENABLED", False),
+            stasis_app=_env("ASTERISK_STASIS_APP", "magnanimous-native-call") or "magnanimous-native-call",
+            stasis_agent_endpoint=_env("ASTERISK_STASIS_AGENT_ENDPOINT", f"PJSIP/{ai_extension}"),
+            stasis_reconnect_attempts=max(1, min(10, _env_int("ASTERISK_STASIS_RECONNECT_ATTEMPTS", 5))),
+            stasis_reconnect_delay_seconds=max(0.25, min(5.0, _env_float("ASTERISK_STASIS_RECONNECT_DELAY_SECONDS", 1.0))),
+            supervisor_audio_enabled=_env_bool("ASTERISK_SUPERVISOR_AUDIO_ENABLED", False),
+            bridge_recording_enabled=_env_bool("ASTERISK_BRIDGE_RECORDING_ENABLED", False),
+            bridge_recording_format=_env("ASTERISK_BRIDGE_RECORDING_FORMAT", "wav") or "wav",
+            bridge_recording_max_seconds=max(60, min(28800, _env_int("ASTERISK_BRIDGE_RECORDING_MAX_SECONDS", 14400))),
         )

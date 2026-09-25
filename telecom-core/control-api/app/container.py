@@ -11,6 +11,7 @@ from .services.calls import CallService
 from .services.health import HealthService
 from .services.monitoring import CarrierCallMonitor
 from .services.sip_accounts import SipAccountService
+from .services.stasis_bridges import AsteriskStasisBridgeService
 from .services.webrtc_sessions import WebRtcSessionService
 
 
@@ -23,13 +24,16 @@ class ApplicationContainer:
     health: HealthService
     sip_accounts: SipAccountService
     webrtc_sessions: WebRtcSessionService
+    stasis: AsteriskStasisBridgeService
 
 
 def build_container(settings: TelecomSettings | None = None) -> ApplicationContainer:
     """Composition root. Concrete infrastructure is assembled here and injected into services."""
     resolved = settings or TelecomSettings.from_env()
     ari = AsteriskAriClient(resolved)
-    bridge = AsteriskSipCarrierBridge(ari, resolved)
+    webrtc_sessions = WebRtcSessionService(ari, resolved)
+    stasis = AsteriskStasisBridgeService(ari, resolved, webrtc_sessions)
+    bridge = AsteriskSipCarrierBridge(ari, resolved, stasis)
     callback_policy = CallbackUrlPolicy(resolved)
     publisher = WebhookStatusPublisher(resolved)
     monitor = CarrierCallMonitor(bridge, publisher, resolved)
@@ -38,7 +42,6 @@ def build_container(settings: TelecomSettings | None = None) -> ApplicationConta
     auth = TelecomTokenAuthenticator(resolved)
     subscriber_store = PostgresSipSubscriberStore(resolved)
     sip_accounts = SipAccountService(subscriber_store, resolved)
-    webrtc_sessions = WebRtcSessionService(ari, resolved)
     return ApplicationContainer(
         settings=resolved,
         auth=auth,
@@ -47,6 +50,7 @@ def build_container(settings: TelecomSettings | None = None) -> ApplicationConta
         health=health,
         sip_accounts=sip_accounts,
         webrtc_sessions=webrtc_sessions,
+        stasis=stasis,
     )
 
 

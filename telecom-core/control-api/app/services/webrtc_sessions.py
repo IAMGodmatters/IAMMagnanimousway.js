@@ -23,6 +23,7 @@ class WebRtcSessionService:
     def __init__(self, ari: AsteriskAriClient, settings: TelecomSettings):
         self._ari = ari
         self._settings = settings
+        self._owners: dict[str, dict[str, Any]] = {}
 
     def _require_ready(self) -> None:
         if not self._settings.webrtc_enabled:
@@ -73,7 +74,17 @@ class WebRtcSessionService:
             raise CarrierRejectedError("Invalid native WebRTC session identifier.")
         for object_type in ("endpoint", "aor", "auth"):
             await self._delete(object_type, session_id)
+        self._owners.pop(session_id, None)
         return {"ok": True, "session_id": session_id, "deleted": True}
+
+    def owns_session(self, session_id: str, tenant_id: str) -> bool:
+        owner = self._owners.get(str(session_id))
+        if not owner:
+            return False
+        return (
+            owner.get("tenant_id") == str(tenant_id)
+            and int(owner.get("expires_at") or 0) > int(time.time())
+        )
 
     @classmethod
     def _expires_from_id(cls, resource: str) -> int | None:
@@ -113,7 +124,7 @@ class WebRtcSessionService:
                 pass
             await asyncio.sleep(30)
 
-    async def create(self) -> dict[str, Any]:
+    async def create(self, tenant_id: str = "", user_id: str = "") -> dict[str, Any]:
         self._require_ready()
         await self.reap_expired()
 
@@ -188,6 +199,12 @@ class WebRtcSessionService:
             raise
 
         ice_servers = self._turn_ice_servers(session_id, expires_at)
+        if str(tenant_id).strip() and str(user_id).strip():
+            self._owners[session_id] = {
+                "tenant_id": str(tenant_id).strip(),
+                "user_id": str(user_id).strip(),
+                "expires_at": expires_at,
+            }
         return {
             "identity": "Magnanimous Telecom",
             "provider": "Magnanimous Carrier",

@@ -32,6 +32,7 @@ has(runtime,"host==='localhost'||host.endsWith('.local')",'Telecom Core live bri
 has(runtime,'privateV4.test(host)','Telecom Core live bridge rejects private or CGNAT IPv4 literals');
 has(runtime,"headers.set('Authorization',`Bearer ${cfg.token}`)",'Telecom Core bearer token is attached only by server runtime');
 has(runtime,"SELECT session_id FROM cc_native_webrtc_sessions WHERE tenant_id=? AND user_id=? AND expires_at>?",'native session creation finds prior active sessions for the same signed-in user');
+has(runtime,"body:JSON.stringify({tenant_id:String(user.tenant_id),user_id:String(user.id)})",'native browser-session issuance binds the protected Telecom Core session to the signed-in tenant/user');
 has(runtime,"previous native browser session could not be safely revoked",'native session rotation fails closed when prior credential revocation cannot be verified');
 has(runtime,"Magnanimous Telecom Core is unavailable, so revocation could not be verified.",'native session deletion fails closed when remote revocation cannot be verified');
 has(runtime,'remote_revocation_verified:true','successful native session delete explicitly reports verified remote revocation');

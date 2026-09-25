@@ -158,7 +158,7 @@ async function createNativeSoftphoneSession(env,user){
   await env.DB.prepare('DELETE FROM cc_native_webrtc_sessions WHERE session_id=? AND tenant_id=? AND user_id=?').bind(prior,String(user.tenant_id),String(user.id)).run();
  }
  await env.DB.prepare('DELETE FROM cc_native_webrtc_sessions WHERE expires_at<=?').bind(ts).run().catch(()=>{});
- const response=await telecomCoreRequest(env,'/v1/webrtc/sessions',{method:'POST'});if(!response)return json({detail:'Magnanimous Telecom Core is unavailable.',fallback:'compatibility'},502);
+ const response=await telecomCoreRequest(env,'/v1/webrtc/sessions',{method:'POST',body:JSON.stringify({tenant_id:String(user.tenant_id),user_id:String(user.id)})});if(!response)return json({detail:'Magnanimous Telecom Core is unavailable.',fallback:'compatibility'},502);
  const data=await response.json().catch(()=>null);if(!response.ok)return json({detail:'Magnanimous Telecom Core rejected the native browser session.',status:response.status,fallback:'compatibility'},502);
  const sessionId=clean(data?.session_id),username=clean(data?.username),password=clean(data?.password),domain=clean(data?.domain),wssUrl=clean(data?.wss_url),expiresAt=Number(data?.expires_at||0);
  const iceServers=[];
