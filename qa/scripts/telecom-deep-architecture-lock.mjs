@@ -61,6 +61,8 @@ const plivoCarrier=read('worker/src/plivo-carrier-runtime.js');
 const voiceAgent=read('worker/src/voice-agent-runtime.js');
 const liveEntrypoint=read('worker/src/entrypoint.js');
 const telecomWorkflow=read('.github/workflows/telecom-core-check.yml');
+const stasisLiveWorkflow=read('.github/workflows/telecom-stasis-live-verification.yml');
+const stasisLiveVerifier=read('telecom-core/scripts/verify-supervision-live.py');
 
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
@@ -72,6 +74,8 @@ file('telecom-core/oci/verify_free_plan.py','OCI Terraform free-plan verifier is
 file('.github/workflows/telecom-oci-terraform-lock.yml','OCI Terraform free-profile CI lock is versioned');
 file('telecom-core/oci/cloud-shell-plan.sh','OCI Cloud Shell guarded plan/apply helper is versioned');
 file('telecom-core/oci/CLOUD-SHELL.md','OCI browser-only Cloud Shell activation guide is versioned');
+file('.github/workflows/telecom-stasis-live-verification.yml','real-host Stasis live-verification workflow is versioned');
+file('telecom-core/scripts/verify-supervision-live.py','real-host Stasis verifier is versioned');
 
 has(pjsip,'#include pjsip-webrtc.conf','base PJSIP includes gated native WebRTC fragment');
 has(webrtc,'protocol=wss','native WebRTC uses secure WebSocket transport');
@@ -162,6 +166,21 @@ has(supervision,'/snoop/','supervisor audio uses the Asterisk ARI snoop primitiv
 has(supervision,'/bridges/{resources[\'bridge_id\']}/record','recording is bridge-level under Stasis control');
 has(supervision,'"beep": "true"','bridge recording always emits an Asterisk recording beep');
 has(supervision,'"recording_file_exposed": False','Telecom Core does not expose raw recording files through the supervision API');
+has(stasisLiveWorkflow,'name: Telecom Stasis Live Verification','strict Stasis real-host workflow is versioned');
+has(stasisLiveWorkflow,'consent_and_notice_confirmed','live supervision verification requires explicit consent/notice confirmation');
+has(stasisLiveWorkflow,'TELECOM_PUBLIC_CONTROL_API_TOKEN','real-host workflow consumes the protected Telecom API token only as a secret');
+has(stasisLiveWorkflow,'TELECOM_NATIVE_WEBRTC_LIVE','supervisor-audio verification remains behind the separate public WebRTC live gate');
+has(stasisLiveWorkflow,'actions/upload-artifact@v7','live Stasis verification uploads evidence for later audit');
+lacks(stasisLiveWorkflow,'gh variable set TELECOM_NATIVE_WEBRTC_LIVE','verification workflow cannot promote the browser live flag');
+lacks(stasisLiveWorkflow,'ASTERISK_SUPERVISOR_CONTROL_ENABLED=true','verification workflow cannot promote supervisor control automatically');
+has(stasisLiveVerifier,'require_public_https','real-host verifier rejects non-public/non-TLS targets by default');
+has(stasisLiveVerifier,'consent-notice-fail-closed','verifier proves consent/notice rejection before positive media actions');
+has(stasisLiveVerifier,'headless-bridge-recording','verifier proves headless bridge recording start/stop lifecycle');
+has(stasisLiveVerifier,'for mode in ("monitor", "whisper", "barge")','verifier covers all three supervisor lifecycle modes');
+has(stasisLiveVerifier,'acoustic_semantics_automatically_proven": False','verifier does not overclaim acoustic monitor/whisper/barge semantics');
+has(stasisLiveVerifier,'recording_file_exposed','verifier evidence locks raw recording file privacy');
+has(stasisLiveVerifier,'does not promote TELECOM_NATIVE_WEBRTC_LIVE or ASTERISK_SUPERVISOR_CONTROL_ENABLED','evidence explicitly remains non-promotional');
+has(telecomWorkflow,'python -m py_compile telecom-core/scripts/verify-supervision-live.py','Telecom CI syntax-checks the real-host Stasis verifier');
 has(contactCenter,"metadata?.control_plane==='magnanimous-telecom-core'",'Worker applies native supervision only to calls marked as protected Telecom Core');
 has(contactCenter,'Workspace owner access required.','contact-center supervision is owner/admin gated');
 has(contactCenter,'cc_supervisor_sessions','supervisor actions have a tenant-scoped durable audit table');
