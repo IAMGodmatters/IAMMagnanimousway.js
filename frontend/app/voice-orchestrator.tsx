@@ -79,14 +79,19 @@ function chooseVoice(label:string){
  if(appleMobileVoiceRuntime())return{voice:undefined,rate:.94,pitch:1};
  const synth=window.speechSynthesis,all=synth.getVoices();
  const english=all.filter(v=>/^en(?:-|$)/i.test(v.lang));
- const natural=english.filter(v=>/natural|enhanced|premium|neural|siri|google|microsoft/i.test(v.name));
- const pool=natural.length?natural:english.length?english:all;
- const h=hash(label.toLowerCase());
- const voice=pool.length?pool[h%pool.length]:undefined;
- if(label==='Magnanimous AI')return{voice,rate:.96,pitch:.9};
- const rate=.90+((h>>>4)%7)*.025;
- const pitch=.82+((h>>>9)%9)*.045;
- return{voice,rate:Math.min(1.08,rate),pitch:Math.min(1.18,pitch)};
+ const score=(v:SpeechSynthesisVoice)=>{
+  const name=String(v.name||'');
+  let value=0;
+  if(v.default)value+=80;
+  if(v.localService)value+=24;
+  if(/natural|enhanced|premium|neural/i.test(name))value+=45;
+  if(/samantha|ava|allison|aria|jenny|guy|google us english|microsoft/i.test(name))value+=30;
+  if(/^en-US$/i.test(v.lang))value+=12;
+  return value;
+ };
+ const pool=(english.length?english:all).slice().sort((a,b)=>score(b)-score(a)||a.name.localeCompare(b.name));
+ const voice=pool[0];
+ return{voice,rate:label==='Magnanimous AI'?.95:.96,pitch:1};
 }
 
 function applyVoiceProfile(utterance:SpeechSynthesisUtterance,label:string){
@@ -246,7 +251,8 @@ export default function VoiceOrchestrator(){
      interChunkDelayMs:55,
      onStart:()=>{setNotice('');setSpeaking(true);emitCheckpoint({kind:'voice-reply',stage:'speaking',content:settled,metadata:{persona:nextPersona,path:location.pathname}})},
      onEnd:()=>{setSpeaking(false);emitCheckpoint({kind:'voice-reply',stage:'spoken',content:settled,metadata:{persona:nextPersona,path:location.pathname}})},
-     onError:()=>{setSpeaking(false);setNotice('I generated the reply, but your browser could not play the voice smoothly. Tap the speaker button once, then try again.');emitCheckpoint({kind:'voice-reply',stage:'speech-error',content:settled,metadata:{persona:nextPersona,path:location.pathname}})}
+     onRepair:(detail)=>{setNotice('Voice playback adjusted automatically for clearer speech.');emitCheckpoint({kind:'voice-reply',stage:'speech-auto-repair',content:settled,metadata:{persona:nextPersona,path:location.pathname,attempt:detail.attempt,reason:detail.reason}})},
+     onError:()=>{setSpeaking(false);setNotice('Automatic voice repair was attempted, but this browser still blocked smooth playback. The written answer is available.');emitCheckpoint({kind:'voice-reply',stage:'speech-error-after-repair',content:settled,metadata:{persona:nextPersona,path:location.pathname}})}
     });
    },950);
   };
@@ -283,7 +289,8 @@ export default function VoiceOrchestrator(){
   speakTextNaturally(`This is ${persona}. I recognize my name and my specialist role.`,{
    configure:(u)=>applyVoiceProfile(u,persona),maxChunkChars:220,interChunkDelayMs:45,
    onStart:()=>{setNotice('');setSpeaking(true)},onEnd:()=>setSpeaking(false),
-   onError:()=>{setSpeaking(false);setNotice('Your browser could not play the voice smoothly. Check device volume and try again.')}
+   onRepair:(detail)=>{setNotice('Voice playback adjusted automatically for clearer speech.');emitCheckpoint({kind:'voice-sample',stage:'speech-auto-repair',content:persona,metadata:{attempt:detail.attempt,reason:detail.reason}})},
+   onError:()=>{setSpeaking(false);setNotice('Automatic voice repair was attempted, but this browser still blocked playback.')}
   });
  }
  function listen(){
