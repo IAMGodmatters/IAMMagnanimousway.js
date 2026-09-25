@@ -31,6 +31,7 @@ on:
       - 'worker/migrations/0047_magnanimous_telecom_charging_integrity.sql'
       - '.github/workflows/telecom-core-check.yml'
       - '.github/workflows/public-webrtc-verification.yml'
+      - '.github/workflows/telecom-stasis-live-verification.yml'
   pull_request:
     paths:
       - 'telecom-core/**'
@@ -60,6 +61,7 @@ on:
       - 'worker/migrations/0047_magnanimous_telecom_charging_integrity.sql'
       - '.github/workflows/telecom-core-check.yml'
       - '.github/workflows/public-webrtc-verification.yml'
+      - '.github/workflows/telecom-stasis-live-verification.yml'
 
 permissions:
   contents: read
@@ -98,6 +100,8 @@ jobs:
           bash -n telecom-core/deploy/bootstrap-public-host.sh
           bash -n telecom-core/deploy/sync-public-tls.sh
           node --check telecom-core/webrtc-e2e/validate-public-target.mjs
+          python -m py_compile telecom-core/scripts/verify-supervision-live.py
+          python telecom-core/scripts/verify-supervision-live.py --help >/dev/null
 
       - name: Validate Compose model
         env:
