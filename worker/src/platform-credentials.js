@@ -104,9 +104,11 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'MAGNANIMOUS_MEDIA_WORKER_TOKEN',label:'Magnanimous Media Worker Bearer Token',secret:true,required:false}
  ]},
  {id:'web-research',name:'Web Research & News',providers:['brave-search'],fields:[{key:'BRAVE_SEARCH_API_KEY',label:'Brave Search API Key (optional live web/news research)',secret:true,required:false}]},
- {id:'adsense',name:'Google AdSense / Auto Ads',providers:['adsense'],fields:[
-  {key:'ADSENSE_CLIENT_ID',label:'AdSense Publisher ID (ca-pub-...)',secret:false,required:true},
-  {key:'ADSENSE_SLOT_HOME',label:'Homepage Ad Unit Slot ID (optional for Auto Ads)',secret:false,required:false}
+ {id:'adsense',name:'Magnanimous Revenue Advertising',providers:['adsense'],fields:[
+  {key:'MAGNANIMOUS_AD_NETWORK_ENABLED',label:'Enable Revenue Ad Network (true/false)',secret:false,required:false},
+  {key:'ADSENSE_CLIENT_ID',label:'Publisher ID (ca-pub-...)',secret:false,required:true},
+  {key:'ADSENSE_SLOT_HOME',label:'Homepage Ad Unit Slot ID (optional)',secret:false,required:false},
+  {key:'ADSENSE_SLOT_MOVIE',label:'Free Movie Watch Ad Unit Slot ID (optional)',secret:false,required:false}
  ]},
  {id:'meta',name:'Meta',providers:['facebook','instagram','whatsapp'],fields:[
   {key:'META_APP_ID',label:'Meta App ID',secret:false,required:true},
