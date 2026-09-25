@@ -63,7 +63,10 @@ has(compose,'CARRIER_PRIMARY_DIAL_CONTEXT','container passes primary explicit ro
 has(compose,'CARRIER_SECONDARY_DIAL_CONTEXT','container passes secondary explicit route context');
 has(leadPhone,"['auto', 'primary', 'secondary'].includes(routeId)",'platform validates manual carrier route ids');
 has(leadPhone,"Owner or admin access is required to select a carrier route manually.",'manual route selection is owner/admin gated');
-has(leadPhone,'route_id: routeId','platform sends the selected route through the private carrier bridge');
+has(leadPhone,'magnanimousRouteControlReady','manual route control requires the verified Magnanimous Telecom Core');
+has(leadPhone,"bridge.origin === core.origin",'manual route control verifies the call bridge and native core share the same trusted origin');
+has(leadPhone,"...(body.route_id ? { route_id: routeId } : {})",'generic BYOC payload stays unchanged unless an owner explicitly selects a verified Magnanimous route');
+has(leadPhone,'ROUTE_CONTROL_NOT_READY','manual route selection fails closed when the native core route contract is unavailable');
 has(leadPhone,'automatic_route_planner: false','platform records that automatic planner execution is disabled');
 has(contactCenter,"/api/contact-center/carrier/routes",'owner contact-center surface can inspect private route inventory');
 has(contactCenter,'live_route_planner_execution:false','contact-center route surface cannot imply planner cutover');
