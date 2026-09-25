@@ -67,8 +67,6 @@ has(leadPhone,'route_id: routeId','platform sends the selected route through the
 has(leadPhone,'automatic_route_planner: false','platform records that automatic planner execution is disabled');
 has(contactCenter,"/api/contact-center/carrier/routes",'owner contact-center surface can inspect private route inventory');
 has(contactCenter,'live_route_planner_execution:false','contact-center route surface cannot imply planner cutover');
-lacks(contactCenter,'TELECOM_CORE_TOKEN', 'placeholder');
-checks.pop();
 has(docs,'automatic route-planner execution disabled','telecom documentation preserves the route planner truth boundary');
 
 const failed=checks.filter(([,ok])=>!ok);
