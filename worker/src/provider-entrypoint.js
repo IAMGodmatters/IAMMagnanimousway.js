@@ -57,8 +57,15 @@ const TOOLS = [
   ['customer-service','Customer Service Helper','Draft helpful customer responses.']
 ].map(([id,name,description]) => ({ id, name, description }));
 
+function nvidiaExecutionAllowed(env){
+  const licensed=String(env?.NVIDIA_AI_ENTERPRISE_LICENSE_CONFIRMED||'').toLowerCase()==='true';
+  const mode=String(env?.MAGNANIMOUS_ENV||env?.NODE_ENV||'production').toLowerCase();
+  const developer=String(env?.NVIDIA_NIM_DEVELOPER_MODE||'').toLowerCase()==='true'&&['development','test'].includes(mode);
+  return licensed||developer;
+}
 function configured(env, p) {
   if (p.id === 'cloudflare-ai') return env?.AI != null;
+  if(p.id.startsWith('nvidia-')&&!nvidiaExecutionAllowed(env))return false;
   return typeof env?.[p.key] === 'string' && env[p.key].trim().length > 0;
 }
 function meteredEnabled(env) { return String(env?.ENABLE_METERED_PROVIDERS || '').toLowerCase() === 'true'; }
@@ -120,7 +127,7 @@ async function withinProviderBudget(promise,timeoutMs,label='AI execution'){
 }
 
 async function openai(env, message, model) {
-  const r = await providerFetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: model || env.OPENAI_MODEL || 'gpt-5.6', input: message }) });
+  const r = await providerFetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: model || env.OPENAI_MODEL || 'gpt-5.6-luna', input: message }) });
   const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || 'OpenAI request failed');
   return {text:d.output_text || '',usage:d.usage||{}};
 }
@@ -157,9 +164,9 @@ async function cloudflare(env, message, model) {
   const requested = String(model || env.CLOUDFLARE_AI_MODEL || '').trim();
   const models = [...new Set([
     requested,
-    '@cf/meta/llama-3.1-8b-instruct-fast',
-    '@cf/meta/llama-3.2-1b-instruct',
-    '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+    '@cf/zai-org/glm-4.7-flash',
+    '@cf/nvidia/nemotron-3-120b-a12b',
+    '@cf/google/gemma-4-26b-a4b-it'
   ].filter(Boolean))];
   const errors = [],deadline=Date.now()+CLOUDFLARE_MODEL_BUDGET_MS;
   for (const m of models) {
@@ -184,7 +191,7 @@ async function cloudflare(env, message, model) {
 }
 
 async function callProvider(id, env, message, model) {
-  if (id === 'openai') {const m=model || env.OPENAI_MODEL || 'gpt-5.6',out=await openai(env,message,m);return {...out,model:m};}
+  if (id === 'openai') {const m=model || env.OPENAI_MODEL || 'gpt-5.6-luna',out=await openai(env,message,m);return {...out,model:m};}
   if (id === 'anthropic') {const m=model || env.ANTHROPIC_MODEL || 'claude-sonnet-5',out=await anthropic(env,message,m);return {...out,model:m};}
   if (id === 'google') {const m=model || env.GOOGLE_MODEL || 'gemini-3.8-flash',out=await google(env,message,m);return {...out,model:m};}
   if (id === 'groq') {const m=model || env.GROQ_MODEL || 'openai/gpt-oss-120b',out=await openaiCompatible('https://api.groq.com/openai/v1',env.GROQ_API_KEY,m,message,'Groq');return {...out,model:m};}
@@ -395,7 +402,7 @@ async function handle(request, env) {
         if(paidExecution){
           if(!signedInUser){errors.push(`${p.name}: paid execution requires a signed-in funded workspace`);continue}
           const modelForReserve=String(body.model||(
-            p.id==='openai'?env.OPENAI_MODEL||'gpt-5.6':
+            p.id==='openai'?env.OPENAI_MODEL||'gpt-5.6-luna':
             p.id==='anthropic'?env.ANTHROPIC_MODEL||'claude-sonnet-5':
             p.id==='google'?env.GOOGLE_MODEL||'gemini-3.8-flash':
             p.id==='groq'?env.GROQ_MODEL||'openai/gpt-oss-120b':
