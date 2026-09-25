@@ -2,6 +2,7 @@
 
 import {useEffect,useRef,useState} from 'react';
 import {speakTextNaturally,stopNaturalSpeech} from '../lib/natural-speech';
+import {getPlatformAuthToken} from './lib/magnanimous-session';
 
 type SpeechRecognitionLike={
  lang:string;
@@ -114,6 +115,20 @@ function latestReply(path:string){
  else if(path==='/ai-chat'||path.startsWith('/ai-chat/'))nodes=document.querySelectorAll('.history article .answer p');
  else return'';
  return nodes.length?(nodes[nodes.length-1].textContent||'').trim():'';
+}
+
+function reportVoiceSelfHeal(event:any,stage:string){
+ if(typeof window==='undefined')return;
+ const token=getPlatformAuthToken();
+ if(!token)return;
+ const code=String(event?.error||event?.name||'unknown').slice(0,50);
+ const platform=String(navigator.userAgent||navigator.platform||'browser').slice(0,100);
+ fetch('/api/self-heal/voice',{
+  method:'POST',
+  headers:{'content-type':'application/json',Authorization:`Bearer ${token}`},
+  body:JSON.stringify({code,platform,stage}),
+  keepalive:true
+ }).catch(()=>{});
 }
 
 function emitCheckpoint(detail:{kind:string;stage:string;content:string;metadata?:Record<string,string|number|boolean>}){
@@ -246,7 +261,8 @@ export default function VoiceOrchestrator(){
      interChunkDelayMs:55,
      onStart:()=>{setNotice('');setSpeaking(true);emitCheckpoint({kind:'voice-reply',stage:'speaking',content:settled,metadata:{persona:nextPersona,path:location.pathname}})},
      onEnd:()=>{setSpeaking(false);emitCheckpoint({kind:'voice-reply',stage:'spoken',content:settled,metadata:{persona:nextPersona,path:location.pathname}})},
-     onError:()=>{setSpeaking(false);setNotice('I generated the reply, but your browser could not play the voice smoothly. Tap the speaker button once, then try again.');emitCheckpoint({kind:'voice-reply',stage:'speech-error',content:settled,metadata:{persona:nextPersona,path:location.pathname}})}
+     onRetry:(event)=>{reportVoiceSelfHeal(event,'automatic-safe-retry');emitCheckpoint({kind:'voice-reply',stage:'self-healing',content:settled,metadata:{persona:nextPersona,path:location.pathname}})},
+     onError:(event)=>{setSpeaking(false);reportVoiceSelfHeal(event,'safe-retry-exhausted');setNotice('Magnanimous AI automatically retried the voice in safe mode, but this device audio engine stayed unavailable. Your complete reply remains on screen.');emitCheckpoint({kind:'voice-reply',stage:'speech-error',content:settled,metadata:{persona:nextPersona,path:location.pathname}})}
     });
    },950);
   };
@@ -283,7 +299,8 @@ export default function VoiceOrchestrator(){
   speakTextNaturally(`This is ${persona}. I recognize my name and my specialist role.`,{
    configure:(u)=>applyVoiceProfile(u,persona),maxChunkChars:220,interChunkDelayMs:45,
    onStart:()=>{setNotice('');setSpeaking(true)},onEnd:()=>setSpeaking(false),
-   onError:()=>{setSpeaking(false);setNotice('Your browser could not play the voice smoothly. Check device volume and try again.')}
+   onRetry:(event)=>{reportVoiceSelfHeal(event,'sample-safe-retry');setNotice('')},
+   onError:(event)=>{setSpeaking(false);reportVoiceSelfHeal(event,'sample-retry-exhausted');setNotice('Magnanimous AI automatically retried the voice, but this device audio engine stayed unavailable.')}
   });
  }
  function listen(){
