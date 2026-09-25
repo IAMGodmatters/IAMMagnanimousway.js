@@ -2,7 +2,7 @@ import React from 'react';
 
 const runtime=`(function(){
   function normalize(path){var clean=(path||'/').replace(/\\/+$/,'');return clean||'/';}
-  var publicPaths=['/','/teach','/shop','/login','/signup','/owner-login','/forgot-password','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label'];
+  var publicPaths=['/','/teach','/shop','/login','/signup','/owner-login','/forgot-password','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label','/movie'];
   function isPublicPath(path){return publicPaths.indexOf(path)!==-1||path.indexOf('/teach/')===0||path.indexOf('/shop/')===0||path.indexOf('/reviews/')===0;}
   var currentPath=normalize(location.pathname);
   var standalone=currentPath==='/magnanimous'||currentPath.indexOf('/magnanimous/')===0;
