@@ -82,8 +82,14 @@ class SupervisorService:
         target_channel_id: str,
         supervisor_endpoint: str,
         mode: str,
+        consent_confirmed: bool,
+        notice_confirmed: bool,
     ) -> dict[str, Any]:
         self._require_ready()
+        if not consent_confirmed or not notice_confirmed:
+            raise TelecomValidationError(
+                "Supervisor audio requires confirmed participant consent and supervision notice."
+            )
         target = target_channel_id.strip()
         endpoint = supervisor_endpoint.strip()
         if not self._ID.fullmatch(target):
