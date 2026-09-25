@@ -68,6 +68,13 @@ class TelecomSettings:
     sip_db_password: str = ""
     carrier_secondary_endpoint: str = ""
     carrier_allowed_endpoints: tuple[str, ...] = ()
+    stasis_enabled: bool = False
+    stasis_app: str = "magnanimous-call-control"
+    supervisor_audio_enabled: bool = False
+    bridge_recording_enabled: bool = False
+    bridge_recording_format: str = "wav"
+    bridge_recording_max_seconds: int = 14400
+    stasis_reconnect_max_seconds: int = 30
 
     @classmethod
     def from_env(cls) -> "TelecomSettings":
@@ -122,4 +129,11 @@ class TelecomSettings:
             sip_db_password=_env("SIP_DB_PASSWORD"),
             carrier_secondary_endpoint=carrier_secondary_endpoint,
             carrier_allowed_endpoints=carrier_allowed,
+            stasis_enabled=_env_bool("ASTERISK_STASIS_ENABLED", False),
+            stasis_app=_env("ASTERISK_STASIS_APP", "magnanimous-call-control") or "magnanimous-call-control",
+            supervisor_audio_enabled=_env_bool("ASTERISK_SUPERVISOR_AUDIO_ENABLED", False),
+            bridge_recording_enabled=_env_bool("ASTERISK_BRIDGE_RECORDING_ENABLED", False),
+            bridge_recording_format=_env("ASTERISK_BRIDGE_RECORDING_FORMAT", "wav") or "wav",
+            bridge_recording_max_seconds=max(60, min(28800, _env_int("ASTERISK_BRIDGE_RECORDING_MAX_SECONDS", 14400))),
+            stasis_reconnect_max_seconds=max(5, min(120, _env_int("ASTERISK_STASIS_RECONNECT_MAX_SECONDS", 30))),
         )
