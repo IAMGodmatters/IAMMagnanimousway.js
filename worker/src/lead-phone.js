@@ -423,7 +423,8 @@ async function phoneRoutes(request, env, user, path, url) {
         status,
         route_id: selectedRoute?.route_id || null,
         interconnect_id: selectedRoute?.interconnect_id || null,
-        selected_route_applied: Boolean(provider?.selected_route_applied || selectedRoute)
+        selected_route_requested: Boolean(selectedRoute),
+        selected_route_applied: provider?.selected_route_applied === true
       }, 201);
     } catch (error) {
       await env.DB.prepare("UPDATE phone_calls SET status='failed',updated_at=? WHERE id=? AND tenant_id=?")
