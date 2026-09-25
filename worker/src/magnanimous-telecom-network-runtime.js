@@ -68,6 +68,10 @@ function finiteAmount(value,max){
  const parsed=Number(value);
  return Number.isFinite(parsed)&&parsed>=0&&parsed<=max?parsed:null;
 }
+function validOriginReference(value){
+ const ref=String(value||'').trim();
+ return /^https:\/\/\S{6,}$/i.test(ref)||/^(contract|rate-card|provider-quote|invoice):\S{2,}$/i.test(ref);
+}
 
 export function planGlobalMobileOffers(body){
  const country=String(body?.country_code||'').trim().toUpperCase();
@@ -92,7 +96,7 @@ export function planGlobalMobileOffers(body){
   const quality=Number.isFinite(qualityRaw)?Math.max(0,Math.min(1,qualityRaw)):0.5;
   const reasons=[];
   if(!adapterKey)reasons.push('adapter_key_missing');
-  if(!reference||offer.origin_cost_verified!==true)reasons.push('origin_cost_not_verified');
+  if(!validOriginReference(reference)||offer.origin_cost_verified!==true)reasons.push('origin_cost_not_verified');
   if(offer.commercial_authorized!==true)reasons.push('commercial_authorization_not_verified');
   if(offer.country_verified!==true)reasons.push('country_coverage_not_verified');
   if(offer.data_supported!==true)reasons.push('data_not_supported');
@@ -310,7 +314,7 @@ export async function handleMagnanimousTelecomNetwork(request,env){
   const fundedCap=Number(body.funded_variable_cost_cap||0);
   const currency=String(body.currency||'USD').trim().toUpperCase();
   const originReference=String(body.origin_reference||'').trim().slice(0,500);
-  if(body.origin_cost_verified!==true||!originReference)return json({detail:'A verified origin cost and origin_reference are required. Competitor retail pricing is not an origin wholesale cost.'},422);
+  if(body.origin_cost_verified!==true||!validOriginReference(originReference))return json({detail:'Owner-confirmed origin-cost evidence is required. Use an https:// evidence URL or a contract:, rate-card:, provider-quote:, or invoice: reference. Competitor retail pricing is not an origin wholesale cost.'},422);
   if(!Number.isFinite(originCost)||originCost<0||originCost>100000)return json({detail:'origin_monthly_cost must be a finite non-negative amount.'},422);
   if(!Number.isFinite(mandatoryFees)||mandatoryFees<0||mandatoryFees>100000)return json({detail:'mandatory_taxes_and_fees must be a finite non-negative amount.'},422);
   if(!Number.isFinite(variableOrigin)||variableOrigin<0||variableOrigin>10000)return json({detail:'origin_variable_cost_per_gb must be a finite non-negative amount.'},422);
@@ -327,7 +331,7 @@ export async function handleMagnanimousTelecomNetwork(request,env){
    purchase_performed:false,
    service_live_claimed:false,
    provider_brand_customer_visible:false,
-   origin:{monthly_cost:money(originCost),currency,reference:originReference,verified:true},
+   origin:{monthly_cost:money(originCost),currency,reference:originReference,verified:true,verification_mode:'owner-confirmed-evidence-reference'},
    pricing:{
     markup_percent:GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT,
     retail_monthly_before_mandatory_fees:retailBase,
