@@ -390,11 +390,11 @@ async function phoneRoutes(request, env, user, path, url) {
       console.error('Carrier route planner unavailable; preserving compatibility path', error);
     }
     const selected = routePlan?.selected || null;
-    const selectedRoute = magnanimousCoreBridgeReady(env) && selected && ['sip-trunk','byoc-bridge','direct-pstn'].includes(String(selected.type || '')) && String(selected.endpoint || '').trim()
+    const selectedRoute = magnanimousCoreBridgeReady(env) && selected && ['sip-trunk','byoc-bridge','direct-pstn'].includes(String(selected.type || '')) && String(selected.execution_endpoint || '').trim()
       ? {
           route_id: selected.route_id,
           interconnect_id: selected.interconnect_id,
-          endpoint: String(selected.endpoint).trim(),
+          endpoint: String(selected.execution_endpoint).trim(),
           selection_mode: routePlan.selection_mode,
           health: selected.health,
           quality_score: selected.quality_score,
