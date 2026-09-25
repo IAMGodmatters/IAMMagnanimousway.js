@@ -149,7 +149,8 @@ class AsteriskSipCarrierBridge:
             primary = await self._endpoint_health(self._settings.carrier_endpoint)
             secondary = await self._endpoint_health(self._settings.carrier_secondary_endpoint)
         return {
-            "ok": asterisk_ready and bool(primary.get("ready") or secondary.get("ready")),
+            "ok": asterisk_ready,
+            "outbound_route_ready": bool(primary.get("ready") or secondary.get("ready")),
             "asterisk": "ready" if asterisk_ready else "unavailable",
             "carrier_bridge": primary.get("state", "unknown"),
             "carrier_endpoint": self._settings.carrier_endpoint,
