@@ -47,6 +47,8 @@ class FakeAri:
             return FakeResponse(204)
         if method == "DELETE":
             return FakeResponse(204)
+        if method == "GET" and path.startswith("/applications/"):
+            return FakeResponse(200, {"channel_ids": ["restored-channel"]})
         if method == "GET" and path.startswith("/bridges/"):
             bridge_id = path.rsplit("/", 1)[-1]
             return FakeResponse(404 if bridge_id in self.missing_bridges else 200, {"id": bridge_id})
@@ -150,6 +152,12 @@ class StasisEventListenerTests(unittest.IsolatedAsyncioTestCase):
 
         await listener._track({"type": "StasisEnd", "channel": {"id": "chan-1"}})
         self.assertFalse(listener.owns_channel("chan-1"))
+
+    async def test_reconnect_seeds_existing_application_channels(self):
+        ari = FakeAri()
+        listener = StasisEventListener(ari, settings())
+        await listener._seed_existing_channels()
+        self.assertTrue(listener.owns_channel("restored-channel"))
 
 
 class StasisCallControlTests(unittest.IsolatedAsyncioTestCase):
@@ -302,7 +310,7 @@ class StasisCallControlTests(unittest.IsolatedAsyncioTestCase):
             await service.stop_supervisor(session["session_id"])
 
     async def test_orphan_reaper_removes_supervisor_and_finished_recording_state(self):
-        service, ari, listener = ready_service()
+        service, ari, listener, state = ready_service()
         bridge = await service.create_bridge("call-reap", ["agent-channel", "customer-channel"])
         supervisor = await service.start_supervisor(
             call_bridge_id=bridge["bridge_id"],
