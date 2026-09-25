@@ -32,7 +32,8 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'VOIP_PROVIDER_NAME',label:'Carrier / Bridge Display Name',secret:false,required:false},
   {key:'VOIP_CALLER_ID',label:'Carrier Caller ID (E.164)',secret:false,required:false},
   {key:'VOIP_PROVIDER_TOKEN',label:'Carrier Bridge Bearer Token',secret:true,required:false},
-  {key:'VOIP_WEBHOOK_SECRET',label:'Carrier Bridge Webhook Secret',secret:true,required:false}
+  {key:'VOIP_WEBHOOK_SECRET',label:'Carrier Bridge Webhook Secret',secret:true,required:false},
+  {key:'VOIP_BYOC_ROUTE_CONTRACT',label:'Planner Route Contract (use magnanimous-route-v1 only when the bridge supports explicit route keys)',secret:false,required:false}
  ]},
  {id:'magnanimous-telecom-core',name:'Magnanimous Native Telecom Core',providers:[],fields:[
   {key:'TELECOM_CORE_URL',label:'Magnanimous Telecom Core HTTPS Base URL',secret:false,required:false},
