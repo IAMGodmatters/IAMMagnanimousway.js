@@ -13,6 +13,8 @@ const asteriskContainer = process.env.ASTERISK_CONTAINER || "magnanimous-webrtc-
 const allowInsecureTls = /^(1|true|yes|on)$/i.test(process.env.WEBRTC_ALLOW_INSECURE_TLS || "");
 const serverAssertMode = process.env.WEBRTC_SERVER_ASSERT_MODE || "local-docker";
 const iceTransportPolicy = process.env.WEBRTC_ICE_TRANSPORT_POLICY === "relay" ? "relay" : "all";
+const requireMedia = !/^(0|false|no|off)$/i.test(process.env.WEBRTC_REQUIRE_MEDIA || "true");
+const holdMs = Math.max(0, Math.min(30000, Number(process.env.WEBRTC_HOLD_MS || 0)));
 let iceServers = [];
 try {
   iceServers = JSON.parse(process.env.WEBRTC_ICE_SERVERS_JSON || "[]");
@@ -97,21 +99,28 @@ try {
     console.log("Remote-host mode: established echo session verifies the public Asterisk dial path.");
   }
 
-  await page.waitForFunction(
-    () => {
-      const p = window.__webrtcProbe;
-      return p && p.inboundBytes > 0 && p.outboundBytes > 0 && p.inboundPackets > 0 && p.outboundPackets > 0 && p.remoteAudioTracks > 0;
-    },
-    null,
-    { timeout: 30000 }
-  );
+  if (requireMedia) {
+    await page.waitForFunction(
+      () => {
+        const p = window.__webrtcProbe;
+        return p && p.inboundBytes > 0 && p.outboundBytes > 0 && p.inboundPackets > 0 && p.outboundPackets > 0 && p.remoteAudioTracks > 0;
+      },
+      null,
+      { timeout: 30000 }
+    );
+  }
 
+  if (holdMs > 0) await page.waitForTimeout(holdMs);
   const result = await page.evaluate(() => ({ ...window.__webrtcProbe }));
   if (result.error) throw new Error(result.error);
   console.log("Magnanimous native WebRTC browser proof:", JSON.stringify(result));
 
   await page.evaluate(() => window.endCall());
-  console.log(`PASS: real Chromium SIP registration and bidirectional WebRTC audio through Asterisk Echo() [mode=${serverAssertMode}, insecure_tls=${allowInsecureTls}].`);
+  if (requireMedia) {
+    console.log(`PASS: real Chromium SIP registration and bidirectional WebRTC audio through Asterisk Echo() [mode=${serverAssertMode}, insecure_tls=${allowInsecureTls}].`);
+  } else {
+    console.log(`PASS: real Chromium SIP registration and established carrier-free diagnostic call [extension=${echoExtension}, mode=${serverAssertMode}].`);
+  }
 } finally {
   await browser.close();
 }
