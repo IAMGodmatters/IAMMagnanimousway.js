@@ -26,6 +26,8 @@ import { verifyGitHubActionsOidc, stageD1SqlExport, stageD1SqliteSnapshot, stage
 import { stageRuntimeSecrets, loadRuntimeSecrets } from './runtime-secret-store.mjs';
 import { deployMagnanimousCommit, deploymentControlConfig } from './deployment-control.mjs';
 
+const runtimeSecretState = await loadRuntimeSecrets({ override: true });
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
 const assetsRoot = path.resolve(
@@ -594,6 +596,7 @@ const server = http.createServer(async (req, res) => {
           database: 'magnanimous-sqlite',
           migrations: migrationState,
           deploy_revision: runtimeRevision() || null,
+          runtime_secrets: { loaded: runtimeSecretState.loaded, count: runtimeSecretState.count },
           deployment_automation: (() => {
             const config = deploymentControlConfig(process.env);
             return {
@@ -747,7 +750,8 @@ server.listen(port, host, () => {
     'Magnanimous standalone runtime listening on ' +
     host + ':' + port +
     '; migrations applied=' + migrationState.applied.length +
-    '/' + migrationState.total
+    '/' + migrationState.total +
+    '; runtime secrets loaded=' + (runtimeSecretState.loaded ? runtimeSecretState.count : 0)
   );
 });
 
