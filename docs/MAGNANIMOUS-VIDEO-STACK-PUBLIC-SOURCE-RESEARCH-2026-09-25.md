@@ -4,6 +4,15 @@ Date: 2026-09-25
 
 ## Public source examined
 
+Primary public references:
+- https://video.io/
+- https://docs.video.io/
+- https://docs.video.io/js/
+- https://docs.video.io/android/
+- https://github.com/Video-io/videokit-nodejs
+- https://github.com/Video-io/VideoKit-iOS
+- https://github.com/Video-io/VideoKit-Android-Samples
+
 Video.io public website and documentation describe a mobile video stack centered on:
 - recording and camera capture;
 - upload-while-recording / fast availability;
