@@ -36,6 +36,16 @@ export default function PricingPage(){
   if(!token){location.href='/login?returnTo=%2Fpricing';return}setBusy(plan);setMessage('');
   try{const r=await fetch(`${api}/api/billing/checkout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({plan,termsAccepted:true,termsVersion:plan==='scale'?'annual-2026-09-18.1':'unlimited-2026-09-18.1'})});const d=await read(r);if(r.status===409&&d.code==='ACTIVE_SUBSCRIPTION_EXISTS'){setMessage(d.detail||'You already have an active subscription. Use Manage subscription to change it.');setBusy('');return}if(!r.ok)throw new Error(d.detail||'Checkout could not start.');if(!d.url)throw new Error('Stripe did not return a checkout page.');location.href=d.url}catch(e:any){setMessage(e?.message||'Checkout could not start.');setBusy('')}
  }
+ async function topup(){
+  if(!token){location.href='/login?returnTo=%2Fpricing';return}
+  setBusy('topup');setMessage('');
+  try{
+   const r=await fetch(`${api}/api/billing/topup`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:'{}'});
+   const d=await read(r);
+   if(!r.ok||!d.url)throw new Error(d.detail||'Premium usage top-up could not start.');
+   location.href=d.url;
+  }catch(e:any){setMessage(e?.message||'Premium usage top-up could not start.');setBusy('')}
+ }
  async function manage(){
   if(!token){location.href='/login?returnTo=%2Fpricing';return}setBusy('portal');
   try{const r=await fetch(`${api}/api/billing/portal`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:'{}'});const d=await read(r);if(!r.ok)throw new Error(d.detail||'Subscription management could not open.');location.href=d.url}catch(e:any){setMessage(e?.message||'Billing management could not open.');setBusy('')}
