@@ -260,7 +260,7 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                         tenant_id=call.tenant_id,
                         target_role="agent",
                         supervisor_session_id=SUPERVISOR_SESSION,
-                        consent_confirmed=True,
+                    consent_confirmed=True,
                         jurisdiction="US-CA",
                     )
                 )
@@ -329,7 +329,7 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                     tenant_id="tenant-2",
                     target_role="agent",
                     supervisor_session_id=SUPERVISOR_SESSION,
-                        consent_confirmed=True,
+                    consent_confirmed=True,
                     jurisdiction="US-CA",
                 )
             )
@@ -350,7 +350,38 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                     tenant_id=call.tenant_id,
                     target_role="agent",
                     supervisor_session_id=SUPERVISOR_SESSION,
-                        consent_confirmed=True,
+                    consent_confirmed=True,
+                    jurisdiction="US-CA",
+                )
+            )
+
+        ari.supervisor_channels = [
+            {
+                "id": "supervisor-channel-a",
+                "name": f"PJSIP/{SUPERVISOR_SESSION}-00000001",
+                "dialplan": {
+                    "app_name": "Stasis",
+                    "app_data": "magnanimous-native-call,supervisor",
+                },
+            },
+            {
+                "id": "supervisor-channel-b",
+                "name": f"PJSIP/{SUPERVISOR_SESSION}-00000002",
+                "dialplan": {
+                    "app_name": "Stasis",
+                    "app_data": "magnanimous-native-call,supervisor",
+                },
+            },
+        ]
+        with self.assertRaises(TelecomNotFoundError):
+            await service.start_supervisor(
+                SupervisorSessionStart(
+                    mode="monitor",
+                    provider_call_id=call.provider_call_id,
+                    tenant_id=call.tenant_id,
+                    target_role="agent",
+                    supervisor_session_id=SUPERVISOR_SESSION,
+                    consent_confirmed=True,
                     jurisdiction="US-CA",
                 )
             )
@@ -370,7 +401,8 @@ class StasisBridgeLifecycleTests(unittest.IsolatedAsyncioTestCase):
                     provider_call_id=call_request().provider_call_id,
                     tenant_id="tenant-1",
                     target_role="agent",
-                        consent_confirmed=True,
+                    supervisor_session_id=SUPERVISOR_SESSION,
+                    consent_confirmed=True,
                     jurisdiction="US-CA",
                 )
             )
