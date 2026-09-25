@@ -23,8 +23,8 @@ must(Boolean(runtimeMatch),'runtime public allowlist must remain machine-verifia
 must(Boolean(templateMatch),'template public allowlist must remain machine-verifiable');
 const runtimeAllowlist=runtimeMatch?.[1]||'';
 const templateAllowlist=templateMatch?.[1]||'';
-const publicRoutes=['/','/teach','/shop','/login','/signup','/owner-login','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label'];
-const protectedRoutes=['/magnanimous','/bible-study','/ai-chat','/crm','/connections','/assistant-actions','/owner-center','/owner-billing','/phone','/telecom','/space','/mux','/knowledge','/virtual-assistant','/video-studio','/agents'];
+const publicRoutes=['/','/teach','/shop','/login','/signup','/owner-login','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label','/movie'];
+const protectedRoutes=['/magnanimous','/bible-study','/ai-chat','/crm','/connections','/assistant-actions','/owner-center','/owner-billing','/phone','/telecom','/space','/mux','/knowledge','/virtual-assistant','/video-studio','/movie-maker','/agents'];
 
 for(const route of publicRoutes){
  const re=new RegExp(`["']${escaped(route)}["']`);
