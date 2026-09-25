@@ -15,6 +15,18 @@ function genericBridgeReady(env) {
   return Boolean(env.VOIP_PROVIDER_URL && env.VOIP_PROVIDER_TOKEN);
 }
 
+function explicitRouteControlReady(env) {
+  if (!['1', 'true', 'yes', 'on'].includes(String(env.TELECOM_NATIVE_WEBRTC_LIVE || '').trim().toLowerCase())) return false;
+  if (!genericBridgeReady(env) || !env.TELECOM_CORE_URL || !env.TELECOM_CORE_TOKEN) return false;
+  try {
+    const bridge = new URL(String(env.VOIP_PROVIDER_URL));
+    const core = new URL(String(env.TELECOM_CORE_URL));
+    return bridge.protocol === 'https:' && core.protocol === 'https:' && bridge.origin === core.origin;
+  } catch {
+    return false;
+  }
+}
+
 function billingMode(env) {
   const value = String(env.VOIP_BILLING_MODE || 'metered').trim().toLowerCase();
   if (['flat-rate', 'unlimited', 'channel', 'metered', 'wholesale'].includes(value)) return value;
@@ -62,9 +74,9 @@ export async function handlePhoneCarrier(request, env) {
         flatRateConfigured: isFlatRate(mode),
         leastCostRouting: true,
         routeOrder: ['free-browser', 'workspace-byoc', 'metered-fallback', 'premium-fallback'],
-        manualRouteSelection: true,
+        manualRouteSelection: explicitRouteControlReady(env),
         liveRoutePlannerExecution: false,
-        allowedManualRoutes: ['auto', 'primary', 'secondary'],
+        allowedManualRoutes: explicitRouteControlReady(env) ? ['auto', 'primary', 'secondary'] : [],
         callerId: String(env.VOIP_CALLER_ID || ''),
         accessGranted: true,
         carrierCore: '/api/phone/carrier-core/status',
