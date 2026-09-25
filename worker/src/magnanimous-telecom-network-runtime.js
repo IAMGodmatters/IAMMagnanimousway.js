@@ -125,8 +125,8 @@ export async function handleMagnanimousTelecomNetwork(request,env){
     measured_quality_signals:['ASR','ACD','PDD','network_failure_rate'],
     max_rate_enforced:true,
     live_execution_uses_route_planner:false,
-    selected_route_execution:{native_byoc:true,twilio_compatibility:false,plivo_compatibility:false},
-    execution_note:'The native/BYOC bridge now executes an explicit planner-selected SIP route only after the private Telecom Core validates the endpoint and authenticated Asterisk health. Twilio/Plivo compatibility adapters are not yet behind this contract, so all-live-route authority remains false.',
+    selected_route_execution:{native_telecom_core:true,generic_byoc_requires_bridge_confirmation:true,twilio_compatibility:false,plivo_compatibility:false},
+    execution_note:'The Magnanimous Telecom Core now executes an explicit planner-selected SIP route only after validating the endpoint and authenticated Asterisk health. Generic BYOC bridges receive the route request but are counted as applied only if the bridge confirms it. Twilio/Plivo compatibility adapters are not yet behind this contract, so all-live-route authority remains false.',
     failover_boundary:'A secondary SIP interconnect is used only for network-unavailable or congestion outcomes; real busy/no-answer results are not redialed through another carrier.'
    },
    owned_service_core:{provider_key:'magnanimous-telecom',role:'PBX, SIP registrar, routing, policy, CDR and contact-center control',native_pbx:'Asterisk',provider_owned_identity:true},
