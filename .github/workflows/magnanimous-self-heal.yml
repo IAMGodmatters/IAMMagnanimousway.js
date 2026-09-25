@@ -1,0 +1,67 @@
+name: Magnanimous Self Heal
+
+on:
+  workflow_run:
+    workflows:
+      - Build and Deploy I AM
+      - Voice Conversation Production Smoke
+      - Full Platform QA
+    types: [completed]
+  schedule:
+    - cron: '41 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: magnanimous-self-heal
+  cancel-in-progress: true
+
+jobs:
+  heal:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion != 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Apply bounded Magnanimous repairs
+        run: node scripts/repair-magnanimous-self-heal.mjs
+
+      - name: Verify protected self-heal contracts
+        run: |
+          node qa/scripts/self-heal-brand-billing-lock.mjs
+          node qa/scripts/voice-conversation-lock.mjs
+          node --check worker/src/security-entrypoint.js
+          node --check worker/src/provider-entrypoint.js
+          node --check worker/src/premium-runtime-guard.js
+          node --check worker/src/usage-guard.js
+
+      - name: Commit known safe repair
+        id: repair
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "Magnanimous Self Heal"
+          git config user.email "actions@users.noreply.github.com"
+          git add frontend/app/video-agents/page.tsx worker/wrangler.jsonc worker/src/provider-entrypoint.js
+          git commit -m "Self-heal protected Magnanimous runtime guards"
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Retry one transient failed workflow attempt
+        if: ${{ steps.repair.outputs.changed == 'false' && github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt < 2 }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: gh run rerun "$RUN_ID" --failed
