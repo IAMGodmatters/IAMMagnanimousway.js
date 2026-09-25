@@ -111,7 +111,8 @@ export class MagnanimousAiBinding {
       return { response: text, result: { response: text }, provider: 'magnanimous-local' };
     }
 
-    if (this.env.OPENAI_API_KEY) {
+    const meteredEnabled = String(this.env.ENABLE_METERED_PROVIDERS || '').toLowerCase() === 'true';
+    if (this.env.OPENAI_API_KEY && meteredEnabled) {
       const response = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
@@ -133,7 +134,7 @@ export class MagnanimousAiBinding {
     }
 
     throw new Error(
-      'No Magnanimous AI execution rail is configured. Set protected Cloudflare Workers AI REST credentials, OLLAMA_BASE_URL, or MAGNANIMOUS_AI_BASE_URL; metered OPENAI_API_KEY remains optional.'
+      'No free-first Magnanimous AI execution rail is configured. Set protected Cloudflare Workers AI REST credentials, OLLAMA_BASE_URL, or MAGNANIMOUS_AI_BASE_URL; metered OPENAI_API_KEY is used only when ENABLE_METERED_PROVIDERS=true.'
     );
   }
 }

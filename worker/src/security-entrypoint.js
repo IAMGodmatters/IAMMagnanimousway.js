@@ -94,10 +94,9 @@ function configuredStandaloneApiOrigin(env){
 
 async function proxyApiToStandalone(request,env){
   const url=new URL(request.url);
-  // Keep conversational inference on the Worker AI rail. The standalone node remains
-  // the preferred data plane, but it must not turn a missing/failed node model rail
-  // into a customer-facing 502 while the free-first Worker AI binding is healthy.
-  if(url.pathname==='/api/chat')return null;
+  // Keep customer chat on the standalone data plane so opaque sessions, tenant memory,
+  // and conversation persistence remain on one authoritative runtime. Standalone AI
+  // execution falls back to the protected free-first Workers AI REST rail.
   const standaloneDataPlanePath=url.pathname.startsWith('/api/')||url.pathname==='/funnels'||url.pathname.startsWith('/funnels/');
   if(url.pathname==='/api/internal/migration/rewrap-platform-credentials')return null;
   if(!standaloneDataPlanePath)return null;
