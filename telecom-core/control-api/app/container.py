@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from .adapters.asterisk import AsteriskAriClient, AsteriskSipCarrierBridge
 from .adapters.callbacks import CallbackUrlPolicy, WebhookStatusPublisher
 from .adapters.sip_subscribers import PostgresSipSubscriberStore
+from .adapters.stasis_state import PostgresStasisStateStore
 from .config import TelecomSettings
 from .security import TelecomTokenAuthenticator
 from .services.calls import CallService
@@ -37,8 +38,9 @@ def build_container(settings: TelecomSettings | None = None) -> ApplicationConta
     publisher = WebhookStatusPublisher(resolved)
     monitor = CarrierCallMonitor(bridge, publisher, resolved)
     calls = CallService(bridge, monitor, callback_policy, resolved)
-    stasis_events = StasisEventListener(resolved)
-    stasis_control = StasisCallControlService(ari, stasis_events, resolved)
+    stasis_events = StasisEventListener(ari, resolved)
+    stasis_state = PostgresStasisStateStore(resolved)
+    stasis_control = StasisCallControlService(ari, stasis_events, stasis_state, resolved)
     health = HealthService(bridge, monitor, resolved, stasis_control)
     auth = TelecomTokenAuthenticator(resolved)
     subscriber_store = PostgresSipSubscriberStore(resolved)
