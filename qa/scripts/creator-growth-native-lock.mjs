@@ -28,7 +28,7 @@ assert.ok(!page.toLowerCase().includes('vidiq'),'consumer Creator Growth UI must
 assert.ok(security.includes("url.pathname.startsWith('/api/creator-growth')"),'Creator Growth must run through the secured platform entrypoint');
 assert.ok(social.includes('https://www.googleapis.com/auth/yt-analytics.readonly'),'YouTube connection must request read-only analytics scope');
 assert.ok(social.includes('https://www.googleapis.com/auth/youtube.force-ssl'),'YouTube connection must request the official owner write scope');
-for(const s of ['explicit_consent!==true','not owned by the connected YouTube channel','youtube_owner_write_ready'])assert.ok(runtime.includes(s),'guarded YouTube owner action missing '+s);
+for(const s of ['explicit_consent!==true','not owned by the connected YouTube channel','youtube_owner_write_ready','defaultLanguage','publicStatsViewable','selfDeclaredMadeForKids','containsSyntheticMedia'])assert.ok(runtime.includes(s),'guarded YouTube owner action missing '+s);
 assert.ok(benchmark.includes('| 63 |'),'benchmark must cover all 63 live vidIQ capability contracts observed on 2026-09-25');
 assert.ok(benchmark.includes('does **not** copy proprietary code'),'benchmark must preserve the non-copy boundary');
 assert.ok(home.includes("'/creator-growth'"),'Main Systems grid must expose Creator Growth');
