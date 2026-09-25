@@ -77,6 +77,17 @@ At minimum:
 
 The external `CARRIER_SIP_*` values may remain blank while operating SIP-only service. Public PSTN calling will not work until a real authorized interconnect is configured.
 
+## Authenticated carrier route control
+
+The private Telecom Control API keeps automatic route-planner execution disabled, but it can now address the owned Asterisk interconnects explicitly:
+
+- `GET /v1/carrier/routes` — lists the logical `auto`, `primary`, and `secondary` routes without exposing a third-party provider identity.
+- `GET /v1/carrier/routes/{route_id}/health` — checks the selected route against authenticated ARI state.
+- `POST /v1/calls` accepts `route_id`: `auto` preserves the existing network-failure-only secondary failover, `primary` forbids automatic carrier failover, and `secondary` uses only the configured secondary endpoint.
+- A `secondary` request fails closed when no secondary interconnect is configured.
+
+The platform may expose this route selection only to owner/admin controls. Magnanimous does not allow the route planner to move production calls automatically until every executable route is authenticated, configured, and production-verified.
+
 ## Host firewall contract
 
 For an internet-facing host:
