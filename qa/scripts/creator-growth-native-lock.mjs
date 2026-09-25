@@ -15,13 +15,17 @@ for(const s of [
  '/api/creator-growth/similar-videos','/api/creator-growth/similar-channels','/api/creator-growth/comment-insights',
  '/api/creator-growth/comment-replies','/api/creator-growth/owned-transcript','/api/creator-growth/youtube-video-update',
  '/api/creator-growth/youtube-comment-reply','/api/creator-growth/bookmarks','/api/creator-growth/competitors',
- '/api/creator-growth/analytics','/api/creator-growth/change-history','/api/creator-growth/performance-history'
+ '/api/creator-growth/analytics','/api/creator-growth/change-history','/api/creator-growth/performance-history',
+ '/api/creator-growth/chapters','/api/creator-growth/clip-plan','/api/creator-growth/earnings-estimate',
+ '/api/creator-growth/videos-by-ids','/api/creator-growth/channels-by-ids','/api/creator-growth/feedback','/api/creator-growth/jobs'
 ])assert.ok(runtime.includes(s),'creator-growth runtime missing '+s);
 
 for(const s of ['monthly_search_volume:null','does not expose official keyword search volume','Magnanimous-observed','native_similarity_score'])
  assert.ok(runtime.includes(s),'truthful native creator evidence missing '+s);
 
-for(const s of ['Similar channels','Similar videos','Track competitor','Saved research','Draft replies','Owned captions','Publish title change to YouTube','Post reply to YouTube'])
+for(const s of ['creator_feedback','external_submission:false','movie_maker_jobs','poll_url','channelsByIds','videos-by-ids']) assert.ok(runtime.includes(s),'Creator Growth native gap closure missing '+s);
+
+for(const s of ['Similar channels','Similar videos','Track competitor','Saved research','Draft replies','Owned captions','Publish title change to YouTube','Post reply to YouTube','Generate chapters','Find clip moments','Write full script','Creator jobs','Save feedback','Estimate revenue range'])
  assert.ok(page.includes(s),'creator-growth UI missing '+s);
 
 assert.ok(!page.toLowerCase().includes('vidiq'),'consumer Creator Growth UI must not expose outside benchmark branding');
@@ -31,6 +35,7 @@ assert.ok(social.includes('https://www.googleapis.com/auth/youtube.force-ssl'),'
 for(const s of ['explicit_consent!==true','not owned by the connected YouTube channel','youtube_owner_write_ready','defaultLanguage','publicStatsViewable','selfDeclaredMadeForKids','containsSyntheticMedia'])assert.ok(runtime.includes(s),'guarded YouTube owner action missing '+s);
 assert.ok(benchmark.includes('| 63 |'),'benchmark must cover all 63 live vidIQ capability contracts observed on 2026-09-25');
 assert.ok(benchmark.includes('does **not** copy proprietary code'),'benchmark must preserve the non-copy boundary');
+for(const s of ['Gap: no Magnanimous visual-thumbnail similarity index is claimed yet','arbitrary public-video captions are not claimed','commercial users are not eligible','one-click AI clip rendering remains a separate workflow']) assert.ok(benchmark.includes(s),'benchmark truth boundary missing '+s);
 assert.ok(home.includes("'/creator-growth'"),'Main Systems grid must expose Creator Growth');
 assert.ok(catalog.includes("'/creator-growth':'social'"),'Interaction guidance must route Creator Growth into social/creator help');
 
