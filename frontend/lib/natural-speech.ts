@@ -122,9 +122,9 @@ export function speakTextNaturally(input:string,options:NaturalSpeechOptions={})
       finished=true;
       options.onError?.(event);
     };
-    synth.resume?.();
+    if((synth as any).paused)synth.resume?.();
     synth.speak(utterance);
   };
-  next();
+  if(appleMobile)window.setTimeout(next,70);else next();
   return true;
 }
