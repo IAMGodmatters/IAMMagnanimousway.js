@@ -370,6 +370,21 @@ export async function handleContactCenter(request,env){
   const nativeSessionPath=path.match(/^\/api\/contact-center\/softphone\/native-session\/([^/]+)$/);if(nativeSessionPath&&request.method==='DELETE')return revokeNativeSoftphoneSession(env,user,decodeURIComponent(nativeSessionPath[1]));
   if(path==='/api/contact-center/softphone/claim'&&request.method==='POST')return softphoneClaim(env,user,await request.json().catch(()=>({})));
   if(path==='/api/contact-center/capabilities'&&request.method==='GET')return json({ok:true,providers:providerSnapshot(env),features:{acd:true,skills_routing:true,ivr:true,callbacks:true,voicemail:true,dnc:true,outbound_campaigns:true,dialer_modes:['preview','progressive','power'],predictive_mass_dialing:false,reason:'High-volume predictive automation is intentionally not enabled without carrier/compliance controls.',agent_presence:true,crm_screen_pop:true,recording:true,ai_call_intelligence:Boolean(env.AI),agent_assist:true,workforce_management:true,quality_management:true,analytics:true,omnichannel_inbox:true,free_browser_calling:true},inbound_webhook:`${url.origin}/api/contact-center/carrier/incoming`});
+  if(path==='/api/contact-center/carrier/routes'&&request.method==='GET'){
+   if(!owner(user))return json({detail:'Workspace owner access required.'},403);
+   const response=await telecomCoreRequest(env,'/v1/carrier/routes');
+   if(!response)return json({detail:'Magnanimous Telecom Core route control is unavailable until the native public core is verified.',live_route_planner_execution:false},503);
+   const data=await response.json().catch(()=>({}));
+   return json({...data,provider_details_private:true,live_route_planner_execution:false},response.status);
+  }
+  const carrierRouteHealth=path.match(/^\/api\/contact-center\/carrier\/routes\/(auto|primary|secondary)\/health$/);
+  if(carrierRouteHealth&&request.method==='GET'){
+   if(!owner(user))return json({detail:'Workspace owner access required.'},403);
+   const response=await telecomCoreRequest(env,`/v1/carrier/routes/${carrierRouteHealth[1]}/health`);
+   if(!response)return json({detail:'Magnanimous Telecom Core route health is unavailable until the native public core is verified.',live_route_planner_execution:false},503);
+   const data=await response.json().catch(()=>({}));
+   return json({...data,provider_details_private:true,live_route_planner_execution:false},response.status);
+  }
   if(path==='/api/contact-center/overview'&&request.method==='GET')return json({ok:true,...await overview(env,tenant)});
   const campaign=await campaignRoutes(request,env,user,url);if(campaign)return campaign;
   if(path==='/api/contact-center/ivr'&&request.method==='GET'){const {results=[]}=await env.DB.prepare('SELECT * FROM cc_ivr_flows WHERE tenant_id=? ORDER BY active DESC,updated_at DESC').bind(tenant).all();return json({flows:results.map(x=>({...x,nodes:safeJson(x.nodes_json,{}),business_hours:safeJson(x.business_hours_json,{})}))})}
