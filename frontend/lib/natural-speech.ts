@@ -2,6 +2,14 @@
 
 let speechGeneration=0;
 
+export function isIosSpeechRuntime(){
+  if(typeof navigator==='undefined')return false;
+  const ua=String(navigator.userAgent||'');
+  const platform=String((navigator as any).platform||'');
+  const touchPoints=Number((navigator as any).maxTouchPoints||0);
+  return /iP(?:hone|ad|od)/i.test(ua)||(platform==='MacIntel'&&touchPoints>1);
+}
+
 export function cleanTextForSpeech(input:string){
   return String(input||'')
     .replace(/\`\`\`[\s\S]*?\`\`\`/g,' ')
@@ -80,7 +88,8 @@ export function stopNaturalSpeech(){
 
 export function speakTextNaturally(input:string,options:NaturalSpeechOptions={}){
   if(typeof window==='undefined'||!('speechSynthesis'in window))return false;
-  const chunks=splitSpeechText(input,options.maxChunkChars||260);
+  const ios=isIosSpeechRuntime();
+  const chunks=splitSpeechText(input,options.maxChunkChars||(ios?150:260));
   if(!chunks.length)return false;
 
   const synth=window.speechSynthesis;
@@ -110,9 +119,9 @@ export function speakTextNaturally(input:string,options:NaturalSpeechOptions={})
       finished=true;
       options.onError?.(event);
     };
-    synth.resume?.();
+    if((synth as any).paused)synth.resume?.();
     synth.speak(utterance);
   };
-  next();
+  if(ios)window.setTimeout(next,70);else next();
   return true;
 }
