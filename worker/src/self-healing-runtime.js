@@ -123,6 +123,34 @@ async function providerProbe(env,user,{record=true}={}){
   return state;
 }
 
+async function mediaProbe(env,user,{record=true}={}){
+  const rendererBase=String(env?.MAGNANIMOUS_VIDEO_GATEWAY_URL||env?.VIDEO_GATEWAY_URL||'https://iam-magnanimous-video-gateway.iam-magnanimous.workers.dev').replace(/\/$/,'');
+  const result=await probeWithRepair(rendererBase+'/health');
+  const objectStore=Boolean(env?.MAGNANIMOUS_OBJECT_STORE?.put&&env?.MAGNANIMOUS_OBJECT_STORE?.get);
+  const studioConfigured=String(env?.ENABLE_PREMIUM_MEDIA||'').toLowerCase()==='true'&&Boolean(String(env?.GOOGLE_API_KEY||'').trim());
+  const meta={
+    category:'movie-maker-health',
+    retry_count:Math.max(0,result.attempt_count-1),
+    http_status:Number(result.last?.status||0),
+    latency_ms:Number(result.last?.latency_ms||0),
+    cost_impact_usd:0,
+    paid_fallback_required:false,
+    customer_impact:result.ok?'none':'free-movie-rendering-degraded',
+    object_storage_ready:objectStore,
+    optional_studio_configured:studioConfigured
+  };
+  if(record&&result.recovered)await audit(env,user,{sessionKey:'self-heal:movie-maker',stage:'repaired',content:'Movie Maker free renderer recovered after a capped safe retry.',metadata:meta});
+  if(record&&!result.ok)await audit(env,user,{sessionKey:'self-heal:movie-maker',stage:'escalated',content:'Movie Maker free renderer remained unhealthy after capped safe retries. Free video rendering requires owner attention.',status:'failed',metadata:meta});
+  return{
+    status:result.ok?'healthy':'attention',
+    free_renderer:{configured:true,status:result.ok?'ready':'attention',http_status:Number(result.last?.status||0),latency_ms:Number(result.last?.latency_ms||0),attempt_count:result.attempt_count,recovered:result.recovered},
+    object_storage:{configured:objectStore,status:objectStore?'ready':'not-configured'},
+    optional_studio:{configured:studioConfigured,status:studioConfigured?'ready-if-funded':'disabled-or-not-configured'},
+    paid_fallback_required:false,
+    error:result.last?.error||''
+  };
+}
+
 function summarizeEvents(rows=[]){
   const events=rows.filter(row=>row.scope==='self-healing');
   const latestByKey=new Map();
@@ -139,9 +167,10 @@ function summarizeEvents(rows=[]){
 
 export async function selfHealingSnapshot(env,origin,{record=false}={}){
   const owner=await ownerAuditUser(env);
-  const [production,provider]=await Promise.all([
+  const [production,provider,media]=await Promise.all([
     productionProbe(env,origin,owner,{record}),
-    providerProbe(env,owner,{record})
+    providerProbe(env,owner,{record}),
+    mediaProbe(env,owner,{record})
   ]);
   const rows=owner?await listProgressCheckpoints(env,owner,{limit:300}).catch(()=>[]):[];
   return {
@@ -149,6 +178,7 @@ export async function selfHealingSnapshot(env,origin,{record=false}={}){
     policy:SELF_HEAL_POLICY,
     production_health:production,
     provider_health:provider,
+    movie_maker_health:media,
     voice_audio_health:{
       ...(await premiumVoiceHealth(env)),
       note:'Browser/native speech remains the default. Optional premium synthesis is used only when commercially authorized and funded; synthesis requests are not auto-retried.'
@@ -178,9 +208,10 @@ export async function handleSelfHealing(request,env){
 
 export async function scheduledSelfHealing(env,origin='https://iammagnanimousway.com'){
   const owner=await ownerAuditUser(env);
-  const [production,provider]=await Promise.all([
+  const [production,provider,media]=await Promise.all([
     productionProbe(env,String(origin).replace(/\/$/,''),owner,{record:true}),
-    providerProbe(env,owner,{record:true})
+    providerProbe(env,owner,{record:true}),
+    mediaProbe(env,owner,{record:true})
   ]);
-  return {production,provider,checked_at:new Date().toISOString()};
+  return {production,provider,media,checked_at:new Date().toISOString()};
 }
