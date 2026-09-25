@@ -32,6 +32,23 @@ export default function NetworkAuthorityPage(){
  const[originReference,setOriginReference]=useState('');
  const[originVerified,setOriginVerified]=useState(false);
  const[globalQuote,setGlobalQuote]=useState<any>(null);
+ const[mobileCountry,setMobileCountry]=useState('PH');
+ const[countryEvidence,setCountryEvidence]=useState('');
+ const[countryVerified,setCountryVerified]=useState(false);
+ const[offerAdapter,setOfferAdapter]=useState('');
+ const[offerNetwork,setOfferNetwork]=useState('');
+ const[offerAuthorized,setOfferAuthorized]=useState(false);
+ const[offerBackup,setOfferBackup]=useState(false);
+ const[profileRef,setProfileRef]=useState('');
+ const[profileRole,setProfileRole]=useState('primary');
+ const[profileNetwork,setProfileNetwork]=useState('');
+ const[mobileProfiles,setMobileProfiles]=useState<any[]>([]);
+ const[connectProfile,setConnectProfile]=useState('');
+ const[servingNetwork,setServingNetwork]=useState('');
+ const[latencyMs,setLatencyMs]=useState('0');
+ const[packetLoss,setPacketLoss]=useState('0');
+ const[downlinkMbps,setDownlinkMbps]=useState('0');
+ const[uplinkMbps,setUplinkMbps]=useState('0');
  const routeDestinationValid=/^\+[1-9]\d{6,14}$/.test(routeDestination);
 
  useEffect(()=>{
@@ -47,7 +64,12 @@ export default function NetworkAuthorityPage(){
 
  async function refresh(activeToken=token){
   try{
-   const data=await call('/api/telecom/network/overview',{},activeToken);setOverview({...empty,...data});
+   const [data,profiles]=await Promise.all([
+    call('/api/telecom/network/overview',{},activeToken),
+    call('/api/telecom/network/global-mobile/profiles',{},activeToken).catch(()=>({items:[]}))
+   ]);
+   setOverview({...empty,...data});setMobileProfiles(profiles.items||[]);
+   if(!connectProfile&&(profiles.items||[]).length)setConnectProfile(String(profiles.items[0].id||''));
    const drafts:Record<string,{status:string;application_reference:string;evidence_reference:string;notes:string}>={};
    for(const item of data.regulatory_cases||[])drafts[item.id]={status:item.status||'not_started',application_reference:item.application_reference||'',evidence_reference:item.evidence_reference||'',notes:item.notes||''};
    setCaseDrafts(drafts);setError('');
@@ -87,6 +109,57 @@ export default function NetworkAuthorityPage(){
    setGlobalQuote(data);
    setNotice('Global mobile retail quote calculated from the verified origin cost. No purchase or service activation occurred.');
   }catch(caught:any){setError(caught?.message||'Unable to calculate the global mobile quote.')}finally{setBusy(false)}
+ }
+
+ async function verifyMobileCountry(event:FormEvent){
+  event.preventDefault();setBusy(true);setNotice('');setError('');
+  try{
+   await call('/api/telecom/network/global-mobile/countries',{method:'PUT',body:JSON.stringify({
+    country_code:mobileCountry,capability:'mobile_data',state:'production_verified',
+    evidence_reference:countryEvidence,provider_ref:offerAdapter,production_verified:countryVerified,
+    notes:'Owner-verified global mobile data capability evidence.'
+   })});
+   setNotice('Country mobile-data capability evidence saved. This records proof; it does not create carrier authority.');await refresh();
+  }catch(caught:any){setError(caught?.message||'Unable to save country capability evidence.')}finally{setBusy(false)}
+ }
+
+ async function saveWholesaleOffer(event:FormEvent){
+  event.preventDefault();setBusy(true);setNotice('');setError('');
+  try{
+   const data=await call('/api/telecom/network/global-mobile/offers',{method:'POST',body:JSON.stringify({
+    country_code:mobileCountry,adapter_key:offerAdapter,network_group:offerNetwork||offerAdapter,
+    origin_reference:originReference,origin_cost_verified:originVerified,commercial_authorized:offerAuthorized,
+    origin_monthly_cost:Number(originCost),included_high_speed_gb:0,
+    expected_high_speed_gb:0,origin_variable_cost_per_gb:Number(originVariableCost),
+    funded_variable_cost_cap:Number(fundedVariableCap),mandatory_taxes_and_fees:Number(mandatoryFees),
+    observed_latency_ms:0,quality_score:0.5,backup_eligible:offerBackup
+   })});
+   setNotice('Verified wholesale offer '+data.id+' saved. No purchase or activation occurred.');await refresh();
+  }catch(caught:any){setError(caught?.message||'Unable to save wholesale offer.')}finally{setBusy(false)}
+ }
+
+ async function createMobileProfile(event:FormEvent){
+  event.preventDefault();setBusy(true);setNotice('');setError('');
+  try{
+   const data=await call('/api/telecom/network/global-mobile/profiles',{method:'POST',body:JSON.stringify({
+    country_code:mobileCountry,adapter_key:offerAdapter,provider_profile_ref:profileRef,
+    network_group:profileNetwork||offerNetwork||offerAdapter,profile_role:profileRole
+   })});
+   setNotice('Mobile access profile '+data.id+' created in provisioning state. Only an opaque provider reference was stored.');
+   setProfileRef('');await refresh();
+  }catch(caught:any){setError(caught?.message||'Unable to create access profile.')}finally{setBusy(false)}
+ }
+
+ async function recordConnectivity(event:FormEvent){
+  event.preventDefault();setBusy(true);setNotice('');setError('');
+  try{
+   const data=await call('/api/telecom/network/global-mobile/connectivity',{method:'POST',body:JSON.stringify({
+    profile_id:connectProfile,event_type:'quality',serving_network_ref:servingNetwork,
+    latency_ms:Number(latencyMs),packet_loss_percent:Number(packetLoss),
+    downlink_mbps:Number(downlinkMbps),uplink_mbps:Number(uplinkMbps)
+   })});
+   setNotice('Real connectivity evidence '+data.id+' recorded and the profile was marked active.');await refresh();
+  }catch(caught:any){setError(caught?.message||'Unable to record connectivity evidence.')}finally{setBusy(false)}
  }
 
  async function saveCase(item:RegulatoryCase){
@@ -148,6 +221,42 @@ export default function NetworkAuthorityPage(){
     <article className={styles.card}><small>ACCESS LAYER</small><h2>Multi-network eSIM strategy</h2><p className={styles.muted}>{overview.global_mobile?.architecture||'Provider-neutral mobile access beneath Magnanimous.'}</p><ul><li>Primary SIM/eSIM</li><li>Optional backup profile</li><li>Quality/cost-aware network selection</li><li>Local profiles where permanent roaming requires them</li></ul></article>
     <article className={styles.card}><small>COMMUNICATIONS LAYER</small><h2>Magnanimous number + app fallback</h2><ul><li>Multiple number identity</li><li>App voice and messaging fallback</li><li>Voicemail + optional AI call assistance</li><li>2FA compatibility reported honestly per number type</li></ul><p className={styles.muted}>A VoIP number is never advertised as guaranteed to receive every bank or short-code message.</p></article>
     <article className={styles.card}><small>COST CONTROL</small><h2>Funded fair-use economics</h2><ul><li>{overview.global_mobile?.cost_policy?.retail_markup_percent??20}% verified-origin uplift</li><li>High-speed allowance + documented throttle/QoS when supported</li><li>Hard variable-cost cap</li><li>No silent paid fallback</li></ul><p className={styles.muted}>Competitor retail prices are benchmarks, not Magnanimous wholesale cost.</p></article>
+   </div>
+   <div className={styles.grid}>
+    <article className={styles.card}><small>LIVE PROOF GATES</small><h2>{overview.global_mobile?.launch_readiness?.launch_ready?'ALL PROOF PASSED':'NOT YET LIVE'}</h2><ul>
+     {Object.entries(overview.global_mobile?.launch_readiness?.gates||{}).map(([key,value])=><li key={key}>{value?'✓':'○'} {key.replaceAll('_',' ')}</li>)}
+    </ul><p className={styles.muted}>{overview.global_mobile?.launch_readiness?.truth_boundary||'The environment flag cannot make service live without durable proof.'}</p></article>
+    <form className={styles.card} onSubmit={verifyMobileCountry}><small>COUNTRY PROOF</small><h2>Verify mobile-data capability</h2>
+     <label>Country code<input maxLength={2} value={mobileCountry} onChange={e=>{setMobileCountry(e.target.value.toUpperCase());setCountryVerified(false)}} placeholder='PH'/></label>
+     <label>Evidence reference<input value={countryEvidence} onChange={e=>{setCountryEvidence(e.target.value);setCountryVerified(false)}} placeholder='Official agreement/compliance evidence reference'/></label>
+     <label><input type='checkbox' checked={countryVerified} onChange={e=>setCountryVerified(e.target.checked)}/> I verified this country capability against the referenced evidence.</label>
+     <button disabled={busy||!countryEvidence.trim()||!countryVerified}>SAVE VERIFIED COUNTRY PROOF</button>
+    </form>
+    <form className={styles.card} onSubmit={saveWholesaleOffer}><small>WHOLESALE PROOF</small><h2>Activate verified origin offer</h2>
+     <label>Adapter key<input value={offerAdapter} onChange={e=>setOfferAdapter(e.target.value.toLowerCase())} placeholder='authorized-mobile-adapter'/></label>
+     <label>Independent network group<input value={offerNetwork} onChange={e=>setOfferNetwork(e.target.value.toLowerCase())} placeholder='network-a'/></label>
+     <label><input type='checkbox' checked={offerAuthorized} onChange={e=>setOfferAuthorized(e.target.checked)}/> Commercial agreement/authorization is verified.</label>
+     <label><input type='checkbox' checked={offerBackup} onChange={e=>setOfferBackup(e.target.checked)}/> Eligible as a backup path.</label>
+     <button disabled={busy||!offerAdapter.trim()||!offerAuthorized||!originVerified||!originReference.trim()}>SAVE VERIFIED WHOLESALE OFFER</button>
+     <p className={styles.muted}>Uses the same verified origin cost, evidence reference, funded cap and 20% pricing controls below.</p>
+    </form>
+    <form className={styles.card} onSubmit={createMobileProfile}><small>ACCESS PROFILE</small><h2>Register provisioned SIM/eSIM</h2>
+     <label>Role<select value={profileRole} onChange={e=>setProfileRole(e.target.value)}><option value='primary'>Primary</option><option value='backup'>Backup</option></select></label>
+     <label>Opaque provider profile reference<input value={profileRef} onChange={e=>setProfileRef(e.target.value)} placeholder='Provider-issued non-secret profile ID'/></label>
+     <label>Network group<input value={profileNetwork} onChange={e=>setProfileNetwork(e.target.value.toLowerCase())} placeholder='network-a'/></label>
+     <button disabled={busy||!offerAdapter.trim()||!profileRef.trim()}>CREATE ACCESS PROFILE</button>
+     <p className={styles.muted}>Never paste QR payloads, activation codes, Ki, OPc, ADM, or other SIM secrets here.</p>
+    </form>
+    <form className={styles.card} onSubmit={recordConnectivity}><small>REAL CONNECTIVITY PROOF</small><h2>Record subscriber network evidence</h2>
+     <label>Access profile<select value={connectProfile} onChange={e=>setConnectProfile(e.target.value)}><option value=''>Select profile</option>{mobileProfiles.map(item=><option value={item.id} key={item.id}>{item.profile_role} · {item.adapter_key} · {item.country_code}</option>)}</select></label>
+     <label>Serving network reference<input value={servingNetwork} onChange={e=>setServingNetwork(e.target.value)} placeholder='Observed network/operator reference'/></label>
+     <label>Latency ms<input type='number' min='0' value={latencyMs} onChange={e=>setLatencyMs(e.target.value)}/></label>
+     <label>Packet loss %<input type='number' min='0' max='100' step='0.01' value={packetLoss} onChange={e=>setPacketLoss(e.target.value)}/></label>
+     <label>Downlink Mbps<input type='number' min='0' step='0.01' value={downlinkMbps} onChange={e=>setDownlinkMbps(e.target.value)}/></label>
+     <label>Uplink Mbps<input type='number' min='0' step='0.01' value={uplinkMbps} onChange={e=>setUplinkMbps(e.target.value)}/></label>
+     <button disabled={busy||!connectProfile||!servingNetwork.trim()}>SAVE REAL CONNECTIVITY PROOF</button>
+    </form>
+    <article className={styles.card}><small>COST / FAIR-USE GATE</small><h2>{overview.global_mobile?.launch_readiness?.gates?.active_cost_fair_use_policy?'ACTIVE':'REQUIRED'}</h2><p>Global mobile requires an active data/roaming-data policy with a fair-use threshold, throttle, or daily spend limit before launch.</p><p><a href='/telecom/charging'>Open Telecom Charging →</a></p></article>
    </div>
    <form className={styles.card} onSubmit={quoteGlobalMobile}>
     <small>SAFE PRICING TOOL</small><h2>Quote from verified wholesale cost</h2>
