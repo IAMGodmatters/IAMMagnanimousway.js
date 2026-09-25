@@ -73,7 +73,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker run -d --name magnanimous-webrtc-e2e --network host             -v "$GITHUB_WORKSPACE/telecom-core/certs:/certs:ro"             -e ASTERISK_ARI_USER=ci-ari             -e ASTERISK_ARI_PASSWORD='ci-ari-password-3fe92bf4'             -e ASTERISK_WEBRTC_ENABLED=true             -e ASTERISK_HTTPS_PORT=8089             -e ASTERISK_TLS_CERT_FILE=/certs/fullchain.pem             -e ASTERISK_TLS_KEY_FILE=/certs/privkey.pem             -e MAGNANIMOUS_SIP_DOMAIN=webrtc.test             -e MAGNANIMOUS_WEBRTC_EXTENSION=1100             -e MAGNANIMOUS_WEBRTC_ECHO_EXTENSION=6000             -e MAGNANIMOUS_WEBRTC_PASSWORD='ci-webrtc-password-8b1a2fd7'             -e MAGNANIMOUS_AI_EXTENSION=9000             -e MAGNANIMOUS_AI_PASSWORD='ci-ai-password-18e3a499'             -e MAGNANIMOUS_ADMIN_EXTENSION=1000             -e MAGNANIMOUS_ADMIN_PASSWORD='ci-admin-password-52d8941c'             magnanimous-webrtc-e2e:ci
+          docker run -d --name magnanimous-webrtc-e2e --network host             -v "$GITHUB_WORKSPACE/telecom-core/certs:/certs:ro"             -e ASTERISK_ARI_USER=ci-ari             -e ASTERISK_ARI_PASSWORD='ci-ari-password-3fe92bf4'             -e ASTERISK_WEBRTC_ENABLED=true             -e ASTERISK_HTTPS_PORT=8089             -e ASTERISK_TLS_CERT_FILE=/certs/fullchain.pem             -e ASTERISK_TLS_KEY_FILE=/certs/privkey.pem             -e MAGNANIMOUS_SIP_DOMAIN=webrtc.test             -e MAGNANIMOUS_WEBRTC_EXTENSION=1100             -e MAGNANIMOUS_WEBRTC_ECHO_EXTENSION=6000             -e MAGNANIMOUS_STASIS_DIAGNOSTIC_EXTENSION=6001             -e ASTERISK_STASIS_APP=magnanimous-call-control             -e MAGNANIMOUS_WEBRTC_PASSWORD='ci-webrtc-password-8b1a2fd7'             -e MAGNANIMOUS_AI_EXTENSION=9000             -e MAGNANIMOUS_AI_PASSWORD='ci-ai-password-18e3a499'             -e MAGNANIMOUS_ADMIN_EXTENSION=1000             -e MAGNANIMOUS_ADMIN_PASSWORD='ci-admin-password-52d8941c'             magnanimous-webrtc-e2e:ci
           for attempt in $(seq 1 60); do
             if printf '' | openssl s_client -connect 127.0.0.1:8089 -servername localhost >/tmp/magnanimous-webrtc-e2e/tls.txt 2>&1 && \
                docker exec magnanimous-webrtc-e2e asterisk -rx 'http show status' >/tmp/magnanimous-webrtc-e2e/httpstatus.txt 2>/dev/null && \
@@ -94,7 +94,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker run -d --name magnanimous-webrtc-api --network host             -e TELECOM_API_TOKEN='ci-telecom-token-6f1e9c2d'             -e TELECOM_WEBHOOK_SECRET='ci-webhook-secret'             -e ASTERISK_ARI_URL=http://127.0.0.1:8088/ari             -e ASTERISK_ARI_USER=ci-ari             -e ASTERISK_ARI_PASSWORD='ci-ari-password-3fe92bf4'             -e ASTERISK_WEBRTC_ENABLED=true             -e ASTERISK_WEBRTC_PUBLIC_URL=wss://localhost:8089/ws             -e ASTERISK_WEBRTC_DYNAMIC_SESSIONS_ENABLED=true             -e ASTERISK_WEBRTC_SESSION_TTL_SECONDS=900             -e MAGNANIMOUS_SIP_DOMAIN=webrtc.test             magnanimous-telecom-api:webrtc-ci
+          docker run -d --name magnanimous-webrtc-api --network host             -e TELECOM_API_TOKEN='ci-telecom-token-6f1e9c2d'             -e TELECOM_WEBHOOK_SECRET='ci-webhook-secret'             -e ASTERISK_ARI_URL=http://127.0.0.1:8088/ari             -e ASTERISK_ARI_USER=ci-ari             -e ASTERISK_ARI_PASSWORD='ci-ari-password-3fe92bf4'             -e ASTERISK_WEBRTC_ENABLED=true             -e ASTERISK_WEBRTC_PUBLIC_URL=wss://localhost:8089/ws             -e ASTERISK_WEBRTC_DYNAMIC_SESSIONS_ENABLED=true             -e ASTERISK_STASIS_ENABLED=true             -e ASTERISK_STASIS_APP=magnanimous-call-control             -e ASTERISK_STASIS_RECONNECT_SECONDS=0.5             -e ASTERISK_STASIS_CHANNEL_WAIT_SECONDS=2             -e ASTERISK_WEBRTC_SESSION_TTL_SECONDS=900             -e MAGNANIMOUS_SIP_DOMAIN=webrtc.test             magnanimous-telecom-api:webrtc-ci
           for attempt in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8080/health >/tmp/magnanimous-webrtc-e2e/api-health.json; then
               exit 0
@@ -120,7 +120,8 @@ jobs:
             WEBRTC_SESSION_ID:d.session_id
           })) fs.appendFileSync(process.env.GITHUB_ENV,`${k}=${v}\n`);
           if (d.pstn_direct !== false) throw new Error('Ephemeral browser session must not permit direct PSTN dialing');
-          if (!Array.isArray(d.allowed_call_scope) || !d.allowed_call_scope.includes('diagnostic-echo')) throw new Error('Diagnostic scope missing');
+          if (!Array.isArray(d.allowed_call_scope) || !d.allowed_call_scope.includes('diagnostic-echo')) throw new Error('Echo diagnostic scope missing');
+          if (!d.allowed_call_scope.includes('diagnostic-stasis')) throw new Error('Stasis diagnostic scope missing');
           NODE
 
       - name: Build native browser probe
@@ -149,6 +150,45 @@ jobs:
           WEBRTC_ALLOW_INSECURE_TLS: 'true'
           WEBRTC_SERVER_ASSERT_MODE: local-docker
         run: npm run probe
+
+      - name: Prove real browser channel enters private Stasis app
+        shell: bash
+        working-directory: telecom-core/webrtc-e2e
+        env:
+          WEBRTC_TEST_PAGE: http://127.0.0.1:4173/
+          WEBRTC_ECHO_EXTENSION: '6001'
+          WEBRTC_REQUIRE_MEDIA: 'false'
+          WEBRTC_HOLD_MS: '10000'
+          FAKE_AUDIO_WAV: /tmp/magnanimous-webrtc-e2e/tone.wav
+          ASTERISK_CONTAINER: magnanimous-webrtc-e2e
+          WEBRTC_ALLOW_INSECURE_TLS: 'true'
+          WEBRTC_SERVER_ASSERT_MODE: local-docker
+        run: |
+          set -euo pipefail
+          npm run probe > /tmp/magnanimous-webrtc-e2e/stasis-browser-probe.log 2>&1 &
+          probe_pid=$!
+          ok=false
+          for attempt in $(seq 1 40); do
+            if curl -fsS -H 'Authorization: Bearer ci-telecom-token-6f1e9c2d' http://127.0.0.1:8080/v1/stasis > /tmp/magnanimous-webrtc-e2e/stasis-status.json; then
+              if node - <<'NODE'
+          const fs=require('node:fs');
+          const d=JSON.parse(fs.readFileSync('/tmp/magnanimous-webrtc-e2e/stasis-status.json','utf8'));
+          if (d.identity !== 'Magnanimous Telecom') process.exit(1);
+          if (d.configured !== true || d.connected !== true) process.exit(1);
+          if (Number(d.tracked_channels || 0) < 1 || Number(d.event_count || 0) < 1) process.exit(1);
+          if (d.public_ari_exposed !== false) process.exit(1);
+          NODE
+              then
+                ok=true
+                break
+              fi
+            fi
+            sleep 0.5
+          done
+          wait "$probe_pid"
+          cat /tmp/magnanimous-webrtc-e2e/stasis-browser-probe.log
+          cat /tmp/magnanimous-webrtc-e2e/stasis-status.json
+          [ "$ok" = true ] || { echo 'Real browser channel did not enter the private Magnanimous Stasis app.' >&2; exit 1; }
 
       - name: Revoke ephemeral native browser credential
         shell: bash
