@@ -103,7 +103,8 @@ Intentionally gated follow-on work, not falsely marked live:
 - [ ] Repeat browser registration + two-way RTP on the dedicated public Telecom Core host with a trusted public certificate and real network/NAT path; only then set `TELECOM_NATIVE_WEBRTC_LIVE=true`.
 - [x] Migrate the main agent softphone to the verified native WebRTC client for approved internal calling while preserving the compatibility SDK as the PSTN fallback.
 - [x] Migrate the protected Magnanimous Telecom Core outbound bridge to the planner's explicit selected-route contract. The Core now allowlists the selected PJSIP endpoint, checks it through authenticated Asterisk ARI health before origination, carries route/interconnect IDs into the call, and prevents a planner-selected attempt from silently failing over to another trunk. The route payload is not sent to a generic outside BYOC origin.
-- [ ] Map every remaining live generic BYOC/compatibility carrier adapter (including Twilio/Plivo where actually live) to the same explicit selected-route execution and authenticated carrier-health contract before allowing the route planner to control all production calls. `live_execution_uses_route_planner` remains false until that is complete.
+- [x] Add the generic BYOC selected-route contract: owner-disabled by default, separate non-secret `bridge_route_key`, same-origin HTTPS authenticated health preflight, exact route/interconnect/key confirmation after call acceptance, and no claim of route application when the bridge does not echo the exact applied route.
+- [ ] Migrate the remaining Twilio/Plivo compatibility carrier paths behind an equivalent explicit selected-route + authenticated-health contract where their execution model supports it. `live_execution_uses_route_planner` remains false until every actually live compatibility path is migrated and production-verified.
 - [x] Implement the consent-gated Stasis supervision/recording software path: private ARI event stream, monitor/whisper/barge snoop bridge, headless bridge recording, owner/admin controls, explicit consent + notice + jurisdiction gates, tenant audit tables, UI controls, unit tests and cleanup locks. Source implementation alone does **not** make the feature production-live.
 - [ ] Verify the Stasis supervision lifecycle on the real Telecom Core host with an active native call and registered supervisor endpoint: prove monitor/whisper/barge behavior, recording beep/start/stop, audit state and cleanup. Only after that verification may `ASTERISK_SUPERVISOR_CONTROL_ENABLED=true` be promoted. Browser supervisor audio additionally remains blocked until `TELECOM_NATIVE_WEBRTC_LIVE=true` passes the separate external public-host proof.
 - [ ] Obtain required NTC/FCC/other authorizations, carrier agreements, numbering/emergency-service arrangements before representing those regulated capabilities as live.
@@ -112,15 +113,15 @@ Intentionally gated follow-on work, not falsely marked live:
 
 **SUCCESS for the completed software/runtime scope.**
 
-Latest verified authoritative production commit before the current unmerged supervision branch:
-- `fc397a47e4793e25b50998719daec0371aa8a372`
+Latest verified authoritative production commit before the current generic BYOC selected-route branch:
+- `98128d9c4820a2286cc741163b0bdc4c646712fc`
 
 Existing Railway production service:
 - project: `88bfb25b-3b34-40bd-87cb-188549b96a43`
 - environment: `3cb0deba-a700-4fdb-a92d-d7da98172f1e`
 - service: `71f6ecd9-4114-4431-8796-3fe4395bfd95`
-- exact runtime deployment: `2cfac1da-6fa1-450a-b49f-9ab34129c89c`
-- deployed commit: `fc397a47e4793e25b50998719daec0371aa8a372`
+- exact runtime deployment: `6c103f2b-f5c6-4c03-adb9-41ef5014a6e0`
+- deployed commit: `98128d9c4820a2286cc741163b0bdc4c646712fc`
 - status: **SUCCESS**
 - no new Railway project or service was created.
 
@@ -209,7 +210,7 @@ Exact next external action:
 
 If interrupted, resume from this file first.
 
-The completed deep software/production pass, native Chromium/Asterisk media proof, ephemeral native browser sessions, platform server handoff, SIP.js agent softphone migration, selected-route execution through the protected Telecom Core, TURN readiness, OCI A1 preflight, ARM64 proof, guarded Terraform module, Cloud Shell plan/apply helper, and the current consent-gated Stasis supervision source work should **not** be recreated. The next external telecom phase remains user creation/sign-in of the Oracle Cloud tenancy, then using the already-versioned Cloud Shell helper to plan/apply the free A1 host, configuring DNS + trusted certificate + protected Telecom Core secrets, running the external public WebRTC workflow, and only after that promoting `TELECOM_NATIVE_WEBRTC_LIVE=true`. The Stasis supervision branch must also pass CI/merge/deploy and then receive a real-host active-call verification before `ASTERISK_SUPERVISOR_CONTROL_ENABLED=true` is promoted. If OCI Always Free A1 capacity is unavailable, do not substitute a paid shape without a separate explicit cost review/approval. Once public proof is green, the existing native softphone path can activate without removing the compatibility PSTN fallback.
+The completed deep software/production pass, native Chromium/Asterisk media proof, ephemeral native browser sessions, platform server handoff, SIP.js agent softphone migration, selected-route execution through the protected Telecom Core, deployed consent-gated Stasis supervision source work, TURN readiness, OCI A1 preflight, ARM64 proof, guarded Terraform module, and Cloud Shell plan/apply helper should **not** be recreated. The next external telecom phase remains user creation/sign-in of the Oracle Cloud tenancy, then using the already-versioned Cloud Shell helper to plan/apply the free A1 host, configuring DNS + trusted certificate + protected Telecom Core secrets, running the external public WebRTC workflow, and only after that promoting `TELECOM_NATIVE_WEBRTC_LIVE=true`. The merged Stasis supervision path still requires real-host active-call verification before `ASTERISK_SUPERVISOR_CONTROL_ENABLED=true` is promoted. If OCI Always Free A1 capacity is unavailable, do not substitute a paid shape without a separate explicit cost review/approval. Once public proof is green, the existing native softphone path can activate without removing the compatibility PSTN fallback.
 
 Rules:
 - do not recreate PRs #367-#382;
