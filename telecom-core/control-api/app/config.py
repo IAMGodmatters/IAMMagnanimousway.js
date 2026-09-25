@@ -46,13 +46,13 @@ class TelecomSettings:
     ari_password: str
     caller_id: str
     carrier_endpoint: str
-    carrier_secondary_endpoint: str = ""
-    carrier_dial_context: str = "magnanimous-outbound"
-    carrier_primary_dial_context: str = "magnanimous-outbound-primary"
-    carrier_secondary_dial_context: str = "magnanimous-outbound-secondary"
+    carrier_dial_context: str
     carrier_timeout_ms: int
     monitor_interval_seconds: float
     monitor_max_polls: int
+    carrier_secondary_endpoint: str = ""
+    carrier_primary_dial_context: str = "magnanimous-outbound-primary"
+    carrier_secondary_dial_context: str = "magnanimous-outbound-secondary"
     sip_domain: str = ""
     webrtc_enabled: bool = False
     webrtc_public_url: str = ""
