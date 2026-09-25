@@ -30,7 +30,8 @@ Observed retail mechanics on 2026-09-26:
 - local-number inventory spans multiple countries and can require KYC depending on jurisdiction;
 - Wi-Fi calling/texting, visual voicemail, and limited hotspot use;
 - fair-use restrictions prohibit using the service as a replacement for sustained home internet;
-- public legal disclosures explicitly warn that some 2FA systems may reject VoIP numbers and that international caller ID can vary by carrier/routing path.
+- public legal disclosures explicitly warn that some 2FA systems may reject VoIP numbers and that international caller ID can vary by carrier/routing path;
+- Fonus publishes a reseller application for B2C, B2B, or both, but its public site does not expose a Magnanimous-usable wholesale rate card, so any reseller economics still require a verified commercial quote.
 
 Architecture lesson:
 Use mobile data as one access rail and keep voice/text/number identity logically separate. This lets Magnanimous route communications through its own software layer while swapping mobile data and numbering suppliers independently.
@@ -56,7 +57,9 @@ Observed retail mechanics on 2026-09-26:
 - call forwarding used to route calls to app/assistant workflows;
 - fair-use policy treats usage near 50 GB/month as abnormal and prohibits home-internet/call-center/resale use;
 - support material describes a US-based eSIM that may route traffic through the US, which can add latency abroad;
-- public service is designed for individual users rather than resale or commercial call-center use.
+- public terms describe Popcorn as a licensed US carrier with the United States as its primary service area and support for US expats/frequent travelers;
+- public service is designed for individual users rather than resale or commercial call-center use, so Popcorn is retained as an architecture/product benchmark rather than treated as a wholesale upstream;
+- Popcorn publicly claims bank-text support, but Magnanimous must still verify authentication/SMS capability for its own number type and upstream instead of inheriting that claim.
 
 Architecture lesson:
 Global reliability improves when one customer identity can use more than one access path. A primary eSIM, secondary/backup profile, manual or automated network selection, and an IP-app fallback can be coordinated by Magnanimous without exposing the upstream provider.
@@ -71,7 +74,7 @@ The API exposes wireless subscriptions, plans, devices, SIM/eSIM resources, add-
 ### 1GLOBAL Connect
 Reference: https://docs.connect-api.1global.com/
 
-1GLOBAL exposes API-driven customer/subscription management and eSIM ordering/activation for partners. It is a useful direct-source candidate for global eSIM connectivity subject to commercial agreement, pricing, and jurisdiction availability.
+1GLOBAL describes its Connect API as telco-as-a-service that can order, activate, and manage subscriptions worldwide through one API. It is a useful direct-source candidate for global eSIM connectivity subject to commercial agreement, verified pricing, and jurisdiction/product availability.
 
 ### Telna
 References:
@@ -79,14 +82,14 @@ References:
 - https://www.telna.com/connect
 - https://www.telna.com/esim
 
-Public materials describe API-first global connectivity, multi-network access, multi-IMSI/eSIM technology, smart network selection, centralized management, and coverage across 180+/200+ countries depending on product. This is a strong architecture pattern for cost/quality steering, but any production use still requires a commercial agreement and verified pricing.
+Public materials describe API-first connectivity management, full eSIM lifecycle controls, dynamic data/SMS/voice service activation, 800+ network agreements, 35+ MNO IMSIs, smart network selection, centralized management, and global eSIM access. Telna's eSIM page also describes one profile reaching 180+ countries and territories. This is a strong architecture pattern for cost/quality steering, but any production use still requires a commercial agreement and verified pricing.
 
 ### BICS
 References:
 - https://www.bics.com/iot/global-connectivity/
 - https://www.bics.com/iot/iot-esim/
 
-Public materials describe multi-IMSI, eSIM profile management, automatic fallback, local profiles for permanent-roaming restrictions, and hundreds of network relationships. Much of the public material targets IoT, so consumer eligibility must not be assumed. The useful pattern is multi-network/profile orchestration and local-profile compliance, not a claim that the IoT offer can be resold as consumer mobile service.
+Public materials describe multi-IMSI, encrypted remote eSIM provisioning, automatic fallback, bootstrap/operational/local profiles, permanent-roaming compliance, cost/latency/regulation-aware steering, and 700+ operator profiles across 200+ countries/regions. Much of the public material targets IoT, so consumer eligibility must not be assumed. The useful pattern is multi-network/profile orchestration and local-profile compliance, not a claim that the IoT offer can be resold as consumer mobile service.
 
 ## Magnanimous-native design absorbed
 
