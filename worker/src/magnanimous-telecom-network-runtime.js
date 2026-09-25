@@ -124,8 +124,10 @@ export async function handleMagnanimousTelecomNetwork(request,env){
     route_planner_enabled:true,
     measured_quality_signals:['ASR','ACD','PDD','network_failure_rate'],
     max_rate_enforced:true,
-    live_execution_uses_route_planner:false,
-    execution_note:'The planner is authoritative for preview/control policy now; existing live phone adapters remain on their compatibility execution paths until they are migrated behind the same selected-route contract.',
+    live_execution_uses_route_planner:true,
+    authenticated_health_before_dial:true,
+    compatibility_fallback_when_no_routes:true,
+    execution_note:'When a tenant has carrier routes configured, live PSTN execution uses the planner-ranked route list and requires an authenticated adapter health check before dialing. BYOC/SIP bridge, Plivo and Twilio compatibility rails are mapped. If no tenant routes exist, the prior compatibility execution path remains available.',
     failover_boundary:'A secondary SIP interconnect is used only for network-unavailable or congestion outcomes; real busy/no-answer results are not redialed through another carrier.'
    },
    owned_service_core:{provider_key:'magnanimous-telecom',role:'PBX, SIP registrar, routing, policy, CDR and contact-center control',native_pbx:'Asterisk',provider_owned_identity:true},
