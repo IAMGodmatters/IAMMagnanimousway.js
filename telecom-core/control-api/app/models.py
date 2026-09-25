@@ -47,7 +47,6 @@ class SupervisorSessionStart(BaseModel):
     tenant_id: str = Field(min_length=1, max_length=200)
     target_role: Literal["agent", "customer"] = "agent"
     supervisor_session_id: str = Field(min_length=1, max_length=160, pattern=r"^web_\d+_[a-f0-9]{16}$")
-    supervisor_channel_id: str = Field(min_length=1, max_length=160)
     consent_confirmed: bool = False
     jurisdiction: str = Field(default="", max_length=120)
 
