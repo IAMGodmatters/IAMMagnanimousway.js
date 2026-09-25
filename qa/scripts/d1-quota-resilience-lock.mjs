@@ -53,7 +53,8 @@ add('standalone runtime never self-proxies through the Cloudflare edge',security
 add('standalone proxy has explicit loop protection',securityEntry.includes("x-magnanimous-standalone-proxy")&&securityEntry.includes("==='1'"));
 add('credential vault rewrap remains on the Cloudflare source vault instead of the standalone target',securityEntry.includes("if(url.pathname==='/api/internal/migration/rewrap-platform-credentials')return null;")&&securityEntry.indexOf("if(url.pathname==='/api/internal/migration/rewrap-platform-credentials')return null;")<securityEntry.indexOf('const origin=configuredStandaloneApiOrigin(env);'));
 add('standalone proxy keeps Cloudflare as a truthful rollback path',securityEntry.includes('retaining Cloudflare rollback path')&&securityEntry.includes('return null;'));
-add('free-first conversational inference stays on Worker AI instead of the standalone proxy',securityEntry.includes("if(url.pathname==='/api/chat')return null;"));
+add('customer chat stays on standalone session and memory data plane',!securityEntry.includes("if(url.pathname==='/api/chat')return null;")&&securityEntry.includes("if(url.pathname==='/api/chat/compute')"));
+add('stateless compute fallback stays on Worker AI and strips cross-plane browser credentials',securityEntry.includes("headers.delete('authorization')")&&securityEntry.includes("compute_only:true")&&securityEntry.includes("allow_metered_accelerator:false"));
 add('Cloudflare production config points API traffic at the Magnanimous standalone origin',wrangler.includes('"MAGNANIMOUS_STANDALONE_API_ORIGIN": "https://magnanimous-production.up.railway.app"'));
 
 const compatTablesStart=adminCompat.indexOf('async function ensureTables');
