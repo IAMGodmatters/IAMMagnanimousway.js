@@ -15,14 +15,16 @@ export async function handleMonetization(request, env) {
   if (url.pathname !== '/api/monetization/config') return null;
   if (request.method !== 'GET') return json({ detail: 'Method not allowed.' }, 405);
 
-  const client = cleanClient(env?.ADSENSE_CLIENT_ID);
-  const homeSlot = cleanSlot(env?.ADSENSE_SLOT_HOME);
+  const revenueAuthorized = ['1','true','yes','on'].includes(String(env?.ADSENSE_REVENUE_AUTHORIZED||'').trim().toLowerCase());
+  const client = revenueAuthorized ? cleanClient(env?.ADSENSE_CLIENT_ID) : '';
+  const homeSlot = revenueAuthorized ? cleanSlot(env?.ADSENSE_SLOT_HOME) : '';
   return json({
     adsense_configured: Boolean(client),
     adsense_client_id: client || null,
     adsense_home_slot: homeSlot || null,
     auto_ads_ready: Boolean(client),
+    revenue_authorized: revenueAuthorized && Boolean(client),
     sponsored_placements_endpoint: '/api/ads?placement=home',
-    policy: 'Ads are displayed only through owner-provided sponsored links or an approved ad-network publisher configuration.'
+    policy: 'Outside ads can render only after explicit revenue authorization. Owner-owned promotions and paid sponsored placements remain allowed; all other third-party advertising is blocked by default.'
   });
 }
