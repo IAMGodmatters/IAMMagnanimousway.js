@@ -406,7 +406,7 @@ async function instagramGraph(env,user,body,kind){
   if(!r.ok||d?.error)throw new Error(d?.error?.message||`Instagram profile request failed (${r.status}).`);
   return{account:{external_account_id:conn.external_account_id,display_name:conn.display_name},profile:d,source:'authorized-official-api'};
  }
- const limit=clamp(body.limit||25,1,50),r=await fetch(`https://graph.facebook.com/${version}/${id}/media?fields=id,caption,media_type,media_product_type,permalink,timestamp,thumbnail_url,media_url&limit=${limit}&access_token=${token}`),d=await r.json().catch(()=>({});
+ const limit=clamp(body.limit||25,1,50),r=await fetch(`https://graph.facebook.com/${version}/${id}/media?fields=id,caption,media_type,media_product_type,permalink,timestamp,thumbnail_url,media_url&limit=${limit}&access_token=${token}`),d=await r.json().catch(()=>({}));
  if(!r.ok||d?.error)throw new Error(d?.error?.message||`Instagram media request failed (${r.status}).`);
  const all=Array.isArray(d.data)?d.data:[],reels=all.filter(x=>String(x.media_product_type||'').toUpperCase()==='REELS');
  return{account:{external_account_id:conn.external_account_id,display_name:conn.display_name},reels,media_sample:all.slice(0,limit),source:'authorized-official-api'};
