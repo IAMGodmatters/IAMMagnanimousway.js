@@ -6,6 +6,7 @@ import { getMagnanimousToolFoundryContext, handleMagnanimousToolFoundry } from '
 import { getMagnanimousOgenicPrompt, buildMagnanimousOgenicPlan, handleMagnanimousOgenic } from './magnanimous-ogenic-god-toolkit.js';
 import { hasAnyReadyLocalBridge, hasReadyLocalBridge, hasAnyReadyLocalBridgeCapability } from './magnanimous-local-bridge-runtime.js';
 import { getMagnanimousSingleBrainSummary, magnanimousPublicRoutingSummary } from './magnanimous-single-brain-contract.js';
+import { cloudflarePremiumTokenCostUsd } from './premium-origin-costs.js';
 import { getConnectorAbsorptionPrompt } from './magnanimous-connector-absorption.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
@@ -164,7 +165,7 @@ async function cloudflare(env, message, model) {
         max_tokens: 1400
       }),Math.min(CLOUDFLARE_ATTEMPT_TIMEOUT_MS,remaining),`Workers AI ${m}`);
       const text = extractCloudflareText(result).trim();
-      if (text) return { text, model: m };
+      if (text) return { text, model: m, usage: result?.usage||result?.result?.usage||null };
       errors.push(`${m}: empty response`);
     } catch (e) {
       errors.push(`${m}: ${e?.message || 'inference failed'}`);
@@ -383,7 +384,13 @@ async function handle(request, env) {
         if (!result?.text?.trim()) throw new Error('Provider returned an empty response');
         if(!computeOnly)await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:true,quality:.85,latency:Date.now()-started,notes:`capability=${capability}; grounded=${grounding.sources.length}; links=${absorbedLinks.length}`});
         if(!computeOnly&&body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:true});
-        return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, magnanimous: true, operator: true, command_role:'commander-in-chief', provider_role:'execution-engine', routed_automatically:requested==='auto', route_task:task, native_capability:capability, route_policy:String(body.quality||body.route_policy||'free-first'), fallback_candidates:candidates.map(x=>x.id), adaptive_provider_learning:true, provider_learning:learningState, grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured, automatic_research:autoResearch, remembered_research:rememberResearch, link_learning:{enabled:body.learn_links!==false,absorbed:absorbedLinks.length,results:linkLearning}, native_recipe_learning:{observed:true,gap_count:Number(observed?.gap_count||0),proposal:observed?.proposal||null}, tool_planning:{enabled:body.use_tools!==false,learned_tools:toolPlanning.tools?.map(x=>({name:x.name,status:x.status,risk:x.risk}))||[],recommended_integrations:toolPlanning.recommended_integrations?.map(x=>({id:x.id,name:x.name,priority:x.priority,capabilities:x.capabilities}))||[]}, ogenic:{classification:ogenicPlan.classification,groups:ogenicPlan.groups.map(x=>x.id),initiative:ogenicPlan.initiative,status:ogenicPlan.status,network_direction:ogenicPlan.network_direction,safe_initiative:ogenicInitiative} });
+        const success=json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, magnanimous: true, operator: true, command_role:'commander-in-chief', provider_role:'execution-engine', routed_automatically:requested==='auto', route_task:task, native_capability:capability, route_policy:String(body.quality||body.route_policy||'free-first'), fallback_candidates:candidates.map(x=>x.id), adaptive_provider_learning:true, provider_learning:learningState, grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured, automatic_research:autoResearch, remembered_research:rememberResearch, link_learning:{enabled:body.learn_links!==false,absorbed:absorbedLinks.length,results:linkLearning}, native_recipe_learning:{observed:true,gap_count:Number(observed?.gap_count||0),proposal:observed?.proposal||null}, tool_planning:{enabled:body.use_tools!==false,learned_tools:toolPlanning.tools?.map(x=>({name:x.name,status:x.status,risk:x.risk}))||[],recommended_integrations:toolPlanning.recommended_integrations?.map(x=>({id:x.id,name:x.name,priority:x.priority,capabilities:x.capabilities}))||[]}, ogenic:{classification:ogenicPlan.classification,groups:ogenicPlan.groups.map(x=>x.id),initiative:ogenicPlan.initiative,status:ogenicPlan.status,network_direction:ogenicPlan.network_direction,safe_initiative:ogenicInitiative} });
+        const premiumRequested=String(body.route_policy||body.quality||'')==='magnanimous-premium';
+        const premiumSatisfied=premiumRequested&&p.id==='cloudflare-ai'&&String(result.model||'')===String(body.model||'');
+        if(!premiumSatisfied)return success;
+        const origin=cloudflarePremiumTokenCostUsd(result.model,result.usage);
+        const headers=new Headers(success.headers);headers.set('x-magnanimous-premium-satisfied','1');if(origin!=null)headers.set('x-magnanimous-origin-cost-usd',String(origin));headers.set('x-magnanimous-origin-model',String(result.model||''));
+        return new Response(success.body,{status:success.status,statusText:success.statusText,headers});
       } catch (e) {
         const detail=e?.message || 'provider failed';errors.push(`${p.name}: ${detail}`);
         if(!computeOnly)await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:false,quality:0,latency:Date.now()-started,notes:detail});
