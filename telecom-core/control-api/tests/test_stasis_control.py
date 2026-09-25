@@ -58,6 +58,43 @@ class FakeAri:
         return FakeResponse(200, {})
 
 
+class FakeStateStore:
+    def __init__(self, *, ready=True, active=None):
+        self._ready = ready
+        self.active = active or {"bridges": [], "supervisors": [], "recordings": []}
+        self.events = []
+
+    @property
+    def ready(self):
+        return self._ready
+
+    async def ensure(self):
+        self.events.append(("ensure",))
+        self._ready = True
+
+    async def load_active(self):
+        self.events.append(("load_active",))
+        return self.active
+
+    async def put_bridge(self, bridge_id, call_id, channel_ids, created_at):
+        self.events.append(("put_bridge", bridge_id, call_id, tuple(channel_ids), created_at))
+
+    async def end_bridge(self, bridge_id, ended_at):
+        self.events.append(("end_bridge", bridge_id, ended_at))
+
+    async def put_supervisor(self, row):
+        self.events.append(("put_supervisor", row["session_id"]))
+
+    async def end_supervisor(self, session_id, ended_at):
+        self.events.append(("end_supervisor", session_id, ended_at))
+
+    async def put_recording(self, row):
+        self.events.append(("put_recording", row["recording_name"], row["consent_basis"]))
+
+    async def end_recording(self, recording_name, ended_at):
+        self.events.append(("end_recording", recording_name, ended_at))
+
+
 def settings(*, enabled=True):
     return TelecomSettings(
         api_token="test-token",
@@ -82,7 +119,7 @@ def settings(*, enabled=True):
 
 def ready_service():
     cfg = settings()
-    listener = StasisEventListener(cfg)
+    listener = StasisEventListener(FakeAri(), cfg)
     listener._connected = True
     listener._channels.update(
         {
@@ -92,12 +129,14 @@ def ready_service():
         }
     )
     ari = FakeAri(listener)
-    return StasisCallControlService(ari, listener, cfg), ari, listener
+    listener._ari = ari
+    state = FakeStateStore(ready=True)
+    return StasisCallControlService(ari, listener, state, cfg), ari, listener, state
 
 
 class StasisEventListenerTests(unittest.IsolatedAsyncioTestCase):
     async def test_tracks_only_stasis_owned_channels(self):
-        listener = StasisEventListener(settings())
+        listener = StasisEventListener(FakeAri(), settings())
         await listener._track(
             {
                 "type": "StasisStart",
@@ -116,18 +155,20 @@ class StasisEventListenerTests(unittest.IsolatedAsyncioTestCase):
 class StasisCallControlTests(unittest.IsolatedAsyncioTestCase):
     async def test_disabled_control_fails_closed(self):
         cfg = settings(enabled=False)
-        listener = StasisEventListener(cfg)
-        service = StasisCallControlService(FakeAri(listener), listener, cfg)
+        listener = StasisEventListener(FakeAri(), cfg)
+        ari = FakeAri(listener)
+        listener._ari = ari
+        service = StasisCallControlService(ari, listener, FakeStateStore(ready=False), cfg)
         with self.assertRaises(TelecomConfigurationError):
             await service.create_bridge("call-1", ["a", "b"])
 
     async def test_managed_bridge_requires_stasis_owned_channels(self):
-        service, _, _ = ready_service()
+        service, _, _, _ = ready_service()
         with self.assertRaises(TelecomValidationError):
             await service.create_bridge("call-1", ["agent-channel", "outside-channel"])
 
     async def test_create_supervise_record_and_cleanup_lifecycle(self):
-        service, ari, listener = ready_service()
+        service, ari, listener, state = ready_service()
         bridge = await service.create_bridge("call-42", ["agent-channel", "customer-channel"])
         bridge_id = bridge["bridge_id"]
         self.assertTrue(bridge_id.startswith("mag-call-"))
@@ -168,6 +209,9 @@ class StasisCallControlTests(unittest.IsolatedAsyncioTestCase):
         record_request = next(x for x in ari.requests if x[1] == f"/bridges/{bridge_id}/record")
         self.assertEqual(record_request[2]["ifExists"], "fail")
         self.assertEqual(record_request[2]["beep"], "true")
+        self.assertTrue(any(e[0] == "put_bridge" for e in state.events))
+        self.assertTrue(any(e[0] == "put_supervisor" for e in state.events))
+        self.assertTrue(any(e[0] == "put_recording" for e in state.events))
 
         with self.assertRaises(TelecomValidationError):
             await service.destroy_bridge(bridge_id)
@@ -179,9 +223,71 @@ class StasisCallControlTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(destroyed["destroyed"])
         self.assertEqual(service.status()["managed_call_bridges"], 0)
 
+    async def test_enabled_control_requires_durable_state_ready(self):
+        cfg = settings(enabled=True)
+        listener = StasisEventListener(FakeAri(), cfg)
+        listener._connected = True
+        ari = FakeAri(listener)
+        listener._ari = ari
+        service = StasisCallControlService(ari, listener, FakeStateStore(ready=False), cfg)
+        with self.assertRaises(TelecomConfigurationError):
+            await service.create_bridge("call-1", ["agent-channel", "customer-channel"])
+
+    async def test_initialize_restores_active_state_for_restart_recovery(self):
+        cfg = settings(enabled=True)
+        listener = StasisEventListener(FakeAri(), cfg)
+        ari = FakeAri(listener)
+        listener._ari = ari
+        state = FakeStateStore(
+            ready=False,
+            active={
+                "bridges": [
+                    {
+                        "bridge_id": "mag-call-restored",
+                        "call_id": "call-restored",
+                        "channel_ids": ["agent-channel", "customer-channel"],
+                        "created_at": 100,
+                    }
+                ],
+                "supervisors": [
+                    {
+                        "session_id": "sup-restored",
+                        "call_bridge_id": "mag-call-restored",
+                        "supervisor_bridge_id": "mag-supervisor-restored",
+                        "snoop_channel_id": "mag-snoop-restored",
+                        "target_channel_id": "agent-channel",
+                        "supervisor_channel_id": "supervisor-channel",
+                        "mode": "monitor",
+                        "requested_by": "owner@example.com",
+                        "created_at": 101,
+                    }
+                ],
+                "recordings": [
+                    {
+                        "recording_name": "mag-restored",
+                        "bridge_id": "mag-call-restored",
+                        "requested_by": "owner@example.com",
+                        "consent_basis": "Affirmative consent.",
+                        "beep": True,
+                        "max_duration_seconds": 3600,
+                        "created_at": 102,
+                    }
+                ],
+            },
+        )
+        service = StasisCallControlService(ari, listener, state, cfg)
+        await service.initialize()
+        status = service.status()
+        self.assertTrue(status["persistent_state_ready"])
+        self.assertTrue(status["restart_recovery_enabled"])
+        self.assertEqual(status["managed_call_bridges"], 1)
+        self.assertEqual(status["supervisor_sessions"], 1)
+        self.assertEqual(status["active_recordings"], 1)
+        self.assertEqual(state.events[:2], [("ensure",), ("load_active",)])
+
     async def test_monitor_and_barge_direction_contracts(self):
         for mode, whisper in (("monitor", "none"), ("barge", "both")):
-            service, ari, _ = ready_service()
+            service, ari, _, state = ready_service()
             bridge = await service.create_bridge(f"call-{mode}", ["agent-channel", "customer-channel"])
             session = await service.start_supervisor(
                 call_bridge_id=bridge["bridge_id"],
@@ -220,6 +326,8 @@ class StasisCallControlTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(service.status()["supervisor_sessions"], 0)
         self.assertEqual(service.status()["active_recordings"], 0)
         self.assertTrue(any(x[0] == "DELETE" and x[1].endswith(supervisor["snoop_channel_id"]) for x in ari.requests))
+        self.assertTrue(any(e[0] == "end_supervisor" for e in state.events))
+        self.assertTrue(any(e[0] == "end_recording" for e in state.events))
 
 
 if __name__ == "__main__":
