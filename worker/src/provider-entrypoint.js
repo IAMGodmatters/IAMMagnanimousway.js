@@ -187,6 +187,22 @@ async function callProvider(id, env, message, model) {
   throw new Error('Unknown AI provider');
 }
 function availableProviders(env) { return PROVIDERS.filter(p => p.tier !== 'metered' || meteredEnabled(env)); }
+function selfHealFailureClass(error){
+ const value=String(error?.message||error||'').toLowerCase();
+ if(/authentication|unauthorized|forbidden|invalid api key|\b401\b|\b403\b/.test(value))return'authorization';
+ if(/quota|rate limit|capacity|daily free allocation|\b429\b|\b3036\b/.test(value))return'capacity';
+ if(/timed out|timeout|abort/.test(value))return'timeout';
+ if(/model.*not|not allowed|unsupported model|model access/.test(value))return'model-access';
+ if(/invalid|schema|request/.test(value))return'request-contract';
+ return'unavailable';
+}
+function localAiResilienceResponse(message,task='general'){
+ const text=String(message||'').replace(/\s+/g,' ').trim();
+ if(task==='writing')return `Magnanimous AI kept this request local because full provider reasoning is temporarily unavailable. I will not invent an external result. Drafting goal preserved: “${text.slice(0,320)}”`;
+ if(task==='business')return `Magnanimous AI kept this request local at zero provider cost. Until full reasoning recovers, preserve the objective, verify the customer need, choose the smallest measurable next action, and avoid new spend. Request preserved: “${text.slice(0,300)}”`;
+ if(task==='coding')return `Magnanimous AI protected this request from a failed provider rail. I will not claim code was executed or verified while full reasoning is unavailable. Technical request preserved: “${text.slice(0,300)}”`;
+ return `Magnanimous AI kept your request available in local resilience mode instead of returning a provider error or silently spending money. Full reasoning capacity is recovering automatically; your request was preserved: “${text.slice(0,320)}”`;
+}
 function taskClass(message,body={}){
   const m=String(message||'').toLowerCase();
   if(body.live_search||body.news||/research|latest|current|source|cite|market size|competitor/.test(m))return'research';
