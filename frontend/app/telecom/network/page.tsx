@@ -30,6 +30,7 @@ export default function NetworkAuthorityPage(){
  const[fundedVariableCap,setFundedVariableCap]=useState('0');
  const[mandatoryFees,setMandatoryFees]=useState('0');
  const[originReference,setOriginReference]=useState('');
+ const[originVerified,setOriginVerified]=useState(false);
  const[globalQuote,setGlobalQuote]=useState<any>(null);
  const routeDestinationValid=/^\+[1-9]\d{6,14}$/.test(routeDestination);
 
@@ -81,7 +82,7 @@ export default function NetworkAuthorityPage(){
     mandatory_taxes_and_fees:Number(mandatoryFees),
     currency:'USD',
     origin_reference:originReference,
-    origin_cost_verified:true
+    origin_cost_verified:originVerified
    })});
    setGlobalQuote(data);
    setNotice('Global mobile retail quote calculated from the verified origin cost. No purchase or service activation occurred.');
@@ -154,8 +155,9 @@ export default function NetworkAuthorityPage(){
     <label>Mandatory taxes/fees (USD)<input type='number' min='0' step='0.01' value={mandatoryFees} onChange={e=>setMandatoryFees(e.target.value)}/></label>
     <label>Origin variable data cost / GB<input type='number' min='0' step='0.0001' value={originVariableCost} onChange={e=>setOriginVariableCost(e.target.value)}/></label>
     <label>Funded variable-cost cap (USD)<input type='number' min='0' step='0.01' value={fundedVariableCap} onChange={e=>setFundedVariableCap(e.target.value)}/></label>
-    <label>Origin cost evidence/reference<input value={originReference} onChange={e=>setOriginReference(e.target.value)} placeholder='Contract/rate-card evidence reference'/></label>
-    <button disabled={busy||!originReference.trim()}>CALCULATE — NO PURCHASE</button>
+    <label>Origin cost evidence/reference<input value={originReference} onChange={e=>{setOriginReference(e.target.value);setOriginVerified(false)}} placeholder='https://… or contract:/rate-card:/provider-quote:/invoice: reference'/></label>
+    <label><input type='checkbox' checked={originVerified} onChange={e=>setOriginVerified(e.target.checked)}/> I confirmed this origin cost against the referenced provider evidence.</label>
+    <button disabled={busy||!originReference.trim()||!originVerified}>CALCULATE — NO PURCHASE</button>
     <p className={styles.muted}>This tool only prices a verified origin cost. It does not activate a SIM, purchase capacity, or mark global service live.</p>
    </form>
    {globalQuote&&<div className={styles.grid}>
