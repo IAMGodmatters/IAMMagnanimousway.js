@@ -104,27 +104,27 @@ Intentionally gated follow-on work, not falsely marked live:
 - [x] Migrate the main agent softphone to the verified native WebRTC client for approved internal calling while preserving the compatibility SDK as the PSTN fallback.
 - [x] Migrate the protected Magnanimous Telecom Core outbound bridge to the planner's explicit selected-route contract. The Core now allowlists the selected PJSIP endpoint, checks it through authenticated Asterisk ARI health before origination, carries route/interconnect IDs into the call, and prevents a planner-selected attempt from silently failing over to another trunk. The route payload is not sent to a generic outside BYOC origin.
 - [ ] Map every remaining live generic BYOC/compatibility carrier adapter (including Twilio/Plivo where actually live) to the same explicit selected-route execution and authenticated carrier-health contract before allowing the route planner to control all production calls. `live_execution_uses_route_planner` remains false until that is complete.
-- [ ] Implement/verify the full Stasis-managed native bridge lifecycle before activating supervisor monitor/whisper/barge and bridge recording.
+- [ ] Merge and CI-verify the gated Stasis-managed native bridge lifecycle now implemented on `telecom-stasis-bridge-lifecycle-2026-09-25`. The source path includes a two-leg mixing/proxy-media bridge, capped ARI WebSocket recovery, tenant-scoped managed-call topology, tenant-owned ephemeral WebRTC supervisor sessions, isolated monitor/whisper snoop bridges, direct-bridge barge, consent/jurisdiction-gated mixed bridge recording, and parent-call/shutdown cleanup. Platform-facing monitor/whisper/barge and recording remain **not public-live** until the dedicated public Telecom Core host passes trusted external WSS/TLS and real two-way media verification.
 - [ ] Obtain required NTC/FCC/other authorizations, carrier agreements, numbering/emergency-service arrangements before representing those regulated capabilities as live.
 
 ## Production verification
 
 **SUCCESS for the completed software/runtime scope.**
 
-Latest runtime-changing production commit:
-- `9a0c5e6cc97cff324ae409142c9329e70f9875fe`
+Latest verified production main commit:
+- `fc397a47e4793e25b50998719daec0371aa8a372`
 
 Existing Railway production service:
 - project: `88bfb25b-3b34-40bd-87cb-188549b96a43`
 - environment: `3cb0deba-a700-4fdb-a92d-d7da98172f1e`
 - service: `71f6ecd9-4114-4431-8796-3fe4395bfd95`
-- exact runtime deployment: `438ee35f-b9af-4160-8820-efbe9fe52667`
-- deployed commit: `9a0c5e6cc97cff324ae409142c9329e70f9875fe`
+- exact runtime deployment: `2cfac1da-6fa1-450a-b49f-9ab34129c89c`
+- deployed commit: `fc397a47e4793e25b50998719daec0371aa8a372`
 - status: **SUCCESS**
 - no new Railway project or service was created.
 
-Latest native softphone main commit:
-- `9a0c5e6cc97cff324ae409142c9329e70f9875fe`
+Latest verified main containing the native softphone and selected-route Telecom Core:
+- `fc397a47e4793e25b50998719daec0371aa8a372`
 
 Ephemeral native browser-session foundation:
 - `a5e6fc85772db42d95c6ee9cc397fdf330f11f71`
@@ -139,6 +139,13 @@ Previous smoke-hardening main commit:
 - `5674b48199e6839128ce43c59165aafeb5d9cc30`
 
 Verified GitHub runs:
+- Selected-route Full Platform QA / code health: `36139524744` — SUCCESS
+- Selected-route Railway exact-commit gate: `36139524900` — SUCCESS
+- Selected-route Build and Deploy I AM: `36139524816` — SUCCESS, including authenticated production smoke
+- Selected-route Telecom Core Verification: `36139524922` — SUCCESS
+- Selected-route Native WebRTC Browser Media E2E: `36139524862` — SUCCESS
+- Selected-route OCI ARM64 Telecom Lock: `36139524894` — SUCCESS
+- Selected-route Standalone Release: `36139524920` — SUCCESS
 - Full Platform QA: `35963686293` — SUCCESS
 - Railway exact-commit gate: `35963686238` — SUCCESS
 - Build and Deploy I AM: `35963686281` — SUCCESS, including production smoke
@@ -163,7 +170,7 @@ Verified GitHub runs:
 - Native softphone handoff Railway exact-commit gate: `35976681990` — SUCCESS
 - Native softphone handoff Build and Deploy I AM: `35976682107` — SUCCESS, including production smoke
 
-Production smoke evidence included successful White Label depth, Agent Mesh, billing, AI Receptionist, Contact Center capabilities, Contact Center softphone readiness, Magnanimous health, auth revocation and cleanup. On the native softphone rollout, Railway HTTP evidence showed `/__magnanimous_runtime/health`, `/api/contact-center/capabilities`, `/api/contact-center/softphone/config`, billing, Agent Mesh, White Label, CRM, inbox and auth smoke probes returning their expected statuses.
+Production smoke evidence on `fc397a47e4793e25b50998719daec0371aa8a372` included Creator Growth capabilities/feedback/Instagram privacy and Movie Maker delegation; Business AI probes; White Label depth; Agent Mesh; billing and entitlement gates; AI Receptionist; Contact Center capabilities and softphone readiness; consumer chat; voice-agent configuration; Magnanimous health; auth revocation; and smoke-tenant cleanup. On the native softphone rollout, Railway HTTP evidence showed `/__magnanimous_runtime/health`, `/api/contact-center/capabilities`, `/api/contact-center/softphone/config`, billing, Agent Mesh, White Label, CRM, inbox and auth smoke probes returning their expected statuses.
 
 Native WebRTC proof on the latest public-host-readiness merged main used real Chromium and the actual owned Asterisk 22.11.0 stack. The browser registered extension `1100`, the authenticated diagnostic call reached `Established`, Asterisk confirmed the registered contact and Echo media channel, and Chromium reported `784` inbound bytes / `784` outbound bytes, `10` packets in each direction, and `1` remote audio track with no error. This proves the native browser/Asterisk software-media path still works after the stricter certificate and public-address changes. `TELECOM_NATIVE_WEBRTC_LIVE` remains deliberately **false** until the public external workflow passes against a dedicated public Telecom Core host with a trusted public WSS certificate and real network/NAT path.
 
