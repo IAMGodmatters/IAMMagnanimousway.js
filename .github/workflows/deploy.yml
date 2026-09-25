@@ -304,6 +304,17 @@ jobs:
           sync_secret INKBOX_API_KEY "$INKBOX_API_KEY"
           sync_secret INKBOX_EMAIL_ADDRESS "$INKBOX_EMAIL_ADDRESS"
           sync_secret INKBOX_BASE_URL "$INKBOX_BASE_URL"
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            edge_bridge_token="$(python - <<'PY'
+import hashlib,os
+seed='magnanimous-edge-ai-bridge-v1\0'+os.environ['CLOUDFLARE_API_TOKEN']+'\0'+os.environ['CLOUDFLARE_ACCOUNT_ID']
+print(hashlib.sha256(seed.encode()).hexdigest())
+PY
+)"
+            sync_secret MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN "$edge_bridge_token"
+            unset edge_bridge_token
+            echo "Synced protected private Edge AI bridge token without exposing its value."
+          fi
           if [ -n "$INKBOX_API_KEY" ]; then
             echo "Password recovery communications credential is available for deployment."
           else
@@ -678,6 +689,23 @@ jobs:
           import json
           data=json.load(open('/tmp/health.json'))
           assert data.get('status') == 'ok', data
+          PY
+
+          edge_bridge_token="$(python - <<'PY'
+          import hashlib,os
+          seed='magnanimous-edge-ai-bridge-v1\0'+os.environ['CLOUDFLARE_API_TOKEN']+'\0'+os.environ['CLOUDFLARE_ACCOUNT_ID']
+          print(hashlib.sha256(seed.encode()).hexdigest())
+          PY
+          )"
+          edge_bridge_status=$(curl -sS -o /tmp/edge-ai-bridge.json -w '%{http_code}' -X POST "$BASE_URL/api/internal/edge-ai/run"             -H 'content-type: application/json'             -H "Authorization: Bearer $edge_bridge_token"             --data '{"model":"@cf/meta/llama-3.1-8b-instruct-fast","messages":[{"role":"user","content":"Reply briefly to confirm the private Magnanimous edge AI bridge is online."}],"max_tokens":64}')
+          unset edge_bridge_token
+          if [ "$edge_bridge_status" != "200" ]; then echo "Private Edge AI bridge returned HTTP $edge_bridge_status"; cat /tmp/edge-ai-bridge.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/edge-ai-bridge.json'))
+          assert data.get('ok') is True, data
+          assert str(data.get('response') or '').strip(), data
+          print('Private Edge AI bridge live inference passed.')
           PY
 
           # These are intentionally protected pages. Following the redirect verifies
