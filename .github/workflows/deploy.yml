@@ -874,6 +874,8 @@ jobs:
                 "DELETE FROM unified_inbox_audit WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM unified_inbox_messages WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM unified_inbox_threads WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM cc_supervisor_sessions WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM cc_recording_sessions WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM creator_feedback WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM creator_bookmarks WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM creator_competitors WHERE tenant_id='${tenant_id}';"
