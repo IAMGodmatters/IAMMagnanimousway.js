@@ -95,7 +95,7 @@ has(compose,'ASTERISK_STASIS_ENABLED: ${ASTERISK_STASIS_ENABLED:-false}','Compos
 has(entry,'ASTERISK_STASIS_APP','Asterisk renders one owner-selected Stasis application name');
 has(extensions,'Stasis(${ASTERISK_STASIS_APP},diagnostic)','carrier-free diagnostic extension can prove private Stasis entry');
 has(stasisControl,'class StasisEventListener','Telecom Core owns a private ARI event listener');
-has(stasisControl,'subscribeAll","false','Stasis event listener does not subscribe to unrelated ARI applications');
+has(stasisControl,'"subscribeAll": "false"','Stasis event listener does not subscribe to unrelated ARI applications');
 has(stasisControl,'StasisStart','listener tracks channels only after they enter the Magnanimous Stasis application');
 has(stasisControl,'StasisEnd','listener removes channels that leave Stasis');
 has(stasisControl,'not owned by the Magnanimous Stasis application','bridge/supervisor controls fail closed for outside channels');
