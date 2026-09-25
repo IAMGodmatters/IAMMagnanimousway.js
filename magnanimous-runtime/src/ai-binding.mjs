@@ -19,9 +19,31 @@ function normalizeMessages(input) {
   return [{ role: 'user', content: String(input?.input || '') }];
 }
 
+function enabled(value) {
+  return String(value || '').trim().toLowerCase() === 'true';
+}
+
+async function fetchWithTimeout(url, init = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort('ai-rail-timeout'), Math.max(1000, Number(timeoutMs) || 30000));
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export class MagnanimousAiBinding {
   constructor(env = process.env) {
     this.env = env;
+  }
+
+  isConfigured() {
+    return Boolean(
+      String(this.env.MAGNANIMOUS_AI_BASE_URL || '').trim() ||
+      String(this.env.OLLAMA_BASE_URL || '').trim() ||
+      (enabled(this.env.ENABLE_METERED_PROVIDERS) && String(this.env.OPENAI_API_KEY || '').trim())
+    );
   }
 
   async run(_legacyModel, input = {}) {
@@ -41,11 +63,11 @@ export class MagnanimousAiBinding {
         headers.authorization = 'Bearer ' + this.env.MAGNANIMOUS_AI_API_KEY;
       }
 
-      const response = await fetch(compatibleBase + '/v1/chat/completions', {
+      const response = await fetchWithTimeout(compatibleBase + '/v1/chat/completions', {
         method: 'POST',
         headers,
         body: JSON.stringify({ model, messages, max_tokens: maxTokens })
-      });
+      }, Number(this.env.MAGNANIMOUS_AI_TIMEOUT_MS || 30000));
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error('Magnanimous AI execution rail returned HTTP ' + response.status);
 
@@ -56,7 +78,7 @@ export class MagnanimousAiBinding {
 
     if (this.env.OLLAMA_BASE_URL) {
       const base = String(this.env.OLLAMA_BASE_URL).replace(/\/$/, '');
-      const response = await fetch(base + '/api/chat', {
+      const response = await fetchWithTimeout(base + '/api/chat', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -64,7 +86,7 @@ export class MagnanimousAiBinding {
           messages,
           stream: false
         })
-      });
+      }, Number(this.env.MAGNANIMOUS_AI_TIMEOUT_MS || 30000));
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error('Local Magnanimous model rail returned HTTP ' + response.status);
 
@@ -73,8 +95,8 @@ export class MagnanimousAiBinding {
       return { response: text, result: { response: text }, provider: 'magnanimous-local' };
     }
 
-    if (this.env.OPENAI_API_KEY) {
-      const response = await fetch('https://api.openai.com/v1/responses', {
+    if (enabled(this.env.ENABLE_METERED_PROVIDERS) && this.env.OPENAI_API_KEY) {
+      const response = await fetchWithTimeout('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -85,7 +107,7 @@ export class MagnanimousAiBinding {
           input: messages,
           max_output_tokens: maxTokens
         })
-      });
+      }, Number(this.env.MAGNANIMOUS_AI_TIMEOUT_MS || 30000));
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error('Configured AI execution rail returned HTTP ' + response.status);
 
@@ -95,7 +117,7 @@ export class MagnanimousAiBinding {
     }
 
     throw new Error(
-      'No Magnanimous AI execution rail is configured. Set OLLAMA_BASE_URL or MAGNANIMOUS_AI_BASE_URL; metered OPENAI_API_KEY remains optional.'
+      'No standalone Magnanimous AI execution rail is configured. Set OLLAMA_BASE_URL or MAGNANIMOUS_AI_BASE_URL; metered OPENAI_API_KEY is used only when ENABLE_METERED_PROVIDERS=true.'
     );
   }
 }
