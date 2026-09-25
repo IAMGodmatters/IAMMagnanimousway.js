@@ -10,6 +10,10 @@ on:
       - 'worker/src/magnanimous-telecom-network-runtime.js'
       - 'worker/src/magnanimous-carrier-core.js'
       - 'worker/src/lead-phone.js'
+      - 'worker/src/phone-carrier-runtime.js'
+      - 'worker/src/plivo-carrier-runtime.js'
+      - 'worker/src/voice-agent-runtime.js'
+      - 'qa/scripts/telecom-compatibility-router-lock.mjs'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
       - 'worker/src/magnanimous-telecom-bss-admin-runtime.js'
@@ -35,6 +39,10 @@ on:
       - 'worker/src/magnanimous-telecom-network-runtime.js'
       - 'worker/src/magnanimous-carrier-core.js'
       - 'worker/src/lead-phone.js'
+      - 'worker/src/phone-carrier-runtime.js'
+      - 'worker/src/plivo-carrier-runtime.js'
+      - 'worker/src/voice-agent-runtime.js'
+      - 'qa/scripts/telecom-compatibility-router-lock.mjs'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
       - 'worker/src/magnanimous-telecom-bss-admin-runtime.js'
@@ -76,9 +84,6 @@ jobs:
       - name: Install Telecom control API dependencies
         run: python -m pip install -r telecom-core/control-api/requirements.txt
 
-      - name: Install Telecom control API dependencies
-        run: python -m pip install -r telecom-core/control-api/requirements.txt
-
       - name: Compile Telecom API
         run: python -m py_compile telecom-core/control-api/app/main.py
 
@@ -113,6 +118,10 @@ jobs:
           node --check worker/src/magnanimous-telecom-network-runtime.js
           node --check worker/src/magnanimous-carrier-core.js
           node --check worker/src/lead-phone.js
+          node --check worker/src/phone-carrier-runtime.js
+          node --check worker/src/plivo-carrier-runtime.js
+          node --check worker/src/voice-agent-runtime.js
+          node qa/scripts/telecom-compatibility-router-lock.mjs
           node --check worker/src/magnanimous-telecom-service-runtime.js
           node --check worker/src/magnanimous-telecom-operations-runtime.js
           node --check worker/src/magnanimous-telecom-bss-admin-runtime.js

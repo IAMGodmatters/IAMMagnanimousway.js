@@ -36,7 +36,7 @@ async function validPlivoV3(request,env){
  return signature.split(',').map(x=>x.trim()).some(x=>safeEqual(x,expected));
 }
 
-export async function handlePlivoCarrier(request,env){
+export async function handlePlivoCarrier(request,env,internalContext={}){
  const url=new URL(request.url),path=url.pathname;
  if(path==='/api/phone/plivo/answer'&&(request.method==='GET'||request.method==='POST')){
   if(!plivoReady(env))return xml('<?xml version="1.0" encoding="UTF-8"?><Response><Speak>Magnanimous calling is not configured.</Speak></Response>',503);
@@ -68,7 +68,7 @@ export async function handlePlivoCarrier(request,env){
   const data=await upstream.json().catch(()=>({}));
   if(!upstream.ok)return json({detail:data?.error||data?.message||'The carrier could not place the call.',provider:'magnanimous-carrier',provider_status:upstream.status},upstream.status>=400&&upstream.status<500?400:502);
   const callId=String(data.request_uuid||data.call_uuid||data.api_id||crypto.randomUUID());
-  return json({id:callId,call_id:callId,provider_call_id:callId,status:'queued',provider:'magnanimous-carrier',agent:'Magnanimous AI'},201);
+  return json({id:callId,call_id:callId,provider_call_id:callId,status:'queued',provider:'magnanimous-carrier',agent:'Magnanimous AI',route_id:internalContext.selectedRoute?.route_id||null,interconnect_id:internalContext.selectedRoute?.interconnect_id||null,selected_route_applied:Boolean(internalContext.selectedRoute)},201);
  }
  return null;
 }
