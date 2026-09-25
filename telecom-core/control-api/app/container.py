@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .adapters.asterisk import AsteriskAriClient, AsteriskSipCarrierBridge
+from .adapters.stasis_events import AriStasisEventStream
 from .adapters.callbacks import CallbackUrlPolicy, WebhookStatusPublisher
 from .adapters.sip_subscribers import PostgresSipSubscriberStore
 from .config import TelecomSettings
@@ -11,6 +12,7 @@ from .services.calls import CallService
 from .services.health import HealthService
 from .services.monitoring import CarrierCallMonitor
 from .services.sip_accounts import SipAccountService
+from .services.supervision import SupervisorService
 from .services.webrtc_sessions import WebRtcSessionService
 
 
@@ -23,6 +25,8 @@ class ApplicationContainer:
     health: HealthService
     sip_accounts: SipAccountService
     webrtc_sessions: WebRtcSessionService
+    stasis_events: AriStasisEventStream
+    supervision: SupervisorService
 
 
 def build_container(settings: TelecomSettings | None = None) -> ApplicationContainer:
@@ -39,6 +43,8 @@ def build_container(settings: TelecomSettings | None = None) -> ApplicationConta
     subscriber_store = PostgresSipSubscriberStore(resolved)
     sip_accounts = SipAccountService(subscriber_store, resolved)
     webrtc_sessions = WebRtcSessionService(ari, resolved)
+    stasis_events = AriStasisEventStream(resolved)
+    supervision = SupervisorService(ari, stasis_events, resolved)
     return ApplicationContainer(
         settings=resolved,
         auth=auth,
@@ -47,6 +53,8 @@ def build_container(settings: TelecomSettings | None = None) -> ApplicationConta
         health=health,
         sip_accounts=sip_accounts,
         webrtc_sessions=webrtc_sessions,
+        stasis_events=stasis_events,
+        supervision=supervision,
     )
 
 
