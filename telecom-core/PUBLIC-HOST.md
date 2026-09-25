@@ -141,7 +141,8 @@ Configure:
 
 - repository variable `TELECOM_PUBLIC_CONTROL_API_URL` with the protected HTTPS control-API origin;
 - repository secret `TELECOM_PUBLIC_CONTROL_API_TOKEN`;
-- `TELECOM_NATIVE_WEBRTC_LIVE=true` only after the public Chromium/WSS/RTP workflow above has passed.
+- `TELECOM_NATIVE_WEBRTC_LIVE=true` only after the public Chromium/WSS/RTP workflow above has passed;
+- the successful Public Telecom WebRTC Verification run ID from `main` when requesting supervisor-audio lifecycle proof.
 
 Then use **Telecom Stasis Live Verification** with an active consented test-call channel ID. Recording-only verification can be run independently of browser supervisor audio, provided the test host has its private Stasis supervisor control enabled for the verification window and the ARI event stream is healthy. Monitor/whisper/barge lifecycle verification remains blocked until the native WebRTC live gate is already true.
 
