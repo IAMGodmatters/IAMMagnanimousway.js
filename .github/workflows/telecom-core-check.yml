@@ -120,6 +120,7 @@ jobs:
         run: |
           node --check worker/src/magnanimous-telecom-runtime.js
           node --check worker/src/magnanimous-telecom-network-runtime.js
+          node qa/scripts/global-mobile-offer-planner-lock.mjs
           node --check worker/src/magnanimous-carrier-core.js
           node --check worker/src/lead-phone.js
           node --check worker/src/phone-carrier-runtime.js
