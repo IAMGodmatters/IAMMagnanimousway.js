@@ -314,7 +314,7 @@ async function handle(request, env) {
   if (url.pathname === '/api/ads' && request.method === 'GET') {
     try {
       const placement = url.searchParams.get('placement') || 'home';
-      const { results } = await env.DB.prepare('SELECT id,title,url,label,placement,active FROM ads WHERE active=1 AND placement=? ORDER BY id DESC').bind(placement).all();
+      const { results } = await env.DB.prepare('SELECT id,title,url,label,placement,active FROM ads WHERE active=1 AND placement=? AND (COALESCE(revenue_authorized,0)=1 OR COALESCE(owner_owned,0)=1) ORDER BY id DESC').bind(placement).all();
       return json({ ads: results || [] });
     } catch (_) { return json({ ads: [] }); }
   }
