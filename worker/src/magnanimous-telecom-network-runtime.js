@@ -69,7 +69,7 @@ function finiteAmount(value,max){
  return Number.isFinite(parsed)&&parsed>=0&&parsed<=max?parsed:null;
 }
 
-function globalMobileOfferPlan(body){
+export function planGlobalMobileOffers(body){
  const country=String(body?.country_code||'').trim().toUpperCase();
  if(!/^[A-Z]{2}$/.test(country))return {error:'country_code must be ISO 3166-1 alpha-2.'};
  const expectedGb=finiteAmount(body?.expected_high_speed_gb,10000);
@@ -297,7 +297,7 @@ export async function handleMagnanimousTelecomNetwork(request,env){
 
  if(path==='/api/telecom/network/global-mobile/offer-plan'&&request.method==='POST'){
   const body=await request.json().catch(()=>({}));
-  const plan=globalMobileOfferPlan(body);
+  const plan=planGlobalMobileOffers(body);
   if(plan.error)return json({detail:plan.error},422);
   return json(plan);
  }
