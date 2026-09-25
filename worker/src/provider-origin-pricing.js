@@ -23,8 +23,10 @@ const price=(input,output,{cachedInput=null,cacheWrite=null,effectiveUntil='',ne
 
 const CATALOG=Object.freeze({
  openai:Object.freeze({
-  'gpt-5.6':price(4,20,{cachedInput:.4,cacheWrite:4,effectiveUntil:'2026-11-21T23:59:59Z',next:price(5,30,{cachedInput:.5,cacheWrite:5,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),
-  'gpt-5.6-sol':price(4,20,{cachedInput:.4,cacheWrite:4,effectiveUntil:'2026-11-21T23:59:59Z',next:price(5,30,{cachedInput:.5,cacheWrite:5,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),
+  'gpt-6-sol':price(2,10,{cachedInput:.2,cacheWrite:2.5,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),
+  'gpt-6-luna':price(.1,.5,{cachedInput:.01,cacheWrite:.125,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),
+  'gpt-5.6':price(4,20,{cachedInput:.4,cacheWrite:5,effectiveUntil:'2026-11-21T23:59:59Z',next:price(5,30,{cachedInput:.5,cacheWrite:6.25,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),
+  'gpt-5.6-sol':price(4,20,{cachedInput:.4,cacheWrite:5,effectiveUntil:'2026-11-21T23:59:59Z',next:price(5,30,{cachedInput:.5,cacheWrite:6.25,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),
   'gpt-5.6-terra':price(2,12,{cachedInput:.2,cacheWrite:2.5,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}}),
   'gpt-5.6-luna':price(.2,1.2,{cachedInput:.02,cacheWrite:.25,longContext:{threshold_input_tokens:272000,input_multiplier:2,output_multiplier:1.5}})
  }),
