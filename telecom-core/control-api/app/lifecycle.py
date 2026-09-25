@@ -23,3 +23,4 @@ async def lifespan(_app: FastAPI):
             stasis.cancel()
             with suppress(asyncio.CancelledError):
                 await stasis
+        await container.supervision.shutdown()
