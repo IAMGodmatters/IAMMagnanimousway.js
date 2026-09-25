@@ -21,6 +21,7 @@ const systems=[
  ['☎','AI Receptionist','Inbound routing and AI voice reception','/ai-receptionist'],
  ['🎬','Movie Maker','Pictures, movies, narration, sharing and social publishing','/movie-maker'],
  ['↗','Creator Growth','YouTube research, titles, trends, analytics and audience insights','/creator-growth'],
+ ['✧','Opportunity Vault','Verified earning opportunities, eligibility and official apply links','/opportunity-vault'],
  ['▶','Video Studio','Text-to-video, visual agents and media creation','/video-studio'],
  ['⌁','Contact Center','Queues, campaigns, IVR, QA and agent operations','/contact-center'],
  ['▧','White Label Studio','Your separate branded client platform, funnels, apps and agency tools','/white-label']
