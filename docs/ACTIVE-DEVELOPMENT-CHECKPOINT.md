@@ -35,6 +35,7 @@ Also preserve enough durable state that a chat or streaming interruption cannot 
 Full research evidence is versioned in:
 - `docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md`
 - `docs/FULL-PLATFORM-TELECOM-AUDIT-2026-09-24.md`
+- `docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md` — durable Fonus/Popcorn retail benchmark plus Gigs/1GLOBAL/Telna/BICS direct-source architecture and truth boundaries.
 
 ## Completed lineage
 
@@ -99,6 +100,12 @@ Completed:
 - [x] Rejected localhost, private IPv4/IPv6, link-local and embedded-credential Telecom Core targets in the platform handoff.
 - [x] Revoked any prior native browser session for the same user before issuing a replacement to limit concurrent credential lifetime.
 - [x] Merged, deployed and production-smoke verified the platform-facing native softphone handoff.
+- [x] Permanently absorbed Fonus and Popcorn public global-mobile product patterns without copying proprietary code, private rate cards, carrier agreements or branding.
+- [x] Added provider-neutral global SIM/eSIM architecture: primary/backup access paths, multi-network selection, app voice/text fallback, multiple-number identity, latency awareness, fair-use economics and a separate `TELECOM_GLOBAL_MOBILE_LIVE=false` truth gate.
+- [x] Added owner-only verified-origin global-mobile retail quoting with the existing 20% uplift, explicit evidence confirmation, funded variable-cost caps and no silent paid fallback.
+- [x] Added a reusable verified wholesale offer planner that excludes unverified commercial/country coverage and unfunded metered exposure, then prefers the lowest eligible landed retail cost and an independently grouped backup path when available.
+- [x] Added executable global-mobile planner QA and Telecom CI/watch-path coverage so the Fonus/Popcorn work is not silently lost or regressed.
+- [x] Hardened Asterisk recording stop state so Telecom Core verifies the corresponding stored-recording object, including already auto-completed recordings, without exposing the raw media file.
 
 Intentionally gated follow-on work, not falsely marked live:
 - [ ] Deploy a dedicated public Telecom Core host/domain with trusted WSS TLS and required SIP/RTP exposure. No paid host has been created by this work.
@@ -112,6 +119,9 @@ Intentionally gated follow-on work, not falsely marked live:
 - [x] Implement the consent-gated Stasis supervision/recording software path: private ARI event stream, monitor/whisper/barge snoop bridge, headless bridge recording, owner/admin controls, explicit consent + notice + jurisdiction gates, tenant audit tables, UI controls, unit tests and cleanup locks. Source implementation alone does **not** make the feature production-live.
 - [x] Add a guarded external Stasis verification harness: `Telecom Stasis Live Verification` plus `telecom-core/scripts/verify-supervision-live.py` now require a real HTTPS Telecom Core target, protected API token, active consented call channel, explicit consent/notice confirmation, negative-gate proof, evidence artifact and cleanup; monitor/whisper/barge lifecycle remains additionally blocked behind `TELECOM_NATIVE_WEBRTC_LIVE=true`.
 - [ ] Run that Stasis verification on the real Telecom Core host with an active native call and registered supervisor endpoint: prove recording beep/start/stop and cleanup, then prove monitor/whisper/barge bridge lifecycle and **observe the actual acoustic behavior** on the consented call. Only after that evidence may `ASTERISK_SUPERVISOR_CONTROL_ENABLED=true` be promoted for ordinary production use. Browser supervisor audio additionally remains blocked until `TELECOM_NATIVE_WEBRTC_LIVE=true` passes the separate external public-host proof.
+- [ ] Keep `TELECOM_GLOBAL_MOBILE_LIVE=false` until an authorized mobile/MVNO/eSIM agreement, per-country capability matrix, actual eSIM provisioning, real subscriber data connectivity, billing/fair-use controls, and applicable regulatory requirements are verified.
+- [ ] Obtain real commercial wholesale quotes/contracts for candidate global-mobile providers before generating customer sell prices; Fonus retail pricing and Popcorn retail pricing remain benchmarks, not origin cost.
+- [ ] Connect and verify at least one authorized primary mobile adapter and an independently grouped backup path before claiming multi-network production resilience.
 - [ ] Obtain required NTC/FCC/other authorizations, carrier agreements, numbering/emergency-service arrangements before representing those regulated capabilities as live.
 
 ## Production verification
