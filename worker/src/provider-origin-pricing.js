@@ -2,7 +2,7 @@ export const PROVIDER_PRICING_VERIFIED_AT='2026-09-25';
 export const PROVIDER_PRICE_MARKUP_PERCENT=20;
 
 const SOURCES=Object.freeze({
- openai:'https://developers.openai.com/api/docs/models/gpt-5.6-sol',
+ openai:'https://developers.openai.com/api/docs/pricing',
  anthropic:'https://www.anthropic.com/news/claude-sonnet-5',
  google:'https://ai.google.dev/gemini-api/docs/pricing',
  groq:'https://console.groq.com/docs/model/openai/gpt-oss-120b',
