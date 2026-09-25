@@ -5,6 +5,51 @@ const now=()=>Math.floor(Date.now()/1000);
 const id=prefix=>`${prefix}_${crypto.randomUUID()}`;
 const truthy=value=>String(value||'').toLowerCase()==='true';
 const ownerOnly=user=>user?.role==='owner';
+const GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT=20;
+const money=value=>Math.round((Number(value)+Number.EPSILON)*100)/100;
+
+function globalMobileBlueprint(env){
+ const globalMobileLive=truthy(env?.TELECOM_GLOBAL_MOBILE_LIVE);
+ return{
+  identity:'Magnanimous Telecom',
+  brain:'Magnanimous AI',
+  architecture:'provider-neutral SIM/eSIM packet access plus Magnanimous-owned communications, policy, charging and AI control',
+  production_verified:globalMobileLive,
+  provider_brand_customer_visible:false,
+  access_paths:{
+   primary_sim_esim:'authorized mobile adapter',
+   backup_esim:'supported when an independently authorized backup profile/network is provisioned',
+   network_selection:'quality/cost/coverage-aware with manual recovery path',
+   local_profile_substitution:'required where permanent-roaming policy or regulation demands it'
+  },
+  communications_plane:{
+   app_voice_fallback:true,
+   app_messaging_fallback:true,
+   multiple_number_identity:true,
+   number_portability:'adapter-and-jurisdiction-gated',
+   voicemail:true,
+   ai_call_assistance:'optional and consent-aware',
+   native_sms_2fa_guaranteed:false
+  },
+  cost_policy:{
+   retail_markup_percent:GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT,
+   verified_origin_cost_required:true,
+   competitor_retail_price_is_not_origin_cost:true,
+   funded_variable_capacity_required:true,
+   hard_variable_cost_cap_required:true,
+   silent_paid_fallback:false,
+   fair_use_model:'high-speed allowance plus documented throttle/QoS only when supported by the wholesale agreement'
+  },
+  truth_boundaries:{
+   global_mobile_live_flag:'TELECOM_GLOBAL_MOBILE_LIVE',
+   provider_credentials_do_not_prove_live_service:true,
+   country_coverage_requires_capability_verification:true,
+   esim_coverage_does_not_imply_emergency_calling:true,
+   voip_numbers_do_not_guarantee_short_code_or_bank_2fa:true,
+   regulatory_authority_is_external:true
+  }
+ };
+}
 
 const US_CASES=[
  ['fcc_frn','FCC Registration Number (FRN)'],
@@ -61,6 +106,7 @@ function providerReadiness(env){
   direct_numbering_authorized:truthy(env?.TELECOM_DIRECT_NUMBERING_AUTHORIZED),
   carrier_authorized:truthy(env?.TELECOM_CARRIER_AUTHORIZED),
   native_webrtc_live:truthy(env?.TELECOM_NATIVE_WEBRTC_LIVE),
+  global_mobile_live:truthy(env?.TELECOM_GLOBAL_MOBILE_LIVE),
   purchases_enabled:truthy(env?.TELECOM_PURCHASE_ACTIONS_ENABLED),
   regulated_actions_enabled:truthy(env?.TELECOM_REGULATED_ACTIONS_ENABLED)
  };
@@ -142,8 +188,58 @@ export async function handleMagnanimousTelecomNetwork(request,env){
    secondary_upstream_candidate:{provider_key:'plivo',role:'secondary SIP/API candidate',connected:Boolean(String(env?.PLIVO_AUTH_ID||'').trim()&&String(env?.PLIVO_AUTH_TOKEN||'').trim()),note:'Use only where route economics, coverage and quality beat the primary path.'},
    compatibility_upstream:{provider_key:'twilio',role:'browser Voice SDK / compatibility carrier',connected:Boolean(String(env?.TWILIO_ACCOUNT_SID||'').trim()&&String(env?.TWILIO_AUTH_TOKEN||'').trim()),note:'Retained for compatibility and browser-agent transport while the native Asterisk WebRTC desk is completed.'},
    mobile_alternative:{provider_key:'gigs',role:'MVNO/mobile subscription adapter',capabilities:['physical_sim','esim','mobile_plans','subscriptions']},
+   global_mobile:globalMobileBlueprint(env),
    providers:providers.results||[],regulatory_cases:cases.results||[],
    authority_note:'Software readiness is not regulatory authority. External approvals and provider contracts remain required until completed.'
+  });
+ }
+
+ if(path==='/api/telecom/network/global-mobile/blueprint'&&request.method==='GET'){
+  return json(globalMobileBlueprint(env));
+ }
+
+ if(path==='/api/telecom/network/global-mobile/retail-quote'&&request.method==='POST'){
+  const body=await request.json().catch(()=>({}));
+  const originCost=Number(body.origin_monthly_cost);
+  const mandatoryFees=Number(body.mandatory_taxes_and_fees||0);
+  const variableOrigin=Number(body.origin_variable_cost_per_gb||0);
+  const fundedCap=Number(body.funded_variable_cost_cap||0);
+  const currency=String(body.currency||'USD').trim().toUpperCase();
+  const originReference=String(body.origin_reference||'').trim().slice(0,500);
+  if(body.origin_cost_verified!==true||!originReference)return json({detail:'A verified origin cost and origin_reference are required. Competitor retail pricing is not an origin wholesale cost.'},422);
+  if(!Number.isFinite(originCost)||originCost<0||originCost>100000)return json({detail:'origin_monthly_cost must be a finite non-negative amount.'},422);
+  if(!Number.isFinite(mandatoryFees)||mandatoryFees<0||mandatoryFees>100000)return json({detail:'mandatory_taxes_and_fees must be a finite non-negative amount.'},422);
+  if(!Number.isFinite(variableOrigin)||variableOrigin<0||variableOrigin>10000)return json({detail:'origin_variable_cost_per_gb must be a finite non-negative amount.'},422);
+  if(!Number.isFinite(fundedCap)||fundedCap<0||fundedCap>1000000)return json({detail:'funded_variable_cost_cap must be a finite non-negative amount.'},422);
+  if(!/^[A-Z]{3}$/.test(currency))return json({detail:'currency must be a three-letter currency code.'},422);
+  if(variableOrigin>0&&fundedCap<=0)return json({detail:'Variable-cost mobile usage requires a funded_variable_cost_cap greater than zero.'},409);
+  const markupFactor=1+(GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT/100);
+  const retailBase=money(originCost*markupFactor);
+  const variableRetailPerGb=money(variableOrigin*markupFactor);
+  return json({
+   identity:'Magnanimous Telecom',
+   brain:'Magnanimous AI',
+   quote_only:true,
+   purchase_performed:false,
+   service_live_claimed:false,
+   provider_brand_customer_visible:false,
+   origin:{monthly_cost:money(originCost),currency,reference:originReference,verified:true},
+   pricing:{
+    markup_percent:GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT,
+    retail_monthly_before_mandatory_fees:retailBase,
+    mandatory_taxes_and_fees:money(mandatoryFees),
+    retail_monthly_total:money(retailBase+mandatoryFees),
+    origin_variable_cost_per_gb:money(variableOrigin),
+    retail_variable_price_per_gb:variableRetailPerGb,
+    funded_variable_cost_cap:money(fundedCap)
+   },
+   safeguards:{
+    verified_origin_cost_required:true,
+    competitor_retail_price_rejected_as_wholesale_basis:true,
+    variable_usage_requires_funded_cap:variableOrigin>0,
+    silent_paid_fallback:false,
+    live_activation_requires_separate_provider_and_regulatory_verification:true
+   }
   });
  }
 
