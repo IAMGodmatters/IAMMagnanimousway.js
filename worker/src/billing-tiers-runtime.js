@@ -17,7 +17,7 @@ const PLAN_CONFIG = {
     id: 'plus', name: 'Magnanimous Unlimited Fair-Use', price_usd: 19.99, cadence: 'month',
     description: 'Affordable expanded access while high-variable-cost services stay controlled.',
     features: ['Everything in Free', 'Higher workflow capacity', 'Expanded business tools', 'Priority free-first routing'],
-    entitlements: { metered_ai: false, pstn_minutes: 0, avatar_minutes: 0, premium_video_credits: 0, cost_ceiling_usd: 8 }
+    entitlements: { metered_ai: true, pstn_minutes: 0, avatar_minutes: 0, premium_video_credits: 0, cost_ceiling_usd: 8 }
   },
   business: {
     id: 'business', name: 'Magnanimous Unlimited Fair-Use', price_usd: 19.99, cadence: 'month',
@@ -35,7 +35,7 @@ const PLAN_CONFIG = {
     id: 'scale', name: 'Magnanimous Annual', price_usd: 199, cadence: 'year',
     description: 'High-capacity organizational tier with controlled premium usage and scale features.',
     features: ['Everything in Pro', 'Highest included capacity', 'Expanded team/business workflows', 'Largest controlled premium allowances', 'Scale-ready support path'],
-    entitlements: { metered_ai: true, pstn_minutes: 180, avatar_minutes: 60, premium_video_credits: 60, cost_ceiling_usd: 112 }
+    entitlements: { metered_ai: true, pstn_minutes: 180, avatar_minutes: 60, premium_video_credits: 60, cost_ceiling_usd: 8 }
   }
 };
 
