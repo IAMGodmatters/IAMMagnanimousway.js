@@ -116,6 +116,7 @@ Completed:
 - [x] Sent real no-spend commercial onboarding inquiries to Gigs, Telna and 1GLOBAL and preserved the acquisition state in `docs/GLOBAL-MOBILE-CARRIER-ACQUISITION-2026-09-26.md`.
 - [x] Located the official Fonus reseller application; did not submit invented phone/address data into its required form.
 - [x] Sent an NTC Region VII pre-application classification request covering VoIP/VAS/reseller/mobile-host-network scope, current Form NTC 1-20 use, documentary/fee/bond/capital requirements and whether a branded SIM/eSIM offer needs additional VNO/MVNO authority. No regulatory grant is claimed.
+- [x] Prepared `docs/PHILIPPINE-TELECOM-REGULATORY-PREFILING-2026-09-26.md` with the current public NTC filing path, provider/reseller research baseline, SIM-registration boundary, technical package structure and explicit entity-specific blanks that cannot be fabricated.
 
 Intentionally gated follow-on work, not falsely marked live:
 - [ ] Deploy a dedicated public Telecom Core host/domain with trusted WSS TLS and required SIP/RTP exposure. No paid host has been created by this work.
