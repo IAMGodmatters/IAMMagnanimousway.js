@@ -23,6 +23,7 @@ const health=read('telecom-core/control-api/app/services/health.py');
 const telecomConfig=read('telecom-core/control-api/app/config.py');
 const study=read('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md');
 const globalMobileBenchmark=read('docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md');
+const globalMobileAcquisition=read('docs/GLOBAL-MOBILE-CARRIER-ACQUISITION-2026-09-26.md');
 const globalMobileMigration=read('worker/migrations/0087_global_mobile_proof_gates.sql');
 const globalMobileGateQa=read('qa/scripts/global-mobile-proof-gates-lock.mjs');
 const globalMobileEnrollmentMigration=read('worker/migrations/0089_global_mobile_enrollment_and_failover.sql');
@@ -72,6 +73,7 @@ const stasisLiveVerifier=read('telecom-core/scripts/verify-supervision-live.py')
 file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exists');
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
 file('docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md','Fonus/Popcorn global mobile benchmark is durably versioned');
+file('docs/GLOBAL-MOBILE-CARRIER-ACQUISITION-2026-09-26.md','carrier acquisition outreach state is durably versioned');
 file('worker/migrations/0087_global_mobile_proof_gates.sql','global mobile evidence tables are durably versioned');
 file('qa/scripts/global-mobile-proof-gates-lock.mjs','global mobile live proof-gate test is versioned');
 file('worker/migrations/0089_global_mobile_enrollment_and_failover.sql','Magnanimous enrollment and failover evidence state is durable');
@@ -261,6 +263,10 @@ has(globalMobileBenchmark,'### Popcorn','Popcorn global retail patterns are dura
 has(globalMobileBenchmark,'architecture/product benchmark rather than treated as a wholesale upstream','Popcorn no-resale boundary is retained');
 has(globalMobileBenchmark,'Competitor retail prices are benchmarks only.','global benchmark forbids treating retail price as wholesale cost');
 has(globalMobileBenchmark,'No 2FA delivery guarantee is made for VoIP numbers.','global benchmark preserves 2FA truth boundary');
+has(globalMobileAcquisition,'Outreach sent to: support@gigs.com','Gigs commercial outreach is durably recorded');
+has(globalMobileAcquisition,'Outreach sent to: bd@telna.com','Telna commercial outreach is durably recorded');
+has(globalMobileAcquisition,'Outreach sent to: business.help@1global.com','1GLOBAL commercial outreach is durably recorded');
+has(globalMobileAcquisition,'No paid activation, deposit, SIM/eSIM order, subscription, or production commitment','carrier acquisition preserves no-spend truth');
 has(globalMobileMigration,'telecom_country_capabilities','global mobile country truth is durable');
 has(globalMobileMigration,'telecom_mobile_wholesale_offers','global mobile wholesale evidence is durable');
 has(globalMobileMigration,'telecom_mobile_access_profiles','global mobile access profiles are durable');
