@@ -82,7 +82,7 @@ Privacy rule:
 
 Identity reconciliation before filing:
 - the current surname is confirmed by the owner as **Hardin**;
-- the PhilHealth card reflects the current surname format, while the older BIR/TIN card still appears under the prior surname **Capuno**;
+- the PhilHealth card reflects the confirmed surname **Hardin**, while the older BIR/TIN card displays **Capuno** as its surname/record name; this may be an older or unreconciled BIR record, but the reason is not assumed;
 - the two cards also show different addresses;
 - use the confirmed current legal name for SEC/eSECURE, but do not alter or invent the BIR record. If SEC/eSECURE/TIN validation requires an exact BIR name/address match, update the underlying BIR registration through the proper BIR process before relying on it for filing.
 
