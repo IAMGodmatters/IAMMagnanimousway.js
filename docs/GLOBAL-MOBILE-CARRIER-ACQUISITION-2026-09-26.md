@@ -136,3 +136,30 @@ Production promotion requires the repository's durable proof gates:
 6. applicable regulatory/compliance evidence.
 
 Independent backup resilience additionally requires observed primary failure/failover followed by successful service on a backup profile from a different network group, with durable evidence.
+
+
+## Regulatory acquisition started
+
+### Philippine NTC pre-application guidance
+
+Official sources reviewed:
+- https://region7.ntc.gov.ph/elementor-2962/contact-us/
+- https://ntc5.ntc.gov.ph/wp-content/uploads/2025/04/Form-No.-NTC-1-20-APPLICATION-FOR-CERTIFICATE-OF-REGISTRATION-VAS_PCSOTSP_VOIP.pdf
+- https://ntc.gov.ph/wp-content/uploads/2023/citizens_charter/9-29-23/6-05%20SID%20CCT%2009282023.pdf
+- https://region7.ntc.gov.ph/wp-content/uploads/2024/01/MC_3-11-2005.pdf
+
+Current public NTC materials identify Form NTC 1-20 for VAS/PCSOTSP/VoIP registration. Published VoIP-provider/reseller materials also identify distinct documentary, agreement, capitalization/ownership, registration-fee and performance-bond requirements depending on classification. Because the exact legal classification materially changes the requirements, Magnanimous does not self-classify an external approval.
+
+Pre-application guidance request sent to: region7@ntc.gov.ph
+Gmail message id: 1a0db523d69cdf33
+
+The request asks NTC Region VII to confirm:
+- VoIP provider vs VoIP reseller vs VAS vs other classification;
+- whether NTC 1-20 remains the correct form;
+- current documentary, fee, capitalization, ownership and bond requirements;
+- required authorized-network/interconnection agreements;
+- whether a branded SIM/eSIM offer on an authorized host network requires VNO/MVNO or additional registration;
+- correct filing office and pre-filing review path;
+- any newer rules superseding older VoIP/VAS guidance.
+
+No application declaration was signed, no filing fee was paid, no bond was purchased, and no regulatory authority is represented as granted.
