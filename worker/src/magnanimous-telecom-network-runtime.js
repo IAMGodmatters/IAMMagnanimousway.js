@@ -80,6 +80,10 @@ function validOriginReference(value){
  const ref=String(value||'').trim();
  return /^https:\/\/\S{6,}$/i.test(ref)||/^(contract|rate-card|provider-quote|invoice):\S{2,}$/i.test(ref);
 }
+function validCommercialReference(value){
+ const ref=String(value||'').trim();
+ return /^https:\/\/\S{6,}$/i.test(ref)||/^(contract|agreement|reseller-agreement|mvno-agreement):\S{2,}$/i.test(ref);
+}
 
 export function planGlobalMobileOffers(body){
  const country=String(body?.country_code||'').trim().toUpperCase();
@@ -443,7 +447,7 @@ export async function handleMagnanimousTelecomNetwork(request,env){
   const originReference=String(body.origin_reference||'').trim().slice(0,500);
   const commercialReference=String(body.commercial_reference||'').trim().slice(0,500);
   if(body.origin_cost_verified!==true||!validOriginReference(originReference))return json({detail:'Verified origin-cost evidence is required.'},422);
-  if(body.commercial_authorized!==true||!validOriginReference(commercialReference))return json({detail:'A separate verified commercial agreement/authorization reference is required before storing an active wholesale offer.'},409);
+  if(body.commercial_authorized!==true||!validCommercialReference(commercialReference))return json({detail:'A separate verified commercial agreement/authorization reference is required. Use an https:// agreement URL or contract:, agreement:, reseller-agreement:, or mvno-agreement: reference.'},409);
   const variableCost=finiteAmount(body.origin_variable_cost_per_gb||0,10000),fundedCost=finiteAmount(body.funded_variable_cost_cap||0,1000000);
   if(variableCost===null||fundedCost===null)return json({detail:'Wholesale variable cost and funded cap must be valid non-negative amounts.'},422);
   if(variableCost>0&&fundedCost<=0)return json({detail:'Metered wholesale data requires a funded_variable_cost_cap greater than zero before activation.'},409);
