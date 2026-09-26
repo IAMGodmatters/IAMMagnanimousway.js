@@ -3,14 +3,17 @@ import {decrypt} from './integrations.js';
 const now=()=>Math.floor(Date.now()/1000);
 const encoder=new TextEncoder();
 const decoder=new TextDecoder();
-const WATCH_QUERY='in:inbox newer_than:7d {from:gigs.com from:telna.com from:1global.com from:fonusmobile.com from:fonus.me from:ntc.gov.ph}';
+const WATCH_QUERY='in:inbox newer_than:7d {from:gigs.com from:telna.com from:1global.com from:fonusmobile.com from:fonus.me from:ntc.gov.ph from:pldt.com.ph from:smart.com.ph from:dito.ph}';
 const PROVIDERS=[
  ['gigs','gigs.com'],
  ['telna','telna.com'],
  ['1global','1global.com'],
  ['fonus','fonusmobile.com'],
  ['fonus','fonus.me'],
- ['ntc-ph','ntc.gov.ph']
+ ['ntc-ph','ntc.gov.ph'],
+ ['pldt-smart','pldt.com.ph'],
+ ['pldt-smart','smart.com.ph'],
+ ['dito','dito.ph']
 ];
 
 function b64urlText(value){
@@ -75,7 +78,9 @@ function replyText(key,{consequential=false}={}){
   gigs:'Please provide any remaining test-project/API access, agreement-grade resale authority, Philippines eligibility/coverage, wholesale pricing/fair-use terms, and the path to one real Philippines trial eSIM/profile after commercial approval.',
   telna:'Please provide any remaining Philippines network/IMSI eligibility, white-label/reseller agreement, sandbox/API or trial access, wholesale pricing/fair-use terms, Philippine KYC/SIM-registration obligations, and genuinely independent primary/backup network options.',
   '1global':'Please keep case 02547094 with the Connect / Embedded Telco commercial/onboarding team and provide any remaining agreement, Philippines eligibility, platform/sandbox credentials, wholesale pricing/fair-use terms, real trial eSIM path, and independent backup/failure-domain details.',
-  fonus:'Please provide any remaining reseller agreement/resale authority, Philippines eligibility, wholesale rate deck/fair-use terms, eSIM/pSIM provisioning/API process, compliance obligations, real trial connectivity path, and independently routed backup options.'
+  fonus:'Please provide any remaining reseller agreement/resale authority, Philippines eligibility, wholesale rate deck/fair-use terms, eSIM/pSIM provisioning/API process, compliance obligations, real trial connectivity path, and independently routed backup options.',
+  'pldt-smart':'Please route this to PLDT/Smart wholesale mobile, carrier services, MVNO/VNO or branded SIM/eSIM onboarding and provide the required carrier agreement, provisioning/API options, Philippine SIM-registration allocation, wholesale economics and trial-profile path.',
+  dito:'Please route this to DITO wholesale mobile, carrier partnerships, MVNO/VNO or branded SIM/eSIM onboarding and provide the required carrier agreement, provisioning/API options, Philippine SIM-registration allocation, wholesale economics and trial-profile path.'
  }[key]||'Please provide the remaining commercial, technical, pricing, country and compliance evidence needed to complete qualification.';
  const caution=consequential?' We received the consequential item you referenced; it will be reviewed separately and is not accepted or executed by this automated reply.':'';
  return `Hello,\n\nThank you for the update. ${specific}${caution}\n\n${common}\n\nBusiness contact: Godmattersinc@iammagnanimousway.com\n\nThank you,\nMagnanimous Telecom\nI AM MAGNANIMOUS WAY™`;
@@ -130,7 +135,7 @@ async function record(env,tenant,event){
  ).run();
 }
 async function updatePartnerEvidence(env,tenant,key,messageId,classification,snippet){
- if(!['gigs','telna','1global','fonus'].includes(key))return;
+ if(!['gigs','telna','1global','fonus','pldt-smart','dito'].includes(key))return;
  const ref='gmail:'+messageId,note=`Latest inbound ${classification}: ${String(snippet||'').slice(0,500)}`;
  try{
   await env.DB.prepare(`UPDATE telecom_mobile_partner_acquisition SET
