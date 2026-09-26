@@ -21,4 +21,12 @@ assert.ok(acquisition.includes('zhac@fonusmobile.com'),'Fonus direct commercial 
 assert.ok(acquisition.includes('official sales/MVNO form submitted'),'Gigs official sales-form completion must remain durably recorded.');
 assert.ok(acquisition.includes('Fonus official reseller application submitted'),'Fonus reseller-form completion must remain durably recorded.');
 assert.ok(acquisition.includes('1a0db67a03572b70'),'Fonus direct commercial outreach evidence must remain durably recorded.');
+assert.ok(runtime.includes("status:'test_access_requested'"),'Gigs test-access request state must remain durable.');
+assert.ok(runtime.includes('gmail:1a0dbc4eaa9ee252'),'Gigs test-project follow-up evidence must remain durable.');
+assert.ok(runtime.includes('gmail:1a0dbc4f2e590b07'),'1GLOBAL evidence-acquisition follow-up must remain durable.');
+assert.ok(runtime.includes('gmail:1a0dbc4fa825d47f'),'Fonus threaded handoff acknowledgement must remain durable.');
+assert.ok(runtime.includes('test SIMs do not provide actual network connectivity'),'Sandbox/test SIM evidence must not be confused with live connectivity.');
+assert.ok(ui.includes('test_access_requested'),'Owner UI must support the test-access-requested acquisition state.');
+assert.ok(ui.includes('case_followed_up'),'Owner UI must support provider-case follow-up state.');
+assert.ok(ui.includes('Sandbox/test access proves integration only'),'Owner UI must preserve sandbox-vs-live truth.');
 console.log('Global mobile carrier acquisition control lock passed.');
