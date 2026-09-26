@@ -282,3 +282,4 @@ Git commits/branches/PRs/CI/deployment IDs are the authoritative development rec
 - [x] Sent PEZA pre-qualification for integrated BPO/call-center + software activity and separate NTC-regulated telecom (`gmail:1a0dc193b98749b8`).
 - [x] Sent National Privacy Commission pre-registration request for DPO/DPS, call recording/transcription, AI QA/profiling, PIC/PIP and cross-border processing guidance (`gmail:1a0dc196b53d7c60`).
 - [x] Extended the native compliance email watcher to PEZA, NPC, DOLE and BOI domains while preserving dedupe, auto-ack suppression, six-hour thread cooldown and no-contract/no-payment boundaries.
+- [x] Sent BOI pre-qualification for domestic-market contact-center, AI/software and mixed Philippine/global customer incentive treatment under current Strategic/Knowledge-Based Services guidance (`gmail:1a0dc1d5f82d796b`).
