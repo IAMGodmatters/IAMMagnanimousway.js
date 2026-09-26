@@ -31,6 +31,8 @@ const globalMobileMigration=read('worker/migrations/0087_global_mobile_proof_gat
 const globalMobileGateQa=read('qa/scripts/global-mobile-proof-gates-lock.mjs');
 const globalMobileEnrollmentMigration=read('worker/migrations/0089_global_mobile_enrollment_and_failover.sql');
 const globalMobileEnrollmentQa=read('qa/scripts/global-mobile-enrollment-failover-lock.mjs');
+const globalMobilePartnerMigration=read('worker/migrations/0090_global_mobile_partner_acquisition.sql');
+const globalMobilePartnerQa=read('qa/scripts/global-mobile-carrier-acquisition-lock.mjs');
 const webrtcWorkflow=read('.github/workflows/native-webrtc-e2e.yml');
 const webrtcProbe=read('telecom-core/webrtc-e2e/run.mjs');
 const extensions=read('telecom-core/asterisk/templates/extensions.conf.template');
@@ -83,6 +85,8 @@ file('docs/PHILIPPINE-TELECOM-REGULATORY-PREFILING-2026-09-26.md','Philippine te
 file('worker/migrations/0087_global_mobile_proof_gates.sql','global mobile evidence tables are durably versioned');
 file('qa/scripts/global-mobile-proof-gates-lock.mjs','global mobile live proof-gate test is versioned');
 file('worker/migrations/0089_global_mobile_enrollment_and_failover.sql','Magnanimous enrollment and failover evidence state is durable');
+file('worker/migrations/0090_global_mobile_partner_acquisition.sql','global mobile carrier acquisition state is durable');
+file('qa/scripts/global-mobile-carrier-acquisition-lock.mjs','global mobile carrier acquisition QA is versioned');
 file('qa/scripts/global-mobile-enrollment-failover-lock.mjs','Magnanimous enrollment/failover QA is versioned');
 file('telecom-core/OCI-ALWAYS-FREE-HOST.md','free-first OCI Telecom host guide is versioned');
 file('telecom-core/deploy/oci-always-free-preflight.sh','OCI public-host preflight is versioned');
@@ -242,6 +246,9 @@ has(network,"global-mobile/profiles",'owner API records opaque mobile access pro
 has(network,"global-mobile/connectivity",'owner API records real connectivity evidence');
 has(network,"global-mobile/enrollment-tokens",'owner API issues short-lived Magnanimous enrollment tokens');
 has(network,"global-mobile/failover-proof",'owner API verifies independent observed failover evidence');
+has(network,"global-mobile/partners",'owner API exposes carrier acquisition control');
+has(network,"contract_verified'&&!validCommercialReference",'carrier acquisition cannot mark contract verified without agreement-grade evidence');
+has(network,'Provider credentials and activation secrets are forbidden in acquisition records.','carrier acquisition rejects provider secrets');
 has(network,"carrier_activation_secret:false",'Magnanimous enrollment token cannot be misrepresented as a carrier activation secret');
 has(contact,'native_pbx_live:nativeWebrtcLive','contact-center snapshot exposes native PBX truth state');
 has(compat,'compatibility_transport_ready:true','compatibility softphone reports compatibility readiness separately');
@@ -260,6 +267,8 @@ has(ui,'SAVE VERIFIED WHOLESALE OFFER','owner UI can store verified commercial o
 has(ui,'SAVE REAL CONNECTIVITY PROOF','owner UI can record subscriber connectivity proof');
 has(ui,'ISSUE ONE-TIME MAGNANIMOUS TOKEN','owner UI exposes safe Magnanimous enrollment token issuance');
 has(ui,'VERIFY INDEPENDENT BACKUP EVIDENCE','owner UI exposes observed independent backup verification');
+has(ui,'Carrier partnership pipeline','owner UI exposes mobile carrier acquisition state');
+has(ui,'SAVE ACQUISITION STATE','owner UI can persist carrier acquisition progress');
 has(ui,'Commercial agreement evidence','owner UI separates resale authorization evidence from pricing evidence');
 has(ui,"href='/telecom/activate'",'owner UI links to the customer Magnanimous enrollment redemption path');
 has(ui,'I confirmed this origin cost against the referenced provider evidence.','owner must explicitly attest the origin-price evidence before quoting');
@@ -299,6 +308,8 @@ has(globalMobileGateQa,'live_flag_enabled:true','proof-gate QA explicitly tests 
 has(globalMobileEnrollmentMigration,'token_hash TEXT PRIMARY KEY','Magnanimous enrollment secrets are stored only as hashes');
 has(globalMobileEnrollmentMigration,'telecom_mobile_failover_proofs','observed backup failover proof is durable');
 has(globalMobileEnrollmentQa,'independent-backup evidence locks passed','enrollment/failover safety QA is executable');
+has(globalMobilePartnerMigration,'telecom_mobile_partner_acquisition','carrier acquisition pipeline is database-backed');
+has(globalMobilePartnerQa,'carrier acquisition control lock passed','carrier acquisition QA is executable');
 has(extensions,'Echo()','authenticated WebRTC diagnostic uses Asterisk Echo for carrier-free bidirectional media proof');
 has(webrtcWorkflow,'Real Chromium registration and two-way media','dedicated CI job runs a real Chromium WebRTC media proof');
 has(webrtcWorkflow,'wss://localhost:8089/ws','browser probe uses the native Asterisk WSS endpoint');
