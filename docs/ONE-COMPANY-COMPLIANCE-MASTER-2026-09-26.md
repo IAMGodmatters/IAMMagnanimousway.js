@@ -212,6 +212,10 @@ Already sent and monitored:
 - NPC DPO/DPS/privacy guidance;
 - BOI contact-center/AI/software incentive pre-qualification;
 - QBO / Startup Philippines;
+  - the first QBO message to `accelerator@qbo.com.ph`, the address published on the Startup Philippines program listing, bounced with Gmail 550 5.1.1 / address-not-found (`gmail:1a0dc1135b9d92d0`);
+  - QBO's current official site publishes `hello@qbo.com.ph`;
+  - the same pre-qualification request was resent successfully to `hello@qbo.com.ph` (`gmail:1a0dc3d535c87274`);
+  - keep QBO funding/application status pending until a human response or formal application result exists;
 - SBCorp;
 - DICT / Startup Philippines;
 - DOST-CRADLE;
