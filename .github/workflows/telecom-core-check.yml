@@ -15,7 +15,14 @@ on:
       - 'worker/src/voice-agent-runtime.js'
       - 'qa/scripts/telecom-compatibility-router-lock.mjs'
       - 'qa/scripts/global-mobile-offer-planner-lock.mjs'
+      - 'qa/scripts/global-mobile-proof-gates-lock.mjs'
+      - 'qa/scripts/global-mobile-enrollment-failover-lock.mjs'
+      - 'worker/migrations/0089_global_mobile_enrollment_and_failover.sql'
+      - 'worker/migrations/0087_global_mobile_proof_gates.sql'
       - 'docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md'
+      - 'docs/GLOBAL-MOBILE-CARRIER-ACQUISITION-2026-09-26.md'
+      - 'docs/GLOBAL-MOBILE-COMMERCIAL-TERMS-REQUIREMENTS-2026-09-26.md'
+      - 'docs/PHILIPPINE-TELECOM-REGULATORY-PREFILING-2026-09-26.md'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
       - 'worker/src/magnanimous-telecom-bss-admin-runtime.js'
@@ -125,6 +132,8 @@ jobs:
           node --check worker/src/magnanimous-telecom-runtime.js
           node --check worker/src/magnanimous-telecom-network-runtime.js
           node qa/scripts/global-mobile-offer-planner-lock.mjs
+          node qa/scripts/global-mobile-proof-gates-lock.mjs
+          node qa/scripts/global-mobile-enrollment-failover-lock.mjs
           node --check worker/src/magnanimous-carrier-core.js
           node --check worker/src/lead-phone.js
           node --check worker/src/phone-carrier-runtime.js
