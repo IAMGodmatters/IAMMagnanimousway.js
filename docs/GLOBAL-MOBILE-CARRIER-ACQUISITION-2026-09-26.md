@@ -191,3 +191,28 @@ Magnanimous follow-up Gmail message id: 1a0db58c6b907aa0
 Gmail message id: 1a0db5066b33f92d
 
 Status: waiting for the 1GLOBAL commercial/onboarding response. No credentials, contract, pricing or production authority have been assumed from the case acknowledgement.
+
+
+### Fonus direct reseller follow-up
+
+Official current support contact confirmed from Fonus legal page:
+- support@fonus.me
+
+A reseller/global-mobile partnership inquiry was sent directly to that address after the public reseller form was found to require phone/address fields that should not be invented.
+
+Gmail message id: 1a0db5b73b594f41
+
+Requested:
+- B2C/B2B reseller agreement terms;
+- permitted resale countries;
+- wholesale/origin rate deck;
+- minimum purchase/deposit/volume commitments;
+- eSIM/pSIM provisioning;
+- API/dashboard lifecycle capabilities;
+- voice/SMS/data/number/porting capabilities;
+- fair-use/high-speed rules;
+- KYC/SIM-registration/permanent-roaming requirements;
+- Magnanimous Telecom customer-facing branding;
+- independent backup connectivity options.
+
+No paid activation, deposit, SIM/eSIM order, or production commitment was made.
