@@ -67,6 +67,34 @@ The published checklist identifies PNP Police Clearance, not an NBI Clearance, a
 
 "DTI" is normally the business-name authority for a sole proprietorship. For the selected corporate structure, SEC registration is the main entity registration.
 
+
+## SEC formation path currently verified
+
+Current official SEC eSPARC guidance establishes these filing boundaries:
+
+- Starting April 7, 2025, domestic stock corporations other than lending/financing companies are processed through SEC ZERO.
+- Both OneSEC with ZERO and Regular with ZERO issue digitally signed Certificates of Incorporation and require the relevant corporate officers/signatories to be credentialed in eSECURE/eSAP.
+- OneSEC with ZERO is a narrow automated path. Its terms require a predetermined primary purpose and say that an applicant needing clearance/endorsement from an SEC department or another government agency must use eSPARC Regular with ZERO instead.
+- Because Magnanimous intends to include future NTC-regulated telecom activities, do not force the filing through OneSEC merely for speed. Use OneSEC only if the actual selected SEC purpose/activity fits its allowed list without outside clearance/endorsement; otherwise use Regular with ZERO.
+- SEC iMessage is the Commission's current official web-based ticketing channel for public inquiries/requests and replaces informal inquiry channels such as ordinary email/Google Forms.
+- The old CPRD registration mailbox is therefore not the active inquiry route.
+
+Formal incorporation remains owner/signatory-data blocked. Do not invent or infer:
+- incorporator/director/officer legal names;
+- TINs;
+- Philippine addresses;
+- nationality/ownership percentages;
+- eSECURE identities;
+- signatures;
+- nominee/alternate nominee data;
+- capital subscriptions/payment facts.
+
+Official current references checked 2026-09-26:
+- SEC eSPARC: https://esparc.sec.gov.ph/application
+- SEC Regular with ZERO: https://esparc.sec.gov.ph/application/select-regular
+- SEC OneSEC with ZERO terms: https://esparc.sec.gov.ph/application-one-sec/overview-zero
+- SEC iMessage: https://imessage.sec.gov.ph/
+
 ## NTC / telecom legal stack
 
 ### Phase 1 — own Call Center
@@ -158,9 +186,11 @@ Do not claim that one grant can legally pay every fee, bond, permit and operatin
 
 The main Magnanimous web runtime is live, but the Telecom service is not yet fully production-live.
 
-Current production:
-- repository main: acf0eb84a9b256542dca3b09ab091d2779a130ba
+Current source/runtime state:
+- latest repository main: c89adac58852cbe08bcf402a1c3b26cc62994903 (documentation-only QBO contact repair merged after the runtime release)
+- live Railway runtime commit: acf0eb84a9b256542dca3b09ab091d2779a130ba
 - Railway deployment: abdaa629-b917-45b4-b559-f7fa835343a9 (SUCCESS)
+- no new deployment is required merely because documentation-only commits advance GitHub main
 
 Current Railway project services:
 - magnanimous
@@ -227,7 +257,7 @@ Already sent and monitored:
 Bayawan inquiry receipt:
 - Gmail: 1a0dc35eeddb1e6c
 
-SEC's old CPRD registration mailbox is retired. SEC instructed inquiries to move to the SEC iMessage portal.
+SEC's old CPRD registration mailbox is retired. SEC's current iMessage manual identifies iMessage as the official web-based inquiry/request ticketing channel. Formal registration itself remains in eSPARC/SEC ZERO, with eSECURE/eSAP credentialing for the relevant signatories.
 
 ## Non-negotiable truth rules
 

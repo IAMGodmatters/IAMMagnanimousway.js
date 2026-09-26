@@ -61,6 +61,15 @@ Full research evidence is versioned in:
 - The native watcher already covers the `qbo.com.ph` domain, so inbound QBO replies remain monitored without widening the mailbox scope.
 - QBO/Startup Philippines remains the first funding target after SEC registration; no funding award, eligibility approval, or allowable-use approval is claimed until received in writing.
 
+## Continuation checkpoint — SEC current filing route
+
+- Official SEC eSPARC currently states that, from April 7, 2025, domestic stock corporations other than lending/financing companies are processed through SEC ZERO.
+- OneSEC with ZERO is not a universal shortcut: its terms require a predetermined primary purpose and direct applications needing SEC/other-agency clearance or endorsement to Regular with ZERO.
+- For Magnanimous, do not assume the future NTC-regulated telecom wording is accepted through OneSEC. Use OneSEC only if the actual selected purpose is eligible without an endorsement; otherwise use Regular with ZERO.
+- SEC iMessage is the current official SEC ticketing channel for public inquiries/requests; the retired CPRD mailbox is not the current inquiry route.
+- eSPARC/OneSEC forms require real applicant/authorized-representative data including TIN/contact details, and ZERO relies on eSECURE/eSAP credentials for relevant officers/signatories. Formal incorporation therefore remains blocked on real owner/signatory data and must never be completed with invented identity information.
+- Latest GitHub main after the QBO repair is `c89adac58852cbe08bcf402a1c3b26cc62994903`; live Railway remains correctly on runtime commit `acf0eb84a9b256542dca3b09ab091d2779a130ba`, deployment `abdaa629-b917-45b4-b559-f7fa835343a9` (SUCCESS), because the newer commits are documentation-only.
+
 ## Active work
 
 Completed:
