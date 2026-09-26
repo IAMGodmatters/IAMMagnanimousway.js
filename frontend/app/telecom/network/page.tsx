@@ -273,7 +273,7 @@ export default function NetworkAuthorityPage(){
     <form className={styles.card} onSubmit={saveWholesaleOffer}><small>WHOLESALE PROOF</small><h2>Activate verified origin offer</h2>
      <label>Adapter key<input value={offerAdapter} onChange={e=>setOfferAdapter(e.target.value.toLowerCase())} placeholder='authorized-mobile-adapter'/></label>
      <label>Independent network group<input value={offerNetwork} onChange={e=>setOfferNetwork(e.target.value.toLowerCase())} placeholder='network-a'/></label>
-     <label>Commercial agreement evidence<input value={commercialReference} onChange={e=>{setCommercialReference(e.target.value);setOfferAuthorized(false)}} placeholder='https://… or contract:/provider-quote: agreement reference'/></label>
+     <label>Commercial agreement evidence<input value={commercialReference} onChange={e=>{setCommercialReference(e.target.value);setOfferAuthorized(false)}} placeholder='https://… or contract:/agreement:/reseller-agreement: reference'/></label>
      <label><input type='checkbox' checked={offerAuthorized} onChange={e=>setOfferAuthorized(e.target.checked)}/> I verified that this separate agreement authorizes the intended commercial/resale use.</label>
      <label><input type='checkbox' checked={offerBackup} onChange={e=>setOfferBackup(e.target.checked)}/> Eligible as a backup path.</label>
      <button disabled={busy||!offerAdapter.trim()||!offerAuthorized||!commercialReference.trim()||!originVerified||!originReference.trim()}>SAVE VERIFIED WHOLESALE OFFER</button>
