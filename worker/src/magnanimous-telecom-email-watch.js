@@ -3,7 +3,7 @@ import {decrypt} from './integrations.js';
 const now=()=>Math.floor(Date.now()/1000);
 const encoder=new TextEncoder();
 const decoder=new TextDecoder();
-const WATCH_QUERY='in:inbox newer_than:7d {from:gigs.com from:telna.com from:1global.com from:fonusmobile.com from:fonus.me from:ntc.gov.ph from:pldt.com.ph from:smart.com.ph from:dito.ph from:prudentialguarantee.com from:pioneer.com.ph from:strongholdinsurance.com.ph from:sterling-insurance.com.ph from:gsis.gov.ph}';
+const WATCH_QUERY='in:inbox newer_than:7d {from:gigs.com from:telna.com from:1global.com from:fonusmobile.com from:fonus.me from:ntc.gov.ph from:pldt.com.ph from:smart.com.ph from:dito.ph from:prudentialguarantee.com from:pioneer.com.ph from:strongholdinsurance.com.ph from:sterling-insurance.com.ph from:gsis.gov.ph from:peza.gov.ph from:privacy.gov.ph from:dole.gov.ph from:boi.gov.ph}';
 const PROVIDERS=[
  ['gigs','gigs.com'],
  ['telna','telna.com'],
@@ -18,7 +18,11 @@ const PROVIDERS=[
  ['surety-pioneer','pioneer.com.ph'],
  ['surety-stronghold','strongholdinsurance.com.ph'],
  ['surety-sterling','sterling-insurance.com.ph'],
- ['surety-gsis','gsis.gov.ph']
+ ['surety-gsis','gsis.gov.ph'],
+ ['peza','peza.gov.ph'],
+ ['npc','privacy.gov.ph'],
+ ['dole','dole.gov.ph'],
+ ['boi','boi.gov.ph']
 ];
 
 function b64urlText(value){
@@ -90,7 +94,11 @@ function replyText(key,{consequential=false}={}){
   'surety-pioneer':'Please provide the written quotation and pre-qualification requirements for the ₱1,000,000 NTC VoIP Reseller performance/surety bond, including annual premium, taxes/fees, collateral percentage/alternatives, entity/document requirements, indemnitors and NTC bond-form requirements.',
   'surety-stronghold':'Please provide the written quotation and pre-qualification requirements for the ₱1,000,000 NTC VoIP Reseller performance/surety bond, including annual premium, taxes/fees, collateral percentage/alternatives, entity/document requirements, indemnitors and NTC bond-form requirements.',
   'surety-sterling':'Please provide the written quotation and pre-qualification requirements for the ₱1,000,000 NTC VoIP Reseller performance/surety bond, including annual premium, taxes/fees, collateral percentage/alternatives, entity/document requirements, indemnitors and NTC bond-form requirements.',
-  'surety-gsis':'Please confirm whether GSIS can issue the ₱1,000,000 NTC VoIP Reseller performance/surety bond for a private Philippine applicant and provide the premium, security/collateral, documents, indemnitors and application process.'
+  'surety-gsis':'Please confirm whether GSIS can issue the ₱1,000,000 NTC VoIP Reseller performance/surety bond for a private Philippine applicant and provide the premium, security/collateral, documents, indemnitors and application process.',
+  peza:'Please provide the current IT Enterprise/BPO registration path, location/export-revenue requirements, treatment of combined BPO and software activities, available incentives/job-creation assistance, and minimum documents for a newly registered Philippine company.',
+  npc:'Please provide the current NPCRS/DPO/DPS compliance path for an AI-enabled call center processing CRM data, call recordings/transcripts, AI QA/profiling, employee data and client data as both PIC and PIP where applicable.',
+  dole:'Please provide the establishment/employer registration and reporting steps that apply once the Philippine call-center entity, business permit, TIN and SSS employer details exist.',
+  boi:'Please provide the current registration/incentive path for an IT-BPM/call-center and software/telecom technology project creating Filipino jobs, including minimum project and entity requirements.'
  }[key]||'Please provide the remaining commercial, technical, pricing, country and compliance evidence needed to complete qualification.';
  const caution=consequential?' We received the consequential item you referenced; it will be reviewed separately and is not accepted or executed by this automated reply.':'';
  return `Hello,\n\nThank you for the update. ${specific}${caution}\n\n${common}\n\nBusiness contact: Godmattersinc@iammagnanimousway.com\n\nThank you,\nMagnanimous Telecom\nI AM MAGNANIMOUS WAY™`;
