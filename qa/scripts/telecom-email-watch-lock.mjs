@@ -7,7 +7,7 @@ const migration=fs.readFileSync('worker/migrations/0091_telecom_email_watch.sql'
 function must(value,message){if(!value)throw new Error(message)}
 
 must(runtime.includes("WATCH_QUERY='in:inbox newer_than:7d"),'Telecom email watch must be bounded to relevant recent inbox mail.');
-for(const domain of ['gigs.com','telna.com','1global.com','fonusmobile.com','fonus.me','ntc.gov.ph'])
+for(const domain of ['gigs.com','telna.com','1global.com','fonusmobile.com','fonus.me','ntc.gov.ph','pldt.com.ph','smart.com.ph','dito.ph'])
  must(runtime.includes(domain),`Missing watched telecom domain: ${domain}`);
 must(runtime.includes('telecom_email_watch_events'),'Durable email-event ledger is required.');
 must(runtime.includes('await seen(env,row.id)'),'Message-id dedupe is required before processing.');
@@ -25,6 +25,8 @@ must(runtime.includes("SELECT can_read,can_write FROM assistant_permissions"),'E
 must(runtime.includes("provider='google'"),'Watcher must use an already-authorized Magnanimous Gmail connection.');
 must(runtime.includes("Gmail needs reauthorization"),'Expired/invalid mail authorization must fail truthfully.');
 must(runtime.includes('updatePartnerEvidence'),'Carrier acquisition ledger must absorb inbound email evidence.');
+must(runtime.includes("'pldt-smart'"),'PLDT/Smart reply handling must remain wired.');
+must(runtime.includes("'dito'"),'DITO reply handling must remain wired.');
 must(runtime.includes('threadId:message.threadId'),'Gmail replies must remain in the provider thread.');
 must(runtime.includes("In-Reply-To"),'Gmail replies must carry reply threading headers.');
 must(operations.includes('scheduledTelecomEmailWatch(env)'),'Native scheduler must run the Telecom email watch.');
