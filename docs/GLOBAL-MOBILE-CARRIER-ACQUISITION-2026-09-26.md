@@ -248,3 +248,22 @@ Requested in the submitted needs statement:
 - independent backup connectivity.
 
 Status: official sales form submitted; awaiting Gigs partnerships/sales response.
+
+
+### Fonus official reseller application submitted
+
+The official Fonus reseller application at https://www.fonusmobile.com/apply-to-be-a-reseller/ was completed and submitted successfully on 2026-09-26.
+
+Automation evidence:
+- run id: 6e18befa-5503-43c4-8100-1c3807c14805
+- business email: Godmattersinc@iammagnanimousway.com
+- company: God Matters / Magnanimous Telecom
+- country: Philippines
+- resale type: B2C + B2B
+- sales channel: Online
+
+Fonus displayed the confirmation: **“Thank you for contacting us! We will get in touch with you within 5 business days.”**
+
+The reseller form had no free-text notes field. The detailed request for wholesale pricing, eSIM/pSIM/API lifecycle, voice/SMS/data/number/porting availability, fair-use terms, country/KYC/SIM-registration/permanent-roaming requirements, Magnanimous branding, and independent backup connectivity was therefore preserved in the separate email already sent to support@fonus.me.
+
+Status: official reseller application submitted; awaiting Fonus reseller/commercial response. No paid activation, deposit, SIM/eSIM order, or production commitment was made.
