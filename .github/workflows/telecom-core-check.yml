@@ -17,6 +17,8 @@ on:
       - 'qa/scripts/global-mobile-offer-planner-lock.mjs'
       - 'qa/scripts/global-mobile-proof-gates-lock.mjs'
       - 'qa/scripts/global-mobile-enrollment-failover-lock.mjs'
+      - 'qa/scripts/global-mobile-carrier-acquisition-lock.mjs'
+      - 'worker/migrations/0090_global_mobile_partner_acquisition.sql'
       - 'worker/migrations/0089_global_mobile_enrollment_and_failover.sql'
       - 'worker/migrations/0087_global_mobile_proof_gates.sql'
       - 'docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md'
@@ -134,6 +136,7 @@ jobs:
           node qa/scripts/global-mobile-offer-planner-lock.mjs
           node qa/scripts/global-mobile-proof-gates-lock.mjs
           node qa/scripts/global-mobile-enrollment-failover-lock.mjs
+          node qa/scripts/global-mobile-carrier-acquisition-lock.mjs
           node --check worker/src/magnanimous-carrier-core.js
           node --check worker/src/lead-phone.js
           node --check worker/src/phone-carrier-runtime.js
