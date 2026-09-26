@@ -8,7 +8,7 @@ const ui=fs.readFileSync('frontend/app/telecom/network/page.tsx','utf8');
 function must(value,message){if(!value)throw new Error(message)}
 
 must(runtime.includes("WATCH_QUERY='in:inbox newer_than:7d"),'Telecom email watch must be bounded to relevant recent inbox mail.');
-for(const domain of ['gigs.com','telna.com','1global.com','fonusmobile.com','fonus.me','ntc.gov.ph','pldt.com.ph','smart.com.ph','dito.ph','prudentialguarantee.com','pioneer.com.ph','strongholdinsurance.com.ph','sterling-insurance.com.ph','gsis.gov.ph','peza.gov.ph','privacy.gov.ph','dole.gov.ph','boi.gov.ph'])
+for(const domain of ['gigs.com','telna.com','1global.com','fonusmobile.com','fonus.me','ntc.gov.ph','pldt.com.ph','smart.com.ph','dito.ph','prudentialguarantee.com','pioneer.com.ph','strongholdinsurance.com.ph','sterling-insurance.com.ph','gsis.gov.ph','peza.gov.ph','privacy.gov.ph','dole.gov.ph','boi.gov.ph','sec.gov.ph','sbcorp.gov.ph','dict.gov.ph','dost.gov.ph','ndc.gov.ph','qbo.com.ph','mayorbayawan@gmail.com'])
  must(runtime.includes(domain),`Missing watched telecom domain: ${domain}`);
 must(runtime.includes('telecom_email_watch_events'),'Durable email-event ledger is required.');
 must(runtime.includes('await seen(env,row.id)'),'Message-id dedupe is required before processing.');
@@ -34,6 +34,8 @@ must(runtime.includes('₱1,000,000 NTC VoIP Reseller performance/surety bond'),
 for(const key of ['peza','npc','dole','boi']) must(runtime.includes(` ${key}:`)||runtime.includes(`'${key}'`),`BPO/compliance reply handling missing: ${key}`);
 must(runtime.includes('IT Enterprise/BPO registration path'),'PEZA reply handling must remain scoped to BPO/IT-enterprise compliance.');
 must(runtime.includes('NPCRS/DPO/DPS compliance path'),'NPC reply handling must remain scoped to privacy compliance.');
+must(runtime.includes("suffix.includes('@')?address===suffix"),'Exact-address providers must be supported without watching all gmail.com mail.');
+for(const key of ['sec','sbcorp','dict','dost','ndc','qbo','bayawan-city']) must(runtime.includes(` ${key}:`)||runtime.includes(`'${key}'`),`Legal/funding reply handling missing: ${key}`);
 must(runtime.includes('threadId:message.threadId'),'Gmail replies must remain in the provider thread.');
 must(runtime.includes("In-Reply-To"),'Gmail replies must carry reply threading headers.');
 must(operations.includes('scheduledTelecomEmailWatch(env)'),'Native scheduler must run the Telecom email watch.');
