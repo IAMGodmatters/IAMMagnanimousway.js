@@ -10,7 +10,7 @@ const checks=[];
 function has(source,needle,label){const ok=source.includes(needle);checks.push([ok,label]);if(!ok)console.error(`FAIL: ${label}`)}
 
 has(page,'EmailWriterClient','Business Email page exposes the Magnanimous AI email writer');
-has(page,'Magnanimous AI Email Writer + Business Email','page metadata exposes email-writing capability');
+has(page,'Magnanimous AI Email Writer','page metadata exposes email-writing capability');
 has(writer,'MAGNANIMOUS AI • EMAIL WRITER','email writer keeps Magnanimous as the public AI identity');
 has(writer,"postMagnanimousChat",'email writer uses the resilient Magnanimous brain transport');
 has(writer,"use_knowledge:true",'email writer can use established signed-in Magnanimous context');
