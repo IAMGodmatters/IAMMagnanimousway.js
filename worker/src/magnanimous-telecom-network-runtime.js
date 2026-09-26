@@ -185,7 +185,7 @@ const MOBILE_PARTNERS=[
  {key:'gigs',name:'Gigs',status:'sales_handoff',channel:'official-sales-form',destination:'https://gigs.com/contact',case_reference:'',evidence_reference:'tinyfish-run:0fbee7e5-a0af-4e02-b9ce-9a7b308fc42f',next_action:'Official Gigs sales/MVNO form submitted successfully on 2026-09-26. Await partnerships/sales response.'},
  {key:'telna',name:'Telna',status:'contacted',channel:'email',destination:'bd@telna.com',case_reference:'',evidence_reference:'gmail:1a0db5025ca68532',next_action:'Await commercial onboarding, wholesale pricing, sandbox and multi-network details.'},
  {key:'1global',name:'1GLOBAL',status:'case_open',channel:'email',destination:'business.help@1global.com',case_reference:'02547094',evidence_reference:'gmail:1a0db5066b33f92d',next_action:'Await Connect / Embedded Telco commercial response for case 02547094.'},
- {key:'fonus',name:'Fonus',status:'contacted',channel:'email/reseller-form',destination:'support@fonus.me',case_reference:'',evidence_reference:'gmail:1a0db5b73b594f41',next_action:'Await reseller/commercial team response with agreement, wholesale rate deck and provisioning terms.'}
+ {key:'fonus',name:'Fonus',status:'sales_contacted',channel:'email/reseller-form',destination:'zhac@fonusmobile.com',case_reference:'',evidence_reference:'gmail:1a0db65376739729;gmail:1a0db668aabea67c;gmail:1a0db67a03572b70',next_action:'Await direct reseller/commercial response from the Fonus contact supplied by Ursula; collect agreement-grade resale authority, wholesale rate deck, provisioning/API, compliance and backup-network terms.'}
 ];
 
 async function ensureSchema(env){
