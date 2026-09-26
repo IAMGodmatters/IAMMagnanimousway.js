@@ -90,8 +90,11 @@ Official source reviewed:
 Fonus provides a public reseller application for B2C, B2B or both. Its form requires personal/business contact fields including a phone number. No verified direct reseller email was located in the public source search used for this checkpoint.
 
 Action state:
-- application path identified and preserved;
-- not submitted with invented phone/address data;
+- official reseller inquiry/form path completed without inventing phone/address data;
+- Fonus sent receipt confirmation to the business mailbox and stated it will respond within 5 business days (Gmail message id: 1a0db668aabea67c);
+- Ursula from Fonus directed the reseller/global-mobile inquiry to the named commercial contact `zhac@fonusmobile.com` (Gmail message id: 1a0db65376739729);
+- the full no-spend reseller/MVNO inquiry was then sent to `zhac@fonusmobile.com` (Gmail message id: 1a0db67a03572b70);
+- next step is to ingest the returned agreement, wholesale rate deck, provisioning/API, country/compliance and independent-backup terms;
 - Fonus retail prices remain benchmark-only and are not treated as wholesale origin cost.
 
 ## No-spend rule
