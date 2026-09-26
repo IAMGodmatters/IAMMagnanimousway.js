@@ -9,6 +9,8 @@ for(const needle of [
  "sha256Hex(token)",
  "stored_as_hash_only:true",
  "carrier_activation_secret:false",
+ "redeemed?.meta?.changes",
+ "SET status='revoked' WHERE tenant_id=? AND profile_id=? AND purpose=? AND status='active'",
  "provider_activation_required",
  "telecom_mobile_enrollment_tokens",
  "telecom_mobile_failover_proofs",
@@ -20,6 +22,7 @@ for(const needle of [
 
 assert.ok(!migration.includes('raw_activation_secret'),'Migration must not persist raw carrier activation secrets.');
 assert.ok(migration.includes('token_hash TEXT PRIMARY KEY'),'Enrollment tokens must be stored only by hash.');
+assert.ok(runtime.includes("expires_at>?"),'Atomic redemption must also enforce token expiry in the write condition.');
 assert.ok(migration.includes("CHECK(purpose IN ('profile_enrollment','backup_enrollment'))"),'Enrollment purpose must be constrained.');
 assert.ok(runtime.includes("if(!['detach','failover'].includes(String(trigger.event_type)))"),'Primary failover trigger must be observed.');
 assert.ok(runtime.includes("if(!['attach','quality','recovery'].includes(String(backupEvent.event_type))"),'Backup service must be positively observed.');
