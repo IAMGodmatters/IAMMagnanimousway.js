@@ -54,6 +54,13 @@ Full research evidence is versioned in:
 - PR #445 / `b7960fc1e683bea07ea47284266feeb31251a323` — explicit Twilio/Plivo carrier routes moved behind Magnanimous planner execution with authenticated account health and fail-closed routing.
 - PR #447 / `1ae099403e838ba005ea0ea238b7727cd1d3084e` — D1 read-quota deployment resilience without weakening payment/bootstrap verification.
 
+## Continuation checkpoint — QBO contact repair
+
+- Startup Philippines currently lists the QBO Accelerator as open and publishes `accelerator@qbo.com.ph`, but Gmail returned a 550 5.1.1 address-not-found failure for that mailbox (`gmail:1a0dc1135b9d92d0`).
+- QBO's current official site publishes `hello@qbo.com.ph`; the Magnanimous pre-qualification inquiry was resent successfully there (`gmail:1a0dc3d535c87274`).
+- The native watcher already covers the `qbo.com.ph` domain, so inbound QBO replies remain monitored without widening the mailbox scope.
+- QBO/Startup Philippines remains the first funding target after SEC registration; no funding award, eligibility approval, or allowable-use approval is claimed until received in writing.
+
 ## Active work
 
 Completed:
