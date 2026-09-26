@@ -20,6 +20,7 @@ on:
       - 'worker/migrations/0089_global_mobile_enrollment_and_failover.sql'
       - 'worker/migrations/0087_global_mobile_proof_gates.sql'
       - 'docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md'
+      - 'docs/GLOBAL-MOBILE-CARRIER-ACQUISITION-2026-09-26.md'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
       - 'worker/src/magnanimous-telecom-bss-admin-runtime.js'
