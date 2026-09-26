@@ -191,3 +191,35 @@ Magnanimous follow-up Gmail message id: 1a0db58c6b907aa0
 Gmail message id: 1a0db5066b33f92d
 
 Status: waiting for the 1GLOBAL commercial/onboarding response. No credentials, contract, pricing or production authority have been assumed from the case acknowledgement.
+
+
+## Provider replies received
+
+### Gigs reply
+Received: 2026-09-26
+Gmail message id: 1a0db54b6241e75e
+
+Gigs Support confirmed the inquiry should continue through the official sales contact form:
+- https://gigs.com/contact
+
+They explicitly stated that the form accepts business email addresses only; personal Gmail/Yahoo-style addresses will not pass.
+
+Public indexed Gigs sales forms show required identity fields including first name, last name, company name and company email. Magnanimous will not invent those identity fields or substitute a personal email merely to force submission.
+
+Next action:
+- submit the sales form using the actual authorized representative name and a working business-domain email;
+- keep no-spend/sandbox-first language;
+- record the resulting sales/contact reference when received.
+
+### 1GLOBAL reply
+Received: 2026-09-26
+Gmail message id: 1a0db5066b33f92d
+Case number: 02547094
+
+1GLOBAL confirmed a support/business case has been opened and stated they will follow up.
+
+Next action:
+- retain case 02547094 as the external onboarding reference;
+- do not open duplicate cases unless the existing case stalls materially;
+- ingest any subsequent commercial/sales response into the separate commercial-reference and origin-pricing evidence fields.
+
