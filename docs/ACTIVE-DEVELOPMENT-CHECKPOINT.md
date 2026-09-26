@@ -286,3 +286,7 @@ Git commits/branches/PRs/CI/deployment IDs are the authoritative development rec
 - [x] Confirmed Bayawan one-business/BOSS inquiry and Prudential coordinated-insurance inquiry were successfully sent despite the earlier batched Gmail connector error; no duplicate resend was needed.
 - [x] Sent SEC one-corporation pre-filing guidance request asking whether BPO/call-center can be primary with AI/software/SaaS and NTC-regulated telecom as secondary purposes under one domestic corporation (`gmail:1a0dc2c822aa26e2`).
 - [x] Extended the native compliance watcher to SEC, SBCorp, DICT, DOST, NDC, QBO and the exact Bayawan City Gmail address without broad-watching gmail.com.
+
+- [x] Added `docs/ONE-COMPANY-COMPLIANCE-MASTER-2026-09-26.md` as the permanent one-corporation/multi-license legal and technical master: one SEC/BIR/accounting/domain identity, separate regulator-issued certificates where legally required, Bayawan local permits, NTC phases, privacy/labor stack, coordinated insurance strategy, funding sequence, current production Telecom blockers and truth gates.
+- [x] Confirmed Bayawan BOSS/investment inquiry sent (`gmail:1a0dc35eeddb1e6c`) and clean Prudential coordinated-insurance + separate NTC surety inquiry sent (`gmail:1a0dc366a7d814c2`).
+- [x] SEC retired the old CPRD registration mailbox and directed corporate-registration inquiries to SEC iMessage; do not treat the automated reply as a filing or approval.
