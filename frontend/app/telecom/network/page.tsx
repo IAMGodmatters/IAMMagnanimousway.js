@@ -62,6 +62,7 @@ export default function NetworkAuthorityPage(){
  const[failoverEvidence,setFailoverEvidence]=useState('');
  const[mobilePartners,setMobilePartners]=useState<any[]>([]);
  const[partnerDrafts,setPartnerDrafts]=useState<Record<string,any>>({});
+ const[emailWatch,setEmailWatch]=useState<any>(null);
  const routeDestinationValid=/^\+[1-9]\d{6,14}$/.test(routeDestination);
 
  useEffect(()=>{
@@ -77,12 +78,13 @@ export default function NetworkAuthorityPage(){
 
  async function refresh(activeToken=token){
   try{
-   const [data,profiles,partners]=await Promise.all([
+   const [data,profiles,partners,emailWatchState]=await Promise.all([
     call('/api/telecom/network/overview',{},activeToken),
     call('/api/telecom/network/global-mobile/profiles',{},activeToken).catch(()=>({items:[]})),
-    call('/api/telecom/network/global-mobile/partners',{},activeToken).catch(()=>({items:[]}))
+    call('/api/telecom/network/global-mobile/partners',{},activeToken).catch(()=>({items:[]})),
+    call('/api/telecom/email-watch/status',{},activeToken).catch(()=>null)
    ]);
-   setOverview({...empty,...data});setMobileProfiles(profiles.items||[]);setMobilePartners(partners.items||[]);
+   setOverview({...empty,...data});setMobileProfiles(profiles.items||[]);setMobilePartners(partners.items||[]);setEmailWatch(emailWatchState);
    const partnerState:Record<string,any>={};
    for(const item of partners.items||[])partnerState[item.provider_key]={...item,countries_csv:(item.countries||[]).join(','),capabilities_csv:(item.capabilities||[]).join(',')};
    setPartnerDrafts(partnerState);
@@ -95,6 +97,15 @@ export default function NetworkAuthorityPage(){
    for(const item of data.regulatory_cases||[])drafts[item.id]={status:item.status||'not_started',application_reference:item.application_reference||'',evidence_reference:item.evidence_reference||'',notes:item.notes||''};
    setCaseDrafts(drafts);setError('');
   }catch(caught:any){setError(caught?.message||'Unable to load regulated-network control.')}
+ }
+
+ async function runTelecomEmailWatch(){
+  setBusy(true);setNotice('');setError('');
+  try{
+   const result=await call('/api/telecom/email-watch/run',{method:'POST'});
+   setNotice(`Telecom email watch ran: ${result.status||'ok'} · processed ${Number(result.processed||0)} · replied ${Number(result.replied||0)}. Automated acknowledgements and recent same-thread replies are suppressed.`);
+   await refresh();
+  }catch(caught:any){setError(caught?.message||'Unable to run Telecom email watch.')}finally{setBusy(false)}
  }
 
  async function searchNumbers(event:FormEvent){
@@ -272,6 +283,25 @@ export default function NetworkAuthorityPage(){
   <section className={styles.inventory}>
    <div className={styles.title}><div><small>REPLACEABLE UPSTREAMS</small><h2>Carrier candidate matrix</h2></div><span>Credentials ≠ live route</span></div>
    <div className={styles.grid}>{(overview.upstream_candidates||[]).map(item=><article className={styles.card} key={item.provider_key}><small>{item.connected?'ACCOUNT DETECTED':'CANDIDATE'}</small><h2>{item.provider_key.toUpperCase()}</h2><p>{item.role}</p><p className={styles.muted}>{item.adapter_state||'No dedicated live adapter is claimed.'}</p></article>)}</div>
+  </section>
+
+  <section className={styles.inventory}>
+   <div className={styles.title}><div><small>TELECOM EMAIL WATCH</small><h2>Carrier + NTC correspondence</h2></div><span>{Number(emailWatch?.state?.enabled??1)===1?'MONITORING ENABLED':'MONITORING DISABLED'}</span></div>
+   <div className={styles.grid}>
+    <article className={styles.card}>
+     <small>15-MINUTE NATIVE WATCH</small><h2>{emailWatch?.state?.last_error?'NEEDS ATTENTION':emailWatch?.state?.last_run_at?'ACTIVE':'READY / FIRST RUN PENDING'}</h2>
+     <p><b>Last run:</b> {emailWatch?.state?.last_run_at?new Date(Number(emailWatch.state.last_run_at)*1000).toLocaleString():'Not recorded yet'}</p>
+     <p><b>Last action:</b> {emailWatch?.state?.last_action||'No processed carrier/NTC mail yet'}</p>
+     {emailWatch?.state?.last_error&&<p className={styles.muted}><b>Setup/action needed:</b> {emailWatch.state.last_error}</p>}
+     <button disabled={busy} onClick={runTelecomEmailWatch}>RUN WATCH NOW</button>
+     <p className={styles.muted}>Uses the owner-authorized Magnanimous Gmail connection. It never exposes OAuth tokens, never replies twice to the same Gmail message, suppresses automatic acknowledgements, enforces a six-hour thread cooldown, and never accepts contracts or authorizes payments.</p>
+    </article>
+    <article className={styles.card}>
+     <small>RECENT EVIDENCE</small><h2>{(emailWatch?.events||[]).length} recorded item(s)</h2>
+     <ul>{(emailWatch?.events||[]).slice(0,8).map((item:any)=><li key={item.message_id}><b>{String(item.provider_key||'telecom').toUpperCase()}</b> · {String(item.classification||'observed').replaceAll('_',' ')} · {String(item.action||'recorded').replaceAll('_',' ')}</li>)}</ul>
+     <p className={styles.muted}>Message bodies, OAuth secrets, and provider authentication material are not displayed here.</p>
+    </article>
+   </div>
   </section>
 
   <section className={styles.inventory}>

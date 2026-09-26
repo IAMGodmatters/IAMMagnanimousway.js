@@ -3,7 +3,7 @@ import {decrypt} from './integrations.js';
 const now=()=>Math.floor(Date.now()/1000);
 const encoder=new TextEncoder();
 const decoder=new TextDecoder();
-const WATCH_QUERY='in:inbox newer_than:7d {from:gigs.com from:telna.com from:1global.com from:fonusmobile.com from:fonus.me from:ntc.gov.ph from:pldt.com.ph from:smart.com.ph from:dito.ph}';
+const WATCH_QUERY='in:inbox newer_than:7d {from:gigs.com from:telna.com from:1global.com from:fonusmobile.com from:fonus.me from:ntc.gov.ph from:pldt.com.ph from:smart.com.ph from:dito.ph from:prudentialguarantee.com from:pioneer.com.ph from:strongholdinsurance.com.ph from:sterling-insurance.com.ph from:gsis.gov.ph}';
 const PROVIDERS=[
  ['gigs','gigs.com'],
  ['telna','telna.com'],
@@ -13,7 +13,12 @@ const PROVIDERS=[
  ['ntc-ph','ntc.gov.ph'],
  ['pldt-smart','pldt.com.ph'],
  ['pldt-smart','smart.com.ph'],
- ['dito','dito.ph']
+ ['dito','dito.ph'],
+ ['surety-prudential','prudentialguarantee.com'],
+ ['surety-pioneer','pioneer.com.ph'],
+ ['surety-stronghold','strongholdinsurance.com.ph'],
+ ['surety-sterling','sterling-insurance.com.ph'],
+ ['surety-gsis','gsis.gov.ph']
 ];
 
 function b64urlText(value){
@@ -80,7 +85,12 @@ function replyText(key,{consequential=false}={}){
   '1global':'Please keep case 02547094 with the Connect / Embedded Telco commercial/onboarding team and provide any remaining agreement, Philippines eligibility, platform/sandbox credentials, wholesale pricing/fair-use terms, real trial eSIM path, and independent backup/failure-domain details.',
   fonus:'Please provide any remaining reseller agreement/resale authority, Philippines eligibility, wholesale rate deck/fair-use terms, eSIM/pSIM provisioning/API process, compliance obligations, real trial connectivity path, and independently routed backup options.',
   'pldt-smart':'Please route this to PLDT/Smart wholesale mobile, carrier services, MVNO/VNO or branded SIM/eSIM onboarding and provide the required carrier agreement, provisioning/API options, Philippine SIM-registration allocation, wholesale economics and trial-profile path.',
-  dito:'Please route this to DITO wholesale mobile, carrier partnerships, MVNO/VNO or branded SIM/eSIM onboarding and provide the required carrier agreement, provisioning/API options, Philippine SIM-registration allocation, wholesale economics and trial-profile path.'
+  dito:'Please route this to DITO wholesale mobile, carrier partnerships, MVNO/VNO or branded SIM/eSIM onboarding and provide the required carrier agreement, provisioning/API options, Philippine SIM-registration allocation, wholesale economics and trial-profile path.',
+  'surety-prudential':'Please provide the written quotation and pre-qualification requirements for the ₱1,000,000 NTC VoIP Reseller performance/surety bond, including annual premium, taxes/fees, collateral percentage/alternatives, entity/document requirements, indemnitors and NTC bond-form requirements.',
+  'surety-pioneer':'Please provide the written quotation and pre-qualification requirements for the ₱1,000,000 NTC VoIP Reseller performance/surety bond, including annual premium, taxes/fees, collateral percentage/alternatives, entity/document requirements, indemnitors and NTC bond-form requirements.',
+  'surety-stronghold':'Please provide the written quotation and pre-qualification requirements for the ₱1,000,000 NTC VoIP Reseller performance/surety bond, including annual premium, taxes/fees, collateral percentage/alternatives, entity/document requirements, indemnitors and NTC bond-form requirements.',
+  'surety-sterling':'Please provide the written quotation and pre-qualification requirements for the ₱1,000,000 NTC VoIP Reseller performance/surety bond, including annual premium, taxes/fees, collateral percentage/alternatives, entity/document requirements, indemnitors and NTC bond-form requirements.',
+  'surety-gsis':'Please confirm whether GSIS can issue the ₱1,000,000 NTC VoIP Reseller performance/surety bond for a private Philippine applicant and provide the premium, security/collateral, documents, indemnitors and application process.'
  }[key]||'Please provide the remaining commercial, technical, pricing, country and compliance evidence needed to complete qualification.';
  const caution=consequential?' We received the consequential item you referenced; it will be reviewed separately and is not accepted or executed by this automated reply.':'';
  return `Hello,\n\nThank you for the update. ${specific}${caution}\n\n${common}\n\nBusiness contact: Godmattersinc@iammagnanimousway.com\n\nThank you,\nMagnanimous Telecom\nI AM MAGNANIMOUS WAY™`;
