@@ -108,7 +108,7 @@ RULES
  return <section className="writerShell" aria-label="Magnanimous AI Email Writer">
   <div className="writer">
    <div className="writerHead">
-    <div><small>MAGNANIMOUS AI • EMAIL WRITER</small><h1>Tell me what you want to say.<br/>I will write the email.</h1><p>New emails, replies, follow-ups, and rewrites. Magnanimous writes first; sending stays a separate action you approve.</p></div>
+    <div><small>MAGNANIMOUS AI • EMAIL WRITER</small><h1>Tell me what you want to say.<br/>I will write the email.</h1><p>Anyone using the platform can ask Magnanimous to write new emails, replies, follow-ups, and rewrites. Writing works on the free-first path; sending stays a separate signed-in action you approve.</p></div>
     <button className="fresh" onClick={clearAll}>+ NEW EMAIL</button>
    </div>
 
