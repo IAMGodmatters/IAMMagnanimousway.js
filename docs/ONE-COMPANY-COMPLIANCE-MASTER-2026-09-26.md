@@ -70,6 +70,32 @@ The published checklist identifies PNP Police Clearance, not an NBI Clearance, a
 
 ## SEC formation path currently verified
 
+### Owner-supplied identity evidence now available
+
+The owner supplied real Philippine identity/tax documents for the intended Filipino participant. The documents include:
+- a PhilHealth ID, which SEC currently lists as an acceptable eSECURE government-issued ID; and
+- a BIR-issued TIN card supplying the TIN required by eSECURE/eSPARC.
+
+Privacy rule:
+- do not store the PhilHealth number, TIN, ID image, signature image, birth date, or residential address in GitHub, public logs, or ordinary project documentation;
+- use those values only inside the official SEC/BIR/LGU filing flows when required.
+
+Open identity reconciliation before filing:
+- the two cards use different surname/record formats;
+- the two cards show different addresses;
+- do not choose between them automatically. Use the registrant's current legal name and current address supported by the appropriate civil/tax records, and correct/update the underlying government record if SEC/eSECURE rejects a mismatch.
+
+Remaining SEC account/form inputs still required from the actual registrant:
+- personal email address;
+- personal mobile number capable of receiving SEC OTPs;
+- nationality/citizenship;
+- confirmed current residential address;
+- confirmed legal name to use for SEC/eSECURE;
+- intended corporate role/ownership and, if applicable, the foreign-equity percentage;
+- nominee/alternate nominee details if an OPC structure is selected.
+
+
+
 Current official SEC eSPARC guidance establishes these filing boundaries:
 
 - Starting April 7, 2025, domestic stock corporations other than lending/financing companies are processed through SEC ZERO.
