@@ -181,6 +181,13 @@ const PH_CASES=[
  ['franchise_cpcn','Congressional franchise + CPCN for facilities-based public telecom']
 ];
 
+const MOBILE_PARTNERS=[
+ {key:'gigs',name:'Gigs',status:'sales_handoff',channel:'email/form',destination:'support@gigs.com',case_reference:'',evidence_reference:'gmail:1a0db54b6241e75e',next_action:'Await direct Sales/MVNO routing or submit the official sales form from the business mailbox.'},
+ {key:'telna',name:'Telna',status:'contacted',channel:'email',destination:'bd@telna.com',case_reference:'',evidence_reference:'gmail:1a0db5025ca68532',next_action:'Await commercial onboarding, wholesale pricing, sandbox and multi-network details.'},
+ {key:'1global',name:'1GLOBAL',status:'case_open',channel:'email',destination:'business.help@1global.com',case_reference:'02547094',evidence_reference:'gmail:1a0db5066b33f92d',next_action:'Await Connect / Embedded Telco commercial response for case 02547094.'},
+ {key:'fonus',name:'Fonus',status:'contacted',channel:'email/reseller-form',destination:'support@fonus.me',case_reference:'',evidence_reference:'gmail:1a0db5b73b594f41',next_action:'Await reseller/commercial team response with agreement, wholesale rate deck and provisioning terms.'}
+];
+
 async function ensureSchema(env){
  if(!env?.DB)return;
  const statements=[
@@ -192,7 +199,8 @@ async function ensureSchema(env){
   `CREATE TABLE IF NOT EXISTS telecom_mobile_access_profiles (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,line_id TEXT,sim_id TEXT,adapter_key TEXT NOT NULL,provider_profile_ref TEXT NOT NULL DEFAULT '',network_group TEXT NOT NULL DEFAULT '',country_code TEXT NOT NULL DEFAULT '',profile_role TEXT NOT NULL DEFAULT 'primary',apn_profile_id TEXT,status TEXT NOT NULL DEFAULT 'planned',last_verified_at INTEGER,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS telecom_mobile_connectivity_events (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,profile_id TEXT NOT NULL,line_id TEXT,country_code TEXT NOT NULL DEFAULT '',serving_network_ref TEXT NOT NULL DEFAULT '',event_type TEXT NOT NULL,latency_ms REAL NOT NULL DEFAULT 0,packet_loss_percent REAL NOT NULL DEFAULT 0,downlink_mbps REAL NOT NULL DEFAULT 0,uplink_mbps REAL NOT NULL DEFAULT 0,failover_reason TEXT NOT NULL DEFAULT '',metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS telecom_mobile_enrollment_tokens (token_hash TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,profile_id TEXT NOT NULL,line_id TEXT,purpose TEXT NOT NULL DEFAULT 'profile_enrollment',status TEXT NOT NULL DEFAULT 'active',expires_at INTEGER NOT NULL,redeemed_at INTEGER,redeemed_by TEXT NOT NULL DEFAULT '',device_ref TEXT NOT NULL DEFAULT '',created_by TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS telecom_mobile_failover_proofs (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,line_id TEXT,primary_profile_id TEXT NOT NULL,backup_profile_id TEXT NOT NULL,primary_network_group TEXT NOT NULL,backup_network_group TEXT NOT NULL,trigger_event_id TEXT NOT NULL,backup_event_id TEXT NOT NULL,restoration_event_id TEXT NOT NULL DEFAULT '',evidence_reference TEXT NOT NULL DEFAULT '',independent_network_verified INTEGER NOT NULL DEFAULT 0,observed_failover INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'verified',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`
+  `CREATE TABLE IF NOT EXISTS telecom_mobile_failover_proofs (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,line_id TEXT,primary_profile_id TEXT NOT NULL,backup_profile_id TEXT NOT NULL,primary_network_group TEXT NOT NULL,backup_network_group TEXT NOT NULL,trigger_event_id TEXT NOT NULL,backup_event_id TEXT NOT NULL,restoration_event_id TEXT NOT NULL DEFAULT '',evidence_reference TEXT NOT NULL DEFAULT '',independent_network_verified INTEGER NOT NULL DEFAULT 0,observed_failover INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'verified',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS telecom_mobile_partner_acquisition (tenant_id TEXT NOT NULL,provider_key TEXT NOT NULL,display_name TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'researching',contact_channel TEXT NOT NULL DEFAULT '',contact_destination TEXT NOT NULL DEFAULT '',case_reference TEXT NOT NULL DEFAULT '',evidence_reference TEXT NOT NULL DEFAULT '',pricing_reference TEXT NOT NULL DEFAULT '',commercial_reference TEXT NOT NULL DEFAULT '',sandbox_reference TEXT NOT NULL DEFAULT '',countries_json TEXT NOT NULL DEFAULT '[]',capabilities_json TEXT NOT NULL DEFAULT '[]',next_action TEXT NOT NULL DEFAULT '',notes TEXT NOT NULL DEFAULT '',last_contact_at INTEGER,updated_by TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,provider_key))`
  ];
  for(const sql of statements){try{await env.DB.prepare(sql).run()}catch(error){console.error('telecom network schema repair failed',error)}}
 }
@@ -206,6 +214,18 @@ async function seedCases(env,tenant){
      .bind(id('reg'),tenant,jurisdiction,key,name,ts,ts).run();
    }catch(error){console.error('regulatory readiness seed failed',error)}
   }
+ }
+}
+
+async function seedMobilePartners(env,tenant){
+ const ts=now();
+ for(const partner of MOBILE_PARTNERS){
+  try{
+   await env.DB.prepare(`INSERT OR IGNORE INTO telecom_mobile_partner_acquisition(
+    tenant_id,provider_key,display_name,status,contact_channel,contact_destination,case_reference,evidence_reference,next_action,last_contact_at,updated_by,created_at,updated_at
+   ) VALUES(?,?,?,?,?,?,?,?,?,?,?, ?,?)`)
+    .bind(tenant,partner.key,partner.name,partner.status,partner.channel,partner.destination,partner.case_reference,partner.evidence_reference,partner.next_action,ts,'system-seed',ts,ts).run();
+  }catch(error){console.error('mobile partner acquisition seed failed',error)}
  }
 }
 
@@ -369,6 +389,7 @@ export async function handleMagnanimousTelecomNetwork(request,env){
 
  if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
  await seedCases(env,tenant);
+ await seedMobilePartners(env,tenant);
 
  if(path==='/api/telecom/network/overview'&&request.method==='GET'){
   const [providers,cases]=await Promise.all([
@@ -413,6 +434,38 @@ export async function handleMagnanimousTelecomNetwork(request,env){
 
  if(path==='/api/telecom/network/global-mobile/readiness'&&request.method==='GET'){
   return json(await globalMobileReadiness(env,tenant));
+ }
+
+ if(path==='/api/telecom/network/global-mobile/partners'&&request.method==='GET'){
+  const {results}=await env.DB.prepare('SELECT provider_key,display_name,status,contact_channel,contact_destination,case_reference,evidence_reference,pricing_reference,commercial_reference,sandbox_reference,countries_json,capabilities_json,next_action,notes,last_contact_at,updated_by,updated_at FROM telecom_mobile_partner_acquisition WHERE tenant_id=? ORDER BY display_name').bind(tenant).all();
+  return json({items:(results||[]).map(row=>({...row,countries:JSON.parse(row.countries_json||'[]'),capabilities:JSON.parse(row.capabilities_json||'[]')}))});
+ }
+
+ if(path==='/api/telecom/network/global-mobile/partners'&&request.method==='PUT'){
+  const body=await request.json().catch(()=>({}));
+  const providerKey=String(body.provider_key||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,80);
+  const allowedStatus=new Set(['researching','contacted','case_open','sales_handoff','sandbox_pending','sandbox_ready','commercial_review','contract_pending','contract_verified','blocked','declined','retired']);
+  const status=String(body.status||'').trim().toLowerCase();
+  if(!providerKey||!allowedStatus.has(status))return json({detail:'Valid provider_key and acquisition status are required.'},422);
+  if(body.api_key||body.token||body.secret||body.password||body.activation_code)return json({detail:'Provider credentials and activation secrets are forbidden in acquisition records.'},400);
+  const existing=await env.DB.prepare('SELECT provider_key,display_name FROM telecom_mobile_partner_acquisition WHERE tenant_id=? AND provider_key=?').bind(tenant,providerKey).first();
+  if(!existing)return json({detail:'Unknown mobile partner acquisition record.'},404);
+  const caseReference=String(body.case_reference||'').trim().slice(0,240);
+  const evidenceReference=String(body.evidence_reference||'').trim().slice(0,500);
+  const pricingReference=String(body.pricing_reference||'').trim().slice(0,500);
+  const commercialReference=String(body.commercial_reference||'').trim().slice(0,500);
+  const sandboxReference=String(body.sandbox_reference||'').trim().slice(0,500);
+  const nextAction=String(body.next_action||'').trim().slice(0,1200);
+  const notes=String(body.notes||'').trim().slice(0,3000);
+  const countries=Array.isArray(body.countries)?body.countries.map(x=>String(x||'').trim().toUpperCase()).filter(x=>/^[A-Z]{2}$/.test(x)).slice(0,100):[];
+  const capabilities=Array.isArray(body.capabilities)?body.capabilities.map(x=>String(x||'').trim().toLowerCase()).filter(Boolean).slice(0,100):[];
+  if(status==='contract_verified'&&!validCommercialReference(commercialReference))return json({detail:'contract_verified requires an agreement-grade commercial_reference.'},409);
+  if(['sandbox_ready','commercial_review','contract_pending','contract_verified'].includes(status)&&!evidenceReference)return json({detail:'This acquisition stage requires an evidence_reference.'},409);
+  const ts=now();
+  await env.DB.prepare(`UPDATE telecom_mobile_partner_acquisition SET status=?,case_reference=?,evidence_reference=?,pricing_reference=?,commercial_reference=?,sandbox_reference=?,countries_json=?,capabilities_json=?,next_action=?,notes=?,last_contact_at=?,updated_by=?,updated_at=? WHERE tenant_id=? AND provider_key=?`)
+   .bind(status,caseReference,evidenceReference,pricingReference,commercialReference,sandboxReference,JSON.stringify(countries),JSON.stringify(capabilities),nextAction,notes,Number(body.last_contact_at||ts),String(user.id||user.user_id||''),ts,tenant,providerKey).run();
+  await event(env,tenant,user,'global_mobile.partner_acquisition.updated',providerKey,'',{status,case_reference:caseReference});
+  return json({ok:true,provider_key:providerKey,status,contract_verified:status==='contract_verified'});
  }
 
  if(path==='/api/telecom/network/global-mobile/countries'&&request.method==='GET'){
