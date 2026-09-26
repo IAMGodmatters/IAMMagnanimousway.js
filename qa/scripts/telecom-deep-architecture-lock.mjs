@@ -221,6 +221,8 @@ has(network,'provider_brand_customer_visible:false','global mobile contract keep
 has(network,'competitor_retail_price_is_not_origin_cost:true','competitor retail pricing cannot masquerade as wholesale origin cost');
 has(network,'origin_cost_verified!==true','retail quote refuses unverified origin cost');
 has(network,'commercial_reference','mobile offer requires commercial agreement evidence separately from origin pricing evidence');
+has(network,'validCommercialReference','resale authority requires agreement-grade evidence, not merely a provider quote');
+has(network,'reseller-agreement','commercial evidence accepts explicit reseller agreement references');
 has(network,'validOriginReference','origin-cost verification requires a durable evidence reference shape');
 has(network,'funded_variable_cost_cap','metered global data requires an explicit funded variable-cost cap');
 has(network,'export function planGlobalMobileOffers','global mobile has a reusable verified wholesale offer planner');
