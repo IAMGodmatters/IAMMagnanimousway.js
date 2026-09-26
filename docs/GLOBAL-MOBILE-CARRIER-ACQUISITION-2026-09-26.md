@@ -216,3 +216,35 @@ Requested:
 - independent backup connectivity options.
 
 No paid activation, deposit, SIM/eSIM order, or production commitment was made.
+
+
+### Gigs official sales/MVNO form submitted
+
+After Gigs Support confirmed that partnership/MVNO requests must use the official business-email sales form, the form at https://gigs.com/contact was completed and submitted successfully on 2026-09-26.
+
+Automation evidence:
+- run id: 0fbee7e5-a0af-4e02-b9ce-9a7b308fc42f
+- business email used: Godmattersinc@iammagnanimousway.com
+- company: God Matters / Magnanimous Telecom
+- country: Philippines
+- wireless connectivity: MVNO
+- industry: Telecom / MVNO
+- expected users: new venture
+- B2C + B2B intent included in the needs statement
+- online resale intent included in the needs statement
+- no paid production activation requested
+
+Requested in the submitted needs statement:
+- API-first eSIM/pSIM connectivity;
+- voice/SMS/data where available;
+- number portability;
+- multi-country/multi-carrier coverage;
+- sandbox/test access;
+- country compliance requirements;
+- wholesale/origin rate decks;
+- minimum commitments/deposits;
+- reseller/MVNO terms;
+- Magnanimous-branded customer experience;
+- independent backup connectivity.
+
+Status: official sales form submitted; awaiting Gigs partnerships/sales response.
