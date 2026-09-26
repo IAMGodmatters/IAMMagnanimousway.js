@@ -260,3 +260,5 @@ Rules:
 ## Recovery rule
 
 Git commits/branches/PRs/CI/deployment IDs are the authoritative development record. This checkpoint preserves the task, decisions, completed work, verification evidence and next safe actions. It does not claim to control or prevent the ChatGPT client transport itself from showing a streaming interruption, and it does not pretend that every raw chat token is copied into Git.
+
+- [x] 1GLOBAL case `02547094` sent an automated case-updated notice without the requested commercial/technical evidence; Magnanimous replied again requesting a named Connect / Embedded Telco owner and the outstanding agreement, Philippines, sandbox, pricing, real-trial-eSIM and backup-path evidence (`gmail:1a0dbcee2745d3d6`).
