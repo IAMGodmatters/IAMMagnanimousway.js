@@ -185,7 +185,7 @@ const MOBILE_PARTNERS=[
  {key:'gigs',name:'Gigs',status:'sales_handoff',channel:'official-sales-form',destination:'https://gigs.com/contact',case_reference:'',evidence_reference:'tinyfish-run:0fbee7e5-a0af-4e02-b9ce-9a7b308fc42f',next_action:'Official Gigs sales/MVNO form submitted successfully on 2026-09-26. Await partnerships/sales response.'},
  {key:'telna',name:'Telna',status:'contacted',channel:'email',destination:'bd@telna.com',case_reference:'',evidence_reference:'gmail:1a0db5025ca68532',next_action:'Await commercial onboarding, wholesale pricing, sandbox and multi-network details.'},
  {key:'1global',name:'1GLOBAL',status:'case_open',channel:'email',destination:'business.help@1global.com',case_reference:'02547094',evidence_reference:'gmail:1a0db5066b33f92d',next_action:'Await Connect / Embedded Telco commercial response for case 02547094.'},
- {key:'fonus',name:'Fonus',status:'contacted',channel:'email/reseller-form',destination:'support@fonus.me',case_reference:'',evidence_reference:'gmail:1a0db5b73b594f41',next_action:'Await reseller/commercial team response with agreement, wholesale rate deck and provisioning terms.'}
+ {key:'fonus',name:'Fonus',status:'sales_handoff',channel:'official-reseller-form+email',destination:'https://www.fonusmobile.com/apply-to-be-a-reseller/',case_reference:'',evidence_reference:'tinyfish-run:6e18befa-5503-43c4-8100-1c3807c14805',next_action:'Official reseller application submitted successfully on 2026-09-26; Fonus stated it will respond within 5 business days. Detailed commercial/technical request also sent to support@fonus.me.'}
 ];
 
 async function ensureSchema(env){
