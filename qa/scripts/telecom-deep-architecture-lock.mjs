@@ -280,6 +280,8 @@ has(globalMobileAcquisition,'Outreach sent to: business.help@1global.com','1GLOB
 has(globalMobileAcquisition,'No paid activation, deposit, SIM/eSIM order, subscription, or production commitment','carrier acquisition preserves no-spend truth');
 has(globalMobileAcquisition,'region7@ntc.gov.ph','official NTC Region VII pre-application outreach is durably recorded');
 has(globalMobileAcquisition,'No application declaration was signed','regulatory outreach does not misrepresent an application or approval');
+has(globalMobileAcquisition,'Case number: 02547094','1GLOBAL onboarding case is durably recorded');
+has(globalMobileAcquisition,'Godmattersinc@iammagnanimousway.com','Gigs sales handoff retains the business-email path');
 has(globalMobileTerms,'A signed commercial agreement is necessary but not sufficient.','commercial agreement does not bypass production proof gates');
 has(globalMobileTerms,'deposit/commitment that has not received explicit payment authorization','commercial terms preserve explicit spend authorization');
 has(mobileActivate,'carrier/SM-DP+ activation code','customer redemption page distinguishes Magnanimous enrollment from carrier activation');
