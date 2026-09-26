@@ -3,6 +3,7 @@ import fs from 'node:fs';
 const runtime=fs.readFileSync('worker/src/magnanimous-telecom-email-watch.js','utf8');
 const operations=fs.readFileSync('worker/src/operations-entrypoint.js','utf8');
 const migration=fs.readFileSync('worker/migrations/0091_telecom_email_watch.sql','utf8');
+const ui=fs.readFileSync('frontend/app/telecom/network/page.tsx','utf8');
 
 function must(value,message){if(!value)throw new Error(message)}
 
@@ -33,5 +34,10 @@ must(operations.includes('scheduledTelecomEmailWatch(env)'),'Native scheduler mu
 must(operations.includes("'/api/telecom/email-watch/status'"),'Owner-only Telecom email-watch status endpoint is required.');
 must(operations.includes("'/api/telecom/email-watch/run'"),'Owner-only manual Telecom email-watch run endpoint is required.');
 must(migration.includes('telecom_email_watch_events')&&migration.includes('telecom_email_watch_state'),'Durable Telecom email-watch migration is required.');
+must(ui.includes('Carrier + NTC correspondence'),'Owner Telecom UI must expose email-watch status.');
+must(ui.includes('RUN WATCH NOW'),'Owner Telecom UI must expose a manual safe watcher run.');
+must(ui.includes('/api/telecom/email-watch/status'),'Owner UI must read native watcher state.');
+must(ui.includes('/api/telecom/email-watch/run'),'Owner UI manual run must call the native watcher endpoint.');
+must(ui.includes('never accepts contracts or authorizes payments'),'Owner UI must preserve the consequential-action boundary.');
 
 console.log('Magnanimous Telecom native email watch lock passed.');
