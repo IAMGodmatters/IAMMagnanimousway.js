@@ -267,6 +267,8 @@ has(globalMobileAcquisition,'Outreach sent to: support@gigs.com','Gigs commercia
 has(globalMobileAcquisition,'Outreach sent to: bd@telna.com','Telna commercial outreach is durably recorded');
 has(globalMobileAcquisition,'Outreach sent to: business.help@1global.com','1GLOBAL commercial outreach is durably recorded');
 has(globalMobileAcquisition,'No paid activation, deposit, SIM/eSIM order, subscription, or production commitment','carrier acquisition preserves no-spend truth');
+has(globalMobileAcquisition,'region7@ntc.gov.ph','official NTC Region VII pre-application outreach is durably recorded');
+has(globalMobileAcquisition,'No application declaration was signed','regulatory outreach does not misrepresent an application or approval');
 has(globalMobileMigration,'telecom_country_capabilities','global mobile country truth is durable');
 has(globalMobileMigration,'telecom_mobile_wholesale_offers','global mobile wholesale evidence is durable');
 has(globalMobileMigration,'telecom_mobile_access_profiles','global mobile access profiles are durable');
