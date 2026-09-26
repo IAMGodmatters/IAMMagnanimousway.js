@@ -24,6 +24,8 @@ const telecomConfig=read('telecom-core/control-api/app/config.py');
 const study=read('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md');
 const globalMobileBenchmark=read('docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md');
 const globalMobileAcquisition=read('docs/GLOBAL-MOBILE-CARRIER-ACQUISITION-2026-09-26.md');
+const globalMobileTerms=read('docs/GLOBAL-MOBILE-COMMERCIAL-TERMS-REQUIREMENTS-2026-09-26.md');
+const mobileActivate=read('frontend/app/telecom/activate/page.tsx');
 const globalMobileMigration=read('worker/migrations/0087_global_mobile_proof_gates.sql');
 const globalMobileGateQa=read('qa/scripts/global-mobile-proof-gates-lock.mjs');
 const globalMobileEnrollmentMigration=read('worker/migrations/0089_global_mobile_enrollment_and_failover.sql');
@@ -74,6 +76,8 @@ file('docs/ACTIVE-DEVELOPMENT-CHECKPOINT.md','durable development checkpoint exi
 file('docs/TELECOM-DEEP-ARCHITECTURE-2026-09-24.md','deep telecom architecture study is versioned');
 file('docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md','Fonus/Popcorn global mobile benchmark is durably versioned');
 file('docs/GLOBAL-MOBILE-CARRIER-ACQUISITION-2026-09-26.md','carrier acquisition outreach state is durably versioned');
+file('docs/GLOBAL-MOBILE-COMMERCIAL-TERMS-REQUIREMENTS-2026-09-26.md','carrier commercial acceptance requirements are durably versioned');
+file('frontend/app/telecom/activate/page.tsx','customer Magnanimous enrollment redemption path exists');
 file('worker/migrations/0087_global_mobile_proof_gates.sql','global mobile evidence tables are durably versioned');
 file('qa/scripts/global-mobile-proof-gates-lock.mjs','global mobile live proof-gate test is versioned');
 file('worker/migrations/0089_global_mobile_enrollment_and_failover.sql','Magnanimous enrollment and failover evidence state is durable');
@@ -216,6 +220,7 @@ has(network,'GLOBAL_MOBILE_RETAIL_MARKUP_PERCENT=20','global mobile pricing keep
 has(network,'provider_brand_customer_visible:false','global mobile contract keeps upstream branding private');
 has(network,'competitor_retail_price_is_not_origin_cost:true','competitor retail pricing cannot masquerade as wholesale origin cost');
 has(network,'origin_cost_verified!==true','retail quote refuses unverified origin cost');
+has(network,'commercial_reference','mobile offer requires commercial agreement evidence separately from origin pricing evidence');
 has(network,'validOriginReference','origin-cost verification requires a durable evidence reference shape');
 has(network,'funded_variable_cost_cap','metered global data requires an explicit funded variable-cost cap');
 has(network,'export function planGlobalMobileOffers','global mobile has a reusable verified wholesale offer planner');
@@ -251,6 +256,8 @@ has(ui,'SAVE VERIFIED WHOLESALE OFFER','owner UI can store verified commercial o
 has(ui,'SAVE REAL CONNECTIVITY PROOF','owner UI can record subscriber connectivity proof');
 has(ui,'ISSUE ONE-TIME MAGNANIMOUS TOKEN','owner UI exposes safe Magnanimous enrollment token issuance');
 has(ui,'VERIFY INDEPENDENT BACKUP EVIDENCE','owner UI exposes observed independent backup verification');
+has(ui,'Commercial agreement evidence','owner UI separates resale authorization evidence from pricing evidence');
+has(ui,"href='/telecom/activate'",'owner UI links to the customer Magnanimous enrollment redemption path');
 has(ui,'I confirmed this origin cost against the referenced provider evidence.','owner must explicitly attest the origin-price evidence before quoting');
 
 has(study,'## Current carrier benchmark','deep study contains carrier comparison evidence');
@@ -269,6 +276,11 @@ has(globalMobileAcquisition,'Outreach sent to: business.help@1global.com','1GLOB
 has(globalMobileAcquisition,'No paid activation, deposit, SIM/eSIM order, subscription, or production commitment','carrier acquisition preserves no-spend truth');
 has(globalMobileAcquisition,'region7@ntc.gov.ph','official NTC Region VII pre-application outreach is durably recorded');
 has(globalMobileAcquisition,'No application declaration was signed','regulatory outreach does not misrepresent an application or approval');
+has(globalMobileTerms,'A signed commercial agreement is necessary but not sufficient.','commercial agreement does not bypass production proof gates');
+has(globalMobileTerms,'deposit/commitment that has not received explicit payment authorization','commercial terms preserve explicit spend authorization');
+has(mobileActivate,'carrier/SM-DP+ activation code','customer redemption page distinguishes Magnanimous enrollment from carrier activation');
+has(mobileActivate,"type='password'",'customer enrollment token is masked in the browser');
+has(mobileActivate,'Do not paste a carrier QR payload','customer path rejects misuse of carrier authentication material by policy');
 has(globalMobileMigration,'telecom_country_capabilities','global mobile country truth is durable');
 has(globalMobileMigration,'telecom_mobile_wholesale_offers','global mobile wholesale evidence is durable');
 has(globalMobileMigration,'telecom_mobile_access_profiles','global mobile access profiles are durable');
