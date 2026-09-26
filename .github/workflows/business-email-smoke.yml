@@ -18,7 +18,10 @@ jobs:
           curl -fsSL "$BASE/business-email" -o /tmp/business-email.html
           test -s /tmp/business-email.html
           grep -qi "FREE BUSINESS EMAIL LITE" /tmp/business-email.html || { echo "Free Business Email Lite identity is missing."; exit 1; }
-          grep -qi "MAGNANIMOUS AI.*EMAIL WRITER" /tmp/business-email.html || { echo "Public Magnanimous email writer is missing."; exit 1; }\n          grep -qi "Anyone using the platform can ask Magnanimous to write" /tmp/business-email.html || { echo "Universal email-writer access statement is missing."; exit 1; }\n          grep -qi "WRITE THE EMAIL" /tmp/business-email.html || { echo "Public email writer action is missing."; exit 1; }\n          grep -qi "Make a business email in 3 little steps" /tmp/business-email.html || { echo "Simple three-step flow is missing."; exit 1; }
+          grep -qi "MAGNANIMOUS AI.*EMAIL WRITER" /tmp/business-email.html || { echo "Public Magnanimous email writer is missing."; exit 1; }
+          grep -qi "Anyone using the platform can ask Magnanimous to write" /tmp/business-email.html || { echo "Universal email-writer access statement is missing."; exit 1; }
+          grep -qi "WRITE THE EMAIL" /tmp/business-email.html || { echo "Public email writer action is missing."; exit 1; }
+          grep -qi "Make a business email in 3 little steps" /tmp/business-email.html || { echo "Simple three-step flow is missing."; exit 1; }
           grep -qi "Receive for free. Forward for free." /tmp/business-email.html || { echo "Free receiving/forwarding promise is missing."; exit 1; }
           grep -qi "Sending mail" /tmp/business-email.html || { echo "Outbound-sending boundary is missing."; exit 1; }
           echo "Free Business Email Lite page passed."
