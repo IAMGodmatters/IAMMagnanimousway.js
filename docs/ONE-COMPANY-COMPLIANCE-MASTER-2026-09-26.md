@@ -159,6 +159,12 @@ Fallback quote/pre-qualification requests are already open with:
 - Stronghold;
 - Sterling.
 
+Pioneer delivery evidence:
+- the original quote request was addressed to `bonds@pioneer.com.ph` and copied Ana Maria Bangui and Maybelyn Magnaye;
+- Gmail later returned a 550 5.4.1 recipient-address rejection only for Maybelyn's individual address (`gmail:1a0dd1a074bd5b2e`);
+- no delivery failure was received for `bonds@pioneer.com.ph` or Ana Maria's copied address, so do not create a duplicate resend loop;
+- keep Pioneer status pending until a human quotation/pre-qualification reply is received.
+
 Preferred insurance strategy:
 - use one commercial insurer/account where practical for CGL, professional/E&O, cyber/privacy and property;
 - keep the NTC ₱1,000,000 performance bond as its own surety instrument because it has separate obligee/wording/collateral requirements;
@@ -166,7 +172,7 @@ Preferred insurance strategy:
 - never authorize premium, collateral or bond issuance without the actual written quote/terms.
 
 Latest coordinated Prudential inquiry:
-- Gmail: 1a0dc366a7d814c2
+- Gmail: 1a0dd5cc8457ad49
 
 ## Privacy / call-center compliance
 
@@ -214,10 +220,11 @@ Do not claim that one grant can legally pay every fee, bond, permit and operatin
 The main Magnanimous web runtime is live, but the Telecom service is not yet fully production-live.
 
 Current source/runtime state:
-- latest repository main: c89adac58852cbe08bcf402a1c3b26cc62994903 (documentation-only QBO contact repair merged after the runtime release)
-- live Railway runtime commit: acf0eb84a9b256542dca3b09ab091d2779a130ba
-- Railway deployment: abdaa629-b917-45b4-b559-f7fa835343a9 (SUCCESS)
-- no new deployment is required merely because documentation-only commits advance GitHub main
+- latest repository main before this documentation checkpoint: ec9d03af4ed4eb157f4d47ec9f309bb0019cbb8e
+- live Railway runtime commit: 0b0c3c6884fe0a1d4799a27a3ec762b2ec445951
+- Railway deployment: 901c9e79-ae4c-44ec-8204-eb792df8003d (SUCCESS)
+- compare 0b0c3c6...ec9d03a confirms the eight commits ahead of the deployed runtime modify only `.github/workflows/business-email-smoke.yml` and documentation files; no application/runtime source is changed
+- do not redeploy merely because documentation/workflow commits advance GitHub main
 
 Current Railway project services:
 - magnanimous
@@ -282,9 +289,14 @@ Already sent and monitored:
 - Bayawan City BOSS / investment office.
 
 Bayawan inquiry receipt:
-- Gmail: 1a0dc35eeddb1e6c
+- Gmail: 1a0dd5c4a33cdd73
 
-SEC's old CPRD registration mailbox is retired. SEC's current iMessage manual identifies iMessage as the official web-based inquiry/request ticketing channel. Formal registration itself remains in eSPARC/SEC ZERO, with eSECURE/eSAP credentialing for the relevant signatories.
+SEC's old CPRD registration mailbox is retired. The automated SEC reply received on 2026-09-26 again directed corporate-registration inquiries to SEC iMessage (`gmail:1a0dc2c9ffa68064`). SEC iMessage is an inquiry/ticket route, not a registration approval. Formal registration itself remains in eSPARC/SEC ZERO, with eSECURE/eSAP credentialing for the relevant signatories.
+
+Latest monitored inbox sweep on 2026-09-26:
+- no new substantive human reply requiring a response was present from NTC, PEZA, NPC, BOI, QBO, SBCorp, DICT, DOST, NDC, Gigs, Telna, 1GLOBAL, Fonus, PLDT/Smart, DITO, Bayawan City or the surety providers;
+- repeated 1GLOBAL case-update notices, the DITO distributorship redirect and Fonus courtesy acknowledgements remain non-substantive and must not trigger reply loops;
+- no contract, carrier activation, premium, deposit, collateral, bond issuance or regulated go-live was authorized.
 
 ## Non-negotiable truth rules
 
