@@ -21,7 +21,11 @@ jobs:
           grep -qi "Make a business email in 3 little steps" /tmp/business-email.html || { echo "Simple three-step flow is missing."; exit 1; }
           grep -qi "Receive for free. Forward for free." /tmp/business-email.html || { echo "Free receiving/forwarding promise is missing."; exit 1; }
           grep -qi "Sending mail" /tmp/business-email.html || { echo "Outbound-sending boundary is missing."; exit 1; }
-          echo "Free Business Email Lite page passed."
+          grep -q "MAGNANIMOUS AI • EMAIL WRITER" /tmp/business-email.html || { echo "Magnanimous AI Email Writer is missing from production."; exit 1; }
+          grep -q "Anyone using the platform can draft here." /tmp/business-email.html || { echo "All-user drafting access copy is missing from production."; exit 1; }
+          grep -q "WRITE THE EMAIL" /tmp/business-email.html || { echo "Email Writer action is missing from production."; exit 1; }
+          grep -q "CONNECT GMAIL OR OUTLOOK" /tmp/business-email.html || { echo "Connected-mail handoff is missing from production."; exit 1; }
+          echo "Free Business Email Lite + all-user Magnanimous Email Writer page passed."
 
       - name: Verify free provider contract
         run: |
