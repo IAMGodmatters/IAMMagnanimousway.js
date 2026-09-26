@@ -353,7 +353,8 @@ export async function handleMagnanimousTelecomNetwork(request,env){
   if(Number(row.expires_at||0)<=ts){await env.DB.prepare("UPDATE telecom_mobile_enrollment_tokens SET status='expired' WHERE tenant_id=? AND token_hash=?").bind(tenant,tokenHash).run();return json({detail:'Enrollment token expired.'},410)}
   const profile=await env.DB.prepare("SELECT id,line_id,adapter_key,network_group,country_code,profile_role,status FROM telecom_mobile_access_profiles WHERE tenant_id=? AND id=?").bind(tenant,row.profile_id).first();
   if(!profile)return json({detail:'Enrollment profile no longer exists.'},409);
-  await env.DB.prepare("UPDATE telecom_mobile_enrollment_tokens SET status='redeemed',redeemed_at=?,redeemed_by=?,device_ref=? WHERE tenant_id=? AND token_hash=? AND status='active'").bind(ts,String(user.id||user.user_id||''),deviceRef,tenant,tokenHash).run();
+  const redeemed=await env.DB.prepare("UPDATE telecom_mobile_enrollment_tokens SET status='redeemed',redeemed_at=?,redeemed_by=?,device_ref=? WHERE tenant_id=? AND token_hash=? AND status='active' AND expires_at>?").bind(ts,String(user.id||user.user_id||''),deviceRef,tenant,tokenHash,ts).run();
+  if(Number(redeemed?.meta?.changes||0)!==1)return json({detail:'Enrollment token was already used, expired, or revoked.'},409);
   return json({
    ok:true,profile_id:profile.id,line_id:profile.line_id||row.line_id||null,country_code:profile.country_code,profile_role:profile.profile_role,
    magnanimous_enrollment_complete:true,carrier_profile_status:profile.status,provider_activation_required:profile.status!=='active',
@@ -511,6 +512,7 @@ export async function handleMagnanimousTelecomNetwork(request,env){
   if(!['provisioning','active'].includes(String(profile.status||'')))return json({detail:'Only provisioning or active profiles can issue an enrollment token.'},409);
   if(purpose==='backup_enrollment'&&profile.profile_role!=='backup')return json({detail:'backup_enrollment requires a backup profile.'},409);
   const token=randomEnrollmentToken(),tokenHash=await sha256Hex(token),ts=now(),ttl=Math.max(300,Math.min(1800,Number(body.ttl_seconds||enrollmentTtlSeconds)));
+  await env.DB.prepare("UPDATE telecom_mobile_enrollment_tokens SET status='revoked' WHERE tenant_id=? AND profile_id=? AND purpose=? AND status='active'").bind(tenant,profileId,purpose).run();
   await env.DB.prepare("INSERT INTO telecom_mobile_enrollment_tokens(token_hash,tenant_id,profile_id,line_id,purpose,status,expires_at,created_by,created_at) VALUES(?,?,?,?,?,'active',?,?,?)").bind(tokenHash,tenant,profileId,profile.line_id||null,purpose,ts+ttl,String(user.id||user.user_id||''),ts).run();
   await event(env,tenant,user,'global_mobile.enrollment_token.issued','', '',{profile_id:profileId,purpose,expires_at:ts+ttl});
   return json({
