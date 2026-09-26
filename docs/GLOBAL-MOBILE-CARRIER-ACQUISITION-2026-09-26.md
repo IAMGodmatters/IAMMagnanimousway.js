@@ -277,3 +277,61 @@ Received 2026-09-26 after the successful official reseller-form submission.
 - The full no-spend commercial/technical inquiry was sent to `zhac@fonusmobile.com` (Gmail message id: 1a0db67a03572b70).
 - Await agreement-grade resale authority, wholesale/origin rate deck, provisioning/API details, country/compliance restrictions and independent-backup terms.
 - Fonus retail pricing remains benchmark-only until verified wholesale origin pricing and commercial authority are received.
+
+
+## Evidence acquisition follow-ups — 2026-09-26
+
+### Gigs
+Threaded follow-up sent to Gigs Support:
+- Gmail message id: 1a0dbc4eaa9ee252
+
+Requested:
+- first Magnanimous Telecom test project/API key;
+- no-charge test eSIM/subscription/porting integration flows;
+- later, after commercial approval, one real Philippines trial eSIM/profile for actual subscriber-connectivity proof.
+
+Official Gigs documentation reviewed:
+- https://developers.gigs.com/docs/core/testing/overview
+- https://developers.gigs.com/docs/core/testing/test-sims
+
+Truth boundary:
+- Gigs test providers/test SIMs are useful for API, lifecycle and workflow integration.
+- Gigs states those test SIMs do not provide actual connectivity.
+- Therefore sandbox/test SIM success cannot satisfy Magnanimous real subscriber-connectivity, live-country or production-service proof.
+
+### 1GLOBAL
+Threaded follow-up sent on case 02547094:
+- Gmail message id: 1a0dbc4f2e590b07
+
+Requested:
+- agreement-grade reseller/partner authority;
+- Philippines coverage and compliance allocation;
+- platform/sandbox credentials;
+- test eSIM/profile workflow;
+- wholesale pricing/fair-use;
+- later real trial eSIM for actual subscriber connectivity;
+- independent backup/failure-domain options.
+
+Official 1GLOBAL developer material reviewed:
+- https://docs.connect-api.1global.com/overview/getstarted/
+- https://docs.connect-api.1global.com/2025-07-31/overview/whatisconnect
+- https://docs.connect-api.1global.com/next/recipes/new-esim
+
+Truth boundary:
+- 1GLOBAL requires platform access before credentials are issued.
+- Public documentation shows API-driven eSIM provisioning, subscriptions, network connectivity, charging and partner resale capability, but public docs alone do not grant Magnanimous a contract, Philippines eligibility or production authority.
+
+### Fonus
+Threaded acknowledgement sent after Ursula supplied the direct contact:
+- Gmail message id: 1a0dbc4fa825d47f
+
+The reseller application remains associated with the direct commercial handoff to zhac@fonusmobile.com where possible. Magnanimous requested any available application/case reference and remains awaiting agreement/rate/provisioning/country/trial-connectivity terms.
+
+### Evidence promotion rule
+The carrier-acquisition pipeline now records sandbox/test references separately from production evidence. Test credentials, fake/test SIMs, mock subscriptions and integration success may advance sandbox readiness but never by themselves:
+- verify a production country;
+- prove a real provider-issued active subscriber profile;
+- prove subscriber network connectivity;
+- prove commercial/resale authority;
+- prove regulatory authority;
+- prove independent backup-network resilience.
