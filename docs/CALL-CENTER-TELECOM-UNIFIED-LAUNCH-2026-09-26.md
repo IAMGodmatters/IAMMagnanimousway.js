@@ -144,6 +144,7 @@ Sent 2026-09-26:
 - NTC Region VII combined Call Center + Telecom three-phase classification: `gmail:1a0dc190299513a6`
 - PEZA IT Enterprise / BPO + software pre-qualification: `gmail:1a0dc193b98749b8`
 - National Privacy Commission call-center/DPO/DPS guidance: `gmail:1a0dc196b53d7c60`
+- BOI domestic-market/contact-center + AI/software incentive pre-qualification: `gmail:1a0dc1d5f82d796b`
 
 Existing tracks remain active:
 - Gigs, Telna, 1GLOBAL, Fonus, PLDT/Smart and DITO carrier acquisition;
