@@ -29,4 +29,6 @@ assert.ok(runtime.includes('test SIMs do not provide actual network connectivity
 assert.ok(ui.includes('test_access_requested'),'Owner UI must support the test-access-requested acquisition state.');
 assert.ok(ui.includes('case_followed_up'),'Owner UI must support provider-case follow-up state.');
 assert.ok(ui.includes('Sandbox/test access proves integration only'),'Owner UI must preserve sandbox-vs-live truth.');
+assert.ok(runtime.includes('gmail:1a0dbcee2745d3d6'),'Latest 1GLOBAL substantive-response follow-up must remain durable.');
+assert.ok(runtime.includes('automated case-updated notice without the requested commercial/technical evidence'),'Automated case notices must not be mistaken for commercial proof.');
 console.log('Global mobile carrier acquisition control lock passed.');
