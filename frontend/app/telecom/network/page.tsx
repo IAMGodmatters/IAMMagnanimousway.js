@@ -103,7 +103,7 @@ export default function NetworkAuthorityPage(){
   setBusy(true);setNotice('');setError('');
   try{
    const result=await call('/api/telecom/email-watch/run',{method:'POST'});
-   setNotice(`Telecom email watch ran: ${result.status||'ok'} · processed ${Number(result.processed||0)} · replied ${Number(result.replied||0)}. Automated acknowledgements and recent same-thread replies are suppressed.`);
+   setNotice(`Call Center + Telecom compliance watch ran: ${result.status||'ok'} · processed ${Number(result.processed||0)} · replied ${Number(result.replied||0)}. Automated acknowledgements and recent same-thread replies are suppressed.`);
    await refresh();
   }catch(caught:any){setError(caught?.message||'Unable to run Telecom email watch.')}finally{setBusy(false)}
  }
@@ -286,20 +286,29 @@ export default function NetworkAuthorityPage(){
   </section>
 
   <section className={styles.inventory}>
-   <div className={styles.title}><div><small>TELECOM EMAIL WATCH</small><h2>Carrier + NTC correspondence</h2></div><span>{Number(emailWatch?.state?.enabled??1)===1?'MONITORING ENABLED':'MONITORING DISABLED'}</span></div>
+   <div className={styles.title}><div><small>UNIFIED LAUNCH CONTRACT</small><h2>Call Center + Telecom move together</h2></div><span>ONE OPERATING SYSTEM · SEPARATE LEGAL GATES</span></div>
+   <div className={styles.grid}>
+    <article className={styles.card}><small>PHASE 1 · OWN CALL CENTER / BPO</small><h2>INTERNAL TELECOM FIRST</h2><p>Magnanimous Telecom is the communications layer for the Magnanimous Call Center: agents, queues, AI receptionist, CRM, lawful recording/transcription, QA/WFM and authorized carrier routes.</p><p className={styles.muted}>Production gate: Philippine entity + permits, employer/labor setup as applicable, DPO/NPC privacy path, lawful recording/data controls, authorized PSTN/mobile transport and verified browser/media routing.</p><p><a href='/contact-center'>Open Contact Center →</a> · <a href='/call-center-health'>QA + WFM →</a></p></article>
+    <article className={styles.card}><small>PHASE 2 · OTHER CALL CENTERS</small><h2>LOW-COST B2B TELECOM</h2><p>Hosted VoIP/SIP, routing, IVR, numbers where lawfully obtained, contact-center connectivity, usage controls and multi-carrier options for other centers.</p><p className={styles.muted}>Production gate: NTC classification/authority, required provider/reseller agreement, applicable ₱1M VoIP Reseller bond if that route remains required, rates/fees, billing/CDR/fraud/abuse controls and client data-processing contracts.</p><p><a href='/bpo-operations'>BPO Clients →</a> · <a href='/telecom/plans'>Telecom Plans →</a></p></article>
+    <article className={styles.card}><small>PHASE 3 · PUBLIC / GLOBAL</small><h2>{overview.global_mobile?.production_verified?'PRODUCTION VERIFIED':'FAIL-CLOSED UNTIL PROVEN'}</h2><p>Philippine telephone, SIM/eSIM, mobile data and internet service with global reach through authorized host carriers and provider-issued profiles.</p><p className={styles.muted}>Production gate: host-carrier/VNO/MVNO or other NTC-approved authority, real production profile, country eligibility, SIM-registration/KYC allocation, verified wholesale economics/fair-use, real subscriber connectivity and actual independent failover before resilience claims.</p><p><a href='/telecom'>Telecom Command →</a> · <a href='/telecom/charging'>Charging + Controls →</a></p></article>
+   </div>
+  </section>
+
+  <section className={styles.inventory}>
+   <div className={styles.title}><div><small>CALL CENTER + TELECOM COMPLIANCE WATCH</small><h2>Carriers, NTC, PEZA, NPC, labor + surety correspondence</h2></div><span>{Number(emailWatch?.state?.enabled??1)===1?'MONITORING ENABLED':'MONITORING DISABLED'}</span></div>
    <div className={styles.grid}>
     <article className={styles.card}>
      <small>15-MINUTE NATIVE WATCH</small><h2>{emailWatch?.state?.last_error?'NEEDS ATTENTION':emailWatch?.state?.last_run_at?'ACTIVE':'READY / FIRST RUN PENDING'}</h2>
      <p><b>Last run:</b> {emailWatch?.state?.last_run_at?new Date(Number(emailWatch.state.last_run_at)*1000).toLocaleString():'Not recorded yet'}</p>
-     <p><b>Last action:</b> {emailWatch?.state?.last_action||'No processed carrier/NTC mail yet'}</p>
+     <p><b>Last action:</b> {emailWatch?.state?.last_action||'No processed call-center/telecom compliance mail yet'}</p>
      {emailWatch?.state?.last_error&&<p className={styles.muted}><b>Setup/action needed:</b> {emailWatch.state.last_error}</p>}
      <button disabled={busy} onClick={runTelecomEmailWatch}>RUN WATCH NOW</button>
-     <p className={styles.muted}>Uses the owner-authorized Magnanimous Gmail connection. It never exposes OAuth tokens, never replies twice to the same Gmail message, suppresses automatic acknowledgements, enforces a six-hour thread cooldown, and never accepts contracts or authorizes payments.</p>
+     <p className={styles.muted}>Uses the owner-authorized Magnanimous Gmail connection for carrier, regulator, privacy, BPO-incentive, labor and surety correspondence. It never exposes OAuth tokens, never replies twice to the same Gmail message, suppresses automatic acknowledgements, enforces a six-hour thread cooldown, and never accepts contracts or authorizes payments.</p>
     </article>
     <article className={styles.card}>
      <small>RECENT EVIDENCE</small><h2>{(emailWatch?.events||[]).length} recorded item(s)</h2>
      <ul>{(emailWatch?.events||[]).slice(0,8).map((item:any)=><li key={item.message_id}><b>{String(item.provider_key||'telecom').toUpperCase()}</b> · {String(item.classification||'observed').replaceAll('_',' ')} · {String(item.action||'recorded').replaceAll('_',' ')}</li>)}</ul>
-     <p className={styles.muted}>Message bodies, OAuth secrets, and provider authentication material are not displayed here.</p>
+     <p className={styles.muted}>Message bodies, OAuth secrets, provider authentication material and sensitive filing data are not displayed here.</p>
     </article>
    </div>
   </section>
