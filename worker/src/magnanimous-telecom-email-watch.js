@@ -111,6 +111,12 @@ async function ensureSchema(env){
   last_action TEXT NOT NULL DEFAULT '',last_error TEXT NOT NULL DEFAULT '',updated_at INTEGER NOT NULL)`).run();
 }
 async function seen(env,id){return Boolean(await env.DB.prepare('SELECT message_id FROM telecom_email_watch_events WHERE message_id=?').bind(id).first())}
+async function recentThreadReply(env,tenant,thread){
+ if(!thread)return false;
+ const cutoff=now()-(6*60*60);
+ const row=await env.DB.prepare("SELECT message_id FROM telecom_email_watch_events WHERE tenant_id=? AND thread_id=? AND action IN ('replied','acknowledged_without_acceptance') AND processed_at>=? ORDER BY processed_at DESC LIMIT 1").bind(tenant,thread,cutoff).first();
+ return Boolean(row?.message_id);
+}
 async function record(env,tenant,event){
  await env.DB.prepare(`INSERT OR IGNORE INTO telecom_email_watch_events(
   message_id,tenant_id,provider_key,thread_id,sender,subject,classification,action,reply_message_id,snippet,attachment_names_json,created_at,processed_at
@@ -161,9 +167,10 @@ export async function scheduledTelecomEmailWatch(env){
    const message=await jsonFetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(row.id)}?format=full`,{headers:{Authorization:`Bearer ${token}`}});
    const h=headerMap(message),from=h.from||'',key=providerKey(from);if(!key)continue;
    const body=plainBody(message),attachments=attachmentNames(message),auto=automaticAcknowledgement(from,h.subject,body),consequential=consequentialRequest(body);
+   const cooldown=!auto&&await recentThreadReply(env,user.tenant_id,message.threadId||'');
    const classification=auto?'auto_ack':consequential?'owner_action_required':'substantive';
-   let action=auto?'recorded_no_reply':'recorded_write_disabled',replyId='';
-   if(!auto&&perms.write){
+   let action=auto?'recorded_no_reply':cooldown?'recorded_thread_cooldown':'recorded_write_disabled',replyId='';
+   if(!auto&&!cooldown&&perms.write){
     const sent=await sendReply(token,message,key,consequential);if(sent.sent){action=consequential?'acknowledged_without_acceptance':'replied';replyId=sent.id;replied++}
    }
    const internalDate=Math.floor(Number(message.internalDate||Date.now())/1000);lastMessage=Math.max(lastMessage,internalDate);
