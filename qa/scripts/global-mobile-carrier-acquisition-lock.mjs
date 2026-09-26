@@ -17,7 +17,8 @@ assert.ok(migration.includes('telecom_mobile_partner_acquisition'),'Durable acqu
 assert.ok(ui.includes('Carrier partnership pipeline'),'Owner acquisition UI is missing.');
 assert.ok(ui.includes('SAVE ACQUISITION STATE'),'Owner must be able to persist acquisition state.');
 assert.ok(acquisition.includes('02547094'),'1GLOBAL case must remain durably recorded.');
-assert.ok(acquisition.includes('support@fonus.me'),'Fonus direct reseller outreach must remain durably recorded.');
+assert.ok(acquisition.includes('zhac@fonusmobile.com'),'Fonus direct commercial handoff must remain durably recorded.');
 assert.ok(acquisition.includes('official sales/MVNO form submitted'),'Gigs official sales-form completion must remain durably recorded.');
 assert.ok(acquisition.includes('Fonus official reseller application submitted'),'Fonus reseller-form completion must remain durably recorded.');
+assert.ok(acquisition.includes('1a0db67a03572b70'),'Fonus direct commercial outreach evidence must remain durably recorded.');
 console.log('Global mobile carrier acquisition control lock passed.');
