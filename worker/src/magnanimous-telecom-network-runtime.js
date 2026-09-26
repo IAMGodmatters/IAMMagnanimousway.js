@@ -182,10 +182,10 @@ const PH_CASES=[
 ];
 
 const MOBILE_PARTNERS=[
- {key:'gigs',name:'Gigs',status:'sales_handoff',channel:'official-sales-form',destination:'https://gigs.com/contact',case_reference:'',evidence_reference:'tinyfish-run:0fbee7e5-a0af-4e02-b9ce-9a7b308fc42f',next_action:'Official Gigs sales/MVNO form submitted successfully on 2026-09-26. Await partnerships/sales response.'},
- {key:'telna',name:'Telna',status:'contacted',channel:'email',destination:'bd@telna.com',case_reference:'',evidence_reference:'gmail:1a0db5025ca68532',next_action:'Await commercial onboarding, wholesale pricing, sandbox and multi-network details.'},
- {key:'1global',name:'1GLOBAL',status:'case_open',channel:'email',destination:'business.help@1global.com',case_reference:'02547094',evidence_reference:'gmail:1a0db5066b33f92d',next_action:'Await Connect / Embedded Telco commercial response for case 02547094.'},
- {key:'fonus',name:'Fonus',status:'sales_contacted',channel:'official-reseller-form+direct-email',destination:'zhac@fonusmobile.com',case_reference:'',evidence_reference:'tinyfish-run:6e18befa-5503-43c4-8100-1c3807c14805;gmail:1a0db65376739729;gmail:1a0db668aabea67c;gmail:1a0db67a03572b70',next_action:'Official reseller application submitted successfully; Fonus stated it will respond within 5 business days, Ursula supplied zhac@fonusmobile.com as the direct commercial contact, and the detailed no-spend commercial/technical inquiry was sent there.'}
+ {key:'gigs',name:'Gigs',status:'test_access_requested',channel:'official-sales-form+support-thread',destination:'https://gigs.com/contact',case_reference:'',evidence_reference:'tinyfish-run:0fbee7e5-a0af-4e02-b9ce-9a7b308fc42f;gmail:1a0dbc4eaa9ee252',sandbox_reference:'https://developers.gigs.com/docs/core/testing/overview;https://developers.gigs.com/docs/core/testing/test-sims',notes:'Gigs public docs support no-charge test providers/test SIM flows, but those test SIMs do not provide actual network connectivity and cannot satisfy Magnanimous subscriber-connectivity proof.',next_action:'Await Gigs test-project/API-key access. Use test eSIM/subscription/porting flows for integration only; after commercial approval request one real Philippines trial eSIM/profile for subscriber connectivity proof.'},
+ {key:'telna',name:'Telna',status:'contacted',channel:'email',destination:'bd@telna.com',case_reference:'',evidence_reference:'gmail:1a0db5025ca68532',sandbox_reference:'',notes:'Awaiting Telna commercial response; do not infer sandbox, country eligibility, wholesale pricing or backup-network independence until supplied by Telna.',next_action:'Await commercial onboarding, wholesale pricing, sandbox/trial access, Philippines eligibility and independent network-group details.'},
+ {key:'1global',name:'1GLOBAL',status:'case_followed_up',channel:'email',destination:'business.help@1global.com',case_reference:'02547094',evidence_reference:'gmail:1a0db5066b33f92d;gmail:1a0dbc4f2e590b07',sandbox_reference:'https://docs.connect-api.1global.com/overview/getstarted/',notes:'1GLOBAL public docs require platform access before credentials are issued. Case 02547094 was followed up for agreement-grade authority, sandbox/test access, Philippines eligibility, wholesale pricing and a later real trial eSIM.',next_action:'Await Connect / Embedded Telco response for case 02547094 with platform credentials/sandbox terms, commercial agreement, Philippines coverage/compliance, pricing and real trial eSIM path.'},
+ {key:'fonus',name:'Fonus',status:'sales_contacted',channel:'official-reseller-form+direct-email',destination:'zhac@fonusmobile.com',case_reference:'',evidence_reference:'tinyfish-run:6e18befa-5503-43c4-8100-1c3807c14805;gmail:1a0db65376739729;gmail:1a0db668aabea67c;gmail:1a0db67a03572b70;gmail:1a0dbc4fa825d47f',sandbox_reference:'',notes:'Fonus confirmed receipt, stated a response window of up to 5 business days, and supplied zhac@fonusmobile.com as the direct commercial contact. Await agreement-grade resale authority, wholesale pricing, provisioning/API, country/compliance and real trial connectivity terms.',next_action:'Await the direct Fonus commercial response; capture agreement, rate deck, Philippines eligibility, provisioning/profile method, trial connectivity and genuinely independent backup-network terms.'}
 ];
 
 async function ensureSchema(env){
@@ -222,13 +222,14 @@ async function seedMobilePartners(env,tenant){
  for(const partner of MOBILE_PARTNERS){
   try{
    await env.DB.prepare(`INSERT INTO telecom_mobile_partner_acquisition(
-    tenant_id,provider_key,display_name,status,contact_channel,contact_destination,case_reference,evidence_reference,next_action,last_contact_at,updated_by,created_at,updated_at
-   ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+    tenant_id,provider_key,display_name,status,contact_channel,contact_destination,case_reference,evidence_reference,sandbox_reference,next_action,notes,last_contact_at,updated_by,created_at,updated_at
+   ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
    ON CONFLICT(tenant_id,provider_key) DO UPDATE SET
     display_name=excluded.display_name,status=excluded.status,contact_channel=excluded.contact_channel,contact_destination=excluded.contact_destination,
-    case_reference=excluded.case_reference,evidence_reference=excluded.evidence_reference,next_action=excluded.next_action,last_contact_at=excluded.last_contact_at,updated_at=excluded.updated_at
+    case_reference=excluded.case_reference,evidence_reference=excluded.evidence_reference,sandbox_reference=excluded.sandbox_reference,
+    next_action=excluded.next_action,notes=excluded.notes,last_contact_at=excluded.last_contact_at,updated_at=excluded.updated_at
    WHERE telecom_mobile_partner_acquisition.updated_by='system-seed'`)
-    .bind(tenant,partner.key,partner.name,partner.status,partner.channel,partner.destination,partner.case_reference,partner.evidence_reference,partner.next_action,ts,'system-seed',ts,ts).run();
+    .bind(tenant,partner.key,partner.name,partner.status,partner.channel,partner.destination,partner.case_reference,partner.evidence_reference,partner.sandbox_reference||'',partner.next_action,partner.notes||'',ts,'system-seed',ts,ts).run();
   }catch(error){console.error('mobile partner acquisition seed failed',error)}
  }
 }
