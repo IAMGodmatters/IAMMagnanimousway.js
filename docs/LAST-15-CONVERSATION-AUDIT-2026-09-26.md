@@ -5,8 +5,8 @@
 This audit reconciles the last 15 active conversation workstreams against the current repository and production state. Older branch/commit references are historical only when superseded. GitHub main and verified deployment evidence win over interrupted chat text.
 
 Current authoritative state:
-- GitHub main before this audit branch: `4c9ee37f1d2eef7effa57bb1bce04c7b99789b5b`
-- Current Railway production deployment: `d505f788-91bf-4ce8-b12f-61092fc5f832` — SUCCESS
+- GitHub main before this audit branch: `0b0c3c6884fe0a1d4799a27a3ec762b2ec445951`
+- Current Railway production deployment: `901c9e79-ae4c-44ec-8204-eb792df8003d` — SUCCESS
 - PR #468: merged
 - PR #469: merged and deployed\n- PR #470: merged and deployed; adds static-asset proof for the Email Writer
 - Public Magnanimous Email Writer: rendered live at `/business-email/`
@@ -82,8 +82,8 @@ Current authoritative state:
 - Escape retry/streaming loops.
 
 **State**
-- Current main is `4c9ee37f1d2eef7effa57bb1bce04c7b99789b5b`.
-- Current Railway deployment `d505f788-91bf-4ce8-b12f-61092fc5f832` is SUCCESS.
+- Current main is `0b0c3c6884fe0a1d4799a27a3ec762b2ec445951`.
+- Current Railway deployment `901c9e79-ae4c-44ec-8204-eb792df8003d` is SUCCESS.
 - Durable Git/PR/deployment evidence survived chat interruptions.
 
 **Action**
