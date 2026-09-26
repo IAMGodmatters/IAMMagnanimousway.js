@@ -267,3 +267,13 @@ Fonus displayed the confirmation: **“Thank you for contacting us! We will get 
 The reseller form had no free-text notes field. The detailed request for wholesale pricing, eSIM/pSIM/API lifecycle, voice/SMS/data/number/porting availability, fair-use terms, country/KYC/SIM-registration/permanent-roaming requirements, Magnanimous branding, and independent backup connectivity was therefore preserved in the separate email already sent to support@fonus.me.
 
 Status: official reseller application submitted; awaiting Fonus reseller/commercial response. No paid activation, deposit, SIM/eSIM order, or production commitment was made.
+
+
+### Fonus direct commercial handoff
+Received 2026-09-26 after the successful official reseller-form submission.
+
+- Fonus confirmed receipt and stated it expects to respond within 5 business days (Gmail message id: 1a0db668aabea67c).
+- Ursula from Fonus directed the reseller/global-mobile inquiry to `zhac@fonusmobile.com` (Gmail message id: 1a0db65376739729).
+- The full no-spend commercial/technical inquiry was sent to `zhac@fonusmobile.com` (Gmail message id: 1a0db67a03572b70).
+- Await agreement-grade resale authority, wholesale/origin rate deck, provisioning/API details, country/compliance restrictions and independent-backup terms.
+- Fonus retail pricing remains benchmark-only until verified wholesale origin pricing and commercial authority are received.
