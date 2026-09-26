@@ -12,6 +12,9 @@ for(const domain of ['gigs.com','telna.com','1global.com','fonusmobile.com','fon
 must(runtime.includes('telecom_email_watch_events'),'Durable email-event ledger is required.');
 must(runtime.includes('await seen(env,row.id)'),'Message-id dedupe is required before processing.');
 must(runtime.includes('recentThreadReply'),'Thread-level cooldown is required.');
+must(runtime.includes('latestSegment'),'Newest-message segmentation is required before auto-ack/consequential classification.');
+must(runtime.includes("automaticAcknowledgement(from,h.subject,latest)"),'Auto-ack classification must ignore quoted thread history.');
+must(runtime.includes("consequentialRequest(latest)"),'Consequential classification must ignore quoted thread history.');
 must(runtime.includes('(6*60*60)'),'Thread reply cooldown must remain six hours.');
 must(runtime.includes("auto?'recorded_no_reply':cooldown?'recorded_thread_cooldown'"),'Auto acknowledgements and thread cooldowns must not send replies.');
 must(runtime.includes("consequential?'acknowledged_without_acceptance':'replied'"),'Consequential inbound mail must only be acknowledged without acceptance.');
