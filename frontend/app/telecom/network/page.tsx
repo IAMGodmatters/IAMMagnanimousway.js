@@ -60,6 +60,8 @@ export default function NetworkAuthorityPage(){
  const[triggerEventId,setTriggerEventId]=useState('');
  const[backupEventId,setBackupEventId]=useState('');
  const[failoverEvidence,setFailoverEvidence]=useState('');
+ const[mobilePartners,setMobilePartners]=useState<any[]>([]);
+ const[partnerDrafts,setPartnerDrafts]=useState<Record<string,any>>({});
  const routeDestinationValid=/^\+[1-9]\d{6,14}$/.test(routeDestination);
 
  useEffect(()=>{
@@ -75,11 +77,15 @@ export default function NetworkAuthorityPage(){
 
  async function refresh(activeToken=token){
   try{
-   const [data,profiles]=await Promise.all([
+   const [data,profiles,partners]=await Promise.all([
     call('/api/telecom/network/overview',{},activeToken),
-    call('/api/telecom/network/global-mobile/profiles',{},activeToken).catch(()=>({items:[]}))
+    call('/api/telecom/network/global-mobile/profiles',{},activeToken).catch(()=>({items:[]})),
+    call('/api/telecom/network/global-mobile/partners',{},activeToken).catch(()=>({items:[]}))
    ]);
-   setOverview({...empty,...data});setMobileProfiles(profiles.items||[]);
+   setOverview({...empty,...data});setMobileProfiles(profiles.items||[]);setMobilePartners(partners.items||[]);
+   const partnerState:Record<string,any>={};
+   for(const item of partners.items||[])partnerState[item.provider_key]={...item,countries_csv:(item.countries||[]).join(','),capabilities_csv:(item.capabilities||[]).join(',')};
+   setPartnerDrafts(partnerState);
    const items=profiles.items||[];
    if(!connectProfile&&items.length)setConnectProfile(String(items[0].id||''));
    if(!enrollmentProfile&&items.length)setEnrollmentProfile(String(items[0].id||''));
@@ -200,6 +206,21 @@ export default function NetworkAuthorityPage(){
   }catch(caught:any){setError(caught?.message||'Unable to verify independent backup evidence.')}finally{setBusy(false)}
  }
 
+ async function savePartner(item:any){
+  const draft=partnerDrafts[item.provider_key];if(!draft)return;setBusy(true);setNotice('');setError('');
+  try{
+   await call('/api/telecom/network/global-mobile/partners',{method:'PUT',body:JSON.stringify({
+    provider_key:item.provider_key,status:draft.status,case_reference:draft.case_reference,
+    evidence_reference:draft.evidence_reference,pricing_reference:draft.pricing_reference,
+    commercial_reference:draft.commercial_reference,sandbox_reference:draft.sandbox_reference,
+    next_action:draft.next_action,notes:draft.notes,
+    countries:String(draft.countries_csv||'').split(',').map((x:string)=>x.trim()).filter(Boolean),
+    capabilities:String(draft.capabilities_csv||'').split(',').map((x:string)=>x.trim()).filter(Boolean)
+   })});
+   setNotice(item.display_name+' acquisition record updated. Provider credentials remain outside this tracker.');await refresh();
+  }catch(caught:any){setError(caught?.message||'Unable to update carrier acquisition record.')}finally{setBusy(false)}
+ }
+
  async function saveCase(item:RegulatoryCase){
   const draft=caseDrafts[item.id];if(!draft)return;setBusy(true);setNotice('');setError('');
   try{
@@ -251,6 +272,31 @@ export default function NetworkAuthorityPage(){
   <section className={styles.inventory}>
    <div className={styles.title}><div><small>REPLACEABLE UPSTREAMS</small><h2>Carrier candidate matrix</h2></div><span>Credentials ≠ live route</span></div>
    <div className={styles.grid}>{(overview.upstream_candidates||[]).map(item=><article className={styles.card} key={item.provider_key}><small>{item.connected?'ACCOUNT DETECTED':'CANDIDATE'}</small><h2>{item.provider_key.toUpperCase()}</h2><p>{item.role}</p><p className={styles.muted}>{item.adapter_state||'No dedicated live adapter is claimed.'}</p></article>)}</div>
+  </section>
+
+  <section className={styles.inventory}>
+   <div className={styles.title}><div><small>GLOBAL MOBILE ACQUISITION</small><h2>Carrier partnership pipeline</h2></div><span>Owner-only · no provider secrets</span></div>
+   <div className={styles.grid}>{mobilePartners.map(item=>{
+    const draft=partnerDrafts[item.provider_key]||item;
+    return <article className={styles.card} key={item.provider_key}>
+     <small>{String(draft.status||'researching').replaceAll('_',' ').toUpperCase()}</small><h2>{item.display_name}</h2>
+     <p>{item.contact_channel||'contact'} · {item.contact_destination||'not entered'}</p>
+     <label>Status<select value={draft.status||'researching'} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,status:e.target.value}}))}>
+      {['researching','contacted','case_open','sales_handoff','sandbox_pending','sandbox_ready','commercial_review','contract_pending','contract_verified','blocked','declined','retired'].map(status=><option value={status} key={status}>{status.replaceAll('_',' ')}</option>)}
+     </select></label>
+     <label>Case / sales reference<input value={draft.case_reference||''} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,case_reference:e.target.value}}))}/></label>
+     <label>Contact/evidence reference<input value={draft.evidence_reference||''} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,evidence_reference:e.target.value}}))}/></label>
+     <label>Pricing/rate-card reference<input value={draft.pricing_reference||''} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,pricing_reference:e.target.value}}))}/></label>
+     <label>Commercial agreement reference<input value={draft.commercial_reference||''} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,commercial_reference:e.target.value}}))}/></label>
+     <label>Sandbox/test reference<input value={draft.sandbox_reference||''} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,sandbox_reference:e.target.value}}))}/></label>
+     <label>Countries (CSV)<input value={draft.countries_csv||''} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,countries_csv:e.target.value}}))} placeholder='PH,US'/></label>
+     <label>Capabilities (CSV)<input value={draft.capabilities_csv||''} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,capabilities_csv:e.target.value}}))} placeholder='esim,data,sms,voice'/></label>
+     <label>Next action<input value={draft.next_action||''} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,next_action:e.target.value}}))}/></label>
+     <label>Notes<input value={draft.notes||''} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,notes:e.target.value}}))}/></label>
+     <button disabled={busy} onClick={()=>savePartner(item)}>SAVE ACQUISITION STATE</button>
+     <p className={styles.muted}>Contract verified is rejected unless an agreement-grade commercial reference is present.</p>
+    </article>
+   })}</div>
   </section>
 
   <section className={styles.inventory}>
