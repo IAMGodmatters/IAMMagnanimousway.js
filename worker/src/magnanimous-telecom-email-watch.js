@@ -3,7 +3,7 @@ import {decrypt} from './integrations.js';
 const now=()=>Math.floor(Date.now()/1000);
 const encoder=new TextEncoder();
 const decoder=new TextDecoder();
-const WATCH_QUERY='in:inbox newer_than:7d {from:gigs.com from:telna.com from:1global.com from:fonusmobile.com from:fonus.me from:ntc.gov.ph from:pldt.com.ph from:smart.com.ph from:dito.ph from:prudentialguarantee.com from:pioneer.com.ph from:strongholdinsurance.com.ph from:sterling-insurance.com.ph from:gsis.gov.ph from:peza.gov.ph from:privacy.gov.ph from:dole.gov.ph from:boi.gov.ph}';
+const WATCH_QUERY='in:inbox newer_than:7d {from:gigs.com from:telna.com from:1global.com from:fonusmobile.com from:fonus.me from:ntc.gov.ph from:pldt.com.ph from:smart.com.ph from:dito.ph from:prudentialguarantee.com from:pioneer.com.ph from:strongholdinsurance.com.ph from:sterling-insurance.com.ph from:gsis.gov.ph from:peza.gov.ph from:privacy.gov.ph from:dole.gov.ph from:boi.gov.ph from:sec.gov.ph from:sbcorp.gov.ph from:dict.gov.ph from:dost.gov.ph from:ndc.gov.ph from:qbo.com.ph from:mayorbayawan@gmail.com}';
 const PROVIDERS=[
  ['gigs','gigs.com'],
  ['telna','telna.com'],
@@ -22,7 +22,14 @@ const PROVIDERS=[
  ['peza','peza.gov.ph'],
  ['npc','privacy.gov.ph'],
  ['dole','dole.gov.ph'],
- ['boi','boi.gov.ph']
+ ['boi','boi.gov.ph'],
+ ['sec','sec.gov.ph'],
+ ['sbcorp','sbcorp.gov.ph'],
+ ['dict','dict.gov.ph'],
+ ['dost','dost.gov.ph'],
+ ['ndc','ndc.gov.ph'],
+ ['qbo','qbo.com.ph'],
+ ['bayawan-city','mayorbayawan@gmail.com']
 ];
 
 function b64urlText(value){
@@ -44,7 +51,7 @@ function extractAddress(value){
 }
 function providerKey(from){
  const address=extractAddress(from),domain=address.split('@')[1]||'';
- return PROVIDERS.find(([,suffix])=>domain===suffix||domain.endsWith('.'+suffix))?.[0]||'';
+ return PROVIDERS.find(([,suffix])=>suffix.includes('@')?address===suffix:(domain===suffix||domain.endsWith('.'+suffix)))?.[0]||'';
 }
 function flattenParts(part,out=[]){
  if(!part)return out;
@@ -98,7 +105,14 @@ function replyText(key,{consequential=false}={}){
   peza:'Please provide the current IT Enterprise/BPO registration path, location/export-revenue requirements, treatment of combined BPO and software activities, available incentives/job-creation assistance, and minimum documents for a newly registered Philippine company.',
   npc:'Please provide the current NPCRS/DPO/DPS compliance path for an AI-enabled call center processing CRM data, call recordings/transcripts, AI QA/profiling, employee data and client data as both PIC and PIP where applicable.',
   dole:'Please provide the establishment/employer registration and reporting steps that apply once the Philippine call-center entity, business permit, TIN and SSS employer details exist.',
-  boi:'Please provide the current registration/incentive path for an IT-BPM/call-center and software/telecom technology project creating Filipino jobs, including minimum project and entity requirements.'
+  boi:'Please provide the current registration/incentive path for an IT-BPM/call-center and software/telecom technology project creating Filipino jobs, including minimum project and entity requirements.',
+  sec:'Please confirm the one-corporation structure for BPO/call-center, AI/software/SaaS and future NTC-regulated telecom secondary purposes, including the proper OneSEC/ZERO or Regular Processing path and whether telecom wording requires prior endorsement.',
+  sbcorp:'Please provide the earliest financing path for the newly registered Philippine corporation, including eligible uses for licensing/compliance, technology infrastructure, working capital and Filipino hiring.',
+  dict:'Please identify current Startup Philippines/DICT assistance suitable for a newly registered AI/contact-center/telecom technology startup with an existing MVP and planned Filipino job creation.',
+  dost:'Please provide the current DOST/PCIEERD grant path and allowable project costs for AI/contact-center/telecom R&D commercialization, including the Philippine HEI collaboration requirements.',
+  ndc:'Please provide the Startup Venture Fund eligibility timeline, corporate/data-room requirements and co-investment process for the Magnanimous technology startup.',
+  qbo:'Please provide QBO/Startup Philippines accelerator eligibility, funding/legal-accounting support and the exact application steps once the Philippine corporation is registered.',
+  'bayawan-city':'Please confirm the one-corporation Bayawan BOSS filing path, required local clearances for BPO/software/telecom activities, and any ICT/BPO investment or job-creation incentives.'
  }[key]||'Please provide the remaining commercial, technical, pricing, country and compliance evidence needed to complete qualification.';
  const caution=consequential?' We received the consequential item you referenced; it will be reviewed separately and is not accepted or executed by this automated reply.':'';
  return `Hello,\n\nThank you for the update. ${specific}${caution}\n\n${common}\n\nBusiness contact: Godmattersinc@iammagnanimousway.com\n\nThank you,\nMagnanimous Telecom\nI AM MAGNANIMOUS WAY™`;
