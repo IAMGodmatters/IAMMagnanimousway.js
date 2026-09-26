@@ -4,10 +4,23 @@ const read=(p)=>fs.readFileSync(new URL(`../../${p}`,import.meta.url),'utf8');
 const ui=read('frontend/app/business-email/email-center-client.tsx');
 const page=read('frontend/app/business-email/page.tsx');
 const runtime=read('worker/src/business-email-runtime.js');
+const writer=read('frontend/app/business-email/email-writer-client.tsx');
 
 const checks=[];
 function has(source,needle,label){const ok=source.includes(needle);checks.push([ok,label]);if(!ok)console.error(`FAIL: ${label}`)}
 
+has(page,'EmailWriterClient','Business Email page exposes the Magnanimous AI email writer');
+has(page,'Magnanimous AI Email Writer','page metadata exposes email-writing capability');
+has(writer,'MAGNANIMOUS AI • EMAIL WRITER','email writer keeps Magnanimous as the public AI identity');
+has(writer,"postMagnanimousChat",'email writer uses the resilient Magnanimous brain transport');
+has(writer,"use_knowledge:true",'email writer can use established signed-in Magnanimous context');
+has(writer,'Write the complete email, not advice about how to write it.','email writer produces ready-to-send copy');
+has(writer,'Do not invent names, dates, prices, approvals, legal status, promises, attachments, credentials, account numbers, government identifiers, or actions that did not happen.','email writer has a factual non-invention boundary');
+has(writer,"magnanimous_email_writer_draft",'unfinished email-writing work is locally durable');
+has(writer,"/api/magnanimous/mail/accounts",'writer can discover authorized Gmail/Outlook accounts');
+has(writer,"/api/magnanimous/mail/send",'writer uses the existing native provider-neutral mail execution path');
+has(writer,"confirm(`Send this email now",'sending stays behind explicit user confirmation');
+has(writer,'confirm:true','confirmed send is explicit in the native mail request');
 has(page,'Free Business Email Lite','page metadata keeps the free product identity');
 has(ui,'Make a business email in 3 little steps.','customer flow stays child-simple');
 has(ui,'FREE BUSINESS EMAIL LITE','free email product header remains visible');
