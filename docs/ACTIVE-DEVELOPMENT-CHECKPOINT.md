@@ -75,8 +75,9 @@ Full research evidence is versioned in:
 - Real owner-supplied Philippine identity/tax documents are now available for the intended Filipino participant.
 - The supplied PhilHealth ID is an SEC-accepted eSECURE ID type; the supplied BIR card provides the required TIN.
 - Sensitive values and ID images are intentionally not persisted in GitHub or project documentation.
-- Filing remains blocked only on unresolved form/account facts: personal email/mobile for OTP, nationality, current legal name/current address reconciliation, and the actual corporation ownership/role structure.
-- The two supplied cards show different surname/record formats and different addresses; Magnanimous must not pick one automatically.
+- The owner confirmed **Hardin** is the current surname. The older BIR/TIN card remains under **Capuno**, so only the underlying BIR record may need reconciliation if SEC/eSECURE validation requires an exact match.
+- Filing remains blocked only on unresolved form/account facts: personal email/mobile for OTP, nationality, complete current legal-name format, current address reconciliation, and the actual corporation ownership/role structure.
+- The supplied cards still show different addresses; Magnanimous must not pick an address automatically.
 
 ## Active work
 
