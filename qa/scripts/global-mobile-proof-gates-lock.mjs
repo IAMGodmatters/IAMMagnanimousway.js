@@ -39,7 +39,20 @@ const policy={id:'policy-1'};
   backupConnectivity:{id:'backup-event-1'},policy
  });
  assert.equal(result.launch_ready,true);
+ assert.equal(result.multi_network_resilience_verified,false);
+}
+
+{
+ const result=evaluateGlobalMobileReadiness({
+  live_flag_enabled:true,countryRows,offer,profile,connectivity,
+  backupProfile:{id:'backup-1',adapter_key:'backup',network_group:'network-b',country_code:'PH'},
+  backupConnectivity:{id:'backup-event-1'},
+  failoverProof:{id:'failover-proof-1',independent_network_verified:1,observed_failover:1},
+  policy
+ });
+ assert.equal(result.launch_ready,true);
  assert.equal(result.multi_network_resilience_verified,true);
+ assert.equal(result.evidence.failover_proof_id,'failover-proof-1');
 }
 
 {
