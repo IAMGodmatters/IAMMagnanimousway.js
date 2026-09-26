@@ -111,10 +111,11 @@ Completed:
 - [x] Added separate multi-network-resilience truth that requires a recently verified backup profile on an independent network group; it is not implied by primary service readiness.
 - [x] Added owner Carrier Access workflows to record verified country evidence, verified origin/commercial offer evidence, opaque access-profile references and measured subscriber connectivity without storing eSIM activation/authentication secrets.
 - [x] Added executable global-mobile live-proof QA and Telecom CI coverage.
-- [x] Added Magnanimous-owned one-time mobile enrollment tokens: 256-bit CSPRNG material, returned once, stored only as SHA-256 hashes, short-lived, auditable, and explicitly not carrier/SM-DP+/Ki/OPc/ADM credentials.
+- [x] Added Magnanimous-owned one-time mobile enrollment tokens: 256-bit CSPRNG material, returned once, stored only as SHA-256 hashes, short-lived, auditable, atomic one-time redemption, prior-token revocation on replacement, and explicitly not carrier/SM-DP+/Ki/OPc/ADM credentials.
 - [x] Added durable independent-backup failover proof. It requires a recorded primary detach/failover event, a later successful event on a backup profile, different network groups, and a durable evidence reference before multi-network resilience is marked verified.
 - [x] Sent real no-spend commercial onboarding inquiries to Gigs, Telna and 1GLOBAL and preserved the acquisition state in `docs/GLOBAL-MOBILE-CARRIER-ACQUISITION-2026-09-26.md`.
 - [x] Located the official Fonus reseller application; did not submit invented phone/address data into its required form.
+- [x] Sent an NTC Region VII pre-application classification request covering VoIP/VAS/reseller/mobile-host-network scope, current Form NTC 1-20 use, documentary/fee/bond/capital requirements and whether a branded SIM/eSIM offer needs additional VNO/MVNO authority. No regulatory grant is claimed.
 
 Intentionally gated follow-on work, not falsely marked live:
 - [ ] Deploy a dedicated public Telecom Core host/domain with trusted WSS TLS and required SIP/RTP exposure. No paid host has been created by this work.
