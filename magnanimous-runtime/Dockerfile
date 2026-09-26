@@ -2,6 +2,7 @@ FROM node:24-bookworm-slim AS frontend-builder
 WORKDIR /app
 COPY . .
 RUN cd frontend && npm ci && npm run build
+RUN grep -RFq "Tell me what you want to say." frontend/out/business-email*
 
 FROM node:24-bookworm-slim
 WORKDIR /app
