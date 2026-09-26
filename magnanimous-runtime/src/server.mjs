@@ -171,6 +171,30 @@ async function staticResponse(pathname) {
   return null;
 }
 
+async function staticAssetProof() {
+  const candidates = safeAssetCandidates('/business-email/');
+  for (const rel of candidates) {
+    const candidate = path.resolve(assetsRoot, rel);
+    if (!candidate.startsWith(assetsRoot + path.sep) && candidate !== assetsRoot) continue;
+    try {
+      const body = await fs.readFile(candidate);
+      const text = body.toString('utf8');
+      return {
+        source: assetsRoot === path.join(root, 'frontend/out') ? 'built-frontend-out' : 'custom-assets-root',
+        business_email_asset_present: true,
+        business_email_writer_marker: text.includes('Tell me what you want to say.'),
+        business_email_asset_sha256: crypto.createHash('sha256').update(body).digest('hex').slice(0, 16)
+      };
+    } catch {}
+  }
+  return {
+    source: assetsRoot === path.join(root, 'frontend/out') ? 'built-frontend-out' : 'custom-assets-root',
+    business_email_asset_present: false,
+    business_email_writer_marker: false,
+    business_email_asset_sha256: null
+  };
+}
+
 async function nodeRequest(req) {
   const proto = String(
     req.headers['x-forwarded-proto'] ||
@@ -615,6 +639,7 @@ const server = http.createServer(async (req, res) => {
           database: 'magnanimous-sqlite',
           migrations: migrationState,
           deploy_revision: runtimeRevision() || null,
+          static_assets: await staticAssetProof(),
           deployment_automation: (() => {
             const config = deploymentControlConfig(process.env);
             return {
