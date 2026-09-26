@@ -22,6 +22,7 @@ on:
       - 'docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md'
       - 'docs/GLOBAL-MOBILE-CARRIER-ACQUISITION-2026-09-26.md'
       - 'docs/GLOBAL-MOBILE-COMMERCIAL-TERMS-REQUIREMENTS-2026-09-26.md'
+      - 'docs/PHILIPPINE-TELECOM-REGULATORY-PREFILING-2026-09-26.md'
       - 'worker/src/magnanimous-telecom-service-runtime.js'
       - 'worker/src/magnanimous-telecom-operations-runtime.js'
       - 'worker/src/magnanimous-telecom-bss-admin-runtime.js'
