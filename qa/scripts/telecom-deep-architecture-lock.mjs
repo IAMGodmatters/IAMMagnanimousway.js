@@ -257,7 +257,7 @@ has(ui,'Competitor retail prices are benchmarks, not Magnanimous wholesale cost.
 has(ui,'CALCULATE — NO PURCHASE','global mobile pricing tool is explicitly non-purchasing');
 has(ui,'LIVE PROOF GATES','owner UI exposes every global mobile launch gate');
 has(ui,'SAVE VERIFIED WHOLESALE OFFER','owner UI can store verified commercial offer evidence');
-has(ui,'SAVE REAL CONNECTIVITY PROOF','owner UI can record subscriber connectivity proof');
+has(ui,'SAVE OBSERVED CONNECTIVITY EVENT','owner UI can record subscriber connectivity proof');
 has(ui,'ISSUE ONE-TIME MAGNANIMOUS TOKEN','owner UI exposes safe Magnanimous enrollment token issuance');
 has(ui,'VERIFY INDEPENDENT BACKUP EVIDENCE','owner UI exposes observed independent backup verification');
 has(ui,'Commercial agreement evidence','owner UI separates resale authorization evidence from pricing evidence');
@@ -284,7 +284,7 @@ has(globalMobileAcquisition,'Case number: 02547094','1GLOBAL onboarding case is 
 has(globalMobileAcquisition,'Godmattersinc@iammagnanimousway.com','Gigs sales handoff retains the business-email path');
 has(globalMobileTerms,'A signed commercial agreement is necessary but not sufficient.','commercial agreement does not bypass production proof gates');
 has(globalMobileTerms,'deposit/commitment that has not received explicit payment authorization','commercial terms preserve explicit spend authorization');
-has(mobileActivate,'carrier/SM-DP+ activation code','customer redemption page distinguishes Magnanimous enrollment from carrier activation');
+has(mobileActivate,'eSIM SM-DP+ activation code','customer redemption page distinguishes Magnanimous enrollment from carrier activation');
 has(mobileActivate,"type='password'",'customer enrollment token is masked in the browser');
 has(mobileActivate,'Do not paste a carrier QR payload','customer path rejects misuse of carrier authentication material by policy');
 has(phRegulatoryPrefiling,'Form NTC 1-20','Philippine pre-filing package retains the current public application path');
@@ -298,7 +298,7 @@ has(globalMobileMigration,'telecom_mobile_connectivity_events','global mobile co
 has(globalMobileGateQa,'live_flag_enabled:true','proof-gate QA explicitly tests a live flag without evidence');
 has(globalMobileEnrollmentMigration,'token_hash TEXT PRIMARY KEY','Magnanimous enrollment secrets are stored only as hashes');
 has(globalMobileEnrollmentMigration,'telecom_mobile_failover_proofs','observed backup failover proof is durable');
-has(globalMobileEnrollmentQa,'independent-backup evidence locks passed','enrollment/failover safety QA is executable');
+has(globalMobileEnrollmentQa,'independent backup evidence locks passed','enrollment/failover safety QA is executable');
 has(extensions,'Echo()','authenticated WebRTC diagnostic uses Asterisk Echo for carrier-free bidirectional media proof');
 has(webrtcWorkflow,'Real Chromium registration and two-way media','dedicated CI job runs a real Chromium WebRTC media proof');
 has(webrtcWorkflow,'wss://localhost:8089/ws','browser probe uses the native Asterisk WSS endpoint');
