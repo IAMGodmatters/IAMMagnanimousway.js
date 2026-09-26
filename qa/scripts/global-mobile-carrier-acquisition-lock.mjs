@@ -31,4 +31,7 @@ assert.ok(ui.includes('case_followed_up'),'Owner UI must support provider-case f
 assert.ok(ui.includes('Sandbox/test access proves integration only'),'Owner UI must preserve sandbox-vs-live truth.');
 assert.ok(runtime.includes('gmail:1a0dbcee2745d3d6'),'Latest 1GLOBAL substantive-response follow-up must remain durable.');
 assert.ok(runtime.includes('automated case-updated notice without the requested commercial/technical evidence'),'Automated case notices must not be mistaken for commercial proof.');
+assert.ok(runtime.includes("status:'sales_handoff'"),'Fonus confirmed reseller handoff must remain durable.');
+assert.ok(runtime.includes('gmail:1a0dbcecffc2054a'),'Fonus handoff confirmation must remain durable.');
+assert.ok(runtime.includes('suppresses duplicate auto-ack replies'),'Repeated automated carrier acknowledgements must not create reply loops.');
 console.log('Global mobile carrier acquisition control lock passed.');
