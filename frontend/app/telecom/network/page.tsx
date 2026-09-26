@@ -30,6 +30,7 @@ export default function NetworkAuthorityPage(){
  const[fundedVariableCap,setFundedVariableCap]=useState('0');
  const[mandatoryFees,setMandatoryFees]=useState('0');
  const[originReference,setOriginReference]=useState('');
+ const[commercialReference,setCommercialReference]=useState('');
  const[originVerified,setOriginVerified]=useState(false);
  const[globalQuote,setGlobalQuote]=useState<any>(null);
  const[mobileCountry,setMobileCountry]=useState('PH');
@@ -142,7 +143,7 @@ export default function NetworkAuthorityPage(){
   try{
    const data=await call('/api/telecom/network/global-mobile/offers',{method:'POST',body:JSON.stringify({
     country_code:mobileCountry,adapter_key:offerAdapter,network_group:offerNetwork||offerAdapter,
-    origin_reference:originReference,origin_cost_verified:originVerified,commercial_authorized:offerAuthorized,
+    origin_reference:originReference,commercial_reference:commercialReference,origin_cost_verified:originVerified,commercial_authorized:offerAuthorized,
     origin_monthly_cost:Number(originCost),included_high_speed_gb:0,
     expected_high_speed_gb:0,origin_variable_cost_per_gb:Number(originVariableCost),
     funded_variable_cost_cap:Number(fundedVariableCap),mandatory_taxes_and_fees:Number(mandatoryFees),
@@ -272,10 +273,11 @@ export default function NetworkAuthorityPage(){
     <form className={styles.card} onSubmit={saveWholesaleOffer}><small>WHOLESALE PROOF</small><h2>Activate verified origin offer</h2>
      <label>Adapter key<input value={offerAdapter} onChange={e=>setOfferAdapter(e.target.value.toLowerCase())} placeholder='authorized-mobile-adapter'/></label>
      <label>Independent network group<input value={offerNetwork} onChange={e=>setOfferNetwork(e.target.value.toLowerCase())} placeholder='network-a'/></label>
-     <label><input type='checkbox' checked={offerAuthorized} onChange={e=>setOfferAuthorized(e.target.checked)}/> Commercial agreement/authorization is verified.</label>
+     <label>Commercial agreement evidence<input value={commercialReference} onChange={e=>{setCommercialReference(e.target.value);setOfferAuthorized(false)}} placeholder='https://… or contract:/provider-quote: agreement reference'/></label>
+     <label><input type='checkbox' checked={offerAuthorized} onChange={e=>setOfferAuthorized(e.target.checked)}/> I verified that this separate agreement authorizes the intended commercial/resale use.</label>
      <label><input type='checkbox' checked={offerBackup} onChange={e=>setOfferBackup(e.target.checked)}/> Eligible as a backup path.</label>
-     <button disabled={busy||!offerAdapter.trim()||!offerAuthorized||!originVerified||!originReference.trim()}>SAVE VERIFIED WHOLESALE OFFER</button>
-     <p className={styles.muted}>Uses the same verified origin cost, evidence reference, funded cap and 20% pricing controls below.</p>
+     <button disabled={busy||!offerAdapter.trim()||!offerAuthorized||!commercialReference.trim()||!originVerified||!originReference.trim()}>SAVE VERIFIED WHOLESALE OFFER</button>
+     <p className={styles.muted}>Pricing evidence and commercial/resale authorization are separate proofs. Both are required; neither makes a purchase.</p>
     </form>
     <form className={styles.card} onSubmit={createMobileProfile}><small>ACCESS PROFILE</small><h2>Register provisioned SIM/eSIM</h2>
      <label>Role<select value={profileRole} onChange={e=>setProfileRole(e.target.value)}><option value='primary'>Primary</option><option value='backup'>Backup</option></select></label>
@@ -297,7 +299,7 @@ export default function NetworkAuthorityPage(){
     </form>
     <form className={styles.card} onSubmit={issueEnrollmentToken}><small>MAGNANIMOUS ACTIVATION</small><h2>Issue one-time enrollment secret</h2>
      <label>Access profile<select value={enrollmentProfile} onChange={e=>{setEnrollmentProfile(e.target.value);setEnrollmentToken('')}}><option value=''>Select profile</option>{mobileProfiles.map(item=><option value={item.id} key={item.id}>{item.profile_role} · {item.adapter_key} · {item.country_code}</option>)}</select></label>
-     <button disabled={busy||!enrollmentProfile}>ISSUE ONE-TIME MAGNANIMOUS TOKEN</button>
+     <button disabled={busy||!enrollmentProfile}>ISSUE ONE-TIME MAGNANIMOUS TOKEN</button><p><a href='/telecom/activate'>Open customer redemption page →</a></p>
      {enrollmentToken&&<><label>Returned once<input readOnly value={enrollmentToken}/></label><p className={styles.muted}>Expires {enrollmentExpires?new Date(enrollmentExpires*1000).toLocaleString():'soon'}. Stored only as a SHA-256 hash. This is not a carrier/SM-DP+ activation code.</p></>}
     </form>
     <form className={styles.card} onSubmit={verifyFailoverProof}><small>INDEPENDENT BACKUP</small><h2>Verify observed failover path</h2>
