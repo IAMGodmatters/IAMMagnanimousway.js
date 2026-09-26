@@ -8,11 +8,11 @@ This is a verification document, not a marketing claim. A capability is not mark
 
 ## Current verified release
 
-- GitHub main: `da834cc52e13a5bd5281d1c097072646b04a2030`
-- Railway production deployment: `14decedc-9605-4b2a-b0d9-864f3f01ab2b` — SUCCESS
+- GitHub main: `4c9ee37f1d2eef7effa57bb1bce04c7b99789b5b`
+- Railway production deployment: `d505f788-91bf-4ce8-b12f-61092fc5f832` — SUCCESS
 - Production URL: https://iammagnanimousway.com/
 - PR #468: merged as `d90d65b78bff0a9dfa84c5be14a868d5e516a35a`
-- PR #469: merged as `da834cc52e13a5bd5281d1c097072646b04a2030`
+- PR #469: merged as `da834cc52e13a5bd5281d1c097072646b04a2030`\n- PR #470: merged as `4c9ee37f1d2eef7effa57bb1bce04c7b99789b5b`; it adds static-asset proof that the deployed Business Email bundle contains the Email Writer marker
 - Full Platform QA, exact-commit Railway deploy, standalone release, Business Email Smoke, Business Operations Production Verification, Professional Production Verification, telecom production verification, payment safety and consequential-action locks passed for the current release.
 - Cloudflare D1 free-tier write exhaustion remains a real capacity constraint. The checked-in Magnanimous brain manifest stays authoritative when durable D1 materialization is deferred; do not describe D1 quota exhaustion as fully eliminated.
 
