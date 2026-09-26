@@ -79,6 +79,21 @@ Full research evidence is versioned in:
 - Filing remains blocked only on unresolved form/account facts: personal email/mobile for OTP, nationality, complete current legal-name format, current address reconciliation, and the actual corporation ownership/role structure.
 - The supplied cards still show different addresses; Magnanimous must not pick an address automatically.
 
+## Continuation checkpoint — universal Email Writer + capability/business audit
+
+- PR #468 is finished and merged as `d90d65b78bff0a9dfa84c5be14a868d5e516a35a`. Its identity-evidence/SEC checkpoint is no longer waiting on QA.
+- PR #469 is finished, merged and deployed as main `4c9ee37f1d2eef7effa57bb1bce04c7b99789b5b`; Railway deployment `d505f788-91bf-4ce8-b12f-61092fc5f832` is SUCCESS.
+- The public production body at `/business-email/` was inspected after deployment and contains the Magnanimous AI Email Writer with New email, Reply, Follow-up, Rewrite, subject/body editing, copy controls and optional connected-mailbox sending.
+- Email drafting is intentionally a platform-wide free-first capability; it does not require a sign-in token. Real mailbox sending remains a separate signed-in, connected-account, explicitly confirmed action.
+- This branch strengthens the public wording and production smoke so that universal drafting access cannot silently regress.
+- Added a one-by-one Magnanimous capability parity ledger covering 110 modern-assistant/platform capabilities with verified/live/auth/hybrid/fail-closed/gap status.
+- Added a last-15-conversation audit that reconciles interrupted chat work against authoritative source/deployment/external-proof state.
+- Added the SEC formation owner-input checklist. Remaining SEC blockers are real owner/account/corporation facts: complete current legal-name format, current address, personal email/mobile for OTP, nationality, ownership/governance roles, capitalization/subscription facts and signatory eSECURE identities. These values must not be invented or persisted in GitHub.
+- Current surname is confirmed as Hardin. The older BIR/TIN card displays Capuno; the reason is not assumed. Reconcile through the proper BIR process only if SEC/eSECURE validation requires an exact taxpayer-name match.
+- Added a current cost-basis ledger separating published fees from quote-required, usage-variable, optional and contingent costs. ChatGPT remains budgeted at US$20/month until Magnanimous closes the remaining proven parity gaps.
+- Cloudflare D1 Free daily write exhaustion remains a real capacity risk. The checked-in runtime brain manifest stays authoritative when durable D1 materialization is deferred; a controlled Workers Paid baseline is a possible future cost, not automatically purchased.
+- Telecom public/global live flags remain fail-closed until NTC/carrier/public Telecom Core/WSS/two-way media/SIM-eSIM proof exists.
+
 ## Active work
 
 Completed:

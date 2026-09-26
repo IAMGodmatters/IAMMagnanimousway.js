@@ -12,6 +12,9 @@ function has(source,needle,label){const ok=source.includes(needle);checks.push([
 has(page,'EmailWriterClient','Business Email page exposes the Magnanimous AI email writer');
 has(page,'Magnanimous AI Email Writer','page metadata exposes email-writing capability');
 has(writer,'MAGNANIMOUS AI • EMAIL WRITER','email writer keeps Magnanimous as the public AI identity');
+has(writer,'Anyone using the platform can ask Magnanimous to write','email writing is explicitly available to every platform visitor');
+has(writer,"const headers:any={'Content-Type':'application/json'};if(token)headers.Authorization",'writer generation does not require a sign-in token');
+has(writer,"if(!token){location.href='/login?returnTo=%2Fbusiness-email';return}",'only the optional mailbox-send action requires sign-in');
 has(writer,"postMagnanimousChat",'email writer uses the resilient Magnanimous brain transport');
 has(writer,"use_knowledge:true",'email writer can use established signed-in Magnanimous context');
 has(writer,'Write the complete email, not advice about how to write it.','email writer produces ready-to-send copy');
