@@ -94,6 +94,15 @@ Full research evidence is versioned in:
 - Cloudflare D1 Free daily write exhaustion remains a real capacity risk. The checked-in runtime brain manifest stays authoritative when durable D1 materialization is deferred; a controlled Workers Paid baseline is a possible future cost, not automatically purchased.
 - Telecom public/global live flags remain fail-closed until NTC/carrier/public Telecom Core/WSS/two-way media/SIM-eSIM proof exists.
 
+## Production verification — PR #473
+
+- PR #473 merged as `0b0c3c6884fe0a1d4799a27a3ec762b2ec445951`.
+- Railway production deployment `901c9e79-ae4c-44ec-8204-eb792df8003d` is SUCCESS on that exact commit.
+- Public production inspection of `/business-email/` confirms the all-user Magnanimous Email Writer copy, writer marker, `WRITE THE EMAIL` action, and Gmail/Outlook connection handoff are live.
+- Drafting is available to every platform visitor on the free-first path. Real mailbox sending remains a separate signed-in, connected-account, explicitly confirmed action.
+- PR #473 also carries the 110-item capability parity ledger, the last-15-conversation audit, the privacy-safe SEC input checklist, and the current business cost basis.
+- Public/global telecom remains fail-closed where NTC/carrier/public-Core/media/SIM-eSIM evidence is still missing.
+
 ## Active work
 
 Completed:
