@@ -282,7 +282,7 @@ export default function NetworkAuthorityPage(){
      <small>{String(draft.status||'researching').replaceAll('_',' ').toUpperCase()}</small><h2>{item.display_name}</h2>
      <p>{item.contact_channel||'contact'} · {item.contact_destination||'not entered'}</p>
      <label>Status<select value={draft.status||'researching'} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,status:e.target.value}}))}>
-      {['researching','contacted','case_open','sales_handoff','sandbox_pending','sandbox_ready','commercial_review','contract_pending','contract_verified','blocked','declined','retired'].map(status=><option value={status} key={status}>{status.replaceAll('_',' ')}</option>)}
+      {['researching','contacted','sales_contacted','case_open','case_followed_up','sales_handoff','test_access_requested','sandbox_pending','sandbox_ready','commercial_review','contract_pending','contract_verified','blocked','declined','retired'].map(status=><option value={status} key={status}>{status.replaceAll('_',' ')}</option>)}
      </select></label>
      <label>Case / sales reference<input value={draft.case_reference||''} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,case_reference:e.target.value}}))}/></label>
      <label>Contact/evidence reference<input value={draft.evidence_reference||''} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,evidence_reference:e.target.value}}))}/></label>
@@ -294,7 +294,7 @@ export default function NetworkAuthorityPage(){
      <label>Next action<input value={draft.next_action||''} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,next_action:e.target.value}}))}/></label>
      <label>Notes<input value={draft.notes||''} onChange={e=>setPartnerDrafts(current=>({...current,[item.provider_key]:{...draft,notes:e.target.value}}))}/></label>
      <button disabled={busy} onClick={()=>savePartner(item)}>SAVE ACQUISITION STATE</button>
-     <p className={styles.muted}>Contract verified is rejected unless an agreement-grade commercial reference is present.</p>
+     <p className={styles.muted}>Contract verified is rejected unless an agreement-grade commercial reference is present. Sandbox/test access proves integration only; it never satisfies real subscriber-connectivity or production-country proof by itself.</p>
     </article>
    })}</div>
   </section>
