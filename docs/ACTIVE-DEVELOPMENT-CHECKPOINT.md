@@ -70,6 +70,15 @@ Full research evidence is versioned in:
 - eSPARC/OneSEC forms require real applicant/authorized-representative data including TIN/contact details, and ZERO relies on eSECURE/eSAP credentials for relevant officers/signatories. Formal incorporation therefore remains blocked on real owner/signatory data and must never be completed with invented identity information.
 - Latest GitHub main after the QBO repair is `c89adac58852cbe08bcf402a1c3b26cc62994903`; live Railway remains correctly on runtime commit `acf0eb84a9b256542dca3b09ab091d2779a130ba`, deployment `abdaa629-b917-45b4-b559-f7fa835343a9` (SUCCESS), because the newer commits are documentation-only.
 
+## Continuation checkpoint — real SEC identity documents received
+
+- Real owner-supplied Philippine identity/tax documents are now available for the intended Filipino participant.
+- The supplied PhilHealth ID is an SEC-accepted eSECURE ID type; the supplied BIR card provides the required TIN.
+- Sensitive values and ID images are intentionally not persisted in GitHub or project documentation.
+- The owner confirmed **Hardin** is the current surname. The older BIR/TIN card displays **Capuno**; the reason for that difference is not assumed. The underlying BIR record may need reconciliation if SEC/eSECURE validation requires an exact match.
+- Filing remains blocked only on unresolved form/account facts: personal email/mobile for OTP, nationality, complete current legal-name format, current address reconciliation, and the actual corporation ownership/role structure.
+- The supplied cards still show different addresses; Magnanimous must not pick an address automatically.
+
 ## Active work
 
 Completed:

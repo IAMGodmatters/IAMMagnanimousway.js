@@ -70,6 +70,33 @@ The published checklist identifies PNP Police Clearance, not an NBI Clearance, a
 
 ## SEC formation path currently verified
 
+### Owner-supplied identity evidence now available
+
+The owner supplied real Philippine identity/tax documents for the intended Filipino participant. The documents include:
+- a PhilHealth ID, which SEC currently lists as an acceptable eSECURE government-issued ID; and
+- a BIR-issued TIN card supplying the TIN required by eSECURE/eSPARC.
+
+Privacy rule:
+- do not store the PhilHealth number, TIN, ID image, signature image, birth date, or residential address in GitHub, public logs, or ordinary project documentation;
+- use those values only inside the official SEC/BIR/LGU filing flows when required.
+
+Identity reconciliation before filing:
+- the current surname is confirmed by the owner as **Hardin**;
+- the PhilHealth card reflects the confirmed surname **Hardin**, while the older BIR/TIN card displays **Capuno** as its surname/record name; this may be an older or unreconciled BIR record, but the reason is not assumed;
+- the two cards also show different addresses;
+- use the confirmed current legal name for SEC/eSECURE, but do not alter or invent the BIR record. If SEC/eSECURE/TIN validation requires an exact BIR name/address match, update the underlying BIR registration through the proper BIR process before relying on it for filing.
+
+Remaining SEC account/form inputs still required from the actual registrant:
+- personal email address;
+- personal mobile number capable of receiving SEC OTPs;
+- nationality/citizenship;
+- confirmed current residential address;
+- confirmed complete legal name format to use for SEC/eSECURE (surname Hardin is already confirmed);
+- intended corporate role/ownership and, if applicable, the foreign-equity percentage;
+- nominee/alternate nominee details if an OPC structure is selected.
+
+
+
 Current official SEC eSPARC guidance establishes these filing boundaries:
 
 - Starting April 7, 2025, domestic stock corporations other than lending/financing companies are processed through SEC ZERO.
