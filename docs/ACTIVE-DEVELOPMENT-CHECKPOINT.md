@@ -82,7 +82,7 @@ Full research evidence is versioned in:
 ## Continuation checkpoint — universal Email Writer + capability/business audit
 
 - PR #468 is finished and merged as `d90d65b78bff0a9dfa84c5be14a868d5e516a35a`. Its identity-evidence/SEC checkpoint is no longer waiting on QA.
-- PR #469 is finished, merged and deployed as main `4c9ee37f1d2eef7effa57bb1bce04c7b99789b5b`; Railway deployment `d505f788-91bf-4ce8-b12f-61092fc5f832` is SUCCESS.
+- PR #469 is finished, merged and deployed as main `0b0c3c6884fe0a1d4799a27a3ec762b2ec445951`; Railway deployment `901c9e79-ae4c-44ec-8204-eb792df8003d` is SUCCESS.
 - The public production body at `/business-email/` was inspected after deployment and contains the Magnanimous AI Email Writer with New email, Reply, Follow-up, Rewrite, subject/body editing, copy controls and optional connected-mailbox sending.
 - Email drafting is intentionally a platform-wide free-first capability; it does not require a sign-in token. Real mailbox sending remains a separate signed-in, connected-account, explicitly confirmed action.
 - This branch strengthens the public wording and production smoke so that universal drafting access cannot silently regress.
