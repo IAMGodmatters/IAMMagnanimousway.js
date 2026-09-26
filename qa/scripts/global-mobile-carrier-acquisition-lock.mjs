@@ -12,10 +12,12 @@ assert.ok(runtime.includes("body.api_key||body.token||body.secret||body.password
 assert.ok(runtime.includes("status==='contract_verified'&&!validCommercialReference(commercialReference)"),'Contract verification must require agreement-grade evidence.');
 assert.ok(runtime.includes("WHERE telecom_mobile_partner_acquisition.updated_by='system-seed'"),'System seed refreshes must not overwrite owner-edited acquisition rows.');
 assert.ok(runtime.includes('tinyfish-run:0fbee7e5-a0af-4e02-b9ce-9a7b308fc42f'),'Successful Gigs official sales-form evidence must remain in the seeded acquisition baseline.');
+assert.ok(runtime.includes('tinyfish-run:6e18befa-5503-43c4-8100-1c3807c14805'),'Successful Fonus reseller-form evidence must remain in the seeded acquisition baseline.');
 assert.ok(migration.includes('telecom_mobile_partner_acquisition'),'Durable acquisition table is missing.');
 assert.ok(ui.includes('Carrier partnership pipeline'),'Owner acquisition UI is missing.');
 assert.ok(ui.includes('SAVE ACQUISITION STATE'),'Owner must be able to persist acquisition state.');
 assert.ok(acquisition.includes('02547094'),'1GLOBAL case must remain durably recorded.');
 assert.ok(acquisition.includes('support@fonus.me'),'Fonus direct reseller outreach must remain durably recorded.');
 assert.ok(acquisition.includes('official sales/MVNO form submitted'),'Gigs official sales-form completion must remain durably recorded.');
+assert.ok(acquisition.includes('Fonus official reseller application submitted'),'Fonus reseller-form completion must remain durably recorded.');
 console.log('Global mobile carrier acquisition control lock passed.');
