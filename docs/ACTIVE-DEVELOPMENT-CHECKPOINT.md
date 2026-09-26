@@ -125,6 +125,10 @@ Completed:
 - [x] Submitted the official Gigs sales/MVNO contact form successfully using the business email and truthful previously provided contact details; run evidence `0fbee7e5-a0af-4e02-b9ce-9a7b308fc42f` is preserved and the next action is to await the partnerships/sales response.
 - [x] System-seeded partner acquisition rows may receive newer verified baseline updates only while `updated_by='system-seed'`; owner-edited rows are not overwritten by future seed refreshes.
 - [x] Added executable carrier-acquisition QA and Telecom CI/deep-architecture locks.
+- [x] Requested Gigs no-charge test project/API access in-thread after the official sales form submission; recorded that Gigs test SIMs support integration testing but do not provide real network connectivity and therefore cannot satisfy the live subscriber-connectivity gate.
+- [x] Followed up 1GLOBAL case `02547094` requesting agreement-grade authority, platform/sandbox credentials, Philippines eligibility, wholesale pricing/fair-use, a later real trial eSIM and independent backup-path details.
+- [x] Replied to Fonus after the direct commercial handoff and requested any application/case reference plus the missing agreement/rate/provisioning/country/trial-connectivity evidence.
+- [x] Extended the owner Carrier Access states with `test_access_requested`, `case_followed_up` and `sales_contacted`; sandbox/test references are explicitly separated from production/live-network proof.
 
 Intentionally gated follow-on work, not falsely marked live:
 - [ ] Deploy a dedicated public Telecom Core host/domain with trusted WSS TLS and required SIP/RTP exposure. No paid host has been created by this work.
