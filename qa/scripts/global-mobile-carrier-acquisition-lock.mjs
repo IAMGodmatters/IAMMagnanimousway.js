@@ -30,8 +30,12 @@ assert.ok(ui.includes('test_access_requested'),'Owner UI must support the test-a
 assert.ok(ui.includes('case_followed_up'),'Owner UI must support provider-case follow-up state.');
 assert.ok(ui.includes('Sandbox/test access proves integration only'),'Owner UI must preserve sandbox-vs-live truth.');
 assert.ok(runtime.includes('gmail:1a0dbcee2745d3d6'),'Latest 1GLOBAL substantive-response follow-up must remain durable.');
-assert.ok(runtime.includes('automated case-updated notice without the requested commercial/technical evidence'),'Automated case notices must not be mistaken for commercial proof.');
+assert.ok(runtime.includes('automated case-updated notices without the requested commercial/technical evidence'),'Automated case notices must not be mistaken for commercial proof.');
 assert.ok(runtime.includes("status:'sales_handoff'"),'Fonus confirmed reseller handoff must remain durable.');
 assert.ok(runtime.includes('gmail:1a0dbcecffc2054a'),'Fonus handoff confirmation must remain durable.');
 assert.ok(runtime.includes('suppresses duplicate auto-ack replies'),'Repeated automated carrier acknowledgements must not create reply loops.');
+assert.ok(runtime.includes("key:'pldt-smart'"),'PLDT/Smart must remain in the Philippine host-carrier acquisition pipeline.');
+assert.ok(runtime.includes('gmail:1a0dbe42b953cad0'),'PLDT/Smart official business-development outreach evidence must remain durable.');
+assert.ok(runtime.includes("key:'dito'"),'DITO must remain in the Philippine host-carrier acquisition pipeline.');
+assert.ok(runtime.includes('gmail:1a0dbe434a054d64'),'DITO official partner outreach evidence must remain durable.');
 console.log('Global mobile carrier acquisition control lock passed.');

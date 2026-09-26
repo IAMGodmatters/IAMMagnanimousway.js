@@ -8,6 +8,7 @@ on:
       - 'frontend/app/telecom/**'
       - 'worker/src/magnanimous-telecom-runtime.js'
       - 'worker/src/magnanimous-telecom-network-runtime.js'
+      - 'worker/src/magnanimous-telecom-email-watch.js'
       - 'worker/src/magnanimous-carrier-core.js'
       - 'worker/src/lead-phone.js'
       - 'worker/src/phone-carrier-runtime.js'
@@ -18,7 +19,9 @@ on:
       - 'qa/scripts/global-mobile-proof-gates-lock.mjs'
       - 'qa/scripts/global-mobile-enrollment-failover-lock.mjs'
       - 'qa/scripts/global-mobile-carrier-acquisition-lock.mjs'
+      - 'qa/scripts/telecom-email-watch-lock.mjs'
       - 'worker/migrations/0090_global_mobile_partner_acquisition.sql'
+      - 'worker/migrations/0091_telecom_email_watch.sql'
       - 'worker/migrations/0089_global_mobile_enrollment_and_failover.sql'
       - 'worker/migrations/0087_global_mobile_proof_gates.sql'
       - 'docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md'
@@ -49,6 +52,7 @@ on:
       - 'frontend/app/telecom/**'
       - 'worker/src/magnanimous-telecom-runtime.js'
       - 'worker/src/magnanimous-telecom-network-runtime.js'
+      - 'worker/src/magnanimous-telecom-email-watch.js'
       - 'worker/src/magnanimous-carrier-core.js'
       - 'worker/src/lead-phone.js'
       - 'worker/src/phone-carrier-runtime.js'
@@ -137,6 +141,8 @@ jobs:
           node qa/scripts/global-mobile-proof-gates-lock.mjs
           node qa/scripts/global-mobile-enrollment-failover-lock.mjs
           node qa/scripts/global-mobile-carrier-acquisition-lock.mjs
+          node --check worker/src/magnanimous-telecom-email-watch.js
+          node qa/scripts/telecom-email-watch-lock.mjs
           node --check worker/src/magnanimous-carrier-core.js
           node --check worker/src/lead-phone.js
           node --check worker/src/phone-carrier-runtime.js
@@ -163,6 +169,8 @@ jobs:
           grep -q 'telecom_network_providers' worker/migrations/0043_magnanimous_regulated_network.sql
           grep -q 'telecom_regulatory_cases' worker/migrations/0043_magnanimous_regulated_network.sql
           grep -q 'telecom_network_events' worker/migrations/0043_magnanimous_regulated_network.sql
+          grep -q 'telecom_email_watch_events' worker/migrations/0091_telecom_email_watch.sql
+          grep -q 'telecom_email_watch_state' worker/migrations/0091_telecom_email_watch.sql
           grep -q 'telecom_provider_policy' worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql
           grep -q 'telecom_retail_plans' worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql
           grep -q 'telecom_customer_lines' worker/migrations/0044_magnanimous_telecom_retail_service_lock.sql

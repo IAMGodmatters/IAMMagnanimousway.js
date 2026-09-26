@@ -335,3 +335,38 @@ The carrier-acquisition pipeline now records sandbox/test references separately 
 - prove commercial/resale authority;
 - prove regulatory authority;
 - prove independent backup-network resilience.
+
+
+### Telna focused qualification follow-up
+
+A second, focused Telna message was sent to `bd@telna.com` with `info@telna.com` copied after reviewing Telna's current public CSP/eSIM materials.
+
+Gmail evidence: `1a0dbdbf2f5daf4a`
+
+Requested:
+- Philippines consumer-eSIM/data eligibility and actual network/IMSI options;
+- white-label/reseller agreement and Magnanimous-brand rights;
+- sandbox/demo/API or trial-account access;
+- complimentary/no-cost trial SIM/eSIM and confirmation whether it provides real Philippines connectivity;
+- wholesale rates, setup/minimum/deposit/commitment/tax/fair-use terms;
+- provisioning, usage, charging/policy, webhook and troubleshooting APIs;
+- Philippine KYC/SIM-registration/permanent-roaming allocation;
+- independent primary/backup network-group proof.
+
+Public Telna materials are architecture/commercial-fit evidence only. They do not prove Magnanimous country eligibility, pricing, agreement, profile issuance or live subscriber connectivity until Telna supplies partner-specific evidence.
+
+### Native email monitoring
+
+Magnanimous now contains a native Telecom carrier/regulator Gmail watcher designed for the already-authorized owner Gmail connection and the existing 15-minute Magnanimous scheduler.
+
+The watcher:
+- monitors only recent inbox messages from Gigs, Telna, 1GLOBAL, Fonus and NTC domains;
+- stores every processed inbound message in a durable dedupe ledger;
+- never replies twice to the same Gmail message id;
+- suppresses obvious automated acknowledgements;
+- applies a six-hour same-thread reply cooldown to prevent autoresponder loops;
+- respects existing Gmail read/write permissions;
+- acknowledges consequential contract/payment/KYC requests without accepting or executing them;
+- threads Gmail replies correctly;
+- adds carrier-message evidence into the mobile partner acquisition ledger;
+- records watcher state and errors without exposing OAuth tokens.

@@ -265,3 +265,10 @@ Git commits/branches/PRs/CI/deployment IDs are the authoritative development rec
 
 - [x] Fonus Support explicitly confirmed that Zhac will handle the reseller concern; Magnanimous acknowledged once and advanced Fonus to `sales_handoff` while awaiting substantive commercial terms (`gmail:1a0dbcecffc2054a`, reply `gmail:1a0dbd4cd3dd3738`).
 - [x] 1GLOBAL sent another identical automated case-update notice (`gmail:1a0dbcf10d0bce25`); Magnanimous recorded it but deliberately suppressed a duplicate reply to prevent an automated email loop while case `02547094` remains open for a human/substantive response.
+
+- [x] Sent focused NTC Region VII follow-up requesting routing through the Negros Oriental/Dumaguete licensing path and current classification/form/requirements/mobile-authority guidance (`gmail:1a0dbdbdf4a77102`).
+- [x] Sent focused Telna CSP/eSIM qualification follow-up requesting Philippines network/IMSI eligibility, white-label agreement, sandbox/trial access, wholesale economics, compliance allocation and independent backup proof (`gmail:1a0dbdbf2f5daf4a`).
+- [x] Added native 15-minute Telecom carrier/regulator Gmail watch using the platform's existing Google OAuth read/send connection, durable message-id dedupe, six-hour thread cooldown, automated-ack suppression, consequential-action non-acceptance, threaded replies, partner-evidence updates, owner-only status/manual-run endpoints and CI safety locks.
+- [x] Opened Philippine host-network path with PLDT Enterprise / Smart via official business-development email, requesting reseller/MVNO/VNO agreement, NTC-required carrier evidence, SIM/eSIM/API provisioning, Philippine compliance allocation, wholesale economics, trial profile and backup-network guidance (`gmail:1a0dbe42b953cad0`).
+- [x] Opened Philippine host-network path with DITO via official partner inquiry email with the same lawful reseller/MVNO/VNO, SIM/eSIM/API, NTC, pricing, trial and backup-network evidence request (`gmail:1a0dbe434a054d64`).
+- [x] Extended native Telecom Gmail monitoring and carrier acquisition state to PLDT/Smart and DITO domains/records.

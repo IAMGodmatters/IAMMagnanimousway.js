@@ -25,6 +25,7 @@ import {handlePaymentLinkBilling,augmentBillingResponse} from './payment-link-ru
 import {handleSelfHealing,scheduledSelfHealing} from './self-healing-runtime.js';
 import {handlePremiumVoice} from './premium-voice-runtime.js';
 import {handleMagnanimousApiContractIntelligence} from './magnanimous-api-contract-intelligence.js';
+import {scheduledTelecomEmailWatch,telecomEmailWatchStatus} from './magnanimous-telecom-email-watch.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -56,6 +57,13 @@ const INTEGRATION_CONTRACT={
 async function operationsRequest(request,env){
  const url=new URL(request.url),path=url.pathname;
  if(request.method==='GET'&&path==='/api/integration-contract')return json(INTEGRATION_CONTRACT);
+ if(path==='/api/telecom/email-watch/status'||path==='/api/telecom/email-watch/run'){
+  const user=await signedIn(request,env);if(!user)return json({detail:'Sign in to use Telecom email monitoring.'},401);
+  if(!['owner','admin','super_admin','superadmin'].includes(String(user.role||'').toLowerCase()))return json({detail:'Owner access required.'},403);
+  if(path.endsWith('/status')&&request.method==='GET')return json(await telecomEmailWatchStatus(env,user.tenant_id));
+  if(path.endsWith('/run')&&request.method==='POST')return json(await scheduledTelecomEmailWatch(env));
+  return json({detail:'Method not allowed.'},405);
+ }
  if(!path.startsWith('/api/work-engine')&&!path.startsWith('/api/evidence-notebook')&&path!=='/api/operations/overview')return null;
  const user=await signedIn(request,env);if(!user)return json({detail:'Sign in to use this workspace.'},401);
 
@@ -243,7 +251,8 @@ export default{
    scheduledNativeWeb(env).catch(error=>console.error('scheduled native web automation failed',error)),
    scheduledMagnanimousCapabilityMesh(env).catch(error=>console.error('scheduled capability mesh check failed',error)),
    scheduledMagnanimousRoutines(env).catch(error=>console.error('scheduled Magnanimous routines failed',error)),
-   scheduledSelfHealing(env,origin).catch(error=>console.error('scheduled self-healing check failed',error))
+   scheduledSelfHealing(env,origin).catch(error=>console.error('scheduled self-healing check failed',error)),
+   scheduledTelecomEmailWatch(env).catch(error=>console.error('scheduled telecom email watch failed',error))
   ]);
   if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
  }

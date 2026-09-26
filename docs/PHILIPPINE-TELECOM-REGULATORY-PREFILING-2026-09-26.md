@@ -163,3 +163,20 @@ The request asks NTC to identify the correct classification, current form, curre
 ## Promotion rule
 
 No UI, API, sales copy or customer contract may state that Magnanimous Telecom is NTC-authorized for a regulated category until a genuine NTC-issued approval/certificate/evidence reference is received and recorded.
+
+
+## Follow-up evidence — 2026-09-26
+
+Current NTC Region VII public pages continue to list Negros Oriental inside Region VII's area of responsibility and list the Negros Oriental sub-office in Dumaguete City.
+
+A focused follow-up was sent to Region VII asking that the pre-application inquiry be routed to the Negros Oriental/Dumaguete licensing unit or the correct licensing/legal unit and requesting written confirmation of:
+- correct VoIP/VAS classification;
+- current Form NTC 1-20 path;
+- current documentary, ownership/capital, fee and performance-bond requirements;
+- required authorized-network/reseller/interconnection agreement;
+- any additional VNO/MVNO/mobile authority for a branded host-carrier SIM/eSIM offering;
+- pre-filing review availability and final filing office/contact.
+
+Gmail evidence: `1a0dbdbdf4a77102`
+
+Truth boundary: the email is a request for guidance. It is not an NTC filing receipt, certificate, authority, approval, or waiver.
