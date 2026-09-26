@@ -262,3 +262,6 @@ Rules:
 Git commits/branches/PRs/CI/deployment IDs are the authoritative development record. This checkpoint preserves the task, decisions, completed work, verification evidence and next safe actions. It does not claim to control or prevent the ChatGPT client transport itself from showing a streaming interruption, and it does not pretend that every raw chat token is copied into Git.
 
 - [x] 1GLOBAL case `02547094` sent an automated case-updated notice without the requested commercial/technical evidence; Magnanimous replied again requesting a named Connect / Embedded Telco owner and the outstanding agreement, Philippines, sandbox, pricing, real-trial-eSIM and backup-path evidence (`gmail:1a0dbcee2745d3d6`).
+
+- [x] Fonus Support explicitly confirmed that Zhac will handle the reseller concern; Magnanimous acknowledged once and advanced Fonus to `sales_handoff` while awaiting substantive commercial terms (`gmail:1a0dbcecffc2054a`, reply `gmail:1a0dbd4cd3dd3738`).
+- [x] 1GLOBAL sent another identical automated case-update notice (`gmail:1a0dbcf10d0bce25`); Magnanimous recorded it but deliberately suppressed a duplicate reply to prevent an automated email loop while case `02547094` remains open for a human/substantive response.
