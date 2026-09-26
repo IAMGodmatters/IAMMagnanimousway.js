@@ -121,6 +121,8 @@ Completed:
 - [x] Sent a direct Fonus reseller/global-mobile inquiry to the current official `support@fonus.me` contact after the public reseller form required phone/address fields that should not be invented; no spend or activation was performed.
 - [x] Added a native owner-only Global Mobile Carrier Acquisition pipeline backed by `telecom_mobile_partner_acquisition`, seeded from the real Gigs/Telna/1GLOBAL/Fonus outreach state, with case/evidence/pricing/agreement/sandbox/country/capability/next-action fields.
 - [x] Carrier acquisition records reject API keys, passwords, tokens and activation secrets; `contract_verified` is fail-closed unless an agreement-grade commercial reference is present.
+- [x] Submitted the official Gigs sales/MVNO contact form successfully using the business email and truthful previously provided contact details; run evidence `0fbee7e5-a0af-4e02-b9ce-9a7b308fc42f` is preserved and the next action is to await the partnerships/sales response.
+- [x] System-seeded partner acquisition rows may receive newer verified baseline updates only while `updated_by='system-seed'`; owner-edited rows are not overwritten by future seed refreshes.
 - [x] Added executable carrier-acquisition QA and Telecom CI/deep-architecture locks.
 
 Intentionally gated follow-on work, not falsely marked live:

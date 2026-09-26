@@ -182,7 +182,7 @@ const PH_CASES=[
 ];
 
 const MOBILE_PARTNERS=[
- {key:'gigs',name:'Gigs',status:'sales_handoff',channel:'email/form',destination:'support@gigs.com',case_reference:'',evidence_reference:'gmail:1a0db54b6241e75e',next_action:'Await direct Sales/MVNO routing or submit the official sales form from the business mailbox.'},
+ {key:'gigs',name:'Gigs',status:'sales_handoff',channel:'official-sales-form',destination:'https://gigs.com/contact',case_reference:'',evidence_reference:'tinyfish-run:0fbee7e5-a0af-4e02-b9ce-9a7b308fc42f',next_action:'Official Gigs sales/MVNO form submitted successfully on 2026-09-26. Await partnerships/sales response.'},
  {key:'telna',name:'Telna',status:'contacted',channel:'email',destination:'bd@telna.com',case_reference:'',evidence_reference:'gmail:1a0db5025ca68532',next_action:'Await commercial onboarding, wholesale pricing, sandbox and multi-network details.'},
  {key:'1global',name:'1GLOBAL',status:'case_open',channel:'email',destination:'business.help@1global.com',case_reference:'02547094',evidence_reference:'gmail:1a0db5066b33f92d',next_action:'Await Connect / Embedded Telco commercial response for case 02547094.'},
  {key:'fonus',name:'Fonus',status:'contacted',channel:'email/reseller-form',destination:'support@fonus.me',case_reference:'',evidence_reference:'gmail:1a0db5b73b594f41',next_action:'Await reseller/commercial team response with agreement, wholesale rate deck and provisioning terms.'}
@@ -221,9 +221,13 @@ async function seedMobilePartners(env,tenant){
  const ts=now();
  for(const partner of MOBILE_PARTNERS){
   try{
-   await env.DB.prepare(`INSERT OR IGNORE INTO telecom_mobile_partner_acquisition(
+   await env.DB.prepare(`INSERT INTO telecom_mobile_partner_acquisition(
     tenant_id,provider_key,display_name,status,contact_channel,contact_destination,case_reference,evidence_reference,next_action,last_contact_at,updated_by,created_at,updated_at
-   ) VALUES(?,?,?,?,?,?,?,?,?,?,?, ?,?)`)
+   ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+   ON CONFLICT(tenant_id,provider_key) DO UPDATE SET
+    display_name=excluded.display_name,status=excluded.status,contact_channel=excluded.contact_channel,contact_destination=excluded.contact_destination,
+    case_reference=excluded.case_reference,evidence_reference=excluded.evidence_reference,next_action=excluded.next_action,last_contact_at=excluded.last_contact_at,updated_at=excluded.updated_at
+   WHERE telecom_mobile_partner_acquisition.updated_by='system-seed'`)
     .bind(tenant,partner.key,partner.name,partner.status,partner.channel,partner.destination,partner.case_reference,partner.evidence_reference,partner.next_action,ts,'system-seed',ts,ts).run();
   }catch(error){console.error('mobile partner acquisition seed failed',error)}
  }
