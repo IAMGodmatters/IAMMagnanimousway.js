@@ -26,6 +26,7 @@ const globalMobileBenchmark=read('docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26
 const globalMobileAcquisition=read('docs/GLOBAL-MOBILE-CARRIER-ACQUISITION-2026-09-26.md');
 const globalMobileTerms=read('docs/GLOBAL-MOBILE-COMMERCIAL-TERMS-REQUIREMENTS-2026-09-26.md');
 const mobileActivate=read('frontend/app/telecom/activate/page.tsx');
+const phRegulatoryPrefiling=read('docs/PHILIPPINE-TELECOM-REGULATORY-PREFILING-2026-09-26.md');
 const globalMobileMigration=read('worker/migrations/0087_global_mobile_proof_gates.sql');
 const globalMobileGateQa=read('qa/scripts/global-mobile-proof-gates-lock.mjs');
 const globalMobileEnrollmentMigration=read('worker/migrations/0089_global_mobile_enrollment_and_failover.sql');
@@ -78,6 +79,7 @@ file('docs/GLOBAL-MOBILE-RETAIL-BENCHMARK-2026-09-26.md','Fonus/Popcorn global m
 file('docs/GLOBAL-MOBILE-CARRIER-ACQUISITION-2026-09-26.md','carrier acquisition outreach state is durably versioned');
 file('docs/GLOBAL-MOBILE-COMMERCIAL-TERMS-REQUIREMENTS-2026-09-26.md','carrier commercial acceptance requirements are durably versioned');
 file('frontend/app/telecom/activate/page.tsx','customer Magnanimous enrollment redemption path exists');
+file('docs/PHILIPPINE-TELECOM-REGULATORY-PREFILING-2026-09-26.md','Philippine telecom regulatory pre-filing package is versioned');
 file('worker/migrations/0087_global_mobile_proof_gates.sql','global mobile evidence tables are durably versioned');
 file('qa/scripts/global-mobile-proof-gates-lock.mjs','global mobile live proof-gate test is versioned');
 file('worker/migrations/0089_global_mobile_enrollment_and_failover.sql','Magnanimous enrollment and failover evidence state is durable');
@@ -283,6 +285,10 @@ has(globalMobileTerms,'deposit/commitment that has not received explicit payment
 has(mobileActivate,'carrier/SM-DP+ activation code','customer redemption page distinguishes Magnanimous enrollment from carrier activation');
 has(mobileActivate,"type='password'",'customer enrollment token is masked in the browser');
 has(mobileActivate,'Do not paste a carrier QR payload','customer path rejects misuse of carrier authentication material by policy');
+has(phRegulatoryPrefiling,'Form NTC 1-20','Philippine pre-filing package retains the current public application path');
+has(phRegulatoryPrefiling,'PHP 10,000,000','provider-path capitalization research is retained without claiming satisfaction');
+has(phRegulatoryPrefiling,'PHP 5,000,000 performance bond','provider-path bond research is retained without purchasing it');
+has(phRegulatoryPrefiling,'No UI, API, sales copy or customer contract may state','regulatory promotion remains evidence-gated');
 has(globalMobileMigration,'telecom_country_capabilities','global mobile country truth is durable');
 has(globalMobileMigration,'telecom_mobile_wholesale_offers','global mobile wholesale evidence is durable');
 has(globalMobileMigration,'telecom_mobile_access_profiles','global mobile access profiles are durable');
