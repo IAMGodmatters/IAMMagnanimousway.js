@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS telecom_mobile_wholesale_offers (
   country_code TEXT NOT NULL,
   currency TEXT NOT NULL DEFAULT 'USD',
   origin_reference TEXT NOT NULL,
+  commercial_reference TEXT NOT NULL,
   origin_cost_verified INTEGER NOT NULL DEFAULT 0 CHECK(origin_cost_verified IN (0,1)),
   commercial_authorized INTEGER NOT NULL DEFAULT 0 CHECK(commercial_authorized IN (0,1)),
   country_verified INTEGER NOT NULL DEFAULT 0 CHECK(country_verified IN (0,1)),
