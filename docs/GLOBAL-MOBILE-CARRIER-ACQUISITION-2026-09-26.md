@@ -163,3 +163,31 @@ The request asks NTC Region VII to confirm:
 - any newer rules superseding older VoIP/VAS guidance.
 
 No application declaration was signed, no filing fee was paid, no bond was purchased, and no regulatory authority is represented as granted.
+
+
+## Responses received
+
+### Gigs
+
+Gigs Support replied and confirmed interest, but asked that the sales inquiry be submitted through the Gigs contact form using a business email address.
+
+Because the public form is dynamically rendered and the free page reader cannot access its fields, no paid browser automation was used and no personal/contact data was invented.
+
+Follow-up action completed:
+- replied on the existing Gigs thread;
+- provided the business email `Godmattersinc@iammagnanimousway.com`;
+- requested direct routing to the Sales / MVNO onboarding team or a direct sales/onboarding contact;
+- reiterated that no paid production activation is requested yet.
+
+Gigs reply Gmail message id: 1a0db54b6241e75e
+Magnanimous follow-up Gmail message id: 1a0db58c6b907aa0
+
+### 1GLOBAL
+
+1GLOBAL acknowledged the Embedded Telco / Connect inquiry and opened:
+
+**Case number: 02547094**
+
+Gmail message id: 1a0db5066b33f92d
+
+Status: waiting for the 1GLOBAL commercial/onboarding response. No credentials, contract, pricing or production authority have been assumed from the case acknowledgement.
