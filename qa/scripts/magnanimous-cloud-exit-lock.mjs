@@ -52,8 +52,13 @@ for(const contract of ['prepare(sql)','bind(...params)','async run()','async fir
 }
 
 const server=read('magnanimous-runtime/src/server.mjs');
+const docker=read('magnanimous-runtime/Dockerfile');
+must(docker.includes('grep -RFq "Tell me what you want to say." frontend/out/business-email*'),'Standalone image build must fail if the Email Writer is absent from the exported static page.');
 must(server.includes("MAGNANIMOUS_RUNTIME: 'standalone-node'"),'Standalone runtime identity missing.');
 must(server.includes('/__magnanimous_runtime/health'),'Standalone runtime health endpoint missing.');
+must(server.includes('staticAssetProof'),'Standalone runtime must prove the actual built static asset set.');
+must(server.includes('business_email_writer_marker'),'Standalone health must expose the Business Email writer asset marker.');
+must(server.includes("text.includes('Tell me what you want to say.')"),'Static asset proof must inspect the real exported Business Email HTML.');
 must(server.includes('app.fetch(request, env, work.ctx)'),'Existing Magnanimous request chain must run unchanged.');
 must(server.includes('app.scheduled'),'Standalone scheduler compatibility is missing.');
 must(server.includes('MAGNANIMOUS_OBJECT_STORE'),'Standalone runtime object-store binding missing.');
