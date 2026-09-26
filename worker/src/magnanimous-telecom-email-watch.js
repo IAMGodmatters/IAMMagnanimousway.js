@@ -51,6 +51,10 @@ function plainBody(message){
 function attachmentNames(message){
  return flattenParts(message?.payload||{}).map(p=>String(p.filename||'').trim()).filter(Boolean).slice(0,20);
 }
+function latestSegment(body){
+ const text=String(body||'').replace(/\r\n/g,'\n');
+ return text.split(/\n(?:On .{0,300}wrote:|From:\s|-----Original Message-----|_{5,}|-{5,})/i)[0].slice(0,4000);
+}
 function automaticAcknowledgement(from,subject,body){
  const hay=(String(subject||'')+'\n'+String(body||'')).toLowerCase(),address=extractAddress(from);
  if(/(^|[.@_-])(no-?reply|donotreply|do-not-reply)([.@_-]|$)/.test(address))return true;
@@ -166,7 +170,7 @@ export async function scheduledTelecomEmailWatch(env){
    if(await seen(env,row.id))continue;
    const message=await jsonFetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(row.id)}?format=full`,{headers:{Authorization:`Bearer ${token}`}});
    const h=headerMap(message),from=h.from||'',key=providerKey(from);if(!key)continue;
-   const body=plainBody(message),attachments=attachmentNames(message),auto=automaticAcknowledgement(from,h.subject,body),consequential=consequentialRequest(body);
+   const body=plainBody(message),latest=latestSegment(body),attachments=attachmentNames(message),auto=automaticAcknowledgement(from,h.subject,latest),consequential=consequentialRequest(latest);
    const cooldown=!auto&&await recentThreadReply(env,user.tenant_id,message.threadId||'');
    const classification=auto?'auto_ack':consequential?'owner_action_required':'substantive';
    let action=auto?'recorded_no_reply':cooldown?'recorded_thread_cooldown':'recorded_write_disabled',replyId='';
