@@ -82,7 +82,7 @@ Full research evidence is versioned in:
 ## Continuation checkpoint — universal Email Writer + capability/business audit
 
 - PR #468 is finished and merged as `d90d65b78bff0a9dfa84c5be14a868d5e516a35a`. Its identity-evidence/SEC checkpoint is no longer waiting on QA.
-- PR #469 is finished, merged and deployed as main `4c9ee37f1d2eef7effa57bb1bce04c7b99789b5b`; Railway deployment `d505f788-91bf-4ce8-b12f-61092fc5f832` is SUCCESS.
+- PR #469 is finished, merged and deployed as main `0b0c3c6884fe0a1d4799a27a3ec762b2ec445951`; Railway deployment `901c9e79-ae4c-44ec-8204-eb792df8003d` is SUCCESS.
 - The public production body at `/business-email/` was inspected after deployment and contains the Magnanimous AI Email Writer with New email, Reply, Follow-up, Rewrite, subject/body editing, copy controls and optional connected-mailbox sending.
 - Email drafting is intentionally a platform-wide free-first capability; it does not require a sign-in token. Real mailbox sending remains a separate signed-in, connected-account, explicitly confirmed action.
 - This branch strengthens the public wording and production smoke so that universal drafting access cannot silently regress.
@@ -93,6 +93,15 @@ Full research evidence is versioned in:
 - Added a current cost-basis ledger separating published fees from quote-required, usage-variable, optional and contingent costs. ChatGPT remains budgeted at US$20/month until Magnanimous closes the remaining proven parity gaps.
 - Cloudflare D1 Free daily write exhaustion remains a real capacity risk. The checked-in runtime brain manifest stays authoritative when durable D1 materialization is deferred; a controlled Workers Paid baseline is a possible future cost, not automatically purchased.
 - Telecom public/global live flags remain fail-closed until NTC/carrier/public Telecom Core/WSS/two-way media/SIM-eSIM proof exists.
+
+## Production verification — PR #473
+
+- PR #473 merged as `0b0c3c6884fe0a1d4799a27a3ec762b2ec445951`.
+- Railway production deployment `901c9e79-ae4c-44ec-8204-eb792df8003d` is SUCCESS on that exact commit.
+- Public production inspection of `/business-email/` confirms the all-user Magnanimous Email Writer copy, writer marker, `WRITE THE EMAIL` action, and Gmail/Outlook connection handoff are live.
+- Drafting is available to every platform visitor on the free-first path. Real mailbox sending remains a separate signed-in, connected-account, explicitly confirmed action.
+- PR #473 also carries the 110-item capability parity ledger, the last-15-conversation audit, the privacy-safe SEC input checklist, and the current business cost basis.
+- Public/global telecom remains fail-closed where NTC/carrier/public-Core/media/SIM-eSIM evidence is still missing.
 
 ## Active work
 
