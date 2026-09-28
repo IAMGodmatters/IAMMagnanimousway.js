@@ -732,6 +732,67 @@ jobs:
           assert data.get('status') == 'ok', data
           PY
 
+          check_get "Magnanimous connector manifest" "$BASE_URL/.well-known/magnanimous-ai-connector.json" /tmp/magnanimous-connector.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/magnanimous-connector.json'))
+          assert data.get('name') == 'Magnanimous AI', data
+          mcp=data.get('mcp') or {}
+          assert str(mcp.get('url') or '').endswith('/mcp'), data
+          native=data.get('native_operations') or {}
+          assert native.get('railway_plugin_required') is False, data
+          assert native.get('cloudflare_plugin_required') is False, data
+          assert native.get('provider_purchase_required_for_control_plane') is False, data
+          assert native.get('areas') == ['web','cloud','edge'], data
+          assert native.get('unified_tool') == 'magnanimous_operate', data
+          print('Public Magnanimous connector manifest exposes one native web/cloud/edge operations plugin.')
+          PY
+
+          check_get "Magnanimous OAuth protected-resource metadata" "$BASE_URL/.well-known/oauth-protected-resource" /tmp/magnanimous-oauth-resource.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/magnanimous-oauth-resource.json'))
+          assert str(data.get('resource') or '').endswith('/mcp'), data
+          scopes=set(data.get('scopes_supported') or [])
+          for required in ('web.read','cloud.read','cloud.write'):
+              assert required in scopes, (required,data)
+          PY
+
+          check_get "Magnanimous OAuth authorization-server metadata" "$BASE_URL/.well-known/oauth-authorization-server" /tmp/magnanimous-oauth-server.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/magnanimous-oauth-server.json'))
+          assert 'S256' in (data.get('code_challenge_methods_supported') or []), data
+          assert 'authorization_code' in (data.get('grant_types_supported') or []), data
+          assert 'refresh_token' in (data.get('grant_types_supported') or []), data
+          assert str(data.get('registration_endpoint') or '').endswith('/oauth/register'), data
+          scopes=set(data.get('scopes_supported') or [])
+          assert {'web.read','cloud.read','cloud.write'}.issubset(scopes), data
+          PY
+
+          mcp_status="$(command curl -sS --connect-timeout 10 --max-time 120 -D /tmp/magnanimous-mcp-headers.txt -o /tmp/magnanimous-mcp-unauth.json -w '%{http_code}' "$BASE_URL/mcp" || true)"
+          if [ "$mcp_status" != "401" ]; then
+            echo "Magnanimous MCP unauthenticated challenge expected HTTP 401, got $mcp_status"
+            cat /tmp/magnanimous-mcp-unauth.json 2>/dev/null || true
+            exit 1
+          fi
+          grep -Eqi '^www-authenticate:.*resource_metadata=.*oauth-protected-resource' /tmp/magnanimous-mcp-headers.txt || {
+            echo "Magnanimous MCP did not advertise OAuth protected-resource metadata."
+            cat /tmp/magnanimous-mcp-headers.txt || true
+            exit 1
+          }
+          echo "Magnanimous MCP OAuth challenge is live."
+
+          check_get "Magnanimous plugin support page" "$BASE_URL/plugin-support" /tmp/magnanimous-plugin-support.html
+          grep -q "Magnanimous AI Plugin Support" /tmp/magnanimous-plugin-support.html || {
+            echo "Magnanimous plugin support page marker missing."
+            exit 1
+          }
+          grep -q "native cloud/deployment operations" /tmp/magnanimous-plugin-support.html || {
+            echo "Magnanimous plugin support page does not describe the unified native operations surface."
+            exit 1
+          }
+
           edge_bridge_token="$(python - <<'PY'
           import hashlib,os
           seed='magnanimous-edge-ai-bridge-v1\0'+os.environ['CLOUDFLARE_API_TOKEN']+'\0'+os.environ['CLOUDFLARE_ACCOUNT_ID']
