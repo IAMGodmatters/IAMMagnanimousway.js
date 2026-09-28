@@ -142,7 +142,7 @@ Magnanimous AI is the planner, memory, policy, routing, and verification layer. 
 3. Use \`magnanimous_web_research\` for source-backed multi-page research.
 4. Use \`magnanimous_web_read_flow\` for deterministic multi-step read/navigation work.
 5. Use browser goals or action/session tools only when interaction is required; preserve Magnanimous confirmation gates.
-6. Use \`magnanimous_web_run_get\` when a run returns before completion.
+6. Use \`magnanimous_web_wait_for_run\` to wait on an existing asynchronous run, or \`magnanimous_web_run_get\` for a single status read. Never start a duplicate run just to poll.
 7. Use monitor tools for recurring read-only search/fetch checks.
 
 ## Credentials and safety
