@@ -110,6 +110,29 @@ export async function usageStatus(env,tenantId){
  return{...p,period_key:key,direct_variable_cost_usd:used,cost_ceiling_usd:ceiling,remaining_cost_usd:remainingIncluded,prepaid_balance_usd:prepaidBalance,prepaid_provider_origin_capacity_usd:prepaidOriginCapacity,prepaid_total_funded_usd:Number(wallet.total_funded_usd||0),prepaid_total_consumed_usd:Number(wallet.total_consumed_usd||0),premium_spendable_usd:originSpendable,provider_origin_spendable_usd:originSpendable,variable_markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,premium_usage_allowed:p.plan!=='free'&&originSpendable>0};
 }
 
+export async function canUsePassThrough(env,tenantId,{category='magnanimous-plugin',estimated_provider_origin_cost_usd=0}={}){
+ const s=await usageStatus(env,tenantId);
+ const origin=Math.max(0,Number(estimated_provider_origin_cost_usd||0)||0);
+ const variable=variableCustomerCharge(origin);
+ if(variable.customer_charge_usd<=0)return{ok:true,code:'FREE_NATIVE_PATH',detail:'This Magnanimous-native operation has no verified direct metered origin cost.',estimated_provider_origin_cost_usd:0,estimated_variable_customer_charge_usd:0,...s};
+ if(variable.customer_charge_usd>Number(s.prepaid_balance_usd||0)+1e-9)return{
+  ok:false,code:'PREPAID_USAGE_BALANCE_EXHAUSTED',
+  detail:'This paid direct-cost operation requires customer-funded prepaid credits equal to the verified origin cost plus exactly 20% Magnanimous markup.',
+  category,
+  estimated_provider_origin_cost_usd:origin,
+  estimated_variable_customer_charge_usd:variable.customer_charge_usd,
+  ...s
+ };
+ return{
+  ok:true,code:'PREPAID_FUNDED',
+  detail:'Customer-funded prepaid credits cover the verified origin cost plus exactly 20% Magnanimous markup.',
+  category,
+  estimated_provider_origin_cost_usd:origin,
+  estimated_variable_customer_charge_usd:variable.customer_charge_usd,
+  ...s
+ };
+}
+
 export async function canUsePremium(env,tenantId,{category='premium',estimated_provider_origin_cost_usd=null,estimated_cost_usd=0,required_plan='business',entitlement=''}={}){
  const s=await usageStatus(env,tenantId),required=PLAN_LIMITS[normalizePlan(required_plan)]?.rank??2;
  if((s.limits?.rank??0)<required)return{ok:false,code:'PLAN_REQUIRED',detail:`${required_plan} or higher is required for ${category}.`,...s};
