@@ -5,6 +5,8 @@ import { handleMagnanimousNativeWeb } from './magnanimous-native-web-runtime.js'
 import { handleMagnanimousCloudProvider } from './magnanimous-cloud-provider-core.js';
 import { handleMagnanimousInfrastructure } from './magnanimous-infrastructure-core.js';
 import { getMagnanimousUnifiedOpsCatalog, resolveMagnanimousBenchmark } from './magnanimous-unified-ops.js';
+import { handleEnterpriseCommercialization } from './enterprise-commercialization-runtime.js';
+import { magnanimousPluginPricingSnapshot, quoteMagnanimousPluginCost } from './magnanimous-unified-plugin-pricing.js';
 import { authorizeMagnanimousOAuthToken, handleMagnanimousPluginOAuth, magnanimousOAuthChallenge } from './magnanimous-plugin-oauth.js';
 
 const json=(data,status=200,extra={})=>Response.json(data,{status,headers:{'cache-control':'no-store',...extra}});
@@ -81,6 +83,8 @@ const TOOL_DEFS=[
  {name:'magnanimous_web_monitor_update',title:'Update native web monitor',scope:'web.write',description:'Pause, resume, or change the interval of an existing Magnanimous web monitor.',inputSchema:{type:'object',properties:{monitor_id:{type:'string'},status:{type:'string',enum:['active','paused']},interval_minutes:{type:'integer',minimum:15,maximum:10080}},required:['monitor_id'],additionalProperties:false},annotations:GUARDED_LOCAL},
  {name:'magnanimous_web_monitor_run',title:'Run native web monitor now',scope:'web.write',description:'Start one immediate read-only run for an existing monitor.',inputSchema:{type:'object',properties:{monitor_id:{type:'string'}},required:['monitor_id'],additionalProperties:false},annotations:GUARDED_OPEN_WEB},
  {name:'magnanimous_web_monitor_delete',title:'Delete native web monitor',scope:'web.write',description:'Delete one Magnanimous web monitor.',inputSchema:{type:'object',properties:{monitor_id:{type:'string'}},required:['monitor_id'],additionalProperties:false},annotations:DESTRUCTIVE_LOCAL},
+
+ {name:'magnanimous_plugin_billing',title:'Magnanimous plugin cost and Stripe credits',scope:'capabilities.read',description:'Use before any operation that could have a direct metered cost. Actions: policy returns the $0 base-fee + exact 20% markup rule and current benchmark research; quote calculates the customer charge from a verified direct origin cost; wallet returns this customer tenant\'s prepaid balance; topup returns the existing Stripe checkout URL for adding prepaid usage credits. This tool does not charge a card by itself and never invents a provider cost.',inputSchema:{type:'object',properties:{action:{type:'string',enum:['policy','quote','wallet','topup']},provider_origin_cost_usd:{type:'number',minimum:0}},required:['action'],additionalProperties:false},outputSchema:GENERIC_OBJECT_OUTPUT_SCHEMA,annotations:READ_ONLY_LOCAL,_meta:TOOL_ERROR_META},
 
  {name:'magnanimous_ops_catalog',title:'Magnanimous native operations catalog',scope:'cloud.read',description:'Purpose: inspect the one-plugin Magnanimous operations model. Input: none. Output: identity, supported native areas, Railway/Cloudflare benchmark-contract counts, learned techniques, resource-kind hints, operating model and truthful infrastructure boundaries. Boundary: read-only; this never calls a provider or buys capacity.',inputSchema:{type:'object',properties:{},additionalProperties:false},outputSchema:GENERIC_OBJECT_OUTPUT_SCHEMA,annotations:READ_ONLY_LOCAL,_meta:TOOL_ERROR_META},
  {name:'magnanimous_ops_translate',title:'Translate provider capability to Magnanimous',scope:'cloud.read',description:'Purpose: map a public Railway or Cloudflare capability name to its Magnanimous-owned equivalent. Input: provider plus capability/tool name. Output: matched benchmark contract, native target/resource kind, independence status and external-capacity boundary. Boundary: read-only clean-room translation; no provider call, credential use or proprietary implementation copying.',inputSchema:{type:'object',properties:{provider:{type:'string',enum:['railway','cloudflare']},capability:{type:'string'}},required:['provider','capability'],additionalProperties:false},outputSchema:TRANSLATION_OUTPUT_SCHEMA,annotations:READ_ONLY_LOCAL,_meta:TOOL_ERROR_META},
@@ -205,8 +209,9 @@ Use Magnanimous standalone runtime and Cloud resource kinds for Cloudflare-style
 3. Use read-only cloud tools to inspect current state before changing it.
 4. Use \`magnanimous_cloud_create_project\` / \`magnanimous_cloud_create_resource\` to define native desired state.
 5. Use \`magnanimous_cloud_stage_action\` for consequential infrastructure intent. Never treat a staged action as proof of physical execution.
-6. Use \`magnanimous_operate\` only when one owner workflow needs to cross web, cloud, and edge areas through a single tool.
-7. Verify terminal state before saying a deployment or infrastructure mutation completed.
+6. Before any operation with a real direct metered origin cost, use \`magnanimous_plugin_billing\` to disclose the verified cost + exactly 20% Magnanimous markup. Free native paths remain $0. If prepaid credits are insufficient, use its \`topup\` action to return the existing Stripe checkout URL; never silently owner-fund usage.
+7. Use \`magnanimous_operate\` only when one authorized workflow needs to cross web, cloud, and edge areas through a single tool.
+8. Verify terminal state before saying a deployment or infrastructure mutation completed.
 
 ## Safety and truth boundaries
 - Never send passwords, API keys, OAuth tokens, private keys, full payment-card details, or recovery codes through plugin arguments.
@@ -279,7 +284,7 @@ async function executeTool(request,env,connector,name,args={}){
  }
  if(name==='get_profile'){
   const opaque='prf_'+(await sha256Hex(String(connector.tenant_id)+'|'+String(connector.user_id))).slice(0,32);
-  return{status:200,data:{id:opaque,nickname:'Magnanimous owner'}};
+  return{status:200,data:{id:opaque,nickname:'Magnanimous user'}};
  }
  if(name==='search'){
   const query=String(args?.query||'').trim();if(!query)return{status:400,error:'query is required.'};
@@ -363,6 +368,24 @@ async function executeTool(request,env,connector,name,args={}){
  if(name==='magnanimous_web_monitor_delete'){
   const id=String(args?.monitor_id||'').trim();if(!id)return{status:400,error:'monitor_id is required.'};
   return nativeWebCall(request,env,session,'/api/magnanimous/native-web/monitors/'+encodeURIComponent(id),'DELETE');
+ }
+ if(name==='magnanimous_plugin_billing'){
+  const action=String(args?.action||'').trim().toLowerCase();
+  if(action==='policy')return{status:200,data:magnanimousPluginPricingSnapshot()};
+  if(action==='quote'){
+   const cost=Number(args?.provider_origin_cost_usd);
+   if(!Number.isFinite(cost)||cost<0)return{status:400,error:'provider_origin_cost_usd must be a verified non-negative number.'};
+   return{status:200,data:quoteMagnanimousPluginCost(cost)};
+  }
+  if(action==='wallet'||action==='topup'){
+   const path=action==='wallet'?'/api/enterprise/usage-wallet':'/api/enterprise/usage-wallet/topup';
+   const method=action==='wallet'?'GET':'POST';
+   const response=await handleEnterpriseCommercialization(internalRequest(request,path,method,method==='POST'?{}:undefined,session),env);
+   if(!response)return{status:404,error:'Magnanimous usage-wallet route is unavailable.'};
+   const out=await responseData(response);
+   return response.ok?{status:response.status,data:out.data}:{status:response.status,error:out.data?.detail||out.data?.error||out.text,data:out.data};
+  }
+  return{status:400,error:'action must be policy, quote, wallet or topup.'};
  }
  if(name==='magnanimous_ops_catalog')return{status:200,data:getMagnanimousUnifiedOpsCatalog()};
  if(name==='magnanimous_ops_translate'){
