@@ -2,6 +2,9 @@ import { currentUser } from './integrations.js';
 import { handleMagnanimousNativeMail } from './magnanimous-native-mail-runtime.js';
 import { handleMagnanimousCommunications } from './magnanimous-communications-router.js';
 import { handleMagnanimousNativeWeb } from './magnanimous-native-web-runtime.js';
+import { handleMagnanimousCloudProvider } from './magnanimous-cloud-provider-core.js';
+import { handleMagnanimousInfrastructure } from './magnanimous-infrastructure-core.js';
+import { getMagnanimousUnifiedOpsCatalog, resolveMagnanimousBenchmark } from './magnanimous-unified-ops.js';
 import { authorizeMagnanimousOAuthToken, handleMagnanimousPluginOAuth, magnanimousOAuthChallenge } from './magnanimous-plugin-oauth.js';
 
 const json=(data,status=200,extra={})=>Response.json(data,{status,headers:{'cache-control':'no-store',...extra}});
@@ -9,10 +12,11 @@ const now=()=>Math.floor(Date.now()/1000);
 const encoder=new TextEncoder();
 const MODERN_PROTOCOL='2026-07-28';
 const LEGACY_PROTOCOL='2025-11-25';
-const DEFAULT_SCOPES=['capabilities.read','brain.ask','web.read','mail.read','communications.read'];
-const ALL_SCOPES=new Set(['capabilities.read','brain.ask','web.read','web.write','mail.read','mail.write','communications.read','communications.write']);
+const DEFAULT_SCOPES=['capabilities.read','brain.ask','web.read','cloud.read','mail.read','communications.read'];
+const ALL_SCOPES=new Set(['capabilities.read','brain.ask','web.read','web.write','cloud.read','cloud.write','mail.read','mail.write','communications.read','communications.write']);
 const SKILLS_EXTENSION='io.modelcontextprotocol/skills';
 const NATIVE_WEB_SKILL_URI='skill://i-am-magnanimous-way/magnanimous-native-web/SKILL.md';
+const NATIVE_OPS_SKILL_URI='skill://i-am-magnanimous-way/magnanimous-native-operations/SKILL.md';
 const READ_ONLY_OPEN_WEB=Object.freeze({readOnlyHint:true,destructiveHint:false,openWorldHint:true});
 const READ_ONLY_LOCAL=Object.freeze({readOnlyHint:true,destructiveHint:false,openWorldHint:false});
 const GUARDED_OPEN_WEB=Object.freeze({readOnlyHint:false,destructiveHint:false,openWorldHint:true});
@@ -68,6 +72,19 @@ const TOOL_DEFS=[
  {name:'magnanimous_web_monitor_update',title:'Update native web monitor',scope:'web.write',description:'Pause, resume, or change the interval of an existing Magnanimous web monitor.',inputSchema:{type:'object',properties:{monitor_id:{type:'string'},status:{type:'string',enum:['active','paused']},interval_minutes:{type:'integer',minimum:15,maximum:10080}},required:['monitor_id'],additionalProperties:false},annotations:GUARDED_LOCAL},
  {name:'magnanimous_web_monitor_run',title:'Run native web monitor now',scope:'web.write',description:'Start one immediate read-only run for an existing monitor.',inputSchema:{type:'object',properties:{monitor_id:{type:'string'}},required:['monitor_id'],additionalProperties:false},annotations:GUARDED_OPEN_WEB},
  {name:'magnanimous_web_monitor_delete',title:'Delete native web monitor',scope:'web.write',description:'Delete one Magnanimous web monitor.',inputSchema:{type:'object',properties:{monitor_id:{type:'string'}},required:['monitor_id'],additionalProperties:false},annotations:DESTRUCTIVE_LOCAL},
+
+ {name:'magnanimous_ops_catalog',title:'Magnanimous native operations catalog',scope:'cloud.read',description:'Read the unified Magnanimous operations map covering TinyFish-style web work, Railway-style deployment/service patterns and Cloudflare-style edge/runtime patterns without requiring those provider plugins.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
+ {name:'magnanimous_ops_translate',title:'Translate provider capability to Magnanimous',scope:'cloud.read',description:'Translate a public Railway or Cloudflare capability/tool name into its Magnanimous-owned native contract, resource kind and truthful physical-capacity boundary. This does not call the provider.',inputSchema:{type:'object',properties:{provider:{type:'string',enum:['railway','cloudflare']},capability:{type:'string'}},required:['provider','capability'],additionalProperties:false},annotations:READ_ONLY_LOCAL},
+ {name:'magnanimous_cloud_summary',title:'Magnanimous Cloud summary',scope:'cloud.read',description:'Read the first-party Magnanimous Cloud control-plane summary, resource kinds, host-capacity evidence and provider-independence boundaries.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
+ {name:'magnanimous_infrastructure_compatibility',title:'Infrastructure compatibility map',scope:'cloud.read',description:'Read the clean-room Magnanimous compatibility map for public Railway and Cloudflare capability contracts and the native/self-hosted target for each.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
+ {name:'magnanimous_cloud_projects',title:'List Magnanimous Cloud projects',scope:'cloud.read',description:'List native Magnanimous Cloud projects. No Railway or Cloudflare account is required.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
+ {name:'magnanimous_cloud_resources',title:'List Magnanimous Cloud resources',scope:'cloud.read',description:'List native Magnanimous Cloud resources, optionally filtered by project and kind.',inputSchema:{type:'object',properties:{project_id:{type:'string'},kind:{type:'string'}},additionalProperties:false},annotations:READ_ONLY_LOCAL},
+ {name:'magnanimous_cloud_resource',title:'Get Magnanimous Cloud resource',scope:'cloud.read',description:'Read one native Magnanimous Cloud resource and its desired/execution state.',inputSchema:{type:'object',properties:{resource_id:{type:'string'}},required:['resource_id'],additionalProperties:false},annotations:READ_ONLY_LOCAL},
+ {name:'magnanimous_cloud_actions',title:'List Magnanimous Cloud actions',scope:'cloud.read',description:'Read the staged/audited native action ledger for one Magnanimous Cloud resource.',inputSchema:{type:'object',properties:{resource_id:{type:'string'}},required:['resource_id'],additionalProperties:false},annotations:READ_ONLY_LOCAL},
+ {name:'magnanimous_cloud_create_project',title:'Create Magnanimous Cloud project',scope:'cloud.write',description:'Create a native Magnanimous Cloud control-plane project. This creates Magnanimous-owned desired state only and does not buy external capacity.',inputSchema:{type:'object',properties:{name:{type:'string'},slug:{type:'string'},description:{type:'string'}},required:['name'],additionalProperties:false},annotations:GUARDED_LOCAL},
+ {name:'magnanimous_cloud_create_resource',title:'Create Magnanimous Cloud resource',scope:'cloud.write',description:'Create a provider-neutral Magnanimous Cloud resource definition such as service, deployment, feature flag, worker, database, object bucket, queue, workflow, schedule, DNS zone, firewall or rate-limit policy. Physical-capacity resources remain truthfully marked as awaiting an authorized host/network executor.',inputSchema:{type:'object',properties:{project_id:{type:'string'},kind:{type:'string'},name:{type:'string'},region:{type:'string'},desired_state:{type:'string'},spec:{type:'object'}},required:['kind','name'],additionalProperties:false},annotations:GUARDED_LOCAL},
+ {name:'magnanimous_cloud_stage_action',title:'Stage Magnanimous Cloud action',scope:'cloud.write',description:'Stage and audit an infrastructure action against a native Magnanimous Cloud resource. Destructive or physical-capacity actions are not silently executed and remain separately approval/executor gated.',inputSchema:{type:'object',properties:{resource_id:{type:'string'},action:{type:'string'},payload:{type:'object'}},required:['resource_id','action'],additionalProperties:false},annotations:GUARDED_LOCAL},
+ {name:'magnanimous_operate',title:'Magnanimous unified operations',scope:'cloud.write',description:'One owner operations tool spanning all three native areas: web/browser, cloud/deployment and edge/runtime. It routes to Magnanimous-owned execution contracts; provider names may be used only as benchmark aliases, never as a required runtime dependency.',inputSchema:{type:'object',properties:{area:{type:'string',enum:['web','cloud','edge']},operation:{type:'string',enum:['search','fetch','research','read_flow','action_flow','summary','compatibility','list_projects','create_project','list_resources','get_resource','create_resource','list_actions','stage_action','translate']},query:{type:'string'},url:{type:'string'},provider:{type:'string',enum:['railway','cloudflare']},capability:{type:'string'},project_id:{type:'string'},resource_id:{type:'string'},kind:{type:'string'},name:{type:'string'},region:{type:'string'},desired_state:{type:'string'},action:{type:'string'},spec:{type:'object'},payload:{type:'object'},steps:{type:'array',items:{type:'object'}},profile:{type:'string'},locale:{type:'string'},limit:{type:'integer'},max_chars:{type:'integer'}},required:['area','operation'],additionalProperties:false},annotations:GUARDED_OPEN_WEB},
 
  {name:'magnanimous_mail_accounts',title:'Mail accounts',scope:'mail.read',description:'List Gmail and Outlook accounts already authorized inside Magnanimous. Does not expose OAuth credentials.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
  {name:'magnanimous_mail_search',title:'Search mail',scope:'mail.read',description:'Search all authorized Gmail and Outlook accounts through Magnanimous native multi-account mail.',inputSchema:{type:'object',properties:{query:{type:'string'},terms:{type:'array',items:{type:'string'}},limit_per_account:{type:'integer',minimum:1,maximum:20}},additionalProperties:false},annotations:READ_ONLY_LOCAL},
@@ -153,6 +170,44 @@ Magnanimous AI is the planner, memory, policy, routing, and verification layer. 
 - Do not claim TinyFish proprietary source code, hidden prompts, model weights, managed residential proxy fleet, anti-bot infrastructure, or remote CDP infrastructure. Magnanimous implements clean-room equivalents from public/observable capability contracts.
 - The native path has no TinyFish wallet/per-run payment dependency; owner compute, Internet access, and any separately chosen infrastructure still have their own real costs/limits.
 `;
+const NATIVE_OPS_SKILL=`---
+name: magnanimous-native-operations
+description: Operate Magnanimous AI's unified native web, cloud/deployment, and edge/runtime control surfaces without requiring TinyFish, Railway, or Cloudflare as permanent plugin dependencies.
+---
+
+# Magnanimous Native Operations
+
+Magnanimous AI is the only public command, memory, policy, routing, verification and learning layer.
+
+## One plugin, three native areas
+
+### Web / browser
+Use Magnanimous Native Web for search, rendered fetch, research, browser flows, sessions, screenshots and monitors. TinyFish is not required for supported paths.
+
+### Cloud / deployment
+Use Magnanimous Cloud projects/resources/actions for Railway-style workspace/project/environment/service/deployment patterns, feature flags, configuration boundaries, domains, health-gated release state and observability contracts. Railway can be an optional temporary capacity adapter, but it is not required for the software control plane.
+
+### Edge / runtime
+Use Magnanimous standalone runtime and Cloud resource kinds for Cloudflare-style software contracts: workers/apps, SQL, object storage, cache policy, queues, workflows, schedules, rate limiting, AI gateway, DNS desired state, firewall policy, observability, browser and sandbox contracts. Cloudflare is not required for the native software contract.
+
+## Preferred workflow
+1. Use \`magnanimous_ops_catalog\` to inspect the unified capability map.
+2. Use \`magnanimous_ops_translate\` when a Railway or Cloudflare public capability name needs to be mapped into a native Magnanimous target.
+3. Use read-only cloud tools to inspect current state before changing it.
+4. Use \`magnanimous_cloud_create_project\` / \`magnanimous_cloud_create_resource\` to define native desired state.
+5. Use \`magnanimous_cloud_stage_action\` for consequential infrastructure intent. Never treat a staged action as proof of physical execution.
+6. Use \`magnanimous_operate\` only when one owner workflow needs to cross web, cloud, and edge areas through a single tool.
+7. Verify terminal state before saying a deployment or infrastructure mutation completed.
+
+## Safety and truth boundaries
+- Never send passwords, API keys, OAuth tokens, private keys, full payment-card details, or recovery codes through plugin arguments.
+- Secret values belong in the Magnanimous secret vault/local runtime and are not returned through MCP.
+- No provider purchase, plan upgrade, domain registration, public-IP purchase or paid capacity is initiated by these native control-plane tools.
+- Real CPU/RAM/disk, public IP allocation, Internet transit, registrar authority, BGP/anycast, carrier-scale DDoS capacity and physical datacenters remain real infrastructure boundaries.
+- Do not copy or claim proprietary TinyFish, Railway or Cloudflare source code, hidden prompts, credentials, private APIs, model weights, anti-bot systems or trade secrets.
+- Provider adapters may remain available for migration, rollback or capacity, but Magnanimous identity and memory never move to them.
+`;
+
 
 async function nativeWebCall(request,env,session,path,method='GET',body){
  const response=await handleMagnanimousNativeWeb(internalRequest(request,path,method,body,session),env);
@@ -183,6 +238,21 @@ async function nativeWebRunAndWait(request,env,session,kind,args,maxWaitMs=12000
 function webRunResultData(run){
  const result=run?.data?.result??run?.data??{};
  return{run_id:run?.data?.run_id||run?.data?.id||'',status:run?.data?.status||'completed',result};
+}
+async function nativeCloudCall(request,env,session,path,method='GET',body){
+ const response=await handleMagnanimousCloudProvider(internalRequest(request,path,method,body,session),env);
+ if(!response)return{status:404,error:'Magnanimous Cloud route is unavailable.'};
+ const out=await responseData(response);
+ return response.ok?{status:response.status,data:out.data}:{status:response.status,error:out.data?.detail||out.data?.error||out.text,data:out.data};
+}
+async function nativeInfrastructureCall(request,env,session,path){
+ const response=await handleMagnanimousInfrastructure(internalRequest(request,path,'GET',undefined,session),env);
+ if(!response)return{status:404,error:'Magnanimous infrastructure route is unavailable.'};
+ const out=await responseData(response);
+ return response.ok?{status:response.status,data:out.data}:{status:response.status,error:out.data?.detail||out.data?.error||out.text,data:out.data};
+}
+async function nativeOpsSkillEntry(){
+ return{uri:NATIVE_OPS_SKILL_URI,frontmatter:{name:'magnanimous-native-operations',description:"Operate Magnanimous AI's unified native web, cloud/deployment, and edge/runtime control surfaces without requiring TinyFish, Railway, or Cloudflare as permanent plugin dependencies."},resources:[{uri:NATIVE_OPS_SKILL_URI,digest:'sha256:'+await sha256Hex(NATIVE_OPS_SKILL)}]};
 }
 async function skillEntry(){
  return{uri:NATIVE_WEB_SKILL_URI,frontmatter:{name:'magnanimous-native-web',description:"Use Magnanimous AI's native search, fetch, research, browser-run, profile, session, screenshot, webhook, and monitor capabilities when live web work is needed without relying on TinyFish."},resources:[{uri:NATIVE_WEB_SKILL_URI,digest:'sha256:'+await sha256Hex(NATIVE_WEB_SKILL)}]};
@@ -285,6 +355,84 @@ async function executeTool(request,env,connector,name,args={}){
   const id=String(args?.monitor_id||'').trim();if(!id)return{status:400,error:'monitor_id is required.'};
   return nativeWebCall(request,env,session,'/api/magnanimous/native-web/monitors/'+encodeURIComponent(id),'DELETE');
  }
+ if(name==='magnanimous_ops_catalog')return{status:200,data:getMagnanimousUnifiedOpsCatalog()};
+ if(name==='magnanimous_ops_translate'){
+  try{return{status:200,data:resolveMagnanimousBenchmark(args)}}catch(error){return{status:400,error:String(error?.message||error)}}
+ }
+ if(name==='magnanimous_cloud_summary')return nativeCloudCall(request,env,session,'/api/magnanimous/cloud','GET');
+ if(name==='magnanimous_infrastructure_compatibility')return nativeInfrastructureCall(request,env,session,'/api/magnanimous/infrastructure/compatibility');
+ if(name==='magnanimous_cloud_projects')return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/projects','GET');
+ if(name==='magnanimous_cloud_resources'){
+  const qs=new URLSearchParams();if(args?.project_id)qs.set('project_id',String(args.project_id));if(args?.kind)qs.set('kind',String(args.kind));
+  return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/resources'+(qs.size?'?'+qs.toString():''),'GET');
+ }
+ if(name==='magnanimous_cloud_resource'){
+  const id=String(args?.resource_id||'').trim();if(!id)return{status:400,error:'resource_id is required.'};
+  return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/resources/'+encodeURIComponent(id),'GET');
+ }
+ if(name==='magnanimous_cloud_actions'){
+  const id=String(args?.resource_id||'').trim();if(!id)return{status:400,error:'resource_id is required.'};
+  return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/resources/'+encodeURIComponent(id)+'/actions','GET');
+ }
+ if(name==='magnanimous_cloud_create_project')return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/projects','POST',args);
+ if(name==='magnanimous_cloud_create_resource')return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/resources','POST',args);
+ if(name==='magnanimous_cloud_stage_action'){
+  const id=String(args?.resource_id||'').trim();if(!id)return{status:400,error:'resource_id is required.'};
+  return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/resources/'+encodeURIComponent(id)+'/actions','POST',{action:args?.action,payload:args?.payload||{}});
+ }
+ if(name==='magnanimous_operate'){
+  const area=String(args?.area||'').trim().toLowerCase(),operation=String(args?.operation||'').trim().toLowerCase();
+  if(area==='web'){
+   const readOps=new Set(['search','fetch','research','read_flow']);
+   const writeOps=new Set(['action_flow']);
+   if(readOps.has(operation)&&!hasScope(connector,'web.read'))return{status:403,error:'web.read scope is required for this unified operation.'};
+   if(writeOps.has(operation)&&!hasScope(connector,'web.write'))return{status:403,error:'web.write scope is required for this unified operation.'};
+   if(operation==='search')return nativeWebRunAndWait(request,env,session,'search',{query:args?.query,limit:args?.limit,locale:args?.locale,profile:args?.profile});
+   if(operation==='fetch')return nativeWebRunAndWait(request,env,session,'fetch',{url:args?.url,max_chars:args?.max_chars,locale:args?.locale,profile:args?.profile});
+   if(operation==='research')return nativeWebRunAndWait(request,env,session,'research',{query:args?.query,limit:args?.limit,max_chars:args?.max_chars,locale:args?.locale,profile:args?.profile},15000);
+   if(operation==='read_flow')return nativeWebRunAndWait(request,env,session,'read_flow',{steps:args?.steps||[],locale:args?.locale,profile:args?.profile},15000);
+   if(operation==='action_flow')return nativeWebRunAndWait(request,env,session,'action_flow',{steps:args?.steps||[],locale:args?.locale,profile:args?.profile},1500);
+   return{status:400,error:'Unsupported web operation.'};
+  }
+  if(area!=='cloud'&&area!=='edge')return{status:400,error:'area must be web, cloud or edge.'};
+  const reads=new Set(['summary','compatibility','list_projects','list_resources','get_resource','list_actions','translate']);
+  if(reads.has(operation)&&!hasScope(connector,'cloud.read'))return{status:403,error:'cloud.read scope is required for this unified operation.'};
+  if(operation==='summary')return nativeCloudCall(request,env,session,'/api/magnanimous/cloud','GET');
+  if(operation==='compatibility')return nativeInfrastructureCall(request,env,session,'/api/magnanimous/infrastructure/compatibility');
+  if(operation==='translate'){
+   const provider=area==='edge'?'cloudflare':String(args?.provider||'railway');
+   try{return{status:200,data:resolveMagnanimousBenchmark({provider,capability:args?.capability})}}catch(error){return{status:400,error:String(error?.message||error)}}
+  }
+  if(operation==='list_projects')return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/projects','GET');
+  if(operation==='list_resources'){
+   const qs=new URLSearchParams();if(args?.project_id)qs.set('project_id',String(args.project_id));if(args?.kind)qs.set('kind',String(args.kind));
+   return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/resources'+(qs.size?'?'+qs.toString():''),'GET');
+  }
+  if(operation==='get_resource'){
+   const id=String(args?.resource_id||'').trim();if(!id)return{status:400,error:'resource_id is required.'};
+   return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/resources/'+encodeURIComponent(id),'GET');
+  }
+  if(operation==='list_actions'){
+   const id=String(args?.resource_id||'').trim();if(!id)return{status:400,error:'resource_id is required.'};
+   return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/resources/'+encodeURIComponent(id)+'/actions','GET');
+  }
+  if(!hasScope(connector,'cloud.write'))return{status:403,error:'cloud.write scope is required for this unified operation.'};
+  if(operation==='create_project')return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/projects','POST',{name:args?.name,description:args?.spec?.description,slug:args?.spec?.slug});
+  if(operation==='create_resource'){
+   let kind=String(args?.kind||'').trim();
+   if(!kind&&args?.capability){
+    const translated=resolveMagnanimousBenchmark({provider:area==='edge'?'cloudflare':String(args?.provider||'railway'),capability:args.capability});
+    kind=String(translated?.native_resource_kind||'');
+   }
+   if(!kind)return{status:400,error:'kind is required, or provide a registered Railway/Cloudflare capability that maps to a Magnanimous resource kind.'};
+   return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/resources','POST',{project_id:args?.project_id,kind,name:args?.name||args?.capability||kind,region:args?.region,desired_state:args?.desired_state,spec:args?.spec||{}});
+  }
+  if(operation==='stage_action'){
+   const id=String(args?.resource_id||'').trim();if(!id)return{status:400,error:'resource_id is required.'};
+   return nativeCloudCall(request,env,session,'/api/magnanimous/cloud/resources/'+encodeURIComponent(id)+'/actions','POST',{action:args?.action,payload:args?.payload||{}});
+  }
+  return{status:400,error:'Unsupported cloud/edge operation.'};
+ }
  if(name==='magnanimous_mail_accounts'){
   const response=await handleMagnanimousNativeMail(internalRequest(request,'/api/magnanimous/mail/accounts','GET',undefined,session),env);const out=await responseData(response);return response.ok?{status:response.status,data:out.data}:{status:response.status,error:out.data?.detail||out.text};
  }
@@ -310,35 +458,52 @@ async function executeTool(request,env,connector,name,args={}){
 function rpcResult(id,result){return json({jsonrpc:'2.0',id,result},200,{'content-type':'application/json'})}
 function rpcError(id,code,message,status=200,data){return json({jsonrpc:'2.0',id:id??null,error:{code,message,...(data===undefined?{}:{data})}},status,{'content-type':'application/json'})}
 function toolPayload(result){if(result.error)return{isError:true,content:[{type:'text',text:String(result.error)}]};const data=result.data??{};return{isError:false,structuredContent:data,content:[{type:'text',text:JSON.stringify(data)}]}}
-function modernDiscover(){return{protocolVersion:MODERN_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.1.0'},capabilities:{tools:{listChanged:false},resources:{},prompts:{},extensions:{[SKILLS_EXTENSION]:{}}},instructions:'Magnanimous AI is the command, memory, routing and verification layer. Native web tools use first-party Magnanimous browser execution and do not require TinyFish.'}}
+function modernDiscover(){return{protocolVersion:MODERN_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.1.0'},capabilities:{tools:{listChanged:false},resources:{},prompts:{},extensions:{[SKILLS_EXTENSION]:{}}},instructions:'Magnanimous AI is the command, memory, routing and verification layer. One first-party MCP exposes native web/browser, Magnanimous Cloud deployment/control, and edge/runtime operations without requiring TinyFish, Railway, or Cloudflare as permanent plugin dependencies.'}}
 async function handleMcp(request,env){
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type,mcp-protocol-version,mcp-method,mcp-name,x-magnanimous-connector-key','access-control-allow-methods':'POST,OPTIONS'}});
  if(request.method!=='POST')return json({detail:'Magnanimous MCP uses POST Streamable HTTP.'},405);
- const connector=await authorizeConnector(request,env);if(!connector)return json({jsonrpc:'2.0',id:null,error:{code:-32001,message:'Magnanimous OAuth authorization is required.'}},401,{'content-type':'application/json','www-authenticate':magnanimousOAuthChallenge(request,'capabilities.read brain.ask web.read')});
+ const connector=await authorizeConnector(request,env);if(!connector)return json({jsonrpc:'2.0',id:null,error:{code:-32001,message:'Magnanimous OAuth authorization is required.'}},401,{'content-type':'application/json','www-authenticate':magnanimousOAuthChallenge(request,'capabilities.read brain.ask web.read cloud.read')});
  const body=await request.json().catch(()=>null);if(!body||body.jsonrpc!=='2.0'||!body.method)return rpcError(body?.id,-32600,'Invalid JSON-RPC request.',400);
  const method=String(body.method),id=body.id??null,headerMethod=request.headers.get('mcp-method');if(headerMethod&&headerMethod!==method)return rpcError(id,-32020,'Mcp-Method header does not match the JSON-RPC method.',400);
  if(method==='server/discover')return rpcResult(id,modernDiscover());
- if(method==='initialize')return rpcResult(id,{protocolVersion:LEGACY_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.1.0'},capabilities:{tools:{listChanged:false},resources:{},extensions:{[SKILLS_EXTENSION]:{}}},instructions:'Magnanimous AI universal connector with native web/browser tools and Skills support.'});
+ if(method==='initialize')return rpcResult(id,{protocolVersion:LEGACY_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.1.0'},capabilities:{tools:{listChanged:false},resources:{},extensions:{[SKILLS_EXTENSION]:{}}},instructions:'Magnanimous AI universal connector with native web, cloud/deployment, edge/runtime tools and Skills support.'});
  if(method==='notifications/initialized')return new Response(null,{status:202});
  if(method==='ping')return rpcResult(id,{});
  if(method==='skills/list'){
-  if(!hasScope(connector,'web.read'))return rpcResult(id,{skills:[]});
-  return rpcResult(id,{skills:[await skillEntry()]});
+  const skills=[];
+  if(hasScope(connector,'web.read'))skills.push(await skillEntry());
+  if(hasScope(connector,'cloud.read'))skills.push(await nativeOpsSkillEntry());
+  return rpcResult(id,{skills});
  }
  if(method==='skills/get'){
-  if(!hasScope(connector,'web.read'))return rpcError(id,-32003,'web.read scope is required.',403);
   const wanted=String(body.params?.uri||body.params?.name||'');
-  if(wanted&&wanted!==NATIVE_WEB_SKILL_URI&&wanted!=='magnanimous-native-web')return rpcError(id,-32004,'Skill not found.',404);
-  return rpcResult(id,{skill:await skillEntry()});
+  if(wanted===NATIVE_WEB_SKILL_URI||wanted==='magnanimous-native-web'||!wanted){
+   if(!hasScope(connector,'web.read'))return rpcError(id,-32003,'web.read scope is required.',403);
+   return rpcResult(id,{skill:await skillEntry()});
+  }
+  if(wanted===NATIVE_OPS_SKILL_URI||wanted==='magnanimous-native-operations'){
+   if(!hasScope(connector,'cloud.read'))return rpcError(id,-32003,'cloud.read scope is required.',403);
+   return rpcResult(id,{skill:await nativeOpsSkillEntry()});
+  }
+  return rpcError(id,-32004,'Skill not found.',404);
  }
  if(method==='resources/list'){
-  if(!hasScope(connector,'web.read'))return rpcResult(id,{resources:[]});
-  return rpcResult(id,{resources:[{uri:NATIVE_WEB_SKILL_URI,name:'Magnanimous Native Web skill',description:"Instructions for using Magnanimous AI's TinyFish-independent native browser tools.",mimeType:'text/markdown'}]});
+  const resources=[];
+  if(hasScope(connector,'web.read'))resources.push({uri:NATIVE_WEB_SKILL_URI,name:'Magnanimous Native Web skill',description:"Instructions for using Magnanimous AI's TinyFish-independent native browser tools.",mimeType:'text/markdown'});
+  if(hasScope(connector,'cloud.read'))resources.push({uri:NATIVE_OPS_SKILL_URI,name:'Magnanimous Native Operations skill',description:'Instructions for unified Magnanimous web, deployment/cloud and edge/runtime operations without permanent Railway or Cloudflare plugin dependencies.',mimeType:'text/markdown'});
+  return rpcResult(id,{resources});
  }
  if(method==='resources/read'){
-  if(!hasScope(connector,'web.read'))return rpcError(id,-32003,'web.read scope is required.',403);
-  const uri=String(body.params?.uri||'');if(uri!==NATIVE_WEB_SKILL_URI)return rpcError(id,-32004,'Resource not found.',404);
-  return rpcResult(id,{contents:[{uri:NATIVE_WEB_SKILL_URI,mimeType:'text/markdown',text:NATIVE_WEB_SKILL}]});
+  const uri=String(body.params?.uri||'');
+  if(uri===NATIVE_WEB_SKILL_URI){
+   if(!hasScope(connector,'web.read'))return rpcError(id,-32003,'web.read scope is required.',403);
+   return rpcResult(id,{contents:[{uri:NATIVE_WEB_SKILL_URI,mimeType:'text/markdown',text:NATIVE_WEB_SKILL}]});
+  }
+  if(uri===NATIVE_OPS_SKILL_URI){
+   if(!hasScope(connector,'cloud.read'))return rpcError(id,-32003,'cloud.read scope is required.',403);
+   return rpcResult(id,{contents:[{uri:NATIVE_OPS_SKILL_URI,mimeType:'text/markdown',text:NATIVE_OPS_SKILL}]});
+  }
+  return rpcError(id,-32004,'Resource not found.',404);
  }
  if(method==='tools/list')return rpcResult(id,{tools:visibleTools(connector),ttlMs:300000,cacheScope:'private'});
  if(method==='tools/call'){
@@ -348,7 +513,7 @@ async function handleMcp(request,env){
  return rpcError(id,-32601,'Method not found.');
 }
 
-function manifest(request){const origin=new URL(request.url).origin;return{name:'Magnanimous AI',publisher:'I AM MAGNANIMOUS WAY™',identity:'Magnanimous AI',mcp:{url:`${origin}/mcp`,protocols:[MODERN_PROTOCOL,LEGACY_PROTOCOL],transport:'streamable-http',authentication:'OAuth 2.1 authorization-code + PKCE for ChatGPT; legacy scoped bearer connector tokens for other clients',skills_extension:SKILLS_EXTENSION},openapi:`${origin}/api/magnanimous/ai-connectors/openapi.json`,management:`${origin}/api/magnanimous/ai-connectors`,native_web:{tinyfish_required:false,third_party_wallet_required:false,standard_tools:['search','fetch'],skill:NATIVE_WEB_SKILL_URI},platforms:MAGNANIMOUS_AI_PLATFORMS,principle:'External AI platforms are clients or execution environments. Magnanimous remains the command, memory, routing and verification layer.'}}
+function manifest(request){const origin=new URL(request.url).origin;return{name:'Magnanimous AI',publisher:'I AM MAGNANIMOUS WAY™',identity:'Magnanimous AI',mcp:{url:`${origin}/mcp`,protocols:[MODERN_PROTOCOL,LEGACY_PROTOCOL],transport:'streamable-http',authentication:'OAuth 2.1 authorization-code + PKCE for ChatGPT; legacy scoped bearer connector tokens for other clients',skills_extension:SKILLS_EXTENSION},openapi:`${origin}/api/magnanimous/ai-connectors/openapi.json`,management:`${origin}/api/magnanimous/ai-connectors`,native_web:{tinyfish_required:false,third_party_wallet_required:false,standard_tools:['search','fetch'],skill:NATIVE_WEB_SKILL_URI},native_operations:{skill:NATIVE_OPS_SKILL_URI,railway_plugin_required:false,cloudflare_plugin_required:false,provider_purchase_required_for_control_plane:false,areas:['web','cloud','edge'],unified_tool:'magnanimous_operate'},platforms:MAGNANIMOUS_AI_PLATFORMS,principle:'External AI platforms are clients or execution environments. Magnanimous remains the command, memory, routing and verification layer.'}}
 function openApi(request){const origin=new URL(request.url).origin;return{openapi:'3.1.0',info:{title:'Magnanimous AI Universal Connector',version:'1.0.0',description:'Provider-neutral connector for Magnanimous AI. Use a scoped connector token.'},servers:[{url:origin}],components:{securitySchemes:{ConnectorBearer:{type:'http',scheme:'bearer'}}},security:[{ConnectorBearer:[]}],paths:{'/api/magnanimous/ai-connectors/invoke':{post:{summary:'Invoke one authorized Magnanimous connector tool',requestBody:{required:true,content:{'application/json':{schema:{type:'object',properties:{tool:{type:'string'},arguments:{type:'object'}},required:['tool']}}}},responses:{'200':{description:'Tool result'},'401':{description:'Invalid connector token'},'403':{description:'Insufficient scope'}}}}}}}
 
 export async function handleMagnanimousUniversalAIConnector(request,env){
