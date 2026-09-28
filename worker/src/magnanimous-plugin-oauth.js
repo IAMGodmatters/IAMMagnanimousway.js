@@ -4,10 +4,10 @@ const json=(data,status=200,extra={})=>Response.json(data,{status,headers:{'cach
 const now=()=>Math.floor(Date.now()/1000);
 const encoder=new TextEncoder();
 const OAUTH_SCOPES=Object.freeze([
- 'capabilities.read','brain.ask','web.read','web.write','cloud.read','cloud.write',
+ 'openid','email','capabilities.read','brain.ask','web.read','web.write','cloud.read','cloud.write',
  'mail.read','mail.write','communications.read','communications.write','offline_access'
 ]);
-const PUBLIC_SCOPES=Object.freeze(['capabilities.read','brain.ask','web.read','offline_access']);
+const PUBLIC_SCOPES=Object.freeze(['openid','email','capabilities.read','brain.ask','web.read','offline_access']);
 const DEFAULT_SCOPES=PUBLIC_SCOPES;
 const PRIVILEGED_ROLES=Object.freeze(['owner','admin']);
 const ACCESS_TTL=3600;
@@ -20,6 +20,10 @@ async function digestBytes(value){return new Uint8Array(await crypto.subtle.dige
 async function sha256Hex(value){return[...await digestBytes(value)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 async function sha256B64(value){return b64url(await digestBytes(value))}
 function clean(value,n=4000){return String(value??'').trim().slice(0,n)}
+function normEmail(value){return String(value||'').trim().toLowerCase()}
+function validEmail(value){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normEmail(value))}
+function randomEightDigitCode(){const max=0x100000000-(0x100000000%100000000),data=new Uint32Array(1);do{crypto.getRandomValues(data)}while(data[0]>=max);return String(data[0]%100000000).padStart(8,'0')}
+function safeEqual(left,right){const a=String(left||''),b=String(right||'');if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i+=1)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0}
 function origin(request){return new URL(request.url).origin}
 function resource(request){return origin(request)+'/mcp'}
 function parseJson(value,fallback=[]){try{return JSON.parse(value||'')}catch{return fallback}}
@@ -101,7 +105,28 @@ async function ensureSchema(env){
   )`,
   'CREATE INDEX IF NOT EXISTS idx_magnanimous_oauth_access_hash ON magnanimous_oauth_access_tokens(token_hash)',
   'CREATE INDEX IF NOT EXISTS idx_magnanimous_oauth_refresh_hash ON magnanimous_oauth_refresh_tokens(token_hash)',
-  'CREATE INDEX IF NOT EXISTS idx_magnanimous_oauth_codes_client ON magnanimous_oauth_codes(client_id,expires_at)'
+  'CREATE INDEX IF NOT EXISTS idx_magnanimous_oauth_codes_client ON magnanimous_oauth_codes(client_id,expires_at)',
+  `CREATE TABLE IF NOT EXISTS user_primary_email_verifications(
+    user_id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    email TEXT NOT NULL,
+    verified_at INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS primary_email_verification_challenges(
+    token_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    tenant_id TEXT NOT NULL,
+    email TEXT NOT NULL,
+    code_hash TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    consumed_at INTEGER,
+    delivery_status TEXT NOT NULL DEFAULT 'pending'
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_user_primary_email_verifications_email ON user_primary_email_verifications(email,verified_at)',
+  'CREATE INDEX IF NOT EXISTS idx_primary_email_verification_challenges_user ON primary_email_verification_challenges(user_id,expires_at,consumed_at)'
  ];
  for(const sql of sqls)await env.DB.prepare(sql).run();
 }
@@ -136,21 +161,93 @@ async function issueTokens(env,{clientId,tenantId,userId,scopes,resource:audienc
  return{access_token:access,token_type:'Bearer',expires_in:ACCESS_TTL,refresh_token:refresh,scope:scopes.join(' '),resource:audience};
 }
 
+
+async function oauthAccessRow(request,env){
+ const auth=clean(request.headers.get('authorization'),10000);
+ if(!/^Bearer\s+/i.test(auth)||!env?.DB)return null;
+ const token=auth.replace(/^Bearer\s+/i,'').trim();
+ if(!token.startsWith('mgo_'))return null;
+ await ensureSchema(env);
+ const hash=await sha256Hex(token),ts=now();
+ const row=await env.DB.prepare('SELECT id,client_id,tenant_id,user_id,scopes_json,resource,expires_at,revoked_at FROM magnanimous_oauth_access_tokens WHERE token_hash=?').bind(hash).first();
+ if(!row||row.revoked_at||Number(row.expires_at||0)<=ts||row.resource!==resource(request))return null;
+ await env.DB.prepare('UPDATE magnanimous_oauth_access_tokens SET last_used_at=? WHERE id=?').bind(ts,row.id).run().catch(()=>{});
+ return row;
+}
+async function verifiedPrimaryEmail(env,user){
+ if(!user?.id||!user?.tenant_id||!validEmail(user?.email))return{email:normEmail(user?.email),verified:false,verified_at:0};
+ const email=normEmail(user.email);
+ let row=await env.DB.prepare('SELECT email,verified_at FROM user_primary_email_verifications WHERE user_id=? AND tenant_id=? LIMIT 1').bind(user.id,user.tenant_id).first().catch(()=>null);
+ if(row&&normEmail(row.email)===email&&Number(row.verified_at||0)>0)return{email,verified:true,verified_at:Number(row.verified_at)};
+ const ownerProof=await env.DB.prepare("SELECT consumed_at FROM owner_email_login_challenges WHERE user_id=? AND tenant_id=? AND delivery_status='sent' AND consumed_at IS NOT NULL ORDER BY consumed_at DESC LIMIT 1").bind(user.id,user.tenant_id).first().catch(()=>null);
+ if(Number(ownerProof?.consumed_at||0)>0){
+  const t=Number(ownerProof.consumed_at);
+  await env.DB.prepare(`INSERT INTO user_primary_email_verifications(user_id,tenant_id,email,verified_at,updated_at)
+   VALUES(?,?,?,?,?)
+   ON CONFLICT(user_id) DO UPDATE SET tenant_id=excluded.tenant_id,email=excluded.email,verified_at=excluded.verified_at,updated_at=excluded.updated_at`).bind(user.id,user.tenant_id,email,t,t).run().catch(()=>{});
+  return{email,verified:true,verified_at:t};
+ }
+ return{email,verified:false,verified_at:0};
+}
+async function sendPrimaryEmailVerification(env,user,code,key){
+ const mailer=env?.MAGNANIMOUS_MAIL;
+ if(!mailer||typeof mailer.send!=='function')return{ok:false,code:'MAGNANIMOUS_MAIL_NOT_CONFIGURED'};
+ const subject='Verify your Magnanimous sign-in email';
+ const text=`Your I AM MAGNANIMOUS WAY™ email verification code is: ${code}\n\nThis code expires in 10 minutes and works once. If you did not request this verification, do not share the code.`;
+ const html=`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#171717"><h2>I AM MAGNANIMOUS WAY™</h2><p>Your email verification code is:</p><p style="font-size:28px;font-weight:800;letter-spacing:.16em">${code}</p><p>This code expires in 10 minutes and works once.</p></div>`;
+ try{return await mailer.send({kind:'primary-email-verification',to:user.email,subject,text,html,idempotencyKey:key,sensitive:true})}
+ catch(error){return{ok:false,code:'MAGNANIMOUS_MAIL_ERROR',error:String(error?.message||error||'mail failed')}}
+}
+async function requestPrimaryEmailVerification(request,env){
+ const user=await currentUser(request,env).catch(()=>null);
+ if(!user)return json({detail:'Sign in before verifying your email.',code:'AUTH_REQUIRED'},401);
+ if(!validEmail(user.email))return json({detail:'Your account does not have a valid sign-in email.',code:'EMAIL_INVALID'},400);
+ const current=await verifiedPrimaryEmail(env,user);
+ if(current.verified)return json({ok:true,email:current.email,email_verified:true,verified_at:current.verified_at,detail:'Your sign-in email is already verified.'});
+ const t=now();
+ const recent=await env.DB.prepare('SELECT COUNT(*) AS count FROM primary_email_verification_challenges WHERE user_id=? AND created_at>?').bind(user.id,t-900).first().catch(()=>({count:0}));
+ if(Number(recent?.count||0)>=6)return json({detail:'Too many verification requests. Try again later.',code:'RATE_LIMITED'},429,{'retry-after':'900'});
+ const raw=randomToken('mgev_'),code=randomEightDigitCode(),hash=await sha256Hex(raw),codeHash=await sha256Hex(code);
+ await env.DB.prepare('UPDATE primary_email_verification_challenges SET consumed_at=? WHERE user_id=? AND consumed_at IS NULL').bind(t,user.id).run().catch(()=>{});
+ await env.DB.prepare('INSERT INTO primary_email_verification_challenges(token_hash,user_id,tenant_id,email,code_hash,created_at,expires_at,attempts,consumed_at,delivery_status) VALUES(?,?,?,?,?,?,?,0,NULL,\'pending\')')
+  .bind(hash,user.id,user.tenant_id,normEmail(user.email),codeHash,t,t+600).run();
+ const delivery=await sendPrimaryEmailVerification(env,user,code,`primary-email-${hash.slice(0,32)}`);
+ if(!delivery?.ok){
+  await env.DB.prepare("UPDATE primary_email_verification_challenges SET consumed_at=?,delivery_status='failed' WHERE token_hash=?").bind(t,hash).run().catch(()=>{});
+  return json({detail:'Magnanimous could not deliver the verification code.',code:'EMAIL_VERIFICATION_DELIVERY_FAILED'},503);
+ }
+ await env.DB.prepare("UPDATE primary_email_verification_challenges SET delivery_status='sent' WHERE token_hash=?").bind(hash).run();
+ return json({ok:true,challenge_token:raw,expires_in_seconds:600,email:normEmail(user.email),detail:'Enter the 8-digit code sent to your sign-in email.'});
+}
+async function confirmPrimaryEmailVerification(request,env){
+ const user=await currentUser(request,env).catch(()=>null);
+ if(!user)return json({detail:'Sign in before verifying your email.',code:'AUTH_REQUIRED'},401);
+ const body=await request.json().catch(()=>({})),raw=String(body.challenge_token||''),code=String(body.code||'').replace(/\D/g,'');
+ if(!/^mgev_[A-Za-z0-9_-]{40,128}$/.test(raw)||!/^\d{8}$/.test(code))return json({detail:'That verification challenge is invalid or expired.',code:'EMAIL_VERIFICATION_INVALID'},400);
+ const hash=await sha256Hex(raw),t=now();
+ const row=await env.DB.prepare("SELECT token_hash,email,code_hash,expires_at,attempts,consumed_at,delivery_status FROM primary_email_verification_challenges WHERE token_hash=? AND user_id=? AND tenant_id=? LIMIT 1").bind(hash,user.id,user.tenant_id).first();
+ if(!row||row.delivery_status!=='sent'||row.consumed_at!=null||Number(row.expires_at||0)<=t||Number(row.attempts||0)>=5||normEmail(row.email)!==normEmail(user.email))return json({detail:'That verification challenge is invalid or expired.',code:'EMAIL_VERIFICATION_INVALID'},400);
+ if(!safeEqual(await sha256Hex(code),row.code_hash)){
+  const attempts=Number(row.attempts||0)+1;
+  await env.DB.prepare('UPDATE primary_email_verification_challenges SET attempts=?,consumed_at=CASE WHEN ?>=5 THEN ? ELSE consumed_at END WHERE token_hash=? AND consumed_at IS NULL').bind(attempts,attempts,t,hash).run();
+  return json({detail:attempts>=5?'Too many invalid codes. Request a new code.':'That 8-digit verification code is incorrect.',code:'EMAIL_VERIFICATION_CODE_INVALID'},400);
+ }
+ const claimed=await env.DB.prepare('UPDATE primary_email_verification_challenges SET consumed_at=? WHERE token_hash=? AND consumed_at IS NULL AND expires_at>?').bind(t,hash,t).run();
+ if(Number(claimed?.meta?.changes||0)!==1)return json({detail:'That verification challenge is no longer active.',code:'EMAIL_VERIFICATION_INVALID'},400);
+ await env.DB.prepare(`INSERT INTO user_primary_email_verifications(user_id,tenant_id,email,verified_at,updated_at)
+  VALUES(?,?,?,?,?)
+  ON CONFLICT(user_id) DO UPDATE SET tenant_id=excluded.tenant_id,email=excluded.email,verified_at=excluded.verified_at,updated_at=excluded.updated_at`).bind(user.id,user.tenant_id,normEmail(user.email),t,t).run();
+ return json({ok:true,email:normEmail(user.email),email_verified:true,verified_at:t});
+}
+
 export function magnanimousOAuthChallenge(request,scope=''){
  const metadata=new URL('/.well-known/oauth-protected-resource',request.url).href;
  return 'Bearer resource_metadata="'+metadata+'"'+(scope?', scope="'+clean(scope,500)+'"':'');
 }
 
 export async function authorizeMagnanimousOAuthToken(request,env){
- const auth=clean(request.headers.get('authorization'),10000);
- if(!/^Bearer\s+/i.test(auth))return null;
- const token=auth.replace(/^Bearer\s+/i,'').trim();
- if(!token.startsWith('mgo_')||!env?.DB)return null;
- await ensureSchema(env);
- const hash=await sha256Hex(token),ts=now();
- const row=await env.DB.prepare('SELECT id,client_id,tenant_id,user_id,scopes_json,resource,expires_at,revoked_at FROM magnanimous_oauth_access_tokens WHERE token_hash=?').bind(hash).first();
- if(!row||row.revoked_at||Number(row.expires_at||0)<=ts||row.resource!==resource(request))return null;
- await env.DB.prepare('UPDATE magnanimous_oauth_access_tokens SET last_used_at=? WHERE id=?').bind(ts,row.id).run().catch(()=>{});
+ const row=await oauthAccessRow(request,env);
+ if(!row)return null;
  return{
   id:'oauth:'+row.id,
   tenant_id:row.tenant_id,
@@ -165,7 +262,7 @@ export async function authorizeMagnanimousOAuthToken(request,env){
 
 export async function handleMagnanimousPluginOAuth(request,env){
  const url=new URL(request.url),path=url.pathname;
- const handled=path==='/.well-known/openai-apps-challenge'||path==='/.well-known/oauth-protected-resource'||path==='/.well-known/oauth-authorization-server'||path==='/oauth/register'||path==='/oauth/token'||path==='/api/magnanimous/oauth/consent'||path==='/api/magnanimous/oauth/authorize';
+ const handled=path==='/.well-known/openai-apps-challenge'||path==='/.well-known/oauth-protected-resource'||path==='/.well-known/oauth-authorization-server'||path==='/.well-known/openid-configuration'||path==='/oauth/register'||path==='/oauth/token'||path==='/oauth/userinfo'||path==='/api/magnanimous/oauth/consent'||path==='/api/magnanimous/oauth/authorize'||path==='/api/magnanimous/oauth/email-verification/status'||path==='/api/magnanimous/oauth/email-verification/request'||path==='/api/magnanimous/oauth/email-verification/confirm';
  if(!handled)return null;
  if(!env?.DB)return json({detail:'OAuth database binding is unavailable.'},503);
  await ensureSchema(env);
@@ -186,20 +283,42 @@ export async function handleMagnanimousPluginOAuth(request,env){
    bearer_methods_supported:['header']
   });
  }
- if(path==='/.well-known/oauth-authorization-server'&&request.method==='GET'){
+ if((path==='/.well-known/oauth-authorization-server'||path==='/.well-known/openid-configuration')&&request.method==='GET'){
   return json({
    issuer:base,
    authorization_endpoint:base+'/oauth/authorize',
    token_endpoint:base+'/oauth/token',
+   userinfo_endpoint:base+'/oauth/userinfo',
    registration_endpoint:base+'/oauth/register',
    response_types_supported:['code'],
    grant_types_supported:['authorization_code','refresh_token'],
    token_endpoint_auth_methods_supported:['none'],
    code_challenge_methods_supported:['S256'],
    authorization_response_iss_parameter_supported:true,
-   scopes_supported:OAUTH_SCOPES
+   scopes_supported:OAUTH_SCOPES,
+   subject_types_supported:['public'],
+   claims_supported:['sub','name','email','email_verified']
   });
  }
+ if(path==='/oauth/userinfo'&&request.method==='GET'){
+  const row=await oauthAccessRow(request,env);
+  if(!row)return oauthError('invalid_token','A valid Magnanimous OAuth access token is required.',401,{'www-authenticate':'Bearer error="invalid_token"'});
+  const scopes=new Set(parseJson(row.scopes_json,[]));
+  if(!scopes.has('openid')||!scopes.has('email'))return oauthError('insufficient_scope','openid and email scopes are required for UserInfo.',403,{'www-authenticate':'Bearer scope="openid email"'});
+  const user=await env.DB.prepare('SELECT id,tenant_id,name,email,role,active FROM users WHERE id=? AND tenant_id=? AND active=1 LIMIT 1').bind(row.user_id,row.tenant_id).first();
+  if(!user)return oauthError('invalid_token','The user for this access token is no longer active.',401);
+  const verification=await verifiedPrimaryEmail(env,user);
+  return json({sub:String(user.id),name:String(user.name||'User'),email:normEmail(user.email),email_verified:Boolean(verification.verified)});
+ }
+ if(path==='/api/magnanimous/oauth/email-verification/status'&&request.method==='GET'){
+  const user=await currentUser(request,env).catch(()=>null);
+  if(!user)return json({detail:'Sign in before checking email verification.',code:'AUTH_REQUIRED'},401);
+  const verification=await verifiedPrimaryEmail(env,user);
+  return json({ok:true,email:verification.email,email_verified:verification.verified,verified_at:verification.verified_at});
+ }
+ if(path==='/api/magnanimous/oauth/email-verification/request'&&request.method==='POST')return requestPrimaryEmailVerification(request,env);
+ if(path==='/api/magnanimous/oauth/email-verification/confirm'&&request.method==='POST')return confirmPrimaryEmailVerification(request,env);
+
  if(path==='/oauth/register'&&request.method==='POST'){
   const body=await request.json().catch(()=>({}));
   const redirects=Array.isArray(body.redirect_uris)?[...new Set(body.redirect_uris.map(x=>clean(x,4000)).filter(Boolean))]:[];
