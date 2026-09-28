@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 
 const connector=fs.readFileSync('worker/src/magnanimous-universal-ai-connector.js','utf8');
+const oauth=fs.readFileSync('worker/src/magnanimous-plugin-oauth.js','utf8');
 const entry=fs.readFileSync('worker/src/entrypoint.js','utf8');
 const page=fs.readFileSync('frontend/app/ai-connectors/page.tsx','utf8');
+const oauthPage=fs.readFileSync('frontend/app/oauth/authorize/page.tsx','utf8');
 const wrangler=fs.readFileSync('worker/wrangler.jsonc','utf8');
 const failures=[];
 const must=(source,text,label)=>{if(!source.includes(text))failures.push(label)};
@@ -47,6 +49,22 @@ must(connector,"confirm_sensitive",'sensitive communications gate passthrough mi
 must(entry,"handleMagnanimousUniversalAIConnector",'production entrypoint no longer routes universal connector');
 must(wrangler,'"/mcp"','Cloudflare asset routing no longer sends /mcp to the Worker first');
 must(wrangler,'"/.well-known/*"','Cloudflare asset routing no longer sends connector discovery to the Worker first');
+must(oauth,"/.well-known/oauth-protected-resource",'OAuth protected-resource discovery missing');
+must(oauth,"/.well-known/oauth-authorization-server",'OAuth authorization-server discovery missing');
+must(oauth,"code_challenge_methods_supported:['S256']",'OAuth PKCE S256 metadata missing');
+must(oauth,"grant_types_supported:['authorization_code','refresh_token']",'OAuth authorization-code/refresh flow missing');
+must(oauth,"token_endpoint_auth_methods_supported:['none']",'OAuth public-client token exchange missing');
+must(oauth,"magnanimous_oauth_access_tokens",'hashed OAuth access-token storage missing');
+must(oauth,"magnanimous_oauth_refresh_tokens",'hashed OAuth refresh-token storage missing');
+must(oauth,"openAiRedirect",'OAuth DCR redirect allowlist missing');
+must(oauth,"row.resource!==resource(request)",'OAuth MCP audience/resource validation missing');
+must(connector,"authorizeMagnanimousOAuthToken",'MCP does not accept first-party OAuth access tokens');
+must(connector,"www-authenticate",'MCP unauthenticated response does not publish OAuth challenge');
+must(connector,"handleMagnanimousPluginOAuth",'OAuth discovery/token routes are not mounted');
+must(oauthPage,"Connect Magnanimous AI to ChatGPT",'ChatGPT OAuth consent page missing');
+must(oauthPage,"/login?returnTo=",'OAuth consent does not preserve login return flow');
+must(wrangler,'"/oauth/register"','OAuth DCR route is not Worker-first');
+must(wrangler,'"/oauth/token"','OAuth token route is not Worker-first');
 must(page,"CREATE INSTALL TOKEN",'AI connector owner UI missing token creation');
 must(page,"Write access OFF by default",'AI connector owner UI no longer communicates safe default');
 
