@@ -24,6 +24,7 @@ on:
       - 'qa/scripts/universal-ai-connector-lock.mjs'
       - 'qa/scripts/magnanimous-unified-ops-plugin-lock.mjs'
       - 'qa/scripts/magnanimous-plugin-billing-lock.mjs'
+      - 'qa/scripts/magnanimous-public-plugin-release-lock.mjs'
       - '.github/workflows/universal-ai-connector-check.yml'
   pull_request:
     branches: [main]
@@ -48,6 +49,7 @@ on:
       - 'qa/scripts/universal-ai-connector-lock.mjs'
       - 'qa/scripts/magnanimous-unified-ops-plugin-lock.mjs'
       - 'qa/scripts/magnanimous-plugin-billing-lock.mjs'
+      - 'qa/scripts/magnanimous-public-plugin-release-lock.mjs'
       - '.github/workflows/universal-ai-connector-check.yml'
   workflow_dispatch:
 
@@ -92,5 +94,7 @@ jobs:
         run: node qa/scripts/magnanimous-unified-ops-plugin-lock.mjs
       - name: Lock all-in-one plugin billing contract
         run: node qa/scripts/magnanimous-plugin-billing-lock.mjs
+      - name: Lock public Magnanimous plugin release contract
+        run: node qa/scripts/magnanimous-public-plugin-release-lock.mjs
       - name: Verify Cloudflare Worker bundle
         run: npx --yes wrangler@4 deploy --dry-run --config worker/wrangler.jsonc
