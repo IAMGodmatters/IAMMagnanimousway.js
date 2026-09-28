@@ -1,6 +1,7 @@
 import { currentUser } from './integrations.js';
 import { usageStatus, walletStatus } from './usage-guard.js';
 import { encodeTopupPaymentReference } from './payment-reference.js';
+import { magnanimousPluginPricingSnapshot } from './magnanimous-unified-plugin-pricing.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -63,7 +64,7 @@ export async function handleEnterpriseCommercialization(request,env){
  const url=new URL(request.url);if(!url.pathname.startsWith('/api/enterprise'))return null;if(!env?.DB)return json({detail:'Enterprise database is unavailable.'},503);
  try{
   await ensure(env);const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use Enterprise Command.'},401);const tenant=String(user.tenant_id),owner=user.role==='owner';
-  if(request.method==='GET'&&url.pathname==='/api/enterprise/overview')return json({ok:true,...await summary(env,tenant),topup_configured:Boolean(String(env.STRIPE_PAYMENT_LINK_USAGE_TOPUP||'').trim())});
+  if(request.method==='GET'&&url.pathname==='/api/enterprise/overview')return json({ok:true,...await summary(env,tenant),topup_configured:Boolean(String(env.STRIPE_PAYMENT_LINK_USAGE_TOPUP||'').trim()),plugin_pricing:magnanimousPluginPricingSnapshot()});
   if(request.method==='GET'&&url.pathname==='/api/enterprise/providers')return json({providers:PROVIDERS.map(p=>({...p,configured:configured(env,p)})),principle:'Free-first by default; customer-funded or customer-provided infrastructure for metered enterprise services.'});
   if(request.method==='GET'&&url.pathname==='/api/enterprise/accounts'){const{results=[]}=await env.DB.prepare('SELECT * FROM enterprise_accounts WHERE tenant_id=? ORDER BY status,name').bind(tenant).all();return json({accounts:results.map(x=>({...x,security_requirements:parseList(x.security_requirements),authorized_systems:parseList(x.authorized_systems)}))})}
   if(request.method==='POST'&&url.pathname==='/api/enterprise/accounts'){
@@ -84,9 +85,9 @@ export async function handleEnterpriseCommercialization(request,env){
    if(!owner)return json({detail:'Owner access required.'},403);const b=await request.json().catch(()=>({})),name=text(b.name,220);if(!name)return json({detail:'Opportunity name is required.'},400);const id=crypto.randomUUID(),ts=now();
    await env.DB.prepare('INSERT INTO enterprise_opportunities(id,tenant_id,account_id,name,source,stage,estimated_monthly_value_usd,estimated_setup_value_usd,probability_percent,next_action,next_action_at,owner_user_id,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,tenant,b.account_id?String(b.account_id):null,name,text(b.source||'direct',80),text(b.stage||'identified',40),num(b.estimated_monthly_value_usd),num(b.estimated_setup_value_usd),num(b.probability_percent||10,0,100),text(b.next_action,500),b.next_action_at?Number(b.next_action_at):null,String(b.owner_user_id||user.id),text(b.notes),ts,ts).run();return json({id},201)
   }
-  if(request.method==='GET'&&url.pathname==='/api/enterprise/usage-wallet'){const s=await usageStatus(env,tenant);const{results=[]}=await env.DB.prepare('SELECT * FROM billing_usage_wallet_events WHERE tenant_id=? ORDER BY created_at DESC LIMIT 100').bind(tenant).all();return json({status:s,events:results})}
+  if(request.method==='GET'&&url.pathname==='/api/enterprise/usage-wallet'){const s=await usageStatus(env,tenant);const{results=[]}=await env.DB.prepare('SELECT * FROM billing_usage_wallet_events WHERE tenant_id=? ORDER BY created_at DESC LIMIT 100').bind(tenant).all();return json({status:s,events:results,plugin_pricing:magnanimousPluginPricingSnapshot()})}
   if(request.method==='POST'&&url.pathname==='/api/enterprise/usage-wallet/topup'){
-   const base=String(env.STRIPE_PAYMENT_LINK_USAGE_TOPUP||'').trim();if(!base)return json({detail:'Premium usage top-up checkout is not configured.'},503);const link=new URL(base);link.searchParams.set('client_reference_id',encodeTopupPaymentReference(tenant));return json({url:link.toString(),min_usd:10,max_usd:1000,purpose:'prepaid-premium-usage'});
+   const base=String(env.STRIPE_PAYMENT_LINK_USAGE_TOPUP||'').trim();if(!base)return json({detail:'Prepaid usage-credit Stripe checkout is not configured.'},503);const link=new URL(base);link.searchParams.set('client_reference_id',encodeTopupPaymentReference(tenant));return json({url:link.toString(),min_usd:10,max_usd:1000,purpose:'magnanimous-prepaid-direct-cost-usage',base_fee_usd:0,markup_percent:20,subscription_required:false,charge_rule:'verified direct origin cost + exactly 20% Magnanimous markup'});
   }
   if(request.method==='GET'&&url.pathname==='/api/enterprise/revenue'){const{results=[]}=await env.DB.prepare('SELECT * FROM enterprise_revenue_events WHERE tenant_id=? ORDER BY occurred_at DESC LIMIT 250').bind(tenant).all();const s=await summary(env,tenant);return json({events:results,summary:s})}
   return json({detail:'Enterprise endpoint not found.'},404);
