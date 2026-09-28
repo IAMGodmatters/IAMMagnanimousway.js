@@ -56,7 +56,7 @@ async function processPaidCheckout(env,event,object){
  const amount=Math.max(0,Number(object?.amount_total||0)/100),reference=String(object.id||event.id);
  if(purpose==='premium_usage_topup'){
   if(amount<=0)return;
-  await creditWallet(env,tenantId,amount,{reference_id:reference,detail:'Stripe premium usage top-up'});
+  await creditWallet(env,tenantId,amount,{reference_id:reference,detail:'Stripe Magnanimous prepaid direct-cost usage credit'});
   await authorizeProviderSpend(env,tenantId,reference,'premium_usage_topup',amount);
   await recordRevenue(env,tenantId,'usage-topup',amount,'stripe',reference);
   return;
