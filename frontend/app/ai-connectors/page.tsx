@@ -37,8 +37,8 @@ type IssuedToken = {
 };
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-const SAFE = ['capabilities.read', 'brain.ask', 'mail.read', 'communications.read'];
-const WRITES = ['mail.write', 'communications.write'];
+const SAFE = ['capabilities.read', 'brain.ask', 'web.read', 'mail.read', 'communications.read'];
+const WRITES = ['web.write', 'mail.write', 'communications.write'];
 
 export default function AIConnectors() {
   const [data, setData] = useState<State | null>(null);
@@ -177,6 +177,8 @@ export default function AIConnectors() {
           <b>MCP 2026-07-28</b>
           <b>Legacy MCP compatible</b>
           <b>OpenAPI fallback</b>
+          <b>Native web • no TinyFish wallet</b>
+          <b>ChatGPT search/fetch ready</b>
           <b>Write access OFF by default</b>
         </div>
       </section>
@@ -238,11 +240,13 @@ export default function AIConnectors() {
                       <em>
                         {scope === 'brain.ask'
                           ? 'Ask/delegate to Magnanimous'
-                          : scope === 'mail.read'
-                            ? 'Read/search connected mail'
-                            : scope === 'communications.read'
-                              ? 'Read communications catalog/status'
-                              : 'Read Magnanimous capabilities'}
+                          : scope === 'web.read'
+                            ? 'Use native search, fetch, research, browser reads, sessions and monitors without TinyFish'
+                            : scope === 'mail.read'
+                              ? 'Read/search connected mail'
+                              : scope === 'communications.read'
+                                ? 'Read communications catalog/status'
+                                : 'Read Magnanimous capabilities'}
                       </em>
                     </span>
                   </label>
@@ -265,22 +269,38 @@ export default function AIConnectors() {
                     <span>
                       <b>{scope}</b>
                       <em>
-                        {scope === 'mail.write'
-                          ? 'Send email from an explicitly selected account'
-                          : 'Execute authorized communications actions'}
+                        {scope === 'web.write'
+                          ? 'Use confirmation-gated browser actions, profiles, sessions and monitor management'
+                          : scope === 'mail.write'
+                            ? 'Send email from an explicitly selected account'
+                            : 'Execute authorized communications actions'}
                       </em>
                     </span>
                   </label>
                 ))}
               </div>
 
-              <button
-                className="create"
-                disabled={busy === 'create'}
-                onClick={() => void create()}
-              >
-                {busy === 'create' ? 'CREATING…' : 'CREATE INSTALL TOKEN'}
-              </button>
+              {platform === 'openai-chatgpt' ? (
+                <div className="oauthInstall">
+                  <b>CHATGPT USES MAGNANIMOUS OAUTH</b>
+                  <span>
+                    Add the Remote MCP URL in ChatGPT. Magnanimous will show this branded approval
+                    screen and issue short-lived OAuth access instead of asking you to paste a
+                    connector secret into ChatGPT.
+                  </span>
+                  <button type="button" onClick={() => void copy(data.mcp.url)}>
+                    COPY CHATGPT MCP URL
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className="create"
+                  disabled={busy === 'create'}
+                  onClick={() => void create()}
+                >
+                  {busy === 'create' ? 'CREATING…' : 'CREATE INSTALL TOKEN'}
+                </button>
+              )}
             </div>
           </section>
 
@@ -538,6 +558,37 @@ export default function AIConnectors() {
         }
         .danger h3 {
           color: #f0be7a;
+        }
+        .oauthInstall {
+          margin-top: 18px;
+          border: 1px solid #265468;
+          border-radius: 12px;
+          padding: 14px;
+          background: #06121a;
+        }
+        .oauthInstall b,
+        .oauthInstall span {
+          display: block;
+        }
+        .oauthInstall b {
+          color: #88e7ff;
+          font-size: 10px;
+          letter-spacing: 0.1em;
+        }
+        .oauthInstall span {
+          color: #819aaa;
+          font-size: 10px;
+          line-height: 1.55;
+          margin: 6px 0 10px;
+        }
+        .oauthInstall button {
+          width: 100%;
+          border: 1px solid #2c5e76;
+          color: #a8eaff;
+          background: transparent;
+          border-radius: 8px;
+          padding: 10px;
+          font-weight: 900;
         }
         .create {
           margin-top: 18px;
