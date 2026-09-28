@@ -114,6 +114,8 @@ export default function OAuthAuthorizePage(){
      {consent.scopes.map(scope=><div key={scope}>
       <b>{scope}</b>
       <span>{
+       scope==='openid'?'Identify your Magnanimous account securely to ChatGPT':
+       scope==='email'?'Share your verified Magnanimous sign-in email for workspace-domain protection':
        scope==='web.read'?'Search, fetch, research and read browser state':
        scope==='web.write'?'Run confirmation-gated browser actions and manage native browser state':
        scope==='cloud.read'?'Read native Magnanimous Cloud projects/resources, deployment and edge/runtime compatibility':
