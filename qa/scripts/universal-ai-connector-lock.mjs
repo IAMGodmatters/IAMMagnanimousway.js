@@ -5,6 +5,7 @@ const oauth=fs.readFileSync('worker/src/magnanimous-plugin-oauth.js','utf8');
 const entry=fs.readFileSync('worker/src/entrypoint.js','utf8');
 const page=fs.readFileSync('frontend/app/ai-connectors/page.tsx','utf8');
 const oauthPage=fs.readFileSync('frontend/app/oauth/authorize/page.tsx','utf8');
+const pluginSupport=fs.readFileSync('frontend/app/plugin-support/page.tsx','utf8');
 const wrangler=fs.readFileSync('worker/wrangler.jsonc','utf8');
 const failures=[];
 const must=(source,text,label)=>{if(!source.includes(text))failures.push(label)};
@@ -60,6 +61,8 @@ must(wrangler,'"/mcp"','Cloudflare asset routing no longer sends /mcp to the Wor
 must(wrangler,'"/.well-known/*"','Cloudflare asset routing no longer sends connector discovery to the Worker first');
 must(oauth,"/.well-known/oauth-protected-resource",'OAuth protected-resource discovery missing');
 must(oauth,"/.well-known/oauth-authorization-server",'OAuth authorization-server discovery missing');
+must(oauth,"/.well-known/openai-apps-challenge",'OpenAI plugin domain challenge route missing');
+must(oauth,"OPENAI_APPS_CHALLENGE_TOKEN",'OpenAI plugin challenge token binding missing');
 must(oauth,"code_challenge_methods_supported:['S256']",'OAuth PKCE S256 metadata missing');
 must(oauth,"grant_types_supported:['authorization_code','refresh_token']",'OAuth authorization-code/refresh flow missing');
 must(oauth,"token_endpoint_auth_methods_supported:['none']",'OAuth public-client token exchange missing');
@@ -72,6 +75,10 @@ must(connector,"www-authenticate",'MCP unauthenticated response does not publish
 must(connector,"handleMagnanimousPluginOAuth",'OAuth discovery/token routes are not mounted');
 must(oauthPage,"Connect Magnanimous AI to ChatGPT",'ChatGPT OAuth consent page missing');
 must(oauthPage,"/login?returnTo=",'OAuth consent does not preserve login return flow');
+must(pluginSupport,"Magnanimous AI Plugin Support",'public plugin support page missing');
+must(pluginSupport,"Godmattersinc@iammagnanimousway.com",'public plugin support contact missing');
+must(pluginSupport,"/privacy",'plugin support privacy link missing');
+must(pluginSupport,"/terms",'plugin support terms link missing');
 must(wrangler,'"/oauth/register"','OAuth DCR route is not Worker-first');
 must(wrangler,'"/oauth/token"','OAuth token route is not Worker-first');
 must(page,"CREATE INSTALL TOKEN",'AI connector owner UI missing token creation');
