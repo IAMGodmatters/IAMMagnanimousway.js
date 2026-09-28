@@ -2,6 +2,7 @@ import { currentUser } from './integrations.js';
 import { handleMagnanimousNativeMail } from './magnanimous-native-mail-runtime.js';
 import { handleMagnanimousCommunications } from './magnanimous-communications-router.js';
 import { handleMagnanimousNativeWeb } from './magnanimous-native-web-runtime.js';
+import { authorizeMagnanimousOAuthToken, handleMagnanimousPluginOAuth, magnanimousOAuthChallenge } from './magnanimous-plugin-oauth.js';
 
 const json=(data,status=200,extra={})=>Response.json(data,{status,headers:{'cache-control':'no-store',...extra}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -107,7 +108,9 @@ function safeScopes(value){const input=Array.isArray(value)?value:[];return[...n
 function parseScopes(row){try{return new Set(JSON.parse(row?.scopes_json||'[]'))}catch{return new Set()}}
 function connectorToken(request){const auth=String(request.headers.get('authorization')||'').trim();if(/^Bearer\s+/i.test(auth))return auth.replace(/^Bearer\s+/i,'').trim();return String(request.headers.get('x-magnanimous-connector-key')||'').trim()}
 async function authorizeConnector(request,env){
- if(!env?.DB)return null;await ensureSchema(env);const token=connectorToken(request);if(!token||!token.startsWith('mgc_'))return null;const hash=await sha256Hex(token);
+ if(!env?.DB)return null;await ensureSchema(env);
+ const oauth=await authorizeMagnanimousOAuthToken(request,env);if(oauth)return oauth;
+ const token=connectorToken(request);if(!token||!token.startsWith('mgc_'))return null;const hash=await sha256Hex(token);
  const row=await env.DB.prepare(`SELECT id,tenant_id,user_id,name,platform,scopes_json,active FROM magnanimous_ai_connector_tokens WHERE token_hash=? AND active=1`).bind(hash).first();
  if(!row)return null;await env.DB.prepare('UPDATE magnanimous_ai_connector_tokens SET last_used_at=? WHERE id=?').bind(now(),row.id).run().catch(()=>{});return{...row,scopes:parseScopes(row)};
 }
@@ -290,7 +293,7 @@ function modernDiscover(){return{protocolVersion:MODERN_PROTOCOL,serverInfo:{nam
 async function handleMcp(request,env){
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type,mcp-protocol-version,mcp-method,mcp-name,x-magnanimous-connector-key','access-control-allow-methods':'POST,OPTIONS'}});
  if(request.method!=='POST')return json({detail:'Magnanimous MCP uses POST Streamable HTTP.'},405);
- const connector=await authorizeConnector(request,env);if(!connector)return rpcError(null,-32001,'Valid Magnanimous connector authentication is required.',401);
+ const connector=await authorizeConnector(request,env);if(!connector)return json({jsonrpc:'2.0',id:null,error:{code:-32001,message:'Magnanimous OAuth authorization is required.'}},401,{'content-type':'application/json','www-authenticate':magnanimousOAuthChallenge(request,'web.read')});
  const body=await request.json().catch(()=>null);if(!body||body.jsonrpc!=='2.0'||!body.method)return rpcError(body?.id,-32600,'Invalid JSON-RPC request.',400);
  const method=String(body.method),id=body.id??null,headerMethod=request.headers.get('mcp-method');if(headerMethod&&headerMethod!==method)return rpcError(id,-32020,'Mcp-Method header does not match the JSON-RPC method.',400);
  if(method==='server/discover')return rpcResult(id,modernDiscover());
@@ -324,10 +327,11 @@ async function handleMcp(request,env){
  return rpcError(id,-32601,'Method not found.');
 }
 
-function manifest(request){const origin=new URL(request.url).origin;return{name:'Magnanimous AI',publisher:'I AM MAGNANIMOUS WAY™',identity:'Magnanimous AI',mcp:{url:`${origin}/mcp`,protocols:[MODERN_PROTOCOL,LEGACY_PROTOCOL],transport:'streamable-http',authentication:'Bearer connector token',skills_extension:SKILLS_EXTENSION},openapi:`${origin}/api/magnanimous/ai-connectors/openapi.json`,management:`${origin}/api/magnanimous/ai-connectors`,native_web:{tinyfish_required:false,third_party_wallet_required:false,standard_tools:['search','fetch'],skill:NATIVE_WEB_SKILL_URI},platforms:MAGNANIMOUS_AI_PLATFORMS,principle:'External AI platforms are clients or execution environments. Magnanimous remains the command, memory, routing and verification layer.'}}
+function manifest(request){const origin=new URL(request.url).origin;return{name:'Magnanimous AI',publisher:'I AM MAGNANIMOUS WAY™',identity:'Magnanimous AI',mcp:{url:`${origin}/mcp`,protocols:[MODERN_PROTOCOL,LEGACY_PROTOCOL],transport:'streamable-http',authentication:'OAuth 2.1 authorization-code + PKCE for ChatGPT; legacy scoped bearer connector tokens for other clients',skills_extension:SKILLS_EXTENSION},openapi:`${origin}/api/magnanimous/ai-connectors/openapi.json`,management:`${origin}/api/magnanimous/ai-connectors`,native_web:{tinyfish_required:false,third_party_wallet_required:false,standard_tools:['search','fetch'],skill:NATIVE_WEB_SKILL_URI},platforms:MAGNANIMOUS_AI_PLATFORMS,principle:'External AI platforms are clients or execution environments. Magnanimous remains the command, memory, routing and verification layer.'}}
 function openApi(request){const origin=new URL(request.url).origin;return{openapi:'3.1.0',info:{title:'Magnanimous AI Universal Connector',version:'1.0.0',description:'Provider-neutral connector for Magnanimous AI. Use a scoped connector token.'},servers:[{url:origin}],components:{securitySchemes:{ConnectorBearer:{type:'http',scheme:'bearer'}}},security:[{ConnectorBearer:[]}],paths:{'/api/magnanimous/ai-connectors/invoke':{post:{summary:'Invoke one authorized Magnanimous connector tool',requestBody:{required:true,content:{'application/json':{schema:{type:'object',properties:{tool:{type:'string'},arguments:{type:'object'}},required:['tool']}}}},responses:{'200':{description:'Tool result'},'401':{description:'Invalid connector token'},'403':{description:'Insufficient scope'}}}}}}}
 
 export async function handleMagnanimousUniversalAIConnector(request,env){
+ const oauth=await handleMagnanimousPluginOAuth(request,env);if(oauth)return oauth;
  const url=new URL(request.url),path=url.pathname;
  if(path==='/.well-known/magnanimous-ai-connector.json'&&request.method==='GET')return json(manifest(request));
  if(path==='/api/magnanimous/ai-connectors/openapi.json'&&request.method==='GET')return json(openApi(request));
