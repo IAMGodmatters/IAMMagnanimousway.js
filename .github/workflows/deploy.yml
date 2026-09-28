@@ -770,9 +770,12 @@ jobs:
           assert {'web.read','cloud.read','cloud.write'}.issubset(scopes), data
           PY
 
-          mcp_status="$(command curl -sS --connect-timeout 10 --max-time 120 -D /tmp/magnanimous-mcp-headers.txt -o /tmp/magnanimous-mcp-unauth.json -w '%{http_code}' "$BASE_URL/mcp" || true)"
+          mcp_status="$(command curl -sS --connect-timeout 10 --max-time 120 -D /tmp/magnanimous-mcp-headers.txt -o /tmp/magnanimous-mcp-unauth.json -w '%{http_code}' \
+            -X POST "$BASE_URL/mcp" \
+            -H 'content-type: application/json' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2026-07-28","capabilities":{},"clientInfo":{"name":"magnanimous-production-smoke","version":"1.0.0"}}}' || true)"
           if [ "$mcp_status" != "401" ]; then
-            echo "Magnanimous MCP unauthenticated challenge expected HTTP 401, got $mcp_status"
+            echo "Magnanimous MCP unauthenticated POST challenge expected HTTP 401, got $mcp_status"
             cat /tmp/magnanimous-mcp-unauth.json 2>/dev/null || true
             exit 1
           fi
