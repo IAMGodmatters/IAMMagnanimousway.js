@@ -116,6 +116,18 @@ const OWNER_OPERATING_COSTS = [
     notes: 'Upper-end budget reserve from the published Bayawan citizen charter: Mayor\'s Permit fee ranges PHP 100–8,000 based on asset size/workers, plus other listed fees of about PHP 510–610. Actual assessment may be lower. Local business tax and variable Fire Code fees are tracked separately.'
   },
   {
+    key: 'bayawan-boss-clearances',
+    category: 'local-business-compliance',
+    name: 'Bayawan BOSS supporting clearances',
+    frequency: 'annual',
+    cost_type: 'variable',
+    currency: 'PHP',
+    amount: 0,
+    status: 'review',
+    source_url: 'https://www.bayawancity.gov.ph/citizencharter/Content/citizencharter/pdf/CitizensCharter-2024-4th-edition.pdf',
+    notes: 'Barangay/location, sanitary, occupancy and similar supporting clearances may apply depending on the premises and business activity. Do not invent a fixed amount; use the actual BOSS assessment because some charges are already included in the published “other fees” range and should not be double-counted.'
+  },
+  {
     key: 'bayawan-business-tax',
     category: 'local-business-compliance',
     name: 'Bayawan local business tax',
@@ -137,7 +149,7 @@ const OWNER_OPERATING_COSTS = [
     amount: 0,
     status: 'review',
     source_url: 'https://bfp.gov.ph/wp-content/uploads/2017/06/Forms.pdf',
-    notes: 'Fire Safety Inspection Fee is generally 10% of fees charged by the building official/LGU/other government agencies for permits or licenses. Compute from the actual permit assessment rather than double-counting an estimate.'
+    notes: 'Current BFP rules assess the Fire Safety Inspection Fee at 15% of fees charged by the LGU/PEZA for the applicable permit, with a minimum fee of PHP 500. Compute from the actual permit assessment rather than double-counting an estimate.'
   },
   {
     key: 'bir-annual-registration',
@@ -174,6 +186,18 @@ const OWNER_OPERATING_COSTS = [
     status: 'review',
     source_url: 'https://bir-cdn.bir.gov.ph/BIR/pdf/RR%203-2024%20%28final%29.pdf',
     notes: 'Sales-dependent. VAT/percentage-tax treatment depends on registration and the indexed VAT threshold. Non-VAT persons subject to Section 116 generally pay 3% of gross quarterly sales. Confirm current threshold and classification before filing.'
+  },
+  {
+    key: 'professional-accounting-legal',
+    category: 'professional-services',
+    name: 'Accounting, audit, notarization and regulatory legal support',
+    frequency: 'annual/monthly',
+    cost_type: 'variable',
+    currency: 'PHP',
+    amount: 0,
+    status: 'review',
+    source_url: '',
+    notes: 'Not a fixed government fee. Budget must come from actual accountant/auditor/lawyer/notary quotes once transaction volume, staffing, audited-financial-statement requirement and NTC filing scope are known.'
   },
   {
     key: 'sec-annual-reportorial',
@@ -306,6 +330,42 @@ const OWNER_OPERATING_COSTS = [
     status: 'review',
     source_url: '',
     notes: 'Active platform dependency. Registrar and renewal invoice are not exposed in the current connected services, so no amount is invented. Replace with the actual registrar renewal price.'
+  },
+  {
+    key: 'github-public-repo-ci',
+    category: 'platform-infrastructure',
+    name: 'GitHub repository + current public-repo CI baseline',
+    frequency: 'monthly',
+    cost_type: 'fixed',
+    currency: 'USD',
+    amount: 0,
+    status: 'active',
+    source_url: 'https://github.com/pricing',
+    notes: 'Current repository is public. No separate GitHub platform charge is booked in this finance register. Any future paid GitHub plan, storage, Actions overage, Codespaces, Copilot or private-repo usage should be recorded from the actual invoice.'
+  },
+  {
+    key: 'native-email-delivery',
+    category: 'platform-infrastructure',
+    name: 'Magnanimous native email delivery baseline',
+    frequency: 'monthly',
+    cost_type: 'fixed',
+    currency: 'USD',
+    amount: 0,
+    status: 'active',
+    source_url: '',
+    notes: 'The production runtime currently exposes native/direct mail-delivery configuration rather than a separately identified paid SMTP vendor. No recurring provider fee is booked until an external SMTP/email service is actually activated or invoiced.'
+  },
+  {
+    key: 'metered-ai-owner-baseline',
+    category: 'ai-infrastructure',
+    name: 'External metered AI owner-funded baseline',
+    frequency: 'monthly/usage',
+    cost_type: 'usage',
+    currency: 'USD',
+    amount: 0,
+    status: 'active',
+    source_url: '',
+    notes: 'Owner recurring budget is kept at zero for metered external AI because the current Magnanimous billing policy requires customer-funded prepaid usage before metered provider execution. Record any future owner-funded model spend from actual provider invoices.'
   },
   {
     key: 'business-internet-power',
