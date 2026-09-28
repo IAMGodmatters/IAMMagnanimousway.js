@@ -97,6 +97,8 @@ must(oauth,"/.well-known/oauth-authorization-server",'OAuth authorization-server
 must(oauth,"/.well-known/openai-apps-challenge",'OpenAI plugin domain challenge route missing');
 must(oauth,"OPENAI_APPS_CHALLENGE_TOKEN",'OpenAI plugin challenge token binding missing');
 must(oauth,"code_challenge_methods_supported:['S256']",'OAuth PKCE S256 metadata missing');
+must(oauth,"authorization_response_iss_parameter_supported:true",'OAuth issuer-response metadata missing');
+must(oauth,"redirect.searchParams.set('iss',url.origin)",'OAuth authorization response issuer binding missing');
 must(oauth,"grant_types_supported:['authorization_code','refresh_token']",'OAuth authorization-code/refresh flow missing');
 must(oauth,"token_endpoint_auth_methods_supported:['none']",'OAuth public-client token exchange missing');
 must(oauth,"magnanimous_oauth_access_tokens",'hashed OAuth access-token storage missing');
