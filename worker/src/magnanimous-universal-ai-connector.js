@@ -20,7 +20,7 @@ const GUARDED_LOCAL=Object.freeze({readOnlyHint:false,destructiveHint:false,open
 const DESTRUCTIVE_LOCAL=Object.freeze({readOnlyHint:false,destructiveHint:true,openWorldHint:false});
 
 export const MAGNANIMOUS_AI_PLATFORMS=[
- {id:'openai-chatgpt',name:'ChatGPT / OpenAI',protocol:'MCP',transport:'Streamable HTTP',install:'Use the Magnanimous remote MCP URL and a scoped connector token. Public directory/plugin distribution may require OpenAI review.'},
+ {id:'openai-chatgpt',name:'ChatGPT / OpenAI',protocol:'MCP',transport:'Streamable HTTP',install:'Use the Magnanimous remote MCP URL. ChatGPT authenticates through Magnanimous OAuth 2.1 + PKCE; public directory distribution still requires OpenAI review.'},
  {id:'anthropic-claude',name:'Claude / Anthropic',protocol:'MCP',transport:'Remote HTTP',install:'Use the Magnanimous remote MCP URL with the Claude MCP connector/API and a scoped connector token.'},
  {id:'google-gemini',name:'Gemini / Google AI',protocol:'MCP + OpenAPI fallback',transport:'Streamable HTTP',install:'Use remote MCP on compatible Gemini API models; use the OpenAPI invocation endpoint where remote MCP is unavailable.'},
  {id:'microsoft-copilot',name:'Microsoft Copilot',protocol:'MCP',transport:'Streamable HTTP',install:'Add the Magnanimous MCP server in Copilot Studio. Public gallery distribution can require Microsoft certification/admin approval.'},
@@ -31,10 +31,11 @@ export const MAGNANIMOUS_AI_PLATFORMS=[
 const TOOL_DEFS=[
  {name:'magnanimous_capabilities',title:'Magnanimous capabilities',scope:'capabilities.read',description:'Read Magnanimous AI capabilities, routing identity and connector information.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
  {name:'magnanimous_ask',title:'Ask Magnanimous AI',scope:'brain.ask',description:'Delegate a reasoning or planning request to Magnanimous AI, which remains the command, memory and verification layer.',inputSchema:{type:'object',properties:{message:{type:'string',description:'The task or question for Magnanimous AI.'}},required:['message'],additionalProperties:false},annotations:READ_ONLY_LOCAL},
+ {name:'get_profile',title:'Magnanimous profile',scope:'capabilities.read',description:'Return the stable Magnanimous connector profile for the currently authorized workspace without exposing login credentials.',inputSchema:{type:'object',properties:{},additionalProperties:false},outputSchema:{type:'object',properties:{id:{type:'string'},nickname:{type:'string'}},required:['id'],additionalProperties:false},annotations:READ_ONLY_LOCAL,_meta:{'openai/profile':true}},
 
  // Standard names make the connector compatible with ChatGPT deep research / company-knowledge style MCP discovery.
- {name:'search',title:'Search the web with Magnanimous',scope:'web.read',description:'Search the live public web with Magnanimous Native Web. Returns stable URL ids that can be passed to fetch. No TinyFish wallet or runtime is required.',inputSchema:{type:'object',properties:{query:{type:'string'},limit:{type:'integer',minimum:1,maximum:20},locale:{type:'string'},profile:{type:'string'}},required:['query'],additionalProperties:false},outputSchema:{type:'object',properties:{results:{type:'array',items:{type:'object',properties:{id:{type:'string'},title:{type:'string'},url:{type:'string'},text:{type:'string'}},required:['id','title','url','text'],additionalProperties:true}},run_id:{type:'string'},status:{type:'string'}},required:['results'],additionalProperties:true},annotations:READ_ONLY_OPEN_WEB},
- {name:'fetch',title:'Fetch a web page with Magnanimous',scope:'web.read',description:'Fetch and render a public web URL returned by search. Returns page title, text, links and optional structured fields using Magnanimous Native Web.',inputSchema:{type:'object',properties:{id:{type:'string',description:'Absolute public http(s) URL, normally a search result id.'},selector:{type:'string'},max_chars:{type:'integer',minimum:1000,maximum:200000},include_html:{type:'boolean'},fields:{type:'object'},locale:{type:'string'},profile:{type:'string'}},required:['id'],additionalProperties:false},outputSchema:{type:'object',properties:{id:{type:'string'},url:{type:'string'},title:{type:'string'},text:{type:'string'},links:{type:'array'},structured:{type:'object'},run_id:{type:'string'},status:{type:'string'}},required:['id','url','title','text'],additionalProperties:true},annotations:READ_ONLY_OPEN_WEB},
+ {name:'search',title:'Search the web with Magnanimous',scope:'web.read',description:'Search the live public web with Magnanimous Native Web. Returns stable URL ids that can be passed to fetch. No TinyFish wallet or runtime is required.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query'],additionalProperties:false},outputSchema:{type:'object',properties:{results:{type:'array',items:{type:'object',properties:{id:{type:'string'},title:{type:'string'},url:{type:'string'},text:{type:'string'}},required:['id','title','url','text'],additionalProperties:true}},run_id:{type:'string'},status:{type:'string'}},required:['results'],additionalProperties:true},annotations:READ_ONLY_OPEN_WEB},
+ {name:'fetch',title:'Fetch a web page with Magnanimous',scope:'web.read',description:'Fetch and render a public web URL returned by search. Returns page title, text and links using Magnanimous Native Web.',inputSchema:{type:'object',properties:{id:{type:'string',description:'Absolute public http(s) URL returned by search.'}},required:['id'],additionalProperties:false},outputSchema:{type:'object',properties:{id:{type:'string'},url:{type:'string'},title:{type:'string'},text:{type:'string'},links:{type:'array'},structured:{type:'object'},run_id:{type:'string'},status:{type:'string'}},required:['id','url','title','text'],additionalProperties:true},annotations:READ_ONLY_OPEN_WEB},
  {name:'magnanimous_web_capabilities',title:'Native web capabilities',scope:'web.read',description:'Read live Magnanimous Native Web readiness and the clean-room TinyFish-parity boundary.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
  {name:'magnanimous_web_parity',title:'Native web parity map',scope:'web.read',description:'Read the public capability replacement map and truth boundaries for Magnanimous Native Web.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
  {name:'magnanimous_web_usage',title:'Native web usage',scope:'web.read',description:'Read native browser run counts. Native execution does not require a TinyFish wallet.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
@@ -122,7 +123,7 @@ async function shortSession(env,connector){
 function internalRequest(request,path,method='GET',body,session=''){const headers=new Headers();if(session)headers.set('authorization',`Bearer ${session}`);if(body!==undefined)headers.set('content-type','application/json');return new Request(new URL(path,request.url),{method,headers,body:body===undefined?undefined:JSON.stringify(body)})}
 async function responseData(response){const text=await response.text();try{return{text,data:text?JSON.parse(text):{}}}catch{return{text,data:{raw:text}}}}
 function hasScope(connector,scope){return connector?.scopes?.has(scope)}
-function visibleTools(connector){return TOOL_DEFS.filter(t=>hasScope(connector,t.scope)).map(({scope,...tool})=>tool)}
+function visibleTools(connector){return TOOL_DEFS.filter(t=>hasScope(connector,t.scope)).map(({scope,...tool})=>({...tool,securitySchemes:[{type:'oauth2',scopes:[scope]}]}))}
 
 const NATIVE_WEB_SKILL=`---
 name: magnanimous-native-web
@@ -182,7 +183,7 @@ function webRunResultData(run){
  return{run_id:run?.data?.run_id||run?.data?.id||'',status:run?.data?.status||'completed',result};
 }
 async function skillEntry(){
- return{uri:NATIVE_WEB_SKILL_URI,frontmatter:{name:'magnanimous-native-web',description:"Use Magnanimous AI's native web/browser capabilities without relying on TinyFish."},resources:[{uri:NATIVE_WEB_SKILL_URI,digest:'sha256:'+await sha256Hex(NATIVE_WEB_SKILL)}]};
+ return{uri:NATIVE_WEB_SKILL_URI,frontmatter:{name:'magnanimous-native-web',description:"Use Magnanimous AI's native search, fetch, research, browser-run, profile, session, screenshot, webhook, and monitor capabilities when live web work is needed without relying on TinyFish."},resources:[{uri:NATIVE_WEB_SKILL_URI,digest:'sha256:'+await sha256Hex(NATIVE_WEB_SKILL)}]};
 }
 
 async function executeTool(request,env,connector,name,args={}){
@@ -194,6 +195,10 @@ async function executeTool(request,env,connector,name,args={}){
  if(name==='magnanimous_ask'){
   const message=String(args?.message||'').trim();if(!message)return{status:400,error:'message is required.'};
   const response=await fetch(new URL('/api/chat',request.url),{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${session}`},body:JSON.stringify({message,tool:'magnanimous'})});const out=await responseData(response);return response.ok?{status:response.status,data:out.data}:{status:response.status,error:out.data?.detail||out.data?.error||out.text};
+ }
+ if(name==='get_profile'){
+  const opaque='prf_'+(await sha256Hex(String(connector.tenant_id)+'|'+String(connector.user_id))).slice(0,32);
+  return{status:200,data:{id:opaque,nickname:'Magnanimous owner'}};
  }
  if(name==='search'){
   const query=String(args?.query||'').trim();if(!query)return{status:400,error:'query is required.'};
@@ -289,7 +294,7 @@ async function executeTool(request,env,connector,name,args={}){
 function rpcResult(id,result){return json({jsonrpc:'2.0',id,result},200,{'content-type':'application/json'})}
 function rpcError(id,code,message,status=200,data){return json({jsonrpc:'2.0',id:id??null,error:{code,message,...(data===undefined?{}:{data})}},status,{'content-type':'application/json'})}
 function toolPayload(result){if(result.error)return{isError:true,content:[{type:'text',text:String(result.error)}]};const data=result.data??{};return{isError:false,structuredContent:data,content:[{type:'text',text:JSON.stringify(data)}]}}
-function modernDiscover(){return{protocolVersion:MODERN_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.1.0'},capabilities:{tools:{listChanged:false},resources:{},prompts:{},extensions:{[SKILLS_EXTENSION]:{version:'1.0'}}},instructions:'Magnanimous AI is the command, memory, routing and verification layer. Native web tools use first-party Magnanimous browser execution and do not require TinyFish.'}}
+function modernDiscover(){return{protocolVersion:MODERN_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.1.0'},capabilities:{tools:{listChanged:false},resources:{},prompts:{},extensions:{[SKILLS_EXTENSION]:{}}},instructions:'Magnanimous AI is the command, memory, routing and verification layer. Native web tools use first-party Magnanimous browser execution and do not require TinyFish.'}}
 async function handleMcp(request,env){
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type,mcp-protocol-version,mcp-method,mcp-name,x-magnanimous-connector-key','access-control-allow-methods':'POST,OPTIONS'}});
  if(request.method!=='POST')return json({detail:'Magnanimous MCP uses POST Streamable HTTP.'},405);
@@ -297,7 +302,7 @@ async function handleMcp(request,env){
  const body=await request.json().catch(()=>null);if(!body||body.jsonrpc!=='2.0'||!body.method)return rpcError(body?.id,-32600,'Invalid JSON-RPC request.',400);
  const method=String(body.method),id=body.id??null,headerMethod=request.headers.get('mcp-method');if(headerMethod&&headerMethod!==method)return rpcError(id,-32020,'Mcp-Method header does not match the JSON-RPC method.',400);
  if(method==='server/discover')return rpcResult(id,modernDiscover());
- if(method==='initialize')return rpcResult(id,{protocolVersion:LEGACY_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.1.0'},capabilities:{tools:{listChanged:false},resources:{},extensions:{[SKILLS_EXTENSION]:{version:'1.0'}}},instructions:'Magnanimous AI universal connector with native web/browser tools and Skills support.'});
+ if(method==='initialize')return rpcResult(id,{protocolVersion:LEGACY_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.1.0'},capabilities:{tools:{listChanged:false},resources:{},extensions:{[SKILLS_EXTENSION]:{}}},instructions:'Magnanimous AI universal connector with native web/browser tools and Skills support.'});
  if(method==='notifications/initialized')return new Response(null,{status:202});
  if(method==='ping')return rpcResult(id,{});
  if(method==='skills/list'){
