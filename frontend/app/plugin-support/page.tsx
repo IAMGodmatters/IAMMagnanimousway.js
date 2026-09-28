@@ -41,6 +41,11 @@ export default function PluginSupportPage(){
     <p>Do not send passwords, API keys, OAuth access or refresh tokens, recovery codes, full payment-card details, or government identification by email. For an authorization problem, include the time of the error, the tool name, and the non-secret error message shown by ChatGPT or Magnanimous AI.</p>
    </section>
 
+   <section className="help">
+    <h2>Plugin pricing</h2>
+    <p>The Magnanimous AI ChatGPT plugin has a $0 base fee. Supported native operations with no verified direct metered origin cost remain $0. When a real direct metered cost is required, Magnanimous charges that verified cost plus exactly 20% from customer-funded prepaid Stripe credits. The plugin itself does not require a monthly subscription.</p>
+   </section>
+
    <section className="boundary">
     <h2>Native operations boundary</h2>
     <p>Magnanimous implements its own web/browser, cloud/deployment and edge/runtime control contracts. Public TinyFish, Railway and Cloudflare capabilities may be used as clean-room benchmarks, but their proprietary source code, hidden prompts, credentials, private APIs, model weights, anti-bot infrastructure and trade secrets are not represented as owned by I AM MAGNANIMOUS WAY™. Physical compute and public-network capacity still require owner-operated or replaceable infrastructure.</p>

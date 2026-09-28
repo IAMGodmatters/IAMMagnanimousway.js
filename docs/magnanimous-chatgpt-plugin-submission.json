@@ -1,0 +1,52 @@
+{
+  "version": "2026-09-28",
+  "submission_type": "with_mcp",
+  "app": {
+    "name": "Magnanimous AI",
+    "short_description": "One AI plugin for native web, cloud & edge",
+    "long_description": "Magnanimous AI connects ChatGPT to I AM MAGNANIMOUS WAY™ for source-backed public web research and, when the signed-in account has permission, provider-neutral cloud/deployment and edge/runtime operations. The plugin uses Magnanimous-owned MCP contracts and safety gates.",
+    "website": "https://iammagnanimousway.com/",
+    "support": "https://iammagnanimousway.com/plugin-support/",
+    "privacy": "https://iammagnanimousway.com/privacy/",
+    "terms": "https://iammagnanimousway.com/terms/",
+    "mcp": "https://iammagnanimousway.com/mcp",
+    "logo": "https://iammagnanimousway.com/magnanimous-plugin-logo.svg",
+    "composer_icon": "https://iammagnanimousway.com/magnanimous-plugin-composer-icon.svg",
+    "demo": "https://iammagnanimousway.com/plugin-demo/"
+  },
+  "oauth": {
+    "customer_safe_scopes": [
+      "capabilities.read",
+      "brain.ask",
+      "web.read"
+    ],
+    "privileged_roles": [
+      "owner",
+      "admin"
+    ],
+    "method": "OAuth 2.1 authorization code + PKCE S256",
+    "challenge_url": "https://iammagnanimousway.com/.well-known/openai-apps-challenge"
+  },
+  "positive_test_count": 5,
+  "negative_test_count": 3,
+  "release_notes": "Initial public submission of Magnanimous AI as a remote MCP-backed ChatGPT plugin with native web, unified provider-neutral cloud/deployment and edge/runtime contracts, customer-safe OAuth, $0 plugin base fee, prepaid direct-cost billing at exactly 20% markup, explicit tool contracts, and public review/support surfaces.",
+  "external_portal_gates": [
+    "verified developer or business identity",
+    "Apps Management write permission",
+    "portal-issued domain challenge token",
+    "reviewer-ready demo credentials without MFA/email/SMS follow-up",
+    "public demo-recording URL",
+    "successful current Scan Tools snapshot",
+    "policy attestations and Submit for Review",
+    "Publish after approval"
+  ],
+  "pricing": {
+    "base_fee_usd": 0,
+    "markup_percent": 20,
+    "billing_model": "free-native-plus-prepaid-pass-through",
+    "subscription_required_for_plugin": false,
+    "paid_usage_requires_prepaid_stripe_credits": true,
+    "rule": "verified direct origin cost × 1.20",
+    "verified_at": "2026-09-28"
+  }
+}

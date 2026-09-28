@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+<title id="title">Magnanimous AI</title>
+<desc id="desc">Magnanimous AI circular M mark for I AM MAGNANIMOUS WAY.</desc>
+<defs>
+ <radialGradient id="bg" cx="50%" cy="36%" r="78%"><stop offset="0" stop-color="#163748"/><stop offset=".58" stop-color="#07131c"/><stop offset="1" stop-color="#030608"/></radialGradient>
+ <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#74e6f0"/><stop offset=".55" stop-color="#8ef0c8"/><stop offset="1" stop-color="#d8aa58"/></linearGradient>
+</defs>
+<rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+<circle cx="512" cy="512" r="340" fill="none" stroke="url(#ring)" stroke-width="18"/>
+<circle cx="512" cy="512" r="270" fill="#081922" stroke="#214655" stroke-width="3"/>
+<path d="M310 680V347h73l129 173 129-173h73v333h-88V488L512 637 398 488v192z" fill="#f1fbff"/>
+<circle cx="788" cy="264" r="26" fill="#d8aa58"/>
+<path d="M764 264h48M788 240v48" stroke="#07131c" stroke-width="8" stroke-linecap="round"/>
+</svg>

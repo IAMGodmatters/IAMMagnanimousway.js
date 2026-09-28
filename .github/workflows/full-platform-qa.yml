@@ -72,6 +72,9 @@ jobs:
       - name: Lock universal anti-lockout and canonical owner developer identity
         run: node qa/scripts/universal-anti-lockout-owner-identity-lock.mjs
 
+      - name: Lock Magnanimous public ChatGPT plugin release contract
+        run: node qa/scripts/magnanimous-public-plugin-release-lock.mjs
+
       - name: Frontend typecheck and production build
         working-directory: frontend
         run: |

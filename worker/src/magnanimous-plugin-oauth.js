@@ -7,7 +7,9 @@ const OAUTH_SCOPES=Object.freeze([
  'capabilities.read','brain.ask','web.read','web.write','cloud.read','cloud.write',
  'mail.read','mail.write','communications.read','communications.write'
 ]);
-const DEFAULT_SCOPES=Object.freeze(['capabilities.read','brain.ask','web.read','cloud.read']);
+const PUBLIC_SCOPES=Object.freeze(['capabilities.read','brain.ask','web.read']);
+const DEFAULT_SCOPES=PUBLIC_SCOPES;
+const PRIVILEGED_ROLES=Object.freeze(['owner','admin']);
 const ACCESS_TTL=3600;
 const REFRESH_TTL=60*60*24*30;
 const CODE_TTL=300;
@@ -30,6 +32,11 @@ function validatedScopes(value){
  const effective=scopes.length?scopes:[...DEFAULT_SCOPES];
  if(effective.some(scope=>!OAUTH_SCOPES.includes(scope)))return null;
  return effective;
+}
+function privilegedUser(user){return PRIVILEGED_ROLES.includes(String(user?.role||'').toLowerCase())}
+function scopesForUser(user,requested=[]){
+ const scopes=Array.isArray(requested)?requested:[];
+ return privilegedUser(user)?scopes:scopes.filter(scope=>PUBLIC_SCOPES.includes(scope));
 }
 function oauthError(error,description,status=400,extra={}){
  return json({error,error_description:description},status,{'content-type':'application/json',...extra});
@@ -207,26 +214,40 @@ export async function handleMagnanimousPluginOAuth(request,env){
  if(path==='/api/magnanimous/oauth/consent'&&request.method==='GET'){
   const user=await currentUser(request,env).catch(()=>null);
   if(!user)return json({detail:'Sign in to I AM MAGNANIMOUS WAY™ before authorizing ChatGPT.',code:'AUTH_REQUIRED'},401);
-  if(!['owner','admin'].includes(String(user.role||'').toLowerCase()))return json({detail:'Owner or admin authorization is required for this connector.',code:'OWNER_REQUIRED'},403);
   const params=Object.fromEntries(url.searchParams.entries());params.__request=request;
   const valid=await validateAuthorization(env,params);
   if(valid.error)return oauthError(valid.error,valid.detail,400);
-  return json({ok:true,client_name:valid.client.client_name,client_id:valid.clientId,redirect_uri:valid.redirectUri,resource:valid.resource,scopes:valid.scopes,publisher:'I AM MAGNANIMOUS WAY™',identity:'Magnanimous AI'});
+  const scopes=scopesForUser(user,valid.scopes);
+  if(!scopes.length)return oauthError('invalid_scope','This account is not allowed to grant any of the requested Magnanimous scopes.',403);
+  const omitted_scopes=valid.scopes.filter(scope=>!scopes.includes(scope));
+  return json({
+   ok:true,
+   client_name:valid.client.client_name,
+   client_id:valid.clientId,
+   redirect_uri:valid.redirectUri,
+   resource:valid.resource,
+   scopes,
+   omitted_scopes,
+   access_tier:privilegedUser(user)?'owner-admin':'customer-safe',
+   publisher:'I AM MAGNANIMOUS WAY™',
+   identity:'Magnanimous AI'
+  });
  }
  if(path==='/api/magnanimous/oauth/authorize'&&request.method==='POST'){
   const user=await currentUser(request,env).catch(()=>null);
   if(!user)return json({detail:'Sign in required.',code:'AUTH_REQUIRED'},401);
-  if(!['owner','admin'].includes(String(user.role||'').toLowerCase()))return json({detail:'Owner or admin authorization is required.',code:'OWNER_REQUIRED'},403);
   const body=await request.json().catch(()=>({}));body.__request=request;
   const valid=await validateAuthorization(env,body);
   if(valid.error)return oauthError(valid.error,valid.detail,400);
+  const scopes=scopesForUser(user,valid.scopes);
+  if(!scopes.length)return oauthError('invalid_scope','This account is not allowed to grant any of the requested Magnanimous scopes.',403);
   const rawCode=randomToken('mgac_'),ts=now();
   await env.DB.prepare('DELETE FROM magnanimous_oauth_codes WHERE expires_at<? OR used_at IS NOT NULL').bind(ts-60).run().catch(()=>{});
   await env.DB.prepare('INSERT INTO magnanimous_oauth_codes(code_hash,client_id,tenant_id,user_id,redirect_uri,scopes_json,code_challenge,resource,expires_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)')
-   .bind(await sha256Hex(rawCode),valid.clientId,String(user.tenant_id),String(user.id),valid.redirectUri,JSON.stringify(valid.scopes),valid.challenge,valid.resource,ts+CODE_TTL,ts).run();
+   .bind(await sha256Hex(rawCode),valid.clientId,String(user.tenant_id),String(user.id),valid.redirectUri,JSON.stringify(scopes),valid.challenge,valid.resource,ts+CODE_TTL,ts).run();
   const redirect=new URL(valid.redirectUri);redirect.searchParams.set('code',rawCode);
   if(body.state!=null)redirect.searchParams.set('state',clean(body.state,3000));
-  return json({ok:true,redirect_url:redirect.toString(),expires_in:CODE_TTL});
+  return json({ok:true,redirect_url:redirect.toString(),expires_in:CODE_TTL,scope:scopes.join(' ')});
  }
  if(path==='/oauth/token'&&request.method==='POST'){
   const contentType=String(request.headers.get('content-type')||'');

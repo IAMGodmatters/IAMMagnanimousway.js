@@ -13,6 +13,8 @@ type Consent={
  scopes:string[];
  publisher:string;
  identity:string;
+ omitted_scopes?:string[];
+ access_tier?:'owner-admin'|'customer-safe';
 };
 
 async function read(response:Response){
@@ -85,7 +87,7 @@ export default function OAuthAuthorizePage(){
   if(!consent)return;
   const p=params(),u=new URL(consent.redirect_uri);
   u.searchParams.set('error','access_denied');
-  u.searchParams.set('error_description','The I AM MAGNANIMOUS WAY™ owner denied this connection.');
+  u.searchParams.set('error_description','The I AM MAGNANIMOUS WAY™ user denied this connection.');
   if(p.state)u.searchParams.set('state',String(p.state));
   window.location.replace(u.toString());
  }
@@ -108,7 +110,7 @@ export default function OAuthAuthorizePage(){
     </div>
 
     <div className="permissions">
-     <h2>Requested permissions</h2>
+     <h2>{consent.access_tier==='customer-safe'?'Approved customer-safe permissions':'Requested permissions'}</h2>
      {consent.scopes.map(scope=><div key={scope}>
       <b>{scope}</b>
       <span>{
@@ -126,6 +128,10 @@ export default function OAuthAuthorizePage(){
      </div>)}
     </div>
 
+    {!!consent.omitted_scopes?.length&&<div className="notice privilege">
+     <b>Owner controls stay private</b>
+     <span>Magnanimous removed owner/admin-only permissions from this connection: {consent.omitted_scopes.join(', ')}. Ordinary accounts can use the customer-safe capabilities without gaining infrastructure, mailbox-send, communications-write, or browser-control authority.</span>
+    </div>}
     <div className="notice">
      <b>One native operations connection</b>
      <span>Search/browser work uses Magnanimous Native Web; deployment/cloud and edge/runtime work uses Magnanimous Cloud. TinyFish, Railway and Cloudflare plugins are not required for the native control-plane paths.</span>
@@ -153,7 +159,7 @@ export default function OAuthAuthorizePage(){
    .error{border-color:#6d3540;color:#ffbac4;background:#1f0d12}
    .client span,.client b,.client em{display:block}.client span{font-size:8px;color:#738d9f;letter-spacing:.15em}.client b{margin-top:5px;font-size:18px}.client em{font-style:normal;color:#77ddff;font-size:11px;margin-top:4px}
    .permissions h2{font-size:16px;margin:0 0 7px}.permissions>div{border-top:1px solid #153245;padding:10px 0}.permissions b,.permissions span{display:block}.permissions b{font-size:11px;color:#bceeff}.permissions span{font-size:10px;color:#7892a4;margin-top:3px;line-height:1.45}
-   .notice b,.notice span{display:block}.notice b{color:#8be8ff}.notice span{font-size:11px;color:#89a1b1;line-height:1.55;margin-top:4px}.notice.safe b{color:#8de7ad}
+   .notice b,.notice span{display:block}.notice b{color:#8be8ff}.notice span{font-size:11px;color:#89a1b1;line-height:1.55;margin-top:4px}.notice.safe b{color:#8de7ad}.notice.privilege{border-color:#654f2d;background:#181207}.notice.privilege b{color:#f2cb77}
    .actions{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:20px}.actions button{border-radius:10px;padding:14px;font-weight:900;cursor:pointer}.deny{background:#12090c;color:#d9959f;border:1px solid #5d3038}.allow{background:linear-gradient(90deg,#128aaa,#aa7a32);color:white;border:0}.actions button:disabled{opacity:.65}
    footer{position:fixed;bottom:14px;color:#526d7d;font-size:9px}
    @media(max-width:560px){.card{padding:22px}.actions{grid-template-columns:1fr}footer{position:static;margin-top:12px}}

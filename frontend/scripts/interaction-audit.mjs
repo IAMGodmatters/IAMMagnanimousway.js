@@ -58,7 +58,7 @@ const publicPathsMatch=platformRuntime.match(/(?:var|let|const)\s+publicPaths\s*
 if(!publicPathsMatch)failures.push('app/platform-runtime-script.tsx: public route contract could not be verified');
 else{
  const publicContract=publicPathsMatch[1];
- for(const route of ['/','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label','/plugin-support','/teach','/shop','/login','/signup','/owner-login']){
+ for(const route of ['/','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label','/plugin-support','/plugin-demo','/teach','/shop','/login','/signup','/owner-login']){
   if(!new RegExp(`["']${route.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}["']`).test(publicContract))failures.push(`app/platform-runtime-script.tsx: public discovery route missing from contract: ${route}`);
  }
  for(const route of ['/bible-study','/magnanimous','/ai-chat','/crm','/connections','/assistant-actions','/owner-center','/telecom']){

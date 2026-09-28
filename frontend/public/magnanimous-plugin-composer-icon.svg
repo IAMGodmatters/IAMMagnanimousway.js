@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+<title id="title">Magnanimous AI icon</title>
+<desc id="desc">Outlined M icon for Magnanimous AI.</desc>
+<rect width="256" height="256" rx="58" fill="#07131c"/>
+<circle cx="128" cy="128" r="92" fill="none" stroke="#79e8e7" stroke-width="8"/>
+<path d="M66 176V80h24l38 50 38-50h24v96h-28v-52l-34 45-34-45v52z" fill="#f2fbff"/>
+<circle cx="196" cy="58" r="10" fill="#d8aa58"/>
+</svg>
