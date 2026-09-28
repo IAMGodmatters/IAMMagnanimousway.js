@@ -1,3 +1,11 @@
+import type {Metadata} from 'next';
+
+export const metadata:Metadata={
+ title:'Magnanimous AI Plugin Support',
+ alternates:{canonical:'/plugin-support/'},
+ robots:{index:true,follow:true},
+};
+
 export default function PluginSupportPage(){
  return <main>
   <section className="card">
