@@ -45,6 +45,7 @@ Repository: `IAMGodmatters/IAMMagnanimousway.js`
   - `capabilities.read`
   - `brain.ask`
   - `web.read`
+  - `offline_access` (refresh-token continuity for ChatGPT)
 - Owner/admin accounts may authorize the full supported scope set, including guarded web, cloud, mail and communications write scopes.
 - Privileged scopes requested by a non-owner account are removed before consent and token issuance and are disclosed in the consent UI.
 - No password, OAuth token, API key, recovery code or provider secret is accepted as an MCP tool argument.
