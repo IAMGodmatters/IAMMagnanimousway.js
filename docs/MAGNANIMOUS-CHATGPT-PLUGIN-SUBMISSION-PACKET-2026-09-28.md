@@ -9,7 +9,7 @@ Repository: `IAMGodmatters/IAMMagnanimousway.js`
 ## Listing
 
 - Display name: `Magnanimous AI`
-- Short description: `Native web, cloud & edge`
+- Short description: `One AI plugin for native web, cloud & edge`
 - Long description:
   `Magnanimous AI connects ChatGPT to I AM MAGNANIMOUS WAY™ for source-backed public web research and, when the signed-in account has permission, provider-neutral cloud/deployment and edge/runtime operations. The plugin uses Magnanimous-owned MCP contracts and safety gates. Railway, Cloudflare and TinyFish may be compatibility benchmarks or optional infrastructure rails; they are not required as the plugin identity or permanent control-plane dependencies.`
 - Website: `https://iammagnanimousway.com/`
@@ -20,6 +20,21 @@ Repository: `IAMGodmatters/IAMMagnanimousway.js`
 - Directory logo: `https://iammagnanimousway.com/magnanimous-plugin-logo.svg`
 - Composer icon: `https://iammagnanimousway.com/magnanimous-plugin-composer-icon.svg`
 - Suggested category: Productivity / developer operations, whichever is the closest current portal category.
+
+## Pricing
+
+- Plugin base fee: **$0**.
+- Supported native operations with no verified direct metered origin cost: **$0**.
+- Paid direct-cost operation: **verified direct origin cost + exactly 20% Magnanimous markup**.
+- Paid direct-cost operations require customer-funded prepaid Stripe credits.
+- No monthly plugin subscription is required.
+- The plugin must never invent a provider cost or silently make the owner pay a customer's metered usage.
+- Existing Magnanimous platform subscriptions remain separate products and are not required merely to install/use the all-in-one plugin.
+- Public benchmark research verified 2026-09-28:
+  - TinyFish Search/Fetch: free; Agent $0.016/step; Browser $0.002/minute.
+  - Railway: Free $0/month; Hobby $5 minimum; Pro $20 minimum; RAM $0.000231/GB/min; CPU $0.000463/vCPU/min; egress $0.05/GB.
+  - Cloudflare Workers Free: 100,000 requests/day; Workers Paid minimum $5/month; $0.30/additional million requests and $0.02/additional million CPU ms beyond included usage.
+- These provider figures are benchmark/reference costs only. Magnanimous bills customers only from an actual attributable direct cost when that paid rail is truly used.
 
 ## Authentication
 
@@ -101,7 +116,7 @@ These are not source-code defects and cannot be invented in the repository:
 2. Apps Management / `api.apps.write` permission for the submitting account.
 3. The exact OpenAI domain-verification token, supplied only after a submission draft is created.
 4. Reviewer-ready demo credentials for an account intended to exercise OAuth. They must not require MFA, email confirmation, SMS confirmation or private-network access during review.
-5. A public demo-recording URL showing the principal supported workflows.
+5. A public demo-recording URL showing the principal supported workflows. A live auto-playing review demo is deployed at `https://iammagnanimousway.com/plugin-demo/`; if the portal strictly requires a video-file/hosted-recording URL rather than an interactive demo, record this live page and paste the resulting public recording URL.
 6. A successful current `Scan Tools` snapshot in the OpenAI submission portal.
 7. Final policy attestations, Submit for Review, and Publish after approval.
 
