@@ -17,6 +17,8 @@ must(watch,'threadHasLaterSent','already-replied Gmail suppression missing');
 must(watch,"status IN ('planned','waiting','failed')",'new/input-required A2A scan missing');
 must(watch,'cc_call_intelligence','call detail/action context review missing');
 must(watch,'magnanimous_attention_watch_events','durable dedupe missing');
+must(watch,'PRIMARY KEY(tenant_id,event_key)','tenant-scoped attention dedupe missing');
+must(watch,"WHERE tenant_id=? AND event_key=?",'tenant-scoped attention lookup missing');
 must(watch,"source='native-attention-watch'",'native attention alerts missing');
 must(watch,'native_only:true','native-only truth flag missing');
 must(watch,'inkbox_used:false','Inkbox independence flag missing');
