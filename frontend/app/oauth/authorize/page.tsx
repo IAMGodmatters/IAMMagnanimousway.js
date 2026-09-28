@@ -114,6 +114,8 @@ export default function OAuthAuthorizePage(){
       <span>{
        scope==='web.read'?'Search, fetch, research and read browser state':
        scope==='web.write'?'Run confirmation-gated browser actions and manage native browser state':
+       scope==='cloud.read'?'Read native Magnanimous Cloud projects/resources, deployment and edge/runtime compatibility':
+       scope==='cloud.write'?'Create native desired state and stage confirmation-gated infrastructure actions; no provider purchase is automatic':
        scope==='mail.read'?'Read/search mail already connected to Magnanimous':
        scope==='mail.write'?'Send mail only through Magnanimous confirmation rules':
        scope==='communications.read'?'Read communications readiness and catalog':
@@ -125,8 +127,8 @@ export default function OAuthAuthorizePage(){
     </div>
 
     <div className="notice">
-     <b>Native web replacement</b>
-     <span>Search, rendered fetch, research, browser sessions, screenshots and monitoring use Magnanimous Native Web. TinyFish is not required for these supported paths.</span>
+     <b>One native operations connection</b>
+     <span>Search/browser work uses Magnanimous Native Web; deployment/cloud and edge/runtime work uses Magnanimous Cloud. TinyFish, Railway and Cloudflare plugins are not required for the native control-plane paths.</span>
     </div>
     <div className="notice safe">
      <b>Credentials stay protected</b>
