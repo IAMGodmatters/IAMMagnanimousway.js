@@ -7,6 +7,7 @@ const webhook=fs.readFileSync('worker/src/stripe-webhook-hardened.js','utf8');
 const enterprise=fs.readFileSync('worker/src/enterprise-commercialization-runtime.js','utf8');
 const tiers=fs.readFileSync('worker/src/billing-tiers-runtime.js','utf8');
 const usage=fs.readFileSync('worker/src/usage-guard.js','utf8');
+const pluginPricing=fs.readFileSync('worker/src/magnanimous-unified-plugin-pricing.js','utf8');
 
 const checks=[
  ['current paid pricing stays Unlimited $19.99/month + Annual $199/year with legacy aliases', /plus:[\s\S]*price_usd:\s*19\.99/.test(tiers)&&/scale:[\s\S]*price_usd:\s*199[\s\S]*cadence:\s*'year'/.test(tiers)&&tiers.includes("PLAN_ORDER = ['free', 'plus', 'scale']")&&tiers.includes("business:'plus',pro:'plus'")],
@@ -26,7 +27,10 @@ const checks=[
  ['webhook events are deduplicated', webhook.includes('billing_webhook_events')&&webhook.includes('duplicate:true')],
  ['duplicate active subscriptions are blocked before checkout', checkout.includes('ACTIVE_SUBSCRIPTION_EXISTS')&&checkout.includes('stripe_subscription_id')],
  ['paid provider usage requires active Stripe-confirmed billing row', usage.includes("const paidActive=status==='active'")&&usage.includes("return{plan:'free',limits:PLAN_LIMITS.free,status:'unverified_legacy'}")],
- ['prepaid wallet refuses overspend', usage.includes('PREPAID_USAGE_BALANCE_EXHAUSTED')]
+ ['prepaid wallet refuses overspend', usage.includes('PREPAID_USAGE_BALANCE_EXHAUSTED')],
+ ['subscription-free pass-through path exists for the all-in-one plugin', usage.includes('canUsePassThrough')&&usage.includes("code:'FREE_NATIVE_PATH'")&&usage.includes("code:'PREPAID_FUNDED'")],
+ ['all-in-one plugin has zero base fee and exact 20% markup', pluginPricing.includes('MAGNANIMOUS_PLUGIN_BASE_FEE_USD=0')&&pluginPricing.includes("markup_percent:PROVIDER_PRICE_MARKUP_PERCENT")&&pluginPricing.includes("subscription_required_for_plugin:false")],
+ ['all-in-one paid usage requires prepaid customer funding', pluginPricing.includes("prepaid_required_for_paid_origin_cost:true")&&pluginPricing.includes("silent_owner_funding:false")]
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
