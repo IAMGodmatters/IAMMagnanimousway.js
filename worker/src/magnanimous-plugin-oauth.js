@@ -196,6 +196,7 @@ export async function handleMagnanimousPluginOAuth(request,env){
    grant_types_supported:['authorization_code','refresh_token'],
    token_endpoint_auth_methods_supported:['none'],
    code_challenge_methods_supported:['S256'],
+   authorization_response_iss_parameter_supported:true,
    scopes_supported:OAUTH_SCOPES
   });
  }
@@ -245,7 +246,7 @@ export async function handleMagnanimousPluginOAuth(request,env){
   await env.DB.prepare('DELETE FROM magnanimous_oauth_codes WHERE expires_at<? OR used_at IS NOT NULL').bind(ts-60).run().catch(()=>{});
   await env.DB.prepare('INSERT INTO magnanimous_oauth_codes(code_hash,client_id,tenant_id,user_id,redirect_uri,scopes_json,code_challenge,resource,expires_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)')
    .bind(await sha256Hex(rawCode),valid.clientId,String(user.tenant_id),String(user.id),valid.redirectUri,JSON.stringify(scopes),valid.challenge,valid.resource,ts+CODE_TTL,ts).run();
-  const redirect=new URL(valid.redirectUri);redirect.searchParams.set('code',rawCode);
+  const redirect=new URL(valid.redirectUri);redirect.searchParams.set('code',rawCode);redirect.searchParams.set('iss',url.origin);
   if(body.state!=null)redirect.searchParams.set('state',clean(body.state,3000));
   return json({ok:true,redirect_url:redirect.toString(),expires_in:CODE_TTL,scope:scopes.join(' ')});
  }
