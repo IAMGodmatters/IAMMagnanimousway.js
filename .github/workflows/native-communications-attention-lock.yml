@@ -1,0 +1,31 @@
+name: Native communications attention lock
+
+on:
+  pull_request:
+    paths:
+      - 'worker/src/magnanimous-native-attention-watch.js'
+      - 'worker/src/operations-entrypoint.js'
+      - 'qa/scripts/native-communications-attention-lock.mjs'
+      - '.github/workflows/native-communications-attention-lock.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-native-attention-watch.js'
+      - 'worker/src/operations-entrypoint.js'
+      - 'qa/scripts/native-communications-attention-lock.mjs'
+      - '.github/workflows/native-communications-attention-lock.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Verify native attention watch
+        run: |
+          node --check worker/src/magnanimous-native-attention-watch.js
+          node --check worker/src/operations-entrypoint.js
+          node qa/scripts/native-communications-attention-lock.mjs
