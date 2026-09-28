@@ -49,6 +49,7 @@ Magnanimous-native tools:
 - `magnanimous_web_read_flow`
 - `magnanimous_web_runs`
 - `magnanimous_web_run_get`
+- `magnanimous_web_wait_for_run`
 - `magnanimous_web_goal`
 - `magnanimous_web_action_flow`
 - `magnanimous_web_run_confirm`
@@ -128,6 +129,12 @@ Production MCP URL:
 
 `https://iammagnanimousway.com/mcp`
 
+Public plugin support URL:
+
+`https://iammagnanimousway.com/plugin-support`
+
+OpenAI domain verification is pre-wired at `/.well-known/openai-apps-challenge`; once the submission portal supplies the challenge token, configure `OPENAI_APPS_CHALLENGE_TOKEN` in the production runtime and verify the exact response before submission.
+
 Suggested plugin name:
 
 **Magnanimous AI**
@@ -164,7 +171,7 @@ Repository code cannot perform these account-owner actions by itself:
 
 1. OpenAI Platform individual/developer identity verification.
 2. Apps Management / plugin-submission permission on the publishing OpenAI organization.
-3. Plugin submission form creation and any domain challenge token supplied by OpenAI.
+3. Plugin submission form creation and the specific domain challenge token supplied by OpenAI (the challenge route is already implemented).
 4. OpenAI review/approval and the final Publish action.
 
 Do not represent the plugin as publicly listed until OpenAI has actually approved and published it.
