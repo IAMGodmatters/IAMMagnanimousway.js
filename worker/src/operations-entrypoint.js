@@ -27,6 +27,7 @@ import {handlePremiumVoice} from './premium-voice-runtime.js';
 import {handleMagnanimousApiContractIntelligence} from './magnanimous-api-contract-intelligence.js';
 import {scheduledTelecomEmailWatch,telecomEmailWatchStatus} from './magnanimous-telecom-email-watch.js';
 import {scheduledMagnanimousAttentionWatch,magnanimousAttentionWatchStatus} from './magnanimous-native-attention-watch.js';
+import {handleMagnanimousTeammates} from './magnanimous-teammate-runtime.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -143,6 +144,8 @@ async function operationsFetch(request,env,ctx){
 
   const consequential=await requireConsequentialActionConfirmation(request);
   if(consequential)return consequential;
+
+  const teammates=await handleMagnanimousTeammates(request,env);if(teammates)return teammates;
 
   try{const developer=await handleMagnanimousDevAgent(request,env);if(developer)return developer}catch(error){console.error('Magnanimous developer agent failed',error);return json({detail:'Magnanimous developer agent could not complete this request.'},500)}
   try{const nativeWeb=await handleMagnanimousNativeWeb(request,env);if(nativeWeb)return nativeWeb}catch(error){console.error('Magnanimous Native Web failed',error);return json({detail:'Magnanimous Native Web could not complete this request.'},500)}
