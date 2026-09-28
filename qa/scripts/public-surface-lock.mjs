@@ -23,7 +23,7 @@ must(Boolean(runtimeMatch),'runtime public allowlist must remain machine-verifia
 must(Boolean(templateMatch),'template public allowlist must remain machine-verifiable');
 const runtimeAllowlist=runtimeMatch?.[1]||'';
 const templateAllowlist=templateMatch?.[1]||'';
-const publicRoutes=['/','/teach','/shop','/login','/signup','/owner-login','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label','/movie','/plugin-support'];
+const publicRoutes=['/','/teach','/shop','/login','/signup','/owner-login','/solutions','/guide','/launchplan','/business-plan','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label','/movie','/plugin-support','/plugin-demo'];
 const protectedRoutes=['/magnanimous','/bible-study','/ai-chat','/crm','/connections','/assistant-actions','/owner-center','/owner-billing','/phone','/telecom','/space','/mux','/knowledge','/virtual-assistant','/video-studio','/movie-maker','/agents'];
 
 for(const route of publicRoutes){
@@ -51,7 +51,7 @@ must(!runtimeAllowlist.includes("'/magnanimous'"),'standalone Magnanimous must n
 for(const route of ['/ai-chat/','/crm/','/connections/','/assistant-actions/','/owner-center/','/phone/','/telecom/','/space/','/mux/']){
  must(robots.includes(`Disallow: ${route}`),`robots must keep protected operational surface out of crawling: ${route}`);
 }
-for(const route of ['/solutions/','/guide/','/business-plan/','/security/','/free-tools/','/ai-apps/','/pricing/','/reviews/','/privacy/','/terms/','/plugin-support/']){
+for(const route of ['/solutions/','/guide/','/business-plan/','/security/','/free-tools/','/ai-apps/','/pricing/','/reviews/','/privacy/','/terms/','/plugin-support/','/plugin-demo/']){
  must(sitemap.includes(`<loc>https://iammagnanimousway.com${route}</loc>`),`sitemap must keep public discovery route indexed: ${route}`);
 }
 
