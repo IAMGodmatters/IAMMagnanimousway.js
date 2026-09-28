@@ -280,13 +280,27 @@ export default function AIConnectors() {
                 ))}
               </div>
 
-              <button
-                className="create"
-                disabled={busy === 'create'}
-                onClick={() => void create()}
-              >
-                {busy === 'create' ? 'CREATING…' : 'CREATE INSTALL TOKEN'}
-              </button>
+              {platform === 'openai-chatgpt' ? (
+                <div className="oauthInstall">
+                  <b>CHATGPT USES MAGNANIMOUS OAUTH</b>
+                  <span>
+                    Add the Remote MCP URL in ChatGPT. Magnanimous will show this branded approval
+                    screen and issue short-lived OAuth access instead of asking you to paste a
+                    connector secret into ChatGPT.
+                  </span>
+                  <button type="button" onClick={() => void copy(data.mcp.url)}>
+                    COPY CHATGPT MCP URL
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className="create"
+                  disabled={busy === 'create'}
+                  onClick={() => void create()}
+                >
+                  {busy === 'create' ? 'CREATING…' : 'CREATE INSTALL TOKEN'}
+                </button>
+              )}
             </div>
           </section>
 
@@ -544,6 +558,37 @@ export default function AIConnectors() {
         }
         .danger h3 {
           color: #f0be7a;
+        }
+        .oauthInstall {
+          margin-top: 18px;
+          border: 1px solid #265468;
+          border-radius: 12px;
+          padding: 14px;
+          background: #06121a;
+        }
+        .oauthInstall b,
+        .oauthInstall span {
+          display: block;
+        }
+        .oauthInstall b {
+          color: #88e7ff;
+          font-size: 10px;
+          letter-spacing: 0.1em;
+        }
+        .oauthInstall span {
+          color: #819aaa;
+          font-size: 10px;
+          line-height: 1.55;
+          margin: 6px 0 10px;
+        }
+        .oauthInstall button {
+          width: 100%;
+          border: 1px solid #2c5e76;
+          color: #a8eaff;
+          background: transparent;
+          border-radius: 8px;
+          padding: 10px;
+          font-weight: 900;
         }
         .create {
           margin-top: 18px;
