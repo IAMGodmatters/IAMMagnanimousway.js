@@ -779,9 +779,27 @@ jobs:
           assert 'authorization_code' in (data.get('grant_types_supported') or []), data
           assert 'refresh_token' in (data.get('grant_types_supported') or []), data
           assert str(data.get('registration_endpoint') or '').endswith('/oauth/register'), data
+          assert str(data.get('userinfo_endpoint') or '').endswith('/oauth/userinfo'), data
           scopes=set(data.get('scopes_supported') or [])
-          assert {'web.read','cloud.read','cloud.write'}.issubset(scopes), data
+          assert {'openid','email','web.read','cloud.read','cloud.write'}.issubset(scopes), data
+          assert {'email','email_verified'}.issubset(set(data.get('claims_supported') or [])), data
           PY
+
+          check_get "Magnanimous OpenID metadata" "$BASE_URL/.well-known/openid-configuration" /tmp/magnanimous-openid.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/magnanimous-openid.json'))
+          assert str(data.get('userinfo_endpoint') or '').endswith('/oauth/userinfo'), data
+          assert {'openid','email'}.issubset(set(data.get('scopes_supported') or [])), data
+          PY
+
+          userinfo_status="$(command curl -sS --connect-timeout 10 --max-time 60 -o /tmp/magnanimous-userinfo-unauth.json -w '%{http_code}' "$BASE_URL/oauth/userinfo" || true)"
+          if [ "$userinfo_status" != "401" ]; then
+            echo "Magnanimous UserInfo unauthenticated request expected HTTP 401, got $userinfo_status"
+            cat /tmp/magnanimous-userinfo-unauth.json 2>/dev/null || true
+            exit 1
+          fi
+          echo "Magnanimous OIDC/UserInfo discovery is live."
 
           mcp_status="$(command curl -sS --connect-timeout 10 --max-time 120 -D /tmp/magnanimous-mcp-headers.txt -o /tmp/magnanimous-mcp-unauth.json -w '%{http_code}' \
             -X POST "$BASE_URL/mcp" \
