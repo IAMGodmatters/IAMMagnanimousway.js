@@ -7,6 +7,7 @@ on:
       - 'worker/src/magnanimous-universal-ai-connector.js'
       - 'worker/src/magnanimous-plugin-oauth.js'
       - 'worker/src/magnanimous-unified-ops.js'
+      - 'worker/src/magnanimous-unified-plugin-pricing.js'
       - 'worker/src/magnanimous-cloud-provider-core.js'
       - 'worker/src/magnanimous-infrastructure-core.js'
       - 'worker/src/magnanimous-native-infrastructure-compatibility.js'
@@ -22,6 +23,7 @@ on:
       - 'frontend/package.json'
       - 'qa/scripts/universal-ai-connector-lock.mjs'
       - 'qa/scripts/magnanimous-unified-ops-plugin-lock.mjs'
+      - 'qa/scripts/magnanimous-plugin-billing-lock.mjs'
       - '.github/workflows/universal-ai-connector-check.yml'
   pull_request:
     branches: [main]
@@ -29,6 +31,7 @@ on:
       - 'worker/src/magnanimous-universal-ai-connector.js'
       - 'worker/src/magnanimous-plugin-oauth.js'
       - 'worker/src/magnanimous-unified-ops.js'
+      - 'worker/src/magnanimous-unified-plugin-pricing.js'
       - 'worker/src/magnanimous-cloud-provider-core.js'
       - 'worker/src/magnanimous-infrastructure-core.js'
       - 'worker/src/magnanimous-native-infrastructure-compatibility.js'
@@ -44,6 +47,7 @@ on:
       - 'frontend/package.json'
       - 'qa/scripts/universal-ai-connector-lock.mjs'
       - 'qa/scripts/magnanimous-unified-ops-plugin-lock.mjs'
+      - 'qa/scripts/magnanimous-plugin-billing-lock.mjs'
       - '.github/workflows/universal-ai-connector-check.yml'
   workflow_dispatch:
 
@@ -73,6 +77,7 @@ jobs:
           node --check worker/src/magnanimous-universal-ai-connector.js
           node --check worker/src/magnanimous-plugin-oauth.js
           node --check worker/src/magnanimous-unified-ops.js
+          node --check worker/src/magnanimous-unified-plugin-pricing.js
           node --check worker/src/magnanimous-cloud-provider-core.js
           node --check worker/src/magnanimous-infrastructure-core.js
           node --check worker/src/magnanimous-native-infrastructure-compatibility.js
@@ -85,5 +90,7 @@ jobs:
         run: node qa/scripts/universal-ai-connector-lock.mjs
       - name: Lock unified native operations contract
         run: node qa/scripts/magnanimous-unified-ops-plugin-lock.mjs
+      - name: Lock all-in-one plugin billing contract
+        run: node qa/scripts/magnanimous-plugin-billing-lock.mjs
       - name: Verify Cloudflare Worker bundle
         run: npx --yes wrangler@4 deploy --dry-run --config worker/wrangler.jsonc
