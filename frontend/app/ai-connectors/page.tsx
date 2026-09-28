@@ -37,8 +37,8 @@ type IssuedToken = {
 };
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-const SAFE = ['capabilities.read', 'brain.ask', 'mail.read', 'communications.read'];
-const WRITES = ['mail.write', 'communications.write'];
+const SAFE = ['capabilities.read', 'brain.ask', 'web.read', 'mail.read', 'communications.read'];
+const WRITES = ['web.write', 'mail.write', 'communications.write'];
 
 export default function AIConnectors() {
   const [data, setData] = useState<State | null>(null);
@@ -177,6 +177,8 @@ export default function AIConnectors() {
           <b>MCP 2026-07-28</b>
           <b>Legacy MCP compatible</b>
           <b>OpenAPI fallback</b>
+          <b>Native web • no TinyFish wallet</b>
+          <b>ChatGPT search/fetch ready</b>
           <b>Write access OFF by default</b>
         </div>
       </section>
@@ -238,11 +240,13 @@ export default function AIConnectors() {
                       <em>
                         {scope === 'brain.ask'
                           ? 'Ask/delegate to Magnanimous'
-                          : scope === 'mail.read'
-                            ? 'Read/search connected mail'
-                            : scope === 'communications.read'
-                              ? 'Read communications catalog/status'
-                              : 'Read Magnanimous capabilities'}
+                          : scope === 'web.read'
+                            ? 'Use native search, fetch, research, browser reads, sessions and monitors without TinyFish'
+                            : scope === 'mail.read'
+                              ? 'Read/search connected mail'
+                              : scope === 'communications.read'
+                                ? 'Read communications catalog/status'
+                                : 'Read Magnanimous capabilities'}
                       </em>
                     </span>
                   </label>
@@ -265,9 +269,11 @@ export default function AIConnectors() {
                     <span>
                       <b>{scope}</b>
                       <em>
-                        {scope === 'mail.write'
-                          ? 'Send email from an explicitly selected account'
-                          : 'Execute authorized communications actions'}
+                        {scope === 'web.write'
+                          ? 'Use confirmation-gated browser actions, profiles, sessions and monitor management'
+                          : scope === 'mail.write'
+                            ? 'Send email from an explicitly selected account'
+                            : 'Execute authorized communications actions'}
                       </em>
                     </span>
                   </label>
