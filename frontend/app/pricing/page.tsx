@@ -35,7 +35,7 @@ export default function PricingPage(){
   try{
    const r=await fetch(`${api}/api/enterprise/usage-wallet/topup`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:'{}'});
    const d=await read(r);if(!r.ok)throw new Error(d.detail||'Usage-credit checkout could not start.');if(!d.url)throw new Error('Stripe did not return a usage-credit checkout page.');
-   location.href=d.url;
+   location.href=d.url
   }catch(e:any){setMessage(e?.message||'Usage-credit checkout could not start.');setBusy('')}
  }
  async function manage(){
