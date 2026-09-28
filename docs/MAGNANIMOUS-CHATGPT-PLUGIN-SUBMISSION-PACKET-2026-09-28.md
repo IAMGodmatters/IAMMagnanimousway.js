@@ -39,9 +39,13 @@ Repository: `IAMGodmatters/IAMMagnanimousway.js`
 ## Authentication
 
 - OAuth 2.1 authorization code + PKCE S256.
+- OpenID-compatible discovery advertises `openid` and `email`, plus `https://iammagnanimousway.com/oauth/userinfo`.
+- UserInfo returns `email` and `email_verified: true` only after Magnanimous has verified control of that account's sign-in email.
 - Dynamic Client Registration accepts HTTPS ChatGPT/OpenAI redirect hosts.
 - Access tokens are short-lived and refresh tokens rotate.
 - Public/customer-safe accounts can authorize only:
+  - `openid`
+  - `email`
   - `capabilities.read`
   - `brain.ask`
   - `web.read`
@@ -77,7 +81,7 @@ The route is implemented. When the OpenAI submission portal supplies the exact c
 
 3. **Customer-safe scope boundary**
    - Prompt: `Show the Magnanimous capabilities available to my normal account.`
-   - Expected: Customer-safe OAuth grants `capabilities.read`, `brain.ask`, `web.read`, and `offline_access`; no cloud/write/mail-send/communications-write authority is granted.
+   - Expected: Customer-safe OAuth grants `openid`, `email`, `capabilities.read`, `brain.ask`, `web.read`, and `offline_access`; no cloud/write/mail-send/communications-write authority is granted.
 
 4. **Native operations catalog for a privileged reviewer account**
    - Prompt: `Show the Magnanimous native operations catalog and map Railway deployment and Cloudflare worker concepts to Magnanimous-owned contracts.`
@@ -103,7 +107,7 @@ The route is implemented. When the OpenAI submission portal supplies the exact c
 
 ## Release notes
 
-Initial public submission of Magnanimous AI as a remote MCP-backed ChatGPT plugin. This release exposes Magnanimous Native Web plus a unified provider-neutral operations model for web/browser, cloud/deployment and edge/runtime work. It includes OAuth 2.1 + PKCE, role-filtered customer-safe versus owner/admin scopes, explicit MCP tool annotations and output/error contracts, public support/privacy/terms pages, a domain-challenge route, and clean-room compatibility mappings for public Railway, Cloudflare and TinyFish capability patterns without representing their proprietary implementation as owned by Magnanimous.
+Initial public submission of Magnanimous AI as a remote MCP-backed ChatGPT plugin. This release exposes Magnanimous Native Web plus a unified provider-neutral operations model for web/browser, cloud/deployment and edge/runtime work. It includes OAuth 2.1 + PKCE, OpenID-compatible verified-email UserInfo for workspace-domain protection, role-filtered customer-safe versus owner/admin scopes, explicit MCP tool annotations and output/error contracts, public support/privacy/terms pages, a domain-challenge route, and clean-room compatibility mappings for public Railway, Cloudflare and TinyFish capability patterns without representing their proprietary implementation as owned by Magnanimous.
 
 ## Availability
 
