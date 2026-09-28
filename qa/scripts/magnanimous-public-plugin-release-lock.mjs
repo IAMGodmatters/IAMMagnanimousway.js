@@ -49,7 +49,7 @@ for(const needle of [
 ])has(connector,needle,'ChatGPT tool-discovery metadata regressed: '+needle);
 
 for(const needle of [
- "PUBLIC_SCOPES=Object.freeze(['capabilities.read','brain.ask','web.read'])",
+ "PUBLIC_SCOPES=Object.freeze(['capabilities.read','brain.ask','web.read','offline_access'])",
  "DEFAULT_SCOPES=PUBLIC_SCOPES",
  "PRIVILEGED_ROLES=Object.freeze(['owner','admin'])",
  "scopesForUser",
