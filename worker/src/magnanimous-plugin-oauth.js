@@ -5,9 +5,9 @@ const now=()=>Math.floor(Date.now()/1000);
 const encoder=new TextEncoder();
 const OAUTH_SCOPES=Object.freeze([
  'capabilities.read','brain.ask','web.read','web.write','cloud.read','cloud.write',
- 'mail.read','mail.write','communications.read','communications.write'
+ 'mail.read','mail.write','communications.read','communications.write','offline_access'
 ]);
-const PUBLIC_SCOPES=Object.freeze(['capabilities.read','brain.ask','web.read']);
+const PUBLIC_SCOPES=Object.freeze(['capabilities.read','brain.ask','web.read','offline_access']);
 const DEFAULT_SCOPES=PUBLIC_SCOPES;
 const PRIVILEGED_ROLES=Object.freeze(['owner','admin']);
 const ACCESS_TTL=3600;

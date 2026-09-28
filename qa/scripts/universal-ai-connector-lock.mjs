@@ -101,7 +101,8 @@ must(oauth,"magnanimous_oauth_access_tokens",'hashed OAuth access-token storage 
 must(oauth,"magnanimous_oauth_refresh_tokens",'hashed OAuth refresh-token storage missing');
 must(oauth,"openAiRedirect",'OAuth DCR redirect allowlist missing');
 must(oauth,"row.resource!==resource(request)",'OAuth MCP audience/resource validation missing');
-must(oauth,"PUBLIC_SCOPES=Object.freeze(['capabilities.read','brain.ask','web.read'])",'customer-safe OAuth scope floor missing');
+must(oauth,"PUBLIC_SCOPES=Object.freeze(['capabilities.read','brain.ask','web.read','offline_access'])",'customer-safe OAuth scope floor missing');
+must(oauth,"'offline_access'",'OAuth offline_access scope missing for ChatGPT refresh-token continuity');
 must(oauth,"DEFAULT_SCOPES=PUBLIC_SCOPES",'OAuth defaults must stay customer-safe');
 must(oauth,"PRIVILEGED_ROLES=Object.freeze(['owner','admin'])",'owner/admin privileged role boundary missing');
 must(oauth,"scopesForUser",'role-aware OAuth scope reduction missing');
@@ -110,6 +111,7 @@ must(oauth,"access_tier:privilegedUser(user)?'owner-admin':'customer-safe'",'OAu
 must(oauth,"JSON.stringify(scopes)",'OAuth authorization code must persist the role-filtered scopes');
 must(oauthPage,"Owner controls stay private",'OAuth consent UI must explain withheld owner/admin scopes');
 must(oauthPage,"customer-safe",'OAuth consent UI must expose the customer-safe tier');
+must(oauthPage,"Keep the ChatGPT connection active using rotating refresh tokens",'OAuth consent UI must explain offline access');
 must(connector,"authorizeMagnanimousOAuthToken",'MCP does not accept first-party OAuth access tokens');
 must(connector,"www-authenticate",'MCP unauthenticated response does not publish OAuth challenge');
 must(connector,"handleMagnanimousPluginOAuth",'OAuth discovery/token routes are not mounted');

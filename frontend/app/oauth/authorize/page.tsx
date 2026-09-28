@@ -123,6 +123,7 @@ export default function OAuthAuthorizePage(){
        scope==='communications.read'?'Read communications readiness and catalog':
        scope==='communications.write'?'Run communications actions through Magnanimous safety gates':
        scope==='brain.ask'?'Delegate reasoning and planning to Magnanimous AI':
+       scope==='offline_access'?'Keep the ChatGPT connection active using rotating refresh tokens':
        'Read Magnanimous capability information'
       }</span>
      </div>)}
