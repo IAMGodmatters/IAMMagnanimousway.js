@@ -35,6 +35,15 @@ must(connector,"magnanimous_ops_translate",'provider-capability translation tool
 must(connector,"magnanimous_cloud_create_resource",'native cloud resource creation tool missing');
 must(connector,"magnanimous_cloud_stage_action",'native cloud action staging tool missing');
 must(connector,"magnanimous_operate",'single unified web/cloud/edge operations tool missing');
+must(connector,"GENERIC_OBJECT_OUTPUT_SCHEMA",'generic unified MCP output schema missing');
+must(connector,"TRANSLATION_OUTPUT_SCHEMA",'provider translation output schema missing');
+must(connector,"RESOURCE_OUTPUT_SCHEMA",'native cloud resource output schema missing');
+must(connector,"ACTION_OUTPUT_SCHEMA",'native cloud action output schema missing');
+must(connector,"TOOL_ERROR_META",'machine-readable Magnanimous MCP error contract metadata missing');
+must(connector,"outputSchema:TRANSLATION_OUTPUT_SCHEMA",'translation tool output schema is not exposed');
+must(connector,"outputSchema:RESOURCE_OUTPUT_SCHEMA",'resource tool output schema is not exposed');
+must(connector,"outputSchema:ACTION_OUTPUT_SCHEMA",'action tool output schema is not exposed');
+must(connector,"_meta:TOOL_ERROR_META",'unified tools no longer expose error-contract metadata');
 must(connector,"NATIVE_OPS_SKILL_URI",'Magnanimous Native Operations skill resource missing');
 must(connector,"magnanimous-native-operations",'Magnanimous Native Operations skill missing');
 must(connector,"handleMagnanimousNativeWeb",'native web runtime is not wired into MCP');
