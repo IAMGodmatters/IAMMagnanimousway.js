@@ -21,11 +21,315 @@ const CREATE = [
   `CREATE TABLE IF NOT EXISTS hr_workers (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,first_name TEXT NOT NULL,last_name TEXT NOT NULL DEFAULT '',work_email TEXT NOT NULL DEFAULT '',worker_type TEXT NOT NULL DEFAULT 'employee',country_code TEXT NOT NULL DEFAULT '',currency TEXT NOT NULL DEFAULT 'USD',pay_micros INTEGER NOT NULL DEFAULT 0,pay_frequency TEXT NOT NULL DEFAULT 'monthly',department TEXT NOT NULL DEFAULT '',role_title TEXT NOT NULL DEFAULT '',manager_name TEXT NOT NULL DEFAULT '',start_date INTEGER,end_date INTEGER,status TEXT NOT NULL DEFAULT 'active',classification_review TEXT NOT NULL DEFAULT 'not-reviewed',notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS hr_leave_requests (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,worker_id TEXT NOT NULL,leave_type TEXT NOT NULL DEFAULT 'vacation',start_at INTEGER NOT NULL,end_at INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'pending',notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS hr_payroll_runs (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,country_code TEXT NOT NULL DEFAULT '',period_start INTEGER,period_end INTEGER,currency TEXT NOT NULL DEFAULT 'USD',gross_micros INTEGER NOT NULL DEFAULT 0,employee_tax_micros INTEGER NOT NULL DEFAULT 0,employer_tax_micros INTEGER NOT NULL DEFAULT 0,benefits_micros INTEGER NOT NULL DEFAULT 0,net_micros INTEGER NOT NULL DEFAULT 0,employer_cost_micros INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'draft',notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS hr_expenses (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,worker_id TEXT,category TEXT NOT NULL DEFAULT 'other',currency TEXT NOT NULL DEFAULT 'USD',amount_micros INTEGER NOT NULL DEFAULT 0,incurred_at INTEGER,status TEXT NOT NULL DEFAULT 'submitted',description TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`
+  `CREATE TABLE IF NOT EXISTS hr_expenses (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,worker_id TEXT,category TEXT NOT NULL DEFAULT 'other',currency TEXT NOT NULL DEFAULT 'USD',amount_micros INTEGER NOT NULL DEFAULT 0,incurred_at INTEGER,status TEXT NOT NULL DEFAULT 'submitted',description TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS finance_operating_costs (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,category TEXT NOT NULL,name TEXT NOT NULL,frequency TEXT NOT NULL DEFAULT 'annual',cost_type TEXT NOT NULL DEFAULT 'fixed',currency TEXT NOT NULL DEFAULT 'PHP',amount_micros INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'planned',source_url TEXT NOT NULL DEFAULT '',notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`
 ];
 
 async function ensureTables(env) {
   for (const sql of CREATE) await env.DB.prepare(sql).run();
+}
+
+
+const OWNER_OPERATING_COSTS = [
+  {
+    key: 'ntc-voip-reseller-bond-quote',
+    category: 'telecom-regulatory',
+    name: 'NTC VoIP reseller performance bond — Prudential quote',
+    frequency: 'annual',
+    cost_type: 'quoted',
+    currency: 'PHP',
+    amount: 7982,
+    status: 'quoted',
+    source_url: '',
+    notes: 'One-year PHP 1,000,000 performance bond quote received 2026-09-28. Premium PHP 6,000; VAT PHP 720; DST PHP 750; LGT PHP 12; other charges PHP 500; total PHP 7,982. Collateral remains subject to underwriting approval. Quotation/pre-qualification only — no issuance, payment, collateral or binding commitment is authorized.'
+  },
+  {
+    key: 'ntc-voip-reseller-registration',
+    category: 'telecom-regulatory',
+    name: 'NTC VoIP reseller registration + renewal',
+    frequency: 'annual',
+    cost_type: 'fixed',
+    currency: 'PHP',
+    amount: 5330,
+    status: 'planned',
+    source_url: 'https://region8.ntc.gov.ph/wp-content/uploads/2025/05/6-05-SID-CCT-03282025.pdf',
+    notes: 'Current NTC fee schedule: PHP 300 filing fee + PHP 5,000 annual registration fee + PHP 30 documentary stamp tax. VoIP reseller COR is renewable. This does not include the separate performance-bond premium or upstream carrier/reseller agreement.'
+  },
+  {
+    key: 'ntc-vas-registration',
+    category: 'telecom-regulatory',
+    name: 'NTC Value-Added Service registration',
+    frequency: 'annual',
+    cost_type: 'fixed',
+    currency: 'PHP',
+    amount: 6330,
+    status: 'review',
+    source_url: 'https://region7.ntc.gov.ph/wp-content/uploads/2024/01/MC_02-05-2008_VAS.pdf',
+    notes: 'Budgeted for the first five VAS services: PHP 300 filing + PHP 6,000 annual registration + PHP 30 DST under the current NTC citizen-charter schedule. The VoIP reseller rules reference VAS registration in addition to reseller requirements; confirm the exact combined filing treatment with NTC Region VII before payment.'
+  },
+  {
+    key: 'npc-initial-registration',
+    category: 'privacy-compliance',
+    name: 'National Privacy Commission DPS/DPO initial registration',
+    frequency: 'one-time',
+    cost_type: 'fixed',
+    currency: 'PHP',
+    amount: 1000,
+    status: 'planned',
+    source_url: 'https://privacy.gov.ph/pips-and-pics/register/',
+    notes: 'Initial public/private organization registration budgeted at the Cities/Regional/Provincial rate. Exact classification should be confirmed in NPCRS before payment.'
+  },
+  {
+    key: 'npc-renewal',
+    category: 'privacy-compliance',
+    name: 'National Privacy Commission DPS/DPO renewal',
+    frequency: 'annual',
+    cost_type: 'fixed',
+    currency: 'PHP',
+    amount: 500,
+    status: 'planned',
+    source_url: 'https://privacy.gov.ph/pips-and-pics/register/',
+    notes: 'Annual renewal budget for a public/private organization at the Cities/Regional/Provincial rate. Confirm the registered classification in NPCRS.'
+  },
+  {
+    key: 'sec-corporation-registration-minimum',
+    category: 'corporate-compliance',
+    name: 'SEC stock corporation setup — minimum registration budget',
+    frequency: 'one-time',
+    cost_type: 'estimate',
+    currency: 'PHP',
+    amount: 3600,
+    status: 'review',
+    source_url: 'https://appointment.sec.gov.ph/online-services/registration-calculator/',
+    notes: 'Minimum-budget estimate for a low-authorized-capital stock corporation: PHP 2,000 minimum filing fee + at least PHP 20 legal research fee + PHP 1,010 by-laws + PHP 100 name reservation + about PHP 470 Stock & Transfer Book. Filing fee rises with authorized/subscribed capital, so replace this estimate with the SEC calculator result before paying.'
+  },
+  {
+    key: 'bayawan-business-permit-budget',
+    category: 'local-business-compliance',
+    name: 'Bayawan Mayor\'s Permit + local fixed permit fees',
+    frequency: 'annual',
+    cost_type: 'estimate',
+    currency: 'PHP',
+    amount: 8610,
+    status: 'review',
+    source_url: 'https://www.bayawancity.gov.ph/citizencharter/Content/citizencharter/pdf/CitizensCharter-2024-4th-edition.pdf',
+    notes: 'Upper-end budget reserve from the published Bayawan citizen charter: Mayor\'s Permit fee ranges PHP 100–8,000 based on asset size/workers, plus other listed fees of about PHP 510–610. Actual assessment may be lower. Local business tax and variable Fire Code fees are tracked separately.'
+  },
+  {
+    key: 'bayawan-business-tax',
+    category: 'local-business-compliance',
+    name: 'Bayawan local business tax',
+    frequency: 'annual',
+    cost_type: 'variable',
+    currency: 'PHP',
+    amount: 0,
+    status: 'review',
+    source_url: 'https://www.bayawancity.gov.ph/business/business-display.php?id=43-business-tax',
+    notes: 'Variable annual local business tax based on the applicable Bayawan classification and preceding gross sales/receipts; new-business assessment may use capitalization. Do not book a fixed amount until the City Treasurer/BOSS assessment is issued.'
+  },
+  {
+    key: 'bfp-fire-safety-inspection',
+    category: 'local-business-compliance',
+    name: 'BFP Fire Safety Inspection Fee',
+    frequency: 'annual',
+    cost_type: 'variable',
+    currency: 'PHP',
+    amount: 0,
+    status: 'review',
+    source_url: 'https://bfp.gov.ph/wp-content/uploads/2017/06/Forms.pdf',
+    notes: 'Fire Safety Inspection Fee is generally 10% of fees charged by the building official/LGU/other government agencies for permits or licenses. Compute from the actual permit assessment rather than double-counting an estimate.'
+  },
+  {
+    key: 'bir-annual-registration',
+    category: 'tax-compliance',
+    name: 'BIR annual registration fee',
+    frequency: 'annual',
+    cost_type: 'fixed',
+    currency: 'PHP',
+    amount: 0,
+    status: 'active',
+    source_url: 'https://bir-cdn.bir.gov.ph/local/pdf/RMC%20No.%2014-2024.pdf',
+    notes: 'PHP 0. BIR ceased collecting the former PHP 500 annual registration fee effective 22 January 2024 under the Ease of Paying Taxes Act.'
+  },
+  {
+    key: 'bir-corporate-income-tax',
+    category: 'tax-compliance',
+    name: 'Philippine corporate income tax',
+    frequency: 'quarterly/annual',
+    cost_type: 'variable',
+    currency: 'PHP',
+    amount: 0,
+    status: 'review',
+    source_url: 'https://bir-cdn.bir.gov.ph/BIR/pdf/RMC%20No.%20135-2024%20Annex%20A.pdf',
+    notes: 'Revenue/profit-dependent, not a fixed platform fee. Domestic corporations generally face 25% regular corporate income tax; qualifying small domestic corporations may qualify for 20% when both statutory income and asset tests are met. Accounting review required.'
+  },
+  {
+    key: 'bir-vat-percentage-tax',
+    category: 'tax-compliance',
+    name: 'VAT or percentage-tax obligation',
+    frequency: 'monthly/quarterly',
+    cost_type: 'variable',
+    currency: 'PHP',
+    amount: 0,
+    status: 'review',
+    source_url: 'https://bir-cdn.bir.gov.ph/BIR/pdf/RR%203-2024%20%28final%29.pdf',
+    notes: 'Sales-dependent. VAT/percentage-tax treatment depends on registration and the indexed VAT threshold. Non-VAT persons subject to Section 116 generally pay 3% of gross quarterly sales. Confirm current threshold and classification before filing.'
+  },
+  {
+    key: 'sec-annual-reportorial',
+    category: 'corporate-compliance',
+    name: 'SEC GIS / AFS / beneficial-ownership annual compliance',
+    frequency: 'annual',
+    cost_type: 'variable',
+    currency: 'PHP',
+    amount: 0,
+    status: 'review',
+    source_url: 'https://www.sec.gov.ph/reportorial-requirements/corporations-with-primary-licenses/',
+    notes: 'Annual filing obligation. Government pages establish GIS, AFS and beneficial-ownership filing requirements, but professional bookkeeping/audit/notarial cost depends on the corporation and provider. Keep the actual accountant/auditor quote here when obtained.'
+  },
+  {
+    key: 'sss-employer',
+    category: 'payroll-statutory',
+    name: 'SSS employer contributions',
+    frequency: 'monthly',
+    cost_type: 'variable',
+    currency: 'PHP',
+    amount: 0,
+    status: 'review',
+    source_url: 'https://www.sss.gov.ph/pay-contribution/',
+    notes: 'Per employee. Effective 2025 schedule: total SS contribution is 15% of MSC, split 10% employer / 5% employee, plus employer-only Employees\' Compensation of PHP 10 or PHP 30 depending on MSC. Actual monthly cost depends on payroll.'
+  },
+  {
+    key: 'philhealth-employer',
+    category: 'payroll-statutory',
+    name: 'PhilHealth employer contributions',
+    frequency: 'monthly',
+    cost_type: 'variable',
+    currency: 'PHP',
+    amount: 0,
+    status: 'review',
+    source_url: 'https://www.philhealth.gov.ph/advisories/2025/PA2025-0002.pdf',
+    notes: 'Per employee. The 5% direct-contributor premium rate reached its statutory ceiling and is shared equally by employer and employee; the published 2025 schedule used a PHP 10,000 floor and PHP 100,000 ceiling. Verify the current 2026 contribution table when payroll begins.'
+  },
+  {
+    key: 'pagibig-employer',
+    category: 'payroll-statutory',
+    name: 'Pag-IBIG employer contributions',
+    frequency: 'monthly',
+    cost_type: 'variable',
+    currency: 'PHP',
+    amount: 0,
+    status: 'review',
+    source_url: 'https://dmw.gov.ph/archives/v1/resources/dsms/DMW/ISN-EXT/2025/DMW-ADVISORY-37-2025.pdf',
+    notes: 'Per employee. Current mandatory employer share is 2% of Fund Salary, with the maximum fund salary increased to PHP 10,000 effective February 2024 — up to PHP 200 employer share per employee per month.'
+  },
+  {
+    key: 'railway-production-hosting',
+    category: 'platform-infrastructure',
+    name: 'Railway production hosting',
+    frequency: 'monthly',
+    cost_type: 'estimate',
+    currency: 'USD',
+    amount: 5,
+    status: 'active',
+    source_url: 'https://docs.railway.com/pricing',
+    notes: 'Budget floor, not an invoice. Current 7-day production metrics across magnanimous + sandbox + browser + browser-egress + media imply roughly USD 1.96/month of CPU/RAM/storage resource use before network egress and Railway Agent usage. Railway bills a plan minimum of USD 5/month on Hobby or USD 20/month on Pro, with included usage offsetting resource charges. Replace this amount with the actual workspace plan/invoice when exposed.'
+  },
+  {
+    key: 'stripe-processing',
+    category: 'payments',
+    name: 'Stripe payment processing',
+    frequency: 'per transaction',
+    cost_type: 'usage',
+    currency: 'USD',
+    amount: 0,
+    status: 'active',
+    source_url: 'https://stripe.com/pricing',
+    notes: 'No standard setup or monthly platform fee. Public standard card pricing shown by Stripe is usage-based (for example 2.9% + USD 0.30 for domestic cards on the general US rate card, with additional international/FX charges where applicable). The connected account\'s country-specific/custom pricing controls the actual fee.'
+  },
+  {
+    key: 'registered-voip-upstream',
+    category: 'telecom-upstream',
+    name: 'Duly registered VoIP provider reseller agreement',
+    frequency: 'monthly/usage',
+    cost_type: 'variable',
+    currency: 'PHP',
+    amount: 0,
+    status: 'review',
+    source_url: 'https://region4b.ntc.gov.ph/wp-content/uploads/LawsAndRegulations/MC/VAS/MC_3-11-2005.pdf',
+    notes: 'Required commercial dependency for the Philippine VoIP reseller path: the NTC rules require a certified reseller agreement with a duly registered VoIP service provider. Wholesale rates are contract-specific; obtain at least two written quotes before activation.'
+  },
+  {
+    key: 'plivo-candidate',
+    category: 'telecom-upstream',
+    name: 'Plivo SIP / Voice — optional upstream candidate',
+    frequency: 'monthly/usage',
+    cost_type: 'usage',
+    currency: 'USD',
+    amount: 0,
+    status: 'candidate',
+    source_url: 'https://www.plivo.com/sip-trunking/pricing/',
+    notes: 'Not currently booked as active. US SIP local numbers: about USD 0.50/month; US outbound starts around USD 0.0046/min and inbound USD 0.0028/min. Philippines outbound is materially higher and Plivo lists inbound as unsupported on its PH SIP rate card, so it is not a complete Philippine public-number solution by itself.'
+  },
+  {
+    key: 'telnyx-candidate',
+    category: 'telecom-upstream',
+    name: 'Telnyx Voice / SIP — optional upstream candidate',
+    frequency: 'monthly/usage',
+    cost_type: 'usage',
+    currency: 'USD',
+    amount: 0,
+    status: 'candidate',
+    source_url: 'https://telnyx.com/pricing/voice-api',
+    notes: 'Not currently booked as active. Public pricing: USD 0 platform fee, Voice API USD 0.002/min plus SIP; published US SIP examples are about USD 0.005/min outbound and USD 0.0032/min inbound, with local numbers from USD 1/month. Destination/carrier/tax rates vary.'
+  },
+  {
+    key: 'twilio-candidate',
+    category: 'telecom-upstream',
+    name: 'Twilio Voice — compatibility candidate',
+    frequency: 'monthly/usage',
+    cost_type: 'usage',
+    currency: 'USD',
+    amount: 0,
+    status: 'candidate',
+    source_url: 'https://www.twilio.com/en-us/voice/pricing/us',
+    notes: 'Not currently booked as active. Public US list pricing: local number USD 1.15/month, outbound USD 0.014/min, inbound USD 0.0085/min. Keep as compatibility/fallback unless its coverage or SDK value justifies the higher rate.'
+  },
+  {
+    key: 'domain-renewal',
+    category: 'platform-infrastructure',
+    name: 'iammagnanimousway.com domain renewal',
+    frequency: 'annual',
+    cost_type: 'variable',
+    currency: 'USD',
+    amount: 0,
+    status: 'review',
+    source_url: '',
+    notes: 'Active platform dependency. Registrar and renewal invoice are not exposed in the current connected services, so no amount is invented. Replace with the actual registrar renewal price.'
+  },
+  {
+    key: 'business-internet-power',
+    category: 'call-center-operations',
+    name: 'Call-center internet + electricity',
+    frequency: 'monthly',
+    cost_type: 'variable',
+    currency: 'PHP',
+    amount: 0,
+    status: 'review',
+    source_url: '',
+    notes: 'Operational cost, not a license fee. Enter the actual business broadband and electricity bills once the call-center location and redundancy requirements are finalized.'
+  }
+];
+
+async function ensureOwnerOperatingCosts(env, user, tenant) {
+  const role = String(user?.role || '').trim().toLowerCase();
+  if (!['owner','admin','super_admin','superadmin'].includes(role)) return;
+  const ts = now();
+  for (const item of OWNER_OPERATING_COSTS) {
+    const id = `opcost:${tenant}:${item.key}`;
+    await env.DB.prepare('INSERT OR IGNORE INTO finance_operating_costs(id,tenant_id,category,name,frequency,cost_type,currency,amount_micros,status,source_url,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      .bind(id, tenant, item.category, item.name, item.frequency, item.cost_type, item.currency, micros(item.amount), item.status, item.source_url, item.notes, ts, ts).run();
+  }
 }
 
 async function getSettings(env, tenant) {
@@ -252,12 +556,13 @@ async function complianceBrief(request, env, body) {
 }
 
 async function overview(env, tenant, settings) {
-  const [analytics, hr, tax, workers, documents] = await Promise.all([
+  const [analytics, hr, tax, workers, documents, operatingCosts] = await Promise.all([
     financeAnalytics(env, tenant),
     peopleSummary(env, tenant, currency(settings.base_currency)),
     env.DB.prepare("SELECT * FROM finance_tax_tasks WHERE tenant_id=? AND status NOT IN ('completed','cancelled') ORDER BY CASE WHEN due_at IS NULL THEN 1 ELSE 0 END,due_at LIMIT 10").bind(tenant).all(),
     env.DB.prepare('SELECT * FROM hr_workers WHERE tenant_id=? ORDER BY status,first_name LIMIT 20').bind(tenant).all(),
-    env.DB.prepare('SELECT * FROM finance_documents WHERE tenant_id=? ORDER BY created_at DESC LIMIT 15').bind(tenant).all()
+    env.DB.prepare('SELECT * FROM finance_documents WHERE tenant_id=? ORDER BY created_at DESC LIMIT 15').bind(tenant).all(),
+    env.DB.prepare("SELECT * FROM finance_operating_costs WHERE tenant_id=? ORDER BY CASE status WHEN 'active' THEN 0 WHEN 'quoted' THEN 1 WHEN 'planned' THEN 2 WHEN 'review' THEN 3 ELSE 4 END,category,name").bind(tenant).all()
   ]);
   return {
     ok: true,
@@ -265,6 +570,7 @@ async function overview(env, tenant, settings) {
     analytics,
     hr,
     tax_tasks: tax.results || [],
+    operating_costs: (operatingCosts.results || []).map(row => ({ ...row, amount: amount(row.amount_micros) })),
     workers: (workers.results || []).map(row => ({ ...row, pay: amount(row.pay_micros) })),
     documents: (documents.results || []).map(row => ({ ...row, subtotal: amount(row.subtotal_micros), tax: amount(row.tax_micros), total: amount(row.total_micros) })),
     principles: { double_entry: true, multi_currency: true, fx_reference_source: 'European Central Bank', professional_review_required: true }
@@ -283,6 +589,7 @@ export async function handleFinancePeople(request, env) {
     const tenant = String(user.tenant_id);
     const settings = await getSettings(env, tenant);
     await ensureDefaultAccounts(env, tenant, currency(settings.base_currency));
+    await ensureOwnerOperatingCosts(env, user, tenant);
 
     if (request.method === 'GET' && url.pathname === '/api/finance-people/overview') {
       return json(await overview(env, tenant, settings));
