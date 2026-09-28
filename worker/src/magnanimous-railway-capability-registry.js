@@ -3,12 +3,14 @@
 // It does not copy Railway proprietary implementation, private prompts, credentials, or internal code.
 
 export const RAILWAY_RESEARCH=Object.freeze({
-  verified_at:'2026-09-21',
+  verified_at:'2026-09-28',
   provider:'Railway',
   docs:[
     'https://docs.railway.com/projects',
     'https://docs.railway.com/build-deploy',
     'https://docs.railway.com/deployments',
+    'https://docs.railway.com/deployments/healthchecks',
+    'https://docs.railway.com/guides/managing-secrets-on-railway',
     'https://docs.railway.com/deployments/monorepo',
     'https://docs.railway.com/networking/private-networking',
     'https://docs.railway.com/networking/tcp-proxy',
@@ -90,6 +92,8 @@ export const RAILWAY_TECHNIQUES=Object.freeze([
   {id:'explicit-resource-scoping',purpose:'Resolve and pass project, environment and service IDs explicitly instead of relying on ambient context.'},
   {id:'environment-isolation',purpose:'Keep production, staging and preview configuration, networking, buckets and deployments isolated.'},
   {id:'preview-environments',purpose:'Create disposable PR-style environments from a controlled base environment and deprovision them after use.'},
+  {id:'preview-secret-isolation',purpose:'Treat production sealed/write-only secrets as intentionally absent from preview environments unless a separate preview-safe credential is explicitly supplied.'},
+  {id:'single-writer-volume-rollout',purpose:'When a service mounts persistent storage, respect single-writer volume constraints: do not assume zero-downtime overlap is possible, preserve data integrity, and surface expected rollout downtime.'},
   {id:'terminal-deploy-verification',purpose:'Never call a deployment successful until a terminal SUCCESS state is observed.'},
   {id:'mutation-readback',purpose:'After configuration or deployment mutations, perform a read-back verification.'},
   {id:'healthcheck-gated-release',purpose:'Use explicit health endpoints and timeouts to gate rollout readiness.'},

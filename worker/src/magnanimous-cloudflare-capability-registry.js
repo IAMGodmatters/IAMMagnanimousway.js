@@ -19,6 +19,8 @@ export const CLOUDFLARE_AGENT_SKILLS=Object.freeze([
 
 export const CLOUDFLARE_ARCHITECTURE_TECHNIQUES=Object.freeze([
  {id:'code-mode',name:'Code Mode discovery then execution',apply:'Search the typed API surface first, then execute only the minimum endpoint needed; avoid loading thousands of schemas into the main prompt.'},
+ {id:'durable-code-mode-replay',name:'Durable tool execution with approval replay',apply:'For composed operations, persist an execution log/checkpoint so an approval pause can resume the same plan without repeating already completed calls.'},
+ {id:'browser-cdp-discovery',name:'Discoverable CDP browser control',apply:'Expose a compact browser execution surface that can discover protocol methods on demand, then run only the required DOM, screenshot, JavaScript or network-inspection operations against a retained session.'},
  {id:'bindings-first',name:'Bindings-first architecture',apply:'Prefer Worker bindings for D1, R2, KV, Durable Objects, Queues, AI and other platform resources instead of public credential-bearing HTTP hops.'},
  {id:'durable-state',name:'Durable state per identity',apply:'Use Durable Objects/SQLite for coordinated state, realtime sessions, alarms, locks and strongly scoped agent identity.'},
  {id:'event-driven',name:'Event-driven background work',apply:'Use Queues for reliable delivery and Workflows for durable multi-step/retryable processes instead of holding request threads open.'},
@@ -127,7 +129,7 @@ export function magnanimousCloudflareSummary(env={}){
  const zone=String(env.CLOUDFLARE_PLATFORM_ZONE_ID||'').trim();
  return{
   ...MAGNANIMOUS_CLOUDFLARE_POLICY,
-  source_checked_at:'2026-09-16',
+  source_checked_at:'2026-09-28',
   api_surface:'Cloudflare API via compact search/execute pattern; official MCP currently covers more than 2,500 endpoints',
   family_count:MAGNANIMOUS_CLOUDFLARE_FAMILIES.length,
   capability_count:MAGNANIMOUS_CLOUDFLARE_FAMILIES.reduce((n,f)=>n+f.capabilities.length,0),

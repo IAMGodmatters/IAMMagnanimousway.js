@@ -4,10 +4,10 @@ const json=(data,status=200,extra={})=>Response.json(data,{status,headers:{'cach
 const now=()=>Math.floor(Date.now()/1000);
 const encoder=new TextEncoder();
 const OAUTH_SCOPES=Object.freeze([
- 'capabilities.read','brain.ask','web.read','web.write',
+ 'capabilities.read','brain.ask','web.read','web.write','cloud.read','cloud.write',
  'mail.read','mail.write','communications.read','communications.write'
 ]);
-const DEFAULT_SCOPES=Object.freeze(['capabilities.read','brain.ask','web.read']);
+const DEFAULT_SCOPES=Object.freeze(['capabilities.read','brain.ask','web.read','cloud.read']);
 const ACCESS_TTL=3600;
 const REFRESH_TTL=60*60*24*30;
 const CODE_TTL=300;

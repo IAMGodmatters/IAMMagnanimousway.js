@@ -5,25 +5,45 @@ on:
     branches: [main]
     paths:
       - 'worker/src/magnanimous-universal-ai-connector.js'
+      - 'worker/src/magnanimous-plugin-oauth.js'
+      - 'worker/src/magnanimous-unified-ops.js'
+      - 'worker/src/magnanimous-cloud-provider-core.js'
+      - 'worker/src/magnanimous-infrastructure-core.js'
+      - 'worker/src/magnanimous-native-infrastructure-compatibility.js'
+      - 'worker/src/magnanimous-cloudflare-capability-registry.js'
+      - 'worker/src/magnanimous-railway-capability-registry.js'
       - 'worker/src/magnanimous-native-mail-runtime.js'
       - 'worker/src/magnanimous-communications-router.js'
       - 'worker/src/entrypoint.js'
       - 'worker/wrangler.jsonc'
       - 'frontend/app/ai-connectors/page.tsx'
+      - 'frontend/app/oauth/authorize/page.tsx'
+      - 'frontend/app/plugin-support/page.tsx'
       - 'frontend/package.json'
       - 'qa/scripts/universal-ai-connector-lock.mjs'
+      - 'qa/scripts/magnanimous-unified-ops-plugin-lock.mjs'
       - '.github/workflows/universal-ai-connector-check.yml'
   pull_request:
     branches: [main]
     paths:
       - 'worker/src/magnanimous-universal-ai-connector.js'
+      - 'worker/src/magnanimous-plugin-oauth.js'
+      - 'worker/src/magnanimous-unified-ops.js'
+      - 'worker/src/magnanimous-cloud-provider-core.js'
+      - 'worker/src/magnanimous-infrastructure-core.js'
+      - 'worker/src/magnanimous-native-infrastructure-compatibility.js'
+      - 'worker/src/magnanimous-cloudflare-capability-registry.js'
+      - 'worker/src/magnanimous-railway-capability-registry.js'
       - 'worker/src/magnanimous-native-mail-runtime.js'
       - 'worker/src/magnanimous-communications-router.js'
       - 'worker/src/entrypoint.js'
       - 'worker/wrangler.jsonc'
       - 'frontend/app/ai-connectors/page.tsx'
+      - 'frontend/app/oauth/authorize/page.tsx'
+      - 'frontend/app/plugin-support/page.tsx'
       - 'frontend/package.json'
       - 'qa/scripts/universal-ai-connector-lock.mjs'
+      - 'qa/scripts/magnanimous-unified-ops-plugin-lock.mjs'
       - '.github/workflows/universal-ai-connector-check.yml'
   workflow_dispatch:
 
@@ -51,10 +71,19 @@ jobs:
       - name: Syntax check connector runtime
         run: |
           node --check worker/src/magnanimous-universal-ai-connector.js
+          node --check worker/src/magnanimous-plugin-oauth.js
+          node --check worker/src/magnanimous-unified-ops.js
+          node --check worker/src/magnanimous-cloud-provider-core.js
+          node --check worker/src/magnanimous-infrastructure-core.js
+          node --check worker/src/magnanimous-native-infrastructure-compatibility.js
+          node --check worker/src/magnanimous-cloudflare-capability-registry.js
+          node --check worker/src/magnanimous-railway-capability-registry.js
           node --check worker/src/magnanimous-native-mail-runtime.js
           node --check worker/src/magnanimous-communications-router.js
           node --check worker/src/entrypoint.js
       - name: Lock connector contract
         run: node qa/scripts/universal-ai-connector-lock.mjs
+      - name: Lock unified native operations contract
+        run: node qa/scripts/magnanimous-unified-ops-plugin-lock.mjs
       - name: Verify Cloudflare Worker bundle
         run: npx --yes wrangler@4 deploy --dry-run --config worker/wrangler.jsonc

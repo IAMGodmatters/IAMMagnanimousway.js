@@ -177,3 +177,60 @@ Repository code cannot perform these account-owner actions by itself:
 Do not represent the plugin as publicly listed until OpenAI has actually approved and published it.
 
 Current ChatGPT custom-MCP availability is controlled by the user's ChatGPT plan and OpenAI product rollout. The server can be production-ready even when the current account UI does not expose custom MCP installation.
+
+
+## Unified native operations extension — 2026-09-28
+
+The same Magnanimous MCP/ChatGPT connection now exposes **three Magnanimous-owned operating areas**:
+
+1. **Web / browser** — TinyFish-style search, rendered fetch, research, workflows, sessions, screenshots and monitoring through Magnanimous Native Web.
+2. **Cloud / deployment** — Railway-style project/environment/service/deployment resource patterns, feature-policy desired state, domain/config boundaries, health-gated deployment technique knowledge and audited actions through Magnanimous Cloud.
+3. **Edge / runtime** — Cloudflare-style software contracts for workers/apps, SQL, object storage, cache policies, queues/workflows, schedules, rate limiting, AI gateway, DNS desired state, firewall policy, observability, browser and sandbox targets through Magnanimous standalone/native contracts.
+
+### New MCP scopes
+
+Safe/default:
+
+- `cloud.read`
+
+Optional write:
+
+- `cloud.write`
+
+`cloud.write` creates Magnanimous control-plane desired state or stages audited actions. It does not silently buy provider capacity or treat a staged action as physical execution.
+
+### New MCP tools
+
+- `magnanimous_ops_catalog`
+- `magnanimous_ops_translate`
+- `magnanimous_cloud_summary`
+- `magnanimous_infrastructure_compatibility`
+- `magnanimous_cloud_projects`
+- `magnanimous_cloud_resources`
+- `magnanimous_cloud_resource`
+- `magnanimous_cloud_actions`
+- `magnanimous_cloud_create_project`
+- `magnanimous_cloud_create_resource`
+- `magnanimous_cloud_stage_action`
+- `magnanimous_operate`
+
+`magnanimous_operate` is the single owner tool that can cross `web`, `cloud`, and `edge` areas while retaining the underlying scope and confirmation checks.
+
+### New MCP skill
+
+`skill://i-am-magnanimous-way/magnanimous-native-operations/SKILL.md`
+
+This skill teaches ChatGPT to route all three operating areas through Magnanimous AI rather than presenting TinyFish, Railway or Cloudflare as required public dependencies.
+
+### Railway / Cloudflare relationship
+
+The implementation is clean-room and provider-neutral.
+
+- Railway public tool contracts and operational techniques are mapped into Magnanimous-owned project/environment/service/deployment/resource contracts.
+- Cloudflare public capability families and architecture techniques are mapped into Magnanimous standalone/runtime/control-plane contracts.
+- Existing Railway and Cloudflare adapters remain optional migration, rollback, or physical-capacity rails only.
+- Magnanimous does not copy proprietary provider source code, private prompts, credentials, private APIs, model weights, internal anti-bot systems, or trade-secret infrastructure.
+
+### Truth boundary
+
+No software-only implementation can manufacture physical CPU/RAM/disk, public IP allocation, Internet transit, registrar authority, BGP/anycast authority, carrier-scale DDoS capacity, or datacenter operations. The plugin and control plane require **no Railway/Cloudflare purchase**, but real public infrastructure still has to come from owner-operated hardware/networking or another replaceable capacity source where the requested operation physically needs it.
