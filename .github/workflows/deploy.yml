@@ -799,6 +799,18 @@ jobs:
           }
           echo "Magnanimous MCP OAuth challenge is live."
 
+          mcp_browser_status="$(command curl -sS --connect-timeout 10 --max-time 30 -D /tmp/magnanimous-mcp-browser-headers.txt -o /dev/null -w '%{http_code}' -H 'accept: text/html' "$BASE_URL/mcp" || true)"
+          if [ "$mcp_browser_status" != "302" ]; then
+            echo "Magnanimous browser MCP entry expected HTTP 302, got $mcp_browser_status"
+            exit 1
+          fi
+          grep -Eqi '^location:.*\/plugin-support\/?' /tmp/magnanimous-mcp-browser-headers.txt || {
+            echo "Magnanimous browser MCP entry did not redirect to plugin support."
+            cat /tmp/magnanimous-mcp-browser-headers.txt || true
+            exit 1
+          }
+          echo "Magnanimous browser MCP entry redirects safely without changing POST transport."
+
           check_get "Magnanimous plugin support page" "$BASE_URL/plugin-support/" /tmp/magnanimous-plugin-support.html
           grep -q "Magnanimous AI Plugin Support" /tmp/magnanimous-plugin-support.html || {
             echo "Magnanimous plugin support page marker missing."
