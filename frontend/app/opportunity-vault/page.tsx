@@ -35,18 +35,7 @@ const opportunities:Opportunity[]=[
   cta:'Check live opportunities',
   verified:'2026-09-25'
  },
- {
-  id:'amazon-va',name:'Amazon Virtual Assistant (Amazon VA)',status:'active-ph',badge:'PHILIPPINES • ACTIVE REMOTE ROLES',
-  summary:'Remote work supporting independent Amazon sellers and agencies with Seller Central, listings, inventory, product research, customer support, FBA operations or advertising. “Amazon VA” usually describes the job function; it does not mean the employer is Amazon unless the listing explicitly says so.',
-  requirements:['Philippines-accessible and remote roles are currently listed, but each employer sets its own location, schedule and experience rules','Common skills include Amazon Seller Central, product listings, inventory/FBA, Excel or Google Sheets, product research, Keepa/SellerAmp, customer support or PPC depending on the role','Never pay an application fee or hand over personal Seller Central credentials; apply through the hiring platform or the employer’s verified process'],
-  examples:['Indeed Philippines currently shows Amazon Account Specialist and ecommerce virtual-assistant roles','Jobstreet maintains a dedicated Amazon Virtual Assistant search for Philippines openings','Some roles are beginner-friendly while specialized account-management, sourcing and PPC roles require prior Amazon experience'],
-  official:'https://ph.indeed.com/Amazon-Virtual-Assistant-jobs-in-Philippines',
-  secondary:'https://ph.jobstreet.com/amazon-virtual-assistant-jobs/in-Philippines',
-  secondaryLabel:'Open Jobstreet Amazon VA jobs',
-  cta:'Open Indeed Amazon VA jobs',
-  verified:'2026-09-28'
- },
- {
+  {
   id:'prolific',name:'Prolific',status:'waitlist',badge:'NOT CURRENTLY PH-SUPPORTED',
   summary:'Paid studies and AI-task work are legitimate opportunities, but Prolific’s current participant-country list does not include the Philippines. Eligibility is based on where you currently live, not citizenship.',
   requirements:['Philippines residence is not currently on the supported participant-country list','A waitlist may be available, but access is not guaranteed','If residency changes, re-check the official current-country list before applying'],
