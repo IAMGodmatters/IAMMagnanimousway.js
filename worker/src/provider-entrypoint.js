@@ -7,7 +7,7 @@ import { getMagnanimousOgenicPrompt, buildMagnanimousOgenicPlan, handleMagnanimo
 import { hasAnyReadyLocalBridge, hasReadyLocalBridge, hasAnyReadyLocalBridgeCapability } from './magnanimous-local-bridge-runtime.js';
 import { getMagnanimousSingleBrainSummary, magnanimousPublicRoutingSummary } from './magnanimous-single-brain-contract.js';
 import { getConnectorAbsorptionPrompt } from './magnanimous-connector-absorption.js';
-import {canUsePremium,recordUsage} from './usage-guard.js';
+import {canUsePassThrough,canUsePremium,recordUsage} from './usage-guard.js';
 import {conservativeProviderReserve,providerBillingMode,providerOriginCost} from './provider-origin-pricing.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
@@ -418,8 +418,13 @@ async function handle(request, env) {
           if(!signedInUser){errors.push(`${p.name}: paid execution requires a signed-in funded workspace`);continue}
           reserve=conservativeProviderReserve({provider:p.id,model:executionModel,input_text:groundedMessage,max_output_tokens:4096,billing_mode:billingMode});
           if(!reserve.ok){errors.push(`${p.name}: ${reserve.code||'origin pricing is not verified'}`);continue}
-          const gate=await canUsePremium(env,signedInUser.tenant_id,{category:'premium AI',estimated_provider_origin_cost_usd:reserve.provider_origin_cost_usd,required_plan:'business',entitlement:'metered_ai'});
-          if(!gate.ok){errors.push(`${p.name}: ${gate.code||'premium budget unavailable'}`);continue}
+          const passThroughOnly=String(body.billing_mode||'').toLowerCase()==='pass-through';
+          if(!passThroughOnly){
+            const entitlementGate=await canUsePremium(env,signedInUser.tenant_id,{category:'premium AI',estimated_provider_origin_cost_usd:0,required_plan:'business',entitlement:'metered_ai'});
+            if(!entitlementGate.ok){errors.push(`${p.name}: ${entitlementGate.code||'premium entitlement unavailable'}`);continue}
+          }
+          const fundingGate=await canUsePassThrough(env,signedInUser.tenant_id,{category:'metered AI',estimated_provider_origin_cost_usd:reserve.provider_origin_cost_usd});
+          if(!fundingGate.ok){errors.push(`${p.name}: ${fundingGate.code||'customer-funded prepaid balance unavailable'}`);continue}
         }
         const result = await withinProviderBudget(callProvider(p.id, env, groundedMessage, executionModel),Math.min(45000,remaining),`${p.name} execution`);
         if (!result?.text?.trim()) throw new Error('Provider returned an empty response');

@@ -30,7 +30,9 @@ const checks=[
  ['prepaid wallet refuses overspend', usage.includes('PREPAID_USAGE_BALANCE_EXHAUSTED')],
  ['subscription-free pass-through path exists for the all-in-one plugin', usage.includes('canUsePassThrough')&&usage.includes("code:'FREE_NATIVE_PATH'")&&usage.includes("code:'PREPAID_FUNDED'")],
  ['all-in-one plugin has zero base fee and exact 20% markup', pluginPricing.includes('MAGNANIMOUS_PLUGIN_BASE_FEE_USD=0')&&pluginPricing.includes("markup_percent:PROVIDER_PRICE_MARKUP_PERCENT")&&pluginPricing.includes("subscription_required_for_plugin:false")],
- ['all-in-one paid usage requires prepaid customer funding', pluginPricing.includes("prepaid_required_for_paid_origin_cost:true")&&pluginPricing.includes("silent_owner_funding:false")]
+ ['all-in-one paid usage requires prepaid customer funding', pluginPricing.includes("prepaid_required_for_paid_origin_cost:true")&&pluginPricing.includes("silent_owner_funding:false")],
+ ['metered AI router requires full prepaid pass-through funding', fs.readFileSync('worker/src/provider-entrypoint.js','utf8').includes('canUsePassThrough')&&fs.readFileSync('worker/src/provider-entrypoint.js','utf8').includes("estimated_provider_origin_cost_usd:reserve.provider_origin_cost_usd")],
+ ['ChatGPT Magnanimous ask requests pass-through billing', fs.readFileSync('worker/src/magnanimous-universal-ai-connector.js','utf8').includes("billing_mode:'pass-through'")]
 ];
 
 const failed=checks.filter(([,ok])=>!ok);

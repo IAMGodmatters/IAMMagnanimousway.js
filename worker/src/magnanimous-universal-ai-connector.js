@@ -280,7 +280,7 @@ async function executeTool(request,env,connector,name,args={}){
  }
  if(name==='magnanimous_ask'){
   const message=String(args?.message||'').trim();if(!message)return{status:400,error:'message is required.'};
-  const response=await fetch(new URL('/api/chat',request.url),{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${session}`},body:JSON.stringify({message,tool:'magnanimous'})});const out=await responseData(response);return response.ok?{status:response.status,data:out.data}:{status:response.status,error:out.data?.detail||out.data?.error||out.text};
+  const response=await fetch(new URL('/api/chat',request.url),{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${session}`},body:JSON.stringify({message,tool:'magnanimous',billing_mode:'pass-through'})});const out=await responseData(response);return response.ok?{status:response.status,data:out.data}:{status:response.status,error:out.data?.detail||out.data?.error||out.text};
  }
  if(name==='get_profile'){
   const opaque='prf_'+(await sha256Hex(String(connector.tenant_id)+'|'+String(connector.user_id))).slice(0,32);
