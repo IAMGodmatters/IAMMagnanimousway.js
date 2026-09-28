@@ -15,6 +15,9 @@ const must=(source,text,label)=>{if(!source.includes(text))failures.push(label)}
 must(connector,"MODERN_PROTOCOL='2026-07-28'",'modern MCP protocol support missing');
 must(connector,"LEGACY_PROTOCOL='2025-11-25'",'legacy MCP compatibility missing');
 must(connector,"path==='/mcp'",'public /mcp route missing');
+must(connector,"includes('text/html')",'browser MCP entry must content-negotiate HTML');
+must(connector,"Response.redirect(new URL('/plugin-support/',request.url),302)",'browser MCP entry must redirect to public plugin support');
+must(connector,"Magnanimous MCP uses POST Streamable HTTP.",'non-browser MCP GET boundary missing');
 must(connector,"path==='/.well-known/magnanimous-ai-connector.json'",'well-known connector discovery route missing');
 must(connector,"server/discover",'modern MCP discovery missing');
 must(connector,"tools/list",'MCP tools/list missing');
