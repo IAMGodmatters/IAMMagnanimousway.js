@@ -58,6 +58,7 @@
       "/mcp",
       "/oauth/register",
       "/oauth/token",
+      "/oauth/userinfo",
       "/.well-known/*",
       "/health",
       "/persistent",
