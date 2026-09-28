@@ -56,6 +56,8 @@
     "run_worker_first": [
       "/api/*",
       "/mcp",
+      "/oauth/register",
+      "/oauth/token",
       "/.well-known/*",
       "/health",
       "/persistent",
