@@ -3,7 +3,7 @@ export default function PluginSupportPage(){
   <section className="card">
    <small>I AM MAGNANIMOUS WAY™</small>
    <h1>Magnanimous AI Plugin Support</h1>
-   <p className="lead">Support for the Magnanimous AI plugin, its remote MCP connection, Native Web tools, authentication, privacy and account access.</p>
+   <p className="lead">Support for the Magnanimous AI plugin, its remote MCP connection, Native Web tools, native cloud/deployment operations, native edge/runtime operations, authentication, privacy and account access.</p>
 
    <div className="grid">
     <article>
@@ -34,8 +34,8 @@ export default function PluginSupportPage(){
    </section>
 
    <section className="boundary">
-    <h2>Native Web boundary</h2>
-    <p>Magnanimous Native Web implements its own search, rendered fetch, research, browser workflow, run lifecycle, session, profile, screenshot, webhook and monitoring paths. It does not represent proprietary third-party source code, hidden prompts, model weights, residential proxy fleets, anti-bot systems, credentials, or trade secrets as owned by I AM MAGNANIMOUS WAY™.</p>
+    <h2>Native operations boundary</h2>
+    <p>Magnanimous implements its own web/browser, cloud/deployment and edge/runtime control contracts. Public TinyFish, Railway and Cloudflare capabilities may be used as clean-room benchmarks, but their proprietary source code, hidden prompts, credentials, private APIs, model weights, anti-bot infrastructure and trade secrets are not represented as owned by I AM MAGNANIMOUS WAY™. Physical compute and public-network capacity still require owner-operated or replaceable infrastructure.</p>
    </section>
   </section>
   <footer>Magnanimous AI • I AM MAGNANIMOUS WAY™</footer>
