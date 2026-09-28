@@ -94,6 +94,11 @@ must(wrangler,'"/mcp"','Cloudflare asset routing no longer sends /mcp to the Wor
 must(wrangler,'"/.well-known/*"','Cloudflare asset routing no longer sends connector discovery to the Worker first');
 must(oauth,"/.well-known/oauth-protected-resource",'OAuth protected-resource discovery missing');
 must(oauth,"/.well-known/oauth-authorization-server",'OAuth authorization-server discovery missing');
+must(oauth,"/.well-known/openid-configuration",'OpenID discovery metadata missing');
+must(oauth,"userinfo_endpoint:base+'/oauth/userinfo'",'OpenID UserInfo endpoint advertisement missing');
+must(oauth,"path==='/oauth/userinfo'",'OAuth UserInfo route missing');
+must(oauth,"email_verified:Boolean(verification.verified)",'UserInfo verified-email claim missing');
+must(oauth,"'openid','email'",'OIDC openid/email scopes missing');
 must(oauth,"/.well-known/openai-apps-challenge",'OpenAI plugin domain challenge route missing');
 must(oauth,"OPENAI_APPS_CHALLENGE_TOKEN",'OpenAI plugin challenge token binding missing');
 must(oauth,"code_challenge_methods_supported:['S256']",'OAuth PKCE S256 metadata missing');
@@ -105,7 +110,7 @@ must(oauth,"magnanimous_oauth_access_tokens",'hashed OAuth access-token storage 
 must(oauth,"magnanimous_oauth_refresh_tokens",'hashed OAuth refresh-token storage missing');
 must(oauth,"openAiRedirect",'OAuth DCR redirect allowlist missing');
 must(oauth,"row.resource!==resource(request)",'OAuth MCP audience/resource validation missing');
-must(oauth,"PUBLIC_SCOPES=Object.freeze(['capabilities.read','brain.ask','web.read','offline_access'])",'customer-safe OAuth scope floor missing');
+must(oauth,"PUBLIC_SCOPES=Object.freeze(['openid','email','capabilities.read','brain.ask','web.read','offline_access'])",'customer-safe OAuth/OIDC scope floor missing');
 must(oauth,"'offline_access'",'OAuth offline_access scope missing for ChatGPT refresh-token continuity');
 must(oauth,"DEFAULT_SCOPES=PUBLIC_SCOPES",'OAuth defaults must stay customer-safe');
 must(oauth,"PRIVILEGED_ROLES=Object.freeze(['owner','admin'])",'owner/admin privileged role boundary missing');
@@ -142,6 +147,7 @@ must(pluginPricing,"silent_owner_funding:false",'plugin may silently owner-fund 
 must(pluginPricing,"customer_charge_usd:charge.customer_charge_usd",'plugin quote is not using the shared 20% charge engine');
 must(wrangler,'"/oauth/register"','OAuth DCR route is not Worker-first');
 must(wrangler,'"/oauth/token"','OAuth token route is not Worker-first');
+must(wrangler,'"/oauth/userinfo"','OAuth UserInfo route is not Worker-first');
 must(page,"CREATE INSTALL TOKEN",'AI connector owner UI missing token creation');
 must(page,"Write access OFF by default",'AI connector owner UI no longer communicates safe default');
 
