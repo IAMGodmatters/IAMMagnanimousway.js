@@ -751,7 +751,14 @@ jobs:
           assert pricing.get('subscription_required') is False, data
           assert pricing.get('billing_model') == 'free-native-plus-prepaid-pass-through', data
           assert pricing.get('stripe_topup_tool') == 'magnanimous_plugin_billing', data
-          print('Public Magnanimous connector manifest exposes one native web/cloud/edge operations plugin with $0 base fee and exact 20% pass-through markup.')
+          discovery=data.get('discovery') or {}
+          use_when=discovery.get('use_when') or []
+          assert len(use_when) >= 5, data
+          assert any('public-web' in str(x) for x in use_when), data
+          assert any('cloud/deployment' in str(x) for x in use_when), data
+          assert any('edge/runtime' in str(x) for x in use_when), data
+          assert 'do not force or manipulate selection' in str(discovery.get('selection_note') or ''), data
+          print('Public Magnanimous connector manifest exposes one native web/cloud/edge operations plugin with $0 base fee, exact 20% pass-through markup, and compliant ChatGPT discovery metadata.')
           PY
 
           check_get "Magnanimous OAuth protected-resource metadata" "$BASE_URL/.well-known/oauth-protected-resource" /tmp/magnanimous-oauth-resource.json
