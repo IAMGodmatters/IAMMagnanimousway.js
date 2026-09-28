@@ -13,6 +13,7 @@ const slides=[
  ['PUBLIC RESEARCH','Source-backed web work','ChatGPT can search public sources, fetch rendered pages, and return source-backed findings through Magnanimous Native Web.'],
  ['OWNER OPERATIONS','Cloud + edge through Magnanimous','Privileged accounts can map Railway-style deployment and Cloudflare-style edge concepts to Magnanimous-owned desired-state and action contracts.'],
  ['PROVIDER INDEPENDENCE','Clean-room compatibility','TinyFish, Railway and Cloudflare may be compatibility benchmarks or optional capacity rails. Their proprietary implementations are not copied or represented as Magnanimous-owned.'],
+ ['FAIR USAGE PRICING','$0 base • cost + 20%','Free Magnanimous-native paths stay free. If a real metered origin cost is required, customer-funded prepaid Stripe credits cover the verified cost plus exactly 20% Magnanimous markup.'],
  ['REVIEW READY','Public production surface','MCP, OAuth discovery, PKCE, support, privacy, terms, brand assets and the OpenAI domain-challenge route are deployed and continuously smoke-tested.']
 ];
 
@@ -43,14 +44,14 @@ export default function PluginDemo(){
    header{display:flex;justify-content:space-between;align-items:center;color:#d8ad62;font-size:10px;letter-spacing:.14em;font-weight:900}
    header a{color:#8de9f3;text-decoration:none}
    .stage{position:relative;height:520px;margin-top:22px;border:1px solid #274b5d;border-radius:26px;background:#06111a;overflow:hidden;box-shadow:0 32px 100px rgba(0,0,0,.42)}
-   .slide{position:absolute;inset:0;padding:70px 74px;opacity:0;transform:translateY(18px);animation:show 36s linear infinite}
+   .slide{position:absolute;inset:0;padding:70px 74px;opacity:0;transform:translateY(18px);animation:show 42s linear infinite}
    .slide small{color:#83e7ee;font-size:10px;letter-spacing:.16em;font-weight:900}
    .slide h1{font:800 clamp(48px,7vw,82px)/.96 Inter,system-ui,sans-serif;margin:14px 0 22px;max-width:850px}
    .slide p{max-width:820px;color:#9bb4c1;font-size:22px;line-height:1.55}
    .slide code{display:inline-block;margin-top:26px;border:1px solid #295669;background:#031019;border-radius:10px;padding:13px 16px;color:#a9eff6;font-size:14px}
-   .s1{animation-delay:0s}.s2{animation-delay:6s}.s3{animation-delay:12s}.s4{animation-delay:18s}.s5{animation-delay:24s}.s6{animation-delay:30s}
+   .s1{animation-delay:0s}.s2{animation-delay:6s}.s3{animation-delay:12s}.s4{animation-delay:18s}.s5{animation-delay:24s}.s6{animation-delay:30s}.s7{animation-delay:36s}
    @keyframes show{0%{opacity:0;transform:translateY(18px)}3%,14%{opacity:1;transform:translateY(0)}16.5%,100%{opacity:0;transform:translateY(-12px)}}
-   .progress{position:absolute;left:0;bottom:0;height:4px;background:linear-gradient(90deg,#72e5f0,#8cefc6,#d8aa58);animation:progress 36s linear infinite}
+   .progress{position:absolute;left:0;bottom:0;height:4px;background:linear-gradient(90deg,#72e5f0,#8cefc6,#d8aa58);animation:progress 42s linear infinite}
    @keyframes progress{from{width:0}to{width:100%}}
    .facts{margin-top:14px;border:1px solid #223e4d;border-radius:14px;background:#061019;padding:16px 18px;display:grid;gap:5px}.facts b{font-size:9px;letter-spacing:.13em;color:#d8ad62}.facts span{font-size:12px;color:#89a2b0;line-height:1.5}
    footer{text-align:center;color:#547080;font-size:9px;margin-top:18px}
