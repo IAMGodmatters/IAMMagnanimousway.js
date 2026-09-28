@@ -467,7 +467,7 @@ async function executeTool(request,env,connector,name,args={}){
 function rpcResult(id,result){return json({jsonrpc:'2.0',id,result},200,{'content-type':'application/json'})}
 function rpcError(id,code,message,status=200,data){return json({jsonrpc:'2.0',id:id??null,error:{code,message,...(data===undefined?{}:{data})}},status,{'content-type':'application/json'})}
 function toolPayload(result){if(result.error)return{isError:true,content:[{type:'text',text:String(result.error)}]};const data=result.data??{};return{isError:false,structuredContent:data,content:[{type:'text',text:JSON.stringify(data)}]}}
-function modernDiscover(){return{protocolVersion:MODERN_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.1.0'},capabilities:{tools:{listChanged:false},resources:{},prompts:{},extensions:{[SKILLS_EXTENSION]:{}}},instructions:'Magnanimous AI is the command, memory, routing and verification layer. One first-party MCP exposes native web/browser, Magnanimous Cloud deployment/control, and edge/runtime operations without requiring TinyFish, Railway, or Cloudflare as permanent plugin dependencies.'}}
+function modernDiscover(){return{protocolVersion:MODERN_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.2.0'},capabilities:{tools:{listChanged:false},resources:{},prompts:{},extensions:{[SKILLS_EXTENSION]:{}}},instructions:'Magnanimous AI is the command, memory, routing and verification layer. One first-party MCP exposes native web/browser, Magnanimous Cloud deployment/control, and edge/runtime operations without requiring TinyFish, Railway, or Cloudflare as permanent plugin dependencies.'}}
 async function handleMcp(request,env){
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type,mcp-protocol-version,mcp-method,mcp-name,x-magnanimous-connector-key','access-control-allow-methods':'POST,OPTIONS'}});
  if(request.method!=='POST')return json({detail:'Magnanimous MCP uses POST Streamable HTTP.'},405);
@@ -475,7 +475,7 @@ async function handleMcp(request,env){
  const body=await request.json().catch(()=>null);if(!body||body.jsonrpc!=='2.0'||!body.method)return rpcError(body?.id,-32600,'Invalid JSON-RPC request.',400);
  const method=String(body.method),id=body.id??null,headerMethod=request.headers.get('mcp-method');if(headerMethod&&headerMethod!==method)return rpcError(id,-32020,'Mcp-Method header does not match the JSON-RPC method.',400);
  if(method==='server/discover')return rpcResult(id,modernDiscover());
- if(method==='initialize')return rpcResult(id,{protocolVersion:LEGACY_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.1.0'},capabilities:{tools:{listChanged:false},resources:{},extensions:{[SKILLS_EXTENSION]:{}}},instructions:'Magnanimous AI universal connector with native web, cloud/deployment, edge/runtime tools and Skills support.'});
+ if(method==='initialize')return rpcResult(id,{protocolVersion:LEGACY_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.2.0'},capabilities:{tools:{listChanged:false},resources:{},extensions:{[SKILLS_EXTENSION]:{}}},instructions:'Magnanimous AI universal connector with native web, cloud/deployment, edge/runtime tools and Skills support.'});
  if(method==='notifications/initialized')return new Response(null,{status:202});
  if(method==='ping')return rpcResult(id,{});
  if(method==='skills/list'){
