@@ -387,7 +387,7 @@ async function ensureOwnerOperatingCosts(env, user, tenant) {
   const ts = now();
   for (const item of OWNER_OPERATING_COSTS) {
     const id = `opcost:${tenant}:${item.key}`;
-    await env.DB.prepare('INSERT OR IGNORE INTO finance_operating_costs(id,tenant_id,category,name,frequency,cost_type,currency,amount_micros,status,source_url,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    await env.DB.prepare("INSERT INTO finance_operating_costs(id,tenant_id,category,name,frequency,cost_type,currency,amount_micros,status,source_url,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET category=excluded.category,name=excluded.name,frequency=excluded.frequency,cost_type=excluded.cost_type,currency=excluded.currency,amount_micros=excluded.amount_micros,status=excluded.status,source_url=excluded.source_url,notes=excluded.notes,updated_at=excluded.updated_at")
       .bind(id, tenant, item.category, item.name, item.frequency, item.cost_type, item.currency, micros(item.amount), item.status, item.source_url, item.notes, ts, ts).run();
   }
 }
