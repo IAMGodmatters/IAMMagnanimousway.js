@@ -158,11 +158,17 @@ export async function authorizeMagnanimousOAuthToken(request,env){
 
 export async function handleMagnanimousPluginOAuth(request,env){
  const url=new URL(request.url),path=url.pathname;
- const handled=path==='/.well-known/oauth-protected-resource'||path==='/.well-known/oauth-authorization-server'||path==='/oauth/register'||path==='/oauth/token'||path==='/api/magnanimous/oauth/consent'||path==='/api/magnanimous/oauth/authorize';
+ const handled=path==='/.well-known/openai-apps-challenge'||path==='/.well-known/oauth-protected-resource'||path==='/.well-known/oauth-authorization-server'||path==='/oauth/register'||path==='/oauth/token'||path==='/api/magnanimous/oauth/consent'||path==='/api/magnanimous/oauth/authorize';
  if(!handled)return null;
  if(!env?.DB)return json({detail:'OAuth database binding is unavailable.'},503);
  await ensureSchema(env);
  const base=url.origin,mcpResource=base+'/mcp';
+
+ if(path==='/.well-known/openai-apps-challenge'&&request.method==='GET'){
+  const token=clean(env?.OPENAI_APPS_CHALLENGE_TOKEN,1000);
+  if(!token)return new Response('Not configured',{status:404,headers:{'cache-control':'no-store','content-type':'text/plain; charset=utf-8'}});
+  return new Response(token,{status:200,headers:{'cache-control':'no-store','content-type':'text/plain; charset=utf-8'}});
+ }
 
  if(path==='/.well-known/oauth-protected-resource'&&request.method==='GET'){
   return json({
