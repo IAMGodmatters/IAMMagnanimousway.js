@@ -18,7 +18,8 @@
     "customer_safe_scopes": [
       "capabilities.read",
       "brain.ask",
-      "web.read"
+      "web.read",
+      "offline_access"
     ],
     "privileged_roles": [
       "owner",

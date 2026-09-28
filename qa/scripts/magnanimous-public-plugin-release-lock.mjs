@@ -122,7 +122,7 @@ console.log('Magnanimous public plugin release lock PASS',JSON.stringify({
  areas:['web','cloud','edge'],
  base_fee_usd:0,
  markup_percent:20,
- customer_safe_scopes:['capabilities.read','brain.ask','web.read'],
+ customer_safe_scopes:['capabilities.read','brain.ask','web.read','offline_access'],
  privileged_roles:['owner','admin'],
  mcp:'https://iammagnanimousway.com/mcp',
  support:'https://iammagnanimousway.com/plugin-support/',
