@@ -33,6 +33,8 @@ must(connector,"securitySchemes:[{type:'oauth2'",'per-tool OAuth security scheme
 must(connector,"{[SKILLS_EXTENSION]:{}}",'MCP Skills extension declaration must use the current empty-object contract');
 must(connector,"native search, fetch, research, browser-run, profile, session, screenshot, webhook, and monitor capabilities",'MCP skill list frontmatter no longer matches the embedded SKILL.md');
 must(connector,"magnanimous_web_research",'native research MCP tool missing');
+must(connector,"magnanimous_web_wait_for_run",'native wait-for-run MCP tool missing');
+must(connector,"RUN_OUTPUT_SCHEMA",'native browser run output schema missing');
 must(connector,"magnanimous_web_action_flow",'guarded browser action MCP tool missing');
 must(connector,"magnanimous_web_session_start",'persistent browser session MCP tool missing');
 must(connector,"magnanimous_web_monitor_create",'native monitor MCP tool missing');
@@ -48,6 +50,8 @@ must(connector,"third_party_wallet_required:false",'third-party browser wallet i
 must(page,"web.read",'AI connector owner UI missing native web read scope');
 must(page,"web.write",'AI connector owner UI missing native web write scope');
 must(page,"Native web • no TinyFish wallet",'AI connector owner UI missing native web independence badge');
+must(page,"CHATGPT USES MAGNANIMOUS OAUTH",'ChatGPT connector UI still implies a paste-in static token');
+must(page,"COPY CHATGPT MCP URL",'ChatGPT connector UI missing MCP URL action');
 must(connector,"confirm=true is required",'email confirmation gate missing');
 must(connector,"confirm_destructive",'destructive communications gate passthrough missing');
 must(connector,"confirm_sensitive",'sensitive communications gate passthrough missing');
