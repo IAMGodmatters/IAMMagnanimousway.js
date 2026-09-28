@@ -3,7 +3,7 @@ import {useState} from 'react';
 
 type Opportunity={
  id:string;name:string;status:'active-ph'|'location-check'|'waitlist';
- badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;cta:string;referral?:string;verified:string;
+ badge:string;summary:string;requirements:string[];examples?:string[];official:string;secondary?:string;secondaryLabel?:string;cta:string;referral?:string;verified:string;
 };
 
 const opportunities:Opportunity[]=[
@@ -34,6 +34,17 @@ const opportunities:Opportunity[]=[
   official:'https://app.outlier.ai/opportunities?hl=en-US',
   cta:'Check live opportunities',
   verified:'2026-09-25'
+ },
+ {
+  id:'amazon-va',name:'Amazon Virtual Assistant (Amazon VA)',status:'active-ph',badge:'PHILIPPINES • ACTIVE REMOTE ROLES',
+  summary:'Remote work supporting independent Amazon sellers and agencies with Seller Central, listings, inventory, product research, customer support, FBA operations or advertising. “Amazon VA” usually describes the job function; it does not mean the employer is Amazon unless the listing explicitly says so.',
+  requirements:['Philippines-accessible and remote roles are currently listed, but each employer sets its own location, schedule and experience rules','Common skills include Amazon Seller Central, product listings, inventory/FBA, Excel or Google Sheets, product research, Keepa/SellerAmp, customer support or PPC depending on the role','Never pay an application fee or hand over personal Seller Central credentials; apply through the hiring platform or the employer’s verified process'],
+  examples:['Indeed Philippines currently shows Amazon Account Specialist and ecommerce virtual-assistant roles','Jobstreet maintains a dedicated Amazon Virtual Assistant search for Philippines openings','Some roles are beginner-friendly while specialized account-management, sourcing and PPC roles require prior Amazon experience'],
+  official:'https://ph.indeed.com/Amazon-Virtual-Assistant-jobs-in-Philippines',
+  secondary:'https://ph.jobstreet.com/amazon-virtual-assistant-jobs/in-Philippines',
+  secondaryLabel:'Open Jobstreet Amazon VA jobs',
+  cta:'Open Indeed Amazon VA jobs',
+  verified:'2026-09-28'
  },
  {
   id:'prolific',name:'Prolific',status:'waitlist',badge:'NOT CURRENTLY PH-SUPPORTED',
@@ -71,7 +82,7 @@ export default function OpportunityVault(){
     <h3>Current facts</h3><ul>{o.requirements.map(x=><li key={x}>{x}</li>)}</ul>
     {o.examples?.length?<><h3>Examples seen in the current official listing</h3><ul>{o.examples.map(x=><li key={x}>{x}</li>)}</ul></>:null}
     {o.referral&&<div className="ref"><span>Optional referral code supplied by I AM Magnanimous Way™</span><b>{o.referral}</b><button onClick={()=>copy(o.referral!)}>Copy code</button><small>No bonus amount is promised here; current referral terms must be checked in the app.</small></div>}
-    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">Open iPhone app listing</a>}</div>
+    <div className="actions"><a href={o.official} target="_blank" rel="noreferrer">{o.cta}</a>{o.secondary&&<a href={o.secondary} target="_blank" rel="noreferrer">{o.secondaryLabel||'Open secondary source'}</a>}</div>
     <footer>Last source verification: {o.verified}</footer>
    </article>)}
   </section>
