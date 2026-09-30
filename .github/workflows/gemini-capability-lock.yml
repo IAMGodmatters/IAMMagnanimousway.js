@@ -1,0 +1,31 @@
+name: Gemini capability absorption lock
+
+on:
+  pull_request:
+    paths:
+      - 'worker/src/magnanimous-gemini-capability-registry.js'
+      - 'worker/src/magnanimous-connector-absorption.js'
+      - 'worker/src/magnanimous-capability-realization.js'
+      - 'qa/scripts/magnanimous-gemini-capability-lock.mjs'
+      - '.github/workflows/gemini-capability-lock.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-gemini-capability-registry.js'
+      - 'worker/src/magnanimous-connector-absorption.js'
+      - 'worker/src/magnanimous-capability-realization.js'
+      - 'qa/scripts/magnanimous-gemini-capability-lock.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify Gemini / Workspace capability absorption
+        run: node qa/scripts/magnanimous-gemini-capability-lock.mjs
