@@ -12,6 +12,7 @@ import { handleMagnanimousBrain, getMagnanimousMemoryContext } from './magnanimo
 import { handleMagnanimousSovereign } from './magnanimous-sovereign-runtime.js';
 import { handleMagnanimousToolGateway } from './magnanimous-tool-gateway.js';
 import { handleMagnanimousDns } from './magnanimous-dns-runtime.js';
+import { handleMagnanimousRegistrar } from './magnanimous-registrar-runtime.js';
 import { handleMagnanimousInkboxRouter } from './magnanimous-inkbox-router.js';
 import { handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
 import { handleWellness } from './wellness-runtime.js';
@@ -65,6 +66,7 @@ export default{async fetch(request,env,ctx){const url=new URL(request.url);if(re
  if(url.pathname.startsWith('/api/magnanimous/tool-foundry')){const r=await handleMagnanimousToolFoundry(request,providerEnv);if(r)return withCors(r);}
  if(url.pathname.startsWith('/api/magnanimous/inkbox')){const r=await handleMagnanimousInkboxRouter(request,providerEnv);if(r)return withCors(r);}
  if(url.pathname.startsWith('/api/magnanimous/tools')){const r=await handleMagnanimousToolGateway(request,providerEnv);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/magnanimous/registrar')){const r=await handleMagnanimousRegistrar(request,providerEnv);if(r)return withCors(r);}
  if(url.pathname.startsWith('/api/magnanimous/dns')){const r=await handleMagnanimousDns(request,providerEnv);if(r)return withCors(r);}
  if(url.pathname.startsWith('/api/magnanimous/')){const r=await handleMagnanimousBrain(request,providerEnv);if(r)return withCors(r);}
  const businessPlanResponse=await handleBusinessPlan(request,providerEnv);if(businessPlanResponse)return withCors(businessPlanResponse);
