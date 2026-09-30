@@ -369,7 +369,7 @@ export function getPluginIndependenceReadiness(){
 }
 
 export function getCapabilityResearchRecord(row){
- if(row?.connector_id==='railway'||row?.connector_id==='railway-techniques')return{...(row.research||{}),capability:row.capability,connector_id:row.connector_id,one_by_one_researched:true};
+ if(['railway','railway-techniques','grok-benchmark','gemini-benchmark'].includes(row?.connector_id))return{...(row.research||{}),capability:row.capability,connector_id:row.connector_id,one_by_one_researched:true};
  if(row?.direct_connector){
   const direct=DIRECT_CONNECTOR_RESEARCH[row.connector_id]||{};
   return{...direct,source_kind:row.source_kind,capability:row.capability,connector_id:row.connector_id,one_by_one_researched:true};
