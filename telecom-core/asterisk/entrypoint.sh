@@ -22,6 +22,8 @@ require_var MAGNANIMOUS_SIP_DOMAIN
 : "${ASTERISK_TLS_CERT_FILE:=/certs/fullchain.pem}"
 : "${ASTERISK_TLS_KEY_FILE:=/certs/privkey.pem}"
 : "${ASTERISK_STUN_SERVER:=}"
+: "${MAGNANIMOUS_RELAY_LOCAL_MEDIA:=false}"
+: "${MAGNANIMOUS_TURN_ALLOWED_PEER_IP:=}"
 : "${MAGNANIMOUS_WEBRTC_EXTENSION:=1100}"
 : "${MAGNANIMOUS_WEBRTC_ECHO_EXTENSION:=6000}"
 : "${MAGNANIMOUS_WEBRTC_PASSWORD:=}"
@@ -45,6 +47,28 @@ case "$(printf '%s' "$ASTERISK_WEBRTC_ENABLED" | tr '[:upper:]' '[:lower:]')" in
   1|true|yes|on) ASTERISK_WEBRTC_ENABLED=yes ;;
   *) ASTERISK_WEBRTC_ENABLED=no ;;
 esac
+case "$(printf '%s' "$MAGNANIMOUS_RELAY_LOCAL_MEDIA" | tr '[:upper:]' '[:lower:]')" in
+  1|true|yes|on) MAGNANIMOUS_RELAY_LOCAL_MEDIA=yes ;;
+  *) MAGNANIMOUS_RELAY_LOCAL_MEDIA=no ;;
+esac
+valid_ipv4() {
+  printf '%s\n' "$1" | awk -F. '
+    NF != 4 { exit 1 }
+    {
+      for (i = 1; i <= 4; i++) {
+        if ($i !~ /^[0-9]+$/ || $i < 0 || $i > 255) exit 1
+      }
+    }
+    END { if (NF == 4) exit 0 }
+  '
+}
+
+if [ "$MAGNANIMOUS_RELAY_LOCAL_MEDIA" = yes ]; then
+  [ -z "$TELECOM_PUBLIC_IP" ] || { echo "Relay-local media mode must not set TELECOM_PUBLIC_IP." >&2; exit 1; }
+  [ -z "$ASTERISK_STUN_SERVER" ] || { echo "Relay-local media mode must not set ASTERISK_STUN_SERVER." >&2; exit 1; }
+  [ -n "$MAGNANIMOUS_TURN_ALLOWED_PEER_IP" ] || { echo "Relay-local media mode requires MAGNANIMOUS_TURN_ALLOWED_PEER_IP." >&2; exit 1; }
+  valid_ipv4 "$MAGNANIMOUS_TURN_ALLOWED_PEER_IP" || { echo "MAGNANIMOUS_TURN_ALLOWED_PEER_IP must be a valid IPv4 address." >&2; exit 1; }
+fi
 if [ "$ASTERISK_WEBRTC_ENABLED" = yes ]; then
   require_var MAGNANIMOUS_WEBRTC_PASSWORD
   [ -r "$ASTERISK_TLS_CERT_FILE" ] || { echo "WebRTC is enabled but TLS certificate is not readable: $ASTERISK_TLS_CERT_FILE" >&2; exit 1; }
@@ -62,7 +86,7 @@ if [ "$ASTERISK_WEBRTC_ENABLED" = yes ]; then
   ASTERISK_TLS_KEY_FILE="$runtime_tls_dir/privkey.pem"
 fi
 
-export ASTERISK_ARI_USER ASTERISK_ARI_PASSWORD ASTERISK_SIP_PORT ASTERISK_HTTPS_PORT ASTERISK_WEBRTC_ENABLED ASTERISK_TLS_CERT_FILE ASTERISK_TLS_KEY_FILE ASTERISK_STUN_SERVER
+export ASTERISK_ARI_USER ASTERISK_ARI_PASSWORD ASTERISK_SIP_PORT ASTERISK_HTTPS_PORT ASTERISK_WEBRTC_ENABLED ASTERISK_TLS_CERT_FILE ASTERISK_TLS_KEY_FILE ASTERISK_STUN_SERVER MAGNANIMOUS_RELAY_LOCAL_MEDIA MAGNANIMOUS_TURN_ALLOWED_PEER_IP
 export MAGNANIMOUS_SIP_DOMAIN MAGNANIMOUS_WEBRTC_EXTENSION MAGNANIMOUS_WEBRTC_ECHO_EXTENSION MAGNANIMOUS_WEBRTC_PASSWORD MAGNANIMOUS_AI_EXTENSION MAGNANIMOUS_AI_PASSWORD
 export MAGNANIMOUS_ADMIN_EXTENSION MAGNANIMOUS_ADMIN_PASSWORD
 export CARRIER_SIP_ENDPOINT CARRIER_SIP_HOST CARRIER_SIP_PORT CARRIER_SIP_USERNAME CARRIER_SIP_PASSWORD CARRIER_SIP_FROM_DOMAIN
@@ -99,7 +123,14 @@ fi
 chown root:asterisk /etc/asterisk/pjsip-webrtc.conf
 chmod 0640 /etc/asterisk/pjsip-webrtc.conf
 
-if [ "$ASTERISK_WEBRTC_ENABLED" = yes ] && [ -n "$ASTERISK_STUN_SERVER" ]; then
+if [ "$ASTERISK_WEBRTC_ENABLED" = yes ] && [ "$MAGNANIMOUS_RELAY_LOCAL_MEDIA" = yes ]; then
+  {
+    printf '; Relay-local mode advertises only the colocated Tailscale media address.\n'
+    printf 'ice_deny=0.0.0.0/0\n'
+    printf 'ice_deny=::/0\n'
+    printf 'ice_permit=%s/32\n' "$MAGNANIMOUS_TURN_ALLOWED_PEER_IP"
+  } > /etc/asterisk/rtp-webrtc.conf
+elif [ "$ASTERISK_WEBRTC_ENABLED" = yes ] && [ -n "$ASTERISK_STUN_SERVER" ]; then
   printf 'stunaddr=%s\n' "$ASTERISK_STUN_SERVER" > /etc/asterisk/rtp-webrtc.conf
 else
   printf '; No external STUN server configured. Add one only when NAT traversal requires it.\n' > /etc/asterisk/rtp-webrtc.conf

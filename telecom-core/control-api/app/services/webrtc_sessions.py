@@ -200,6 +200,7 @@ class WebRtcSessionService:
             "ice_servers": ice_servers,
             "ice_transport_policy": "relay" if self._settings.webrtc_turn_force_relay else "all",
             "turn_relay_configured": bool(ice_servers),
+            "relay_local_media": self._settings.webrtc_relay_local_media,
             "expires_at": expires_at,
             "expires_in": self._settings.webrtc_session_ttl_seconds,
             "allowed_call_scope": ["internal-magnanimous", "diagnostic-echo"],
