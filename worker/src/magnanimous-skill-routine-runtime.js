@@ -1,6 +1,7 @@
 import {currentUser} from './integrations.js';
 import {requirePlatformOwner} from './platform-owner-guard.js';
 import {queueLocalBridgeTask,localBridgeTask} from './magnanimous-local-bridge-runtime.js';
+import {runTeammateTurn} from './magnanimous-teammate-core.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -24,7 +25,7 @@ export const MAGNANIMOUS_ROUTINE_STUDIO_POLICY=Object.freeze({
 });
 
 const STEP_TYPES=new Set([
- 'ai.prompt','agent.handoff','cloud.browser.render','cloud.sandbox.exec',
+ 'ai.prompt','agent.handoff','teammate.prompt','cloud.browser.render','cloud.sandbox.exec',
  'workspace.write','workspace.read','native-web.search','native-web.fetch',
  'native-web.research','native-web.read_flow','native-web.action_flow'
 ]);
@@ -60,6 +61,10 @@ function normalizeStep(raw,index=0){
  const type=clip(raw?.type,80);
  if(!STEP_TYPES.has(type))throw new Error(`Unsupported skill step type at position ${index+1}: ${type||'missing type'}`);
  const step={type,label:safeName(raw?.label||type,180)};
+ if(type==='teammate.prompt'){
+  step.teammate_id=clip(raw?.teammate_id,100);step.prompt=clip(raw?.prompt,8000);
+  if(!/^mt_[a-zA-Z0-9_-]+$/.test(step.teammate_id)||!step.prompt)throw new Error(`Step ${index+1} requires a teammate_id and prompt.`);
+ }
  if(type==='ai.prompt'||type==='agent.handoff'){
   step.prompt=clip(raw?.prompt,12000);
   if(!step.prompt)throw new Error(`Step ${index+1} requires prompt.`);
@@ -187,6 +192,12 @@ async function queueNativeWeb(env,user,step){
 }
 
 async function executeStep(env,user,step,context){
+ if(step.type==='teammate.prompt'){
+  const result=await runTeammateTurn(env,user,step.teammate_id,{message:step.prompt,request_key:`routine:${context.runId}:${context.stepIndex}`,
+   context:JSON.stringify(context.results.slice(-8)).slice(0,12000)});
+  if(result.turn.status!=='completed')throw new Error(`Teammate step ${result.turn.status}: ${result.turn.error_code}`);
+  return{type:step.type,teammate_id:step.teammate_id,turn_id:result.turn.id,text:result.turn.output};
+ }
  if(step.type==='ai.prompt'||step.type==='agent.handoff')return aiStep(env,step,context);
  if(step.type==='cloud.browser.render'){
   const browser=env?.MAGNANIMOUS_BROWSER||env?.BROWSER;if(!browser?.render)throw new Error('Magnanimous cloud browser service is not configured.');
@@ -236,7 +247,7 @@ async function resumeRun(env,run){
 
  while(Number(state.step_index||0)<steps.length){
   const index=Number(state.step_index||0),step=steps[index];
-  const value=await executeStep(env,user,step,{results});
+  const value=await executeStep(env,user,step,{results,runId:run.id,stepIndex:index});
   if(value?.waiting_approval){
    state.pending_task_id=value.task_id;state.results=results;
    await saveRunState(env,run.id,'needs_confirmation',state,{results},'Exact approval is required for this browser action.');
@@ -448,7 +459,8 @@ export async function scheduledMagnanimousRoutines(env){
  const{results:due=[]}=await env.DB.prepare("SELECT * FROM magnanimous_routines WHERE status='active' AND next_run_at<=? ORDER BY next_run_at ASC LIMIT 20").bind(stamp).all();
  for(const routine of due){
   const next=stamp+Math.max(MIN_INTERVAL_MINUTES,Number(routine.interval_minutes||60))*60;
-  await env.DB.prepare('UPDATE magnanimous_routines SET next_run_at=?,updated_at=? WHERE id=?').bind(next,stamp,routine.id).run();
+  const claimed=await env.DB.prepare("UPDATE magnanimous_routines SET next_run_at=?,updated_at=? WHERE id=? AND status='active' AND next_run_at=?").bind(next,stamp,routine.id,routine.next_run_at).run();
+  if(!claimed.meta?.changes)continue;
   const skill=await env.DB.prepare("SELECT * FROM magnanimous_skills WHERE id=? AND tenant_id=? AND status='active'").bind(routine.skill_id,routine.tenant_id).first();
   const user=await env.DB.prepare('SELECT id,tenant_id,name,email,role,active FROM users WHERE id=? AND tenant_id=? AND active=1').bind(routine.user_id,routine.tenant_id).first();
   if(!skill||!user){events.push({routine_id:routine.id,status:'skipped-unavailable'});continue}

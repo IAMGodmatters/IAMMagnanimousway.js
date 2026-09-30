@@ -18,6 +18,7 @@ const systems=[
  ['◈','Knowledge Center','Saved workspace knowledge and configured research tools','/knowledge'],
  ['⌘','Connected Assistant','Prepare or run actions when an event happens','/assistant-actions'],
  ['↻','Routine Studio','Teach reusable skills, schedule always-on routines and review run history','/routine-studio'],
+ ['◉','Magnanimous Teammates','Named roles, private memory, sourced research and explicit handoffs','/teammates'],
  ['☎','AI Receptionist','Inbound routing and AI voice reception','/ai-receptionist'],
  ['🎬','Movie Maker','Pictures, movies, narration, sharing and social publishing','/movie-maker'],
  ['↗','Creator Growth','YouTube research, titles, trends, analytics and audience insights','/creator-growth'],
