@@ -62,6 +62,7 @@ export default function ProgressAutosave(){
  const[status,setStatus]=useState<'idle'|'saving'|'saved'>('idle');
  const timers=useRef<Map<string,ReturnType<typeof setTimeout>>>(new Map());
  const lastSaved=useRef<Map<string,string>>(new Map());
+ const remoteAuthFailure=useRef('');
 
  useEffect(()=>{
   const path=location.pathname;
@@ -69,11 +70,17 @@ export default function ProgressAutosave(){
 
   async function remoteSave(detail:CheckpointDetail){
    const token=authToken();
-   if(!token)return;
+   if(!token||remoteAuthFailure.current===token)return;
    const content=safeText(String(detail.content||''));
    try{
     setStatus('saving');
-    await fetch('/api/progress/checkpoint',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({session_key:detail.session_key||sid,scope:detail.scope||'browser',kind:detail.kind||'draft',stage:detail.stage||'working',content,metadata:{path,...(detail.metadata||{})}}),keepalive:true});
+    const response=await fetch('/api/progress/checkpoint',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({session_key:detail.session_key||sid,scope:detail.scope||'browser',kind:detail.kind||'draft',stage:detail.stage||'working',content,metadata:{path,...(detail.metadata||{})}}),keepalive:true});
+    if(!response.ok){
+     if(response.status===401||response.status===403)remoteAuthFailure.current=token;
+     setStatus('idle');
+     return;
+    }
+    remoteAuthFailure.current='';
     setStatus('saved');window.setTimeout(()=>setStatus('idle'),1400);
    }catch{setStatus('idle')}
   }
