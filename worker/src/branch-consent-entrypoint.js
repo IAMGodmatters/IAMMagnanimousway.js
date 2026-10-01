@@ -166,6 +166,10 @@ async function branchRequest(request,env,ctx){
   const body=await request.clone().json().catch(()=>({}));
   const original=String(body.message||'').trim();
   if(!original||body.specialist_routing===false)return null;
+  // Guest chat must remain useful without an authenticated Agent Mesh session.
+  // Signed-in workspaces may receive specialist handoffs; anonymous requests
+  // continue through the core Magnanimous /api/chat path instead of returning 401.
+  if(!user)return null;
   const routed=specialistForMessage(original);
   if(!routed)return null;
   const agent=agents.find(a=>String(a.id)===String(routed.id))||routed;
