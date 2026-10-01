@@ -9,13 +9,11 @@ for(const name of ['general','business','social-media','research','writing']){
  assert.ok(visual.includes('/mode-images/'+name+'.svg'),'mode registry must use '+name+' artwork');
 }
 assert.ok(visual.includes('/mode-images/virtual-assistant.webp'),'existing Virtual Assistant portrait must be preserved');
-for(const s of ['/opportunity-vault','Opportunity Vault'])assert.ok(home.includes(s),'home must expose '+s);
-for(const s of [
- 'https://www.atlascapture.io/opportunities','https://apps.apple.com/ph/app/atlas-capture/id6755671397',
- 'https://jobs.lever.co/weloglobal/?location=Philippines','https://app.outlier.ai/opportunities?hl=en-US',
- 'https://www.prolific.com/participants-join-us','2PDR9UXD','NOT CURRENTLY PH-SUPPORTED',
- 'Unverified names stay out of the active list.'
-])assert.ok(vault.includes(s),'Opportunity Vault missing '+s);
-assert.ok(!vault.includes('$3'),'Vault must not preserve stale referral bonus claims without current source verification');
-assert.ok(catalog.includes("key:'opportunity'"),'interaction catalog must understand Opportunity Vault');
+const standaloneVault='https://opportunity-vault-n6t5cz.v2.appdeploy.ai/';
+assert.ok(home.includes('Opportunity Vault — Separate'),'home must label Opportunity Vault as separate');
+assert.ok(home.includes(standaloneVault),'home must link directly to the standalone Opportunity Vault');
+assert.ok(vault.includes(standaloneVault),'legacy /opportunity-vault route must hand off to the standalone Vault');
+assert.ok(vault.includes('SEPARATE PRODUCT • NOT PART OF MAGNANIMOUS AI'),'legacy Vault route must preserve the product boundary');
+assert.ok(!vault.includes('2PDR9UXD'),'main Magnanimous platform must not carry Opportunity Vault referral codes');
+assert.ok(catalog.includes("key:'opportunity'"),'interaction catalog may retain the Opportunity Vault discovery topic');
 console.log('Recent-conversation mode visual and Opportunity Vault gaps passed.');
