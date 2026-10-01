@@ -40,6 +40,7 @@ const aiProcessingIndicator = read('frontend/components/AIProcessingIndicator.ts
 const shopPage = read('frontend/app/shop/page.tsx');
 const platformCredentials = read('worker/src/platform-credentials.js');
 const assistantIntegrations = read('worker/src/assistant-integrations.js');
+const integrationsRuntime = read('worker/src/integrations.js');
 const providerEntrypoint = read('worker/src/provider-entrypoint.js');
 const branchEntrypoint = read('worker/src/branch-consent-entrypoint.js');
 const knowledgeRuntime = read('worker/src/knowledge-runtime.js');
@@ -66,7 +67,12 @@ includes(standalonePage, 'Guest session', 'standalone: guest-session UI contract
 includes(standalonePage, 'MAGNANIMOUS AI™', 'standalone: Magnanimous customer-facing identity remains locked');
 includes(standalonePage, "'/connections?category=email&source=magnanimous-standalone'", 'standalone: secure Gmail/Outlook connection entry remains visible');
 includes(standalonePage, "'/api/magnanimous/mail/accounts'", 'standalone: connected mailbox status remains tenant-authenticated');
-includes(standalonePage, 'Link Gmail or Outlook →', 'standalone: email connection action remains understandable');
+includes(standalonePage, "connectEmail('google')", 'standalone: Gmail authorization can start directly from the standalone AI');
+includes(standalonePage, "connectEmail('outlook')", 'standalone: Outlook authorization can start directly from the standalone AI');
+includes(standalonePage, "return_path:'/magnanimous'", 'standalone: email authorization asks to return to the standalone AI');
+includes(integrationsRuntime, 'function safeReturnPath', 'integrations: OAuth return paths remain same-origin path constrained');
+includes(integrationsRuntime, "return_path:safeReturnPath(body.return_path,'/connections')", 'integrations: requested standalone return path is persisted safely');
+includes(integrationsRuntime, "destination.searchParams.set('integration',provider)", 'integrations: successful OAuth return reports the connected provider');
 includes(standalonePage, "AIProcessingIndicator compact", 'standalone: long-running AI work remains visibly active');
 notMatches(standalonePage, /d\?\.(?:provider|provider_name|model)\b/, 'standalone: UI must not read provider/model identities');
 notMatches(standalonePage, /execution engine/i, 'standalone: UI must not display execution-engine language');
