@@ -129,6 +129,7 @@ must(mesh,'function resilienceUserMessage(message)','Agent Mesh resilience must 
 must(mesh,'localResilienceResponse(agent,resilienceUserMessage(message),failureClass)','capacity fallback must be generated only from user-visible text');
 must(entry,"message:original",'automatic handoffs must forward only the clean customer message into Agent Mesh');
 must(entry,'specialistIntroduction(routed)','automatic specialist greeting must remain active');
+must(entry,"if(!user)return null;\n  const routed=specialistForMessage(original);",'guest /api/chat must bypass authenticated Agent Mesh handoff and continue through core Magnanimous');
 must(mesh,"branchKnowledge(env,user.tenant_id,agent.id,12)",'Agent Mesh must load approved specialist branch knowledge directly');
 must(mesh,'branchKnowledgeContext(branchProfile(agent),knowledge)','approved branch teaching must live in Agent Mesh system context');
 must(mesh,"buildSystem(agent,team,integrations,native,branchContext)",'Agent Mesh system prompt must include specialist branch context');
