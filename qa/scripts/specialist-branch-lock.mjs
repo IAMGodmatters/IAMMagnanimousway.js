@@ -68,6 +68,8 @@ must(progressRuntime,'sanitizeProgressText','progress storage must retain redact
 must(progressRuntime,'isSensitiveProgressPath','sensitive routes must remain protected from content capture');
 must(progressUI,"STORAGE_PREFIX='iam_progress_draft:'",'explicit durable browser drafts must retain their local namespace');
 must(progressUI,"fetch('/api/progress/checkpoint'",'signed-in browser drafts must sync to server checkpoints');
+must(progressUI,'if(!response.ok)','checkpoint autosave must not report failed HTTP responses as saved');
+must(progressUI,'response.status===401||response.status===403','checkpoint autosave must suppress repeated stale-session remote writes');
 must(progressUI,"window.addEventListener('pagehide'",'page exit must force a progress checkpoint');
 must(progressUI,"window.addEventListener('iam:progress-checkpoint'",'voice and other explicit progress events must be persisted');
 must(progressUI,'captureExistingDrafts','drafts typed before autosave listeners attach must still be captured');
