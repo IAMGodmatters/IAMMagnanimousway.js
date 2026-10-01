@@ -8,6 +8,8 @@ const sessions=read('worker/src/session-authority.js');
 const obs=read('worker/src/request-observability.js');
 const adminCompat=read('worker/src/admin-compat-entrypoint.js');
 const securityEntry=read('worker/src/security-entrypoint.js');
+const operations=read('worker/src/operations-entrypoint.js');
+const standaloneServer=read('magnanimous-runtime/src/server.mjs');
 const wrangler=read('worker/wrangler.jsonc');
 const migration=read('worker/migrations/0080_runtime_bootstrap_quota_hardening.sql');
 const authMigration=read('worker/migrations/0081_admin_auth_quota_hardening.sql');
@@ -71,6 +73,9 @@ add('private edge AI bridge executes on Worker before API proxying',securityEntr
 add('standalone proxy keeps Cloudflare as a truthful rollback path',securityEntry.includes('retaining Cloudflare rollback path')&&securityEntry.includes('return null;'));
 add('customer chat stays on the standalone session and memory data plane',!securityEntry.includes("if(url.pathname==='/api/chat')return null;")&&securityEntry.includes("const standaloneDataPlanePath=url.pathname.startsWith('/api/')"));
 add('Cloudflare production config points API traffic at the Magnanimous standalone origin',wrangler.includes('"MAGNANIMOUS_STANDALONE_API_ORIGIN": "https://magnanimous-production.up.railway.app"'));
+add('continuous-learning API follows the standalone data plane instead of remaining D1-pinned',!securityEntry.includes("url.pathname.startsWith('/api/magnanimous/training')")&&securityEntry.includes("const standaloneDataPlanePath=url.pathname.startsWith('/api/')"));
+add('continuous-learning scheduler runs on standalone and Cloudflare only as fallback',operations.includes('function continuousLearningRunsLocally(env)')&&operations.includes("runtime==='standalone-node'||!standalone")&&operations.includes('if(continuousLearningRunsLocally(env))scheduledTasks.push(runContinuousLearningCycle'));
+add('standalone runtime invokes scheduled work every 15 minutes',standaloneServer.includes('MAGNANIMOUS_SCHEDULE_INTERVAL_MS || 900000')&&standaloneServer.includes('app.scheduled('));
 
 const compatTablesStart=adminCompat.indexOf('async function ensureTables');
 const compatTablesEnd=adminCompat.indexOf('async function ensureLegacyCompatibility',compatTablesStart);
