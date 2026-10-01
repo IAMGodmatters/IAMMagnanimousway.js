@@ -9,8 +9,6 @@ type ChatMessage={id:number;role:Role;content:string;meta?:string;sources?:Array
 type Mode={id:string;label:string;hint:string;live?:boolean;news?:boolean};
 type MailAccount={provider:string;external_account_id:string;display_name?:string};
 
-const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
-
 const MODES:Mode[]=[
  {id:'general',label:'Magnanimous',hint:'Reason, plan, create and solve across domains.'},
  {id:'research',label:'Research',hint:'Use stored knowledge and fresh research when needed.',live:true},
@@ -50,7 +48,7 @@ export default function StandaloneMagnanimous(){
   fetch('/api/magnanimous/health',{cache:'no-store'}).then(r=>setStatus(r.ok?'online':'limited')).catch(()=>setStatus('limited'));
   if(!token){setMailState('guest');return}
   setMailState('checking');
-  fetch(`${api}/api/magnanimous/mail/accounts`,{headers:{Authorization:`Bearer ${token}`},cache:'no-store'})
+  fetch('/api/magnanimous/mail/accounts',{headers:{Authorization:`Bearer ${token}`},cache:'no-store'})
    .then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(String(d?.detail||d?.error||`Mail status ${r.status}`));const list=Array.isArray(d?.accounts)?d.accounts:[];setMailAccounts(list);setMailState(list.length?'linked':'unlinked')})
    .catch(()=>setMailState('unavailable'));
  },[]);
