@@ -130,6 +130,15 @@ async function operationsRequest(request,env){
  return null;
 }
 
+function continuousLearningRunsLocally(env){
+ const runtime=String(env?.MAGNANIMOUS_RUNTIME||'').trim();
+ const standalone=String(env?.MAGNANIMOUS_STANDALONE_API_ORIGIN||'').trim();
+ // The standalone runtime owns the durable learning database and already invokes
+ // app.scheduled every 15 minutes. Cloudflare remains the fallback when no
+ // standalone data plane is configured, but must not duplicate training writes.
+ return runtime==='standalone-node'||!standalone;
+}
+
 function queueAutomation(ctx,task){const safe=Promise.resolve(task).catch(error=>console.error('background automation failed',error));if(ctx?.waitUntil)ctx.waitUntil(safe);return safe}
 function canReadJson(request){const type=String(request.headers.get('content-type')||'').toLowerCase();return !['GET','HEAD'].includes(request.method)&&type.includes('application/json')}
 async function whiteLabelObservationPayload(request){
@@ -257,16 +266,17 @@ export default{
  },
  async scheduled(controller,env,ctx){
   const origin=String(env.PUBLIC_SITE_URL||'https://iammagnanimousway.com').replace(/\/$/,'');
-  const task=Promise.all([
+  const scheduledTasks=[
    scheduledGrowth(env,origin).catch(error=>console.error('scheduled growth automation failed',error)),
    scheduledNativeWeb(env).catch(error=>console.error('scheduled native web automation failed',error)),
    scheduledMagnanimousCapabilityMesh(env).catch(error=>console.error('scheduled capability mesh check failed',error)),
    scheduledMagnanimousRoutines(env).catch(error=>console.error('scheduled Magnanimous routines failed',error)),
    scheduledSelfHealing(env,origin).catch(error=>console.error('scheduled self-healing check failed',error)),
    scheduledTelecomEmailWatch(env).catch(error=>console.error('scheduled telecom email watch failed',error)),
-   scheduledMagnanimousAttentionWatch(env).catch(error=>console.error('scheduled native attention watch failed',error)),
-   runContinuousLearningCycle(env,{source:'cron'}).catch(error=>console.error('scheduled continuous learning failed',error))
-  ]);
+   scheduledMagnanimousAttentionWatch(env).catch(error=>console.error('scheduled native attention watch failed',error))
+  ];
+  if(continuousLearningRunsLocally(env))scheduledTasks.push(runContinuousLearningCycle(env,{source:'cron'}).catch(error=>console.error('scheduled continuous learning failed',error)));
+  const task=Promise.all(scheduledTasks);
   if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
  }
 };
