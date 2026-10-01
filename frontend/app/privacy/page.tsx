@@ -5,15 +5,18 @@ export default function PrivacyPage(){
     <a href="/signup" style={s.back}>← Back to signup</a>
     <div style={s.eyebrow}>I AM MAGNANIMOUS WAY™</div>
     <h1 style={s.h1}>Privacy Notice</h1>
-    <p style={s.meta}>Effective September 1, 2026 • Version 1.0-2026-09-01</p>
+    <p style={s.meta}>Effective October 1, 2026 • Version 1.1-2026-10-01</p>
 
     <p>I AM Magnanimous Way provides account-based AI, workspace, CRM, creator, and related platform services. This notice explains what personal information may be collected, why it is processed, how it may be used, and the choices available to users.</p>
 
     <h2 style={s.h2}>Information we collect</h2>
-    <p>When you create or use an account, we may collect your name, email address, workspace or business name, account identifiers, signup and login activity, account status, information you choose to enter into platform features, support communications, and limited technical/security information needed to operate and protect the service. Passwords are not stored in readable plain text; authentication credentials are stored using security protections such as hashing.</p>
+    <p>When you create or use an account, we may collect your name, email address, workspace or business name, account identifiers, signup and login activity, account status, information you choose to enter into platform features, support communications, and limited technical/security information needed to operate and protect the service. If you use Magnanimous Training Center, we may also store training examples, corrections, ratings, and execution-quality signals that you intentionally submit or generate within your private workspace. Passwords are not stored in readable plain text; authentication credentials are stored using security protections such as hashing.</p>
 
     <h2 style={s.h2}>Why we process information</h2>
     <p>Information may be processed to create and administer accounts, authenticate users, provide platform features, maintain security, prevent abuse, provide support, operate tenant workspaces and CRM functions, maintain records, improve reliability, and manage customer or lead relationships arising from registration and use of the platform.</p>
+
+    <h2 style={s.h2}>Private AI learning and training</h2>
+    <p>Magnanimous AI may use approved examples, corrections, workspace memory, knowledge retrieval, and measured execution outcomes to improve private routing and reusable lessons for your workspace. This continuous-learning layer is tenant-isolated and does not silently retrain a public foundation model or automatically upload private conversations for outside model training. Users should not place passwords, API keys, access tokens, private keys, or identity documents in training examples.</p>
 
     <h2 style={s.h2}>Lead and customer management</h2>
     <p>Registration information such as your name, email, workspace, signup date, account status, and account activity may be visible to authorized I AM Magnanimous Way owner/administrative personnel for customer service, relationship management, account administration, and legitimate lead-management purposes. Your password is not shown in the owner lead directory.</p>
