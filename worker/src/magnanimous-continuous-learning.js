@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { isPlatformOwnerUser } from './agent-branch-intelligence.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -70,7 +71,7 @@ export async function runContinuousLearningCycle(env,{source='cron'}={}){
        const score=clamp((success*0.48)+(quality*0.42)+(Math.min(samples,20)/20*0.10),0,1);
        const status=enough&&qualityPass?'eligible':'observing';
        const ts=now();
-       await env.DB.prepare(`INSERT INTO magnanimous_learning_candidates(tenant_id,user_id,capability,provider,samples,success_rate,average_quality,average_latency_ms,score,status,last_evidence_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,user_id,capability,provider) DO UPDATE SET samples=excluded.samples,success_rate=excluded.success_rate,average_quality=excluded.average_quality,average_latency_ms=excluded.average_latency_ms,score=excluded.score,status=excluded.status,last_evidence_at=excluded.last_evidence_at,updated_at=excluded.updated_at`).bind(tenant,uid,capability,provider,samples,success,quality,latency,score,status,Number(row.last_evidence_at||0),ts,ts).run();
+       await env.DB.prepare(`INSERT INTO magnanimous_learning_candidates(tenant_id,user_id,capability,provider,samples,success_rate,average_quality,average_latency_ms,score,status,last_evidence_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id,user_id,capability,provider) DO UPDATE SET samples=excluded.samples,success_rate=excluded.success_rate,average_quality=excluded.average_quality,average_latency_ms=excluded.average_latency_ms,score=excluded.score,status=CASE WHEN magnanimous_learning_candidates.status='promoted' AND excluded.status='eligible' THEN 'promoted' ELSE excluded.status END,last_evidence_at=excluded.last_evidence_at,updated_at=excluded.updated_at WHERE magnanimous_learning_candidates.samples<>excluded.samples OR ABS(magnanimous_learning_candidates.success_rate-excluded.success_rate)>0.0001 OR ABS(magnanimous_learning_candidates.average_quality-excluded.average_quality)>0.0001 OR ABS(magnanimous_learning_candidates.average_latency_ms-excluded.average_latency_ms)>1 OR ABS(magnanimous_learning_candidates.score-excluded.score)>0.0001 OR magnanimous_learning_candidates.last_evidence_at<>excluded.last_evidence_at OR (magnanimous_learning_candidates.status<>'promoted' AND magnanimous_learning_candidates.status<>excluded.status) OR (magnanimous_learning_candidates.status='promoted' AND excluded.status='observing')`).bind(tenant,uid,capability,provider,samples,success,quality,latency,score,status,Number(row.last_evidence_at||0),ts,ts).run();
        if(status==='eligible'){
          const bk=`${tenant}|${uid}|${capability}`;const prior=best.get(bk);
          if(!prior||score>prior.score)best.set(bk,{tenant,uid,capability,provider,samples,success,quality,latency,score});
@@ -82,8 +83,9 @@ export async function runContinuousLearningCycle(env,{source='cron'}={}){
        const ts=now();
        const evidence=`${item.samples} outcomes; success ${(item.success*100).toFixed(1)}%; avg quality ${item.quality.toFixed(2)}; avg latency ${Math.round(item.latency)} ms`;
        const value=`For ${item.capability}, ${item.provider} is currently the strongest observed provider/workflow from recent private workspace outcomes. Prefer it when available, but keep fallback routing and re-evaluate as new evidence arrives.`;
-       await env.DB.prepare(`INSERT INTO magnanimous_lessons(tenant_id,user_id,domain,lesson_key,lesson_value,evidence,score,uses,active,created_at,updated_at) VALUES(?,?,?,?,?,?,?,0,1,?,?) ON CONFLICT(tenant_id,user_id,domain,lesson_key) DO UPDATE SET lesson_value=excluded.lesson_value,evidence=excluded.evidence,score=excluded.score,active=1,updated_at=excluded.updated_at`).bind(item.tenant,item.uid,'adaptive-routing',`preferred-provider:${item.capability}`,value,evidence,item.score,ts,ts).run();
-       await env.DB.prepare(`UPDATE magnanimous_learning_candidates SET status='promoted',updated_at=? WHERE tenant_id=? AND user_id=? AND capability=? AND provider=?`).bind(ts,item.tenant,item.uid,item.capability,item.provider).run();
+       await env.DB.prepare(`INSERT INTO magnanimous_lessons(tenant_id,user_id,domain,lesson_key,lesson_value,evidence,score,uses,active,created_at,updated_at) VALUES(?,?,?,?,?,?,?,0,1,?,?) ON CONFLICT(tenant_id,user_id,domain,lesson_key) DO UPDATE SET lesson_value=excluded.lesson_value,evidence=excluded.evidence,score=excluded.score,active=1,updated_at=excluded.updated_at WHERE magnanimous_lessons.lesson_value<>excluded.lesson_value OR magnanimous_lessons.evidence<>excluded.evidence OR ABS(magnanimous_lessons.score-excluded.score)>0.0001 OR magnanimous_lessons.active<>1`).bind(item.tenant,item.uid,'adaptive-routing',`preferred-provider:${item.capability}`,value,evidence,item.score,ts,ts).run();
+       await env.DB.prepare(`UPDATE magnanimous_learning_candidates SET status='eligible',updated_at=? WHERE tenant_id=? AND user_id=? AND capability=? AND provider<>? AND status='promoted'`).bind(ts,item.tenant,item.uid,item.capability,item.provider).run();
+       await env.DB.prepare(`UPDATE magnanimous_learning_candidates SET status='promoted',updated_at=? WHERE tenant_id=? AND user_id=? AND capability=? AND provider=? AND status<>'promoted'`).bind(ts,item.tenant,item.uid,item.capability,item.provider).run();
        promoted++;lessons++;
      }catch(e){errors++;notes.push(clip(e?.message||e,180));}
    }
@@ -98,7 +100,8 @@ export async function runContinuousLearningCycle(env,{source='cron'}={}){
 async function status(env,user){
  await ensureSchema(env);const tenant=String(user.tenant_id),uid=String(user.id),settings=await settingsFor(env,tenant,uid);
  const counts=await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM magnanimous_training_examples WHERE tenant_id=? AND user_id=? AND approved=1) examples,(SELECT COUNT(*) FROM magnanimous_learning_candidates WHERE tenant_id=? AND user_id=?) candidates,(SELECT COUNT(*) FROM magnanimous_learning_candidates WHERE tenant_id=? AND user_id=? AND status='promoted') promoted,(SELECT COUNT(*) FROM magnanimous_lessons WHERE tenant_id=? AND user_id=? AND domain IN ('adaptive-routing','explicit-training')) learned_lessons`).bind(tenant,uid,tenant,uid,tenant,uid,tenant,uid).first();
- const {results:runs=[]}=await env.DB.prepare('SELECT id,source,started_at,finished_at,status,outcome_groups_scanned,candidates_promoted,lessons_updated,errors FROM magnanimous_training_runs ORDER BY started_at DESC LIMIT 10').all();
+ const platformOwner=await isPlatformOwnerUser(env,user).catch(()=>false);
+ const runs=platformOwner?(await env.DB.prepare('SELECT id,source,started_at,finished_at,status,outcome_groups_scanned,candidates_promoted,lessons_updated,errors FROM magnanimous_training_runs ORDER BY started_at DESC LIMIT 10').all()).results||[]:[];
  const {results:candidates=[]}=await env.DB.prepare(`SELECT capability,provider,samples,success_rate,average_quality,average_latency_ms,score,status,updated_at FROM magnanimous_learning_candidates WHERE tenant_id=? AND user_id=? ORDER BY score DESC,updated_at DESC LIMIT 25`).bind(tenant,uid).all();
  return {ok:true,mode:'continuous-learning',schedule:'every 15 minutes',foundation_model_retraining:false,learning_layers:['explicit training examples','persistent lessons','provider/workflow outcome scoring','adaptive routing','private knowledge retrieval'],settings,counts:{examples:Number(counts?.examples||0),candidates:Number(counts?.candidates||0),promoted:Number(counts?.promoted||0),learned_lessons:Number(counts?.learned_lessons||0)},recent_runs:runs,candidates};
 }
@@ -153,7 +156,7 @@ export async function handleContinuousLearning(request,env){
    if(url.pathname==='/api/magnanimous/training/feedback'&&request.method==='POST')return feedback(request,env,user);
    if(url.pathname==='/api/magnanimous/training/export'&&request.method==='GET')return exportExamples(env,user);
    if(url.pathname==='/api/magnanimous/training/run'&&request.method==='POST'){
-     if(String(user.role)!=='owner')return json({detail:'Owner access required.'},403);
+     if(!await isPlatformOwnerUser(env,user).catch(()=>false))return json({detail:'Platform owner access required.'},403);
      return json(await runContinuousLearningCycle(env,{source:'owner-manual'}));
    }
    return json({detail:'Training route not found.'},404);
