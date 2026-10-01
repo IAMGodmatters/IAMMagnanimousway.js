@@ -25,6 +25,7 @@ function b64(bytes){let s='';for(const b of bytes)s+=String.fromCharCode(b);retu
 function b64url(bytes){return b64(bytes).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function fromB64(value){const s=atob(value);return Uint8Array.from(s,c=>c.charCodeAt(0))}
 function safeOrigin(value,fallback=''){try{const u=new URL(String(value||''));return(u.protocol==='https:'||u.protocol==='http:')?u.origin:fallback}catch{return fallback}}
+function safeReturnPath(value,fallback='/connections'){const path=String(value||'').trim();return path.startsWith('/')&&!path.startsWith('//')&&!path.includes('\\\\')?path:fallback}
 function cleanShop(value){return String(value||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/$/,'').replace(/[^a-z0-9.-]/g,'')}
 function safeMetadata(token){const copy={...(token||{})};delete copy.access_token;delete copy.refresh_token;delete copy.id_token;delete copy.authed_user;if(copy.bot?.bot_access_token)copy.bot={...copy.bot,bot_access_token:'[encrypted]'};return copy}
 
@@ -206,7 +207,7 @@ export async function handleIntegrations(request,env){
     const provider=m[1],action=m[2]||'',item=INTEGRATIONS.find(x=>x.id===provider);if(!item)return json({error:'Unknown integration'},404);
     if(action==='connect'&&request.method==='POST'){
       const user=await currentUser(request,env);if(!user)return json({error:'Sign in to connect an account.'},401);if(!configured(env,item))return json({error:`${item.name} is not configured yet. Add the required platform OAuth credentials as Cloudflare secrets.`},503);if(item.auth==='bot-token')return json({error:'Use the Telegram token connection form.'},400);
-      const body=await request.json().catch(()=>({})),metadata={shop_domain:provider==='shopify'?cleanShop(body.shop_domain):'',return_origin:safeOrigin(request.headers.get('origin'),url.origin)};
+      const body=await request.json().catch(()=>({})),metadata={shop_domain:provider==='shopify'?cleanShop(body.shop_domain):'',return_origin:safeOrigin(request.headers.get('origin'),url.origin),return_path:safeReturnPath(body.return_path,'/connections')};
       if(provider==='shopify'&&!metadata.shop_domain)return json({error:'Enter your Shopify store domain, for example your-store.myshopify.com.'},400);
       if(provider==='x'){const verifier=b64url(crypto.getRandomValues(new Uint8Array(48)));metadata.code_verifier=verifier;metadata.code_challenge=await sha256b64url(verifier)}
       const state=stateToken();await env.DB.prepare('INSERT INTO integration_states(state,tenant_id,provider,created_at,expires_at,metadata_json) VALUES(?,?,?,?,?,?)').bind(state,user.tenant_id,provider,now(),now()+600,JSON.stringify(metadata)).run();
@@ -217,8 +218,9 @@ export async function handleIntegrations(request,env){
       const row=await env.DB.prepare('SELECT tenant_id,provider,expires_at,metadata_json FROM integration_states WHERE state=?').bind(state).first();if(!row||row.provider!==provider||row.expires_at<now())return json({error:'OAuth state expired or invalid'},400);
       let metadata={};try{metadata=JSON.parse(row.metadata_json||'{}')}catch{}
       const token=await tokenExchange(provider,env,request,code,metadata,url);const count=await saveResolvedConnections(env,{provider,tenantId:row.tenant_id,token,metadata,callbackUrl:url});
-      await env.DB.prepare('DELETE FROM integration_states WHERE state=?').bind(state).run();const returnOrigin=safeOrigin(metadata.return_origin,url.origin);
-      return Response.redirect(new URL(`/connections?integration=${encodeURIComponent(provider)}&connected=${count}`,returnOrigin),302);
+      await env.DB.prepare('DELETE FROM integration_states WHERE state=?').bind(state).run();const returnOrigin=safeOrigin(metadata.return_origin,url.origin),returnPath=safeReturnPath(metadata.return_path,'/connections');
+      const destination=new URL(returnPath,returnOrigin);destination.searchParams.set('integration',provider);destination.searchParams.set('connected',String(count));
+      return Response.redirect(destination,302);
     }
     return json({error:'Unsupported integration operation'},400);
   }catch(e){console.error('integrations error',e);return json({error:e?.message||'Integration service error'},500)}
