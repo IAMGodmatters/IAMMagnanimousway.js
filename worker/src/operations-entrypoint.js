@@ -27,6 +27,7 @@ import {handlePremiumVoice} from './premium-voice-runtime.js';
 import {handleMagnanimousApiContractIntelligence} from './magnanimous-api-contract-intelligence.js';
 import {scheduledTelecomEmailWatch,telecomEmailWatchStatus} from './magnanimous-telecom-email-watch.js';
 import {scheduledMagnanimousAttentionWatch,magnanimousAttentionWatchStatus} from './magnanimous-native-attention-watch.js';
+import {handleContinuousLearning,runContinuousLearningCycle} from './magnanimous-continuous-learning.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -143,6 +144,8 @@ async function operationsFetch(request,env,ctx){
 
   const consequential=await requireConsequentialActionConfirmation(request);
   if(consequential)return consequential;
+
+  try{const training=await handleContinuousLearning(request,env);if(training)return training}catch(error){console.error('continuous learning layer failed',error);return json({detail:'Magnanimous continuous learning could not complete this request.'},500)}
 
   try{const developer=await handleMagnanimousDevAgent(request,env);if(developer)return developer}catch(error){console.error('Magnanimous developer agent failed',error);return json({detail:'Magnanimous developer agent could not complete this request.'},500)}
   try{const nativeWeb=await handleMagnanimousNativeWeb(request,env);if(nativeWeb)return nativeWeb}catch(error){console.error('Magnanimous Native Web failed',error);return json({detail:'Magnanimous Native Web could not complete this request.'},500)}
@@ -261,7 +264,8 @@ export default{
    scheduledMagnanimousRoutines(env).catch(error=>console.error('scheduled Magnanimous routines failed',error)),
    scheduledSelfHealing(env,origin).catch(error=>console.error('scheduled self-healing check failed',error)),
    scheduledTelecomEmailWatch(env).catch(error=>console.error('scheduled telecom email watch failed',error)),
-   scheduledMagnanimousAttentionWatch(env).catch(error=>console.error('scheduled native attention watch failed',error))
+   scheduledMagnanimousAttentionWatch(env).catch(error=>console.error('scheduled native attention watch failed',error)),
+   runContinuousLearningCycle(env,{source:'cron'}).catch(error=>console.error('scheduled continuous learning failed',error))
   ]);
   if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
  }
