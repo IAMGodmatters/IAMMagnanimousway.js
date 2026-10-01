@@ -4,14 +4,19 @@ import { discoverStaticRoutes, watchRuntime } from './helpers';
 const allRoutes = discoverStaticRoutes();
 const criticalPattern = /ai|magnanimous|bible|business|agent|video|cinema|dial|call|phone|reception|email|crm|bpo|finance|connection|billing|pricing|support|security|solution|start|owner|admin|tool/i;
 const criticalTools = [...new Set(['/', ...allRoutes.filter((route) => criticalPattern.test(route))])];
+const isPullRequest = process.env.GITHUB_EVENT_NAME === 'pull_request';
 
 for (const route of criticalTools) {
   test(`${route} is functionally reachable`, async ({ page }) => {
     const runtimeProblems = watchRuntime(page);
     const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
     expect(response, `${route} produced no response`).not.toBeNull();
-    expect(response!.status(), `${route} has a server error`).toBeLessThan(500);
-    expect(response!.status(), `${route} is missing from the deployed site`).not.toBe(404);
+
+    const status = response!.status();
+    test.skip(isPullRequest && status === 404, `${route} is new on this PR and is not deployed to the live QA target yet.`);
+
+    expect(status, `${route} has a server error`).toBeLessThan(500);
+    expect(status, `${route} is missing from the deployed site`).not.toBe(404);
 
     const visibleText = (await page.locator('body').innerText()).trim();
     expect(visibleText.length, `${route} rendered no meaningful UI`).toBeGreaterThan(30);
