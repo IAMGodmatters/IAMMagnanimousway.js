@@ -64,6 +64,9 @@ includes(standalonePage, "postMagnanimousChat('/api/chat'", 'standalone: resilie
 includes(standalonePage, '/login?returnTo=%2Fmagnanimous', 'standalone: persistent-memory sign-in return path remains locked');
 includes(standalonePage, 'Guest session', 'standalone: guest-session UI contract remains locked');
 includes(standalonePage, 'MAGNANIMOUS AI™', 'standalone: Magnanimous customer-facing identity remains locked');
+includes(standalonePage, "'/connections?category=email&source=magnanimous-standalone'", 'standalone: secure Gmail/Outlook connection entry remains visible');
+includes(standalonePage, "'/api/magnanimous/mail/accounts'", 'standalone: connected mailbox status remains tenant-authenticated');
+includes(standalonePage, 'Link Gmail or Outlook →', 'standalone: email connection action remains understandable');
 includes(standalonePage, "AIProcessingIndicator compact", 'standalone: long-running AI work remains visibly active');
 notMatches(standalonePage, /d\?\.(?:provider|provider_name|model)\b/, 'standalone: UI must not read provider/model identities');
 notMatches(standalonePage, /execution engine/i, 'standalone: UI must not display execution-engine language');
