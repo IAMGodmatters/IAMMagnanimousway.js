@@ -17,6 +17,7 @@ export class MagnanimousSandboxBinding extends InternalService{
 }
 export class MagnanimousBrowserBinding extends InternalService{
  async render(url,options={}){return this.request('/render',{method:'POST',body:{url,...options}})}
+ async renderContent(html,options={}){return this.request('/render-content',{method:'POST',body:{html,...options}})}
 }
 export class MagnanimousImagesBinding extends InternalService{
  async transform(base64,options={}){return this.request('/transform',{method:'POST',body:{base64,...options}})}

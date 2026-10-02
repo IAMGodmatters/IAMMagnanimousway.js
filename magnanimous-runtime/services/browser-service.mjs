@@ -102,6 +102,8 @@ async function render(spec={}){
  const mode=['dom','screenshot','pdf'].includes(spec.mode)?spec.mode:'dom';
  const width=Math.max(320,Math.min(Number(spec.width||1440),3840));
  const height=Math.max(240,Math.min(Number(spec.height||1000),4000));
+ const deviceScale=Math.max(1,Math.min(Number(spec.device_scale||1),3));
+ const delay=Math.max(0,Math.min(Number(spec.ms_delay||0),15000));
  const snapshot=await fetchSnapshot(url);
  const bytes=Buffer.from(String(snapshot.base64||''),'base64');
 
@@ -121,8 +123,8 @@ async function render(spec={}){
    '--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-sync',
    '--metrics-recording-only','--mute-audio','--noerrdialogs','--disable-crash-reporter','--disable-breakpad','--disable-quic',
    '--disable-background-networking','--disable-features=AsyncDns,MediaRouter,OptimizationHints,AutofillServerCommunication',
-   '--force-webrtc-ip-handling-policy=disable_non_proxied_udp','--window-size='+width+','+height,
-   '--user-data-dir='+profile,'--disk-cache-dir='+cache
+   '--force-webrtc-ip-handling-policy=disable_non_proxied_udp','--window-size='+width+','+height,'--force-device-scale-factor='+deviceScale,
+   ...(delay?['--virtual-time-budget='+delay]:[]),'--user-data-dir='+profile,'--disk-cache-dir='+cache
   ];
   const output=path.join(dir,mode==='pdf'?'page.pdf':'page.png');
   const flag=mode==='pdf'?'--print-to-pdf='+output:'--screenshot='+output;
@@ -131,18 +133,63 @@ async function render(spec={}){
   const result=await run([...common,flag,target],{timeout:spec.timeout_ms,env:browserEnv});
   if(result.code!==0)throw new Error('Chromium snapshot render failed: '+result.stderr.toString('utf8').slice(-1200));
   const value=await fs.readFile(output);
-  return{ok:true,mode,url:snapshot.url||url,status:Number(snapshot.status||200),content_type:mode==='pdf'?'application/pdf':'image/png',base64:value.toString('base64'),bytes:value.length,width,height,snapshot_mode:true};
+  return{ok:true,mode,url:snapshot.url||url,status:Number(snapshot.status||200),content_type:mode==='pdf'?'application/pdf':'image/png',base64:value.toString('base64'),bytes:value.length,width,height,device_scale:deviceScale,ms_delay:delay,snapshot_mode:true};
  }finally{await fs.rm(dir,{recursive:true,force:true})}
 }
+function directHtml(spec={}){
+ const css=String(spec.css||'').slice(0,500000);
+ let html=String(spec.html||'').slice(0,1000000);
+ if(!html.trim())throw new Error('HTML is required.');
+ html=html
+  .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')
+  .replace(/<meta\b[^>]*http-equiv=["']?refresh["']?[^>]*>/gi,'')
+  .replace(/<base\b[^>]*>/gi,'');
+ const scheme=['dark','light'].includes(String(spec.color_scheme||''))?String(spec.color_scheme):'light';
+ const policy='<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data: blob:; style-src \'unsafe-inline\'; font-src data:; connect-src \'none\'; media-src data:; object-src \'none\'; frame-src \'none\'; child-src \'none\'; form-action \'none\'; base-uri \'none\'">';
+ const head=policy+'<meta name="color-scheme" content="'+scheme+'"><style>:root{color-scheme:'+scheme+'}'+css+'</style>';
+ if(/<head\b[^>]*>/i.test(html))return html.replace(/<head\b[^>]*>/i,m=>m+head);
+ if(/<html\b[^>]*>/i.test(html))return html.replace(/<html\b[^>]*>/i,m=>m+'<head>'+head+'</head>');
+ return '<!doctype html><html><head>'+head+'</head><body>'+html+'</body></html>';
+}
+async function renderContent(spec={}){
+ const mode=['screenshot','pdf'].includes(spec.mode)?spec.mode:'screenshot';
+ const width=Math.max(320,Math.min(Number(spec.width||1200),3840));
+ const height=Math.max(240,Math.min(Number(spec.height||630),4000));
+ const deviceScale=Math.max(1,Math.min(Number(spec.device_scale||2),3));
+ const delay=Math.max(0,Math.min(Number(spec.ms_delay||0),15000));
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'magnanimous-render-content-'));
+ try{
+  const profile=path.join(dir,'profile'),config=path.join(dir,'config'),cache=path.join(dir,'cache'),runtime=path.join(dir,'runtime'),crash=path.join(config,'chromium','Crash Reports');
+  await Promise.all([profile,config,cache,runtime,crash].map(p=>fs.mkdir(p,{recursive:true})));
+  const localPage=path.join(dir,'content.html');
+  await fs.writeFile(localPage,directHtml(spec),'utf8');
+  const common=[
+   '--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-sync',
+   '--metrics-recording-only','--mute-audio','--noerrdialogs','--disable-crash-reporter','--disable-breakpad','--disable-quic',
+   '--disable-background-networking','--disable-features=AsyncDns,MediaRouter,OptimizationHints,AutofillServerCommunication',
+   '--force-webrtc-ip-handling-policy=disable_non_proxied_udp','--window-size='+width+','+height,'--force-device-scale-factor='+deviceScale,
+   ...(delay?['--virtual-time-budget='+delay]:[]),'--user-data-dir='+profile,'--disk-cache-dir='+cache
+  ];
+  const output=path.join(dir,mode==='pdf'?'page.pdf':'page.png');
+  const flag=mode==='pdf'?'--print-to-pdf='+output:'--screenshot='+output;
+  const browserEnv={HOME:dir,XDG_CONFIG_HOME:config,XDG_CACHE_HOME:cache,XDG_RUNTIME_DIR:runtime,TMPDIR:dir};
+  const result=await run([...common,flag,'file://'+localPage],{timeout:spec.timeout_ms,env:browserEnv});
+  if(result.code!==0)throw new Error('Chromium HTML/CSS render failed: '+result.stderr.toString('utf8').slice(-1200));
+  const value=await fs.readFile(output);
+  return{ok:true,mode,content_type:mode==='pdf'?'application/pdf':'image/png',base64:value.toString('base64'),bytes:value.length,width,height,device_scale:deviceScale,ms_delay:delay,self_contained_assets:true,network_access:false};
+ }finally{await fs.rm(dir,{recursive:true,force:true})}
+}
+
 const server=http.createServer(async(req,res)=>{
  try{
   if(req.url==='/health'){
    let egress_ready=!proxy;
    if(proxy){try{await ensureProxyReady(2);egress_ready=true}catch{}}
-   return json(res,egress_ready?200:503,{ok:egress_ready,identity:'Magnanimous Browser',engine:'Chromium snapshot renderer',private_network_targets:false,egress_proxy_required:true,egress_proxy_configured:Boolean(proxy),egress_ready,network_mode:'safe-egress-snapshot'});
+   return json(res,egress_ready?200:503,{ok:egress_ready,identity:'Magnanimous Browser',engine:'Chromium snapshot renderer',private_network_targets:false,egress_proxy_required:true,egress_proxy_configured:Boolean(proxy),egress_ready,network_mode:'safe-egress-snapshot',html_css_rendering:true,pdf_rendering:true});
   }
   if(!authorized(req))return json(res,401,{detail:'Magnanimous internal service token required.'});
   if(req.method==='POST'&&req.url==='/render')return json(res,200,await render(await body(req)));
+  if(req.method==='POST'&&req.url==='/render-content')return json(res,200,await renderContent(await body(req)));
   return json(res,404,{detail:'Magnanimous browser route not found.'});
  }catch(error){return json(res,400,{detail:String(error?.message||error),code:'MAGNANIMOUS_BROWSER_ERROR'})}
 });
