@@ -88,4 +88,10 @@ test('deployed voice transcript auto-sends, ignores late recognition errors, and
   await expect.poll(async () => page.evaluate(() => ((window as any).__iamSpoken as string[]).filter(text => text.trim()))).toContain(
     'I am doing well. I am Magnanimous AI, here to help you think, create, research, and get things done.'
   );
+
+  await page.evaluate(() => { ((window as any).__iamSpoken as string[]).length = 0; });
+  await page.getByRole('button', { name: /Hear latest Magnanimous AI reply/i }).click();
+  await expect.poll(async () => page.evaluate(() => ((window as any).__iamSpoken as string[]).filter(text => text.trim()))).toContain(
+    'I am doing well. I am Magnanimous AI, here to help you think, create, research, and get things done.'
+  );
 });
