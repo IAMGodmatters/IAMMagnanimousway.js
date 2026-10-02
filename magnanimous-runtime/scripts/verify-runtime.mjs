@@ -145,6 +145,7 @@ try {
   assert.equal(serviceBindings.images.configured,true);
   assert.equal(typeof serviceBindings.sandbox.exec,'function');
   assert.equal(typeof serviceBindings.browser.render,'function');
+  assert.equal(typeof serviceBindings.browser.renderContent,'function');
   assert.equal(typeof serviceBindings.images.transform,'function');
 
   const metrics=new MagnanimousMetrics();
