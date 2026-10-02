@@ -99,10 +99,13 @@ function applyVoiceProfile(utterance:SpeechSynthesisUtterance,label:string){
 
 function primeSpeechSynthesis(){
  if(speechPrimed||typeof window==='undefined'||!('speechSynthesis'in window))return;
- if(appleMobileVoiceRuntime()){speechPrimed=true;return}
  try{
-  const u=new SpeechSynthesisUtterance(' ');
-  u.volume=0;u.rate=2;
+  // iOS can accept microphone input while still refusing a later async TTS call.
+  // Prime the actual speech queue inside the user's tap. NBSP is intentionally
+  // inaudible but uses normal volume so WebKit treats it as a real utterance.
+  const apple=appleMobileVoiceRuntime();
+  const u=new SpeechSynthesisUtterance(apple?'\u00a0':' ');
+  u.volume=apple?1:0;u.rate=2;u.pitch=1;
   window.speechSynthesis.speak(u);
   if((window.speechSynthesis as any).paused)window.speechSynthesis.resume?.();
   speechPrimed=true;
@@ -218,7 +221,7 @@ function writeAndSend(transcript:string){
 
 export default function VoiceOrchestrator(){
  const[path,setPath]=useState(''),[persona,setPersona]=useState('Magnanimous AI'),[listening,setListening]=useState(false),[speaking,setSpeaking]=useState(false),[autoSpeak,setAutoSpeak]=useState(true),[micReady,setMicReady]=useState(false),[voiceReady,setVoiceReady]=useState(false),[notice,setNotice]=useState('');
- const recognitionRef=useRef<SpeechRecognitionLike|null>(null),lastSpoken=useRef(''),autoSpeakRef=useRef(true),speechTimer=useRef<number|null>(null),pendingReply=useRef('');
+ const recognitionRef=useRef<SpeechRecognitionLike|null>(null),lastSpoken=useRef(''),autoSpeakRef=useRef(true),speechTimer=useRef<number|null>(null),speechStartWatchdog=useRef<number|null>(null),pendingReply=useRef('');
  useEffect(()=>{autoSpeakRef.current=autoSpeak},[autoSpeak]);
  useEffect(()=>{
   const w:any=window,p=location.pathname;
@@ -227,6 +230,45 @@ export default function VoiceOrchestrator(){
   const synth=window.speechSynthesis;
   const refreshVoices=()=>setVoiceReady('speechSynthesis'in window);
   synth?.addEventListener?.('voiceschanged',refreshVoices);
+
+  const playReply=(settled:string,nextPersona:string)=>{
+   const text=String(settled||'').trim();
+   if(!text||text===lastSpoken.current)return;
+   pendingReply.current='';
+   lastSpoken.current=text;
+   if(!autoSpeakRef.current||!('speechSynthesis'in window))return;
+   let started=false;
+   if(speechStartWatchdog.current!==null)window.clearTimeout(speechStartWatchdog.current);
+   speechStartWatchdog.current=window.setTimeout(()=>{
+    speechStartWatchdog.current=null;
+    if(started)return;
+    setSpeaking(false);
+    setNotice('Your reply is ready. Tap HEAR to play it aloud.');
+   },1600);
+   speakTextNaturally(text,{
+    configure:(u)=>applyVoiceProfile(u,nextPersona),
+    maxChunkChars:240,
+    interChunkDelayMs:55,
+    onStart:()=>{
+     started=true;
+     if(speechStartWatchdog.current!==null){window.clearTimeout(speechStartWatchdog.current);speechStartWatchdog.current=null}
+     setNotice('');setSpeaking(true);
+     emitCheckpoint({kind:'voice-reply',stage:'speaking',content:text,metadata:{persona:nextPersona,path:location.pathname}});
+    },
+    onEnd:()=>{
+     if(speechStartWatchdog.current!==null){window.clearTimeout(speechStartWatchdog.current);speechStartWatchdog.current=null}
+     setSpeaking(false);
+     emitCheckpoint({kind:'voice-reply',stage:'spoken',content:text,metadata:{persona:nextPersona,path:location.pathname}});
+    },
+    onError:()=>{
+     if(speechStartWatchdog.current!==null){window.clearTimeout(speechStartWatchdog.current);speechStartWatchdog.current=null}
+     setSpeaking(false);
+     setNotice('I generated the reply, but your browser could not start the voice. Tap HEAR to play it aloud.');
+     emitCheckpoint({kind:'voice-reply',stage:'speech-error',content:text,metadata:{persona:nextPersona,path:location.pathname}});
+    }
+   });
+  };
+
   const scheduleReplySpeech=()=>{
    const nextPersona=currentPersona();setPersona(v=>v===nextPersona?v:nextPersona);
    const text=latestReply(location.pathname);
@@ -238,19 +280,22 @@ export default function VoiceOrchestrator(){
     speechTimer.current=null;
     const settled=latestReply(location.pathname);
     if(!settled||settled!==pendingReply.current||settled===lastSpoken.current)return;
-    pendingReply.current='';
-    lastSpoken.current=settled;
-    if(!autoSpeakRef.current||!('speechSynthesis'in window))return;
-    speakTextNaturally(settled,{
-     configure:(u)=>applyVoiceProfile(u,nextPersona),
-     maxChunkChars:240,
-     interChunkDelayMs:55,
-     onStart:()=>{setNotice('');setSpeaking(true);emitCheckpoint({kind:'voice-reply',stage:'speaking',content:settled,metadata:{persona:nextPersona,path:location.pathname}})},
-     onEnd:()=>{setSpeaking(false);emitCheckpoint({kind:'voice-reply',stage:'spoken',content:settled,metadata:{persona:nextPersona,path:location.pathname}})},
-     onError:()=>{setSpeaking(false);setNotice('I generated the reply, but your browser could not play the voice smoothly. Tap the speaker button once, then try again.');emitCheckpoint({kind:'voice-reply',stage:'speech-error',content:settled,metadata:{persona:nextPersona,path:location.pathname}})}
-    });
+    playReply(settled,nextPersona);
    },950);
   };
+
+  const directReply=(event:Event)=>{
+   const detail=(event as CustomEvent).detail||{};
+   const text=String(detail.text||'').trim();
+   const nextPersona=String(detail.persona||currentPersona()).trim()||'Magnanimous AI';
+   if(!text||text===lastSpoken.current)return;
+   setPersona(v=>v===nextPersona?v:nextPersona);
+   pendingReply.current=text;
+   if(speechTimer.current!==null)window.clearTimeout(speechTimer.current);
+   speechTimer.current=window.setTimeout(()=>{speechTimer.current=null;playReply(text,nextPersona)},180);
+  };
+
+  window.addEventListener('iam:voice-reply-ready',directReply as EventListener);
   const observer=new MutationObserver(scheduleReplySpeech);
   observer.observe(document.body,{subtree:true,childList:true,characterData:true});
   const replyPoll=window.setInterval(scheduleReplySpeech,600);
@@ -275,16 +320,18 @@ export default function VoiceOrchestrator(){
    };
    try{window.fetch=wrappedFetch;cleanups.push(()=>{try{if(window.fetch===wrappedFetch)window.fetch=originalFetch}catch{}})}catch{}
   }
-  return()=>{observer.disconnect();window.clearInterval(replyPoll);if(speechTimer.current!==null)window.clearTimeout(speechTimer.current);stopNaturalSpeech();synth?.removeEventListener?.('voiceschanged',refreshVoices);recognitionRef.current?.stop?.();for(const cleanup of cleanups)cleanup();routedPersonaHint=''};
+  return()=>{window.removeEventListener('iam:voice-reply-ready',directReply as EventListener);observer.disconnect();window.clearInterval(replyPoll);if(speechTimer.current!==null)window.clearTimeout(speechTimer.current);if(speechStartWatchdog.current!==null)window.clearTimeout(speechStartWatchdog.current);stopNaturalSpeech();synth?.removeEventListener?.('voiceschanged',refreshVoices);recognitionRef.current?.stop?.();for(const cleanup of cleanups)cleanup();routedPersonaHint=''};
  },[]);
 
  function speakSample(){
   if(!voiceReady)return;
   primeSpeechSynthesis();
-  speakTextNaturally(`This is ${persona}. I recognize my name and my specialist role.`,{
+  const reply=latestReply(path);
+  const text=reply||`This is ${persona}. My voice is ready.`;
+  speakTextNaturally(text,{
    configure:(u)=>applyVoiceProfile(u,persona),maxChunkChars:220,interChunkDelayMs:45,
    onStart:()=>{setNotice('');setSpeaking(true)},onEnd:()=>setSpeaking(false),
-   onError:()=>{setSpeaking(false);setNotice('Your browser could not play the voice smoothly. Check device volume and try again.')}
+   onError:()=>{setSpeaking(false);setNotice('Your browser could not play the voice. Check device volume and tap HEAR again.')}
   });
  }
  function listen(){
@@ -319,10 +366,10 @@ export default function VoiceOrchestrator(){
   <div className="voice-copy"><b>{persona}</b><span>{listening?'Listening for name + request…':speaking?'Speaking…':'Voice conversation'}</span></div>
   <button type="button" className="voice-mic" onClick={listen} disabled={!micReady} aria-label={`Talk to ${persona}`} title={micReady?`Talk to ${persona}`:'Speech recognition unavailable'}>{listening?'●':'🎙'}</button>
   <button type="button" className="voice-sound" onClick={()=>{const next=!autoSpeak;setAutoSpeak(next);if(next)primeSpeechSynthesis();else stopNaturalSpeech()}} disabled={!voiceReady} aria-pressed={autoSpeak} title={autoSpeak?'Turn spoken replies off':'Turn spoken replies on'}>{autoSpeak?'🔊':'🔇'}</button>
-  <button type="button" className="voice-sample" onClick={speakSample} disabled={!voiceReady} title="Hear this AI voice">VOICE</button>
+  <button type="button" className="voice-sample" onClick={speakSample} disabled={!voiceReady} aria-label={`Hear latest ${persona} reply`} title="Hear the latest AI reply">HEAR</button>
   {notice&&<div className="voice-notice" role="status">{notice}</div>}
   <style jsx>{`
-   .iam-voice-panel{position:fixed;right:18px;bottom:18px;z-index:2147483200;display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid rgba(106,224,255,.42);border-radius:16px;background:rgba(4,12,22,.96);box-shadow:0 16px 46px rgba(0,0,0,.48),0 0 28px rgba(68,203,245,.09);backdrop-filter:blur(14px);font-family:Inter,system-ui,sans-serif;color:#eafdff}.voice-copy{display:grid;min-width:112px;max-width:190px}.voice-copy b{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.voice-copy span{font-size:8px;color:#75a9ba;margin-top:2px}.iam-voice-panel button{height:38px;border:1px solid rgba(108,220,250,.28);border-radius:11px;background:#0a1b29;color:#eafdff;cursor:pointer;font-weight:900}.voice-mic,.voice-sound{width:42px;font-size:16px}.voice-sample{padding:0 10px;font-size:8px;letter-spacing:.12em}.iam-voice-panel.listening .voice-mic{color:#ff837b;border-color:#ff837b;box-shadow:0 0 22px rgba(255,92,83,.22)}.iam-voice-panel.speaking{border-color:rgba(120,239,180,.52)}.iam-voice-panel button:disabled{opacity:.38;cursor:not-allowed}.voice-notice{position:absolute;right:0;bottom:52px;width:min(330px,82vw);padding:9px 11px;border:1px solid #445a68;border-radius:10px;background:#08131d;color:#cfe3eb;font-size:9px;line-height:1.45}@media(max-width:680px){.iam-voice-panel{left:12px;right:12px;bottom:12px;justify-content:flex-end}.voice-copy{margin-right:auto;min-width:0;max-width:48vw}.voice-sample{display:none}}
+   .iam-voice-panel{position:fixed;right:18px;bottom:18px;z-index:2147483200;display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid rgba(106,224,255,.42);border-radius:16px;background:rgba(4,12,22,.96);box-shadow:0 16px 46px rgba(0,0,0,.48),0 0 28px rgba(68,203,245,.09);backdrop-filter:blur(14px);font-family:Inter,system-ui,sans-serif;color:#eafdff}.voice-copy{display:grid;min-width:112px;max-width:190px}.voice-copy b{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.voice-copy span{font-size:8px;color:#75a9ba;margin-top:2px}.iam-voice-panel button{height:38px;border:1px solid rgba(108,220,250,.28);border-radius:11px;background:#0a1b29;color:#eafdff;cursor:pointer;font-weight:900}.voice-mic,.voice-sound{width:42px;font-size:16px}.voice-sample{padding:0 10px;font-size:8px;letter-spacing:.12em}.iam-voice-panel.listening .voice-mic{color:#ff837b;border-color:#ff837b;box-shadow:0 0 22px rgba(255,92,83,.22)}.iam-voice-panel.speaking{border-color:rgba(120,239,180,.52)}.iam-voice-panel button:disabled{opacity:.38;cursor:not-allowed}.voice-notice{position:absolute;right:0;bottom:52px;width:min(330px,82vw);padding:9px 11px;border:1px solid #445a68;border-radius:10px;background:#08131d;color:#cfe3eb;font-size:9px;line-height:1.45}@media(max-width:680px){.iam-voice-panel{left:12px;right:12px;bottom:12px;justify-content:flex-end}.voice-copy{margin-right:auto;min-width:0;max-width:38vw}.voice-sample{display:block;padding:0 8px}}
   `}</style>
  </div>;
 }
