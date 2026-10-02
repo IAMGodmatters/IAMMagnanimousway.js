@@ -133,7 +133,7 @@ export default function StandaloneMagnanimous(){
    const specialist=d?.specialist_handoff&&d?.specialist?d.specialist:null;
    const parts=[specialist?`Magnanimous routed to ${specialist.name}`:'',learned?`learned ${learned} link${learned===1?'':'s'}`:'',grounded?`${grounded} source${grounded===1?'':'s'}`:''].filter(Boolean);
    const replyPersona=specialist?String(specialist.name||'Specialist'):'Magnanimous AI';
-   setMessages(v=>[...v,{id:userId+1,role:'assistant',content:answer,assistantName:replyPersona,assistantTitle:specialist?String(specialist.title||specialist.specialty||'Specialist branch'):'',meta:parts.join(' • '),sources:extractSources(d?.sources)}]);
+   setMessages(v=>[...v,{id:userId+1,role:'assistant',content:answer,assistantName:specialist?String(specialist.name||'Specialist'):'Magnanimous AI',assistantTitle:specialist?String(specialist.title||specialist.specialty||'Specialist branch'):'',meta:parts.join(' • '),sources:extractSources(d?.sources)}]);
    window.dispatchEvent(new CustomEvent('iam:voice-reply-ready',{detail:{text:answer,persona:replyPersona}}));
   }catch(err:any){
    setLastFailed({text,mode:requestMode.id});
