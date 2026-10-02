@@ -31,7 +31,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'creative-generation',
     name: 'Creative media generation and editing',
-    capabilities: ['image-generation','image-editing','video-generation','video-editing','animation','voice-generation','music-audio-workflows','design-generation','presentation-generation']
+    capabilities: ['image-generation','image-editing','html-css-image-rendering','url-screenshot-rendering','pdf-rendering','reusable-render-templates','batch-rendering','hosted-render-artifacts','render-usage-accounting','video-generation','video-editing','animation','voice-generation','music-audio-workflows','design-generation','presentation-generation']
   },
   {
     id: 'voice-realtime',
@@ -56,7 +56,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'tools-connectors',
     name: 'Tools, functions, MCP and connectors',
-    capabilities: ['function-calling','mcp','oauth-connectors','api-tools','direct-tool-calling','tool-discovery','tool-filtering','approval-gates','normalized-tool-contracts','capability-mesh','provider-readiness-routing','native-first-fallback-selection','single-public-ai-identity','private-execution-routing','unified-capability-directory','plugin-capability-inventory','capability-pattern-extraction','native-skill-synthesis','provider-exit-readiness','dependency-retirement-gates']
+    capabilities: ['function-calling','mcp','oauth-connectors','api-tools','direct-tool-calling','tool-discovery','tool-filtering','approval-gates','normalized-tool-contracts','native-rendering-mcp','capability-mesh','provider-readiness-routing','native-first-fallback-selection','single-public-ai-identity','private-execution-routing','unified-capability-directory','plugin-capability-inventory','capability-pattern-extraction','native-skill-synthesis','provider-exit-readiness','dependency-retirement-gates']
   },
   {
     id: 'business-operations',
