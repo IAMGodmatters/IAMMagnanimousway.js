@@ -137,6 +137,27 @@ jobs:
           if(!screenshot.base64||Number(screenshot.bytes||0)<1||screenshot.content_type!=='image/png'){
             throw new Error('Magnanimous Chromium snapshot render produced no PNG output.');
           }
+          const htmlRender=JSON.parse(await checked('http://browser:8792/render-content',{
+            method:'POST',
+            headers:{'content-type':'application/json','x-magnanimous-service-token':token},
+            body:JSON.stringify({
+              html:'<!doctype html><html><body><main id="card">Magnanimous Native Rendering</main></body></html>',
+              css:'html,body{margin:0}body{background:#fff}#card{width:640px;height:320px;display:grid;place-items:center;font:32px system-ui}',
+              mode:'screenshot',width:640,height:320,device_scale:2,ms_delay:50,timeout_ms:45000
+            })
+          }));
+          if(!htmlRender.base64||Number(htmlRender.bytes||0)<1||htmlRender.content_type!=='image/png'||htmlRender.network_access!==false){
+            throw new Error('Magnanimous HTML/CSS renderer produced no isolated PNG output.');
+          }
+          const htmlPdf=JSON.parse(await checked('http://browser:8792/render-content',{
+            method:'POST',
+            headers:{'content-type':'application/json','x-magnanimous-service-token':token},
+            body:JSON.stringify({html:'<h1>Magnanimous PDF</h1>',css:'h1{font-family:system-ui}',mode:'pdf',width:800,height:600,timeout_ms:45000})
+          }));
+          if(!htmlPdf.base64||Number(htmlPdf.bytes||0)<1||htmlPdf.content_type!=='application/pdf'){
+            throw new Error('Magnanimous HTML/CSS renderer produced no PDF output.');
+          }
+          console.log('Magnanimous native HTML/CSS PNG + PDF rendering PASS');
           let privateBlocked=false;
           try{
             await checked('http://browser:8792/render',{
