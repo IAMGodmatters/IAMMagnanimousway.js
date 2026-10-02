@@ -141,14 +141,14 @@ function directHtml(spec={}){
  let html=String(spec.html||'').slice(0,1000000);
  if(!html.trim())throw new Error('HTML is required.');
  html=html
-  .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi,'')
-  .replace(/<meta\\b[^>]*http-equiv=["']?refresh["']?[^>]*>/gi,'')
-  .replace(/<base\\b[^>]*>/gi,'');
+  .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')
+  .replace(/<meta\b[^>]*http-equiv=["']?refresh["']?[^>]*>/gi,'')
+  .replace(/<base\b[^>]*>/gi,'');
  const scheme=['dark','light'].includes(String(spec.color_scheme||''))?String(spec.color_scheme):'light';
  const policy='<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data: blob:; style-src \'unsafe-inline\'; font-src data:; connect-src \'none\'; media-src data:; object-src \'none\'; frame-src \'none\'; child-src \'none\'; form-action \'none\'; base-uri \'none\'">';
  const head=policy+'<meta name="color-scheme" content="'+scheme+'"><style>:root{color-scheme:'+scheme+'}'+css+'</style>';
- if(/<head\\b[^>]*>/i.test(html))return html.replace(/<head\\b[^>]*>/i,m=>m+head);
- if(/<html\\b[^>]*>/i.test(html))return html.replace(/<html\\b[^>]*>/i,m=>m+'<head>'+head+'</head>');
+ if(/<head\b[^>]*>/i.test(html))return html.replace(/<head\b[^>]*>/i,m=>m+head);
+ if(/<html\b[^>]*>/i.test(html))return html.replace(/<html\b[^>]*>/i,m=>m+'<head>'+head+'</head>');
  return '<!doctype html><html><head>'+head+'</head><body>'+html+'</body></html>';
 }
 async function renderContent(spec={}){
