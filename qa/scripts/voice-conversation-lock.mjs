@@ -18,7 +18,7 @@ const contracts = [
   ['aborted recognition is not shown as a false hearing failure', /if\(code==='aborted'\)\{setNotice\(''\);return\}/, source],
   ['standalone voice input uses the real submit path', /form\.requestSubmit\(send\)/, source],
   ['voice submission retries while React enables Send', /if\(attempt<5\)window\.setTimeout\(\(\)=>submit\(attempt\+1\),140\)/, source],
-  ['spoken replies use the shared natural speech engine', /speakTextNaturally\(settled/, source],
+  ['spoken replies use the shared natural speech engine', /speakTextNaturally\(text/, source],
   ['streaming replies wait for a stable text window before speaking', /speechTimer\.current=window\.setTimeout\([\s\S]*?\},950\)/, source],
   ['unrelated DOM mutations cannot indefinitely postpone the same pending reply', /text===pendingReply\.current&&speechTimer\.current!==null/, source],
   ['voice reply detection has a bounded polling fallback when DOM mutation timing is missed', /setInterval\(scheduleReplySpeech,600\)/, source],
