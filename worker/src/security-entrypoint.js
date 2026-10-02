@@ -20,6 +20,7 @@ import { handleRenderEngine } from './magnanimous-render-engine.js';
 import { handleCredentialVaultMigration } from './credential-vault-migration.js';
 import { handleMagnanimousCapabilityMesh } from './magnanimous-capability-mesh.js';
 import { handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
+import { handleMagnanimousNativeRendering } from './magnanimous-native-rendering.js';
 import { handleEdgeAiBridge } from './edge-ai-bridge.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
@@ -294,6 +295,15 @@ export default {
           return finalizeResponse(request,await securityPostflight(policyRequest,carrierCompleted,env));
         }
       }
+      if(policyUrl.pathname.startsWith('/api/magnanimous/native-rendering')){
+        const renderingResponse=await handleMagnanimousNativeRendering(policyRequest,env);
+        if(renderingResponse){
+          const assistantCompleted=await completeAssistantActionPolicy(assistantContext,renderingResponse,env);
+          const carrierCompleted=await completeCarrierWebhook(carrierContext,assistantCompleted,env);
+          return finalizeResponse(request,await securityPostflight(policyRequest,carrierCompleted,env));
+        }
+      }
+
 
       const infrastructureResponse=await handleMagnanimousInfrastructure(policyRequest,env);
       if(infrastructureResponse){
