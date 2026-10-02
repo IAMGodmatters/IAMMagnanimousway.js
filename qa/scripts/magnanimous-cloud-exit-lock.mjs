@@ -143,5 +143,6 @@ execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-cloud-control
 execFileSync(process.execPath,['magnanimous-runtime/scripts/verify-deployment-control.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['qa/scripts/magnanimous-cloud-independence-readiness.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['qa/scripts/native-infrastructure-independence-lock.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['qa/scripts/magnanimous-hcti-absorption-lock.mjs'],{stdio:'inherit'});
 
 console.log('Magnanimous Cloud Exit Lock: standalone runtime, Magnanimous Cloud control plane, SQL, storage/cache, durable work, event coordination, rate limiting, vectors, analytics, encrypted secrets, pipelines, isolated sandbox, server browser rendering, media transforms, observability, cutover tooling, provider-independent compatibility and infrastructure ownership PASS');
