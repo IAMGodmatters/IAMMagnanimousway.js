@@ -114,17 +114,44 @@ $source = "https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/
 Write-Host "Downloading the Magnanimous Local Bridge agent..."
 Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $agent
 
+function Test-ExistingBridgeAuthorization {
+  param([Parameter(Mandatory=$true)]$SavedConfig,[Parameter(Mandatory=$true)][string]$TargetServer)
+
+  $heartbeatUri = $TargetServer.TrimEnd("/") + "/api/magnanimous/local-bridge/agent/heartbeat"
+  $headers = @{
+    Authorization = "Bridge $($SavedConfig.token)"
+    Accept = "application/json"
+    "User-Agent" = "Magnanimous-Local-Bridge-Installer/1.0"
+  }
+  $body = @{ hostname=$env:COMPUTERNAME; capabilities=@() } | ConvertTo-Json -Compress
+
+  try {
+    $response = Invoke-WebRequest -UseBasicParsing -Uri $heartbeatUri -Method POST -Headers $headers -ContentType "application/json" -Body $body -TimeoutSec 20
+    return ([int]$response.StatusCode -eq 200)
+  } catch {
+    $status = 0
+    try { $status = [int]$_.Exception.Response.StatusCode } catch {}
+    if ($status -eq 401) { return $false }
+    throw "Could not verify the existing Local Bridge authorization. The saved bridge was left unchanged. $($_.Exception.Message)"
+  }
+}
+
 $reusePairing = $false
 if (Test-Path $config) {
   try {
     $saved = Get-Content -Raw -Path $config | ConvertFrom-Json
     $savedServer = ([string]$saved.server).TrimEnd("/")
     if ($saved.device_id -and $saved.token -and $savedServer -eq $Server.TrimEnd("/")) {
-      $reusePairing = $true
-      Write-Host "Existing Magnanimous Local Bridge pairing found. Reusing device: $($saved.device_id)"
+      if (Test-ExistingBridgeAuthorization -SavedConfig $saved -TargetServer $Server) {
+        $reusePairing = $true
+        Write-Host "Existing Magnanimous Local Bridge pairing found. Reusing device: $($saved.device_id)"
+      } else {
+        Write-Warning "Existing Magnanimous Local Bridge token is no longer authorized. Re-pairing this computer with the new activation code."
+      }
     }
   } catch {
-    Write-Warning "Existing Local Bridge configuration could not be read. A fresh pairing will be attempted."
+    if ($_.Exception.Message -like "Could not verify the existing Local Bridge authorization.*") { throw }
+    Write-Warning "Existing Local Bridge configuration could not be read or validated. A fresh pairing will be attempted."
   }
 }
 
@@ -143,26 +170,44 @@ $startupBody = "@echo off`r`nstart `"`" /min `"$pythonExe`" `"$agent`" run`r`n"
 Set-Content -Path $startupLauncher -Value $startupBody -Encoding Ascii
 $startupMode = "per-user Startup folder"
 
+function Stop-MagnanimousBridgeProcesses {
+  param([Parameter(Mandatory=$true)][string]$AgentPath)
+  try {
+    $processes = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+      ($_.Name -eq "python.exe" -or $_.Name -eq "pythonw.exe") -and
+      $_.CommandLine -and
+      $_.CommandLine.Contains($AgentPath) -and
+      $_.CommandLine -match "\srun(?:\s|$)"
+    }
+    foreach ($process in $processes) {
+      Stop-Process -Id $process.ProcessId -Force -ErrorAction SilentlyContinue
+    }
+    if ($processes) { Start-Sleep -Milliseconds 500 }
+  } catch {
+    Write-Warning "Could not stop an older Local Bridge process automatically. Startup will still attempt to launch the repaired bridge."
+  }
+}
+
+try { Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue } catch {}
+Stop-MagnanimousBridgeProcesses -AgentPath $agent
+
+$scheduledStarted = $false
 try {
   $action = New-ScheduledTaskAction -Execute $pythonExe -Argument $runArgs
   $trigger = New-ScheduledTaskTrigger -AtLogOn
   $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1)
   Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Description "Outbound-only I AM MAGNANIMOUS WAY local execution bridge" -Force | Out-Null
-  try { Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue } catch {}
   Start-ScheduledTask -TaskName $taskName
+  $scheduledStarted = $true
   $startupMode = "Windows Task Scheduler plus per-user Startup fallback"
 } catch {
   Write-Warning "Task Scheduler registration was unavailable for this Windows account. Using the per-user Startup folder instead; Administrator access is not required."
 }
 
-$alreadyRunning = $false
-try {
-  $alreadyRunning = [bool](Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*bridge_agent.py*run*" } | Select-Object -First 1)
-} catch {}
-if (-not $alreadyRunning) {
+if (-not $scheduledStarted) {
   Start-Process -FilePath $pythonExe -ArgumentList $runArgs -WindowStyle Hidden
-  Start-Sleep -Seconds 2
 }
+Start-Sleep -Seconds 2
 
 Write-Host ""
 Write-Host "Magnanimous Local Bridge paired and started."
