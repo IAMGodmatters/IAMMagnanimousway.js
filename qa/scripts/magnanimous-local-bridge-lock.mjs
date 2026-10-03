@@ -67,6 +67,11 @@ assert(installer.includes('New-ScheduledTaskAction'),'Windows installer should r
 assert(installer.includes('GetFolderPath("Startup")'),'Windows installer must have a per-user startup fallback');
 assert(installer.includes('Magnanimous-Local-Bridge.cmd'),'Windows installer must create a per-user startup launcher');
 assert(installer.includes('Existing Magnanimous Local Bridge pairing found. Reusing device'),'Windows installer must reuse an already successful pairing');
+assert(installer.includes('Test-ExistingBridgeAuthorization'),'Windows installer must validate a saved pairing against the live server before reuse');
+assert(installer.includes('/api/magnanimous/local-bridge/agent/heartbeat'),'Windows installer must validate the saved bridge token using the scoped heartbeat endpoint');
+assert(installer.includes('Existing Magnanimous Local Bridge token is no longer authorized. Re-pairing this computer with the new activation code.'),'Windows installer must repair stale saved bridge tokens with the fresh activation code');
+assert(installer.includes('Stop-MagnanimousBridgeProcesses'),'Windows installer must stop only the prior Magnanimous bridge process before relaunching repaired credentials');
+assert(installer.includes('$scheduledStarted'),'Windows installer must explicitly launch a repaired bridge when Task Scheduler is unavailable');
 assert(installer.includes('Administrator access is not required.'),'Windows installer must clearly support non-admin startup');
 assert(installer.includes('Start-Process -FilePath $pythonExe'),'Windows installer must start the bridge immediately after activation');
 assert(installer.includes('Python.Python.3.13'),'Windows bootstrap should be able to install Python when missing');
