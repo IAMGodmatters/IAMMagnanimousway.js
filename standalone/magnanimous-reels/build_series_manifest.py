@@ -98,9 +98,11 @@ def video_prompt(story,episode,hero):
     scene_text=' '.join(s['text'] for s in episode['scenes'])
     tone={'Magical':'cinematic fantasy drama','Majestic':'epic royal drama','Drama':'grounded emotional family drama','Action':'high-tension action thriller','Mystery':'moody mystery thriller','Adventure':'warm cinematic family adventure'}[story['category']]
     return (f"Vertical 9:16 {tone}, live-action television look, realistic human performers, consistent recurring cast led by {hero}. "
-            f"Episode {episode['episode_number']} of {story['title']}. Natural acting, visible facial emotion, realistic hand/body movement, lip-synced spoken dialogue where appropriate, "
-            f"shot-reverse-shot coverage, closeups for emotional beats, medium and wide establishing shots, subtle handheld/dolly camera motion, cinematic lighting, shallow depth of field, "
-            f"production sound, room tone, footsteps and object sounds, restrained original score, no slideshow, no static-pan effect, no captions baked into source video, no logos. "
+            f"Episode {episode['episode_number']} of {story['title']}. Cold-open hook in the first 1.5 seconds. Natural acting, visible facial emotion, realistic hand/body movement, and lip-synced spoken dialogue. "
+            f"Use 2-5 second shot cadence with closeups, shot-reverse-shot dialogue coverage, medium reaction shots, and wide establishing shots; keep the camera alive with subtle handheld, dolly, push-in, or rack-focus movement. "
+            f"Prioritize faces and performance over narration. Mix dialogue clearly over stereo room tone, foley, ambience and restrained original score; duck music under speech and master near -16 LUFS with safe peaks. "
+            f"Keep captions as a separate app overlay using short phrase/word chunks for readability. End on a visual or spoken cliffhanger in the final 2-3 seconds. "
+            f"No slideshow, no static-pan effect, no reused third-party footage, no baked-in third-party logos or watermarks. "
             f"Use natural spoken dialogue with visible lip sync: {' '.join(episode.get('dialogue',[]))} Sound design: {', '.join(episode.get('sound_design',[]))}. Story beats: {scene_text}")
 
 series=[]
