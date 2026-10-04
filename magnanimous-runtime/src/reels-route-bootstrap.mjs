@@ -77,6 +77,8 @@ async function proxyReels(req,res){
   responseHeaders.delete('server');
   responseHeaders.delete('via');
   responseHeaders.delete('x-powered-by');
+  responseHeaders.delete('x-frame-options');
+  responseHeaders.delete('content-security-policy');
   responseHeaders.set('x-magnanimous-surface','reels');
   responseHeaders.set('x-magnanimous-nickname','Magnanimous Reels');
   responseHeaders.set('link','<https://iammagnanimousway.com/reels>; rel="canonical"');
