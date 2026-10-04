@@ -1,5 +1,6 @@
 import { loadRuntimeSecrets } from './runtime-secret-store.mjs';
 import { cleanupOrphanedMigrationStageFiles } from './migration-stage.mjs';
+import './reels-route-bootstrap.mjs';
 
 try {
   const cleanup=await cleanupOrphanedMigrationStageFiles();
