@@ -26,6 +26,12 @@ async function readBody(req,maxBytes=10*1024*1024){
   return Buffer.concat(chunks);
 }
 
+function prefixedPath(value){
+  if(typeof value!=='string'||!value.startsWith('/'))return value;
+  if(value===REELS_PREFIX||value.startsWith(REELS_PREFIX+'/'))return value;
+  return REELS_PREFIX+value;
+}
+
 function rewriteText(text,contentType){
   if(contentType.includes('application/manifest+json')||contentType.includes('application/json')){
     try{
@@ -33,13 +39,19 @@ function rewriteText(text,contentType){
       if(data&&typeof data==='object'&&('start_url'in data||'scope'in data)){
         data.start_url=REELS_PREFIX+'/';
         data.scope=REELS_PREFIX+'/';
+        if(Array.isArray(data.icons))data.icons=data.icons.map(icon=>icon&&typeof icon==='object'?{...icon,src:prefixedPath(icon.src)}:icon);
+        if(Array.isArray(data.screenshots))data.screenshots=data.screenshots.map(item=>item&&typeof item==='object'?{...item,src:prefixedPath(item.src)}:item);
         return JSON.stringify(data);
       }
     }catch{}
     return text;
   }
 
-  const roots=['/api/','/assets/','/audio/','/timings/','/creator.js','/series.js','/manifest.webmanifest','/sw.js'];
+  const roots=[
+    '/api/','/assets/','/audio/','/timings/',
+    '/creator-audio/','/creator-timings/','/ambient/','/series-video/',
+    '/creator.js','/series.js','/manifest.webmanifest','/sw.js'
+  ];
   let out=text;
   for(const root of roots){
     const replacement=REELS_PREFIX+root;
@@ -50,7 +62,16 @@ function rewriteText(text,contentType){
   }
   if(contentType.includes('javascript')){
     out=out.replaceAll("addAll(['/','/reels/api/stories','/reels/manifest.webmanifest'])", "addAll(['/reels/','/reels/api/stories','/reels/manifest.webmanifest'])");
+    out=out.replaceAll("const CORE=['/','/reels/manifest.webmanifest'", "const CORE=['/reels/','/reels/manifest.webmanifest'");
   }
+  return out;
+}
+
+function removeUpstreamHostBranding(html){
+  let out=html;
+  out=out.replace(/<style>body\{padding-bottom:2\.6em\}<\/style>/gi,'');
+  out=out.replace(/<div[^>]*>This app is user-hosted on[\s\S]*?Report abuse<\/a><\/div>/gi,'');
+  out=out.replace(/<meta[^>]+(?:BasicDeploy|basicdeploy\.com|lja74zv1\.basicdeploy\.com)[^>]*>/gi,'');
   return out;
 }
 
@@ -87,10 +108,11 @@ async function proxyReels(req,res){
   const type=String(responseHeaders.get('content-type')||'').toLowerCase();
   if(type.includes('text/html')||type.includes('javascript')||type.includes('application/json')||type.includes('manifest')){
     let text=body.toString('utf8');
+    if(type.includes('text/html'))text=removeUpstreamHostBranding(text);
     text=rewriteText(text,type);
     if(type.includes('text/html')){
       text=text.replace(/<title>[^<]*<\/title>/i,'<title>Magnanimous Reels</title>');
-      text=text.replace('</head>','<meta name="application-name" content="Magnanimous Reels"><link rel="canonical" href="https://iammagnanimousway.com/reels"></head>');
+      text=text.replace('</head>','<meta name="application-name" content="Magnanimous Reels"><meta name="robots" content="index,follow,max-image-preview:large,max-video-preview:-1"><link rel="canonical" href="https://iammagnanimousway.com/reels"></head>');
     }
     body=Buffer.from(text);
   }
