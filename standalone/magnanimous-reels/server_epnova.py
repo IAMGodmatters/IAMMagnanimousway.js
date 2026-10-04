@@ -21,7 +21,7 @@ def published_by_id(episode_id):
 
 
 class ReelsHandler(base.Handler):
-    server_version = 'MagnanimousReels/5.0'
+    server_version = 'MagnanimousReels/5.1'
 
     def serve_index(self):
         path = f'{STATIC}/index.html'
@@ -33,6 +33,8 @@ class ReelsHandler(base.Handler):
             html = html.replace('</body>', '<script src="/creator.js"></script></body>')
         if 'src="/series.js"' not in html:
             html = html.replace('</body>', '<script src="/series.js"></script></body>')
+        if 'src="/premium-gating.js"' not in html:
+            html = html.replace('</body>', '<script src="/premium-gating.js"></script></body>')
         return self.send_bytes(html.encode('utf-8'), 'text/html; charset=utf-8', 200, 'no-cache')
 
     def do_GET(self):
@@ -50,14 +52,16 @@ class ReelsHandler(base.Handler):
         series_match = re.fullmatch(r'/api/series/(\d+)', path)
         if series_match:
             item = series_runtime.get_series(int(series_match.group(1)))
-            if not item: return self.send_json({'detail': 'Series not found.'}, 404)
+            if not item:
+                return self.send_json({'detail': 'Series not found.'}, 404)
             return self.send_json({'series': item})
 
         episode_series_match = re.fullmatch(r'/api/series/(\d+)/episode/(\d+)', path)
         if episode_series_match:
             sid, epn = map(int, episode_series_match.groups())
             item = series_runtime.get_episode(sid, epn)
-            if not item: return self.send_json({'detail': 'Episode not found.'}, 404)
+            if not item:
+                return self.send_json({'detail': 'Episode not found.'}, 404)
             device_id = (query.get('device') or [''])[0]
             weekly = bool(base.valid_device(device_id) and base.pass_active(base.ensure_account(device_id)))
             allowed, source = series_runtime.access(device_id, sid, epn, weekly)
@@ -80,6 +84,9 @@ class ReelsHandler(base.Handler):
 
         if path == '/series.js':
             return self.serve(f'{STATIC}/series.js', 'no-cache')
+
+        if path == '/premium-gating.js':
+            return self.serve(f'{STATIC}/premium-gating.js', 'no-cache')
 
         if path == '/api/creator/config':
             return self.send_json(creator_runtime.creator_config())
