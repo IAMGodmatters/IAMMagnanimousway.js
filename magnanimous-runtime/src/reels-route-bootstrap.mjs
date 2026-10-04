@@ -57,6 +57,7 @@ function rewriteText(text,contentType){
     const replacement=REELS_PREFIX+root;
     out=out.split(`'${root}`).join(`'${replacement}`);
     out=out.split(`\"${root}`).join(`\"${replacement}`);
+    out=out.split('`'+root).join('`'+replacement);
     out=out.split(`href=${root}`).join(`href=${replacement}`);
     out=out.split(`src=${root}`).join(`src=${replacement}`);
   }
