@@ -55,6 +55,7 @@ def init_schema():
                    (s['series_id'],ep['episode_number'],'native_or_configured','ready' if ready else 'awaiting_capacity',path if ready else None,'Real moving video required; legacy motion-comic preview is not considered final.' if not ready else 'Real video asset present.',ts))
     db.commit(); db.close()
 
+
 def series_list():
     m=load_manifest(); db=connect_db(); rows={(int(r['series_id']),int(r['episode_number'])):dict(r) for r in db.execute('SELECT * FROM series_render_jobs').fetchall()}; db.close()
     out=[]
@@ -103,6 +104,27 @@ def unlocked_episode_keys(device_id):
     db=connect_db(); rows=db.execute('SELECT series_id,episode_number FROM series_episode_unlocks WHERE device_id=? ORDER BY series_id,episode_number',(device_id,)).fetchall(); db.close(); return [f"{int(r['series_id'])}:{int(r['episode_number'])}" for r in rows]
 
 def render_summary():
-    db=connect_db(); rows=db.execute('SELECT status,COUNT(*) n FROM series_render_jobs GROUP BY status').fetchall(); db.close(); counts={r['status']:int(r['n']) for r in rows}; return {'total':600,'ready':counts.get('ready',0),'awaiting_capacity':counts.get('awaiting_capacity',0),'generating':counts.get('generating',0),'failed':counts.get('failed',0),'production_target':'cinematic_live_action_vertical'}
+    db=connect_db(); rows=db.execute('SELECT series_id,episode_number,status FROM series_render_jobs').fetchall(); db.close()
+    ready_keys={(int(r['series_id']),int(r['episode_number'])) for r in rows if r['status']=='ready'}
+    counts={}
+    for r in rows: counts[r['status']]=counts.get(r['status'],0)+1
+    manifest=load_manifest(); total=sum(int(s.get('episode_count') or len(s.get('episodes',[]))) for s in manifest['series'])
+    paid_ready=sum(1 for _,ep in ready_keys if ep>FREE_EPISODES)
+    complete_series_ready=0; premium_complete_series_ready=0
+    for s in manifest['series']:
+        sid=int(s['series_id']); episode_numbers=[int(e['episode_number']) for e in s['episodes']]
+        if episode_numbers and all((sid,n) in ready_keys for n in episode_numbers): complete_series_ready+=1
+        premium_numbers=[n for n in episode_numbers if n>FREE_EPISODES]
+        if premium_numbers and all((sid,n) in ready_keys for n in premium_numbers): premium_complete_series_ready+=1
+    coin_sales_enabled=paid_ready>0
+    weekly_pass_sales_enabled=complete_series_ready>0
+    return {
+      'total':total,'ready':len(ready_keys),'paid_ready':paid_ready,
+      'awaiting_capacity':counts.get('awaiting_capacity',0),'generating':counts.get('generating',0),'failed':counts.get('failed',0),
+      'complete_series_ready':complete_series_ready,'premium_complete_series_ready':premium_complete_series_ready,
+      'coin_sales_enabled':coin_sales_enabled,'weekly_pass_sales_enabled':weekly_pass_sales_enabled,
+      'production_target':'cinematic_live_action_vertical',
+      'sales_policy':'Coin packs require at least one finished paid cinematic episode. Weekly all-access requires at least one fully rendered 10-episode cinematic season.'
+    }
 
 init_schema()
