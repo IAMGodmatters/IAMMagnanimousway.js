@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Magnanimous Reels',
-  description: 'Original short-drama series from Magnanimous Reels.',
+  description: 'Public original short-drama previews and cinematic series from Magnanimous Reels. No sign-in required.',
   alternates: { canonical: '/reels' },
 };
 
@@ -16,7 +16,7 @@ export default function MagnanimousReelsPage() {
       background: '#05060a',
       display: 'grid',
       gridTemplateRows: '44px 1fr',
-      zIndex: 1000,
+      zIndex: 2147483000,
     }}>
       <header style={{
         display: 'flex',
@@ -30,18 +30,22 @@ export default function MagnanimousReelsPage() {
         fontFamily: 'system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif',
       }}>
         <strong style={{ fontSize: 15 }}>Magnanimous Reels</strong>
-        <a
-          href="https://magnanimous-production.up.railway.app/reels/"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: '#ffd05a', fontSize: 12, textDecoration: 'none' }}
-        >
-          Open full screen
-        </a>
+        <span style={{
+          color: '#bff3d6',
+          border: '1px solid #2d6f50',
+          background: '#0d2118',
+          borderRadius: 999,
+          padding: '4px 9px',
+          fontSize: 11,
+          fontWeight: 800,
+          whiteSpace: 'nowrap',
+        }}>
+          Public · No sign-in required
+        </span>
       </header>
       <iframe
         src="https://magnanimous-production.up.railway.app/reels/"
-        title="Magnanimous Reels"
+        title="Magnanimous Reels public player"
         allow="autoplay; fullscreen; picture-in-picture"
         allowFullScreen
         referrerPolicy="strict-origin-when-cross-origin"
