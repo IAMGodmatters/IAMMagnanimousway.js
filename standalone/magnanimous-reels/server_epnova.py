@@ -1,5 +1,3 @@
-import json
-import os
 import re
 from http.server import ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
@@ -8,6 +6,7 @@ import creator_runtime
 import server as base
 
 STATIC = '/workspace/static'
+base.PAYMENT_LINKS['coins500'] = 'https://buy.stripe.com/14A5kD18ueY62rC9fL6kg09'
 
 
 def published_by_id(episode_id):
@@ -19,6 +18,16 @@ def published_by_id(episode_id):
 
 class ReelsHandler(base.Handler):
     server_version = 'MagnanimousReels/4.0'
+
+    def serve_index(self):
+        path = f'{STATIC}/index.html'
+        try:
+            html = open(path, encoding='utf-8').read()
+        except Exception:
+            return self.send_json({'error': 'app shell not found'}, 404)
+        if 'src="/creator.js"' not in html:
+            html = html.replace('</body>', '<script src="/creator.js"></script></body>')
+        return self.send_bytes(html.encode('utf-8'), 'text/html; charset=utf-8', 200, 'no-cache')
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -75,6 +84,9 @@ class ReelsHandler(base.Handler):
 
         if path == '/creator.js':
             return self.serve(f'{STATIC}/creator.js', 'no-cache')
+
+        if path in ['/', '/watch', '/series', '/pricing', '/rewards', '/my-reels', '/create', '/work-list']:
+            return self.serve_index()
 
         return super().do_GET()
 
