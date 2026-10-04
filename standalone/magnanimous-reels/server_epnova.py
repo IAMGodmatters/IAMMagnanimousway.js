@@ -42,6 +42,26 @@ class ReelsHandler(base.Handler):
         path = unquote(parsed.path)
         query = parse_qs(parsed.query)
 
+        if path == '/api/monetization':
+            summary = series_runtime.render_summary()
+            coin_ok = bool(summary.get('coin_sales_enabled'))
+            weekly_ok = bool(summary.get('weekly_pass_sales_enabled'))
+            packs = [
+                {'coins': 150, 'price_php': 49, 'url': base.PAYMENT_LINKS['coins150'] if coin_ok else None},
+                {'coins': 500, 'price_php': 129, 'url': base.PAYMENT_LINKS['coins500'] if coin_ok else None},
+                {'coins': 1400, 'price_php': 299, 'url': base.PAYMENT_LINKS['coins1400'] if coin_ok else None},
+            ]
+            return self.send_json({
+                'free_episode_count': series_runtime.FREE_EPISODES,
+                'unlock_cost': series_runtime.UNLOCK_COST,
+                'welcome_coins': base.WELCOME_COINS,
+                'packs': packs,
+                'weekly': {'price_php': 199, 'url': base.PAYMENT_LINKS['weekly'] if weekly_ok else None, 'recurring': True},
+                'purchases_enabled': {'coin_packs': coin_ok, 'weekly_pass': weekly_ok},
+                'inventory': summary,
+                'disabled_reason': None if (coin_ok or weekly_ok) else 'Premium checkout is paused until finished cinematic inventory is actually available.'
+            })
+
         if path == '/api/series':
             return self.send_json({'series': series_runtime.series_list(), 'render': series_runtime.render_summary()})
 
