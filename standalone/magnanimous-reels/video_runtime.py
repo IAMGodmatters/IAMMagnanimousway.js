@@ -15,7 +15,17 @@ def capabilities():
             'wan_2_2_ti2v_5b':'~24 GB VRAM minimum',
             'byteplus_seedance':'funded API account/key required'
         },
-        'audio_target':'synchronized dialogue, foley, ambience and score'
+        'audio_target':'lip-synced dialogue, stereo foley/ambience and ducked score, target -16 LUFS',
+        'reference_style_profile':{
+            'use':'technique_only_no_source_redistribution',
+            'aspect_ratio':'9:16',
+            'frame_rate':30,
+            'shot_cadence_seconds':'2-5',
+            'cold_open_seconds':1.5,
+            'cliffhanger_seconds':'2-3',
+            'caption_style':'short phrase or word chunks as app overlay',
+            'audio_master':'about -16 LUFS, dialogue first, safe peaks'
+        }
     }
 
 
