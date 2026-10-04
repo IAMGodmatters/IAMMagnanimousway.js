@@ -26,6 +26,14 @@ async function readBody(req,maxBytes=10*1024*1024){
   return Buffer.concat(chunks);
 }
 
+function stripUpstreamHostBranding(text){
+  let out=text;
+  out=out.replace(/<meta[^>]+(?:BasicDeploy|basicdeploy\.com|lja74zv1\.basicdeploy\.com)[^>]*>/gi,'');
+  out=out.replace(/<style>\s*body\s*\{\s*padding-bottom\s*:\s*2\.6em\s*;?\s*\}\s*<\/style>/gi,'');
+  out=out.replace(/<div[^>]*z-index\s*:\s*2147483647[^>]*>[\s\S]*?This app is user-hosted on[\s\S]*?Report abuse<\/a><\/div>/gi,'');
+  return out;
+}
+
 function rewriteText(text,contentType){
   if(contentType.includes('application/manifest+json')||contentType.includes('application/json')){
     try{
@@ -79,6 +87,7 @@ async function proxyReels(req,res){
   responseHeaders.delete('x-powered-by');
   responseHeaders.delete('x-frame-options');
   responseHeaders.delete('content-security-policy');
+  for(const key of [...responseHeaders.keys()])if(key.toLowerCase().startsWith('x-basicdeploy'))responseHeaders.delete(key);
   responseHeaders.set('x-magnanimous-surface','reels');
   responseHeaders.set('x-magnanimous-nickname','Magnanimous Reels');
   responseHeaders.set('link','<https://iammagnanimousway.com/reels>; rel="canonical"');
@@ -89,8 +98,9 @@ async function proxyReels(req,res){
     let text=body.toString('utf8');
     text=rewriteText(text,type);
     if(type.includes('text/html')){
+      text=stripUpstreamHostBranding(text);
       text=text.replace(/<title>[^<]*<\/title>/i,'<title>Magnanimous Reels</title>');
-      text=text.replace('</head>','<meta name="application-name" content="Magnanimous Reels"><link rel="canonical" href="https://iammagnanimousway.com/reels"></head>');
+      text=text.replace('</head>','<meta name="application-name" content="Magnanimous Reels"><meta name="description" content="Public original short-drama series from Magnanimous Reels. No sign-in required."><link rel="canonical" href="https://iammagnanimousway.com/reels"></head>');
     }
     body=Buffer.from(text);
   }
