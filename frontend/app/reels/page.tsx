@@ -78,7 +78,6 @@ export default function MagnanimousReelsPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
             <button
               id="reelsInstall"
-              type="button"
               title="Install Magnanimous Reels on this device"
               style={{
                 color: '#fff',
