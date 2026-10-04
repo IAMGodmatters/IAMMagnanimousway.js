@@ -50,7 +50,7 @@ function rewriteText(text,contentType){
   const roots=[
     '/api/','/assets/','/audio/','/timings/',
     '/creator-audio/','/creator-timings/','/ambient/','/series-video/',
-    '/creator.js','/series.js','/manifest.webmanifest','/sw.js'
+    '/creator.js','/series.js','/premium-gating.js','/manifest.webmanifest','/sw.js'
   ];
   let out=text;
   for(const root of roots){
