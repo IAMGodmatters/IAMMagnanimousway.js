@@ -3,10 +3,14 @@ from http.server import ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
 import creator_runtime
+import series_runtime
+import video_runtime
 import server as base
 
 STATIC = '/workspace/static'
 base.PAYMENT_LINKS['coins500'] = 'https://buy.stripe.com/14A5kD18ueY62rC9fL6kg09'
+# Every series now gives Episodes 1-3 free. The old pilot card is Episode 1, so all 60 pilots remain free previews.
+base.FREE_STORY_IDS = set(base.BY_ID.keys())
 
 
 def published_by_id(episode_id):
@@ -17,7 +21,7 @@ def published_by_id(episode_id):
 
 
 class ReelsHandler(base.Handler):
-    server_version = 'MagnanimousReels/4.0'
+    server_version = 'MagnanimousReels/5.0'
 
     def serve_index(self):
         path = f'{STATIC}/index.html'
@@ -27,12 +31,55 @@ class ReelsHandler(base.Handler):
             return self.send_json({'error': 'app shell not found'}, 404)
         if 'src="/creator.js"' not in html:
             html = html.replace('</body>', '<script src="/creator.js"></script></body>')
+        if 'src="/series.js"' not in html:
+            html = html.replace('</body>', '<script src="/series.js"></script></body>')
         return self.send_bytes(html.encode('utf-8'), 'text/html; charset=utf-8', 200, 'no-cache')
 
     def do_GET(self):
         parsed = urlparse(self.path)
         path = unquote(parsed.path)
         query = parse_qs(parsed.query)
+
+        if path == '/api/series':
+            return self.send_json({'series': series_runtime.series_list(), 'render': series_runtime.render_summary()})
+
+        if path == '/api/video/capabilities':
+            data = video_runtime.capabilities(); data['render'] = series_runtime.render_summary()
+            return self.send_json(data)
+
+        series_match = re.fullmatch(r'/api/series/(\d+)', path)
+        if series_match:
+            item = series_runtime.get_series(int(series_match.group(1)))
+            if not item: return self.send_json({'detail': 'Series not found.'}, 404)
+            return self.send_json({'series': item})
+
+        episode_series_match = re.fullmatch(r'/api/series/(\d+)/episode/(\d+)', path)
+        if episode_series_match:
+            sid, epn = map(int, episode_series_match.groups())
+            item = series_runtime.get_episode(sid, epn)
+            if not item: return self.send_json({'detail': 'Episode not found.'}, 404)
+            device_id = (query.get('device') or [''])[0]
+            weekly = bool(base.valid_device(device_id) and base.pass_active(base.ensure_account(device_id)))
+            allowed, source = series_runtime.access(device_id, sid, epn, weekly)
+            payload = dict(item)
+            payload['access'] = {'allowed': allowed, 'source': source, 'unlock_cost': series_runtime.UNLOCK_COST}
+            return self.send_json({'episode': payload})
+
+        series_video = re.fullmatch(r'/series-video/(\d+)/(\d+)\.mp4', path)
+        if series_video:
+            sid, epn = map(int, series_video.groups())
+            device_id = (query.get('device') or [''])[0]
+            weekly = bool(base.valid_device(device_id) and base.pass_active(base.ensure_account(device_id)))
+            allowed, _ = series_runtime.access(device_id, sid, epn, weekly)
+            if not allowed:
+                return self.send_json({'detail': 'Episode locked.', 'code': 'PAYMENT_REQUIRED', 'unlock_cost': series_runtime.UNLOCK_COST}, 402)
+            item = series_runtime.get_episode(sid, epn)
+            if not item or not item.get('real_video_ready'):
+                return self.send_json({'detail': 'Real cinematic video has not been rendered yet.', 'code': 'REAL_VIDEO_PENDING'}, 409)
+            return self.serve(series_runtime.video_path(sid, epn), 'private, max-age=3600')
+
+        if path == '/series.js':
+            return self.serve(f'{STATIC}/series.js', 'no-cache')
 
         if path == '/api/creator/config':
             return self.send_json(creator_runtime.creator_config())
@@ -92,6 +139,29 @@ class ReelsHandler(base.Handler):
 
     def do_POST(self):
         path = unquote(urlparse(self.path).path)
+        if path == '/api/series/unlock':
+            payload = self.read_json(); device_id = str(payload.get('device_id') or '')
+            if not base.valid_device(device_id):
+                return self.send_json({'detail': 'Valid device_id required.'}, 400)
+            base.ensure_account(device_id)
+            try:
+                sid = int(payload.get('series_id')); epn = int(payload.get('episode_number'))
+            except Exception:
+                return self.send_json({'detail': 'Valid series_id and episode_number required.'}, 400)
+            episode = series_runtime.get_episode(sid, epn)
+            if not episode:
+                return self.send_json({'detail': 'Episode not found.'}, 404)
+            if epn > series_runtime.FREE_EPISODES and not episode.get('real_video_ready'):
+                return self.send_json({'unlocked': False, 'code': 'REAL_VIDEO_PENDING', 'detail': 'This paid episode cannot take coins until its real cinematic video is rendered.'}, 409)
+            weekly = base.pass_active(base.ensure_account(device_id))
+            if weekly:
+                result = {'unlocked': True, 'source': 'weekly_pass', 'spent': 0}
+            else:
+                result = series_runtime.unlock(device_id, sid, epn)
+            result['account'] = base.account_payload(device_id)
+            result['series_unlocks'] = series_runtime.unlocked_episode_keys(device_id)
+            return self.send_json(result, 200 if result.get('unlocked') else 402)
+
         if not path.startswith('/api/creator/'):
             return super().do_POST()
 
