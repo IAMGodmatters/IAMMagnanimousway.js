@@ -1,9 +1,11 @@
-import json, os, sqlite3, time
+import json, os, sqlite3, time, subprocess, sys
 BASE='/workspace'; STATIC=f'{BASE}/static'; MANIFEST=f'{BASE}/series_manifest.json'; DB=f'{BASE}/reels.db'
 FREE_EPISODES=3
 UNLOCK_COST=30
 
 def load_manifest():
+    if not os.path.isfile(MANIFEST):
+        subprocess.run([sys.executable, f'{BASE}/build_series_manifest.py'], check=True, cwd=BASE)
     return json.load(open(MANIFEST,encoding='utf-8'))
 
 def connect_db():
