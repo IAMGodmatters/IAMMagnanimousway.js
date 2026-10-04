@@ -65,13 +65,43 @@ def beats(story, epnum, desc, prev, hero):
     }
     return [openers[cat],*mid[cat],close[cat]]
 
+def production_details(story, episode, hero):
+    cat=story['category']; obj=theme(story); n=episode['episode_number']
+    speaker=hero if hero[:1].isupper() else hero[:1].upper()+hero[1:]
+    partner={'Magical':'the guide','Majestic':'the trusted adviser','Drama':'the family member','Action':'the partner','Mystery':'the witness','Adventure':'the friend'}[cat]
+    lines={
+      'Magical':[f'{speaker}: "Tell me what is really happening. Why did this choose me?"',f'{partner.title()}: "If I tell you everything now, you will make the wrong choice."'],
+      'Majestic':[f'{speaker}: "I will not save the kingdom by becoming the thing we fear."',f'{partner.title()}: "Then give them another reason to follow you."'],
+      'Drama':[f'{speaker}: "I do not want another version of the truth. I want the truth."',f'{partner.title()}: "Then you need to hear the part I was afraid to say."'],
+      'Action':[f'{speaker}: "We have one chance. When I move, stay with me."',f'{partner.title()}: "Too late. They already know where we are."'],
+      'Mystery':[f'{speaker}: "This clue was left for us to find."',f'{partner.title()}: "No. It was left for you."'],
+      'Adventure':[f'{speaker}: "We can reach the goal later. We help them first."',f'{partner.title()}: "Then we go together. Nobody gets left behind."']
+    }[cat]
+    camera=[
+      'wide establishing shot that clearly places the characters in the scene',
+      'medium two-shot with natural blocking and eye lines',
+      'close-up on the lead during the emotional or dangerous reveal',
+      'shot-reverse-shot during spoken dialogue with visible lip movement',
+      'moving cliffhanger shot ending on the new threat, clue, or decision'
+    ]
+    sound={
+      'Magical':['subtle magical hum','cloth and footsteps','environmental wind/forest or room tone','restrained wonder score'],
+      'Majestic':['hall/valley ambience','armor or fabric movement','distant crowd/wind','restrained orchestral tension'],
+      'Drama':['natural room tone','chairs/doors/phone/object handling','breath and quiet pauses','soft emotional underscore'],
+      'Action':['footsteps and impacts','radio/phone or mechanical cues','traffic/tunnel/building ambience','percussive tension score'],
+      'Mystery':['quiet room/hall ambience','door/elevator/object detail sounds','distant footsteps','minimal suspense pulse'],
+      'Adventure':['outdoor/neighborhood ambience','footsteps and practical object sounds','birds/wind/water as appropriate','warm adventurous score']
+    }[cat]
+    return {'dialogue':lines,'camera_plan':camera,'sound_design':sound,'performance_note':f'Keep {hero} visually and vocally consistent with earlier episodes. Perform the scene naturally; do not read stage directions aloud.'}
+
 def video_prompt(story,episode,hero):
     scene_text=' '.join(s['text'] for s in episode['scenes'])
     tone={'Magical':'cinematic fantasy drama','Majestic':'epic royal drama','Drama':'grounded emotional family drama','Action':'high-tension action thriller','Mystery':'moody mystery thriller','Adventure':'warm cinematic family adventure'}[story['category']]
     return (f"Vertical 9:16 {tone}, live-action television look, realistic human performers, consistent recurring cast led by {hero}. "
             f"Episode {episode['episode_number']} of {story['title']}. Natural acting, visible facial emotion, realistic hand/body movement, lip-synced spoken dialogue where appropriate, "
             f"shot-reverse-shot coverage, closeups for emotional beats, medium and wide establishing shots, subtle handheld/dolly camera motion, cinematic lighting, shallow depth of field, "
-            f"production sound, room tone, footsteps and object sounds, restrained original score, no slideshow, no static-pan effect, no captions baked into source video, no logos. Story beats: {scene_text}")
+            f"production sound, room tone, footsteps and object sounds, restrained original score, no slideshow, no static-pan effect, no captions baked into source video, no logos. "
+            f"Use natural spoken dialogue with visible lip sync: {' '.join(episode.get('dialogue',[]))} Sound design: {', '.join(episode.get('sound_design',[]))}. Story beats: {scene_text}")
 
 series=[]
 for story in stories:
@@ -82,12 +112,12 @@ for story in stories:
       'status':'story_ready','video_status':'real_video_required','legacy_preview_available':True,
       'cliffhanger':story['scenes'][-1]['text'],
     }
-    ep1['video_prompt']=video_prompt(story,ep1,hero); episodes.append(ep1)
+    ep1.update(production_details(story,ep1,hero)); ep1['video_prompt']=video_prompt(story,ep1,hero); episodes.append(ep1)
     prev=story['scenes'][-1]['text'].rstrip('.!?').lower()
     for i,(title,desc) in enumerate(ARC[story['category']],start=2):
         sc=beats(story,i,desc,prev,hero)
         ep={'episode_number':i,'title':f"Episode {i} — {theme(story).title()}: {title}",'scenes':[{'text':x,'tag':story['scenes'][(j+i-2)%len(story['scenes'])]['tag']} for j,x in enumerate(sc)],'voice':story.get('voice'),'status':'story_ready','video_status':'real_video_required','legacy_preview_available':False,'cliffhanger':sc[-1]}
-        ep['video_prompt']=video_prompt(story,ep,hero)
+        ep.update(production_details(story,ep,hero)); ep['video_prompt']=video_prompt(story,ep,hero)
         episodes.append(ep); prev=desc
     series.append({'series_id':story['id'],'title':story['title'],'category':story['category'],'season':1,'episode_count':10,'lead':hero,'continuity_bible':f"Keep {hero} and all recurring characters visually consistent across all ten episodes. Preserve wardrobe logic, approximate age, hair, facial identity, locations, props and story continuity unless the script explicitly changes them.",'episodes':episodes})
 
