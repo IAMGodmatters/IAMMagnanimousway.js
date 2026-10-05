@@ -21,6 +21,7 @@ export class MagnanimousObjectStore{
     this.root=path.resolve(root);
     this.dataRoot=path.join(this.root,'objects');
     this.metaRoot=path.join(this.root,'metadata');
+    this.blobRoot=path.join(this.root,'blobs');
   }
   _paths(key){
     const clean=safeKey(key);
@@ -29,19 +30,42 @@ export class MagnanimousObjectStore{
     if(!data.startsWith(this.dataRoot+path.sep)||!meta.startsWith(this.metaRoot+path.sep)) throw new Error('Object path escaped storage root.');
     return{clean,data,meta};
   }
+  _blobPath(etag){
+    const clean=String(etag||'').toLowerCase();
+    if(!/^[0-9a-f]{64}$/.test(clean))throw new Error('Invalid Magnanimous blob digest.');
+    return path.join(this.blobRoot,clean.slice(0,2),clean.slice(2));
+  }
+  async _pruneBlob(etag){
+    if(!etag||!/^[0-9a-f]{64}$/i.test(String(etag)))return;
+    const blob=this._blobPath(etag);
+    try{
+      const stat=await fs.stat(blob);
+      if(Number(stat.nlink||1)<=1)await fs.rm(blob,{force:true});
+    }catch{}
+  }
   async put(key,value,options={}){
     const {clean,data,meta}=this._paths(key),body=toBuffer(value);
+    const previous=await this.head(clean).catch(()=>null);
     await fs.mkdir(path.dirname(data),{recursive:true});
     await fs.mkdir(path.dirname(meta),{recursive:true});
     const etag=crypto.createHash('sha256').update(body).digest('hex');
+    const blob=this._blobPath(etag);
+    await fs.mkdir(path.dirname(blob),{recursive:true});
+    if(!(await exists(blob))){
+      try{await fs.writeFile(blob,body,{flag:'wx'})}
+      catch(error){if(error?.code!=='EEXIST')throw error}
+    }
+    await fs.rm(data,{force:true});
+    try{await fs.link(blob,data)}catch{await fs.copyFile(blob,data)}
     const record={
       key:clean,etag,size:body.length,uploaded:Date.now(),
       httpMetadata:options.httpMetadata||{},
-      customMetadata:options.customMetadata||{}
+      customMetadata:options.customMetadata||{},
+      storage:{layout:'content-addressed-v1',deduplicated:true,blob:etag}
     };
-    await fs.writeFile(data,body);
     await fs.writeFile(meta,JSON.stringify(record));
-    return{key:clean,etag,size:body.length};
+    if(previous?.etag&&previous.etag!==etag)await this._pruneBlob(previous.etag);
+    return{key:clean,etag,size:body.length,deduplicated:true};
   }
   async head(key){
     const {clean,data,meta}=this._paths(key);
@@ -64,8 +88,43 @@ export class MagnanimousObjectStore{
     };
   }
   async delete(key){
+    const prior=await this.head(key).catch(()=>null);
     const {data,meta}=this._paths(key);
     await Promise.allSettled([fs.rm(data,{force:true}),fs.rm(meta,{force:true})]);
+    if(prior?.etag)await this._pruneBlob(prior.etag);
+  }
+  async stats(){
+    const rows=await this.list({limit:1000});
+    let logicalBytes=0;
+    const unique=new Map();
+    for(const object of rows.objects){
+      const size=Number(object?.size||0);
+      logicalBytes+=size;
+      if(object?.etag&&!unique.has(object.etag))unique.set(object.etag,size);
+    }
+    let filesystem=null;
+    try{
+      if(typeof fs.statfs==='function'){
+        await fs.mkdir(this.root,{recursive:true});
+        const s=await fs.statfs(this.root);
+        const block=Number(s.bsize||s.frsize||0);
+        filesystem={
+          total_bytes:block*Number(s.blocks||0),
+          free_bytes:block*Number(s.bavail??s.bfree??0)
+        };
+      }
+    }catch{}
+    const physicalEstimate=[...unique.values()].reduce((sum,size)=>sum+size,0);
+    return{
+      mode:'magnanimous-content-addressed-object-store',
+      root:path.basename(this.root),
+      object_count:rows.objects.length,
+      logical_bytes:logicalBytes,
+      unique_content_bytes:physicalEstimate,
+      deduplicated_bytes:Math.max(0,logicalBytes-physicalEstimate),
+      truncated:Boolean(rows.truncated),
+      filesystem
+    };
   }
   async list({prefix='',limit=1000,cursor=''}={}){
     const cleanPrefix=String(prefix||'').replace(/\\/g,'/').replace(/^\/+/, '');
@@ -83,7 +142,7 @@ export class MagnanimousObjectStore{
     const start=cursor?Math.max(0,keys.findIndex(k=>k>cursor)):0;
     const selected=keys.slice(start,start+Math.max(1,Math.min(Number(limit)||1000,1000)));
     const objects=[];
-    for(const key of selected){const h=await this.head(key);if(h)objects.push(h)}
+    for(const objectKey of selected){const h=await this.head(objectKey);if(h)objects.push(h)}
     return{objects,truncated:start+selected.length<keys.length,cursor:selected.at(-1)||''};
   }
 }
