@@ -79,6 +79,16 @@ export const MAGNANIMOUS_CAPABILITY_MESH_ROUTES=Object.freeze({
  'social.linkedin.publish':{surface:'first-party-social-publishing',mode:'external-write',confirmation:true,native_contract:true},
  'social.tiktok.publish':{surface:'first-party-social-publishing',mode:'external-write',confirmation:true,native_contract:true},
  'social.youtube.publish':{surface:'first-party-social-publishing',mode:'external-write',confirmation:true,native_contract:true},
+ 'research.plan':{surface:'research-orchestrator',mode:'read',native:true},
+ 'research.deep':{surface:'research-orchestrator',mode:'long-running-read',native_contract:true},
+ 'research.resume':{surface:'research-orchestrator',mode:'read',native_contract:true},
+ 'code.execute':{surface:'sandbox',mode:'isolated-execution',native_contract:true},
+ 'files.search':{surface:'knowledge-workspace',mode:'read',native_contract:true},
+ 'files.analyze':{surface:'knowledge-workspace',mode:'read',native_contract:true},
+ 'computer.read':{surface:'native-web',mode:'read',native:true},
+ 'computer.action':{surface:'native-web',mode:'confirmed-action',confirmation:true,native:true},
+ 'mcp.discover':{surface:'universal-app-fabric',mode:'read',native_contract:true},
+ 'mcp.invoke':{surface:'universal-app-fabric',mode:'authorized-action',confirmation:true,native_contract:true},
  'mesh.self_check':{surface:'capability-mesh',mode:'read',native:true}
 });
 
