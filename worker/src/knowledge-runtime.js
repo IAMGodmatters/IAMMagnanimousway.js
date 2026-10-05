@@ -140,7 +140,7 @@ function searchState(env){
   return{
     configured:true,
     brave_search_configured:brave,
-    web_provider:brave?'Brave Search':'cl0q public web index',
+    web_provider:brave?'Magnanimous multi-source (Brave + public web + Wikipedia)':'Magnanimous multi-source (public web + Wikipedia)',
     news_provider:brave?'Brave News':'Google News RSS',
     fallback_enabled:true
   };
@@ -174,11 +174,15 @@ async function googleNewsSearch(q,count=6){
   return rssEntries(xml).slice(0,count).map(x=>({title:x.title,url:x.url,description:x.content||x.title,age:'',source:'google-news-rss'}));
 }
 async function webSearch(env,q,count=6,freshness=''){
-  if(String(env?.BRAVE_SEARCH_API_KEY||'').trim()){
-    try{const r=await braveSearch(env,q,'web',count,freshness);if(r.results.length)return r.results;}catch(error){console.error('Brave web search failed; using public fallback',error)}
+  const jobs=[];
+  if(String(env?.BRAVE_SEARCH_API_KEY||'').trim())jobs.push(braveSearch(env,q,'web',count,freshness).then(x=>x.results).catch(error=>{console.error('Brave web search failed; continuing multi-source search',error);return[]}));
+  jobs.push(cl0qSearch(q,count).catch(error=>{console.error('Public web search failed; continuing multi-source search',error);return[]}));
+  jobs.push(wikipediaSearch(q,Math.min(count,4)).catch(error=>{console.error('Wikipedia reference search failed',error);return[]}));
+  const groups=await Promise.all(jobs),seen=new Set(),merged=[];
+  for(const group of groups)for(const item of group||[]){
+    const key=String(item?.url||'').replace(/\/$/,'').toLowerCase();if(!key||seen.has(key))continue;seen.add(key);merged.push(item);
   }
-  try{const results=await cl0qSearch(q,count);if(results.length)return results;}catch(error){console.error('cl0q web search failed; using reference fallback',error)}
-  try{return await wikipediaSearch(q,count)}catch(error){console.error('Wikipedia reference search failed',error);return[]}
+  return merged.slice(0,Math.max(count,Math.min(12,count*2)));
 }
 async function newsSearch(env,q,count=6,freshness='pw'){
   if(String(env?.BRAVE_SEARCH_API_KEY||'').trim()){
