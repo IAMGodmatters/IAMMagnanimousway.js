@@ -49,9 +49,10 @@ function boundedTokenBudget(input, env) {
   const safeRequested = Number.isFinite(requested) ? Math.max(64, requested) : 2200;
   const longFormFloorRaw = Number(env.MAGNANIMOUS_AI_LONGFORM_MIN_TOKENS || 3200);
   const hardCapRaw = Number(env.MAGNANIMOUS_AI_HARD_TOKEN_CAP || 8192);
-  const longFormFloor = Number.isFinite(longFormFloorRaw) ? Math.max(1400, longFormFloorRaw) : 3200;
-  const hardCap = Number.isFinite(hardCapRaw) ? Math.max(longFormFloor, hardCapRaw) : 8192;
-  const expanded = safeRequested >= 1000 ? Math.max(safeRequested, longFormFloor) : safeRequested;
+  const hardCap = Number.isFinite(hardCapRaw) ? Math.max(64, hardCapRaw) : 8192;
+  const desiredFloor = Number.isFinite(longFormFloorRaw) ? Math.max(64, longFormFloorRaw) : 3200;
+  const effectiveFloor = Math.min(desiredFloor, hardCap);
+  const expanded = safeRequested >= 1000 ? Math.max(safeRequested, effectiveFloor) : safeRequested;
   return Math.min(expanded, hardCap);
 }
 
