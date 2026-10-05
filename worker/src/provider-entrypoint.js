@@ -74,6 +74,18 @@ function effectiveTier(env,p){
   return billing!=='free'&&p.tier==='free-first'?'metered':p.tier;
 }
 function providerEnabled(env,p){return effectiveTier(env,p)!=='metered'||meteredEnabled(env)}
+function providerReliabilityMatrix(env){
+ const ai=PROVIDERS.map(p=>({id:p.id,configured:configured(env,p),enabled:providerEnabled(env,p),tier:effectiveTier(env,p)}));
+ return{
+  ai,
+  ai_configured:ai.filter(x=>x.configured&&x.enabled).length,
+  search:{multi_source:true,public_web:true,wikipedia:true,google_news:true,brave_optional:true,brave_configured:Boolean(String(env?.BRAVE_SEARCH_API_KEY||'').trim())},
+  infrastructure:{browser:Boolean(env?.MAGNANIMOUS_BROWSER_URL),media:Boolean(env?.MAGNANIMOUS_MEDIA_URL),sandbox:Boolean(env?.MAGNANIMOUS_SANDBOX_URL),persistent_storage:Boolean(env?.MAGNANIMOUS_DB_PATH&&env?.MAGNANIMOUS_OBJECTS_PATH)},
+  payments:{stripe_links:Boolean(env?.STRIPE_PAYMENT_LINK_PLUS||env?.STRIPE_PAYMENT_LINK_PRO||env?.STRIPE_PAYMENT_LINK_BUSINESS),stripe_api:Boolean(String(env?.STRIPE_SECRET_KEY||'').trim())},
+  communications:{smtp:Boolean(String(env?.MAGNANIMOUS_SMTP_PASSWORD||'').trim())||String(env?.MAGNANIMOUS_MAIL_DIRECT_MX||'').toLowerCase()==='true',sms:Boolean(String(env?.TWILIO_AUTH_TOKEN||env?.VOIP_PROVIDER_TOKEN||'').trim())},
+  policy:{free_first:true,metered_enabled:meteredEnabled(env),automatic_failover:true,provider_names_private:true}
+ };
+}
 function selectedExecutionModel(env,p,body={}){
  const explicit=String(body.model||'').trim();if(explicit)return explicit;
  const quality=String(body.quality||body.route_policy||'').toLowerCase();
@@ -319,6 +331,7 @@ async function handle(request, env) {
   }
 
   if (url.pathname === '/api/tools' && request.method === 'GET') return json({ tools: TOOLS });
+  if (url.pathname === '/api/operator/provider-readiness' && request.method === 'GET') return json({ok:true,...providerReliabilityMatrix(env)});
   if (url.pathname === '/api/operator/capabilities' && request.method === 'GET') {
     const localBridgeReady=await hasAnyReadyLocalBridge(env).catch(()=>false);
     const nativeBrowserReady=await hasAnyReadyLocalBridgeCapability(env,'browser_fetch').catch(()=>false);
