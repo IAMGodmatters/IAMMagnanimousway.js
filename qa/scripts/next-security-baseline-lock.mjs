@@ -19,7 +19,7 @@ const locked=String(lock.packages?.['node_modules/next']?.version||'');
 const rootLocked=String(lock.packages?.['']?.dependencies?.next||'');
 
 if(declared!==locked||declared!==rootLocked)fail('Next.js package.json and package-lock versions must match exactly.');
-if(!gte(versionParts(declared),[16,3,3]))fail('Next.js must remain at or above the August 2026 critical security baseline 16.3.3.');
+if(!gte(versionParts(declared),[16,3,8]))fail('Next.js must remain at or above the September 30, 2026 security baseline 16.3.8.');
 if(lock.packages?.['node_modules/@next/env']?.version!==declared)fail('@next/env must track the exact Next.js patch version.');
 for(const name of [
   '@next/swc-darwin-arm64','@next/swc-darwin-x64','@next/swc-linux-arm64-gnu','@next/swc-linux-arm64-musl',
@@ -27,6 +27,6 @@ for(const name of [
 ]){
   if(lock.packages?.['node_modules/'+name]?.version!==declared)fail(name+' must track the exact Next.js patch version.');
 }
-if(lock.packages?.['node_modules/@swc/helpers']?.version!=='0.5.23')fail('@swc/helpers must match the Next.js 16.3.5 runtime dependency.');
+if(lock.packages?.['node_modules/@swc/helpers']?.version!=='0.5.23')fail('@swc/helpers must match the validated Next.js runtime dependency.');
 
 console.log('Next.js security baseline lock PASS: '+declared);

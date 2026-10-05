@@ -171,6 +171,18 @@ async function staticResponse(pathname) {
   return null;
 }
 
+async function staticNotFoundResponse(){
+  for(const rel of ['404.html','_not-found.html',path.join('_not-found','index.html')]){
+    const candidate=path.resolve(assetsRoot,rel);
+    if(!candidate.startsWith(assetsRoot+path.sep)&&candidate!==assetsRoot)continue;
+    try{
+      const body=await fs.readFile(candidate);
+      return new Response(body,{status:404,headers:{'content-type':'text/html; charset=utf-8','cache-control':'public, max-age=60'}});
+    }catch{}
+  }
+  return new Response('<!doctype html><html><head><title>404 — I AM MAGNANIMOUS WAY™</title></head><body><main><h1>Page not found</h1><p>The address does not match a page on I AM MAGNANIMOUS WAY™.</p><p><a href="/">Return home</a></p></main></body></html>',{status:404,headers:{'content-type':'text/html; charset=utf-8','cache-control':'public, max-age=60'}});
+}
+
 async function staticAssetProof() {
   const candidates = safeAssetCandidates('/business-email/');
   for (const rel of candidates) {
@@ -657,6 +669,7 @@ const server = http.createServer(async (req, res) => {
           })(),
           cloud_vendor_required: false,
           mail: mailer.status(),
+          storage: await objectStore.stats(),
           first_party_capabilities: {
             relational_sql: true,
             static_assets: true,
@@ -762,6 +775,10 @@ const server = http.createServer(async (req, res) => {
         metrics.observe(asset.status, Date.now() - startedAt);
         return;
       }
+      const notFound=await staticNotFoundResponse();
+      await send(res,notFound);
+      metrics.observe(404,Date.now()-startedAt);
+      return;
     }
 
     const request = await nodeRequest(req);

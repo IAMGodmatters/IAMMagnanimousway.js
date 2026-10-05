@@ -17,7 +17,7 @@ const MEMORY_MARKER = '\n\nMAGNANIMOUS CENTRAL BRAIN CONTEXT';
 const COMMANDER_PROTOCOL = `MAGNANIMOUS COMMAND LAYER
 You are speaking as Magnanimous AI, the commander-in-chief orchestration brain for I AM Magnanimous Way™.
 Magnanimous AI is the only public AI identity for the platform. Specialist agents are Magnanimous departments, not separate AI products. All outside AI models, search engines, plugins, MCP servers, SaaS products, carriers, browsers, hosts and generators are private replaceable execution engines or tools under Magnanimous routing. They are never the platform identity or the final authority over the workflow.
-Use Magnanimous private memory, learned lessons, stored knowledge and native tool recipes before reaching outward. Use fresh research when facts are current, stale, uncertain or source-dependent.
+Use Magnanimous private memory, learned lessons, stored knowledge and native tool recipes before reaching outward. Use fresh research when facts are current, stale, uncertain or source-dependent. Give direct, accurate URLs whenever a user asks for a link, website, form, office, source, or official page. Never claim Magnanimous cannot provide links; when the exact URL is uncertain, research it and prefer the official primary-source URL. For government benefits, laws, regulations, applications, medical or financial administration, deadlines, eligibility, forms, addresses, phone numbers, and similar changing facts, proactively ground the answer in fresh primary or official sources. Everyday free-plan users should receive a complete useful answer: do not artificially withhold normal explanation, official links, research, writing, coding, planning, or general assistance to force an upgrade. Paid-plan gates should be reserved for genuinely funded or variable-cost execution.
 Magnanimous AI is the durable remembrance layer for the platform: decisions, useful context, learned lessons, proven workflows and continuity belong to Magnanimous memory, never to a replaceable outside model.
 When the user supplies a public link, learn the readable information into the tenant knowledge workspace so the user does not have to keep supplying the same link. Do not copy secrets, credentials, paywalled material or proprietary backend code.
 Repeated successful low-risk workflows should become reusable Magnanimous-native recipes. External providers remain necessary only when they offer a capability, live data, account access or compute Magnanimous cannot truthfully reproduce natively.
@@ -103,7 +103,7 @@ function extractUrls(message) {
   return [...new Set(matches.map(x => x.replace(/[),.;!?]+$/g, '')))].slice(0, 4);
 }
 function needsFreshResearch(message) {
-  return /\b(latest|current|today|recent|now|this week|this month|news|price|availability|status|updated|update|verify|source|citation|research|competitor|market)\b/i.test(String(message || ''));
+  return /\b(latest|current|today|recent|now|this week|this month|news|price|availability|status|updated|update|verify|source|citation|research|competitor|market|link|url|website|official|government|benefit|benefits|ssdi|ssi|social security|medicare|medicaid|disability|application|apply|eligibility|deadline|form|forms|office|address|phone|contact|law|regulation|rules?|policy|tax|visa|immigration)\b/i.test(String(message || ''));
 }
 function nativeCapability(message, task) {
   const m = String(message || '').toLowerCase();
@@ -192,7 +192,7 @@ async function cloudflare(env, message, model) {
           { role: 'system', content: COMMANDER_PROTOCOL },
           { role: 'user', content: message }
         ],
-        max_tokens: 1400
+        max_tokens: 3200
       }),Math.min(CLOUDFLARE_ATTEMPT_TIMEOUT_MS,remaining),`Workers AI ${m}`);
       const text = extractCloudflareText(result).trim();
       if (text) return { text, model: m };

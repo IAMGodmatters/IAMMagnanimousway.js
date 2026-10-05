@@ -50,7 +50,7 @@ export class MagnanimousAiBinding {
       input.max_tokens ||
       input.max_completion_tokens ||
       this.env.MAGNANIMOUS_AI_MAX_TOKENS ||
-      2200
+      3200
     );
 
     const requestedModel = String(_legacyModel || this.env.CLOUDFLARE_AI_MODEL || '@cf/zai-org/glm-4.7-flash').trim();

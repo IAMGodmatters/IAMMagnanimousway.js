@@ -27,6 +27,15 @@ function extractSources(value:unknown):Array<{title?:string;url?:string}>{
  if(!Array.isArray(value))return[];
  return value.slice(0,8).map((x:any)=>({title:String(x?.title||x?.name||'Source'),url:typeof x?.url==='string'?x.url:undefined}));
 }
+function linkedAnswer(text:string){
+ const parts=String(text||'').split(/(https?:\/\/[^\s<]+)/gi);
+ return parts.map((part,i)=>{
+  if(!/^https?:\/\//i.test(part))return <span key={i}>{part}</span>;
+  const clean=part.replace(/[),.;!?]+$/g,'');
+  const suffix=part.slice(clean.length);
+  return <span key={i}><a className="mag-inline-link" href={clean} target="_blank" rel="noopener noreferrer">{clean}</a>{suffix}</span>;
+ });
+}
 
 export default function StandaloneMagnanimous(){
  const[input,setInput]=useState('');
@@ -166,6 +175,7 @@ export default function StandaloneMagnanimous(){
     <div className="mag-core"><span>M</span><b>ONE BRAIN</b><small>Many specialist branches</small></div>
     <nav>{MODES.map(x=><button key={x.id} className={mode===x.id?'active':''} onClick={()=>setMode(x.id)}><b>{x.label}</b><span>{x.hint}</span></button>)}</nav>
     <div className="mag-email"><b>EMAIL CONNECTION</b><span>{mailState==='linked'?`${mailAccounts.length} mailbox${mailAccounts.length===1?'':'es'} linked to Magnanimous`:mailState==='checking'?'Checking your mailbox connection…':mailState==='unlinked'?'No Gmail or Outlook mailbox linked yet.':mailState==='unavailable'?'Mailbox status is temporarily unavailable.':'Sign in to link Gmail or Outlook securely.'}</span>{mailNotice&&<em>{mailNotice}</em>}{mailState==='linked'&&mailAccounts.slice(0,2).map(account=><small key={`${account.provider}:${account.external_account_id}`}>✓ {account.display_name||account.external_account_id} • {account.provider==='google'?'Gmail':'Outlook'}</small>)}{signedIn&&mailState!=='linked'&&<div className="mag-email-connect"><button type="button" disabled={!!mailBusy} onClick={()=>connectEmail('google')}>{mailBusy==='google'?'Opening…':'Connect Gmail'}</button><button type="button" disabled={!!mailBusy} onClick={()=>connectEmail('outlook')}>{mailBusy==='outlook'?'Opening…':'Connect Outlook'}</button></div>}{!signedIn&&<a href="/login?returnTo=%2Fmagnanimous">Sign in to link email →</a>}{mailState==='linked'&&<><a href="/business-email">Open Email Writer →</a><a href="/connections?category=email&source=magnanimous-standalone">Manage email connection →</a></>}</div>
+    <a className="mag-storage-link" href="/storage">Storage & device vault →</a>
     <div className="mag-memory"><b>{signedIn?'Persistent learning on':'Guest session'}</b><span>{signedIn?'Your authorized memory and learned workspace knowledge can be reused here. Magnanimous can automatically hand specialty work to the best named branch.':'Direct AI access is available. Global owner-approved specialist knowledge can still help; sign in for persistent workspace memory.'}</span>{!signedIn&&<a href="/login?returnTo=%2Fmagnanimous">Sign in for memory →</a>}</div>
    </aside>
 
@@ -174,7 +184,7 @@ export default function StandaloneMagnanimous(){
     <div className="mag-thread" aria-live="polite">
      {messages.map(m=>{const name=m.role==='assistant'?(m.assistantName||'Magnanimous AI'):'YOU';return <article key={m.id} className={`mag-message ${m.role}${m.silentVoice?' voice-silent':''}`}>
       <div className="mag-avatar">{m.role==='assistant'?initials(name):'YOU'}</div>
-      <div className="mag-bubble"><small>{name.toUpperCase()}{m.role==='assistant'&&m.assistantTitle?` • ${m.assistantTitle.toUpperCase()}`:''}</small><p>{m.content}</p>{m.meta&&<div className="mag-meta">{m.meta}</div>}{m.sources&&m.sources.length>0&&<div className="mag-sources"><b>Sources</b>{m.sources.map((s,i)=>s.url?<a key={`${s.url}-${i}`} href={s.url} target="_blank" rel="noreferrer">{s.title||s.url}</a>:<span key={i}>{s.title}</span>)}</div>}</div>
+      <div className="mag-bubble"><small>{name.toUpperCase()}{m.role==='assistant'&&m.assistantTitle?` • ${m.assistantTitle.toUpperCase()}`:''}</small><p>{linkedAnswer(m.content)}</p>{m.meta&&<div className="mag-meta">{m.meta}</div>}{m.sources&&m.sources.length>0&&<div className="mag-sources"><b>Sources</b>{m.sources.map((s,i)=>s.url?<a key={`${s.url}-${i}`} href={s.url} target="_blank" rel="noreferrer">{s.title||s.url}</a>:<span key={i}>{s.title}</span>)}</div>}</div>
      </article>})}
      {busy&&<article className="mag-message assistant"><div className="mag-avatar">M</div><div className="mag-bubble working"><small>MAGNANIMOUS AI</small><AIProcessingIndicator compact mode={activeMode.label}/></div></article>}
      <div ref={endRef}/>
