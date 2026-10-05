@@ -86,6 +86,22 @@ export class MagnanimousObjectStore{
     for(const key of selected){const h=await this.head(key);if(h)objects.push(h)}
     return{objects,truncated:start+selected.length<keys.length,cursor:selected.at(-1)||''};
   }
+  async capacity(){
+    await fs.mkdir(this.root,{recursive:true});
+    const stat=await fs.statfs(this.root);
+    const blockSize=Number(stat.bsize||0);
+    const totalBytes=Math.max(0,Number(stat.blocks||0)*blockSize);
+    const freeBytes=Math.max(0,Number(stat.bavail??stat.bfree??0)*blockSize);
+    const usedBytes=Math.max(0,totalBytes-freeBytes);
+    return{
+      total_bytes:totalBytes,
+      used_bytes:usedBytes,
+      free_bytes:freeBytes,
+      used_percent:totalBytes?Number(((usedBytes/totalBytes)*100).toFixed(2)):0,
+      durable:true,
+      backend:'magnanimous-native-filesystem-object-store'
+    };
+  }
 }
 
 export function openMagnanimousObjectStore(root=process.env.MAGNANIMOUS_OBJECTS_PATH||'./data/object-store'){
