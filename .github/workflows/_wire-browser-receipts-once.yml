@@ -64,6 +64,10 @@ jobs:
           if qa_add not in q:
               if qa_anchor not in q: raise SystemExit('missing QA receipt anchor')
               q=q.replace(qa_anchor,qa_add,1)
+          q=q.replace(
+            "assert.ok(summary.explicit_truth_gaps.some(x=>/Hash-chained signed receipts/i.test(x)));",
+            "assert.ok(summary.explicit_truth_gaps.some(x=>/HMAC signing/i.test(x)));"
+          )
           qa.write_text(q)
 
           reg=Path('worker/src/magnanimous-unfenced-capability-registry.js')
