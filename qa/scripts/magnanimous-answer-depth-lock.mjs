@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { MagnanimousAiBinding } from '../../magnanimous-runtime/src/ai-binding.mjs';
 
 const transport=fs.readFileSync(new URL('../../frontend/lib/magnanimous-chat-transport.ts',import.meta.url),'utf8');
+const businessEmail=fs.readFileSync(new URL('../../frontend/app/business-email/email-writer-client.tsx',import.meta.url),'utf8');
 for(const contract of [
   'PUBLIC_INFO_INTENT',
   'ssdi',
@@ -11,8 +12,11 @@ for(const contract of [
   'application',
   'live_search:true',
   'use_knowledge:true',
-  'automatic-public-information-grounding'
-])assert.ok(transport.includes(contract),`Standalone public-information grounding contract missing: ${contract}`);
+  'automatic-public-information-grounding',
+  'payload?.live_search===false',
+  'payload?.external_search===false'
+])assert.ok(transport.includes(contract),`Standalone public-information grounding/privacy contract missing: ${contract}`);
+assert.ok(businessEmail.includes('live_search:false'),'Business Email must explicitly opt out of live web search to protect recipient/purpose content.');
 
 const originalFetch=globalThis.fetch;
 const bodies=[];
@@ -42,8 +46,17 @@ try{
   });
   await capped.run('@cf/test/model',{messages:[{role:'user',content:'Long answer'}],max_tokens:9000});
   assert.equal(bodies.at(-1)?.max_tokens,4096,'Long-form expansion must remain bounded by the configured hard cap.');
+
+  const lowCap=new MagnanimousAiBinding({
+    MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN:'test-token',
+    MAGNANIMOUS_EDGE_AI_BRIDGE_URL:'https://example.test/edge',
+    MAGNANIMOUS_AI_LONGFORM_MIN_TOKENS:'3200',
+    MAGNANIMOUS_AI_HARD_TOKEN_CAP:'1024'
+  });
+  await lowCap.run('@cf/test/model',{messages:[{role:'user',content:'Respect a lower owner-defined hard cap.'}],max_tokens:1400});
+  assert.equal(bodies.at(-1)?.max_tokens,1024,'Owner-defined hard caps must win even when below the long-form floor.');
 }finally{
   globalThis.fetch=originalFetch;
 }
 
-console.log('Magnanimous answer depth lock PASS');
+console.log('Magnanimous answer depth + privacy lock PASS');
