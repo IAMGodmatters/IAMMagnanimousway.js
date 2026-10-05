@@ -14,6 +14,8 @@ export const MAGNANIMOUS_SINGLE_BRAIN_CONTRACT=Object.freeze({
  policy_owner:'Magnanimous AI',
  verification_owner:'Magnanimous AI',
  learning_owner:'Magnanimous AI',
+ search_owner:'Magnanimous AI',
+ link_rendering_owner:'Magnanimous AI',
  skills_owner:'Magnanimous AI',
  routines_owner:'Magnanimous AI',
  public_provider_selection:false,
@@ -23,7 +25,9 @@ export const MAGNANIMOUS_SINGLE_BRAIN_CONTRACT=Object.freeze({
  specialist_rule:'Specialists are departments of Magnanimous AI, not separate AI products or independent brains.',
  infrastructure_rule:'Models, MCP servers, plugins, SaaS systems, carriers, browsers, hosts and cloud providers are replaceable execution rails beneath Magnanimous AI.',
  native_growth_rule:'Every reusable capability should be normalized into a Magnanimous-owned contract, recipe, skill or native runtime when practical.',
- truth_rule:'Magnanimous may unify identity and orchestration without falsely claiming ownership of third-party infrastructure, accounts, model weights or proprietary implementations.'
+ truth_rule:'Magnanimous may unify identity and orchestration without falsely claiming ownership of third-party infrastructure, accounts, model weights or proprietary implementations.',
+ shared_core_rule:'Standalone, main chat and specialist departments inherit the same Magnanimous core memory, live-research, source-link, routing, verification and learning contracts; each surface may add purpose-specific tools without becoming a separate brain.',
+ memory_architecture:Object.freeze({working:'bounded current-task and recent-turn context',episodic:'conversation, workflow and outcome history scoped to tenant/user',semantic:'retrievable workspace knowledge, research evidence and durable facts',procedural:'proven skills, recipes and reusable workflows',consolidation:'promote high-value stable knowledge; summarize/deduplicate noisy history; preserve provenance',virtual_memory_os:'Use OS virtual memory/swap only as a resilience cushion for transient memory pressure, never as a substitute for correctly sized RAM or durable AI memory.'})
 });
 
 function capabilityCount(){
@@ -61,7 +65,11 @@ export function getMagnanimousSingleBrainSummary(){
    approval_gates_preserved:true,
    tenant_isolation_preserved:true,
    likeness_media_consent_gated:true,
-   funded_specialized_media_compute_only:true
+   funded_specialized_media_compute_only:true,
+   shared_core_capabilities_across_surfaces:true,
+   live_multisource_research:true,
+   clickable_source_links:true,
+   memory_consolidation:true
   }
  };
 }
