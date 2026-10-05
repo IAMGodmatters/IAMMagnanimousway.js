@@ -39,6 +39,22 @@ function normalizeMessages(input) {
   return [{ role: 'user', content: String(input?.input || '') }];
 }
 
+function boundedTokenBudget(input, env) {
+  const requested = Number(
+    input.max_tokens ||
+    input.max_completion_tokens ||
+    env.MAGNANIMOUS_AI_MAX_TOKENS ||
+    2200
+  );
+  const safeRequested = Number.isFinite(requested) ? Math.max(64, requested) : 2200;
+  const longFormFloorRaw = Number(env.MAGNANIMOUS_AI_LONGFORM_MIN_TOKENS || 3200);
+  const hardCapRaw = Number(env.MAGNANIMOUS_AI_HARD_TOKEN_CAP || 8192);
+  const longFormFloor = Number.isFinite(longFormFloorRaw) ? Math.max(1400, longFormFloorRaw) : 3200;
+  const hardCap = Number.isFinite(hardCapRaw) ? Math.max(longFormFloor, hardCapRaw) : 8192;
+  const expanded = safeRequested >= 1000 ? Math.max(safeRequested, longFormFloor) : safeRequested;
+  return Math.min(expanded, hardCap);
+}
+
 export class MagnanimousAiBinding {
   constructor(env = process.env) {
     this.env = env;
@@ -46,12 +62,7 @@ export class MagnanimousAiBinding {
 
   async run(_legacyModel, input = {}) {
     const messages = normalizeMessages(input);
-    const maxTokens = Number(
-      input.max_tokens ||
-      input.max_completion_tokens ||
-      this.env.MAGNANIMOUS_AI_MAX_TOKENS ||
-      2200
-    );
+    const maxTokens = boundedTokenBudget(input, this.env);
 
     const requestedModel = String(_legacyModel || this.env.CLOUDFLARE_AI_MODEL || '@cf/zai-org/glm-4.7-flash').trim();
     const edgeBridgeToken = String(this.env.MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN || '').trim()
@@ -136,7 +147,6 @@ export class MagnanimousAiBinding {
       if (!text) throw new Error('Local Magnanimous model rail returned no text.');
       return { response: text, result: { response: text }, provider: 'magnanimous-local' };
     }
-
 
     throw new Error(
       'No funded free-first Magnanimous AI execution rail is available. Use the private Edge AI bridge, protected Workers AI rail, local model, or an explicitly free/self-hosted compatible rail. Metered providers are routed only through the tenant-aware billing guard.'

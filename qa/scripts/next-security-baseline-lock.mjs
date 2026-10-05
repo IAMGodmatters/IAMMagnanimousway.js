@@ -27,6 +27,6 @@ for(const name of [
 ]){
   if(lock.packages?.['node_modules/'+name]?.version!==declared)fail(name+' must track the exact Next.js patch version.');
 }
-if(lock.packages?.['node_modules/@swc/helpers']?.version!=='0.5.23')fail('@swc/helpers must match the Next.js 16.3.5 runtime dependency.');
+if(lock.packages?.['node_modules/@swc/helpers']?.version!=='0.5.23')fail('@swc/helpers must match the Next.js 16.3.8 runtime dependency.');
 
 console.log('Next.js security baseline lock PASS: '+declared);

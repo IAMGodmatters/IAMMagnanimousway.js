@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
+const DEFAULT_STORAGE_RESERVE_BYTES=32*1024*1024;
 function safeKey(value=''){
   const key=String(value).replace(/\\/g,'/').replace(/^\/+/, '');
   if(!key||key.split('/').some(part=>part==='..'||part==='')) throw new Error('Invalid Magnanimous object key.');
@@ -29,8 +30,33 @@ export class MagnanimousObjectStore{
     if(!data.startsWith(this.dataRoot+path.sep)||!meta.startsWith(this.metaRoot+path.sep)) throw new Error('Object path escaped storage root.');
     return{clean,data,meta};
   }
+  async capacity(){
+    await fs.mkdir(this.root,{recursive:true});
+    const stat=await fs.statfs(this.root);
+    const blockSize=Number(stat.bsize||0);
+    const totalBytes=Math.max(0,Number(stat.blocks||0)*blockSize);
+    const freeBytes=Math.max(0,Number(stat.bavail??stat.bfree??0)*blockSize);
+    const usedBytes=Math.max(0,totalBytes-freeBytes);
+    return{
+      total_bytes:totalBytes,
+      used_bytes:usedBytes,
+      free_bytes:freeBytes,
+      used_percent:totalBytes?Number(((usedBytes/totalBytes)*100).toFixed(2)):0,
+      durable:true,
+      backend:'magnanimous-native-filesystem-object-store'
+    };
+  }
   async put(key,value,options={}){
     const {clean,data,meta}=this._paths(key),body=toBuffer(value);
+    const reserveRaw=Number(process.env.MAGNANIMOUS_STORAGE_RESERVE_BYTES||DEFAULT_STORAGE_RESERVE_BYTES);
+    const reserveBytes=Number.isFinite(reserveRaw)?Math.max(8*1024*1024,reserveRaw):DEFAULT_STORAGE_RESERVE_BYTES;
+    const capacity=await this.capacity();
+    if(capacity.free_bytes<body.length+reserveBytes){
+      const error=new Error('Magnanimous persistent storage reserve would be exhausted.');
+      error.code='MAGNANIMOUS_STORAGE_RESERVE';
+      error.status=507;
+      throw error;
+    }
     await fs.mkdir(path.dirname(data),{recursive:true});
     await fs.mkdir(path.dirname(meta),{recursive:true});
     const etag=crypto.createHash('sha256').update(body).digest('hex');
