@@ -462,7 +462,19 @@ async function handle(request, env) {
       }
     }
     if(!computeOnly&&body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:false});
-    return json({ detail: `Magnanimous AI could not complete the request. ${errors.join(' | ')}`, code: 'AI_PROVIDER_FAILURE',route_task:task,native_capability:capability }, 502);
+    // A model-provider outage is a degraded AI condition, not a broken Magnanimous HTTP gateway.
+    // Preserve useful native research/source results and let the client retry without surfacing a misleading raw 502.
+    const sourceLines=(grounding.sources||[]).slice(0,6).map((s,i)=>{
+      const title=String(s?.title||s?.name||s?.url||'Source').trim();
+      const href=String(s?.url||s?.href||'').trim();
+      const snippet=String(s?.snippet||s?.text||s?.description||'').trim().slice(0,280);
+      return `${i+1}. ${title}${snippet?` — ${snippet}`:''}${href?`\n${href}`:''}`;
+    });
+    const degradedOutput=sourceLines.length
+      ? `I could not reach a response engine for this request, but Magnanimous research is still working. Here are the live sources I found:\n\n${sourceLines.join('\n\n')}\n\nYou can retry the question and Magnanimous will automatically try the available AI engines again.`
+      : 'Magnanimous could not reach an AI response engine for this request. Your message was preserved. Please retry; Magnanimous will automatically try the available engines again.';
+    console.error('Magnanimous AI provider pool exhausted',{task,capability,attempts:errors.length,grounded_sources:sourceLines.length});
+    return json({output:degradedOutput,magnanimous:true,degraded:true,retryable:true,code:'AI_PROVIDER_POOL_DEGRADED',route_task:task,native_capability:capability,sources:grounding.sources||[],automatic_research:autoResearch,provider_errors_hidden:true},200);
   }
   return null;
 }
