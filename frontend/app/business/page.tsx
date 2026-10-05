@@ -47,6 +47,8 @@ export default function Business() {
   }, []);
   async function run() {
     if (!input.trim() || aiReady === false) return;
+    const submitted = input.trim();
+    setInput("");
     setBusy(true);
     setSources([]);
     setOutput("Building your business brief…");
@@ -56,7 +58,7 @@ export default function Business() {
         method: "POST",
         headers: chatHeaders(),
         body: JSON.stringify({
-          message: `Act as a practical business strategist. Task: ${mode}. Business/context: ${input}. Give a clear, actionable response with priorities, steps, risks, and next actions.`,
+          message: `Act as a practical business strategist. Task: ${mode}. Business/context: ${submitted}. Give a clear, actionable response with priorities, steps, risks, and next actions.`,
           use_knowledge: true,
           live_search: research,
           news: research,
