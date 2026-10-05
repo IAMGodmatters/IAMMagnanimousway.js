@@ -27,6 +27,20 @@ function extractSources(value:unknown):Array<{title?:string;url?:string}>{
  if(!Array.isArray(value))return[];
  return value.slice(0,8).map((x:any)=>({title:String(x?.title||x?.name||'Source'),url:typeof x?.url==='string'?x.url:undefined}));
 }
+function safeLink(value:string){try{const u=new URL(value);return u.protocol==='http:'||u.protocol==='https:'?u.toString():''}catch{return''}}
+function linkedAnswer(text:string){
+ const pattern=/(\[[^\]\n]{1,120}\]\((https?:\/\/[^\s)]+)\))|(https?:\/\/[^\s<]+)/g;
+ const out:any[]=[];let last=0,match:RegExpExecArray|null,index=0;
+ while((match=pattern.exec(String(text||'')))){
+  if(match.index>last)out.push(String(text).slice(last,match.index));
+  const url=safeLink(match[2]||match[3]||'');
+  const label=match[2]?match[1].slice(1,match[1].indexOf(']')):url;
+  out.push(url?<a key={`answer-link-${index++}`} href={url} target="_blank" rel="noopener noreferrer">{label} ↗</a>:match[0]);
+  last=match.index+match[0].length;
+ }
+ if(last<String(text||'').length)out.push(String(text).slice(last));
+ return out;
+}
 
 export default function StandaloneMagnanimous(){
  const[input,setInput]=useState('');
@@ -174,7 +188,7 @@ export default function StandaloneMagnanimous(){
     <div className="mag-thread" aria-live="polite">
      {messages.map(m=>{const name=m.role==='assistant'?(m.assistantName||'Magnanimous AI'):'YOU';return <article key={m.id} className={`mag-message ${m.role}${m.silentVoice?' voice-silent':''}`}>
       <div className="mag-avatar">{m.role==='assistant'?initials(name):'YOU'}</div>
-      <div className="mag-bubble"><small>{name.toUpperCase()}{m.role==='assistant'&&m.assistantTitle?` • ${m.assistantTitle.toUpperCase()}`:''}</small><p>{m.content}</p>{m.meta&&<div className="mag-meta">{m.meta}</div>}{m.sources&&m.sources.length>0&&<div className="mag-sources"><b>Sources</b>{m.sources.map((s,i)=>s.url?<a key={`${s.url}-${i}`} href={s.url} target="_blank" rel="noreferrer">{s.title||s.url}</a>:<span key={i}>{s.title}</span>)}</div>}</div>
+      <div className="mag-bubble"><small>{name.toUpperCase()}{m.role==='assistant'&&m.assistantTitle?` • ${m.assistantTitle.toUpperCase()}`:''}</small><p>{m.role==='assistant'?linkedAnswer(m.content):m.content}</p>{m.meta&&<div className="mag-meta">{m.meta}</div>}{m.sources&&m.sources.length>0&&<div className="mag-sources"><b>Sources</b>{m.sources.map((s,i)=>s.url?<a key={`${s.url}-${i}`} href={s.url} target="_blank" rel="noreferrer">{s.title||s.url}</a>:<span key={i}>{s.title}</span>)}</div>}</div>
      </article>})}
      {busy&&<article className="mag-message assistant"><div className="mag-avatar">M</div><div className="mag-bubble working"><small>MAGNANIMOUS AI</small><AIProcessingIndicator compact mode={activeMode.label}/></div></article>}
      <div ref={endRef}/>
