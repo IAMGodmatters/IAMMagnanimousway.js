@@ -33,12 +33,13 @@ const installScript = `
   });
   window.addEventListener('appinstalled', () => {
     const button = document.getElementById('reelsInstall');
-    if (button) { button.textContent = 'Installed'; button.setAttribute('disabled', 'true'); }
+    if (button) { button.textContent = 'Installed'; button.setAttribute('aria-disabled', 'true'); }
   });
   window.addEventListener('DOMContentLoaded', () => {
     const button = document.getElementById('reelsInstall');
     if (!button) return;
-    button.addEventListener('click', async () => {
+    button.addEventListener('click', async event => {
+      event.preventDefault();
       if (deferredPrompt) {
         await deferredPrompt.prompt();
         deferredPrompt = null;
@@ -76,8 +77,9 @@ export default function MagnanimousReelsPage() {
         }}>
           <strong style={{ fontSize: 15, whiteSpace: 'nowrap' }}>Magnanimous Reels</strong>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
-            <button
+            <a
               id="reelsInstall"
+              href="/reels"
               title="Install Magnanimous Reels on this device"
               style={{
                 color: '#fff',
@@ -89,10 +91,11 @@ export default function MagnanimousReelsPage() {
                 fontWeight: 800,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
+                textDecoration: 'none',
               }}
             >
               Install
-            </button>
+            </a>
             <span style={{
               color: '#bff3d6',
               border: '1px solid #2d6f50',
