@@ -11,12 +11,12 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'deep-research',
     name: 'Deep research and evidence synthesis',
-    capabilities: ['web-search','multi-source-research','source-ranking','citation-tracking','claim-verification','pdf-document-research','freshness-checking','research-memory']
+    capabilities: ['web-search','multi-source-research','iterative-deep-research','research-planning','source-ranking','citation-tracking','claim-verification','pdf-document-research','url-context','freshness-checking','research-memory','research-checkpoint-resume','research-progress-streaming']
   },
   {
     id: 'coding-computation',
     name: 'Coding, computation and software engineering',
-    capabilities: ['code-generation','debugging','repository-analysis','file-editing','test-generation','code-execution','data-analysis','charting','simulation','deployment-orchestration']
+    capabilities: ['code-generation','debugging','repository-analysis','file-editing','test-generation','code-execution','data-analysis','charting','simulation','deployment-orchestration','isolated-linux-sandbox','long-running-code-jobs','artifact-generation']
   },
   {
     id: 'computer-browser-use',
@@ -56,7 +56,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'tools-connectors',
     name: 'Tools, functions, MCP and connectors',
-    capabilities: ['function-calling','mcp','oauth-connectors','api-tools','direct-tool-calling','tool-discovery','tool-filtering','approval-gates','normalized-tool-contracts','native-rendering-mcp','capability-mesh','provider-readiness-routing','native-first-fallback-selection','single-public-ai-identity','private-execution-routing','unified-capability-directory','plugin-capability-inventory','capability-pattern-extraction','native-skill-synthesis','provider-exit-readiness','dependency-retirement-gates']
+    capabilities: ['function-calling','mcp','mcp-2026-stateless-core','mcp-tasks','mcp-apps','oauth-connectors','api-tools','direct-tool-calling','tool-discovery','tool-filtering','approval-gates','normalized-tool-contracts','native-rendering-mcp','capability-mesh','provider-readiness-routing','native-first-fallback-selection','single-public-ai-identity','private-execution-routing','unified-capability-directory','plugin-capability-inventory','capability-pattern-extraction','native-skill-synthesis','provider-exit-readiness','dependency-retirement-gates']
   },
   {
     id: 'business-operations',
@@ -76,7 +76,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'security-reliability',
     name: 'Security, privacy and reliability',
-    capabilities: ['permission-checking','secret-isolation','prompt-injection-defense','sandboxing','audit-logs','policy-checks','rollback','failure-recovery','data-minimization','tenant-isolation']
+    capabilities: ['permission-checking','secret-isolation','prompt-injection-defense','sandboxing','audit-logs','policy-checks','rollback','failure-recovery','data-minimization','tenant-isolation','provider-circuit-breakers','timeout-budgets','bulkheads','health-probes','distributed-tracing','graceful-degradation','idempotency','dead-letter-recovery']
   },
   {
     id: 'accessibility-language',
