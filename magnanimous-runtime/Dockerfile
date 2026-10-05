@@ -1,10 +1,7 @@
 FROM node:24-bookworm-slim AS frontend-builder
 WORKDIR /app
 COPY . .
-RUN cd frontend \
-  && npm install --package-lock-only --ignore-scripts --no-audit --no-fund \
-  && npm ci --no-audit --no-fund \
-  && npm run build
+RUN cd frontend && npm ci && npm run build
 RUN grep -RFq "Tell me what you want to say." frontend/out/business-email*
 
 FROM node:24-bookworm-slim
