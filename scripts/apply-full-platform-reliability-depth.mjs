@@ -39,10 +39,6 @@ replaceOne(standalone,
 `<div className=\"mag-memory\"><b>{signedIn?'Persistent learning on':'Guest session'}</b>`,
 `<a className=\"mag-storage-link\" href=\"/storage\">Storage & device vault →</a>\n    <div className=\"mag-memory\"><b>{signedIn?'Persistent learning on':'Guest session'}</b>`,
 'storage workspace link');
-replaceOne(standalone,
-`.mag-bubble p{`,
-`.mag-inline-link{color:#7fd8ff;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}.mag-storage-link{display:block;margin:10px 0;padding:10px 12px;border:1px solid #27445f;border-radius:10px;color:#a9ddff;text-decoration:none;background:#081521}.mag-bubble p{`,
-'inline link styles');
 
 replaceAllExact('frontend/package.json','16.3.5','16.3.8','Next.js security upgrade',1);
 replaceAllExact('frontend/package-lock.json','16.3.5','16.3.8','Next.js lock security upgrade',10);
