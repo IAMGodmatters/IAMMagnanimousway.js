@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { requirePlatformOwner } from './platform-owner-guard.js';
+import { createBrowserTaskReceipt, getBrowserTaskReceipt, verifyBrowserReceiptChain } from './magnanimous-browser-receipts.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -302,10 +303,19 @@ export async function handleMagnanimousLocalBridge(request,env){
    if(!taskId)return json({detail:'task_id is required.'},400);
    const task=await env.DB.prepare("SELECT * FROM magnanimous_local_bridge_tasks WHERE id=? AND device_id=? AND status IN ('claimed','queued')").bind(taskId,device.id).first();
    if(!task)return json({detail:'Task is not claimable by this bridge.'},409);
-   const status=ok?'completed':'failed',result=body.result??{},error=clip(body.error,5000);
+   const status=ok?'completed':'failed',result=body.result??{},error=clip(body.error,5000),isBrowser=String(task.action||'').startsWith('browser_');
    await env.DB.prepare("UPDATE magnanimous_local_bridge_tasks SET status=?,result_json=?,error_text=?,completed_at=? WHERE id=?").bind(status,JSON.stringify(result).slice(0,500000),error,ts,taskId).run();
-   if(String(task.action||'').startsWith('browser_'))await deliverNativeWebWebhook(task,status,result,error);
-   return json({ok:true,task_id:taskId,status});
+   let receipt=null,receiptError='';
+   if(isBrowser){
+    try{receipt=await createBrowserTaskReceipt(env,task,{status,result,error,completed_at:ts})}catch(receiptFailure){receiptError=clip(receiptFailure?.message||receiptFailure,1000)}
+   }
+   let deliveredResult=result;
+   if(receipt&&result&&typeof result==='object'&&!Array.isArray(result)){
+    deliveredResult={...result,magnanimous_receipt:receipt};
+    await env.DB.prepare('UPDATE magnanimous_local_bridge_tasks SET result_json=? WHERE id=?').bind(JSON.stringify(deliveredResult).slice(0,500000),taskId).run();
+   }
+   if(isBrowser)await deliverNativeWebWebhook(task,status,deliveredResult,error);
+   return json({ok:true,task_id:taskId,status,receipt,receipt_error:receiptError||undefined});
   }
   return json({detail:'Local bridge agent route not found.'},404);
  }
@@ -354,6 +364,18 @@ export async function handleMagnanimousLocalBridge(request,env){
   if(!['queued','needs_confirmation'].includes(String(task.status)))return json({detail:'Only queued or awaiting-confirmation tasks can be cancelled safely.',code:'TASK_ALREADY_RUNNING'},409);
   await env.DB.prepare("UPDATE magnanimous_local_bridge_tasks SET status='cancelled',error_text='Cancelled by platform owner.',completed_at=? WHERE id=? AND tenant_id=? AND status IN ('queued','needs_confirmation')").bind(now(),id,tenantId).run();
   return json({ok:true,id,status:'cancelled'});
+ }
+ const receiptMatch=path.match(/^\/api\/magnanimous\/local-bridge\/tasks\/([^/]+)\/receipt$/);
+ if(request.method==='GET'&&receiptMatch){
+  const tenantId=String(user.tenant_id),taskId=clip(receiptMatch[1],120);
+  const receipt=await getBrowserTaskReceipt(env,tenantId,taskId);
+  if(!receipt)return json({detail:'Browser receipt not found.'},404);
+  return json({ok:true,receipt});
+ }
+ if(request.method==='GET'&&path==='/api/magnanimous/local-bridge/browser-receipts/verify'){
+  const limit=Math.max(1,Math.min(Number(url.searchParams.get('limit')||200),1000));
+  const device_id=clip(url.searchParams.get('device_id'),160);
+  return json(await verifyBrowserReceiptChain(env,String(user.tenant_id),{device_id,limit}));
  }
  const taskMatch=path.match(/^\/api\/magnanimous\/local-bridge\/tasks\/([^/]+)$/);
  if(request.method==='GET'&&taskMatch){

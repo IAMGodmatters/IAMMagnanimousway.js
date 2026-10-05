@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { UNFENCED_PUBLIC_RESEARCH, getUnfencedCapabilityManifest, getUnfencedAbsorptionSummary } from '../../worker/src/magnanimous-unfenced-capability-registry.js';
 import { NATIVE_WEB_CAPABILITIES, MAGNANIMOUS_WEB_PARITY } from '../../worker/src/magnanimous-native-web-runtime.js';
@@ -5,6 +6,8 @@ import { classifyCapabilityRealization } from '../../worker/src/magnanimous-capa
 
 const rows=getUnfencedCapabilityManifest();
 const summary=getUnfencedAbsorptionSummary();
+const bridgeSource=fs.readFileSync(new URL('../../worker/src/magnanimous-local-bridge-runtime.js',import.meta.url),'utf8');
+const receiptSource=fs.readFileSync(new URL('../../worker/src/magnanimous-browser-receipts.js',import.meta.url),'utf8');
 
 assert.ok(rows.length>=24,'Unfenced public benchmark must cover the observed fetch, live-browser, auth, permission, receipt and egress surface.');
 for(const capability of [
@@ -47,9 +50,14 @@ assert.equal(summary.provider_required_for_planning,false);
 assert.equal(summary.provider_required_for_orchestration,false);
 assert.equal(summary.provider_required_for_verification,false);
 assert.equal(summary.public_docs_private_preview,true);
+assert.match(bridgeSource,/createBrowserTaskReceipt/,'browser completion path must emit a tamper-evident receipt');
+assert.match(bridgeSource,/browser-receipts\/verify/,'owner must have a receipt-chain verification route');
+assert.match(receiptSource,/previous_chain_hash/,'receipt ledger must preserve hash-chain linkage');
+assert.match(receiptSource,/HMAC-SHA-256/,'receipt ledger must support keyed signatures without hard-coding a key');
+assert.match(receiptSource,/MAGNANIMOUS_RECEIPT_SIGNING_KEY/,'receipt signing must use a separately configured secret binding');
 assert.ok(summary.explicit_truth_gaps.some(x=>/residential proxy fleet/i.test(x)));
 assert.ok(summary.explicit_truth_gaps.some(x=>/secret filling/i.test(x)));
-assert.ok(summary.explicit_truth_gaps.some(x=>/Hash-chained signed receipts/i.test(x)));
+assert.ok(summary.explicit_truth_gaps.some(x=>/HMAC signing/i.test(x)));
 
 console.log('Magnanimous Unfenced capability lock PASS:',{
   capabilities:rows.length,

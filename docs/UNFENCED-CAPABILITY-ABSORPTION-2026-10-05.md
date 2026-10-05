@@ -107,7 +107,7 @@ Magnanimous currently takes the stricter approach: browser session cookies can r
 
 ### Signed hash-chained receipts
 
-The public receipt pattern is absorbed as a target contract. Magnanimous already owns evidence and audit surfaces, but a cryptographically linked receipt must not be called live until it is wired into actual browser action results and independently verified end to end.
+Magnanimous now writes a tamper-evident per-device hash-chained receipt for completed or failed Native Web browser tasks. The receipt stores hashes rather than duplicating fetched page content, can be retrieved by task, and has an owner-only verification route. Optional HMAC-SHA-256 signing activates only when `MAGNANIMOUS_RECEIPT_SIGNING_KEY` is configured as a secret binding; without that key the chain remains hash-linked but is truthfully reported as unsigned.
 
 ## Safety / authority rule
 

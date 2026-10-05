@@ -144,7 +144,7 @@ export function getUnfencedAbsorptionSummary(){
       'Magnanimous does not claim an owned residential proxy fleet.',
       'Magnanimous Native Web currently keeps authenticated proxy credentials local and does not assume a managed residential-IP service.',
       'Magnanimous browser tasks must not claim model-invisible remote secret filling until a separately verified vault-to-browser injection path exists.',
-      'Hash-chained signed receipts are a benchmark contract until wired into the live browser action-result path and verified end to end.'
+      'Tamper-evident per-device hash-chained browser receipts are wired. HMAC signing becomes active only when MAGNANIMOUS_RECEIPT_SIGNING_KEY is configured as a secret binding.'
     ],
     status:'provider-neutral-benchmark-absorbed'
   };
