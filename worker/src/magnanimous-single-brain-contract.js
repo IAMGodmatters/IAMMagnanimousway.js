@@ -1,5 +1,7 @@
 import {MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS,MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL} from './magnanimous-universal-capabilities.js';
 import {getConnectorAbsorptionSummary} from './magnanimous-connector-absorption.js';
+import {getVideoExpressCapabilityManifest,getVideoExpressAbsorptionSummary} from './magnanimous-videoexpress-capability-registry.js';
+import {getMagnanimousVideoDirectorSummary} from './magnanimous-video-director.js';
 
 export const MAGNANIMOUS_SINGLE_BRAIN_CONTRACT=Object.freeze({
  identity:'Magnanimous AI',
@@ -30,18 +32,25 @@ function capabilityCount(){
 
 export function getMagnanimousSingleBrainSummary(){
  const absorbed=getConnectorAbsorptionSummary();
+ const videoCapabilities=getVideoExpressCapabilityManifest();
+ const videoBenchmark=getVideoExpressAbsorptionSummary();
+ const videoDirector=getMagnanimousVideoDirectorSummary();
  return{
   ...MAGNANIMOUS_SINGLE_BRAIN_CONTRACT,
   role:MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL.role,
   universal_capability_domains:MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS.length,
   universal_capability_contracts:capabilityCount(),
-  absorbed_capability_contracts:Number(absorbed.full_brain_capability_contracts||0),
+  absorbed_capability_contracts:Number(absorbed.full_brain_capability_contracts||0)+videoCapabilities.length,
   direct_platform_connectors:Number(absorbed.direct_platform_connectors||0),
   visible_plugin_tool_contracts:Number(absorbed.visible_plugin_tool_contracts||0),
   installed_plugin_skills:Number(absorbed.installed_plugin_skills||0),
   magnanimous_builder_tools:Number(absorbed.magnanimous_builder_tools||0),
   magnanimous_engineering_skills:Number(absorbed.magnanimous_engineering_skills||0),
-  native_targets:Array.isArray(absorbed.native_targets)?absorbed.native_targets:[],
+  video_director_capability_contracts:videoCapabilities.length,
+  video_director_capabilities:videoCapabilities.map(x=>x.capability),
+  videoexpress_public_benchmark:videoBenchmark,
+  video_director:videoDirector,
+  native_targets:[...new Set([...(Array.isArray(absorbed.native_targets)?absorbed.native_targets:[]),...videoCapabilities.map(x=>x.native_target)])].sort(),
   connector_coverage:absorbed.direct_connector_coverage||{},
   absorption_status:absorbed.status||'unknown',
   execution_policy:{
@@ -50,7 +59,9 @@ export function getMagnanimousSingleBrainSummary(){
    automatic_private_routing:true,
    external_execution_replaceable:true,
    approval_gates_preserved:true,
-   tenant_isolation_preserved:true
+   tenant_isolation_preserved:true,
+   likeness_media_consent_gated:true,
+   funded_specialized_media_compute_only:true
   }
  };
 }
