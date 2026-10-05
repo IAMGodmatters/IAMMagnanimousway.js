@@ -74,6 +74,16 @@ function effectiveTier(env,p){
   return billing!=='free'&&p.tier==='free-first'?'metered':p.tier;
 }
 function providerEnabled(env,p){return effectiveTier(env,p)!=='metered'||meteredEnabled(env)}
+function providerCircuitState(stats){
+ if(!stats||stats.samples<3)return{open:false,reason:'insufficient-evidence'};
+ const open=stats.success_rate<0.34;
+ return{open,reason:open?'recent-success-rate-below-34-percent':'healthy-enough',samples:stats.samples,success_rate:stats.success_rate};
+}
+function executableProviderPool(env,message,body={},learned=new Map()){
+ const ordered=routeProviders(env,message,body,learned),healthy=[],quarantined=[];
+ for(const p of ordered){const circuit=providerCircuitState(learned.get(p.id));(circuit.open?quarantined:healthy).push({...p,circuit});}
+ return{healthy,quarantined,ordered:[...healthy,...quarantined]};
+}
 function providerReliabilityMatrix(env){
  const ai=PROVIDERS.map(p=>({id:p.id,configured:configured(env,p),enabled:providerEnabled(env,p),tier:effectiveTier(env,p)}));
  return{
@@ -83,7 +93,7 @@ function providerReliabilityMatrix(env){
   infrastructure:{browser:Boolean(env?.MAGNANIMOUS_BROWSER_URL),media:Boolean(env?.MAGNANIMOUS_MEDIA_URL),sandbox:Boolean(env?.MAGNANIMOUS_SANDBOX_URL),persistent_storage:Boolean(env?.MAGNANIMOUS_DB_PATH&&env?.MAGNANIMOUS_OBJECTS_PATH)},
   payments:{stripe_links:Boolean(env?.STRIPE_PAYMENT_LINK_PLUS||env?.STRIPE_PAYMENT_LINK_PRO||env?.STRIPE_PAYMENT_LINK_BUSINESS),stripe_api:Boolean(String(env?.STRIPE_SECRET_KEY||'').trim())},
   communications:{smtp:Boolean(String(env?.MAGNANIMOUS_SMTP_PASSWORD||'').trim())||String(env?.MAGNANIMOUS_MAIL_DIRECT_MX||'').toLowerCase()==='true',sms:Boolean(String(env?.TWILIO_AUTH_TOKEN||env?.VOIP_PROVIDER_TOKEN||'').trim())},
-  policy:{free_first:true,metered_enabled:meteredEnabled(env),automatic_failover:true,provider_names_private:true}
+  policy:{free_first:true,metered_enabled:meteredEnabled(env),automatic_failover:true,adaptive_routing:true,circuit_breaker_from_outcome_history:true,provider_names_private:true}
  };
 }
 function selectedExecutionModel(env,p,body={}){
@@ -417,7 +427,7 @@ async function handle(request, env) {
     const groundedMessage=computeOnly?`MAGNANIMOUS COMPUTE-ONLY EXECUTION\nYou are a replaceable compute engine beneath Magnanimous AI. Advisory analysis only. You have no tool, memory, account, repository, approval, merge, deployment, publishing, payment, deletion, credential or security-policy authority. Never claim an external action occurred.\n\n${userMessage}`:`${COMMANDER_PROTOCOL}\n\n${ogenicContext}\n\nUSER REQUEST:\n${userMessage}${brainContext||''}${grounding.context||''}${toolPlanning.context||''}${absorbedCapabilityContext?`\n\n${absorbedCapabilityContext}`:''}\n\nCURRENT MAGNANIMOUS ROUTING STATE:\nTask class: ${task}\nNative capability family: ${capability}\nLinks absorbed this turn: ${absorbedLinks.length}\nStored/fresh sources available: ${grounding.sources?.length||0}${initiativeContext}\nUse external execution engines only as needed; return one unified Magnanimous answer.`;
     const requested = String(body.provider || 'auto').toLowerCase();
     const acceleratorPool=computeOnly&&body.allow_metered_accelerator!==true?availableProviders(env).filter(p=>effectiveTier(env,p)==='free-first'):availableProviders(env);
-    const candidates = requested !== 'auto' ? acceleratorPool.filter(p => p.id === requested && configured(env,p)) : routeProviders(env,userMessage,body,learnedScores).filter(p=>acceleratorPool.some(a=>a.id===p.id));
+    const providerPool=executableProviderPool(env,userMessage,body,learnedScores); const candidates = requested !== 'auto' ? acceleratorPool.filter(p => p.id === requested && configured(env,p)) : providerPool.ordered.filter(p=>acceleratorPool.some(a=>a.id===p.id));
     if (!candidates.length) return json({ detail: requested === 'auto' ? 'Magnanimous AI has no configured execution engine. Cloudflare Workers AI should be bound as AI, or another free-first provider must be configured.' : 'The requested execution engine is not configured or is disabled.', code: 'NO_AI_PROVIDER' }, 503);
     const errors = [],providerDeadline=Date.now()+PROVIDER_REQUEST_BUDGET_MS;
     for (const p of candidates) {
