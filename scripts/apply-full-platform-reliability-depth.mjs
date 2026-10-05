@@ -75,22 +75,4 @@ const marker='node ../qa/scripts/magnanimous-videoexpress-capability-lock.mjs &&
 if(!pkgSource.includes(marker))throw new Error('platform audit insertion marker missing');
 write(pkg,pkgSource.replace(marker,'node ../qa/scripts/magnanimous-videoexpress-capability-lock.mjs && node ../qa/scripts/magnanimous-free-plan-depth-lock.mjs && node ../qa/scripts/recent-conversation-gaps-lock.mjs'));
 
-const qaWorkflow='.github/workflows/full-platform-qa.yml';
-replaceOne(qaWorkflow,
-`if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}`,
-`if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/qa/live-')) }}`,
-'live QA branch opt-in');
-replaceOne(qaWorkflow,
-`if: ${{ failure() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}`,
-`if: ${{ failure() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/qa/live-'))) }}`,
-'live QA failure reporting');
-replaceOne(qaWorkflow,
-`if: ${{ success() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}`,
-`if: ${{ success() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/qa/live-'))) }}`,
-'live QA resolution reporting');
-replaceOne(qaWorkflow,
-`      - name: Frontend typecheck and production build\n        working-directory: frontend\n        run: |\n          npm install --no-audit --no-fund\n          npm run typecheck\n          npm run build`,
-`      - name: Frontend dependency security audit\n        working-directory: frontend\n        run: |\n          npm ci --no-fund\n          npm audit --omit=dev --audit-level=high\n\n      - name: Frontend typecheck and production build\n        working-directory: frontend\n        run: |\n          npm run typecheck\n          npm run build`,
-'non-forced dependency audit');
-
 console.log('Full platform reliability transformation applied successfully.');
