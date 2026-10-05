@@ -1,0 +1,110 @@
+name: Apply Unfenced capability absorption once
+
+on:
+  push:
+    branches:
+      - feature/unfenced-capability-absorption-2026-10-05
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/unfenced-capability-absorption-2026-10-05
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Wire registry into full brain
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          connector=Path('worker/src/magnanimous-connector-absorption.js')
+          s=connector.read_text()
+
+          def once(old,new,label):
+              global s
+              if new in s:
+                  return
+              if old not in s:
+                  raise SystemExit(f'missing patch anchor: {label}')
+              s=s.replace(old,new,1)
+
+          once(
+            "import { getGeminiCapabilityManifest, getGeminiAbsorptionSummary } from './magnanimous-gemini-capability-registry.js';",
+            "import { getGeminiCapabilityManifest, getGeminiAbsorptionSummary } from './magnanimous-gemini-capability-registry.js';\nimport { getUnfencedCapabilityManifest, getUnfencedAbsorptionSummary } from './magnanimous-unfenced-capability-registry.js';",
+            'unfenced import'
+          )
+          once(
+            "...getGrokCapabilityManifest(),...getGeminiCapabilityManifest(),...getImprovementGovernanceManifest()",
+            "...getGrokCapabilityManifest(),...getGeminiCapabilityManifest(),...getUnfencedCapabilityManifest(),...getImprovementGovernanceManifest()",
+            'full manifest'
+          )
+          once(
+            "geminiManifest=getGeminiCapabilityManifest(),gemini=getGeminiAbsorptionSummary(),governanceManifest=",
+            "geminiManifest=getGeminiCapabilityManifest(),gemini=getGeminiAbsorptionSummary(),unfencedManifest=getUnfencedCapabilityManifest(),unfenced=getUnfencedAbsorptionSummary(),governanceManifest=",
+            'summary locals'
+          )
+          once(
+            "  gemini,\n  improvement_governance_contracts:",
+            "  gemini,\n  unfenced_capability_contracts:unfencedManifest.length,\n  unfenced,\n  improvement_governance_contracts:",
+            'summary fields'
+          )
+          once(
+            "+grokManifest.length+geminiManifest.length+governanceManifest.length",
+            "+grokManifest.length+geminiManifest.length+unfencedManifest.length+governanceManifest.length",
+            'brain count'
+          )
+          once(
+            "'Google Gemini/Workspace official public product, API and connected-app capability documentation','user-authorized reusable engineering/governance patterns",
+            "'Google Gemini/Workspace official public product, API and connected-app capability documentation','Unfenced.ai official public browser-agent product, documentation and legal capability contracts','user-authorized reusable engineering/governance patterns",
+            'research source summary'
+          )
+          once(
+            "...grokManifest.map(x=>x.native_target),...geminiManifest.map(x=>x.native_target),...governanceManifest.map(x=>x.native_target)",
+            "...grokManifest.map(x=>x.native_target),...geminiManifest.map(x=>x.native_target),...unfencedManifest.map(x=>x.native_target),...governanceManifest.map(x=>x.native_target)",
+            'native targets'
+          )
+          once(
+            "['railway','railway-techniques','grok-benchmark','gemini-benchmark'].includes(row?.connector_id)",
+            "['railway','railway-techniques','grok-benchmark','gemini-benchmark','unfenced-benchmark'].includes(row?.connector_id)",
+            'research record'
+          )
+          connector.write_text(s)
+
+          realization=Path('worker/src/magnanimous-capability-realization.js')
+          r=realization.read_text()
+          if "'native-web-browser':" not in r:
+              pattern=r"(^ 'research-orchestrator':\{.*\},$)"
+              replacement=r"\1\n 'native-web-browser':{mode:'hybrid',route:'/api/magnanimous/native-web',module:'worker/src/magnanimous-native-web-runtime.js',proof:'Magnanimous Native Web owns browser search, JavaScript-rendered fetch, browser sessions, local profile reuse, confirmed browser actions, monitoring and webhooks; public Internet sites, owner browser capacity and optional proxy capacity remain explicit real-world boundaries.'},"
+              r,n=re.subn(pattern,replacement,r,count=1,flags=re.M)
+              if n!=1:
+                  raise SystemExit('missing patch anchor: native-web execution surface')
+              realization.write_text(r)
+
+          wf=Path('.github/workflows/_apply-unfenced-absorption-once.yml')
+          if wf.exists():
+              wf.unlink()
+
+      - name: Run focused capability locks
+        run: |
+          node qa/scripts/magnanimous-unfenced-capability-lock.mjs
+          node qa/scripts/magnanimous-native-web-lock.mjs
+          node qa/scripts/magnanimous-gemini-capability-lock.mjs
+      - name: Commit wiring
+        run: |
+          git config user.name "magnanimous-capability-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add worker/src/magnanimous-connector-absorption.js worker/src/magnanimous-capability-realization.js .github/workflows/_apply-unfenced-absorption-once.yml
+          if git diff --cached --quiet; then
+            echo "No wiring changes required"
+            exit 0
+          fi
+          git commit -m "Wire Unfenced capabilities into Magnanimous brain"
+          git push origin HEAD:feature/unfenced-capability-absorption-2026-10-05
