@@ -1,0 +1,58 @@
+name: Reliability One-Shot Browser QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/reliability-one-shot-browser-qa.yml'
+      - 'frontend/**'
+      - 'worker/**'
+      - 'magnanimous-runtime/**'
+      - 'qa/**'
+
+permissions:
+  contents: read
+
+env:
+  QA_BASE_URL: https://iammagnanimousway.com
+
+jobs:
+  production-browser-audit:
+    if: github.event.pull_request.number == 525
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: qa/package.json
+      - name: Install QA dependencies
+        working-directory: qa
+        run: npm ci --no-audit --no-fund
+      - name: Install Playwright browsers
+        working-directory: qa
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Run full production browser and functional QA
+        working-directory: qa
+        shell: bash
+        run: |
+          set +e
+          npx playwright test
+          TEST_EXIT=$?
+          node scripts/summarize.mjs
+          cat qa-summary.md || true
+          exit $TEST_EXIT
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reliability-browser-qa-${{ github.run_number }}
+          path: |
+            qa/playwright-report/
+            qa/test-results/
+            qa/qa-results.json
+            qa/qa-summary.md
+          if-no-files-found: warn
+          retention-days: 14

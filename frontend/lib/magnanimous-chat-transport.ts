@@ -10,6 +10,9 @@ function enhancePublicInfoGrounding(init:RequestInit){
   if(typeof init.body!=="string")return init;
   try{
     const payload=JSON.parse(init.body);
+    // Explicit no-search is a privacy boundary. Sensitive tools such as Business Email
+    // can opt out even when their prompt contains words like address, contact or link.
+    if(payload?.live_search===false||payload?.external_search===false)return init;
     const message=String(payload?.message||payload?.prompt||payload?.input||"");
     if(!PUBLIC_INFO_INTENT.test(message))return init;
     return{
