@@ -85,12 +85,24 @@ assert.match(singleBrain,/getVideoExpressCapabilityManifest/,'Single brain must 
 assert.match(singleBrain,/getMagnanimousVideoDirectorSummary/,'Single brain must expose Video Director.');
 assert.match(singleBrain,/video_director_capabilities/,'Single brain must expose detailed video capability IDs.');
 assert.match(page,/api\/movie-maker\/video/,'Video Director workspace must use the existing Movie Maker execution route.');
-assert.match(page,/Exact execution depends on a currently verified native or replaceable render surface/,'Video Director UI must preserve truthful execution boundaries.');
+assert.match(page,/mapped capability is never presented as completed execution/,'Video Director UI must distinguish mapped capability from verified execution.');
+assert.match(page,/One live render clip:/,'Video Director UI must disclose the live clip-duration boundary instead of silently truncating a longer plan.');
+assert.match(page,/Free-first currently executes 16:9, 9:16 or 1:1/,'Free mode must expose only aspect ratios executed truthfully by the current renderer.');
+assert.match(page,/Studio currently executes 16:9 or 9:16/,'Studio mode must expose only currently supported aspect ratios.');
+assert.match(page,/one executable image/,'Video Director must not imply all mapped reference-image contracts execute through the current Studio route.');
+assert.match(page,/I confirm I have the rights/,'Executable reference media must have an explicit rights/consent confirmation.');
+assert.match(page,/Studio variable-cost notice/,'Metered Studio execution must disclose variable-cost behavior before rendering.');
+assert.match(page,/I understand Studio rendering can use prepaid variable-cost funds/,'Studio execution must require affirmative cost acknowledgment.');
+assert.match(page,/current Studio execution route accepts one reference image/,'Reference execution limits must be visible to the user.');
+assert.doesNotMatch(page,/reference_images:refs/,'Video Director must not send a non-executed multi-reference array while pretending it is live.');
 assert.doesNotMatch(page,/videoexpress\.ai\/api/i,'Video Director workspace must not introduce a VideoExpress runtime dependency.');
 
 console.log('Magnanimous VideoExpress capability lock PASS:',{
   capabilities:rows.length,
   official_sources:VIDEOEXPRESS_PUBLIC_RESEARCH.sources.length,
   native_targets:summary.native_targets,
-  workflows:MAGNANIMOUS_VIDEO_DIRECTOR_WORKFLOWS.length
+  workflows:MAGNANIMOUS_VIDEO_DIRECTOR_WORKFLOWS.length,
+  truthful_execution_ui:true,
+  reference_consent_gate:true,
+  studio_cost_acknowledgment:true
 });
