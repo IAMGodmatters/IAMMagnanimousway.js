@@ -1,0 +1,32 @@
+name: Owner Email Production Readiness
+
+on:
+  workflow_run:
+    workflows: ["Build and Deploy I AM"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-owner-email-readiness:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify non-secret owner email readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl -sS --connect-timeout 10 --max-time 60 -o /tmp/magnanimous-health.json -w '%{http_code}' https://iammagnanimousway.com/health)"
+          [ "$status" = "200" ] || { echo "::error::Production health returned HTTP $status"; cat /tmp/magnanimous-health.json 2>/dev/null || true; exit 1; }
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/magnanimous-health.json'))
+          assert data.get('status') == 'ok', data
+          assert data.get('owner_email_login_transport_ready') is True, 'Owner email login transport is not ready in production.'
+          print('Production owner email login transport is ready; no email was sent and no credential was exposed.')
+          PY
