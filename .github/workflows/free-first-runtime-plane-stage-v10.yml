@@ -1,0 +1,144 @@
+name: Free-first runtime plane stage v10
+
+on:
+  push:
+    branches: [fix/free-first-runtime-plane-20261007]
+    paths:
+      - .github/workflows/free-first-runtime-plane-stage-v10.yml
+
+permissions:
+  contents: write
+
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            worker/package-lock.json
+
+      - name: Apply verified migration and Worker-first route correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          source_path=Path('.github/workflows/free-first-runtime-plane-bootstrap.yml')
+          workflow=source_path.read_text()
+          marker="          python - <<'PY'\n"
+          start=workflow.index(marker)+len(marker)
+          end=workflow.index("\n          PY",start)
+          code=textwrap.dedent(workflow[start:end])
+
+          old_call="s=replace_once(s,old,new,'D1 free-first authority lock')"
+          repaired="""target=\"\"\"add('Cloudflare production config points API traffic at the Magnanimous standalone origin',wrangler.includes('\\\"MAGNANIMOUS_STANDALONE_API_ORIGIN\\\": \\\"https://magnanimous-production.up.railway.app\\\"'));\"\"\"\nif target not in s: raise SystemExit('missing expected source for D1 free-first authority lock')\ns=s.replace(target,new,1)"""
+          if old_call not in code:
+              raise SystemExit('D1 repair target missing from bootstrap source')
+          code=code.replace(old_call,repaired,1)
+
+          bad="reels.includes(\"x-magnanimous-surface','reels\"))],"
+          good="reels.includes(\"x-magnanimous-surface','reels\")],"
+          if bad not in code:
+              raise SystemExit('QA syntax repair target missing from bootstrap source')
+          code=code.replace(bad,good,1)
+          exec(compile(code,'free-first-runtime-plane-migration','exec'),{})
+
+          wrangler=Path('worker/wrangler.jsonc')
+          text=wrangler.read_text()
+          anchor='      "/api/*",\n'
+          routes='      "/reels-proxy",\n      "/reels-proxy/*",\n      "/__magnanimous_runtime/*",\n'
+          if routes not in text:
+              if anchor not in text: raise SystemExit('run_worker_first API anchor missing')
+              wrangler.write_text(text.replace(anchor,routes+anchor,1))
+
+          qa=Path('qa/scripts/free-first-runtime-plane-lock.mjs')
+          q=qa.read_text()
+          needle="  ['Worker config has no required standalone paid origin',!wrangler.includes('MAGNANIMOUS_STANDALONE_API_ORIGIN')],\n"
+          assertion="  ['Worker-first routing covers Reels proxy and runtime control',wrangler.includes('\\\"/reels-proxy/*\\\"')&&wrangler.includes('\\\"/__magnanimous_runtime/*\\\"')],\n"
+          if assertion not in q:
+              if needle not in q: raise SystemExit('free-first QA insertion anchor missing')
+              qa.write_text(q.replace(needle,needle+assertion,1))
+          qa.write_text('\n'.join(line.rstrip() for line in qa.read_text().splitlines())+'\n')
+          PY
+
+      - name: Verify exact production patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          node qa/scripts/free-first-runtime-plane-lock.mjs
+          node qa/scripts/d1-quota-resilience-lock.mjs
+          node qa/scripts/magnanimous-native-first-lock.mjs
+          node qa/scripts/railway-descendant-safe-deploy-lock.mjs
+          node qa/scripts/product-contract-locks.mjs
+          git diff --check -- .github/workflows/deploy.yml .github/workflows/magnanimous-railway-deploy.yml frontend/app/reels/page.tsx qa/scripts/d1-quota-resilience-lock.mjs qa/scripts/free-first-runtime-plane-lock.mjs worker/src/github-actions-oidc.js worker/src/reels-proxy.js worker/src/runtime-control.js worker/src/security-entrypoint.js worker/wrangler.jsonc
+
+      - name: Verify frontend
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+
+      - name: Verify Worker bundle
+        working-directory: worker
+        run: |
+          npm ci --no-audit --no-fund
+          npx wrangler deploy --dry-run --outdir /tmp/magnanimous-worker-free-first
+
+      - name: Create exact Git objects without moving a ref
+        id: stage_commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            .github/workflows/deploy.yml
+            .github/workflows/magnanimous-railway-deploy.yml
+            frontend/app/reels/page.tsx
+            qa/scripts/d1-quota-resilience-lock.mjs
+            qa/scripts/free-first-runtime-plane-lock.mjs
+            worker/src/github-actions-oidc.js
+            worker/src/reels-proxy.js
+            worker/src/runtime-control.js
+            worker/src/security-entrypoint.js
+            worker/wrangler.jsonc
+          )
+
+          base_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          base_tree="$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$base_sha" --jq '.tree.sha')"
+          entries='[]'
+          manifest='[]'
+          for rel in "${files[@]}"; do
+            test -f "$rel"
+            blob_sha="$(jq -n --rawfile content "$rel" '{content:$content,encoding:"utf-8"}' | gh api --method POST "repos/'"$GITHUB_REPOSITORY"'/git/blobs" --input - --jq '.sha')"
+            local_sha="$(git hash-object "$rel")"
+            test "$blob_sha" = "$local_sha"
+            entries="$(jq --arg path "$rel" --arg sha "$blob_sha" '. + [{path:$path,mode:"100644",type:"blob",sha:$sha}]' <<<"$entries")"
+            manifest="$(jq --arg path "$rel" --arg sha "$blob_sha" '. + [{path:$path,sha:$sha}]' <<<"$manifest")"
+          done
+
+          tree_payload="$(jq -n --arg base "$base_tree" --argjson tree "$entries" '{base_tree:$base,tree:$tree}')"
+          tree_sha="$(gh api --method POST "repos/$GITHUB_REPOSITORY/git/trees" --input - --jq '.sha' <<<"$tree_payload")"
+          commit_payload="$(jq -n --arg message 'Make Worker and D1 the free-first production authority' --arg tree "$tree_sha" --arg parent "$base_sha" '{message:$message,tree:$tree,parents:[$parent]}')"
+          commit_sha="$(gh api --method POST "repos/$GITHUB_REPOSITORY/git/commits" --input - --jq '.sha' <<<"$commit_payload")"
+
+          jq -n --arg base_sha "$base_sha" --arg base_tree "$base_tree" --arg tree_sha "$tree_sha" --arg commit_sha "$commit_sha" --argjson files "$manifest" '{base_sha:$base_sha,base_tree:$base_tree,tree_sha:$tree_sha,commit_sha:$commit_sha,files:$files}' | tee /tmp/free-first-staged-commit.json
+          echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Upload staged commit proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: free-first-runtime-plane-staged-commit-v10
+          path: /tmp/free-first-staged-commit.json
+          if-no-files-found: error
+          retention-days: 7
