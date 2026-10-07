@@ -39,6 +39,9 @@ export const LOCAL_BRIDGE_ACTIONS=Object.freeze({
  ssh_profile_list:{risk:'low',auto:true,confirmation:false,family:'ssh'},
  ssh_read:{risk:'low',auto:true,confirmation:false,family:'ssh'},
  ssh_command:{risk:'high',auto:false,confirmation:true,family:'ssh'},
+ ncs2_status:{risk:'low',auto:true,confirmation:false,family:'edge-ai'},
+ ncs2_benchmark:{risk:'medium',auto:false,confirmation:false,family:'edge-ai'},
+ ncs2_detect:{risk:'low',auto:true,confirmation:false,family:'edge-ai'},
  netwalk_probe:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
  netwalk_scan:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
  netwalk_diag:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
@@ -65,6 +68,8 @@ export const LOCAL_BRIDGE_POLICY=Object.freeze({
  ssh_interactive_shell_exposed:false,
  native_webhooks_https_only:true,
  arbitrary_process_execution:false,
+ edge_ai_inference_only:true,
+ edge_ai_inbound_listener_required:false,
  workspace_roots_required:true,
  exact_capability_allowlist:true,
  secrets_in_chat:false,
@@ -176,6 +181,22 @@ function validateTask(action,payload){
  if(body.proxy_url){
   let proxy;try{proxy=new URL(String(body.proxy_url))}catch{}
   if(!proxy||!['http:','https:','socks5:'].includes(proxy.protocol)||proxy.username||proxy.password)throw new Error('Remote proxy_url must be an unauthenticated http(s)/socks5 URL. Keep proxy credentials on the Local Bridge.');
+ }
+ if(action==='ncs2_benchmark'){
+  const count=Number(body.count||100),jobs=Number(body.jobs||4);
+  if(!Number.isInteger(count)||count<10||count>1000)throw new Error('ncs2_benchmark count must be an integer from 10 to 1000.');
+  if(!Number.isInteger(jobs)||jobs<1||jobs>8)throw new Error('ncs2_benchmark jobs must be an integer from 1 to 8.');
+ }
+ if(action==='ncs2_detect'){
+  const hasUrl=Boolean(clip(body.image_url,4000)),hasLocal=Boolean(clip(body.workspace,1000)&&clip(body.path,2000));
+  if(!hasUrl&&!hasLocal)throw new Error('ncs2_detect requires image_url or workspace + path.');
+  const threshold=Number(body.threshold??0.5);if(!Number.isFinite(threshold)||threshold<0.05||threshold>0.99)throw new Error('ncs2_detect threshold must be between 0.05 and 0.99.');
+  if(hasUrl){
+   let imageUrl;try{imageUrl=new URL(String(body.image_url||''))}catch{}
+   if(!imageUrl||!['http:','https:'].includes(imageUrl.protocol)||imageUrl.username||imageUrl.password)throw new Error('ncs2_detect image_url must be a public http(s) URL without embedded credentials.');
+   const host=String(imageUrl.hostname||'').toLowerCase();
+   if(host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||/^127\.|^0\.|^169\.254\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host))throw new Error('ncs2_detect private/local image targets are blocked.');
+  }
  }
  if(['read_file','search_text','git_status','git_diff','git_log','project_test','project_lint','project_typecheck','project_build','apply_patch','git_create_branch','git_commit'].includes(action)&&!clip(body.workspace,1000))throw new Error('A paired workspace path/id is required.');
  if(action==='apply_patch'&&!clip(body.patch,200000))throw new Error('apply_patch requires a unified diff patch.');

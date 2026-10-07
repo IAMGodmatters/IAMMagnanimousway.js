@@ -113,6 +113,14 @@ $agent = Join-Path $homeDir "bridge_agent.py"
 $source = "https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/bridge_agent.py"
 Write-Host "Downloading the Magnanimous Local Bridge agent..."
 Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $agent
+$ncs2Agent = Join-Path $homeDir "ncs2_edge.py"
+$ncs2Source = "https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/ncs2_edge.py"
+try {
+  Invoke-WebRequest -UseBasicParsing -Uri $ncs2Source -OutFile $ncs2Agent
+  Write-Host "Magnanimous NCS2 edge helper installed (activates only when a compatible local NCS2 runtime is present)."
+} catch {
+  Write-Warning "NCS2 edge helper was not available. Core Local Bridge activation will continue."
+}
 
 function Test-ExistingBridgeAuthorization {
   param([Parameter(Mandatory=$true)]$SavedConfig,[Parameter(Mandatory=$true)][string]$TargetServer)

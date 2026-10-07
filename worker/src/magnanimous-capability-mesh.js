@@ -5,7 +5,7 @@ import { handleMagnanimousCloudflare } from './magnanimous-cloudflare-runtime.js
 import { MAGNANIMOUS_WEB_PARITY, handleMagnanimousNativeWeb } from './magnanimous-native-web-runtime.js';
 import { MAGNANIMOUS_DEV_SKILLS, magnanimousDevAgentSummary, handleMagnanimousDevAgent } from './magnanimous-dev-agent.js';
 import { RAILWAY_VISIBLE_TOOL_CONTRACTS, RAILWAY_ARCHITECTURE_TECHNIQUES, handleMagnanimousCloudProvider } from './magnanimous-cloud-provider-core.js';
-import { findReadyLocalBridgeDevice, hasAnyReadyLocalBridgeCapability } from './magnanimous-local-bridge-runtime.js';
+import { findReadyLocalBridgeDevice, hasAnyReadyLocalBridgeCapability, queueLocalBridgeTask } from './magnanimous-local-bridge-runtime.js';
 import { MAGNANIMOUS_NATIVE_MEDIA_FAMILIES, MAGNANIMOUS_NATIVE_MEDIA_CAPABILITIES, MAGNANIMOUS_HEYGEN_PARITY_MAP, HEYGEN_VISIBLE_BENCHMARK_TOOLS, getMagnanimousNativeMediaSummary, handleMagnanimousNativeMedia } from './magnanimous-native-media-studio.js';
 import { MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES, getMagnanimousNativeTerminalSummary, handleMagnanimousNativeTerminal } from './magnanimous-native-terminal.js';
 import { getMagnanimousUniversalAppFabricSummary, getUniversalCapabilityCatalog, getUniversalCapabilityIndexSummary, resolveUniversalCapabilities } from './magnanimous-universal-app-fabric.js';
@@ -89,6 +89,9 @@ export const MAGNANIMOUS_CAPABILITY_MESH_ROUTES=Object.freeze({
  'computer.action':{surface:'native-web',mode:'confirmed-action',confirmation:true,native:true},
  'mcp.discover':{surface:'universal-app-fabric',mode:'read',native_contract:true},
  'mcp.invoke':{surface:'universal-app-fabric',mode:'authorized-action',confirmation:true,native_contract:true},
+ 'edge.ncs2.status':{surface:'edge-ai',mode:'local-read',native:true},
+ 'edge.ncs2.benchmark':{surface:'edge-ai',mode:'local-benchmark',native:true},
+ 'edge.ncs2.detect':{surface:'edge-ai',mode:'local-inference',native:true},
  'mesh.self_check':{surface:'capability-mesh',mode:'read',native:true}
 });
 
@@ -146,6 +149,26 @@ async function nativeWebReadiness(env,tenantId){
  };
 }
 
+async function edgeAiReadiness(env,tenantId){
+ const checker=tenantId
+  ? async action=>Boolean(await findReadyLocalBridgeDevice(env,tenantId,action))
+  : action=>hasAnyReadyLocalBridgeCapability(env,action);
+ const actions=['ncs2_status','ncs2_benchmark','ncs2_detect'];
+ const pairs=await Promise.all(actions.map(async action=>[action,Boolean(await checker(action).catch(()=>false))]));
+ const capabilities=Object.fromEntries(pairs);
+ return{
+  hardware:'Intel Neural Compute Stick 2 / Movidius Myriad X',
+  runtime:'OpenVINO 2022.3.1 LTS',
+  local_bridge:capabilities,
+  status_ready:Boolean(capabilities.ncs2_status),
+  benchmark_ready:Boolean(capabilities.ncs2_benchmark),
+  vision_ready:Boolean(capabilities.ncs2_detect),
+  offline_inference:true,
+  cloud_llm_acceleration:false,
+  phone_access:'indirect-through-Magnanimous-AI-and-outbound-Local-Bridge'
+ };
+}
+
 function cloudReadiness(env){
  const binding=env?.MAGNANIMOUS_CLOUD_CONTROL;
  const active=Boolean(binding&&typeof binding.summary==='function');
@@ -158,7 +181,7 @@ function cloudReadiness(env){
  };
 }
 
-function readinessRows({cloudflare,web,github,railway,cloud,media,terminal,apps}){
+function readinessRows({cloudflare,web,github,railway,cloud,media,terminal,apps,edgeAi}){
  return[
   {id:'universal-app-fabric',ready:true,required:false,mode:'native-registry',detail:`${Number(apps?.absorbed_capability_specs||0)} absorbed capability specifications are available to Magnanimous routing with authorization truth kept separate.`},
   {id:'unified-account-connections',ready:true,required:false,mode:'tenant-authorized-adapters',detail:`${Number(apps?.connected_account_count||0)} real tenant connection records are visible across the platform connection stores without inferring authorization from plugin visibility.`},
@@ -166,6 +189,7 @@ function readinessRows({cloudflare,web,github,railway,cloud,media,terminal,apps}
   {id:'native-avatar-experience',ready:Boolean(media?.execution?.browser_live_avatar||media?.execution?.self_hosted_avatar_renderer_configured),required:false,mode:media?.execution?.self_hosted_avatar_renderer_configured?'self-hosted-renderer':'browser-native',detail:media?.execution?.self_hosted_avatar_renderer_configured?'Owner-controlled avatar renderer is configured.':'Free browser live-avatar mode is available; heavy rendering remains optional owner-controlled compute.'},
   {id:'native-media-worker',ready:Boolean(media?.execution?.magnanimous_media_worker_configured),required:false,mode:'owner-controlled-compute',detail:media?.execution?.magnanimous_media_worker_configured?'Magnanimous Media Worker is configured for provider-independent heavy media operations.':'Control-plane parity is installed; configure the optional owner-controlled Magnanimous Media Worker for heavy generation, dubbing, lip-sync, clipping and batch execution.'},
   {id:'native-terminal-orchestration',ready:true,required:false,mode:'native',detail:'Command classification, redaction, rollback planning and confirmation policy are native Magnanimous capabilities.'},
+  {id:'ncs2-edge-ai',ready:Boolean(edgeAi?.status_ready),required:false,mode:'owner-local-edge-inference',detail:edgeAi?.status_ready?'Intel Neural Compute Stick 2 / MYRIAD is heartbeat-ready for bounded local inference through the outbound Local Bridge.':'NCS2 support is installed in Magnanimous; activate the compatible owner-local OpenVINO 2022.3.1 runtime to advertise it.'},
   {id:'native-ssh-execution',ready:Boolean(terminal?.local_ssh_ready),required:false,mode:'owner-local',detail:terminal?.local_ssh_ready?'A paired owner-controlled Local Bridge advertises native SSH execution.':'Native SSH code is installed; execution becomes live when an OpenSSH-capable paired Local Bridge is online.'},
   {id:'magnanimous-cloud',ready:Boolean(cloud.native_binding_active),required:false,mode:'native',detail:cloud.native_binding_active?'Native cloud control binding active.':'Native cloud control code is present; this execution rail does not expose the binding.'},
   {id:'native-web-search',ready:Boolean(web.core_read_ready),required:true,mode:'native-local',detail:web.core_read_ready?'Local Chromium search/fetch ready.':'Activate or update a paired Local Bridge to make native web execution live.'},
@@ -178,18 +202,19 @@ function readinessRows({cloudflare,web,github,railway,cloud,media,terminal,apps}
 }
 
 export async function getMagnanimousCapabilityMeshSummary(env,providerEnv=env,tenantId=''){
- const [web,terminal,apps]=await Promise.all([nativeWebReadiness(env,tenantId),getMagnanimousNativeTerminalSummary(env,tenantId),getMagnanimousUniversalAppFabricSummary(env,tenantId)]);
+ const [web,terminal,apps,edgeAi]=await Promise.all([nativeWebReadiness(env,tenantId),getMagnanimousNativeTerminalSummary(env,tenantId),getMagnanimousUniversalAppFabricSummary(env,tenantId),edgeAiReadiness(env,tenantId)]);
  const media=getMagnanimousNativeMediaSummary(env);
  const github=magnanimousDevAgentSummary(env);
  const cloudflare=magnanimousCloudflareSummary(providerEnv||env);
  const railway=railwayReadiness(env,github);
  const cloud=cloudReadiness(env);
- const readiness=readinessRows({cloudflare,web,github,railway,cloud,media,terminal,apps});
+ const readiness=readinessRows({cloudflare,web,github,railway,cloud,media,terminal,apps,edgeAi});
  const readyCount=readiness.filter(x=>x.ready).length,totalCount=readiness.length;
  const requiredBlocked=readiness.filter(x=>x.required&&!x.ready);
  const status=requiredBlocked.length?'operable-with-native-executor-activation-needed':'operable-native-first';
  const suggestions=[];
  if(!web.core_read_ready)suggestions.push({id:'activate-local-bridge',risk:'local-owner-action',action:'Re-run the Magnanimous Local Bridge activation/update so Chromium advertises the newest native web capabilities.'});
+ if(!edgeAi.status_ready)suggestions.push({id:'activate-ncs2-edge-ai',risk:'local-owner-action',action:'On the owner PC with the Intel Neural Compute Stick 2 attached, run local-bridge/install-ncs2-edge.ps1 and refresh the Local Bridge so MYRIAD edge inference is advertised.'});
  if(!github.repository_token_configured)suggestions.push({id:'configure-github-adapter',risk:'credential-owner-action',action:'Configure the server-side GitHub platform token if private repository writes or workflow dispatch are required from the live platform.'});
  if(!railway.direct_project_adapter_configured)suggestions.push({id:'railway-direct-fallback',risk:'credential-owner-action',action:'Keep Railway optional. Add a production-scoped Railway project token only if autonomous direct provider fallback is desired; do not make it Magnanimous identity.'});
  if(!cloud.native_binding_active)suggestions.push({id:'standalone-cloud-control',risk:'deployment',action:'Prefer the standalone Magnanimous runtime for the native cloud-control binding while keeping the current production rail available for rollback.'});
@@ -205,6 +230,7 @@ export async function getMagnanimousCapabilityMeshSummary(env,providerEnv=env,te
    native_web:web,
    native_media:media,
    native_terminal:terminal,
+   edge_ai:edgeAi,
    github,
    cloudflare:{
     configured:Boolean(cloudflare.readiness?.configured),
@@ -227,6 +253,7 @@ export async function getMagnanimousCapabilityMeshSummary(env,providerEnv=env,te
    'TinyFish is not required for the supported native web path; proprietary anti-bot/proxy infrastructure is not falsely claimed as native.',
    'HeyGen is not required for Magnanimous media orchestration; proprietary HeyGen code, prompts, weights and private internals are not copied.',
    'Hey Terminal is not required for native SSH planning/execution; credentials remain on the owner-controlled Local Bridge machine.',
+   'The Intel Neural Compute Stick 2 is an optional owner-local edge accelerator for compatible inference; it does not accelerate hosted ChatGPT or other cloud LLM inference.',
    'Real hardware, public IP space, Internet transit, registrar authority and other physical/regulated rails must exist somewhere.'
   ]
  };
@@ -346,6 +373,14 @@ async function routeCapability(request,env,providerEnv,body){
  if(capability==='media.glossary_apply')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/glossary/apply','POST',input),env),capability,def.surface);
  if(capability==='media.template_render')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/template/render','POST',input),env),capability,def.surface);
 
+ const edgeActions={'edge.ncs2.status':'ncs2_status','edge.ncs2.benchmark':'ncs2_benchmark','edge.ncs2.detect':'ncs2_detect'};
+ if(edgeActions[capability]){
+  const user=await currentUser(request,env).catch(()=>null);if(!user)return json({detail:'Signed-in tenant user is required for owner-local edge inference.'},401);
+  const queued=await queueLocalBridgeTask(env,user,{action:edgeActions[capability],payload:input,allowConfirmation:false});
+  if(!queued.ok)return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},...queued},503);
+  return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},...queued,polling_endpoint:'/api/magnanimous/local-bridge/tasks/'+queued.id},202);
+ }
+
  if(capability==='terminal.summary')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal','GET'),env),capability,def.surface);
  if(capability==='terminal.catalog')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/catalog','GET'),env),capability,def.surface);
  if(capability==='terminal.classify')return wrap(await handleMagnanimousNativeTerminal(delegatedRequest(request,'/api/magnanimous/native-terminal/classify','POST',input),env),capability,def.surface);
@@ -428,6 +463,7 @@ export async function handleMagnanimousCapabilityMesh(request,env,{providerEnv=e
    heygen_benchmark_tools:HEYGEN_VISIBLE_BENCHMARK_TOOLS,
    heygen_native_parity_map:MAGNANIMOUS_HEYGEN_PARITY_MAP,
    native_terminal_capabilities:MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES,
+   edge_ai_capabilities:['edge.ncs2.status','edge.ncs2.benchmark','edge.ncs2.detect'],
    universal_app_fabric:getUniversalCapabilityIndexSummary()
   });
  }

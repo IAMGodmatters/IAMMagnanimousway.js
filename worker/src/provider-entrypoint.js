@@ -22,7 +22,7 @@ Magnanimous AI is the durable remembrance layer for the platform: decisions, use
 When the user supplies a public link, learn the readable information into the tenant knowledge workspace so the user does not have to keep supplying the same link. Do not copy secrets, credentials, paywalled material or proprietary backend code.
 Repeated successful low-risk workflows should become reusable Magnanimous-native recipes. External providers remain necessary only when they offer a capability, live data, account access or compute Magnanimous cannot truthfully reproduce natively.
 Specialist agents are Magnanimous departments. Magnanimous owns planning, continuity, routing, verification, memory and learning across them. Main chat, standalone chat and specialist departments share this core research/memory/link contract; specialists add purpose-specific tools but never lose the main brain capabilities. Never ask ordinary customers to choose an outside provider or model; choose the best authorized path privately.
-Use the Magnanimous Capability Mesh as the provider-neutral execution map for native web, GitHub engineering, Magnanimous Cloud, optional Cloudflare adapters and optional Railway capacity rails. Prefer native-ready surfaces, report degraded readiness truthfully, and never confuse an installed contract with a live authorized executor.
+Use the Magnanimous Capability Mesh as the provider-neutral execution map for native web, GitHub engineering, Magnanimous Cloud, optional Cloudflare adapters and optional Railway capacity rails. Prefer native-ready surfaces, report degraded readiness truthfully, and never confuse an installed contract with a live authorized executor. When a paired owner computer advertises NCS2 / MYRIAD edge AI, prefer it for compatible camera, object-detection and local vision preprocessing; return compact structured detections to Magnanimous reasoning and never claim that the stick accelerates hosted ChatGPT or another cloud LLM.
 ACTION-FIRST OPERATING RULE: Do not stop at advice when an authorized executable tool can safely advance the user's stated goal. Inspect, search, read, analyze, organize, draft, prepare, verify, test and repair with available low-risk tools first, then report concrete results. Prefer doing over describing how to do it. For communications, proactively search/read/triage and prepare drafts when relevant instead of merely explaining email steps. For repositories and platform operations, inspect/test/fix/verify when authorized rather than returning a checklist. For research, actually retrieve and verify sources. Never fabricate execution.
 Approval boundary: actions that send messages, publish externally, spend money, place calls, book/purchase, delete data, change credentials/security/permissions, create legal commitments, or otherwise cause consequential external effects must still satisfy the applicable explicit authorization/confirmation and policy gates. If blocked by a gate, complete every safe preparatory step first and present the exact ready action awaiting approval.
 Never claim an external action happened without an actual authorized tool result. Never bypass security, identity, payment or permission boundaries.`;
@@ -47,6 +47,7 @@ const TOOLS = [
   ['research','Research Helper','Research live web/news sources and private workspace knowledge.'],
   ['native-web','Native Web Agent','Magnanimous-owned browser search, rendered extraction, browser workflows, persistent local sessions and monitoring through a paired Local Bridge.'],
   ['capability-mesh','Capability Mesh','Unified Magnanimous routing across native web, GitHub, Magnanimous Cloud, Cloudflare adapters and Railway deployment rails.'],
+  ['edge-ai','Edge AI Coprocessor','Owner-controlled NCS2 / MYRIAD inference for offline and hybrid online vision preprocessing through the Magnanimous Local Bridge.'],
   ['bible-study','Bible Study','Study Scripture and organize biblical topics.'],
   ['marketing','Marketing Helper','Create campaigns, captions, offers and content plans.'],
   ['business','Business Helper','Business planning, ideas and analysis.'],
@@ -131,6 +132,7 @@ function needsFreshResearch(message) {
 }
 function nativeCapability(message, task) {
   const m = String(message || '').toLowerCase();
+  if (/ncs2|neural compute stick|myriad|edge ai|object detection|person detection|vehicle detection|camera inference/.test(m)) return 'edge-ai-vision';
   if (/browse|browser|open website|click|fill|form|scrape|crawl|rendered page|web automation|website monitor/.test(m)) return 'native-web-browser-automation';
   if (/shopify|shopee|tiktok shop|product|catalog|markup|upsell|dropship|inventory|store/.test(m)) return 'commerce-catalog-operations';
   if (/facebook|instagram|tiktok|linkedin|youtube|social|caption|hashtag|post/.test(m)) return 'social-content-operations';

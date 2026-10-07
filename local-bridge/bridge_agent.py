@@ -175,6 +175,25 @@ def _detect_netwalk(config):
     return root if (root / "scripts").is_dir() else None
 
 
+def _detect_ncs2(config):
+    now = time.time()
+    cached = getattr(_detect_ncs2, "_cache", None)
+    if cached and now - cached[0] < 30:
+        return cached[1]
+    root_value = os.environ.get("MAGNANIMOUS_NCS2_ROOT") or ("D:/NCS2_AI" if os.name == "nt" else str(Path.home() / "NCS2_AI"))
+    python_value = os.environ.get("MAGNANIMOUS_NCS2_PYTHON") or ("D:/Python310/python.exe" if os.name == "nt" else sys.executable)
+    root = Path(root_value).expanduser().resolve()
+    python_exe = Path(python_value).expanduser().resolve()
+    runtime = Path(__file__).with_name("ncs2_edge.py").resolve()
+    setup = next(root.glob("openvino_2022.3.1/**/setupvars.bat"), None) if root.is_dir() else None
+    model = root / "models" / "person-vehicle-bike-detection-2004" / "FP16" / "person-vehicle-bike-detection-2004.xml"
+    value = None
+    if os.name == "nt" and root.is_dir() and python_exe.is_file() and runtime.is_file() and setup and setup.is_file():
+        value = {"root": root, "python": python_exe, "runtime": runtime, "setup": setup.resolve(), "model": model}
+    _detect_ncs2._cache = (now, value)
+    return value
+
+
 def capabilities(config):
     caps = set(BASE_CAPS)
     if shutil.which("git"):
@@ -186,6 +205,11 @@ def capabilities(config):
                 caps.add(action)
     if _detect_netwalk(config):
         caps.update({"netwalk_probe","netwalk_scan","netwalk_diag","netwalk_map","netwalk_report"})
+    ncs2 = _detect_ncs2(config)
+    if ncs2:
+        caps.update({"ncs2_status", "ncs2_benchmark"})
+        if ncs2["model"].is_file():
+            caps.add("ncs2_detect")
     if shutil.which("ssh"):
         caps.update({"ssh_profile_list","ssh_read","ssh_command"})
     try:
@@ -1045,6 +1069,89 @@ def action_netwalk_report(config, payload):
     return _run(argv,cwd=root,timeout=300)
 
 
+def _ncs2_runtime(config):
+    runtime = _detect_ncs2(config)
+    if not runtime:
+        raise RuntimeError("Intel Neural Compute Stick 2 runtime is not configured on this Local Bridge.")
+    return runtime
+
+
+def _run_ncs2(config, args, *, timeout=180):
+    runtime = _ncs2_runtime(config)
+    command = f'call "{runtime["setup"]}" >nul && ' + subprocess.list2cmdline([
+        str(runtime["python"]), str(runtime["runtime"]), *[str(x) for x in args]
+    ])
+    result = _run(["cmd.exe", "/d", "/s", "/c", command], timeout=timeout)
+    rows = [line.strip() for line in (result.get("stdout") or "").splitlines() if line.strip().startswith("{")]
+    data = None
+    if rows:
+        try:
+            data = json.loads(rows[-1])
+        except Exception:
+            data = None
+    if result.get("code") != 0 or not isinstance(data, dict) or data.get("ok") is not True:
+        detail = (data or {}).get("error") if isinstance(data, dict) else ""
+        raise RuntimeError(detail or result.get("stderr") or result.get("stdout") or "NCS2 inference failed.")
+    return data
+
+
+def action_ncs2_status(config, payload):
+    return _run_ncs2(config, ["status"], timeout=60)
+
+
+def action_ncs2_benchmark(config, payload):
+    count = max(10, min(1000, int(payload.get("count") or 100)))
+    jobs = max(1, min(8, int(payload.get("jobs") or 4)))
+    return _run_ncs2(config, ["benchmark", "--count", str(count), "--jobs", str(jobs)], timeout=180)
+
+
+def _download_ncs2_image(value):
+    url = _public_web_url(value)
+    suffix = Path(urllib.parse.urlparse(url).path).suffix.lower()
+    if suffix not in {".jpg", ".jpeg", ".png", ".bmp", ".webp"}:
+        suffix = ".img"
+    req = urllib.request.Request(url, headers={"User-Agent": "Magnanimous-NCS2-Edge/1.0"}, method="GET")
+    with urllib.request.urlopen(req, timeout=30) as response:
+        content_type = str(response.headers.get("content-type") or "").lower()
+        if not content_type.startswith("image/"):
+            raise RuntimeError("ncs2_detect image_url must return an image content type.")
+        data = response.read(10_000_001)
+        if len(data) > 10_000_000:
+            raise RuntimeError("ncs2_detect image exceeds the 10 MB safety limit.")
+    handle = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    try:
+        handle.write(data)
+        return Path(handle.name)
+    finally:
+        handle.close()
+
+
+def action_ncs2_detect(config, payload):
+    runtime = _ncs2_runtime(config)
+    model = runtime["model"]
+    if not model.is_file():
+        raise RuntimeError("NCS2 starter detection model is not installed. Run install-ncs2-edge.ps1.")
+    threshold = max(0.05, min(0.99, float(payload.get("threshold") or 0.5)))
+    temporary = None
+    if str(payload.get("image_url") or "").strip():
+        image = temporary = _download_ncs2_image(payload.get("image_url"))
+    else:
+        ws = _workspace(config, payload.get("workspace"))
+        image = _path_in_workspace(ws, payload.get("path"))
+        if not image.is_file():
+            raise RuntimeError("Requested image does not exist.")
+        if image.stat().st_size > 10_000_000:
+            raise RuntimeError("ncs2_detect local image exceeds the 10 MB safety limit.")
+    try:
+        return _run_ncs2(config, ["detect", "--image", str(image), "--model", str(model), "--threshold", str(threshold)], timeout=120)
+    finally:
+        if temporary:
+            try:
+                temporary.unlink()
+            except OSError:
+                pass
+
+
 HANDLERS = {
     "system_info": action_system_info,
     "health": action_health,
@@ -1080,6 +1187,9 @@ HANDLERS = {
     "netwalk_diag": action_netwalk_diag,
     "netwalk_map": action_netwalk_map,
     "netwalk_report": action_netwalk_report,
+    "ncs2_status": action_ncs2_status,
+    "ncs2_benchmark": action_ncs2_benchmark,
+    "ncs2_detect": action_ncs2_detect,
 }
 for _action in SAFE_PROJECT_SCRIPTS:
     HANDLERS[_action] = lambda config, payload, action=_action: _project_action(config, payload, action)
