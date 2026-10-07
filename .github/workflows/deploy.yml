@@ -277,8 +277,7 @@ jobs:
           if [ "$guard_rc" -ne 0 ]; then
             [ -n "${D1_PRE_MIGRATION_BOOKMARK:-}" ] || { echo "::error::Identity loss detected but no restore bookmark is available."; exit 1; }
             echo "::warning::Rolling D1 back to the pre-migration Time Travel bookmark to preserve accounts."
-            printf 'y
-' | npx wrangler d1 time-travel restore iam-magnanimous-db --bookmark "$D1_PRE_MIGRATION_BOOKMARK"
+            printf '%s\n' y | npx wrangler d1 time-travel restore iam-magnanimous-db --bookmark "$D1_PRE_MIGRATION_BOOKMARK"
             echo "::error::Deployment stopped and D1 was restored because a migration removed durable account identity."
             exit 1
           fi
