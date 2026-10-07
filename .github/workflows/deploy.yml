@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       changed: ${{ steps.impact.outputs.changed }}
+      standalone_changed: ${{ steps.impact.outputs.standalone_changed }}
     steps:
       - name: Checkout runtime impact range
         uses: actions/checkout@v6
@@ -27,12 +28,20 @@ jobs:
           set -euo pipefail
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "standalone_changed=true" >> "$GITHUB_OUTPUT"
             echo "Manual production deployment requested."
             exit 0
           fi
 
           parent="$(git rev-parse HEAD^)"
           git diff --name-only "$parent" HEAD >/tmp/magnanimous-deploy-changed-files.txt
+          if grep -Eq '^(magnanimous-runtime/|frontend/|video-gateway/|api/|package\.json$|package-lock\.json$|Dockerfile$|docker-compose[^/]*$|railway[^/]*$)' /tmp/magnanimous-deploy-changed-files.txt; then
+            echo "standalone_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Standalone-sensitive runtime files changed; Railway parity remains required."
+          else
+            echo "standalone_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No standalone-sensitive files changed; Worker deployment may complete independently of Railway."
+          fi
           if grep -Eq '^(magnanimous-runtime/|worker/|frontend/|video-gateway/|api/|package\.json$|package-lock\.json$)' /tmp/magnanimous-deploy-changed-files.txt; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "Runtime-impacting files changed; production deployment required."
@@ -561,6 +570,7 @@ jobs:
           fi
 
       - name: Wait for standalone session plane revision
+        if: needs.runtime-impact.outputs.standalone_changed == 'true'
         id: runtime-plane
         env:
           STANDALONE_ORIGIN: https://magnanimous-production.up.railway.app
@@ -607,6 +617,7 @@ jobs:
           echo "runtime_target=$live" >> "$GITHUB_OUTPUT"
           rm -f /tmp/magnanimous-session-plane-health.json
       - name: Production smoke test
+        if: needs.runtime-impact.outputs.standalone_changed == 'true'
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -1887,3 +1898,35 @@ jobs:
           if [ "$revoked_status" != "401" ]; then echo "Revoked opaque session expected HTTP 401, got $revoked_status"; cat /tmp/revoked-me.json || true; exit 1; fi
 
           echo "Production health, opaque session issuance/revocation, QA contribution with owner-only approval, automatic named specialist handoff, private execution-provider catalogs, native Agent Mesh, Magnanimous AI, AI Receptionist, billing, monetization, signup, sessions, and platform-owner isolation passed."
+      - name: Worker-only production smoke test
+        if: needs.runtime-impact.outputs.standalone_changed != 'true'
+        env:
+          BASE_URL: https://iammagnanimousway.com
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          health_status="$(curl -sS --connect-timeout 10 --max-time 60 -o /tmp/worker-only-health.json -w '%{http_code}' "$BASE_URL/health")"
+          [ "$health_status" = "200" ] || { echo "::error::Worker health returned HTTP $health_status"; cat /tmp/worker-only-health.json || true; exit 1; }
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/worker-only-health.json'))
+          assert data.get('status') == 'ok', data
+          PY
+
+          connector_status="$(curl -sS --connect-timeout 10 --max-time 60 -o /tmp/worker-only-connector.json -w '%{http_code}' "$BASE_URL/.well-known/magnanimous-ai-connector.json")"
+          [ "$connector_status" = "200" ] || { echo "::error::Magnanimous connector manifest returned HTTP $connector_status"; cat /tmp/worker-only-connector.json || true; exit 1; }
+
+          mesh_status="$(curl -sS --connect-timeout 10 --max-time 60 -D /tmp/worker-only-mesh-headers.txt -o /tmp/worker-only-mesh.json -w '%{http_code}' "$BASE_URL/api/magnanimous/capability-mesh/catalog")"
+          case "$mesh_status" in
+            401|403) ;;
+            *) echo "::error::Protected Capability Mesh expected HTTP 401/403 without owner auth, got $mesh_status"; cat /tmp/worker-only-mesh.json || true; exit 1 ;;
+          esac
+          if grep -Eqi '^x-railway-fallback:[[:space:]]*true' /tmp/worker-only-mesh-headers.txt; then
+            echo "::error::Capability Mesh incorrectly fell through to the Railway standalone plane."
+            cat /tmp/worker-only-mesh-headers.txt
+            exit 1
+          fi
+
+          echo "Worker-only production smoke passed: health and connector are live; owner-only Capability Mesh is protected and remains on Cloudflare."
+
