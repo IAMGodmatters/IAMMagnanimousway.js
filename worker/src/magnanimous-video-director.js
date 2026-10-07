@@ -62,6 +62,9 @@ function generationPreferences(input,workflow){
   const speed=clip(input.generation_priority||input.priority,40).toLowerCase();
   const priority=['quality','speed','cost'].includes(speed)?speed:'cost';
   const maxExternal=clamp(input.max_external_cost_usd,0,10000,0);
+  const likenessRequested=Boolean(input.likeness_media||input.face_swap||input.avatar_swap||input.action_replication);
+  const referenceRequested=Boolean(input.reference_media||input.reference_image||(Array.isArray(input.reference_images)&&input.reference_images.length));
+  const fundedExternal=Boolean(input.allow_funded_external||maxExternal>0);
   return {
     mode:creativeMode(input),
     media_type:'video',
@@ -73,15 +76,15 @@ function generationPreferences(input,workflow){
     requested_features:[
       input.first_frame_description||input.last_frame_description?'start-end-frame':null,
       input.character?'character-continuity':null,
-      input.likeness_media?'likeness-media':null,
+      likenessRequested?'likeness-media':null,
       input.voice_clone?'voice-clone':null,
-      input.reference_media?'multi-reference':null
+      referenceRequested?'multi-reference':null
     ].filter(Boolean),
     budget:{
       native_free_first:true,
-      max_external_cost_usd:maxExternal,
+      max_external_cost_usd:maxExternal||null,
       allow_unfunded_variable_cost:false,
-      funded_provider_required:maxExternal>0,
+      funded_provider_required:fundedExternal,
       preflight_required:true
     }
   };
