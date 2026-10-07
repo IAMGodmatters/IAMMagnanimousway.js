@@ -39,8 +39,13 @@
     // Repository credentials remain protected Worker secrets and never appear here.
     "MAGNANIMOUS_DEV_REPOS": "IAMGodmatters/IAMMagnanimousway.js",
     // Pull-request merge remains independently hard-locked by default.
-    "DEV_AGENT_MERGE_ENABLED": "false"
+    "DEV_AGENT_MERGE_ENABLED": "false",
+    "MAGNANIMOUS_MAIL_FROM": "Godmattersinc@iammagnanimousway.com",
+    "MAGNANIMOUS_MAIL_FROM_NAME": "I AM MAGNANIMOUS WAY"
   },
+  "send_email": [
+    { "name": "MAGNANIMOUS_EMAIL" }
+  ],
   "triggers": {
     "crons": ["*/15 * * * *"]
   },

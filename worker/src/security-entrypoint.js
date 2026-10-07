@@ -22,6 +22,7 @@ import { handleMagnanimousCapabilityMesh } from './magnanimous-capability-mesh.j
 import { handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
 import { handleMagnanimousNativeRendering } from './magnanimous-native-rendering.js';
 import { handleEdgeAiBridge } from './edge-ai-bridge.js';
+import { withCloudflareNativeMail } from './cloudflare-native-mail.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -114,7 +115,7 @@ async function proxyApiToStandalone(request,env){
   const standaloneDataPlanePath=url.pathname.startsWith('/api/')||url.pathname==='/funnels'||url.pathname.startsWith('/funnels/');
   // Keep Worker-private control paths and the owner-only capability mesh local to Cloudflare.
   // Magnanimous training follows the standalone data plane when configured so its persistent learning is not coupled to Cloudflare D1 daily quotas.
-  if(url.pathname.startsWith('/api/magnanimous/local-bridge')||url.pathname.startsWith('/api/magnanimous/capability-mesh')||url.pathname==='/api/internal/migration/rewrap-platform-credentials'||url.pathname==='/api/internal/edge-ai/run')return null;
+  if(url.pathname.startsWith('/api/magnanimous/local-bridge')||url.pathname.startsWith('/api/magnanimous/capability-mesh')||url.pathname==='/api/admin/login'||url.pathname.startsWith('/api/admin/email-code/')||url.pathname==='/api/internal/migration/rewrap-platform-credentials'||url.pathname==='/api/internal/edge-ai/run')return null;
   if(!standaloneDataPlanePath)return null;
   if(request.headers.get('x-magnanimous-standalone-proxy')==='1')return null;
   const origin=configuredStandaloneApiOrigin(env);
@@ -228,6 +229,7 @@ async function hideServerOnlyCredentialMetadata(request,response){
 
 export default {
   async fetch(request, env, ctx) {
+    env=withCloudflareNativeMail(env);
     const canonicalOrLegacy=canonicalOrLegacyResponse(request);
     if(canonicalOrLegacy)return finalizeResponse(request,canonicalOrLegacy);
     const outerUrl=new URL(request.url);
