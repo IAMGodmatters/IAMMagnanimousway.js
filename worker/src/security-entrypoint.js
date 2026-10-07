@@ -1,4 +1,5 @@
 import app from './operations-entrypoint.js';
+import ownerAuthApp from './admin-compat-entrypoint.js';
 import { securityPreflight, securityPostflight } from './security-hardening.js';
 import { recoverProfessionalGeneration } from './professional-resilience-runtime.js';
 import { handleNativeWorkCrm } from './native-work-crm-runtime.js';
@@ -270,6 +271,26 @@ export default {
       const sessionResolution=await resolveSessionRequest(guardedRequest,env,requestId);
       if(sessionResolution.response)return finalizeResponse(request,await securityPostflight(guardedRequest,sessionResolution.response,env));
       const routedRequest=sessionResolution.request;
+
+      // Owner authentication is intentionally routed directly to the dedicated auth
+      // module. It must remain public enough to establish the first owner session,
+      // while still passing the global auth rate limits and secure-session checks.
+      // Keeping this before unrelated owner-only middleware prevents circular lockout.
+      const routedUrlForOwnerAuth=new URL(routedRequest.url);
+      const directOwnerAuth=routedRequest.method==='POST'&&new Set([
+        '/api/admin/login','/api/admin/email-code/request','/api/admin/email-code/verify'
+      ]).has(routedUrlForOwnerAuth.pathname);
+      if(directOwnerAuth){
+        const ownerAuthBlocked=await securityPreflight(routedRequest,env);
+        if(ownerAuthBlocked){
+          const carrierCompleted=await completeCarrierWebhook(carrierContext,ownerAuthBlocked,env);
+          return finalizeResponse(request,await securityPostflight(routedRequest,carrierCompleted,env));
+        }
+        const ownerAuthRaw=await ownerAuthApp.fetch(routedRequest,env,ctx);
+        const ownerAuthSession=await upgradeAuthResponseToOpaque(request,ownerAuthRaw,env);
+        const carrierCompleted=await completeCarrierWebhook(carrierContext,ownerAuthSession,env);
+        return finalizeResponse(request,await securityPostflight(routedRequest,carrierCompleted,env));
+      }
 
       const ownerBoundary=await enforcePlatformOwnerBoundary(routedRequest,env);
       if(ownerBoundary)return finalizeResponse(request,await securityPostflight(routedRequest,ownerBoundary,env));
