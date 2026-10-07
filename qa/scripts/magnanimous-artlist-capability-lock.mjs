@@ -1,10 +1,13 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { ARTLIST_PUBLIC_RESEARCH, getArtlistCapabilityManifest, getArtlistAbsorptionSummary } from '../../worker/src/magnanimous-artlist-capability-registry.js';
+import { ARTLIST_EDITING_TOOLS_PUBLIC_RESEARCH, getArtlistEditingToolManifest, getArtlistEditingToolSummary } from '../../worker/src/magnanimous-artlist-editing-tools-registry.js';
 import { buildMagnanimousVideoDirectorPlan, getMagnanimousVideoDirectorSummary } from '../../worker/src/magnanimous-video-director.js';
 
 const rows=getArtlistCapabilityManifest();
 const summary=getArtlistAbsorptionSummary();
+const editingRows=getArtlistEditingToolManifest();
+const editingSummary=getArtlistEditingToolSummary();
 const singleBrain=fs.readFileSync(new URL('../../worker/src/magnanimous-single-brain-contract.js',import.meta.url),'utf8');
 
 assert.ok(rows.length>=40,'Artlist clean-room benchmark should cover the public AI, Studio, media-library, cost, rights, MCP and editor workflow surface.');
@@ -58,6 +61,25 @@ assert.equal(summary.clean_room,true);
 assert.ok(summary.explicit_truth_gaps.some(x=>/not proof/i.test(x)));
 assert.ok(summary.explicit_truth_gaps.some(x=>/training\/fine-tuning/i.test(x)));
 
+assert.ok(editingRows.length>=14,'Artlist editing/API benchmark should cover semantic search, editor automation, extension lifecycle and enterprise music API patterns.');
+for(const capability of [
+  'artlist-editing-semantic-asset-search','artlist-editing-project-artboards','artlist-editing-timeline-preview-sync',
+  'artlist-editing-silence-removal','artlist-editing-auto-zoom','artlist-editing-creative-extension-manager',
+  'artlist-editing-effect-catalog-normalization','artlist-editing-music-catalog-api-search','artlist-editing-music-catalog-stream-preview',
+  'artlist-editing-music-catalog-download-handoff','artlist-editing-oauth-client-credentials-rail','artlist-editing-creative-api-rate-limit-control'
+])assert.ok(editingRows.some(x=>x.capability===capability),'Missing Artlist editing/API benchmark capability: '+capability);
+assert.ok(ARTLIST_EDITING_TOOLS_PUBLIC_RESEARCH.sources.length>=9,'Editing/API research must preserve its official source ledger.');
+assert.ok(ARTLIST_EDITING_TOOLS_PUBLIC_RESEARCH.sources.every(x=>/^https:\/\/(?:help\.|developer\.)?artlist\.io\//.test(x)),'Editing/API source ledger must use official Artlist domains.');
+assert.ok(ARTLIST_EDITING_TOOLS_PUBLIC_RESEARCH.documented_effect_names.length>=50,'Keep the publicly documented effect-name coverage without copying effect implementation.');
+assert.match(ARTLIST_EDITING_TOOLS_PUBLIC_RESEARCH.boundary,/does not copy Artlist binaries/i);
+assert.equal(editingSummary.direct_artlist_runtime_required,false);
+assert.equal(editingSummary.provider_specific_binaries_copied,false);
+assert.equal(editingSummary.provider_catalog_copied,false);
+assert.equal(editingSummary.free_native_first,true);
+const oauth=editingRows.find(x=>x.capability==='artlist-editing-oauth-client-credentials-rail');
+assert.equal(oauth?.initiative?.requires_confirmation,true);
+assert.equal(oauth?.initiative?.action_class,'credential-sensitive-connector-action');
+
 const plan=buildMagnanimousVideoDirectorPlan({
   title:'Creative control plane test',workflow:'consistent-character',creation_mode:'agent',generation_priority:'cost',seconds:24,aspect_ratio:'9:16',
   idea:'A teacher enters a village. She talks with children. The group gathers beneath a tree.',
@@ -100,15 +122,21 @@ assert.equal(director.c2pa_content_credentials_policy,true);
 assert.equal(director.licensed_assets_excluded_from_training,true);
 
 assert.match(singleBrain,/getArtlistCapabilityManifest/,'Single brain must load Artlist clean-room benchmark contracts.');
+assert.match(singleBrain,/getArtlistEditingToolManifest/,'Single brain must load Artlist editing/API benchmark contracts.');
 assert.match(singleBrain,/creative_control_plane_capability_contracts/,'Single brain must expose creative control-plane contract counts.');
+assert.match(singleBrain,/creative_editing_api_capability_contracts/,'Single brain must expose creative editing/API contract counts.');
+assert.match(singleBrain,/semantic_asset_search:true/,'Single brain must expose semantic creative search policy.');
+assert.match(singleBrain,/rate_limit_and_idempotency_controls:true/,'Single brain must preserve external creative API safety controls.');
 assert.match(singleBrain,/generation_budget_preflight:true/,'Single brain must expose funded-generation preflight policy.');
 assert.match(singleBrain,/licensed_assets_excluded_from_training:true/,'Single brain must preserve the licensed-asset AI training prohibition.');
 assert.doesNotMatch(singleBrain,/artlist\.io\/api/i,'Single brain must not introduce an assumed Artlist runtime API dependency.');
 
 console.log('Magnanimous Artlist capability lock PASS:',{
   capabilities:rows.length,
-  official_sources:ARTLIST_PUBLIC_RESEARCH.sources.length,
-  native_targets:summary.native_targets,
+  editing_api_capabilities:editingRows.length,
+  documented_effect_names:ARTLIST_EDITING_TOOLS_PUBLIC_RESEARCH.documented_effect_names.length,
+  official_sources:ARTLIST_PUBLIC_RESEARCH.sources.length+ARTLIST_EDITING_TOOLS_PUBLIC_RESEARCH.sources.length,
+  native_targets:[...new Set([...summary.native_targets,...editingSummary.native_targets])].sort(),
   authorization_gated:summary.authorization_gated_contracts,
   c2pa_content_credentials:true
 });
