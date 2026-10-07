@@ -35,6 +35,7 @@ assert(edge.includes('max_frames = max(1, min(60'),'Video edge scan must stay bo
 assert(agent.includes('4_000_000_000'),'Bridge video scan must keep the 4 GB bounded scan limit');
 assert(agent.includes('presence-and-boxes-only'),'Face mode must explicitly exclude identity/demographic inference');
 assert(security.includes("url.pathname.startsWith('/api/magnanimous/local-bridge')"),'Local Bridge API must remain on the Worker instead of being proxied to standalone Railway');
+assert(security.includes("url.pathname.startsWith('/api/magnanimous/capability-mesh')"),'Capability Mesh must remain on the Worker so NCS2 orchestration stays available when standalone Railway is unavailable');
 assert(bridge.includes('edge_ai_inference_only:true'),'Local Bridge policy must preserve bounded edge inference');
 assert(bridge.includes('edge_ai_inbound_listener_required:false'),'NCS2 must not open an inbound listener');
 assert(agent.includes('shell=False'),'NCS2 integration must preserve shell=False bridge execution');
