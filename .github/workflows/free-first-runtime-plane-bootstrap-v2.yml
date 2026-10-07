@@ -1,0 +1,83 @@
+name: Free-first runtime plane bootstrap v2
+
+on:
+  push:
+    branches: [fix/free-first-runtime-plane-20261007]
+    paths:
+      - .github/workflows/free-first-runtime-plane-bootstrap-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            worker/package-lock.json
+
+      - name: Apply repaired free-first migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          source_path=Path('.github/workflows/free-first-runtime-plane-bootstrap.yml')
+          workflow=source_path.read_text()
+          marker="          python - <<'PY'\n"
+          start=workflow.index(marker)+len(marker)
+          end=workflow.index("\n          PY",start)
+          code=textwrap.dedent(workflow[start:end])
+          old_call="s=replace_once(s,old,new,'D1 free-first authority lock')"
+          repaired="""target=\"\"\"add('Cloudflare production config points API traffic at the Magnanimous standalone origin',wrangler.includes('\\\"MAGNANIMOUS_STANDALONE_API_ORIGIN\\\": \\\"https://magnanimous-production.up.railway.app\\\"'));\"\"\"\nif target not in s: raise SystemExit('missing expected source for D1 free-first authority lock')\ns=s.replace(target,new,1)"""
+          if old_call not in code:
+              raise SystemExit('repair target missing from bootstrap source')
+          code=code.replace(old_call,repaired,1)
+          exec(compile(code,'free-first-runtime-plane-migration','exec'),{})
+          Path('.github/workflows/free-first-runtime-plane-bootstrap-v2.yml').unlink()
+          PY
+
+      - name: Verify free-first runtime contracts
+        run: |
+          set -euo pipefail
+          node qa/scripts/free-first-runtime-plane-lock.mjs
+          node qa/scripts/d1-quota-resilience-lock.mjs
+          node qa/scripts/magnanimous-native-first-lock.mjs
+          node qa/scripts/railway-descendant-safe-deploy-lock.mjs
+          node qa/scripts/product-contract-locks.mjs
+
+      - name: Verify frontend
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+
+      - name: Verify Worker bundle
+        working-directory: worker
+        run: |
+          npm ci --no-audit --no-fund
+          npx wrangler deploy --dry-run --outdir /tmp/magnanimous-worker-free-first
+
+      - name: Commit verified migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "IAMGodmatters"
+          git config user.email "hardinlourijess@gmail.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Make Cloudflare Worker the free-first production session plane" -m "Remove Railway from the required production path, add Worker-native revision and smoke controls, move Reels behind a same-origin branded Worker proxy, and keep Railway as an explicit optional manual adapter."
+          git push origin HEAD:fix/free-first-runtime-plane-20261007
