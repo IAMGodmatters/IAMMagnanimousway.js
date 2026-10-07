@@ -18,6 +18,8 @@ const ownerUi=read('frontend/app/owner-login/page.tsx');
 const accountUi=read('frontend/app/account/recovery-contacts.tsx');
 const forgotUi=read('frontend/app/forgot-password/page.tsx');
 const migration=read('worker/migrations/0088_recovery_contacts_owner_email_login.sql');
+const edgeMail=read('worker/src/cloudflare-native-mail.js');
+const wrangler=read('worker/wrangler.jsonc');
 
 must(admin.includes("randomOwnerChallenge(){return 'own1_'"),'owner login must use a dedicated random challenge');
 must(admin.includes('randomEightDigitCode()')&&admin.includes("padStart(8,'0')"),'owner login must generate an 8-digit code');
@@ -26,6 +28,10 @@ must(admin.includes('expires=t+600'),'owner login challenge must expire in 10 mi
 must(admin.includes('Number(row.attempts||0)>=5'),'owner login must cap failed code attempts');
 must(admin.includes("t.slug='owner'")&&admin.includes("t.owner_user_id=u.id"),'owner email login must bind to the reserved global owner tenant');
 must(admin.includes("kind:'owner-login-code'")&&admin.includes('MAGNANIMOUS_MAIL'),'owner login must use Magnanimous native mail');
+must(edgeMail.includes('cloudflare-email-service')&&edgeMail.includes('MAGNANIMOUS_EMAIL'),'Worker owner login must have a native Cloudflare email transport');
+must(entry.includes('withCloudflareNativeMail(env)'),'Worker entrypoint must inject native email before auth routing');
+must(entry.includes("url.pathname==='/api/admin/login'")&&entry.includes("url.pathname.startsWith('/api/admin/email-code/')"),'owner auth must stay on the Worker and not depend on Railway availability');
+must(wrangler.includes('\"send_email\"')&&wrangler.includes('MAGNANIMOUS_EMAIL'),'Wrangler must configure the native Cloudflare email binding');
 must(admin.includes("delivery_status!=='sent'"),'owner login verification must require successful mail delivery');
 must(ownerUi.includes('SEND MY LOGIN CODE')&&ownerUi.includes('8-digit login code'),'owner portal must default to email-code login');
 must(ownerUi.includes('Use password fallback')&&ownerUi.includes('/api/admin/login'),'owner password must remain as emergency fallback');
