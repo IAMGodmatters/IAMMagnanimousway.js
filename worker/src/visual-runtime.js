@@ -3,7 +3,7 @@ import { currentUser } from './integrations.js';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 
 function googleReady(env){return Boolean(String(env?.GOOGLE_API_KEY||'').trim())}
-function cloudflareReady(env){return env?.AI!=null&&String(env?.MAGNANIMOUS_RUNTIME||'')!=='standalone-node'}
+function cloudflareReady(env){return env?.AI!=null&&String(env?.MAGNANIMOUS_RUNTIME||'')!=='standalone-node'&&String(env?.ENABLE_CLOUDFLARE_FLUX_ROLLBACK||'').toLowerCase()==='true'}
 function magnanimousImageReady(env){return env?.MAGNANIMOUS_IMAGE_GENERATOR?.configured===true}
 function proceduralImageReady(){return true}
 function imageReady(env){return magnanimousImageReady(env)||cloudflareReady(env)||proceduralImageReady()}
@@ -29,7 +29,7 @@ export function visualProviderSnapshot(env){
   {
    id:'cloudflare-flux-free',name:'Legacy Edge FLUX Fallback',type:'image-generation',tier:'rollback-only',free:true,
    configured:cloudflareReady(env),enabled:cloudflareReady(env),model:'@cf/black-forest-labs/flux-1-schnell',
-   note:'Legacy production rollback path only while the old edge runtime remains active. Standalone Magnanimous does not depend on it.'
+   note:'Legacy production rollback path only. It requires explicit ENABLE_CLOUDFLARE_FLUX_ROLLBACK=true opt-in; standalone Magnanimous does not depend on it.'
   },
   {
    id:'google-gemini-visual-director',name:'Google Gemini Visual Director',type:'visual-planning',tier:'free-tier',free:true,
