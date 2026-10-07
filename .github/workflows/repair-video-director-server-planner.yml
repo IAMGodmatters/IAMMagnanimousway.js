@@ -1,0 +1,88 @@
+name: Repair Video Director Server Planner
+
+on:
+  push:
+    branches: ['feat/artlist-cleanroom-creative-control-plane']
+    paths: ['.github/workflows/repair-video-director-server-planner.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/artlist-cleanroom-creative-control-plane
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Move Director planning behind Worker boundary
+        shell: python
+        run: |
+          from pathlib import Path
+
+          runtime = Path('worker/src/movie-maker-runtime.js')
+          text = runtime.read_text()
+          import_line = "import {buildMagnanimousVideoDirectorPlan} from './magnanimous-video-director.js';\n"
+          if import_line not in text:
+              marker = "import {renderVisualScene} from './visual-runtime.js';\n"
+              assert marker in text
+              text = text.replace(marker, marker + import_line, 1)
+
+          old_plan = "if(request.method==='POST'&&path==='/api/movie-maker/plan'){const b=await request.json().catch(()=>({})),script=cleanText(b.script||b.prompt,12000);if(!script)return json({detail:'Add a story, script, or movie idea first.'},400);return json({title:cleanText(b.title||'Magnanimous Movie',180),scenes:splitScenes(script,Number(b.max_scenes||12)),policy,share_export:['download','copy link','Web Share','YouTube','TikTok','LinkedIn'],provider_details_private:true})}"
+          assert old_plan in text
+          new_plan = old_plan + "\n if(request.method==='POST'&&path==='/api/movie-maker/director-plan'){const b=await request.json().catch(()=>({}));const input={...b,allow_funded_external:Boolean(b.allow_funded_external)&&policy.premium_studio_allowed};const director=buildMagnanimousVideoDirectorPlan(input);return json({ok:true,identity:'Magnanimous AI',director_plan:director,policy,provider_details_private:true})}"
+          text = text.replace(old_plan, new_plan, 1)
+
+          old_video = "if(request.method==='POST'&&path==='/api/movie-maker/video'){const b=await request.json().catch(()=>({}));return String(b.mode||'free').toLowerCase()==='studio'?startStudioVideo(request,env,user,b,plan):freeVideo(request,env,user,b,plan)}"
+          assert old_video in text
+          new_video = "if(request.method==='POST'&&path==='/api/movie-maker/video'){const b=await request.json().catch(()=>({}));if(b.director_input&&typeof b.director_input==='object'){const requestedStudio=String(b.mode||'free').toLowerCase()==='studio';const director=buildMagnanimousVideoDirectorPlan({...b.director_input,allow_funded_external:requestedStudio&&policy.premium_studio_allowed});b.prompt=director.compiled_prompt;b.director_plan=director}return String(b.mode||'free').toLowerCase()==='studio'?startStudioVideo(request,env,user,b,plan):freeVideo(request,env,user,b,plan)}"
+          text = text.replace(old_video, new_video, 1)
+          runtime.write_text(text)
+
+          page = Path('frontend/app/video-director/page.tsx')
+          text = page.read_text()
+          text = text.replace("import {buildMagnanimousVideoDirectorPlan} from '../../../worker/src/magnanimous-video-director.js';\n", '')
+          old_compile = " function compile():Plan{\n  const d:any=buildMagnanimousVideoDirectorPlan(directorInput());\n  return{workflow:d.workflow?.name||'Creative video',compiled_prompt:d.compiled_prompt,scenes:Array.isArray(d.scenes)?d.scenes:[],rights_note:d.rights?.note||'Use only media you have permission to use.',creation_mode:d.creation_mode==='standard'?'standard':'agent',generation_preferences:d.generation_preferences||{},session_context:d.session_context||{},provenance_policy:d.provenance_policy||{},rights:d.rights||{},execution_policy:d.execution_policy||{}};\n }\n function build(){const p=compile();setPlan(p);setMessage(`Director plan ready in ${p.creation_mode==='agent'?'Agent':'Precision'} mode. Magnanimous can use it as the production prompt or you can edit the idea first.`)}\n async function create(){if(!idea.trim())return;const p=compile();"
+          new_compile = " async function compile():Promise<Plan>{\n  const r=await fetch(api+'/api/movie-maker/director-plan',{method:'POST',headers:headers(),body:JSON.stringify(directorInput())}),d=await read(r);\n  if(!r.ok)throw new Error(d.detail||'Magnanimous Video Director could not compile the plan.');\n  const p:any=d.director_plan||{};\n  return{workflow:p.workflow?.name||'Creative video',compiled_prompt:p.compiled_prompt||'',scenes:Array.isArray(p.scenes)?p.scenes:[],rights_note:p.rights?.note||'Use only media you have permission to use.',creation_mode:p.creation_mode==='standard'?'standard':'agent',generation_preferences:p.generation_preferences||{},session_context:p.session_context||{},provenance_policy:p.provenance_policy||{},rights:p.rights||{},execution_policy:p.execution_policy||{}};\n }\n async function build(){try{setBusy('plan');const p=await compile();setPlan(p);setMessage(`Director plan ready in ${p.creation_mode==='agent'?'Agent':'Precision'} mode. Magnanimous can use it as the production prompt or you can edit the idea first.`)}catch(error){setMessage(error instanceof Error?error.message:'Director planning failed.')}finally{setBusy('')}}\n async function create(){if(!idea.trim())return;let p:Plan;try{p=await compile()}catch(error){setMessage(error instanceof Error?error.message:'Director planning failed.');return}"
+          assert old_compile in text
+          text = text.replace(old_compile, new_compile, 1)
+          page.write_text(text)
+
+          qa = Path('qa/scripts/magnanimous-artlist-capability-lock.mjs')
+          text = qa.read_text()
+          if "const movieRuntime=" not in text:
+              marker = "const liveDirector=fs.readFileSync(new URL('../../frontend/app/video-director/page.tsx',import.meta.url),'utf8');\n"
+              assert marker in text
+              text = text.replace(marker, marker + "const movieRuntime=fs.readFileSync(new URL('../../worker/src/movie-maker-runtime.js',import.meta.url),'utf8');\n", 1)
+          old_assert = "assert.match(liveDirector,/buildMagnanimousVideoDirectorPlan\\(directorInput\\(\\)\\)/,'Live Video Director must compile through the Magnanimous-owned planner.');"
+          new_assert = "assert.match(liveDirector,/api\\/movie-maker\\/director-plan/,'Live Video Director must request its plan through the authenticated Movie Maker server boundary.');\nassert.doesNotMatch(liveDirector,/worker\\/src\\/magnanimous-video-director/,'Browser code must never import the Worker planner directly.');\nassert.match(movieRuntime,/buildMagnanimousVideoDirectorPlan/,'Movie Maker runtime must own the live Video Director planner invocation.');\nassert.match(movieRuntime,/api\\/movie-maker\\/director-plan/,'Movie Maker runtime must expose the authenticated Director planning route.');\nassert.match(movieRuntime,/b\\.director_input/,'Movie generation must recompute supplied Director input server-side rather than trusting client planner metadata.');"
+          assert old_assert in text
+          text = text.replace(old_assert, new_assert, 1)
+          qa.write_text(text)
+
+          docs = Path('docs/ARTLIST-CLEANROOM-CREATIVE-CONTROL-PLANE-2026-10-07.md')
+          d = docs.read_text()
+          note = "\n### Server-side Director planning boundary\n\nThe live Video Director requests planning through the authenticated `/api/movie-maker/director-plan` Worker route. The browser never imports Worker source directly, and `/api/movie-maker/video` recomputes `director_input` server-side before execution so client-supplied planner metadata cannot override the Magnanimous-owned brain, funding, rights, or provider-readiness policy.\n"
+          if '### Server-side Director planning boundary' not in d:
+              d += note
+              docs.write_text(d)
+
+      - name: Verify focused locks and frontend build
+        run: |
+          node qa/scripts/magnanimous-artlist-capability-lock.mjs
+          node qa/scripts/magnanimous-videoexpress-capability-lock.mjs
+          cd frontend
+          npm install --no-audit --no-fund
+          npm run typecheck
+          npm run build
+      - name: Commit repair
+        run: |
+          git config user.name 'Magnanimous CI Repair'
+          git config user.email 'actions@users.noreply.github.com'
+          git add worker/src/movie-maker-runtime.js frontend/app/video-director/page.tsx qa/scripts/magnanimous-artlist-capability-lock.mjs docs/ARTLIST-CLEANROOM-CREATIVE-CONTROL-PLANE-2026-10-07.md
+          git diff --cached --quiet && exit 0
+          git commit -m 'Move Video Director planner behind Worker boundary'
+          git push origin HEAD:feat/artlist-cleanroom-creative-control-plane
