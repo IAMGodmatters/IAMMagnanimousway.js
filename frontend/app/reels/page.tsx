@@ -112,7 +112,7 @@ export default function MagnanimousReelsPage() {
           </div>
         </header>
         <iframe
-          src="https://magnanimous-production.up.railway.app/reels/"
+          src="/reels-proxy/"
           title="Magnanimous Reels public player"
           allow="autoplay; fullscreen; picture-in-picture"
           allowFullScreen

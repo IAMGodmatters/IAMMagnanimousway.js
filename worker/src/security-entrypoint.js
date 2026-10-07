@@ -22,6 +22,8 @@ import { handleMagnanimousCapabilityMesh } from './magnanimous-capability-mesh.j
 import { handleMagnanimousToolFoundry } from './magnanimous-tool-foundry.js';
 import { handleMagnanimousNativeRendering } from './magnanimous-native-rendering.js';
 import { handleEdgeAiBridge } from './edge-ai-bridge.js';
+import { handleMagnanimousRuntimeControl } from './runtime-control.js';
+import { handleMagnanimousReelsProxy } from './reels-proxy.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -217,6 +219,10 @@ export default {
     const canonicalOrLegacy=canonicalOrLegacyResponse(request);
     if(canonicalOrLegacy)return finalizeResponse(request,canonicalOrLegacy);
     const outerUrl=new URL(request.url);
+    const runtimeControlResponse=await handleMagnanimousRuntimeControl(request,env);
+    if(runtimeControlResponse)return finalizeResponse(request,runtimeControlResponse);
+    const reelsProxyResponse=await handleMagnanimousReelsProxy(request);
+    if(reelsProxyResponse)return finalizeResponse(request,reelsProxyResponse);
     const edgeAiResponse=await handleEdgeAiBridge(request,env);
     if(edgeAiResponse)return finalizeResponse(request,await securityPostflight(request,edgeAiResponse,env));
     if(request.method==='GET'&&outerUrl.pathname==='/health'){
