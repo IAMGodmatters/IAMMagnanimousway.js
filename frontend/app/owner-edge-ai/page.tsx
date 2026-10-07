@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import {useEffect,useMemo,useState} from 'react';
 
@@ -55,10 +55,10 @@ export default function OwnerEdgeAiPage(){
  const ready=online.some(d=>d.capabilities.includes('ncs2_status'));
 
  return <main className="page">
-  <header><a href="/owner-center">â† Owner Center</a><span>PRIVATE OWNER â€¢ EDGE AI</span><a href="/local-bridge">Local Bridge â†’</a></header>
+  <header><a href="/owner-center">← Owner Center</a><span>PRIVATE OWNER • EDGE AI</span><a href="/local-bridge">Local Bridge →</a></header>
 
   <section className="hero">
-   <small>I AM MAGNANIMOUS WAYâ„¢ â€¢ MAGNANIMOUS AI</small>
+   <small>I AM MAGNANIMOUS WAY™ • MAGNANIMOUS AI</small>
    <h1>Neural Compute Stick 2</h1>
    <p>Your Intel Neural Compute Stick 2 / MYRIAD is integrated as an owner-controlled local Edge AI coprocessor. Magnanimous AI can route supported image and media preprocessing to the paired Windows computer through the Local Bridge.</p>
    <div className="badges">
@@ -86,29 +86,29 @@ export default function OwnerEdgeAiPage(){
    <article className="card">
     <small>LIVE CONTROL</small><h2>Inspect the connection</h2>
     <p>Use this page for the Edge AI view and Local Bridge for pairing, health checks and device controls.</p>
-    <div className="actions"><button onClick={()=>refresh()} disabled={!token||busy}>{busy?'REFRESHINGâ€¦':'REFRESH LIVE STATUS'}</button><a className="button" href="/local-bridge">OPEN LOCAL BRIDGE</a><a className="button" href="/owner-capability-mesh">OPEN CAPABILITY MESH</a></div>
+    <div className="actions"><button onClick={()=>refresh()} disabled={!token||busy}>{busy?'REFRESHING…':'REFRESH LIVE STATUS'}</button><a className="button" href="/local-bridge">OPEN LOCAL BRIDGE</a><a className="button" href="/owner-capability-mesh">OPEN CAPABILITY MESH</a></div>
    </article>
   </section>
 
   <section className="card">
    <small>NCS2 CAPABILITIES</small><h2>What the stick can do for Magnanimous</h2>
    <div className="caps">{NCS2_ACTIONS.map(([id,label])=><div key={id} className={capabilitySet.has(id)?'cap ready':'cap'}><b>{label}</b><code>{id}</code><span>{capabilitySet.has(id)?'READY ON PAIRED DEVICE':'REGISTERED / WAITING FOR DEVICE'}</span></div>)}</div>
-   {registered.length>0&&<p className="registered">Capability Mesh routes: {registered.join(' â€¢ ')}</p>}
+   {registered.length>0&&<p className="registered">Capability Mesh routes: {registered.join(' • ')}</p>}
   </section>
 
   <section className="card">
    <small>PAIRED EDGE DEVICES</small><h2>Neural hardware visible to the platform</h2>
    {!ncs2Devices.length?<p>No paired computer is currently advertising NCS2 capabilities. Open Local Bridge and bring the Windows bridge online; the integration remains installed in the platform.</p>:ncs2Devices.map(d=><article className="device" key={d.id}>
-    <div><b>{d.name||'Magnanimous Windows Computer'}</b><p>{d.hostname||'Windows device'} â€¢ {d.platform||'local bridge'}</p></div>
+    <div><b>{d.name||'Magnanimous Windows Computer'}</b><p>{d.hostname||'Windows device'} • {d.platform||'local bridge'}</p></div>
     <span className={d.online?'online':'offline'}>{d.online?'ONLINE':'OFFLINE'}</span>
-    <small>{(d.capabilities||[]).filter(c=>c.startsWith('ncs2_')).join(' â€¢ ')}</small>
+    <small>{(d.capabilities||[]).filter(c=>c.startsWith('ncs2_')).join(' • ')}</small>
    </article>)}
   </section>
 
   <section className="card explain">
    <small>OFFLINE + ONLINE</small><h2>How your phone and platform benefit</h2>
    <p><strong>Offline:</strong> OpenVINO and the installed model files can run local supported inference on the Windows computer without sending the image through a cloud vision service.</p>
-   <p><strong>Online:</strong> I AM Magnanimous Way can route an eligible task through Magnanimous AI â†’ Capability Mesh â†’ Local Bridge â†’ NCS2 and use the returned result in the larger workflow. A phone can therefore benefit indirectly by using the web platform while the paired computer performs the local NCS2 work.</p>
+   <p><strong>Online:</strong> I AM Magnanimous Way can route an eligible task through Magnanimous AI → Capability Mesh → Local Bridge → NCS2 and use the returned result in the larger workflow. A phone can therefore benefit indirectly by using the web platform while the paired computer performs the local NCS2 work.</p>
   </section>
 
   <style jsx>{`
@@ -116,4 +116,3 @@ export default function OwnerEdgeAiPage(){
   `}</style>
  </main>
 }
-
