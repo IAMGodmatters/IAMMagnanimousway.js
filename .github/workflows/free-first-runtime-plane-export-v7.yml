@@ -1,0 +1,125 @@
+name: Free-first runtime plane export v7
+
+on:
+  push:
+    branches: [fix/free-first-runtime-plane-20261007]
+    paths:
+      - .github/workflows/free-first-runtime-plane-export-v7.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            worker/package-lock.json
+
+      - name: Apply the verified migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          source_path=Path('.github/workflows/free-first-runtime-plane-bootstrap.yml')
+          workflow=source_path.read_text()
+          marker="          python - <<'PY'\n"
+          start=workflow.index(marker)+len(marker)
+          end=workflow.index("\n          PY",start)
+          code=textwrap.dedent(workflow[start:end])
+
+          old_call="s=replace_once(s,old,new,'D1 free-first authority lock')"
+          repaired="""target=\"\"\"add('Cloudflare production config points API traffic at the Magnanimous standalone origin',wrangler.includes('\\\"MAGNANIMOUS_STANDALONE_API_ORIGIN\\\": \\\"https://magnanimous-production.up.railway.app\\\"'));\"\"\"\nif target not in s: raise SystemExit('missing expected source for D1 free-first authority lock')\ns=s.replace(target,new,1)"""
+          if old_call not in code:
+              raise SystemExit('D1 repair target missing from bootstrap source')
+          code=code.replace(old_call,repaired,1)
+
+          bad="reels.includes(\"x-magnanimous-surface','reels\"))],"
+          good="reels.includes(\"x-magnanimous-surface','reels\")],"
+          if bad not in code:
+              raise SystemExit('QA syntax repair target missing from bootstrap source')
+          code=code.replace(bad,good,1)
+
+          exec(compile(code,'free-first-runtime-plane-migration','exec'),{})
+          PY
+
+      - name: Normalize generated QA lock formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('qa/scripts/free-first-runtime-plane-lock.mjs')
+          text=p.read_text()
+          p.write_text('\n'.join(line.rstrip() for line in text.splitlines()) + '\n')
+          PY
+
+      - name: Verify free-first runtime contracts
+        run: |
+          set -euo pipefail
+          node qa/scripts/free-first-runtime-plane-lock.mjs
+          node qa/scripts/d1-quota-resilience-lock.mjs
+          node qa/scripts/magnanimous-native-first-lock.mjs
+          node qa/scripts/railway-descendant-safe-deploy-lock.mjs
+          node qa/scripts/product-contract-locks.mjs
+
+      - name: Verify frontend
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+
+      - name: Verify Worker bundle
+        working-directory: worker
+        run: |
+          npm ci --no-audit --no-fund
+          npx wrangler deploy --dry-run --outdir /tmp/magnanimous-worker-free-first
+
+      - name: Package exact changed files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          python - <<'PY'
+          from pathlib import Path
+          import shutil, subprocess
+
+          tracked = subprocess.check_output(['git','diff','--name-only','-z']).decode().split('\0')
+          untracked = subprocess.check_output(['git','ls-files','--others','--exclude-standard','-z']).decode().split('\0')
+          files = sorted({p for p in tracked + untracked if p})
+          excluded_prefix = '.github/workflows/free-first-runtime-plane-'
+          files = [p for p in files if not p.startswith(excluded_prefix)]
+          if not files:
+              raise SystemExit('verified migration produced no deliverable changes')
+          root=Path('/tmp/free-first-patch')
+          root.mkdir(parents=True, exist_ok=True)
+          for rel in files:
+              src=Path(rel)
+              if not src.is_file():
+                  raise SystemExit(f'changed path is not a regular file: {rel}')
+              dst=root/rel
+              dst.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(src,dst)
+          (root/'MANIFEST.txt').write_text('\n'.join(files)+'\n')
+          print('\n'.join(files))
+          PY
+
+      - name: Upload exact verified patch
+        uses: actions/upload-artifact@v4
+        with:
+          name: free-first-runtime-plane-verified-patch-v7
+          path: /tmp/free-first-patch
+          if-no-files-found: error
+          retention-days: 7
