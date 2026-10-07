@@ -47,7 +47,7 @@ const TOOLS = [
   ['research','Research Helper','Research live web/news sources and private workspace knowledge.'],
   ['native-web','Native Web Agent','Magnanimous-owned browser search, rendered extraction, browser workflows, persistent local sessions and monitoring through a paired Local Bridge.'],
   ['capability-mesh','Capability Mesh','Unified Magnanimous routing across native web, GitHub, Magnanimous Cloud, Cloudflare adapters and Railway deployment rails.'],
-  ['edge-ai','Edge AI Coprocessor','Owner-controlled NCS2 / MYRIAD inference for offline and hybrid online vision preprocessing through the Magnanimous Local Bridge.'],
+  ['edge-ai','Edge AI Coprocessor','Owner-controlled NCS2 / MYRIAD inference for offline and hybrid online image/media triage, sampled video analysis, face-presence framing, text-region detection and vision preprocessing through the Magnanimous Local Bridge.'],
   ['bible-study','Bible Study','Study Scripture and organize biblical topics.'],
   ['marketing','Marketing Helper','Create campaigns, captions, offers and content plans.'],
   ['business','Business Helper','Business planning, ideas and analysis.'],
@@ -132,7 +132,7 @@ function needsFreshResearch(message) {
 }
 function nativeCapability(message, task) {
   const m = String(message || '').toLowerCase();
-  if (/ncs2|neural compute stick|myriad|edge ai|object detection|person detection|vehicle detection|camera inference/.test(m)) return 'edge-ai-vision';
+  if (/ncs2|neural compute stick|myriad|edge ai|object detection|person detection|vehicle detection|camera inference|media triage|video scan|reel preflight|face detect|text region/.test(m)) return 'edge-ai-vision';
   if (/browse|browser|open website|click|fill|form|scrape|crawl|rendered page|web automation|website monitor/.test(m)) return 'native-web-browser-automation';
   if (/shopify|shopee|tiktok shop|product|catalog|markup|upsell|dropship|inventory|store/.test(m)) return 'commerce-catalog-operations';
   if (/facebook|instagram|tiktok|linkedin|youtube|social|caption|hashtag|post/.test(m)) return 'social-content-operations';

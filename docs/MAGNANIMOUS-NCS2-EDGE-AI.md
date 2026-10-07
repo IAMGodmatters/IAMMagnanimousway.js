@@ -2,21 +2,38 @@
 
 This integration makes an Intel Neural Compute Stick 2 (Movidius Myriad X VPU) a capability-scoped edge accelerator beneath **Magnanimous AI**.
 
-## What it does
+## Live capabilities
 
-- `ncs2_status` — verifies the local OpenVINO/MYRIAD runtime.
-- `ncs2_benchmark` — measures synchronous and asynchronous inference throughput.
-- `ncs2_detect` — runs bounded image detection locally on the NCS2 using the installed Intel Open Model Zoo starter model.
-- Capability Mesh routes:
-  - `edge.ncs2.status`
-  - `edge.ncs2.benchmark`
-  - `edge.ncs2.detect`
+- `ncs2_status` - verifies the local OpenVINO/MYRIAD runtime.
+- `ncs2_benchmark` - measures synchronous and asynchronous inference throughput.
+- `ncs2_detect` - bounded person/vehicle/bike detection.
+- `ncs2_media_triage` - local image preflight with dimensions, orientation, brightness, contrast, sharpness proxy, quality heuristic and detections.
+- `ncs2_batch_scan` - bounded folder scan that compiles the model once and ranks image candidates.
+- `ncs2_video_scan` - samples a bounded number of video frames with portable FFmpeg and returns candidate timestamps plus detections.
+- `ncs2_face_detect` - **face presence/boxes only** for framing and composition; no identity, emotion, age, gender or demographic inference.
+- `ncs2_text_regions` - locates text regions before a separate OCR/transcription step.
+
+Capability Mesh routes are `edge.ncs2.status`, `edge.ncs2.benchmark`, `edge.ncs2.detect`, `edge.ncs2.triage`, `edge.ncs2.batch_scan`, `edge.ncs2.video_scan`, `edge.ncs2.face_detect`, and `edge.ncs2.text_regions`.
+
+## Useful I AM Magnanimous Way workflows
+
+The NCS2 is a local **vision coprocessor**, not a general LLM accelerator. Good uses include:
+
+- preflight ministry/social images and thumbnails before a cloud model sees them;
+- rank local pictures for reels, posts and publishing artwork;
+- sample a reel/video and find candidate moments without uploading the whole video first;
+- detect whether faces are present for crop/framing decisions without identifying anyone;
+- find text regions in screenshots, scanned pages and visual email attachments before OCR;
+- batch-triage owner files while offline;
+- return compact structured results to Magnanimous AI, which can then decide whether cloud reasoning is necessary.
+
+Email and social workflows remain account/authorization scoped. Magnanimous may use the NCS2 to analyze an authorized local or downloaded visual attachment, but **sending email, publishing a post, deleting data, changing an account, spending money, or any other consequential external mutation still uses the platform's existing permission and confirmation gates**.
 
 ## Hybrid online/offline model
 
-The NCS2 performs inference locally. It does not require the internet once OpenVINO, the runtime script, and model files are installed.
+The NCS2 performs inference locally. It does not require the internet once OpenVINO, the runtime script, model files and the portable FFmpeg dependency are installed.
 
-When the I AM Magnanimous Way platform is online, Magnanimous AI can queue NCS2 work to a paired computer through the existing outbound-only Local Bridge. The computer polls over HTTPS; no inbound port or LAN listener is opened.
+When I AM Magnanimous Way is online, Magnanimous AI can queue NCS2 work to a paired computer through the existing outbound-only Local Bridge. The computer polls over HTTPS; no inbound port or LAN listener is opened.
 
 A phone can therefore use the NCS2 indirectly:
 
@@ -25,20 +42,15 @@ A phone can therefore use the NCS2 indirectly:
 3. The NCS2 performs local inference.
 4. Only the bounded result is returned to Magnanimous AI for reasoning, automation, logging, or follow-up.
 
-This is useful for camera/image preprocessing, person/vehicle/bike detection, local filtering, and privacy-preserving edge decisions.
-
 ## ChatGPT / cloud AI boundary
 
-The NCS2 cannot accelerate the ChatGPT cloud model, OpenAI inference servers, or a phone CPU. It can still improve the overall workflow by:
-
-- offloading compatible computer-vision inference from the laptop CPU;
-- preprocessing images locally before cloud reasoning;
-- sending structured detections instead of full media when appropriate;
-- enabling offline vision features when cloud AI is unavailable.
+The NCS2 **cannot accelerate the ChatGPT cloud model**, OpenAI inference servers, or a phone CPU. It can improve the overall workflow by offloading compatible computer-vision inference from the laptop CPU, preprocessing visual media locally, reducing unnecessary uploads, and enabling offline vision tasks.
 
 ## Runtime version
 
-NCS2 support is intentionally pinned to **OpenVINO 2022.3.1 LTS**, the final OpenVINO release line that supports the MYRIAD / Neural Compute Stick 2 plugin. Newer OpenVINO releases are not treated as an upgrade for this device because they removed NCS2 support.
+The preferred runtime is **OpenVINO 2022.3.2 LTS**. Intel describes 2022.3.2 as a functional/security bug-fix release over 2022.3.1 and explicitly states that Intel Movidius VPU-based products are supported. Newer OpenVINO generations removed MYRIAD/NCS2 support, so this integration intentionally remains on the compatible 2022.3 LTS line.
+
+The owner PC keeps the previous 2022.3.1 stack available as a rollback fallback; promotion to 2022.3.2 was accepted only after MYRIAD status, benchmark, image, batch, video, face-box and text-region tests passed on the physical stick.
 
 ## Installation on the owner computer
 
@@ -48,6 +60,6 @@ From the repository `local-bridge` directory, run:
 powershell -ExecutionPolicy Bypass -File .\install-ncs2-edge.ps1
 ```
 
-The installer uses the existing isolated NCS2 environment under `D:\NCS2_AI` with its isolated `venv` by default, installs Pillow, downloads the starter Intel Open Model Zoo detector, then verifies status and benchmark execution.
+The installer defaults to `D:\NCS2_AI\venv232`, uses OpenVINO 2022.3.2, installs Pillow plus portable `imageio-ffmpeg`, provisions the bounded Intel Open Model Zoo models, and verifies status and benchmark execution.
 
-The Local Bridge advertises NCS2 capabilities only when it can detect the compatible runtime.
+The Local Bridge advertises only NCS2 capabilities backed by files that are actually present on the owner computer.

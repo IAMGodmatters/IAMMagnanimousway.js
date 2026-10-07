@@ -181,15 +181,21 @@ def _detect_ncs2(config):
     if cached and now - cached[0] < 30:
         return cached[1]
     root_value = os.environ.get("MAGNANIMOUS_NCS2_ROOT") or ("D:/NCS2_AI" if os.name == "nt" else str(Path.home() / "NCS2_AI"))
-    python_value = os.environ.get("MAGNANIMOUS_NCS2_PYTHON") or ("D:/NCS2_AI/venv/Scripts/python.exe" if os.name == "nt" else sys.executable)
     root = Path(root_value).expanduser().resolve()
+    preferred_python = root / "venv232" / "Scripts" / "python.exe"
+    fallback_python = root / "venv" / "Scripts" / "python.exe"
+    python_value = os.environ.get("MAGNANIMOUS_NCS2_PYTHON") or str(preferred_python if preferred_python.is_file() else fallback_python)
     python_exe = Path(python_value).expanduser().resolve()
     runtime = Path(__file__).with_name("ncs2_edge.py").resolve()
-    setup = next(root.glob("openvino_2022.3.1/**/setupvars.bat"), None) if root.is_dir() else None
+    setup = next(root.glob("openvino_2022.3.2/**/setupvars.bat"), None) if root.is_dir() else None
+    if not setup and root.is_dir():
+        setup = next(root.glob("openvino_2022.3.1/**/setupvars.bat"), None)
     model = root / "models" / "person-vehicle-bike-detection-crossroad-0078" / "FP16" / "person-vehicle-bike-detection-crossroad-0078.xml"
+    face_model = root / "models" / "face-detection-retail-0004" / "FP16" / "face-detection-retail-0004.xml"
+    text_model = root / "models" / "horizontal-text-detection-0001" / "FP16" / "horizontal-text-detection-0001.xml"
     value = None
     if os.name == "nt" and root.is_dir() and python_exe.is_file() and runtime.is_file() and setup and setup.is_file():
-        value = {"root": root, "python": python_exe, "runtime": runtime, "setup": setup.resolve(), "model": model}
+        value = {"root": root, "python": python_exe, "runtime": runtime, "setup": setup.resolve(), "model": model, "face_model": face_model, "text_model": text_model}
     _detect_ncs2._cache = (now, value)
     return value
 
@@ -209,7 +215,11 @@ def capabilities(config):
     if ncs2:
         caps.update({"ncs2_status", "ncs2_benchmark"})
         if ncs2["model"].is_file():
-            caps.add("ncs2_detect")
+            caps.update({"ncs2_detect", "ncs2_media_triage", "ncs2_batch_scan", "ncs2_video_scan"})
+        if ncs2["face_model"].is_file():
+            caps.add("ncs2_face_detect")
+        if ncs2["text_model"].is_file():
+            caps.add("ncs2_text_regions")
     if shutil.which("ssh"):
         caps.update({"ssh_profile_list","ssh_read","ssh_command"})
     try:
@@ -1081,6 +1091,7 @@ def _run_ncs2(config, args, *, timeout=180):
     argv = [str(runtime["python"]), str(runtime["runtime"]), *[str(x) for x in args]]
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".cmd", delete=False, newline="\r\n") as fh:
         fh.write("@echo off\n")
+        fh.write(f'set "PATH={runtime["python"].parent};%PATH%"\n')
         fh.write(f'call "{runtime["setup"]}" >nul\n')
         fh.write(subprocess.list2cmdline(argv) + "\n")
         launcher = fh.name
@@ -1161,6 +1172,100 @@ def action_ncs2_detect(config, payload):
                 pass
 
 
+def action_ncs2_media_triage(config, payload):
+    runtime = _ncs2_runtime(config)
+    model = runtime["model"]
+    if not model.is_file():
+        raise RuntimeError("NCS2 starter detection model is not installed. Run install-ncs2-edge.ps1.")
+    threshold = max(0.05, min(0.99, float(payload.get("threshold") or 0.5)))
+    temporary = None
+    if str(payload.get("image_url") or "").strip():
+        image = temporary = _download_ncs2_image(payload.get("image_url"))
+    else:
+        ws = _workspace(config, payload.get("workspace"))
+        image = _path_in_workspace(ws, payload.get("path"))
+        if not image.is_file():
+            raise RuntimeError("Requested image does not exist.")
+        if image.stat().st_size > 10_000_000:
+            raise RuntimeError("ncs2_media_triage local image exceeds the 10 MB safety limit.")
+    try:
+        return _run_ncs2(config, ["triage", "--image", str(image), "--model", str(model), "--threshold", str(threshold)], timeout=180)
+    finally:
+        if temporary:
+            try:
+                temporary.unlink()
+            except OSError:
+                pass
+
+
+def _ncs2_fixed_model_detect(config, payload, model_key, action_name):
+    runtime = _ncs2_runtime(config)
+    model = runtime[model_key]
+    if not model.is_file():
+        raise RuntimeError(f"{action_name} model is not installed.")
+    threshold = max(0.05, min(0.99, float(payload.get("threshold") or 0.5)))
+    temporary = None
+    if str(payload.get("image_url") or "").strip():
+        image = temporary = _download_ncs2_image(payload.get("image_url"))
+    else:
+        ws = _workspace(config, payload.get("workspace"))
+        image = _path_in_workspace(ws, payload.get("path"))
+        if not image.is_file():
+            raise RuntimeError("Requested image does not exist.")
+        if image.stat().st_size > 10_000_000:
+            raise RuntimeError(f"{action_name} local image exceeds the 10 MB safety limit.")
+    try:
+        return _run_ncs2(config, ["detect", "--image", str(image), "--model", str(model), "--threshold", str(threshold)], timeout=180)
+    finally:
+        if temporary:
+            try:
+                temporary.unlink()
+            except OSError:
+                pass
+
+
+def action_ncs2_face_detect(config, payload):
+    result = _ncs2_fixed_model_detect(config, payload, "face_model", "ncs2_face_detect")
+    result["privacy_mode"] = "presence-and-boxes-only; no identity, emotion, age, gender, or demographic inference"
+    return result
+
+
+def action_ncs2_text_regions(config, payload):
+    result = _ncs2_fixed_model_detect(config, payload, "text_model", "ncs2_text_regions")
+    result["scope"] = "text-region detection only; OCR/transcription is a separate step"
+    return result
+
+
+def action_ncs2_batch_scan(config, payload):
+    runtime = _ncs2_runtime(config)
+    model = runtime["model"]
+    ws = _workspace(config, payload.get("workspace"))
+    directory = _path_in_workspace(ws, payload.get("path") or ".")
+    if not directory.is_dir():
+        raise RuntimeError("Requested batch-scan directory does not exist.")
+    max_files = max(1, min(100, int(payload.get("max_files") or 30)))
+    threshold = max(0.05, min(0.99, float(payload.get("threshold") or 0.5)))
+    argv = ["batch-scan", "--directory", str(directory), "--model", str(model), "--threshold", str(threshold), "--max-files", str(max_files)]
+    if bool(payload.get("recursive")):
+        argv.append("--recursive")
+    return _run_ncs2(config, argv, timeout=900)
+
+
+def action_ncs2_video_scan(config, payload):
+    runtime = _ncs2_runtime(config)
+    model = runtime["model"]
+    ws = _workspace(config, payload.get("workspace"))
+    video = _path_in_workspace(ws, payload.get("path"))
+    if not video.is_file():
+        raise RuntimeError("Requested video does not exist.")
+    if video.stat().st_size > 4_000_000_000:
+        raise RuntimeError("ncs2_video_scan video exceeds the 4 GB bounded scan limit.")
+    every = max(1.0, min(120.0, float(payload.get("every") or 5.0)))
+    max_frames = max(1, min(60, int(payload.get("max_frames") or 24)))
+    threshold = max(0.05, min(0.99, float(payload.get("threshold") or 0.5)))
+    return _run_ncs2(config, ["video-scan", "--video", str(video), "--model", str(model), "--threshold", str(threshold), "--every", str(every), "--max-frames", str(max_frames)], timeout=900)
+
+
 HANDLERS = {
     "system_info": action_system_info,
     "health": action_health,
@@ -1199,6 +1304,11 @@ HANDLERS = {
     "ncs2_status": action_ncs2_status,
     "ncs2_benchmark": action_ncs2_benchmark,
     "ncs2_detect": action_ncs2_detect,
+    "ncs2_media_triage": action_ncs2_media_triage,
+    "ncs2_batch_scan": action_ncs2_batch_scan,
+    "ncs2_video_scan": action_ncs2_video_scan,
+    "ncs2_face_detect": action_ncs2_face_detect,
+    "ncs2_text_regions": action_ncs2_text_regions,
 }
 for _action in SAFE_PROJECT_SCRIPTS:
     HANDLERS[_action] = lambda config, payload, action=_action: _project_action(config, payload, action)
