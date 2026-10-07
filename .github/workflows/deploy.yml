@@ -1917,6 +1917,27 @@ jobs:
           connector_status="$(curl -sS --connect-timeout 10 --max-time 60 -o /tmp/worker-only-connector.json -w '%{http_code}' "$BASE_URL/.well-known/magnanimous-ai-connector.json")"
           [ "$connector_status" = "200" ] || { echo "::error::Magnanimous connector manifest returned HTTP $connector_status"; cat /tmp/worker-only-connector.json || true; exit 1; }
 
+          tools_status="$(curl -sS --connect-timeout 10 --max-time 60 -D /tmp/worker-only-tools-headers.txt -o /tmp/worker-only-tools.json -w '%{http_code}' "$BASE_URL/api/tools")"
+          [ "$tools_status" = "200" ] || { echo "::error::Public Worker API tools route returned HTTP $tools_status"; cat /tmp/worker-only-tools.json || true; exit 1; }
+          if grep -Eqi '^x-railway-fallback:[[:space:]]*true' /tmp/worker-only-tools-headers.txt; then
+            echo "::error::Public Worker API tools route leaked Railway application-missing fallback instead of recovering on Cloudflare."
+            cat /tmp/worker-only-tools-headers.txt
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/worker-only-tools.json'))
+          assert isinstance(data.get('tools'), list) and len(data['tools']) > 0, data
+          PY
+
+          me_status="$(curl -sS --connect-timeout 10 --max-time 60 -D /tmp/worker-only-me-headers.txt -o /tmp/worker-only-me.json -w '%{http_code}' "$BASE_URL/api/auth/me")"
+          [ "$me_status" = "401" ] || { echo "::error::Unauthenticated auth/me expected Magnanimous HTTP 401, got $me_status"; cat /tmp/worker-only-me.json || true; exit 1; }
+          if grep -Eqi '^x-railway-fallback:[[:space:]]*true' /tmp/worker-only-me-headers.txt; then
+            echo "::error::Auth API leaked Railway application-missing fallback instead of returning Magnanimous authentication status."
+            cat /tmp/worker-only-me-headers.txt
+            exit 1
+          fi
+
           mesh_status="$(curl -sS --connect-timeout 10 --max-time 60 -D /tmp/worker-only-mesh-headers.txt -o /tmp/worker-only-mesh.json -w '%{http_code}' "$BASE_URL/api/magnanimous/capability-mesh/catalog")"
           case "$mesh_status" in
             401|403) ;;
@@ -1928,5 +1949,5 @@ jobs:
             exit 1
           fi
 
-          echo "Worker-only production smoke passed: health and connector are live; owner-only Capability Mesh is protected and remains on Cloudflare."
+          echo "Worker-only production smoke passed: health, connector, public API fallback, auth status, and owner-only Capability Mesh routing are healthy."
 

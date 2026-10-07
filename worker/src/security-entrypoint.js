@@ -97,6 +97,15 @@ function configuredStandaloneApiOrigin(env){
   }catch{return'';}
 }
 
+async function standaloneProviderApplicationMissing(response){
+  if(!response||response.status!==404)return false;
+  if(String(response.headers.get('x-railway-fallback')||'').trim().toLowerCase()!=='true')return false;
+  const contentType=String(response.headers.get('content-type')||'').toLowerCase();
+  if(contentType&&!contentType.includes('application/json'))return false;
+  const data=await response.clone().json().catch(()=>null);
+  return Number(data?.code)===404&&String(data?.message||'').trim().toLowerCase()==='application not found';
+}
+
 async function proxyApiToStandalone(request,env){
   const url=new URL(request.url);
   // Keep customer chat on the standalone data plane so opaque sessions, tenant memory,
@@ -120,6 +129,10 @@ async function proxyApiToStandalone(request,env){
     const init={method:request.method,headers,redirect:'manual'};
     if(!['GET','HEAD'].includes(request.method))init.body=request.body;
     const response=await fetch(target.toString(),init);
+    if(await standaloneProviderApplicationMissing(response)){
+      console.warn('Magnanimous standalone API application is unavailable at Railway; retaining Cloudflare rollback path.',url.pathname);
+      return null;
+    }
     const responseHeaders=new Headers(response.headers);
     responseHeaders.delete('server');
     responseHeaders.delete('via');
