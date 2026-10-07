@@ -151,6 +151,7 @@ jobs:
           [ -n "$bookmark" ] || { echo "::error::Could not establish a D1 Time Travel restore point; refusing to migrate durable account data."; exit 1; }
           echo "D1_PRE_MIGRATION_BOOKMARK=$bookmark" >> "$GITHUB_ENV"
           npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT id AS user_id FROM users ORDER BY id;" > /tmp/d1-users-before.json
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT id AS user_id, lower(email) AS email, password_hash, password_salt, active FROM users ORDER BY id;" > /tmp/d1-auth-before.json
           npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT id AS tenant_id FROM tenants ORDER BY id;" > /tmp/d1-tenants-before.json
           npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT u.id AS platform_owner_id FROM users u JOIN tenants t ON t.owner_user_id=u.id WHERE t.slug='owner' AND u.active=1 LIMIT 1;" > /tmp/d1-owner-before.json
           echo "Durable account restore point and identity baseline captured."
@@ -239,6 +240,7 @@ jobs:
           set -euo pipefail
           umask 077
           npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT id AS user_id FROM users ORDER BY id;" > /tmp/d1-users-after.json
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT id AS user_id, lower(email) AS email, password_hash, password_salt, active FROM users ORDER BY id;" > /tmp/d1-auth-after.json
           npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT id AS tenant_id FROM tenants ORDER BY id;" > /tmp/d1-tenants-after.json
           npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT u.id AS platform_owner_id FROM users u JOIN tenants t ON t.owner_user_id=u.id WHERE t.slug='owner' AND u.active=1 LIMIT 1;" > /tmp/d1-owner-after.json
 
@@ -262,14 +264,29 @@ jobs:
           after_tenants=values('/tmp/d1-tenants-after.json','tenant_id')
           before_owner=values('/tmp/d1-owner-before.json','platform_owner_id')
           after_owner=values('/tmp/d1-owner-after.json','platform_owner_id')
+          def auth_rows(path):
+              payload=json.load(open(path))
+              out={}
+              def walk(x):
+                  if isinstance(x,dict):
+                      if isinstance(x.get('user_id'),str) and 'email' in x:
+                          out[x['user_id']] = (str(x.get('email') or '').strip().lower(), str(x.get('password_hash') or ''), str(x.get('password_salt') or ''), int(x.get('active') or 0))
+                      for v in x.values(): walk(v)
+                  elif isinstance(x,list):
+                      for v in x: walk(v)
+              walk(payload)
+              return out
+          before_auth=auth_rows('/tmp/d1-auth-before.json')
+          after_auth=auth_rows('/tmp/d1-auth-after.json')
           missing_users=before_users-after_users
           missing_tenants=before_tenants-after_tenants
           owner_lost=bool(before_owner and not before_owner.issubset(after_owner))
-          print(f'identity_guard users_before={len(before_users)} users_after={len(after_users)} tenants_before={len(before_tenants)} tenants_after={len(after_tenants)}')
-          if missing_users or missing_tenants or owner_lost:
-              print(f'::error::Durable identity loss detected after migrations (missing_users={len(missing_users)}, missing_tenants={len(missing_tenants)}, platform_owner_lost={owner_lost}).')
+          credential_drift={uid for uid,credential in before_auth.items() if after_auth.get(uid) != credential}
+          print(f'identity_guard users_before={len(before_users)} users_after={len(after_users)} tenants_before={len(before_tenants)} tenants_after={len(after_tenants)} credential_records={len(before_auth)}')
+          if missing_users or missing_tenants or owner_lost or credential_drift:
+              print(f'::error::Durable identity or credential loss detected after migrations (missing_users={len(missing_users)}, missing_tenants={len(missing_tenants)}, platform_owner_lost={owner_lost}, credential_drift={len(credential_drift)}).')
               raise SystemExit(42)
-          print('Durable identity preservation check passed; every pre-deploy user and tenant still exists.')
+          print('Durable identity preservation check passed; every pre-deploy user, email, password credential, active state, and tenant still exists unchanged.')
           PY
           guard_rc=$?
           set -e
@@ -277,13 +294,12 @@ jobs:
           if [ "$guard_rc" -ne 0 ]; then
             [ -n "${D1_PRE_MIGRATION_BOOKMARK:-}" ] || { echo "::error::Identity loss detected but no restore bookmark is available."; exit 1; }
             echo "::warning::Rolling D1 back to the pre-migration Time Travel bookmark to preserve accounts."
-            printf 'y
-' | npx wrangler d1 time-travel restore iam-magnanimous-db --bookmark "$D1_PRE_MIGRATION_BOOKMARK"
+            printf 'y\n' | npx wrangler d1 time-travel restore iam-magnanimous-db --bookmark "$D1_PRE_MIGRATION_BOOKMARK"
             echo "::error::Deployment stopped and D1 was restored because a migration removed durable account identity."
             exit 1
           fi
 
-          rm -f /tmp/d1-auth-bookmark.json /tmp/d1-users-before.json /tmp/d1-users-after.json /tmp/d1-tenants-before.json /tmp/d1-tenants-after.json /tmp/d1-owner-before.json /tmp/d1-owner-after.json
+          rm -f /tmp/d1-auth-bookmark.json /tmp/d1-users-before.json /tmp/d1-users-after.json /tmp/d1-auth-before.json /tmp/d1-auth-after.json /tmp/d1-tenants-before.json /tmp/d1-tenants-after.json /tmp/d1-owner-before.json /tmp/d1-owner-after.json
 
       - name: Ensure encrypted Stripe webhook bootstrap fallback
         working-directory: worker
