@@ -29,6 +29,7 @@ must(admin.includes('Number(row.attempts||0)>=5'),'owner login must cap failed c
 must(admin.includes("t.slug='owner'")&&admin.includes("t.owner_user_id=u.id"),'owner email login must bind to the reserved global owner tenant');
 must(admin.includes("kind:'owner-login-code'")&&admin.includes('MAGNANIMOUS_MAIL'),'owner login must use Magnanimous native mail');
 must(edgeMail.includes('cloudflare-email-service')&&edgeMail.includes('MAGNANIMOUS_EMAIL'),'Worker owner login must have a native Cloudflare email transport');
+must(edgeMail.includes("sendGrowthEmail")&&edgeMail.includes("connected-email-https"),'Worker owner login must retain free connected Gmail/Outlook HTTPS failover when Cloudflare delivery fails');
 must(entry.includes('withCloudflareNativeMail(env)'),'Worker entrypoint must inject native email before auth routing');
 must(entry.includes("url.pathname==='/api/admin/login'")&&entry.includes("url.pathname.startsWith('/api/admin/email-code/')"),'owner auth must stay on the Worker and not depend on Railway availability');
 must(entry.includes("ownerAuthApp from './admin-compat-entrypoint.js'")&&entry.includes('ownerAuthApp.fetch(routedRequest,env,ctx)'),'owner auth must route directly through the dedicated auth module');

@@ -1,3 +1,5 @@
+import {sendGrowthEmail} from './growth-email-transport.js';
+
 const clean=value=>String(value??'').trim();
 const validEmail=value=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean(value));
 const now=()=>Math.floor(Date.now()/1000);
@@ -71,6 +73,21 @@ function mailerFor(env){
         const code=clean(error?.code||'CLOUDFLARE_EMAIL_DELIVERY_FAILED');
         const detail=clean(error?.message||error||'Email delivery failed.');
         await audit(env,id,{...message,to,subject},'failed','cloudflare-email-service',`${code}: ${detail}`);
+        try{
+          const fallback=await sendGrowthEmail(env,{
+            scopeTenantId:'__platform__',to,subject,text:String(message.text||''),
+            replyTo:validEmail(message.replyTo)?clean(message.replyTo):'',senderName:fromName
+          });
+          if(fallback?.ok){
+            await audit(env,id,{...message,to,subject},'sent','connected-email-https','');
+            return{ok:true,provider:'connected-email-https',receipt:clean(fallback.receipt||id),fallback_from:'cloudflare-email-service'};
+          }
+          const fallbackCode=clean(fallback?.code||'CONNECTED_EMAIL_DELIVERY_FAILED');
+          const fallbackError=clean(fallback?.error||'Connected email delivery failed.');
+          await audit(env,id,{...message,to,subject},'failed','cloudflare-email-service+connected-email',`${code}: ${detail}; ${fallbackCode}: ${fallbackError}`);
+        }catch(fallbackError){
+          await audit(env,id,{...message,to,subject},'failed','cloudflare-email-service+connected-email',`${code}: ${detail}; CONNECTED_EMAIL_EXCEPTION: ${clean(fallbackError?.message||fallbackError)}`);
+        }
         return{ok:false,code,error:detail};
       }
     }
