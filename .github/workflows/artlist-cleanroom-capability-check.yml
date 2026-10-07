@@ -1,0 +1,28 @@
+name: Magnanimous Artlist Clean-Room Capability Check
+
+on:
+  push:
+    branches: ['feat/artlist-cleanroom-creative-control-plane']
+  pull_request:
+    branches: ['main']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  artlist-capability-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Verify Artlist clean-room capability registry
+        run: node qa/scripts/magnanimous-artlist-capability-lock.mjs
+      - name: Syntax check Artlist capability registry
+        run: node --check worker/src/magnanimous-artlist-capability-registry.js
+      - name: Syntax check Video Director
+        run: node --check worker/src/magnanimous-video-director.js
+      - name: Syntax check single brain contract
+        run: node --check worker/src/magnanimous-single-brain-contract.js
