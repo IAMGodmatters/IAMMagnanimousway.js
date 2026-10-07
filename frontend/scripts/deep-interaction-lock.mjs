@@ -44,6 +44,26 @@ const sourceFiles=walk(appDir).filter(f=>/\.(tsx|jsx|ts|js)$/.test(f));
 const pageFiles=sourceFiles.filter(f=>/^page\.(tsx|jsx)$/.test(path.basename(f)));
 const routes=new Set(pageFiles.map(routeForPage));
 
+// Some first-party surfaces are served directly by the Cloudflare Worker rather
+// than by a Next.js page. Treat one as a valid internal target only when both
+// its handler and the Worker dispatch wiring are present; this keeps the lock
+// strict without misclassifying a real Worker-native route as a broken page.
+const workerDir=path.resolve(root,'..','worker','src');
+const workerSecurityPath=path.join(workerDir,'security-entrypoint.js');
+const reelsProxyPath=path.join(workerDir,'reels-proxy.js');
+const workerSecurity=fs.existsSync(workerSecurityPath)?fs.readFileSync(workerSecurityPath,'utf8'):'';
+const reelsProxy=fs.existsSync(reelsProxyPath)?fs.readFileSync(reelsProxyPath,'utf8'):'';
+const workerNativeRoutes=new Set();
+if(reelsProxy.includes("const REELS_PREFIX='/reels-proxy'")&&
+   reelsProxy.includes('export async function handleMagnanimousReelsProxy')&&
+   workerSecurity.includes("from './reels-proxy.js'")&&
+   workerSecurity.includes('handleMagnanimousReelsProxy(request)'))workerNativeRoutes.add('/reels-proxy');
+function hasWorkerNativeRoute(target){
+ const base=normalizeRoute(target);
+ for(const prefix of workerNativeRoutes){if(base===prefix||base.startsWith(prefix+'/'))return true;}
+ return false;
+}
+
 for(const file of sourceFiles){
  files++;
  const rel=path.relative(root,file);
@@ -105,7 +125,7 @@ for(const file of sourceFiles){
   iframes++;
   const attrs=m[1]||'';
   const src=attrs.match(/src\s*=\s*["'](\/[^"']*)["']/)?.[1];
-  if(src&&!src.startsWith('/api/')&&!hasRoute(routes,src))failures.push(`${rel}: iframe target has no application route: ${src}`);
+  if(src&&!src.startsWith('/api/')&&!hasRoute(routes,src)&&!hasWorkerNativeRoute(src))failures.push(`${rel}: iframe target has no application or verified Worker-native route: ${src}`);
  }
 }
 
