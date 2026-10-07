@@ -17,7 +17,9 @@ const checks = [
   ['signup never silently recreates an inactive identity', admin.includes("'ACCOUNT_RECOVERY_REQUIRED'") && admin.includes('account_preserved: true')],
   ['deploy captures a D1 Time Travel restore point before migrations', deploy.includes('d1 time-travel info iam-magnanimous-db --json') && deploy.includes('D1_PRE_MIGRATION_BOOKMARK')],
   ['deploy snapshots durable user and tenant IDs before migrations', deploy.includes('/tmp/d1-users-before.json') && deploy.includes('/tmp/d1-tenants-before.json')],
+  ['deploy snapshots email/password credential state without logging plaintext credentials', deploy.includes('/tmp/d1-auth-before.json') && deploy.includes('password_hash, password_salt, active FROM users ORDER BY id')],
   ['deploy verifies all pre-deploy identities remain after migrations', deploy.includes('missing_users=before_users-after_users') && deploy.includes('missing_tenants=before_tenants-after_tenants')],
+  ['deploy rejects email/password credential drift and restores the database', deploy.includes('credential_drift={uid for uid,credential in before_auth.items()') && deploy.includes('Durable identity or credential loss detected after migrations')],
   ['deploy automatically restores D1 if identity rows disappear', deploy.includes('d1 time-travel restore iam-magnanimous-db --bookmark') && deploy.includes('Deployment stopped and D1 was restored')],
   ['platform owner identity is included in the migration guard', deploy.includes('platform_owner_id') && deploy.includes('platform_owner_lost')]
 ];
