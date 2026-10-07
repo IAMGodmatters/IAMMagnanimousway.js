@@ -41,6 +41,7 @@ function rightsPolicy(input){
     source_rights_required:true,
     deceptive_impersonation:false,
     likeness_sensitive:sensitive,
+    licensed_assets_training_allowed:false,
     note:sensitive?'Use only people/voices/performances the user has the right and consent to use; do not misrepresent identity or endorsement.':'Use only source media, music, logos and copyrighted material the user has permission to use.'
   };
 }
@@ -51,6 +52,41 @@ function buildCharacterBible(input){
     identity_anchor:character,
     preserve:['face/identity cues','hair','age range','body proportions','wardrobe unless intentionally changed','signature colors/accessories'],
     continuity_rule:'Repeat the same identity anchors in every scene prompt and explicitly describe any intentional state/wardrobe change.'
+  };
+}
+function creativeMode(input){
+  const requested=String(input.creation_mode||input.mode||'agent').trim().toLowerCase();
+  return requested==='standard'||requested==='precision'?'standard':'agent';
+}
+function generationPreferences(input,workflow){
+  const speed=clip(input.generation_priority||input.priority,40).toLowerCase();
+  const priority=['quality','speed','cost'].includes(speed)?speed:'cost';
+  const maxExternal=clamp(input.max_external_cost_usd,0,10000,0);
+  const likenessRequested=Boolean(input.likeness_media||input.face_swap||input.avatar_swap||input.action_replication);
+  const referenceRequested=Boolean(input.reference_media||input.reference_image||(Array.isArray(input.reference_images)&&input.reference_images.length));
+  const fundedExternal=Boolean(input.allow_funded_external||maxExternal>0);
+  return {
+    mode:creativeMode(input),
+    media_type:'video',
+    workflow:workflow.id,
+    priority,
+    provider_neutral:true,
+    capability_based_selection:true,
+    user_selected_model:clip(input.model||input.model_id,120)||null,
+    requested_features:[
+      input.first_frame_description||input.last_frame_description?'start-end-frame':null,
+      input.character?'character-continuity':null,
+      likenessRequested?'likeness-media':null,
+      input.voice_clone?'voice-clone':null,
+      referenceRequested?'multi-reference':null
+    ].filter(Boolean),
+    budget:{
+      native_free_first:true,
+      max_external_cost_usd:maxExternal||null,
+      allow_unfunded_variable_cost:false,
+      funded_provider_required:fundedExternal,
+      preflight_required:true
+    }
   };
 }
 
@@ -72,6 +108,7 @@ export function buildMagnanimousVideoDirectorPlan(input={}){
   const product=clip(input.product,700);
   const voice=clip(input.voice,300)||'natural, human-paced narration; do not read punctuation aloud';
   const soundtrack=clip(input.soundtrack,300)||'supportive music and sound effects that never overpower speech';
+  const preferences=generationPreferences(input,workflow);
   const sceneList=[];
   for(let i=0;i<count;i++){
     const beat=raw[i%raw.length];
@@ -96,6 +133,7 @@ export function buildMagnanimousVideoDirectorPlan(input={}){
   const compiledPrompt=[
     `TITLE: ${title}`,
     `WORKFLOW: ${workflow.name}`,
+    `CREATION MODE: ${preferences.mode==='agent'?'Magnanimous creative agent - automatic capability matching with user control preserved':'Magnanimous precision mode - preserve explicit user settings'}`,
     `FORMAT: ${aspect}; approximately ${totalSeconds} seconds`,
     `CORE IDEA: ${idea||'Create a coherent video from the supplied references and direction.'}`,
     characterBible?`CHARACTER BIBLE: ${characterBible.identity_anchor}. ${characterBible.continuity_rule}`:'',
@@ -112,6 +150,7 @@ export function buildMagnanimousVideoDirectorPlan(input={}){
     identity:'Magnanimous AI',
     product:'Magnanimous Video Director',
     workflow:{...workflow},
+    creation_mode:preferences.mode,
     title,
     aspect_ratio:aspect,
     total_seconds:totalSeconds,
@@ -120,7 +159,29 @@ export function buildMagnanimousVideoDirectorPlan(input={}){
     first_last_frame:{first:startFrame||null,last:endFrame||null,enabled:Boolean(startFrame||endFrame)},
     scenes:sceneList,
     compiled_prompt:compiledPrompt,
-    execution_policy:{native_first:true,free_first:true,provider_neutral:true,funded_specialized_compute_only:true,proprietary_prompt_copied:false},
+    generation_preferences:preferences,
+    session_context:{
+      project_id:clip(input.project_id,160)||null,
+      session_id:clip(input.session_id,160)||null,
+      resumable:true,
+      reuse_prior_assets:true,
+      tenant_scoped:true
+    },
+    provenance_policy:{
+      record_input_sources:true,
+      record_prompt_and_settings:true,
+      record_provider_and_model_privately:true,
+      record_license_and_consent:true,
+      licensed_stock_training_allowed:false,
+      content_credentials:{
+        standard:'C2PA',
+        ai_disclosure_version:'2.4+',
+        emit_when_supported:true,
+        verified_claim_requires_signing_rail:true,
+        unsupported_format_behavior:'retain-sidecar-provenance-without-claiming-verified-credentials'
+      }
+    },
+    execution_policy:{native_first:true,free_first:true,provider_neutral:true,funded_specialized_compute_only:true,unfunded_variable_cost:false,proprietary_prompt_copied:false,capability_based_model_matching:true},
     next_surfaces:[
       {purpose:'generate',route:'/movie-maker'},
       {purpose:'record-upload-edit-live',route:'/video-stack'},
@@ -140,6 +201,14 @@ export function getMagnanimousVideoDirectorSummary(){
     planning_native:true,
     rendering_provider_neutral:true,
     free_first:true,
-    likeness_actions_consent_gated:true
+    likeness_actions_consent_gated:true,
+    creative_agent_mode:true,
+    precision_mode:true,
+    capability_based_model_matching:true,
+    generation_budget_preflight:true,
+    resumable_project_context:true,
+    media_provenance_tracking:true,
+    c2pa_content_credentials_policy:true,
+    licensed_assets_excluded_from_training:true
   };
 }

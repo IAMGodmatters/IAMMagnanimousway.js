@@ -1,6 +1,8 @@
 import {MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS,MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL} from './magnanimous-universal-capabilities.js';
 import {getConnectorAbsorptionSummary} from './magnanimous-connector-absorption.js';
 import {getVideoExpressCapabilityManifest,getVideoExpressAbsorptionSummary} from './magnanimous-videoexpress-capability-registry.js';
+import {getArtlistCapabilityManifest,getArtlistAbsorptionSummary} from './magnanimous-artlist-capability-registry.js';
+import {getArtlistEditingToolManifest,getArtlistEditingToolSummary} from './magnanimous-artlist-editing-tools-registry.js';
 import {getMagnanimousVideoDirectorSummary} from './magnanimous-video-director.js';
 
 export const MAGNANIMOUS_SINGLE_BRAIN_CONTRACT=Object.freeze({
@@ -27,6 +29,7 @@ export const MAGNANIMOUS_SINGLE_BRAIN_CONTRACT=Object.freeze({
  native_growth_rule:'Every reusable capability should be normalized into a Magnanimous-owned contract, recipe, skill or native runtime when practical.',
  truth_rule:'Magnanimous may unify identity and orchestration without falsely claiming ownership of third-party infrastructure, accounts, model weights or proprietary implementations.',
  shared_core_rule:'Standalone, main chat and specialist departments inherit the same Magnanimous core memory, live-research, source-link, routing, verification and learning contracts; each surface may add purpose-specific tools without becoming a separate brain.',
+ creative_control_plane_rule:'Creative sessions, project memory, prompt compilation, model capability matching, budget policy, rights/provenance policy and verification belong to Magnanimous AI; image, video, voice, music, avatar, stock, editor and catalog/API providers remain replaceable rails.',
  memory_architecture:Object.freeze({working:'bounded current-task and recent-turn context',episodic:'conversation, workflow and outcome history scoped to tenant/user',semantic:'retrievable workspace knowledge, research evidence and durable facts',procedural:'proven skills, recipes and reusable workflows',consolidation:'promote high-value stable knowledge; summarize/deduplicate noisy history; preserve provenance',virtual_memory_os:'Use OS virtual memory/swap only as a resilience cushion for transient memory pressure, never as a substitute for correctly sized RAM or durable AI memory.'})
 });
 
@@ -38,13 +41,17 @@ export function getMagnanimousSingleBrainSummary(){
  const absorbed=getConnectorAbsorptionSummary();
  const videoCapabilities=getVideoExpressCapabilityManifest();
  const videoBenchmark=getVideoExpressAbsorptionSummary();
+ const artlistCapabilities=getArtlistCapabilityManifest();
+ const artlistBenchmark=getArtlistAbsorptionSummary();
+ const artlistEditingCapabilities=getArtlistEditingToolManifest();
+ const artlistEditingBenchmark=getArtlistEditingToolSummary();
  const videoDirector=getMagnanimousVideoDirectorSummary();
  return{
   ...MAGNANIMOUS_SINGLE_BRAIN_CONTRACT,
   role:MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL.role,
   universal_capability_domains:MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS.length,
   universal_capability_contracts:capabilityCount(),
-  absorbed_capability_contracts:Number(absorbed.full_brain_capability_contracts||0)+videoCapabilities.length,
+  absorbed_capability_contracts:Number(absorbed.full_brain_capability_contracts||0)+videoCapabilities.length+artlistCapabilities.length+artlistEditingCapabilities.length,
   direct_platform_connectors:Number(absorbed.direct_platform_connectors||0),
   visible_plugin_tool_contracts:Number(absorbed.visible_plugin_tool_contracts||0),
   installed_plugin_skills:Number(absorbed.installed_plugin_skills||0),
@@ -52,9 +59,15 @@ export function getMagnanimousSingleBrainSummary(){
   magnanimous_engineering_skills:Number(absorbed.magnanimous_engineering_skills||0),
   video_director_capability_contracts:videoCapabilities.length,
   video_director_capabilities:videoCapabilities.map(x=>x.capability),
+  creative_control_plane_capability_contracts:artlistCapabilities.length,
+  creative_control_plane_capabilities:artlistCapabilities.map(x=>x.capability),
+  creative_editing_api_capability_contracts:artlistEditingCapabilities.length,
+  creative_editing_api_capabilities:artlistEditingCapabilities.map(x=>x.capability),
   videoexpress_public_benchmark:videoBenchmark,
+  artlist_public_benchmark:artlistBenchmark,
+  artlist_editing_tools_public_benchmark:artlistEditingBenchmark,
   video_director:videoDirector,
-  native_targets:[...new Set([...(Array.isArray(absorbed.native_targets)?absorbed.native_targets:[]),...videoCapabilities.map(x=>x.native_target)])].sort(),
+  native_targets:[...new Set([...(Array.isArray(absorbed.native_targets)?absorbed.native_targets:[]),...videoCapabilities.map(x=>x.native_target),...artlistCapabilities.map(x=>x.native_target),...artlistEditingCapabilities.map(x=>x.native_target)])].sort(),
   connector_coverage:absorbed.direct_connector_coverage||{},
   absorption_status:absorbed.status||'unknown',
   execution_policy:{
@@ -69,7 +82,16 @@ export function getMagnanimousSingleBrainSummary(){
    shared_core_capabilities_across_surfaces:true,
    live_multisource_research:true,
    clickable_source_links:true,
-   memory_consolidation:true
+   memory_consolidation:true,
+   creative_session_memory:true,
+   capability_based_model_matching:true,
+   generation_budget_preflight:true,
+   media_provenance_tracking:true,
+   semantic_asset_search:true,
+   non_destructive_editor_automation:true,
+   external_api_secrets_server_side:true,
+   rate_limit_and_idempotency_controls:true,
+   licensed_assets_excluded_from_training:true
   }
  };
 }

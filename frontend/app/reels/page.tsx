@@ -38,7 +38,8 @@ const installScript = `
   window.addEventListener('DOMContentLoaded', () => {
     const button = document.getElementById('reelsInstall');
     if (!button) return;
-    button.addEventListener('click', async () => {
+    button.addEventListener('click', async event => {
+      event.preventDefault();
       if (deferredPrompt) {
         await deferredPrompt.prompt();
         deferredPrompt = null;
@@ -76,23 +77,26 @@ export default function MagnanimousReelsPage() {
         }}>
           <strong style={{ fontSize: 15, whiteSpace: 'nowrap' }}>Magnanimous Reels</strong>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
-            <button
-              id="reelsInstall"
-              title="Install Magnanimous Reels on this device"
-              style={{
-                color: '#fff',
-                border: '1px solid #48556e',
-                background: '#151c2a',
-                borderRadius: 999,
-                padding: '5px 9px',
-                fontSize: 11,
-                fontWeight: 800,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Install
-            </button>
+            <form action="/reels" style={{ margin: 0 }}>
+              <button
+                id="reelsInstall"
+                type="submit"
+                title="Install Magnanimous Reels on this device"
+                style={{
+                  color: '#fff',
+                  border: '1px solid #48556e',
+                  background: '#151c2a',
+                  borderRadius: 999,
+                  padding: '5px 9px',
+                  fontSize: 11,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Install
+              </button>
+            </form>
             <span style={{
               color: '#bff3d6',
               border: '1px solid #2d6f50',
