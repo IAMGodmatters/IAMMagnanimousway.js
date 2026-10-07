@@ -39,7 +39,7 @@ must(entry.indexOf('ownerAuthApp.fetch(routedRequest,env,ctx)')<entry.indexOf('e
 must(entry.includes('ownerAuthBlocked=await securityPreflight(routedRequest,env)'),'direct owner auth must retain security preflight and rate limits');
 must(wrangler.includes('\"send_email\"')&&wrangler.includes('MAGNANIMOUS_EMAIL'),'Wrangler must configure the native Cloudflare email binding');
 must(workerEntry.includes('owner_email_login_transport_ready')&&workerEntry.includes("MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE==='true'"),'Worker health must expose only a boolean owner-email transport readiness signal');
-must(readinessWorkflow.includes('workflows: ["Build and Deploy I AM"]')&&readinessWorkflow.includes("owner_email_login_transport_ready")&&readinessWorkflow.includes('no email was sent'),'successful production deploys must run a non-sending owner-email readiness verification');
+must(readinessWorkflow.includes('workflows: ["Build and Deploy I AM"]')&&readinessWorkflow.includes('/api/admin/email-code/request')&&readinessWorkflow.includes('OWNER_EMAIL_REQUIRED')&&readinessWorkflow.includes('no email was sent'),'successful production deploys must probe the real owner-email route without sending mail');
 must(admin.includes("delivery_status!=='sent'"),'owner login verification must require successful mail delivery');
 must(ownerUi.includes('SEND MY LOGIN CODE')&&ownerUi.includes('8-digit login code'),'owner portal must default to email-code login');
 must(ownerUi.includes('Use password fallback')&&ownerUi.includes('/api/admin/login'),'owner password must remain as emergency fallback');
@@ -74,4 +74,4 @@ if(failures.length){
  for(const failure of failures)console.error('- '+failure);
  process.exit(1);
 }
-console.log('Recovery/owner email lock: PASS — transport-aware recovery contacts, authenticator fallback, optional non-SMS phone, hashed one-time owner codes, reserved-owner binding, rate limits, production readiness verification, and password fallback are locked.');
+console.log('Recovery/owner email lock: PASS — transport-aware recovery contacts, authenticator fallback, optional non-SMS phone, hashed one-time owner codes, reserved-owner binding, rate limits, real-route production readiness verification, and password fallback are locked.');
