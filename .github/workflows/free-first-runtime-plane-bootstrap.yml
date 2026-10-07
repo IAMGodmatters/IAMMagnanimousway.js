@@ -1,0 +1,268 @@
+name: Free-first runtime plane bootstrap
+
+on:
+  push:
+    branches: [fix/free-first-runtime-plane-20261007]
+    paths:
+      - .github/workflows/free-first-runtime-plane-bootstrap.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            worker/package-lock.json
+
+      - name: Apply free-first runtime plane migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def read(path): return Path(path).read_text()
+          def write(path, text):
+              Path(path).parent.mkdir(parents=True, exist_ok=True)
+              Path(path).write_text(text)
+          def replace_once(text, old, new, label):
+              if old not in text:
+                  raise SystemExit(f'missing expected source for {label}')
+              return text.replace(old, new, 1)
+
+          runtime_control = r'''import { verifyGitHubActionsOidcWorker } from './github-actions-oidc.js';
+
+          function runtimeRevision(env){return String(env?.MAGNANIMOUS_DEPLOY_REVISION||'').trim();}
+          function noStore(){return {'cache-control':'no-store'};}
+          function json(data,status=200,headers={}){return Response.json(data,{status,headers:{...noStore(),...headers}});}
+
+          export async function handleMagnanimousRuntimeControl(request,env){
+            const url=new URL(request.url);
+            const path=url.pathname;
+            if(path==='/__magnanimous_runtime/health'||path==='/__magnanimous_runtime/capabilities'){
+              if(request.method!=='GET'&&request.method!=='HEAD')return json({detail:'Method not allowed.'},405,{allow:'GET, HEAD'});
+              const payload={
+                status:'ok',
+                identity:'Magnanimous AI',
+                runtime:'cloudflare-worker',
+                database:'cloudflare-d1',
+                free_first:true,
+                paid_runtime_required:false,
+                deploy_revision:runtimeRevision(env)
+              };
+              return request.method==='HEAD'?new Response(null,{status:200,headers:noStore()}):json(payload);
+            }
+            if(path!=='/__magnanimous_runtime/smoke/tenant')return null;
+            if(request.method!=='POST')return json({detail:'Method not allowed.'},405,{allow:'POST'});
+            const authorization=String(request.headers.get('authorization')||'');
+            const token=authorization.startsWith('Bearer ')?authorization.slice(7).trim():'';
+            if(!token)return json({detail:'Signed GitHub Actions identity required.'},401);
+            try{
+              const source=await verifyGitHubActionsOidcWorker(token,{
+                audience:'magnanimous-deploy-smoke',
+                repository:'IAMGodmatters/IAMMagnanimousway.js',
+                ref:'refs/heads/main',
+                workflowFile:'.github/workflows/deploy.yml',
+                allowedEvents:['push','workflow_dispatch']
+              });
+              const payload=await request.json();
+              const revision=runtimeRevision(env);
+              const sourceSha=String(source.sha||'').trim();
+              const workflowSha=String(payload?.workflow_sha||'').trim();
+              const requestedRuntimeSha=String(payload?.runtime_sha||'').trim();
+              const fullSha=/^[0-9a-f]{40}$/i;
+              if(!fullSha.test(revision)||!fullSha.test(sourceSha)||workflowSha!==sourceSha||requestedRuntimeSha!==revision){
+                throw new Error('Deployment smoke control revision binding mismatch.');
+              }
+              const tenantId=String(payload?.tenant_id||'').trim();
+              const action=String(payload?.action||'').trim().toLowerCase();
+              if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId))throw new Error('Invalid deployment smoke tenant identifier.');
+              if(!env?.DB)throw new Error('Production D1 binding unavailable.');
+              const tenant=await env.DB.prepare('SELECT id,name FROM tenants WHERE id=? LIMIT 1').bind(tenantId).first();
+              const smokeUser=await env.DB.prepare("SELECT id,email,name FROM users WHERE tenant_id=? AND lower(email) LIKE 'deploy-smoke-%@example.com' AND name='Deployment Smoke Test' LIMIT 1").bind(tenantId).first();
+              if(!tenant?.id||tenant?.name!=='Deployment Smoke Test'||!smokeUser?.id)return json({detail:'Disposable deployment smoke tenant not found.'},404);
+              if(action==='grant_agency'){
+                const now=Math.floor(Date.now()/1000);
+                await env.DB.batch([
+                  env.DB.prepare(`INSERT INTO billing_subscriptions(tenant_id,plan,stripe_customer_id,stripe_subscription_id,status,current_period_end,created_at,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?)
+                    ON CONFLICT(tenant_id) DO UPDATE SET plan=excluded.plan,status=excluded.status,updated_at=excluded.updated_at`)
+                    .bind(tenantId,'agency',null,null,'active',null,now,now),
+                  env.DB.prepare("UPDATE tenants SET plan='agency' WHERE id=?").bind(tenantId)
+                ]);
+                return json({ok:true,action,tenant_id:tenantId,plan:'agency',source_sha:source.sha,runtime:'worker-d1'});
+              }
+              if(action==='cleanup'){
+                return json({ok:true,action,tenant_id:tenantId,source_sha:source.sha,runtime:'worker-d1',cleanup:'delegated-to-deploy-d1-cleanup'});
+              }
+              return json({detail:'Unsupported deployment smoke action.'},400);
+            }catch(error){
+              console.error('Magnanimous Worker deployment smoke control failed',String(error?.message||error));
+              return json({detail:'Deployment smoke authorization or control failed.'},403);
+            }
+          }
+          '''.replace('\n          ','\n').lstrip()
+          write('worker/src/runtime-control.js', runtime_control)
+
+          reels_proxy = r'''const REELS_PREFIX='/reels-proxy';
+          const REELS_ORIGIN='https://lja74zv1.basicdeploy.com';
+
+          function isReelsPath(pathname){return pathname===REELS_PREFIX||pathname===REELS_PREFIX+'/'||pathname.startsWith(REELS_PREFIX+'/');}
+          function upstreamPath(url){let pathname=url.pathname.slice(REELS_PREFIX.length)||'/';if(!pathname.startsWith('/'))pathname='/'+pathname;return pathname+url.search;}
+          function prefixedPath(value){if(typeof value!=='string'||!value.startsWith('/'))return value;if(value===REELS_PREFIX||value.startsWith(REELS_PREFIX+'/'))return value;return REELS_PREFIX+value;}
+          function rewriteText(text,contentType){
+            if(contentType.includes('application/manifest+json')||contentType.includes('application/json')){
+              try{const data=JSON.parse(text);if(data&&typeof data==='object'&&('start_url'in data||'scope'in data)){data.start_url=REELS_PREFIX+'/';data.scope=REELS_PREFIX+'/';if(Array.isArray(data.icons))data.icons=data.icons.map(icon=>icon&&typeof icon==='object'?{...icon,src:prefixedPath(icon.src)}:icon);if(Array.isArray(data.screenshots))data.screenshots=data.screenshots.map(item=>item&&typeof item==='object'?{...item,src:prefixedPath(item.src)}:item);return JSON.stringify(data);}}catch{}return text;
+            }
+            const roots=['/api/','/assets/','/audio/','/timings/','/creator-audio/','/creator-timings/','/ambient/','/series-video/','/creator.js','/series.js','/premium-gating.js','/manifest.webmanifest','/sw.js'];
+            let out=text;
+            for(const root of roots){const replacement=REELS_PREFIX+root;out=out.split(`'${root}`).join(`'${replacement}`);out=out.split(`\"${root}`).join(`\"${replacement}`);out=out.split('`'+root).join('`'+replacement);out=out.split(`href=${root}`).join(`href=${replacement}`);out=out.split(`src=${root}`).join(`src=${replacement}`);}
+            if(contentType.includes('javascript')){out=out.replaceAll("addAll(['/','/reels-proxy/api/stories','/reels-proxy/manifest.webmanifest'])","addAll(['/reels-proxy/','/reels-proxy/api/stories','/reels-proxy/manifest.webmanifest'])");out=out.replaceAll("const CORE=['/','/reels-proxy/manifest.webmanifest'","const CORE=['/reels-proxy/','/reels-proxy/manifest.webmanifest'");}
+            return out;
+          }
+          function removeUpstreamHostBranding(html){let out=html;out=out.replace(/<style>body\{padding-bottom:2\.6em\}<\/style>/gi,'');out=out.replace(/<div[^>]*>This app is user-hosted on[\s\S]*?Report abuse<\/a><\/div>/gi,'');out=out.replace(/<meta[^>]+(?:BasicDeploy|basicdeploy\.com|lja74zv1\.basicdeploy\.com)[^>]*>/gi,'');return out;}
+
+          export async function handleMagnanimousReelsProxy(request){
+            const incoming=new URL(request.url);
+            if(!isReelsPath(incoming.pathname))return null;
+            const target=new URL(upstreamPath(incoming),REELS_ORIGIN);
+            const headers=new Headers(request.headers);
+            for(const key of ['host','content-length','connection','transfer-encoding'])headers.delete(key);
+            headers.set('x-forwarded-host','iammagnanimousway.com');headers.set('x-forwarded-proto','https');headers.set('x-magnanimous-surface','reels');
+            const init={method:request.method,headers,redirect:'manual'};
+            if(!['GET','HEAD'].includes(request.method))init.body=request.body;
+            try{
+              const upstream=await fetch(target,init);
+              const responseHeaders=new Headers(upstream.headers);
+              for(const key of ['content-length','content-encoding','server','via','x-powered-by','x-frame-options','content-security-policy'])responseHeaders.delete(key);
+              responseHeaders.set('x-magnanimous-surface','reels');responseHeaders.set('x-magnanimous-nickname','Magnanimous Reels');responseHeaders.set('link','<https://iammagnanimousway.com/reels>; rel="canonical"');
+              const location=responseHeaders.get('location');
+              if(location){try{const redirected=new URL(location,target);if(redirected.origin===REELS_ORIGIN)responseHeaders.set('location',REELS_PREFIX+(redirected.pathname==='/'?'/':redirected.pathname)+redirected.search);}catch{}}
+              if(request.method==='HEAD')return new Response(null,{status:upstream.status,statusText:upstream.statusText,headers:responseHeaders});
+              const type=String(responseHeaders.get('content-type')||'').toLowerCase();
+              if(type.includes('text/html')||type.includes('javascript')||type.includes('application/json')||type.includes('manifest')){
+                let text=await upstream.text();
+                if(type.includes('text/html'))text=removeUpstreamHostBranding(text);
+                text=rewriteText(text,type);
+                if(type.includes('text/html')){text=text.replace(/<title>[^<]*<\/title>/i,'<title>Magnanimous Reels</title>');text=text.replace('</head>','<meta name="application-name" content="Magnanimous Reels"><meta name="robots" content="index,follow,max-image-preview:large,max-video-preview:-1"><link rel="canonical" href="https://iammagnanimousway.com/reels"></head>');}
+                return new Response(text,{status:upstream.status,statusText:upstream.statusText,headers:responseHeaders});
+              }
+              return new Response(upstream.body,{status:upstream.status,statusText:upstream.statusText,headers:responseHeaders});
+            }catch(error){console.error('Magnanimous Reels Worker proxy failed',String(error?.message||error));return Response.json({detail:'Magnanimous Reels is temporarily unavailable.',code:'MAGNANIMOUS_REELS_PROXY_UNAVAILABLE'},{status:502,headers:{'cache-control':'no-store'}});}
+          }
+          '''.replace('\n          ','\n').lstrip()
+          write('worker/src/reels-proxy.js', reels_proxy)
+
+          p='worker/src/security-entrypoint.js'; s=read(p)
+          s=replace_once(s,"import { handleEdgeAiBridge } from './edge-ai-bridge.js';", "import { handleEdgeAiBridge } from './edge-ai-bridge.js';\nimport { handleMagnanimousRuntimeControl } from './runtime-control.js';\nimport { handleMagnanimousReelsProxy } from './reels-proxy.js';",'security imports')
+          s=replace_once(s,"    const outerUrl=new URL(request.url);\n    const edgeAiResponse=await handleEdgeAiBridge(request,env);", "    const outerUrl=new URL(request.url);\n    const runtimeControlResponse=await handleMagnanimousRuntimeControl(request,env);\n    if(runtimeControlResponse)return finalizeResponse(request,runtimeControlResponse);\n    const reelsProxyResponse=await handleMagnanimousReelsProxy(request);\n    if(reelsProxyResponse)return finalizeResponse(request,reelsProxyResponse);\n    const edgeAiResponse=await handleEdgeAiBridge(request,env);",'security runtime controls')
+          write(p,s)
+
+          p='worker/src/github-actions-oidc.js'; s=read(p)
+          s=replace_once(s,"  workflowFile\n}={}){", "  workflowFile,\n  allowedEvents=['push']\n}={}){",'OIDC allowed events option')
+          s=replace_once(s,"  if(String(claims.event_name||'')!=='push')throw new Error('Credential migration requires a main-branch push workflow.');", "  const eventName=String(claims.event_name||'');\n  if(!Array.isArray(allowedEvents)||!allowedEvents.includes(eventName))throw new Error('Unexpected GitHub OIDC workflow event.');",'OIDC event validation')
+          write(p,s)
+
+          p='worker/wrangler.jsonc'; s=read(p)
+          old='    "MAGNANIMOUS_STANDALONE_API_ORIGIN": "https://magnanimous-production.up.railway.app",\n'
+          s=replace_once(s,old,'','remove paid standalone origin from Worker config')
+          write(p,s)
+
+          p='frontend/app/reels/page.tsx'; s=read(p)
+          s=replace_once(s,'src="https://magnanimous-production.up.railway.app/reels/"','src="/reels-proxy/"','same-origin Reels proxy')
+          write(p,s)
+
+          p='.github/workflows/deploy.yml'; s=read(p)
+          s=s.replace('https://magnanimous-production.up.railway.app','https://iammagnanimousway.com')
+          s=replace_once(s,'run: npx wrangler deploy\n','run: npx wrangler deploy --var MAGNANIMOUS_DEPLOY_REVISION:$GITHUB_SHA\n','bind Worker deployment to Git revision')
+          s=s.replace('Railway session plane','Worker-native session plane')
+          s=s.replace('Railway session plane did not catch up','Worker-native session plane did not catch up')
+          s=replace_once(s,'          node qa/scripts/specialist-branch-lock.mjs\n','          node qa/scripts/specialist-branch-lock.mjs\n          node qa/scripts/free-first-runtime-plane-lock.mjs\n','add free-first runtime lock')
+          write(p,s)
+
+          p='.github/workflows/magnanimous-railway-deploy.yml'; s=read(p)
+          old='on:\n  push:\n    branches: [main]\n  workflow_dispatch:\n'
+          s=replace_once(s,old,'on:\n  workflow_dispatch:\n','make Railway deploy manual only')
+          s=replace_once(s,'  deploy:\n    runs-on: ubuntu-latest\n',"  deploy:\n    if: ${{ vars.MAGNANIMOUS_ENABLE_OPTIONAL_RAILWAY == 'true' }}\n    runs-on: ubuntu-latest\n",'gate optional Railway')
+          write(p,s)
+
+          p='qa/scripts/d1-quota-resilience-lock.mjs'; s=read(p)
+          old="add('Cloudflare production config points API traffic at the Magnanimous standalone origin',wrangler.includes('\\\"MAGNANIMOUS_STANDALONE_API_ORIGIN\\\": \\\"https://magnanimous-production.up.railway.app\\\"'));"
+          new="add('Cloudflare production config keeps Worker and D1 authoritative without a required paid standalone origin',!wrangler.includes('MAGNANIMOUS_STANDALONE_API_ORIGIN'));"
+          s=replace_once(s,old,new,'D1 free-first authority lock')
+          write(p,s)
+
+          free_lock = r'''import fs from 'node:fs';
+          const read=p=>fs.readFileSync(p,'utf8');
+          const wrangler=read('worker/wrangler.jsonc');
+          const deploy=read('.github/workflows/deploy.yml');
+          const railway=read('.github/workflows/magnanimous-railway-deploy.yml');
+          const security=read('worker/src/security-entrypoint.js');
+          const runtime=read('worker/src/runtime-control.js');
+          const reels=read('worker/src/reels-proxy.js');
+          const reelsPage=read('frontend/app/reels/page.tsx');
+          const oidc=read('worker/src/github-actions-oidc.js');
+          const checks=[
+            ['Worker config has no required standalone paid origin',!wrangler.includes('MAGNANIMOUS_STANDALONE_API_ORIGIN')],
+            ['production gate verifies the canonical Worker origin',deploy.includes('STANDALONE_ORIGIN: https://iammagnanimousway.com')],
+            ['Worker deployment publishes the exact Git revision',deploy.includes('wrangler deploy --var MAGNANIMOUS_DEPLOY_REVISION:$GITHUB_SHA')],
+            ['runtime health and smoke control are Worker-native',security.includes('handleMagnanimousRuntimeControl')&&runtime.includes("runtime:'cloudflare-worker'")&&runtime.includes("database:'cloudflare-d1'")],
+            ['smoke control is OIDC-bound to deploy workflow',runtime.includes("audience:'magnanimous-deploy-smoke'")&&runtime.includes("workflowFile:'.github/workflows/deploy.yml'")&&oidc.includes("allowedEvents=['push']")],
+            ['Railway exact-commit deployment is manual opt-in only',!railway.includes('  push:\n')&&railway.includes("MAGNANIMOUS_ENABLE_OPTIONAL_RAILWAY == 'true'")],
+            ['public Reels no longer embeds Railway',reelsPage.includes('src="/reels-proxy/"')&&!reelsPage.includes('railway.app')],
+            ['Reels Worker proxy preserves Magnanimous branding',reels.includes("REELS_ORIGIN='https://lja74zv1.basicdeploy.com'")&&reels.includes('removeUpstreamHostBranding')&&reels.includes("x-magnanimous-surface','reels"))],
+            ['active production files contain no Railway production hostname',![wrangler,deploy,security,runtime,reels,reelsPage].some(x=>x.includes('magnanimous-production.up.railway.app'))]
+          ];
+          const failed=checks.filter(([,ok])=>!ok);
+          for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} - ${name}`);
+          if(failed.length){console.error(`Free-first runtime-plane lock failed: ${failed.length} check(s).`);process.exit(1)}
+          console.log(`Free-first runtime-plane lock: ${checks.length} checks passed.`);
+          '''.replace('\n          ','\n').lstrip()
+          write('qa/scripts/free-first-runtime-plane-lock.mjs', free_lock)
+
+          Path('.github/workflows/free-first-runtime-plane-bootstrap.yml').unlink()
+          PY
+
+      - name: Verify free-first runtime contracts
+        run: |
+          set -euo pipefail
+          node qa/scripts/free-first-runtime-plane-lock.mjs
+          node qa/scripts/d1-quota-resilience-lock.mjs
+          node qa/scripts/magnanimous-native-first-lock.mjs
+          node qa/scripts/product-contract-locks.mjs
+
+      - name: Verify frontend
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+
+      - name: Verify Worker bundle
+        working-directory: worker
+        run: |
+          npm ci --no-audit --no-fund
+          npx wrangler deploy --dry-run --outdir /tmp/magnanimous-worker-free-first
+
+      - name: Commit verified migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "IAMGodmatters"
+          git config user.email "hardinlourijess@gmail.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Make Cloudflare Worker the free-first production session plane" -m "Remove Railway from the required production path, add Worker-native revision/smoke controls, move Reels behind a same-origin branded Worker proxy, and keep Railway as an explicit optional manual adapter."
+          git push origin HEAD:fix/free-first-runtime-plane-20261007
