@@ -56,7 +56,7 @@ export const MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS = [
   {
     id: 'tools-connectors',
     name: 'Tools, functions, MCP and connectors',
-    capabilities: ['function-calling','mcp','mcp-2026-stateless-core','mcp-tasks','mcp-apps','oauth-connectors','api-tools','direct-tool-calling','tool-discovery','tool-filtering','approval-gates','normalized-tool-contracts','native-rendering-mcp','capability-mesh','provider-readiness-routing','native-first-fallback-selection','single-public-ai-identity','private-execution-routing','unified-capability-directory','plugin-capability-inventory','capability-pattern-extraction','native-skill-synthesis','provider-exit-readiness','dependency-retirement-gates']
+    capabilities: ['function-calling','mcp','mcp-2026-stateless-core','mcp-tasks','mcp-apps','oauth-connectors','api-tools','direct-tool-calling','tool-discovery','tool-filtering','approval-gates','normalized-tool-contracts','native-rendering-mcp','capability-mesh','provider-readiness-routing','native-first-fallback-selection','single-public-ai-identity','private-execution-routing','unified-capability-directory','plugin-capability-inventory','capability-pattern-extraction','native-skill-synthesis','provider-exit-readiness','dependency-retirement-gates','edge-ai-local-accelerator']
   },
   {
     id: 'business-operations',
@@ -106,6 +106,7 @@ export const MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL = {
     'Use native/free capability first, then the best authorized connector or execution engine for missing capability.',
     'Route infrastructure, web, repository and deployment work through the Magnanimous Capability Mesh so readiness, authorization and fallback state stay explicit.',
     'For supported public web automation, prefer the Magnanimous-owned Local Bridge + local Chromium path before any metered external web-agent provider; keep external browser agents optional fallbacks only.',
+    'For compatible local camera, image and sensor inference, prefer an owner-controlled edge accelerator such as NCS2 / MYRIAD through the capability-scoped Local Bridge, return structured results to Magnanimous AI, and escalate only the reasoning that genuinely needs cloud AI.',
     'Use sandboxed code/computer environments for generated code, browser automation and untrusted inputs when available.',
     'Verify important outputs against evidence, tests, schemas, permissions and actual tool results.',
     'Save reusable lessons, source-backed knowledge, successful plans and low-risk recipes back into Magnanimous memory.',
