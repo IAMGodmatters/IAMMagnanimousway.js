@@ -151,3 +151,7 @@ A public Artlist feature does not prove Magnanimous can execute it today. Runtim
 - single-brain integration
 
 The lock is included in `frontend/package.json` `platform-contract-audit`, so it runs as part of the existing build verification path.
+
+### Server-side Director planning boundary
+
+The live Video Director requests planning through the authenticated `/api/movie-maker/director-plan` Worker route. The browser never imports Worker source directly, and `/api/movie-maker/video` recomputes `director_input` server-side before execution so client-supplied planner metadata cannot override the Magnanimous-owned brain, funding, rights, or provider-readiness policy.
