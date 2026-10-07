@@ -48,6 +48,6 @@ From the repository `local-bridge` directory, run:
 powershell -ExecutionPolicy Bypass -File .\install-ncs2-edge.ps1
 ```
 
-The installer uses the existing isolated NCS2 environment under `D:\NCS2_AI` / `D:\Python310` by default, installs Pillow, downloads the starter Intel Open Model Zoo detector, then verifies status and benchmark execution.
+The installer uses the existing isolated NCS2 environment under `D:\NCS2_AI` with its isolated `venv` by default, installs Pillow, downloads the starter Intel Open Model Zoo detector, then verifies status and benchmark execution.
 
 The Local Bridge advertises NCS2 capabilities only when it can detect the compatible runtime.

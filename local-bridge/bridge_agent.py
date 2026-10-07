@@ -181,12 +181,12 @@ def _detect_ncs2(config):
     if cached and now - cached[0] < 30:
         return cached[1]
     root_value = os.environ.get("MAGNANIMOUS_NCS2_ROOT") or ("D:/NCS2_AI" if os.name == "nt" else str(Path.home() / "NCS2_AI"))
-    python_value = os.environ.get("MAGNANIMOUS_NCS2_PYTHON") or ("D:/Python310/python.exe" if os.name == "nt" else sys.executable)
+    python_value = os.environ.get("MAGNANIMOUS_NCS2_PYTHON") or ("D:/NCS2_AI/venv/Scripts/python.exe" if os.name == "nt" else sys.executable)
     root = Path(root_value).expanduser().resolve()
     python_exe = Path(python_value).expanduser().resolve()
     runtime = Path(__file__).with_name("ncs2_edge.py").resolve()
     setup = next(root.glob("openvino_2022.3.1/**/setupvars.bat"), None) if root.is_dir() else None
-    model = root / "models" / "person-vehicle-bike-detection-2004" / "FP16" / "person-vehicle-bike-detection-2004.xml"
+    model = root / "models" / "person-vehicle-bike-detection-crossroad-0078" / "FP16" / "person-vehicle-bike-detection-crossroad-0078.xml"
     value = None
     if os.name == "nt" and root.is_dir() and python_exe.is_file() and runtime.is_file() and setup and setup.is_file():
         value = {"root": root, "python": python_exe, "runtime": runtime, "setup": setup.resolve(), "model": model}
@@ -1078,10 +1078,19 @@ def _ncs2_runtime(config):
 
 def _run_ncs2(config, args, *, timeout=180):
     runtime = _ncs2_runtime(config)
-    command = f'call "{runtime["setup"]}" >nul && ' + subprocess.list2cmdline([
-        str(runtime["python"]), str(runtime["runtime"]), *[str(x) for x in args]
-    ])
-    result = _run(["cmd.exe", "/d", "/s", "/c", command], timeout=timeout)
+    argv = [str(runtime["python"]), str(runtime["runtime"]), *[str(x) for x in args]]
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".cmd", delete=False, newline="\r\n") as fh:
+        fh.write("@echo off\n")
+        fh.write(f'call "{runtime["setup"]}" >nul\n')
+        fh.write(subprocess.list2cmdline(argv) + "\n")
+        launcher = fh.name
+    try:
+        result = _run(["cmd.exe", "/d", "/c", launcher], timeout=timeout)
+    finally:
+        try:
+            os.unlink(launcher)
+        except OSError:
+            pass
     rows = [line.strip() for line in (result.get("stdout") or "").splitlines() if line.strip().startswith("{")]
     data = None
     if rows:

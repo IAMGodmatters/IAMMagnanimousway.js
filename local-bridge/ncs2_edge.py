@@ -142,20 +142,59 @@ def detect(args):
     for idx, port in enumerate(compiled.outputs):
         outputs[port_name(port, f"output_{idx}")] = np.asarray(result[port])
 
+    detection_output = None
     boxes = None
     labels = None
     for name, arr in outputs.items():
         lower = name.lower()
-        if "box" in lower or (arr.ndim >= 2 and arr.shape[-1] == 5):
+        if arr.ndim >= 2 and arr.shape[-1] == 7:
+            detection_output = arr.reshape(-1, 7)
+        elif "box" in lower or (arr.ndim >= 2 and arr.shape[-1] == 5):
             boxes = arr.reshape(-1, 5)
         elif "label" in lower or (arr.ndim <= 2 and np.issubdtype(arr.dtype, np.integer)):
             labels = arr.reshape(-1)
 
+    threshold = max(0.0, min(1.0, float(args.threshold)))
+    if detection_output is not None:
+        label_names = {1: "person", 2: "vehicle", 3: "bike"}
+        detections = []
+        for row in detection_output:
+            image_id, label, conf, x1, y1, x2, y2 = [float(x) for x in row]
+            if image_id < 0:
+                break
+            if conf < threshold:
+                continue
+            lid = int(label)
+            detections.append({
+                "label_id": lid,
+                "label": label_names.get(lid, f"class_{lid}"),
+                "confidence": round(conf, 5),
+                "box": [
+                    max(0, round(x1 * original_w, 1)),
+                    max(0, round(y1 * original_h, 1)),
+                    min(original_w, round(x2 * original_w, 1)),
+                    min(original_h, round(y2 * original_h, 1)),
+                ],
+            })
+        emit({
+            "ok": True,
+            "device": "MYRIAD",
+            "device_name": props.get("full_device_name", "Intel Movidius Myriad X VPU"),
+            "image": str(image_path),
+            "model": str(model_path),
+            "threshold": threshold,
+            "inference_ms": round(elapsed * 1000, 3),
+            "input_shape": shape,
+            "image_size": [original_w, original_h],
+            "detection_count": len(detections),
+            "detections": detections[:200],
+            "available_devices": devices,
+        })
+        return
+
     if boxes is None or labels is None:
         summary = {name: list(arr.shape) for name, arr in outputs.items()}
         raise RuntimeError(f"Unsupported detector output layout: {summary}")
-
-    threshold = max(0.0, min(1.0, float(args.threshold)))
     label_names = {0: "vehicle", 1: "person", 2: "bike_or_non_vehicle"}
     detections = []
     for box, label in zip(boxes, labels):
