@@ -1,0 +1,55 @@
+name: NCS2 Live Bridge Hotfix
+
+on:
+  push:
+    branches:
+      - fix/ncs2-live-bridge
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ncs2-live-bridge-hotfix
+  cancel-in-progress: false
+
+jobs:
+  apply-test-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out hotfix branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/ncs2-live-bridge
+          fetch-depth: 0
+
+      - name: Apply NCS2 live hotfix
+        run: python qa/scripts/apply-ncs2-live-hotfix.py
+
+      - name: Python syntax checks
+        run: python -m py_compile local-bridge/bridge_agent.py local-bridge/ncs2_edge.py qa/scripts/apply-ncs2-live-hotfix.py
+
+      - name: Worker syntax check
+        run: node --check worker/src/security-entrypoint.js
+
+      - name: NCS2 regression lock
+        run: node qa/scripts/magnanimous-ncs2-edge-lock.mjs
+
+      - name: Local Bridge regression lock
+        run: node qa/scripts/magnanimous-local-bridge-lock.mjs
+
+      - name: Diff integrity check
+        run: git diff --check
+
+      - name: Commit verified hotfix when changed
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "NCS2 live hotfix already applied; nothing to commit."
+            exit 0
+          fi
+          git config user.name "Magnanimous CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/MAGNANIMOUS-NCS2-EDGE-AI.md local-bridge/bridge_agent.py local-bridge/install-ncs2-edge.ps1 local-bridge/ncs2_edge.py qa/scripts/magnanimous-ncs2-edge-lock.mjs worker/src/security-entrypoint.js
+          git commit -m "fix: make NCS2 live bridge production-ready"
+          git push origin HEAD:fix/ncs2-live-bridge
