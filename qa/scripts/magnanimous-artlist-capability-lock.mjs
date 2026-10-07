@@ -9,6 +9,7 @@ const summary=getArtlistAbsorptionSummary();
 const editingRows=getArtlistEditingToolManifest();
 const editingSummary=getArtlistEditingToolSummary();
 const singleBrain=fs.readFileSync(new URL('../../worker/src/magnanimous-single-brain-contract.js',import.meta.url),'utf8');
+const liveDirector=fs.readFileSync(new URL('../../frontend/app/video-director/page.tsx',import.meta.url),'utf8');
 
 assert.ok(rows.length>=40,'Artlist clean-room benchmark should cover the public AI, Studio, media-library, cost, rights, MCP and editor workflow surface.');
 for(const capability of [
@@ -112,6 +113,18 @@ assert.equal(precision.generation_preferences.user_selected_model,'authorized-mo
 assert.equal(precision.generation_preferences.budget.max_external_cost_usd,5);
 assert.equal(precision.generation_preferences.budget.funded_provider_required,true);
 
+const normalized=buildMagnanimousVideoDirectorPlan({idea:'Authorized reference test',face_swap:true,avatar_swap:true,action_replication:true,reference_images:['data:image/png;base64,AA=='],reference_image:'data:image/png;base64,AA==',allow_funded_external:true});
+assert.ok(normalized.generation_preferences.requested_features.includes('likeness-media'),'Existing face/avatar/action inputs must normalize to likeness capability matching.');
+assert.ok(normalized.generation_preferences.requested_features.includes('multi-reference'),'Existing reference_image/reference_images inputs must normalize to multi-reference capability matching.');
+assert.equal(normalized.generation_preferences.budget.funded_provider_required,true,'Funded external execution must stay explicitly preflight-gated.');
+assert.equal(normalized.rights.consent_required,true,'Likeness-sensitive aliases must trigger consent policy.');
+
+assert.match(liveDirector,/buildMagnanimousVideoDirectorPlan\(directorInput\(\)\)/,'Live Video Director must compile through the Magnanimous-owned planner.');
+assert.match(liveDirector,/source:'video-director'/,'Live generation handoff must identify the Video Director source.');
+assert.match(liveDirector,/director_plan:\{creation_mode:p\.creation_mode,generation_preferences:p\.generation_preferences/,'Live Movie Maker handoff must carry planner routing/budget metadata.');
+assert.match(liveDirector,/allow_funded_external:mode==='studio'/,'Studio selection may request funded execution but must keep Movie Maker preflight in control.');
+assert.match(liveDirector,/reference_images:refs,reference_image:refs\[0\]\|\|null/,'Live reference inputs must reach capability matching.');
+
 const director=getMagnanimousVideoDirectorSummary();
 assert.equal(director.creative_agent_mode,true);
 assert.equal(director.precision_mode,true);
@@ -138,5 +151,7 @@ console.log('Magnanimous Artlist capability lock PASS:',{
   official_sources:ARTLIST_PUBLIC_RESEARCH.sources.length+ARTLIST_EDITING_TOOLS_PUBLIC_RESEARCH.sources.length,
   native_targets:[...new Set([...summary.native_targets,...editingSummary.native_targets])].sort(),
   authorization_gated:summary.authorization_gated_contracts,
+  live_planner:true,
+  normalized_reference_and_likeness_inputs:true,
   c2pa_content_credentials:true
 });
