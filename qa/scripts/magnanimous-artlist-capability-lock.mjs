@@ -10,6 +10,7 @@ const editingRows=getArtlistEditingToolManifest();
 const editingSummary=getArtlistEditingToolSummary();
 const singleBrain=fs.readFileSync(new URL('../../worker/src/magnanimous-single-brain-contract.js',import.meta.url),'utf8');
 const liveDirector=fs.readFileSync(new URL('../../frontend/app/video-director/page.tsx',import.meta.url),'utf8');
+const movieRuntime=fs.readFileSync(new URL('../../worker/src/movie-maker-runtime.js',import.meta.url),'utf8');
 
 assert.ok(rows.length>=40,'Artlist clean-room benchmark should cover the public AI, Studio, media-library, cost, rights, MCP and editor workflow surface.');
 for(const capability of [
@@ -119,7 +120,11 @@ assert.ok(normalized.generation_preferences.requested_features.includes('multi-r
 assert.equal(normalized.generation_preferences.budget.funded_provider_required,true,'Funded external execution must stay explicitly preflight-gated.');
 assert.equal(normalized.rights.consent_required,true,'Likeness-sensitive aliases must trigger consent policy.');
 
-assert.match(liveDirector,/buildMagnanimousVideoDirectorPlan\(directorInput\(\)\)/,'Live Video Director must compile through the Magnanimous-owned planner.');
+assert.match(liveDirector,/api\/movie-maker\/director-plan/,'Live Video Director must request its plan through the authenticated Movie Maker server boundary.');
+assert.doesNotMatch(liveDirector,/worker\/src\/magnanimous-video-director/,'Browser code must never import the Worker planner directly.');
+assert.match(movieRuntime,/buildMagnanimousVideoDirectorPlan/,'Movie Maker runtime must own the live Video Director planner invocation.');
+assert.match(movieRuntime,/api\/movie-maker\/director-plan/,'Movie Maker runtime must expose the authenticated Director planning route.');
+assert.match(movieRuntime,/b\.director_input/,'Movie generation must recompute supplied Director input server-side rather than trusting client planner metadata.');
 assert.match(liveDirector,/source:'video-director'/,'Live generation handoff must identify the Video Director source.');
 assert.match(liveDirector,/director_plan:\{creation_mode:p\.creation_mode,generation_preferences:p\.generation_preferences/,'Live Movie Maker handoff must carry planner routing/budget metadata.');
 assert.match(liveDirector,/allow_funded_external:mode==='studio'/,'Studio selection may request funded execution but must keep Movie Maker preflight in control.');
