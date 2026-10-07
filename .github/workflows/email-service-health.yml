@@ -55,6 +55,79 @@ jobs:
           print('mail_error='+err[:500])
           PY
 
+      - name: Onboard I AM Magnanimous Way sending domain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          domain='iammagnanimousway.com'
+          zone_code=$(curl -sS -G -o /tmp/cf-zone.json -w '%{http_code}' \
+            'https://api.cloudflare.com/client/v4/zones' \
+            --data-urlencode "name=$domain" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          echo "zone_lookup_http=$zone_code"
+          python - <<'PY' > /tmp/zone-id
+          import json
+          d=json.load(open('/tmp/cf-zone.json'))
+          rows=d.get('result') or []
+          if rows: print(rows[0].get('id',''),end='')
+          PY
+          zone_id="$(cat /tmp/zone-id)"
+          if [ -z "$zone_id" ]; then
+            python - <<'PY'
+          import json
+          d=json.load(open('/tmp/cf-zone.json'))
+          print('zone_lookup_success='+('1' if d.get('success') else '0'))
+          for e in d.get('errors') or []:
+              print('zone_lookup_error='+str(e.get('code'))+':'+str(e.get('message'))[:300])
+          PY
+            exit 1
+          fi
+
+          list_code=$(curl -sS -o /tmp/cf-sending-domains.json -w '%{http_code}' \
+            "https://api.cloudflare.com/client/v4/zones/${zone_id}/email/sending/subdomains" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          echo "sending_domain_list_http=$list_code"
+          DOMAIN="$domain" python - <<'PY' > /tmp/sending-domain-state
+          import json,os
+          domain=os.environ['DOMAIN'].lower()
+          d=json.load(open('/tmp/cf-sending-domains.json'))
+          rows=d.get('result') or []
+          match=next((x for x in rows if str(x.get('name') or '').lower()==domain),None)
+          print('api_success=1' if d.get('success') else 'api_success=0')
+          print('present=1' if match else 'present=0')
+          print('enabled=1' if match and match.get('enabled') else 'enabled=0')
+          for e in d.get('errors') or []:
+              print('list_error='+str(e.get('code'))+':'+str(e.get('message'))[:300])
+          PY
+          cat /tmp/sending-domain-state
+          present=$(grep '^present=' /tmp/sending-domain-state | cut -d= -f2)
+          enabled=$(grep '^enabled=' /tmp/sending-domain-state | cut -d= -f2)
+          if [ "$present" = "1" ] && [ "$enabled" = "1" ]; then
+            echo 'I AM Magnanimous Way sending domain is already enabled.'
+            exit 0
+          fi
+
+          printf '{"name":"%s"}' "$domain" > /tmp/create-sending-domain.json
+          create_code=$(curl -sS -o /tmp/cf-sending-domain-create.json -w '%{http_code}' \
+            -X POST "https://api.cloudflare.com/client/v4/zones/${zone_id}/email/sending/subdomains" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/create-sending-domain.json)
+          echo "sending_domain_create_http=$create_code"
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/cf-sending-domain-create.json'))
+          r=d.get('result') or {}
+          print('sending_domain_create_success='+('1' if d.get('success') else '0'))
+          print('sending_domain_enabled='+('1' if r.get('enabled') else '0'))
+          for e in d.get('errors') or []:
+              print('sending_domain_create_error='+str(e.get('code'))+':'+str(e.get('message'))[:300])
+          if not d.get('success'):
+              raise SystemExit(1)
+          PY
+
       - name: Ensure owner mailbox is a Cloudflare destination
         working-directory: worker
         env:
