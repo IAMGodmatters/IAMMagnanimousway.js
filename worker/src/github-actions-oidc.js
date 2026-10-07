@@ -26,7 +26,8 @@ export async function verifyGitHubActionsOidcWorker(token,{
   audience,
   repository='IAMGodmatters/IAMMagnanimousway.js',
   ref='refs/heads/main',
-  workflowFile
+  workflowFile,
+  allowedEvents=['push']
 }={}){
   const parts=String(token||'').split('.');
   if(parts.length!==3)throw new Error('Invalid GitHub OIDC token.');
@@ -51,7 +52,8 @@ export async function verifyGitHubActionsOidcWorker(token,{
   if(String(claims.repository||'')!==repository)throw new Error('Unexpected GitHub OIDC repository.');
   if(String(claims.repository_owner||'')!=='IAMGodmatters')throw new Error('Unexpected GitHub OIDC repository owner.');
   if(String(claims.ref||'')!==ref)throw new Error('Unexpected GitHub OIDC ref.');
-  if(String(claims.event_name||'')!=='push')throw new Error('Credential migration requires a main-branch push workflow.');
+  const eventName=String(claims.event_name||'');
+  if(!Array.isArray(allowedEvents)||!allowedEvents.includes(eventName))throw new Error('Unexpected GitHub OIDC workflow event.');
   const workflowRef=String(claims.workflow_ref||claims.job_workflow_ref||'');
   if(!workflowFile||!workflowRef.includes('/'+workflowFile+'@refs/heads/main')){
     throw new Error('Unexpected GitHub OIDC workflow.');
