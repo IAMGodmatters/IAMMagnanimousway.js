@@ -169,7 +169,14 @@ export function buildMagnanimousVideoDirectorPlan(input={}){
       record_prompt_and_settings:true,
       record_provider_and_model_privately:true,
       record_license_and_consent:true,
-      licensed_stock_training_allowed:false
+      licensed_stock_training_allowed:false,
+      content_credentials:{
+        standard:'C2PA',
+        ai_disclosure_version:'2.4+',
+        emit_when_supported:true,
+        verified_claim_requires_signing_rail:true,
+        unsupported_format_behavior:'retain-sidecar-provenance-without-claiming-verified-credentials'
+      }
     },
     execution_policy:{native_first:true,free_first:true,provider_neutral:true,funded_specialized_compute_only:true,unfunded_variable_cost:false,proprietary_prompt_copied:false,capability_based_model_matching:true},
     next_surfaces:[
@@ -198,6 +205,7 @@ export function getMagnanimousVideoDirectorSummary(){
     generation_budget_preflight:true,
     resumable_project_context:true,
     media_provenance_tracking:true,
+    c2pa_content_credentials_policy:true,
     licensed_assets_excluded_from_training:true
   };
 }
