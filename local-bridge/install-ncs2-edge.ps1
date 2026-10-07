@@ -1,10 +1,10 @@
 param(
   [string]$Root = "D:\NCS2_AI",
-  [string]$PythonExe = "D:\Python310\python.exe"
+  [string]$PythonExe = "D:\NCS2_AI\venv\Scripts\python.exe"
 )
 
 $ErrorActionPreference = "Stop"
-$ModelName = "person-vehicle-bike-detection-2004"
+$ModelName = "person-vehicle-bike-detection-crossroad-0078"
 $ModelDir = Join-Path $Root "models\$ModelName\FP16"
 $Script = Join-Path $PSScriptRoot "ncs2_edge.py"
 
@@ -21,7 +21,7 @@ if (-not $setup) {
 New-Item -ItemType Directory -Path $ModelDir -Force | Out-Null
 & $PythonExe -m pip install --disable-pip-version-check --no-warn-script-location "numpy==1.24.4" "pillow==10.4.0"
 
-$base = "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2021.4/models_bin/2/$ModelName/FP16"
+$base = "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2022.1/models_bin/2/$ModelName/FP16"
 foreach ($ext in @("xml","bin")) {
   $target = Join-Path $ModelDir "$ModelName.$ext"
   if (-not (Test-Path $target) -or (Get-Item $target).Length -lt 1024) {
@@ -31,6 +31,9 @@ foreach ($ext in @("xml","bin")) {
 }
 
 $env:MAGNANIMOUS_NCS2_ROOT = $Root
+$env:MAGNANIMOUS_NCS2_PYTHON = $PythonExe
+[Environment]::SetEnvironmentVariable("MAGNANIMOUS_NCS2_ROOT", $Root, "User")
+[Environment]::SetEnvironmentVariable("MAGNANIMOUS_NCS2_PYTHON", $PythonExe, "User")
 $cmd = 'call "' + $setup.FullName + '" >nul && "' + $PythonExe + '" "' + $Script + '" status'
 cmd.exe /d /s /c $cmd
 if ($LASTEXITCODE -ne 0) { throw "NCS2 status verification failed." }

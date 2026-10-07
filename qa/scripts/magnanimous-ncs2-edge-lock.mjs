@@ -10,6 +10,7 @@ const bridge=read('worker/src/magnanimous-local-bridge-runtime.js');
 const mesh=read('worker/src/magnanimous-capability-mesh.js');
 const provider=read('worker/src/provider-entrypoint.js');
 const universal=read('worker/src/magnanimous-universal-capabilities.js');
+const security=read('worker/src/security-entrypoint.js');
 const docs=read('docs/MAGNANIMOUS-NCS2-EDGE-AI.md');
 
 for(const action of ['ncs2_status','ncs2_benchmark','ncs2_detect']){
@@ -22,8 +23,12 @@ for(const capability of ['edge.ncs2.status','edge.ncs2.benchmark','edge.ncs2.det
 assert(edge.includes('MYRIAD'),'NCS2 runtime must target MYRIAD');
 assert(edge.includes('AsyncInferQueue'),'NCS2 benchmark must exercise async inference');
 assert(edge.includes('OpenVINO 2022.3.1'),'NCS2 runtime must preserve the final supported OpenVINO line');
-assert(installer.includes('person-vehicle-bike-detection-2004'),'NCS2 installer must provision a useful starter vision model');
+assert(installer.includes('person-vehicle-bike-detection-crossroad-0078'),'NCS2 installer must provision a MYRIAD-compatible starter vision model');
 assert(installer.includes('pillow==10.4.0'),'NCS2 image runtime dependency must remain explicit');
+assert(agent.includes('D:/NCS2_AI/venv/Scripts/python.exe'),'NCS2 bridge must default to the isolated working Python environment');
+assert(agent.includes('NamedTemporaryFile')&&agent.includes('suffix=".cmd"'),'NCS2 bridge must use a temp command launcher to avoid Windows cmd quoting regressions');
+assert(edge.includes('arr.shape[-1] == 7'),'NCS2 runtime must support SSD DetectionOutput models used by MYRIAD');
+assert(security.includes("url.pathname.startsWith('/api/magnanimous/local-bridge')"),'Local Bridge API must remain on the Worker instead of being proxied to standalone Railway');
 assert(bridge.includes("edge_ai_inference_only:true"),'Local Bridge policy must preserve bounded edge inference');
 assert(bridge.includes("edge_ai_inbound_listener_required:false"),'NCS2 must not open an inbound listener');
 assert(agent.includes('shell=False'),'NCS2 integration must preserve shell=False bridge execution');

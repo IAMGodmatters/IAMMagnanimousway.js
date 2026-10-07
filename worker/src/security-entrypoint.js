@@ -104,7 +104,7 @@ async function proxyApiToStandalone(request,env){
   // execution falls back to the protected free-first Workers AI REST rail.
   const standaloneDataPlanePath=url.pathname.startsWith('/api/')||url.pathname==='/funnels'||url.pathname.startsWith('/funnels/');
   // Keep only Worker-private control paths local. Magnanimous training follows the standalone data plane when configured so its persistent learning is not coupled to Cloudflare D1 daily quotas.
-  if(url.pathname==='/api/internal/migration/rewrap-platform-credentials'||url.pathname==='/api/internal/edge-ai/run')return null;
+  if(url.pathname.startsWith('/api/magnanimous/local-bridge')||url.pathname==='/api/internal/migration/rewrap-platform-credentials'||url.pathname==='/api/internal/edge-ai/run')return null;
   if(!standaloneDataPlanePath)return null;
   if(request.headers.get('x-magnanimous-standalone-proxy')==='1')return null;
   const origin=configuredStandaloneApiOrigin(env);
