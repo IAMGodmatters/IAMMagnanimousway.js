@@ -12,6 +12,21 @@ assert.equal(byId.get('magnanimous-native-procedural-scene')?.free,true);
 assert.equal(byId.get('cloudflare-flux-free')?.configured,false);
 assert.equal(byId.get('cloudflare-flux-free')?.tier,'rollback-only');
 
+const workerBindingWithoutRollback=visualProviderSnapshot({AI:{run:async()=>({})}});
+const workerById=new Map(workerBindingWithoutRollback.providers.map(p=>[p.id,p]));
+assert.equal(workerById.get('cloudflare-flux-free')?.configured,false);
+assert.equal(workerById.get('cloudflare-flux-free')?.enabled,false);
+assert.equal(workerById.get('cloudflare-flux-free')?.tier,'rollback-only');
+
+const explicitRollback=visualProviderSnapshot({
+ AI:{run:async()=>({})},
+ ENABLE_CLOUDFLARE_FLUX_ROLLBACK:'true'
+});
+const rollbackById=new Map(explicitRollback.providers.map(p=>[p.id,p]));
+assert.equal(rollbackById.get('cloudflare-flux-free')?.configured,true);
+assert.equal(rollbackById.get('cloudflare-flux-free')?.enabled,true);
+assert.equal(rollbackById.get('cloudflare-flux-free')?.tier,'rollback-only');
+
 const rendered=generateProceduralScene('Magnanimous native visual fallback QA');
 assert.equal(rendered.provider,'magnanimous-native-procedural-scene');
 assert.equal(rendered.model,'magnanimous-procedural-v1');
@@ -35,4 +50,4 @@ assert.equal(recovered.image_provider,'magnanimous-native-procedural-scene');
 assert.equal(recovered.image_model,'magnanimous-procedural-v1');
 assert.match(recovered.image_data_uri,/^data:image\/svg\+xml;base64,/);
 
-console.log('Magnanimous native free visual fallback: PASS');
+console.log('Magnanimous native free visual fallback: PASS — first-party fallback stays default and legacy FLUX requires explicit rollback opt-in.');
