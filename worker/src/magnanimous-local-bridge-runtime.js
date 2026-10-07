@@ -42,6 +42,11 @@ export const LOCAL_BRIDGE_ACTIONS=Object.freeze({
  ncs2_status:{risk:'low',auto:true,confirmation:false,family:'edge-ai'},
  ncs2_benchmark:{risk:'medium',auto:false,confirmation:false,family:'edge-ai'},
  ncs2_detect:{risk:'low',auto:true,confirmation:false,family:'edge-ai'},
+ ncs2_media_triage:{risk:'low',auto:true,confirmation:false,family:'edge-ai'},
+ ncs2_batch_scan:{risk:'medium',auto:false,confirmation:false,family:'edge-ai'},
+ ncs2_video_scan:{risk:'medium',auto:false,confirmation:false,family:'edge-ai'},
+ ncs2_face_detect:{risk:'low',auto:true,confirmation:false,family:'edge-ai'},
+ ncs2_text_regions:{risk:'low',auto:true,confirmation:false,family:'edge-ai'},
  netwalk_probe:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
  netwalk_scan:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
  netwalk_diag:{risk:'medium',auto:false,confirmation:false,family:'netwalk',scope_required:true},
@@ -187,16 +192,29 @@ function validateTask(action,payload){
   if(!Number.isInteger(count)||count<10||count>1000)throw new Error('ncs2_benchmark count must be an integer from 10 to 1000.');
   if(!Number.isInteger(jobs)||jobs<1||jobs>8)throw new Error('ncs2_benchmark jobs must be an integer from 1 to 8.');
  }
- if(action==='ncs2_detect'){
+ if(['ncs2_detect','ncs2_media_triage','ncs2_face_detect','ncs2_text_regions'].includes(action)){
   const hasUrl=Boolean(clip(body.image_url,4000)),hasLocal=Boolean(clip(body.workspace,1000)&&clip(body.path,2000));
-  if(!hasUrl&&!hasLocal)throw new Error('ncs2_detect requires image_url or workspace + path.');
-  const threshold=Number(body.threshold??0.5);if(!Number.isFinite(threshold)||threshold<0.05||threshold>0.99)throw new Error('ncs2_detect threshold must be between 0.05 and 0.99.');
+  if(!hasUrl&&!hasLocal)throw new Error(action+' requires image_url or workspace + path.');
+  const threshold=Number(body.threshold??0.5);if(!Number.isFinite(threshold)||threshold<0.05||threshold>0.99)throw new Error(action+' threshold must be between 0.05 and 0.99.');
   if(hasUrl){
    let imageUrl;try{imageUrl=new URL(String(body.image_url||''))}catch{}
-   if(!imageUrl||!['http:','https:'].includes(imageUrl.protocol)||imageUrl.username||imageUrl.password)throw new Error('ncs2_detect image_url must be a public http(s) URL without embedded credentials.');
+   if(!imageUrl||!['http:','https:'].includes(imageUrl.protocol)||imageUrl.username||imageUrl.password)throw new Error(action+' image_url must be a public http(s) URL without embedded credentials.');
    const host=String(imageUrl.hostname||'').toLowerCase();
-   if(host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||/^127\.|^0\.|^169\.254\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host))throw new Error('ncs2_detect private/local image targets are blocked.');
+   if(host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||/^127\.|^0\.|^169\.254\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host))throw new Error(action+' private/local image targets are blocked.');
   }
+ }
+ if(action==='ncs2_batch_scan'){
+  if(!clip(body.workspace,1000)||!clip(body.path,2000))throw new Error('ncs2_batch_scan requires workspace + path.');
+  const threshold=Number(body.threshold??0.5),maxFiles=Number(body.max_files??30);
+  if(!Number.isFinite(threshold)||threshold<0.05||threshold>0.99)throw new Error('ncs2_batch_scan threshold must be between 0.05 and 0.99.');
+  if(!Number.isInteger(maxFiles)||maxFiles<1||maxFiles>100)throw new Error('ncs2_batch_scan max_files must be an integer from 1 to 100.');
+ }
+ if(action==='ncs2_video_scan'){
+  if(!clip(body.workspace,1000)||!clip(body.path,2000))throw new Error('ncs2_video_scan requires workspace + path.');
+  const threshold=Number(body.threshold??0.5),every=Number(body.every??5),maxFrames=Number(body.max_frames??24);
+  if(!Number.isFinite(threshold)||threshold<0.05||threshold>0.99)throw new Error('ncs2_video_scan threshold must be between 0.05 and 0.99.');
+  if(!Number.isFinite(every)||every<1||every>120)throw new Error('ncs2_video_scan every must be from 1 to 120 seconds.');
+  if(!Number.isInteger(maxFrames)||maxFrames<1||maxFrames>60)throw new Error('ncs2_video_scan max_frames must be an integer from 1 to 60.');
  }
  if(['read_file','search_text','git_status','git_diff','git_log','project_test','project_lint','project_typecheck','project_build','apply_patch','git_create_branch','git_commit'].includes(action)&&!clip(body.workspace,1000))throw new Error('A paired workspace path/id is required.');
  if(action==='apply_patch'&&!clip(body.patch,200000))throw new Error('apply_patch requires a unified diff patch.');
