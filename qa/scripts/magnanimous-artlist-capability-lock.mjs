@@ -76,6 +76,11 @@ assert.equal(plan.session_context.project_id,'project-123');
 assert.equal(plan.session_context.resumable,true);
 assert.equal(plan.provenance_policy.record_license_and_consent,true);
 assert.equal(plan.provenance_policy.licensed_stock_training_allowed,false);
+assert.equal(plan.provenance_policy.content_credentials.standard,'C2PA');
+assert.equal(plan.provenance_policy.content_credentials.ai_disclosure_version,'2.4+');
+assert.equal(plan.provenance_policy.content_credentials.emit_when_supported,true);
+assert.equal(plan.provenance_policy.content_credentials.verified_claim_requires_signing_rail,true);
+assert.match(plan.provenance_policy.content_credentials.unsupported_format_behavior,/without-claiming-verified-credentials/);
 assert.equal(plan.rights.licensed_assets_training_allowed,false);
 assert.ok(plan.compiled_prompt.includes('CREATION MODE:'));
 
@@ -91,6 +96,7 @@ assert.equal(director.precision_mode,true);
 assert.equal(director.capability_based_model_matching,true);
 assert.equal(director.generation_budget_preflight,true);
 assert.equal(director.media_provenance_tracking,true);
+assert.equal(director.c2pa_content_credentials_policy,true);
 assert.equal(director.licensed_assets_excluded_from_training,true);
 
 assert.match(singleBrain,/getArtlistCapabilityManifest/,'Single brain must load Artlist clean-room benchmark contracts.');
@@ -103,5 +109,6 @@ console.log('Magnanimous Artlist capability lock PASS:',{
   capabilities:rows.length,
   official_sources:ARTLIST_PUBLIC_RESEARCH.sources.length,
   native_targets:summary.native_targets,
-  authorization_gated:summary.authorization_gated_contracts
+  authorization_gated:summary.authorization_gated_contracts,
+  c2pa_content_credentials:true
 });
