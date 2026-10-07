@@ -90,6 +90,7 @@ jobs:
           node qa/scripts/product-contract-locks.mjs
           node qa/scripts/specialist-branch-lock.mjs
           node qa/scripts/free-first-runtime-plane-lock.mjs
+          node qa/scripts/account-persistence-lock.mjs
 
       - name: Install Worker dependencies
         working-directory: worker
@@ -122,6 +123,37 @@ jobs:
             unset session_secret
             echo "Created persistent SESSION_SECRET on the Worker without exposing its value."
           fi
+
+      - name: Snapshot durable identity before D1 migrations
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          npx wrangler d1 time-travel info iam-magnanimous-db --json > /tmp/d1-auth-bookmark.json
+          bookmark="$(python - <<'PY'
+          import json
+          p=json.load(open('/tmp/d1-auth-bookmark.json'))
+          found=[]
+          def walk(x):
+              if isinstance(x,dict):
+                  if isinstance(x.get('bookmark'),str): found.append(x['bookmark'])
+                  for v in x.values(): walk(v)
+              elif isinstance(x,list):
+                  for v in x: walk(v)
+          walk(p)
+          print(found[-1] if found else '')
+          PY
+          )"
+          [ -n "$bookmark" ] || { echo "::error::Could not establish a D1 Time Travel restore point; refusing to migrate durable account data."; exit 1; }
+          echo "D1_PRE_MIGRATION_BOOKMARK=$bookmark" >> "$GITHUB_ENV"
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT id AS user_id FROM users ORDER BY id;" > /tmp/d1-users-before.json
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT id AS tenant_id FROM tenants ORDER BY id;" > /tmp/d1-tenants-before.json
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT u.id AS platform_owner_id FROM users u JOIN tenants t ON t.owner_user_id=u.id WHERE t.slug='owner' AND u.active=1 LIMIT 1;" > /tmp/d1-owner-before.json
+          echo "Durable account restore point and identity baseline captured."
 
       - name: Apply D1 migrations
         working-directory: worker
@@ -196,6 +228,62 @@ jobs:
 
             exit "$rc"
           done
+
+      - name: Verify durable identity after D1 migrations
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT id AS user_id FROM users ORDER BY id;" > /tmp/d1-users-after.json
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT id AS tenant_id FROM tenants ORDER BY id;" > /tmp/d1-tenants-after.json
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT u.id AS platform_owner_id FROM users u JOIN tenants t ON t.owner_user_id=u.id WHERE t.slug='owner' AND u.active=1 LIMIT 1;" > /tmp/d1-owner-after.json
+
+          set +e
+          python - <<'PY'
+          import json
+          def values(path,key):
+              payload=json.load(open(path))
+              out=[]
+              def walk(x):
+                  if isinstance(x,dict):
+                      if isinstance(x.get(key),str): out.append(x[key])
+                      for v in x.values(): walk(v)
+                  elif isinstance(x,list):
+                      for v in x: walk(v)
+              walk(payload)
+              return set(out)
+          before_users=values('/tmp/d1-users-before.json','user_id')
+          after_users=values('/tmp/d1-users-after.json','user_id')
+          before_tenants=values('/tmp/d1-tenants-before.json','tenant_id')
+          after_tenants=values('/tmp/d1-tenants-after.json','tenant_id')
+          before_owner=values('/tmp/d1-owner-before.json','platform_owner_id')
+          after_owner=values('/tmp/d1-owner-after.json','platform_owner_id')
+          missing_users=before_users-after_users
+          missing_tenants=before_tenants-after_tenants
+          owner_lost=bool(before_owner and not before_owner.issubset(after_owner))
+          print(f'identity_guard users_before={len(before_users)} users_after={len(after_users)} tenants_before={len(before_tenants)} tenants_after={len(after_tenants)}')
+          if missing_users or missing_tenants or owner_lost:
+              print(f'::error::Durable identity loss detected after migrations (missing_users={len(missing_users)}, missing_tenants={len(missing_tenants)}, platform_owner_lost={owner_lost}).')
+              raise SystemExit(42)
+          print('Durable identity preservation check passed; every pre-deploy user and tenant still exists.')
+          PY
+          guard_rc=$?
+          set -e
+
+          if [ "$guard_rc" -ne 0 ]; then
+            [ -n "${D1_PRE_MIGRATION_BOOKMARK:-}" ] || { echo "::error::Identity loss detected but no restore bookmark is available."; exit 1; }
+            echo "::warning::Rolling D1 back to the pre-migration Time Travel bookmark to preserve accounts."
+            printf 'y
+' | npx wrangler d1 time-travel restore iam-magnanimous-db --bookmark "$D1_PRE_MIGRATION_BOOKMARK"
+            echo "::error::Deployment stopped and D1 was restored because a migration removed durable account identity."
+            exit 1
+          fi
+
+          rm -f /tmp/d1-auth-bookmark.json /tmp/d1-users-before.json /tmp/d1-users-after.json /tmp/d1-tenants-before.json /tmp/d1-tenants-after.json /tmp/d1-owner-before.json /tmp/d1-owner-after.json
 
       - name: Ensure encrypted Stripe webhook bootstrap fallback
         working-directory: worker

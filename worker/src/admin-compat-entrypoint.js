@@ -138,8 +138,20 @@ async function signup(request, env) {
   const b = await request.json();
   const email = normEmail(b.email), name = String(b.name || '').trim(), password = String(b.password || '');
   if (!name || !email || password.length < 10) return json({ detail: 'Name, email, and a password of at least 10 characters are required.' }, 400);
-  const existing = await env.DB.prepare('SELECT id FROM users WHERE email=? AND active=1 LIMIT 1').bind(email).first();
-  if (existing) return json({ detail: 'An account with that email already exists. Please sign in instead.' }, 409);
+  // Identity is durable. Never create a replacement account for an email that already
+  // exists, even if an earlier runtime marked that row inactive. Recovery must repair
+  // the existing identity instead of silently creating a second user/workspace.
+  const existing = await env.DB.prepare('SELECT id,active FROM users WHERE lower(email)=? ORDER BY created_at ASC LIMIT 1').bind(email).first();
+  if (existing) {
+    const active = Number(existing.active || 0) === 1;
+    return json({
+      detail: active
+        ? 'An account with that email already exists. Please sign in instead.'
+        : 'An account with that email already exists but needs recovery. Do not create a new account; use password recovery or owner support.',
+      code: active ? 'ACCOUNT_ALREADY_EXISTS' : 'ACCOUNT_RECOVERY_REQUIRED',
+      account_preserved: true
+    }, 409);
+  }
   let passwordRecord;try{passwordRecord=await createPasswordRecord(password,env)}catch(error){return json({detail:error?.message||'Choose a different password.'},400)}
   const tid = makeId(), uid = makeId(), created = now();
   const baseSlug = String(b.workspace || name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'workspace';
