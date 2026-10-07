@@ -1,0 +1,154 @@
+name: Free-first runtime plane export v9
+
+on:
+  push:
+    branches: [fix/free-first-runtime-plane-20261007]
+    paths:
+      - .github/workflows/free-first-runtime-plane-export-v9.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            worker/package-lock.json
+
+      - name: Apply the verified migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          source_path=Path('.github/workflows/free-first-runtime-plane-bootstrap.yml')
+          workflow=source_path.read_text()
+          marker="          python - <<'PY'\n"
+          start=workflow.index(marker)+len(marker)
+          end=workflow.index("\n          PY",start)
+          code=textwrap.dedent(workflow[start:end])
+
+          old_call="s=replace_once(s,old,new,'D1 free-first authority lock')"
+          repaired="""target=\"\"\"add('Cloudflare production config points API traffic at the Magnanimous standalone origin',wrangler.includes('\\\"MAGNANIMOUS_STANDALONE_API_ORIGIN\\\": \\\"https://magnanimous-production.up.railway.app\\\"'));\"\"\"\nif target not in s: raise SystemExit('missing expected source for D1 free-first authority lock')\ns=s.replace(target,new,1)"""
+          if old_call not in code:
+              raise SystemExit('D1 repair target missing from bootstrap source')
+          code=code.replace(old_call,repaired,1)
+
+          bad="reels.includes(\"x-magnanimous-surface','reels\"))],"
+          good="reels.includes(\"x-magnanimous-surface','reels\")],"
+          if bad not in code:
+              raise SystemExit('QA syntax repair target missing from bootstrap source')
+          code=code.replace(bad,good,1)
+
+          exec(compile(code,'free-first-runtime-plane-migration','exec'),{})
+          PY
+
+      - name: Enforce Worker-first routing for dynamic free-first endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          wrangler=Path('worker/wrangler.jsonc')
+          text=wrangler.read_text()
+          anchor='      "/api/*",\n'
+          routes='      "/reels-proxy",\n      "/reels-proxy/*",\n      "/__magnanimous_runtime/*",\n'
+          if routes not in text:
+              if anchor not in text:
+                  raise SystemExit('run_worker_first API anchor missing')
+              text=text.replace(anchor,routes+anchor,1)
+              wrangler.write_text(text)
+
+          qa=Path('qa/scripts/free-first-runtime-plane-lock.mjs')
+          q=qa.read_text()
+          needle="  ['Worker config has no required standalone paid origin',!wrangler.includes('MAGNANIMOUS_STANDALONE_API_ORIGIN')],\n"
+          assertion="  ['Worker-first routing covers Reels proxy and runtime control',wrangler.includes('\\\"/reels-proxy/*\\\"')&&wrangler.includes('\\\"/__magnanimous_runtime/*\\\"')],\n"
+          if assertion not in q:
+              if needle not in q:
+                  raise SystemExit('free-first QA insertion anchor missing')
+              q=q.replace(needle,needle+assertion,1)
+              qa.write_text(q)
+          PY
+
+      - name: Normalize generated QA lock formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('qa/scripts/free-first-runtime-plane-lock.mjs')
+          text=p.read_text()
+          p.write_text('\n'.join(line.rstrip() for line in text.splitlines()) + '\n')
+          PY
+
+      - name: Verify free-first runtime contracts
+        run: |
+          set -euo pipefail
+          node qa/scripts/free-first-runtime-plane-lock.mjs
+          node qa/scripts/d1-quota-resilience-lock.mjs
+          node qa/scripts/magnanimous-native-first-lock.mjs
+          node qa/scripts/railway-descendant-safe-deploy-lock.mjs
+          node qa/scripts/product-contract-locks.mjs
+
+      - name: Verify frontend
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+
+      - name: Verify Worker bundle
+        working-directory: worker
+        run: |
+          npm ci --no-audit --no-fund
+          npx wrangler deploy --dry-run --outdir /tmp/magnanimous-worker-free-first
+
+      - name: Package only intended verified production files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check -- .github/workflows/deploy.yml .github/workflows/magnanimous-railway-deploy.yml frontend/app/reels/page.tsx qa/scripts/d1-quota-resilience-lock.mjs qa/scripts/free-first-runtime-plane-lock.mjs worker/src/github-actions-oidc.js worker/src/reels-proxy.js worker/src/runtime-control.js worker/src/security-entrypoint.js worker/wrangler.jsonc
+          rm -rf /tmp/free-first-clean
+          mkdir -p /tmp/free-first-clean
+          files=(
+            .github/workflows/deploy.yml
+            .github/workflows/magnanimous-railway-deploy.yml
+            frontend/app/reels/page.tsx
+            qa/scripts/d1-quota-resilience-lock.mjs
+            qa/scripts/free-first-runtime-plane-lock.mjs
+            worker/src/github-actions-oidc.js
+            worker/src/reels-proxy.js
+            worker/src/runtime-control.js
+            worker/src/security-entrypoint.js
+            worker/wrangler.jsonc
+          )
+          for rel in "${files[@]}"; do
+            test -f "$rel"
+            mkdir -p "/tmp/free-first-clean/$(dirname "$rel")"
+            cp "$rel" "/tmp/free-first-clean/$rel"
+          done
+          printf '%s\n' "${files[@]}" > /tmp/free-first-clean/MANIFEST.txt
+          tar -C /tmp/free-first-clean -czf /tmp/free-first-runtime-plane-verified-v9.tar.gz .
+          sha256sum /tmp/free-first-runtime-plane-verified-v9.tar.gz | tee /tmp/free-first-runtime-plane-verified-v9.sha256
+
+      - name: Upload clean exact verified patch
+        uses: actions/upload-artifact@v4
+        with:
+          name: free-first-runtime-plane-verified-patch-v9
+          path: |
+            /tmp/free-first-runtime-plane-verified-v9.tar.gz
+            /tmp/free-first-runtime-plane-verified-v9.sha256
+          if-no-files-found: error
+          retention-days: 7
