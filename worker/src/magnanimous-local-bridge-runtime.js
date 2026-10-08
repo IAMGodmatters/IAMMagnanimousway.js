@@ -14,6 +14,18 @@ export const LOCAL_BRIDGE_ACTIONS=Object.freeze({
  workspace_list:{risk:'low',auto:true,confirmation:false,family:'workspace'},
  read_file:{risk:'low',auto:true,confirmation:false,family:'files'},
  search_text:{risk:'low',auto:true,confirmation:false,family:'files'},
+ storage_status:{risk:'low',auto:true,confirmation:false,family:'cloud-storage'},
+ storage_remotes:{risk:'low',auto:true,confirmation:false,family:'cloud-storage'},
+ storage_about:{risk:'low',auto:true,confirmation:false,family:'cloud-storage'},
+ storage_list:{risk:'low',auto:true,confirmation:false,family:'cloud-storage'},
+ storage_size:{risk:'low',auto:true,confirmation:false,family:'cloud-storage'},
+ storage_check:{risk:'medium',auto:true,confirmation:false,family:'cloud-storage'},
+ storage_copy:{risk:'medium',auto:false,confirmation:true,family:'cloud-storage'},
+ storage_mkdir:{risk:'medium',auto:false,confirmation:true,family:'cloud-storage'},
+ storage_sync:{risk:'high',auto:false,confirmation:true,family:'cloud-storage'},
+ storage_move:{risk:'high',auto:false,confirmation:true,family:'cloud-storage'},
+ storage_link:{risk:'high',auto:false,confirmation:true,family:'cloud-storage'},
+ storage_bisync:{risk:'high',auto:false,confirmation:true,family:'cloud-storage'},
  git_status:{risk:'low',auto:true,confirmation:false,family:'git'},
  git_diff:{risk:'low',auto:true,confirmation:false,family:'git'},
  git_log:{risk:'low',auto:true,confirmation:false,family:'git'},
@@ -137,6 +149,23 @@ function validateTask(action,payload){
  const def=LOCAL_BRIDGE_ACTIONS[action];if(!def)throw new Error('Unsupported local bridge action.');
  const body=payload&&typeof payload==='object'&&!Array.isArray(payload)?payload:{};
  if(def.scope_required&&!clip(body.authorization_note,1000))throw new Error('Recorded owner authorization is required for this Netwalk action.');
+ if(action.startsWith('storage_')){
+  const forbidden=['token','access_token','refresh_token','client_secret','password','passwd','api_key','secret'];
+  for(const key of forbidden)if(Object.prototype.hasOwnProperty.call(body,key))throw new Error('Cloud storage credentials must remain local to the paired bridge.');
+  const safeRef=value=>{
+   const text=clip(value,2400);
+   if(!text||text.startsWith('-')||/[\r\n\0]/.test(text)||/^[a-z][a-z0-9+.-]*:\/\//i.test(text))return false;
+   return /^[A-Za-z0-9._ -]+:.+/.test(text)||/^[A-Za-z0-9._ -]+:$/.test(text);
+  };
+  if(['storage_about','storage_list','storage_size'].includes(action)&&!safeRef(body.remote||body.path))throw new Error(action+' requires a configured remote:path reference.');
+  if(['storage_check','storage_copy','storage_sync','storage_move','storage_bisync'].includes(action)){
+   if(!safeRef(body.source)||!safeRef(body.destination))throw new Error(action+' requires configured source and destination remote:path references.');
+  }
+  if(['storage_mkdir','storage_link'].includes(action)&&!safeRef(body.path))throw new Error(action+' requires a configured remote:path reference.');
+  if(action==='storage_list'){
+   const depth=Number(body.max_depth??2);if(!Number.isInteger(depth)||depth<1||depth>20)throw new Error('storage_list max_depth must be an integer from 1 to 20.');
+  }
+ }
  if(action==='web_fetch'){
   let u;try{u=new URL(String(body.url||''))}catch{}
   if(!u||!['http:','https:'].includes(u.protocol))throw new Error('web_fetch requires an http(s) URL.');

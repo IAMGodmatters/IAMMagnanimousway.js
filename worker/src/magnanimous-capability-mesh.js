@@ -85,6 +85,18 @@ export const MAGNANIMOUS_CAPABILITY_MESH_ROUTES=Object.freeze({
  'code.execute':{surface:'sandbox',mode:'isolated-execution',native_contract:true},
  'files.search':{surface:'knowledge-workspace',mode:'read',native_contract:true},
  'files.analyze':{surface:'knowledge-workspace',mode:'read',native_contract:true},
+ 'storage.status':{surface:'magnanimous-cloud-fabric',mode:'local-read',native:true},
+ 'storage.remotes':{surface:'magnanimous-cloud-fabric',mode:'local-read',native:true},
+ 'storage.about':{surface:'magnanimous-cloud-fabric',mode:'local-read',native:true},
+ 'storage.list':{surface:'magnanimous-cloud-fabric',mode:'local-read',native:true},
+ 'storage.size':{surface:'magnanimous-cloud-fabric',mode:'local-read',native:true},
+ 'storage.check':{surface:'magnanimous-cloud-fabric',mode:'local-read-verify',native:true},
+ 'storage.copy':{surface:'magnanimous-cloud-fabric',mode:'confirmed-cloud-write',confirmation:true,native:true},
+ 'storage.mkdir':{surface:'magnanimous-cloud-fabric',mode:'confirmed-cloud-write',confirmation:true,native:true},
+ 'storage.sync':{surface:'magnanimous-cloud-fabric',mode:'confirmed-cloud-sync',confirmation:true,native:true},
+ 'storage.move':{surface:'magnanimous-cloud-fabric',mode:'confirmed-cloud-move',confirmation:true,native:true},
+ 'storage.link':{surface:'magnanimous-cloud-fabric',mode:'confirmed-share-link',confirmation:true,native:true},
+ 'storage.bisync':{surface:'magnanimous-cloud-fabric',mode:'confirmed-two-way-sync',confirmation:true,native:true},
  'computer.read':{surface:'native-web',mode:'read',native:true},
  'computer.action':{surface:'native-web',mode:'confirmed-action',confirmation:true,native:true},
  'mcp.discover':{surface:'universal-app-fabric',mode:'read',native_contract:true},
@@ -383,6 +395,19 @@ async function routeCapability(request,env,providerEnv,body){
  if(capability==='media.glossary_apply')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/glossary/apply','POST',input),env),capability,def.surface);
  if(capability==='media.template_render')return wrap(await handleMagnanimousNativeMedia(delegatedRequest(request,'/api/magnanimous/native-media/template/render','POST',input),env),capability,def.surface);
 
+ const storageActions={
+  'storage.status':'storage_status','storage.remotes':'storage_remotes','storage.about':'storage_about',
+  'storage.list':'storage_list','storage.size':'storage_size','storage.check':'storage_check',
+  'storage.copy':'storage_copy','storage.mkdir':'storage_mkdir','storage.sync':'storage_sync',
+  'storage.move':'storage_move','storage.link':'storage_link','storage.bisync':'storage_bisync'
+ };
+ if(storageActions[capability]){
+  const user=await currentUser(request,env).catch(()=>null);if(!user)return json({detail:'Signed-in tenant user is required for owner-local cloud storage.'},401);
+  const queued=await queueLocalBridgeTask(env,user,{action:storageActions[capability],payload:input,allowConfirmation:true});
+  if(!queued.ok)return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},...queued},503);
+  return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI',credentials_local_only:true,engine_role:'replaceable-local-storage-engine'},...queued,polling_endpoint:'/api/magnanimous/local-bridge/tasks/'+queued.id},202);
+ }
+
  const edgeActions={
   'edge.ncs2.status':'ncs2_status','edge.ncs2.benchmark':'ncs2_benchmark','edge.ncs2.detect':'ncs2_detect',
   'edge.ncs2.triage':'ncs2_media_triage','edge.ncs2.batch_scan':'ncs2_batch_scan','edge.ncs2.video_scan':'ncs2_video_scan',
@@ -477,6 +502,8 @@ export async function handleMagnanimousCapabilityMesh(request,env,{providerEnv=e
    heygen_benchmark_tools:HEYGEN_VISIBLE_BENCHMARK_TOOLS,
    heygen_native_parity_map:MAGNANIMOUS_HEYGEN_PARITY_MAP,
    native_terminal_capabilities:MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES,
+   cloud_storage_capabilities:['storage.status','storage.remotes','storage.about','storage.list','storage.size','storage.check','storage.copy','storage.mkdir','storage.sync','storage.move','storage.link','storage.bisync'],
+   cloud_storage_policy:{identity:'Magnanimous Cloud Fabric',brain:'Magnanimous AI',credentials:'local-bridge-only',engine:'replaceable-rclone-compatible',public_link_and_destructive_operations:'confirmation-gated'},
    edge_ai_capabilities:['edge.ncs2.status','edge.ncs2.benchmark','edge.ncs2.detect','edge.ncs2.triage','edge.ncs2.batch_scan','edge.ncs2.video_scan','edge.ncs2.face_detect','edge.ncs2.text_regions'],
    universal_app_fabric:getUniversalCapabilityIndexSummary()
   });

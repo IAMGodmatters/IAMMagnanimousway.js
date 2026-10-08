@@ -175,6 +175,172 @@ def _detect_netwalk(config):
     return root if (root / "scripts").is_dir() else None
 
 
+def _detect_rclone(config):
+    configured = str(config.get("rclone_path") or os.environ.get("MAGNANIMOUS_RCLONE_PATH") or "").strip()
+    candidates = []
+    if configured:
+        candidates.append(Path(configured).expanduser())
+    found = shutil.which("rclone.exe" if os.name == "nt" else "rclone") or shutil.which("rclone")
+    if found:
+        candidates.append(Path(found))
+    if os.name == "nt":
+        candidates.extend([
+            Path("D:/Tools/rclone/rclone.exe"),
+            Path("D:/Tools/rclone-v1.75.1-windows-amd64/rclone.exe"),
+            Path.home() / "AppData" / "Roaming" / "rclone" / "rclone.exe",
+        ])
+    for candidate in candidates:
+        try:
+            resolved = candidate.expanduser().resolve()
+            if resolved.is_file():
+                return resolved
+        except Exception:
+            continue
+    return None
+
+
+def _rclone_run(config, args, *, timeout=600):
+    exe = _detect_rclone(config)
+    if not exe:
+        raise RuntimeError("rclone is not installed or configured on this Local Bridge.")
+    if not isinstance(args, list) or any(not isinstance(x, str) for x in args):
+        raise RuntimeError("Invalid cloud storage operation.")
+    return _run([str(exe), *args], timeout=timeout)
+
+
+def _rclone_remote_names(config):
+    result = _rclone_run(config, ["listremotes"], timeout=30)
+    if result["code"] != 0:
+        raise RuntimeError("Could not list configured cloud storage remotes.")
+    return sorted({line.strip().rstrip(":") for line in result["stdout"].splitlines() if line.strip().endswith(":")})
+
+
+def _rclone_ref(config, value):
+    ref = str(value or "").strip()
+    if not ref or len(ref) > 2400 or ref.startswith("-") or any(ch in ref for ch in "\r\n\0"):
+        raise RuntimeError("A bounded configured remote:path reference is required.")
+    if "://" in ref:
+        raise RuntimeError("Cloud storage references must use configured rclone remote names, not URLs.")
+    name, sep, _ = ref.partition(":")
+    if not sep or name not in _rclone_remote_names(config):
+        raise RuntimeError("Cloud storage reference must use a configured local rclone remote.")
+    return ref
+
+
+def _rclone_json(result, *, fallback=None):
+    if result["code"] != 0:
+        detail=(result.get("stderr") or result.get("stdout") or "Cloud storage operation failed.").strip()
+        raise RuntimeError(detail[-4000:])
+    text=(result.get("stdout") or "").strip()
+    if not text:
+        return fallback if fallback is not None else {}
+    try:
+        return json.loads(text)
+    except Exception:
+        return {"output": text[-MAX_OUTPUT:]}
+
+
+def action_storage_status(config, payload):
+    exe = _detect_rclone(config)
+    if not exe:
+        return {"ok": False, "ready": False, "engine": "rclone-compatible", "credentials_local_only": True}
+    version = _rclone_run(config, ["version"], timeout=30)
+    first = (version.get("stdout") or "").splitlines()
+    return {
+        "ok": version["code"] == 0,
+        "ready": version["code"] == 0,
+        "engine": "rclone-compatible",
+        "version": first[0] if first else "",
+        "remotes": _rclone_remote_names(config),
+        "credentials_local_only": True,
+        "raw_config_exposed": False,
+    }
+
+
+def action_storage_remotes(config, payload):
+    return {"ok": True, "remotes": _rclone_remote_names(config), "credentials_local_only": True}
+
+
+def action_storage_about(config, payload):
+    ref = _rclone_ref(config, payload.get("remote") or payload.get("path"))
+    return {"ok": True, "reference": ref, "about": _rclone_json(_rclone_run(config, ["about", ref, "--json"], timeout=90))}
+
+
+def action_storage_list(config, payload):
+    ref = _rclone_ref(config, payload.get("remote") or payload.get("path"))
+    depth = max(1, min(20, int(payload.get("max_depth") or 2)))
+    result = _rclone_run(config, ["lsjson", ref, "--max-depth", str(depth), "--no-mimetype"], timeout=300)
+    rows = _rclone_json(result, fallback=[])
+    if isinstance(rows, list) and len(rows) > 2000:
+        rows = rows[:2000]
+        truncated = True
+    else:
+        truncated = False
+    return {"ok": True, "reference": ref, "items": rows, "truncated": truncated}
+
+
+def action_storage_size(config, payload):
+    ref = _rclone_ref(config, payload.get("remote") or payload.get("path"))
+    return {"ok": True, "reference": ref, "size": _rclone_json(_rclone_run(config, ["size", ref, "--json"], timeout=900))}
+
+
+def action_storage_check(config, payload):
+    source = _rclone_ref(config, payload.get("source"))
+    destination = _rclone_ref(config, payload.get("destination"))
+    args = ["check", source, destination, "--combined", "-"]
+    if payload.get("one_way") is True:
+        args.append("--one-way")
+    result = _rclone_run(config, args, timeout=1800)
+    return {"ok": result["code"] == 0, "source": source, "destination": destination, "code": result["code"], "report": (result.get("stdout") or "")[-MAX_OUTPUT:], "errors": (result.get("stderr") or "")[-12000:]}
+
+
+def action_storage_copy(config, payload):
+    source = _rclone_ref(config, payload.get("source"))
+    destination = _rclone_ref(config, payload.get("destination"))
+    result = _rclone_run(config, ["copy", source, destination, "--check-first", "--create-empty-src-dirs", "--stats-one-line", "--stats", "30s"], timeout=3600)
+    return {"ok": result["code"] == 0, "source": source, "destination": destination, "code": result["code"], "output": (result.get("stdout") or "")[-12000:], "errors": (result.get("stderr") or "")[-12000:]}
+
+
+def action_storage_mkdir(config, payload):
+    path = _rclone_ref(config, payload.get("path"))
+    result = _rclone_run(config, ["mkdir", path], timeout=120)
+    return {"ok": result["code"] == 0, "path": path, "code": result["code"], "errors": (result.get("stderr") or "")[-4000:]}
+
+
+def action_storage_sync(config, payload):
+    source = _rclone_ref(config, payload.get("source"))
+    destination = _rclone_ref(config, payload.get("destination"))
+    result = _rclone_run(config, ["sync", source, destination, "--check-first", "--create-empty-src-dirs", "--stats-one-line", "--stats", "30s"], timeout=3600)
+    return {"ok": result["code"] == 0, "source": source, "destination": destination, "code": result["code"], "output": (result.get("stdout") or "")[-12000:], "errors": (result.get("stderr") or "")[-12000:]}
+
+
+def action_storage_move(config, payload):
+    source = _rclone_ref(config, payload.get("source"))
+    destination = _rclone_ref(config, payload.get("destination"))
+    result = _rclone_run(config, ["move", source, destination, "--check-first", "--create-empty-src-dirs", "--delete-empty-src-dirs", "--stats-one-line", "--stats", "30s"], timeout=3600)
+    return {"ok": result["code"] == 0, "source": source, "destination": destination, "code": result["code"], "output": (result.get("stdout") or "")[-12000:], "errors": (result.get("stderr") or "")[-12000:]}
+
+
+def action_storage_link(config, payload):
+    path = _rclone_ref(config, payload.get("path"))
+    expire = str(payload.get("expire") or "24h").strip()
+    if not re.fullmatch(r"\d+(?:s|m|h|d|w)", expire):
+        raise RuntimeError("storage_link expire must look like 30m, 24h, or 7d.")
+    result = _rclone_run(config, ["link", path, "--expire", expire], timeout=120)
+    data = _rclone_json(result)
+    return {"ok": True, "path": path, "expire": expire, "link": data.get("output", "") if isinstance(data, dict) else str(data)}
+
+
+def action_storage_bisync(config, payload):
+    source = _rclone_ref(config, payload.get("source"))
+    destination = _rclone_ref(config, payload.get("destination"))
+    args = ["bisync", source, destination, "--check-access", "--resilient", "--recover"]
+    if payload.get("resync") is True:
+        args.append("--resync")
+    result = _rclone_run(config, args, timeout=3600)
+    return {"ok": result["code"] == 0, "source": source, "destination": destination, "code": result["code"], "output": (result.get("stdout") or "")[-12000:], "errors": (result.get("stderr") or "")[-12000:]}
+
+
 def _detect_ncs2(config):
     now = time.time()
     cached = getattr(_detect_ncs2, "_cache", None)
@@ -211,6 +377,11 @@ def capabilities(config):
                 caps.add(action)
     if _detect_netwalk(config):
         caps.update({"netwalk_probe","netwalk_scan","netwalk_diag","netwalk_map","netwalk_report"})
+    if _detect_rclone(config):
+        caps.update({
+            "storage_status","storage_remotes","storage_about","storage_list","storage_size","storage_check",
+            "storage_copy","storage_mkdir","storage_sync","storage_move","storage_link","storage_bisync"
+        })
     ncs2 = _detect_ncs2(config)
     if ncs2:
         caps.update({"ncs2_status", "ncs2_benchmark"})
@@ -1272,6 +1443,18 @@ HANDLERS = {
     "workspace_list": action_workspace_list,
     "read_file": action_read_file,
     "search_text": action_search_text,
+    "storage_status": action_storage_status,
+    "storage_remotes": action_storage_remotes,
+    "storage_about": action_storage_about,
+    "storage_list": action_storage_list,
+    "storage_size": action_storage_size,
+    "storage_check": action_storage_check,
+    "storage_copy": action_storage_copy,
+    "storage_mkdir": action_storage_mkdir,
+    "storage_sync": action_storage_sync,
+    "storage_move": action_storage_move,
+    "storage_link": action_storage_link,
+    "storage_bisync": action_storage_bisync,
     "git_status": action_git_status,
     "git_diff": action_git_diff,
     "git_log": action_git_log,
