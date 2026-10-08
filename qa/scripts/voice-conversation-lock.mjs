@@ -4,6 +4,7 @@ const source = fs.readFileSync('frontend/app/voice-orchestrator.tsx', 'utf8');
 const hardener = fs.readFileSync('frontend/app/voice-surface-hardener.tsx', 'utf8');
 const globals = fs.readFileSync('frontend/app/global-tools.tsx', 'utf8');
 const natural = fs.readFileSync('frontend/lib/natural-speech.ts', 'utf8');
+const personaVoice = fs.readFileSync('frontend/lib/persona-voice.ts', 'utf8');
 const agents = fs.readFileSync('frontend/app/agents/page.tsx', 'utf8');
 const videoAgents = fs.readFileSync('frontend/app/agent-video/page.tsx', 'utf8');
 const virtualAssistant = fs.readFileSync('frontend/app/virtual-assistant/page.tsx', 'utf8');
@@ -35,10 +36,12 @@ const contracts = [
   ['virtual assistant voice turns use stable chunked playback', /speakTextNaturally\(text,[\s\S]*?Virtual Assistant/, hardener],
   ['speech cleanup strips markdown emphasis and heading marks', /replace\(\/\[\\\*_~#\\\`\]\/g,''\)/, natural],
   ['speech cleanup removes bare web addresses before playback', /replace\(\/https\?:\\\/\\\/\\S\+\/gi,' '\)/, natural],
-  ['speech playback is split into sentence-sized chunks', /export function splitSpeechText[\s\S]*?maxChars=260/, natural],
-  ['iPhone speech uses shorter chunks and a wider handoff delay', /appleMobileSpeechRuntime[\s\S]*?Math\.min\(options\.maxChunkChars\|\|260,140\)[\s\S]*?Math\.max\(options\.interChunkDelayMs\?\?45,90\)/, natural],
-  ['iPhone speech clamps unstable rate and pitch extremes', /utterance\.rate=Math\.max\(\.88[\s\S]*?utterance\.pitch=Math\.max\(\.95/, natural],
-  ['iPhone voice selection prefers the stable platform default', /appleMobileVoiceRuntime\(\)[\s\S]*?return\{voice:undefined,rate:\.94,pitch:1\}/, source],
+  ['speech playback is split into human-sized chunks', /export function splitSpeechText[\s\S]*?maxChars=220/, natural],
+  ['iPhone speech uses shorter chunks and a wider handoff delay', /appleMobileSpeechRuntime[\s\S]*?Math\.min\(options\.maxChunkChars\|\|220,125\)[\s\S]*?Math\.max\(options\.interChunkDelayMs\?\?55,95\)/, natural],
+  ['iPhone speech clamps unstable rate and pitch extremes', /utterance\.rate=Math\.max\(\.89[\s\S]*?utterance\.pitch=Math\.max\(\.92/, natural],
+  ['iPhone voice selection stays on local device voices when available', /appleMobile\(\)[\s\S]*?base\.filter\(v=>v\.localService!==false\)/, personaVoice],
+  ['every AI persona receives a stable distinct voice signature', /const voice=pool\.length\?pool\[h%pool\.length\][\s\S]*?rateSignature[\s\S]*?pitchSignature/, personaVoice],
+  ['high-quality voices are preferred over novelty voices', /naturalName[\s\S]*?noveltyName[\s\S]*?qualityScore/, personaVoice],
   ['iPhone playback starts only after the speech queue settles', /if\(appleMobile\)window\.setTimeout\(next,70\);else next\(\)/, natural],
   ['shared speech playback resumes only when the synthesizer is paused', /if\(\(synth as any\)\.paused\)synth\.resume\?\.\(\)/, natural],
   ['iPhone primes the real speech queue from a user gesture', /new SpeechSynthesisUtterance\(apple\?'\\u00a0':' '\)[\s\S]*?u\.volume=apple\?1:0/, source],

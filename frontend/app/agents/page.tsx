@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { speakTextNaturally, stopNaturalSpeech } from "../../lib/natural-speech";
+import { configurePersonaVoice } from "../../lib/persona-voice";
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 type Agent = {
   id: string;
@@ -118,19 +119,9 @@ export default function AgentsPage() {
     )
       return;
     speakTextNaturally(text, {
-      maxChunkChars: 240,
-      interChunkDelayMs: 55,
-      configure: (u) => {
-        u.rate = 0.96;
-        u.pitch = 1;
-        u.volume = 1;
-        const voices = window.speechSynthesis.getVoices();
-        const voice =
-          voices.find(
-            (v) => /^en/i.test(v.lang) && /natural|enhanced|premium|neural|siri|google|microsoft/i.test(v.name),
-          ) || voices.find((v) => /^en/i.test(v.lang));
-        if (voice) u.voice = voice;
-      },
+      maxChunkChars: 220,
+      interChunkDelayMs: 60,
+      configure: (u) => { configurePersonaVoice(u, agent?.name || "Magnanimous Agent"); },
       onStart: () => setSpeaking(true),
       onEnd: () => setSpeaking(false),
       onError: () => setSpeaking(false),
