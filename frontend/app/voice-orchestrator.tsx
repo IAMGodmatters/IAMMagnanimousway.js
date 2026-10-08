@@ -2,6 +2,7 @@
 
 import {useEffect,useRef,useState} from 'react';
 import {speakTextNaturally,stopNaturalSpeech} from '../lib/natural-speech';
+import {personaVoiceProfile} from '../lib/persona-voice';
 
 type SpeechRecognitionLike={
  lang:string;
@@ -43,7 +44,6 @@ const MODE_PERSONAS:Record<string,string>={
 let routedPersonaHint='';
 let speechPrimed=false;
 
-function hash(value:string){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function latestMagnanimousPersona(){
  const labels=Array.from(document.querySelectorAll('.mag-message.assistant .mag-bubble>small'));
  const label=(labels[labels.length-1]?.textContent||'').trim();
@@ -75,27 +75,8 @@ function currentPersona(){
 }
 
 function appleMobileVoiceRuntime(){return typeof navigator!=='undefined'&&/iP(?:hone|ad|od)/i.test(String(navigator.userAgent||''))}
-function chooseVoice(label:string){
- if(appleMobileVoiceRuntime())return{voice:undefined,rate:.94,pitch:1};
- const synth=window.speechSynthesis,all=synth.getVoices();
- const english=all.filter(v=>/^en(?:-|$)/i.test(v.lang));
- const natural=english.filter(v=>/natural|enhanced|premium|neural|siri|google|microsoft/i.test(v.name));
- const pool=natural.length?natural:english.length?english:all;
- const h=hash(label.toLowerCase());
- const voice=pool.length?pool[h%pool.length]:undefined;
- if(label==='Magnanimous AI')return{voice,rate:.96,pitch:.9};
- const rate=.90+((h>>>4)%7)*.025;
- const pitch=.82+((h>>>9)%9)*.045;
- return{voice,rate:Math.min(1.08,rate),pitch:Math.min(1.18,pitch)};
-}
-
-function applyVoiceProfile(utterance:SpeechSynthesisUtterance,label:string){
- const profile=chooseVoice(label);
- if(profile.voice)utterance.voice=profile.voice;
- utterance.rate=profile.rate;
- utterance.pitch=profile.pitch;
- utterance.volume=1;
-}
+function chooseVoice(label:string){return personaVoiceProfile(label)}
+function applyVoiceProfile(utterance:SpeechSynthesisUtterance,label:string){const profile=chooseVoice(label);if(profile.voice)utterance.voice=profile.voice;utterance.lang=profile.lang;utterance.rate=profile.rate;utterance.pitch=profile.pitch;utterance.volume=1}
 
 function primeSpeechSynthesis(){
  if(speechPrimed||typeof window==='undefined'||!('speechSynthesis'in window))return;
@@ -247,8 +228,8 @@ export default function VoiceOrchestrator(){
    },1600);
    speakTextNaturally(text,{
     configure:(u)=>applyVoiceProfile(u,nextPersona),
-    maxChunkChars:240,
-    interChunkDelayMs:55,
+    maxChunkChars:220,
+    interChunkDelayMs:60,
     onStart:()=>{
      started=true;
      if(speechStartWatchdog.current!==null){window.clearTimeout(speechStartWatchdog.current);speechStartWatchdog.current=null}
@@ -329,7 +310,7 @@ export default function VoiceOrchestrator(){
   const reply=latestReply(path);
   const text=reply||`This is ${persona}. My voice is ready.`;
   speakTextNaturally(text,{
-   configure:(u)=>applyVoiceProfile(u,persona),maxChunkChars:220,interChunkDelayMs:45,
+   configure:(u)=>applyVoiceProfile(u,persona),maxChunkChars:210,interChunkDelayMs:60,
    onStart:()=>{setNotice('');setSpeaking(true)},onEnd:()=>setSpeaking(false),
    onError:()=>{setSpeaking(false);setNotice('Your browser could not play the voice. Check device volume and tap HEAR again.')}
   });

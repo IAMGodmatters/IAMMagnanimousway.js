@@ -2,6 +2,7 @@
 
 import {useEffect,useRef,useState} from 'react';
 import {cleanTextForSpeech,speakTextNaturally,stopNaturalSpeech} from '../lib/natural-speech';
+import {configurePersonaVoice} from '../lib/persona-voice';
 
 type RecognitionLike={
  lang:string;interimResults:boolean;continuous:boolean;maxAlternatives:number;
@@ -26,18 +27,6 @@ function activePersona(path:string){
  if(path.startsWith('/virtual-assistant'))return'Virtual Assistant';
  return'Magnanimous AI';
 }
-function hash(value:string){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
-function applyVoice(utterance:SpeechSynthesisUtterance,label:string){
- const voices=window.speechSynthesis.getVoices();
- const english=voices.filter(v=>/^en(?:-|$)/i.test(v.lang));
- const natural=english.filter(v=>/natural|enhanced|premium|neural|siri|google|microsoft/i.test(v.name));
- const pool=natural.length?natural:english.length?english:voices;
- const h=hash(label.toLowerCase());
- if(pool.length)utterance.voice=pool[h%pool.length];
- utterance.rate=label==='Magnanimous AI'?.96:Math.min(1.08,.90+((h>>>4)%7)*.025);
- utterance.pitch=label==='Magnanimous AI'?.9:Math.min(1.18,.82+((h>>>9)%9)*.045);
- utterance.volume=1;
-}
 
 export default function VoiceSurfaceHardener(){
  const[path,setPath]=useState(''),[listening,setListening]=useState(false),[notice,setNotice]=useState('');
@@ -58,7 +47,7 @@ export default function VoiceSurfaceHardener(){
      target.rate=u.rate;target.pitch=u.pitch;target.volume=u.volume;target.voice=u.voice;target.lang=u.lang;
      target.onstart=u.onstart;target.onend=u.onend;target.onpause=u.onpause;target.onresume=u.onresume;target.onboundary=u.onboundary;target.onmark=u.onmark;
     }
-    applyVoice(target,activePersona(location.pathname));synth.resume?.();
+    configurePersonaVoice(target,activePersona(location.pathname));synth.resume?.();
    }catch{}
    const priorError=target.onerror||u.onerror;
    target.onerror=(event:any)=>{setNotice('I generated the reply, but your browser could not play the voice smoothly. Check device volume, tap the speaker once, and try again.');priorError?.call(target,event)};
@@ -78,7 +67,7 @@ export default function VoiceSurfaceHardener(){
    const text=(document.querySelector('.work .result')?.textContent||'').trim();
    if(!text||text===lastVAResult.current)return;
    lastVAResult.current=text;voiceTurn.current=false;
-   try{speakTextNaturally(text,{configure:(u)=>applyVoice(u,'Virtual Assistant'),maxChunkChars:240,interChunkDelayMs:55,onError:()=>setNotice('The reply is ready, but spoken playback could not start smoothly on this device.')})}catch{setNotice('The reply is ready, but spoken playback could not start on this device.')}
+   try{speakTextNaturally(text,{configure:(u)=>configurePersonaVoice(u,'Virtual Assistant'),maxChunkChars:220,interChunkDelayMs:60,onError:()=>setNotice('The reply is ready, but spoken playback could not start smoothly on this device.')})}catch{setNotice('The reply is ready, but spoken playback could not start on this device.')}
   });
   observer.observe(document.body,{subtree:true,childList:true,characterData:true});
 

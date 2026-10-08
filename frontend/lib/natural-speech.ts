@@ -21,20 +21,21 @@ export function cleanTextForSpeech(input:string){
     .replace(/[\*_~#\`]/g,'')
     .replace(/[•◦▪◆◇■□►▶]/g,', ')
     .replace(/\|/g,', ')
+    .replace(/\.{3,}/g,'…')
     .replace(/\s*[–—]{2,}\s*/g,'. ')
     .replace(/&/g,' and ')
     .replace(/\s*\n+\s*/g,'. ')
-    .replace(/([.!?])\1+/g,'$1')
-    .replace(/\s+([,.;:!?])/g,'$1')
-    .replace(/([,.;:!?])([^\s])/g,'$1 $2')
+    .replace(/([!?])\1+/g,'$1')
+    .replace(/\s+([,.;:!?…])/g,'$1')
+    .replace(/([,.;:!?…])([^\s])/g,'$1 $2')
     .replace(/\s+/g,' ')
     .trim();
 }
 
-export function splitSpeechText(input:string,maxChars=260){
+export function splitSpeechText(input:string,maxChars=220){
   const text=cleanTextForSpeech(input);
   if(!text)return[];
-  const sentences=text.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map(x=>x.trim()).filter(Boolean)||[text];
+  const sentences=text.match(/[^.!?…]+[.!?…]+|[^.!?…]+$/g)?.map(x=>x.trim()).filter(Boolean)||[text];
   const chunks:string[]=[];
   let current='';
   const push=()=>{if(current.trim())chunks.push(current.trim());current='';};
@@ -78,6 +79,16 @@ type NaturalSpeechOptions={
   interChunkDelayMs?:number;
 };
 
+function humanPauseForChunk(chunk:string,base:number,appleMobile:boolean){
+  const minimum=appleMobile?95:45;
+  const scaled=Math.max(minimum,base);
+  if(/[!?]\s*$/.test(chunk))return Math.max(scaled,appleMobile?170:145);
+  if(/[.…]\s*$/.test(chunk))return Math.max(scaled,appleMobile?150:120);
+  if(/[:;]\s*$/.test(chunk))return Math.max(scaled,appleMobile?125:90);
+  if(/,\s*$/.test(chunk))return Math.max(scaled,appleMobile?110:72);
+  return scaled;
+}
+
 export function stopNaturalSpeech(){
   speechGeneration++;
   if(typeof window!=='undefined'&&'speechSynthesis'in window)window.speechSynthesis.cancel();
@@ -86,8 +97,8 @@ export function stopNaturalSpeech(){
 export function speakTextNaturally(input:string,options:NaturalSpeechOptions={}){
   if(typeof window==='undefined'||!('speechSynthesis'in window))return false;
   const appleMobile=appleMobileSpeechRuntime();
-  const maxChunkChars=appleMobile?Math.min(options.maxChunkChars||260,140):(options.maxChunkChars||260);
-  const interChunkDelayMs=appleMobile?Math.max(options.interChunkDelayMs??45,90):(options.interChunkDelayMs??45);
+  const maxChunkChars=appleMobile?Math.min(options.maxChunkChars||220,125):(options.maxChunkChars||220);
+  const interChunkDelayMs=appleMobile?Math.max(options.interChunkDelayMs??55,95):(options.interChunkDelayMs??55);
   const chunks=splitSpeechText(input,maxChunkChars);
   if(!chunks.length)return false;
 
@@ -103,11 +114,12 @@ export function speakTextNaturally(input:string,options:NaturalSpeechOptions={})
       options.onEnd?.();
       return;
     }
-    const utterance=new SpeechSynthesisUtterance(chunks[index++]);
+    const chunk=chunks[index++];
+    const utterance=new SpeechSynthesisUtterance(chunk);
     options.configure?.(utterance);
     if(appleMobile){
-      utterance.rate=Math.max(.88,Math.min(1,Number(utterance.rate)||.94));
-      utterance.pitch=Math.max(.95,Math.min(1.05,Number(utterance.pitch)||1));
+      utterance.rate=Math.max(.89,Math.min(1.01,Number(utterance.rate)||.94));
+      utterance.pitch=Math.max(.92,Math.min(1.07,Number(utterance.pitch)||1));
     }
     utterance.onstart=()=>{
       if(generation!==speechGeneration)return;
@@ -115,7 +127,7 @@ export function speakTextNaturally(input:string,options:NaturalSpeechOptions={})
     };
     utterance.onend=()=>{
       if(generation!==speechGeneration)return;
-      window.setTimeout(next,interChunkDelayMs);
+      window.setTimeout(next,humanPauseForChunk(chunk,interChunkDelayMs,appleMobile));
     };
     utterance.onerror=(event:any)=>{
       if(generation!==speechGeneration)return;
