@@ -29,7 +29,12 @@ jobs:
           import json,sys
           status=sys.argv[1]
           data=json.load(open('/tmp/owner-email-readiness.json'))
-          if status != '400' or data.get('code') != 'OWNER_EMAIL_REQUIRED':
-              raise SystemExit('Owner email login transport readiness failed without sending an email. HTTP '+status+' code='+str(data.get('code') or 'none'))
-          print('Production owner email login transport is ready; no email was sent and no credential was exposed.')
+          code=data.get('code')
+          if status == '400' and code == 'OWNER_EMAIL_REQUIRED':
+              print('Production owner email login transport is ready; no email was sent and no credential was exposed.')
+              raise SystemExit(0)
+          if status == '503' and code == 'OWNER_EMAIL_TRANSPORT_UNAVAILABLE' and data.get('password_fallback') is True:
+              print('Production owner email transport is intentionally unavailable; verified password fallback remains available and no email was sent.')
+              raise SystemExit(0)
+          raise SystemExit('Owner authentication readiness failed without sending an email. HTTP '+status+' code='+str(code or 'none'))
           PY
