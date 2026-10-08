@@ -1,8 +1,9 @@
-import {sendGrowthEmail} from './growth-email-transport.js';
+import {hasGrowthEmailSender,sendGrowthEmail} from './growth-email-transport.js';
 
 const clean=value=>String(value??'').trim();
 const validEmail=value=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean(value));
 const now=()=>Math.floor(Date.now()/1000);
+const enabled=value=>['1','true','yes','on'].includes(clean(value).toLowerCase());
 
 async function sha256Hex(value){
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value||'')));
@@ -36,13 +37,13 @@ async function audit(env,id,message,status,provider='',error=''){
   }
 }
 
-function mailerFor(env){
-  const binding=env?.MAGNANIMOUS_EMAIL;
-  if(!binding||typeof binding.send!=='function')return null;
+function mailerFor(env,{cloudflareReady=false,connectedReady=false}={}){
+  const binding=cloudflareReady&&env?.MAGNANIMOUS_EMAIL&&typeof env.MAGNANIMOUS_EMAIL.send==='function'?env.MAGNANIMOUS_EMAIL:null;
+  if(!binding&&!connectedReady)return null;
   const fromAddress=clean(env.MAGNANIMOUS_MAIL_FROM||'Godmattersinc@iammagnanimousway.com');
   const fromName=clean(env.MAGNANIMOUS_MAIL_FROM_NAME||'I AM MAGNANIMOUS WAY');
   return{
-    provider:'cloudflare-email-service',
+    provider:binding?'cloudflare-email-service':'connected-email-https',
     configured:validEmail(fromAddress),
     async send(message={}){
       const to=clean(message.to),subject=clean(message.subject).replace(/[\r\n]+/g,' ');
@@ -53,26 +54,32 @@ function mailerFor(env){
       if(env?.DB){
         try{
           const prior=await env.DB.prepare('SELECT status,provider FROM magnanimous_mail_outbox WHERE id=?').bind(id).first();
-          if(prior?.status==='sent')return{ok:true,provider:prior.provider||'cloudflare-email-service',receipt:id,deduplicated:true};
+          if(prior?.status==='sent')return{ok:true,provider:prior.provider||'magnanimous-mail',receipt:id,deduplicated:true};
         }catch(_){}
       }
-      try{
-        const payload={
-          to,
-          from:fromName?{email:fromAddress,name:fromName}:fromAddress,
-          subject,
-          text:String(message.text||''),
-          html:String(message.html||'')
-        };
-        if(validEmail(message.replyTo))payload.replyTo=clean(message.replyTo);
-        const result=await binding.send(payload);
-        const receipt=clean(result?.messageId||id);
-        await audit(env,id,{...message,to,subject},'sent','cloudflare-email-service','');
-        return{ok:true,provider:'cloudflare-email-service',receipt};
-      }catch(error){
-        const code=clean(error?.code||'CLOUDFLARE_EMAIL_DELIVERY_FAILED');
-        const detail=clean(error?.message||error||'Email delivery failed.');
-        await audit(env,id,{...message,to,subject},'failed','cloudflare-email-service',`${code}: ${detail}`);
+
+      let cloudflareFailure=null;
+      if(binding){
+        try{
+          const payload={
+            to,
+            from:fromName?{email:fromAddress,name:fromName}:fromAddress,
+            subject,
+            text:String(message.text||''),
+            html:String(message.html||'')
+          };
+          if(validEmail(message.replyTo))payload.replyTo=clean(message.replyTo);
+          const result=await binding.send(payload);
+          const receipt=clean(result?.messageId||id);
+          await audit(env,id,{...message,to,subject},'sent','cloudflare-email-service','');
+          return{ok:true,provider:'cloudflare-email-service',receipt};
+        }catch(error){
+          cloudflareFailure={code:clean(error?.code||'CLOUDFLARE_EMAIL_DELIVERY_FAILED'),error:clean(error?.message||error||'Email delivery failed.')};
+          await audit(env,id,{...message,to,subject},'failed','cloudflare-email-service',`${cloudflareFailure.code}: ${cloudflareFailure.error}`);
+        }
+      }
+
+      if(connectedReady){
         try{
           const fallback=await sendGrowthEmail(env,{
             scopeTenantId:'__platform__',to,subject,text:String(message.text||''),
@@ -80,28 +87,33 @@ function mailerFor(env){
           });
           if(fallback?.ok){
             await audit(env,id,{...message,to,subject},'sent','connected-email-https','');
-            return{ok:true,provider:'connected-email-https',receipt:clean(fallback.receipt||id),fallback_from:'cloudflare-email-service'};
+            return{ok:true,provider:'connected-email-https',receipt:clean(fallback.receipt||id),fallback_from:binding?'cloudflare-email-service':''};
           }
-          const fallbackCode=clean(fallback?.code||'CONNECTED_EMAIL_DELIVERY_FAILED');
-          const fallbackError=clean(fallback?.error||'Connected email delivery failed.');
-          await audit(env,id,{...message,to,subject},'failed','cloudflare-email-service+connected-email',`${code}: ${detail}; ${fallbackCode}: ${fallbackError}`);
-        }catch(fallbackError){
-          await audit(env,id,{...message,to,subject},'failed','cloudflare-email-service+connected-email',`${code}: ${detail}; CONNECTED_EMAIL_EXCEPTION: ${clean(fallbackError?.message||fallbackError)}`);
+          const code=clean(fallback?.code||'CONNECTED_EMAIL_DELIVERY_FAILED');
+          const error=clean(fallback?.error||'Connected email delivery failed.');
+          await audit(env,id,{...message,to,subject},'failed','connected-email-https',`${code}: ${error}`);
+          return{ok:false,code,error};
+        }catch(error){
+          const detail=clean(error?.message||error||'Connected email delivery failed.');
+          await audit(env,id,{...message,to,subject},'failed','connected-email-https',detail);
+          return{ok:false,code:'CONNECTED_EMAIL_EXCEPTION',error:detail};
         }
-        return{ok:false,code,error:detail};
       }
+
+      return cloudflareFailure?{ok:false,...cloudflareFailure}:{ok:false,code:'MAGNANIMOUS_MAIL_NOT_CONFIGURED',error:'No free connected email sender is available.'};
     }
   };
 }
 
-export function withCloudflareNativeMail(env){
+export async function withCloudflareNativeMail(env){
   if(!env||env.MAGNANIMOUS_MAIL)return env;
-  const mailer=mailerFor(env);
-  if(!mailer)return env;
+  const cloudflareReady=enabled(env.MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE)&&Boolean(env?.MAGNANIMOUS_EMAIL&&typeof env.MAGNANIMOUS_EMAIL.send==='function');
+  const connectedReady=await hasGrowthEmailSender(env,'__platform__').catch(()=>false);
+  const mailer=mailerFor(env,{cloudflareReady,connectedReady});
+  if(!mailer)return{...env,MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE:'false'};
   return{
     ...env,
     MAGNANIMOUS_MAIL:mailer,
-    // A binding alone is not evidence of deliverability; require explicit host readiness.
-    MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE: String(env.MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE||'').trim().toLowerCase()==='true'?'true':'false'
+    MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE:'true'
   };
 }

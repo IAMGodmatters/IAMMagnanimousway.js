@@ -64,6 +64,10 @@ async function reconcileConfiguredOwnerDeveloper(env){
     const user=await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? ORDER BY active DESC,created_at ASC LIMIT 1').bind(configured).first().catch(()=>null);
     if(user)return bindCanonicalOwnerDeveloper(env,user);
   }
+  const candidates=await env.DB.prepare('SELECT * FROM users WHERE active=1 ORDER BY created_at ASC').all().catch(()=>({results:[]}));
+  for(const candidate of candidates?.results||[]){
+    if(await matchesOwnerDeveloperEmail(candidate.email,env))return bindCanonicalOwnerDeveloper(env,candidate);
+  }
   const reserved=await env.DB.prepare("SELECT owner_user_id FROM tenants WHERE slug='owner' LIMIT 1").first().catch(()=>null);
   if(!reserved?.owner_user_id)return null;
   const owner=await env.DB.prepare('SELECT * FROM users WHERE id=? LIMIT 1').bind(reserved.owner_user_id).first().catch(()=>null);
@@ -217,13 +221,11 @@ async function login(request, env) {
 
 async function totpStatus(request,env){
   const user=await auth(request,env);if(!user)return json({detail:'Not authenticated.'},401);
-  if(await globalPlatformOwner(env,user))return json({ok:true,available:false,enabled:false,detail:'Platform owner authentication is managed separately.'});
   const row=await activeTotp(env,user);
   return json({ok:true,available:true,enabled:Number(row?.enabled||0)===1,verified_at:Number(row?.verified_at||0)});
 }
 async function totpEnroll(request,env){
   const user=await auth(request,env);if(!user)return json({detail:'Not authenticated.'},401);
-  if(await globalPlatformOwner(env,user))return json({detail:'Platform owner authentication is managed separately.',code:'OWNER_AUTH_SEPARATE'},403);
   const secret=generateTotpSecret(),ciphertext=await encryptTotpSecret(secret,env),t=now();
   await env.DB.prepare(`INSERT INTO user_totp(user_id,tenant_id,secret_ciphertext,enabled,created_at,verified_at,last_counter)
     VALUES(?,?,?,0,?,0,-1)
@@ -241,7 +243,6 @@ async function totpEnroll(request,env){
 }
 async function totpConfirm(request,env){
   const user=await auth(request,env);if(!user)return json({detail:'Not authenticated.'},401);
-  if(await globalPlatformOwner(env,user))return json({detail:'Platform owner authentication is managed separately.',code:'OWNER_AUTH_SEPARATE'},403);
   const body=await request.json().catch(()=>({})),code=String(body.code||'');
   const row=await env.DB.prepare('SELECT secret_ciphertext,enabled,last_counter FROM user_totp WHERE user_id=? AND tenant_id=? LIMIT 1').bind(user.id,user.tenant_id).first();
   if(!row?.secret_ciphertext)return json({detail:'Start authenticator setup first.',code:'TOTP_ENROLLMENT_REQUIRED'},400);
@@ -265,7 +266,6 @@ async function totpConfirm(request,env){
 }
 async function totpDisable(request,env){
   const user=await auth(request,env);if(!user)return json({detail:'Not authenticated.'},401);
-  if(await globalPlatformOwner(env,user))return json({detail:'Platform owner authentication is managed separately.',code:'OWNER_AUTH_SEPARATE'},403);
   const body=await request.json().catch(()=>({})),password=String(body.password||''),code=String(body.code||'');
   if(!password||!code)return json({detail:'Your current password and authenticator code are required to disable 2FA.'},400);
   const full=await env.DB.prepare('SELECT * FROM users WHERE id=? AND tenant_id=? AND active=1 LIMIT 1').bind(user.id,user.tenant_id).first();

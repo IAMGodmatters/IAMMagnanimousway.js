@@ -232,7 +232,7 @@ async function hideServerOnlyCredentialMetadata(request,response){
 
 export default {
   async fetch(request, env, ctx) {
-    env=withCloudflareNativeMail(env);
+    env=await withCloudflareNativeMail(env);
     const canonicalOrLegacy=canonicalOrLegacyResponse(request);
     if(canonicalOrLegacy)return finalizeResponse(request,canonicalOrLegacy);
     const outerUrl=new URL(request.url);
