@@ -40,7 +40,21 @@ SAFE_PROJECT_SCRIPTS = {
 BASE_CAPS = {
     "system_info","health","workspace_list","read_file","search_text",
     "git_status","git_diff","git_log","web_fetch",
-    "apply_patch","git_create_branch","git_commit",
+    "apply_patch","git_create_branch","git_commit","desktop_tools_status",
+}
+APPROVED_DESKTOP_TOOLS = {
+    "7zip": ["7z", "7z.exe"],
+    "ffmpeg": ["ffmpeg", "ffmpeg.exe"],
+    "ffprobe": ["ffprobe", "ffprobe.exe"],
+    "obs": ["obs64", "obs64.exe", "obs"],
+    "blender": ["blender", "blender.exe"],
+    "imagemagick": ["magick", "magick.exe"],
+    "audacity": ["audacity", "audacity.exe"],
+    "handbrake": ["HandBrakeCLI", "HandBrakeCLI.exe"],
+    "krita": ["krita", "krita.exe"],
+    "scrcpy": ["scrcpy", "scrcpy.exe"],
+    "vlc": ["vlc", "vlc.exe"],
+    "gimp": ["gimp", "gimp.exe"],
 }
 
 
@@ -149,6 +163,61 @@ def _run(argv, *, cwd=None, timeout=180, input_text=None):
     stdout = (result.stdout or "")[-MAX_OUTPUT:]
     stderr = (result.stderr or "")[-MAX_OUTPUT:]
     return {"code": result.returncode, "stdout": stdout, "stderr": stderr}
+
+
+def _approved_tool_stage_dirs():
+    candidates = []
+    configured = str(os.environ.get("MAGNANIMOUS_APPROVED_TOOL_STAGE") or "").strip()
+    if configured:
+        candidates.append(Path(configured).expanduser())
+    if os.name == "nt":
+        candidates.append(Path("D:/MagnanimousData/PlatformIntake/OfficialTools"))
+    candidates.append(APP_DIR / "approved-tools")
+    output = []
+    for item in candidates:
+        try:
+            resolved = item.resolve()
+        except Exception:
+            continue
+        if resolved not in output:
+            output.append(resolved)
+    return output
+
+
+def _approved_desktop_tool_inventory():
+    tools = []
+    for name, commands in APPROVED_DESKTOP_TOOLS.items():
+        path = None
+        for command in commands:
+            found = shutil.which(command)
+            if found:
+                path = str(Path(found).resolve())
+                break
+        tools.append({"id": name, "installed": bool(path), "path": path or ""})
+    staged = []
+    for root in _approved_tool_stage_dirs():
+        if not root.is_dir():
+            continue
+        try:
+            for item in sorted(root.iterdir(), key=lambda x: x.name.lower()):
+                if item.is_file():
+                    staged.append({"name": item.name, "bytes": item.stat().st_size, "root": str(root)})
+        except OSError:
+            continue
+    return tools, staged
+
+
+def action_desktop_tools_status(config, payload):
+    tools, staged = _approved_desktop_tool_inventory()
+    return {
+        "ok": True,
+        "policy": "approved-or-open-source-tools-only; shared cracked/modded/unknown archives are never executed",
+        "installed": tools,
+        "staged_installers": staged[:100],
+        "staged_count": len(staged),
+        "credentials_local_only": True,
+        "read_only": True,
+    }
 
 
 def _git(workspace, *args, timeout=120):
@@ -1443,6 +1512,7 @@ HANDLERS = {
     "workspace_list": action_workspace_list,
     "read_file": action_read_file,
     "search_text": action_search_text,
+    "desktop_tools_status": action_desktop_tools_status,
     "storage_status": action_storage_status,
     "storage_remotes": action_storage_remotes,
     "storage_about": action_storage_about,
