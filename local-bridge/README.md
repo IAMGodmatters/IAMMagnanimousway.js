@@ -119,3 +119,11 @@ powershell -ExecutionPolicy Bypass -File .\local-bridge\uninstall.ps1
 ```
 
 The uninstaller removes only Magnanimous Local Bridge files and the scheduled task. It does not delete a non-empty workspace.
+
+## Magnanimous Cloud Fabric (rclone-compatible)
+
+The Local Bridge can use an installed rclone-compatible engine as replaceable infrastructure beneath Magnanimous AI. Magnanimous remains the identity, policy, orchestration, audit, and verification layer. Cloud credentials and OAuth tokens remain local to the owner's bridge and are never returned through capability results.
+
+Safe read capabilities include remote discovery, quota/about, bounded listing, size, and integrity checks. Copy, mkdir, sync, move, two-way sync, and public-link creation remain confirmation-gated because they mutate external storage or sharing state. Remote references are limited to locally configured remotes; arbitrary backend definitions, credentials, raw command flags, and URLs are rejected.
+
+The optional rclone engine is open-source software licensed under the MIT License (upstream: `rclone/rclone`). Magnanimous does not claim ownership of rclone; it can be replaced by another compatible storage engine without changing Magnanimous identity or memory.
