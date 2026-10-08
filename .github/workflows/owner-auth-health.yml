@@ -1,0 +1,73 @@
+name: Owner Auth Health
+
+on:
+  push:
+    paths:
+      - '.github/workflows/owner-auth-health.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm ci --no-audit --no-fund
+      - name: Inspect owner authentication state without exposing credentials
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sql="WITH owner AS (
+            SELECT u.id,u.tenant_id,u.email,u.role,u.active
+            FROM users u JOIN tenants t ON t.owner_user_id=u.id
+            WHERE t.slug='owner' LIMIT 1
+          )
+          SELECT
+            CASE WHEN lower(email)='hardinlourijess@gmail.com' THEN 1 ELSE 0 END AS canonical_email_match,
+            CASE WHEN lower(role)='owner' THEN 1 ELSE 0 END AS owner_role,
+            CASE WHEN active=1 THEN 1 ELSE 0 END AS active,
+            (SELECT COUNT(*) FROM integrations i WHERE i.tenant_id=owner.tenant_id AND i.provider='google') AS google_integrations,
+            (SELECT COUNT(*) FROM integrations i WHERE i.tenant_id=owner.tenant_id AND i.provider='outlook') AS outlook_integrations,
+            (SELECT COUNT(*) FROM integrations i WHERE i.tenant_id=owner.tenant_id AND i.provider IN ('google','outlook') AND length(coalesce(i.access_token,''))>0) AS email_integrations_with_access_token,
+            (SELECT COUNT(*) FROM integrations i WHERE i.tenant_id=owner.tenant_id AND i.provider IN ('google','outlook') AND length(coalesce(i.refresh_token,''))>0) AS email_integrations_with_refresh_token,
+            (SELECT COUNT(*) FROM platform_credentials p WHERE p.credential_key='GOOGLE_CLIENT_ID' AND length(coalesce(p.encrypted_value,''))>0) AS google_client_id_present,
+            (SELECT COUNT(*) FROM platform_credentials p WHERE p.credential_key='GOOGLE_CLIENT_SECRET' AND length(coalesce(p.encrypted_value,''))>0) AS google_client_secret_present,
+            (SELECT COUNT(*) FROM user_totp x WHERE x.user_id=owner.id AND x.tenant_id=owner.tenant_id AND x.enabled=1) AS totp_enabled,
+            (SELECT COUNT(*) FROM user_totp x WHERE x.user_id=owner.id AND x.tenant_id=owner.tenant_id AND x.enabled=1 AND coalesce(x.verified_at,0)>0) AS totp_verified,
+            (SELECT COUNT(*) FROM user_recovery_contacts r WHERE r.user_id=owner.id AND r.tenant_id=owner.tenant_id AND coalesce(r.recovery_email_verified_at,0)>0) AS recovery_email_verified,
+            (SELECT COUNT(*) FROM user_recovery_codes c WHERE c.user_id=owner.id AND c.tenant_id=owner.tenant_id AND c.used_at IS NULL) AS unused_recovery_codes
+          FROM owner;"
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command "$sql" > /tmp/owner-auth.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/owner-auth.json'))
+          rows=[]
+          def walk(x):
+              if isinstance(x,dict):
+                  if 'canonical_email_match' in x: rows.append(x)
+                  for v in x.values(): walk(v)
+              elif isinstance(x,list):
+                  for v in x: walk(v)
+          walk(d)
+          if not rows:
+              raise SystemExit('Owner auth state row unavailable.')
+          r=rows[-1]
+          for key in ('canonical_email_match','owner_role','active','google_integrations','outlook_integrations','email_integrations_with_access_token','email_integrations_with_refresh_token','google_client_id_present','google_client_secret_present','totp_enabled','totp_verified','recovery_email_verified','unused_recovery_codes'):
+              print(f'{key}={r.get(key,0)}')
+          if not (r.get('canonical_email_match')==1 and r.get('owner_role')==1 and r.get('active')==1):
+              raise SystemExit('Canonical owner identity binding is not healthy.')
+          PY
