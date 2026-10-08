@@ -24,71 +24,21 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-
+          import base64
+          b64=lambda value: base64.b64decode(value).decode()
           deploy_path=Path('.github/workflows/deploy.yml')
           deploy=deploy_path.read_text()
-          old='''          if [ "$edge_bridge_status" != "200" ]; then echo "Private Edge AI bridge returned HTTP $edge_bridge_status"; cat /tmp/edge-ai-bridge.json || true; exit 1; fi
-          python - <<'PY'\''
-          import json
-          data=json.load(open('/tmp/edge-ai-bridge.json'))
-          assert data.get('ok') is True, data
-          assert data.get('bridge_version') == '2026-10-08.1', data
-          assert str(data.get('response') or '').strip(), data
-          print('Private Edge AI bridge live inference passed at version 2026-10-08.1.')
-          PY
-'''
-          new='''          if [ "$edge_bridge_status" != "200" ]; then
-            if python - "$edge_bridge_status" <<'PY'\''
-          import json,sys
-          status=sys.argv[1]
-          try:
-              data=json.load(open('/tmp/edge-ai-bridge.json'))
-          except Exception as exc:
-              print(f'Non-200 Edge AI response was not valid JSON: {exc}')
-              raise SystemExit(1)
-          errors=data.get('errors') or []
-          def exact_free_quota(error):
-              text=(str(error.get('error') or '') if isinstance(error,dict) else str(error))
-              return '4006' in text and 'daily free allocation of 10,000 neurons' in text.lower()
-          quota_only=(status in ('429','502','503') and data.get('bridge_version') == '2026-10-08.1' and bool(errors) and all(exact_free_quota(error) for error in errors))
-          if not quota_only:
-              raise SystemExit(1)
-          print('::warning::Private Edge AI inference verification deferred: Cloudflare Workers AI free daily quota is exhausted. Bridge endpoint/version/auth boundary are live; inference itself is NOT marked passed.')
-          PY
-            then
-              echo "EDGE_AI_INFERENCE_SMOKE_DEFERRED=1" >> "$GITHUB_ENV"
-            else
-              echo "Private Edge AI bridge returned non-quota HTTP $edge_bridge_status"
-              cat /tmp/edge-ai-bridge.json || true
-              exit 1
-            fi
-          else
-            python - <<'PY'\''
-          import json
-          data=json.load(open('/tmp/edge-ai-bridge.json'))
-          assert data.get('ok') is True, data
-          assert data.get('bridge_version') == '2026-10-08.1', data
-          assert str(data.get('response') or '').strip(), data
-          print('Private Edge AI bridge live inference passed at version 2026-10-08.1.')
-          PY
-          fi
-'''
-          if old not in deploy:
-              raise SystemExit('Expected Edge AI smoke block not found exactly; refusing broad rewrite.')
+          old=b64('ICAgICAgICAgIGlmIFsgIiRlZGdlX2JyaWRnZV9zdGF0dXMiICE9ICIyMDAiIF07IHRoZW4gZWNobyAiUHJpdmF0ZSBFZGdlIEFJIGJyaWRnZSByZXR1cm5lZCBIVFRQICRlZGdlX2JyaWRnZV9zdGF0dXMiOyBjYXQgL3RtcC9lZGdlLWFpLWJyaWRnZS5qc29uIHx8IHRydWU7IGV4aXQgMTsgZmkKICAgICAgICAgIHB5dGhvbiAtIDw8J1BZJwogICAgICAgICAgaW1wb3J0IGpzb24KICAgICAgICAgIGRhdGE9anNvbi5sb2FkKG9wZW4oJy90bXAvZWRnZS1haS1icmlkZ2UuanNvbicpKQogICAgICAgICAgYXNzZXJ0IGRhdGEuZ2V0KCdvaycpIGlzIFRydWUsIGRhdGEKICAgICAgICAgIGFzc2VydCBkYXRhLmdldCgnYnJpZGdlX3ZlcnNpb24nKSA9PSAnMjAyNi0xMC0wOC4xJywgZGF0YQogICAgICAgICAgYXNzZXJ0IHN0cihkYXRhLmdldCgncmVzcG9uc2UnKSBvciAnJykuc3RyaXAoKSwgZGF0YQogICAgICAgICAgcHJpbnQoJ1ByaXZhdGUgRWRnZSBBSSBicmlkZ2UgbGl2ZSBpbmZlcmVuY2UgcGFzc2VkIGF0IHZlcnNpb24gMjAyNi0xMC0wOC4xLicpCiAgICAgICAgICBQWQo=')
+          new=b64('ICAgICAgICAgIGlmIFsgIiRlZGdlX2JyaWRnZV9zdGF0dXMiICE9ICIyMDAiIF07IHRoZW4KICAgICAgICAgICAgaWYgcHl0aG9uIC0gIiRlZGdlX2JyaWRnZV9zdGF0dXMiIDw8J1BZJwogICAgICAgICAgaW1wb3J0IGpzb24sc3lzCiAgICAgICAgICBzdGF0dXM9c3lzLmFyZ3ZbMV0KICAgICAgICAgIHRyeToKICAgICAgICAgICAgICBkYXRhPWpzb24ubG9hZChvcGVuKCcvdG1wL2VkZ2UtYWktYnJpZGdlLmpzb24nKSkKICAgICAgICAgIGV4Y2VwdCBFeGNlcHRpb24gYXMgZXhjOgogICAgICAgICAgICAgIHByaW50KGYnTm9uLTIwMCBFZGdlIEFJIHJlc3BvbnNlIHdhcyBub3QgdmFsaWQgSlNPTjoge2V4Y30nKQogICAgICAgICAgICAgIHJhaXNlIFN5c3RlbUV4aXQoMSkKICAgICAgICAgIGVycm9ycz1kYXRhLmdldCgnZXJyb3JzJykgb3IgW10KICAgICAgICAgIGRlZiBleGFjdF9mcmVlX3F1b3RhKGVycm9yKToKICAgICAgICAgICAgICB0ZXh0PShzdHIoZXJyb3IuZ2V0KCdlcnJvcicpIG9yICcnKSBpZiBpc2luc3RhbmNlKGVycm9yLGRpY3QpIGVsc2Ugc3RyKGVycm9yKSkKICAgICAgICAgICAgICByZXR1cm4gJzQwMDYnIGluIHRleHQgYW5kICdkYWlseSBmcmVlIGFsbG9jYXRpb24gb2YgMTAsMDAwIG5ldXJvbnMnIGluIHRleHQubG93ZXIoKQogICAgICAgICAgcXVvdGFfb25seT0oc3RhdHVzIGluICgnNDI5JywnNTAyJywnNTAzJykgYW5kIGRhdGEuZ2V0KCdicmlkZ2VfdmVyc2lvbicpID09ICcyMDI2LTEwLTA4LjEnIGFuZCBib29sKGVycm9ycykgYW5kIGFsbChleGFjdF9mcmVlX3F1b3RhKGVycm9yKSBmb3IgZXJyb3IgaW4gZXJyb3JzKSkKICAgICAgICAgIGlmIG5vdCBxdW90YV9vbmx5OgogICAgICAgICAgICAgIHJhaXNlIFN5c3RlbUV4aXQoMSkKICAgICAgICAgIHByaW50KCc6Ondhcm5pbmc6OlByaXZhdGUgRWRnZSBBSSBpbmZlcmVuY2UgdmVyaWZpY2F0aW9uIGRlZmVycmVkOiBDbG91ZGZsYXJlIFdvcmtlcnMgQUkgZnJlZSBkYWlseSBxdW90YSBpcyBleGhhdXN0ZWQuIEJyaWRnZSBlbmRwb2ludC92ZXJzaW9uL2F1dGggYm91bmRhcnkgYXJlIGxpdmU7IGluZmVyZW5jZSBpdHNlbGYgaXMgTk9UIG1hcmtlZCBwYXNzZWQuJykKICAgICAgICAgIFBZCiAgICAgICAgICAgIHRoZW4KICAgICAgICAgICAgICBlY2hvICJFREdFX0FJX0lORkVSRU5DRV9TTU9LRV9ERUZFUlJFRD0xIiA+PiAiJEdJVEhVQl9FTlYiCiAgICAgICAgICAgIGVsc2UKICAgICAgICAgICAgICBlY2hvICJQcml2YXRlIEVkZ2UgQUkgYnJpZGdlIHJldHVybmVkIG5vbi1xdW90YSBIVFRQICRlZGdlX2JyaWRnZV9zdGF0dXMiCiAgICAgICAgICAgICAgY2F0IC90bXAvZWRnZS1haS1icmlkZ2UuanNvbiB8fCB0cnVlCiAgICAgICAgICAgICAgZXhpdCAxCiAgICAgICAgICAgIGZpCiAgICAgICAgICBlbHNlCiAgICAgICAgICAgIHB5dGhvbiAtIDw8J1BZJwogICAgICAgICAgaW1wb3J0IGpzb24KICAgICAgICAgIGRhdGE9anNvbi5sb2FkKG9wZW4oJy90bXAvZWRnZS1haS1icmlkZ2UuanNvbicpKQogICAgICAgICAgYXNzZXJ0IGRhdGEuZ2V0KCdvaycpIGlzIFRydWUsIGRhdGEKICAgICAgICAgIGFzc2VydCBkYXRhLmdldCgnYnJpZGdlX3ZlcnNpb24nKSA9PSAnMjAyNi0xMC0wOC4xJywgZGF0YQogICAgICAgICAgYXNzZXJ0IHN0cihkYXRhLmdldCgncmVzcG9uc2UnKSBvciAnJykuc3RyaXAoKSwgZGF0YQogICAgICAgICAgcHJpbnQoJ1ByaXZhdGUgRWRnZSBBSSBicmlkZ2UgbGl2ZSBpbmZlcmVuY2UgcGFzc2VkIGF0IHZlcnNpb24gMjAyNi0xMC0wOC4xLicpCiAgICAgICAgICBQWQogICAgICAgICAgZmkK')
           if deploy.count(old)!=1:
-              raise SystemExit(f'Expected exactly one Edge AI smoke block, found {deploy.count(old)}.')
-          deploy=deploy.replace(old,new,1)
-          deploy_path.write_text(deploy)
-
+              raise SystemExit(f'Expected exactly one Edge AI smoke block, found {deploy.count(old)}; refusing broad rewrite.')
+          deploy_path.write_text(deploy.replace(old,new,1))
           lock_path=Path('qa/scripts/d1-quota-resilience-lock.mjs')
           lock=lock_path.read_text()
-          old_lock="add('production smoke proves private edge AI live inference',deploy.includes('Private Edge AI bridge live inference passed')&&deploy.includes(\"bridge_version') == '2026-09-25.2'\")&&deploy.includes('/api/internal/edge-ai/run'));"
-          new_lock="""add('production smoke proves private edge AI live inference when free capacity exists',deploy.includes('Private Edge AI bridge live inference passed at version 2026-10-08.1.')&&deploy.includes(\"bridge_version') == '2026-10-08.1'\")&&deploy.includes('/api/internal/edge-ai/run'));
-add('production smoke defers only exact Cloudflare Workers AI free quota without claiming inference passed',deploy.includes(\"status in ('429','502','503')\")&&deploy.includes(\"'4006' in text\")&&deploy.includes(\"'daily free allocation of 10,000 neurons' in text.lower()\")&&deploy.includes('inference itself is NOT marked passed.'));"""
-          if old_lock not in lock:
-              raise SystemExit('Expected Edge AI quota lock assertion not found exactly; refusing broad rewrite.')
+          old_lock=b64('YWRkKCdwcm9kdWN0aW9uIHNtb2tlIHByb3ZlcyBwcml2YXRlIGVkZ2UgQUkgbGl2ZSBpbmZlcmVuY2UnLGRlcGxveS5pbmNsdWRlcygnUHJpdmF0ZSBFZGdlIEFJIGJyaWRnZSBsaXZlIGluZmVyZW5jZSBwYXNzZWQnKSYmZGVwbG95LmluY2x1ZGVzKCJicmlkZ2VfdmVyc2lvbicpID09ICcyMDI2LTA5LTI1LjInIikmJmRlcGxveS5pbmNsdWRlcygnL2FwaS9pbnRlcm5hbC9lZGdlLWFpL3J1bicpKTs=')
+          new_lock=b64('YWRkKCdwcm9kdWN0aW9uIHNtb2tlIHByb3ZlcyBwcml2YXRlIGVkZ2UgQUkgbGl2ZSBpbmZlcmVuY2Ugd2hlbiBmcmVlIGNhcGFjaXR5IGV4aXN0cycsZGVwbG95LmluY2x1ZGVzKCdQcml2YXRlIEVkZ2UgQUkgYnJpZGdlIGxpdmUgaW5mZXJlbmNlIHBhc3NlZCBhdCB2ZXJzaW9uIDIwMjYtMTAtMDguMS4nKSYmZGVwbG95LmluY2x1ZGVzKCJicmlkZ2VfdmVyc2lvbicpID09ICcyMDI2LTEwLTA4LjEnIikmJmRlcGxveS5pbmNsdWRlcygnL2FwaS9pbnRlcm5hbC9lZGdlLWFpL3J1bicpKTsKYWRkKCdwcm9kdWN0aW9uIHNtb2tlIGRlZmVycyBvbmx5IGV4YWN0IENsb3VkZmxhcmUgV29ya2VycyBBSSBmcmVlIHF1b3RhIHdpdGhvdXQgY2xhaW1pbmcgaW5mZXJlbmNlIHBhc3NlZCcsZGVwbG95LmluY2x1ZGVzKCJzdGF0dXMgaW4gKCc0MjknLCc1MDInLCc1MDMnKSIpJiZkZXBsb3kuaW5jbHVkZXMoIic0MDA2JyBpbiB0ZXh0IikmJmRlcGxveS5pbmNsdWRlcygiJ2RhaWx5IGZyZWUgYWxsb2NhdGlvbiBvZiAxMCwwMDAgbmV1cm9ucycgaW4gdGV4dC5sb3dlcigpIikmJmRlcGxveS5pbmNsdWRlcygnaW5mZXJlbmNlIGl0c2VsZiBpcyBOT1QgbWFya2VkIHBhc3NlZC4nKSk7')
           if lock.count(old_lock)!=1:
-              raise SystemExit(f'Expected exactly one Edge AI quota lock assertion, found {lock.count(old_lock)}.')
+              raise SystemExit(f'Expected exactly one Edge AI lock assertion, found {lock.count(old_lock)}; refusing broad rewrite.')
           lock_path.write_text(lock.replace(old_lock,new_lock,1))
           PY
 
