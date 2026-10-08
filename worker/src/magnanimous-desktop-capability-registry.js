@@ -33,6 +33,17 @@ export const MAGNANIMOUS_DESKTOP_INTAKE_RESEARCH=Object.freeze({
   ])
 });
 
+export const MAGNANIMOUS_DESKTOP_RUNTIME_ACTIONS=Object.freeze([
+  ['desktop_tools_status','operations-hub','Read approved local-tool availability and staged official packages'],
+  ['media_probe','media-engine','Read codec, duration, dimensions and app-playback compatibility metadata'],
+  ['media_catalog','media-engine','Build a bounded metadata catalog for local video/audio libraries'],
+  ['media_transcode_mp4','media-engine','Create a non-overwriting H.264/AAC MP4 copy for browser/app playback while preserving the source'],
+  ['media_thumbnail','media-engine','Create a bounded JPG/PNG thumbnail while preserving the source'],
+  ['archive_list','archive-engine','Inspect archive contents without extracting or executing them'],
+  ['archive_test','archive-engine','Verify archive integrity without extracting or executing it'],
+  ['android_device_status','device-engine','Detect owner-authorized Android bridge readiness without exposing device serials']
+]);
+
 const OWNED=Object.freeze([
   'intent-understanding','planning','policy','memory','workflow-orchestration','tool-selection',
   'rights-and-license-policy','result-normalization','verification','failure-recovery','outcome-learning'
@@ -136,6 +147,9 @@ export function getDesktopCapabilityAbsorptionSummary(){
     capability_contracts:rows.length,
     native_targets:new Set(rows.map(x=>x.native_target)).size,
     official_tool_targets:MAGNANIMOUS_DESKTOP_INTAKE_RESEARCH.official_tool_targets.length,
+    local_runtime_actions:MAGNANIMOUS_DESKTOP_RUNTIME_ACTIONS.length,
+    local_runtime_action_ids:MAGNANIMOUS_DESKTOP_RUNTIME_ACTIONS.map(x=>x[0]),
+    local_runtime_policy:'non-destructive-source-preserving-actions-first',
     shared_archive_runtime_required:false,
     cracked_or_modded_binary_reused:false,
     license_bypass_allowed:false,

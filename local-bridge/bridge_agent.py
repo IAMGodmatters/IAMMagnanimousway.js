@@ -220,6 +220,190 @@ def action_desktop_tools_status(config, payload):
     }
 
 
+MEDIA_EXTENSIONS = {".mp4", ".mkv", ".avi", ".mov", ".webm", ".m4v", ".mpg", ".mpeg", ".ts", ".m2ts", ".mp3", ".m4a", ".aac", ".wav", ".flac", ".ogg"}
+ARCHIVE_EXTENSIONS = {".7z", ".zip", ".rar", ".tar", ".gz", ".bz2", ".xz", ".iso"}
+
+
+def _approved_tool_path(tool_id):
+    commands = APPROVED_DESKTOP_TOOLS.get(tool_id) or []
+    for command in commands:
+        found = shutil.which(command)
+        if found:
+            return Path(found).resolve()
+    if os.name == "nt":
+        roots = {
+            "7zip": [Path("D:/Tools/Magnanimous/7zip/Files/7-Zip/7z.exe")],
+            "ffmpeg": list(Path("D:/Tools/Magnanimous/ffmpeg").glob("**/bin/ffmpeg.exe")),
+            "ffprobe": list(Path("D:/Tools/Magnanimous/ffmpeg").glob("**/bin/ffprobe.exe")),
+            "scrcpy": list(Path("D:/Tools/Magnanimous/scrcpy").glob("**/scrcpy.exe")),
+        }
+        for candidate in roots.get(tool_id, []):
+            if candidate.is_file():
+                return candidate.resolve()
+    return None
+
+
+def _bounded_workspace_file(config, payload, *, extensions=None, max_bytes=20_000_000_000):
+    ws = _workspace(config, payload.get("workspace"))
+    path = _path_in_workspace(ws, payload.get("path"))
+    if not path.is_file():
+        raise RuntimeError("Requested file does not exist.")
+    if extensions and path.suffix.lower() not in extensions:
+        raise RuntimeError("Requested file type is not supported by this bounded local action.")
+    size = path.stat().st_size
+    if size > max_bytes:
+        raise RuntimeError("Requested file exceeds the bounded local action size limit.")
+    return ws, path, size
+
+
+def _ffprobe_json(path):
+    exe = _approved_tool_path("ffprobe")
+    if not exe:
+        raise RuntimeError("ffprobe is not available on this bridge.")
+    result = _run([str(exe), "-v", "error", "-show_format", "-show_streams", "-of", "json", str(path)], timeout=120)
+    if result.get("code") != 0:
+        raise RuntimeError((result.get("stderr") or "ffprobe failed")[-3000:])
+    try:
+        return json.loads(result.get("stdout") or "{}")
+    except Exception as exc:
+        raise RuntimeError(f"ffprobe returned invalid JSON: {exc}")
+
+
+def _media_summary(path, metadata):
+    fmt = metadata.get("format") or {}
+    streams = metadata.get("streams") or []
+    video = next((x for x in streams if x.get("codec_type") == "video"), None) or {}
+    audio = next((x for x in streams if x.get("codec_type") == "audio"), None) or {}
+    return {
+        "name": path.name, "bytes": path.stat().st_size,
+        "format": fmt.get("format_name") or "", "duration_seconds": float(fmt.get("duration") or 0),
+        "video_codec": video.get("codec_name") or "", "width": video.get("width") or 0, "height": video.get("height") or 0,
+        "audio_codec": audio.get("codec_name") or "", "audio_channels": audio.get("channels") or 0,
+        "stream_count": len(streams),
+        "app_playback_hint": "direct-mp4" if path.suffix.lower()==".mp4" and video.get("codec_name") in {"h264","avc1"} and (not audio or audio.get("codec_name") in {"aac","mp3"}) else "transcode-to-h264-aac-mp4"
+    }
+
+
+def action_media_probe(config, payload):
+    _, path, _ = _bounded_workspace_file(config, payload, extensions=MEDIA_EXTENSIONS)
+    metadata = _ffprobe_json(path)
+    return {"ok": True, "read_only": True, "media": _media_summary(path, metadata)}
+
+
+def action_media_catalog(config, payload):
+    ws = _workspace(config, payload.get("workspace"))
+    directory = _path_in_workspace(ws, payload.get("path") or ".")
+    if not directory.is_dir():
+        raise RuntimeError("Requested media catalog path is not a directory.")
+    recursive = bool(payload.get("recursive"))
+    max_files = max(1, min(100, int(payload.get("max_files") or 40)))
+    iterator = directory.rglob("*") if recursive else directory.glob("*")
+    files = [p for p in iterator if p.is_file() and p.suffix.lower() in MEDIA_EXTENSIONS][:max_files]
+    rows = []
+    failures = []
+    for path in files:
+        try:
+            rows.append(_media_summary(path, _ffprobe_json(path)))
+        except Exception as exc:
+            failures.append({"name": path.name, "error": str(exc)[:300]})
+    return {"ok": True, "read_only": True, "media": rows, "failures": failures, "scanned": len(files), "truncated": len(files) >= max_files}
+
+
+def action_media_transcode_mp4(config, payload):
+    ws, source, _ = _bounded_workspace_file(config, payload, extensions=MEDIA_EXTENSIONS, max_bytes=8_000_000_000)
+    exe = _approved_tool_path("ffmpeg")
+    if not exe:
+        raise RuntimeError("ffmpeg is not available on this bridge.")
+    output_value = str(payload.get("output") or (source.stem + ".magnanimous.mp4"))
+    output = _path_in_workspace(ws, output_value)
+    if output.suffix.lower() != ".mp4":
+        raise RuntimeError("App-compatible transcode output must use .mp4.")
+    if output.exists():
+        raise RuntimeError("Output already exists; Magnanimous will not overwrite it.")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    preset = str(payload.get("preset") or "veryfast").lower()
+    if preset not in {"ultrafast","superfast","veryfast","faster","fast","medium"}:
+        preset = "veryfast"
+    crf = max(18, min(30, int(payload.get("crf") or 23)))
+    args = [str(exe), "-nostdin", "-hide_banner", "-loglevel", "error", "-n", "-i", str(source),
+            "-map", "0:v:0?", "-map", "0:a:0?", "-c:v", "libx264", "-preset", preset, "-crf", str(crf),
+            "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-c:a", "aac", "-b:a", "160k", "-ac", "2", "-sn", str(output)]
+    result = _run(args, timeout=max(300, min(7200, int(payload.get("timeout_seconds") or 3600))))
+    if result.get("code") != 0 or not output.is_file():
+        try:
+            if output.exists(): output.unlink()
+        except OSError:
+            pass
+        raise RuntimeError((result.get("stderr") or "ffmpeg transcode failed")[-5000:])
+    metadata = _ffprobe_json(output)
+    return {"ok": True, "source_preserved": True, "overwritten": False, "output": str(output), "media": _media_summary(output, metadata)}
+
+
+def action_media_thumbnail(config, payload):
+    ws, source, _ = _bounded_workspace_file(config, payload, extensions=MEDIA_EXTENSIONS, max_bytes=8_000_000_000)
+    exe = _approved_tool_path("ffmpeg")
+    if not exe:
+        raise RuntimeError("ffmpeg is not available on this bridge.")
+    output = _path_in_workspace(ws, str(payload.get("output") or (source.stem + ".thumbnail.jpg")))
+    if output.suffix.lower() not in {".jpg", ".jpeg", ".png"}:
+        raise RuntimeError("Thumbnail output must be JPG or PNG.")
+    if output.exists():
+        raise RuntimeError("Thumbnail output already exists; Magnanimous will not overwrite it.")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    second = max(0.0, min(3600.0, float(payload.get("second") or 3.0)))
+    result = _run([str(exe), "-nostdin", "-hide_banner", "-loglevel", "error", "-ss", str(second), "-i", str(source), "-frames:v", "1", "-vf", "scale='min(1280,iw)':-2", "-n", str(output)], timeout=180)
+    if result.get("code") != 0 or not output.is_file():
+        raise RuntimeError((result.get("stderr") or "thumbnail generation failed")[-3000:])
+    return {"ok": True, "source_preserved": True, "output": str(output), "bytes": output.stat().st_size}
+
+
+def action_archive_list(config, payload):
+    _, path, _ = _bounded_workspace_file(config, payload, extensions=ARCHIVE_EXTENSIONS, max_bytes=20_000_000_000)
+    exe = _approved_tool_path("7zip")
+    if not exe:
+        raise RuntimeError("7-Zip is not available on this bridge.")
+    result = _run([str(exe), "l", "-slt", str(path)], timeout=180)
+    if result.get("code") not in {0, 1}:
+        raise RuntimeError((result.get("stderr") or result.get("stdout") or "archive listing failed")[-5000:])
+    text = (result.get("stdout") or "")[-MAX_OUTPUT:]
+    return {"ok": True, "read_only": True, "archive": path.name, "listing": text}
+
+
+def action_archive_test(config, payload):
+    _, path, _ = _bounded_workspace_file(config, payload, extensions=ARCHIVE_EXTENSIONS, max_bytes=20_000_000_000)
+    exe = _approved_tool_path("7zip")
+    if not exe:
+        raise RuntimeError("7-Zip is not available on this bridge.")
+    result = _run([str(exe), "t", "-bd", "-y", str(path)], timeout=900)
+    return {"ok": result.get("code") == 0, "read_only": True, "archive": path.name, "code": result.get("code"), "detail": ((result.get("stdout") or "") + "\n" + (result.get("stderr") or ""))[-5000:]}
+
+
+def action_android_device_status(config, payload):
+    scrcpy = _approved_tool_path("scrcpy")
+    if not scrcpy:
+        return {"ok": True, "ready": False, "reason": "scrcpy-not-available", "read_only": True}
+    adb = scrcpy.parent / ("adb.exe" if os.name == "nt" else "adb")
+    if not adb.is_file():
+        found = shutil.which("adb")
+        adb = Path(found).resolve() if found else None
+    if not adb or not adb.is_file():
+        return {"ok": True, "ready": False, "reason": "adb-not-available", "read_only": True}
+    result = _run([str(adb), "devices", "-l"], timeout=30)
+    devices = []
+    for line in (result.get("stdout") or "").splitlines()[1:]:
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split()
+        state = parts[1] if len(parts) > 1 else "unknown"
+        fields = {}
+        for token in parts[2:]:
+            if ":" in token:
+                k,v = token.split(":",1); fields[k] = v
+        devices.append({"state": state, "model": fields.get("model") or "", "product": fields.get("product") or "", "device": fields.get("device") or ""})
+    return {"ok": result.get("code") == 0, "ready": any(d.get("state") == "device" for d in devices), "read_only": True, "device_count": len(devices), "devices": devices}
+
+
 def _git(workspace, *args, timeout=120):
     if not shutil.which("git"):
         raise RuntimeError("git is not installed on this machine.")
@@ -439,6 +623,14 @@ def capabilities(config):
     caps = set(BASE_CAPS)
     if shutil.which("git"):
         caps.update({"git_status","git_diff","git_log","apply_patch","git_create_branch","git_commit"})
+    if _approved_tool_path("ffprobe"):
+        caps.update({"media_probe", "media_catalog"})
+    if _approved_tool_path("ffmpeg"):
+        caps.update({"media_transcode_mp4", "media_thumbnail"})
+    if _approved_tool_path("7zip"):
+        caps.update({"archive_list", "archive_test"})
+    if _approved_tool_path("scrcpy"):
+        caps.add("android_device_status")
     for root in _roots(config):
         scripts = _package_scripts(root)
         for action, script in SAFE_PROJECT_SCRIPTS.items():
@@ -1513,6 +1705,13 @@ HANDLERS = {
     "read_file": action_read_file,
     "search_text": action_search_text,
     "desktop_tools_status": action_desktop_tools_status,
+    "media_probe": action_media_probe,
+    "media_catalog": action_media_catalog,
+    "media_transcode_mp4": action_media_transcode_mp4,
+    "media_thumbnail": action_media_thumbnail,
+    "archive_list": action_archive_list,
+    "archive_test": action_archive_test,
+    "android_device_status": action_android_device_status,
     "storage_status": action_storage_status,
     "storage_remotes": action_storage_remotes,
     "storage_about": action_storage_about,
