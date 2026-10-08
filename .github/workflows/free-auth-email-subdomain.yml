@@ -1,9 +1,6 @@
 name: Free Auth Email Subdomain
 
 on:
-  push:
-    paths:
-      - '.github/workflows/free-auth-email-subdomain.yml'
   workflow_dispatch:
 
 permissions:
@@ -56,7 +53,6 @@ jobs:
               print('auth_email_subdomain_enabled='+('1' if r.get('enabled') else '0'))
               print('auth_email_subdomain_status='+str(r.get('status') or 'unknown'))
               raise SystemExit(0)
-          # Cloudflare may return an already-configured/conflict response on a repeated run.
           errors=d.get('errors') or []
           text=' | '.join(str(x.get('code'))+':'+str(x.get('message')) for x in errors)
           lower=text.lower()
