@@ -25,7 +25,7 @@ export default function GlobalTools(){
     <a className="inbox" href="/inbox" title="Unified email, SMS, voice, social, chat and task queue"><b>✉</b><span>Inbox</span></a>
     <a className="business-ai" href="/business-ai" title="Marketing, websites, sales, creative, productivity and business AI tools"><b>✦</b><span>Business AI</span></a>
     <a className="business-ai" href="/b2b" title="B2B wholesale, suppliers, procurement, flights, hotels, travel distribution and sub-agents"><b>↔</b><span>B2B</span></a>
-    <a className="business-ai" href="/logistics-erp" title="Freight dispatch, TMS, load economics, routing, risk evidence and ERP operations"><b>▦</b><span>Freight ERP</span></a>
+    <a className="business-ai" href="/logistics-erp" title="Live load economics backed by Magnanimous; TMS, routing, risk and ERP provider rails stay staged until verified"><b>▦</b><span>Freight ERP</span></a>
     <a className="business-ai" href="/reservations" title="Magnanimous reservation search, booking, fulfillment, servicing and settlement orchestration"><b>⌁</b><span>Reservations</span></a>
     <a className="business-ai" href="/travel-agency" title="Travel agency portal, best-price search, wholesale source pricing and reseller distribution"><b>✈</b><span>Travel Agency</span></a>
     <a className="agency" href="/agency-command" title="Client booking, funnels, reputation, white label and usage rebilling"><b>◇</b><span>Agency</span></a>

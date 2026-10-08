@@ -15,6 +15,16 @@ assert.ok(page.includes('NORMALIZED SHIPMENT RECORD'),'Freight ERP must expose t
 assert.ok(page.includes('Real connection state, not marketing claims'),'Freight ERP must distinguish evidence from claims.');
 assert.ok(page.includes('no proprietary copying'),'Freight ERP must retain the clean-room boundary.');
 assert.ok(globalTools.includes('href="/logistics-erp"'),'Platform Tools must link to Freight ERP.');
+assert.ok(globalTools.includes('Live load economics backed by Magnanimous'),'Platform Tools must describe only the Freight capability that is actually live.');
+for(const [href,file] of Object.entries({
+  '/b2b':'frontend/app/b2b/page.tsx',
+  '/crm':'frontend/app/crm/page.tsx',
+  '/enterprise':'frontend/app/enterprise/page.tsx',
+  '/connections':'frontend/app/connections/page.tsx'
+})){
+ assert.ok(page.includes(`href="${href}"`),`Freight ERP navigation is missing ${href}.`);
+ assert.ok(fs.existsSync(file),`Freight ERP navigation target is not backed by a real route: ${href}`);
+}
 assert.ok(runtime.includes('shipment:['),'B2B backend must define the normalized shipment object.');
 assert.ok(runtime.includes('logistics:['),'B2B backend must define the logistics workflow.');
 assert.ok(runtime.includes('live_connection_verified:false'),'Backend must default external rails to not live-verified.');

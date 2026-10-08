@@ -91,6 +91,7 @@ jobs:
           node qa/scripts/specialist-branch-lock.mjs
           node qa/scripts/free-first-runtime-plane-lock.mjs
           node qa/scripts/account-persistence-lock.mjs
+          node qa/scripts/magnanimous-logistics-erp-lock.mjs
 
       - name: Install Worker dependencies
         working-directory: worker
@@ -985,6 +986,12 @@ jobs:
           # that the production route exists without weakening its authentication gate.
           check_protected_page "QA Training Lab page" "$BASE_URL/qa-ai-academy" /tmp/qa-training.html
           check_protected_page "Owner QA Approval page" "$BASE_URL/owner-ai-training-review" /tmp/owner-qa-review.html
+
+          check_get "Freight Logistics ERP route" "$BASE_URL/logistics-erp" /tmp/logistics-erp.html
+          grep -q "Opening Magnanimous Logistics ERP" /tmp/logistics-erp.html || {
+            echo "Freight Logistics ERP production route marker missing."
+            exit 1
+          }
 
           check_get "Plans endpoint" "$BASE_URL/api/plans" /tmp/plans.json
           python - <<'PY'
