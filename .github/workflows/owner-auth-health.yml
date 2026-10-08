@@ -49,7 +49,7 @@ jobs:
             (SELECT COUNT(*) FROM user_totp x WHERE x.user_id=owner.id AND x.tenant_id=owner.tenant_id AND x.enabled=1) AS totp_enabled,
             (SELECT COUNT(*) FROM user_totp x WHERE x.user_id=owner.id AND x.tenant_id=owner.tenant_id AND x.enabled=1 AND coalesce(x.verified_at,0)>0) AS totp_verified,
             (SELECT COUNT(*) FROM user_recovery_contacts r WHERE r.user_id=owner.id AND r.tenant_id=owner.tenant_id AND coalesce(r.recovery_email_verified_at,0)>0) AS recovery_email_verified,
-            (SELECT COUNT(*) FROM user_recovery_codes c WHERE c.user_id=owner.id AND c.tenant_id=owner.tenant_id AND c.used_at IS NULL) AS unused_recovery_codes
+            (SELECT COUNT(*) FROM account_recovery_codes c WHERE c.user_id=owner.id AND c.tenant_id=owner.tenant_id AND c.used_at IS NULL) AS unused_recovery_codes
           FROM owner;"
           npx wrangler d1 execute iam-magnanimous-db --remote --json --command "$sql" > /tmp/owner-auth.json
           python - <<'PY'
