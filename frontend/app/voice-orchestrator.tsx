@@ -2,7 +2,7 @@
 
 import {useEffect,useRef,useState} from 'react';
 import {speakTextNaturally,stopNaturalSpeech} from '../lib/natural-speech';
-import {configurePersonaVoice} from '../lib/persona-voice';
+import {personaVoiceProfile} from '../lib/persona-voice';
 
 type SpeechRecognitionLike={
  lang:string;
@@ -75,7 +75,8 @@ function currentPersona(){
 }
 
 function appleMobileVoiceRuntime(){return typeof navigator!=='undefined'&&/iP(?:hone|ad|od)/i.test(String(navigator.userAgent||''))}
-function applyVoiceProfile(utterance:SpeechSynthesisUtterance,label:string){return configurePersonaVoice(utterance,label)}
+function chooseVoice(label:string){return personaVoiceProfile(label)}
+function applyVoiceProfile(utterance:SpeechSynthesisUtterance,label:string){const profile=chooseVoice(label);if(profile.voice)utterance.voice=profile.voice;utterance.lang=profile.lang;utterance.rate=profile.rate;utterance.pitch=profile.pitch;utterance.volume=1}
 
 function primeSpeechSynthesis(){
  if(speechPrimed||typeof window==='undefined'||!('speechSynthesis'in window))return;
