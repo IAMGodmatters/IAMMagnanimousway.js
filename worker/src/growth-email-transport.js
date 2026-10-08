@@ -5,9 +5,14 @@ const encoder=new TextEncoder();
 function b64url(value){let binary='';for(const b of encoder.encode(String(value||'')))binary+=String.fromCharCode(b);return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 async function ownerTenant(env){
  const configured=String(env.GROWTH_SENDER_TENANT_ID||'').trim();if(configured)return configured;
- try{const row=await env.DB.prepare("SELECT tenant_id FROM users WHERE active=1 AND lower(role) IN ('owner','admin','super_admin','superadmin') ORDER BY CASE WHEN lower(role)='owner' THEN 0 ELSE 1 END,id LIMIT 1").first();return String(row?.tenant_id||'')}catch{return ''}
+ try{
+  const canonical=await env.DB.prepare("SELECT u.tenant_id FROM tenants t JOIN users u ON u.id=t.owner_user_id WHERE t.slug='owner' AND u.active=1 LIMIT 1").first();
+  if(canonical?.tenant_id)return String(canonical.tenant_id);
+  const row=await env.DB.prepare("SELECT tenant_id FROM users WHERE active=1 AND lower(role) IN ('owner','admin','super_admin','superadmin') ORDER BY CASE WHEN lower(role)='owner' THEN 0 ELSE 1 END,id LIMIT 1").first();
+  return String(row?.tenant_id||'');
+ }catch{return ''}
 }
-async function connectionFor(env,scopeTenantId){
+export async function connectionFor(env,scopeTenantId){
  const tenants=[];if(scopeTenantId&&scopeTenantId!=='__platform__')tenants.push(scopeTenantId);const owner=await ownerTenant(env);if(owner&&!tenants.includes(owner))tenants.push(owner);
  for(const tenant of tenants){
   try{const row=await env.DB.prepare("SELECT * FROM integrations WHERE tenant_id=? AND provider IN ('google','outlook') ORDER BY CASE provider WHEN 'google' THEN 0 ELSE 1 END,updated_at DESC LIMIT 1").bind(tenant).first();if(row)return row}catch{}
@@ -23,6 +28,16 @@ async function refreshOutlook(env,row,refreshToken){
  if(!refreshToken||!env.MICROSOFT_CLIENT_ID||!env.MICROSOFT_CLIENT_SECRET)return '';
  const body=new URLSearchParams({client_id:String(env.MICROSOFT_CLIENT_ID),client_secret:String(env.MICROSOFT_CLIENT_SECRET),refresh_token:refreshToken,grant_type:'refresh_token',scope:'openid email offline_access Mail.Read Mail.Send'});
  const r=await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body});const d=await r.json().catch(()=>({}));return r.ok?String(d.access_token||''):'';
+}
+export async function hasGrowthEmailSender(env,scopeTenantId='__platform__'){
+ const conn=await connectionFor(env,scopeTenantId);if(!conn)return false;
+ const provider=String(conn.provider||'');if(provider!=='google'&&provider!=='outlook')return false;
+ const access=await decrypt(String(conn.access_token||''),env).catch(()=> '');if(!access)return false;
+ const expires=Number(conn.token_expires_at||0);if(!expires||expires>now()+90)return true;
+ const refresh=await decrypt(String(conn.refresh_token||''),env).catch(()=> '');if(!refresh)return false;
+ if(provider==='google')return Boolean(env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET);
+ if(provider==='outlook')return Boolean(env.MICROSOFT_CLIENT_ID&&env.MICROSOFT_CLIENT_SECRET);
+ return false;
 }
 async function accessToken(env,row){
  let token=await decrypt(String(row?.access_token||''),env);if(!token)return '';

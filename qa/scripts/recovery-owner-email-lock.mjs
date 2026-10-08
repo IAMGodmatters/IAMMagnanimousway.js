@@ -32,7 +32,9 @@ must(admin.includes("t.slug='owner'")&&admin.includes("t.owner_user_id=u.id"),'o
 must(admin.includes("kind:'owner-login-code'")&&admin.includes('MAGNANIMOUS_MAIL'),'owner login must use Magnanimous native mail');
 must(edgeMail.includes('cloudflare-email-service')&&edgeMail.includes('MAGNANIMOUS_EMAIL'),'Worker owner login must have a native Cloudflare email transport');
 must(edgeMail.includes("sendGrowthEmail")&&edgeMail.includes("connected-email-https"),'Worker owner login must retain free connected Gmail/Outlook HTTPS failover when Cloudflare delivery fails');
-must(entry.includes('withCloudflareNativeMail(env)'),'Worker entrypoint must inject native email before auth routing');
+must(edgeMail.includes('hasGrowthEmailSender')&&edgeMail.includes("MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE:'true'"),'free connected Gmail/Outlook must be allowed to provide verified recovery and owner login delivery without a paid Cloudflare sender');
+must(!admin.includes('OWNER_AUTH_SEPARATE'),'canonical owner must be allowed to enroll and use standard TOTP recovery');
+must(entry.includes('await withCloudflareNativeMail(env)'),'Worker entrypoint must resolve live mail readiness before auth routing');
 must(entry.includes("url.pathname==='/api/admin/login'")&&entry.includes("url.pathname.startsWith('/api/admin/email-code/')"),'owner auth must stay on the Worker and not depend on Railway availability');
 must(entry.includes("ownerAuthApp from './admin-compat-entrypoint.js'")&&entry.includes('ownerAuthApp.fetch(routedRequest,env,ctx)'),'owner auth must route directly through the dedicated auth module');
 must(entry.indexOf('ownerAuthApp.fetch(routedRequest,env,ctx)')<entry.indexOf('enforcePlatformOwnerBoundary(routedRequest,env)'),'public owner auth must execute before authenticated owner-only middleware');
