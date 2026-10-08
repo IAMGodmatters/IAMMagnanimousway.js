@@ -69,6 +69,14 @@ function normalizeMessages(input){
   }));
 }
 
+function safeError(error){
+  const raw=String(error?.message||error||'Unknown Workers AI error');
+  return raw
+    .replace(/Bearer\s+[A-Za-z0-9._~+\/-]+/gi,'Bearer [redacted]')
+    .replace(/(?:token|secret|key)\s*[:=]\s*[^\s,;]+/gi,'credential=[redacted]')
+    .slice(0,700);
+}
+
 export async function handleEdgeAiBridge(request,env){
   const url=new URL(request.url);
   if(url.pathname!=='/api/internal/edge-ai/run')return null;
@@ -104,17 +112,17 @@ export async function handleEdgeAiBridge(request,env){
       catch(primaryError){
         try{result=await env.AI.run(model,{messages,max_tokens:maxTokens});}
         catch(secondaryError){
-          errors.push(`${model}: ${String(secondaryError?.message||primaryError?.message||secondaryError||primaryError)}`);
+          errors.push({model,error:safeError(secondaryError||primaryError)});
           continue;
         }
       }
       const text=extractText(result);
-      if(!text){errors.push(`${model}: empty response`);continue;}
+      if(!text){errors.push({model,error:'empty response'});continue;}
       return json({ok:true,bridge_version:EDGE_AI_BRIDGE_VERSION,model,response:text,result:{response:text}});
     }catch(error){
-      errors.push(`${model}: ${String(error?.message||error)}`);
+      errors.push({model,error:safeError(error)});
     }
   }
-  console.error('Private edge AI bridge execution failed',errors.join(' | '));
-  return json({detail:'Private edge AI bridge execution failed.'},502);
+  console.error('Private edge AI bridge execution failed',errors.map(item=>`${item.model}: ${item.error}`).join(' | '));
+  return json({detail:'Private edge AI bridge execution failed.',bridge_version:EDGE_AI_BRIDGE_VERSION,errors},502);
 }
