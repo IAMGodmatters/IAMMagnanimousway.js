@@ -53,9 +53,20 @@ jobs:
           print('mail_status='+str(row.get('status') or 'none'))
           print('mail_provider='+str(row.get('provider') or 'none'))
           print('mail_error='+err[:500])
+          if 'NO_SENDER' in err:
+              print('::warning::No connected Gmail/Outlook sender is available yet. Owner email-code login will use the password fallback until a sender is connected.')
           PY
 
+      - name: Free-first email sending posture
+        if: ${{ vars.ENABLE_CLOUDFLARE_EMAIL_SENDING != 'true' }}
+        shell: bash
+        run: |
+          echo 'Cloudflare Email Sending domain onboarding is intentionally skipped.'
+          echo 'This deployment stays free-first and uses connected Gmail/Outlook delivery plus the owner password fallback.'
+          echo 'Set repository variable ENABLE_CLOUDFLARE_EMAIL_SENDING=true only after a paid Cloudflare Email Sending entitlement is intentionally enabled.'
+
       - name: Onboard I AM Magnanimous Way sending domain
+        if: ${{ vars.ENABLE_CLOUDFLARE_EMAIL_SENDING == 'true' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         shell: bash
@@ -162,7 +173,7 @@ jobs:
           echo "address_list_http=$code"
 
           OWNER_EMAIL="$owner_email" python - <<'PY' > /tmp/address-state
-          import hashlib,json,os
+          import json,os
           owner=os.environ['OWNER_EMAIL'].strip().lower()
           data=json.load(open('/tmp/cf-addresses.json'))
           matches=[x for x in (data.get('result') or []) if str(x.get('email') or '').strip().lower()==owner]
@@ -171,6 +182,10 @@ jobs:
           print('present=1' if present else 'present=0')
           print('verified=1' if verified else 'verified=0')
           print('api_success=1' if data.get('success') else 'api_success=0')
+          for e in data.get('errors') or []:
+              print('address_list_error='+str(e.get('code'))+':'+str(e.get('message'))[:300])
+          if not data.get('success'):
+              raise SystemExit(1)
           PY
           cat /tmp/address-state
           present=$(grep '^present=' /tmp/address-state | cut -d= -f2)
@@ -195,6 +210,8 @@ jobs:
           for e in d.get('errors') or []:
               msg=re.sub(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+','[redacted-email]',str(e.get('message') or ''))
               print('address_create_error='+str(e.get('code'))+':'+msg[:300])
+          if not d.get('success'):
+              raise SystemExit(1)
           PY
           elif [ "$verified" != "1" ]; then
             echo '::warning::Owner destination exists but is not verified. Cloudflare requires mailbox verification before free Worker delivery.'
