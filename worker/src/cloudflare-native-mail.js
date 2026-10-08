@@ -1,3 +1,4 @@
+// Runtime verification marker: intentionally no behavior change; forces a real production deploy after quota-aware CI repair.
 import {hasGrowthEmailSender,sendGrowthEmail} from './growth-email-transport.js';
 
 const clean=value=>String(value??'').trim();
