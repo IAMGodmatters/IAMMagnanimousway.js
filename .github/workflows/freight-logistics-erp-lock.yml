@@ -1,0 +1,35 @@
+name: Freight Logistics ERP Lock
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/app/logistics-erp/**'
+      - 'frontend/app/global-tools.tsx'
+      - 'worker/src/magnanimous-b2b-runtime.js'
+      - 'worker/src/progress-entrypoint.js'
+      - 'qa/scripts/magnanimous-logistics-erp-lock.mjs'
+      - '.github/workflows/freight-logistics-erp-lock.yml'
+  pull_request:
+    paths:
+      - 'frontend/app/logistics-erp/**'
+      - 'frontend/app/global-tools.tsx'
+      - 'worker/src/magnanimous-b2b-runtime.js'
+      - 'worker/src/progress-entrypoint.js'
+      - 'qa/scripts/magnanimous-logistics-erp-lock.mjs'
+      - '.github/workflows/freight-logistics-erp-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Verify Freight ERP contracts
+        run: node qa/scripts/magnanimous-logistics-erp-lock.mjs
