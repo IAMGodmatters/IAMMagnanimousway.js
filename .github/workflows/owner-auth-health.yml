@@ -46,6 +46,10 @@ jobs:
             (SELECT COUNT(*) FROM integrations i WHERE i.tenant_id=owner.tenant_id AND i.provider IN ('google','outlook') AND length(coalesce(i.refresh_token,''))>0) AS email_integrations_with_refresh_token,
             (SELECT COUNT(*) FROM platform_credentials p WHERE p.credential_key='GOOGLE_CLIENT_ID' AND length(coalesce(p.encrypted_value,''))>0) AS google_client_id_present,
             (SELECT COUNT(*) FROM platform_credentials p WHERE p.credential_key='GOOGLE_CLIENT_SECRET' AND length(coalesce(p.encrypted_value,''))>0) AS google_client_secret_present,
+            (SELECT COUNT(*) FROM platform_credentials p WHERE p.credential_key='COMPOSIO_API_KEY' AND length(coalesce(p.encrypted_value,''))>0) AS composio_api_key_present,
+            (SELECT COUNT(*) FROM platform_credentials p WHERE p.credential_key='CLOUDFLARE_PLATFORM_API_TOKEN' AND length(coalesce(p.encrypted_value,''))>0) AS cloudflare_platform_token_present,
+            (SELECT COUNT(*) FROM platform_credentials p WHERE p.credential_key='CLOUDFLARE_PLATFORM_ACCOUNT_ID' AND length(coalesce(p.encrypted_value,''))>0) AS cloudflare_platform_account_id_present,
+            (SELECT COUNT(*) FROM platform_credentials p WHERE p.credential_key='CLOUDFLARE_PLATFORM_ZONE_ID' AND length(coalesce(p.encrypted_value,''))>0) AS cloudflare_platform_zone_id_present,
             (SELECT COUNT(*) FROM user_totp x WHERE x.user_id=owner.id AND x.tenant_id=owner.tenant_id AND x.enabled=1) AS totp_enabled,
             (SELECT COUNT(*) FROM user_totp x WHERE x.user_id=owner.id AND x.tenant_id=owner.tenant_id AND x.enabled=1 AND coalesce(x.verified_at,0)>0) AS totp_verified,
             (SELECT COUNT(*) FROM user_recovery_contacts r WHERE r.user_id=owner.id AND r.tenant_id=owner.tenant_id AND coalesce(r.recovery_email_verified_at,0)>0) AS recovery_email_verified,
@@ -66,7 +70,8 @@ jobs:
           if not rows:
               raise SystemExit('Owner auth state row unavailable.')
           r=rows[-1]
-          for key in ('canonical_email_match','owner_role','active','google_integrations','outlook_integrations','email_integrations_with_access_token','email_integrations_with_refresh_token','google_client_id_present','google_client_secret_present','totp_enabled','totp_verified','recovery_email_verified','unused_recovery_codes'):
+          keys=('canonical_email_match','owner_role','active','google_integrations','outlook_integrations','email_integrations_with_access_token','email_integrations_with_refresh_token','google_client_id_present','google_client_secret_present','composio_api_key_present','cloudflare_platform_token_present','cloudflare_platform_account_id_present','cloudflare_platform_zone_id_present','totp_enabled','totp_verified','recovery_email_verified','unused_recovery_codes')
+          for key in keys:
               print(f'{key}={r.get(key,0)}')
           if not (r.get('canonical_email_match')==1 and r.get('owner_role')==1 and r.get('active')==1):
               raise SystemExit('Canonical owner identity binding is not healthy.')
