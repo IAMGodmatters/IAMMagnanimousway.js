@@ -1013,7 +1013,7 @@ jobs:
           check_protected_page "QA Training Lab page" "$BASE_URL/qa-ai-academy" /tmp/qa-training.html
           check_protected_page "Owner QA Approval page" "$BASE_URL/owner-ai-training-review" /tmp/owner-qa-review.html
 
-          check_get "Freight Logistics ERP route" "$BASE_URL/logistics-erp" /tmp/logistics-erp.html
+          check_get "Freight Logistics ERP route" "$BASE_URL/logistics-erp/" /tmp/logistics-erp.html
           grep -q "Opening Magnanimous Logistics ERP" /tmp/logistics-erp.html || {
             echo "Freight Logistics ERP production route marker missing."
             exit 1
