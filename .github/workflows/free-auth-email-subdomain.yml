@@ -1,0 +1,77 @@
+name: Free Auth Email Subdomain
+
+on:
+  push:
+    paths:
+      - '.github/workflows/free-auth-email-subdomain.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ensure-auth-email-subdomain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Ensure isolated Cloudflare Email Routing subdomain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          domain='iammagnanimousway.com'
+          auth_domain='auth.iammagnanimousway.com'
+
+          zone_code=$(curl -sS -G -o /tmp/zone.json -w '%{http_code}' \
+            'https://api.cloudflare.com/client/v4/zones' \
+            --data-urlencode "name=$domain" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+          [ "$zone_code" = '200' ] || { echo "::error::Cloudflare zone lookup failed with HTTP $zone_code"; exit 1; }
+          zone_id=$(python - <<'PY'
+          import json
+          d=json.load(open('/tmp/zone.json'))
+          rows=d.get('result') or []
+          print((rows[0].get('id') if rows else '') or '',end='')
+          PY
+          )
+          [ -n "$zone_id" ] || { echo '::error::Cloudflare zone was not found.'; exit 1; }
+
+          # Use a dedicated subdomain so the existing Porkbun MX records on the apex
+          # business domain remain untouched. This enables free sends only to verified
+          # Cloudflare destination addresses, which is sufficient for owner auth codes.
+          printf '{"name":"%s"}' "$auth_domain" > /tmp/auth-domain.json
+          create_code=$(curl -sS -o /tmp/auth-domain-result.json -w '%{http_code}' \
+            -X POST "https://api.cloudflare.com/client/v4/zones/${zone_id}/email/routing/dns" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/auth-domain.json)
+
+          python - "$create_code" <<'PY'
+          import json,sys
+          code=sys.argv[1]
+          d=json.load(open('/tmp/auth-domain-result.json'))
+          if d.get('success'):
+              r=d.get('result') or {}
+              print('auth_email_subdomain_enabled='+('1' if r.get('enabled') else '0'))
+              print('auth_email_subdomain_status='+str(r.get('status') or 'unknown'))
+              raise SystemExit(0)
+          # Cloudflare may return an already-configured/conflict response on a repeated run.
+          errors=d.get('errors') or []
+          text=' | '.join(str(x.get('code'))+':'+str(x.get('message')) for x in errors)
+          lower=text.lower()
+          if code in ('400','409') and any(x in lower for x in ('already','exists','configured')):
+              print('auth_email_subdomain_already_configured=1')
+              raise SystemExit(0)
+          print('::error::Cloudflare auth email subdomain setup failed: '+text[:500])
+          raise SystemExit(1)
+          PY
+
+      - name: Confirm apex business MX remains untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          mx=$(dig +short MX iammagnanimousway.com | tr '\n' ' ')
+          echo "apex_mx=$mx"
+          echo "$mx" | grep -qi 'porkbun.com' || { echo '::error::Apex business MX no longer points to Porkbun; refusing to continue.'; exit 1; }
+          echo 'Apex business mail routing remains on Porkbun.'
