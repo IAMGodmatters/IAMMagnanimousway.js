@@ -75,6 +75,7 @@ function currentPersona(){
 }
 
 function appleMobileVoiceRuntime(){return typeof navigator!=='undefined'&&/iP(?:hone|ad|od)/i.test(String(navigator.userAgent||''))}
+function applyVoiceProfile(utterance:SpeechSynthesisUtterance,label:string){return configurePersonaVoice(utterance,label)}
 
 function primeSpeechSynthesis(){
  if(speechPrimed||typeof window==='undefined'||!('speechSynthesis'in window))return;
@@ -225,7 +226,7 @@ export default function VoiceOrchestrator(){
     setNotice('Your reply is ready. Tap HEAR to play it aloud.');
    },1600);
    speakTextNaturally(text,{
-    configure:(u)=>configurePersonaVoice(u,nextPersona),
+    configure:(u)=>applyVoiceProfile(u,nextPersona),
     maxChunkChars:220,
     interChunkDelayMs:60,
     onStart:()=>{
@@ -283,7 +284,7 @@ export default function VoiceOrchestrator(){
   if((p==='/agents'||p.startsWith('/agents/'))&&'speechSynthesis'in window){
    const anySynth:any=window.speechSynthesis,original=anySynth.speak?.bind(anySynth);
    if(original){
-    const wrapped=(utterance:SpeechSynthesisUtterance)=>{configurePersonaVoice(utterance,currentPersona());original(utterance)};
+    const wrapped=(utterance:SpeechSynthesisUtterance)=>{applyVoiceProfile(utterance,currentPersona());original(utterance)};
     try{anySynth.speak=wrapped;cleanups.push(()=>{try{if(anySynth.speak===wrapped)anySynth.speak=original}catch{}})}catch{}
    }
   }
@@ -308,7 +309,7 @@ export default function VoiceOrchestrator(){
   const reply=latestReply(path);
   const text=reply||`This is ${persona}. My voice is ready.`;
   speakTextNaturally(text,{
-   configure:(u)=>configurePersonaVoice(u,persona),maxChunkChars:210,interChunkDelayMs:60,
+   configure:(u)=>applyVoiceProfile(u,persona),maxChunkChars:210,interChunkDelayMs:60,
    onStart:()=>{setNotice('');setSpeaking(true)},onEnd:()=>setSpeaking(false),
    onError:()=>{setSpeaking(false);setNotice('Your browser could not play the voice. Check device volume and tap HEAR again.')}
   });
