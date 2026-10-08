@@ -3,7 +3,7 @@ import { handleEdgeAiBridge } from '../../worker/src/edge-ai-bridge.js';
 
 const url='https://iammagnanimousway.com/api/internal/edge-ai/run';
 const body=JSON.stringify({
-  model:'@cf/meta/llama-3.1-8b-instruct-fast',
+  model:'@cf/zai-org/glm-4.7-flash',
   messages:[{role:'user',content:'Confirm edge bridge.'}],
   max_tokens:64
 });
@@ -16,10 +16,11 @@ async function derived(value){
 let calls=0;
 const env={
   MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN:'verification-bridge-secret',
+  CLOUDFLARE_AI_MODEL:'@cf/zai-org/glm-4.7-flash',
   AI:{async run(model,input){
     calls++;
-    assert.equal(model,'@cf/meta/llama-3.1-8b-instruct-fast');
-    assert.equal(input.max_tokens,64);
+    assert.equal(model,'@cf/zai-org/glm-4.7-flash');
+    assert.equal(input.max_completion_tokens,64);
     return{response:'Private edge AI bridge verification passed.'};
   }}
 };
@@ -36,18 +37,39 @@ const ok=await handleEdgeAiBridge(new Request(url,{method:'POST',headers:{'conte
 assert.equal(ok.status,200);
 const data=await ok.json();
 assert.equal(data.ok,true);
-assert.equal(data.bridge_version,'2026-09-25.2');
+assert.equal(data.bridge_version,'2026-10-08.1');
+assert.equal(data.model,'@cf/zai-org/glm-4.7-flash');
 assert.equal(data.response,'Private edge AI bridge verification passed.');
 assert.equal(calls,1);
 
+let fallbackCalls=0;
+const fallbackEnv={
+  MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN:'verification-bridge-secret',
+  CLOUDFLARE_AI_MODEL:'@cf/zai-org/glm-4.7-flash',
+  AI:{async run(model,input){
+    fallbackCalls++;
+    if(model==='@cf/zai-org/glm-4.7-flash')throw new Error('temporary model failure');
+    assert.equal(model,'@cf/qwen/qwen3-30b-a3b-fp8');
+    assert.equal(input.max_completion_tokens,64);
+    return{response:'Fallback model passed.'};
+  }}
+};
+const fallbackResponse=await handleEdgeAiBridge(new Request(url,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer verification-bridge-secret'},body:JSON.stringify({messages:[{role:'user',content:'x'}],max_tokens:64})}),fallbackEnv);
+assert.equal(fallbackResponse.status,200);
+const fallbackData=await fallbackResponse.json();
+assert.equal(fallbackData.model,'@cf/qwen/qwen3-30b-a3b-fp8');
+assert.equal(fallbackData.response,'Fallback model passed.');
+assert.equal(fallbackCalls,3);
+
 const integrationKey='verification-shared-integration-key-2026';
 const fallbackToken=await derived(integrationKey);
-const fallback=await handleEdgeAiBridge(new Request(url,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+fallbackToken},body}),{
+const integration=await handleEdgeAiBridge(new Request(url,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+fallbackToken},body}),{
   INTEGRATION_CREDENTIALS_KEY:integrationKey,
+  CLOUDFLARE_AI_MODEL:'@cf/zai-org/glm-4.7-flash',
   AI:env.AI
 });
-assert.equal(fallback.status,200);
-assert.equal((await fallback.json()).response,'Private edge AI bridge verification passed.');
+assert.equal(integration.status,200);
+assert.equal((await integration.json()).response,'Private edge AI bridge verification passed.');
 assert.equal(calls,2);
 
 const standalone=await handleEdgeAiBridge(new Request(url,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer verification-bridge-secret'},body}),{...env,MAGNANIMOUS_RUNTIME:'standalone-node'});

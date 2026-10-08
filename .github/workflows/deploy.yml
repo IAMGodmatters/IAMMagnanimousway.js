@@ -970,16 +970,16 @@ jobs:
           print(hashlib.sha256(seed.encode()).hexdigest())
           PY
           )"
-          edge_bridge_status=$(curl -sS -o /tmp/edge-ai-bridge.json -w '%{http_code}' -X POST "$BASE_URL/api/internal/edge-ai/run"             -H 'content-type: application/json'             -H "Authorization: Bearer $edge_bridge_token"             --data '{"model":"@cf/meta/llama-3.1-8b-instruct-fast","messages":[{"role":"user","content":"Reply briefly to confirm the private Magnanimous edge AI bridge is online."}],"max_tokens":64}')
+          edge_bridge_status=$(curl -sS -o /tmp/edge-ai-bridge.json -w '%{http_code}' -X POST "$BASE_URL/api/internal/edge-ai/run"             -H 'content-type: application/json'             -H "Authorization: Bearer $edge_bridge_token"             --data '{"messages":[{"role":"user","content":"Reply briefly to confirm the private Magnanimous edge AI bridge is online."}],"max_tokens":64}')
           unset edge_bridge_token
           if [ "$edge_bridge_status" != "200" ]; then echo "Private Edge AI bridge returned HTTP $edge_bridge_status"; cat /tmp/edge-ai-bridge.json || true; exit 1; fi
           python - <<'PY'
           import json
           data=json.load(open('/tmp/edge-ai-bridge.json'))
           assert data.get('ok') is True, data
-          assert data.get('bridge_version') == '2026-09-25.2', data
+          assert data.get('bridge_version') == '2026-10-08.1', data
           assert str(data.get('response') or '').strip(), data
-          print('Private Edge AI bridge live inference passed at version 2026-09-25.2.')
+          print('Private Edge AI bridge live inference passed at version 2026-10-08.1.')
           PY
 
           # These are intentionally protected pages. Following the redirect verifies

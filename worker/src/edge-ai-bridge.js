@@ -1,4 +1,4 @@
-const EDGE_AI_BRIDGE_VERSION='2026-09-25.2';
+const EDGE_AI_BRIDGE_VERSION='2026-10-08.1';
 
 function json(data,status=200){
   return new Response(JSON.stringify(data),{
@@ -36,20 +36,30 @@ function extractText(result){
   return '';
 }
 
+const CURRENT_FALLBACK_MODELS=[
+  '@cf/zai-org/glm-4.7-flash',
+  '@cf/qwen/qwen3-30b-a3b-fp8',
+  '@cf/google/gemma-4-26b-a4b-it',
+  '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+];
+
 function approvedModels(env){
   return new Set([
     String(env.CLOUDFLARE_AI_MODEL||'').trim(),
     String(env.AGENT_CLOUDFLARE_MODEL||'').trim(),
-    String(env.MAGNANIMOUS_VISION_MODEL||'').trim(),
     String(env.MAGNANIMOUS_HEAVY_MODEL||'').trim(),
-    '@cf/meta/llama-3.2-1b-instruct',
-    '@cf/meta/llama-3.1-8b-instruct-fast',
-    '@cf/zai-org/glm-4.7-flash',
-    '@cf/qwen/qwen3-30b-a3b-fp8',
-    '@cf/google/gemma-4-26b-a4b-it',
-    '@cf/nvidia/nemotron-3-120b-a12b',
-    '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+    ...CURRENT_FALLBACK_MODELS
   ].filter(Boolean));
+}
+
+function candidateModels(env,requested){
+  const approved=approvedModels(env);
+  return [...new Set([
+    String(requested||'').trim(),
+    String(env.CLOUDFLARE_AI_MODEL||'').trim(),
+    String(env.AGENT_CLOUDFLARE_MODEL||'').trim(),
+    ...CURRENT_FALLBACK_MODELS
+  ].filter(model=>model&&approved.has(model)))];
 }
 
 function normalizeMessages(input){
@@ -78,21 +88,33 @@ export async function handleEdgeAiBridge(request,env){
   const body=await request.json().catch(()=>null);
   if(!body||typeof body!=='object')return json({detail:'Invalid JSON body.'},400);
 
-  const model=String(body.model||env.CLOUDFLARE_AI_MODEL||'@cf/meta/llama-3.1-8b-instruct-fast').trim();
-  if(!approvedModels(env).has(model))return json({detail:'Model is not approved for the private edge bridge.'},400);
+  const requested=String(body.model||'').trim();
+  if(requested&&!approvedModels(env).has(requested))return json({detail:'Model is not approved for the private edge bridge.'},400);
   const messages=normalizeMessages(body);
   if(!messages.length)return json({detail:'At least one message is required.'},400);
   const maxTokens=Math.max(32,Math.min(3200,Number(body.max_tokens||body.max_completion_tokens||2200)||2200));
+  const models=candidateModels(env,requested);
+  if(!models.length)return json({detail:'No approved Workers AI model is configured.'},503);
 
-  try{
-    let result;
-    try{result=await env.AI.run(model,{messages,max_tokens:maxTokens});}
-    catch(_){result=await env.AI.run(model,{messages});}
-    const text=extractText(result);
-    if(!text)return json({detail:'Workers AI returned no text.'},502);
-    return json({ok:true,bridge_version:EDGE_AI_BRIDGE_VERSION,response:text,result:{response:text}});
-  }catch(error){
-    console.error('Private edge AI bridge execution failed',String(error?.message||error));
-    return json({detail:'Private edge AI bridge execution failed.'},502);
+  const errors=[];
+  for(const model of models){
+    try{
+      let result;
+      try{result=await env.AI.run(model,{messages,max_completion_tokens:maxTokens});}
+      catch(primaryError){
+        try{result=await env.AI.run(model,{messages,max_tokens:maxTokens});}
+        catch(secondaryError){
+          errors.push(`${model}: ${String(secondaryError?.message||primaryError?.message||secondaryError||primaryError)}`);
+          continue;
+        }
+      }
+      const text=extractText(result);
+      if(!text){errors.push(`${model}: empty response`);continue;}
+      return json({ok:true,bridge_version:EDGE_AI_BRIDGE_VERSION,model,response:text,result:{response:text}});
+    }catch(error){
+      errors.push(`${model}: ${String(error?.message||error)}`);
+    }
   }
+  console.error('Private edge AI bridge execution failed',errors.join(' | '));
+  return json({detail:'Private edge AI bridge execution failed.'},502);
 }
