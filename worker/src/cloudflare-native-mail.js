@@ -101,6 +101,7 @@ export function withCloudflareNativeMail(env){
   return{
     ...env,
     MAGNANIMOUS_MAIL:mailer,
-    // A binding alone is not evidence of deliverability; require explicit host readiness.\n    MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE: String(env.MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE||'').trim().toLowerCase()==='true'?'true':'false'
+    // A binding alone is not evidence of deliverability; require explicit host readiness.
+    MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE: String(env.MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE||'').trim().toLowerCase()==='true'?'true':'false'
   };
 }
