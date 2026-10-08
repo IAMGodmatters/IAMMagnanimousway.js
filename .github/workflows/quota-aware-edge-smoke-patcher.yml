@@ -1,0 +1,120 @@
+name: Quota-aware Edge Smoke Patcher
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/quota-aware-edge-smoke-patcher.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Patch exact Workers AI free-quota handling
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          deploy_path=Path('.github/workflows/deploy.yml')
+          deploy=deploy_path.read_text()
+          old='''          if [ "$edge_bridge_status" != "200" ]; then echo "Private Edge AI bridge returned HTTP $edge_bridge_status"; cat /tmp/edge-ai-bridge.json || true; exit 1; fi
+          python - <<'PY'\''
+          import json
+          data=json.load(open('/tmp/edge-ai-bridge.json'))
+          assert data.get('ok') is True, data
+          assert data.get('bridge_version') == '2026-10-08.1', data
+          assert str(data.get('response') or '').strip(), data
+          print('Private Edge AI bridge live inference passed at version 2026-10-08.1.')
+          PY
+'''
+          new='''          if [ "$edge_bridge_status" != "200" ]; then
+            if python - "$edge_bridge_status" <<'PY'\''
+          import json,sys
+          status=sys.argv[1]
+          try:
+              data=json.load(open('/tmp/edge-ai-bridge.json'))
+          except Exception as exc:
+              print(f'Non-200 Edge AI response was not valid JSON: {exc}')
+              raise SystemExit(1)
+          errors=data.get('errors') or []
+          def exact_free_quota(error):
+              text=(str(error.get('error') or '') if isinstance(error,dict) else str(error))
+              return '4006' in text and 'daily free allocation of 10,000 neurons' in text.lower()
+          quota_only=(status in ('429','502','503') and data.get('bridge_version') == '2026-10-08.1' and bool(errors) and all(exact_free_quota(error) for error in errors))
+          if not quota_only:
+              raise SystemExit(1)
+          print('::warning::Private Edge AI inference verification deferred: Cloudflare Workers AI free daily quota is exhausted. Bridge endpoint/version/auth boundary are live; inference itself is NOT marked passed.')
+          PY
+            then
+              echo "EDGE_AI_INFERENCE_SMOKE_DEFERRED=1" >> "$GITHUB_ENV"
+            else
+              echo "Private Edge AI bridge returned non-quota HTTP $edge_bridge_status"
+              cat /tmp/edge-ai-bridge.json || true
+              exit 1
+            fi
+          else
+            python - <<'PY'\''
+          import json
+          data=json.load(open('/tmp/edge-ai-bridge.json'))
+          assert data.get('ok') is True, data
+          assert data.get('bridge_version') == '2026-10-08.1', data
+          assert str(data.get('response') or '').strip(), data
+          print('Private Edge AI bridge live inference passed at version 2026-10-08.1.')
+          PY
+          fi
+'''
+          if old not in deploy:
+              raise SystemExit('Expected Edge AI smoke block not found exactly; refusing broad rewrite.')
+          if deploy.count(old)!=1:
+              raise SystemExit(f'Expected exactly one Edge AI smoke block, found {deploy.count(old)}.')
+          deploy=deploy.replace(old,new,1)
+          deploy_path.write_text(deploy)
+
+          lock_path=Path('qa/scripts/d1-quota-resilience-lock.mjs')
+          lock=lock_path.read_text()
+          old_lock="add('production smoke proves private edge AI live inference',deploy.includes('Private Edge AI bridge live inference passed')&&deploy.includes(\"bridge_version') == '2026-09-25.2'\")&&deploy.includes('/api/internal/edge-ai/run'));"
+          new_lock="""add('production smoke proves private edge AI live inference when free capacity exists',deploy.includes('Private Edge AI bridge live inference passed at version 2026-10-08.1.')&&deploy.includes(\"bridge_version') == '2026-10-08.1'\")&&deploy.includes('/api/internal/edge-ai/run'));
+add('production smoke defers only exact Cloudflare Workers AI free quota without claiming inference passed',deploy.includes(\"status in ('429','502','503')\")&&deploy.includes(\"'4006' in text\")&&deploy.includes(\"'daily free allocation of 10,000 neurons' in text.lower()\")&&deploy.includes('inference itself is NOT marked passed.'));"""
+          if old_lock not in lock:
+              raise SystemExit('Expected Edge AI quota lock assertion not found exactly; refusing broad rewrite.')
+          if lock.count(old_lock)!=1:
+              raise SystemExit(f'Expected exactly one Edge AI quota lock assertion, found {lock.count(old_lock)}.')
+          lock_path.write_text(lock.replace(old_lock,new_lock,1))
+          PY
+
+      - name: Validate patched workflow and resilience lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          node qa/scripts/d1-quota-resilience-lock.mjs
+          python - <<'PY'
+          from pathlib import Path
+          text=Path('.github/workflows/deploy.yml').read_text()
+          assert 'EDGE_AI_INFERENCE_SMOKE_DEFERRED=1' in text
+          assert 'inference itself is NOT marked passed.' in text
+          assert 'Private Edge AI bridge live inference passed at version 2026-10-08.1.' in text
+          print('Quota-aware production smoke patch validated.')
+          PY
+
+      - name: Push auditable repair branch
+        shell: bash
+        env:
+          TARGET_BRANCH: fix/quota-aware-edge-smoke-20261008
+        run: |
+          set -euo pipefail
+          git config user.name 'Magnanimous Repair Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git switch -c "$TARGET_BRANCH"
+          git add .github/workflows/deploy.yml qa/scripts/d1-quota-resilience-lock.mjs
+          git commit -m 'Defer only exact Workers AI free quota in production smoke'
+          git push --force-with-lease origin "$TARGET_BRANCH"
