@@ -40,8 +40,7 @@
     // Pull-request merge remains independently hard-locked by default.
     "DEV_AGENT_MERGE_ENABLED": "false",
     "MAGNANIMOUS_MAIL_FROM": "Godmattersinc@iammagnanimousway.com",
-    "MAGNANIMOUS_MAIL_FROM_NAME": "I AM MAGNANIMOUS WAY",
-    "MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE": "true"
+    "MAGNANIMOUS_MAIL_FROM_NAME": "I AM MAGNANIMOUS WAY"
   },
   "send_email": [
     { "name": "MAGNANIMOUS_EMAIL" }

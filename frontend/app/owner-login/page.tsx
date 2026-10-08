@@ -1,6 +1,6 @@
 'use client';
 
-import {FormEvent,useState} from 'react';
+import {FormEvent,useEffect,useState} from 'react';
 import {clearMagnanimousAdminToken,setMagnanimousAdminToken} from '../lib/magnanimous-session';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
@@ -14,10 +14,25 @@ export default function OwnerLoginPage(){
  const[password,setPassword]=useState('');
  const[code,setCode]=useState('');
  const[challengeToken,setChallengeToken]=useState('');
- const[mode,setMode]=useState<'email'|'code'|'password'>('email');
+ const[emailTransportReady,setEmailTransportReady]=useState<boolean|null>(null);
+ const[mode,setMode]=useState<'email'|'code'|'password'>('password');
  const[error,setError]=useState('');
  const[busy,setBusy]=useState(false);
  const[success,setSuccess]=useState('');
+
+ useEffect(()=>{
+  let cancelled=false;
+  fetch(`${api}/health`,{cache:'no-store'})
+   .then(readResponse)
+   .then(d=>{
+    if(cancelled)return;
+    const ready=d?.owner_email_login_transport_ready===true;
+    setEmailTransportReady(ready);
+    if(ready)setMode(current=>current==='password'?'email':current);
+   })
+   .catch(()=>{if(!cancelled)setEmailTransportReady(false)});
+  return()=>{cancelled=true};
+ },[]);
 
  function resetBrowserAuth(){
   clearMagnanimousAdminToken();
@@ -78,9 +93,9 @@ export default function OwnerLoginPage(){
    <small>PRIVATE OWNER ACCESS</small>
    <h1>I AM MAGNANIMOUS WAY™</h1>
    <h2>Owner Command Portal</h2>
-   <p>{mode==='email'?'Enter only your owner email. Magnanimous will send a fresh 8-digit one-time login code.':mode==='code'?'Check your owner email, then enter the 8-digit code.':'Emergency password fallback for the platform owner.'}</p>
+   <p>{mode==='email'?'Enter only your owner email. Magnanimous will send a fresh 8-digit one-time login code.':mode==='code'?'Check your owner email, then enter the 8-digit code.':emailTransportReady===false?'Owner password access is ready. Email-code login will appear after a verified mail sender is connected.':'Emergency password fallback for the platform owner.'}</p>
 
-   {mode==='email'&&<form onSubmit={requestCode}>
+   {mode==='email'&&emailTransportReady===true&&<form onSubmit={requestCode}>
     <input required type="email" autoComplete="username" placeholder="Owner email" value={email} onChange={e=>setEmail(e.target.value)}/>
     <button disabled={busy}>{busy?'SENDING CODE…':'SEND MY LOGIN CODE'}</button>
     <div className="loginAssist"><span>Code expires in 10 minutes</span><button type="button" className="linkButton" onClick={()=>{setMode('password');setError('');setSuccess('')}}>Use password fallback</button></div>
@@ -100,7 +115,7 @@ export default function OwnerLoginPage(){
     <input required type="email" autoComplete="username" placeholder="Owner email" value={email} onChange={e=>setEmail(e.target.value)}/>
     <input required type="password" autoComplete="current-password" placeholder="Owner password" value={password} onChange={e=>setPassword(e.target.value)}/>
     <button disabled={busy}>{busy?'VERIFYING…':'ACCESS WITH PASSWORD'}</button>
-    <div className="loginAssist"><a href="/forgot-password?portal=owner">Forgot password?</a><button type="button" className="linkButton" onClick={()=>{setMode('email');setError('');setSuccess('')}}>Use email code</button></div>
+    <div className="loginAssist"><a href="/forgot-password?portal=owner">Forgot password?</a>{emailTransportReady===true?<button type="button" className="linkButton" onClick={()=>{setMode('email');setError('');setSuccess('')}}>Use email code</button>:<span>{emailTransportReady===null?'Checking email-code readiness…':'Password login is the active owner path'}</span>}</div>
     {success&&<div className="success">{success}</div>}
     {error&&<div className="error">{error}</div>}
    </form>}
