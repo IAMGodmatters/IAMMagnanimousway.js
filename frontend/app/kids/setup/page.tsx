@@ -7,19 +7,21 @@ async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}
 
 export default function KidsDriveSetup(){
  const[ready,setReady]=useState(false),[email,setEmail]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('Checking owner Drive connection…');
+ const ownerLogin='/owner-login?returnTo=%2Fkids%2Fsetup';
  async function status(){
-  const t=token();if(!t){location.replace('/login?return=/kids/setup');return}
+  const t=token();if(!t){location.replace(ownerLogin);return}
   const r=await fetch(`${api}/api/kids-drive/owner-status`,{headers:{Authorization:`Bearer ${t}`},cache:'no-store'}),d=await read(r);
-  if(r.status===401){location.replace('/login?return=/kids/setup');return}
+  if(r.status===401||r.status===403){localStorage.removeItem('iam_account_token');localStorage.removeItem('odin_admin_token');location.replace(ownerLogin);return}
   if(!r.ok){setMessage(d.detail||'Could not read Kids Drive status.');return}
   setReady(Boolean(d.ready));setEmail(String(d.google_email||''));setMessage(d.ready?'Owner Google Drive is connected. Audience playback can use the private server-side stream.':'Connect the approved owner Google account once. Audience viewers will not see or receive the Google login or token.');
  }
  useEffect(()=>{status()},[]);
  async function connect(){
-  const t=token();if(!t){location.replace('/login?return=/kids/setup');return}
+  const t=token();if(!t){location.replace(ownerLogin);return}
   setBusy(true);setMessage('Opening Google authorization…');
   try{
    const r=await fetch(`${api}/api/kids-drive/connect`,{method:'POST',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:'{}'}),d=await read(r);
+   if(r.status===401||r.status===403){localStorage.removeItem('iam_account_token');localStorage.removeItem('odin_admin_token');location.replace(ownerLogin);return}
    if(!r.ok)throw new Error(d.detail||'Could not start Google Drive authorization.');
    location.href=d.authorization_url;
   }catch(e:any){setMessage(e?.message||'Could not start Google Drive authorization.');setBusy(false)}
