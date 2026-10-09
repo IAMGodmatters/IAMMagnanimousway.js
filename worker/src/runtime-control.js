@@ -1,5 +1,6 @@
 import { verifyGitHubActionsOidcWorker } from './github-actions-oidc.js';
 import { handleKidsDriveMedia } from './kids-media-runtime.js';
+import { getIntegrationRuntimeEnv } from './platform-credentials.js';
 
 function runtimeRevision(env){return String(env?.MAGNANIMOUS_DEPLOY_REVISION||'').trim();}
 function noStore(){return {'cache-control':'no-store'};}
@@ -13,12 +14,13 @@ export async function handleMagnanimousRuntimeControl(request,env){
   // before the generic standalone API proxy so an expired external runtime can
   // never break owner OAuth or audience streaming.
   if(path.startsWith('/api/kids-')){
-    const response=await handleKidsDriveMedia(request,env);
+    const kidsEnv=await getIntegrationRuntimeEnv(env);
+    const response=await handleKidsDriveMedia(request,kidsEnv);
     // Safe diagnostic only: report whether the Worker has the required OAuth
     // configuration without exposing IDs, secrets, tokens, or owner data.
     if(path==='/api/kids-media/status'&&request.method==='GET'&&response){
       const data=await response.clone().json().catch(()=>null);
-      if(data&&typeof data==='object')return json({...data,oauth_configured:Boolean(env?.GOOGLE_CLIENT_ID&&env?.GOOGLE_CLIENT_SECRET)},response.status);
+      if(data&&typeof data==='object')return json({...data,oauth_configured:Boolean(kidsEnv?.GOOGLE_CLIENT_ID&&kidsEnv?.GOOGLE_CLIENT_SECRET)},response.status);
     }
     return response;
   }
