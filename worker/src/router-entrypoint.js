@@ -42,9 +42,10 @@ import { handleBusinessEmail } from './business-email-runtime.js';
 import { handleBusinessPlan } from './business-plan-subscription-runtime.js';
 import { handleVisual } from './visual-runtime.js';
 import { handleVideoAgents } from './video-agents-runtime.js';
+import { handleKidsDriveMedia } from './kids-media-runtime.js';
 import { premiumPreflight, premiumPostprocess } from './premium-runtime-guard.js';
 
-const corsHeaders={'access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,PUT,DELETE,OPTIONS','access-control-allow-headers':'Content-Type, Authorization, Stripe-Signature, X-Twilio-Signature','access-control-expose-headers':'Content-Type'};
+const corsHeaders={'access-control-allow-origin':'*','access-control-allow-methods':'GET,HEAD,POST,PUT,DELETE,OPTIONS','access-control-allow-headers':'Content-Type, Authorization, Range, Stripe-Signature, X-Twilio-Signature','access-control-expose-headers':'Content-Type, Content-Length, Content-Range, Accept-Ranges'};
 function withCors(response){const headers=new Headers(response.headers);for(const[key,value]of Object.entries(corsHeaders))headers.set(key,value);return new Response(response.body,{status:response.status,statusText:response.statusText,headers});}
 function isMagnanimousRoute(pathname){return pathname==='/api/providers'||pathname==='/api/operator/capabilities'||pathname==='/api/magnanimous/health'||pathname==='/api/odin/health'||pathname==='/api/chat'||pathname==='/api/tools';}
 function needsProviderRuntime(pathname){return isMagnanimousRoute(pathname)||pathname.startsWith('/api/magnanimous/')||pathname.startsWith('/api/wellness')||pathname.startsWith('/api/business-plan')||pathname.startsWith('/api/visual')||pathname.startsWith('/api/video-agents')||pathname.startsWith('/api/phone')||pathname.startsWith('/api/contact-center')||pathname.startsWith('/api/social-connect')||pathname.startsWith('/api/enterprise')||pathname==='/api/plans'||pathname.startsWith('/api/billing')||pathname.startsWith('/api/voice-agent')||pathname.startsWith('/api/agents')||pathname==='/api/monetization/config';}
@@ -54,6 +55,7 @@ export default{async fetch(request,env,ctx){const url=new URL(request.url);if(re
  const bootstrapResponse=await handleBootstrap(request,env);if(bootstrapResponse)return withCors(bootstrapResponse);
  const businessEmailResponse=await handleBusinessEmail(request,env);if(businessEmailResponse)return withCors(businessEmailResponse);
  const billingSupportResponse=await handleBillingSupport(request,env);if(billingSupportResponse)return withCors(billingSupportResponse);
+ if(url.pathname.startsWith('/api/kids-')){const runtimeEnv=await getIntegrationRuntimeEnv(env);const r=await handleKidsDriveMedia(request,runtimeEnv);if(r)return withCors(r);}
  const providerEnv=needsProviderRuntime(url.pathname)?await getProviderRuntimeEnv(env):env;
  const premium=await premiumPreflight(request,providerEnv);if(premium.response)return withCors(premium.response);request=premium.request||request;
  if(url.pathname.startsWith('/api/enterprise')){const r=await handleEnterpriseCommercialization(request,providerEnv);if(r)return withCors(r);}
