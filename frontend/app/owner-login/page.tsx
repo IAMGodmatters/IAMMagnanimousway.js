@@ -47,7 +47,9 @@ export default function OwnerLoginPage(){
   setMagnanimousAdminToken(d.token,d.session_expires_at);
   sessionStorage.setItem('iam_session_active','owner');
   setSuccess('Owner verified. Opening your command dashboard…');
-  setTimeout(()=>location.replace('/?access=owner'),350);
+  const requested=new URLSearchParams(window.location.search).get('returnTo')||'';
+  const returnTo=requested.startsWith('/')&&!requested.startsWith('//')?requested:'/?access=owner';
+  setTimeout(()=>location.replace(returnTo),350);
  }
 
  async function requestCode(e:FormEvent){
