@@ -1,4 +1,5 @@
 import { verifyGitHubActionsOidcWorker } from './github-actions-oidc.js';
+import { handleKidsDriveMedia } from './kids-media-runtime.js';
 
 function runtimeRevision(env){return String(env?.MAGNANIMOUS_DEPLOY_REVISION||'').trim();}
 function noStore(){return {'cache-control':'no-store'};}
@@ -7,6 +8,14 @@ function json(data,status=200,headers={}){return Response.json(data,{status,head
 export async function handleMagnanimousRuntimeControl(request,env){
   const url=new URL(request.url);
   const path=url.pathname;
+
+  // Kids Drive/media is a Cloudflare/D1-owned free-first runtime. Route it here
+  // before the generic standalone API proxy so an expired external runtime can
+  // never break owner OAuth or audience streaming.
+  if(path.startsWith('/api/kids-')){
+    return handleKidsDriveMedia(request,env);
+  }
+
   if(path==='/__magnanimous_runtime/health'||path==='/__magnanimous_runtime/capabilities'){
     if(request.method!=='GET'&&request.method!=='HEAD')return json({detail:'Method not allowed.'},405,{allow:'GET, HEAD'});
     const payload={
