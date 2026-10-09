@@ -2,7 +2,7 @@ import { verifyGitHubActionsOidcWorker } from './github-actions-oidc.js';
 import { handleKidsDriveMedia } from './kids-media-runtime.js';
 import { getIntegrationRuntimeEnv } from './platform-credentials.js';
 
-// Kids OAuth deploy sync marker: keeps Cloudflare on the credential-aware runtime.
+// Kids OAuth deploy sync marker v2: keeps Cloudflare on the credential-aware runtime.
 function runtimeRevision(env){return String(env?.MAGNANIMOUS_DEPLOY_REVISION||'').trim();}
 function noStore(){return {'cache-control':'no-store'};}
 function json(data,status=200,headers={}){return Response.json(data,{status,headers:{...noStore(),...headers}});}

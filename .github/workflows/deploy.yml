@@ -184,6 +184,11 @@ jobs:
             printf '%s\n' "$output"
 
             if [ "$rc" -eq 0 ]; then
+              if printf '%s' "$output" | grep -qi "No migrations to apply"; then
+                echo "D1_MIGRATIONS_APPLIED=0" >> "$GITHUB_ENV"
+              else
+                echo "D1_MIGRATIONS_APPLIED=1" >> "$GITHUB_ENV"
+              fi
               break
             fi
 
@@ -240,6 +245,11 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
+          if [ "${D1_MIGRATIONS_APPLIED:-1}" = "0" ]; then
+            echo "No D1 migration changed production data; skipping destructive before/after identity rollback guard for this live code-only deploy."
+            rm -f /tmp/d1-auth-bookmark.json /tmp/d1-users-before.json /tmp/d1-auth-before.json /tmp/d1-tenants-before.json /tmp/d1-owner-before.json
+            exit 0
+          fi
           npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT id AS user_id FROM users ORDER BY id;" > /tmp/d1-users-after.json
           npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT id AS user_id, lower(email) AS email, password_hash, password_salt, active FROM users ORDER BY id;" > /tmp/d1-auth-after.json
           npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT id AS tenant_id FROM tenants ORDER BY id;" > /tmp/d1-tenants-after.json
