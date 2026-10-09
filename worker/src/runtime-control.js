@@ -13,7 +13,14 @@ export async function handleMagnanimousRuntimeControl(request,env){
   // before the generic standalone API proxy so an expired external runtime can
   // never break owner OAuth or audience streaming.
   if(path.startsWith('/api/kids-')){
-    return handleKidsDriveMedia(request,env);
+    const response=await handleKidsDriveMedia(request,env);
+    // Safe diagnostic only: report whether the Worker has the required OAuth
+    // configuration without exposing IDs, secrets, tokens, or owner data.
+    if(path==='/api/kids-media/status'&&request.method==='GET'&&response){
+      const data=await response.clone().json().catch(()=>null);
+      if(data&&typeof data==='object')return json({...data,oauth_configured:Boolean(env?.GOOGLE_CLIENT_ID&&env?.GOOGLE_CLIENT_SECRET)},response.status);
+    }
+    return response;
   }
 
   if(path==='/__magnanimous_runtime/health'||path==='/__magnanimous_runtime/capabilities'){
