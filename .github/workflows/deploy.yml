@@ -1978,7 +1978,7 @@ jobs:
           assert 'provider' not in d and 'provider_name' not in d and 'model' not in d and 'model_id' not in d and 'engine' not in d and 'execution_engine' not in d, d
           PY
 
-          status=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/checkout" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"plan":"plus","termsAccepted":true,"termsVersion":"unlimited-2026-09-18.1"}')
+          status=$(curl -sS -o /tmp/checkout.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/checkout" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"plan":"plus","termsAccepted":true,"termsVersion":"unlimited-2026-09-18.1","recurringDisclosureAccepted":true}')
           if [ "$status" != "200" ]; then echo "Stripe checkout creation returned HTTP $status"; cat /tmp/checkout.json || true; exit 1; fi
           python - "$tenant_id" <<'PY'
           import json,sys,urllib.parse
