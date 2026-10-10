@@ -8,6 +8,11 @@ has(native,"handleAdvancedCrm",'advanced CRM is routed through native operations
 has(native,"ADVANCED_CRM_CAPABILITIES",'advanced capability families are published');
 for(const x of ['crm_cases','crm_quotes','crm_quote_items','crm_campaigns','crm_campaign_touches','crm_territories','crm_health_snapshots'])has(runtime,x,`runtime owns ${x}`);
 for(const x of ['/api/operations/crm/advanced','/api/operations/crm/predictive-readiness','/api/operations/crm/cases','/api/operations/crm/quotes','/api/operations/crm/campaigns','/api/operations/crm/attribution','/api/operations/crm/territories','/api/operations/crm/customer-health/recalculate','communication-plan'])has(runtime,x,`endpoint ${x} exists`);
+has(runtime,"CRM_PRO_PLANS=new Set(['crm','business','scale','pro'])",'CRM Pro paid-plan entitlement catalog exists');
+has(runtime,"code:'CRM_PRO_REQUIRED'",'advanced CRM rejects unentitled workspaces');
+has(runtime,"if(!isAdvancedCrmPath(url.pathname))return null",'paid gate does not swallow CRM Lite routes');
+has(runtime,"['active','trialing'].includes(status)",'CRM Pro access requires an active or trialing verified subscription');
+has(runtime,"String(workspace?.slug||'')==='owner'",'platform owner retains CRM Pro access');
 has(runtime,'minimum_recommended:200','predictive scoring is gated on real outcome volume');
 has(runtime,"will not pretend heuristic scoring is a trained predictive model",'predictive readiness is truthfully labeled');
 has(runtime,'communicationPlan','contact-timezone communication planning exists');
@@ -22,5 +27,6 @@ has(ui,'PREDICTIVE MODEL READINESS','predictive readiness is visible');
 has(ui,'Communication windows are now CRM-native','safe outreach governance is visible');
 const failed=checks.filter(([ok])=>!ok);if(failed.length){for(const[,m]of failed)console.error('FAIL:',m);process.exit(1)}
 console.log(`CRM depth activation lock: ${checks.length} checks passed.`);
+console.log('CRM Pro paid entitlement boundary: PASS');
 console.log('Service + CPQ + attribution + territory/quota: PASS');
 console.log('Customer health + predictive readiness + communication governance: PASS');
