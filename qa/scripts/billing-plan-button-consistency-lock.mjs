@@ -1,1 +1,11 @@
-import fs from'node:fs';const p=fs.readFileSync(new URL('../../frontend/app/pricing/page.tsx',import.meta.url),'utf8'),b=fs.readFileSync(new URL('../../worker/src/billing-tiers-runtime.js',import.meta.url),'utf8');for(const s of ['Magnanimous Pro • $99/month',"Full Business',price_usd:49","Magnanimous Scale',price_usd:199,cadence:'month'"])if(p.includes(s))throw Error('stale billing '+s);if(!p.includes('Unlimited Fair-Use • $19.99/month')||!p.includes('Free, Unlimited or Annual'))throw Error('current pricing missing');if(!b.includes("PLAN_ORDER = ['free', 'plus', 'scale']")||!b.includes("business:'plus',pro:'plus'"))throw Error('aliases missing');console.log('Billing plan/button consistency passed.');
+import fs from'node:fs';
+const p=fs.readFileSync(new URL('../../frontend/app/pricing/page.tsx',import.meta.url),'utf8');
+const b=fs.readFileSync(new URL('../../worker/src/billing-tiers-runtime.js',import.meta.url),'utf8');
+for(const stale of ["business:'plus'","pro:'plus'","Magnanimous Annual', price_usd: 199","Full Business',price_usd:49"])if(b.includes(stale)||p.includes(stale))throw Error('stale billing '+stale);
+for(const required of ['Magnanimous CRM Pro • $79/month','Magnanimous Business • $119/month','$98.99 × 1.20 = $118.788'])if(!p.includes(required))throw Error('pricing UI missing '+required);
+if(!b.includes("PLAN_ORDER = ['free', 'plus', 'crm', 'business', 'scale']"))throw Error('new plan order missing');
+if(!/crm:[\s\S]*price_usd:\s*79[\s\S]*cadence:\s*'month'/.test(b))throw Error('CRM plan price missing');
+if(!/business:[\s\S]*price_usd:\s*119[\s\S]*cadence:\s*'month'/.test(b))throw Error('Business plan price missing');
+if(!/scale:[\s\S]*price_usd:\s*1190[\s\S]*cadence:\s*'year'/.test(b))throw Error('annual Business price missing');
+if(!b.includes('calculated_usd:118.788')||!b.includes('markup_percent:20'))throw Error('20% Business pricing basis missing');
+console.log('Billing plan/button consistency passed.');
