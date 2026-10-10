@@ -9,8 +9,9 @@ export const PLAN_LIMITS={
  crm:{rank:1.5,metered_ai:true,pstn_minutes:30,avatar_minutes:0,premium_video_credits:0,cost_ceiling_usd:42},
  business:{rank:2,metered_ai:true,pstn_minutes:90,avatar_minutes:30,premium_video_credits:30,cost_ceiling_usd:160},
  scale:{rank:3,metered_ai:true,pstn_minutes:180,avatar_minutes:60,premium_video_credits:60,cost_ceiling_usd:170},
- agency:{rank:4,metered_ai:true,pstn_minutes:240,avatar_minutes:90,premium_video_credits:90,cost_ceiling_usd:170,white_label:true,client_subaccounts:25,usage_rebilling:true},
- agency_pro:{rank:5,metered_ai:true,pstn_minutes:360,avatar_minutes:120,premium_video_credits:120,cost_ceiling_usd:280,white_label:true,client_subaccounts:100,usage_rebilling:true}
+ // Preserve historical White Label rank semantics. Rank 4 intentionally remains unused.
+ agency:{rank:5,metered_ai:true,pstn_minutes:240,avatar_minutes:90,premium_video_credits:90,cost_ceiling_usd:170,white_label:true,client_subaccounts:25,usage_rebilling:true},
+ agency_pro:{rank:6,metered_ai:true,pstn_minutes:360,avatar_minutes:120,premium_video_credits:120,cost_ceiling_usd:280,white_label:true,client_subaccounts:100,usage_rebilling:true}
 };
 const PLAN_ALIAS={pro:'business'};
 
