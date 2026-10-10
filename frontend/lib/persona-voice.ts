@@ -55,6 +55,17 @@ function roleTuning(label:string){
  return{rate:.96,pitch:1};
 }
 
+const personaSignatures=[
+ {rate:-.052,pitch:-.070},
+ {rate:-.034,pitch:.052},
+ {rate:.028,pitch:-.048},
+ {rate:.050,pitch:.034},
+ {rate:-.046,pitch:.072},
+ {rate:.018,pitch:.066},
+ {rate:.042,pitch:-.064},
+ {rate:-.014,pitch:-.026},
+] as const;
+
 export function personaVoiceProfile(label='Magnanimous AI'):VoiceProfile{
  const name=String(label||'Magnanimous AI').trim()||'Magnanimous AI';
  const h=hash(name.toLowerCase());
@@ -63,9 +74,10 @@ export function personaVoiceProfile(label='Magnanimous AI'):VoiceProfile{
  const pool=natural.length>=2?natural:voices;
  const voice=pool.length?pool[h%pool.length]:undefined;
  const base=roleTuning(name);
- // Every persona keeps a small stable signature even when a device exposes only one voice.
- const rateSignature=(((h>>>5)%7)-3)*.008;
- const pitchSignature=(((h>>>11)%9)-4)*.012;
+ // Keep each named specialist audibly recognizable even on devices that expose only one usable voice.
+ const signature=personaSignatures[(h>>>3)%personaSignatures.length];
+ const rateSignature=signature.rate+((((h>>>15)%5)-2)*.004);
+ const pitchSignature=signature.pitch+((((h>>>20)%5)-2)*.006);
  const rate=Math.max(.89,Math.min(1.04,base.rate+rateSignature));
  const pitch=Math.max(.88,Math.min(1.08,base.pitch+pitchSignature));
  return{voice,rate,pitch,lang:voice?.lang||'en-US'};
