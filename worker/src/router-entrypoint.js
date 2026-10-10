@@ -30,6 +30,7 @@ import { handleTierBilling } from './billing-tiers-runtime.js';
 import { handleBillingSupport } from './billing-support-runtime.js';
 import { handleBillingCheckoutHardening } from './billing-checkout-hardening.js';
 import { handleHardenedStripeWebhook } from './stripe-webhook-hardened.js';
+import { applyBillingPlanCompatibility } from './billing-plan-compatibility.js';
 import { handleVoiceAgent } from './voice-agent-runtime.js';
 import { handlePhoneCarrier } from './phone-carrier-runtime.js';
 import { handleAgentMesh } from './agent-mesh-runtime.js';
@@ -50,6 +51,7 @@ function withCors(response){const headers=new Headers(response.headers);for(cons
 function isMagnanimousRoute(pathname){return pathname==='/api/providers'||pathname==='/api/operator/capabilities'||pathname==='/api/magnanimous/health'||pathname==='/api/odin/health'||pathname==='/api/chat'||pathname==='/api/tools';}
 function needsProviderRuntime(pathname){return isMagnanimousRoute(pathname)||pathname.startsWith('/api/magnanimous/')||pathname.startsWith('/api/wellness')||pathname.startsWith('/api/business-plan')||pathname.startsWith('/api/visual')||pathname.startsWith('/api/video-agents')||pathname.startsWith('/api/phone')||pathname.startsWith('/api/contact-center')||pathname.startsWith('/api/social-connect')||pathname.startsWith('/api/enterprise')||pathname==='/api/plans'||pathname.startsWith('/api/billing')||pathname.startsWith('/api/voice-agent')||pathname.startsWith('/api/agents')||pathname==='/api/monetization/config';}
 async function magnanimousChatRequest(request,env){if(request.method!=='POST')return request;try{const memory=await getMagnanimousMemoryContext(request,env);if(!memory)return request;const body=await request.clone().json();const message=String(body?.message||'').trim();if(!message)return request;return new Request(request.url,{method:request.method,headers:request.headers,body:JSON.stringify({...body,message:`${message}${memory}`})});}catch{return request;}}
+async function compatibleBilling(request,response,env){return applyBillingPlanCompatibility(request,await augmentBillingResponse(request,response,env),env)}
 
 export default{async fetch(request,env,ctx){const url=new URL(request.url);if(request.method==='OPTIONS')return new Response(null,{status:204,headers:corsHeaders});try{
  const bootstrapResponse=await handleBootstrap(request,env);if(bootstrapResponse)return withCors(bootstrapResponse);
@@ -76,9 +78,9 @@ export default{async fetch(request,env,ctx){const url=new URL(request.url);if(re
  const monetizationResponse=await handleMonetization(request,providerEnv);if(monetizationResponse)return withCors(monetizationResponse);
  const checkoutHardeningResponse=await handleBillingCheckoutHardening(request,providerEnv);if(checkoutHardeningResponse)return withCors(checkoutHardeningResponse);
  const hardenedWebhookResponse=await handleHardenedStripeWebhook(request,providerEnv);if(hardenedWebhookResponse)return withCors(hardenedWebhookResponse);
- const tierBillingResponse=await handleTierBilling(request,providerEnv);if(tierBillingResponse)return withCors(await augmentBillingResponse(request,tierBillingResponse,providerEnv));
+ const tierBillingResponse=await handleTierBilling(request,providerEnv);if(tierBillingResponse)return withCors(await compatibleBilling(request,tierBillingResponse,providerEnv));
  const paymentLinkResponse=await handlePaymentLinkBilling(request,providerEnv);if(paymentLinkResponse)return withCors(paymentLinkResponse);
- const billingResponse=await handleBilling(request,providerEnv);if(billingResponse)return withCors(await augmentBillingResponse(request,billingResponse,providerEnv));
+ const billingResponse=await handleBilling(request,providerEnv);if(billingResponse)return withCors(await compatibleBilling(request,billingResponse,providerEnv));
  const phoneCarrierResponse=await handlePhoneCarrier(request,providerEnv);if(phoneCarrierResponse)return withCors(await premiumPostprocess(phoneCarrierResponse,providerEnv,premium.context));
  const voiceAgentResponse=await handleVoiceAgent(request,providerEnv);if(voiceAgentResponse)return withCors(await premiumPostprocess(voiceAgentResponse,providerEnv,premium.context));
  if(url.pathname.startsWith('/api/mux')){const r=await handleMux(request,env);if(r)return withCors(r);}

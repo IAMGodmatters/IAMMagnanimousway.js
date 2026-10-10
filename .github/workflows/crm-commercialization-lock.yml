@@ -1,0 +1,66 @@
+name: CRM Commercialization Lock
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/app/magnanimous-crm/**'
+      - 'frontend/app/pricing/**'
+      - 'frontend/app/terms/**'
+      - 'frontend/app/business-plan/**'
+      - 'frontend/components/PremiumAgreementConsent.tsx'
+      - 'worker/src/billing-**'
+      - 'worker/src/stripe-webhook-hardened.js'
+      - 'worker/src/payment-**'
+      - 'worker/src/usage-guard.js'
+      - 'worker/src/business-plan-subscription-runtime.js'
+      - 'worker/src/crm-advanced-runtime.js'
+      - 'worker/src/router-entrypoint.js'
+      - 'docs/CRM-BEST-OF-BREED-2026.md'
+      - 'docs/PRICING-TIERS-2026.md'
+      - 'docs/ECONOMICS-GUARDRAILS.md'
+      - 'qa/scripts/crm-commercialization-lock.mjs'
+      - 'qa/scripts/crm-depth-activation-lock.mjs'
+      - '.github/workflows/crm-commercialization-lock.yml'
+  pull_request:
+    paths:
+      - 'frontend/app/magnanimous-crm/**'
+      - 'frontend/app/pricing/**'
+      - 'frontend/app/terms/**'
+      - 'frontend/app/business-plan/**'
+      - 'frontend/components/PremiumAgreementConsent.tsx'
+      - 'worker/src/billing-**'
+      - 'worker/src/stripe-webhook-hardened.js'
+      - 'worker/src/payment-**'
+      - 'worker/src/usage-guard.js'
+      - 'worker/src/business-plan-subscription-runtime.js'
+      - 'worker/src/crm-advanced-runtime.js'
+      - 'worker/src/router-entrypoint.js'
+      - 'docs/CRM-BEST-OF-BREED-2026.md'
+      - 'docs/PRICING-TIERS-2026.md'
+      - 'docs/ECONOMICS-GUARDRAILS.md'
+      - 'qa/scripts/crm-commercialization-lock.mjs'
+      - 'qa/scripts/crm-depth-activation-lock.mjs'
+      - '.github/workflows/crm-commercialization-lock.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  crm-commercialization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Verify CRM product, pricing, entitlements and billing safety
+        run: |
+          node qa/scripts/crm-commercialization-lock.mjs
+          node qa/scripts/crm-depth-activation-lock.mjs
+          node qa/scripts/billing-plan-button-consistency-lock.mjs
+          node qa/scripts/payment-safety-lock.mjs
+          node qa/scripts/distinct-payment-terms-lock.mjs
+          node qa/scripts/live-billing-legal-audit.mjs
+          node qa/scripts/pricing-triple-audit-lock.mjs
+          node qa/scripts/live-stripe-catalog-lock.mjs

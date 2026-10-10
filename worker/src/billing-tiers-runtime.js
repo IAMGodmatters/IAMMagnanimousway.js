@@ -4,46 +4,53 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
   headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
 });
 
-const PLAN_ORDER = ['free', 'plus', 'scale'];
-const LEGACY_PLAN_ALIAS={business:'plus',pro:'plus'};
+const PLAN_ORDER = ['free', 'plus', 'crm', 'business', 'scale'];
+const LEGACY_PLAN_ALIAS={pro:'business'};
 const PLAN_CONFIG = {
   free: {
     id: 'free', name: 'Free', price_usd: 0, cadence: 'forever', primary: true,
-    description: 'Core Magnanimous AI and creator/business tools with free-first providers.',
-    features: ['Magnanimous AI', 'Free-first AI routing', 'Creator workspaces', 'CRM and lead tools', 'Free translation'],
+    description: 'Core Magnanimous AI and free-first creator/business tools, including CRM Lite.',
+    features: ['Magnanimous AI', 'Free-first AI routing', 'Creator workspaces', 'CRM Lite and lead tools', 'Free translation'],
     entitlements: { metered_ai: false, pstn_minutes: 0, avatar_minutes: 0, premium_video_credits: 0, cost_ceiling_usd: 0 }
   },
   plus: {
     id: 'plus', name: 'Magnanimous Unlimited Fair-Use', price_usd: 19.99, cadence: 'month',
-    description: 'Affordable expanded access while high-variable-cost services stay controlled.',
+    description: 'Expanded ordinary platform access while high-variable-cost services stay customer-funded.',
     features: ['Everything in Free', 'Higher workflow capacity', 'Expanded business tools', 'Priority free-first routing'],
     entitlements: { metered_ai: false, pstn_minutes: 0, avatar_minutes: 0, premium_video_credits: 0, cost_ceiling_usd: 8 }
   },
-  business: {
-    id: 'business', name: 'Magnanimous Unlimited Fair-Use', price_usd: 19.99, cadence: 'month',
-    description: 'Full business workspace with controlled access to premium integrations.',
-    features: ['Everything in Plus', 'Full business workspace', 'Advanced assistant workflows', 'Calling and avatar integration access', 'Professional Business Plan included where entitlement rules apply'],
-    entitlements: { metered_ai: true, pstn_minutes: 30, avatar_minutes: 10, premium_video_credits: 10, cost_ceiling_usd: 24 }
+  crm: {
+    id: 'crm', name: 'Magnanimous CRM Pro', price_usd: 79, cadence: 'month',
+    description: 'Standalone AI-native CRM and revenue operating system for serious customer, pipeline and revenue work.',
+    features: ['CRM command center', 'People + company relationship graph', 'Multiple pipelines + weighted forecasting', 'Lead scoring + next-best actions', 'Sequences + consent-aware follow-up', 'Quotes + service + campaign attribution', 'Customer health + churn risk', 'Custom objects + automations + audit history'],
+    entitlements: { metered_ai: true, pstn_minutes: 30, avatar_minutes: 0, premium_video_credits: 0, cost_ceiling_usd: 42 }
   },
-  pro: {
-    id: 'pro', name: 'Magnanimous Unlimited Fair-Use', price_usd: 19.99, cadence: 'month',
-    description: 'Higher-capacity professional tier with larger controlled premium allowances.',
-    features: ['Everything in Full Business', 'Premium AI access', 'Larger calling allowance', 'Larger avatar/video allowance', 'Priority business workflows'],
-    entitlements: { metered_ai: true, pstn_minutes: 90, avatar_minutes: 30, premium_video_credits: 30, cost_ceiling_usd: 54 }
+  business: {
+    id: 'business', name: 'Magnanimous Business', price_usd: 214, cadence: 'month',
+    description: 'The complete business operating package: Magnanimous CRM Pro, the Professional Business Plan, and the broader Magnanimous paid business platform.',
+    features: ['Everything in Magnanimous Plus', 'Everything in Magnanimous CRM Pro', 'Professional Business Plan included', 'Full business workspace', 'Advanced assistant workflows', 'Calling and avatar integration access', '20% bundle upsell already built into the $214 base price'],
+    pricing_basis: { crm_usd:79, professional_business_plan_usd:79, plus_usd:19.99, component_total_usd:177.99, markup_percent:20, calculated_usd:213.588, rounded_price_usd:214 },
+    entitlements: { metered_ai: true, pstn_minutes: 90, avatar_minutes: 30, premium_video_credits: 30, cost_ceiling_usd: 160 }
   },
   scale: {
-    id: 'scale', name: 'Magnanimous Annual', price_usd: 199, cadence: 'year',
-    description: 'High-capacity organizational tier with controlled premium usage and scale features.',
-    features: ['Everything in Pro', 'Highest included capacity', 'Expanded team/business workflows', 'Largest controlled premium allowances', 'Scale-ready support path'],
-    entitlements: { metered_ai: true, pstn_minutes: 180, avatar_minutes: 60, premium_video_credits: 60, cost_ceiling_usd: 112 }
+    id: 'scale', name: 'Magnanimous Business Annual', price_usd: 2568, cadence: 'year',
+    description: 'Annual Magnanimous Business + CRM Pro + Professional Business Plan access for new checkout.',
+    features: ['Everything in Magnanimous Business', 'Everything in CRM Pro', 'Professional Business Plan included', 'Annual billing', 'Expanded team/business workflows', 'Largest controlled premium allowances', 'Scale-ready support path'],
+    entitlements: { metered_ai: true, pstn_minutes: 180, avatar_minutes: 60, premium_video_credits: 60, cost_ceiling_usd: 170 }
   }
 };
 
 const PRICE_ENV = {
   plus: 'STRIPE_PRICE_PLUS',
-  business: 'STRIPE_PRICE_PLUS',
-  pro: 'STRIPE_PRICE_PLUS',
+  crm: 'STRIPE_PRICE_CRM',
+  business: 'STRIPE_PRICE_BUSINESS',
   scale: 'STRIPE_PRICE_SCALE'
+};
+const TERM_VERSION={
+  plus:'unlimited-2026-09-18.1',
+  crm:'crm-2026-10-10.1',
+  business:'business-2026-10-10.2',
+  scale:'business-annual-2026-10-10.2'
 };
 
 function normalizedPlan(value) {
@@ -56,16 +63,17 @@ function planPrice(env, plan) {
   const key = PRICE_ENV[plan];
   return key ? String(env?.[key] || '') : '';
 }
-function targetMargin(env) {
-  const value = Number(env?.TARGET_GROSS_MARGIN_PERCENT || 20);
+function targetMarkup(env) {
+  const value = Number(env?.TARGET_PROVIDER_MARKUP_PERCENT || env?.TARGET_GROSS_MARGIN_PERCENT || 20);
   return Number.isFinite(value) && value > 0 && value < 100 ? value : 20;
 }
 function publicPlan(env, id) {
   const plan = PLAN_CONFIG[id];
   return {
     ...plan,
-    checkout_configured: id === 'free' ? true : Boolean(env.STRIPE_SECRET_KEY && planPrice(env, id)),
-    target_gross_margin_percent: targetMargin(env)
+    checkout_configured: id === 'free' ? true : Boolean(env.STRIPE_SECRET_KEY),
+    target_markup_percent: targetMarkup(env),
+    target_gross_margin_percent: targetMarkup(env)
   };
 }
 
@@ -125,6 +133,14 @@ async function stripeRequest(env, path, options = {}) {
   const data = await response.json().catch(() => ({}));
   return { ok: response.ok, status: response.status, data };
 }
+async function configuredPriceForPlan(env,plan){
+  const priceId=planPrice(env,plan);if(!priceId||!env.STRIPE_SECRET_KEY)return'';
+  const expected=PLAN_CONFIG[plan],interval=expected.cadence==='year'?'year':'month',unit=Math.round(Number(expected.price_usd||0)*100);
+  const {ok,data}=await stripeRequest(env,`/v1/prices/${encodeURIComponent(priceId)}`);
+  if(!ok||!data?.id||data.active===false)return'';
+  if(String(data.currency||'').toLowerCase()!=='usd'||Number(data.unit_amount||0)!==unit||String(data?.recurring?.interval||'')!==interval)return'';
+  return String(data.id);
+}
 async function saveSubscription(env, tenantId, values) {
   if (!tenantId) return;
   const timestamp = now();
@@ -146,14 +162,20 @@ async function createCheckout(request, env, user) {
   const body = await request.json().catch(() => ({}));
   const plan = normalizedPlan(body.plan || 'business');
   if (plan === 'free') return json({ detail: 'The Free plan does not require checkout.' }, 400);
-  const price = planPrice(env, plan);
-  if (!env.STRIPE_SECRET_KEY || !price) return json({ detail: `${PLAN_CONFIG[plan].name} checkout is not configured yet.`, code: 'STRIPE_NOT_CONFIGURED' }, 503);
-  const origin = siteOrigin(request, env);
-  const form = new URLSearchParams();
-  const requiredTerms=plan==='scale'?'annual-2026-09-18.1':'unlimited-2026-09-18.1';
+  if (!env.STRIPE_SECRET_KEY) return json({ detail: `${PLAN_CONFIG[plan].name} checkout is not configured yet.`, code: 'STRIPE_NOT_CONFIGURED' }, 503);
+  const requiredTerms=TERM_VERSION[plan]||TERM_VERSION.plus;
   if(body.termsAccepted!==true||String(body.termsVersion||'')!==requiredTerms) return json({detail:'The terms for the selected payment plan must be accepted before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED',requiredTerms},428);
+  const origin = siteOrigin(request, env),form = new URLSearchParams(),configuredPrice=await configuredPriceForPlan(env,plan),planDef=PLAN_CONFIG[plan];
   form.set('mode', 'subscription');
-  form.set('line_items[0][price]', price);
+  if(configuredPrice){
+    form.set('line_items[0][price]', configuredPrice);
+  }else{
+    form.set('line_items[0][price_data][currency]','usd');
+    form.set('line_items[0][price_data][unit_amount]',String(Math.round(Number(planDef.price_usd||0)*100)));
+    form.set('line_items[0][price_data][recurring][interval]',planDef.cadence==='year'?'year':'month');
+    form.set('line_items[0][price_data][product_data][name]',String(planDef.name));
+    form.set('line_items[0][price_data][product_data][description]',String(planDef.description).slice(0,500));
+  }
   form.set('line_items[0][quantity]', '1');
   form.set('client_reference_id', String(user.tenant_id));
   form.set('customer_email', String(user.email || ''));
@@ -161,8 +183,11 @@ async function createCheckout(request, env, user) {
   form.set('metadata[plan]', plan);
   form.set('metadata[terms_version]', String(body.termsVersion));
   form.set('metadata[terms_accepted]', 'true');
+  form.set('metadata[base_price_usd]', String(planDef.price_usd));
+  form.set('metadata[provider_markup_percent]', String(targetMarkup(env)));
   form.set('subscription_data[metadata][tenant_id]', String(user.tenant_id));
   form.set('subscription_data[metadata][plan]', plan);
+  form.set('subscription_data[metadata][terms_version]', String(body.termsVersion));
   form.set('allow_promotion_codes', 'true');
   form.set('success_url', `${origin}/pricing?checkout=success&plan=${encodeURIComponent(plan)}&session_id={CHECKOUT_SESSION_ID}`);
   form.set('cancel_url', `${origin}/pricing?checkout=cancelled&plan=${encodeURIComponent(plan)}`);
@@ -170,7 +195,7 @@ async function createCheckout(request, env, user) {
     method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString()
   });
   if (!ok || !data?.url) return json({ detail: data?.error?.message || 'Stripe could not create checkout.' }, 502);
-  return json({ url: data.url, session_id: data.id, plan });
+  return json({ url: data.url, session_id: data.id, plan, pricing_source:configuredPrice?'verified-configured-price':'inline-recurring-price-data', price_usd:planDef.price_usd, cadence:planDef.cadence });
 }
 function parseStripeSignature(header) {
   const out = { t: '', v1: [] };
@@ -273,7 +298,8 @@ async function status(env, user) {
   return json({
     plan: planId, plan_name: plan.name, subscription: row || null,
     entitlements: plan.entitlements,
-    target_gross_margin_percent: targetMargin(env),
+    target_markup_percent: targetMarkup(env),
+    target_gross_margin_percent: targetMarkup(env),
     direct_variable_cost_usd: cost,
     cost_ceiling_usd: ceiling,
     premium_usage_allowed: planId !== 'free' && cost < ceiling,
@@ -290,9 +316,11 @@ export async function handleTierBilling(request, env) {
   if (path === '/api/plans' && request.method === 'GET') return json({
     free_first: true,
     plans: PLAN_ORDER.map(id => publicPlan(env, id)),
-    business_checkout_configured: Boolean(env.STRIPE_SECRET_KEY && planPrice(env, 'business')),
-    tier_checkout_configured: Object.fromEntries(PLAN_ORDER.filter(id=>id!=='free').map(id=>[id,Boolean(env.STRIPE_SECRET_KEY && planPrice(env,id))])),
-    target_gross_margin_percent: targetMargin(env)
+    business_checkout_configured: Boolean(env.STRIPE_SECRET_KEY),
+    crm_checkout_configured: Boolean(env.STRIPE_SECRET_KEY),
+    tier_checkout_configured: Object.fromEntries(PLAN_ORDER.filter(id=>id!=='free').map(id=>[id,Boolean(env.STRIPE_SECRET_KEY)])),
+    target_markup_percent: targetMarkup(env),
+    target_gross_margin_percent: targetMarkup(env)
   });
   if (path === '/api/billing/webhook' && request.method === 'POST') return webhook(request, env);
   const user = await currentUser(request, env);

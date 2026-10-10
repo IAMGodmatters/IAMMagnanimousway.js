@@ -6,8 +6,8 @@ const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 // Provider-funded premium capabilities are released only for actually active paid subscriptions.
 const ACTIVE=new Set(['active']);
-const PLANS=new Set(['plus','scale']);
-const PLAN_ALIAS={business:'plus',pro:'plus'};
+const PLANS=new Set(['plus','crm','business','scale']);
+const PLAN_ALIAS={pro:'business'};
 const AGENCY_PLANS=new Set(['agency','agency_pro']);
 
 async function hmacHex(secret,value){const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);const out=await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(value));return[...new Uint8Array(out)].map(x=>x.toString(16).padStart(2,'0')).join('')}
@@ -16,8 +16,11 @@ function parseSignature(header){const out={t:'',v1:[]};for(const part of String(
 async function verify(raw,header,secret){const p=parseSignature(header),stamp=Number(p.t);if(!p.t||!p.v1.length||!Number.isFinite(stamp)||Math.abs(now()-stamp)>300)return false;const expected=await hmacHex(secret,`${p.t}.${raw}`);return p.v1.some(v=>safeEqual(v,expected))}
 function paymentConfirmed(object){const payment=String(object?.payment_status||'').toLowerCase();return payment==='paid'||payment==='no_payment_required'}
 function pricePlan(env,object){
- const map=new Map([[String(env.STRIPE_PRICE_PLUS||''),'plus'],[String(env.STRIPE_PRICE_SCALE||''),'scale']]);
- const items=object?.items?.data||[];for(const item of items){const id=String(item?.price?.id||item?.plan?.id||'');if(map.has(id))return map.get(id)}
+ // Only map the stable Plus Price directly. New CRM/Business/Annual checkout can
+ // use Stripe inline recurring price_data and always carries signed plan metadata.
+ // This prevents stale legacy Business price IDs from being mistaken for the new $214 plan.
+ const plusId=String(env.STRIPE_PRICE_PLUS||''),items=object?.items?.data||[];
+ for(const item of items){const id=String(item?.price?.id||item?.plan?.id||'');if(plusId&&id===plusId)return'plus'}
  const metadataRaw=String(object?.metadata?.plan||'').toLowerCase(),metadata=PLAN_ALIAS[metadataRaw]||metadataRaw;return PLANS.has(metadata)?metadata:'';
 }
 async function ensureSchema(env){
@@ -32,7 +35,11 @@ async function save(env,tenantId,values){
  const plan=String(values.plan||old?.plan||'free').toLowerCase();
  await env.DB.prepare(`INSERT INTO billing_subscriptions(tenant_id,plan,stripe_customer_id,stripe_subscription_id,status,current_period_end,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id) DO UPDATE SET plan=excluded.plan,stripe_customer_id=excluded.stripe_customer_id,stripe_subscription_id=excluded.stripe_subscription_id,status=excluded.status,current_period_end=excluded.current_period_end,updated_at=excluded.updated_at`)
   .bind(tenantId,plan,values.customer_id??old?.stripe_customer_id??null,values.subscription_id??old?.stripe_subscription_id??null,String(values.status??old?.status??'inactive'),values.current_period_end??old?.current_period_end??null,old?.created_at||ts,ts).run();
- await env.DB.prepare('UPDATE tenants SET plan=? WHERE id=?').bind(plan,tenantId).run();
+ // Legacy feature gates read tenants.plan and historically only knew "business".
+ // Keep the billing row precise (scale stays scale) while exposing annual Business
+ // as business to older feature gates until every legacy surface is migrated.
+ const compatibilityPlan=plan==='scale'?'business':plan;
+ await env.DB.prepare('UPDATE tenants SET plan=? WHERE id=?').bind(compatibilityPlan,tenantId).run();
 }
 async function resolveTenant(env,object){
  const metadataTenant=String(object?.metadata?.tenant_id||'').trim();if(metadataTenant)return metadataTenant;
