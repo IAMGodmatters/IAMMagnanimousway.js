@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { getMagnanimousRenderingCapabilitySummary } from './magnanimous-hcti-capability-registry.js';
+import { platformOwnerDeveloperIdentity } from './platform-owner-guard.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -47,7 +48,7 @@ function readiness(env){
   image_transform_configured:Boolean(s.images?.configured??s.images),
   object_store_configured:Boolean(s.objects),
   native_runtime_ready:Boolean((s.browser?.configured??s.browser)&&s.objects),
-  hcti_required:false
+  third_party_renderer_required:false
  };
 }
 async function ensureSchema(env){
@@ -78,6 +79,22 @@ async function ensureSchema(env){
 }
 async function authUser(request,env){
  return await currentUser(request,env).catch(()=>null);
+}
+async function ownerCapabilityAccess(request,env){
+ const user=await authUser(request,env);
+ if(!user)return false;
+ return Boolean((await platformOwnerDeveloperIdentity(user,env)).authorized);
+}
+function publicCapabilitySummary(){
+ return{
+  identity:'Magnanimous Native Rendering',
+  brain:'Magnanimous AI',
+  native_first:true,
+  free_first:true,
+  third_party_renderer_required:false,
+  capabilities:['html-css-to-image','url-to-image','png-output','jpeg-output','webp-output','pdf-output','batch-rendering','templates','stored-render-artifacts'],
+  note:'Magnanimous-owned rendering is the customer-facing capability. External implementation details remain private and replaceable.'
+ };
 }
 function fileUrl(request,id,format){
  return new URL('/api/magnanimous/native-rendering/files/'+encodeURIComponent(id)+'.'+format,request.url).toString();
@@ -115,7 +132,7 @@ async function storeResult(request,env,user,result,format,kind,sourceUrl=''){
  if(!services.objects?.put)throw new Error('Magnanimous Object Store is required for hosted render delivery.');
  await services.objects.put(key,bytes,{httpMetadata:{contentType:type},customMetadata:{tenant_id:String(user.tenant_id),render_id:id,format}});
  await recordRender(env,user,{id,kind,format,content_type:type,bytes:bytes.length,object_key:key,source_url:sourceUrl});
- return{id,url:fileUrl(request,id,format),format,content_type:type,bytes:bytes.length,stored:true,provider_dependency:false,hcti_required:false};
+ return{id,url:fileUrl(request,id,format),format,content_type:type,bytes:bytes.length,stored:true,provider_dependency:false,third_party_renderer_required:false};
 }
 async function renderOne(request,env,user,input={}){
  const services=renderServices(env);
@@ -266,7 +283,8 @@ export async function handleMagnanimousNativeRendering(request,env){
  if(!path.startsWith('/api/magnanimous/native-rendering'))return null;
 
  if(request.method==='GET'&&(path==='/api/magnanimous/native-rendering'||path==='/api/magnanimous/native-rendering/capabilities')){
-  return json({ok:true,...getMagnanimousRenderingCapabilitySummary(),readiness:readiness(env)});
+  const owner=await ownerCapabilityAccess(request,env);
+  return json({ok:true,...(owner?getMagnanimousRenderingCapabilitySummary():publicCapabilitySummary()),readiness:readiness(env),owner_diagnostics:owner});
  }
 
  const user=await authUser(request,env);
