@@ -1,10 +1,10 @@
 import fs from'node:fs';
 const r=p=>fs.readFileSync(new URL('../../'+p,import.meta.url),'utf8'),ui=r('frontend/app/pricing/page.tsx'),web=r('worker/src/stripe-webhook-hardened.js'),tier=r('worker/src/billing-tiers-runtime.js'),links=r('worker/src/payment-link-runtime.js'),cfg=r('worker/wrangler.jsonc');
-for(const stale of ["business:'plus'","pro:'plus'","Magnanimous Annual • $199","$0–$199/year"])if(ui.includes(stale)||tier.includes(stale))throw Error('stale pricing '+stale);
-for(const current of ['Magnanimous CRM Pro • $79/month','Magnanimous Business • $119/month','$98.99 × 1.20 = $118.788'])if(!ui.includes(current))throw Error('current pricing missing '+current);
+for(const stale of ["business:'plus'","pro:'plus'","Magnanimous Annual • $199","$0–$199/year","Magnanimous Business • $119/month"])if(ui.includes(stale)||tier.includes(stale))throw Error('stale pricing '+stale);
+for(const current of ['Magnanimous CRM Pro • $79/month','Magnanimous Business • $214/month','$177.99 × 1.20 = $213.588'])if(!ui.includes(current))throw Error('current pricing missing '+current);
 if(!web.includes("const PLANS=new Set(['plus','crm','business','scale'])")||!web.includes("const PLAN_ALIAS={pro:'business'}"))throw Error('webhook new plan catalog missing');
 if(web.includes("STRIPE_PRICE_BUSINESS||''),'business'"))throw Error('stale Business Stripe Price is ambiguously trusted');
-if(!tier.includes("crm: 'STRIPE_PRICE_CRM'")||!tier.includes("business: 'STRIPE_PRICE_BUSINESS'")||!tier.includes('configuredPriceForPlan'))throw Error('verified plan-price lookup missing');
+if(!tier.includes("crm: 'STRIPE_PRICE_CRM'")||!tier.includes("business: 'STRIPE_PRICE_BUSINESS'")||!tier.includes('configuredPriceForPlan')||!tier.includes('professional_business_plan_usd:79'))throw Error('verified complete plan-price lookup missing');
 if(!links.includes("const LINK_KEYS={plus:'STRIPE_PAYMENT_LINK_PLUS'}"))throw Error('stale paid-plan Payment Links still enabled');
 for(const id of ['price_1UGsdOBqx3ebIzujDBMRWFcm','price_1UGsdQBqx3ebIzujn5X0tN1y'])if(!cfg.includes(id))throw Error('existing catalog reference '+id);
 console.log('Pricing triple-audit passed.');
