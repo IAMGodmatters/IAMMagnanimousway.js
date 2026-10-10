@@ -6,7 +6,7 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
   headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
 });
 
-const PLAN_ORDER = ['free', 'plus', 'crm', 'business', 'scale'];
+const PLAN_ORDER = ['free', 'plus', 'crm', 'studio', 'business', 'scale'];
 const LEGACY_PLAN_ALIAS={pro:'business'};
 const PLAN_CONFIG = {
   free: {
@@ -27,17 +27,23 @@ const PLAN_CONFIG = {
     features: ['CRM command center', 'People + company relationship graph', 'Multiple pipelines + weighted forecasting', 'Lead scoring + next-best actions', 'Sequences + consent-aware follow-up', 'Quotes + service + campaign attribution', 'Customer health + churn risk', 'Custom objects + automations + audit history'],
     entitlements: { metered_ai: true, pstn_minutes: 30, avatar_minutes: 0, premium_video_credits: 0, cost_ceiling_usd: 42 }
   },
+  studio: {
+    id: 'studio', name: 'Magnanimous Studio', price_usd: 79, cadence: 'month',
+    description: 'Standalone business creation studio for products, projects, proposals, learning assets, portals, communities, referrals and client delivery.',
+    features: ['Product + package builder', 'Project delivery workspace', 'Proposal + signature tracking', 'Learning + portal publishing', 'Affiliate + referral tools', 'Community workspace', 'Magnanimous AI-assisted business creation'],
+    entitlements: { metered_ai: true, pstn_minutes: 0, avatar_minutes: 0, premium_video_credits: 10, cost_ceiling_usd: 42 }
+  },
   business: {
-    id: 'business', name: 'Magnanimous Business', price_usd: 214, cadence: 'month',
-    description: 'The complete business operating package: Magnanimous CRM Pro, the Professional Business Plan, and the broader Magnanimous paid business platform.',
-    features: ['Everything in Magnanimous Plus', 'Everything in Magnanimous CRM Pro', 'Professional Business Plan included', 'Full business workspace', 'Advanced assistant workflows', 'Calling and avatar integration access', 'One clear $214 monthly customer price'],
-    pricing_basis: { crm_usd:79, professional_business_plan_usd:79, plus_usd:19.99, component_total_usd:177.99, markup_percent:20, calculated_usd:213.588, rounded_price_usd:214 },
-    entitlements: { metered_ai: true, pstn_minutes: 90, avatar_minutes: 30, premium_video_credits: 30, cost_ceiling_usd: 160 }
+    id: 'business', name: 'Magnanimous Business', price_usd: 309, cadence: 'month',
+    description: 'The complete business operating package: CRM Pro, Professional Business Plan, Magnanimous Studio, and the broader Magnanimous paid business platform.',
+    features: ['Everything in Magnanimous Plus', 'Everything in Magnanimous CRM Pro', 'Professional Business Plan included', 'Magnanimous Studio included', 'Full business workspace', 'Advanced assistant workflows', 'Calling and avatar integration access', 'One clear $309 monthly customer price'],
+    pricing_basis: { crm_usd:79, professional_business_plan_usd:79, studio_usd:79, plus_usd:19.99, component_total_usd:256.99, markup_percent:20, calculated_usd:308.388, rounded_price_usd:309 },
+    entitlements: { metered_ai: true, pstn_minutes: 90, avatar_minutes: 30, premium_video_credits: 40, cost_ceiling_usd: 215 }
   },
   scale: {
-    id: 'scale', name: 'Magnanimous Business Annual', price_usd: 2568, cadence: 'year',
-    description: 'Annual Magnanimous Business + CRM Pro + Professional Business Plan access for new checkout.',
-    features: ['Everything in Magnanimous Business', 'Everything in CRM Pro', 'Professional Business Plan included', 'Annual billing', 'Expanded team/business workflows', 'Largest controlled premium allowances', 'Scale-ready support path'],
+    id: 'scale', name: 'Magnanimous Business Annual', price_usd: 3708, cadence: 'year',
+    description: 'Annual Magnanimous Business access including CRM Pro, Professional Business Plan and Magnanimous Studio for new checkout.',
+    features: ['Everything in Magnanimous Business', 'Everything in CRM Pro', 'Professional Business Plan included', 'Magnanimous Studio included', 'Annual billing', 'Expanded team/business workflows', 'Largest controlled premium allowances', 'Scale-ready support path'],
     entitlements: { metered_ai: true, pstn_minutes: 180, avatar_minutes: 60, premium_video_credits: 60, cost_ceiling_usd: 170 }
   }
 };
@@ -45,14 +51,16 @@ const PLAN_CONFIG = {
 const PRICE_ENV = {
   plus: 'STRIPE_PRICE_PLUS',
   crm: 'STRIPE_PRICE_CRM',
+  studio: 'STRIPE_PRICE_STUDIO',
   business: 'STRIPE_PRICE_BUSINESS',
   scale: 'STRIPE_PRICE_SCALE'
 };
 const TERM_VERSION={
   plus:'unlimited-2026-09-18.1',
   crm:'crm-2026-10-10.1',
-  business:'business-2026-10-10.2',
-  scale:'business-annual-2026-10-10.2'
+  studio:'studio-2026-10-10.1',
+  business:'business-2026-10-10.3',
+  scale:'business-annual-2026-10-10.3'
 };
 
 function normalizedPlan(value) {

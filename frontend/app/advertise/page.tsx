@@ -13,7 +13,7 @@ export default function AdvertisePage(){
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12,margin:'24px 0'}}>
           <article style={{padding:18,border:'1px solid #27313d',borderRadius:14,background:'#0c1118'}}><small>PRICE</small><strong style={{display:'block',fontSize:34,marginTop:6}}>$49</strong><span style={{color:'#8190a1'}}>per month</span></article>
           <article style={{padding:18,border:'1px solid #27313d',borderRadius:14,background:'#0c1118'}}><small>PLACEMENT</small><strong style={{display:'block',fontSize:22,marginTop:10}}>Free Tier</strong><span style={{color:'#8190a1'}}>Sponsored section</span></article>
-          <article style={{padding:18,border:'1px solid #27313d',borderRadius:14,background:'#0c1118'}}><small>ACTIVATION</small><strong style={{display:'block',fontSize:22,marginTop:10}}>Automatic</strong><span style={{color:'#8190a1'}}>after Stripe confirms payment</span></article>
+          <article style={{padding:18,border:'1px solid #27313d',borderRadius:14,background:'#0c1118'}}><small>ACTIVATION</small><strong style={{display:'block',fontSize:22,marginTop:10}}>Automatic</strong><span style={{color:'#8190a1'}}>after payment is confirmed</span></article>
         </div>
         <h2>What the advertiser provides</h2>
         <p style={{color:'#9da9b8',lineHeight:1.6}}>Checkout collects the ad headline or business name, destination website URL, and a short sponsored message. The recurring subscription keeps the placement active; cancellation or an inactive subscription turns the ad off automatically.</p>

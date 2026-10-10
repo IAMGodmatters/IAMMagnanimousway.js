@@ -241,7 +241,7 @@ export default function AIReceptionist() {
 
     {config?.platform_owner && <details className="advanced">
       <summary>Platform owner: advanced phone/video setup</summary>
-      <div className="advancedGrid"><div><b>Inbound phone endpoint</b><code>{config?.inbound_twilio_webhook || 'Available after sign-in'}</code><p>Use this only when configuring the platform phone carrier. Signed requests are validated by the server.</p></div><div><b>Provider status</b><p>Phone carrier: {config?.twilio_configured?'connected':'not connected'}<br/>Human video: {config?.tavus_configured?'connected':'not connected'}<br/>AI engine: {config?.ai_engine?'ready':'not ready'}</p><a href="/owner-integrations">Open Provider Vault →</a></div></div>
+      <div className="advancedGrid"><div><b>Inbound phone endpoint</b><code>{config?.platform_owner?(config?.inbound_twilio_webhook||'Available after sign-in'):'Managed by Magnanimous'}</code><p>Use this only when configuring the platform phone carrier. Signed requests are validated by the server.</p></div><div><b>Connection status</b><p>Phone carrier: {config?.twilio_configured?'connected':'not connected'}<br/>Human video: {config?.tavus_configured?'connected':'not connected'}<br/>AI engine: {config?.ai_engine?'ready':'not ready'}</p><a href="/owner-integrations">Open connection settings →</a></div></div>
     </details>}
 
     <style jsx>{`

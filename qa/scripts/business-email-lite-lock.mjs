@@ -33,7 +33,7 @@ has(ui,"iam_business_email_lite_draft",'unfinished setup is autosaved locally');
 has(ui,"/api/business-email/lite",'UI uses persistent Business Email Lite API');
 has(ui,"/api/business-email/check",'UI keeps DNS verification');
 has(ui,'MY TEST EMAIL ARRIVED ✓','user can explicitly confirm end-to-end delivery');
-has(ui,'Cloudflare must let <em>you</em> approve domain and email changes','provider approval boundary is explained simply');
+has(ui,'Your domain provider must let <em>you</em> approve domain and email changes','provider approval boundary is explained simply');
 has(runtime,"import {currentUser} from './integrations.js'",'saved aliases require authenticated platform identity');
 has(runtime,'business_email_lite_aliases','Business Email Lite has persistent isolated storage');
 has(runtime,'UNIQUE(tenant_id,domain,local_part)','aliases are tenant-scoped and unique');

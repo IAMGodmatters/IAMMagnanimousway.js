@@ -10,7 +10,7 @@ const replacements:[string,string][]=[
  ['Keep the existing unlock model.','Keep the live recurring subscription model.'],
  ['one-time plan unlock','per month · recurring subscription'],
  ['UNLOCK PROFESSIONAL PLAN →','START $79/MONTH PLAN →'],
- ['Confirming your professional-plan unlock with Stripe…','Confirming your $79/month professional-plan subscription with Stripe…'],
+ ['Confirming your professional-plan unlock…','Confirming your $79/month professional-plan subscription…'],
  ['Checkout was cancelled. Your free draft remains saved, and you can unlock the final plan whenever you are ready.','Checkout was cancelled. Your free draft remains saved, and you can start the $79/month professional plan whenever you are ready.'],
  ['Professional finalization stays included with Full Business or available through the existing one-time $79 unlock.','Professional finalization stays included with Magnanimous Business or is available through the $79/month recurring professional-plan subscription.'],
  ['Professional Business Plan — One-Time Unlock','Professional Business Plan — $79/Month Subscription'],

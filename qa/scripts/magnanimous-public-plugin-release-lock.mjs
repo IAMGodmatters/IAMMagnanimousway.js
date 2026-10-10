@@ -80,7 +80,7 @@ has(enterprise,"subscription_required:false",'Stripe top-up unexpectedly require
 has(webhook,'Stripe Magnanimous prepaid direct-cost usage credit','Stripe wallet settlement label regressed');
 
 for(const needle of [
- 'MAGNANIMOUS AI • ALL-IN-ONE CONNECTOR',
+ 'MAGNANIMOUS AI - ALL-IN-ONE CONNECTOR',
  '$0 base fee',
  'final charge shown before use',
  '/api/enterprise/usage-wallet/topup',

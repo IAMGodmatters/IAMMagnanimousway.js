@@ -6,7 +6,7 @@ const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 // Provider-funded premium capabilities are released only for actually active paid subscriptions.
 const ACTIVE=new Set(['active']);
-const PLANS=new Set(['plus','crm','business','scale']);
+const PLANS=new Set(['plus','crm','studio','business','scale']);
 const PLAN_ALIAS={pro:'business'};
 const AGENCY_PLANS=new Set(['agency','agency_pro']);
 
@@ -29,6 +29,7 @@ async function ensureSchema(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS billing_webhook_events (event_id TEXT PRIMARY KEY,event_type TEXT NOT NULL,processed_at INTEGER NOT NULL)`).run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS enterprise_revenue_events (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,account_id TEXT,contract_id TEXT,event_type TEXT NOT NULL,amount_usd REAL NOT NULL DEFAULT 0,source TEXT NOT NULL DEFAULT '',reference_id TEXT NOT NULL DEFAULT '',occurred_at INTEGER NOT NULL,UNIQUE(tenant_id,event_type,reference_id))`).run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS provider_funding_authorizations (tenant_id TEXT NOT NULL,reference_id TEXT NOT NULL,purpose TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'authorized',amount_usd REAL NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,reference_id,purpose))`).run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS service_provisioning_jobs (tenant_id TEXT NOT NULL,reference_id TEXT NOT NULL,plan TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'ready',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,reference_id,plan))`).run();
 }
 async function save(env,tenantId,values){
  if(!tenantId)return;const ts=now(),old=await env.DB.prepare('SELECT * FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first();
@@ -55,6 +56,10 @@ async function authorizeProviderSpend(env,tenantId,referenceId,purpose,amount=0)
  if(!tenantId||!referenceId)return;
  await env.DB.prepare('INSERT OR IGNORE INTO provider_funding_authorizations(tenant_id,reference_id,purpose,status,amount_usd,created_at) VALUES(?,?,?,?,?,?)').bind(String(tenantId),String(referenceId),String(purpose||'paid-feature'),'authorized',Math.max(0,Number(amount||0)),now()).run();
 }
+async function queueProvisioning(env,tenantId,referenceId,plan){
+ if(!tenantId||!referenceId||!plan)return;const ts=now();
+ await env.DB.prepare(`INSERT INTO service_provisioning_jobs(tenant_id,reference_id,plan,status,created_at,updated_at) VALUES(?,?,?,'ready',?,?) ON CONFLICT(tenant_id,reference_id,plan) DO UPDATE SET status='ready',updated_at=excluded.updated_at`).bind(String(tenantId),String(referenceId),String(plan),ts,ts).run();
+}
 async function processPaidCheckout(env,event,object){
  const metadataRawPlan=String(object?.metadata?.plan||'').toLowerCase();if(AGENCY_PLANS.has(metadataRawPlan))return;
  const paymentReference=await trustedPaymentReference(env,object);
@@ -74,6 +79,7 @@ async function processPaidCheckout(env,event,object){
  const plan=PLANS.has(metadataPlan)?metadataPlan:(PLANS.has(referencePlan)?referencePlan:'plus');
  await save(env,tenantId,{plan,customer_id:String(object.customer||'')||null,subscription_id:String(object.subscription||'')||null,status:'active'});
  await authorizeProviderSpend(env,tenantId,reference,`plan:${plan}`,amount);
+ await queueProvisioning(env,tenantId,reference,plan);
  if(amount>0)await recordRevenue(env,tenantId,'checkout-paid',amount,'stripe',reference);
 }
 async function processEvent(env,event){
@@ -92,7 +98,7 @@ async function processEvent(env,event){
   const canonical=PLAN_ALIAS[detected]||detected,desired=PLANS.has(canonical)?canonical:'plus',status=String(object.status||(type.endsWith('.deleted')?'canceled':'inactive'));
   const active=ACTIVE.has(status)&&!type.endsWith('.deleted');
   await save(env,tenantId,{plan:active?desired:'free',customer_id:String(object.customer||'')||null,subscription_id:String(object.id||'')||null,status,current_period_end:Number(object.current_period_end||0)||null});
-  if(active)await authorizeProviderSpend(env,tenantId,String(object.id||event.id),`subscription:${desired}`,0);
+  if(active){await authorizeProviderSpend(env,tenantId,String(object.id||event.id),`subscription:${desired}`,0);await queueProvisioning(env,tenantId,String(object.id||event.id),desired)}
   return;
  }
  if(type==='invoice.paid'){

@@ -2,9 +2,9 @@ import { currentUserFromRequest } from './usage-guard.js';
 import { encodeSignedPlanPaymentReference } from './payment-reference.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
-const PLANS=new Set(['plus','crm','business','pro','scale']);
+const PLANS=new Set(['plus','crm','studio','business','pro','scale']);
 const ACTIVEISH=new Set(['active','trialing','past_due']);
-const TERMS={plus:'unlimited-2026-09-18.1',crm:'crm-2026-10-10.1',business:'business-2026-10-10.2',pro:'business-2026-10-10.2',scale:'business-annual-2026-10-10.2'};
+const TERMS={plus:'unlimited-2026-09-18.1',crm:'crm-2026-10-10.1',studio:'studio-2026-10-10.1',business:'business-2026-10-10.3',pro:'business-2026-10-10.3',scale:'business-annual-2026-10-10.3'};
 function appendQuery(url,key,value){const parsed=new URL(url);parsed.searchParams.set(key,value);return parsed.toString()}
 
 export async function handleBillingCheckoutHardening(request,env){
@@ -15,7 +15,7 @@ export async function handleBillingCheckoutHardening(request,env){
  if(!user)return json({detail:'Sign in required.'},401);
  const body=await request.clone().json().catch(()=>({}));
  const plan=String(body.plan||'business').toLowerCase();
- if(!PLANS.has(plan))return json({detail:'Choose a valid paid plan: plus, crm, business, pro, or scale.',code:'INVALID_PLAN'},400);
+ if(!PLANS.has(plan))return json({detail:'Choose a valid paid plan: plus, crm, studio, business, pro, or scale.',code:'INVALID_PLAN'},400);
  const requiredTerms=TERMS[plan];
  if(body.termsAccepted!==true||body.recurringDisclosureAccepted!==true||String(body.termsVersion||'')!==requiredTerms)return json({detail:'Premium Services Agreement acceptance is required before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED',requiredTerms},428);
  let existing=null;
