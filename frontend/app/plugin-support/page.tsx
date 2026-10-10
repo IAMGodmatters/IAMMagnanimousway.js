@@ -38,17 +38,17 @@ export default function PluginSupportPage(){
 
    <section className="help">
     <h2>Before contacting support</h2>
-    <p>Do not send passwords, API keys, OAuth access or refresh tokens, recovery codes, full payment-card details, or government identification by email. For an authorization problem, include the time of the error, the tool name, and the non-secret error message shown by ChatGPT or Magnanimous AI.</p>
+    <p>Do not send passwords, API keys, OAuth access or refresh tokens, recovery codes, full payment-card details, or government identification by email. For an authorization problem, include the time of the error, the tool name, and the non-secret error message shown by Magnanimous AI.</p>
    </section>
 
    <section className="help">
     <h2>Plugin pricing</h2>
-    <p>The Magnanimous AI ChatGPT plugin has a $0 base fee. Supported native operations with no verified direct metered origin cost remain $0. When a real direct metered cost is required, Magnanimous charges that verified cost plus exactly 20% from customer-funded prepaid Stripe credits. The plugin itself does not require a monthly subscription.</p>
+    <p>The Magnanimous AI connection has a $0 base fee. Supported native operations with no paid metered usage remain $0. When paid usage is required, the final Magnanimous customer price is shown before the operation and funded from prepaid usage credits. Internal supplier cost and margin calculations remain private to the verified platform owner. The connection itself does not require a monthly subscription.</p>
    </section>
 
    <section className="boundary">
     <h2>Native operations boundary</h2>
-    <p>Magnanimous implements its own web/browser, cloud/deployment and edge/runtime control contracts. Public TinyFish, Railway and Cloudflare capabilities may be used as clean-room benchmarks, but their proprietary source code, hidden prompts, credentials, private APIs, model weights, anti-bot infrastructure and trade secrets are not represented as owned by I AM MAGNANIMOUS WAY™. Physical compute and public-network capacity still require owner-operated or replaceable infrastructure.</p>
+    <p>Magnanimous implements its own web/browser, cloud/deployment and edge/runtime control contracts. External services may be used only as replaceable compatibility or capacity layers. Their proprietary implementation details are never represented as owned by I AM MAGNANIMOUS WAY™. Physical compute and public-network capacity still require owner-operated or replaceable infrastructure.</p>
    </section>
   </section>
   <footer>Magnanimous AI • I AM MAGNANIMOUS WAY™</footer>

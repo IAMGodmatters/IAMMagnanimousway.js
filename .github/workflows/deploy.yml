@@ -871,17 +871,17 @@ jobs:
           mcp=data.get('mcp') or {}
           assert str(mcp.get('url') or '').endswith('/mcp'), data
           native=data.get('native_operations') or {}
-          assert native.get('railway_plugin_required') is False, data
-          assert native.get('cloudflare_plugin_required') is False, data
+          assert native.get('external_deployment_plugin_required') is False, data
           assert native.get('provider_purchase_required_for_control_plane') is False, data
           assert native.get('areas') == ['web','cloud','edge'], data
           assert native.get('unified_tool') == 'magnanimous_operate', data
           pricing=data.get('pricing') or {}
           assert pricing.get('base_fee_usd') == 0, data
-          assert pricing.get('markup_percent') == 20, data
+          assert 'markup_percent' not in pricing, data
           assert pricing.get('subscription_required') is False, data
-          assert pricing.get('billing_model') == 'free-native-plus-prepaid-pass-through', data
-          assert pricing.get('stripe_topup_tool') == 'magnanimous_plugin_billing', data
+          assert pricing.get('billing_model') == 'free-native-plus-prepaid-final-charge', data
+          assert pricing.get('topup_tool') == 'magnanimous_plugin_billing', data
+          assert 'final Magnanimous charge' in str(pricing.get('customer_price_display') or ''), data
           discovery=data.get('discovery') or {}
           use_when=discovery.get('use_when') or []
           assert len(use_when) >= 5, data
@@ -889,7 +889,7 @@ jobs:
           assert any('cloud/deployment' in str(x) for x in use_when), data
           assert any('edge/runtime' in str(x) for x in use_when), data
           assert 'do not force or manipulate selection' in str(discovery.get('selection_note') or ''), data
-          print('Public Magnanimous connector manifest exposes one native web/cloud/edge operations plugin with $0 base fee, exact 20% pass-through markup, and compliant ChatGPT discovery metadata.')
+          print('Public Magnanimous connector manifest exposes one native web/cloud/edge operations connection with customer-safe final-price billing metadata.')
           PY
 
           check_get "Magnanimous OAuth protected-resource metadata" "$BASE_URL/.well-known/oauth-protected-resource" /tmp/magnanimous-oauth-resource.json
@@ -969,12 +969,12 @@ jobs:
           }
 
           check_get "Public pricing page" "$BASE_URL/pricing/" /tmp/magnanimous-pricing.html
-          grep -q "ALL-IN-ONE CHATGPT PLUGIN" /tmp/magnanimous-pricing.html || {
-            echo "Public pricing page does not expose all-in-one plugin pricing."
+          grep -q "ALL-IN-ONE CONNECTOR" /tmp/magnanimous-pricing.html || {
+            echo "Public pricing page does not expose all-in-one connector pricing."
             exit 1
           }
-          grep -q "cost + exactly 20%" /tmp/magnanimous-pricing.html || {
-            echo "Public pricing page does not disclose exact 20 percent usage markup."
+          grep -q "final charge shown before use" /tmp/magnanimous-pricing.html || {
+            echo "Public pricing page does not show final-charge usage language."
             exit 1
           }
 
@@ -1926,7 +1926,7 @@ jobs:
           if [ "$status" != "200" ]; then echo "Client archive returned HTTP $status"; cat /tmp/wl-client-archive.json || true; exit 1; fi
           status=$(curl -sS -o /tmp/wl-client-reactivate.json -w '%{http_code}' -X PATCH "$BASE_URL/api/bpo/clients/$client_id" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"status":"active"}')
           if [ "$status" != "200" ]; then echo "Client reactivate returned HTTP $status"; cat /tmp/wl-client-reactivate.json || true; exit 1; fi
-          echo "Paid White Label depth smoke passed: owner permissions, branding, Client Apps, booking, hosted funnel + CRM capture, reputation, rebilling ledger, automation → Work Engine, Unified Inbox, Studio CRUD, brain access, and client lifecycle."
+          echo "Paid White Label depth smoke passed: owner permissions, branding, Client Apps, booking, hosted funnel + CRM capture, reputation, rebilling ledger, automation to Work Engine, Unified Inbox, Studio CRUD, brain access, and client lifecycle."
 
           admin_status=$(safe_expected_status /tmp/admin-denied.json 403 "$BASE_URL/api/admin/settings" -H "Authorization: Bearer $token")
           if [ "$admin_status" != "403" ]; then echo "Customer account global-admin isolation expected HTTP 403, got $admin_status"; cat /tmp/admin-denied.json || true; exit 1; fi

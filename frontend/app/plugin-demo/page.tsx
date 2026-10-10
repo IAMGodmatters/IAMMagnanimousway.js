@@ -2,7 +2,7 @@ import type {Metadata} from 'next';
 
 export const metadata:Metadata={
  title:'Magnanimous AI Plugin Demo',
- description:'Public review demo for the Magnanimous AI ChatGPT plugin.',
+ description:'Public review demo for the Magnanimous AI connection.',
  alternates:{canonical:'/plugin-demo/'},
  robots:{index:false,follow:true},
 };
@@ -10,11 +10,11 @@ export const metadata:Metadata={
 const slides=[
  ['ONE PLUGIN • THREE AREAS','Magnanimous AI','Native web/browser research, provider-neutral cloud/deployment control, and native edge/runtime contracts share one Magnanimous MCP connection.'],
  ['CUSTOMER-SAFE OAUTH','Safe by account role','Normal accounts receive capabilities.read, brain.ask and web.read. Owner/admin accounts may authorize the guarded privileged scope set.'],
- ['PUBLIC RESEARCH','Source-backed web work','ChatGPT can search public sources, fetch rendered pages, and return source-backed findings through Magnanimous Native Web.'],
- ['OWNER OPERATIONS','Cloud + edge through Magnanimous','Privileged accounts can map Railway-style deployment and Cloudflare-style edge concepts to Magnanimous-owned desired-state and action contracts.'],
- ['PROVIDER INDEPENDENCE','Clean-room compatibility','TinyFish, Railway and Cloudflare may be compatibility benchmarks or optional capacity rails. Their proprietary implementations are not copied or represented as Magnanimous-owned.'],
- ['FAIR USAGE PRICING','$0 base • cost + 20%','Free Magnanimous-native paths stay free. If a real metered origin cost is required, customer-funded prepaid Stripe credits cover the verified cost plus exactly 20% Magnanimous markup.'],
- ['REVIEW READY','Public production surface','MCP, OAuth discovery, PKCE, support, privacy, terms, brand assets and the OpenAI domain-challenge route are deployed and continuously smoke-tested.']
+ ['PUBLIC RESEARCH','Source-backed web work','Connected AI clients can search public sources, fetch rendered pages, and return source-backed findings through Magnanimous Native Web.'],
+ ['OWNER OPERATIONS','Cloud + edge through Magnanimous','Privileged accounts can map external deployment and edge concepts to Magnanimous-owned desired-state and action contracts.'],
+ ['PROVIDER INDEPENDENCE','Clean-room compatibility','External services may be replaceable compatibility benchmarks or optional capacity rails. Their proprietary implementations are not copied or represented as Magnanimous-owned.'],
+ ['FAIR USAGE PRICING','$0 base • final price shown','Free Magnanimous-native paths stay free. If paid metered usage is required, the final Magnanimous customer price is shown before use and funded from prepaid usage credits. Internal cost and margin calculations stay owner-private.'],
+ ['REVIEW READY','Public production surface','MCP, OAuth discovery, PKCE, support, privacy, terms, brand assets and domain verification are deployed and continuously smoke-tested.']
 ];
 
 export default function PluginDemo(){
@@ -36,7 +36,7 @@ export default function PluginDemo(){
    <b>REVIEW NOTES</b>
    <span>This demo describes verified production contracts. It does not simulate provider purchases or claim physical infrastructure that is not present.</span>
   </section>
-  <footer>Magnanimous AI • ChatGPT plugin review demo • 2026-09-28</footer>
+  <footer>Magnanimous AI • connection review demo • 2026-09-28</footer>
   <style>{`
    *{box-sizing:border-box}body{margin:0;background:#03070b}
    main{min-height:100vh;background:radial-gradient(circle at 50% 0,#143347 0,#071018 42%,#030507 82%);color:#effaff;padding:28px;font-family:Inter,system-ui,sans-serif}
