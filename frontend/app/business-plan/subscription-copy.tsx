@@ -7,6 +7,7 @@ const replacements:[string,string][]=[
  ['I AM OPERATOR','MAGNANIMOUS AI'],
  ['The complete professional plan can be unlocked once for $79, or is included with Full Business.','The complete professional plan is available with a $79/month recurring subscription, or is included with Magnanimous Business.'],
  ['Free on-screen draft preview. Professional finalization is included with Full Business or available as a one-time $79 plan unlock.','Free on-screen draft preview. Professional finalization is included with Magnanimous Business or available with a $79/month recurring subscription.'],
+ ['Keep the existing unlock model.','Keep the live recurring subscription model.'],
  ['one-time plan unlock','per month · recurring subscription'],
  ['UNLOCK PROFESSIONAL PLAN →','START $79/MONTH PLAN →'],
  ['Confirming your professional-plan unlock with Stripe…','Confirming your $79/month professional-plan subscription with Stripe…'],
