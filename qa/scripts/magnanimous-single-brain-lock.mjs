@@ -87,7 +87,8 @@ assert(provider.includes("${absorbedCapabilityContext?`\\n\\n${absorbedCapabilit
 assert(brain.includes('/api/magnanimous/single-brain'),'Brain page must consume the unified capability summary');
 assert(brain.includes('absorbed tool + skill contracts'),'Brain page must expose absorbed capability scale');
 
-assert(connectors.includes('ChatGPT')&&connectors.includes('Claude')&&connectors.includes('Gemini'),'owner connector setup must retain real destination names where authorization requires them');
+assert(connectors.includes('Compatible AI Client')&&connectors.includes('provider-neutral'),'connector setup must keep customer-visible destination labels provider-neutral');
+assert(connectors.includes("useState('openai-chatgpt')"),'private compatibility adapter identity must remain available for the authorization route');
 assert(connectors.includes('Magnanimous stays the command, memory, routing and verification layer.'),'external connection setup must retain Magnanimous ownership boundary');
 assert(deployWorkflow.includes("assert provider.get('name') == 'Magnanimous AI', data"),'production smoke must expect the Magnanimous-only public provider name');
 assert(deployWorkflow.includes("assert provider.get('type') == 'magnanimous-private-routing', data"),'production smoke must expect the Magnanimous private-routing compatibility type');
