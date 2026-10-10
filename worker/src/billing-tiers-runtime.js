@@ -1,3 +1,5 @@
+import { platformOwnerDeveloperIdentity } from './platform-owner-guard.js';
+
 const now = () => Math.floor(Date.now() / 1000);
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -28,7 +30,7 @@ const PLAN_CONFIG = {
   business: {
     id: 'business', name: 'Magnanimous Business', price_usd: 214, cadence: 'month',
     description: 'The complete business operating package: Magnanimous CRM Pro, the Professional Business Plan, and the broader Magnanimous paid business platform.',
-    features: ['Everything in Magnanimous Plus', 'Everything in Magnanimous CRM Pro', 'Professional Business Plan included', 'Full business workspace', 'Advanced assistant workflows', 'Calling and avatar integration access', '20% bundle upsell already built into the $214 base price'],
+    features: ['Everything in Magnanimous Plus', 'Everything in Magnanimous CRM Pro', 'Professional Business Plan included', 'Full business workspace', 'Advanced assistant workflows', 'Calling and avatar integration access', 'One clear $214 monthly customer price'],
     pricing_basis: { crm_usd:79, professional_business_plan_usd:79, plus_usd:19.99, component_total_usd:177.99, markup_percent:20, calculated_usd:213.588, rounded_price_usd:214 },
     entitlements: { metered_ai: true, pstn_minutes: 90, avatar_minutes: 30, premium_video_credits: 30, cost_ceiling_usd: 160 }
   },
@@ -67,13 +69,16 @@ function targetMarkup(env) {
   const value = Number(env?.TARGET_PROVIDER_MARKUP_PERCENT || env?.TARGET_GROSS_MARGIN_PERCENT || 20);
   return Number.isFinite(value) && value > 0 && value < 100 ? value : 20;
 }
+function customerEntitlements(entitlements={}) {
+  const { cost_ceiling_usd: _internalCostCeiling, ...customer } = entitlements || {};
+  return customer;
+}
 function publicPlan(env, id) {
-  const plan = PLAN_CONFIG[id];
+  const { pricing_basis: _ownerPricingBasis, entitlements, ...plan } = PLAN_CONFIG[id];
   return {
     ...plan,
-    checkout_configured: id === 'free' ? true : Boolean(env.STRIPE_SECRET_KEY),
-    target_markup_percent: targetMarkup(env),
-    target_gross_margin_percent: targetMarkup(env)
+    entitlements: customerEntitlements(entitlements),
+    checkout_configured: id === 'free' ? true : Boolean(env.STRIPE_SECRET_KEY)
   };
 }
 
@@ -125,7 +130,7 @@ function siteOrigin(request, env) {
   return String(env.PUBLIC_SITE_URL || '').trim().replace(/\/$/, '') || new URL(request.url).origin;
 }
 async function stripeRequest(env, path, options = {}) {
-  if (!env.STRIPE_SECRET_KEY) return { ok: false, data: { error: { message: 'Stripe is not configured.' } } };
+  if (!env.STRIPE_SECRET_KEY) return { ok: false, data: { error: { message: 'Payment service is not configured.' } } };
   const response = await fetch(`https://api.stripe.com${path}`, {
     ...options,
     headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, ...(options.headers || {}) }
@@ -164,7 +169,7 @@ async function createCheckout(request, env, user) {
   if (plan === 'free') return json({ detail: 'The Free plan does not require checkout.' }, 400);
   if (!env.STRIPE_SECRET_KEY) return json({ detail: `${PLAN_CONFIG[plan].name} checkout is not configured yet.`, code: 'STRIPE_NOT_CONFIGURED' }, 503);
   const requiredTerms=TERM_VERSION[plan]||TERM_VERSION.plus;
-  if(body.termsAccepted!==true||String(body.termsVersion||'')!==requiredTerms) return json({detail:'The terms for the selected payment plan must be accepted before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED',requiredTerms},428);
+  if(body.termsAccepted!==true||body.recurringDisclosureAccepted!==true||String(body.termsVersion||'')!==requiredTerms) return json({detail:'The terms for the selected payment plan must be accepted before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED',requiredTerms},428);
   const origin = siteOrigin(request, env),form = new URLSearchParams(),configuredPrice=await configuredPriceForPlan(env,plan),planDef=PLAN_CONFIG[plan];
   form.set('mode', 'subscription');
   if(configuredPrice){
@@ -183,6 +188,7 @@ async function createCheckout(request, env, user) {
   form.set('metadata[plan]', plan);
   form.set('metadata[terms_version]', String(body.termsVersion));
   form.set('metadata[terms_accepted]', 'true');
+  form.set('metadata[recurring_disclosure_accepted]', 'true');
   form.set('metadata[base_price_usd]', String(planDef.price_usd));
   form.set('metadata[provider_markup_percent]', String(targetMarkup(env)));
   form.set('subscription_data[metadata][tenant_id]', String(user.tenant_id));
@@ -194,7 +200,7 @@ async function createCheckout(request, env, user) {
   const { ok, data } = await stripeRequest(env, '/v1/checkout/sessions', {
     method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString()
   });
-  if (!ok || !data?.url) return json({ detail: data?.error?.message || 'Stripe could not create checkout.' }, 502);
+  if (!ok || !data?.url) return json({ detail: data?.error?.message || 'Secure checkout could not be created.' }, 502);
   return json({ url: data.url, session_id: data.id, plan, pricing_source:configuredPrice?'verified-configured-price':'inline-recurring-price-data', price_usd:planDef.price_usd, cadence:planDef.cadence });
 }
 function parseStripeSignature(header) {
@@ -273,14 +279,14 @@ async function refreshSubscription(env, user) {
 }
 async function confirmCheckout(request, env, user) {
   const body = await request.json().catch(() => ({})); const sessionId = String(body.session_id || '').trim();
-  if (!/^cs_[A-Za-z0-9_]+$/.test(sessionId)) return json({ detail: 'A valid Stripe Checkout session is required.' }, 400);
+  if (!/^cs_[A-Za-z0-9_]+$/.test(sessionId)) return json({ detail: 'A valid secure checkout session is required.' }, 400);
   const { ok, data: session } = await stripeRequest(env, `/v1/checkout/sessions/${encodeURIComponent(sessionId)}`);
-  if (!ok || !session?.id) return json({ detail: session?.error?.message || 'Stripe checkout session could not be verified.' }, 502);
+  if (!ok || !session?.id) return json({ detail: session?.error?.message || 'Secure checkout session could not be verified.' }, 502);
   const tenantId = String(session?.metadata?.tenant_id || session?.client_reference_id || '').trim();
   if (tenantId !== String(user.tenant_id)) return json({ detail: 'This checkout session does not belong to your workspace.' }, 403);
-  if (session.mode !== 'subscription' || session.status !== 'complete') return json({ detail: 'Stripe has not confirmed this subscription yet.' }, 409);
+  if (session.mode !== 'subscription' || session.status !== 'complete') return json({ detail: 'Payment has not confirmed this subscription yet.' }, 409);
   const subscriptionId = typeof session.subscription === 'string' ? session.subscription : String(session.subscription?.id || '');
-  const sub = await fetchSubscription(env, subscriptionId); if (!sub?.id) return json({ detail: 'Stripe subscription could not be verified.' }, 502);
+  const sub = await fetchSubscription(env, subscriptionId); if (!sub?.id) return json({ detail: 'Paid subscription could not be verified.' }, 502);
   const status = String(sub.status || 'inactive'); const active = isActive(status);
   const plan = normalizedPlan(session?.metadata?.plan || sub?.metadata?.plan || body.plan || 'business');
   await saveSubscription(env, user.tenant_id, {
@@ -295,17 +301,22 @@ async function status(env, user) {
   const planId = normalizedPlan(row?.plan || 'free'); const plan = PLAN_CONFIG[planId];
   const usage = await env.DB.prepare('SELECT direct_variable_cost_usd FROM billing_usage_guard WHERE tenant_id=? AND period_key=?').bind(user.tenant_id, periodKey()).first();
   const cost = Number(usage?.direct_variable_cost_usd || 0); const ceiling = Number(plan.entitlements.cost_ceiling_usd || 0);
-  return json({
+  const identity=await platformOwnerDeveloperIdentity(user,env).catch(()=>({authorized:false}));
+  const response={
     plan: planId, plan_name: plan.name, subscription: row || null,
-    entitlements: plan.entitlements,
-    target_markup_percent: targetMarkup(env),
-    target_gross_margin_percent: targetMarkup(env),
-    direct_variable_cost_usd: cost,
-    cost_ceiling_usd: ceiling,
+    entitlements: identity.authorized ? plan.entitlements : customerEntitlements(plan.entitlements),
     premium_usage_allowed: planId !== 'free' && cost < ceiling,
     billing_configured: Boolean(env.STRIPE_SECRET_KEY),
     portal_configured: Boolean(env.STRIPE_SECRET_KEY)
-  });
+  };
+  if(identity.authorized) response.owner_pricing={
+    pricing_basis:plan.pricing_basis||null,
+    target_markup_percent:targetMarkup(env),
+    target_gross_margin_percent:targetMarkup(env),
+    direct_variable_cost_usd:cost,
+    cost_ceiling_usd:ceiling
+  };
+  return json(response);
 }
 
 export async function handleTierBilling(request, env) {
@@ -318,9 +329,7 @@ export async function handleTierBilling(request, env) {
     plans: PLAN_ORDER.map(id => publicPlan(env, id)),
     business_checkout_configured: Boolean(env.STRIPE_SECRET_KEY),
     crm_checkout_configured: Boolean(env.STRIPE_SECRET_KEY),
-    tier_checkout_configured: Object.fromEntries(PLAN_ORDER.filter(id=>id!=='free').map(id=>[id,Boolean(env.STRIPE_SECRET_KEY)])),
-    target_markup_percent: targetMarkup(env),
-    target_gross_margin_percent: targetMarkup(env)
+    tier_checkout_configured: Object.fromEntries(PLAN_ORDER.filter(id=>id!=='free').map(id=>[id,Boolean(env.STRIPE_SECRET_KEY)]))
   });
   if (path === '/api/billing/webhook' && request.method === 'POST') return webhook(request, env);
   const user = await currentUser(request, env);

@@ -27,7 +27,11 @@ try{
   assert.equal(staged.count,6);
   assert.deepEqual(staged.keys,['CLOUDFLARE_ACCOUNT_ID','CLOUDFLARE_API_TOKEN','INTEGRATION_CREDENTIALS_KEY','MAGNANIMOUS_EDGE_AI_BRIDGE_TOKEN','MAGNANIMOUS_EDGE_AI_BRIDGE_URL','TWILIO_ACCOUNT_SID']);
   const stat=await fs.stat(target);
-  assert.equal(stat.mode & 0o777,0o600);
+  assert.equal(stat.isFile(),true);
+  // POSIX production hosts enforce owner-only runtime secret files. Windows does
+  // not expose chmod semantics through stat.mode reliably, so do not turn an
+  // NTFS portability detail into a false security failure during local audits.
+  if(process.platform!=='win32')assert.equal(stat.mode & 0o777,0o600);
 
   process.env.INTEGRATION_CREDENTIALS_KEY='stale-value';
   const loaded=await loadRuntimeSecrets({file:target,override:true});

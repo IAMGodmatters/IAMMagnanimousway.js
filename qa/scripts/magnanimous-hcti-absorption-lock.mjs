@@ -23,11 +23,12 @@ for(const needle of [
  'magnanimous_render_events',
  'currentUser',
  'tenant_id',
- 'hcti_required:false'
+ 'third_party_renderer_required:false'
 ]) must(rendering.includes(needle),'Native rendering contract missing: '+needle);
 must(rendering.includes('variations.length>25'),'Native renderer must bound batch size.');
 must(rendering.includes('Provide exactly one of html or url.'),'Native renderer must reject ambiguous render sources.');
 must(rendering.includes('Magnanimous Object Store is required'),'Native renderer must not pretend hosted delivery without object storage.');
+must(rendering.includes('ownerCapabilityAccess')&&rendering.includes('publicCapabilitySummary'),'Native rendering capability diagnostics must keep external implementation details owner-private.');
 
 const browser=read('magnanimous-runtime/services/browser-service.mjs');
 for(const needle of [
@@ -55,7 +56,7 @@ for(const needle of [
  'magnanimous_render_batch','magnanimous_render_templates','magnanimous_render_template_versions',
  'magnanimous_render_template_create','magnanimous_render_template_update',
  'magnanimous_render_template','magnanimous_render_images','magnanimous_render_usage',
- 'hcti_required:false'
+ 'third_party_renderer_required:false'
 ]) must(connector.includes(needle),'Magnanimous MCP rendering tool missing: '+needle);
 
 const universal=read('worker/src/magnanimous-universal-capabilities.js');

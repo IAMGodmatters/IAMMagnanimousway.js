@@ -26,6 +26,7 @@ function walk(dir) {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);
+    if (entry.isDirectory() && ['node_modules','.next','out'].includes(entry.name)) return [];
     return entry.isDirectory() ? walk(full) : [full];
   });
 }

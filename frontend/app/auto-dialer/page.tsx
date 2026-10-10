@@ -81,7 +81,7 @@ export default function AutoDialer(){
   try{
    const call=await send(next.dial_endpoint||'/api/phone/calls/outbound',next.required_payload||{to:member.phone,consent_confirmed:true,ai_disclosure_accepted:true},t);
    const item:ActiveDial={campaignId:selected,memberId:member.id,phone:member.phone,name:member.display_name||member.phone,callId:call.call_id||call.id,providerCallId:call.provider_call_id,startedAt:Math.floor(Date.now()/1000)};
-   const updated=[...activeRef.current,item];activeRef.current=updated;setActive(updated);note(`Dialing ${item.name} at ${item.phone} through ${call.provider||'configured carrier'}.`);return true;
+   const updated=[...activeRef.current,item];activeRef.current=updated;setActive(updated);note(`Dialing ${item.name} at ${item.phone} through the configured Magnanimous calling route.`);return true;
   }catch(e){await send(`/api/contact-center/campaigns/${selected}/dial-cancel`,{member_id:member.id},t).catch(()=>{});throw e}
  }
  async function cycle(t:string){

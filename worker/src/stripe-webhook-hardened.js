@@ -1,5 +1,5 @@
 import { creditWallet } from './usage-guard.js';
-import { parsePaymentReference } from './payment-reference.js';
+import { verifySignedPaymentReference } from './payment-reference.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 
 const now=()=>Math.floor(Date.now()/1000);
@@ -41,9 +41,10 @@ async function save(env,tenantId,values){
  const compatibilityPlan=plan==='scale'?'business':plan;
  await env.DB.prepare('UPDATE tenants SET plan=? WHERE id=?').bind(compatibilityPlan,tenantId).run();
 }
+async function trustedPaymentReference(env,object){const secret=String(env?.SESSION_SECRET||'').trim();if(!secret)return{tenantId:'',kind:'invalid',plan:'',signed:false};return verifySignedPaymentReference(object?.client_reference_id,secret)}
 async function resolveTenant(env,object){
  const metadataTenant=String(object?.metadata?.tenant_id||'').trim();if(metadataTenant)return metadataTenant;
- const parsedReference=parsePaymentReference(object?.client_reference_id);if(parsedReference.tenantId)return parsedReference.tenantId;
+ const parsedReference=await trustedPaymentReference(env,object);if(parsedReference.tenantId)return parsedReference.tenantId;
  const sub=String(object?.id||'').startsWith('sub_')?String(object.id):String(object?.subscription||'');if(!sub)return'';
  const row=await env.DB.prepare('SELECT tenant_id FROM billing_subscriptions WHERE stripe_subscription_id=?').bind(sub).first();return String(row?.tenant_id||'')
 }
@@ -56,7 +57,7 @@ async function authorizeProviderSpend(env,tenantId,referenceId,purpose,amount=0)
 }
 async function processPaidCheckout(env,event,object){
  const metadataRawPlan=String(object?.metadata?.plan||'').toLowerCase();if(AGENCY_PLANS.has(metadataRawPlan))return;
- const paymentReference=parsePaymentReference(object?.client_reference_id);
+ const paymentReference=await trustedPaymentReference(env,object);
  const metadataPurpose=String(object?.metadata?.purpose||'').toLowerCase();
  const purpose=paymentReference.kind==='topup'?'premium_usage_topup':metadataPurpose;
  const tenantId=await resolveTenant(env,object);if(!tenantId||!paymentConfirmed(object))return;

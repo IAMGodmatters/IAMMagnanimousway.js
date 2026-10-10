@@ -111,13 +111,19 @@ export async function usageStatus(env,tenantId){
  return{...p,period_key:key,direct_variable_cost_usd:used,cost_ceiling_usd:ceiling,remaining_cost_usd:remainingIncluded,prepaid_balance_usd:prepaidBalance,prepaid_provider_origin_capacity_usd:prepaidOriginCapacity,prepaid_total_funded_usd:Number(wallet.total_funded_usd||0),prepaid_total_consumed_usd:Number(wallet.total_consumed_usd||0),premium_spendable_usd:originSpendable,provider_origin_spendable_usd:originSpendable,variable_markup_percent:PROVIDER_PRICE_MARKUP_PERCENT,premium_usage_allowed:p.plan!=='free'&&originSpendable>0};
 }
 
+export function customerUsageStatus(status={}){
+ const {limits={},direct_variable_cost_usd:_originUsed,cost_ceiling_usd:_originCeiling,remaining_cost_usd:_originRemaining,prepaid_provider_origin_capacity_usd:_originCapacity,provider_origin_spendable_usd:_originSpendable,variable_markup_percent:_internalMarkup,premium_spendable_usd:_internalSpendable,...safe}=status||{};
+ const {cost_ceiling_usd:_limitCostCeiling,...customerLimits}=limits||{};
+ return{...safe,limits:customerLimits,customer_usage_balance_usd:Number(status?.prepaid_balance_usd||0),customer_usage_charged_usd:Number(status?.prepaid_total_consumed_usd||0)};
+}
+
 export async function canUsePassThrough(env,tenantId,{category='magnanimous-plugin',estimated_provider_origin_cost_usd=0}={}){
  const s=await usageStatus(env,tenantId);
  const origin=Math.max(0,Number(estimated_provider_origin_cost_usd||0)||0);
  const variable=variableCustomerCharge(origin);
  if(variable.customer_charge_usd<=0)return{ok:true,code:'FREE_NATIVE_PATH',detail:'This Magnanimous-native operation has no verified direct metered origin cost.',estimated_provider_origin_cost_usd:0,estimated_variable_customer_charge_usd:0,...s};
- if(variable.customer_charge_usd>Number(s.prepaid_balance_usd||0)+1e-9)return{ok:false,code:'PREPAID_USAGE_BALANCE_EXHAUSTED',detail:'This paid direct-cost operation requires customer-funded prepaid credits equal to the verified origin cost plus exactly 20% Magnanimous markup.',category,estimated_provider_origin_cost_usd:origin,estimated_variable_customer_charge_usd:variable.customer_charge_usd,...s};
- return{ok:true,code:'PREPAID_FUNDED',detail:'Customer-funded prepaid credits cover the verified origin cost plus exactly 20% Magnanimous markup.',category,estimated_provider_origin_cost_usd:origin,estimated_variable_customer_charge_usd:variable.customer_charge_usd,...s};
+ if(variable.customer_charge_usd>Number(s.prepaid_balance_usd||0)+1e-9)return{ok:false,code:'PREPAID_USAGE_BALANCE_EXHAUSTED',detail:'This paid operation requires enough prepaid usage credit to cover the final customer charge.',category,estimated_provider_origin_cost_usd:origin,estimated_variable_customer_charge_usd:variable.customer_charge_usd,...s};
+ return{ok:true,code:'PREPAID_FUNDED',detail:'Your prepaid usage credit covers the final customer charge for this operation.',category,estimated_provider_origin_cost_usd:origin,estimated_variable_customer_charge_usd:variable.customer_charge_usd,...s};
 }
 
 export async function canUsePremium(env,tenantId,{category='premium',estimated_provider_origin_cost_usd=null,estimated_cost_usd=0,required_plan='business',entitlement=''}={}){
@@ -127,7 +133,7 @@ export async function canUsePremium(env,tenantId,{category='premium',estimated_p
  const estimatedOrigin=Math.max(0,Number(estimated_provider_origin_cost_usd??estimated_cost_usd??0)||0);
  const overageOrigin=Math.max(0,estimatedOrigin-Number(s.remaining_cost_usd||0));
  const variable=variableCustomerCharge(overageOrigin);
- if(variable.customer_charge_usd>Number(s.prepaid_balance_usd||0)+1e-9)return{ok:false,code:'PREMIUM_BUDGET_EXHAUSTED',detail:'Your included premium allowance and prepaid usage balance cannot fund this provider-origin reserve plus the disclosed 20% variable markup. Use a free-first option, upgrade, or add prepaid credits.',estimated_provider_origin_cost_usd:estimatedOrigin,estimated_variable_customer_charge_usd:variable.customer_charge_usd,...s};
+ if(variable.customer_charge_usd>Number(s.prepaid_balance_usd||0)+1e-9)return{ok:false,code:'PREMIUM_BUDGET_EXHAUSTED',detail:'Your included allowance and prepaid usage balance cannot cover the final customer charge for this operation. Use a free-first option, upgrade, or add prepaid credits.',estimated_provider_origin_cost_usd:estimatedOrigin,estimated_variable_customer_charge_usd:variable.customer_charge_usd,...s};
  return{ok:true,estimated_provider_origin_cost_usd:estimatedOrigin,estimated_variable_customer_charge_usd:variable.customer_charge_usd,...s};
 }
 
@@ -137,7 +143,7 @@ export async function recordUsage(env,tenantId,{category='premium',provider='',u
  const key=periodKey(),originCost=Math.max(0,Number(provider_origin_cost_usd??direct_cost_usd??0)||0),ref=String(reference_id||crypto.randomUUID());
  if(reference_id){const existing=await env.DB.prepare('SELECT id FROM billing_usage_events WHERE tenant_id=? AND category=? AND reference_id=? LIMIT 1').bind(String(tenantId),String(category),ref).first();if(existing)return usageStatus(env,tenantId);}
  const before=await usageStatus(env,tenantId),overageOrigin=Math.max(0,originCost-Number(before.remaining_cost_usd||0)),variable=variableCustomerCharge(overageOrigin);
- if(variable.customer_charge_usd>0)await debitWallet(env,tenantId,variable.customer_charge_usd,{reference_id:ref,detail:`${category} variable usage via ${provider||'provider'}: origin $${overageOrigin.toFixed(6)} + 20% markup`});
+ if(variable.customer_charge_usd>0)await debitWallet(env,tenantId,variable.customer_charge_usd,{reference_id:ref,detail:`${category} paid usage: final customer charge $${variable.customer_charge_usd.toFixed(6)}`});
  await env.DB.prepare(`INSERT INTO billing_usage_events(
   tenant_id,period_key,category,provider,units,direct_cost_usd,provider_origin_cost_usd,markup_usd,customer_charge_usd,pricing_source,pricing_verified_at,reference_id,created_at
  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(String(tenantId),key,String(category),String(provider),Number(units||0),originCost,originCost,variable.markup_usd,variable.customer_charge_usd,String(pricing_source||''),String(pricing_verified_at||''),ref,now()).run();

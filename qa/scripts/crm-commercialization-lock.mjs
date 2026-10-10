@@ -24,20 +24,24 @@ for(const [needle,label] of [
 for(const [needle,label] of [
  ['Magnanimous CRM Pro • $79/month','standalone public price'],
  ['Magnanimous Business • $214/month','Business public price'],
- ['$177.99 × 1.20 = $213.588','20 percent complete-bundle formula'],
- ['cost × 1.20','provider markup disclosure']
+ ['Customers see only the Magnanimous amount they pay','final-price customer disclosure'],
+ ['PRIVATE PRICING DIAGNOSTICS','owner-private pricing diagnostics']
 ])must(pricing,needle,label);
+for(const leaked of ['$177.99 × 1.20 = $213.588','cost × 1.20','20% bundle upsell','cost + exactly 20%'])if(pricing.includes(leaked))throw Error(`CRM COMMERCIALIZATION LOCK: customer pricing leaked owner-private economics: ${leaked}`);
 for(const [needle,label] of [
  ["id: 'crm', name: 'Magnanimous CRM Pro', price_usd: 79",'CRM backend price'],
  ["id: 'business', name: 'Magnanimous Business', price_usd: 214",'Business backend price'],
  ['professional_business_plan_usd:79','Professional Business Plan included in bundle basis'],
- ['calculated_usd:213.588','Business formula'],
+ ['component_total_usd:177.99','Business internal component total'],
+ ['markup_percent:20','Business internal 20 percent formula'],
+ ['calculated_usd:213.588','Business internal calculated price'],
  ['configuredPriceForPlan','Stripe Price verification'],
  ["line_items[0][price_data][unit_amount]",'safe Stripe price_data fallback'],
- ["target_markup_percent: targetMarkup(env)",'20 percent runtime policy']
+ ['if(identity.authorized) response.owner_pricing=','owner-only pricing response boundary'],
+ ['target_markup_percent:targetMarkup(env)','owner-only runtime margin policy']
 ])must(tier,needle,label);
 must(refs,'plus|crm|business|pro|scale','CRM payment reference identity');
-must(links,"const LINK_KEYS={plus:'STRIPE_PAYMENT_LINK_PLUS'}",'stale paid-plan links disabled');
+for(const key of ["crm:'STRIPE_PAYMENT_LINK_CRM'","business:'STRIPE_PAYMENT_LINK_BUSINESS'","scale:'STRIPE_PAYMENT_LINK_SCALE'"])must(links,key,'verified recurring Payment Link '+key);
 must(webhook,"const PLANS=new Set(['plus','crm','business','scale'])",'webhook paid catalog');
 must(webhook,"const compatibilityPlan=plan==='scale'?'business':plan",'annual Business webhook compatibility');
 must(usage,'crm:{rank:1.5','CRM must remain below historical Business rank boundary');
@@ -49,4 +53,4 @@ must(router,'applyBillingPlanCompatibility','billing compatibility wired into ru
 must(terms,"crm:{version:'crm-2026-10-10.1'",'CRM terms');
 must(terms,"business:{version:'business-2026-10-10.2'",'Business terms');
 for(const source of ['Attio','Pipedrive','HubSpot','Dynamics 365','Salesforce','Close','Creatio'])must(research,source,'research source '+source);
-console.log('CRM commercialization lock passed.');
+console.log('CRM commercialization lock passed with customer final-price display and owner-private internal economics.');

@@ -7,8 +7,9 @@ import { handleMagnanimousCloudProvider } from './magnanimous-cloud-provider-cor
 import { handleMagnanimousInfrastructure } from './magnanimous-infrastructure-core.js';
 import { getMagnanimousUnifiedOpsCatalog, resolveMagnanimousBenchmark } from './magnanimous-unified-ops.js';
 import { handleEnterpriseCommercialization } from './enterprise-commercialization-runtime.js';
-import { magnanimousPluginPricingSnapshot, quoteMagnanimousPluginCost } from './magnanimous-unified-plugin-pricing.js';
+import { customerMagnanimousPluginPricingSnapshot, magnanimousPluginPricingSnapshot, quoteMagnanimousPluginCost } from './magnanimous-unified-plugin-pricing.js';
 import { authorizeMagnanimousOAuthToken, handleMagnanimousPluginOAuth, magnanimousOAuthChallenge } from './magnanimous-plugin-oauth.js';
+import { platformOwnerDeveloperIdentity } from './platform-owner-guard.js';
 
 const json=(data,status=200,extra={})=>Response.json(data,{status,headers:{'cache-control':'no-store',...extra}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -45,6 +46,8 @@ export const MAGNANIMOUS_AI_PLATFORMS=[
  {id:'generic-openapi',name:'Any OpenAPI/function-calling AI',protocol:'OpenAPI',transport:'HTTPS JSON',install:'Import the Magnanimous OpenAPI schema and authenticate with a scoped connector token.'}
 ];
 
+function managementPlatforms(){return MAGNANIMOUS_AI_PLATFORMS.map((item,index)=>({id:item.id,name:`Compatible AI Client ${index+1}`,protocol:item.protocol,transport:item.transport,install:'Use the Magnanimous remote MCP or OpenAPI endpoint with scoped, revocable authorization. External product identity stays private and replaceable.'}))}
+
 const TOOL_DEFS=[
  {name:'magnanimous_capabilities',title:'Magnanimous capabilities',scope:'capabilities.read',description:'Read Magnanimous AI capabilities, routing identity and connector information.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
  {name:'magnanimous_ask',title:'Ask Magnanimous AI',scope:'brain.ask',description:'Delegate a reasoning or planning request to Magnanimous AI, which remains the command, memory and verification layer.',inputSchema:{type:'object',properties:{message:{type:'string',description:'The task or question for Magnanimous AI.'}},required:['message'],additionalProperties:false},annotations:READ_ONLY_LOCAL},
@@ -53,10 +56,10 @@ const TOOL_DEFS=[
  // Standard names make the connector compatible with ChatGPT deep research / company-knowledge style MCP discovery.
  {name:'search',title:'Search the web with Magnanimous',scope:'web.read',description:'Use this when the user wants current public-web discovery, source-backed search, or to find a public page through Magnanimous AI. Input: a query string. Returns ranked results with stable URL ids for fetch. Do not use for private-network or credential-only targets.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query'],additionalProperties:false},outputSchema:{type:'object',properties:{results:{type:'array',items:{type:'object',properties:{id:{type:'string'},title:{type:'string'},url:{type:'string'},text:{type:'string'}},required:['id','title','url','text'],additionalProperties:true}},run_id:{type:'string'},status:{type:'string'}},required:['results'],additionalProperties:true},annotations:READ_ONLY_OPEN_WEB},
  {name:'fetch',title:'Fetch a web page with Magnanimous',scope:'web.read',description:'Use this when the user wants Magnanimous AI to read or extract a specific public web page. Input: a public HTTP(S) URL id returned by search. Returns title, text and links. Do not use for localhost, private/reserved targets, or page writes.',inputSchema:{type:'object',properties:{id:{type:'string',description:'Absolute public http(s) URL returned by search.'}},required:['id'],additionalProperties:false},outputSchema:{type:'object',properties:{id:{type:'string'},url:{type:'string'},title:{type:'string'},text:{type:'string'},links:{type:'array'},structured:{type:'object'},run_id:{type:'string'},status:{type:'string'}},required:['id','url','title','text'],additionalProperties:true},annotations:READ_ONLY_OPEN_WEB},
- {name:'magnanimous_web_capabilities',title:'Native web capabilities',scope:'web.read',description:'Read live Magnanimous Native Web readiness and the clean-room TinyFish-parity boundary.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
+ {name:'magnanimous_web_capabilities',title:'Native web capabilities',scope:'web.read',description:'Read live Magnanimous Native Web readiness and the provider-neutral compatibility boundary.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
  {name:'magnanimous_web_parity',title:'Native web parity map',scope:'web.read',description:'Read the public capability replacement map and truth boundaries for Magnanimous Native Web.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
- {name:'magnanimous_web_usage',title:'Native web usage',scope:'web.read',description:'Read native browser run counts. Native execution does not require a TinyFish wallet.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
- {name:'magnanimous_render_capabilities',title:'Native rendering capabilities',scope:'web.read',description:'Read Magnanimous-native HTML/CSS-to-image, URL screenshot, PDF, template, batch, storage and usage readiness. HCTI is not required for the native path.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
+ {name:'magnanimous_web_usage',title:'Native web usage',scope:'web.read',description:'Read native browser run counts. Native execution does not require a third-party browser-service wallet.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
+ {name:'magnanimous_render_capabilities',title:'Native rendering capabilities',scope:'web.read',description:'Read Magnanimous-native HTML/CSS-to-image, URL screenshot, PDF, template, batch, storage and usage readiness. No third-party rendering service is required for the native path.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
  {name:'magnanimous_render_html',title:'Render HTML/CSS',scope:'web.read',description:'Render self-contained HTML/CSS through Magnanimous-owned Chromium and return a hosted Magnanimous image/PDF URL. Supports png, jpg, webp and pdf plus bounded viewport, device scale and delay options.',inputSchema:{type:'object',properties:{html:{type:'string'},css:{type:'string'},format:{type:'string',enum:['png','jpg','jpeg','webp','pdf']},viewport_width:{type:'integer'},viewport_height:{type:'integer'},device_scale:{type:'number'},ms_delay:{type:'integer'},color_scheme:{type:'string',enum:['light','dark']},quality:{type:'integer'},watermark_text:{type:'string'},watermark_position:{type:'string'}},required:['html'],additionalProperties:false},annotations:GUARDED_LOCAL},
  {name:'magnanimous_render_url',title:'Render public URL',scope:'web.read',description:'Capture a public HTTP(S) page using Magnanimous safe-egress Chromium and return a hosted Magnanimous image/PDF URL. Private/local targets remain blocked.',inputSchema:{type:'object',properties:{url:{type:'string'},format:{type:'string',enum:['png','jpg','jpeg','webp','pdf']},viewport_width:{type:'integer'},viewport_height:{type:'integer'},device_scale:{type:'number'},ms_delay:{type:'integer'},selector:{type:'string'},full_page:{type:'boolean'},quality:{type:'integer'}},required:['url'],additionalProperties:false},annotations:GUARDED_OPEN_WEB},
  {name:'magnanimous_render_batch',title:'Batch render images',scope:'web.read',description:'Create 1-25 Magnanimous-native image/PDF variations using shared default_options and per-item overrides.',inputSchema:{type:'object',properties:{default_options:{type:'object'},variations:{type:'array',items:{type:'object'},minItems:1,maxItems:25}},required:['variations'],additionalProperties:false},annotations:GUARDED_LOCAL},
@@ -66,7 +69,7 @@ const TOOL_DEFS=[
  {name:'magnanimous_render_template_update',title:'Version render template',scope:'web.write',description:'Create a new version of an existing Magnanimous rendering template without removing prior versions.',inputSchema:{type:'object',properties:{template_id:{type:'string'},name:{type:'string'},description:{type:'string'},html:{type:'string'},css:{type:'string'},options:{type:'object'}},required:['template_id'],additionalProperties:false},annotations:GUARDED_LOCAL},
  {name:'magnanimous_render_template',title:'Render saved template',scope:'web.read',description:'Render a saved Magnanimous template using template_values and an optional pinned version.',inputSchema:{type:'object',properties:{template_id:{type:'string'},template_values:{type:'object'},version:{type:'integer'},format:{type:'string',enum:['png','jpg','jpeg','webp','pdf']},viewport_width:{type:'integer'},viewport_height:{type:'integer'},device_scale:{type:'number'},quality:{type:'integer'}},required:['template_id','template_values'],additionalProperties:false},annotations:GUARDED_LOCAL},
  {name:'magnanimous_render_images',title:'List rendered images',scope:'web.read',description:'List recent tenant-scoped Magnanimous render artifacts and hosted URLs.',inputSchema:{type:'object',properties:{count:{type:'integer',minimum:1,maximum:100}},additionalProperties:false},annotations:READ_ONLY_LOCAL},
- {name:'magnanimous_render_usage',title:'Rendering usage',scope:'web.read',description:'Read native render counts, stored bytes and maximum batch size without using HCTI credits.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
+ {name:'magnanimous_render_usage',title:'Rendering usage',scope:'web.read',description:'Read native render counts, stored bytes and maximum batch size without requiring third-party rendering credits.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
 
  {name:'magnanimous_web_research',title:'Research with Magnanimous Native Web',scope:'web.read',description:'Use this when the user wants source-backed multi-page public-web research through Magnanimous AI rather than a single search or page fetch. Returns a synthesized report when available; public HTTP(S) sources only.',inputSchema:{type:'object',properties:{query:{type:'string'},limit:{type:'integer',minimum:1,maximum:8},max_chars:{type:'integer'},output_schema:{type:['object','null']},locale:{type:'string'},profile:{type:'string'}},required:['query'],additionalProperties:false},annotations:READ_ONLY_OPEN_WEB},
  {name:'magnanimous_web_fetch_batch',title:'Batch fetch with Magnanimous',scope:'web.read',description:'Render and extract 1-10 public web URLs with per-URL results and errors.',inputSchema:{type:'object',properties:{urls:{type:'array',items:{type:'string'},minItems:1,maxItems:10},selector:{type:'string'},max_chars:{type:'integer'},include_html:{type:'boolean'},fields:{type:'object'},locale:{type:'string'},profile:{type:'string'}},required:['urls'],additionalProperties:false},annotations:READ_ONLY_OPEN_WEB},
@@ -97,7 +100,7 @@ const TOOL_DEFS=[
  {name:'magnanimous_web_monitor_run',title:'Run native web monitor now',scope:'web.write',description:'Start one immediate read-only run for an existing monitor.',inputSchema:{type:'object',properties:{monitor_id:{type:'string'}},required:['monitor_id'],additionalProperties:false},annotations:GUARDED_OPEN_WEB},
  {name:'magnanimous_web_monitor_delete',title:'Delete native web monitor',scope:'web.write',description:'Delete one Magnanimous web monitor.',inputSchema:{type:'object',properties:{monitor_id:{type:'string'}},required:['monitor_id'],additionalProperties:false},annotations:DESTRUCTIVE_LOCAL},
 
- {name:'magnanimous_plugin_billing',title:'Magnanimous plugin cost and Stripe credits',scope:'capabilities.read',description:'Use before any operation that could have a direct metered cost. Actions: policy returns the $0 base-fee + exact 20% markup rule and current benchmark research; quote calculates the customer charge from a verified direct origin cost; wallet returns this customer tenant\'s prepaid balance; topup returns the existing Stripe checkout URL for adding prepaid usage credits. This tool does not charge a card by itself and never invents a provider cost.',inputSchema:{type:'object',properties:{action:{type:'string',enum:['policy','quote','wallet','topup']},provider_origin_cost_usd:{type:'number',minimum:0}},required:['action'],additionalProperties:false},outputSchema:GENERIC_OBJECT_OUTPUT_SCHEMA,annotations:READ_ONLY_LOCAL,_meta:TOOL_ERROR_META},
+ {name:'magnanimous_plugin_billing',title:'Magnanimous usage balance and prepaid credits',scope:'capabilities.read',description:'Use this to read customer-visible billing policy, check prepaid usage balance, or open Magnanimous usage-credit checkout. Internal cost and margin diagnostics are restricted to the verified platform owner.',inputSchema:{type:'object',properties:{action:{type:'string',enum:['policy','quote','wallet','topup']},internal_cost_usd:{type:'number',minimum:0}},required:['action'],additionalProperties:false},outputSchema:GENERIC_OBJECT_OUTPUT_SCHEMA,annotations:READ_ONLY_LOCAL,_meta:TOOL_ERROR_META},
 
  {name:'magnanimous_ops_catalog',title:'Magnanimous native operations catalog',scope:'cloud.read',description:'Use this when the user wants to inspect Magnanimous AI native web/browser, cloud/deployment, or edge/runtime capabilities and their provider-neutral boundaries. Input: none. Output: identity, supported areas, benchmark-contract counts, learned techniques, resource-kind hints and truthful infrastructure boundaries. Read-only; never buys capacity.',inputSchema:{type:'object',properties:{},additionalProperties:false},outputSchema:GENERIC_OBJECT_OUTPUT_SCHEMA,annotations:READ_ONLY_LOCAL,_meta:TOOL_ERROR_META},
  {name:'magnanimous_ops_translate',title:'Translate provider capability to Magnanimous',scope:'cloud.read',description:'Purpose: map a public Railway or Cloudflare capability name to its Magnanimous-owned equivalent. Input: provider plus capability/tool name. Output: matched benchmark contract, native target/resource kind, independence status and external-capacity boundary. Boundary: read-only clean-room translation; no provider call, credential use or proprietary implementation copying.',inputSchema:{type:'object',properties:{provider:{type:'string',enum:['railway','cloudflare']},capability:{type:'string'}},required:['provider','capability'],additionalProperties:false},outputSchema:TRANSLATION_OUTPUT_SCHEMA,annotations:READ_ONLY_LOCAL,_meta:TOOL_ERROR_META},
@@ -167,17 +170,18 @@ async function shortSession(env,connector){
 }
 function internalRequest(request,path,method='GET',body,session=''){const headers=new Headers();if(session)headers.set('authorization',`Bearer ${session}`);if(body!==undefined)headers.set('content-type','application/json');return new Request(new URL(path,request.url),{method,headers,body:body===undefined?undefined:JSON.stringify(body)})}
 async function responseData(response){const text=await response.text();try{return{text,data:text?JSON.parse(text):{}}}catch{return{text,data:{raw:text}}}}
+async function connectorIsPlatformOwner(env,connector){if(!env?.DB||!connector?.user_id||!connector?.tenant_id)return false;const user=await env.DB.prepare('SELECT id,tenant_id,email,role,active FROM users WHERE id=? AND tenant_id=? AND active=1 LIMIT 1').bind(String(connector.user_id),String(connector.tenant_id)).first().catch(()=>null);if(!user)return false;return Boolean((await platformOwnerDeveloperIdentity(user,env)).authorized)}
 function hasScope(connector,scope){return connector?.scopes?.has(scope)}
 function visibleTools(connector){return TOOL_DEFS.filter(t=>hasScope(connector,t.scope)).map(({scope,...tool})=>({...tool,securitySchemes:[{type:'oauth2',scopes:[scope]}]}))}
 
 const NATIVE_WEB_SKILL=`---
 name: magnanimous-native-web
-description: Use Magnanimous AI's native search, fetch, research, browser-run, profile, session, screenshot, webhook, and monitor capabilities when live web work is needed without relying on TinyFish.
+description: Use Magnanimous AI's native search, fetch, research, browser-run, profile, session, screenshot, webhook, and monitor capabilities for live web work through Magnanimous-owned interfaces.
 ---
 
 # Magnanimous Native Web
 
-Magnanimous AI is the planner, memory, policy, routing, and verification layer. Use the first-party Native Web tools instead of TinyFish for supported browser work.
+Magnanimous AI is the planner, memory, policy, routing, and verification layer. Use the first-party Native Web tools for supported browser work.
 
 ## Preferred workflow
 1. Use \`search\` for current public-web discovery.
@@ -193,12 +197,12 @@ Magnanimous AI is the planner, memory, policy, routing, and verification layer. 
 - Authenticated accounts use a local persistent Chromium profile; credentials and cookies stay on the paired owner computer.
 - Public HTTP(S) targets only. Private-network, localhost, link-local, reserved, file, javascript and browser-extension targets remain blocked.
 - Interactive or destructive operations retain exact confirmation gates.
-- Do not claim TinyFish proprietary source code, hidden prompts, model weights, managed residential proxy fleet, anti-bot infrastructure, or remote CDP infrastructure. Magnanimous implements clean-room equivalents from public/observable capability contracts.
-- The native path has no TinyFish wallet/per-run payment dependency; owner compute, Internet access, and any separately chosen infrastructure still have their own real costs/limits.
+- Do not claim or expose third-party proprietary source code, hidden prompts, model weights, managed proxy infrastructure, anti-bot infrastructure, or private browser-control infrastructure. Magnanimous implements clean-room equivalents from public/observable capability contracts.
+- The native path has no third-party browser-service wallet dependency; owner compute, Internet access, and any separately chosen infrastructure still have their own real costs/limits.
 `;
 const NATIVE_OPS_SKILL=`---
 name: magnanimous-native-operations
-description: Operate Magnanimous AI's unified native web, cloud/deployment, and edge/runtime control surfaces without requiring TinyFish, Railway, or Cloudflare as permanent plugin dependencies.
+description: Operate Magnanimous AI's unified native web, cloud/deployment, and edge/runtime control surfaces while keeping external providers private and replaceable.
 ---
 
 # Magnanimous Native Operations
@@ -208,21 +212,21 @@ Magnanimous AI is the only public command, memory, policy, routing, verification
 ## One plugin, three native areas
 
 ### Web / browser
-Use Magnanimous Native Web for search, rendered fetch, research, browser flows, sessions, screenshots and monitors. TinyFish is not required for supported paths.
+Use Magnanimous Native Web for search, rendered fetch, research, browser flows, sessions, screenshots and monitors. External browser services are not required for supported paths.
 
 ### Cloud / deployment
-Use Magnanimous Cloud projects/resources/actions for Railway-style workspace/project/environment/service/deployment patterns, feature flags, configuration boundaries, domains, health-gated release state and observability contracts. Railway can be an optional temporary capacity adapter, but it is not required for the software control plane.
+Use Magnanimous Cloud projects/resources/actions for workspace/project/environment/service/deployment patterns, feature flags, configuration boundaries, domains, health-gated release state and observability contracts. External capacity may remain replaceable, but it is not the software control-plane identity.
 
 ### Edge / runtime
-Use Magnanimous standalone runtime and Cloud resource kinds for Cloudflare-style software contracts: workers/apps, SQL, object storage, cache policy, queues, workflows, schedules, rate limiting, AI gateway, DNS desired state, firewall policy, observability, browser and sandbox contracts. Cloudflare is not required for the native software contract.
+Use Magnanimous standalone runtime and Cloud resource kinds for edge/runtime software contracts: workers/apps, SQL, object storage, cache policy, queues, workflows, schedules, rate limiting, AI gateway, DNS desired state, firewall policy, observability, browser and sandbox contracts. External edge providers are not the native software-contract identity.
 
 ## Preferred workflow
 1. Use \`magnanimous_ops_catalog\` to inspect the unified capability map.
-2. Use \`magnanimous_ops_translate\` when a Railway or Cloudflare public capability name needs to be mapped into a native Magnanimous target.
+2. Use \`magnanimous_ops_translate\` when an external provider capability name needs to be mapped into a native Magnanimous target.
 3. Use read-only cloud tools to inspect current state before changing it.
 4. Use \`magnanimous_cloud_create_project\` / \`magnanimous_cloud_create_resource\` to define native desired state.
 5. Use \`magnanimous_cloud_stage_action\` for consequential infrastructure intent. Never treat a staged action as proof of physical execution.
-6. Before any operation with a real direct metered origin cost, use \`magnanimous_plugin_billing\` to disclose the verified cost + exactly 20% Magnanimous markup. Free native paths remain $0. If prepaid credits are insufficient, use its \`topup\` action to return the existing Stripe checkout URL; never silently owner-fund usage.
+6. Before any operation with a real direct metered origin cost, use \`magnanimous_plugin_billing\` to disclose the final Magnanimous customer charge. Free native paths remain $0. If prepaid credits are insufficient, use its \`topup\` action to open Magnanimous usage-credit checkout; never silently owner-fund usage.
 7. Use \`magnanimous_operate\` only when one authorized workflow needs to cross web, cloud, and edge areas through a single tool.
 8. Verify terminal state before saying a deployment or infrastructure mutation completed.
 
@@ -231,7 +235,7 @@ Use Magnanimous standalone runtime and Cloud resource kinds for Cloudflare-style
 - Secret values belong in the Magnanimous secret vault/local runtime and are not returned through MCP.
 - No provider purchase, plan upgrade, domain registration, public-IP purchase or paid capacity is initiated by these native control-plane tools.
 - Real CPU/RAM/disk, public IP allocation, Internet transit, registrar authority, BGP/anycast, carrier-scale DDoS capacity and physical datacenters remain real infrastructure boundaries.
-- Do not copy or claim proprietary TinyFish, Railway or Cloudflare source code, hidden prompts, credentials, private APIs, model weights, anti-bot systems or trade secrets.
+- Do not copy, expose, or claim proprietary external source code, hidden prompts, credentials, private APIs, model weights, anti-bot systems or trade secrets.
 - Provider adapters may remain available for migration, rollback or capacity, but Magnanimous identity and memory never move to them.
 `;
 
@@ -285,10 +289,10 @@ async function nativeInfrastructureCall(request,env,session,path){
  return response.ok?{status:response.status,data:out.data}:{status:response.status,error:out.data?.detail||out.data?.error||out.text,data:out.data};
 }
 async function nativeOpsSkillEntry(){
- return{uri:NATIVE_OPS_SKILL_URI,frontmatter:{name:'magnanimous-native-operations',description:"Operate Magnanimous AI's unified native web, cloud/deployment, and edge/runtime control surfaces without requiring TinyFish, Railway, or Cloudflare as permanent plugin dependencies."},resources:[{uri:NATIVE_OPS_SKILL_URI,digest:'sha256:'+await sha256Hex(NATIVE_OPS_SKILL)}]};
+ return{uri:NATIVE_OPS_SKILL_URI,frontmatter:{name:'magnanimous-native-operations',description:"Operate Magnanimous AI's unified native web, cloud/deployment, and edge/runtime control surfaces while keeping external providers private and replaceable."},resources:[{uri:NATIVE_OPS_SKILL_URI,digest:'sha256:'+await sha256Hex(NATIVE_OPS_SKILL)}]};
 }
 async function skillEntry(){
- return{uri:NATIVE_WEB_SKILL_URI,frontmatter:{name:'magnanimous-native-web',description:"Use Magnanimous AI's native search, fetch, research, browser-run, profile, session, screenshot, webhook, and monitor capabilities when live web work is needed without relying on TinyFish."},resources:[{uri:NATIVE_WEB_SKILL_URI,digest:'sha256:'+await sha256Hex(NATIVE_WEB_SKILL)}]};
+ return{uri:NATIVE_WEB_SKILL_URI,frontmatter:{name:'magnanimous-native-web',description:"Use Magnanimous AI's native search, fetch, research, browser-run, profile, session, screenshot, webhook, and monitor capabilities for live web work through Magnanimous-owned interfaces."},resources:[{uri:NATIVE_WEB_SKILL_URI,digest:'sha256:'+await sha256Hex(NATIVE_WEB_SKILL)}]};
 }
 
 async function executeTool(request,env,connector,name,args={}){
@@ -414,10 +418,12 @@ async function executeTool(request,env,connector,name,args={}){
  }
  if(name==='magnanimous_plugin_billing'){
   const action=String(args?.action||'').trim().toLowerCase();
-  if(action==='policy')return{status:200,data:magnanimousPluginPricingSnapshot()};
+  const owner=await connectorIsPlatformOwner(env,connector);
+  if(action==='policy')return{status:200,data:owner?magnanimousPluginPricingSnapshot():customerMagnanimousPluginPricingSnapshot()};
   if(action==='quote'){
-   const cost=Number(args?.provider_origin_cost_usd);
-   if(!Number.isFinite(cost)||cost<0)return{status:400,error:'provider_origin_cost_usd must be a verified non-negative number.'};
+   if(!owner)return{status:403,error:'Platform owner pricing diagnostics are required for internal cost quoting.'};
+   const cost=Number(args?.internal_cost_usd??args?.provider_origin_cost_usd);
+   if(!Number.isFinite(cost)||cost<0)return{status:400,error:'internal_cost_usd must be a verified non-negative number.'};
    return{status:200,data:quoteMagnanimousPluginCost(cost)};
   }
   if(action==='wallet'||action==='topup'){
@@ -533,7 +539,7 @@ async function executeTool(request,env,connector,name,args={}){
 function rpcResult(id,result){return json({jsonrpc:'2.0',id,result},200,{'content-type':'application/json'})}
 function rpcError(id,code,message,status=200,data){return json({jsonrpc:'2.0',id:id??null,error:{code,message,...(data===undefined?{}:{data})}},status,{'content-type':'application/json'})}
 function toolPayload(result){if(result.error)return{isError:true,content:[{type:'text',text:String(result.error)}]};const data=result.data??{};return{isError:false,structuredContent:data,content:[{type:'text',text:JSON.stringify(data)}]}}
-function modernDiscover(){return{protocolVersion:MODERN_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.2.0'},capabilities:{tools:{listChanged:false},resources:{},prompts:{},extensions:{[SKILLS_EXTENSION]:{}}},instructions:'Magnanimous AI is the command, memory, routing and verification layer. One first-party MCP exposes native web/browser, Magnanimous Cloud deployment/control, and edge/runtime operations without requiring TinyFish, Railway, or Cloudflare as permanent plugin dependencies.'}}
+function modernDiscover(){return{protocolVersion:MODERN_PROTOCOL,serverInfo:{name:'Magnanimous AI',version:'1.2.0'},capabilities:{tools:{listChanged:false},resources:{},prompts:{},extensions:{[SKILLS_EXTENSION]:{}}},instructions:'Magnanimous AI is the command, memory, routing and verification layer. One first-party MCP exposes native web/browser, Magnanimous Cloud deployment/control, and edge/runtime operations while keeping external providers private and replaceable.'}}
 async function handleMcp(request,env){
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type,mcp-protocol-version,mcp-method,mcp-name,x-magnanimous-connector-key','access-control-allow-methods':'POST,OPTIONS'}});
  if(request.method==='GET'&&String(request.headers.get('accept')||'').toLowerCase().includes('text/html'))return new Response(null,{status:302,headers:{location:new URL('/plugin-support/',request.url).toString(),'cache-control':'no-store'}});
@@ -589,7 +595,7 @@ async function handleMcp(request,env){
  return rpcError(id,-32601,'Method not found.');
 }
 
-function manifest(request){const origin=new URL(request.url).origin;return{name:'Magnanimous AI',publisher:'I AM MAGNANIMOUS WAY™',identity:'Magnanimous AI',mcp:{url:`${origin}/mcp`,protocols:[MODERN_PROTOCOL,LEGACY_PROTOCOL],transport:'streamable-http',authentication:'OAuth 2.1 authorization-code + PKCE for ChatGPT; legacy scoped bearer connector tokens for other clients',skills_extension:SKILLS_EXTENSION},openapi:`${origin}/api/magnanimous/ai-connectors/openapi.json`,management:`${origin}/api/magnanimous/ai-connectors`,native_web:{tinyfish_required:false,third_party_wallet_required:false,standard_tools:['search','fetch'],skill:NATIVE_WEB_SKILL_URI},native_rendering:{hcti_required:false,native_first:true,formats:['png','jpg','webp','pdf'],max_batch_size:25,tools:['magnanimous_render_html','magnanimous_render_url','magnanimous_render_batch','magnanimous_render_template']},native_operations:{skill:NATIVE_OPS_SKILL_URI,railway_plugin_required:false,cloudflare_plugin_required:false,provider_purchase_required_for_control_plane:false,areas:['web','cloud','edge'],unified_tool:'magnanimous_operate'},pricing:{base_fee_usd:0,markup_percent:20,billing_model:'free-native-plus-prepaid-pass-through',subscription_required:false,stripe_topup_tool:'magnanimous_plugin_billing'},discovery:{use_when:['current public-web search or source-backed research','reading public web pages','Magnanimous-native browser workflows','authorized provider-neutral cloud/deployment operations','authorized edge/runtime operations'],selection_note:'Tool descriptions intentionally describe supported user intent and boundaries so ChatGPT can select Magnanimous when it matches the request; they do not force or manipulate selection over unrelated plugins.'},platforms:MAGNANIMOUS_AI_PLATFORMS,principle:'External AI platforms are clients or execution environments. Magnanimous remains the command, memory, routing and verification layer.'}}
+function manifest(request){const origin=new URL(request.url).origin;return{name:'Magnanimous AI',publisher:'I AM MAGNANIMOUS WAY™',identity:'Magnanimous AI',mcp:{url:`${origin}/mcp`,protocols:[MODERN_PROTOCOL,LEGACY_PROTOCOL],transport:'streamable-http',authentication:'OAuth 2.1 authorization-code + PKCE; legacy scoped bearer connector tokens remain supported for compatible clients',skills_extension:SKILLS_EXTENSION},openapi:`${origin}/api/magnanimous/ai-connectors/openapi.json`,management:`${origin}/api/magnanimous/ai-connectors`,native_web:{third_party_browser_service_required:false,third_party_wallet_required:false,standard_tools:['search','fetch'],skill:NATIVE_WEB_SKILL_URI},native_rendering:{third_party_renderer_required:false,native_first:true,formats:['png','jpg','webp','pdf'],max_batch_size:25,tools:['magnanimous_render_html','magnanimous_render_url','magnanimous_render_batch','magnanimous_render_template']},native_operations:{skill:NATIVE_OPS_SKILL_URI,external_deployment_plugin_required:false,provider_purchase_required_for_control_plane:false,areas:['web','cloud','edge'],unified_tool:'magnanimous_operate'},pricing:{base_fee_usd:0,billing_model:'free-native-plus-prepaid-final-charge',subscription_required:false,topup_tool:'magnanimous_plugin_billing',customer_price_display:'final Magnanimous charge shown before paid usage'},discovery:{use_when:['current public-web search or source-backed research','reading public web pages','Magnanimous-native browser workflows','authorized provider-neutral cloud/deployment operations','authorized edge/runtime operations'],selection_note:'Tool descriptions describe supported user intent and boundaries so compatible AI clients can select Magnanimous when it matches the request; they do not force or manipulate selection over unrelated tools.'},principle:'External AI platforms are clients or execution environments. Magnanimous remains the command, memory, routing and verification layer.'}}
 function openApi(request){const origin=new URL(request.url).origin;return{openapi:'3.1.0',info:{title:'Magnanimous AI Universal Connector',version:'1.0.0',description:'Provider-neutral connector for Magnanimous AI. Use a scoped connector token.'},servers:[{url:origin}],components:{securitySchemes:{ConnectorBearer:{type:'http',scheme:'bearer'}}},security:[{ConnectorBearer:[]}],paths:{'/api/magnanimous/ai-connectors/invoke':{post:{summary:'Invoke one authorized Magnanimous connector tool',requestBody:{required:true,content:{'application/json':{schema:{type:'object',properties:{tool:{type:'string'},arguments:{type:'object'}},required:['tool']}}}},responses:{'200':{description:'Tool result'},'401':{description:'Invalid connector token'},'403':{description:'Insufficient scope'}}}}}}}
 
 export async function handleMagnanimousUniversalAIConnector(request,env){
@@ -604,7 +610,7 @@ export async function handleMagnanimousUniversalAIConnector(request,env){
  if(!path.startsWith('/api/magnanimous/ai-connectors'))return null;
  const user=await currentUser(request,env);if(!user||!['owner','admin'].includes(String(user.role||'').toLowerCase()))return json({detail:'Owner or admin access required.'},403);await ensureSchema(env);
  if(request.method==='GET'&&path==='/api/magnanimous/ai-connectors'){
-  const {results=[]}=await env.DB.prepare('SELECT id,name,platform,scopes_json,active,created_at,last_used_at FROM magnanimous_ai_connector_tokens WHERE tenant_id=? ORDER BY created_at DESC').bind(user.tenant_id).all();return json({...manifest(request),available_scopes:[...ALL_SCOPES],default_scopes:DEFAULT_SCOPES,tokens:results.map(x=>({...x,scopes:[...parseScopes(x)]}))});
+  const {results=[]}=await env.DB.prepare('SELECT id,name,platform,scopes_json,active,created_at,last_used_at FROM magnanimous_ai_connector_tokens WHERE tenant_id=? ORDER BY created_at DESC').bind(user.tenant_id).all();return json({...manifest(request),platforms:managementPlatforms(),available_scopes:[...ALL_SCOPES],default_scopes:DEFAULT_SCOPES,tokens:results.map(x=>({...x,platform_label:'Compatible AI Client',scopes:[...parseScopes(x)]}))});
  }
  if(request.method==='POST'&&path==='/api/magnanimous/ai-connectors/token'){
   const body=await request.json().catch(()=>({}));const scopes=safeScopes(body.scopes);const effective=scopes.length?scopes:DEFAULT_SCOPES;const platform=String(body.platform||'generic-mcp').slice(0,80);const name=String(body.name||`${platform} connector`).slice(0,120);const token=randomSecret(),hash=await sha256Hex(token),id=crypto.randomUUID(),ts=now();

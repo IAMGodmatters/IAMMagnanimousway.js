@@ -1,5 +1,5 @@
 import { currentUserFromRequest } from './usage-guard.js';
-import { encodePlanPaymentReference } from './payment-reference.js';
+import { encodeSignedPlanPaymentReference } from './payment-reference.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const PLANS=new Set(['plus','crm','business','pro','scale']);
@@ -17,17 +17,17 @@ export async function handleBillingCheckoutHardening(request,env){
  const plan=String(body.plan||'business').toLowerCase();
  if(!PLANS.has(plan))return json({detail:'Choose a valid paid plan: plus, crm, business, pro, or scale.',code:'INVALID_PLAN'},400);
  const requiredTerms=TERMS[plan];
- if(body.termsAccepted!==true||String(body.termsVersion||'')!==requiredTerms)return json({detail:'Premium Services Agreement acceptance is required before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED',requiredTerms},428);
+ if(body.termsAccepted!==true||body.recurringDisclosureAccepted!==true||String(body.termsVersion||'')!==requiredTerms)return json({detail:'Premium Services Agreement acceptance is required before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED',requiredTerms},428);
  let existing=null;
  try{existing=await env.DB.prepare('SELECT plan,status,stripe_customer_id,stripe_subscription_id,current_period_end FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first()}catch(_){ }
  if(existing?.stripe_subscription_id&&ACTIVEISH.has(String(existing.status||''))){
-  return json({detail:'This workspace already has a Stripe subscription. Use Manage billing to change, recover, or cancel the existing subscription instead of creating a duplicate.',code:'ACTIVE_SUBSCRIPTION_EXISTS',current_plan:String(existing.plan||'free'),status:String(existing.status||''),current_period_end:existing.current_period_end||null,portal_endpoint:'/api/billing/portal'},409);
+  return json({detail:'This workspace already has an active paid subscription. Use Manage billing to change, recover, or cancel the existing subscription instead of creating a duplicate.',code:'ACTIVE_SUBSCRIPTION_EXISTS',current_plan:String(existing.plan||'free'),status:String(existing.status||''),current_period_end:existing.current_period_end||null,portal_endpoint:'/api/billing/portal'},409);
  }
  // New CRM/Business/Annual offers must use verified hosted Checkout. Do not let
  // their old Payment Links intercept checkout because those links can carry stale prices.
  if(plan==='plus'&&!String(env.STRIPE_SECRET_KEY||'').trim()){
   const link=String(env.STRIPE_PAYMENT_LINK_PLUS||'').trim();
-  if(link){const paymentReference=encodePlanPaymentReference(String(user.tenant_id),plan);return json({url:appendQuery(link,'client_reference_id',paymentReference),plan,mode:'payment_link',fallback:'stripe-payment-link'});}
+  if(link){const secret=String(env.SESSION_SECRET||'').trim();if(!secret)return json({detail:'Secure checkout identity is not configured.',code:'CHECKOUT_IDENTITY_NOT_CONFIGURED'},503);const paymentReference=await encodeSignedPlanPaymentReference(secret,String(user.tenant_id),plan);return json({url:appendQuery(link,'client_reference_id',paymentReference),plan,mode:'payment_link',fallback:'hosted-payment-link'});}
  }
  return null;
 }

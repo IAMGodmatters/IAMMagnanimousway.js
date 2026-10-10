@@ -1,14 +1,38 @@
 import { currentUser } from './integrations.js';
-import { encodePlanPaymentReference, normalizePaidPlan } from './payment-reference.js';
+import { encodeSignedPlanPaymentReference, normalizePaidPlan } from './payment-reference.js';
 
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'cache-control': 'no-store' } });
-// Only the legacy Plus payment link remains safe as a fallback. CRM, Business and
-// Annual pricing now run through verified Stripe Checkout so stale legacy links
-// can never silently undercharge the new commercial plans.
-const LINK_KEYS={plus:'STRIPE_PAYMENT_LINK_PLUS'};
+// Free-first billing fallback: these hosted Stripe links are tied to the verified
+// recurring Prices. Magnanimous still gates terms and duplicate subscriptions
+// before redirecting, and Stripe-signed webhooks remain the activation authority.
+const LINK_KEYS={
+  plus:'STRIPE_PAYMENT_LINK_PLUS',
+  crm:'STRIPE_PAYMENT_LINK_CRM',
+  business:'STRIPE_PAYMENT_LINK_BUSINESS',
+  pro:'STRIPE_PAYMENT_LINK_BUSINESS',
+  scale:'STRIPE_PAYMENT_LINK_SCALE'
+};
+const TERMS={
+  plus:'unlimited-2026-09-18.1',
+  crm:'crm-2026-10-10.1',
+  business:'business-2026-10-10.2',
+  pro:'business-2026-10-10.2',
+  scale:'business-annual-2026-10-10.2'
+};
+const ACTIVEISH=new Set(['active','trialing','past_due']);
 function paymentLink(env,plan='plus'){return String(env?.[LINK_KEYS[plan]]||'').trim()}
 function availableLinks(env){return Object.fromEntries(Object.keys(LINK_KEYS).map(plan=>[plan,Boolean(paymentLink(env,plan))]))}
 function appendQuery(url, key, value) {const parsed = new URL(url);parsed.searchParams.set(key, value);return parsed.toString()}
+
+async function existingSubscription(env,tenantId){
+  if(!env?.DB)return null;
+  try{return await env.DB.prepare('SELECT plan,status,stripe_subscription_id,current_period_end FROM billing_subscriptions WHERE tenant_id=?').bind(tenantId).first()}catch{return null}
+}
+async function recordTermsAcceptance(env,user,plan,termsVersion){
+  if(!env?.DB)return;
+  await env.DB.prepare('INSERT INTO billing_checkout_consents(id,tenant_id,user_id,plan,terms_version,recurring_disclosure_accepted,checkout_mode,accepted_at) VALUES(?,?,?,?,?,?,?,?)')
+    .bind(crypto.randomUUID(),String(user.tenant_id),String(user.id||''),plan,termsVersion,1,'stripe_payment_link',Math.floor(Date.now()/1000)).run();
+}
 
 export async function handlePaymentLinkBilling(request, env) {
   const url = new URL(request.url);
@@ -24,8 +48,19 @@ export async function handlePaymentLinkBilling(request, env) {
   if (!user) return json({ detail: 'Sign in required.' }, 401);
   const tenantId = String(user.tenant_id || '').trim();
   if (!tenantId) return json({ detail: 'Workspace is missing.' }, 409);
-  const paymentReference=encodePlanPaymentReference(tenantId,plan);
-  return json({url:appendQuery(link,'client_reference_id',paymentReference),plan,mode:'payment_link'});
+  const requiredTerms=TERMS[plan]||TERMS.plus;
+  if(body.termsAccepted!==true||body.recurringDisclosureAccepted!==true||String(body.termsVersion||'')!==requiredTerms){
+    return json({detail:'The terms and recurring-billing disclosure for the selected plan must be accepted before checkout.',code:'TERMS_ACCEPTANCE_REQUIRED',requiredTerms},428);
+  }
+  const existing=await existingSubscription(env,tenantId);
+  if(existing?.stripe_subscription_id&&ACTIVEISH.has(String(existing.status||''))){
+    return json({detail:'This workspace already has an active paid subscription. Use Manage billing to change, recover, or cancel it instead of creating a duplicate.',code:'ACTIVE_SUBSCRIPTION_EXISTS',current_plan:String(existing.plan||'free'),status:String(existing.status||''),current_period_end:existing.current_period_end||null,portal_endpoint:'/api/billing/portal'},409);
+  }
+  await recordTermsAcceptance(env,user,plan,requiredTerms);
+  const referenceSecret=String(env?.SESSION_SECRET||'').trim();
+  if(!referenceSecret)return json({detail:'Secure checkout identity is not configured.',code:'CHECKOUT_IDENTITY_NOT_CONFIGURED'},503);
+  const paymentReference=await encodeSignedPlanPaymentReference(referenceSecret,tenantId,plan);
+  return json({url:appendQuery(link,'client_reference_id',paymentReference),plan,mode:'payment_link',terms_recorded:true});
 }
 
 export async function augmentBillingResponse(request, response, env) {
@@ -38,6 +73,8 @@ export async function augmentBillingResponse(request, response, env) {
   if (path === '/api/plans') {
     if(Array.isArray(data.plans))data.plans=data.plans.map(p=>p?.id&&links[p.id]?{...p,checkout_configured:true,checkout_mode:'payment_link'}:p);
     data.tier_checkout_configured={...(data.tier_checkout_configured||{}),...Object.fromEntries(Object.entries(links).map(([k,v])=>[k,Boolean(v)||Boolean(data?.tier_checkout_configured?.[k])]))};
+    data.crm_checkout_configured=Boolean(data.crm_checkout_configured)||Boolean(links.crm);
+    data.business_checkout_configured=Boolean(data.business_checkout_configured)||Boolean(links.business);
     data.payment_link_fallbacks=links;
   }
   if (path === '/api/billing/status') {

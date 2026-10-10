@@ -122,7 +122,7 @@ export default function LoginPage() {
           <div className="loginAssist"><span>Secure session: up to 12 hours</span><a href="/forgot-password?portal=customer">Forgot password?</a></div>
         </>}
         {mfaToken&&<>
-          <div className="mfaNotice"><b>GOOGLE AUTHENTICATOR VERIFICATION</b><span>Open your authenticator app{mfaHint?' for '+mfaHint:''} and enter the current 6-digit code.</span></div>
+          <div className="mfaNotice"><b>AUTHENTICATOR APP VERIFICATION</b><span>Open your authenticator app{mfaHint?' for '+mfaHint:''} and enter the current 6-digit code.</span></div>
           <label><span>6-digit authenticator code</span><input required autoFocus inputMode="numeric" pattern="[0-9 ]{6,12}" autoComplete="one-time-code" placeholder="123456" value={mfaCode} onChange={e=>setMfaCode(e.target.value.replace(/\D/g,'').slice(0,6))}/></label>
           <button className="cancelMfa" type="button" onClick={()=>{setMfaToken('');setMfaCode('');setError('')}}>Use a different login</button>
         </>}

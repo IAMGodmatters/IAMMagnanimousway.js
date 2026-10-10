@@ -96,8 +96,8 @@ export default function OAuthAuthorizePage(){
   <section className="card">
    <div className="mark">M</div>
    <small>I AM MAGNANIMOUS WAY™</small>
-   <h1>Connect Magnanimous AI to ChatGPT</h1>
-   <p className="lead">This connection lets ChatGPT call the Magnanimous tools you approve. Magnanimous remains the policy, routing, memory and verification layer.</p>
+   <h1>Connect to Magnanimous AI</h1>
+   <p className="lead">This connection lets a compatible AI client call the Magnanimous tools you approve. Magnanimous remains the policy, routing, memory and verification layer.</p>
 
    {!consent&&!error&&<div className="status">VERIFYING SECURE CONNECTION…</div>}
    {error&&<div className="error">{error}</div>}
@@ -114,7 +114,7 @@ export default function OAuthAuthorizePage(){
      {consent.scopes.map(scope=><div key={scope}>
       <b>{scope}</b>
       <span>{
-       scope==='openid'?'Identify your Magnanimous account securely to ChatGPT':
+       scope==='openid'?'Identify your Magnanimous account securely to the connected AI client':
        scope==='email'?'Share your verified Magnanimous sign-in email for workspace-domain protection':
        scope==='web.read'?'Search, fetch, research and read browser state':
        scope==='web.write'?'Run confirmation-gated browser actions and manage native browser state':
@@ -125,7 +125,7 @@ export default function OAuthAuthorizePage(){
        scope==='communications.read'?'Read communications readiness and catalog':
        scope==='communications.write'?'Run communications actions through Magnanimous safety gates':
        scope==='brain.ask'?'Delegate reasoning and planning to Magnanimous AI':
-       scope==='offline_access'?'Keep the ChatGPT connection active using rotating refresh tokens':
+       scope==='offline_access'?'Keep the AI connection active using rotating refresh tokens':
        'Read Magnanimous capability information'
       }</span>
      </div>)}
@@ -137,7 +137,7 @@ export default function OAuthAuthorizePage(){
     </div>}
     <div className="notice">
      <b>One native operations connection</b>
-     <span>Search/browser work uses Magnanimous Native Web; deployment/cloud and edge/runtime work uses Magnanimous Cloud. TinyFish, Railway and Cloudflare plugins are not required for the native control-plane paths.</span>
+     <span>Search/browser work uses Magnanimous Native Web; deployment/cloud and edge/runtime work uses Magnanimous Cloud. External provider plugins are not required for the native control-plane paths.</span>
     </div>
     <div className="notice safe">
      <b>Credentials stay protected</b>

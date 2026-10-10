@@ -45,7 +45,7 @@ export default function AIConnectors() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
   const [platform, setPlatform] = useState('openai-chatgpt');
-  const [name, setName] = useState('ChatGPT / Magnanimous');
+  const [name, setName] = useState('Magnanimous AI Connector');
   const [scopes, setScopes] = useState<string[]>(SAFE);
   const [issued, setIssued] = useState<IssuedToken | null>(null);
 
@@ -97,7 +97,7 @@ export default function AIConnectors() {
 
   useEffect(() => {
     const selectedPlatform = data?.platforms?.find((item) => item.id === platform);
-    if (selectedPlatform) setName(`${selectedPlatform.name} / Magnanimous`);
+    if (selectedPlatform) setName('Magnanimous AI Connector');
   }, [platform, data]);
 
   const selected = useMemo(
@@ -169,19 +169,17 @@ export default function AIConnectors() {
         <small>ONE GATEWAY • MANY AI PLATFORMS</small>
         <h1>Install Magnanimous into other AI platforms.</h1>
         <p>
-          Magnanimous stays the command, memory, routing and verification layer. ChatGPT, Claude,
-          Gemini, Copilot and future MCP/OpenAPI clients connect through scoped, revocable tokens
-          instead of receiving your owner login or provider secrets.
+          Magnanimous stays the command, memory, routing and verification layer. Compatible MCP/OpenAPI clients connect through scoped, revocable authorization instead of receiving your owner login or internal service secrets.
         </p>
         <div className="badges">
           <b>MCP 2026-07-28</b>
           <b>Legacy MCP compatible</b>
           <b>OpenAPI fallback</b>
-          <b>Native web • no TinyFish wallet</b>
-          <b>Native cloud • no Railway plugin</b>
-          <b>Native edge • no Cloudflare plugin</b>
-          <b>One ChatGPT operations plugin</b>
-          <b>ChatGPT search/fetch ready</b>
+          <b>Native web • no external browser wallet</b>
+          <b>Native cloud • provider-neutral</b>
+          <b>Native edge • provider-neutral</b>
+          <b>One Magnanimous operations connection</b>
+          <b>Search/fetch ready</b>
           <b>Write access OFF by default</b>
         </div>
       </section>
@@ -244,9 +242,9 @@ export default function AIConnectors() {
                         {scope === 'brain.ask'
                           ? 'Ask/delegate to Magnanimous'
                           : scope === 'web.read'
-                            ? 'Use native search, fetch, research, browser reads, sessions and monitors without TinyFish'
+                            ? 'Use native search, fetch, research, browser reads, sessions and monitors through Magnanimous'
                             : scope === 'cloud.read'
-                              ? 'Read Magnanimous Cloud projects/resources, deployment patterns, edge/runtime compatibility and action ledgers without Railway or Cloudflare plugins'
+                              ? 'Read Magnanimous Cloud projects/resources, deployment patterns, edge/runtime compatibility and action ledgers through provider-neutral Magnanimous controls'
                               : scope === 'mail.read'
                                 ? 'Read/search connected mail'
                               : scope === 'communications.read'
@@ -289,15 +287,13 @@ export default function AIConnectors() {
 
               {platform === 'openai-chatgpt' ? (
                 <div className="oauthInstall">
-                  <b>CHATGPT USES MAGNANIMOUS OAUTH</b>
+                  <b>CONNECTED AI USES MAGNANIMOUS OAUTH</b>
                   <span>
-                    Add the Remote MCP URL in ChatGPT. Magnanimous will show this branded approval
-                    screen and issue short-lived OAuth access instead of asking you to paste a
-                    connector secret into ChatGPT. The same connection can use Magnanimous Native
+                    Add the Remote MCP URL in the compatible AI client. Magnanimous will show this branded approval screen and issue short-lived OAuth access instead of asking you to paste a connector secret into the client. The same connection can use Magnanimous Native
                     Web, Magnanimous Cloud and native edge/runtime operations.
                   </span>
                   <button type="button" onClick={() => void copy(data.mcp.url)}>
-                    COPY CHATGPT MCP URL
+                    COPY MAGNANIMOUS MCP URL
                   </button>
                 </div>
               ) : (
@@ -337,7 +333,7 @@ export default function AIConnectors() {
                 <article key={token.id}>
                   <div>
                     <strong>{token.name}</strong>
-                    <span>{token.platform}</span>
+                    <span>Compatible AI Client</span>
                     <small>{token.scopes.join(' • ')}</small>
                   </div>
                   <div className="right">

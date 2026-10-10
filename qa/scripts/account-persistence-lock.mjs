@@ -7,12 +7,15 @@ const wrangler = read('worker/wrangler.jsonc');
 const deploy = read('.github/workflows/deploy.yml');
 const railway = read('.github/workflows/magnanimous-railway-deploy.yml');
 const dataStage = read('.github/workflows/magnanimous-production-data-stage.yml');
+const runtimeSecrets = read('.github/workflows/magnanimous-runtime-secrets-stage.yml');
 
 const checks = [
   ['Cloudflare Worker + D1 are production authority', !wrangler.includes('MAGNANIMOUS_STANDALONE_API_ORIGIN')],
   ['standalone proxy has no configured production origin', security.includes('configuredStandaloneApiOrigin') && !wrangler.includes('magnanimous-production.up.railway.app')],
   ['Railway deploy is manual opt-in only', !railway.includes('  push:\n') && railway.includes("MAGNANIMOUS_ENABLE_OPTIONAL_RAILWAY == 'true'")],
   ['D1-to-standalone production data staging is manual opt-in only', !dataStage.includes('  push:\n') && dataStage.includes("MAGNANIMOUS_ENABLE_OPTIONAL_RAILWAY == 'true'")],
+  ['standalone runtime secret staging cannot fail Worker-first production unless optional Railway is enabled', runtimeSecrets.includes("MAGNANIMOUS_ENABLE_OPTIONAL_RAILWAY == 'true'")],
+  ['optional standalone workflows use one owner-configured HTTPS origin instead of a retired hard-coded host', [railway,dataStage,runtimeSecrets].every(x=>x.includes('vars.MAGNANIMOUS_STANDALONE_ORIGIN')&&!x.includes('magnanimous-production.up.railway.app'))],
   ['signup checks every existing email including inactive rows', admin.includes("SELECT id,active FROM users WHERE lower(email)=? ORDER BY created_at ASC LIMIT 1")],
   ['signup never silently recreates an inactive identity', admin.includes("'ACCOUNT_RECOVERY_REQUIRED'") && admin.includes('account_preserved: true')],
   ['deploy captures a D1 Time Travel restore point before migrations', deploy.includes('d1 time-travel info iam-magnanimous-db --json') && deploy.includes('D1_PRE_MIGRATION_BOOKMARK')],
