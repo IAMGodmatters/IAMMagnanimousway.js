@@ -188,7 +188,7 @@ const lessons: Record<string, Lesson> = {
     result:
       "A subscription changes only after payment succeeds; browsing pricing creates no charge.",
     requirement:
-      "Paid checkout requires a correctly configured Stripe account and price.",
+      "Paid checkout requires a correctly configured payment account and price.",
   },
   security: {
     purpose:

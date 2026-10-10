@@ -27,7 +27,8 @@ assert.ok(runtime.includes("reply_status='needs-review'"),'Ambiguous provider fa
 assert.ok(credentials.includes("key:'WHATSAPP_VERIFY_TOKEN'"),'Owner credentials must expose a secure webhook verification token field');
 assert.ok(security.includes("path === '/api/white-label/native/whatsapp/webhook') return false"),'Signed Meta webhooks must be exempt from customer-session entitlement checks');
 assert.ok(page.includes('Edit before sending.'),'The UI must require review before sending');
-assert.ok(page.includes('/api/white-label/native/whatsapp/webhook'),'The UI must show the routable callback path');
+assert.ok(page.includes('delivery callback'),'The customer UI must explain the delivery callback generically');
+assert.ok(!page.includes('/api/white-label/native/whatsapp/webhook'),'The customer UI must not expose the internal provider-specific callback route');
 assert.ok(home.includes("key:'whatsapp'"),'White Label must list the WhatsApp inbox');
 assert.ok(shell.includes('whatsapp:'),'The White Label app shell must open the WhatsApp inbox');
 

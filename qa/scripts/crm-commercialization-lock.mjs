@@ -14,35 +14,38 @@ const terms=read('frontend/components/PremiumAgreementConsent.tsx');
 const research=read('docs/CRM-BEST-OF-BREED-2026.md');
 const must=(text,needle,label)=>{if(!text.includes(needle))throw Error(`CRM COMMERCIALIZATION LOCK: ${label}`)};
 for(const [needle,label] of [
- ['MAGNANIMOUS CRM PRO • STANDALONE REVENUE OPERATING SYSTEM','standalone CRM identity'],
+ ['MAGNANIMOUS CRM PRO - STANDALONE REVENUE OPERATING SYSTEM','standalone CRM identity'],
  ['/api/operations/crm/command-center','command center data'],
  ['/api/operations/crm/advanced','advanced CRM data'],
  ['/api/operations/crm/studio','CRM studio data'],
  ['Attio','current benchmark coverage'],
- ['Native first • outside systems stay replaceable','native-first architecture']
+ ['Native first - outside systems stay replaceable','native-first architecture']
 ])must(page,needle,label);
 for(const [needle,label] of [
- ['Magnanimous CRM Pro • $79/month','standalone public price'],
- ['Magnanimous Business • $214/month','Business public price'],
+ ['Magnanimous CRM Pro - $79/month','standalone public price'],
+ ['Magnanimous Studio - $79/month','Studio standalone public price'],
+ ['Magnanimous Business - $309/month','Business public price'],
  ['Customers see only the Magnanimous amount they pay','final-price customer disclosure'],
  ['PRIVATE PRICING DIAGNOSTICS','owner-private pricing diagnostics']
 ])must(pricing,needle,label);
-for(const leaked of ['$177.99 × 1.20 = $213.588','cost × 1.20','20% bundle upsell','cost + exactly 20%'])if(pricing.includes(leaked))throw Error(`CRM COMMERCIALIZATION LOCK: customer pricing leaked owner-private economics: ${leaked}`);
+for(const leaked of ['$177.99 Ã— 1.20 = $213.588','cost Ã— 1.20','20% bundle upsell','cost + exactly 20%'])if(pricing.includes(leaked))throw Error(`CRM COMMERCIALIZATION LOCK: customer pricing leaked owner-private economics: ${leaked}`);
 for(const [needle,label] of [
  ["id: 'crm', name: 'Magnanimous CRM Pro', price_usd: 79",'CRM backend price'],
- ["id: 'business', name: 'Magnanimous Business', price_usd: 214",'Business backend price'],
+ ["id: 'studio', name: 'Magnanimous Studio', price_usd: 79",'Studio backend price'],
+ ["id: 'business', name: 'Magnanimous Business', price_usd: 309",'Business backend price'],
+ ['studio_usd:79','Magnanimous Studio included in bundle basis'],
  ['professional_business_plan_usd:79','Professional Business Plan included in bundle basis'],
- ['component_total_usd:177.99','Business internal component total'],
+ ['component_total_usd:256.99','Business internal component total'],
  ['markup_percent:20','Business internal 20 percent formula'],
- ['calculated_usd:213.588','Business internal calculated price'],
+ ['calculated_usd:308.388','Business internal calculated price'],
  ['configuredPriceForPlan','Stripe Price verification'],
  ["line_items[0][price_data][unit_amount]",'safe Stripe price_data fallback'],
  ['if(identity.authorized) response.owner_pricing=','owner-only pricing response boundary'],
  ['target_markup_percent:targetMarkup(env)','owner-only runtime margin policy']
 ])must(tier,needle,label);
-must(refs,'plus|crm|business|pro|scale','CRM payment reference identity');
-for(const key of ["crm:'STRIPE_PAYMENT_LINK_CRM'","business:'STRIPE_PAYMENT_LINK_BUSINESS'","scale:'STRIPE_PAYMENT_LINK_SCALE'"])must(links,key,'verified recurring Payment Link '+key);
-must(webhook,"const PLANS=new Set(['plus','crm','business','scale'])",'webhook paid catalog');
+must(refs,'plus|crm|studio|business|pro|scale','CRM Studio payment reference identity');
+for(const key of ["crm:'STRIPE_PAYMENT_LINK_CRM'","studio:'STRIPE_PAYMENT_LINK_STUDIO'","business:'STRIPE_PAYMENT_LINK_BUSINESS'","scale:'STRIPE_PAYMENT_LINK_SCALE'"])must(links,key,'verified recurring Payment Link '+key);
+must(webhook,"const PLANS=new Set(['plus','crm','studio','business','scale'])",'webhook paid catalog');
 must(webhook,"const compatibilityPlan=plan==='scale'?'business':plan",'annual Business webhook compatibility');
 must(usage,'crm:{rank:1.5','CRM must remain below historical Business rank boundary');
 must(usage,'business:{rank:2','Business historical rank compatibility');
@@ -51,6 +54,7 @@ must(businessPlan,"INCLUDED_BUSINESS_PLANS=new Set(['business','scale','pro'])",
 must(compat,"String(data?.plan||'').toLowerCase()!=='scale'",'annual billing response compatibility');
 must(router,'applyBillingPlanCompatibility','billing compatibility wired into runtime');
 must(terms,"crm:{version:'crm-2026-10-10.1'",'CRM terms');
-must(terms,"business:{version:'business-2026-10-10.2'",'Business terms');
+must(terms,"studio:{version:'studio-2026-10-10.1'",'Studio terms');
+must(terms,"business:{version:'business-2026-10-10.3'",'Business terms');
 for(const source of ['Attio','Pipedrive','HubSpot','Dynamics 365','Salesforce','Close','Creatio'])must(research,source,'research source '+source);
 console.log('CRM commercialization lock passed with customer final-price display and owner-private internal economics.');

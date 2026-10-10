@@ -32,11 +32,11 @@ export default function BusinessPlanClient(){
  }
  async function unlock(){
   if(!projectId)return;setBusy(true);setNotice('Preparing secure checkout…');
-  try{const r=await fetch(`${api}/api/business-plan/checkout`,{method:'POST',headers:headers(),body:JSON.stringify({project_id:projectId})}),d=await read(r);if(!r.ok)throw new Error(d.detail||'Checkout could not be created.');if(d.included){setPremium(true);setPremiumReason(d.reason||'full_business');await generateFinal();return}if(d.url)location.href=d.url;else throw new Error('Stripe did not return a checkout link.')}catch(e:any){setNotice(e?.message||'Unable to open checkout.');setBusy(false)}
+  try{const r=await fetch(`${api}/api/business-plan/checkout`,{method:'POST',headers:headers(),body:JSON.stringify({project_id:projectId})}),d=await read(r);if(!r.ok)throw new Error(d.detail||'Checkout could not be created.');if(d.included){setPremium(true);setPremiumReason(d.reason||'full_business');await generateFinal();return}if(d.url)location.href=d.url;else throw new Error('Secure checkout did not return a payment link.')}catch(e:any){setNotice(e?.message||'Unable to open checkout.');setBusy(false)}
  }
  async function confirmPayment(pid:string,sessionId:string){
   if(!token()){location.href=`/login?next=${encodeURIComponent(`/business-plan?checkout=success&session_id=${sessionId}&project_id=${pid}`)}`;return}
-  setBusy(true);setNotice('Confirming your professional-plan unlock with Stripe…');
+  setBusy(true);setNotice('Confirming your professional-plan unlock…');
   try{const r=await fetch(`${api}/api/business-plan/confirm`,{method:'POST',headers:headers(),body:JSON.stringify({project_id:pid,session_id:sessionId})}),d=await read(r);if(!r.ok)throw new Error(d.detail||'Payment could not be verified.');setPremium(true);setPremiumReason('one_time_purchase');history.replaceState({},'',`/business-plan?project_id=${encodeURIComponent(pid)}`);await generateFinal(pid)}catch(e:any){setNotice(e?.message||'Unable to confirm payment.');setBusy(false)}
  }
  async function generateFinal(pid=projectId){

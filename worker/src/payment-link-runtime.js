@@ -8,6 +8,7 @@ const json = (data, status = 200) => Response.json(data, { status, headers: { 'c
 const LINK_KEYS={
   plus:'STRIPE_PAYMENT_LINK_PLUS',
   crm:'STRIPE_PAYMENT_LINK_CRM',
+  studio:'STRIPE_PAYMENT_LINK_STUDIO',
   business:'STRIPE_PAYMENT_LINK_BUSINESS',
   pro:'STRIPE_PAYMENT_LINK_BUSINESS',
   scale:'STRIPE_PAYMENT_LINK_SCALE'
@@ -15,9 +16,10 @@ const LINK_KEYS={
 const TERMS={
   plus:'unlimited-2026-09-18.1',
   crm:'crm-2026-10-10.1',
-  business:'business-2026-10-10.2',
-  pro:'business-2026-10-10.2',
-  scale:'business-annual-2026-10-10.2'
+  studio:'studio-2026-10-10.1',
+  business:'business-2026-10-10.3',
+  pro:'business-2026-10-10.3',
+  scale:'business-annual-2026-10-10.3'
 };
 const ACTIVEISH=new Set(['active','trialing','past_due']);
 function paymentLink(env,plan='plus'){return String(env?.[LINK_KEYS[plan]]||'').trim()}
@@ -41,7 +43,7 @@ export async function handlePaymentLinkBilling(request, env) {
   const requestedPlan=String(body.plan||'business').trim().toLowerCase();
   if(requestedPlan==='agency'||requestedPlan==='agency_pro')return null;
   const plan=normalizePaidPlan(requestedPlan);
-  if(!plan)return json({detail:'Choose a valid paid plan: plus, crm, business, pro, or scale.',code:'INVALID_PLAN'},400);
+  if(!plan)return json({detail:'Choose a valid paid plan: plus, crm, studio, business, pro, or scale.',code:'INVALID_PLAN'},400);
   const link=paymentLink(env,plan);
   if(!link)return null;
   const user = await currentUser(request, env);

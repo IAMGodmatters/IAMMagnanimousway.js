@@ -15,6 +15,17 @@ const billingSupport=read('frontend/app/billing-support/page.tsx');
 const agentVideo=read('frontend/app/agent-video/page.tsx');
 const aiVideo=read('frontend/app/ai-video/page.tsx');
 const dialer=read('frontend/app/auto-dialer/page.tsx');
+const whiteLabel=read('frontend/app/white-label/page.tsx');
+const whiteLabelApps=read('frontend/app/white-label/client-apps/page.tsx');
+const whiteLabelMessaging=read('frontend/app/white-label/whatsapp/page.tsx');
+const whiteLabelOs=read('frontend/app/white-label-os/page.tsx');
+const forgotPassword=read('frontend/app/forgot-password/page.tsx');
+const securityPage=read('frontend/app/security/page.tsx');
+const videoAgents=read('frontend/app/video-agents/page.tsx');
+const businessPlan=read('frontend/app/business-plan/business-plan-client.tsx');
+const launchPlan=read('frontend/app/launchplan/launchplan-client.tsx');
+const businessEmail=read('frontend/app/business-email/email-center-client.tsx');
+
 
 const sample=customerUsageStatus({
  plan:'business',limits:{metered_ai:true,cost_ceiling_usd:160},direct_variable_cost_usd:12,cost_ceiling_usd:160,
@@ -26,6 +37,7 @@ const forbiddenUsage=['direct_variable_cost_usd','cost_ceiling_usd','remaining_c
 const sampleJson=JSON.stringify(sample);
 
 const checks=[
+ ['business email customer copy hides outside mailbox brands', !/Google Workspace|Microsoft 365|Zoho Mail|Proton for Business|dash\.cloudflare\.com/.test(businessEmail)],
  ['public plan projection strips pricing basis', tiers.includes('pricing_basis: _ownerPricingBasis')&&tiers.includes('customerEntitlements(entitlements)')],
  ['public plan catalog omits public target markup fields', /tier_checkout_configured:[\s\S]*\}\);/.test(tiers)&&!tiers.match(/tier_checkout_configured:[\s\S]{0,250}target_markup_percent/)],
  ['billing status exposes internal cost math only in owner_pricing', tiers.includes('platformOwnerDeveloperIdentity(user,env)')&&tiers.includes('if(identity.authorized) response.owner_pricing=')],
@@ -42,7 +54,15 @@ const checks=[
  ['login/account recovery do not advertise a specific authenticator or mail product', !login.includes('Google Authenticator')&&!login.includes('GOOGLE AUTHENTICATOR')&&!account.includes('Google Authenticator')&&!account.includes('GOOGLE AUTHENTICATOR')&&!account.includes('Inkbox')&&!account.includes('Gmail')&&!recovery.includes('Google Authenticator')],
  ['advertising and billing support do not display payment processor branding', !advertise.includes('Stripe handles')&&!advertise.includes('Stripe confirmation')&&!billingSupport.includes('Stripe Customer Portal')&&!billingSupport.includes('Stripe subscription')],
  ['video surfaces do not display renderer/provider branding', !agentVideo.includes('LivePortrait')&&!agentVideo.includes('Wav2Lip')&&!aiVideo.includes("s.provider||'Magnanimous visual engine'")],
- ['dialer customer status does not display carrier/provider identity', !dialer.includes("call.provider||'configured carrier'")]
+ ['dialer customer status does not display carrier/provider identity', !dialer.includes("call.provider||'configured carrier'")],
+ ['white label cards do not render provider identities', !whiteLabel.includes('Provider:')&&!whiteLabel.includes('optional Twilio')&&!whiteLabel.includes('Meta WhatsApp')&&!whiteLabel.includes('WhatsApp Product Inbox')],
+ ['white label client apps and OS do not render provider identities', !whiteLabelApps.includes('Provider: {x.provider')&&!whiteLabelApps.includes('external_transport.name')&&!whiteLabelOs.includes('Provider: {m.provider')],
+ ['white label messaging copy is provider neutral', !whiteLabelMessaging.includes('WhatsApp Product Inbox')&&!whiteLabelMessaging.includes('Connected WhatsApp account')&&!whiteLabelMessaging.includes('WhatsApp confirmed')&&!whiteLabelMessaging.includes('Meta WhatsApp')&&!whiteLabelMessaging.includes('In Meta,')&&!whiteLabelMessaging.includes('from Meta')&&!whiteLabelMessaging.includes('official Meta')],
+ ['recovery copy uses generic authenticator wording', !forgotPassword.includes('Google Authenticator')],
+ ['security boundary does not advertise infrastructure vendors', !securityPage.includes('Cloudflare')&&!securityPage.includes('Stripe')],
+ ['video agents do not advertise renderer vendors', !videoAgents.includes('Cloudflare FLUX')&&!videoAgents.includes('HEYGEN')&&!videoAgents.includes('TAVUS')],
+ ['business checkout copy is payment-provider neutral', !businessPlan.includes('Stripe did not return')&&!businessPlan.includes('with Stripe')&&!launchPlan.includes('Stripe entitlement')&&!launchPlan.includes('account, Stripe')],
+ ['business email customer copy is domain-provider neutral', !businessEmail.includes('Cloudflare setup')&&!businessEmail.includes('Cloudflare Email Routing')&&!businessEmail.includes('OPEN CLOUDFLARE')&&!businessEmail.includes('Why does Cloudflare')],
 ];
 
 let failed=0;
