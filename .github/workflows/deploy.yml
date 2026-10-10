@@ -1687,7 +1687,7 @@ jobs:
           if [ "$agency_status" != "402" ]; then echo "Free workspace Agency API paywall expected HTTP 402, got $agency_status"; cat /tmp/agency-denied.json || true; exit 1; fi
           echo "White Label public discovery and server-side Agency paywall passed."
 
-          agency_checkout_status=$(curl -sS -o /tmp/agency-checkout.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/checkout" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"plan":"agency","termsAccepted":true,"termsVersion":"agency-2026-09-18.1"}')
+          agency_checkout_status=$(curl -sS -o /tmp/agency-checkout.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/checkout" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"plan":"agency","termsAccepted":true,"termsVersion":"agency-2026-09-18.1","recurringDisclosureAccepted":true}')
           if [ "$agency_checkout_status" != "200" ]; then echo "Agency checkout returned HTTP $agency_checkout_status"; cat /tmp/agency-checkout.json || true; exit 1; fi
           python - "$tenant_id" <<'PY'
           import json,sys,urllib.parse
