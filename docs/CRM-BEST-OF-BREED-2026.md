@@ -36,12 +36,11 @@ This document records the clean-room product research used to improve the native
 
 ### Creatio
 - Composable/no-code sales automation, workflows, forecasting, contracts, documents, orders/invoices and AI studio.
-- Current public pricing varies by region and platform/product combination; AI packages can be substantial and are usage-credit based.
 - Source: https://www.creatio.com/products/pricing
 
 ## Magnanimous product direction
 
-The strongest common pattern is no longer “store contacts.” A modern CRM is a revenue operating system with:
+A current serious CRM is a revenue operating system, not just a contact database. Magnanimous therefore targets:
 
 1. Flexible people/company/deal relationship graph and configurable fields/objects.
 2. Fast multi-pipeline workflow with probabilities and weighted forecasts.
@@ -53,34 +52,38 @@ The strongest common pattern is no longer “store contacts.” A modern CRM is 
 8. Campaign/source attribution and source-quality reporting.
 9. Territory/quota planning and sales operations controls.
 10. Consent, DNC, quiet hours, tenant isolation and audit trails.
-11. Strong data hygiene: duplicate detection and missing-data health.
+11. Duplicate detection, missing-data health and data-quality signals.
 12. Replaceable external connections rather than vendor lock-in.
 
-The existing Magnanimous CRM already has native coverage across most of these categories through contacts, accounts, deals, pipelines, scoring profiles, sequences, weighted forecasting, data-quality signals, next-best actions, unified communication hooks, CPQ, service cases, campaigns, attribution, territories, customer health, custom objects, automations and advanced CRM operations. The 2026-10-10 commercialization work therefore focuses on better standalone presentation, packaging, pricing, billing correctness and preserving native-first architecture rather than copying proprietary implementations.
+The existing Magnanimous CRM already covers most of these categories natively through contacts, accounts, deals, pipelines, scoring profiles, sequences, forecasting, data-quality signals, next-best actions, unified communication hooks, CPQ, service cases, campaigns, attribution, territories, customer health, custom objects, automations and advanced CRM operations. This release strengthens standalone presentation, pricing, billing correctness and packaging rather than copying proprietary CRM implementations.
 
 ## Commercial model
 
 ### Magnanimous CRM Pro standalone
-- Price: **$79/month**.
-- Rationale: directly competitive with Attio Pro ($79 annualized) while below HubSpot Professional (~$90 annualized), Close Growth (~$99 annualized) and Dynamics Enterprise ($105/yearly commitment per user).
+- **$79/month**.
+- Competitive with Attio Pro while below several higher-end sales CRM tiers.
 - Includes the standalone CRM command center and the native CRM/revenue-operations capability set.
 - Variable third-party/provider usage is not silently owner-funded.
 
-### Magnanimous Business
-- Price: **$119/month**.
-- Bundle basis: $79 CRM Pro + $19.99 Magnanimous Plus = $98.99.
-- Required 20% upsell/markup: $98.99 × 1.20 = $118.788.
-- Rounded customer price: **$119/month**.
-- Includes CRM Pro plus the broader Magnanimous business platform.
+### Professional Business Plan
+- Existing standalone value: **$79/month**.
+- It remains included in the complete Business bundle as it was under the prior Full Business entitlement model.
 
-### Business annual / Scale
-- New-customer target price: **$1,190/year**, equivalent to ten months of the $119 Business monthly plan.
-- Existing Stripe subscriptions are not rewritten or repriced in place by the code rollout.
+### Magnanimous Business
+- **$214/month** for new checkout.
+- Component basis: $79 CRM Pro + $79 Professional Business Plan + $19.99 Magnanimous Plus = **$177.99**.
+- Required 20% upsell: $177.99 × 1.20 = **$213.588**.
+- Rounded customer price: **$214/month**.
+- Includes CRM Pro, Professional Business Plan and the broader Magnanimous paid business platform.
+
+### Magnanimous Business Annual
+- **$2,568/year** for new checkout, equal to twelve months at $214.
+- Existing active Stripe subscriptions are not silently rewritten or repriced by the code rollout.
 
 ### Metered external costs
 - Direct third-party variable usage remains prepaid.
 - Customer charge policy remains **origin cost × 1.20** (exactly 20% markup).
-- Checkout must never reuse a stale Stripe Price whose amount/interval no longer matches the plan. The billing runtime should verify configured Prices and fall back to Stripe Checkout recurring `price_data` when necessary.
+- Checkout must never reuse a stale Stripe Price whose amount/interval no longer matches the selected plan. The billing runtime verifies configured Prices and falls back to Stripe Checkout recurring `price_data` when necessary.
 
 ## Safety and ownership
 
