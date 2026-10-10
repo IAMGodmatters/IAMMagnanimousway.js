@@ -23,4 +23,5 @@ const image=path.join(root,'frontend/public/crm-upgrade.jpeg');
 if(!fs.existsSync(image)||fs.statSync(image).size<100000)throw Error('CRM PREMIUM UI LOCK: CRM visual is missing or unexpectedly small');
 must(research,'origin cost \u00d7 1.20','20 percent CRM variable-usage economics remain documented');
 must(workflow,"customer_charge_usd')==1.2",'20 percent usage billing production assertion remains active');
+must(workflow,"'cost_usd' not in d and 'markup_percent' not in d",'production smoke keeps owner-private usage economics out of customer responses');
 console.log('CRM premium UI lock passed.');
