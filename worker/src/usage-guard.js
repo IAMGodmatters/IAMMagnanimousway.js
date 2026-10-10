@@ -4,14 +4,15 @@ const now=()=>Math.floor(Date.now()/1000);
 export const PLAN_LIMITS={
  free:{rank:0,metered_ai:false,pstn_minutes:0,avatar_minutes:0,premium_video_credits:0,cost_ceiling_usd:0},
  plus:{rank:1,metered_ai:false,pstn_minutes:0,avatar_minutes:0,premium_video_credits:0,cost_ceiling_usd:8},
- business:{rank:2,metered_ai:true,pstn_minutes:30,avatar_minutes:10,premium_video_credits:10,cost_ceiling_usd:24},
- pro:{rank:3,metered_ai:true,pstn_minutes:90,avatar_minutes:30,premium_video_credits:30,cost_ceiling_usd:54},
- scale:{rank:4,metered_ai:true,pstn_minutes:180,avatar_minutes:60,premium_video_credits:60,cost_ceiling_usd:112},
+ crm:{rank:2,metered_ai:true,pstn_minutes:30,avatar_minutes:0,premium_video_credits:0,cost_ceiling_usd:42},
+ business:{rank:3,metered_ai:true,pstn_minutes:90,avatar_minutes:30,premium_video_credits:30,cost_ceiling_usd:160},
+ scale:{rank:4,metered_ai:true,pstn_minutes:180,avatar_minutes:60,premium_video_credits:60,cost_ceiling_usd:170},
  agency:{rank:5,metered_ai:true,pstn_minutes:240,avatar_minutes:90,premium_video_credits:90,cost_ceiling_usd:170,white_label:true,client_subaccounts:25,usage_rebilling:true},
  agency_pro:{rank:6,metered_ai:true,pstn_minutes:360,avatar_minutes:120,premium_video_credits:120,cost_ceiling_usd:280,white_label:true,client_subaccounts:100,usage_rebilling:true}
 };
+const PLAN_ALIAS={pro:'business'};
 
-export function normalizePlan(value){const id=String(value||'free').toLowerCase();return PLAN_LIMITS[id]?id:'free'}
+export function normalizePlan(value){const raw=String(value||'free').toLowerCase(),id=PLAN_ALIAS[raw]||raw;return PLAN_LIMITS[id]?id:'free'}
 export function periodKey(ts=Date.now()){const d=new Date(ts);return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`}
 
 function safeEqual(a,b){a=String(a||'');b=String(b||'');if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0}
@@ -69,9 +70,6 @@ export async function tenantPlan(env,tenantId){
   const paidActive=status==='active';
   const plan=paidActive?normalizePlan(row.plan):'free';return{plan,limits:PLAN_LIMITS[plan],status};
  }
- // A historical tenants.plan flag is not proof of successful payment. Preserve
- // the account, but do not let it incur platform-paid provider charges until a
- // Stripe-confirmed billing row exists.
  return{plan:'free',limits:PLAN_LIMITS.free,status:'unverified_legacy'};
 }
 
@@ -115,38 +113,18 @@ export async function canUsePassThrough(env,tenantId,{category='magnanimous-plug
  const origin=Math.max(0,Number(estimated_provider_origin_cost_usd||0)||0);
  const variable=variableCustomerCharge(origin);
  if(variable.customer_charge_usd<=0)return{ok:true,code:'FREE_NATIVE_PATH',detail:'This Magnanimous-native operation has no verified direct metered origin cost.',estimated_provider_origin_cost_usd:0,estimated_variable_customer_charge_usd:0,...s};
- if(variable.customer_charge_usd>Number(s.prepaid_balance_usd||0)+1e-9)return{
-  ok:false,code:'PREPAID_USAGE_BALANCE_EXHAUSTED',
-  detail:'This paid direct-cost operation requires customer-funded prepaid credits equal to the verified origin cost plus exactly 20% Magnanimous markup.',
-  category,
-  estimated_provider_origin_cost_usd:origin,
-  estimated_variable_customer_charge_usd:variable.customer_charge_usd,
-  ...s
- };
- return{
-  ok:true,code:'PREPAID_FUNDED',
-  detail:'Customer-funded prepaid credits cover the verified origin cost plus exactly 20% Magnanimous markup.',
-  category,
-  estimated_provider_origin_cost_usd:origin,
-  estimated_variable_customer_charge_usd:variable.customer_charge_usd,
-  ...s
- };
+ if(variable.customer_charge_usd>Number(s.prepaid_balance_usd||0)+1e-9)return{ok:false,code:'PREPAID_USAGE_BALANCE_EXHAUSTED',detail:'This paid direct-cost operation requires customer-funded prepaid credits equal to the verified origin cost plus exactly 20% Magnanimous markup.',category,estimated_provider_origin_cost_usd:origin,estimated_variable_customer_charge_usd:variable.customer_charge_usd,...s};
+ return{ok:true,code:'PREPAID_FUNDED',detail:'Customer-funded prepaid credits cover the verified origin cost plus exactly 20% Magnanimous markup.',category,estimated_provider_origin_cost_usd:origin,estimated_variable_customer_charge_usd:variable.customer_charge_usd,...s};
 }
 
 export async function canUsePremium(env,tenantId,{category='premium',estimated_provider_origin_cost_usd=null,estimated_cost_usd=0,required_plan='business',entitlement=''}={}){
- const s=await usageStatus(env,tenantId),required=PLAN_LIMITS[normalizePlan(required_plan)]?.rank??2;
+ const s=await usageStatus(env,tenantId),required=PLAN_LIMITS[normalizePlan(required_plan)]?.rank??3;
  if((s.limits?.rank??0)<required)return{ok:false,code:'PLAN_REQUIRED',detail:`${required_plan} or higher is required for ${category}.`,...s};
  if(entitlement&&s.limits?.[entitlement]!==true&&Number(s.limits?.[entitlement]||0)<=0)return{ok:false,code:'ENTITLEMENT_REQUIRED',detail:`Your plan does not include ${category}.`,...s};
  const estimatedOrigin=Math.max(0,Number(estimated_provider_origin_cost_usd??estimated_cost_usd??0)||0);
  const overageOrigin=Math.max(0,estimatedOrigin-Number(s.remaining_cost_usd||0));
  const variable=variableCustomerCharge(overageOrigin);
- if(variable.customer_charge_usd>Number(s.prepaid_balance_usd||0)+1e-9)return{
-  ok:false,code:'PREMIUM_BUDGET_EXHAUSTED',
-  detail:'Your included premium allowance and prepaid usage balance cannot fund this provider-origin reserve plus the disclosed 20% variable markup. Use a free-first option, upgrade, or add prepaid credits.',
-  estimated_provider_origin_cost_usd:estimatedOrigin,
-  estimated_variable_customer_charge_usd:variable.customer_charge_usd,
-  ...s
- };
+ if(variable.customer_charge_usd>Number(s.prepaid_balance_usd||0)+1e-9)return{ok:false,code:'PREMIUM_BUDGET_EXHAUSTED',detail:'Your included premium allowance and prepaid usage balance cannot fund this provider-origin reserve plus the disclosed 20% variable markup. Use a free-first option, upgrade, or add prepaid credits.',estimated_provider_origin_cost_usd:estimatedOrigin,estimated_variable_customer_charge_usd:variable.customer_charge_usd,...s};
  return{ok:true,estimated_provider_origin_cost_usd:estimatedOrigin,estimated_variable_customer_charge_usd:variable.customer_charge_usd,...s};
 }
 
@@ -154,34 +132,16 @@ export async function recordUsage(env,tenantId,{category='premium',provider='',u
  if(!env?.DB||!tenantId)return null;
  await ensureUsageSchema(env);
  const key=periodKey(),originCost=Math.max(0,Number(provider_origin_cost_usd??direct_cost_usd??0)||0),ref=String(reference_id||crypto.randomUUID());
- if(reference_id){
-  const existing=await env.DB.prepare('SELECT id FROM billing_usage_events WHERE tenant_id=? AND category=? AND reference_id=? LIMIT 1').bind(String(tenantId),String(category),ref).first();
-  if(existing)return usageStatus(env,tenantId);
- }
- const before=await usageStatus(env,tenantId);
- const overageOrigin=Math.max(0,originCost-Number(before.remaining_cost_usd||0));
- const variable=variableCustomerCharge(overageOrigin);
- if(variable.customer_charge_usd>0){
-  await debitWallet(env,tenantId,variable.customer_charge_usd,{reference_id:ref,detail:`${category} variable usage via ${provider||'provider'}: origin $${overageOrigin.toFixed(6)} + 20% markup`});
- }
+ if(reference_id){const existing=await env.DB.prepare('SELECT id FROM billing_usage_events WHERE tenant_id=? AND category=? AND reference_id=? LIMIT 1').bind(String(tenantId),String(category),ref).first();if(existing)return usageStatus(env,tenantId);}
+ const before=await usageStatus(env,tenantId),overageOrigin=Math.max(0,originCost-Number(before.remaining_cost_usd||0)),variable=variableCustomerCharge(overageOrigin);
+ if(variable.customer_charge_usd>0)await debitWallet(env,tenantId,variable.customer_charge_usd,{reference_id:ref,detail:`${category} variable usage via ${provider||'provider'}: origin $${overageOrigin.toFixed(6)} + 20% markup`});
  await env.DB.prepare(`INSERT INTO billing_usage_events(
   tenant_id,period_key,category,provider,units,direct_cost_usd,provider_origin_cost_usd,markup_usd,customer_charge_usd,pricing_source,pricing_verified_at,reference_id,created_at
- ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
-  String(tenantId),key,String(category),String(provider),Number(units||0),originCost,originCost,
-  variable.markup_usd,variable.customer_charge_usd,String(pricing_source||''),String(pricing_verified_at||''),ref,now()
- ).run();
+ ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(String(tenantId),key,String(category),String(provider),Number(units||0),originCost,originCost,variable.markup_usd,variable.customer_charge_usd,String(pricing_source||''),String(pricing_verified_at||''),ref,now()).run();
  await env.DB.prepare(`INSERT INTO billing_usage_guard(tenant_id,period_key,direct_variable_cost_usd,updated_at) VALUES(?,?,?,?)
-  ON CONFLICT(tenant_id,period_key) DO UPDATE SET direct_variable_cost_usd=billing_usage_guard.direct_variable_cost_usd+excluded.direct_variable_cost_usd,updated_at=excluded.updated_at`)
-  .bind(String(tenantId),key,originCost,now()).run();
+  ON CONFLICT(tenant_id,period_key) DO UPDATE SET direct_variable_cost_usd=billing_usage_guard.direct_variable_cost_usd+excluded.direct_variable_cost_usd,updated_at=excluded.updated_at`).bind(String(tenantId),key,originCost,now()).run();
  return usageStatus(env,tenantId);
 }
 
-export function estimateAiCostUsd(provider){
- if(String(provider||'').toLowerCase()==='cloudflare-ai')return 0;
- throw new Error('UNVERIFIED_AI_COST_ESTIMATE_DISABLED');
-}
-
-export function estimatePstnReserveUsd(seconds=900){
- const minutes=Math.max(1,Math.ceil(Number(seconds||900)/60));
- return Math.min(12,Math.max(0.5,minutes*0.30));
-}
+export function estimateAiCostUsd(provider){if(String(provider||'').toLowerCase()==='cloudflare-ai')return 0;throw new Error('UNVERIFIED_AI_COST_ESTIMATE_DISABLED');}
+export function estimatePstnReserveUsd(seconds=900){const minutes=Math.max(1,Math.ceil(Number(seconds||900)/60));return Math.min(12,Math.max(0.5,minutes*0.30));}
