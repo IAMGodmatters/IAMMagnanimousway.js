@@ -35,14 +35,14 @@ jobs:
 
           parent="$(git rev-parse HEAD^)"
           git diff --name-only "$parent" HEAD >/tmp/magnanimous-deploy-changed-files.txt
-          if grep -Eq '^(magnanimous-runtime/|frontend/|video-gateway/|api/|package\.json$|package-lock\.json$|Dockerfile$|docker-compose[^/]*$|railway[^/]*$)' /tmp/magnanimous-deploy-changed-files.txt; then
+          if grep -Eq '^(\.github/workflows/deploy\.yml$|magnanimous-runtime/|frontend/|video-gateway/|api/|package\.json$|package-lock\.json$|Dockerfile$|docker-compose[^/]*$|railway[^/]*$)' /tmp/magnanimous-deploy-changed-files.txt; then
             echo "standalone_changed=true" >> "$GITHUB_OUTPUT"
             echo "Standalone-sensitive runtime files changed; Railway parity remains required."
           else
             echo "standalone_changed=false" >> "$GITHUB_OUTPUT"
             echo "No standalone-sensitive files changed; Worker deployment may complete independently of Railway."
           fi
-          if grep -Eq '^(magnanimous-runtime/|worker/|frontend/|video-gateway/|api/|package\.json$|package-lock\.json$)' /tmp/magnanimous-deploy-changed-files.txt; then
+          if grep -Eq '^(\.github/workflows/deploy\.yml$|magnanimous-runtime/|worker/|frontend/|video-gateway/|api/|package\.json$|package-lock\.json$)' /tmp/magnanimous-deploy-changed-files.txt; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "Runtime-impacting files changed; production deployment required."
           else
