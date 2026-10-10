@@ -64,9 +64,9 @@ must(auth.includes("globalPlatformOwner(env,user)"),'customer TOTP enrollment mu
 must(auth.includes("enabled=1,verified_at=?"),'TOTP must not become active until a code is verified');
 must(session.includes("'/api/auth/totp/login'"),'verified TOTP login must upgrade to the opaque session authority');
 must(security.includes("'totp-login'")&&security.includes("'totp-management'"),'TOTP login and management must be rate limited');
-must(login.includes('/api/auth/totp/login')&&login.includes('GOOGLE AUTHENTICATOR VERIFICATION'),'customer login must render and submit the authenticator challenge');
+must(login.includes('/api/auth/totp/login')&&login.includes('AUTHENTICATOR APP VERIFICATION')&&!login.includes('GOOGLE AUTHENTICATOR'),'customer login must render and submit a brand-neutral authenticator challenge');
 must(account.includes('/api/auth/totp/enroll')&&account.includes('/api/auth/totp/confirm'),'account page must support authenticator enrollment and confirmation');
-must(account.includes('SET UP GOOGLE AUTHENTICATOR'),'account page must expose authenticator setup');
+must(account.includes('SET UP AUTHENTICATOR APP')&&!account.includes('GOOGLE AUTHENTICATOR'),'account page must expose brand-neutral authenticator setup');
 must(signup.includes("iam_totp_setup_prompt")&&signup.includes("/account?setup=recovery"),'new accounts must be guided through recovery setup with authenticator enrollment prompted');
 must(migration.includes('user_totp')&&migration.includes('secret_ciphertext'),'TOTP migration must store encrypted secret ciphertext');
 must(migration.includes('auth_mfa_challenges')&&migration.includes('token_hash TEXT PRIMARY KEY'),'MFA challenge migration must store challenge hashes');
