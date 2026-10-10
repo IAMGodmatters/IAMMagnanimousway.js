@@ -23,7 +23,8 @@ for(const route of new Set(routes)){
 }
 if(/mobile:'\/white-label-os'/.test(os))throw new Error('Mobile-ready Portal still self-loops to White Label OS');
 if(!studioApi.includes("b.name||b.title||b.partner_name"))throw new Error('Affiliate referral validation does not accept partner_name');
-for(const src of [studioApi,agencyApi])if(!src.includes("An active White Label Agency subscription is required."))throw new Error('White Label server-side Agency plan gate is missing');
+if(!studioApi.includes("['studio','business','scale','agency','agency_pro']")||!studioApi.includes('An active Magnanimous Studio, Business, or White Label Agency subscription is required.'))throw new Error('Studio/Business/Agency server-side entitlement gate is missing');
+if(!agencyApi.includes("An active White Label Agency subscription is required."))throw new Error('White Label Agency server-side plan gate is missing');
 if(!os.includes("/api/billing/status")||!studioUi.includes("/api/billing/status"))throw new Error('White Label protected UIs must verify Agency billing before loading tools');
 for(const deep of ['?tab=projects','?tab=contracts','?tab=learning','?tab=affiliates','?tab=portal'])if(!os.includes(deep))throw new Error('White Label Studio deep link missing '+deep);
 for(const src of [liveVideo,mesh]){
