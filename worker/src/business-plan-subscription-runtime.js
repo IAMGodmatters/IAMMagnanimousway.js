@@ -5,6 +5,7 @@ const now=()=>Math.floor(Date.now()/1000);
 const PLAN_MONTHLY_PRICE_ID='price_1UBPMoDuxV2kib03YdE09xf0';
 const PLAN_MONTHLY_PRICE_USD=79;
 const ACTIVE_STATUSES=new Set(['active']);
+const INCLUDED_BUSINESS_PLANS=new Set(['business','scale','pro']);
 
 async function hmacHex(secret,value){
   const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
@@ -51,7 +52,10 @@ async function includedAccess(env,user,project){
   }
   const tenant=await env.DB.prepare('SELECT id,slug,plan FROM tenants WHERE id=?').bind(user.tenant_id).first();
   if(tenant?.slug==='owner')return{ok:true,reason:'platform_owner'};
-  try{const sub=await env.DB.prepare('SELECT plan,status FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first();if(sub?.plan==='business'&&ACTIVE_STATUSES.has(String(sub?.status||'')))return{ok:true,reason:'full_business'}}catch{}
+  try{
+    const sub=await env.DB.prepare('SELECT plan,status FROM billing_subscriptions WHERE tenant_id=?').bind(user.tenant_id).first();
+    if(INCLUDED_BUSINESS_PLANS.has(String(sub?.plan||'').toLowerCase())&&ACTIVE_STATUSES.has(String(sub?.status||'')))return{ok:true,reason:'magnanimous_business'};
+  }catch{}
   return{ok:false,reason:'subscription_required'};
 }
 function siteOrigin(request,env){return String(env.PUBLIC_SITE_URL||'').trim().replace(/\/$/,'')||new URL(request.url).origin}
@@ -84,7 +88,7 @@ async function rewriteLegacyResponse(response,env){
   if(!type.includes('application/json'))return response;
   const text=await response.text();let data;try{data=JSON.parse(text)}catch{return new Response(text,{status:response.status,headers:response.headers})}
   if('one_time_price_usd' in data){delete data.one_time_price_usd;data.monthly_price_usd=PLAN_MONTHLY_PRICE_USD;data.billing_interval='month';data.recurring=true}
-  if(typeof data.detail==='string')data.detail=data.detail.replace(/Full Business or the one-time plan unlock\.?/i,'Full Business or the $79/month professional business-plan subscription.');
+  if(typeof data.detail==='string')data.detail=data.detail.replace(/Full Business or the one-time plan unlock\.?/i,'Magnanimous Business or the $79/month professional business-plan subscription.');
   if(data.premium_reason==='one_time_purchase'){
     let monthly=null;try{if(data.project_id)monthly=await env.DB.prepare('SELECT status FROM business_plan_subscriptions WHERE project_id=?').bind(String(data.project_id)).first()}catch{}
     data.premium_reason=monthly&&ACTIVE_STATUSES.has(String(monthly.status||''))?'business_plan_monthly':'legacy_one_time_purchase';
@@ -127,7 +131,7 @@ export async function handleBusinessPlan(request,env){
     if(handled)return handled;
     return handleLegacyBusinessPlan(request,env);
   }
-  if(path==='/api/business-plan/config'&&request.method==='GET')return json({enabled:true,free_preview:true,monthly_price_usd:PLAN_MONTHLY_PRICE_USD,billing_interval:'month',recurring:true,included_with_full_business:true,pipeline:['Intake','Clarify','Research','Validate','Financial Review','Draft','Hostile Review','Consistency Check','Audience Adaptation','Final Polish'],provider_checkout_required:false,provider_billing:'managed_by_i_am'});
+  if(path==='/api/business-plan/config'&&request.method==='GET')return json({enabled:true,free_preview:true,monthly_price_usd:PLAN_MONTHLY_PRICE_USD,billing_interval:'month',recurring:true,included_with_magnanimous_business:true,included_with_full_business:true,pipeline:['Intake','Clarify','Research','Validate','Financial Review','Draft','Hostile Review','Consistency Check','Audience Adaptation','Final Polish'],provider_checkout_required:false,provider_billing:'managed_by_i_am'});
 
   if(path==='/api/business-plan/checkout'&&request.method==='POST'){
     const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);
