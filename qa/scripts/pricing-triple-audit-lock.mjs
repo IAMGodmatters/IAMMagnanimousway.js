@@ -1,10 +1,13 @@
 import fs from'node:fs';
 const r=p=>fs.readFileSync(new URL('../../'+p,import.meta.url),'utf8'),ui=r('frontend/app/pricing/page.tsx'),web=r('worker/src/stripe-webhook-hardened.js'),tier=r('worker/src/billing-tiers-runtime.js'),links=r('worker/src/payment-link-runtime.js'),cfg=r('worker/wrangler.jsonc');
 for(const stale of ["business:'plus'","pro:'plus'","Magnanimous Annual • $199","$0–$199/year","Magnanimous Business • $119/month"])if(ui.includes(stale)||tier.includes(stale))throw Error('stale pricing '+stale);
-for(const current of ['Magnanimous CRM Pro • $79/month','Magnanimous Business • $214/month','$177.99 × 1.20 = $213.588'])if(!ui.includes(current))throw Error('current pricing missing '+current);
+for(const current of ['Magnanimous CRM Pro • $79/month','Magnanimous Business • $214/month'])if(!ui.includes(current))throw Error('current pricing missing '+current);
+if(!tier.includes('component_total_usd:177.99')||!tier.includes('markup_percent:20')||!tier.includes('calculated_usd:213.588')||!tier.includes('rounded_price_usd:214'))throw Error('owner-side Business pricing basis missing');
+if(ui.includes('× 1.20')||ui.includes('20%')||ui.includes('cost + exactly'))throw Error('internal margin math leaked onto customer pricing surface');
+if(!ui.includes('PLATFORM OWNER • PRIVATE PRICING DIAGNOSTICS')||!tier.includes('if(identity.authorized) response.owner_pricing='))throw Error('owner-only pricing diagnostics boundary missing');
 if(!web.includes("const PLANS=new Set(['plus','crm','business','scale'])")||!web.includes("const PLAN_ALIAS={pro:'business'}"))throw Error('webhook new plan catalog missing');
 if(web.includes("STRIPE_PRICE_BUSINESS||''),'business'"))throw Error('stale Business Stripe Price is ambiguously trusted');
 if(!tier.includes("crm: 'STRIPE_PRICE_CRM'")||!tier.includes("business: 'STRIPE_PRICE_BUSINESS'")||!tier.includes('configuredPriceForPlan')||!tier.includes('professional_business_plan_usd:79'))throw Error('verified complete plan-price lookup missing');
-if(!links.includes("const LINK_KEYS={plus:'STRIPE_PAYMENT_LINK_PLUS'}"))throw Error('stale paid-plan Payment Links still enabled');
+for(const key of ["plus:'STRIPE_PAYMENT_LINK_PLUS'","crm:'STRIPE_PAYMENT_LINK_CRM'","business:'STRIPE_PAYMENT_LINK_BUSINESS'","scale:'STRIPE_PAYMENT_LINK_SCALE'"])if(!links.includes(key))throw Error('verified recurring Payment Link missing '+key);
 for(const id of ['price_1UGsdOBqx3ebIzujDBMRWFcm','price_1UOpLVBqx3ebIzujjKLZrs57','price_1UOpLdBqx3ebIzujmg94r0s0','price_1UOpLpBqx3ebIzuj20q5SAUH'])if(!cfg.includes(id))throw Error('live catalog reference '+id);
-console.log('Pricing triple-audit passed.');
+console.log('Pricing triple-audit passed with owner-private internal margin math.');

@@ -37,7 +37,7 @@ for(const [needle,label] of [
  ["target_markup_percent: targetMarkup(env)",'20 percent runtime policy']
 ])must(tier,needle,label);
 must(refs,'plus|crm|business|pro|scale','CRM payment reference identity');
-must(links,"const LINK_KEYS={plus:'STRIPE_PAYMENT_LINK_PLUS'}",'stale paid-plan links disabled');
+for(const key of ["crm:'STRIPE_PAYMENT_LINK_CRM'","business:'STRIPE_PAYMENT_LINK_BUSINESS'","scale:'STRIPE_PAYMENT_LINK_SCALE'"])must(links,key,'verified recurring Payment Link '+key);
 must(webhook,"const PLANS=new Set(['plus','crm','business','scale'])",'webhook paid catalog');
 must(webhook,"const compatibilityPlan=plan==='scale'?'business':plan",'annual Business webhook compatibility');
 must(usage,'crm:{rank:1.5','CRM must remain below historical Business rank boundary');

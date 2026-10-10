@@ -83,7 +83,7 @@ export default function RecoveryContacts({onChanged}:{onChanged?:()=>void}={}){
     {emailHint&&<small>{emailHint} · {emailVerified?'VERIFIED':'NOT VERIFIED'}</small>}
     {!emailChallenge&&<div className="row"><input type="email" autoComplete="email" placeholder="alternate@example.com" value={recoveryEmail} onChange={e=>setRecoveryEmail(e.target.value)}/><button disabled={busy||!recoveryEmail||!emailAvailable} onClick={requestEmail}>{emailAvailable?'SEND 8-DIGIT CODE':'EMAIL DELIVERY UNAVAILABLE'}</button></div>}
     {emailChallenge&&<div className="row"><input inputMode="numeric" autoComplete="one-time-code" maxLength={8} placeholder="8-digit code" value={emailCode} onChange={e=>setEmailCode(e.target.value.replace(/\D/g,'').slice(0,8))}/><button disabled={busy||emailCode.length!==8} onClick={confirmEmail}>VERIFY EMAIL</button></div>}
-    {!emailAvailable&&<small className="transportNotice">No verification email will be sent on the current host. Use Google Authenticator or Magnanimous recovery codes for recovery right now.</small>}
+    {!emailAvailable&&<small className="transportNotice">No verification email will be sent on the current host. Use an authenticator app or Magnanimous recovery codes for recovery right now.</small>}
     {emailHint&&<button className="secondary" disabled={busy} onClick={clearEmail}>REMOVE RECOVERY EMAIL</button>}
    </div>
 

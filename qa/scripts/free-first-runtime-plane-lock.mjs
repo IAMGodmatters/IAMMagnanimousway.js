@@ -3,6 +3,8 @@ const read=p=>fs.readFileSync(p,'utf8');
 const wrangler=read('worker/wrangler.jsonc');
 const deploy=read('.github/workflows/deploy.yml');
 const railway=read('.github/workflows/magnanimous-railway-deploy.yml');
+const dataStage=read('.github/workflows/magnanimous-production-data-stage.yml');
+const runtimeSecrets=read('.github/workflows/magnanimous-runtime-secrets-stage.yml');
 const security=read('worker/src/security-entrypoint.js');
 const runtime=read('worker/src/runtime-control.js');
 const reels=read('worker/src/reels-proxy.js');
@@ -16,6 +18,8 @@ const checks=[
   ['runtime health and smoke control are Worker-native',security.includes('handleMagnanimousRuntimeControl')&&runtime.includes("runtime:'cloudflare-worker'")&&runtime.includes("database:'cloudflare-d1'")],
   ['smoke control is OIDC-bound to deploy workflow',runtime.includes("audience:'magnanimous-deploy-smoke'")&&runtime.includes("workflowFile:'.github/workflows/deploy.yml'")&&oidc.includes("allowedEvents=['push']")],
   ['Railway exact-commit deployment is manual opt-in only',!railway.includes('  push:\n')&&railway.includes("MAGNANIMOUS_ENABLE_OPTIONAL_RAILWAY == 'true'")],
+  ['standalone secret/data migration planes are optional instead of production blockers',dataStage.includes("MAGNANIMOUS_ENABLE_OPTIONAL_RAILWAY == 'true'")&&runtimeSecrets.includes("MAGNANIMOUS_ENABLE_OPTIONAL_RAILWAY == 'true'")],
+  ['optional standalone plane has no retired hard-coded Railway hostname',[railway,dataStage,runtimeSecrets].every(x=>x.includes('vars.MAGNANIMOUS_STANDALONE_ORIGIN')&&!x.includes('magnanimous-production.up.railway.app'))],
   ['public Reels no longer embeds Railway',reelsPage.includes('src="/reels-proxy/"')&&!reelsPage.includes('railway.app')],
   ['Reels Worker proxy preserves Magnanimous branding',reels.includes("REELS_ORIGIN='https://lja74zv1.basicdeploy.com'")&&reels.includes('removeUpstreamHostBranding')&&reels.includes("x-magnanimous-surface','reels")],
   ['active production files contain no Railway production hostname',![wrangler,deploy,security,runtime,reels,reelsPage].some(x=>x.includes('magnanimous-production.up.railway.app'))]

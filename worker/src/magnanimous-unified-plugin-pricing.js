@@ -91,3 +91,16 @@ export function magnanimousPluginPricingSnapshot(){
     ]
   };
 }
+
+
+export function customerMagnanimousPluginPricingSnapshot(){
+ return{
+  verified_at:MAGNANIMOUS_PLUGIN_PRICING_VERIFIED_AT,
+  product:'Magnanimous AI',
+  base_fee_usd:MAGNANIMOUS_PLUGIN_BASE_FEE_USD,
+  billing_model:'free-native-plus-prepaid-final-charge',
+  subscription_required:false,
+  prepaid_required_for_paid_usage:true,
+  customer_price_display:'Only the final Magnanimous customer charge is shown before paid usage.'
+ };
+}

@@ -9,7 +9,7 @@ export default function AdvertisePage(){
       <div style={{marginTop:28,padding:'34px',border:'1px solid #263140',borderRadius:20,background:'linear-gradient(135deg,#111722,#0e1218)'}}>
         <small style={{letterSpacing:'.16em',fontWeight:900,color:'#7f8da0'}}>SELF-SERVE SPONSORED ADVERTISING</small>
         <h1 style={{fontSize:'clamp(34px,6vw,60px)',lineHeight:1.02,margin:'12px 0'}}>Advertise on the free I AM platform</h1>
-        <p style={{fontSize:18,lineHeight:1.6,color:'#a9b4c2'}}>Place a sponsored link in the free I AM Magnanimous Way experience. Stripe handles the recurring payment and the platform automatically activates the sponsored placement after a successful checkout.</p>
+        <p style={{fontSize:18,lineHeight:1.6,color:'#a9b4c2'}}>Place a sponsored link in the free I AM Magnanimous Way experience. Secure hosted checkout handles the recurring payment and the platform automatically activates the sponsored placement after confirmed payment.</p>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12,margin:'24px 0'}}>
           <article style={{padding:18,border:'1px solid #27313d',borderRadius:14,background:'#0c1118'}}><small>PRICE</small><strong style={{display:'block',fontSize:34,marginTop:6}}>$49</strong><span style={{color:'#8190a1'}}>per month</span></article>
           <article style={{padding:18,border:'1px solid #27313d',borderRadius:14,background:'#0c1118'}}><small>PLACEMENT</small><strong style={{display:'block',fontSize:22,marginTop:10}}>Free Tier</strong><span style={{color:'#8190a1'}}>Sponsored section</span></article>

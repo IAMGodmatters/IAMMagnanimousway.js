@@ -19,7 +19,7 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      STANDALONE_ORIGIN: https://magnanimous-production.up.railway.app
+      STANDALONE_ORIGIN: ${{ vars.MAGNANIMOUS_STANDALONE_ORIGIN }}
       OIDC_AUDIENCE: magnanimous-production-data-stage
       MAGNANIMOUS_D1_PAGE_SIZE: "1000"
     steps:
@@ -32,6 +32,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          case "$STANDALONE_ORIGIN" in
+            https://*) ;;
+            *) echo "::error::MAGNANIMOUS_STANDALONE_ORIGIN must be configured as an HTTPS URL before optional standalone data staging is enabled."; exit 1 ;;
+          esac
           success=0
           for attempt in $(seq 1 180); do
             if curl -fsS --connect-timeout 10 --max-time 30 "$STANDALONE_ORIGIN/__magnanimous_runtime/health" >/tmp/magnanimous-runtime-health.json; then

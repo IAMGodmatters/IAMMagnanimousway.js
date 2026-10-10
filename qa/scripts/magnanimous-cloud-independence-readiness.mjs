@@ -81,10 +81,11 @@ for(const contract of [
 const compose=read('magnanimous-runtime/docker-compose.yml');
 const releaseCompose=read('magnanimous-runtime/docker-compose.release.yml');
 const serviceBlock=(yaml,name,next)=>{
+ const normalized=yaml.replace(/\r\n/g,'\n');
  const start='\n  '+name+':\n',end='\n  '+next+':\n';
- const from=yaml.indexOf(start),to=yaml.indexOf(end,from+start.length);
+ const from=normalized.indexOf(start),to=normalized.indexOf(end,from+start.length);
  must(from>=0&&to>from,'Compose service block missing: '+name);
- return yaml.slice(from,to);
+ return normalized.slice(from,to);
 };
 const browserCompose=serviceBlock(compose,'browser','browser-egress');
 const egressCompose=serviceBlock(compose,'browser-egress','media');
