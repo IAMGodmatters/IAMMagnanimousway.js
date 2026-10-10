@@ -14,11 +14,13 @@ on:
       - 'worker/src/payment-**'
       - 'worker/src/usage-guard.js'
       - 'worker/src/business-plan-subscription-runtime.js'
+      - 'worker/src/crm-advanced-runtime.js'
       - 'worker/src/router-entrypoint.js'
       - 'docs/CRM-BEST-OF-BREED-2026.md'
       - 'docs/PRICING-TIERS-2026.md'
       - 'docs/ECONOMICS-GUARDRAILS.md'
       - 'qa/scripts/crm-commercialization-lock.mjs'
+      - 'qa/scripts/crm-depth-activation-lock.mjs'
       - '.github/workflows/crm-commercialization-lock.yml'
   pull_request:
     paths:
@@ -32,11 +34,13 @@ on:
       - 'worker/src/payment-**'
       - 'worker/src/usage-guard.js'
       - 'worker/src/business-plan-subscription-runtime.js'
+      - 'worker/src/crm-advanced-runtime.js'
       - 'worker/src/router-entrypoint.js'
       - 'docs/CRM-BEST-OF-BREED-2026.md'
       - 'docs/PRICING-TIERS-2026.md'
       - 'docs/ECONOMICS-GUARDRAILS.md'
       - 'qa/scripts/crm-commercialization-lock.mjs'
+      - 'qa/scripts/crm-depth-activation-lock.mjs'
       - '.github/workflows/crm-commercialization-lock.yml'
 
 permissions:
@@ -53,6 +57,7 @@ jobs:
       - name: Verify CRM product, pricing, entitlements and billing safety
         run: |
           node qa/scripts/crm-commercialization-lock.mjs
+          node qa/scripts/crm-depth-activation-lock.mjs
           node qa/scripts/billing-plan-button-consistency-lock.mjs
           node qa/scripts/payment-safety-lock.mjs
           node qa/scripts/distinct-payment-terms-lock.mjs
