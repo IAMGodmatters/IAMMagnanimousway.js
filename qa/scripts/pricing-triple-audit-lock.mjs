@@ -6,5 +6,5 @@ if(!web.includes("const PLANS=new Set(['plus','crm','business','scale'])")||!web
 if(web.includes("STRIPE_PRICE_BUSINESS||''),'business'"))throw Error('stale Business Stripe Price is ambiguously trusted');
 if(!tier.includes("crm: 'STRIPE_PRICE_CRM'")||!tier.includes("business: 'STRIPE_PRICE_BUSINESS'")||!tier.includes('configuredPriceForPlan')||!tier.includes('professional_business_plan_usd:79'))throw Error('verified complete plan-price lookup missing');
 if(!links.includes("const LINK_KEYS={plus:'STRIPE_PAYMENT_LINK_PLUS'}"))throw Error('stale paid-plan Payment Links still enabled');
-for(const id of ['price_1UGsdOBqx3ebIzujDBMRWFcm','price_1UGsdQBqx3ebIzujn5X0tN1y'])if(!cfg.includes(id))throw Error('existing catalog reference '+id);
+for(const id of ['price_1UGsdOBqx3ebIzujDBMRWFcm','price_1UOpLVBqx3ebIzujjKLZrs57','price_1UOpLdBqx3ebIzujmg94r0s0','price_1UOpLpBqx3ebIzuj20q5SAUH'])if(!cfg.includes(id))throw Error('live catalog reference '+id);
 console.log('Pricing triple-audit passed.');
