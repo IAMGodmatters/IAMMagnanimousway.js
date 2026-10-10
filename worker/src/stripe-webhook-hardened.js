@@ -18,7 +18,7 @@ function paymentConfirmed(object){const payment=String(object?.payment_status||'
 function pricePlan(env,object){
  // Only map the stable Plus Price directly. New CRM/Business/Annual checkout can
  // use Stripe inline recurring price_data and always carries signed plan metadata.
- // This also prevents stale legacy Business price IDs from being mistaken for the new $119 plan.
+ // This prevents stale legacy Business price IDs from being mistaken for the new $214 plan.
  const plusId=String(env.STRIPE_PRICE_PLUS||''),items=object?.items?.data||[];
  for(const item of items){const id=String(item?.price?.id||item?.plan?.id||'');if(plusId&&id===plusId)return'plus'}
  const metadataRaw=String(object?.metadata?.plan||'').toLowerCase(),metadata=PLAN_ALIAS[metadataRaw]||metadataRaw;return PLANS.has(metadata)?metadata:'';
@@ -35,7 +35,11 @@ async function save(env,tenantId,values){
  const plan=String(values.plan||old?.plan||'free').toLowerCase();
  await env.DB.prepare(`INSERT INTO billing_subscriptions(tenant_id,plan,stripe_customer_id,stripe_subscription_id,status,current_period_end,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id) DO UPDATE SET plan=excluded.plan,stripe_customer_id=excluded.stripe_customer_id,stripe_subscription_id=excluded.stripe_subscription_id,status=excluded.status,current_period_end=excluded.current_period_end,updated_at=excluded.updated_at`)
   .bind(tenantId,plan,values.customer_id??old?.stripe_customer_id??null,values.subscription_id??old?.stripe_subscription_id??null,String(values.status??old?.status??'inactive'),values.current_period_end??old?.current_period_end??null,old?.created_at||ts,ts).run();
- await env.DB.prepare('UPDATE tenants SET plan=? WHERE id=?').bind(plan,tenantId).run();
+ // Legacy feature gates read tenants.plan and historically only knew "business".
+ // Keep the billing row precise (scale stays scale) while exposing annual Business
+ // as business to older feature gates until every legacy surface is migrated.
+ const compatibilityPlan=plan==='scale'?'business':plan;
+ await env.DB.prepare('UPDATE tenants SET plan=? WHERE id=?').bind(compatibilityPlan,tenantId).run();
 }
 async function resolveTenant(env,object){
  const metadataTenant=String(object?.metadata?.tenant_id||'').trim();if(metadataTenant)return metadataTenant;
