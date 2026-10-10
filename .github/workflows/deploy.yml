@@ -1041,15 +1041,16 @@ jobs:
           assert any(p.get('id') == 'free' and p.get('price_usd') == 0 for p in plans), data
           assert any(p.get('id') == 'plus' and p.get('price_usd') == 19.99 and p.get('cadence') == 'month' for p in plans), data
           assert any(p.get('id') == 'crm' and p.get('price_usd') == 79 and p.get('cadence') == 'month' for p in plans), data
-          assert any(p.get('id') == 'business' and p.get('price_usd') == 214 and p.get('cadence') == 'month' for p in plans), data
-          assert any(p.get('id') == 'scale' and p.get('price_usd') == 2568 and p.get('cadence') == 'year' for p in plans), data
+          assert any(p.get('id') == 'studio' and p.get('price_usd') == 79 and p.get('cadence') == 'month' and p.get('checkout_configured') is True for p in plans), data
+          assert any(p.get('id') == 'business' and p.get('price_usd') == 309 and p.get('cadence') == 'month' for p in plans), data
+          assert any(p.get('id') == 'scale' and p.get('price_usd') == 3708 and p.get('cadence') == 'year' for p in plans), data
           configured=data.get('tier_checkout_configured') or {}
-          assert all(configured.get(plan) is True for plan in ('plus','crm','business','scale')), data
+          assert all(configured.get(plan) is True for plan in ('plus','crm','studio','business','scale')), data
           assert any(p.get('id') == 'agency' and p.get('price_usd') == 299 and p.get('checkout_configured') is True for p in plans), data
           assert any(p.get('id') == 'agency_pro' and p.get('price_usd') == 499 and p.get('checkout_configured') is True for p in plans), data
           fallbacks=data.get('agency_payment_link_fallbacks') or {}
           assert fallbacks.get('agency') is True and fallbacks.get('agency_pro') is True, data
-          print('Stripe Unlimited, CRM Pro, Business, Business Annual, Agency and Agency Pro checkout are configured.')
+          print('Stripe Unlimited, CRM Pro, Studio, Business, Business Annual, Agency and Agency Pro checkout are configured.')
           PY
 
           check_get "Agent Mesh catalog" "$BASE_URL/api/agents" /tmp/agents.json
