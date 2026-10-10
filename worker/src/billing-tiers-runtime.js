@@ -26,17 +26,17 @@ const PLAN_CONFIG = {
     entitlements: { metered_ai: true, pstn_minutes: 30, avatar_minutes: 0, premium_video_credits: 0, cost_ceiling_usd: 42 }
   },
   business: {
-    id: 'business', name: 'Magnanimous Business', price_usd: 119, cadence: 'month',
-    description: 'The complete business operating package: Magnanimous CRM Pro plus the broader Magnanimous paid business platform.',
-    features: ['Everything in Magnanimous Plus', 'Everything in Magnanimous CRM Pro', 'Full business workspace', 'Advanced assistant workflows', 'Calling and avatar integration access', 'Professional Business Plan', '20% bundle markup already built into the $119 base price'],
-    pricing_basis: { crm_usd:79, plus_usd:19.99, markup_percent:20, calculated_usd:118.788, rounded_price_usd:119 },
-    entitlements: { metered_ai: true, pstn_minutes: 90, avatar_minutes: 30, premium_video_credits: 30, cost_ceiling_usd: 86 }
+    id: 'business', name: 'Magnanimous Business', price_usd: 214, cadence: 'month',
+    description: 'The complete business operating package: Magnanimous CRM Pro, the Professional Business Plan, and the broader Magnanimous paid business platform.',
+    features: ['Everything in Magnanimous Plus', 'Everything in Magnanimous CRM Pro', 'Professional Business Plan included', 'Full business workspace', 'Advanced assistant workflows', 'Calling and avatar integration access', '20% bundle upsell already built into the $214 base price'],
+    pricing_basis: { crm_usd:79, professional_business_plan_usd:79, plus_usd:19.99, component_total_usd:177.99, markup_percent:20, calculated_usd:213.588, rounded_price_usd:214 },
+    entitlements: { metered_ai: true, pstn_minutes: 90, avatar_minutes: 30, premium_video_credits: 30, cost_ceiling_usd: 160 }
   },
   scale: {
-    id: 'scale', name: 'Magnanimous Business Annual', price_usd: 1190, cadence: 'year',
-    description: 'Annual Business + CRM Pro access priced at the equivalent of ten monthly Business payments for new checkout.',
-    features: ['Everything in Magnanimous Business', 'Everything in CRM Pro', 'Annual billing', 'Expanded team/business workflows', 'Largest controlled premium allowances', 'Scale-ready support path'],
-    entitlements: { metered_ai: true, pstn_minutes: 180, avatar_minutes: 60, premium_video_credits: 60, cost_ceiling_usd: 172 }
+    id: 'scale', name: 'Magnanimous Business Annual', price_usd: 2568, cadence: 'year',
+    description: 'Annual Magnanimous Business + CRM Pro + Professional Business Plan access for new checkout.',
+    features: ['Everything in Magnanimous Business', 'Everything in CRM Pro', 'Professional Business Plan included', 'Annual billing', 'Expanded team/business workflows', 'Largest controlled premium allowances', 'Scale-ready support path'],
+    entitlements: { metered_ai: true, pstn_minutes: 180, avatar_minutes: 60, premium_video_credits: 60, cost_ceiling_usd: 170 }
   }
 };
 
@@ -49,8 +49,8 @@ const PRICE_ENV = {
 const TERM_VERSION={
   plus:'unlimited-2026-09-18.1',
   crm:'crm-2026-10-10.1',
-  business:'business-2026-10-10.1',
-  scale:'business-annual-2026-10-10.1'
+  business:'business-2026-10-10.2',
+  scale:'business-annual-2026-10-10.2'
 };
 
 function normalizedPlan(value) {
