@@ -9,9 +9,10 @@
   // The deploy token intentionally has Worker/D1 access but no zone-route mutation permission.
   "vars": {
     "STRIPE_PRICE_PLUS": "price_1UGsdOBqx3ebIzujDBMRWFcm",
-    "STRIPE_PRICE_BUSINESS": "price_1UGsdOBqx3ebIzujDBMRWFcm",
+    "STRIPE_PRICE_CRM": "price_1UOpLVBqx3ebIzujjKLZrs57",
+    "STRIPE_PRICE_BUSINESS": "price_1UOpLdBqx3ebIzujmg94r0s0",
     "STRIPE_PRICE_PRO": "price_1UGsdOBqx3ebIzujDBMRWFcm",
-    "STRIPE_PRICE_SCALE": "price_1UGsdQBqx3ebIzujn5X0tN1y",
+    "STRIPE_PRICE_SCALE": "price_1UOpLpBqx3ebIzuj20q5SAUH",
     "STRIPE_PRICE_AGENCY": "price_1UEs75Bqx3ebIzujqlWosJKu",
     "STRIPE_PRICE_AGENCY_PRO": "price_1UEs7EBqx3ebIzujT5pbI3QH",
     "STRIPE_PAYMENT_LINK_PLUS": "https://buy.stripe.com/9B614n5oK7vE7LWbnT6kg02",
