@@ -4,7 +4,7 @@ import { encodePlanPaymentReference } from './payment-reference.js';
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const PLANS=new Set(['plus','crm','business','pro','scale']);
 const ACTIVEISH=new Set(['active','trialing','past_due']);
-const TERMS={plus:'unlimited-2026-09-18.1',crm:'crm-2026-10-10.1',business:'business-2026-10-10.1',pro:'business-2026-10-10.1',scale:'business-annual-2026-10-10.1'};
+const TERMS={plus:'unlimited-2026-09-18.1',crm:'crm-2026-10-10.1',business:'business-2026-10-10.2',pro:'business-2026-10-10.2',scale:'business-annual-2026-10-10.2'};
 function appendQuery(url,key,value){const parsed=new URL(url);parsed.searchParams.set(key,value);return parsed.toString()}
 
 export async function handleBillingCheckoutHardening(request,env){
