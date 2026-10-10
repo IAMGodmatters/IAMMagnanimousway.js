@@ -76,6 +76,7 @@ export async function augmentBillingResponse(request, response, env) {
     if(Array.isArray(data.plans))data.plans=data.plans.map(p=>p?.id&&links[p.id]?{...p,checkout_configured:true,checkout_mode:'payment_link'}:p);
     data.tier_checkout_configured={...(data.tier_checkout_configured||{}),...Object.fromEntries(Object.entries(links).map(([k,v])=>[k,Boolean(v)||Boolean(data?.tier_checkout_configured?.[k])]))};
     data.crm_checkout_configured=Boolean(data.crm_checkout_configured)||Boolean(links.crm);
+    data.studio_checkout_configured=Boolean(data.studio_checkout_configured)||Boolean(links.studio);
     data.business_checkout_configured=Boolean(data.business_checkout_configured)||Boolean(links.business);
     data.payment_link_fallbacks=links;
   }

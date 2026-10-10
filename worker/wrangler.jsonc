@@ -10,6 +10,7 @@
   "vars": {
     "STRIPE_PRICE_PLUS": "price_1UGsdOBqx3ebIzujDBMRWFcm",
     "STRIPE_PRICE_CRM": "price_1UOpLVBqx3ebIzujjKLZrs57",
+    "STRIPE_PRICE_STUDIO": "price_1UOyPtBqx3ebIzuj9uoH7Vmb",
     "STRIPE_PRICE_BUSINESS": "price_1UOpLdBqx3ebIzujmg94r0s0",
     "STRIPE_PRICE_PRO": "price_1UGsdOBqx3ebIzujDBMRWFcm",
     "STRIPE_PRICE_SCALE": "price_1UOpLpBqx3ebIzuj20q5SAUH",
@@ -17,6 +18,7 @@
     "STRIPE_PRICE_AGENCY_PRO": "price_1UEs7EBqx3ebIzujT5pbI3QH",
     "STRIPE_PAYMENT_LINK_PLUS": "https://buy.stripe.com/7sYeVc3V3faQcdAe02bV60r",
     "STRIPE_PAYMENT_LINK_CRM": "https://buy.stripe.com/4gMcN4bnv3s8b9w3lobV60o",
+    "STRIPE_PAYMENT_LINK_STUDIO": "https://buy.stripe.com/dRmfZg63bd2I7Xk6xAbV60w",
     "STRIPE_PAYMENT_LINK_BUSINESS": "https://buy.stripe.com/5kQcN463b7IogtQ1dgbV60p",
     "STRIPE_PAYMENT_LINK_PRO": "https://buy.stripe.com/5kQcN463b7IogtQ1dgbV60p",
     "STRIPE_PAYMENT_LINK_SCALE": "https://buy.stripe.com/00w4gyajr6Ek0uSg8abV60q",
