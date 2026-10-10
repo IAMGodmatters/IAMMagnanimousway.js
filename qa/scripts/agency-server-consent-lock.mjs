@@ -12,6 +12,7 @@ for(const s of ['getProviderRuntimeEnv','String(env?.STRIPE_WEBHOOK_SECRET','AGE
 for(const s of ['STRIPE_PAYMENT_LINK_AGENCY','STRIPE_PAYMENT_LINK_AGENCY_PRO','price_1UEs75Bqx3ebIzujqlWosJKu','price_1UEs7EBqx3ebIzujT5pbI3QH'])if(!wrangler.includes(s))throw Error('agency live Stripe config '+s);
 if(!bootstrap.includes("'STRIPE_WEBHOOK_SECRET'")||bootstrap.includes('whsec_'))throw Error('Stripe webhook bootstrap must store encrypted ciphertext only.');
 for(const s of ['Ensure encrypted Stripe webhook bootstrap fallback','migrations/0084_stripe_webhook_rekey_current_bootstrap.sql','ciphertext_length','Encrypted Stripe webhook bootstrap record restored without exposing plaintext.'])if(!deploy.includes(s))throw Error('Stripe deploy bootstrap continuity '+s);
+if(!deploy.includes('"recurringDisclosureAccepted":true'))throw Error('Agency production smoke must exercise recurring-billing disclosure acceptance.');
 if(deploy.includes('whsec_'))throw Error('Deployment workflow must never embed a Stripe webhook signing secret.');
 if(!secureBootstrap.includes('Refusing silent key rotation'))throw Error('Secure bootstrap must refuse silent key rotation when encrypted secrets exist.');
 const secretReader=secureBootstrap.slice(secureBootstrap.indexOf('export async function getBootstrapSecrets'),secureBootstrap.indexOf('export async function handleBootstrap'));
