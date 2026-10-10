@@ -1873,7 +1873,7 @@ jobs:
           if [ "$status" != "201" ]; then echo "Usage rebilling ledger returned HTTP $status"; cat /tmp/wl-usage.json || true; exit 1; fi
           python - <<'PY'
           import json
-          d=json.load(open('/tmp/wl-usage.json'));assert d.get('cost_usd')==1 and d.get('customer_charge_usd')==1.2,d
+          d=json.load(open('/tmp/wl-usage.json'));assert d.get('ok') is True and d.get('id'),d;assert d.get('customer_charge_usd')==1.2,d;assert 'cost_usd' not in d and 'markup_percent' not in d,d
           PY
 
           status=$(curl -sS -o /tmp/wl-auto.json -w '%{http_code}' -X POST "$BASE_URL/api/agency/automations" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data "{\"client_id\":\"$client_id\",\"name\":\"Smoke Work Automation\",\"trigger_type\":\"manual\",\"action_type\":\"create-work\",\"action_config\":{\"title\":\"Smoke automated work\",\"goal\":\"Verify White Label automation to Work Engine.\"},\"status\":\"active\"}")
