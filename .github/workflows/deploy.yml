@@ -1988,7 +1988,10 @@ jobs:
           assert data.get('plan') in {None,'plus'}, data
           if data.get('mode') == 'payment_link':
               query=urllib.parse.parse_qs(parsed.query)
-              assert query.get('client_reference_id') == [f'iam:{tenant}:plan:plus'], data
+              ref=(query.get('client_reference_id') or [''])[0]
+              parts=ref.split(':')
+              assert len(parts) == 5 and parts[0] == 'iams1' and parts[1] == tenant and parts[2] == 'plan' and parts[3] == 'plus', data
+              assert len(parts[4]) == 64 and all(ch in '0123456789abcdef' for ch in parts[4].lower()), data
           PY
 
           status=$(curl -sS -o /tmp/billing-request.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/management-request" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"request_type":"billing_question","message":"Deployment smoke test billing request."}')
