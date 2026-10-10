@@ -4,6 +4,7 @@ const txt=(v,n=12000)=>String(v??'').trim().slice(0,n);
 const parse=(v,f={})=>{try{return JSON.parse(String(v??''))}catch{return f}};
 const uid=()=>crypto.randomUUID();
 const tenant=u=>String(u?.tenant_id||'');
+const CRM_PRO_PLANS=new Set(['crm','business','scale','pro']);
 
 export const ADVANCED_CRM_CAPABILITIES=[
  {id:'service-cases',name:'Customer service cases, priority, SLA and ownership'},
@@ -37,6 +38,29 @@ async function ensure(env){
   'CREATE INDEX IF NOT EXISTS idx_crm_territories_tenant ON crm_territories(tenant_id,active)',
   'CREATE INDEX IF NOT EXISTS idx_crm_health_contact ON crm_health_snapshots(tenant_id,contact_id,calculated_at)'
  ])await env.DB.prepare(s).run();
+}
+
+function isAdvancedCrmPath(path){
+ return path==='/api/operations/crm/advanced'||
+  path==='/api/operations/crm/predictive-readiness'||
+  path==='/api/operations/crm/cases'||
+  path==='/api/operations/crm/quotes'||
+  path==='/api/operations/crm/campaigns'||
+  path==='/api/operations/crm/campaign-touches'||
+  path==='/api/operations/crm/attribution'||
+  path==='/api/operations/crm/territories'||
+  path==='/api/operations/crm/customer-health/recalculate'||
+  /^\/api\/operations\/crm\/sequence-enrollments\/[^/]+\/communication-plan$/.test(path);
+}
+async function crmProAccess(env,user){
+ const t=tenant(user);if(!t)return{ok:false,plan:'free'};
+ try{const workspace=await env.DB.prepare('SELECT slug FROM tenants WHERE id=?').bind(t).first();if(String(workspace?.slug||'')==='owner')return{ok:true,plan:'owner',source:'platform-owner'}}catch{}
+ try{
+  const billing=await env.DB.prepare('SELECT plan,status FROM billing_subscriptions WHERE tenant_id=?').bind(t).first();
+  const plan=String(billing?.plan||'').toLowerCase(),status=String(billing?.status||'').toLowerCase();
+  if(CRM_PRO_PLANS.has(plan)&&['active','trialing'].includes(status))return{ok:true,plan:plan==='pro'?'business':plan,source:'stripe'};
+  return{ok:false,plan:plan||'free',status};
+ }catch{return{ok:false,plan:'free',status:'unverified'}}
 }
 
 async function owned(env,t,table,id){return env.DB.prepare(`SELECT * FROM ${table} WHERE tenant_id=? AND id=?`).bind(t,id).first()}
@@ -78,8 +102,8 @@ async function overview(env,t){
 }
 
 export async function handleAdvancedCrm(request,env,user,body={}){
- const url=new URL(request.url);if(!url.pathname.startsWith('/api/operations/crm/'))return null;await ensure(env);const t=tenant(user);if(!t)return json({detail:'Tenant context required.'},403);
- if(url.pathname==='/api/operations/crm/advanced'&&request.method==='GET')return json(await overview(env,t));
+ const url=new URL(request.url);if(!url.pathname.startsWith('/api/operations/crm/'))return null;if(!isAdvancedCrmPath(url.pathname))return null;const t=tenant(user);if(!t)return json({detail:'Tenant context required.'},403);const access=await crmProAccess(env,user);if(!access.ok)return json({detail:'Magnanimous CRM Pro, Magnanimous Business, or Business Annual is required for advanced CRM revenue operations.',code:'CRM_PRO_REQUIRED',current_plan:access.plan,required_plans:['crm','business','scale'],checkout:'/pricing?plan=crm'},402);await ensure(env);
+ if(url.pathname==='/api/operations/crm/advanced'&&request.method==='GET')return json({...await overview(env,t),entitlement:{plan:access.plan,source:access.source||'billing'}});
  if(url.pathname==='/api/operations/crm/predictive-readiness'&&request.method==='GET')return json(await predictiveReadiness(env,t));
  if(url.pathname==='/api/operations/crm/cases'){
   if(request.method==='GET'){const r=await env.DB.prepare('SELECT * FROM crm_cases WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 500').bind(t).all();return json({items:r.results||[]})}
