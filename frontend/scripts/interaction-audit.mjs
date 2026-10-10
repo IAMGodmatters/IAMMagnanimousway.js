@@ -19,9 +19,16 @@ for(const file of sourceFiles){
    if(!routes.has(base)&&!base.startsWith('/_next/'))failures.push(`${rel}: internal href has no app route: ${href}`);
   }
  }
- const buttonRe=/<button\b([^>]*)>/g;
- while((m=buttonRe.exec(source))){buttons++;const attrs=m[1]||'';
-  if(/type\s*=\s*["']button["']/i.test(attrs)&&!/onClick\s*=|onPointer|onMouse|onKeyDown\s*=|formAction\s*=/i.test(attrs))failures.push(`${rel}: type="button" has no visible handler near offset ${m.index}`);
+ const buttonRe=/<button\b([^>]*)>([\s\S]*?)<\/button>/g;
+ while((m=buttonRe.exec(source))){
+  buttons++;const attrs=m[1]||'',body=m[2]||'',before=source.slice(0,m.index);
+  const inForm=before.lastIndexOf('<form')>before.lastIndexOf('</form>');
+  const typeMatch=attrs.match(/type\s*=\s*["'](button|submit|reset)["']/i),buttonType=(typeMatch?.[1]||'').toLowerCase();
+  const hasHandler=/onClick\s*=|onPointer|onMouse|onKeyDown\s*=|onKeyUp\s*=|formAction\s*=/i.test(attrs);
+  const actionable=hasHandler||buttonType==='submit'||buttonType==='reset'||(!buttonType&&inForm);
+  if(!actionable)failures.push(`${rel}: button has no action path near offset ${m.index}`);
+  const hasAccessibleName=/aria-(?:label|labelledby)\s*=|title\s*=/i.test(attrs)||body.includes('{')||body.replace(/<[^>]+>/g,' ').replace(/&[a-z0-9#]+;/gi,' ').trim();
+  if(!hasAccessibleName)failures.push(`${rel}: icon-only button has no accessible name near offset ${m.index}`);
  }
 }
 const layout=fs.readFileSync(path.join(appDir,'layout.tsx'),'utf8');
@@ -94,4 +101,4 @@ if(failures.length){console.error('\nInteraction integrity failures:');for(const
 console.log('Bible Study contract passed: route, marketplace link, metadata, Magnanimous AI handoff, and customer sign-in boundary are intact.');
 console.log('Standalone Magnanimous AI contract passed: protected route, metadata, sign-in boundary, chat runtime, isolated interface, and no-ad shell are intact.');
 console.log('Public discovery contract passed: public marketing/teaching/marketplace routes stay discoverable while operational workspaces remain protected.');
-console.log('Interaction audit passed: no empty/#/javascript links, literal internal links resolve to an app route, explicit type=button controls have handlers, and the global clarity/runtime layers are mounted.');
+console.log('Interaction audit passed: no empty/#/javascript links, literal internal links resolve to an app route, every button has an action path, icon-only buttons have accessible names, and the global clarity/runtime layers are mounted.');

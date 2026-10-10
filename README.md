@@ -76,7 +76,7 @@ Owner credentials and session secrets remain server-side. Do not commit password
 
 ## Revenue
 
-The main Free tier remains the default access model. Full Business is an optional $49/month upgrade, and the platform supports a separate $49/month sponsored-ad product. Metered provider usage remains opt-in so paid API costs do not silently become part of the free tier.
+The main Free tier remains the default access model. Current optional paid plans include Magnanimous Plus ($19.99/month), CRM Pro ($79/month), Magnanimous Studio ($79/month), Magnanimous Business ($309/month), Business Annual ($3,708/year), Agency ($299/month), and Agency Pro ($499/month). The platform also supports a separate $49/month sponsored-ad product. Metered provider usage remains prepaid/customer-funded under the 20% origin-cost markup rule so paid API costs do not silently become part of the free tier.
 
 The owner dashboard can also support legitimate sponsored, referral, and affiliate links. Any external advertising or affiliate provider remains subject to that provider's approval and terms.
 

@@ -13,28 +13,30 @@ The official AI/platform orchestration identity is **Magnanimous AI**. External 
 | Magnanimous Plus | $19.99/month | Expanded ordinary platform capacity | Premium provider usage only through explicit allowance/credits |
 | Magnanimous CRM Pro | $79/month | Standalone AI-native CRM and revenue operating system | CRM base access included; metered provider usage remains prepaid at origin cost × 1.20 |
 | Professional Business Plan | $79/month | Existing professional consulting/business-plan workflow | Recurring plan; included in Magnanimous Business |
-| Magnanimous Business | $214/month | Complete business operating package | Includes CRM Pro + Professional Business Plan + Plus baseline; metered provider usage remains separately funded |
-| Magnanimous Business Annual | $2,568/year | Twelve months of the complete Business package | Same controlled-cost policy as monthly Business |
+| Magnanimous Studio | $79/month | Standalone products, projects, proposals, learning assets, portals, communities and referrals | Studio base access included; metered provider usage remains prepaid at origin cost × 1.20 |
+| Magnanimous Business | $309/month | Complete business operating package | Includes CRM Pro + Professional Business Plan + Studio + Plus baseline; metered provider usage remains separately funded |
+| Magnanimous Business Annual | $3,708/year | Twelve months of the complete Business package | Same controlled-cost policy as monthly Business |
 
 ## Business bundle formula
 The complete Business plan includes three separately valuable paid components:
 
 - Magnanimous CRM Pro: **$79/month**
 - Professional Business Plan: **$79/month**
+- Magnanimous Studio: **$79/month**
 - Magnanimous Plus baseline: **$19.99/month**
 
-Combined component value: **$177.99**.
+Combined component value: **$256.99**.
 
 Owner-required 20% upsell:
 
-`$177.99 × 1.20 = $213.588`
+`$256.99 × 1.20 = $308.388`
 
-Rounded public price: **$214/month**.
+Rounded public price: **$309/month**.
 
-Annual Business is **$2,568/year**, equal to twelve monthly Business payments. No undisclosed annual discount is assumed.
+Annual Business is **$3,708/year**, equal to twelve monthly Business payments. No undisclosed annual discount is assumed.
 
 ## Stripe migration rule
-Existing active Stripe subscriptions are not silently repriced. New CRM, Business and Business Annual checkout must use the disclosed current amount. If an environment variable points to an older Stripe Price with the wrong amount or billing interval, checkout must reject that Price and use Stripe-hosted recurring `price_data` for the correct current amount instead. Stripe-confirmed payment controls activation and webhook processing remains idempotent.
+Existing active Stripe subscriptions are not silently repriced. New CRM, Studio, Business and Business Annual checkout must use the disclosed current amount. If an environment variable points to an older Stripe Price with the wrong amount or billing interval, checkout must reject that Price and use Stripe-hosted recurring `price_data` for the correct current amount instead. Stripe-confirmed payment controls activation and webhook processing remains idempotent.
 
 ## Cost research incorporated
 - AI SaaS is best protected with hybrid subscription + usage/allowance pricing when variable inference cost rises with customer consumption.
@@ -58,5 +60,5 @@ This is a **20% markup**, not the same calculation as a 20% gross-margin target.
 5. Paid plan upgrades use Stripe-hosted Checkout and recurring Billing.
 6. Customer Portal remains the self-service path for subscription management.
 7. Existing subscriptions are preserved unless a customer explicitly changes plans.
-8. CRM can be purchased standalone; Business includes CRM Pro and the Professional Business Plan.
+8. CRM and Studio can be purchased standalone; Business includes CRM Pro, the Professional Business Plan and Magnanimous Studio.
 9. Enterprise/high-volume customers receive controlled/custom pricing rather than unlimited standard-plan usage.

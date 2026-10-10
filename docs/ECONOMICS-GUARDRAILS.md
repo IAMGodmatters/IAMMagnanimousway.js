@@ -17,18 +17,19 @@ Current standard paid revenue paths include:
 - Magnanimous Plus — $19.99/month.
 - Magnanimous CRM Pro — $79/month standalone.
 - Professional Business Plan — $79/month standalone.
-- Magnanimous Business — $214/month, including CRM Pro + Professional Business Plan + Plus baseline with the required 20% bundle upsell.
-- Magnanimous Business Annual — $2,568/year for new annual checkout.
+- Magnanimous Studio — $79/month standalone.
+- Magnanimous Business — $309/month, including CRM Pro + Professional Business Plan + Studio + Plus baseline with the required 20% bundle upsell.
+- Magnanimous Business Annual — $3,708/year for new annual checkout.
 - Sponsored placement — recurring paid placement when sold.
 
 Existing active Stripe subscriptions are not silently repriced by this release. New checkout must use the current disclosed plan amount and interval.
 
 ## Business package formula
-`79 + 79 + 19.99 = 177.99`
+`79 + 79 + 79 + 19.99 = 256.99`
 
-`177.99 × 1.20 = 213.588`
+`256.99 × 1.20 = 308.388`
 
-Rounded standard Business price: **$214/month**.
+Rounded standard Business price: **$309/month**.
 
 ## Direct provider-origin markup
 For a verified direct third-party variable cost `C`:

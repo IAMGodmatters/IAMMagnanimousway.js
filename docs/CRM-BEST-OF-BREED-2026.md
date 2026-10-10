@@ -69,15 +69,20 @@ The existing Magnanimous CRM already covers most of these categories natively th
 - Existing standalone value: **$79/month**.
 - It remains included in the complete Business bundle as it was under the prior Full Business entitlement model.
 
+### Magnanimous Studio
+- **$79/month** standalone.
+- Includes products/packages, project delivery, proposals/signatures, learning/portal publishing, community and affiliate/referral workflows.
+- It is also included in Magnanimous Business.
+
 ### Magnanimous Business
-- **$214/month** for new checkout.
-- Component basis: $79 CRM Pro + $79 Professional Business Plan + $19.99 Magnanimous Plus = **$177.99**.
-- Required 20% upsell: $177.99 × 1.20 = **$213.588**.
-- Rounded customer price: **$214/month**.
-- Includes CRM Pro, Professional Business Plan and the broader Magnanimous paid business platform.
+- **$309/month** for new checkout.
+- Component basis: $79 CRM Pro + $79 Professional Business Plan + $79 Magnanimous Studio + $19.99 Magnanimous Plus = **$256.99**.
+- Required 20% upsell: $256.99 × 1.20 = **$308.388**.
+- Rounded customer price: **$309/month**.
+- Includes CRM Pro, Professional Business Plan, Magnanimous Studio and the broader Magnanimous paid business platform.
 
 ### Magnanimous Business Annual
-- **$2,568/year** for new checkout, equal to twelve months at $214.
+- **$3,708/year** for new checkout, equal to twelve months at $309.
 - Existing active Stripe subscriptions are not silently rewritten or repriced by the code rollout.
 
 ### Metered external costs
