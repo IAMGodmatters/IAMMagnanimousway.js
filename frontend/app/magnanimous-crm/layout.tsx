@@ -1,5 +1,6 @@
 import type {Metadata} from 'next';
 import type {ReactNode} from 'react';
+import MagnanimousCrmGlobalStyle from './global-style';
 
 export const metadata:Metadata={
  title:'Magnanimous CRM Pro — AI Revenue Operating System',
@@ -9,4 +10,4 @@ export const metadata:Metadata={
  robots:{index:true,follow:true}
 };
 
-export default function MagnanimousCrmLayout({children}:{children:ReactNode}){return children}
+export default function MagnanimousCrmLayout({children}:{children:ReactNode}){return <><MagnanimousCrmGlobalStyle/>{children}</>}
