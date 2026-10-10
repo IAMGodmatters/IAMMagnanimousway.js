@@ -337,6 +337,7 @@ export async function handleTierBilling(request, env) {
     plans: PLAN_ORDER.map(id => publicPlan(env, id)),
     business_checkout_configured: Boolean(env.STRIPE_SECRET_KEY),
     crm_checkout_configured: Boolean(env.STRIPE_SECRET_KEY),
+    studio_checkout_configured: Boolean(env.STRIPE_SECRET_KEY),
     tier_checkout_configured: Object.fromEntries(PLAN_ORDER.filter(id=>id!=='free').map(id=>[id,Boolean(env.STRIPE_SECRET_KEY)]))
   });
   if (path === '/api/billing/webhook' && request.method === 'POST') return webhook(request, env);
