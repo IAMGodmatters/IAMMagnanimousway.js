@@ -1,8 +1,8 @@
 import fs from 'node:fs';
-const runtime=fs.readFileSync('../worker/src/crm-advanced-runtime.js','utf8');
-const native=fs.readFileSync('../worker/src/native-work-crm-runtime.js','utf8');
-const ui=fs.readFileSync('app/crm/advanced/page.tsx','utf8');
-const migration=fs.readFileSync('../worker/migrations/0044_crm_depth_activation.sql','utf8');
+const runtime=fs.readFileSync('worker/src/crm-advanced-runtime.js','utf8');
+const native=fs.readFileSync('worker/src/native-work-crm-runtime.js','utf8');
+const ui=fs.readFileSync('frontend/app/crm/advanced/page.tsx','utf8');
+const migration=fs.readFileSync('worker/migrations/0044_crm_depth_activation.sql','utf8');
 const checks=[];const has=(s,n,m)=>checks.push([s.includes(n),m]);
 has(native,"handleAdvancedCrm",'advanced CRM is routed through native operations');
 has(native,"ADVANCED_CRM_CAPABILITIES",'advanced capability families are published');
