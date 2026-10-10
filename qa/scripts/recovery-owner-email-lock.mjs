@@ -67,9 +67,9 @@ must(contacts.includes('/^\\+[1-9]\\d{7,14}$/'),'optional phone must use E.164-l
 must(migration.includes('user_recovery_contacts')&&migration.includes('owner_email_login_challenges'),'migration must create recovery-contact and owner-login stores');
 must(migration.includes('code_hash TEXT NOT NULL')&&migration.includes('token_hash TEXT PRIMARY KEY'),'sensitive verification material must be stored by hash');
 must(security.includes("'recovery-contact'"),'recovery contact endpoints must be rate limited');
-must(recovery.includes("password_recovery_totp_failed")&&recovery.includes("issueNativeReset(env,user,'authenticator')"),'password recovery must support Google Authenticator as a native fallback');
+must(recovery.includes("password_recovery_totp_failed")&&recovery.includes("issueNativeReset(env,user,'authenticator')"),'password recovery must support an authenticator app as a native fallback');
 must(recovery.includes("UPDATE user_totp SET last_counter=?")&&recovery.includes('AUTHENTICATOR_CODE_REUSED'),'authenticator recovery must prevent TOTP replay');
-must(forgotUi.includes('Google Authenticator code (optional)')&&forgotUi.includes('authenticator_code:authenticatorCode'),'Forgot Password UI must expose authenticator recovery');
+must(forgotUi.includes('authenticator app code (optional)')&&forgotUi.includes('authenticator_code:authenticatorCode'),'Forgot Password UI must expose authenticator recovery without naming a third-party product');
 
 if(failures.length){
  console.error(`RECOVERY / OWNER EMAIL LOCK FAILURE (${failures.length})`);
