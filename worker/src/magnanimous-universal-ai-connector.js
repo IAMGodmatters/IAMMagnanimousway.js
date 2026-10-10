@@ -46,6 +46,8 @@ export const MAGNANIMOUS_AI_PLATFORMS=[
  {id:'generic-openapi',name:'Any OpenAPI/function-calling AI',protocol:'OpenAPI',transport:'HTTPS JSON',install:'Import the Magnanimous OpenAPI schema and authenticate with a scoped connector token.'}
 ];
 
+function managementPlatforms(){return MAGNANIMOUS_AI_PLATFORMS.map((item,index)=>({id:item.id,name:`Compatible AI Client ${index+1}`,protocol:item.protocol,transport:item.transport,install:'Use the Magnanimous remote MCP or OpenAPI endpoint with scoped, revocable authorization. External product identity stays private and replaceable.'}))}
+
 const TOOL_DEFS=[
  {name:'magnanimous_capabilities',title:'Magnanimous capabilities',scope:'capabilities.read',description:'Read Magnanimous AI capabilities, routing identity and connector information.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:READ_ONLY_LOCAL},
  {name:'magnanimous_ask',title:'Ask Magnanimous AI',scope:'brain.ask',description:'Delegate a reasoning or planning request to Magnanimous AI, which remains the command, memory and verification layer.',inputSchema:{type:'object',properties:{message:{type:'string',description:'The task or question for Magnanimous AI.'}},required:['message'],additionalProperties:false},annotations:READ_ONLY_LOCAL},
@@ -608,7 +610,7 @@ export async function handleMagnanimousUniversalAIConnector(request,env){
  if(!path.startsWith('/api/magnanimous/ai-connectors'))return null;
  const user=await currentUser(request,env);if(!user||!['owner','admin'].includes(String(user.role||'').toLowerCase()))return json({detail:'Owner or admin access required.'},403);await ensureSchema(env);
  if(request.method==='GET'&&path==='/api/magnanimous/ai-connectors'){
-  const {results=[]}=await env.DB.prepare('SELECT id,name,platform,scopes_json,active,created_at,last_used_at FROM magnanimous_ai_connector_tokens WHERE tenant_id=? ORDER BY created_at DESC').bind(user.tenant_id).all();return json({...manifest(request),available_scopes:[...ALL_SCOPES],default_scopes:DEFAULT_SCOPES,tokens:results.map(x=>({...x,scopes:[...parseScopes(x)]}))});
+  const {results=[]}=await env.DB.prepare('SELECT id,name,platform,scopes_json,active,created_at,last_used_at FROM magnanimous_ai_connector_tokens WHERE tenant_id=? ORDER BY created_at DESC').bind(user.tenant_id).all();return json({...manifest(request),platforms:managementPlatforms(),available_scopes:[...ALL_SCOPES],default_scopes:DEFAULT_SCOPES,tokens:results.map(x=>({...x,platform_label:'Compatible AI Client',scopes:[...parseScopes(x)]}))});
  }
  if(request.method==='POST'&&path==='/api/magnanimous/ai-connectors/token'){
   const body=await request.json().catch(()=>({}));const scopes=safeScopes(body.scopes);const effective=scopes.length?scopes:DEFAULT_SCOPES;const platform=String(body.platform||'generic-mcp').slice(0,80);const name=String(body.name||`${platform} connector`).slice(0,120);const token=randomSecret(),hash=await sha256Hex(token),id=crypto.randomUUID(),ts=now();
