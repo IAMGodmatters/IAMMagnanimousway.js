@@ -56,6 +56,19 @@ function freightCost(row){
 export async function cjSupplierConfigured(env){
  const rt=await runtime(env);return Boolean(String(rt.CJ_API_KEY||'').trim());
 }
+
+function matchTokens(value){return new Set(String(value||'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').split(/\s+/).filter(x=>x.length>2&&!['and','with','set','the','for'].includes(x)))}
+function matchScore(query,title){const wanted=matchTokens(query),got=matchTokens(title);if(!wanted.size)return 0;let hits=0;for(const token of wanted)if(got.has(token))hits++;return hits/wanted.size}
+export async function searchCjCatalogTarget(env,query){
+ const auth=await access(env);if(!auth.ok)return auth;
+ const q=String(query||'').trim();if(!q)return{ok:false,code:'empty_query',detail:'Catalog search query is empty.'};
+ const result=await cjCall(auth.token,`/product/listV2?page=1&size=8&keyWord=${encodeURIComponent(q)}`);
+ const content=Array.isArray(result.data?.data?.content)?result.data.data.content:[],products=content.flatMap(group=>Array.isArray(group?.productList)?group.productList:[]);
+ if(!result.ok||!products.length)return{ok:false,code:'no_match',detail:'No current CJ catalog match was found.'};
+ const ranked=products.map(product=>({product,score:matchScore(q,product?.nameEn)})).sort((a,b)=>b.score-a.score||Number(a.product?.sellPrice||999999)-Number(b.product?.sellPrice||999999));
+ const best=ranked[0],price=Math.max(0,Math.round(Number(best.product?.sellPrice||0)*100));
+ return{ok:true,score:best.score,id:String(best.product?.id||''),sku:String(best.product?.sku||best.product?.spu||''),title:String(best.product?.nameEn||''),priceCents:price,image:String(best.product?.bigImage||'')};
+}
 export async function quoteCjCart(env,loaded,{country='US',zip=''}={}){
  const auth=await access(env);if(!auth.ok)return auth;
  const lines=[];
