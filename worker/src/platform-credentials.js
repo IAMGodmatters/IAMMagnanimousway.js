@@ -122,8 +122,12 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'GOOGLE_CLIENT_ID',label:'Google OAuth Client ID',secret:false,required:true},
   {key:'GOOGLE_CLIENT_SECRET',label:'Google OAuth Client Secret',secret:true,required:true}
  ]},
- {id:'dropshipping',name:'Magnanimous Dropshipping Supplier',providers:[],fields:[
-  {key:'CJ_API_KEY',label:'Dropshipping API Key',secret:true,required:false},
+ {id:'dropshipping',name:'Magnanimous Dropshipping Supplier Network',providers:[],fields:[
+  {key:'CJ_API_KEY',label:'CJdropshipping API Key',secret:true,required:false},
+  {key:'EPROLO_API_KEY',label:'EPROLO API Key / approved integration credential',secret:true,required:false},
+  {key:'SUP_DROPSHIPPING_API_KEY',label:'Sup Dropshipping Open API Key',secret:true,required:false},
+  {key:'HYPERSKU_INTEGRATION_TOKEN',label:'HyperSKU approved integration credential',secret:true,required:false},
+  {key:'DROPSHIP_PROVIDER_PRIORITY',label:'Dropshipping Provider Priority (comma-separated)',secret:false,required:false},
   {key:'STORE_AUTO_FULFILL',label:'Automatic Paid-Order Fulfillment (true/false)',secret:false,required:false},
   {key:'STORE_AUTO_FULFILL_MAX_USD',label:'Automatic Fulfillment Per-Order Cost Cap (USD)',secret:false,required:false}
  ]},
