@@ -25,6 +25,7 @@ const videoAgents=read('frontend/app/video-agents/page.tsx');
 const businessPlan=read('frontend/app/business-plan/business-plan-client.tsx');
 const launchPlan=read('frontend/app/launchplan/launchplan-client.tsx');
 const businessEmail=read('frontend/app/business-email/email-center-client.tsx');
+const magnanimousCrm=read('frontend/app/magnanimous-crm/page.tsx');
 
 
 const sample=customerUsageStatus({
@@ -49,6 +50,8 @@ const checks=[
  ['enterprise provider display is Magnanimous-branded for non-owner', enterprise.includes("name:`Magnanimous ${p.category} route ${index+1}`")],
  ['enterprise top-up keeps 20 percent detail owner-only', enterprise.includes('platformOwner?{url:link.toString()')&&enterprise.includes('owner_pricing:{markup_percent:20')&&enterprise.includes("charge_rule:'Prepaid credits are deducted only at the final Magnanimous customer charge.'")],
  ['pricing page has no customer-facing markup formula', !pricing.includes('20%')&&!pricing.includes('1.20')&&!pricing.includes('cost + exactly')],
+ ['Magnanimous CRM page has no customer-facing internal bundle economics', !magnanimousCrm.includes('20%')&&!magnanimousCrm.includes('1.20')&&!magnanimousCrm.includes('213.588')&&!magnanimousCrm.includes('bundle upsell')],
+ ['Magnanimous CRM Business fallback matches public catalog', magnanimousCrm.includes("price_usd:309,cadence:'month'")&&!magnanimousCrm.includes("price_usd:214,cadence:'month'")],
  ['pricing page uses generic secure checkout wording', !pricing.includes('Opening Stripe')&&!pricing.includes('received by Stripe')&&!pricing.includes('Stripe did not return')],
  ['pricing page renders owner-only internal diagnostics conditionally', pricing.includes('ownerPricing&&<section className="ownerAudit"')&&pricing.includes('PRIVATE PRICING DIAGNOSTICS')],
  ['login/account recovery do not advertise a specific authenticator or mail product', !login.includes('Google Authenticator')&&!login.includes('GOOGLE AUTHENTICATOR')&&!account.includes('Google Authenticator')&&!account.includes('GOOGLE AUTHENTICATOR')&&!account.includes('Inkbox')&&!account.includes('Gmail')&&!recovery.includes('Google Authenticator')],
