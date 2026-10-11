@@ -18,6 +18,9 @@ const catalog: Record<string,{title:string;subtitle:string;symbol:string}> = {
   'holy-spirit-speaks.svg': {title:'THE HOLY SPIRIT SPEAKS',subtitle:'Faith, truth and testimony',symbol:'FAITH'},
 };
 
+export const dynamic='force-static';
+export function generateStaticParams(){return Object.keys(catalog).map(name=>({name}))}
+
 function esc(value:string){return value.replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[ch]||ch))}
 
 export async function GET(_request:Request,{params}:{params:Promise<{name:string}>}){
