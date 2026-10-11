@@ -8,6 +8,7 @@ const migration=read('worker/migrations/0097_native_magnanimous_store.sql');
 const expansion=read('worker/migrations/0098_native_store_catalog_expansion.sql');
 const sourcing=read('worker/migrations/0099_store_225_product_sourcing_queue.sql');
 const podMigration=read('worker/migrations/0100_native_pod_network.sql');
+const supplierExpansion=read('worker/migrations/0101_extra_supplier_network.sql');
 const pod=read('worker/src/pod-network-runtime.js');
 const credentials=read('worker/src/platform-credentials.js');
 const providerEnv=read('worker/src/provider-runtime-env.js');
@@ -55,6 +56,12 @@ for(const [slug,count] of targetCounts)must(count>=15,`Store category ${slug} ha
 must(runtime.includes('scheduledNativeStoreSourcing')&&runtime.includes("/api/store/owner/sourcing"),'Store must automatically research queued supplier targets and expose owner-only sourcing status.');
 must(cj.includes('/product/listV2?page=1&size=8&keyWord=')&&cj.includes('searchCjCatalogTarget'),'Store sourcing must use CJ Product List V2 keyword search rather than the deprecated list endpoint.');
 
+
+must(supplierExpansion.includes('CREATE TABLE IF NOT EXISTS store_supplier_providers'),'Extra dropshipping providers must remain owner-governed in D1.');
+for(const provider of ['eprolo','sup','hypersku','zendrop'])must(supplierExpansion.includes(`'${provider}'`),`Missing extra supplier network record ${provider}.`);
+for(const key of ['EPROLO_API_KEY','SUP_DROPSHIPPING_API_KEY','HYPERSKU_INTEGRATION_TOKEN','DROPSHIP_PROVIDER_PRIORITY'])must(credentials.includes(key)&&providerEnv.includes(key),`Supplier credential ${key} must stay in the encrypted runtime credential plane.`);
+for(const productType of ['Sweatshirt','Travel Cup','Water Bottle'])must(supplierExpansion.includes(productType),`Missing expanded POD product type ${productType}.`);
+must(runtime.includes('store_supplier_providers')&&runtime.includes('configured:Boolean(configured[row.id])'),'Extra supplier connection state must remain owner-only.');
 
 for(const provider of ['printful','printify','gelato','prodigi','gooten'])must(podMigration.includes(`'${provider}'`),`POD provider ${provider} missing from provider registry.`);
 for(const key of ['PRINTFUL_API_TOKEN','PRINTIFY_API_TOKEN','GELATO_API_KEY','PRODIGI_API_KEY','GOOTEN_RECIPE_ID','GOOTEN_PARTNER_BILLING_KEY'])must(credentials.includes(key)&&providerEnv.includes(key),`POD credential ${key} must stay in the encrypted runtime credential plane.`);
