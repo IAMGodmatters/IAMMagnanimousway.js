@@ -3,6 +3,7 @@ import fs from 'node:fs';
 const read=p=>fs.readFileSync(new URL(`../../${p}`,import.meta.url),'utf8');
 const must=(condition,message)=>{if(!condition)throw new Error(message)};
 const page=read('frontend/app/shop/page.tsx');
+const productArt=read('frontend/app/store/products/[name]/route.ts');
 const runtime=read('worker/src/native-store-runtime.js');
 const migration=read('worker/migrations/0097_native_magnanimous_store.sql');
 const expansion=read('worker/migrations/0098_native_store_catalog_expansion.sql');
@@ -21,7 +22,9 @@ const stripeWebhook=read('worker/src/stripe-webhook-hardened.js');
 must(!page.includes('myshopify.com'),'Native shop must not link to a Shopify storefront.');
 must(!page.includes('cdn.shopify.com'),'Native shop must not depend on Shopify-hosted product media.');
 must(page.includes("fetch('/store-api/products'")&&page.includes("fetch('/store-api/checkout'"),'Native shop must use the Magnanimous store API.');
-must(page.includes('Magnanimous fulfillment queue'),'Native shop must explain the owned fulfillment queue.');
+must(!page.includes('Your marketplace.')&&!page.includes('Built into I AM Magnanimous Way™.'),'Customer storefront must not expose the removed marketplace-built-in headline.');
+must(!page.includes('HOW DROPSHIPPING WORKS HERE')&&!page.includes('Magnanimous fulfillment queue'),'Customer storefront must not expose internal fulfillment mechanics.');
+must(productArt.includes('image/svg+xml')&&productArt.includes("'solar-bank.svg'")&&productArt.includes("'holy-spirit-speaks.svg'"),'Every native product path must have first-party SVG artwork fallback.');
 
 must(runtime.includes("SELECT * FROM store_products WHERE active=1 AND id IN"),'Checkout must price carts from server-side catalog records.');
 must(runtime.includes("metadata[product_type]','magnanimous_store_order'"),'Stripe checkout must identify native store orders.');
@@ -39,7 +42,6 @@ for(const secretField of ['supplier_provider','supplier_product_id','supplier_va
 
 for(const table of ['store_products','store_orders','store_order_items','store_fulfillment_jobs'])must(migration.includes(`CREATE TABLE IF NOT EXISTS ${table}`),`Missing ${table} migration.`);
 for(const table of ['store_categories','store_product_upsells'])must(expansion.includes(`CREATE TABLE IF NOT EXISTS ${table}`),`Missing ${table} expansion migration.`);
-must(migration.includes("'/store/solar-power-bank.svg'")&&migration.includes("'/store/pet-feeder.svg'"),'Native product media must be locally hosted.');
 must(consent.includes("url.pathname.startsWith('/store-api/')")&&consent.includes('handleNativeStore(nativeStoreRequest(request),env)'),'Native store must route on the Worker/D1 plane.');
 must(wrangler.includes('"/store-api/*"'),'Cloudflare assets config must execute the Worker for store API requests.');
 must(stripeWebhook.includes("handleNativeStoreStripeEvent")&&stripeWebhook.includes("await handleNativeStoreStripeEvent(env,event)"),'Verified Stripe webhooks must durably confirm native-store payments.');
@@ -56,7 +58,6 @@ for(const [slug,count] of targetCounts)must(count>=15,`Store category ${slug} ha
 must(runtime.includes('scheduledNativeStoreSourcing')&&runtime.includes("/api/store/owner/sourcing"),'Store must automatically research queued supplier targets and expose owner-only sourcing status.');
 must(cj.includes('/product/listV2?page=1&size=8&keyWord=')&&cj.includes('searchCjCatalogTarget'),'Store sourcing must use CJ Product List V2 keyword search rather than the deprecated list endpoint.');
 
-
 must(supplierExpansion.includes('CREATE TABLE IF NOT EXISTS store_supplier_providers'),'Extra dropshipping providers must remain owner-governed in D1.');
 for(const provider of ['eprolo','sup','hypersku','zendrop'])must(supplierExpansion.includes(`'${provider}'`),`Missing extra supplier network record ${provider}.`);
 for(const key of ['EPROLO_API_KEY','SUP_DROPSHIPPING_API_KEY','HYPERSKU_INTEGRATION_TOKEN','DROPSHIP_PROVIDER_PRIORITY'])must(credentials.includes(key)&&providerEnv.includes(key),`Supplier credential ${key} must stay in the encrypted runtime credential plane.`);
@@ -70,6 +71,6 @@ for(const theme of ['scripture','inspirational','sarcastic','cute-meme'])must(po
 for(const productType of ['T-Shirt','Hoodie','Coffee Mug','Travel Tumbler','Tote Bag','Art Print'])must(podMigration.includes(productType),`Missing POD product type ${productType}.`);
 must(pod.includes('scheduledPodCreative')&&pod.includes('/store-api/pod/art/')&&pod.includes('image/svg+xml'),'POD must generate daily original provider-ready SVG artwork on the Magnanimous domain.');
 must(runtime.includes('scheduledPodCreative(env)')&&runtime.includes('handlePodNetwork(request,env)'),'Native store must mount POD public/owner APIs and daily creative scheduler.');
-must(page.includes("fetch('/store-api/pod/designs'")&&page.includes('DAILY PRINT-ON-DEMAND'),'Native storefront must render the daily POD collection.');
+must(page.includes("fetch('/store-api/pod/designs'")&&page.includes('DAILY ORIGINAL DESIGNS'),'Native storefront must render the daily POD collection with customer-safe copy.');
 
-console.log('Native Magnanimous Store lock PASS â€” owned catalog/cart/checkout, freight coverage, automatic fulfillment, and 24-hour customer refund protection are locked.');
+console.log('Native Magnanimous Store lock PASS — owned catalog/cart/checkout, freight coverage, automatic fulfillment, customer-safe storefront copy, product artwork fallback, and 24-hour customer refund protection are locked.');
