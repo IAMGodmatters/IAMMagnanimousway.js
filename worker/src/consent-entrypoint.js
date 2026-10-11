@@ -1,6 +1,7 @@
 import routerApp from './router-entrypoint.js';
 import { handleBusinessPlanQuality } from './business-plan-quality-runtime.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
+import { handleNativeStore } from './native-store-runtime.js';
 
 const PRIVACY_VERSION = '1.1-2026-10-01';
 const TERMS_VERSION = '1.0-2026-09-01';
@@ -62,6 +63,14 @@ function withCors(response){
   return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
 }
 
+function nativeStoreRequest(request){
+  const url=new URL(request.url);
+  url.pathname=url.pathname.replace(/^\/store-api(?=\/|$)/,'/api/store');
+  const init={method:request.method,headers:request.headers,redirect:request.redirect};
+  if(!['GET','HEAD'].includes(request.method))init.body=request.body;
+  return new Request(url.toString(),init);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -75,6 +84,17 @@ export default {
       url.protocol = 'https:';
       url.port = '';
       return Response.redirect(url.toString(), 308);
+    }
+
+    // Native commerce deliberately uses /store-api rather than /api/store so the
+    // catalog, checkout and order database stay on the Magnanimous Worker/D1 plane
+    // even when the optional standalone API proxy is enabled. Supplier identity and
+    // supplier costs never cross the public product response.
+    if(url.pathname==='/store-api'||url.pathname.startsWith('/store-api/')){
+      if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
+      const storeResponse=await handleNativeStore(nativeStoreRequest(request),env);
+      if(storeResponse)return withCors(storeResponse);
+      return json({detail:'Store endpoint not found.'},404);
     }
 
     if (request.method === 'OPTIONS') return routerApp.fetch(request, env, ctx);
