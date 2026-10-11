@@ -6,6 +6,7 @@ const page=read('frontend/app/shop/page.tsx');
 const runtime=read('worker/src/native-store-runtime.js');
 const migration=read('worker/migrations/0097_native_magnanimous_store.sql');
 const expansion=read('worker/migrations/0098_native_store_catalog_expansion.sql');
+const sourcing=read('worker/migrations/0099_store_225_product_sourcing_queue.sql');
 const cj=read('worker/src/cj-dropship-runtime.js');
 const operations=read('worker/src/operations-entrypoint.js');
 const consent=read('worker/src/consent-entrypoint.js');
@@ -41,5 +42,13 @@ must(runtime.includes('AUTO_REFUND_SECONDS=24*60*60')&&runtime.includes('schedul
 must(runtime.includes("stripeRequest(rt,'refunds'")&&runtime.includes('Idempotency-Key'),'Automatic refunds must use Stripe idempotency and the original PaymentIntent.');
 must(cj.includes('reconcileCjOrder')&&cj.includes('getOrderDetail'),'Refunds must reconcile ambiguous supplier orders before returning customer funds.');
 must(operations.includes('scheduledNativeStoreCommerce(env)'),'Native store fulfillment/refund lifecycle must run automatically from the Worker scheduler.');
+
+const targetRows=[...sourcing.matchAll(/VALUES\('[^']+','([^']+)','/g)].map(match=>match[1]);
+must(targetRows.length===225,`Store sourcing queue must contain exactly 225 launch targets; found ${targetRows.length}.`);
+const targetCounts=new Map();for(const slug of targetRows)targetCounts.set(slug,(targetCounts.get(slug)||0)+1);
+must(targetCounts.size===15,'Store sourcing queue must cover all 15 launch categories.');
+for(const [slug,count] of targetCounts)must(count>=15,`Store category ${slug} has fewer than 15 sourcing targets.`);
+must(runtime.includes('scheduledNativeStoreSourcing')&&runtime.includes("/api/store/owner/sourcing"),'Store must automatically research queued supplier targets and expose owner-only sourcing status.');
+must(cj.includes('/product/listV2?page=1&size=8&keyWord=')&&cj.includes('searchCjCatalogTarget'),'Store sourcing must use CJ Product List V2 keyword search rather than the deprecated list endpoint.');
 
 console.log('Native Magnanimous Store lock PASS — owned catalog/cart/checkout, freight coverage, automatic fulfillment, and 24-hour customer refund protection are locked.');
