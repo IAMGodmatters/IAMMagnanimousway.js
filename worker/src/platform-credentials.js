@@ -241,6 +241,12 @@ async function encrypt(value,env){const iv=crypto.getRandomValues(new Uint8Array
 async function decrypt(value,env){const raw=String(value||'');if(!raw.startsWith('enc1.'))return raw;const[,ivPart,cipherPart]=raw.split('.'),key=await vaultKey(env),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(ivPart)},key,fromB64(cipherPart));return new TextDecoder().decode(plain)}
 async function ensureTables(env){await env.DB.prepare(`CREATE TABLE IF NOT EXISTS platform_credentials (credential_key TEXT PRIMARY KEY,encrypted_value TEXT NOT NULL,updated_at INTEGER NOT NULL,updated_by TEXT NOT NULL DEFAULT '')`).run();await env.DB.prepare(`CREATE TABLE IF NOT EXISTS platform_credential_audit (id INTEGER PRIMARY KEY AUTOINCREMENT,actor_user_id TEXT NOT NULL,credential_key TEXT NOT NULL,action TEXT NOT NULL,created_at INTEGER NOT NULL)`).run()}
 async function vaultRows(env){await ensureTables(env);const{results}=await env.DB.prepare('SELECT credential_key,encrypted_value,updated_at,updated_by FROM platform_credentials').all();return results||[]}
+async function runtimeVaultRows(env,keys=[]){
+ const wanted=[...new Set((Array.isArray(keys)?keys:[]).map(x=>String(x||'').trim()).filter(x=>ALLOWED_KEYS.has(x)))];
+ if(!wanted.length){const{results}=await env.DB.prepare('SELECT credential_key,encrypted_value,updated_at,updated_by FROM platform_credentials').all();return results||[]}
+ const placeholders=wanted.map(()=>'?').join(',');
+ const{results}=await env.DB.prepare(`SELECT credential_key,encrypted_value,updated_at,updated_by FROM platform_credentials WHERE credential_key IN (${placeholders})`).bind(...wanted).all();return results||[]
+}
 
 export function isPlatformCredentialKey(key){return ALLOWED_KEYS.has(String(key||'').trim())}
 export function runtimeEnvOverlay(base,additions={}){const overlay=Object.create(base||null);for(const[key,value]of Object.entries(additions||{}))overlay[key]=value;return overlay}
@@ -270,7 +276,7 @@ export async function rewrapPlatformCredentialsForMigration(env,targetSource){
  return{rows:migrated};
 }
 
-export async function getIntegrationRuntimeEnv(env){if(!env?.DB)return env;try{const rows=await vaultRows(env);if(!rows.length)return env;const merged=runtimeEnvOverlay(env);for(const row of rows){if(!ALLOWED_KEYS.has(row.credential_key))continue;if(typeof merged[row.credential_key]==='string'&&merged[row.credential_key].trim())continue;merged[row.credential_key]=await decrypt(row.encrypted_value,env)}return merged}catch(error){console.error('platform credential runtime load failed',error);return env}}
+export async function getIntegrationRuntimeEnv(env,keys=[]){if(!env?.DB)return env;try{const rows=await runtimeVaultRows(env,keys);if(!rows.length)return env;const merged=runtimeEnvOverlay(env);for(const row of rows){if(!ALLOWED_KEYS.has(row.credential_key))continue;if(typeof merged[row.credential_key]==='string'&&merged[row.credential_key].trim())continue;merged[row.credential_key]=await decrypt(row.encrypted_value,env)}return merged}catch(error){console.error('platform credential runtime load failed',error);return env}}
 function callbackMap(request){const origin=new URL(request.url).origin,providers=[...new Set(PLATFORM_CREDENTIAL_GROUPS.flatMap(g=>g.providers))];return Object.fromEntries(providers.map(provider=>[provider,`${origin}/api/integrations/${provider}/callback`]))}
 
 export async function handlePlatformCredentials(request,env){

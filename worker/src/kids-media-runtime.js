@@ -120,7 +120,7 @@ export async function handleKidsDriveMedia(request,env){
  const url=new URL(request.url),path=url.pathname;
  if(!path.startsWith('/api/kids-'))return null;
  if(!env?.DB)return json({detail:'Database binding is not configured.'},503);
- await ensureTables(env);
+ // Tables are created by the deployment migration; keep public status/stream requests DDL-free for Workers Free CPU limits.
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET,HEAD,POST,OPTIONS','access-control-allow-headers':'Authorization, Content-Type, Range'}});
  if(path==='/api/kids-media/status'&&request.method==='GET'){
   const row=await ownerDriveRow(env);return json({ready:Boolean(row),source:'owner-authorized-google-drive',audience_login_required:false});

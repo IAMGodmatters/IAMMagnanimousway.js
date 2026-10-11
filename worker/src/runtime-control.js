@@ -15,7 +15,7 @@ export async function handleMagnanimousRuntimeControl(request,env){
   // before the generic standalone API proxy so an expired external runtime can
   // never break owner OAuth or audience streaming.
   if(path.startsWith('/api/kids-')){
-    const kidsEnv=await getIntegrationRuntimeEnv(env);
+    const kidsEnv=await getIntegrationRuntimeEnv(env,['GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET']);
     const response=await handleKidsDriveMedia(request,kidsEnv);
     // Safe diagnostic only: report whether the Worker has the required OAuth
     // configuration without exposing IDs, secrets, tokens, or owner data.
