@@ -7,6 +7,10 @@ const runtime=read('worker/src/native-store-runtime.js');
 const migration=read('worker/migrations/0097_native_magnanimous_store.sql');
 const expansion=read('worker/migrations/0098_native_store_catalog_expansion.sql');
 const sourcing=read('worker/migrations/0099_store_225_product_sourcing_queue.sql');
+const podMigration=read('worker/migrations/0100_native_pod_network.sql');
+const pod=read('worker/src/pod-network-runtime.js');
+const credentials=read('worker/src/platform-credentials.js');
+const providerEnv=read('worker/src/provider-runtime-env.js');
 const cj=read('worker/src/cj-dropship-runtime.js');
 const operations=read('worker/src/operations-entrypoint.js');
 const consent=read('worker/src/consent-entrypoint.js');
@@ -51,4 +55,14 @@ for(const [slug,count] of targetCounts)must(count>=15,`Store category ${slug} ha
 must(runtime.includes('scheduledNativeStoreSourcing')&&runtime.includes("/api/store/owner/sourcing"),'Store must automatically research queued supplier targets and expose owner-only sourcing status.');
 must(cj.includes('/product/listV2?page=1&size=8&keyWord=')&&cj.includes('searchCjCatalogTarget'),'Store sourcing must use CJ Product List V2 keyword search rather than the deprecated list endpoint.');
 
-console.log('Native Magnanimous Store lock PASS — owned catalog/cart/checkout, freight coverage, automatic fulfillment, and 24-hour customer refund protection are locked.');
+
+for(const provider of ['printful','printify','gelato','prodigi','gooten'])must(podMigration.includes(`'${provider}'`),`POD provider ${provider} missing from provider registry.`);
+for(const key of ['PRINTFUL_API_TOKEN','PRINTIFY_API_TOKEN','GELATO_API_KEY','PRODIGI_API_KEY','GOOTEN_RECIPE_ID','GOOTEN_PARTNER_BILLING_KEY'])must(credentials.includes(key)&&providerEnv.includes(key),`POD credential ${key} must stay in the encrypted runtime credential plane.`);
+must((podMigration.match(/INSERT OR REPLACE INTO store_pod_design_templates/g)||[]).length===48,'POD creative library must contain 48 original rotating templates.');
+for(const theme of ['scripture','inspirational','sarcastic','cute-meme'])must(podMigration.includes(`'${theme}'`),`Missing POD creative theme ${theme}.`);
+for(const productType of ['T-Shirt','Hoodie','Coffee Mug','Travel Tumbler','Tote Bag','Art Print'])must(podMigration.includes(productType),`Missing POD product type ${productType}.`);
+must(pod.includes('scheduledPodCreative')&&pod.includes('/store-api/pod/art/')&&pod.includes('image/svg+xml'),'POD must generate daily original provider-ready SVG artwork on the Magnanimous domain.');
+must(runtime.includes('scheduledPodCreative(env)')&&runtime.includes('handlePodNetwork(request,env)'),'Native store must mount POD public/owner APIs and daily creative scheduler.');
+must(page.includes("fetch('/store-api/pod/designs'")&&page.includes('DAILY PRINT-ON-DEMAND'),'Native storefront must render the daily POD collection.');
+
+console.log('Native Magnanimous Store lock PASS â€” owned catalog/cart/checkout, freight coverage, automatic fulfillment, and 24-hour customer refund protection are locked.');
