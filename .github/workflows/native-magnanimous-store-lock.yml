@@ -1,0 +1,42 @@
+name: Native Magnanimous Store Lock
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/app/shop/**'
+      - 'frontend/public/store/**'
+      - 'worker/src/native-store-runtime.js'
+      - 'worker/src/consent-entrypoint.js'
+      - 'worker/migrations/0097_native_magnanimous_store.sql'
+      - 'worker/wrangler.jsonc'
+      - 'qa/scripts/native-magnanimous-store-lock.mjs'
+      - '.github/workflows/native-magnanimous-store-lock.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/app/shop/**'
+      - 'frontend/public/store/**'
+      - 'worker/src/native-store-runtime.js'
+      - 'worker/src/consent-entrypoint.js'
+      - 'worker/migrations/0097_native_magnanimous_store.sql'
+      - 'worker/wrangler.jsonc'
+      - 'qa/scripts/native-magnanimous-store-lock.mjs'
+      - '.github/workflows/native-magnanimous-store-lock.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-native-store:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify native store contracts
+        run: node qa/scripts/native-magnanimous-store-lock.mjs
+      - name: Syntax check store runtime
+        run: node --check worker/src/native-store-runtime.js
+      - name: Validate store migration
+        run: |
+          db="$(mktemp)"
+          sqlite3 "$db" < worker/migrations/0097_native_magnanimous_store.sql
+          sqlite3 "$db" "SELECT count(*) FROM store_products; SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('store_products','store_orders','store_order_items','store_fulfillment_jobs');"

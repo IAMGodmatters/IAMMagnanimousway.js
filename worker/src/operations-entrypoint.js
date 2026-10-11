@@ -27,6 +27,7 @@ import {handlePremiumVoice} from './premium-voice-runtime.js';
 import {handleMagnanimousApiContractIntelligence} from './magnanimous-api-contract-intelligence.js';
 import {scheduledTelecomEmailWatch,telecomEmailWatchStatus} from './magnanimous-telecom-email-watch.js';
 import {scheduledMagnanimousAttentionWatch,magnanimousAttentionWatchStatus} from './magnanimous-native-attention-watch.js';
+import {scheduledNativeStoreCommerce} from './native-store-runtime.js';
 import {handleContinuousLearning,runContinuousLearningCycle} from './magnanimous-continuous-learning.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -273,7 +274,8 @@ export default{
    scheduledMagnanimousRoutines(env).catch(error=>console.error('scheduled Magnanimous routines failed',error)),
    scheduledSelfHealing(env,origin).catch(error=>console.error('scheduled self-healing check failed',error)),
    scheduledTelecomEmailWatch(env).catch(error=>console.error('scheduled telecom email watch failed',error)),
-   scheduledMagnanimousAttentionWatch(env).catch(error=>console.error('scheduled native attention watch failed',error))
+   scheduledMagnanimousAttentionWatch(env).catch(error=>console.error('scheduled native attention watch failed',error)),
+   scheduledNativeStoreCommerce(env).catch(error=>console.error('scheduled native store commerce failed',error))
   ];
   if(continuousLearningRunsLocally(env))scheduledTasks.push(runContinuousLearningCycle(env,{source:'cron'}).catch(error=>console.error('scheduled continuous learning failed',error)));
   const task=Promise.all(scheduledTasks);

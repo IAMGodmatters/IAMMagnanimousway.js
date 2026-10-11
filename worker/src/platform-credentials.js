@@ -122,6 +122,11 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'GOOGLE_CLIENT_ID',label:'Google OAuth Client ID',secret:false,required:true},
   {key:'GOOGLE_CLIENT_SECRET',label:'Google OAuth Client Secret',secret:true,required:true}
  ]},
+ {id:'dropshipping',name:'Magnanimous Dropshipping Supplier',providers:[],fields:[
+  {key:'CJ_API_KEY',label:'Dropshipping API Key',secret:true,required:false},
+  {key:'STORE_AUTO_FULFILL',label:'Automatic Paid-Order Fulfillment (true/false)',secret:false,required:false},
+  {key:'STORE_AUTO_FULFILL_MAX_USD',label:'Automatic Fulfillment Per-Order Cost Cap (USD)',secret:false,required:false}
+ ]},
  {id:'shopify',name:'Shopify',providers:['shopify'],fields:[
   {key:'SHOPIFY_API_KEY',label:'Shopify Client ID / API Key',secret:false,required:true},
   {key:'SHOPIFY_API_SECRET',label:'Shopify Client Secret / API Secret',secret:true,required:true}

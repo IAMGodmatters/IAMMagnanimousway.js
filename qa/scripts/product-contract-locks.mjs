@@ -170,21 +170,23 @@ includes(platformRuntime, 'if(isPublicPath(currentPath)||standalone)return;', 'p
 includes(platformRuntime, "location.replace('/login?returnTo='+encodeURIComponent(returnTo))", 'platform: protected unauthenticated routes still return to login');
 notMatches(home, /mag-standalone/, 'platform: main homepage must not become the standalone AI shell');
 
-// 3) God Matters Shopify/store lock.
-const storeMatch = shopPage.match(/const STORE_URL=['"](https:\/\/[^'"]+)['"]/);
-const storeUrl = storeMatch?.[1] || '';
-must(storeUrl === 'https://puso-iam.myshopify.com', 'shopify: God Matters store domain remains locked to puso-iam.myshopify.com');
-includes(shopPage, 'GOD MATTERS MARKETPLACE', 'shopify: God Matters marketplace identity remains locked');
-includes(shopPage, 'Shop God Matters', 'shopify: store CTA remains present');
-includes(shopPage, 'rel="noopener noreferrer"', 'shopify: external store links retain opener protection');
-notMatches(shopPage, /SHOPIFY_(?:API_SECRET|ADMIN_ACCESS_TOKEN|ACCESS_TOKEN|PRIVATE_APP_PASSWORD)/, 'shopify: no Shopify secrets may be embedded in the storefront source');
-includes(platformCredentials, "{id:'shopify',name:'Shopify',providers:['shopify']", 'shopify: server-side Shopify credential group remains registered');
-includes(platformCredentials, "{key:'SHOPIFY_API_SECRET',label:'Shopify Client Secret / API Secret',secret:true,required:true}", 'shopify: Shopify API secret remains classified as secret');
-includes(assistantIntegrations, 'async function shopifyGraph(conn,query,variables={})', 'shopify: server-side Shopify GraphQL integration remains present');
-includes(assistantIntegrations, "if(provider==='shopify')", 'shopify: connected-assistant Shopify provider remains present');
-includes(assistantIntegrations, "action==='read_products'", 'shopify: product-read capability remains present');
-includes(assistantIntegrations, "action==='read_orders'", 'shopify: order-read capability remains present');
-includes(assistantIntegrations, "action==='read_customers'", 'shopify: customer-read capability remains present');
+// 3) God Matters native-store lock. Shopify may remain an optional connector elsewhere,
+// but the public marketplace must not depend on a Shopify storefront, CDN, or checkout.
+includes(shopPage, 'GOD MATTERS MARKETPLACE', 'store: God Matters marketplace identity remains locked');
+includes(shopPage, "fetch('/store-api/products'", 'store: native Magnanimous catalog API remains wired');
+includes(shopPage, "fetch('/store-api/checkout'", 'store: native Magnanimous checkout API remains wired');
+includes(shopPage, 'Continue to Secure Checkout', 'store: native secure-checkout CTA remains present');
+includes(shopPage, 'href="/bible-study"', 'store: Bible Study marketplace link remains present');
+notMatches(shopPage, /myshopify\.com|cdn\.shopify\.com|STORE_URL/, 'store: public marketplace must not depend on Shopify storefront infrastructure');
+includes(shopPage, 'rel="noopener noreferrer"', 'store: external marketplace links retain opener protection');
+notMatches(shopPage, /SHOPIFY_(?:API_SECRET|ADMIN_ACCESS_TOKEN|ACCESS_TOKEN|PRIVATE_APP_PASSWORD)/, 'store: no Shopify secrets may be embedded in the storefront source');
+includes(platformCredentials, "{id:'shopify',name:'Shopify',providers:['shopify']", 'shopify connector: optional server-side credential group remains isolated from the native store');
+includes(platformCredentials, "{key:'SHOPIFY_API_SECRET',label:'Shopify Client Secret / API Secret',secret:true,required:true}", 'shopify connector: API secret remains classified as secret');
+includes(assistantIntegrations, 'async function shopifyGraph(conn,query,variables={})', 'shopify connector: legacy connected-account GraphQL support remains available without owning the store');
+includes(assistantIntegrations, "if(provider==='shopify')", 'shopify connector: connected-assistant provider remains optional');
+includes(assistantIntegrations, "action==='read_products'", 'shopify connector: optional product-read capability remains present');
+includes(assistantIntegrations, "action==='read_orders'", 'shopify connector: optional order-read capability remains present');
+includes(assistantIntegrations, "action==='read_customers'", 'shopify connector: optional customer-read capability remains present');
 
 const frontendFiles = walk(path.join(root, 'frontend')).filter((file) => /\.(?:ts|tsx|js|jsx|mjs|json)$/.test(file));
 for (const file of frontendFiles) {
@@ -204,4 +206,4 @@ if (failures.length) {
 console.log('Standalone Magnanimous AI lock: PASS');
 console.log('Customer execution-provider privacy lock: PASS');
 console.log('Main platform public-discovery/protected-workspace lock: PASS');
-console.log('God Matters Shopify/store lock: PASS');
+console.log('God Matters native store + optional Shopify connector boundary: PASS');

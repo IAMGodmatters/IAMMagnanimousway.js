@@ -4,6 +4,9 @@ import { getBootstrapSecrets } from './secure-bootstrap.js';
 const PROVIDER_KEYS = new Set([
   'STRIPE_WEBHOOK_SECRET',
   'STRIPE_SECRET_KEY',
+  'CJ_API_KEY',
+  'STORE_AUTO_FULFILL',
+  'STORE_AUTO_FULFILL_MAX_USD',
   'STRIPE_PRICE_PLUS',
   'STRIPE_PRICE_CRM',
   'STRIPE_PRICE_BUSINESS',
