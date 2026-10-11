@@ -1,6 +1,7 @@
 import { creditWallet } from './usage-guard.js';
 import { verifySignedPaymentReference } from './payment-reference.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
+import { handleNativeStoreStripeEvent } from './native-store-runtime.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
@@ -83,6 +84,7 @@ async function processPaidCheckout(env,event,object){
  if(amount>0)await recordRevenue(env,tenantId,'checkout-paid',amount,'stripe',reference);
 }
 async function processEvent(env,event){
+ if(await handleNativeStoreStripeEvent(env,event))return;
  const type=String(event?.type||''),object=event?.data?.object||{};
  if(type==='checkout.session.completed'||type==='checkout.session.async_payment_succeeded'){
   await processPaidCheckout(env,event,object);return;
@@ -120,8 +122,9 @@ export async function handleHardenedStripeWebhook(request,env){
  if(!await verify(raw,signature,secret))return json({detail:'Invalid Stripe webhook signature.'},401);
  let event;try{event=JSON.parse(raw)}catch{return json({detail:'Invalid Stripe webhook payload.'},400)}
  const id=String(event?.id||'');if(!id)return json({detail:'Stripe event id is required.'},400);
+ const isStoreOrder=String(event?.data?.object?.metadata?.product_type||'')==='magnanimous_store_order';
  if(await runtimeEnv.DB.prepare('SELECT event_id FROM billing_webhook_events WHERE event_id=?').bind(id).first())return json({received:true,duplicate:true});
  await processEvent(runtimeEnv,event);
  await runtimeEnv.DB.prepare('INSERT INTO billing_webhook_events(event_id,event_type,processed_at) VALUES(?,?,?)').bind(id,String(event?.type||''),now()).run();
- return json({received:true,hardened:true,automatic_fulfillment:true,provider_billing_owner:'I AM Magnanimous Way'});
+ return json({received:true,hardened:true,automatic_fulfillment:!isStoreOrder,fulfillment_mode:isStoreOrder?'approval-gated dropshipping':'provider-funded provisioning',provider_billing_owner:'I AM Magnanimous Way'});
 }

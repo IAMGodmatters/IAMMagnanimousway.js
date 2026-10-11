@@ -23,15 +23,20 @@ async function stripeRequest(env,path,options={}){
 function money(value,currency='PHP'){
  return new Intl.NumberFormat('en-PH',{style:'currency',currency:String(currency||'PHP').toUpperCase()}).format(Number(value||0)/100);
 }
+function dropshipMapped(row){
+ if(String(row.fulfillment_mode||'dropship').toLowerCase()!=='dropship')return true;
+ return Boolean(String(row.supplier_provider||'').trim()&&String(row.supplier_product_id||'').trim()&&String(row.supplier_variant_id||'').trim());
+}
 function publicProduct(row){
+ const stocked=row.stock_qty==null||Number(row.stock_qty)>0;
  return{
   id:String(row.id),slug:String(row.slug),title:String(row.title),description:String(row.description||''),category:String(row.category||''),
   price_cents:Number(row.price_cents||0),currency:String(row.currency||'PHP'),image_url:String(row.image_url||''),featured:Boolean(row.featured),
-  available:row.stock_qty==null||Number(row.stock_qty)>0,stock_qty:row.stock_qty==null?null:Math.max(0,Number(row.stock_qty||0))
+  available:dropshipMapped(row)&&stocked,stock_qty:row.stock_qty==null?null:Math.max(0,Number(row.stock_qty||0))
  };
 }
 async function listProducts(env){
- const {results=[]}=await env.DB.prepare('SELECT id,slug,title,description,category,price_cents,currency,image_url,featured,stock_qty FROM store_products WHERE active=1 ORDER BY featured DESC, updated_at DESC, title ASC').all();
+ const {results=[]}=await env.DB.prepare('SELECT id,slug,title,description,category,price_cents,currency,image_url,featured,stock_qty,fulfillment_mode,supplier_provider,supplier_product_id,supplier_variant_id FROM store_products WHERE active=1 ORDER BY featured DESC, updated_at DESC, title ASC').all();
  return json({store:'Magnanimous Store',brand:'God Matters • I AM MAGNANIMOUS WAY™',currency:'PHP',products:results.map(publicProduct),dropshipping:true,supplier_auto_spend:false});
 }
 function normalizedCart(body){
@@ -54,6 +59,7 @@ async function createCheckout(request,env){
  if(!cart.length)return json({detail:'Add at least one product to your cart.'},400);
  const loaded=await loadCartProducts(env,cart);
  if(loaded.some(x=>!x.row))return json({detail:'One or more products are no longer available. Refresh the shop and try again.'},409);
+ if(loaded.some(x=>!dropshipMapped(x.row)))return json({detail:'One or more products are not ready for checkout yet. Please choose an available product.'},409);
  if(loaded.some(x=>x.row.stock_qty!=null&&Number(x.row.stock_qty)<x.quantity))return json({detail:'One or more products do not have enough available stock.'},409);
  const currencies=[...new Set(loaded.map(x=>String(x.row.currency||'PHP').toUpperCase()))];
  if(currencies.length!==1)return json({detail:'This cart contains products with incompatible currencies.'},409);

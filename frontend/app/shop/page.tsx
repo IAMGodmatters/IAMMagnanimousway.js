@@ -35,7 +35,7 @@ export default function Shop(){
  }
 
  return <main className="shop">
-  <header><a className="brand" href="/"><span>♛</span><div><b>GOD MATTERS</b><small>I AM MAGNANIMOUS WAY™</small></div></a><nav><a href="/">Home</a><a className="active" href="/shop">Store</a><a href="/magnanimous">Magnanimous AI</a><a href="/support">Support</a></nav><a className="cartJump" href="#cart">Cart {count?`(${count})`:''}</a></header>
+  <header><a className="brand" href="/"><span>♛</span><div><b>GOD MATTERS</b><small>I AM MAGNANIMOUS WAY™</small></div></a><nav><a href="/">Home</a><a className="active" href="/shop">Store</a><a href="/bible-study">Bible Study</a><a href="/magnanimous">Magnanimous AI</a><a href="/support">Support</a></nav><a className="cartJump" href="#cart">Cart {count?`(${count})`:''}</a></header>
 
   <section className="hero"><div className="eyebrow">MAGNANIMOUS STORE • NATIVE COMMERCE</div><h1>Your marketplace.<br/><span>Built into I AM Magnanimous Way™.</span></h1><p>Shop useful products through the God Matters marketplace with a native Magnanimous cart, secure checkout and order tracking. No Shopify storefront is required.</p><div className="heroPills"><span>✓ Native catalog</span><span>✓ Secure Stripe checkout</span><span>✓ Dropship-ready orders</span><span>✓ Magnanimous fulfillment queue</span></div><a className="primary" href="#products">Shop Products ↓</a></section>
 
