@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   repair:
@@ -93,9 +94,11 @@ jobs:
           grep -q "cannot directly approve or publish" .github/workflows/deploy.yml
 
       - name: Commit corrected deployment smoke test
+        id: repair_commit
         run: |
           if git diff --quiet -- .github/workflows/deploy.yml; then
             echo "Deployment smoke test is already current."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git config user.name "github-actions[bot]"
@@ -103,3 +106,10 @@ jobs:
           git add .github/workflows/deploy.yml
           git commit -m "Align deployment smoke test with guarded automatic QA"
           git push origin HEAD:main
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch production deployment for repaired commit
+        if: steps.repair_commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main

@@ -21,6 +21,14 @@ on:
       - 'docs/ECONOMICS-GUARDRAILS.md'
       - 'qa/scripts/crm-commercialization-lock.mjs'
       - 'qa/scripts/crm-depth-activation-lock.mjs'
+      - 'qa/scripts/pricing-triple-audit-lock.mjs'
+      - 'qa/scripts/billing-plan-button-consistency-lock.mjs'
+      - 'qa/scripts/payment-safety-lock.mjs'
+      - 'qa/scripts/distinct-payment-terms-lock.mjs'
+      - 'qa/scripts/live-billing-legal-audit.mjs'
+      - 'qa/scripts/live-stripe-catalog-lock.mjs'
+      - 'worker/wrangler.jsonc'
+      - '.github/workflows/deploy.yml'
       - '.github/workflows/crm-commercialization-lock.yml'
   pull_request:
     paths:
@@ -41,6 +49,14 @@ on:
       - 'docs/ECONOMICS-GUARDRAILS.md'
       - 'qa/scripts/crm-commercialization-lock.mjs'
       - 'qa/scripts/crm-depth-activation-lock.mjs'
+      - 'qa/scripts/pricing-triple-audit-lock.mjs'
+      - 'qa/scripts/billing-plan-button-consistency-lock.mjs'
+      - 'qa/scripts/payment-safety-lock.mjs'
+      - 'qa/scripts/distinct-payment-terms-lock.mjs'
+      - 'qa/scripts/live-billing-legal-audit.mjs'
+      - 'qa/scripts/live-stripe-catalog-lock.mjs'
+      - 'worker/wrangler.jsonc'
+      - '.github/workflows/deploy.yml'
       - '.github/workflows/crm-commercialization-lock.yml'
 
 permissions:
