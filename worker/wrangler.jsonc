@@ -38,6 +38,8 @@
     "BUSINESS_PLAN_MODEL": "gpt-5.6-sol",
     "BUSINESS_PLAN_FINAL_MODEL": "gpt-5.6-sol",
     "TARGET_GROSS_MARGIN_PERCENT": "20",
+    "STORE_AUTO_FULFILL": "true",
+    "STORE_AUTO_FULFILL_MAX_USD": "100",
     // Magnanimous Dev Agent is restricted to explicitly allowed repositories.
     // Repository credentials remain protected Worker secrets and never appear here.
     "MAGNANIMOUS_DEV_REPOS": "IAMGodmatters/IAMMagnanimousway.js",
