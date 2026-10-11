@@ -136,12 +136,12 @@ async function owner(request,env){
  const user=await currentUser(request,env);if(!user)return{denied:json({detail:'Platform owner sign-in required.'},401)};
  return{user};
 }
-async function deviceFromRequest(request,env){
+async function deviceFromRequest(request,env,{touch=true}={}){
  const token=bridgeToken(request);if(!token)return null;
  const tokenHash=await sha(token);
  const row=await env.DB.prepare("SELECT * FROM magnanimous_local_bridge_devices WHERE token_hash=? AND status='active'").bind(tokenHash).first();
  if(!row)return null;
- await env.DB.prepare('UPDATE magnanimous_local_bridge_devices SET last_seen_at=?,updated_at=? WHERE id=?').bind(now(),now(),row.id).run();
+ if(touch){const ts=now();await env.DB.prepare('UPDATE magnanimous_local_bridge_devices SET last_seen_at=?,updated_at=? WHERE id=?').bind(ts,ts,row.id).run()}
  return row;
 }
 function safeCapabilities(value){
@@ -275,25 +275,21 @@ async function deliverNativeWebWebhook(task,status,result,error){
 
 export async function hasReadyLocalBridge(env,tenantId){
  if(!env?.DB||!tenantId)return false;
- await ensureSchema(env);
  const row=await env.DB.prepare("SELECT id FROM magnanimous_local_bridge_devices WHERE tenant_id=? AND status='active' AND last_seen_at>=? LIMIT 1").bind(String(tenantId),now()-ACTIVE_WINDOW).first();
  return Boolean(row?.id);
 }
 export async function hasAnyReadyLocalBridge(env){
  if(!env?.DB)return false;
- await ensureSchema(env);
  const row=await env.DB.prepare("SELECT id FROM magnanimous_local_bridge_devices WHERE status='active' AND last_seen_at>=? LIMIT 1").bind(now()-ACTIVE_WINDOW).first();
  return Boolean(row?.id);
 }
 export async function hasAnyReadyLocalBridgeCapability(env,action){
  if(!env?.DB||!action)return false;
- await ensureSchema(env);
  const {results=[]}=await env.DB.prepare("SELECT capabilities_json FROM magnanimous_local_bridge_devices WHERE status='active' AND last_seen_at>=? ORDER BY last_seen_at DESC LIMIT 50").bind(now()-ACTIVE_WINDOW).all();
  return results.some(row=>{try{return JSON.parse(row.capabilities_json||'[]').includes(action)}catch{return false}});
 }
 export async function findReadyLocalBridgeDevice(env,tenantId,action=''){
  if(!env?.DB||!tenantId)return null;
- await ensureSchema(env);
  const {results=[]}=await env.DB.prepare("SELECT * FROM magnanimous_local_bridge_devices WHERE tenant_id=? AND status='active' AND last_seen_at>=? ORDER BY last_seen_at DESC").bind(String(tenantId),now()-ACTIVE_WINDOW).all();
  for(const row of results){
   let caps=[];try{caps=JSON.parse(row.capabilities_json||'[]')}catch{}
@@ -304,7 +300,6 @@ export async function findReadyLocalBridgeDevice(env,tenantId,action=''){
 
 export async function queueLocalBridgeTask(env,user,{action,payload={},deviceId='',allowConfirmation=true}={}){
  if(!env?.DB||!user?.tenant_id||!user?.id)throw new Error('Signed-in tenant user is required to queue a Local Bridge task.');
- await ensureSchema(env);
  const checked=validateTask(clip(action,80),payload);
  let device=null;
  if(deviceId){
@@ -321,7 +316,6 @@ export async function queueLocalBridgeTask(env,user,{action,payload={},deviceId=
 
 export async function localBridgeTask(env,tenantId,taskId){
  if(!env?.DB||!tenantId||!taskId)return null;
- await ensureSchema(env);
  const task=await env.DB.prepare('SELECT * FROM magnanimous_local_bridge_tasks WHERE id=? AND tenant_id=?').bind(String(taskId),String(tenantId)).first();
  if(!task)return null;
  let payload={},result={};try{payload=JSON.parse(task.payload_json||'{}')}catch{}try{result=JSON.parse(task.result_json||'{}')}catch{}
@@ -341,7 +335,9 @@ export async function handleMagnanimousLocalBridge(request,env){
  const url=new URL(request.url),path=url.pathname;
  if(!path.startsWith('/api/magnanimous/local-bridge'))return null;
  if(!env?.DB)return json({detail:'Magnanimous Local Bridge requires D1.'},503);
- await ensureSchema(env);
+ const agentPath=path.startsWith('/api/magnanimous/local-bridge/agent/');
+ // Schema is deployment-migrated. Avoid DDL on every outbound agent heartbeat on the 10 ms Workers Free CPU budget.
+ if(!agentPath)await ensureSchema(env);
 
  if(request.method==='POST'&&path==='/api/magnanimous/local-bridge/agent/pair'){
   const body=await request.json().catch(()=>({})),code=clip(body.code,200);
@@ -359,9 +355,10 @@ export async function handleMagnanimousLocalBridge(request,env){
   return json({ok:true,device_id:id,bridge_token:token,activation_task_id:activationTaskId,poll_endpoint:'/api/magnanimous/local-bridge/agent/next',result_endpoint:'/api/magnanimous/local-bridge/agent/result',heartbeat_endpoint:'/api/magnanimous/local-bridge/agent/heartbeat',note:'Store the bridge token only on this local machine. It is shown once and the server keeps only its hash. A safe health task is queued automatically to verify real execution when supported.'},201);
  }
 
- if(path.startsWith('/api/magnanimous/local-bridge/agent/')){
-  const device=await deviceFromRequest(request,env);if(!device)return json({detail:'Valid local bridge token required.'},401);
-  if(request.method==='POST'&&path==='/api/magnanimous/local-bridge/agent/heartbeat'){
+ if(agentPath){
+  const heartbeat=request.method==='POST'&&path==='/api/magnanimous/local-bridge/agent/heartbeat';
+  const device=await deviceFromRequest(request,env,{touch:!heartbeat});if(!device)return json({detail:'Valid local bridge token required.'},401);
+  if(heartbeat){
    const body=await request.json().catch(()=>({})),caps=safeCapabilities(body.capabilities),ts=now();
    await env.DB.prepare('UPDATE magnanimous_local_bridge_devices SET hostname=?,platform=?,capabilities_json=?,last_seen_at=?,updated_at=? WHERE id=?').bind(clip(body.hostname,200)||device.hostname,clip(body.platform,120)||device.platform,JSON.stringify(caps.length?caps:JSON.parse(device.capabilities_json||'[]')),ts,ts,device.id).run();
    return json({ok:true,server_time:ts});

@@ -13,7 +13,7 @@ const standaloneServer=read('magnanimous-runtime/src/server.mjs');
 const wrangler=read('worker/wrangler.jsonc');
 const migration=read('worker/migrations/0080_runtime_bootstrap_quota_hardening.sql');
 const authMigration=read('worker/migrations/0081_admin_auth_quota_hardening.sql');
-const deploy=read('.github/workflows/deploy.yml');
+const deploy=read('.github/workflows/deploy.yml').replace(/\r\n/g,'\n');
 const maintenance=read('.github/workflows/d1-deferred-maintenance.yml');
 
 function productionSmokeShell(){
@@ -27,7 +27,8 @@ function productionSmokeShell(){
   return lines.slice(runIndex+1,end).map(line=>line.startsWith('          ')?line.slice(10):line).join('\n');
 }
 const smokeShell=productionSmokeShell();
-const smokeShellSyntax=spawnSync('bash',['-n'],{input:smokeShell,encoding:'utf8'});
+const bashBin=process.platform==='win32'&&fs.existsSync('C:/Program Files/Git/bin/bash.exe')?'C:/Program Files/Git/bin/bash.exe':'bash';
+const smokeShellSyntax=spawnSync(bashBin,['-n'],{input:smokeShell,encoding:'utf8'});
 
 const checks=[];
 const add=(name,ok)=>checks.push([name,Boolean(ok)]);
