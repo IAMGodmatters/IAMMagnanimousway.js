@@ -127,6 +127,18 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'STORE_AUTO_FULFILL',label:'Automatic Paid-Order Fulfillment (true/false)',secret:false,required:false},
   {key:'STORE_AUTO_FULFILL_MAX_USD',label:'Automatic Fulfillment Per-Order Cost Cap (USD)',secret:false,required:false}
  ]},
+ {id:'print-on-demand',name:'Magnanimous Print-on-Demand Network',providers:[],fields:[
+  {key:'PRINTFUL_API_TOKEN',label:'Printful API Token',secret:true,required:false},
+  {key:'PRINTIFY_API_TOKEN',label:'Printify API Token',secret:true,required:false},
+  {key:'PRINTIFY_SHOP_ID',label:'Printify Shop ID',secret:false,required:false},
+  {key:'GELATO_API_KEY',label:'Gelato API Key',secret:true,required:false},
+  {key:'PRODIGI_API_KEY',label:'Prodigi API Key',secret:true,required:false},
+  {key:'GOOTEN_RECIPE_ID',label:'Gooten Recipe ID',secret:false,required:false},
+  {key:'GOOTEN_PARTNER_BILLING_KEY',label:'Gooten Partner Billing Key',secret:true,required:false},
+  {key:'POD_PROVIDER_PRIORITY',label:'POD Provider Priority (comma-separated)',secret:false,required:false},
+  {key:'STORE_POD_AUTO_FULFILL',label:'Automatic Paid POD Fulfillment (true/false)',secret:false,required:false},
+  {key:'STORE_POD_AUTO_FULFILL_MAX_USD',label:'POD Automatic Fulfillment Per-Order Cost Cap (USD)',secret:false,required:false}
+ ]},
  {id:'shopify',name:'Shopify',providers:['shopify'],fields:[
   {key:'SHOPIFY_API_KEY',label:'Shopify Client ID / API Key',secret:false,required:true},
   {key:'SHOPIFY_API_SECRET',label:'Shopify Client Secret / API Secret',secret:true,required:true}

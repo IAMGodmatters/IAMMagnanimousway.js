@@ -1,6 +1,7 @@
 import {getProviderRuntimeEnv} from './provider-runtime-env.js';
 import {requirePlatformOwner} from './platform-owner-guard.js';
 import {cjSupplierConfigured,quoteCjCart,fulfillCjOrder,reconcileCjOrder,searchCjCatalogTarget} from './cj-dropship-runtime.js';
+import {handlePodNetwork,scheduledPodCreative} from './pod-network-runtime.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
@@ -110,6 +111,7 @@ export async function scheduledNativeStoreSourcing(env){
  return{processed,matched};
 }
 export async function scheduledNativeStoreCommerce(env){
+ const pod=await scheduledPodCreative(env).catch(error=>({error:String(error?.message||error)}));
  const refunds=await scheduledNativeStoreRefunds(env);
  const fulfillment=await scheduledNativeStoreFulfillment(env);
  const sourcing=await scheduledNativeStoreSourcing(env);
@@ -120,4 +122,4 @@ async function ownerOrders(request,env){const guard=await requirePlatformOwner(r
 async function ownerSourcing(request,env){const guard=await requirePlatformOwner(request,env);if(guard)return guard;const {results:counts=[]}=await env.DB.prepare('SELECT category_slug,status,COUNT(*) AS count FROM store_sourcing_targets GROUP BY category_slug,status ORDER BY category_slug,status').all(),{results:recent=[]}=await env.DB.prepare("SELECT id,category_slug,product_name,status,matched_product_id,matched_product_sku,matched_title,matched_price_cents,match_score,last_error,last_searched_at FROM store_sourcing_targets ORDER BY updated_at DESC LIMIT 100").all();return json({minimum_per_category:15,total_targets:225,counts,recent})}
 function csv(value){const s=String(value??'');return/[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}
 async function facebookFeed(request,env){const connected=await cjSupplierConfigured(env),origin=siteOrigin(request,env),rows=(await catalogRows(env)).filter(row=>Boolean(row.facebook_enabled)&&String(row.product_kind||'dropship')!=='external'),header=['id','title','description','availability','condition','price','link','image_link','brand','product_type'],lines=[header.join(',')];for(const row of rows){const p=publicProduct(row,connected);lines.push([p.id,p.title,p.description,p.available?'in stock':'out of stock','new',`${(p.price_cents/100).toFixed(2)} ${p.currency}`,`${origin}/shop?product=${encodeURIComponent(p.id)}`,new URL(p.image_url,origin).toString(),'I AM MAGNANIMOUS WAY',p.category].map(csv).join(','))}return new Response(lines.join('\n'),{headers:{'content-type':'text/csv; charset=utf-8','cache-control':'public, max-age=900'}})}
-export async function handleNativeStore(request,env){const url=new URL(request.url);if(url.pathname==='/api/store/products'&&request.method==='GET')return listProducts(env);if(url.pathname==='/api/store/checkout'&&request.method==='POST')return createCheckout(request,env);if(url.pathname==='/api/store/order'&&request.method==='GET')return orderStatus(request,env);if(url.pathname==='/api/store/feed/facebook.csv'&&request.method==='GET')return facebookFeed(request,env);if(url.pathname==='/api/store/owner/orders'&&request.method==='GET')return ownerOrders(request,env);if(url.pathname==='/api/store/owner/sourcing'&&request.method==='GET')return ownerSourcing(request,env);return null}
+export async function handleNativeStore(request,env){const pod=await handlePodNetwork(request,env);if(pod)return pod;const url=new URL(request.url);if(url.pathname==='/api/store/products'&&request.method==='GET')return listProducts(env);if(url.pathname==='/api/store/checkout'&&request.method==='POST')return createCheckout(request,env);if(url.pathname==='/api/store/order'&&request.method==='GET')return orderStatus(request,env);if(url.pathname==='/api/store/feed/facebook.csv'&&request.method==='GET')return facebookFeed(request,env);if(url.pathname==='/api/store/owner/orders'&&request.method==='GET')return ownerOrders(request,env);if(url.pathname==='/api/store/owner/sourcing'&&request.method==='GET')return ownerSourcing(request,env);return null}
