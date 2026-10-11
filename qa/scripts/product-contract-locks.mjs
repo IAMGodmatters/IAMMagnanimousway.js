@@ -50,7 +50,6 @@ const chatTransport = read('frontend/lib/magnanimous-chat-transport.ts');
 const standaloneServer = read('magnanimous-runtime/src/server.mjs');
 const deployWorkflow = read('.github/workflows/deploy.yml');
 
-
 includes(deployWorkflow, 'id: impact', 'deploy: runtime impact detector remains versioned');
 includes(deployWorkflow, "if: needs.runtime-impact.outputs.changed == 'true'", 'deploy: production mutation work stays gated by runtime impact');
 includes(deployWorkflow, 'No production runtime files changed; skipping Worker/Railway deployment and D1 mutation work.', 'deploy: docs/control-plane commits explicitly skip production mutation work');
@@ -171,13 +170,13 @@ includes(platformRuntime, "location.replace('/login?returnTo='+encodeURIComponen
 notMatches(home, /mag-standalone/, 'platform: main homepage must not become the standalone AI shell');
 
 // 3) God Matters native-store lock. Shopify may remain an optional connector elsewhere,
-// but the public marketplace must not depend on a Shopify storefront, CDN, or checkout.
-includes(shopPage, 'GOD MATTERS MARKETPLACE', 'store: God Matters marketplace identity remains locked');
+// but the public store must not depend on a Shopify storefront, CDN, or checkout.
+includes(shopPage, 'SHOP GOD MATTERS', 'store: God Matters store identity remains locked with customer-safe copy');
 includes(shopPage, "fetch('/store-api/products'", 'store: native Magnanimous catalog API remains wired');
 includes(shopPage, "fetch('/store-api/checkout'", 'store: native Magnanimous checkout API remains wired');
 includes(shopPage, 'Continue to Secure Checkout', 'store: native secure-checkout CTA remains present');
 includes(shopPage, 'href="/bible-study"', 'store: Bible Study marketplace link remains present');
-notMatches(shopPage, /myshopify\.com|cdn\.shopify\.com|STORE_URL/, 'store: public marketplace must not depend on Shopify storefront infrastructure');
+notMatches(shopPage, /myshopify\.com|cdn\.shopify\.com|STORE_URL/, 'store: public store must not depend on Shopify storefront infrastructure');
 includes(shopPage, 'rel="noopener noreferrer"', 'store: external marketplace links retain opener protection');
 notMatches(shopPage, /SHOPIFY_(?:API_SECRET|ADMIN_ACCESS_TOKEN|ACCESS_TOKEN|PRIVATE_APP_PASSWORD)/, 'store: no Shopify secrets may be embedded in the storefront source');
 includes(platformCredentials, "{id:'shopify',name:'Shopify',providers:['shopify']", 'shopify connector: optional server-side credential group remains isolated from the native store');
