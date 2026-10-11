@@ -38,7 +38,7 @@ test('standalone Magnanimous AI remains isolated, sign-in protected, voice-enabl
   await expect(voicePanel).toContainText(/Magnanimous AI/i);
   await expect(voicePanel.getByRole('button', { name: /Talk to Magnanimous AI/i })).toBeVisible();
   await expect(voicePanel.locator('button.voice-sound[title*="spoken replies"]')).toBeVisible();
-  await expect(voicePanel.getByRole('button', { name: 'VOICE' })).toBeVisible();
+  await expect(voicePanel.getByRole('button', { name: /Hear latest Magnanimous AI reply/i })).toBeVisible();
   await expect(page.locator('.iam-progress-save')).toBeVisible();
 
   // Reliability contract: voice controls must never cover the standalone Send button.

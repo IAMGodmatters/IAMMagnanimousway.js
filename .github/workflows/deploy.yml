@@ -1196,6 +1196,7 @@ jobs:
                 "DELETE FROM crm_opportunities WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM crm_contacts WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM billing_usage_guard WHERE tenant_id='${tenant_id}';"
+                "DELETE FROM billing_checkout_consents WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM billing_management_requests WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM voice_agent_turns WHERE tenant_id='${tenant_id}';"
                 "DELETE FROM voice_do_not_call WHERE tenant_id='${tenant_id}';"
@@ -1701,7 +1702,7 @@ jobs:
               ref=(query.get('client_reference_id') or [''])[0]
               parts=ref.split(':')
               assert len(parts) == 4 and parts[0] == 'agency' and parts[1] == tenant and parts[2] == 'agency', data
-              assert len(parts[3]) == 64 and all(ch in '0123456789abcdef' for ch in parts[3].lower()), data
+              assert len(parts[3]) == 64 and all(ch in '0123456789abcdef' for ch in parts[3]), data
           PY
 
           # Production White Label depth smoke: use this temporary tenant only.
@@ -1991,7 +1992,7 @@ jobs:
               ref=(query.get('client_reference_id') or [''])[0]
               parts=ref.split(':')
               assert len(parts) == 5 and parts[0] == 'iams1' and parts[1] == tenant and parts[2] == 'plan' and parts[3] == 'plus', data
-              assert len(parts[4]) == 64 and all(ch in '0123456789abcdef' for ch in parts[4].lower()), data
+              assert len(parts[4]) == 64 and all(ch in '0123456789abcdef' for ch in parts[4]), data
           PY
 
           status=$(curl -sS -o /tmp/billing-request.json -w '%{http_code}' -X POST "$BASE_URL/api/billing/management-request" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"request_type":"billing_question","message":"Deployment smoke test billing request."}')
