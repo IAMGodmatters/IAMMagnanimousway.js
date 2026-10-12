@@ -193,7 +193,11 @@ jobs:
             fi
 
             if printf '%s' "$output" | grep -qi "exceeded D1's free tier daily row write limit"; then
-              echo "::warning::D1 migration writes are temporarily blocked by the Cloudflare Free daily row-write limit. Verifying that all runtime-required bootstrap/auth tables already exist before deferring pending migrations."
+              if [ "$migration_files_changed" -ne 0 ]; then
+                echo "::error::D1 row-write quota blocked a schema-changing deployment. Refusing to deploy code until its required migration can be applied."
+                exit "$rc"
+              fi
+              echo "::warning::D1 migration writes are temporarily blocked by the Cloudflare Free daily row-write limit. This commit changes no migration files, so verifying the previously required runtime tables before deferring the control-plane check."
               npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('tenant_settings','ads','settings','security_rate_limits','auth_events','auth_config','auth_sessions') ORDER BY name;" > /tmp/d1-migration-quota-schema.json
               python - <<'PY'
           import json
@@ -208,18 +212,19 @@ jobs:
           walk(payload)
           required={'tenant_settings','ads','settings','security_rate_limits','auth_events'}
           missing=required-names
-          assert not missing, f"Cannot defer pending runtime migrations; production is missing required tables: {sorted(missing)}"
-          if 'auth_sessions' not in names:
-              print("::warning::auth_sessions is still pending. Authentication will remain available through the hardened signed-session recovery rail until migration 0057 can be applied.")
-          else:
-              print("Opaque auth session storage is already available.")
-          print("Pending runtime migrations safely deferred under confirmed D1 quota; required production tables already exist. auth_config may remain pending because SESSION_SECRET can satisfy the secure auth-secret contract.")
+          assert not missing, f"Cannot defer migration control-plane check; production is missing required tables: {sorted(missing)}"
+          print("No migration file changed in this deployment; deferring only the migration control-plane check under confirmed D1 quota.")
           PY
               echo "D1_MIGRATION_DEFERRED=1" >> "$GITHUB_ENV"
               break
             fi
 
-            if printf '%s' "$output" | grep -Eqi "internal error.*7500|code[^0-9]*7500|Network connection lost|connection reset|temporarily unavailable|timed out|Not currently importing anything|Currently processing a long-running import"; then
+            if printf '%s' "$output" | grep -Eqi "SQLITE_ERROR|incomplete input|syntax error|no such (table|column)|duplicate column"; then
+              echo "::error::D1 rejected deterministic migration SQL. Failing immediately instead of retrying a non-transient schema error."
+              exit "$rc"
+            fi
+
+            if printf '%s' "$output" | grep -Eqi "internal error.*7500|Network connection lost|connection reset|temporarily unavailable|timed out|Not currently importing anything|Currently processing a long-running import"; then
               if [ "$attempt" -lt 4 ]; then
                 echo "::warning::Transient Cloudflare D1 migration failure. Retrying migration application ($attempt/3)."
                 sleep $((attempt * 8))

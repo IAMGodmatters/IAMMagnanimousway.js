@@ -8,6 +8,9 @@ const deploy = read('.github/workflows/deploy.yml');
 const railway = read('.github/workflows/magnanimous-railway-deploy.yml');
 const dataStage = read('.github/workflows/magnanimous-production-data-stage.yml');
 const runtimeSecrets = read('.github/workflows/magnanimous-runtime-secrets-stage.yml');
+const gitattrs = read('.gitattributes');
+const integrityMigration = fs.readFileSync('worker/migrations/0102_store_integrity_and_pod_jobs.sql');
+const migrationApplyBlock = deploy.slice(deploy.indexOf('- name: Apply D1 migrations'), deploy.indexOf('- name: Verify durable identity after D1 migrations'));
 
 const checks = [
   ['Cloudflare Worker + D1 are production authority', !wrangler.includes('MAGNANIMOUS_STANDALONE_API_ORIGIN')],
@@ -24,7 +27,11 @@ const checks = [
   ['deploy verifies all pre-deploy identities remain after migrations', deploy.includes('missing_users=before_users-after_users') && deploy.includes('missing_tenants=before_tenants-after_tenants')],
   ['deploy rejects email/password credential drift and restores the database', deploy.includes('credential_drift={uid for uid,credential in before_auth.items()') && deploy.includes('Durable identity or credential loss detected after migrations')],
   ['deploy automatically restores D1 if identity rows disappear', deploy.includes('d1 time-travel restore iam-magnanimous-db --bookmark') && deploy.includes('Deployment stopped and D1 was restored')],
-  ['platform owner identity is included in the migration guard', deploy.includes('platform_owner_id') && deploy.includes('platform_owner_lost')]
+  ['platform owner identity is included in the migration guard', deploy.includes('platform_owner_id') && deploy.includes('platform_owner_lost')],
+  ['D1 migration SQL is locked to LF endings for remote trigger compatibility', gitattrs.includes('worker/migrations/*.sql text eol=lf') && !integrityMigration.includes(13)],
+  ['schema-changing deploys cannot defer migrations under D1 write quota', deploy.includes('if [ "$migration_files_changed" -ne 0 ]; then') && deploy.includes('Refusing to deploy code until its required migration can be applied.')],
+  ['deterministic D1 SQL errors fail immediately instead of transient retry', migrationApplyBlock.includes('SQLITE_ERROR|incomplete input|syntax error|no such (table|column)|duplicate column') && !migrationApplyBlock.includes('code[^0-9]*7500')],
+  ['D1 trigger migration uses uppercase single-line BEGIN bodies', integrityMigration.toString('utf8').split(/\n/).filter(line=>line.startsWith('CREATE TRIGGER')).every(line=>line.includes(' BEGIN ')&&line.includes(' END;'))]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
