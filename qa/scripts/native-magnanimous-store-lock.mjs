@@ -3,6 +3,7 @@ import fs from 'node:fs';
 const read=p=>fs.readFileSync(new URL(`../../${p}`,import.meta.url),'utf8');
 const must=(condition,message)=>{if(!condition)throw new Error(message)};
 const page=read('frontend/app/shop/page.tsx');
+const ownerIntegrations=read('frontend/app/owner-integrations/page.tsx');
 const productArt=read('frontend/app/store/products/[name]/route.ts');
 const runtime=read('worker/src/native-store-runtime.js');
 const migration=read('worker/migrations/0097_native_magnanimous_store.sql');
@@ -42,6 +43,7 @@ must(exactVariantMedia.includes('/store/products/real/pet-feeder-black-wifi.jpg'
 must(exactVariantMedia.includes('9798177798233')&&exactVariantMedia.includes('B0HLDBF24D')&&exactVariantMedia.includes('jesus-did-it-for-me.svg'),'Confirmed author books must stay in Books & Faith Gifts with direct author-marketplace metadata.');
 must(page.includes('View Details')&&page.includes('selectedProduct')&&page.includes('Search products'),'Customer product cards must be clickable with product detail and search interactions.');
 must(!/supplier|dropship|provider/i.test(page),'Customer storefront must not expose internal supplier/provider mechanics.');
+must(ownerIntegrations.includes('Verify Supplier Now')&&ownerIntegrations.includes('/api/store/owner/verify-supplier'),'Owner provider setup must offer immediate supplier verification after encrypted credential save.');
 
 must(runtime.includes("SELECT * FROM store_products WHERE active=1 AND id IN"),'Checkout must price carts from server-side catalog records.');
 must(runtime.includes("metadata[product_type]','magnanimous_store_order'"),'Stripe checkout must identify native store orders.');
@@ -54,6 +56,8 @@ must(runtime.includes('supplier_budget_cents')&&runtime.includes('shipping_handl
 must(runtime.includes('const STORE_RETAIL_MARKUP=0.20')&&runtime.includes('retailUnitPrice(line.unitCostCents)'),'Store retail pricing must apply the owner-private fixed 20% markup over live item cost.');
 must(runtime.includes("price_cents=?,currency='USD'")&&runtime.includes('retailUnitPrice(result.unitCostCents)'),'Verified supplier pricing must refresh the customer retail price with the private markup policy.');
 must(runtime.includes("url.pathname==='/api/store/quote'")&&runtime.includes('createPublicQuote'),'Store must expose a customer-safe pre-checkout quote endpoint that still requotes at checkout.');
+must(runtime.includes("url.pathname==='/api/store/owner/verify-supplier'")&&runtime.includes('ownerVerifySupplier'),'Owner must be able to verify exact supplier variants immediately after connecting the provider.');
+must(credentials.includes('b?.values')&&credentials.includes('saved:entries.map')&&credentials.includes('source:vault')&&credentials.includes('set,source'),'Encrypted provider vault API must remain compatible with the owner provider setup page for batch saves and status rendering.');
 must(runtime.includes('scheduledNativeStoreFulfillment')&&runtime.includes('awaiting_supplier_activation')&&runtime.includes('awaiting_supplier_funds'),'Paid orders must support automatic supplier fulfillment plus safe supplier-funds retry.');
 must(runtime.includes("object?.collected_information?.shipping_details||object?.shipping_details"),'Stripe shipping extraction must support the current collected_information shape and legacy shape.');
 must(runtime.includes("type==='checkout.session.expired'"),'Expired Stripe Checkout sessions must close stale native orders.');
