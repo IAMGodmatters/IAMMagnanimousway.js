@@ -58,13 +58,14 @@ export async function cjSupplierConfigured(env){
 }
 
 function matchTokens(value){return new Set(String(value||'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').split(/\s+/).filter(x=>x.length>2&&!['and','with','set','the','for'].includes(x)))}
-function matchScore(query,title){const wanted=matchTokens(query),got=matchTokens(title);if(!wanted.size)return 0;let hits=0;for(const token of wanted)if(got.has(token))hits++;return hits/wanted.size}
+function matchScore(query,title){const wanted=matchTokens(query),got=matchTokens(title);if(!wanted.size)return 0;let hits=0;for(const token of wanted)if(got.has(token))hits++;if(wanted.size<=2&&hits<wanted.size)return 0;return hits/wanted.size}
 export async function searchCjCatalogTarget(env,query){
  const auth=await access(env);if(!auth.ok)return auth;
  const q=String(query||'').trim();if(!q)return{ok:false,code:'empty_query',detail:'Catalog search query is empty.'};
  const result=await cjCall(auth.token,`/product/listV2?page=1&size=8&keyWord=${encodeURIComponent(q)}`);
+ if(!result.ok){const code=result.status===429?'supplier_rate_limited':'supplier_search_failed';return{ok:false,code,detail:String(result.data?.message||`Supplier catalog search failed with HTTP ${result.status||'unknown'}.`)}}
  const content=Array.isArray(result.data?.data?.content)?result.data.data.content:[],products=content.flatMap(group=>Array.isArray(group?.productList)?group.productList:[]);
- if(!result.ok||!products.length)return{ok:false,code:'no_match',detail:'No current CJ catalog match was found.'};
+ if(!products.length)return{ok:false,code:'no_match',detail:'No current CJ catalog match was found.'};
  const ranked=products.map(product=>({product,score:matchScore(q,product?.nameEn)})).sort((a,b)=>b.score-a.score||Number(a.product?.sellPrice||999999)-Number(b.product?.sellPrice||999999));
  const best=ranked[0],price=Math.max(0,Math.round(Number(best.product?.sellPrice||0)*100));
  return{ok:true,score:best.score,id:String(best.product?.id||''),sku:String(best.product?.sku||best.product?.spu||''),title:String(best.product?.nameEn||''),priceCents:price,image:String(best.product?.bigImage||'')};
@@ -90,7 +91,8 @@ export async function quoteCjCart(env,loaded,{country='US',zip=''}={}){
 function countryName(code){return({US:'United States',PH:'Philippines',CA:'Canada',GB:'United Kingdom',AU:'Australia',SG:'Singapore'}[String(code||'').toUpperCase()]||String(code||'').toUpperCase())}
 async function supplierBalance(token){
  const response=await cjCall(token,'/shopping/pay/getBalance');
- return response.ok?cents(response.data?.data?.amount):0;
+ if(!response.ok)return{ok:false,balanceCents:0,detail:String(response.data?.message||'Supplier balance could not be verified.')};
+ return{ok:true,balanceCents:cents(response.data?.data?.amount)};
 }
 async function deleteCreatedOrder(token,id){
  if(!id)return;await cjCall(token,`/shopping/order/deleteOrder?orderId=${encodeURIComponent(id)}`,{method:'DELETE'}).catch(()=>null);
@@ -122,7 +124,8 @@ export async function fulfillCjOrder(env,{order,items,shipping}){
  const maxAuto=cents(Number(rt.STORE_AUTO_FULFILL_MAX_USD||100));
  if(maxAuto&&quote.supplierTotalCents>maxAuto)return{ok:false,code:'auto_cap',status:'supplier_cost_guard',detail:'Supplier cost exceeds the automatic fulfillment safety cap.'};
  const balance=await supplierBalance(quote.token);
- if(balance<quote.supplierTotalCents)return{ok:false,code:'insufficient_supplier_balance',status:'awaiting_supplier_funds',detail:'Supplier balance is below the verified order cost.'};
+ if(!balance.ok)return{ok:false,code:'supplier_balance_unavailable',status:'retry',detail:balance.detail};
+ if(balance.balanceCents<quote.supplierTotalCents)return{ok:false,code:'insufficient_supplier_balance',status:'awaiting_supplier_funds',detail:'Supplier balance is below the verified order cost.'};
  const address=shipping?.address||{},name=String(shipping?.name||'').trim();
  if(!name||!address.line1||!address.city||!address.country)return{ok:false,code:'address_incomplete',status:'address_review',detail:'Customer shipping address is incomplete.'};
  const create=await cjCall(quote.token,'/shopping/order/createOrderV2',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({orderNumber:String(order.public_id),shippingZip:String(address.postal_code||''),shippingCountry:countryName(address.country),shippingCountryCode:String(address.country).toUpperCase(),shippingProvince:String(address.state||address.city),shippingCity:String(address.city),shippingPhone:String(shipping?.phone||''),shippingCustomerName:name,shippingAddress:String(address.line1),shippingAddress2:String(address.line2||''),email:String(order.customer_email||''),payType:3,logisticName:quote.logisticName,fromCountryCode:'CN',platform:'Api',orderFlow:1,products:quote.lines.map((line,index)=>({vid:line.vid,quantity:line.quantity,storeLineItemId:`${order.public_id}-${index+1}`}))})});
@@ -130,6 +133,6 @@ export async function fulfillCjOrder(env,{order,items,shipping}){
  if(!create.ok||!orderId)return{ok:false,code:'supplier_order_create_failed',status:'retry',detail:String(create.data?.message||'Supplier order could not be created.')};
  if(finalCost&&finalCost>budget){await deleteCreatedOrder(quote.token,orderId);return{ok:false,code:'cost_guard_after_create',status:'supplier_cost_guard',detail:'Supplier final order amount exceeded the prepaid supplier budget.'};}
  const pay=await cjCall(quote.token,'/shopping/pay/payBalanceV2',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({shipmentOrderId,payId:String(data.payId||'')||undefined})});
- if(!pay.ok)return{ok:false,code:'supplier_payment_failed',status:'awaiting_supplier_funds',externalOrderId:shipmentOrderId,detail:String(pay.data?.message||'Supplier balance payment failed.')};
- return{ok:true,status:'submitted',externalOrderId:shipmentOrderId,costCents:finalCost||quote.supplierTotalCents,logisticName:quote.logisticName};
+ if(!pay.ok)return{ok:false,code:'supplier_payment_failed',status:'awaiting_supplier_funds',externalOrderId:orderId,shipmentOrderId,detail:String(pay.data?.message||'Supplier balance payment failed.')};
+ return{ok:true,status:'submitted',externalOrderId:orderId,shipmentOrderId,costCents:finalCost||quote.supplierTotalCents,logisticName:quote.logisticName};
 }
