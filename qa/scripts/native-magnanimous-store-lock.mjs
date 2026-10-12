@@ -10,6 +10,7 @@ const expansion=read('worker/migrations/0098_native_store_catalog_expansion.sql'
 const sourcing=read('worker/migrations/0099_store_225_product_sourcing_queue.sql');
 const podMigration=read('worker/migrations/0100_native_pod_network.sql');
 const supplierExpansion=read('worker/migrations/0101_extra_supplier_network.sql');
+const integrity=read('worker/migrations/0102_store_integrity_and_pod_jobs.sql');
 const pod=read('worker/src/pod-network-runtime.js');
 const credentials=read('worker/src/platform-credentials.js');
 const providerEnv=read('worker/src/provider-runtime-env.js');
@@ -22,6 +23,9 @@ const stripeWebhook=read('worker/src/stripe-webhook-hardened.js');
 must(!page.includes('myshopify.com'),'Native shop must not link to a Shopify storefront.');
 must(!page.includes('cdn.shopify.com'),'Native shop must not depend on Shopify-hosted product media.');
 must(page.includes("fetch('/store-api/products'")&&page.includes("fetch('/store-api/checkout'"),'Native shop must use the Magnanimous store API.');
+must(page.includes('shippingCountry')&&page.includes('country:shippingCountry'),'Storefront must send an explicit customer-selected delivery country.');
+must(page.includes('Product subtotal')&&page.includes('Live supplier shipping and handling'),'Storefront must distinguish product subtotal from live funded shipping/handling.');
+must(page.includes('Gallery designs are not offered for checkout'),'POD gallery must not advertise unverified provider products as purchasable.');
 must(!page.includes('Your marketplace.')&&!page.includes('Built into I AM Magnanimous Way™.'),'Customer storefront must not expose the removed marketplace-built-in headline.');
 must(!page.includes('HOW DROPSHIPPING WORKS HERE')&&!page.includes('Magnanimous fulfillment queue'),'Customer storefront must not expose internal fulfillment mechanics.');
 must(productArt.includes('image/svg+xml')&&productArt.includes("'solar-bank.svg'")&&productArt.includes("'holy-spirit-speaks.svg'"),'Every native product path must have first-party SVG artwork fallback.');
@@ -30,24 +34,31 @@ must(runtime.includes("SELECT * FROM store_products WHERE active=1 AND id IN"),'
 must(runtime.includes("metadata[product_type]','magnanimous_store_order'"),'Stripe checkout must identify native store orders.');
 must(runtime.includes("paidAmount!==Number(order.amount_cents)"),'Paid amount must be verified against the stored order total.');
 must(runtime.includes('function catalogMapped(row)')&&runtime.includes('supplierConnected'),'Unmapped or disconnected dropship products must not be publicly purchasable.');
-must(runtime.includes("if(loaded.some(x=>!catalogMapped(x.row)))"),'Checkout must reject incomplete supplier mappings before Stripe is opened.');
+must(runtime.includes("if(loaded.some(x=>!catalogMapped(x.row)))")&&runtime.includes("Number(x.row.price_cents||0)<=0"),'Checkout must reject incomplete supplier mappings and zero-price placeholders before Stripe is opened.');
+must(runtime.includes('SHIPPING_COUNTRY_REQUIRED')&&!runtime.includes("cleanCountry(body.country)||'US'"),'Checkout must not silently substitute the United States for a missing shipping destination.');
 must(runtime.includes('supplier_budget_cents')&&runtime.includes('shipping_handling_cents'),'Checkout must pre-collect supplier freight/handling and store a loss-prevention budget.');
-must(runtime.includes('scheduledNativeStoreFulfillment')&&runtime.includes('awaiting_supplier_activation'),'Paid orders must enter the automatic supplier fulfillment scheduler only after supplier setup is valid.');
+must(runtime.includes('scheduledNativeStoreFulfillment')&&runtime.includes('awaiting_supplier_activation')&&runtime.includes('awaiting_supplier_funds'),'Paid orders must support automatic supplier fulfillment plus safe supplier-funds retry.');
+must(runtime.includes("object?.collected_information?.shipping_details||object?.shipping_details"),'Stripe shipping extraction must support the current collected_information shape and legacy shape.');
+must(runtime.includes("type==='checkout.session.expired'"),'Expired Stripe Checkout sessions must close stale native orders.');
+must(runtime.includes("['pending','checkout_created'].includes(String(order.status))"),'Order refresh may only promote unresolved checkout states, never refund states, back to paid.');
+must(runtime.includes('refund_attempt')&&runtime.includes('Idempotency-Key'),'Refund retries must rotate idempotency attempts after definitive failed/canceled refunds.');
+must(runtime.includes('SOURCING_RETRY_SECONDS=6*60*60')&&runtime.includes("status='queued' OR (status='retry'"),'Supplier sourcing must use bounded retry cadence and keep terminal no-match targets terminal.');
+must(runtime.includes('Number(result.score||0)>=0.75'),'Supplier sourcing must require a high-confidence match before recording a product.');
 
 const publicProduct=runtime.slice(runtime.indexOf('function publicProduct'),runtime.indexOf('async function catalogRows'));
 const publicReturn=publicProduct.slice(publicProduct.indexOf('return{'));
-for(const secretField of ['supplier_provider','supplier_product_id','supplier_variant_id','supplier_sku','supplier_cost_cents']){
- must(!publicReturn.includes(secretField),`Public product response leaks ${secretField}.`);
-}
+for(const secretField of ['supplier_provider','supplier_product_id','supplier_variant_id','supplier_sku','supplier_cost_cents'])must(!publicReturn.includes(secretField),`Public product response leaks ${secretField}.`);
 
 for(const table of ['store_products','store_orders','store_order_items','store_fulfillment_jobs'])must(migration.includes(`CREATE TABLE IF NOT EXISTS ${table}`),`Missing ${table} migration.`);
 for(const table of ['store_categories','store_product_upsells'])must(expansion.includes(`CREATE TABLE IF NOT EXISTS ${table}`),`Missing ${table} expansion migration.`);
-must(consent.includes("url.pathname.startsWith('/store-api/')")&&consent.includes('handleNativeStore(nativeStoreRequest(request),env)'),'Native store must route on the Worker/D1 plane.');
+must(integrity.includes('stock_reserved')&&integrity.includes('STORE_STOCK_UNAVAILABLE')&&integrity.includes('trg_store_restore_stock_on_refund'),'Finite stock must be reserved atomically and restored only when a paid order actually reserved it.');
+must(integrity.includes('attempt_count')&&integrity.includes('next_attempt_at'),'POD processing must have durable bounded retry state.');
+must(consent.includes("url.pathname.startsWith('/store-api/')")&&consent.includes('securityPreflight(routedRequest,env)')&&consent.includes('handleNativeStore(routedRequest,env)')&&consent.includes('secureStorePostflight(routedRequest'),'Native store alias must stay on Worker/D1 and pass the same API security preflight/postflight.');
 must(wrangler.includes('"/store-api/*"'),'Cloudflare assets config must execute the Worker for store API requests.');
-must(stripeWebhook.includes("handleNativeStoreStripeEvent")&&stripeWebhook.includes("await handleNativeStoreStripeEvent(env,event)"),'Verified Stripe webhooks must durably confirm native-store payments.');
+must(stripeWebhook.includes('handleNativeStoreStripeEvent')&&stripeWebhook.includes('await handleNativeStoreStripeEvent(env,event)'),'Verified Stripe webhooks must durably confirm native-store payments.');
 must(runtime.includes('AUTO_REFUND_SECONDS=24*60*60')&&runtime.includes('scheduledNativeStoreRefunds'),'Store must automatically refund orders that fail to secure supplier fulfillment within 24 hours.');
-must(runtime.includes("stripeRequest(rt,'refunds'")&&runtime.includes('Idempotency-Key'),'Automatic refunds must use Stripe idempotency and the original PaymentIntent.');
-must(cj.includes('reconcileCjOrder')&&cj.includes('getOrderDetail'),'Refunds must reconcile ambiguous supplier orders before returning customer funds.');
+must(cj.includes('reconcileCjOrder')&&cj.includes('getOrderDetail')&&cj.includes('externalOrderId:orderId'),'Refunds must reconcile the actual supplier order id before returning customer funds.');
+must(cj.includes("supplier_rate_limited")&&cj.includes("supplier_search_failed")&&cj.includes('matchScore'),'Supplier API failures and weak semantic matches must not be mislabeled as genuine no-match results.');
 must(operations.includes('scheduledNativeStoreCommerce(env)'),'Native store fulfillment/refund lifecycle must run automatically from the Worker scheduler.');
 
 const targetRows=[...sourcing.matchAll(/VALUES\('[^']+','([^']+)','/g)].map(match=>match[1]);
@@ -55,7 +66,7 @@ must(targetRows.length===225,`Store sourcing queue must contain exactly 225 laun
 const targetCounts=new Map();for(const slug of targetRows)targetCounts.set(slug,(targetCounts.get(slug)||0)+1);
 must(targetCounts.size===15,'Store sourcing queue must cover all 15 launch categories.');
 for(const [slug,count] of targetCounts)must(count>=15,`Store category ${slug} has fewer than 15 sourcing targets.`);
-must(runtime.includes('scheduledNativeStoreSourcing')&&runtime.includes("/api/store/owner/sourcing"),'Store must automatically research queued supplier targets and expose owner-only sourcing status.');
+must(runtime.includes('scheduledNativeStoreSourcing')&&runtime.includes('/api/store/owner/sourcing'),'Store must automatically research queued supplier targets and expose owner-only sourcing status.');
 must(cj.includes('/product/listV2?page=1&size=8&keyWord=')&&cj.includes('searchCjCatalogTarget'),'Store sourcing must use CJ Product List V2 keyword search rather than the deprecated list endpoint.');
 
 must(supplierExpansion.includes('CREATE TABLE IF NOT EXISTS store_supplier_providers'),'Extra dropshipping providers must remain owner-governed in D1.');
@@ -70,7 +81,19 @@ must((podMigration.match(/INSERT OR REPLACE INTO store_pod_design_templates/g)||
 for(const theme of ['scripture','inspirational','sarcastic','cute-meme'])must(podMigration.includes(`'${theme}'`),`Missing POD creative theme ${theme}.`);
 for(const productType of ['T-Shirt','Hoodie','Coffee Mug','Travel Tumbler','Tote Bag','Art Print'])must(podMigration.includes(productType),`Missing POD product type ${productType}.`);
 must(pod.includes('scheduledPodCreative')&&pod.includes('/store-api/pod/art/')&&pod.includes('image/svg+xml'),'POD must generate daily original provider-ready SVG artwork on the Magnanimous domain.');
+must(pod.includes('processPodJobs')&&pod.includes('provider_setup_required')&&pod.includes('provider_mapping_required'),'POD jobs must advance into explicit provider setup/mapping/processing states instead of remaining design_ready forever.');
+must(pod.includes("status IN ('ready','published')")&&pod.includes('max-age=300, must-revalidate'),'Withdrawn POD artwork must stop rendering and public cache duration must stay bounded.');
 must(runtime.includes('scheduledPodCreative(env)')&&runtime.includes('handlePodNetwork(request,env)'),'Native store must mount POD public/owner APIs and daily creative scheduler.');
+must(runtime.includes('allowed_countries:allowedCountries(env)')&&page.includes('shippingCountries.map(code=>'),'Storefront delivery choices must come from the backend enabled-country set.');
+must(runtime.includes("refund_reason='stock_unavailable'")&&runtime.includes("status='refund_pending' AND refund_reason='stock_unavailable'")&&runtime.includes("fulfillment_status='refund_retry'"),'Stock-reservation refund failures must remain retryable until customer funds are protected.');
+must(cj.includes('resumeCjOrderPayment')&&runtime.includes('j.external_order_id')&&runtime.includes('resumeCjOrderPayment(env,{externalOrderId:existing'),'Persisted supplier orders must be reconciled/resumed before a replacement supplier order can be created.');
+const publicDesigns=pod.slice(pod.indexOf('async function publicDesigns'),pod.indexOf('async function ownerStatus'));
+must(!publicDesigns.includes('scheduledPodCreative')&&!publicDesigns.includes('processPodJobs'),'Public POD gallery reads must stay side-effect-free.');
+must(pod.includes('AbortController')&&pod.includes('setTimeout(()=>controller.abort(),8000)')&&pod.includes('LIMIT 2`'),'POD publishing must use a bounded provider timeout and small processing batch.');
+must(pod.includes("if(!connected)return{processed:0")&&pod.includes("'provider_setup_required','provider_mapping_required','printfile_review_required','provider_adapter_required','processing'"),'POD prerequisite-blocked jobs must remain eligible after configuration changes without draining the queue while disconnected.');
+must(consent.includes('secureStorePostflight')&&consent.includes("/^public(?:,|\\s|$)/i.test(explicitCache)"),'Safe public store assets must retain explicit bounded cache headers after security hardening.');
+const commerce=runtime.slice(runtime.indexOf('export async function scheduledNativeStoreCommerce'),runtime.indexOf('async function orderStatus'));
+must(commerce.indexOf('scheduledNativeStoreRefunds')<commerce.indexOf('processPodJobs'),'Customer refunds must run before bounded POD provider publishing in the commerce scheduler.');
 must(page.includes("fetch('/store-api/pod/designs'")&&page.includes('DAILY ORIGINAL DESIGNS'),'Native storefront must render the daily POD collection with customer-safe copy.');
 
-console.log('Native Magnanimous Store lock PASS — owned catalog/cart/checkout, freight coverage, automatic fulfillment, customer-safe storefront copy, product artwork fallback, and 24-hour customer refund protection are locked.');
+console.log('Native Magnanimous Store lock PASS — checkout, inventory, Stripe confirmation/refunds, supplier reconciliation, sourcing, POD processing, and customer-safe storefront contracts are locked.');

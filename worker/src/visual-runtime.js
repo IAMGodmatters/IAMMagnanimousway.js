@@ -6,8 +6,9 @@ function googleReady(env){return Boolean(String(env?.GOOGLE_API_KEY||'').trim())
 function cloudflareReady(env){return env?.AI!=null&&String(env?.MAGNANIMOUS_RUNTIME||'')!=='standalone-node'&&String(env?.ENABLE_CLOUDFLARE_FLUX_ROLLBACK||'').toLowerCase()==='true'}
 function magnanimousImageReady(env){return env?.MAGNANIMOUS_IMAGE_GENERATOR?.configured===true}
 function proceduralImageReady(){return true}
-function imageReady(env){return magnanimousImageReady(env)||cloudflareReady(env)||proceduralImageReady()}
+function imageReady(env){return magnanimousImageReady(env)||proceduralImageReady()||cloudflareReady(env)}
 function veoEnabled(env){return googleReady(env)&&String(env?.ENABLE_VEO_PROVIDER||'').toLowerCase()==='true'}
+function wantsLegacyCloudflare(provider){return ['cloudflare-flux-free','legacy-edge-image-fallback'].includes(String(provider||'').trim().toLowerCase())}
 
 export function visualProviderSnapshot(env){
  const providers=[
@@ -29,7 +30,7 @@ export function visualProviderSnapshot(env){
   {
    id:'cloudflare-flux-free',name:'Legacy Edge FLUX Fallback',type:'image-generation',tier:'rollback-only',free:true,
    configured:cloudflareReady(env),enabled:cloudflareReady(env),model:'@cf/black-forest-labs/flux-1-schnell',
-   note:'Legacy production rollback path only. It requires explicit ENABLE_CLOUDFLARE_FLUX_ROLLBACK=true opt-in; standalone Magnanimous does not depend on it.'
+   note:'Legacy production rollback path only. It is never selected automatically; it requires explicit ENABLE_CLOUDFLARE_FLUX_ROLLBACK=true opt-in plus an explicit provider request.'
   },
   {
    id:'google-gemini-visual-director',name:'Google Gemini Visual Director',type:'visual-planning',tier:'free-tier',free:true,
@@ -104,13 +105,14 @@ async function generateFlux(env,prompt){
  const model='@cf/black-forest-labs/flux-1-schnell';
  const result=await env.AI.run(model,{prompt:String(prompt).slice(0,1800),seed:Math.floor(Math.random()*2_000_000_000)});
  const image=typeof result?.image==='string'?result.image:'';
- if(!image)throw new Error('The free visual provider returned no image.');
+ if(!image)throw new Error('The legacy edge visual provider returned no image.');
  return {image,model,provider:'legacy-edge-image-fallback',content_type:'image/jpeg'};
 }
 
-async function generateImage(env,prompt){
- const safePrompt=String(prompt).slice(0,1800);
- if(magnanimousImageReady(env)){
+async function generateImage(env,prompt,{provider='auto'}={}){
+ const safePrompt=String(prompt).slice(0,1800),requested=String(provider||'auto').trim().toLowerCase();
+ if(requested==='magnanimous-native-procedural-scene')return generateProceduralScene(safePrompt);
+ if(magnanimousImageReady(env)&&!wantsLegacyCloudflare(requested)){
   try{
    const rendered=await env.MAGNANIMOUS_IMAGE_GENERATOR.generate(safePrompt,{seed:Math.floor(Math.random()*2_000_000_000)});
    if(rendered?.image)return {...rendered,provider:rendered.provider||'magnanimous-native-image'};
@@ -119,16 +121,16 @@ async function generateImage(env,prompt){
    console.error('Magnanimous image provider unavailable; falling back to first-party procedural rendering.',String(error?.message||error));
   }
  }
- if(cloudflareReady(env)){
+ if(wantsLegacyCloudflare(requested)){
   try{return await generateFlux(env,safePrompt)}
-  catch(error){console.error('Legacy edge image provider unavailable; falling back to first-party procedural rendering.',String(error?.message||error))}
+  catch(error){console.error('Explicit legacy edge image request failed; falling back to first-party procedural rendering.',String(error?.message||error))}
  }
  return generateProceduralScene(safePrompt);
 }
 
-export async function renderVisualScene(env,{title='',text='',style='cinematic',director='auto'}={}){
+export async function renderVisualScene(env,{title='',text='',style='cinematic',director='auto',imageProvider='auto'}={}){
  const direction=director==='built-in'?{prompt:baseScenePrompt(title,text,style),director:'built-in'}:await geminiDirect(env,title,text,style);
- const rendered=await generateImage(env,direction.prompt);
+ const rendered=await generateImage(env,direction.prompt,{provider:imageProvider});
  return{
   provider:'iam-cinematic-free',director:direction.director,director_model:direction.model||null,
   image_provider:rendered.provider,image_model:rendered.model,prompt:direction.prompt,
@@ -150,7 +152,7 @@ export async function handleVisual(request,env){
   const useGemini=body.director!=='built-in';
   const direction=useGemini?await geminiDirect(env,title,text,style):{prompt:baseScenePrompt(title,text,style),director:'built-in'};
   try{
-   const rendered=await generateImage(env,direction.prompt);
+   const rendered=await generateImage(env,direction.prompt,{provider:String(body.image_provider||'auto')});
    return json({
     ok:true,provider:'iam-cinematic-free',director:direction.director,director_model:direction.model||null,
     image_provider:rendered.provider,image_model:rendered.model,prompt:direction.prompt,

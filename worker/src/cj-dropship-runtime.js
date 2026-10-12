@@ -58,13 +58,14 @@ export async function cjSupplierConfigured(env){
 }
 
 function matchTokens(value){return new Set(String(value||'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').split(/\s+/).filter(x=>x.length>2&&!['and','with','set','the','for'].includes(x)))}
-function matchScore(query,title){const wanted=matchTokens(query),got=matchTokens(title);if(!wanted.size)return 0;let hits=0;for(const token of wanted)if(got.has(token))hits++;return hits/wanted.size}
+function matchScore(query,title){const wanted=matchTokens(query),got=matchTokens(title);if(!wanted.size)return 0;let hits=0;for(const token of wanted)if(got.has(token))hits++;if(wanted.size<=2&&hits<wanted.size)return 0;return hits/wanted.size}
 export async function searchCjCatalogTarget(env,query){
  const auth=await access(env);if(!auth.ok)return auth;
  const q=String(query||'').trim();if(!q)return{ok:false,code:'empty_query',detail:'Catalog search query is empty.'};
  const result=await cjCall(auth.token,`/product/listV2?page=1&size=8&keyWord=${encodeURIComponent(q)}`);
+ if(!result.ok){const code=result.status===429?'supplier_rate_limited':'supplier_search_failed';return{ok:false,code,detail:String(result.data?.message||`Supplier catalog search failed with HTTP ${result.status||'unknown'}.`)}}
  const content=Array.isArray(result.data?.data?.content)?result.data.data.content:[],products=content.flatMap(group=>Array.isArray(group?.productList)?group.productList:[]);
- if(!result.ok||!products.length)return{ok:false,code:'no_match',detail:'No current CJ catalog match was found.'};
+ if(!products.length)return{ok:false,code:'no_match',detail:'No current CJ catalog match was found.'};
  const ranked=products.map(product=>({product,score:matchScore(q,product?.nameEn)})).sort((a,b)=>b.score-a.score||Number(a.product?.sellPrice||999999)-Number(b.product?.sellPrice||999999));
  const best=ranked[0],price=Math.max(0,Math.round(Number(best.product?.sellPrice||0)*100));
  return{ok:true,score:best.score,id:String(best.product?.id||''),sku:String(best.product?.sku||best.product?.spu||''),title:String(best.product?.nameEn||''),priceCents:price,image:String(best.product?.bigImage||'')};
@@ -90,7 +91,8 @@ export async function quoteCjCart(env,loaded,{country='US',zip=''}={}){
 function countryName(code){return({US:'United States',PH:'Philippines',CA:'Canada',GB:'United Kingdom',AU:'Australia',SG:'Singapore'}[String(code||'').toUpperCase()]||String(code||'').toUpperCase())}
 async function supplierBalance(token){
  const response=await cjCall(token,'/shopping/pay/getBalance');
- return response.ok?cents(response.data?.data?.amount):0;
+ if(!response.ok)return{ok:false,balanceCents:0,detail:String(response.data?.message||'Supplier balance could not be verified.')};
+ return{ok:true,balanceCents:cents(response.data?.data?.amount)};
 }
 async function deleteCreatedOrder(token,id){
  if(!id)return;await cjCall(token,`/shopping/order/deleteOrder?orderId=${encodeURIComponent(id)}`,{method:'DELETE'}).catch(()=>null);
@@ -112,6 +114,31 @@ export async function reconcileCjOrder(env,externalOrderId){
  if(status==='UNPAID'||status==='CANCELLED')return{ok:true,committed:false,status};
  return{ok:false,code:'supplier_status_ambiguous',detail:`Supplier order is in an unrecognized state (${status||'unknown'}).`};
 }
+export async function resumeCjOrderPayment(env,{externalOrderId,budgetCents=0}){
+ const id=String(externalOrderId||'').trim();
+ if(!id)return{ok:false,code:'supplier_order_missing',status:'retry',detail:'Supplier order reference is missing.'};
+ const auth=await access(env);if(!auth.ok)return{...auth,status:'retry'};
+ const detail=await cjCall(auth.token,`/shopping/order/getOrderDetail?orderId=${encodeURIComponent(id)}`);
+ if(!detail.ok)return{ok:false,code:'supplier_status_unknown',status:'retry',externalOrderId:id,detail:String(detail.data?.message||'Supplier order status could not be confirmed.')};
+ const data=detail.data?.data||{},status=String(data.orderStatus||data.status||'').trim().toUpperCase();
+ const committed=new Set(['PENDING','PROCESSING','UNSHIPPED','SHIPPED','DELIVERED']);
+ if(committed.has(status))return{ok:true,status:'submitted',externalOrderId:id,resumed:true};
+ if(status==='CANCELLED'||status==='DELETED')return{ok:false,code:'supplier_order_cancelled',status:'recreate_allowed',externalOrderId:id,recreate:true,detail:'The previous supplier order is cancelled and may be recreated safely.'};
+ if(!['CREATED','IN_CART','UNPAID'].includes(status))return{ok:false,code:'supplier_status_ambiguous',status:'retry',externalOrderId:id,detail:`Supplier order is in an unrecognized state (${status||'unknown'}).`};
+ const amount=cents(Number(data.orderAmount||data.totalAmount||0)),budget=Math.max(0,Number(budgetCents||0));
+ if(!amount)return{ok:false,code:'supplier_cost_unverified',status:'retry',externalOrderId:id,detail:'Existing supplier order cost could not be verified before payment.'};
+ if(amount>budget)return{ok:false,code:'cost_guard_existing_order',status:'supplier_cost_guard',externalOrderId:id,detail:'Existing supplier order exceeds the prepaid supplier budget.'};
+ const maxAuto=cents(Number(auth.rt.STORE_AUTO_FULFILL_MAX_USD||100));
+ if(maxAuto&&amount>maxAuto)return{ok:false,code:'auto_cap_existing_order',status:'supplier_cost_guard',externalOrderId:id,detail:'Existing supplier order exceeds the automatic fulfillment safety cap.'};
+ const balance=await supplierBalance(auth.token);
+ if(!balance.ok)return{ok:false,code:'supplier_balance_unavailable',status:'retry',externalOrderId:id,detail:balance.detail};
+ if(balance.balanceCents<amount)return{ok:false,code:'insufficient_supplier_balance',status:'awaiting_supplier_funds',externalOrderId:id,detail:'Supplier balance is below the verified existing order cost.'};
+ const shipmentOrderId=String(data.shipmentOrderId||data.shipmentId||id),payId=String(data.payId||'');
+ const pay=await cjCall(auth.token,'/shopping/pay/payBalanceV2',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({shipmentOrderId,payId:payId||undefined})});
+ if(!pay.ok)return{ok:false,code:'supplier_payment_failed',status:'awaiting_supplier_funds',externalOrderId:id,shipmentOrderId,detail:String(pay.data?.message||'Existing supplier order payment failed.')};
+ return{ok:true,status:'submitted',externalOrderId:id,shipmentOrderId,costCents:amount,resumed:true};
+}
+
 export async function fulfillCjOrder(env,{order,items,shipping}){
  const rt=await runtime(env);
  if(String(rt.STORE_AUTO_FULFILL||'true').toLowerCase()!=='true')return{ok:false,code:'auto_fulfillment_disabled',status:'awaiting_supplier_activation'};
@@ -122,7 +149,8 @@ export async function fulfillCjOrder(env,{order,items,shipping}){
  const maxAuto=cents(Number(rt.STORE_AUTO_FULFILL_MAX_USD||100));
  if(maxAuto&&quote.supplierTotalCents>maxAuto)return{ok:false,code:'auto_cap',status:'supplier_cost_guard',detail:'Supplier cost exceeds the automatic fulfillment safety cap.'};
  const balance=await supplierBalance(quote.token);
- if(balance<quote.supplierTotalCents)return{ok:false,code:'insufficient_supplier_balance',status:'awaiting_supplier_funds',detail:'Supplier balance is below the verified order cost.'};
+ if(!balance.ok)return{ok:false,code:'supplier_balance_unavailable',status:'retry',detail:balance.detail};
+ if(balance.balanceCents<quote.supplierTotalCents)return{ok:false,code:'insufficient_supplier_balance',status:'awaiting_supplier_funds',detail:'Supplier balance is below the verified order cost.'};
  const address=shipping?.address||{},name=String(shipping?.name||'').trim();
  if(!name||!address.line1||!address.city||!address.country)return{ok:false,code:'address_incomplete',status:'address_review',detail:'Customer shipping address is incomplete.'};
  const create=await cjCall(quote.token,'/shopping/order/createOrderV2',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({orderNumber:String(order.public_id),shippingZip:String(address.postal_code||''),shippingCountry:countryName(address.country),shippingCountryCode:String(address.country).toUpperCase(),shippingProvince:String(address.state||address.city),shippingCity:String(address.city),shippingPhone:String(shipping?.phone||''),shippingCustomerName:name,shippingAddress:String(address.line1),shippingAddress2:String(address.line2||''),email:String(order.customer_email||''),payType:3,logisticName:quote.logisticName,fromCountryCode:'CN',platform:'Api',orderFlow:1,products:quote.lines.map((line,index)=>({vid:line.vid,quantity:line.quantity,storeLineItemId:`${order.public_id}-${index+1}`}))})});
@@ -130,6 +158,6 @@ export async function fulfillCjOrder(env,{order,items,shipping}){
  if(!create.ok||!orderId)return{ok:false,code:'supplier_order_create_failed',status:'retry',detail:String(create.data?.message||'Supplier order could not be created.')};
  if(finalCost&&finalCost>budget){await deleteCreatedOrder(quote.token,orderId);return{ok:false,code:'cost_guard_after_create',status:'supplier_cost_guard',detail:'Supplier final order amount exceeded the prepaid supplier budget.'};}
  const pay=await cjCall(quote.token,'/shopping/pay/payBalanceV2',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({shipmentOrderId,payId:String(data.payId||'')||undefined})});
- if(!pay.ok)return{ok:false,code:'supplier_payment_failed',status:'awaiting_supplier_funds',externalOrderId:shipmentOrderId,detail:String(pay.data?.message||'Supplier balance payment failed.')};
- return{ok:true,status:'submitted',externalOrderId:shipmentOrderId,costCents:finalCost||quote.supplierTotalCents,logisticName:quote.logisticName};
+ if(!pay.ok)return{ok:false,code:'supplier_payment_failed',status:'awaiting_supplier_funds',externalOrderId:orderId,shipmentOrderId,detail:String(pay.data?.message||'Supplier balance payment failed.')};
+ return{ok:true,status:'submitted',externalOrderId:orderId,shipmentOrderId,costCents:finalCost||quote.supplierTotalCents,logisticName:quote.logisticName};
 }

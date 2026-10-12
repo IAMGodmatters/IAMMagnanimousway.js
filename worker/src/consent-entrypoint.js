@@ -2,6 +2,7 @@ import routerApp from './router-entrypoint.js';
 import { handleBusinessPlanQuality } from './business-plan-quality-runtime.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { handleNativeStore } from './native-store-runtime.js';
+import { securityPreflight, securityPostflight } from './security-hardening.js';
 
 const PRIVACY_VERSION = '1.1-2026-10-01';
 const TERMS_VERSION = '1.0-2026-09-01';
@@ -71,6 +72,15 @@ function nativeStoreRequest(request){
   return new Request(url.toString(),init);
 }
 
+async function secureStorePostflight(request,response,env){
+  const explicitCache=String(response?.headers?.get('cache-control')||'');
+  const secured=await securityPostflight(request,response,env);
+  if(request.method!=='GET'||!/^public(?:,|\s|$)/i.test(explicitCache))return secured;
+  const headers=new Headers(secured.headers);
+  headers.set('cache-control',explicitCache);
+  return new Response(secured.body,{status:secured.status,statusText:secured.statusText,headers});
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -88,13 +98,16 @@ export default {
 
     // Native commerce deliberately uses /store-api rather than /api/store so the
     // catalog, checkout and order database stay on the Magnanimous Worker/D1 plane
-    // even when the optional standalone API proxy is enabled. Supplier identity and
-    // supplier costs never cross the public product response.
+    // even when the optional standalone API proxy is enabled. Apply the same API
+    // origin/body-size/security contract after remapping the alias so the public
+    // convenience path never bypasses the hardened /api surface.
     if(url.pathname==='/store-api'||url.pathname.startsWith('/store-api/')){
-      if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
-      const storeResponse=await handleNativeStore(nativeStoreRequest(request),env);
-      if(storeResponse)return withCors(storeResponse);
-      return json({detail:'Store endpoint not found.'},404);
+      const routedRequest=nativeStoreRequest(request);
+      const blocked=await securityPreflight(routedRequest,env);
+      if(blocked)return blocked;
+      const storeResponse=await handleNativeStore(routedRequest,env);
+      if(storeResponse)return secureStorePostflight(routedRequest,storeResponse,env);
+      return secureStorePostflight(routedRequest,Response.json({detail:'Store endpoint not found.'},{status:404,headers:{'cache-control':'no-store'}}),env);
     }
 
     if (request.method === 'OPTIONS') return routerApp.fetch(request, env, ctx);

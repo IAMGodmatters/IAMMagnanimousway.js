@@ -4,10 +4,19 @@ on:
   pull_request:
     paths:
       - 'frontend/app/shop/**'
+      - 'frontend/app/store/products/**'
       - 'frontend/public/store/**'
       - 'worker/src/native-store-runtime.js'
+      - 'worker/src/cj-dropship-runtime.js'
+      - 'worker/src/pod-network-runtime.js'
+      - 'worker/src/stripe-webhook-hardened.js'
       - 'worker/src/consent-entrypoint.js'
       - 'worker/migrations/0097_native_magnanimous_store.sql'
+      - 'worker/migrations/0098_native_store_catalog_expansion.sql'
+      - 'worker/migrations/0099_store_225_product_sourcing_queue.sql'
+      - 'worker/migrations/0100_native_pod_network.sql'
+      - 'worker/migrations/0101_extra_supplier_network.sql'
+      - 'worker/migrations/0102_store_integrity_and_pod_jobs.sql'
       - 'worker/wrangler.jsonc'
       - 'qa/scripts/native-magnanimous-store-lock.mjs'
       - '.github/workflows/native-magnanimous-store-lock.yml'
@@ -15,10 +24,19 @@ on:
     branches: [main]
     paths:
       - 'frontend/app/shop/**'
+      - 'frontend/app/store/products/**'
       - 'frontend/public/store/**'
       - 'worker/src/native-store-runtime.js'
+      - 'worker/src/cj-dropship-runtime.js'
+      - 'worker/src/pod-network-runtime.js'
+      - 'worker/src/stripe-webhook-hardened.js'
       - 'worker/src/consent-entrypoint.js'
       - 'worker/migrations/0097_native_magnanimous_store.sql'
+      - 'worker/migrations/0098_native_store_catalog_expansion.sql'
+      - 'worker/migrations/0099_store_225_product_sourcing_queue.sql'
+      - 'worker/migrations/0100_native_pod_network.sql'
+      - 'worker/migrations/0101_extra_supplier_network.sql'
+      - 'worker/migrations/0102_store_integrity_and_pod_jobs.sql'
       - 'worker/wrangler.jsonc'
       - 'qa/scripts/native-magnanimous-store-lock.mjs'
       - '.github/workflows/native-magnanimous-store-lock.yml'
@@ -30,13 +48,29 @@ jobs:
   verify-native-store:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Verify native store contracts
         run: node qa/scripts/native-magnanimous-store-lock.mjs
-      - name: Syntax check store runtime
-        run: node --check worker/src/native-store-runtime.js
-      - name: Validate store migration
+      - name: Syntax check store runtimes
         run: |
+          node --check worker/src/native-store-runtime.js
+          node --check worker/src/cj-dropship-runtime.js
+          node --check worker/src/pod-network-runtime.js
+          node --check worker/src/stripe-webhook-hardened.js
+          node --check worker/src/consent-entrypoint.js
+      - name: Validate complete native store migration chain
+        run: |
+          set -euo pipefail
           db="$(mktemp)"
-          sqlite3 "$db" < worker/migrations/0097_native_magnanimous_store.sql
-          sqlite3 "$db" "SELECT count(*) FROM store_products; SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('store_products','store_orders','store_order_items','store_fulfillment_jobs');"
+          for migration in \
+            worker/migrations/0097_native_magnanimous_store.sql \
+            worker/migrations/0098_native_store_catalog_expansion.sql \
+            worker/migrations/0099_store_225_product_sourcing_queue.sql \
+            worker/migrations/0100_native_pod_network.sql \
+            worker/migrations/0101_extra_supplier_network.sql \
+            worker/migrations/0102_store_integrity_and_pod_jobs.sql; do
+            sqlite3 "$db" < "$migration"
+          done
+          sqlite3 "$db" "SELECT count(*) FROM store_products; SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('store_products','store_orders','store_order_items','store_fulfillment_jobs','store_sourcing_targets','store_supplier_providers','store_pod_designs','store_pod_jobs');"
+          required="$(sqlite3 "$db" "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('store_products','store_orders','store_order_items','store_fulfillment_jobs','store_sourcing_targets','store_supplier_providers','store_pod_designs','store_pod_jobs');")"
+          test "$required" = "8"
