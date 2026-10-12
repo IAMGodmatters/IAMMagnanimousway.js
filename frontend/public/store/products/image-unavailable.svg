@@ -1,1 +1,10 @@
-²ø1šYì
+ï»¿<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Product image unavailable</title>
+  <desc id="desc">I AM MAGNANIMOUS WAY product image fallback</desc>
+  <rect width="1200" height="1200" fill="#f3f5f7"/>
+  <rect x="140" y="140" width="920" height="920" rx="54" fill="#ffffff" stroke="#d7dde4" stroke-width="12"/>
+  <path d="M310 760l190-210 135 145 115-120 145 185H310z" fill="#dce5ed"/>
+  <circle cx="790" cy="405" r="82" fill="#dce5ed"/>
+  <text x="600" y="890" text-anchor="middle" font-family="Arial,sans-serif" font-size="42" font-weight="700" fill="#314256">Image temporarily unavailable</text>
+  <text x="600" y="965" text-anchor="middle" font-family="Arial,sans-serif" font-size="23" font-weight="700" letter-spacing="3" fill="#607286">I AM MAGNANIMOUS WAY&#8482;</text>
+</svg>
