@@ -51,10 +51,10 @@ if(u.pathname==='/api/video-agents/storyboard'&&request.method==='POST'){
  const count=Math.max(3,Math.min(8,Number(body.scenes)||4)),agentId=S(body.agent_id||'social-short',80);
  const agent=SPECIALIST_VIDEO_AGENTS.find(x=>x.id===agentId)||SPECIALIST_VIDEO_AGENTS[0];
  if(agent.premium&&!premiumPresenterReady(env))return J({detail:'This presenter agent needs an authorized presenter provider. Use a free-first Magnanimous video agent or connect a presenter adapter.',code:'PRESENTER_PROVIDER_REQUIRED'},503);
- const format=S(body.format||'9:16',12),style=S(body.style||'cinematic',40),direction=S(body.visual_direction,2000);
+ const format=S(body.format||'9:16',12),style=S(body.style||'cinematic',40),direction=S(body.visual_direction,2000),director=S(body.director||'auto',40),imageProvider=S(body.image_provider||'auto',80);
  const narrations=splitStoryboardText(message,count),scenes=[];
  for(let index=0;index<narrations.length;index++){
-  const narration=narrations[index],visual=await renderVisualScene(env,{title,text:direction?direction+' Scene message: '+narration:narration,style,director:'auto'});
+  const narration=narrations[index],visual=await renderVisualScene(env,{title,text:direction?direction+' Scene message: '+narration:narration,style,director,imageProvider});
   scenes.push({index:index+1,narration,image_data_uri:visual.image_data_uri,prompt:visual.prompt,provider:visual.provider,image_provider:visual.image_provider,image_model:visual.image_model,motion:'slow cinematic pan and zoom'});
  }
  return J({ok:true,title,format,agent,scenes,providers:{free_cinematic:true,browser_assembly:true,heygen:Boolean(env?.HEYGEN_API_KEY),tavus:Boolean(env?.TAVUS_API_KEY)},assembly:{mode:'browser-media-recorder',provider:'magnanimous-browser-assembly'},free_first:true},201);
