@@ -114,6 +114,31 @@ export async function reconcileCjOrder(env,externalOrderId){
  if(status==='UNPAID'||status==='CANCELLED')return{ok:true,committed:false,status};
  return{ok:false,code:'supplier_status_ambiguous',detail:`Supplier order is in an unrecognized state (${status||'unknown'}).`};
 }
+export async function resumeCjOrderPayment(env,{externalOrderId,budgetCents=0}){
+ const id=String(externalOrderId||'').trim();
+ if(!id)return{ok:false,code:'supplier_order_missing',status:'retry',detail:'Supplier order reference is missing.'};
+ const auth=await access(env);if(!auth.ok)return{...auth,status:'retry'};
+ const detail=await cjCall(auth.token,`/shopping/order/getOrderDetail?orderId=${encodeURIComponent(id)}`);
+ if(!detail.ok)return{ok:false,code:'supplier_status_unknown',status:'retry',externalOrderId:id,detail:String(detail.data?.message||'Supplier order status could not be confirmed.')};
+ const data=detail.data?.data||{},status=String(data.orderStatus||data.status||'').trim().toUpperCase();
+ const committed=new Set(['PENDING','PROCESSING','UNSHIPPED','SHIPPED','DELIVERED']);
+ if(committed.has(status))return{ok:true,status:'submitted',externalOrderId:id,resumed:true};
+ if(status==='CANCELLED'||status==='DELETED')return{ok:false,code:'supplier_order_cancelled',status:'recreate_allowed',externalOrderId:id,recreate:true,detail:'The previous supplier order is cancelled and may be recreated safely.'};
+ if(!['CREATED','IN_CART','UNPAID'].includes(status))return{ok:false,code:'supplier_status_ambiguous',status:'retry',externalOrderId:id,detail:`Supplier order is in an unrecognized state (${status||'unknown'}).`};
+ const amount=cents(Number(data.orderAmount||data.totalAmount||0)),budget=Math.max(0,Number(budgetCents||0));
+ if(!amount)return{ok:false,code:'supplier_cost_unverified',status:'retry',externalOrderId:id,detail:'Existing supplier order cost could not be verified before payment.'};
+ if(amount>budget)return{ok:false,code:'cost_guard_existing_order',status:'supplier_cost_guard',externalOrderId:id,detail:'Existing supplier order exceeds the prepaid supplier budget.'};
+ const maxAuto=cents(Number(auth.rt.STORE_AUTO_FULFILL_MAX_USD||100));
+ if(maxAuto&&amount>maxAuto)return{ok:false,code:'auto_cap_existing_order',status:'supplier_cost_guard',externalOrderId:id,detail:'Existing supplier order exceeds the automatic fulfillment safety cap.'};
+ const balance=await supplierBalance(auth.token);
+ if(!balance.ok)return{ok:false,code:'supplier_balance_unavailable',status:'retry',externalOrderId:id,detail:balance.detail};
+ if(balance.balanceCents<amount)return{ok:false,code:'insufficient_supplier_balance',status:'awaiting_supplier_funds',externalOrderId:id,detail:'Supplier balance is below the verified existing order cost.'};
+ const shipmentOrderId=String(data.shipmentOrderId||data.shipmentId||id),payId=String(data.payId||'');
+ const pay=await cjCall(auth.token,'/shopping/pay/payBalanceV2',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({shipmentOrderId,payId:payId||undefined})});
+ if(!pay.ok)return{ok:false,code:'supplier_payment_failed',status:'awaiting_supplier_funds',externalOrderId:id,shipmentOrderId,detail:String(pay.data?.message||'Existing supplier order payment failed.')};
+ return{ok:true,status:'submitted',externalOrderId:id,shipmentOrderId,costCents:amount,resumed:true};
+}
+
 export async function fulfillCjOrder(env,{order,items,shipping}){
  const rt=await runtime(env);
  if(String(rt.STORE_AUTO_FULFILL||'true').toLowerCase()!=='true')return{ok:false,code:'auto_fulfillment_disabled',status:'awaiting_supplier_activation'};

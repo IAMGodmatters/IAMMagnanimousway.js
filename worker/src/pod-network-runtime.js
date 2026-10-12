@@ -47,8 +47,7 @@ export async function scheduledPodCreative(env){
   await env.DB.prepare('INSERT INTO store_pod_designs(id,template_id,day_key,theme,title,text_primary,text_secondary,scripture_ref,art_motif,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,\'ready\',?)').bind(id,tpl.id,today,theme,tpl.title,tpl.text_primary,tpl.text_secondary,tpl.scripture_ref,tpl.art_motif,ts).run();created++;createdIds.push(id);
  }
  const jobs=await reconcilePodJobs(env,createdIds);
- const processed=await processPodJobs(env).catch(error=>({processed:0,failed:1,detail:String(error?.message||error)}));
- return{created,jobs,processed,day:today};
+ return{created,jobs,day:today};
 }
 function motifSvg(motif,theme){
  const m=String(motif||'').toLowerCase();
@@ -89,9 +88,10 @@ async function renderArt(env,id){
 }
 function printfulHeaders(rt){const h={'authorization':`Bearer ${String(rt.PRINTFUL_API_TOKEN||'').trim()}`,'content-type':'application/json'};const store=String(rt.PRINTFUL_STORE_ID||'').trim();if(store)h['x-pf-store-id']=store;return h}
 function nextRetry(attempt){return now()+Math.min(21600,300*(2**Math.min(6,Math.max(0,attempt-1))))}
+const RETRYABLE_POD_STATES=new Set(['retry','provider_setup_required','provider_mapping_required','printfile_review_required','provider_adapter_required','processing']);
 async function updateJob(env,job,status,error='',extra={}){
- const ts=now(),attempt=Number(job.attempt_count||0)+1;
- await env.DB.prepare('UPDATE store_pod_jobs SET status=?,provider=?,provider_product_id=?,provider_variant_id=?,last_error=?,attempt_count=?,next_attempt_at=?,updated_at=? WHERE id=?').bind(status,String(extra.provider??job.provider??''),String(extra.providerProductId??job.provider_product_id??''),String(extra.providerVariantId??job.provider_variant_id??''),cleanText(error,500),attempt,status==='retry'?nextRetry(attempt):0,ts,job.id).run();
+ const ts=now(),attempt=Number(job.attempt_count||0)+1,nextAttempt=RETRYABLE_POD_STATES.has(status)?nextRetry(attempt):0;
+ await env.DB.prepare('UPDATE store_pod_jobs SET status=?,provider=?,provider_product_id=?,provider_variant_id=?,last_error=?,attempt_count=?,next_attempt_at=?,updated_at=? WHERE id=?').bind(status,String(extra.provider??job.provider??''),String(extra.providerProductId??job.provider_product_id??''),String(extra.providerVariantId??job.provider_variant_id??''),cleanText(error,500),attempt,nextAttempt,ts,job.id).run();
 }
 async function publishPrintfulJob(env,rt,job){
  const variantMap=parseJson(rt.PRINTFUL_VARIANT_MAP_JSON,{}),mapping=variantMap[String(job.product_type_id||'')];
@@ -104,24 +104,28 @@ async function publishPrintfulJob(env,rt,job){
  const payload={sync_product:{external_id:externalId,name:cleanText(`${job.title} — ${job.product_type_name}`,180)},sync_variants:[{external_id:`${externalId}-1`,variant_id:Number(mapping.variant_id),files:[{type:String(mapping.file_type||'default'),url:fileUrl}]}]};
  if(retail>0)payload.sync_variants[0].retail_price=retail.toFixed(2);
  let response,data;
- try{response=await fetch('https://api.printful.com/store/products',{method:'POST',headers:printfulHeaders(rt),body:JSON.stringify(payload)});data=await response.json().catch(()=>({}))}catch(error){return updateJob(env,job,'retry',`Printful request failed: ${String(error?.message||error)}`,{provider:'printful'})}
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+ try{response=await fetch('https://api.printful.com/store/products',{method:'POST',headers:printfulHeaders(rt),body:JSON.stringify(payload),signal:controller.signal});data=await response.json().catch(()=>({}))}catch(error){return updateJob(env,job,'retry',`Printful request failed: ${String(error?.name==='AbortError'?'request timed out':error?.message||error)}`,{provider:'printful'})}finally{clearTimeout(timer)}
  if(response.ok&&data?.result?.id){return updateJob(env,job,'provider_ready','',{provider:'printful',providerProductId:String(data.result.id),providerVariantId:String(mapping.variant_id)})}
  if(response.status===429||response.status>=500)return updateJob(env,job,'retry',String(data?.error?.message||data?.result||`Printful HTTP ${response.status}`),{provider:'printful'});
  return updateJob(env,job,'provider_review_required',String(data?.error?.message||data?.result||`Printful rejected product setup (HTTP ${response.status}).`),{provider:'printful'});
 }
 export async function processPodJobs(env){
  const rt=await runtime(env),status=await podProviderStatus(rt),connected=status.providers.find(p=>p.connected),ts=now();
- const {results:jobs=[]}=await env.DB.prepare(`SELECT j.*,d.title,t.name AS product_type_name FROM store_pod_jobs j JOIN store_pod_designs d ON d.id=j.design_id JOIN store_pod_product_types t ON t.id=j.product_type_id WHERE d.status IN ('ready','published') AND j.status IN ('design_ready','retry') AND COALESCE(j.next_attempt_at,0)<=? ORDER BY j.updated_at,j.id LIMIT 4`).bind(ts).all();
+ if(!connected)return{processed:0,provider:'',queued:0,reason:'provider_not_connected'};
+ const {results:jobs=[]}=await env.DB.prepare(`SELECT j.*,d.title,t.name AS product_type_name FROM store_pod_jobs j JOIN store_pod_designs d ON d.id=j.design_id JOIN store_pod_product_types t ON t.id=j.product_type_id WHERE d.status IN ('ready','published') AND j.status IN ('design_ready','retry','provider_setup_required','provider_mapping_required','printfile_review_required','provider_adapter_required','processing') AND COALESCE(j.next_attempt_at,0)<=? ORDER BY j.updated_at,j.id LIMIT 2`).bind(ts).all();
  let processed=0;
  for(const job of jobs){
-  if(!connected){await updateJob(env,job,'provider_setup_required','No authorized print-on-demand provider is connected.');processed++;continue}
-  if(connected.id==='printful'){await publishPrintfulJob(env,rt,job);processed++;continue}
-  await updateJob(env,job,'provider_adapter_required',`${connected.id} is connected, but its safe native product-publishing adapter has not been enabled.`,{provider:connected.id});processed++;
+  const claimUntil=ts+300,claim=await env.DB.prepare("UPDATE store_pod_jobs SET status='processing',next_attempt_at=?,updated_at=? WHERE id=? AND status=? AND updated_at=?").bind(claimUntil,ts,job.id,job.status,job.updated_at).run();
+  if(Number(claim?.meta?.changes||0)!==1)continue;
+  const claimed={...job,status:'processing',next_attempt_at:claimUntil,updated_at:ts};
+  if(connected.id==='printful'){await publishPrintfulJob(env,rt,claimed);processed++;continue}
+  await updateJob(env,claimed,'provider_adapter_required',`${connected.id} is connected, but its safe native product-publishing adapter has not been enabled.`,{provider:connected.id});processed++;
  }
- return{processed,provider:connected?.id||'',queued:jobs.length};
+ return{processed,provider:connected.id,queued:jobs.length};
 }
 async function publicDesigns(request,env){
- await scheduledPodCreative(env).catch(()=>null);const origin=new URL(request.url).origin,{results=[]}=await env.DB.prepare("SELECT id,day_key,theme,title,text_primary,text_secondary,scripture_ref,status FROM store_pod_designs WHERE status IN ('ready','published') ORDER BY day_key DESC,theme LIMIT 40").all();
+ const origin=new URL(request.url).origin,{results=[]}=await env.DB.prepare("SELECT id,day_key,theme,title,text_primary,text_secondary,scripture_ref,status FROM store_pod_designs WHERE status IN ('ready','published') ORDER BY day_key DESC,theme LIMIT 40").all();
  return json({collection:'Magnanimous Print-on-Demand Design Gallery',daily:true,purchase_ready:false,purchase_note:'Designs become purchasable only after a print provider, product variant, print file, live cost, and checkout fulfillment path are verified.',designs:results.map(row=>({...row,art_url:`${origin}/store-api/pod/art/${encodeURIComponent(row.id)}.svg`}))});
 }
 async function ownerStatus(request,env){const guard=await requirePlatformOwner(request,env);if(guard)return guard;const status=await podProviderStatus(env),{results:jobs=[]}=await env.DB.prepare('SELECT status,COUNT(*) AS count FROM store_pod_jobs GROUP BY status ORDER BY status').all(),{results:days=[]}=await env.DB.prepare('SELECT day_key,COUNT(*) AS designs FROM store_pod_designs GROUP BY day_key ORDER BY day_key DESC LIMIT 14').all();return json({providers:status.providers.map(({id,connected,priority,freeEntry})=>({id,connected,priority,free_entry:freeEntry})),auto_fulfill:status.autoFulfill,max_auto_usd:status.maxUsd,jobs,days,truth_boundary:'Provider-ready means product setup is verified; customer checkout remains disabled until live cost and fulfillment billing are safely funded.'})}

@@ -72,6 +72,15 @@ function nativeStoreRequest(request){
   return new Request(url.toString(),init);
 }
 
+async function secureStorePostflight(request,response,env){
+  const explicitCache=String(response?.headers?.get('cache-control')||'');
+  const secured=await securityPostflight(request,response,env);
+  if(request.method!=='GET'||!/^public(?:,|\s|$)/i.test(explicitCache))return secured;
+  const headers=new Headers(secured.headers);
+  headers.set('cache-control',explicitCache);
+  return new Response(secured.body,{status:secured.status,statusText:secured.statusText,headers});
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -97,8 +106,8 @@ export default {
       const blocked=await securityPreflight(routedRequest,env);
       if(blocked)return blocked;
       const storeResponse=await handleNativeStore(routedRequest,env);
-      if(storeResponse)return securityPostflight(routedRequest,storeResponse,env);
-      return securityPostflight(routedRequest,Response.json({detail:'Store endpoint not found.'},{status:404,headers:{'cache-control':'no-store'}}),env);
+      if(storeResponse)return secureStorePostflight(routedRequest,storeResponse,env);
+      return secureStorePostflight(routedRequest,Response.json({detail:'Store endpoint not found.'},{status:404,headers:{'cache-control':'no-store'}}),env);
     }
 
     if (request.method === 'OPTIONS') return routerApp.fetch(request, env, ctx);
