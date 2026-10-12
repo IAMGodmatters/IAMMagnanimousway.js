@@ -16,6 +16,8 @@ function esc(value){return cleanText(value,240).replace(/&/g,'&amp;').replace(/"
 function dayKey(date=new Date()){return date.toISOString().slice(0,10)}
 function ordinalDay(date=new Date()){const start=Date.UTC(date.getUTCFullYear(),0,1);return Math.floor((Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate())-start)/86400000)+1}
 async function runtime(env){return getProviderRuntimeEnv(env)}
+function parseJson(value,fallback={}){try{const parsed=JSON.parse(String(value||''));return parsed&&typeof parsed==='object'?parsed:fallback}catch{return fallback}}
+function publicOrigin(rt){try{return new URL(String(rt.PUBLIC_SITE_URL||'https://iammagnanimousway.com')).origin}catch{return'https://iammagnanimousway.com'}}
 export async function podProviderStatus(env){
  const rt=await runtime(env),requested=String(rt.POD_PROVIDER_PRIORITY||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean),rank=new Map(requested.map((id,i)=>[id,i]));
  const providers=PROVIDERS.map((p,index)=>({...p,connected:p.keys.every(k=>Boolean(String(rt[k]||'').trim())),priority:rank.has(p.id)?rank.get(p.id):requested.length+index})).sort((a,b)=>a.priority-b.priority);
@@ -25,34 +27,102 @@ async function templateForDay(env,theme,index){
  const {results=[]}=await env.DB.prepare('SELECT * FROM store_pod_design_templates WHERE active=1 AND theme=? ORDER BY id').bind(theme).all();
  if(!results.length)return null;return results[index%results.length];
 }
-export async function scheduledPodCreative(env){
- const today=dayKey(),index=ordinalDay()-1,ts=now();let created=0,jobs=0;
+async function reconcilePodJobs(env,designIds=[]){
+ const ts=now();let jobs=0;
+ let designs=designIds;
+ if(!designs.length){const rows=await env.DB.prepare("SELECT id FROM store_pod_designs WHERE status IN ('ready','published') ORDER BY created_at DESC LIMIT 80").all();designs=(rows.results||[]).map(x=>String(x.id))}
  const {results:types=[]}=await env.DB.prepare('SELECT id FROM store_pod_product_types WHERE active=1 ORDER BY sort_order,id').all();
- for(let i=0;i<THEMES.length;i++){
-  const theme=THEMES[i],existing=await env.DB.prepare('SELECT id FROM store_pod_designs WHERE day_key=? AND theme=?').bind(today,theme).first();if(existing)continue;
-  const tpl=await templateForDay(env,theme,index+i);if(!tpl)continue;const id=`pod_${today.replaceAll('-','')}_${theme.replaceAll('-','_')}`;
-  await env.DB.prepare('INSERT INTO store_pod_designs(id,template_id,day_key,theme,title,text_primary,text_secondary,scripture_ref,art_motif,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,\'ready\',?)').bind(id,tpl.id,today,theme,tpl.title,tpl.text_primary,tpl.text_secondary,tpl.scripture_ref,tpl.art_motif,ts).run();created++;
-  for(const type of types){await env.DB.prepare('INSERT OR IGNORE INTO store_pod_jobs(id,design_id,product_type_id,status,created_at,updated_at) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),id,type.id,'design_ready',ts,ts).run();jobs++}
+ for(const designId of designs)for(const type of types){
+  const result=await env.DB.prepare("INSERT OR IGNORE INTO store_pod_jobs(id,design_id,product_type_id,status,created_at,updated_at,attempt_count,next_attempt_at) VALUES(?,?,?,?,?,?,0,0)").bind(crypto.randomUUID(),designId,type.id,'design_ready',ts,ts).run();
+  if(Number(result?.meta?.changes||0)>0)jobs++;
  }
- return{created,jobs,day:today};
+ return jobs;
+}
+export async function scheduledPodCreative(env){
+ const today=dayKey(),index=ordinalDay()-1,ts=now();let created=0;const createdIds=[];
+ for(let i=0;i<THEMES.length;i++){
+  const theme=THEMES[i],existing=await env.DB.prepare('SELECT id FROM store_pod_designs WHERE day_key=? AND theme=?').bind(today,theme).first();
+  if(existing){createdIds.push(String(existing.id));continue}
+  const tpl=await templateForDay(env,theme,index+i);if(!tpl)continue;const id=`pod_${today.replaceAll('-','')}_${theme.replaceAll('-','_')}`;
+  await env.DB.prepare('INSERT INTO store_pod_designs(id,template_id,day_key,theme,title,text_primary,text_secondary,scripture_ref,art_motif,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,\'ready\',?)').bind(id,tpl.id,today,theme,tpl.title,tpl.text_primary,tpl.text_secondary,tpl.scripture_ref,tpl.art_motif,ts).run();created++;createdIds.push(id);
+ }
+ const jobs=await reconcilePodJobs(env,createdIds);
+ const processed=await processPodJobs(env).catch(error=>({processed:0,failed:1,detail:String(error?.message||error)}));
+ return{created,jobs,processed,day:today};
 }
 function motifSvg(motif,theme){
- if(motif==='heart')return'<path d="M400 655C190 520 110 400 145 300c43-122 193-119 255-22 62-97 212-100 255 22 35 100-45 220-255 355Z" fill="none" stroke="currentColor" stroke-width="22"/>';
- if(motif==='paw')return'<g fill="currentColor"><circle cx="400" cy="420" r="92"/><circle cx="270" cy="310" r="44"/><circle cx="360" cy="255" r="44"/><circle cx="455" cy="255" r="44"/><circle cx="540" cy="315" r="44"/></g>';
- if(motif==='star'||motif==='stars'||motif==='spark')return'<path d="m400 205 45 113 121 8-93 78 30 118-103-64-103 64 30-118-93-78 121-8Z" fill="none" stroke="currentColor" stroke-width="20"/>';
+ const m=String(motif||'').toLowerCase();
+ if(m==='heart')return'<path d="M400 655C190 520 110 400 145 300c43-122 193-119 255-22 62-97 212-100 255 22 35 100-45 220-255 355Z" fill="none" stroke="currentColor" stroke-width="22"/>';
+ if(m==='paw')return'<g fill="currentColor"><circle cx="400" cy="420" r="92"/><circle cx="270" cy="310" r="44"/><circle cx="360" cy="255" r="44"/><circle cx="455" cy="255" r="44"/><circle cx="540" cy="315" r="44"/></g>';
+ if(['star','stars','spark'].includes(m))return'<path d="m400 205 45 113 121 8-93 78 30 118-103-64-103 64 30-118-93-78 121-8Z" fill="none" stroke="currentColor" stroke-width="20"/>';
+ if(['sun','sunrise','sunburst'].includes(m))return'<g fill="none" stroke="currentColor" stroke-width="18"><circle cx="400" cy="360" r="90"/><path d="M400 190v75M400 455v75M230 360h75M495 360h75M280 240l53 53M467 427l53 53M520 240l-53 53M333 427l-53 53"/></g>';
+ if(m==='mountain')return'<path d="M185 545 350 285l70 105 70-80 135 235H185Z" fill="none" stroke="currentColor" stroke-width="20"/><path d="m318 335 32-50 34 51" fill="none" stroke="currentColor" stroke-width="14"/>';
+ if(m==='steps')return'<path d="M210 545h95v-85h95v-85h95v-85h95" fill="none" stroke="currentColor" stroke-width="22"/>';
+ if(['waves','dove'].includes(m))return m==='waves'?'<path d="M190 330q70-70 140 0t140 0t140 0M190 425q70-70 140 0t140 0t140 0" fill="none" stroke="currentColor" stroke-width="18"/>':'<path d="M220 430q115-170 220-55 80-105 175-65-62 54-105 132-92 108-290-12Z" fill="none" stroke="currentColor" stroke-width="18"/>';
+ if(['prayer','hands'].includes(m))return'<path d="M330 520q-55-115-15-245 35-60 67 15l18 90 18-90q32-75 67-15 40 130-15 245M330 520h140" fill="none" stroke="currentColor" stroke-width="18"/>';
+ if(m==='book')return'<path d="M205 285q105-45 195 20v250q-90-65-195-20V285Zm390 0q-105-45-195 20v250q90-65 195-20V285Z" fill="none" stroke="currentColor" stroke-width="18"/>';
+ if(m==='shield')return'<path d="M400 210 575 275v120q0 135-175 220-175-85-175-220V275l175-65Z" fill="none" stroke="currentColor" stroke-width="20"/>';
+ if(['arrow','refresh'].includes(m))return m==='arrow'?'<path d="M225 500 525 255m0 0-8 120m8-120-120 8" fill="none" stroke="currentColor" stroke-width="22"/>':'<path d="M545 300a170 170 0 1 0 18 150M545 300h-95m95 0v-95" fill="none" stroke="currentColor" stroke-width="20"/>';
+ if(['calendar','clock'].includes(m))return m==='calendar'?'<g fill="none" stroke="currentColor" stroke-width="18"><rect x="235" y="255" width="330" height="300" rx="28"/><path d="M235 340h330M315 225v70M485 225v70"/></g>':'<g fill="none" stroke="currentColor" stroke-width="18"><circle cx="400" cy="380" r="160"/><path d="M400 275v115l80 50"/></g>';
+ if(['leaf','sprout'].includes(m))return'<path d="M400 560q-15-185 135-260-5 160-135 190-130-30-135-150 130 30 135 145" fill="none" stroke="currentColor" stroke-width="18"/>';
+ if(['lamp','light'].includes(m))return'<g fill="none" stroke="currentColor" stroke-width="18"><path d="M310 420q0-160 90-160t90 160l-40 45H350l-40-45Z"/><path d="M350 500h100M365 540h70"/></g>';
+ if(['check','list'].includes(m))return'<g fill="none" stroke="currentColor" stroke-width="18"><rect x="235" y="240" width="330" height="330" rx="25"/><path d="m295 350 45 45 80-90M295 470h200"/></g>';
+ if(['box','folder'].includes(m))return m==='box'?'<path d="m250 300 150-75 150 75v210l-150 75-150-75V300Zm0 0 150 80 150-80M400 380v205" fill="none" stroke="currentColor" stroke-width="18"/>':'<path d="M220 300h160l45 55h155v205H220V300Z" fill="none" stroke="currentColor" stroke-width="18"/>';
+ if(['snack','cookie','bean'].includes(m))return'<g fill="none" stroke="currentColor" stroke-width="18"><circle cx="400" cy="380" r="150"/><circle cx="350" cy="330" r="12" fill="currentColor"/><circle cx="455" cy="355" r="12" fill="currentColor"/><circle cx="390" cy="440" r="12" fill="currentColor"/></g>';
+ if(m==='brain')return'<path d="M315 520q-95-50-55-135-40-90 45-125 25-85 95-35 70-50 95 35 85 35 45 125 40 85-55 135-45 35-85-5-40 40-85 5Z" fill="none" stroke="currentColor" stroke-width="18"/>';
+ if(m==='battery')return'<g fill="none" stroke="currentColor" stroke-width="18"><rect x="235" y="300" width="310" height="170" rx="25"/><path d="M545 345h35v80h-35M275 385h100"/></g>';
+ if(m==='loader')return'<g fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round"><path d="M400 225v55M400 480v55M245 380h55M500 380h55M290 270l40 40M470 450l40 40M510 270l-40 40M330 450l-40 40"/></g>';
+ if(m==='mug')return'<path d="M250 300h260v210q0 65-65 65H315q-65 0-65-65V300Zm260 55h55q65 0 65 70t-65 70h-55" fill="none" stroke="currentColor" stroke-width="18"/>';
+ if(m==='moon')return'<path d="M470 220q-135 55-100 190t175 105q-75 100-205 45-135-58-120-205 15-145 160-175 45-9 90 40Z" fill="none" stroke="currentColor" stroke-width="18"/>';
+ if(m==='crown')return'<path d="m230 490-35-190 115 90 90-145 90 145 115-90-35 190H230Zm10 55h320" fill="none" stroke="currentColor" stroke-width="18"/>';
+ if(m==='cloud')return'<path d="M250 505q-75 0-75-75 0-70 70-75 25-115 135-90 75-80 155-15 95-5 105 90 70 20 55 95-12 70-90 70H250Z" fill="none" stroke="currentColor" stroke-width="18"/>';
+ if(m==='shepherd')return'<path d="M420 225q120 0 85 110-18 55-85 65v160M300 520q100-95 200 0" fill="none" stroke="currentColor" stroke-width="18"/>';
  if(theme==='cute-meme')return'<g fill="none" stroke="currentColor" stroke-width="18"><circle cx="400" cy="365" r="125"/><circle cx="355" cy="340" r="8" fill="currentColor"/><circle cx="445" cy="340" r="8" fill="currentColor"/><path d="M350 405q50 45 100 0"/></g>';
  return'<circle cx="400" cy="360" r="135" fill="none" stroke="currentColor" stroke-width="18" opacity=".55"/><path d="M265 360h270M400 225v270" stroke="currentColor" stroke-width="8" opacity=".35"/>';
 }
 async function renderArt(env,id){
- const row=await env.DB.prepare('SELECT * FROM store_pod_designs WHERE id=?').bind(String(id||'')).first();if(!row)return new Response('Not found',{status:404});
+ const row=await env.DB.prepare("SELECT * FROM store_pod_designs WHERE id=? AND status IN ('ready','published')").bind(String(id||'')).first();if(!row)return new Response('Not found',{status:404,headers:{'cache-control':'no-store'}});
  const primary=esc(row.text_primary),secondary=esc(row.scripture_ref||row.text_secondary),theme=String(row.theme||'');
  const accent=theme==='scripture'?'#F6D77A':theme==='inspirational'?'#7DE8FF':theme==='sarcastic'?'#FFB3D1':'#B9F4C8';
  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="3000" viewBox="0 0 800 1000"><rect width="800" height="1000" fill="#071429"/><g color="${accent}">${motifSvg(String(row.art_motif||''),theme)}</g><text x="400" y="665" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="48" font-weight="800"><tspan x="400" dy="0">${primary.slice(0,34)}</tspan>${primary.length>34?`<tspan x="400" dy="58">${primary.slice(34,68)}</tspan>`:''}${primary.length>68?`<tspan x="400" dy="58">${primary.slice(68,102)}</tspan>`:''}</text><text x="400" y="865" text-anchor="middle" fill="${accent}" font-family="Arial,sans-serif" font-size="28" font-weight="700">${secondary}</text><text x="400" y="935" text-anchor="middle" fill="#98BBD0" font-family="Arial,sans-serif" font-size="16" letter-spacing="3">I AM MAGNANIMOUS WAY™</text></svg>`;
- return new Response(svg,{headers:{'content-type':'image/svg+xml; charset=utf-8','cache-control':'public, max-age=86400'}});
+ return new Response(svg,{headers:{'content-type':'image/svg+xml; charset=utf-8','cache-control':'public, max-age=300, must-revalidate'}});
+}
+function printfulHeaders(rt){const h={'authorization':`Bearer ${String(rt.PRINTFUL_API_TOKEN||'').trim()}`,'content-type':'application/json'};const store=String(rt.PRINTFUL_STORE_ID||'').trim();if(store)h['x-pf-store-id']=store;return h}
+function nextRetry(attempt){return now()+Math.min(21600,300*(2**Math.min(6,Math.max(0,attempt-1))))}
+async function updateJob(env,job,status,error='',extra={}){
+ const ts=now(),attempt=Number(job.attempt_count||0)+1;
+ await env.DB.prepare('UPDATE store_pod_jobs SET status=?,provider=?,provider_product_id=?,provider_variant_id=?,last_error=?,attempt_count=?,next_attempt_at=?,updated_at=? WHERE id=?').bind(status,String(extra.provider??job.provider??''),String(extra.providerProductId??job.provider_product_id??''),String(extra.providerVariantId??job.provider_variant_id??''),cleanText(error,500),attempt,status==='retry'?nextRetry(attempt):0,ts,job.id).run();
+}
+async function publishPrintfulJob(env,rt,job){
+ const variantMap=parseJson(rt.PRINTFUL_VARIANT_MAP_JSON,{}),mapping=variantMap[String(job.product_type_id||'')];
+ if(!mapping||!Number(mapping.variant_id))return updateJob(env,job,'provider_mapping_required',`No verified Printful catalog variant is mapped for ${job.product_type_id}.`,{provider:'printful'});
+ const template=String(rt.POD_PRINTFILE_URL_TEMPLATE||'').trim();
+ if(!template||!template.includes('{design_id}'))return updateJob(env,job,'printfile_review_required','A reviewed printable PNG/JPEG URL template is required before provider publishing.',{provider:'printful'});
+ const fileUrl=template.replaceAll('{design_id}',encodeURIComponent(String(job.design_id))).replaceAll('{product_type_id}',encodeURIComponent(String(job.product_type_id)));
+ if(!/^https:\/\//i.test(fileUrl)||!/(?:\.png|\.jpe?g)(?:\?|$)/i.test(fileUrl))return updateJob(env,job,'printfile_review_required','POD print-file URLs must be HTTPS PNG/JPEG files reviewed for the mapped product.',{provider:'printful'});
+ const externalId=`magnanimous-${job.design_id}-${job.product_type_id}`.slice(0,180),retail=Number(mapping.retail_price||0);
+ const payload={sync_product:{external_id:externalId,name:cleanText(`${job.title} — ${job.product_type_name}`,180)},sync_variants:[{external_id:`${externalId}-1`,variant_id:Number(mapping.variant_id),files:[{type:String(mapping.file_type||'default'),url:fileUrl}]}]};
+ if(retail>0)payload.sync_variants[0].retail_price=retail.toFixed(2);
+ let response,data;
+ try{response=await fetch('https://api.printful.com/store/products',{method:'POST',headers:printfulHeaders(rt),body:JSON.stringify(payload)});data=await response.json().catch(()=>({}))}catch(error){return updateJob(env,job,'retry',`Printful request failed: ${String(error?.message||error)}`,{provider:'printful'})}
+ if(response.ok&&data?.result?.id){return updateJob(env,job,'provider_ready','',{provider:'printful',providerProductId:String(data.result.id),providerVariantId:String(mapping.variant_id)})}
+ if(response.status===429||response.status>=500)return updateJob(env,job,'retry',String(data?.error?.message||data?.result||`Printful HTTP ${response.status}`),{provider:'printful'});
+ return updateJob(env,job,'provider_review_required',String(data?.error?.message||data?.result||`Printful rejected product setup (HTTP ${response.status}).`),{provider:'printful'});
+}
+export async function processPodJobs(env){
+ const rt=await runtime(env),status=await podProviderStatus(rt),connected=status.providers.find(p=>p.connected),ts=now();
+ const {results:jobs=[]}=await env.DB.prepare(`SELECT j.*,d.title,t.name AS product_type_name FROM store_pod_jobs j JOIN store_pod_designs d ON d.id=j.design_id JOIN store_pod_product_types t ON t.id=j.product_type_id WHERE d.status IN ('ready','published') AND j.status IN ('design_ready','retry') AND COALESCE(j.next_attempt_at,0)<=? ORDER BY j.updated_at,j.id LIMIT 4`).bind(ts).all();
+ let processed=0;
+ for(const job of jobs){
+  if(!connected){await updateJob(env,job,'provider_setup_required','No authorized print-on-demand provider is connected.');processed++;continue}
+  if(connected.id==='printful'){await publishPrintfulJob(env,rt,job);processed++;continue}
+  await updateJob(env,job,'provider_adapter_required',`${connected.id} is connected, but its safe native product-publishing adapter has not been enabled.`,{provider:connected.id});processed++;
+ }
+ return{processed,provider:connected?.id||'',queued:jobs.length};
 }
 async function publicDesigns(request,env){
  await scheduledPodCreative(env).catch(()=>null);const origin=new URL(request.url).origin,{results=[]}=await env.DB.prepare("SELECT id,day_key,theme,title,text_primary,text_secondary,scripture_ref,status FROM store_pod_designs WHERE status IN ('ready','published') ORDER BY day_key DESC,theme LIMIT 40").all();
- return json({collection:'Magnanimous Print-on-Demand',daily:true,designs:results.map(row=>({...row,art_url:`${origin}/store-api/pod/art/${encodeURIComponent(row.id)}.svg`}))});
+ return json({collection:'Magnanimous Print-on-Demand Design Gallery',daily:true,purchase_ready:false,purchase_note:'Designs become purchasable only after a print provider, product variant, print file, live cost, and checkout fulfillment path are verified.',designs:results.map(row=>({...row,art_url:`${origin}/store-api/pod/art/${encodeURIComponent(row.id)}.svg`}))});
 }
-async function ownerStatus(request,env){const guard=await requirePlatformOwner(request,env);if(guard)return guard;const status=await podProviderStatus(env),{results:jobs=[]}=await env.DB.prepare('SELECT status,COUNT(*) AS count FROM store_pod_jobs GROUP BY status ORDER BY status').all(),{results:days=[]}=await env.DB.prepare('SELECT day_key,COUNT(*) AS designs FROM store_pod_designs GROUP BY day_key ORDER BY day_key DESC LIMIT 14').all();return json({providers:status.providers.map(({id,connected,priority,freeEntry})=>({id,connected,priority,free_entry:freeEntry})),auto_fulfill:status.autoFulfill,max_auto_usd:status.maxUsd,jobs,days})}
+async function ownerStatus(request,env){const guard=await requirePlatformOwner(request,env);if(guard)return guard;const status=await podProviderStatus(env),{results:jobs=[]}=await env.DB.prepare('SELECT status,COUNT(*) AS count FROM store_pod_jobs GROUP BY status ORDER BY status').all(),{results:days=[]}=await env.DB.prepare('SELECT day_key,COUNT(*) AS designs FROM store_pod_designs GROUP BY day_key ORDER BY day_key DESC LIMIT 14').all();return json({providers:status.providers.map(({id,connected,priority,freeEntry})=>({id,connected,priority,free_entry:freeEntry})),auto_fulfill:status.autoFulfill,max_auto_usd:status.maxUsd,jobs,days,truth_boundary:'Provider-ready means product setup is verified; customer checkout remains disabled until live cost and fulfillment billing are safely funded.'})}
 export async function handlePodNetwork(request,env){const url=new URL(request.url);if(url.pathname==='/api/store/pod/designs'&&request.method==='GET')return publicDesigns(request,env);const art=url.pathname.match(/^\/api\/store\/pod\/art\/([^/]+)\.svg$/);if(art&&request.method==='GET')return renderArt(env,decodeURIComponent(art[1]));if(url.pathname==='/api/store/owner/pod'&&request.method==='GET')return ownerStatus(request,env);return null}
