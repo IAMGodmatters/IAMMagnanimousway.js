@@ -33,20 +33,21 @@ async function cjCall(token,path,options={}){
  return apiJson(`${API}${path}`,{...options,headers});
 }
 function cents(value){return Math.max(0,Math.round(Number(value||0)*100))}
-function exactOrFirst(data,sku){
+function exactVariant(data,sku){
  const variants=Array.isArray(data?.variants)?data.variants:[];
- return variants.find(v=>String(v.variantSku||'')===sku)||variants[0]||null;
+ return variants.find(v=>String(v.variantSku||'').trim()===sku)||null;
 }
+function onlyVariant(data){const variants=Array.isArray(data?.variants)?data.variants:[];return variants.length===1&&String(variants[0]?.variantSku||'').trim()?variants[0]:null}
 async function resolveVariant(token,sku){
  const clean=String(sku||'').trim();if(!clean)return null;
  let response=await cjCall(token,`/product/query?variantSku=${encodeURIComponent(clean)}`);
- let product=response.data?.data||null,variant=exactOrFirst(product,clean);
+ let product=response.data?.data||null,variant=exactVariant(product,clean);
  if(variant)return{...variant,productSku:String(product?.productSku||''),productName:String(product?.productNameEn||'')};
  response=await cjCall(token,`/product/query?productSku=${encodeURIComponent(clean)}`);
- product=response.data?.data||null;variant=exactOrFirst(product,clean);
+ product=response.data?.data||null;variant=exactVariant(product,clean)||onlyVariant(product);
  if(variant)return{...variant,productSku:String(product?.productSku||clean),productName:String(product?.productNameEn||'')};
  const variants=await cjCall(token,`/product/variant/query?productSku=${encodeURIComponent(clean)}`),list=Array.isArray(variants.data?.data)?variants.data.data:[];
- variant=list.find(v=>String(v.variantSku||'')===clean)||list[0]||null;
+ variant=list.find(v=>String(v.variantSku||'').trim()===clean)||(list.length===1&&String(list[0]?.variantSku||'').trim()?list[0]:null);
  return variant?{...variant,productSku:clean,productName:''}:null;
 }
 function freightCost(row){
@@ -55,6 +56,14 @@ function freightCost(row){
 }
 export async function cjSupplierConfigured(env){
  const rt=await runtime(env);return Boolean(String(rt.CJ_API_KEY||'').trim());
+}
+export async function verifyCjCatalogVariant(env,sku){
+ const auth=await access(env);if(!auth.ok)return auth;
+ const variant=await resolveVariant(auth.token,sku);
+ if(!variant?.vid||!String(variant.variantSku||'').trim())return{ok:false,code:'exact_variant_required',detail:'The exact supplier variant is not verified.'};
+ const unitCostCents=cents(variant.variantSellPrice);
+ if(!unitCostCents)return{ok:false,code:'supplier_price_unavailable',detail:'The exact supplier variant does not have a usable live price.'};
+ return{ok:true,vid:String(variant.vid),sku:String(variant.variantSku),productSku:String(variant.productSku||''),productName:String(variant.productName||''),unitCostCents};
 }
 
 function matchTokens(value){return new Set(String(value||'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').split(/\s+/).filter(x=>x.length>2&&!['and','with','set','the','for'].includes(x)))}
