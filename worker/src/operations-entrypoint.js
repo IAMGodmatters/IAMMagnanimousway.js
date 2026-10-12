@@ -27,7 +27,7 @@ import {handlePremiumVoice} from './premium-voice-runtime.js';
 import {handleMagnanimousApiContractIntelligence} from './magnanimous-api-contract-intelligence.js';
 import {scheduledTelecomEmailWatch,telecomEmailWatchStatus} from './magnanimous-telecom-email-watch.js';
 import {scheduledMagnanimousAttentionWatch,magnanimousAttentionWatchStatus} from './magnanimous-native-attention-watch.js';
-import {scheduledNativeStoreCommerce} from './native-store-runtime.js';
+import {scheduledNativeStoreCommerce,scheduledNativeStoreFulfillment} from './native-store-runtime.js';
 import {handleContinuousLearning,runContinuousLearningCycle} from './magnanimous-continuous-learning.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -239,7 +239,7 @@ async function operationsFetch(request,env,ctx){
   }
   if(webhookClone&&response.ok){
    const raw=await webhookClone.text().catch(()=>'' );let eventData=null;try{eventData=JSON.parse(raw)}catch{}
-   if(eventData){queueAutomation(ctx,Promise.all([applyAgencyWebhook(env,eventData,response),recordStripeGrowthEvent(env,eventData)]));}
+   if(eventData){const tasks=[applyAgencyWebhook(env,eventData,response),recordStripeGrowthEvent(env,eventData)];const storePaid=String(eventData?.data?.object?.metadata?.product_type||'')==='magnanimous_store_order'&&['checkout.session.completed','checkout.session.async_payment_succeeded'].includes(String(eventData?.type||''));if(storePaid)tasks.push(scheduledNativeStoreFulfillment(env));queueAutomation(ctx,Promise.all(tasks));}
   }
   return response;
 }
