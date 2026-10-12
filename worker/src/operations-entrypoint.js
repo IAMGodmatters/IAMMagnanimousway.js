@@ -239,7 +239,7 @@ async function operationsFetch(request,env,ctx){
   }
   if(webhookClone&&response.ok){
    const raw=await webhookClone.text().catch(()=>'' );let eventData=null;try{eventData=JSON.parse(raw)}catch{}
-   if(eventData){const tasks=[applyAgencyWebhook(env,eventData,response),recordStripeGrowthEvent(env,eventData)];const storePaid=String(eventData?.data?.object?.metadata?.product_type||'')==='magnanimous_store_order'&&['checkout.session.completed','checkout.session.async_payment_succeeded'].includes(String(eventData?.type||''));if(storePaid)tasks.push(scheduledNativeStoreFulfillment(env));queueAutomation(ctx,Promise.all(tasks));}
+   if(eventData){const tasks=[applyAgencyWebhook(env,eventData,response),recordStripeGrowthEvent(env,eventData)];const storePaid=String(eventData?.data?.object?.metadata?.product_type||'')==='magnanimous_store_order'&&['checkout.session.completed','checkout.session.async_payment_succeeded'].includes(String(eventData?.type||'')),storeOrderId=String(eventData?.data?.object?.metadata?.store_order_id||'').trim();if(storePaid)tasks.push(storeOrderId?scheduledNativeStoreFulfillment(env,storeOrderId):scheduledNativeStoreFulfillment(env));queueAutomation(ctx,Promise.all(tasks));}
   }
   return response;
 }
