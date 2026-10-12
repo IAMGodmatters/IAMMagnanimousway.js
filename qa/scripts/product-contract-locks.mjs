@@ -171,7 +171,7 @@ notMatches(home, /mag-standalone/, 'platform: main homepage must not become the 
 
 // 3) God Matters native-store lock. Shopify may remain an optional connector elsewhere,
 // but the public store must not depend on a Shopify storefront, CDN, or checkout.
-includes(shopPage, 'SHOP GOD MATTERS', 'store: God Matters store identity remains locked with customer-safe copy');
+includes(shopPage, 'I AM MAGNANIMOUS WAY™ STORE', 'store: customer-facing Magnanimous store identity remains locked with customer-safe copy');
 includes(shopPage, "fetch('/store-api/products'", 'store: native Magnanimous catalog API remains wired');
 includes(shopPage, "fetch('/store-api/checkout'", 'store: native Magnanimous checkout API remains wired');
 includes(shopPage, 'Continue to Secure Checkout', 'store: native secure-checkout CTA remains present');

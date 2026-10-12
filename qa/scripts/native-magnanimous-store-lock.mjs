@@ -12,6 +12,7 @@ const podMigration=read('worker/migrations/0100_native_pod_network.sql');
 const supplierExpansion=read('worker/migrations/0101_extra_supplier_network.sql');
 const integrity=read('worker/migrations/0102_store_integrity_and_pod_jobs.sql');
 const realMedia=read('worker/migrations/0103_store_real_media_pdp.sql');
+const exactVariantMedia=read('worker/migrations/0104_store_exact_variant_media.sql');
 const pod=read('worker/src/pod-network-runtime.js');
 const credentials=read('worker/src/platform-credentials.js');
 const providerEnv=read('worker/src/provider-runtime-env.js');
@@ -25,12 +26,15 @@ must(!page.includes('myshopify.com'),'Native shop must not link to a Shopify sto
 must(!page.includes('cdn.shopify.com'),'Native shop must not depend on Shopify-hosted product media.');
 must(page.includes("fetch('/store-api/products'")&&page.includes("fetch('/store-api/checkout'"),'Native shop must use the Magnanimous store API.');
 must(page.includes('shippingCountry')&&page.includes('country:shippingCountry'),'Storefront must send an explicit customer-selected delivery country.');
+must(page.includes("fetch('/store-api/quote'")&&page.includes('Calculate Shipping & Total')&&page.includes('postal_code:postalCode.trim()'),'Customers must see a live shipping/handling total before payment checkout opens.');
 must(page.includes('Product subtotal')&&page.includes('Shipping and handling are calculated'),'Storefront must distinguish product subtotal from live funded shipping/handling.');
 must(page.includes('See each original design on shirts')&&page.includes('See product styles'),'POD storefront must show customer-friendly product-form previews.');
 must(!page.includes('Your marketplace.')&&!page.includes('Built into I AM Magnanimous Way™.'),'Customer storefront must not expose the removed marketplace-built-in headline.');
 must(!page.includes('HOW DROPSHIPPING WORKS HERE')&&!page.includes('Magnanimous fulfillment queue'),'Customer storefront must not expose internal fulfillment mechanics.');
 must(productArt.includes('image/svg+xml')&&productArt.includes("'holy-spirit-speaks.svg'"),'Store may retain first-party SVG artwork as an explicit fallback.');
 must(realMedia.includes('CREATE TABLE IF NOT EXISTS store_product_media')&&realMedia.includes('/store/products/real/desk.jpg')&&realMedia.includes('/store/products/real/pet-feeder.jpg'),'Customer catalog must include first-party-hosted real product photography.');
+must(exactVariantMedia.includes('/store/products/real/pet-feeder-black-wifi.jpg')&&exactVariantMedia.includes('/store/products/real/desk-3.jpg'),'Exact mapped products must retain variant-correct, Magnanimous-hosted gallery media.');
+must(exactVariantMedia.includes('9798177798233')&&exactVariantMedia.includes('B0HLDBF24D')&&exactVariantMedia.includes('jesus-did-it-for-me.svg'),'Confirmed author books must stay in Books & Faith Gifts with direct author-marketplace metadata.');
 must(page.includes('View Details')&&page.includes('selectedProduct')&&page.includes('Search products'),'Customer product cards must be clickable with product detail and search interactions.');
 must(!/supplier|dropship|provider/i.test(page),'Customer storefront must not expose internal supplier/provider mechanics.');
 
@@ -38,9 +42,11 @@ must(runtime.includes("SELECT * FROM store_products WHERE active=1 AND id IN"),'
 must(runtime.includes("metadata[product_type]','magnanimous_store_order'"),'Stripe checkout must identify native store orders.');
 must(runtime.includes("paidAmount!==Number(order.amount_cents)"),'Paid amount must be verified against the stored order total.');
 must(runtime.includes('function catalogMapped(row)')&&runtime.includes('supplierConnected'),'Unmapped or disconnected dropship products must not be publicly purchasable.');
+must(runtime.includes("String(row.supplier_variant_id||'').trim()")&&runtime.includes('scheduledNativeStoreVariantVerification'),'Dropship availability must require an exact verified supplier variant and scheduled verification.');
 must(runtime.includes("if(loaded.some(x=>!catalogMapped(x.row)))")&&runtime.includes("Number(x.row.price_cents||0)<=0"),'Checkout must reject incomplete supplier mappings and zero-price placeholders before Stripe is opened.');
 must(runtime.includes('SHIPPING_COUNTRY_REQUIRED')&&!runtime.includes("cleanCountry(body.country)||'US'"),'Checkout must not silently substitute the United States for a missing shipping destination.');
 must(runtime.includes('supplier_budget_cents')&&runtime.includes('shipping_handling_cents'),'Checkout must pre-collect supplier freight/handling and store a loss-prevention budget.');
+must(runtime.includes("url.pathname==='/api/store/quote'")&&runtime.includes('createPublicQuote'),'Store must expose a customer-safe pre-checkout quote endpoint that still requotes at checkout.');
 must(runtime.includes('scheduledNativeStoreFulfillment')&&runtime.includes('awaiting_supplier_activation')&&runtime.includes('awaiting_supplier_funds'),'Paid orders must support automatic supplier fulfillment plus safe supplier-funds retry.');
 must(runtime.includes("object?.collected_information?.shipping_details||object?.shipping_details"),'Stripe shipping extraction must support the current collected_information shape and legacy shape.');
 must(runtime.includes("type==='checkout.session.expired'"),'Expired Stripe Checkout sessions must close stale native orders.');
@@ -72,6 +78,7 @@ must(targetCounts.size===15,'Store sourcing queue must cover all 15 launch categ
 for(const [slug,count] of targetCounts)must(count>=15,`Store category ${slug} has fewer than 15 sourcing targets.`);
 must(runtime.includes('scheduledNativeStoreSourcing')&&runtime.includes('/api/store/owner/sourcing'),'Store must automatically research queued supplier targets and expose owner-only sourcing status.');
 must(cj.includes('/product/listV2?page=1&size=8&keyWord=')&&cj.includes('searchCjCatalogTarget'),'Store sourcing must use CJ Product List V2 keyword search rather than the deprecated list endpoint.');
+must(cj.includes('function exactVariant')&&cj.includes('list.length===1')&&!cj.includes('function exactOrFirst'),'Variant resolution must never silently choose the first option from a multi-variant product.');
 
 must(supplierExpansion.includes('CREATE TABLE IF NOT EXISTS store_supplier_providers'),'Extra dropshipping providers must remain owner-governed in D1.');
 for(const provider of ['eprolo','sup','hypersku','zendrop'])must(supplierExpansion.includes(`'${provider}'`),`Missing extra supplier network record ${provider}.`);
