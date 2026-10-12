@@ -43,7 +43,7 @@ must(exactVariantMedia.includes('/store/products/real/pet-feeder-black-wifi.jpg'
 must(exactVariantMedia.includes('9798177798233')&&exactVariantMedia.includes('B0HLDBF24D')&&exactVariantMedia.includes('jesus-did-it-for-me.svg'),'Confirmed author books must stay in Books & Faith Gifts with direct author-marketplace metadata.');
 must(page.includes('View Details')&&page.includes('selectedProduct')&&page.includes('Search products'),'Customer product cards must be clickable with product detail and search interactions.');
 must(!/supplier|dropship|provider/i.test(page),'Customer storefront must not expose internal supplier/provider mechanics.');
-must(ownerIntegrations.includes('Verify Supplier Now')&&ownerIntegrations.includes('/api/store/owner/verify-supplier'),'Owner provider setup must offer immediate supplier verification after encrypted credential save.');
+must(ownerIntegrations.includes('Verify Supplier Now')&&ownerIntegrations.includes('/store-api/owner/verify-supplier'),'Owner provider setup must offer immediate supplier verification after encrypted credential save.');
 
 must(runtime.includes("SELECT * FROM store_products WHERE active=1 AND id IN"),'Checkout must price carts from server-side catalog records.');
 must(runtime.includes("metadata[product_type]','magnanimous_store_order'"),'Stripe checkout must identify native store orders.');
