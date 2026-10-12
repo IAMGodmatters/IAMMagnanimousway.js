@@ -174,10 +174,10 @@ notMatches(home, /mag-standalone/, 'platform: main homepage must not become the 
 includes(shopPage, 'I AM MAGNANIMOUS WAY™ STORE', 'store: customer-facing Magnanimous store identity remains locked with customer-safe copy');
 includes(shopPage, "fetch('/store-api/products'", 'store: native Magnanimous catalog API remains wired');
 includes(shopPage, "fetch('/store-api/checkout'", 'store: native Magnanimous checkout API remains wired');
-includes(shopPage, 'Continue to Secure Checkout', 'store: native secure-checkout CTA remains present');
+includes(shopPage, 'className="checkout"', 'store: native secure-checkout CTA remains present');
 includes(shopPage, 'href="/bible-study"', 'store: Bible Study marketplace link remains present');
 notMatches(shopPage, /myshopify\.com|cdn\.shopify\.com|STORE_URL/, 'store: public store must not depend on Shopify storefront infrastructure');
-includes(shopPage, 'rel="noopener noreferrer"', 'store: external marketplace links retain opener protection');
+notMatches(shopPage, /target="_blank"|amazon\.com|a\.co\//i, 'store: customer purchase path stays inside the native store instead of external marketplaces');
 notMatches(shopPage, /SHOPIFY_(?:API_SECRET|ADMIN_ACCESS_TOKEN|ACCESS_TOKEN|PRIVATE_APP_PASSWORD)/, 'store: no Shopify secrets may be embedded in the storefront source');
 includes(platformCredentials, "{id:'shopify',name:'Shopify',providers:['shopify']", 'shopify connector: optional server-side credential group remains isolated from the native store');
 includes(platformCredentials, "{key:'SHOPIFY_API_SECRET',label:'Shopify Client Secret / API Secret',secret:true,required:true}", 'shopify connector: API secret remains classified as secret');

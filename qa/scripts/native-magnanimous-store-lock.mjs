@@ -4,6 +4,7 @@ const read=p=>fs.readFileSync(new URL(`../../${p}`,import.meta.url),'utf8');
 const must=(condition,message)=>{if(!condition)throw new Error(message)};
 const page=read('frontend/app/shop/page.tsx');
 const ownerIntegrations=read('frontend/app/owner-integrations/page.tsx');
+const ownerStoreControl=read('frontend/app/owner-store-control/page.tsx');
 const productArt=read('frontend/app/store/products/[name]/route.ts');
 const runtime=read('worker/src/native-store-runtime.js');
 const migration=read('worker/migrations/0097_native_magnanimous_store.sql');
@@ -29,10 +30,10 @@ must(!page.includes('myshopify.com'),'Native shop must not link to a Shopify sto
 must(!page.includes('cdn.shopify.com'),'Native shop must not depend on Shopify-hosted product media.');
 must(page.includes("fetch('/store-api/products'")&&page.includes("fetch('/store-api/checkout'"),'Native shop must use the Magnanimous store API.');
 must(page.includes('shippingCountry')&&page.includes('country:shippingCountry'),'Storefront must send an explicit customer-selected delivery country.');
-must(page.includes("fetch('/store-api/quote'")&&page.includes('Calculate Shipping & Total')&&page.includes('postal_code:postalCode.trim()'),'Customers must see a live shipping/handling total before payment checkout opens.');
-must(page.includes('Product subtotal')&&page.includes('Shipping is calculated'),'Storefront must distinguish product subtotal from delivery shipping.');
+must(page.includes("fetch('/store-api/quote'")&&page.includes('Your total refreshes automatically')&&page.includes('postal_code:postalCode.trim()'),'Customer checkout must refresh the destination-aware final total automatically before payment.');
+must(page.includes('Order total')&&page.includes('className=\"checkout\"'),'Storefront must present the customer final order total and a direct checkout action.');
 must(!page.includes('Price after verification')&&!page.includes('20% markup')&&!page.includes('20% upsell'),'Customer storefront must show final retail pricing without internal pricing-policy language.');
-must(page.includes('See each original design on shirts')&&page.includes('See product styles'),'POD storefront must show customer-friendly product-form previews.');
+must(!page.includes("fetch('/store-api/pod/designs'")&&!page.includes('Preview only'),'Customer shop must not expose preview-only merchandise that cannot be checked out.');
 must(!page.includes('Your marketplace.')&&!page.includes('Built into I AM Magnanimous Way™.'),'Customer storefront must not expose the removed marketplace-built-in headline.');
 must(!page.includes('HOW DROPSHIPPING WORKS HERE')&&!page.includes('Magnanimous fulfillment queue'),'Customer storefront must not expose internal fulfillment mechanics.');
 must(productArt.includes('image/svg+xml')&&productArt.includes("'holy-spirit-speaks.svg'"),'Store may retain first-party SVG artwork as an explicit fallback.');
@@ -41,14 +42,15 @@ must(/^\s*<svg[\s>]/i.test(jesusBookSvg)&&jesusBookSvg.includes('Jesus Did It Fo
 must(realMedia.includes('CREATE TABLE IF NOT EXISTS store_product_media')&&realMedia.includes('/store/products/real/desk.jpg')&&realMedia.includes('/store/products/real/pet-feeder.jpg'),'Customer catalog must include first-party-hosted real product photography.');
 must(exactVariantMedia.includes('/store/products/real/pet-feeder-black-wifi.jpg')&&exactVariantMedia.includes('/store/products/real/desk-3.jpg'),'Exact mapped products must retain variant-correct, Magnanimous-hosted gallery media.');
 must(exactVariantMedia.includes('9798177798233')&&exactVariantMedia.includes('B0HLDBF24D')&&exactVariantMedia.includes('jesus-did-it-for-me.svg'),'Confirmed author books must stay in Books & Faith Gifts with direct author-marketplace metadata.');
-must(page.includes('View Details')&&page.includes('selectedProduct')&&page.includes('Search products'),'Customer product cards must be clickable with product detail and search interactions.');
+must(page.includes('selectedProduct')&&page.includes('Search products')&&page.includes('Add to Cart')&&page.includes('Buy Now'),'Customer product cards must be clickable with direct purchase actions and search interactions.');
 must(!/supplier|dropship|provider/i.test(page),'Customer storefront must not expose internal supplier/provider mechanics.');
 must(ownerIntegrations.includes('Verify Supplier Now')&&ownerIntegrations.includes('/store-api/owner/verify-supplier'),'Owner provider setup must offer immediate supplier verification after encrypted credential save.');
+must(ownerStoreControl.includes('/store-api/owner/control')&&ownerStoreControl.includes('Exact Order Branch')&&ownerStoreControl.includes('PRIVATE RETAIL RULE')&&ownerStoreControl.includes('/owner-integrations'),'Owner Store Control Board must expose the paid-order branch, private retail policy, provider setup, and live control API.');
 
 must(runtime.includes("SELECT * FROM store_products WHERE active=1 AND id IN"),'Checkout must price carts from server-side catalog records.');
 must(runtime.includes("metadata[product_type]','magnanimous_store_order'"),'Stripe checkout must identify native store orders.');
 must(runtime.includes("paidAmount!==Number(order.amount_cents)"),'Paid amount must be verified against the stored order total.');
-must(runtime.includes('function catalogMapped(row)')&&runtime.includes('supplierConnected'),'Unmapped or disconnected dropship products must not be publicly purchasable.');
+must(runtime.includes('function catalogMapped(row)')&&runtime.includes("products=allProducts.filter(p=>p.available&&p.product_kind!=='external')"),'Unmapped, disconnected, external, or otherwise non-checkout-ready products must be hidden from the public native catalog.');
 must(runtime.includes("String(row.supplier_variant_id||'').trim()")&&runtime.includes('scheduledNativeStoreVariantVerification'),'Dropship availability must require an exact verified supplier variant and scheduled verification.');
 must(runtime.includes("if(loaded.some(x=>!catalogMapped(x.row)))")&&runtime.includes("Number(x.row.price_cents||0)<=0"),'Checkout must reject incomplete supplier mappings and zero-price placeholders before Stripe is opened.');
 must(runtime.includes('SHIPPING_COUNTRY_REQUIRED')&&!runtime.includes("cleanCountry(body.country)||'US'"),'Checkout must not silently substitute the United States for a missing shipping destination.');
@@ -57,6 +59,8 @@ must(runtime.includes('const STORE_RETAIL_MARKUP=0.20')&&runtime.includes('retai
 must(runtime.includes("price_cents=?,currency='USD'")&&runtime.includes('retailUnitPrice(result.unitCostCents)'),'Verified supplier pricing must refresh the customer retail price with the private markup policy.');
 must(runtime.includes("url.pathname==='/api/store/quote'")&&runtime.includes('createPublicQuote'),'Store must expose a customer-safe pre-checkout quote endpoint that still requotes at checkout.');
 must(runtime.includes("url.pathname==='/api/store/owner/verify-supplier'")&&runtime.includes('ownerVerifySupplier'),'Owner must be able to verify exact supplier variants immediately after connecting the provider.');
+must(runtime.includes("url.pathname==='/api/store/owner/control'")&&runtime.includes('ownerControl'),'Owner must have a protected store control-board API.');
+must(runtime.includes("scheduledNativeStoreFulfillment(env,orderId='')")&&runtime.includes("WHERE o.id=? AND o.status='paid'"),'Immediate fulfillment must support exact paid-order targeting instead of waiting on a generic batch.');
 must(credentials.includes('b?.values')&&credentials.includes('saved:entries.map')&&credentials.includes('source:vault')&&credentials.includes('set,source'),'Encrypted provider vault API must remain compatible with the owner provider setup page for batch saves and status rendering.');
 must(runtime.includes('scheduledNativeStoreFulfillment')&&runtime.includes('awaiting_supplier_activation')&&runtime.includes('awaiting_supplier_funds'),'Paid orders must support automatic supplier fulfillment plus safe supplier-funds retry.');
 must(runtime.includes("object?.collected_information?.shipping_details||object?.shipping_details"),'Stripe shipping extraction must support the current collected_information shape and legacy shape.');
@@ -81,7 +85,7 @@ must(runtime.includes('AUTO_REFUND_SECONDS=24*60*60')&&runtime.includes('schedul
 must(cj.includes('reconcileCjOrder')&&cj.includes('getOrderDetail')&&cj.includes('externalOrderId:orderId'),'Refunds must reconcile the actual supplier order id before returning customer funds.');
 must(cj.includes("supplier_rate_limited")&&cj.includes("supplier_search_failed")&&cj.includes('matchScore'),'Supplier API failures and weak semantic matches must not be mislabeled as genuine no-match results.');
 must(operations.includes('scheduledNativeStoreCommerce(env)'),'Native store fulfillment/refund lifecycle must run automatically from the Worker scheduler.');
-must(operations.includes('scheduledNativeStoreFulfillment')&&operations.includes("product_type||'')==='magnanimous_store_order'")&&operations.includes("checkout.session.async_payment_succeeded"),'Verified Stripe store payments must trigger an immediate asynchronous supplier-fulfillment attempt, with cron as retry fallback.');
+must(operations.includes('storeOrderId')&&operations.includes('scheduledNativeStoreFulfillment(env,storeOrderId)')&&operations.includes("product_type||'')==='magnanimous_store_order'")&&operations.includes("checkout.session.async_payment_succeeded"),'Verified Stripe store payments must immediately target the exact paid order for asynchronous fulfillment, with cron retained only as retry fallback.');
 
 const targetRows=[...sourcing.matchAll(/VALUES\('[^']+','([^']+)','/g)].map(match=>match[1]);
 must(targetRows.length===225,`Store sourcing queue must contain exactly 225 launch targets; found ${targetRows.length}.`);
@@ -118,6 +122,6 @@ must(pod.includes("if(!connected)return{processed:0")&&pod.includes("'provider_s
 must(consent.includes('secureStorePostflight')&&consent.includes("/^public(?:,|\\s|$)/i.test(explicitCache)"),'Safe public store assets must retain explicit bounded cache headers after security hardening.');
 const commerce=runtime.slice(runtime.indexOf('export async function scheduledNativeStoreCommerce'),runtime.indexOf('async function orderStatus'));
 must(commerce.indexOf('scheduledNativeStoreRefunds')<commerce.indexOf('processPodJobs'),'Customer refunds must run before bounded POD provider publishing in the commerce scheduler.');
-must(page.includes("fetch('/store-api/pod/designs'")&&page.includes('DAILY ORIGINALS'),'Native storefront must render the daily POD collection with customer-safe copy.');
+must(!page.includes('Coming soon')&&!page.includes('not available')&&!page.includes('purchasing available'),'Customer storefront must not display unavailable-product or coming-soon states.');
 
 console.log('Native Magnanimous Store lock PASS — checkout, inventory, Stripe confirmation/refunds, supplier reconciliation, sourcing, POD processing, and customer-safe storefront contracts are locked.');
