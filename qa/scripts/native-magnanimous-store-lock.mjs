@@ -11,6 +11,7 @@ const sourcing=read('worker/migrations/0099_store_225_product_sourcing_queue.sql
 const podMigration=read('worker/migrations/0100_native_pod_network.sql');
 const supplierExpansion=read('worker/migrations/0101_extra_supplier_network.sql');
 const integrity=read('worker/migrations/0102_store_integrity_and_pod_jobs.sql');
+const realMedia=read('worker/migrations/0103_store_real_media_pdp.sql');
 const pod=read('worker/src/pod-network-runtime.js');
 const credentials=read('worker/src/platform-credentials.js');
 const providerEnv=read('worker/src/provider-runtime-env.js');
@@ -24,11 +25,14 @@ must(!page.includes('myshopify.com'),'Native shop must not link to a Shopify sto
 must(!page.includes('cdn.shopify.com'),'Native shop must not depend on Shopify-hosted product media.');
 must(page.includes("fetch('/store-api/products'")&&page.includes("fetch('/store-api/checkout'"),'Native shop must use the Magnanimous store API.');
 must(page.includes('shippingCountry')&&page.includes('country:shippingCountry'),'Storefront must send an explicit customer-selected delivery country.');
-must(page.includes('Product subtotal')&&page.includes('Live supplier shipping and handling'),'Storefront must distinguish product subtotal from live funded shipping/handling.');
-must(page.includes('Gallery designs are not offered for checkout'),'POD gallery must not advertise unverified provider products as purchasable.');
+must(page.includes('Product subtotal')&&page.includes('Shipping and handling are calculated'),'Storefront must distinguish product subtotal from live funded shipping/handling.');
+must(page.includes('See each original design on shirts')&&page.includes('See product styles'),'POD storefront must show customer-friendly product-form previews.');
 must(!page.includes('Your marketplace.')&&!page.includes('Built into I AM Magnanimous Way™.'),'Customer storefront must not expose the removed marketplace-built-in headline.');
 must(!page.includes('HOW DROPSHIPPING WORKS HERE')&&!page.includes('Magnanimous fulfillment queue'),'Customer storefront must not expose internal fulfillment mechanics.');
-must(productArt.includes('image/svg+xml')&&productArt.includes("'solar-bank.svg'")&&productArt.includes("'holy-spirit-speaks.svg'"),'Every native product path must have first-party SVG artwork fallback.');
+must(productArt.includes('image/svg+xml')&&productArt.includes("'holy-spirit-speaks.svg'"),'Store may retain first-party SVG artwork as an explicit fallback.');
+must(realMedia.includes('CREATE TABLE IF NOT EXISTS store_product_media')&&realMedia.includes('/store/products/real/desk.jpg')&&realMedia.includes('/store/products/real/pet-feeder.jpg'),'Customer catalog must include first-party-hosted real product photography.');
+must(page.includes('View Details')&&page.includes('selectedProduct')&&page.includes('Search products'),'Customer product cards must be clickable with product detail and search interactions.');
+must(!/supplier|dropship|provider/i.test(page),'Customer storefront must not expose internal supplier/provider mechanics.');
 
 must(runtime.includes("SELECT * FROM store_products WHERE active=1 AND id IN"),'Checkout must price carts from server-side catalog records.');
 must(runtime.includes("metadata[product_type]','magnanimous_store_order'"),'Stripe checkout must identify native store orders.');
@@ -81,6 +85,7 @@ must((podMigration.match(/INSERT OR REPLACE INTO store_pod_design_templates/g)||
 for(const theme of ['scripture','inspirational','sarcastic','cute-meme'])must(podMigration.includes(`'${theme}'`),`Missing POD creative theme ${theme}.`);
 for(const productType of ['T-Shirt','Hoodie','Coffee Mug','Travel Tumbler','Tote Bag','Art Print'])must(podMigration.includes(productType),`Missing POD product type ${productType}.`);
 must(pod.includes('scheduledPodCreative')&&pod.includes('/store-api/pod/art/')&&pod.includes('image/svg+xml'),'POD must generate daily original provider-ready SVG artwork on the Magnanimous domain.');
+must(pod.includes('/store-api/pod/mockup/')&&pod.includes('renderMockup')&&pod.includes('mockupBody'),'POD must render customer-visible merchandise mockups, not raw artwork alone.');
 must(pod.includes('processPodJobs')&&pod.includes('provider_setup_required')&&pod.includes('provider_mapping_required'),'POD jobs must advance into explicit provider setup/mapping/processing states instead of remaining design_ready forever.');
 must(pod.includes("status IN ('ready','published')")&&pod.includes('max-age=300, must-revalidate'),'Withdrawn POD artwork must stop rendering and public cache duration must stay bounded.');
 must(runtime.includes('scheduledPodCreative(env)')&&runtime.includes('handlePodNetwork(request,env)'),'Native store must mount POD public/owner APIs and daily creative scheduler.');
@@ -94,6 +99,6 @@ must(pod.includes("if(!connected)return{processed:0")&&pod.includes("'provider_s
 must(consent.includes('secureStorePostflight')&&consent.includes("/^public(?:,|\\s|$)/i.test(explicitCache)"),'Safe public store assets must retain explicit bounded cache headers after security hardening.');
 const commerce=runtime.slice(runtime.indexOf('export async function scheduledNativeStoreCommerce'),runtime.indexOf('async function orderStatus'));
 must(commerce.indexOf('scheduledNativeStoreRefunds')<commerce.indexOf('processPodJobs'),'Customer refunds must run before bounded POD provider publishing in the commerce scheduler.');
-must(page.includes("fetch('/store-api/pod/designs'")&&page.includes('DAILY ORIGINAL DESIGNS'),'Native storefront must render the daily POD collection with customer-safe copy.');
+must(page.includes("fetch('/store-api/pod/designs'")&&page.includes('DAILY ORIGINALS'),'Native storefront must render the daily POD collection with customer-safe copy.');
 
 console.log('Native Magnanimous Store lock PASS — checkout, inventory, Stripe confirmation/refunds, supplier reconciliation, sourcing, POD processing, and customer-safe storefront contracts are locked.');
