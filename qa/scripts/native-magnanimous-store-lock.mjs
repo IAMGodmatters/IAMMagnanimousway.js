@@ -13,6 +13,8 @@ const supplierExpansion=read('worker/migrations/0101_extra_supplier_network.sql'
 const integrity=read('worker/migrations/0102_store_integrity_and_pod_jobs.sql');
 const realMedia=read('worker/migrations/0103_store_real_media_pdp.sql');
 const exactVariantMedia=read('worker/migrations/0104_store_exact_variant_media.sql');
+const fallbackSvg=read('frontend/public/store/products/image-unavailable.svg');
+const jesusBookSvg=read('frontend/public/store/products/jesus-did-it-for-me.svg');
 const pod=read('worker/src/pod-network-runtime.js');
 const credentials=read('worker/src/platform-credentials.js');
 const providerEnv=read('worker/src/provider-runtime-env.js');
@@ -32,6 +34,8 @@ must(page.includes('See each original design on shirts')&&page.includes('See pro
 must(!page.includes('Your marketplace.')&&!page.includes('Built into I AM Magnanimous Way™.'),'Customer storefront must not expose the removed marketplace-built-in headline.');
 must(!page.includes('HOW DROPSHIPPING WORKS HERE')&&!page.includes('Magnanimous fulfillment queue'),'Customer storefront must not expose internal fulfillment mechanics.');
 must(productArt.includes('image/svg+xml')&&productArt.includes("'holy-spirit-speaks.svg'"),'Store may retain first-party SVG artwork as an explicit fallback.');
+must(/^\s*<svg[\s>]/i.test(fallbackSvg)&&fallbackSvg.includes('I AM MAGNANIMOUS WAY'),'Store broken-image fallback must be a valid branded SVG, not corrupt bytes.');
+must(/^\s*<svg[\s>]/i.test(jesusBookSvg)&&jesusBookSvg.includes('Jesus Did It For Me')&&jesusBookSvg.includes('I AM MAGNANIMOUS WAY'),'Confirmed children’s book artwork must remain a valid branded SVG.');
 must(realMedia.includes('CREATE TABLE IF NOT EXISTS store_product_media')&&realMedia.includes('/store/products/real/desk.jpg')&&realMedia.includes('/store/products/real/pet-feeder.jpg'),'Customer catalog must include first-party-hosted real product photography.');
 must(exactVariantMedia.includes('/store/products/real/pet-feeder-black-wifi.jpg')&&exactVariantMedia.includes('/store/products/real/desk-3.jpg'),'Exact mapped products must retain variant-correct, Magnanimous-hosted gallery media.');
 must(exactVariantMedia.includes('9798177798233')&&exactVariantMedia.includes('B0HLDBF24D')&&exactVariantMedia.includes('jesus-did-it-for-me.svg'),'Confirmed author books must stay in Books & Faith Gifts with direct author-marketplace metadata.');
