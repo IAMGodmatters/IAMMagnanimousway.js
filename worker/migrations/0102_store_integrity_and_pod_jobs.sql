@@ -1,14 +1,12 @@
 -- Store integrity follow-up: finite-stock protection, safe refund retries, and POD job reconciliation.
+-- Stock reservation is intentionally enforced by the Worker with guarded D1 batch statements.
+-- Cloudflare D1's migration splitter cannot reliably parse SQLite trigger bodies that contain
+-- internal semicolons, so keeping trigger SQL out of migrations is required for portable deploys.
 ALTER TABLE store_orders ADD COLUMN refund_attempt INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE store_orders ADD COLUMN stock_reserved INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE store_orders ADD COLUMN stock_reservation_token TEXT NOT NULL DEFAULT '';
 ALTER TABLE store_pod_jobs ADD COLUMN attempt_count INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE store_pod_jobs ADD COLUMN next_attempt_at INTEGER NOT NULL DEFAULT 0;
-
--- Keep each trigger on a single LF-terminated statement. Cloudflare D1 remote migration
--- splitting has known trigger parser defects for multiline bodies even when SQLite accepts them.
-CREATE TRIGGER IF NOT EXISTS trg_store_check_stock_on_paid BEFORE UPDATE OF status ON store_orders WHEN NEW.status='paid' AND OLD.status<>'paid' AND OLD.stock_reserved=0 BEGIN SELECT CASE WHEN EXISTS (SELECT 1 FROM store_order_items i JOIN store_products p ON p.id=i.product_id WHERE i.order_id=NEW.id AND p.stock_qty IS NOT NULL AND p.stock_qty < i.quantity) THEN RAISE(ABORT,'STORE_STOCK_UNAVAILABLE') END; END;
-CREATE TRIGGER IF NOT EXISTS trg_store_reserve_stock_on_paid AFTER UPDATE OF status ON store_orders WHEN NEW.status='paid' AND OLD.status<>'paid' AND OLD.stock_reserved=0 BEGIN UPDATE store_products SET stock_qty=stock_qty-COALESCE((SELECT SUM(i.quantity) FROM store_order_items i WHERE i.order_id=NEW.id AND i.product_id=store_products.id),0),updated_at=NEW.updated_at WHERE stock_qty IS NOT NULL AND id IN (SELECT product_id FROM store_order_items WHERE order_id=NEW.id); UPDATE store_orders SET stock_reserved=1 WHERE id=NEW.id; END;
-CREATE TRIGGER IF NOT EXISTS trg_store_restore_stock_on_refund AFTER UPDATE OF status ON store_orders WHEN NEW.status='refunded' AND OLD.stock_reserved=1 BEGIN UPDATE store_products SET stock_qty=stock_qty+COALESCE((SELECT SUM(i.quantity) FROM store_order_items i WHERE i.order_id=NEW.id AND i.product_id=store_products.id),0),updated_at=NEW.updated_at WHERE stock_qty IS NOT NULL AND id IN (SELECT product_id FROM store_order_items WHERE order_id=NEW.id); UPDATE store_orders SET stock_reserved=0 WHERE id=NEW.id; END;
 
 -- Migration 0101 added three product forms after some daily designs could already exist.
 -- Reconcile every active design/product-type pair so those designs are not permanently skipped.

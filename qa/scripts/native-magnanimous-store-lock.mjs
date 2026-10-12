@@ -55,7 +55,7 @@ for(const secretField of ['supplier_provider','supplier_product_id','supplier_va
 
 for(const table of ['store_products','store_orders','store_order_items','store_fulfillment_jobs'])must(migration.includes(`CREATE TABLE IF NOT EXISTS ${table}`),`Missing ${table} migration.`);
 for(const table of ['store_categories','store_product_upsells'])must(expansion.includes(`CREATE TABLE IF NOT EXISTS ${table}`),`Missing ${table} expansion migration.`);
-must(integrity.includes('stock_reserved')&&integrity.includes('STORE_STOCK_UNAVAILABLE')&&integrity.includes('trg_store_restore_stock_on_refund'),'Finite stock must be reserved atomically and restored only when a paid order actually reserved it.');
+must(integrity.includes('stock_reserved')&&integrity.includes('stock_reservation_token')&&!integrity.includes('CREATE TRIGGER')&&runtime.includes('reserveOrderStock')&&runtime.includes('restoreOrderStock')&&runtime.includes('stock_reservation_token'),'Finite stock must use tokenized Worker-side atomic reservation/restoration without parser-fragile D1 trigger bodies.');
 must(integrity.includes('attempt_count')&&integrity.includes('next_attempt_at'),'POD processing must have durable bounded retry state.');
 must(consent.includes("url.pathname.startsWith('/store-api/')")&&consent.includes('securityPreflight(routedRequest,env)')&&consent.includes('handleNativeStore(routedRequest,env)')&&consent.includes('secureStorePostflight(routedRequest'),'Native store alias must stay on Worker/D1 and pass the same API security preflight/postflight.');
 must(wrangler.includes('"/store-api/*"'),'Cloudflare assets config must execute the Worker for store API requests.');
