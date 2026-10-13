@@ -70,6 +70,7 @@ must(runtime.includes("['pending','checkout_created'].includes(String(order.stat
 must(runtime.includes('refund_attempt')&&runtime.includes('Idempotency-Key'),'Refund retries must rotate idempotency attempts after definitive failed/canceled refunds.');
 must(runtime.includes('SOURCING_RETRY_SECONDS=6*60*60')&&runtime.includes("status='queued' OR (status='retry'"),'Supplier sourcing must use bounded retry cadence and keep terminal no-match targets terminal.');
 must(runtime.includes('Number(result.score||0)>=0.75'),'Supplier sourcing must require a high-confidence match before recording a product.');
+must(runtime.includes('materializeSourcedProduct')&&runtime.includes('INSERT INTO store_products')&&runtime.includes("product_kind='dropship'")&&runtime.includes('exact variant verification is required before public sale'),'Confident supplier matches must become hidden dropship products and remain fail-closed until exact-variant verification.');
 
 const publicProduct=runtime.slice(runtime.indexOf('function publicProduct'),runtime.indexOf('async function catalogRows'));
 const publicReturn=publicProduct.slice(publicProduct.indexOf('return{'));
