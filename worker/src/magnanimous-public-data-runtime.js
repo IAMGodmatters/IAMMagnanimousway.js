@@ -7,33 +7,106 @@ const clip=(value,max=1000)=>String(value??'').trim().slice(0,max);
 const integer=(value,fallback=0)=>{if(value===null||value===undefined||String(value).trim()==='')return fallback;const n=Number(value);return Number.isFinite(n)?Math.trunc(n):fallback};
 const MAX_PROVIDER_BYTES=1_500_000;
 const PROVIDER_TIMEOUT_MS=9_000;
+const MAX_PROVIDER_CACHE_ENTRIES=160;
+const PUBLIC_DATA_BURST_WINDOW_MS=60_000;
+const providerCache=new Map();
+const providerInflight=new Map();
+const providerHealth=new Map();
+const publicDataBurst=new Map();
 
-async function providerJson(url,{headers={},method='GET',body}={}){
-  const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort('provider-timeout'),PROVIDER_TIMEOUT_MS);
-  try{
-    const response=await fetch(url,{method,headers:{accept:'application/json','user-agent':'I-AM-MAGNANIMOUS-WAY/1.0 (+https://iammagnanimousway.com)',...headers},body,signal:controller.signal,redirect:'error'});
-    if(!response.ok)throw new Error(`provider returned HTTP ${response.status}`);
-    const length=Number(response.headers.get('content-length')||0);
-    if(Number.isFinite(length)&&length>MAX_PROVIDER_BYTES)throw new Error('provider response exceeded size limit');
-    const reader=response.body?.getReader();
-    if(!reader)throw new Error('provider response body unavailable');
-    const chunks=[];let total=0;
+function cacheTtlMs(url,method='GET'){
+  if(method!=='GET')return 0;
+  const host=new URL(url).hostname.toLowerCase();
+  if(host==='api.worldbank.org'||host==='api.fiscaldata.treasury.gov')return 21_600_000;
+  if(host==='api.dictionaryapi.dev'||host==='vpic.nhtsa.dot.gov')return 86_400_000;
+  if(host==='api.datamuse.com'||host==='bible-api.com')return 3_600_000;
+  if(host==='api.crossref.org'||host==='api.openverse.org'||host==='api.frankfurter.dev')return 900_000;
+  if(host==='services.nvd.nist.gov'||host==='eonet.gsfc.nasa.gov')return 600_000;
+  if(host==='www.federalregister.gov'||host==='data.usajobs.gov')return 300_000;
+  if(host==='earthquake.usgs.gov')return 120_000;
+  return 300_000;
+}
+
+function noteProvider(url,{ok=false,cacheHit=false,error=''}={}){
+  let host='unknown';try{host=new URL(url).hostname.toLowerCase()}catch{}
+  const prev=providerHealth.get(host)||{host,successes:0,failures:0,cache_hits:0,last_ok_at:null,last_error_at:null,last_error:''};
+  if(cacheHit)prev.cache_hits+=1;
+  if(ok){prev.successes+=1;prev.last_ok_at=new Date().toISOString();prev.last_error=''}
+  else if(error){prev.failures+=1;prev.last_error_at=new Date().toISOString();prev.last_error=clip(error,240)}
+  providerHealth.set(host,prev);
+}
+
+function providerHealthSnapshot(){
+  return [...providerHealth.values()].sort((a,b)=>a.host.localeCompare(b.host)).slice(0,40);
+}
+
+function cacheRead(key){
+  const row=providerCache.get(key);
+  if(!row)return null;
+  if(row.expires_at<=Date.now()){providerCache.delete(key);return null}
+  providerCache.delete(key);providerCache.set(key,row);
+  return typeof structuredClone==='function'?structuredClone(row.data):JSON.parse(JSON.stringify(row.data));
+}
+
+function cacheWrite(key,data,ttl){
+  if(!ttl)return;
+  if(providerCache.has(key))providerCache.delete(key);
+  providerCache.set(key,{expires_at:Date.now()+ttl,data});
+  while(providerCache.size>MAX_PROVIDER_CACHE_ENTRIES){const first=providerCache.keys().next().value;if(first===undefined)break;providerCache.delete(first)}
+}
+
+function burstLimitFor(path){
+  if(path==='/api/public-data/security-observatory')return 3;
+  if(path==='/api/public-data/nvd')return 20;
+  if(path==='/api/public-data/openverse-images'||path==='/api/public-data/usajobs')return 30;
+  return 60;
+}
+
+function publicDataBurstGuard(user,path){
+  const now=Date.now(),identity=clip(user?.id||user?.email||'signed-in-user',240),key=`${identity}:${path}`,limit=burstLimitFor(path);
+  let row=publicDataBurst.get(key);
+  if(!row||row.reset_at<=now)row={count:0,reset_at:now+PUBLIC_DATA_BURST_WINDOW_MS};
+  row.count+=1;publicDataBurst.set(key,row);
+  if(publicDataBurst.size>1000){for(const [k,v] of publicDataBurst){if(v.reset_at<=now)publicDataBurst.delete(k);if(publicDataBurst.size<=800)break}}
+  if(row.count<=limit)return null;
+  return {limit,window_seconds:60,retry_after_seconds:Math.max(1,Math.ceil((row.reset_at-now)/1000))};
+}
+
+async function providerJson(url,{headers={},method='GET',body,cacheTtl}={}){
+  const ttl=cacheTtl??cacheTtlMs(url,method),cacheKey=method==='GET'?`${method}:${url}`:'';
+  if(cacheKey){const cached=cacheRead(cacheKey);if(cached!==null){noteProvider(url,{ok:true,cacheHit:true});return cached}}
+  if(cacheKey&&providerInflight.has(cacheKey)){const shared=await providerInflight.get(cacheKey);return typeof structuredClone==='function'?structuredClone(shared):JSON.parse(JSON.stringify(shared))}
+  const execute=async()=>{
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort('provider-timeout'),PROVIDER_TIMEOUT_MS);
     try{
-      while(true){
-        const {done,value}=await reader.read();
-        if(done)break;
-        total+=value.byteLength;
-        if(total>MAX_PROVIDER_BYTES)throw new Error('provider response exceeded size limit');
-        chunks.push(value);
-      }
-    }catch(error){await reader.cancel().catch(()=>{});throw error}
-    const bytes=new Uint8Array(total);let offset=0;
-    for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}
-    return JSON.parse(new TextDecoder().decode(bytes));
-  }finally{
-    clearTimeout(timeout);
-  }
+      const response=await fetch(url,{method,headers:{accept:'application/json','user-agent':'I-AM-MAGNANIMOUS-WAY/1.0 (+https://iammagnanimousway.com)',...headers},body,signal:controller.signal,redirect:'error'});
+      if(!response.ok)throw new Error(`provider returned HTTP ${response.status}`);
+      const length=Number(response.headers.get('content-length')||0);
+      if(Number.isFinite(length)&&length>MAX_PROVIDER_BYTES)throw new Error('provider response exceeded size limit');
+      const reader=response.body?.getReader();
+      if(!reader)throw new Error('provider response body unavailable');
+      const chunks=[];let total=0;
+      try{
+        while(true){
+          const {done,value}=await reader.read();
+          if(done)break;
+          total+=value.byteLength;
+          if(total>MAX_PROVIDER_BYTES)throw new Error('provider response exceeded size limit');
+          chunks.push(value);
+        }
+      }catch(error){await reader.cancel().catch(()=>{});throw error}
+      const bytes=new Uint8Array(total);let offset=0;
+      for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}
+      const data=JSON.parse(new TextDecoder().decode(bytes));
+      cacheWrite(cacheKey,data,ttl);noteProvider(url,{ok:true});
+      return data;
+    }catch(error){noteProvider(url,{error:error?.message||String(error)});throw error}
+    finally{clearTimeout(timeout)}
+  };
+  if(!cacheKey)return execute();
+  const promise=execute();providerInflight.set(cacheKey,promise);
+  try{return await promise}finally{providerInflight.delete(cacheKey)}
 }
 
 function sourceError(name,error){
@@ -164,6 +237,20 @@ function normalizeVin(row={}){
   return result;
 }
 
+function normalizeFederalRegister(row={}){
+  const agencies=(Array.isArray(row?.agencies)?row.agencies:[]).slice(0,20).map(a=>({name:clip(a?.name||a?.raw_name,300),slug:clip(a?.slug,180),url:clip(a?.url,2000)}));
+  return {title:clip(row?.title,1000),type:clip(row?.type,80),abstract:clip(row?.abstract,5000),document_number:clip(row?.document_number,80),publication_date:clip(row?.publication_date,20),html_url:clip(row?.html_url,2000),official_pdf_url:clip(row?.pdf_url,2000),public_inspection_pdf_url:clip(row?.public_inspection_pdf_url,2000),agencies};
+}
+
+function normalizeEonetEvent(row={}){
+  const geometry=(Array.isArray(row?.geometry)?row.geometry:[]).slice(-12).map(g=>({date:clip(g?.date,80),type:clip(g?.type,40),coordinates:Array.isArray(g?.coordinates)?g.coordinates.slice(0,40):[],magnitude_value:Number.isFinite(Number(g?.magnitudeValue))?Number(g.magnitudeValue):null,magnitude_unit:clip(g?.magnitudeUnit,80)}));
+  return {id:clip(row?.id,120),title:clip(row?.title,800),description:clip(row?.description,3000),link:clip(row?.link,2000),closed:clip(row?.closed,80)||null,categories:(Array.isArray(row?.categories)?row.categories:[]).slice(0,12).map(c=>({id:clip(c?.id,100),title:clip(c?.title,200)})),sources:(Array.isArray(row?.sources)?row.sources:[]).slice(0,12).map(s=>({id:clip(s?.id,100),url:clip(s?.url,2000)})),geometry};
+}
+
+function normalizeTreasuryDebt(row={}){
+  return {record_date:clip(row?.record_date,20),debt_held_by_public_usd:clip(row?.debt_held_public_amt,80),intragovernmental_holdings_usd:clip(row?.intragov_hold_amt,80),total_public_debt_outstanding_usd:clip(row?.tot_pub_debt_out_amt,80),fiscal_year:clip(row?.record_fiscal_year,8),fiscal_quarter:clip(row?.record_fiscal_quarter,8)};
+}
+
 const SCRIPTURE_TRANSLATIONS=new Set(['kjv','web','asv']);
 
 export async function handleMagnanimousPublicData(request,env){
@@ -174,9 +261,15 @@ export async function handleMagnanimousPublicData(request,env){
 
   const user=await currentUser(request,env);
   if(!user)return json({detail:'Sign in to Magnanimous AI to use public data tools.'},401);
+  const burst=publicDataBurstGuard(user,path);
+  if(burst)return json({detail:'Public data request burst limit reached. Retry after the indicated delay.',...burst},429);
+
+  if(path==='/api/public-data/health'){
+    return json({identity:'Magnanimous AI',status:'ready',scope:'current-worker-isolate',providers:getPublicApiAbsorptionSummary().active_read_only_providers,resilience:{authentication_required:true,read_only:true,fixed_provider_hosts:true,arbitrary_url_proxy:false,redirects_rejected:true,timeout_ms:PROVIDER_TIMEOUT_MS,max_provider_bytes:MAX_PROVIDER_BYTES,cache_entries:providerCache.size,max_cache_entries:MAX_PROVIDER_CACHE_ENTRIES,inflight_requests:providerInflight.size,burst_window_seconds:PUBLIC_DATA_BURST_WINDOW_MS/1000},provider_health:providerHealthSnapshot()});
+  }
 
   if(path==='/api/public-data/capabilities'){
-    return json({...getPublicApiAbsorptionSummary(),runtime:'read-only-fixed-provider-adapters',arbitrary_url_proxy:false});
+    return json({...getPublicApiAbsorptionSummary(),runtime:'read-only-fixed-provider-adapters',arbitrary_url_proxy:false,resilience:{bounded_cache:true,duplicate_request_coalescing:true,per_isolate_burst_guard:true,provider_timeout_ms:PROVIDER_TIMEOUT_MS,max_provider_bytes:MAX_PROVIDER_BYTES}});
   }
 
   if(path==='/api/public-data/fx'){
@@ -332,6 +425,40 @@ export async function handleMagnanimousPublicData(request,env){
       const row=Array.isArray(data?.Results)?data.Results[0]||{}:{};
       return json({identity:'Magnanimous Vehicle Intelligence',vin,model_year:modelYear||null,vehicle:normalizeVin(row),informational_only:true,source:{name:'NHTSA vPIC',url:'https://vpic.nhtsa.dot.gov/api/'}});
     }catch(error){return sourceError('NHTSA vPIC',error)}
+  }
+
+  if(path==='/api/public-data/federal-register'){
+    const q=clip(url.searchParams.get('q'),300),type=clip(url.searchParams.get('type'),20).toUpperCase(),limit=Math.trunc(finite(url.searchParams.get('limit'),1,25,10));
+    const allowedTypes=new Set(['RULE','PRORULE','NOTICE','PRESDOCU']);
+    if(type&&!allowedTypes.has(type))return json({detail:'type must be RULE, PRORULE, NOTICE, or PRESDOCU.'},400);
+    const query=new URLSearchParams({per_page:String(limit),order:'newest'});if(q)query.set('conditions[term]',q);if(type)query.append('conditions[type][]',type);
+    try{
+      const data=await providerJson(`https://www.federalregister.gov/api/v1/documents.json?${query.toString()}`);
+      const items=(Array.isArray(data?.results)?data.results:[]).slice(0,limit).map(normalizeFederalRegister);
+      return json({identity:'Magnanimous Legal Research',query:q||null,type:type||null,count:items.length,total_results:Number.isFinite(Number(data?.count))?Number(data.count):items.length,items,legal_status_note:'FederalRegister.gov is an informational rendition. For legal reliance, verify the official Federal Register edition and linked GovInfo PDF.',source:{name:'FederalRegister.gov',url:'https://www.federalregister.gov/developers/documentation/api/v1'}});
+    }catch(error){return sourceError('Federal Register',error)}
+  }
+
+  if(path==='/api/public-data/natural-events'){
+    const status=clip(url.searchParams.get('status')||'open',12).toLowerCase(),category=clip(url.searchParams.get('category'),80),days=Math.trunc(finite(url.searchParams.get('days'),1,365,30)),limit=Math.trunc(finite(url.searchParams.get('limit'),1,50,20));
+    if(!['open','closed','all'].includes(status))return json({detail:'status must be open, closed, or all.'},400);
+    if(category&&!/^[A-Za-z0-9_-]{1,80}$/.test(category))return json({detail:'category contains unsupported characters.'},400);
+    const query=new URLSearchParams({status,days:String(days),limit:String(limit)});if(category)query.set('category',category);
+    try{
+      const data=await providerJson(`https://eonet.gsfc.nasa.gov/api/v3/events?${query.toString()}`);
+      const events=(Array.isArray(data?.events)?data.events:[]).slice(0,limit).map(normalizeEonetEvent);
+      return json({identity:'Magnanimous AI Research',status,category:category||null,days,count:events.length,events,safety_note:'NASA EONET is situational-awareness research, not an emergency-warning or evacuation service. Follow local authorities for safety decisions.',source:{name:'NASA EONET',url:'https://eonet.gsfc.nasa.gov/docs/v3'}});
+    }catch(error){return sourceError('NASA EONET',error)}
+  }
+
+  if(path==='/api/public-data/us-treasury-debt'){
+    const limit=Math.trunc(finite(url.searchParams.get('limit'),1,90,30));
+    try{
+      const query=new URLSearchParams({sort:'-record_date','page[size]':String(limit)});
+      const data=await providerJson(`https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny?${query.toString()}`);
+      const records=(Array.isArray(data?.data)?data.data:[]).slice(0,limit).map(normalizeTreasuryDebt);
+      return json({identity:'Magnanimous Finance Research',count:records.length,records,precision_note:'Debt amounts are returned as decimal strings to avoid JavaScript integer precision loss.',informational_only:true,source:{name:'U.S. Treasury Fiscal Data — Debt to the Penny',url:'https://fiscaldata.treasury.gov/datasets/debt-to-the-penny/'}});
+    }catch(error){return sourceError('U.S. Treasury Fiscal Data',error)}
   }
 
   if(path==='/api/public-data/scripture'){
