@@ -16,10 +16,10 @@ assert.equal(APIVAULT_DISCOVERY_RESEARCH.observed_license,'CC BY-NC-ND 4.0');
 includes(registry,'https://github.com/exa-studio/ApiVault','ApiVault discovery source must remain attributable.');
 includes(registry,'no API Vault source code or catalog data is copied','Commercial clean-room boundary must be explicit.');
 
-for(const id of ['frankfurter','crossref','world-bank','usgs-earthquake','mdn-observatory','nvd','usajobs','openverse','free-dictionary','datamuse','nhtsa-vpic','bible-api']){
+for(const id of ['frankfurter','crossref','world-bank','usgs-earthquake','mdn-observatory','nvd','usajobs','openverse','free-dictionary','datamuse','nhtsa-vpic','federal-register','nasa-eonet','treasury-fiscal-data','bible-api']){
   assert.ok(MAGNANIMOUS_PUBLIC_API_PROVIDERS.some(row=>row.id===id),`${id} active provider research is missing.`);
 }
-for(const id of ['open-meteo','nager-date','rest-countries','urlhaus','arbeitnow','open-library']){
+for(const id of ['open-meteo','nager-date','rest-countries','urlhaus','arbeitnow','open-library','us-census']){
   assert.ok(MAGNANIMOUS_PUBLIC_API_REVIEW_QUEUE.some(row=>row.id===id),`${id} terms/review decision is missing.`);
 }
 
@@ -48,6 +48,16 @@ includes(runtime,'https://api.dictionaryapi.dev/api/v2/entries/en/','Dictionary 
 includes(runtime,'Free Dictionary API unavailable; using Datamuse definition fallback','Dictionary API must have a Datamuse resilience fallback.');
 includes(runtime,'https://api.datamuse.com/words?','Datamuse word endpoint must be fixed to the official host.');
 includes(runtime,'https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/','NHTSA vPIC endpoint must be fixed to the official host.');
+includes(runtime,'MAX_PROVIDER_CACHE_ENTRIES','Public-data provider caching must stay bounded.');
+includes(runtime,'providerInflight','Duplicate provider requests must be coalesced.');
+includes(runtime,'publicDataBurstGuard','Signed-in public-data calls need a bounded burst guard.');
+includes(runtime,"path==='/api/public-data/health'",'Public-data health visibility must exist.');
+includes(runtime,'https://www.federalregister.gov/api/v1/documents.json?','Federal Register endpoint must be fixed to the official host.');
+includes(runtime,'https://eonet.gsfc.nasa.gov/api/v3/events?','NASA EONET endpoint must be fixed to the official host.');
+includes(runtime,'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny?','Treasury fiscal endpoint must be fixed to the official host.');
+includes(runtime,'official Federal Register edition','Federal Register adapter must preserve official-source verification warning.');
+includes(runtime,'not an emergency-warning or evacuation service','NASA EONET adapter must preserve emergency-safety boundary.');
+includes(runtime,'decimal strings to avoid JavaScript integer precision loss','Treasury high-precision amounts must not be silently coerced to floating point.');
 includes(runtime,"const SCRIPTURE_TRANSLATIONS=new Set(['kjv','web','asv'])",'Scripture adapter must use a translation allowlist with KJV support.');
 includes(runtime,'abstracts_included:false','Crossref adapter must explicitly exclude abstracts.');
 includes(runtime,'metadata_only:true','Crossref adapter must remain metadata-only.');
@@ -60,7 +70,7 @@ includes(entrypoint,"import { handleMagnanimousPublicData } from './magnanimous-
 includes(entrypoint,'const publicData=await handleMagnanimousPublicData(request,env);','Worker must route requests through public-data runtime.');
 
 const manifest=getPublicApiCapabilityManifest();
-assert.ok(manifest.length>=17,'Expected the expanded public API capability set to include at least seventeen contracts.');
+assert.ok(manifest.length>=20,'Expected the finished public API capability set to include at least twenty contracts.');
 for(const row of manifest){
   assert.equal(row.category,'public-api');
   assert.equal(row.source_kind,'official-public-api');
@@ -72,7 +82,7 @@ for(const row of manifest){
 }
 
 const summary=getPublicApiAbsorptionSummary();
-assert.equal(summary.active_read_only_providers,12);
+assert.equal(summary.active_read_only_providers,15);
 assert.equal(summary.capability_contracts,manifest.length);
 assert.equal(summary.policy.no_proprietary_copying,true);
 assert.equal(summary.policy.no_arbitrary_proxy,true);

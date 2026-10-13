@@ -138,6 +138,39 @@ export const MAGNANIMOUS_PUBLIC_API_PROVIDERS=Object.freeze([
     guardrail:'Vehicle data is informational and must not be used as a substitute for title, safety-recall, insurance, registration or ownership verification.'
   }),
   Object.freeze({
+    id:'federal-register',
+    name:'FederalRegister.gov',
+    status:'active-read-only',
+    official_docs:'https://www.federalregister.gov/developers/documentation/api/v1',
+    base_url:'https://www.federalregister.gov/api/v1',
+    auth:'none',
+    use_case:'Federal rules, proposed rules, notices and presidential-document discovery for legal and regulatory research.',
+    terms_note:'Official developer resources state that the public API requires no API key. Federal Register material is government information; official logos and seals must not be reused as branding.',
+    guardrail:'FederalRegister.gov is informational; verify legal reliance against the official Federal Register/GovInfo edition.'
+  }),
+  Object.freeze({
+    id:'nasa-eonet',
+    name:'NASA EONET',
+    status:'active-read-only',
+    official_docs:'https://eonet.gsfc.nasa.gov/docs/v3',
+    base_url:'https://eonet.gsfc.nasa.gov/api/v3',
+    auth:'none',
+    use_case:'Natural-event situational awareness including wildfires, severe storms, volcanoes and other curated Earth events.',
+    terms_note:'Version 3 is the current stable NASA EONET API; source/event metadata remains attributable to NASA EONET and its upstream sources.',
+    guardrail:'Situational-awareness research only; not an emergency-warning, evacuation or disaster-response authority.'
+  }),
+  Object.freeze({
+    id:'treasury-fiscal-data',
+    name:'U.S. Treasury Fiscal Data',
+    status:'active-read-only',
+    official_docs:'https://fiscaldata.treasury.gov/datasets/debt-to-the-penny/',
+    base_url:'https://api.fiscaldata.treasury.gov/services/api/fiscal_service',
+    auth:'none',
+    use_case:'Official U.S. federal fiscal datasets, beginning with daily Debt to the Penny evidence.',
+    terms_note:'Fiscal Data publishes machine-readable public datasets and associated metadata for public use.',
+    guardrail:'Government fiscal evidence is informational research; do not present it as investment advice or silently convert high-precision currency strings to floating point.'
+  }),
+  Object.freeze({
     id:'bible-api',
     name:'Bible API',
     status:'active-read-only-best-effort',
@@ -156,7 +189,8 @@ export const MAGNANIMOUS_PUBLIC_API_REVIEW_QUEUE=Object.freeze([
   Object.freeze({id:'rest-countries',status:'not-activated',reason:'The free plan is not suitable for commercial production under current provider terms.'}),
   Object.freeze({id:'urlhaus',status:'not-activated',reason:'Commercial/for-profit usage and authentication terms require separate review before production activation.'}),
   Object.freeze({id:'arbeitnow',status:'not-activated',reason:'Free API availability was observed, but commercial reuse terms are not clear enough for automatic production activation.'}),
-  Object.freeze({id:'open-library',status:'manual-low-volume-only',reason:'Open Library asks consumers not to use the public API as a high-traffic production backend.'})
+  Object.freeze({id:'open-library',status:'manual-low-volume-only',reason:'Open Library asks consumers not to use the public API as a high-traffic production backend.'}),
+  Object.freeze({id:'us-census',status:'credential-behavior-review',reason:'Official Census guidance describes a no-key allowance below 500 queries/day, but a 2026-10-14 live ACS probe returned a Missing Key response. Keep production disabled until current behavior is reconciled or an owner key is explicitly configured.'})
 ]);
 
 const shared={
@@ -187,6 +221,9 @@ export const MAGNANIMOUS_PUBLIC_API_CAPABILITIES=Object.freeze([
   Object.freeze({...shared,id:'public-api:free-dictionary:english-dictionary-lookup',connector_id:'public-api:free-dictionary',connector_name:'Free Dictionary API',capability:'english-dictionary-lookup',native_target:'knowledge-workspace',research:{official_docs:'https://dictionaryapi.dev/',verified_at:'2026-10-13',proprietary_implementation_copied:false}}),
   Object.freeze({...shared,id:'public-api:datamuse:word-relationship-search',connector_id:'public-api:datamuse',connector_name:'Datamuse',capability:'word-relationship-search',native_target:'knowledge-workspace',research:{official_docs:'https://www.datamuse.com/api/',verified_at:'2026-10-13',proprietary_implementation_copied:false,api_key_required_from:'2027-02-01'}}),
   Object.freeze({...shared,id:'public-api:nhtsa-vpic:vin-decode',connector_id:'public-api:nhtsa-vpic',connector_name:'NHTSA vPIC',capability:'vin-decode',native_target:'research-orchestrator',research:{official_docs:'https://vpic.nhtsa.dot.gov/api/',verified_at:'2026-10-13',proprietary_implementation_copied:false,informational_only:true}}),
+  Object.freeze({...shared,id:'public-api:federal-register:federal-regulatory-document-search',connector_id:'public-api:federal-register',connector_name:'FederalRegister.gov',capability:'federal-regulatory-document-search',native_target:'legal-research-engine',research:{official_docs:'https://www.federalregister.gov/developers/documentation/api/v1',verified_at:'2026-10-14',proprietary_implementation_copied:false,official_verification_required:true}}),
+  Object.freeze({...shared,id:'public-api:nasa-eonet:natural-event-tracking',connector_id:'public-api:nasa-eonet',connector_name:'NASA EONET',capability:'natural-event-tracking',native_target:'research-orchestrator',research:{official_docs:'https://eonet.gsfc.nasa.gov/docs/v3',verified_at:'2026-10-14',proprietary_implementation_copied:false,safety_advisory:'informational-only'}}),
+  Object.freeze({...shared,id:'public-api:treasury-fiscal-data:us-public-debt-research',connector_id:'public-api:treasury-fiscal-data',connector_name:'U.S. Treasury Fiscal Data',capability:'us-public-debt-research',native_target:'finance-research',research:{official_docs:'https://fiscaldata.treasury.gov/datasets/debt-to-the-penny/',verified_at:'2026-10-14',proprietary_implementation_copied:false,high_precision_strings:true}}),
   Object.freeze({...shared,id:'public-api:bible-api:scripture-passage-lookup',connector_id:'public-api:bible-api',connector_name:'Bible API',capability:'scripture-passage-lookup',native_target:'bible-study-engine',research:{official_docs:'https://bible-api.com/',verified_at:'2026-10-13',proprietary_implementation_copied:false,bulk_mirroring:false,default_translation:'kjv'}})
 ]);
 
