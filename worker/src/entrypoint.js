@@ -11,6 +11,7 @@ import { handleMagnanimousNativeMail } from './magnanimous-native-mail-runtime.j
 import { handleMagnanimousUniversalAIConnector } from './magnanimous-universal-ai-connector.js';
 import { handleMagnanimousSpace } from './magnanimous-space-runtime.js';
 import { handleMagnanimousResearch } from './magnanimous-research-runtime.js';
+import { handleMagnanimousPublicData } from './magnanimous-public-data-runtime.js';
 import { handleMagnanimousMux } from './magnanimous-mux-runtime.js';
 import { handleMagnanimousMeta } from './magnanimous-meta-runtime.js';
 import { handleMagnanimousEcosystem } from './magnanimous-ecosystem-runtime.js';
@@ -27,6 +28,7 @@ import { handleMagnanimousTelecomSecurityGate } from './magnanimous-telecom-secu
 import { ensureMagnanimousCommunicationsToolSeed } from './inkbox-tool-seed.js';
 import { ensureMagnanimousSuperhumanMailSeed } from './superhuman-mail-tool-seed.js';
 import { ensureMagnanimousCloudflareToolSeed } from './cloudflare-tool-seed.js';
+import { ensureMagnanimousPublicApiToolSeed } from './public-api-tool-seed.js';
 import { createPasswordRecord } from './password-security.js';
 
 const CRM_TABLES=['crm_contacts','crm_activities','crm_opportunities'];
@@ -85,6 +87,7 @@ async function ensureRuntimeBootstrap(env){
     try{await ensureMagnanimousCommunicationsToolSeed(env)}catch(error){console.error('communications tool seed failed',error)}
     try{await ensureMagnanimousSuperhumanMailSeed(env)}catch(error){console.error('Superhuman Mail pattern seed failed',error)}
     try{await ensureMagnanimousCloudflareToolSeed(env)}catch(error){console.error('Cloudflare Tool Foundry seed failed',error)}
+    try{await ensureMagnanimousPublicApiToolSeed(env)}catch(error){console.error('public API Tool Foundry seed failed',error)}
     bootstrapReady=true;
   })();
   try{await bootstrapPromise}finally{if(!bootstrapReady)bootstrapPromise=null}
@@ -114,6 +117,8 @@ export default {
     if(space)return space;
     const research=await handleMagnanimousResearch(request,env);
     if(research)return research;
+    const publicData=await handleMagnanimousPublicData(request,env);
+    if(publicData)return publicData;
     const mux=await handleMagnanimousMux(request,env);
     if(mux)return mux;
     const whatsapp=await handleMagnanimousWhatsApp(request,env);

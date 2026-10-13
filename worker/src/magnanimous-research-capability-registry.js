@@ -1,5 +1,7 @@
+import { getPublicApiCapabilityManifest, getPublicApiAbsorptionSummary } from './magnanimous-public-api-capability-registry.js';
+
 // Magnanimous AI owns the research workflow and public identity.
-// SciSpace and any future scholarly providers remain replaceable internal evidence engines.
+// External scholarly and public-data providers remain replaceable evidence engines.
 
 export const MAGNANIMOUS_ACADEMIC_RESEARCH_CAPABILITIES = Object.freeze([
   {id:'semantic-paper-search',domain:'discovery',capability:'semantic_academic_search',actions:['natural_language_question','title','abstract','authors','year','journal','citation_count']},
@@ -24,6 +26,7 @@ export const MAGNANIMOUS_RESEARCH_PROVIDER_PATTERNS = Object.freeze([
 ]);
 
 export function researchCapabilitySummary(){
+  const publicApiCapabilities=getPublicApiCapabilityManifest(),publicApis=getPublicApiAbsorptionSummary();
   return {
     identity:'Magnanimous AI Research',
     brain_identity:'Magnanimous AI',
@@ -31,8 +34,12 @@ export function researchCapabilitySummary(){
     provider_brand_override_allowed:false,
     normalized_research_memory:true,
     proprietary_corpus_copy_allowed:false,
-    capability_count:MAGNANIMOUS_ACADEMIC_RESEARCH_CAPABILITIES.length,
+    capability_count:MAGNANIMOUS_ACADEMIC_RESEARCH_CAPABILITIES.length+publicApiCapabilities.length,
+    academic_capability_count:MAGNANIMOUS_ACADEMIC_RESEARCH_CAPABILITIES.length,
+    public_api_capability_count:publicApiCapabilities.length,
     capabilities:MAGNANIMOUS_ACADEMIC_RESEARCH_CAPABILITIES,
+    public_api_capabilities:publicApiCapabilities.map(row=>({id:row.id,capability:row.capability,native_target:row.native_target,boundary:row.boundary})),
+    public_api_fabric:publicApis,
     provider_patterns:MAGNANIMOUS_RESEARCH_PROVIDER_PATTERNS
   };
 }
