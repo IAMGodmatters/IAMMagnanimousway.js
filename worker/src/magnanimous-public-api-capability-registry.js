@@ -61,6 +61,83 @@ export const MAGNANIMOUS_PUBLIC_API_PROVIDERS=Object.freeze([
     guardrail:'Informational risk evidence only; not an emergency-warning replacement. Follow local authorities for safety decisions.'
   }),
   Object.freeze({
+    id:'mdn-observatory',
+    name:'MDN HTTP Observatory',
+    status:'active-read-only-owned-domain-scan',
+    official_docs:'https://developer.mozilla.org/en-US/observatory/docs/faq',
+    base_url:'https://observatory-api.mdn.mozilla.net/api/v2/scan',
+    auth:'none',
+    use_case:'HTTP security-header posture scans for owned I AM MAGNANIMOUS WAY domains.',
+    terms_note:'Scans are public provider-side observations and the same site is limited to a fresh scan about once per minute.',
+    guardrail:'Only Magnanimous-owned iammagnanimousway.com hosts may be scanned; a good grade is not a complete security audit.'
+  }),
+  Object.freeze({
+    id:'nvd',
+    name:'NIST National Vulnerability Database',
+    status:'active-read-only',
+    official_docs:'https://nvd.nist.gov/developers/vulnerabilities',
+    base_url:'https://services.nvd.nist.gov/rest/json/cves/2.0',
+    auth:'optional-api-key',
+    use_case:'CVE vulnerability lookup and bounded keyword search for platform security review.',
+    terms_note:'NVD 2.0 is the current API family. Anonymous access is rate-limited; an owner API key may raise provider allowance.',
+    guardrail:'Use as vulnerability evidence, not proof that a dependency is affected; confirm actual package/product/version applicability before remediation.'
+  }),
+  Object.freeze({
+    id:'usajobs',
+    name:'USAJOBS',
+    status:'active-read-only-credential-gated-search',
+    official_docs:'https://developer.usajobs.gov/',
+    base_url:'https://data.usajobs.gov',
+    auth:'api-key-plus-registered-email-for-search',
+    use_case:'Official U.S. federal job discovery for Opportunity Vault plus unauthenticated reference codelists.',
+    terms_note:'Job search requires an owner-obtained USAJOBS API key and the matching registered email; codelist endpoints do not require authentication.',
+    guardrail:'Do not claim job-search connectivity until the owner credentials are configured; preserve the official USAJOBS application link.'
+  }),
+  Object.freeze({
+    id:'openverse',
+    name:'Openverse',
+    status:'active-read-only',
+    official_docs:'https://api.openverse.org/v1/',
+    base_url:'https://api.openverse.org/v1',
+    auth:'none-for-bounded-anonymous-search',
+    use_case:'Openly licensed image discovery for Magnanimous Media Library, Kids, ministry, social and creative workflows.',
+    terms_note:'Anonymous access is rate-limited. This adapter restricts results to CC0, public-domain mark, CC BY and CC BY-SA classes.',
+    guardrail:'Openverse does not guarantee license accuracy; verify the individual work and retain required attribution before publishing.'
+  }),
+  Object.freeze({
+    id:'free-dictionary',
+    name:'Free Dictionary API',
+    status:'active-read-only-best-effort',
+    official_docs:'https://dictionaryapi.dev/',
+    base_url:'https://api.dictionaryapi.dev/api/v2/entries/en',
+    auth:'none',
+    use_case:'English definitions, pronunciation metadata, examples, synonyms and antonyms for learning and writing.',
+    terms_note:'Provider describes the service as free and intended for learning, games, speech and text applications.',
+    guardrail:'Dictionary entries are reference material; do not present a definition as legal, medical or specialist professional advice.'
+  }),
+  Object.freeze({
+    id:'datamuse',
+    name:'Datamuse',
+    status:'active-read-only-transition-aware',
+    official_docs:'https://www.datamuse.com/api/',
+    base_url:'https://api.datamuse.com',
+    auth:'none-currently',
+    use_case:'Word relationships, reverse-dictionary search, spelling/sound matching and suggestions for Magnanimous Kids and writing tools.',
+    terms_note:'Anonymous API use is currently supported; Datamuse has announced API-key requirements beginning February 1, 2027.',
+    guardrail:'Keep the adapter isolated and bounded so credential migration can occur without changing Magnanimous product behavior.'
+  }),
+  Object.freeze({
+    id:'nhtsa-vpic',
+    name:'NHTSA vPIC',
+    status:'active-read-only',
+    official_docs:'https://vpic.nhtsa.dot.gov/api/',
+    base_url:'https://vpic.nhtsa.dot.gov/api/vehicles',
+    auth:'none',
+    use_case:'VIN and partial-VIN decoding for vehicle, transportation and research workflows.',
+    terms_note:'NHTSA encourages application use subject to automated traffic controls; the API reflects manufacturer-submitted vPIC data.',
+    guardrail:'Vehicle data is informational and must not be used as a substitute for title, safety-recall, insurance, registration or ownership verification.'
+  }),
+  Object.freeze({
     id:'bible-api',
     name:'Bible API',
     status:'active-read-only-best-effort',
@@ -101,6 +178,15 @@ export const MAGNANIMOUS_PUBLIC_API_CAPABILITIES=Object.freeze([
   Object.freeze({...shared,id:'public-api:world-bank:global-economic-indicators',connector_id:'public-api:world-bank',connector_name:'World Bank Indicators API',capability:'global-economic-indicators',native_target:'business-analytics',research:{official_docs:'https://datahelpdesk.worldbank.org/knowledgebase/topics/125589-developer-information',verified_at:'2026-10-13',proprietary_implementation_copied:false}}),
   Object.freeze({...shared,id:'public-api:world-bank:country-development-series',connector_id:'public-api:world-bank',connector_name:'World Bank Indicators API',capability:'country-development-series',native_target:'research-orchestrator',research:{official_docs:'https://datahelpdesk.worldbank.org/knowledgebase/topics/125589-developer-information',verified_at:'2026-10-13',proprietary_implementation_copied:false}}),
   Object.freeze({...shared,id:'public-api:usgs-earthquake:earthquake-event-search',connector_id:'public-api:usgs-earthquake',connector_name:'USGS Earthquake Hazards Program',capability:'earthquake-event-search',native_target:'research-orchestrator',research:{official_docs:'https://earthquake.usgs.gov/fdsnws/event/1/',verified_at:'2026-10-13',proprietary_implementation_copied:false,safety_advisory:'informational-only'}}),
+  Object.freeze({...shared,id:'public-api:mdn-observatory:http-security-header-scan',connector_id:'public-api:mdn-observatory',connector_name:'MDN HTTP Observatory',capability:'http-security-header-scan',native_target:'security-auditor',research:{official_docs:'https://developer.mozilla.org/en-US/observatory/docs/faq',verified_at:'2026-10-13',proprietary_implementation_copied:false,owned_domains_only:true}}),
+  Object.freeze({...shared,id:'public-api:nvd:cve-vulnerability-lookup',connector_id:'public-api:nvd',connector_name:'NIST National Vulnerability Database',capability:'cve-vulnerability-lookup',native_target:'security-auditor',research:{official_docs:'https://nvd.nist.gov/developers/vulnerabilities',verified_at:'2026-10-13',proprietary_implementation_copied:false}}),
+  Object.freeze({...shared,id:'public-api:nvd:vulnerability-keyword-search',connector_id:'public-api:nvd',connector_name:'NIST National Vulnerability Database',capability:'vulnerability-keyword-search',native_target:'security-auditor',research:{official_docs:'https://nvd.nist.gov/developers/vulnerabilities',verified_at:'2026-10-13',proprietary_implementation_copied:false}}),
+  Object.freeze({...shared,id:'public-api:usajobs:federal-job-search',connector_id:'public-api:usajobs',connector_name:'USAJOBS',capability:'federal-job-search',native_target:'professional-intelligence',research:{official_docs:'https://developer.usajobs.gov/api-reference/get-api-search',verified_at:'2026-10-13',proprietary_implementation_copied:false,credential_gated:true}}),
+  Object.freeze({...shared,id:'public-api:usajobs:job-reference-codelists',connector_id:'public-api:usajobs',connector_name:'USAJOBS',capability:'job-reference-codelists',native_target:'professional-intelligence',research:{official_docs:'https://developer.usajobs.gov/api-reference/code-lists',verified_at:'2026-10-13',proprietary_implementation_copied:false}}),
+  Object.freeze({...shared,id:'public-api:openverse:licensed-image-search',connector_id:'public-api:openverse',connector_name:'Openverse',capability:'licensed-image-search',native_target:'media-library',research:{official_docs:'https://api.openverse.org/v1/',verified_at:'2026-10-13',proprietary_implementation_copied:false,license_verification_required:true}}),
+  Object.freeze({...shared,id:'public-api:free-dictionary:english-dictionary-lookup',connector_id:'public-api:free-dictionary',connector_name:'Free Dictionary API',capability:'english-dictionary-lookup',native_target:'knowledge-workspace',research:{official_docs:'https://dictionaryapi.dev/',verified_at:'2026-10-13',proprietary_implementation_copied:false}}),
+  Object.freeze({...shared,id:'public-api:datamuse:word-relationship-search',connector_id:'public-api:datamuse',connector_name:'Datamuse',capability:'word-relationship-search',native_target:'knowledge-workspace',research:{official_docs:'https://www.datamuse.com/api/',verified_at:'2026-10-13',proprietary_implementation_copied:false,api_key_required_from:'2027-02-01'}}),
+  Object.freeze({...shared,id:'public-api:nhtsa-vpic:vin-decode',connector_id:'public-api:nhtsa-vpic',connector_name:'NHTSA vPIC',capability:'vin-decode',native_target:'research-orchestrator',research:{official_docs:'https://vpic.nhtsa.dot.gov/api/',verified_at:'2026-10-13',proprietary_implementation_copied:false,informational_only:true}}),
   Object.freeze({...shared,id:'public-api:bible-api:scripture-passage-lookup',connector_id:'public-api:bible-api',connector_name:'Bible API',capability:'scripture-passage-lookup',native_target:'bible-study-engine',research:{official_docs:'https://bible-api.com/',verified_at:'2026-10-13',proprietary_implementation_copied:false,bulk_mirroring:false,default_translation:'kjv'}})
 ]);
 

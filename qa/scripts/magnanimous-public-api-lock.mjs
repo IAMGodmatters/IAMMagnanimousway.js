@@ -16,7 +16,7 @@ assert.equal(APIVAULT_DISCOVERY_RESEARCH.observed_license,'CC BY-NC-ND 4.0');
 includes(registry,'https://github.com/exa-studio/ApiVault','ApiVault discovery source must remain attributable.');
 includes(registry,'no API Vault source code or catalog data is copied','Commercial clean-room boundary must be explicit.');
 
-for(const id of ['frankfurter','crossref','world-bank','usgs-earthquake','bible-api']){
+for(const id of ['frankfurter','crossref','world-bank','usgs-earthquake','mdn-observatory','nvd','usajobs','openverse','free-dictionary','datamuse','nhtsa-vpic','bible-api']){
   assert.ok(MAGNANIMOUS_PUBLIC_API_PROVIDERS.some(row=>row.id===id),`${id} active provider research is missing.`);
 }
 for(const id of ['open-meteo','nager-date','rest-countries','urlhaus','arbeitnow','open-library']){
@@ -34,6 +34,20 @@ includes(runtime,'https://api.crossref.org/works?','Crossref endpoint must be fi
 includes(runtime,'https://api.worldbank.org/v2/country/','World Bank endpoint must be fixed to the official host.');
 includes(runtime,'https://earthquake.usgs.gov/fdsnws/event/1/query?','USGS endpoint must be fixed to the official host.');
 includes(runtime,'https://bible-api.com/','Bible API endpoint must be fixed to the official host.');
+includes(runtime,'https://observatory-api.mdn.mozilla.net/api/v2/scan?host=','Observatory endpoint must be fixed to the official host.');
+includes(runtime,'OWNED_SECURITY_HOST_SUFFIX','Security scan must be restricted to owned Magnanimous domains.');
+includes(runtime,'https://services.nvd.nist.gov/rest/json/cves/2.0?','NVD endpoint must use the official 2.0 API.');
+includes(runtime,"import { getProviderRuntimeEnv } from './provider-runtime-env.js';",'Credentialed public-data adapters must use the encrypted provider runtime overlay.');
+includes(runtime,'https://data.usajobs.gov/api/Search?','USAJOBS search endpoint must be fixed to the official host.');
+includes(runtime,'https://data.usajobs.gov/api/codelist/','USAJOBS codelist endpoint must use the live official no-key route.');
+includes(runtime,"required_credentials:['USAJOBS_API_KEY','USAJOBS_API_EMAIL']",'USAJOBS search must fail truthfully when owner credentials are missing.');
+includes(runtime,'https://api.openverse.org/v1/images/?','Openverse endpoint must be fixed to the official host.');
+includes(runtime,"OPENVERSE_COMMERCIAL_LICENSES='cc0,pdm,by,by-sa'",'Openverse discovery must exclude noncommercial license classes by default.');
+includes(runtime,'license_verification_required:true','Openverse results must preserve license-verification warning.');
+includes(runtime,'https://api.dictionaryapi.dev/api/v2/entries/en/','Dictionary endpoint must be fixed to the official host.');
+includes(runtime,'Free Dictionary API unavailable; using Datamuse definition fallback','Dictionary API must have a Datamuse resilience fallback.');
+includes(runtime,'https://api.datamuse.com/words?','Datamuse word endpoint must be fixed to the official host.');
+includes(runtime,'https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/','NHTSA vPIC endpoint must be fixed to the official host.');
 includes(runtime,"const SCRIPTURE_TRANSLATIONS=new Set(['kjv','web','asv'])",'Scripture adapter must use a translation allowlist with KJV support.');
 includes(runtime,'abstracts_included:false','Crossref adapter must explicitly exclude abstracts.');
 includes(runtime,'metadata_only:true','Crossref adapter must remain metadata-only.');
@@ -46,7 +60,7 @@ includes(entrypoint,"import { handleMagnanimousPublicData } from './magnanimous-
 includes(entrypoint,'const publicData=await handleMagnanimousPublicData(request,env);','Worker must route requests through public-data runtime.');
 
 const manifest=getPublicApiCapabilityManifest();
-assert.ok(manifest.length>=8,'Expected the first public API capability set to include at least eight contracts.');
+assert.ok(manifest.length>=17,'Expected the expanded public API capability set to include at least seventeen contracts.');
 for(const row of manifest){
   assert.equal(row.category,'public-api');
   assert.equal(row.source_kind,'official-public-api');
@@ -58,7 +72,7 @@ for(const row of manifest){
 }
 
 const summary=getPublicApiAbsorptionSummary();
-assert.equal(summary.active_read_only_providers,5);
+assert.equal(summary.active_read_only_providers,12);
 assert.equal(summary.capability_contracts,manifest.length);
 assert.equal(summary.policy.no_proprietary_copying,true);
 assert.equal(summary.policy.no_arbitrary_proxy,true);
