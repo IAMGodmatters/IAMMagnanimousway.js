@@ -19,6 +19,8 @@ jobs:
           node-version: 22
       - name: Verify native-first brain and God Coding contracts
         run: node qa/scripts/magnanimous-native-first-lock.mjs
+      - name: Verify ApiVault-discovered public API fabric
+        run: node qa/scripts/magnanimous-public-api-lock.mjs
       - name: Verify Grok absorption and improvement governance
         run: node qa/scripts/magnanimous-grok-governance-lock.mjs
       - name: Verify B2B wholesale and travel network
@@ -77,6 +79,10 @@ jobs:
         run: node --check worker/src/magnanimous-capability-mesh.js
       - name: Syntax check Native Web Worker runtime
         run: node --check worker/src/magnanimous-native-web-runtime.js
+      - name: Syntax check public API registry
+        run: node --check worker/src/magnanimous-public-api-capability-registry.js
+      - name: Syntax check public data runtime
+        run: node --check worker/src/magnanimous-public-data-runtime.js
       - name: Syntax check Local Bridge Python agent
         run: python -m py_compile local-bridge/bridge_agent.py
       - name: Syntax check Local Bridge PowerShell installer
