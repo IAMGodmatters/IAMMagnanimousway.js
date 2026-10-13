@@ -1322,6 +1322,43 @@ jobs:
           status=$(safe_get_status /tmp/me.json "$BASE_URL/api/auth/me" -H "Authorization: Bearer $token")
           if [ "$status" != "200" ]; then echo "Authenticated account check returned HTTP $status"; cat /tmp/me.json || true; exit 1; fi
 
+          status=$(safe_get_status /tmp/public-data-health-auth.json "$BASE_URL/api/public-data/health" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Authenticated public-data health returned HTTP $status"; cat /tmp/public-data-health-auth.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/public-data-health-auth.json'))
+          r=d.get('resilience') or {}
+          assert d.get('identity') == 'Magnanimous AI', d
+          assert d.get('status') == 'ready', d
+          assert int(d.get('providers') or 0) >= 15, d
+          assert r.get('authentication_required') is True, d
+          assert r.get('read_only') is True, d
+          assert r.get('fixed_provider_hosts') is True, d
+          assert r.get('arbitrary_url_proxy') is False, d
+          assert int(r.get('timeout_ms') or 0) == 9000, d
+          assert int(r.get('max_provider_bytes') or 0) == 1500000, d
+          assert int(r.get('max_cache_entries') or 0) == 160, d
+          PY
+
+          status=$(safe_get_status /tmp/public-data-capabilities-auth.json "$BASE_URL/api/public-data/capabilities" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Authenticated public-data capabilities returned HTTP $status"; cat /tmp/public-data-capabilities-auth.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/public-data-capabilities-auth.json'))
+          r=d.get('resilience') or {}
+          assert d.get('identity') == 'Magnanimous AI', d
+          assert int(d.get('active_read_only_providers') or 0) >= 15, d
+          assert int(d.get('capability_contracts') or 0) >= 20, d
+          assert d.get('runtime') == 'read-only-fixed-provider-adapters', d
+          assert d.get('arbitrary_url_proxy') is False, d
+          assert r.get('bounded_cache') is True, d
+          assert r.get('duplicate_request_coalescing') is True, d
+          assert r.get('per_isolate_burst_guard') is True, d
+          assert int(r.get('provider_timeout_ms') or 0) == 9000, d
+          assert int(r.get('max_provider_bytes') or 0) == 1500000, d
+          print('Authenticated Magnanimous public-data health and capability fabric passed.')
+          PY
+
           status=$(safe_get_status /tmp/creator-growth-capabilities.json "$BASE_URL/api/creator-growth/capabilities" -H "Authorization: Bearer $token")
           if [ "$status" != "200" ]; then echo "Creator Growth capabilities returned HTTP $status"; cat /tmp/creator-growth-capabilities.json || true; exit 1; fi
           python - <<'PY'
@@ -2105,6 +2142,19 @@ jobs:
             cat /tmp/worker-only-me-headers.txt
             exit 1
           fi
+
+          for public_data_path in \
+            '/api/public-data/health' \
+            '/api/public-data/capabilities' \
+            '/api/public-data/federal-register?q=artificial%20intelligence&limit=1'; do
+            public_data_status="$(curl -sS --connect-timeout 10 --max-time 60 -D /tmp/worker-only-public-data-headers.txt -o /tmp/worker-only-public-data.json -w '%{http_code}' "$BASE_URL$public_data_path")"
+            [ "$public_data_status" = "401" ] || { echo "::error::Unauthenticated public-data route $public_data_path expected HTTP 401, got $public_data_status"; cat /tmp/worker-only-public-data.json || true; exit 1; }
+            if grep -Eqi '^x-railway-fallback:[[:space:]]*true' /tmp/worker-only-public-data-headers.txt; then
+              echo "::error::Public-data route $public_data_path incorrectly fell through to the Railway standalone plane."
+              cat /tmp/worker-only-public-data-headers.txt
+              exit 1
+            fi
+          done
 
           mesh_status="$(curl -sS --connect-timeout 10 --max-time 60 -D /tmp/worker-only-mesh-headers.txt -o /tmp/worker-only-mesh.json -w '%{http_code}' "$BASE_URL/api/magnanimous/capability-mesh/catalog")"
           case "$mesh_status" in
