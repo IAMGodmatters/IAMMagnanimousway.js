@@ -57,6 +57,13 @@ function freightCost(row){
 export async function cjSupplierConfigured(env){
  const rt=await runtime(env);return Boolean(String(rt.CJ_API_KEY||'').trim());
 }
+export async function checkCjSupplierConnection(env){
+ const auth=await access(env);
+ if(!auth.ok)return auth;
+ const balance=await supplierBalance(auth.token);
+ if(!balance.ok)return{ok:false,code:'supplier_balance_unavailable',detail:balance.detail};
+ return{ok:true,balanceCents:Number(balance.balanceCents||0)};
+}
 export async function verifyCjCatalogVariant(env,sku){
  const auth=await access(env);if(!auth.ok)return auth;
  const variant=await resolveVariant(auth.token,sku);
