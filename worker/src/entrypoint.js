@@ -11,6 +11,7 @@ import { handleMagnanimousNativeMail } from './magnanimous-native-mail-runtime.j
 import { handleMagnanimousUniversalAIConnector } from './magnanimous-universal-ai-connector.js';
 import { handleMagnanimousSpace } from './magnanimous-space-runtime.js';
 import { handleMagnanimousResearch } from './magnanimous-research-runtime.js';
+import { handleMagnanimousPublicData } from './magnanimous-public-data-runtime.js';
 import { handleMagnanimousMux } from './magnanimous-mux-runtime.js';
 import { handleMagnanimousMeta } from './magnanimous-meta-runtime.js';
 import { handleMagnanimousEcosystem } from './magnanimous-ecosystem-runtime.js';
@@ -114,6 +115,8 @@ export default {
     if(space)return space;
     const research=await handleMagnanimousResearch(request,env);
     if(research)return research;
+    const publicData=await handleMagnanimousPublicData(request,env);
+    if(publicData)return publicData;
     const mux=await handleMagnanimousMux(request,env);
     if(mux)return mux;
     const whatsapp=await handleMagnanimousWhatsApp(request,env);
