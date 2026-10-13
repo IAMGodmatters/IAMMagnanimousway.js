@@ -3,6 +3,7 @@ import {getProviderRuntimeEnv} from './provider-runtime-env.js';
 const API='https://developers.cjdropshipping.com/api2.0/v1';
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let tokenCache={apiKey:'',token:'',expiresAt:0};
+let connectionCache={apiKey:'',ok:false,balanceCents:0,detail:'',expiresAt:0};
 let lastCallAt=0;
 
 async function throttledFetch(url,options={}){
@@ -57,12 +58,16 @@ function freightCost(row){
 export async function cjSupplierConfigured(env){
  const rt=await runtime(env);return Boolean(String(rt.CJ_API_KEY||'').trim());
 }
-export async function checkCjSupplierConnection(env){
- const auth=await access(env);
- if(!auth.ok)return auth;
+export async function checkCjSupplierConnection(env,{fresh=false}={}){
+ const rt=await runtime(env),apiKey=String(rt.CJ_API_KEY||'').trim();
+ if(!apiKey)return{ok:false,code:'supplier_not_connected',balanceCents:0,detail:'Dropshipping supplier connection is not configured.'};
+ if(!fresh&&connectionCache.apiKey===apiKey&&connectionCache.expiresAt>Date.now())return{ok:connectionCache.ok,balanceCents:connectionCache.balanceCents,detail:connectionCache.detail,code:connectionCache.ok?'':'supplier_balance_unavailable'};
+ const auth=await access(rt);
+ if(!auth.ok){connectionCache={apiKey,ok:false,balanceCents:0,detail:String(auth.detail||'Supplier authentication failed.'),expiresAt:Date.now()+30000};return{...auth,balanceCents:0}}
  const balance=await supplierBalance(auth.token);
- if(!balance.ok)return{ok:false,code:'supplier_balance_unavailable',detail:balance.detail};
- return{ok:true,balanceCents:Number(balance.balanceCents||0)};
+ if(!balance.ok){connectionCache={apiKey,ok:false,balanceCents:0,detail:String(balance.detail||'Supplier balance could not be verified.'),expiresAt:Date.now()+30000};return{ok:false,code:'supplier_balance_unavailable',balanceCents:0,detail:connectionCache.detail}}
+ connectionCache={apiKey,ok:true,balanceCents:Number(balance.balanceCents||0),detail:'',expiresAt:Date.now()+60000};
+ return{ok:true,balanceCents:connectionCache.balanceCents};
 }
 export async function verifyCjCatalogVariant(env,sku){
  const auth=await access(env);if(!auth.ok)return auth;
