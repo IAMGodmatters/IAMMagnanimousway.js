@@ -5,6 +5,7 @@ import {getArtlistCapabilityManifest,getArtlistAbsorptionSummary} from './magnan
 import {getArtlistEditingToolManifest,getArtlistEditingToolSummary} from './magnanimous-artlist-editing-tools-registry.js';
 import {getMagnanimousVideoDirectorSummary} from './magnanimous-video-director.js';
 import {getDesktopCapabilityManifest,getDesktopCapabilityAbsorptionSummary} from './magnanimous-desktop-capability-registry.js';
+import {getPublicApiCapabilityManifest,getPublicApiAbsorptionSummary} from './magnanimous-public-api-capability-registry.js';
 
 export const MAGNANIMOUS_SINGLE_BRAIN_CONTRACT=Object.freeze({
  identity:'Magnanimous AI',
@@ -49,12 +50,14 @@ export function getMagnanimousSingleBrainSummary(){
  const videoDirector=getMagnanimousVideoDirectorSummary();
  const desktopCapabilities=getDesktopCapabilityManifest();
  const desktopBenchmark=getDesktopCapabilityAbsorptionSummary();
+ const publicApiCapabilities=getPublicApiCapabilityManifest();
+ const publicApiBenchmark=getPublicApiAbsorptionSummary();
  return{
   ...MAGNANIMOUS_SINGLE_BRAIN_CONTRACT,
   role:MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL.role,
   universal_capability_domains:MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS.length,
   universal_capability_contracts:capabilityCount(),
-  absorbed_capability_contracts:Number(absorbed.full_brain_capability_contracts||0)+videoCapabilities.length+artlistCapabilities.length+artlistEditingCapabilities.length+desktopCapabilities.length,
+  absorbed_capability_contracts:Number(absorbed.full_brain_capability_contracts||0)+videoCapabilities.length+artlistCapabilities.length+artlistEditingCapabilities.length+desktopCapabilities.length+publicApiCapabilities.length,
   direct_platform_connectors:Number(absorbed.direct_platform_connectors||0),
   visible_plugin_tool_contracts:Number(absorbed.visible_plugin_tool_contracts||0),
   installed_plugin_skills:Number(absorbed.installed_plugin_skills||0),
@@ -66,6 +69,9 @@ export function getMagnanimousSingleBrainSummary(){
   creative_control_plane_capabilities:artlistCapabilities.map(x=>x.capability),
   creative_editing_api_capability_contracts:artlistEditingCapabilities.length,
   creative_editing_api_capabilities:artlistEditingCapabilities.map(x=>x.capability),
+  public_api_capability_contracts:publicApiCapabilities.length,
+  public_api_capabilities:publicApiCapabilities.map(x=>x.capability),
+  public_api_fabric:publicApiBenchmark,
   videoexpress_public_benchmark:videoBenchmark,
   artlist_public_benchmark:artlistBenchmark,
   artlist_editing_tools_public_benchmark:artlistEditingBenchmark,
@@ -73,7 +79,7 @@ export function getMagnanimousSingleBrainSummary(){
   desktop_capability_contracts:desktopCapabilities.length,
   desktop_capabilities:desktopCapabilities.map(x=>x.capability),
   desktop_capability_benchmark:desktopBenchmark,
-  native_targets:[...new Set([...(Array.isArray(absorbed.native_targets)?absorbed.native_targets:[]),...videoCapabilities.map(x=>x.native_target),...artlistCapabilities.map(x=>x.native_target),...artlistEditingCapabilities.map(x=>x.native_target),...desktopCapabilities.map(x=>x.native_target)])].sort(),
+  native_targets:[...new Set([...(Array.isArray(absorbed.native_targets)?absorbed.native_targets:[]),...videoCapabilities.map(x=>x.native_target),...artlistCapabilities.map(x=>x.native_target),...artlistEditingCapabilities.map(x=>x.native_target),...desktopCapabilities.map(x=>x.native_target),...publicApiCapabilities.map(x=>x.native_target)])].sort(),
   connector_coverage:absorbed.direct_connector_coverage||{},
   absorption_status:absorbed.status||'unknown',
   execution_policy:{
@@ -97,7 +103,9 @@ export function getMagnanimousSingleBrainSummary(){
    non_destructive_editor_automation:true,
    external_api_secrets_server_side:true,
    rate_limit_and_idempotency_controls:true,
-   licensed_assets_excluded_from_training:true
+   licensed_assets_excluded_from_training:true,
+   clean_room_public_api_absorption:true,
+   arbitrary_public_api_proxying:false
   }
  };
 }
