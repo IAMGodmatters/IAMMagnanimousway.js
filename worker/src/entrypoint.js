@@ -28,6 +28,7 @@ import { handleMagnanimousTelecomSecurityGate } from './magnanimous-telecom-secu
 import { ensureMagnanimousCommunicationsToolSeed } from './inkbox-tool-seed.js';
 import { ensureMagnanimousSuperhumanMailSeed } from './superhuman-mail-tool-seed.js';
 import { ensureMagnanimousCloudflareToolSeed } from './cloudflare-tool-seed.js';
+import { ensureMagnanimousPublicApiToolSeed } from './public-api-tool-seed.js';
 import { createPasswordRecord } from './password-security.js';
 
 const CRM_TABLES=['crm_contacts','crm_activities','crm_opportunities'];
@@ -86,6 +87,7 @@ async function ensureRuntimeBootstrap(env){
     try{await ensureMagnanimousCommunicationsToolSeed(env)}catch(error){console.error('communications tool seed failed',error)}
     try{await ensureMagnanimousSuperhumanMailSeed(env)}catch(error){console.error('Superhuman Mail pattern seed failed',error)}
     try{await ensureMagnanimousCloudflareToolSeed(env)}catch(error){console.error('Cloudflare Tool Foundry seed failed',error)}
+    try{await ensureMagnanimousPublicApiToolSeed(env)}catch(error){console.error('public API Tool Foundry seed failed',error)}
     bootstrapReady=true;
   })();
   try{await bootstrapPromise}finally{if(!bootstrapReady)bootstrapPromise=null}
