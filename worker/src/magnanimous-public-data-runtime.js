@@ -15,9 +15,21 @@ async function providerJson(url,{headers={}}={}){
     if(!response.ok)throw new Error(`provider returned HTTP ${response.status}`);
     const length=Number(response.headers.get('content-length')||0);
     if(Number.isFinite(length)&&length>MAX_PROVIDER_BYTES)throw new Error('provider response exceeded size limit');
-    const raw=await response.text();
-    if(raw.length>MAX_PROVIDER_BYTES)throw new Error('provider response exceeded size limit');
-    return JSON.parse(raw);
+    const reader=response.body?.getReader();
+    if(!reader)throw new Error('provider response body unavailable');
+    const chunks=[];let total=0;
+    try{
+      while(true){
+        const {done,value}=await reader.read();
+        if(done)break;
+        total+=value.byteLength;
+        if(total>MAX_PROVIDER_BYTES)throw new Error('provider response exceeded size limit');
+        chunks.push(value);
+      }
+    }catch(error){await reader.cancel().catch(()=>{});throw error}
+    const bytes=new Uint8Array(total);let offset=0;
+    for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}
+    return JSON.parse(new TextDecoder().decode(bytes));
   }finally{
     clearTimeout(timeout);
   }
