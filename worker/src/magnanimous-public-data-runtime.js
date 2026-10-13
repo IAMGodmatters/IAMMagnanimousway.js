@@ -3,7 +3,7 @@ import { getPublicApiAbsorptionSummary } from './magnanimous-public-api-capabili
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const clip=(value,max=1000)=>String(value??'').trim().slice(0,max);
-const integer=(value,fallback=0)=>{const n=Number(value);return Number.isFinite(n)?Math.trunc(n):fallback};
+const integer=(value,fallback=0)=>{if(value===null||value===undefined||String(value).trim()==='')return fallback;const n=Number(value);return Number.isFinite(n)?Math.trunc(n):fallback};
 const MAX_PROVIDER_BYTES=1_500_000;
 const PROVIDER_TIMEOUT_MS=9_000;
 
@@ -74,6 +74,7 @@ function normalizeWorldBank(row={}){
 }
 
 function finite(value,min,max,fallback=null){
+  if(value===null||value===undefined||String(value).trim()==='')return fallback;
   const n=Number(value);
   if(!Number.isFinite(n))return fallback;
   return Math.max(min,Math.min(max,n));
