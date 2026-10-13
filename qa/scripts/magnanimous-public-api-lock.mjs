@@ -6,6 +6,8 @@ import { classifyCapabilityRealization } from '../../worker/src/magnanimous-capa
 const runtime=fs.readFileSync('worker/src/magnanimous-public-data-runtime.js','utf8');
 const entrypoint=fs.readFileSync('worker/src/entrypoint.js','utf8');
 const registry=fs.readFileSync('worker/src/magnanimous-public-api-capability-registry.js','utf8');
+const toolSeed=fs.readFileSync('worker/src/public-api-tool-seed.js','utf8');
+const deploy=fs.readFileSync('.github/workflows/deploy.yml','utf8');
 const includes=(text,value,message)=>assert.ok(text.includes(value),message);
 const excludes=(text,value,message)=>assert.ok(!text.includes(value),message);
 
@@ -65,6 +67,17 @@ includes(runtime,'bulk_mirroring:false','Scripture adapter must not become a bul
 includes(runtime,'reference-rate-not-payment-settlement','FX adapter must not be used as a payment settlement authority.');
 includes(runtime,'not an emergency-warning service','USGS adapter must keep the emergency-safety boundary explicit.');
 excludes(runtime,"url.searchParams.get('url')",'Runtime must not accept arbitrary provider URLs from users.');
+
+includes(toolSeed,'for(const provider of MAGNANIMOUS_PUBLIC_API_PROVIDERS)','Every active public-data provider must be materialized through the Tool Foundry seed.');
+includes(toolSeed,"risk:'low'",'Public-data Tool Foundry seeds must remain low-risk read-only tools.');
+includes(toolSeed,'requiresConnection:false','No-key public-data evidence tools must not pretend a user connection is required.');
+includes(toolSeed,'getPublicApiCapabilityManifest()','Tool Foundry must derive public-data capabilities from the authoritative manifest.');
+
+includes(deploy,'/api/public-data/health','Production smoke must permanently verify the public-data health boundary.');
+includes(deploy,'/api/public-data/capabilities','Production smoke must permanently verify the public-data capability surface.');
+includes(deploy,'Authenticated Magnanimous public-data health and capability fabric passed.','Full production smoke must prove signed-in public-data runtime metadata.');
+includes(deploy,'Unauthenticated public-data route $public_data_path expected HTTP 401','Worker-only production smoke must prove public-data routes stay authentication-gated.');
+includes(deploy,'Public-data route $public_data_path incorrectly fell through to the Railway standalone plane.','Worker-only smoke must fail if public-data routing leaves the Cloudflare Worker plane.');
 
 includes(entrypoint,"import { handleMagnanimousPublicData } from './magnanimous-public-data-runtime.js';",'Public-data runtime must be mounted in the Worker.');
 includes(entrypoint,'const publicData=await handleMagnanimousPublicData(request,env);','Worker must route requests through public-data runtime.');
