@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { getPublicApiAbsorptionSummary } from './magnanimous-public-api-capability-registry.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -7,11 +8,11 @@ const integer=(value,fallback=0)=>{if(value===null||value===undefined||String(va
 const MAX_PROVIDER_BYTES=1_500_000;
 const PROVIDER_TIMEOUT_MS=9_000;
 
-async function providerJson(url,{headers={}}={}){
+async function providerJson(url,{headers={},method='GET',body}={}){
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort('provider-timeout'),PROVIDER_TIMEOUT_MS);
   try{
-    const response=await fetch(url,{method:'GET',headers:{accept:'application/json','user-agent':'I-AM-MAGNANIMOUS-WAY/1.0 (+https://iammagnanimousway.com)',...headers},signal:controller.signal,redirect:'follow'});
+    const response=await fetch(url,{method,headers:{accept:'application/json','user-agent':'I-AM-MAGNANIMOUS-WAY/1.0 (+https://iammagnanimousway.com)',...headers},body,signal:controller.signal,redirect:'error'});
     if(!response.ok)throw new Error(`provider returned HTTP ${response.status}`);
     const length=Number(response.headers.get('content-length')||0);
     if(Number.isFinite(length)&&length>MAX_PROVIDER_BYTES)throw new Error('provider response exceeded size limit');
@@ -92,6 +93,77 @@ function finite(value,min,max,fallback=null){
   return Math.max(min,Math.min(max,n));
 }
 
+const OWNED_SECURITY_HOST_SUFFIX='iammagnanimousway.com';
+const OPENVERSE_COMMERCIAL_LICENSES='cc0,pdm,by,by-sa';
+const USAJOBS_CODELISTS=new Set(['countries','countrysubdivisions','jobcategories','payplans','cyberworkroles','cyberworkgroupings']);
+
+function ownedSecurityHost(value){
+  const host=clip(value,253).toLowerCase().replace(/\.$/,'');
+  if(!/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(host))return '';
+  return host===OWNED_SECURITY_HOST_SUFFIX||host.endsWith(`.${OWNED_SECURITY_HOST_SUFFIX}`)?host:'';
+}
+
+function nvdScore(cve={}){
+  const groups=['cvssMetricV40','cvssMetricV31','cvssMetricV30','cvssMetricV2'];
+  for(const key of groups){
+    const rows=Array.isArray(cve?.metrics?.[key])?cve.metrics[key]:[];
+    const row=rows[0];
+    const score=Number(row?.cvssData?.baseScore),severity=clip(row?.cvssData?.baseSeverity||row?.baseSeverity,40);
+    if(Number.isFinite(score))return {score,severity:severity||null,version:clip(row?.cvssData?.version,20)||null};
+  }
+  return {score:null,severity:null,version:null};
+}
+
+function normalizeNvd(item={}){
+  const cve=item?.cve||{};
+  const english=(Array.isArray(cve.descriptions)?cve.descriptions:[]).find(x=>String(x?.lang||'').toLowerCase()==='en');
+  const weaknesses=(Array.isArray(cve.weaknesses)?cve.weaknesses:[]).flatMap(x=>Array.isArray(x?.description)?x.description:[]).filter(x=>String(x?.lang||'').toLowerCase()==='en').map(x=>clip(x?.value,120)).filter(Boolean).slice(0,12);
+  const references=(Array.isArray(cve.references)?cve.references:[]).map(x=>({url:clip(x?.url,2000),source:clip(x?.source,120),tags:(Array.isArray(x?.tags)?x.tags:[]).map(t=>clip(t,80)).filter(Boolean).slice(0,8)})).filter(x=>x.url).slice(0,12);
+  return {id:clip(cve.id,40),published:clip(cve.published,80),last_modified:clip(cve.lastModified,80),status:clip(cve.vulnStatus,80),description:clip(english?.value,5000),cvss:nvdScore(cve),weaknesses,references};
+}
+
+function normalizeOpenverse(row={}){
+  return {
+    id:clip(row?.id,100),title:clip(row?.title,500),creator:clip(row?.creator,300),creator_url:clip(row?.creator_url,2000),
+    image_url:clip(row?.url,2000),thumbnail:clip(row?.thumbnail,2000),landing_url:clip(row?.foreign_landing_url,2000),
+    license:clip(row?.license,40),license_version:clip(row?.license_version,40),license_url:clip(row?.license_url,2000),
+    attribution:clip(row?.attribution,3000),source:clip(row?.source,120),provider:clip(row?.provider,120),
+    width:Number.isFinite(Number(row?.width))?Number(row.width):null,height:Number.isFinite(Number(row?.height))?Number(row.height):null
+  };
+}
+
+function normalizeDictionaryEntry(entry={}){
+  return {
+    word:clip(entry?.word,120),phonetic:clip(entry?.phonetic,300),
+    phonetics:(Array.isArray(entry?.phonetics)?entry.phonetics:[]).slice(0,8).map(p=>({text:clip(p?.text,300),audio:clip(p?.audio,2000),source_url:clip(p?.sourceUrl,2000)})),
+    meanings:(Array.isArray(entry?.meanings)?entry.meanings:[]).slice(0,8).map(m=>({
+      part_of_speech:clip(m?.partOfSpeech,80),
+      synonyms:(Array.isArray(m?.synonyms)?m.synonyms:[]).map(x=>clip(x,100)).filter(Boolean).slice(0,20),
+      antonyms:(Array.isArray(m?.antonyms)?m.antonyms:[]).map(x=>clip(x,100)).filter(Boolean).slice(0,20),
+      definitions:(Array.isArray(m?.definitions)?m.definitions:[]).slice(0,8).map(d=>({definition:clip(d?.definition,2000),example:clip(d?.example,1200),synonyms:(Array.isArray(d?.synonyms)?d.synonyms:[]).map(x=>clip(x,100)).filter(Boolean).slice(0,12),antonyms:(Array.isArray(d?.antonyms)?d.antonyms:[]).map(x=>clip(x,100)).filter(Boolean).slice(0,12)}))
+    })),
+    source_urls:(Array.isArray(entry?.sourceUrls)?entry.sourceUrls:[]).map(x=>clip(x,2000)).filter(Boolean).slice(0,8)
+  };
+}
+
+function normalizeUsaJob(item={}){
+  const d=item?.MatchedObjectDescriptor||item||{},details=d?.UserArea?.Details||{};
+  const remuneration=(Array.isArray(d?.PositionRemuneration)?d.PositionRemuneration:[]).slice(0,4).map(r=>({minimum:clip(r?.MinimumRange,80),maximum:clip(r?.MaximumRange,80),rate_interval:clip(r?.RateIntervalCode,40),currency:clip(r?.Description,80)}));
+  return {
+    position_id:clip(d?.PositionID,120),title:clip(d?.PositionTitle,500),organization:clip(d?.OrganizationName,500),department:clip(d?.DepartmentName,500),
+    location:clip(d?.PositionLocationDisplay,500),uri:clip(d?.PositionURI,2000),apply_uris:(Array.isArray(d?.ApplyURI)?d.ApplyURI:[]).map(x=>clip(x,2000)).filter(Boolean).slice(0,8),
+    publication_start:clip(d?.PublicationStartDate,80),application_close:clip(d?.ApplicationCloseDate,80),position_start:clip(d?.PositionStartDate,80),position_end:clip(d?.PositionEndDate,80),
+    remuneration,job_summary:clip(details?.JobSummary,3000),requirements:clip(details?.Requirements,3000),major_duties:(Array.isArray(details?.MajorDuties)?details.MajorDuties:[]).map(x=>clip(x,1500)).filter(Boolean).slice(0,10)
+  };
+}
+
+function normalizeVin(row={}){
+  const keys=['VIN','ModelYear','Make','Model','Trim','BodyClass','VehicleType','Manufacturer','PlantCountry','PlantState','PlantCity','Series','DriveType','FuelTypePrimary','EngineCylinders','DisplacementL','TransmissionStyle','Doors','ErrorCode','ErrorText'];
+  const result={};
+  for(const key of keys){const value=row?.[key];if(value!==undefined&&value!==null&&String(value).trim()!=='')result[key]=clip(value,1000)}
+  return result;
+}
+
 const SCRIPTURE_TRANSLATIONS=new Set(['kjv','web','asv']);
 
 export async function handleMagnanimousPublicData(request,env){
@@ -159,6 +231,107 @@ export async function handleMagnanimousPublicData(request,env){
       }));
       return json({identity:'Magnanimous AI Research',days,min_magnitude:minMagnitude,count:events.length,events,safety_note:'Informational earthquake data only. This is not an emergency-warning service; follow local emergency authorities for safety decisions.',source:{name:'USGS Earthquake Hazards Program',url:'https://earthquake.usgs.gov/fdsnws/event/1/'}});
     }catch(error){return sourceError('USGS',error)}
+  }
+
+  if(path==='/api/public-data/security-observatory'){
+    const host=ownedSecurityHost(url.searchParams.get('host')||OWNED_SECURITY_HOST_SUFFIX);
+    if(!host)return json({detail:'Security Observatory scans are limited to I AM MAGNANIMOUS WAY owned domains.'},400);
+    try{
+      const data=await providerJson(`https://observatory-api.mdn.mozilla.net/api/v2/scan?host=${encodeURIComponent(host)}`,{method:'POST'});
+      return json({identity:'Magnanimous Security Auditor',host,grade:clip(data?.grade,20),score:Number.isFinite(Number(data?.score))?Number(data.score):null,tests_passed:integer(data?.tests_passed,null),tests_failed:integer(data?.tests_failed,null),tests_quantity:integer(data?.tests_quantity,null),status_code:integer(data?.status_code,null),scanned_at:clip(data?.scanned_at,80),details_url:clip(data?.details_url,2000),scope_note:'HTTP security-header posture only; this is not a complete vulnerability assessment.',source:{name:'MDN HTTP Observatory',url:'https://developer.mozilla.org/en-US/observatory/'}});
+    }catch(error){return sourceError('MDN HTTP Observatory',error)}
+  }
+
+  if(path==='/api/public-data/nvd'){
+    const cve=clip(url.searchParams.get('cve'),40).toUpperCase(),q=clip(url.searchParams.get('q'),300),limit=Math.trunc(finite(url.searchParams.get('limit'),1,10,5));
+    if(cve&&!/^CVE-\d{4}-\d{4,}$/.test(cve))return json({detail:'cve must use the CVE-YYYY-NNNN format.'},400);
+    if(!cve&&!q)return json({detail:'Provide cve or q.'},400);
+    const query=new URLSearchParams({resultsPerPage:String(limit)});
+    if(cve)query.set('cveId',cve);else query.set('keywordSearch',q);
+    const runtimeEnv=await getProviderRuntimeEnv(env),headers={};if(clip(runtimeEnv?.NVD_API_KEY,500))headers.apiKey=clip(runtimeEnv.NVD_API_KEY,500);
+    try{
+      const data=await providerJson(`https://services.nvd.nist.gov/rest/json/cves/2.0?${query.toString()}`,{headers});
+      const items=(Array.isArray(data?.vulnerabilities)?data.vulnerabilities:[]).slice(0,limit).map(normalizeNvd);
+      return json({identity:'Magnanimous Security Auditor',query:cve||q,count:items.length,total_results:Number.isFinite(Number(data?.totalResults))?Number(data.totalResults):items.length,items,source:{name:'NIST National Vulnerability Database',url:'https://nvd.nist.gov/developers/vulnerabilities'},rate_note:headers.apiKey?'Using configured NVD API key for higher provider allowance.':'Using the public unauthenticated NVD allowance; requests are intentionally bounded.'});
+    }catch(error){return sourceError('NVD',error)}
+  }
+
+  if(path==='/api/public-data/usajobs'){
+    const codelist=clip(url.searchParams.get('codelist'),80).toLowerCase();
+    if(codelist){
+      if(!USAJOBS_CODELISTS.has(codelist))return json({detail:'Unsupported USAJOBS codelist.'},400);
+      try{
+        const data=await providerJson(`https://data.usajobs.gov/api/codelist/${encodeURIComponent(codelist)}`);
+        return json({identity:'Magnanimous Opportunity Vault',codelist,data,source:{name:'USAJOBS',url:'https://developer.usajobs.gov/api-reference/code-lists'}});
+      }catch(error){return sourceError('USAJOBS',error)}
+    }
+    const runtimeEnv=await getProviderRuntimeEnv(env),apiKey=clip(runtimeEnv?.USAJOBS_API_KEY,1000),apiEmail=clip(runtimeEnv?.USAJOBS_API_EMAIL,500);
+    if(!apiKey||!apiEmail)return json({detail:'USAJOBS search is ready but requires an owner-configured USAJOBS API key and matching email.',setup_required:true,required_credentials:['USAJOBS_API_KEY','USAJOBS_API_EMAIL'],source:{name:'USAJOBS',url:'https://developer.usajobs.gov/guides/authentication'}},503);
+    const keyword=clip(url.searchParams.get('keyword'),300),location=clip(url.searchParams.get('location'),300),datePosted=Math.trunc(finite(url.searchParams.get('date_posted'),0,60,30)),limit=Math.trunc(finite(url.searchParams.get('limit'),1,25,10));
+    const query=new URLSearchParams({ResultsPerPage:String(limit),DatePosted:String(datePosted)});
+    if(keyword)query.set('Keyword',keyword);if(location)query.set('LocationName',location);
+    try{
+      const data=await providerJson(`https://data.usajobs.gov/api/Search?${query.toString()}`,{headers:{'Authorization-Key':apiKey,'User-Agent':apiEmail}});
+      const items=(Array.isArray(data?.SearchResult?.SearchResultItems)?data.SearchResult.SearchResultItems:[]).slice(0,limit).map(normalizeUsaJob);
+      return json({identity:'Magnanimous Opportunity Vault',keyword:keyword||null,location:location||null,date_posted_days:datePosted,count:items.length,total:Number.isFinite(Number(data?.SearchResult?.SearchResultCountAll))?Number(data.SearchResult.SearchResultCountAll):items.length,items,source:{name:'USAJOBS',url:'https://developer.usajobs.gov/api-reference/get-api-search'}});
+    }catch(error){return sourceError('USAJOBS',error)}
+  }
+
+  if(path==='/api/public-data/openverse-images'){
+    const q=clip(url.searchParams.get('q'),200),limit=Math.trunc(finite(url.searchParams.get('limit'),1,20,8));
+    if(!q)return json({detail:'q is required.'},400);
+    const query=new URLSearchParams({q,page_size:String(limit),license:OPENVERSE_COMMERCIAL_LICENSES,mature:'false'});
+    try{
+      const data=await providerJson(`https://api.openverse.org/v1/images/?${query.toString()}`);
+      const items=(Array.isArray(data?.results)?data.results:[]).slice(0,limit).map(normalizeOpenverse);
+      return json({identity:'Magnanimous Media Library',query:q,count:items.length,items,commercial_license_filter:['cc0','pdm','by','by-sa'],license_verification_required:true,usage_note:'Openverse indexes license claims but does not guarantee their accuracy. Verify each work and retain required attribution before publishing.',source:{name:'Openverse',url:'https://api.openverse.org/v1/'}});
+    }catch(error){return sourceError('Openverse',error)}
+  }
+
+  if(path==='/api/public-data/dictionary'){
+    const word=clip(url.searchParams.get('word'),80).toLowerCase();
+    if(!/^[a-z][a-z'-]{0,79}$/.test(word))return json({detail:'word must contain English letters, apostrophes, or hyphens.'},400);
+    try{
+      const data=await providerJson(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+      const entries=(Array.isArray(data)?data:[]).slice(0,4).map(normalizeDictionaryEntry);
+      return json({identity:'Magnanimous Learning',word,count:entries.length,entries,fallback:false,source:{name:'Free Dictionary API',url:'https://dictionaryapi.dev/'}});
+    }catch(primaryError){
+      console.warn('Free Dictionary API unavailable; using Datamuse definition fallback',primaryError);
+      try{
+        const data=await providerJson(`https://api.datamuse.com/words?${new URLSearchParams({sp:word,max:'8',md:'dps'}).toString()}`);
+        const exact=(Array.isArray(data)?data:[]).find(row=>String(row?.word||'').toLowerCase()===word)||(Array.isArray(data)?data[0]:null);
+        if(!exact)throw new Error('dictionary fallback returned no entry');
+        return json({identity:'Magnanimous Learning',word,count:1,entries:[{word:clip(exact?.word,120),phonetic:'',phonetics:[],meanings:[{part_of_speech:'',synonyms:[],antonyms:[],definitions:(Array.isArray(exact?.defs)?exact.defs:[]).slice(0,12).map(d=>({definition:clip(d,2000),example:'',synonyms:[],antonyms:[]}))}],source_urls:[]}],fallback:true,fallback_reason:'Primary dictionary source temporarily unavailable.',source:{name:'Datamuse',url:'https://www.datamuse.com/api/'}});
+      }catch(fallbackError){return sourceError('Dictionary sources',fallbackError)}
+    }
+  }
+
+  if(path==='/api/public-data/words'){
+    const q=clip(url.searchParams.get('q'),100),mode=clip(url.searchParams.get('mode')||'means-like',30).toLowerCase(),limit=Math.trunc(finite(url.searchParams.get('limit'),1,50,15));
+    if(!q)return json({detail:'q is required.'},400);
+    const modes={'means-like':'ml','sounds-like':'sl','spelled-like':'sp'};
+    try{
+      let endpoint;
+      if(mode==='suggest')endpoint=`https://api.datamuse.com/sug?${new URLSearchParams({s:q,max:String(limit)}).toString()}`;
+      else{
+        const key=modes[mode];if(!key)return json({detail:'mode must be means-like, sounds-like, spelled-like, or suggest.'},400);
+        endpoint=`https://api.datamuse.com/words?${new URLSearchParams({[key]:q,max:String(limit),md:'dps'}).toString()}`;
+      }
+      const data=await providerJson(endpoint);
+      const items=(Array.isArray(data)?data:[]).slice(0,limit).map(row=>({word:clip(row?.word,120),score:Number.isFinite(Number(row?.score))?Number(row.score):null,tags:(Array.isArray(row?.tags)?row.tags:[]).map(x=>clip(x,120)).filter(Boolean).slice(0,20),definitions:(Array.isArray(row?.defs)?row.defs:[]).map(x=>clip(x,800)).filter(Boolean).slice(0,12)}));
+      return json({identity:'Magnanimous Learning',query:q,mode,count:items.length,items,provider_transition_note:'Datamuse currently permits anonymous read-only use but has announced API-key requirements beginning February 1, 2027; this adapter is isolated for easy credential migration.',source:{name:'Datamuse',url:'https://www.datamuse.com/api/'}});
+    }catch(error){return sourceError('Datamuse',error)}
+  }
+
+  if(path==='/api/public-data/vin'){
+    const vin=clip(url.searchParams.get('vin'),17).toUpperCase(),modelYear=Math.trunc(finite(url.searchParams.get('model_year'),1900,2100,0));
+    if(!/^[A-HJ-NPR-Z0-9*]{5,17}$/.test(vin))return json({detail:'vin must be a 5–17 character VIN/partial VIN using valid VIN characters; * may mark unknown positions.'},400);
+    const query=new URLSearchParams({format:'json'});if(modelYear)query.set('modelyear',String(modelYear));
+    try{
+      const data=await providerJson(`https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(vin)}?${query.toString()}`);
+      const row=Array.isArray(data?.Results)?data.Results[0]||{}:{};
+      return json({identity:'Magnanimous Vehicle Intelligence',vin,model_year:modelYear||null,vehicle:normalizeVin(row),informational_only:true,source:{name:'NHTSA vPIC',url:'https://vpic.nhtsa.dot.gov/api/'}});
+    }catch(error){return sourceError('NHTSA vPIC',error)}
   }
 
   if(path==='/api/public-data/scripture'){
