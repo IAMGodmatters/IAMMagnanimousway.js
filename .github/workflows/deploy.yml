@@ -213,6 +213,10 @@ jobs:
           required={'tenant_settings','ads','settings','security_rate_limits','auth_events'}
           missing=required-names
           assert not missing, f"Cannot defer migration control-plane check; production is missing required tables: {sorted(missing)}"
+          if 'auth_sessions' not in names:
+              print("Opaque-session storage is not present yet; keeping the signed-session recovery rail active while D1 migration writes are quota-blocked.")
+          else:
+              print("Opaque-session storage is present; no signed-session recovery rail is required for this deferred control-plane check.")
           print("No migration file changed in this deployment; deferring only the migration control-plane check under confirmed D1 quota.")
           PY
               echo "D1_MIGRATION_DEFERRED=1" >> "$GITHUB_ENV"
