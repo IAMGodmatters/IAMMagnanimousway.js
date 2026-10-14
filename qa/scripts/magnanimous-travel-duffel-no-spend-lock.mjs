@@ -10,7 +10,7 @@ import {
 
 const moduleSource=fs.readFileSync('worker/src/magnanimous-travel-duffel-sandbox.js','utf8');
 const runtime=fs.readFileSync('worker/src/magnanimous-travel-agency-runtime.js','utf8');
-const page=fs.readFileSync('frontend/app/travel-agency/duffel-test/page.tsx','utf8');
+const page=fs.readFileSync('frontend/app/travel-agency/page.tsx','utf8');
 
 assert.equal(isDuffelTestToken('duffel_test_example'),true);
 assert.equal(isDuffelTestToken('duffel_live_example'),false);
@@ -62,7 +62,7 @@ assert.equal(held.order_id,'ord_test');
 assert.equal(requests.length,2);
 
 let instantCalls=0;
-const instantBlocked=await createDuffelTestHold({offerId:'off_instant',passengers:[passenger]},{testToken:'duffel_test_example',fetchImpl:async(url)=>{instantCalls++;return new Response(JSON.stringify({data:{id:'off_instant',live_mode:false,passengers:[{id:'pas_test'}],payment_requirements:{requires_instant_payment:true}}}),{status:200})}});
+const instantBlocked=await createDuffelTestHold({offerId:'off_instant',passengers:[passenger]},{testToken:'duffel_test_example',fetchImpl:async()=>{instantCalls++;return new Response(JSON.stringify({data:{id:'off_instant',live_mode:false,passengers:[{id:'pas_test'}],payment_requirements:{requires_instant_payment:true}}}),{status:200})}});
 assert.equal(instantBlocked.status,409);
 assert.equal(instantCalls,1,'Instant-payment offer must be blocked before order creation.');
 
@@ -76,11 +76,14 @@ assert.ok(moduleSource.includes("if(!orderId||order.live_mode===true)"),'Live/am
 for(const route of ['/api/travel-agency/sandbox/duffel/status','/api/travel-agency/sandbox/duffel/search','/api/travel-agency/sandbox/duffel/hold'])assert.ok(runtime.includes(route),'Missing owner Duffel test route '+route);
 assert.ok((runtime.match(/Owner access required\./g)||[]).length>=7,'Travel sandbox endpoints must retain owner-only gates.');
 assert.ok(runtime.includes('isDuffelTestToken(clean(runtimeEnv?.DUFFEL_ACCESS_TOKEN))'),'Status must activate only for a Duffel test token.');
+assert.ok(runtime.includes("if(!token||isDuffelTestToken(token))return{supplier:'duffel',configured:false,offers:[]}"),'Normal live Duffel search must refuse developer test tokens.');
+assert.ok(runtime.includes("row.id==='duffel'?{...row,configured:false,test_mode_configured:true,live_mode:false}:row"),'A test token must never be advertised as live supplier readiness.');
+assert.ok(runtime.includes("booking_boundary:'Search and pricing only. Booking/ticketing remains authority-gated through the Magnanimous reservation service.'"),'Production booking authority gate must remain intact.');
 
-for(const token of ['Duffel No-Spend Flight Test Lab','TEST TOKEN ONLY','NO LIVE BOOKING','NO CARD / BALANCE','NO PAYMENT INTENT','OWNER ONLY','/api/travel-agency/sandbox/duffel/status','/api/travel-agency/sandbox/duffel/search','/api/travel-agency/sandbox/duffel/hold','https://duffel.com/docs/api/overview/test-mode'])assert.ok(page.includes(token),'Duffel owner page missing '+token);
-assert.ok(!page.includes('cardNumber'),'Owner page must not collect a card number.');
-assert.ok(!page.includes('cvv'),'Owner page must not collect CVV.');
-assert.ok(!page.includes('paymentIntent'),'Owner page must not collect a payment intent.');
-assert.ok(page.includes("passengers:[{id:passengerId,title,gender,given_name:given.trim(),family_name:family.trim(),born_on:born,email:email.trim(),phone_number:phone.trim(),type:'adult'}]"),'Hold UI request must be identity-only.');
+for(const token of ['NO-SPEND FLIGHT TEST LAB','NO REAL BOOKING','NO PAYMENT SENT','TEST TOKEN ONLY','OWNER ONLY','LIVE TICKETING LOCKED','/api/travel-agency/sandbox/duffel/status','/api/travel-agency/sandbox/duffel/search','/api/travel-agency/sandbox/duffel/hold','https://duffel.com/docs/api/overview/test-mode','Developer test tokens are excluded here. Only production-authorized live supply may appear as a live deal.'])assert.ok(page.includes(token),'Travel Agency page missing '+token);
+assert.ok(!page.includes('payment_intent'),'Travel Agency page must not create Duffel payment intents.');
+assert.ok(!page.includes('balance_amount'),'Travel Agency page must not expose Duffel balance payment controls.');
+assert.ok(!page.includes('payments:['),'Travel Agency page must not send Duffel payments in the no-spend lab.');
+assert.ok(page.includes("sandboxPost('/api/travel-agency/sandbox/duffel/hold',{offerId:duffelOfferId,passengers:"),'Duffel hold UI request must contain only selected offer and passenger identity data.');
 
-console.log('Magnanimous Duffel no-spend test lock PASS');
+console.log('Magnanimous Duffel no-spend behavioral lock PASS');
