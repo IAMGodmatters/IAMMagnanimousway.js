@@ -240,6 +240,7 @@ export const PLATFORM_CREDENTIAL_GROUPS=[
   {key:'TRAVELGATE_ACCESS_TOKEN',label:'Travelgate Access Token',secret:true,required:false},
   {key:'TRAVELGATE_PASSWORD',label:'Travelgate Password',secret:true,required:false},
   {key:'RATEHAWK_API_KEY',label:'RateHawk API Key',secret:true,required:false},
+  {key:'LITEAPI_SANDBOX_KEY',label:'LiteAPI Sandbox API Key',secret:true,required:false},
   {key:'VERTEIL_API_TOKEN',label:'Verteil API / partner token',secret:true,required:false},
   {key:'TRAVELFUSION_API_TOKEN',label:'Travelfusion API / commercial token',secret:true,required:false},
   {key:'TBO_API_KEY',label:'TBO API Key / partner credential',secret:true,required:false},
