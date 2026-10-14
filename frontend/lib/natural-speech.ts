@@ -99,10 +99,13 @@ function applyNaturalProsody(utterance:SpeechSynthesisUtterance,chunk:string,app
   else if(/[:;]\s*$/.test(chunk)){rateScale=.98;pitchShift=-.005}
   else if(/[.…]\s*$/.test(chunk)){rateScale=.992;pitchShift=-.01}
   if(chunk.length>160)rateScale*=.985;
-  const minRate=appleMobile?.89:.84,maxRate=appleMobile?1.01:1.12;
-  const minPitch=appleMobile?.92:.88,maxPitch=appleMobile?1.07:1.14;
-  utterance.rate=Math.max(minRate,Math.min(maxRate,baseRate*rateScale));
-  utterance.pitch=Math.max(minPitch,Math.min(maxPitch,basePitch+pitchShift));
+  if(appleMobile){
+    utterance.rate=Math.max(.89,Math.min(1.01,baseRate*rateScale));
+    utterance.pitch=Math.max(.92,Math.min(1.07,basePitch+pitchShift));
+  }else{
+    utterance.rate=Math.max(.84,Math.min(1.12,baseRate*rateScale));
+    utterance.pitch=Math.max(.88,Math.min(1.14,basePitch+pitchShift));
+  }
 }
 
 export function stopNaturalSpeech(){
