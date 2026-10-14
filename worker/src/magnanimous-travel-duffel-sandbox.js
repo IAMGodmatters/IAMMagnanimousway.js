@@ -27,13 +27,13 @@ export function validateDuffelTestSearch(input){
 }
 
 function sanitizePassenger(p){
- const allowed=new Set(['id','title','gender','given_name','family_name','born_on','email','phone_number','type']);
+ const allowed=new Set(['id','title','gender','given_name','family_name','born_on','email','phone_number']);
  if(!p||typeof p!=='object'||Array.isArray(p)||Object.keys(p).some(k=>!allowed.has(k)))throw makeError('Sandbox passenger contains unsupported fields.','INPUT');
  const id=safeText(p.id,100),given=safeText(p.given_name,80),family=safeText(p.family_name,80),born=String(p.born_on||''),email=String(p.email||'').trim(),phone=String(p.phone_number||'').trim();
  if(!id||!given||!family||!validDate(born)||!validEmail(email)||!validPhone(phone))throw makeError('Each test passenger requires the Duffel passenger ID, name, birth date, email and E.164 phone.','INPUT');
- const title=String(p.title||'mr').toLowerCase(),gender=String(p.gender||'m').toLowerCase(),type=String(p.type||'adult');
- if(!['mr','mrs','ms','miss','dr'].includes(title)||!['m','f'].includes(gender)||!['adult','child','infant_without_seat'].includes(type))throw makeError('Invalid test passenger title, gender or type.','INPUT');
- return{id,title,gender,given_name:given,family_name:family,born_on:born,email,phone_number:phone,type};
+ const title=String(p.title||'mr').toLowerCase(),gender=String(p.gender||'m').toLowerCase();
+ if(!['mr','mrs','ms','miss','dr'].includes(title)||!['m','f'].includes(gender))throw makeError('Invalid test passenger title or gender.','INPUT');
+ return{id,title,gender,given_name:given,family_name:family,born_on:born,email,phone_number:phone};
 }
 
 export function validateDuffelTestHold(input){
@@ -100,5 +100,5 @@ export async function createDuffelTestHold(input,{testToken,fetchImpl=fetch}={})
  if(response.error)return response;
  const order=response.result?.data||{},orderId=safeText(order.id,120);
  if(!orderId||order.live_mode===true)return{...flags(),configured:true,error:'Duffel did not confirm a test-mode hold order.',status:502};
- return{...flags(),configured:true,simulated_hold:true,hold_order_confirmed:true,order_id:orderId,booking_reference:safeText(order.booking_reference,80)||null,payment_status:order.payment_status||null,payment_required_by:order.payment_required_by||offer?.payment_requirements?.payment_required_by||null,note:'Test-mode hold only. No payments were sent and no live flight was booked.'};
+ return{...flags(),configured:true,simulated_hold:true,hold_order_confirmed:true,order_id:orderId,booking_reference:safeText(order.booking_reference,80)||null,payment_status:order.payment_status||null,payment_required_by:order?.payment_status?.payment_required_by||offer?.payment_requirements?.payment_required_by||null,note:'Test-mode hold only. No payments were sent and no live flight was booked.'};
 }
