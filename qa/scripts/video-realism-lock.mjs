@@ -8,4 +8,3 @@ if(!n.includes('identity drift')||!n.includes('interruption latency'))throw Erro
 for(const x of ['naturalMotion','--avatar-x','--avatar-y','--avatar-rx','--avatar-ry','--avatar-scale','onBoundary','/mode-images/research.webp','/mode-images/business.webp','/mode-images/virtual-assistant.webp'])if(!a.includes(x))throw Error('free visible agent realism lock '+x);
 for(const x of ['applyHumanProsody','onBoundary','utterance.onboundary','utterance.rate','utterance.pitch'])if(!speech.includes(x))throw Error('free speech realism lock '+x);
 console.log('Video realism lock passed: server realism contracts + free visible motion/prosody.');
-
