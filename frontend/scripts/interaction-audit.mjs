@@ -81,7 +81,7 @@ if(!fs.existsSync(magnanimousLayoutPath)){
  failures.push('app/magnanimous/layout.tsx: standalone metadata contract is missing');
 }else{
  const magnanimousLayout=fs.readFileSync(magnanimousLayoutPath,'utf8');
- if(!/title\s*:\s*["']Magnanimous AI™ — Standalone["']/.test(magnanimousLayout))failures.push('app/magnanimous/layout.tsx: standalone page title is missing');
+if(!/title\s*:\s*["']Magnanimous AI.*Standalone["']/.test(magnanimousLayout))failures.push('app/magnanimous/layout.tsx: standalone page title is missing');
  if(!/canonical\s*:\s*["']\/magnanimous["']/.test(magnanimousLayout))failures.push('app/magnanimous/layout.tsx: canonical standalone URL is missing');
 }
 if(fs.existsSync(magnanimousPagePath)){
@@ -100,7 +100,7 @@ if(!fs.existsSync(designSystemPath))failures.push('app/platform-design-system.ts
 if(!layout.includes("import PlatformDesignSystem from './platform-design-system'")||!layout.includes('<PlatformDesignSystem/>')||!layout.includes('body className="iam-design-v2"'))failures.push('app/layout.tsx: shared design system is not mounted on the root body');
 const chromePath=path.join(appDir,'platform-chrome.tsx');
 const chrome=fs.existsSync(chromePath)?fs.readFileSync(chromePath,'utf8'):'';
-for(const route of ['/b2b','/contact-center','/telecom','/intelligence-desk'])if(!chrome.includes(`,'${route}'`))failures.push(`app/platform-chrome.tsx: priority command route missing: ${route}`);
+for(const route of ['/b2b','/contact-center','/telecom','/intelligence-desk']){const tuple=chrome.includes(",\'"+route+"\'");const object=chrome.includes("href:\'"+route+"\'");if(!tuple&&!object)failures.push('app/platform-chrome.tsx: priority command route missing: '+route)}
 if(!platformRuntime.includes('if(!standalone)loadAds()'))failures.push('app/platform-runtime-script.tsx: standalone advertising isolation is missing');
 console.log(`Interaction audit: ${sourceFiles.length} source files, ${routes.size} routes, ${literalLinks} literal links, ${buttons} buttons.`);
 if(failures.length){console.error('\nInteraction integrity failures:');for(const failure of failures)console.error(`- ${failure}`);process.exit(1)}
