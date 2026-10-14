@@ -71,7 +71,7 @@ export default function CinematicDesignSystem(){
   body.iam-design-v2 .cinematicHome .hero h1 span{background:linear-gradient(95deg,#baf8ff 0%,#55e5ff 34%,#967cff 68%,#f5ca69 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}
   body.iam-design-v2 .cinematicHome .actions .primary{background:linear-gradient(100deg,#45e7ce,#55dfff 52%,#9e79ff)!important;box-shadow:0 14px 34px rgba(72,211,255,.24),inset 0 1px 0 rgba(255,255,255,.35)}
   body.iam-design-v2 .cinematicHome :where(.card,.sys){background:linear-gradient(145deg,rgba(8,29,55,.94),rgba(4,14,28,.95) 66%,rgba(18,35,61,.9))!important;border-radius:17px!important}
-  body.iam-design-v2 .cinematicHome .icon{background:radial-gradient(circle at 35% 25%,rgba(100,233,255,.17),rgba(4,14,28,.9) 66%)!important;border:1px solid rgba(89,225,255,.21);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 25px rgba(0,0,0,.32),0 0 30px rgba(85,229,255,.055)}
+  body.iam-design-v2 .cinematicHome .icon:not(.moduleMark){background:radial-gradient(circle at 35% 25%,rgba(100,233,255,.17),rgba(4,14,28,.9) 66%)!important;border:1px solid rgba(89,225,255,.21);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 25px rgba(0,0,0,.32),0 0 30px rgba(85,229,255,.055)}
 
   body.iam-design-v2 .opportunityVault{background:transparent!important}
   body.iam-design-v2 .opportunityVault .hero h1{max-width:1050px;background:linear-gradient(105deg,#f7fbff,#bceeff 44%,#73e2ba 76%,#f5ca69);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 18px 42px rgba(0,0,0,.28)}
