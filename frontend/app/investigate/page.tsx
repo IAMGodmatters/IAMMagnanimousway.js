@@ -17,7 +17,7 @@ async function inspectLocally(content:string,kind:string,source:string,authorize
  const digest=await crypto.subtle.digest('SHA-256',encoded);
  const lines=content.split(/\r?\n/),indicators:Indicator[]=[];
  const patterns:Array<[string,RegExp]>=[
-  ['import',/\bimport\s*(?:\(|[{'*"\w])/],['export',/\bexport\s+(?:default|const|let|var|function|class|\{)/],
+  ['import',/\bimport\s*(?:\(|[{'*"\w])/],['export',/\bexport\s+(?:(?:default\s+)?(?:async\s+)?(?:const|let|var|function|class)|\{)/],
   ['function',/\b(?:async\s+)?function\s+[A-Za-z_$]/],['class',/\bclass\s+[A-Za-z_$]/],
   ['network-reference',/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\s*\(/],['storage-reference',/\b(?:localStorage|sessionStorage|indexedDB)\b/],
   ['authentication-reference',/\b(?:authorization|bearer|session|oauth|token)\b/i],['endpoint-reference',/\/(?:api|v\d+)\/[A-Za-z0-9_./?=&-]+/],
