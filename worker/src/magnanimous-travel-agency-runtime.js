@@ -1,4 +1,5 @@
 import { isLiteApiSandboxKey, searchLiteApiSandboxHotels, prebookLiteApiSandboxHotel, bookLiteApiSandboxHotel } from './magnanimous-travel-liteapi-sandbox.js';
+import { isDuffelTestToken, searchDuffelTestFlights, createDuffelTestHold } from './magnanimous-travel-duffel-sandbox.js';
 import { currentUser } from './integrations.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import {
@@ -26,6 +27,11 @@ const now=()=>Math.floor(Date.now()/1000);
 function ownerOnly(user){return String(user?.role||'').toLowerCase()==='owner'}
 function liteApiSandboxResponse(result){
  if(!result?.configured)return json(result||{detail:'LiteAPI sandbox is not configured.'},503);
+ if(result.error)return json(result,Math.max(400,Math.min(Number(result.status)||502,599)));
+ return json(result);
+}
+function duffelTestResponse(result){
+ if(!result?.configured)return json(result||{detail:'Duffel developer test token is not configured.'},503);
  if(result.error)return json(result,Math.max(400,Math.min(Number(result.status)||502,599)));
  return json(result);
 }
@@ -306,6 +312,23 @@ export async function handleMagnanimousTravelAgency(request,env){
   const body=await request.json().catch(()=>({})),runtimeEnv=await getProviderRuntimeEnv(env);
   try{return liteApiSandboxResponse(await bookLiteApiSandboxHotel(body,{sandboxKey:clean(runtimeEnv?.LITEAPI_SANDBOX_KEY)}));}
   catch(error){const input=error?.code==='INPUT';return json({detail:input?'Invalid sandbox booking simulation.':'Sandbox supplier unavailable.',reason:clean(error?.message).slice(0,160)},input?400:502);}
+ }
+ if(request.method==='GET'&&path==='/api/travel-agency/sandbox/duffel/status'){
+  if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
+  const runtimeEnv=await getProviderRuntimeEnv(env),configured=isDuffelTestToken(clean(runtimeEnv?.DUFFEL_ACCESS_TOKEN));
+  return json({supplier:'duffel',sandbox:true,test_mode:true,configured,production_enabled:false,live_booking_enabled:false,payment_enabled:false,real_charge_allowed:false,test_search_enabled:configured,test_hold_enabled:configured,required_token_prefix:'duffel_test_'});
+ }
+ if(request.method==='POST'&&path==='/api/travel-agency/sandbox/duffel/search'){
+  if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
+  const body=await request.json().catch(()=>({})),runtimeEnv=await getProviderRuntimeEnv(env);
+  try{return duffelTestResponse(await searchDuffelTestFlights(body,{testToken:clean(runtimeEnv?.DUFFEL_ACCESS_TOKEN)}));}
+  catch(error){const input=error?.code==='INPUT';return json({detail:input?'Invalid Duffel test search.':'Duffel test mode unavailable.',reason:clean(error?.message).slice(0,180)},input?400:502);}
+ }
+ if(request.method==='POST'&&path==='/api/travel-agency/sandbox/duffel/hold'){
+  if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
+  const body=await request.json().catch(()=>({})),runtimeEnv=await getProviderRuntimeEnv(env);
+  try{return duffelTestResponse(await createDuffelTestHold(body,{testToken:clean(runtimeEnv?.DUFFEL_ACCESS_TOKEN)}));}
+  catch(error){const input=error?.code==='INPUT';return json({detail:input?'Invalid Duffel test hold.':'Duffel test mode unavailable.',reason:clean(error?.message).slice(0,180)},input?400:502);}
  }
  if(request.method==='POST'&&path==='/api/travel-agency/search/flights'){
   const body=await request.json().catch(()=>({}));
