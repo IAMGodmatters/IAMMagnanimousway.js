@@ -77,6 +77,7 @@ type NaturalSpeechOptions={
   onError?:(event:any)=>void;
   maxChunkChars?:number;
   interChunkDelayMs?:number;
+  onBoundary?:(event:any,chunk:string)=>void;
 };
 
 function humanPauseForChunk(chunk:string,base:number,appleMobile:boolean){
@@ -87,6 +88,20 @@ function humanPauseForChunk(chunk:string,base:number,appleMobile:boolean){
   if(/[:;]\s*$/.test(chunk))return Math.max(scaled,appleMobile?125:90);
   if(/,\s*$/.test(chunk))return Math.max(scaled,appleMobile?110:72);
   return scaled;
+}
+
+function applyHumanProsody(utterance:SpeechSynthesisUtterance,chunk:string,index:number,total:number){
+  let rate=Number(utterance.rate)||1,pitch=Number(utterance.pitch)||1;
+  const words=chunk.trim().split(/\s+/).filter(Boolean).length;
+  if(/\?\s*$/.test(chunk)){rate-=.012;pitch+=.018}
+  else if(/!\s*$/.test(chunk)){rate+=.012;pitch+=.012}
+  else if(/[:;]\s*$/.test(chunk)){rate-=.010}
+  if(words>24)rate-=.010;
+  if(words<7)rate-=.006;
+  rate+=((index%3)-1)*.004;
+  if(total>1&&index===total-1)rate-=.006;
+  utterance.rate=Math.max(.87,Math.min(1.06,rate));
+  utterance.pitch=Math.max(.86,Math.min(1.10,pitch));
 }
 
 export function stopNaturalSpeech(){
@@ -117,6 +132,8 @@ export function speakTextNaturally(input:string,options:NaturalSpeechOptions={})
     const chunk=chunks[index++];
     const utterance=new SpeechSynthesisUtterance(chunk);
     options.configure?.(utterance);
+    applyHumanProsody(utterance,chunk,index-1,chunks.length);
+    utterance.onboundary=(event:any)=>{if(generation===speechGeneration)options.onBoundary?.(event,chunk)};
     if(appleMobile){
       utterance.rate=Math.max(.89,Math.min(1.01,Number(utterance.rate)||.94));
       utterance.pitch=Math.max(.92,Math.min(1.07,Number(utterance.pitch)||1));
