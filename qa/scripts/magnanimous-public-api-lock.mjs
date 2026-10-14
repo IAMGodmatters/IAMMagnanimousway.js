@@ -15,10 +15,11 @@ assert.equal(APIVAULT_DISCOVERY_RESEARCH.use,'discovery-only');
 assert.equal(APIVAULT_DISCOVERY_RESEARCH.commercial_source_copy_allowed,false);
 assert.equal(APIVAULT_DISCOVERY_RESEARCH.derivative_source_copy_allowed,false);
 assert.equal(APIVAULT_DISCOVERY_RESEARCH.observed_license,'CC BY-NC-ND 4.0');
+assert.equal(APIVAULT_DISCOVERY_RESEARCH.observed_categories,51);
 includes(registry,'https://github.com/exa-studio/ApiVault','ApiVault discovery source must remain attributable.');
 includes(registry,'no API Vault source code or catalog data is copied','Commercial clean-room boundary must be explicit.');
 
-for(const id of ['frankfurter','crossref','world-bank','usgs-earthquake','mdn-observatory','nvd','usajobs','openverse','free-dictionary','datamuse','nhtsa-vpic','federal-register','nasa-eonet','treasury-fiscal-data','bible-api']){
+for(const id of ['frankfurter','crossref','world-bank','usgs-earthquake','mdn-observatory','nvd','usajobs','openverse','free-dictionary','datamuse','nhtsa-vpic','federal-register','nasa-eonet','treasury-fiscal-data','nws','sec-edgar','wikidata','art-institute-chicago','met-museum','bible-api']){
   assert.ok(MAGNANIMOUS_PUBLIC_API_PROVIDERS.some(row=>row.id===id),`${id} active provider research is missing.`);
 }
 for(const id of ['open-meteo','nager-date','rest-countries','urlhaus','arbeitnow','open-library','us-census']){
@@ -57,6 +58,17 @@ includes(runtime,"path==='/api/public-data/health'",'Public-data health visibili
 includes(runtime,'https://www.federalregister.gov/api/v1/documents.json?','Federal Register endpoint must be fixed to the official host.');
 includes(runtime,'https://eonet.gsfc.nasa.gov/api/v3/events?','NASA EONET endpoint must be fixed to the official host.');
 includes(runtime,'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny?','Treasury fiscal endpoint must be fixed to the official host.');
+includes(runtime,'https://api.weather.gov/alerts/active?area=','NWS alert endpoint must be fixed to the official host.');
+includes(runtime,"if(path==='/api/public-data/us-weather-alerts')",'NWS alert route must be mounted under authenticated public-data.');
+includes(runtime,'https://data.sec.gov/submissions/CIK','SEC submissions endpoint must be fixed to the official host.');
+includes(runtime,'https://data.sec.gov/api/xbrl/companyconcept/CIK','SEC XBRL company-concept endpoint must be fixed to the official host.');
+includes(runtime,"Godmattersinc@iammagnanimousway.com",'SEC automation must use an identifiable Magnanimous contact in the User-Agent.');
+includes(runtime,'https://www.wikidata.org/w/api.php?','Wikidata endpoint must be fixed to the official host.');
+includes(runtime,"props:'labels|descriptions|aliases|sitelinks'",'Wikidata entity lookup must remain bounded to descriptive metadata instead of arbitrary claims export.');
+includes(runtime,'https://api.artic.edu/api/v1/artworks/search?','Art Institute search must use the official API host.');
+includes(runtime,'.filter(x=>x.is_public_domain)','Art Institute image discovery must remain public-domain filtered.');
+includes(runtime,'https://collectionapi.metmuseum.org/public/collection/v1.1/search?','The Met search must use the current paginated v1.1 endpoint.');
+includes(runtime,'image_url:isPublicDomain?','The Met image links must remain gated by the public-domain flag.');
 includes(runtime,'official Federal Register edition','Federal Register adapter must preserve official-source verification warning.');
 includes(runtime,'not an emergency-warning or evacuation service','NASA EONET adapter must preserve emergency-safety boundary.');
 includes(runtime,'decimal strings to avoid JavaScript integer precision loss','Treasury high-precision amounts must not be silently coerced to floating point.');
@@ -83,7 +95,7 @@ includes(entrypoint,"import { handleMagnanimousPublicData } from './magnanimous-
 includes(entrypoint,'const publicData=await handleMagnanimousPublicData(request,env);','Worker must route requests through public-data runtime.');
 
 const manifest=getPublicApiCapabilityManifest();
-assert.ok(manifest.length>=20,'Expected the finished public API capability set to include at least twenty contracts.');
+assert.ok(manifest.length>=27,'Expected the expanded public API capability set to include at least twenty-seven contracts.');
 for(const row of manifest){
   assert.equal(row.category,'public-api');
   assert.equal(row.source_kind,'official-public-api');
@@ -95,7 +107,7 @@ for(const row of manifest){
 }
 
 const summary=getPublicApiAbsorptionSummary();
-assert.equal(summary.active_read_only_providers,15);
+assert.equal(summary.active_read_only_providers,20);
 assert.equal(summary.capability_contracts,manifest.length);
 assert.equal(summary.policy.no_proprietary_copying,true);
 assert.equal(summary.policy.no_arbitrary_proxy,true);

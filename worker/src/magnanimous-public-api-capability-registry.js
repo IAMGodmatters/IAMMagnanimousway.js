@@ -8,7 +8,8 @@ export const APIVAULT_DISCOVERY_RESEARCH=Object.freeze({
   source:'https://apivault.dev/',
   repository:'https://github.com/exa-studio/ApiVault',
   observed_license:'CC BY-NC-ND 4.0',
-  verified_at:'2026-10-13',
+  verified_at:'2026-10-14',
+  observed_categories:51,
   use:'discovery-only',
   commercial_source_copy_allowed:false,
   derivative_source_copy_allowed:false,
@@ -171,6 +172,61 @@ export const MAGNANIMOUS_PUBLIC_API_PROVIDERS=Object.freeze([
     guardrail:'Government fiscal evidence is informational research; do not present it as investment advice or silently convert high-precision currency strings to floating point.'
   }),
   Object.freeze({
+    id:'nws',
+    name:'U.S. National Weather Service API',
+    status:'active-read-only',
+    official_docs:'https://www.weather.gov/documentation/services-web-api',
+    base_url:'https://api.weather.gov',
+    auth:'none',
+    use_case:'Official U.S. active weather alerts for research, operations and travel awareness.',
+    terms_note:'The National Weather Service states that API information is open data, free to use for any purpose, subject to reasonable rate limits.',
+    guardrail:'U.S.-focused weather evidence only; preserve official alert wording and follow local authorities for emergency decisions.'
+  }),
+  Object.freeze({
+    id:'sec-edgar',
+    name:'SEC EDGAR Data APIs',
+    status:'active-read-only',
+    official_docs:'https://www.sec.gov/search-filings/edgar-application-programming-interfaces',
+    base_url:'https://data.sec.gov',
+    auth:'none-identifiable-user-agent-required',
+    use_case:'Public-company filing history and bounded XBRL company-concept facts.',
+    terms_note:'SEC data APIs require no API key. Automated access must follow SEC fair-access guidance and identify the application through its User-Agent.',
+    guardrail:'Filing and XBRL evidence is informational research, not investment or legal advice; verify material facts against the source filing.'
+  }),
+  Object.freeze({
+    id:'wikidata',
+    name:'Wikidata',
+    status:'active-read-only',
+    official_docs:'https://www.wikidata.org/wiki/Wikidata:Data_access',
+    base_url:'https://www.wikidata.org/w/api.php',
+    auth:'none-for-public-read',
+    use_case:'CC0 structured entity search and bounded entity metadata lookup.',
+    terms_note:'Wikidata structured data is released under CC0. Automated clients must follow Wikimedia User-Agent and rate-limit etiquette.',
+    guardrail:'General knowledge evidence can be incomplete or edited; do not treat it as the sole authority for high-stakes facts.'
+  }),
+  Object.freeze({
+    id:'art-institute-chicago',
+    name:'Art Institute of Chicago API',
+    status:'active-read-only-public-domain-filtered',
+    official_docs:'https://api.artic.edu/docs/',
+    base_url:'https://api.artic.edu/api/v1',
+    auth:'none',
+    use_case:'Museum artwork metadata and public-domain image discovery for education, ministry and creative work.',
+    terms_note:'API metadata endpoints identify CC0 data. This adapter only exposes image links when an artwork is explicitly marked public domain.',
+    guardrail:'Do not infer image rights from metadata alone; only public-domain-marked image links are returned and downstream publication should retain source attribution.'
+  }),
+  Object.freeze({
+    id:'met-museum',
+    name:'The Metropolitan Museum of Art Collection API',
+    status:'active-read-only-open-access',
+    official_docs:'https://metmuseum.github.io/',
+    base_url:'https://collectionapi.metmuseum.org/public/collection',
+    auth:'none',
+    use_case:'Open-access museum collection search and artwork metadata with public-domain image links where available.',
+    terms_note:'The Met publishes select collection datasets under CC0 for unrestricted commercial and noncommercial use and currently requires no API key.',
+    guardrail:'Only expose public-domain images when the API marks the object public domain; preserve museum source links and attribution context.'
+  }),
+  Object.freeze({
     id:'bible-api',
     name:'Bible API',
     status:'active-read-only-best-effort',
@@ -224,6 +280,13 @@ export const MAGNANIMOUS_PUBLIC_API_CAPABILITIES=Object.freeze([
   Object.freeze({...shared,id:'public-api:federal-register:federal-regulatory-document-search',connector_id:'public-api:federal-register',connector_name:'FederalRegister.gov',capability:'federal-regulatory-document-search',native_target:'legal-research-engine',research:{official_docs:'https://www.federalregister.gov/developers/documentation/api/v1',verified_at:'2026-10-14',proprietary_implementation_copied:false,official_verification_required:true}}),
   Object.freeze({...shared,id:'public-api:nasa-eonet:natural-event-tracking',connector_id:'public-api:nasa-eonet',connector_name:'NASA EONET',capability:'natural-event-tracking',native_target:'research-orchestrator',research:{official_docs:'https://eonet.gsfc.nasa.gov/docs/v3',verified_at:'2026-10-14',proprietary_implementation_copied:false,safety_advisory:'informational-only'}}),
   Object.freeze({...shared,id:'public-api:treasury-fiscal-data:us-public-debt-research',connector_id:'public-api:treasury-fiscal-data',connector_name:'U.S. Treasury Fiscal Data',capability:'us-public-debt-research',native_target:'finance-research',research:{official_docs:'https://fiscaldata.treasury.gov/datasets/debt-to-the-penny/',verified_at:'2026-10-14',proprietary_implementation_copied:false,high_precision_strings:true}}),
+  Object.freeze({...shared,id:'public-api:nws:us-weather-alert-search',connector_id:'public-api:nws',connector_name:'U.S. National Weather Service API',capability:'us-weather-alert-search',native_target:'research-orchestrator',research:{official_docs:'https://www.weather.gov/documentation/services-web-api',verified_at:'2026-10-14',proprietary_implementation_copied:false,safety_advisory:'official-alert-evidence-not-emergency-services'}}),
+  Object.freeze({...shared,id:'public-api:sec-edgar:company-filing-history',connector_id:'public-api:sec-edgar',connector_name:'SEC EDGAR Data APIs',capability:'company-filing-history',native_target:'finance-research',research:{official_docs:'https://www.sec.gov/search-filings/edgar-application-programming-interfaces',verified_at:'2026-10-14',proprietary_implementation_copied:false,informational_only:true}}),
+  Object.freeze({...shared,id:'public-api:sec-edgar:xbrl-company-concept',connector_id:'public-api:sec-edgar',connector_name:'SEC EDGAR Data APIs',capability:'xbrl-company-concept',native_target:'finance-research',research:{official_docs:'https://www.sec.gov/search-filings/edgar-application-programming-interfaces',verified_at:'2026-10-14',proprietary_implementation_copied:false,informational_only:true}}),
+  Object.freeze({...shared,id:'public-api:wikidata:entity-search',connector_id:'public-api:wikidata',connector_name:'Wikidata',capability:'entity-search',native_target:'knowledge-workspace',research:{official_docs:'https://www.wikidata.org/wiki/Wikidata:Data_access',verified_at:'2026-10-14',proprietary_implementation_copied:false,license:'CC0'}}),
+  Object.freeze({...shared,id:'public-api:wikidata:entity-metadata-lookup',connector_id:'public-api:wikidata',connector_name:'Wikidata',capability:'entity-metadata-lookup',native_target:'knowledge-workspace',research:{official_docs:'https://www.wikidata.org/wiki/Wikidata:Data_access',verified_at:'2026-10-14',proprietary_implementation_copied:false,license:'CC0'}}),
+  Object.freeze({...shared,id:'public-api:art-institute-chicago:public-domain-artwork-search',connector_id:'public-api:art-institute-chicago',connector_name:'Art Institute of Chicago API',capability:'public-domain-artwork-search',native_target:'media-library',research:{official_docs:'https://api.artic.edu/docs/',verified_at:'2026-10-14',proprietary_implementation_copied:false,public_domain_images_only:true}}),
+  Object.freeze({...shared,id:'public-api:met-museum:open-access-art-search',connector_id:'public-api:met-museum',connector_name:'The Metropolitan Museum of Art Collection API',capability:'open-access-art-search',native_target:'media-library',research:{official_docs:'https://metmuseum.github.io/',verified_at:'2026-10-14',proprietary_implementation_copied:false,license:'CC0',public_domain_images_only:true}}),
   Object.freeze({...shared,id:'public-api:bible-api:scripture-passage-lookup',connector_id:'public-api:bible-api',connector_name:'Bible API',capability:'scripture-passage-lookup',native_target:'bible-study-engine',research:{official_docs:'https://bible-api.com/',verified_at:'2026-10-13',proprietary_implementation_copied:false,bulk_mirroring:false,default_translation:'kjv'}})
 ]);
 

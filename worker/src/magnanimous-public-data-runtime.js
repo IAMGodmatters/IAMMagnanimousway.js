@@ -24,6 +24,9 @@ function cacheTtlMs(url,method='GET'){
   if(host==='services.nvd.nist.gov'||host==='eonet.gsfc.nasa.gov')return 600_000;
   if(host==='www.federalregister.gov'||host==='data.usajobs.gov')return 300_000;
   if(host==='earthquake.usgs.gov')return 120_000;
+  if(host==='api.weather.gov')return 60_000;
+  if(host==='data.sec.gov'||host==='www.wikidata.org')return 900_000;
+  if(host==='api.artic.edu'||host==='collectionapi.metmuseum.org')return 3_600_000;
   return 300_000;
 }
 
@@ -59,6 +62,8 @@ function burstLimitFor(path){
   if(path==='/api/public-data/security-observatory')return 3;
   if(path==='/api/public-data/nvd')return 20;
   if(path==='/api/public-data/openverse-images'||path==='/api/public-data/usajobs')return 30;
+  if(path==='/api/public-data/us-weather-alerts')return 4;
+  if(path==='/api/public-data/sec-edgar'||path==='/api/public-data/wikidata'||path==='/api/public-data/art-institute'||path==='/api/public-data/met-art')return 20;
   return 60;
 }
 
@@ -249,6 +254,55 @@ function normalizeEonetEvent(row={}){
 
 function normalizeTreasuryDebt(row={}){
   return {record_date:clip(row?.record_date,20),debt_held_by_public_usd:clip(row?.debt_held_public_amt,80),intragovernmental_holdings_usd:clip(row?.intragov_hold_amt,80),total_public_debt_outstanding_usd:clip(row?.tot_pub_debt_out_amt,80),fiscal_year:clip(row?.record_fiscal_year,8),fiscal_quarter:clip(row?.record_fiscal_quarter,8)};
+}
+
+
+function normalizeNwsAlert(feature={}){
+  const p=feature?.properties||{};
+  return {id:clip(feature?.id||p?.id,2000),event:clip(p?.event,300),severity:clip(p?.severity,80),certainty:clip(p?.certainty,80),urgency:clip(p?.urgency,80),headline:clip(p?.headline,1200),description:clip(p?.description,5000),instruction:clip(p?.instruction,4000),area_description:clip(p?.areaDesc,1600),sent:clip(p?.sent,80),effective:clip(p?.effective,80),onset:clip(p?.onset,80),expires:clip(p?.expires,80),ends:clip(p?.ends,80),sender_name:clip(p?.senderName,500),response:clip(p?.response,80),message_type:clip(p?.messageType,80),affected_zones:(Array.isArray(p?.affectedZones)?p.affectedZones:[]).map(x=>clip(x,2000)).filter(Boolean).slice(0,30)};
+}
+
+function normalizeSecRecentFilings(data={},cik='',limit=20){
+  const recent=data?.filings?.recent||{},accessions=Array.isArray(recent?.accessionNumber)?recent.accessionNumber:[],out=[];
+  const count=Math.min(limit,accessions.length);
+  const cikNumeric=String(Number(cik)||'');
+  for(let i=0;i<count;i++){
+    const accession=clip(accessions[i],40),primary=clip(recent?.primaryDocument?.[i],300),accessionPath=accession.replace(/-/g,'');
+    const safePrimary=/^[A-Za-z0-9_.-]{1,300}$/.test(primary)?primary:'';
+    out.push({accession_number:accession,filing_date:clip(recent?.filingDate?.[i],20),report_date:clip(recent?.reportDate?.[i],20),acceptance_datetime:clip(recent?.acceptanceDateTime?.[i],80),form:clip(recent?.form?.[i],40),act:clip(recent?.act?.[i],40),file_number:clip(recent?.fileNumber?.[i],100),items:clip(recent?.items?.[i],500),primary_document:safePrimary,primary_document_description:clip(recent?.primaryDocDescription?.[i],500),filing_url:safePrimary&&cikNumeric&&accessionPath?`https://www.sec.gov/Archives/edgar/data/${cikNumeric}/${accessionPath}/${encodeURIComponent(safePrimary)}`:''});
+  }
+  return out;
+}
+
+function normalizeSecConcept(data={},limit=40){
+  const rows=[];
+  for(const [unit,values] of Object.entries(data?.units||{})){
+    for(const value of (Array.isArray(values)?values:[]))rows.push({unit:clip(unit,80),value:value?.val??null,accession_number:clip(value?.accn,40),fiscal_year:Number.isFinite(Number(value?.fy))?Number(value.fy):null,fiscal_period:clip(value?.fp,20),form:clip(value?.form,30),filed:clip(value?.filed,20),start:clip(value?.start,20)||null,end:clip(value?.end,20)||null,frame:clip(value?.frame,80)||null});
+  }
+  rows.sort((a,b)=>String(b.filed||'').localeCompare(String(a.filed||'')));
+  return rows.slice(0,limit);
+}
+
+function normalizeWikidataSearch(row={}){
+  return {id:clip(row?.id,40),label:clip(row?.label,800),description:clip(row?.description,1600),url:clip(row?.url,2000),concept_uri:clip(row?.concepturi,2000),match_type:clip(row?.match?.type,80),match_text:clip(row?.match?.text,800)};
+}
+
+function normalizeWikidataEntity(entity={},language='en'){
+  const label=entity?.labels?.[language]||entity?.labels?.en||Object.values(entity?.labels||{})[0]||{};
+  const description=entity?.descriptions?.[language]||entity?.descriptions?.en||Object.values(entity?.descriptions||{})[0]||{};
+  const aliases=(entity?.aliases?.[language]||entity?.aliases?.en||[]).map(x=>clip(x?.value,500)).filter(Boolean).slice(0,30);
+  const sitelinks=Object.entries(entity?.sitelinks||{}).slice(0,60).map(([site,row])=>({site:clip(site,80),title:clip(row?.title,800),url:clip(row?.url,2000)}));
+  return {id:clip(entity?.id,40),type:clip(entity?.type,40),label:clip(label?.value,800),description:clip(description?.value,1600),aliases,sitelinks};
+}
+
+function normalizeArtInstitute(row={}){
+  const id=Number(row?.id),imageId=clip(row?.image_id,160),isPublicDomain=row?.is_public_domain===true;
+  return {id:Number.isFinite(id)?id:null,title:clip(row?.title,800),artist:clip(row?.artist_display,1200),date_display:clip(row?.date_display,300),medium_display:clip(row?.medium_display,1200),is_public_domain:isPublicDomain,artwork_url:Number.isFinite(id)?`https://www.artic.edu/artworks/${id}`:'',image_url:isPublicDomain&&/^[A-Za-z0-9-]{1,160}$/.test(imageId)?`https://www.artic.edu/iiif/2/${imageId}/full/843,/0/default.jpg`:''};
+}
+
+function normalizeMetObject(row={}){
+  const id=Number(row?.objectID),isPublicDomain=row?.isPublicDomain===true;
+  return {id:Number.isFinite(id)?id:null,title:clip(row?.title,1000),artist:clip(row?.artistDisplayName,800),artist_role:clip(row?.artistRole,200),object_name:clip(row?.objectName,500),department:clip(row?.department,500),culture:clip(row?.culture,500),period:clip(row?.period,500),dynasty:clip(row?.dynasty,500),object_date:clip(row?.objectDate,500),medium:clip(row?.medium,1200),classification:clip(row?.classification,500),is_public_domain:isPublicDomain,object_url:clip(row?.objectURL,2000),image_url:isPublicDomain?clip(row?.primaryImageSmall||row?.primaryImage,2000):'',credit_line:clip(row?.creditLine,1000),rights_and_reproduction:clip(row?.rightsAndReproduction,1000)};
 }
 
 const SCRIPTURE_TRANSLATIONS=new Set(['kjv','web','asv']);
@@ -459,6 +513,88 @@ export async function handleMagnanimousPublicData(request,env){
       const records=(Array.isArray(data?.data)?data.data:[]).slice(0,limit).map(normalizeTreasuryDebt);
       return json({identity:'Magnanimous Finance Research',count:records.length,records,precision_note:'Debt amounts are returned as decimal strings to avoid JavaScript integer precision loss.',informational_only:true,source:{name:'U.S. Treasury Fiscal Data — Debt to the Penny',url:'https://fiscaldata.treasury.gov/datasets/debt-to-the-penny/'}});
     }catch(error){return sourceError('U.S. Treasury Fiscal Data',error)}
+  }
+
+
+  if(path==='/api/public-data/us-weather-alerts'){
+    const area=clip(url.searchParams.get('area'),2).toUpperCase(),limit=Math.trunc(finite(url.searchParams.get('limit'),1,50,20));
+    if(!/^[A-Z]{2}$/.test(area))return json({detail:'area must be a two-letter U.S. state, territory, or supported NWS marine-area code.'},400);
+    try{
+      const data=await providerJson(`https://api.weather.gov/alerts/active?area=${encodeURIComponent(area)}`,{cacheTtl:60_000});
+      const alerts=(Array.isArray(data?.features)?data.features:[]).slice(0,limit).map(normalizeNwsAlert);
+      return json({identity:'Magnanimous AI Research',area,count:alerts.length,alerts,safety_note:'Official NWS alert evidence for U.S. areas. For emergencies, follow local authorities and emergency services; Magnanimous does not replace them.',source:{name:'U.S. National Weather Service API',url:'https://www.weather.gov/documentation/services-web-api',open_data:true}});
+    }catch(error){return sourceError('National Weather Service',error)}
+  }
+
+  if(path==='/api/public-data/sec-edgar'){
+    const rawCik=clip(url.searchParams.get('cik'),10),mode=clip(url.searchParams.get('mode')||'submissions',20).toLowerCase(),limit=Math.trunc(finite(url.searchParams.get('limit'),1,50,20));
+    if(!/^\d{1,10}$/.test(rawCik))return json({detail:'cik must contain 1-10 digits.'},400);
+    const cik=rawCik.padStart(10,'0'),headers={'user-agent':'I-AM-MAGNANIMOUS-WAY/1.0 Godmattersinc@iammagnanimousway.com'};
+    try{
+      if(mode==='submissions'){
+        const data=await providerJson(`https://data.sec.gov/submissions/CIK${cik}.json`,{headers});
+        const filings=normalizeSecRecentFilings(data,cik,limit);
+        return json({identity:'Magnanimous Finance Research',mode,cik,company:{name:clip(data?.name,800),sic:clip(data?.sic,20),sic_description:clip(data?.sicDescription,500),entity_type:clip(data?.entityType,100),tickers:(Array.isArray(data?.tickers)?data.tickers:[]).map(x=>clip(x,20)).filter(Boolean).slice(0,30),exchanges:(Array.isArray(data?.exchanges)?data.exchanges:[]).map(x=>clip(x,100)).filter(Boolean).slice(0,30)},count:filings.length,filings,informational_only:true,source:{name:'SEC EDGAR Data APIs',url:'https://www.sec.gov/search-filings/edgar-application-programming-interfaces'}});
+      }
+      if(mode==='concept'){
+        const taxonomy=clip(url.searchParams.get('taxonomy')||'us-gaap',40),tag=clip(url.searchParams.get('tag'),120);
+        if(!/^[A-Za-z0-9_-]{1,40}$/.test(taxonomy)||!/^[A-Za-z0-9_-]{1,120}$/.test(tag))return json({detail:'concept mode requires safe taxonomy and tag values, for example taxonomy=us-gaap&tag=Assets.'},400);
+        const data=await providerJson(`https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/${encodeURIComponent(taxonomy)}/${encodeURIComponent(tag)}.json`,{headers});
+        const facts=normalizeSecConcept(data,limit);
+        return json({identity:'Magnanimous Finance Research',mode,cik,taxonomy:clip(data?.taxonomy||taxonomy,80),tag:clip(data?.tag||tag,160),label:clip(data?.label,800),description:clip(data?.description,2500),entity_name:clip(data?.entityName,800),count:facts.length,facts,informational_only:true,source:{name:'SEC EDGAR XBRL Data',url:'https://www.sec.gov/search-filings/edgar-application-programming-interfaces'}});
+      }
+      return json({detail:'mode must be submissions or concept.'},400);
+    }catch(error){return sourceError('SEC EDGAR',error)}
+  }
+
+  if(path==='/api/public-data/wikidata'){
+    const mode=clip(url.searchParams.get('mode')||'search',20).toLowerCase(),language=clip(url.searchParams.get('language')||'en',20).toLowerCase();
+    if(!/^[a-z]{2,12}(?:-[a-z0-9]{2,12})?$/.test(language))return json({detail:'language must be a supported language code such as en, ceb, or tl.'},400);
+    try{
+      if(mode==='search'){
+        const q=clip(url.searchParams.get('q'),200),limit=Math.trunc(finite(url.searchParams.get('limit'),1,20,8));
+        if(!q)return json({detail:'q is required for Wikidata search.'},400);
+        const query=new URLSearchParams({action:'wbsearchentities',search:q,language,uselang:language,type:'item',limit:String(limit),format:'json'});
+        const data=await providerJson(`https://www.wikidata.org/w/api.php?${query.toString()}`);
+        const items=(Array.isArray(data?.search)?data.search:[]).slice(0,limit).map(normalizeWikidataSearch);
+        return json({identity:'Magnanimous Knowledge',mode,query:q,language,count:items.length,items,license:'CC0',source:{name:'Wikidata',url:'https://www.wikidata.org/wiki/Wikidata:Data_access'}});
+      }
+      if(mode==='entity'){
+        const id=clip(url.searchParams.get('id'),40).toUpperCase();
+        if(!/^[QP]\d{1,20}$/.test(id))return json({detail:'id must be a Wikidata item/property identifier such as Q42 or P31.'},400);
+        const query=new URLSearchParams({action:'wbgetentities',ids:id,props:'labels|descriptions|aliases|sitelinks',languages:language,format:'json'});
+        const data=await providerJson(`https://www.wikidata.org/w/api.php?${query.toString()}`);
+        const entity=data?.entities?.[id];
+        if(!entity||entity?.missing!==undefined)return json({detail:'Wikidata entity not found.',id},404);
+        return json({identity:'Magnanimous Knowledge',mode,language,entity:normalizeWikidataEntity(entity,language),license:'CC0',source:{name:'Wikidata',url:'https://www.wikidata.org/wiki/Wikidata:Data_access'}});
+      }
+      return json({detail:'mode must be search or entity.'},400);
+    }catch(error){return sourceError('Wikidata',error)}
+  }
+
+  if(path==='/api/public-data/art-institute'){
+    const q=clip(url.searchParams.get('q'),200),limit=Math.trunc(finite(url.searchParams.get('limit'),1,10,6));
+    if(!q)return json({detail:'q is required.'},400);
+    const fields='id,title,artist_display,date_display,medium_display,image_id,is_public_domain,api_link';
+    const query=new URLSearchParams({q,limit:String(Math.min(30,limit*3)),fields});
+    try{
+      const data=await providerJson(`https://api.artic.edu/api/v1/artworks/search?${query.toString()}`);
+      const items=(Array.isArray(data?.data)?data.data:[]).map(normalizeArtInstitute).filter(x=>x.is_public_domain).slice(0,limit);
+      return json({identity:'Magnanimous Media Library',query:q,count:items.length,items,public_domain_only:true,license:'CC0 metadata; image links only for records explicitly marked public domain',source:{name:'Art Institute of Chicago API',url:'https://api.artic.edu/docs/'}});
+    }catch(error){return sourceError('Art Institute of Chicago',error)}
+  }
+
+  if(path==='/api/public-data/met-art'){
+    const q=clip(url.searchParams.get('q'),200),limit=Math.trunc(finite(url.searchParams.get('limit'),1,6,4));
+    if(!q)return json({detail:'q is required.'},400);
+    const query=new URLSearchParams({q,hasImages:'true',offset:'0',limit:String(Math.min(12,Math.max(limit*2,limit)))});
+    try{
+      const search=await providerJson(`https://collectionapi.metmuseum.org/public/collection/v1.1/search?${query.toString()}`);
+      const ids=(Array.isArray(search?.objectIDs)?search.objectIDs:[]).filter(x=>Number.isInteger(Number(x))).slice(0,Math.min(12,limit*2));
+      const settled=await Promise.allSettled(ids.map(id=>providerJson(`https://collectionapi.metmuseum.org/public/collection/v1/objects/${Number(id)}`)));
+      const items=settled.filter(x=>x.status==='fulfilled').map(x=>normalizeMetObject(x.value)).filter(x=>x.id!==null).slice(0,limit);
+      return json({identity:'Magnanimous Media Library',query:q,total_matches:Number.isFinite(Number(search?.total))?Number(search.total):items.length,count:items.length,items,metadata_license:'CC0',image_policy:'Image URLs are exposed only when the API marks the object public domain.',source:{name:'The Metropolitan Museum of Art Collection API',url:'https://metmuseum.github.io/'}});
+    }catch(error){return sourceError('The Met Collection API',error)}
   }
 
   if(path==='/api/public-data/scripture'){
