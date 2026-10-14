@@ -9,6 +9,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY . .
 COPY --from=frontend-builder /app/frontend/out /app/frontend/out
+RUN cd worker \
+  && npm ci --omit=dev --ignore-scripts \
+  && node -e "import('libphonenumber-js/min').then(()=>console.log('Worker production dependencies verified'))"
 RUN mkdir -p /app/data /app/backups \
   && node magnanimous-runtime/scripts/verify-runtime.mjs \
   && node magnanimous-runtime/scripts/verify-cloud-control.mjs \
