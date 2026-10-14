@@ -44,7 +44,7 @@ assert.equal(search.offers.length,2,'Live-mode offers must be filtered even if a
 assert.equal(search.offers.find(x=>x.offer_id==='off_hold')?.holdable,true);
 assert.equal(search.offers.find(x=>x.offer_id==='off_instant')?.holdable,false);
 
-const passenger={id:'pas_test',title:'mr',gender:'m',given_name:'Test',family_name:'Traveler',born_on:'1990-01-01',email:'test@example.com',phone_number:'+15555550123',type:'adult'};
+const passenger={id:'pas_test',title:'mr',gender:'m',given_name:'Test',family_name:'Traveler',born_on:'1990-01-01',email:'test@example.com',phone_number:'+15555550123'};
 let requests=[];
 const eligibleHoldFetch=async(url,init={})=>{
  requests.push({url:String(url),init});
@@ -52,13 +52,15 @@ const eligibleHoldFetch=async(url,init={})=>{
  const sent=JSON.parse(init.body);
  assert.equal(sent.data.type,'hold');
  assert.deepEqual(sent.data.selected_offers,['off_hold']);
+ assert.deepEqual(sent.data.passengers,[passenger],'Hold order must contain only Duffel-documented passenger identity fields.');
  assert.ok(!Object.hasOwn(sent.data,'payments'),'No payment key may be sent when creating the test hold.');
  assert.ok(!Object.hasOwn(sent.data,'payment'),'No payment object may be sent when creating the test hold.');
- return new Response(JSON.stringify({data:{id:'ord_test',live_mode:false,booking_reference:'TEST01',payment_status:'awaiting_payment',payment_required_by:'2030-01-03T00:00:00Z'}}),{status:201});
+ return new Response(JSON.stringify({data:{id:'ord_test',live_mode:false,booking_reference:'TEST01',payment_status:{awaiting_payment:true,payment_required_by:'2030-01-03T00:00:00Z'}}}),{status:201});
 };
 const held=await createDuffelTestHold({offerId:'off_hold',passengers:[passenger]},{testToken:'duffel_test_example',fetchImpl:eligibleHoldFetch});
 assert.equal(held.hold_order_confirmed,true);
 assert.equal(held.order_id,'ord_test');
+assert.equal(held.payment_required_by,'2030-01-03T00:00:00Z');
 assert.equal(requests.length,2);
 
 let instantCalls=0;
