@@ -31,6 +31,8 @@ jobs:
         run: node qa/scripts/magnanimous-travel-agency-lock.mjs
       - name: Verify no-charge travel sandbox UI boundaries
         run: node qa/scripts/magnanimous-travel-no-charge-sandbox-ui-lock.mjs
+      - name: Verify Duffel no-spend test-mode boundaries
+        run: node qa/scripts/magnanimous-travel-duffel-test-lock.mjs
       - name: Verify full-brain D1 materializer
         run: |
           rm -rf /tmp/magnanimous-full-brain-ci
