@@ -227,6 +227,17 @@ export const MAGNANIMOUS_PUBLIC_API_PROVIDERS=Object.freeze([
     guardrail:'Only expose public-domain images when the API marks the object public domain; preserve museum source links and attribution context.'
   }),
   Object.freeze({
+    id:'disify',
+    name:'DISIFY',
+    status:'active-read-only-free-core',
+    official_docs:'https://docs.disify.com/api/email.html',
+    base_url:'https://disify.com/api',
+    auth:'none-for-core-checks',
+    use_case:'B2B, CRM and contact-center email hygiene using syntax, mail DNS/MX and disposable-address indicators.',
+    terms_note:'Core single-email checks currently work without an account or API key, subject to provider limits. Premium SPF/DKIM/DMARC, domain-age and deliverability features are not activated.',
+    guardrail:'Email hygiene does not verify mailbox existence or ownership and never establishes identity, consent, DNC compliance, deliverability, or permission to contact. DISIFY states that API validation inputs and request metadata are logged, so use remains user-initiated and privacy-disclosed.'
+  }),
+  Object.freeze({
     id:'bible-api',
     name:'Bible API',
     status:'active-read-only-best-effort',
@@ -246,7 +257,11 @@ export const MAGNANIMOUS_PUBLIC_API_REVIEW_QUEUE=Object.freeze([
   Object.freeze({id:'urlhaus',status:'not-activated',reason:'Commercial/for-profit usage and authentication terms require separate review before production activation.'}),
   Object.freeze({id:'arbeitnow',status:'not-activated',reason:'Free API availability was observed, but commercial reuse terms are not clear enough for automatic production activation.'}),
   Object.freeze({id:'open-library',status:'manual-low-volume-only',reason:'Open Library asks consumers not to use the public API as a high-traffic production backend.'}),
-  Object.freeze({id:'us-census',status:'credential-behavior-review',reason:'Official Census guidance describes a no-key allowance below 500 queries/day, but a 2026-10-14 live ACS probe returned a Missing Key response. Keep production disabled until current behavior is reconciled or an owner key is explicitly configured.'})
+  Object.freeze({id:'us-census',status:'credential-behavior-review',reason:'Official Census guidance describes a no-key allowance below 500 queries/day, but a 2026-10-14 live ACS probe returned a Missing Key response. Keep production disabled until current behavior is reconciled or an owner key is explicitly configured.'}),
+  Object.freeze({id:'domainsdb',status:'credential-required-review',reason:'ApiVault discovery metadata is stale for current production use: DomainsDB currently documents an API key for most access. Keep disabled until an owner key and current commercial terms are explicitly approved.'}),
+  Object.freeze({id:'companies-house',status:'credential-required-review',reason:'High-value B2B company data is public through the official API but requires an owner API key. Do not activate or infer authorization without that credential.'}),
+  Object.freeze({id:'patentsview',status:'credential-required-unavailable-review',reason:'Current PatentsView access requires an API key and new key grants are constrained; keep disabled until official access is available and authorized.'}),
+  Object.freeze({id:'metered-phone-validation-vendors',status:'native-replacement-preferred',reason:'ApiVault phone-validation vendors are key/metered for basic checks. Magnanimous prefers native MIT-licensed libphonenumber-js for parsing, formatting and numbering-plan validation; external vendors remain optional only for facts that cannot be derived locally.'})
 ]);
 
 const shared={
@@ -287,6 +302,7 @@ export const MAGNANIMOUS_PUBLIC_API_CAPABILITIES=Object.freeze([
   Object.freeze({...shared,id:'public-api:wikidata:entity-metadata-lookup',connector_id:'public-api:wikidata',connector_name:'Wikidata',capability:'entity-metadata-lookup',native_target:'knowledge-workspace',research:{official_docs:'https://www.wikidata.org/wiki/Wikidata:Data_access',verified_at:'2026-10-14',proprietary_implementation_copied:false,license:'CC0'}}),
   Object.freeze({...shared,id:'public-api:art-institute-chicago:public-domain-artwork-search',connector_id:'public-api:art-institute-chicago',connector_name:'Art Institute of Chicago API',capability:'public-domain-artwork-search',native_target:'media-library',research:{official_docs:'https://api.artic.edu/docs/',verified_at:'2026-10-14',proprietary_implementation_copied:false,public_domain_images_only:true}}),
   Object.freeze({...shared,id:'public-api:met-museum:open-access-art-search',connector_id:'public-api:met-museum',connector_name:'The Metropolitan Museum of Art Collection API',capability:'open-access-art-search',native_target:'media-library',research:{official_docs:'https://metmuseum.github.io/',verified_at:'2026-10-14',proprietary_implementation_copied:false,license:'CC0',public_domain_images_only:true}}),
+  Object.freeze({...shared,id:'public-api:disify:email-hygiene-check',connector_id:'public-api:disify',connector_name:'DISIFY',capability:'email-hygiene-check',native_target:'contact-validation',research:{official_docs:'https://docs.disify.com/api/email.html',verified_at:'2026-10-14',proprietary_implementation_copied:false,no_key_core:true,mailbox_ownership_not_verified:true,consent_not_inferred:true}}),
   Object.freeze({...shared,id:'public-api:bible-api:scripture-passage-lookup',connector_id:'public-api:bible-api',connector_name:'Bible API',capability:'scripture-passage-lookup',native_target:'bible-study-engine',research:{official_docs:'https://bible-api.com/',verified_at:'2026-10-13',proprietary_implementation_copied:false,bulk_mirroring:false,default_translation:'kjv'}})
 ]);
 

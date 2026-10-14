@@ -92,6 +92,8 @@ jobs:
           node qa/scripts/free-first-runtime-plane-lock.mjs
           node qa/scripts/account-persistence-lock.mjs
           node qa/scripts/magnanimous-logistics-erp-lock.mjs
+          node qa/scripts/magnanimous-public-api-lock.mjs
+          node qa/scripts/magnanimous-software-directive-lock.mjs
 
       - name: Install Worker dependencies
         working-directory: worker
@@ -1330,7 +1332,7 @@ jobs:
           r=d.get('resilience') or {}
           assert d.get('identity') == 'Magnanimous AI', d
           assert d.get('status') == 'ready', d
-          assert int(d.get('providers') or 0) >= 15, d
+          assert int(d.get('providers') or 0) >= 21, d
           assert r.get('authentication_required') is True, d
           assert r.get('read_only') is True, d
           assert r.get('fixed_provider_hosts') is True, d
@@ -1347,8 +1349,8 @@ jobs:
           d=json.load(open('/tmp/public-data-capabilities-auth.json'))
           r=d.get('resilience') or {}
           assert d.get('identity') == 'Magnanimous AI', d
-          assert int(d.get('active_read_only_providers') or 0) >= 20, d
-          assert int(d.get('capability_contracts') or 0) >= 27, d
+          assert int(d.get('active_read_only_providers') or 0) >= 21, d
+          assert int(d.get('capability_contracts') or 0) >= 28, d
           assert d.get('runtime') == 'read-only-fixed-provider-adapters', d
           assert d.get('arbitrary_url_proxy') is False, d
           assert r.get('bounded_cache') is True, d
@@ -1357,6 +1359,22 @@ jobs:
           assert int(r.get('provider_timeout_ms') or 0) == 9000, d
           assert int(r.get('max_provider_bytes') or 0) == 1500000, d
           print('Authenticated Magnanimous public-data health and capability fabric passed.')
+          PY
+
+          status=$(safe_get_status /tmp/public-data-phone-validation-auth.json "$BASE_URL/api/public-data/phone-validation?phone=09171234567&country=PH" -H "Authorization: Bearer $token")
+          if [ "$status" != "200" ]; then echo "Authenticated native phone validation returned HTTP $status"; cat /tmp/public-data-phone-validation-auth.json || true; exit 1; fi
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/public-data-phone-validation-auth.json'))
+          r=d.get('result') or {}
+          assert d.get('identity') == 'Magnanimous Contact Validation', d
+          assert d.get('mode') == 'native-free-first', d
+          assert r.get('valid') is True and r.get('possible') is True, d
+          assert r.get('e164') == '+639171234567', d
+          src=d.get('source') or {}
+          assert src.get('name') == 'libphonenumber-js' and src.get('license') == 'MIT', d
+          assert src.get('external_request') is False, d
+          print('Authenticated native phone validation passed.')
           PY
 
           status=$(safe_get_status /tmp/creator-growth-capabilities.json "$BASE_URL/api/creator-growth/capabilities" -H "Authorization: Bearer $token")
@@ -1424,6 +1442,10 @@ jobs:
           assert int(s.get('installed_plugin_skill_namespaces') or 0) >= 109, s
           assert int(s.get('installed_plugin_skills') or 0) >= 867, s
           assert int(s.get('full_brain_capability_contracts') or 0) >= 3420, s
+          assert int(s.get('preferred_software_contracts') or 0) >= 11, s
+          sd=s.get('software_directive') or {}
+          assert sd.get('free_first') is True and sd.get('paid_upgrade_requires_explicit_approval') is True, sd
+          assert sd.get('proprietary_implementation_copied') is False, sd
           assert s.get('plugin_authorization_state') == 'not-assumed', s
           assert coverage.get('covered') == 13 and coverage.get('total') == 13, coverage
           assert coverage.get('missing') == [], coverage
@@ -2147,7 +2169,9 @@ jobs:
             '/api/public-data/health' \
             '/api/public-data/capabilities' \
             '/api/public-data/federal-register?q=artificial%20intelligence&limit=1' \
-            '/api/public-data/wikidata?q=Magnanimous&limit=1'; do
+            '/api/public-data/wikidata?q=Magnanimous&limit=1' \
+            '/api/public-data/email-hygiene?email=test%40example.com' \
+            '/api/public-data/phone-validation?phone=09171234567&country=PH'; do
             public_data_status="$(curl -sS --connect-timeout 10 --max-time 60 -D /tmp/worker-only-public-data-headers.txt -o /tmp/worker-only-public-data.json -w '%{http_code}' "$BASE_URL$public_data_path")"
             [ "$public_data_status" = "401" ] || { echo "::error::Unauthenticated public-data route $public_data_path expected HTTP 401, got $public_data_status"; cat /tmp/worker-only-public-data.json || true; exit 1; }
             if grep -Eqi '^x-railway-fallback:[[:space:]]*true' /tmp/worker-only-public-data-headers.txt; then

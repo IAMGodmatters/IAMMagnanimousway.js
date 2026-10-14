@@ -19,10 +19,10 @@ assert.equal(APIVAULT_DISCOVERY_RESEARCH.observed_categories,51);
 includes(registry,'https://github.com/exa-studio/ApiVault','ApiVault discovery source must remain attributable.');
 includes(registry,'no API Vault source code or catalog data is copied','Commercial clean-room boundary must be explicit.');
 
-for(const id of ['frankfurter','crossref','world-bank','usgs-earthquake','mdn-observatory','nvd','usajobs','openverse','free-dictionary','datamuse','nhtsa-vpic','federal-register','nasa-eonet','treasury-fiscal-data','nws','sec-edgar','wikidata','art-institute-chicago','met-museum','bible-api']){
+for(const id of ['frankfurter','crossref','world-bank','usgs-earthquake','mdn-observatory','nvd','usajobs','openverse','free-dictionary','datamuse','nhtsa-vpic','federal-register','nasa-eonet','treasury-fiscal-data','nws','sec-edgar','wikidata','art-institute-chicago','met-museum','disify','bible-api']){
   assert.ok(MAGNANIMOUS_PUBLIC_API_PROVIDERS.some(row=>row.id===id),`${id} active provider research is missing.`);
 }
-for(const id of ['open-meteo','nager-date','rest-countries','urlhaus','arbeitnow','open-library','us-census']){
+for(const id of ['open-meteo','nager-date','rest-countries','urlhaus','arbeitnow','open-library','us-census','domainsdb','companies-house','patentsview','metered-phone-validation-vendors']){
   assert.ok(MAGNANIMOUS_PUBLIC_API_REVIEW_QUEUE.some(row=>row.id===id),`${id} terms/review decision is missing.`);
 }
 
@@ -68,6 +68,14 @@ includes(runtime,"props:'labels|descriptions|aliases|sitelinks'",'Wikidata entit
 includes(runtime,'https://api.artic.edu/api/v1/artworks/search?','Art Institute search must use the official API host.');
 includes(runtime,'.filter(x=>x.is_public_domain)','Art Institute image discovery must remain public-domain filtered.');
 includes(runtime,'https://collectionapi.metmuseum.org/public/collection/v1.1/search?','The Met search must use the current paginated v1.1 endpoint.');
+includes(runtime,"https://disify.com/api/email",'DISIFY email hygiene must use the fixed official API endpoint.');
+includes(runtime,"if(path==='/api/public-data/email-hygiene')",'Email hygiene must be mounted under authenticated public-data.');
+includes(runtime,"if(path==='/api/public-data/phone-validation')",'Native phone validation must be mounted under authenticated public-data.');
+includes(runtime,"normalizePhoneNumber",'Phone validation must use the native libphonenumber-backed helper.');
+includes(runtime,"contact_permission:'not-established'",'Email hygiene must never imply permission to contact.');
+includes(runtime,"provider_logs_validation_input:true",'DISIFY integration must disclose that the provider logs validation input.');
+includes(registry,'mailbox_ownership_not_verified:true','DISIFY capability must preserve mailbox-ownership uncertainty.');
+includes(registry,"id:'metered-phone-validation-vendors'",'ApiVault metered phone validators must stay behind the native-first review boundary.');
 includes(runtime,'image_url:isPublicDomain?','The Met image links must remain gated by the public-domain flag.');
 includes(runtime,'official Federal Register edition','Federal Register adapter must preserve official-source verification warning.');
 includes(runtime,'not an emergency-warning or evacuation service','NASA EONET adapter must preserve emergency-safety boundary.');
@@ -97,7 +105,7 @@ assert.ok(entrypoint.indexOf("if(url.pathname.startsWith('/api/public-data'))")<
 
 
 const manifest=getPublicApiCapabilityManifest();
-assert.ok(manifest.length>=27,'Expected the expanded public API capability set to include at least twenty-seven contracts.');
+assert.ok(manifest.length>=28,'Expected the expanded public API capability set to include at least twenty-eight contracts.');
 for(const row of manifest){
   assert.equal(row.category,'public-api');
   assert.equal(row.source_kind,'official-public-api');
@@ -109,7 +117,7 @@ for(const row of manifest){
 }
 
 const summary=getPublicApiAbsorptionSummary();
-assert.equal(summary.active_read_only_providers,20);
+assert.equal(summary.active_read_only_providers,21);
 assert.equal(summary.capability_contracts,manifest.length);
 assert.equal(summary.policy.no_proprietary_copying,true);
 assert.equal(summary.policy.no_arbitrary_proxy,true);

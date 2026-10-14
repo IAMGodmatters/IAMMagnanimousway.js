@@ -51,6 +51,12 @@ jobs:
       - name: Lock full provider and standalone service audit boundaries
         run: node qa/scripts/full-platform-provider-service-audit-lock.mjs
 
+      - name: Lock ApiVault clean-room public data fabric
+        run: node qa/scripts/magnanimous-public-api-lock.mjs
+
+      - name: Lock free-first software directive
+        run: node qa/scripts/magnanimous-software-directive-lock.mjs
+
       - name: Lock durable active development checkpoint
         run: node qa/scripts/development-checkpoint-lock.mjs
 
