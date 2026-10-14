@@ -129,6 +129,13 @@ for(const proof of [
   'worker/src/magnanimous-cloud-provider-core.js'
 ]) must(infra.includes(proof),'Infrastructure proof missing: '+proof);
 
+const releaseWorkflow=read('.github/workflows/magnanimous-standalone-release.yml');
+must(releaseWorkflow.includes("for attempt in $(seq 1 90); do"),'Standalone release proof must allow cold containers enough startup time.');
+must(releaseWorkflow.includes("http://browser:8792/render-content"),'Standalone release proof must use deterministic local Chromium content rendering.');
+must(releaseWorkflow.includes("network_access!==false"),'Offline Chromium proof must assert network-disabled content rendering.');
+must(releaseWorkflow.includes("Release browser unexpectedly has direct public egress"),'Standalone release must preserve direct-public-egress isolation.');
+must(releaseWorkflow.includes("non-blocking for offline artifact proof"),'Transient public internet reachability must not invalidate a deterministic offline artifact proof.');
+
 const security=read('worker/src/security-entrypoint.js');
 must(security.includes('handleMagnanimousInfrastructure'),'Infrastructure owner endpoint is not mounted.');
 must(security.includes('handleMagnanimousCloudProvider'),'Magnanimous Cloud owner endpoint is not mounted.');
