@@ -4,6 +4,7 @@ import {
  DEFAULT_TRAVEL_PRICING_POLICY,MAGNANIMOUS_TRAVEL_AGENCY_POLICY,TRAVEL_SUPPLIER_CATALOG,TRAVEL_AGENCY_SKILLS,
  normalizeTravelOffer,priceOffer,rankTravelDeals,getTravelAgencySummary
 } from '../../worker/src/magnanimous-travel-agency-core.js';
+import {isLiteApiSandboxKey,validateLiteApiSandboxSearch,searchLiteApiSandboxHotels} from '../../worker/src/magnanimous-travel-liteapi-sandbox.js';
 
 assert.ok(TRAVEL_SUPPLIER_CATALOG.length>=20,'Travel supplier mesh must cover at least 20 strategic sources/benchmarks.');
 assert.ok(TRAVEL_AGENCY_SKILLS.length>=40,'Travel agency brain must retain at least 40 dedicated skills.');
@@ -60,9 +61,8 @@ const global=fs.readFileSync('frontend/app/global-tools.tsx','utf8');assert.ok(g
 const agents=fs.readFileSync('worker/src/agent-mesh-runtime.js','utf8');assert.ok(agents.includes("'traveldeal','TravelDeal'"));
 const progress=fs.readFileSync('worker/src/progress-entrypoint.js','utf8');assert.ok(progress.includes('handleMagnanimousTravelAgency'));
 
-
 const onboarding=fs.readFileSync('worker/src/magnanimous-travel-supplier-onboarding.js','utf8');
-for(const token of ['SUPPLIER_ONBOARDING_STAGES','MAGNANIMOUS_TRAVEL_APPLICATION_PROFILE','TRAVEL_SUPPLIER_ONBOARDING',"'duffel',priority:1","'ratehawk',priority:1","'webbeds',priority:1","'stuba',priority:1"])
+for(const token of ['SUPPLIER_ONBOARDING_STAGES','MAGNANIMOUS_TRAVEL_APPLICATION_PROFILE','TRAVEL_SUPPLIER_ONBOARDING',"'duffel',priority:1","'ratehawk',priority:1","'webbeds',priority:1","'stuba',priority:1","'liteapi',priority:1"])
  assert.ok(onboarding.includes(token),'Supplier onboarding missing '+token);
 for(const stage of ['contacted','application_submitted','sandbox_active','certification','approved','production_testing','live'])
  assert.ok(onboarding.includes(stage),'Onboarding lifecycle missing '+stage);
@@ -73,11 +73,33 @@ const onboardingMigration=fs.readFileSync('worker/migrations/0083_travel_supplie
 for(const table of ['travel_supplier_onboarding','travel_supplier_onboarding_events'])
  assert.ok(onboardingMigration.includes('CREATE TABLE IF NOT EXISTS '+table),'Missing '+table);
 
-for(const route of ["'/api/travel-agency/application-profile'","'/api/travel-agency/supplier-onboarding'","supplier-onboarding\\/([^/]+)"])
+for(const route of ["'/api/travel-agency/application-profile'","'/api/travel-agency/supplier-onboarding'","supplier-onboarding\\/([^/]+)","'/api/travel-agency/sandbox/liteapi/status'","'/api/travel-agency/sandbox/liteapi/search'"])
  assert.ok(runtime.includes(route),'Runtime missing onboarding route '+route);
 assert.ok(page.includes('SUPPLIER ACQUISITION CONTROL'));
 assert.ok(page.includes('Contact → sandbox → certification → production'));
 assert.ok(page.includes('No supplier becomes LIVE until production access is actually verified.'));
+
+assert.equal(isLiteApiSandboxKey('sand_example'),true);
+assert.equal(isLiteApiSandboxKey('sandbox_example'),true);
+assert.equal(isLiteApiSandboxKey('prod_example'),false);
+const liteSearch={checkin:'2027-02-28',checkout:'2027-03-01',currency:'USD',guestNationality:'US',occupancies:[{adults:2}],cityName:'Cebu',countryCode:'PH',hotelIds:[],limit:1.5};
+assert.doesNotThrow(()=>validateLiteApiSandboxSearch(liteSearch));
+assert.throws(()=>validateLiteApiSandboxSearch({...liteSearch,checkin:'2027-02-30'}));
+let litePayload=null;
+const lite204=await searchLiteApiSandboxHotels(liteSearch,{sandboxKey:'sandbox_example',fetchImpl:async(_url,options)=>{litePayload=JSON.parse(options.body);return{ok:true,status:204,headers:{get:()=>null},body:null}}});
+assert.equal(litePayload.limit,1);
+assert.equal(litePayload.cityName,'Cebu');
+assert.ok(!Object.hasOwn(litePayload,'hotelIds'));
+assert.deepEqual(lite204.results,[]);
+const lite429=await searchLiteApiSandboxHotels(liteSearch,{sandboxKey:'sand_example',fetchImpl:async()=>({ok:false,status:429,headers:{get:()=>null},body:null})});
+assert.equal(lite429.status,429);
+const liteAdapter=fs.readFileSync('worker/src/magnanimous-travel-liteapi-sandbox.js','utf8');
+assert.ok(liteAdapter.includes('getReader'));
+assert.ok(liteAdapter.includes('reader.cancel'));
+const platformCredentials=fs.readFileSync('worker/src/platform-credentials.js','utf8');
+const providerRuntime=fs.readFileSync('worker/src/provider-runtime-env.js','utf8');
+assert.ok(platformCredentials.includes('LITEAPI_SANDBOX_KEY'),'LiteAPI sandbox key must be allowed in platform credentials.');
+assert.ok(providerRuntime.includes('LITEAPI_SANDBOX_KEY'),'LiteAPI sandbox key must be allowed in provider runtime.');
 
 const summary=getTravelAgencySummary();
 assert.ok(summary.suppliers>=20&&summary.skills>=40);
