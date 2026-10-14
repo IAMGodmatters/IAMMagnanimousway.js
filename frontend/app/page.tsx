@@ -34,7 +34,7 @@ export default function Home(){
  useEffect(()=>{(async()=>{const token=localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||'';setOwner(!!(localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token')));const h=token?{Authorization:`Bearer ${token}`}:{Authorization:''};const[health,me,t,a,mc]=await Promise.all([safeJson(`${api}/health`),safeJson(`${api}/api/auth/me`,{headers:h}),safeJson(`${api}/api/tools`),safeJson(`${api}/api/ads?placement=home`),safeJson(`${api}/api/monetization/config`)]);setUser(me.user||{});setOnline(health?.status==='ok'&&Array.isArray(t.tools));setAds(a.ads||[]);setAdConfig({adsense_configured:!!mc.adsense_configured,adsense_client_id:mc.adsense_client_id||null,adsense_home_slot:mc.adsense_home_slot||null,auto_ads_ready:!!mc.auto_ads_ready});setReady(true)})()},[]);
  useEffect(()=>{const client=adConfig.adsense_client_id;if(!client)return;const existing=document.querySelector('script[data-iam-adsense="true"]') as HTMLScriptElement|null;const requestAd=()=>{if(!adConfig.adsense_home_slot)return;try{((window as any).adsbygoogle=(window as any).adsbygoogle||[]).push({})}catch{}};if(existing){requestAd();return}const script=document.createElement('script');script.async=true;script.crossOrigin='anonymous';script.src=`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(client)}`;script.dataset.iamAdsense='true';script.onload=requestAd;document.head.appendChild(script)},[adConfig.adsense_client_id,adConfig.adsense_home_slot]);
  function logout(){localStorage.removeItem('iam_account_token');localStorage.removeItem('iam_account_session_expires_at');localStorage.removeItem('magnanimous_admin_token');localStorage.removeItem('magnanimous_admin_session_expires_at');localStorage.removeItem('odin_admin_token');sessionStorage.removeItem('iam_session_active');location.replace('/login')}
- return <main className="page">
+ return <main className="page cinematicHome">
   <header className="topbar">
    <a className="brand" href="/"><span className="crown">♛</span><b>I AM</b><strong>MAGNANIMOUS <em>WAY™</em></strong><small>ONE GOD • ONE PEOPLE • A BRIGHTER TOMORROW</small></a>
    <nav>{nav.map(([icon,label,href])=><a key={href+label} href={href}><i>{icon}</i><span>{label}</span></a>)}</nav>
@@ -43,7 +43,7 @@ export default function Home(){
 
   <section className="hero">
    <div className="heroCopy"><small>THE MAGNANIMOUS AI FAMILY</small><h1>One platform.<br/>Specialized AI<br/>helpers. One<br/><span>Magnanimous</span><br/>identity.</h1><p>Research, Bible study, business, creative work, communication, coding, support, travel, calling and automation — built as one connected family of assistants.</p><div className="actions"><a className="primary" href="/ai-chat">Open Magnanimous AI <b>›</b></a><a href="/auto-dialer">☎ Open Optional Auto Dialer</a><a href="/contact-center">♟ Open Contact Center</a></div></div>
-   <div className="artFrame"><img src="/magnanimous-family.svg" alt="Magnanimous AI robot family and specialized helpers"/><div className="artGlow"></div></div>
+   <div className="artFrame"><img src="/mode-images/virtual-assistant.webp" alt="Magnanimous AI virtual guide in a futuristic workspace"/><div className="artGlow"></div></div>
    <div className="heroBottom"><a href="/guide">ⓘ Platform guide</a><a href="/business-plan">▥ Suggested: Build a business growth plan →</a><a href="/virtual-assistant">▣ AI VA</a></div>
   </section>
 

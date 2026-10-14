@@ -99,7 +99,7 @@ export default function LoginPage() {
     finally { setBusy(false); }
   }
 
-  return <main className="portal">
+  return <main className="portal cinematicLogin">
     <div className="robot"><div className="head"><i/><i/><b>M</b></div><div className="neck"/><div className="body"><strong>AI</strong></div></div>
     <div className="globe">◎<span>GLOBAL INTELLIGENCE</span></div>
     <div className="rings r1"/><div className="rings r2"/><div className="scan"/><div className="particles"/>
