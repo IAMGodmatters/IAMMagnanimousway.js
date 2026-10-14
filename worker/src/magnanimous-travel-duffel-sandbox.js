@@ -101,5 +101,5 @@ export async function createDuffelTestHold(input,{testToken,fetchImpl=fetch}={})
  if(response.error)return response;
  const order=response.result?.data||{},orderId=safeText(order.id,120);
  if(!orderId||order.live_mode===true)return{...flags(),configured:true,error:'Duffel did not confirm a test-mode hold order.',status:502};
- return{...flags(),configured:true,simulated_hold:true,hold_order_confirmed:true,order_id:orderId,booking_reference:safeText(order.booking_reference,80)||null,payment_status:order.payment_status||null,payment_required_by:order.payment_required_by||offer?.payment_requirements?.payment_required_by||null,note:'Test-mode hold only. No payments were sent and no live flight was booked.'};
+ return{...flags(),configured:true,simulated_hold:true,hold_order_confirmed:true,order_id:orderId,booking_reference:safeText(order.booking_reference,80)||null,payment_status:order.payment_status||null,payment_required_by:order?.payment_status?.payment_required_by||order.payment_required_by||offer?.payment_requirements?.payment_required_by||null,note:'Test-mode hold only. No payments were sent and no live flight was booked.'};
 }
