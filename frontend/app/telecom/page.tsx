@@ -75,6 +75,7 @@ export default function TelecomPage(){
   {href:'/telecom/operations',icon:'⚙',title:'Carrier Operations',text:'OSS/BSS, service orders, charging, balances, routing, fraud and assurance.'},
   {href:'/telecom/sim',icon:'▤',title:'SIM + eSIM Control',text:'Inventory, mobile adapters and authorized profile provisioning.'},
   {href:'/telecom/network',icon:'◎',title:'Carrier Access',text:'Numbering, PSTN, E911, mobile providers and regulatory readiness.'},
+  {href:'/intelligence-desk',icon:'⌕',title:'Intelligence Desk',text:'Verified legal-entity, SEC and regulatory research for telecom and B2B decisions.'},
   {href:'/contact-validation',icon:'✓',title:'Contact Validation',text:'Free-first email hygiene plus native phone parsing before CRM, campaigns or telecom workflows.'},
   {href:'/auto-dialer',icon:'↗',title:'Auto Dialer',text:'Authorized outbound calling workflows and campaigns.'},
   {href:'/ai-connectors',icon:'⌘',title:'Universal Connector',text:'Keep external engines beneath the Magnanimous command layer.'},
