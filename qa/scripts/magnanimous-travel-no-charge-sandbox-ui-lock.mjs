@@ -16,7 +16,7 @@ for(const token of [
  'https://docs.liteapi.travel/docs/getting-a-sandbox-key'
 ]) assert.ok(page.includes(token),'Travel sandbox UI missing '+token);
 
-assert.ok(page.includes("body:JSON.stringify({prebookId:sandboxPrebookId,holder,guests:[{occupancyNumber:1,...holder}]})"),'UI must not send payment details to sandbox book route.');
+assert.ok(page.includes("sandboxPost('/api/travel-agency/sandbox/liteapi/book',{prebookId:sandboxPrebookId,holder,guests:[{occupancyNumber:1,...holder}]})"),'UI book request must contain only the prebook and guest/holder identity payload.');
 assert.ok(!page.includes('cardNumber'),'UI must never collect a card number.');
 assert.ok(!page.includes('cvv:'),'UI must never collect CVV.');
 assert.ok(!page.includes('billingInfo'),'UI must never collect LiteAPI billing details.');
