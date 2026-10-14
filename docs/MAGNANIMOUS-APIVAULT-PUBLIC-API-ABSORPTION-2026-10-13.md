@@ -204,3 +204,35 @@ This expansion raises the production-safe public-data fabric to **20 active read
 - Boundary: current paginated search API is used, metadata remains CC0-oriented, and image URLs are exposed only when the API marks the object public domain.
 
 The same authentication, fixed-host, GET-only, timeout, response-size, cache, request-coalescing, source-attribution and fail-safe rules remain in force for every new adapter.
+
+## Wave 3 — B2B, contact center and telecom priority — 2026-10-14
+
+ApiVault's current 51-category discovery surface was reviewed again with Business, Email, Phone, Data Validation, Government, Documents & Productivity, Security and Open Data prioritized for Magnanimous' business platforms.
+
+### Activated: DISIFY email hygiene
+
+- Runtime route: `GET /api/public-data/email-hygiene?email=<address>`
+- Provider call: fixed backend-only `POST https://disify.com/api/email`
+- Core scope: syntax, mail DNS/MX, disposable signals, role/free-mail indicators and confidence signals.
+- Cost/auth: current core checks require no API key, subject to provider limits.
+- Boundary: the result does not prove mailbox existence/ownership, consent, DNC compliance, deliverability or permission to contact.
+
+### Activated: native phone normalization
+
+- Runtime route: `GET /api/public-data/phone-validation?phone=<number>&country=PH`
+- Runtime: MIT-licensed `libphonenumber-js` in the Worker; no metered validation API is needed for basic parsing and numbering-plan checks.
+- Scope: parse, possible/valid numbering-plan checks, E.164, international/national formatting and detected country/calling code.
+- Boundary: no claim of assignment, active service, reachability, ownership, carrier authority, consent or DNC status.
+
+### Deferred after current verification
+
+- `domainsdb`: current access documents an API key; stale discovery metadata is not enough for production activation.
+- `companies-house`: valuable B2B company data, but the official API requires an owner API key.
+- `patentsview`: current access requires an API key and availability of new keys is constrained.
+- metered Phone-category validators: not used by default because native libphonenumber-js covers the basic validation/normalization job without recurring API cost.
+
+### Published platform surfaces
+
+The shared contact-validation workflow is linked from Magnanimous B2B, Contact Center and Telecom and remains available to CRM workflows. The free-first software directive is also published in Free Tools and absorbed into the Magnanimous capability brain so tool selection can reuse it across platform workflows.
+
+All existing authentication, fixed-host, GET-only client contract, upstream timeout/size bounds, source attribution, billing, consent, DNC and telecom legal gates remain intact.

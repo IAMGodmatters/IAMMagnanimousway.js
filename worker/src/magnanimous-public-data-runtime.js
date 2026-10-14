@@ -1,6 +1,7 @@
 import { currentUser } from './integrations.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { getPublicApiAbsorptionSummary } from './magnanimous-public-api-capability-registry.js';
+import { normalizePhoneNumber, CONTACT_VALIDATION_BOUNDARY } from './magnanimous-contact-validation.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const clip=(value,max=1000)=>String(value??'').trim().slice(0,max);
@@ -27,6 +28,7 @@ function cacheTtlMs(url,method='GET'){
   if(host==='api.weather.gov')return 60_000;
   if(host==='data.sec.gov'||host==='www.wikidata.org')return 900_000;
   if(host==='api.artic.edu'||host==='collectionapi.metmuseum.org')return 3_600_000;
+  if(host==='disify.com')return 300_000;
   return 300_000;
 }
 
@@ -64,6 +66,8 @@ function burstLimitFor(path){
   if(path==='/api/public-data/openverse-images'||path==='/api/public-data/usajobs')return 30;
   if(path==='/api/public-data/us-weather-alerts')return 4;
   if(path==='/api/public-data/sec-edgar'||path==='/api/public-data/wikidata'||path==='/api/public-data/art-institute'||path==='/api/public-data/met-art')return 20;
+  if(path==='/api/public-data/email-hygiene')return 15;
+  if(path==='/api/public-data/phone-validation')return 60;
   return 60;
 }
 
@@ -305,6 +309,11 @@ function normalizeMetObject(row={}){
   return {id:Number.isFinite(id)?id:null,title:clip(row?.title,1000),artist:clip(row?.artistDisplayName,800),artist_role:clip(row?.artistRole,200),object_name:clip(row?.objectName,500),department:clip(row?.department,500),culture:clip(row?.culture,500),period:clip(row?.period,500),dynasty:clip(row?.dynasty,500),object_date:clip(row?.objectDate,500),medium:clip(row?.medium,1200),classification:clip(row?.classification,500),is_public_domain:isPublicDomain,object_url:clip(row?.objectURL,2000),image_url:isPublicDomain?clip(row?.primaryImageSmall||row?.primaryImage,2000):'',credit_line:clip(row?.creditLine,1000),rights_and_reproduction:clip(row?.rightsAndReproduction,1000)};
 }
 
+function normalizeDisifyEmail(data={}){
+  const bool=value=>typeof value==='boolean'?value:null;
+  return {format:bool(data?.format),domain:clip(data?.domain,320),disposable:bool(data?.disposable),dns:bool(data?.dns),whitelist:bool(data?.whitelist),role:bool(data?.role),free:bool(data?.free),confidence:Number.isFinite(Number(data?.confidence))?Math.max(0,Math.min(100,Number(data.confidence))):null,signals:(Array.isArray(data?.signals)?data.signals:[]).map(x=>clip(x,100)).filter(Boolean).slice(0,20),domain_info:data?.domain_info&&typeof data.domain_info==='object'?{tld:clip(data.domain_info.tld,100),is_subdomain:bool(data.domain_info.is_subdomain),parent_domain:clip(data.domain_info.parent_domain,320)||null}:null};
+}
+
 const SCRIPTURE_TRANSLATIONS=new Set(['kjv','web','asv']);
 
 export async function handleMagnanimousPublicData(request,env){
@@ -515,6 +524,23 @@ export async function handleMagnanimousPublicData(request,env){
     }catch(error){return sourceError('U.S. Treasury Fiscal Data',error)}
   }
 
+
+  if(path==='/api/public-data/phone-validation'){
+    const phone=clip(url.searchParams.get('phone'),80),country=clip(url.searchParams.get('country')||'PH',2).toUpperCase();
+    if(!phone)return json({detail:'phone is required.'},400);
+    if(!/^[A-Z]{2}$/.test(country))return json({detail:'country must be a two-letter ISO country code such as PH or US.'},400);
+    try{const result=normalizePhoneNumber(phone,country);return json({identity:'Magnanimous Contact Validation',mode:'native-free-first',result,boundary:CONTACT_VALIDATION_BOUNDARY.phone,source:{name:'libphonenumber-js',license:'MIT',external_request:false}})}catch(error){return json({detail:clip(error?.message||error,500)},400)}
+  }
+
+  if(path==='/api/public-data/email-hygiene'){
+    const email=clip(url.searchParams.get('email'),320);
+    if(!email||!/^\S+@[^\s@]+\.[^\s@]+$/.test(email))return json({detail:'Enter a syntactically plausible email address.'},400);
+    try{
+      const body=new URLSearchParams({email}).toString();
+      const data=await providerJson('https://disify.com/api/email',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body,cacheTtl:0});
+      return json({identity:'Magnanimous Contact Validation',mode:'free-core-evidence',email,result:normalizeDisifyEmail(data),boundary:CONTACT_VALIDATION_BOUNDARY.email,contact_permission:'not-established',privacy:{external_processing:true,provider_logs_validation_input:true,policy_url:'https://disify.com/privacy'},source:{name:'DISIFY',url:'https://docs.disify.com/api/email.html',core_no_key:true}});
+    }catch(error){return sourceError('DISIFY',error)}
+  }
 
   if(path==='/api/public-data/us-weather-alerts'){
     const area=clip(url.searchParams.get('area'),2).toUpperCase(),limit=Math.trunc(finite(url.searchParams.get('limit'),1,50,20));
