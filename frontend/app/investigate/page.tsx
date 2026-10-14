@@ -22,7 +22,7 @@ async function inspectLocally(content:string,kind:string,source:string,authorize
   ['network-reference',/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\s*\(/],['storage-reference',/\b(?:localStorage|sessionStorage|indexedDB)\b/],
   ['authentication-reference',/\b(?:authorization|bearer|session|oauth|token)\b/i],['endpoint-reference',/\/(?:api|v\d+)\/[A-Za-z0-9_./?=&-]+/],
   ['source-map-reference',/sourceMappingURL\s*=/],['dynamic-execution-reference',/\b(?:eval\s*\(|new\s+Function\s*\()/],
-  ['dom-injection-reference',/\b(?:innerHTML|outerHTML|insertAdjacentHTML|document\.write)\b/],['cookie-reference',/\bdocument\.cookie\b/],
+  ['dom-injection-reference',/(?:\.\s*(?:innerHTML|outerHTML)\s*=|\.\s*insertAdjacentHTML\s*\(|document\.write\s*\()/],['cookie-reference',/\bdocument\.cookie\b/],
   ['cross-window-message-reference',/\bpostMessage\s*\(/],['worker-reference',/\b(?:new\s+Worker\s*\(|new\s+SharedWorker\s*\(|serviceWorker\b)/],
   ['process-environment-reference',/\bprocess\.env\b/],['filesystem-reference',/\b(?:readFile|readFileSync|writeFile|writeFileSync|readdir|readdirSync|createReadStream|createWriteStream)\s*\(/],
   ['command-execution-reference',/\b(?:exec|execSync|spawn|spawnSync|fork)\s*\(/]
