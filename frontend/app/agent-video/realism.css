@@ -1,0 +1,11 @@
+.avatarStage .person{transform-origin:50% 72%;will-change:transform;animation:magnanimousAgentBreath 6.8s ease-in-out infinite}
+.avatarStage .person img{transform-origin:50% 36%;will-change:transform,filter;animation:magnanimousAgentPresence 7.4s ease-in-out infinite;filter:saturate(1.02) contrast(1.015)}
+.avatarStage.talking .person{animation:magnanimousAgentTalkBody 1.55s ease-in-out infinite}
+.avatarStage.talking .person img{animation:magnanimousAgentTalkFace 1.15s ease-in-out infinite;filter:saturate(1.035) contrast(1.02)}
+.avatarStage .person::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.055),transparent 34%);mix-blend-mode:screen;opacity:.5;animation:magnanimousAgentLight 5.6s ease-in-out infinite}
+@keyframes magnanimousAgentBreath{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(0,-1.5px,0) scale(1.004)}}
+@keyframes magnanimousAgentPresence{0%,100%{transform:translate3d(0,0,0) scale(1.012)}30%{transform:translate3d(-.7px,-.5px,0) scale(1.014)}65%{transform:translate3d(.8px,-1px,0) scale(1.013)}}
+@keyframes magnanimousAgentTalkBody{0%,100%{transform:translate3d(0,0,0) rotate(0deg)}35%{transform:translate3d(-1px,-1px,0) rotate(-.15deg)}70%{transform:translate3d(1px,-.4px,0) rotate(.15deg)}}
+@keyframes magnanimousAgentTalkFace{0%,100%{transform:translate3d(0,0,0) scale(1.014)}25%{transform:translate3d(-.7px,-1.1px,0) scale(1.018)}58%{transform:translate3d(.9px,-.4px,0) scale(1.016)}80%{transform:translate3d(-.2px,-1.2px,0) scale(1.019)}}
+@keyframes magnanimousAgentLight{0%,100%{opacity:.42}50%{opacity:.58}}
+@media (prefers-reduced-motion:reduce){.avatarStage .person,.avatarStage .person img,.avatarStage.talking .person,.avatarStage.talking .person img,.avatarStage .person::after{animation:none}}
