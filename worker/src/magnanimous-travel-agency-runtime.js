@@ -1,4 +1,4 @@
-import { searchLiteApiSandboxHotels } from './magnanimous-travel-liteapi-sandbox.js';
+import { isLiteApiSandboxKey, searchLiteApiSandboxHotels } from './magnanimous-travel-liteapi-sandbox.js';
 import { currentUser } from './integrations.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import {
@@ -282,14 +282,21 @@ export async function handleMagnanimousTravelAgency(request,env){
  if(request.method==='GET'&&path==='/api/travel-agency/sandbox/liteapi/status'){
   if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
   const runtimeEnv=await getProviderRuntimeEnv(env);
-  return json({supplier:'liteapi',sandbox:true,configured:Boolean(clean(runtimeEnv?.LITEAPI_SANDBOX_KEY)),production_enabled:false,booking_enabled:false,payment_enabled:false});
+  return json({supplier:'liteapi',sandbox:true,configured:isLiteApiSandboxKey(clean(runtimeEnv?.LITEAPI_SANDBOX_KEY)),production_enabled:false,booking_enabled:false,payment_enabled:false});
  }
  if(request.method==='POST'&&path==='/api/travel-agency/sandbox/liteapi/search'){
   if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
   const body=await request.json().catch(()=>({}));
   const runtimeEnv=await getProviderRuntimeEnv(env);
-  try{return json(await searchLiteApiSandboxHotels(body,{sandboxKey:clean(runtimeEnv?.LITEAPI_SANDBOX_KEY)}));}
-  catch(error){return json({detail:'Invalid sandbox search or supplier unavailable.',reason:clean(error?.message).slice(0,160)},400);}
+  try{
+   const result=await searchLiteApiSandboxHotels(body,{sandboxKey:clean(runtimeEnv?.LITEAPI_SANDBOX_KEY)});
+   if(!result.configured)return json(result,503);
+   if(result.error)return json(result,Math.max(400,Math.min(Number(result.status)||502,599)));
+   return json(result);
+  }catch(error){
+   const input=error?.code==='INPUT';
+   return json({detail:input?'Invalid sandbox search.':'Sandbox supplier unavailable.',reason:clean(error?.message).slice(0,160)},input?400:502);
+  }
  }
  if(request.method==='POST'&&path==='/api/travel-agency/search/flights'){
   const body=await request.json().catch(()=>({}));
