@@ -21,7 +21,7 @@ export async function inspectNativeEvidence({content,kind='text',source='user-pa
   const indicators=[];
   const patterns=[
     ['import',/\bimport\s*(?:\(|[{'*"\w])/],
-    ['export',/\bexport\s+(?:default|const|let|var|function|class|\{)/],
+    ['export',/\bexport\s+(?:(?:default\s+)?(?:async\s+)?(?:const|let|var|function|class)|\{)/],
     ['function',/\b(?:async\s+)?function\s+[A-Za-z_$]/],
     ['class',/\bclass\s+[A-Za-z_$]/],
     ['network-reference',/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\s*\(/],
