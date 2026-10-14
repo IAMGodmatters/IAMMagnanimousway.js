@@ -100,6 +100,11 @@ export default {
       const ownerEmailLoginTransportReady=Boolean(env?.MAGNANIMOUS_MAIL&&env?.MAGNANIMOUS_MAIL_DELIVERY_AVAILABLE==='true');
       return Response.json({status:'ok',service:'iamagnanimous-ai',version:'4.0.0-multitenant',database_bootstrap:'deferred',owner_email_login_transport_ready:ownerEmailLoginTransportReady},{headers:{'cache-control':'no-store'}});
     }
+    // Public-data adapters are already authenticated/read-only and own their
+    // fixed-provider policy. Keep them off the legacy schema/tool-seeding cold
+    // path so a fresh Worker isolate can reject unauthenticated requests and
+    // serve evidence lookups without waiting on unrelated bootstrap writes.
+    if(url.pathname.startsWith('/api/public-data'))return handleMagnanimousPublicData(request,env);
     ensureWhatsAppIntegrationCompatibility();
     await ensureRuntimeBootstrap(env);
     env=await getProviderRuntimeEnv(env);
@@ -117,8 +122,6 @@ export default {
     if(space)return space;
     const research=await handleMagnanimousResearch(request,env);
     if(research)return research;
-    const publicData=await handleMagnanimousPublicData(request,env);
-    if(publicData)return publicData;
     const mux=await handleMagnanimousMux(request,env);
     if(mux)return mux;
     const whatsapp=await handleMagnanimousWhatsApp(request,env);
