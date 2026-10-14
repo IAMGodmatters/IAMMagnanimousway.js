@@ -28,6 +28,7 @@ function cacheTtlMs(url,method='GET'){
   if(host==='api.weather.gov')return 60_000;
   if(host==='data.sec.gov'||host==='www.wikidata.org')return 900_000;
   if(host==='api.artic.edu'||host==='collectionapi.metmuseum.org')return 3_600_000;
+  if(host==='api.gleif.org')return 900_000;
   if(host==='disify.com')return 300_000;
   return 300_000;
 }
@@ -66,6 +67,7 @@ function burstLimitFor(path){
   if(path==='/api/public-data/openverse-images'||path==='/api/public-data/usajobs')return 30;
   if(path==='/api/public-data/us-weather-alerts')return 4;
   if(path==='/api/public-data/sec-edgar'||path==='/api/public-data/wikidata'||path==='/api/public-data/art-institute'||path==='/api/public-data/met-art')return 20;
+  if(path==='/api/public-data/gleif')return 20;
   if(path==='/api/public-data/email-hygiene')return 15;
   if(path==='/api/public-data/phone-validation')return 60;
   return 60;
@@ -309,6 +311,16 @@ function normalizeMetObject(row={}){
   return {id:Number.isFinite(id)?id:null,title:clip(row?.title,1000),artist:clip(row?.artistDisplayName,800),artist_role:clip(row?.artistRole,200),object_name:clip(row?.objectName,500),department:clip(row?.department,500),culture:clip(row?.culture,500),period:clip(row?.period,500),dynasty:clip(row?.dynasty,500),object_date:clip(row?.objectDate,500),medium:clip(row?.medium,1200),classification:clip(row?.classification,500),is_public_domain:isPublicDomain,object_url:clip(row?.objectURL,2000),image_url:isPublicDomain?clip(row?.primaryImageSmall||row?.primaryImage,2000):'',credit_line:clip(row?.creditLine,1000),rights_and_reproduction:clip(row?.rightsAndReproduction,1000)};
 }
 
+
+function normalizeGleifAddress(address={}){
+  return {lines:(Array.isArray(address?.addressLines)?address.addressLines:[]).map(x=>clip(x,500)).filter(Boolean).slice(0,8),city:clip(address?.city,300),region:clip(address?.region,120)||null,country:clip(address?.country,8),postal_code:clip(address?.postalCode,80)};
+}
+
+function normalizeGleifRecord(row={}){
+  const a=row?.attributes||{},entity=a?.entity||{},registration=a?.registration||{};
+  return {lei:clip(a?.lei||row?.id,40),legal_name:clip(entity?.legalName?.name,800),entity_status:clip(entity?.status,80),registration_status:clip(registration?.status,80),jurisdiction:clip(entity?.jurisdiction,40),category:clip(entity?.category,80),legal_form:clip(entity?.legalForm?.other||entity?.legalForm?.id,200),registered_at:clip(entity?.registeredAt?.id,100),registered_as:clip(entity?.registeredAs,200),legal_address:normalizeGleifAddress(entity?.legalAddress||{}),headquarters_address:normalizeGleifAddress(entity?.headquartersAddress||{}),initial_registration_date:clip(registration?.initialRegistrationDate,80)||null,last_update_date:clip(registration?.lastUpdateDate,80)||null,next_renewal_date:clip(registration?.nextRenewalDate,80)||null,corroboration_level:clip(registration?.corroborationLevel,80),conformity_flag:clip(a?.conformityFlag,80),bic:(Array.isArray(a?.bic)?a.bic:[]).map(x=>clip(x,80)).filter(Boolean).slice(0,20)};
+}
+
 function normalizeDisifyEmail(data={}){
   const bool=value=>typeof value==='boolean'?value:null;
   return {format:bool(data?.format),domain:clip(data?.domain,320),disposable:bool(data?.disposable),dns:bool(data?.dns),whitelist:bool(data?.whitelist),role:bool(data?.role),free:bool(data?.free),confidence:Number.isFinite(Number(data?.confidence))?Math.max(0,Math.min(100,Number(data.confidence))):null,signals:(Array.isArray(data?.signals)?data.signals:[]).map(x=>clip(x,100)).filter(Boolean).slice(0,20),domain_info:data?.domain_info&&typeof data.domain_info==='object'?{tld:clip(data.domain_info.tld,100),is_subdomain:bool(data.domain_info.is_subdomain),parent_domain:clip(data.domain_info.parent_domain,320)||null}:null};
@@ -524,6 +536,29 @@ export async function handleMagnanimousPublicData(request,env){
     }catch(error){return sourceError('U.S. Treasury Fiscal Data',error)}
   }
 
+
+
+  if(path==='/api/public-data/gleif'){
+    const mode=clip(url.searchParams.get('mode')||'search',20).toLowerCase(),limit=Math.trunc(finite(url.searchParams.get('limit'),1,10,6));
+    try{
+      if(mode==='search'){
+        const q=clip(url.searchParams.get('q'),160);
+        if(q.length<2)return json({detail:'q must contain at least two characters.'},400);
+        const query=new URLSearchParams({'filter[fulltext]':q,'page[size]':String(limit)});
+        const data=await providerJson(`https://api.gleif.org/api/v1/lei-records?${query.toString()}`);
+        const records=(Array.isArray(data?.data)?data.data:[]).slice(0,limit).map(normalizeGleifRecord);
+        return json({identity:'Magnanimous B2B Intelligence',mode,query:q,count:records.length,records,verification_scope:'LEI reference-data research only; not credit, sanctions, consent, beneficial-ownership, or transaction authority.',source:{name:'GLEIF LEI API',url:'https://www.gleif.org/en/lei-data/gleif-api',free_official_data:true}});
+      }
+      if(mode==='lei'){
+        const lei=clip(url.searchParams.get('lei'),20).toUpperCase();
+        if(!/^[A-Z0-9]{20}$/.test(lei))return json({detail:'lei must be a 20-character Legal Entity Identifier.'},400);
+        const data=await providerJson(`https://api.gleif.org/api/v1/lei-records/${encodeURIComponent(lei)}`);
+        if(!data?.data)return json({detail:'GLEIF LEI record not found.',lei},404);
+        return json({identity:'Magnanimous B2B Intelligence',mode,record:normalizeGleifRecord(data.data),verification_scope:'LEI reference-data research only; not credit, sanctions, consent, beneficial-ownership, or transaction authority.',source:{name:'GLEIF LEI API',url:'https://www.gleif.org/en/lei-data/gleif-api',free_official_data:true}});
+      }
+      return json({detail:'mode must be search or lei.'},400);
+    }catch(error){return sourceError('GLEIF',error)}
+  }
 
   if(path==='/api/public-data/phone-validation'){
     const phone=clip(url.searchParams.get('phone'),80),country=clip(url.searchParams.get('country')||'PH',2).toUpperCase();

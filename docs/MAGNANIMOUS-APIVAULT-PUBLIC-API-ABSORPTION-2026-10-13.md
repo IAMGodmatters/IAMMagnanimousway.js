@@ -236,3 +236,21 @@ ApiVault's current 51-category discovery surface was reviewed again with Busines
 The shared contact-validation workflow is linked from Magnanimous B2B, Contact Center and Telecom and remains available to CRM workflows. The free-first software directive is also published in Free Tools and absorbed into the Magnanimous capability brain so tool selection can reuse it across platform workflows.
 
 All existing authentication, fixed-host, GET-only client contract, upstream timeout/size bounds, source attribution, billing, consent, DNC and telecom legal gates remain intact.
+## Wave 4 — B2B intelligence desk and global legal-entity research — 2026-10-14
+
+The ApiVault business review exposed two practical conclusions. First, a listed procurement source must not be activated merely because a directory says it is public: live tests against Tenders Guru Poland and Spain timed out from the authorized owner environment, so that source is explicitly deferred. Second, Magnanimous needed a stronger free-first business-identity rail than stale/key-gated company-search listings.
+
+### Activated: GLEIF LEI API
+
+- Runtime route: `GET /api/public-data/gleif?mode=search&q=<company>&limit=6`
+- Direct lookup: `GET /api/public-data/gleif?mode=lei&lei=<20-character-LEI>`
+- Provider: Global Legal Entity Identifier Foundation production API.
+- Cost/auth: current official LEI data access is free of charge and the API requires no owner credential for these bounded read-only calls.
+- Purpose: B2B legal-entity name, LEI, jurisdiction, registration authority/reference, entity status, LEI registration status and address research.
+- Boundary: LEI evidence does not prove creditworthiness, solvency, sanctions clearance, beneficial-ownership completeness, outreach consent, or legal authority to transact.
+
+### Published Intelligence Desk
+
+A Magnanimous-owned Intelligence Desk now brings the independently verified sources into one signed-in workflow for B2B, CRM, Contact Center and Telecom. It uses the existing fixed-host public-data adapters rather than exposing ApiVault as a catalog or proxy. The desk combines GLEIF company identity, SEC EDGAR filing research, Wikidata entity discovery, Federal Register regulatory research and the Magnanimous source/review inventory.
+
+The page is linked from the priority B2B, Contact Center, Telecom and CRM surfaces so verified research can be used before outreach, contracting, regulatory planning or provider decisions.

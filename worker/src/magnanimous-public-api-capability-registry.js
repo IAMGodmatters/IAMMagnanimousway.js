@@ -1,4 +1,4 @@
-// Public API capability research for Magnanimous AI.
+﻿// Public API capability research for Magnanimous AI.
 // API Vault is used only as a discovery directory. Its repository is CC BY-NC-ND 4.0,
 // so no API Vault source code or catalog data is copied into this commercial platform.
 // Each active adapter below is independently implemented from the provider's official
@@ -227,6 +227,17 @@ export const MAGNANIMOUS_PUBLIC_API_PROVIDERS=Object.freeze([
     guardrail:'Only expose public-domain images when the API marks the object public domain; preserve museum source links and attribution context.'
   }),
   Object.freeze({
+    id:'gleif',
+    name:'GLEIF LEI API',
+    status:'active-read-only-free-official',
+    official_docs:'https://www.gleif.org/en/lei-data/gleif-api',
+    base_url:'https://api.gleif.org/api/v1',
+    auth:'none',
+    use_case:'Global B2B legal-entity identity research using Legal Entity Identifier reference data and reported registration metadata.',
+    terms_note:'GLEIF states that quality-assured LEI data can be sourced free of charge and exposes the production API for automated search and lookup.',
+    guardrail:'LEI reference data supports entity identity research; it does not prove creditworthiness, solvency, outreach consent, sanctions clearance, beneficial ownership completeness, or legal authority to transact.'
+  }),
+  Object.freeze({
     id:'disify',
     name:'DISIFY',
     status:'active-read-only-free-core',
@@ -261,6 +272,7 @@ export const MAGNANIMOUS_PUBLIC_API_REVIEW_QUEUE=Object.freeze([
   Object.freeze({id:'domainsdb',status:'credential-required-review',reason:'ApiVault discovery metadata is stale for current production use: DomainsDB currently documents an API key for most access. Keep disabled until an owner key and current commercial terms are explicitly approved.'}),
   Object.freeze({id:'companies-house',status:'credential-required-review',reason:'High-value B2B company data is public through the official API but requires an owner API key. Do not activate or infer authorization without that credential.'}),
   Object.freeze({id:'patentsview',status:'credential-required-unavailable-review',reason:'Current PatentsView access requires an API key and new key grants are constrained; keep disabled until official access is available and authorized.'}),
+  Object.freeze({id:'tenders-guru',status:'runtime-unreliable-deferred',reason:'ApiVault lists public procurement feeds, but live 2026-10-14 tests against Poland and Spain timed out from the authorized owner environment. Keep disabled until the provider proves reliable from production and current reuse terms are reconfirmed.'}),
   Object.freeze({id:'metered-phone-validation-vendors',status:'native-replacement-preferred',reason:'ApiVault phone-validation vendors are key/metered for basic checks. Magnanimous prefers native MIT-licensed libphonenumber-js for parsing, formatting and numbering-plan validation; external vendors remain optional only for facts that cannot be derived locally.'})
 ]);
 
@@ -302,6 +314,8 @@ export const MAGNANIMOUS_PUBLIC_API_CAPABILITIES=Object.freeze([
   Object.freeze({...shared,id:'public-api:wikidata:entity-metadata-lookup',connector_id:'public-api:wikidata',connector_name:'Wikidata',capability:'entity-metadata-lookup',native_target:'knowledge-workspace',research:{official_docs:'https://www.wikidata.org/wiki/Wikidata:Data_access',verified_at:'2026-10-14',proprietary_implementation_copied:false,license:'CC0'}}),
   Object.freeze({...shared,id:'public-api:art-institute-chicago:public-domain-artwork-search',connector_id:'public-api:art-institute-chicago',connector_name:'Art Institute of Chicago API',capability:'public-domain-artwork-search',native_target:'media-library',research:{official_docs:'https://api.artic.edu/docs/',verified_at:'2026-10-14',proprietary_implementation_copied:false,public_domain_images_only:true}}),
   Object.freeze({...shared,id:'public-api:met-museum:open-access-art-search',connector_id:'public-api:met-museum',connector_name:'The Metropolitan Museum of Art Collection API',capability:'open-access-art-search',native_target:'media-library',research:{official_docs:'https://metmuseum.github.io/',verified_at:'2026-10-14',proprietary_implementation_copied:false,license:'CC0',public_domain_images_only:true}}),
+  Object.freeze({...shared,id:'public-api:gleif:legal-entity-search',connector_id:'public-api:gleif',connector_name:'GLEIF LEI API',capability:'legal-entity-search',native_target:'research-orchestrator',research:{official_docs:'https://www.gleif.org/en/lei-data/gleif-api',verified_at:'2026-10-14',proprietary_implementation_copied:false,free_official_data:true,identity_research_only:true}}),
+  Object.freeze({...shared,id:'public-api:gleif:lei-record-lookup',connector_id:'public-api:gleif',connector_name:'GLEIF LEI API',capability:'lei-record-lookup',native_target:'research-orchestrator',research:{official_docs:'https://www.gleif.org/en/lei-data/gleif-api',verified_at:'2026-10-14',proprietary_implementation_copied:false,free_official_data:true,identity_research_only:true}}),
   Object.freeze({...shared,id:'public-api:disify:email-hygiene-check',connector_id:'public-api:disify',connector_name:'DISIFY',capability:'email-hygiene-check',native_target:'contact-validation',research:{official_docs:'https://docs.disify.com/api/email.html',verified_at:'2026-10-14',proprietary_implementation_copied:false,no_key_core:true,mailbox_ownership_not_verified:true,consent_not_inferred:true}}),
   Object.freeze({...shared,id:'public-api:bible-api:scripture-passage-lookup',connector_id:'public-api:bible-api',connector_name:'Bible API',capability:'scripture-passage-lookup',native_target:'bible-study-engine',research:{official_docs:'https://bible-api.com/',verified_at:'2026-10-13',proprietary_implementation_copied:false,bulk_mirroring:false,default_translation:'kjv'}})
 ]);

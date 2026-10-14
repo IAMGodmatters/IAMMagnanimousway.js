@@ -8,6 +8,11 @@ const entrypoint=fs.readFileSync('worker/src/entrypoint.js','utf8');
 const registry=fs.readFileSync('worker/src/magnanimous-public-api-capability-registry.js','utf8');
 const toolSeed=fs.readFileSync('worker/src/public-api-tool-seed.js','utf8');
 const deploy=fs.readFileSync('.github/workflows/deploy.yml','utf8');
+const intelligenceDesk=fs.readFileSync('frontend/app/intelligence-desk/page.tsx','utf8');
+const b2bPage=fs.readFileSync('frontend/app/b2b/page.tsx','utf8');
+const contactCenterPage=fs.readFileSync('frontend/app/contact-center/page.tsx','utf8');
+const telecomPage=fs.readFileSync('frontend/app/telecom/page.tsx','utf8');
+const crmPage=fs.readFileSync('frontend/app/crm/page.tsx','utf8');
 const includes=(text,value,message)=>assert.ok(text.includes(value),message);
 const excludes=(text,value,message)=>assert.ok(!text.includes(value),message);
 
@@ -19,10 +24,10 @@ assert.equal(APIVAULT_DISCOVERY_RESEARCH.observed_categories,51);
 includes(registry,'https://github.com/exa-studio/ApiVault','ApiVault discovery source must remain attributable.');
 includes(registry,'no API Vault source code or catalog data is copied','Commercial clean-room boundary must be explicit.');
 
-for(const id of ['frankfurter','crossref','world-bank','usgs-earthquake','mdn-observatory','nvd','usajobs','openverse','free-dictionary','datamuse','nhtsa-vpic','federal-register','nasa-eonet','treasury-fiscal-data','nws','sec-edgar','wikidata','art-institute-chicago','met-museum','disify','bible-api']){
+for(const id of ['frankfurter','crossref','world-bank','usgs-earthquake','mdn-observatory','nvd','usajobs','openverse','free-dictionary','datamuse','nhtsa-vpic','federal-register','nasa-eonet','treasury-fiscal-data','nws','sec-edgar','wikidata','art-institute-chicago','met-museum','gleif','disify','bible-api']){
   assert.ok(MAGNANIMOUS_PUBLIC_API_PROVIDERS.some(row=>row.id===id),`${id} active provider research is missing.`);
 }
-for(const id of ['open-meteo','nager-date','rest-countries','urlhaus','arbeitnow','open-library','us-census','domainsdb','companies-house','patentsview','metered-phone-validation-vendors']){
+for(const id of ['open-meteo','nager-date','rest-countries','urlhaus','arbeitnow','open-library','us-census','domainsdb','companies-house','patentsview','tenders-guru','metered-phone-validation-vendors']){
   assert.ok(MAGNANIMOUS_PUBLIC_API_REVIEW_QUEUE.some(row=>row.id===id),`${id} terms/review decision is missing.`);
 }
 
@@ -68,6 +73,10 @@ includes(runtime,"props:'labels|descriptions|aliases|sitelinks'",'Wikidata entit
 includes(runtime,'https://api.artic.edu/api/v1/artworks/search?','Art Institute search must use the official API host.');
 includes(runtime,'.filter(x=>x.is_public_domain)','Art Institute image discovery must remain public-domain filtered.');
 includes(runtime,'https://collectionapi.metmuseum.org/public/collection/v1.1/search?','The Met search must use the current paginated v1.1 endpoint.');
+includes(runtime,'https://api.gleif.org/api/v1/lei-records?','GLEIF search must use the fixed official API host.');
+includes(runtime,"if(path==='/api/public-data/gleif')",'GLEIF B2B identity research must be mounted under authenticated public-data.');
+includes(runtime,"verification_scope:'LEI reference-data research only; not credit, sanctions, consent, beneficial-ownership, or transaction authority.'",'GLEIF results must preserve the entity-research boundary.');
+includes(registry,"id:'tenders-guru'",'Unreliable ApiVault procurement feed must remain explicitly deferred.');
 includes(runtime,"https://disify.com/api/email",'DISIFY email hygiene must use the fixed official API endpoint.');
 includes(runtime,"if(path==='/api/public-data/email-hygiene')",'Email hygiene must be mounted under authenticated public-data.');
 includes(runtime,"if(path==='/api/public-data/phone-validation')",'Native phone validation must be mounted under authenticated public-data.');
@@ -99,13 +108,19 @@ includes(deploy,'Authenticated Magnanimous public-data health and capability fab
 includes(deploy,'Unauthenticated public-data route $public_data_path expected HTTP 401','Worker-only production smoke must prove public-data routes stay authentication-gated.');
 includes(deploy,'Public-data route $public_data_path incorrectly fell through to the Railway standalone plane.','Worker-only smoke must fail if public-data routing leaves the Cloudflare Worker plane.');
 
+includes(intelligenceDesk,'/api/public-data/gleif?mode=search','Intelligence Desk must expose GLEIF legal-entity research.');
+includes(intelligenceDesk,'/api/public-data/sec-edgar?cik=','Intelligence Desk must expose SEC EDGAR research.');
+includes(intelligenceDesk,'/api/public-data/federal-register?q=','Intelligence Desk must expose regulatory research.');
+includes(intelligenceDesk,'/api/public-data/capabilities','Intelligence Desk must expose Magnanimous source-control inventory.');
+for(const [name,page] of [['B2B',b2bPage],['Contact Center',contactCenterPage],['Telecom',telecomPage],['CRM',crmPage]])includes(page,'/intelligence-desk',`${name} must link to the verified Intelligence Desk.`);
+
 includes(entrypoint,"import { handleMagnanimousPublicData } from './magnanimous-public-data-runtime.js';",'Public-data runtime must be mounted in the Worker.');
 includes(entrypoint,"if(url.pathname.startsWith('/api/public-data'))return handleMagnanimousPublicData(request,env);",'Worker must fast-route public-data requests directly through the bounded runtime.');
 assert.ok(entrypoint.indexOf("if(url.pathname.startsWith('/api/public-data'))")<entrypoint.indexOf('await ensureRuntimeBootstrap(env);'),'Public-data routing must occur before legacy schema/tool-seeding bootstrap.');
 
 
 const manifest=getPublicApiCapabilityManifest();
-assert.ok(manifest.length>=28,'Expected the expanded public API capability set to include at least twenty-eight contracts.');
+assert.ok(manifest.length>=30,'Expected the expanded public API capability set to include at least thirty contracts.');
 for(const row of manifest){
   assert.equal(row.category,'public-api');
   assert.equal(row.source_kind,'official-public-api');
@@ -117,7 +132,7 @@ for(const row of manifest){
 }
 
 const summary=getPublicApiAbsorptionSummary();
-assert.equal(summary.active_read_only_providers,21);
+assert.equal(summary.active_read_only_providers,22);
 assert.equal(summary.capability_contracts,manifest.length);
 assert.equal(summary.policy.no_proprietary_copying,true);
 assert.equal(summary.policy.no_arbitrary_proxy,true);

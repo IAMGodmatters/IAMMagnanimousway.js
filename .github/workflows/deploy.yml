@@ -1349,8 +1349,8 @@ jobs:
           d=json.load(open('/tmp/public-data-capabilities-auth.json'))
           r=d.get('resilience') or {}
           assert d.get('identity') == 'Magnanimous AI', d
-          assert int(d.get('active_read_only_providers') or 0) >= 21, d
-          assert int(d.get('capability_contracts') or 0) >= 28, d
+          assert int(d.get('active_read_only_providers') or 0) >= 22, d
+          assert int(d.get('capability_contracts') or 0) >= 30, d
           assert d.get('runtime') == 'read-only-fixed-provider-adapters', d
           assert d.get('arbitrary_url_proxy') is False, d
           assert r.get('bounded_cache') is True, d
