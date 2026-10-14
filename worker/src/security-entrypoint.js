@@ -110,6 +110,20 @@ async function standaloneProviderApplicationMissing(response){
   return Number(data?.code)===404&&String(data?.message||'').trim().toLowerCase()==='application not found';
 }
 
+async function standaloneProviderUnavailable(response){
+  if(!response)return false;
+  if(await standaloneProviderApplicationMissing(response))return true;
+  if(response.status<500)return false;
+  const contentType=String(response.headers.get('content-type')||'').toLowerCase();
+  // API application failures are expected to be JSON. Provider/intermediary HTML or
+  // plain-text 5xx pages must never leak into browser auth flows; use the Worker-native
+  // rollback path instead so sign-in remains available during a standalone restart.
+  if(contentType.includes('application/json'))return false;
+  if(contentType.includes('text/html')||contentType.includes('text/plain'))return true;
+  const text=await response.clone().text().catch(()=>'');
+  return text.trimStart().startsWith('<');
+}
+
 async function proxyApiToStandalone(request,env){
   const url=new URL(request.url);
   // Keep customer chat on the standalone data plane so opaque sessions, tenant memory,
@@ -133,8 +147,8 @@ async function proxyApiToStandalone(request,env){
     const init={method:request.method,headers,redirect:'manual'};
     if(!['GET','HEAD'].includes(request.method))init.body=request.body;
     const response=await fetch(target.toString(),init);
-    if(await standaloneProviderApplicationMissing(response)){
-      console.warn('Magnanimous standalone API application is unavailable at Railway; retaining Cloudflare rollback path.',url.pathname);
+    if(await standaloneProviderUnavailable(response)){
+      console.warn('Magnanimous standalone API provider is unavailable; retaining Cloudflare rollback path.',url.pathname,response.status);
       return null;
     }
     const responseHeaders=new Headers(response.headers);
