@@ -35,6 +35,11 @@ function duffelTestResponse(result){
  if(result.error)return json(result,Math.max(400,Math.min(Number(result.status)||502,599)));
  return json(result);
 }
+function travelSupplierReadiness(runtimeEnv){
+ const rows=getTravelSupplierReadiness(runtimeEnv);
+ if(!isDuffelTestToken(clean(runtimeEnv?.DUFFEL_ACCESS_TOKEN)))return rows;
+ return rows.map(row=>row.id==='duffel'?{...row,configured:false,test_mode_configured:true,live_mode:false}:row);
+}
 
 async function supplierOnboardingRows(env,tenant,{includeInitial=false}={}){
  const {results=[]}=await env.DB.prepare('SELECT supplier_id,status,priority,outreach_channel,contact_destination,last_outreach_at,next_action,external_reference,notes,updated_at FROM travel_supplier_onboarding WHERE tenant_id=?').bind(tenant).all().catch(()=>({results:[]}));
@@ -156,7 +161,7 @@ function duffelItinerary(offer){
 }
 
 async function searchDuffel(body,runtimeEnv){
- const token=clean(runtimeEnv?.DUFFEL_ACCESS_TOKEN);if(!token)return{supplier:'duffel',configured:false,offers:[]};
+ const token=clean(runtimeEnv?.DUFFEL_ACCESS_TOKEN);if(!token||isDuffelTestToken(token))return{supplier:'duffel',configured:false,offers:[]};
  const data={
   slices:(body.slices||[]).map(s=>({origin:clean(s.origin).toUpperCase(),destination:clean(s.destination).toUpperCase(),departure_date:clean(s.departure_date)})),
   passengers:(body.passengers||[]).map(p=>p.age!=null?{age:num(p.age)}:{type:clean(p.type||'adult')}),
@@ -202,7 +207,7 @@ async function storeEvidence(env,{tenant,resellerId='',requestFingerprint,group}
 async function flightSearch(body,env,{tenant,reseller=null,publicSource=false}){
  const error=validateFlightSearch(body);if(error)return json({detail:error},400);
  const runtimeEnv=await getProviderRuntimeEnv(env),policy=await policyFor(env,tenant);
- const readiness=getTravelSupplierReadiness(runtimeEnv);
+ const readiness=travelSupplierReadiness(runtimeEnv);
  const active=readiness.filter(x=>x.configured&&x.products.includes('air'));
  const results=[];
  if(active.some(x=>x.id==='duffel')){
@@ -213,7 +218,7 @@ async function flightSearch(body,env,{tenant,reseller=null,publicSource=false}){
   ok:false,code:'NO_LIVE_FLIGHT_OFFERS',
   detail:active.length?'Configured sources returned no usable live offers.':'No executable live flight supplier is configured yet.',
   configured_air_sources:active.map(x=>({id:x.id,name:x.name,adapter:x.adapter})),
-  pending_air_sources:readiness.filter(x=>x.products.includes('air')&&!x.configured).map(x=>({id:x.id,name:x.name,adapter:x.adapter})),
+  pending_air_sources:readiness.filter(x=>x.products.includes('air')&&!x.configured).map(x=>({id:x.id,name:x.name,adapter:x.adapter,test_mode_configured:Boolean(x.test_mode_configured)})),
   rule:'Magnanimous does not fabricate prices or claim cheapest without live supplier evidence.'
  },409);
  const groups=rankTravelDeals(results,policy,resellerMarkup);
@@ -258,7 +263,7 @@ export async function handleMagnanimousTravelAgency(request,env){
   const reseller=await authenticateSourceKey(request,env);
   if(!reseller)return json({detail:'Valid Magnanimous Travel Source API key required.'},401);
   if(request.method==='GET'&&path==='/api/travel-source/v1/catalog'){
-   const runtimeEnv=await getProviderRuntimeEnv(env),readiness=getTravelSupplierReadiness(runtimeEnv);
+   const runtimeEnv=await getProviderRuntimeEnv(env),readiness=travelSupplierReadiness(runtimeEnv);
    return json({identity:'Magnanimous AI Travel Source',spec:sourceApiSpec(),products:['air','hotel','car','activities','transfers','rail','cruise'],live_sources:readiness.filter(x=>x.configured).map(x=>({id:x.id,name:x.name,products:x.products,adapter:x.adapter})),reseller:{id:reseller.reseller_id,name:reseller.reseller_name}});
   }
   if(request.method==='POST'&&path==='/api/travel-source/v1/search/flights'){
@@ -288,7 +293,7 @@ export async function handleMagnanimousTravelAgency(request,env){
  }
  if(request.method==='GET'&&(path==='/api/travel-agency'||path==='/api/travel-agency/catalog')){
   const runtimeEnv=await getProviderRuntimeEnv(env),policy=await policyFor(env,tenant);
-  return json({identity:'Magnanimous AI Travel Agency',summary:getTravelAgencySummary(),policy:MAGNANIMOUS_TRAVEL_AGENCY_POLICY,pricing_policy:policy,suppliers:getTravelSupplierReadiness(runtimeEnv),skills:TRAVEL_AGENCY_SKILLS,source_api:sourceApiSpec()});
+  return json({identity:'Magnanimous AI Travel Agency',summary:getTravelAgencySummary(),policy:MAGNANIMOUS_TRAVEL_AGENCY_POLICY,pricing_policy:policy,suppliers:travelSupplierReadiness(runtimeEnv),skills:TRAVEL_AGENCY_SKILLS,source_api:sourceApiSpec()});
  }
  if(request.method==='GET'&&path==='/api/travel-agency/sandbox/liteapi/status'){
   if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
