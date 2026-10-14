@@ -9,7 +9,7 @@ const validDate=value=>{const raw=String(value||'');if(!/^\d{4}-\d{2}-\d{2}$/.te
 const validEmail=value=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||'').trim())&&String(value||'').length<=254;
 const safeText=(value,max=120)=>{const text=String(value||'').trim();return text&&text.length<=max?text:''};
 export const isLiteApiSandboxKey=value=>{const key=String(value||'').trim();return key.startsWith('sand_')||key.startsWith('sandbox_')};
-const sandboxFlags=()=>({supplier:'liteapi',sandbox:true,production_enabled:false,payment_enabled:false,real_charge_allowed:false});
+const sandboxFlags=()=>({supplier:'liteapi',sandbox:true,production_enabled:false,booking_enabled:false,payment_enabled:false,real_charge_allowed:false});
 
 export function validateLiteApiSandboxSearch(input){
  if(!input||!validDate(input.checkin)||!validDate(input.checkout)||input.checkout<=input.checkin)throw makeError('Valid checkin and later checkout dates are required.','INPUT');
@@ -81,7 +81,7 @@ export async function searchLiteApiSandboxHotels(input,{sandboxKey,fetchImpl=fet
 
 export async function prebookLiteApiSandboxHotel(input,{sandboxKey,fetchImpl=fetch}={}){
  validateLiteApiSandboxPrebook(input);
- const payload={offerId:String(input.offerId).trim(),usePaymentSdk:false,includeCreditBalance:false};
+ const payload={offerId:String(input.offerId).trim(),usePaymentSdk:false};
  const response=await sandboxPost(PREBOOK_API,payload,{sandboxKey,fetchImpl,timeoutMs:30000});
  if(response.error)return response;
  return {...sandboxFlags(),configured:true,booking_simulation_enabled:true,prebook:response.result};
