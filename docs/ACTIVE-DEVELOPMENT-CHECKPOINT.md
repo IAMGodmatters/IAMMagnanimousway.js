@@ -7,13 +7,14 @@ Status: **Deep telecom/carrier/contact-center software architecture is merged; p
 
 ## Current production checkpoint — 2026-10-14
 
-- Authoritative GitHub `main`: `aee145961b2394a68034684de0eaa98b19b2c66b`.
-- PR #618 merged the Worker-native deployment-observability correction without weakening session, parity, security, billing, D1, Stripe, tenant-isolation, or production-smoke gates.
-- PR #619 fixed the remaining White Label QA assertion that still expected the retired `Transient standalone smoke-control response HTTP` wording.
-- Manual full production deployment **Build and Deploy I AM #1547** completed successfully on exact main. Frontend install/typecheck/build, product/specialist QA, Worker bundle/deploy, durable identity checks, D1 migration path, Stripe bootstrap checks, full capability-brain materialization, Worker-native session-plane revision parity, and the live full-platform production smoke all passed. The Worker-only smoke path was correctly skipped because the full runtime path was exercised.
-- A current-sha Actions audit found no failed or in-progress workflow runs after the completed production verification.
-- Deploy-specific legacy wording for the old standalone-session-plane progress label is removed from `.github` and `qa`; product names that intentionally contain “Standalone Magnanimous AI” remain unchanged.
-- The repository/store/billing/telecom safety boundaries remain unchanged: no real customer payment, supplier order, paid carrier activation, regulatory authority, or gated external spend was created by this checkpoint.
+- Authoritative verified runtime `main`: `b095f131f22318e311533f069f8b1599ea24fcc9`.
+- PR #621 expanded the clean-room ApiVault discovery implementation from 15 to **20 independently verified read-only providers** and from 20 to **27 capability contracts**, adding U.S. National Weather Service alerts, SEC EDGAR submissions/XBRL facts, Wikidata entity search/metadata, Art Institute of Chicago public-domain artwork discovery, and The Metropolitan Museum of Art open-access collection search. ApiVault remains discovery-only; no proprietary/catalog implementation is copied.
+- PR #622 moved authenticated `/api/public-data*` routing ahead of unrelated legacy schema/Tool Foundry bootstrap after live cold-isolate probes exposed avoidable timeouts. Authentication remains fail-closed inside the public-data runtime.
+- **Build and Deploy I AM #1550** completed successfully on exact runtime main. Frontend install/typecheck/build, product/specialist QA, Worker bundle/deploy, durable identity checks, D1 migration path, Stripe bootstrap checks, full capability-brain materialization, and Worker-only production smoke passed.
+- Owner-computer post-deploy probes verified the fast auth boundary: `/api/public-data/health`, `/api/public-data/wikidata?...`, and `/api/public-data/us-weather-alerts?...` all returned the expected unauthenticated **401** in about 1.6–1.9 seconds rather than timing out.
+- Existing public-data protections remain: signed-in access, GET-only routes, fixed provider hosts, no arbitrary proxying, 9-second upstream timeout, 1.5 MB response ceiling, bounded cache/coalescing, per-user burst protection, source attribution, licensing/public-domain filters, and high-stakes safety boundaries.
+- The repository/store/billing/telecom safety boundaries remain unchanged: no real customer payment, supplier order, paid carrier activation, regulatory authority, or gated external spend was created by this work.
+
 ## Original task
 
 Complete a through-and-through deep study of the telecom, carrier, PBX/SIP, browser calling, contact-center, call-center UX, routing, resilience, pricing and regulatory structure. Compare relevant carrier, CPaaS, SIP, PBX, media and CCaaS patterns, then apply the useful findings to Magnanimous without replacing working functionality or making a third party the product identity.
