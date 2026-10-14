@@ -74,6 +74,7 @@ type NaturalSpeechOptions={
   configure?:(utterance:SpeechSynthesisUtterance)=>void;
   onStart?:()=>void;
   onEnd?:()=>void;
+  onBoundary?:(event:SpeechSynthesisEvent)=>void;
   onError?:(event:any)=>void;
   maxChunkChars?:number;
   interChunkDelayMs?:number;
@@ -87,6 +88,24 @@ function humanPauseForChunk(chunk:string,base:number,appleMobile:boolean){
   if(/[:;]\s*$/.test(chunk))return Math.max(scaled,appleMobile?125:90);
   if(/,\s*$/.test(chunk))return Math.max(scaled,appleMobile?110:72);
   return scaled;
+}
+
+function applyNaturalProsody(utterance:SpeechSynthesisUtterance,chunk:string,appleMobile:boolean){
+  const baseRate=Number(utterance.rate)||1;
+  const basePitch=Number(utterance.pitch)||1;
+  let rateScale=1,pitchShift=0;
+  if(/\?\s*$/.test(chunk)){rateScale=.985;pitchShift=.025}
+  else if(/!\s*$/.test(chunk)){rateScale=1.015;pitchShift=.015}
+  else if(/[:;]\s*$/.test(chunk)){rateScale=.98;pitchShift=-.005}
+  else if(/[.…]\s*$/.test(chunk)){rateScale=.992;pitchShift=-.01}
+  if(chunk.length>160)rateScale*=.985;
+  if(appleMobile){
+    utterance.rate=Math.max(.89,Math.min(1.01,baseRate*rateScale));
+    utterance.pitch=Math.max(.92,Math.min(1.07,basePitch+pitchShift));
+  }else{
+    utterance.rate=Math.max(.84,Math.min(1.12,baseRate*rateScale));
+    utterance.pitch=Math.max(.88,Math.min(1.14,basePitch+pitchShift));
+  }
 }
 
 export function stopNaturalSpeech(){
@@ -117,13 +136,14 @@ export function speakTextNaturally(input:string,options:NaturalSpeechOptions={})
     const chunk=chunks[index++];
     const utterance=new SpeechSynthesisUtterance(chunk);
     options.configure?.(utterance);
-    if(appleMobile){
-      utterance.rate=Math.max(.89,Math.min(1.01,Number(utterance.rate)||.94));
-      utterance.pitch=Math.max(.92,Math.min(1.07,Number(utterance.pitch)||1));
-    }
+    applyNaturalProsody(utterance,chunk,appleMobile);
     utterance.onstart=()=>{
       if(generation!==speechGeneration)return;
       if(!started){started=true;options.onStart?.()}
+    };
+    utterance.onboundary=(event:SpeechSynthesisEvent)=>{
+      if(generation!==speechGeneration)return;
+      options.onBoundary?.(event);
     };
     utterance.onend=()=>{
       if(generation!==speechGeneration)return;
