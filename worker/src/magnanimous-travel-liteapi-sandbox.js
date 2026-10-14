@@ -36,7 +36,11 @@ export function validateLiteApiSandboxBook(input){
  if(!guests.length||guests.length>9||guests.some(g=>!Number.isInteger(g?.occupancyNumber)||g.occupancyNumber<1||g.occupancyNumber>4||!safeText(g.firstName,80)||!safeText(g.lastName,80)||!validEmail(g.email)))throw makeError('Each sandbox guest requires occupancyNumber, first name, last name and email.','INPUT');
  const ref=input.clientReference==null?'':safeText(input.clientReference,100);
  if(input.clientReference!=null&&!ref)throw makeError('clientReference must be 100 characters or fewer.','INPUT');
- if(input.payment&&String(input.payment.method||'ACC_CREDIT_CARD')!=='ACC_CREDIT_CARD')throw makeError('Only LiteAPI ACC_CREDIT_CARD sandbox simulation is permitted.','INPUT');
+ if(input.payment!=null){
+  if(!input.payment||typeof input.payment!=='object'||Array.isArray(input.payment))throw makeError('Only LiteAPI ACC_CREDIT_CARD sandbox simulation is permitted.','INPUT');
+  const keys=Object.keys(input.payment);
+  if(keys.length!==1||keys[0]!=='method'||String(input.payment.method)!=='ACC_CREDIT_CARD')throw makeError('Sandbox payment input may only specify method ACC_CREDIT_CARD; card, wallet, credit, billing, and transaction fields are forbidden.','INPUT');
+ }
  return true;
 }
 
@@ -52,7 +56,7 @@ async function boundedJson(response){
 
 function mappedFailure(response,message='Sandbox supplier request failed.'){
  const upstream=Number(response?.status)||502;
- const status=upstream===408?504:[400,409,429].includes(upstream)?upstream:502;
+ const status=upstream===408?504:[400,409,410,429].includes(upstream)?upstream:502;
  return {...sandboxFlags(),configured:true,error:message,status,upstream_status:upstream};
 }
 
@@ -84,7 +88,9 @@ export async function prebookLiteApiSandboxHotel(input,{sandboxKey,fetchImpl=fet
  const payload={offerId:String(input.offerId).trim(),usePaymentSdk:false};
  const response=await sandboxPost(PREBOOK_API,payload,{sandboxKey,fetchImpl,timeoutMs:30000});
  if(response.error)return response;
- return {...sandboxFlags(),configured:true,booking_simulation_enabled:true,prebook:response.result};
+ const prebookId=safeText(response.result?.data?.prebookId||response.result?.prebookId,200);
+ if(!prebookId)return {...sandboxFlags(),configured:true,error:'Sandbox supplier did not confirm a prebook ID.',status:502};
+ return {...sandboxFlags(),configured:true,booking_simulation_enabled:true,prebook:response.result,prebookId};
 }
 
 export async function bookLiteApiSandboxHotel(input,{sandboxKey,fetchImpl=fetch}={}){
@@ -96,5 +102,7 @@ export async function bookLiteApiSandboxHotel(input,{sandboxKey,fetchImpl=fetch}
  const payload={prebookId,clientReference,holder,guests,payment:{method:'ACC_CREDIT_CARD'},customTags:{MAGNANIMOUS_MODE:'SANDBOX'}};
  const response=await sandboxPost(BOOK_API,payload,{sandboxKey,fetchImpl,timeoutMs:30000});
  if(response.error)return response;
- return {...sandboxFlags(),configured:true,booking_simulation_enabled:true,simulated_booking:true,booking:response.result,clientReference};
+ const bookingId=safeText(response.result?.data?.bookingId||response.result?.bookingId,200);
+ if(!bookingId)return {...sandboxFlags(),configured:true,error:'Sandbox supplier did not confirm a booking ID.',status:502};
+ return {...sandboxFlags(),configured:true,booking_simulation_enabled:true,simulated_booking:true,booking:response.result,bookingId,clientReference};
 }
