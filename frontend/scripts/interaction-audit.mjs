@@ -95,6 +95,12 @@ if(fs.existsSync(magnanimousPagePath)){
 if(!platformRuntime.includes("currentPath==='/magnanimous'||currentPath.indexOf('/magnanimous/')===0"))failures.push('app/platform-runtime-script.tsx: standalone route detection is missing');
 if(!platformRuntime.includes("if(standalone)document.documentElement.setAttribute('data-iam-standalone','true')"))failures.push('app/platform-runtime-script.tsx: standalone document mode is missing');
 if(!layout.includes('html[data-iam-standalone="true"] .iam-shop-link')||!layout.includes('html[data-iam-standalone="true"] .iam-global-tools'))failures.push('app/layout.tsx: standalone interface isolation rules are missing');
+const designSystemPath=path.join(appDir,'platform-design-system.tsx');
+if(!fs.existsSync(designSystemPath))failures.push('app/platform-design-system.tsx: shared design system is missing');
+if(!layout.includes("import PlatformDesignSystem from './platform-design-system'")||!layout.includes('<PlatformDesignSystem/>')||!layout.includes('body className="iam-design-v2"'))failures.push('app/layout.tsx: shared design system is not mounted on the root body');
+const chromePath=path.join(appDir,'platform-chrome.tsx');
+const chrome=fs.existsSync(chromePath)?fs.readFileSync(chromePath,'utf8'):'';
+for(const route of ['/b2b','/contact-center','/telecom','/intelligence-desk'])if(!chrome.includes(`,'${route}'`))failures.push(`app/platform-chrome.tsx: priority command route missing: ${route}`);
 if(!platformRuntime.includes('if(!standalone)loadAds()'))failures.push('app/platform-runtime-script.tsx: standalone advertising isolation is missing');
 console.log(`Interaction audit: ${sourceFiles.length} source files, ${routes.size} routes, ${literalLinks} literal links, ${buttons} buttons.`);
 if(failures.length){console.error('\nInteraction integrity failures:');for(const failure of failures)console.error(`- ${failure}`);process.exit(1)}
