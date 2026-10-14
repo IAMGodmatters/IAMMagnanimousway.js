@@ -119,9 +119,11 @@ const jsonResponse=(payload,status=200)=>{
 let prebookUrl='',prebookPayload=null;
 const prebookResult=await prebookLiteApiSandboxHotel(litePrebookInput,{sandboxKey:'sand_example',fetchImpl:async(url,options)=>{prebookUrl=url;prebookPayload=JSON.parse(options.body);return jsonResponse({data:{prebookId:'prebook_sandbox_123'}});}});
 assert.equal(prebookUrl,'https://book.liteapi.travel/v3.0/rates/prebook');
-assert.deepEqual(prebookPayload,{offerId:'offer_sandbox_123',usePaymentSdk:false,includeCreditBalance:false});
+assert.deepEqual(prebookPayload,{offerId:'offer_sandbox_123',usePaymentSdk:false});
+assert.ok(!Object.hasOwn(prebookPayload,'includeCreditBalance'));
 assert.equal(prebookResult.booking_simulation_enabled,true);
 assert.equal(prebookResult.production_enabled,false);
+assert.equal(prebookResult.booking_enabled,false);
 assert.equal(prebookResult.payment_enabled,false);
 assert.equal(prebookResult.real_charge_allowed,false);
 
@@ -133,6 +135,7 @@ assert.equal(bookPayload.clientReference,'MAG-SBX-LOCK-001');
 assert.equal(bookPayload.customTags.MAGNANIMOUS_MODE,'SANDBOX');
 assert.equal(bookResult.simulated_booking,true);
 assert.equal(bookResult.production_enabled,false);
+assert.equal(bookResult.booking_enabled,false);
 assert.equal(bookResult.payment_enabled,false);
 assert.equal(bookResult.real_charge_allowed,false);
 assert.ok(!JSON.stringify(bookPayload).match(/cardNumber|cvv|expiry|wallet/i),'Sandbox adapter must not transmit card or wallet fields.');
@@ -148,7 +151,6 @@ assert.ok(liteAdapter.includes('getReader'));
 assert.ok(liteAdapter.includes('reader.cancel'));
 assert.ok(liteAdapter.includes("payment:{method:'ACC_CREDIT_CARD'}"));
 assert.ok(liteAdapter.includes('usePaymentSdk:false'));
-assert.ok(liteAdapter.includes('includeCreditBalance:false'));
 assert.ok(liteAdapter.includes('real_charge_allowed:false'));
 assert.ok(!liteAdapter.includes('PRODUCTION_API_KEY'));
 const platformCredentials=fs.readFileSync('worker/src/platform-credentials.js','utf8');
