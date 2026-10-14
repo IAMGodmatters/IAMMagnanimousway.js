@@ -92,7 +92,9 @@ includes(deploy,'Unauthenticated public-data route $public_data_path expected HT
 includes(deploy,'Public-data route $public_data_path incorrectly fell through to the Railway standalone plane.','Worker-only smoke must fail if public-data routing leaves the Cloudflare Worker plane.');
 
 includes(entrypoint,"import { handleMagnanimousPublicData } from './magnanimous-public-data-runtime.js';",'Public-data runtime must be mounted in the Worker.');
-includes(entrypoint,'const publicData=await handleMagnanimousPublicData(request,env);','Worker must route requests through public-data runtime.');
+includes(entrypoint,"if(url.pathname.startsWith('/api/public-data'))return handleMagnanimousPublicData(request,env);",'Worker must fast-route public-data requests directly through the bounded runtime.');
+assert.ok(entrypoint.indexOf("if(url.pathname.startsWith('/api/public-data'))")<entrypoint.indexOf('await ensureRuntimeBootstrap(env);'),'Public-data routing must occur before legacy schema/tool-seeding bootstrap.');
+
 
 const manifest=getPublicApiCapabilityManifest();
 assert.ok(manifest.length>=27,'Expected the expanded public API capability set to include at least twenty-seven contracts.');
