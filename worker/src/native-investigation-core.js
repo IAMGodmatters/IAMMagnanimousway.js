@@ -28,7 +28,15 @@ export async function inspectNativeEvidence({content,kind='text',source='user-pa
     ['storage-reference',/\b(?:localStorage|sessionStorage|indexedDB)\b/],
     ['authentication-reference',/\b(?:authorization|bearer|session|oauth|token)\b/i],
     ['endpoint-reference',/\/(?:api|v\d+)\/[A-Za-z0-9_./?=&-]+/],
-    ['source-map-reference',/sourceMappingURL\s*=/]
+    ['source-map-reference',/sourceMappingURL\s*=/],
+    ['dynamic-execution-reference',/\b(?:eval\s*\(|new\s+Function\s*\()/],
+    ['dom-injection-reference',/\b(?:innerHTML|outerHTML|insertAdjacentHTML|document\.write)\b/],
+    ['cookie-reference',/\bdocument\.cookie\b/],
+    ['cross-window-message-reference',/\bpostMessage\s*\(/],
+    ['worker-reference',/\b(?:new\s+Worker\s*\(|new\s+SharedWorker\s*\(|serviceWorker\b)/],
+    ['process-environment-reference',/\bprocess\.env\b/],
+    ['filesystem-reference',/\b(?:readFile|readFileSync|writeFile|writeFileSync|readdir|readdirSync|createReadStream|createWriteStream)\s*\(/],
+    ['command-execution-reference',/\b(?:exec|execSync|spawn|spawnSync|fork)\s*\(/]
   ];
   lines.forEach((line,index)=>{
     for(const [type,pattern] of patterns){
@@ -42,15 +50,16 @@ export async function inspectNativeEvidence({content,kind='text',source='user-pa
       jsonShape={valid:true,topLevel:Array.isArray(parsed)?'array':typeof parsed,keys:parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?Object.keys(parsed).slice(0,50):[]};
     }catch(error){jsonShape={valid:false,error:'Invalid JSON'};}
   }
+  const limited=indicators.slice(0,300);
   return {
-    schemaVersion:2,
+    schemaVersion:3,
     source:normalizeSource(source),
     kind,
     bytes:encoded.byteLength,
     sha256:toHex(digest),
     lineCount:lines.length,
-    indicators:indicators.slice(0,300),
-    summary:{indicatorCount:Math.min(indicators.length,300),types:[...new Set(indicators.map(item=>item.type))]},
+    indicators:limited,
+    summary:{indicatorCount:limited.length,types:[...new Set(limited.map(item=>item.type))]},
     jsonShape,
     executionPerformed:false,
     networkAccessPerformed:false,
@@ -64,6 +73,7 @@ export function nativeInvestigationManifest(){
     service:'magnanimous-native-investigation',
     status:'ready',
     mode:'free-first-static',
+    schemaVersion:3,
     limits:{maxBytes:MAX_BYTES,kinds:[...ALLOWED_KINDS]},
     guarantees:{executesTarget:false,fetchesTarget:false,uploadsToThirdParty:false},
     providers:[
