@@ -1,0 +1,63 @@
+name: Native Investigation Check
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/app/investigate/**'
+      - 'frontend/app/tool-foundry/**'
+      - 'worker/src/native-investigation-*'
+      - 'worker/wrangler.jsonc'
+      - 'qa/scripts/native-investigation-lock.mjs'
+      - '.github/workflows/native-investigation-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/app/investigate/**'
+      - 'frontend/app/tool-foundry/**'
+      - 'worker/src/native-investigation-*'
+      - 'worker/wrangler.jsonc'
+      - 'qa/scripts/native-investigation-lock.mjs'
+      - '.github/workflows/native-investigation-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            worker/package-lock.json
+
+      - name: Lock investigation safety and architecture
+        run: node qa/scripts/native-investigation-lock.mjs
+
+      - name: Install frontend
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm ci --no-audit --no-fund
+
+      - name: Bundle Worker
+        working-directory: worker
+        run: npx wrangler deploy --dry-run --outdir /tmp/native-investigation-worker
