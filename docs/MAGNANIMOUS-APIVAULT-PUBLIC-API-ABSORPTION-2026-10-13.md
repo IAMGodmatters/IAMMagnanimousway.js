@@ -163,3 +163,44 @@ At Worker bootstrap, Magnanimous seeds one low-risk Tool Foundry teaching tool p
 - capability realization against existing Magnanimous execution surfaces.
 
 The native-first CI workflow runs this verification and syntax-checks the public API registry/runtime on every branch and pull request.
+## Wave 2 expansion — 2026-10-14
+
+ApiVault currently exposes 51 discovery categories. Magnanimous does not import that catalog wholesale; it continues the clean-room process above and activates only independently verified provider contracts.
+
+This expansion raises the production-safe public-data fabric to **20 active read-only providers and 27 Magnanimous capability contracts**.
+
+### U.S. National Weather Service API
+
+- Runtime route: `GET /api/public-data/us-weather-alerts?area=CA&limit=20`
+- Purpose: official U.S. active weather-alert evidence.
+- Boundary: U.S.-focused and informational; Magnanimous does not replace emergency services or local authorities.
+- Resilience: fixed host, signed-in access, 60-second cache and a tighter per-user burst limit.
+
+### SEC EDGAR Data APIs
+
+- Runtime route: `GET /api/public-data/sec-edgar?cik=<CIK>&mode=submissions&limit=20`
+- XBRL concept route: `GET /api/public-data/sec-edgar?cik=<CIK>&mode=concept&taxonomy=us-gaap&tag=Assets&limit=20`
+- Purpose: public-company filing history and bounded company-concept XBRL facts.
+- Boundary: no investment/legal-advice claims; material facts should be verified against the source filing.
+- Fair-access behavior: fixed `data.sec.gov` host, identifiable Magnanimous User-Agent, bounded cache and per-user burst controls.
+
+### Wikidata
+
+- Runtime route: `GET /api/public-data/wikidata?mode=search&q=<query>&language=en&limit=8`
+- Entity route: `GET /api/public-data/wikidata?mode=entity&id=Q42&language=en`
+- Purpose: CC0 structured entity discovery and descriptive metadata.
+- Boundary: entity lookup is restricted to labels, descriptions, aliases and sitelinks; the adapter does not become an arbitrary SPARQL proxy or bulk claims mirror.
+
+### Art Institute of Chicago API
+
+- Runtime route: `GET /api/public-data/art-institute?q=<query>&limit=6`
+- Purpose: museum artwork discovery for education, ministry and creative workflows.
+- Boundary: results are filtered to records explicitly marked public domain before an image URL is exposed.
+
+### The Metropolitan Museum of Art Collection API
+
+- Runtime route: `GET /api/public-data/met-art?q=<query>&limit=4`
+- Purpose: open-access collection search and artwork metadata.
+- Boundary: current paginated search API is used, metadata remains CC0-oriented, and image URLs are exposed only when the API marks the object public domain.
+
+The same authentication, fixed-host, GET-only, timeout, response-size, cache, request-coalescing, source-attribution and fail-safe rules remain in force for every new adapter.
