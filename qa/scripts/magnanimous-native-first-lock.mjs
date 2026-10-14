@@ -45,10 +45,10 @@ has(security,"const toolFoundryResponse=await handleMagnanimousToolFoundry(polic
 checks.push(['Tool Foundry routing occurs after opaque-session resolution',security.indexOf('resolveSessionRequest(guardedRequest')>=0&&security.indexOf('resolveSessionRequest(guardedRequest')<security.indexOf('const toolFoundryResponse=await handleMagnanimousToolFoundry(policyRequest,env);')]);
 const downstreamDispatchIndex=Math.max(security.indexOf('const rawResponse = await app.fetch(policyRequest, env, ctx);'),security.indexOf('const rawResponse = await app.fetch(policyRequest, executionEnv, ctx);'));
 checks.push(['Tool Foundry routing occurs before downstream app dispatch',security.indexOf('const toolFoundryResponse=await handleMagnanimousToolFoundry(policyRequest,env);')>=0&&downstreamDispatchIndex>=0&&security.indexOf('const toolFoundryResponse=await handleMagnanimousToolFoundry(policyRequest,env);')<downstreamDispatchIndex]);
-lacks(security,"if(url.pathname.startsWith('/api/magnanimous/tool-foundry'))return null;",'Tool Foundry remains on the shared standalone session plane');
-has(deployWorkflow,'Wait for standalone session plane revision','production deploy waits for Railway session-plane parity');
+lacks(security,"if(url.pathname.startsWith('/api/magnanimous/tool-foundry'))return null;",'Tool Foundry remains on the shared Worker-native session plane');
+has(deployWorkflow,'Wait for Worker-native session plane revision','production deploy waits for Worker-native session-plane parity');
 has(deployWorkflow,'Shared session plane ready for smoke','deployment records session-plane readiness before smoke');
-checks.push(['session-plane parity gate precedes production smoke',deployWorkflow.indexOf('Wait for standalone session plane revision')>=0&&deployWorkflow.indexOf('Wait for standalone session plane revision')<deployWorkflow.indexOf('Production smoke test')]);
+checks.push(['session-plane parity gate precedes production smoke',deployWorkflow.indexOf('Wait for Worker-native session plane revision')>=0&&deployWorkflow.indexOf('Wait for Worker-native session plane revision')<deployWorkflow.indexOf('Production smoke test (live full-platform verification)')]);
 has(security,"outerUrl.pathname==='/health'",'outermost Worker entrypoint handles health before downstream D1-aware layers');
 checks.push(['outer health shortcut precedes session resolution',security.indexOf("outerUrl.pathname==='/health'")>=0&&security.indexOf("outerUrl.pathname==='/health'")<security.indexOf('resolveSessionRequest(guardedRequest')]);
 has(security,'database_independent:true','outer health response explicitly declares database independence');
