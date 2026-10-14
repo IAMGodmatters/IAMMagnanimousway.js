@@ -1,0 +1,25 @@
+name: Duffel No-Spend Test Lock
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  duffel-no-spend-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Syntax check Duffel test adapter
+        run: node --check worker/src/magnanimous-travel-duffel-sandbox.js
+      - name: Syntax check travel agency runtime
+        run: node --check worker/src/magnanimous-travel-agency-runtime.js
+      - name: Verify fail-closed no-spend boundaries
+        run: node qa/scripts/magnanimous-travel-duffel-no-spend-lock.mjs
