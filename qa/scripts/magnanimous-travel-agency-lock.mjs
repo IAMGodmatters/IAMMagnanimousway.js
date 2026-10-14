@@ -110,7 +110,12 @@ const liteBookInput={
  guests:[{occupancyNumber:1,firstName:'Jessie',lastName:'Hardin',email:'sandbox@example.com'}]
 };
 assert.doesNotThrow(()=>validateLiteApiSandboxBook(liteBookInput));
+assert.doesNotThrow(()=>validateLiteApiSandboxBook({...liteBookInput,payment:{method:'ACC_CREDIT_CARD'}}));
 assert.throws(()=>validateLiteApiSandboxBook({...liteBookInput,payment:{method:'WALLET'}}));
+assert.throws(()=>validateLiteApiSandboxBook({...liteBookInput,payment:{method:'ACC_CREDIT_CARD',cardNumber:'4242424242424242'}}));
+assert.throws(()=>validateLiteApiSandboxBook({...liteBookInput,payment:{method:'ACC_CREDIT_CARD',wallet:'forbidden'}}));
+assert.throws(()=>validateLiteApiSandboxBook({...liteBookInput,payment:{method:'ACC_CREDIT_CARD',credit:'forbidden'}}));
+assert.throws(()=>validateLiteApiSandboxBook({...liteBookInput,payment:{cvv:'123'}}));
 
 const jsonResponse=(payload,status=200)=>{
  const bytes=new TextEncoder().encode(JSON.stringify(payload));
@@ -121,11 +126,15 @@ const prebookResult=await prebookLiteApiSandboxHotel(litePrebookInput,{sandboxKe
 assert.equal(prebookUrl,'https://book.liteapi.travel/v3.0/rates/prebook');
 assert.deepEqual(prebookPayload,{offerId:'offer_sandbox_123',usePaymentSdk:false});
 assert.ok(!Object.hasOwn(prebookPayload,'includeCreditBalance'));
+assert.equal(prebookResult.prebookId,'prebook_sandbox_123');
 assert.equal(prebookResult.booking_simulation_enabled,true);
 assert.equal(prebookResult.production_enabled,false);
 assert.equal(prebookResult.booking_enabled,false);
 assert.equal(prebookResult.payment_enabled,false);
 assert.equal(prebookResult.real_charge_allowed,false);
+const emptyPrebook=await prebookLiteApiSandboxHotel(litePrebookInput,{sandboxKey:'sand_example',fetchImpl:async()=>jsonResponse({data:{}})});
+assert.equal(emptyPrebook.status,502);
+assert.equal(emptyPrebook.booking_simulation_enabled,undefined);
 
 let bookUrl='',bookPayload=null;
 const bookResult=await bookLiteApiSandboxHotel(liteBookInput,{sandboxKey:'sandbox_example',fetchImpl:async(url,options)=>{bookUrl=url;bookPayload=JSON.parse(options.body);return jsonResponse({data:{bookingId:'booking_sandbox_123',status:'CONFIRMED'}});}});
@@ -133,6 +142,7 @@ assert.equal(bookUrl,'https://book.liteapi.travel/v3.0/rates/book');
 assert.equal(bookPayload.payment.method,'ACC_CREDIT_CARD');
 assert.equal(bookPayload.clientReference,'MAG-SBX-LOCK-001');
 assert.equal(bookPayload.customTags.MAGNANIMOUS_MODE,'SANDBOX');
+assert.equal(bookResult.bookingId,'booking_sandbox_123');
 assert.equal(bookResult.simulated_booking,true);
 assert.equal(bookResult.production_enabled,false);
 assert.equal(bookResult.booking_enabled,false);
@@ -145,6 +155,11 @@ assert.equal(missingKey.configured,false);
 assert.equal(missingKey.status,503);
 const bookFailure=await bookLiteApiSandboxHotel(liteBookInput,{sandboxKey:'sand_example',fetchImpl:async()=>jsonResponse({error:'conflict'},409)});
 assert.equal(bookFailure.status,409);
+const bookExpired=await bookLiteApiSandboxHotel(liteBookInput,{sandboxKey:'sand_example',fetchImpl:async()=>jsonResponse({error:'gone'},410)});
+assert.equal(bookExpired.status,410);
+const emptyBook=await bookLiteApiSandboxHotel(liteBookInput,{sandboxKey:'sand_example',fetchImpl:async()=>jsonResponse({})});
+assert.equal(emptyBook.status,502);
+assert.equal(emptyBook.simulated_booking,undefined);
 
 const liteAdapter=fs.readFileSync('worker/src/magnanimous-travel-liteapi-sandbox.js','utf8');
 assert.ok(liteAdapter.includes('getReader'));
@@ -152,6 +167,8 @@ assert.ok(liteAdapter.includes('reader.cancel'));
 assert.ok(liteAdapter.includes("payment:{method:'ACC_CREDIT_CARD'}"));
 assert.ok(liteAdapter.includes('usePaymentSdk:false'));
 assert.ok(liteAdapter.includes('real_charge_allowed:false'));
+assert.ok(liteAdapter.includes('[400,409,410,429]'));
+assert.ok(liteAdapter.includes('did not confirm a booking ID'));
 assert.ok(!liteAdapter.includes('PRODUCTION_API_KEY'));
 const platformCredentials=fs.readFileSync('worker/src/platform-credentials.js','utf8');
 const providerRuntime=fs.readFileSync('worker/src/provider-runtime-env.js','utf8');
