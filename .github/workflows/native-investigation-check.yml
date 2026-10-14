@@ -6,8 +6,10 @@ on:
       - 'frontend/app/investigate/**'
       - 'frontend/app/tool-foundry/**'
       - 'worker/src/native-investigation-*'
+      - 'worker/src/security-entrypoint.js'
       - 'worker/wrangler.jsonc'
       - 'qa/scripts/native-investigation-lock.mjs'
+      - 'qa/scripts/native-investigation-self-audit.mjs'
       - '.github/workflows/native-investigation-check.yml'
   push:
     branches: [main]
@@ -15,8 +17,10 @@ on:
       - 'frontend/app/investigate/**'
       - 'frontend/app/tool-foundry/**'
       - 'worker/src/native-investigation-*'
+      - 'worker/src/security-entrypoint.js'
       - 'worker/wrangler.jsonc'
       - 'qa/scripts/native-investigation-lock.mjs'
+      - 'qa/scripts/native-investigation-self-audit.mjs'
       - '.github/workflows/native-investigation-check.yml'
 
 permissions:
@@ -41,6 +45,9 @@ jobs:
 
       - name: Lock investigation safety and architecture
         run: node qa/scripts/native-investigation-lock.mjs
+
+      - name: Self-audit Magnanimous with its native inspector
+        run: node qa/scripts/native-investigation-self-audit.mjs
 
       - name: Install frontend
         working-directory: frontend
