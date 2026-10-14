@@ -84,6 +84,9 @@ jobs:
       - name: Lock Magnanimous public ChatGPT plugin release contract
         run: node qa/scripts/magnanimous-public-plugin-release-lock.mjs
 
+      - name: Lock cinematic 3-D homepage module marks
+        run: node qa/scripts/home-3d-module-marks-lock.mjs
+
       - name: Frontend typecheck and production build
         working-directory: frontend
         run: |
