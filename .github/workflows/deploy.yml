@@ -37,10 +37,10 @@ jobs:
           git diff --name-only "$parent" HEAD >/tmp/magnanimous-deploy-changed-files.txt
           if grep -Eq '^(\.github/workflows/deploy\.yml$|magnanimous-runtime/|frontend/|video-gateway/|api/|package\.json$|package-lock\.json$|Dockerfile$|docker-compose[^/]*$|railway[^/]*$)' /tmp/magnanimous-deploy-changed-files.txt; then
             echo "standalone_changed=true" >> "$GITHUB_OUTPUT"
-            echo "Standalone-sensitive runtime files changed; Railway parity remains required."
+            echo "Worker-native session-plane-sensitive files changed; live revision parity remains required before full production smoke."
           else
             echo "standalone_changed=false" >> "$GITHUB_OUTPUT"
-            echo "No standalone-sensitive files changed; Worker deployment may complete independently of Railway."
+            echo "No Worker-native session-plane-sensitive files changed; Worker deployment may use the bounded Worker-only smoke path."
           fi
           if grep -Eq '^(\.github/workflows/deploy\.yml$|magnanimous-runtime/|worker/|frontend/|video-gateway/|api/|package\.json$|package-lock\.json$)' /tmp/magnanimous-deploy-changed-files.txt; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -698,7 +698,7 @@ jobs:
             echo "Durable D1 materialization verification deferred because write quota is exhausted; deployment continues with the checked-in runtime manifest. Production mutation smoke remains authoritative and is not bypassed."
           fi
 
-      - name: Wait for standalone session plane revision
+      - name: Wait for Worker-native session plane revision
         if: needs.runtime-impact.outputs.standalone_changed == 'true'
         id: runtime-plane
         env:
@@ -745,7 +745,7 @@ jobs:
           echo "Shared session plane ready for smoke: workflow_sha=$GITHUB_SHA runtime_target=$runtime_target live=$live"
           echo "runtime_target=$live" >> "$GITHUB_OUTPUT"
           rm -f /tmp/magnanimous-session-plane-health.json
-      - name: Production smoke test
+      - name: Production smoke test (live full-platform verification)
         if: needs.runtime-impact.outputs.standalone_changed == 'true'
         working-directory: worker
         env:
@@ -834,7 +834,7 @@ jobs:
               case "$status" in
                 200) break ;;
                 000|502|503|504)
-                  echo "Transient standalone smoke-control response HTTP ${status:-request-failed}; retrying ${attempt}/4." >&2
+                  echo "Transient Worker-native smoke-control response HTTP ${status:-request-failed}; retrying ${attempt}/4." >&2
                   sleep 2
                   ;;
                 *) break ;;
@@ -1151,11 +1151,11 @@ jobs:
               local native_cleanup_status
               native_cleanup_status="$(native_smoke_control cleanup "$tenant_id" /tmp/deploy-smoke-native-cleanup.json || true)"
               if [ "$native_cleanup_status" != "200" ]; then
-                echo "::error::Standalone smoke-test cleanup returned HTTP ${native_cleanup_status:-request-failed}."
+                echo "::error::Worker-native smoke-test cleanup returned HTTP ${native_cleanup_status:-request-failed}."
                 cat /tmp/deploy-smoke-native-cleanup.json 2>/dev/null || true
                 cleanup_failed=1
               else
-                echo "Cleaned standalone deployment smoke-test tenant $tenant_id."
+                echo "Cleaned Worker-native deployment smoke-test tenant $tenant_id."
               fi
               local cleanup_statements=(
                 "DELETE FROM auth_sessions WHERE tenant_id='${tenant_id}';"
@@ -1752,12 +1752,12 @@ jobs:
           PY
 
           # Production White Label depth smoke: use this temporary tenant only.
-          # Grant the disposable test entitlement in the active standalone session/data plane.
+          # Grant the disposable test entitlement in the active Worker-native session/data plane.
           # The runtime endpoint is GitHub-OIDC locked to this main-branch workflow and only
           # accepts deploy-smoke tenants, so no real Stripe payment or customer entitlement is altered.
           agency_grant_status="$(native_smoke_control grant_agency "$tenant_id" /tmp/agency-smoke-entitlement.json)"
           if [ "$agency_grant_status" != "200" ]; then
-            echo "Standalone Agency smoke entitlement returned HTTP $agency_grant_status"
+            echo "Worker-native Agency smoke entitlement returned HTTP $agency_grant_status"
             cat /tmp/agency-smoke-entitlement.json || true
             exit 1
           fi
