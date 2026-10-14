@@ -2165,6 +2165,24 @@ jobs:
             exit 1
           fi
 
+          # Exercise the real browser sign-in POST contract. A guaranteed nonexistent
+          # identity must return Magnanimous JSON 401, never an HTML/provider error page.
+          printf '{"email":"deploy-auth-smoke-%s@example.invalid","password":"not-a-real-credential"}' "$GITHUB_SHA" > /tmp/worker-only-login-request.json
+          login_status="$(curl -sS --connect-timeout 10 --max-time 60 -D /tmp/worker-only-login-headers.txt -o /tmp/worker-only-login.json -w '%{http_code}' \
+            -X POST "$BASE_URL/api/auth/login" -H 'Content-Type: application/json' --data-binary @/tmp/worker-only-login-request.json)"
+          [ "$login_status" = "401" ] || { echo "::error::Invalid-credential login smoke expected Magnanimous HTTP 401, got $login_status"; cat /tmp/worker-only-login.json || true; exit 1; }
+          grep -Eqi '^content-type:[[:space:]]*application/json' /tmp/worker-only-login-headers.txt || { echo "::error::Login API did not return JSON."; cat /tmp/worker-only-login-headers.txt; exit 1; }
+          if grep -Eqi '^x-railway-fallback:[[:space:]]*true' /tmp/worker-only-login-headers.txt; then
+            echo "::error::Login API leaked standalone-provider fallback instead of Magnanimous authentication JSON."
+            cat /tmp/worker-only-login-headers.txt
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/worker-only-login.json'))
+          assert data.get('detail') == 'Invalid email or password.', data
+          PY
+
           for public_data_path in \
             '/api/public-data/health' \
             '/api/public-data/capabilities' \
