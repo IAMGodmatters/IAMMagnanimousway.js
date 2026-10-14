@@ -51,7 +51,7 @@ export default function OpportunityVault(){
  const[filter,setFilter]=useState<'all'|'active-ph'|'location-check'|'waitlist'>('all'),[msg,setMsg]=useState('');
  const visible=opportunities.filter(x=>filter==='all'||x.status===filter);
  async function copy(code:string){try{await navigator.clipboard.writeText(code);setMsg('Referral code copied. The current bonus or referral terms are controlled by Atlas, so verify them inside the app before relying on them.')}catch{setMsg('Referral code: '+code)}}
- return <main className="page">
+ return <main className="page opportunityVault cinematicSurface">
   <header><a href="/">← Home</a><span>MAGNANIMOUS OPPORTUNITY VAULT</span><a href="/creator-growth">Creator Growth →</a></header>
   <section className="hero">
    <small>I AM MAGNANIMOUS WAY™ • VERIFIED SOURCES FIRST</small>

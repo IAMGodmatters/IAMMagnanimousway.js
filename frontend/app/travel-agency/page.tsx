@@ -42,7 +42,7 @@ export default function TravelAgencyPage(){
  const onboardingRows=((onboarding?.suppliers||[]) as any[]).filter(x=>filter==='all'||String(x.priority)===filter);
  const sandboxOfferIds=useMemo(()=>collectOfferIds(sandboxSearch?.results||sandboxSearch?.offers||sandboxSearch),[sandboxSearch]);
  const duffelHoldableOffers=useMemo(()=>((duffelSearch?.offers||[]) as any[]).filter(o=>o?.holdable&&o?.live_mode!==true),[duffelSearch]);
- return <main className="page">
+ return <main className="page travelAgency cinematicSurface">
   <header><div><small>MAGNANIMOUS TRAVEL AGENCY</small><h1>Find the best verified deal. Sell it twice.</h1><p>Magnanimous compares authorized travel supply, keeps supplier net rates private, adds your small source margin, and lets approved agents add their own markup through your distribution API.</p></div><nav><a href="/reservations">Reservations</a><a href="/b2b">B2B</a><a href="/connections">Connections</a></nav></header>
   {error&&<div className="error">{error}</div>}
   <section className="stats"><article><small>SUPPLIER TARGETS</small><b>{data?.summary?.suppliers||0}</b></article><article><small>CONTACTED+</small><b>{onboarding?.summary?.contacted_or_beyond||0}</b></article><article><small>LIVE SOURCES</small><b>{onboarding?.summary?.live||configured.length}</b></article><article><small>OWNER MARGIN</small><b>{(ownerMargin/100).toFixed(2)}%</b></article></section>
