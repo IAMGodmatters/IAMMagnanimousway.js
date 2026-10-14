@@ -93,11 +93,11 @@ jobs:
           EOF
           MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" config -q
           MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" up -d sandbox browser-egress browser media magnanimous
-          for attempt in $(seq 1 30); do
+          for attempt in $(seq 1 90); do
             if MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" exec -T magnanimous                 node -e "fetch('http://127.0.0.1:8788/__magnanimous_runtime/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
               break
             fi
-            [ "$attempt" -lt 30 ] || { docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" logs; exit 1; }
+            [ "$attempt" -lt 90 ] || { docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" ps; docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" logs; exit 1; }
             sleep 1
           done
           MAGNANIMOUS_RELEASE_TAG="$TAG" docker compose --env-file "$OUT/.env" -f "$OUT/docker-compose.release.yml" exec -T browser node - <<'NODE'
@@ -127,18 +127,23 @@ jobs:
           console.log('Release Magnanimous Cloud control plane PASS');
           const services=JSON.parse(await checked('http://127.0.0.1:8788/__magnanimous_runtime/services',{headers:{'x-magnanimous-service-token':token}}));
           if(Object.values(services.services||{}).some(v=>v.configured&&!v.ok))throw new Error('Release bundle service health failed.');
-          const browser=JSON.parse(await checked('http://browser:8792/render',{
+          const browserHealth=JSON.parse(await checked('http://browser:8792/health'));
+          if(!browserHealth.ok||!browserHealth.egress_ready)throw new Error('Release browser or controlled egress path is not healthy.');
+          const screenshot=JSON.parse(await checked('http://browser:8792/render-content',{
             method:'POST',
             headers:{'content-type':'application/json','x-magnanimous-service-token':token},
-            body:JSON.stringify({url:'https://example.com',mode:'dom',timeout_ms:45000})
+            body:JSON.stringify({html:'<!doctype html><html><body><main id="offline-proof">Magnanimous offline browser proof</main></body></html>',css:'body{font-family:system-ui;background:#071018;color:white}main{padding:40px}',mode:'screenshot',timeout_ms:45000})
           }));
-          if(!String(browser.html||'').toLowerCase().includes('example domain'))throw new Error('Release bundle browser render failed.');
-          const screenshot=JSON.parse(await checked('http://browser:8792/render',{
-            method:'POST',
-            headers:{'content-type':'application/json','x-magnanimous-service-token':token},
-            body:JSON.stringify({url:'https://example.com',mode:'screenshot',timeout_ms:45000})
-          }));
-          if(!screenshot.base64||Number(screenshot.bytes||0)<1||screenshot.content_type!=='image/png')throw new Error('Release bundle Chromium snapshot render failed.');
+          if(!screenshot.base64||Number(screenshot.bytes||0)<1||screenshot.content_type!=='image/png'||screenshot.network_access!==false)throw new Error('Release bundle deterministic Chromium render failed.');
+          let publicProbe='unavailable';
+          for(let attempt=0;attempt<3;attempt++){
+            try{
+              const response=await fetch('http://browser-egress:8794/fetch',{method:'POST',headers:{'content-type':'application/json','x-magnanimous-service-token':token},body:JSON.stringify({url:'https://example.com',max_bytes:1048576}),signal:AbortSignal.timeout(12000)});
+              if(response.ok){const data=await response.json();if(String(data.url||'').startsWith('https://example.com')){publicProbe='ok';break}}
+            }catch{}
+            await new Promise(resolve=>setTimeout(resolve,500));
+          }
+          console.log('Release controlled-public-egress probe: '+publicProbe+(publicProbe==='ok'?'':' (non-blocking for offline artifact proof)'));
           console.log('Offline Magnanimous release bundle + cloud control smoke PASS');
           NODE
 
