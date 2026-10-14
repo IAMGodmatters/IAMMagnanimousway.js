@@ -1,4 +1,4 @@
-import { isLiteApiSandboxKey, searchLiteApiSandboxHotels } from './magnanimous-travel-liteapi-sandbox.js';
+import { isLiteApiSandboxKey, searchLiteApiSandboxHotels, prebookLiteApiSandboxHotel, bookLiteApiSandboxHotel } from './magnanimous-travel-liteapi-sandbox.js';
 import { currentUser } from './integrations.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import {
@@ -24,6 +24,11 @@ const num=(v,d=0)=>{const n=Number(v);return Number.isFinite(n)?Math.round(n):d}
 const now=()=>Math.floor(Date.now()/1000);
 
 function ownerOnly(user){return String(user?.role||'').toLowerCase()==='owner'}
+function liteApiSandboxResponse(result){
+ if(!result?.configured)return json(result||{detail:'LiteAPI sandbox is not configured.'},503);
+ if(result.error)return json(result,Math.max(400,Math.min(Number(result.status)||502,599)));
+ return json(result);
+}
 
 async function supplierOnboardingRows(env,tenant,{includeInitial=false}={}){
  const {results=[]}=await env.DB.prepare('SELECT supplier_id,status,priority,outreach_channel,contact_destination,last_outreach_at,next_action,external_reference,notes,updated_at FROM travel_supplier_onboarding WHERE tenant_id=?').bind(tenant).all().catch(()=>({results:[]}));
@@ -281,22 +286,26 @@ export async function handleMagnanimousTravelAgency(request,env){
  }
  if(request.method==='GET'&&path==='/api/travel-agency/sandbox/liteapi/status'){
   if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
-  const runtimeEnv=await getProviderRuntimeEnv(env);
-  return json({supplier:'liteapi',sandbox:true,configured:isLiteApiSandboxKey(clean(runtimeEnv?.LITEAPI_SANDBOX_KEY)),production_enabled:false,booking_enabled:false,payment_enabled:false});
+  const runtimeEnv=await getProviderRuntimeEnv(env),configured=isLiteApiSandboxKey(clean(runtimeEnv?.LITEAPI_SANDBOX_KEY));
+  return json({supplier:'liteapi',sandbox:true,configured,production_enabled:false,booking_enabled:false,payment_enabled:false,sandbox_prebook_enabled:configured,sandbox_booking_simulation_enabled:configured,real_charge_allowed:false});
  }
  if(request.method==='POST'&&path==='/api/travel-agency/sandbox/liteapi/search'){
   if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
-  const body=await request.json().catch(()=>({}));
-  const runtimeEnv=await getProviderRuntimeEnv(env);
-  try{
-   const result=await searchLiteApiSandboxHotels(body,{sandboxKey:clean(runtimeEnv?.LITEAPI_SANDBOX_KEY)});
-   if(!result.configured)return json(result,503);
-   if(result.error)return json(result,Math.max(400,Math.min(Number(result.status)||502,599)));
-   return json(result);
-  }catch(error){
-   const input=error?.code==='INPUT';
-   return json({detail:input?'Invalid sandbox search.':'Sandbox supplier unavailable.',reason:clean(error?.message).slice(0,160)},input?400:502);
-  }
+  const body=await request.json().catch(()=>({})),runtimeEnv=await getProviderRuntimeEnv(env);
+  try{return liteApiSandboxResponse(await searchLiteApiSandboxHotels(body,{sandboxKey:clean(runtimeEnv?.LITEAPI_SANDBOX_KEY)}));}
+  catch(error){const input=error?.code==='INPUT';return json({detail:input?'Invalid sandbox search.':'Sandbox supplier unavailable.',reason:clean(error?.message).slice(0,160)},input?400:502);}
+ }
+ if(request.method==='POST'&&path==='/api/travel-agency/sandbox/liteapi/prebook'){
+  if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
+  const body=await request.json().catch(()=>({})),runtimeEnv=await getProviderRuntimeEnv(env);
+  try{return liteApiSandboxResponse(await prebookLiteApiSandboxHotel(body,{sandboxKey:clean(runtimeEnv?.LITEAPI_SANDBOX_KEY)}));}
+  catch(error){const input=error?.code==='INPUT';return json({detail:input?'Invalid sandbox prebook.':'Sandbox supplier unavailable.',reason:clean(error?.message).slice(0,160)},input?400:502);}
+ }
+ if(request.method==='POST'&&path==='/api/travel-agency/sandbox/liteapi/book'){
+  if(!ownerOnly(user))return json({detail:'Owner access required.'},403);
+  const body=await request.json().catch(()=>({})),runtimeEnv=await getProviderRuntimeEnv(env);
+  try{return liteApiSandboxResponse(await bookLiteApiSandboxHotel(body,{sandboxKey:clean(runtimeEnv?.LITEAPI_SANDBOX_KEY)}));}
+  catch(error){const input=error?.code==='INPUT';return json({detail:input?'Invalid sandbox booking simulation.':'Sandbox supplier unavailable.',reason:clean(error?.message).slice(0,160)},input?400:502);}
  }
  if(request.method==='POST'&&path==='/api/travel-agency/search/flights'){
   const body=await request.json().catch(()=>({}));
