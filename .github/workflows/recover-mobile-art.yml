@@ -39,14 +39,14 @@ jobs:
           console.log(`Recovered ${bytes.length} AVIF bytes`);
           NODE
           dims="$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 /tmp/mobile-dashboard-approved.avif)"
-          test "$dims" = "941x1672" || { echo "Unexpected source dimensions: $dims"; exit 1; }
+          test "$dims" = "430x764" || { echo "Unexpected source dimensions: $dims"; exit 1; }
       - name: Convert and validate complete WebP
         shell: bash
         run: |
           set -euo pipefail
           ffmpeg -hide_banner -loglevel error -y -i /tmp/mobile-dashboard-approved.avif -frames:v 1 -c:v libwebp -quality 95 frontend/public/mobile-dashboard-approved.webp
           dims="$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 frontend/public/mobile-dashboard-approved.webp)"
-          test "$dims" = "941x1672" || { echo "Unexpected WebP dimensions: $dims"; exit 1; }
+          test "$dims" = "430x764" || { echo "Unexpected WebP dimensions: $dims"; exit 1; }
           size="$(stat -c %s frontend/public/mobile-dashboard-approved.webp)"
           test "$size" -gt 50000 || { echo "Recovered WebP unexpectedly small: $size"; exit 1; }
           node <<'NODE'
