@@ -19,33 +19,29 @@ jobs:
         shell: bash
         env:
           LIVE_URL: https://iammagnanimousway.com/
+          APPROVED_MOBILE_GIT_BLOB: 20055cee777421537713a9153c377e6cfca77b02
+          APPROVED_DESKTOP_SHA256: 4782F5011B660DC4A189B1A2A315352C241CAD40C4800AD2A5C78949837EC548
         run: |
           set -euo pipefail
           chrome="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           [ -n "$chrome" ] || { echo '::error::Chrome/Chromium is not available on the hosted runner.'; exit 1; }
           mkdir -p mobile-visual-proof
 
-          # The previous check only proved that an <img> tag existed. A broken image could
-          # still produce a mostly-black screenshot and incorrectly pass. Require the live
-          # resilient artwork itself to be fetchable before rendering the page.
           curl -fsSL --retry 3 --retry-delay 2 \
-            -D mobile-visual-proof/mobile-fallback.headers \
-            -o mobile-visual-proof/mobile-dashboard-fallback.svg \
-            "${LIVE_URL}mobile-dashboard-fallback.svg?verify=${GITHUB_RUN_ID}"
-          grep -q '<svg' mobile-visual-proof/mobile-dashboard-fallback.svg || { echo '::error::Live mobile fallback is not valid SVG markup.'; exit 1; }
-          grep -q 'I AM MAGNANIMOUS WAY' mobile-visual-proof/mobile-dashboard-fallback.svg || { echo '::error::Live mobile fallback is missing the Magnanimous identity.'; exit 1; }
-          grep -q 'Video Studio' mobile-visual-proof/mobile-dashboard-fallback.svg || { echo '::error::Live mobile fallback is missing module labels.'; exit 1; }
+            -D mobile-visual-proof/mobile-approved.headers \
+            -o mobile-visual-proof/mobile-dashboard-approved.webp \
+            "${LIVE_URL}mobile-dashboard-approved.webp?lock=${APPROVED_MOBILE_GIT_BLOB}&verify=${GITHUB_RUN_ID}"
+          magic="$(head -c 12 mobile-visual-proof/mobile-dashboard-approved.webp | xxd -p -c 12 || true)"
+          [[ "$magic" == 52494646*57454250 ]] || { echo '::error::Live approved mobile artwork is not a valid WebP.'; exit 1; }
+          mobile_bytes="$(stat -c%s mobile-visual-proof/mobile-dashboard-approved.webp)"
+          actual_mobile_blob="$( { printf 'blob %s\0' "$mobile_bytes"; cat mobile-visual-proof/mobile-dashboard-approved.webp; } | sha1sum | awk '{print $1}')"
+          [ "$actual_mobile_blob" = "$APPROVED_MOBILE_GIT_BLOB" ] || { echo "::error::Live mobile artwork changed: ${actual_mobile_blob}."; exit 1; }
 
-          # Preserve visibility into the approved WebP source without allowing its current
-          # delivery/decoding problem to blank the customer-facing mobile dashboard.
-          if curl -fsSL --retry 2 --retry-delay 1 -o mobile-visual-proof/mobile-dashboard-approved.webp "${LIVE_URL}mobile-dashboard-approved.webp?verify=${GITHUB_RUN_ID}"; then
-            magic="$(head -c 12 mobile-visual-proof/mobile-dashboard-approved.webp | xxd -p -c 12 || true)"
-            if [[ "$magic" != 52494646*57454250 ]]; then
-              echo '::warning::Approved mobile WebP returned bytes with an unexpected signature; resilient SVG remains customer-visible.'
-            fi
-          else
-            echo '::warning::Approved mobile WebP could not be fetched; resilient SVG remains customer-visible.'
-          fi
+          curl -fsSL --retry 3 --retry-delay 2 \
+            -o mobile-visual-proof/crm-upgrade.jpeg \
+            "${LIVE_URL}crm-upgrade.jpeg?verify=${GITHUB_RUN_ID}"
+          actual_desktop_sha256="$(sha256sum mobile-visual-proof/crm-upgrade.jpeg | awk '{print toupper($1)}')"
+          [ "$actual_desktop_sha256" = "$APPROVED_DESKTOP_SHA256" ] || { echo "::error::Live desktop artwork changed: ${actual_desktop_sha256}."; exit 1; }
 
           render() {
             local width="$1" height="$2" name="$3" budget="$4"
@@ -73,8 +69,8 @@ jobs:
           for phone in phone-390x844 phone-430x932; do
             grep -q 'mobileExactStage' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the canonical mobile dashboard."; exit 1; }
             grep -q 'mobileReferenceFrame' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the portrait reference frame."; exit 1; }
-            grep -q '/mobile-dashboard-approved.webp' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} no longer preserves the approved portrait artwork source."; exit 1; }
-            grep -q '/mobile-dashboard-fallback.svg' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the resilient visible dashboard fallback."; exit 1; }
+            grep -q '/mobile-dashboard-approved.webp' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} no longer uses the approved portrait artwork."; exit 1; }
+            if grep -q '/mobile-dashboard-fallback.svg' "mobile-visual-proof/${phone}.html"; then echo "::error::${phone} still exposes the rejected substitute fallback artwork."; exit 1; fi
             grep -q 'Video Studio' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Video Studio."; exit 1; }
             grep -q 'White Label' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing White Label."; exit 1; }
             grep -q 'Creator Studio' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Creator Studio."; exit 1; }
@@ -85,14 +81,14 @@ jobs:
             grep -q 'id="mobile-side-menu"' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the collapsible menu."; exit 1; }
             [ -s "mobile-visual-proof/${phone}.png" ] || { echo "::error::${phone} screenshot was not produced."; exit 1; }
             bytes="$(stat -c%s "mobile-visual-proof/${phone}.png")"
-            [ "$bytes" -ge 25000 ] || { echo "::error::${phone} screenshot is only ${bytes} bytes and is likely the blank/broken render regression."; exit 1; }
+            [ "$bytes" -ge 50000 ] || { echo "::error::${phone} screenshot is only ${bytes} bytes and is likely not the approved detailed artwork."; exit 1; }
           done
 
           grep -q 'desktopStage' mobile-visual-proof/desktop-1440x900.html || { echo '::error::Approved desktop dashboard marker is missing.'; exit 1; }
           grep -q '/crm-upgrade.jpeg' mobile-visual-proof/desktop-1440x900.html || { echo '::error::Desktop approved artwork source is missing.'; exit 1; }
           [ -s mobile-visual-proof/desktop-1440x900.png ] || { echo '::error::Desktop verification screenshot was not produced.'; exit 1; }
 
-          echo 'Live responsive verification PASS: phone renders are visibly nonblank, the resilient dashboard artwork is live with clickable controls, and desktop retains its approved composition.'
+          echo 'Locked artwork verification PASS: production serves the exact approved mobile blob and exact approved desktop SHA-256, with working responsive controls.'
 
       - name: Upload responsive visual proof
         if: always()
