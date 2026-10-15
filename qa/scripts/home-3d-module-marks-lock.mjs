@@ -34,13 +34,19 @@ const requiredRoutes=[
 ];
 for(const route of requiredRoutes)assert.ok(page.includes(route),`Homepage route missing or changed: ${route}`);
 
+function dashboardArtworkStyleIsGlobal(source){
+ const styleBlocks=[...source.matchAll(/<style jsx( global)?>\{`([\s\S]*?)`\}<\/style>/g)];
+ const dashboardBlock=styleBlocks.find(match=>match[2].includes('.mobileCardGrid{')&&match[2].includes('.artCrop{')&&match[2].includes('.mobileDrawerLinks'));
+ return dashboardBlock?.[1]===' global';
+}
+
 assert.ok(page.includes("const cardLinks=[...sideLinks]"),'Artwork card links must remain mapped from the approved sidebar routes.');
 assert.ok(page.includes('src="/crm-upgrade.jpeg"'),'Homepage must continue using the exact approved dashboard artwork.');
 assert.ok(page.includes('function ArtworkCrop'),'Phone layout must reuse crops from the approved artwork instead of introducing a replacement visual design.');
 assert.ok(page.includes('className="mobileCardGrid"'),'Phone layout must expose the existing dashboard cards as readable touch targets.');
 assert.ok(page.includes('grid-template-columns:repeat(2,minmax(0,1fr))'),'Phone dashboard must retain the two-column artwork card grid.');
 assert.ok(page.includes('className="mobileDrawerLinks"'),'Phone layout must provide the existing sidebar links in a collapsible drawer.');
-assert.ok(page.includes('<style jsx global>{`'),'ArtworkCrop is a child component, so its responsive crop/layout selectors must be global rather than silently scoped away.');
+assert.ok(dashboardArtworkStyleIsGlobal(page),'The specific style block containing ArtworkCrop/mobile dashboard selectors must remain global so child-component selectors cannot be silently scoped away.');
 assert.ok(page.includes('desktopSidebarToggle')&&page.includes('desktopSidebarMask'),'Desktop artwork sidebar must be collapsible without replacing the dashboard.');
 assert.ok(page.includes("localStorage.getItem('iam_home_sidebar_collapsed')")&&page.includes("localStorage.setItem('iam_home_sidebar_collapsed'"),'Desktop sidebar collapse preference must persist.');
 assert.ok(page.includes('platformGuideHot')&&page.includes('guidedTourHot'),'Dashboard guide buttons must remain clickable.');
