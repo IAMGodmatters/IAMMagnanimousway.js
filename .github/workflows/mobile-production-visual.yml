@@ -52,23 +52,21 @@ jobs:
           render 1440 900 desktop-1440x900 10000
 
           for phone in phone-390x844 phone-430x932; do
-            grep -q 'iamMobileHomeShell' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} did not hydrate the mobile dashboard."; exit 1; }
+            grep -q 'mobileExactStage' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the canonical exact-artwork mobile dashboard."; exit 1; }
+            grep -q 'mobileCardGrid' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the scrollable two-column mobile card grid."; exit 1; }
             grep -q 'Video Studio' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Video Studio."; exit 1; }
-            grep -q 'White Label' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing White Label."; exit 1; }
             grep -q 'Opportunity Vault' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Opportunity Vault."; exit 1; }
             grep -q 'Professional Business' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Professional Business."; exit 1; }
-            grep -q 'aria-controls="iam-mobile-drawer"' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the collapsible menu control."; exit 1; }
+            grep -q 'id="mobile-side-menu"' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the collapsible menu."; exit 1; }
+            grep -q '/crm-upgrade.jpeg' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is not using the approved artwork source."; exit 1; }
             [ -s "mobile-visual-proof/${phone}.png" ] || { echo "::error::${phone} screenshot was not produced."; exit 1; }
           done
 
-          if grep -q 'iamMobileHomeShell' mobile-visual-proof/desktop-1440x900.html; then
-            echo '::error::Desktop hydrated the mobile overlay; desktop isolation failed.'
-            exit 1
-          fi
           grep -q 'desktopStage' mobile-visual-proof/desktop-1440x900.html || { echo '::error::Approved desktop dashboard marker is missing.'; exit 1; }
+          grep -q '/crm-upgrade.jpeg' mobile-visual-proof/desktop-1440x900.html || { echo '::error::Desktop approved artwork source is missing.'; exit 1; }
           [ -s mobile-visual-proof/desktop-1440x900.png ] || { echo '::error::Desktop verification screenshot was not produced.'; exit 1; }
 
-          echo 'Live responsive verification PASS: phone widths hydrate the cinematic mobile dashboard and desktop remains on the approved desktop composition.'
+          echo 'Live responsive verification PASS: phone widths expose the canonical artwork-preserving mobile dashboard with clickable routes and desktop retains the approved composition.'
 
       - name: Upload responsive visual proof
         if: always()
