@@ -138,7 +138,7 @@ has(carrier,'execution_endpoint:executionEndpoint','route planner keeps explicit
 has(carrier,"SELECT id,type FROM magnanimous_carrier_interconnects",'route execution opt-in validates the interconnect type');
 has(carrier,"Only migrated SIP/BYOC interconnect types can declare asterisk_endpoint.",'non-migrated route types cannot opt into Asterisk execution');
 has(carrier,"asterisk_endpoint must be an Asterisk PJSIP endpoint key.",'route execution endpoint shape is validated before storage');
-has(carrier,"if(!manager(user))return json({detail:'Owner or admin role required.'},403);\n  return json(await planCarrierRoute",'detailed route-plan diagnostics are owner/admin only');
+checks.push(['detailed route-plan diagnostics are owner/admin only',/path==='\/api\/magnanimous\/carrier\/route-plan'[\s\S]{0,180}if\(!manager\(user\)\)return json\(\{detail:'Owner or admin role required\.'\},403\);[\s\S]{0,120}return json\(await planCarrierRoute/.test(carrier)]);
 has(leadPhone,'selected.execution_endpoint','outbound live handoff uses only the explicitly opted-in Asterisk endpoint');
 lacks(leadPhone,'endpoint: String(selected.endpoint).trim()','legacy interconnect endpoint cannot become a live dialplan key implicitly');
 has(leadPhone,'selected_route_applied: provider?.selected_route_applied === true','platform only claims selected-route execution when the bridge confirms it');

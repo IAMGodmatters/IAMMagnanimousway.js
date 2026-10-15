@@ -129,6 +129,16 @@ for(const proof of [
   'worker/src/magnanimous-cloud-provider-core.js'
 ]) must(infra.includes(proof),'Infrastructure proof missing: '+proof);
 
+const releaseWorkflow=read('.github/workflows/magnanimous-standalone-release.yml');
+must(releaseWorkflow.includes("for attempt in $(seq 1 90); do"),'Standalone release proof must allow cold containers enough startup time.');
+must(releaseWorkflow.includes("http://browser:8792/render-content"),'Standalone release proof must use deterministic local Chromium content rendering.');
+must(releaseWorkflow.includes("network_access!==false"),'Offline Chromium proof must assert network-disabled content rendering.');
+must((releaseWorkflow.match(/worker\/package\.json/g)||[]).length>=2&&(releaseWorkflow.match(/worker\/package-lock\.json/g)||[]).length>=2,'Standalone release must rebuild when Worker production dependency manifests change.');
+must(releaseWorkflow.includes("http://browser:8792/render")&&releaseWorkflow.includes("EXTERNAL_NETWORK_UNAVAILABLE")&&releaseWorkflow.includes("transient_external_network!==true"),'Standalone release must exercise browser-to-egress public rendering and tolerate only classified external-network outages.');
+must(!releaseWorkflow.includes("let publicProbe='unavailable'"),'Standalone release must not broadly swallow browser-egress integration failures.');
+must(releaseWorkflow.includes("Release browser unexpectedly has direct public egress"),'Standalone release must preserve direct-public-egress isolation.');
+must(releaseWorkflow.includes("genuine external-network outage is non-blocking for the offline artifact proof"),'Only a classified genuine external-network outage may be non-blocking for the deterministic offline artifact proof.');
+
 const security=read('worker/src/security-entrypoint.js');
 must(security.includes('handleMagnanimousInfrastructure'),'Infrastructure owner endpoint is not mounted.');
 must(security.includes('handleMagnanimousCloudProvider'),'Magnanimous Cloud owner endpoint is not mounted.');

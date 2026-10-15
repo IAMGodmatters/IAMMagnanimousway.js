@@ -31,6 +31,12 @@ async function publicAddress(hostname){
  return{name,address:selected.address,family:selected.family};
 }
 function authorized(req){return token&&String(req.headers['x-magnanimous-service-token']||'')===token}
+function transientExternalNetworkError(error){
+ const code=String(error?.code||'').toUpperCase();
+ if(['EAI_AGAIN','ENOTFOUND','ENETUNREACH','EHOSTUNREACH','ETIMEDOUT','ECONNRESET','ECONNREFUSED'].includes(code))return true;
+ const message=String(error?.message||error||'').toLowerCase();
+ return /getaddrinfo|name resolution|network is unreachable|host is unreachable|public page fetch timed out|socket hang up|connection timed out/.test(message);
+}
 function json(res,status,data){res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});res.end(JSON.stringify(data))}
 function deny(socketOrRes,status=403,message='Magnanimous browser egress blocked this destination.'){
  if(typeof socketOrRes.writeHead==='function'){socketOrRes.writeHead(status,{'content-type':'text/plain; charset=utf-8','connection':'close'});socketOrRes.end(message);return}
@@ -91,9 +97,14 @@ const server=http.createServer(async(req,res)=>{
   const requestUrl=new URL(req.url||'/','http://egress.local');
   if(req.method==='GET'&&requestUrl.pathname==='/health')return json(res,200,{ok:true,identity:'Magnanimous Browser Egress',private_network_blocking:true,redirect_revalidation:true});
   if(req.method==='POST'&&requestUrl.pathname==='/fetch'){
-   if(!authorized(req))return json(res,401,{detail:'Magnanimous internal service token required.'});
+   if(!authorized(req))return json(res,401,{detail:'Magnanimous internal service token required.',code:'EGRESS_AUTH_REQUIRED',transient_external_network:false});
    const spec=await readJson(req);
-   return json(res,200,await fetchPublic(spec.url,{maxBytes:Math.max(1024,Math.min(Number(spec.max_bytes||5*1024*1024),10*1024*1024))}));
+   try{
+    return json(res,200,await fetchPublic(spec.url,{maxBytes:Math.max(1024,Math.min(Number(spec.max_bytes||5*1024*1024),10*1024*1024))}));
+   }catch(error){
+    const transient=transientExternalNetworkError(error);
+    return json(res,transient?503:502,{detail:String(error?.message||error),code:transient?'EXTERNAL_NETWORK_UNAVAILABLE':'EGRESS_FETCH_FAILED',transient_external_network:transient});
+   }
   }
 
   const target=new URL(String(req.url||''));
