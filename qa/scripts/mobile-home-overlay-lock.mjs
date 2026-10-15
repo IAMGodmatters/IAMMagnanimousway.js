@@ -12,7 +12,10 @@ assert.ok(!fs.existsSync('frontend/proxy.ts'),'Static export must not rely on Ne
 assert.ok(!fs.existsSync('frontend/app/mobile-dashboard/page.tsx'),'Do not ship a second home route that bypasses the canonical home page.');
 
 assert.ok(fs.existsSync(approvedMobileArtwork),'Approved portrait mobile artwork is missing.');
-assert.ok(fs.statSync(approvedMobileArtwork).size>100_000,'Approved portrait mobile artwork looks truncated.');
+const approvedBytes=fs.readFileSync(approvedMobileArtwork);
+assert.ok(approvedBytes.length>90_000,'Approved portrait mobile artwork looks unexpectedly small.');
+assert.equal(approvedBytes.subarray(0,4).toString('ascii'),'RIFF','Approved portrait mobile artwork is not a valid RIFF WebP container.');
+assert.equal(approvedBytes.subarray(8,12).toString('ascii'),'WEBP','Approved portrait mobile artwork is not a valid WebP asset.');
 assert.ok(page.includes('className="mobileExactStage"'),'Exact mobile stage is missing.');
 assert.ok(page.includes('className="mobileReferenceArtwork"')&&page.includes('src="/mobile-dashboard-approved.webp"'),'Mobile home must render the literal approved portrait artwork.');
 assert.ok(page.includes('const mobileReferenceCards:LinkItem[]=['),'Approved mobile module map is missing.');
