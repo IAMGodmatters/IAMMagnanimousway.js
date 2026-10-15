@@ -1,11 +1,11 @@
 'use client';
-import {CSSProperties,FormEvent,useEffect,useRef,useState} from 'react';
+import {FormEvent,useEffect,useRef,useState} from 'react';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 type Ad={id:number;title:string;url:string;label:string;placement:string;active:number};
 type AdConfig={adsense_configured:boolean;adsense_client_id:string|null;adsense_home_slot:string|null;auto_ads_ready:boolean};
 type LinkItem={label:string;href:string};
-type CropLinkProps={key?:string;label:string;href:string;left:number;top:number;width:number;height:number;className?:string;tabIndex?:number;onClick?:()=>void};
+type MobileReferenceCard={label:string;href:string;left:number;top:number;width:number;height:number};
 
 const kids='https://harmonic-data-52yyzau.shipstatic.com/';
 const sideLinks:LinkItem[]=[
@@ -22,22 +22,24 @@ const topLinks=[
  {label:'Opportunity',href:'/opportunity-vault',left:53.9,width:7.4},
  {label:'Global Impact',href:'/ai-chat?prompt=Show%20my%20global%20impact%20and%20service%20tools',left:61.8,width:7.8}
 ];
-
-function cropStyle(left:number,top:number,width:number,height:number):CSSProperties{
- return {
-  aspectRatio:String((width*16)/(height*9)),
-  ['--crop-image-width' as string]:`${10000/width}%`,
-  ['--crop-image-height' as string]:`${10000/height}%`,
-  ['--crop-image-left' as string]:`${-(left/width)*100}%`,
-  ['--crop-image-top' as string]:`${-(top/height)*100}%`
- } as CSSProperties;
-}
-
-function ArtworkCrop({label,href,left,top,width,height,className='',tabIndex,onClick}:CropLinkProps){
- return <a className={`artCrop ${className}`} href={href} aria-label={label} style={cropStyle(left,top,width,height)} tabIndex={tabIndex} onClick={onClick}>
-  <img src="/crm-upgrade.jpeg" alt="" aria-hidden="true" draggable={false}/><span>{label}</span>
- </a>;
-}
+const mobileReferenceCards:MobileReferenceCard[]=[
+ {label:'Video Studio',href:'/video-studio',left:4.7,top:29.2,width:44.0,height:7.9},
+ {label:'White Label',href:'/white-label',left:50.3,top:29.2,width:44.1,height:7.9},
+ {label:'Creator Studio',href:'/studio',left:4.7,top:37.6,width:44.0,height:7.5},
+ {label:'Growth',href:'/creator-growth',left:50.3,top:37.6,width:44.1,height:7.5},
+ {label:'Opportunity Vault',href:'/opportunity-vault',left:4.7,top:45.8,width:44.0,height:7.6},
+ {label:'Knowledge Center',href:'/knowledge',left:50.3,top:45.8,width:44.1,height:7.6},
+ {label:'Routines',href:'/routine-studio',left:4.7,top:54.1,width:44.0,height:7.6},
+ {label:'AI Receptionist',href:'/ai-receptionist',left:50.3,top:54.1,width:44.1,height:7.6},
+ {label:'Connected',href:'/connections',left:4.7,top:62.3,width:44.0,height:7.6},
+ {label:'Professional Business',href:'/professional',left:50.3,top:62.3,width:44.1,height:7.6},
+ {label:'Launch Magnanimous',href:'/business-plan',left:4.7,top:70.6,width:44.0,height:7.6},
+ {label:'AI Business',href:'/business-ai',left:50.3,top:70.6,width:44.1,height:7.6},
+ {label:'Command',href:'/ai-chat',left:4.7,top:78.8,width:44.0,height:7.5},
+ {label:'Social Studio',href:'/social-media',left:50.3,top:78.8,width:44.1,height:7.5},
+ {label:'Virtual Assistant',href:'/virtual-assistant',left:4.7,top:87.0,width:44.0,height:6.6},
+ {label:'Reports',href:'/activity',left:50.3,top:87.0,width:44.1,height:6.6}
+];
 
 async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{}}}
 async function safeJson(url:string){try{return await fetch(url).then(read)}catch{return{}}}
@@ -46,13 +48,14 @@ export default function Home(){
  const[query,setQuery]=useState('');
  const[ads,setAds]=useState<Ad[]>([]);
  const[adConfig,setAdConfig]=useState<AdConfig>({adsense_configured:false,adsense_client_id:null,adsense_home_slot:null,auto_ads_ready:false});
- const[ready,setReady]=useState(false),[online,setOnline]=useState(false),[menuOpen,setMenuOpen]=useState(false),[sidebarCollapsed,setSidebarCollapsed]=useState(false);
- const mobileMenuButtonRef=useRef<HTMLButtonElement|null>(null),mobileDrawerCloseRef=useRef<HTMLButtonElement|null>(null),menuWasOpenRef=useRef(false);
+ const[ready,setReady]=useState(false),[online,setOnline]=useState(false),[menuOpen,setMenuOpen]=useState(false),[searchOpen,setSearchOpen]=useState(false),[sidebarCollapsed,setSidebarCollapsed]=useState(false);
+ const mobileMenuButtonRef=useRef<HTMLButtonElement|null>(null),mobileDrawerCloseRef=useRef<HTMLButtonElement|null>(null),mobileSearchRef=useRef<HTMLInputElement|null>(null),menuWasOpenRef=useRef(false);
  useEffect(()=>{(async()=>{const[health,t,a,mc]=await Promise.all([safeJson(`${api}/health`),safeJson(`${api}/api/tools`),safeJson(`${api}/api/ads?placement=home`),safeJson(`${api}/api/monetization/config`)]);setOnline(health?.status==='ok'&&Array.isArray(t.tools));setAds(a.ads||[]);setAdConfig({adsense_configured:!!mc.adsense_configured,adsense_client_id:mc.adsense_client_id||null,adsense_home_slot:mc.adsense_home_slot||null,auto_ads_ready:!!mc.auto_ads_ready});setReady(true)})()},[]);
  useEffect(()=>{try{setSidebarCollapsed(localStorage.getItem('iam_home_sidebar_collapsed')==='1')}catch{}},[]);
- useEffect(()=>{const close=(e:KeyboardEvent)=>{if(e.key==='Escape')setMenuOpen(false)};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[]);
+ useEffect(()=>{const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){setMenuOpen(false);setSearchOpen(false)}};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[]);
  useEffect(()=>{if(!menuOpen)return;const previous=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{document.body.style.overflow=previous}},[menuOpen]);
  useEffect(()=>{const background=[...document.querySelectorAll<HTMLElement>('.mobileExactStage,.revenue')];background.forEach(node=>menuOpen?node.setAttribute('inert',''):node.removeAttribute('inert'));if(menuOpen){menuWasOpenRef.current=true;requestAnimationFrame(()=>mobileDrawerCloseRef.current?.focus())}else if(menuWasOpenRef.current){menuWasOpenRef.current=false;requestAnimationFrame(()=>mobileMenuButtonRef.current?.focus())}return()=>background.forEach(node=>node.removeAttribute('inert'))},[menuOpen]);
+ useEffect(()=>{if(searchOpen)requestAnimationFrame(()=>mobileSearchRef.current?.focus())},[searchOpen]);
  useEffect(()=>{const client=adConfig.adsense_client_id;if(!client)return;const existing=document.querySelector('script[data-iam-adsense="true"]') as HTMLScriptElement|null;const requestAd=()=>{if(!adConfig.adsense_home_slot)return;try{((window as any).adsbygoogle=(window as any).adsbygoogle||[]).push({})}catch{}};if(existing){requestAd();return}const script=document.createElement('script');script.async=true;script.crossOrigin='anonymous';script.src=`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(client)}`;script.dataset.iamAdsense='true';script.onload=requestAd;document.head.appendChild(script)},[adConfig.adsense_client_id,adConfig.adsense_home_slot]);
  function submit(e:FormEvent){e.preventDefault();const q=query.trim();location.href=q?`/ai-chat?prompt=${encodeURIComponent(q)}`:'/ai-chat'}
  function toggleDesktopSidebar(){setSidebarCollapsed(value=>{const next=!value;try{localStorage.setItem('iam_home_sidebar_collapsed',next?'1':'0')}catch{}return next})}
@@ -76,91 +79,49 @@ export default function Home(){
   </section>
 
   <section className="mobileExactStage" aria-label="I AM MAGNANIMOUS WAY mobile dashboard">
-   <div className="mobileTopbar">
-    <ArtworkCrop label="I AM MAGNANIMOUS WAY home" href="/" left={.6} top={.6} width={20.2} height={8.6} className="mobileBrandCrop"/>
-    <div className="mobileTopActions">
-     <ArtworkCrop label="Open owner account" href="/owner-center" left={87.7} top={.9} width={11.4} height={7.3} className="mobileOwnerCrop"/>
-     <button ref={mobileMenuButtonRef} className="mobileMenuToggle" type="button" onClick={()=>setMenuOpen(value=>!value)} aria-expanded={menuOpen} aria-controls="mobile-side-menu" aria-label={menuOpen?'Close sidebar menu':'Open sidebar menu'}><span aria-hidden="true">{menuOpen?'Close':'Menu'}</span></button>
-    </div>
+   <div className="mobileReferenceFrame">
+    <img className="mobileReferenceArtwork" src="/mobile-dashboard-approved.webp" alt="I AM MAGNANIMOUS WAY mobile AI ecosystem dashboard" draggable={false}/>
+    <button ref={mobileMenuButtonRef} className="mobileReferenceHot mobileMenuHot" type="button" onClick={()=>setMenuOpen(value=>!value)} aria-expanded={menuOpen} aria-controls="mobile-side-menu" aria-label={menuOpen?'Close sidebar menu':'Open sidebar menu'}><span>Menu</span></button>
+    <a className="mobileReferenceHot mobileBrandHot" href="/" aria-label="I AM MAGNANIMOUS WAY home"><span>Home</span></a>
+    <button className="mobileReferenceHot mobileSearchHot" type="button" onClick={()=>setSearchOpen(value=>!value)} aria-expanded={searchOpen} aria-controls="mobile-reference-search" aria-label="Search Magnanimous AI"><span>Search</span></button>
+    <a className="mobileReferenceHot mobileNotifyHot" href="/activity" aria-label="Open reports and notifications"><span>Notifications</span></a>
+    <a className="mobileReferenceHot mobileOwnerHot" href="/owner-center" aria-label="Open owner account"><span>Owner account</span></a>
+    <a className="mobileReferenceHot mobileTutorialHot" href="/guide" aria-label="Watch platform tutorial"><span>Watch Tutorial</span></a>
+    {mobileReferenceCards.map(item=><a key={item.label} className="mobileReferenceHot mobileCardHot" style={{left:`${item.left}%`,top:`${item.top}%`,width:`${item.width}%`,height:`${item.height}%`}} href={item.href} aria-label={`Open ${item.label}`}><span>{item.label}</span></a>)}
+    <a className="mobileReferenceHot mobileBottomHome" href="/" aria-label="Home"><span>Home</span></a>
+    <a className="mobileReferenceHot mobileBottomCommand" href="/ai-chat" aria-label="AI Command"><span>AI Command</span></a>
+    <a className="mobileReferenceHot mobileBottomOpportunity" href="/opportunity-vault" aria-label="Opportunity"><span>Opportunity</span></a>
+    <a className="mobileReferenceHot mobileBottomCrm" href="/crm" aria-label="CRM"><span>CRM</span></a>
+    <button className="mobileReferenceHot mobileBottomMore" type="button" onClick={()=>setMenuOpen(true)} aria-label="Open more navigation"><span>More</span></button>
+    {!ready&&<div className="mobileServiceAlert checking" role="status" aria-live="polite">Checking live services…</div>}
+    {ready&&!online&&<div className="mobileServiceAlert degraded" role="status" aria-live="polite">Some live services unavailable</div>}
+    {ready&&online&&<span className="srStatus" aria-live="polite">Magnanimous AI online. Systems ready.</span>}
    </div>
-   <div className="mobileHeroFrame">
-    <div className="artCrop mobileHeroCrop" style={cropStyle(13.5,9.0,84.8,31.4)} aria-hidden="true"><img src="/crm-upgrade.jpeg" alt="" draggable={false}/></div>
-    <a className="mobileTutorialOverlay" href="/guide" aria-label="Watch platform tutorial"><span>Watch Tutorial</span></a>
-    <div className={ready?(online?'mobileHeroStatus online':'mobileHeroStatus degraded'):'mobileHeroStatus checking'} role="status" aria-live="polite">{ready?(online?'Live services online':'Some live services unavailable'):'Checking live services\u2026'}</div>
-   </div>
-   <form className="mobileSearch" onSubmit={submit} role="search"><input value={query} onChange={e=>setQuery(e.target.value)} aria-label="Search anything" placeholder="Search anything..."/><button type="submit" aria-label="Search Magnanimous AI">Search</button></form>
-   <nav className="mobileTopLinks" aria-label="Primary platform categories">
-    {topLinks.map(item=><ArtworkCrop key={`mobile-top-${item.label}`} label={item.label} href={item.href} left={item.left} top={1.7} width={item.width} height={5.8}/>) }
-   </nav>
-   <div className="mobileCardGrid" aria-label="Platform apps">
-    {cardLinks.map((item,i)=>{const col=i%5,row=Math.floor(i/5);return <a key={`mobile-card-${item.label}`} className={`mobilePremiumCard mobileAccent${i%5}`} href={item.href} aria-label={`Open ${item.label}`}><div className="mobileCardVisual"><div className="mobileCardArt" style={cropStyle(14.25+col*16.78,42.2+row*13.55,15.55,11.85)} aria-hidden="true"><img src="/crm-upgrade.jpeg" alt="" draggable={false}/></div></div><span className="mobileCardTitle">{item.label}</span><span className="mobileCardArrow" aria-hidden="true">Go</span></a>})}
-   </div>
-   <div className="mobileGuideGrid">
-    <a className="mobileGuideButton" href="/guide">Platform Guide</a>
-    <a className="mobileGuideButton" href="/guide">Guided Tour</a>
-   </div>
+   {searchOpen&&<form id="mobile-reference-search" className="mobileSearchPanel" onSubmit={submit} role="search"><input ref={mobileSearchRef} value={query} onChange={e=>setQuery(e.target.value)} aria-label="Search anything" placeholder="Search anything..."/><button type="submit">Search</button><button type="button" onClick={()=>setSearchOpen(false)} aria-label="Close search">Close</button></form>}
   </section>
 
   {menuOpen&&<button className="mobileDrawerBackdrop" type="button" tabIndex={-1} aria-label="Close sidebar menu" onClick={()=>setMenuOpen(false)}/>}
-  <aside id="mobile-side-menu" className={menuOpen?'mobileDrawer open':'mobileDrawer'} aria-hidden={!menuOpen}>
+  <aside id="mobile-side-menu" className={menuOpen?'mobileDrawer open':'mobileDrawer'} aria-hidden={!menuOpen} aria-label="Mobile navigation">
    <div className="mobileDrawerTop">
-    <ArtworkCrop label="I AM MAGNANIMOUS WAY home" href="/" left={.6} top={.6} width={20.2} height={8.6} className="drawerBrandCrop" tabIndex={menuOpen?0:-1} onClick={()=>setMenuOpen(false)}/>
+    <a className="mobileDrawerBrand" href="/" tabIndex={menuOpen?0:-1} onClick={()=>setMenuOpen(false)}>I AM MAGNANIMOUS WAY™</a>
     <button ref={mobileDrawerCloseRef} type="button" onClick={()=>setMenuOpen(false)} aria-label="Close sidebar menu" tabIndex={menuOpen?0:-1}>Close</button>
    </div>
    <nav className="mobileDrawerLinks" aria-label="Sidebar navigation">
-    {sideLinks.map((item,i)=><ArtworkCrop key={`drawer-${item.label}`} label={item.label} href={item.href} left={.75} top={10.72+i*3.93} width={12.2} height={3.55} tabIndex={menuOpen?0:-1} onClick={()=>setMenuOpen(false)}/>) }
-    <a className="mobileDrawerExtra" href="/creator-growth" tabIndex={menuOpen?0:-1} onClick={()=>setMenuOpen(false)}>Creator Growth</a>
+    {sideLinks.map(item=><a key={`drawer-${item.label}`} href={item.href} tabIndex={menuOpen?0:-1} onClick={()=>setMenuOpen(false)}>{item.label}<span aria-hidden="true">›</span></a>)}
+    <a href="/white-label" tabIndex={menuOpen?0:-1} onClick={()=>setMenuOpen(false)}>White Label<span aria-hidden="true">›</span></a>
+    <a href="/studio" tabIndex={menuOpen?0:-1} onClick={()=>setMenuOpen(false)}>Creator Studio<span aria-hidden="true">›</span></a>
+    <a href="/creator-growth" tabIndex={menuOpen?0:-1} onClick={()=>setMenuOpen(false)}>Growth<span aria-hidden="true">›</span></a>
    </nav>
   </aside>
 
   {(ads.length>0||adConfig.adsense_configured)&&<section className="revenue" aria-label="Sponsored advertising"><div className="revenueHead"><small>SPONSORED / ADVERTISING</small><span>Advertising stays separate from AI answers</span></div>{ads.length>0&&<div className="sponsors">{ads.map(ad=><a key={ad.id} href={ad.url} target="_blank" rel="sponsored noopener noreferrer"><small>{ad.label||'Sponsored'}</small><b>{ad.title}</b></a>)}</div>}{adConfig.adsense_configured&&<div className="adsense">{adConfig.adsense_home_slot&&adConfig.adsense_client_id?<ins className="adsbygoogle" style={{display:'block'}} data-ad-client={adConfig.adsense_client_id} data-ad-slot={adConfig.adsense_home_slot} data-ad-format="auto" data-full-width-responsive="true"/>:<p>Approved AdSense Auto Ads are enabled.</p>}</div>}</section>}
   <style jsx global>{`
-   .exactHome{margin:0;width:100%;min-height:100vh;min-height:100dvh;overflow-x:clip;background:#020713;color:#eefaff;font-family:Inter,system-ui,sans-serif}.exactStage{position:relative;width:min(100%,1920px,calc(100dvh * 16 / 9));aspect-ratio:16/9;margin:0 auto;overflow:hidden;background:#020713}.exactArtwork{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:contain;user-select:none;-webkit-user-drag:none}.hot{position:absolute;z-index:4;display:block;background:transparent;text-decoration:none;cursor:pointer;border:0;border-radius:8px;touch-action:manipulation;-webkit-tap-highlight-color:rgba(94,231,255,.18)}.hot span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.hot:focus-visible,.searchHot:focus-within,.desktopSidebarToggle:focus-visible,.mobileMenuToggle:focus-visible,.artCrop:focus-visible,.mobileSearch:focus-within{outline:2px solid #5ee7ff;outline-offset:-2px;box-shadow:0 0 20px rgba(94,231,255,.38)}.brandHot{left:.7%;top:.8%;width:19.2%;height:8.7%}.topHot{top:2.25%;height:5.3%}.notifyHot{left:84.9%;top:1.45%;width:2.6%;height:6%}.accountHot{left:87.7%;top:.9%;width:11.4%;height:7.3%}.tutorialHot{left:84.6%;top:27.2%;width:11.2%;height:5.1%}.platformGuideHot{left:36.2%;top:84.1%;width:30.8%;height:6.6%}.guidedTourHot{left:70.8%;top:88.5%;width:27.4%;height:6.3%}.sideHot{left:.75%;width:12.2%;height:3.55%;border-radius:6px}.cardHot{width:15.55%;height:11.85%;border-radius:12px}.searchHot{position:absolute;z-index:6;left:69.8%;top:2.05%;width:14.55%;height:5.15%;margin:0;touch-action:manipulation}.searchHot input{position:absolute;inset:0;width:100%;height:100%;box-sizing:border-box;border:1px solid rgba(61,214,255,.44);border-radius:999px;padding:0 clamp(10px,2vw,31px) 0 clamp(6px,1vw,14px);background:rgba(4,15,35,.93);color:#eafaff;font:600 clamp(8px,1.1vw,12px) Inter,system-ui,sans-serif;outline:none}.searchHot input::placeholder{color:#7f9daf;opacity:.85}.searchHot button{position:absolute;right:5%;top:17%;width:16%;height:66%;border:0;background:transparent;color:transparent;cursor:pointer}.srOnlyNav{position:absolute;left:0;top:0;z-index:8;transform:translateY(-140%);background:#020713;padding:6px 10px;border-radius:0 0 8px 0}.srOnlyNav:focus-within{transform:translateY(0)}.srOnlyNav a{color:#eefaff;font-weight:700;text-decoration:none}.srStatus{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.desktopSidebarToggle{position:absolute;z-index:10;left:11.55%;top:9.95%;width:2.5%;aspect-ratio:1;border:1px solid rgba(82,222,255,.7);border-radius:999px;background:rgba(2,10,25,.82);color:#bdf6ff;font-size:clamp(13px,1.2vw,20px);line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}.desktopSidebarToggle.collapsed{left:.65%;top:10.2%}.desktopSidebarMask{position:absolute;z-index:3;left:0;top:8.9%;bottom:0;width:13.35%;background:linear-gradient(90deg,#020713 0%,#020713 82%,rgba(2,7,19,.94) 100%);border-right:1px solid rgba(45,190,255,.24);pointer-events:none}
-   .mobileExactStage,.mobileDrawer,.mobileDrawerBackdrop{display:none}.artCrop{position:relative;overflow:hidden;display:block;background:#020713;text-decoration:none;border-radius:9px;touch-action:manipulation;-webkit-tap-highlight-color:rgba(94,231,255,.18)}.artCrop img{position:absolute;display:block;max-width:none;width:var(--crop-image-width);height:var(--crop-image-height);left:var(--crop-image-left);top:var(--crop-image-top);user-select:none;-webkit-user-drag:none;pointer-events:none}.artCrop span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.mobileSearch{display:flex;gap:8px;margin:0 12px 12px;padding:7px;border:1px solid rgba(61,214,255,.42);border-radius:999px;background:rgba(4,15,35,.95)}.mobileSearch input{min-width:0;flex:1;border:0;background:transparent;color:#eafaff;padding:5px 9px;font:600 14px Inter,system-ui,sans-serif;outline:none}.mobileSearch input::placeholder{color:#87a5b8}.mobileSearch button{border:1px solid rgba(90,221,255,.5);border-radius:999px;background:rgba(5,31,62,.96);color:#dffaff;padding:5px 13px;font-weight:800}.revenue{margin:18px auto 34px;width:min(1100px,calc(100% - 32px));padding:16px;border:1px solid rgba(79,204,255,.22);border-radius:18px;background:rgba(5,18,38,.9);box-shadow:0 18px 55px rgba(0,0,0,.3)}.revenueHead{display:flex;justify-content:space-between;gap:12px;color:#789bad;font-size:9px;letter-spacing:.12em}.sponsors{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:11px}.sponsors a{border:1px solid #254e6d;padding:10px;border-radius:10px;color:#dff9ff;text-decoration:none;display:grid;gap:4px}.sponsors small{color:#77a1b9}.adsense{margin-top:12px}
-   @media(max-width:1024px){.desktopStage{display:none!important}.mobileExactStage{display:block;width:100%;max-width:720px;min-height:100dvh;margin:0 auto;box-sizing:border-box;background:#020713;padding:0 0 max(24px,env(safe-area-inset-bottom))}.mobileTopbar{position:sticky;top:0;z-index:24;display:flex;align-items:center;justify-content:space-between;gap:9px;padding:8px 9px;background:rgba(2,7,19,.96);border-bottom:1px solid rgba(67,210,255,.22);backdrop-filter:blur(14px)}.mobileBrandCrop{width:min(58vw,235px);border-radius:7px}.mobileTopActions{display:flex;align-items:center;gap:7px}.mobileOwnerCrop{width:88px;border-radius:7px}.mobileMenuToggle{width:42px;height:42px;border:1px solid rgba(69,215,255,.5);border-radius:11px;background:rgba(4,17,37,.96);color:#e7fbff;font-size:21px;display:grid;place-items:center;padding:0}.mobileHeroFrame{position:relative;margin:9px}.mobileHeroCrop{width:100%;margin:0;border-radius:12px;box-sizing:border-box}.mobileTutorialOverlay{position:absolute;z-index:4;right:1%;top:0;width:15%;height:79%;border-radius:10px;cursor:pointer;-webkit-tap-highlight-color:rgba(94,231,255,.18)}.mobileTutorialOverlay span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.mobileHeroStatus{position:absolute;z-index:5;left:25%;top:52%;width:46%;min-height:18%;box-sizing:border-box;display:grid;place-items:center;padding:4px 6px;border:1px solid rgba(94,231,255,.55);border-radius:999px;background:rgba(2,10,25,.94);color:#dffaff;font-size:clamp(9px,2.7vw,12px);font-weight:800;text-align:center}.mobileHeroStatus.degraded{border-color:rgba(255,193,87,.72);color:#ffe0a6}.mobileHeroStatus.checking{opacity:.9}.mobileTopLinks{display:flex;gap:7px;overflow-x:auto;padding:0 10px 10px;scrollbar-width:none}.mobileTopLinks::-webkit-scrollbar{display:none}.mobileTopLinks .artCrop{flex:0 0 118px;border:1px solid rgba(48,187,255,.2)}.mobileCardGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:2px 9px 12px}.mobileCardGrid .artCrop{width:100%;border:1px solid rgba(54,198,255,.24);box-shadow:0 8px 26px rgba(0,0,0,.2)}.mobileGuideGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:0 9px 10px}.mobileGuideButton{display:grid;place-items:center;min-height:44px;border:1px solid rgba(54,198,255,.36);border-radius:10px;background:rgba(5,24,52,.95);color:#dffaff;font-weight:800;text-decoration:none}.mobileDrawerExtra{display:grid;place-items:center;min-height:44px;border:1px solid rgba(54,198,255,.28);border-radius:9px;background:rgba(5,24,52,.92);color:#dffaff;font-weight:800;text-decoration:none}.mobileDrawerBackdrop{display:block;position:fixed;inset:0;z-index:48;border:0;background:rgba(0,4,12,.7);padding:0}.mobileDrawer{display:block;position:fixed;z-index:49;left:0;top:0;bottom:0;width:min(82vw,320px);padding:9px;background:#020713;border-right:1px solid rgba(67,210,255,.3);box-shadow:20px 0 60px rgba(0,0,0,.6);overflow-y:auto;transform:translateX(-104%);transition:transform .2s ease}.mobileDrawer.open{transform:translateX(0)}.mobileDrawerTop{position:sticky;top:-9px;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:9px;padding:9px 0;background:#020713}.drawerBrandCrop{width:220px;border-radius:7px}.mobileDrawerTop button{width:42px;height:42px;border:1px solid rgba(67,210,255,.45);border-radius:11px;background:rgba(5,20,44,.98);color:#e9fbff;font-size:27px;line-height:1}.mobileDrawerLinks{display:grid;gap:7px;padding-bottom:max(20px,env(safe-area-inset-bottom))}.mobileDrawerLinks .artCrop{width:100%;border:1px solid rgba(48,187,255,.18)}.revenueHead{flex-direction:column}.sponsors{grid-template-columns:1fr}}
-   /* Mobile-only cinematic dashboard. The desktop artwork and its interactive overlay remain untouched. */
+   .exactHome{margin:0;width:100%;min-height:100vh;min-height:100dvh;overflow-x:clip;background:#020713;color:#eefaff;font-family:Inter,system-ui,sans-serif}.exactStage{position:relative;width:min(100%,1920px,calc(100dvh * 16 / 9));aspect-ratio:16/9;margin:0 auto;overflow:hidden;background:#020713}.exactArtwork{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:contain;user-select:none;-webkit-user-drag:none}.hot{position:absolute;z-index:4;display:block;background:transparent;text-decoration:none;cursor:pointer;border:0;border-radius:8px;touch-action:manipulation;-webkit-tap-highlight-color:rgba(94,231,255,.18)}.hot span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.hot:focus-visible,.searchHot:focus-within,.desktopSidebarToggle:focus-visible,.mobileReferenceHot:focus-visible,.mobileSearchPanel:focus-within{outline:2px solid #5ee7ff;outline-offset:-2px;box-shadow:0 0 20px rgba(94,231,255,.38)}.brandHot{left:.7%;top:.8%;width:19.2%;height:8.7%}.topHot{top:2.25%;height:5.3%}.notifyHot{left:84.9%;top:1.45%;width:2.6%;height:6%}.accountHot{left:87.7%;top:.9%;width:11.4%;height:7.3%}.tutorialHot{left:84.6%;top:27.2%;width:11.2%;height:5.1%}.platformGuideHot{left:36.2%;top:84.1%;width:30.8%;height:6.6%}.guidedTourHot{left:70.8%;top:88.5%;width:27.4%;height:6.3%}.sideHot{left:.75%;width:12.2%;height:3.55%;border-radius:6px}.cardHot{width:15.55%;height:11.85%;border-radius:12px}.searchHot{position:absolute;z-index:6;left:69.8%;top:2.05%;width:14.55%;height:5.15%;margin:0;touch-action:manipulation}.searchHot input{position:absolute;inset:0;width:100%;height:100%;box-sizing:border-box;border:1px solid rgba(61,214,255,.44);border-radius:999px;padding:0 clamp(10px,2vw,31px) 0 clamp(6px,1vw,14px);background:rgba(4,15,35,.93);color:#eafaff;font:600 clamp(8px,1.1vw,12px) Inter,system-ui,sans-serif;outline:none}.searchHot input::placeholder{color:#7f9daf;opacity:.85}.searchHot button{position:absolute;right:5%;top:17%;width:16%;height:66%;border:0;background:transparent;color:transparent;cursor:pointer}.srOnlyNav{position:absolute;left:0;top:0;z-index:8;transform:translateY(-140%);background:#020713;padding:6px 10px;border-radius:0 0 8px 0}.srOnlyNav:focus-within{transform:translateY(0)}.srOnlyNav a{color:#eefaff;font-weight:700;text-decoration:none}.srStatus{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.desktopSidebarToggle{position:absolute;z-index:10;left:11.55%;top:9.95%;width:2.5%;aspect-ratio:1;border:1px solid rgba(82,222,255,.7);border-radius:999px;background:rgba(2,10,25,.82);color:#bdf6ff;font-size:clamp(13px,1.2vw,20px);line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}.desktopSidebarToggle.collapsed{left:.65%;top:10.2%}.desktopSidebarMask{position:absolute;z-index:3;left:0;top:8.9%;bottom:0;width:13.35%;background:linear-gradient(90deg,#020713 0%,#020713 82%,rgba(2,7,19,.94) 100%);border-right:1px solid rgba(45,190,255,.24);pointer-events:none}
+   .mobileExactStage,.mobileDrawer,.mobileDrawerBackdrop{display:none}.revenue{margin:18px auto 34px;width:min(1100px,calc(100% - 32px));padding:16px;border:1px solid rgba(79,204,255,.22);border-radius:18px;background:rgba(5,18,38,.9);box-shadow:0 18px 55px rgba(0,0,0,.3)}.revenueHead{display:flex;justify-content:space-between;gap:12px;color:#789bad;font-size:9px;letter-spacing:.12em}.sponsors{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:11px}.sponsors a{border:1px solid #254e6d;padding:10px;border-radius:10px;color:#dff9ff;text-decoration:none;display:grid;gap:4px}.sponsors small{color:#77a1b9}.adsense{margin-top:12px}
    @media(max-width:1024px){
-    .mobileExactStage{background:radial-gradient(ellipse at 50% 0%,rgba(17,88,166,.36),transparent 44%),linear-gradient(180deg,#020914,#02050e 72%,#01040a);position:relative;isolation:isolate}
-    .mobileExactStage:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:repeating-linear-gradient(105deg,transparent 0 85px,rgba(42,151,255,.055) 86px 87px,transparent 88px 180px);animation:mobileAmbient 22s ease-in-out infinite alternate}
-    .mobileTopbar{box-shadow:0 3px 18px rgba(0,157,255,.26);border-bottom-color:rgba(60,180,255,.55)}
-    .mobileHeroFrame{filter:drop-shadow(0 0 20px rgba(0,115,255,.28))}
-    .mobileCardGrid{align-items:stretch;gap:10px;padding:8px 10px 18px}
-    .mobilePremiumCard{position:relative;min-width:0;min-height:116px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;isolation:isolate;border:1px solid var(--accent);border-radius:15px;text-decoration:none;color:#f5fbff;padding:8px 9px 10px;background:radial-gradient(ellipse at 50% 15%,var(--tint),transparent 75%),linear-gradient(160deg,#10264a 0%,#03091b 80%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -8px 22px var(--tint),0 5px 18px rgba(0,0,0,.5),0 0 10px var(--glow);transition:transform .2s ease,box-shadow .2s ease}
-    .mobilePremiumCard:before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.13) 48%,transparent 58%);transform:translateX(-120%);animation:mobileShimmer 8s linear infinite}
-    .mobilePremiumCard:active{transform:scale(.975)}
-    .mobilePremiumCard:focus-visible{outline:3px solid #fff;outline-offset:3px}
-    .mobileAccent0{--accent:#14baff;--tint:rgba(0,132,255,.3);--glow:rgba(0,152,255,.28)}
-    .mobileAccent1{--accent:#c63aff;--tint:rgba(147,15,255,.3);--glow:rgba(172,47,255,.3)}
-    .mobileAccent2{--accent:#00dfd4;--tint:rgba(0,220,195,.24);--glow:rgba(0,220,195,.25)}
-    .mobileAccent3{--accent:#ffbf49;--tint:rgba(255,161,12,.24);--glow:rgba(255,179,36,.28)}
-    .mobileAccent4{--accent:#4f9fff;--tint:rgba(0,116,255,.27);--glow:rgba(41,137,255,.3)}
-    .mobileCardVisual{height:74px;position:relative;overflow:hidden;display:block;pointer-events:none}
-    .mobileCardArt{position:absolute;width:100%;height:100%;inset:0;overflow:hidden;filter:saturate(1.2) contrast(1.08)}
-    .mobileCardArt img{position:absolute;max-width:none;width:var(--crop-image-width);height:var(--crop-image-height);left:var(--crop-image-left);top:var(--crop-image-top);pointer-events:none;user-select:none}
-    .mobileCardTitle{position:relative;z-index:1;font-weight:800;font-size:clamp(12px,3.2vw,16px);line-height:1.2;max-width:calc(100% - 22px);text-shadow:0 2px 8px #000}
-    .mobileCardArrow{position:absolute;right:8px;bottom:8px;z-index:1;border:1px solid var(--accent);border-radius:50%;width:24px;height:24px;display:grid;place-items:center;font-size:17px;color:white;background:rgba(0,14,37,.75);box-shadow:0 0 12px var(--glow)}
-    .mobileGuideButton{box-shadow:0 0 14px rgba(0,161,255,.15)}
+    .desktopStage{display:none!important}.mobileExactStage{display:block;width:100%;max-width:560px;min-height:100dvh;margin:0 auto;box-sizing:border-box;background:#01050d;padding:0 0 max(18px,env(safe-area-inset-bottom));overflow:visible}.mobileReferenceFrame{position:relative;width:100%;aspect-ratio:941/1672;overflow:hidden;background:#01050d}.mobileReferenceArtwork{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:fill;user-select:none;-webkit-user-drag:none;pointer-events:none}.mobileReferenceHot{position:absolute;z-index:5;display:block;margin:0;padding:0;border:0;border-radius:9px;background:transparent;color:transparent;text-decoration:none;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:rgba(94,231,255,.22)}.mobileReferenceHot span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.mobileMenuHot{left:1.2%;top:.45%;width:8.7%;height:4.8%}.mobileBrandHot{left:9.8%;top:.25%;width:48.5%;height:5.0%}.mobileSearchHot{left:61.7%;top:.35%;width:8.7%;height:4.9%}.mobileNotifyHot{left:70.4%;top:.35%;width:8.0%;height:4.9%}.mobileOwnerHot{left:78.4%;top:.25%;width:18.8%;height:5.0%}.mobileTutorialHot{left:75.7%;top:5.6%;width:22.0%;height:18.9%}.mobileCardHot{border-radius:12px}.mobileBottomHome{left:2.0%;top:93.7%;width:18.0%;height:5.6%}.mobileBottomCommand{left:20.0%;top:93.7%;width:20.0%;height:5.6%}.mobileBottomOpportunity{left:40.0%;top:93.7%;width:20.0%;height:5.6%}.mobileBottomCrm{left:60.0%;top:93.7%;width:20.0%;height:5.6%}.mobileBottomMore{left:80.0%;top:93.7%;width:18.0%;height:5.6%}.mobileServiceAlert{position:absolute;z-index:7;left:6%;top:25.2%;width:88%;min-height:2.8%;display:grid;place-items:center;box-sizing:border-box;padding:3px 8px;border-radius:999px;text-align:center;font-size:clamp(9px,2.6vw,12px);font-weight:900;letter-spacing:.01em;backdrop-filter:blur(8px)}.mobileServiceAlert.checking{border:1px solid rgba(94,231,255,.72);background:rgba(2,18,40,.86);color:#e8fbff}.mobileServiceAlert.degraded{border:1px solid rgba(255,190,70,.88);background:rgba(45,24,2,.9);color:#ffe3a5}.mobileSearchPanel{position:fixed;z-index:47;left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));top:max(68px,calc(env(safe-area-inset-top) + 54px));display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:7px;padding:8px;border:1px solid rgba(72,192,255,.66);border-radius:999px;background:rgba(2,13,32,.98);box-shadow:0 14px 40px rgba(0,0,0,.55),0 0 24px rgba(0,134,255,.2)}.mobileSearchPanel input{min-width:0;border:0;outline:0;background:transparent;color:#fff;padding:7px 9px;font:700 14px Inter,system-ui,sans-serif}.mobileSearchPanel input::placeholder{color:#8ea9bd}.mobileSearchPanel button{min-height:36px;border:1px solid rgba(79,198,255,.62);border-radius:999px;padding:0 12px;background:#082852;color:#eaffff;font-weight:900}.mobileDrawerBackdrop{display:block;position:fixed;inset:0;z-index:48;border:0;background:rgba(0,4,12,.72);padding:0}.mobileDrawer{display:block;position:fixed;z-index:49;left:0;top:0;bottom:0;width:min(84vw,330px);padding:max(9px,env(safe-area-inset-top)) 9px max(12px,env(safe-area-inset-bottom));box-sizing:border-box;background:#020713;border-right:1px solid rgba(67,210,255,.34);box-shadow:20px 0 60px rgba(0,0,0,.68);overflow-y:auto;transform:translateX(-104%);transition:transform .2s ease}.mobileDrawer.open{transform:translateX(0)}.mobileDrawerTop{position:sticky;top:calc(-1 * max(9px,env(safe-area-inset-top)));z-index:2;display:flex;align-items:center;justify-content:space-between;gap:9px;padding:12px 0;background:#020713}.mobileDrawerBrand{color:#fff1bd;font-size:12px;font-weight:950;text-decoration:none;letter-spacing:.02em}.mobileDrawerTop button{min-width:48px;min-height:44px;border:1px solid rgba(67,210,255,.45);border-radius:11px;background:rgba(5,20,44,.98);color:#e9fbff;font-size:12px;font-weight:900}.mobileDrawerLinks{display:grid;gap:7px;padding-bottom:max(20px,env(safe-area-inset-bottom))}.mobileDrawerLinks a{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 12px;border:1px solid rgba(48,187,255,.2);border-radius:9px;background:linear-gradient(145deg,rgba(8,29,60,.97),rgba(2,10,24,.97));color:#eafaff;text-decoration:none;font-weight:800;font-size:12px}.mobileDrawerLinks a span{color:#68dfff;font-size:20px}.revenue{width:min(520px,calc(100% - 20px));box-sizing:border-box;margin:12px auto 26px;padding:12px}.revenueHead{flex-direction:column}.sponsors{grid-template-columns:1fr}
    }
-   @keyframes mobileShimmer{0%,60%,100%{transform:translateX(-120%)}78%{transform:translateX(120%)}}
-   @keyframes mobileAmbient{from{opacity:.45;transform:translateY(0)}to{opacity:.9;transform:translateY(25px)}}
-   @media(prefers-reduced-motion:reduce){.mobilePremiumCard:before,.mobileExactStage:before{animation:none}.mobilePremiumCard{transition:none}}
-   /* Mobile accessibility, tap targets, safe areas, and small-device layout. */
-   @media(max-width:1024px){
-    .mobileTopbar{padding-left:max(9px,env(safe-area-inset-left));padding-right:max(9px,env(safe-area-inset-right))}
-    .mobileMenuToggle{min-width:44px;min-height:44px;font-size:13px;font-weight:800}
-    .mobileDrawerTop button{min-width:44px;min-height:44px;font-size:13px;font-weight:800}
-    .mobileCardArrow{width:30px;height:30px;font-size:11px;font-weight:800}
-    .mobilePremiumCard{min-height:140px;touch-action:manipulation}
-    .mobileCardVisual{height:90px}
-    .mobilePremiumCard:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -8px 22px var(--tint),0 8px 26px rgba(0,0,0,.6),0 0 18px var(--glow)}
-    .mobileSearch input:focus-visible,.mobileSearch button:focus-visible,.mobileMenuToggle:focus-visible,.mobileGuideButton:focus-visible,.mobileDrawerTop button:focus-visible{outline:3px solid #f5c868;outline-offset:3px}
-    .mobileDrawer{padding-left:max(9px,env(safe-area-inset-left))}
-    .mobileDrawerLinks .artCrop{min-height:44px}
-   }
-   @media(max-width:359px){.mobileCardGrid{grid-template-columns:1fr}.mobilePremiumCard{min-height:165px}.mobileCardVisual{height:112px}.mobileOwnerCrop{width:60px}.mobileBrandCrop{width:48vw}}
-   @media(prefers-reduced-motion:reduce){.mobileDrawer{transition:none}.mobilePremiumCard:before{display:none}}
-   @media(max-width:420px){.mobileBrandCrop{width:53vw}.mobileOwnerCrop{width:72px}.mobileMenuToggle{width:38px;height:38px}.mobileCardGrid{grid-template-columns:1fr 1fr;gap:7px;padding-left:7px;padding-right:7px}}
-   @media(orientation:landscape) and (max-height:600px) and (max-width:1000px){.desktopStage{display:none}.mobileExactStage{display:block}.mobileCardGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+   @media(max-width:420px){.mobileSearchPanel{grid-template-columns:minmax(0,1fr) auto;border-radius:18px}.mobileSearchPanel button:last-child{grid-column:1/-1}.mobileOwnerHot{left:78%;width:19.5%}}
    @media(prefers-reduced-motion:reduce){.mobileDrawer{transition:none}}
   `}</style>
   <style jsx global>{`
