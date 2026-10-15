@@ -4,12 +4,17 @@ import assert from 'node:assert/strict';
 
 const layout=fs.readFileSync('frontend/app/layout.tsx','utf8');
 const page=fs.readFileSync('frontend/app/page.tsx','utf8');
-const approvedPath='frontend/public/mobile-dashboard-approved.webp';
-const approved=fs.readFileSync(approvedPath);
-const expectedApprovedGitBlob='1b894696ed7bcdc1613c93d36e29fa2210acaad3';
-const gitBlobSha=input=>crypto.createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${input.length}\0`),input])).digest('hex');
-
-assert.equal(gitBlobSha(approved),expectedApprovedGitBlob,'Approved mobile artwork bytes changed. Restore the owner-approved portrait artwork; do not redesign it.');
+const protection=fs.readFileSync('frontend/scripts/verify-main-protection.mjs','utf8');
+const partsDir='frontend/artwork/mobile-approved';
+const partNames=fs.readdirSync(partsDir).filter(name=>/^part-\d\d\.b64$/.test(name)).sort();
+assert.equal(partNames.length,8,'Expected eight exact approved mobile artwork chunks.');
+const approved=Buffer.from(partNames.map(name=>fs.readFileSync(`${partsDir}/${name}`,'utf8').trim()).join(''),'base64');
+const approvedHash=crypto.createHash('sha256').update(approved).digest('hex').toUpperCase();
+assert.equal(approved.length,237522,'Approved mobile artwork byte length changed.');
+assert.equal(approvedHash,'DAD07958984B667E2661E6A96BFCEB4BA5B494E5D8E616BE30F7342BC5721903','Approved mobile artwork changed. Restore the exact owner-approved portrait artwork.');
+assert.equal(approved.subarray(0,4).toString(),'RIFF','Approved mobile artwork is not a WebP RIFF container.');
+assert.equal(approved.subarray(8,12).toString(),'WEBP','Approved mobile artwork WebP signature is missing.');
+assert.ok(protection.startsWith("import './rebuild-approved-mobile-artwork.mjs';"),'Frontend prebuild must reconstruct and verify the approved mobile artwork before building.');
 assert.ok(!layout.includes("import MobileHomeDashboard from './mobile-home-dashboard'"),'Replacement mobile overlay must not supersede the canonical exact-artwork home.');
 assert.ok(!layout.includes('<MobileHomeDashboard/>'),'Replacement mobile overlay must remain unmounted.');
 assert.ok(!layout.includes("import './mobile-approved-polish.css'"),'Overlay-only mobile polish must not override the canonical exact-artwork home.');
@@ -19,10 +24,12 @@ assert.ok(page.includes('className="mobileExactStage"'),'Canonical mobile stage 
 assert.ok(page.includes('src="/mobile-dashboard-approved.webp"'),'Canonical mobile stage must keep the approved portrait artwork as the primary design.');
 assert.ok(page.includes('className="mobileReferenceFrame"'),'Approved portrait artwork frame is missing.');
 assert.ok(page.includes('className="mobileReferenceHot mobileCardHot"'),'Mobile module click hotspots are missing.');
-assert.ok(layout.includes("background-image:url('/mobile-dashboard-approved.webp?lock=1b894696ed7bcdc1613c93d36e29fa2210acaad3')!important"),'Mobile frame must use the exact approved artwork as its resilience background, never a substitute design.');
+assert.ok(layout.includes("background-image:url('/mobile-dashboard-approved.webp?lock=DAD07958984B667E')!important"),'Mobile frame must use the exact approved artwork as its resilience background, never a substitute design.');
+assert.ok(layout.includes('aspect-ratio:9/16!important'),'Mobile frame must preserve the exact approved 9:16 artwork proportions.');
 assert.ok(!layout.includes("background-image:url('/mobile-dashboard-fallback.svg')!important"),'Simplified fallback artwork must never replace the approved mobile design.');
 assert.ok(layout.includes('.mobileReferenceArtwork{opacity:1!important;visibility:visible!important'),'Approved portrait artwork must remain visible and primary.');
-assert.ok(layout.includes('body:has(.mobileReferenceFrame) .iam-help-link')&&layout.includes('body:has(.mobileReferenceFrame) .iam-tour-launch')&&layout.includes('body:has(.mobileReferenceFrame) .iam-progress-save'),'Homepage helper overlays must not cover the approved mobile artwork.');
+for(const overlay of ['.iam-shell-topbar','.iam-shell-sidebar','.iam-sidebar-scrim','.iam-shell-ambient','.iam-shop-link','.iam-business-identity','.iam-help-link','.iam-tour-launch','.iam-progress-save','.iam-global-tools'])assert.ok(layout.includes(`body:has(.mobileReferenceFrame) ${overlay}`),`Mobile home must suppress duplicate chrome overlay ${overlay}.`);
+assert.ok(layout.includes('html[data-iam-shell="true"] body:has(.mobileReferenceFrame) .iam-shell-content{margin-left:0!important;padding-top:0!important'),'Mobile home must remove shell offsets so the approved artwork starts at the viewport edge.');
 for(const route of ['/video-studio','/white-label','/studio','/creator-growth','/opportunity-vault','/knowledge','/routine-studio','/ai-receptionist','/connections','/professional','/business-plan','/business-ai','/ai-chat','/social-media','/virtual-assistant','/activity'])assert.ok(page.includes(route),`Approved mobile navigation missing ${route}`);
 for(const token of ['/api/ads?placement=home','/api/monetization/config','adsbygoogle'])assert.ok(page.includes(token),`Mobile home revenue behavior missing ${token}`);
 assert.ok(page.includes('mobileTutorialHot')&&page.includes('href="/guide"'),'Tutorial artwork must remain clickable.');
@@ -38,4 +45,4 @@ assert.ok(page.includes('mobileServiceAlert degraded')&&page.includes('Some live
 assert.ok(page.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion safety is missing.');
 assert.ok(page.includes("className={sidebarCollapsed?'exactStage desktopStage sidebarCollapsed':'exactStage desktopStage'}"),'Approved desktop dashboard structure changed unexpectedly.');
 assert.ok(page.includes('className="exactArtwork" src="/crm-upgrade.jpeg"'),'Approved desktop artwork source changed unexpectedly.');
-console.log('Immutable homepage artwork lock PASS: canonical approved mobile bytes are exact, the mobile artwork is primary and uncovered, all clickable routes remain, and desktop artwork stays unchanged.');
+console.log('Immutable homepage artwork lock PASS: exact approved mobile portrait bytes reconstruct correctly, duplicate mobile chrome is suppressed, all clickable routes remain, and desktop artwork stays unchanged.');
