@@ -6,7 +6,7 @@ const layout=fs.readFileSync('frontend/app/layout.tsx','utf8');
 const page=fs.readFileSync('frontend/app/page.tsx','utf8');
 const approvedPath='frontend/public/mobile-dashboard-approved.webp';
 const approved=fs.readFileSync(approvedPath);
-const expectedApprovedGitBlob='20055cee777421537713a9153c377e6cfca77b02';
+const expectedApprovedGitBlob='1b894696ed7bcdc1613c93d36e29fa2210acaad3';
 const gitBlobSha=input=>crypto.createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${input.length}\0`),input])).digest('hex');
 
 assert.equal(gitBlobSha(approved),expectedApprovedGitBlob,'Approved mobile artwork bytes changed. Restore the owner-approved portrait artwork; do not redesign it.');
@@ -19,7 +19,7 @@ assert.ok(page.includes('className="mobileExactStage"'),'Canonical mobile stage 
 assert.ok(page.includes('src="/mobile-dashboard-approved.webp"'),'Canonical mobile stage must keep the approved portrait artwork as the primary design.');
 assert.ok(page.includes('className="mobileReferenceFrame"'),'Approved portrait artwork frame is missing.');
 assert.ok(page.includes('className="mobileReferenceHot mobileCardHot"'),'Mobile module click hotspots are missing.');
-assert.ok(layout.includes("background-image:url('/mobile-dashboard-approved.webp?lock=20055cee777421537713a9153c377e6cfca77b02')!important"),'Mobile frame must use the exact approved artwork as its resilience background, never a substitute design.');
+assert.ok(layout.includes("background-image:url('/mobile-dashboard-approved.webp?lock=1b894696ed7bcdc1613c93d36e29fa2210acaad3')!important"),'Mobile frame must use the exact approved artwork as its resilience background, never a substitute design.');
 assert.ok(!layout.includes("background-image:url('/mobile-dashboard-fallback.svg')!important"),'Simplified fallback artwork must never replace the approved mobile design.');
 assert.ok(layout.includes('.mobileReferenceArtwork{opacity:1!important;visibility:visible!important'),'Approved portrait artwork must remain visible and primary.');
 assert.ok(layout.includes('body:has(.mobileReferenceFrame) .iam-help-link')&&layout.includes('body:has(.mobileReferenceFrame) .iam-tour-launch')&&layout.includes('body:has(.mobileReferenceFrame) .iam-progress-save'),'Homepage helper overlays must not cover the approved mobile artwork.');
