@@ -1,11 +1,15 @@
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 
 const layout=fs.readFileSync('frontend/app/layout.tsx','utf8');
 const page=fs.readFileSync('frontend/app/page.tsx','utf8');
-const fallbackPath='frontend/public/mobile-dashboard-fallback.svg';
-const fallback=fs.readFileSync(fallbackPath,'utf8');
+const approvedPath='frontend/public/mobile-dashboard-approved.webp';
+const approved=fs.readFileSync(approvedPath);
+const expectedApprovedGitBlob='20055cee777421537713a9153c377e6cfca77b02';
+const gitBlobSha=input=>crypto.createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${input.length}\0`),input])).digest('hex');
 
+assert.equal(gitBlobSha(approved),expectedApprovedGitBlob,'Approved mobile artwork bytes changed. Restore the owner-approved portrait artwork; do not redesign it.');
 assert.ok(!layout.includes("import MobileHomeDashboard from './mobile-home-dashboard'"),'Replacement mobile overlay must not supersede the canonical exact-artwork home.');
 assert.ok(!layout.includes('<MobileHomeDashboard/>'),'Replacement mobile overlay must remain unmounted.');
 assert.ok(!layout.includes("import './mobile-approved-polish.css'"),'Overlay-only mobile polish must not override the canonical exact-artwork home.');
@@ -15,10 +19,10 @@ assert.ok(page.includes('className="mobileExactStage"'),'Canonical mobile stage 
 assert.ok(page.includes('src="/mobile-dashboard-approved.webp"'),'Canonical mobile stage must keep the approved portrait artwork as the primary design.');
 assert.ok(page.includes('className="mobileReferenceFrame"'),'Approved portrait artwork frame is missing.');
 assert.ok(page.includes('className="mobileReferenceHot mobileCardHot"'),'Mobile module click hotspots are missing.');
-assert.ok(fs.existsSync(fallbackPath),'Resilient mobile dashboard fallback artwork is missing.');
-assert.ok(layout.includes("background-image:url('/mobile-dashboard-fallback.svg')!important"),'Mobile reference frame must retain the resilient fallback behind the approved design.');
-assert.ok(layout.includes('.mobileReferenceArtwork{opacity:1!important;visibility:visible!important'),'Approved portrait artwork must remain visible and primary; fallback may only sit behind it.');
-for(const label of ['I AM MAGNANIMOUS WAY™','Video Studio','White Label','Creator Studio','Growth','Opportunity Vault','Knowledge Center','Routines','AI Receptionist','Connected','Professional Business','Launch Magnanimous','AI Business','Command','Social Studio','Virtual Assistant','Reports','AI Command','CRM','More'])assert.ok(fallback.includes(label),`Visible mobile fallback missing ${label}`);
+assert.ok(layout.includes("background-image:url('/mobile-dashboard-approved.webp?lock=20055cee777421537713a9153c377e6cfca77b02')!important"),'Mobile frame must use the exact approved artwork as its resilience background, never a substitute design.');
+assert.ok(!layout.includes("background-image:url('/mobile-dashboard-fallback.svg')!important"),'Simplified fallback artwork must never replace the approved mobile design.');
+assert.ok(layout.includes('.mobileReferenceArtwork{opacity:1!important;visibility:visible!important'),'Approved portrait artwork must remain visible and primary.');
+assert.ok(layout.includes('body:has(.mobileReferenceFrame) .iam-help-link')&&layout.includes('body:has(.mobileReferenceFrame) .iam-tour-launch')&&layout.includes('body:has(.mobileReferenceFrame) .iam-progress-save'),'Homepage helper overlays must not cover the approved mobile artwork.');
 for(const route of ['/video-studio','/white-label','/studio','/creator-growth','/opportunity-vault','/knowledge','/routine-studio','/ai-receptionist','/connections','/professional','/business-plan','/business-ai','/ai-chat','/social-media','/virtual-assistant','/activity'])assert.ok(page.includes(route),`Approved mobile navigation missing ${route}`);
 for(const token of ['/api/ads?placement=home','/api/monetization/config','adsbygoogle'])assert.ok(page.includes(token),`Mobile home revenue behavior missing ${token}`);
 assert.ok(page.includes('mobileTutorialHot')&&page.includes('href="/guide"'),'Tutorial artwork must remain clickable.');
@@ -34,4 +38,4 @@ assert.ok(page.includes('mobileServiceAlert degraded')&&page.includes('Some live
 assert.ok(page.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion safety is missing.');
 assert.ok(page.includes("className={sidebarCollapsed?'exactStage desktopStage sidebarCollapsed':'exactStage desktopStage'}"),'Approved desktop dashboard structure changed unexpectedly.');
 assert.ok(page.includes('className="exactArtwork" src="/crm-upgrade.jpeg"'),'Approved desktop artwork source changed unexpectedly.');
-console.log('Mobile design lock PASS: approved portrait artwork is primary and visible, fallback stays behind it, sixteen clickable module routes, search/tutorial/profile/notifications, bottom navigation, collapsible drawer, live status/revenue, vertical scrolling, and desktop isolation are intact.');
+console.log('Immutable homepage artwork lock PASS: canonical approved mobile bytes are exact, the mobile artwork is primary and uncovered, all clickable routes remain, and desktop artwork stays unchanged.');
