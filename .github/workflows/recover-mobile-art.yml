@@ -1,0 +1,76 @@
+name: Recover Approved Mobile Artwork
+
+on:
+  push:
+    branches: [fix/mobile-asset-recovery-20261015]
+    paths:
+      - 'frontend/app/mobile-reference-art/**'
+      - '.github/workflows/recover-mobile-art.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  recover-mobile-art:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/mobile-asset-recovery-20261015
+          fetch-depth: 0
+      - name: Reassemble approved AVIF source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          let b64='';
+          for(let i=0;i<5;i++){
+            const text=fs.readFileSync(`frontend/app/mobile-reference-art/part${i}.ts`,'utf8').trim();
+            const match=text.match(/^export default '([A-Za-z0-9+/=]+)';?$/s);
+            if(!match) throw new Error(`Invalid source chunk part${i}.ts`);
+            b64+=match[1];
+          }
+          const bytes=Buffer.from(b64,'base64');
+          if(bytes.length<50000) throw new Error(`Approved source unexpectedly small: ${bytes.length}`);
+          fs.writeFileSync('/tmp/mobile-dashboard-approved.avif',bytes);
+          console.log(`Recovered ${bytes.length} AVIF bytes`);
+          NODE
+          dims="$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 /tmp/mobile-dashboard-approved.avif)"
+          test "$dims" = "941x1672" || { echo "Unexpected source dimensions: $dims"; exit 1; }
+      - name: Convert and validate complete WebP
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffmpeg -hide_banner -loglevel error -y -i /tmp/mobile-dashboard-approved.avif -frames:v 1 -c:v libwebp -quality 95 frontend/public/mobile-dashboard-approved.webp
+          dims="$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 frontend/public/mobile-dashboard-approved.webp)"
+          test "$dims" = "941x1672" || { echo "Unexpected WebP dimensions: $dims"; exit 1; }
+          size="$(stat -c %s frontend/public/mobile-dashboard-approved.webp)"
+          test "$size" -gt 50000 || { echo "Recovered WebP unexpectedly small: $size"; exit 1; }
+          node <<'NODE'
+          const fs=require('fs');
+          const crypto=require('crypto');
+          const path='frontend/public/mobile-dashboard-approved.webp';
+          const hash=crypto.createHash('sha256').update(fs.readFileSync(path)).digest('hex').toUpperCase();
+          const lock='qa/scripts/home-3d-module-marks-lock.mjs';
+          let text=fs.readFileSync(lock,'utf8');
+          text=text.replace(/const expectedMobileHash='[A-F0-9]+';/,`const expectedMobileHash='${hash}';`);
+          fs.writeFileSync(lock,text);
+          console.log(`Recovered WebP SHA256 ${hash}`);
+          NODE
+          node qa/scripts/home-3d-module-marks-lock.mjs
+      - name: Commit recovered artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add frontend/public/mobile-dashboard-approved.webp qa/scripts/home-3d-module-marks-lock.mjs
+          if git diff --cached --quiet; then
+            echo 'No artwork changes to commit.'
+            exit 0
+          fi
+          git commit -m 'Recover complete approved mobile artwork'
+          git push origin HEAD:fix/mobile-asset-recovery-20261015
