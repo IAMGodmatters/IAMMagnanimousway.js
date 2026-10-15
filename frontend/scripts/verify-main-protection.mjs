@@ -1,3 +1,5 @@
+import './rebuild-approved-mobile-artwork.mjs';
+
 const inActions = process.env.GITHUB_ACTIONS === 'true';
 const branch = process.env.GITHUB_REF_NAME || '';
 const workflow = process.env.GITHUB_WORKFLOW || '';
