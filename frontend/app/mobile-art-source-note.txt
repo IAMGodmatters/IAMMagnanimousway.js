@@ -1,0 +1,1 @@
+Exact user-approved mobile dashboard image source prepared from the uploaded portrait. This branch is superseded by the clean exact-picture branch and should not be merged.
