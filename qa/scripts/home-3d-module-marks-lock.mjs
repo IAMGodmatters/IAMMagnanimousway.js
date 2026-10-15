@@ -9,7 +9,7 @@ const shell=fs.readFileSync('frontend/app/platform-chrome.tsx','utf8');
 const layout=fs.readFileSync('frontend/app/layout.tsx','utf8');
 
 const expectedDesktopHash='4782F5011B660DC4A189B1A2A315352C241CAD40C4800AD2A5C78949837EC548';
-const expectedMobileGitBlob='20055cee777421537713a9153c377e6cfca77b02';
+const expectedMobileGitBlob='1b894696ed7bcdc1613c93d36e29fa2210acaad3';
 const sha256=input=>crypto.createHash('sha256').update(input).digest('hex').toUpperCase();
 const gitBlobSha=input=>crypto.createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${input.length}\0`),input])).digest('hex');
 assert.equal(sha256(desktopAsset),expectedDesktopHash,'Approved desktop dashboard artwork changed unexpectedly.');
@@ -68,7 +68,7 @@ assert.ok(page.includes("const cardLinks=[...sideLinks]"),'Desktop artwork card 
 assert.ok(page.includes('className="exactArtwork" src="/crm-upgrade.jpeg"'),'Desktop must continue using the exact approved dashboard artwork.');
 assert.ok(page.includes('className="mobileReferenceArtwork" src="/mobile-dashboard-approved.webp"'),'Mobile must render the exact approved portrait reference artwork.');
 assert.ok(page.includes('className="mobileReferenceFrame"')&&page.includes('aspect-ratio:941/1672'),'Mobile reference frame must preserve the approved artwork proportions.');
-assert.ok(layout.includes("background-image:url('/mobile-dashboard-approved.webp?lock=20055cee777421537713a9153c377e6cfca77b02')!important"),'Mobile resilience background must be the same approved artwork, cache-busted to prevent stale substitute rendering.');
+assert.ok(layout.includes("background-image:url('/mobile-dashboard-approved.webp?lock=1b894696ed7bcdc1613c93d36e29fa2210acaad3')!important"),'Mobile resilience background must be the same approved artwork, cache-busted to prevent stale substitute rendering.');
 assert.ok(!layout.includes("background-image:url('/mobile-dashboard-fallback.svg')!important"),'Simplified fallback artwork must never replace the approved mobile design.');
 assert.ok(page.includes('className="mobileReferenceHot mobileCardHot"'),'Approved mobile cards must remain fully clickable through aligned hotspots.');
 assert.ok(page.includes('mobileBottomCommand')&&page.includes('mobileBottomOpportunity')&&page.includes('mobileBottomCrm')&&page.includes('mobileBottomMore'),'Approved five-item mobile bottom navigation is incomplete.');
