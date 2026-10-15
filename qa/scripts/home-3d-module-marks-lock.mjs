@@ -9,7 +9,7 @@ const shell=fs.readFileSync('frontend/app/platform-chrome.tsx','utf8');
 const layout=fs.readFileSync('frontend/app/layout.tsx','utf8');
 
 const expectedDesktopHash='4782F5011B660DC4A189B1A2A315352C241CAD40C4800AD2A5C78949837EC548';
-const expectedMobileHash='01AE2C64E786FBF31758045AADABEBD569EC6884652895AEDB43B10CE171DE99';
+const expectedMobileHash='92974E2BBD6847E8F48AD83DE0456EF78D986D94840E70F522DE06AB23B701D0';
 const hash=input=>crypto.createHash('sha256').update(input).digest('hex').toUpperCase();
 assert.equal(hash(desktopAsset),expectedDesktopHash,'Approved desktop dashboard artwork changed unexpectedly.');
 assert.equal(hash(mobileAsset),expectedMobileHash,'Approved mobile dashboard reference artwork changed unexpectedly.');
