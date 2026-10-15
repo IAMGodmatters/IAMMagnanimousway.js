@@ -1,4 +1,5 @@
 import React from 'react';
+import './mobile-approved-polish.css';
 import type {Metadata,Viewport} from 'next';
 import PlatformChrome from './platform-chrome';
 import GlobalTools from './global-tools';
