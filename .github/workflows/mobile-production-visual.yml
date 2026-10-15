@@ -19,7 +19,7 @@ jobs:
         shell: bash
         env:
           LIVE_URL: https://iammagnanimousway.com/
-          APPROVED_MOBILE_GIT_BLOB: 20055cee777421537713a9153c377e6cfca77b02
+          APPROVED_MOBILE_GIT_BLOB: 1b894696ed7bcdc1613c93d36e29fa2210acaad3
           APPROVED_DESKTOP_SHA256: 4782F5011B660DC4A189B1A2A315352C241CAD40C4800AD2A5C78949837EC548
         run: |
           set -euo pipefail
