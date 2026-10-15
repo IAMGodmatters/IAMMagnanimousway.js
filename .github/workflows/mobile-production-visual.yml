@@ -1,1 +1,79 @@
-placeholder
+name: Mobile Production Visual Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/mobile-production-visual.yml'
+  workflow_run:
+    workflows: ['Build and Deploy I AM']
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-mobile:
+    if: github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify live phone and desktop compositions
+        shell: bash
+        env:
+          LIVE_URL: https://iammagnanimousway.com/
+        run: |
+          set -euo pipefail
+          chrome="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          [ -n "$chrome" ] || { echo '::error::Chrome/Chromium is not available on the hosted runner.'; exit 1; }
+          mkdir -p mobile-visual-proof
+
+          render() {
+            local width="$1" height="$2" name="$3" budget="$4"
+            timeout 90s "$chrome" \
+              --headless=new \
+              --no-sandbox \
+              --disable-gpu \
+              --hide-scrollbars \
+              --disable-dev-shm-usage \
+              --window-size="${width},${height}" \
+              --virtual-time-budget="$budget" \
+              --screenshot="mobile-visual-proof/${name}.png" \
+              --dump-dom \
+              "${LIVE_URL}?mobile_visual_verify=${GITHUB_RUN_ID}_${name}" \
+              > "mobile-visual-proof/${name}.html" 2> "mobile-visual-proof/${name}.log" || {
+                cat "mobile-visual-proof/${name}.log" || true
+                exit 1
+              }
+          }
+
+          render 390 844 phone-390x844 12000
+          render 430 932 phone-430x932 12000
+          render 1440 900 desktop-1440x900 10000
+
+          for phone in phone-390x844 phone-430x932; do
+            grep -q 'iamMobileHomeShell' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} did not hydrate the mobile dashboard."; exit 1; }
+            grep -q 'Video Studio' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Video Studio."; exit 1; }
+            grep -q 'White Label' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing White Label."; exit 1; }
+            grep -q 'Opportunity Vault' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Opportunity Vault."; exit 1; }
+            grep -q 'Professional Business' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Professional Business."; exit 1; }
+            grep -q 'aria-controls="iam-mobile-drawer"' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the collapsible menu control."; exit 1; }
+            [ -s "mobile-visual-proof/${phone}.png" ] || { echo "::error::${phone} screenshot was not produced."; exit 1; }
+          done
+
+          if grep -q 'iamMobileHomeShell' mobile-visual-proof/desktop-1440x900.html; then
+            echo '::error::Desktop hydrated the mobile overlay; desktop isolation failed.'
+            exit 1
+          fi
+          grep -q 'desktopStage' mobile-visual-proof/desktop-1440x900.html || { echo '::error::Approved desktop dashboard marker is missing.'; exit 1; }
+          [ -s mobile-visual-proof/desktop-1440x900.png ] || { echo '::error::Desktop verification screenshot was not produced.'; exit 1; }
+
+          echo 'Live responsive verification PASS: phone widths hydrate the cinematic mobile dashboard and desktop remains on the approved desktop composition.'
+
+      - name: Upload responsive visual proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-production-visual-proof-${{ github.run_id }}
+          path: mobile-visual-proof/
+          retention-days: 14
