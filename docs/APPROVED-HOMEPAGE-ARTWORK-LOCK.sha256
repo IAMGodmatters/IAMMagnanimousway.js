@@ -1,2 +1,3 @@
-7939B2BD5F404C9378F3CD745DC1448C6BD00D0B799FDBD93AE2EE8C276BABAA  frontend/public/mobile-dashboard-approved-locked.jpeg
-4782F5011B660DC4A189B1A2A315352C241CAD40C4800AD2A5C78949837EC548  frontend/public/crm-upgrade.jpeg
+# Mobile is locked by exact Git blob identity because the approved WebP is binary.
+GIT-BLOB-SHA1 20055cee777421537713a9153c377e6cfca77b02  frontend/public/mobile-dashboard-approved.webp
+SHA256 4782F5011B660DC4A189B1A2A315352C241CAD40C4800AD2A5C78949837EC548  frontend/public/crm-upgrade.jpeg
