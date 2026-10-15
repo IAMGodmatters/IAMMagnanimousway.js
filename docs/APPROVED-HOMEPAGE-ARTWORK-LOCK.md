@@ -4,11 +4,11 @@ The homepage artwork is owner-approved and must not be replaced, redesigned, res
 
 ## Mobile
 
-Canonical visual source: `frontend/public/mobile-dashboard-approved-locked.jpeg`
+Canonical visual source: `frontend/public/mobile-dashboard-approved.webp`
 
-Required SHA-256: `7939B2BD5F404C9378F3CD745DC1448C6BD00D0B799FDBD93AE2EE8C276BABAA`
+Required Git blob SHA-1: `20055cee777421537713a9153c377e6cfca77b02`
 
-The mobile homepage must display this exact portrait artwork as the primary visible design. A resilience fallback may exist only behind it and must never supersede it while the approved image loads successfully.
+The mobile homepage must display these exact approved portrait artwork bytes as the primary visible design. If a resilience background is needed, it must use the same approved artwork bytes rather than a substitute or simplified design. Homepage helper overlays must not cover the approved mobile artwork.
 
 ## Computer / Desktop
 
@@ -20,4 +20,4 @@ The desktop homepage artwork must remain unchanged.
 
 ## Enforcement
 
-CI/QA must fail when either canonical artwork hash changes, when the homepage points to a different artwork source, or when CSS intentionally hides the approved mobile artwork. Functional overlays/hotspots may be repaired without changing the artwork itself.
+CI and production visual verification must fail when either canonical artwork identity changes, when the homepage points to different artwork, when substitute artwork is made visible, or when CSS intentionally hides the approved mobile artwork. Functional hotspots, accessibility, navigation, and bug fixes may be repaired without modifying the artwork itself.
