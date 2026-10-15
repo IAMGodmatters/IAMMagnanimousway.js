@@ -53,6 +53,12 @@ assert.ok(page.includes('platformGuideHot')&&page.includes('guidedTourHot'),'Das
 assert.ok(page.includes('@media(max-width:1024px)')&&page.includes('.desktopStage{display:none!important}')&&page.includes('.mobileExactStage{display:block'),'Phone/tablet breakpoint must force the artwork-preserving mobile composition even in wide-layout mobile browsers.');
 assert.ok(page.includes('setMenuOpen(value=>!value)')&&page.includes("menuOpen?'Close sidebar menu':'Open sidebar menu'"),'Mobile menu control must toggle closed as well as open instead of immediately reopening.');
 assert.ok(page.includes("document.body.style.overflow='hidden'"),'Open mobile drawer must lock background scrolling.');
+assert.ok(page.includes('mobileDrawerCloseRef.current?.focus()')&&page.includes('mobileMenuButtonRef.current?.focus()')&&page.includes("setAttribute('inert','')"),'Mobile drawer must move focus inside, make covered content inert, and restore focus to the menu toggle.');
+assert.ok(page.includes('className="mobileDrawerExtra" href="/creator-growth"'),'Creator Growth must remain directly reachable from the mobile drawer.');
+assert.ok(page.includes('className="mobileTutorialOverlay" href="/guide"')&&!page.includes('<ArtworkCrop label="Open platform guide"'),'The visible tutorial artwork must own the tutorial click target; unrelated lower dashboard cards must not masquerade as guide controls.');
+assert.ok(page.includes('.mobileTopbar{position:sticky;top:0')&&page.includes('overflow-x:clip'),'Mobile header must remain sticky without an overflow scrolling ancestor breaking sticky positioning.');
+assert.ok(page.includes('mobileHeroStatus online')&&page.includes('Some live services unavailable'),'Mobile artwork must overlay its static service badges with verified live-service status.');
+assert.ok(!page.includes('.mobileOwnerCrop{display:none'),'Owner Center access must remain available on narrow phones.');
 assert.ok(layout.includes("width:'device-width'")&&layout.includes("viewportFit:'cover'"),'Root layout must publish an explicit device-width viewport for reliable iOS/embedded-browser sizing.');
 assert.ok(page.includes('object-fit:contain'),'Desktop dashboard artwork must preserve its aspect ratio instead of stretching.');
 assert.ok(page.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion safety is missing.');
