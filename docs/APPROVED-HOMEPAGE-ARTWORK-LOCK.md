@@ -6,7 +6,7 @@ The homepage artwork is owner-approved and must not be replaced, redesigned, res
 
 Canonical visual source: `frontend/public/mobile-dashboard-approved.webp`
 
-Required Git blob SHA-1: `20055cee777421537713a9153c377e6cfca77b02`
+Required Git blob SHA-1: `1b894696ed7bcdc1613c93d36e29fa2210acaad3`
 
 The mobile homepage must display these exact approved portrait artwork bytes as the primary visible design. If a resilience background is needed, it must use the same approved artwork bytes rather than a substitute or simplified design. Homepage helper overlays must not cover the approved mobile artwork.
 
