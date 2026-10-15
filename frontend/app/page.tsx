@@ -80,7 +80,7 @@ export default function Home(){
     <ArtworkCrop label="I AM MAGNANIMOUS WAY home" href="/" left={.6} top={.6} width={20.2} height={8.6} className="mobileBrandCrop"/>
     <div className="mobileTopActions">
      <ArtworkCrop label="Open owner account" href="/owner-center" left={87.7} top={.9} width={11.4} height={7.3} className="mobileOwnerCrop"/>
-     <button ref={mobileMenuButtonRef} className="mobileMenuToggle" type="button" onClick={()=>setMenuOpen(value=>!value)} aria-expanded={menuOpen} aria-controls="mobile-side-menu" aria-label={menuOpen?'Close sidebar menu':'Open sidebar menu'}><span aria-hidden="true">{menuOpen?'×':'☰'}</span></button>
+     <button ref={mobileMenuButtonRef} className="mobileMenuToggle" type="button" onClick={()=>setMenuOpen(value=>!value)} aria-expanded={menuOpen} aria-controls="mobile-side-menu" aria-label={menuOpen?'Close sidebar menu':'Open sidebar menu'}><span aria-hidden="true">{menuOpen?'Close':'Menu'}</span></button>
     </div>
    </div>
    <div className="mobileHeroFrame">
@@ -93,7 +93,7 @@ export default function Home(){
     {topLinks.map(item=><ArtworkCrop key={`mobile-top-${item.label}`} label={item.label} href={item.href} left={item.left} top={1.7} width={item.width} height={5.8}/>) }
    </nav>
    <div className="mobileCardGrid" aria-label="Platform apps">
-    {cardLinks.map((item,i)=>{const col=i%5,row=Math.floor(i/5);return <a key={`mobile-card-${item.label}`} className={`mobilePremiumCard mobileAccent${i%5}`} href={item.href} aria-label={`Open ${item.label}`}><div className="mobileCardVisual"><div className="mobileCardArt" style={cropStyle(14.25+col*16.78,42.2+row*13.55,15.55,11.85)} aria-hidden="true"><img src="/crm-upgrade.jpeg" alt="" draggable={false}/></div></div><span className="mobileCardTitle">{item.label}</span><span className="mobileCardArrow" aria-hidden="true">→</span></a>})}
+    {cardLinks.map((item,i)=>{const col=i%5,row=Math.floor(i/5);return <a key={`mobile-card-${item.label}`} className={`mobilePremiumCard mobileAccent${i%5}`} href={item.href} aria-label={`Open ${item.label}`}><div className="mobileCardVisual"><div className="mobileCardArt" style={cropStyle(14.25+col*16.78,42.2+row*13.55,15.55,11.85)} aria-hidden="true"><img src="/crm-upgrade.jpeg" alt="" draggable={false}/></div></div><span className="mobileCardTitle">{item.label}</span><span className="mobileCardArrow" aria-hidden="true">Go</span></a>})}
    </div>
    <div className="mobileGuideGrid">
     <a className="mobileGuideButton" href="/guide">Platform Guide</a>
@@ -105,7 +105,7 @@ export default function Home(){
   <aside id="mobile-side-menu" className={menuOpen?'mobileDrawer open':'mobileDrawer'} aria-hidden={!menuOpen}>
    <div className="mobileDrawerTop">
     <ArtworkCrop label="I AM MAGNANIMOUS WAY home" href="/" left={.6} top={.6} width={20.2} height={8.6} className="drawerBrandCrop" tabIndex={menuOpen?0:-1} onClick={()=>setMenuOpen(false)}/>
-    <button ref={mobileDrawerCloseRef} type="button" onClick={()=>setMenuOpen(false)} aria-label="Close sidebar menu" tabIndex={menuOpen?0:-1}>×</button>
+    <button ref={mobileDrawerCloseRef} type="button" onClick={()=>setMenuOpen(false)} aria-label="Close sidebar menu" tabIndex={menuOpen?0:-1}>Close</button>
    </div>
    <nav className="mobileDrawerLinks" aria-label="Sidebar navigation">
     {sideLinks.map((item,i)=><ArtworkCrop key={`drawer-${item.label}`} label={item.label} href={item.href} left={.75} top={10.72+i*3.93} width={12.2} height={3.55} tabIndex={menuOpen?0:-1} onClick={()=>setMenuOpen(false)}/>) }
@@ -144,6 +144,21 @@ export default function Home(){
    @keyframes mobileShimmer{0%,60%,100%{transform:translateX(-120%)}78%{transform:translateX(120%)}}
    @keyframes mobileAmbient{from{opacity:.45;transform:translateY(0)}to{opacity:.9;transform:translateY(25px)}}
    @media(prefers-reduced-motion:reduce){.mobilePremiumCard:before,.mobileExactStage:before{animation:none}.mobilePremiumCard{transition:none}}
+   /* Mobile accessibility, tap targets, safe areas, and small-device layout. */
+   @media(max-width:1024px){
+    .mobileTopbar{padding-left:max(9px,env(safe-area-inset-left));padding-right:max(9px,env(safe-area-inset-right))}
+    .mobileMenuToggle{min-width:44px;min-height:44px;font-size:13px;font-weight:800}
+    .mobileDrawerTop button{min-width:44px;min-height:44px;font-size:13px;font-weight:800}
+    .mobileCardArrow{width:30px;height:30px;font-size:11px;font-weight:800}
+    .mobilePremiumCard{min-height:140px;touch-action:manipulation}
+    .mobileCardVisual{height:90px}
+    .mobilePremiumCard:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -8px 22px var(--tint),0 8px 26px rgba(0,0,0,.6),0 0 18px var(--glow)}
+    .mobileSearch input:focus-visible,.mobileSearch button:focus-visible,.mobileMenuToggle:focus-visible,.mobileGuideButton:focus-visible,.mobileDrawerTop button:focus-visible{outline:3px solid #f5c868;outline-offset:3px}
+    .mobileDrawer{padding-left:max(9px,env(safe-area-inset-left))}
+    .mobileDrawerLinks .artCrop{min-height:44px}
+   }
+   @media(max-width:359px){.mobileCardGrid{grid-template-columns:1fr}.mobilePremiumCard{min-height:165px}.mobileCardVisual{height:112px}.mobileOwnerCrop{width:60px}.mobileBrandCrop{width:48vw}}
+   @media(prefers-reduced-motion:reduce){.mobileDrawer{transition:none}.mobilePremiumCard:before{display:none}}
    @media(max-width:420px){.mobileBrandCrop{width:53vw}.mobileOwnerCrop{width:72px}.mobileMenuToggle{width:38px;height:38px}.mobileCardGrid{grid-template-columns:1fr 1fr;gap:7px;padding-left:7px;padding-right:7px}}
    @media(orientation:landscape) and (max-height:600px) and (max-width:1000px){.desktopStage{display:none}.mobileExactStage{display:block}.mobileCardGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
    @media(prefers-reduced-motion:reduce){.mobileDrawer{transition:none}}
