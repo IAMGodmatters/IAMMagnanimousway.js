@@ -9,10 +9,11 @@ const shell=fs.readFileSync('frontend/app/platform-chrome.tsx','utf8');
 const layout=fs.readFileSync('frontend/app/layout.tsx','utf8');
 
 const expectedDesktopHash='4782F5011B660DC4A189B1A2A315352C241CAD40C4800AD2A5C78949837EC548';
-const expectedMobileHash='AB23EC298B7F1F920D0F862EDE63E8C80118022EA91488CE8CA52EE1778412F9';
-const hash=input=>crypto.createHash('sha256').update(input).digest('hex').toUpperCase();
-assert.equal(hash(desktopAsset),expectedDesktopHash,'Approved desktop dashboard artwork changed unexpectedly.');
-assert.equal(hash(mobileAsset),expectedMobileHash,'Approved mobile dashboard reference artwork changed unexpectedly.');
+const expectedMobileGitBlob='20055cee777421537713a9153c377e6cfca77b02';
+const sha256=input=>crypto.createHash('sha256').update(input).digest('hex').toUpperCase();
+const gitBlobSha=input=>crypto.createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${input.length}\0`),input])).digest('hex');
+assert.equal(sha256(desktopAsset),expectedDesktopHash,'Approved desktop dashboard artwork changed unexpectedly.');
+assert.equal(gitBlobSha(mobileAsset),expectedMobileGitBlob,'Approved mobile dashboard artwork changed unexpectedly. Restore the exact approved portrait artwork.');
 
 const requiredRoutes=[
  "{label:'Home',href:'/'}",
@@ -67,6 +68,8 @@ assert.ok(page.includes("const cardLinks=[...sideLinks]"),'Desktop artwork card 
 assert.ok(page.includes('className="exactArtwork" src="/crm-upgrade.jpeg"'),'Desktop must continue using the exact approved dashboard artwork.');
 assert.ok(page.includes('className="mobileReferenceArtwork" src="/mobile-dashboard-approved.webp"'),'Mobile must render the exact approved portrait reference artwork.');
 assert.ok(page.includes('className="mobileReferenceFrame"')&&page.includes('aspect-ratio:941/1672'),'Mobile reference frame must preserve the approved artwork proportions.');
+assert.ok(layout.includes("background-image:url('/mobile-dashboard-approved.webp?lock=20055cee777421537713a9153c377e6cfca77b02')!important"),'Mobile resilience background must be the same approved artwork, cache-busted to prevent stale substitute rendering.');
+assert.ok(!layout.includes("background-image:url('/mobile-dashboard-fallback.svg')!important"),'Simplified fallback artwork must never replace the approved mobile design.');
 assert.ok(page.includes('className="mobileReferenceHot mobileCardHot"'),'Approved mobile cards must remain fully clickable through aligned hotspots.');
 assert.ok(page.includes('mobileBottomCommand')&&page.includes('mobileBottomOpportunity')&&page.includes('mobileBottomCrm')&&page.includes('mobileBottomMore'),'Approved five-item mobile bottom navigation is incomplete.');
 assert.ok(page.includes('id="mobile-side-menu"')&&page.includes('className="mobileDrawerLinks"'),'Phone layout must provide the collapsible sidebar menu.');
@@ -91,4 +94,4 @@ assert.ok(shell.includes('iam_sidebar_collapsed'),'Global sidebar collapse prefe
 assert.ok(shell.includes('@media(max-width:820px)')&&shell.includes('mobileOpen'),'Global mobile drawer behavior is missing.');
 assert.ok(shell.includes("'/magnanimous'")&&shell.includes("'/telecom-standalone'"),'Standalone surfaces must remain isolated from the full command shell.');
 
-console.log('Exact dashboard responsive UI lock PASS: immutable desktop art, exact approved mobile reference art, sixteen clickable mobile modules, bottom navigation, drawer/search/accessibility, live status, and desktop isolation are intact.');
+console.log('Exact dashboard responsive UI lock PASS: immutable desktop artwork and exact canonical mobile artwork bytes are locked, clickable behavior remains, and substitute artwork cannot supersede either design.');
