@@ -105,7 +105,7 @@ export default function Home(){
   <aside id="mobile-side-menu" className={menuOpen?'mobileDrawer open':'mobileDrawer'} aria-hidden={!menuOpen}>
    <div className="mobileDrawerTop">
     <ArtworkCrop label="I AM MAGNANIMOUS WAY home" href="/" left={.6} top={.6} width={20.2} height={8.6} className="drawerBrandCrop" tabIndex={menuOpen?0:-1} onClick={()=>setMenuOpen(false)}/>
-    <button ref={mobileDrawerCloseRef} type="button" onClick={()=>Close</button>
+    <button ref={mobileDrawerCloseRef} type="button" onClick={()=>setMenuOpen(false)} aria-label="Close sidebar menu" tabIndex={menuOpen?0:-1}>Close</button>
    </div>
    <nav className="mobileDrawerLinks" aria-label="Sidebar navigation">
     {sideLinks.map((item,i)=><ArtworkCrop key={`drawer-${item.label}`} label={item.label} href={item.href} left={.75} top={10.72+i*3.93} width={12.2} height={3.55} tabIndex={menuOpen?0:-1} onClick={()=>setMenuOpen(false)}/>) }
