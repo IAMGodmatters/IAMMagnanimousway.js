@@ -37,6 +37,10 @@ const requiredRoutes=[
 ];
 for(const route of requiredRoutes)assert.ok(page.includes(route),`Homepage route missing or changed: ${route}`);
 
+const mobileStart=page.indexOf('const mobileReferenceCards');
+const mobileEnd=page.indexOf('];',mobileStart);
+assert.ok(mobileStart>=0&&mobileEnd>mobileStart,'Approved mobile reference card map is missing.');
+const mobileReferenceBlock=page.slice(mobileStart,mobileEnd);
 const referenceOrder=[
  "{label:'Video Studio',href:'/video-studio'",
  "{label:'White Label',href:'/white-label'",
@@ -56,11 +60,8 @@ const referenceOrder=[
  "{label:'Reports',href:'/activity'"
 ];
 let previous=-1;
-for(const route of referenceOrder){const next=page.indexOf(route);assert.ok(next>previous,`Approved mobile reference route missing or out of order: ${route}`);previous=next}
-const mobileStart=page.indexOf('const mobileReferenceCards');
-const mobileEnd=page.indexOf('];',mobileStart);
-assert.ok(mobileStart>=0&&mobileEnd>mobileStart,'Approved mobile reference card map is missing.');
-assert.equal((page.slice(mobileStart,mobileEnd).match(/\{label:/g)||[]).length,16,'Approved mobile reference must keep exactly sixteen two-column modules.');
+for(const route of referenceOrder){const next=mobileReferenceBlock.indexOf(route);assert.ok(next>previous,`Approved mobile reference route missing or out of order: ${route}`);previous=next}
+assert.equal((mobileReferenceBlock.match(/\{label:/g)||[]).length,16,'Approved mobile reference must keep exactly sixteen two-column modules.');
 
 assert.ok(page.includes("const cardLinks=[...sideLinks]"),'Desktop artwork card links must remain mapped from the approved sidebar routes.');
 assert.ok(page.includes('className="exactArtwork" src="/crm-upgrade.jpeg"'),'Desktop must continue using the exact approved dashboard artwork.');
