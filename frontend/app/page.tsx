@@ -86,7 +86,7 @@ export default function Home(){
    <div className="mobileHeroFrame">
     <div className="artCrop mobileHeroCrop" style={cropStyle(13.5,9.0,84.8,31.4)} aria-hidden="true"><img src="/crm-upgrade.jpeg" alt="" draggable={false}/></div>
     <a className="mobileTutorialOverlay" href="/guide" aria-label="Watch platform tutorial"><span>Watch Tutorial</span></a>
-    <div className={ready?(online?'mobileHeroStatus online':'mobileHeroStatus degraded'):'mobileHeroStatus checkingg} role="status" aria-live="polite">{ready?(online?'Live services online':'Some live services unavailable'):'Checking live services\u2026'}</div>
+    <div className={ready?(online?'mobileHeroStatus online':'mobileHeroStatus degraded'):'mobileHeroStatus checking'} role="status" aria-live="polite">{ready?(online?'Live services online':'Some live services unavailable'):'Checking live services\u2026'}</div>
    </div>
    <form className="mobileSearch" onSubmit={submit} role="search"><input value={query} onChange={e=>setQuery(e.target.value)} aria-label="Search anything" placeholder="Search anything..."/><button type="submit" aria-label="Search Magnanimous AI">Search</button></form>
    <nav className="mobileTopLinks" aria-label="Primary platform categories">
