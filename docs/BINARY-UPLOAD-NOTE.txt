@@ -1,1 +1,0 @@
-The locked mobile artwork file is binary and must be committed as exact bytes; this note does not replace the binary asset.
