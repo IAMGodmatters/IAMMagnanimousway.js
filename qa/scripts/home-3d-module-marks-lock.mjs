@@ -43,7 +43,10 @@ assert.ok(page.includes('className="mobileDrawerLinks"'),'Phone layout must prov
 assert.ok(page.includes('desktopSidebarToggle')&&page.includes('desktopSidebarMask'),'Desktop artwork sidebar must be collapsible without replacing the dashboard.');
 assert.ok(page.includes("localStorage.getItem('iam_home_sidebar_collapsed')")&&page.includes("localStorage.setItem('iam_home_sidebar_collapsed'"),'Desktop sidebar collapse preference must persist.');
 assert.ok(page.includes('platformGuideHot')&&page.includes('guidedTourHot'),'Dashboard guide buttons must remain clickable.');
-assert.ok(page.includes('@media(max-width:760px)')&&page.includes('.desktopStage{display:none}')&&page.includes('.mobileExactStage{display:block'),'Phone breakpoint must switch to the artwork-preserving mobile composition.');
+assert.ok(page.includes('@media(max-width:1024px)')&&page.includes('.desktopStage{display:none!important}')&&page.includes('.mobileExactStage{display:block'),'Phone/tablet breakpoint must force the artwork-preserving mobile composition even in wide-layout mobile browsers.');
+assert.ok(page.includes('setMenuOpen(value=>!value)')&&page.includes("menuOpen?'Close sidebar menu':'Open sidebar menu'"),'Mobile menu control must toggle closed as well as open instead of immediately reopening.');
+assert.ok(page.includes("document.body.style.overflow='hidden'"),'Open mobile drawer must lock background scrolling.');
+assert.ok(layout.includes("width:'device-width'")&&layout.includes("viewportFit:'cover'"),'Root layout must publish an explicit device-width viewport for reliable iOS/embedded-browser sizing.');
 assert.ok(page.includes('object-fit:contain'),'Desktop dashboard artwork must preserve its aspect ratio instead of stretching.');
 assert.ok(page.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion safety is missing.');
 assert.ok(!page.includes('mobileCardIcon')&&!page.includes('const descriptions:'),'Do not replace the approved artwork with a newly styled mobile card design.');
