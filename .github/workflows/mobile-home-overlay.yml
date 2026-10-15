@@ -1,0 +1,35 @@
+name: Mobile Home Overlay Lock
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/app/layout.tsx'
+      - 'frontend/app/page.tsx'
+      - 'frontend/app/mobile-home-dashboard.tsx'
+      - 'frontend/proxy.ts'
+      - 'frontend/app/mobile-dashboard/**'
+      - 'qa/scripts/mobile-home-overlay-lock.mjs'
+      - '.github/workflows/mobile-home-overlay.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/app/layout.tsx'
+      - 'frontend/app/page.tsx'
+      - 'frontend/app/mobile-home-dashboard.tsx'
+      - 'frontend/proxy.ts'
+      - 'frontend/app/mobile-dashboard/**'
+      - 'qa/scripts/mobile-home-overlay-lock.mjs'
+      - '.github/workflows/mobile-home-overlay.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-home-overlay-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node qa/scripts/mobile-home-overlay-lock.mjs
