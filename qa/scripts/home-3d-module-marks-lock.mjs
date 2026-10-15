@@ -40,6 +40,7 @@ assert.ok(page.includes('function ArtworkCrop'),'Phone layout must reuse crops f
 assert.ok(page.includes('className="mobileCardGrid"'),'Phone layout must expose the existing dashboard cards as readable touch targets.');
 assert.ok(page.includes('grid-template-columns:repeat(2,minmax(0,1fr))'),'Phone dashboard must retain the two-column artwork card grid.');
 assert.ok(page.includes('className="mobileDrawerLinks"'),'Phone layout must provide the existing sidebar links in a collapsible drawer.');
+assert.ok(page.includes('<style jsx global>{`'),'ArtworkCrop is a child component, so its responsive crop/layout selectors must be global rather than silently scoped away.');
 assert.ok(page.includes('desktopSidebarToggle')&&page.includes('desktopSidebarMask'),'Desktop artwork sidebar must be collapsible without replacing the dashboard.');
 assert.ok(page.includes("localStorage.getItem('iam_home_sidebar_collapsed')")&&page.includes("localStorage.setItem('iam_home_sidebar_collapsed'"),'Desktop sidebar collapse preference must persist.');
 assert.ok(page.includes('platformGuideHot')&&page.includes('guidedTourHot'),'Dashboard guide buttons must remain clickable.');
