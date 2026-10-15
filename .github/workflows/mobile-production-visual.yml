@@ -52,21 +52,31 @@ jobs:
           render 1440 900 desktop-1440x900 10000
 
           for phone in phone-390x844 phone-430x932; do
-            grep -q 'mobileExactStage' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the canonical exact-artwork mobile dashboard."; exit 1; }
-            grep -q 'mobileCardGrid' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the scrollable two-column mobile card grid."; exit 1; }
-            grep -q 'Video Studio' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Video Studio."; exit 1; }
-            grep -q 'Opportunity Vault' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Opportunity Vault."; exit 1; }
-            grep -q 'Professional Business' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Professional Business."; exit 1; }
+            grep -q 'mobileExactStage' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the exact portrait mobile dashboard."; exit 1; }
+            grep -q 'mobileReferenceArtwork' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the approved portrait artwork element."; exit 1; }
+            grep -q '/mobile-dashboard-approved.webp' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is not using the literal approved portrait artwork."; exit 1; }
+            grep -q 'mobileCardGrid' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the two-column module hotspot grid."; exit 1; }
+            grep -q 'mobileBottomNav' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the five-item bottom navigation."; exit 1; }
+            for label in 'Video Studio' 'White Label' 'Creator Studio' 'Growth' 'Opportunity Vault' 'Professional Business' 'Command' 'Social Studio' 'Virtual Assistant' 'Reports'; do
+              grep -q "$label" "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing ${label}."; exit 1; }
+            done
+            grep -q 'aria-label="Search Magnanimous AI"' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing clickable mobile search."; exit 1; }
+            grep -q 'aria-label="Open owner profile"' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the owner/profile hotspot."; exit 1; }
+            grep -q 'aria-label="Open notifications and reports"' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the notifications hotspot."; exit 1; }
+            grep -q 'aria-label="Watch platform tutorial"' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the tutorial hotspot."; exit 1; }
             grep -q 'id="mobile-side-menu"' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the collapsible menu."; exit 1; }
-            grep -q '/crm-upgrade.jpeg' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is not using the approved artwork source."; exit 1; }
             [ -s "mobile-visual-proof/${phone}.png" ] || { echo "::error::${phone} screenshot was not produced."; exit 1; }
           done
 
           grep -q 'desktopStage' mobile-visual-proof/desktop-1440x900.html || { echo '::error::Approved desktop dashboard marker is missing.'; exit 1; }
           grep -q '/crm-upgrade.jpeg' mobile-visual-proof/desktop-1440x900.html || { echo '::error::Desktop approved artwork source is missing.'; exit 1; }
+          if grep -q '/mobile-dashboard-approved.webp' mobile-visual-proof/desktop-1440x900.html; then
+            echo '::error::Desktop hydrated the mobile portrait artwork; desktop isolation failed.'
+            exit 1
+          fi
           [ -s mobile-visual-proof/desktop-1440x900.png ] || { echo '::error::Desktop verification screenshot was not produced.'; exit 1; }
 
-          echo 'Live responsive verification PASS: phone widths expose the canonical artwork-preserving mobile dashboard with clickable routes and desktop retains the approved composition.'
+          echo 'Live responsive verification PASS: 390x844 and 430x932 use the literal approved portrait dashboard with interactive controls while desktop retains its approved artwork.'
 
       - name: Upload responsive visual proof
         if: always()
