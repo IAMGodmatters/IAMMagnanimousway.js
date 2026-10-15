@@ -54,7 +54,12 @@ async function fetchSnapshot(url){
   body:JSON.stringify({url,max_bytes:5*1024*1024})
  });
  const data=await response.json().catch(()=>({}));
- if(!response.ok)throw new Error(data?.detail||('Magnanimous browser egress returned HTTP '+response.status));
+ if(!response.ok){
+  const error=new Error(data?.detail||('Magnanimous browser egress returned HTTP '+response.status));
+  error.code=String(data?.code||'MAGNANIMOUS_BROWSER_EGRESS_ERROR');
+  error.transient_external_network=data?.transient_external_network===true;
+  throw error;
+ }
  if(!data?.base64)throw new Error('Magnanimous browser egress returned no snapshot body.');
  return data;
 }
@@ -191,6 +196,6 @@ const server=http.createServer(async(req,res)=>{
   if(req.method==='POST'&&req.url==='/render')return json(res,200,await render(await body(req)));
   if(req.method==='POST'&&req.url==='/render-content')return json(res,200,await renderContent(await body(req)));
   return json(res,404,{detail:'Magnanimous browser route not found.'});
- }catch(error){return json(res,400,{detail:String(error?.message||error),code:'MAGNANIMOUS_BROWSER_ERROR'})}
+ }catch(error){return json(res,400,{detail:String(error?.message||error),code:String(error?.code||'MAGNANIMOUS_BROWSER_ERROR'),transient_external_network:error?.transient_external_network===true})}
 });
 server.listen(port,host,()=>console.log('Magnanimous Browser listening on '+host+':'+port));

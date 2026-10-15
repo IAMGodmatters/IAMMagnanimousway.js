@@ -6,6 +6,8 @@ on:
     paths:
       - 'magnanimous-runtime/**'
       - 'worker/src/**'
+      - 'worker/package.json'
+      - 'worker/package-lock.json'
       - 'frontend/**'
       - 'qa/scripts/magnanimous-cloud-*.mjs'
       - '.github/workflows/magnanimous-standalone-release.yml'
@@ -14,6 +16,8 @@ on:
     paths:
       - 'magnanimous-runtime/**'
       - 'worker/src/**'
+      - 'worker/package.json'
+      - 'worker/package-lock.json'
       - 'frontend/**'
       - 'qa/scripts/magnanimous-cloud-*.mjs'
       - '.github/workflows/magnanimous-standalone-release.yml'
@@ -135,15 +139,25 @@ jobs:
             body:JSON.stringify({html:'<!doctype html><html><body><main id="offline-proof">Magnanimous offline browser proof</main></body></html>',css:'body{font-family:system-ui;background:#071018;color:white}main{padding:40px}',mode:'screenshot',timeout_ms:45000})
           }));
           if(!screenshot.base64||Number(screenshot.bytes||0)<1||screenshot.content_type!=='image/png'||screenshot.network_access!==false)throw new Error('Release bundle deterministic Chromium render failed.');
-          let publicProbe='unavailable';
+          let publicRender='external-network-unavailable';
           for(let attempt=0;attempt<3;attempt++){
-            try{
-              const response=await fetch('http://browser-egress:8794/fetch',{method:'POST',headers:{'content-type':'application/json','x-magnanimous-service-token':token},body:JSON.stringify({url:'https://example.com',max_bytes:1048576}),signal:AbortSignal.timeout(12000)});
-              if(response.ok){const data=await response.json();if(String(data.url||'').startsWith('https://example.com')){publicProbe='ok';break}}
-            }catch{}
+            const response=await fetch('http://browser:8792/render',{
+              method:'POST',
+              headers:{'content-type':'application/json','x-magnanimous-service-token':token},
+              body:JSON.stringify({url:'https://example.com',mode:'dom',timeout_ms:45000}),
+              signal:AbortSignal.timeout(60000)
+            });
+            const text=await response.text();
+            let data={};try{data=JSON.parse(text)}catch{}
+            if(response.ok){
+              if(!String(data.html||'').toLowerCase().includes('example domain')||Number(data.status||0)<200||Number(data.status||0)>=400)throw new Error('Release public browser render returned an invalid public snapshot.');
+              publicRender='ok';
+              break;
+            }
+            if(data.code!=='EXTERNAL_NETWORK_UNAVAILABLE'||data.transient_external_network!==true)throw new Error('Release public browser/egress integration failed: HTTP '+response.status+' '+text.slice(0,500));
             await new Promise(resolve=>setTimeout(resolve,500));
           }
-          console.log('Release controlled-public-egress probe: '+publicProbe+(publicProbe==='ok'?'':' (non-blocking for offline artifact proof)'));
+          console.log('Release controlled-public-render probe: '+publicRender+(publicRender==='ok'?'':' (genuine external-network outage is non-blocking for the offline artifact proof)'));
           console.log('Offline Magnanimous release bundle + cloud control smoke PASS');
           NODE
 

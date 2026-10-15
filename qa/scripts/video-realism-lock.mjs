@@ -1,4 +1,4 @@
-﻿import fs from'node:fs';
+import fs from'node:fs';
 const r=fs.readFileSync(new URL('../../worker/src/video-realism-director.js',import.meta.url),'utf8');
 const n=fs.readFileSync(new URL('../../render-node/README.md',import.meta.url),'utf8');
 const a=fs.readFileSync(new URL('../../frontend/app/agent-video/page.tsx',import.meta.url),'utf8');
@@ -6,5 +6,5 @@ const speech=fs.readFileSync(new URL('../../frontend/lib/natural-speech.ts',impo
 for(const x of ['temporal_consistency','identity_lock','micro_expressions','emotion_from_prosody','phoneme-viseme-alignment','adaptive-simulcast','audio_video_clock_sync'])if(!r.includes(x))throw Error('realism lock '+x);
 if(!n.includes('identity drift')||!n.includes('interruption latency'))throw Error('realism QA missing');
 for(const x of ['naturalMotion','--avatar-x','--avatar-y','--avatar-rx','--avatar-ry','--avatar-scale','onBoundary','/mode-images/research.webp','/mode-images/business.webp','/mode-images/virtual-assistant.webp'])if(!a.includes(x))throw Error('free visible agent realism lock '+x);
-for(const x of ['applyHumanProsody','onBoundary','utterance.onboundary','utterance.rate','utterance.pitch'])if(!speech.includes(x))throw Error('free speech realism lock '+x);
+for(const x of ['applyNaturalProsody','onBoundary','utterance.onboundary','utterance.rate','utterance.pitch'])if(!speech.includes(x))throw Error('free speech realism lock '+x);
 console.log('Video realism lock passed: server realism contracts + free visible motion/prosody.');
