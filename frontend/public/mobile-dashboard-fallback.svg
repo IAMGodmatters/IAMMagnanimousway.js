@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="941" height="1672" viewBox="0 0 941 1672" role="img" aria-labelledby="title desc">
+  <title id="title">I AM MAGNANIMOUS WAY™ mobile dashboard</title>
+  <desc id="desc">Visible mobile navigation dashboard fallback for Magnanimous AI with sixteen platform modules and bottom navigation.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#020712"/>
+      <stop offset="0.48" stop-color="#06101f"/>
+      <stop offset="1" stop-color="#01040b"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0c2440"/>
+      <stop offset="0.55" stop-color="#07182d"/>
+      <stop offset="1" stop-color="#04101e"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#63e6ff"/>
+      <stop offset="0.5" stop-color="#78a6ff"/>
+      <stop offset="1" stop-color="#bd7cff"/>
+    </linearGradient>
+    <radialGradient id="orb" cx="50%" cy="45%" r="55%">
+      <stop offset="0" stop-color="#dffcff" stop-opacity="0.96"/>
+      <stop offset="0.16" stop-color="#69e5ff" stop-opacity="0.92"/>
+      <stop offset="0.46" stop-color="#347cff" stop-opacity="0.62"/>
+      <stop offset="0.73" stop-color="#6c48c8" stop-opacity="0.36"/>
+      <stop offset="1" stop-color="#081124" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="18" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+    <style>
+      .label{fill:#eefbff;font-family:Inter,Arial,sans-serif;font-weight:800}
+      .muted{fill:#84a9bd;font-family:Inter,Arial,sans-serif;font-weight:600}
+      .tiny{fill:#6edff8;font-family:Inter,Arial,sans-serif;font-weight:800;letter-spacing:2px}
+      .card{fill:url(#panel);stroke:#174f72;stroke-width:2}
+      .cardAccent{fill:none;stroke:url(#accent);stroke-width:2;opacity:.48}
+      .mono{fill:#a9f4ff;font-family:Inter,Arial,sans-serif;font-weight:900;letter-spacing:1px}
+    </style>
+  </defs>
+
+  <rect width="941" height="1672" fill="url(#bg)"/>
+  <circle cx="144" cy="238" r="190" fill="#092247" opacity=".2" filter="url(#soft)"/>
+  <circle cx="798" cy="420" r="240" fill="#35135b" opacity=".15" filter="url(#soft)"/>
+  <path d="M0 430 C220 360 430 500 941 360" fill="none" stroke="#2ddfff" stroke-opacity=".08" stroke-width="2"/>
+
+  <!-- Top navigation -->
+  <rect x="12" y="12" width="917" height="76" rx="24" fill="#050e1d" stroke="#163852" stroke-width="2"/>
+  <rect x="22" y="23" width="64" height="54" rx="17" fill="#081b32" stroke="#236383"/>
+  <path d="M40 39h28M40 50h28M40 61h28" stroke="#9beeff" stroke-width="4" stroke-linecap="round"/>
+  <text x="103" y="46" class="label" font-size="25">I AM MAGNANIMOUS WAY™</text>
+  <text x="103" y="69" class="tiny" font-size="11">MAGNANIMOUS AI • ONE BRAIN</text>
+  <circle cx="618" cy="50" r="25" fill="#081b32" stroke="#236383"/>
+  <circle cx="612" cy="45" r="8" fill="none" stroke="#a8efff" stroke-width="3"/><path d="M619 52l9 9" stroke="#a8efff" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="698" cy="50" r="25" fill="#081b32" stroke="#236383"/>
+  <path d="M689 55c3-4 4-8 4-13 0-4 2-8 5-8s5 4 5 8c0 5 1 9 4 13z" fill="none" stroke="#a8efff" stroke-width="2.5"/><circle cx="698" cy="60" r="2.5" fill="#a8efff"/>
+  <rect x="751" y="23" width="165" height="54" rx="18" fill="#0a2039" stroke="#2b7196"/>
+  <circle cx="780" cy="50" r="16" fill="url(#accent)" opacity=".88"/>
+  <text x="805" y="56" class="label" font-size="17">Owner</text>
+
+  <!-- Hero / command intelligence area -->
+  <rect x="44" y="111" width="633" height="337" rx="35" fill="#061426" stroke="#164969" stroke-width="2"/>
+  <text x="78" y="159" class="tiny" font-size="14">MAGNANIMOUS AI ONLINE</text>
+  <text x="78" y="211" class="label" font-size="43">Everything works</text>
+  <text x="78" y="257" class="label" font-size="43">from one place.</text>
+  <text x="78" y="299" class="muted" font-size="20">Tap a module below or use AI Command.</text>
+  <rect x="78" y="332" width="285" height="63" rx="31" fill="#092a49" stroke="#39cce8" stroke-width="2"/>
+  <circle cx="111" cy="364" r="12" fill="#5ce7ff" filter="url(#glow)"/>
+  <text x="138" y="372" class="label" font-size="20">AI Command</text>
+  <g transform="translate(492 274)">
+    <circle cx="0" cy="0" r="108" fill="url(#orb)" filter="url(#glow)"/>
+    <circle cx="0" cy="0" r="64" fill="none" stroke="#b9f8ff" stroke-opacity=".62" stroke-width="2"/>
+    <circle cx="0" cy="0" r="39" fill="#071529" stroke="#71e8ff" stroke-width="2"/>
+    <path d="M-18 0h36M0-18v36" stroke="#a8f3ff" stroke-width="3" stroke-linecap="round" opacity=".8"/>
+  </g>
+
+  <rect x="711" y="111" width="206" height="337" rx="32" fill="#07182c" stroke="#245777" stroke-width="2"/>
+  <circle cx="814" cy="194" r="50" fill="#0a2d4c" stroke="#39cce8" stroke-width="2"/>
+  <path d="M802 175l38 20-38 20z" fill="#a9f4ff"/>
+  <text x="814" y="275" text-anchor="middle" class="label" font-size="21">Watch Tutorial</text>
+  <text x="814" y="307" text-anchor="middle" class="muted" font-size="15">Platform guide</text>
+  <rect x="747" y="338" width="134" height="52" rx="26" fill="#0a2844" stroke="#3bcfe9"/>
+  <text x="814" y="371" text-anchor="middle" class="label" font-size="16">START</text>
+
+  <!-- Module cards, aligned with functional click hotspots -->
+  <g>
+    <rect class="card" x="44" y="488" width="414" height="132" rx="26"/><rect class="cardAccent" x="44" y="488" width="414" height="132" rx="26"/>
+    <circle cx="96" cy="554" r="30" fill="#0a3150" stroke="#3ad8f4"/><text x="96" y="561" text-anchor="middle" class="mono" font-size="16">VS</text><text x="143" y="548" class="label" font-size="22">Video Studio</text><text x="143" y="578" class="muted" font-size="14">Create • render • publish</text>
+
+    <rect class="card" x="473" y="488" width="415" height="132" rx="26"/><rect class="cardAccent" x="473" y="488" width="415" height="132" rx="26"/>
+    <circle cx="525" cy="554" r="30" fill="#1b2856" stroke="#8e82ff"/><text x="525" y="561" text-anchor="middle" class="mono" font-size="15">WL</text><text x="572" y="548" class="label" font-size="22">White Label</text><text x="572" y="578" class="muted" font-size="14">Brand your services</text>
+
+    <rect class="card" x="44" y="628" width="414" height="125" rx="26"/><rect class="cardAccent" x="44" y="628" width="414" height="125" rx="26"/>
+    <circle cx="96" cy="690" r="29" fill="#0a3150" stroke="#3ad8f4"/><text x="96" y="697" text-anchor="middle" class="mono" font-size="15">CS</text><text x="143" y="684" class="label" font-size="21">Creator Studio</text><text x="143" y="714" class="muted" font-size="14">Build content faster</text>
+
+    <rect class="card" x="473" y="628" width="415" height="125" rx="26"/><rect class="cardAccent" x="473" y="628" width="415" height="125" rx="26"/>
+    <circle cx="525" cy="690" r="29" fill="#1b2856" stroke="#8e82ff"/><text x="525" y="697" text-anchor="middle" class="mono" font-size="14">GR</text><text x="572" y="684" class="label" font-size="21">Growth</text><text x="572" y="714" class="muted" font-size="14">Audience • reach • insights</text>
+
+    <rect class="card" x="44" y="766" width="414" height="127" rx="26"/><rect class="cardAccent" x="44" y="766" width="414" height="127" rx="26"/>
+    <circle cx="96" cy="829" r="29" fill="#0a3150" stroke="#3ad8f4"/><text x="96" y="836" text-anchor="middle" class="mono" font-size="14">OV</text><text x="143" y="823" class="label" font-size="21">Opportunity Vault</text><text x="143" y="853" class="muted" font-size="14">Find real opportunities</text>
+
+    <rect class="card" x="473" y="766" width="415" height="127" rx="26"/><rect class="cardAccent" x="473" y="766" width="415" height="127" rx="26"/>
+    <circle cx="525" cy="829" r="29" fill="#1b2856" stroke="#8e82ff"/><text x="525" y="836" text-anchor="middle" class="mono" font-size="14">KC</text><text x="572" y="823" class="label" font-size="21">Knowledge Center</text><text x="572" y="853" class="muted" font-size="14">Search • learn • remember</text>
+
+    <rect class="card" x="44" y="904" width="414" height="127" rx="26"/><rect class="cardAccent" x="44" y="904" width="414" height="127" rx="26"/>
+    <circle cx="96" cy="967" r="29" fill="#0a3150" stroke="#3ad8f4"/><text x="96" y="974" text-anchor="middle" class="mono" font-size="14">RT</text><text x="143" y="961" class="label" font-size="21">Routines</text><text x="143" y="991" class="muted" font-size="14">Repeatable automations</text>
+
+    <rect class="card" x="473" y="904" width="415" height="127" rx="26"/><rect class="cardAccent" x="473" y="904" width="415" height="127" rx="26"/>
+    <circle cx="525" cy="967" r="29" fill="#1b2856" stroke="#8e82ff"/><text x="525" y="974" text-anchor="middle" class="mono" font-size="13">AR</text><text x="572" y="961" class="label" font-size="21">AI Receptionist</text><text x="572" y="991" class="muted" font-size="14">Calls • intake • support</text>
+
+    <rect class="card" x="44" y="1041" width="414" height="127" rx="26"/><rect class="cardAccent" x="44" y="1041" width="414" height="127" rx="26"/>
+    <circle cx="96" cy="1104" r="29" fill="#0a3150" stroke="#3ad8f4"/><text x="96" y="1111" text-anchor="middle" class="mono" font-size="13">CN</text><text x="143" y="1098" class="label" font-size="21">Connected</text><text x="143" y="1128" class="muted" font-size="14">Apps • accounts • tools</text>
+
+    <rect class="card" x="473" y="1041" width="415" height="127" rx="26"/><rect class="cardAccent" x="473" y="1041" width="415" height="127" rx="26"/>
+    <circle cx="525" cy="1104" r="29" fill="#1b2856" stroke="#8e82ff"/><text x="525" y="1111" text-anchor="middle" class="mono" font-size="13">PB</text><text x="572" y="1098" class="label" font-size="20">Professional Business</text><text x="572" y="1128" class="muted" font-size="14">Operate professionally</text>
+
+    <rect class="card" x="44" y="1181" width="414" height="127" rx="26"/><rect class="cardAccent" x="44" y="1181" width="414" height="127" rx="26"/>
+    <circle cx="96" cy="1244" r="29" fill="#0a3150" stroke="#3ad8f4"/><text x="96" y="1251" text-anchor="middle" class="mono" font-size="13">LM</text><text x="143" y="1238" class="label" font-size="20">Launch Magnanimous</text><text x="143" y="1268" class="muted" font-size="14">Plan • launch • execute</text>
+
+    <rect class="card" x="473" y="1181" width="415" height="127" rx="26"/><rect class="cardAccent" x="473" y="1181" width="415" height="127" rx="26"/>
+    <circle cx="525" cy="1244" r="29" fill="#1b2856" stroke="#8e82ff"/><text x="525" y="1251" text-anchor="middle" class="mono" font-size="13">AI</text><text x="572" y="1238" class="label" font-size="21">AI Business</text><text x="572" y="1268" class="muted" font-size="14">Business intelligence</text>
+
+    <rect class="card" x="44" y="1318" width="414" height="126" rx="26"/><rect class="cardAccent" x="44" y="1318" width="414" height="126" rx="26"/>
+    <circle cx="96" cy="1381" r="29" fill="#0a3150" stroke="#3ad8f4"/><text x="96" y="1388" text-anchor="middle" class="mono" font-size="13">CM</text><text x="143" y="1375" class="label" font-size="21">Command</text><text x="143" y="1405" class="muted" font-size="14">Talk to Magnanimous AI</text>
+
+    <rect class="card" x="473" y="1318" width="415" height="126" rx="26"/><rect class="cardAccent" x="473" y="1318" width="415" height="126" rx="26"/>
+    <circle cx="525" cy="1381" r="29" fill="#1b2856" stroke="#8e82ff"/><text x="525" y="1388" text-anchor="middle" class="mono" font-size="13">SS</text><text x="572" y="1375" class="label" font-size="21">Social Studio</text><text x="572" y="1405" class="muted" font-size="14">Create • schedule • share</text>
+
+    <rect class="card" x="44" y="1455" width="414" height="110" rx="24"/><rect class="cardAccent" x="44" y="1455" width="414" height="110" rx="24"/>
+    <circle cx="96" cy="1510" r="27" fill="#0a3150" stroke="#3ad8f4"/><text x="96" y="1517" text-anchor="middle" class="mono" font-size="12">VA</text><text x="143" y="1504" class="label" font-size="20">Virtual Assistant</text><text x="143" y="1533" class="muted" font-size="13">Everyday execution</text>
+
+    <rect class="card" x="473" y="1455" width="415" height="110" rx="24"/><rect class="cardAccent" x="473" y="1455" width="415" height="110" rx="24"/>
+    <circle cx="525" cy="1510" r="27" fill="#1b2856" stroke="#8e82ff"/><text x="525" y="1517" text-anchor="middle" class="mono" font-size="12">RP</text><text x="572" y="1504" class="label" font-size="20">Reports</text><text x="572" y="1533" class="muted" font-size="13">Activity • status • results</text>
+  </g>
+
+  <!-- Bottom navigation -->
+  <rect x="0" y="1566" width="941" height="106" fill="#030b17" stroke="#17354d" stroke-width="2"/>
+  <g class="label" font-size="15" text-anchor="middle">
+    <circle cx="104" cy="1605" r="17" fill="#133b55" stroke="#4cdcf5"/><path d="M94 1606l10-9 10 9v12h-7v-7h-6v7h-7z" fill="#b6f7ff"/><text x="104" y="1650">Home</text>
+    <circle cx="282" cy="1605" r="17" fill="#133b55" stroke="#4cdcf5"/><path d="M274 1605h16M282 1597v16" stroke="#b6f7ff" stroke-width="2.5"/><text x="282" y="1650">AI Command</text>
+    <circle cx="470" cy="1605" r="17" fill="#133b55" stroke="#4cdcf5"/><path d="M463 1612l14-14M463 1598h14v14" stroke="#b6f7ff" stroke-width="2.5" fill="none"/><text x="470" y="1650">Opportunity</text>
+    <circle cx="658" cy="1605" r="17" fill="#133b55" stroke="#4cdcf5"/><rect x="650" y="1597" width="16" height="16" rx="3" fill="none" stroke="#b6f7ff" stroke-width="2"/><text x="658" y="1650">CRM</text>
+    <circle cx="837" cy="1605" r="17" fill="#133b55" stroke="#4cdcf5"/><circle cx="830" cy="1605" r="2.4" fill="#b6f7ff"/><circle cx="837" cy="1605" r="2.4" fill="#b6f7ff"/><circle cx="844" cy="1605" r="2.4" fill="#b6f7ff"/><text x="837" y="1650">More</text>
+  </g>
+</svg>
