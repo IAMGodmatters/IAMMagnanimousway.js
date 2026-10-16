@@ -1,5 +1,6 @@
 const clip=(value,max=120000)=>String(value??'').replace(/\r\n/g,'\n').slice(0,max);
 const uniq=(items)=>[...new Set(items.filter(Boolean))];
+const MAX_SKILL_SOURCE_LENGTH=160000;
 
 export const MAGNANIMOUS_AGENT_SKILLS_POLICY=Object.freeze({
  identity:'Magnanimous Agent Skills',
@@ -54,7 +55,7 @@ const BUILTIN=Object.freeze([
  {
   name:'cleanroom-capability-assimilation',
   description:'Benchmark an outside AI product, repository, API, or tool and reproduce useful public capabilities with clean-room, license-aware Magnanimous implementations. Use when the user asks to absorb, clone, match, study, or add features from another system.',
-  triggers:['absorb it','clone it','match these features','study this repository','add everything useful','feature parity'],
+  triggers:['absorb','clone','public github','match these features','study this repository','add everything useful','feature parity'],
   metadata:{owner:'Magnanimous AI',risk:'license-sensitive',native_capabilities:'web.research,github.search,apps.resolve'},
   instructions:`# Clean-room Capability Assimilation\n\n1. Identify the public capabilities, interfaces and user-visible workflows worth matching.\n2. Check the license and separate permissively reusable material from source-available, proprietary, trademarked or unclear material.\n3. Prefer independent Magnanimous implementations of techniques and contracts over copying provider identity or private internals.\n4. Attribute reused open-source material as required and retain applicable notices.\n5. Integrate through existing Magnanimous brain, memory, policy and Tool Foundry layers.\n6. Add regression checks that prevent later work from falsely claiming proprietary technology as native Magnanimous ownership.`
  },
@@ -62,7 +63,7 @@ const BUILTIN=Object.freeze([
   name:'billing-and-cost-guard',
   description:'Protect Magnanimous AI from unfunded variable costs while preserving clear customer activation. Use for paid APIs, GPU jobs, telecom, premium agents, metered services, Stripe checkout, plan limits, and any feature that can create ongoing external cost.',
   triggers:['billing','stripe','paid api','gpu cost','telecom cost','20% upsale','metering','plan limit','checkout'],
-  metadata:{owner:'Magnanimous AI',risk:'financial',native_capabilities:'payment-confirmation,usage-metering'},
+  metadata:{owner:'Magnanimous AI',risk:'financial',capability_requirements:'payment confirmation and usage metering through existing billing gates'},
   instructions:`# Billing and Cost Guard\n\n1. Prefer free, native, browser, edge or owner-controlled capacity when it meets the requirement.\n2. Before variable external spend, confirm the customer entitlement or prepaid funding that covers the expected cost.\n3. Keep public price and terms understandable; preserve internal margin logic as private business configuration.\n4. Make activation depend on confirmed payment state, not a client-side success screen alone.\n5. Make webhook and fulfillment processing idempotent and auditable.\n6. Stop, meter, downgrade or request an upgrade when a funded limit is reached instead of silently spending beyond it.`
  }
 ]);
@@ -98,26 +99,33 @@ export function resolveMagnanimousAgentSkills(goal,{limit=5,includeInstructions=
 
 function parseScalar(raw){
  const v=clip(raw,4000).trim();
- if((v.startsWith('"')&&v.endsWith('"'))||(v.startsWith("'")&&v.endsWith("'")))return v.slice(1,-1);
+ const startsDouble=v.startsWith('"'),endsDouble=v.endsWith('"'),startsSingle=v.startsWith("'"),endsSingle=v.endsWith("'");
+ if(startsDouble!==endsDouble||startsSingle!==endsSingle)throw new Error('Malformed quoted YAML scalar.');
+ if((startsDouble&&endsDouble)||(startsSingle&&endsSingle))return v.slice(1,-1);
  return v;
 }
 
 export function parseAgentSkillMarkdown(source,{directoryName=''}={}){
- const text=clip(source,160000);
+ const text=String(source??'').replace(/\r\n/g,'\n');
+ if(text.length>MAX_SKILL_SOURCE_LENGTH)return{ok:false,errors:[`SKILL.md exceeds the ${MAX_SKILL_SOURCE_LENGTH.toLocaleString('en-US')}-character validation limit.`],warnings:[],metadata:{},body:'',source_length:text.length,truncated:false};
  const lines=text.split('\n');
  if(lines[0]?.trim()!=='---')return{ok:false,errors:['SKILL.md must begin with YAML frontmatter delimited by ---.'],warnings:[],metadata:{},body:''};
  const end=lines.findIndex((line,index)=>index>0&&line.trim()==='---');
  if(end<0)return{ok:false,errors:['SKILL.md is missing the closing --- frontmatter delimiter.'],warnings:[],metadata:{},body:''};
  const metadata={},nested={};let section='';
- for(const line of lines.slice(1,end)){
-  if(!line.trim()||line.trim().startsWith('#'))continue;
-  const nestedMatch=line.match(/^\s+([A-Za-z0-9_.-]+):\s*(.*)$/);
-  if(section==='metadata'&&nestedMatch){nested[nestedMatch[1]]=parseScalar(nestedMatch[2]);continue;}
-  const match=line.match(/^([A-Za-z0-9-]+):\s*(.*)$/);
-  if(!match)continue;
-  const key=match[1],value=match[2];section=key;
-  if(key==='metadata'&&!value.trim()){metadata.metadata=nested;continue;}
-  metadata[key]=parseScalar(value);
+ try{
+  for(const line of lines.slice(1,end)){
+   if(!line.trim()||line.trim().startsWith('#'))continue;
+   const nestedMatch=line.match(/^\s+([A-Za-z0-9_.-]+):\s*(.*)$/);
+   if(section==='metadata'&&nestedMatch){nested[nestedMatch[1]]=parseScalar(nestedMatch[2]);continue;}
+   const match=line.match(/^([A-Za-z0-9-]+):\s*(.*)$/);
+   if(!match)continue;
+   const key=match[1],value=match[2];section=key;
+   if(key==='metadata'&&!value.trim()){metadata.metadata=nested;continue;}
+   metadata[key]=parseScalar(value);
+  }
+ }catch(error){
+  return{ok:false,errors:[`Invalid YAML frontmatter: ${error instanceof Error?error.message:String(error)}`],warnings:[],metadata:{},body:''};
  }
  if(Object.keys(nested).length)metadata.metadata=nested;
  const body=lines.slice(end+1).join('\n').trim();
@@ -155,7 +163,7 @@ export function getMagnanimousAgentSkillsSummary(){
   status:'native-ready',
   builtin_skill_count:BUILTIN.length,
   parser:'safe-common-frontmatter-subset',
-  validator_rules:['required name','required description','name syntax and directory match','description/compatibility limits','progressive disclosure warning','allowed-tools scope warning','policy-conflict warning'],
+  validator_rules:['required name','required description','name syntax and directory match','description/compatibility limits','malformed quoted scalar rejection','oversized source rejection','progressive disclosure warning','allowed-tools scope warning','policy-conflict warning'],
   runtime_behavior:'Skill resolution selects instructions only; execution remains delegated through existing Magnanimous capability routes and their authorization gates.',
   startup_metadata:listMagnanimousAgentSkills({includeInstructions:false})
  };
