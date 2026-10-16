@@ -10,8 +10,22 @@ const sharpPath='frontend/public/mobile-dashboard-approved-sharp.webp';
 const approved=fs.readFileSync(approvedPath);
 const sharp=fs.readFileSync(sharpPath);
 const expectedApprovedGitBlob='65036a811159196e6fe1789760db162e901cf4fa';
-const expectedSharpGitBlob='1b894696ed7bcdc1613c93d36e29fa2210acaad3';
+const expectedSharpGitBlob='b355bb1821555513c28786a19ec3be202f75575f';
 const gitBlobSha=input=>crypto.createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${input.length}\0`),input])).digest('hex');
+const assertCompleteWebp=(input,label)=>{
+ assert.equal(input.subarray(0,4).toString(),'RIFF',`${label} must be a RIFF container.`);
+ assert.equal(input.subarray(8,12).toString(),'WEBP',`${label} must be a WebP container.`);
+ assert.equal(input.readUInt32LE(4)+8,input.length,`${label} RIFF declared length must match the actual file length.`);
+ let offset=12;
+ while(offset<input.length){
+  assert.ok(offset+8<=input.length,`${label} has a truncated WebP chunk header.`);
+  const size=input.readUInt32LE(offset+4);
+  const end=offset+8+size;
+  assert.ok(end<=input.length,`${label} has a truncated WebP chunk payload.`);
+  offset=end+(size&1);
+ }
+ assert.equal(offset,input.length,`${label} WebP chunk boundaries must end exactly at EOF.`);
+};
 const webpDimensions=input=>{
  assert.equal(input.subarray(0,4).toString(),'RIFF','Mobile artwork must be a RIFF WebP.');
  assert.equal(input.subarray(8,12).toString(),'WEBP','Mobile artwork must have a WEBP container signature.');
@@ -23,6 +37,8 @@ const webpDimensions=input=>{
 
 assert.equal(gitBlobSha(approved),expectedApprovedGitBlob,'Known-working mobile artwork bytes changed. Restore the owner-approved portrait artwork; do not redesign it.');
 assert.equal(gitBlobSha(sharp),expectedSharpGitBlob,'Sharp mobile enhancement bytes changed unexpectedly.');
+assertCompleteWebp(approved,'Known-working mobile fallback');
+assertCompleteWebp(sharp,'Sharp mobile enhancement');
 assert.deepEqual(webpDimensions(approved),{width:320,height:569},'Known-working mobile fallback dimensions changed.');
 assert.deepEqual(webpDimensions(sharp),{width:1296,height:2304},'Sharp mobile enhancement must remain the high-resolution version.');
 assert.ok(!layout.includes("import MobileHomeDashboard from './mobile-home-dashboard'"),'Replacement mobile overlay must not supersede the canonical exact-artwork home.');
@@ -36,7 +52,7 @@ assert.ok(page.includes('className="mobileReferenceFrame"'),'Approved portrait a
 assert.ok(page.includes('className="mobileReferenceHot mobileCardHot"'),'Mobile module click hotspots are missing.');
 assert.ok(clarity.includes("background-image: url('/mobile-dashboard-approved.webp?lock=65036a811159196e6fe1789760db162e901cf4fa') !important"),'Mobile frame must lock the known-working approved artwork as its resilience background.');
 assert.ok(clarity.includes("body.iam-design-v2 .mobileReferenceFrame::after"),'Sharp enhancement layer is missing.');
-assert.ok(clarity.includes("background-image: url('/mobile-dashboard-approved-sharp.webp?lock=1b894696ed7bcdc1613c93d36e29fa2210acaad3')"),'Mobile frame must use the locked high-resolution artwork only as an enhancement layer.');
+assert.ok(clarity.includes("background-image: url('/mobile-dashboard-approved-sharp.webp?lock=b355bb1821555513c28786a19ec3be202f75575f')"),'Mobile frame must use the locked high-resolution artwork only as an enhancement layer.');
 assert.ok(clarity.includes('pointer-events: none')&&clarity.includes('z-index: 1'),'Sharp enhancement must never block mobile interactions.');
 assert.ok(clarity.includes('body.iam-design-v2 .mobileReferenceHot')&&clarity.includes('z-index: 5 !important'),'Clickable mobile hotspots must remain above the visual enhancement.');
 assert.ok(!clarity.includes("mobile-dashboard-fallback.svg"),'Simplified fallback artwork must never replace the approved mobile design.');
@@ -57,4 +73,4 @@ assert.ok(page.includes('mobileServiceAlert degraded')&&page.includes('Some live
 assert.ok(page.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion safety is missing.');
 assert.ok(page.includes("className={sidebarCollapsed?'exactStage desktopStage sidebarCollapsed':'exactStage desktopStage'}"),'Approved desktop dashboard structure changed unexpectedly.');
 assert.ok(page.includes('className="exactArtwork" src="/crm-upgrade.jpeg"'),'Approved desktop artwork source changed unexpectedly.');
-console.log('Immutable homepage artwork lock PASS: the known-working approved mobile image is guaranteed underneath a locked high-resolution enhancement, clickable routes remain above both layers, and desktop artwork stays unchanged.');
+console.log('Immutable homepage artwork lock PASS: both WebP files are structurally complete, the known-working approved mobile image remains underneath the complete high-resolution enhancement, clickable routes remain above both layers, and desktop artwork stays unchanged.');
