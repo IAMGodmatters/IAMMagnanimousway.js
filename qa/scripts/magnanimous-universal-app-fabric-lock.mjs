@@ -7,6 +7,7 @@ const fabric=read('worker/src/magnanimous-universal-app-fabric.js');
 const mesh=read('worker/src/magnanimous-capability-mesh.js');
 const social=read('worker/src/social-publishing-runtime.js');
 const connections=read('frontend/app/connections/page.tsx');
+const socialConnect=read('frontend/app/social-connect/page.tsx');
 const liveSnapshot=read('worker/src/magnanimous-live-plugin-tool-research-snapshot.js');
 
 function has(source,needle,message){assert(source.includes(needle),message)}
@@ -31,6 +32,15 @@ has(social,"https://api.linkedin.com/rest/posts",'Existing direct LinkedIn membe
 has(social,"body.explicit_consent!==true",'Existing LinkedIn explicit-consent gate must remain present');
 has(social,"social_connections",'Social publishing connection truth must remain tenant scoped');
 has(connections,'href="/social-connect"','Main Connections surface must expose first-party social publishing connections');
+
+has(socialConnect,'Set up & connect ${c.name}','Unconfigured owner social cards must provide an actionable setup path instead of a dead disabled button');
+has(socialConnect,'Save TikTok credentials & connect','TikTok setup must save credentials and continue directly into account authorization');
+has(socialConnect,'Save LinkedIn credentials & connect','LinkedIn setup must save credentials and continue directly into account authorization');
+has(socialConnect,"/api/social-connect/${id}/callback",'Social setup must expose the exact OAuth redirect URI owners need to register');
+has(socialConnect,'https://developers.tiktok.com/','TikTok setup must link to the official developer portal');
+has(socialConnect,'https://www.linkedin.com/developer/apps/','LinkedIn setup must link to the official developer portal');
+has(socialConnect,'onClick={()=>connect(c.id)}','Configured social providers must still open the official account authorization flow');
+assert(!socialConnect.includes('disabled={!!busy||!c.configured}'),'Unconfigured social cards must not be left as disabled dead ends');
 
 assert(!fabric.includes('access_token TEXT'),'Universal App Fabric must not create or expose its own token store');
 for(const namespace of ['Acumen_by_Talarion','Hercules','Tavily'])has(liveSnapshot,`\"namespace\": \"${namespace}\"`,`Current visible plugin namespace must be absorbed: ${namespace}`);
