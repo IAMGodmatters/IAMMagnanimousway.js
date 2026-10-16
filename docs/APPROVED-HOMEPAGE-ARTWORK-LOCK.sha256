@@ -1,3 +1,4 @@
-# Mobile is locked by exact Git blob identity because the approved WebP is binary.
-GIT-BLOB-SHA1 1b894696ed7bcdc1613c93d36e29fa2210acaad3  frontend/public/mobile-dashboard-approved.webp
+# Mobile uses two exact Git blob identities: a known-working fallback and a high-resolution enhancement.
+GIT-BLOB-SHA1 65036a811159196e6fe1789760db162e901cf4fa  frontend/public/mobile-dashboard-approved.webp
+GIT-BLOB-SHA1 1b894696ed7bcdc1613c93d36e29fa2210acaad3  frontend/public/mobile-dashboard-approved-sharp.webp
 SHA256 4782F5011B660DC4A189B1A2A315352C241CAD40C4800AD2A5C78949837EC548  frontend/public/crm-upgrade.jpeg
