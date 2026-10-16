@@ -1,0 +1,73 @@
+name: Rebuild Mobile Sharp Asset
+
+on:
+  push:
+    branches:
+      - fix/mobile-sharp-complete-20261016
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Ensure ffmpeg
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -version | head -n 1
+      - name: Rebuild complete high-resolution approved artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          input='frontend/public/mobile-dashboard-approved.webp'
+          output='frontend/public/mobile-dashboard-approved-sharp.webp'
+          ffmpeg -hide_banner -loglevel error -y \
+            -i "$input" \
+            -vf "scale=1296:2304:flags=lanczos,unsharp=5:5:0.55:5:5:0" \
+            -frames:v 1 -c:v libwebp -quality 95 -compression_level 6 -preset picture \
+            "$output"
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct, hashlib
+          p=Path('frontend/public/mobile-dashboard-approved-sharp.webp')
+          data=p.read_bytes()
+          assert data[:4]==b'RIFF' and data[8:12]==b'WEBP'
+          declared=struct.unpack_from('<I',data,4)[0]+8
+          assert declared==len(data), (declared,len(data))
+          off=12
+          while off < len(data):
+              assert off+8 <= len(data)
+              size=struct.unpack_from('<I',data,off+4)[0]
+              end=off+8+size
+              assert end <= len(data), (off,size,len(data))
+              off=end+(size&1)
+          assert off==len(data), (off,len(data))
+          header=b'blob '+str(len(data)).encode()+b'\0'
+          print('bytes',len(data))
+          print('git_blob',hashlib.sha1(header+data).hexdigest())
+          PY
+          dims="$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$output")"
+          [ "$dims" = '1296x2304' ] || { echo "unexpected dimensions: $dims"; exit 1; }
+      - name: Commit rebuilt binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- frontend/public/mobile-dashboard-approved-sharp.webp; then
+            echo 'Sharp asset is already complete and current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add frontend/public/mobile-dashboard-approved-sharp.webp
+          git commit -m 'Rebuild complete high-resolution mobile artwork'
+          git push origin HEAD:fix/mobile-sharp-complete-20261016
