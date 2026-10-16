@@ -1,0 +1,26 @@
+name: Magnanimous Judgment Core Lock
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: magnanimous-judgment-core-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  judgment-core:
+    name: Verify native judgment contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Run Magnanimous Judgment Core lock
+        run: node qa/scripts/magnanimous-judgment-core-lock.mjs
