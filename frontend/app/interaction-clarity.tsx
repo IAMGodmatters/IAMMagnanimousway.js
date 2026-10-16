@@ -120,6 +120,33 @@ export default function InteractionClarity() {
         .launch footer span {
           color: #626a64 !important;
         }
+        @media (max-width: 1024px) {
+          body.iam-design-v2 .mobileReferenceFrame {
+            background-image: url('/mobile-dashboard-approved.webp?lock=65036a811159196e6fe1789760db162e901cf4fa') !important;
+            isolation: isolate !important;
+          }
+          body.iam-design-v2 .mobileReferenceFrame::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background-image: url('/mobile-dashboard-approved-sharp.webp?lock=1b894696ed7bcdc1613c93d36e29fa2210acaad3');
+            background-position: center top;
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+          }
+          body.iam-design-v2 .mobileReferenceArtwork {
+            z-index: 0 !important;
+            object-fit: fill !important;
+          }
+          body.iam-design-v2 .mobileReferenceHot {
+            z-index: 5 !important;
+          }
+          body.iam-design-v2 .mobileServiceAlert {
+            z-index: 6 !important;
+          }
+        }
         @media (max-width: 700px) {
           .iam-help-link {
             bottom: 74px;
