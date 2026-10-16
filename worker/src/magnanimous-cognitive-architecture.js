@@ -9,6 +9,7 @@ import {
   MAGNANIMOUS_SOURCE_OF_CAPABILITY,
   getMagnanimousUniversalPrompt
 } from './magnanimous-universal-capabilities.js';
+import { MAGNANIMOUS_JUDGMENT_POLICY, getMagnanimousJudgmentPrompt } from './magnanimous-judgment-core.js';
 
 export {
   MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS,
@@ -16,6 +17,7 @@ export {
   MAGNANIMOUS_SELF_EVOLUTION_PROTOCOL,
   MAGNANIMOUS_SOURCE_OF_CAPABILITY
 } from './magnanimous-universal-capabilities.js';
+export { MAGNANIMOUS_JUDGMENT_POLICY } from './magnanimous-judgment-core.js';
 
 export const MAGNANIMOUS_COGNITIVE_LOOP = [
   'perceive',
@@ -39,6 +41,7 @@ export const MAGNANIMOUS_COGNITIVE_ARCHITECTURE = {
   central_brain: true,
   universal_capability_core: true,
   self_evolution_protocol: MAGNANIMOUS_SELF_EVOLUTION_PROTOCOL.version,
+  judgment_protocol: MAGNANIMOUS_JUDGMENT_POLICY.version,
   capability_domains: MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS.map(x => x.id),
   inspirations: [
     {
@@ -86,6 +89,10 @@ export const MAGNANIMOUS_COGNITIVE_ARCHITECTURE = {
     {
       id: 'multi-agent-parallel-execution',
       purpose: 'Decompose long-horizon goals into independently verifiable workstreams, delegate to specialist agents, run low-risk independent work in parallel when supported, and merge results under one Magnanimous plan.'
+    },
+    {
+      id: 'evidence-backed-judgment-and-completion',
+      purpose: 'Define explicit completion contracts, collect verifiable evidence, use budgeted independent worker councils when useful, and let Magnanimous AI make the final completion judgment without exposing hidden chain-of-thought.'
     },
     {
       id: 'action-selection',
@@ -153,12 +160,12 @@ export const MAGNANIMOUS_DEVELOPMENT_SKILLS = [
   },
   {
     domain: 'agentic-systems',
-    items: ['long-horizon planning', 'subagents', 'parallel workstreams', 'tool use', 'computer use', 'sandboxes', 'checkpoint/resume', 'MCP'],
+    items: ['long-horizon planning', 'subagents', 'parallel workstreams', 'tool use', 'computer use', 'sandboxes', 'checkpoint/resume', 'MCP', 'completion contracts', 'provider-neutral councils', 'durable delegation'],
     purpose: 'Execute complex goals across tools and environments while retaining Magnanimous as the central planner, memory and verification layer.'
   },
   {
     domain: 'evaluation-and-self-improvement',
-    items: ['regression tests', 'adversarial evaluation', 'canary rollout', 'provider scoring', 'skill promotion', 'rollback', 'capability-gap discovery'],
+    items: ['regression tests', 'adversarial evaluation', 'canary rollout', 'provider scoring', 'skill promotion', 'rollback', 'capability-gap discovery', 'evidence-backed completion', 'skill candidate synthesis', 'learning journey provenance'],
     purpose: 'Make improvement measurable, evidence-driven, reversible and safe to operate continuously.'
   },
   {
@@ -201,6 +208,11 @@ export const MAGNANIMOUS_RESEARCH_PRIORITIES = [
     objective: 'Unify planning, subagents, parallel tool use, browser/computer operation, code execution, files, checkpoints and recovery under one provider-neutral Magnanimous control plane.'
   },
   {
+    id: 'evidence-backed-judgment',
+    name: 'Evidence-backed completion and provider-neutral councils',
+    objective: 'Require explicit completion criteria and evidence for important work, use independent replaceable workers when additional judgment helps, and keep final arbitration inside Magnanimous AI.'
+  },
+  {
     id: 'continuous-self-evolution',
     name: 'Continuous evidence-driven self-improvement',
     objective: 'Continuously detect capability gaps and turn proven public patterns into original native skills, adapters, tests and procedural memory through sandboxed, regression-tested, reversible promotion.'
@@ -223,5 +235,5 @@ export const MAGNANIMOUS_RESEARCH_PRIORITIES = [
 ];
 
 export function getMagnanimousCognitivePrompt() {
-  return `MAGNANIMOUS HYBRID COGNITIVE CORE\nArchitecture: hybrid-symbolic-neural-agentic. SOAR, LIDA, ACT-R and CLARION are design inspirations, not claims of full reimplementation.\nCognitive loop: ${MAGNANIMOUS_COGNITIVE_LOOP.join(' -> ')}.\nUse flexible model inference together with explicit constraints, permissions, retrieval, structured plans and deterministic checks.\nMaintain working context, retrieve declarative/episodic knowledge, reuse procedural recipes, then select the best authorized action or execution engine.\nFor long-horizon work, decompose the goal, use specialist subagents or parallel low-risk workstreams when useful, checkpoint progress, verify each workstream and merge results under Magnanimous control.\nFor explainability, provide concise rationale, evidence, assumptions, uncertainty and verified action results when useful. Do not expose hidden chain-of-thought.\nFor multimodal work, fuse only inputs actually available in the runtime; never pretend to have processed an unavailable modality.\nFor human-AI collaboration, act proactively on low-risk authorized work and ask only when missing information, judgment, consent or a permission boundary genuinely requires the user.\nFor self-improvement, use capability-gap detection, evidence gathering, original skill/adapter design, sandbox testing, regression/adversarial evaluation, canary rollout, measured promotion and rollback. Never weaken authentication, authorization, privacy, tenant isolation, secret handling, required approvals or law/safety controls.\nTreat TensorFlow, Keras, PyTorch, Scikit-learn, NLTK, spaCy, OpenCV, WordNet, YAGO, MCP, function calling, structured outputs and sandboxed execution as framework/tool knowledge and adapter targets unless the runtime explicitly proves they are installed or connected.\n\n${getMagnanimousUniversalPrompt()}`;
+  return `MAGNANIMOUS HYBRID COGNITIVE CORE\nArchitecture: hybrid-symbolic-neural-agentic. SOAR, LIDA, ACT-R and CLARION are design inspirations, not claims of full reimplementation.\nCognitive loop: ${MAGNANIMOUS_COGNITIVE_LOOP.join(' -> ')}.\nUse flexible model inference together with explicit constraints, permissions, retrieval, structured plans and deterministic checks.\nMaintain working context, retrieve declarative/episodic knowledge, reuse procedural recipes, then select the best authorized action or execution engine.\nFor long-horizon work, decompose the goal, use specialist subagents or parallel low-risk workstreams when useful, checkpoint progress, verify each workstream and merge results under Magnanimous control.\nFor explainability, provide concise rationale, evidence, assumptions, uncertainty and verified action results when useful. Do not expose hidden chain-of-thought.\nFor multimodal work, fuse only inputs actually available in the runtime; never pretend to have processed an unavailable modality.\nFor human-AI collaboration, act proactively on low-risk authorized work and ask only when missing information, judgment, consent or a permission boundary genuinely requires the user.\nFor self-improvement, use capability-gap detection, evidence gathering, original skill/adapter design, sandbox testing, regression/adversarial evaluation, canary rollout, measured promotion and rollback. Never weaken authentication, authorization, privacy, tenant isolation, secret handling, required approvals or law/safety controls.\nTreat TensorFlow, Keras, PyTorch, Scikit-learn, NLTK, spaCy, OpenCV, WordNet, YAGO, MCP, function calling, structured outputs and sandboxed execution as framework/tool knowledge and adapter targets unless the runtime explicitly proves they are installed or connected.\n\n${getMagnanimousJudgmentPrompt()}\n\n${getMagnanimousUniversalPrompt()}`;
 }
