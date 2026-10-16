@@ -23,7 +23,35 @@ jobs:
         with:
           node-version: 24
       - name: Apply additive NVIDIA routing and remembrance invariant
-        run: node scripts/add-nvidia-frontier-mesh.mjs
+        shell: bash
+        run: |
+          set +e
+          node scripts/add-nvidia-frontier-mesh.mjs
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            echo 'NVIDIA patcher reported anchor drift; verifying that the complete NVIDIA frontier mesh is already present.'
+            node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const checks=[
+            ['worker/src/provider-entrypoint.js',["id: 'nvidia-kimi'","id: 'nvidia-deepseek-pro'","id: 'nvidia-deepseek-flash'",'durable remembrance layer']],
+            ['worker/src/provider-runtime-env.js',["'NVIDIA_API_KEY'"]],
+            ['worker/src/platform-credentials.js',["key:'NVIDIA_API_KEY'",'nvidia-nim']],
+            ['worker/src/magnanimous-brain-runtime.js',['durable source of remembrance']],
+            ['.env.example',['NVIDIA_API_KEY=','NVIDIA_KIMI_MODEL=','NVIDIA_DEEPSEEK_PRO_MODEL=','NVIDIA_DEEPSEEK_FLASH_MODEL=']]
+          ];
+          const missing=[];
+          for(const [file,needles] of checks){
+            const text=fs.readFileSync(file,'utf8');
+            for(const needle of needles)if(!text.includes(needle))missing.push(`${file}: ${needle}`);
+          }
+          if(missing.length){
+            console.error('NVIDIA frontier mesh is incomplete after patcher failure:\n'+missing.join('\n'));
+            process.exit(1);
+          }
+          console.log('NVIDIA frontier mesh already satisfies the required invariants; continuing safely.');
+          NODE
+          fi
       - name: Apply Magnanimous Agent Skills compatibility layer
         run: node scripts/add-magnanimous-agent-skills.mjs
       - name: Validate changed JavaScript
