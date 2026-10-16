@@ -131,7 +131,7 @@ export default function InteractionClarity() {
             inset: 0;
             z-index: 1;
             pointer-events: none;
-            background-image: url('/mobile-dashboard-approved-sharp.webp?lock=1b894696ed7bcdc1613c93d36e29fa2210acaad3');
+            background-image: url('/mobile-dashboard-approved-sharp.webp?lock=b355bb1821555513c28786a19ec3be202f75575f');
             background-position: center top;
             background-repeat: no-repeat;
             background-size: 100% 100%;
