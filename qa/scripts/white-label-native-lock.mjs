@@ -13,6 +13,8 @@ const security=read('worker/src/security-hardening.js');
 const home=read('frontend/app/white-label/page.tsx');
 const shell=read('frontend/app/white-label/app/page.tsx');
 const studio=read('frontend/app/white-label/native/page.tsx');
+const whiteLabelLayout=read('frontend/app/white-label/layout.tsx');
+const legacyCommunications=read('frontend/app/white-label/communications/page.tsx');
 
 const invoice=invoiceBody({customer:'Client',currency:'USD',items:[{description:'Service',quantity:3,unit_price:10.25},{description:'Parts',quantity:1,unit_price:2.95}],tax_percent:10});
 assert.equal(invoice.subtotal_cents,3370);
@@ -40,6 +42,10 @@ assert.ok(runtime.includes('external_payment_confirmed!==true'),'POS must not in
 assert.ok(runtime.includes("c.id,kind"),'Documents must be client-scoped');
 assert.ok(runtime.includes("tenant_id=? AND client_id=?"),'POS must be tenant/client scoped');
 assert.ok(studio.includes('No card payment was processed here.'),'POS UI must disclose no card processing');
+assert.ok(!whiteLabelLayout.includes('/white-label/communications'),'Removed communications launcher must not return to White Label');
+assert.ok(legacyCommunications.includes("redirect('/white-label')"),'Legacy communications route must redirect to White Label');
+assert.ok(!legacyCommunications.toLowerCase().includes('mirrorfly'),'Legacy communications route must not expose MirrorFly');
+
 const db=new DatabaseSync(':memory:');
 db.exec('CREATE TABLE bpo_clients(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL);');
 db.exec(read('worker/migrations/0075_white_label_native_products.sql'));
@@ -47,4 +53,4 @@ db.prepare('INSERT INTO white_label_pos_products(id,tenant_id,client_id,name,sku
 assert.throws(()=>db.prepare('UPDATE white_label_pos_products SET stock=stock-? WHERE id=? AND tenant_id=? AND client_id=?').run(3,'p1','t1','c1'),/CHECK constraint/);
 assert.equal(db.prepare('SELECT stock FROM white_label_pos_products WHERE id=?').get('p1').stock,2);
 db.close();
-console.log('Native White Label lock: invoice math, isolation, payment claims, stock guards and UI mounts PASS');
+console.log('Native White Label lock: invoice math, isolation, payment claims, stock guards, provider removal and UI mounts PASS');
