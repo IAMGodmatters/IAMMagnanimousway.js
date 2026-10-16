@@ -19,7 +19,8 @@ jobs:
         shell: bash
         env:
           LIVE_URL: https://iammagnanimousway.com/
-          APPROVED_MOBILE_GIT_BLOB: 1b894696ed7bcdc1613c93d36e29fa2210acaad3
+          APPROVED_MOBILE_GIT_BLOB: 65036a811159196e6fe1789760db162e901cf4fa
+          SHARP_MOBILE_GIT_BLOB: 1b894696ed7bcdc1613c93d36e29fa2210acaad3
           APPROVED_DESKTOP_SHA256: 4782F5011B660DC4A189B1A2A315352C241CAD40C4800AD2A5C78949837EC548
         run: |
           set -euo pipefail
@@ -32,10 +33,33 @@ jobs:
             -o mobile-visual-proof/mobile-dashboard-approved.webp \
             "${LIVE_URL}mobile-dashboard-approved.webp?lock=${APPROVED_MOBILE_GIT_BLOB}&verify=${GITHUB_RUN_ID}"
           magic="$(head -c 12 mobile-visual-proof/mobile-dashboard-approved.webp | xxd -p -c 12 || true)"
-          [[ "$magic" == 52494646*57454250 ]] || { echo '::error::Live approved mobile artwork is not a valid WebP.'; exit 1; }
+          [[ "$magic" == 52494646*57454250 ]] || { echo '::error::Live approved mobile fallback is not a valid WebP.'; exit 1; }
           mobile_bytes="$(stat -c%s mobile-visual-proof/mobile-dashboard-approved.webp)"
           actual_mobile_blob="$( { printf 'blob %s\0' "$mobile_bytes"; cat mobile-visual-proof/mobile-dashboard-approved.webp; } | sha1sum | awk '{print $1}')"
-          [ "$actual_mobile_blob" = "$APPROVED_MOBILE_GIT_BLOB" ] || { echo "::error::Live mobile artwork changed: ${actual_mobile_blob}."; exit 1; }
+          [ "$actual_mobile_blob" = "$APPROVED_MOBILE_GIT_BLOB" ] || { echo "::error::Live mobile fallback changed: ${actual_mobile_blob}."; exit 1; }
+
+          curl -fsSL --retry 3 --retry-delay 2 \
+            -D mobile-visual-proof/mobile-sharp.headers \
+            -o mobile-visual-proof/mobile-dashboard-approved-sharp.webp \
+            "${LIVE_URL}mobile-dashboard-approved-sharp.webp?lock=${SHARP_MOBILE_GIT_BLOB}&verify=${GITHUB_RUN_ID}"
+          sharp_magic="$(head -c 12 mobile-visual-proof/mobile-dashboard-approved-sharp.webp | xxd -p -c 12 || true)"
+          [[ "$sharp_magic" == 52494646*57454250 ]] || { echo '::error::Live sharp mobile enhancement is not a valid WebP.'; exit 1; }
+          sharp_bytes="$(stat -c%s mobile-visual-proof/mobile-dashboard-approved-sharp.webp)"
+          actual_sharp_blob="$( { printf 'blob %s\0' "$sharp_bytes"; cat mobile-visual-proof/mobile-dashboard-approved-sharp.webp; } | sha1sum | awk '{print $1}')"
+          [ "$actual_sharp_blob" = "$SHARP_MOBILE_GIT_BLOB" ] || { echo "::error::Live sharp mobile enhancement changed: ${actual_sharp_blob}."; exit 1; }
+
+          cat > mobile-visual-proof/decode-check.html <<EOF
+          <!doctype html><html><body data-fallback="pending" data-sharp="pending">
+          <img id="fallback" src="${LIVE_URL}mobile-dashboard-approved.webp?lock=${APPROVED_MOBILE_GIT_BLOB}&decode=${GITHUB_RUN_ID}" alt="">
+          <img id="sharp" src="${LIVE_URL}mobile-dashboard-approved-sharp.webp?lock=${SHARP_MOBILE_GIT_BLOB}&decode=${GITHUB_RUN_ID}" alt="">
+          <script>
+          const mark=(id,key)=>{const img=document.getElementById(id);const done=()=>document.body.setAttribute('data-'+key,img.complete&&img.naturalWidth?img.naturalWidth+'x'+img.naturalHeight:'error');img.addEventListener('load',done,{once:true});img.addEventListener('error',done,{once:true});if(img.complete)done()};
+          mark('fallback','fallback');mark('sharp','sharp');
+          </script></body></html>
+          EOF
+          timeout 60s "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=8000 --dump-dom "file://$(pwd)/mobile-visual-proof/decode-check.html" > mobile-visual-proof/decode-check.dom 2> mobile-visual-proof/decode-check.log || { cat mobile-visual-proof/decode-check.log || true; exit 1; }
+          grep -q 'data-fallback="320x569"' mobile-visual-proof/decode-check.dom || { echo '::error::Chrome could not decode the known-working 320x569 mobile fallback.'; cat mobile-visual-proof/decode-check.dom; exit 1; }
+          grep -q 'data-sharp="1296x2304"' mobile-visual-proof/decode-check.dom || { echo '::error::Chrome could not decode the 1296x2304 sharp mobile enhancement.'; cat mobile-visual-proof/decode-check.dom; exit 1; }
 
           curl -fsSL --retry 3 --retry-delay 2 \
             -o mobile-visual-proof/crm-upgrade.jpeg \
@@ -69,7 +93,8 @@ jobs:
           for phone in phone-390x844 phone-430x932; do
             grep -q 'mobileExactStage' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the canonical mobile dashboard."; exit 1; }
             grep -q 'mobileReferenceFrame' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the portrait reference frame."; exit 1; }
-            grep -q '/mobile-dashboard-approved.webp' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} no longer uses the approved portrait artwork."; exit 1; }
+            grep -q '/mobile-dashboard-approved.webp' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} no longer uses the known-working approved portrait artwork."; exit 1; }
+            grep -q '/mobile-dashboard-approved-sharp.webp' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing the high-resolution approved enhancement layer."; exit 1; }
             if grep -q '/mobile-dashboard-fallback.svg' "mobile-visual-proof/${phone}.html"; then echo "::error::${phone} still exposes the rejected substitute fallback artwork."; exit 1; fi
             grep -q 'Video Studio' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing Video Studio."; exit 1; }
             grep -q 'White Label' "mobile-visual-proof/${phone}.html" || { echo "::error::${phone} is missing White Label."; exit 1; }
@@ -88,7 +113,7 @@ jobs:
           grep -q '/crm-upgrade.jpeg' mobile-visual-proof/desktop-1440x900.html || { echo '::error::Desktop approved artwork source is missing.'; exit 1; }
           [ -s mobile-visual-proof/desktop-1440x900.png ] || { echo '::error::Desktop verification screenshot was not produced.'; exit 1; }
 
-          echo 'Locked artwork verification PASS: production serves the exact approved mobile blob and exact approved desktop SHA-256, with working responsive controls.'
+          echo 'Locked artwork verification PASS: production browser-decodes the known-working mobile fallback and high-resolution enhancement, responsive controls remain present, and desktop artwork is unchanged.'
 
       - name: Upload responsive visual proof
         if: always()
