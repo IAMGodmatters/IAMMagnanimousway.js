@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths:
       - 'scripts/add-nvidia-frontier-mesh.mjs'
+      - 'scripts/add-magnanimous-agent-skills.mjs'
+      - 'worker/src/magnanimous-agent-skills.js'
+      - 'qa/scripts/magnanimous-agent-skills-lock.mjs'
       - '.github/workflows/add-nvidia-frontier-mesh.yml'
 
 permissions:
@@ -21,12 +24,20 @@ jobs:
           node-version: 24
       - name: Apply additive NVIDIA routing and remembrance invariant
         run: node scripts/add-nvidia-frontier-mesh.mjs
+      - name: Apply Magnanimous Agent Skills compatibility layer
+        run: node scripts/add-magnanimous-agent-skills.mjs
       - name: Validate changed JavaScript
         run: |
           node --check worker/src/provider-entrypoint.js
           node --check worker/src/provider-runtime-env.js
           node --check worker/src/platform-credentials.js
           node --check worker/src/magnanimous-brain-runtime.js
+          node --check worker/src/magnanimous-agent-skills.js
+          node --check worker/src/magnanimous-capability-mesh.js
+          node --check scripts/add-magnanimous-agent-skills.mjs
+          node --check qa/scripts/magnanimous-agent-skills-lock.mjs
+      - name: Run Agent Skills regression lock
+        run: node qa/scripts/magnanimous-agent-skills-lock.mjs
       - name: Build frontend assets for Worker validation
         working-directory: frontend
         run: |
@@ -46,6 +57,6 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add worker/src/provider-entrypoint.js worker/src/provider-runtime-env.js worker/src/platform-credentials.js worker/src/magnanimous-brain-runtime.js .env.example
-          git commit -m 'Add free-first NVIDIA frontier execution mesh'
+          git add worker/src/provider-entrypoint.js worker/src/provider-runtime-env.js worker/src/platform-credentials.js worker/src/magnanimous-brain-runtime.js worker/src/magnanimous-capability-mesh.js .env.example
+          git commit -m 'Apply frontier mesh and Agent Skills integration'
           git push
