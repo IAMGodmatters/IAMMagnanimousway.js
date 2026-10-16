@@ -8,6 +8,7 @@ import { RAILWAY_VISIBLE_TOOL_CONTRACTS, RAILWAY_ARCHITECTURE_TECHNIQUES, handle
 import { findReadyLocalBridgeDevice, hasAnyReadyLocalBridgeCapability, queueLocalBridgeTask } from './magnanimous-local-bridge-runtime.js';
 import { MAGNANIMOUS_NATIVE_MEDIA_FAMILIES, MAGNANIMOUS_NATIVE_MEDIA_CAPABILITIES, MAGNANIMOUS_HEYGEN_PARITY_MAP, HEYGEN_VISIBLE_BENCHMARK_TOOLS, getMagnanimousNativeMediaSummary, handleMagnanimousNativeMedia } from './magnanimous-native-media-studio.js';
 import { MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES, getMagnanimousNativeTerminalSummary, handleMagnanimousNativeTerminal } from './magnanimous-native-terminal.js';
+import { MAGNANIMOUS_AGENT_SKILLS_POLICY, getMagnanimousAgentSkillsSummary, listMagnanimousAgentSkills, resolveMagnanimousAgentSkills, parseAgentSkillMarkdown } from './magnanimous-agent-skills.js';
 import { getMagnanimousUniversalAppFabricSummary, getUniversalCapabilityCatalog, getUniversalCapabilityIndexSummary, resolveUniversalCapabilities } from './magnanimous-universal-app-fabric.js';
 import { handleSocialPublishing } from './social-publishing-runtime.js';
 
@@ -117,6 +118,10 @@ export const MAGNANIMOUS_CAPABILITY_MESH_ROUTES=Object.freeze({
  'edge.ncs2.video_scan':{surface:'edge-ai',mode:'local-sampled-video-inference',native:true},
  'edge.ncs2.face_detect':{surface:'edge-ai',mode:'local-face-presence-boxes',native:true},
  'edge.ncs2.text_regions':{surface:'edge-ai',mode:'local-text-region-detection',native:true},
+ 'skills.summary':{surface:'magnanimous-agent-skills',mode:'read',native:true},
+ 'skills.catalog':{surface:'magnanimous-agent-skills',mode:'read',native:true},
+ 'skills.resolve':{surface:'magnanimous-agent-skills',mode:'read',native:true},
+ 'skills.validate':{surface:'magnanimous-agent-skills',mode:'read-validate',native:true},
  'mesh.self_check':{surface:'capability-mesh',mode:'read',native:true}
 });
 
@@ -295,7 +300,8 @@ export async function getMagnanimousCapabilityMeshSummary(env,providerEnv=env,te
    },
    railway,
    magnanimous_cloud:cloud,
-   universal_apps:apps
+   universal_apps:apps,
+   agent_skills:getMagnanimousAgentSkillsSummary()
   },
   route_count:Object.keys(MAGNANIMOUS_CAPABILITY_MESH_ROUTES).length,
   routes:MAGNANIMOUS_CAPABILITY_MESH_ROUTES,
@@ -307,7 +313,8 @@ export async function getMagnanimousCapabilityMeshSummary(env,providerEnv=env,te
    'HeyGen is not required for Magnanimous media orchestration; proprietary HeyGen code, prompts, weights and private internals are not copied.',
    'Hey Terminal is not required for native SSH planning/execution; credentials remain on the owner-controlled Local Bridge machine.',
    'The Intel Neural Compute Stick 2 is an optional owner-local edge accelerator for compatible inference; it does not accelerate hosted ChatGPT or other cloud LLM inference.',
-   'Real hardware, public IP space, Internet transit, registrar authority and other physical/regulated rails must exist somewhere.'
+   'Real hardware, public IP space, Internet transit, registrar authority and other physical/regulated rails must exist somewhere.',
+   'Agent Skills compatibility uses the public SKILL.md standard and permissively licensed examples; Anthropic source-available document skills and proprietary Claude Code internals are not copied into Magnanimous.'
   ]
  };
 }
@@ -502,6 +509,21 @@ async function routeCapability(request,env,providerEnv,body){
   return wrap(await handleSocialPublishing(delegatedRequest(request,`/api/social-connect/${provider}/publish`,'POST',payload),env),capability,def.surface);
  }
 
+ if(capability==='skills.summary')return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},...getMagnanimousAgentSkillsSummary()});
+ if(capability==='skills.catalog'){
+  return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},policy:MAGNANIMOUS_AGENT_SKILLS_POLICY,skills:listMagnanimousAgentSkills({query:input.query||'',limit:input.limit||100,includeInstructions:Boolean(input.include_instructions)})});
+ }
+ if(capability==='skills.resolve'){
+  const goal=clip(input.goal||input.query,12000);
+  if(!goal)return json({detail:'goal or query is required.'},400);
+  return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},goal,matches:resolveMagnanimousAgentSkills(goal,{limit:input.limit||5,includeInstructions:input.include_instructions!==false})});
+ }
+ if(capability==='skills.validate'){
+  const skillMd=clip(input.skill_md||input.source,160000);
+  if(!skillMd)return json({detail:'skill_md is required.'},400);
+  return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},...parseAgentSkillMarkdown(skillMd,{directoryName:clip(input.directory_name,80)})});
+ }
+
  if(capability==='railway.deploy_exact'){
   const commit=clip(input.commit_sha,64);
   if(commit&&!/^[0-9a-f]{40}$/i.test(commit))return json({detail:'commit_sha must be a full 40-character Git commit SHA when provided.'},400);
@@ -552,7 +574,9 @@ export async function handleMagnanimousCapabilityMesh(request,env,{providerEnv=e
    cloud_storage_capabilities:['storage.status','storage.remotes','storage.about','storage.list','storage.size','storage.check','storage.copy','storage.mkdir','storage.sync','storage.move','storage.link','storage.bisync'],
    cloud_storage_policy:{identity:'Magnanimous Cloud Fabric',brain:'Magnanimous AI',credentials:'local-bridge-only',engine:'replaceable-rclone-compatible',public_link_and_destructive_operations:'confirmation-gated'},
    edge_ai_capabilities:['edge.ncs2.status','edge.ncs2.benchmark','edge.ncs2.detect','edge.ncs2.triage','edge.ncs2.batch_scan','edge.ncs2.video_scan','edge.ncs2.face_detect','edge.ncs2.text_regions'],
-   universal_app_fabric:getUniversalCapabilityIndexSummary()
+   universal_app_fabric:getUniversalCapabilityIndexSummary(),
+   agent_skills:getMagnanimousAgentSkillsSummary(),
+   agent_skill_catalog:listMagnanimousAgentSkills({limit:200,includeInstructions:false})
   });
  }
  if(request.method==='POST'&&path==='/api/magnanimous/capability-mesh/self-check'){
