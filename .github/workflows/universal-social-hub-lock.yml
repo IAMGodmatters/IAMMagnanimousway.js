@@ -1,0 +1,21 @@
+name: Universal Social Hub Lock
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Verify universal social login and consent contracts
+        run: node qa/scripts/universal-social-hub-lock.mjs
