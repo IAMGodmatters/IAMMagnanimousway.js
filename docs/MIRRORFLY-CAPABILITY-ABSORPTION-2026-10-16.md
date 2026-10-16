@@ -4,7 +4,7 @@
 
 This research maps MirrorFly's publicly documented communication capability families into provider-neutral Magnanimous implementation targets. Magnanimous AI remains the brain, identity, memory, reasoning, orchestration, learning, verification and policy layer. MirrorFly is treated only as optional replaceable infrastructure.
 
-This file is not a copy of MirrorFly proprietary source code, server implementation, credentials, hidden prompts, model weights or private documentation.
+This file is not a copy of MirrorFly proprietary source code, server implementation, credentials, hidden prompts, model weights or private documentation. This file does not contain MirrorFly credentials, private secrets, or licensed production source code.
 
 ## License / ownership boundary
 
