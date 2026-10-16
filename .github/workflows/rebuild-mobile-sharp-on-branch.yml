@@ -1,4 +1,4 @@
-name: Rebuild Mobile Sharp Asset
+name: Finalize Mobile Sharp Integrity
 
 on:
   push:
@@ -9,65 +9,77 @@ permissions:
   contents: write
 
 jobs:
-  rebuild:
+  finalize:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Ensure ffmpeg
+      - name: Update sharp blob locks and add structural WebP validation
         shell: bash
         run: |
           set -euo pipefail
-          if ! command -v ffmpeg >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y ffmpeg
-          fi
-          ffmpeg -version | head -n 1
-      - name: Rebuild complete high-resolution approved artwork
-        shell: bash
-        run: |
-          set -euo pipefail
-          input='frontend/public/mobile-dashboard-approved.webp'
-          output='frontend/public/mobile-dashboard-approved-sharp.webp'
-          ffmpeg -hide_banner -loglevel error -y \
-            -i "$input" \
-            -vf "scale=1296:2304:flags=lanczos,unsharp=5:5:0.55:5:5:0" \
-            -frames:v 1 -c:v libwebp -quality 95 -compression_level 6 -preset picture \
-            "$output"
           python3 - <<'PY'
           from pathlib import Path
-          import struct, hashlib
-          p=Path('frontend/public/mobile-dashboard-approved-sharp.webp')
-          data=p.read_bytes()
-          assert data[:4]==b'RIFF' and data[8:12]==b'WEBP'
-          declared=struct.unpack_from('<I',data,4)[0]+8
-          assert declared==len(data), (declared,len(data))
-          off=12
-          while off < len(data):
-              assert off+8 <= len(data)
-              size=struct.unpack_from('<I',data,off+4)[0]
-              end=off+8+size
-              assert end <= len(data), (off,size,len(data))
-              off=end+(size&1)
-          assert off==len(data), (off,len(data))
-          header=b'blob '+str(len(data)).encode()+b'\0'
-          print('bytes',len(data))
-          print('git_blob',hashlib.sha1(header+data).hexdigest())
+          old='1b894696ed7bcdc1613c93d36e29fa2210acaad3'
+          new='b355bb1821555513c28786a19ec3be202f75575f'
+          paths=[
+            'frontend/app/interaction-clarity.tsx',
+            'qa/scripts/mobile-home-overlay-lock.mjs',
+            'qa/scripts/home-3d-module-marks-lock.mjs',
+            'docs/APPROVED-HOMEPAGE-ARTWORK-LOCK.md',
+            'docs/APPROVED-HOMEPAGE-ARTWORK-LOCK.sha256',
+            '.github/workflows/mobile-production-visual.yml',
+          ]
+          for name in paths:
+              p=Path(name)
+              text=p.read_text()
+              text=text.replace(old,new)
+              p.write_text(text)
+
+          p=Path('qa/scripts/mobile-home-overlay-lock.mjs')
+          text=p.read_text()
+          if 'const assertCompleteWebp=' not in text:
+              needle="const gitBlobSha=input=>crypto.createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${input.length}\\0`),input])).digest('hex');\n"
+              helper="""const assertCompleteWebp=(input,label)=>{\n assert.equal(input.subarray(0,4).toString(),'RIFF',`${label} must be a RIFF container.`);\n assert.equal(input.subarray(8,12).toString(),'WEBP',`${label} must be a WebP container.`);\n assert.equal(input.readUInt32LE(4)+8,input.length,`${label} RIFF declared length must match the actual file length.`);\n let offset=12;\n while(offset<input.length){\n  assert.ok(offset+8<=input.length,`${label} has a truncated WebP chunk header.`);\n  const size=input.readUInt32LE(offset+4);\n  const end=offset+8+size;\n  assert.ok(end<=input.length,`${label} has a truncated WebP chunk payload.`);\n  offset=end+(size&1);\n }\n assert.equal(offset,input.length,`${label} WebP chunk boundaries must end exactly at EOF.`);\n};\n"""
+              assert needle in text
+              text=text.replace(needle,needle+helper)
+              needle2="assert.equal(gitBlobSha(sharp),expectedSharpGitBlob,'Sharp mobile enhancement bytes changed unexpectedly.');\n"
+              assert needle2 in text
+              text=text.replace(needle2,needle2+"assertCompleteWebp(approved,'Known-working mobile fallback');\nassertCompleteWebp(sharp,'Sharp mobile enhancement');\n")
+              p.write_text(text)
+
+          p=Path('qa/scripts/home-3d-module-marks-lock.mjs')
+          text=p.read_text()
+          if 'const assertCompleteWebp=' not in text:
+              needle="const gitBlobSha=input=>crypto.createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${input.length}\\0`),input])).digest('hex');\n"
+              helper="""const assertCompleteWebp=(input,label)=>{\n assert.equal(input.subarray(0,4).toString(),'RIFF',`${label} must be a RIFF container.`);\n assert.equal(input.subarray(8,12).toString(),'WEBP',`${label} must be a WebP container.`);\n assert.equal(input.readUInt32LE(4)+8,input.length,`${label} RIFF declared length must match the actual file length.`);\n let offset=12;\n while(offset<input.length){\n  assert.ok(offset+8<=input.length,`${label} has a truncated WebP chunk header.`);\n  const size=input.readUInt32LE(offset+4);\n  const end=offset+8+size;\n  assert.ok(end<=input.length,`${label} has a truncated WebP chunk payload.`);\n  offset=end+(size&1);\n }\n assert.equal(offset,input.length,`${label} WebP chunk boundaries must end exactly at EOF.`);\n};\n"""
+              assert needle in text
+              text=text.replace(needle,needle+helper)
+              needle2="assert.equal(gitBlobSha(mobileSharpAsset),expectedMobileSharpGitBlob,'High-resolution mobile enhancement changed unexpectedly.');\n"
+              assert needle2 in text
+              text=text.replace(needle2,needle2+"assertCompleteWebp(mobileAsset,'Known-working mobile fallback');\nassertCompleteWebp(mobileSharpAsset,'High-resolution mobile enhancement');\n")
+              p.write_text(text)
+
+          p=Path('docs/APPROVED-HOMEPAGE-ARTWORK-LOCK.md')
+          text=p.read_text()
+          marker='The mobile homepage must always keep the known-working owner-approved portrait artwork visible underneath any high-resolution enhancement.'
+          extra='Both WebP files must be structurally complete: RIFF declared length and every chunk boundary must match the committed bytes. '
+          if extra not in text:
+              text=text.replace(marker,extra+marker)
+              p.write_text(text)
           PY
-          dims="$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$output")"
-          [ "$dims" = '1296x2304' ] || { echo "unexpected dimensions: $dims"; exit 1; }
-      - name: Commit rebuilt binary
+      - name: Commit finalized integrity locks
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- frontend/public/mobile-dashboard-approved-sharp.webp; then
-            echo 'Sharp asset is already complete and current.'
+          if git diff --quiet; then
+            echo 'Integrity locks are already finalized.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add frontend/public/mobile-dashboard-approved-sharp.webp
-          git commit -m 'Rebuild complete high-resolution mobile artwork'
+          git add frontend/app/interaction-clarity.tsx qa/scripts/mobile-home-overlay-lock.mjs qa/scripts/home-3d-module-marks-lock.mjs docs/APPROVED-HOMEPAGE-ARTWORK-LOCK.md docs/APPROVED-HOMEPAGE-ARTWORK-LOCK.sha256 .github/workflows/mobile-production-visual.yml
+          git commit -m 'Lock complete high-resolution mobile artwork'
           git push origin HEAD:fix/mobile-sharp-complete-20261016
