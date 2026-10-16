@@ -2,6 +2,13 @@ name: Add NVIDIA Frontier Mesh
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/add-nvidia-frontier-mesh.mjs'
+      - 'scripts/add-magnanimous-agent-skills.mjs'
+      - 'worker/src/magnanimous-agent-skills.js'
+      - 'qa/scripts/magnanimous-agent-skills-lock.mjs'
+      - '.github/workflows/add-nvidia-frontier-mesh.yml'
   push:
     branches: [main]
     paths:
@@ -78,6 +85,7 @@ jobs:
           npm install
           npx wrangler deploy --dry-run
       - name: Commit validated source changes
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           if git diff --quiet; then
             echo 'No source changes needed.'
