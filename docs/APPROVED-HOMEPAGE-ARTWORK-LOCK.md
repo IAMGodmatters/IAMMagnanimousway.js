@@ -10,9 +10,9 @@ Required fallback Git blob SHA-1: `65036a811159196e6fe1789760db162e901cf4fa`
 
 High-resolution enhancement: `frontend/public/mobile-dashboard-approved-sharp.webp`
 
-Required enhancement Git blob SHA-1: `1b894696ed7bcdc1613c93d36e29fa2210acaad3`
+Required enhancement Git blob SHA-1: `b355bb1821555513c28786a19ec3be202f75575f`
 
-The mobile homepage must always keep the known-working owner-approved portrait artwork visible underneath any high-resolution enhancement. The enhancement must use the same approved design, remain pointer-transparent, and may never become the only recovery path. If the enhancement fails to load or paint, the known-working approved artwork must remain visible. Substitute or simplified artwork is not allowed. Homepage helper overlays must not cover the approved mobile artwork.
+Both WebP files must be structurally complete: RIFF declared length and every chunk boundary must match the committed bytes. The mobile homepage must always keep the known-working owner-approved portrait artwork visible underneath any high-resolution enhancement. The enhancement must use the same approved design, remain pointer-transparent, and may never become the only recovery path. If the enhancement fails to load or paint, the known-working approved artwork must remain visible. Substitute or simplified artwork is not allowed. Homepage helper overlays must not cover the approved mobile artwork.
 
 ## Computer / Desktop
 
@@ -24,4 +24,4 @@ The desktop homepage artwork must remain unchanged.
 
 ## Enforcement
 
-CI and production visual verification must fail when a locked artwork identity changes unexpectedly, when the homepage points to different artwork, when substitute artwork is made visible, when the known-working fallback is removed, or when the high-resolution layer can block interactions. Functional hotspots, accessibility, navigation, delivery hardening, and bug fixes may be repaired without modifying the approved design itself.
+CI and production visual verification must fail when a locked artwork identity changes unexpectedly, when either mobile WebP is structurally incomplete, when the homepage points to different artwork, when substitute artwork is made visible, when the known-working fallback is removed, or when the high-resolution layer can block interactions. Functional hotspots, accessibility, navigation, delivery hardening, and bug fixes may be repaired without modifying the approved design itself.

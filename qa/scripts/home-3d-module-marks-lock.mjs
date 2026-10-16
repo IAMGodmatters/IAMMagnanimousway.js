@@ -12,12 +12,28 @@ const clarity=fs.readFileSync('frontend/app/interaction-clarity.tsx','utf8');
 
 const expectedDesktopHash='4782F5011B660DC4A189B1A2A315352C241CAD40C4800AD2A5C78949837EC548';
 const expectedMobileGitBlob='65036a811159196e6fe1789760db162e901cf4fa';
-const expectedMobileSharpGitBlob='1b894696ed7bcdc1613c93d36e29fa2210acaad3';
+const expectedMobileSharpGitBlob='b355bb1821555513c28786a19ec3be202f75575f';
 const sha256=input=>crypto.createHash('sha256').update(input).digest('hex').toUpperCase();
 const gitBlobSha=input=>crypto.createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${input.length}\0`),input])).digest('hex');
+const assertCompleteWebp=(input,label)=>{
+ assert.equal(input.subarray(0,4).toString(),'RIFF',`${label} must be a RIFF container.`);
+ assert.equal(input.subarray(8,12).toString(),'WEBP',`${label} must be a WebP container.`);
+ assert.equal(input.readUInt32LE(4)+8,input.length,`${label} RIFF declared length must match the actual file length.`);
+ let offset=12;
+ while(offset<input.length){
+  assert.ok(offset+8<=input.length,`${label} has a truncated WebP chunk header.`);
+  const size=input.readUInt32LE(offset+4);
+  const end=offset+8+size;
+  assert.ok(end<=input.length,`${label} has a truncated WebP chunk payload.`);
+  offset=end+(size&1);
+ }
+ assert.equal(offset,input.length,`${label} WebP chunk boundaries must end exactly at EOF.`);
+};
 assert.equal(sha256(desktopAsset),expectedDesktopHash,'Approved desktop dashboard artwork changed unexpectedly.');
 assert.equal(gitBlobSha(mobileAsset),expectedMobileGitBlob,'Known-working mobile dashboard artwork changed unexpectedly. Restore the exact approved portrait artwork.');
 assert.equal(gitBlobSha(mobileSharpAsset),expectedMobileSharpGitBlob,'High-resolution mobile enhancement changed unexpectedly.');
+assertCompleteWebp(mobileAsset,'Known-working mobile fallback');
+assertCompleteWebp(mobileSharpAsset,'High-resolution mobile enhancement');
 
 const requiredRoutes=[
  "{label:'Home',href:'/'}",
@@ -73,7 +89,7 @@ assert.ok(page.includes('className="exactArtwork" src="/crm-upgrade.jpeg"'),'Des
 assert.ok(page.includes('className="mobileReferenceArtwork" src="/mobile-dashboard-approved.webp"'),'Mobile must render the exact approved portrait reference artwork as the guaranteed fallback.');
 assert.ok(page.includes('className="mobileReferenceFrame"')&&page.includes('aspect-ratio:941/1672'),'Mobile reference frame must preserve the approved artwork proportions.');
 assert.ok(clarity.includes("background-image: url('/mobile-dashboard-approved.webp?lock=65036a811159196e6fe1789760db162e901cf4fa') !important"),'Mobile resilience background must be the known-working approved artwork.');
-assert.ok(clarity.includes("background-image: url('/mobile-dashboard-approved-sharp.webp?lock=1b894696ed7bcdc1613c93d36e29fa2210acaad3')"),'Mobile sharp layer must use the locked high-resolution artwork.');
+assert.ok(clarity.includes("background-image: url('/mobile-dashboard-approved-sharp.webp?lock=b355bb1821555513c28786a19ec3be202f75575f')"),'Mobile sharp layer must use the locked high-resolution artwork.');
 assert.ok(clarity.includes('body.iam-design-v2 .mobileReferenceFrame::after')&&clarity.includes('pointer-events: none'),'High-resolution enhancement must remain visual-only and must not replace mobile interactions.');
 assert.ok(!clarity.includes("mobile-dashboard-fallback.svg"),'Simplified fallback artwork must never replace the approved mobile design.');
 assert.ok(page.includes('className="mobileReferenceHot mobileCardHot"'),'Approved mobile cards must remain fully clickable through aligned hotspots.');
@@ -100,4 +116,4 @@ assert.ok(shell.includes('iam_sidebar_collapsed'),'Global sidebar collapse prefe
 assert.ok(shell.includes('@media(max-width:820px)')&&shell.includes('mobileOpen'),'Global mobile drawer behavior is missing.');
 assert.ok(shell.includes("'/magnanimous'")&&shell.includes("'/telecom-standalone'"),'Standalone surfaces must remain isolated from the full command shell.');
 
-console.log('Exact dashboard responsive UI lock PASS: desktop artwork is immutable, the known-working mobile artwork is guaranteed underneath a locked high-resolution enhancement, and clickable behavior remains above both visual layers.');
+console.log('Exact dashboard responsive UI lock PASS: desktop artwork is immutable, both mobile WebPs are structurally complete, the known-working mobile artwork stays underneath the complete high-resolution enhancement, and clickable behavior remains above both visual layers.');

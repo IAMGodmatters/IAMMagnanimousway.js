@@ -20,7 +20,7 @@ jobs:
         env:
           LIVE_URL: https://iammagnanimousway.com/
           APPROVED_MOBILE_GIT_BLOB: 65036a811159196e6fe1789760db162e901cf4fa
-          SHARP_MOBILE_GIT_BLOB: 1b894696ed7bcdc1613c93d36e29fa2210acaad3
+          SHARP_MOBILE_GIT_BLOB: b355bb1821555513c28786a19ec3be202f75575f
           APPROVED_DESKTOP_SHA256: 4782F5011B660DC4A189B1A2A315352C241CAD40C4800AD2A5C78949837EC548
         run: |
           set -euo pipefail
@@ -47,6 +47,23 @@ jobs:
           sharp_bytes="$(stat -c%s mobile-visual-proof/mobile-dashboard-approved-sharp.webp)"
           actual_sharp_blob="$( { printf 'blob %s\0' "$sharp_bytes"; cat mobile-visual-proof/mobile-dashboard-approved-sharp.webp; } | sha1sum | awk '{print $1}')"
           [ "$actual_sharp_blob" = "$SHARP_MOBILE_GIT_BLOB" ] || { echo "::error::Live sharp mobile enhancement changed: ${actual_sharp_blob}."; exit 1; }
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          for name in ['mobile-dashboard-approved.webp','mobile-dashboard-approved-sharp.webp']:
+              data=(Path('mobile-visual-proof')/name).read_bytes()
+              assert data[:4]==b'RIFF' and data[8:12]==b'WEBP', name
+              assert struct.unpack_from('<I',data,4)[0]+8==len(data), (name,'RIFF length',len(data))
+              off=12
+              while off<len(data):
+                  assert off+8<=len(data), (name,'truncated chunk header',off)
+                  size=struct.unpack_from('<I',data,off+4)[0]
+                  end=off+8+size
+                  assert end<=len(data), (name,'truncated chunk payload',off,size,len(data))
+                  off=end+(size&1)
+              assert off==len(data), (name,'chunk boundary',off,len(data))
+          PY
 
           cat > mobile-visual-proof/decode-check.html <<EOF
           <!doctype html><html><body data-fallback="pending" data-sharp="pending">
@@ -113,7 +130,7 @@ jobs:
           grep -q '/crm-upgrade.jpeg' mobile-visual-proof/desktop-1440x900.html || { echo '::error::Desktop approved artwork source is missing.'; exit 1; }
           [ -s mobile-visual-proof/desktop-1440x900.png ] || { echo '::error::Desktop verification screenshot was not produced.'; exit 1; }
 
-          echo 'Locked artwork verification PASS: production browser-decodes the known-working mobile fallback and high-resolution enhancement, responsive controls remain present, and desktop artwork is unchanged.'
+          echo 'Locked artwork verification PASS: production serves structurally complete approved mobile WebPs, browser-decodes the known-working fallback and high-resolution enhancement, responsive controls remain present, and desktop artwork is unchanged.'
 
       - name: Upload responsive visual proof
         if: always()
