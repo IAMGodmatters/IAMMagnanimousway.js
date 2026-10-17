@@ -1,0 +1,20 @@
+# I AM MAGNANIMOUS WAY™ proprietary security boundaries
+# These paths define ownership for anti-clone, provenance, private-repository readiness,
+# client distribution, and the workflows that enforce them.
+
+/LICENSE @IAMGodmatters
+/frontend/next.config.js @IAMGodmatters
+/frontend/next.config.ts @IAMGodmatters
+/frontend/public/.well-known/magnanimous-provenance.txt @IAMGodmatters
+/frontend/public/downloads/local-bridge/ @IAMGodmatters
+/frontend/app/local-bridge/ @IAMGodmatters
+/local-bridge/ @IAMGodmatters
+/qa/scripts/anti-clone-hardening-lock.mjs @IAMGodmatters
+/qa/scripts/private-repo-readiness-lock.mjs @IAMGodmatters
+/qa/scripts/proprietary-security-invariants-lock.mjs @IAMGodmatters
+/qa/scripts/clone-exposure-watch.mjs @IAMGodmatters
+/.github/workflows/anti-clone-hardening-lock.yml @IAMGodmatters
+/.github/workflows/private-repo-readiness-lock.yml @IAMGodmatters
+/.github/workflows/proprietary-security-invariants-lock.yml @IAMGodmatters
+/.github/workflows/clone-exposure-watch.yml @IAMGodmatters
+/.github/CODEOWNERS @IAMGodmatters
