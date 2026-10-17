@@ -151,7 +151,17 @@ export async function handlePhoneCarrier(request, env) {
     const voiceResponse = await handleVoiceAgent(translatedRequest(request, '/api/voice-agent/call', {to:body.to,contact_id:body.contact_id||null,queue_id:body.queue_id||null,opening_message:body.opening_message||undefined,consent_confirmed:true,ai_disclosure_accepted:true,time_limit_seconds:body.time_limit_seconds||900}),env,routeContext);
     if (!voiceResponse) return json({ detail: 'The configured carrier route is unavailable.' }, 503);
     const data = await voiceResponse.clone().json().catch(() => ({})); if (!voiceResponse.ok) return voiceResponse;
-    return json({id:data.call_id,call_id:data.call_id,provider_call_id:data.provider_call_id,status:data.status,provider:'magnanimous-carrier',agent:data.agent||null,route_id:data.route_id||null,interconnect_id:data.interconnect_id||null,selected_route_applied:data.selected_route_applied===true},voiceResponse.status||201);
+    return json({
+      id:data.call_id,
+      call_id:data.call_id,
+      provider_call_id:data.provider_call_id,
+      status:data.status,
+      provider: 'magnanimous-carrier',
+      agent:data.agent||null,
+      route_id:data.route_id||null,
+      interconnect_id:data.interconnect_id||null,
+      selected_route_applied:data.selected_route_applied===true
+    },voiceResponse.status||201);
   }
   return null;
 }
