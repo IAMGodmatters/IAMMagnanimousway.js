@@ -99,6 +99,10 @@ const rawSecretFlow=validateCallFlow({nodes:[{id:'start',type:'start',config:{}}
 assert.equal(rawSecretFlow.valid,false,'embedded credentials must be rejected from call flows');
 assert(rawSecretFlow.errors.some(error=>error.startsWith('RAW_SECRET_NOT_ALLOWED')),'embedded flow secret must be rejected');
 
+const nestedBindingSecretFlow=validateCallFlow({nodes:[{id:'start',type:'start',config:{}},{id:'hook',type:'webhook',config:{url:'https://example.invalid/hook',binding_ref:{password:'should-not-be-accepted'}}},{id:'end',type:'hangup',config:{}}],edges:[{from:'start',to:'hook'},{from:'hook',to:'end'}]});
+assert.equal(nestedBindingSecretFlow.valid,false,'nested secrets masquerading as binding references must be rejected');
+assert(nestedBindingSecretFlow.errors.some(error=>error.startsWith('RAW_SECRET_NOT_ALLOWED')),'nested secret references must be flagged');
+
 const insecureUrlFlow=validateCallFlow({nodes:[{id:'start',type:'start',config:{}},{id:'hook',type:'webhook',config:{url:'http://example.invalid/hook'}}],edges:[{from:'start',to:'hook'}]});
 assert.equal(insecureUrlFlow.valid,false,'non-HTTPS external workflow requests must be rejected');
 assert(insecureUrlFlow.errors.some(error=>error.startsWith('HTTPS_REQUIRED')),'insecure webhook URL must be reported');
@@ -119,5 +123,10 @@ assert.equal(report.answered,2,'report must count answered/completed calls');
 assert.equal(report.abandoned,1,'report must count abandoned calls');
 assert.equal(report.sla_pct,50,'report must calculate answered-call SLA percent');
 assert.equal(report.avg_wait_ms,25000,'report must calculate average wait time');
+
+const missingMetrics=summarizeContactCenterReport({calls:[{status:'answered',wait_ms:null,handle_ms:null,wrap_ms:''}]});
+assert.equal(missingMetrics.sla_evaluable_calls,0,'unknown wait time must not appear to meet SLA');
+assert.equal(missingMetrics.missing_wait_samples,1,'null wait samples must be counted as missing');
+assert.equal(missingMetrics.avg_handle_ms,0,'missing handle time must not inflate the sample denominator');
 
 console.log('Contact-center operations depth lock PASS');
