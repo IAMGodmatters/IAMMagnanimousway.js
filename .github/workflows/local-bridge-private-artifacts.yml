@@ -75,10 +75,36 @@ jobs:
               'bridge_agent.py':('local-bridge/bridge_agent.py','text/x-python; charset=utf-8'),
               'ncs2_edge.py':('local-bridge/ncs2_edge.py','text/x-python; charset=utf-8'),
           }
+          raw_prefix='https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/'
+          private_prefix='$Server.TrimEnd("/") + "/api/magnanimous/local-bridge/artifacts/'
           ts=int(time.time())
           statements=[]
           for name,(rel,media) in items.items():
               data=(root/rel).read_bytes()
+              if name=='install.ps1':
+                  text=data.decode('utf-8')
+                  text=text.replace(
+                      f'$source = "{raw_prefix}bridge_agent.py"',
+                      '$artifactHeaders = @{ "X-Magnanimous-Pairing-Code" = $PairingCode; Accept = "application/octet-stream"; "User-Agent" = "Magnanimous-Local-Bridge-Installer/2.0" }\n$source = '+private_prefix+'bridge_agent.py"\n$agentMeta = Invoke-RestMethod -Uri ($source + "?metadata=1") -Headers $artifactHeaders -TimeoutSec 30'
+                  )
+                  text=text.replace(
+                      'Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $agent',
+                      'Invoke-WebRequest -UseBasicParsing -Uri $source -Headers $artifactHeaders -OutFile $agent -TimeoutSec 30\n$actualAgentHash = (Get-FileHash -Path $agent -Algorithm SHA256).Hash.ToLowerInvariant()\nif ($actualAgentHash -ne ([string]$agentMeta.sha256).ToLowerInvariant()) { Remove-Item -Force $agent -ErrorAction SilentlyContinue; throw "Magnanimous Local Bridge agent integrity verification failed." }'
+                  )
+                  text=text.replace(
+                      f'$ncs2Source = "{raw_prefix}ncs2_edge.py"',
+                      '$ncs2Source = '+private_prefix+'ncs2_edge.py"'
+                  )
+                  text=text.replace(
+                      '  Invoke-WebRequest -UseBasicParsing -Uri $ncs2Source -OutFile $ncs2Agent',
+                      '  $ncs2Meta = Invoke-RestMethod -Uri ($ncs2Source + "?metadata=1") -Headers $artifactHeaders -TimeoutSec 30\n  Invoke-WebRequest -UseBasicParsing -Uri $ncs2Source -Headers $artifactHeaders -OutFile $ncs2Agent -TimeoutSec 30\n  $actualNcs2Hash = (Get-FileHash -Path $ncs2Agent -Algorithm SHA256).Hash.ToLowerInvariant()\n  if ($actualNcs2Hash -ne ([string]$ncs2Meta.sha256).ToLowerInvariant()) { Remove-Item -Force $ncs2Agent -ErrorAction SilentlyContinue; throw "Magnanimous NCS2 edge helper integrity verification failed." }'
+                  )
+                  assert raw_prefix not in text, 'Published installer still contains a public raw GitHub dependency.'
+                  assert '/api/magnanimous/local-bridge/artifacts/bridge_agent.py' in text
+                  assert '/api/magnanimous/local-bridge/artifacts/ncs2_edge.py' in text
+                  assert 'X-Magnanimous-Pairing-Code' in text
+                  assert 'Get-FileHash -Path $agent -Algorithm SHA256' in text
+                  data=text.encode('utf-8')
               encoded=base64.b64encode(data).decode('ascii')
               digest=hashlib.sha256(data).hexdigest()
               statements.append(
