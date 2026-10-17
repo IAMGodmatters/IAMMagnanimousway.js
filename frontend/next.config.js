@@ -5,6 +5,8 @@ const nextConfig = {
   output: 'export',
   trailingSlash: true,
   images: { unoptimized: true },
+  poweredByHeader: false,
+  productionBrowserSourceMaps: false,
   // Magnanimous shares pure capability planners with the Worker. Next/Turbopack
   // resolves only inside its project root by default, so use the repository root
   // rather than duplicating brain logic into the frontend.

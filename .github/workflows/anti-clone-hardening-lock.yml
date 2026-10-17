@@ -1,0 +1,34 @@
+name: Anti-Clone Hardening Lock
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'LICENSE'
+      - 'frontend/next.config.js'
+      - 'frontend/next.config.ts'
+      - 'frontend/public/.well-known/magnanimous-provenance.txt'
+      - 'qa/scripts/anti-clone-hardening-lock.mjs'
+      - '.github/workflows/anti-clone-hardening-lock.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'LICENSE'
+      - 'frontend/next.config.js'
+      - 'frontend/next.config.ts'
+      - 'frontend/public/.well-known/magnanimous-provenance.txt'
+      - 'qa/scripts/anti-clone-hardening-lock.mjs'
+      - '.github/workflows/anti-clone-hardening-lock.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node qa/scripts/anti-clone-hardening-lock.mjs
