@@ -6,8 +6,8 @@ type Activation={verified:boolean;status:string;task_id:string|null;completed_at
 type Device={id:string;name:string;hostname:string;platform:string;status:string;online:boolean;last_seen_at:number;capabilities:string[];activation:Activation};
 type Overview={ready:boolean;paired:boolean;policy:Record<string,unknown>;devices:Device[];pending_tasks:number;actions:Record<string,{risk:string;confirmation:boolean;family:string}>};
 
-const RAW_INSTALLER='https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/install.ps1';
-const RAW_UNINSTALLER='https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/uninstall.ps1';
+const RAW_INSTALLER='https://iammagnanimousway.com/downloads/local-bridge/bootstrap.ps1';
+const RAW_UNINSTALLER='https://iammagnanimousway.com/downloads/local-bridge/uninstall.ps1';
 
 function psQuote(value:string){return "'" + value.replaceAll("'","''") + "'"}
 function encodePowerShell(command:string){
