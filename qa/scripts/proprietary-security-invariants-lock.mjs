@@ -20,11 +20,23 @@ function walk(dir) {
   return out;
 }
 
+function eventBlock(text, eventName) {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex(line => new RegExp(`^  ${eventName}:\\s*$`).test(line));
+  if (start < 0) return '';
+  const block = [];
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^  [A-Za-z0-9_-]+:\s*/.test(lines[i])) break;
+    block.push(lines[i]);
+  }
+  return block.join('\n');
+}
+
 for (const script of [
   'qa/scripts/anti-clone-hardening-lock.mjs',
   'qa/scripts/private-repo-readiness-lock.mjs',
 ]) {
-  execFileSync(process.execPath, [path.join(ROOT, script)], { stdio: 'inherit' });
+  execFileSync(process.execPath, [path.join(ROOT, script)], { cwd: ROOT, stdio: 'inherit' });
 }
 
 const alwaysOnWorkflows = new Map([
@@ -45,6 +57,8 @@ for (const [workflow, requiredCommand] of alwaysOnWorkflows) {
   assert(permissions, `${workflow} must declare explicit workflow permissions.`);
   const permissionLines = permissions[1].split(/\r?\n/).map(line => line.trim()).filter(Boolean);
   assert.deepEqual(permissionLines, ['contents: read'], `${workflow} must grant only contents: read at workflow scope.`);
+  const prBlock = eventBlock(text, 'pull_request');
+  assert(prBlock && !/^\s+types\s*:/m.test(prBlock), `${workflow} must not narrow pull_request with a types filter.`);
   assert(text.includes(requiredCommand), `${workflow} must continue invoking its security guard: ${requiredCommand}`);
 }
 
@@ -66,15 +80,14 @@ for (const rel of distributionFiles) {
   assert(!rel.includes('/'), `Nested Local Bridge public payloads are not allowed: ${rel}.`);
   assert(approvedDistribution.has(rel), `Unreviewed Local Bridge public payload detected: ${rel}. Add it to the explicit approved distribution boundary only after security review.`);
 }
-for (const name of approvedDistribution) {
-  assert(distributionFiles.includes(name), `Approved Local Bridge distribution file is missing: ${name}.`);
-}
+for (const name of approvedDistribution) assert(distributionFiles.includes(name), `Approved Local Bridge distribution file is missing: ${name}.`);
 
 const dangerousPublicExtensions = new Set([
   '.map', '.pem', '.key', '.p12', '.pfx',
   '.py', '.ps1', '.sh', '.bash', '.zsh', '.bat', '.cmd',
-  '.ts', '.tsx', '.mjs', '.cjs', '.java', '.go', '.rs', '.cs', '.php', '.rb',
+  '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.java', '.go', '.rs', '.cs', '.php', '.rb',
 ]);
+const explicitlyApprovedPublicSource = new Set([]);
 for (const rel of walk('frontend/public')) {
   const normalized = rel.replaceAll('\\', '/');
   const basename = path.posix.basename(normalized).toLowerCase();
@@ -83,19 +96,23 @@ for (const rel of walk('frontend/public')) {
   const sensitive = envLike || dangerousPublicExtensions.has(ext);
   if (!sensitive) continue;
   const relativeToDistribution = normalized.startsWith(`${distributionDir}/`) ? path.posix.relative(distributionDir, normalized) : null;
-  const allowed = Boolean(relativeToDistribution && !relativeToDistribution.includes('/') && approvedDistribution.has(relativeToDistribution));
-  assert(allowed, `Source-like or sensitive file must not be published from frontend/public without explicit approval: ${normalized}`);
+  const distributionAllowed = Boolean(relativeToDistribution && !relativeToDistribution.includes('/') && approvedDistribution.has(relativeToDistribution));
+  const sourceAllowed = explicitlyApprovedPublicSource.has(normalized);
+  assert(distributionAllowed || sourceAllowed, `Source-like or sensitive file must not be published from frontend/public without explicit approval: ${normalized}`);
 }
 
-const ownRawRepo = 'raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js';
-const frontendRuntimeFiles = [
-  ...walk('frontend/app'),
-  ...walk('frontend/components'),
-  ...walk('frontend/lib'),
-].filter(rel => /\.(?:js|jsx|ts|tsx|mjs|cjs)$/i.test(rel));
+const repositoryRawPatterns = [
+  /raw\.githubusercontent\.com\/IAMGodmatters\/IAMMagnanimousway\.js/i,
+  /github\.com\/IAMGodmatters\/IAMMagnanimousway\.js\/(?:raw|blob)\//i,
+];
+const frontendRuntimeFiles = walk('frontend').filter(rel => {
+  const normalized = rel.replaceAll('\\', '/');
+  if (normalized.startsWith('frontend/public/') || normalized.includes('/node_modules/') || normalized.includes('/.next/') || normalized.includes('/coverage/')) return false;
+  return /\.(?:js|jsx|ts|tsx|mjs|cjs)$/i.test(normalized);
+});
 for (const rel of frontendRuntimeFiles) {
   const text = read(rel);
-  assert(!text.includes(ownRawRepo), `Frontend runtime must not depend on public GitHub repository content: ${rel}`);
+  for (const pattern of repositoryRawPatterns) assert(!pattern.test(text), `Frontend runtime must not depend on public GitHub repository content: ${rel}`);
 }
 
 const notice = read(`${distributionDir}/NOTICE.txt`);
