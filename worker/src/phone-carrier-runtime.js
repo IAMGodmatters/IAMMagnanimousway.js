@@ -3,6 +3,7 @@ import { handlePlivoCarrier, plivoReady } from './plivo-carrier-runtime.js';
 import { handleMagnanimousCarrierPhoneAlias } from './magnanimous-carrier-phone-alias.js';
 import { currentUser } from './integrations.js';
 import { planCarrierRoute } from './magnanimous-carrier-core.js';
+import { enforceTelecomExecutionForOutbound } from './magnanimous-telecom-provider-fallback.js';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -54,10 +55,12 @@ async function serverOutboundCompliance(env,user,body={}) {
   const to=normPhone(body.to);
   if(!/^\+[1-9]\d{7,14}$/.test(to))return {ok:false,status:400,code:'INVALID_DESTINATION',detail:'Use a valid E.164 destination number.'};
   if(!env?.DB)return {ok:false,status:503,code:'COMPLIANCE_DB_UNAVAILABLE',detail:'Telecom compliance state is unavailable; carrier dialing is fail-closed.'};
-  const dnc=await env.DB.prepare('SELECT phone FROM voice_do_not_call WHERE tenant_id=? AND phone=?').bind(String(user.tenant_id||''),to).first().catch(()=>null);
+  let dnc;
+  try { dnc=await env.DB.prepare('SELECT phone FROM voice_do_not_call WHERE tenant_id=? AND phone=?').bind(String(user.tenant_id||''),to).first(); }
+  catch { return {ok:false,status:503,code:'DNC_STATE_UNAVAILABLE',detail:'Do Not Call status could not be verified; carrier dialing is fail-closed.'}; }
   if(dnc)return {ok:false,status:409,code:'DO_NOT_CALL',detail:'This number has opted out of automated calls.'};
 
-  const campaignLike=body.automated===true||body.campaign_id||body.campaign_policy_id||body.contact_id||body.queue_id;
+  const campaignLike=body.automated===true||body.campaign_id||body.campaign_policy_id||body.member_id||body.contact_id||body.queue_id||body.lease_token;
   if(!campaignLike)return {ok:true,to,mode:'manual',dnc_checked:true};
 
   if(!runtimeTrue(env.TELECOM_AUTOMATED_CAMPAIGN_COMPLIANCE_READY))return {ok:false,status:503,code:'AUTOMATED_COMPLIANCE_NOT_READY',detail:'Automated campaign calling remains fail-closed until the server-side compliance profile is verified.'};
@@ -66,12 +69,15 @@ async function serverOutboundCompliance(env,user,body={}) {
   if(!runtimeTrue(env.TELECOM_AUTOMATED_BILLING_GUARD_VERIFIED))return {ok:false,status:503,code:'BILLING_GUARD_NOT_VERIFIED',detail:'Automated calling is blocked until server-side billing reservation controls are verified.'};
   if(body.recording_enabled===true&&!runtimeTrue(env.TELECOM_RECORDING_POLICY_VERIFIED))return {ok:false,status:503,code:'RECORDING_POLICY_NOT_VERIFIED',detail:'Recording is blocked until the applicable recording policy is verified.'};
 
-  const tenant=String(user.tenant_id||''),contactId=body.contact_id==null?null:Number(body.contact_id),queueId=String(body.queue_id||'');
-  const row=await env.DB.prepare(`SELECT m.id member_id,m.phone,m.status member_status,m.consent_confirmed,m.lead_id,c.id campaign_id,c.status campaign_status,c.timezone,c.consent_required,c.queue_id,c.caller_id
-    FROM cc_campaign_members m JOIN cc_campaigns c ON c.id=m.campaign_id AND c.tenant_id=m.tenant_id
-    WHERE m.tenant_id=? AND m.phone=? AND c.status='active'
-      AND (? IS NULL OR m.lead_id=?) AND (?='' OR COALESCE(c.queue_id,'')=?)
-    ORDER BY m.updated_at DESC LIMIT 1`).bind(tenant,to,Number.isFinite(contactId)?contactId:null,Number.isFinite(contactId)?contactId:null,queueId,queueId).first().catch(()=>null);
+  const tenant=String(user.tenant_id||''),contactId=body.contact_id==null?null:Number(body.contact_id),queueId=String(body.queue_id||''),campaignId=String(body.campaign_id||body.campaign_policy_id||'');
+  let row;
+  try {
+    row=await env.DB.prepare(`SELECT m.id member_id,m.phone,m.status member_status,m.consent_confirmed,m.lead_id,c.id campaign_id,c.status campaign_status,c.timezone,c.consent_required,c.queue_id,c.caller_id
+      FROM cc_campaign_members m JOIN cc_campaigns c ON c.id=m.campaign_id AND c.tenant_id=m.tenant_id
+      WHERE m.tenant_id=? AND m.phone=? AND c.status='active'
+        AND (?='' OR c.id=?) AND (? IS NULL OR m.lead_id=?) AND (?='' OR COALESCE(c.queue_id,'')=?)
+      ORDER BY m.updated_at DESC LIMIT 1`).bind(tenant,to,campaignId,campaignId,Number.isFinite(contactId)?contactId:null,Number.isFinite(contactId)?contactId:null,queueId,queueId).first();
+  } catch { return {ok:false,status:503,code:'CAMPAIGN_STATE_UNAVAILABLE',detail:'Campaign compliance state could not be verified; dialing is fail-closed.'}; }
   if(!row)return {ok:false,status:409,code:'CAMPAIGN_STATE_NOT_VERIFIED',detail:'No active server-side campaign record authorizes this automated destination.'};
   if(!['ready','dialing'].includes(String(row.member_status)))return {ok:false,status:409,code:'CAMPAIGN_MEMBER_NOT_READY',detail:'Campaign member is not in a dial-ready state.'};
   if(Number(row.consent_required)!==0&&Number(row.consent_confirmed)!==1)return {ok:false,status:409,code:'CONSENT_NOT_VERIFIED',detail:'Server-side campaign consent is not verified.'};
@@ -90,15 +96,17 @@ async function outboundRouting(request, env) {
   if (!user) return { response: json({ detail: 'Sign in required.' }, 401) };
   const body = await request.clone().json().catch(() => ({}));
   if (body.consent_confirmed !== true || body.ai_disclosure_accepted !== true) return { response: json({ detail: 'Confirm contact permission and AI disclosure before placing an automated carrier call.', code: 'CALL_CONSENT_REQUIRED' }, 400) };
+  const execution=await enforceTelecomExecutionForOutbound(env,user,body);
+  if(!execution.ok)return {response:json({detail:execution.detail||'Telecom execution authorization failed.',code:execution.code||'TELECOM_EXECUTION_BLOCKED',blocked_by:execution.blocked_by||undefined},execution.status||409)};
   const compliance=await serverOutboundCompliance(env,user,body);
   if(!compliance.ok)return {response:json({detail:compliance.detail,code:compliance.code},compliance.status||409)};
   let plan = null;
   try { plan = await planCarrierRoute(env, user, body.to, String(body.route_mode || 'balanced')); }
   catch (error) { console.error('Compatibility carrier route planning failed; preserving no-route legacy fallback', error); }
   const matches = Array.isArray(plan?.matches) ? plan.matches : [];
-  if (!matches.length) return { explicit: false, user, body, plan, compliance };
+  if (!matches.length) return { explicit: false, user, body, plan, compliance, execution };
   if (!plan?.selected) return { response: json({ detail: 'No healthy carrier route is currently eligible for this destination.', code: 'NO_ELIGIBLE_CARRIER_ROUTE' }, 503) };
-  return { explicit: true, user, body, plan, selected: plan.selected, compliance };
+  return { explicit: true, user, body, plan, selected: plan.selected, compliance, execution };
 }
 
 function billingMode(env) { const value = String(env.VOIP_BILLING_MODE || 'metered').trim().toLowerCase(); return ['flat-rate', 'unlimited', 'channel', 'metered', 'wholesale'].includes(value) ? value : 'metered'; }
