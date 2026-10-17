@@ -43,6 +43,9 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Lock customer-facing text encoding and brand copy
+        run: node qa/scripts/customer-copy-integrity-lock.mjs
+
       - name: Audit every built route, internal link, rendered button label, and image alt
         env:
           LIVE_BASE_URL: ${{ github.event_name == 'workflow_run' && 'https://iammagnanimousway.com' || '' }}
