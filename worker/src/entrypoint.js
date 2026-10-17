@@ -2,6 +2,7 @@ import app from './index.js';
 import { handleLeadPhone } from './lead-phone.js';
 import { handlePhoneCarrier } from './phone-carrier-runtime.js';
 import { handleContactCenter } from './contact-center-runtime.js';
+import { handleMagnanimousAdvancedContactCenter } from './magnanimous-contact-center-advanced.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { handleIntegrations } from './integrations.js';
 import { handleSponsoredAds } from './sponsored-ad-runtime.js';
@@ -148,6 +149,8 @@ export default {
     if(telecom)return telecom;
     const integration=await handleIntegrations(request,env);
     if(integration)return integration;
+    const advancedContactCenter=await handleMagnanimousAdvancedContactCenter(request,env);
+    if(advancedContactCenter)return advancedContactCenter;
     const contactCenter=await handleContactCenter(request,env);
     if(contactCenter)return contactCenter;
     const phoneCarrier=await handlePhoneCarrier(request,env);
