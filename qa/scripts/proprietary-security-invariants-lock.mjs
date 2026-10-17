@@ -87,7 +87,9 @@ const dangerousPublicExtensions = new Set([
   '.py', '.ps1', '.sh', '.bash', '.zsh', '.bat', '.cmd',
   '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.java', '.go', '.rs', '.cs', '.php', '.rb',
 ]);
-const explicitlyApprovedPublicSource = new Set([]);
+const explicitlyApprovedPublicSource = new Set([
+  'frontend/public/reels-sw.js',
+]);
 for (const rel of walk('frontend/public')) {
   const normalized = rel.replaceAll('\\', '/');
   const basename = path.posix.basename(normalized).toLowerCase();
