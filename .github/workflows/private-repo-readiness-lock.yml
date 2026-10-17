@@ -3,26 +3,8 @@ name: Private Repository Readiness Lock
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'frontend/app/local-bridge/page.tsx'
-      - 'frontend/public/downloads/local-bridge/**'
-      - 'local-bridge/install.ps1'
-      - 'local-bridge/bridge_agent.py'
-      - 'local-bridge/ncs2_edge.py'
-      - 'local-bridge/uninstall.ps1'
-      - 'qa/scripts/private-repo-readiness-lock.mjs'
-      - '.github/workflows/private-repo-readiness-lock.yml'
   push:
     branches: [main]
-    paths:
-      - 'frontend/app/local-bridge/page.tsx'
-      - 'frontend/public/downloads/local-bridge/**'
-      - 'local-bridge/install.ps1'
-      - 'local-bridge/bridge_agent.py'
-      - 'local-bridge/ncs2_edge.py'
-      - 'local-bridge/uninstall.ps1'
-      - 'qa/scripts/private-repo-readiness-lock.mjs'
-      - '.github/workflows/private-repo-readiness-lock.yml'
 
 permissions:
   contents: read
