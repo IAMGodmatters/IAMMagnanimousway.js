@@ -1,0 +1,22 @@
+name: Contact Center Operations Depth Lock
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Verify deep contact center operations and safety
+        run: node qa/scripts/contact-center-operations-depth-lock.mjs
