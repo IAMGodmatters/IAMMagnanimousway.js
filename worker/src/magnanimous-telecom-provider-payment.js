@@ -80,9 +80,13 @@ export async function processMagnanimousTelecomProviderStripeEvent(env,event){
   return true;
  }
  if(!['paid','no_payment_required'].includes(clean(object.payment_status)))return true;
- if(Number(quote.expires_at)<=now()){
+ const eventAt=Number(event.created),sessionStarted=Number(object.created),sessionExpires=Number(object.expires_at),quoteExpires=Number(quote.expires_at);
+ const completedInTime=type==='checkout.session.completed'?Number.isFinite(eventAt)&&eventAt>0&&eventAt<=quoteExpires:Number.isFinite(sessionStarted)&&sessionStarted>0&&sessionStarted<=quoteExpires&&Number.isFinite(sessionExpires)&&sessionExpires>0&&sessionExpires<=quoteExpires;
+ const expectedCents=Math.round(Number(quote.customer_charge_micros||0)/10000);
+ const amountMatches=Number(object.amount_total)===expectedCents&&clean(object.currency).toLowerCase()==='usd';
+ if(!completedInTime||!amountMatches){
   const seen=await env.DB.prepare('SELECT event_id FROM telecom_provider_payment_events WHERE event_id=?').bind(eventId).first();
-  if(!seen&&await recordEventOnce(env,{eventId,type,tenantId,quoteId,providerKey:quote.provider_key,status:'customer_paid_expired_quote',detail:{manual_review:true}}))await env.DB.prepare("UPDATE telecom_provider_quotes SET status='customer_paid_review_required' WHERE id=? AND tenant_id=?").bind(quoteId,tenantId).run();
+  if(!seen&&await recordEventOnce(env,{eventId,type,tenantId,quoteId,providerKey:quote.provider_key,status:'customer_paid_review_required',detail:{manual_review:true,reason:!completedInTime?'PAYMENT_TIME_UNVERIFIED':'PAYMENT_AMOUNT_MISMATCH'}}))await env.DB.prepare("UPDATE telecom_provider_quotes SET status='customer_paid_review_required' WHERE id=? AND tenant_id=? AND status!='funded'").bind(quoteId,tenantId).run();
   return true;
  }
  if(!['checkout_created','checkout_reserving','customer_paid'].includes(clean(quote.status))&&clean(quote.status)!=='funded'){
