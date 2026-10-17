@@ -1,0 +1,28 @@
+name: Clone Exposure Watch
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 6 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'qa/scripts/clone-exposure-watch.mjs'
+      - '.github/workflows/clone-exposure-watch.yml'
+      - 'frontend/public/.well-known/magnanimous-provenance.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Check public clone/reuse signals
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node qa/scripts/clone-exposure-watch.mjs
