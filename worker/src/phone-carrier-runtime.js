@@ -86,6 +86,7 @@ async function serverOutboundCompliance(env,user,body={}) {
   if(hour<8||hour>=20)return {ok:false,status:409,code:'OUTSIDE_CALLING_WINDOW',detail:`Campaign calling is limited to 08:00–20:00 in ${row.timezone||'UTC'}.`};
   const callerIdentityReady=Boolean(String(row.caller_id||env.VOIP_CALLER_ID||env.TWILIO_PHONE_NUMBER||env.PLIVO_PHONE_NUMBER||'').trim());
   if(!callerIdentityReady)return {ok:false,status:503,code:'CALLER_IDENTITY_NOT_VERIFIED',detail:'Automated calling is blocked until a truthful server-side caller identity is configured.'};
+  if(genericBridgeReady(env)&&(!String(env.VOIP_CALLER_ID||'').trim()||(String(row.caller_id||'').trim()&&String(row.caller_id).trim()!==String(env.VOIP_CALLER_ID).trim())))return {ok:false,status:503,code:'BYOC_CALLER_ID_NOT_VERIFIED',detail:'The active campaign caller ID must match the configured BYOC caller identity.'};
   return {ok:true,to,mode:'campaign',dnc_checked:true,consent_checked:true,calling_window_checked:true,campaign_id:row.campaign_id,member_id:row.member_id};
 }
 
@@ -96,17 +97,23 @@ async function outboundRouting(request, env) {
   if (!user) return { response: json({ detail: 'Sign in required.' }, 401) };
   const body = await request.clone().json().catch(() => ({}));
   if (body.consent_confirmed !== true || body.ai_disclosure_accepted !== true) return { response: json({ detail: 'Confirm contact permission and AI disclosure before placing an automated carrier call.', code: 'CALL_CONSENT_REQUIRED' }, 400) };
-  const execution=await enforceTelecomExecutionForOutbound(env,user,body);
-  if(!execution.ok)return {response:json({detail:execution.detail||'Telecom execution authorization failed.',code:execution.code||'TELECOM_EXECUTION_BLOCKED',blocked_by:execution.blocked_by||undefined},execution.status||409)};
   const compliance=await serverOutboundCompliance(env,user,body);
   if(!compliance.ok)return {response:json({detail:compliance.detail,code:compliance.code},compliance.status||409)};
   let plan = null;
   try { plan = await planCarrierRoute(env, user, body.to, String(body.route_mode || 'balanced')); }
   catch (error) { console.error('Compatibility carrier route planning failed; preserving no-route legacy fallback', error); }
   const matches = Array.isArray(plan?.matches) ? plan.matches : [];
-  if (!matches.length) return { explicit: false, user, body, plan, compliance, execution };
-  if (!plan?.selected) return { response: json({ detail: 'No healthy carrier route is currently eligible for this destination.', code: 'NO_ELIGIBLE_CARRIER_ROUTE' }, 503) };
-  return { explicit: true, user, body, plan, selected: plan.selected, compliance, execution };
+  if (!matches.length && genericBridgeReady(env)) return { explicit: false, user, body, plan, compliance, execution_deferred: true };
+  if (matches.length&&!plan?.selected) return { response: json({ detail: 'No healthy carrier route is currently eligible for this destination.', code: 'NO_ELIGIBLE_CARRIER_ROUTE' }, 503) };
+  if (plan?.selected && NATIVE_ROUTE_TYPES.has(String(plan.selected.type||''))) {
+    if(genericBridgeReady(env))return { explicit: true, user, body, plan, selected: plan.selected, compliance, execution_deferred: true };
+    return {response:json({detail:'The selected native carrier route is not connected to the protected Telecom Core.',code:'SELECTED_ROUTE_NOT_CONNECTED'},503)};
+  }
+  const willHandle=Boolean(plan?.selected||plivoReady(env)||twilioReady(env));
+  if(!willHandle)return {explicit:false,user,body,plan,compliance,execution_deferred:true};
+  const execution=await enforceTelecomExecutionForOutbound(env,user,body);
+  if(!execution.ok)return {response:json({detail:execution.detail||'Telecom execution authorization failed.',code:execution.code||'TELECOM_EXECUTION_BLOCKED',blocked_by:execution.blocked_by||undefined},execution.status||409)};
+  return { explicit: Boolean(plan?.selected), user, body, plan, selected: plan?.selected||null, compliance, execution };
 }
 
 function billingMode(env) { const value = String(env.VOIP_BILLING_MODE || 'metered').trim().toLowerCase(); return ['flat-rate', 'unlimited', 'channel', 'metered', 'wholesale'].includes(value) ? value : 'metered'; }
