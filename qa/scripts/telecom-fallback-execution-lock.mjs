@@ -7,7 +7,9 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const must=(condition,message)=>{if(!condition)throw new Error(message)};
 
 const runtime=read('worker/src/magnanimous-telecom-provider-fallback.js');
-const wrapper=read('worker/src/telecom-fallback-entrypoint.js');
+const guard=read('worker/src/magnanimous-telecom-charging-safety-guard.js');
+const payment=read('worker/src/magnanimous-telecom-provider-payment.js');
+const stripe=read('worker/src/stripe-webhook-hardened.js');
 const wrangler=read('worker/wrangler.jsonc');
 
 must(runtime.includes("threecx_smb_free"),'3CX SMB Free fallback must remain declared');
@@ -17,9 +19,6 @@ must(runtime.includes("threecx_ai_api"),'paid 3CX API fallback must remain separ
 must(runtime.includes("programmatic_control:true"),'API-controlled fallback path must remain explicit');
 must(runtime.includes("variableCustomerCharge(origin)"),'paid fallback must use the established provider origin-cost pricing function');
 must(runtime.includes("metadata[product_type]','telecom_provider_fallback'"),'Stripe telecom checkout metadata must remain scoped');
-must(runtime.includes('TELECOM_UPSTREAM_AUTO_PAY_ENABLED'),'upstream payment must remain explicitly opt-in');
-must(runtime.includes('TELECOM_UPSTREAM_MAX_AUTO_PAY_USD'),'upstream payment must remain capped');
-must(runtime.includes("'idempotency-key':`magnanimous:${eventId}:${quote.id}`"),'upstream payment must remain idempotent');
 must(runtime.includes('campaign_preapproved'),'campaign preapproval lease mode must remain supported');
 must(runtime.includes('execution_authorized:true'),'execution lease must be able to authorize only after gates pass');
 must(runtime.includes("CONSENT_NOT_VERIFIED"),'consent gate must remain enforced');
@@ -35,12 +34,14 @@ must(runtime.includes('recheck_required_at_dial:true'),'execution leases must re
 must(runtime.includes('vendor_attribution_policy'),'provider abstraction must preserve legally/contractually required attribution');
 must(runtime.includes('Do not falsely claim upstream software is owned or authored by Magnanimous'),'provider abstraction must not become false ownership attribution');
 
-must(wrapper.includes("import app from './security-entrypoint.js'"),'fallback wrapper must preserve the established security entrypoint');
-must(wrapper.includes('securityPreflight'),'fallback endpoints must remain behind security preflight');
-must(wrapper.includes('securityPostflight'),'fallback responses must remain behind security postflight');
-must(wrapper.includes('resolveSessionRequest'),'fallback endpoints must preserve opaque-session resolution');
-must(wrapper.includes("path.startsWith('/api/telecom/provider-fallback')&&!ownerLike(user)"),'provider identity and source selection must remain owner/admin only');
-must(wrapper.includes('observeMagnanimousTelecomProviderPayment'),'Stripe payment observer must stay mounted');
-must(wrangler.includes('"main": "src/telecom-fallback-entrypoint.js"'),'Worker must stay mounted through the secured telecom fallback entrypoint');
+must(guard.includes("import { handleMagnanimousTelecomProviderFallback } from './magnanimous-telecom-provider-fallback.js'"),'fallback must be mounted inside the existing secured telecom chain');
+must(guard.includes("path.startsWith('/api/telecom/provider-fallback')||path.startsWith('/api/telecom/execution')"),'fallback and execution routes must stay mounted');
+must(wrangler.includes('"main": "src/security-entrypoint.js"'),'production Worker must retain the established security entrypoint');
+
+must(payment.includes('TELECOM_UPSTREAM_AUTO_PAY_ENABLED'),'upstream payment must remain explicitly opt-in');
+must(payment.includes('TELECOM_UPSTREAM_MAX_AUTO_PAY_USD'),'upstream payment must remain capped');
+must(payment.includes("'idempotency-key':`magnanimous:${eventId}:${quote.id}`"),'upstream payment must remain idempotent');
+must(payment.includes("parsed.protocol!=='https:'"),'upstream settlement endpoint must remain HTTPS-only');
+must(stripe.includes("processMagnanimousTelecomProviderStripeEvent(env,event)"),'verified Stripe webhook must dispatch telecom settlement before generic plan checkout processing');
 
 console.log('Telecom fallback execution lock PASS');
