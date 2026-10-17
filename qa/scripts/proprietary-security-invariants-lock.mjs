@@ -20,28 +20,93 @@ function walk(dir) {
   return out;
 }
 
-// Re-run the established protections so this master lock cannot drift away from them.
+function eventBlock(text, eventName) {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex(line => new RegExp(`^  ${eventName}:\\s*$`).test(line));
+  if (start < 0) return '';
+  const block = [];
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^  [A-Za-z0-9_-]+:\s*/.test(lines[i])) break;
+    block.push(lines[i]);
+  }
+  return block.join('\n');
+}
+
+function indentation(line) {
+  return line.match(/^\s*/)?.[0].length || 0;
+}
+
+function permissionBlocks(text) {
+  const lines = text.split(/\r?\n/), blocks = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^\s*permissions:\s*$/.test(lines[i])) continue;
+    const baseIndent = indentation(lines[i]), block = [];
+    for (let j = i + 1; j < lines.length; j++) {
+      if (!lines[j].trim()) continue;
+      if (indentation(lines[j]) <= baseIndent) break;
+      block.push(lines[j].trim());
+    }
+    blocks.push({ indent: baseIndent, lines: block });
+  }
+  return blocks;
+}
+
+function executableRunCommands(text) {
+  const lines = text.split(/\r?\n/), commands = [];
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i].match(/^(\s*)(?:-\s*)?run:\s*(.*)$/);
+    if (!match) continue;
+    const baseIndent = match[1].length;
+    const inline = match[2].trim();
+    if (inline && inline !== '|' && inline !== '>') {
+      commands.push(inline.replace(/^['"]|['"]$/g, ''));
+      continue;
+    }
+    const block = [];
+    for (let j = i + 1; j < lines.length; j++) {
+      if (!lines[j].trim()) { block.push(''); continue; }
+      if (indentation(lines[j]) <= baseIndent) break;
+      block.push(lines[j].trim());
+    }
+    commands.push(block.join('\n'));
+  }
+  return commands;
+}
+
 for (const script of [
   'qa/scripts/anti-clone-hardening-lock.mjs',
   'qa/scripts/private-repo-readiness-lock.mjs',
 ]) {
-  execFileSync(process.execPath, [path.join(ROOT, script)], { stdio: 'inherit' });
+  execFileSync(process.execPath, [path.join(ROOT, script)], { cwd: ROOT, stdio: 'inherit' });
 }
 
-const alwaysOnWorkflows = [
-  '.github/workflows/anti-clone-hardening-lock.yml',
-  '.github/workflows/private-repo-readiness-lock.yml',
-  '.github/workflows/clone-exposure-watch.yml',
-  '.github/workflows/proprietary-security-invariants-lock.yml',
-];
+const alwaysOnWorkflows = new Map([
+  ['.github/workflows/anti-clone-hardening-lock.yml', 'node qa/scripts/anti-clone-hardening-lock.mjs'],
+  ['.github/workflows/private-repo-readiness-lock.yml', 'node qa/scripts/private-repo-readiness-lock.mjs'],
+  ['.github/workflows/clone-exposure-watch.yml', 'node qa/scripts/clone-exposure-watch.mjs'],
+  ['.github/workflows/proprietary-security-invariants-lock.yml', 'node qa/scripts/proprietary-security-invariants-lock.mjs'],
+]);
 
-for (const workflow of alwaysOnWorkflows) {
+for (const [workflow, requiredCommand] of alwaysOnWorkflows) {
   assert(exists(workflow), `${workflow} must exist.`);
   const text = read(workflow);
   assert(/pull_request:\s*\n\s*branches:\s*\[main\]/m.test(text), `${workflow} must run for every pull request to main.`);
   assert(/push:\s*\n\s*branches:\s*\[main\]/m.test(text), `${workflow} must run for every push to main.`);
   assert(!/^\s*paths(?:-ignore)?:/m.test(text), `${workflow} must not use path filters; proprietary protection applies to every change.`);
-  assert(!/contents:\s*write/i.test(text), `${workflow} must stay read-only to repository contents.`);
+  assert(!/^\s*permissions:\s*(?:write-all|read-all)\s*$/mi.test(text), `${workflow} must not use blanket token permissions.`);
+  const blocks = permissionBlocks(text);
+  assert(blocks.length >= 1, `${workflow} must declare explicit workflow permissions.`);
+  const workflowPermissions = blocks.find(block => block.indent === 0);
+  assert(workflowPermissions, `${workflow} must declare workflow-scope permissions.`);
+  assert.deepEqual(workflowPermissions.lines, ['contents: read'], `${workflow} must grant only contents: read at workflow scope.`);
+  for (const block of blocks) {
+    assert(!block.lines.some(line => /:\s*write\s*(?:#.*)?$/i.test(line)), `${workflow} must not grant write permission at workflow or job scope.`);
+    assert(!block.lines.some(line => /^write-all\s*$/i.test(line)), `${workflow} must not grant write-all at workflow or job scope.`);
+  }
+  const prBlock = eventBlock(text, 'pull_request');
+  assert(prBlock && !/^\s+types\s*:/m.test(prBlock), `${workflow} must not narrow pull_request with a types filter.`);
+  const runCommands = executableRunCommands(text);
+  assert(runCommands.some(command => command.includes(requiredCommand)), `${workflow} must invoke its security guard from an executable run step: ${requiredCommand}`);
 }
 
 const cloneWatch = read('.github/workflows/clone-exposure-watch.yml');
@@ -57,40 +122,50 @@ const approvedDistribution = new Set([
   'uninstall.ps1',
 ]);
 const distributionDir = 'frontend/public/downloads/local-bridge';
-const distributionFiles = walk(distributionDir).map(rel => path.posix.basename(rel));
-for (const name of distributionFiles) {
-  assert(approvedDistribution.has(name), `Unreviewed Local Bridge public payload detected: ${name}. Add it to the explicit approved distribution boundary only after security review.`);
+const distributionFiles = walk(distributionDir).map(rel => path.posix.relative(distributionDir, rel.replaceAll('\\', '/')));
+for (const rel of distributionFiles) {
+  assert(!rel.includes('/'), `Nested Local Bridge public payloads are not allowed: ${rel}.`);
+  assert(approvedDistribution.has(rel), `Unreviewed Local Bridge public payload detected: ${rel}. Add it to the explicit approved distribution boundary only after security review.`);
 }
-for (const name of approvedDistribution) {
-  assert(distributionFiles.includes(name), `Approved Local Bridge distribution file is missing: ${name}.`);
-}
+for (const name of approvedDistribution) assert(distributionFiles.includes(name), `Approved Local Bridge distribution file is missing: ${name}.`);
 
 const dangerousPublicExtensions = new Set([
-  '.map', '.env', '.pem', '.key', '.p12', '.pfx',
+  '.map', '.pem', '.key', '.p12', '.pfx',
   '.py', '.ps1', '.sh', '.bash', '.zsh', '.bat', '.cmd',
-  '.ts', '.tsx', '.mjs', '.cjs', '.java', '.go', '.rs', '.cs', '.php', '.rb',
+  '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.java', '.go', '.rs', '.cs', '.php', '.rb',
+]);
+const explicitlyApprovedPublicSource = new Set([
+  'frontend/public/reels-sw.js',
 ]);
 for (const rel of walk('frontend/public')) {
   const normalized = rel.replaceAll('\\', '/');
+  const basename = path.posix.basename(normalized).toLowerCase();
   const ext = path.extname(normalized).toLowerCase();
-  if (!dangerousPublicExtensions.has(ext)) continue;
-  const allowed = normalized.startsWith(`${distributionDir}/`) && approvedDistribution.has(path.posix.basename(normalized));
-  assert(allowed, `Source-like or sensitive file must not be published from frontend/public without explicit approval: ${normalized}`);
+  const envLike = basename === '.env' || basename.startsWith('.env.');
+  const sensitive = envLike || dangerousPublicExtensions.has(ext);
+  if (!sensitive) continue;
+  const relativeToDistribution = normalized.startsWith(`${distributionDir}/`) ? path.posix.relative(distributionDir, normalized) : null;
+  const distributionAllowed = Boolean(relativeToDistribution && !relativeToDistribution.includes('/') && approvedDistribution.has(relativeToDistribution));
+  const sourceAllowed = explicitlyApprovedPublicSource.has(normalized);
+  assert(distributionAllowed || sourceAllowed, `Source-like or sensitive file must not be published from frontend/public without explicit approval: ${normalized}`);
 }
 
-const ownRawRepo = 'raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js';
-const frontendRuntimeFiles = [
-  ...walk('frontend/app'),
-  ...walk('frontend/components'),
-  ...walk('frontend/lib'),
-].filter(rel => /\.(?:js|jsx|ts|tsx|mjs|cjs)$/i.test(rel));
+const repositoryRawPatterns = [
+  /raw\.githubusercontent\.com\/IAMGodmatters\/IAMMagnanimousway\.js/i,
+  /github\.com\/IAMGodmatters\/IAMMagnanimousway\.js\/(?:raw|blob)\//i,
+];
+const frontendRuntimeFiles = walk('frontend').filter(rel => {
+  const normalized = rel.replaceAll('\\', '/');
+  if (normalized.startsWith('frontend/public/') || normalized.includes('/node_modules/') || normalized.includes('/.next/') || normalized.includes('/coverage/')) return false;
+  return /\.(?:js|jsx|ts|tsx|mjs|cjs)$/i.test(normalized);
+});
 for (const rel of frontendRuntimeFiles) {
   const text = read(rel);
-  assert(!text.includes(ownRawRepo), `Frontend runtime must not depend on public GitHub repository content: ${rel}`);
+  for (const pattern of repositoryRawPatterns) assert(!pattern.test(text), `Frontend runtime must not depend on public GitHub repository content: ${rel}`);
 }
 
 const notice = read(`${distributionDir}/NOTICE.txt`);
 assert(/All Rights Reserved/i.test(notice), 'Client distribution must keep the All Rights Reserved notice.');
 assert(/does not grant permission/i.test(notice), 'Client distribution notice must keep the no-license grant boundary.');
 
-console.log('Proprietary Security Invariants Lock PASS: anti-clone, provenance, private-repo readiness, and public-source boundaries are intact.');
+console.log('Proprietary Security Invariants Lock PASS: anti-clone, provenance, workflow permissions, public-source boundaries, and guard execution are intact.');
