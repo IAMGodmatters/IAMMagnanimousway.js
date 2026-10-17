@@ -54,6 +54,7 @@ export async function handleMagnanimousLocalBridgeArtifact(request,env){
   return Response.json({detail:'Private Local Bridge artifacts are not available yet.'},{status:503,headers:{'cache-control':'no-store'}});
  }
  if(!artifact)return Response.json({detail:'Private Local Bridge artifact is not published.'},{status:404,headers:{'cache-control':'no-store'}});
+ if(url.searchParams.get('metadata')==='1')return Response.json({name:String(artifact.name),sha256:String(artifact.sha256||''),byte_length:Number(artifact.byte_length||0),media_type:String(artifact.media_type||'application/octet-stream')},{headers:{'cache-control':'no-store, private','x-content-type-options':'nosniff'}});
  const body=decodeBase64(artifact.content_base64);
  if(Number(artifact.byte_length||0)!==body.byteLength)return Response.json({detail:'Private Local Bridge artifact integrity check failed.'},{status:503,headers:{'cache-control':'no-store'}});
  return new Response(body,{status:200,headers:{
