@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node src/server.mjs",
-    "verify": "node scripts/verify-runtime.mjs",
+    "verify": "node scripts/verify-runtime.mjs && node ../qa/scripts/magnanimous-nexus-execution-receipt-lock.mjs",
     "readiness": "node ../qa/scripts/magnanimous-cloud-independence-readiness.mjs",
     "backup": "node scripts/backup-runtime.mjs",
     "restore": "node scripts/restore-runtime.mjs",
