@@ -14,6 +14,7 @@ RUN cd worker \
   && node -e "import('libphonenumber-js/min').then(()=>console.log('Worker production dependencies verified'))"
 RUN mkdir -p /app/data /app/backups \
   && node magnanimous-runtime/scripts/verify-runtime.mjs \
+  && node qa/scripts/magnanimous-nexus-execution-receipt-lock.mjs \
   && node magnanimous-runtime/scripts/verify-cloud-control.mjs \
   && node magnanimous-runtime/scripts/verify-migration-stage.mjs \
   && node magnanimous-runtime/scripts/verify-runtime-secret-store.mjs
