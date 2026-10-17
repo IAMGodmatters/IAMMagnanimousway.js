@@ -1,0 +1,41 @@
+name: Registrar Ecosystem Verification
+
+on:
+  pull_request:
+    paths:
+      - 'worker/src/magnanimous-registrar-capability-registry.js'
+      - 'worker/src/magnanimous-registrar-runtime.js'
+      - 'worker/src/cloudflare-tool-seed.js'
+      - 'worker/src/router-entrypoint.js'
+      - 'frontend/app/owner-registrars/page.tsx'
+      - 'qa/scripts/registrar-ecosystem-lock.mjs'
+      - '.github/workflows/registrar-ecosystem-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-registrar-capability-registry.js'
+      - 'worker/src/magnanimous-registrar-runtime.js'
+      - 'worker/src/cloudflare-tool-seed.js'
+      - 'worker/src/router-entrypoint.js'
+      - 'frontend/app/owner-registrars/page.tsx'
+      - 'qa/scripts/registrar-ecosystem-lock.mjs'
+      - '.github/workflows/registrar-ecosystem-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Verify registrar ecosystem contracts
+        run: node qa/scripts/registrar-ecosystem-lock.mjs
+      - name: Check registrar Worker syntax
+        run: |
+          node --check worker/src/magnanimous-registrar-capability-registry.js
+          node --check worker/src/magnanimous-registrar-runtime.js
+          node --check worker/src/cloudflare-tool-seed.js
