@@ -32,7 +32,12 @@ must(!runtime.includes('billing_reserved:bool(body.billing_reserved)'),'executio
 must(runtime.includes('conditions_hash'),'execution lease must remain cryptographically bound to authoritative conditions');
 must(runtime.includes('LEASE_CONDITIONS_CHANGED'),'lease verification must fail when live server conditions change');
 must(runtime.includes("SET status='consumed'"),'single-action execution leases must be atomically consumed');
-must(runtime.includes('LEASE_ALREADY_USED'),'reused execution leases must fail closed');
+must(runtime.includes('LEASE_USED_OR_CAMPAIGN_CAP_REACHED'),'reused leases or campaign caps must fail closed at atomic consumption');
+must(runtime.includes('CAMPAIGN_RESERVATION_EXPIRED'),'execution leases must require a fresh server-side dial reservation');
+must(runtime.includes('CAMPAIGN_RESERVATION_ALREADY_USED'),'one campaign reservation cannot mint duplicate execution leases');
+must(runtime.includes('MAX_CAMPAIGN_ATTEMPTS'),'campaign contact attempt limits must remain enforced');
+must(runtime.includes('EXECUTION_SCOPE_MISMATCH'),'signed lease scope must match actual outbound destination, member and recording settings');
+must(runtime.includes('TELECOM_AUTOMATED_CAMPAIGN_COMPLIANCE_READY'),'execution lease must check global campaign policy readiness');
 must(runtime.includes("form.set('expires_at'"),'Stripe checkout lifetime must be bounded by the server quote expiry');
 must(runtime.includes("status='checkout_reserving'"),'paid checkout must reserve quote state atomically before Stripe session creation');
 must(runtime.includes('Provider readiness changed before checkout'),'provider readiness must be rechecked before customer payment');
@@ -51,6 +56,8 @@ must(phone.includes("m.consent_confirmed"),'automated campaign consent must come
 must(phone.includes("c.status='active'"),'automated campaign must remain active at dial time');
 must(phone.includes('OUTSIDE_CALLING_WINDOW'),'automated campaign calling window must be rechecked at dial time');
 must(phone.includes('CALLER_IDENTITY_NOT_VERIFIED'),'automated campaign caller identity must fail closed when not server configured');
+must(phone.includes('BYOC_CALLER_ID_NOT_VERIFIED'),'BYOC campaign caller ID must match the server configured carrier identity');
+must(phone.includes('execution_deferred: true'),'BYOC fallback must defer lease consumption to downstream security guard');
 
 must(guard.includes('enforceTelecomExecutionForOutbound'),'secondary safety guard must retain execution-lease enforcement');
 must(guard.includes("path==='/api/phone/calls/outbound'"),'secondary guard must retain the outbound endpoint gate');
@@ -68,7 +75,9 @@ must(payment.includes("parsed.protocol!=='https:'"),'upstream settlement endpoin
 must(payment.includes("redirect:'error'"),'upstream settlement must not follow redirects to an unvalidated destination');
 must(payment.includes('checkout.session.async_payment_failed'),'settlement observer must account for failed async payments');
 must(payment.includes('checkout.session.expired'),'settlement observer must account for expired checkouts');
-must(payment.includes('customer_paid_expired_quote'),'payments arriving after quote expiry must require review rather than auto-fund upstream');
+must(payment.includes('customer_paid_review_required'),'late or mismatched payment must require review rather than auto-fund upstream');
+must(payment.includes('eventAt=Number(event.created)'),'payment timeliness must derive from signed Stripe event time');
+must(payment.includes('amountMatches'),'paid amount and currency must match the customer quote');
 must(stripe.includes("processMagnanimousTelecomProviderStripeEvent(env,event)"),'verified Stripe webhook must dispatch telecom settlement before generic plan checkout processing');
 
 console.log('Telecom fallback execution lock PASS');
