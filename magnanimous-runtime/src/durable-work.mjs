@@ -15,7 +15,7 @@ function receiptContent(row){
 }
 
 export class MagnanimousDurableWork{
-  constructor(db,{signingKey=''}={}){
+  constructor(db,{signingKey=globalThis.process?.env?.MAGNANIMOUS_RECEIPT_SIGNING_KEY||''}={}){
     this.db=db;
     this.signingKey=String(signingKey||'');
     db.db.exec(`CREATE TABLE IF NOT EXISTS magnanimous_jobs(
@@ -78,6 +78,7 @@ export class MagnanimousDurableWork{
   }
   async verifyReceiptChain({limit=10000}={}){
     const max=Math.max(1,Math.min(Number(limit)||10000,100000));
+    const total=Number(this.db.db.prepare('SELECT COUNT(*) n FROM magnanimous_work_receipts').get()?.n||0);
     const rows=this.db.db.prepare('SELECT * FROM magnanimous_work_receipts ORDER BY id ASC LIMIT ?').all(max);
     let previous='',verified=0,chain_failures=0,content_failures=0,signature_failures=0,signatures_unverifiable=0;
     for(const row of rows){
@@ -92,9 +93,12 @@ export class MagnanimousDurableWork{
       previous=row.chain_hash||'';
       verified++;
     }
+    const truncated=total>verified;
     return{
-      ok:chain_failures===0&&content_failures===0&&signature_failures===0,
+      ok:!truncated&&chain_failures===0&&content_failures===0&&signature_failures===0,
       verified,
+      total,
+      truncated,
       chain_failures,
       content_failures,
       signature_failures,
@@ -105,15 +109,16 @@ export class MagnanimousDurableWork{
   }
   async send(message,{queue='default',delaySeconds=0,idempotencyKey='',maxAttempts=5}={}){
     const when=now()+Math.max(0,Number(delaySeconds)||0),jobId=id(),stamp=now();
-    await this.db.prepare(`INSERT INTO magnanimous_jobs(id,queue,payload_json,status,idempotency_key,available_at,max_attempts,created_at,updated_at)
+    const insert=await this.db.prepare(`INSERT INTO magnanimous_jobs(id,queue,payload_json,status,idempotency_key,available_at,max_attempts,created_at,updated_at)
       VALUES(?,?,?,'queued',?,?,?,?,?) ON CONFLICT(queue,idempotency_key) WHERE idempotency_key!='' DO NOTHING`)
       .bind(jobId,String(queue),JSON.stringify(message??null),String(idempotencyKey||''),when,Math.max(1,Number(maxAttempts)||5),stamp,stamp).run();
+    const created=Number(insert?.meta?.changes||0)===1;
     let effectiveId=jobId;
     if(idempotencyKey){
       const row=await this.db.prepare('SELECT id FROM magnanimous_jobs WHERE queue=? AND idempotency_key=?').bind(String(queue),String(idempotencyKey)).first();
       effectiveId=row?.id||jobId;
     }
-    await this._receipt('job',effectiveId,'queued',{queue:String(queue),idempotency_key:Boolean(idempotencyKey),available_at:when,max_attempts:Math.max(1,Number(maxAttempts)||5)});
+    await this._receipt('job',effectiveId,created?'queued':'idempotent-reuse',{queue:String(queue),idempotency_key:Boolean(idempotencyKey),available_at:when,max_attempts:Math.max(1,Number(maxAttempts)||5)});
     return{id:effectiveId};
   }
   async sendBatch(messages,options={}){const out=[];for(const message of messages||[])out.push(await this.send(message,options));return out}
@@ -158,12 +163,13 @@ export class MagnanimousDurableWork{
   }
   async startWorkflow(name,input={},options={}){
     const workflowId=id(),stamp=now(),key=String(options.idempotencyKey||'');
-    await this.db.prepare(`INSERT INTO magnanimous_workflows(id,name,idempotency_key,status,input_json,state_json,created_at,updated_at)
+    const insert=await this.db.prepare(`INSERT INTO magnanimous_workflows(id,name,idempotency_key,status,input_json,state_json,created_at,updated_at)
       VALUES(?,?,?,'running',?,'{}',?,?) ON CONFLICT(name,idempotency_key) WHERE idempotency_key!='' DO NOTHING`)
       .bind(workflowId,String(name),key,JSON.stringify(input??{}),stamp,stamp).run();
+    const created=Number(insert?.meta?.changes||0)===1;
     let effectiveId=workflowId;
     if(key){const row=await this.db.prepare('SELECT id FROM magnanimous_workflows WHERE name=? AND idempotency_key=?').bind(String(name),key).first();effectiveId=row?.id||workflowId}
-    await this._receipt('workflow',effectiveId,'started',{name:String(name),idempotency_key:Boolean(key),input_sha256:sha256(JSON.stringify(input??{}))});
+    await this._receipt('workflow',effectiveId,created?'started':'idempotent-reuse',{name:String(name),idempotency_key:Boolean(key),input_sha256:sha256(JSON.stringify(input??{}))});
     return{id:effectiveId};
   }
   async checkpoint(workflowId,state){
