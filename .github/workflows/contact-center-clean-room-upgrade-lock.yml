@@ -1,0 +1,22 @@
+name: Contact Center Clean-Room Upgrade Lock
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Verify clean-room contact center capabilities
+        run: node qa/scripts/contact-center-clean-room-upgrade-lock.mjs

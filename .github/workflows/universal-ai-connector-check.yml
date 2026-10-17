@@ -74,6 +74,9 @@ jobs:
       - name: Build frontend assets
         working-directory: frontend
         run: npm run build
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm ci --no-audit --no-fund
       - name: Syntax check connector runtime
         run: |
           node --check worker/src/magnanimous-universal-ai-connector.js

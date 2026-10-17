@@ -5,6 +5,8 @@ The platform has two calling layers:
 1. **I AM Internet Phone** — free browser-to-browser audio between signed-in I AM users using WebRTC.
 2. **Carrier bridge** — optional mobile and landline calling through a compatible telephony provider.
 
+Magnanimous AI remains the brain and policy layer. Magnanimous Telecom owns the provider-neutral telecom boundary. PBXs, carriers, AI voice engines, SIP trunks and media services remain replaceable adapters.
+
 ## Included call-center features
 
 - agent presence: available, busy, break, and offline
@@ -13,7 +15,83 @@ The platform has two calling layers:
 - outbound public-number dialer when a carrier bridge is configured
 - carrier status webhooks
 - assignments, call duration, notes, and dispositions
+- campaigns: preview, progressive, and power
+- IVR flows, callbacks, queue voicemail and dispositions
+- AI agent-assist rules and call intelligence
+- omnichannel interaction/message records
+- native WebRTC sessions
+- policy-gated supervisor and recording sessions
 - tenant-separated call-center data
+
+## Advanced clean-room capability layer
+
+The advanced contact-center control plane adds provider-neutral patterns researched from modern enterprise contact-center systems without copying proprietary vendor implementation code.
+
+Authenticated endpoints:
+
+- `GET /api/contact-center/advanced/capabilities`
+- `POST /api/contact-center/advanced/route-plan`
+- `POST /api/contact-center/advanced/tool-policy`
+- `POST /api/contact-center/advanced/knowledge-draft`
+
+### Queue route planning
+
+Supported planning strategies:
+
+- `ring_all`
+- `prioritized_hunt`
+- `random_start`
+- `round_robin`
+- `longest_idle`
+- `least_talk_time`
+- `fewest_answered`
+- `hunt_three_random`
+- `hunt_three_priority`
+- `skills_ring_all`
+- `skills_random_start`
+- `skills_round_robin`
+- `skills_fewest_answered`
+
+Skills-based routing supports `availability`, `time`, and `cumulative` escalation planning. Only active, logged-in, available agents are considered. This planner is additive; existing queue behavior remains available while runtime/UI adoption proceeds.
+
+Target queue controls include caller-requested/automatic/offered callbacks, wrap-up time, maximum callers, priority queue, SLA, queue login/logout automation, supervisors, queue voicemail, recording opt-in/out and chat ownership.
+
+### AI tool safety
+
+The advanced AI tool-policy evaluator follows Magnanimous fail-closed rules:
+
+- tools must be explicitly allowlisted
+- read-only is preferred by default
+- client approval cannot grant server authority
+- write, delete, paid, regulated, recording and supervision actions require explicit approval
+- paid/regulated actions require owner/admin authority at this planning boundary
+- real actions still remain subject to their existing server-side permission, billing, consent and regulatory gates
+
+### Transcript-to-knowledge review
+
+The knowledge-draft endpoint reduces obvious email, phone, payment-number and secret patterns, then returns a `needs_review` draft with `publish_allowed:false`.
+
+Raw customer transcripts are never automatically promoted into durable Magnanimous AI knowledge. A human must verify accuracy, remove transient/customer-specific information, remove remaining confidential data and approve reusable knowledge.
+
+### Advanced target architecture
+
+Magnanimous Call Center now carries the following explicit target contract:
+
+- skills routing and escalation
+- SLA/callback/wrap-up controls
+- supervisor monitor/whisper/barge with authorization, consent and audit
+- unified voice/chat/SMS/MMS/WhatsApp/Facebook/email/voicemail interaction model
+- provider-neutral REST/WebSocket call-control plane
+- service-principal/scoped-token access
+- local/private-first transcription with speaker detection where supported
+- summaries, sentiment, topics, action items, QA flags and compliance risk
+- targeted AI receptionist/personal-assistant/customer-service/specialist agents
+- human handoff, AI fallback, spam/abuse/nonresponsive policies
+- CRM lookup, screen pop and call/chat journaling
+- SIP trunk health checks, TLS/SRTP, SBC/site-edge and NAT/firewall diagnostics
+- dependency/firmware/security hotfix discipline
+
+See `docs/3CX-CLEAN-ROOM-CAPABILITY-STUDY-2026-10-17.md` for the current public-source research and clean-room boundary.
 
 ## Carrier bridge configuration
 
@@ -54,4 +132,6 @@ Send call updates to the supplied webhook URL with the `x-iam-webhook-secret` he
 
 ## Cost and compliance
 
-Browser-to-browser calls use the free Internet-phone layer. Calls to ordinary phone numbers require a carrier account, an assigned caller ID, and the carrier's usage charges. Before automated outreach or recording, obtain required consent and follow do-not-call, recording, privacy, and local telemarketing rules.
+Browser-to-browser calls use the free Internet-phone layer. Calls to ordinary phone numbers require an authorized carrier path, an assigned caller ID, and the carrier's usage charges. Before automated outreach, recording or supervisor monitoring, obtain required consent and follow do-not-call, recording, privacy, telemarketing and other applicable rules.
+
+Emergency calling, direct numbering, carrier status and caller-identity attestation remain fail-closed until the external technical, contractual and regulatory prerequisites are actually verified.
