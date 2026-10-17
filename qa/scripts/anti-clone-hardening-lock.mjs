@@ -7,6 +7,7 @@ const js=read('frontend/next.config.js');
 const ts=read('frontend/next.config.ts');
 const license=read('LICENSE');
 const provenance=read('frontend/public/.well-known/magnanimous-provenance.txt');
+const permanentGuard=read('.github/workflows/proprietary-security-invariants-lock.yml');
 
 for(const [name,config] of [['next.config.js',js],['next.config.ts',ts]]){
   must(config.includes('productionBrowserSourceMaps')&&config.includes('false'),`${name} must keep production browser source maps disabled.`);
@@ -18,5 +19,10 @@ must(/All rights reserved/i.test(license),'All-rights-reserved notice is missing
 must(/No permission is granted to copy/i.test(license),'Explicit no-copy grant is missing.');
 must(provenance.includes('https://iammagnanimousway.com'),'Canonical production origin is missing from provenance marker.');
 must(provenance.includes('IAMW-PROVENANCE-2026-10-17-4AB60E4D'),'Clone-detection provenance marker changed or is missing.');
+
+must(permanentGuard.includes('Proprietary Security Invariants Lock'),'Permanent proprietary security workflow is missing or renamed.');
+must(/pull_request:\s*\n\s*branches:\s*\[main\]/m.test(permanentGuard),'Permanent proprietary security lock must run on every pull request to main.');
+must(/push:\s*\n\s*branches:\s*\[main\]/m.test(permanentGuard),'Permanent proprietary security lock must run on every push to main.');
+must(!/^\s*paths(?:-ignore)?:/m.test(permanentGuard),'Permanent proprietary security lock must never be narrowed with path filters.');
 
 console.log('Anti-clone hardening lock PASS');
