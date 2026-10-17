@@ -19,7 +19,7 @@ async function ensureSchema(env){
  for(const sql of statements){try{await env.DB.prepare(sql).run()}catch(error){console.error('telecom provider payment schema repair failed',error)}}
 }
 
-async function payUpstreamIfConfigured(env,quote,eventId){
+async function payUpstreamIfConfigured(env,quote){
  const originMicros=Number(quote.provider_origin_cost_micros||0);
  if(originMicros<=0)return {status:'funded_free',reference:''};
  if(clean(env.TELECOM_UPSTREAM_AUTO_PAY_ENABLED).toLowerCase()!=='true')return {status:'customer_paid_upstream_pending',reference:''};
@@ -27,12 +27,11 @@ async function payUpstreamIfConfigured(env,quote,eventId){
  if(!endpoint||!token)return {status:'customer_paid_upstream_pending',reference:''};
  let parsed;try{parsed=new URL(endpoint)}catch{return {status:'customer_paid_upstream_manual_review',reference:'',detail:'Invalid upstream billing endpoint.'}}
  if(parsed.protocol!=='https:'||parsed.username||parsed.password)return {status:'customer_paid_upstream_manual_review',reference:'',detail:'Upstream billing endpoint must be credential-free HTTPS.'};
- const maxUsd=Math.max(0,Number(env.TELECOM_UPSTREAM_MAX_AUTO_PAY_USD||0));
- const amountUsd=originMicros/1_000_000;
+ const maxUsd=Math.max(0,Number(env.TELECOM_UPSTREAM_MAX_AUTO_PAY_USD||0)),amountUsd=originMicros/1_000_000;
  if(!maxUsd||amountUsd>maxUsd)return {status:'customer_paid_upstream_manual_review',reference:''};
  const response=await fetch(parsed.toString(),{
   method:'POST',redirect:'error',
-  headers:{authorization:`Bearer ${token}`,'content-type':'application/json','idempotency-key':`magnanimous:${eventId}:${quote.id}`},
+  headers:{authorization:`Bearer ${token}`,'content-type':'application/json','idempotency-key':`magnanimous:telecom-provider:${quote.id}`},
   body:JSON.stringify({quote_id:quote.id,provider_key:quote.provider_key,amount_usd:amountUsd,currency:'USD',tenant_id:quote.tenant_id})
  });
  const data=await response.json().catch(()=>({}));
@@ -47,6 +46,19 @@ async function recordEventOnce(env,{eventId,type,tenantId,quoteId,providerKey=''
  }catch{return false}
 }
 
+async function settlePaidQuote(env,{eventId,type,tenantId,quote}){
+ const alreadySettled=await env.DB.prepare("SELECT event_id,status,upstream_payment_ref FROM telecom_provider_payment_events WHERE quote_id=? AND tenant_id=? AND status IN ('upstream_paid','funded_free') ORDER BY updated_at DESC LIMIT 1").bind(quote.id,tenantId).first().catch(()=>null);
+ if(alreadySettled){await env.DB.prepare("UPDATE telecom_provider_quotes SET status='funded' WHERE id=? AND tenant_id=?").bind(quote.id,tenantId).run();return true}
+ const existing=await env.DB.prepare('SELECT status FROM telecom_provider_payment_events WHERE event_id=?').bind(eventId).first().catch(()=>null);
+ if(existing&&!['customer_paid_upstream_failed','customer_paid_upstream_pending'].includes(clean(existing.status)))return true;
+ if(!existing){const inserted=await recordEventOnce(env,{eventId,type,tenantId,quoteId:quote.id,providerKey:quote.provider_key,status:'customer_paid'});if(!inserted)return true}
+ else await env.DB.prepare("UPDATE telecom_provider_payment_events SET status='customer_paid',detail_json='{}',updated_at=? WHERE event_id=?").bind(now(),eventId).run();
+ const upstream=await payUpstreamIfConfigured(env,quote);
+ await env.DB.prepare('UPDATE telecom_provider_payment_events SET status=?,upstream_payment_ref=?,detail_json=?,updated_at=? WHERE event_id=?').bind(upstream.status,upstream.reference||'',JSON.stringify({detail:upstream.detail||''}),now(),eventId).run();
+ await env.DB.prepare('UPDATE telecom_provider_quotes SET status=? WHERE id=? AND tenant_id=?').bind(upstream.status==='upstream_paid'||upstream.status==='funded_free'?'funded':'customer_paid',quote.id,tenantId).run();
+ return true;
+}
+
 export async function processMagnanimousTelecomProviderStripeEvent(env,event){
  const type=clean(event?.type),object=event?.data?.object||{},metadata=object?.metadata||{};
  if(clean(metadata.product_type)!=='telecom_provider_fallback')return false;
@@ -54,28 +66,28 @@ export async function processMagnanimousTelecomProviderStripeEvent(env,event){
  const eventId=clean(event?.id),quoteId=clean(metadata.telecom_quote_id),tenantId=clean(metadata.tenant_id||object.client_reference_id);
  if(!eventId||!quoteId||!tenantId)return true;
  await ensureSchema(env);
- const seen=await env.DB.prepare('SELECT event_id FROM telecom_provider_payment_events WHERE event_id=?').bind(eventId).first();
- if(seen)return true;
  const quote=await env.DB.prepare('SELECT * FROM telecom_provider_quotes WHERE id=? AND tenant_id=?').bind(quoteId,tenantId).first();
  if(!quote){await recordEventOnce(env,{eventId,type,tenantId,quoteId,status:'quote_missing'});return true}
 
  if(type==='checkout.session.async_payment_failed'){
-  if(await recordEventOnce(env,{eventId,type,tenantId,quoteId,providerKey:quote.provider_key,status:'payment_failed'}))await env.DB.prepare("UPDATE telecom_provider_quotes SET status='payment_failed' WHERE id=? AND tenant_id=? AND status IN ('checkout_created','checkout_reserving')").bind(quoteId,tenantId).run();
+  const seen=await env.DB.prepare('SELECT event_id FROM telecom_provider_payment_events WHERE event_id=?').bind(eventId).first();
+  if(!seen&&await recordEventOnce(env,{eventId,type,tenantId,quoteId,providerKey:quote.provider_key,status:'payment_failed'}))await env.DB.prepare("UPDATE telecom_provider_quotes SET status='payment_failed' WHERE id=? AND tenant_id=? AND status IN ('checkout_created','checkout_reserving')").bind(quoteId,tenantId).run();
   return true;
  }
  if(type==='checkout.session.expired'){
-  if(await recordEventOnce(env,{eventId,type,tenantId,quoteId,providerKey:quote.provider_key,status:'checkout_expired'}))await env.DB.prepare("UPDATE telecom_provider_quotes SET status='expired' WHERE id=? AND tenant_id=? AND status IN ('checkout_created','checkout_reserving','quoted')").bind(quoteId,tenantId).run();
+  const seen=await env.DB.prepare('SELECT event_id FROM telecom_provider_payment_events WHERE event_id=?').bind(eventId).first();
+  if(!seen&&await recordEventOnce(env,{eventId,type,tenantId,quoteId,providerKey:quote.provider_key,status:'checkout_expired'}))await env.DB.prepare("UPDATE telecom_provider_quotes SET status='expired' WHERE id=? AND tenant_id=? AND status IN ('checkout_created','checkout_reserving','quoted')").bind(quoteId,tenantId).run();
   return true;
  }
  if(!['paid','no_payment_required'].includes(clean(object.payment_status)))return true;
  if(Number(quote.expires_at)<=now()){
-  if(await recordEventOnce(env,{eventId,type,tenantId,quoteId,providerKey:quote.provider_key,status:'customer_paid_expired_quote',detail:{manual_review:true}}))await env.DB.prepare("UPDATE telecom_provider_quotes SET status='customer_paid_review_required' WHERE id=? AND tenant_id=?").bind(quoteId,tenantId).run();
+  const seen=await env.DB.prepare('SELECT event_id FROM telecom_provider_payment_events WHERE event_id=?').bind(eventId).first();
+  if(!seen&&await recordEventOnce(env,{eventId,type,tenantId,quoteId,providerKey:quote.provider_key,status:'customer_paid_expired_quote',detail:{manual_review:true}}))await env.DB.prepare("UPDATE telecom_provider_quotes SET status='customer_paid_review_required' WHERE id=? AND tenant_id=?").bind(quoteId,tenantId).run();
   return true;
  }
- if(!['checkout_created','checkout_reserving','customer_paid'].includes(clean(quote.status))){await recordEventOnce(env,{eventId,type,tenantId,quoteId,providerKey:quote.provider_key,status:'unexpected_quote_state',detail:{quote_status:quote.status}});return true}
- const inserted=await recordEventOnce(env,{eventId,type,tenantId,quoteId,providerKey:quote.provider_key,status:'customer_paid'});if(!inserted)return true;
- const upstream=await payUpstreamIfConfigured(env,quote,eventId);
- await env.DB.prepare('UPDATE telecom_provider_payment_events SET status=?,upstream_payment_ref=?,detail_json=?,updated_at=? WHERE event_id=?').bind(upstream.status,upstream.reference||'',JSON.stringify({detail:upstream.detail||''}),now(),eventId).run();
- await env.DB.prepare('UPDATE telecom_provider_quotes SET status=? WHERE id=? AND tenant_id=?').bind(upstream.status==='upstream_paid'||upstream.status==='funded_free'?'funded':'customer_paid',quoteId,tenantId).run();
- return true;
+ if(!['checkout_created','checkout_reserving','customer_paid'].includes(clean(quote.status))&&clean(quote.status)!=='funded'){
+  await recordEventOnce(env,{eventId,type,tenantId,quoteId,providerKey:quote.provider_key,status:'unexpected_quote_state',detail:{quote_status:quote.status}});return true;
+ }
+ if(clean(quote.status)==='funded')return true;
+ return settlePaidQuote(env,{eventId,type,tenantId,quote});
 }
