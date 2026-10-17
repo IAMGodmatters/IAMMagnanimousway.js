@@ -50,7 +50,7 @@ async function settlePaidQuote(env,{eventId,type,tenantId,quote}){
  const alreadySettled=await env.DB.prepare("SELECT event_id,status,upstream_payment_ref FROM telecom_provider_payment_events WHERE quote_id=? AND tenant_id=? AND status IN ('upstream_paid','funded_free') ORDER BY updated_at DESC LIMIT 1").bind(quote.id,tenantId).first().catch(()=>null);
  if(alreadySettled){await env.DB.prepare("UPDATE telecom_provider_quotes SET status='funded' WHERE id=? AND tenant_id=?").bind(quote.id,tenantId).run();return true}
  const existing=await env.DB.prepare('SELECT status FROM telecom_provider_payment_events WHERE event_id=?').bind(eventId).first().catch(()=>null);
- if(existing&&!['customer_paid_upstream_failed','customer_paid_upstream_pending'].includes(clean(existing.status)))return true;
+ if(existing&&!['customer_paid','customer_paid_upstream_failed','customer_paid_upstream_pending'].includes(clean(existing.status)))return true;
  if(!existing){const inserted=await recordEventOnce(env,{eventId,type,tenantId,quoteId:quote.id,providerKey:quote.provider_key,status:'customer_paid'});if(!inserted)return true}
  else await env.DB.prepare("UPDATE telecom_provider_payment_events SET status='customer_paid',detail_json='{}',updated_at=? WHERE event_id=?").bind(now(),eventId).run();
  const upstream=await payUpstreamIfConfigured(env,quote);
