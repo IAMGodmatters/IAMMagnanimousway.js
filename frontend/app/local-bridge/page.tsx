@@ -6,8 +6,9 @@ type Activation={verified:boolean;status:string;task_id:string|null;completed_at
 type Device={id:string;name:string;hostname:string;platform:string;status:string;online:boolean;last_seen_at:number;capabilities:string[];activation:Activation};
 type Overview={ready:boolean;paired:boolean;policy:Record<string,unknown>;devices:Device[];pending_tasks:number;actions:Record<string,{risk:string;confirmation:boolean;family:string}>};
 
-const RAW_INSTALLER='https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/install.ps1';
-const RAW_UNINSTALLER='https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/uninstall.ps1';
+const ARTIFACT_BASE='https://iammagnanimousway.com/api/magnanimous/local-bridge/artifacts';
+const PRIVATE_INSTALLER=`${ARTIFACT_BASE}/install.ps1`;
+const PRIVATE_UNINSTALLER=`${ARTIFACT_BASE}/uninstall.ps1`;
 
 function psQuote(value:string){return "'" + value.replaceAll("'","''") + "'"}
 function encodePowerShell(command:string){
@@ -86,7 +87,8 @@ export default function LocalBridgePage(){
   return [
    "$ErrorActionPreference='Stop'",
    "$bootstrap=Join-Path $env:TEMP 'install-magnanimous-bridge.ps1'",
-   `Invoke-WebRequest -UseBasicParsing -Uri ${psQuote(RAW_INSTALLER)} -OutFile $bootstrap`,
+   `$artifactHeaders=@{'X-Magnanimous-Pairing-Code'=${psQuote(pairCode)}}`,
+   `Invoke-WebRequest -UseBasicParsing -Uri ${psQuote(PRIVATE_INSTALLER)} -Headers $artifactHeaders -OutFile $bootstrap`,
    `& $bootstrap -PairingCode ${psQuote(pairCode)} -WorkspaceRoot ${psQuote(workspace||'%USERPROFILE%\\Documents\\MagnanimousWorkspace')}${installGit?' -InstallGit':''}`,
    "Write-Host ''",
    "Write-Host 'Activation command finished. Return to I AM MAGNANIMOUS WAY and wait for VERIFIED / READY LOCAL.'"
@@ -108,17 +110,26 @@ export default function LocalBridgePage(){
   try{await navigator.clipboard.writeText(windowsCommand);setCopied(true);setNotice('Windows activation command copied.')}catch{setNotice('Copy was blocked by this browser. Use the Download Activation File button instead.')}
  }
 
- function downloadRemoval(){
-  const removalPowerShell=[
-   "$ErrorActionPreference='Stop'",
-   "$cleanup=Join-Path $env:TEMP 'uninstall-magnanimous-bridge.ps1'",
-   `Invoke-WebRequest -UseBasicParsing -Uri ${psQuote(RAW_UNINSTALLER)} -OutFile $cleanup`,
-   "& $cleanup"
-  ].join('; ');
-  const command=`powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encodePowerShell(removalPowerShell)}`;
-  const body=`@echo off\r\ntitle Remove Magnanimous Local Bridge\r\necho Removing local Magnanimous Local Bridge files and startup task...\r\n${command}\r\nif errorlevel 1 (echo Removal failed. Review the error above. & pause & exit /b 1)\r\necho Local Bridge removed from this computer.\r\npause\r\n`;
-  const blob=new Blob([body],{type:'application/x-msdos-program'});const url=URL.createObjectURL(blob);const a=document.createElement('a');
-  a.href=url;a.download='Remove-Magnanimous-Local-Bridge.cmd';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+ async function downloadRemoval(){
+  if(!token||busy)return;
+  setBusy('removal');setNotice('');
+  try{
+   const d=await read(await fetch('/api/magnanimous/local-bridge/pairings',{method:'POST',headers:headers(true),body:JSON.stringify({name:'Magnanimous Local Bridge removal'})}));
+   const removalCode=String(d.pairing_code||'');
+   if(!removalCode)throw new Error('Could not create the short-lived removal authorization.');
+   const removalPowerShell=[
+    "$ErrorActionPreference='Stop'",
+    "$cleanup=Join-Path $env:TEMP 'uninstall-magnanimous-bridge.ps1'",
+    `$artifactHeaders=@{'X-Magnanimous-Pairing-Code'=${psQuote(removalCode)}}`,
+    `Invoke-WebRequest -UseBasicParsing -Uri ${psQuote(PRIVATE_UNINSTALLER)} -Headers $artifactHeaders -OutFile $cleanup`,
+    "& $cleanup"
+   ].join('; ');
+   const command=`powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encodePowerShell(removalPowerShell)}`;
+   const body=`@echo off\r\ntitle Remove Magnanimous Local Bridge\r\necho Removing local Magnanimous Local Bridge files and startup task...\r\n${command}\r\nif errorlevel 1 (echo Removal failed. Review the error above. & pause & exit /b 1)\r\necho Local Bridge removed from this computer.\r\npause\r\n`;
+   const blob=new Blob([body],{type:'application/x-msdos-program'});const url=URL.createObjectURL(blob);const a=document.createElement('a');
+   a.href=url;a.download='Remove-Magnanimous-Local-Bridge.cmd';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+   setNotice('Windows removal file created with a short-lived private download authorization.');
+  }catch(e:any){setNotice(e?.message||'Could not create the Windows removal file.')}finally{setBusy('')}
  }
 
  const activeDevices=(overview?.devices||[]).filter(d=>d.status==='active');
@@ -160,7 +171,7 @@ export default function LocalBridgePage(){
 
    <article className="card">
     <small>SECURITY MODEL</small><h2>Capability-scoped, not remote shell</h2>
-    <ul><li>No inbound listener or opened LAN port.</li><li>No arbitrary shell/process endpoint.</li><li>Filesystem access stays inside the authorized workspace roots.</li><li>Default Git branch remains protected.</li><li>Patch/branch/commit mutations require separate confirmation.</li><li>Netwalk remains read-only and scope-authorized.</li><li>Native browser work blocks private-network targets and remote password filling.</li><li>Interactive browser actions require separate confirmation.</li><li>Browser cookies and sessions stay in local browser profiles.</li><li>Revoking a device invalidates its bridge token immediately.</li></ul><button onClick={downloadRemoval}>DOWNLOAD WINDOWS REMOVAL FILE</button>
+    <ul><li>No inbound listener or opened LAN port.</li><li>No arbitrary shell/process endpoint.</li><li>Filesystem access stays inside the authorized workspace roots.</li><li>Default Git branch remains protected.</li><li>Patch/branch/commit mutations require separate confirmation.</li><li>Netwalk remains read-only and scope-authorized.</li><li>Native browser work blocks private-network targets and remote password filling.</li><li>Interactive browser actions require separate confirmation.</li><li>Browser cookies and sessions stay in local browser profiles.</li><li>Revoking a device invalidates its bridge token immediately.</li></ul><button onClick={downloadRemoval} disabled={busy==='removal'}>{busy==='removal'?'PREPARING…':'DOWNLOAD WINDOWS REMOVAL FILE'}</button>
    </article>
   </section>
 
