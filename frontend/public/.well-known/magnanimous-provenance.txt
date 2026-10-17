@@ -1,0 +1,6 @@
+I AM MAGNANIMOUS WAY™ / Magnanimous AI
+Canonical origin: https://iammagnanimousway.com
+Canonical source owner: IAMGodmatters
+Proprietary source marker: IAMW-PROVENANCE-2026-10-17-4AB60E4D
+
+This marker identifies the official source lineage. Its presence on another deployment does not make that deployment official or licensed.
