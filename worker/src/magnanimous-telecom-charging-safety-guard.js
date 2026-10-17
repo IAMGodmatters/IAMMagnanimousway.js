@@ -5,6 +5,7 @@ const json=(data,status=400)=>Response.json(data,{status,headers:{'cache-control
 const riskyPaths=new Set(['/api/telecom/charging/policy/evaluate','/api/telecom/charging/sessions/reserve']);
 const numericFields=['requested_units','estimated_charge','final_charge','committed_units','reservation_ttl_seconds'];
 const truthy=value=>value===true||String(value).toLowerCase()==='true';
+const ownerLike=user=>['owner','admin','super_admin','superadmin'].includes(String(user?.role||'').trim().toLowerCase());
 const parseList=value=>{try{const parsed=JSON.parse(value||'[]');return Array.isArray(parsed)?parsed:[]}catch{return[]}};
 const prefixMatch=(destination,prefixes)=>prefixes.some(prefix=>String(destination||'').startsWith(String(prefix||'')));
 
@@ -30,7 +31,19 @@ async function internalRateQuote(env,tenant,service,destination,requestedUnits){
 
 export async function handleMagnanimousTelecomChargingSafetyGuard(request,env){
  const url=new URL(request.url),path=url.pathname;
- if(path.startsWith('/api/telecom/provider-fallback')||path.startsWith('/api/telecom/execution')){
+ const internalFallback=path.startsWith('/__magnanimous_runtime/telecom/provider-fallback')||path.startsWith('/__magnanimous_runtime/telecom/execution');
+ const apiFallback=path.startsWith('/api/telecom/provider-fallback')||path.startsWith('/api/telecom/execution');
+ if(internalFallback||apiFallback){
+  const user=await currentUser(request,env).catch(()=>null);
+  if(!user)return json({detail:'Sign in to Magnanimous Telecom.'},401);
+  const providerControl=path.includes('/provider-fallback');
+  if(providerControl&&!ownerLike(user))return json({detail:'Workspace owner access required.'},403);
+  if(internalFallback){
+   const target=new URL(request.url);
+   target.pathname=path.replace('/__magnanimous_runtime/telecom','/api/telecom');
+   const routed=new Request(target.toString(),request);
+   return handleMagnanimousTelecomProviderFallback(routed,env);
+  }
   return handleMagnanimousTelecomProviderFallback(request,env);
  }
  if(!path.startsWith('/api/telecom/charging')||request.method!=='POST')return null;
