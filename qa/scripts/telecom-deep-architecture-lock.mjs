@@ -170,7 +170,9 @@ has(phoneCarrier,'/v1/Account/','Plivo health reads the authenticated Account re
 has(phoneCarrier,"billingMode === 'prepaid'",'Plivo selected prepaid route checks funded credits');
 has(phoneCarrier,"code: 'NO_ELIGIBLE_CARRIER_ROUTE'",'configured but unhealthy/rate-blocked routes fail closed');
 has(phoneCarrier,"code: 'SELECTED_ROUTE_ADAPTER_UNAVAILABLE'",'unsupported selected compatibility adapter fails closed');
-has(phoneCarrier,"if (!matches.length) return { explicit: false",'legacy fallback remains only when no explicit matching route exists');
+has(phoneCarrier,"if (!matches.length && genericBridgeReady(env)) return { explicit: false",'BYOC fallback must remain available when no selected carrier route exists');
+has(phoneCarrier,'execution_deferred: true','BYOC fallback must defer execution-lease consumption to the downstream safety guard');
+has(phoneCarrier,'if(!willHandle)return {explicit:false','routes without a carrier adapter must fall through rather than falsely claiming execution');
 has(phoneCarrier,"body.consent_confirmed !== true || body.ai_disclosure_accepted !== true",'all outbound carrier execution requires server-side contact permission and AI disclosure');
 has(phoneCarrier,"code: 'CALL_CONSENT_REQUIRED'",'missing outbound carrier consent fails closed before route planning');
 has(phoneCarrier,"if (path === '/api/phone/plivo/answer')",'Plivo signed answer callback is handled before generic bridge fallback');
