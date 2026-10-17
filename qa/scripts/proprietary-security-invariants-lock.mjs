@@ -20,7 +20,6 @@ function walk(dir) {
   return out;
 }
 
-// Re-run the established protections so this master lock cannot drift away from them.
 for (const script of [
   'qa/scripts/anti-clone-hardening-lock.mjs',
   'qa/scripts/private-repo-readiness-lock.mjs',
@@ -28,20 +27,25 @@ for (const script of [
   execFileSync(process.execPath, [path.join(ROOT, script)], { stdio: 'inherit' });
 }
 
-const alwaysOnWorkflows = [
-  '.github/workflows/anti-clone-hardening-lock.yml',
-  '.github/workflows/private-repo-readiness-lock.yml',
-  '.github/workflows/clone-exposure-watch.yml',
-  '.github/workflows/proprietary-security-invariants-lock.yml',
-];
+const alwaysOnWorkflows = new Map([
+  ['.github/workflows/anti-clone-hardening-lock.yml', 'node qa/scripts/anti-clone-hardening-lock.mjs'],
+  ['.github/workflows/private-repo-readiness-lock.yml', 'node qa/scripts/private-repo-readiness-lock.mjs'],
+  ['.github/workflows/clone-exposure-watch.yml', 'node qa/scripts/clone-exposure-watch.mjs'],
+  ['.github/workflows/proprietary-security-invariants-lock.yml', 'node qa/scripts/proprietary-security-invariants-lock.mjs'],
+]);
 
-for (const workflow of alwaysOnWorkflows) {
+for (const [workflow, requiredCommand] of alwaysOnWorkflows) {
   assert(exists(workflow), `${workflow} must exist.`);
   const text = read(workflow);
   assert(/pull_request:\s*\n\s*branches:\s*\[main\]/m.test(text), `${workflow} must run for every pull request to main.`);
   assert(/push:\s*\n\s*branches:\s*\[main\]/m.test(text), `${workflow} must run for every push to main.`);
   assert(!/^\s*paths(?:-ignore)?:/m.test(text), `${workflow} must not use path filters; proprietary protection applies to every change.`);
-  assert(!/contents:\s*write/i.test(text), `${workflow} must stay read-only to repository contents.`);
+  assert(!/^\s*permissions:\s*(?:write-all|read-all)\s*$/mi.test(text), `${workflow} must not use blanket token permissions.`);
+  const permissions = text.match(/^permissions:\s*\n((?:[ \t]+[^\n]+\n?)*)/m);
+  assert(permissions, `${workflow} must declare explicit workflow permissions.`);
+  const permissionLines = permissions[1].split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  assert.deepEqual(permissionLines, ['contents: read'], `${workflow} must grant only contents: read at workflow scope.`);
+  assert(text.includes(requiredCommand), `${workflow} must continue invoking its security guard: ${requiredCommand}`);
 }
 
 const cloneWatch = read('.github/workflows/clone-exposure-watch.yml');
@@ -57,24 +61,29 @@ const approvedDistribution = new Set([
   'uninstall.ps1',
 ]);
 const distributionDir = 'frontend/public/downloads/local-bridge';
-const distributionFiles = walk(distributionDir).map(rel => path.posix.basename(rel));
-for (const name of distributionFiles) {
-  assert(approvedDistribution.has(name), `Unreviewed Local Bridge public payload detected: ${name}. Add it to the explicit approved distribution boundary only after security review.`);
+const distributionFiles = walk(distributionDir).map(rel => path.posix.relative(distributionDir, rel.replaceAll('\\', '/')));
+for (const rel of distributionFiles) {
+  assert(!rel.includes('/'), `Nested Local Bridge public payloads are not allowed: ${rel}.`);
+  assert(approvedDistribution.has(rel), `Unreviewed Local Bridge public payload detected: ${rel}. Add it to the explicit approved distribution boundary only after security review.`);
 }
 for (const name of approvedDistribution) {
   assert(distributionFiles.includes(name), `Approved Local Bridge distribution file is missing: ${name}.`);
 }
 
 const dangerousPublicExtensions = new Set([
-  '.map', '.env', '.pem', '.key', '.p12', '.pfx',
+  '.map', '.pem', '.key', '.p12', '.pfx',
   '.py', '.ps1', '.sh', '.bash', '.zsh', '.bat', '.cmd',
   '.ts', '.tsx', '.mjs', '.cjs', '.java', '.go', '.rs', '.cs', '.php', '.rb',
 ]);
 for (const rel of walk('frontend/public')) {
   const normalized = rel.replaceAll('\\', '/');
+  const basename = path.posix.basename(normalized).toLowerCase();
   const ext = path.extname(normalized).toLowerCase();
-  if (!dangerousPublicExtensions.has(ext)) continue;
-  const allowed = normalized.startsWith(`${distributionDir}/`) && approvedDistribution.has(path.posix.basename(normalized));
+  const envLike = basename === '.env' || basename.startsWith('.env.');
+  const sensitive = envLike || dangerousPublicExtensions.has(ext);
+  if (!sensitive) continue;
+  const relativeToDistribution = normalized.startsWith(`${distributionDir}/`) ? path.posix.relative(distributionDir, normalized) : null;
+  const allowed = Boolean(relativeToDistribution && !relativeToDistribution.includes('/') && approvedDistribution.has(relativeToDistribution));
   assert(allowed, `Source-like or sensitive file must not be published from frontend/public without explicit approval: ${normalized}`);
 }
 
@@ -93,4 +102,4 @@ const notice = read(`${distributionDir}/NOTICE.txt`);
 assert(/All Rights Reserved/i.test(notice), 'Client distribution must keep the All Rights Reserved notice.');
 assert(/does not grant permission/i.test(notice), 'Client distribution notice must keep the no-license grant boundary.');
 
-console.log('Proprietary Security Invariants Lock PASS: anti-clone, provenance, private-repo readiness, and public-source boundaries are intact.');
+console.log('Proprietary Security Invariants Lock PASS: anti-clone, provenance, workflow permissions, public-source boundaries, and guard execution are intact.');
