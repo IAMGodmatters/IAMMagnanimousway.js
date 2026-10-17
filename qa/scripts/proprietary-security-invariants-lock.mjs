@@ -32,6 +32,47 @@ function eventBlock(text, eventName) {
   return block.join('\n');
 }
 
+function indentation(line) {
+  return line.match(/^\s*/)?.[0].length || 0;
+}
+
+function permissionBlocks(text) {
+  const lines = text.split(/\r?\n/), blocks = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^\s*permissions:\s*$/.test(lines[i])) continue;
+    const baseIndent = indentation(lines[i]), block = [];
+    for (let j = i + 1; j < lines.length; j++) {
+      if (!lines[j].trim()) continue;
+      if (indentation(lines[j]) <= baseIndent) break;
+      block.push(lines[j].trim());
+    }
+    blocks.push({ indent: baseIndent, lines: block });
+  }
+  return blocks;
+}
+
+function executableRunCommands(text) {
+  const lines = text.split(/\r?\n/), commands = [];
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i].match(/^(\s*)(?:-\s*)?run:\s*(.*)$/);
+    if (!match) continue;
+    const baseIndent = match[1].length;
+    const inline = match[2].trim();
+    if (inline && inline !== '|' && inline !== '>') {
+      commands.push(inline.replace(/^['"]|['"]$/g, ''));
+      continue;
+    }
+    const block = [];
+    for (let j = i + 1; j < lines.length; j++) {
+      if (!lines[j].trim()) { block.push(''); continue; }
+      if (indentation(lines[j]) <= baseIndent) break;
+      block.push(lines[j].trim());
+    }
+    commands.push(block.join('\n'));
+  }
+  return commands;
+}
+
 for (const script of [
   'qa/scripts/anti-clone-hardening-lock.mjs',
   'qa/scripts/private-repo-readiness-lock.mjs',
@@ -53,13 +94,19 @@ for (const [workflow, requiredCommand] of alwaysOnWorkflows) {
   assert(/push:\s*\n\s*branches:\s*\[main\]/m.test(text), `${workflow} must run for every push to main.`);
   assert(!/^\s*paths(?:-ignore)?:/m.test(text), `${workflow} must not use path filters; proprietary protection applies to every change.`);
   assert(!/^\s*permissions:\s*(?:write-all|read-all)\s*$/mi.test(text), `${workflow} must not use blanket token permissions.`);
-  const permissions = text.match(/^permissions:\s*\n((?:[ \t]+[^\n]+\n?)*)/m);
-  assert(permissions, `${workflow} must declare explicit workflow permissions.`);
-  const permissionLines = permissions[1].split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-  assert.deepEqual(permissionLines, ['contents: read'], `${workflow} must grant only contents: read at workflow scope.`);
+  const blocks = permissionBlocks(text);
+  assert(blocks.length >= 1, `${workflow} must declare explicit workflow permissions.`);
+  const workflowPermissions = blocks.find(block => block.indent === 0);
+  assert(workflowPermissions, `${workflow} must declare workflow-scope permissions.`);
+  assert.deepEqual(workflowPermissions.lines, ['contents: read'], `${workflow} must grant only contents: read at workflow scope.`);
+  for (const block of blocks) {
+    assert(!block.lines.some(line => /:\s*write\s*(?:#.*)?$/i.test(line)), `${workflow} must not grant write permission at workflow or job scope.`);
+    assert(!block.lines.some(line => /^write-all\s*$/i.test(line)), `${workflow} must not grant write-all at workflow or job scope.`);
+  }
   const prBlock = eventBlock(text, 'pull_request');
   assert(prBlock && !/^\s+types\s*:/m.test(prBlock), `${workflow} must not narrow pull_request with a types filter.`);
-  assert(text.includes(requiredCommand), `${workflow} must continue invoking its security guard: ${requiredCommand}`);
+  const runCommands = executableRunCommands(text);
+  assert(runCommands.some(command => command.includes(requiredCommand)), `${workflow} must invoke its security guard from an executable run step: ${requiredCommand}`);
 }
 
 const cloneWatch = read('.github/workflows/clone-exposure-watch.yml');
