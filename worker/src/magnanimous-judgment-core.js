@@ -1,6 +1,6 @@
 // Magnanimous Judgment Core
 // Provider-neutral evidence contracts, council planning, durable delegation,
-// skill synthesis candidates, and learning-journey events.
+// skill synthesis candidates, statistical skill reliability, and learning-journey events.
 //
 // Magnanimous AI remains the brain, memory, policy and final verification owner.
 // External models and tools are replaceable workers and never become identity.
@@ -9,9 +9,10 @@ const clip=(value,max=4000)=>String(value??'').trim().slice(0,max);
 const uniqueStrings=(items,max=64)=>[...new Set((Array.isArray(items)?items:[]).map(x=>clip(x,500)).filter(Boolean))].slice(0,max);
 const finiteNumber=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
 const clamp=(value,min,max)=>Math.min(max,Math.max(min,value));
+const nonnegativeInt=value=>Math.max(0,Math.trunc(finiteNumber(value,0)));
 
 export const MAGNANIMOUS_JUDGMENT_POLICY=Object.freeze({
- version:1,
+ version:2,
  identity:'Magnanimous AI',
  orchestration_owner:'Magnanimous AI',
  memory_owner:'Magnanimous AI',
@@ -20,7 +21,7 @@ export const MAGNANIMOUS_JUDGMENT_POLICY=Object.freeze({
  completion_rule:'Important work is complete only when required criteria have passing evidence.',
  council_rule:'Use independent workers for difficult or high-uncertainty work, then let Magnanimous judge evidence and consensus.',
  reasoning_rule:'Store and expose concise conclusions, evidence, confidence and provenance; do not require or expose hidden chain-of-thought.',
- learning_rule:'Successful workflows may become candidate Magnanimous skills, but activation requires validation, regression checks, provenance and rollback readiness.',
+ learning_rule:'Successful workflows may become candidate Magnanimous skills, but trust requires validation, regression checks, provenance, rollback readiness, shadow evaluation and statistically sufficient observed reliability.',
  cost_rule:'Prefer native/free workers first and enforce explicit budgets before metered provider fan-out.',
  durability_rule:'Long-running delegated work must have explicit state, retry bounds, evidence and resumable checkpoints.'
 });
@@ -174,6 +175,78 @@ export function judgeMagnanimousCouncil(results=[],options={}){
  });
 }
 
+export function wilsonScoreInterval(successes,total,z=1.96){
+ const n=nonnegativeInt(total),wins=clamp(nonnegativeInt(successes),0,n),critical=clamp(Math.abs(finiteNumber(z,1.96)),0.1,5);
+ if(n===0)return Object.freeze({successes:0,total:0,rate:0,lower:0,upper:1,z:critical});
+ const p=wins/n,z2=critical*critical,denominator=1+z2/n;
+ const center=(p+z2/(2*n))/denominator;
+ const margin=(critical*Math.sqrt((p*(1-p)+z2/(4*n))/n))/denominator;
+ return Object.freeze({
+  successes:wins,
+  total:n,
+  rate:Number(p.toFixed(6)),
+  lower:Number(clamp(center-margin,0,1).toFixed(6)),
+  upper:Number(clamp(center+margin,0,1).toFixed(6)),
+  z:critical
+ });
+}
+
+export function evaluateMagnanimousSkillReliability(input={},options={}){
+ const observedSuccesses=nonnegativeInt(input.observed_successes??input.observedSuccesses);
+ const observedFailures=nonnegativeInt(input.observed_failures??input.observedFailures);
+ const shadowSuccesses=nonnegativeInt(input.shadow_successes??input.shadowSuccesses);
+ const shadowFailures=nonnegativeInt(input.shadow_failures??input.shadowFailures);
+ const observed=wilsonScoreInterval(observedSuccesses,observedSuccesses+observedFailures,options.z??1.96);
+ const shadow=wilsonScoreInterval(shadowSuccesses,shadowSuccesses+shadowFailures,options.z??1.96);
+ const policy=Object.freeze({
+  minimum_observed_uses:Math.max(1,nonnegativeInt(options.minimum_observed_uses??options.minimumObservedUses)||20),
+  minimum_shadow_uses:Math.max(1,nonnegativeInt(options.minimum_shadow_uses??options.minimumShadowUses)||10),
+  trusted_observed_lower_bound:clamp(finiteNumber(options.trusted_observed_lower_bound??options.trustedObservedLowerBound,0.7),0.5,0.99),
+  trusted_shadow_lower_bound:clamp(finiteNumber(options.trusted_shadow_lower_bound??options.trustedShadowLowerBound,0.6),0.5,0.99),
+  retirement_minimum_uses:Math.max(1,nonnegativeInt(options.retirement_minimum_uses??options.retirementMinimumUses)||20),
+  retirement_upper_bound:clamp(finiteNumber(options.retirement_upper_bound??options.retirementUpperBound,0.4),0.01,0.8)
+ });
+ const gates=Object.freeze({
+  schema_valid:Boolean(input.schema_valid??input.schemaValid),
+  permission_reviewed:Boolean(input.permission_reviewed??input.permissionReviewed),
+  regression_passed:Boolean(input.regression_passed??input.regressionPassed),
+  reversible:Boolean(input.reversible),
+  provenance_recorded:Boolean(input.provenance_recorded??input.provenanceRecorded)
+ });
+ const baseGatesPass=Object.values(gates).every(Boolean);
+ const shadowProven=shadow.total>=policy.minimum_shadow_uses&&shadow.lower>=policy.trusted_shadow_lower_bound;
+ const observedProven=observed.total>=policy.minimum_observed_uses&&observed.lower>=policy.trusted_observed_lower_bound;
+ const retirementReview=observed.total>=policy.retirement_minimum_uses&&observed.upper<policy.retirement_upper_bound;
+ let recommendation='candidate';
+ if(retirementReview)recommendation='retirement-review';
+ else if(baseGatesPass&&shadowProven&&observedProven)recommendation='trusted-ready';
+ else if(baseGatesPass&&shadowProven)recommendation='supervised';
+ else if(baseGatesPass)recommendation='shadow';
+ const missingGates=Object.entries(gates).filter(([,passed])=>!passed).map(([name])=>name.replaceAll('_','-'));
+ const remaining=[];
+ if(!baseGatesPass)remaining.push(...missingGates);
+ if(shadow.total<policy.minimum_shadow_uses)remaining.push(`shadow-uses:${shadow.total}/${policy.minimum_shadow_uses}`);
+ else if(shadow.lower<policy.trusted_shadow_lower_bound)remaining.push(`shadow-confidence:${shadow.lower}/${policy.trusted_shadow_lower_bound}`);
+ if(observed.total<policy.minimum_observed_uses)remaining.push(`observed-uses:${observed.total}/${policy.minimum_observed_uses}`);
+ else if(observed.lower<policy.trusted_observed_lower_bound)remaining.push(`observed-confidence:${observed.lower}/${policy.trusted_observed_lower_bound}`);
+ return Object.freeze({
+  skill_id:clip(input.skill_id||input.skillId||'',160),
+  recommendation,
+  observed,
+  shadow,
+  gates,
+  policy,
+  shadow_proven:shadowProven,
+  observed_proven:observedProven,
+  retirement_review:retirementReview,
+  remaining_requirements:uniqueStrings(remaining,32),
+  auto_activate:false,
+  auto_retire:false,
+  final_decision_owner:'Magnanimous AI',
+  evidence_rule:'Statistical confidence never overrides permission, regression, reversibility, provenance, tenant, billing, or consequence gates.'
+ });
+}
+
 export function createMagnanimousSkillCandidate(input={}){
  const steps=uniqueStrings(input.steps,64);
  if(!clip(input.name,160)||!steps.length)throw new Error('Skill candidate requires a name and at least one step.');
@@ -191,7 +264,7 @@ export function createMagnanimousSkillCandidate(input={}){
    derived_by:'Magnanimous AI',
    created_at:clip(input.created_at||new Date().toISOString(),80)
   },
-  promotion_requirements:['schema-valid','permission-reviewed','regression-pass','reversible','provenance-recorded'],
+  promotion_requirements:['schema-valid','permission-reviewed','regression-pass','reversible','provenance-recorded','shadow-evaluation-proven','statistical-confidence-proven'],
   auto_activate:false
  });
 }
@@ -239,5 +312,5 @@ export function transitionMagnanimousDurableTask(task={},nextState,evidence={}){
 }
 
 export function getMagnanimousJudgmentPrompt(){
- return `MAGNANIMOUS JUDGMENT CORE\nMagnanimous AI owns planning, memory, policy, aggregation and final verification. External models and tools are replaceable workers.\nFor important or long-running work, define a completion contract with explicit criteria and evidence before declaring success.\nUse independent specialist workers in parallel only when useful, budgeted and authorized. Prefer native/free workers first. Magnanimous judges concise conclusions, confidence and evidence; do not request, store or expose hidden chain-of-thought.\nTurn successful repeated workflows into candidate Magnanimous skills with provenance, permissions, tests and rollback requirements. Candidate skills are not active until validated.\nRecord visible learning-journey events without secrets or hidden reasoning.\nPersist long-running task state with bounded retries, checkpoints and verification evidence so work can resume safely.`;
+ return `MAGNANIMOUS JUDGMENT CORE\nMagnanimous AI owns planning, memory, policy, aggregation and final verification. External models and tools are replaceable workers.\nFor important or long-running work, define a completion contract with explicit criteria and evidence before declaring success.\nUse independent specialist workers in parallel only when useful, budgeted and authorized. Prefer native/free workers first. Magnanimous judges concise conclusions, confidence and evidence; do not request, store or expose hidden chain-of-thought.\nTurn successful repeated workflows into candidate Magnanimous skills with provenance, permissions, tests and rollback requirements. Candidate skills are not active until validated. Before trust, require shadow evaluation and statistically sufficient observed reliability; confidence never bypasses authorization, regression, reversibility, billing, tenant or consequence gates.\nRecord visible learning-journey events without secrets or hidden reasoning.\nPersist long-running task state with bounded retries, checkpoints and verification evidence so work can resume safely.`;
 }
