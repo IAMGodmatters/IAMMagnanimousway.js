@@ -10,8 +10,9 @@ async function compliance(env,tenant,campaign,member){
  if(Number(campaign.consent_required||1)===1&&Number(member?.consent_confirmed||0)!==1)return{detail:'Verified contact permission is required before dialing.',code:'CONSENT_REQUIRED',status:409};
  if(member){let dnc;try{dnc=await env.DB.prepare('SELECT phone FROM voice_do_not_call WHERE tenant_id=? AND phone=?').bind(tenant,member.phone).first()}catch{return{detail:'Do Not Call status could not be verified; dialing is fail-closed.',code:'DNC_STATE_UNAVAILABLE',status:503}}if(dnc)return{detail:'This number is on the do-not-call list.',code:'DO_NOT_CALL',status:409};if(Number(member.attempts||0)>=Number(campaign.max_attempts||3))return{detail:'Maximum campaign attempts reached for this contact.',code:'MAX_ATTEMPTS',status:409}}
  const [daily,hourly]=await Promise.all([countAttempts(env,tenant,campaign.id,now()-86400),countAttempts(env,tenant,campaign.id,now()-3600)]);
- if(daily>=Number(campaign.daily_cap||100))return{detail:'Campaign daily call cap reached.',code:'DAILY_CAP',status:429};
- if(hourly>=Number(campaign.hourly_cap||20))return{detail:'Campaign hourly call cap reached.',code:'HOURLY_CAP',status:429};
+ const holdsCurrentReservation=member?.status==='ready'&&Number(member?.last_attempt_at||0)>now()-600;
+ if(daily>Number(campaign.daily_cap||100)||(daily>=Number(campaign.daily_cap||100)&&!holdsCurrentReservation))return{detail:'Campaign daily call cap reached.',code:'DAILY_CAP',status:429};
+ if(hourly>Number(campaign.hourly_cap||20)||(hourly>=Number(campaign.hourly_cap||20)&&!holdsCurrentReservation))return{detail:'Campaign hourly call cap reached.',code:'HOURLY_CAP',status:429};
  return{ok:true,daily,hourly};
 }
 
@@ -45,9 +46,10 @@ export async function handleContactCenterDialGuard(request,env){
   if(['ready','dialing'].includes(String(member.status)))await env.DB.prepare("UPDATE cc_campaign_members SET status='retry',next_attempt_at=?,updated_at=? WHERE id=? AND tenant_id=?").bind(now()+300,now(),memberId,tenant).run();
   return json({ok:true,status:'retry'});
  }
- if(!['pending','retry','ready'].includes(String(member.status)))return json({detail:`This contact is currently ${member.status} and cannot be dialed again yet.`,code:'CONTACT_NOT_READY'},409);
+ if(member.status!=='ready'||Number(member.last_attempt_at||0)<now()-600)return json({detail:'This contact needs a current dial reservation before calling.',code:'DIAL_RESERVATION_REQUIRED'},409);
  const gate=await compliance(env,tenant,campaign,member);if(!gate.ok)return json({detail:gate.detail,code:gate.code},gate.status);
  const ts=now(),alreadyReserved=Number(member.last_attempt_at||0)>ts-600&&member.status==='ready';
- await env.DB.prepare("UPDATE cc_campaign_members SET status='dialing',last_attempt_at=?,updated_at=? WHERE id=? AND tenant_id=?").bind(alreadyReserved?Number(member.last_attempt_at):ts,ts,memberId,tenant).run();
+ const started=await env.DB.prepare("UPDATE cc_campaign_members SET status='dialing',last_attempt_at=?,updated_at=? WHERE id=? AND tenant_id=? AND status='ready' AND last_attempt_at>=?").bind(alreadyReserved?Number(member.last_attempt_at):ts,ts,memberId,tenant,ts-600).run();
+ if(Number(started?.meta?.changes||0)!==1)return json({detail:'This reservation was already claimed or expired.',code:'DIAL_RESERVATION_NOT_ACTIVE'},409);
  return json({ok:true,status:'dialing',reserved_at:alreadyReserved?Number(member.last_attempt_at):ts,member_id:memberId,campaign_id:campaignId,daily_used:Number(gate.daily||0)+(alreadyReserved?0:1),hourly_used:Number(gate.hourly||0)+(alreadyReserved?0:1)});
 }
