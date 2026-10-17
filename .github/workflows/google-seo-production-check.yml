@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Verify branded sitemap, crawlable public pages, trust content and reviews
+      - name: Verify branded sitemap, crawler access, structured pricing, public pages, trust content and reviews
         shell: bash
         env:
           SITE: https://iammagnanimousway.com
@@ -27,6 +27,44 @@ jobs:
           status=$(curl -LsS -o /tmp/home.html -w '%{http_code}' "$SITE/")
           [ "$status" = "200" ] || { echo "Branded production homepage returned $status"; exit 1; }
           must_contain /tmp/home.html "I AM Magnanimous Way" "branded homepage"
+
+          GOOGLEBOT_UA='Mozilla/5.0 (compatible; Googlebot/2.1; +https://www.google.com/bot.html)'
+          OAI_SEARCH_UA='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36; compatible; OAI-SearchBot/1.4; +https://openai.com/searchbot'
+          status=$(curl -A "$GOOGLEBOT_UA" -LsS -o /tmp/googlebot-home.html -w '%{http_code}' "$SITE/")
+          [ "$status" = "200" ] || { echo "Googlebot-user-agent homepage request returned $status"; exit 1; }
+          must_contain /tmp/googlebot-home.html "I AM Magnanimous Way" "Googlebot-user-agent public homepage access"
+          status=$(curl -A "$OAI_SEARCH_UA" -LsS -o /tmp/oai-home.html -w '%{http_code}' "$SITE/")
+          [ "$status" = "200" ] || { echo "OAI-SearchBot-user-agent homepage request returned $status"; exit 1; }
+          must_contain /tmp/oai-home.html "I AM Magnanimous Way" "OAI-SearchBot-user-agent public homepage access"
+
+          python - <<'PY'
+          import html, json, re
+          source=open('/tmp/home.html',encoding='utf-8').read()
+          scripts=re.findall(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',source,re.I|re.S)
+          assert scripts, 'No JSON-LD found on production homepage'
+          graphs=[]
+          for raw in scripts:
+              try:
+                  data=json.loads(html.unescape(raw))
+              except Exception:
+                  continue
+              if isinstance(data,dict) and isinstance(data.get('@graph'),list): graphs.extend(data['@graph'])
+              elif isinstance(data,dict): graphs.append(data)
+          app=next((item for item in graphs if item.get('@type')=='SoftwareApplication'),None)
+          assert app, 'SoftwareApplication JSON-LD missing'
+          offers={str(x.get('name')):str(x.get('price')) for x in app.get('offers',[]) if isinstance(x,dict)}
+          expected={
+              'Free':'0',
+              'Magnanimous Unlimited Fair-Use':'19.99',
+              'Magnanimous CRM Pro':'79',
+              'Magnanimous Studio':'79',
+              'Professional Business Plan':'79',
+              'Magnanimous Business':'309',
+              'Magnanimous Business Annual':'3708',
+          }
+          assert offers==expected, {'expected':expected,'actual':offers}
+          PY
+          echo "Verified: production structured pricing matches the public billing catalog"
 
           status=$(curl -LsS -o /tmp/solutions.html -w '%{http_code}' "$SITE/solutions/")
           [ "$status" = "200" ] || { echo "Solutions page returned $status"; exit 1; }
@@ -131,4 +169,4 @@ jobs:
           status=$(curl -LsS -o /tmp/health.json -w '%{http_code}' "$SITE/health")
           [ "$status" = "200" ] || { echo "Production health returned $status"; cat /tmp/health.json; exit 1; }
 
-          echo "Public crawlability, Funding Resources, Magnanimous Reels, Magnanimous AI routing, Professional Business Launch, Data & Security, protected-route robots, reviews API and health passed."
+          echo "Googlebot-user-agent and OAI-SearchBot-user-agent access, truthful structured pricing, public crawlability, Funding Resources, Magnanimous Reels, Magnanimous AI routing, Professional Business Launch, Data & Security, protected-route robots, reviews API and health passed."

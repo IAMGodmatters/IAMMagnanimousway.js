@@ -26,7 +26,7 @@ export const metadata:Metadata={
   verification:googleVerification?{google:googleVerification}:undefined
 };
 
-const monthly=(name:string,price:string)=>({'@type':'Offer',price,priceCurrency:'USD',name,priceSpecification:{'@type':'UnitPriceSpecification',price,priceCurrency:'USD',unitText:'MONTH'}});
+const recurring=(name:string,price:string,unitText:'MONTH'|'YEAR')=>({'@type':'Offer',price,priceCurrency:'USD',name,priceSpecification:{'@type':'UnitPriceSpecification',price,priceCurrency:'USD',unitText}});
 const structuredData={
   '@context':'https://schema.org',
   '@graph':[
@@ -34,7 +34,12 @@ const structuredData={
     {'@type':'WebSite','@id':`${siteUrl}/#website`,url:siteUrl,name:'I AM Magnanimous Way™',alternateName:'God Matters',publisher:{'@id':`${siteUrl}/#organization`},inLanguage:'en'},
     {'@type':'SoftwareApplication','@id':`${siteUrl}/#software`,name:'I AM Magnanimous Way™',alternateName:'Magnanimous AI',url:siteUrl,applicationCategory:'BusinessApplication',operatingSystem:'Web',description:'A free-first AI business execution platform centered on Magnanimous AI with specialized AI capabilities, professional business planning, CRM, calling, video, connected actions and business workflows.',offers:[
       {'@type':'Offer',price:'0',priceCurrency:'USD',name:'Free'},
-      monthly('Magnanimous Plus','19'),monthly('Full Business','49'),monthly('Professional Business Plan','79'),monthly('Magnanimous Pro','99'),monthly('Magnanimous Scale','199')
+      recurring('Magnanimous Unlimited Fair-Use','19.99','MONTH'),
+      recurring('Magnanimous CRM Pro','79','MONTH'),
+      recurring('Magnanimous Studio','79','MONTH'),
+      recurring('Professional Business Plan','79','MONTH'),
+      recurring('Magnanimous Business','309','MONTH'),
+      recurring('Magnanimous Business Annual','3708','YEAR')
     ]}
   ]
 };
