@@ -5,7 +5,7 @@ export default function PrivacyPage(){
     <a href="/signup" style={s.back}>← Back to signup</a>
     <div style={s.eyebrow}>I AM MAGNANIMOUS WAY™</div>
     <h1 style={s.h1}>Privacy Notice</h1>
-    <p style={s.meta}>Effective October 1, 2026 • Version 1.1-2026-10-01</p>
+    <p style={s.meta}>Effective October 18, 2026 • Version 1.2-2026-10-18</p>
 
     <p>I AM Magnanimous Way provides account-based AI, workspace, CRM, creator, and related platform services. This notice explains what personal information may be collected, why it is processed, how it may be used, and the choices available to users.</p>
 
@@ -31,7 +31,7 @@ export default function PrivacyPage(){
     <p>Account and operational records may be retained while an account is active and for a reasonable period afterward when needed for security, legal obligations, dispute handling, fraud prevention, backup recovery, or legitimate business administration. Information should not be kept longer than reasonably necessary for the stated purpose.</p>
 
     <h2 style={s.h2}>Your choices and rights</h2>
-    <p>Depending on applicable law, you may have rights to be informed, access your personal information, request correction, object to certain processing, withdraw consent where processing is based on consent, request deletion where legally available, and lodge a complaint with an applicable privacy regulator. Requests can be made through the support or contact channel published within I AM Magnanimous Way.</p>
+    <p>Depending on applicable law, you may have rights to be informed, access your personal information, request correction, object to certain processing, withdraw consent where processing is based on consent, request deletion where legally available, and lodge a complaint with an applicable privacy regulator. Privacy-rights requests can be sent to <a href="mailto:Godmattersinc@iammagnanimousway.com" style={s.link}>Godmattersinc@iammagnanimousway.com</a>. Please describe the account or workspace involved and the right you want to exercise; additional verification may be required before account information is disclosed, corrected, exported, or deleted.</p>
 
     <h2 style={s.h2}>Security</h2>
     <p>Reasonable administrative and technical safeguards are used to protect account information, but no online service can guarantee absolute security. Users are responsible for keeping their own login credentials confidential.</p>
@@ -42,6 +42,9 @@ export default function PrivacyPage(){
     <h2 style={s.h2}>Changes to this notice</h2>
     <p>If material privacy practices change, this notice may be updated and the effective date or version will change. Where required, renewed notice or consent will be requested.</p>
 
+    <h2 style={s.h2}>Contact</h2>
+    <p>Privacy questions, rights requests, and account-data concerns may be sent to <a href="mailto:Godmattersinc@iammagnanimousway.com" style={s.link}>Godmattersinc@iammagnanimousway.com</a>.</p>
+
     <p style={s.foot}>This notice is intended to provide transparent information about platform processing and does not replace rights or obligations imposed by applicable privacy law.</p>
   </article></main>
 }
@@ -49,5 +52,5 @@ export default function PrivacyPage(){
 const s:Record<string,React.CSSProperties>={
   page:{minHeight:'100vh',background:'#05070d',color:'#edf3ff',padding:'32px 18px',fontFamily:'system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif'},
   card:{maxWidth:900,margin:'0 auto',padding:'38px 34px',border:'1px solid rgba(120,150,255,.22)',borderRadius:24,background:'rgba(9,13,25,.9)',lineHeight:1.7},
-  back:{color:'#75ddff',textDecoration:'none',fontWeight:700},eyebrow:{marginTop:28,fontSize:12,letterSpacing:'.18em',fontWeight:800,color:'#77dfff'},h1:{fontSize:'clamp(34px,6vw,56px)',margin:'8px 0'},meta:{color:'#8594aa'},h2:{marginTop:30,fontSize:22,color:'#dce8ff'},foot:{marginTop:36,paddingTop:20,borderTop:'1px solid rgba(255,255,255,.1)',color:'#8d9bb0',fontSize:13}
+  back:{color:'#75ddff',textDecoration:'none',fontWeight:700},eyebrow:{marginTop:28,fontSize:12,letterSpacing:'.18em',fontWeight:800,color:'#77dfff'},h1:{fontSize:'clamp(34px,6vw,56px)',margin:'8px 0'},meta:{color:'#8594aa'},h2:{marginTop:30,fontSize:22,color:'#dce8ff'},link:{color:'#75ddff',fontWeight:700},foot:{marginTop:36,paddingTop:20,borderTop:'1px solid rgba(255,255,255,.1)',color:'#8d9bb0',fontSize:13}
 };
