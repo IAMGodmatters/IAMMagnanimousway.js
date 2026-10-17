@@ -1,5 +1,5 @@
 import { currentUser } from './integrations.js';
-import { handleMagnanimousTelecomProviderFallback } from './magnanimous-telecom-provider-fallback.js';
+import { handleMagnanimousTelecomProviderFallback, enforceTelecomExecutionForOutbound } from './magnanimous-telecom-provider-fallback.js';
 
 const json=(data,status=400)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const riskyPaths=new Set(['/api/telecom/charging/policy/evaluate','/api/telecom/charging/sessions/reserve']);
@@ -46,6 +46,16 @@ export async function handleMagnanimousTelecomChargingSafetyGuard(request,env){
   }
   return handleMagnanimousTelecomProviderFallback(request,env);
  }
+
+ if(path==='/api/phone/calls/outbound'&&request.method==='POST'){
+  const user=await currentUser(request,env).catch(()=>null);
+  if(!user)return json({detail:'Sign in required.'},401);
+  const body=await request.clone().json().catch(()=>({}));
+  const lease=await enforceTelecomExecutionForOutbound(env,user,body);
+  if(!lease.ok)return json({detail:lease.detail||'Telecom execution authorization failed.',code:lease.code||'TELECOM_EXECUTION_BLOCKED',blocked_by:lease.blocked_by||undefined},lease.status||409);
+  return null;
+ }
+
  if(!path.startsWith('/api/telecom/charging')||request.method!=='POST')return null;
  const body=await request.clone().json().catch(()=>({}));
 
