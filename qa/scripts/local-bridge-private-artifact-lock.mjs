@@ -9,6 +9,7 @@ const runtime=read('worker/src/magnanimous-local-bridge-artifact-runtime.js');
 const progress=read('worker/src/progress-entrypoint.js');
 const page=read('frontend/app/local-bridge/page.tsx');
 const migration=read('worker/migrations/0106_local_bridge_private_artifacts.sql');
+const builder=read('qa/scripts/build-local-bridge-private-artifacts.py');
 const workflow=read('.github/workflows/local-bridge-private-artifacts.yml');
 
 for(const needle of [
@@ -44,18 +45,24 @@ assert(migration.includes('sha256 TEXT NOT NULL'));
 assert(migration.includes('byte_length INTEGER NOT NULL'));
 
 for(const needle of [
+  'RAW_PREFIX',
+  '/api/magnanimous/local-bridge/artifacts/',
+  'X-Magnanimous-Pairing-Code',
+  'Get-FileHash -Path $agent -Algorithm SHA256',
+  'Get-FileHash -Path $ncs2Agent -Algorithm SHA256',
+  "assert RAW_PREFIX not in text",
+  'magnanimous_local_bridge_artifacts',
+  'hashlib.sha256'
+]) assert(builder.includes(needle),`private artifact builder missing: ${needle}`);
+
+for(const needle of [
   'CLOUDFLARE_API_TOKEN',
   'CLOUDFLARE_ACCOUNT_ID',
   'iam-magnanimous-db',
-  'install.ps1',
-  'uninstall.ps1',
-  'bridge_agent.py',
-  'ncs2_edge.py',
-  "assert raw_prefix not in text",
+  'build-local-bridge-private-artifacts.py',
+  'raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js',
   '/api/magnanimous/local-bridge/artifacts/bridge_agent.py',
-  '/api/magnanimous/local-bridge/artifacts/ncs2_edge.py',
   'X-Magnanimous-Pairing-Code',
-  'Get-FileHash -Path $agent -Algorithm SHA256',
   'Private Local Bridge artifacts published and verified in D1.'
 ]) assert(workflow.includes(needle),`artifact sync workflow missing: ${needle}`);
 
