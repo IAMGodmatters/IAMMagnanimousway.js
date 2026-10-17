@@ -2,6 +2,7 @@ import { creditWallet } from './usage-guard.js';
 import { verifySignedPaymentReference } from './payment-reference.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { handleNativeStoreStripeEvent } from './native-store-runtime.js';
+import { processMagnanimousTelecomProviderStripeEvent } from './magnanimous-telecom-provider-payment.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
@@ -85,6 +86,7 @@ async function processPaidCheckout(env,event,object){
 }
 async function processEvent(env,event){
  if(await handleNativeStoreStripeEvent(env,event))return;
+ if(await processMagnanimousTelecomProviderStripeEvent(env,event))return;
  const type=String(event?.type||''),object=event?.data?.object||{};
  if(type==='checkout.session.completed'||type==='checkout.session.async_payment_succeeded'){
   await processPaidCheckout(env,event,object);return;
