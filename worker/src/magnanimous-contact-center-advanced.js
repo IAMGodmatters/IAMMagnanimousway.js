@@ -132,7 +132,7 @@ export function evaluateHotdeskPolicy(body={},user={}){
 
 function containsRawSecret(value,key=''){
  const normalized=clean(key).toLowerCase().replace(/[-\s]/g,'_');
- if(normalized==='binding_ref')return false;
+ if(normalized==='binding_ref'){return !(typeof value==='string'&&/^[A-Za-z0-9_.:/-]{1,200}$/.test(value)) || false;}
  if(['authorization','proxy_authorization'].includes(normalized))return true;
  if(['password','secret','token','api_key','apikey','private_key','credential','credentials'].some(term=>normalized.includes(term)))return true;
  if(Array.isArray(value))return value.some(item=>containsRawSecret(item));
@@ -164,7 +164,7 @@ export function planScheduledCallback(body={},trustedNow){
 }
 
 function average(values){return values.length?values.reduce((sum,value)=>sum+value,0)/values.length:0}
-function finiteMetric(value){const n=Number(value);return Number.isFinite(n)&&n>=0?n:null}
+function finiteMetric(value){if(value===null||value===undefined||value==='')return null;const n=Number(value);return Number.isFinite(n)&&n>=0?n:null}
 export function summarizeContactCenterReport(body={}){
  const source=Array.isArray(body.calls)?body.calls:[];if(source.length>10000)return{ok:false,error:'DATASET_LIMIT_EXCEEDED',max_rows:10000,received_rows:source.length};
  const rows=source,slaTarget=clamp(body.sla_target_ms,1,24*60*60*1000,20000);let offered=0,answered=0,abandoned=0,withinSla=0,slaEvaluable=0,missingWait=0;const waits=[],handles=[],wraps=[];
