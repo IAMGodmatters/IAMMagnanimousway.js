@@ -1,0 +1,38 @@
+name: Telecom Fallback Execution Lock
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-telecom-provider-fallback.js'
+      - 'worker/src/telecom-fallback-entrypoint.js'
+      - 'worker/wrangler.jsonc'
+      - 'qa/scripts/telecom-fallback-execution-lock.mjs'
+      - '.github/workflows/telecom-fallback-execution-lock.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-telecom-provider-fallback.js'
+      - 'worker/src/telecom-fallback-entrypoint.js'
+      - 'worker/wrangler.jsonc'
+      - 'qa/scripts/telecom-fallback-execution-lock.mjs'
+      - '.github/workflows/telecom-fallback-execution-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  telecom-fallback-execution-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check runtime syntax
+        run: |
+          node --check worker/src/magnanimous-telecom-provider-fallback.js
+          node --check worker/src/telecom-fallback-entrypoint.js
+      - name: Run permanent fallback and execution guardrails
+        run: node qa/scripts/telecom-fallback-execution-lock.mjs
