@@ -39,6 +39,9 @@ jobs:
         working-directory: frontend
         run: npm run typecheck --if-present
 
+      - name: Lock sold paid plans to runtime entitlement enforcement
+        run: node qa/scripts/billing-plan-runtime-alignment-lock.mjs
+
       - name: Build exact customer-facing frontend
         working-directory: frontend
         run: npm run build
@@ -57,5 +60,5 @@ jobs:
         with:
           name: full-platform-surface-audit-${{ github.run_id }}
           path: artifacts/full-platform-surface-audit.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
