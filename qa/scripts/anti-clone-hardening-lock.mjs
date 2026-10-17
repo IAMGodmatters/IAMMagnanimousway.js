@@ -9,9 +9,14 @@ const license=read('LICENSE');
 const provenance=read('frontend/public/.well-known/magnanimous-provenance.txt');
 const permanentGuard=read('.github/workflows/proprietary-security-invariants-lock.yml');
 
+function explicitlyFalse(config,property){
+  const pattern=new RegExp(`(?:^|[,{\\n\\r]\\s*)${property.replace(/[.*+?^${}()|[\\]\\]/g,'\\$&')}\\s*:\\s*false\\b`,'m');
+  return pattern.test(config);
+}
+
 for(const [name,config] of [['next.config.js',js],['next.config.ts',ts]]){
-  must(config.includes('productionBrowserSourceMaps')&&config.includes('false'),`${name} must keep production browser source maps disabled.`);
-  must(config.includes('poweredByHeader')&&config.includes('false'),`${name} must keep framework identification headers disabled.`);
+  must(explicitlyFalse(config,'productionBrowserSourceMaps'),`${name} must keep production browser source maps explicitly disabled.`);
+  must(explicitlyFalse(config,'poweredByHeader'),`${name} must keep framework identification headers explicitly disabled.`);
 }
 
 must(/PROPRIETARY LICENSE/i.test(license),'Proprietary license heading is missing.');
