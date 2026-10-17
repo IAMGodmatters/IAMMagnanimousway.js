@@ -13,6 +13,7 @@ on:
       - 'worker/src/progress-entrypoint.js'
       - 'worker/migrations/0106_local_bridge_private_artifacts.sql'
       - 'frontend/app/local-bridge/page.tsx'
+      - 'qa/scripts/build-local-bridge-private-artifacts.py'
       - 'qa/scripts/local-bridge-private-artifact-lock.mjs'
       - '.github/workflows/local-bridge-private-artifacts.yml'
   push:
@@ -26,6 +27,7 @@ on:
       - 'worker/src/progress-entrypoint.js'
       - 'worker/migrations/0106_local_bridge_private_artifacts.sql'
       - 'frontend/app/local-bridge/page.tsx'
+      - 'qa/scripts/build-local-bridge-private-artifacts.py'
       - 'qa/scripts/local-bridge-private-artifact-lock.mjs'
       - '.github/workflows/local-bridge-private-artifacts.yml'
 
@@ -42,6 +44,15 @@ jobs:
           node-version: 24
       - name: Lock private Local Bridge distribution contract
         run: node qa/scripts/local-bridge-private-artifact-lock.mjs
+      - name: Build and inspect private artifacts before merge
+        shell: bash
+        run: |
+          set -euo pipefail
+          python qa/scripts/build-local-bridge-private-artifacts.py --sql /tmp/magnanimous-local-bridge-artifacts.sql --output-dir /tmp/magnanimous-private-artifacts
+          ! grep -R -F 'raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js' /tmp/magnanimous-private-artifacts
+          grep -F '/api/magnanimous/local-bridge/artifacts/bridge_agent.py' /tmp/magnanimous-private-artifacts/install.ps1
+          grep -F 'X-Magnanimous-Pairing-Code' /tmp/magnanimous-private-artifacts/install.ps1
+          python -m py_compile /tmp/magnanimous-private-artifacts/bridge_agent.py /tmp/magnanimous-private-artifacts/ncs2_edge.py
 
   sync:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -66,55 +77,7 @@ jobs:
         run: |
           set -euo pipefail
           npx wrangler d1 execute iam-magnanimous-db --remote --command "CREATE TABLE IF NOT EXISTS magnanimous_local_bridge_artifacts (name TEXT PRIMARY KEY,content_base64 TEXT NOT NULL,sha256 TEXT NOT NULL,byte_length INTEGER NOT NULL,media_type TEXT NOT NULL,updated_at INTEGER NOT NULL);"
-          python - <<'PY'
-          import base64, hashlib, pathlib, time
-          root=pathlib.Path('..')
-          items={
-              'install.ps1':('local-bridge/install.ps1','text/plain; charset=utf-8'),
-              'uninstall.ps1':('local-bridge/uninstall.ps1','text/plain; charset=utf-8'),
-              'bridge_agent.py':('local-bridge/bridge_agent.py','text/x-python; charset=utf-8'),
-              'ncs2_edge.py':('local-bridge/ncs2_edge.py','text/x-python; charset=utf-8'),
-          }
-          raw_prefix='https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/'
-          private_prefix='$Server.TrimEnd("/") + "/api/magnanimous/local-bridge/artifacts/'
-          ts=int(time.time())
-          statements=[]
-          for name,(rel,media) in items.items():
-              data=(root/rel).read_bytes()
-              if name=='install.ps1':
-                  text=data.decode('utf-8')
-                  text=text.replace(
-                      f'$source = "{raw_prefix}bridge_agent.py"',
-                      '$artifactHeaders = @{ "X-Magnanimous-Pairing-Code" = $PairingCode; Accept = "application/octet-stream"; "User-Agent" = "Magnanimous-Local-Bridge-Installer/2.0" }\n$source = '+private_prefix+'bridge_agent.py"\n$agentMeta = Invoke-RestMethod -Uri ($source + "?metadata=1") -Headers $artifactHeaders -TimeoutSec 30'
-                  )
-                  text=text.replace(
-                      'Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $agent',
-                      'Invoke-WebRequest -UseBasicParsing -Uri $source -Headers $artifactHeaders -OutFile $agent -TimeoutSec 30\n$actualAgentHash = (Get-FileHash -Path $agent -Algorithm SHA256).Hash.ToLowerInvariant()\nif ($actualAgentHash -ne ([string]$agentMeta.sha256).ToLowerInvariant()) { Remove-Item -Force $agent -ErrorAction SilentlyContinue; throw "Magnanimous Local Bridge agent integrity verification failed." }'
-                  )
-                  text=text.replace(
-                      f'$ncs2Source = "{raw_prefix}ncs2_edge.py"',
-                      '$ncs2Source = '+private_prefix+'ncs2_edge.py"'
-                  )
-                  text=text.replace(
-                      '  Invoke-WebRequest -UseBasicParsing -Uri $ncs2Source -OutFile $ncs2Agent',
-                      '  $ncs2Meta = Invoke-RestMethod -Uri ($ncs2Source + "?metadata=1") -Headers $artifactHeaders -TimeoutSec 30\n  Invoke-WebRequest -UseBasicParsing -Uri $ncs2Source -Headers $artifactHeaders -OutFile $ncs2Agent -TimeoutSec 30\n  $actualNcs2Hash = (Get-FileHash -Path $ncs2Agent -Algorithm SHA256).Hash.ToLowerInvariant()\n  if ($actualNcs2Hash -ne ([string]$ncs2Meta.sha256).ToLowerInvariant()) { Remove-Item -Force $ncs2Agent -ErrorAction SilentlyContinue; throw "Magnanimous NCS2 edge helper integrity verification failed." }'
-                  )
-                  assert raw_prefix not in text, 'Published installer still contains a public raw GitHub dependency.'
-                  assert '/api/magnanimous/local-bridge/artifacts/bridge_agent.py' in text
-                  assert '/api/magnanimous/local-bridge/artifacts/ncs2_edge.py' in text
-                  assert 'X-Magnanimous-Pairing-Code' in text
-                  assert 'Get-FileHash -Path $agent -Algorithm SHA256' in text
-                  data=text.encode('utf-8')
-              encoded=base64.b64encode(data).decode('ascii')
-              digest=hashlib.sha256(data).hexdigest()
-              statements.append(
-                  "INSERT INTO magnanimous_local_bridge_artifacts(name,content_base64,sha256,byte_length,media_type,updated_at) "
-                  f"VALUES('{name}','{encoded}','{digest}',{len(data)},'{media}',{ts}) "
-                  "ON CONFLICT(name) DO UPDATE SET content_base64=excluded.content_base64,sha256=excluded.sha256,byte_length=excluded.byte_length,media_type=excluded.media_type,updated_at=excluded.updated_at "
-                  "WHERE magnanimous_local_bridge_artifacts.sha256<>excluded.sha256;"
-              )
-          pathlib.Path('/tmp/magnanimous-local-bridge-artifacts.sql').write_text('\n'.join(statements),encoding='utf-8')
-          PY
+          python ../qa/scripts/build-local-bridge-private-artifacts.py --sql /tmp/magnanimous-local-bridge-artifacts.sql
           npx wrangler d1 execute iam-magnanimous-db --remote --file /tmp/magnanimous-local-bridge-artifacts.sql
           npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT name,sha256,byte_length FROM magnanimous_local_bridge_artifacts WHERE name IN ('install.ps1','uninstall.ps1','bridge_agent.py','ncs2_edge.py') ORDER BY name;" > /tmp/local-bridge-artifacts.json
           python - <<'PY'
