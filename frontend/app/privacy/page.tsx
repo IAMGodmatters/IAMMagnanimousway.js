@@ -5,7 +5,7 @@ export default function PrivacyPage(){
     <a href="/signup" style={s.back}>← Back to signup</a>
     <div style={s.eyebrow}>I AM MAGNANIMOUS WAY™</div>
     <h1 style={s.h1}>Privacy Notice</h1>
-    <p style={s.meta}>Effective October 1, 2026 • Version 1.1-2026-10-01</p>
+    <p style={s.meta}>Effective October 18, 2026 • Version 1.2-2026-10-18</p>
 
     <p>I AM Magnanimous Way provides account-based AI, workspace, CRM, creator, and related platform services. This notice explains what personal information may be collected, why it is processed, how it may be used, and the choices available to users.</p>
 
