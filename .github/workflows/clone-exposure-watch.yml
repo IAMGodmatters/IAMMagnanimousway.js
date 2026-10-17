@@ -6,16 +6,8 @@ on:
     - cron: '23 6 * * *'
   pull_request:
     branches: [main]
-    paths:
-      - 'qa/scripts/clone-exposure-watch.mjs'
-      - '.github/workflows/clone-exposure-watch.yml'
-      - 'frontend/public/.well-known/magnanimous-provenance.txt'
   push:
     branches: [main]
-    paths:
-      - 'qa/scripts/clone-exposure-watch.mjs'
-      - '.github/workflows/clone-exposure-watch.yml'
-      - 'frontend/public/.well-known/magnanimous-provenance.txt'
 
 permissions:
   contents: read
