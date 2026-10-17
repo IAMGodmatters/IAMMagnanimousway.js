@@ -6,6 +6,7 @@ const TOKEN = process.env.GITHUB_TOKEN || '';
 const fingerprints = [
   'IAMW-PROVENANCE-2026-10-17-4AB60E4D',
   'durable rate limiter unavailable; using bounded local fallback',
+  'Proprietary Security Invariants Lock PASS: anti-clone, provenance, private-repo readiness, and public-source boundaries are intact.',
 ];
 
 const headers = {
