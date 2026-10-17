@@ -4,11 +4,14 @@ const now=()=>Math.floor(Date.now()/1000);
 export const PLAN_LIMITS={
  free:{rank:0,metered_ai:false,pstn_minutes:0,avatar_minutes:0,premium_video_credits:0,cost_ceiling_usd:0},
  plus:{rank:1,metered_ai:false,pstn_minutes:0,avatar_minutes:0,premium_video_credits:0,cost_ceiling_usd:8},
- // CRM is deliberately below the historical Business rank=2 boundary so older
+ // CRM and Studio are deliberately below the historical Business rank=2 boundary so older
  // "rank >= 2" Full Business gates do not accidentally grant Business-only tools.
  crm:{rank:1.5,metered_ai:true,pstn_minutes:30,avatar_minutes:0,premium_video_credits:0,cost_ceiling_usd:42},
- business:{rank:2,metered_ai:true,pstn_minutes:90,avatar_minutes:30,premium_video_credits:30,cost_ceiling_usd:160},
- scale:{rank:3,metered_ai:true,pstn_minutes:180,avatar_minutes:60,premium_video_credits:60,cost_ceiling_usd:170},
+ studio:{rank:1.5,metered_ai:true,pstn_minutes:0,avatar_minutes:0,premium_video_credits:10,cost_ceiling_usd:42},
+ business:{rank:2,metered_ai:true,pstn_minutes:90,avatar_minutes:30,premium_video_credits:40,cost_ceiling_usd:215},
+ // Annual Business is billed yearly but variable-cost protection resets by calendar month via periodKey().
+ // Keep its monthly origin-cost ceiling at least equal to monthly Business so annual customers never receive less runtime value.
+ scale:{rank:3,metered_ai:true,pstn_minutes:180,avatar_minutes:60,premium_video_credits:60,cost_ceiling_usd:215},
  // Preserve historical White Label rank semantics. Rank 4 intentionally remains unused.
  agency:{rank:5,metered_ai:true,pstn_minutes:240,avatar_minutes:90,premium_video_credits:90,cost_ceiling_usd:170,white_label:true,client_subaccounts:25,usage_rebilling:true},
  agency_pro:{rank:6,metered_ai:true,pstn_minutes:360,avatar_minutes:120,premium_video_credits:120,cost_ceiling_usd:280,white_label:true,client_subaccounts:100,usage_rebilling:true}

@@ -1,0 +1,64 @@
+name: Full Platform Surface Audit
+
+on:
+  pull_request:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Build and Deploy I AM"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout audited revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck --if-present
+
+      - name: Lock sold paid plans to runtime entitlement enforcement
+        run: node qa/scripts/billing-plan-runtime-alignment-lock.mjs
+
+      - name: Build exact customer-facing frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Lock customer-facing text encoding and brand copy
+        run: node qa/scripts/customer-copy-integrity-lock.mjs
+
+      - name: Audit every built route, internal link, rendered button label, and image alt
+        env:
+          LIVE_BASE_URL: ${{ github.event_name == 'workflow_run' && 'https://iammagnanimousway.com' || '' }}
+        run: node qa/scripts/full-platform-surface-audit.mjs
+
+      - name: Upload complete surface audit evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: full-platform-surface-audit-${{ github.run_id }}
+          path: artifacts/full-platform-surface-audit.json
+          if-no-files-found: warn
+          retention-days: 30
