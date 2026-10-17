@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { handleMagnanimousTelecomProviderFallback } from './magnanimous-telecom-provider-fallback.js';
 
 const json=(data,status=400)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const riskyPaths=new Set(['/api/telecom/charging/policy/evaluate','/api/telecom/charging/sessions/reserve']);
@@ -29,6 +30,9 @@ async function internalRateQuote(env,tenant,service,destination,requestedUnits){
 
 export async function handleMagnanimousTelecomChargingSafetyGuard(request,env){
  const url=new URL(request.url),path=url.pathname;
+ if(path.startsWith('/api/telecom/provider-fallback')||path.startsWith('/api/telecom/execution')){
+  return handleMagnanimousTelecomProviderFallback(request,env);
+ }
  if(!path.startsWith('/api/telecom/charging')||request.method!=='POST')return null;
  const body=await request.clone().json().catch(()=>({}));
 
