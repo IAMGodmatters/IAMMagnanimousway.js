@@ -110,11 +110,11 @@ $homeDir = Join-Path $env:USERPROFILE ".magnanimous"
 New-Item -ItemType Directory -Force -Path $homeDir | Out-Null
 $config = Join-Path $homeDir "local-bridge.json"
 $agent = Join-Path $homeDir "bridge_agent.py"
-$source = "https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/bridge_agent.py"
+$source = "https://iammagnanimousway.com/downloads/local-bridge/bridge_agent.py"
 Write-Host "Downloading the Magnanimous Local Bridge agent..."
 Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $agent
 $ncs2Agent = Join-Path $homeDir "ncs2_edge.py"
-$ncs2Source = "https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/ncs2_edge.py"
+$ncs2Source = "https://iammagnanimousway.com/downloads/local-bridge/ncs2_edge.py"
 try {
   Invoke-WebRequest -UseBasicParsing -Uri $ncs2Source -OutFile $ncs2Agent
   Write-Host "Magnanimous NCS2 edge helper installed (activates only when a compatible local NCS2 runtime is present)."

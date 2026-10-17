@@ -18,19 +18,6 @@ try {
   Write-Host "Downloading the authorized Magnanimous Local Bridge installer..."
   Invoke-WebRequest -UseBasicParsing -Uri "$distributionBase/install-core.ps1" -OutFile $coreInstaller
 
-  # The core installer is shared with the repository implementation. Rewrite only its
-  # client payload locations so private-repository visibility never becomes a runtime dependency.
-  $core = Get-Content -Raw -Path $coreInstaller
-  $core = $core.Replace(
-    "https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/bridge_agent.py",
-    "$distributionBase/bridge_agent.py"
-  )
-  $core = $core.Replace(
-    "https://raw.githubusercontent.com/IAMGodmatters/IAMMagnanimousway.js/main/local-bridge/ncs2_edge.py",
-    "$distributionBase/ncs2_edge.py"
-  )
-  Set-Content -Path $coreInstaller -Value $core -Encoding UTF8
-
   $invoke = @{
     PairingCode = $PairingCode
     Server = $Server
