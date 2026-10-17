@@ -35,7 +35,10 @@ must(runtime.includes('vendor_attribution_policy'),'provider abstraction must pr
 must(runtime.includes('Do not falsely claim upstream software is owned or authored by Magnanimous'),'provider abstraction must not become false ownership attribution');
 
 must(guard.includes("import { handleMagnanimousTelecomProviderFallback } from './magnanimous-telecom-provider-fallback.js'"),'fallback must be mounted inside the existing secured telecom chain');
-must(guard.includes("path.startsWith('/api/telecom/provider-fallback')||path.startsWith('/api/telecom/execution')"),'fallback and execution routes must stay mounted');
+must(guard.includes("path.startsWith('/api/telecom/provider-fallback')||path.startsWith('/api/telecom/execution')"),'API fallback and execution routes must stay mounted');
+must(guard.includes("/__magnanimous_runtime/telecom/provider-fallback"),'internal fallback alias must remain available outside the standalone API proxy');
+must(guard.includes("/__magnanimous_runtime/telecom/execution"),'internal execution alias must remain available outside the standalone API proxy');
+must(guard.includes("providerControl&&!ownerLike(user)"),'provider-selection control plane must remain owner/admin only');
 must(wrangler.includes('"main": "src/security-entrypoint.js"'),'production Worker must retain the established security entrypoint');
 
 must(payment.includes('TELECOM_UPSTREAM_AUTO_PAY_ENABLED'),'upstream payment must remain explicitly opt-in');
