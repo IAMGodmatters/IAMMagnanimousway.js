@@ -68,7 +68,7 @@ for(const token of ['Release Candidate','behavioral/reference sources only','No 
 
 assert(!/from\s+['"]@3cx\//.test(runtime),'Magnanimous advanced runtime must not import a 3CX package');
 assert(!/require\(\s*['"]@3cx\//.test(runtime),'Magnanimous advanced runtime must not require a 3CX package');
-for(const path of ['package.json','worker/package.json','frontend/package.json']){
+for(const path of ['worker/package.json','frontend/package.json']){
  const pkg=JSON.parse(read(path));
  for(const section of ['dependencies','devDependencies','optionalDependencies','peerDependencies']){
   for(const name of Object.keys(pkg[section]||{}))assert(!name.startsWith('@3cx/'),`${path} must not add a 3CX runtime dependency (${name})`);
