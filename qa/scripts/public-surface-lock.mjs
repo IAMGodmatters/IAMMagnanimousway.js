@@ -9,6 +9,8 @@ const runtime=fs.readFileSync(path.join(root,'frontend/app/platform-runtime-scri
 const template=fs.readFileSync(path.join(root,'frontend/app/template.tsx'),'utf8');
 const robots=fs.readFileSync(path.join(root,'frontend/public/robots.txt'),'utf8');
 const sitemap=fs.readFileSync(path.join(root,'frontend/public/sitemap.xml'),'utf8');
+const billing=fs.readFileSync(path.join(root,'worker/src/billing-tiers-runtime.js'),'utf8');
+const businessPlan=fs.readFileSync(path.join(root,'worker/src/business-plan-subscription-runtime.js'),'utf8');
 const failures=[];
 
 function must(condition,message){if(!condition)failures.push(message);}
@@ -55,9 +57,26 @@ for(const route of ['/solutions/','/guide/','/business-plan/','/funding/','/secu
  must(sitemap.includes(`<loc>https://iammagnanimousway.com${route}</loc>`),`sitemap must keep public discovery route indexed: ${route}`);
 }
 
+const billingTruth=[
+ ['Magnanimous Unlimited Fair-Use','19.99','MONTH'],
+ ['Magnanimous CRM Pro','79','MONTH'],
+ ['Magnanimous Studio','79','MONTH'],
+ ['Magnanimous Business','309','MONTH'],
+ ['Magnanimous Business Annual','3708','YEAR']
+];
+for(const [name,price,unit] of billingTruth){
+ must(billing.includes(`name: '${name}', price_usd: ${price}`),`billing runtime must keep ${name} at USD ${price}`);
+ must(layout.includes(`recurring('${name}','${price}','${unit}')`),`public structured data must match ${name} billing truth at USD ${price}/${unit.toLowerCase()}`);
+}
+must(businessPlan.includes('const PLAN_MONTHLY_PRICE_USD=79;'),'professional business-plan runtime must keep its current USD 79 monthly price');
+must(layout.includes("recurring('Professional Business Plan','79','MONTH')"),'public structured data must match the USD 79/month Professional Business Plan');
+for(const stale of ["monthly('Magnanimous Plus','19')","monthly('Full Business','49')","monthly('Magnanimous Pro','99')","monthly('Magnanimous Scale','199')"]){
+ must(!layout.includes(stale),`stale structured pricing must not return: ${stale}`);
+}
+
 if(failures.length){
  console.error(`PUBLIC SURFACE LOCK FAILURE (${failures.length})`);
  for(const failure of failures)console.error(`- ${failure}`);
  process.exit(1);
 }
-console.log('Public surface lock: PASS — discovery/marketing/teaching/marketplace pages stay public while operational, owner, AI workspace, telecom and connected-account surfaces remain protected.');
+console.log('Public surface lock: PASS — discovery/marketing/teaching/marketplace pages and structured pricing stay truthful while operational, owner, AI workspace, telecom and connected-account surfaces remain protected.');
