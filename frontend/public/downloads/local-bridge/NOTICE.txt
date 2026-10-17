@@ -1,0 +1,11 @@
+I AM MAGNANIMOUS WAY™ — MAGNANIMOUS LOCAL BRIDGE
+Copyright (c) God Matters Inc. All Rights Reserved.
+
+These files are distributed only so an authorized I AM MAGNANIMOUS WAY account can operate the Magnanimous Local Bridge on its own approved computer.
+
+Public availability of a client runtime file does not grant permission to copy, fork, mirror, republish, rebrand, sell, sublicense, reverse engineer for redistribution, or use it to create a competing or derivative service.
+
+The Magnanimous AI platform, server-side source, orchestration, policies, private APIs, prompts, business logic, data models, and non-distributed source remain proprietary.
+
+Canonical platform: https://iammagnanimousway.com
+Canonical source owner: IAMGodmatters
