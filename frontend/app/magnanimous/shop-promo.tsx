@@ -1,6 +1,6 @@
 export default function ShopPromo(){
  return <aside className="mag-shop-promo" aria-label="God Matters shop and featured book">
-  <a className="mag-book-cover" href="https://a.co/d/02rFwv8H" target="_blank" rel="noopener noreferrer"><img src="https://cdn.shopify.com/s/files/1/0736/7334/3018/files/the-holy-spirit-speaks-jessie-hardin-cover.jpg?v=1789498979" alt="The Holy Spirit Speaks by Jessie Hardin book cover"/></a>
+  <a className="mag-book-cover" href="https://www.amazon.com/dp/B0HJJT8NQY" target="_blank" rel="noopener noreferrer"><img src="https://cdn.shopify.com/s/files/1/0736/7334/3018/files/the-holy-spirit-speaks-jessie-hardin-cover.jpg?v=1789498979" alt="The Holy Spirit Speaks by Jessie Hardin book cover"/></a>
   <div className="mag-shop-promo-copy">
    <span>FEATURED • GOD MATTERS SHOP</span>
    <strong>Support the mission while you use Magnanimous AI.</strong>
@@ -8,7 +8,7 @@ export default function ShopPromo(){
   </div>
   <div className="mag-shop-promo-actions">
    <a className="mag-shop-button" href="/shop">🛍 Shop God Matters</a>
-   <a className="mag-book-button" href="https://a.co/d/02rFwv8H" target="_blank" rel="noopener noreferrer">📖 THE HOLY SPIRIT SPEAKS — Jessie Hardin</a>
+   <a className="mag-book-button" href="https://www.amazon.com/dp/B0HJJT8NQY" target="_blank" rel="noopener noreferrer">📖 THE HOLY SPIRIT SPEAKS — Jessie Hardin</a>
   </div>
   <style>{`
    .mag-shop-promo{position:relative;z-index:60;width:100%;display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 18px;border-bottom:1px solid rgba(255,214,112,.4);background:linear-gradient(90deg,#261805,#513811 42%,#12364a 100%);box-shadow:0 10px 30px rgba(0,0,0,.28);font-family:Inter,system-ui,sans-serif;color:#fff}

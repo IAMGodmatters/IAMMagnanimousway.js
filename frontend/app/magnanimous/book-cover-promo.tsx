@@ -1,5 +1,5 @@
 const COVER='https://cdn.shopify.com/s/files/1/0736/7334/3018/files/the-holy-spirit-speaks-jessie-hardin-cover.jpg?v=1789498979';
-const BOOK_URL='https://a.co/d/02rFwv8H';
+const BOOK_URL='https://www.amazon.com/dp/B0HJJT8NQY';
 
 export default function BookCoverPromo(){
  return <section className="mag-cover-promo" aria-label="Featured book cover">
