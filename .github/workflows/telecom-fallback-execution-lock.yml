@@ -7,6 +7,7 @@ on:
       - 'worker/src/magnanimous-telecom-provider-fallback.js'
       - 'worker/src/magnanimous-telecom-provider-payment.js'
       - 'worker/src/magnanimous-telecom-charging-safety-guard.js'
+      - 'worker/src/phone-carrier-runtime.js'
       - 'worker/src/stripe-webhook-hardened.js'
       - 'worker/wrangler.jsonc'
       - 'qa/scripts/telecom-fallback-execution-lock.mjs'
@@ -17,6 +18,7 @@ on:
       - 'worker/src/magnanimous-telecom-provider-fallback.js'
       - 'worker/src/magnanimous-telecom-provider-payment.js'
       - 'worker/src/magnanimous-telecom-charging-safety-guard.js'
+      - 'worker/src/phone-carrier-runtime.js'
       - 'worker/src/stripe-webhook-hardened.js'
       - 'worker/wrangler.jsonc'
       - 'qa/scripts/telecom-fallback-execution-lock.mjs'
@@ -39,6 +41,7 @@ jobs:
           node --check worker/src/magnanimous-telecom-provider-fallback.js
           node --check worker/src/magnanimous-telecom-provider-payment.js
           node --check worker/src/magnanimous-telecom-charging-safety-guard.js
+          node --check worker/src/phone-carrier-runtime.js
           node --check worker/src/stripe-webhook-hardened.js
       - name: Run permanent fallback and execution guardrails
         run: node qa/scripts/telecom-fallback-execution-lock.mjs
