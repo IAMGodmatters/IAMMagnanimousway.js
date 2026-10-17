@@ -43,6 +43,18 @@ jobs:
           must_contain /tmp/business-plan.html "I AM Operator" "Business Launch operator branding"
           if grep -qi "Opening secure access" /tmp/business-plan.html; then echo "Business Launch is exposing the secure-loading shell to crawlers"; exit 1; fi
 
+          status=$(curl -LsS -o /tmp/funding.html -w '%{http_code}' "$SITE/funding/")
+          [ "$status" = "200" ] || { echo "Funding page returned $status"; exit 1; }
+          must_contain /tmp/funding.html "Funding Resources" "public Funding Resources page"
+          must_contain /tmp/funding.html "Grants.gov" "official funding resource content"
+          if grep -qi "Opening secure access" /tmp/funding.html; then echo "Funding is exposing the secure-loading shell to crawlers"; exit 1; fi
+
+          status=$(curl -LsS -o /tmp/reels.html -w '%{http_code}' "$SITE/reels/")
+          [ "$status" = "200" ] || { echo "Magnanimous Reels page returned $status"; exit 1; }
+          must_contain /tmp/reels.html "Magnanimous Reels" "Magnanimous Reels public page"
+          must_contain /tmp/reels.html "Public · No sign-in required" "Reels public access promise"
+          if grep -qi "Opening secure access" /tmp/reels.html; then echo "Magnanimous Reels is still exposing the secure-loading shell to crawlers"; exit 1; fi
+
           status=$(curl -LsS -o /tmp/plan-config.json -w '%{http_code}' "$SITE/api/business-plan/config")
           [ "$status" = "200" ] || { echo "Business Plan config returned $status"; cat /tmp/plan-config.json; exit 1; }
           python - <<'PY'
@@ -93,10 +105,12 @@ jobs:
           [ "$status" = "200" ] || { echo "sitemap.xml returned $status"; exit 1; }
           must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/solutions/" "Solutions sitemap entry"
           must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/business-plan/" "Business Launch sitemap entry"
+          must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/funding/" "Funding sitemap entry"
           must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/security/" "Data & Security sitemap entry"
           must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/reviews/" "Reviews sitemap entry"
           must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/free-tools/" "Free Tools sitemap entry"
           must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/ai-apps/" "AI Apps sitemap entry"
+          must_contain /tmp/sitemap.xml "https://iammagnanimousway.com/reels/" "Magnanimous Reels sitemap entry"
 
           status=$(curl -LsS -o /tmp/reviews.html -w '%{http_code}' "$SITE/reviews/")
           [ "$status" = "200" ] || { echo "Reviews page returned $status"; exit 1; }
@@ -117,4 +131,4 @@ jobs:
           status=$(curl -LsS -o /tmp/health.json -w '%{http_code}' "$SITE/health")
           [ "$status" = "200" ] || { echo "Production health returned $status"; cat /tmp/health.json; exit 1; }
 
-          echo "Public crawlability, Magnanimous AI routing, Professional Business Launch, Data & Security, protected-route robots, reviews API and health passed."
+          echo "Public crawlability, Funding Resources, Magnanimous Reels, Magnanimous AI routing, Professional Business Launch, Data & Security, protected-route robots, reviews API and health passed."
