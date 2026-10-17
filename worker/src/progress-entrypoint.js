@@ -5,6 +5,7 @@ import {specialistForMessage,specialistIntroduction} from './specialist-router.j
 import {handleMagnanimousNativeFirst} from './magnanimous-native-first.js';
 import {handleMagnanimousOgenic} from './magnanimous-ogenic-god-toolkit.js';
 import {handleMagnanimousLocalBridge} from './magnanimous-local-bridge-runtime.js';
+import {handleMagnanimousLocalBridgeArtifact} from './magnanimous-local-bridge-artifact-runtime.js';
 import {handleMagnanimousB2B} from './magnanimous-b2b-runtime.js';
 import {handleMagnanimousTravelAgency} from './magnanimous-travel-agency-runtime.js';
 import {requirePlatformOwner} from './platform-owner-guard.js';
@@ -138,12 +139,14 @@ export default{
     const b2b=await handleMagnanimousB2B(request,env);
     if(b2b)return b2b;
    }catch(error){
-    console.error('Magnanimous B2B runtime failed',error);
+    console.error('Magnanimous B2B network failed',error);
     return json({detail:'Magnanimous B2B network could not complete this request.'},500);
    }
   }
   if(path.startsWith('/api/magnanimous/local-bridge')){
    try{
+    const artifact=await handleMagnanimousLocalBridgeArtifact(request,env);
+    if(artifact)return artifact;
     const bridge=await handleMagnanimousLocalBridge(request,env);
     if(bridge)return bridge;
    }catch(error){
