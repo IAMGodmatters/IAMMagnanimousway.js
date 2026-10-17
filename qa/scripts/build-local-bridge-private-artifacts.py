@@ -17,13 +17,41 @@ ITEMS={
 
 def harden_installer(data: bytes) -> bytes:
     text=data.decode('utf-8')
+    preamble='''
+# Fetch protected Local Bridge payloads immediately while the one-time pairing authorization is fresh.
+$homeDir = Join-Path $env:USERPROFILE ".magnanimous"
+New-Item -ItemType Directory -Force -Path $homeDir | Out-Null
+$config = Join-Path $homeDir "local-bridge.json"
+$agent = Join-Path $homeDir "bridge_agent.py"
+$ncs2Agent = Join-Path $homeDir "ncs2_edge.py"
+$artifactBase = $Server.TrimEnd("/") + "/api/magnanimous/local-bridge/artifacts"
+$artifactHeaders = @{ "X-Magnanimous-Pairing-Code" = $PairingCode; Accept = "application/octet-stream"; "User-Agent" = "Magnanimous-Local-Bridge-Installer/2.0" }
+$source = $artifactBase + "/bridge_agent.py"
+$agentMeta = Invoke-RestMethod -Uri ($source + "?metadata=1") -Headers $artifactHeaders -TimeoutSec 30
+Invoke-WebRequest -UseBasicParsing -Uri $source -Headers $artifactHeaders -OutFile $agent -TimeoutSec 30
+$actualAgentHash = (Get-FileHash -Path $agent -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actualAgentHash -ne ([string]$agentMeta.sha256).ToLowerInvariant()) { Remove-Item -Force $agent -ErrorAction SilentlyContinue; throw "Magnanimous Local Bridge agent integrity verification failed." }
+$ncs2Source = $artifactBase + "/ncs2_edge.py"
+try {
+  $ncs2Meta = Invoke-RestMethod -Uri ($ncs2Source + "?metadata=1") -Headers $artifactHeaders -TimeoutSec 30
+  Invoke-WebRequest -UseBasicParsing -Uri $ncs2Source -Headers $artifactHeaders -OutFile $ncs2Agent -TimeoutSec 30
+  $actualNcs2Hash = (Get-FileHash -Path $ncs2Agent -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($actualNcs2Hash -ne ([string]$ncs2Meta.sha256).ToLowerInvariant()) { Remove-Item -Force $ncs2Agent -ErrorAction SilentlyContinue; throw "Magnanimous NCS2 edge helper integrity verification failed." }
+} catch {
+  Remove-Item -Force $ncs2Agent -ErrorAction SilentlyContinue
+  Write-Warning "NCS2 edge helper was not available. Core Local Bridge activation will continue."
+}
+'''
+    marker='$ErrorActionPreference = "Stop"\n'
+    assert marker in text, 'Installer bootstrap marker changed.'
+    text=text.replace(marker,marker+preamble,1)
     text=text.replace(
         f'$source = "{RAW_PREFIX}bridge_agent.py"',
-        '$artifactHeaders = @{ "X-Magnanimous-Pairing-Code" = $PairingCode; Accept = "application/octet-stream"; "User-Agent" = "Magnanimous-Local-Bridge-Installer/2.0" }\n$source = '+PRIVATE_PREFIX+'bridge_agent.py"\n$agentMeta = Invoke-RestMethod -Uri ($source + "?metadata=1") -Headers $artifactHeaders -TimeoutSec 30'
+        '$source = '+PRIVATE_PREFIX+'bridge_agent.py"'
     )
     text=text.replace(
         'Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $agent',
-        'Invoke-WebRequest -UseBasicParsing -Uri $source -Headers $artifactHeaders -OutFile $agent -TimeoutSec 30\n$actualAgentHash = (Get-FileHash -Path $agent -Algorithm SHA256).Hash.ToLowerInvariant()\nif ($actualAgentHash -ne ([string]$agentMeta.sha256).ToLowerInvariant()) { Remove-Item -Force $agent -ErrorAction SilentlyContinue; throw "Magnanimous Local Bridge agent integrity verification failed." }'
+        'if (-not (Test-Path $agent)) { throw "Private Local Bridge agent preload is missing." }'
     )
     text=text.replace(
         f'$ncs2Source = "{RAW_PREFIX}ncs2_edge.py"',
@@ -31,7 +59,7 @@ def harden_installer(data: bytes) -> bytes:
     )
     text=text.replace(
         '  Invoke-WebRequest -UseBasicParsing -Uri $ncs2Source -OutFile $ncs2Agent',
-        '  $ncs2Meta = Invoke-RestMethod -Uri ($ncs2Source + "?metadata=1") -Headers $artifactHeaders -TimeoutSec 30\n  Invoke-WebRequest -UseBasicParsing -Uri $ncs2Source -Headers $artifactHeaders -OutFile $ncs2Agent -TimeoutSec 30\n  $actualNcs2Hash = (Get-FileHash -Path $ncs2Agent -Algorithm SHA256).Hash.ToLowerInvariant()\n  if ($actualNcs2Hash -ne ([string]$ncs2Meta.sha256).ToLowerInvariant()) { Remove-Item -Force $ncs2Agent -ErrorAction SilentlyContinue; throw "Magnanimous NCS2 edge helper integrity verification failed." }'
+        '  if (-not (Test-Path $ncs2Agent)) { throw "Private NCS2 edge helper preload is missing." }'
     )
     assert RAW_PREFIX not in text, 'Published installer still contains a public raw GitHub dependency.'
     for needle in (
@@ -40,6 +68,8 @@ def harden_installer(data: bytes) -> bytes:
         'X-Magnanimous-Pairing-Code',
         'Get-FileHash -Path $agent -Algorithm SHA256',
         'Get-FileHash -Path $ncs2Agent -Algorithm SHA256',
+        'Fetch protected Local Bridge payloads immediately',
+        'Private Local Bridge agent preload is missing.',
     ):
         assert needle in text, f'Hardened installer missing {needle}'
     return text.encode('utf-8')
@@ -69,7 +99,7 @@ def build(output_sql: pathlib.Path, output_dir: pathlib.Path | None) -> None:
     output_sql.parent.mkdir(parents=True,exist_ok=True)
     output_sql.write_text('\n'.join(statements)+'\n',encoding='utf-8')
     assert len(statements)==4
-    print('Built four private Local Bridge artifacts with SHA-256 integrity metadata and no public GitHub dependency in the delivered installer.')
+    print('Built four private Local Bridge artifacts with early SHA-256 verification and no public GitHub dependency in the delivered installer.')
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser()
