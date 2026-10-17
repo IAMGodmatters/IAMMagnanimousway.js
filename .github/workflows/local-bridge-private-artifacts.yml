@@ -1,0 +1,112 @@
+name: Local Bridge Private Artifacts
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'local-bridge/install.ps1'
+      - 'local-bridge/uninstall.ps1'
+      - 'local-bridge/bridge_agent.py'
+      - 'local-bridge/ncs2_edge.py'
+      - 'worker/src/magnanimous-local-bridge-artifact-runtime.js'
+      - 'worker/src/progress-entrypoint.js'
+      - 'worker/migrations/0106_local_bridge_private_artifacts.sql'
+      - 'frontend/app/local-bridge/page.tsx'
+      - 'qa/scripts/local-bridge-private-artifact-lock.mjs'
+      - '.github/workflows/local-bridge-private-artifacts.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'local-bridge/install.ps1'
+      - 'local-bridge/uninstall.ps1'
+      - 'local-bridge/bridge_agent.py'
+      - 'local-bridge/ncs2_edge.py'
+      - 'worker/src/magnanimous-local-bridge-artifact-runtime.js'
+      - 'worker/src/progress-entrypoint.js'
+      - 'worker/migrations/0106_local_bridge_private_artifacts.sql'
+      - 'frontend/app/local-bridge/page.tsx'
+      - 'qa/scripts/local-bridge-private-artifact-lock.mjs'
+      - '.github/workflows/local-bridge-private-artifacts.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Lock private Local Bridge distribution contract
+        run: node qa/scripts/local-bridge-private-artifact-lock.mjs
+
+  sync:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm ci --no-audit --no-fund
+      - name: Publish private Local Bridge artifacts to D1
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute iam-magnanimous-db --remote --command "CREATE TABLE IF NOT EXISTS magnanimous_local_bridge_artifacts (name TEXT PRIMARY KEY,content_base64 TEXT NOT NULL,sha256 TEXT NOT NULL,byte_length INTEGER NOT NULL,media_type TEXT NOT NULL,updated_at INTEGER NOT NULL);"
+          python - <<'PY'
+          import base64, hashlib, pathlib, time
+          root=pathlib.Path('..')
+          items={
+              'install.ps1':('local-bridge/install.ps1','text/plain; charset=utf-8'),
+              'uninstall.ps1':('local-bridge/uninstall.ps1','text/plain; charset=utf-8'),
+              'bridge_agent.py':('local-bridge/bridge_agent.py','text/x-python; charset=utf-8'),
+              'ncs2_edge.py':('local-bridge/ncs2_edge.py','text/x-python; charset=utf-8'),
+          }
+          ts=int(time.time())
+          statements=[]
+          for name,(rel,media) in items.items():
+              data=(root/rel).read_bytes()
+              encoded=base64.b64encode(data).decode('ascii')
+              digest=hashlib.sha256(data).hexdigest()
+              statements.append(
+                  "INSERT INTO magnanimous_local_bridge_artifacts(name,content_base64,sha256,byte_length,media_type,updated_at) "
+                  f"VALUES('{name}','{encoded}','{digest}',{len(data)},'{media}',{ts}) "
+                  "ON CONFLICT(name) DO UPDATE SET content_base64=excluded.content_base64,sha256=excluded.sha256,byte_length=excluded.byte_length,media_type=excluded.media_type,updated_at=excluded.updated_at "
+                  "WHERE magnanimous_local_bridge_artifacts.sha256<>excluded.sha256;"
+              )
+          pathlib.Path('/tmp/magnanimous-local-bridge-artifacts.sql').write_text('\n'.join(statements),encoding='utf-8')
+          PY
+          npx wrangler d1 execute iam-magnanimous-db --remote --file /tmp/magnanimous-local-bridge-artifacts.sql
+          npx wrangler d1 execute iam-magnanimous-db --remote --json --command "SELECT name,sha256,byte_length FROM magnanimous_local_bridge_artifacts WHERE name IN ('install.ps1','uninstall.ps1','bridge_agent.py','ncs2_edge.py') ORDER BY name;" > /tmp/local-bridge-artifacts.json
+          python - <<'PY'
+          import json
+          payload=json.load(open('/tmp/local-bridge-artifacts.json'))
+          rows=[]
+          def walk(value):
+              if isinstance(value,dict):
+                  if {'name','sha256','byte_length'} <= set(value): rows.append(value)
+                  for child in value.values(): walk(child)
+              elif isinstance(value,list):
+                  for child in value: walk(child)
+          walk(payload)
+          unique={row['name']:row for row in rows}
+          required={'install.ps1','uninstall.ps1','bridge_agent.py','ncs2_edge.py'}
+          assert set(unique)==required, f'Private artifact publication incomplete: {sorted(set(unique))}'
+          for name,row in unique.items():
+              assert len(str(row['sha256']))==64, f'{name} SHA-256 missing'
+              assert int(row['byte_length'])>0, f'{name} is empty'
+          print('Private Local Bridge artifacts published and verified in D1.')
+          PY
