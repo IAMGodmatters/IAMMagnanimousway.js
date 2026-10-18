@@ -88,19 +88,20 @@ test('main platform remains separate from the standalone AI shell', async ({ pag
   const standaloneFlag = await page.evaluate(() => document.documentElement.getAttribute('data-iam-standalone'));
   expect(standaloneFlag).toBeNull();
   await expect(page.locator('main.mag-standalone')).toHaveCount(0);
-  await expect(page.locator('.iam-shop-link')).toBeVisible();
   await expect(page.locator('.iam-shop-link')).toHaveAttribute('href', '/shop');
+  // The platform shell intentionally hides the floating shop pill; its sidebar owns the Shop link.
+  await expect(page.locator('.iam-shop-link')).toBeHidden();
+  await expect(page.locator('.iam-shell-sidebar a[href="/shop"]')).toBeVisible();
 });
 
-test('God Matters marketplace remains wired to the locked Shopify store', async ({ page }) => {
+test('native God Matters marketplace stays separate from the Shopify storefront', async ({ page }) => {
   await page.goto('/shop', { waitUntil: 'domcontentloaded' });
 
-  await expect(page.getByText('GOD MATTERS MARKETPLACE', { exact: true })).toBeVisible();
-  const storeLinks = page.locator('a[href^="https://puso-iam.myshopify.com"]');
-  expect(await storeLinks.count()).toBeGreaterThan(0);
-  await expect(storeLinks.first()).toHaveAttribute('rel', /noopener/);
-  await expect(storeLinks.first()).toHaveAttribute('rel', /noreferrer/);
+  await expect(page.getByText('MAGNANIMOUS MARKETPLACE', { exact: true })).toBeVisible();
+  // The native shop uses its own /store-api/checkout flow. Shopify remains a separate business.
+  await expect(page.locator('a[href^="https://puso-iam.myshopify.com"]')).toHaveCount(0);
+  await expect(page.locator('a[href="#products"]')).toBeVisible();
 
   const body = await page.locator('body').innerText();
-  expect(body).toContain('God Matters');
+  expect(body).toContain('GOD MATTERS');
 });
