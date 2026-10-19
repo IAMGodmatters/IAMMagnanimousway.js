@@ -53,4 +53,14 @@ for(const route of ['skills.summary','skills.catalog','skills.resolve','skills.v
 assert.ok(mesh.includes("from './magnanimous-agent-skills.js'"),'Capability Mesh must import the native Agent Skills core.');
 assert.ok(mesh.includes('source-available document skills'),'Capability Mesh must preserve the license/provenance boundary.');
 
+for(const [name,prompt] of [
+ ['mcp-manifest-integrity','Inspect MCP manifest drift and require review for changed tool schemas.'],
+ ['supervised-parallel-development','Plan parallel coding agents in isolated worktrees with verification.'],
+ ['cloud-security-evidence-triage','Review cloud alert misconfiguration and CVE blast radius.']
+]){
+ const listed=listMagnanimousAgentSkills({query:name,includeInstructions:true});
+ assert.ok(listed.some(x=>x.name===name),name+' must appear in native skills catalog.');
+ const resolved=resolveMagnanimousAgentSkills(prompt,{limit:8});
+ assert.ok(resolved.some(x=>x.name===name),name+' must resolve from an appropriate user goal.');
+}
 console.log('Magnanimous Agent Skills compatibility lock passed.');

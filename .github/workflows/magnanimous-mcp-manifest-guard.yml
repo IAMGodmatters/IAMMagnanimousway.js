@@ -1,0 +1,45 @@
+name: Magnanimous MCP Manifest Integrity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-mcp-manifest-guard.js'
+      - 'worker/src/magnanimous-tool-gateway.js'
+      - 'worker/src/magnanimous-agent-skills.js'
+      - 'qa/scripts/magnanimous-mcp-manifest-guard-lock.mjs'
+      - 'qa/scripts/magnanimous-agent-skills-lock.mjs'
+      - '.github/workflows/magnanimous-mcp-manifest-guard.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-mcp-manifest-guard.js'
+      - 'worker/src/magnanimous-tool-gateway.js'
+      - 'worker/src/magnanimous-agent-skills.js'
+      - 'qa/scripts/magnanimous-mcp-manifest-guard-lock.mjs'
+      - 'qa/scripts/magnanimous-agent-skills-lock.mjs'
+      - '.github/workflows/magnanimous-mcp-manifest-guard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Check JavaScript syntax
+        run: |
+          node --check worker/src/magnanimous-mcp-manifest-guard.js
+          node --check worker/src/magnanimous-tool-gateway.js
+          node --check worker/src/magnanimous-agent-skills.js
+          node --check qa/scripts/magnanimous-mcp-manifest-guard-lock.mjs
+      - name: Test canonical manifests and approval gates
+        run: |
+          node qa/scripts/magnanimous-mcp-manifest-guard-lock.mjs
+          node qa/scripts/magnanimous-agent-skills-lock.mjs
