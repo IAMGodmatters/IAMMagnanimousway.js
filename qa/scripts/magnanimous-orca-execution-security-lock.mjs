@@ -52,6 +52,8 @@ try{
 const gateway=fs.readFileSync('worker/src/magnanimous-tool-gateway.js','utf8');
 const ui=fs.readFileSync('frontend/app/orca-workbench/live-operations.tsx','utf8');
 assert.ok(gateway.includes('MCP_CONSENT_REQUIRED'));
+assert.ok(gateway.includes('MCP_OWNER_APPROVAL_REQUIRED'),'Raw external tool calls must be owner/admin only.');
+assert.ok(gateway.includes('if(!isManager(user))return json({detail:\'Owner or tenant admin approval'),'Enforce tenant-manager permission before executing unmetered tools.');
 for(const term of ['confirm_live_call','acknowledge_external_effects','acknowledge_provider_charges'])assert.ok(gateway.includes(term)&&ui.includes(term),'Both server and UI must enforce '+term);
 assert.ok(gateway.includes('MCP_MANIFEST_CHANGED'));
 assert.ok(gateway.includes("enabled=0,updated_at=? WHERE tenant_id=? AND server_id=? AND tool_name=?"),'Mismatch must disable old permission.');
