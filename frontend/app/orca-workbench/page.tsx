@@ -15,12 +15,13 @@ const exampleContract={
 };
 const stringify=(v:unknown)=>JSON.stringify(v,null,2);
 const token=()=>typeof window==='undefined'?'':(localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||'');
+type DevPlan={repo:string;base_ref:string;tasks:{id:string;title:string;branch:string;files:string[];risk_review_required?:boolean}[]};
 type ResponseValue={detail?:string;[key:string]:any};
 
 export default function OrcaWorkbench(){
  const[planJson,setPlanJson]=useState(stringify(examplePlan));
  const[contractJson,setContractJson]=useState(stringify(exampleContract));
- const[planResult,setPlanResult]=useState<ResponseValue|null>(null);
+ const[planResult,setPlanResult]=useState<DevPlan|null>(null);
  const[contractResult,setContractResult]=useState<ResponseValue|null>(null);
  const[traceResult,setTraceResult]=useState<ResponseValue|null>(null);
  const[drafts,setDrafts]=useState<ResponseValue|null>(null);
@@ -41,7 +42,7 @@ export default function OrcaWorkbench(){
  function parse(value:string){
   try{return JSON.parse(value)}catch{throw new Error('The pasted text must be valid JSON.')}
  }
- const plan=()=>run('plan',async()=>{const d=await request('/api/magnanimous/dev-agent/parallel/plan','POST',parse(planJson));setPlanResult(d.plan||d);setMessage('Safe development plan generated. No branches, agents or paid services were started.');});
+ const plan=()=>run('plan',async()=>{const d=await request('/api/magnanimous/dev-agent/parallel/plan','POST',parse(planJson));setPlanResult((d.plan||d) as DevPlan);setMessage('Safe development plan generated. No branches, agents or paid services were started.');});
  const preview=()=>run('preview',async()=>{const d=await request('/api/magnanimous/api-contract/mcp-preview','POST',{material:parse(contractJson)});setContractResult(d.draft);setMessage('MCP tool draft generated. Every tool is disabled until separately approved and connected.');});
  const stage=()=>run('stage',async()=>{const d=await request('/api/magnanimous/api-contract/mcp-stage','POST',{material:parse(contractJson),acknowledge_draft_only:true});setMessage(`Saved disabled draft ${d.id}. No outside API was contacted.`);await viewDrafts();});
  const viewDrafts=async()=>{setDrafts(await request('/api/magnanimous/api-contract/mcp-drafts'));};
