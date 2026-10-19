@@ -23,7 +23,16 @@ Input:
 }
 ```
 
-Returns deterministic dependency waves, conflicting file detection, per-task proposed namespaced branches and explicit budget bounds. Work is **not executed** by the planning API. GitHub branches, writes, pull requests and merges remain on the existing owner-only, staged-and-confirmed Magnanimous Dev Agent action path. Execution of parallel workers requires an authorized local/remote sandbox harness. This design prevents a planning endpoint from becoming an unrestricted cloud spending or arbitrary shell API. Approval for repository writes remains in force.
+Returns deterministic dependency waves, conflicting file detection, per-task proposed namespaced branches and explicit budget bounds. Work is **not executed** by the planning API. GitHub branches, writes, pull requests and merges remain on the existing owner-only, staged-and-confirmed Magnanimous Dev Agent action path. Execution of parallel workers requires an authorized local/remote sandbox harness.
+
+**Real owner-local workspace provisioning:** `magnanimous-runtime/src/orca-worktree-provisioner.mjs` can create separate Git worktrees from a clean checkout and verified base ref using fixed `git worktree add` arguments, and `magnanimous-runtime/scripts/orca-worktrees.mjs` exposes a preview-first CLI.
+
+```bash
+node magnanimous-runtime/scripts/orca-worktrees.mjs --repo-dir . --plan-file ./reviewed-plan.json
+node magnanimous-runtime/scripts/orca-worktrees.mjs --repo-dir . --plan-file ./reviewed-plan.json --execute
+```
+
+The first command checks and previews without changing the repo. The second is an explicitly requested local mutation; it fails before provisioning if the base ref is stale (when `base_sha` was recorded), a branch/worktree already exists, or the checkout is dirty. New worktrees remain separate from the source checkout; no external AI workers or background services are auto-started. Integration tests create two actual local Git worktrees in a temporary repository and prove `main` does not move. This design prevents a planning endpoint from becoming an unrestricted cloud spending or arbitrary shell API. Approval for repository writes remains in force.
 
 ## Implemented feature 2 — OpenAPI to MCP contract generation
 
@@ -49,7 +58,7 @@ Actual MCP tool calls now emit bounded metadata-only event spans: tenant and use
 - All functionality remains provider-neutral and subordinate to Magnanimous AI.
 - Stage/preview and parallel planning are guarded by existing platform owner authentication. Trace dashboards require owner/admin.
 - No automatic purchases, API execution, repo writes or paid compute in these new endpoints.
-- Isolation is **planned** for parallel workers; an actual provisioned parallel coding sandbox/worker is not claimed.
+- Worktree **provisioning exists** as an explicit, owner-local Git operation and is integration tested. Parallel AI model workers and a cloud-hosted managed sandbox are **not** claimed provisioned.
 - OpenAPI draft is **not** a live generated connector; credentials, executable adapters and high-risk write consent remain separate.
 - Standard MCP tool execution is still delegated to the existing registered server capability gateway; it has not been replaced.
 - No existing user-facing images, Stripe pricing, billing/telecom regulatory gates or Shopify boundaries were changed.
@@ -57,6 +66,6 @@ Actual MCP tool calls now emit bounded metadata-only event spans: tenant and use
 
 ## Verification
 
-`node qa/scripts/magnanimous-orca-completion-lock.mjs` checks safe parallel waves, overlaps, cycles, unsafe paths, cost caps, OpenAPI schema/refs/method classifications, no auto execution, privacy metadata, owner authorization and route wiring. Existing MCP schema-drift, API contract intelligence and developer-agent regression locks remain in CI.
+`node qa/scripts/magnanimous-orca-completion-lock.mjs` checks safe parallel waves, overlaps, cycles, unsafe paths, cost caps, OpenAPI schema/refs/method classifications, no auto execution, privacy metadata, owner authorization and route wiring. `qa/scripts/magnanimous-orca-worktree-lock.mjs` verifies actual local Git worktree creation and unchanged main. `qa/scripts/magnanimous-orca-trace-db-lock.mjs` verifies SQLite tenant isolation, aggregated spans and secret-free storage. Existing MCP schema-drift, API contract intelligence and developer-agent regression locks remain in CI.
 
 Sources and capability catalog: `docs/ORCA-ECOSYSTEM-CAPABILITY-AUDIT-2026-10-19.md`. No third-party Orca source was copied.
