@@ -190,6 +190,7 @@ export async function handleMagnanimousToolGateway(request,env){
    return json({ok:true,server_id:serverId,tool,decision,enabled:decision==='approve'});
   }
   if(request.method==='POST'&&url.pathname==='/api/magnanimous/tools/call'){
+  if(!isManager(user))return json({detail:'Owner or tenant admin approval is required for direct external MCP execution.',code:'MCP_OWNER_APPROVAL_REQUIRED'},403);
   // Consent is checked at the server, never only through a browser checkbox.
   const raw=await request.text();
   if(new TextEncoder().encode(raw).byteLength>70000)return json({detail:'MCP invocation request exceeds 70 KB.'},413);
