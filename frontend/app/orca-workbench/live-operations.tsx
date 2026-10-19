@@ -139,7 +139,7 @@ export default function OrcaLiveOperations({plan}:{plan:DevPlan|null}){
     <label htmlFor="orca-args">Tool arguments (JSON object)</label><textarea id="orca-args" value={callArgs} onChange={e=>{setCallArgs(e.target.value);setCallApproved(false)}} spellCheck={false}/>
     <label className="tick"><input type="checkbox" checked={callApproved} onChange={e=>setCallApproved(e.target.checked)}/>I reviewed this tool and its arguments, authorize this specific live call, and accept any known provider charges or external effects.</label>
     <button disabled={busy!==''||!selectedTool||!callApproved} onClick={call}>Call enabled MCP tool now</button>
-    {result&&<pre aria-label="Live MCP tool result">{display(result)}</pre>}
+    {result!==null&&<pre aria-label="Live MCP tool result">{display(result)}</pre>}
    </article>
   </div>
   <style jsx>{`
