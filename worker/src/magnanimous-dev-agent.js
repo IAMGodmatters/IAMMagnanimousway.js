@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { planMagnanimousParallelDevelopment } from './magnanimous-parallel-supervisor.js';
 import { requirePlatformOwner } from './platform-owner-guard.js';
 import { upsertApprovedTeachingTool } from './magnanimous-tool-foundry.js';
 import { githubRepositoryAuthConfigured, githubRepositoryAuthSummary, githubRepositoryToken } from './magnanimous-github-app-auth.js';
@@ -281,6 +282,13 @@ export async function handleMagnanimousDevAgent(request,env){
   const body=await request.json().catch(()=>({})),repo=normalizeRepo(body.repo,env),ref=normalizeRef(body.ref||'main'),goal=clip(body.goal,4000);
   if(!repo)return json({detail:'Repository is not in the Magnanimous developer allowlist.'},403);if(!ref||!goal)return json({detail:'Goal and valid ref are required.'},400);
   return json(buildPlan(goal,repo,ref));
+ }
+ if(request.method==='POST'&&path==='/api/magnanimous/dev-agent/parallel/plan'){
+  const body=await request.json().catch(()=>({}));
+  const repository=normalizeRepo(body.repo,env);
+  if(!repository)return json({detail:'Repository is not in the Magnanimous developer allowlist.'},403);
+  try{return json({ok:true,plan:planMagnanimousParallelDevelopment({...body,repo:repository})});}
+  catch(error){return json({detail:error instanceof Error?error.message:'Invalid parallel development plan.'},400);}
  }
  if(request.method==='POST'&&path==='/api/magnanimous/dev-agent/read')return readRepository(request,env);
  if(request.method==='POST'&&path==='/api/magnanimous/dev-agent/search')return searchRepository(request,env);
