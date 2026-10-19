@@ -15,7 +15,7 @@ export function magnanimousSpanMetadata({tenant='',user='',serverId=0,tool='',su
  return {tenant_id:String(tenant),user_id:String(user),server_id:sid,tool_name:label(tool,200),
   success:Boolean(success),latency_ms:Number.isFinite(elapsed)?Math.min(120000,Math.max(0,Math.round(elapsed))):0,
   response_bytes:Number.isFinite(bytes)?Math.min(5000000,Math.max(0,Math.round(bytes))):0,
-  error_kind:label(errorKind,80),created_at:now()};
+  error_kind:/^UPSTREAM_HTTP_[1-5][0-9]{2}$/.test(String(errorKind))?String(errorKind):(success?'':'MCP_TOOL_CALL_FAILED'),created_at:now()};
 }
 export async function recordMagnanimousToolSpan(env,input={}){
  const row=magnanimousSpanMetadata(input);
