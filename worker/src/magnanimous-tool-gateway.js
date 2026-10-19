@@ -85,7 +85,7 @@ async function listTools(server,env){
   catch{throw modernError}
  }
 }
-async function callTool(server,name,args,env,approved){
+export async function callMagnanimousApprovedMcpTool(server,name,args,env,approved){
  // Protocol negotiation uses read-only discovery. NEVER retry tools/call through a
  // fallback transport: a failed response does not prove that the action failed.
  const {result,protocol}=await listTools(server,env);
@@ -203,7 +203,7 @@ export async function handleMagnanimousToolGateway(request,env){
   let args;try{args=validateMagnanimousToolInvocation(b.arguments||{},known.input_schema_json)}catch(error){return json({detail:error?.message||'MCP invocation rejected.',code:'MCP_INPUT_REJECTED'},400);}
   const started=Date.now();
   try{
-   const result=await callTool(server,tool,args,env,known);
+   const result=await callMagnanimousApprovedMcpTool(server,tool,args,env,known);
    const responseBytes=new TextEncoder().encode(JSON.stringify(result??null)).length;
    const trace_recorded=await recordMagnanimousToolSpan(env,{tenant:user.tenant_id,user:user.id,serverId,tool,success:true,durationMs:Date.now()-started,responseBytes}).then(()=>true).catch(()=>false);
    await audit(env,user,'call',{serverId,tool,success:true});
