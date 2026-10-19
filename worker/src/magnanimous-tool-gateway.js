@@ -23,7 +23,9 @@ function safeUrl(value){
   const u=new URL(String(value||''));
   if(u.protocol!=='https:'||u.username||u.password)return null;
   const h=u.hostname.toLowerCase().replace(/^\[|\]$/g,'');
-  if(h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local')||h==='127.0.0.1'||h==='0.0.0.0'||h==='::1'||h==='::'||/^10\./.test(h)||/^192\.168\./.test(h)||/^169\.254\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h))return null;
+  // URLs with IP literals, numeric host shorthands, or private name suffixes
+  // are not public provider connections and must not be used for credentialed MCP.
+  if(!h||h.includes(':')||h.endsWith('.')||/^\d+(?:\.\d+)*$/.test(h)||h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local')||h.endsWith('.internal')||h.endsWith('.lan')||h.endsWith('.home.arpa')||h.endsWith('.onion')||h==='metadata.google.internal')return null;
   return u;
  }catch{return null}
 }
@@ -54,7 +56,9 @@ async function postMcp(server,body,env,headersExtra={}){
   const r=await fetch(target.toString(),{method:'POST',headers,body:JSON.stringify(body),redirect:'manual'});
   if([301,302,303,307,308].includes(r.status)){
    const location=r.headers.get('location');if(!location)throw new Error('MCP server returned an invalid redirect.');
-   const next=safeUrl(new URL(location,target).toString());if(!next)throw new Error('MCP server redirected to a blocked address.');target=next;continue;
+   const next=safeUrl(new URL(location,target).toString());if(!next)throw new Error('MCP server redirected to a blocked address.');
+   if(headers.authorization&&next.origin!==target.origin)throw new Error('Credentialed MCP redirect across origins is blocked.');
+   target=next;continue;
   }
   const text=await r.text();if(!r.ok)throw new Error(`MCP server returned ${r.status}: ${text.slice(0,400)}`);
   const lines=text.split('\n').map(x=>x.trim()).filter(Boolean);let payload=null;
