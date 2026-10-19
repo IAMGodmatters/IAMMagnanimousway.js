@@ -1,0 +1,37 @@
+name: Magnanimous Cloud Security Playbooks
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-cloud-security-playbooks.js'
+      - 'worker/src/magnanimous-agent-skills.js'
+      - 'qa/scripts/magnanimous-cloud-security-playbooks-lock.mjs'
+      - '.github/workflows/magnanimous-cloud-security-playbooks.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-cloud-security-playbooks.js'
+      - 'worker/src/magnanimous-agent-skills.js'
+      - 'qa/scripts/magnanimous-cloud-security-playbooks-lock.mjs'
+      - '.github/workflows/magnanimous-cloud-security-playbooks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Syntax
+        run: |
+          node --check worker/src/magnanimous-agent-skills.js
+          node --check worker/src/magnanimous-cloud-security-playbooks.js
+          node --check qa/scripts/magnanimous-cloud-security-playbooks-lock.mjs
+      - name: Skills and authorization policy
+        run: |
+          node qa/scripts/magnanimous-cloud-security-playbooks-lock.mjs
+          node qa/scripts/magnanimous-agent-skills-lock.mjs

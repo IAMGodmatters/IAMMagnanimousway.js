@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { validateMagnanimousToolInvocation } from './magnanimous-mcp-invocation-guard.js';
 import { recordMagnanimousToolSpan, listMagnanimousToolSpans } from './magnanimous-tool-traces.js';
 import { normalizeMagnanimousMcpManifest, sameMagnanimousMcpManifest, fingerprintMagnanimousMcpManifest } from './magnanimous-mcp-manifest-guard.js';
 
@@ -84,7 +85,20 @@ async function listTools(server,env){
   catch{throw modernError}
  }
 }
-async function callTool(server,name,args,env){try{return await rpcModern(server,'tools/call',{name,arguments:args||{}},env)}catch(modernError){try{await rpcLegacy(server,'initialize',{protocolVersion:MCP_LEGACY,capabilities:{},clientInfo:{name:'Magnanimous AI',version:'1.0'}},env);return await rpcLegacy(server,'tools/call',{name,arguments:args||{}},env)}catch{throw modernError}}}
+export async function callMagnanimousApprovedMcpTool(server,name,args,env,approved){
+ // Protocol negotiation uses read-only discovery. NEVER retry tools/call through a
+ // fallback transport: a failed response does not prove that the action failed.
+ const {result,protocol}=await listTools(server,env);
+ const matches=Array.isArray(result?.tools)?result.tools.filter(t=>t?.name===name):[];
+ if(matches.length!==1)throw new Error('MCP_TOOL_CATALOG_DRIFT');
+ let live;
+ try{live=normalizeMagnanimousMcpManifest(matches[0])}catch{throw new Error('MCP_TOOL_CATALOG_DRIFT')}
+ if(!sameMagnanimousMcpManifest(approved,live))throw new Error('MCP_TOOL_CATALOG_DRIFT');
+ const params={name,arguments:args};
+ return protocol===MCP_LEGACY
+  ?rpcLegacy(server,'tools/call',params,env)
+  :rpcModern(server,'tools/call',params,env);
+}
 async function listServers(env,user){await schema(env);const{results=[]}=await env.DB.prepare('SELECT id,name,server_url,auth_type,enabled,status,tool_count,last_error,created_at,updated_at FROM magnanimous_tool_servers WHERE tenant_id=? ORDER BY name').bind(String(user.tenant_id)).all();return results}
 async function discoverOne(env,user,server){
  try{
@@ -176,17 +190,32 @@ export async function handleMagnanimousToolGateway(request,env){
    return json({ok:true,server_id:serverId,tool,decision,enabled:decision==='approve'});
   }
   if(request.method==='POST'&&url.pathname==='/api/magnanimous/tools/call'){
-  const b=await request.json().catch(()=>({})),tool=clip(b.tool,200),serverId=Number(b.server_id||0);if(!tool||!serverId)return json({detail:'server_id and tool are required.'},400);
+  if(!isManager(user))return json({detail:'Owner or tenant admin approval is required for direct external MCP execution.',code:'MCP_OWNER_APPROVAL_REQUIRED'},403);
+  // Consent is checked at the server, never only through a browser checkbox.
+  const raw=await request.text();
+  if(new TextEncoder().encode(raw).byteLength>70000)return json({detail:'MCP invocation request exceeds 70 KB.'},413);
+  let b;try{b=JSON.parse(raw)}catch{return json({detail:'Valid JSON body is required.'},400)}
+  const tool=clip(b.tool,200),serverId=Number(b.server_id||0);
+  if(!tool||!Number.isSafeInteger(serverId)||serverId<1)return json({detail:'Valid server_id and tool are required.'},400);
+  if(b.confirm_live_call!==true||b.acknowledge_external_effects!==true||b.acknowledge_provider_charges!==true)return json({detail:'Live MCP calls require explicit execution, external-effects and provider-charge consent.',code:'MCP_CONSENT_REQUIRED'},409);
   const server=await env.DB.prepare('SELECT * FROM magnanimous_tool_servers WHERE tenant_id=? AND id=? AND enabled=1').bind(String(user.tenant_id),serverId).first();if(!server)return json({detail:'Tool server not found or disabled.'},404);
-  const known=await env.DB.prepare('SELECT enabled FROM magnanimous_discovered_tools WHERE tenant_id=? AND server_id=? AND tool_name=? AND NOT EXISTS (SELECT 1 FROM magnanimous_tool_manifest_reviews WHERE tenant_id=? AND server_id=? AND tool_name=?)').bind(String(user.tenant_id),serverId,tool,String(user.tenant_id),serverId,tool).first();if(!known?.enabled)return json({detail:'Tool is not enabled in Magnanimous registry.'},403);
+  const known=await env.DB.prepare('SELECT enabled,tool_name,description,input_schema_json FROM magnanimous_discovered_tools WHERE tenant_id=? AND server_id=? AND tool_name=? AND NOT EXISTS (SELECT 1 FROM magnanimous_tool_manifest_reviews WHERE tenant_id=? AND server_id=? AND tool_name=?)').bind(String(user.tenant_id),serverId,tool,String(user.tenant_id),serverId,tool).first();
+  if(!known?.enabled)return json({detail:'Tool is not enabled in Magnanimous registry.'},403);
+  let args;try{args=validateMagnanimousToolInvocation(b.arguments||{},known.input_schema_json)}catch(error){return json({detail:error?.message||'MCP invocation rejected.',code:'MCP_INPUT_REJECTED'},400);}
   const started=Date.now();
   try{
-   const result=await callTool(server,tool,b.arguments||{},env);
+   const result=await callMagnanimousApprovedMcpTool(server,tool,args,env,known);
    const responseBytes=new TextEncoder().encode(JSON.stringify(result??null)).length;
    const trace_recorded=await recordMagnanimousToolSpan(env,{tenant:user.tenant_id,user:user.id,serverId,tool,success:true,durationMs:Date.now()-started,responseBytes}).then(()=>true).catch(()=>false);
    await audit(env,user,'call',{serverId,tool,success:true});
    return json({ok:true,server:server.name,tool,result,trace_recorded});
   }catch(e){
+   if(String(e?.message||'')==='MCP_TOOL_CATALOG_DRIFT'){
+    // Fail closed even when a rediscovery operation is interrupted.
+    await env.DB.prepare('UPDATE magnanimous_discovered_tools SET enabled=0,updated_at=? WHERE tenant_id=? AND server_id=? AND tool_name=?').bind(now(),String(user.tenant_id),serverId,tool).run();
+    await audit(env,user,'manifest-drift-at-call',{serverId,tool,success:false,detail:'Live MCP tool no longer matches its approved manifest.'});
+    return json({detail:'MCP tool definition changed or disappeared. Refresh discovery and obtain a new owner approval.',code:'MCP_MANIFEST_CHANGED'},409);
+   }
    const status=String(e?.message||'').match(/(?:returned|HTTP)\s+(\d{3})/i)?.[1]||'';
    const errorKind=status?'UPSTREAM_HTTP_'+status:'MCP_TOOL_CALL_FAILED';
    const trace_recorded=await recordMagnanimousToolSpan(env,{tenant:user.tenant_id,user:user.id,serverId,tool,success:false,durationMs:Date.now()-started,errorKind}).then(()=>true).catch(()=>false);

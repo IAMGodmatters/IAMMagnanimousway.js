@@ -104,7 +104,7 @@ export default function OrcaLiveOperations({plan}:{plan:DevPlan|null}){
   let args;try{args=JSON.parse(callArgs)}catch{throw Error('Arguments must be valid JSON.')}
   if(!args||Array.isArray(args)||typeof args!=='object')throw Error('MCP tool arguments must be a JSON object.');
   setCallApproved(false);
-  const d=await req('/api/magnanimous/tools/call','POST',{server_id:selectedTool.server_id,tool:selectedTool.tool_name,arguments:args});
+  const d=await req('/api/magnanimous/tools/call','POST',{server_id:selectedTool.server_id,tool:selectedTool.tool_name,arguments:args,confirm_live_call:true,acknowledge_external_effects:true,acknowledge_provider_charges:true});
   setResult(d);setMessage(d.ok?'Live enabled MCP tool returned a response.':'Live MCP call failed.');
  });
  return <section className="live">
