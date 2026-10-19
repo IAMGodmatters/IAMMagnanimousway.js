@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { normalizeMagnanimousMcpManifest, sameMagnanimousMcpManifest, fingerprintMagnanimousMcpManifest } from './magnanimous-mcp-manifest-guard.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -40,6 +41,7 @@ async function schema(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_tool_servers (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,name TEXT NOT NULL,server_url TEXT NOT NULL,auth_type TEXT NOT NULL DEFAULT 'none',auth_secret TEXT NOT NULL DEFAULT '',enabled INTEGER NOT NULL DEFAULT 1,status TEXT NOT NULL DEFAULT 'unknown',tool_count INTEGER NOT NULL DEFAULT 0,last_error TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(tenant_id,server_url))`).run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_discovered_tools (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,server_id INTEGER NOT NULL,tool_name TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',input_schema_json TEXT NOT NULL DEFAULT '{}',enabled INTEGER NOT NULL DEFAULT 1,updated_at INTEGER NOT NULL,UNIQUE(tenant_id,server_id,tool_name))`).run();
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_tool_audit (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,action TEXT NOT NULL,server_id INTEGER,tool_name TEXT NOT NULL DEFAULT '',success INTEGER NOT NULL DEFAULT 0,detail TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`).run();
+ await env.DB.prepare(`CREATE TABLE IF NOT EXISTS magnanimous_tool_manifest_reviews (tenant_id TEXT NOT NULL,server_id INTEGER NOT NULL,tool_name TEXT NOT NULL,description TEXT NOT NULL,input_schema_json TEXT NOT NULL,manifest_sha TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(tenant_id,server_id,tool_name))`).run();
 }
 async function audit(env,user,action,{serverId=null,tool='',success=false,detail=''}={}){try{await env.DB.prepare('INSERT INTO magnanimous_tool_audit(tenant_id,user_id,action,server_id,tool_name,success,detail,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(String(user.tenant_id),String(user.id),clip(action,100),serverId,clip(tool,200),success?1:0,clip(detail,1000),now()).run()}catch{}}
 
@@ -81,14 +83,50 @@ async function callTool(server,name,args,env){try{return await rpcModern(server,
 async function listServers(env,user){await schema(env);const{results=[]}=await env.DB.prepare('SELECT id,name,server_url,auth_type,enabled,status,tool_count,last_error,created_at,updated_at FROM magnanimous_tool_servers WHERE tenant_id=? ORDER BY name').bind(String(user.tenant_id)).all();return results}
 async function discoverOne(env,user,server){
  try{
-  const {result,protocol}=await listTools(server,env),tools=Array.isArray(result?.tools)?result.tools:[];
-  await env.DB.prepare('DELETE FROM magnanimous_discovered_tools WHERE tenant_id=? AND server_id=?').bind(String(user.tenant_id),server.id).run();
-  for(const t of tools.slice(0,500))await env.DB.prepare('INSERT INTO magnanimous_discovered_tools(tenant_id,server_id,tool_name,description,input_schema_json,enabled,updated_at) VALUES(?,?,?,?,?,1,?) ON CONFLICT(tenant_id,server_id,tool_name) DO UPDATE SET description=excluded.description,input_schema_json=excluded.input_schema_json,enabled=1,updated_at=excluded.updated_at').bind(String(user.tenant_id),server.id,clip(t.name,200),clip(t.description,3000),JSON.stringify(t.inputSchema||{}).slice(0,30000),now()).run();
-  await env.DB.prepare("UPDATE magnanimous_tool_servers SET status='ready',tool_count=?,last_error='',updated_at=? WHERE id=? AND tenant_id=?").bind(tools.length,now(),server.id,String(user.tenant_id)).run();
-  await audit(env,user,'discover',{serverId:server.id,success:true,detail:`${tools.length} tools via MCP ${protocol}`});
-  return{server_id:server.id,name:server.name,ok:true,protocol,tools:tools.map(t=>({name:t.name,description:t.description||'',inputSchema:t.inputSchema||{}}))};
+  const {result,protocol}=await listTools(server,env), tools=Array.isArray(result?.tools)?result.tools:[];
+  if(tools.length>500)throw Error('MCP tools/list exceeds 500 entries; permissions unchanged.');
+  const manifests=tools.map(normalizeMagnanimousMcpManifest);
+  if(new Set(manifests.map(m=>m.name)).size!==manifests.length)throw Error('Duplicate MCP tool names; permissions unchanged.');
+  const tenant=String(user.tenant_id), stamp=now();
+  const {results:rows=[]}=await env.DB.prepare('SELECT tool_name,description,input_schema_json,enabled FROM magnanimous_discovered_tools WHERE tenant_id=? AND server_id=?').bind(tenant,server.id).all();
+  const known=new Map(rows.map(row=>[row.tool_name,row])), seen=new Set();
+  let changed=0, withdrawn=0;
+  for(const m of manifests){
+   seen.add(m.name);
+   const row=known.get(m.name);
+   if(row&&sameMagnanimousMcpManifest(row,m)){
+    await env.DB.prepare('DELETE FROM magnanimous_tool_manifest_reviews WHERE tenant_id=? AND server_id=? AND tool_name=?').bind(tenant,server.id,m.name).run();
+    continue; // Preserve existing disabled state.
+   }
+   if(!row&&known.size===0){
+    // Manager registered this server; permit its first catalog only.
+    await env.DB.prepare('INSERT INTO magnanimous_discovered_tools(tenant_id,server_id,tool_name,description,input_schema_json,enabled,updated_at) VALUES(?,?,?,?,?,1,?)').bind(tenant,server.id,m.name,m.description,m.schemaJson,stamp).run();
+    continue;
+   }
+   // Fail closed before writing pending review, including for newly added tools.
+   if(row)await env.DB.prepare('UPDATE magnanimous_discovered_tools SET enabled=0,updated_at=? WHERE tenant_id=? AND server_id=? AND tool_name=?').bind(stamp,tenant,server.id,m.name).run();
+   else await env.DB.prepare('INSERT INTO magnanimous_discovered_tools(tenant_id,server_id,tool_name,description,input_schema_json,enabled,updated_at) VALUES(?,?,?,?,?,0,?)').bind(tenant,server.id,m.name,m.description,m.schemaJson,stamp).run();
+   await env.DB.prepare('INSERT INTO magnanimous_tool_manifest_reviews(tenant_id,server_id,tool_name,description,input_schema_json,manifest_sha,created_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(tenant_id,server_id,tool_name) DO UPDATE SET description=excluded.description,input_schema_json=excluded.input_schema_json,manifest_sha=excluded.manifest_sha,created_at=excluded.created_at').bind(tenant,server.id,m.name,m.description,m.schemaJson,await fingerprintMagnanimousMcpManifest(m),stamp).run();
+   changed++;
+   await audit(env,user,'manifest-review-required',{serverId:server.id,tool:m.name,detail:'Changed or added MCP tool disabled pending manager review.'});
+  }
+  for(const [name,row] of known){
+   if(seen.has(name))continue;
+   if(row.enabled){
+    await env.DB.prepare('UPDATE magnanimous_discovered_tools SET enabled=0,updated_at=? WHERE tenant_id=? AND server_id=? AND tool_name=?').bind(stamp,tenant,server.id,name).run();
+    withdrawn++;
+    await audit(env,user,'manifest-withdrawn',{serverId:server.id,tool:name,detail:'Tool missing from current upstream manifest; disabled.'});
+   }
+   await env.DB.prepare('DELETE FROM magnanimous_tool_manifest_reviews WHERE tenant_id=? AND server_id=? AND tool_name=?').bind(tenant,server.id,name).run();
+  }
+  await env.DB.prepare("UPDATE magnanimous_tool_servers SET status=?,tool_count=?,last_error='',updated_at=? WHERE id=? AND tenant_id=?").bind(changed?'review_required':'ready',tools.length,stamp,server.id,tenant).run();
+  await audit(env,user,'discover',{serverId:server.id,success:true,detail:`${tools.length} tools, ${changed} pending review, ${withdrawn} withdrawn, protocol ${protocol}`});
+  return{server_id:server.id,name:server.name,ok:true,protocol,review_required:changed,withdrawn,tools:manifests.map(m=>({name:m.name,description:m.description,inputSchema:JSON.parse(m.schemaJson)}))};
  }catch(e){
-  const message=clip(e?.message||e,1000);await env.DB.prepare("UPDATE magnanimous_tool_servers SET status='error',last_error=?,updated_at=? WHERE id=? AND tenant_id=?").bind(message,now(),server.id,String(user.tenant_id)).run();await audit(env,user,'discover',{serverId:server.id,success:false,detail:message});return{server_id:server.id,name:server.name,ok:false,error:message,tools:[]};
+  const message=clip(e?.message||e,1000);
+  await env.DB.prepare("UPDATE magnanimous_tool_servers SET status='error',last_error=?,updated_at=? WHERE id=? AND tenant_id=?").bind(message,now(),server.id,String(user.tenant_id)).run();
+  await audit(env,user,'discover',{serverId:server.id,success:false,detail:message});
+  return{server_id:server.id,name:server.name,ok:false,error:message,tools:[]};
  }
 }
 
@@ -110,10 +148,31 @@ export async function handleMagnanimousToolGateway(request,env){
   if(!isManager(user))return json({detail:'Owner or admin role required to refresh tool servers.'},403);
   const servers=await env.DB.prepare('SELECT * FROM magnanimous_tool_servers WHERE tenant_id=? AND enabled=1 ORDER BY id').bind(String(user.tenant_id)).all(),out=[];for(const s of servers.results||[])out.push(await discoverOne(env,user,s));return json({ok:true,servers:out,total_tools:out.reduce((n,x)=>n+(x.tools?.length||0),0)});
  }
- if(request.method==='POST'&&url.pathname==='/api/magnanimous/tools/call'){
+ if(request.method==='GET'&&url.pathname==='/api/magnanimous/tools/manifest-reviews'){
+   if(!isManager(user))return json({detail:'Owner or admin role required.'},403);
+   const {results=[]}=await env.DB.prepare('SELECT server_id,tool_name,description,input_schema_json,manifest_sha,created_at FROM magnanimous_tool_manifest_reviews WHERE tenant_id=? ORDER BY created_at DESC LIMIT 500').bind(String(user.tenant_id)).all();
+   return json({ok:true,identity:'Magnanimous AI',reviews:results.map(r=>({...r,input_schema:JSON.parse(r.input_schema_json)}))});
+  }
+  if(request.method==='POST'&&url.pathname==='/api/magnanimous/tools/manifest-reviews'){
+   if(!isManager(user))return json({detail:'Owner or admin role required.'},403);
+   const b=await request.json().catch(()=>({})),serverId=Number(b.server_id||0),tool=clip(b.tool,200),decision=String(b.decision||'');
+   if(!Number.isSafeInteger(serverId)||serverId<1||!tool||!['approve','reject'].includes(decision))return json({detail:'Valid server_id, tool and approve/reject decision are required.'},400);
+   const tenant=String(user.tenant_id);
+   const server=await env.DB.prepare('SELECT id FROM magnanimous_tool_servers WHERE tenant_id=? AND id=? AND enabled=1').bind(tenant,serverId).first();
+   if(!server)return json({detail:'Server not found or disabled.'},404);
+   const pending=await env.DB.prepare('SELECT * FROM magnanimous_tool_manifest_reviews WHERE tenant_id=? AND server_id=? AND tool_name=?').bind(tenant,serverId,tool).first();
+   if(!pending)return json({detail:'No pending manifest for this tool.'},404);
+   if(decision==='approve'){
+    await env.DB.prepare('UPDATE magnanimous_discovered_tools SET description=?,input_schema_json=?,enabled=1,updated_at=? WHERE tenant_id=? AND server_id=? AND tool_name=?').bind(pending.description,pending.input_schema_json,now(),tenant,serverId,tool).run();
+   }
+   await env.DB.prepare('DELETE FROM magnanimous_tool_manifest_reviews WHERE tenant_id=? AND server_id=? AND tool_name=?').bind(tenant,serverId,tool).run();
+   await audit(env,user,'manifest-'+decision,{serverId,tool,success:true,detail:pending.manifest_sha});
+   return json({ok:true,server_id:serverId,tool,decision,enabled:decision==='approve'});
+  }
+  if(request.method==='POST'&&url.pathname==='/api/magnanimous/tools/call'){
   const b=await request.json().catch(()=>({})),tool=clip(b.tool,200),serverId=Number(b.server_id||0);if(!tool||!serverId)return json({detail:'server_id and tool are required.'},400);
   const server=await env.DB.prepare('SELECT * FROM magnanimous_tool_servers WHERE tenant_id=? AND id=? AND enabled=1').bind(String(user.tenant_id),serverId).first();if(!server)return json({detail:'Tool server not found or disabled.'},404);
-  const known=await env.DB.prepare('SELECT enabled FROM magnanimous_discovered_tools WHERE tenant_id=? AND server_id=? AND tool_name=?').bind(String(user.tenant_id),serverId,tool).first();if(!known?.enabled)return json({detail:'Tool is not enabled in Magnanimous registry.'},403);
+  const known=await env.DB.prepare('SELECT enabled FROM magnanimous_discovered_tools WHERE tenant_id=? AND server_id=? AND tool_name=? AND NOT EXISTS (SELECT 1 FROM magnanimous_tool_manifest_reviews WHERE tenant_id=? AND server_id=? AND tool_name=?)').bind(String(user.tenant_id),serverId,tool,String(user.tenant_id),serverId,tool).first();if(!known?.enabled)return json({detail:'Tool is not enabled in Magnanimous registry.'},403);
   try{const result=await callTool(server,tool,b.arguments||{},env);await audit(env,user,'call',{serverId,tool,success:true});return json({ok:true,server:server.name,tool,result})}catch(e){const message=clip(e?.message||e,1200);await audit(env,user,'call',{serverId,tool,success:false,detail:message});return json({detail:message,code:'MCP_TOOL_CALL_FAILED'},502)}
  }
  if(request.method==='GET'&&url.pathname==='/api/magnanimous/tools/audit'){
