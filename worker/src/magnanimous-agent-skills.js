@@ -1,3 +1,4 @@
+import { MAGNANIMOUS_CLOUD_SECURITY_PLAYBOOKS } from './magnanimous-cloud-security-playbooks.js';
 const clip=(value,max=120000)=>String(value??'').replace(/\r\n/g,'\n').slice(0,max);
 const uniq=(items)=>[...new Set(items.filter(Boolean))];
 const MAX_SKILL_SOURCE_LENGTH=160000;
@@ -107,7 +108,8 @@ const BUILTIN=Object.freeze([
   triggers:['billing','stripe','paid api','gpu cost','telecom cost','20% upsale','metering','plan limit','checkout'],
   metadata:{owner:'Magnanimous AI',risk:'financial',capability_requirements:'payment confirmation and usage metering through existing billing gates'},
   instructions:`# Billing and Cost Guard\n\n1. Prefer free, native, browser, edge or owner-controlled capacity when it meets the requirement.\n2. Before variable external spend, confirm the customer entitlement or prepaid funding that covers the expected cost.\n3. Keep public price and terms understandable; preserve internal margin logic as private business configuration.\n4. Make activation depend on confirmed payment state, not a client-side success screen alone.\n5. Make webhook and fulfillment processing idempotent and auditable.\n6. Stop, meter, downgrade or request an upgrade when a funded limit is reached instead of silently spending beyond it.`
- }
+ },
+ ...MAGNANIMOUS_CLOUD_SECURITY_PLAYBOOKS
 ]);
 
 function normalizeName(value){return clip(value,80).trim();}
