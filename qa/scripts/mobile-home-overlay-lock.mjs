@@ -9,6 +9,14 @@ const approvedPath='frontend/public/mobile-dashboard-approved.webp';
 const sharpPath='frontend/public/mobile-dashboard-approved-sharp.webp';
 const approved=fs.readFileSync(approvedPath);
 const sharp=fs.readFileSync(sharpPath);
+const clearPath='frontend/public/mobile-dashboard-approved-clear.jpeg';
+const clear=fs.readFileSync(clearPath);
+const clearSha256=crypto.createHash('sha256').update(clear).digest('hex');
+const expectedClearSha256='7939b2bd5f404c9378f3cd745dc1448c6bd00d0b799fdbd93ae2ee8c276babaa';
+assert.equal(clearSha256,expectedClearSha256,'Owner-approved sharp original reference changed unexpectedly. Preserve the provided exact image.');
+assert.ok(clear.length>400000,'Owner-approved clear mobile image unexpectedly shrank or was replaced.');
+assert.ok(clear.subarray(0,3).equals(Buffer.from([0xff,0xd8,0xff])) && clear.subarray(-2).equals(Buffer.from([0xff,0xd9])),'Clear mobile artwork must be an intact JPEG.');
+
 const expectedApprovedGitBlob='65036a811159196e6fe1789760db162e901cf4fa';
 const expectedSharpGitBlob='b355bb1821555513c28786a19ec3be202f75575f';
 const gitBlobSha=input=>crypto.createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${input.length}\0`),input])).digest('hex');
@@ -49,6 +57,10 @@ assert.ok(!fs.existsSync('frontend/app/mobile-dashboard/page.tsx'),'Do not ship 
 assert.ok(page.includes('className="mobileExactStage"'),'Canonical mobile stage is missing.');
 assert.ok(page.includes('src="/mobile-dashboard-approved.webp"'),'Canonical mobile stage must keep the approved portrait artwork as the guaranteed visible fallback.');
 assert.ok(page.includes('className="mobileReferenceFrame"'),'Approved portrait artwork frame is missing.');
+assert.ok(page.includes('className="mobileReferenceClearArtwork" src="/mobile-dashboard-approved-clear.jpeg"'),'The exact uploaded clear reference must be the primary visible mobile enhancement.');
+assert.ok(page.includes('.mobileReferenceClearArtwork{position:absolute;inset:0;z-index:2;'),'Clear reference must cover the blurry legacy artwork without capturing pointer events.');
+assert.ok(page.includes('-webkit-user-drag:none;pointer-events:none}'),'Clear reference must never block the clickable mobile hotspots.');
+
 assert.ok(page.includes('className="mobileReferenceHot mobileCardHot"'),'Mobile module click hotspots are missing.');
 assert.ok(clarity.includes("background-image: url('/mobile-dashboard-approved.webp?lock=65036a811159196e6fe1789760db162e901cf4fa') !important"),'Mobile frame must lock the known-working approved artwork as its resilience background.');
 assert.ok(clarity.includes("body.iam-design-v2 .mobileReferenceFrame::after"),'Sharp enhancement layer is missing.');
@@ -73,4 +85,4 @@ assert.ok(page.includes('mobileServiceAlert degraded')&&page.includes('Some live
 assert.ok(page.includes('@media(prefers-reduced-motion:reduce)'),'Reduced-motion safety is missing.');
 assert.ok(page.includes("className={sidebarCollapsed?'exactStage desktopStage sidebarCollapsed':'exactStage desktopStage'}"),'Approved desktop dashboard structure changed unexpectedly.');
 assert.ok(page.includes('className="exactArtwork" src="/crm-upgrade.jpeg"'),'Approved desktop artwork source changed unexpectedly.');
-console.log('Immutable homepage artwork lock PASS: both WebP files are structurally complete, the known-working approved mobile image remains underneath the complete high-resolution enhancement, clickable routes remain above both layers, and desktop artwork stays unchanged.');
+console.log('Immutable homepage artwork lock PASS: both WebP files are structurally complete, the known-working approved mobile image remains underneath both high-resolution layers, including the exact owner-uploaded clear reference, clickable routes remain above both layers, and desktop artwork stays unchanged.');
