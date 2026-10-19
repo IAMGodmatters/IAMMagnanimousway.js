@@ -20,6 +20,14 @@ Verified public skills: `orca-cli`, `orchestration`, `computer-use`, `orca-linea
 Sources: https://github.com/stablyai/orca ; https://github.com/stablyai/orca/blob/main/docs/site/content/docs/cli/skills.mdx ; https://github.com/stablyai/orca/blob/main/docs/site/content/docs/cli/reference.mdx .
 
 ### Nethyric ORCA
+**All 46 tool names from the published docs** (not installed as Magnanimous runtime tools):
+
+`run_shell ` · `run_node ` · `run_python ` · `diagnostics ` · `read_file ` · `write_file ` · `edit_file ` · `delete_file ` · `list_files ` · `glob ` · `grep ` · `search_files`
+
+`web_search ` · `fetch_page ` · `http_request ` · `browser_check ` · `screenshot ` · `view_image ` · `ocr_image ` · `todo_write ` · `todo_read ` · `task ` · `ask_user ` · `start_process ` · `process_output ` · `stop_process ` · `list_processes`
+
+`remember ` · `recall ` · `project_init ` · `scaffold_site ` · `write_docx ` · `read_docx ` · `write_xlsx ` · `read_xlsx ` · `write_pptx ` · `read_pdf ` · `media_info ` · `media_edit ` · `media_concat ` · `media_from_images ` · `media_subtitles ` · `generate_image ` · `generate_video ` · `social_download ` · `social_trending`
+
 Its public tools reference includes execution (`run_shell`, `run_node`, `run_python`, `diagnostics`), files/search, web/HTTP, browser/screenshot/OCR, task and memory helpers, long-running processes, media and document generation and editing. The repo explicitly distinguishes risk levels. It describes snapshot/diff checkpoints and MCP schema fingerprinting to detect silent redefinition.
 Source: https://github.com/Nethyric/orca/blob/main/docs/tools.md ; https://github.com/Nethyric/orca .
 
