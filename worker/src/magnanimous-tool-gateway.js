@@ -102,11 +102,8 @@ async function discoverOne(env,user,server){
     await env.DB.prepare('DELETE FROM magnanimous_tool_manifest_reviews WHERE tenant_id=? AND server_id=? AND tool_name=?').bind(tenant,server.id,m.name).run();
     continue; // Preserve existing disabled state.
    }
-   if(!row&&known.size===0){
-    // Manager registered this server; permit its first catalog only.
-    await env.DB.prepare('INSERT INTO magnanimous_discovered_tools(tenant_id,server_id,tool_name,description,input_schema_json,enabled,updated_at) VALUES(?,?,?,?,?,1,?)').bind(tenant,server.id,m.name,m.description,m.schemaJson,stamp).run();
-    continue;
-   }
+   // Never implicitly activate unreviewed tools, including a brand-new server's first catalog.
+   // A connection is transport authorization, not execution approval.
    // Fail closed before writing pending review, including for newly added tools.
    if(row)await env.DB.prepare('UPDATE magnanimous_discovered_tools SET enabled=0,updated_at=? WHERE tenant_id=? AND server_id=? AND tool_name=?').bind(stamp,tenant,server.id,m.name).run();
    else await env.DB.prepare('INSERT INTO magnanimous_discovered_tools(tenant_id,server_id,tool_name,description,input_schema_json,enabled,updated_at) VALUES(?,?,?,?,?,0,?)').bind(tenant,server.id,m.name,m.description,m.schemaJson,stamp).run();
