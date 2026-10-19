@@ -5,23 +5,27 @@ on:
     branches: [main]
     paths:
       - 'worker/src/magnanimous-parallel-supervisor.js'
+      - 'magnanimous-runtime/src/orca-worktree-provisioner.mjs'
       - 'worker/src/magnanimous-openapi-mcp.js'
       - 'worker/src/magnanimous-tool-traces.js'
       - 'worker/src/magnanimous-dev-agent.js'
       - 'worker/src/magnanimous-api-contract-intelligence.js'
       - 'worker/src/magnanimous-tool-gateway.js'
       - 'qa/scripts/magnanimous-orca-completion-lock.mjs'
+      - 'qa/scripts/magnanimous-orca-worktree-lock.mjs'
       - '.github/workflows/magnanimous-orca-completion.yml'
   pull_request:
     branches: [main]
     paths:
       - 'worker/src/magnanimous-parallel-supervisor.js'
+      - 'magnanimous-runtime/src/orca-worktree-provisioner.mjs'
       - 'worker/src/magnanimous-openapi-mcp.js'
       - 'worker/src/magnanimous-tool-traces.js'
       - 'worker/src/magnanimous-dev-agent.js'
       - 'worker/src/magnanimous-api-contract-intelligence.js'
       - 'worker/src/magnanimous-tool-gateway.js'
       - 'qa/scripts/magnanimous-orca-completion-lock.mjs'
+      - 'qa/scripts/magnanimous-orca-worktree-lock.mjs'
       - '.github/workflows/magnanimous-orca-completion.yml'
   workflow_dispatch:
 
@@ -40,6 +44,8 @@ jobs:
       - name: Syntax and module checks
         run: |
           node --check worker/src/magnanimous-parallel-supervisor.js
+          node --check magnanimous-runtime/src/orca-worktree-provisioner.mjs
+          node --check qa/scripts/magnanimous-orca-worktree-lock.mjs
           node --check worker/src/magnanimous-openapi-mcp.js
           node --check worker/src/magnanimous-tool-traces.js
           node --check worker/src/magnanimous-dev-agent.js
@@ -49,6 +55,7 @@ jobs:
       - name: Verify safe and free native Orca execution capabilities
         run: |
           node qa/scripts/magnanimous-orca-completion-lock.mjs
+          node qa/scripts/magnanimous-orca-worktree-lock.mjs
           node qa/scripts/magnanimous-mcp-manifest-guard-lock.mjs
           node qa/scripts/magnanimous-api-contract-intelligence-lock.mjs
           node qa/scripts/magnanimous-dev-agent-lock.mjs
