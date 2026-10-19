@@ -34,7 +34,7 @@ const gateway=fs.readFileSync('worker/src/magnanimous-tool-gateway.js','utf8');
 assert.ok(!gateway.includes("DELETE FROM magnanimous_discovered_tools WHERE tenant_id=? AND server_id=?"),'Discovery must not erase approved manifests and permission states.');
 for(const part of [
  'manifest-review-required','manifest-withdrawn','magnanimous_tool_manifest_reviews',
- "decision==='approve'","decision==='reject'","enabled=0",
+ "decision==='approve'","['approve','reject']","enabled=0",
  "NOT EXISTS (SELECT 1 FROM magnanimous_tool_manifest_reviews",
  'if(!isManager(user))'
 ])assert.ok(gateway.includes(part),'Missing MCP safety invariant: '+part);
