@@ -1,5 +1,6 @@
 'use client';
 import {useState} from 'react';
+import OrcaLiveOperations from './live-operations';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 const examplePlan={
@@ -14,12 +15,13 @@ const exampleContract={
 };
 const stringify=(v:unknown)=>JSON.stringify(v,null,2);
 const token=()=>typeof window==='undefined'?'':(localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||'');
+type DevPlan={repo:string;base_ref:string;tasks:{id:string;title:string;branch:string;files:string[];risk_review_required?:boolean}[]};
 type ResponseValue={detail?:string;[key:string]:any};
 
 export default function OrcaWorkbench(){
  const[planJson,setPlanJson]=useState(stringify(examplePlan));
  const[contractJson,setContractJson]=useState(stringify(exampleContract));
- const[planResult,setPlanResult]=useState<ResponseValue|null>(null);
+ const[planResult,setPlanResult]=useState<DevPlan|null>(null);
  const[contractResult,setContractResult]=useState<ResponseValue|null>(null);
  const[traceResult,setTraceResult]=useState<ResponseValue|null>(null);
  const[drafts,setDrafts]=useState<ResponseValue|null>(null);
@@ -40,7 +42,7 @@ export default function OrcaWorkbench(){
  function parse(value:string){
   try{return JSON.parse(value)}catch{throw new Error('The pasted text must be valid JSON.')}
  }
- const plan=()=>run('plan',async()=>{const d=await request('/api/magnanimous/dev-agent/parallel/plan','POST',parse(planJson));setPlanResult(d.plan||d);setMessage('Safe development plan generated. No branches, agents or paid services were started.');});
+ const plan=()=>run('plan',async()=>{const d=await request('/api/magnanimous/dev-agent/parallel/plan','POST',parse(planJson));setPlanResult((d.plan||d) as DevPlan);setMessage('Safe development plan generated. No branches, agents or paid services were started.');});
  const preview=()=>run('preview',async()=>{const d=await request('/api/magnanimous/api-contract/mcp-preview','POST',{material:parse(contractJson)});setContractResult(d.draft);setMessage('MCP tool draft generated. Every tool is disabled until separately approved and connected.');});
  const stage=()=>run('stage',async()=>{const d=await request('/api/magnanimous/api-contract/mcp-stage','POST',{material:parse(contractJson),acknowledge_draft_only:true});setMessage(`Saved disabled draft ${d.id}. No outside API was contacted.`);await viewDrafts();});
  const viewDrafts=async()=>{setDrafts(await request('/api/magnanimous/api-contract/mcp-drafts'));};
@@ -55,6 +57,7 @@ export default function OrcaWorkbench(){
    <article><small>2 • BUILD CONNECTOR DRAFTS</small><h2>OpenAPI to MCP</h2><p>Paste an OpenAPI 3 JSON contract. Generate tool definitions without connecting to or charging the outside service.</p><label htmlFor="orca-api">API specification (JSON)</label><textarea id="orca-api" value={contractJson} onChange={e=>setContractJson(e.target.value)} spellCheck={false}/><div className="actions"><button disabled={busy!==''} onClick={preview}>{busy==='preview'?'Checking…':'Preview disabled tools'}</button><button className="secondary" disabled={busy!==''} onClick={stage}>{busy==='stage'?'Saving…':'Save as disabled draft'}</button></div><button className="subtle" disabled={busy!==''} onClick={getDrafts}>View my saved drafts</button>{contractResult&&<pre aria-label="Generated disabled MCP tool definitions">{stringify(contractResult)}</pre>}{drafts&&<pre aria-label="Saved disabled MCP drafts">{stringify(drafts)}</pre>}</article>
    <article><small>3 • VERIFY EXECUTION</small><h2>Tool diagnostics</h2><p>Inspect recent MCP tool-call success, failures, latency and response sizes. No prompts, credentials, or results are stored in the trace database.</p><button disabled={busy!==''} onClick={viewTraces}>{busy==='traces'?'Loading…':'View tool diagnostics'}</button><p className="hint">Only confirmed provider costs can be displayed as costs. Unverified costs remain unknown.</p>{traceResult&&<pre aria-label="MCP tool execution diagnostics">{stringify(traceResult)}</pre>}</article>
   </section>
+  <OrcaLiveOperations plan={planResult?.tasks?planResult:null}/>
   <footer>Magnanimous AI remains the owner of intelligence, memory, authorization, security policy and verification. Repository writes, external tool activation, telecommunications and payments remain governed by their existing controls.</footer>
   <style jsx>{`
    *{box-sizing:border-box} .page{min-height:100vh;background:#07101b;color:#eef8ff;font-family:Inter,system-ui,sans-serif;padding:28px;overflow-wrap:anywhere}
