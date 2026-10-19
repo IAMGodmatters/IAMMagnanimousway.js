@@ -99,8 +99,9 @@ async function discoverOne(env,user,server){
    let same=false;
    try{same=Boolean(row)&&sameMagnanimousMcpManifest(row,m)}catch{same=false}
    if(same){
-    await env.DB.prepare('DELETE FROM magnanimous_tool_manifest_reviews WHERE tenant_id=? AND server_id=? AND tool_name=?').bind(tenant,server.id,m.name).run();
-    continue; // Preserve existing disabled state.
+    // Preserve pending review during refresh. Deleting it would strand disabled tools
+    // with no actionable manager approval path.
+    continue; // Preserve existing enabled state and any pending review.
    }
    // Never implicitly activate unreviewed tools, including a brand-new server's first catalog.
    // A connection is transport authorization, not execution approval.
