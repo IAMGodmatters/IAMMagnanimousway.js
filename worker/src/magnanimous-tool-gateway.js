@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { recordMagnanimousToolSpan, listMagnanimousToolSpans } from './magnanimous-tool-traces.js';
 import { normalizeMagnanimousMcpManifest, sameMagnanimousMcpManifest, fingerprintMagnanimousMcpManifest } from './magnanimous-mcp-manifest-guard.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
@@ -176,7 +177,24 @@ export async function handleMagnanimousToolGateway(request,env){
   const b=await request.json().catch(()=>({})),tool=clip(b.tool,200),serverId=Number(b.server_id||0);if(!tool||!serverId)return json({detail:'server_id and tool are required.'},400);
   const server=await env.DB.prepare('SELECT * FROM magnanimous_tool_servers WHERE tenant_id=? AND id=? AND enabled=1').bind(String(user.tenant_id),serverId).first();if(!server)return json({detail:'Tool server not found or disabled.'},404);
   const known=await env.DB.prepare('SELECT enabled FROM magnanimous_discovered_tools WHERE tenant_id=? AND server_id=? AND tool_name=? AND NOT EXISTS (SELECT 1 FROM magnanimous_tool_manifest_reviews WHERE tenant_id=? AND server_id=? AND tool_name=?)').bind(String(user.tenant_id),serverId,tool,String(user.tenant_id),serverId,tool).first();if(!known?.enabled)return json({detail:'Tool is not enabled in Magnanimous registry.'},403);
-  try{const result=await callTool(server,tool,b.arguments||{},env);await audit(env,user,'call',{serverId,tool,success:true});return json({ok:true,server:server.name,tool,result})}catch(e){const message=clip(e?.message||e,1200);await audit(env,user,'call',{serverId,tool,success:false,detail:message});return json({detail:message,code:'MCP_TOOL_CALL_FAILED'},502)}
+  const started=Date.now();
+  try{
+   const result=await callTool(server,tool,b.arguments||{},env);
+   const responseBytes=new TextEncoder().encode(JSON.stringify(result??null)).length;
+   const trace_recorded=await recordMagnanimousToolSpan(env,{tenant:user.tenant_id,user:user.id,serverId,tool,success:true,durationMs:Date.now()-started,responseBytes}).then(()=>true).catch(()=>false);
+   await audit(env,user,'call',{serverId,tool,success:true});
+   return json({ok:true,server:server.name,tool,result,trace_recorded});
+  }catch(e){
+   const status=String(e?.message||'').match(/(?:returned|HTTP)\s+(\d{3})/i)?.[1]||'';
+   const errorKind=status?'UPSTREAM_HTTP_'+status:'MCP_TOOL_CALL_FAILED';
+   const trace_recorded=await recordMagnanimousToolSpan(env,{tenant:user.tenant_id,user:user.id,serverId,tool,success:false,durationMs:Date.now()-started,errorKind}).then(()=>true).catch(()=>false);
+   await audit(env,user,'call',{serverId,tool,success:false,detail:errorKind});
+   return json({detail:'The remote MCP tool failed. Check the owner diagnostic trace and server status.',code:errorKind,trace_recorded},502);
+  }
+ }
+ if(request.method==='GET'&&url.pathname==='/api/magnanimous/tools/traces'){
+  if(!isManager(user))return json({detail:'Owner/admin role required for tool diagnostics.'},403);
+  return json({ok:true,...await listMagnanimousToolSpans(env,user.tenant_id)});
  }
  if(request.method==='GET'&&url.pathname==='/api/magnanimous/tools/audit'){
   if(!isManager(user))return json({detail:'Owner or admin role required.'},403);const{results=[]}=await env.DB.prepare('SELECT id,user_id,action,server_id,tool_name,success,detail,created_at FROM magnanimous_tool_audit WHERE tenant_id=? ORDER BY id DESC LIMIT 250').bind(String(user.tenant_id)).all();return json({ok:true,audit:results});

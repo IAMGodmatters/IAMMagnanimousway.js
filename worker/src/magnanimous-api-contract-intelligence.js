@@ -1,4 +1,6 @@
 import { currentUser } from './integrations.js';
+import { requirePlatformOwner } from './platform-owner-guard.js';
+import { generateMagnanimousMcpDraft } from './magnanimous-openapi-mcp.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const METHODS=new Set(['get','post','put','patch','delete','options','head']);
@@ -208,7 +210,7 @@ export const MAGNANIMOUS_API_CONTRACT_INTELLIGENCE=Object.freeze({
  brain:'Magnanimous AI',
  native:true,
  provider_required:false,
- capabilities:['extract-api-contract','documentation-coverage','compare-contract-versions','classify-breaking-changes','impact-map'],
+ capabilities:['extract-api-contract','documentation-coverage','compare-contract-versions','classify-breaking-changes','impact-map','openapi-to-mcp-preview','openapi-to-mcp-staged-drafts'],
  truth_rule:'Only explicit contract/documentation material is analyzed. Missing facts are reported rather than invented.'
 });
 
@@ -218,6 +220,29 @@ export async function handleMagnanimousApiContractIntelligence(request,env){
  const user=await currentUser(request,env);
  if(!user)return json({detail:'Sign in to use Magnanimous API Contract Intelligence.'},401);
  if(request.method==='GET'&&path==='/api/magnanimous/api-contract')return json(MAGNANIMOUS_API_CONTRACT_INTELLIGENCE);
+ if(path==='/api/magnanimous/api-contract/mcp-drafts'&&request.method==='GET'){
+  const denied=await requirePlatformOwner(request,env);if(denied)return denied;
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS magnanimous_api_mcp_drafts(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,manifest_json TEXT NOT NULL,created_at INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'draft')").run();
+  const {results=[]}=await env.DB.prepare("SELECT id,status,created_at,manifest_json FROM magnanimous_api_mcp_drafts WHERE tenant_id=? AND user_id=? ORDER BY created_at DESC LIMIT 50").bind(String(user.tenant_id),String(user.id)).all();
+  return json({ok:true,identity:'Magnanimous AI',drafts:results.map(row=>{const m=JSON.parse(row.manifest_json);return{id:row.id,status:row.status,created_at:row.created_at,contract:m.contract,version:m.version,generated_tools:m.generated_tools,executable:false}})});
+ }
+ if(path==='/api/magnanimous/api-contract/mcp-preview'||path==='/api/magnanimous/api-contract/mcp-stage'){
+  const denied=await requirePlatformOwner(request,env);if(denied)return denied;
+  if(request.method!=='POST')return json({detail:'POST required.'},405);
+  const raw=await request.text();
+  if(new TextEncoder().encode(raw).byteLength>250000)return json({detail:'Request exceeds maximum 250 KB.'},413);
+  let body;try{body=JSON.parse(raw)}catch{return json({detail:'Valid JSON body is required.'},400)}
+  let draft;try{draft=generateMagnanimousMcpDraft(body?.material??body?.contract??body?.spec)}
+  catch(error){return json({detail:error instanceof Error?error.message:'OpenAPI contract rejected.'},400)}
+  if(path.endsWith('mcp-preview'))return json({ok:true,draft});
+  if(body?.acknowledge_draft_only!==true)return json({detail:'Explicit acknowledgement that generated tools remain disabled drafts is required.'},400);
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS magnanimous_api_mcp_drafts(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,manifest_json TEXT NOT NULL,created_at INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'draft')").run();
+  const {total=0}=await env.DB.prepare("SELECT COUNT(*) AS total FROM magnanimous_api_mcp_drafts WHERE tenant_id=? AND user_id=?").bind(String(user.tenant_id),String(user.id)).first()||{};
+  if(Number(total)>=50)return json({detail:'Maximum 50 owner drafts; archive old drafts separately before adding more.'},409);
+  const id=crypto.randomUUID();
+  await env.DB.prepare("INSERT INTO magnanimous_api_mcp_drafts(id,tenant_id,user_id,manifest_json,created_at,status) VALUES(?,?,?,?,?,'draft')").bind(id,String(user.tenant_id),String(user.id),JSON.stringify(draft),Math.floor(Date.now()/1000)).run();
+  return json({ok:true,id,status:'draft',executable:false,generated_tools:draft.generated_tools,view_endpoint:'/api/magnanimous/api-contract/mcp-drafts'},201);
+ }
  if(request.method!=='POST')return json({detail:'Method not allowed.'},405);
  const body=await request.json().catch(()=>({}));
  if(path==='/api/magnanimous/api-contract/extract')return json({ok:true,contract:extractApiContract(body.material??body.contract??body.text??'')});
