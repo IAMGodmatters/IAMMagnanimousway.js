@@ -94,7 +94,10 @@ async function discoverOne(env,user,server){
   for(const m of manifests){
    seen.add(m.name);
    const row=known.get(m.name);
-   if(row&&sameMagnanimousMcpManifest(row,m)){
+   // A legacy row may contain the old gateway's truncated JSON. Treat it as untrusted drift.
+   let same=false;
+   try{same=Boolean(row)&&sameMagnanimousMcpManifest(row,m)}catch{same=false}
+   if(same){
     await env.DB.prepare('DELETE FROM magnanimous_tool_manifest_reviews WHERE tenant_id=? AND server_id=? AND tool_name=?').bind(tenant,server.id,m.name).run();
     continue; // Preserve existing disabled state.
    }
