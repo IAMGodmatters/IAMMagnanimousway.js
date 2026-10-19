@@ -42,6 +42,7 @@ The repo already has a native Capability Mesh, Agent Skills parser/catalog/resol
 | Preserve disabled tools on refresh | Removed automatic wholesale deletion/re-enablement | **Implemented on this branch** |
 | Missing/upstream withdrawn tool handling | Disable missing tools on refresh; audit event | **Implemented on this branch** |
 | Regression and CI verification | Dependency-free Node tests and free pull-request workflow | **Implemented on this branch; CI confirmation required** |
+| Orca-inspired native skills | MCP manifest integrity, supervised parallel development and cloud-security evidence triage as Magnanimous-owned Agent Skills | **Implemented on this branch; skill resolution tests included** |
 | Parallel agent worktree comparisons | Build Magnanimous native supervisor with budget and sandbox isolation, not another agent identity | Future: needs infrastructure and safety evaluation |
 | Full model/tool execution traces with cost and scrubbed payloads | Extend existing durable receipts and audit with bounded, redacted spans | Future; avoid storing private prompts or keys |
 | Live API-to-MCP generation | Map contract analysis through existing Tool Foundry, stage read-only tools first | Future; require per-operation auth, metering and review |
@@ -53,6 +54,8 @@ The repo already has a native Capability Mesh, Agent Skills parser/catalog/resol
 
 Files:
 - `worker/src/magnanimous-mcp-manifest-guard.js`: canonical order-insensitive JSON schema normalization and SHA-256 manifest fingerprint, strict length/type checks.
+- `worker/src/magnanimous-agent-skills.js`: three new native skills, with no assertion that external security telemetry or agent infrastructure is connected.
+- `qa/scripts/magnanimous-agent-skills-lock.mjs`: goal resolution and skill catalog tests.
 - `worker/src/magnanimous-tool-gateway.js`: persistent `magnanimous_tool_manifest_reviews` table, drift quarantine, missing-tool disable, review API, tenant-scoped approval and audit.
 - `qa/scripts/magnanimous-mcp-manifest-guard-lock.mjs`: deterministic change/validation/regression assertions.
 - `.github/workflows/magnanimous-mcp-manifest-guard.yml`: source checks on relevant PRs and main pushes.
