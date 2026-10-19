@@ -1,0 +1,38 @@
+name: Orca MCP Execution Integrity
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-tool-gateway.js'
+      - 'worker/src/magnanimous-mcp-invocation-guard.js'
+      - 'qa/scripts/magnanimous-orca-execution-security-lock.mjs'
+      - '.github/workflows/magnanimous-orca-execution-integrity.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/magnanimous-tool-gateway.js'
+      - 'worker/src/magnanimous-mcp-invocation-guard.js'
+      - 'qa/scripts/magnanimous-orca-execution-security-lock.mjs'
+      - '.github/workflows/magnanimous-orca-execution-integrity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Check source and test syntax
+        run: |
+          node --check worker/src/magnanimous-tool-gateway.js
+          node --check worker/src/magnanimous-mcp-invocation-guard.js
+          node --check qa/scripts/magnanimous-orca-execution-security-lock.mjs
+      - name: Verify MCP tool integrity
+        run: |
+          node qa/scripts/magnanimous-orca-execution-security-lock.mjs
+          node qa/scripts/magnanimous-mcp-manifest-guard-lock.mjs
+          node qa/scripts/magnanimous-orca-live-actions-lock.mjs
