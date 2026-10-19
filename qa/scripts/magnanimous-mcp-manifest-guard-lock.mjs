@@ -39,5 +39,6 @@ for(const part of [
  'if(!isManager(user))'
 ])assert.ok(gateway.includes(part),'Missing MCP safety invariant: '+part);
 assert.ok(gateway.includes('new Set(manifests.map(m=>m.name))'),'Duplicate names must be rejected.');
-assert.ok(gateway.includes('known.size===0'),'Initial manager registration and refresh must be distinct.');
+assert.ok(!gateway.includes('if(!row&&known.size===0)'),'A fresh MCP server catalog must never auto-enable tools.');
+assert.ok(gateway.includes('A connection is transport authorization, not execution approval.'),'A server connection must require separate tool approval.');
 console.log('Magnanimous MCP manifest drift and owner-review lock passed.');
