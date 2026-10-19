@@ -15,6 +15,10 @@ on:
       - 'qa/scripts/magnanimous-orca-completion-lock.mjs'
       - 'qa/scripts/magnanimous-orca-worktree-lock.mjs'
       - 'qa/scripts/magnanimous-orca-trace-db-lock.mjs'
+      - 'qa/scripts/magnanimous-orca-ui-lock.mjs'
+      - 'frontend/app/orca-workbench/page.tsx'
+      - 'frontend/app/developer-agent/page.tsx'
+      - 'frontend/public/robots.txt'
       - '.github/workflows/magnanimous-orca-completion.yml'
   pull_request:
     branches: [main]
@@ -30,6 +34,10 @@ on:
       - 'qa/scripts/magnanimous-orca-completion-lock.mjs'
       - 'qa/scripts/magnanimous-orca-worktree-lock.mjs'
       - 'qa/scripts/magnanimous-orca-trace-db-lock.mjs'
+      - 'qa/scripts/magnanimous-orca-ui-lock.mjs'
+      - 'frontend/app/orca-workbench/page.tsx'
+      - 'frontend/app/developer-agent/page.tsx'
+      - 'frontend/public/robots.txt'
       - '.github/workflows/magnanimous-orca-completion.yml'
   workflow_dispatch:
 
@@ -51,6 +59,7 @@ jobs:
           node --check magnanimous-runtime/src/orca-worktree-provisioner.mjs
           node --check magnanimous-runtime/scripts/orca-worktrees.mjs
           node --check qa/scripts/magnanimous-orca-trace-db-lock.mjs
+          node --check qa/scripts/magnanimous-orca-ui-lock.mjs
           node --check qa/scripts/magnanimous-orca-worktree-lock.mjs
           node --check worker/src/magnanimous-openapi-mcp.js
           node --check worker/src/magnanimous-tool-traces.js
@@ -63,6 +72,7 @@ jobs:
           node qa/scripts/magnanimous-orca-completion-lock.mjs
           node qa/scripts/magnanimous-orca-worktree-lock.mjs
           node qa/scripts/magnanimous-orca-trace-db-lock.mjs
+          node qa/scripts/magnanimous-orca-ui-lock.mjs
           node qa/scripts/magnanimous-mcp-manifest-guard-lock.mjs
           node qa/scripts/magnanimous-api-contract-intelligence-lock.mjs
           node qa/scripts/magnanimous-dev-agent-lock.mjs
