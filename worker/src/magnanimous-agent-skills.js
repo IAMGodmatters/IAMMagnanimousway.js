@@ -60,6 +60,48 @@ const BUILTIN=Object.freeze([
   instructions:`# Clean-room Capability Assimilation\n\n1. Identify the public capabilities, interfaces and user-visible workflows worth matching.\n2. Check the license and separate permissively reusable material from source-available, proprietary, trademarked or unclear material.\n3. Prefer independent Magnanimous implementations of techniques and contracts over copying provider identity or private internals.\n4. Attribute reused open-source material as required and retain applicable notices.\n5. Integrate through existing Magnanimous brain, memory, policy and Tool Foundry layers.\n6. Add regression checks that prevent later work from falsely claiming proprietary technology as native Magnanimous ownership.`
  },
  {
+  name:'mcp-manifest-integrity',
+  description:'Inspect a registered MCP server for unexpected tool-name, description, or schema changes, quarantine changes, and review them through the authenticated Magnanimous owner workflow. Use after adding tools, refreshing connectors, investigating tool drift, or before restoring disabled integrations.',
+  triggers:['mcp manifest','tool schema changed','tool drift','tool security review','manifest review','unexpected tool change'],
+  metadata:{owner:'Magnanimous AI',risk:'authorization-sensitive',capability_requirements:'registered MCP server and authenticated owner/admin for manifest approval'},
+  instructions:`# MCP Manifest Integrity
+
+1. Discover only approved servers and compare the current tool definitions with the previously trusted registry.
+2. Treat changed descriptions, altered schemas, new tools added after initial registration, and withdrawn tools as untrusted until reviewed.
+3. Use GET /api/magnanimous/tools/manifest-reviews to show pending changes to an authenticated owner/admin. Never leak third-party tool descriptions into public pages.
+4. Keep changed tools disabled. An authorized manager can POST an explicit approve or reject decision for each reviewed manifest.
+5. Preserve deliberately disabled tools and tenant separation. Do not bypass tool authorization, confirmation, payments, consent, or regulatory gates.
+6. Record audit evidence and test ordinary operation plus altered, malformed, missing, and newly introduced tool definitions before claiming safety.`
+ },
+ {
+  name:'supervised-parallel-development',
+  description:'Plan safe parallel feature development using separate Git branches or worktrees, independent acceptance tests, diff review, and a single verified merge. Use when a user wants multiple coding agents or parallel independent solutions without changing the core Magnanimous AI identity.',
+  triggers:['parallel agents','parallel development','worktrees','compare coding agents','multiple coding agents','supervise developers'],
+  metadata:{owner:'Magnanimous AI',risk:'code-write',capability_requirements:'authorized repository and isolated worktrees or branch support'},
+  instructions:`# Supervised Parallel Development
+
+1. Read current main and write clear acceptance checks for every independent branch or worktree.
+2. Only fan work out when isolation exists; never let workers write over the same checkout or overwrite newer main.
+3. Keep provider harnesses and specialist agents subordinate to Magnanimous AI, with bounded costs and separate credentials.
+4. Test each candidate, compare diffs and regressions, and select the safest verified change set. Do not merge code merely because a model says it passed.
+5. Check billing/Stripe, permissions, customer session, regulated telecom and approved visuals where touched.
+6. Merge through the existing guarded repository process, verify deployment evidence separately, then close redundant branches only when safe.`
+ },
+ {
+  name:'cloud-security-evidence-triage',
+  description:'Analyze authorized alerts, cloud misconfiguration evidence, sensitive-data exposure, permissions, dependency risk and remediation blast radius with read-only checks before proposing or applying a fix. Use for infrastructure security assessments without claiming paid Orca Security telemetry is available.',
+  triggers:['cloud alert','cloud security audit','attack path','identity permissions','security posture','cloud misconfiguration','cve blast radius'],
+  metadata:{owner:'Magnanimous AI',risk:'security-sensitive',capability_requirements:'authorized cloud or repository telemetry; external cloud posture provider optional'},
+  instructions:`# Cloud Security Evidence Triage
+
+1. Verify which tenant, cloud accounts, assets and sources the operator is authorized to inspect.
+2. Gather read-only evidence of exposure, identity privilege, affected dependencies and compliance obligations.
+3. Distinguish verified vulnerabilities from suspected exposure; report uncertainty and blast radius.
+4. Prefer native code, dependency and configuration analysis; paid third-party cloud scanning must not be assumed connected.
+5. Generate a small reversible remediation plan, preserve access and working functionality, and require the existing authorization/approval gates for live changes.
+6. Verify remediation against evidence and log what was actually checked, not what was merely recommended.`
+ },
+ {
   name:'billing-and-cost-guard',
   description:'Protect Magnanimous AI from unfunded variable costs while preserving clear customer activation. Use for paid APIs, GPU jobs, telecom, premium agents, metered services, Stripe checkout, plan limits, and any feature that can create ongoing external cost.',
   triggers:['billing','stripe','paid api','gpu cost','telecom cost','20% upsale','metering','plan limit','checkout'],
