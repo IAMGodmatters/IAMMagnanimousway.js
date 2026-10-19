@@ -32,6 +32,10 @@ assert.ok(controls.includes('server_id:selectedTool.server_id'),'Live call is sc
 assert.ok(controls.includes("type=\"password\""),'Provider tokens must not be rendered in visible text.');
 assert.ok(!controls.includes('localStorage.setItem'),'Do not persist provider secrets in browser storage.');
 assert.ok(gateway.includes('// Never implicitly activate unreviewed tools'),'MCP must start disabled.');
+assert.ok(gateway.includes("h.includes(':')")&&gateway.includes("h.endsWith('.internal')"),'Blocked IP literals/private hostnames must not be used for credentialed MCP.');
+assert.ok(gateway.includes('Credentialed MCP redirect across origins is blocked.'),'Bearer authorization must not follow cross-origin redirects.');
+assert.ok(gateway.includes('if(same){')&&gateway.includes('Preserve pending review during refresh'),'Pending manager approval must survive rediscovery.');
+
 assert.ok(!gateway.includes('if(!row&&known.size===0)'),'First catalog must be quarantined.');
 assert.ok(gateway.includes("'manifest-review-required'")&&gateway.includes('enabled=0'),'Every new or modified tool must be queued for review.');
 assert.ok(gateway.includes("if(!isManager(user))"),'Tool approvals require owner/admin.');
