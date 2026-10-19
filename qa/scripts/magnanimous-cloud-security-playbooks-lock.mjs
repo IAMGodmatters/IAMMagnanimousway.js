@@ -18,7 +18,7 @@ for(const skill of MAGNANIMOUS_CLOUD_SECURITY_PLAYBOOKS){
  const result=resolveMagnanimousAgentSkills(skill.triggers[0],{limit:12});
  assert.ok(result.some(s=>s.name===skill.name),'Skill must resolve from its target phrase: '+skill.name);
 }
-assert.ok(getMagnanimousAgentSkillsSummary().builtin_skill_count>=30);
+assert.ok(getMagnanimousAgentSkillsSummary().builtin_skill_count>=MAGNANIMOUS_CLOUD_SECURITY_PLAYBOOKS.length+9);
 const src=fs.readFileSync('worker/src/magnanimous-cloud-security-playbooks.js','utf8');
 assert.ok(!src.includes('apiKey'));
 assert.ok(!src.includes('fetch('));
