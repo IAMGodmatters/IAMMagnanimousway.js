@@ -4,6 +4,10 @@
 
 Continue merged PR #716 without replacing Magnanimous AI. Add useful agent work coordination, execution observability, and safe OpenAPI-to-MCP transformation **inside Magnanimous**. No Orca runtime, provider identity, proprietary dependency, paid service, customer-visible redesign, or uncontrolled external request is introduced.
 
+## Owner navigation and mobile UI
+
+A new purpose-built owner screen at `/orca-workbench` offers working controls to create a parallel plan, preview a submitted OpenAPI contract, stage disabled MCP drafts, list staged draft summaries and inspect execution traces. It is reachable from the existing `/developer-agent` console using a new link, without modifying any approved homepage imagery or replacing existing navigation. The page uses the existing owner session token for API requests, has form labels, responsive phone layout, keyboard focus cues and live status messages. It is excluded from `robots.txt`. Backend owner/role checks remain the authoritative security boundary.
+
 ## Implemented feature 1 — supervised parallel development
 
 Native module: `worker/src/magnanimous-parallel-supervisor.js`.
@@ -66,6 +70,6 @@ Actual MCP tool calls now emit bounded metadata-only event spans: tenant and use
 
 ## Verification
 
-`node qa/scripts/magnanimous-orca-completion-lock.mjs` checks safe parallel waves, overlaps, cycles, unsafe paths, cost caps, OpenAPI schema/refs/method classifications, no auto execution, privacy metadata, owner authorization and route wiring. `qa/scripts/magnanimous-orca-worktree-lock.mjs` verifies actual local Git worktree creation and unchanged main. `qa/scripts/magnanimous-orca-trace-db-lock.mjs` verifies SQLite tenant isolation, aggregated spans and secret-free storage. Existing MCP schema-drift, API contract intelligence and developer-agent regression locks remain in CI.
+`node qa/scripts/magnanimous-orca-completion-lock.mjs` checks safe parallel waves, overlaps, cycles, unsafe paths, cost caps, OpenAPI schema/refs/method classifications, no auto execution, privacy metadata, owner authorization and route wiring. `qa/scripts/magnanimous-orca-worktree-lock.mjs` verifies actual local Git worktree creation and unchanged main. `qa/scripts/magnanimous-orca-trace-db-lock.mjs` verifies SQLite tenant isolation, aggregated spans and secret-free storage. `qa/scripts/magnanimous-orca-ui-lock.mjs` validates owner navigation and clickable routes; frontend typechecks/build run as part of existing platform CI. Existing MCP schema-drift, API contract intelligence and developer-agent regression locks remain in CI.
 
 Sources and capability catalog: `docs/ORCA-ECOSYSTEM-CAPABILITY-AUDIT-2026-10-19.md`. No third-party Orca source was copied.
