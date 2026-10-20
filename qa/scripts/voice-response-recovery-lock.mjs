@@ -17,6 +17,8 @@ for(const phrase of [
  'Sing me a song!',
  'Please sing me a song.',
  'Can you sing us a little song?',
+ '[WRITING MODE]\nsing me a song',
+ '[BIBLE STUDY MODE]\nPlease sing me a song.',
 ]){
  const lyrics=song(phrase);
  assert.match(lyrics,/A Brighter Day/);
@@ -30,16 +32,21 @@ assert.equal(song('Give me the latest headlines'),'','research tasks must route 
 assert.match(provider,/if\(originalLyrics\)return json\(\{output:originalLyrics/);
 assert.match(provider,/native_song:true/);
 assert.match(provider,/voice_performance:'not-generated'/);
-assert.match(provider,/const otherFreeReady=PROVIDERS\.some/,'detect other configured free AI engines');
+assert.match(provider,/const otherFreeReady=Boolean\(freeFailoverAvailable\)/,'only shorten Workers AI budget for real alternate candidates');
+assert.match(provider,/freeFailoverAvailable=requested==='auto'&&candidates\.slice/,'honor explicit provider selection and remaining failover candidates');
 assert.match(provider,/otherFreeReady\?24000:CLOUDFLARE_MODEL_BUDGET_MS/,'reserve failover time only when another free engine exists');
 assert.match(provider,/Math\.min\(modelTimeout,remaining\)/,'apply the adaptive per-model timeout');
 assert.match(assistant,/message: isSimpleSong \? request :/,'Virtual Assistant passes simple song prompts directly');
 assert.match(assistant,/if \(d\.degraded \|\| d\.code === "AI_PROVIDER_POOL_DEGRADED"\)/,'Virtual Assistant must detect provider exhaustion despite HTTP 200');
 assert.match(assistant,/setTask\(request\);/,'Virtual Assistant must restore failed request');
+assert.match(assistant,/!ready && !isSimpleSongRequest\(request\)/,'native song bypasses the no-provider run guard');
+assert.match(assistant,/!ready && !isSimpleSongRequest\(task\)/,'native song bypasses the no-provider button guard');
+assert.match(assistant,/partialSources\.length && String\(d\.output\|\|""\)\.trim\(\)/,'source-backed degraded results must remain visible');
 assert.ok(assistant.indexOf('setTask("");')>assistant.indexOf('setOutput(d.output);'),'draft only clears after real success');
 assert.match(assistant,/availablePersonaVoices\(/);
 assert.match(assistant,/setPreferredPersonaVoiceId\(e\.target\.value\)/);
 assert.match(standalone,/d\?\.degraded===true\|\|d\?\.code==='AI_PROVIDER_POOL_DEGRADED'/,'standalone chat must expose retry');
+assert.match(standalone,/partialSources\.length&&partialText/,'standalone must retain partial research results');
 assert.match(voices,/getPreferredPersonaVoiceId/);
 assert.match(voices,/const preferred=voices\.find/);
 assert.match(voices,/if\(central\)return\{voice:chosen,rate:\.98,pitch:1/);
