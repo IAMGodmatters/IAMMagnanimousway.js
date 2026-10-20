@@ -141,6 +141,7 @@ export default function StandaloneMagnanimous(){
    },transportOptions);
    const d=await r.json().catch(()=>({}));
    if(!r.ok)throw new Error(String(d?.detail||d?.error||`Magnanimous returned ${r.status}`));
+   if(d?.degraded===true||d?.code==='AI_PROVIDER_POOL_DEGRADED')throw new Error('The AI response engines are temporarily unavailable. Your request can be retried without retyping.');
    const answer=String(d?.output||d?.answer||'Magnanimous completed the request but returned no text.');
    const learned=Number(d?.link_learning?.absorbed||0);
    const grounded=Number(d?.sources?.length||0);
