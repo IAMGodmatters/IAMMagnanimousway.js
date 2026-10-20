@@ -26,6 +26,7 @@ export default function LocalBridgePage(){
  const [installGit,setInstallGit]=useState(true);
  const [notice,setNotice]=useState('');
  const [busy,setBusy]=useState('');
+ const [heimdallTaskId,setHeimdallTaskId]=useState('');
  const [copied,setCopied]=useState(false);
 
  const headers=(json=false)=>{const h:Record<string,string>={Authorization:`Bearer ${token}`};if(json)h['Content-Type']='application/json';return h};
@@ -70,6 +71,32 @@ export default function LocalBridgePage(){
    setNotice(`Health verification queued as ${d.id}. Magnanimous will update this page when the computer returns evidence.`);
    setTimeout(()=>void refresh(),1000);
   }catch(e:any){setNotice(e?.message||'Could not queue health check.')}finally{setBusy('')}
+ }
+
+ async function runHeimdall(device:Device,action:'heimdall_status'|'heimdall_detect'){
+  if(busy||!device.online||!device.capabilities.includes(action))return;
+  if(action==='heimdall_detect'&&!confirm('I confirm that I own this Samsung device or have written authorization to service it. Perform USB detection only?'))return;
+  setBusy('heimdall');setNotice('');
+  try{
+   const d=await read(await fetch('/api/magnanimous/local-bridge/tasks',{method:'POST',headers:headers(true),body:JSON.stringify({device_id:device.id,action,payload:action==='heimdall_detect'?{ownership_confirmed:true}:{}})}));
+   setHeimdallTaskId(d.id);
+   if(d.requires_confirmation){
+    if(!confirm(`Confirm task ${d.id}: detect USB device without writing firmware or bypassing any protections?`)){
+     setNotice(`Task ${d.id} awaits separate confirmation. No USB detection was executed.`);return;
+    }
+    await read(await fetch(d.confirmation_endpoint,{method:'POST',headers:headers(true)}));
+   }
+   setNotice(`Task ${d.id} was queued on ${device.name}. Select CHECK TASK RESULT to see its verified result.`);
+  }catch(e:any){setNotice(e?.message||'Unable to queue local device task.')}finally{setBusy('')}
+ }
+
+ async function readHeimdallResult(){
+  if(!heimdallTaskId||busy)return;setBusy('read-heimdall');
+  try{
+   const d=await read(await fetch(`/api/magnanimous/local-bridge/tasks/${encodeURIComponent(heimdallTaskId)}`,{headers:headers(),cache:'no-store'}));
+   const task=d.task||d;
+   setNotice(`Heimdall task ${heimdallTaskId}: ${task.status||'unknown'}.`+(task.status==='completed'?` Result: ${JSON.stringify(task.result||{}).slice(0,1200)}`:'')+(task.error?` Error: ${String(task.error).slice(0,300)}`:''));
+  }catch(e:any){setNotice(e?.message||'Could not read the device task status.')}finally{setBusy('')}
  }
 
  async function revoke(device:Device){
@@ -140,6 +167,20 @@ export default function LocalBridgePage(){
   </section>
 
   {notice&&<div className="notice" role="status">{notice}</div>}
+
+  <section className="card" aria-label="Authorized Samsung device diagnostics">
+   <small>FREE OPEN-SOURCE • OPTIONAL • OWNER LOCAL BRIDGE</small><h2>Samsung device diagnostics</h2>
+   <p>Heimdall is a separate MIT-licensed utility controlled by Magnanimous AI. Version checks are read-only; USB detection requires proof of permission and exact-task confirmation. Firmware writing, unlocking and erasure are disabled.</p>
+   {activeDevices.length===0?<p>Pair an owner-controlled computer to activate local tool checks.</p>:activeDevices.map(d=><div key={d.id}>
+    <b>{d.name}</b> <span>{d.online?'Online':'Offline'}</span>
+    <div>
+     <button disabled={!d.online||!d.capabilities.includes('heimdall_status')||Boolean(busy)} onClick={()=>runHeimdall(d,'heimdall_status')}>CHECK HEIMDALL STATUS</button>
+     <button disabled={!d.online||!d.capabilities.includes('heimdall_detect')||Boolean(busy)} onClick={()=>runHeimdall(d,'heimdall_detect')}>DETECT AUTHORIZED DEVICE</button>
+    </div>
+    {!d.capabilities.includes('heimdall_detect')&&<p>USB detection is unavailable until a reviewed Heimdall CLI is installed locally and your Local Bridge agent is updated.</p>}
+   </div>)}
+   {heimdallTaskId&&<button disabled={Boolean(busy)} onClick={readHeimdallResult}>CHECK TASK RESULT</button>}
+  </section>
 
   <section className="grid">
    <article className="card">

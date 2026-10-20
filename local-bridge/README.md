@@ -15,6 +15,12 @@ The Magnanimous Local Bridge closes the local-computer/private-network boundary 
 - `main` and `master` are protected from local commits.
 - Netwalk actions are advertised only when Core-Dv1 is configured locally; Core-Dv1 remains responsible for read-only command allowlists and authorized network scope.
 
+## Authorized Samsung phone diagnostics (optional Heimdall)
+
+Source is pinned under `third_party/heimdall` as a Git submodule, MIT licensed by Benjamin Dobell / Glass Echidna. Run `git submodule update --init --recursive` to obtain complete source in a trusted checkout. No executable or firmware is installed automatically.
+
+Owner-only Local Bridge actions: `heimdall_status` (version, no device contact) and `heimdall_detect` (read-only USB detection; installed local CLI, explicit device authorization and separate exact-task confirmation required). No remote flash, erase, bypass, arbitrary args, or downloads. See `docs/HEIMDALL-SAMSUNG-LOCAL-SERVICE.md`.
+
 ## Windows
 
 1. In I AM MAGNANIMOUS WAY™, open **Owner → Local Bridge**.

@@ -22,6 +22,8 @@ export const LOCAL_BRIDGE_ACTIONS=Object.freeze({
  archive_list:{risk:'low',auto:true,confirmation:false,family:'approved-local-archive'},
  archive_test:{risk:'medium',auto:true,confirmation:false,family:'approved-local-archive'},
  android_device_status:{risk:'low',auto:true,confirmation:false,family:'owner-android-device'},
+ heimdall_status:{risk:'low',auto:true,confirmation:false,family:'authorized-phone-service'},
+ heimdall_detect:{risk:'medium',auto:false,confirmation:true,family:'authorized-phone-service'},
  storage_status:{risk:'low',auto:true,confirmation:false,family:'cloud-storage'},
  storage_remotes:{risk:'low',auto:true,confirmation:false,family:'cloud-storage'},
  storage_about:{risk:'low',auto:true,confirmation:false,family:'cloud-storage'},
@@ -157,7 +159,8 @@ function validateTask(action,payload){
  const def=LOCAL_BRIDGE_ACTIONS[action];if(!def)throw new Error('Unsupported local bridge action.');
  const body=payload&&typeof payload==='object'&&!Array.isArray(payload)?payload:{};
  if(def.scope_required&&!clip(body.authorization_note,1000))throw new Error('Recorded owner authorization is required for this Netwalk action.');
- if(action.startsWith('storage_')){
+ if(action==='heimdall_detect'&&body.ownership_confirmed!==true)throw new Error('Device-owner authorization required for Heimdall USB detection.');
+  if(action.startsWith('storage_')){
   const forbidden=['token','access_token','refresh_token','client_secret','password','passwd','api_key','secret'];
   for(const key of forbidden)if(Object.prototype.hasOwnProperty.call(body,key))throw new Error('Cloud storage credentials must remain local to the paired bridge.');
   const safeRef=value=>{
