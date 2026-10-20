@@ -243,7 +243,13 @@ async function cloudflare(env, message, model) {
     '@cf/nvidia/nemotron-3-120b-a12b',
     '@cf/google/gemma-4-26b-a4b-it'
   ].filter(Boolean))];
-  const errors = [],deadline=Date.now()+CLOUDFLARE_MODEL_BUDGET_MS;
+  // If another free engine is ready, do not let a stalled Workers AI model
+  // consume nearly all of the shared 55-second provider-failover budget.
+  // Preserve the full original budget when Workers AI is the only free option.
+  const otherFreeReady=PROVIDERS.some(p=>p.id!=='cloudflare-ai'&&configured(env,p)&&providerEnabled(env,p)&&effectiveTier(env,p)==='free-first');
+  const cloudflareBudget=otherFreeReady?24000:CLOUDFLARE_MODEL_BUDGET_MS;
+  const modelTimeout=otherFreeReady?8000:CLOUDFLARE_ATTEMPT_TIMEOUT_MS;
+  const errors = [],deadline=Date.now()+cloudflareBudget;
   for (const m of models) {
     const remaining=deadline-Date.now();
     if(remaining<1500){errors.push('Workers AI fallback budget exhausted');break}
@@ -254,7 +260,7 @@ async function cloudflare(env, message, model) {
           { role: 'user', content: message }
         ],
         max_tokens: 1400
-      }),Math.min(CLOUDFLARE_ATTEMPT_TIMEOUT_MS,remaining),`Workers AI ${m}`);
+      }),Math.min(modelTimeout,remaining),`Workers AI ${m}`);
       const text = extractCloudflareText(result).trim();
       if (text) return { text, model: m };
       errors.push(`${m}: empty response`);
