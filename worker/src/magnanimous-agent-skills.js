@@ -109,6 +109,19 @@ const BUILTIN=Object.freeze([
   metadata:{owner:'Magnanimous AI',risk:'financial',capability_requirements:'payment confirmation and usage metering through existing billing gates'},
   instructions:`# Billing and Cost Guard\n\n1. Prefer free, native, browser, edge or owner-controlled capacity when it meets the requirement.\n2. Before variable external spend, confirm the customer entitlement or prepaid funding that covers the expected cost.\n3. Keep public price and terms understandable; preserve internal margin logic as private business configuration.\n4. Make activation depend on confirmed payment state, not a client-side success screen alone.\n5. Make webhook and fulfillment processing idempotent and auditable.\n6. Stop, meter, downgrade or request an upgrade when a funded limit is reached instead of silently spending beyond it.`
  },
+ {
+   name:'samsung-firmware-service-diagnostics',
+   description:'Check owner-installed Heimdall Samsung utility readiness and optionally detect an authorized Samsung device over a paired Magnanimous Local Bridge; no flashing, lock bypass or erasure.',
+   triggers:['heimdall','samsung repair','samsung firmware','samsung usb','odin download mode','repair samsung'],
+   metadata:{owner:'Magnanimous AI',risk:'physical-device',upstream:'Benjamin-Dobell/Heimdall',upstream_license:'MIT',native_capabilities:'heimdall_status,heimdall_detect'},
+   instructions:`# Samsung device diagnostics
+
+1. Magnanimous AI retains memory, policy, authorization and orchestration. Heimdall is separately attributed optional infrastructure.
+2. Use \`heimdall_status\` first on an online paired owner-controlled Local Bridge. Never automatically download or run installers.
+3. Require device ownership or documented custodian authorization before \`heimdall_detect\`. Request existing exact-task confirmation. Only the \`heimdall detect\` argv operation is permitted.
+4. Do not flash firmware, extract personal data, erase, unlock, bypass device protections or accept arbitrary shell arguments.
+5. Compatibility is device-specific and unverified until tested. Maintain source MIT attribution and warn about device-bricking risks for any future firmware operation.`
+ },
  ...MAGNANIMOUS_CLOUD_SECURITY_PLAYBOOKS
 ]);
 
