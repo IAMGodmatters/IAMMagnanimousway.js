@@ -12,6 +12,7 @@ const sitemap=fs.readFileSync(path.join(root,'frontend/public/sitemap.xml'),'utf
 const billing=fs.readFileSync(path.join(root,'worker/src/billing-tiers-runtime.js'),'utf8');
 const businessPlan=fs.readFileSync(path.join(root,'worker/src/business-plan-subscription-runtime.js'),'utf8');
 const failures=[];
+const read = rel => fs.readFileSync(path.join(root,rel),'utf8');
 
 function must(condition,message){if(!condition)failures.push(message);}
 function escaped(route){return route.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
