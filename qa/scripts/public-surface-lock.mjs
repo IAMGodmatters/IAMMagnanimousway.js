@@ -12,6 +12,7 @@ const sitemap=fs.readFileSync(path.join(root,'frontend/public/sitemap.xml'),'utf
 const billing=fs.readFileSync(path.join(root,'worker/src/billing-tiers-runtime.js'),'utf8');
 const businessPlan=fs.readFileSync(path.join(root,'worker/src/business-plan-subscription-runtime.js'),'utf8');
 const failures=[];
+const read = rel => fs.readFileSync(path.join(root,rel),'utf8');
 
 function must(condition,message){if(!condition)failures.push(message);}
 function escaped(route){return route.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
@@ -25,7 +26,7 @@ must(Boolean(runtimeMatch),'runtime public allowlist must remain machine-verifia
 must(Boolean(templateMatch),'template public allowlist must remain machine-verifiable');
 const runtimeAllowlist=runtimeMatch?.[1]||'';
 const templateAllowlist=templateMatch?.[1]||'';
-const publicRoutes=['/','/teach','/shop','/login','/signup','/owner-login','/solutions','/guide','/launchplan','/business-plan','/funding','/security','/free-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label','/movie','/reels','/plugin-support','/plugin-demo'];
+const publicRoutes=['/','/teach','/shop','/login','/signup','/owner-login','/solutions','/guide','/launchplan','/business-plan','/funding','/security','/free-tools','/samsung-tools','/ai-apps','/pricing','/reviews','/privacy','/terms','/advertise','/white-label','/movie','/reels','/plugin-support','/plugin-demo'];
 const protectedRoutes=['/magnanimous','/bible-study','/ai-chat','/crm','/connections','/assistant-actions','/owner-center','/owner-billing','/phone','/telecom','/space','/mux','/knowledge','/virtual-assistant','/video-studio','/movie-maker','/agents'];
 
 for(const route of publicRoutes){
@@ -53,9 +54,23 @@ must(!runtimeAllowlist.includes("'/magnanimous'"),'standalone Magnanimous must n
 for(const route of ['/ai-chat/','/crm/','/connections/','/assistant-actions/','/owner-center/','/phone/','/telecom/','/space/','/mux/']){
  must(robots.includes(`Disallow: ${route}`),`robots must keep protected operational surface out of crawling: ${route}`);
 }
-for(const route of ['/solutions/','/guide/','/business-plan/','/funding/','/security/','/free-tools/','/ai-apps/','/reels/','/pricing/','/reviews/','/privacy/','/terms/','/plugin-support/','/plugin-demo/']){
+for(const route of ['/solutions/','/guide/','/business-plan/','/funding/','/security/','/free-tools/','/samsung-tools/','/ai-apps/','/reels/','/pricing/','/reviews/','/privacy/','/terms/','/plugin-support/','/plugin-demo/']){
  must(sitemap.includes(`<loc>https://iammagnanimousway.com${route}</loc>`),`sitemap must keep public discovery route indexed: ${route}`);
 }
+
+const samsungPublic=read('frontend/app/samsung-tools/page.tsx');
+const samsungLayout=read('frontend/app/samsung-tools/layout.tsx');
+const freeToolsPage=read('frontend/app/free-tools/page.tsx');
+const bridgeRuntime=read('worker/src/magnanimous-local-bridge-runtime.js');
+must(samsungPublic.includes('Benjamin-Dobell/Heimdall'), 'Public Samsung page must attribute upstream source.');
+must(samsungPublic.includes('MIT license'), 'Public Samsung page must state MIT licensing.');
+must(samsungPublic.includes('not remote phone repair offered to the public'), 'Public Samsung page must disclose hardware limitations.');
+must(samsungPublic.includes('/local-bridge'), 'Public Samsung page must link to existing owner access gate.');
+must(!samsungPublic.includes('/api/magnanimous/local-bridge'), 'Public informational page must never call the private task API.');
+must(samsungLayout.includes("canonical:'/samsung-tools/'"), 'Public route must declare an accurate canonical URL.');
+must(freeToolsPage.includes('href="/samsung-tools"'), 'Free Tools must link to public Samsung discovery.');
+must(bridgeRuntime.includes("heimdall_detect:{risk:'medium',auto:false,confirmation:true"), 'USB detection must keep exact-task confirmation.');
+must(!bridgeRuntime.includes('heimdall_flash:{'), 'Unreviewed firmware write operations must not be exposed.');
 
 const billingTruth=[
  ['Magnanimous Unlimited Fair-Use','19.99','MONTH'],
