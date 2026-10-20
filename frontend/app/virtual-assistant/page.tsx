@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { speakTextNaturally, stopNaturalSpeech } from "../../lib/natural-speech";
-import { configurePersonaVoice } from "../../lib/persona-voice";
+import { availablePersonaVoices, configurePersonaVoice, getPreferredPersonaVoiceId, setPreferredPersonaVoiceId } from "../../lib/persona-voice";
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 async function read(r: Response) {
   const t = await r.text();
@@ -80,6 +80,8 @@ export default function VA() {
     [webSearchReady, setWebSearchReady] = useState(false),
     [sources, setSources] = useState<any[]>([]),
     [notice, setNotice] = useState("");
+  const [voiceChoices,setVoiceChoices]=useState<Array<{id:string;label:string}>>([]);
+  const [voiceChoice,setVoiceChoice]=useState("");
   const current = useMemo(() => modes[type], [type]);
   useEffect(() => {
     const token =
@@ -111,6 +113,14 @@ export default function VA() {
       })
       .finally(() => setChecking(false));
   }, []);
+  useEffect(()=>{
+    if(typeof window==='undefined'||!('speechSynthesis' in window))return;
+    const updateVoices=()=>setVoiceChoices(availablePersonaVoices());
+    setVoiceChoice(getPreferredPersonaVoiceId());
+    updateVoices();
+    window.speechSynthesis.addEventListener?.('voiceschanged',updateVoices);
+    return()=>window.speechSynthesis.removeEventListener?.('voiceschanged',updateVoices);
+  },[]);
   async function run() {
     const request = task.trim();
     if (!request || busy || !ready) return;
@@ -118,7 +128,6 @@ export default function VA() {
     setOutput("");
     setSources([]);
     setNotice("");
-    setTask("");
     try {
       const token =
         localStorage.getItem("odin_admin_token") ||
@@ -127,11 +136,12 @@ export default function VA() {
       const h: Record<string, string> = { "Content-Type": "application/json" };
       if (token) h.Authorization = `Bearer ${token}`;
       const research = type === "Research" && webSearchReady;
+      const isSimpleSong=/^(?:(?:hey\s+)?magnanimous[,\s]+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?sing\s+(?:(?:me|us)\s+)?(?:(?:an?|some)\s+)?(?:(?:short|little|happy|original)\s+)*song(?:\s+(?:for\s+me|please))?[.!?]*$/i.test(request);
       const r = await fetch(`${api}/api/chat`, {
           method: "POST",
           headers: h,
           body: JSON.stringify({
-            message: `${current.prompt}\n\nMode: ${type}\nRequest: ${request}\n\nUse saved workspace knowledge when it is available. Point out missing information, suggest the best next move, and provide ready-to-use copy where appropriate.`,
+            message: isSimpleSong ? request : `${current.prompt}\n\nMode: ${type}\nRequest: ${request}\n\nUse saved workspace knowledge when it is available. Point out missing information, suggest the best next move, and provide ready-to-use copy where appropriate.`,
             use_knowledge: true,
             live_search: research,
             news: research,
@@ -140,10 +150,14 @@ export default function VA() {
         }),
         d = await read(r);
       if (!r.ok) throw new Error(d.detail || "Assistant request failed.");
+      if (d.degraded || d.code === "AI_PROVIDER_POOL_DEGRADED")
+        throw new Error("The AI response engines are temporarily unavailable. Your request is saved below; tap CREATE RESULT to retry.");
       if (!String(d.output || "").trim())
         throw new Error("Magnanimous AI returned an empty response.");
       setOutput(d.output);
+      setTask("");
       setSources(d.sources || []);
+      if (d.native_song) setNotice("Original song lyrics are ready. READ RESULT speaks them; free browser speech is not a genuine singing voice.");
       setProvider("Magnanimous AI private routing");
       if (type === "Research" && d.web_search_configured === false)
         setNotice(
@@ -301,6 +315,12 @@ export default function VA() {
                 {speaking ? "STOP VOICE" : "🔊 READ RESULT"}
               </button>
             )}
+            {voiceChoices.length>0&&<label className="voice-choice">Voice
+              <select aria-label="Choose spoken voice" value={voiceChoice} onChange={e=>{setVoiceChoice(e.target.value);setPreferredPersonaVoiceId(e.target.value);}}>
+                <option value="">Best available</option>
+                {voiceChoices.map(v=><option key={v.id} value={v.id}>{v.label}</option>)}
+              </select>
+            </label>}
           </div>
           {!ready && !checking && (
             <div className="notice">
@@ -733,6 +753,8 @@ export default function VA() {
           opacity: 0.45;
           cursor: not-allowed;
         }
+        .voice-choice{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#bbeef9}
+        .voice-choice select{max-width:185px;min-width:110px;border:1px solid rgba(105,215,249,.36);border-radius:9px;padding:9px;background:#091b28;color:#eaf7ff;font:inherit}
         .assign {
           border: 0;
           background: linear-gradient(90deg, #1c8fbd, #b97d24);
