@@ -67,6 +67,7 @@ const modes: Record<string, { prompt: string; presets: string[] }> = {
     ],
   },
 };
+const isSimpleSongRequest=(request:string)=>/^(?:(?:hey\s+)?magnanimous[,\s]+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?sing\s+(?:(?:me|us)\s+)?(?:(?:an?|some)\s+)?(?:(?:short|little|happy|original)\s+)*song(?:\s+(?:for\s+me|please))?[.!?]*$/i.test(request.trim());
 export default function VA() {
   const [task, setTask] = useState(""),
     [type, setType] = useState("Daily Assistant"),
@@ -123,7 +124,7 @@ export default function VA() {
   },[]);
   async function run() {
     const request = task.trim();
-    if (!request || busy || !ready) return;
+    if (!request || busy || (!ready && !isSimpleSongRequest(request))) return;
     setBusy(true);
     setOutput("");
     setSources([]);
@@ -136,7 +137,7 @@ export default function VA() {
       const h: Record<string, string> = { "Content-Type": "application/json" };
       if (token) h.Authorization = `Bearer ${token}`;
       const research = type === "Research" && webSearchReady;
-      const isSimpleSong=/^(?:(?:hey\s+)?magnanimous[,\s]+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?sing\s+(?:(?:me|us)\s+)?(?:(?:an?|some)\s+)?(?:(?:short|little|happy|original)\s+)*song(?:\s+(?:for\s+me|please))?[.!?]*$/i.test(request);
+      const isSimpleSong=isSimpleSongRequest(request);
       const r = await fetch(`${api}/api/chat`, {
           method: "POST",
           headers: h,
@@ -150,8 +151,17 @@ export default function VA() {
         }),
         d = await read(r);
       if (!r.ok) throw new Error(d.detail || "Assistant request failed.");
-      if (d.degraded || d.code === "AI_PROVIDER_POOL_DEGRADED")
+      if (d.degraded || d.code === "AI_PROVIDER_POOL_DEGRADED") {
+        const partialSources=Array.isArray(d.sources)?d.sources:[];
+        if(partialSources.length && String(d.output||"").trim()) {
+          setOutput(d.output);
+          setSources(partialSources);
+          setProvider("AI response engines temporarily unavailable");
+          setNotice("Partial research is available above. Your request is still here; tap CREATE RESULT to retry the AI response.");
+          return;
+        }
         throw new Error("The AI response engines are temporarily unavailable. Your request is saved below; tap CREATE RESULT to retry.");
+      }
       if (!String(d.output || "").trim())
         throw new Error("Magnanimous AI returned an empty response.");
       setOutput(d.output);
@@ -306,7 +316,7 @@ export default function VA() {
             <button
               className="assign"
               onClick={run}
-              disabled={busy || checking || !ready || !task.trim()}
+              disabled={busy || checking || (!ready && !isSimpleSongRequest(task)) || !task.trim()}
             >
               {busy ? "CREATING…" : "CREATE RESULT →"}
             </button>
@@ -324,7 +334,7 @@ export default function VA() {
           </div>
           {!ready && !checking && (
             <div className="notice">
-              Magnanimous AI needs at least one ready execution path before assignments can run.
+              AI-powered assignments need a configured response engine. The built-in original-song request works without one.
             </div>
           )}
           {notice && <div className="notice">{notice}</div>}

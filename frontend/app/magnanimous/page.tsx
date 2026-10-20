@@ -141,7 +141,17 @@ export default function StandaloneMagnanimous(){
    },transportOptions);
    const d=await r.json().catch(()=>({}));
    if(!r.ok)throw new Error(String(d?.detail||d?.error||`Magnanimous returned ${r.status}`));
-   if(d?.degraded===true||d?.code==='AI_PROVIDER_POOL_DEGRADED')throw new Error('The AI response engines are temporarily unavailable. Your request can be retried without retyping.');
+   if(d?.degraded===true||d?.code==='AI_PROVIDER_POOL_DEGRADED'){
+    const partialSources=extractSources(d?.sources);
+    const partialText=String(d?.output||'').trim();
+    if(partialSources.length&&partialText){
+     setLastFailed({text,mode:requestMode.id});
+     setInput(text);
+     setMessages(v=>[...v,{id:userId+1,role:'assistant',assistantName:'Magnanimous AI',silentVoice:true,content:partialText,meta:'Partial research • AI response unavailable • Retry is available',sources:partialSources}]);
+     return;
+    }
+    throw new Error('The AI response engines are temporarily unavailable. Your request can be retried without retyping.');
+   }
    const answer=String(d?.output||d?.answer||'Magnanimous completed the request but returned no text.');
    const learned=Number(d?.link_learning?.absorbed||0);
    const grounded=Number(d?.sources?.length||0);
