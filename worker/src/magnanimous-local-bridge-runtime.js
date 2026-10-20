@@ -330,7 +330,7 @@ async function overview(env,user){
  const {results:activationRows=[]}=await env.DB.prepare("SELECT t.* FROM magnanimous_local_bridge_tasks t JOIN (SELECT device_id,MAX(created_at) created_at FROM magnanimous_local_bridge_tasks WHERE tenant_id=? AND action='health' GROUP BY device_id) latest ON latest.device_id=t.device_id AND latest.created_at=t.created_at WHERE t.tenant_id=? AND t.action='health'").bind(tenantId,tenantId).all();
  const activations=new Map(activationRows.map(x=>[String(x.device_id),x]));
  const devices=results.map(x=>publicDevice(x,activations.get(String(x.id))));
- const pending=Number((await env.DB.prepare("SELECT COUNT(*) n FROM magnanimous_local_bridge_tasks WHERE tenant_id=? AND status IN ('queued','claimed','needs_confirmation')").bind(tenantId).first())?.n||0);
+ const pending=Number((await env.DB.prepare("SELECT COUNT(*) n FROM magnanimous_local_bridge_tasks WHERE tenant_id=? AND status IN ('queued','claimed','needs_confirmation') AND expires_at>=?").bind(tenantId,now()).first())?.n||0);
  return{identity:'Magnanimous AI',mode:'outbound-local-bridge',ready:devices.some(x=>x.online&&x.status==='active'&&x.activation.verified),paired:devices.some(x=>x.online&&x.status==='active'),policy:LOCAL_BRIDGE_POLICY,actions:LOCAL_BRIDGE_ACTIONS,devices,pending_tasks:pending};
 }
 
