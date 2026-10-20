@@ -122,7 +122,7 @@ function originalUserMessage(message) {
 // A simple original song stays available even during an AI-provider outage.
 // Lyrics are not a sung recording; do not trigger metered generation here.
 function nativeOriginalSong(message) {
-  const request=String(message||'').trim();
+  const request=String(message||'').trim().replace(/^\[(?:RESEARCH|BUSINESS|WRITING|CODING|BIBLE STUDY) MODE\]\s*/i,'').trim();
   const simpleSong=/^(?:(?:hey\s+)?magnanimous[,\s]+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?sing\s+(?:(?:me|us)\s+)?(?:(?:an?|some)\s+)?(?:(?:short|little|happy|original)\s+)*song(?:\s+(?:for\s+me|please))?[.!?]*$/i;
   if(!simpleSong.test(request))return'';
   return [
@@ -234,7 +234,7 @@ function extractCloudflareText(result) {
   return '';
 }
 
-async function cloudflare(env, message, model) {
+async function cloudflare(env, message, model, freeFailoverAvailable=false) {
   if (env?.AI == null) throw new Error('Cloudflare Workers AI binding is not configured');
   const requested = String(model || env.CLOUDFLARE_AI_MODEL || '').trim();
   const models = [...new Set([
@@ -246,7 +246,7 @@ async function cloudflare(env, message, model) {
   // If another free engine is ready, do not let a stalled Workers AI model
   // consume nearly all of the shared 55-second provider-failover budget.
   // Preserve the full original budget when Workers AI is the only free option.
-  const otherFreeReady=PROVIDERS.some(p=>p.id!=='cloudflare-ai'&&configured(env,p)&&providerEnabled(env,p)&&effectiveTier(env,p)==='free-first');
+  const otherFreeReady=Boolean(freeFailoverAvailable);
   const cloudflareBudget=otherFreeReady?24000:CLOUDFLARE_MODEL_BUDGET_MS;
   const modelTimeout=otherFreeReady?8000:CLOUDFLARE_ATTEMPT_TIMEOUT_MS;
   const errors = [],deadline=Date.now()+cloudflareBudget;
@@ -271,7 +271,7 @@ async function cloudflare(env, message, model) {
   throw new Error(`Workers AI inference failed within the bounded request budget. ${errors.join(' | ')}`);
 }
 
-async function callProvider(id, env, message, model) {
+async function callProvider(id, env, message, model, options={}) {
   if (id === 'openai') {const m=model || env.OPENAI_MODEL || 'gpt-6-luna',out=await openai(env,message,m);return {...out,model:m};}
   if (id === 'anthropic') {const m=model || env.ANTHROPIC_MODEL || 'claude-sonnet-5',out=await anthropic(env,message,m);return {...out,model:m};}
   if (id === 'google') {const m=model || env.GOOGLE_MODEL || 'gemini-3.8-flash',out=await google(env,message,m);return {...out,model:m};}
@@ -281,7 +281,7 @@ async function callProvider(id, env, message, model) {
   if (id === 'nvidia-kimi') {const m=model || env.NVIDIA_KIMI_MODEL || 'moonshotai/kimi-k3',out=await openaiCompatible('https://integrate.api.nvidia.com/v1',env.NVIDIA_API_KEY,m,message,'NVIDIA Kimi');return {...out,model:m};}
   if (id === 'nvidia-deepseek-pro') {const m=model || env.NVIDIA_DEEPSEEK_PRO_MODEL || 'deepseek-ai/deepseek-v4-pro-0813',out=await openaiCompatible('https://integrate.api.nvidia.com/v1',env.NVIDIA_API_KEY,m,message,'NVIDIA DeepSeek Pro');return {...out,model:m};}
   if (id === 'nvidia-deepseek-flash') {const m=model || env.NVIDIA_DEEPSEEK_FLASH_MODEL || 'deepseek-ai/deepseek-v4.1-flash',out=await openaiCompatible('https://integrate.api.nvidia.com/v1',env.NVIDIA_API_KEY,m,message,'NVIDIA DeepSeek Flash');return {...out,model:m};}
-  if (id === 'cloudflare-ai') return cloudflare(env, message, model);
+  if (id === 'cloudflare-ai') return cloudflare(env, message, model, options.freeFailoverAvailable===true);
   throw new Error('Unknown AI provider');
 }
 function availableProviders(env) { return PROVIDERS.filter(p => providerEnabled(env,p)); }
@@ -496,7 +496,8 @@ async function handle(request, env) {
           const fundingGate=await canUsePassThrough(env,signedInUser.tenant_id,{category:'metered AI',estimated_provider_origin_cost_usd:reserve.provider_origin_cost_usd});
           if(!fundingGate.ok){errors.push(`${p.name}: ${fundingGate.code||'customer-funded prepaid balance unavailable'}`);continue}
         }
-        const result = await withinProviderBudget(callProvider(p.id, env, groundedMessage, executionModel),Math.min(45000,remaining),`${p.name} execution`);
+        const freeFailoverAvailable=requested==='auto'&&candidates.slice(candidates.indexOf(p)+1).some(candidate=>candidate.id!==p.id&&configured(env,candidate)&&providerEnabled(env,candidate)&&effectiveTier(env,candidate)==='free-first');
+        const result = await withinProviderBudget(callProvider(p.id, env, groundedMessage, executionModel,{freeFailoverAvailable}),Math.min(45000,remaining),`${p.name} execution`);
         if (!result?.text?.trim()) throw new Error('Provider returned an empty response');
         if(paidExecution){
           const priced=providerOriginCost({provider:p.id,model:result.model,usage:result.usage,billing_mode:billingMode});
