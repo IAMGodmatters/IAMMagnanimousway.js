@@ -19,3 +19,5 @@ jobs:
         uses: actions/checkout@v7
       - name: Lock voice conversation behavior
         run: node qa/scripts/voice-conversation-lock.mjs
+      - name: Verify song fallback and AI outage recovery
+        run: node qa/scripts/voice-response-recovery-lock.mjs
