@@ -41,6 +41,24 @@ function preferredVoices(){
  return pool.sort((a,b)=>qualityScore(b)-qualityScore(a)||a.name.localeCompare(b.name));
 }
 
+const PREFERRED_VOICE_KEY='iam_magnanimous_preferred_voice';
+
+export function availablePersonaVoices(){
+ return preferredVoices().map(v=>({id:`${v.lang}:${v.name}`,label:`${v.name} (${v.lang})`}));
+}
+
+export function getPreferredPersonaVoiceId(){
+ try{return typeof window==='undefined'?'':String(window.localStorage.getItem(PREFERRED_VOICE_KEY)||'')}catch{return''}
+}
+
+export function setPreferredPersonaVoiceId(id:string){
+ try{
+  if(typeof window==='undefined')return;
+  if(id)window.localStorage.setItem(PREFERRED_VOICE_KEY,id);
+  else window.localStorage.removeItem(PREFERRED_VOICE_KEY);
+ }catch{}
+}
+
 function roleTuning(label:string){
  const value=label.toLowerCase();
  if(value==='magnanimous ai')return{rate:.94,pitch:.92};
@@ -73,6 +91,13 @@ export function personaVoiceProfile(label='Magnanimous AI'):VoiceProfile{
  const natural=voices.filter(v=>naturalName.test(v.name));
  const pool=natural.length>=2?natural:voices;
  const voice=pool.length?pool[h%pool.length]:undefined;
+ const selectedId=getPreferredPersonaVoiceId();
+ const preferred=voices.find(v=>`${v.lang}:${v.name}`===selectedId);
+ const central=/^(magnanimous ai|virtual assistant)$/i.test(name);
+ // One consistent, highest-ranked voice for the main brain; other specialists
+ // retain their stable identity-specific signatures unless the user chooses a voice.
+ const chosen=preferred||(central?pool[0]||voice:voice);
+ if(central)return{voice:chosen,rate:.98,pitch:1,lang:chosen?.lang||'en-US'};
  const base=roleTuning(name);
  // Keep each named specialist audibly recognizable even on devices that expose only one usable voice.
  const signature=personaSignatures[(h>>>3)%personaSignatures.length];
@@ -80,7 +105,7 @@ export function personaVoiceProfile(label='Magnanimous AI'):VoiceProfile{
  const pitchSignature=signature.pitch+((((h>>>20)%5)-2)*.006);
  const rate=Math.max(.89,Math.min(1.04,base.rate+rateSignature));
  const pitch=Math.max(.88,Math.min(1.08,base.pitch+pitchSignature));
- return{voice,rate,pitch,lang:voice?.lang||'en-US'};
+ return{voice:chosen,rate,pitch,lang:chosen?.lang||'en-US'};
 }
 
 export function configurePersonaVoice(utterance:SpeechSynthesisUtterance,label='Magnanimous AI'){
