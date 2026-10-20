@@ -173,7 +173,7 @@ export default function AgentsPage() {
         body: JSON.stringify({ agent_id: selected, message: text, provider }),
       });
       const d = await read(r);
-      if (!r.ok) throw new Error(d.detail || "Agent request failed.");
+      if (!r.ok) throw new Error("Magnanimous AI could not complete this request. Check your connection or account setup.");
       if (!String(d.output || "").trim())
         throw new Error("Magnanimous AI returned an empty response.");
       setMessages((v) => [
@@ -264,11 +264,9 @@ export default function AgentsPage() {
       <section className="providerBar">
         <div>
           <b>MAGNANIMOUS AI</b>
-          {providers.map((p) => (
-            <span key={p.id} className={p.configured ? "ready" : ""}>
-              {p.name} <i>{p.configured ? "READY" : "NOT CONNECTED"}</i>
-            </span>
-          ))}
+          <span className={providerReady ? "ready" : ""}>
+            Magnanimous AI execution {providerReady ? "READY" : "SETUP NEEDED"}
+          </span>
         </div>
         <div>
           <b>VOICE / VIDEO</b>
@@ -452,7 +450,7 @@ export default function AgentsPage() {
             {voiceReady
               ? "This browser can read replies aloud without a paid avatar service."
               : "This browser does not report support for reading replies aloud."}{" "}
-            Human video requires a connected provider.
+            Human video requires a configured video connection.
           </p>
         </div>
       </section>
