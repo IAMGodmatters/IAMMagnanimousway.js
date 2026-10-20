@@ -118,6 +118,41 @@ function originalUserMessage(message) {
   const i = text.indexOf(MEMORY_MARKER);
   return (i >= 0 ? text.slice(0, i) : text).trim();
 }
+
+// A simple original song stays available even during an AI-provider outage.
+// Lyrics are not a sung recording; do not trigger metered generation here.
+function nativeOriginalSong(message) {
+  const request=String(message||'').trim();
+  const simpleSong=/^(?:(?:hey\s+)?magnanimous[,\s]+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?sing\s+(?:(?:me|us)\s+)?(?:(?:an?|some)\s+)?(?:(?:short|little|happy|original)\s+)*song(?:\s+(?:for\s+me|please))?[.!?]*$/i;
+  if(!simpleSong.test(request))return'';
+  return [
+    'Here is an original little song, “A Brighter Day.”',
+    '',
+    'Verse 1',
+    'There is a light beyond the rain,',
+    'A little hope that blooms again.',
+    'One gentle step, one open door,',
+    'A thousand reasons to dream once more.',
+    '',
+    'Chorus',
+    'Oh, let the morning carry you,',
+    'Where skies are wide and hearts are true.',
+    'Through every storm, come what may,',
+    'We’ll find the light of a brighter day.',
+    '',
+    'Verse 2',
+    'When evening stars begin to shine,',
+    'Hold close the love that makes life kind.',
+    'And when the road feels long and slow,',
+    'Remember how the small seeds grow.',
+    '',
+    'Chorus',
+    'Oh, let the morning carry you,',
+    'Where skies are wide and hearts are true.',
+    'Through every storm, come what may,',
+    'We’ll find the light of a brighter day.'
+  ].join('\n');
+}
 function extractBrainContext(message) {
   const text = String(message || '');
   const i = text.indexOf(MEMORY_MARKER);
@@ -393,6 +428,8 @@ async function handle(request, env) {
     const message = String(body.message || '').trim();
     if (!message) return json({ detail: 'Message is required.' }, 400);
     const userMessage=originalUserMessage(message);
+    const originalLyrics=!computeOnly?nativeOriginalSong(userMessage):'';
+    if(originalLyrics)return json({output:originalLyrics,magnanimous:true,operator:true,native_song:true,delivery:'original-lyrics',voice_performance:'not-generated',routed_automatically:true,route_task:'creative',sources:[]});
     const task=taskClass(userMessage,body);
     const capability=nativeCapability(userMessage,task);
     let brainContext=computeOnly?'':extractBrainContext(message);
