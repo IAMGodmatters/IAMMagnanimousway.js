@@ -72,6 +72,10 @@ assert(agent.includes('def action_heimdall_detect('));
 assert(agent.includes('if payload.get("ownership_confirmed") is not True:'));
 assert(agent.includes('[str(exe), "detect"]'));
 assert(runtime.includes("body.ownership_confirmed!==true"));
+assert(page.includes("/cancel"),'declined Heimdall tasks must be cancelled');
+assert(page.includes("setHeimdallTaskId('')"),'declined tasks must clear UI selection');
+assert(runtime.includes("AND expires_at>=?"),'expired tasks must not count as pending');
+
 assert(!agent.includes('subprocess.Popen('),'local agent must not expose unsupervised background process spawning');
 assert(installer.includes('New-ScheduledTaskAction'),'Windows installer should retain Task Scheduler support when available');
 assert(installer.includes('GetFolderPath("Startup")'),'Windows installer must have a per-user startup fallback');
