@@ -1,0 +1,3 @@
+[submodule "third_party/heimdall"]
+	path = third_party/heimdall
+	url = https://github.com/Benjamin-Dobell/Heimdall.git

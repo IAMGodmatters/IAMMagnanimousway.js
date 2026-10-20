@@ -63,6 +63,15 @@ for(const needle of [
 ]) assert(agent.includes(needle),`agent safety contract missing: ${needle}`);
 
 assert(!agent.includes('shell=True'),'local agent must not enable shell execution');
+assert.equal(LOCAL_BRIDGE_ACTIONS.heimdall_status.confirmation,false);
+assert.equal(LOCAL_BRIDGE_ACTIONS.heimdall_detect.confirmation,true);
+assert.equal(LOCAL_BRIDGE_ACTIONS.heimdall_detect.auto,false);
+assert(!Object.hasOwn(LOCAL_BRIDGE_ACTIONS,'heimdall_flash'));
+assert(agent.includes('def action_heimdall_status('));
+assert(agent.includes('def action_heimdall_detect('));
+assert(agent.includes('if payload.get("ownership_confirmed") is not True:'));
+assert(agent.includes('[str(exe), "detect"]'));
+assert(runtime.includes("body.ownership_confirmed!==true"));
 assert(!agent.includes('subprocess.Popen('),'local agent must not expose unsupervised background process spawning');
 assert(installer.includes('New-ScheduledTaskAction'),'Windows installer should retain Task Scheduler support when available');
 assert(installer.includes('GetFolderPath("Startup")'),'Windows installer must have a per-user startup fallback');

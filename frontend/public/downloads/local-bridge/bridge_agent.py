@@ -38,7 +38,7 @@ SAFE_PROJECT_SCRIPTS = {
     "project_build": "build",
 }
 BASE_CAPS = {
-    "system_info","health","workspace_list","read_file","search_text",
+    "system_info","health","workspace_list","read_file","search_text","heimdall_status",
     "git_status","git_diff","git_log","web_fetch",
     "apply_patch","git_create_branch","git_commit","desktop_tools_status",
 }
@@ -378,6 +378,38 @@ def action_archive_test(config, payload):
     return {"ok": result.get("code") == 0, "read_only": True, "archive": path.name, "code": result.get("code"), "detail": ((result.get("stdout") or "") + "\n" + (result.get("stderr") or ""))[-5000:]}
 
 
+def _heimdall_executable():
+    """Select only a locally installed Heimdall executable."""
+    configured = str(os.environ.get("MAGNANIMOUS_HEIMDALL_PATH") or "").strip()
+    if configured:
+        path = Path(configured).expanduser().resolve()
+        return path if path.is_file() and path.name.lower() in {"heimdall", "heimdall.exe"} else None
+    found = shutil.which("heimdall") or shutil.which("heimdall.exe")
+    return Path(found).resolve() if found else None
+
+
+def action_heimdall_status(config, payload):
+    exe = _heimdall_executable()
+    if not exe:
+        return {"ok": True, "installed": False, "ready": False, "read_only": True}
+    r = _run([str(exe), "version"], timeout=20)
+    return {"ok": r["code"] == 0, "installed": True, "ready": r["code"] == 0,
+            "read_only": True, "version": (r.get("stdout") or r.get("stderr") or "")[-1200:],
+            "firmware_writes_enabled": False}
+
+
+def action_heimdall_detect(config, payload):
+    if payload.get("ownership_confirmed") is not True:
+        raise RuntimeError("Device-owner authorization is required.")
+    exe = _heimdall_executable()
+    if not exe:
+        return {"ok": False, "ready": False, "read_only": True, "reason": "heimdall-not-installed"}
+    r = _run([str(exe), "detect"], timeout=35)
+    return {"ok": r["code"] == 0, "read_only": True, "code": r["code"],
+            "detail": ((r.get("stdout") or "") + "\n" + (r.get("stderr") or ""))[-2500:],
+            "firmware_writes_enabled": False}
+
+
 def action_android_device_status(config, payload):
     scrcpy = _approved_tool_path("scrcpy")
     if not scrcpy:
@@ -631,6 +663,8 @@ def capabilities(config):
         caps.update({"archive_list", "archive_test"})
     if _approved_tool_path("scrcpy"):
         caps.add("android_device_status")
+    if _heimdall_executable():
+        caps.add("heimdall_detect")
     for root in _roots(config):
         scripts = _package_scripts(root)
         for action, script in SAFE_PROJECT_SCRIPTS.items():
@@ -1712,6 +1746,8 @@ HANDLERS = {
     "archive_list": action_archive_list,
     "archive_test": action_archive_test,
     "android_device_status": action_android_device_status,
+    "heimdall_status": action_heimdall_status,
+    "heimdall_detect": action_heimdall_detect,
     "storage_status": action_storage_status,
     "storage_remotes": action_storage_remotes,
     "storage_about": action_storage_about,
