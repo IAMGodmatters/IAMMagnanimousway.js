@@ -30,6 +30,9 @@ assert.equal(song('Give me the latest headlines'),'','research tasks must route 
 assert.match(provider,/if\(originalLyrics\)return json\(\{output:originalLyrics/);
 assert.match(provider,/native_song:true/);
 assert.match(provider,/voice_performance:'not-generated'/);
+assert.match(provider,/const otherFreeReady=PROVIDERS\.some/,'detect other configured free AI engines');
+assert.match(provider,/otherFreeReady\?24000:CLOUDFLARE_MODEL_BUDGET_MS/,'reserve failover time only when another free engine exists');
+assert.match(provider,/Math\.min\(modelTimeout,remaining\)/,'apply the adaptive per-model timeout');
 assert.match(assistant,/message: isSimpleSong \? request :/,'Virtual Assistant passes simple song prompts directly');
 assert.match(assistant,/if \(d\.degraded \|\| d\.code === "AI_PROVIDER_POOL_DEGRADED"\)/,'Virtual Assistant must detect provider exhaustion despite HTTP 200');
 assert.match(assistant,/setTask\(request\);/,'Virtual Assistant must restore failed request');
