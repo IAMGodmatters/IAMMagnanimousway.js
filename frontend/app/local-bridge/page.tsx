@@ -82,7 +82,9 @@ export default function LocalBridgePage(){
    setHeimdallTaskId(d.id);
    if(d.requires_confirmation){
     if(!confirm(`Confirm task ${d.id}: detect USB device without writing firmware or bypassing any protections?`)){
-     setNotice(`Task ${d.id} awaits separate confirmation. No USB detection was executed.`);return;
+     await read(await fetch(`/api/magnanimous/local-bridge/tasks/${encodeURIComponent(d.id)}/cancel`,{method:'POST',headers:headers(true)}));
+     setHeimdallTaskId('');
+     setNotice(`Task ${d.id} cancelled. No USB detection was executed.`);return;
     }
     await read(await fetch(d.confirmation_endpoint,{method:'POST',headers:headers(true)}));
    }
