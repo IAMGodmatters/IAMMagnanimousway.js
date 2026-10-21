@@ -42,6 +42,9 @@ jobs:
       - name: Lock sold paid plans to runtime entitlement enforcement
         run: node qa/scripts/billing-plan-runtime-alignment-lock.mjs
 
+      - name: Verify bounded and truthful homepage health checks
+        run: node --test qa/scripts/home-service-status.test.mjs
+
       - name: Build exact customer-facing frontend
         working-directory: frontend
         run: npm run build
