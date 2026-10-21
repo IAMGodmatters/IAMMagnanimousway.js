@@ -2,6 +2,7 @@
 
 import {FormEvent,useEffect,useMemo,useState} from 'react';
 import {getPlatformAuthToken} from '../lib/magnanimous-session';
+import OsintResearch from './osint-research';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 type Any=Record<string,any>;
@@ -30,6 +31,8 @@ export default function IntelligenceDesk(){
   return <main className="desk">
     <header><div><a href="/">← I AM Platform</a><small>MAGNANIMOUS AI • VERIFIED BUSINESS INTELLIGENCE</small><h1>Intelligence Desk</h1><p>One signed-in research surface for B2B, CRM, Contact Center and Telecom. Magnanimous owns the workflow; verified public sources remain replaceable evidence rails.</p></div><nav><a href="/b2b">B2B</a><a href="/crm">CRM</a><a href="/contact-center">Call Center</a><a href="/telecom">Telecom</a><a href="/contact-validation">Contact Validation</a></nav></header>
     {error&&<div className="alert">{error}<button onClick={()=>setError('')}>×</button></div>}
+
+    <OsintResearch token={token}/>
 
     <section className="stats"><Metric label="Active sources" value={caps.active_read_only_providers||0}/><Metric label="Capabilities" value={caps.capability_contracts||0}/><Metric label="Reviewed / deferred" value={review.length}/><Metric label="Runtime" value={caps.runtime?'READY':'LOADING'}/></section>
 
