@@ -58,7 +58,7 @@ export default function OsintResearch({token}:{token:string}){
    const a=document.createElement('a');
    a.href=url;a.download='magnanimous-domain-evidence-'+evidence.domain+'-'+evidence.collected_at.slice(0,10)+'.json';
    document.body.appendChild(a);a.click();a.remove();
-   URL.revokeObjectURL(url);setDownloadError('');
+   window.setTimeout(()=>URL.revokeObjectURL(url),10000);setDownloadError('');
   }catch{setDownloadError('Could not save the report on this device. The results remain visible here.')}
  }
  const dns=evidence?.task==='dns'?evidence.result as Lookup:null;
