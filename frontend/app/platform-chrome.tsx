@@ -48,7 +48,7 @@ export default function PlatformChrome(){
   <aside className={`iam-shell-sidebar ${collapsed?'collapsed':''} ${mobileOpen?'mobileOpen':''}`}>
    <div className="iam-side-brand"><a href="/"><span>M</span><div><b>I AM</b><strong>MAGNANIMOUS WAY(TM)</strong><small>AI ECOSYSTEM</small></div></a><button onClick={()=>setCollapsed(v=>!v)} aria-label={collapsed?'Expand sidebar':'Collapse sidebar'}>{collapsed?'>>':'<<'}</button></div>
    <nav>{items.map(item=><a key={item.href} href={item.href} className={path===item.href?'active':''} title={collapsed?item.label:undefined}><i>{item.glyph}</i><span>{item.label}</span><b>&gt;</b></a>)}</nav>
-   <div className="iam-side-status"><span/><div><small>Platform Status</small><b>All Systems Operational</b></div></div>
+   <div className="iam-side-status"><div><small>Your workspace</small><b>Select a tool to begin</b></div></div>
   </aside>
   <style jsx global>{`
    :root{--iam-shell-side:246px;--iam-shell-top:72px}html[data-iam-sidebar="collapsed"]{--iam-shell-side:82px}html[data-iam-shell="true"] body{background:#020714!important}html[data-iam-shell="true"] .iam-shell-content{position:relative;z-index:2;margin-left:var(--iam-shell-side);padding-top:var(--iam-shell-top);min-height:100vh;transition:margin-left .28s cubic-bezier(.2,.8,.2,1);overflow:hidden}html[data-iam-shell="true"] .iam-business-identity{margin-left:var(--iam-shell-side);transition:margin-left .28s ease}html[data-iam-shell="true"] .iam-shop-link{display:none}html[data-iam-shell="true"] .cinematicHome>.topbar{display:none!important}

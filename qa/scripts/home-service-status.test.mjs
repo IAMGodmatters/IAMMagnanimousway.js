@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {fetchHomeJson, homeCoreReachable, HOME_CORE_STATUS} from '../../frontend/lib/home-service-status.ts';
 
 test('a catalog and healthy core do not claim universal readiness', () => {
@@ -32,4 +33,15 @@ test('health probes bypass cache and abort stalled requests', async () => {
 
 test('valid health payload is preserved', async () => {
  assert.deepEqual(await fetchHomeJson('/health', async () => new Response('{"status":"ok"}')), {status:'ok'});
+});
+
+test('public shells do not claim every service is operational', () => {
+ for (const file of ['page.tsx', 'platform-chrome.tsx', 'login/page.tsx']) {
+  const source = readFileSync(new URL('../../frontend/app/' + file, import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /All Systems Operational|Systems ready|AI SYSTEMS ACTIVE|NETWORK ACTIVE/, file);
+  if (file === 'page.tsx') {
+   assert.match(source, /setOnline\(homeCoreReachable\(health,t\)\)/);
+   assert.equal(source.split('HOME_CORE_STATUS').length - 1, 3, 'desktop and mobile must use the scoped health message');
+  }
+ }
 });
