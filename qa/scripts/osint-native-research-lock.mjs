@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const desk=read('frontend/app/intelligence-desk/page.tsx');
+const ui=read('frontend/app/intelligence-desk/osint-research.tsx');
+const css=read('frontend/app/intelligence-desk/osint-research.module.css');
+const runtime=read('worker/src/magnanimous-dns-runtime.js');
+const docs=read('docs/MAGNANIMOUS-OSINT4ALL-RESEARCH-2026-10-21.md');
+const pkg=read('frontend/package.json');
+for(const s of ["import OsintResearch from './osint-research'","<OsintResearch token={token}/>","getPlatformAuthToken()"]){assert.ok(desk.includes(s),'Intelligence Desk must retain authenticated OSINT integration: '+s)}
+for(const s of ["if(!token)","domainPattern.test(name)","/api/magnanimous/dns/lookup","/api/magnanimous/dns/email-security","Authorization:'Bearer '+token","cache:'no-store'","disabled={busy||!token}","role=\"alert\""]){assert.ok(ui.includes(s),'Research UI must retain gate: '+s)}
+for(const s of ["const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);","path==='/api/magnanimous/dns/lookup'","path==='/api/magnanimous/dns/email-security'"]){assert.ok(runtime.includes(s),'Backend protected read route must exist: '+s)}
+assert.ok(!ui.includes('/api/magnanimous/dns/cloudflare/stage'),'OSINT read-only UI must not expose DNS mutation');
+assert.ok(!ui.includes('https://osint4all.com/'),'UI must be first-party rather than embedding OSINT directory');
+assert.ok(!ui.includes('sk-'),'No hardcoded provider credential patterns');
+assert.ok(css.includes('@media(max-width:700px)'),'Research panel must be mobile responsive');
+assert.ok(docs.includes('**Candidate; not deployed**'),'License-reviewed technologies cannot be described as installed');
+assert.ok(pkg.includes('qa/scripts/osint-native-research-lock.mjs'),'Build contract audit must run OSINT regression check');
+console.log('OSINT native research lock: PASS — authenticated read-only sources, clean-room candidate boundaries, billing neutrality and mobile styling.');
