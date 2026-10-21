@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { getCapabilityAbsorptionManifest, ABSORPTION_POLICY } from '../../worker/src/magnanimous-connector-absorption.js';
-import { getGrokCapabilityManifest, getGrokAbsorptionSummary } from '../../worker/src/magnanimous-grok-capability-registry.js';
+import { getGrokCapabilityManifest, getGrokAbsorptionSummary, GROK_BOT_SECURITY_BOUNDARY } from '../../worker/src/magnanimous-grok-capability-registry.js';
+import { selectAgentProviderCandidates } from '../../worker/src/agent-mesh-runtime.js';
 import { MAGNANIMOUS_IMPROVEMENT_GOVERNANCE, getImprovementGovernanceManifest, getImprovementGovernanceSummary } from '../../worker/src/magnanimous-improvement-governance.js';
 import { classifyCapabilityRealization } from '../../worker/src/magnanimous-capability-realization.js';
 import { getFullBrainIndependenceAudit } from '../../worker/src/magnanimous-native-first.js';
@@ -81,12 +82,30 @@ const agent=fs.readFileSync('worker/src/agent-mesh-runtime.js','utf8');
 assert.ok(agent.includes("{id:'xai',name:'xAI Grok',tier:'metered-optional'"),'xAI must be optional and explicitly metered.');
 assert.ok(agent.includes("priority:8"),'xAI must remain behind the existing free-first provider chain.');
 assert.ok(agent.includes("https://api.x.ai/v1"),'xAI adapter must use the documented API base.');
-assert.ok(agent.includes("'grok-4.6'"),'xAI adapter must have an explicit current model default.');
+assert.ok(agent.includes("'grok-4.7'"),'xAI adapter must have a supported current model default.');
+assert.equal(GROK_BOT_SECURITY_BOUNDARY.grok_bot_private_runtime_copied,false,'Third-party cloud computer cannot be treated as cloned.');
+assert.equal(GROK_BOT_SECURITY_BOUNDARY.provider_auto_failover,false,'Metered xAI must never be used as automatic failover.');
+assert.equal(GROK_BOT_SECURITY_BOUNDARY.model_weights_downloaded,false,'Huge model weights are not installed.');
+assert.equal(GROK_BOT_SECURITY_BOUNDARY.grok1_code_and_weights_license,'Apache-2.0');
+assert.equal(GROK_BOT_SECURITY_BOUNDARY.requires_explicit_per_request_metered_approval,true);
+assert.match(GROK_BOT_SECURITY_BOUNDARY.shared_computer_note,/share browser sessions, files and command-line credentials/);
+assert(!selectAgentProviderCandidates('auto',false).some(p=>p.id==='xai'),'Auto must never use metered xAI by accident.');
+assert(!selectAgentProviderCandidates('auto',true).some(p=>p.id==='xai'),'An approval flag alone cannot promote xAI into auto routing.');
+assert(!selectAgentProviderCandidates('xai',false).some(p=>p.id==='xai'),'Grok must remain inaccessible without exact-request opt-in.');
+assert(selectAgentProviderCandidates('xai',true)[0]?.id==='xai','Explicitly approved xAI must preserve its opt-in adapter.');
+assert(!selectAgentProviderCandidates('google',true).some(p=>p.id==='xai'),'Another provider selection must not unlock xAI fallback.');
+assert(agent.includes("body.metered_provider_approved===true"),'Paid adapter must require per-request approval.');
+assert(agent.includes("env.XAI_METERED_ENABLED"),'Paid adapter must require owner-side disabled-by-default gate.');
+assert(agent.includes("code:'METERED_PROVIDER_NOT_APPROVED'"),'Declined paid adapter must fail closed.');
+
 assert.ok(agent.includes('Magnanimous owns memory, tools, policy and orchestration'),'xAI adapter must not become Magnanimous identity or brain.');
 
 const credentials=fs.readFileSync('worker/src/platform-credentials.js','utf8');
 assert.ok(credentials.includes('XAI_API_KEY'));
 assert.ok(credentials.includes('optional metered Grok compute adapter'));
+assert.ok(credentials.includes("key:'XAI_METERED_ENABLED'"),'Owner must have explicit metered opt-in setting.');
+const runtimeEnv=fs.readFileSync('worker/src/provider-runtime-env.js','utf8');
+assert.ok(runtimeEnv.includes("'XAI_METERED_ENABLED'"),'Runtime must honor the disabled-by-default owner opt-in flag.');
 
 console.log('Magnanimous Grok + improvement governance lock PASS:', {
   grok:grok.length,

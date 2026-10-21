@@ -106,6 +106,15 @@ const PROVIDERS=[
  {id:'xai',name:'xAI Grok',tier:'metered-optional',key:'XAI_API_KEY',priority:8,note:'Optional metered compute adapter only. Magnanimous owns memory, tools, policy and orchestration.'}
 ];
 
+export function selectAgentProviderCandidates(requested='auto',meteredApproved=false){
+ const id=String(requested||'auto').toLowerCase();
+ const ordered=[...PROVIDERS].sort((a,b)=>a.priority-b.priority);
+ const preferred=id==='auto'?null:ordered.find(p=>p.id===id);
+ const candidates=preferred?[preferred,...ordered.filter(p=>p.id!==preferred.id)]:ordered;
+ // A configured xAI key must never trigger accidental spending during free-first failover.
+ return candidates.filter(p=>p.id!=='xai'||(id==='xai'&&meteredApproved===true));
+}
+
 const NATIVE_WORKSPACES=[
  {id:'crm',name:'CRM',href:'/crm',access:'tenant-read-context'},
  {id:'finance-people',name:'Finance & People',href:'/finance-people',access:'tenant-read-context'},
@@ -318,7 +327,7 @@ async function runProvider(id,env,messages,requestedModel=''){
  if(id==='openrouter-free')return chatCompletionsCompatible('https://openrouter.ai/api/v1',env.OPENROUTER_API_KEY,requestedModel||env.OPENROUTER_MODEL||'openrouter/free',messages,'OpenRouter',{'HTTP-Referer':'https://iammagnanimousway.com','X-Title':'I AM Magnanimous Way Agent Mesh'});
  if(id==='huggingface')return chatCompletionsCompatible('https://router.huggingface.co/v1',env.HF_TOKEN,requestedModel||env.HUGGINGFACE_MODEL||'Qwen/Qwen2.5-7B-Instruct',messages,'Hugging Face');
  if(id==='cerebras')return chatCompletionsCompatible('https://api.cerebras.ai/v1',env.CEREBRAS_API_KEY,requestedModel||env.CEREBRAS_MODEL||'zai-glm-4.7',messages,'Cerebras',{'X-Cerebras-Version-Patch':'2'});
- if(id==='xai')return chatCompletionsCompatible('https://api.x.ai/v1',env.XAI_API_KEY,requestedModel||env.XAI_MODEL||'grok-4.6',messages,'xAI Grok');
+ if(id==='xai')return chatCompletionsCompatible('https://api.x.ai/v1',env.XAI_API_KEY,requestedModel||env.XAI_MODEL||'grok-4.7',messages,'xAI Grok');
  throw new Error('Unknown Agent Mesh provider.');
 }
 
@@ -371,15 +380,15 @@ export async function handleAgentMesh(request,env){
  if(request.method==='POST'&&url.pathname==='/api/agents/chat'){
   const body=await request.json().catch(()=>({}));const agent=agentById(body.agent_id);const message=String(body.message||'').trim();
   if(!agent)return json({detail:'Choose a valid I AM agent.'},400);if(!message)return json({detail:'Message is required.'},400);
+  const requested=String(body.provider||'auto').toLowerCase();
+  const meteredApproved=requested==='xai'&&body.metered_provider_approved===true&&String(env.XAI_METERED_ENABLED||'').trim().toLowerCase()==='true';
+  if(requested==='xai'&&!meteredApproved)return json({detail:'xAI Grok is optional metered compute. It is disabled by default and requires owner-enabled XAI_METERED_ENABLED plus explicit approval for this request. No billable call was made.',code:'METERED_PROVIDER_NOT_APPROVED'},403);
   await saveMessage(env,user,agent.id,'user',message);
   const [team,integrations,native,knowledge]=await Promise.all([teamMemory(env,user.tenant_id,agent.id),connectedPlatformContext(env,user.tenant_id),nativeWorkspaceContext(env,user.tenant_id),branchKnowledge(env,user.tenant_id,agent.id,12)]);
   const branchContext=branchKnowledgeContext(branchProfile(agent),knowledge);
   const prior=(await history(env,user,agent.id)).slice(-8).filter(x=>x.content!==message).map(x=>({role:x.role==='assistant'?'assistant':'user',content:String(x.content||'').slice(0,4000)}));
   const messages=[{role:'system',content:buildSystem(agent,team,integrations,native,branchContext)},...prior,{role:'user',content:message}];
-  const requested=String(body.provider||'auto').toLowerCase();
-  const ordered=[...PROVIDERS].sort((a,b)=>a.priority-b.priority);
-  const preferred=requested==='auto'?null:ordered.find(p=>p.id===requested);
-  const candidates=preferred?[preferred,...ordered.filter(p=>p.id!==preferred.id)]:ordered;
+  const candidates=selectAgentProviderCandidates(requested,meteredApproved);
   const ready=candidates.filter(p=>configured(env,p));
   if(!ready.length)return json({detail:requested==='auto'?'No non-OpenAI Agent Mesh provider is configured. Cloudflare Workers AI is the built-in free-first brain and should normally be available.':'The selected provider is not configured.',code:'NO_AGENT_PROVIDER'},503);
   const errors=[];

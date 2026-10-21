@@ -1,4 +1,4 @@
-const VERIFIED_AT='2026-09-21';
+const VERIFIED_AT='2026-10-21';
 
 export const GROK_PUBLIC_RESEARCH=Object.freeze({
   verified_at:VERIFIED_AT,
@@ -16,9 +16,34 @@ export const GROK_PUBLIC_RESEARCH=Object.freeze({
     'https://docs.x.ai/developers/tools/x-search',
     'https://docs.x.ai/developers/tools/code-execution',
     'https://docs.x.ai/developers/tools/remote-mcp',
-    'https://docs.x.ai/developers/tools/streaming-and-sync'
+    'https://docs.x.ai/developers/tools/streaming-and-sync',
+    'https://docs.x.ai/grok-bot/overview',
+    'https://docs.x.ai/grok-bot/computer-and-apps',
+    'https://docs.x.ai/grok-bot/skills-routines-and-automations',
+    'https://docs.x.ai/developers/models/grok-4.7',
+    'https://docs.x.ai/developers/pricing',
+    'https://github.com/xai-org/grok-1'
   ],
   boundary:'Publicly documented behavior is a benchmark only. Magnanimous does not copy xAI source code, private prompts, model weights, private training data, credentials, or backend implementation.'
+});
+
+export const GROK_BOT_SECURITY_BOUNDARY=Object.freeze({
+ product:'Grok Bot',
+ product_kind:'subscription-based third-party cloud-computer-agent-service',
+ native_platform_owner:'Magnanimous AI',
+ grok_bot_private_runtime_copied:false,
+ grok_bot_public_api_available_not_assumed:true,
+ grok1_is_different_from_grok_bot:true,
+ grok1_code_and_weights_license:'Apache-2.0',
+ grok1_model_parameters:314000000000,
+ model_weights_downloaded:false,
+ cloud_computer_billing_activated:false,
+ provider_enabled_by_default:false,
+ provider_auto_failover:false,
+ requires_explicit_per_request_metered_approval:true,
+ shared_computer_note:'Official Grok Bot documentation says Bots for one user share browser sessions, files and command-line credentials; personalities are not security boundaries. Magnanimous must enforce tenant/credential separation and scoped tool authorization.',
+ external_tool_access:'Only approved connector scopes and exact action confirmation; do not delegate privileged actions based solely on a bot role or chat.',
+ citations:['https://docs.x.ai/grok-bot/computer-and-apps','https://docs.x.ai/grok-bot/overview','https://docs.x.ai/developers/pricing','https://github.com/xai-org/grok-1']
 });
 
 const OWNED=Object.freeze([
