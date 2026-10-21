@@ -49,3 +49,7 @@ The visual-provider response declares two of six entries configured: the cinemat
 The public `/health` response explicitly bypasses database bootstrap and is database-independent. Its success must not be represented as proof of database, billing, memory or tenant health.
 
 PR #730 saves the implementation and evidence. Merge, deployment and post-deployment verification must be recorded separately; this document does not predeclare those outcomes.
+
+## Checkpoint 4 — pricing interaction and accessible labels
+
+The live pricing page disclosed recurring billing and displayed unchecked plan-specific consent. Selecting CRM Pro changed the selected terms and price to $79/month without accepting an agreement or initiating payment. The generated tooltip incorrectly retained the previous Business terms label/destination, also observed after collapsing the home sidebar. Fixed the shared InteractionClarity helper to refresh its generated titles when labels, text or destinations change, preserve author-provided titles, and stop copying visible button text into a permanent aria-label. Typecheck and interaction scan passed after this repair; post-deployment browser verification is still required.

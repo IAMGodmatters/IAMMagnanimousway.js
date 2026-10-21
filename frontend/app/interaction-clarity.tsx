@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import { guideHref, topicFor } from "./interaction-catalog";
 
 function labelFor(element: HTMLElement) {
-  const aria =
-    element.getAttribute("aria-label") || element.getAttribute("title") || "";
+  const aria = element.getAttribute("aria-label") || "";
   const text = (element.innerText || element.textContent || "")
     .replace(/\s+/g, " ")
     .trim();
-  return (aria || text || element.tagName).slice(0, 180);
+  return (aria || text || element.getAttribute("title") || "").slice(0, 180);
 }
 
 function targetFor(element: HTMLElement) {
@@ -29,28 +28,30 @@ export default function InteractionClarity() {
     const current = location.pathname || "/";
     setPath(current);
 
+    const generatedTitles = new WeakMap<HTMLElement, string>();
     const scan = () => {
       document
         .querySelectorAll<HTMLElement>('a[href],button,[role="button"]')
         .forEach((element) => {
           const label = labelFor(element);
-          if (!element.getAttribute("title") && label) {
-            element.setAttribute("title", `${label} — ${targetFor(element)}.`);
+          const title = element.getAttribute("title");
+          if ((!title || title === generatedTitles.get(element)) && label) {
+            const next = `${label} — ${targetFor(element)}.`;
+            if (title !== next) element.setAttribute("title", next);
+            generatedTitles.set(element, next);
           }
-          if (
-            !element.getAttribute("aria-label") &&
-            element.tagName === "BUTTON" &&
-            label
-          ) {
-            element.setAttribute("aria-label", label);
-          }
+          // Visible button text already supplies its accessible name. Copying it
+          // into aria-label would freeze dynamic labels such as progress/plan state.
           element.classList.add("iam-action-ready");
         });
     };
 
     scan();
     const observer = new MutationObserver(scan);
-    observer.observe(document.body, { subtree: true, childList: true });
+    observer.observe(document.body, {
+      subtree: true, childList: true, characterData: true,
+      attributes: true, attributeFilter: ["aria-label", "href"],
+    });
     return () => observer.disconnect();
   }, []);
 
