@@ -935,7 +935,7 @@ jobs:
           assert {'openid','email'}.issubset(set(data.get('scopes_supported') or [])), data
           PY
 
-          userinfo_status="$(command curl -sS --connect-timeout 10 --max-time 60 -o /tmp/magnanimous-userinfo-unauth.json -w '%{http_code}' "$BASE_URL/oauth/userinfo" || true)"
+          userinfo_status="$(safe_expected_status /tmp/magnanimous-userinfo-unauth.json 401 "$BASE_URL/oauth/userinfo")"
           if [ "$userinfo_status" != "401" ]; then
             echo "Magnanimous UserInfo unauthenticated request expected HTTP 401, got $userinfo_status"
             cat /tmp/magnanimous-userinfo-unauth.json 2>/dev/null || true

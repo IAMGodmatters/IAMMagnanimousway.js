@@ -47,3 +47,33 @@ Directory filter totals when reviewed: Domain/DNS 27, Threat triage 27, Company 
 - https://github.com/owasp-amass/amass
 - https://github.com/OpenCTI-Platform/opencti/blob/master/LICENSE
 - https://github.com/intelowlproject/IntelOwl
+
+
+## Continuation — extended first-party evidence workflow (2026-10-21)
+
+The existing authenticated Intelligence Desk is expanded beyond simple DNS and email indicators:
+
+- **RDAP registration context**: calls the already deployed Magnanimous native POST /api/magnanimous/dns/rdap. Its backend sanitizes registrar data and intentionally excludes registrant contact details. Registration does not establish current ownership or legal authority.
+- **Full DNS health review**: calls the existing POST /api/magnanimous/dns/diagnose. Shows resolver comparison for A/AAAA/MX/NS, cautious DNSSEC indicators, and email/security findings. No active port scan or exploits.
+- **Local evidence export**: after a successful live request, the user's browser can save a JSON research packet containing queried domain, task, UTC time, native origin, raw response, and epistemic limitations. Export is opt-in and local; this page does not persist evidence or publish it.
+- **Historical web and certificate records**: read-only outbound links to Wayback Machine and crt.sh are constructed only for a syntactically valid domain. The user initiates the link; no API integration, remote storage, or claims of verified archive presence. Clicking discloses the domain to that separate site.
+- **Stale-result controls**: changing domain, mode, or record type clears prior results. Failed requests never produce an evidence packet.
+
+These features build on the first-party DNS, validation, and Intelligence Desk service paths already in the authoritative main; no new paid infrastructure and no UI design replacement.
+
+### Research candidates not integrated
+
+- **Gitleaks** for a reviewed code-secret scan in a future authorized repository workflow; review official upstream license, false positives, and GitHub Actions build effects first. Do not presume there are zero historical leaks or publish scan hits.
+- **ExifTool** for authorized owner-uploaded media forensic metadata; no uploaded files processed in this change.
+- **SingleFile or Browsertrix** for controlled capture of browser-rendered sources; no external crawling provisioned.
+- **ThreatFox and URLhaus** for conservative public reputation lookups; no paid keys, bulk automated submissions, or sensitive URLs sent to community services.
+- **Open Supply Hub** for supplier identity and facility data; source matching is not verified here.
+
+Research references: https://osint4all.com/collection/a-lightweight-verification-stack-for-newsrooms/ ; https://osint4all.com/collection/evidence-preservation-and-historical-web-stack/ ; https://osint4all.com/pricing-model/free/ ; https://osint4all.com/tool/crt-sh/
+
+Deployment caveat: Main-branch merge is a code change. GitHub pipeline completion and authenticated production smoke must be checked separately; never describe queued workflows as deployed.
+
+
+### Unrelated but release-blocking production smoke recovery
+
+Prior main deployment run https://github.com/IAMGodmatters/IAMMagnanimousway.js/actions/runs/39616213974 failed at the negative UserInfo auth check: a GET to /oauth/userinfo timed out (curl exit 28, HTTP 000), preventing the expected 401 assertion. The deployed service's authorization behavior was **not verified by that request**. We switched the standalone one-shot smoke check to the workflow's pre-existing bounded safe_expected_status helper. It retries only transient 000/502/503/504 failures and **still strictly requires final HTTP 401**; it does not skip, fake, or downgrade the auth/security requirement. This is a smoke reliability improvement, not evidence that the production endpoint is live. New CI/deploy runs must validate it.
