@@ -10,6 +10,7 @@ const css=read('frontend/app/intelligence-desk/osint-research.module.css');
 const runtime=read('worker/src/magnanimous-dns-runtime.js');
 const docs=read('docs/MAGNANIMOUS-OSINT4ALL-RESEARCH-2026-10-21.md');
 const pkg=read('frontend/package.json');
+const deploy=read('.github/workflows/deploy.yml');
 for(const s of ["import OsintResearch from './osint-research'","<OsintResearch token={token}/>","getPlatformAuthToken()"]){assert.ok(desk.includes(s),'Intelligence Desk must retain authenticated OSINT integration: '+s)}
 for(const s of ["if(!token)","domainPattern.test(name)","/api/magnanimous/dns/lookup","/api/magnanimous/dns/email-security","Authorization:'Bearer '+token","cache:'no-store'","disabled={busy||!token}","role=\"alert\""]){assert.ok(ui.includes(s),'Research UI must retain gate: '+s)}
 for(const s of ["const user=await currentUser(request,env);if(!user)return json({detail:'Sign in required.'},401);","path==='/api/magnanimous/dns/lookup'","path==='/api/magnanimous/dns/email-security'"]){assert.ok(runtime.includes(s),'Backend protected read route must exist: '+s)}
@@ -28,4 +29,6 @@ assert.ok(!ui.includes('sk-'),'No hardcoded provider credential patterns');
 assert.ok(css.includes('@media(max-width:700px)'),'Research panel must be mobile responsive');
 assert.ok(docs.includes('**Candidate; not deployed**'),'License-reviewed technologies cannot be described as installed');
 assert.ok(pkg.includes('qa/scripts/osint-native-research-lock.mjs'),'Build contract audit must run OSINT regression check');
+assert.ok(deploy.includes('userinfo_status="$(safe_expected_status /tmp/magnanimous-userinfo-unauth.json 401 "$BASE_URL/oauth/userinfo")"'),'UserInfo production smoke must retry only transient network failures while still requiring HTTP 401');
+assert.ok(deploy.includes('if [ "$userinfo_status" != "401" ]; then'),'UserInfo authentication smoke must never treat missing or unauthorized replies as valid');
 console.log('OSINT native research lock: PASS — authenticated DNS, RDAP and diagnosis; provenance export; external links on click; no paid provider or silent storage.');
