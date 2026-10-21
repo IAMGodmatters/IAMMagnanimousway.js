@@ -72,3 +72,8 @@ These features build on the first-party DNS, validation, and Intelligence Desk s
 Research references: https://osint4all.com/collection/a-lightweight-verification-stack-for-newsrooms/ ; https://osint4all.com/collection/evidence-preservation-and-historical-web-stack/ ; https://osint4all.com/pricing-model/free/ ; https://osint4all.com/tool/crt-sh/
 
 Deployment caveat: Main-branch merge is a code change. GitHub pipeline completion and authenticated production smoke must be checked separately; never describe queued workflows as deployed.
+
+
+### Unrelated but release-blocking production smoke recovery
+
+Prior main deployment run https://github.com/IAMGodmatters/IAMMagnanimousway.js/actions/runs/39616213974 failed at the negative UserInfo auth check: a GET to /oauth/userinfo timed out (curl exit 28, HTTP 000), preventing the expected 401 assertion. The deployed service's authorization behavior was **not verified by that request**. We switched the standalone one-shot smoke check to the workflow's pre-existing bounded safe_expected_status helper. It retries only transient 000/502/503/504 failures and **still strictly requires final HTTP 401**; it does not skip, fake, or downgrade the auth/security requirement. This is a smoke reliability improvement, not evidence that the production endpoint is live. New CI/deploy runs must validate it.
