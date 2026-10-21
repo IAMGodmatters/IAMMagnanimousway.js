@@ -103,6 +103,9 @@ assert.ok(agent.includes('Magnanimous owns memory, tools, policy and orchestrati
 const credentials=fs.readFileSync('worker/src/platform-credentials.js','utf8');
 assert.ok(credentials.includes('XAI_API_KEY'));
 assert.ok(credentials.includes('optional metered Grok compute adapter'));
+assert.ok(credentials.includes("key:'XAI_METERED_ENABLED'"),'Owner must have explicit metered opt-in setting.');
+const runtimeEnv=fs.readFileSync('worker/src/provider-runtime-env.js','utf8');
+assert.ok(runtimeEnv.includes("'XAI_METERED_ENABLED'"),'Runtime must honor the disabled-by-default owner opt-in flag.');
 
 console.log('Magnanimous Grok + improvement governance lock PASS:', {
   grok:grok.length,
