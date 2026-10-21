@@ -1,0 +1,1227 @@
+{
+  "scope": "HTTP reachability only; does not verify authenticated execution or buttons",
+  "results": [
+    {
+      "route": "/",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 107775,
+      "elapsed_seconds": 7.37
+    },
+    {
+      "route": "/account",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 87971,
+      "elapsed_seconds": 14.62
+    },
+    {
+      "route": "/activity",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90852,
+      "elapsed_seconds": 14.76
+    },
+    {
+      "route": "/advertise",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90505,
+      "elapsed_seconds": 14.73
+    },
+    {
+      "route": "/agency-automations",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92778,
+      "elapsed_seconds": 14.74
+    },
+    {
+      "route": "/agency-command",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90585,
+      "elapsed_seconds": 14.72
+    },
+    {
+      "route": "/agent-desk",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 95171,
+      "elapsed_seconds": 14.66
+    },
+    {
+      "route": "/agent-video",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 95078,
+      "elapsed_seconds": 14.59
+    },
+    {
+      "route": "/agents",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 106141,
+      "elapsed_seconds": 14.5
+    },
+    {
+      "route": "/ai-apps",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91123,
+      "elapsed_seconds": 14.33
+    },
+    {
+      "route": "/ai-architecture",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 97703,
+      "elapsed_seconds": 14.41
+    },
+    {
+      "route": "/ai-chat",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 94090,
+      "elapsed_seconds": 14.34
+    },
+    {
+      "route": "/ai-connectors",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89386,
+      "elapsed_seconds": 14.53
+    },
+    {
+      "route": "/ai-receptionist",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 95554,
+      "elapsed_seconds": 14.68
+    },
+    {
+      "route": "/ai-video",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91848,
+      "elapsed_seconds": 14.78
+    },
+    {
+      "route": "/assistant-actions",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92923,
+      "elapsed_seconds": 14.7
+    },
+    {
+      "route": "/auto-dialer",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91268,
+      "elapsed_seconds": 14.66
+    },
+    {
+      "route": "/b2b",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 96136,
+      "elapsed_seconds": 14.73
+    },
+    {
+      "route": "/bible-study",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90281,
+      "elapsed_seconds": 14.44
+    },
+    {
+      "route": "/billing-support",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90062,
+      "elapsed_seconds": 14.96
+    },
+    {
+      "route": "/bpo-operations",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90127,
+      "elapsed_seconds": 14.81
+    },
+    {
+      "route": "/business",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92630,
+      "elapsed_seconds": 14.71
+    },
+    {
+      "route": "/business-ai",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90780,
+      "elapsed_seconds": 14.64
+    },
+    {
+      "route": "/business-email",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 99170,
+      "elapsed_seconds": 14.63
+    },
+    {
+      "route": "/business-plan",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 94862,
+      "elapsed_seconds": 14.88
+    },
+    {
+      "route": "/call-center-health",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 94541,
+      "elapsed_seconds": 14.69
+    },
+    {
+      "route": "/cinema-engine",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90862,
+      "elapsed_seconds": 14.52
+    },
+    {
+      "route": "/connections",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91732,
+      "elapsed_seconds": 14.56
+    },
+    {
+      "route": "/contact-center",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92248,
+      "elapsed_seconds": 14.49
+    },
+    {
+      "route": "/contact-validation",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90274,
+      "elapsed_seconds": 14.44
+    },
+    {
+      "route": "/creator-growth",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90738,
+      "elapsed_seconds": 15.49
+    },
+    {
+      "route": "/crm",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 103179,
+      "elapsed_seconds": 15.37
+    },
+    {
+      "route": "/crm/advanced",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89351,
+      "elapsed_seconds": 15.42
+    },
+    {
+      "route": "/data-studio",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91442,
+      "elapsed_seconds": 15.5
+    },
+    {
+      "route": "/developer-agent",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 93904,
+      "elapsed_seconds": 15.46
+    },
+    {
+      "route": "/enterprise",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92530,
+      "elapsed_seconds": 15.4
+    },
+    {
+      "route": "/finance-people",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92766,
+      "elapsed_seconds": 14.38
+    },
+    {
+      "route": "/forgot-password",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92153,
+      "elapsed_seconds": 14.44
+    },
+    {
+      "route": "/free-tools",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 93171,
+      "elapsed_seconds": 14.53
+    },
+    {
+      "route": "/funding",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 94591,
+      "elapsed_seconds": 14.5
+    },
+    {
+      "route": "/god-coding",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92225,
+      "elapsed_seconds": 14.44
+    },
+    {
+      "route": "/growth-funnel",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 88157,
+      "elapsed_seconds": 14.34
+    },
+    {
+      "route": "/guide",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 102062,
+      "elapsed_seconds": 14.5
+    },
+    {
+      "route": "/inbox",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91335,
+      "elapsed_seconds": 14.62
+    },
+    {
+      "route": "/intelligence-desk",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92572,
+      "elapsed_seconds": 14.44
+    },
+    {
+      "route": "/investigate",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91221,
+      "elapsed_seconds": 14.52
+    },
+    {
+      "route": "/kids/setup",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89173,
+      "elapsed_seconds": 14.37
+    },
+    {
+      "route": "/knowledge",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 93545,
+      "elapsed_seconds": 14.52
+    },
+    {
+      "route": "/launchplan",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 94625,
+      "elapsed_seconds": 14.59
+    },
+    {
+      "route": "/leads",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91256,
+      "elapsed_seconds": 12.96
+    },
+    {
+      "route": "/local-bridge",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92448,
+      "elapsed_seconds": 12.88
+    },
+    {
+      "route": "/login",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91163,
+      "elapsed_seconds": 12.76
+    },
+    {
+      "route": "/logistics-erp",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 88037,
+      "elapsed_seconds": 12.67
+    },
+    {
+      "route": "/magnanimous",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 115993,
+      "elapsed_seconds": 12.8
+    },
+    {
+      "route": "/magnanimous-brain",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 93190,
+      "elapsed_seconds": 12.65
+    },
+    {
+      "route": "/magnanimous-crm",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 95446,
+      "elapsed_seconds": 14.46
+    },
+    {
+      "route": "/magnanimous-training",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92640,
+      "elapsed_seconds": 14.52
+    },
+    {
+      "route": "/media-library",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89489,
+      "elapsed_seconds": 14.46
+    },
+    {
+      "route": "/movie",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 88018,
+      "elapsed_seconds": 14.36
+    },
+    {
+      "route": "/movie-maker",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 93396,
+      "elapsed_seconds": 14.27
+    },
+    {
+      "route": "/music-studio",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90834,
+      "elapsed_seconds": 14.46
+    },
+    {
+      "route": "/mux",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90403,
+      "elapsed_seconds": 14.52
+    },
+    {
+      "route": "/oauth/authorize",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89071,
+      "elapsed_seconds": 14.62
+    },
+    {
+      "route": "/operations",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90617,
+      "elapsed_seconds": 14.59
+    },
+    {
+      "route": "/opportunity-vault",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 96170,
+      "elapsed_seconds": 14.45
+    },
+    {
+      "route": "/orca-workbench",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 96432,
+      "elapsed_seconds": 14.59
+    },
+    {
+      "route": "/owner-ai-academy",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 93625,
+      "elapsed_seconds": 14.59
+    },
+    {
+      "route": "/owner-ai-training-review",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90165,
+      "elapsed_seconds": 14.46
+    },
+    {
+      "route": "/owner-billing",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89386,
+      "elapsed_seconds": 14.52
+    },
+    {
+      "route": "/owner-capability-mesh",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89863,
+      "elapsed_seconds": 14.4
+    },
+    {
+      "route": "/owner-center",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92432,
+      "elapsed_seconds": 14.4
+    },
+    {
+      "route": "/owner-cloudflare",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 93908,
+      "elapsed_seconds": 14.34
+    },
+    {
+      "route": "/owner-dns",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92604,
+      "elapsed_seconds": 14.46
+    },
+    {
+      "route": "/owner-edge-ai",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 94060,
+      "elapsed_seconds": 14.73
+    },
+    {
+      "route": "/owner-evolution",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92734,
+      "elapsed_seconds": 14.69
+    },
+    {
+      "route": "/owner-feedback",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89688,
+      "elapsed_seconds": 14.7
+    },
+    {
+      "route": "/owner-infrastructure",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89004,
+      "elapsed_seconds": 14.69
+    },
+    {
+      "route": "/owner-integrations",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89411,
+      "elapsed_seconds": 14.6
+    },
+    {
+      "route": "/owner-leads",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89658,
+      "elapsed_seconds": 14.65
+    },
+    {
+      "route": "/owner-login",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89081,
+      "elapsed_seconds": 14.52
+    },
+    {
+      "route": "/owner-operations",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 88751,
+      "elapsed_seconds": 14.43
+    },
+    {
+      "route": "/owner-reviews",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89513,
+      "elapsed_seconds": 14.44
+    },
+    {
+      "route": "/owner-self-healing",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 88791,
+      "elapsed_seconds": 14.44
+    },
+    {
+      "route": "/owner-store-control",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 88862,
+      "elapsed_seconds": 14.42
+    },
+    {
+      "route": "/owner-web-agent",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92212,
+      "elapsed_seconds": 14.41
+    },
+    {
+      "route": "/phone",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 94481,
+      "elapsed_seconds": 14.57
+    },
+    {
+      "route": "/plugin-demo",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 98434,
+      "elapsed_seconds": 14.46
+    },
+    {
+      "route": "/plugin-support",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 95892,
+      "elapsed_seconds": 14.46
+    },
+    {
+      "route": "/pricing",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 99435,
+      "elapsed_seconds": 14.44
+    },
+    {
+      "route": "/privacy",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 102601,
+      "elapsed_seconds": 14.5
+    },
+    {
+      "route": "/professional",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 94997,
+      "elapsed_seconds": 14.76
+    },
+    {
+      "route": "/qa-ai-academy",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92193,
+      "elapsed_seconds": 14.62
+    },
+    {
+      "route": "/reels",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 94073,
+      "elapsed_seconds": 14.62
+    },
+    {
+      "route": "/research-notebook",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91949,
+      "elapsed_seconds": 14.68
+    },
+    {
+      "route": "/reservations",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92604,
+      "elapsed_seconds": 14.6
+    },
+    {
+      "route": "/reviews",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89113,
+      "elapsed_seconds": 14.53
+    },
+    {
+      "route": "/routine-studio",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92627,
+      "elapsed_seconds": 14.52
+    },
+    {
+      "route": "/samsung-tools",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 96850,
+      "elapsed_seconds": 14.67
+    },
+    {
+      "route": "/security",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 105892,
+      "elapsed_seconds": 14.75
+    },
+    {
+      "route": "/shop",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 101956,
+      "elapsed_seconds": 14.62
+    },
+    {
+      "route": "/signup",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 94305,
+      "elapsed_seconds": 14.56
+    },
+    {
+      "route": "/social-connect",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92654,
+      "elapsed_seconds": 14.68
+    },
+    {
+      "route": "/social-hub",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91680,
+      "elapsed_seconds": 14.54
+    },
+    {
+      "route": "/social-media",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92794,
+      "elapsed_seconds": 14.48
+    },
+    {
+      "route": "/softphone",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92078,
+      "elapsed_seconds": 14.5
+    },
+    {
+      "route": "/solutions",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 128367,
+      "elapsed_seconds": 14.46
+    },
+    {
+      "route": "/space",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91758,
+      "elapsed_seconds": 14.38
+    },
+    {
+      "route": "/start",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 94885,
+      "elapsed_seconds": 14.36
+    },
+    {
+      "route": "/studio",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91031,
+      "elapsed_seconds": 14.36
+    },
+    {
+      "route": "/support",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91770,
+      "elapsed_seconds": 14.57
+    },
+    {
+      "route": "/teach",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 93316,
+      "elapsed_seconds": 14.56
+    },
+    {
+      "route": "/telecom",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 98535,
+      "elapsed_seconds": 14.59
+    },
+    {
+      "route": "/telecom-standalone",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 98870,
+      "elapsed_seconds": 14.65
+    },
+    {
+      "route": "/telecom/activate",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91190,
+      "elapsed_seconds": 14.48
+    },
+    {
+      "route": "/telecom/charging",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 94627,
+      "elapsed_seconds": 14.46
+    },
+    {
+      "route": "/telecom/network",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 105034,
+      "elapsed_seconds": 14.48
+    },
+    {
+      "route": "/telecom/operations",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 95272,
+      "elapsed_seconds": 14.32
+    },
+    {
+      "route": "/telecom/plans",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 93890,
+      "elapsed_seconds": 14.36
+    },
+    {
+      "route": "/telecom/security",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91832,
+      "elapsed_seconds": 14.28
+    },
+    {
+      "route": "/telecom/sim",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92743,
+      "elapsed_seconds": 14.26
+    },
+    {
+      "route": "/terms",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 111380,
+      "elapsed_seconds": 14.44
+    },
+    {
+      "route": "/tool-foundry",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90320,
+      "elapsed_seconds": 14.41
+    },
+    {
+      "route": "/travel-agency",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 99378,
+      "elapsed_seconds": 14.34
+    },
+    {
+      "route": "/video-agents",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89945,
+      "elapsed_seconds": 14.46
+    },
+    {
+      "route": "/video-director",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 95400,
+      "elapsed_seconds": 14.38
+    },
+    {
+      "route": "/video-stack",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91032,
+      "elapsed_seconds": 14.44
+    },
+    {
+      "route": "/video-studio",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 96342,
+      "elapsed_seconds": 12.71
+    },
+    {
+      "route": "/virtual-assistant",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 93314,
+      "elapsed_seconds": 12.9
+    },
+    {
+      "route": "/wellness",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 93907,
+      "elapsed_seconds": 12.9
+    },
+    {
+      "route": "/white-label",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 100805,
+      "elapsed_seconds": 12.78
+    },
+    {
+      "route": "/white-label-os",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89948,
+      "elapsed_seconds": 12.8
+    },
+    {
+      "route": "/white-label-studio",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91055,
+      "elapsed_seconds": 12.78
+    },
+    {
+      "route": "/white-label/app",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89531,
+      "elapsed_seconds": 14.67
+    },
+    {
+      "route": "/white-label/branded-ai",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91099,
+      "elapsed_seconds": 14.94
+    },
+    {
+      "route": "/white-label/client-apps",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90900,
+      "elapsed_seconds": 14.89
+    },
+    {
+      "route": "/white-label/communications",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 49900,
+      "elapsed_seconds": 14.65
+    },
+    {
+      "route": "/white-label/funnel",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 92391,
+      "elapsed_seconds": 14.81
+    },
+    {
+      "route": "/white-label/native",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 91923,
+      "elapsed_seconds": 14.75
+    },
+    {
+      "route": "/white-label/whatsapp",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 90920,
+      "elapsed_seconds": 14.75
+    },
+    {
+      "route": "/work-engine",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 89875,
+      "elapsed_seconds": 14.6
+    },
+    {
+      "route": "/health",
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 145,
+      "elapsed_seconds": 8.2,
+      "body": {
+        "status": "ok",
+        "service": "iamagnanimous-ai",
+        "version": "4.0.0-multitenant",
+        "database_bootstrap": "bypassed-for-health",
+        "database_independent": true
+      }
+    },
+    {
+      "route": "/api/tools",
+      "status": 200,
+      "content_type": "application/json; charset=utf-8",
+      "bytes": 2297,
+      "elapsed_seconds": 9.42,
+      "body": {
+        "tools": [
+          {
+            "id": "magnanimous",
+            "name": "Magnanimous AI",
+            "description": "Commander-in-chief brain that plans, remembers, learns, routes, verifies and coordinates every supported platform capability."
+          },
+          {
+            "id": "ai-chat",
+            "name": "AI Chat",
+            "description": "General-purpose AI assistant."
+          },
+          {
+            "id": "writing",
+            "name": "Writing Helper",
+            "description": "Create, rewrite, summarize and polish content."
+          },
+          {
+            "id": "research",
+            "name": "Research Helper",
+            "description": "Research live web/news sources and private workspace knowledge."
+          },
+          {
+            "id": "native-web",
+            "name": "Native Web Agent",
+            "description": "Magnanimous-owned browser search, rendered extraction, browser workflows, persistent local sessions and monitoring through a paired Local Bridge."
+          },
+          {
+            "id": "capability-mesh",
+            "name": "Capability Mesh",
+            "description": "Unified Magnanimous routing across native web, GitHub, Magnanimous Cloud, Cloudflare adapters and Railway deployment rails."
+          },
+          {
+            "id": "edge-ai",
+            "name": "Edge AI Coprocessor",
+            "description": "Owner-controlled NCS2 / MYRIAD inference for offline and hybrid online image/media triage, sampled video analysis, face-presence framing, text-region detection and vision preprocessing through the Magnanimous Local Bridge."
+          },
+          {
+            "id": "bible-study",
+            "name": "Bible Study",
+            "description": "Study Scripture and organize biblical topics."
+          },
+          {
+            "id": "marketing",
+            "name": "Marketing Helper",
+            "description": "Create campaigns, captions, offers and content plans."
+          },
+          {
+            "id": "business",
+            "name": "Business Helper",
+            "description": "Business planning, ideas and analysis."
+          },
+          {
+            "id": "business-launch",
+            "name": "Professional Business Launch",
+            "description": "Intake, research, validation, financial review, hostile critique and final plan preparation."
+          },
+          {
+            "id": "coding",
+            "name": "Coding Helper",
+            "description": "Explain, generate and troubleshoot code."
+          },
+          {
+            "id": "video-studio",
+            "name": "Text \u2192 Video Studio",
+            "description": "Create creator-ready video content."
+          },
+          {
+            "id": "social",
+            "name": "Social Media Helper",
+            "description": "Create platform-ready social posts and scripts."
+          },
+          {
+            "id": "video-script",
+            "name": "Video Script Helper",
+            "description": "Create short- and long-form video scripts."
+          },
+          {
+            "id": "travel",
+            "name": "Travel Helper",
+            "description": "Build travel plans and itineraries."
+          },
+          {
+            "id": "customer-service",
+            "name": "Customer Service Helper",
+            "description": "Draft helpful customer responses."
+          }
+        ]
+      }
+    },
+    {
+      "route": "/api/providers",
+      "status": 200,
+      "content_type": "application/json; charset=utf-8",
+      "bytes": 654,
+      "elapsed_seconds": 8.99,
+      "body": {
+        "free_first": true,
+        "metered_providers_enabled": false,
+        "command_role": "commander-in-chief",
+        "task_aware_routing": true,
+        "automatic_failover": true,
+        "learned_tool_planning": true,
+        "adaptive_provider_learning": true,
+        "automatic_link_learning": true,
+        "providers": [
+          {
+            "id": "auto",
+            "name": "Magnanimous AI",
+            "configured": true,
+            "enabled": true,
+            "tier": "private-routing",
+            "type": "magnanimous-private-routing"
+          }
+        ],
+        "configured_count": 1,
+        "free_configured_count": 1,
+        "magnanimous_ready": true,
+        "operator_ready": true,
+        "provider_details_private": true,
+        "execution_disclosure": "Magnanimous AI privately selects authorized execution infrastructure. Specific infrastructure identities are owner-only."
+      }
+    },
+    {
+      "route": "/api/visual/providers",
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 2319,
+      "elapsed_seconds": 9.39,
+      "body": {
+        "providers": [
+          {
+            "id": "iam-cinematic-free",
+            "name": "I AM Cinematic Free",
+            "type": "video-effects",
+            "tier": "free-first",
+            "free": true,
+            "configured": true,
+            "enabled": true,
+            "note": "Free-first cinematic pipeline. Uses the Magnanimous/local image rail when configured, otherwise falls back to Magnanimous-owned procedural scene rendering with no external image provider required."
+          },
+          {
+            "id": "magnanimous-native-procedural-scene",
+            "name": "Magnanimous Native Procedural Scene",
+            "type": "image-generation",
+            "tier": "first-party-zero-cost",
+            "free": true,
+            "configured": true,
+            "enabled": true,
+            "model": "magnanimous-procedural-v1",
+            "note": "First-party deterministic SVG scene renderer. It preserves free visual output when no external or self-hosted generative image model is configured."
+          },
+          {
+            "id": "magnanimous-native-image",
+            "name": "Magnanimous Native Image",
+            "type": "image-generation",
+            "tier": "self-hosted-or-compatible",
+            "free": true,
+            "configured": false,
+            "enabled": false,
+            "model": "local-stable-diffusion",
+            "note": "Magnanimous-owned image-generation contract using a local Automatic1111/Stable Diffusion server or an OpenAI-compatible image endpoint. No Cloudflare runtime dependency."
+          },
+          {
+            "id": "cloudflare-flux-free",
+            "name": "Legacy Edge FLUX Fallback",
+            "type": "image-generation",
+            "tier": "rollback-only",
+            "free": true,
+            "configured": false,
+            "enabled": false,
+            "model": "@cf/black-forest-labs/flux-1-schnell",
+            "note": "Legacy production rollback path only. It is never selected automatically; it requires explicit ENABLE_CLOUDFLARE_FLUX_ROLLBACK=true opt-in plus an explicit provider request."
+          },
+          {
+            "id": "google-gemini-visual-director",
+            "name": "Google Gemini Visual Director",
+            "type": "visual-planning",
+            "tier": "free-tier",
+            "free": true,
+            "configured": false,
+            "enabled": false,
+            "model": "gemini-3.1-flash-lite",
+            "note": "Uses Gemini free-tier text/multimodal reasoning to turn a message into a stronger cinematic scene prompt. It does not claim free Google image/video generation."
+          },
+          {
+            "id": "google-veo-3.1-lite",
+            "name": "Google Veo 3.1 Lite",
+            "type": "video-generation",
+            "tier": "paid-api",
+            "free": false,
+            "configured": false,
+            "enabled": false,
+            "model": "veo-3.1-lite-generate-preview",
+            "note": "Official Veo provider entry. Google currently does not offer Veo 3.1 on the Gemini API free tier, so it stays opt-in instead of silently creating charges."
+          }
+        ],
+        "configured_count": 2,
+        "free_configured_count": 2,
+        "free_first": true
+      }
+    },
+    {
+      "route": "/api/auth/me",
+      "status": 401,
+      "content_type": "application/json; charset=utf-8"
+    },
+    {
+      "route": "/api/admin/settings",
+      "status": 403,
+      "content_type": "application/json"
+    },
+    {
+      "route": "/api/public-data/health",
+      "status": 401,
+      "content_type": "application/json"
+    },
+    {
+      "route": "/api/magnanimous/capability-mesh/catalog",
+      "status": 401,
+      "content_type": "application/json"
+    }
+  ]
+}

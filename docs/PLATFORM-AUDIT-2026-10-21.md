@@ -39,3 +39,13 @@ Pending: inspect coverage of existing tests, run available checks, repair verifi
 - Device-dependent tools need the paired Local Bridge and actual device. The Samsung skill names Local Bridge operations in metadata; these are not direct Capability Mesh route names.
 - Regulatory, funding, consent and provider authorization gates remain intact. No claim is made that gated telecom or other external services are active.
 - Comparative superiority has not been benchmarked. No universal readiness certification is issued.
+
+## Checkpoint 3 — live read-only HTTP sweep
+
+All 140 source page routes returned successfully in a 148-request GET sweep. Public health, tools, provider catalog and visual-provider catalog returned JSON HTTP 200. Unauthenticated `auth/me`, public-data health and Capability Mesh catalog returned HTTP 401; admin settings returned HTTP 403. Full per-route evidence is in `artifacts/audit-readonly-2026-10-21.json`.
+
+The visual-provider response declares two of six entries configured: the cinematic fallback and native procedural scene renderer. Local generative image, legacy FLUX, visual-director and paid video entries are disabled/unconfigured. This is explicit evidence against claiming every provider is live. Do not enable paid providers or pretend procedural scene rendering proves generative-image/video capability.
+
+The public `/health` response explicitly bypasses database bootstrap and is database-independent. Its success must not be represented as proof of database, billing, memory or tenant health.
+
+PR #730 saves the implementation and evidence. Merge, deployment and post-deployment verification must be recorded separately; this document does not predeclare those outcomes.
