@@ -60,8 +60,11 @@ jobs:
 
       - name: Commit generated lockfiles when needed
         shell: bash
+        env:
+          TARGET_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
         run: |
           set -euo pipefail
+          git check-ref-format --branch "$TARGET_BRANCH" >/dev/null
           git add frontend/package-lock.json worker/package-lock.json video-gateway/package-lock.json qa/package-lock.json
           if git diff --cached --quiet; then
             echo 'Lockfiles already match package manifests.'
@@ -70,4 +73,4 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'Lock transitive npm dependencies'
-          git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
