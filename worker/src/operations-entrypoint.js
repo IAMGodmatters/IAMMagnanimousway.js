@@ -29,6 +29,7 @@ import {scheduledTelecomEmailWatch,telecomEmailWatchStatus} from './magnanimous-
 import {scheduledMagnanimousAttentionWatch,magnanimousAttentionWatchStatus} from './magnanimous-native-attention-watch.js';
 import {scheduledNativeStoreCommerce,scheduledNativeStoreFulfillment} from './native-store-runtime.js';
 import {handleContinuousLearning,runContinuousLearningCycle} from './magnanimous-continuous-learning.js';
+import {handleNativeMeetingRooms,pruneExpiredMeetingRooms} from './native-meeting-rooms.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const bodyOf=(request)=>request.clone().json().catch(()=>({}));
@@ -246,6 +247,10 @@ async function operationsFetch(request,env,ctx){
 
 export default{
  async fetch(request,env,ctx){
+  if(new URL(request.url).pathname.startsWith('/api/meet/')){
+   const user=await currentUser(request,env);
+   return handleNativeMeetingRooms(request,env,user);
+  }
   const whatsapp=await handleWhiteLabelWhatsApp(request,env);
   if(whatsapp)return whatsapp;
   const native=await handleWhiteLabelNativeProducts(request,env);
@@ -268,6 +273,7 @@ export default{
  async scheduled(controller,env,ctx){
   const origin=String(env.PUBLIC_SITE_URL||'https://iammagnanimousway.com').replace(/\/$/,'');
   const scheduledTasks=[
+   pruneExpiredMeetingRooms(env).catch(error=>console.error('meeting room retention cleanup failed',error)),
    scheduledGrowth(env,origin).catch(error=>console.error('scheduled growth automation failed',error)),
    scheduledNativeWeb(env).catch(error=>console.error('scheduled native web automation failed',error)),
    scheduledMagnanimousCapabilityMesh(env).catch(error=>console.error('scheduled capability mesh check failed',error)),

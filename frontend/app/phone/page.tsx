@@ -343,6 +343,7 @@ export default function Phone() {
           <small>I AM MAGNANIMOUS WAY™ · COMMUNICATION COMMAND</small>
           <h1>Phone & Call Center</h1>
           <p>Working browser-to-browser voice calls for signed-in I AM users, with agent presence, queues, and call history.</p>
+          <p><a href="/meet">Open Magnanimous Meet → Video, screen sharing and room chat</a></p>
         </div>
         <div className="liveBadge"><i /> {loading ? 'CHECKING' : 'WORKSPACE ONLINE'}</div>
       </header>
