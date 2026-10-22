@@ -1,5 +1,6 @@
 'use client';
 import {FormEvent,useEffect,useRef,useState} from 'react';
+import {fetchHomeJson as safeJson,homeCoreReachable,HOME_CORE_STATUS} from '../lib/home-service-status';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 type Ad={id:number;title:string;url:string;label:string;placement:string;active:number};
@@ -41,8 +42,6 @@ const mobileReferenceCards:MobileReferenceCard[]=[
  {label:'Reports',href:'/activity',left:50.3,top:87.0,width:44.1,height:6.6}
 ];
 
-async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}catch{return{}}}
-async function safeJson(url:string){try{return await fetch(url).then(read)}catch{return{}}}
 
 export default function Home(){
  const[query,setQuery]=useState('');
@@ -50,7 +49,7 @@ export default function Home(){
  const[adConfig,setAdConfig]=useState<AdConfig>({adsense_configured:false,adsense_client_id:null,adsense_home_slot:null,auto_ads_ready:false});
  const[ready,setReady]=useState(false),[online,setOnline]=useState(false),[menuOpen,setMenuOpen]=useState(false),[searchOpen,setSearchOpen]=useState(false),[sidebarCollapsed,setSidebarCollapsed]=useState(false);
  const mobileMenuButtonRef=useRef<HTMLButtonElement|null>(null),mobileDrawerCloseRef=useRef<HTMLButtonElement|null>(null),mobileSearchRef=useRef<HTMLInputElement|null>(null),menuWasOpenRef=useRef(false);
- useEffect(()=>{(async()=>{const[health,t,a,mc]=await Promise.all([safeJson(`${api}/health`),safeJson(`${api}/api/tools`),safeJson(`${api}/api/ads?placement=home`),safeJson(`${api}/api/monetization/config`)]);setOnline(health?.status==='ok'&&Array.isArray(t.tools));setAds(a.ads||[]);setAdConfig({adsense_configured:!!mc.adsense_configured,adsense_client_id:mc.adsense_client_id||null,adsense_home_slot:mc.adsense_home_slot||null,auto_ads_ready:!!mc.auto_ads_ready});setReady(true)})()},[]);
+ useEffect(()=>{(async()=>{const[health,t,a,mc]=await Promise.all([safeJson(`${api}/health`),safeJson(`${api}/api/tools`),safeJson(`${api}/api/ads?placement=home`),safeJson(`${api}/api/monetization/config`)]);setOnline(homeCoreReachable(health,t));setAds(a.ads||[]);setAdConfig({adsense_configured:!!mc.adsense_configured,adsense_client_id:mc.adsense_client_id||null,adsense_home_slot:mc.adsense_home_slot||null,auto_ads_ready:!!mc.auto_ads_ready});setReady(true)})()},[]);
  useEffect(()=>{try{setSidebarCollapsed(localStorage.getItem('iam_home_sidebar_collapsed')==='1')}catch{}},[]);
  useEffect(()=>{const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){setMenuOpen(false);setSearchOpen(false)}};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[]);
  useEffect(()=>{if(!menuOpen)return;const previous=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{document.body.style.overflow=previous}},[menuOpen]);
@@ -75,7 +74,7 @@ export default function Home(){
    {cardLinks.map((item,i)=>{const col=i%5,row=Math.floor(i/5);return <a key={`card-${item.label}`} className="hot cardHot" style={{left:`${14.25+col*16.78}%`,top:`${42.2+row*13.55}%`}} href={item.href} aria-label={`Open ${item.label}`}><span>{item.label}</span></a>})}
    <button className={sidebarCollapsed?'desktopSidebarToggle collapsed':'desktopSidebarToggle'} type="button" onClick={toggleDesktopSidebar} aria-expanded={!sidebarCollapsed} aria-label={sidebarCollapsed?'Expand sidebar menu':'Collapse sidebar menu'}><span aria-hidden="true">{sidebarCollapsed?'›':'‹'}</span></button>
    {sidebarCollapsed&&<div className="desktopSidebarMask" aria-hidden="true"/>}
-   <span className="srStatus" aria-live="polite">{ready?(online?'Magnanimous AI online. Systems ready.':'Platform loaded. Some live services are unavailable.'):'Checking Magnanimous AI status.'}</span>
+   <span className="srStatus" aria-live="polite">{ready?(online?HOME_CORE_STATUS:'Platform loaded. Some live services are unavailable.'):'Checking Magnanimous AI status.'}</span>
   </section>
 
   <section className="mobileExactStage" aria-label="I AM MAGNANIMOUS WAY mobile dashboard">
@@ -96,7 +95,7 @@ export default function Home(){
     <button className="mobileReferenceHot mobileBottomMore" type="button" onClick={()=>setMenuOpen(true)} aria-label="Open more navigation"><span>More</span></button>
     {!ready&&<div className="mobileServiceAlert checking" role="status" aria-live="polite">Checking live services…</div>}
     {ready&&!online&&<div className="mobileServiceAlert degraded" role="status" aria-live="polite">Some live services unavailable</div>}
-    {ready&&online&&<span className="srStatus" aria-live="polite">Magnanimous AI online. Systems ready.</span>}
+    {ready&&online&&<span className="srStatus" aria-live="polite">{HOME_CORE_STATUS}</span>}
    </div>
    {searchOpen&&<form id="mobile-reference-search" className="mobileSearchPanel" onSubmit={submit} role="search"><input ref={mobileSearchRef} value={query} onChange={e=>setQuery(e.target.value)} aria-label="Search anything" placeholder="Search anything..."/><button type="submit">Search</button><button type="button" onClick={()=>setSearchOpen(false)} aria-label="Close search">Close</button></form>}
   </section>

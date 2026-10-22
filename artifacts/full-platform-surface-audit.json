@@ -1,0 +1,31 @@
+{
+  "generated_at": "2026-10-21T06:33:09.466Z",
+  "audit": "Magnanimous full platform customer-facing surface integrity",
+  "scope": {
+    "source": "frontend/app + frontend/components",
+    "built_output": "frontend/out/**/*.html",
+    "production": "not requested in this run",
+    "safety": "read-only GET/HEAD checks only; no form submissions, purchases, deletions, messages, calls, or other consequential mutations"
+  },
+  "counters": {
+    "source_files": 211,
+    "html_files": 143,
+    "generated_routes": 142,
+    "static_internal_links": 1065,
+    "external_links": 46,
+    "rendered_buttons": 464,
+    "rendered_images": 157
+  },
+  "live": {
+    "enabled": false,
+    "base_url": null,
+    "routes_checked": 0,
+    "routes_ok": 0,
+    "external_checked": 0,
+    "external_ok": 0,
+    "external_restricted": 0
+  },
+  "errors": [],
+  "warnings": [],
+  "pass": true
+}
