@@ -1,0 +1,60 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {DatabaseSync} from 'node:sqlite';
+import {handleNativeMeetingRooms,pruneExpiredMeetingRooms} from '../../worker/src/native-meeting-rooms.js';
+
+const source=path=>fs.readFileSync(new URL('../../'+path,import.meta.url),'utf8');
+assert.match(source('worker/src/operations-entrypoint.js'),/handleNativeMeetingRooms\(request,env,user\)/,'meeting route must be wired');
+assert.match(source('frontend/app/phone/page.tsx'),/href="\/meet"/,'phone must link to native meeting');
+assert.match(source('frontend/app/white-label/page.tsx'),/app\.key==='meet'\?'\/meet'/,'white-label meeting link must work');
+assert.doesNotMatch(source('frontend/app/meet/page.tsx').toLowerCase(),/mirrorfly|jitsi|daily\.co/,'no third-party brand in meeting UI');
+
+const database=new DatabaseSync(':memory:');
+database.exec(source('worker/migrations/0107_native_meeting_rooms.sql'));
+const env={DB:{prepare(sql){
+ const statement=database.prepare(sql);
+ let params=[];
+ return {bind(...values){params=values;return this},async first(){return statement.get(...params)||null},async all(){return {results:statement.all(...params)}},async run(){return statement.run(...params)}};
+}}};
+const host={id:'owner-a',tenant_id:'tenant-a'},guest={id:'guest-a',tenant_id:'tenant-a'},third={id:'third-a',tenant_id:'tenant-a'},outsider={id:'outsider-b',tenant_id:'tenant-b'};
+const call=async(path,method,user,body)=>{
+ const request=new Request('https://iammagnanimousway.com'+path,{method,headers:{'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});
+ const response=await handleNativeMeetingRooms(request,env,user);
+ return {status:response.status,data:await response.json()};
+};
+
+assert.equal((await call('/api/meet/rooms','POST',null,{})).status,401,'unauthenticated rooms rejected');
+const created=await call('/api/meet/rooms','POST',host,{title:'Team private meeting'});
+assert.equal(created.status,201);
+assert.equal(created.data.title,'Team private meeting');
+assert.match(created.data.invite,/^[0-9a-f]{64}$/);
+const id=created.data.room_id,path=`/api/meet/rooms/${id}`;
+assert.equal((await call(path,'GET',outsider)).status,404,'cross-tenant room hidden');
+assert.equal((await call(path,'GET',guest)).status,403,'uninvited user cannot read room');
+assert.equal((await call(path+'/join','POST',guest,{invite:'a'.repeat(64)})).status,403,'guess must fail');
+assert.equal((await call(path+'/join','POST',outsider,{invite:created.data.invite})).status,404,'invite cannot bypass tenant');
+const joined=await call(path+'/join','POST',guest,{invite:created.data.invite});
+assert.equal(joined.status,200);
+assert.equal(joined.data.role,'guest');
+assert.equal(joined.data.participants,2);
+assert.equal((await call(path+'/join','POST',third,{invite:created.data.invite})).status,409,'third user blocked');
+const hostRoom=await call(path,'GET',host);
+assert.equal(hostRoom.status,200);
+assert.ok(Array.isArray(hostRoom.data.ice_servers));
+assert.equal(hostRoom.data.invite,undefined,'GET must not reveal invite code');
+assert.equal((await call(path+'/events','POST',third,{type:'chat',payload:{text:'intrusion'}})).status,403);
+assert.equal((await call(path+'/events','POST',guest,{type:'chat',payload:{text:'Hello team!'}})).status,201);
+assert.equal((await call(path+'/events','POST',guest,{type:'chat',payload:{text:''}})).status,400);
+assert.equal((await call(path+'/events','POST',host,{type:'offer',payload:{type:'answer',sdp:'fake'}})).status,400);
+assert.equal((await call(path+'/events','POST',host,{type:'offer',payload:{type:'offer',sdp:'v=0'}})).status,201);
+const events=await call(path+'/events?after=0','GET',host);
+assert.equal(events.data.events.length,1,'host sees chat but not own SDP');
+assert.equal(events.data.events[0].payload.text,'Hello team!');
+assert.equal((await call(path+'/leave','POST',guest,{})).status,200);
+assert.equal((await call(path,'GET',host)).status,410,'ended room locked');
+database.prepare('UPDATE mag_meeting_rooms SET expires_at=? WHERE id=?').run(1,id);
+await pruneExpiredMeetingRooms(env);
+assert.equal(database.prepare('SELECT COUNT(*) n FROM mag_meeting_rooms').get().n,0,'expired rooms removed');
+assert.equal(database.prepare('SELECT COUNT(*) n FROM mag_meeting_events').get().n,0,'chat and SDP removed');
+database.close();
+console.log('PASS: native meeting rooms auth, tenant isolation, invite, signaling, chat, room cap and retention');
