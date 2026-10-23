@@ -3,6 +3,8 @@ import {readFileSync} from 'node:fs';
 
 const workflow=readFileSync('.github/workflows/deploy.yml','utf8');
 const voiceSync=readFileSync('.github/workflows/sync-twilio-voice.yml','utf8');
+const managedEmailSync=readFileSync('.github/workflows/sync-managed-email-secret.yml','utf8');
+const nvidiaSync=readFileSync('.github/workflows/sync-nvidia-provider-secret.yml','utf8');
 const runtime=readFileSync('worker/src/runtime-control.js','utf8');
 
 const serialization=/\nconcurrency:\s*\n\s+group:\s*magnanimous-main-production-deployment\s*\n\s+queue:\s*max\s*\n\s+cancel-in-progress:\s*false\b/;
@@ -10,6 +12,10 @@ assert.match(workflow,serialization,
   'Main production deployments must be serialized without cancelling in-flight cleanup.');
 assert.match(voiceSync,serialization,
   'Voice secret sync must serialize with main Worker deployments.');
+assert.match(managedEmailSync,serialization,
+  'Managed email secret sync must serialize with main Worker deployments.');
+assert.match(nvidiaSync,serialization,
+  'NVIDIA secret sync must serialize with main Worker deployments.');
 assert.match(voiceSync,/if:\s*github\.ref\s*==\s*'refs\/heads\/main'/,
   'A voice sync may only redeploy the Worker from main.');
 assert.match(voiceSync,/wrangler deploy --var MAGNANIMOUS_DEPLOY_REVISION:\$GITHUB_SHA/,
