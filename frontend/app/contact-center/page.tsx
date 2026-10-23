@@ -166,7 +166,7 @@ export default function ContactCenter(){
         <small>I AM MAGNANIMOUS WAY™ · CONTACT CENTER</small>
         <h2>Every conversation.<br/>One intelligent center.</h2>
         <p>Support your team with live call context, customer relationships and Magnanimous AI. Consent, cost controls and carrier readiness remain protected.</p>
-        <div className="cxRoyalActions"><a href="#cx-control-tabs">Enter command center</a><a href="/ai-receptionist">AI Receptionist</a></div>
+        <div className="cxRoyalActions"><a href="#cx-control-tabs">Enter command center</a></div>
       </div>
     </section>
     {error&&<div className="cx-alert error">{error}<button onClick={()=>setError('')}>×</button></div>}
