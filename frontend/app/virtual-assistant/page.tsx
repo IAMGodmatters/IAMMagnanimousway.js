@@ -944,7 +944,21 @@ export default function VA() {
           .virtualRoyalHero .quick a{padding:6px 9px}
           .virtualRoyalHero .stage{display:block;min-height:300px}
         }
-        @media(prefers-reduced-motion:reduce){.virtualRoyalHero:before{animation:none;transform:none}}
+        /* Tablet-size portrait devices keep their native animated avatar and readiness banner. */
+        @media(min-width:561px) and (max-width:760px) and (orientation:portrait){
+          .hero.virtualRoyalHero{aspect-ratio:auto;max-height:none;min-height:790px}
+          .virtualRoyalHero .stage{display:block;min-height:300px;width:100%;margin-top:8px}
+        }
+        /* Narrow landscape phones get a stacked composition, avoiding a cropped avatar. */
+        @media(orientation:landscape) and (max-height:560px) and (max-width:700px){
+          .hero.virtualRoyalHero{grid-template-columns:1fr;min-height:660px;overflow:hidden}
+          .virtualRoyalHero .stage{min-height:295px;width:100%}
+          .virtualRoyalHero .copy{padding:17px 22px}
+        }
+        @media(prefers-reduced-motion:reduce){
+          .virtualRoyalHero:before{animation:none;transform:none}
+          .virtualRoyalHero .r2{animation:none!important}
+        }
       `}</style>
     </main>
   );
