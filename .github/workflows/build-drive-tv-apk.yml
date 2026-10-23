@@ -36,7 +36,12 @@ jobs:
           export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           APK=tv-app/app/build/outputs/apk/debug/app-debug.apk
           FINAL=tv-app/app/build/outputs/apk/debug/app-compatible.apk
-          TESTKEY="$HOME/.android/debug.keystore"
+          # Ephemeral personal-test signing key; this APK is not a production release.
+          TESTKEY="$RUNNER_TEMP/magnanimous-tv-test.jks"
+          keytool -genkeypair -noprompt -keystore "$TESTKEY" \
+            -alias androiddebugkey -storepass android -keypass android \
+            -keyalg RSA -keysize 2048 -validity 3650 \
+            -dname "CN=Magnanimous Drive TV Debug,O=Magnanimous,C=US"
           test -s "$TESTKEY"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign \
             --ks "$TESTKEY" \
