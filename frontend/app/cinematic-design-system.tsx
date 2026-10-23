@@ -74,7 +74,7 @@ export default function CinematicDesignSystem(){
   body.iam-design-v2 .cinematicHome .icon:not(.moduleMark){background:radial-gradient(circle at 35% 25%,rgba(100,233,255,.17),rgba(4,14,28,.9) 66%)!important;border:1px solid rgba(89,225,255,.21);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 25px rgba(0,0,0,.32),0 0 30px rgba(85,229,255,.055)}
 
   body.iam-design-v2 .opportunityVault{background:transparent!important}
-  body.iam-design-v2 .opportunityVault .hero h1{max-width:1050px;background:linear-gradient(105deg,#f7fbff,#bceeff 44%,#73e2ba 76%,#f5ca69);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 18px 42px rgba(0,0,0,.28)}
+  body.iam-design-v2 .opportunityVault .hero h1{max-width:710px;background:none!important;-webkit-background-clip:initial;background-clip:initial;color:#ffe7a2!important;-webkit-text-fill-color:#ffe7a2;text-shadow:0 2px 0 #785120,0 4px 0 #39210d,0 8px 25px #020615,0 0 30px rgba(255,201,98,.47)!important}
   body.iam-design-v2 .opportunityVault .rules{background:linear-gradient(125deg,#071b35,#050e22)!important;border-color:#c39240!important;box-shadow:0 0 24px rgba(255,208,106,.07),inset 0 1px rgba(255,255,255,.07)!important}
   body.iam-design-v2 .opportunityVault .watch{background:linear-gradient(145deg,rgba(8,27,39,.9),rgba(5,13,24,.94))!important;border-color:rgba(244,187,79,.4)!important;box-shadow:var(--cinema-shadow)}
   body.iam-design-v2 .opportunityVault .grid article{background:radial-gradient(circle at 85% 5%,rgba(240,188,73,.08),transparent 27%),linear-gradient(135deg,#0c2441,#030d20 70%)!important;border-radius:21px!important;border-color:#3a98b9!important;box-shadow:0 15px 40px rgba(0,0,0,.53),inset 0 1px rgba(255,255,255,.06)!important}
