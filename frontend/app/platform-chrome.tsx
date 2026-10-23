@@ -3,6 +3,19 @@ import {FormEvent,useEffect,useMemo,useState} from 'react';
 
 const publicPaths=['/login','/signup','/owner-login','/privacy','/terms','/movie','/magnanimous','/telecom-standalone'];
 type NavItem={glyph:string;label:string;href:string};
+// Reuse original Magnanimous illustrations: no third-party artwork or new downloads.
+const sidebarArt=(href:string)=>{
+ if(href==='/ai-chat')return '/magnanimous-ai-command-palace-mobile-v2.webp';
+ if(href==='/opportunity-vault')return '/magnanimous-opportunity-palace-mobile-v2.webp';
+ if(href==='/knowledge')return '/magnanimous-knowledge-palace-mobile-v2.webp';
+ if(href==='/travel-agency')return '/magnanimous-travel-palace-mobile-v2.webp';
+ if(href.includes('kids'))return '/magnanimous-family-full.webp';
+ if(/social|video|movie|studio|creator/.test(href))return '/mode-images/social-media.webp';
+ if(/crm|business|b2b|shop|owner|professional/.test(href))return '/mode-images/business.webp';
+ if(/opportunity|intelligence|activity|report/.test(href))return '/mode-images/research.webp';
+ if(/assistant|receptionist|routine|connections/.test(href))return '/mode-images/virtual-assistant.webp';
+ return '/mode-images/general.webp';
+};
 const nav:NavItem[]=[
  {glyph:'H',label:'Home',href:'/'},{glyph:'AI',label:'AI Command',href:'/ai-chat'},{glyph:'OV',label:'Opportunity Vault',href:'/opportunity-vault'},{glyph:'CRM',label:'CRM',href:'/crm'},{glyph:'B2B',label:'B2B',href:'/b2b'},{glyph:'CC',label:'Contact Center',href:'/contact-center'},{glyph:'TEL',label:'Telecom',href:'/telecom'},{glyph:'ID',label:'Intelligence Desk',href:'/intelligence-desk'},{glyph:'TR',label:'Travel Agency',href:'/travel-agency'},{glyph:'K',label:'Magnanimous Kids',href:'https://harmonic-data-52yyzau.shipstatic.com/'},{glyph:'AB',label:'AI Business',href:'/business-ai'},{glyph:'UP',label:'Launch Magnanimous',href:'/business-plan'},{glyph:'VS',label:'Video Studio',href:'/video-studio'},{glyph:'SS',label:'Social Studio',href:'/social-media'},{glyph:'AR',label:'AI Receptionist',href:'/ai-receptionist'},{glyph:'VA',label:'Virtual Assistant',href:'/virtual-assistant'},{glyph:'KN',label:'Knowledge Center',href:'/knowledge'},{glyph:'PB',label:'Professional Business',href:'/professional'},{glyph:'RT',label:'Routines',href:'/routine-studio'},{glyph:'CN',label:'Connected',href:'/connections'},{glyph:'RP',label:'Reports',href:'/activity'},{glyph:'SH',label:'Shop',href:'/shop'},{glyph:'SET',label:'Settings',href:'/account'}
 ];
@@ -46,9 +59,9 @@ export default function PlatformChrome(){
   </header>
   {mobileOpen&&<button className="iam-sidebar-scrim" onClick={()=>setMobileOpen(false)} aria-label="Close navigation"/>}
   <aside className={`iam-shell-sidebar ${collapsed?'collapsed':''} ${mobileOpen?'mobileOpen':''}`}>
-   <div className="iam-side-brand"><a href="/"><span>M</span><div><b>I AM</b><strong>MAGNANIMOUS WAY(TM)</strong><small>AI ECOSYSTEM</small></div></a><button onClick={()=>setCollapsed(v=>!v)} aria-label={collapsed?'Expand sidebar':'Collapse sidebar'}>{collapsed?'>>':'<<'}</button></div>
-   <nav>{items.map(item=><a key={item.href} href={item.href} className={path===item.href?'active':''} title={collapsed?item.label:undefined}><i>{item.glyph}</i><span>{item.label}</span><b>&gt;</b></a>)}</nav>
-   <div className="iam-side-status"><span/><div><small>Platform Status</small><b>All Systems Operational</b></div></div>
+   <div className="iam-side-brand"><a href="/"><span>M</span><div><b>I AM</b><strong>MAGNANIMOUS WAY(TM)</strong><small>AI ECOSYSTEM</small></div></a><button type="button" onClick={()=>setCollapsed(v=>!v)} aria-controls="iam-platform-nav" aria-expanded={!collapsed} aria-label={collapsed?'Expand sidebar':'Collapse sidebar'}>{collapsed?'›':'‹'}</button></div>
+   <nav id="iam-platform-nav" aria-label="Platform navigation">{items.map(item=><a key={item.href} href={item.href} className={path===item.href?'active':''} title={collapsed?item.label:undefined}><i className="iam-nav-illustration" aria-hidden="true"><img src={sidebarArt(item.href)} alt="" loading="lazy"/><em>{item.glyph}</em></i><span>{item.label}</span><b aria-hidden="true">&gt;</b></a>)}</nav>
+   <div className="iam-side-status"><span/><div><small>Platform Status</small><b>Open reports to check health</b></div></div>
   </aside>
   <style jsx global>{`
    :root{--iam-shell-side:246px;--iam-shell-top:72px}html[data-iam-sidebar="collapsed"]{--iam-shell-side:82px}html[data-iam-shell="true"] body{background:#020714!important}html[data-iam-shell="true"] .iam-shell-content{position:relative;z-index:2;margin-left:var(--iam-shell-side);padding-top:var(--iam-shell-top);min-height:100vh;transition:margin-left .28s cubic-bezier(.2,.8,.2,1);overflow:hidden}html[data-iam-shell="true"] .iam-business-identity{margin-left:var(--iam-shell-side);transition:margin-left .28s ease}html[data-iam-shell="true"] .iam-shop-link{display:none}html[data-iam-shell="true"] .cinematicHome>.topbar{display:none!important}
@@ -91,6 +104,40 @@ export default function PlatformChrome(){
     .iam-shell-sidebar{border-right:2px solid #d6ab60}
    }
    @media(max-width:380px){.iam-shell-topbar{grid-template-columns:40px minmax(0,1fr) 32px;gap:5px;padding:0 7px}.iam-mobile-nav{width:40px;height:36px}.iam-shell-search input{padding-right:65px!important}.iam-shell-search button{padding:0 6px;font-size:9px}.iam-shell-user .user>span{width:30px;height:30px}}
+
+   /* Royal illustrated navigation: shared by every routed workspace. */
+   .iam-shell-sidebar nav a{min-height:60px;height:auto;grid-template-columns:58px minmax(0,1fr) 13px;gap:9px;padding:6px 7px;margin:4px 0;border:1px solid rgba(106,207,255,.19);border-radius:13px;background:linear-gradient(100deg,rgba(6,32,68,.91),rgba(2,13,31,.86));box-shadow:inset 0 1px rgba(135,216,255,.1),0 5px 14px rgba(0,0,0,.19);transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease;white-space:normal}
+   .iam-shell-sidebar nav a>span{overflow-wrap:anywhere;font-size:11px;line-height:1.3;font-weight:850;color:#eef8ff}
+   .iam-shell-sidebar nav a i.iam-nav-illustration{position:relative;display:block;overflow:hidden;width:54px;height:46px;border:1px solid rgba(239,193,97,.58);border-radius:10px;background:#071b38;box-shadow:0 0 13px rgba(62,188,255,.2),inset 0 0 0 1px rgba(255,234,169,.15)}
+   .iam-nav-illustration img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;filter:saturate(1.25) contrast(1.08);transform:scale(1.07);transition:transform .4s ease,filter .4s ease}
+   .iam-nav-illustration:after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 27%,rgba(255,221,148,.26) 50%,transparent 70%);transform:translateX(-135%);pointer-events:none}
+   .iam-nav-illustration em{position:absolute;left:3px;bottom:2px;padding:1px 3px;border-radius:3px;background:rgba(1,10,28,.78);font-style:normal;font-size:7px;letter-spacing:.03em;color:#fff0b8;text-shadow:0 0 4px #000}
+   .iam-shell-sidebar nav a:hover,.iam-shell-sidebar nav a.active{transform:translateX(2px);border-color:#f4c977;box-shadow:0 0 20px rgba(50,165,255,.25),inset 0 1px rgba(255,222,143,.27)}
+   .iam-shell-sidebar nav a:hover .iam-nav-illustration img,.iam-shell-sidebar nav a.active .iam-nav-illustration img{transform:scale(1.17);filter:saturate(1.5) brightness(1.14)}
+   .iam-shell-sidebar nav a:hover .iam-nav-illustration:after,.iam-shell-sidebar nav a.active .iam-nav-illustration:after{animation:iamNavLight 2.9s ease-in-out infinite}
+   .iam-shell-sidebar nav a:nth-child(4n + 1) .iam-nav-illustration{animation:iamNavBreath 7s ease-in-out infinite}
+   @keyframes iamNavLight{50%{transform:translateX(135%)}100%{transform:translateX(135%)}}
+   @keyframes iamNavBreath{50%{box-shadow:0 0 19px rgba(69,206,255,.48),inset 0 0 0 1px rgba(255,234,169,.28)}}
+   .iam-side-brand>a>span{font-family:Georgia,serif}
+   /* The desktop collapse frees the full content width, not merely the label text. */
+   @media(min-width:821px){
+    html[data-iam-sidebar="collapsed"]{--iam-shell-side:0px}
+    .iam-shell-sidebar.collapsed{width:0;padding:0;border:0;background:transparent;box-shadow:none;overflow:visible;backdrop-filter:none}
+    .iam-shell-sidebar.collapsed nav,.iam-shell-sidebar.collapsed .iam-side-status{display:none}
+    .iam-shell-sidebar.collapsed .iam-side-brand{position:fixed;left:8px;top:82px;width:40px;height:40px;padding:0;border:0;background:transparent}
+    .iam-shell-sidebar.collapsed .iam-side-brand>a{display:none}
+    .iam-shell-sidebar.collapsed .iam-side-brand button{position:static;width:40px;height:40px;border:2px solid #f3c56d;background:linear-gradient(140deg,#074a81,#081832);font-size:24px;box-shadow:0 0 16px rgba(64,204,255,.4);cursor:pointer}
+    html[data-iam-sidebar="collapsed"] .iam-shell-content{width:100%;max-width:none}
+   }
+   @media(max-width:820px){
+    .iam-shell-sidebar nav a{min-height:56px;grid-template-columns:54px minmax(0,1fr) 12px}
+    .iam-shell-sidebar.collapsed nav a{grid-template-columns:54px minmax(0,1fr) 12px;padding:6px 7px}
+    .iam-shell-sidebar.collapsed nav a i.iam-nav-illustration{width:50px;height:43px}
+   }
+   @media(prefers-reduced-motion:reduce){
+    .iam-shell-sidebar nav a,.iam-nav-illustration,.iam-nav-illustration img,.iam-nav-illustration:after{animation:none!important;transition:none!important;transform:none!important}
+   }
+
    @media(prefers-reduced-motion:reduce){.iam-shell-art,.iam-shell-ambient:before,.iam-shell-ambient>i,.iam-route-orb,.iam-shell-topbar:before{animation:none!important}}
   `}</style>
  </>;
