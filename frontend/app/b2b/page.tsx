@@ -64,7 +64,7 @@ export default function B2BPage(){
 
    #b2b-planning{scroll-margin-top:90px}
    .b2bRoyalPalace{position:relative;isolation:isolate;max-width:1320px;min-height:clamp(440px,42vw,610px);margin:18px auto 28px;overflow:hidden;border:2px solid #e8c47b;border-radius:27px;background:#041634;box-shadow:0 28px 70px #000a,0 0 0 1px rgba(68,204,255,.35),inset 0 1px rgba(255,239,190,.5)}
-   .b2bRoyalArt{position:absolute;inset:0;background:url('/magnanimous-travel-palace-v2.webp') center/cover no-repeat;animation:b2bPalaceFloat 17s ease-in-out infinite alternate;transform:scale(1.015)}
+   .b2bRoyalArt{position:absolute;inset:0;background:url('/magnanimous-b2b-palace-v2.svg') center/cover no-repeat;animation:b2bPalaceFloat 17s ease-in-out infinite alternate;transform:scale(1.015)}
    .b2bRoyalPalace:before{content:'';position:absolute;z-index:1;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(3,9,30,.96),rgba(3,11,33,.82) 34%,rgba(3,11,33,.12) 76%),linear-gradient(0deg,rgba(1,8,20,.45),transparent 42%)}
    .b2bRoyalPalace:after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:25px;box-shadow:inset 0 0 0 1px rgba(108,219,255,.27),inset 0 20px 30px rgba(255,214,143,.07)}
    .b2bRoyalCopy{position:relative;z-index:3;min-height:clamp(440px,42vw,610px);max-width:62%;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:clamp(26px,5vw,66px)}
@@ -75,11 +75,15 @@ export default function B2BPage(){
    .b2bRoyalLinks a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:11px 17px;border:1px solid #e5bb64;border-radius:999px;color:#fff0c4;background:linear-gradient(130deg,#103b74,#101a3c 62%,#43351e);box-shadow:0 8px 23px #0008,inset 0 1px rgba(255,243,200,.2);font-size:12px;font-weight:900;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
    .b2bRoyalLinks a:hover,.b2bRoyalLinks a:focus-visible{transform:translateY(-2px);border-color:#72efff;box-shadow:0 12px 28px #0009,0 0 23px rgba(65,196,255,.29)}
    .page .stats article,.page .panel{border-color:rgba(190,158,94,.52);background:linear-gradient(145deg,rgba(12,39,75,.94),rgba(4,15,33,.98));box-shadow:0 13px 32px #0007,inset 0 1px rgba(255,239,196,.12)}
+   .page .opps article,.page .providergraph article,.page .cards article,.page .mini>div{
+    background:linear-gradient(145deg,rgba(10,47,92,.91),rgba(4,15,37,.96));
+    border:1px solid rgba(225,180,92,.55);box-shadow:0 8px 22px rgba(0,0,0,.34),inset 0 1px rgba(255,231,170,.13);border-radius:12px}
+   .page .opps article:hover,.page .providergraph article:hover,.page .cards article:hover{border-color:#78eaff;box-shadow:0 12px 27px rgba(0,0,0,.42),0 0 15px rgba(38,160,235,.19)}
    .page .stats article b{color:#ffe3a2;text-shadow:0 2px 12px rgba(225,168,78,.21)}
    .page button:not(:disabled):hover{filter:brightness(1.15)}
    @keyframes b2bPalaceFloat{to{transform:scale(1.05)}}
    @media(max-width:1024px) and (min-width:661px){.b2bRoyalCopy{max-width:67%}.b2bRoyalCopy h2{font-size:clamp(35px,4.3vw,51px)}}
-   @media(max-width:660px) and (orientation:portrait){.b2bRoyalPalace{min-height:570px;aspect-ratio:2/3;max-height:740px;margin:14px auto 24px;border-radius:21px}.b2bRoyalArt{background-image:url('/magnanimous-travel-palace-mobile-v2.webp');background-position:center}.b2bRoyalPalace:before{background:linear-gradient(180deg,rgba(2,10,30,.97),rgba(2,10,30,.86) 34%,rgba(2,10,30,.05) 74%)}.b2bRoyalCopy{max-width:100%;min-height:0;padding:20px 16px;justify-content:flex-start}.b2bRoyalCopy h2{font-size:clamp(30px,8vw,43px);margin:10px 0}.b2bRoyalCopy p{font-size:clamp(12px,3.25vw,15px);line-height:1.46;margin-bottom:12px}.b2bRoyalLinks a{font-size:11px;padding:8px 12px;min-height:40px}}
+   @media(max-width:660px) and (orientation:portrait){.b2bRoyalPalace{min-height:570px;aspect-ratio:2/3;max-height:740px;margin:14px auto 24px;border-radius:21px}.b2bRoyalArt{background-image:url('/magnanimous-b2b-palace-mobile-v2.svg');background-position:center}.b2bRoyalPalace:before{background:linear-gradient(180deg,rgba(2,10,30,.97),rgba(2,10,30,.86) 34%,rgba(2,10,30,.05) 74%)}.b2bRoyalCopy{max-width:100%;min-height:0;padding:20px 16px;justify-content:flex-start}.b2bRoyalCopy h2{font-size:clamp(30px,8vw,43px);margin:10px 0}.b2bRoyalCopy p{font-size:clamp(12px,3.25vw,15px);line-height:1.46;margin-bottom:12px}.b2bRoyalLinks a{font-size:11px;padding:8px 12px;min-height:40px}}
    @media(orientation:landscape) and (max-height:560px) and (max-width:1000px){.b2bRoyalPalace,.b2bRoyalCopy{min-height:340px}.b2bRoyalCopy{max-width:73%;padding:20px}.b2bRoyalCopy h2{font-size:31px}.b2bRoyalCopy p{font-size:12px;line-height:1.35;margin-bottom:9px}}
    @media(prefers-reduced-motion:reduce){.b2bRoyalArt{animation:none;transform:none}.b2bRoyalLinks a{transition:none}.b2bRoyalLinks a:hover{transform:none}}
   `}</style>
