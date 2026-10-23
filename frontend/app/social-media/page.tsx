@@ -70,7 +70,7 @@ export default function Social() {
               : "MAGNANIMOUS AI NOT READY"}
         </div>
       </header>
-      <section className="hero">
+      <section className="hero socialRoyalHero">
         <div className="signal">●</div>
         <small>SOCIAL STUDIO</small>
         <h1>Create once. Adapt everywhere.</h1>
@@ -406,6 +406,51 @@ export default function Social() {
             display: none;
           }
         }
+
+        /* Social Studio: cinematic royal-blue/gold portal and separately composed phone art. */
+        .social{background:radial-gradient(circle at 85% 0%,rgba(36,123,249,.16),transparent 30%),linear-gradient(160deg,#051833,#020916 80%)}
+        .hero.socialRoyalHero{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;box-sizing:border-box;
+          min-height:clamp(480px,45vw,650px);padding:clamp(25px,5vw,68px);margin:19px auto 27px;overflow:hidden;
+          border:2px solid #efc876;border-radius:27px;background:#06152d;
+          box-shadow:0 32px 72px rgba(0,0,0,.55),0 0 0 1px rgba(62,201,255,.36),inset 0 1px rgba(255,229,159,.29)}
+        .socialRoyalHero:before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:url('/magnanimous-social-palace-v1.svg') center/cover no-repeat;
+          transform:scale(1.015);animation:socialRoyalZoom 17s ease-in-out infinite alternate}
+        .socialRoyalHero:after{content:'';position:absolute;z-index:1;inset:0;pointer-events:none;background:
+          linear-gradient(90deg,rgba(2,9,29,.98) 0%,rgba(2,10,31,.86) 35%,rgba(2,10,31,.10) 76%),linear-gradient(0deg,rgba(3,10,26,.34),transparent 50%)}
+        .socialRoyalHero>small,.socialRoyalHero>h1,.socialRoyalHero>p,.socialRoyalHero>.platforms,.socialRoyalHero>.signal{position:relative;z-index:2;max-width:56%}
+        .socialRoyalHero>.signal{position:absolute;right:21px;top:21px;border-color:#f7d68b;color:#93f5ff;background:rgba(2,21,51,.48);max-width:100px}
+        .hero.socialRoyalHero small{font-weight:900;letter-spacing:.16em;color:#8feaff;text-shadow:0 0 12px rgba(60,202,255,.42)}
+        .hero.socialRoyalHero h1{font-size:clamp(34px,4.6vw,68px);line-height:1.07;color:#ffe3aa;letter-spacing:-.04em;margin:17px 0 12px;
+          text-shadow:0 2px 0 #79491d,0 5px 0 #301e0d,0 11px 24px rgba(0,0,0,.7)}
+        .hero.socialRoyalHero p{font-size:clamp(14px,1.37vw,18px);line-height:1.57;color:#eefaff;font-weight:630;text-shadow:0 2px 15px rgba(0,0,0,.66)}
+        .hero.socialRoyalHero .platforms{display:flex;flex-wrap:wrap;gap:8px;margin-top:19px}
+        .hero.socialRoyalHero .platforms button{min-height:38px;border:1px solid rgba(239,192,112,.75);background:linear-gradient(130deg,#0c3c77,#081934);
+          color:#f0faff;font-size:11px;font-weight:800;box-shadow:0 7px 16px rgba(0,0,0,.25)}
+        .hero.socialRoyalHero .platforms button.on{border-color:#ffdc8a;background:linear-gradient(125deg,#ffe2a2,#bf8230);color:#081c34}
+        .composer,.pulse,aside a,.result{border-color:rgba(225,177,96,.55);background:linear-gradient(135deg,rgba(10,38,78,.93),rgba(4,15,35,.96));
+          box-shadow:0 14px 30px rgba(0,0,0,.27),inset 0 1px rgba(255,231,173,.14)}
+        .create{background:linear-gradient(100deg,#ffe0a0,#78dfff);color:#081c38}
+        .ideas b,.head span,.hero small,.composer small{color:#ffdc96}
+        @keyframes socialRoyalZoom{to{transform:scale(1.052);filter:brightness(1.07)}}
+        @media(max-width:760px) and (orientation:portrait){
+          .hero.socialRoyalHero{min-height:600px;aspect-ratio:2/3;max-height:800px;padding:22px 17px;margin-top:14px;border-radius:19px;justify-content:flex-start}
+          .socialRoyalHero:before{background-image:url('/magnanimous-social-palace-mobile-v1.svg');background-position:center}
+          .socialRoyalHero:after{background:linear-gradient(180deg,rgba(1,9,29,.97),rgba(2,11,32,.87) 38%,rgba(2,11,32,.06) 80%)}
+          .socialRoyalHero>small,.socialRoyalHero>h1,.socialRoyalHero>p,.socialRoyalHero>.platforms{max-width:100%}
+          .hero.socialRoyalHero h1{font-size:clamp(28px,8.4vw,44px);line-height:1.04;margin:10px 0}
+          .hero.socialRoyalHero p{font-size:clamp(12px,3.25vw,16px);line-height:1.4}
+          .hero.socialRoyalHero .platforms{gap:5px;margin-top:10px}
+          .hero.socialRoyalHero .platforms button{min-height:34px;font-size:10px;padding:7px 9px}
+        }
+        @media(orientation:landscape) and (max-height:560px) and (max-width:1100px){
+          .hero.socialRoyalHero{min-height:360px;padding:19px 22px}
+          .socialRoyalHero>small,.socialRoyalHero>h1,.socialRoyalHero>p,.socialRoyalHero>.platforms{max-width:66%}
+          .hero.socialRoyalHero h1{font-size:clamp(27px,4.4vw,44px);margin:9px 0}
+          .hero.socialRoyalHero p{font-size:12px;line-height:1.38}
+          .hero.socialRoyalHero .platforms{margin-top:8px}
+          .hero.socialRoyalHero .platforms button{padding:7px 8px;min-height:32px}
+        }
+        @media(prefers-reduced-motion:reduce){.socialRoyalHero:before{animation:none;transform:none}}
       `}</style>
     </main>
   );
