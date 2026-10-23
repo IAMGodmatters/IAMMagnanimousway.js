@@ -84,6 +84,7 @@ export default function TelecomPage(){
 
  return <main className={styles.shell}>
   <header className={styles.hero}>
+   <div className={styles.heroArtwork} aria-hidden="true" />
    <nav><a href='/'>I AM MAGNANIMOUS WAY™</a><span>•</span><a href='/phone'>PHONE</a><span>•</span><a href='/telecom/plans'>PLANS</a><span>•</span><a href='/telecom/operations'>OPERATIONS</a><span>•</span><a href='/telecom/sim'>SIM + eSIM</a><span>•</span><a href='/telecom/network'>CARRIER ACCESS</a><span>•</span><a href='/telecom-standalone'>STANDALONE</a></nav>
    <div className={styles.heroGrid}>
     <div>
