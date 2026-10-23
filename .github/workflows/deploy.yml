@@ -10,6 +10,7 @@ on:
 # Queue rather than cancel: cleanup and D1 identity checks must finish safely.
 concurrency:
   group: magnanimous-main-production-deployment
+  queue: max
   cancel-in-progress: false
 
 permissions:

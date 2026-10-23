@@ -3,11 +3,19 @@ name: Sync Twilio Voice Configuration
 on:
   workflow_dispatch:
 
+# Secret sync and a Worker redeploy touch the same live runtime as deploy.yml.
+# Queue behind any running production smoke; never replace its tested revision.
+concurrency:
+  group: magnanimous-main-production-deployment
+  queue: max
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
 jobs:
   sync:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -59,4 +67,4 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler deploy
+        run: npx wrangler deploy --var MAGNANIMOUS_DEPLOY_REVISION:$GITHUB_SHA
