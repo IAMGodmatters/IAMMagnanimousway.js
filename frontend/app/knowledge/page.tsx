@@ -840,6 +840,7 @@ export default function Knowledge() {
               linear-gradient(180deg, rgba(2, 8, 27, .95), rgba(2, 8, 27, .63) 55%, rgba(2, 8, 27, .16)),
               url('/magnanimous-knowledge-palace-v2.webp');
             background-position: 67% center;
+            animation: knowledgeMobileShimmer 18s ease-in-out infinite alternate;
           }
           .stats {
             grid-template-columns: 1fr 1fr;
@@ -869,6 +870,10 @@ export default function Knowledge() {
             gap: 10px;
             flex-direction: column;
           }
+        }
+        @keyframes knowledgeMobileShimmer {
+          from { background-position: 67% center; }
+          to { background-position: 69% center; }
         }
         @media (prefers-reduced-motion: reduce) { .hero { animation: none; } }
       `}</style>
