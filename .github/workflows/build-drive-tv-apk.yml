@@ -30,6 +30,14 @@ jobs:
       - name: Build owner APK
         working-directory: tv-app
         run: gradle --no-daemon :app:assembleDebug
+      - name: Verify signed TV launchable APK
+        run: |
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          APK=tv-app/app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | tee /tmp/magnanimous-apk-info.txt
+          grep -q "package: name='com.magnanimous.drivetv'" /tmp/magnanimous-apk-info.txt
+          grep -q "leanback-launchable-activity:" /tmp/magnanimous-apk-info.txt
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$APK"
       - uses: actions/upload-artifact@v4
         with:
           name: MagnanimousDriveTV-owner-APK
