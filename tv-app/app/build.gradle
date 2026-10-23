@@ -1,27 +1,13 @@
 plugins { id 'com.android.application' }
 android {
   namespace 'com.magnanimous.drivetv'
-  // Legacy JAR (v1) and modern APK (v2) signatures for Android TV installers.
-  signingConfigs {
-    debug {
-      v1SigningEnabled true
-      v2SigningEnabled true
-    }
-  }
-  compileSdk 36
+  compileSdk 35
   defaultConfig {
     applicationId 'com.magnanimous.drivetv'
-    minSdk 26
-    targetSdk 32
-    versionCode 5
-    versionName '0.5-astron-compat'
+    minSdk 23
+    targetSdk 28
+    versionCode 6
+    versionName '0.6-astron-native-lite'
   }
   compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
-}
-dependencies {
-  def media3 = '1.11.1'
-  implementation "androidx.media3:media3-exoplayer:$media3"
-  implementation "androidx.media3:media3-ui:$media3"
-  implementation "androidx.media3:media3-exoplayer-hls:$media3"
-  implementation "androidx.media3:media3-exoplayer-dash:$media3"
 }
