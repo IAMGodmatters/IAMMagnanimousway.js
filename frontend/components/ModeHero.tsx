@@ -126,7 +126,7 @@ export default function ModeHero({ mode }: { mode: string }) {
           .hero-bottom-rail { gap: 9px; font-size: 7px; letter-spacing: .13em; }
         }
         /* Standalone phone portrait. The approved desktop hero and image stay unchanged. */
-        @media (max-width: 760px) {
+        @media (max-width: 760px) and (orientation: portrait) {
           .mode-hero { min-height: clamp(650px, 115vw, 850px); }
           .hero-copy { max-width: 100%; padding: 29px 20px 180px; }
           .hero-scenery {
