@@ -872,7 +872,7 @@ export default function Knowledge() {
           }
         }
         /* Dedicated phone portrait: desktop and tablet artwork remain untouched. */
-        @media (max-width: 760px) {
+        @media (max-width: 760px) and (orientation: portrait) {
           .hero {
             min-height: 650px;
             align-items: start;
