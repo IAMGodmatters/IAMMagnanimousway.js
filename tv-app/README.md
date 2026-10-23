@@ -1,8 +1,8 @@
 # Magnanimous Drive TV — free private TV player
 
-## This release: version 0.3-media-owner
+## This release: version 0.5-astron-compat (dual-signed for TV installers)
 
-Designed for Astron SMART_TV_3277, Android 11, 1 GB RAM, limited internal storage. Google Play Store registration is **not** needed to sideload this personal build.
+Designed for Astron SMART_TV_3277, Android 11, 1 GB RAM, limited internal storage. Google Play Store registration is **not** needed to sideload this personal build. This version includes legacy v1 JAR signing and modern v2 APK signing for compatibility with third-party TV file managers.
 
 ### Embedded media engine
 

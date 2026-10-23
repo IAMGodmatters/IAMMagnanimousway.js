@@ -37,7 +37,10 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | tee /tmp/magnanimous-apk-info.txt
           grep -q "package: name='com.magnanimous.drivetv'" /tmp/magnanimous-apk-info.txt
           grep -q "leanback-launchable-activity:" /tmp/magnanimous-apk-info.txt
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/magnanimous-apk-signature.txt
+          grep -q 'Verified using v1 scheme (JAR signing): true' /tmp/magnanimous-apk-signature.txt
+          grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true' /tmp/magnanimous-apk-signature.txt
+          grep -q "sdkVersion:'26'" /tmp/magnanimous-apk-info.txt
       - uses: actions/upload-artifact@v4
         with:
           name: MagnanimousDriveTV-owner-APK
