@@ -135,15 +135,17 @@ export default function CinematicDesignSystem(){
   }
   @media(max-width:760px){
    body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.opportunityVault .grid article,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard):hover{transform:translateY(-2px)!important}
+   body.iam-design-v2 .cinematicHome .artFrame{right:0!important;width:100%!important;height:40%!important;bottom:80px!important;opacity:.66}
+   body.iam-design-v2 .cinematicHome .heroBottom{left:14px!important;right:14px!important;bottom:12px!important}
+  }
+  /* The tall illustration belongs to upright phones only; rotated phones keep the compact landscape hero. */
+  @media(max-width:760px) and (orientation:portrait){
    body.iam-design-v2 .travelAgency>header:after{display:none}
-   /* Portrait-specific artwork and layout. The approved desktop rules above stay untouched. */
    body.iam-design-v2 .travelAgency>header{display:flex!important;min-height:650px;flex-direction:column;align-items:flex-start!important;justify-content:flex-start;padding:30px 20px!important;background-image:linear-gradient(180deg,rgba(2,8,27,.95),rgba(3,11,27,.84) 40%,rgba(2,10,26,.08) 78%),url('/magnanimous-travel-palace-mobile-v2.webp')!important;background-position:center center;background-size:cover;animation:none}
    body.iam-design-v2 .travelAgency>header h1{font-size:clamp(29px,7.8vw,44px)}
    body.iam-design-v2 .travelAgency>header p{font-size:clamp(13px,3.4vw,16px);line-height:1.48}
    body.iam-design-v2 .travelAgency>header nav{align-self:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:8px}
    body.iam-design-v2 .travelAgency>header nav a{font-size:12px;padding:9px 11px}
-   body.iam-design-v2 .cinematicHome .artFrame{right:0!important;width:100%!important;height:40%!important;bottom:80px!important;opacity:.66}
-   body.iam-design-v2 .cinematicHome .heroBottom{left:14px!important;right:14px!important;bottom:12px!important}
   }
   @media(prefers-reduced-motion:reduce){
    body.iam-design-v2 .cinematicHome .hero:after,body.iam-design-v2 .cinematicHome .artFrame img{animation:none!important}
