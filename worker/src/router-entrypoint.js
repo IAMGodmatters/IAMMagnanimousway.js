@@ -44,6 +44,7 @@ import { handleBusinessPlan } from './business-plan-subscription-runtime.js';
 import { handleVisual } from './visual-runtime.js';
 import { handleVideoAgents } from './video-agents-runtime.js';
 import { handleKidsDriveMedia } from './kids-media-runtime.js';
+import { handleTvCompanion } from './tv-companion-runtime.js';
 import { premiumPreflight, premiumPostprocess } from './premium-runtime-guard.js';
 
 const corsHeaders={'access-control-allow-origin':'*','access-control-allow-methods':'GET,HEAD,POST,PUT,DELETE,OPTIONS','access-control-allow-headers':'Content-Type, Authorization, Range, Stripe-Signature, X-Twilio-Signature','access-control-expose-headers':'Content-Type, Content-Length, Content-Range, Accept-Ranges'};
@@ -56,6 +57,7 @@ async function compatibleBilling(request,response,env){return applyBillingPlanCo
 export default{async fetch(request,env,ctx){const url=new URL(request.url);if(request.method==='OPTIONS')return new Response(null,{status:204,headers:corsHeaders});try{
  const bootstrapResponse=await handleBootstrap(request,env);if(bootstrapResponse)return withCors(bootstrapResponse);
  const businessEmailResponse=await handleBusinessEmail(request,env);if(businessEmailResponse)return withCors(businessEmailResponse);
+ const tvCompanionResponse=await handleTvCompanion(request,env);if(tvCompanionResponse)return withCors(tvCompanionResponse);
  const billingSupportResponse=await handleBillingSupport(request,env);if(billingSupportResponse)return withCors(billingSupportResponse);
  if(url.pathname.startsWith('/api/kids-')){const runtimeEnv=await getIntegrationRuntimeEnv(env);const r=await handleKidsDriveMedia(request,runtimeEnv);if(r)return withCors(r);}
  const providerEnv=needsProviderRuntime(url.pathname)?await getProviderRuntimeEnv(env):env;
