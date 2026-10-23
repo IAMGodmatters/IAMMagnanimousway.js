@@ -45,6 +45,9 @@ jobs:
       - name: Verify truthful bounded homepage service checks
         run: node qa/scripts/home-health.test.mjs
 
+      - name: Lock sequential production deployments and strict revision authorization
+        run: node qa/scripts/deploy-serialization-lock.mjs
+
       - name: Build exact customer-facing frontend
         working-directory: frontend
         run: npm run build
