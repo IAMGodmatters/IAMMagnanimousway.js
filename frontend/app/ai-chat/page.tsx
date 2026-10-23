@@ -53,6 +53,15 @@ export default function AIChat() {
   const [notice, setNotice] = useState("");
   const [activeQuestion, setActiveQuestion] = useState("");
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const [desktopModesCollapsed, setDesktopModesCollapsed] = useState(false);
+  useEffect(() => { try { setDesktopModesCollapsed(localStorage.getItem("iam_ai_modes_collapsed") === "1"); } catch {} }, []);
+  function toggleDesktopModes() {
+    setDesktopModesCollapsed(value => {
+      const next = !value;
+      try { localStorage.setItem("iam_ai_modes_collapsed", next ? "1" : "0"); } catch {}
+      return next;
+    });
+  }
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -172,8 +181,8 @@ export default function AIChat() {
   const activeVisual = MODE_VISUALS[activeMode];
 
   return (
-    <main className={`odin ai-chat ${activeVisual.themeClass}`}>
-      <aside className={navigationOpen ? "nav-open" : ""}>
+    <main className={`odin ai-chat ${activeVisual.themeClass} ${desktopModesCollapsed ? "ai-modes-collapsed" : ""}`}>
+      <aside id="ai-mode-side-navigation" className={navigationOpen ? "nav-open" : ""}>
         <a href="/" className="back">
           ← Dashboard
         </a>
@@ -221,15 +230,21 @@ export default function AIChat() {
           })}
         </div>
         <small>WORKSPACES</small>
-        <a href="/business-plan">Professional Business Launch</a>
-        <a href="/knowledge">Knowledge Center</a>
-        <a href="/business">Business Command</a>
-        <a href="/social-media">Social Studio</a>
-        <a href="/virtual-assistant">Virtual Assistant</a>
-        <a href="/ai-apps">AI Apps</a>
+        <a href="/business-plan"><img src="/mode-images/business.webp" alt="" loading="lazy"/><span>Professional Business Launch</span></a>
+        <a href="/knowledge"><img src="/mode-images/research.webp" alt="" loading="lazy"/><span>Knowledge Center</span></a>
+        <a href="/business"><img src="/mode-images/business.webp" alt="" loading="lazy"/><span>Business Command</span></a>
+        <a href="/social-media"><img src="/mode-images/social-media.webp" alt="" loading="lazy"/><span>Social Studio</span></a>
+        <a href="/virtual-assistant"><img src="/mode-images/virtual-assistant.webp" alt="" loading="lazy"/><span>Virtual Assistant</span></a>
+        <a href="/ai-apps"><img src="/mode-images/general.webp" alt="" loading="lazy"/><span>AI Apps</span></a>
         </nav>
       </aside>
       <section className="main">
+        <div className="ai-modes-controls">
+          <button type="button" aria-controls="ai-mode-side-navigation" aria-expanded={!desktopModesCollapsed} onClick={toggleDesktopModes}>
+            <span aria-hidden="true">{desktopModesCollapsed ? "›" : "‹"}</span>
+            {desktopModesCollapsed ? "Show illustrated AI modes" : "Hide AI modes · expand workspace"}
+          </button>
+        </div>
         <header>
           <div>
             <small>AI WORKSPACE · {activeMode.toUpperCase()}</small>
@@ -871,6 +886,37 @@ export default function AIChat() {
           transform: translateY(-3px);
           border-color: rgba(245, 202, 105, .6);
           box-shadow: 0 24px 55px rgba(0, 0, 0, .4), 0 0 24px rgba(245, 202, 105, .08);
+        }
+
+        /* Independent AI-mode rail: the global cinematic navigation stays untouched. */
+        .ai-modes-controls { display: flex; justify-content: flex-start; margin-bottom: 13px; }
+        .ai-modes-controls button { display: flex; align-items: center; gap: 10px; min-height: 39px; padding: 7px 15px;
+          border: 1px solid #e6bc70; border-radius: 999px; color: #ffe8b9; cursor: pointer;
+          font: 850 11px Inter,system-ui,sans-serif; letter-spacing: .01em;
+          background: linear-gradient(130deg,#0d467b,#071832 68%,#2c271e);
+          box-shadow: 0 0 18px rgba(55,184,255,.24), inset 0 1px rgba(255,227,165,.23);
+          transition: transform .2s ease, border-color .2s ease; }
+        .ai-modes-controls button:hover { border-color: #7fe7ff; transform: translateY(-1px); }
+        .ai-modes-controls button span { display: inline-grid; width: 23px; height: 23px; place-items: center;
+          border: 1px solid #9eeaff; border-radius: 50%; font-size: 19px; color: #95f3ff; }
+        .sidebar-navigation > a { display: flex; align-items: center; gap: 11px; min-height: 48px; padding: 6px 8px;
+          margin-bottom: 5px; border: 1px solid rgba(237,189,106,.27); border-radius: 11px;
+          background: linear-gradient(100deg,rgba(9,39,77,.8),rgba(6,16,32,.75));
+          box-shadow: inset 0 1px rgba(255,231,170,.12); }
+        .sidebar-navigation > a img { display: block; width: 44px; height: 34px; object-fit: cover;
+          border: 1px solid rgba(245,200,116,.7); border-radius: 8px; box-shadow: 0 0 10px rgba(47,178,255,.22);
+          transition: transform .25s ease, filter .25s ease; }
+        .sidebar-navigation > a span { font-weight: 800; color: #edf8ff; overflow-wrap: anywhere; }
+        .sidebar-navigation > a:hover img { transform: scale(1.06); filter: brightness(1.18) saturate(1.3); }
+        @media (min-width: 801px) {
+          .odin.ai-modes-collapsed { grid-template-columns: minmax(0,1fr); }
+          .odin.ai-modes-collapsed > aside { display: none; }
+          .odin.ai-modes-collapsed .main { max-width: none; }
+        }
+        @media (max-width: 800px) { .ai-modes-controls { display: none; } }
+        @media (prefers-reduced-motion: reduce) {
+          .ai-modes-controls button, .sidebar-navigation > a img { transition: none; }
+          .ai-modes-controls button:hover, .sidebar-navigation > a:hover img { transform: none; }
         }
         @keyframes statusPulse {
           0%, 100% { opacity: .62; }
