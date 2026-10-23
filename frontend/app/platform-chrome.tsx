@@ -1,7 +1,7 @@
 'use client';
 import {FormEvent,useEffect,useMemo,useState} from 'react';
 
-const publicPaths=['/login','/signup','/owner-login','/privacy','/terms','/movie','/magnanimous','/telecom-standalone'];
+const publicPaths=['/login','/signup','/owner-login','/privacy','/terms','/movie','/magnanimous','/telecom-standalone','/tv-remote'];
 type NavItem={glyph:string;label:string;href:string};
 // Reuse original Magnanimous illustrations: no third-party artwork or new downloads.
 const sidebarArt=(href:string)=>{
@@ -17,7 +17,7 @@ const sidebarArt=(href:string)=>{
  return '/mode-images/general.webp';
 };
 const nav:NavItem[]=[
- {glyph:'H',label:'Home',href:'/'},{glyph:'AI',label:'AI Command',href:'/ai-chat'},{glyph:'OV',label:'Opportunity Vault',href:'/opportunity-vault'},{glyph:'CRM',label:'CRM',href:'/crm'},{glyph:'B2B',label:'B2B',href:'/b2b'},{glyph:'CC',label:'Contact Center',href:'/contact-center'},{glyph:'TEL',label:'Telecom',href:'/telecom'},{glyph:'ID',label:'Intelligence Desk',href:'/intelligence-desk'},{glyph:'TR',label:'Travel Agency',href:'/travel-agency'},{glyph:'K',label:'Magnanimous Kids',href:'https://harmonic-data-52yyzau.shipstatic.com/'},{glyph:'AB',label:'AI Business',href:'/business-ai'},{glyph:'UP',label:'Launch Magnanimous',href:'/business-plan'},{glyph:'VS',label:'Video Studio',href:'/video-studio'},{glyph:'SS',label:'Social Studio',href:'/social-media'},{glyph:'AR',label:'AI Receptionist',href:'/ai-receptionist'},{glyph:'VA',label:'Virtual Assistant',href:'/virtual-assistant'},{glyph:'KN',label:'Knowledge Center',href:'/knowledge'},{glyph:'PB',label:'Professional Business',href:'/professional'},{glyph:'RT',label:'Routines',href:'/routine-studio'},{glyph:'CN',label:'Connected',href:'/connections'},{glyph:'RP',label:'Reports',href:'/activity'},{glyph:'SH',label:'Shop',href:'/shop'},{glyph:'SET',label:'Settings',href:'/account'}
+ {glyph:'H',label:'Home',href:'/'},{glyph:'AI',label:'AI Command',href:'/ai-chat'},{glyph:'OV',label:'Opportunity Vault',href:'/opportunity-vault'},{glyph:'CRM',label:'CRM',href:'/crm'},{glyph:'B2B',label:'B2B',href:'/b2b'},{glyph:'CC',label:'Contact Center',href:'/contact-center'},{glyph:'TEL',label:'Telecom',href:'/telecom'},{glyph:'ID',label:'Intelligence Desk',href:'/intelligence-desk'},{glyph:'TR',label:'Travel Agency',href:'/travel-agency'},{glyph:'TV',label:'TV Browser Remote',href:'/tv-remote'},{glyph:'K',label:'Magnanimous Kids',href:'https://harmonic-data-52yyzau.shipstatic.com/'},{glyph:'AB',label:'AI Business',href:'/business-ai'},{glyph:'UP',label:'Launch Magnanimous',href:'/business-plan'},{glyph:'VS',label:'Video Studio',href:'/video-studio'},{glyph:'SS',label:'Social Studio',href:'/social-media'},{glyph:'AR',label:'AI Receptionist',href:'/ai-receptionist'},{glyph:'VA',label:'Virtual Assistant',href:'/virtual-assistant'},{glyph:'KN',label:'Knowledge Center',href:'/knowledge'},{glyph:'PB',label:'Professional Business',href:'/professional'},{glyph:'RT',label:'Routines',href:'/routine-studio'},{glyph:'CN',label:'Connected',href:'/connections'},{glyph:'RP',label:'Reports',href:'/activity'},{glyph:'SH',label:'Shop',href:'/shop'},{glyph:'SET',label:'Settings',href:'/account'}
 ];
 const ownerNav:NavItem[]=[{glyph:'OWN',label:'Owner Center',href:'/owner-center'},{glyph:'OPS',label:'Owner Operations',href:'/owner-operations'}];
 
