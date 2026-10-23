@@ -39,4 +39,4 @@ This personal build contains **no billing**; it is not published to Google Play 
 ### Build
 
 Branch: drive-tv-android-build-20261023
-Android SDK 35, Gradle 8.10.2, JDK 17. CI builds a debug APK; this is for personal testing, not distribution through Google Play. The main Magnanimous AI platform remains untouched.
+Android SDK 36, Gradle 8.11.1, JDK 17. CI builds a debug APK; this is for personal testing, not distribution through Google Play. The main Magnanimous AI platform remains untouched.
