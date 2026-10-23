@@ -52,16 +52,6 @@ export default function AIChat() {
   const [webSearchReady, setWebSearchReady] = useState(false);
   const [notice, setNotice] = useState("");
   const [activeQuestion, setActiveQuestion] = useState("");
-  const [navigationOpen, setNavigationOpen] = useState(false);
-  const [desktopModesCollapsed, setDesktopModesCollapsed] = useState(false);
-  useEffect(() => { try { setDesktopModesCollapsed(localStorage.getItem("iam_ai_modes_collapsed") === "1"); } catch {} }, []);
-  function toggleDesktopModes() {
-    setDesktopModesCollapsed(value => {
-      const next = !value;
-      try { localStorage.setItem("iam_ai_modes_collapsed", next ? "1" : "0"); } catch {}
-      return next;
-    });
-  }
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -167,7 +157,6 @@ export default function AIChat() {
 
   function chooseMode(nextMode: MagnanimousMode) {
     setMode(nextMode);
-    setNavigationOpen(false);
     const url = new URL(window.location.href);
     url.searchParams.set("mode", nextMode);
     window.history.replaceState({}, "", url);
@@ -181,70 +170,38 @@ export default function AIChat() {
   const activeVisual = MODE_VISUALS[activeMode];
 
   return (
-    <main className={`odin ai-chat ${activeVisual.themeClass} ${desktopModesCollapsed ? "ai-modes-collapsed" : ""}`}>
-      <aside id="ai-mode-side-navigation" className={navigationOpen ? "nav-open" : ""}>
-        <a href="/" className="back">
-          ← Dashboard
-        </a>
-        <div className="brand">
-          <div className="core">✦</div>
-          <div>
-            <b>MAGNANIMOUS</b>
-            <span>I AM AI</span>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="sidebar-toggle"
-          aria-expanded={navigationOpen}
-          aria-controls="ai-chat-sidebar-navigation"
-          onClick={() => setNavigationOpen((open) => !open)}
-        >
-          <span>{navigationOpen ? "Hide" : "Explore"} AI modes & workspaces</span>
-          <span aria-hidden="true">{navigationOpen ? "−" : "+"}</span>
-        </button>
-        <nav id="ai-chat-sidebar-navigation" className="sidebar-navigation" aria-label="AI modes and workspaces">
-        <small>MODES</small>
-        <div className="mode-list">
-          {MODE_OPTIONS.map((item) => {
-            const visual = MODE_VISUALS[item];
-            const active = activeMode === item;
-            return (
-              <button
-                key={item}
-                type="button"
-                className={`mode-card ${active ? "active" : ""} ${visual.themeClass}`}
-                style={{ "--card-accent": visual.accent } as CSSProperties}
-                onClick={() => chooseMode(item)}
-                aria-pressed={active}
-              >
-                <span className="mode-card-thumb">
-                  <img src={visual.image} alt="" />
-                </span>
-                <span className="mode-card-copy">
-                  <strong>{item}</strong>
-                  <em>{visual.title}</em>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <small>WORKSPACES</small>
-        <a href="/business-plan"><img src="/mode-images/business.webp" alt="" loading="lazy"/><span>Professional Business Launch</span></a>
-        <a href="/knowledge"><img src="/mode-images/research.webp" alt="" loading="lazy"/><span>Knowledge Center</span></a>
-        <a href="/business"><img src="/mode-images/business.webp" alt="" loading="lazy"/><span>Business Command</span></a>
-        <a href="/social-media"><img src="/mode-images/social-media.webp" alt="" loading="lazy"/><span>Social Studio</span></a>
-        <a href="/virtual-assistant"><img src="/mode-images/virtual-assistant.webp" alt="" loading="lazy"/><span>Virtual Assistant</span></a>
-        <a href="/ai-apps"><img src="/mode-images/general.webp" alt="" loading="lazy"/><span>AI Apps</span></a>
-        </nav>
-      </aside>
+    <main className={`odin ai-chat ${activeVisual.themeClass}`}>
       <section className="main">
-        <div className="ai-modes-controls">
-          <button type="button" aria-controls="ai-mode-side-navigation" aria-expanded={!desktopModesCollapsed} onClick={toggleDesktopModes}>
-            <span aria-hidden="true">{desktopModesCollapsed ? "›" : "‹"}</span>
-            {desktopModesCollapsed ? "Show illustrated AI modes" : "Hide AI modes · expand workspace"}
-          </button>
-        </div>
+        <section className="ai-mode-ribbon" aria-label="AI modes">
+          <div className="ai-mode-ribbon-heading"><small>AI MODES</small><span>Choose how Magnanimous AI helps you</span></div>
+          <div className="mode-list">
+            {MODE_OPTIONS.map((item) => {
+              const visual = MODE_VISUALS[item];
+              const active = activeMode === item;
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  className={`mode-card ${active ? "active" : ""} ${visual.themeClass}`}
+                  style={{ "--card-accent": visual.accent } as CSSProperties}
+                  onClick={() => chooseMode(item)}
+                  aria-pressed={active}
+                >
+                  <span className="mode-card-thumb"><img src={visual.image} alt="" loading="lazy" /></span>
+                  <span className="mode-card-copy"><strong>{item}</strong><em>{visual.title}</em></span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+        <nav className="ai-workspace-ribbon" aria-label="Related workspaces">
+          <a href="/business-plan">Business Launch</a>
+          <a href="/knowledge">Knowledge Center</a>
+          <a href="/business">Business Command</a>
+          <a href="/social-media">Social Studio</a>
+          <a href="/virtual-assistant">Virtual Assistant</a>
+          <a href="/ai-apps">AI Apps</a>
+        </nav>
         <header>
           <div>
             <small>AI WORKSPACE · {activeMode.toUpperCase()}</small>
@@ -917,6 +874,44 @@ export default function AIChat() {
         @media (prefers-reduced-motion: reduce) {
           .ai-modes-controls button, .sidebar-navigation > a img { transition: none; }
           .ai-modes-controls button:hover, .sidebar-navigation > a:hover img { transform: none; }
+        }
+
+        /* One navigation sidebar: global platform menu is the only collapsible sidebar. */
+        .odin.ai-chat { display: block; grid-template-columns: minmax(0,1fr); }
+        .odin.ai-chat .main { box-sizing: border-box; max-width: none; min-width: 0; width: 100%; }
+        .ai-mode-ribbon { margin-bottom: 11px; padding: 13px; border: 1px solid rgba(229,185,97,.6); border-radius: 19px;
+          background: linear-gradient(120deg,rgba(5,23,59,.96),rgba(7,35,66,.92) 48%,rgba(7,19,45,.97));
+          box-shadow: 0 15px 30px rgba(0,0,0,.36),inset 0 1px rgba(255,227,160,.17); }
+        .ai-mode-ribbon-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 9px; }
+        .ai-mode-ribbon-heading small { color: #ffe2a2; font-weight: 900; font-size: 10px; letter-spacing: .13em; }
+        .ai-mode-ribbon-heading span { color: #b5e9ff; font-size: 11px; font-weight: 620; }
+        .ai-mode-ribbon .mode-list { display: flex; gap: 9px; overflow-x: auto; scroll-snap-type: x proximity;
+          padding: 2px 2px 9px; scrollbar-color: #45b9e5 #071831; }
+        .ai-mode-ribbon .mode-card { flex: 0 0 clamp(145px,15vw,194px); min-width: 0; min-height: 58px; scroll-snap-align: start;
+          border-color: rgba(109,190,238,.27); background: linear-gradient(145deg,rgba(3,18,46,.97),rgba(12,42,81,.94));
+          box-shadow: 0 5px 16px rgba(0,0,0,.3),inset 0 1px rgba(255,244,203,.08); }
+        .ai-mode-ribbon .mode-card.active { border-color: #f2c36d; box-shadow: 0 0 19px rgba(255,198,94,.17),0 0 13px rgba(49,169,243,.24); }
+        .ai-mode-ribbon .mode-card-thumb { flex: 0 0 53px; width: 53px; }
+        .ai-mode-ribbon .mode-card-copy { min-width: 0; }
+        .ai-mode-ribbon .mode-card-copy strong,.ai-mode-ribbon .mode-card-copy em { overflow-wrap: anywhere; }
+        .ai-workspace-ribbon { display: flex; gap: 9px; overflow-x: auto; scrollbar-color: #c9a259 #07172e; padding: 0 0 12px;
+          margin-bottom: 17px; align-items: center; }
+        .ai-workspace-ribbon a { display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 38px;
+          padding: 7px 13px; border: 1px solid rgba(228,185,108,.55); border-radius: 999px;
+          background: linear-gradient(110deg,#0b3766,#061831); color: #e8f7ff; text-decoration: none;
+          font-size: 11px; font-weight: 800; white-space: nowrap; transition: border-color .18s ease,transform .18s ease; }
+        .ai-workspace-ribbon a:hover,.ai-workspace-ribbon a:focus-visible { border-color: #6de7ff; transform: translateY(-1px); }
+        @media (max-width: 800px) {
+          .odin.ai-chat .main { padding: 16px 12px 42px; }
+          .ai-mode-ribbon { padding: 11px 9px; border-radius: 14px; }
+          .ai-mode-ribbon .mode-card { flex-basis: 146px; min-height: 62px; }
+          .ai-mode-ribbon .mode-card-thumb { width: 49px; flex-basis: 49px; }
+          .ai-mode-ribbon-heading span { font-size: 10px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .ai-mode-ribbon .mode-list { scroll-snap-type: none; }
+          .ai-workspace-ribbon a { transition: none; }
+          .ai-workspace-ribbon a:hover { transform: none; }
         }
         @keyframes statusPulse {
           0%, 100% { opacity: .62; }
