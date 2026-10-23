@@ -1,0 +1,40 @@
+name: Public Routing and Link Integrity
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/app/**'
+      - 'frontend/public/sitemap.xml'
+      - 'frontend/public/robots.txt'
+      - 'qa/scripts/public-route-canonical-lock.mjs'
+      - 'qa/scripts/live-public-link-audit.mjs'
+      - '.github/workflows/public-routing-link-integrity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-metadata-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify canonical and public/private route boundaries
+        run: node qa/scripts/public-route-canonical-lock.mjs
+      - name: Validate noninteractive audit script syntax
+        run: node --check qa/scripts/live-public-link-audit.mjs
+
+  read-only-live-link-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check live sitemap and rendered internal links (GET only)
+        run: node qa/scripts/live-public-link-audit.mjs
