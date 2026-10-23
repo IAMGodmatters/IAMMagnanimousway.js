@@ -2,12 +2,19 @@ plugins { id 'com.android.application' }
 android {
   namespace 'com.magnanimous.drivetv'
   compileSdk 35
-  defaultConfig { applicationId 'com.magnanimous.drivetv'; minSdk 26; targetSdk 32; versionCode 3; versionName '0.3-media-player' }
+  defaultConfig {
+    applicationId 'com.magnanimous.drivetv'
+    minSdk 26
+    targetSdk 32
+    versionCode 3
+    versionName '0.3-media-owner'
+  }
   compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {
-  def media3_version = '1.11.1'
-  implementation "androidx.media3:media3-exoplayer:$media3_version"
-  implementation "androidx.media3:media3-ui:$media3_version"
-  implementation "androidx.media3:media3-exoplayer-hls:$media3_version"
+  def media3 = '1.11.1'
+  implementation "androidx.media3:media3-exoplayer:$media3"
+  implementation "androidx.media3:media3-ui:$media3"
+  implementation "androidx.media3:media3-exoplayer-hls:$media3"
+  implementation "androidx.media3:media3-exoplayer-dash:$media3"
 }

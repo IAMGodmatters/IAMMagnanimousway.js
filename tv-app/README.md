@@ -1,34 +1,42 @@
-# Magnanimous Drive TV — free sideload version 0.3
+# Magnanimous Drive TV — free private TV player
 
-Native **Media3 ExoPlayer** opens automatically when a song or video is clicked.
+## This release: version 0.3-media-owner
 
-## Built-in player
-- Plays supported video and audio from system document/storage providers, including compatible Google Drive providers
-- MP4, MKV, M4V, WEBM, MOV, MP3, WAV, M4A, FLAC, OGG, OPUS etc **where the TV's codecs and provider support playback**
-- Full-screen video and music-art screen; built-in player controls, TV remote and visible large buttons
-- Play/pause, -10 seconds/+30 seconds, previous/next, playlist auto-continue, repeat all/one/off and playback speed
-- Pick SRT or VTT subtitle file from a document provider; embedded subtitle support is provided by Media3 when recognized
-- Resume position for each selected file; recent songs and videos stored locally
-- Browse folders using Android Storage Access Framework (SAF); **Up Next** automatically includes next playable files
-- Does not copy the user's media library to servers and does not request Google account passwords
-- Sideload APK is free, and has no Google Play payments or subscriptions
+Designed for Astron SMART_TV_3277, Android 11, 1 GB RAM, limited internal storage. Google Play Store registration is **not** needed to sideload this personal build.
 
-## Important limitations
-This is a **local/SAF-based media player, not a complete Google Drive API client**. Google Drive appears in the Android file picker only if a compatible Drive DocumentsProvider is installed and available on your Astron Android TV. Google Drive browser link may also require a supported external browser. You cannot browse all your Google Drive files in-app until Google OAuth consent and Drive integration are configured. The APK has not yet been tested on the physical Astron TV.
+### Embedded media engine
 
-Some file formats will fail because of codecs, unusual containers or provider streaming/seek limitations. An MP4 encoded H.264/AAC or MP3 is most compatible with a low-memory device. Audio playback pauses when leaving the player; background audio is a future feature.
+Powered by **AndroidX Media3 ExoPlayer 1.11.1** (Apache 2.0). Playback is embedded inside the app, not delegated to an outside player. Supports common playable MP4/H.264/AAC, MP3, M4A, FLAC, OGG, WebM and Matroska/MKV streams when the TV hardware provides a compatible decoder; some codec/container combinations remain unsupported. HLS and DASH stream support included in Media3. Depends on available Android codecs and the media storage provider's streaming implementation.
 
-## Build APK
-GitHub Actions workflow `Build Magnanimous Drive TV APK` on branch `drive-tv-android-build-20261023` builds a debug-signed APK artifact (sideload only), with Android SDK 35 and JDK 17. It is **not Google Play published**.
+- Video player with fullscreen picture, seek, play/pause, previous/next.
+- Music/audio player with dedicated audio presentation, folder playlist, repeat and shuffle.
+- External SRT / WebVTT subtitles picker; embedded subtitle track controls.
+- Photos (JPG, PNG, WebP etc. if supported by Android decoder) with fit/fill and previous/next.
+- Browse DocumentsProvider folders, select video/music/photo, show recent files.
+- Resume playback per media file; no uploading private media.
+- Android TV DPAD-friendly buttons; Android file picker for private media.
+- Open another installed media player as optional fallback for codecs this TV cannot decode.
+- Limit photo decode to roughly 1080p display dimensions for low-memory sets.
 
-## Install on Astron TV
-1. Download `app-debug.apk` from the latest successful GitHub Actions artifact `MagnanimousDriveTV-owner-APK` in the build workflow.
-2. Put APK on a USB drive or use an authorized file-transfer app, then open on TV with a file manager.
-3. On your Android 11 Astron TV, grant **Install unknown apps** only to the trusted file manager, install the APK, then switch the permission off if possible.
-4. Launch `Magnanimous Drive TV` from Apps.
-5. Choose **Open video or song**, or **Open folder** to build an automatic Up Next list. The media player opens immediately when a media item is selected.
-6. Select **Google Drive** in the Android picker if it appears, or select compatible files from USB; do not enter a Google password into unknown third-party file apps.
-7. TV storage was reported as only 217 MB free; free adequate space first if installation is refused.
+### Drive access limitation — important
 
-## Customer version
-The proposed $0.99/month Google Play version and owner free exemption for `Hardinlourijess@gmail.com` are **not active in this sideload build**. They require Play Console, proper identity verification, Play Billing purchase validation and Google Drive OAuth verification.
+This build uses **Android's system document picker and SAF**. Google Drive appears only if a Google Drive DocumentsProvider is installed and exposed on this TV. Android TV does not automatically provide a Drive integration. This build is NOT an OAuth-authenticated Drive API browser and does NOT guarantee that Google Drive files can be streamed on this particular Astron TV. Google Drive website button opens an external TV browser where supported. To browse every user's Drive folders within the app, later configure legitimate Google OAuth consent and restricted Drive API permissions with Google, plus a verified security architecture; do not collect Google passwords.
+
+### Install on your Astron TV
+
+1. In GitHub Actions -> **Build Magnanimous Drive TV APK** -> latest successful run -> download artifact "MagnanimousDriveTV-owner-APK", unzip to find **app-debug.apk**.
+2. Transfer the APK to a USB stick using a computer/phone, or another Android file transfer method.
+3. Insert the USB in the TV; open a TV file manager. Enable "Install unknown apps" only for that file manager when prompted. Select APK and install.
+4. Open **Magnanimous Drive TV** under the Apps launcher.
+5. Choose media, or choose folder. In Android file picker, select Drive only if it appears as a provider; otherwise start with a local USB audio/video/photo file to confirm playback. Avoid filling limited TV storage.
+6. Try MP4 (H.264 video + AAC audio) and MP3 if existing files won't decode. The media player **does not transcode** unsupported streams.
+7. To change an external subtitle while playing, select **Subtitles** and choose SRT/VTT file.
+
+### Payments
+
+This personal build contains **no billing**; it is not published to Google Play and it does not securely enforce owner-versus-customer access. The desired future commercial release is **$0.99 USD per month** for users, **complimentary verified owner entitlement for Hardinlourijess@gmail.com**. This requires Play Console registration, Google Play Billing configuration, backend purchase/identity verification, Google OAuth configuration and applicable reviews. Publishing a debug APK is NOT paid app launch.
+
+### Build
+
+Branch: drive-tv-android-build-20261023
+Android SDK 35, Gradle 8.10.2, JDK 17. CI builds a debug APK; this is for personal testing, not distribution through Google Play. The main Magnanimous AI platform remains untouched.
