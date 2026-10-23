@@ -5,6 +5,14 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# A deploy smoke token is bound to the exact Worker revision. Overlapping main
+# deployments can replace that revision while an older run is still testing it.
+# Queue rather than cancel: cleanup and D1 identity checks must finish safely.
+concurrency:
+  group: magnanimous-main-production-deployment
+  queue: max
+  cancel-in-progress: false
+
 permissions:
   contents: read
   id-token: write
