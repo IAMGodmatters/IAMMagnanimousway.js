@@ -164,7 +164,7 @@ export default function AIReceptionist() {
       <nav><a href="/agents">Talking Agents</a><a href="/phone">Call Center</a><a href="/">Dashboard</a></nav>
     </header>
 
-    <section className="hero">
+    <section className="hero receptionRoyalHero">
       <div>
         <small>EASY VOICE + VIDEO</small>
         <h1>Choose how you want Magnanimous AI to communicate.</h1>
@@ -246,6 +246,45 @@ export default function AIReceptionist() {
 
     <style jsx>{`
     *{box-sizing:border-box}.page{min-height:100vh;background:#04080c;color:#ecf9ff;padding:22px 30px 70px;font-family:Inter,system-ui,sans-serif;background-image:radial-gradient(circle at 80% 8%,rgba(50,211,255,.1),transparent 28%)}header,.hero,.choices,.notice,.agentPicker,.actionGrid,.creator,.bottomHelp,.advanced{max-width:1400px;margin-left:auto;margin-right:auto}header{display:flex;justify-content:space-between;align-items:center;gap:18px;font-size:10px}header div,nav{display:flex;gap:15px}header a,nav a{color:#89dbea;text-decoration:none}header span{color:#627d88}.hero{margin-top:24px;border:1px solid #183944;border-radius:22px;padding:34px;display:grid;grid-template-columns:1.35fr .65fr;gap:30px;background:linear-gradient(135deg,#07151c,#070a0e)}.hero small,.agentPicker small,.panel small,.creator small,.bottomHelp small{font-size:9px;letter-spacing:.18em;color:#55cee3;font-weight:900}.hero h1{font-size:clamp(40px,5.5vw,72px);line-height:.98;margin:10px 0 15px;max-width:900px}.hero p{color:#8ca4ae;line-height:1.65;max-width:820px}.legend{display:grid;gap:7px;align-content:center}.legend>div{border:1px solid #203840;border-radius:12px;padding:12px;background:#081116}.legend span{float:left;margin-right:8px}.legend b{font-size:10px}.legend p{margin:4px 0 0;color:#718892;font-size:10px}.on{color:#75e5a0}.free{color:#64d8f3}.optional{color:#87969d}.choices{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:10px}.choice{appearance:none;text-align:left;border:1px solid #1a3741;border-radius:16px;padding:16px;background:#071117;color:#eefaff;text-decoration:none;display:grid;grid-template-columns:30px 1fr;gap:9px;cursor:pointer}.choice:hover{border-color:#3b7889}.choice>span{font-size:9px;color:#456d79}.choice small{font-size:8px;color:#72dda0;letter-spacing:.12em}.optionalChoice small{color:#b1a56d}.choice h2{font-size:18px;margin:6px 0}.choice p{color:#77919b;font-size:10px;line-height:1.55;min-height:48px}.choice b{font-size:9px;color:#6dd9e9}.notice{margin-top:10px;padding:12px 14px;border:1px solid #285468;border-radius:11px;background:#071721;color:#c8f0f7}.agentPicker{margin-top:10px;border:1px solid #1a3945;border-radius:17px;padding:20px;background:#071118;display:grid;grid-template-columns:.8fr 1.2fr;gap:20px}.agentPicker h2,.creator h2,.bottomHelp h2{font-size:28px;margin:6px 0}.agentPicker p,.creator p,.bottomHelp p{color:#7f98a2;line-height:1.55}.agentPicker select,.panel input,.panel textarea,.form input,.form textarea{width:100%;background:#03090d;border:1px solid #215064;border-radius:10px;color:#eaf8ff;padding:11px;font:inherit}.selected{margin-top:9px;border:1px solid #1b3e4b;border-radius:11px;padding:12px;background:#050d12}.selected b{color:#f0c46a}.selected p,.selected span{display:block;color:#78929d;font-size:10px;line-height:1.45}.actionGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.panel{border:1px solid #183844;border-radius:17px;background:#071118;padding:20px}.panelHead{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}.panel h2{font-size:25px;margin:5px 0 15px}.panel label{display:block;margin:11px 0 5px;color:#adc2ca;font-size:10px}.panel label em{font-style:normal;color:#657b84}.hint{display:block;color:#617a85;font-size:9px;margin-bottom:6px}.panel textarea{min-height:78px;resize:vertical}.panel button,.form button{width:100%;border:0;border-radius:10px;padding:12px;background:linear-gradient(90deg,#168cb5,#b97a24);color:#fff;font-weight:900;cursor:pointer;margin-top:12px}.panel button:disabled,.form button:disabled{opacity:.45}.check{display:flex!important;gap:8px;align-items:flex-start;line-height:1.45}.check input{width:auto;margin-top:2px}.check span{color:#90a5ad}.fine{font-size:9px!important;color:#637b85!important}.simpleExplain{border:1px dashed #2a4c56;border-radius:12px;padding:16px}.simpleExplain h3{font-size:16px;margin:0 0 7px}.simpleExplain p,.intro{color:#7f98a2;font-size:11px;line-height:1.6}.simpleExplain a{display:inline-block;margin-top:8px;color:#74dceb;text-decoration:none;font-size:10px;font-weight:900}.frame{margin-top:12px;aspect-ratio:16/10;border:1px solid #234c5d;border-radius:13px;overflow:hidden}.frame iframe{width:100%;height:100%;border:0}.creator{margin-top:10px;border:1px solid #193944;border-radius:17px;background:#071118;padding:20px;display:grid;grid-template-columns:.75fr 1.25fr;gap:22px}.form label{display:block;color:#9db3bc;font-size:10px;margin:8px 0 5px}.form textarea{min-height:70px;resize:vertical}.bottomHelp{margin-top:10px;border:1px solid #274139;border-radius:17px;background:linear-gradient(135deg,#0b160f,#071118);padding:22px;display:flex;justify-content:space-between;gap:25px;align-items:center}.bottomHelp a{white-space:nowrap;border:1px solid #31515b;border-radius:9px;padding:11px 13px;color:#daf8ff;text-decoration:none;font-size:10px;font-weight:900}.advanced{margin-top:10px;border:1px solid #303c43;border-radius:14px;background:#080d10;padding:14px}.advanced summary{cursor:pointer;color:#9eb4bd;font-size:11px;font-weight:900}.advancedGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.advancedGrid>div{border:1px solid #23353b;border-radius:11px;padding:13px}.advancedGrid b{font-size:11px}.advancedGrid code{display:block;margin-top:9px;padding:9px;background:#020608;border-radius:7px;overflow:auto;color:#8bdcec;font-size:9px}.advancedGrid p{font-size:10px;color:#70858d;line-height:1.5}.advancedGrid a{font-size:10px;color:#72dbe9;text-decoration:none}@media(max-width:1000px){.choices{grid-template-columns:1fr 1fr}.hero{grid-template-columns:1fr}.actionGrid{grid-template-columns:1fr}}@media(max-width:700px){.page{padding:16px 14px 45px}header nav{display:none}.choices{grid-template-columns:1fr}.agentPicker,.creator{grid-template-columns:1fr}.bottomHelp{display:block}.bottomHelp a{display:inline-block;margin-top:12px}.advancedGrid{grid-template-columns:1fr}.hero{padding:24px}.hero h1{font-size:44px}}
+
+    /* Dedicated AI Receptionist immersive desktop scene. No provider/consent behavior is changed. */
+    .page{background:radial-gradient(circle at 84% 0%,rgba(26,122,240,.18),transparent 28%),linear-gradient(160deg,#061733,#020916 80%)}
+    .hero.receptionRoyalHero{position:relative;isolation:isolate;overflow:hidden;min-height:clamp(475px,42vw,655px);
+      border:2px solid #f0c16d;border-radius:26px;background:#03132f;box-shadow:0 30px 66px #000a,0 0 0 1px rgba(65,203,255,.35),inset 0 1px rgba(255,231,181,.25);
+      align-items:center;padding:clamp(24px,4.8vw,60px)}
+    .receptionRoyalHero:before{position:absolute;content:'';z-index:0;inset:0;background:url('/magnanimous-reception-palace-v1.svg') center/cover no-repeat;
+      animation:receptionRoyalDrift 18s ease-in-out infinite alternate;transform:scale(1.02)}
+    .receptionRoyalHero:after{position:absolute;content:'';z-index:1;inset:0;pointer-events:none;
+      background:linear-gradient(90deg,rgba(2,10,30,.96),rgba(2,10,30,.75) 40%,rgba(2,10,30,.18) 78%)}
+    .receptionRoyalHero>div{position:relative;z-index:2}
+    .receptionRoyalHero h1{font-size:clamp(34px,4.3vw,64px);color:#ffe0a3;text-shadow:0 2px 0 #7b4a1b,0 4px 0 #312009,0 9px 25px #000b;letter-spacing:-.035em}
+    .receptionRoyalHero small{color:#8deaff;font-weight:900}
+    .receptionRoyalHero p{color:#e7f8ff;font-weight:620;text-shadow:0 2px 14px #000}
+    .receptionRoyalHero .legend>div{border-color:rgba(240,195,112,.55);background:linear-gradient(130deg,rgba(10,41,80,.9),rgba(4,15,36,.92));box-shadow:0 8px 20px #0007}
+    .receptionRoyalHero .legend b{color:#ffe3ac}
+    .choice,.panel,.agentPicker,.creator,.advanced,.bottomHelp{border-color:rgba(222,172,90,.5);background:linear-gradient(130deg,rgba(10,39,77,.94),rgba(4,16,37,.97));box-shadow:0 12px 28px rgba(0,0,0,.28),inset 0 1px rgba(255,236,188,.12)}
+    .choice:hover{border-color:#77e7ff}
+    .panel button,.form button{background:linear-gradient(110deg,#0a6bb7,#dfb15f);color:#fff9e9}
+    @keyframes receptionRoyalDrift{to{transform:scale(1.055);filter:brightness(1.08)}}
+    @media(max-width:760px) and (orientation:portrait){
+      .hero.receptionRoyalHero{min-height:670px;aspect-ratio:2/3;max-height:800px;padding:20px 17px;align-content:start;align-items:start;display:block;border-radius:19px}
+      .receptionRoyalHero:before{background-image:url('/magnanimous-reception-palace-mobile-v1.svg');background-position:center}
+      .receptionRoyalHero:after{background:linear-gradient(180deg,rgba(2,9,30,.98),rgba(2,10,32,.91) 45%,rgba(2,11,32,.07) 79%)}
+      .receptionRoyalHero h1{font-size:clamp(31px,8vw,43px);margin:11px 0}
+      .receptionRoyalHero p{font-size:clamp(12px,3.3vw,16px);line-height:1.45}
+      .receptionRoyalHero .legend{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:12px}
+      .receptionRoyalHero .legend>div{padding:7px 5px;border-radius:8px}
+      .receptionRoyalHero .legend b{font-size:9px}
+      .receptionRoyalHero .legend p{font-size:9px;line-height:1.2}
+    }
+    @media(orientation:landscape) and (max-height:560px) and (max-width:1100px){
+      .hero.receptionRoyalHero{min-height:325px;padding:15px 22px;gap:15px;grid-template-columns:1.4fr .6fr}
+      .receptionRoyalHero h1{font-size:clamp(28px,4.6vw,42px);margin:7px 0}
+      .receptionRoyalHero p{font-size:12px;line-height:1.35}
+      .receptionRoyalHero .legend>div{padding:8px}
+      .receptionRoyalHero .legend p{font-size:9px}
+    }
+    @media(prefers-reduced-motion:reduce){.receptionRoyalHero:before{animation:none;transform:none}}
     `}</style>
   </main>
 }
