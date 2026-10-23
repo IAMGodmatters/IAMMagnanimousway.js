@@ -158,13 +158,27 @@ export default function CRM(){
   <header><div><a href="/">← Dashboard</a><small>MAGNANIMOUS CRM • RELATIONSHIP INTELLIGENCE</small><h1>{user?.role==='owner'?'Owner CRM':`${user?.name||'My'} CRM`}</h1><p>One customer system for contacts, pipeline, follow-up, conversations, intelligence and action.</p></div><div className="headActions"><button onClick={()=>setShowForm(true)}>+ CONTACT</button><button onClick={()=>setShowAccount(true)}>+ ACCOUNT</button><button onClick={()=>openDeal()}>+ DEAL</button><button onClick={()=>setShowPipeline(true)}>+ PIPELINE</button><button onClick={()=>setShowScoring(true)}>+ SCORE</button><button onClick={()=>setShowSequence(true)}>+ SEQUENCE</button><button onClick={()=>openTask()}>+ FOLLOW-UP</button></div></header>
   {notice&&<div className="notice" role="status">✓ {notice}<button onClick={()=>setNotice('')}>×</button></div>}{error&&<div className="error" role="alert">{error}<button onClick={()=>setError('')}>×</button></div>}
 
+  <section className="crmRoyalPalace" aria-label="Magnanimous CRM relationship command center">
+   <picture className="crmRoyalPalaceArt">
+    <source media="(max-width: 760px) and (orientation: portrait)" srcSet="/magnanimous-ai-command-palace-mobile-v2.webp"/>
+    <img src="/magnanimous-ai-command-palace-v2.webp" alt="Golden and sapphire three-dimensional Magnanimous command palace with crowned globe" fetchPriority="high" loading="eager" decoding="async"/>
+   </picture>
+   <div className="crmRoyalPalaceCopy">
+    <small>I AM MAGNANIMOUS WAY™ · CRM COMMAND PALACE</small>
+    <h2>Every relationship.<br/>One brilliant view.</h2>
+    <p>Build lasting customer connections, understand your pipeline, and take the next right action—powered by Magnanimous AI.</p>
+    <div className="crmRoyalPalaceActions"><a href="#crm-operational-workspace">Explore your CRM</a><a href="/crm/advanced">Advanced CRM</a></div>
+   </div>
+   <span className="crmRoyalPalaceGlow" aria-hidden="true" />
+  </section>
+
   <section className="crmVisual" aria-label="I AM Magnanimous Way CRM upgrade">
    <div className="crmVisualFrame">
-    <img src="/crm-upgrade.jpeg" alt="I AM Magnanimous Way CRM upgraded business dashboard with analytics, customer profiles, automation, messaging, calendar, tasks and sales pipeline" width={1536} height={802} loading="eager" decoding="async" fetchPriority="high"/>
+    <img src="/crm-upgrade.jpeg" alt="I AM Magnanimous Way CRM upgraded business dashboard with analytics, customer profiles, automation, messaging, calendar, tasks and sales pipeline" width={1536} height={802} loading="lazy" decoding="async"/>
    </div>
   </section>
 
-  <section className="hero"><div className="heroCopy"><small>CUSTOMER OPERATING SYSTEM</small><h2>Know the relationship.<br/>Know the next move.</h2><p>Magnanimous combines your CRM records with pipeline movement, follow-up history and data-quality signals. Outside services extend execution; your customer record stays yours.</p><div className="shortcuts"><a href="/inbox">Unified Inbox</a><a href="/contact-center">Calls & Contact Center</a><a href="/business-email">Business Email</a><a href="/operations">Automations & Sequences</a><a href="/crm/advanced">Advanced CRM</a><a href="/intelligence-desk">Intelligence Desk</a><a href="/connections">Connections</a></div></div><div className="forecast"><span>WEIGHTED FORECAST</span><strong>{amount(metrics.weighted_forecast)}</strong><p>{metrics.open_deals} open deals • {amount(metrics.pipeline_value)} total pipeline</p><div><b>{metrics.at_risk_deals}</b><small>at risk</small><b>{metrics.stale_deals}</b><small>stale</small></div></div></section>
+  <section id="crm-operational-workspace" className="hero"><div className="heroCopy"><small>CUSTOMER OPERATING SYSTEM</small><h2>Know the relationship.<br/>Know the next move.</h2><p>Magnanimous combines your CRM records with pipeline movement, follow-up history and data-quality signals. Outside services extend execution; your customer record stays yours.</p><div className="shortcuts"><a href="/inbox">Unified Inbox</a><a href="/contact-center">Calls & Contact Center</a><a href="/business-email">Business Email</a><a href="/operations">Automations & Sequences</a><a href="/crm/advanced">Advanced CRM</a><a href="/intelligence-desk">Intelligence Desk</a><a href="/connections">Connections</a></div></div><div className="forecast"><span>WEIGHTED FORECAST</span><strong>{amount(metrics.weighted_forecast)}</strong><p>{metrics.open_deals} open deals • {amount(metrics.pipeline_value)} total pipeline</p><div><b>{metrics.at_risk_deals}</b><small>at risk</small><b>{metrics.stale_deals}</b><small>stale</small></div></div></section>
 
   <section className="stats">
    <Metric label="Relationships" value={metrics.contacts} note="contacts in CRM"/>
