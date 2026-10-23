@@ -203,7 +203,7 @@ export default function Knowledge() {
       </header>
       <section className="hero">
         <div>
-          <small>I AM KNOWLEDGE CENTER</small>
+          <small>♛ I AM MAGNANIMOUS WAY™ • KNOWLEDGE CENTER</small>
           <h1>Teach your AI. Research the world. Keep the useful knowledge.</h1>
           <p>
             Magnanimous AI can use knowledge you save in this workspace. When a
@@ -774,6 +774,56 @@ export default function Knowledge() {
         footer b {
           color: #c99b50;
         }
+        /* The Knowledge Center's own illustrated 3D chamber, separate from the homepage artwork. */
+        .hero {
+          min-height: 435px;
+          border: 2px solid #d9af55;
+          border-radius: 21px;
+          overflow: hidden;
+          position: relative;
+          isolation: isolate;
+          background-color: #04112a;
+          background-image:
+            linear-gradient(90deg, rgba(2, 8, 27, .92) 0%, rgba(2, 8, 27, .7) 38%, rgba(2, 8, 27, .07) 72%),
+            url('/magnanimous-knowledge-palace-v2.webp');
+          background-size: cover;
+          background-position: center;
+          box-shadow: 0 0 0 1px rgba(54, 194, 255, .74),
+            0 0 35px rgba(38, 171, 246, .25), 0 30px 70px rgba(0, 0, 0, .58);
+          animation: knowledgeShimmer 18s ease-in-out infinite alternate;
+        }
+        .hero > div:first-child {
+          position: relative;
+          z-index: 1;
+          text-shadow: 0 4px 19px #000d;
+        }
+        .hero small {
+          color: #ffda81;
+          font-size: 11px;
+          text-shadow: 0 0 15px rgba(255, 184, 68, .5);
+        }
+        .hero h1 {
+          max-width: 790px;
+          color: #ffe6a5;
+          font-size: clamp(40px, 5.1vw, 68px);
+          line-height: 1.04;
+          overflow-wrap: anywhere;
+          text-shadow: 0 2px 0 #775024, 0 4px 0 #34210f,
+            0 8px 25px #000b, 0 0 27px rgba(245, 179, 68, .28);
+        }
+        .hero p { color: #e2f8ff; max-width: 650px; font-weight: 600; }
+        .hero .links a {
+          border-color: #e2b963;
+          background: linear-gradient(110deg, rgba(3, 18, 48, .96), rgba(5, 58, 97, .84));
+          color: #ffe2a2;
+          box-shadow: 0 0 20px rgba(44, 176, 243, .25), inset 0 1px rgba(255, 255, 255, .13);
+        }
+        .hero .links a:hover { color: #fff; border-color: #71e7ff; }
+        .brain { filter: drop-shadow(0 0 22px rgba(76, 191, 255, .4)); }
+        @keyframes knowledgeShimmer {
+          from { background-position: 50% center; }
+          to { background-position: 54% center; }
+        }
         @media (max-width: 900px) {
           .knowledge {
             padding: 18px 14px;
@@ -784,6 +834,13 @@ export default function Knowledge() {
           }
           .brain {
             display: none;
+          }
+          .hero {
+            background-image:
+              linear-gradient(180deg, rgba(2, 8, 27, .95), rgba(2, 8, 27, .63) 55%, rgba(2, 8, 27, .16)),
+              url('/magnanimous-knowledge-palace-v2.webp');
+            background-position: 67% center;
+            animation: knowledgeMobileShimmer 18s ease-in-out infinite alternate;
           }
           .stats {
             grid-template-columns: 1fr 1fr;
@@ -803,6 +860,8 @@ export default function Knowledge() {
           .hero {
             padding: 25px;
           }
+          .hero h1 { font-size: clamp(29px, 9vw, 46px); }
+          .hero small { font-size: 9px; }
           .checks {
             flex-direction: column;
             gap: 4px;
@@ -812,6 +871,11 @@ export default function Knowledge() {
             flex-direction: column;
           }
         }
+        @keyframes knowledgeMobileShimmer {
+          from { background-position: 67% center; }
+          to { background-position: 69% center; }
+        }
+        @media (prefers-reduced-motion: reduce) { .hero { animation: none; } }
       `}</style>
     </main>
   );
