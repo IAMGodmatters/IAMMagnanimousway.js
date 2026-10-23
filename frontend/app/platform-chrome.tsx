@@ -9,7 +9,7 @@ const sidebarArt=(href:string)=>{
  if(href==='/opportunity-vault')return '/magnanimous-opportunity-palace-mobile-v2.webp';
  if(href==='/knowledge')return '/magnanimous-knowledge-palace-mobile-v2.webp';
  if(href==='/travel-agency')return '/magnanimous-travel-palace-mobile-v2.webp';
- if(href.includes('kids'))return '/magnanimous-family-full.webp';
+ if(href.includes('shipstatic.com'))return '/magnanimous-family-full.webp';
  if(/social|video|movie|studio|creator/.test(href))return '/mode-images/social-media.webp';
  if(/crm|business|b2b|shop|owner|professional/.test(href))return '/mode-images/business.webp';
  if(/opportunity|intelligence|activity|report/.test(href))return '/mode-images/research.webp';
@@ -61,7 +61,7 @@ export default function PlatformChrome(){
   <aside className={`iam-shell-sidebar ${collapsed?'collapsed':''} ${mobileOpen?'mobileOpen':''}`}>
    <div className="iam-side-brand"><a href="/"><span>M</span><div><b>I AM</b><strong>MAGNANIMOUS WAY(TM)</strong><small>AI ECOSYSTEM</small></div></a><button type="button" onClick={()=>setCollapsed(v=>!v)} aria-controls="iam-platform-nav" aria-expanded={!collapsed} aria-label={collapsed?'Expand sidebar':'Collapse sidebar'}>{collapsed?'›':'‹'}</button></div>
    <nav id="iam-platform-nav" aria-label="Platform navigation">{items.map(item=><a key={item.href} href={item.href} className={path===item.href?'active':''} title={collapsed?item.label:undefined}><i className="iam-nav-illustration" aria-hidden="true"><img src={sidebarArt(item.href)} alt="" loading="lazy"/><em>{item.glyph}</em></i><span>{item.label}</span><b aria-hidden="true">&gt;</b></a>)}</nav>
-   <div className="iam-side-status"><span/><div><small>Platform Status</small><b>Open reports to check health</b></div></div>
+   <a href="/activity" className="iam-side-status" aria-label="Open reports to inspect platform health"><span/><div><small>Platform Health</small><b>Check status in reports</b></div></a>
   </aside>
   <style jsx global>{`
    :root{--iam-shell-side:246px;--iam-shell-top:72px}html[data-iam-sidebar="collapsed"]{--iam-shell-side:82px}html[data-iam-shell="true"] body{background:#020714!important}html[data-iam-shell="true"] .iam-shell-content{position:relative;z-index:2;margin-left:var(--iam-shell-side);padding-top:var(--iam-shell-top);min-height:100vh;transition:margin-left .28s cubic-bezier(.2,.8,.2,1);overflow:hidden}html[data-iam-shell="true"] .iam-business-identity{margin-left:var(--iam-shell-side);transition:margin-left .28s ease}html[data-iam-shell="true"] .iam-shop-link{display:none}html[data-iam-shell="true"] .cinematicHome>.topbar{display:none!important}
@@ -119,6 +119,9 @@ export default function PlatformChrome(){
    @keyframes iamNavLight{50%{transform:translateX(135%)}100%{transform:translateX(135%)}}
    @keyframes iamNavBreath{50%{box-shadow:0 0 19px rgba(69,206,255,.48),inset 0 0 0 1px rgba(255,234,169,.28)}}
    .iam-side-brand>a>span{font-family:Georgia,serif}
+   .iam-side-status{color:#d6e5f1;text-decoration:none;cursor:pointer}
+   .iam-side-status>span{background:#9aadc2;box-shadow:0 0 9px rgba(153,178,207,.28)}
+   .iam-side-status:hover{border-color:#f4c977;box-shadow:0 0 17px rgba(48,185,255,.22)}
    /* The desktop collapse frees the full content width, not merely the label text. */
    @media(min-width:821px){
     html[data-iam-sidebar="collapsed"]{--iam-shell-side:0px}
