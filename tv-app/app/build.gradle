@@ -1,0 +1,6 @@
+plugins { id 'com.android.application' }
+android { namespace 'com.magnanimous.drivetv'
+  compileSdk 35
+  defaultConfig { applicationId 'com.magnanimous.drivetv'; minSdk 26; targetSdk 32; versionCode 2; versionName '0.2-free-owner' }
+  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
