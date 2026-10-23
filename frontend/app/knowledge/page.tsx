@@ -871,6 +871,23 @@ export default function Knowledge() {
             flex-direction: column;
           }
         }
+        /* Dedicated phone portrait: desktop and tablet artwork remain untouched. */
+        @media (max-width: 760px) {
+          .hero {
+            min-height: 650px;
+            align-items: start;
+            padding: 26px 20px;
+            background-image:
+              linear-gradient(180deg, rgba(2, 8, 27, .94) 0%, rgba(2, 8, 27, .82) 37%, rgba(2, 8, 27, .09) 78%),
+              url('/magnanimous-knowledge-palace-mobile-v2.webp');
+            background-position: center;
+            background-size: cover;
+            animation: none;
+          }
+          .hero h1 { font-size: clamp(29px, 7.9vw, 46px); }
+          .hero p { font-size: clamp(13px, 3.4vw, 16px); line-height: 1.5; }
+          .links a { padding: 9px 11px; }
+        }
         @keyframes knowledgeMobileShimmer {
           from { background-position: 67% center; }
           to { background-position: 69% center; }
