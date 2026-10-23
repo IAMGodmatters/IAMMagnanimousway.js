@@ -72,17 +72,20 @@ jobs:
               assert off==len(data), (name,'chunk boundary',off,len(data))
           PY
 
+          # The files above were downloaded from LIVE_URL and checked against locked Git blobs/SHA256.
+          # Decode those exact production bytes locally: file:// pages fetching remote HTTPS
+          # can hang in headless Chromium and create false negatives despite intact artwork.
           cat > mobile-visual-proof/decode-check.html <<EOF
           <!doctype html><html><body data-fallback="pending" data-sharp="pending" data-clear="pending">
-          <img id="fallback" src="${LIVE_URL}mobile-dashboard-approved.webp?lock=${APPROVED_MOBILE_GIT_BLOB}&decode=${GITHUB_RUN_ID}" alt="">
-          <img id="sharp" src="${LIVE_URL}mobile-dashboard-approved-sharp.webp?lock=${SHARP_MOBILE_GIT_BLOB}&decode=${GITHUB_RUN_ID}" alt="">
-          <img id="clear" src="${LIVE_URL}mobile-dashboard-approved-clear.jpeg?decode=${GITHUB_RUN_ID}" alt="">
+          <img id="fallback" src="mobile-dashboard-approved.webp" alt="">
+          <img id="sharp" src="mobile-dashboard-approved-sharp.webp" alt="">
+          <img id="clear" src="mobile-dashboard-approved-clear.jpeg" alt="">
           <script>
           const mark=(id,key)=>{const img=document.getElementById(id);const done=()=>document.body.setAttribute('data-'+key,img.complete&&img.naturalWidth?img.naturalWidth+'x'+img.naturalHeight:'error');img.addEventListener('load',done,{once:true});img.addEventListener('error',done,{once:true});if(img.complete)done()};
           mark('fallback','fallback');mark('sharp','sharp');mark('clear','clear');
           </script></body></html>
           EOF
-          timeout 60s "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=8000 --dump-dom "file://$(pwd)/mobile-visual-proof/decode-check.html" > mobile-visual-proof/decode-check.dom 2> mobile-visual-proof/decode-check.log || { cat mobile-visual-proof/decode-check.log || true; exit 1; }
+          timeout 75s "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --disable-background-networking --disable-extensions --no-first-run --allow-file-access-from-files --virtual-time-budget=8000 --dump-dom "file://$(pwd)/mobile-visual-proof/decode-check.html" > mobile-visual-proof/decode-check.dom 2> mobile-visual-proof/decode-check.log || { cat mobile-visual-proof/decode-check.log || true; exit 1; }
           grep -q 'data-fallback="320x569"' mobile-visual-proof/decode-check.dom || { echo '::error::Chrome could not decode the known-working 320x569 mobile fallback.'; cat mobile-visual-proof/decode-check.dom; exit 1; }
           grep -q 'data-sharp="1296x2304"' mobile-visual-proof/decode-check.dom || { echo '::error::Chrome could not decode the 1296x2304 sharp mobile enhancement.'; cat mobile-visual-proof/decode-check.dom; exit 1; }
           grep -q 'data-clear="864x1536"' mobile-visual-proof/decode-check.dom || { echo '::error::Chrome could not decode the exact 864x1536 clear owner-approved mobile artwork.'; cat mobile-visual-proof/decode-check.dom; exit 1; }
