@@ -1,0 +1,25 @@
+name: Magnanimous Native Strategy Contract
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/app/strategy-command/**'
+      - 'frontend/app/operations/page.tsx'
+      - 'qa/scripts/native-strategy-command-lock.mjs'
+      - '.github/workflows/native-strategy-command-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Security, private routing and native strategy contract
+        run: node qa/scripts/native-strategy-command-lock.mjs
