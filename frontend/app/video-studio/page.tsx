@@ -631,7 +631,7 @@ export default function VideoStudio() {
         <a href="/">← Back to I Am Magnanimous Way™</a>
         <div style={{display:"flex",gap:10,alignItems:"center"}}><a href="/video-stack">Record • Upload • Edit</a><a href="/creator-growth">Creator Growth</a><span className="module-status">VIDEO CREATOR</span></div>
       </header>
-      <section className="module-hero">
+      <section className="module-hero videoRoyalHero">
         <div className="module-icon">▶</div>
         <div>
           <span className="eyebrow">
@@ -985,6 +985,42 @@ export default function VideoStudio() {
           yourself. This page does not automatically publish to social accounts.
         </p>
       </section>
+      <style jsx>{`
+        .module-page .module-hero.videoRoyalHero{position:relative;isolation:isolate;display:flex;align-items:center;min-height:clamp(480px,43vw,660px);
+          margin:20px auto 30px;padding:clamp(25px,4.6vw,65px);overflow:hidden;border:2px solid #f1c678;border-radius:27px;
+          background:#061634;box-shadow:0 30px 72px rgba(0,0,0,.56),0 0 0 1px rgba(64,202,255,.34),inset 0 1px rgba(255,232,162,.25)}
+        .videoRoyalHero:before{content:'';position:absolute;z-index:0;inset:0;pointer-events:none;
+          background:url('/magnanimous-video-palace-v1.svg') center/cover no-repeat;transform:scale(1.015);
+          animation:videoRoyalDrift 18s ease-in-out infinite alternate}
+        .videoRoyalHero:after{content:'';position:absolute;z-index:1;inset:0;pointer-events:none;
+          background:linear-gradient(90deg,rgba(2,10,31,.97),rgba(2,10,31,.83) 36%,rgba(2,10,31,.08) 77%)}
+        .videoRoyalHero>.module-icon,.videoRoyalHero>div{position:relative;z-index:2}
+        .videoRoyalHero>div:last-child{max-width:54%}
+        .videoRoyalHero .module-icon{border:2px solid #f7cf83;background:linear-gradient(125deg,#0a4c99,#0b2357);color:#ffe6ae;
+          box-shadow:0 0 24px rgba(71,211,255,.37),inset 0 1px rgba(255,234,192,.35)}
+        .videoRoyalHero .eyebrow{color:#8af0ff;font-weight:900;letter-spacing:.12em}
+        .videoRoyalHero h1{font-size:clamp(39px,5vw,76px);color:#ffe4ab;text-shadow:0 2px 0 #75471b,0 5px 0 #33220e,0 12px 28px #000b}
+        .videoRoyalHero p{color:#eefaff;font-size:clamp(14px,1.35vw,18px);line-height:1.6;font-weight:620;text-shadow:0 3px 14px #000}
+        .module-page .module-panel{border-color:rgba(225,181,104,.46);background:linear-gradient(135deg,rgba(12,39,76,.92),rgba(4,15,36,.98));box-shadow:0 12px 28px rgba(0,0,0,.27)}
+        @keyframes videoRoyalDrift{to{transform:scale(1.055);filter:brightness(1.08)}}
+        @media(max-width:760px) and (orientation:portrait){
+          .module-page .module-hero.videoRoyalHero{min-height:650px;aspect-ratio:2/3;max-height:850px;display:flex;flex-direction:column;align-items:flex-start;
+            justify-content:flex-start;padding:21px 16px;margin-top:14px;border-radius:20px;gap:9px}
+          .videoRoyalHero:before{background-image:url('/magnanimous-video-palace-mobile-v1.svg');background-position:center}
+          .videoRoyalHero:after{background:linear-gradient(180deg,rgba(2,9,30,.99),rgba(2,11,34,.86) 38%,rgba(2,11,34,.06) 80%)}
+          .videoRoyalHero>div:last-child{max-width:100%}
+          .videoRoyalHero .module-icon{width:48px;height:48px;min-width:48px;min-height:48px}
+          .videoRoyalHero h1{font-size:clamp(31px,8.8vw,47px);margin:7px 0}
+          .videoRoyalHero p{font-size:clamp(12px,3.3vw,16px);line-height:1.44}
+        }
+        @media(orientation:landscape) and (max-height:560px) and (max-width:1100px){
+          .module-page .module-hero.videoRoyalHero{min-height:330px;padding:19px 22px;gap:17px}
+          .videoRoyalHero>div:last-child{max-width:65%}
+          .videoRoyalHero h1{font-size:clamp(31px,4.6vw,47px)}
+          .videoRoyalHero p{font-size:12px;line-height:1.38}
+        }
+        @media(prefers-reduced-motion:reduce){.videoRoyalHero:before{animation:none;transform:none}}
+      `}</style>
     </main>
   );
 }
