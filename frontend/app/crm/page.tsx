@@ -159,7 +159,10 @@ export default function CRM(){
   {notice&&<div className="notice" role="status">✓ {notice}<button onClick={()=>setNotice('')}>×</button></div>}{error&&<div className="error" role="alert">{error}<button onClick={()=>setError('')}>×</button></div>}
 
   <section className="crmRoyalPalace" aria-label="Magnanimous CRM relationship command center">
-   <div className="crmRoyalPalaceArt" role="img" aria-label="Golden and sapphire three-dimensional Magnanimous command palace with crowned globe" />
+   <picture className="crmRoyalPalaceArt">
+    <source media="(max-width: 760px) and (orientation: portrait)" srcSet="/magnanimous-ai-command-palace-mobile-v2.webp"/>
+    <img src="/magnanimous-ai-command-palace-v2.webp" alt="Golden and sapphire three-dimensional Magnanimous command palace with crowned globe" fetchPriority="high" loading="eager" decoding="async"/>
+   </picture>
    <div className="crmRoyalPalaceCopy">
     <small>I AM MAGNANIMOUS WAY™ · CRM COMMAND PALACE</small>
     <h2>Every relationship.<br/>One brilliant view.</h2>
@@ -171,7 +174,7 @@ export default function CRM(){
 
   <section className="crmVisual" aria-label="I AM Magnanimous Way CRM upgrade">
    <div className="crmVisualFrame">
-    <img src="/crm-upgrade.jpeg" alt="I AM Magnanimous Way CRM upgraded business dashboard with analytics, customer profiles, automation, messaging, calendar, tasks and sales pipeline" width={1536} height={802} loading="eager" decoding="async" fetchPriority="high"/>
+    <img src="/crm-upgrade.jpeg" alt="I AM Magnanimous Way CRM upgraded business dashboard with analytics, customer profiles, automation, messaging, calendar, tasks and sales pipeline" width={1536} height={802} loading="lazy" decoding="async"/>
    </div>
   </section>
 
