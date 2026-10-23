@@ -89,6 +89,30 @@ export default function CinematicDesignSystem(){
   body.iam-design-v2 .travelAgency .sandboxLab{background:radial-gradient(circle at 86% 0,rgba(67,231,179,.09),transparent 27%),linear-gradient(150deg,rgba(7,31,29,.94),rgba(4,12,20,.97))!important}
   body.iam-design-v2 .travelAgency .flightLab{background:radial-gradient(circle at 86% 0,rgba(92,173,255,.10),transparent 27%),linear-gradient(150deg,rgba(7,24,39,.94),rgba(4,12,20,.97))!important}
   body.iam-design-v2 .travelAgency button{box-shadow:0 11px 28px rgba(0,0,0,.27),inset 0 1px 0 rgba(255,255,255,.11)}
+  /* Original illustrated travel chamber: content stays real HTML, never baked into the image. */
+  body.iam-design-v2 .travelAgency>header{
+   min-height:440px;box-sizing:border-box;position:relative;isolation:isolate;
+   align-items:center!important;gap:24px;padding:40px 36px!important;
+   border:2px solid #d8af57;border-radius:24px;overflow:hidden;
+   background-color:#06152d;
+   background-image:linear-gradient(90deg,rgba(2,8,25,.97) 0%,rgba(2,10,28,.91) 34%,rgba(2,10,28,.63) 53%,rgba(2,10,28,.06) 84%),url('/magnanimous-travel-palace-v2.webp')!important;
+   background-size:cover;background-position:50% center;
+   box-shadow:0 0 0 1px rgba(57,191,255,.68),0 0 32px rgba(58,174,239,.22),0 29px 65px rgba(0,0,0,.6);
+   animation:cinemaTravelDrift 19s ease-in-out infinite alternate;
+  }
+  body.iam-design-v2 .travelAgency>header:after{display:none}
+  body.iam-design-v2 .travelAgency>header>div:first-child{position:relative;z-index:1;max-width:680px;text-shadow:0 3px 17px rgba(0,0,0,.65)}
+  body.iam-design-v2 .travelAgency>header small{color:#ffda83!important;text-shadow:0 0 17px rgba(251,190,91,.42)}
+  body.iam-design-v2 .travelAgency>header h1{background:none!important;-webkit-background-clip:initial;background-clip:initial;color:#ffe6a3!important;-webkit-text-fill-color:#ffe6a3!important;max-width:730px;line-height:1.05;overflow-wrap:anywhere;text-shadow:0 2px 0 #785022,0 4px 0 #35220c,0 8px 27px #01050d,0 0 29px rgba(251,194,101,.24)!important}
+  body.iam-design-v2 .travelAgency>header p{max-width:640px;color:#e1f5ff!important;font-weight:600}
+  body.iam-design-v2 .travelAgency>header nav{position:relative;z-index:2;align-self:flex-end;justify-content:flex-end}
+  body.iam-design-v2 .travelAgency>header nav a{background:linear-gradient(115deg,rgba(4,15,42,.95),rgba(6,47,82,.85));border-color:#d7af63;color:#ffe9bd;box-shadow:0 9px 25px rgba(0,0,0,.5),inset 0 1px rgba(255,255,255,.16);backdrop-filter:blur(12px)}
+  body.iam-design-v2 .travelAgency>header nav a:hover{border-color:#75e7ff;color:#fff}
+  body.iam-design-v2 .travelAgency .panel,body.iam-design-v2 .travelAgency .stats article{border-color:rgba(241,190,93,.57)!important;box-shadow:0 17px 40px rgba(0,0,0,.37),inset 0 1px rgba(255,255,255,.07)!important}
+  body.iam-design-v2 .travelAgency .panel:hover,body.iam-design-v2 .travelAgency .stats article:hover{border-color:#f0c66d!important;box-shadow:0 21px 55px rgba(0,0,0,.47),0 0 25px rgba(245,196,105,.1)!important}
+  body.iam-design-v2 .travelAgency .stats b,body.iam-design-v2 .travelAgency h2{color:#f9d790}
+  body.iam-design-v2 .travelAgency button:not(:disabled){background:linear-gradient(110deg,#113e73,#d6a64b)!important;color:#fff6df;border-color:#c7a157!important}
+  body.iam-design-v2 .travelAgency :is(button,a,input,select):focus-visible{outline:3px solid #8eeaff;outline-offset:3px}
 
   body.iam-design-v2 .cinematicLogin{background:radial-gradient(circle at 20% 46%,rgba(27,109,137,.23),transparent 31%),radial-gradient(circle at 80% 38%,rgba(40,97,177,.22),transparent 30%),radial-gradient(circle at 50% 110%,rgba(130,107,255,.12),transparent 38%),linear-gradient(145deg,#010307,#07111b 50%,#03060b)!important}
   body.iam-design-v2 .cinematicLogin .card{border-color:rgba(245,202,105,.7)!important;background:linear-gradient(155deg,rgba(7,12,20,.92),rgba(3,7,12,.97))!important;box-shadow:0 40px 130px rgba(0,0,0,.76),0 0 70px rgba(255,178,49,.10),inset 0 1px 0 rgba(255,255,255,.08)!important;backdrop-filter:blur(20px) saturate(1.18)}
@@ -103,18 +127,29 @@ export default function CinematicDesignSystem(){
   }
   @keyframes cinemaFloat{50%{transform:translate3d(0,-9px,0) scale(1.008)}}
   @keyframes cinemaOrbit{to{transform:rotate(360deg)}}
+  @keyframes cinemaTravelDrift{from{background-position:50% center}to{background-position:53% center}}
+  @keyframes cinemaTravelDriftMobile{from{background-position:66% center}to{background-position:68% center}}
   @media(max-width:1100px){
    body.iam-design-v2 .cinematicHome .heroCopy{width:auto!important;max-width:600px}
    body.iam-design-v2 .cinematicHome .artFrame{right:0!important;top:auto!important;bottom:74px!important;width:52%!important;height:44%!important;opacity:.78}
   }
   @media(max-width:760px){
    body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.opportunityVault .grid article,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard):hover{transform:translateY(-2px)!important}
-   body.iam-design-v2 .travelAgency>header:after{display:none}
    body.iam-design-v2 .cinematicHome .artFrame{right:0!important;width:100%!important;height:40%!important;bottom:80px!important;opacity:.66}
    body.iam-design-v2 .cinematicHome .heroBottom{left:14px!important;right:14px!important;bottom:12px!important}
   }
+  /* The tall illustration belongs to upright phones only; rotated phones keep the compact landscape hero. */
+  @media(max-width:760px) and (orientation:portrait){
+   body.iam-design-v2 .travelAgency>header:after{display:none}
+   body.iam-design-v2 .travelAgency>header{display:flex!important;min-height:650px;flex-direction:column;align-items:flex-start!important;justify-content:flex-start;padding:30px 20px!important;background-image:linear-gradient(180deg,rgba(2,8,27,.95),rgba(3,11,27,.84) 40%,rgba(2,10,26,.08) 78%),url('/magnanimous-travel-palace-mobile-v2.webp')!important;background-position:center center;background-size:cover;animation:none}
+   body.iam-design-v2 .travelAgency>header h1{font-size:clamp(29px,7.8vw,44px)}
+   body.iam-design-v2 .travelAgency>header p{font-size:clamp(13px,3.4vw,16px);line-height:1.48}
+   body.iam-design-v2 .travelAgency>header nav{align-self:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:8px}
+   body.iam-design-v2 .travelAgency>header nav a{font-size:12px;padding:9px 11px}
+  }
   @media(prefers-reduced-motion:reduce){
    body.iam-design-v2 .cinematicHome .hero:after,body.iam-design-v2 .cinematicHome .artFrame img{animation:none!important}
+   body.iam-design-v2 .travelAgency>header{animation:none!important}
    body.iam-design-v2 :where(.cinematicHome .card,.cinematicHome .sys,.opportunityVault .grid article,.travelAgency .panel,.travelAgency .stats article,.crmExperience .crm .panel,.crmExperience .crm .metric,.crmExperience .crm .accountCard){transition:none!important;transform:none!important}
   }
  `}</style>
