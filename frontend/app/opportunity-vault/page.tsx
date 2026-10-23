@@ -94,12 +94,10 @@ export default function OpportunityVault(){
    .hero p{color:#96ecff;font-size:clamp(16px,1.9vw,23px);font-weight:800;line-height:1.4;margin:15px 0}
    .hero-promise{display:block;max-width:560px;color:#f0faff;font-size:13px;line-height:1.65;background:linear-gradient(90deg,#04132dba,#071b378a);padding:12px 16px;border-left:3px solid #f3c668;border-radius:0 10px 10px 0}
    .hero-rail{position:absolute;bottom:0;right:0;left:0;display:flex;align-items:center;justify-content:center;min-height:27px;background:linear-gradient(90deg,#061733,#0d2d59,#061733);border-top:1px solid #d9a846;color:#ffd887;letter-spacing:.22em;font-weight:900;font-size:10px}
-   .rules{border-color:#c39240;background:linear-gradient(125deg,#071b35,#050e22);box-shadow:0 0 24px #ffd06a12,inset 0 1px #ffffff12}
-   .grid article{border-color:#3a98b9;background:linear-gradient(135deg,#0c2441,#030d20 70%);box-shadow:0 15px 40px #0008,inset 0 1px #ffffff10}
-   .grid article:hover{border-color:#f1c261;box-shadow:0 20px 50px #0009,0 0 25px #e6aa3722}
+   /* Rules and card finishes are applied by the higher-specificity shared design system. */
    @keyframes opportunityDepth{from{transform:scale(1)}to{transform:scale(1.045)}}
    @media(max-width:820px){.hero-copy{max-width:82%;padding:25px 24px 40px}.hero-art{background-position:62% center}}
-   @media(max-width:550px){.hero{min-height:490px}.hero-copy{max-width:100%;padding:20px 18px 50px}.hero-art{background-image:linear-gradient(180deg,#020922f5,#020922b5 53%,#02092244),url('/magnanimous-opportunity-palace-v2.webp');background-position:70% center}.hero h1{font-size:43px}.hero small{font-size:9px}.hero-promise{font-size:12px}.hero-rail{font-size:8px;letter-spacing:.13em}}
+   @media(max-width:550px){.hero{min-height:490px}.hero-copy{max-width:100%;padding:20px 18px 50px}.hero-art{background-image:linear-gradient(180deg,#020922f5,#020922b5 53%,#02092244),url('/magnanimous-opportunity-palace-v2.webp');background-position:70% center}.hero h1{font-size:clamp(28px,8.7vw,43px);overflow-wrap:anywhere}.hero small{font-size:9px}.hero-promise{font-size:12px}.hero-rail{font-size:8px;letter-spacing:.13em}}
    @media(prefers-reduced-motion:reduce){.hero-art{animation:none}}
   `}</style>
  </main>
