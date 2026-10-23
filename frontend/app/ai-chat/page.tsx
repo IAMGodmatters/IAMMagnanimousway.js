@@ -52,6 +52,7 @@ export default function AIChat() {
   const [webSearchReady, setWebSearchReady] = useState(false);
   const [notice, setNotice] = useState("");
   const [activeQuestion, setActiveQuestion] = useState("");
+  const [navigationOpen, setNavigationOpen] = useState(false);
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -157,6 +158,7 @@ export default function AIChat() {
 
   function chooseMode(nextMode: MagnanimousMode) {
     setMode(nextMode);
+    setNavigationOpen(false);
     const url = new URL(window.location.href);
     url.searchParams.set("mode", nextMode);
     window.history.replaceState({}, "", url);
@@ -171,7 +173,7 @@ export default function AIChat() {
 
   return (
     <main className={`odin ai-chat ${activeVisual.themeClass}`}>
-      <aside>
+      <aside className={navigationOpen ? "nav-open" : ""}>
         <a href="/" className="back">
           ← Dashboard
         </a>
@@ -182,6 +184,17 @@ export default function AIChat() {
             <span>I AM AI</span>
           </div>
         </div>
+        <button
+          type="button"
+          className="sidebar-toggle"
+          aria-expanded={navigationOpen}
+          aria-controls="ai-chat-sidebar-navigation"
+          onClick={() => setNavigationOpen((open) => !open)}
+        >
+          <span>{navigationOpen ? "Hide" : "Explore"} AI modes & workspaces</span>
+          <span aria-hidden="true">{navigationOpen ? "−" : "+"}</span>
+        </button>
+        <nav id="ai-chat-sidebar-navigation" className="sidebar-navigation" aria-label="AI modes and workspaces">
         <small>MODES</small>
         <div className="mode-list">
           {MODE_OPTIONS.map((item) => {
@@ -214,6 +227,7 @@ export default function AIChat() {
         <a href="/social-media">Social Studio</a>
         <a href="/virtual-assistant">Virtual Assistant</a>
         <a href="/ai-apps">AI Apps</a>
+        </nav>
       </aside>
       <section className="main">
         <header>
@@ -441,14 +455,14 @@ export default function AIChat() {
           color: color-mix(in srgb, var(--mode-accent) 45%, #728096);
           letter-spacing: 0.16em;
         }
-        .odin aside > small {
+        .sidebar-navigation > small {
           display: block;
           color: color-mix(in srgb, var(--mode-accent) 48%, #718096);
           font-size: 10px;
           letter-spacing: 0.18em;
           margin: 18px 8px 7px;
         }
-        .odin aside > a:not(.back) {
+        .sidebar-navigation > a {
           display: block;
           width: 100%;
           text-align: left;
@@ -461,7 +475,7 @@ export default function AIChat() {
           font-size: 12px;
           cursor: pointer;
         }
-        .odin aside > a:not(.back):hover {
+        .sidebar-navigation > a:hover {
           background: color-mix(in srgb, var(--mode-bg-2) 28%, #090b12);
           color: #ffffff;
         }
@@ -776,12 +790,96 @@ export default function AIChat() {
           font-size: 11px;
           margin-top: 5px;
         }
+        /* Interior-only cinematic styling; the approved homepage is untouched. */
+        .odin {
+          isolation: isolate;
+          perspective: 1600px;
+          background-image:
+            radial-gradient(circle at 84% 10%, rgba(245, 202, 105, .13), transparent 27%),
+            radial-gradient(circle at 56% 34%, color-mix(in srgb, var(--mode-accent) 23%, transparent), transparent 36%),
+            radial-gradient(circle at 79% 83%, rgba(48, 190, 255, .12), transparent 30%),
+            linear-gradient(140deg, #020713, #0b1d38 48%, #030a1a);
+        }
+        .odin:before {
+          content: '';
+          pointer-events: none;
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          opacity: .46;
+          background-image: linear-gradient(rgba(88, 205, 248, .045) 1px, transparent 1px), linear-gradient(90deg, rgba(88, 205, 248, .045) 1px, transparent 1px);
+          background-size: 72px 72px;
+          mask-image: linear-gradient(to bottom, #000, transparent 92%);
+        }
+        aside {
+          background: linear-gradient(156deg, rgba(6, 26, 51, .98), rgba(2, 7, 18, .98) 74%);
+          box-shadow: 12px 0 65px rgba(0, 0, 0, .37), inset -1px 0 rgba(245, 202, 105, .12);
+        }
+        .brand .core {
+          border-color: #f5ca69;
+          color: #f5ca69;
+          background: radial-gradient(circle at 32% 20%, rgba(245, 202, 105, .22), rgba(2, 15, 34, .9) 68%);
+          box-shadow: 0 0 28px rgba(245, 202, 105, .17), inset 0 1px rgba(255, 255, 255, .17);
+        }
+        .brand b { color: #fff2c8; }
+        .sidebar-toggle {
+          display: none;
+          width: 100%;
+          justify-content: space-between;
+          gap: 10px;
+          align-items: center;
+          border: 1px solid rgba(245, 202, 105, .55);
+          border-radius: 12px;
+          padding: 13px;
+          background: linear-gradient(105deg, rgba(25, 54, 82, .9), rgba(11, 27, 52, .96));
+          color: #ffe5a2;
+          font: 800 12px Inter, system-ui, sans-serif;
+          cursor: pointer;
+        }
+        .mode-card, .mode-context, .console, .quick a, .status {
+          box-shadow: 0 18px 42px rgba(0, 0, 0, .31), inset 0 1px rgba(255, 255, 255, .07), 0 0 32px color-mix(in srgb, var(--mode-accent) 4%, transparent);
+          backdrop-filter: blur(14px) saturate(1.12);
+        }
+        .mode-card {
+          border-color: rgba(117, 213, 251, .18);
+          border-radius: 14px;
+          background: linear-gradient(145deg, rgba(20, 51, 82, .72), rgba(2, 13, 30, .94));
+          transform-style: preserve-3d;
+        }
+        .mode-card:hover, .mode-card:focus-visible {
+          transform: perspective(900px) translateY(-3px) rotateX(1.2deg);
+          box-shadow: 0 22px 46px rgba(0, 0, 0, .45), 0 0 24px color-mix(in srgb, var(--card-accent) 15%, transparent);
+        }
+        .mode-card.active {
+          border-color: #f5ca69;
+          box-shadow: 0 0 30px color-mix(in srgb, var(--card-accent) 13%, transparent), inset 0 0 0 1px rgba(245, 202, 105, .23);
+        }
+        .mode-context, .console, .quick a {
+          background: linear-gradient(145deg, rgba(13, 38, 69, .87), rgba(3, 12, 29, .94));
+          border-color: rgba(104, 206, 249, .29);
+        }
+        .console { box-shadow: 0 28px 78px rgba(0, 0, 0, .45), inset 0 1px rgba(245, 202, 105, .12); }
+        .actions button {
+          background: linear-gradient(105deg, #f5ca69, #7de5f8 55%, var(--mode-accent));
+          color: #05172b;
+          box-shadow: 0 13px 30px rgba(54, 192, 237, .2), inset 0 1px rgba(255, 255, 255, .42);
+          transition: transform .2s ease, box-shadow .2s ease;
+        }
+        .actions button:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(54, 192, 237, .28); }
+        .quick a { transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+        .quick a:hover, .quick a:focus-visible {
+          transform: translateY(-3px);
+          border-color: rgba(245, 202, 105, .6);
+          box-shadow: 0 24px 55px rgba(0, 0, 0, .4), 0 0 24px rgba(245, 202, 105, .08);
+        }
         @keyframes statusPulse {
           0%, 100% { opacity: .62; }
           50% { opacity: 1; }
         }
         @media (prefers-reduced-motion: reduce) {
           .status.processing b { animation: none; }
+          .odin, .mode-card, .quick a, .actions button { transition: none; }
+          .mode-card:hover, .mode-card:focus-visible, .quick a:hover, .quick a:focus-visible, .actions button:not(:disabled):hover { transform: none; }
         }
         @media (max-width: 800px) {
           .odin {
@@ -789,7 +887,15 @@ export default function AIChat() {
           }
           aside {
             min-height: auto;
+            padding: 16px;
           }
+          .brand { margin: 16px 5px; }
+          .sidebar-toggle { display: flex; }
+          aside:not(.nav-open) .sidebar-navigation { display: none; }
+          aside.nav-open .sidebar-navigation { padding-top: 12px; }
+          .mode-card:hover, .mode-card:focus-visible, .quick a:hover, .quick a:focus-visible { transform: none; }
+          .sidebar-navigation > a { min-height: 42px; display: flex; align-items: center; }
+          .mode-card { min-height: 56px; }
           .main {
             padding: 20px 14px;
           }
