@@ -36,13 +36,11 @@ jobs:
           export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           APK=tv-app/app/build/outputs/apk/debug/app-debug.apk
           FINAL=tv-app/app/build/outputs/apk/debug/app-compatible.apk
-          # Ephemeral personal-test signing key; this APK is not a production release.
           TESTKEY="$RUNNER_TEMP/magnanimous-tv-test.jks"
           keytool -genkeypair -noprompt -keystore "$TESTKEY" \
             -alias androiddebugkey -storepass android -keypass android \
             -keyalg RSA -keysize 2048 -validity 3650 \
             -dname "CN=Magnanimous Drive TV Debug,O=Magnanimous,C=US"
-          test -s "$TESTKEY"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign \
             --ks "$TESTKEY" \
             --ks-key-alias androiddebugkey \
@@ -55,27 +53,18 @@ jobs:
           mv "$FINAL" "$APK"
       - name: Verify signed TV launchable APK
         run: |
+          set -euo pipefail
           export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           APK=tv-app/app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | tee /tmp/magnanimous-apk-info.txt
           grep -q "package: name='com.magnanimous.drivetv'" /tmp/magnanimous-apk-info.txt
           grep -q "leanback-launchable-activity:" /tmp/magnanimous-apk-info.txt
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/magnanimous-apk-signature.txt
-          # Verification at minSdk 26 may report v1=false because modern Android skips legacy JAR verification.
-          # Verify the legacy signature as if installed on API 23, and require v1 signed JAR entries.
-          jar tf "$APK" | grep -Eq '^META-INF/[^/]+\\.RSA
-          grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true' /tmp/magnanimous-apk-signature.txt
           grep -q "sdkVersion:'26'" /tmp/magnanimous-apk-info.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: MagnanimousDriveTV-owner-APK
-          path: tv-app/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/magnanimous-apk-signature.txt
+          grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true' /tmp/magnanimous-apk-signature.txt
+          jar tf "$APK" | grep -Eq '^META-INF/[^/]+[.]RSA$'
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --min-sdk-version 23 --verbose "$APK" | tee /tmp/magnanimous-legacy-signature.txt
           grep -q 'Verified using v1 scheme (JAR signing): true' /tmp/magnanimous-legacy-signature.txt
-          grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true' /tmp/magnanimous-apk-signature.txt
-          grep -q "sdkVersion:'26'" /tmp/magnanimous-apk-info.txt
       - uses: actions/upload-artifact@v4
         with:
           name: MagnanimousDriveTV-owner-APK
