@@ -216,7 +216,7 @@ export default function VA() {
                 : "SETUP NEEDED"}
         </div>
       </header>
-      <section className="hero">
+      <section className="hero virtualRoyalHero">
         <div className="copy">
           <small>I AM VIRTUAL ASSISTANT</small>
           <h1>
@@ -906,6 +906,45 @@ export default function VA() {
             flex-direction: column;
           }
         }
+
+        /* Two separately composed Magnanimous palace images; the existing animated avatar remains. */
+        .va{background:radial-gradient(circle at 84% 0%,rgba(34,121,241,.16),transparent 32%),linear-gradient(165deg,#041830,#020817 82%)}
+        .hero.virtualRoyalHero{position:relative;isolation:isolate;overflow:hidden;min-height:clamp(490px,42vw,640px);
+          border:2px solid #f0c775;border-radius:26px;background:#06132f;
+          box-shadow:0 31px 70px rgba(0,0,0,.55),0 0 0 1px rgba(60,191,255,.31),inset 0 1px rgba(255,232,180,.22)}
+        .virtualRoyalHero:before{content:'';position:absolute;inset:0;background:url('/magnanimous-virtual-palace-v1.svg') center/cover no-repeat;z-index:0;pointer-events:none;transform:scale(1.015);animation:virtualRoyalDrift 18s ease-in-out infinite alternate}
+        .virtualRoyalHero:after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+          background:linear-gradient(90deg,rgba(2,9,28,.97),rgba(2,10,29,.84) 39%,rgba(2,10,29,.16) 79%)}
+        .virtualRoyalHero .copy,.virtualRoyalHero .stage{position:relative;z-index:2}
+        .virtualRoyalHero .copy{padding:clamp(26px,4.4vw,60px)}
+        .virtualRoyalHero .copy small{color:#92eaff}
+        .virtualRoyalHero .copy h1{font-size:clamp(34px,4.2vw,66px);line-height:1.06;color:#ffe6a8;text-shadow:0 2px 0 #8b541d,0 4px 0 #30200c,0 11px 26px rgba(0,0,0,.72)}
+        .virtualRoyalHero .copy p{color:#ecf9ff;font-weight:610;text-shadow:0 3px 14px #000;line-height:1.55}
+        .virtualRoyalHero .quick a{border-color:rgba(241,202,119,.69);background:linear-gradient(125deg,rgba(10,53,102,.93),rgba(6,21,48,.95));
+          color:#fff3ce;box-shadow:0 7px 19px rgba(0,0,0,.3)}
+        .desk,.capabilities article{border-color:rgba(229,183,99,.45);background:linear-gradient(135deg,rgba(11,41,82,.91),rgba(4,15,36,.97));box-shadow:0 9px 26px rgba(0,0,0,.3)}
+        @keyframes virtualRoyalDrift{to{transform:scale(1.06);filter:brightness(1.06)}}
+        @media(max-width:760px) and (orientation:portrait){
+          .hero.virtualRoyalHero{min-height:620px;aspect-ratio:2/3;max-height:810px;display:flex;flex-direction:column;justify-content:flex-start;border-radius:20px}
+          .virtualRoyalHero:before{background-image:url('/magnanimous-virtual-palace-mobile-v1.svg');background-position:center}
+          .virtualRoyalHero:after{background:linear-gradient(180deg,rgba(2,9,29,.98),rgba(3,11,33,.85) 38%,rgba(3,11,33,.06) 78%)}
+          .virtualRoyalHero .copy{padding:22px 16px;max-width:100%}
+          .virtualRoyalHero .copy h1{font-size:clamp(30px,8vw,46px);margin:10px 0}
+          .virtualRoyalHero .copy p{font-size:clamp(12px,3.35vw,16px);line-height:1.41}
+          .virtualRoyalHero .quick{gap:6px;margin-top:12px}
+          .virtualRoyalHero .quick a{padding:7px 10px;font-size:10px}
+          .virtualRoyalHero .stage{display:none}
+        }
+        @media(orientation:landscape) and (max-height:560px) and (max-width:1100px){
+          .hero.virtualRoyalHero{min-height:350px;grid-template-columns:1.3fr .7fr}
+          .virtualRoyalHero .copy{padding:20px}
+          .virtualRoyalHero .copy h1{font-size:clamp(28px,4.6vw,43px);margin:7px 0}
+          .virtualRoyalHero .copy p{font-size:12px;line-height:1.4}
+          .virtualRoyalHero .quick{margin-top:8px}
+          .virtualRoyalHero .quick a{padding:6px 9px}
+          .virtualRoyalHero .stage{display:block;min-height:300px}
+        }
+        @media(prefers-reduced-motion:reduce){.virtualRoyalHero:before{animation:none;transform:none}}
       `}</style>
     </main>
   );
