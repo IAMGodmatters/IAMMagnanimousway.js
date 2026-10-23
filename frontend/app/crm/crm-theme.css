@@ -44,20 +44,20 @@
 .crmExperience .crm #crm-operational-workspace{scroll-margin-top:90px}
 .crmRoyalPalaceGlow{position:absolute;z-index:1;inset:auto -15% 0 18%;height:3px;background:linear-gradient(90deg,transparent,#caffff,#ffd88a,transparent);box-shadow:0 0 22px rgba(79,210,255,.48);pointer-events:none}
 @keyframes crmRoyalDrift{from{transform:scale(1.02)}to{transform:scale(1.06)}}
-@media(max-width:1050px) and (min-width:761px){.crmRoyalPalaceCopy{max-width:64%}.crmRoyalPalaceCopy h2{font-size:clamp(31px,4vw,48px)}}
+@media(max-width:1050px) and (min-width:761px){.crmRoyalPalaceCopy{max-width:64%}.crmExperience .crm .crmRoyalPalaceCopy h2{font-size:clamp(31px,4vw,48px)}}
 @media(max-width:760px) and (orientation:portrait){
  .crmRoyalPalace{width:calc(100% - 24px);margin:14px auto 0;min-height:590px;aspect-ratio:2/3;max-height:750px;border-radius:21px}
  .crmRoyalPalaceArt img{object-position:center}
  .crmRoyalPalace:before{background:linear-gradient(180deg,rgba(2,9,30,.97),rgba(3,12,32,.87) 34%,rgba(3,12,32,.07) 66%,rgba(2,10,30,.14) 100%)}
  .crmRoyalPalaceCopy{min-height:0;max-width:100%;padding:22px 19px;justify-content:flex-start}
- .crmRoyalPalaceCopy h2{font-size:clamp(30px,8vw,43px);margin:9px 0}
+ .crmExperience .crm .crmRoyalPalaceCopy h2{font-size:clamp(30px,8vw,43px);margin:9px 0}
  .crmRoyalPalaceCopy p{max-width:550px;font-size:clamp(12px,3.35vw,16px);line-height:1.42;margin-bottom:13px}
  .crmRoyalPalaceActions a{min-height:40px;padding:8px 12px;font-size:11px}
 }
 @media(orientation:landscape) and (max-height:560px) and (max-width:1100px){
  .crmRoyalPalace{width:calc(100% - 28px);min-height:350px;margin:14px auto 0;border-radius:19px}
  .crmRoyalPalaceCopy{min-height:350px;max-width:65%;padding:20px 25px}
- .crmRoyalPalaceCopy h2{font-size:clamp(29px,4.5vw,41px)}
+ .crmExperience .crm .crmRoyalPalaceCopy h2{font-size:clamp(29px,4.5vw,41px)}
  .crmRoyalPalaceCopy p{font-size:12px;line-height:1.4}
  .crmRoyalPalaceActions a{min-height:39px}
 }
