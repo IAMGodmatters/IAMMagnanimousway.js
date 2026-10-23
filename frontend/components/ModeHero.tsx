@@ -125,6 +125,24 @@ export default function ModeHero({ mode }: { mode: string }) {
           .mode-medallion { right: 12px; bottom: 34px; }
           .hero-bottom-rail { gap: 9px; font-size: 7px; letter-spacing: .13em; }
         }
+        /* Standalone phone portrait. The approved desktop hero and image stay unchanged. */
+        @media (max-width: 760px) and (orientation: portrait) {
+          .mode-hero { min-height: clamp(650px, 115vw, 850px); }
+          .hero-copy { max-width: 100%; padding: 29px 20px 180px; }
+          .hero-scenery {
+            background-image: linear-gradient(180deg,rgba(1,7,27,.95) 0%,rgba(1,7,27,.82) 40%,rgba(1,7,27,.09) 78%),
+              url('/magnanimous-ai-command-palace-mobile-v2.webp');
+            background-size: cover;
+            background-position: center;
+            animation: none;
+          }
+          .hero-brand { font-size: 9px; gap: 6px; }
+          h1 { font-size: clamp(30px, 8vw, 46px); overflow-wrap: anywhere; }
+          p { font-size: clamp(13px, 3.6vw, 16px); }
+          .hero-mode-label { width: auto; flex-wrap: wrap; padding: 9px 12px; }
+          .mode-medallion { right: 12px; bottom: 35px; }
+          .hero-bottom-rail { gap: clamp(6px, 2vw, 16px); font-size: 8px; letter-spacing: .08em; }
+        }
         @media (prefers-reduced-motion: reduce) { .hero-scenery { animation: none; } }
       `}</style>
     </section>
