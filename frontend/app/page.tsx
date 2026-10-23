@@ -138,7 +138,8 @@ export default function Home(){
    @media(max-width:420px){.mobileSearchPanel{grid-template-columns:minmax(0,1fr) auto;border-radius:18px}.mobileSearchPanel button:last-child{grid-column:1/-1}.mobileOwnerHot{left:78%;width:19.5%}}
 
    /* Crop the fixed illustrated desktop sidebar; remapped hotspots stay clickable and aligned. */
-   .sidebarCollapsed .exactArtwork{left:-15.4068%;width:115.4068%;max-width:none;object-fit:fill}
+   .sidebarCollapsed.exactStage{aspect-ratio:1.540444}
+   .sidebarCollapsed .exactArtwork{left:-15.4068%;width:115.4068%;height:100%;max-width:none;object-fit:contain}
    .sidebarCollapsed .desktopSidebarMask{display:none}
    .sidebarCollapsed .cardHot{width:17.946%}
    .sidebarCollapsed .notifyHot{left:82.574%;width:3%}
