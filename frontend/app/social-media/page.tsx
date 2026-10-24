@@ -140,7 +140,13 @@ export default function Social() {
                 ? "MAGNANIMOUS AI SETUP NEEDED"
                 : "CREATE CONTENT PACKAGE →"}
           </button>
-          {output && <div className="result">{output}</div>}
+          {output && <div className="result">
+            <p role="note" aria-label="AI-generated draft" style={{fontSize:12,color:'#e9cb82',fontWeight:700}}>
+              AI-generated draft · Magnanimous AI. Review all claims before publishing;
+              disclose synthetic media and public-interest AI text where required.
+            </p>
+            <div>{output}</div>
+          </div>}
         </div>
         <aside>
           <div className="pulse">
