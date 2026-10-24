@@ -25,7 +25,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Verify canonical routing and WordPress retirement
         run: node qa/scripts/wordpress-retirement-lock.mjs
       - name: Validate Worker configuration
