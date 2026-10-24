@@ -177,7 +177,7 @@ export async function handleMagnanimousVibeStudio(request,env){
   const steps=await env.DB.batch([
    env.DB.prepare('UPDATE magnanimous_vibe_projects SET html=?,revision=revision+1,updated_at=? WHERE id=? AND tenant_id=? AND user_id=? AND revision=?')
     .bind(source,stamp,project.id,String(user.tenant_id),String(user.id),expected),
-   env.DB.prepare('INSERT INTO magnanimous_vibe_versions(project_id,tenant_id,user_id,revision,html,note,created_at) SELECT id,tenant_id,user_id,revision,html,?,? FROM magnanimous_vibe_projects WHERE id=? AND tenant_id=? AND user_id=? AND revision=?')
+   env.DB.prepare('INSERT INTO magnanimous_vibe_versions(project_id,tenant_id,user_id,revision,html,note,created_at) SELECT p.id,p.tenant_id,p.user_id,p.revision,p.html,?,? FROM magnanimous_vibe_projects p WHERE p.id=? AND p.tenant_id=? AND p.user_id=? AND p.revision=? AND NOT EXISTS (SELECT 1 FROM magnanimous_vibe_versions v WHERE v.project_id=p.id AND v.revision=p.revision)')
     .bind(note,stamp,project.id,String(user.tenant_id),String(user.id),expected+1)
   ]);
   if(Number(steps?.[0]?.meta?.changes||0)!==1)return json({detail:'Concurrent edit detected; reload and compare before saving.',code:'VIBE_REVISION_CONFLICT'},409);
