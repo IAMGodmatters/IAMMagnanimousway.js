@@ -23,6 +23,7 @@ assert.equal(partial.visible_disclosure.required_for_this_context,true);
 const deepfake=assessAiTransparency({kind:'video',deepfake:true,artistic_context:true});
 assert.equal(deepfake.visible_disclosure.required_for_this_context,true);
 assert.equal(deepfake.visible_disclosure.artistic_context,true);
+assert.equal(assessAiTransparency({kind:'video',deepfake:true,ai_generated:false,standard_editing_only:true}).visible_disclosure.required_for_this_context,true,'Declared deepfakes must not silently bypass the disclosure gate.');
 const human=assessAiTransparency({kind:'video',ai_generated:false});
 assert.equal(human.ai_generated,false);
 assert.equal(human.visible_disclosure.recommended,false);
@@ -40,6 +41,7 @@ assert.ok(social.includes("code:'AI_DISCLOSURE_REQUIRED'"),'Declared deepfake/pu
 assert.ok(social.includes("code:'AI_MEDIA_DISCLOSURE_CONFIRMATION_REQUIRED'"),'Deepfake media needs explicit visible-media acknowledgement.');
 assert.ok(social.indexOf('AI_DISCLOSURE_REQUIRED')<social.indexOf('await youtubePublish(env,row,body)'), 'Disclosure gate must run BEFORE uploading.');
 
+assert.ok(read('worker/src/magnanimous-agent-skills.js').includes("name:'ai-transparency-review'"), 'Built-in article50 skill must be discoverable.');
 const component=read('frontend/components/AIInteractionDisclosure.tsx');
 assert.ok(component.includes('aria-label="AI interaction disclosure"'),'Notice must be accessible.');
 for(const page of ['frontend/app/ai-chat/page.tsx','frontend/app/magnanimous/page.tsx','frontend/app/agents/page.tsx'])
