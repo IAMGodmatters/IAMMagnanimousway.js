@@ -25,7 +25,7 @@ export function pickVibeTemplate(brief,requested){
  if(kinds.has(requested))return requested;
  const s=String(brief||'').toLowerCase();
  if(/\b(todo|to-do|tasks?|checklist|organize|planner)\b/.test(s))return 'tasks';
- if(/\b(calc|calculate|tip|budget|math|converter)\b/.test(s))return 'calculator';
+ if(/\b(calc|calculate|calculator|calculation|tip|budget|math|converter)\b/.test(s))return 'calculator';
  if(/\b(dashboard|analytics|metrics|reports?|stats|kpi)\b/.test(s))return 'dashboard';
  if(/\b(form|survey|register|contact|rsvp|signup|booking)\b/.test(s))return 'form';
  if(/\b(portfolio|resume|personal site|projects showcase)\b/.test(s))return 'portfolio';
