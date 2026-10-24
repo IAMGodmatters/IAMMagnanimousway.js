@@ -31,7 +31,7 @@ function previewHtml(source:string){
 }
 
 function extractHtml(raw:string){
- const fenced=raw.match(/`+`+`(?:html)?\s*([\s\S]*?)`+`+`/i);
+ const fenced=raw.match(/```(?:html)?\s*([\s\S]*?)```/i);
  const source=(fenced?.[1]||raw).trim(),begin=source.search(/<!doctype html>|<html\b/i),end=source.toLowerCase().lastIndexOf('</html>');
  return begin>=0&&end>=begin?source.slice(begin,end+7):'';
 }
