@@ -37,7 +37,7 @@ jobs:
           npx wrangler d1 execute iam-magnanimous-db --remote --json --command="SELECT COUNT(*) AS knowledge_total FROM agent_branch_knowledge;" > /tmp/qa-knowledge-count.json
 
       - name: Upload audit data
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: live-qa-teaching-backlog
           path: |
