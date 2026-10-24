@@ -15,11 +15,11 @@ const bool = value => value === true;
 
 export function assessAiTransparency(input = {}) {
   const kind = KINDS.has(input.kind) ? input.kind : 'text';
-  const generated = input.ai_generated !== false;
+  const generated = input.ai_generated !== false || bool(input.deepfake);
   // Do not mislabel human-authored material or mere standard editing as
   // synthetic substantive output. The publication context remains distinct.
   const standardEditingOnly = bool(input.standard_editing_only);
-  const substantive = generated && !standardEditingOnly;
+  const substantive = generated && (!standardEditingOnly || bool(input.deepfake));
   const deepfake = substantive && kind !== 'text' && bool(input.deepfake);
   const publicInterestText = substantive && kind === 'text' && bool(input.public_interest);
   const editorialExemption = bool(input.human_reviewed) && bool(input.editorial_responsibility);
