@@ -72,6 +72,9 @@ jobs:
       - name: Lock Magnanimous native developer agent
         run: node qa/scripts/magnanimous-dev-agent-lock.mjs
 
+      - name: Verify Magnanimous native vibe coding studio
+        run: node qa/scripts/magnanimous-vibe-studio-lock.mjs
+
       - name: Lock public-only GitHub productivity shortcuts
         run: node qa/scripts/github-repository-shortcuts-lock.mjs
 
