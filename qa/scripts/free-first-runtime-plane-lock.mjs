@@ -6,11 +6,14 @@ const railway=read('.github/workflows/magnanimous-railway-deploy.yml');
 const dataStage=read('.github/workflows/magnanimous-production-data-stage.yml');
 const runtimeSecrets=read('.github/workflows/magnanimous-runtime-secrets-stage.yml');
 const security=read('worker/src/security-entrypoint.js');
+const bpo=read('worker/src/bpo-operations-runtime.js');
 const runtime=read('worker/src/runtime-control.js');
 const reels=read('worker/src/reels-proxy.js');
 const reelsPage=read('frontend/app/reels/page.tsx');
 const oidc=read('worker/src/github-actions-oidc.js');
 const checks=[
+  ['BPO D1 schema initialization is single-flight per Worker isolate',bpo.includes('let bpoSchemaReady=false')&&bpo.includes('let bpoSchemaPromise=null')&&bpo.includes('if(bpoSchemaReady)return;')&&bpo.includes('if(bpoSchemaPromise)return bpoSchemaPromise;')&&bpo.includes('bpoSchemaReady=true;')],
+  ['BPO initialization retries after transient D1 failure',bpo.includes('finally{if(!bpoSchemaReady)bpoSchemaPromise=null}')],
   ['Worker config has no required standalone paid origin',!wrangler.includes('MAGNANIMOUS_STANDALONE_API_ORIGIN')],
   ['Worker-first routing covers Reels proxy and runtime control',wrangler.includes('\"/reels-proxy/*\"')&&wrangler.includes('\"/__magnanimous_runtime/*\"')],
   ['production gate verifies the canonical Worker origin',deploy.includes('STANDALONE_ORIGIN: https://iammagnanimousway.com')],

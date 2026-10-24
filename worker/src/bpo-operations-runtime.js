@@ -6,7 +6,15 @@ const clamp=(n,min,max)=>Math.min(max,Math.max(min,Number(n||0)));
 const text=(v,n=6000)=>String(v||'').trim().slice(0,n);
 const arr=v=>Array.isArray(v)?v:[];
 
+// BPO schema belongs to the deployed Worker/D1 database. Verify its legacy
+// bootstrap tables only once per isolate, not on every authenticated API call.
+// Share concurrent cold-start work and retry if D1 temporarily fails.
+let bpoSchemaReady=false;
+let bpoSchemaPromise=null;
 async function ensure(env){
+ if(bpoSchemaReady)return;
+ if(bpoSchemaPromise)return bpoSchemaPromise;
+ bpoSchemaPromise=(async()=>{
  const statements=[
   `CREATE TABLE IF NOT EXISTS bpo_clients (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,name TEXT NOT NULL,industry TEXT NOT NULL DEFAULT '',service_lines TEXT NOT NULL DEFAULT '[]',status TEXT NOT NULL DEFAULT 'active',data_classification TEXT NOT NULL DEFAULT 'standard',notes TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS bpo_programs (id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,client_id TEXT NOT NULL,name TEXT NOT NULL,channel TEXT NOT NULL DEFAULT 'omnichannel',queue_id TEXT,timezone TEXT NOT NULL DEFAULT 'UTC',operating_hours_json TEXT NOT NULL DEFAULT '{}',sla_response_seconds INTEGER NOT NULL DEFAULT 30,sla_resolution_seconds INTEGER NOT NULL DEFAULT 86400,target_service_level REAL NOT NULL DEFAULT 80,target_quality REAL NOT NULL DEFAULT 90,target_csat REAL NOT NULL DEFAULT 4.5,required_skills TEXT NOT NULL DEFAULT '[]',knowledge_scope TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'active',created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)`,
@@ -14,6 +22,9 @@ async function ensure(env){
   `CREATE TABLE IF NOT EXISTS bpo_audit_events (id INTEGER PRIMARY KEY AUTOINCREMENT,tenant_id TEXT NOT NULL,client_id TEXT,program_id TEXT,work_item_id TEXT,actor_type TEXT NOT NULL DEFAULT 'user',actor_id TEXT NOT NULL DEFAULT '',event_type TEXT NOT NULL,detail TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL)`
  ];
  for(const q of statements)await env.DB.prepare(q).run();
+ bpoSchemaReady=true;
+ })();
+ try{await bpoSchemaPromise}finally{if(!bpoSchemaReady)bpoSchemaPromise=null}
 }
 async function audit(env,tenant,event,opts={}){await env.DB.prepare('INSERT INTO bpo_audit_events(tenant_id,client_id,program_id,work_item_id,actor_type,actor_id,event_type,detail,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(tenant,opts.client_id||null,opts.program_id||null,opts.work_item_id||null,opts.actor_type||'user',opts.actor_id||'',event,text(opts.detail,2000),now()).run()}
 async function agencyClientCapacity(env,tenant){
