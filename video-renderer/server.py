@@ -11,14 +11,42 @@ import uuid
 import os
 import re
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+from renderer_auth import renderer_authorization_status
 
 app = FastAPI(title="I AM Magnanimous Free Video Renderer")
 OUT = Path("/tmp/iam-video")
 OUT.mkdir(parents=True, exist_ok=True)
 RENDERER_PUBLIC_URL = os.getenv("RENDERER_PUBLIC_URL", "https://iammagnanimousway-js.onrender.com").rstrip("/")
+
+
+def renderer_token_required() -> bool:
+    return os.getenv("VIDEO_RENDERER_REQUIRE_TOKEN", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def require_renderer_token(request: Request) -> None:
+    status = renderer_authorization_status(
+        request.headers.get("authorization", ""),
+        os.getenv("VIDEO_RENDERER_TOKEN", ""),
+        renderer_token_required(),
+    )
+    if status == 503:
+        raise HTTPException(status_code=503, detail="Video renderer private access is not configured.")
+    if status == 401:
+        raise HTTPException(status_code=401, detail="Video renderer authorization is required.")
+
+
+def require_mux_write_token(request: Request) -> None:
+    # A missing renderer token must never allow an optional paid provider write.
+    status = renderer_authorization_status(
+        request.headers.get("authorization", ""),
+        os.getenv("VIDEO_RENDERER_TOKEN", ""),
+        required=True,
+    )
+    if status != 200:
+        raise HTTPException(status_code=status, detail="Authenticated video publishing is unavailable.")
 
 class VideoRequest(BaseModel):
     text: str = Field(default="Faith can move mountains.", max_length=3000)
@@ -194,7 +222,10 @@ def health():
 
 
 @app.post("/api/video/render")
-def render_video(req: VideoRequest):
+def render_video(req: VideoRequest, request: Request):
+    require_renderer_token(request)
+    if req.publish_to_mux and mux_provider_writes_enabled():
+        require_mux_write_token(request)
     job = uuid.uuid4().hex
     outfile = OUT / f"{job}.mp4"
     title_file = OUT / f"{job}-title.txt"
@@ -288,7 +319,8 @@ def render_video(req: VideoRequest):
 
 
 @app.post("/api/video/edit")
-def edit_video(req: EditRequest):
+def edit_video(req: EditRequest, request: Request):
+    require_renderer_token(request)
     job = uuid.uuid4().hex
     work = OUT / f"{job}-edit"
     work.mkdir(parents=True, exist_ok=True)

@@ -29,6 +29,11 @@ jobs:
         with:
           node-version: 24
 
+      - name: Verify renderer origin authentication controls
+        run: |
+          python -m unittest discover -s video-renderer -p 'test_*.py'
+          node video-gateway/test/security.test.mjs
+
       - name: Install Wrangler
         working-directory: video-gateway
         run: npm install --save-dev wrangler@latest

@@ -33,11 +33,19 @@ async function proxy(request, env) {
     headers.delete("host");
     headers.delete("cf-connecting-ip");
     headers.delete("origin");
+    headers.delete("cookie");
+    headers.delete("authorization");
+    headers.delete("x-forwarded-for");
+    headers.delete("x-forwarded-host");
+    headers.delete("x-forwarded-proto");
+    // The browser's credentials are never forwarded to the external renderer.
+    // Only the server-held token may authenticate this upstream request.
+    if (env.VIDEO_RENDERER_TOKEN) headers.set("authorization", `Bearer ${env.VIDEO_RENDERER_TOKEN}`);
     const response = await fetch(target, {
       method: request.method,
       headers,
       body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
-      redirect: "follow",
+      redirect: "manual",
       signal: controller.signal,
     });
     const outHeaders = withCors(response.headers);
