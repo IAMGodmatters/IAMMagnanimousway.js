@@ -10,6 +10,8 @@ import CinematicExperience from './cinematic-experience';
 import CinematicDesignSystem from './cinematic-design-system';
 
 const siteUrl='https://iammagnanimousway.com';
+// The approved live homepage image is also the HTTPS link preview, without altering the homepage artwork.
+const shareImage=`${siteUrl}/crm-upgrade.jpeg`;
 const googleVerification=process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION||'';
 
 export const viewport:Viewport={width:'device-width',initialScale:1,viewportFit:'cover'};
@@ -19,10 +21,12 @@ export const metadata:Metadata={
   title:{default:'I AM Magnanimous Way™ | AI Business Execution Platform',template:'%s | I AM Magnanimous Way™'},
   description:'I AM Magnanimous Way™ is a free-first AI business execution platform operated under the registered business name God Matters, centered on Magnanimous AI for planning and coordinating work across business tools, CRM, content, calling, video, connected accounts and specialized AI capabilities.',
   applicationName:'I AM Magnanimous Way™',
+  // Search-result and browser tab identity use the existing Magnanimous M mark.
+  icons:{icon:[{url:'/magnanimous-plugin-logo.svg',type:'image/svg+xml',sizes:'any'}],shortcut:'/magnanimous-plugin-logo.svg'},
   keywords:['God Matters','I AM Magnanimous Way','Magnanimous AI','AI business orchestrator','AI business execution platform','professional business plan','business launch','free AI tools','AI agents','AI assistant','CRM','AI video','business automation'],
   robots:{index:true,follow:true,googleBot:{index:true,follow:true,'max-image-preview':'large','max-snippet':-1,'max-video-preview':-1}},
-  openGraph:{type:'website',url:siteUrl,siteName:'I AM Magnanimous Way™',title:'I AM Magnanimous Way™ | Magnanimous AI',description:'Magnanimous AI plans, creates, connects and coordinates work across your business stack. Registered business name: God Matters.',images:[{url:'/iam-operator-share.svg',width:1200,height:630,alt:'I AM Magnanimous Way — Magnanimous AI'}]},
-  twitter:{card:'summary_large_image',title:'I AM Magnanimous Way™ | Magnanimous AI',description:'Magnanimous AI for business execution, CRM, content, calling, video and connected work. Registered business name: God Matters.',images:['/iam-operator-share.svg']},
+  openGraph:{type:'website',url:siteUrl,siteName:'I AM Magnanimous Way™',title:'I AM Magnanimous Way™ | Magnanimous AI',description:'Magnanimous AI plans, creates, connects and coordinates work across your business stack. Registered business name: God Matters.',images:[{url:shareImage,width:1536,height:864,type:'image/jpeg',alt:'I AM MAGNANIMOUS WAY™ approved gold-and-blue AI ecosystem dashboard'}]},
+  twitter:{card:'summary_large_image',title:'I AM Magnanimous Way™ | Magnanimous AI',description:'Magnanimous AI for business execution, CRM, content, calling, video and connected work. Registered business name: God Matters.',images:[shareImage]},
   verification:googleVerification?{google:googleVerification}:undefined
 };
 
