@@ -16,7 +16,8 @@
   <path d="M-22-2 q22 24 44 0" fill="none" stroke="#51f7ff" stroke-width="7" stroke-linecap="round"/>
   <path d="M-61 34 q61 34 122 0 l36 82 q-97 58-194 0z" fill="url(#chest)" stroke="#70e8ff" stroke-width="6"/>
   <circle cx="0" cy="72" r="22" fill="#14213e" stroke="#d66cff" stroke-width="4"/>
-  <text x="0" y="82" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="900" fill="#79f4ff">M</text>
+  <path d="M-14 81L-20 63L-8 71L0 56L8 71L20 63L14 81Z" fill="#ffe09c" stroke="#79f4ff" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M-15 86H15" stroke="#ffe09c" stroke-width="5" stroke-linecap="round"/>
   <path d="M-78 56 q-45 12-55 58" fill="none" stroke="#78eaff" stroke-width="18" stroke-linecap="round"/>
   <circle cx="-137" cy="122" r="17" fill="#9bf5ff" stroke="#1c2454" stroke-width="5"/>
   <path d="M78 56 q45 12 55 58" fill="none" stroke="#d17bff" stroke-width="18" stroke-linecap="round"/>
