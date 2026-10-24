@@ -44,8 +44,8 @@ const negative=[
  'x'.repeat(65537)
 ];
 for(const source of negative)assert.equal(reviewVibeSource(source).valid,false,'Reject structurally invalid/unsafe source.');
-assert.equal(reviewVibeSource('<html><body>Hello world</body></html>').valid,true);
-assert.equal(reviewVibeSource('<html><body>Hello world</body></html>').production_ready,false);
+assert.equal(reviewVibeSource('<html><body>Hello world! This is a full preview document.</body></html>').valid,true);
+assert.equal(reviewVibeSource('<html><body>Hello world! This is a full preview document.</body></html>').production_ready,false);
 
 const migration=read('worker/migrations/0109_magnanimous_vibe_studio.sql');
 for(const word of ['magnanimous_vibe_projects','magnanimous_vibe_versions','tenant_id','user_id','PRIMARY KEY (project_id,revision)'])
