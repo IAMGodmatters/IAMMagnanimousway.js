@@ -92,7 +92,7 @@ export async function handleSocialPublishing(request,env){
    const provider=publishMatch[1],row=await connection(env,user.tenant_id,provider);if(!row)return json({detail:`Connect ${PROVIDERS[provider].name} first.`},409);const body=await request.json().catch(()=>({}));
    const transparency=assessAiTransparency({
      kind:provider==='linkedin'?'text':'video',
-     ai_generated:body.ai_generated===true||body.deepfake===true,
+     ai_generated:body.ai_generated===true||body.deepfake===true||body.public_interest===true,
      deepfake:body.deepfake===true,
      public_interest:body.public_interest===true,
      human_reviewed:body.human_reviewed===true,
