@@ -22,7 +22,6 @@ function authToken(){
  if(typeof window==='undefined')return'';
  return localStorage.getItem('iam_account_token')||localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token')||'';
 }
-function initials(name?:string){const parts=String(name||'M').trim().split(/\s+/).filter(Boolean);return(parts.slice(0,2).map(x=>x[0]?.toUpperCase()).join('')||'M')}
 function extractSources(value:unknown):Array<{title?:string;url?:string}>{
  if(!Array.isArray(value))return[];
  return value.slice(0,8).map((x:any)=>({title:String(x?.title||x?.name||'Source'),url:typeof x?.url==='string'?x.url:undefined}));
