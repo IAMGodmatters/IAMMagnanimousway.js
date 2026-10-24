@@ -22,7 +22,7 @@ export const metadata:Metadata={
   description:'I AM Magnanimous Way™ is a free-first AI business execution platform operated under the registered business name God Matters, centered on Magnanimous AI for planning and coordinating work across business tools, CRM, content, calling, video, connected accounts and specialized AI capabilities.',
   applicationName:'I AM Magnanimous Way™',
   // The site icon is an actual branded picture: crown, globe, and AI guide — never an M monogram.
-  icons:{icon:[{url:'/iam-site-picture-icon-v1.png',type:'image/png',sizes:'512x512'}],shortcut:'/iam-site-picture-icon-v1.png',apple:[{url:'/iam-site-apple-icon-v1.png',sizes:'180x180',type:'image/png'}]},
+  icons:{icon:[{url:'/iam-site-picture-192-v1.png',type:'image/png',sizes:'192x192'},{url:'/favicon.ico',type:'image/x-icon',sizes:'any'},{url:'/iam-site-picture-icon-v1.png',type:'image/png',sizes:'512x512'}],shortcut:'/favicon.ico',apple:[{url:'/iam-site-apple-icon-v1.png',sizes:'180x180',type:'image/png'}]},
   keywords:['God Matters','I AM Magnanimous Way','Magnanimous AI','AI business orchestrator','AI business execution platform','professional business plan','business launch','free AI tools','AI agents','AI assistant','CRM','AI video','business automation'],
   robots:{index:true,follow:true,googleBot:{index:true,follow:true,'max-image-preview':'large','max-snippet':-1,'max-video-preview':-1}},
   openGraph:{type:'website',url:siteUrl,siteName:'I AM Magnanimous Way™',title:'I AM Magnanimous Way™ | Magnanimous AI',description:'Magnanimous AI plans, creates, connects and coordinates work across your business stack. Registered business name: God Matters.',images:[{url:shareImage,width:1200,height:630,type:'image/jpeg',alt:'I AM MAGNANIMOUS WAY™ golden crown, connected blue globe and welcoming AI guide'}]},
@@ -36,6 +36,7 @@ const structuredData={
   '@graph':[
     {'@type':'Organization','@id':`${siteUrl}/#organization`,name:'God Matters',alternateName:['I AM Magnanimous Way™','God Matters All The Time'],url:siteUrl,brand:{'@type':'Brand',name:'I AM Magnanimous Way™'}},
     {'@type':'WebSite','@id':`${siteUrl}/#website`,url:siteUrl,name:'I AM Magnanimous Way™',alternateName:'God Matters',publisher:{'@id':`${siteUrl}/#organization`},inLanguage:'en'},
+    {'@type':'WebPage','@id':`${siteUrl}/#webpage`,url:siteUrl,name:'I AM Magnanimous Way™',isPartOf:{'@id':`${siteUrl}/#website`},primaryImageOfPage:shareImage},
     {'@type':'SoftwareApplication','@id':`${siteUrl}/#software`,name:'I AM Magnanimous Way™',alternateName:'Magnanimous AI',url:siteUrl,applicationCategory:'BusinessApplication',operatingSystem:'Web',description:'A free-first AI business execution platform centered on Magnanimous AI with specialized AI capabilities, professional business planning, CRM, calling, video, connected actions and business workflows.',offers:[
       {'@type':'Offer',price:'0',priceCurrency:'USD',name:'Free'},
       recurring('Magnanimous Unlimited Fair-Use','19.99','MONTH'),
