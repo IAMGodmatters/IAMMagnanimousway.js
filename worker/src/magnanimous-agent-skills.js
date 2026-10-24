@@ -26,6 +26,22 @@ export const MAGNANIMOUS_AGENT_SKILLS_POLICY=Object.freeze({
 
 const BUILTIN=Object.freeze([
  {
+  name:'ai-transparency-review',
+  description:'Review AI-generated text, video, images and audio for truthful first-exposure disclosures and publication evidence. Use for EU AI Act Article 50, deepfake labels, content provenance, and AI media/social publishing.',
+  triggers:['EU AI Act','article 50','synthetic content','AI-generated disclosure','deepfake label','content provenance','C2PA','AI transparency','public-interest AI post'],
+  metadata:{owner:'Magnanimous AI',risk:'policy-aware',native_capabilities:'chat origin metadata; video-director disclosure plan; social publish disclosure gate'},
+  instructions:`# Magnanimous AI Transparency Review
+1. Inspect the intended audience and where the system/output is marketed or used; EU reach may matter even when the operator is outside the EU.
+2. Classify the actual output: AI interaction, substantive synthetic text, synthetic image/audio/video, realistic deepfake, or standard editing. Do not label human-only material as AI output.
+3. Tell people directly when they interact with AI; do not impersonate a human agent.
+4. For public-interest AI text check BOTH human editorial review and accountable editorial responsibility before considering the Article 50(4) exception.
+5. For realistic deepfake images/audio/video ensure the first audience exposure includes an appropriate clear visible or audible disclosure; creative/satirical content still needs an appropriate disclosure.
+6. Record machine-readable output metadata. A JSON sidecar or UI badge does NOT prove a detectable embedded watermark or a signed C2PA Content Credential; verify the actual exported file and its provenance rail.
+7. Check consent, likeness rights, licensing, publication authority, and destination-specific rules. Do not publish, spend money, impersonate, or waive review to satisfy the workflow.
+8. Cite official sources at https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50 and https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-2. Recheck updates; this skill is not legal certification.
+9. Report verified implementation separately from outstanding legal, renderer and export-compatibility work.`
+ },
+ {
   name:'capability-orchestration',
   description:'Resolve a user goal into the smallest safe set of Magnanimous Capability Mesh routes. Use for multi-step work, agent routing, tool selection, provider-neutral execution, and tasks that cross several platform surfaces.',
   triggers:['orchestrate','multi-step','agent routing','tool selection','capability mesh','use the best tools','finish this workflow'],
