@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { speakTextNaturally, stopNaturalSpeech } from "../../lib/natural-speech";
-import { configurePersonaVoice } from "../../lib/persona-voice";
+import { availablePersonaVoices, configurePersonaVoice, getPreferredPersonaVoiceId, setPreferredPersonaVoiceId } from "../../lib/persona-voice";
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 type Agent = {
   id: string;
@@ -50,6 +50,8 @@ export default function AgentsPage() {
     [loadError, setLoadError] = useState(false),
     [voiceReady, setVoiceReady] = useState(false),
     [micReady, setMicReady] = useState(false),
+    [voiceChoices, setVoiceChoices] = useState<{id:string;label:string}[]>([]),
+    [preferredVoice, setPreferredVoice] = useState(""),
     [notice, setNotice] = useState("");
   const endRef = useRef<HTMLDivElement | null>(null);
   const token =
@@ -79,6 +81,10 @@ export default function AgentsPage() {
     setMicReady(
       Boolean(browser.SpeechRecognition || browser.webkitSpeechRecognition),
     );
+    setPreferredVoice(getPreferredPersonaVoiceId());
+    const refreshVoices = () => setVoiceChoices(availablePersonaVoices());
+    refreshVoices();
+    browser.speechSynthesis?.addEventListener?.("voiceschanged", refreshVoices);
     fetch(`${api}/api/agents`, { cache: "no-store" })
       .then(async (response) => {
         const data = await read(response);
@@ -97,6 +103,7 @@ export default function AgentsPage() {
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoaded(true));
+    return () => browser.speechSynthesis?.removeEventListener?.("voiceschanged", refreshVoices);
   }, []);
   useEffect(() => {
     if (!token || !selected) return;
@@ -150,6 +157,16 @@ export default function AgentsPage() {
       if (text) setInput((v) => (v ? `${v} ${text}` : text));
     };
     r.start();
+  }
+  function previewAgentVoice() {
+    stopNaturalSpeech();
+    const success = speakTextNaturally(`Hello, I am ${agent?.name || "your Magnanimous assistant"}. Let us work through this together, one step at a time.`, {
+      configure: u => configurePersonaVoice(u, agent?.name || "Magnanimous AI"),
+      onStart: () => setSpeaking(true),
+      onEnd: () => setSpeaking(false),
+      onError: () => {setSpeaking(false);setNotice("Voice playback failed. Try another installed voice or check device speech settings.");}
+    });
+    if(!success)setNotice("This browser does not provide speech synthesis. Text chat is still available.");
   }
   async function send(e?: React.FormEvent) {
     e?.preventDefault();
@@ -328,6 +345,12 @@ export default function AgentsPage() {
                 />{" "}
                 Speak replies
               </label>
+              <label htmlFor="agent-voice-choice">Voice sound</label>
+              <select id="agent-voice-choice" aria-label="Choose an installed voice" value={preferredVoice} onChange={event=>{setPreferredVoice(event.target.value);setPreferredPersonaVoiceId(event.target.value);stopNaturalSpeech();setSpeaking(false)}} disabled={!voiceReady}>
+                <option value="">Best installed voice</option>
+                {voiceChoices.map(voice=><option key={voice.id} value={voice.id}>{voice.label}</option>)}
+              </select>
+              <button type="button" disabled={!voiceReady} onClick={previewAgentVoice}>▶ Test this voice</button>
               <button onClick={clearHistory}>Clear this agent</button>
             </div>
           </div>
@@ -770,6 +793,7 @@ export default function AgentsPage() {
           font-size: 10px;
           color: #78929e;
         }
+        .chatActions select{max-width:210px;min-width:140px;width:100%;font-size:11px;border:1px solid #4d6b80;border-radius:8px;color:#eaf9ff;background:#091b31;padding:8px}
         .chatActions button,
         .welcome a,
         .assistant button {

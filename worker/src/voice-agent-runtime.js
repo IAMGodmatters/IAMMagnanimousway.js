@@ -1,3 +1,5 @@
+import { tenantPlan, PLAN_LIMITS } from './usage-guard.js';
+
 const now = () => Math.floor(Date.now() / 1000);
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -83,9 +85,15 @@ async function ensureSchema(env) {
 }
 
 async function tenantAccess(env, user) {
-  const row = await env.DB.prepare('SELECT id,slug,plan FROM tenants WHERE id=?').bind(user.tenant_id).first();
+  const [row,subscription] = await Promise.all([
+    env.DB.prepare('SELECT id,slug,plan FROM tenants WHERE id=?').bind(user.tenant_id).first(),
+    tenantPlan(env,user.tenant_id)
+  ]);
   const platformOwner = Boolean(row?.slug === 'owner' || (env.ADMIN_EMAIL && String(user.email || '').toLowerCase() === String(env.ADMIN_EMAIL).toLowerCase()));
-  return { row, business: String(row?.plan || 'free') === 'business', platformOwner };
+  // Only Stripe-confirmed active subscriptions enable paid carrier entitlements.
+  // Annual Business and White Label tiers rank above monthly Business.
+  const business = subscription.status === 'active' && subscription.limits.rank >= PLAN_LIMITS.business.rank && subscription.limits.pstn_minutes > 0;
+  return { row, business, platformOwner };
 }
 
 async function ensureDefaultAgent(env, tenantId) {

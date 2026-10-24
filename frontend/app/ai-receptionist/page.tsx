@@ -174,8 +174,9 @@ export default function AIReceptionist() {
   }
 
   const selected = agents.find(agent => agent.id === agentId);
-  const phoneReady = Boolean(config?.twilio_configured && (config?.full_business || config?.platform_owner));
-  const videoReady = Boolean(config?.tavus_configured && (config?.full_business || config?.platform_owner));
+  // Platform ownership gives admin visibility, not a free pass around billing.
+  const phoneReady = Boolean(config?.twilio_configured && config?.full_business);
+  const videoReady = Boolean(config?.tavus_configured && config?.full_business);
 
   return <main className="page">
     <header>
@@ -219,7 +220,7 @@ export default function AIReceptionist() {
         {!phoneReady ? <div className="simpleExplain">
           <h3>This feature is not required to use I AM.</h3>
           <p>The free browser calling and talking AI agents still work. Real telephone calling becomes available when the platform phone service is connected and your workspace has access to Full Business.</p>
-          {!config?.full_business && !config?.platform_owner && <a href="/pricing">See Full Business →</a>}
+          {!config?.full_business && <a href="/pricing">See Full Business →</a>}
         </div> : <>
           <label>Phone number</label><span className="hint">Use international format, for example +1… or +63…</span>
           <input value={phone} onChange={event => setPhone(event.target.value)} placeholder="+14155551212" />
