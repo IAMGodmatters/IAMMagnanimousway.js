@@ -51,5 +51,5 @@ if [[ ! -s "/etc/letsencrypt/live/${TELECOM_DOMAIN}/fullchain.pem" ]]; then
 fi
 
 echo "Base host is prepared."
-echo "Next: clone/update the Magnanimous repository, create telecom-core/.env, then run deploy/sync-public-tls.sh."
+echo "Next: ensure the Telecom source was delivered from authenticated Cloud Shell, create telecom-core/.env, then run deploy/sync-public-tls.sh."
 echo "Do not set TELECOM_NATIVE_WEBRTC_LIVE=true until the public GitHub WebRTC verification workflow passes."

@@ -236,10 +236,7 @@ resource "oci_core_instance" "telecom" {
 
   metadata = {
     ssh_authorized_keys = trimspace(var.ssh_public_key)
-    user_data = base64encode(templatefile("${path.module}/cloud-init.yaml.tftpl", {
-      repo_url = var.repo_url
-      repo_ref = var.repo_ref
-    }))
+    user_data           = base64encode(templatefile("${path.module}/cloud-init.yaml.tftpl", {}))
   }
 
   freeform_tags = {

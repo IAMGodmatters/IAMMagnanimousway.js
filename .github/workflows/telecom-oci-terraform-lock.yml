@@ -42,7 +42,12 @@ jobs:
           terraform_wrapper: false
 
       - name: Validate Cloud Shell helper syntax
-        run: bash -n telecom-core/oci/cloud-shell-plan.sh
+        run: |
+          bash -n telecom-core/oci/cloud-shell-plan.sh
+          bash -n telecom-core/oci/publish-source.sh
+
+      - name: Lock private GitHub source delivery
+        run: node qa/scripts/telecom-oci-private-source-lock.mjs
 
       - name: Lock Cloud Shell helper safety behavior
         shell: bash
