@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { speakTextNaturally, stopNaturalSpeech } from '../../lib/natural-speech';
+import { availablePersonaVoices, configurePersonaVoice, getPreferredPersonaVoiceId, setPreferredPersonaVoiceId } from '../../lib/persona-voice';
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
@@ -46,6 +48,9 @@ export default function AIReceptionist() {
   const [agentName, setAgentName] = useState('AI Receptionist');
   const [instructions, setInstructions] = useState('Be a helpful, concise AI receptionist. Answer questions, qualify the caller, organize next steps, and never pretend to be human.');
   const [agentOpening, setAgentOpening] = useState('Hello. This is an automated AI assistant with I AM Magnanimous Way. I am not a human. How may I help you today?');
+  const [browserVoices,setBrowserVoices]=useState<{id:string,label:string}[]>([]);
+  const [preferredVoice,setPreferredVoice]=useState('');
+  const [voiceSpeaking,setVoiceSpeaking]=useState(false);
 
   function headers(json = false, activeToken = token) {
     const h: Record<string, string> = { Authorization: `Bearer ${activeToken}` };
@@ -79,7 +84,21 @@ export default function AIReceptionist() {
     }
     setToken(saved);
     load(saved).catch(() => setMessage('Unable to load this workspace. Please refresh or return to the dashboard.'));
+    setPreferredVoice(getPreferredPersonaVoiceId());
+    const refreshVoices=()=>setBrowserVoices(availablePersonaVoices());
+    refreshVoices();
+    window.speechSynthesis?.addEventListener?.('voiceschanged',refreshVoices);
+    return ()=>{window.speechSynthesis?.removeEventListener?.('voiceschanged',refreshVoices);stopNaturalSpeech()};
   }, []);
+
+  function previewVoice(){
+    if(!selected?.opening_message)return;
+    stopNaturalSpeech();setVoiceSpeaking(true);
+    if(!speakTextNaturally(selected.opening_message,{configure:utterance=>configurePersonaVoice(utterance,selected.name),onEnd:()=>setVoiceSpeaking(false),onError:()=>{setVoiceSpeaking(false);setMessage('The browser could not play this voice. Check your device speech settings.')}})){
+      setVoiceSpeaking(false);
+      setMessage('Speech synthesis is not available in this browser. You can still use text-based agents.');
+    }
+  }
 
   async function placeCall() {
     if (!phone.trim() || busy) return;
@@ -187,10 +206,10 @@ export default function AIReceptionist() {
     {message && <div className="notice">{message}</div>}
 
     <section className="agentPicker">
-      <div><small>STEP 1</small><h2>Choose who should speak</h2><p>Pick one of your assistants. You can create more for reception, customer service, sales, scheduling or other jobs.</p></div>
+      <div><small>INCLUDED WITH YOUR PACKAGE</small><h2>Choose who should speak</h2><p>Reception, support, sales and scheduling voice profiles are added automatically at no extra setup charge. They are ready to configure; live phone calls still require a funded carrier and the appropriate entitlement.</p></div>
       <div>
         <select value={agentId} onChange={event => setAgentId(event.target.value)}>{agents.map(agent => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select>
-        {selected && <div className="selected"><b>{selected.name}</b><p>{selected.instructions || 'General-purpose AI assistant.'}</p><span>Greeting: “{selected.opening_message}”</span></div>}
+        {selected && <div className="selected"><b>{selected.name}</b><p>{selected.instructions || 'General-purpose AI assistant.'}</p><span>Greeting: “{selected.opening_message}”</span><div style={{marginTop:14,display:'flex',gap:8,flexWrap:'wrap'}}><button type="button" onClick={previewVoice} disabled={voiceSpeaking}>{voiceSpeaking?'Speaking…':'▶ Preview free browser voice'}</button>{voiceSpeaking&&<button type="button" onClick={()=>{stopNaturalSpeech();setVoiceSpeaking(false)}}>Stop</button>}</div><label htmlFor="voice-preference" style={{display:'block',marginTop:13}}>Voice quality · choose an installed natural voice</label><select id="voice-preference" value={preferredVoice} onChange={event=>{setPreferredVoice(event.target.value);setPreferredPersonaVoiceId(event.target.value);stopNaturalSpeech();setVoiceSpeaking(false)}}><option value="">Automatic best available</option>{browserVoices.map(voice=><option key={voice.id} value={voice.id}>{voice.label}</option>)}</select><p className="hint">Speech comes from your phone or computer. More natural voices may be available in your device's accessibility or spoken-content settings.</p></div>}
       </div>
     </section>
 

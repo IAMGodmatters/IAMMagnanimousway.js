@@ -74,7 +74,7 @@ export default function PasswordRecoveryOverlay({portal}:{portal:Portal}){
   {mode!=='closed'&&<div className="iamRecoveryBackdrop" role="presentation">
    <section className="iamRecoveryCard" role="dialog" aria-modal="true" aria-labelledby="iam-recovery-title">
     {mode!=='complete'&&<button className="iamRecoveryClose" type="button" aria-label="Close password recovery" onClick={close} disabled={busy}>×</button>}
-    <div className="iamRecoveryMark">M</div>
+    <div className="iamRecoveryMark"><img src="/iam-site-picture-icon-v1.png" alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/></div>
     <div className="iamRecoveryBrand">I AM MAGNANIMOUS WAY™</div>
     {mode==='forgot'&&<>
      <h2 id="iam-recovery-title">Forgot your password?</h2>

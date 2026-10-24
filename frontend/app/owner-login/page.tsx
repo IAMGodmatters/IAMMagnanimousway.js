@@ -91,7 +91,7 @@ export default function OwnerLoginPage(){
 
  return <main className="portal">
   <section className="card">
-   <div className="crest">M</div>
+   <div className="crest"><img src="/iam-site-picture-icon-v1.png" alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/></div>
    <small>PRIVATE OWNER ACCESS</small>
    <h1>I AM MAGNANIMOUS WAY™</h1>
    <h2>Owner Command Portal</h2>

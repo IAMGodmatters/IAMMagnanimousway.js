@@ -113,11 +113,11 @@ export default function MobileHomeDashboard(){
  return <div className="iamMobileHomeShell">
   <header className="iamMobileTopbar">
    <button ref={menuButtonRef} className="iamMobileIconButton menu" type="button" aria-label="Open navigation menu" aria-expanded={menuOpen} aria-controls="iam-mobile-drawer" onClick={()=>setMenuOpen(true)}><span>☰</span></button>
-   <a className="iamMobileBrand" href="/" aria-label="I AM MAGNANIMOUS WAY home"><span className="iamMobileMark">M</span><span className="iamMobileBrandWords"><b>I AM MAGNANIMOUS WAY™</b><small>AI ECOSYSTEM</small></span></a>
+   <a className="iamMobileBrand" href="/" aria-label="I AM MAGNANIMOUS WAY home"><span className="iamMobileMark" style={{clipPath:'none',borderRadius:'11px',overflow:'hidden',border:'1px solid #edc272'}}><img src="/iam-site-picture-icon-v1.png" alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/></span><span className="iamMobileBrandWords"><b>I AM MAGNANIMOUS WAY™</b><small>AI ECOSYSTEM</small></span></a>
    <div className="iamMobileTopActions">
     <button className="iamMobileIconButton round" type="button" aria-label="Search Magnanimous AI" aria-expanded={searchOpen} aria-controls="iam-mobile-search" onClick={()=>setSearchOpen(value=>!value)}>⌕</button>
     <a className="iamMobileIconButton round bell" href="/activity" aria-label="Open notifications">●</a>
-    <a className="iamMobileOwner" href="/owner-center" aria-label="Open owner account"><span>M</span></a>
+    <a className="iamMobileOwner" href="/owner-center" aria-label="Open owner account"><img src="/iam-site-picture-icon-v1.png" alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/></a>
    </div>
   </header>
 
