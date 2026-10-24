@@ -249,7 +249,7 @@ export default function VA() {
             </div>
             <div className="neck" />
             <div className="body">
-              <strong>M</strong>
+              <strong><img src="/iam-site-picture-icon-v1.png" alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'inherit'}}/></strong>
             </div>
             <div className="hand h1" />
             <div className="hand h2" />

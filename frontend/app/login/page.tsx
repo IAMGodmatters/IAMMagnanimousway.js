@@ -100,7 +100,7 @@ export default function LoginPage() {
   }
 
   return <main className="portal cinematicLogin">
-    <div className="robot"><div className="head"><i/><i/><b>M</b></div><div className="neck"/><div className="body"><strong>AI</strong></div></div>
+    <div className="robot"><div className="head"><i/><i/><b><img src="/iam-site-picture-icon-v1.png" alt="" style={{width:'100%',height:'100%',objectFit:'contain',borderRadius:'8px'}}/></b></div><div className="neck"/><div className="body"><strong>AI</strong></div></div>
     <div className="globe">◎<span>GLOBAL INTELLIGENCE</span></div>
     <div className="rings r1"/><div className="rings r2"/><div className="scan"/><div className="particles"/>
     <div className="hud tl"><b>◈ PLATFORM STATUS</b><span>● ONLINE</span><small>Secure tenant access ready</small></div>
@@ -109,7 +109,7 @@ export default function LoginPage() {
     <div className="hud right"><b>I AM MAGNANIMOUS SYSTEM</b><small>AI BUSINESS PLATFORM</small><p>Business • Social • CRM • Video • Virtual Assistance</p><span>AI SYSTEMS ACTIVE</span></div>
 
     <section className="card">
-      <div className="crest">M</div>
+      <div className="crest"><img src="/iam-site-picture-icon-v1.png" alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/></div>
       <div className="brand">I AM MAGNANIMOUS WAY™</div>
       <div className="badge">CUSTOMER WORKSPACE ACCESS</div>
       <h1>WELCOME BACK TO YOUR WORKSPACE</h1>

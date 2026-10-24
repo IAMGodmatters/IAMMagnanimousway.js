@@ -21,6 +21,9 @@ export default function ContactCenter(){
   const [notice,setNotice]=useState('');
   const [overview,setOverview]=useState<Row>({});
   const [caps,setCaps]=useState<Row>({});
+  const [aiTeam,setAiTeam]=useState<Row[]>([]);
+  const [voiceProfiles,setVoiceProfiles]=useState<Row[]>([]);
+  const [voiceConfig,setVoiceConfig]=useState<Row>({});
   const [campaigns,setCampaigns]=useState<Row[]>([]);
   const [callbacks,setCallbacks]=useState<Row[]>([]);
   const [voicemails,setVoicemails]=useState<Row[]>([]);
@@ -49,6 +52,7 @@ export default function ContactCenter(){
     if(!t){location.replace('/login');return}
     setToken(t);
     load(t,true);
+    fetch(`${api}/api/agents`,{cache:'no-store'}).then(read).then(data=>setAiTeam((data.agents||[]).filter((agent:Row)=>agent.group==='call-center'))).catch(()=>{});
     const timer=setInterval(()=>load(t,false),15000);
     return()=>clearInterval(timer);
   },[]);
@@ -80,6 +84,9 @@ export default function ContactCenter(){
         get('/api/contact-center/overview',active),get('/api/contact-center/capabilities',active),get('/api/contact-center/campaigns',active),get('/api/contact-center/callbacks',active),get('/api/contact-center/voicemails',active),get('/api/contact-center/dispositions',active),get('/api/contact-center/supervisor/live',active),get('/api/contact-center/ivr',active),get('/api/phone/calls',active),get('/api/contact-center/inbox',active)
       ]);
       setOverview(o);setCaps(c);setCampaigns(ca.campaigns||[]);setCallbacks(cb.callbacks||[]);setVoicemails(vm.voicemails||[]);setDispositions(di.dispositions||[]);setSupervisor(su);setFlows(iv.flows||[]);setCalls(pc.calls||[]);setInbox(ib);
+      // Independent: a temporary Voice AI failure must never hide core call-center operations.
+      get('/api/voice-agent/agents',active).then(data=>setVoiceProfiles(data.agents||[])).catch(()=>{});
+      get('/api/voice-agent/config',active).then(setVoiceConfig).catch(()=>{});
       setActiveSupervision(Object.fromEntries((su.supervisor_sessions||[]).map((x:Row)=>[String(x.call_id),String(x.id)])));
       setActiveRecording(Object.fromEntries((su.recording_sessions||[]).map((x:Row)=>[String(x.call_id),String(x.id)])));
       setError('');
@@ -156,7 +163,7 @@ export default function ContactCenter(){
     try{await send(`/api/contact-center/calls/${callId}/recording`,{},'DELETE');setActiveRecording(x=>{const n={...x};delete n[String(callId)];return n});setNotice(`Recording stopped for call #${callId}.`);await load(token,false)}catch(e:any){setError(e.message)}finally{setBusy('')}
   }
 
-  const tabs=[['overview','Command'],['dialer','Dialer'],['ivr','IVR'],['inbox','Inbox'],['supervisor','Supervisor'],['quality','QA + WFM']];
+  const tabs=[['overview','Command'],['ai-team','AI Team'],['dialer','Dialer'],['ivr','IVR'],['inbox','Inbox'],['supervisor','Supervisor'],['quality','QA + WFM']];
 
   return <main className="cx-root">
     <header className="cx-head"><div><a href="/">← I AM Platform</a><small>I AM MAGNANIMOUS WAY™ · PROFESSIONAL CONTACT CENTER</small><h1>Magnanimous CX Command</h1><p>One workspace for browser and carrier calling, scripts, rebuttals, campaigns, IVR, AI reception, callbacks, voicemail, workforce, quality, analytics and digital service—built to prefer the cheapest valid calling route.</p></div><div className="cx-live"><i/>{busy==='load'?'SYNCING':'LIVE'}</div></header>
@@ -175,14 +182,24 @@ export default function ContactCenter(){
 
     {tab==='overview'&&<>
       <section className="cx-stats">
-        <Stat label="Agents" value={overview.agents||0} sub={`${overview.available_agents||0} available`}/><Stat label="Active calls" value={overview.active_calls||0} sub="ringing / connected"/><Stat label="Calls · 24h" value={overview.calls_24h||0} sub="all voice calls"/><Stat label="Campaigns" value={overview.campaigns||0} sub="draft / live / paused"/><Stat label="Callbacks" value={overview.callbacks||0} sub="waiting"/><Stat label="Voicemails" value={overview.voicemails||0} sub="new / assigned"/>
+        <Stat label="AI specialists" value={aiTeam.length} sub="included with platform"/><Stat label="Human softphones" value={overview.agents||0} sub={`${overview.available_agents||0} available`}/><Stat label="Active calls" value={overview.active_calls||0} sub="ringing / connected"/><Stat label="Calls · 24h" value={overview.calls_24h||0} sub="all voice calls"/><Stat label="Callbacks" value={overview.callbacks||0} sub="waiting"/><Stat label="Voicemails" value={overview.voicemails||0} sub="new / assigned"/>
       </section>
       <section className="cx-grid3">
         <Panel title="Agent desk"><Feature>Live opening, discovery, value and closing scripts</Feature><Feature>Searchable one-click rebuttals and coaching rules</Feature><Feature>Free browser calling plus cost-first carrier fallback</Feature><a className="cx-link" href="/agent-desk">Open Agent Desk →</a><a className="cx-link second" href="/softphone">Carrier Phone →</a></Panel>
-        <Panel title="AI operations"><Feature>Magnanimous AI receptionist</Feature><Feature>Call summaries, sentiment, action items and QA flags</Feature><Feature>Live trigger-based coaching guidance</Feature><a className="cx-link" href="/ai-receptionist">AI Receptionist →</a></Panel>
+        <Panel title="AI operations"><Feature>{aiTeam.length||'Included'} call-center AI specialists for browser chat/voice</Feature><Feature>{voiceProfiles.filter(p=>Number(p.active)===1).length} configured voice profiles</Feature><Feature>Call summaries, sentiment, action items and QA flags</Feature><a className="cx-link" href="#cx-control-tabs" onClick={()=>setTab('ai-team')}>Meet your AI team →</a><a className="cx-link second" href="/ai-receptionist">Voice AI →</a></Panel>
         <Panel title="Workforce + quality"><Feature>Service level, ASA, AHT, abandonment, FCR and CSAT</Feature><Feature>Forecasting, schedules and adherence</Feature><Feature>Quality reviews and coaching backlog</Feature><a className="cx-link" href="/call-center-health">Open WFM / QA Health →</a></Panel>
       </section>
       <Panel title="Recent voice interactions"><table><thead><tr><th>Time</th><th>Direction</th><th>Party</th><th>Status</th><th>Agent</th><th>Duration</th><th>Magnanimous QA</th></tr></thead><tbody>{recentCalls.map(call=><tr key={call.id}><td>{when(call.created_at)}</td><td>{call.direction}</td><td>{call.direction==='inbound'?call.caller:call.callee}</td><td>{call.status}</td><td>{call.agent_name||'—'}</td><td>{elapsed(call.duration_seconds)}</td><td><button onClick={()=>analyze(Number(call.id))} disabled={busy===`analyze-${call.id}`}>{busy===`analyze-${call.id}`?'Analyzing…':'Analyze'}</button></td></tr>)}</tbody></table>{!recentCalls.length&&<Empty text="No calls yet."/>}</Panel>
+    </>}
+
+    {tab==='ai-team'&&<>
+      <section className="cx-ai-intro"><h2>Your included Magnanimous AI team</h2><p>These specialists are available for AI chat and browser text-to-speech on supported devices. They are not human softphone seats and do not automatically place paid telephone calls.</p><a href="/agents">Open all talking agents →</a></section>
+      <section className="cx-ai-grid">
+        {aiTeam.map(agent=><article className="cx-ai-card" key={agent.id}><div className="cx-ai-avatar" aria-hidden="true"><img src="/iam-site-picture-icon-v1.png" alt=""/></div><div><small>AI SPECIALIST · INCLUDED</small><h3>{agent.name} — {agent.title}</h3><p>{agent.description}</p><a href={`/agents?agent=${encodeURIComponent(agent.id)}`}>Chat or speak with {agent.name} →</a></div></article>)}
+      </section>
+      {!aiTeam.length&&<Panel title="AI roster loading"><p>Unable to display specialists yet. <a href="/agents">Open the AI Agent workspace</a> to check availability.</p></Panel>}
+      <section className="cx-ai-intro"><h2>Voice AI profiles · {voiceProfiles.filter(p=>Number(p.active)===1).length} active</h2><p>Your package includes preconfigured receptionist, support, sales and appointment voice profiles. They do not consume telecom minutes until a permitted carrier call is initiated. Browser speech depends on voices installed on the user's device.</p><div className="cx-ai-badges"><span>Browser speech: device supported</span><span>Telephone carrier: {voiceConfig.twilio_configured?'configured':'not connected'}</span><span>Phone entitlement: {voiceConfig.full_business||voiceConfig.platform_owner?'eligible, subject to controls':'not enabled'}</span></div><a href="/ai-receptionist">Manage voice profiles →</a></section>
+      <section className="cx-ai-grid">{voiceProfiles.map(agent=><article key={agent.id} className="cx-ai-card"><div className="cx-ai-avatar" aria-hidden="true"><img src="/iam-site-picture-icon-v1.png" alt=""/></div><div><small>{Number(agent.active)===1?'CONFIGURED VOICE PROFILE':'INACTIVE VOICE PROFILE'}</small><h3>{agent.name}</h3><p>{agent.opening_message}</p><a href="/ai-receptionist">Configure voice assistant →</a></div></article>)}</section>
     </>}
 
     {tab==='dialer'&&<section className="cx-two">
@@ -241,6 +258,7 @@ export default function ContactCenter(){
       .cx-head small,.cx-footer a,.cx-head a,.cx-link{color:#ffe1a5}
       .cx-nav button{background:linear-gradient(130deg,#0c3160,#061932);border-color:rgba(223,173,89,.55);color:#ecfaff}
       .cx-nav button.on{background:linear-gradient(120deg,#ffdaa1,#bd8332);color:#071e45;border-color:#ffe4a6}
+      .cx-ai-intro{max-width:1500px;margin:20px auto;padding:23px;border:1px solid rgba(238,189,110,.55);border-radius:17px;background:linear-gradient(120deg,#0c315d,#071932);color:#ebf6ff}.cx-ai-intro h2{margin:0 0 8px;color:#ffe3a3}.cx-ai-intro p{color:#c5ddeb;line-height:1.6}.cx-ai-intro a,.cx-ai-card a{color:#ffe5a5;font-weight:800}.cx-ai-badges{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.cx-ai-badges span{padding:8px 11px;border-radius:999px;background:#091d3c;border:1px solid #80663e;font-size:12px}.cx-ai-grid{max-width:1500px;margin:16px auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:15px}.cx-ai-card{display:flex;gap:14px;align-items:flex-start;border:1px solid #80653c;border-radius:15px;padding:17px;background:linear-gradient(145deg,#10356a,#07152d);box-shadow:0 10px 24px #0005}.cx-ai-avatar{width:55px;height:55px;flex:none;border-radius:13px;overflow:hidden;border:2px solid #d7ab63}.cx-ai-avatar img{width:100%;height:100%;object-fit:cover}.cx-ai-card small{color:#95dffd;letter-spacing:.08em;font-size:10px}.cx-ai-card h3{font-size:17px;color:#ffe2a2;margin:7px 0}.cx-ai-card p{font-size:13px;color:#c5d9ec;line-height:1.55}.cx-ai-card a{font-size:12px}
       @keyframes cxRoyalFloat{to{transform:scale(1.055)}}
       @media(max-width:760px) and (orientation:portrait){
         .cxRoyalPalace{min-height:590px;aspect-ratio:2/3;max-height:750px;margin:12px auto 22px;border-radius:19px}

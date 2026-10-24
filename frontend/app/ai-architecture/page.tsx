@@ -79,7 +79,7 @@ export default function AIArchitecture() {
         <div className="brain" aria-hidden="true">
           <div className="orbit one" />
           <div className="orbit two" />
-          <div className="core">M</div>
+          <div className="core"><img src="/iam-site-picture-icon-v1.png" alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/></div>
           <span className="node n1">MCP</span>
           <span className="node n2">RAG</span>
           <span className="node n3">AGENT</span>

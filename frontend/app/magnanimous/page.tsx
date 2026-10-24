@@ -22,7 +22,6 @@ function authToken(){
  if(typeof window==='undefined')return'';
  return localStorage.getItem('iam_account_token')||localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token')||'';
 }
-function initials(name?:string){const parts=String(name||'M').trim().split(/\s+/).filter(Boolean);return(parts.slice(0,2).map(x=>x[0]?.toUpperCase()).join('')||'M')}
 function extractSources(value:unknown):Array<{title?:string;url?:string}>{
  if(!Array.isArray(value))return[];
  return value.slice(0,8).map((x:any)=>({title:String(x?.title||x?.name||'Source'),url:typeof x?.url==='string'?x.url:undefined}));
@@ -178,7 +177,7 @@ export default function StandaloneMagnanimous(){
 
  return <main className="mag-standalone" id="iam-main">
   <header className="mag-head">
-   <div className="mag-brand"><span className="mag-mark" aria-hidden="true">M</span><div><strong>MAGNANIMOUS AI™</strong><small>STANDALONE INTELLIGENCE</small></div></div>
+   <div className="mag-brand"><span className="mag-mark" aria-hidden="true" style={{overflow:'hidden'}}><img src="/iam-site-picture-icon-v1.png" alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'inherit'}}/></span><div><strong>MAGNANIMOUS AI™</strong><small>STANDALONE INTELLIGENCE</small></div></div>
    <div className="mag-head-actions">
     <span className={`mag-status ${status}`}><i/>{status==='checking'?'Checking brain':status==='online'?'Brain online':'Limited connection'}</span>
     <a className="mag-email-head" href={mailState==='linked'?'/business-email':signedIn?'/connections?category=email&source=magnanimous-standalone':'/login?returnTo=%2Fmagnanimous'}>{mailState==='linked'?'Email ✓':'Email'}</a>
@@ -188,7 +187,7 @@ export default function StandaloneMagnanimous(){
 
   <section className="mag-shell">
    <aside className="mag-rail" aria-label="Magnanimous modes">
-    <div className="mag-core"><span>M</span><b>ONE BRAIN</b><small>Many specialist branches</small></div>
+    <div className="mag-core"><span style={{overflow:'hidden'}}><img src="/iam-site-picture-icon-v1.png" alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/></span><b>ONE BRAIN</b><small>Many specialist branches</small></div>
     <nav>{MODES.map(x=><button key={x.id} className={mode===x.id?'active':''} onClick={()=>setMode(x.id)}><b>{x.label}</b><span>{x.hint}</span></button>)}</nav>
     <div className="mag-email"><b>EMAIL CONNECTION</b><span>{mailState==='linked'?`${mailAccounts.length} mailbox${mailAccounts.length===1?'':'es'} linked to Magnanimous`:mailState==='checking'?'Checking your mailbox connection…':mailState==='unlinked'?'No Gmail or Outlook mailbox linked yet.':mailState==='unavailable'?'Mailbox status is temporarily unavailable.':'Sign in to link Gmail or Outlook securely.'}</span>{mailNotice&&<em>{mailNotice}</em>}{mailState==='linked'&&mailAccounts.slice(0,2).map(account=><small key={`${account.provider}:${account.external_account_id}`}>✓ {account.display_name||account.external_account_id} • {account.provider==='google'?'Gmail':'Outlook'}</small>)}{signedIn&&mailState!=='linked'&&<div className="mag-email-connect"><button type="button" disabled={!!mailBusy} onClick={()=>connectEmail('google')}>{mailBusy==='google'?'Opening…':'Connect Gmail'}</button><button type="button" disabled={!!mailBusy} onClick={()=>connectEmail('outlook')}>{mailBusy==='outlook'?'Opening…':'Connect Outlook'}</button></div>}{!signedIn&&<a href="/login?returnTo=%2Fmagnanimous">Sign in to link email →</a>}{mailState==='linked'&&<><a href="/business-email">Open Email Writer →</a><a href="/connections?category=email&source=magnanimous-standalone">Manage email connection →</a></>}</div>
     <div className="mag-memory"><b>{signedIn?'Persistent learning on':'Guest session'}</b><span>{signedIn?'Your authorized memory and learned workspace knowledge can be reused here. Magnanimous can automatically hand specialty work to the best named branch.':'Direct AI access is available. Global owner-approved specialist knowledge can still help; sign in for persistent workspace memory.'}</span>{!signedIn&&<a href="/login?returnTo=%2Fmagnanimous">Sign in for memory →</a>}</div>
@@ -198,10 +197,10 @@ export default function StandaloneMagnanimous(){
     <div className="mag-modebar"><div><small>ACTIVE MODE</small><b>{activeMode.label}</b></div><span>Magnanimous core • automatic named specialist handoff when the subject matches</span></div>
     <div className="mag-thread" aria-live="polite">
      {messages.map(m=>{const name=m.role==='assistant'?(m.assistantName||'Magnanimous AI'):'YOU';return <article key={m.id} className={`mag-message ${m.role}${m.silentVoice?' voice-silent':''}`}>
-      <div className="mag-avatar">{m.role==='assistant'?initials(name):'YOU'}</div>
+      <div className="mag-avatar">{m.role==='assistant'?<img src="/iam-site-picture-icon-v1.png" alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/>:'YOU'}</div>
       <div className="mag-bubble"><small>{name.toUpperCase()}{m.role==='assistant'&&m.assistantTitle?` • ${m.assistantTitle.toUpperCase()}`:''}</small><p>{m.role==='assistant'?linkedAnswer(m.content):m.content}</p>{m.meta&&<div className="mag-meta">{m.meta}</div>}{m.sources&&m.sources.length>0&&<div className="mag-sources"><b>Sources</b>{m.sources.map((s,i)=>s.url?<a key={`${s.url}-${i}`} href={s.url} target="_blank" rel="noreferrer">{s.title||s.url}</a>:<span key={i}>{s.title}</span>)}</div>}</div>
      </article>})}
-     {busy&&<article className="mag-message assistant"><div className="mag-avatar">M</div><div className="mag-bubble working"><small>MAGNANIMOUS AI</small><AIProcessingIndicator compact mode={activeMode.label}/></div></article>}
+     {busy&&<article className="mag-message assistant"><div className="mag-avatar"><img src="/iam-site-picture-icon-v1.png" alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/></div><div className="mag-bubble working"><small>MAGNANIMOUS AI</small><AIProcessingIndicator compact mode={activeMode.label}/></div></article>}
      <div ref={endRef}/>
     </div>
     <form className="mag-compose" onSubmit={send}>

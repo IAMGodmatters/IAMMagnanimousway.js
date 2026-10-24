@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
 <title id="title">Magnanimous AI</title>
-<desc id="desc">Magnanimous AI circular M mark for I AM MAGNANIMOUS WAY.</desc>
+<desc id="desc">Magnanimous AI picture identity: golden crown, connected blue globe and friendly AI guide for I AM MAGNANIMOUS WAY.</desc>
 <defs>
  <radialGradient id="bg" cx="50%" cy="36%" r="78%"><stop offset="0" stop-color="#163748"/><stop offset=".58" stop-color="#07131c"/><stop offset="1" stop-color="#030608"/></radialGradient>
  <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#74e6f0"/><stop offset=".55" stop-color="#8ef0c8"/><stop offset="1" stop-color="#d8aa58"/></linearGradient>
@@ -8,7 +8,16 @@
 <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
 <circle cx="512" cy="512" r="340" fill="none" stroke="url(#ring)" stroke-width="18"/>
 <circle cx="512" cy="512" r="270" fill="#081922" stroke="#214655" stroke-width="3"/>
-<path d="M310 680V347h73l129 173 129-173h73v333h-88V488L512 637 398 488v192z" fill="#f1fbff"/>
+<circle cx="512" cy="573" r="201" fill="#0b4274" stroke="#66e5fb" stroke-width="12"/>
+<ellipse cx="512" cy="573" rx="88" ry="201" fill="none" stroke="#6fe8f4" stroke-width="7" opacity=".84"/>
+<path d="M313 573H711M337 480Q512 552 687 480M337 664Q512 590 687 664" fill="none" stroke="#8febfa" stroke-width="7" opacity=".85"/>
+<g fill="#f3cc75" stroke="#ffedba" stroke-width="8" stroke-linejoin="round"><path d="M353 365L320 248L412 299L512 190L612 299L704 248L671 365Z"/><path d="M347 378H677V408H347Z"/></g>
+<g fill="#b1f4ff"><circle cx="320" cy="248" r="17"/><circle cx="512" cy="190" r="17"/><circle cx="704" cy="248" r="17"/></g>
+<path d="M393 758Q398 667 456 661L568 661Q627 670 631 758Z" fill="#dff9ff" stroke="#72e2f8" stroke-width="9"/>
+<ellipse cx="512" cy="591" rx="69" ry="79" fill="#e1fbff" stroke="#8ce6fa" stroke-width="9"/>
+<path d="M444 585Q439 504 512 501Q589 506 580 585Q559 539 512 548Q468 537 444 585" fill="#173f72"/>
+<circle cx="487" cy="588" r="8" fill="#124e83"/><circle cx="537" cy="588" r="8" fill="#124e83"/>
+<path d="M485 627Q512 645 540 627" stroke="#1776ae" stroke-width="6" stroke-linecap="round" fill="none"/>
 <circle cx="788" cy="264" r="26" fill="#d8aa58"/>
 <path d="M764 264h48M788 240v48" stroke="#07131c" stroke-width="8" stroke-linecap="round"/>
 </svg>

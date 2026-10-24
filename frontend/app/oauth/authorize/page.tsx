@@ -94,7 +94,7 @@ export default function OAuthAuthorizePage(){
 
  return <main>
   <section className="card">
-   <div className="mark">M</div>
+   <div className="mark"><img src="/iam-site-picture-icon-v1.png" alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'inherit'}}/></div>
    <small>I AM MAGNANIMOUS WAY™</small>
    <h1>Connect to Magnanimous AI</h1>
    <p className="lead">This connection lets a compatible AI client call the Magnanimous tools you approve. Magnanimous remains the policy, routing, memory and verification layer.</p>

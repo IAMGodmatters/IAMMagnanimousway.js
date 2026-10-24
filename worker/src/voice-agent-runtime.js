@@ -91,18 +91,49 @@ async function tenantAccess(env, user) {
 async function ensureDefaultAgent(env, tenantId) {
   let agent = await env.DB.prepare('SELECT * FROM voice_agents WHERE tenant_id=? AND active=1 ORDER BY created_at ASC LIMIT 1').bind(tenantId).first();
   if (agent) return agent;
-  const id = crypto.randomUUID();
+  await seedIncludedVoiceAgents(env, tenantId);
+  return env.DB.prepare('SELECT * FROM voice_agents WHERE tenant_id=? AND active=1 ORDER BY created_at ASC LIMIT 1').bind(tenantId).first();
+}
+
+// Package-included profiles are tenant-local configurations, not carrier subscriptions.
+// Deterministic IDs make concurrent first visits safe and preserve customer edits/opt-outs.
+const INCLUDED_VOICE_PROFILES = [
+  {
+    key: 'reception', name: 'AI Receptionist',
+    instructions: 'Welcome callers, answer general questions, collect only necessary contact details and offer a human handoff. State clearly that you are AI. Never request banking passwords, full payment card numbers or government ID numbers. Respect opt-outs.',
+    opening: 'Hello, I am the Magnanimous AI receptionist, an automated assistant. How may I help you today?'
+  },
+  {
+    key: 'support', name: 'Customer Support AI',
+    instructions: 'Help customers troubleshoot, explain next steps and escalate uncertain or sensitive requests to a human. Do not invent policies or claim to access accounts without authorization. Disclose AI identity and honor stop-contact requests.',
+    opening: 'Hello, this is the Magnanimous automated customer support assistant. How may I assist you?'
+  },
+  {
+    key: 'sales', name: 'Sales & Lead Assistant',
+    instructions: 'Answer product questions, qualify leads with consent and give clear, truthful information. Do not promise discounts, charge customers, make outbound calls or finalize orders without the required authorization. Clearly identify yourself as AI and honor opt-outs.',
+    opening: 'Hello, I am the Magnanimous AI sales assistant. What would you like to know about our services?'
+  },
+  {
+    key: 'scheduling', name: 'Appointment Assistant',
+    instructions: 'Collect a preferred appointment date, time and callback method with consent. Confirm availability only from connected scheduling records; otherwise mark requests pending human confirmation. Disclose AI identity, protect personal data and honor opt-outs.',
+    opening: 'Hello, I am the Magnanimous AI appointment assistant. How can I help you with scheduling?'
+  }
+];
+
+export async function seedIncludedVoiceAgents(env, tenantId) {
+  const { results = [] } = await env.DB.prepare('SELECT id,name FROM voice_agents WHERE tenant_id=?').bind(tenantId).all();
+  const ids = new Set(results.map(row => String(row.id)));
+  const names = new Set(results.map(row => String(row.name).trim().toLowerCase()));
   const ts = now();
-  const opening = 'Hello. This is an automated AI assistant with I AM Magnanimous Way. I am not a human. How may I help you today?';
-  const instructions = 'You are a helpful AI receptionist. Be concise, respectful, and practical. Never claim to be human. Never ask for full payment card numbers, banking passwords, Social Security numbers, or other high-risk secrets. If the caller asks to stop calls, confirm the opt-out and end the call.';
-  await env.DB.prepare(`INSERT INTO voice_agents(
-    id,tenant_id,name,instructions,opening_message,twilio_voice,tavus_replica_id,tavus_persona_id,active,created_at,updated_at
-  ) VALUES(?,?,?,?,?,?,?,?,1,?,?)`).bind(
-    id, tenantId, 'AI Receptionist', instructions, opening, '',
-    String(env.TAVUS_DEFAULT_REPLICA_ID || TWILIO_DEFAULT_REPLICA),
-    String(env.TAVUS_DEFAULT_PERSONA_ID || TWILIO_DEFAULT_PERSONA), ts, ts
-  ).run();
-  return env.DB.prepare('SELECT * FROM voice_agents WHERE id=?').bind(id).first();
+  for (const profile of INCLUDED_VOICE_PROFILES) {
+    const id = `included:${profile.key}:${tenantId}`;
+    if (ids.has(id) || names.has(profile.name.toLowerCase())) continue;
+    await env.DB.prepare(`INSERT OR IGNORE INTO voice_agents(
+      id,tenant_id,name,instructions,opening_message,twilio_voice,tavus_replica_id,tavus_persona_id,active,created_at,updated_at
+    ) VALUES(?,?,?,?,?,?,?,?,1,?,?)`).bind(
+      id, tenantId, profile.name, profile.instructions, profile.opening, '', '', '', ts, ts
+    ).run();
+  }
 }
 
 function twilioReady(env) {
@@ -296,6 +327,7 @@ async function twilioIncoming(request, env) {
   const blocked = from ? await env.DB.prepare('SELECT phone FROM voice_do_not_call WHERE tenant_id=? AND phone=?').bind(tenantId, from).first() : null;
   if (blocked) return xml(goodbyeTwiml('This number is on our do-not-call list. Goodbye.'));
   const agent = await ensureDefaultAgent(env, tenantId);
+  if (!agent) return xml(goodbyeTwiml('The AI voice service is currently unavailable. Please try again later.'), 503);
   let call = sid ? await env.DB.prepare('SELECT * FROM phone_calls WHERE provider_call_id=? ORDER BY id DESC LIMIT 1').bind(sid).first() : null;
   if (!call) {
     const ts = now();
@@ -346,7 +378,7 @@ async function agentRoutes(request, env, user, path, internalContext = {}) {
   await ensureSchema(env);
   if (path === '/api/voice-agent/config' && request.method === 'GET') {
     const access = await tenantAccess(env, user);
-    await ensureDefaultAgent(env, user.tenant_id);
+    await seedIncludedVoiceAgents(env, user.tenant_id);
     return json({
       free_browser_calling: true,
       ai_engine: Boolean(env.AI),
@@ -359,7 +391,7 @@ async function agentRoutes(request, env, user, path, internalContext = {}) {
     });
   }
   if (path === '/api/voice-agent/agents' && request.method === 'GET') {
-    await ensureDefaultAgent(env, user.tenant_id);
+    await seedIncludedVoiceAgents(env, user.tenant_id);
     const { results } = await env.DB.prepare('SELECT * FROM voice_agents WHERE tenant_id=? ORDER BY active DESC,created_at ASC').bind(user.tenant_id).all();
     return json({ agents: results || [] });
   }
