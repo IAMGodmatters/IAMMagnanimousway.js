@@ -11,7 +11,7 @@ import uuid
 import os
 import re
 
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from renderer_auth import renderer_authorization_status
@@ -221,8 +221,9 @@ def health():
     }
 
 
-@app.post("/api/video/render", dependencies=[Depends(require_renderer_token)])
+@app.post("/api/video/render")
 def render_video(req: VideoRequest, request: Request):
+    require_renderer_token(request)
     if req.publish_to_mux and mux_provider_writes_enabled():
         require_mux_write_token(request)
     job = uuid.uuid4().hex
@@ -317,8 +318,9 @@ def render_video(req: VideoRequest, request: Request):
     }
 
 
-@app.post("/api/video/edit", dependencies=[Depends(require_renderer_token)])
-def edit_video(req: EditRequest):
+@app.post("/api/video/edit")
+def edit_video(req: EditRequest, request: Request):
+    require_renderer_token(request)
     job = uuid.uuid4().hex
     work = OUT / f"{job}-edit"
     work.mkdir(parents=True, exist_ok=True)
