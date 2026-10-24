@@ -790,6 +790,22 @@ jobs:
             printf '%s' "$status"
           }
 
+          # A 1102 HTML response is Cloudflare's CPU-limit termination, not an
+          # application-level rejection. Retry it briefly while retaining the
+          # full 200/JSON contract; never ignore repeat failures or 4xx results.
+          safe_worker_post_status() {
+            local output="$1"; shift
+            local status="" attempt
+            for attempt in 1 2 3; do
+              status="$(command curl -sS --connect-timeout 10 --max-time 120 -o "$output" -w '%{http_code}' "$@" || true)"
+              if [ "$status" = "200" ]; then break; fi
+              if [ "$status" != "503" ] || ! grep -q '1102' "$output" || [ "$attempt" -eq 3 ]; then break; fi
+              echo "Cloudflare Worker CPU 1102 during production smoke; retrying bounded request ${attempt}/3." >&2
+              sleep "$((attempt*3))"
+            done
+            printf '%s' "$status"
+          }
+
           safe_expected_status() {
             local output="$1" expected="$2"; shift 2
             local status="" attempt
@@ -1299,7 +1315,7 @@ jobs:
           print(json.dumps({'email':email,'password':password}))
           PY
             local login_status
-            login_status=$(curl -sS -o /tmp/login-refresh.json -w '%{http_code}' -X POST "$BASE_URL/api/auth/login" -H 'content-type: application/json' --data-binary @/tmp/login-payload.json)
+            login_status=$(safe_worker_post_status /tmp/login-refresh.json -X POST "$BASE_URL/api/auth/login" -H 'content-type: application/json' --data-binary @/tmp/login-payload.json)
             if [ "$login_status" != "200" ]; then
               echo "Smoke session refresh returned HTTP $login_status"
               cat /tmp/login-refresh.json || true
@@ -2016,7 +2032,7 @@ jobs:
 
           refresh_smoke_session
 
-          status=$(curl -sS -o /tmp/agent-chat.json -w '%{http_code}' -X POST "$BASE_URL/api/agents/chat" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"agent_id":"bobby","message":"Give one short sentence confirming the native I AM Agent Mesh is online."}')
+          status=$(safe_worker_post_status /tmp/agent-chat.json -X POST "$BASE_URL/api/agents/chat" -H 'content-type: application/json' -H "Authorization: Bearer $token" --data '{"agent_id":"bobby","message":"Give one short sentence confirming the native I AM Agent Mesh is online."}')
           if [ "$status" != "200" ]; then echo "Agent Mesh chat returned HTTP $status"; cat /tmp/agent-chat.json || true; exit 1; fi
           python - <<'PY'
           import json
