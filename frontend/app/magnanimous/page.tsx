@@ -2,6 +2,7 @@
 
 import {FormEvent,useEffect,useMemo,useRef,useState} from 'react';
 import AIProcessingIndicator from '../../components/AIProcessingIndicator';
+import AIInteractionDisclosure from '../../components/AIInteractionDisclosure';
 import {postMagnanimousChat} from '../../lib/magnanimous-chat-transport';
 
 type Role='user'|'assistant';
@@ -194,6 +195,7 @@ export default function StandaloneMagnanimous(){
    </aside>
 
    <section className="mag-chat" aria-label="Magnanimous conversation">
+    <AIInteractionDisclosure compact />
     <div className="mag-modebar"><div><small>ACTIVE MODE</small><b>{activeMode.label}</b></div><span>Magnanimous core • automatic named specialist handoff when the subject matches</span></div>
     <div className="mag-thread" aria-live="polite">
      {messages.map(m=>{const name=m.role==='assistant'?(m.assistantName||'Magnanimous AI'):'YOU';return <article key={m.id} className={`mag-message ${m.role}${m.silentVoice?' voice-silent':''}`}>
