@@ -1,3 +1,5 @@
+import { assessAiTransparency } from './ai-transparency.js';
+
 const clip=(v,n=4000)=>String(v??'').trim().replace(/\s+/g,' ').slice(0,n);
 const clamp=(v,min,max,fallback)=>{const n=Number(v);return Number.isFinite(n)?Math.max(min,Math.min(max,n)):fallback};
 
@@ -167,6 +169,18 @@ export function buildMagnanimousVideoDirectorPlan(input={}){
       reuse_prior_assets:true,
       tenant_scoped:true
     },
+    planned_ai_transparency:{
+      output_status:'not-rendered',
+      ...(assessAiTransparency({
+        kind:'video',
+        ai_generated:true,
+        // Realistic/synthetic likeness is not automatically a deceptive deepfake.
+        // Classification of false authenticity requires explicit creator context.
+        deepfake:input.deepfake===true||input.portrays_real_event_as_real===true,
+        artistic_context:input.artistic_context===true
+      })),
+      publishing_notes:'Show an appropriate visible AI disclosure, and verify that the export pipeline embeds detectable machine-readable marks. A plan or sidecar alone is not a signed media credential.'
+    },
     provenance_policy:{
       record_input_sources:true,
       record_prompt_and_settings:true,
@@ -178,6 +192,7 @@ export function buildMagnanimousVideoDirectorPlan(input={}){
         ai_disclosure_version:'2.4+',
         emit_when_supported:true,
         verified_claim_requires_signing_rail:true,
+        verified_credentials_emitted_in_plan:false,
         unsupported_format_behavior:'retain-sidecar-provenance-without-claiming-verified-credentials'
       }
     },
