@@ -11,6 +11,7 @@ import {handleGrowthRecovery,recordSignupLead,recordPlatformCheckout,recordStrip
 import {handleAgencyBillingBefore,extendPlansPayload,applyAgencyWebhook} from './agency-billing-extension.js';
 import {handleWhiteLabelBrain,recordWhiteLabelAction,shouldObserveWhiteLabelPath} from './white-label-brain-runtime.js';
 import {handleMagnanimousDevAgent} from './magnanimous-dev-agent.js';
+import {handleMagnanimousVibeStudio} from './magnanimous-vibe-studio.js';
 import {handleWhiteLabelOS} from './white-label-os-runtime.js';
 import {handleBusinessAISuite} from './magnanimous-business-ai-suite.js';
 import {handlePublicAgencyFunnel} from './public-agency-funnel-runtime.js';
@@ -159,6 +160,7 @@ async function operationsFetch(request,env,ctx){
   try{const training=await handleContinuousLearning(request,env);if(training)return training}catch(error){console.error('continuous learning layer failed',error);return json({detail:'Magnanimous continuous learning could not complete this request.'},500)}
 
   try{const developer=await handleMagnanimousDevAgent(request,env);if(developer)return developer}catch(error){console.error('Magnanimous developer agent failed',error);return json({detail:'Magnanimous developer agent could not complete this request.'},500)}
+  try{const vibe=await handleMagnanimousVibeStudio(request,env);if(vibe)return vibe}catch(error){console.error('Magnanimous Vibe Studio failed',error);return json({detail:'Magnanimous Vibe Studio could not complete this request.'},500)}
   try{const nativeWeb=await handleMagnanimousNativeWeb(request,env);if(nativeWeb)return nativeWeb}catch(error){console.error('Magnanimous Native Web failed',error);return json({detail:'Magnanimous Native Web could not complete this request.'},500)}
   try{const routineStudio=await handleMagnanimousRoutineStudio(request,env);if(routineStudio)return routineStudio}catch(error){console.error('Magnanimous Routine Studio failed',error);return json({detail:error?.message||'Magnanimous Routine Studio could not complete this request.'},500)}
   try{const growth=await handleGrowthRecovery(request,env);if(growth)return growth}catch(error){console.error('growth recovery layer failed',error);return json({detail:'Growth Funnel could not complete this request.'},500)}
