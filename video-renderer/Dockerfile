@@ -4,6 +4,7 @@ WORKDIR /app
 COPY video-renderer/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 COPY video-renderer/server.py ./server.py
+COPY video-renderer/renderer_auth.py ./renderer_auth.py
 ENV PYTHONUNBUFFERED=1
 ENV PORT=10000
 EXPOSE 10000

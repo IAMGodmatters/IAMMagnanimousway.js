@@ -4,6 +4,7 @@ const read=p=>fs.readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 const runtime=read('worker/src/native-video-stack-runtime.js');
 const security=read('worker/src/security-entrypoint.js');
 const renderer=read('video-renderer/server.py');
+const rendererDockerfile=read('video-renderer/Dockerfile');
 const ui=read('frontend/app/video-stack/page.tsx');
 const movie=read('frontend/app/movie-maker/page.tsx');
 const studio=read('frontend/app/video-studio/page.tsx');
@@ -18,6 +19,7 @@ for(const s of [
  "['free','plus']","/api/video/edit","browser-webrtc","tenant_isolation:true"
 ])assert.ok(runtime.includes(s),'native video stack missing '+s);
 
+assert.ok(rendererDockerfile.includes('COPY video-renderer/renderer_auth.py ./renderer_auth.py'),'renderer auth module must be copied into production Docker image');
 assert.ok(!runtime.includes('VIDEO_IO_APP_TOKEN'),'outside master token must not be part of native video stack');
 assert.ok(security.includes("handleNativeVideoStack"),'native video stack must be routed through security entrypoint');
 assert.ok(security.includes("url.pathname.startsWith('/api/video-stack')"),'video stack route must be secured explicitly');
