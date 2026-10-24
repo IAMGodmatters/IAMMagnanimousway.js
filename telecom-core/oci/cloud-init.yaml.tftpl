@@ -11,10 +11,14 @@ write_files:
     permissions: "0644"
     content: |
       I AM MAGNANIMOUS WAY - Magnanimous Telecom Core host
-      Repository: ${repo_url}
-      Ref: ${repo_ref}
 
-      Run the read-only OCI preflight:
+      Source is installed from the owner's authenticated Cloud Shell checkout.
+      No repository token, deploy key, or private GitHub URL is stored in
+      instance metadata or cloud-init.
+
+      After provisioning, run telecom-core/oci/publish-source.sh from
+      the authenticated Cloud Shell checkout. Then run the preflight:
+
         cd /opt/IAMMagnanimousway.js
         bash telecom-core/deploy/oci-always-free-preflight.sh
 
@@ -23,7 +27,3 @@ write_files:
 
 runcmd:
   - [ mkdir, -p, /opt ]
-  - [ git, clone, --depth=1, --branch, "${repo_ref}", "${repo_url}", /opt/IAMMagnanimousway.js ]
-  - [ chown, -R, ubuntu:ubuntu, /opt/IAMMagnanimousway.js ]
-  - [ bash, -lc, "cd /opt/IAMMagnanimousway.js && bash telecom-core/deploy/oci-always-free-preflight.sh > /home/ubuntu/oci-telecom-preflight.txt 2>&1 || true" ]
-  - [ chown, ubuntu:ubuntu, /home/ubuntu/oci-telecom-preflight.txt ]

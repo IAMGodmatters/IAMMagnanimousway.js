@@ -10,6 +10,6 @@ availability_domain_index = 0
 instance_name              = "magnanimous-telecom"
 enable_turn_relay          = false
 
-# Keep the public Magnanimous repository unless an explicitly reviewed source is required.
-repo_url = "https://github.com/IAMGodmatters/IAMMagnanimousway.js.git"
-repo_ref = "main"
+# Source code is delivered separately from your authenticated Cloud Shell
+# checkout after instance creation. No repository URL or token is stored
+# in Terraform input, state, OCI instance metadata, or cloud-init.

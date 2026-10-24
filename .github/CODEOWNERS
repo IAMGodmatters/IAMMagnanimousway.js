@@ -13,6 +13,9 @@
 /qa/scripts/private-repo-readiness-lock.mjs @IAMGodmatters
 /qa/scripts/proprietary-security-invariants-lock.mjs @IAMGodmatters
 /qa/scripts/clone-exposure-watch.mjs @IAMGodmatters
+/qa/scripts/telecom-oci-private-source-lock.mjs @IAMGodmatters
+/telecom-core/oci/ @IAMGodmatters
+/telecom-core/deploy/bootstrap-public-host.sh @IAMGodmatters
 /.github/workflows/anti-clone-hardening-lock.yml @IAMGodmatters
 /.github/workflows/private-repo-readiness-lock.yml @IAMGodmatters
 /.github/workflows/proprietary-security-invariants-lock.yml @IAMGodmatters

@@ -69,11 +69,11 @@ terraform apply tfplan
 
 ## After apply
 
-Terraform outputs the public IPv4 and SSH command.
+Terraform outputs the public IPv4 and SSH command. Source code is **not** pulled anonymously from GitHub by cloud-init; follow [CLOUD-SHELL.md](./CLOUD-SHELL.md) to upload the committed source through your authenticated Cloud Shell checkout. Never put GitHub credentials into Terraform, instance metadata, or cloud-init.
 
 1. Point the chosen Telecom hostname A record to that public IP.
-2. SSH to the instance.
-3. Review `/home/ubuntu/oci-telecom-preflight.txt` and rerun the preflight manually.
+2. Verify the instance SSH host key through OCI, then use `publish-source.sh PUBLIC_IP` from Cloud Shell to upload source safely.
+3. SSH to the instance, review `/home/ubuntu/oci-telecom-preflight.txt` and rerun the preflight manually.
 4. Run the existing protected host bootstrap from `telecom-core/deploy/bootstrap-public-host.sh`.
 5. Configure the protected `telecom-core/.env` secrets on the host.
 6. Sync trusted TLS.

@@ -16,6 +16,13 @@ REPO_DIR="$WORK_ROOT/repo"
 TF_DIR="$REPO_DIR/telecom-core/oci"
 TF_VERSION="1.16.4"
 
+# Repository credentials belong only in the Cloud Shell's Git credential
+# helper or SSH agent. Never place PATs in the URL or Terraform/cloud-init.
+if [[ ! "$REPO_URL" =~ ^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(\.git)?$ && ! "$REPO_URL" =~ ^git@github\.com:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(\.git)?$ ]]; then
+  echo "MAGNANIMOUS_REPO_URL must be a GitHub HTTPS or SSH clone URL without embedded credentials." >&2
+  exit 2
+fi
+
 command -v oci >/dev/null 2>&1 || {
   echo "OCI CLI is required. Run this from Oracle Cloud Shell." >&2
   exit 1
@@ -152,8 +159,6 @@ ssh_public_key  = "${SSH_PUBLIC_KEY}"
 availability_domain_index = ${OCI_AD_INDEX:-0}
 instance_name              = "magnanimous-telecom"
 enable_turn_relay          = ${ENABLE_TURN_RELAY:-false}
-repo_url                   = "$REPO_URL"
-repo_ref                   = "$REPO_REF"
 EOF
 
 cd "$TF_DIR"
@@ -186,5 +191,6 @@ terraform output
 
 echo
 echo "OCI host infrastructure was created from the verified plan."
-echo "Next: point the Telecom DNS hostname to the public_ip output, then run the host bootstrap and external WebRTC proof."
+echo "Next: from the authenticated Cloud Shell checkout, run telecom-core/oci/publish-source.sh PUBLIC_IP."
+echo "Then point the Telecom DNS hostname to the public_ip output, run the host bootstrap and external WebRTC proof."
 echo "TELECOM_NATIVE_WEBRTC_LIVE must remain false until that proof passes."

@@ -9,7 +9,7 @@ Oracle documents Cloud Shell as a free browser terminal with Git, Python, Terraf
 `cloud-shell-plan.sh`:
 
 1. verifies that it is running with OCI CLI access;
-2. clones or refreshes the public Magnanimous repository;
+2. clones or refreshes the Magnanimous repository through your Cloud Shell Git authentication;
 3. discovers the tenancy home region from the signed-in OCI session;
 4. uses the root tenancy compartment by default, or `OCI_COMPARTMENT_ID` when supplied;
 5. creates a dedicated Ed25519 SSH key in Cloud Shell if one does not already exist;
@@ -61,6 +61,24 @@ bash telecom-core/oci/cloud-shell-plan.sh --apply
 
 The helper applies the plan that just passed the free-profile verifier. The module has no paid-shape fallback.
 
+## Private-repository-safe source delivery
+
+GitHub may be public today and private later. In either case, **only your Cloud Shell checkout** accesses the source repository. OCI cloud-init does not clone GitHub and receives no access token, deploy key, Git credential, or repository URL. This also works after a repository privacy change.
+
+If your repository is private, authenticate **Git in your Oracle Cloud Shell session** before the initial clone. Use an approved GitHub SSH key, or a credential helper such as `gh auth login` followed by `gh auth setup-git` when `gh` is available. Do not embed a personal access token in a clone URL, Terraform variables, OCI metadata, or an instance initialization script. The default HTTPS clone requires working Git authentication for private repositories. An owner-configured SSH clone URL may be provided in `MAGNANIMOUS_REPO_URL`.
+
+After `--apply`, obtain the output `public_ip`. In Cloud Shell, first verify the host's SSH key fingerprint through a trusted OCI console/serial-console channel and add it to your Cloud Shell `known_hosts`. The publish script intentionally refuses unknown host keys; do not disable SSH host-key checking to get past this safety requirement.
+
+Then publish only the committed `telecom-core/` subtree (no other platform source, `.git` history, untracked local secrets, or uncommitted files):
+
+```bash
+bash telecom-core/oci/publish-source.sh PUBLIC_IP
+```
+
+Replace `PUBLIC_IP` with the actual instance public IPv4 from Terraform. This command refuses to overwrite an existing `/opt/IAMMagnanimousway.js` installation. If a deployment already exists, use a reviewed upgrade/backup process instead. It runs the Telecom read-only preflight after copying source and records output in `/home/ubuntu/oci-telecom-preflight.txt`.
+
+The upload is not the final telecom activation: TLS, secrets, SIP/carrier readiness, external WebRTC proof, and regulatory gates are still required.
+
 ## After creation
 
 Use the Terraform `public_ip` output for the Telecom hostname A record. Then administer the host from Cloud Shell with the private key printed by the helper, for example:
@@ -69,7 +87,7 @@ Use the Terraform `public_ip` output for the Telecom hostname A record. Then adm
 ssh -i ~/.ssh/magnanimous_oci_ed25519 ubuntu@PUBLIC_IP
 ```
 
-On the host:
+After running `publish-source.sh`, on the host:
 
 1. rerun `telecom-core/deploy/oci-always-free-preflight.sh`;
 2. run `bootstrap-public-host.sh` with DNS, ACME email and the same restricted SSH CIDR;

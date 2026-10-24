@@ -74,18 +74,18 @@ variable "enable_turn_relay" {
 }
 
 variable "repo_url" {
-  description = "Public Magnanimous repository cloned by cloud-init."
+  description = "Legacy compatibility input. Cloud-init no longer clones GitHub; source is uploaded from authenticated Cloud Shell."
   type        = string
   default     = "https://github.com/IAMGodmatters/IAMMagnanimousway.js.git"
 
   validation {
     condition     = startswith(var.repo_url, "https://github.com/")
-    error_message = "repo_url must use a public HTTPS GitHub URL."
+    error_message = "Legacy repo_url must be a GitHub HTTPS URL. This value is not passed to cloud-init."
   }
 }
 
 variable "repo_ref" {
-  description = "Repository branch or tag cloned during first boot."
+  description = "Legacy compatibility input; no longer sent to the OCI guest. Choose the source ref in Cloud Shell."
   type        = string
   default     = "main"
 
