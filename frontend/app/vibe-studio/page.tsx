@@ -84,8 +84,9 @@ export default function MagnanimousVibeStudio(){
  const proposedChanges=useMemo(()=>proposal?changes(source,proposal):0,[source,proposal]);
  const sourceLines=useMemo(()=>source?source.split('\n').length:0,[source]);
 
- async function openProject(id:string){
-  if(!token)return;setBusy('open');setError('');setMessage('Opening saved project and checkpoints…');
+ async function openProject(id:string,force=false){
+  if(!token)return;
+  if(!force&&dirty&&!window.confirm('This will replace your unsaved edits. Save or export first if you want to keep them. Continue?'))return;setBusy('open');setError('');setMessage('Opening saved project and checkpoints…');
   try{const d=await request('/api/magnanimous/vibe-studio/projects/'+encodeURIComponent(id));
    setProject(d.project);setSource(d.project.html);setVersions(d.versions||[]);
    setPreview('');setPreviewTick(v=>v+1);setProposal('');setReport(null);
@@ -93,6 +94,7 @@ export default function MagnanimousVibeStudio(){
   }catch(e:any){setError(e?.message||'Project could not be opened.')}finally{setBusy('')}
  }
  async function createProject(){
+  if(dirty&&!window.confirm('Creating a new project will replace your current unsaved edits. Continue?'))return;
   if(!title.trim()||!brief.trim()){setError('Give your prototype a title and describe what it should do.');return}
   setBusy('create');setError('');
   try{const d=await request('/api/magnanimous/vibe-studio/projects',{method:'POST',body:JSON.stringify({title:title.trim(),brief:brief.trim(),template})});
@@ -103,7 +105,7 @@ export default function MagnanimousVibeStudio(){
  async function saveProject(){
   if(!project||!dirty)return;setBusy('save');setError('');
   try{const d=await request('/api/magnanimous/vibe-studio/projects/'+project.id,{method:'PUT',body:JSON.stringify({html:source,expected_revision:project.revision,note:proposal?'Reviewed source change':'Edited source in Vibe Studio'})});
-   if(d.saved){await openProject(project.id);await list();setMessage('Saved checkpoint '+d.project.revision+' to your private Magnanimous project. No deployment occurred.')}
+   if(d.saved){await openProject(project.id,true);await list();setMessage('Saved checkpoint '+d.project.revision+' to your private Magnanimous project. No deployment occurred.')}
    else setMessage('No changes to save.');
   }catch(e:any){setError(e?.message||'Saving failed. No previous checkpoint was overwritten.')}finally{setBusy('')}
  }
@@ -144,7 +146,9 @@ export default function MagnanimousVibeStudio(){
  }
  function acceptProposal(){if(!proposal)return;setSource(proposal);setProposal('');setPreview('');setReport(null);setTab('code');setMessage('AI draft loaded into your editor as an unsaved change. Review, preview and Save Checkpoint to preserve it.')}
  async function restoreVersion(revision:number){
-  if(!project)return;setBusy('restore');setError('');
+  if(!project)return;
+  if(dirty&&!window.confirm('Loading a checkpoint will replace unsaved source in the editor. Continue?'))return;
+  setBusy('restore');setError('');
   try{const d=await request('/api/magnanimous/vibe-studio/projects/'+project.id+'/versions/'+revision);
    setSource(String(d.version.html||''));setProposal('');setPreview('');setTab('code');setReport(null);
    setMessage('Checkpoint '+revision+' loaded into the editor. It is not saved over the latest version until you review and Save Checkpoint.');
