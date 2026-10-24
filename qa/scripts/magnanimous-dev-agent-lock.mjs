@@ -59,6 +59,8 @@ has(ui,':focus-visible','owner console preserves visible keyboard focus');
 has(ui,'min-height:44px','owner console preserves practical touch-target sizing');
 has(ui,'GitHub App auto-rotation','owner console reports durable GitHub App rotation');
 has(ui,'GITHUB_PLATFORM_TOKEN','owner console identifies the temporary token fallback without collecting it');
+has(runtime,"path==='/api/magnanimous/dev-agent/shortcuts'",'source shortcut lookup stays in the owner-guarded developer route');
+has(ui,'CHECK REPOSITORY VISIBILITY','owner controls whether repository shortcuts are retrieved');
 lacks(ui,'type="password"','owner console never collects repository credentials in the browser');
 has(ownerCenter,'href="/developer-agent"','Owner Center links to Magnanimous Dev Agent');
 has(robots,'Disallow: /developer-agent/','private developer console is excluded from crawler indexing');
