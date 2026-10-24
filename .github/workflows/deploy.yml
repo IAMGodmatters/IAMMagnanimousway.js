@@ -97,6 +97,7 @@ jobs:
         run: |
           node qa/scripts/native-meeting-rooms-lock.mjs
           node qa/scripts/product-contract-locks.mjs
+          node qa/scripts/ai-transparency-article50-lock.mjs
           node qa/scripts/specialist-branch-lock.mjs
           node qa/scripts/free-first-runtime-plane-lock.mjs
           node qa/scripts/account-persistence-lock.mjs

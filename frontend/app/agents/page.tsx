@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { speakTextNaturally, stopNaturalSpeech } from "../../lib/natural-speech";
+import AIInteractionDisclosure from "../../components/AIInteractionDisclosure";
 import { availablePersonaVoices, configurePersonaVoice, getPreferredPersonaVoiceId, setPreferredPersonaVoiceId } from "../../lib/persona-voice";
 const api = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 type Agent = {
@@ -325,6 +326,7 @@ export default function AgentsPage() {
           </div>
         </aside>
         <section className="chat">
+          <AIInteractionDisclosure mode="voice" compact />
           <div className="chatHead">
             <div>
               <small>

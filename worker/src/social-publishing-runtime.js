@@ -1,4 +1,5 @@
 import { currentUser } from './integrations.js';
+import { assessAiTransparency } from './ai-transparency.js';
 
 const now=()=>Math.floor(Date.now()/1000);
 const encoder=new TextEncoder();
@@ -88,7 +89,31 @@ export async function handleSocialPublishing(request,env){
   const creatorMatch=url.pathname==='/api/social-connect/tiktok/creator-info';if(creatorMatch&&request.method==='POST'){const row=await connection(env,user.tenant_id,'tiktok');if(!row)return json({detail:'Connect TikTok first.'},409);return json(await tiktokCreator(await tokenFor(env,row,'tiktok')))}
   const publishMatch=url.pathname.match(/^\/api\/social-connect\/(youtube|tiktok|linkedin)\/publish$/);
   if(publishMatch&&request.method==='POST'){
-   const provider=publishMatch[1],row=await connection(env,user.tenant_id,provider);if(!row)return json({detail:`Connect ${PROVIDERS[provider].name} first.`},409);const body=await request.json().catch(()=>({}));const result=provider==='youtube'?await youtubePublish(env,row,body):provider==='tiktok'?await tiktokPublish(env,row,body):await linkedinPublish(env,row,body);return json(result);
+   const provider=publishMatch[1],row=await connection(env,user.tenant_id,provider);if(!row)return json({detail:`Connect ${PROVIDERS[provider].name} first.`},409);const body=await request.json().catch(()=>({}));
+   const transparency=assessAiTransparency({
+     kind:provider==='linkedin'?'text':'video',
+     ai_generated:body.ai_generated===true||body.deepfake===true||body.public_interest===true,
+     deepfake:body.deepfake===true,
+     public_interest:body.public_interest===true,
+     human_reviewed:body.human_reviewed===true,
+     editorial_responsibility:body.editorial_responsibility===true
+   });
+   // Do not send a public-interest AI text or declared deepfake to an external
+   // platform without creator review. Private drafts remain available.
+   if(transparency.visible_disclosure.required_for_this_context){
+     const caption=String(provider==='linkedin'?body.text:provider==='youtube'?body.description:body.title||'');
+     const labelled=/\b(?:AI[ -]generated|AI[ -]altered|artificially generated|synthetic (?:media|video|audio)|created with AI)\b/i.test(caption);
+     if(body.ai_disclosure_confirmed!==true||!labelled)return json({
+       detail:'Add a clear AI-generated/AI-altered disclosure to the post and confirm it before publishing.',
+       code:'AI_DISCLOSURE_REQUIRED',disclosure:transparency.visible_disclosure
+     },409);
+     if(provider!=='linkedin'&&body.visible_media_disclosure_confirmed!==true)return json({
+       detail:'Confirm the video itself carries an appropriate visible/audible AI disclosure before publishing; a caption alone may not be enough.',
+       code:'AI_MEDIA_DISCLOSURE_CONFIRMATION_REQUIRED'
+     },409);
+   }
+   const result=provider==='youtube'?await youtubePublish(env,row,body):provider==='tiktok'?await tiktokPublish(env,row,body):await linkedinPublish(env,row,body);
+   return json({...result,ai_transparency:transparency});
   }
   return json({detail:'Unsupported social publishing operation.'},405);
  }catch(error){console.error('social publishing runtime error',error);return json({detail:error?.message||'Social publishing failed.',code:'SOCIAL_PUBLISHING_ERROR'},502)}
