@@ -4,6 +4,7 @@ import { type CSSProperties, useEffect, useState } from "react";
 
 import ModeHero from "../../components/ModeHero";
 import AIProcessingIndicator from "../../components/AIProcessingIndicator";
+import AIInteractionDisclosure from "../../components/AIInteractionDisclosure";
 import { postMagnanimousChat } from "../../lib/magnanimous-chat-transport";
 import {
   MODE_OPTIONS,
@@ -222,6 +223,7 @@ export default function AIChat() {
               : "Uses workspace knowledge when you are signed in and have saved sources"}
           </span>
         </section>
+        <AIInteractionDisclosure />
         <section className="console">
           <div className="consolehead">
             <span>CONVERSATION</span>
