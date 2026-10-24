@@ -1,4 +1,5 @@
 import app from './entrypoint.js';
+import { chatAiTransparency } from './ai-transparency.js';
 import { handleIntegrations, currentUser } from './integrations.js';
 import { getKnowledgeContext, handleKnowledge } from './knowledge-runtime.js';
 import { getMagnanimousMemoryContext } from './magnanimous-brain-runtime.js';
@@ -435,7 +436,7 @@ async function handle(request, env) {
     if (!message) return json({ detail: 'Message is required.' }, 400);
     const userMessage=originalUserMessage(message);
     const originalLyrics=!computeOnly?nativeOriginalSong(userMessage):'';
-    if(originalLyrics)return json({output:originalLyrics,magnanimous:true,operator:true,native_song:true,delivery:'original-lyrics',voice_performance:'not-generated',routed_automatically:true,route_task:'creative',sources:[]});
+    if(originalLyrics)return json({output:originalLyrics,ai_transparency:chatAiTransparency(),magnanimous:true,operator:true,native_song:true,delivery:'original-lyrics',voice_performance:'not-generated',routed_automatically:true,route_task:'creative',sources:[]});
     const task=taskClass(userMessage,body);
     const capability=nativeCapability(userMessage,task);
     let brainContext=computeOnly?'':extractBrainContext(message);
@@ -513,7 +514,7 @@ async function handle(request, env) {
         }
         if(!computeOnly)await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:true,quality:.85,latency:Date.now()-started,notes:`capability=${capability}; grounded=${grounding.sources.length}; links=${absorbedLinks.length}`});
         if(!computeOnly&&body.use_tools!==false)await foundryCall(request,env,'/api/magnanimous/tool-foundry/outcome',{name:capability,success:true});
-        return json({ output: result.text, provider: p.id, provider_name: p.name, model: result.model, magnanimous: true, operator: true, command_role:'commander-in-chief', provider_role:'execution-engine', routed_automatically:requested==='auto', route_task:task, native_capability:capability, route_policy:String(body.quality||body.route_policy||'free-first'), fallback_candidates:candidates.map(x=>x.id), adaptive_provider_learning:true, provider_learning:learningState, grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured, automatic_research:autoResearch, remembered_research:rememberResearch, link_learning:{enabled:body.learn_links!==false,absorbed:absorbedLinks.length,results:linkLearning}, native_recipe_learning:{observed:true,gap_count:Number(observed?.gap_count||0),proposal:observed?.proposal||null}, tool_planning:{enabled:body.use_tools!==false,learned_tools:toolPlanning.tools?.map(x=>({name:x.name,status:x.status,risk:x.risk}))||[],recommended_integrations:toolPlanning.recommended_integrations?.map(x=>({id:x.id,name:x.name,priority:x.priority,capabilities:x.capabilities}))||[]}, ogenic:{classification:ogenicPlan.classification,groups:ogenicPlan.groups.map(x=>x.id),initiative:ogenicPlan.initiative,status:ogenicPlan.status,network_direction:ogenicPlan.network_direction,safe_initiative:ogenicInitiative} });
+        return json({ output: result.text, ai_transparency:chatAiTransparency(), provider: p.id, provider_name: p.name, model: result.model, magnanimous: true, operator: true, command_role:'commander-in-chief', provider_role:'execution-engine', routed_automatically:requested==='auto', route_task:task, native_capability:capability, route_policy:String(body.quality||body.route_policy||'free-first'), fallback_candidates:candidates.map(x=>x.id), adaptive_provider_learning:true, provider_learning:learningState, grounded: grounding.sources.length>0, sources: grounding.sources, web_search_configured: grounding.search_configured, automatic_research:autoResearch, remembered_research:rememberResearch, link_learning:{enabled:body.learn_links!==false,absorbed:absorbedLinks.length,results:linkLearning}, native_recipe_learning:{observed:true,gap_count:Number(observed?.gap_count||0),proposal:observed?.proposal||null}, tool_planning:{enabled:body.use_tools!==false,learned_tools:toolPlanning.tools?.map(x=>({name:x.name,status:x.status,risk:x.risk}))||[],recommended_integrations:toolPlanning.recommended_integrations?.map(x=>({id:x.id,name:x.name,priority:x.priority,capabilities:x.capabilities}))||[]}, ogenic:{classification:ogenicPlan.classification,groups:ogenicPlan.groups.map(x=>x.id),initiative:ogenicPlan.initiative,status:ogenicPlan.status,network_direction:ogenicPlan.network_direction,safe_initiative:ogenicInitiative} });
       } catch (e) {
         const detail=e?.message || 'provider failed';errors.push(`${p.name}: ${detail}`);
         if(!computeOnly)await recordProviderOutcome(request,env,{task,provider:p.id,message:userMessage,success:false,quality:0,latency:Date.now()-started,notes:detail});
@@ -532,7 +533,7 @@ async function handle(request, env) {
       ? `I could not reach a response engine for this request, but Magnanimous research is still working. Here are the live sources I found:\n\n${sourceLines.join('\n\n')}\n\nYou can retry the question and Magnanimous will automatically try the available AI engines again.`
       : 'Magnanimous could not reach an AI response engine for this request. Your message was preserved. Please retry; Magnanimous will automatically try the available engines again.';
     console.error('Magnanimous AI provider pool exhausted',{task,capability,attempts:errors.length,grounded_sources:sourceLines.length});
-    return json({output:degradedOutput,magnanimous:true,degraded:true,retryable:true,code:'AI_PROVIDER_POOL_DEGRADED',route_task:task,native_capability:capability,sources:grounding.sources||[],automatic_research:autoResearch,provider_errors_hidden:true},200);
+    return json({output:degradedOutput,ai_transparency:chatAiTransparency(),magnanimous:true,degraded:true,retryable:true,code:'AI_PROVIDER_POOL_DEGRADED',route_task:task,native_capability:capability,sources:grounding.sources||[],automatic_research:autoResearch,provider_errors_hidden:true},200);
   }
   return null;
 }
