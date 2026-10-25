@@ -20,12 +20,20 @@ const opportunities:Opportunity[]=[
  },
  {
   id:'welo',name:'Welo Global',status:'active-ph',badge:'PHILIPPINES • ACTIVE ROLES',
-  summary:'Current official Philippines listings include remote/freelance AI training, language, quality-control, rating and video-annotation work.',
+  summary:'Current official Philippines listings include remote/freelance AI training, quality review, ads rating and video annotation. Some AI Trainers Network entries are talent pools, not active paid job openings.',
   requirements:['Requirements differ by role','Apply only through the official Welo/Lever listing','Do not assume every role is open indefinitely; the official list is the live source'],
-  examples:['AI Data Quality Specialist — English (Philippines)','AI Trainers Network — Cebuano / English / Tagalog','Robot Manipulation Video Annotator','Filipino Quality Control Specialist'],
+  examples:['AI Data Quality Specialist — English (Philippines)','AI Trainers Network — Cebuano / English / Tagalog (talent pools; no immediate work)','Robot Manipulation Video Annotator','Ads Quality Rater — Filipino (Philippines)'],
   official:'https://jobs.lever.co/weloglobal/?location=Philippines',
   cta:'Open current Philippines roles',
   verified:'2026-10-23'
+ },
+ {
+  id:'welo-ads-quality-rater-filipino',name:'Welo Data — Ads Quality Rater (Filipino, Philippines)',status:'active-ph',badge:'PHILIPPINES • REMOTE • BEGINNER-FRIENDLY ADS RATING',
+  summary:'Official freelance work rating online advertisements in Filipino and English. Pay is per task, approximately USD 4/hour rather than a guaranteed hourly wage. Minimum commitment 5 hours/week; up to 20 hours/week if tasks are available.',
+  requirements:['Must currently reside in the Philippines and be legally eligible for local freelance work; location is checked during onboarding','Fluent Filipino and strong English, familiarity with search engines and current popular culture','Reliable computer and internet required; this is not advertised as a phone-only role','Self-paced online screening; NDA and service agreement required','Employer explicitly prohibits IP masking or VPN use during its identity checks; do not bypass location checks','Task supply and effective hourly earnings may vary; no application fee is advertised'],
+  official:'https://jobs.lever.co/weloglobal/57c971f9-c1da-4aa6-87f2-23b93a9d097d',
+  cta:'Apply on official Welo listing',
+  verified:'2026-10-25'
  },
  {
   id:'welo-cursa-annotator',name:'Welo Data — Project Cursa Video Annotator (V2)',status:'active-ph',badge:'PHILIPPINES • REMOTE • AI VIDEO',
@@ -131,7 +139,7 @@ export default function OpportunityVault(){
    </article>)}
   </section>
   <section className="watch">
-   <small>STARTUP FUNDING WATCH • 2026-10-24</small><h2>DICT / IIDB Startup Grant Fund 2026 — not yet confirmed open</h2><p>IIDB said its revised SGF circular and next application call were targeted for October 2026, but a published official 2026 application opening, deadline, final eligibility rules and templates have not been verified. Do not confuse this with the separate DOST SGF or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
+   <small>STARTUP FUNDING WATCH • 2026-10-25</small><h2>DICT / IIDB Startup Grant Fund 2026 — not yet confirmed open</h2><p>IIDB said its revised SGF circular and next application call were targeted for October 2026, but a published official 2026 application opening, deadline, final eligibility rules and templates have not been verified. Do not confuse this with the separate DOST SGF or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
    <h2>Unverified names stay out of the active list.</h2><p>Older notes mentioned ClarU.ai/Claru.ai, but no sufficiently authoritative current opportunity source has been verified, so it is not presented as an active earning option. AniAni is listed with pilot and privacy warnings, not a verified payout history.</p>
   </section>
   <style jsx>{`
