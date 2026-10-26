@@ -50,3 +50,26 @@ The scanner is a **defense-in-depth reviewer**, not a comprehensive security aud
 - Do not loosen security, telecom legal gating, billing controls, existing animations, screens, or working functionality.
 - Do not interpret a merged PR or green synthetic test as evidence that all production surfaces are secure, deployed or functioning.
 - Repository is currently publicly visible according to the GitHub repository API; the separate owner-requested move to private must be handled with compatibility checks for deployment and GitHub Actions rather than silently treating it as completed.
+
+## Second-stage native implementation — 2026-10-26
+
+An additional original-code review module, `qa/scripts/magnanimous-native-review-depth.mjs`, is invoked by the existing native PR review workflow:
+
+- Parses JavaScript/TypeScript relative imports/exports and maps reverse dependencies to identify additional files likely affected by a change (bounded read-only heuristic; not a full type-aware call graph).
+- Triage of **added diff lines** for dynamic execution, HTML/SQL injection surfaces, permissive CORS/cookies, disabled TLS verification and sensitive logging; each finding explicitly requires human/code-level verification.
+- Reviews **modified npm lockfile inventories** for new or changed packages, installation scripts, registry-origin drift and missing integrity metadata; blocks newly introduced cleartext HTTP resolved dependencies or malformed lockfiles.
+- Blocks newly added/modified sensitive files such as real `.env` files or private-key files. This should not be confused with runtime secret scanning.
+- Provides an actionable PR-check summary with affected file samples, counts and risk categories, without running install hooks, sending code to an AI provider, creating payments or modifying production.
+- Includes synthetic self-tests in CI for reverse-import dependencies, changed-line filtering, lockfile risk and sensitive file handling. CI success means tests executed, **not** that all runtime or application vulnerabilities are fixed.
+
+**Scope limitation:** Does not perform complete code semantics, taint/call-graph analysis, exploit verification, package vulnerability matching to advisories, license provenance audits, or deterministic auto-repair of arbitrary source. Python, dynamic imports, and dependencies resolved via aliases may not appear in the graph. Additional tools can be deployed only after their licenses, data disclosure, operational cost, and private repository compatibility are verified.
+
+**Operational privacy note:** As confirmed against GitHub's official docs, changing this very active repository from public to private could remove public-only code scanning and make GitHub-hosted Actions count against private-repository free-minute quotas. All working deploy connectors and credentials must be confirmed before a visibility switch. Existing public forks remain public even after a switch. No new billable scan service was registered.
+
+Relevant primary documentation:
+- https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility
+- https://docs.github.com/en/actions/concepts/billing-and-usage
+- https://google.github.io/osv-scanner/usage/
+- https://github.com/google/osv-scanner/releases/tag/v2.6.0
+
+**Remediation sequence:** inspect the security report, confirm the finding in the real code path, make the smallest additive patch in a separate branch, run the affected unit/security/production smoke checks, then review and merge only after gates pass. Avoid auto-running `npm install`, arbitrary package upgrades, or operating third-party scanners with secret-bearing configuration from a pull request.
