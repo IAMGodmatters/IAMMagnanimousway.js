@@ -34,6 +34,7 @@ import { applyBillingPlanCompatibility } from './billing-plan-compatibility.js';
 import { handleVoiceAgent } from './voice-agent-runtime.js';
 import { handlePhoneCarrier } from './phone-carrier-runtime.js';
 import { handleAgentMesh } from './agent-mesh-runtime.js';
+import { handleMagnanimousModelArena } from './magnanimous-model-arena.js';
 import { handleBootstrap } from './secure-bootstrap.js';
 import { getProviderRuntimeEnv } from './provider-runtime-env.js';
 import { handlePaymentLinkBilling, augmentBillingResponse } from './payment-link-runtime.js';
@@ -72,6 +73,7 @@ export default{async fetch(request,env,ctx){const url=new URL(request.url);if(re
  if(url.pathname.startsWith('/api/magnanimous/inkbox')){const r=await handleMagnanimousInkboxRouter(request,providerEnv);if(r)return withCors(r);}
  if(url.pathname.startsWith('/api/magnanimous/tools')){const r=await handleMagnanimousToolGateway(request,providerEnv);if(r)return withCors(r);}
  if(url.pathname.startsWith('/api/magnanimous/dns')){const r=await handleMagnanimousDns(request,providerEnv);if(r)return withCors(r);}
+ if(url.pathname.startsWith('/api/magnanimous/model-arena')){const r=await handleMagnanimousModelArena(request,providerEnv);if(r)return withCors(r);}
  if(url.pathname.startsWith('/api/magnanimous/')){const r=await handleMagnanimousBrain(request,providerEnv);if(r)return withCors(r);}
  const businessPlanResponse=await handleBusinessPlan(request,providerEnv);if(businessPlanResponse)return withCors(businessPlanResponse);
  const videoAgentsResponse=await handleVideoAgents(request,providerEnv);if(videoAgentsResponse)return withCors(await premiumPostprocess(videoAgentsResponse,providerEnv,premium.context));
