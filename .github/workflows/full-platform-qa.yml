@@ -75,6 +75,9 @@ jobs:
       - name: Lock no-spend model comparison arena
         run: node qa/scripts/magnanimous-model-arena-lock.mjs
 
+      - name: Exercise native no-spend Magnanimous Cloud D1 control plane
+        run: node qa/scripts/magnanimous-cloud-edge-lock.mjs
+
       - name: Verify Magnanimous native vibe coding studio
         run: node qa/scripts/magnanimous-vibe-studio-lock.mjs
 
