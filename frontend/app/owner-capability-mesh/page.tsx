@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect,useState} from 'react';
+import ModelArena from './model-arena';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 type Ready={id:string;ready:boolean;required:boolean;mode:string;detail:string};
@@ -62,6 +63,7 @@ export default function OwnerCapabilityMesh(){
    <a href="/owner-infrastructure" style={{padding:'12px 15px',borderRadius:10,border:'1px solid #31515f',color:'#a8eaff',textDecoration:'none'}}>Infrastructure →</a>
   </section>
   {data&&<>
+   <ModelArena getToken={token} />
    <section style={{maxWidth:1400,margin:'0 auto 12px',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:10}}>
     {data.readiness.map(r=><article key={r.id} style={{...card,borderColor:r.ready?'#275943':r.required?'#7a3d45':'#625329'}}><small style={{color:r.ready?'#84edaa':r.required?'#ffabb4':'#e8c975'}}>{r.ready?'READY':r.required?'ACTION NEEDED':'OPTIONAL / NOT READY'}</small><h3>{r.id}</h3><p style={{color:'#91a8b2',lineHeight:1.5}}>{r.detail}</p><code>{r.mode}</code></article>)}
    </section>

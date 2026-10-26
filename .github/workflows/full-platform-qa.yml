@@ -72,6 +72,9 @@ jobs:
       - name: Lock Magnanimous native developer agent
         run: node qa/scripts/magnanimous-dev-agent-lock.mjs
 
+      - name: Lock no-spend model comparison arena
+        run: node qa/scripts/magnanimous-model-arena-lock.mjs
+
       - name: Verify Magnanimous native vibe coding studio
         run: node qa/scripts/magnanimous-vibe-studio-lock.mjs
 

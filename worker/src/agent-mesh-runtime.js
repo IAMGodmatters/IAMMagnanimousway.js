@@ -2,6 +2,7 @@ import { currentUser } from './integrations.js';
 import { magnanimousPublicRoutingSummary } from './magnanimous-single-brain-contract.js';
 import { branchKnowledge, branchProfile, branchKnowledgeContext } from './agent-branch-intelligence.js';
 import { MAGNANIMOUS_ENGINEERING_AGENTS } from './magnanimous-ecc-engineering.js';
+import { MAGNANIMOUS_MODEL_ARENA_AGENTS } from './magnanimous-model-arena-skills.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const now=()=>Math.floor(Date.now()/1000);
@@ -94,7 +95,7 @@ const AGENTS=[
  ['governor','Governor','Agent Administration','Plan access control, environment separation, connector governance, audit trails, monitoring, cost controls, data-loss prevention and agent lifecycle operations.','business'],
  ['architect','Architect','Agentic Solution Architect','Design agentic solutions with architecture trade-offs, orchestration, approval boundaries, reliability, observability, deployment and governance.','business'],
  ['transform','Transform','AI Transformation Leader','Map AI opportunities to business value, process redesign, workforce adoption, risk, ROI and responsible governance.','business']
-].map(([id,name,title,description,group])=>({id,name,title,description,group})).concat(MAGNANIMOUS_ENGINEERING_AGENTS);
+].map(([id,name,title,description,group])=>({id,name,title,description,group})).concat(MAGNANIMOUS_ENGINEERING_AGENTS).concat(MAGNANIMOUS_MODEL_ARENA_AGENTS);
 
 const PROVIDERS=[
  {id:'cloudflare-ai',name:'Cloudflare Workers AI',tier:'built-in-free',key:'AI',priority:1,note:'Built in; free allocation on Workers AI.'},
