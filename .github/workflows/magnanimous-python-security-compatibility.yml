@@ -46,7 +46,6 @@ jobs:
           from fastapi import FastAPI, Depends, Header, HTTPException, WebSocket, Request
           from starlette.responses import JSONResponse, StreamingResponse
           from starlette.middleware.cors import CORSMiddleware
-          from starlette.middleware.sessions import SessionMiddleware
           from starlette.testclient import TestClient
           app=FastAPI()
           @app.get('/health')
