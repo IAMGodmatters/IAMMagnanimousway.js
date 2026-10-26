@@ -35,6 +35,7 @@
 - Candidate texts travel to the authenticated Magnanimous Worker for scoring, but not to third-party model providers. No paid provider calls, persistent storage, raw outputs in the response, or automatic evaluation telemetry.
 - Scores **are not** an AI judge, factual verification, policy compliance proof, or production benchmark. A high lexical score may still be incorrect.
 - Exactly 10 original Magnanimous skills and 1 model-evaluation specialist agent profile are added to existing registries.
+- Owner Capability Mesh includes a responsive, accessible Model Comparison Arena form with 2–8 answer inputs, rubric fields and read-only result cards. It reuses the existing owner login token; it does not request provider keys.
 
 ### Example owner-only request
 
@@ -57,4 +58,4 @@
 - `node qa/scripts/magnanimous-model-arena-lock.mjs` covers strict input checks, scoring, no raw output echo, zero external spend, and fail-closed DB availability.
 - GitHub CI, production deploy status, and an authenticated owner invocation must be checked separately before claiming full end-to-end production operation.
 - No local model installation, OpenRouter key provisioning, new paid calls, or changed customer billing is part of this change.
-- Future work: independent semantic evaluation with known-ground-truth benchmarks, accessible comparison UI, tenant-specific opt-in history, funded provider fan-out and measured latency/cost. Those are not claimed operational here.
+- Future work: independent semantic evaluation with known-ground-truth benchmarks, richer UI evaluations, tenant-specific opt-in history, funded provider fan-out and measured latency/cost. Those are not claimed operational here.

@@ -14,9 +14,13 @@ assert.ok(MAGNANIMOUS_MODEL_ARENA_SKILLS.every(x=>x.metadata.owner==='Magnanimou
 const registry=fs.readFileSync('worker/src/magnanimous-agent-skills.js','utf8');
 const agentMesh=fs.readFileSync('worker/src/agent-mesh-runtime.js','utf8');
 const router=fs.readFileSync('worker/src/router-entrypoint.js','utf8');
+const ownerPage=fs.readFileSync('frontend/app/owner-capability-mesh/page.tsx','utf8');
+const ownerWidget=fs.readFileSync('frontend/app/owner-capability-mesh/model-arena.tsx','utf8');
 assert.ok(registry.includes('...MAGNANIMOUS_MODEL_ARENA_SKILLS'),'Native skills must be discoverable.');
 assert.ok(agentMesh.includes('.concat(MAGNANIMOUS_ENGINEERING_AGENTS).concat(MAGNANIMOUS_MODEL_ARENA_AGENTS)'),'Model-evaluation specialist must be in the live agent registry without changing the existing specialist contract.');
 assert.ok(router.includes('handleMagnanimousModelArena(request,providerEnv)'),'Authenticated model arena must be mounted on the Worker router.');
+assert.ok(ownerPage.includes('<ModelArena getToken={token} />'),'Owner Capability Mesh page must show the clickable comparison tool.');
+assert.ok(ownerWidget.includes("/api/magnanimous/model-arena/evaluate"),'Owner interface must call the real evaluator endpoint.');
 
 const demo={
  rubric:{required_phrases:['tenant isolation','audit log','cost ceiling'],excluded_phrases:['disable security']},
