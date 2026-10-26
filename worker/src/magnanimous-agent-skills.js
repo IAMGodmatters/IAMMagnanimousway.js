@@ -1,4 +1,5 @@
 import { MAGNANIMOUS_CLOUD_SECURITY_PLAYBOOKS } from './magnanimous-cloud-security-playbooks.js';
+import { MAGNANIMOUS_ENGINEERING_SKILLS } from './magnanimous-ecc-engineering.js';
 const clip=(value,max=120000)=>String(value??'').replace(/\r\n/g,'\n').slice(0,max);
 const uniq=(items)=>[...new Set(items.filter(Boolean))];
 const MAX_SKILL_SOURCE_LENGTH=160000;
@@ -145,7 +146,8 @@ const BUILTIN=Object.freeze([
 4. Do not flash firmware, extract personal data, erase, unlock, bypass device protections or accept arbitrary shell arguments.
 5. Compatibility is device-specific and unverified until tested. Maintain source MIT attribution and warn about device-bricking risks for any future firmware operation.`
  },
- ...MAGNANIMOUS_CLOUD_SECURITY_PLAYBOOKS
+ ...MAGNANIMOUS_CLOUD_SECURITY_PLAYBOOKS,
+ ...MAGNANIMOUS_ENGINEERING_SKILLS
 ]);
 
 function normalizeName(value){return clip(value,80).trim();}

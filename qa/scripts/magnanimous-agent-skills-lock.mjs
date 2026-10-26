@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { MAGNANIMOUS_ENGINEERING_SKILLS, MAGNANIMOUS_ENGINEERING_AGENTS, MAGNANIMOUS_ENGINEERING_ABSORPTION } from '../../worker/src/magnanimous-ecc-engineering.js';
 import {
   MAGNANIMOUS_AGENT_SKILLS_POLICY,
   getMagnanimousAgentSkillsSummary,
@@ -63,4 +64,27 @@ for(const [name,prompt] of [
  const resolved=resolveMagnanimousAgentSkills(prompt,{limit:8});
  assert.ok(resolved.some(x=>x.name===name),name+' must resolve from an appropriate user goal.');
 }
+
+assert.equal(MAGNANIMOUS_ENGINEERING_SKILLS.length,30,'First-party engineering pack must keep 30 validated workflows.');
+assert.equal(MAGNANIMOUS_ENGINEERING_AGENTS.length,10,'Engineering department must retain 10 callable specialist profiles.');
+assert.equal(new Set(MAGNANIMOUS_ENGINEERING_SKILLS.map(x=>x.name)).size,30,'Skill IDs must be unique.');
+assert.equal(new Set(MAGNANIMOUS_ENGINEERING_AGENTS.map(x=>x.id)).size,10,'Agent IDs must be unique.');
+assert.equal(MAGNANIMOUS_ENGINEERING_ABSORPTION.copied_proprietary_code,false);
+assert.equal(MAGNANIMOUS_ENGINEERING_ABSORPTION.external_scripts_auto_executed,false);
+for(const skill of MAGNANIMOUS_ENGINEERING_SKILLS){
+ assert.ok(skill.description&&skill.instructions.includes('Expected evidence:'),skill.name+' must have an outcome contract.');
+ assert.ok(skill.instructions.includes('Magnanimous AI retains identity'),skill.name+' must preserve brain identity.');
+ assert.ok(listMagnanimousAgentSkills({query:skill.name,limit:500}).some(x=>x.name===skill.name),skill.name+' must be catalogued.');
+}
+for(const [name,phrase] of [
+ ['test-first-change','tdd red green refactor'],
+ ['agent-quality-evaluation','agent performance prompt evaluation'],
+ ['telecom-readiness-gate','telecom authority carrier readiness']
+]){
+ assert.ok(resolveMagnanimousAgentSkills(phrase,{limit:12}).some(x=>x.name===name),name+' must resolve to a matching task.');
+}
+const agentMeshSource=fs.readFileSync('worker/src/agent-mesh-runtime.js','utf8');
+assert.ok(agentMeshSource.includes('concat(MAGNANIMOUS_ENGINEERING_AGENTS)'),'Existing Agent Mesh must include the new specialist department.');
+assert.ok(summary.builtin_skill_count>=62,'Native agent skill registry must grow without replacing prior skills.');
+
 console.log('Magnanimous Agent Skills compatibility lock passed.');
