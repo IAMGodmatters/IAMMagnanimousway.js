@@ -95,7 +95,7 @@ const AGENTS=[
  ['governor','Governor','Agent Administration','Plan access control, environment separation, connector governance, audit trails, monitoring, cost controls, data-loss prevention and agent lifecycle operations.','business'],
  ['architect','Architect','Agentic Solution Architect','Design agentic solutions with architecture trade-offs, orchestration, approval boundaries, reliability, observability, deployment and governance.','business'],
  ['transform','Transform','AI Transformation Leader','Map AI opportunities to business value, process redesign, workforce adoption, risk, ROI and responsible governance.','business']
-].map(([id,name,title,description,group])=>({id,name,title,description,group})).concat(MAGNANIMOUS_ENGINEERING_AGENTS,MAGNANIMOUS_MODEL_ARENA_AGENTS);
+].map(([id,name,title,description,group])=>({id,name,title,description,group})).concat(MAGNANIMOUS_ENGINEERING_AGENTS).concat(MAGNANIMOUS_MODEL_ARENA_AGENTS);
 
 const PROVIDERS=[
  {id:'cloudflare-ai',name:'Cloudflare Workers AI',tier:'built-in-free',key:'AI',priority:1,note:'Built in; free allocation on Workers AI.'},

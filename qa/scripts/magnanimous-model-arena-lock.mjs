@@ -15,7 +15,7 @@ const registry=fs.readFileSync('worker/src/magnanimous-agent-skills.js','utf8');
 const agentMesh=fs.readFileSync('worker/src/agent-mesh-runtime.js','utf8');
 const router=fs.readFileSync('worker/src/router-entrypoint.js','utf8');
 assert.ok(registry.includes('...MAGNANIMOUS_MODEL_ARENA_SKILLS'),'Native skills must be discoverable.');
-assert.ok(agentMesh.includes('.concat(MAGNANIMOUS_ENGINEERING_AGENTS,MAGNANIMOUS_MODEL_ARENA_AGENTS)'),'Model-evaluation specialist must be in the live agent registry.');
+assert.ok(agentMesh.includes('.concat(MAGNANIMOUS_ENGINEERING_AGENTS).concat(MAGNANIMOUS_MODEL_ARENA_AGENTS)'),'Model-evaluation specialist must be in the live agent registry without changing the existing specialist contract.');
 assert.ok(router.includes('handleMagnanimousModelArena(request,providerEnv)'),'Authenticated model arena must be mounted on the Worker router.');
 
 const demo={
