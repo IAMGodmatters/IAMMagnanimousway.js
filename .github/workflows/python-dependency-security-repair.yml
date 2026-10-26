@@ -46,6 +46,17 @@ jobs:
           assert app is not None
           print('Patched dependency set imports and pins verified.')
           PY
+      - name: Verify real service entrypoint imports
+        env:
+          SERVICE: ${{ matrix.service }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$SERVICE" = 'telecom-core/control-api' ]; then
+            PYTHONPATH=telecom-core/control-api python -c "from app.main import app; assert app.title == 'Magnanimous Telecom Core'; print('Real Telecom Core import PASS')"
+          else
+            PYTHONPATH=video-renderer python -c "from server import app; assert app.title == 'I AM Magnanimous Free Video Renderer'; print('Real renderer import PASS')"
+          fi
       - name: Run service regression tests
         env:
           SERVICE: ${{ matrix.service }}
