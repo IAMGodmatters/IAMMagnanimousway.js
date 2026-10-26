@@ -73,3 +73,18 @@ Relevant primary documentation:
 - https://github.com/google/osv-scanner/releases/tag/v2.6.0
 
 **Remediation sequence:** inspect the security report, confirm the finding in the real code path, make the smallest additive patch in a separate branch, run the affected unit/security/production smoke checks, then review and merge only after gates pass. Avoid auto-running `npm install`, arbitrary package upgrades, or operating third-party scanners with secret-bearing configuration from a pull request.
+
+## Verified OSS vulnerability matching — additive free-first workflow
+
+Added `.github/workflows/magnanimous-osv-vulnerability-audit.yml` to use Google's OSV Scanner (v2.6.0), an open-source vulnerability matching tool. It downloads the official Linux binary from a versioned release, verifies SHA-256 `ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108` before executing it, and performs a read-only dependency scan with `osv-scanner scan --format table -r .`.
+
+- **Schedule:** Mondays 03:41 UTC, plus owner-invoked workflow dispatch.
+- **CI validation:** on pull requests changing the workflow itself, validate download checksum and executable version. The PR validation does **not** claim a full vulnerability scan was run.
+- **Cost gate:** scanner job only runs for currently public repositories, where standard hosted GitHub Actions minutes are free. If the repository is made private, the workflow intentionally skips until the owner configures a reviewed, funded schedule or local execution arrangement.
+- **Data privacy:** This workflow uses a public vulnerability database; the scanner's own documentation says it sends package coordinates, versions and some file hashes to dependency services, rather than uploading source code. No repository/model credentials or telemetry provider account are passed. Any stronger privacy requirement can use OSV's offline database workflow in the future.
+- **Failure semantics:** Scheduled/manual scans must fail and surface findings or operational errors; a failed vulnerability check is not a passing security result. Remediation requires dependency reachability review and tested, minimal upgrades.
+- **Agent route:** The existing native `dependency-review`, `test-first-change` and `regression-risk-map` engineering skills in `worker/src/magnanimous-ecc-engineering.js` already specify a supervised fix/retest workflow. No duplicate runtime skill, automatic package upgrades, unsafe `osv-scanner fix` execution or remote AI provider was added.
+
+Official sources: https://github.com/google/osv-scanner/releases/tag/v2.6.0 ; https://google.github.io/osv-scanner/usage/ ; https://google.github.io/osv-scanner/output/ .
+
+A scanner workflow being checked into `main` is not proof that a scheduled production dependency scan has executed; inspect its GitHub Actions run and results before claiming vulnerability resolution.
