@@ -65,3 +65,14 @@ jobs:
           assert any(x.get('type')=='http.response.body' and b'"ok":true' in x.get('body',b'') for x in messages)
           print('Python dependencies and framework smoke PASS:',fastapi.__version__,starlette.__version__)
           PY
+      - name: Import the actual service entrypoint
+        shell: bash
+        env:
+          REQUIREMENTS: ${{ matrix.requirements }}
+        run: |
+          set -euo pipefail
+          if [[ "$REQUIREMENTS" == 'video-renderer/requirements.txt' ]]; then
+            PYTHONPATH=video-renderer python -c "from server import app; assert app.title == 'I AM Magnanimous Free Video Renderer'; print('Real video renderer import PASS')"
+          else
+            PYTHONPATH=telecom-core/control-api python -c "from app.main import app; assert app.title == 'Magnanimous Telecom Core'; print('Real Telecom Core import PASS')"
+          fi
