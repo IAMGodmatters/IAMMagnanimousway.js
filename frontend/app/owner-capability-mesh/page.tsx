@@ -2,6 +2,7 @@
 
 import {useEffect,useState} from 'react';
 import ModelArena from './model-arena';
+import {connectionError,fetchWithTimeout} from './network';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 type Ready={id:string;ready:boolean;required:boolean;mode:string;detail:string};
@@ -24,38 +25,46 @@ async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}
 const card={border:'1px solid #254552',borderRadius:16,padding:18,background:'#071117'} as const;
 
 export default function OwnerCapabilityMesh(){
- const[data,setData]=useState<Mesh|null>(null),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState('');
+ const[data,setData]=useState<Mesh|null>(null),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(''),[loading,setLoading]=useState(true);
  const token=()=>localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token')||'';
  async function load(){
   const t=token();if(!t){location.replace('/owner-login?returnTo=%2Fowner-capability-mesh');return}
-  setError('');
-  const r=await fetch(api+'/api/magnanimous/capability-mesh',{headers:{Authorization:'Bearer '+t},cache:'no-store'}),d=await read(r);
-  if(r.status===401||r.status===403){localStorage.removeItem('odin_admin_token');localStorage.removeItem('magnanimous_admin_token');location.replace('/owner-login?returnTo=%2Fowner-capability-mesh');return}
-  if(!r.ok){setError(d.detail||'Capability Mesh could not load.');return}
-  setData(d);
+  setError('');setLoading(true);
+  try{
+   const r=await fetchWithTimeout(api+'/api/magnanimous/capability-mesh',{headers:{Authorization:'Bearer '+t},cache:'no-store'}),d=await read(r);
+   if(r.status===401||r.status===403){localStorage.removeItem('odin_admin_token');localStorage.removeItem('magnanimous_admin_token');location.replace('/owner-login?returnTo=%2Fowner-capability-mesh');return}
+   if(!r.ok){setError(d.detail||'Capability Mesh could not load.');return}
+   setData(d);
+  }catch(e){setError(connectionError(e))}
+  finally{setLoading(false)}
  }
  useEffect(()=>{load()},[]);
  async function selfCheck(){
   setBusy('check');setMessage('');setError('');
-  const r=await fetch(api+'/api/magnanimous/capability-mesh/self-check',{method:'POST',headers:{Authorization:'Bearer '+token()},cache:'no-store'}),d=await read(r);
-  if(r.ok){setMessage('Capability Mesh self-check recorded.');setData({...d.summary,recent_checks:[d.check,...(data?.recent_checks||[])].filter(Boolean).slice(0,20)})}
-  else setError(d.detail||'Self-check failed.');
-  setBusy('');
+  try{
+   const r=await fetchWithTimeout(api+'/api/magnanimous/capability-mesh/self-check',{method:'POST',headers:{Authorization:'Bearer '+token()},cache:'no-store'}),d=await read(r);
+   if(r.ok){setMessage('Capability Mesh self-check recorded.');setData({...d.summary,recent_checks:[d.check,...(data?.recent_checks||[])].filter(Boolean).slice(0,20)})}
+   else setError(d.detail||'Self-check failed.');
+  }catch(e){setError(connectionError(e)+' If the check reached the server, it may have been recorded; refresh before trying again.')}
+  finally{setBusy('')}
  }
  async function stageRailway(){
   setBusy('railway');setMessage('');setError('');
-  const r=await fetch(api+'/api/magnanimous/capability-mesh/route',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({capability:'railway.deploy_exact',input:{}})}),d=await read(r);
-  if(r.ok){setMessage(d.status==='needs_confirmation'?'Exact-main Railway promotion is staged. Review and approve it in Magnanimous Dev Agent before execution.':'Railway promotion request prepared.');}
-  else setError(d.detail||'Railway promotion could not be staged.');
-  setBusy('');
+  try{
+   const r=await fetchWithTimeout(api+'/api/magnanimous/capability-mesh/route',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token()},body:JSON.stringify({capability:'railway.deploy_exact',input:{}})}),d=await read(r);
+   if(r.ok){setMessage(d.status==='needs_confirmation'?'Exact-main Railway promotion is staged. Review and approve it in Magnanimous Dev Agent before execution.':'Railway promotion request prepared.');}
+   else setError(d.detail||'Railway promotion could not be staged.');
+  }catch(e){setError(connectionError(e)+' Review Developer Agent before staging this action again.')}
+  finally{setBusy('')}
  }
  return <main style={{minHeight:'100vh',background:'#04090d',color:'#ecf8ff',padding:'24px 30px 60px',fontFamily:'Inter,system-ui,sans-serif'}}>
   <header style={{maxWidth:1400,margin:'auto',display:'flex',justifyContent:'space-between',fontSize:10,letterSpacing:'.16em',color:'#7194a4'}}><a href="/owner-center" style={{color:'#7be7ff'}}>← Owner Center</a><span>PRIVATE MAGNANIMOUS CONTROL</span></header>
   <section style={{...card,maxWidth:1400,margin:'28px auto 12px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:24,flexWrap:'wrap'}}>
    <div><small style={{color:'#60ddf7'}}>I AM MAGNANIMOUS WAY™</small><h1 style={{fontSize:'clamp(38px,6vw,68px)',margin:'8px 0'}}>Capability Mesh</h1><p style={{maxWidth:850,color:'#90aab6',lineHeight:1.6}}>One Magnanimous AI command layer for native web, approved owner-local media/archive/device tools, GitHub engineering, Magnanimous Cloud, optional Cloudflare adapters and optional Railway capacity/deployment rails. Providers and desktop utilities remain tools beneath the Magnanimous brain.</p></div>
-   <div style={{display:'grid',gap:8,minWidth:250}}><b>{data?.status||'LOADING'}</b><span>{data?`${data.required_ready_count??data.readiness.filter(r=>r.required&&r.ready).length} / ${data.required_check_count??data.readiness.filter(r=>r.required).length} required capabilities working`:'Reading runtime evidence…'}</span><span>{data?`${data.optional_ready_count??data.readiness.filter(r=>!r.required&&r.ready).length} / ${data.optional_check_count??data.readiness.filter(r=>!r.required).length} optional integrations active`:'—'}</span><span>{data?data.route_count+' routed capability actions':'—'}</span></div>
+   <div style={{display:'grid',gap:8,minWidth:250}}><b>{data?.status||(loading?'LOADING':'CONNECTION NEEDS ATTENTION')}</b><span>{data?`${data.required_ready_count??data.readiness.filter(r=>r.required&&r.ready).length} / ${data.required_check_count??data.readiness.filter(r=>r.required).length} required capabilities working`:'Reading runtime evidence…'}</span><span>{data?`${data.optional_ready_count??data.readiness.filter(r=>!r.required&&r.ready).length} / ${data.optional_check_count??data.readiness.filter(r=>!r.required).length} optional integrations active`:'—'}</span><span>{data?data.route_count+' routed capability actions':'—'}</span></div>
   </section>
   {(message||error)&&<section style={{...card,maxWidth:1400,margin:'0 auto 12px',borderColor:error?'#713b43':'#315f48',color:error?'#ffc0c8':'#a9f1bd'}}>{error||message}</section>}
+  {error&&<section style={{maxWidth:1400,margin:'0 auto 12px'}}><button type="button" onClick={load} disabled={loading||!!busy} style={{padding:'12px 15px',borderRadius:10,border:'1px solid #26788e',background:'#0d5264',color:'#effcff',fontWeight:800,cursor:'pointer'}}>{loading?'RECONNECTING…':'RETRY CAPABILITY MESH CONNECTION'}</button></section>}
   <section style={{maxWidth:1400,margin:'0 auto 12px',display:'flex',gap:10,flexWrap:'wrap'}}>
    <button onClick={selfCheck} disabled={!!busy} style={{padding:'12px 15px',borderRadius:10,border:'1px solid #26788e',background:'#0d5264',color:'#effcff',fontWeight:800,cursor:'pointer'}}>{busy==='check'?'CHECKING…':'RUN FULL READINESS CHECK'}</button>
    <button onClick={stageRailway} disabled={!!busy||!data?.surfaces?.railway?.exact_commit_workflow_control_ready} style={{padding:'12px 15px',borderRadius:10,border:'1px solid #6b5a2b',background:'#463610',color:'#ffe8a8',fontWeight:800,cursor:'pointer'}}>{busy==='railway'?'STAGING…':'STAGE CURRENT-MAIN RAILWAY PROMOTION'}</button>
