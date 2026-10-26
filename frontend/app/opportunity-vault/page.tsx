@@ -76,6 +76,24 @@ const opportunities:Opportunity[]=[
   verified:'2026-10-24'
  },
  {
+  id:'tsmg-filipino-audio-transcription',name:'TSMG — Filipino Audio Transcription Specialist',status:'active-ph',badge:'PHILIPPINES • REMOTE • BEGINNER-FRIENDLY AUDIO',
+  summary:'TSMG officially lists remote Filipino-language audio transcription work, full-time or part-time. Listen to recorded speech and transcribe it according to project guidelines. Pay is NOT disclosed by the employer; do not rely on salary estimates from job aggregators.',
+  requirements:['Remote in the Philippines; Filipino and English at approximately B2 proficiency are requested','Strong listening and typing skills, computer access and reliable internet','Previous transcription or annotation experience is helpful but not required','Project volume, compensation, payment structure and start date must be confirmed in the official application; no guaranteed income','Use the employer-hosted Lever job board, not third-party job-board payment or registration links'],
+  official:'https://jobs.lever.co/tsmg?location=Remote+in+Philippines',
+  cta:'Find Filipino transcription on official TSMG board',
+  verified:'2026-10-26'
+ },
+ {
+  id:'tsmg-filipino-transcription-qc',name:'TSMG — Filipino AI Transcription Quality Control',status:'active-ph',badge:'PHILIPPINES • REMOTE • AUDIO QUALITY REVIEW',
+  summary:'TSMG officially lists remote full-time or part-time Filipino-language quality review of AI speech transcripts, including punctuation, capitalization and normalization. Employer does not disclose a pay rate. The application says payment is based on VALIDATED WORK, not hours worked.',
+  requirements:['Remote in the Philippines; excellent written Filipino and attention to detail','Check transcription accuracy against project rules and source audio where needed','Basic computer skills and reliable internet; prior transcription, proofreading or QA experience is a plus','Independent-contractor and short-term project terms appear in the official application','Verify per-unit pay, rejection criteria and payment schedule before accepting work; no earnings guaranteed'],
+  official:'https://jobs.lever.co/tsmg/cbef245a-5e6e-4204-b2b5-fd9fec71f50c/apply',
+  secondary:'https://jobs.lever.co/tsmg?location=Remote+in+Philippines',
+  secondaryLabel:'Employer Philippines job board',
+  cta:'Open official TSMG application',
+  verified:'2026-10-26'
+ },
+ {
   id:'aniani',name:'AniAni — Household Video Tasks (Android pilot)',status:'location-check',badge:'METRO MANILA ONLY • ANDROID PILOT',
   summary:'The operator advertises paid first-person household-task recordings. Advertised ₱150 per approved hour, up to ₱250 for boosted tasks; actual payment track record has NOT been independently verified.',
   requirements:['Currently onboarding in Metro Manila only; not a nationwide or iPhone opportunity','Android app available on Google Play; iOS listed as coming soon','Operator says free signup, free head strap after approved practice task, Friday GCash payments at ₱100 minimum','Google Play listing updated October 21, 2026; its data disclosures include photo/video/audio sharing','Operator website displays no actual contributor payout receipts yet; treat this as an unproven pilot','Never record children, private conversations, IDs, financial details or anyone without consent; do not pay a fee'],
@@ -86,12 +104,14 @@ const opportunities:Opportunity[]=[
   verified:'2026-10-23'
  },
  {
-  id:'outlier',name:'Outlier',status:'location-check',badge:'LOCATION-DEPENDENT',
-  summary:'Flexible AI-training and evaluation projects are listed globally, but specific roles can be blocked by country and the live opportunity list changes frequently.',
-  requirements:['Check the exact role location before applying','Do not treat a role shown for another country as available in the Philippines','Skills and onboarding requirements vary by project'],
+  id:'outlier',name:'Outlier',status:'location-check',badge:'PHILIPPINES ALLOWED • PROJECT-SPECIFIC',
+  summary:'Outlier’s official flexible-working guidelines (effective July 15, 2026) explicitly include the Philippines as a permitted country, but each paid AI-training project may impose narrower location and skill restrictions. A permitted country does NOT guarantee an open project or earnings.',
+  requirements:['The Philippines appears on Outlier’s official permitted-country list; verify the exact role before applying','Identity and actual work location may be checked during onboarding; update your primary location if you relocate','Do not mask your actual location with a VPN or claim another country to bypass project restrictions','Project availability, skills, screening, pay and task volume vary'],
   official:'https://app.outlier.ai/opportunities?hl=en-US',
+  secondary:'https://outlier.ai/legal/flexible-working-guidelines',
+  secondaryLabel:'Official permitted-country and location policy',
   cta:'Check live opportunities',
-  verified:'2026-09-25'
+  verified:'2026-10-26'
  },
   {
   id:'prolific',name:'Prolific',status:'waitlist',badge:'NOT CURRENTLY PH-SUPPORTED',
@@ -139,7 +159,7 @@ export default function OpportunityVault(){
    </article>)}
   </section>
   <section className="watch">
-   <small>STARTUP FUNDING WATCH • 2026-10-25</small><h2>DICT / IIDB Startup Grant Fund 2026 — not yet confirmed open</h2><p>IIDB said its revised SGF circular and next application call were targeted for October 2026, but a published official 2026 application opening, deadline, final eligibility rules and templates have not been verified. Do not confuse this with the separate DOST SGF or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
+   <small>STARTUP FUNDING WATCH • 2026-10-26</small><h2>DICT / IIDB Startup Grant Fund 2026 — not yet confirmed open</h2><p>IIDB said its revised SGF circular and next application call were targeted for October 2026, but a published official 2026 application opening, deadline, final eligibility rules and templates have not been verified. Do not confuse this with the separate DOST SGF or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
    <h2>Unverified names stay out of the active list.</h2><p>Older notes mentioned ClarU.ai/Claru.ai, but no sufficiently authoritative current opportunity source has been verified, so it is not presented as an active earning option. AniAni is listed with pilot and privacy warnings, not a verified payout history.</p>
   </section>
   <style jsx>{`
