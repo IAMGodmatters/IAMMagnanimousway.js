@@ -1,4 +1,5 @@
 import { requirePlatformOwner } from './platform-owner-guard.js';
+import { magnanimousCloudEdgeControl, magnanimousCloudEdgeReady } from './magnanimous-cloud-edge-control.js';
 
 const json = (data, status = 200) => Response.json(data, {
   status,
@@ -121,9 +122,12 @@ export const MAGNANIMOUS_CLOUD_POLICY = Object.freeze({
   truth_rule: 'A native control-plane contract does not create physical servers, public IP space, transit, datacenter operations, carrier-scale DDoS capacity or regulated authority.'
 });
 
-function control(env) {
+async function control(env) {
   const binding = env?.MAGNANIMOUS_CLOUD_CONTROL;
-  return binding && typeof binding.summary === 'function' ? binding : null;
+  if (binding && typeof binding.summary === 'function') return binding;
+  // The Worker uses its existing D1 only for native desired state and staged
+  // actions; never infer real host capacity or provider authorization from it.
+  return await magnanimousCloudEdgeReady(env) ? magnanimousCloudEdgeControl(env) : null;
 }
 
 function catalog(bindingActive = false) {
@@ -168,7 +172,7 @@ export async function handleMagnanimousCloudProvider(request, env) {
   const denied = await requirePlatformOwner(request, env);
   if (denied) return denied;
 
-  const binding = control(env);
+  const binding = await control(env);
 
   try {
     if (url.pathname === '/api/magnanimous/cloud' && request.method === 'GET') {

@@ -5,6 +5,7 @@ import { handleMagnanimousCloudflare } from './magnanimous-cloudflare-runtime.js
 import { MAGNANIMOUS_WEB_PARITY, handleMagnanimousNativeWeb } from './magnanimous-native-web-runtime.js';
 import { MAGNANIMOUS_DEV_SKILLS, magnanimousDevAgentSummary, handleMagnanimousDevAgent } from './magnanimous-dev-agent.js';
 import { RAILWAY_VISIBLE_TOOL_CONTRACTS, RAILWAY_ARCHITECTURE_TECHNIQUES, handleMagnanimousCloudProvider } from './magnanimous-cloud-provider-core.js';
+import { magnanimousCloudEdgeReady } from './magnanimous-cloud-edge-control.js';
 import { findReadyLocalBridgeDevice, hasAnyReadyLocalBridgeCapability, queueLocalBridgeTask } from './magnanimous-local-bridge-runtime.js';
 import { MAGNANIMOUS_NATIVE_MEDIA_FAMILIES, MAGNANIMOUS_NATIVE_MEDIA_CAPABILITIES, MAGNANIMOUS_HEYGEN_PARITY_MAP, HEYGEN_VISIBLE_BENCHMARK_TOOLS, getMagnanimousNativeMediaSummary, handleMagnanimousNativeMedia } from './magnanimous-native-media-studio.js';
 import { MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES, getMagnanimousNativeTerminalSummary, handleMagnanimousNativeTerminal } from './magnanimous-native-terminal.js';
@@ -224,12 +225,16 @@ async function localToolReadiness(env,tenantId){
  };
 }
 
-function cloudReadiness(env){
+async function cloudReadiness(env){
  const binding=env?.MAGNANIMOUS_CLOUD_CONTROL;
- const active=Boolean(binding&&typeof binding.summary==='function');
+ const standalone=Boolean(binding&&typeof binding.summary==='function');
+ const edge=!standalone&&await magnanimousCloudEdgeReady(env);
+ const active=standalone||edge;
  return{
   native_control_plane_code:true,
   native_binding_active:active,
+  native_control_mode:standalone?'standalone-runtime':edge?'worker-d1-staged-control':'not-configured',
+  control_plane_only:edge,
   cloudflare_required_for_software_runtime:false,
   railway_required_for_control_plane:false,
   physical_capacity_still_required_for_real_compute:true
@@ -247,7 +252,7 @@ function readinessRows({cloudflare,web,github,railway,cloud,media,terminal,apps,
   {id:'ncs2-edge-ai',ready:Boolean(edgeAi?.status_ready),required:false,mode:'owner-local-edge-inference',detail:edgeAi?.status_ready?'Intel Neural Compute Stick 2 / MYRIAD is heartbeat-ready for bounded local inference through the outbound Local Bridge.':'NCS2 support is installed in Magnanimous; activate the compatible owner-local OpenVINO 2022.3.2 runtime to advertise it.'},
   {id:'owner-local-tool-runtime',ready:Boolean(localTools?.status_ready),required:false,mode:'approved-source-preserving-local-tools',detail:localTools?.status_ready?`Approved Local Bridge tool runtime ready: media read ${localTools.media_read_ready?'READY':'PARTIAL'}, MP4 conversion ${localTools.media_convert_ready?'READY':'PARTIAL'}, archive checks ${localTools.archive_ready?'READY':'PARTIAL'}, Android status ${localTools.android_status_ready?'READY':'OPTIONAL'}.`:'Approved local-tool contracts are installed; update the paired Local Bridge to advertise the runtime actions.'},
   {id:'native-ssh-execution',ready:Boolean(terminal?.local_ssh_ready),required:false,mode:'owner-local',detail:terminal?.local_ssh_ready?'A paired owner-controlled Local Bridge advertises native SSH execution.':'Native SSH code is installed; execution becomes live when an OpenSSH-capable paired Local Bridge is online.'},
-  {id:'magnanimous-cloud',ready:Boolean(cloud.native_binding_active),required:false,mode:'native',detail:cloud.native_binding_active?'Native cloud control binding active.':'Native cloud control code is present; this execution rail does not expose the binding.'},
+  {id:'magnanimous-cloud',ready:Boolean(cloud.native_binding_active),required:false,mode:'native',detail:cloud.native_control_mode==='worker-d1-staged-control'?'First-party D1 cloud project/resource catalog and staged-action ledger are live. No host capacity is provisioned or charged.':cloud.native_binding_active?'Native cloud control binding active.':'Native cloud control code is present; this execution rail does not expose the binding.'},
   {id:'native-web-search',ready:Boolean(web.core_read_ready),required:true,mode:'native-local',detail:web.core_read_ready?'Local Chromium search/fetch ready.':'Activate or update a paired Local Bridge to make native web execution live.'},
   {id:'native-web-research',ready:Boolean(web.research_ready),required:false,mode:'native-local',detail:web.research_ready?'Native source-backed research ready.':'Research contract is installed but its Local Bridge executor is not currently heartbeat-ready.'},
   {id:'github-repository-adapter',ready:Boolean(github.repository_token_configured),required:false,mode:'authorized-adapter',detail:github.repository_token_configured?'GitHub repository writes/workflow dispatch are configured.':'Public reads remain available; private/write/workflow actions need the server-side GitHub platform token.'},
@@ -263,9 +268,11 @@ export async function getMagnanimousCapabilityMeshSummary(env,providerEnv=env,te
  const github=magnanimousDevAgentSummary(env);
  const cloudflare=magnanimousCloudflareSummary(providerEnv||env);
  const railway=railwayReadiness(env,github);
- const cloud=cloudReadiness(env);
+ const cloud=await cloudReadiness(env);
  const readiness=readinessRows({cloudflare,web,github,railway,cloud,media,terminal,apps,edgeAi,localTools});
  const readyCount=readiness.filter(x=>x.ready).length,totalCount=readiness.length;
+ const requiredRows=readiness.filter(x=>x.required);
+ const optionalRows=readiness.filter(x=>!x.required);
  const requiredBlocked=readiness.filter(x=>x.required&&!x.ready);
  const status=requiredBlocked.length?'operable-with-native-executor-activation-needed':'operable-native-first';
  const suggestions=[];
@@ -282,6 +289,11 @@ export async function getMagnanimousCapabilityMeshSummary(env,providerEnv=env,te
   status,
   ready_count:readyCount,
   total_readiness_checks:totalCount,
+  required_ready_count:requiredRows.filter(x=>x.ready).length,
+  required_check_count:requiredRows.length,
+  optional_ready_count:optionalRows.filter(x=>x.ready).length,
+  optional_check_count:optionalRows.length,
+  optional_unavailable:optionalRows.filter(x=>!x.ready).map(x=>({id:x.id,mode:x.mode,detail:x.detail})),
   readiness,
   surfaces:{
    native_web:web,

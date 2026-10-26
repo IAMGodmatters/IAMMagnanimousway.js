@@ -8,6 +8,7 @@ type Ready={id:string;ready:boolean;required:boolean;mode:string;detail:string};
 type Suggestion={id:string;risk:string;action:string};
 type Mesh={
  identity:string;status:string;ready_count:number;total_readiness_checks:number;route_count:number;
+ required_ready_count?:number;required_check_count?:number;optional_ready_count?:number;optional_check_count?:number;
  readiness:Ready[];suggested_actions:Suggestion[];
  surfaces:{
   native_web?:{core_read_ready?:boolean;research_ready?:boolean;interactive_ready?:boolean;persistent_session_ready?:boolean;tinyfish_runtime_dependency?:boolean};
@@ -52,7 +53,7 @@ export default function OwnerCapabilityMesh(){
   <header style={{maxWidth:1400,margin:'auto',display:'flex',justifyContent:'space-between',fontSize:10,letterSpacing:'.16em',color:'#7194a4'}}><a href="/owner-center" style={{color:'#7be7ff'}}>← Owner Center</a><span>PRIVATE MAGNANIMOUS CONTROL</span></header>
   <section style={{...card,maxWidth:1400,margin:'28px auto 12px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:24,flexWrap:'wrap'}}>
    <div><small style={{color:'#60ddf7'}}>I AM MAGNANIMOUS WAY™</small><h1 style={{fontSize:'clamp(38px,6vw,68px)',margin:'8px 0'}}>Capability Mesh</h1><p style={{maxWidth:850,color:'#90aab6',lineHeight:1.6}}>One Magnanimous AI command layer for native web, approved owner-local media/archive/device tools, GitHub engineering, Magnanimous Cloud, optional Cloudflare adapters and optional Railway capacity/deployment rails. Providers and desktop utilities remain tools beneath the Magnanimous brain.</p></div>
-   <div style={{display:'grid',gap:8,minWidth:250}}><b>{data?.status||'LOADING'}</b><span>{data?data.ready_count+' / '+data.total_readiness_checks+' readiness checks green':'Reading runtime evidence…'}</span><span>{data?data.route_count+' routed capability actions':'—'}</span></div>
+   <div style={{display:'grid',gap:8,minWidth:250}}><b>{data?.status||'LOADING'}</b><span>{data?`${data.required_ready_count??data.readiness.filter(r=>r.required&&r.ready).length} / ${data.required_check_count??data.readiness.filter(r=>r.required).length} required capabilities working`:'Reading runtime evidence…'}</span><span>{data?`${data.optional_ready_count??data.readiness.filter(r=>!r.required&&r.ready).length} / ${data.optional_check_count??data.readiness.filter(r=>!r.required).length} optional integrations active`:'—'}</span><span>{data?data.route_count+' routed capability actions':'—'}</span></div>
   </section>
   {(message||error)&&<section style={{...card,maxWidth:1400,margin:'0 auto 12px',borderColor:error?'#713b43':'#315f48',color:error?'#ffc0c8':'#a9f1bd'}}>{error||message}</section>}
   <section style={{maxWidth:1400,margin:'0 auto 12px',display:'flex',gap:10,flexWrap:'wrap'}}>
@@ -64,6 +65,13 @@ export default function OwnerCapabilityMesh(){
   </section>
   {data&&<>
    <ModelArena getToken={token} />
+   <section style={{...card,maxWidth:1400,margin:'0 auto 12px',borderColor:'#2a5b60'}} aria-label="Capability readiness explanation">
+    <h2 style={{marginTop:0}}>What is actually live?</h2>
+    <p style={{color:'#9fbac2',lineHeight:1.6}}>The required native execution path is tracked separately from optional integrations. A missing provider token or paid GPU worker is <strong>not a failure of the Magnanimous brain</strong>. We do not turn an optional integration green until its authorization and runtime are verified.</p>
+    <p style={{color:'#9fbac2'}}>Overall evidence: <b>{data.ready_count} / {data.total_readiness_checks}</b> checks active. Optional unavailable: <b>{data.readiness.filter(r=>!r.required&&!r.ready).length}</b>. No cloud, telecom, or GPU charges are authorized by this report. Server-only GitHub, Cloudflare, and deployment credentials must be configured through an approved secrets workflow; this page cannot manufacture provider access.</p>
+    <a href="/owner-integrations" style={{color:'#7be7ff',marginRight:18}}>Encrypted owner Provider Vault →</a>
+    <a href="/owner-infrastructure" style={{color:'#7be7ff'}}>Infrastructure &amp; deployment status →</a>
+   </section>
    <section style={{maxWidth:1400,margin:'0 auto 12px',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:10}}>
     {data.readiness.map(r=><article key={r.id} style={{...card,borderColor:r.ready?'#275943':r.required?'#7a3d45':'#625329'}}><small style={{color:r.ready?'#84edaa':r.required?'#ffabb4':'#e8c975'}}>{r.ready?'READY':r.required?'ACTION NEEDED':'OPTIONAL / NOT READY'}</small><h3>{r.id}</h3><p style={{color:'#91a8b2',lineHeight:1.5}}>{r.detail}</p><code>{r.mode}</code></article>)}
    </section>
