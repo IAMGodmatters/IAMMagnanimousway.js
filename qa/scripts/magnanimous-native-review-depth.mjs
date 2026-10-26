@@ -128,7 +128,7 @@ else{
  for(const name of tracked){
   if(sources.length>=MAX_SOURCE)break;
   if(!CODE.test(name)||EXCLUDE.test(name))continue;
-  try{const stat=fs.statSync(name);if(!stat.isFile()||stat.size>MAX_FILE)continue;sources.push({path:name.replaceAll('\\','/'),content:fs.readFileSync(name,'utf8')});}catch{/* deleted/unreadable */}
+  try{const stat=fs.lstatSync(name);if(!stat.isFile()||stat.isSymbolicLink()||stat.size>MAX_FILE)continue;sources.push({path:name.replaceAll('\\','/'),content:fs.readFileSync(name,'utf8')});}catch{/* deleted/unreadable */}
  }
  const patch=git(['diff','--no-ext-diff','--unified=0',base,head]);
  if(Buffer.byteLength(patch)>MAX_PATCH){console.error('Diff exceeds native review bound; analysis incomplete.');process.exit(2);}
