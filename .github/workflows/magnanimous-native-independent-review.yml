@@ -24,5 +24,11 @@ jobs:
         run: |
           node --check qa/scripts/magnanimous-native-change-review.mjs
           node qa/scripts/magnanimous-native-change-review.mjs --self-test
+      - name: Validate deep review engine and test fixtures
+        run: |
+          node --check qa/scripts/magnanimous-native-review-depth.mjs
+          node qa/scripts/magnanimous-native-review-depth.mjs --self-test
       - name: Inspect changed code without an external AI service
-        run: node qa/scripts/magnanimous-native-change-review.mjs
+        run: |
+          node qa/scripts/magnanimous-native-change-review.mjs
+          node qa/scripts/magnanimous-native-review-depth.mjs
