@@ -29,6 +29,7 @@ assert.equal((await cloud.summary()).paid_provider_calls,0,'No provider charge o
 
 const project=await cloud.createProject({name:'QA Owner Project'});
 assert.equal(project.slug,'qa-owner-project');
+await assert.rejects(cloud.createProject({name:'QA Owner Project'}),/already exists/);
 await assert.rejects(cloud.createProject({name:'Bad',slug:'Not Valid!!'}),/Valid project/);
 
 const service=await cloud.createResource({project_id:project.id,kind:'service',name:'Planned service',spec:{runtime:'native-later'}});

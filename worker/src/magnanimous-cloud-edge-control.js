@@ -76,6 +76,7 @@ export function magnanimousCloudEdgeControl(env){
   async createProject(input={}){
    const name=clean(input.name),slug=clean(input.slug||name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),80);
    if(!name||!slug||!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))throw new Error('Valid project name and slug are required.');
+   if(await db.prepare('SELECT id FROM magnanimous_cloud_edge_projects WHERE slug=? LIMIT 1').bind(slug).first())throw new Error('Project slug already exists.');
    const id='mcloud-edge-project-'+uuid(),ts=stamp();
    await db.prepare('INSERT INTO magnanimous_cloud_edge_projects(id,name,slug,description,created_at,updated_at) VALUES(?,?,?,?,?,?)')
     .bind(id,name,slug,clean(input.description,500),ts,ts).run();

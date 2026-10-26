@@ -229,7 +229,7 @@ export async function handleMagnanimousCloudProvider(request, env) {
     return json({ detail: 'Magnanimous Cloud route not found.' }, 404);
   } catch (error) {
     const detail = String(error?.message || error || 'Magnanimous Cloud operation failed.');
-    const clientError = /required|unsupported|not found/i.test(detail);
+    const clientError = /required|unsupported|not found|already exists|credentials or secrets|metadata exceeds|too deep|valid project/i.test(detail);
     return json({ detail, code: 'MAGNANIMOUS_CLOUD_ERROR' }, clientError ? 400 : 500);
   }
 }
