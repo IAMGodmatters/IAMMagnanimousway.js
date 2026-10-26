@@ -78,7 +78,7 @@ Relevant primary documentation:
 
 Added `.github/workflows/magnanimous-osv-vulnerability-audit.yml` to use Google's OSV Scanner (v2.6.0), an open-source vulnerability matching tool. It downloads the official Linux binary from a versioned release, verifies SHA-256 `ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108` before executing it, and performs a read-only dependency scan with `osv-scanner scan --format table -r .`.
 
-- **Schedule:** Mondays 03:41 UTC, plus owner-invoked workflow dispatch.
+- **Schedule:** Mondays 03:41 UTC, owner-invoked workflow dispatch, and one initial scan on the push that introduces/updates this workflow on main.
 - **CI validation:** on pull requests changing the workflow itself, validate download checksum and executable version. The PR validation does **not** claim a full vulnerability scan was run.
 - **Cost gate:** scanner job only runs for currently public repositories, where standard hosted GitHub Actions minutes are free. If the repository is made private, the workflow intentionally skips until the owner configures a reviewed, funded schedule or local execution arrangement.
 - **Data privacy:** This workflow uses a public vulnerability database; the scanner's own documentation says it sends package coordinates, versions and some file hashes to dependency services, rather than uploading source code. No repository/model credentials or telemetry provider account are passed. Any stronger privacy requirement can use OSV's offline database workflow in the future.
