@@ -2,7 +2,7 @@
   "name": "iam-magnanimous-video-gateway",
   "private": true,
   "devDependencies": {
-    "wrangler": "4.132.0"
+    "wrangler": "4.152.0"
   },
   "overrides": {
     "sharp": "0.35.5",
