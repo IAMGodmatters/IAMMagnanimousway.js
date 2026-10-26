@@ -1,0 +1,3174 @@
+{
+  "title": "ECC observed public source inventory",
+  "captured_on": "2026-10-26",
+  "source": "https://github.com/affaan-m/ECC",
+  "commit": "25278e7d7b6cf6e6a4e7a6c8e10f14ff22f0eb5b",
+  "license": "MIT",
+  "notes": [
+    "Metadata inventory only: no upstream scripts, prompts or CLI commands are executed by Magnanimous.",
+    "review_flags are regex-based indicators for human review, not security findings or execution permissions.",
+    "Source catalog is separate from Magnanimous-native operational skills; dependent external tools may be absent.",
+    "All 71 upstream agent Markdown files were inspected for declared tools. 57 declare Write, Edit or Bash; these permissions do not transfer to Magnanimous."
+  ],
+  "counts": {
+    "agent_definitions": 71,
+    "skill_md_files": 311,
+    "command_markdown_files": 97,
+    "hook_files": 9,
+    "rules_files": 122
+  },
+  "agents": [
+    {
+      "path": "agents/a11y-architect.md",
+      "sha": "63f6c594c017af8741bf6f9da195552a87e5f6fc",
+      "size": 7339,
+      "name": "a11y-architect",
+      "description": "Accessibility Architect specializing in WCAG 2.2 compliance for Web and Native platforms. Use PROACTIVELY when designing UI components, establishing design systems, or auditing code for inclusive user experiences.",
+      "declared_tools": "Read, Write, Edit, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/agent-evaluator.md",
+      "sha": "2657d35d9035d91c24ae0a6a4e0a7a4b01cdffac",
+      "size": 9117,
+      "name": "agent-evaluator",
+      "description": "Evaluates agent output against 5-axis quality rubric (accuracy, completeness, clarity, actionability, conciseness). Use after any non-trivial task when the user wants a quality assessment, or when the agent-self-evaluati",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/architect.md",
+      "sha": "d65bea41b09b14faeb02f1dba606ce9f16933a33",
+      "size": 7276,
+      "name": "architect",
+      "description": "Software architecture specialist for system design, scalability, and technical decision-making. Use PROACTIVELY when planning new features, refactoring large systems, or making architectural decisions.",
+      "declared_tools": "Read, Grep, Glob",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/bengali-reviewer.md",
+      "sha": "bbe0217503ee1ac0883ec7c7d6e5925a06a600d8",
+      "size": 11034,
+      "name": "bengali-reviewer",
+      "description": "Reviews code handling Bengali (Bangla) text for Unicode correctness, proper normalization, script-aware processing, and internationalization best practices. Use when code processes, displays, or stores Bengali text.",
+      "declared_tools": "Read, Grep, Glob",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/build-error-resolver.md",
+      "sha": "23be5e7c9ed26dbf3751f83eb4853c7add5612a0",
+      "size": 4749,
+      "name": "build-error-resolver",
+      "description": "Build and TypeScript error resolution specialist. Use PROACTIVELY when build fails or type errors occur. Fixes build/type errors only with minimal diffs, no architectural edits. Focuses on getting the build green quickly",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/chief-of-staff.md",
+      "sha": "0ceb151f3b9dc6e004f73a05dc4bde34825c9093",
+      "size": 6600,
+      "name": "chief-of-staff",
+      "description": "Personal communication chief of staff that triages email, Slack, LINE, and Messenger. Classifies messages into 4 tiers (skip/info_only/meeting_info/action_required), generates draft replies, and enforces post-send follow",
+      "declared_tools": "Read, Grep, Glob, Bash, Edit, Write",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/code-architect.md",
+      "sha": "4877556d2164c7394359bf20914321fcc30b4545",
+      "size": 2525,
+      "name": "code-architect",
+      "description": "Designs feature architectures by analyzing existing codebase patterns and conventions, then providing implementation blueprints with concrete files, interfaces, data flow, and build order.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/code-explorer.md",
+      "sha": "a97d0c3ce35f0493273f448fb70ec6f72f8c8278",
+      "size": 2585,
+      "name": "code-explorer",
+      "description": "Deeply analyzes existing codebase features by tracing execution paths, mapping architecture layers, and documenting dependencies to inform new development.",
+      "declared_tools": "Read, Grep, Glob",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/code-reviewer.md",
+      "sha": "884d94ec2d45a51ba091519dbee416c7d563e3d6",
+      "size": 13877,
+      "name": "code-reviewer",
+      "description": "Expert code review specialist. Proactively reviews code for quality, security, and maintainability. Use immediately after writing or modifying code. MUST BE USED for all code changes.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/code-simplifier.md",
+      "sha": "b14a4926c79551a2fd80629f9b3a5f703f36204f",
+      "size": 2265,
+      "name": "code-simplifier",
+      "description": "Simplifies and refines code for clarity, consistency, and maintainability while preserving behavior. Focus on recently modified code unless instructed otherwise.",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/comment-analyzer.md",
+      "sha": "a8e0f48e618bebb5a56b59997c306cbe99435201",
+      "size": 2034,
+      "name": "comment-analyzer",
+      "description": "Analyze code comments for accuracy, completeness, maintainability, and comment rot risk.",
+      "declared_tools": "Read, Grep, Glob",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/commit-reviewer.md",
+      "sha": "3181edcf14afd113fbf72d3413709d61502c5513",
+      "size": 4485,
+      "name": "commit-reviewer",
+      "description": "Reviews a staged diff and drafts a Conventional Commits-compliant message matching the repository's actual history norms. Use before committing, or when asked to write or check a commit message.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/conversation-analyzer.md",
+      "sha": "1e557c2dc3b2d6c71d5764e9b0d669c05bd4f883",
+      "size": 2435,
+      "name": "conversation-analyzer",
+      "description": "Use this agent when analyzing conversation transcripts to find behaviors worth preventing with hooks. Triggered by /hookify without arguments.",
+      "declared_tools": "Read, Grep",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/cpp-build-resolver.md",
+      "sha": "9eb29d969968f366160d61284800a4039fad8291",
+      "size": 4108,
+      "name": "cpp-build-resolver",
+      "description": "C++ build, CMake, and compilation error resolution specialist. Fixes build errors, linker issues, and template errors with minimal changes. Use when C++ builds fail.",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/cpp-reviewer.md",
+      "sha": "d29e7ae19620ba37f5727eadedf92d698dc91cd0",
+      "size": 3972,
+      "name": "cpp-reviewer",
+      "description": "Expert C++ code reviewer specializing in memory safety, modern C++ idioms, concurrency, and performance. Use for all C++ code changes. MUST BE USED for C++ projects.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/csharp-reviewer.md",
+      "sha": "57bbaf6d65de8cc06b2171eaab7bafaa84cb2efe",
+      "size": 5692,
+      "name": "csharp-reviewer",
+      "description": "Expert C# code reviewer specializing in .NET conventions, async patterns, security, nullable reference types, and performance. Use for all C# code changes. MUST BE USED for C# projects.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/dart-build-resolver.md",
+      "sha": "872b99e4eb71aac0a90632468bd0be39e66b88a6",
+      "size": 7671,
+      "name": "dart-build-resolver",
+      "description": "Dart/Flutter build, analysis, and dependency error resolution specialist. Fixes `dart analyze` errors, Flutter compilation failures, pub dependency conflicts, and build_runner issues with minimal, surgical changes. Use w",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/database-reviewer.md",
+      "sha": "8537765b7ca94b5b349267b1b36cb5d9fd92d626",
+      "size": 5314,
+      "name": "database-reviewer",
+      "description": "PostgreSQL database specialist for query optimization, schema design, security, and performance. Use PROACTIVELY when writing SQL, creating migrations, designing schemas, or troubleshooting database performance. Incorpor",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/django-build-resolver.md",
+      "sha": "0a7f93f5135a7d5e33d5ac2adf8e18a9e44cb3ee",
+      "size": 9519,
+      "name": "django-build-resolver",
+      "description": "Django/Python build, migration, and dependency error resolution specialist. Fixes pip/Poetry errors, migration conflicts, import errors, Django configuration issues, and collectstatic failures with minimal changes. Use w",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/django-reviewer.md",
+      "sha": "73725e4b427f03d12cc43fd8ff313cbdf0772081",
+      "size": 7985,
+      "name": "django-reviewer",
+      "description": "Expert Django code reviewer specializing in ORM correctness, DRF patterns, migration safety, security misconfigurations, and production-grade Django practices. Use for all Django code changes. MUST BE USED for Django pro",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/doc-updater.md",
+      "sha": "5cc7dac99637e3accf23605edf38ed25b92ed4a0",
+      "size": 4376,
+      "name": "doc-updater",
+      "description": "Documentation and codemap specialist. Use PROACTIVELY for updating codemaps and documentation. Generates docs/CODEMAPS/*, updates READMEs and guides. Backs the /update-codemaps and /update-docs commands.",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/docs-lookup.md",
+      "sha": "f018ce4eb09f209760683f2ae52bfb80640f828d",
+      "size": 4566,
+      "name": "docs-lookup",
+      "description": "When the user asks how to use a library, framework, or API or needs up-to-date code examples, use Context7 MCP to fetch current documentation and return answers with examples. Invoke for docs/API/setup questions.",
+      "declared_tools": "Read, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/e2e-runner.md",
+      "sha": "46a7867d8a3b31b15bc633a28a48fdfc22840ef4",
+      "size": 5079,
+      "name": "e2e-runner",
+      "description": "End-to-end testing specialist using Vercel Agent Browser (preferred) with Playwright fallback. Use PROACTIVELY for generating, maintaining, and running E2E tests. Manages test journeys, quarantines flaky tests, uploads a",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/fastapi-reviewer.md",
+      "sha": "f4c79b95c238085e777fa10b154dd6e6c5cb2a10",
+      "size": 3514,
+      "name": "fastapi-reviewer",
+      "description": "Reviews FastAPI applications for async correctness, dependency injection, Pydantic schemas, security, OpenAPI quality, testing, and production readiness.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/flutter-reviewer.md",
+      "sha": "2d8abef302080d15547eb1a1b166dbf8eed7051a",
+      "size": 15239,
+      "name": "flutter-reviewer",
+      "description": "Flutter and Dart code reviewer. Reviews Flutter code for widget best practices, state management patterns, Dart idioms, performance pitfalls, accessibility, and clean architecture violations. Library-agnostic — works wit",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/fsharp-reviewer.md",
+      "sha": "9628c328e0e2ca8e203fc946423753adb4ec47a7",
+      "size": 5618,
+      "name": "fsharp-reviewer",
+      "description": "Expert F# code reviewer specializing in functional idioms, type safety, pattern matching, computation expressions, and performance. Use for all F# code changes. MUST BE USED for F# projects.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/gan-evaluator.md",
+      "sha": "0c3c0c9ee06ba7e19d95f1aff15a4d7644d559da",
+      "size": 8822,
+      "name": "gan-evaluator",
+      "description": "\"GAN Harness — Evaluator agent. Tests the live running application via Playwright, scores against rubric, and provides actionable feedback to the Generator.\"",
+      "declared_tools": "Read, Write, Bash, Grep, Glob, mcp__playwright__browser_navigate, mcp__playwright__browser_click, mcp__playwright__browser_take_screenshot, mcp__playw",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/gan-generator.md",
+      "sha": "af0c577ff3180a85e051441914d8da22fde6eeb7",
+      "size": 5891,
+      "name": "gan-generator",
+      "description": "\"GAN Harness — Generator agent. Implements features according to the spec, reads evaluator feedback, and iterates until quality threshold is met.\"",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/gan-planner.md",
+      "sha": "57a018249a89523032f2997e54457ed89fb08c86",
+      "size": 4502,
+      "name": "gan-planner",
+      "description": "\"GAN Harness — Planner agent. Expands a one-line prompt into a full product specification with features, sprints, evaluation criteria, and design direction.\"",
+      "declared_tools": "Read, Write, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/go-build-resolver.md",
+      "sha": "b3dbe383b4f2d6407a5f136c1a58678568330da2",
+      "size": 4245,
+      "name": "go-build-resolver",
+      "description": "Go build, vet, and compilation error resolution specialist. Fixes build errors, go vet issues, and linter warnings with minimal changes. Use when Go builds fail.",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/go-reviewer.md",
+      "sha": "72dc7654ae34325cb6af2340ba752c450e8aae16",
+      "size": 3771,
+      "name": "go-reviewer",
+      "description": "Expert Go code reviewer specializing in idiomatic Go, concurrency patterns, error handling, and performance. Use for all Go code changes. MUST BE USED for Go projects.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/harmonyos-app-resolver.md",
+      "sha": "ef52fd09de9a9acb33d5b978517addb0f06a28d6",
+      "size": 9383,
+      "name": "harmonyos-app-resolver",
+      "description": "HarmonyOS application development expert specializing in ArkTS and ArkUI. Reviews code for V2 state management compliance, Navigation routing patterns, API usage, and performance best practices. Use for HarmonyOS/OpenHar",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/harness-optimizer.md",
+      "sha": "cdb09e31d43349a108476a449bd24d2106b3a6fc",
+      "size": 4923,
+      "name": "harness-optimizer",
+      "description": "Improve local agent-harness configuration reliability and cost using eval-driven grading (pass@k/pass^k) derived from the eval-harness skill.",
+      "declared_tools": "Read, Grep, Glob, Bash, Edit",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/healthcare-reviewer.md",
+      "sha": "187079ca75367173457be39913b8765d4447659f",
+      "size": 4304,
+      "name": "healthcare-reviewer",
+      "description": "Reviews healthcare application code for clinical safety, CDSS accuracy, PHI compliance, and medical data integrity. Specialized for EMR/EHR, clinical decision support, and health information systems.",
+      "declared_tools": "Read, Grep, Glob",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/homelab-architect.md",
+      "sha": "608d59eb301162be6c9fa6f6b9a0179839bd04dd",
+      "size": 4505,
+      "name": "homelab-architect",
+      "description": "Designs home and small-lab network plans from hardware inventory, goals, and operator experience level, with safe staged changes and rollback guidance.",
+      "declared_tools": "Read, Grep",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/java-build-resolver.md",
+      "sha": "ba638dd07208f38df6fef1a0ae86abec69699359",
+      "size": 12181,
+      "name": "java-build-resolver",
+      "description": "Java/Maven/Gradle build, compilation, and dependency error resolution specialist. Automatically detects Spring Boot or Quarkus and applies framework-specific fixes. Fixes build errors, Java compiler errors, and Maven/Gra",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/java-reviewer.md",
+      "sha": "fbe19bf40d8e69954173af9ae545e3c6490e7da5",
+      "size": 13333,
+      "name": "java-reviewer",
+      "description": "Expert Java code reviewer for Spring Boot and Quarkus projects. Automatically detects the framework and applies the appropriate review rules. Covers layered architecture, JPA/Panache, MongoDB, security, and concurrency. ",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/kotlin-build-resolver.md",
+      "sha": "45315270f13e4fd2369c376d75dbe3ae7959771a",
+      "size": 5203,
+      "name": "kotlin-build-resolver",
+      "description": "Kotlin/Gradle build, compilation, and dependency error resolution specialist. Fixes build errors, Kotlin compiler errors, and Gradle issues with minimal changes. Use when Kotlin builds fail.",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/kotlin-reviewer.md",
+      "sha": "95ed8a2c32f8ba2f4bdca8cb4f2d772d92ef263a",
+      "size": 7679,
+      "name": "kotlin-reviewer",
+      "description": "Kotlin and Android/KMP code reviewer. Reviews Kotlin code for idiomatic patterns, coroutine safety, Compose best practices, clean architecture violations, and common Android pitfalls.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/loop-operator.md",
+      "sha": "4da0665eb5ae3f8dd5712005b9de3583d907769b",
+      "size": 1903,
+      "name": "loop-operator",
+      "description": "Operate autonomous agent loops, monitor progress, and intervene safely when loops stall.",
+      "declared_tools": "Read, Grep, Glob, Bash, Edit",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/marketing-agent.md",
+      "sha": "adf46403e2b5acd0143d2f2eb9fea17ba5c460dc",
+      "size": 7275,
+      "name": "marketing-agent",
+      "description": "Marketing strategist and copywriter for campaign planning, audience research, positioning, copy creation, and content review. Covers landing pages, email sequences, social posts, ad copy, short-form video scripts, and co",
+      "declared_tools": "Read, Grep, Glob, WebSearch, WebFetch",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/mle-reviewer.md",
+      "sha": "9b5c8d55a56ed77167ea2d4f4a32d3f6e19f278f",
+      "size": 10253,
+      "name": "mle-reviewer",
+      "description": "Production machine-learning engineering reviewer for data contracts, feature pipelines, training reproducibility, offline/online evaluation, model serving, monitoring, and rollback. Use when ML, MLOps, model training, in",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/network-architect.md",
+      "sha": "181fc473a94d2a8c29c365573c12b0d449f4e74a",
+      "size": 4823,
+      "name": "network-architect",
+      "description": "Designs enterprise or multi-site network architecture from requirements, using existing network skills for focused routing, validation, automation, and troubleshooting detail.",
+      "declared_tools": "Read, Grep",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/network-config-reviewer.md",
+      "sha": "1362f47015c80626ceda49b561d8975b2240318c",
+      "size": 4351,
+      "name": "network-config-reviewer",
+      "description": "Reviews router and switch configurations for security, correctness, stale references, risky change-window commands, and missing operational guardrails.",
+      "declared_tools": "Read, Grep",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/network-troubleshooter.md",
+      "sha": "4bd666026de7009175bc521a8b3042aeae800ca8",
+      "size": 4292,
+      "name": "network-troubleshooter",
+      "description": "Diagnoses network connectivity, routing, DNS, interface, and policy symptoms with a read-only OSI-layer workflow and evidence-backed root cause summary.",
+      "declared_tools": "Read, Bash, Grep",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/opensource-forker.md",
+      "sha": "b2c07103b6d072600a4ebba04a79cfd4a8ef7e67",
+      "size": 8047,
+      "name": "opensource-forker",
+      "description": "Fork any project for open-sourcing. Copies files, strips secrets and credentials (20+ patterns), replaces internal references with placeholders, generates .env.example, and cleans git history. First stage of the opensour",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/opensource-packager.md",
+      "sha": "e6e24199dc2a21f01f5ae370fba48bf27ac97185",
+      "size": 7940,
+      "name": "opensource-packager",
+      "description": "Generate complete open-source packaging for a sanitized project. Produces CLAUDE.md, setup.sh, README.md, LICENSE, CONTRIBUTING.md, and GitHub issue templates. Makes any repo immediately usable with Claude Code. Third st",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/opensource-sanitizer.md",
+      "sha": "c61e1de4aa38aebb82c7fe596658cfc31c15b41f",
+      "size": 18137,
+      "name": "opensource-sanitizer",
+      "description": "Verify an open-source fork is fully sanitized before release. Scans for leaked secrets, PII, internal references, and dangerous files using 20+ regex patterns. Generates a PASS/FAIL/PASS-WITH-WARNINGS report. Second stag",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/performance-optimizer.md",
+      "sha": "4d5de6f963600ce606020caa70f1ae7cc2ad9aad",
+      "size": 13454,
+      "name": "performance-optimizer",
+      "description": "Performance analysis and optimization specialist. Use PROACTIVELY for identifying bottlenecks, optimizing slow code, reducing bundle sizes, and improving runtime performance. Profiling, memory leaks, render optimization,",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/php-reviewer.md",
+      "sha": "af90974fcf23ffb2936047f71d3fab0954a0547f",
+      "size": 5712,
+      "name": "php-reviewer",
+      "description": "Expert PHP code reviewer specializing in PSR-12 compliance, PHP type system, Eloquent ORM patterns, security, and performance. Use for all PHP code changes. MUST BE USED for PHP projects.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/planner.md",
+      "sha": "e9e282f54d5ea8dbecae31d00c8647960c089f05",
+      "size": 8055,
+      "name": "planner",
+      "description": "Expert planning specialist for complex features and refactoring. Use PROACTIVELY when users request feature implementation, architectural changes, or complex refactoring. Automatically activated for planning tasks.",
+      "declared_tools": "Read, Grep, Glob",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/pr-test-analyzer.md",
+      "sha": "07bf41ebda6590a73a274e4598e3a00dc654a919",
+      "size": 1937,
+      "name": "pr-test-analyzer",
+      "description": "Review pull request test coverage quality and completeness, with emphasis on behavioral coverage and real bug prevention.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/python-reviewer.md",
+      "sha": "b1b3ee6f53dfb21f1d97b70f4ba5be17a142e11f",
+      "size": 4391,
+      "name": "python-reviewer",
+      "description": "Expert Python code reviewer specializing in PEP 8 compliance, Pythonic idioms, type hints, security, and performance. Use for all Python code changes. MUST BE USED for Python projects.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/pytorch-build-resolver.md",
+      "sha": "88f567968a3058aa1a6828fc2d32fa83681bdfe9",
+      "size": 6499,
+      "name": "pytorch-build-resolver",
+      "description": "PyTorch runtime, CUDA, and training error resolution specialist. Fixes tensor shape mismatches, device errors, gradient issues, DataLoader problems, and mixed precision failures with minimal changes. Use when PyTorch tra",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/rag-pipeline-reviewer.md",
+      "sha": "65bd8bbcab135e903779f35e560e9d7648b53802",
+      "size": 6249,
+      "name": "rag-pipeline-reviewer",
+      "description": "Reviews RAG (Retrieval-Augmented Generation) pipelines for retrieval quality, chunking strategy, embedding choices, and evaluation coverage. Invoke when the user builds, modifies, or debugs a RAG system, vector store int",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/react-build-resolver.md",
+      "sha": "ecfa77e0f3a9c277d4bc22b1651322242be738db",
+      "size": 11187,
+      "name": "react-build-resolver",
+      "description": "Diagnose and fix React build failures across Vite, webpack, Next.js, CRA, Parcel, esbuild, and Bun. Handles JSX/TSX compile errors, hydration mismatches, server/client component boundary failures, missing types, and bund",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/react-reviewer.md",
+      "sha": "b25b79e7110d22d15587cd7296947de289eec006",
+      "size": 11411,
+      "name": "react-reviewer",
+      "description": "Expert React/JSX code reviewer specializing in hook correctness, render performance, server/client component boundaries, accessibility, and React-specific security. Use for any change touching .tsx/.jsx files or React co",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/refactor-cleaner.md",
+      "sha": "093c8f6478052f3cc78072204fca957ffac82f07",
+      "size": 3686,
+      "name": "refactor-cleaner",
+      "description": "Dead code cleanup and consolidation specialist. Use PROACTIVELY for removing unused code, duplicates, and refactoring. Runs analysis tools (knip, depcheck, ts-prune) to identify dead code and safely removes it.",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/ruby-reviewer.md",
+      "sha": "cea2dbef1119e2587f7f461ef71510c3f3d4d783",
+      "size": 7647,
+      "name": "ruby-reviewer",
+      "description": "Expert Ruby and Rails code reviewer specializing in idiomatic Ruby, Active Record query safety, Rails security defaults, and RSpec/Minitest quality. Use for all Ruby code changes. MUST BE USED for Ruby and Rails projects",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/rust-build-resolver.md",
+      "sha": "552d267cd5eeed414014eab340935598ff7ff1f8",
+      "size": 6857,
+      "name": "rust-build-resolver",
+      "description": "Rust build, compilation, and dependency error resolution specialist. Fixes cargo build errors, borrow checker issues, and Cargo.toml problems with minimal changes. Use when Rust builds fail.",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/rust-reviewer.md",
+      "sha": "380fb0d9fb3753fcdb7f8b80343a35e9fd6cbe8d",
+      "size": 5656,
+      "name": "rust-reviewer",
+      "description": "Expert Rust code reviewer specializing in ownership, lifetimes, error handling, unsafe usage, and idiomatic patterns. Use for all Rust code changes. MUST BE USED for Rust projects.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/security-reviewer.md",
+      "sha": "b5c5e38d2d8c389650162afe18cfe3ab24f353ad",
+      "size": 5446,
+      "name": "security-reviewer",
+      "description": "Security vulnerability detection and remediation specialist. Use PROACTIVELY after writing code that handles user input, authentication, API endpoints, or sensitive data. Flags secrets, SSRF, injection, unsafe crypto, an",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/seo-specialist.md",
+      "sha": "fd127ec08b999d92f0a31a1ccf76e4b8958e7339",
+      "size": 2846,
+      "name": "seo-specialist",
+      "description": "SEO specialist for technical SEO audits, on-page optimization, structured data, Core Web Vitals, and content/keyword mapping. Use for site audits, meta tag reviews, schema markup, sitemap and robots issues, and SEO remed",
+      "declared_tools": "Read, Grep, Glob, WebSearch, WebFetch",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/silent-failure-hunter.md",
+      "sha": "e38053453908f27687826db7b34ba5849971205b",
+      "size": 1989,
+      "name": "silent-failure-hunter",
+      "description": "Review code for silent failures, swallowed errors, bad fallbacks, and missing error propagation.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/spec-miner.md",
+      "sha": "f5e2e76be3d40be8c1a16a8e0b4b8b52c2b08887",
+      "size": 15108,
+      "name": "spec-miner",
+      "description": "Extracts behavioral specs from existing codebases for OpenSpec. Produces flat Requirement and Invariant blocks with structured metadata (entities, enforced, id, test anchors). Outputs openspec/specs/<capability>/spec.md.",
+      "declared_tools": "Read, Grep, Glob, Bash, Write",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/swift-build-resolver.md",
+      "sha": "5896e74e70c766747c00552ad6615fec92951583",
+      "size": 7234,
+      "name": "swift-build-resolver",
+      "description": "Swift/Xcode build, compilation, and dependency error resolution specialist. Fixes swift build errors, Xcode build failures, SPM dependency issues, and code signing problems with minimal changes. Use when Swift builds fai",
+      "declared_tools": "Read, Write, Edit, Bash, Grep, Glob",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/swift-reviewer.md",
+      "sha": "c77c2b0db5bdc8faf95aa9f679c952bb0837ec11",
+      "size": 7325,
+      "name": "swift-reviewer",
+      "description": "Expert Swift code reviewer specializing in protocol-oriented design, value semantics, ARC memory management, Swift Concurrency, and idiomatic patterns. Use for all Swift code changes. MUST BE USED for Swift projects.",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/tdd-guide.md",
+      "sha": "d4f6443b8fa3b7e31d469d9b557b658f612f6077",
+      "size": 3865,
+      "name": "tdd-guide",
+      "description": "Test-Driven Development specialist enforcing write-tests-first methodology. Use PROACTIVELY when writing new features, fixing bugs, or refactoring code. Ensures 80%+ test coverage.",
+      "declared_tools": "Read, Write, Edit, Bash, Grep",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/type-design-analyzer.md",
+      "sha": "394f2626be1bcb7ff89ba3bb042b6eed99ac6e1f",
+      "size": 1881,
+      "name": "type-design-analyzer",
+      "description": "Analyze type design for encapsulation, invariant expression, usefulness, and enforcement.",
+      "declared_tools": "Read, Grep, Glob",
+      "needs_execution_review": false
+    },
+    {
+      "path": "agents/typescript-reviewer.md",
+      "sha": "23af98e654d07bb01c688d2c6f15e58509723d74",
+      "size": 9068,
+      "name": "typescript-reviewer",
+      "description": "Expert TypeScript/JavaScript code reviewer specializing in type safety, async correctness, Node/web security, and idiomatic patterns. Use for all TypeScript and JavaScript code changes. MUST BE USED for TypeScript/JavaSc",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    },
+    {
+      "path": "agents/vue-reviewer.md",
+      "sha": "137b520eea65ed529262135e0cc0299fbc2047b2",
+      "size": 15319,
+      "name": "vue-reviewer",
+      "description": "Expert Vue.js code reviewer specializing in Composition API correctness, reactivity pitfalls, component architecture, template security, and Vue-specific performance. Use for any change touching .vue, .ts/.js files with ",
+      "declared_tools": "Read, Grep, Glob, Bash",
+      "needs_execution_review": true
+    }
+  ],
+  "skills": [
+    {
+      "name": "accessibility",
+      "path": "skills/accessibility/SKILL.md",
+      "sha": "0685394eef10a1bf1e5c02f67a3a8b06ae210cc4",
+      "bytes": 6546,
+      "review_flags": []
+    },
+    {
+      "name": "agent-architecture-audit",
+      "path": "skills/agent-architecture-audit/SKILL.md",
+      "sha": "a3c2caa67b0ca7e5323d4e853d898f599694ff10",
+      "bytes": 10278,
+      "review_flags": []
+    },
+    {
+      "name": "agent-eval",
+      "path": "skills/agent-eval/SKILL.md",
+      "sha": "c082704f19ad58e8f0aa986a25f1da0b29809922",
+      "bytes": 4696,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "agent-harness-construction",
+      "path": "skills/agent-harness-construction/SKILL.md",
+      "sha": "6f828f92298e9c534c9af1e7f0e9832ef7443a2d",
+      "bytes": 2100,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "agent-introspection-debugging",
+      "path": "skills/agent-introspection-debugging/SKILL.md",
+      "sha": "7f40c4579f09b15884e7e4e22635ccd41e1ba1a7",
+      "bytes": 5627,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "agent-payment-x402",
+      "path": "skills/agent-payment-x402/SKILL.md",
+      "sha": "41608571d94d9a935d6d808cf38f989a2b3c98ff",
+      "bytes": 27483,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "agent-runtime-gateway-smoke-test",
+      "path": "skills/agent-runtime-gateway-smoke-test/SKILL.md",
+      "sha": "d2ed4dd6e10bea3e179607f4f39b3384ebb487dc",
+      "bytes": 5556,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "agent-security-hardening",
+      "path": "skills/agent-security-hardening/SKILL.md",
+      "sha": "726cd3e2e01e7b03103c98639585868dd3afc392",
+      "bytes": 10678,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "agent-self-evaluation",
+      "path": "skills/agent-self-evaluation/SKILL.md",
+      "sha": "4e241380aa8c9b26ea249d7208d78edea9e5f397",
+      "bytes": 7625,
+      "review_flags": []
+    },
+    {
+      "name": "agent-sort",
+      "path": "skills/agent-sort/SKILL.md",
+      "sha": "f07eb28ba7aaefe346c6688799143988b28aa950",
+      "bytes": 5922,
+      "review_flags": []
+    },
+    {
+      "name": "agentic-engineering",
+      "path": "skills/agentic-engineering/SKILL.md",
+      "sha": "c4b2428c1d2edd0a8431700fcb6617c10d3aff8c",
+      "bytes": 1830,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "agentic-os",
+      "path": "skills/agentic-os/SKILL.md",
+      "sha": "4ec8cfd914430a58dd68042fd68cba87f559e905",
+      "bytes": 12349,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "ai-first-engineering",
+      "path": "skills/ai-first-engineering/SKILL.md",
+      "sha": "9e49702f31fafaddf36a76e890b4aa411bf6c5cc",
+      "bytes": 1454,
+      "review_flags": []
+    },
+    {
+      "name": "ai-regression-testing",
+      "path": "skills/ai-regression-testing/SKILL.md",
+      "sha": "e8dac65b1792ead1289090e3db0326ec00c26fbf",
+      "bytes": 11659,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "android-clean-architecture",
+      "path": "skills/android-clean-architecture/SKILL.md",
+      "sha": "268cfbd78573348bda6df8466f92095d7b9a18b8",
+      "bytes": 8887,
+      "review_flags": []
+    },
+    {
+      "name": "angular-developer",
+      "path": "skills/angular-developer/SKILL.md",
+      "sha": "f5b6eac3ca99f15c24239d1e3f013a60b99aa9c5",
+      "bytes": 11021,
+      "review_flags": []
+    },
+    {
+      "name": "api-connector-builder",
+      "path": "skills/api-connector-builder/SKILL.md",
+      "sha": "52029f27565b1743b36582de0db7648261b463a5",
+      "bytes": 2664,
+      "review_flags": []
+    },
+    {
+      "name": "api-design",
+      "path": "skills/api-design/SKILL.md",
+      "sha": "655d730e64492b997bded91038c52f75398c5563",
+      "bytes": 13224,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "architecture-decision-records",
+      "path": "skills/architecture-decision-records/SKILL.md",
+      "sha": "84f2dd608b4589f7e74e876927ddce866e12a3d1",
+      "bytes": 7182,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "article-writing",
+      "path": "skills/article-writing/SKILL.md",
+      "sha": "9dfa979ca56940e731ebede2c46ec2dca688818e",
+      "bytes": 2926,
+      "review_flags": []
+    },
+    {
+      "name": "automation-audit-ops",
+      "path": "skills/automation-audit-ops/SKILL.md",
+      "sha": "595a2217c5be1d1e3f4b23f67ae37f84f7844f88",
+      "bytes": 4167,
+      "review_flags": []
+    },
+    {
+      "name": "autonomous-agent-harness",
+      "path": "skills/autonomous-agent-harness/SKILL.md",
+      "sha": "2f92a5a17f2096b5752ff489600ac282110fc292",
+      "bytes": 12864,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "autonomous-loops",
+      "path": "skills/autonomous-loops/SKILL.md",
+      "sha": "b6c64c2af3d52d325a12181888c0dac4fec4fb5e",
+      "bytes": 24851,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "backend-patterns",
+      "path": "skills/backend-patterns/SKILL.md",
+      "sha": "1142d0a51de34808f8493bac40b68aa745dcd80e",
+      "bytes": 13349,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "benchmark-methodology",
+      "path": "skills/benchmark-methodology/SKILL.md",
+      "sha": "18722edceb629773fb88ee6c0888dfe1a52950d5",
+      "bytes": 9942,
+      "review_flags": []
+    },
+    {
+      "name": "benchmark-optimization-loop",
+      "path": "skills/benchmark-optimization-loop/SKILL.md",
+      "sha": "f76d0d54efdd46bd817220f9ded410d7ab733e62",
+      "bytes": 2658,
+      "review_flags": []
+    },
+    {
+      "name": "benchmark",
+      "path": "skills/benchmark/SKILL.md",
+      "sha": "3020088b5932d0db9275e19c7c0047c92abf84d3",
+      "bytes": 2630,
+      "review_flags": []
+    },
+    {
+      "name": "bengali-nlp",
+      "path": "skills/bengali-nlp/SKILL.md",
+      "sha": "74a81067fc16e01e92846b5741e5fd60fe361135",
+      "bytes": 16109,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "blender-motion-state-inspection",
+      "path": "skills/blender-motion-state-inspection/SKILL.md",
+      "sha": "5ececd7185da91c64607cc5469a145cdedcf831f",
+      "bytes": 8146,
+      "review_flags": []
+    },
+    {
+      "name": "blueprint",
+      "path": "skills/blueprint/SKILL.md",
+      "sha": "4c27da2fa537afeeb7c7a452c73960508615f686",
+      "bytes": 5153,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "brand-discovery",
+      "path": "skills/brand-discovery/SKILL.md",
+      "sha": "b5872f48a9310fdd233344557e2ce52c5d307f22",
+      "bytes": 7550,
+      "review_flags": []
+    },
+    {
+      "name": "brand-voice",
+      "path": "skills/brand-voice/SKILL.md",
+      "sha": "a70421076f3aba4f2d1a0886888b839095b50380",
+      "bytes": 3648,
+      "review_flags": []
+    },
+    {
+      "name": "brownfield-retrospective",
+      "path": "skills/brownfield-retrospective/SKILL.md",
+      "sha": "a7975931a97e6764789a552124f36f20cb52c7e5",
+      "bytes": 11440,
+      "review_flags": []
+    },
+    {
+      "name": "browser-qa",
+      "path": "skills/browser-qa/SKILL.md",
+      "sha": "f6358d6ac8b43edb7cb894481de56c53e19b3cf2",
+      "bytes": 4104,
+      "review_flags": []
+    },
+    {
+      "name": "bun-runtime",
+      "path": "skills/bun-runtime/SKILL.md",
+      "sha": "999f71dfed6d2155daddbfdaece4a2fa412c8329",
+      "bytes": 5755,
+      "review_flags": []
+    },
+    {
+      "name": "canary-watch",
+      "path": "skills/canary-watch/SKILL.md",
+      "sha": "8397ab540ccf7516fa7194622ea2909a1f98b8af",
+      "bytes": 3128,
+      "review_flags": []
+    },
+    {
+      "name": "carrier-relationship-management",
+      "path": "skills/carrier-relationship-management/SKILL.md",
+      "sha": "f5d1bad7743ae2a56b51af7567becde9317f5f05",
+      "bytes": 23645,
+      "review_flags": []
+    },
+    {
+      "name": "change-impact",
+      "path": "skills/change-impact/SKILL.md",
+      "sha": "b220205a5cb783df3acd5bddba46624ada473637",
+      "bytes": 6216,
+      "review_flags": []
+    },
+    {
+      "name": "cisco-ios-patterns",
+      "path": "skills/cisco-ios-patterns/SKILL.md",
+      "sha": "fc935921263f19540d73d0e9967bb7b6425289f7",
+      "bytes": 5305,
+      "review_flags": []
+    },
+    {
+      "name": "ck",
+      "path": "skills/ck/SKILL.md",
+      "sha": "12e191050d00516076cf5da23e43a6d828363868",
+      "bytes": 5862,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "claude-devfleet",
+      "path": "skills/claude-devfleet/SKILL.md",
+      "sha": "1e7358a61ba4466589c145956cd19ce85ae233e5",
+      "bytes": 6216,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "click-path-audit",
+      "path": "skills/click-path-audit/SKILL.md",
+      "sha": "ffc469829b6c4bf893c4f6212d4110e87e9568d6",
+      "bytes": 7975,
+      "review_flags": []
+    },
+    {
+      "name": "clickhouse-io",
+      "path": "skills/clickhouse-io/SKILL.md",
+      "sha": "5a97ddc66b31ebd715a07a87a7e60dc5fbff580e",
+      "bytes": 10731,
+      "review_flags": []
+    },
+    {
+      "name": "code-tour",
+      "path": "skills/code-tour/SKILL.md",
+      "sha": "d66b7e008287833ac592550f9b0941feaea52443",
+      "bytes": 8030,
+      "review_flags": []
+    },
+    {
+      "name": "codebase-onboarding",
+      "path": "skills/codebase-onboarding/SKILL.md",
+      "sha": "ac70816c9edac808100df8e980dfd15ebd166cee",
+      "bytes": 8235,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "codehealth-mcp",
+      "path": "skills/codehealth-mcp/SKILL.md",
+      "sha": "6119608dcae1fafb83663f12feb52b3a42da731a",
+      "bytes": 7463,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "coding-standards",
+      "path": "skills/coding-standards/SKILL.md",
+      "sha": "051cccec47d1191129207aeadaf2a749c0b7c4e4",
+      "bytes": 12866,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "competitive-platform-analysis",
+      "path": "skills/competitive-platform-analysis/SKILL.md",
+      "sha": "f57364b84d08372805bb450319b4a2b30efe5716",
+      "bytes": 11978,
+      "review_flags": []
+    },
+    {
+      "name": "competitive-report-structure",
+      "path": "skills/competitive-report-structure/SKILL.md",
+      "sha": "37264b3cda37894c9ce1ff574a8e77f0320db354",
+      "bytes": 8551,
+      "review_flags": []
+    },
+    {
+      "name": "compose-multiplatform-patterns",
+      "path": "skills/compose-multiplatform-patterns/SKILL.md",
+      "sha": "585b70f65d3fb38728b987c75a9b3da601aa997c",
+      "bytes": 8229,
+      "review_flags": []
+    },
+    {
+      "name": "config-gc",
+      "path": "skills/config-gc/SKILL.md",
+      "sha": "0583e2c8555e476d1d8d4484a35980dacf256cd6",
+      "bytes": 7942,
+      "review_flags": [
+        "destructive",
+        "provider"
+      ]
+    },
+    {
+      "name": "configure-ecc",
+      "path": "skills/configure-ecc/SKILL.md",
+      "sha": "532eedd8bc5203b6f193626768f8976e07b9375f",
+      "bytes": 7979,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "connections-optimizer",
+      "path": "skills/connections-optimizer/SKILL.md",
+      "sha": "2fde485abe725c1edf4179492e0cf77ec0a036f1",
+      "bytes": 5477,
+      "review_flags": []
+    },
+    {
+      "name": "content-engine",
+      "path": "skills/content-engine/SKILL.md",
+      "sha": "28ddd4e1676f4ea67d34a9d244a94164e088b80e",
+      "bytes": 4370,
+      "review_flags": []
+    },
+    {
+      "name": "content-hash-cache-pattern",
+      "path": "skills/content-hash-cache-pattern/SKILL.md",
+      "sha": "fe4ef6f2dd7034aa0ef6caf67600d8bef2e815c5",
+      "bytes": 5732,
+      "review_flags": []
+    },
+    {
+      "name": "context-and-decisions",
+      "path": "skills/context-and-decisions/SKILL.md",
+      "sha": "23d5cad6023b741cb17485da4233dde2c7a0a218",
+      "bytes": 4728,
+      "review_flags": []
+    },
+    {
+      "name": "context-budget",
+      "path": "skills/context-budget/SKILL.md",
+      "sha": "063e29a464e1f7461517569061d14bc31596f10d",
+      "bytes": 6225,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "continuous-agent-loop",
+      "path": "skills/continuous-agent-loop/SKILL.md",
+      "sha": "6e4f12236e090fd7df5224dcf8061c3c9a5b92cc",
+      "bytes": 1190,
+      "review_flags": []
+    },
+    {
+      "name": "continuous-learning-v2",
+      "path": "skills/continuous-learning-v2/SKILL.md",
+      "sha": "397b3d334dd1fdf5d7648dd619b6a744cd4734a5",
+      "bytes": 14149,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "continuous-learning",
+      "path": "skills/continuous-learning/SKILL.md",
+      "sha": "9fe24a46efac8b17d3577f3684f8779e4bb5ed53",
+      "bytes": 4536,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "contract-first",
+      "path": "skills/contract-first/SKILL.md",
+      "sha": "a828bd60db452daa6b4edaf4e6cc02d192b99071",
+      "bytes": 9761,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "conventional-commit-review",
+      "path": "skills/conventional-commit-review/SKILL.md",
+      "sha": "a53c70f6b153c6204ee31bb26b6ee0bc3efb5851",
+      "bytes": 4647,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "cost-aware-llm-pipeline",
+      "path": "skills/cost-aware-llm-pipeline/SKILL.md",
+      "sha": "e38c15c6d355dfb97c44b9de40f7cb235bfd3f9f",
+      "bytes": 5992,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "cost-tracking",
+      "path": "skills/cost-tracking/SKILL.md",
+      "sha": "d21a401b45442e7db6427da0bf8d8e2800d7909f",
+      "bytes": 5102,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "council-multi-model",
+      "path": "skills/council-multi-model/SKILL.md",
+      "sha": "7227afecf2ccead7e3790db71e4f044f6768590b",
+      "bytes": 5987,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "council",
+      "path": "skills/council/SKILL.md",
+      "sha": "89cbd962863623354742a9b176be1aaa976936f3",
+      "bytes": 6358,
+      "review_flags": []
+    },
+    {
+      "name": "counterparty-channel-discipline",
+      "path": "skills/counterparty-channel-discipline/SKILL.md",
+      "sha": "aa717a37738db7aed7a4a2f694a27f16b02f20dc",
+      "bytes": 9023,
+      "review_flags": []
+    },
+    {
+      "name": "cpp-coding-standards",
+      "path": "skills/cpp-coding-standards/SKILL.md",
+      "sha": "c74c928252aafdef6810471d8171877bc971caf8",
+      "bytes": 22291,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "cpp-testing",
+      "path": "skills/cpp-testing/SKILL.md",
+      "sha": "a996a23059b5d055964ec7877167812b8fb6f20d",
+      "bytes": 9175,
+      "review_flags": []
+    },
+    {
+      "name": "crosspost",
+      "path": "skills/crosspost/SKILL.md",
+      "sha": "b9bbafbd945f734c4dd779321ed2ca7b4ba18bab",
+      "bytes": 4345,
+      "review_flags": []
+    },
+    {
+      "name": "csharp-testing",
+      "path": "skills/csharp-testing/SKILL.md",
+      "sha": "e307bbe36e0ae176b7fa1559c690b23bad945e36",
+      "bytes": 8726,
+      "review_flags": []
+    },
+    {
+      "name": "customer-billing-ops",
+      "path": "skills/customer-billing-ops/SKILL.md",
+      "sha": "d421a386deb2989e48edb434874939a90b3eb8f6",
+      "bytes": 4289,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "customs-trade-compliance",
+      "path": "skills/customs-trade-compliance/SKILL.md",
+      "sha": "d27e2a80786e769f95bea8f0d4c49fa125309574",
+      "bytes": 29039,
+      "review_flags": []
+    },
+    {
+      "name": "dart-flutter-patterns",
+      "path": "skills/dart-flutter-patterns/SKILL.md",
+      "sha": "f9835833d3adfe930689b270cd0b55be413c5e07",
+      "bytes": 16024,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "dashboard-builder",
+      "path": "skills/dashboard-builder/SKILL.md",
+      "sha": "ba3d7c064b4d8c5739004cf6838eb16b7413a596",
+      "bytes": 2358,
+      "review_flags": []
+    },
+    {
+      "name": "data-scraper-agent",
+      "path": "skills/data-scraper-agent/SKILL.md",
+      "sha": "e252ff998382cd488fdd8665bc74de1bb6417f7d",
+      "bytes": 25520,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "data-throughput-accelerator",
+      "path": "skills/data-throughput-accelerator/SKILL.md",
+      "sha": "440c3bf412a8b869690617d46bb81601c95ce15a",
+      "bytes": 2832,
+      "review_flags": []
+    },
+    {
+      "name": "database-migrations",
+      "path": "skills/database-migrations/SKILL.md",
+      "sha": "92d6d693066783cb00c225244a690e851fdab8c1",
+      "bytes": 12034,
+      "review_flags": []
+    },
+    {
+      "name": "deep-research",
+      "path": "skills/deep-research/SKILL.md",
+      "sha": "75371ee0ec6e627b1246154f28587da19c81581f",
+      "bytes": 6057,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "deepseek-harness-setup",
+      "path": "skills/deepseek-harness-setup/SKILL.md",
+      "sha": "2904b95c89e200d94dbd4742fad6ff43739e937c",
+      "bytes": 3717,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "defi-amm-security",
+      "path": "skills/defi-amm-security/SKILL.md",
+      "sha": "18c75aba53b000b99ebd241fd60975d506708ede",
+      "bytes": 5390,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "delivery-gate",
+      "path": "skills/delivery-gate/SKILL.md",
+      "sha": "bfd4e254257bc39d486b36d0efd051fb2cc407e0",
+      "bytes": 6129,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "deployment-patterns",
+      "path": "skills/deployment-patterns/SKILL.md",
+      "sha": "b9d279f8a99889b6f36db99b17b762374474dc99",
+      "bytes": 11113,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "design-system",
+      "path": "skills/design-system/SKILL.md",
+      "sha": "c041ed8ab627ebad68c00d062603963fc179fae9",
+      "bytes": 2815,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "dev-team",
+      "path": "skills/dev-team/SKILL.md",
+      "sha": "a6a7340dbde4f58713811fe945ae86f6cca5f074",
+      "bytes": 8318,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "django-celery",
+      "path": "skills/django-celery/SKILL.md",
+      "sha": "0ae9877559d4c4b64ad124621f33480e2abb2e12",
+      "bytes": 13134,
+      "review_flags": []
+    },
+    {
+      "name": "django-patterns",
+      "path": "skills/django-patterns/SKILL.md",
+      "sha": "9d30f4ea76c88646adf4eaed3924ccb9d52fc3aa",
+      "bytes": 21116,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "django-security",
+      "path": "skills/django-security/SKILL.md",
+      "sha": "9f25cc764248536fcb4d8240053f3e9540afda90",
+      "bytes": 17222,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "django-tdd",
+      "path": "skills/django-tdd/SKILL.md",
+      "sha": "aaa2cd87ff9f74203f3dc97353019cf270bf83c0",
+      "bytes": 21031,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "django-verification",
+      "path": "skills/django-verification/SKILL.md",
+      "sha": "2c5062f025a99753f822dc5e2bb5674eb130049d",
+      "bytes": 11733,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "dmux-workflows",
+      "path": "skills/dmux-workflows/SKILL.md",
+      "sha": "58f2c3e2b56d8fea50e894c0ff5356d00950076d",
+      "bytes": 6336,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "docker-patterns",
+      "path": "skills/docker-patterns/SKILL.md",
+      "sha": "36e792966e771f84ea0f2ebf48dc9577b05a07a9",
+      "bytes": 16807,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "docs-governance",
+      "path": "skills/docs-governance/SKILL.md",
+      "sha": "ae00cf8b3f96dcca17f6c53176afccd669150157",
+      "bytes": 4589,
+      "review_flags": []
+    },
+    {
+      "name": "documentation-lookup",
+      "path": "skills/documentation-lookup/SKILL.md",
+      "sha": "8bb9de6232d1693cd19a8e035712371e7c0e4769",
+      "bytes": 4912,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "dotnet-patterns",
+      "path": "skills/dotnet-patterns/SKILL.md",
+      "sha": "13669d523338e89ac82bea41370cae33b6308924",
+      "bytes": 9316,
+      "review_flags": []
+    },
+    {
+      "name": "dynamic-workflow-mode",
+      "path": "skills/dynamic-workflow-mode/SKILL.md",
+      "sha": "016bdaa9664c6927d9ac2ad4f0d8d59dfde58fdd",
+      "bytes": 5389,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "e2e-testing",
+      "path": "skills/e2e-testing/SKILL.md",
+      "sha": "f9ca797a1badc3a85352e14d31e6262dfde535bc",
+      "bytes": 8170,
+      "review_flags": []
+    },
+    {
+      "name": "ecc-guide",
+      "path": "skills/ecc-guide/SKILL.md",
+      "sha": "b794250fc7dd1c24f768961ffccd8d1684a219e4",
+      "bytes": 5713,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "ecc-recipes",
+      "path": "skills/ecc-recipes/SKILL.md",
+      "sha": "e0e6cddef4cb3033f264f966a04267a1bf0731da",
+      "bytes": 6451,
+      "review_flags": []
+    },
+    {
+      "name": "ecc-tools-cost-audit",
+      "path": "skills/ecc-tools-cost-audit/SKILL.md",
+      "sha": "a4981c1c38e39c19ffb9cd8ea64e9d698caa59ec",
+      "bytes": 6477,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "email-ops",
+      "path": "skills/email-ops/SKILL.md",
+      "sha": "f0126efa6c79d0e56bac2049e47a9f062e9ae111",
+      "bytes": 4401,
+      "review_flags": []
+    },
+    {
+      "name": "energy-procurement",
+      "path": "skills/energy-procurement/SKILL.md",
+      "sha": "cd8c2fa7b36bb8d20d2a9f8111d0d350a41a5577",
+      "bytes": 29934,
+      "review_flags": []
+    },
+    {
+      "name": "enterprise-agent-ops",
+      "path": "skills/enterprise-agent-ops/SKILL.md",
+      "sha": "d7d56fc40dbf5470f415874fed433dc6ba39f81b",
+      "bytes": 1536,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "error-handling",
+      "path": "skills/error-handling/SKILL.md",
+      "sha": "add87f2cdb6f374781b08a0b1cf971eb9ec1915e",
+      "bytes": 10984,
+      "review_flags": []
+    },
+    {
+      "name": "esign-field-placement",
+      "path": "skills/esign-field-placement/SKILL.md",
+      "sha": "3a1f4abd7532860417d5211c0950238f7b708769",
+      "bytes": 10333,
+      "review_flags": []
+    },
+    {
+      "name": "eval-harness",
+      "path": "skills/eval-harness/SKILL.md",
+      "sha": "133193446a3116e96648081aabcf4f2ea863b0e0",
+      "bytes": 8738,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "evm-token-decimals",
+      "path": "skills/evm-token-decimals/SKILL.md",
+      "sha": "a1519886b2ac67d2bdb2c5328abbbc38d966996b",
+      "bytes": 3988,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "exa-search",
+      "path": "skills/exa-search/SKILL.md",
+      "sha": "ec3428386cf362b59902370de2f049d0143e09cd",
+      "bytes": 4425,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "fal-ai-media",
+      "path": "skills/fal-ai-media/SKILL.md",
+      "sha": "b1e837bbb771d94f37e5e47e396b6c7dc84f57ae",
+      "bytes": 7515,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "fastapi-patterns",
+      "path": "skills/fastapi-patterns/SKILL.md",
+      "sha": "b4a0a5b5873d90d05797b830ab5966e4cb53ee9d",
+      "bytes": 15646,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "finance-billing-ops",
+      "path": "skills/finance-billing-ops/SKILL.md",
+      "sha": "bae0dc6ee1691b615722bc1785a82ace92d22d05",
+      "bytes": 3831,
+      "review_flags": []
+    },
+    {
+      "name": "flox-environments",
+      "path": "skills/flox-environments/SKILL.md",
+      "sha": "0d16475b3f026778d6a4a49aaba50f3a432f93bb",
+      "bytes": 14168,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "flutter-dart-code-review",
+      "path": "skills/flutter-dart-code-review/SKILL.md",
+      "sha": "f8f902a86fe5360635db2eaab3fb791f9e7bbc52",
+      "bytes": 23194,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "foundation-models-on-device",
+      "path": "skills/foundation-models-on-device/SKILL.md",
+      "sha": "1af35736875a3c802da544245bd95aa463ec4476",
+      "bytes": 8255,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "frontend-a11y",
+      "path": "skills/frontend-a11y/SKILL.md",
+      "sha": "a39419935900b1ac1003827d83c896610350b619",
+      "bytes": 12861,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "frontend-design-direction",
+      "path": "skills/frontend-design-direction/SKILL.md",
+      "sha": "6139c73ec7de85b33d62f121cb263f95dfd69f8c",
+      "bytes": 8820,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "frontend-patterns",
+      "path": "skills/frontend-patterns/SKILL.md",
+      "sha": "a63977a8b0a8896217a884cdf9e6d49fc8771be6",
+      "bytes": 15432,
+      "review_flags": []
+    },
+    {
+      "name": "frontend-slides",
+      "path": "skills/frontend-slides/SKILL.md",
+      "sha": "0852122c39a98ae82b204f91cb70232fad56bfcf",
+      "bytes": 6559,
+      "review_flags": []
+    },
+    {
+      "name": "fsharp-testing",
+      "path": "skills/fsharp-testing/SKILL.md",
+      "sha": "9440ec6742c4ea3eeddc7530b29f7ca77b7f87cb",
+      "bytes": 7941,
+      "review_flags": []
+    },
+    {
+      "name": "gan-style-harness",
+      "path": "skills/gan-style-harness/SKILL.md",
+      "sha": "a22db0388b7445f37382b341a1bf95c58088e98f",
+      "bytes": 12431,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "gateguard",
+      "path": "skills/gateguard/SKILL.md",
+      "sha": "208174601bc8387f8efa55e8a8e4945526f7960b",
+      "bytes": 42350,
+      "review_flags": [
+        "destructive",
+        "provider"
+      ]
+    },
+    {
+      "name": "generating-python-installer",
+      "path": "skills/generating-python-installer/SKILL.md",
+      "sha": "d1d061e2f61be2f3e7467748d347d4ca1773f14d",
+      "bytes": 30327,
+      "review_flags": []
+    },
+    {
+      "name": "git-workflow",
+      "path": "skills/git-workflow/SKILL.md",
+      "sha": "81a858d3a79344a6879fa60322b5a36cdf758206",
+      "bytes": 15308,
+      "review_flags": [
+        "destructive",
+        "secrets"
+      ]
+    },
+    {
+      "name": "github-ops",
+      "path": "skills/github-ops/SKILL.md",
+      "sha": "dbbe7b129d9d722e8f0e622c3d8f045fc97bd855",
+      "bytes": 6202,
+      "review_flags": [
+        "networkScript",
+        "secrets"
+      ]
+    },
+    {
+      "name": "golang-patterns",
+      "path": "skills/golang-patterns/SKILL.md",
+      "sha": "85e4b3f70bcf7186ab1070ca6108fdac6d7ee5a6",
+      "bytes": 14136,
+      "review_flags": []
+    },
+    {
+      "name": "golang-testing",
+      "path": "skills/golang-testing/SKILL.md",
+      "sha": "45ca4871b2e5c46891bead7f23efd094a66cb6b7",
+      "bytes": 16744,
+      "review_flags": []
+    },
+    {
+      "name": "google-workspace-ops",
+      "path": "skills/google-workspace-ops/SKILL.md",
+      "sha": "af26f80c3c5d55dc4cb36a861d5ca16d719c7b3a",
+      "bytes": 2736,
+      "review_flags": []
+    },
+    {
+      "name": "growth-log",
+      "path": "skills/growth-log/SKILL.md",
+      "sha": "80c7d75a3b551eb3e723c6c71a4aa1cdfc1da589",
+      "bytes": 7034,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "healthcare-cdss-patterns",
+      "path": "skills/healthcare-cdss-patterns/SKILL.md",
+      "sha": "f98314a5ef164e78f9f1a6826ea08297428d0183",
+      "bytes": 9461,
+      "review_flags": []
+    },
+    {
+      "name": "healthcare-emr-patterns",
+      "path": "skills/healthcare-emr-patterns/SKILL.md",
+      "sha": "86e8b8cbbb59d51b13a3e03c1fffb102258e6217",
+      "bytes": 6746,
+      "review_flags": []
+    },
+    {
+      "name": "healthcare-eval-harness",
+      "path": "skills/healthcare-eval-harness/SKILL.md",
+      "sha": "43ce12ea5c7a602f1ff5544eed6183a95706bf8f",
+      "bytes": 7849,
+      "review_flags": []
+    },
+    {
+      "name": "healthcare-phi-compliance",
+      "path": "skills/healthcare-phi-compliance/SKILL.md",
+      "sha": "6b1b90821bd0f089b548131d04421275418e8f8c",
+      "bytes": 5753,
+      "review_flags": []
+    },
+    {
+      "name": "hermes-imports",
+      "path": "skills/hermes-imports/SKILL.md",
+      "sha": "38c08ccc6ba4f36a6993908a955838feb0f7799c",
+      "bytes": 3006,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "hexagonal-architecture",
+      "path": "skills/hexagonal-architecture/SKILL.md",
+      "sha": "54943754db2e7e993bb6428a789cbb3915322d7c",
+      "bytes": 11520,
+      "review_flags": []
+    },
+    {
+      "name": "hipaa-compliance",
+      "path": "skills/hipaa-compliance/SKILL.md",
+      "sha": "c1fa78e99fc1f962486b05ef8a5ec438ebc46d4a",
+      "bytes": 3631,
+      "review_flags": []
+    },
+    {
+      "name": "homelab-network-readiness",
+      "path": "skills/homelab-network-readiness/SKILL.md",
+      "sha": "8e41e52177231f6866eacb9c939ce202abe67e02",
+      "bytes": 7782,
+      "review_flags": []
+    },
+    {
+      "name": "homelab-network-setup",
+      "path": "skills/homelab-network-setup/SKILL.md",
+      "sha": "b4cbbef8272ca12aa3de0d27002f078ec43b66c8",
+      "bytes": 4432,
+      "review_flags": []
+    },
+    {
+      "name": "homelab-pihole-dns",
+      "path": "skills/homelab-pihole-dns/SKILL.md",
+      "sha": "3dfa5b1b2ce6940f27f98df244f6d978d2aca0f9",
+      "bytes": 9592,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "homelab-vlan-segmentation",
+      "path": "skills/homelab-vlan-segmentation/SKILL.md",
+      "sha": "bd1927bc5f8f072fcdd39f653722bc5be9c93c1c",
+      "bytes": 10290,
+      "review_flags": []
+    },
+    {
+      "name": "homelab-wireguard-vpn",
+      "path": "skills/homelab-wireguard-vpn/SKILL.md",
+      "sha": "abddf8acab9e6d96ddd738d452777c748940c81b",
+      "bytes": 10628,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "hookify-rules",
+      "path": "skills/hookify-rules/SKILL.md",
+      "sha": "b0e5d70e60944a15a4b163abc67685c3c7f11183",
+      "bytes": 4801,
+      "review_flags": [
+        "destructive",
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "i18n-sync",
+      "path": "skills/i18n-sync/SKILL.md",
+      "sha": "91e0436803310f58e6929c7a53ae85c7d4ed9802",
+      "bytes": 7051,
+      "review_flags": []
+    },
+    {
+      "name": "inherit-legacy-style",
+      "path": "skills/inherit-legacy-style/SKILL.md",
+      "sha": "b43189023a965f2a51e028d4bd098ee3e6d0f135",
+      "bytes": 8416,
+      "review_flags": []
+    },
+    {
+      "name": "intent-driven-development",
+      "path": "skills/intent-driven-development/SKILL.md",
+      "sha": "a5f0328996282ccb2a422f85798345f0b7eff570",
+      "bytes": 17199,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "inventory-demand-planning",
+      "path": "skills/inventory-demand-planning/SKILL.md",
+      "sha": "48c8d44338d75ca743618f206d2e0ecf7cc88564",
+      "bytes": 24381,
+      "review_flags": []
+    },
+    {
+      "name": "investor-materials",
+      "path": "skills/investor-materials/SKILL.md",
+      "sha": "82eaba3a95a9d1eb79672addcffb17c1a18faead",
+      "bytes": 2735,
+      "review_flags": []
+    },
+    {
+      "name": "investor-outreach",
+      "path": "skills/investor-outreach/SKILL.md",
+      "sha": "01be7534bfd0ae457cb094c168826816a24cfdd8",
+      "bytes": 2655,
+      "review_flags": []
+    },
+    {
+      "name": "ios-icon-gen",
+      "path": "skills/ios-icon-gen/SKILL.md",
+      "sha": "a2f25322986a59341a3817f577847af47bf03894",
+      "bytes": 5653,
+      "review_flags": []
+    },
+    {
+      "name": "iterative-retrieval",
+      "path": "skills/iterative-retrieval/SKILL.md",
+      "sha": "5b4fbcd58c38701a8ef6a43f80b820f792716982",
+      "bytes": 6786,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "ito-baskets",
+      "path": "skills/ito-baskets/SKILL.md",
+      "sha": "74313290283a9fedfdf7bf6a0047ec7f06845b92",
+      "bytes": 13385,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "ito-compute",
+      "path": "skills/ito-compute/SKILL.md",
+      "sha": "4970a757b6075d1ce12043ba3c73e0bdea52f1ed",
+      "bytes": 6619,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "ito-inference",
+      "path": "skills/ito-inference/SKILL.md",
+      "sha": "4a95b6c36bc3cc8228985a4aab8acdeec7b5189a",
+      "bytes": 6147,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "ito-training",
+      "path": "skills/ito-training/SKILL.md",
+      "sha": "f28e2e6b0064205a9b6a8e22431496adc48eb5c4",
+      "bytes": 6087,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "java-coding-standards",
+      "path": "skills/java-coding-standards/SKILL.md",
+      "sha": "47b34a0f802f776fc84ee9c40eab786053aa47b8",
+      "bytes": 11550,
+      "review_flags": []
+    },
+    {
+      "name": "jira-integration",
+      "path": "skills/jira-integration/SKILL.md",
+      "sha": "22fb65ea891304ca2ef8e23dfff593e4b74f2a52",
+      "bytes": 9897,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "jpa-patterns",
+      "path": "skills/jpa-patterns/SKILL.md",
+      "sha": "5c2f6425dd6f299f6ceb918f56673ad9fbeee8a8",
+      "bytes": 4679,
+      "review_flags": []
+    },
+    {
+      "name": "knowledge-ops",
+      "path": "skills/knowledge-ops/SKILL.md",
+      "sha": "298449d70858abe1c44a667bc182d52a1a13916e",
+      "bytes": 6752,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "kotlin-coroutines-flows",
+      "path": "skills/kotlin-coroutines-flows/SKILL.md",
+      "sha": "7bbb13c9a62cfe630362b9d0a4779171ec5a342c",
+      "bytes": 7869,
+      "review_flags": []
+    },
+    {
+      "name": "kotlin-exposed-patterns",
+      "path": "skills/kotlin-exposed-patterns/SKILL.md",
+      "sha": "5f853d7bded06841e6e73ef53b4f7b530ccd3da7",
+      "bytes": 22119,
+      "review_flags": []
+    },
+    {
+      "name": "kotlin-ktor-patterns",
+      "path": "skills/kotlin-ktor-patterns/SKILL.md",
+      "sha": "b36688570b9590aff40e1400621a5c6da13b965f",
+      "bytes": 19536,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "kotlin-patterns",
+      "path": "skills/kotlin-patterns/SKILL.md",
+      "sha": "7b6baba881698144a3af501b64445a3ce7079710",
+      "bytes": 18951,
+      "review_flags": []
+    },
+    {
+      "name": "kotlin-testing",
+      "path": "skills/kotlin-testing/SKILL.md",
+      "sha": "18df9b22c6d06f03af588c8a1e6515c9346b30c1",
+      "bytes": 20800,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "kubernetes-patterns",
+      "path": "skills/kubernetes-patterns/SKILL.md",
+      "sha": "fdd0eba6883e14a1f82688acf9ef5a96ddc6180f",
+      "bytes": 20099,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "laravel-patterns",
+      "path": "skills/laravel-patterns/SKILL.md",
+      "sha": "a3ce33fdfa0550f2ec9e5186d0924a2382e644bc",
+      "bytes": 10664,
+      "review_flags": []
+    },
+    {
+      "name": "laravel-plugin-discovery",
+      "path": "skills/laravel-plugin-discovery/SKILL.md",
+      "sha": "f5d2f212e60b23611c541e223eb906ab01da5ab7",
+      "bytes": 6393,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "laravel-security",
+      "path": "skills/laravel-security/SKILL.md",
+      "sha": "dd65c7e1f913639018748d1282b11186e454b040",
+      "bytes": 26827,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "laravel-tdd",
+      "path": "skills/laravel-tdd/SKILL.md",
+      "sha": "15ccea11b7ef975901fa7816517261de75364ffb",
+      "bytes": 17863,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "laravel-verification",
+      "path": "skills/laravel-verification/SKILL.md",
+      "sha": "26dd898660bbe8f1c7080b77ceb41eae4848ccf7",
+      "bytes": 4376,
+      "review_flags": []
+    },
+    {
+      "name": "latency-critical-systems",
+      "path": "skills/latency-critical-systems/SKILL.md",
+      "sha": "cbcf27ca709bba4d6fd6b837f4b76156cf82461f",
+      "bytes": 2500,
+      "review_flags": []
+    },
+    {
+      "name": "lead-intelligence",
+      "path": "skills/lead-intelligence/SKILL.md",
+      "sha": "e29be63ed9cd4fbe0424e26a0ee43cf1e1697f4b",
+      "bytes": 13111,
+      "review_flags": []
+    },
+    {
+      "name": "liquid-glass-design",
+      "path": "skills/liquid-glass-design/SKILL.md",
+      "sha": "495dd01a63bb523ad9b6d02f76fae2c4f2ab29e8",
+      "bytes": 9119,
+      "review_flags": []
+    },
+    {
+      "name": "living-docs-governance",
+      "path": "skills/living-docs-governance/SKILL.md",
+      "sha": "9e165da65cb92c478fed84dd6d4a531e395d92f5",
+      "bytes": 8482,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "llm-trading-agent-security",
+      "path": "skills/llm-trading-agent-security/SKILL.md",
+      "sha": "5a6252a3d9f3f33cc6993b1e98a66c62b539f344",
+      "bytes": 4632,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "logistics-exception-management",
+      "path": "skills/logistics-exception-management/SKILL.md",
+      "sha": "d94400f0e22cc712e378dd1251969788c9176baa",
+      "bytes": 16818,
+      "review_flags": []
+    },
+    {
+      "name": "loop-design-check",
+      "path": "skills/loop-design-check/SKILL.md",
+      "sha": "c54266211898024e69b141fd1993aa9a8e678c58",
+      "bytes": 11941,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "mailtrap-email-integration",
+      "path": "skills/mailtrap-email-integration/SKILL.md",
+      "sha": "f70c7bc0ff8713a1042c45f9138979691d704fc6",
+      "bytes": 3820,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "make-interfaces-feel-better",
+      "path": "skills/make-interfaces-feel-better/SKILL.md",
+      "sha": "e589f3f30312ac4e522dfbdd3e592862f69fd008",
+      "bytes": 4795,
+      "review_flags": []
+    },
+    {
+      "name": "manim-video",
+      "path": "skills/manim-video/SKILL.md",
+      "sha": "2e2121a14b513634fa2fde71aba48f614408ad82",
+      "bytes": 2906,
+      "review_flags": []
+    },
+    {
+      "name": "market-research",
+      "path": "skills/market-research/SKILL.md",
+      "sha": "b2ddc25b8cbd74056460a7b28e5628ceb9454ac0",
+      "bytes": 3185,
+      "review_flags": []
+    },
+    {
+      "name": "marketing-campaign",
+      "path": "skills/marketing-campaign/SKILL.md",
+      "sha": "24389d77a508f00b647abcadd2293951b9ce4d55",
+      "bytes": 5293,
+      "review_flags": []
+    },
+    {
+      "name": "master-agreement-generator",
+      "path": "skills/master-agreement-generator/SKILL.md",
+      "sha": "d0c933755c3a24a5ddfde5fe615d66114a577b67",
+      "bytes": 11550,
+      "review_flags": []
+    },
+    {
+      "name": "mcp-dependency-review",
+      "path": "skills/mcp-dependency-review/SKILL.md",
+      "sha": "4b08af8b05d44a0301693fc025a60ca5f4e8ee6d",
+      "bytes": 10245,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "mcp-server-patterns",
+      "path": "skills/mcp-server-patterns/SKILL.md",
+      "sha": "503c31bad5ef287368e3badf23226314fad68dbe",
+      "bytes": 4192,
+      "review_flags": []
+    },
+    {
+      "name": "messages-ops",
+      "path": "skills/messages-ops/SKILL.md",
+      "sha": "65e59b1cc8c4c74386aafac1d8f95d2ab5d63448",
+      "bytes": 2896,
+      "review_flags": []
+    },
+    {
+      "name": "ml-adoption-playbook",
+      "path": "skills/ml-adoption-playbook/SKILL.md",
+      "sha": "0b6d3a0b715e9bd8f9292cf45101feb65d196b15",
+      "bytes": 3899,
+      "review_flags": []
+    },
+    {
+      "name": "mle-workflow",
+      "path": "skills/mle-workflow/SKILL.md",
+      "sha": "b81aa08306c0cc451180418edf591ec507ac9d8d",
+      "bytes": 22450,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "module-regression",
+      "path": "skills/module-regression/SKILL.md",
+      "sha": "d8186cbfc4c481eb884a13c14b6f2a38aace0b7a",
+      "bytes": 8124,
+      "review_flags": []
+    },
+    {
+      "name": "motion-advanced",
+      "path": "skills/motion-advanced/SKILL.md",
+      "sha": "607b2228cdabc87a18c06e28521a245c2f60c2c2",
+      "bytes": 18800,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "motion-foundations",
+      "path": "skills/motion-foundations/SKILL.md",
+      "sha": "63b866247e97f6d82eb421ed39b3e4f484b21101",
+      "bytes": 9797,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "motion-patterns",
+      "path": "skills/motion-patterns/SKILL.md",
+      "sha": "d786e47adf4a8c9a1342f59383f8e7f963c61b1d",
+      "bytes": 13418,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "mybatis-patterns",
+      "path": "skills/mybatis-patterns/SKILL.md",
+      "sha": "51cbbc256592cf9ba3c57dc5c7ff8729c8b6defc",
+      "bytes": 18106,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "mysql-patterns",
+      "path": "skills/mysql-patterns/SKILL.md",
+      "sha": "d9043b49989034ac8d0a8f562d561a98452bfb38",
+      "bytes": 12169,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "nanoclaw-repl",
+      "path": "skills/nanoclaw-repl/SKILL.md",
+      "sha": "f7d91a6902df66d24470756d9765897e3605ffdc",
+      "bytes": 1144,
+      "review_flags": []
+    },
+    {
+      "name": "nasiko-control-plane",
+      "path": "skills/nasiko-control-plane/SKILL.md",
+      "sha": "014929ab0b9ff608881d6a64613f47f443c245b8",
+      "bytes": 2639,
+      "review_flags": []
+    },
+    {
+      "name": "nestjs-patterns",
+      "path": "skills/nestjs-patterns/SKILL.md",
+      "sha": "067cb8994c1e2f8e8ca003820b732679e43f9543",
+      "bytes": 6533,
+      "review_flags": []
+    },
+    {
+      "name": "netmiko-ssh-automation",
+      "path": "skills/netmiko-ssh-automation/SKILL.md",
+      "sha": "d0aea7db85f3cb2b0cec2675684a1ff984be2deb",
+      "bytes": 6046,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "network-bgp-diagnostics",
+      "path": "skills/network-bgp-diagnostics/SKILL.md",
+      "sha": "f3e0fdbbfe219b7a00a92d400af0bf45bf8a3100",
+      "bytes": 5641,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "network-config-validation",
+      "path": "skills/network-config-validation/SKILL.md",
+      "sha": "b3f059fac05165a23354b1a844f4bbe3e9a39889",
+      "bytes": 7727,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "network-interface-health",
+      "path": "skills/network-interface-health/SKILL.md",
+      "sha": "a4f41113a93f4b83bcbdb939c2aa78528a95366f",
+      "bytes": 5754,
+      "review_flags": []
+    },
+    {
+      "name": "nextjs-turbopack",
+      "path": "skills/nextjs-turbopack/SKILL.md",
+      "sha": "43e1e60ee22d274259d3f0e8f12afeaffc799bec",
+      "bytes": 3141,
+      "review_flags": []
+    },
+    {
+      "name": "nodejs-keccak256",
+      "path": "skills/nodejs-keccak256/SKILL.md",
+      "sha": "c1b9712036d0153b404a6c56f26dfd4bf04c9e41",
+      "bytes": 2992,
+      "review_flags": []
+    },
+    {
+      "name": "nutrient-document-processing",
+      "path": "skills/nutrient-document-processing/SKILL.md",
+      "sha": "e1bf3dfa96c02f27cb5ae5b2ae80c7b1b4fe443c",
+      "bytes": 6015,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "nuxt4-patterns",
+      "path": "skills/nuxt4-patterns/SKILL.md",
+      "sha": "bf7068766984f9f4121051260c04ddb282452635",
+      "bytes": 4761,
+      "review_flags": []
+    },
+    {
+      "name": "openclaw-persona-forge",
+      "path": "skills/openclaw-persona-forge/SKILL.md",
+      "sha": "f09e76a728793d60ffd3abe926df0ad35c64ecbb",
+      "bytes": 12525,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "opensource-pipeline",
+      "path": "skills/opensource-pipeline/SKILL.md",
+      "sha": "3be84b1f4ee2a76361921260a91dc02e1cdda13e",
+      "bytes": 11578,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "operator-approval-loop",
+      "path": "skills/operator-approval-loop/SKILL.md",
+      "sha": "5c97fa8381df307236f989afc1c1498bcf622de3",
+      "bytes": 13126,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "orch-add-feature",
+      "path": "skills/orch-add-feature/SKILL.md",
+      "sha": "e26285093ce99cd6f6ba6dcbbd84b03b1e4236ed",
+      "bytes": 1803,
+      "review_flags": []
+    },
+    {
+      "name": "orch-build-mvp",
+      "path": "skills/orch-build-mvp/SKILL.md",
+      "sha": "10388aa2f0a50f819d851fbbc564515130b0d433",
+      "bytes": 2399,
+      "review_flags": []
+    },
+    {
+      "name": "orch-change-feature",
+      "path": "skills/orch-change-feature/SKILL.md",
+      "sha": "972b0666b30666599ca517b29bd4dd0813653dae",
+      "bytes": 1711,
+      "review_flags": []
+    },
+    {
+      "name": "orch-fix-defect",
+      "path": "skills/orch-fix-defect/SKILL.md",
+      "sha": "69bfc986cf9637e6ffee1dd831ca2ab6d56ac9bf",
+      "bytes": 1684,
+      "review_flags": []
+    },
+    {
+      "name": "orch-pipeline",
+      "path": "skills/orch-pipeline/SKILL.md",
+      "sha": "86dab2fdef704134d2d868949d235646cfa57a4f",
+      "bytes": 6402,
+      "review_flags": []
+    },
+    {
+      "name": "orch-refine-code",
+      "path": "skills/orch-refine-code/SKILL.md",
+      "sha": "a57ba5c897e250cc2d2b0c7d706a7caa934a36f7",
+      "bytes": 1819,
+      "review_flags": []
+    },
+    {
+      "name": "osint-investigation",
+      "path": "skills/osint-investigation/SKILL.md",
+      "sha": "de93126d73d1d615eae98a5e2cdd5cc92d5b00d0",
+      "bytes": 22735,
+      "review_flags": []
+    },
+    {
+      "name": "parallel-execution-optimizer",
+      "path": "skills/parallel-execution-optimizer/SKILL.md",
+      "sha": "e755960e4805cbfffb748803ad39c3b3fb1babaf",
+      "bytes": 2846,
+      "review_flags": []
+    },
+    {
+      "name": "perl-patterns",
+      "path": "skills/perl-patterns/SKILL.md",
+      "sha": "a2aaa8621df3c175783ee49053f505d1e7fc8b92",
+      "bytes": 11591,
+      "review_flags": []
+    },
+    {
+      "name": "perl-security",
+      "path": "skills/perl-security/SKILL.md",
+      "sha": "df4dddce54cc04234a72f3b5e705f30b958a1af3",
+      "bytes": 13704,
+      "review_flags": [
+        "destructive",
+        "secrets"
+      ]
+    },
+    {
+      "name": "perl-testing",
+      "path": "skills/perl-testing/SKILL.md",
+      "sha": "c170c19f9897838ab4d2fd17a974b6e27641e510",
+      "bytes": 11282,
+      "review_flags": []
+    },
+    {
+      "name": "plan-canvas",
+      "path": "skills/plan-canvas/SKILL.md",
+      "sha": "7c87e18752df8d6788353fbf51d8bc793b9eda6f",
+      "bytes": 8676,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "plan-orchestrate",
+      "path": "skills/plan-orchestrate/SKILL.md",
+      "sha": "0d4887d555236c1115a4ae2d20d205602138f10b",
+      "bytes": 18649,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "plankton-code-quality",
+      "path": "skills/plankton-code-quality/SKILL.md",
+      "sha": "c056a5b200037795766ece6643b28c297344f1f1",
+      "bytes": 12896,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "postgres-patterns",
+      "path": "skills/postgres-patterns/SKILL.md",
+      "sha": "12a3a4a05c2278c7fe1316d9403b5ca037dadf69",
+      "bytes": 3914,
+      "review_flags": []
+    },
+    {
+      "name": "prediction-market-oracle-research",
+      "path": "skills/prediction-market-oracle-research/SKILL.md",
+      "sha": "8cb9314ac76ca1c306e2c45e6d4a3feac09b79ed",
+      "bytes": 2306,
+      "review_flags": []
+    },
+    {
+      "name": "prediction-market-risk-review",
+      "path": "skills/prediction-market-risk-review/SKILL.md",
+      "sha": "3b60d35ecf9101852388b8dddc2854f49c6e28e4",
+      "bytes": 1882,
+      "review_flags": []
+    },
+    {
+      "name": "prisma-patterns",
+      "path": "skills/prisma-patterns/SKILL.md",
+      "sha": "9ea78b8eb5debae24782e372f21e4c30c58a4f55",
+      "bytes": 15281,
+      "review_flags": []
+    },
+    {
+      "name": "product-capability",
+      "path": "skills/product-capability/SKILL.md",
+      "sha": "c004325504b8b444f07ec223c7fc05ec2cfc8eaf",
+      "bytes": 4436,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "product-lens",
+      "path": "skills/product-lens/SKILL.md",
+      "sha": "af5149d1c692b0919d4337160c6cde5cca43c836",
+      "bytes": 3373,
+      "review_flags": []
+    },
+    {
+      "name": "production-audit",
+      "path": "skills/production-audit/SKILL.md",
+      "sha": "a6d92fa5e91928f2da69c40228a684ce45e3b019",
+      "bytes": 7727,
+      "review_flags": []
+    },
+    {
+      "name": "production-scheduling",
+      "path": "skills/production-scheduling/SKILL.md",
+      "sha": "3e0870b105f2e33b1e1546e71f39960d82887789",
+      "bytes": 28542,
+      "review_flags": []
+    },
+    {
+      "name": "project-flow-ops",
+      "path": "skills/project-flow-ops/SKILL.md",
+      "sha": "6ab2e62d15f882208e7e43c7ec4866f53273f62f",
+      "bytes": 3145,
+      "review_flags": []
+    },
+    {
+      "name": "prompt-caching-strategy",
+      "path": "skills/prompt-caching-strategy/SKILL.md",
+      "sha": "c6bd9f18b8da2329f69743250e4d0a258465ef4e",
+      "bytes": 10109,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "prompt-optimizer",
+      "path": "skills/prompt-optimizer/SKILL.md",
+      "sha": "16ae27d10c3015f456d38f4344643ff56e764f70",
+      "bytes": 16077,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "python-patterns",
+      "path": "skills/python-patterns/SKILL.md",
+      "sha": "ced3d588d816fb6880dfef4d67f30cab9d1b82df",
+      "bytes": 16914,
+      "review_flags": []
+    },
+    {
+      "name": "python-testing",
+      "path": "skills/python-testing/SKILL.md",
+      "sha": "8e68a084ad890afb901c43741a733e6d076958b0",
+      "bytes": 19552,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "pytorch-patterns",
+      "path": "skills/pytorch-patterns/SKILL.md",
+      "sha": "068225c16284e92130f46b1f411319a04f7188a0",
+      "bytes": 11797,
+      "review_flags": []
+    },
+    {
+      "name": "quality-nonconformance",
+      "path": "skills/quality-nonconformance/SKILL.md",
+      "sha": "721073cd7ea5977a1a8647038e9ac41fb9ca1edd",
+      "bytes": 30261,
+      "review_flags": []
+    },
+    {
+      "name": "quarkus-patterns",
+      "path": "skills/quarkus-patterns/SKILL.md",
+      "sha": "467bd1ceb990df421300ee5a7abaf71deba7c256",
+      "bytes": 21520,
+      "review_flags": []
+    },
+    {
+      "name": "quarkus-security",
+      "path": "skills/quarkus-security/SKILL.md",
+      "sha": "6c785751e96b150161179b98c050cc4e9decd3ba",
+      "bytes": 12401,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "quarkus-tdd",
+      "path": "skills/quarkus-tdd/SKILL.md",
+      "sha": "1c4d52441554f0470660e4c090f7533c236e2dc3",
+      "bytes": 25526,
+      "review_flags": []
+    },
+    {
+      "name": "quarkus-verification",
+      "path": "skills/quarkus-verification/SKILL.md",
+      "sha": "2d620bd02a9727c068d90de0fa140938b89f8a1e",
+      "bytes": 10739,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "rails-patterns",
+      "path": "skills/rails-patterns/SKILL.md",
+      "sha": "876df985a7c773870093f50f362626142bbb29ab",
+      "bytes": 16514,
+      "review_flags": []
+    },
+    {
+      "name": "ralphinho-rfc-pipeline",
+      "path": "skills/ralphinho-rfc-pipeline/SKILL.md",
+      "sha": "7ac2ba00e8a9327896e2a4447a6dbee9c9646ea3",
+      "bytes": 1837,
+      "review_flags": []
+    },
+    {
+      "name": "react-native-patterns",
+      "path": "skills/react-native-patterns/SKILL.md",
+      "sha": "d0e6c3272c385891935eb837d966377a8665d07a",
+      "bytes": 11752,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "react-patterns",
+      "path": "skills/react-patterns/SKILL.md",
+      "sha": "66acd2a6c84eb0bbcf72eaeb43ba4be37e8dddff",
+      "bytes": 11466,
+      "review_flags": []
+    },
+    {
+      "name": "react-performance",
+      "path": "skills/react-performance/SKILL.md",
+      "sha": "6952967cf4b894f900b5cf692e851ababaf854f5",
+      "bytes": 18184,
+      "review_flags": []
+    },
+    {
+      "name": "react-testing",
+      "path": "skills/react-testing/SKILL.md",
+      "sha": "babaf6ebef80f1e6ba66ef5242372dd175870a40",
+      "bytes": 13168,
+      "review_flags": []
+    },
+    {
+      "name": "recsys-pipeline-architect",
+      "path": "skills/recsys-pipeline-architect/SKILL.md",
+      "sha": "2964a85f81bd73d60943c95b1cf72dae907324d6",
+      "bytes": 7788,
+      "review_flags": []
+    },
+    {
+      "name": "recursive-decision-ledger",
+      "path": "skills/recursive-decision-ledger/SKILL.md",
+      "sha": "ebdb53fa5f0b6d1cb5f037424019595788340078",
+      "bytes": 2803,
+      "review_flags": []
+    },
+    {
+      "name": "redis-patterns",
+      "path": "skills/redis-patterns/SKILL.md",
+      "sha": "463e7dd4ff6babdeb25b603eed0dc754cf2f9554",
+      "bytes": 11977,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "regex-vs-llm-structured-text",
+      "path": "skills/regex-vs-llm-structured-text/SKILL.md",
+      "sha": "18d84e4a5265fee0a4fceaf441617e9b0823f206",
+      "bytes": 6749,
+      "review_flags": []
+    },
+    {
+      "name": "remotion-video-creation",
+      "path": "skills/remotion-video-creation/SKILL.md",
+      "sha": "b86102f825e6a6dbee8fcfc93255e180681555df",
+      "bytes": 3642,
+      "review_flags": []
+    },
+    {
+      "name": "repo-scan",
+      "path": "skills/repo-scan/SKILL.md",
+      "sha": "c2f40eee7ae20da55f5b9e60b658d0574e5cf18d",
+      "bytes": 7242,
+      "review_flags": [
+        "destructive"
+      ]
+    },
+    {
+      "name": "research-ops",
+      "path": "skills/research-ops/SKILL.md",
+      "sha": "449ddc95ef7efeb01883955070d44ad2be83e817",
+      "bytes": 3605,
+      "review_flags": []
+    },
+    {
+      "name": "returns-reverse-logistics",
+      "path": "skills/returns-reverse-logistics/SKILL.md",
+      "sha": "63b5e35b8cee31de84f469e8b28b0d34c3e3983a",
+      "bytes": 24668,
+      "review_flags": []
+    },
+    {
+      "name": "rules-distill",
+      "path": "skills/rules-distill/SKILL.md",
+      "sha": "9f76d3fe0c36af92c15607a006ba9b99d18559ef",
+      "bytes": 9586,
+      "review_flags": []
+    },
+    {
+      "name": "rust-patterns",
+      "path": "skills/rust-patterns/SKILL.md",
+      "sha": "b87afe5eb81cff8c22e9c71cedc5f29688736c0d",
+      "bytes": 13500,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "rust-testing",
+      "path": "skills/rust-testing/SKILL.md",
+      "sha": "464555b45ce646ea9396f63277be08f40d2ce49b",
+      "bytes": 11798,
+      "review_flags": []
+    },
+    {
+      "name": "safety-guard",
+      "path": "skills/safety-guard/SKILL.md",
+      "sha": "935bb69f6546920ca102fd1b372eea20110ef382",
+      "bytes": 2533,
+      "review_flags": [
+        "destructive",
+        "provider"
+      ]
+    },
+    {
+      "name": "santa-method",
+      "path": "skills/santa-method/SKILL.md",
+      "sha": "add4a3f734dd62201a68504964155ea85e316f97",
+      "bytes": 12991,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "scientific-db-pubmed-database",
+      "path": "skills/scientific-db-pubmed-database/SKILL.md",
+      "sha": "18b4c0cb39ec5a5d2ffd70e9c533e164d3ec4cd3",
+      "bytes": 4827,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "scientific-db-uspto-database",
+      "path": "skills/scientific-db-uspto-database/SKILL.md",
+      "sha": "a577161ce83cf11d57f4adbc8c54db8f7d2f03e5",
+      "bytes": 6331,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "scientific-pkg-gget",
+      "path": "skills/scientific-pkg-gget/SKILL.md",
+      "sha": "13b2ca46fbc377ade82299532760a11b57d5d12a",
+      "bytes": 5089,
+      "review_flags": []
+    },
+    {
+      "name": "scientific-thinking-literature-review",
+      "path": "skills/scientific-thinking-literature-review/SKILL.md",
+      "sha": "dd240c89bcabf71bbe1d181fbb7ba3c0d7935729",
+      "bytes": 5201,
+      "review_flags": []
+    },
+    {
+      "name": "scientific-thinking-scholar-evaluation",
+      "path": "skills/scientific-thinking-scholar-evaluation/SKILL.md",
+      "sha": "170c287ab81f0050f76d4bc44e7f6e3759d1a0df",
+      "bytes": 4906,
+      "review_flags": []
+    },
+    {
+      "name": "search-first",
+      "path": "skills/search-first/SKILL.md",
+      "sha": "3d2669e71ba54afba95defb05080253058190600",
+      "bytes": 8210,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "security-bounty-hunter",
+      "path": "skills/security-bounty-hunter/SKILL.md",
+      "sha": "ea62db8b0b58af0646c4ab3f5f147136122fd156",
+      "bytes": 3628,
+      "review_flags": []
+    },
+    {
+      "name": "security-review",
+      "path": "skills/security-review/SKILL.md",
+      "sha": "3f26b0df65661425de4e5c40c295e04edcad7a83",
+      "bytes": 12955,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "security-scan",
+      "path": "skills/security-scan/SKILL.md",
+      "sha": "9026c08e024ce2a9ffcb1db0b999b9957cee6bf0",
+      "bytes": 4592,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "seo",
+      "path": "skills/seo/SKILL.md",
+      "sha": "a4032a5b5a98c4b09eabf4e4f8971ed664887496",
+      "bytes": 4320,
+      "review_flags": []
+    },
+    {
+      "name": "skill-comply",
+      "path": "skills/skill-comply/SKILL.md",
+      "sha": "303863e302fe9ff340197fc7442a86bacbb7f425",
+      "bytes": 2500,
+      "review_flags": []
+    },
+    {
+      "name": "skill-host-compat",
+      "path": "skills/skill-host-compat/SKILL.md",
+      "sha": "220e8b3117056b3924ed1c9c11e28b5de09f9293",
+      "bytes": 3788,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "skill-scout",
+      "path": "skills/skill-scout/SKILL.md",
+      "sha": "8a55c548ccd47e4f5adf738cf5becf0b8b9ad9e7",
+      "bytes": 4486,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "skill-stocktake",
+      "path": "skills/skill-stocktake/SKILL.md",
+      "sha": "aa4d16bfd22c297a538cc696ecc4e3e2ee3342d8",
+      "bytes": 12389,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "social-graph-ranker",
+      "path": "skills/social-graph-ranker/SKILL.md",
+      "sha": "c128380cd6a87bbf85fb1ef0b83eca93893bbd4d",
+      "bytes": 4156,
+      "review_flags": []
+    },
+    {
+      "name": "social-publisher",
+      "path": "skills/social-publisher/SKILL.md",
+      "sha": "b745b504c8f7375e091f3d2e3653fde1b4c07b07",
+      "bytes": 5195,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "springboot-patterns",
+      "path": "skills/springboot-patterns/SKILL.md",
+      "sha": "dc0b5f2a1f5e03ad66d774cd1bef3b92e3807cc2",
+      "bytes": 10047,
+      "review_flags": []
+    },
+    {
+      "name": "springboot-security",
+      "path": "skills/springboot-security/SKILL.md",
+      "sha": "37391ec7e1b2b16c7ee9b636efdd73a4a619a553",
+      "bytes": 8133,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "springboot-tdd",
+      "path": "skills/springboot-tdd/SKILL.md",
+      "sha": "fc07f24face95ac19568ae338760a8e73d18b01e",
+      "bytes": 3786,
+      "review_flags": []
+    },
+    {
+      "name": "springboot-verification",
+      "path": "skills/springboot-verification/SKILL.md",
+      "sha": "4abd92b1c7a9b11fa02668843aba0dc7c4cda07e",
+      "bytes": 6079,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "story-lifecycle",
+      "path": "skills/story-lifecycle/SKILL.md",
+      "sha": "4965a136f8629cf3151e0cb31e1327df11e9bfd9",
+      "bytes": 17744,
+      "review_flags": []
+    },
+    {
+      "name": "strategic-compact",
+      "path": "skills/strategic-compact/SKILL.md",
+      "sha": "134e767151c4b7f039833bf496cdf4f145875c12",
+      "bytes": 8608,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "swift-actor-persistence",
+      "path": "skills/swift-actor-persistence/SKILL.md",
+      "sha": "9cbf45df1487593cfffa25024d1cbeddcd0e7c7b",
+      "bytes": 4906,
+      "review_flags": []
+    },
+    {
+      "name": "swift-concurrency-6-2",
+      "path": "skills/swift-concurrency-6-2/SKILL.md",
+      "sha": "d88911687e9108f73473f307ece3a55ecd444593",
+      "bytes": 8117,
+      "review_flags": []
+    },
+    {
+      "name": "swift-protocol-di-testing",
+      "path": "skills/swift-protocol-di-testing/SKILL.md",
+      "sha": "5866cfd2683a6a1d29ef05d8cb1beb97008418a3",
+      "bytes": 6112,
+      "review_flags": []
+    },
+    {
+      "name": "swiftui-patterns",
+      "path": "skills/swiftui-patterns/SKILL.md",
+      "sha": "4497ece6e75bfb30839dd5d7bb3bd1ee53431f75",
+      "bytes": 7039,
+      "review_flags": []
+    },
+    {
+      "name": "taste-application",
+      "path": "skills/taste-application/SKILL.md",
+      "sha": "2e080c2fb7bba8d592c1c915bb1f5c4fea3a83ab",
+      "bytes": 19794,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "taste-distillation",
+      "path": "skills/taste-distillation/SKILL.md",
+      "sha": "e844b6b2902cf15e9e2a2bd7d34b84d8775cc5bc",
+      "bytes": 9133,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "taste",
+      "path": "skills/taste/SKILL.md",
+      "sha": "1b307d33af748841382842a6e79b80f7972507fd",
+      "bytes": 15406,
+      "review_flags": []
+    },
+    {
+      "name": "tasteforge-video",
+      "path": "skills/tasteforge-video/SKILL.md",
+      "sha": "51a416bf1c960ef20ba7482a9a8673fc902466e2",
+      "bytes": 14932,
+      "review_flags": []
+    },
+    {
+      "name": "tdd-workflow",
+      "path": "skills/tdd-workflow/SKILL.md",
+      "sha": "ad6517386574e623d954c5e9fec74a3f0e36803a",
+      "bytes": 21596,
+      "review_flags": [
+        "networkScript",
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "team-agent-orchestration",
+      "path": "skills/team-agent-orchestration/SKILL.md",
+      "sha": "7f4d75b6f521c946123fca98682a8f6be840014e",
+      "bytes": 4897,
+      "review_flags": [
+        "provider"
+      ]
+    },
+    {
+      "name": "team-builder",
+      "path": "skills/team-builder/SKILL.md",
+      "sha": "2de7d028b6af3e67fb88ab54b631b10fb3e779a8",
+      "bytes": 7478,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "terminal-opener",
+      "path": "skills/terminal-opener/SKILL.md",
+      "sha": "a78e0a95d95687364ca67e82c31a3476882e616c",
+      "bytes": 2539,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "terminal-ops",
+      "path": "skills/terminal-ops/SKILL.md",
+      "sha": "22aecd4198c90476495d5449eb2e20d0b0605cfe",
+      "bytes": 2997,
+      "review_flags": []
+    },
+    {
+      "name": "test-collaboration",
+      "path": "skills/test-collaboration/SKILL.md",
+      "sha": "f6623ee2e9c64af5eb749fa59911951ca79dc4fe",
+      "bytes": 11127,
+      "review_flags": []
+    },
+    {
+      "name": "tinystruct-patterns",
+      "path": "skills/tinystruct-patterns/SKILL.md",
+      "sha": "f354debc06cf243f3b6469f55ed714b0a7bb0756",
+      "bytes": 23365,
+      "review_flags": []
+    },
+    {
+      "name": "token-budget-advisor",
+      "path": "skills/token-budget-advisor/SKILL.md",
+      "sha": "49987758c37150718bca091e29ecfca6dfc6627d",
+      "bytes": 5740,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "token-card",
+      "path": "skills/token-card/SKILL.md",
+      "sha": "978fb57d3017ba28906bc986da058b340a23f7b0",
+      "bytes": 5153,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "ui-demo",
+      "path": "skills/ui-demo/SKILL.md",
+      "sha": "b90b7fe6834de3fc7950c0bab28922e9d1534f2d",
+      "bytes": 15256,
+      "review_flags": []
+    },
+    {
+      "name": "ui-to-vue",
+      "path": "skills/ui-to-vue/SKILL.md",
+      "sha": "83bf5e912be65860c79c18cf1f8be7a77a5cf6da",
+      "bytes": 4809,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "uncloud",
+      "path": "skills/uncloud/SKILL.md",
+      "sha": "e4e98126deb6348ac09e5756362a19274845363a",
+      "bytes": 9282,
+      "review_flags": []
+    },
+    {
+      "name": "unified-memory",
+      "path": "skills/unified-memory/SKILL.md",
+      "sha": "2eb70c775d90ed081530f9eeb419cc5ba81be147",
+      "bytes": 7871,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "unified-notifications-ops",
+      "path": "skills/unified-notifications-ops/SKILL.md",
+      "sha": "fe3839306cbab33a1543c69580e0f581246825ee",
+      "bytes": 5630,
+      "review_flags": []
+    },
+    {
+      "name": "verification-loop",
+      "path": "skills/verification-loop/SKILL.md",
+      "sha": "35cb4b7737ed2389a808b968aa360b00807eaffe",
+      "bytes": 3064,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "video-editing",
+      "path": "skills/video-editing/SKILL.md",
+      "sha": "524f075989aff50a74ca3b3159b6a9200eee82fa",
+      "bytes": 11754,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "videodb",
+      "path": "skills/videodb/SKILL.md",
+      "sha": "e1290296ab5277274bc04ca6856544c0e6aca816",
+      "bytes": 14004,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "visa-doc-translate",
+      "path": "skills/visa-doc-translate/SKILL.md",
+      "sha": "0d48bb2da7b2414e80401bbfb9b3c9e4c0877a40",
+      "bytes": 4153,
+      "review_flags": []
+    },
+    {
+      "name": "vite-patterns",
+      "path": "skills/vite-patterns/SKILL.md",
+      "sha": "98db326bd2e4f1d38fa539b84c0c0ab059848ea4",
+      "bytes": 17115,
+      "review_flags": [
+        "secrets"
+      ]
+    },
+    {
+      "name": "vue-patterns",
+      "path": "skills/vue-patterns/SKILL.md",
+      "sha": "978381a60a4c76de4a6ff85c8affe4f48ab8f67d",
+      "bytes": 13182,
+      "review_flags": []
+    },
+    {
+      "name": "windows-desktop-e2e",
+      "path": "skills/windows-desktop-e2e/SKILL.md",
+      "sha": "f965b043cee51ed1c464088c08b91cf05710d65f",
+      "bytes": 30577,
+      "review_flags": []
+    },
+    {
+      "name": "workspace-surface-audit",
+      "path": "skills/workspace-surface-audit/SKILL.md",
+      "sha": "6e7e75376c8fd520240425ee5b6bea967da19277",
+      "bytes": 5163,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    },
+    {
+      "name": "x-api",
+      "path": "skills/x-api/SKILL.md",
+      "sha": "70fa8396e7d3ef3a3c09f537d5a662f4d96e5775",
+      "bytes": 7438,
+      "review_flags": [
+        "secrets",
+        "provider"
+      ]
+    }
+  ]
+}
