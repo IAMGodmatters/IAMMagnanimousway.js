@@ -1,1 +1,17 @@
-{"private":true,"scripts":{"deploy":"wrangler deploy","dev":"wrangler dev"},"devDependencies":{"wrangler":"4.149.0"},"type":"module","dependencies":{"libphonenumber-js":"1.13.15"}}
+{
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "4.149.0"
+  },
+  "type": "module",
+  "dependencies": {
+    "libphonenumber-js": "1.13.15"
+  },
+  "overrides": {
+    "undici": "7.30.1"
+  }
+}
