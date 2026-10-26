@@ -78,6 +78,9 @@ jobs:
       - name: Exercise native no-spend Magnanimous Cloud D1 control plane
         run: node qa/scripts/magnanimous-cloud-edge-lock.mjs
 
+      - name: Verify Capability Mesh network interruption recovery
+        run: node qa/scripts/magnanimous-capability-mesh-reconnect-lock.mjs
+
       - name: Verify Magnanimous native vibe coding studio
         run: node qa/scripts/magnanimous-vibe-studio-lock.mjs
 
