@@ -1,0 +1,57 @@
+name: Magnanimous Python Security Compatibility
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'video-renderer/requirements.txt'
+      - 'telecom-core/control-api/requirements.txt'
+      - '.github/workflows/magnanimous-python-security-compatibility.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        requirements:
+          - video-renderer/requirements.txt
+          - telecom-core/control-api/requirements.txt
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install audited wheels without running source builds
+        shell: bash
+        env:
+          REQUIREMENTS: ${{ matrix.requirements }}
+          PIP_DISABLE_PIP_VERSION_CHECK: '1'
+        run: |
+          set -euo pipefail
+          python -m pip install --only-binary=:all: -r "$REQUIREMENTS"
+          python -m pip check
+      - name: Verify framework API availability
+        shell: bash
+        run: |
+          python - <<'PY'
+          import fastapi,starlette,anyio,uvicorn
+          from fastapi import FastAPI, Depends, Header, HTTPException, WebSocket, Request
+          from starlette.responses import JSONResponse, StreamingResponse
+          from starlette.middleware.cors import CORSMiddleware
+          from starlette.middleware.sessions import SessionMiddleware
+          from starlette.testclient import TestClient
+          app=FastAPI()
+          @app.get('/health')
+          def health(): return {'ok': True}
+          with TestClient(app) as client:
+              assert client.get('/health').json()=={'ok': True}
+          print('Python dependencies and framework smoke PASS:',fastapi.__version__,starlette.__version__)
+          PY
