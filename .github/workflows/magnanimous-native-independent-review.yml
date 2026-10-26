@@ -1,0 +1,28 @@
+name: Magnanimous Native Independent Change Review
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Validate native review engine
+        run: |
+          node --check qa/scripts/magnanimous-native-change-review.mjs
+          node qa/scripts/magnanimous-native-change-review.mjs --self-test
+      - name: Inspect changed code without an external AI service
+        run: node qa/scripts/magnanimous-native-change-review.mjs
