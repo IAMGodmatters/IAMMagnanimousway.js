@@ -1,7 +1,17 @@
 import fs from 'node:fs';
 import './whatsapp-store-contact-lock.mjs';
+import {automaticCjFulfillmentAllowed,automaticCjSupplierCapCents} from '../../worker/src/cj-dropship-runtime.js';
+
 
 const read=p=>fs.readFileSync(new URL(`../../${p}`,import.meta.url),'utf8');
+const assertNoSupplierAutoSpend=()=>{
+ const absent={},disabled={STORE_AUTO_FULFILL:'false',STORE_AUTO_FULFILL_MAX_USD:'100'},enabled={STORE_AUTO_FULFILL:'true',STORE_AUTO_FULFILL_MAX_USD:'100'};
+ if(automaticCjFulfillmentAllowed(absent)||automaticCjFulfillmentAllowed(disabled)||!automaticCjFulfillmentAllowed(enabled))throw Error('Automatic supplier purchase must require an explicit true setting.');
+ for(const bad of [undefined,'',0,'0','invalid','-10'])if(automaticCjSupplierCapCents({STORE_AUTO_FULFILL_MAX_USD:bad})!==0)throw Error('Invalid, absent, negative or zero supplier cap must block purchase.');
+ if(automaticCjSupplierCapCents(enabled)!==10000)throw Error('Existing explicitly authorized $100 cap must remain intact.');
+};
+assertNoSupplierAutoSpend();
+
 const must=(condition,message)=>{if(!condition)throw new Error(message)};
 const page=read('frontend/app/shop/page.tsx');
 const ownerIntegrations=read('frontend/app/owner-integrations/page.tsx');
