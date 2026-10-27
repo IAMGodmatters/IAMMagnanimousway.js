@@ -15,6 +15,7 @@ const storeSource=fs.readFileSync(new URL('../../worker/src/native-store-runtime
 const supplierSource=fs.readFileSync(new URL('../../worker/src/cj-dropship-runtime.js',import.meta.url),'utf8');
 if(!storeSource.includes('purchaseActive=supplierFunded&&autoFulfill&&autoCapCents>0'))throw Error('Owner purchase-ready UI must require explicit permission, funding and positive cap.');
 if(!storeSource.includes('auto_fulfill_max_usd:autoCapCents/100'))throw Error('Owner cap display must use real validated cap.');
+if(!supplierSource.includes('finalCost>budget||finalCost>maxAuto'))throw Error('Final supplier amount must still obey the explicit automatic-purchase limit before payment.');
 if((supplierSource.match(/auto_cap_not_configured',status:'awaiting_supplier_activation'/g)||[]).length!==2)throw Error('Unconfigured cap must remain retry-eligible after owner fixes settings.');
 
 
