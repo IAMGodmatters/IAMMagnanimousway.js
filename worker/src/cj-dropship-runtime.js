@@ -153,7 +153,7 @@ export async function resumeCjOrderPayment(env,{externalOrderId,budgetCents=0}){
  // automatic purchasing gate as first-time fulfillment.
  const rt=await runtime(env);
  if(!automaticCjFulfillmentAllowed(rt))return{ok:false,code:'auto_fulfillment_disabled',status:'awaiting_supplier_activation',externalOrderId:id};
- if(!automaticCjSupplierCapCents(rt))return{ok:false,code:'auto_cap_not_configured',status:'supplier_cost_guard',externalOrderId:id};
+ if(!automaticCjSupplierCapCents(rt))return{ok:false,code:'auto_cap_not_configured',status:'awaiting_supplier_activation',externalOrderId:id};
  const auth=await access(env);if(!auth.ok)return{...auth,status:'retry'};
  const detail=await cjCall(auth.token,`/shopping/order/getOrderDetail?orderId=${encodeURIComponent(id)}`);
  if(!detail.ok)return{ok:false,code:'supplier_status_unknown',status:'retry',externalOrderId:id,detail:String(detail.data?.message||'Supplier order status could not be confirmed.')};
@@ -179,7 +179,7 @@ export async function resumeCjOrderPayment(env,{externalOrderId,budgetCents=0}){
 export async function fulfillCjOrder(env,{order,items,shipping}){
  const rt=await runtime(env);
  if(!automaticCjFulfillmentAllowed(rt))return{ok:false,code:'auto_fulfillment_disabled',status:'awaiting_supplier_activation'};
- if(!automaticCjSupplierCapCents(rt))return{ok:false,code:'auto_cap_not_configured',status:'supplier_cost_guard'};
+ if(!automaticCjSupplierCapCents(rt))return{ok:false,code:'auto_cap_not_configured',status:'awaiting_supplier_activation'};
  const quote=await quoteCjCart(rt,items,{country:shipping?.address?.country||order.destination_country||'US',zip:shipping?.address?.postal_code||''});
  if(!quote.ok)return{...quote,status:'retry'};
  const budget=Math.max(0,Number(order.supplier_budget_cents||0));
