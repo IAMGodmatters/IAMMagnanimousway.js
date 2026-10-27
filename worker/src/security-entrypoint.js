@@ -278,7 +278,7 @@ export default {
     // This is a public, static catalogue. Do not enter the legacy schema,
     // provider vault, or standalone proxy on unauthenticated homepage probes.
     if(request.method==='GET'&&outerUrl.pathname==='/api/tools'){
-      return finalizeResponse(request,Response.json({tools:PUBLIC_TOOLS},{headers:{'cache-control':'no-store'}}));
+      return finalizeResponse(request,await securityPostflight(request,Response.json({tools:PUBLIC_TOOLS},{headers:{'cache-control':'no-store'}}),env));
     }
     // Reject anonymous Telecom reads before reaching an unhealthy standalone origin.
     // The native Telecom handler requires an authenticated Bearer session as well.
