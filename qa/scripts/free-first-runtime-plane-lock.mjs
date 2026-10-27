@@ -35,10 +35,10 @@ const failed=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} - ${name}`);
 if(failed.length){console.error(`Free-first runtime-plane lock failed: ${failed.length} check(s).`);process.exit(1)}
 // Exercise the actual schema initializer in isolation without D1, credentials or production traffic.
-const schemaStart=qaObserver.indexOf('export async function ensureQaObservationSchema(env){');
+const schemaStart=qaObserver.indexOf('let qaSchemaReady=false;');
 const schemaEnd=qaObserver.indexOf('\nasync function fingerprint(',schemaStart);
 assert(schemaStart>=0&&schemaEnd>schemaStart,'QA observation schema initializer must exist');
-const initializerSource=qaObserver.slice(schemaStart,schemaEnd).replace(/^export /,'')+'\nglobalThis.ensureQaObservationSchema=ensureQaObservationSchema;';
+const initializerSource=qaObserver.slice(schemaStart,schemaEnd).replace('export async function ensureQaObservationSchema','async function ensureQaObservationSchema')+'\nglobalThis.ensureQaObservationSchema=ensureQaObservationSchema;';
 function makeInitializer(){
  const sandbox={};
  vm.runInNewContext(initializerSource,sandbox);
