@@ -138,7 +138,7 @@ export default function MagnanimousVibeStudio({customer=false}:{customer?:boolea
    source
   ].join('\n\n');
   try{
-   const d=await request(customer?'/api/chat':'/api/magnanimous/compute-accelerator',{method:'POST',body:JSON.stringify(customer?{message:prompt,provider:'auto',use_tools:false,use_knowledge:false,live_search:false}:{prompt})});
+   const d=await request(customer?'/api/chat':'/api/magnanimous/compute-accelerator',{method:'POST',body:JSON.stringify(customer?{message:prompt,provider:'auto',specialist_routing:false,use_tools:false,use_knowledge:false,live_search:false}:{prompt})});
    const candidate=extractHtml(String(d.output||''));
    if(!candidate)throw new Error('The AI response did not contain a complete HTML document. Existing code was preserved.');
    const checked=await request(studioApi+'/review',{method:'POST',body:JSON.stringify({html:candidate})});
