@@ -5,6 +5,14 @@ on:
     workflows: ["Build and Deploy I AM"]
     types: [completed]
 
+# This smoke writes temporary production test records. It must not overlap with
+# a later deployment's D1 import/migration phase, which can return transient 500s.
+# Share the deployment queue instead of canceling older tests or releases.
+concurrency:
+  group: magnanimous-main-production-deployment
+  queue: max
+  cancel-in-progress: false
+
 jobs:
   verify-business-operations:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
