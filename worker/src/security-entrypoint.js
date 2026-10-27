@@ -26,6 +26,7 @@ import { handleEdgeAiBridge } from './edge-ai-bridge.js';
 import { withCloudflareNativeMail } from './cloudflare-native-mail.js';
 import { handleMagnanimousRuntimeControl } from './runtime-control.js';
 import { handleMagnanimousReelsProxy } from './reels-proxy.js';
+import { unauthenticatedTelecomRead, telecomReadProxyTimeoutMs } from './magnanimous-telecom-edge-guard.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -145,6 +146,8 @@ async function proxyApiToStandalone(request,env){
   headers.set('x-forwarded-proto',url.protocol.replace(':',''));
   try{
     const init={method:request.method,headers,redirect:'manual'};
+    const telecomTimeoutMs=telecomReadProxyTimeoutMs(request);
+    if(telecomTimeoutMs)init.signal=AbortSignal.timeout(telecomTimeoutMs);
     if(!['GET','HEAD'].includes(request.method))init.body=request.body;
     const response=await fetch(target.toString(),init);
     if(await standaloneProviderUnavailable(response)){
@@ -264,6 +267,11 @@ export default {
         database_bootstrap:'bypassed-for-health',
         database_independent:true
       },{headers:{'cache-control':'no-store'}}));
+    }
+    // Reject anonymous Telecom reads before reaching an unhealthy standalone origin.
+    // The native Telecom handler requires an authenticated Bearer session as well.
+    if(unauthenticatedTelecomRead(request)){
+      return finalizeResponse(request,Response.json({detail:'Sign in to Magnanimous Telecom.'},{status:401,headers:{'cache-control':'no-store'}}));
     }
     const standaloneApiResponse=await proxyApiToStandalone(request,env);
     if(standaloneApiResponse)return finalizeResponse(request,await securityPostflight(request,standaloneApiResponse,env));
