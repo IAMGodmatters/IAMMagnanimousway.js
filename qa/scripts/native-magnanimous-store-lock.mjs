@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import './whatsapp-store-contact-lock.mjs';
 
 const read=p=>fs.readFileSync(new URL(`../../${p}`,import.meta.url),'utf8');
 const must=(condition,message)=>{if(!condition)throw new Error(message)};
