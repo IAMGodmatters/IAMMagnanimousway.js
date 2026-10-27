@@ -53,6 +53,7 @@ const ui=fs.readFileSync('frontend/app/developer-agent/page.tsx','utf8');
 assert(runtime.includes("if(action==='upsert_files')return validateMagnanimousMultiFileChangeSet(p)"));
 assert(runtime.includes("if(row.action==='upsert_files')return commitMagnanimousMultiFileChangeSet"));
 assert(runtime.includes("status:'needs_confirmation'"));
+assert(runtime.includes('DEV_ACTION_PAYLOAD_TOO_LARGE'),'staged JSON must never be silently truncated');
 assert(ui.includes('Atomic multi-file edit (up to 10)'));
 assert(ui.includes('CAPTURE EXACT BRANCH HEAD'));
 console.log('Magnanimous atomic multi-file change lock passed: path/size guards, exact-head conflict refusal, one atomic ref update, owner confirmation and no executable side effects.');

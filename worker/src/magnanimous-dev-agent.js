@@ -224,9 +224,11 @@ async function stageAction(request,env,user){
  const body=await request.json().catch(()=>({})),repo=normalizeRepo(body.repo,env),action=clip(body.action,80);
  if(!repo)return json({detail:'Repository is not in the Magnanimous developer allowlist.'},403);
  let payload;try{payload=validateActionPayload(action,body.payload)}catch(error){return json({detail:error?.message||'Invalid developer action.'},400)}
+ const serialized=JSON.stringify(payload);
+ if(serialized.length>450000)return json({detail:'Staged repository action exceeds the safe ledger payload limit. Reduce the source size.',code:'DEV_ACTION_PAYLOAD_TOO_LARGE'},413);
  await ensureSchema(env);const id=crypto.randomUUID(),ts=now(),risk=actionRisk(action);
  await env.DB.prepare(`INSERT INTO magnanimous_dev_actions(id,tenant_id,user_id,repo,action,risk_class,payload_json,status,created_at)
-  VALUES(?,?,?,?,?,?,?,'needs_confirmation',?)`).bind(id,user.tenant_id,user.id,repo,action,risk,JSON.stringify(payload).slice(0,500000),ts).run();
+  VALUES(?,?,?,?,?,?,?,'needs_confirmation',?)`).bind(id,user.tenant_id,user.id,repo,action,risk,serialized,ts).run();
  return json({id,repo,action,risk_class:risk,status:'needs_confirmation',expires_at:ts+CONFIRM_TTL_SECONDS,confirmation_endpoint:`/api/magnanimous/dev-agent/actions/${id}/confirm`,note:'No repository mutation has executed yet. Review the staged payload and approve separately.'},202);
 }
 
