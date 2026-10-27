@@ -96,6 +96,9 @@ jobs:
       - name: Verify optional no-LLM SkillSpector pre-install security workflow
         run: node qa/scripts/magnanimous-skillspector-preflight-lock.mjs
 
+      - name: Verify tenant-scoped pinned repository file-map indexing
+        run: node qa/scripts/magnanimous-repository-index-lock.mjs
+
       - name: Lock public-only GitHub productivity shortcuts
         run: node qa/scripts/github-repository-shortcuts-lock.mjs
 
