@@ -1,1 +1,11 @@
-import fs from 'node:fs';const c=fs.readFileSync(new URL('../../worker/src/provider-entrypoint.js',import.meta.url),'utf8');for(const t of ["AI_PROVIDER_POOL_DEGRADED","degraded:true","retryable:true","provider_errors_hidden:true","Magnanimous AI provider pool exhausted"])if(!c.includes(t))throw new Error('Missing provider outage fallback '+t);if(c.includes("code: 'AI_PROVIDER_FAILURE',route_task:task,native_capability:capability }, 502"))throw new Error('Raw chat provider 502 fallback remains');console.log('Magnanimous chat provider-outage graceful fallback lock PASS');
+import fs from 'node:fs';
+const c=fs.readFileSync(new URL('../../worker/src/provider-entrypoint.js',import.meta.url),'utf8');
+for(const t of ["AI_PROVIDER_POOL_DEGRADED","degraded:true","retryable:true","provider_errors_hidden:true","Magnanimous AI provider pool exhausted"])if(!c.includes(t))throw new Error('Missing provider outage fallback '+t);
+if(c.includes("code: 'AI_PROVIDER_FAILURE',route_task:task,native_capability:capability }, 502"))throw new Error('Raw chat provider 502 fallback remains');
+const small=c.indexOf("'@cf/meta/llama-3.1-8b-instruct'"),large=c.indexOf("'@cf/nvidia/nemotron-3-120b-a12b'");
+if(small<0||large<0||small>large)throw new Error('Official lightweight free-quota Workers AI fallback must run before large-model retries');
+if(!c.includes('CLOUDFLARE_MODEL_BUDGET_MS=45000')||!c.includes('CLOUDFLARE_ATTEMPT_TIMEOUT_MS=18000'))throw new Error('Retain bounded Workers AI time budgets');
+const ui=fs.readFileSync(new URL('../../frontend/app/ai-chat/page.tsx',import.meta.url),'utf8');
+if(!ui.includes("data?.code === 'AI_PROVIDER_POOL_DEGRADED'"))throw new Error('Customer chat UI must not treat provider failure as a successful answer');
+if(!ui.includes('setMessage(question)'))throw new Error('Customer chat UI must preserve a failed prompt for retry');
+console.log('Magnanimous chat provider-outage graceful fallback lock PASS');

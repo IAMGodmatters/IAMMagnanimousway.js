@@ -126,6 +126,8 @@ export default function AIChat() {
       const data = await read(response);
       if (!response.ok)
         throw new Error(data.detail || `Request failed (${response.status}).`);
+      if (data?.degraded === true || data?.code === 'AI_PROVIDER_POOL_DEGRADED')
+        throw new Error('Magnanimous AI could not complete this answer because its free-first execution engines are unavailable. Your question is preserved. Please retry.');
       const answer = String(data.output || "").trim();
       if (!answer)
         throw new Error("Magnanimous AI returned an empty response.");
