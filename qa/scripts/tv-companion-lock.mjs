@@ -108,3 +108,11 @@ test('TV disconnect never reports success if the session deletion write has not 
  assert.equal(successful.status,200);
  assert.equal((await api({DB:base},'command',{method:'POST',body:{session_id:created.data.session_id,action:'home'},token:paired.data.remote_token})).status,401);
 });
+
+test('phone disconnect distinguishes an expired remote from an unconfirmed write',()=>{
+ const source=readFileSync(new URL('../../frontend/app/tv-remote/page.tsx',import.meta.url),'utf8');
+ assert(source.includes('if(response.status===401){'),'revoked token allows return to pairing screen');
+ assert(source.includes('TV pairing is no longer active. Enter a new code to reconnect.'),'authorization loss is not labeled successful revocation');
+ assert(source.includes("if(!response.ok||data.disconnected!==true)throw"),'other failed revocations retain pairing for retry');
+ assert(!source.includes('}catch{}\\n  sessionStorage.removeItem(STORAGE_KEY)'),'network failure cannot silently clear pairing');
+});
