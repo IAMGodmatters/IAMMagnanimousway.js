@@ -13,7 +13,7 @@ jobs:
   verify-live-mobile:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Verify live phone and desktop compositions
         shell: bash
@@ -85,7 +85,19 @@ jobs:
           mark('fallback','fallback');mark('sharp','sharp');mark('clear','clear');
           </script></body></html>
           EOF
-          timeout 75s "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --disable-background-networking --disable-extensions --no-first-run --allow-file-access-from-files --virtual-time-budget=8000 --dump-dom "file://$(pwd)/mobile-visual-proof/decode-check.html" > mobile-visual-proof/decode-check.dom 2> mobile-visual-proof/decode-check.log || { cat mobile-visual-proof/decode-check.log || true; exit 1; }
+          decoded=false
+          for attempt in 1 2; do
+            if timeout 75s "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --disable-background-networking --disable-extensions --no-first-run --allow-file-access-from-files --user-data-dir="$RUNNER_TEMP/magnanimous-chrome-decode-${GITHUB_RUN_ID}-${attempt}" --virtual-time-budget=8000 --dump-dom "file://$(pwd)/mobile-visual-proof/decode-check.html" > mobile-visual-proof/decode-check.dom 2> mobile-visual-proof/decode-check.log; then
+              decoded=true
+              break
+            fi
+            echo "::warning::Browser decode attempt ${attempt} failed or timed out; retrying with a new isolated Chrome profile when available."
+          done
+          if [ "$decoded" != true ]; then
+            echo '::error::Chrome failed to decode verified artwork after two bounded attempts.'
+            cat mobile-visual-proof/decode-check.log || true
+            exit 1
+          fi
           grep -q 'data-fallback="320x569"' mobile-visual-proof/decode-check.dom || { echo '::error::Chrome could not decode the known-working 320x569 mobile fallback.'; cat mobile-visual-proof/decode-check.dom; exit 1; }
           grep -q 'data-sharp="1296x2304"' mobile-visual-proof/decode-check.dom || { echo '::error::Chrome could not decode the 1296x2304 sharp mobile enhancement.'; cat mobile-visual-proof/decode-check.dom; exit 1; }
           grep -q 'data-clear="864x1536"' mobile-visual-proof/decode-check.dom || { echo '::error::Chrome could not decode the exact 864x1536 clear owner-approved mobile artwork.'; cat mobile-visual-proof/decode-check.dom; exit 1; }
@@ -98,21 +110,31 @@ jobs:
 
           render() {
             local width="$1" height="$2" name="$3" budget="$4"
-            timeout 90s "$chrome" \
+            local attempt
+            for attempt in 1 2; do
+              if timeout 90s "$chrome" \
               --headless=new \
               --no-sandbox \
               --disable-gpu \
+              --disable-background-networking \
+              --disable-extensions \
+              --no-first-run \
               --hide-scrollbars \
               --disable-dev-shm-usage \
+              --user-data-dir="$RUNNER_TEMP/magnanimous-chrome-render-${name}-${GITHUB_RUN_ID}-${attempt}" \
               --window-size="${width},${height}" \
               --virtual-time-budget="$budget" \
               --screenshot="mobile-visual-proof/${name}.png" \
               --dump-dom \
               "${LIVE_URL}?mobile_visual_verify=${GITHUB_RUN_ID}_${name}" \
-              > "mobile-visual-proof/${name}.html" 2> "mobile-visual-proof/${name}.log" || {
-                cat "mobile-visual-proof/${name}.log" || true
-                exit 1
-              }
+              > "mobile-visual-proof/${name}.html" 2> "mobile-visual-proof/${name}.log"; then
+                return 0
+              fi
+              echo "::warning::Browser render ${name} attempt ${attempt} failed or timed out; retrying when available."
+            done
+            echo "::error::Browser render ${name} failed after two bounded attempts."
+            cat "mobile-visual-proof/${name}.log" || true
+            return 1
           }
 
           render 390 844 phone-390x844 12000

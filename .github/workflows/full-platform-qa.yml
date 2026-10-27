@@ -102,6 +102,9 @@ jobs:
       - name: Keep business-operations smoke serialized behind production D1 deploy
         run: node qa/scripts/magnanimous-business-operations-deploy-serialization-lock.mjs
 
+      - name: Keep production mobile browser retries bounded and evidence complete
+        run: node qa/scripts/magnanimous-mobile-browser-retry-lock.mjs
+
       - name: Lock public-only GitHub productivity shortcuts
         run: node qa/scripts/github-repository-shortcuts-lock.mjs
 
