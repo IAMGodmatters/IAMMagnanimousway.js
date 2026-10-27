@@ -10,6 +10,7 @@ async function read(r:Response){const t=await r.text();try{return JSON.parse(t)}
 const actionExamples:Record<string,object>={
  create_branch:{branch:'magnanimous/example-change',base_ref:'main'},
  upsert_file:{path:'docs/example.md',branch:'magnanimous/example-change',message:'Add example documentation',content:'# Example\n'},
+ upsert_files:{branch:'magnanimous/example-change',expected_head_sha:'',message:'Add reviewed multi-file feature',files:[{path:'docs/example.md',content:'# Example\n'},{path:'docs/example-notes.md',content:'Verified before release.\n'}]},
  create_pr:{title:'Example change',head:'magnanimous/example-change',base:'main',body:'Prepared by Magnanimous Dev Agent.',draft:false},
  dispatch_workflow:{workflow_id:'full-platform-qa.yml',ref:'magnanimous/example-change',inputs:{}},
  merge_pr:{pr_number:1,merge_method:'squash'}
@@ -24,6 +25,7 @@ export default function DeveloperAgent(){
  const[repoShortcuts,setRepoShortcuts]=useState<RepoShortcuts|null>(null);
  const[compatKind,setCompatKind]=useState('cursor-rule'),[compatSource,setCompatSource]=useState(''),[compatReport,setCompatReport]=useState<any>(null);
  const compatRevision=useRef(0);
+ const[untrustedRepo,setUntrustedRepo]=useState(''),[repoPreflight,setRepoPreflight]=useState<any>(null);
  function token(){return localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||''}
  function headers(json=false){const h:Record<string,string>={Authorization:`Bearer ${token()}`};if(json)h['Content-Type']='application/json';return h}
  async function request(path:string,options:RequestInit={}){const r=await fetch(`${api}${path}`,options),d=await read(r);if(r.status===401||r.status===403){location.replace('/owner-login');throw new Error('Owner sign-in required.')}if(!r.ok)throw new Error(d.detail||d.error||`Request failed (${r.status}).`);return d}
@@ -58,6 +60,25 @@ export default function DeveloperAgent(){
    setCompatReport(d);setMessage(d.accepted?'Artifact inspected. No commands ran, no connections were installed, and nothing was imported.':'Compatibility inspection found issues requiring review. Nothing was installed.');
   }catch(e:any){if(submittedRevision===compatRevision.current)setMessage(e?.message||'Compatibility inspection failed.')}finally{setBusy('')}
  }
+ async function inspectRepositoryTrust(){
+  setBusy('preflight');setMessage('');setRepoPreflight(null);
+  try{
+   const d=await request('/api/magnanimous/dev-agent/repo-preflight',{method:'POST',headers:headers(true),body:JSON.stringify({repository:untrustedRepo})});
+   setRepoPreflight(d);
+   setMessage(d.decision==='block'?'Repository preflight is blocked or incomplete. Do not install or execute the repository.':'Static repository inspection completed; human authorization is still required before using its code.');
+  }catch(e:any){setMessage(e?.message||'Repository inspection could not complete. Treat the repository as untrusted.')}finally{setBusy('')}
+ }
+ async function snapshotBranchHead(){
+  setBusy('head');setMessage('');
+  try{
+   let p:any={};try{p=JSON.parse(payload)}catch{throw new Error('Change set must be valid JSON.')}
+   if(!p.branch)throw new Error('Enter a feature branch in the change set.');
+   const d=await request('/api/magnanimous/dev-agent/branch-head',{method:'POST',headers:headers(true),body:JSON.stringify({repo,branch:p.branch})});
+   if(!d.sha)throw new Error('Branch HEAD was not returned.');
+   p.expected_head_sha=d.sha;setPayload(JSON.stringify(p,null,2));
+   setMessage('Exact branch HEAD recorded. Review every file and diff before staging. No repository change was made.');
+  }catch(e:any){setMessage(e?.message||'Unable to read branch HEAD.')}finally{setBusy('')}
+ }
  function chooseAction(next:string){setAction(next);setPayload(JSON.stringify(actionExamples[next]||{},null,2));}
  async function stage(){setBusy('stage');setMessage('');try{let parsed:any={};try{parsed=JSON.parse(payload)}catch{throw new Error('Action payload must be valid JSON.')}const d=await request('/api/magnanimous/dev-agent/actions',{method:'POST',headers:headers(true),body:JSON.stringify({repo,action,payload:parsed})});setMessage(`Action ${d.id} is staged only. Review it below before approval.`);await load()}catch(e:any){setMessage(e?.message||'Unable to stage developer action.')}finally{setBusy('')}}
  async function approve(id:string){setBusy(`approve-${id}`);setMessage('');try{const d=await request(`/api/magnanimous/dev-agent/actions/${encodeURIComponent(id)}/confirm`,{method:'POST',headers:headers(true),body:JSON.stringify({confirm:true})});setResult(d);setMessage('Reviewed developer action completed.');await load()}catch(e:any){setMessage(e?.message||'Developer action did not complete.');await load()}finally{setBusy('')}}
@@ -80,6 +101,13 @@ export default function DeveloperAgent(){
    {compatReport&&<div className="answer" role="status"><b>{compatReport.accepted?'STRUCTURE ACCEPTED FOR REVIEW':'REVIEW FOUND ISSUES'} • NOT IMPORTED</b><p>Declared components: {compatReport.inventory?.length||0} • Execution: disabled • External connections: unchanged</p><pre>{JSON.stringify({errors:compatReport.errors,warnings:compatReport.warnings,inventory:compatReport.inventory,next_steps:compatReport.next_steps},null,2)}</pre></div>}
   </section>
 
+  <section className="panel" aria-labelledby="repo-preflight-heading"><div className="panelHead"><div><small>SUPPLY-CHAIN DEFENSE • NATIVE PRE-USE GATE</small><h2 id="repo-preflight-heading">Check an unfamiliar GitHub repository before using it</h2></div><span>NO CLONE • NO EXECUTION</span></div>
+   <p className="muted">Paste the name or public GitHub URL of a repository you are considering. Magnanimous checks its current immutable revision, selected installer and lifecycle files, agent hooks and CI risk signals. This is a bounded static assessment, not a malware guarantee. A report never authorizes automatic installation, AI tool access, paid services, or execution.</p>
+   <label>Public GitHub repository<input value={untrustedRepo} onChange={e=>{setUntrustedRepo(e.target.value);setRepoPreflight(null)}} placeholder="owner/repository or https://github.com/owner/repository" maxLength={250} autoComplete="off"/></label>
+   <button onClick={inspectRepositoryTrust} disabled={busy==='preflight'||!untrustedRepo.trim()}>{busy==='preflight'?'CHECKING SOURCE…':'RUN REPOSITORY PREFLIGHT →'}</button>
+   {repoPreflight&&<div className="answer" role="status"><b>{repoPreflight.decision==='block'?'BLOCKED / INCOMPLETE':'REVIEW REQUIRED'} • NOT AUTHORIZED TO INSTALL</b><p>Commit: <code>{repoPreflight.revision||'unverified'}</code> • Files reviewed: {repoPreflight.files_reviewed?.length||0} • Findings: {repoPreflight.findings?.length||0}</p><pre>{JSON.stringify({warnings:repoPreflight.warnings,findings:repoPreflight.findings,files_reviewed:repoPreflight.files_reviewed,policy:repoPreflight.policy},null,2)}</pre></div>}
+  </section>
+
   <section className="panel"><div className="panelHead"><div><small>REPOSITORY SHORTCUTS • OWNER ONLY</small><h2>Open code tools safely</h2></div><button className="secondary" onClick={checkShortcuts} disabled={busy==='shortcuts'}>{busy==='shortcuts'?'CHECKING…':'CHECK REPOSITORY VISIBILITY'}</button></div>
    <p className="muted">Magnanimous checks the selected repository against its allowlist and GitHub's current visibility before offering third-party tools. Nothing is sent to them until you open a link.</p>
    {activeShortcuts?<><p className="shortcutNote" role="status">{activeShortcuts.visibility_verified?`GitHub visibility: ${activeShortcuts.visibility.toUpperCase()}`:'GitHub visibility: UNVERIFIED'} • {activeShortcuts.privacy_note}</p>
@@ -91,7 +119,7 @@ export default function DeveloperAgent(){
     </div></>:<p className="muted">Select a repository above, then check its visibility to enable these shortcuts. Magnanimous's native read, search and review tools remain available.</p>}
   </section>
 
-  <section className="panel"><div className="panelHead"><div><small>4 • STAGE ACTION</small><h2>Prepare a repository change</h2></div><span>STAGE ≠ EXECUTE</span></div><div className="two"><label>Action<select value={action} onChange={e=>chooseAction(e.target.value)}><option value="create_branch">Create branch</option><option value="upsert_file">Create / update file</option><option value="create_pr">Open pull request</option><option value="dispatch_workflow">Run CI workflow</option><option value="merge_pr">Merge pull request</option></select></label><label>Repository<input value={repo} onChange={e=>setRepo(e.target.value)}/></label></div><label>Action payload JSON<textarea className="code" value={payload} onChange={e=>setPayload(e.target.value)} spellCheck={false}/></label><button onClick={stage} disabled={busy==='stage'||!overview?.repository_token_configured}>{busy==='stage'?'STAGING…':'STAGE FOR REVIEW →'}</button>{!overview?.repository_token_configured&&<p className="muted">Repository writes activate when the server-side Magnanimous GitHub App credentials are configured. <code>GITHUB_PLATFORM_TOKEN</code> remains a temporary fallback during cutover. No repository credential is entered or displayed in this browser.</p>}</section>
+  <section className="panel"><div className="panelHead"><div><small>4 • STAGE ACTION</small><h2>Prepare a repository change</h2></div><span>STAGE ≠ EXECUTE</span></div><div className="two"><label>Action<select value={action} onChange={e=>chooseAction(e.target.value)}><option value="create_branch">Create branch</option><option value="upsert_file">Create / update file</option><option value="upsert_files">Atomic multi-file edit (up to 10)</option><option value="create_pr">Open pull request</option><option value="dispatch_workflow">Run CI workflow</option><option value="merge_pr">Merge pull request</option></select></label><label>Repository<input value={repo} onChange={e=>setRepo(e.target.value)}/></label></div><label>Action payload JSON<textarea className="code" value={payload} onChange={e=>setPayload(e.target.value)} spellCheck={false}/></label>{action==='upsert_files'&&<div><p className="muted">Replace complete file contents in one atomic Git commit on a feature branch. First create the branch, read existing source, review all proposed changes, and capture its current HEAD SHA. If another editor advances the branch, the operation refuses to overwrite it.</p><button className="secondary" onClick={snapshotBranchHead} disabled={busy==='head'}>{busy==='head'?'READING BRANCH…':'CAPTURE EXACT BRANCH HEAD'}</button></div>}<button onClick={stage} disabled={busy==='stage'||!overview?.repository_token_configured}>{busy==='stage'?'STAGING…':'STAGE FOR REVIEW →'}</button>{!overview?.repository_token_configured&&<p className="muted">Repository writes activate when the server-side Magnanimous GitHub App credentials are configured. <code>GITHUB_PLATFORM_TOKEN</code> remains a temporary fallback during cutover. No repository credential is entered or displayed in this browser.</p>}</section>
 
   <section className="panel"><div className="panelHead"><div><small>5 • REVIEW + APPROVE</small><h2>Pending repository actions</h2></div><button className="secondary" onClick={load} disabled={busy==='load'}>REFRESH</button></div>{pending.length===0?<p className="empty">No repository writes are waiting for approval.</p>:<div className="actions">{pending.map(a=><article key={a.id}><div><b>{a.action}</b><span>{a.repo} • {a.risk_class}</span></div><pre>{JSON.stringify(a.payload||{},null,2)}</pre><button onClick={()=>approve(a.id)} disabled={busy===`approve-${a.id}`}>{busy===`approve-${a.id}`?'APPROVING…':'REVIEWED — APPROVE & RUN'}</button></article>)}</div>}</section>
 
