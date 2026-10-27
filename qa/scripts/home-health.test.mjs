@@ -44,8 +44,23 @@ test('public tools serve ahead of mutable Worker bootstrap and retain one shared
  const early=security.indexOf("outerUrl.pathname==='/api/tools'");
  const routed=security.indexOf('const standaloneApiResponse=await proxyApiToStandalone(request,env)');
  assert(early>0 && early<routed,'tools must be served before proxy/DB bootstrap');
+ assert(security.includes("await securityPostflight(request,Response.json({tools:PUBLIC_TOOLS},{headers:{'cache-control':'no-store'}}),env)"),'public tools must preserve allowlisted CORS and security headers');
  assert(Array.isArray(toolsModule.PUBLIC_TOOLS) && toolsModule.PUBLIC_TOOLS.length>=15);
  const ids=toolsModule.PUBLIC_TOOLS.map(x=>x.id);
  assert.equal(new Set(ids).size,ids.length);
  assert(ids.includes('magnanimous')&&ids.includes('ai-chat')&&ids.includes('native-web'));
+});
+
+// A cross-origin frontend must be able to read the public catalogue only from an allowlisted origin.
+test('public tools postflight preserves configured CORS without database access',async()=>{
+ const {securityPostflight}=await import('../../worker/src/security-hardening.js');
+ const url='https://iammagnanimousway.com/api/tools';
+ const allowedRequest=new Request(url,{headers:{origin:'https://studio.example'}});
+ const allowed=await securityPostflight(allowedRequest,Response.json({tools:[{id:'ai-chat'}]}),{ALLOWED_ORIGINS:'https://studio.example'});
+ assert.equal(allowed.headers.get('access-control-allow-origin'),'https://studio.example');
+ assert.equal(allowed.headers.get('vary'),'Origin');
+ assert.equal(allowed.headers.get('cache-control'),'no-store');
+ assert.deepEqual(await allowed.json(),{tools:[{id:'ai-chat'}]});
+ const denied=await securityPostflight(new Request(url,{headers:{origin:'https://untrusted.example'}}),Response.json({tools:[]}),{ALLOWED_ORIGINS:'https://studio.example'});
+ assert.equal(denied.headers.get('access-control-allow-origin'),null);
 });
