@@ -194,7 +194,16 @@ export async function fulfillCjOrder(env,{order,items,shipping}){
  const create=await cjCall(quote.token,'/shopping/order/createOrderV2',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({orderNumber:String(order.public_id),shippingZip:String(address.postal_code||''),shippingCountry:countryName(address.country),shippingCountryCode:String(address.country).toUpperCase(),shippingProvince:String(address.state||address.city),shippingCity:String(address.city),shippingPhone:String(shipping?.phone||''),shippingCustomerName:name,shippingAddress:String(address.line1),shippingAddress2:String(address.line2||''),email:String(order.customer_email||''),payType:3,logisticName:quote.logisticName,fromCountryCode:'CN',platform:'Api',orderFlow:1,products:quote.lines.map((line,index)=>({vid:line.vid,quantity:line.quantity,storeLineItemId:`${order.public_id}-${index+1}`}))})});
  const data=create.data?.data||{},orderId=String(data.orderId||''),shipmentOrderId=String(data.shipmentOrderId||orderId),finalCost=cents(Number(data.orderAmount||0));
  if(!create.ok||!orderId)return{ok:false,code:'supplier_order_create_failed',status:'retry',detail:String(create.data?.message||'Supplier order could not be created.')};
- if(finalCost&&(finalCost>budget||finalCost>maxAuto)){await deleteCreatedOrder(quote.token,orderId);return{ok:false,code:finalCost>budget?'cost_guard_after_create':'auto_cap_after_create',status:'supplier_cost_guard',detail:'Supplier final amount exceeded the prepaid supplier budget or explicit automatic-purchase cap.'};}
+ // The supplier's actual order total is the payment authority. A missing or
+ // zero total is *unknown*, not permission to pay the quoted amount.
+ if(!finalCost){
+  await deleteCreatedOrder(quote.token,orderId);
+  return{ok:false,code:'supplier_final_cost_unverified',status:'supplier_cost_guard',externalOrderId:orderId,detail:'Supplier final order amount was not verified. Balance payment was not attempted.'};
+ }
+ if(finalCost>budget||finalCost>maxAuto){
+  await deleteCreatedOrder(quote.token,orderId);
+  return{ok:false,code:finalCost>budget?'cost_guard_after_create':'auto_cap_after_create',status:'supplier_cost_guard',externalOrderId:orderId,detail:'Supplier final amount exceeded the prepaid supplier budget or explicit automatic-purchase cap.'};
+ }
  const pay=await cjCall(quote.token,'/shopping/pay/payBalanceV2',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({shipmentOrderId,payId:String(data.payId||'')||undefined})});
  if(!pay.ok)return{ok:false,code:'supplier_payment_failed',status:'awaiting_supplier_funds',externalOrderId:orderId,shipmentOrderId,detail:String(pay.data?.message||'Supplier balance payment failed.')};
  return{ok:true,status:'submitted',externalOrderId:orderId,shipmentOrderId,costCents:finalCost||quote.supplierTotalCents,logisticName:quote.logisticName};
