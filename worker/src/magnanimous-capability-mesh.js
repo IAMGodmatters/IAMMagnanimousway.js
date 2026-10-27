@@ -10,6 +10,7 @@ import { findReadyLocalBridgeDevice, hasAnyReadyLocalBridgeCapability, queueLoca
 import { MAGNANIMOUS_NATIVE_MEDIA_FAMILIES, MAGNANIMOUS_NATIVE_MEDIA_CAPABILITIES, MAGNANIMOUS_HEYGEN_PARITY_MAP, HEYGEN_VISIBLE_BENCHMARK_TOOLS, getMagnanimousNativeMediaSummary, handleMagnanimousNativeMedia } from './magnanimous-native-media-studio.js';
 import { MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES, getMagnanimousNativeTerminalSummary, handleMagnanimousNativeTerminal } from './magnanimous-native-terminal.js';
 import { MAGNANIMOUS_AGENT_SKILLS_POLICY, getMagnanimousAgentSkillsSummary, listMagnanimousAgentSkills, resolveMagnanimousAgentSkills, parseAgentSkillMarkdown } from './magnanimous-agent-skills.js';
+import { inspectMagnanimousCodingArtifact, MAGNANIMOUS_CODING_INTEROPERABILITY_POLICY } from './magnanimous-coding-interoperability.js';
 import { getMagnanimousUniversalAppFabricSummary, getUniversalCapabilityCatalog, getUniversalCapabilityIndexSummary, resolveUniversalCapabilities } from './magnanimous-universal-app-fabric.js';
 import { handleSocialPublishing } from './social-publishing-runtime.js';
 
@@ -123,6 +124,7 @@ export const MAGNANIMOUS_CAPABILITY_MESH_ROUTES=Object.freeze({
  'skills.catalog':{surface:'magnanimous-agent-skills',mode:'read',native:true},
  'skills.resolve':{surface:'magnanimous-agent-skills',mode:'read',native:true},
  'skills.validate':{surface:'magnanimous-agent-skills',mode:'read-validate',native:true},
+ 'coding.compatibility.inspect':{surface:'magnanimous-coding-interoperability',mode:'read-validate',native:true},
  'mesh.self_check':{surface:'capability-mesh',mode:'read',native:true}
 });
 
@@ -535,6 +537,9 @@ async function routeCapability(request,env,providerEnv,body){
   if(!skillMd)return json({detail:'skill_md is required.'},400);
   return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},...parseAgentSkillMarkdown(skillMd,{directoryName:clip(input.directory_name,80)})});
  }
+ if(capability==='coding.compatibility.inspect'){
+  return json({mesh:{capability,surface:def.surface,operator:'Magnanimous AI'},...inspectMagnanimousCodingArtifact({kind:input.kind,source:input.source})});
+ }
 
  if(capability==='railway.deploy_exact'){
   const commit=clip(input.commit_sha,64);
@@ -588,6 +593,7 @@ export async function handleMagnanimousCapabilityMesh(request,env,{providerEnv=e
    edge_ai_capabilities:['edge.ncs2.status','edge.ncs2.benchmark','edge.ncs2.detect','edge.ncs2.triage','edge.ncs2.batch_scan','edge.ncs2.video_scan','edge.ncs2.face_detect','edge.ncs2.text_regions'],
    universal_app_fabric:getUniversalCapabilityIndexSummary(),
    agent_skills:getMagnanimousAgentSkillsSummary(),
+   coding_interoperability:MAGNANIMOUS_CODING_INTEROPERABILITY_POLICY,
    agent_skill_catalog:listMagnanimousAgentSkills({limit:200,includeInstructions:false})
   });
  }
