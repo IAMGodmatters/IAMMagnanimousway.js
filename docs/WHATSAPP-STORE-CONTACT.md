@@ -6,7 +6,7 @@ The Magnanimous store at `/shop` accepts commerce questions through the official
 
 1. Register a phone number you control using the official WhatsApp Business app, and confirm that it can receive messages. WhatsApp does not generally support Google Voice/VoIP numbers for registration. Use a supported independent mobile number for the WhatsApp account.
 2. In `/owner-integrations`, open **Magnanimous Store Customer Contact (Free Links)** and enter `STORE_WHATSAPP_PHONE` in international E.164 form (for example, `+639171234567`). Only set a number you own and have verified.
-3. Optionally add an *existing eligible* Google Voice number as `STORE_GOOGLE_VOICE_PHONE` for a separate customer call button. This does not provision Google Voice, establish eligibility, forward calls, or connect it to WhatsApp. Do not purchase or port a phone number merely to activate the button.
+3. Optionally add an *existing eligible, business-permitted* Google Voice number as `STORE_GOOGLE_VOICE_PHONE` for a separate customer call button. This does not provision Google Voice, establish eligibility, forward calls, or connect it to WhatsApp. The no-charge Google Voice plan is described by Google as a **personal consumer plan**, not a replacement for a business phone service; its acceptable-use limits also prohibit bulk commercial or automated calling and messaging. Keep this field blank if you only have the personal plan. Do not purchase or port a phone number merely to activate the button.
 4. Confirm on the deployed `/shop` page that contact links open the correct WhatsApp conversation or phone dialer. Removing those values from the owner vault hides the contact buttons after the storefront refreshes.
 
 ## Customer journey and cost boundary
