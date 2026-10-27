@@ -9,6 +9,8 @@ const installer=read('local-bridge/install-ncs2-edge.ps1');
 const bridge=read('worker/src/magnanimous-local-bridge-runtime.js');
 const mesh=read('worker/src/magnanimous-capability-mesh.js');
 const provider=read('worker/src/provider-entrypoint.js');
+const publicCatalog=read('worker/src/public-tool-catalog.js');
+assert(provider.includes("from './public-tool-catalog.js'"),'Magnanimous provider must import the shared public catalog');
 const universal=read('worker/src/magnanimous-universal-capabilities.js');
 const security=read('worker/src/security-entrypoint.js');
 const docs=read('docs/MAGNANIMOUS-NCS2-EDGE-AI.md');
@@ -40,7 +42,7 @@ assert(bridge.includes('edge_ai_inference_only:true'),'Local Bridge policy must 
 assert(bridge.includes('edge_ai_inbound_listener_required:false'),'NCS2 must not open an inbound listener');
 assert(agent.includes('shell=False'),'NCS2 integration must preserve shell=False bridge execution');
 assert(!agent.includes('shell=True'),'NCS2 integration must not enable shell=True');
-assert(provider.includes("['edge-ai','Edge AI Coprocessor'"),'Magnanimous tool inventory must expose Edge AI');
+assert(publicCatalog.includes("['edge-ai','Edge AI Coprocessor'"),'Magnanimous tool inventory must expose Edge AI');
 assert(provider.includes('NCS2 / MYRIAD'),'Commander protocol must know when to prefer local NCS2 preprocessing');
 assert(universal.includes('edge-media-triage'),'Universal capability registry must include expanded edge preprocessing');
 assert(docs.includes('phone can therefore use the NCS2 indirectly'),'Documentation must explain remote phone-to-PC NCS2 routing');

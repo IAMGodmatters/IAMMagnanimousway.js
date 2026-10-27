@@ -12,6 +12,8 @@ const owner=read('frontend/app/owner-capability-mesh/page.tsx');
 const ownerLayout=read('frontend/app/owner-capability-mesh/layout.tsx');
 const ownerCenter=read('frontend/app/owner-center/page.tsx');
 const provider=read('worker/src/provider-entrypoint.js');
+const publicCatalog=read('worker/src/public-tool-catalog.js');
+assert(provider.includes("from './public-tool-catalog.js'"),'Magnanimous provider must import the shared public catalog');
 const universal=read('worker/src/magnanimous-universal-capabilities.js');
 
 for(const needle of [
@@ -75,7 +77,7 @@ for(const needle of [
 
 assert(ownerCenter.includes('/owner-capability-mesh'),'Owner Center must link to the unified Capability Mesh');
 assert(ownerLayout.includes('index:false')&&ownerLayout.includes('follow:false'),'Private Capability Mesh page must remain noindex/nofollow');
-assert(provider.includes("['capability-mesh','Capability Mesh'"),'Magnanimous tool inventory must expose Capability Mesh');
+assert(publicCatalog.includes("['capability-mesh','Capability Mesh'"),'Magnanimous tool inventory must expose Capability Mesh');
 assert(provider.includes('Use the Magnanimous Capability Mesh'),'Magnanimous commander protocol must route through Capability Mesh');
 assert(provider.includes('capability_mesh:true'),'Operator capability report must expose Capability Mesh');
 assert(universal.includes("'capability-mesh'"),'Universal capability registry must include Capability Mesh');
