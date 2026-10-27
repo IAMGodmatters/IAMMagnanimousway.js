@@ -26,7 +26,7 @@ import { handleEdgeAiBridge } from './edge-ai-bridge.js';
 import { withCloudflareNativeMail } from './cloudflare-native-mail.js';
 import { handleMagnanimousRuntimeControl } from './runtime-control.js';
 import { handleMagnanimousReelsProxy } from './reels-proxy.js';
-import { unauthenticatedTelecomRead, telecomReadProxyTimeoutMs } from './magnanimous-telecom-edge-guard.js';
+import { unauthenticatedTelecomRead, telecomReadProxyTimeoutMs, readTelecomProxyBody } from './magnanimous-telecom-edge-guard.js';
 import { standaloneApiReady } from './magnanimous-standalone-health-gate.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
@@ -134,7 +134,7 @@ async function proxyApiToStandalone(request,env){
   const standaloneDataPlanePath=url.pathname.startsWith('/api/')||url.pathname==='/funnels'||url.pathname.startsWith('/funnels/');
   // Keep Worker-private control paths and the owner-only capability mesh local to Cloudflare.
   // Magnanimous training follows the standalone data plane when configured so its persistent learning is not coupled to Cloudflare D1 daily quotas.
-  if(url.pathname.startsWith('/api/magnanimous/local-bridge')||url.pathname.startsWith('/api/magnanimous/capability-mesh')||url.pathname==='/api/customer/code-studio'||url.pathname.startsWith('/api/customer/code-studio/')||url.pathname==='/api/admin/login'||url.pathname.startsWith('/api/admin/email-code/')||url.pathname==='/api/internal/migration/rewrap-platform-credentials'||url.pathname==='/api/internal/edge-ai/run')return null;
+  if(url.pathname.startsWith('/api/magnanimous/local-bridge')||url.pathname.startsWith('/api/magnanimous/capability-mesh')||url.pathname==='/api/admin/login'||url.pathname.startsWith('/api/admin/email-code/')||url.pathname==='/api/internal/migration/rewrap-platform-credentials'||url.pathname==='/api/internal/edge-ai/run')return null;
   if(!standaloneDataPlanePath)return null;
   if(request.headers.get('x-magnanimous-standalone-proxy')==='1')return null;
   const origin=configuredStandaloneApiOrigin(env);
@@ -158,13 +158,15 @@ async function proxyApiToStandalone(request,env){
       console.warn('Magnanimous standalone API provider is unavailable; retaining Cloudflare rollback path.',url.pathname,response.status);
       return null;
     }
+    // Consume bounded Telecom reads inside the timeout/fallback boundary.
+    const body=telecomTimeoutMs&&response.body?await readTelecomProxyBody(response):response.body;
     const responseHeaders=new Headers(response.headers);
     responseHeaders.delete('server');
     responseHeaders.delete('via');
     responseHeaders.delete('x-railway-request-id');
     responseHeaders.delete('x-envoy-upstream-service-time');
     responseHeaders.set('x-magnanimous-data-plane','standalone');
-    return new Response(response.body,{status:response.status,statusText:response.statusText,headers:responseHeaders});
+    return new Response(body,{status:response.status,statusText:response.statusText,headers:responseHeaders});
   }catch(error){
     console.error('Magnanimous standalone API proxy unavailable; retaining Cloudflare rollback path.',String(error?.message||error));
     return null;
@@ -275,7 +277,7 @@ export default {
     // Reject anonymous Telecom reads before reaching an unhealthy standalone origin.
     // The native Telecom handler requires an authenticated Bearer session as well.
     if(unauthenticatedTelecomRead(request)){
-      return finalizeResponse(request,Response.json({detail:'Sign in to Magnanimous Telecom.'},{status:401,headers:{'cache-control':'no-store'}}));
+      return finalizeResponse(request,await securityPostflight(request,Response.json({detail:'Sign in to Magnanimous Telecom.'},{status:401,headers:{'cache-control':'no-store'}}),env));
     }
     const standaloneApiResponse=await proxyApiToStandalone(request,env);
     if(standaloneApiResponse)return finalizeResponse(request,await securityPostflight(request,standaloneApiResponse,env));
