@@ -1,0 +1,110 @@
+name: Magnanimous External Skill Preflight (No LLM)
+
+# Owner-triggered only: do not download untrusted repositories or burn CI minutes
+# on every push. No LLM/API credentials are supplied to the scanning process.
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: 'Public GitHub owner/repository containing the skill to inspect'
+        type: string
+        required: true
+      commit_sha:
+        description: 'Exact 40-character commit SHA to scan (immutable source)'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-static-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Validate and pin the untrusted source
+        id: source
+        env:
+          SOURCE_REPOSITORY: ${{ inputs.repository }}
+          SOURCE_COMMIT: ${{ inputs.commit_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_REPOSITORY" =~ ^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$ ]] || { echo 'Invalid public GitHub repository identifier.' >&2; exit 2; }
+          [[ "$SOURCE_COMMIT" =~ ^[a-fA-F0-9]{40}$ ]] || { echo 'An immutable 40-character commit SHA is required.' >&2; exit 2; }
+          echo "repo=$SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          echo "sha=${SOURCE_COMMIT,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install upstream Apache-2.0 SkillSpector at a pinned revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv "$RUNNER_TEMP/magnanimous-scan-venv"
+          "$RUNNER_TEMP/magnanimous-scan-venv/bin/python" -m pip install \
+            --disable-pip-version-check --no-cache-dir \
+            'git+https://github.com/NVIDIA/SkillSpector.git@d7338f58200a9ae2a24810cee08911ab68b107a7'
+          "$RUNNER_TEMP/magnanimous-scan-venv/bin/skillspector" --help > /dev/null
+
+      - name: Fetch public source without running it
+        env:
+          SOURCE_REPOSITORY: ${{ steps.source.outputs.repo }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_dir="$RUNNER_TEMP/magnanimous-untrusted-skill"
+          mkdir -p "$source_dir"
+          git -C "$source_dir" init --quiet
+          git -C "$source_dir" -c protocol.file.allow=never fetch --quiet --depth 1 \
+            "https://github.com/${SOURCE_REPOSITORY}.git" "$SOURCE_COMMIT"
+          git -C "$source_dir" checkout --quiet --detach FETCH_HEAD
+          actual="$(git -C "$source_dir" rev-parse HEAD)"
+          [[ "$actual" = "$SOURCE_COMMIT" ]] || { echo 'Source commit changed; refusing to scan.' >&2; exit 2; }
+          echo "Scan pinned public source ${SOURCE_REPOSITORY}@${actual}"
+
+      - name: Scan with free static rules and strict fail-closed gates
+        id: scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          "$RUNNER_TEMP/magnanimous-scan-venv/bin/skillspector" scan \
+            "$RUNNER_TEMP/magnanimous-untrusted-skill" \
+            --no-llm --format json --output "$RUNNER_TEMP/magnanimous-skill-preflight.json" \
+            --fail-on-findings --fail-on-incomplete --min-coverage 95
+          scan_code=$?
+          set -e
+          report="$RUNNER_TEMP/magnanimous-skill-preflight.json"
+          if [ ! -s "$report" ] || [ "$(wc -c < "$report")" -gt 2097152 ]; then
+            echo '::error::Security scan report was missing or exceeded the 2 MiB evidence limit.'
+            scan_code=2
+          fi
+          echo "exit_code=$scan_code" >> "$GITHUB_OUTPUT"
+          echo "Static SkillSpector exit code: $scan_code (0 only for passing strict gates)."
+
+      - name: Preserve bounded scan report
+        if: always() && steps.scan.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: magnanimous-skill-preflight-${{ github.run_id }}
+          path: ${{ runner.temp }}/magnanimous-skill-preflight.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Enforce static scan approval boundary
+        if: always() && steps.scan.outcome == 'success'
+        env:
+          SCAN_EXIT_CODE: ${{ steps.scan.outputs.exit_code }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$SCAN_EXIT_CODE" != '0' ]; then
+            echo '::error::SkillSpector found security issues, incomplete coverage, or scan errors. Skill installation remains blocked.'
+            exit 1
+          fi
+          echo 'Static checks passed. This is NOT permission to execute or install the skill; owner provenance, licensing and runtime permissions still require review.'

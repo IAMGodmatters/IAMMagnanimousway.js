@@ -93,6 +93,9 @@ jobs:
       - name: Verify atomic owner-confirmed multi-file code edits
         run: node qa/scripts/magnanimous-multi-file-change-lock.mjs
 
+      - name: Verify optional no-LLM SkillSpector pre-install security workflow
+        run: node qa/scripts/magnanimous-skillspector-preflight-lock.mjs
+
       - name: Lock public-only GitHub productivity shortcuts
         run: node qa/scripts/github-repository-shortcuts-lock.mjs
 
