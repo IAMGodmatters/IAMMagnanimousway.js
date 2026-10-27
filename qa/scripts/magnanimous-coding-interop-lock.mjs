@@ -31,7 +31,7 @@ for(const url of ['https://[fc00::1]/mcp','https://[fd12::2]/mcp','https://[fe80
  const inspected=inspect({kind:'cursor-mcp',source:JSON.stringify({mcpServers:{blocked:{url}}})});
  assert.equal(inspected.accepted,false,`Private or local endpoint must be rejected: ${url}`);
 }
-for(const url of ['https://example.com/mcp','https://[2606:4700:4700::1111]/mcp']){
+for(const url of ['https://example.com/mcp','https://[2606:4700:4700::1111]/mcp','https://[::ffff:8.8.8.8]/mcp']){
  assert.equal(inspect({kind:'cursor-mcp',source:JSON.stringify({mcpServers:{remote:{url}}})}).accepted,true,`Public HTTPS endpoint should pass structural review: ${url}`);
 }
 
