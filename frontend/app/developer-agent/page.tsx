@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 type Skill={id:string;name:string;risk:string;description:string;requires_connection?:boolean};
@@ -23,6 +23,7 @@ export default function DeveloperAgent(){
  const[busy,setBusy]=useState(''),[message,setMessage]=useState('');
  const[repoShortcuts,setRepoShortcuts]=useState<RepoShortcuts|null>(null);
  const[compatKind,setCompatKind]=useState('cursor-rule'),[compatSource,setCompatSource]=useState(''),[compatReport,setCompatReport]=useState<any>(null);
+ const compatRevision=useRef(0);
  function token(){return localStorage.getItem('odin_admin_token')||localStorage.getItem('iam_account_token')||''}
  function headers(json=false){const h:Record<string,string>={Authorization:`Bearer ${token()}`};if(json)h['Content-Type']='application/json';return h}
  async function request(path:string,options:RequestInit={}){const r=await fetch(`${api}${path}`,options),d=await read(r);if(r.status===401||r.status===403){location.replace('/owner-login');throw new Error('Owner sign-in required.')}if(!r.ok)throw new Error(d.detail||d.error||`Request failed (${r.status}).`);return d}
@@ -49,11 +50,13 @@ export default function DeveloperAgent(){
  async function workflows(){setBusy('workflows');setMessage('');try{const d=await request('/api/magnanimous/dev-agent/workflows',{method:'POST',headers:headers(true),body:JSON.stringify({repo,branch:ref})});setResult(d);setMessage('CI workflow evidence loaded.')}catch(e:any){setMessage(e?.message||'Workflow history failed.')}finally{setBusy('')}}
  async function checkShortcuts(){setBusy('shortcuts');setMessage('');setRepoShortcuts(null);try{const d=await request(`/api/magnanimous/dev-agent/shortcuts?repo=${encodeURIComponent(repo.trim())}`,{headers:headers(),cache:'no-store'});setRepoShortcuts(d);setMessage(d.third_party_enabled?'GitHub confirmed this repository is public. Optional read-only external shortcuts are available.':'Private or unverified repository: third-party shortcuts are locked.')}catch(e:any){setMessage(e?.message||'Repository visibility check failed; external shortcuts remain locked.')}finally{setBusy('')}}
  async function inspectCompatibility(){
+  const submittedRevision=compatRevision.current;
   setBusy('compat');setMessage('');setCompatReport(null);
   try{
    const d=await request('/api/magnanimous/capability-mesh/route',{method:'POST',headers:headers(true),body:JSON.stringify({capability:'coding.compatibility.inspect',input:{kind:compatKind,source:compatSource}})});
+   if(submittedRevision!==compatRevision.current)return;
    setCompatReport(d);setMessage(d.accepted?'Artifact inspected. No commands ran, no connections were installed, and nothing was imported.':'Compatibility inspection found issues requiring review. Nothing was installed.');
-  }catch(e:any){setMessage(e?.message||'Compatibility inspection failed.')}finally{setBusy('')}
+  }catch(e:any){if(submittedRevision===compatRevision.current)setMessage(e?.message||'Compatibility inspection failed.')}finally{setBusy('')}
  }
  function chooseAction(next:string){setAction(next);setPayload(JSON.stringify(actionExamples[next]||{},null,2));}
  async function stage(){setBusy('stage');setMessage('');try{let parsed:any={};try{parsed=JSON.parse(payload)}catch{throw new Error('Action payload must be valid JSON.')}const d=await request('/api/magnanimous/dev-agent/actions',{method:'POST',headers:headers(true),body:JSON.stringify({repo,action,payload:parsed})});setMessage(`Action ${d.id} is staged only. Review it below before approval.`);await load()}catch(e:any){setMessage(e?.message||'Unable to stage developer action.')}finally{setBusy('')}}
@@ -71,8 +74,8 @@ export default function DeveloperAgent(){
 
   <section className="panel" aria-labelledby="coding-interop-heading"><div className="panelHead"><div><small>CURSOR-STYLE COMPATIBILITY • READ-ONLY</small><h2 id="coding-interop-heading">Review coding agent rules, MCP tools and skills</h2></div><span>NO INSTALL • NO SPEND</span></div>
    <p className="muted">Analyze a public or personally authorized configuration before adapting it to Magnanimous. Paste one artifact at a time. Never paste API keys, tokens, passwords or private repository data. The inspector does not execute commands, open remote links, store your paste or change your platform.</p>
-   <label>Artifact format<select value={compatKind} onChange={e=>{setCompatKind(e.target.value);setCompatReport(null)}}><option value="cursor-rule">Cursor project rule (.mdc)</option><option value="cursor-mcp">Cursor MCP configuration (mcp.json)</option><option value="agent-skill">Agent Skills instruction (SKILL.md)</option></select></label>
-   <label>Rule or configuration source<textarea className="code" value={compatSource} onChange={e=>{setCompatSource(e.target.value);setCompatReport(null)}} maxLength={65536} spellCheck={false} placeholder={compatKind==='cursor-mcp'?'{"mcpServers":{"my-server":{"url":"https://example.com/mcp"}}}':compatKind==='cursor-rule'?'---\ndescription: Example scoped coding rule\nglobs: "src/**/*.ts"\nalwaysApply: false\n---\nReview source before editing.':'---\nname: my-skill\ndescription: Review a coding workflow.\n---\n# Steps\nReview and verify.'}/></label>
+   <label>Artifact format<select value={compatKind} onChange={e=>{compatRevision.current++;setCompatKind(e.target.value);setCompatReport(null)}}><option value="cursor-rule">Cursor project rule (.mdc)</option><option value="cursor-mcp">Cursor MCP configuration (mcp.json)</option><option value="agent-skill">Agent Skills instruction (SKILL.md)</option></select></label>
+   <label>Rule or configuration source<textarea className="code" value={compatSource} onChange={e=>{compatRevision.current++;setCompatSource(e.target.value);setCompatReport(null)}} maxLength={65536} spellCheck={false} placeholder={compatKind==='cursor-mcp'?'{"mcpServers":{"my-server":{"url":"https://example.com/mcp"}}}':compatKind==='cursor-rule'?'---\ndescription: Example scoped coding rule\nglobs: "src/**/*.ts"\nalwaysApply: false\n---\nReview source before editing.':'---\nname: my-skill\ndescription: Review a coding workflow.\n---\n# Steps\nReview and verify.'}/></label>
    <button onClick={inspectCompatibility} disabled={busy==='compat'||!compatSource.trim()}>{busy==='compat'?'INSPECTING…':'INSPECT COMPATIBILITY →'}</button>
    {compatReport&&<div className="answer" role="status"><b>{compatReport.accepted?'STRUCTURE ACCEPTED FOR REVIEW':'REVIEW FOUND ISSUES'} • NOT IMPORTED</b><p>Declared components: {compatReport.inventory?.length||0} • Execution: disabled • External connections: unchanged</p><pre>{JSON.stringify({errors:compatReport.errors,warnings:compatReport.warnings,inventory:compatReport.inventory,next_steps:compatReport.next_steps},null,2)}</pre></div>}
   </section>
