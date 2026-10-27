@@ -14,7 +14,9 @@ permissions:
 jobs:
   production-voice:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    # Ubuntu hosted runner browser packages can exceed the old eight-minute cap.
+    # Keep every Chromium/WebKit assertion; bound installation and tests together.
+    timeout-minutes: 20
     env:
       QA_BASE_URL: https://iammagnanimousway.com
     steps:
