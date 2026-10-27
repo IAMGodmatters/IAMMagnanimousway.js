@@ -27,6 +27,16 @@ assert.equal(JSON.stringify(mcp).includes(embeddedSecret),false,'Pasted credenti
 assert.ok(mcp.warnings.some(x=>/secret vault/.test(x)));
 assert.equal(inspect({kind:'cursor-mcp',source:JSON.stringify({mcpServers:{unsafe:{url:'http://127.0.0.1:9999'}}})}).accepted,false);
 assert.equal(inspect({kind:'cursor-mcp',source:'{not valid JSON}'}).accepted,false);
+for(const url of ['https://[fc00::1]/mcp','https://[fd12::2]/mcp','https://[fe80::1]/mcp','https://[febf::1]/mcp','https://[::1]/mcp','https://[::ffff:192.168.1.1]/mcp','https://[::ffff:127.0.0.1]/mcp','https://10.0.0.1/mcp','https://100.64.0.1/mcp']){
+ const inspected=inspect({kind:'cursor-mcp',source:JSON.stringify({mcpServers:{blocked:{url}}})});
+ assert.equal(inspected.accepted,false,`Private or local endpoint must be rejected: ${url}`);
+}
+for(const url of ['https://example.com/mcp','https://[2606:4700:4700::1111]/mcp']){
+ assert.equal(inspect({kind:'cursor-mcp',source:JSON.stringify({mcpServers:{remote:{url}}})}).accepted,true,`Public HTTPS endpoint should pass structural review: ${url}`);
+}
+assert.ok(ui.includes('compatRevision.current++'),'Changing artifact invalidates pending inspector response.');
+assert.ok(ui.includes('submittedRevision!==compatRevision.current'),'Stale responses must be discarded.');
+
 assert.equal(inspect({kind:'cursor-mcp',source:JSON.stringify({mcpServers:{bad:{command:'node',url:'https://example.com'}}})}).accepted,false);
 
 const skill=inspect({kind:'agent-skill',source:'---\nname: sample-review\ndescription: Inspect and verify one change.\n---\n# Steps\nReview source, then run tests.'});
