@@ -2162,6 +2162,15 @@ jobs:
 
           health_status="$(curl -sS --connect-timeout 10 --max-time 60 -o /tmp/worker-only-health.json -w '%{http_code}' "$BASE_URL/health")"
           [ "$health_status" = "200" ] || { echo "::error::Worker health returned HTTP $health_status"; cat /tmp/worker-only-health.json || true; exit 1; }
+
+          # The standard /api/health alias must be as cheap and accurate as /health.
+          api_health_status="$(curl -sS --connect-timeout 10 --max-time 20 -o /tmp/worker-only-api-health.json -w '%{http_code}' "$BASE_URL/api/health")"
+          [ "$api_health_status" = "200" ] || { echo "::error::Worker API health alias returned HTTP $api_health_status"; cat /tmp/worker-only-api-health.json || true; exit 1; }
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/worker-only-api-health.json'))
+          assert data.get('status') == 'ok' and data.get('database_independent') is True, data
+          PY
           python - <<'PY'
           import json
           data=json.load(open('/tmp/worker-only-health.json'))
