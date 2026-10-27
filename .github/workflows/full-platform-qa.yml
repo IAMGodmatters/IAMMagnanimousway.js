@@ -75,6 +75,9 @@ jobs:
       - name: Lock no-spend model comparison arena
         run: node qa/scripts/magnanimous-model-arena-lock.mjs
 
+      - name: Keep cheap Workers AI retry ahead of heavy models and surface degraded chat truthfully
+        run: node qa/scripts/chat-provider-outage-fallback-lock.mjs
+
       - name: Exercise native no-spend Magnanimous Cloud D1 control plane
         run: node qa/scripts/magnanimous-cloud-edge-lock.mjs
 

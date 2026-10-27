@@ -240,6 +240,9 @@ async function cloudflare(env, message, model, freeFailoverAvailable=false) {
   const requested = String(model || env.CLOUDFLARE_AI_MODEL || '').trim();
   const models = [...new Set([
     requested,
+    // Verified low-footprint Workers AI model. Try it before expensive or slow
+    // large-model fallbacks so free-plan users retain a bounded answer path.
+    '@cf/meta/llama-3.1-8b-instruct',
     '@cf/zai-org/glm-4.7-flash',
     '@cf/nvidia/nemotron-3-120b-a12b',
     '@cf/google/gemma-4-26b-a4b-it'
