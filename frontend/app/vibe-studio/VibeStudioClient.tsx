@@ -165,7 +165,7 @@ export default function MagnanimousVibeStudio({customer=false}:{customer?:boolea
  }
  return <main className="vibeShell" id="iam-main">
   <header className="vibeHeader">
-   <div><a href={customer?'/dashboard':'/god-coding'} className="vibeBack">← {customer?'My workspace':'God Coding'}</a><small>I AM MAGNANIMOUS WAY™</small><h1>{customer?'My Code Studio':'Vibe Studio'} <span>by Magnanimous AI</span></h1><p>Describe. Build. Preview. Refine. Own your code.</p></div>
+   <div><a href={customer?'/start':'/god-coding'} className="vibeBack">← {customer?'My workspace':'God Coding'}</a><small>I AM MAGNANIMOUS WAY™</small><h1>{customer?'My Code Studio':'Vibe Studio'} <span>by Magnanimous AI</span></h1><p>Describe. Build. Preview. Refine. Own your code.</p></div>
    <div className="vibeLinks"><span className="vibePill">{customer?'PAID PRIVATE WORKSPACE':'NATIVE · FREE-FIRST'}</span>{!customer&&<a href="/developer-agent">GitHub engineering ↗</a>}</div>
   </header>
   <div className="vibeNotice" role="status" aria-live="polite">{message}</div>

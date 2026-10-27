@@ -48,6 +48,7 @@ assert.ok(edge.includes("url.pathname==='/api/customer/code-studio'"),'Customer 
 const ui=readFileSync('frontend/app/vibe-studio/VibeStudioClient.tsx','utf8');
 const route=readFileSync('frontend/app/code-studio/page.tsx','utf8');
 assert.ok(route.includes('<MagnanimousVibeStudio customer />'),'Separate customer page must enable restricted mode');
+assert.ok(readFileSync('frontend/app/start/page.tsx','utf8').includes("href:'/code-studio'"),'Customer onboarding must link to Code Studio');
 assert.ok(readFileSync('frontend/public/robots.txt','utf8').includes('Disallow: /code-studio/'),'Private customer coding workspace must be excluded from crawlers');
 for(const part of ['sandbox="allow-scripts"','connect-src &#39;none&#39;','!customer&&<a href="/developer-agent"','customer?\'/api/customer/code-studio\''])assert.ok(ui.includes(part),'Missing customer coding UI isolation: '+part);
 console.log('PASS: paid customer code studio subscription gate, owner separation, tenant scope, safe preview, and free plan denial.');

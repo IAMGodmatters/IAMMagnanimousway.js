@@ -14,6 +14,7 @@ const paths=[
  {icon:'◫',title:'Run professional work',text:'Customers, CRM, research, email, follow-up, leads, press, advertising, daily operations and intelligent context.',href:'/professional'},
  {icon:'☎',title:'Run a call center',text:'Browser calling, AI receptionists, scripts, QA, coaching, queues and customer support.',href:'/phone'},
  {icon:'▶',title:'Create content',text:'Social posts, video, scripts, copywriting, repurposing and audience growth.',href:'/agents?agent=sandra'},
+ {icon:'⌘',title:'Build my own app',text:'Private customer Code Studio: create, preview, edit and save working prototypes. Requires an active paid plan.',href:'/code-studio'},
  {icon:'◇',title:'Learn something',text:'Study plans, tutoring, research organization, English and skill building.',href:'/agents?agent=teacher'}
 ];
 
