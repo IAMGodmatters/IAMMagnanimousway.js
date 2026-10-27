@@ -27,6 +27,7 @@ import { withCloudflareNativeMail } from './cloudflare-native-mail.js';
 import { handleMagnanimousRuntimeControl } from './runtime-control.js';
 import { handleMagnanimousReelsProxy } from './reels-proxy.js';
 import { unauthenticatedTelecomRead, telecomReadProxyTimeoutMs } from './magnanimous-telecom-edge-guard.js';
+import { standaloneApiReady } from './magnanimous-standalone-health-gate.js';
 
 const CANONICAL_HOST='iammagnanimousway.com';
 const WWW_HOST='www.iammagnanimousway.com';
@@ -137,7 +138,10 @@ async function proxyApiToStandalone(request,env){
   if(!standaloneDataPlanePath)return null;
   if(request.headers.get('x-magnanimous-standalone-proxy')==='1')return null;
   const origin=configuredStandaloneApiOrigin(env);
-  if(!origin)return null;
+  if(!origin||origin===url.origin)return null;
+  // A failed standalone health probe is a reason to use the native Worker path,
+  // not to replay a customer mutation or wait for a broken Railway origin.
+  if(!await standaloneApiReady(origin))return null;
   const target=new URL(url.pathname+url.search,origin);
   const headers=new Headers(request.headers);
   headers.delete('host');

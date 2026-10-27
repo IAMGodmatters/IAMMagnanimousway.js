@@ -105,6 +105,9 @@ jobs:
       - name: Verify safe Telecom auth-first reads and bounded standalone failover
         run: node qa/scripts/magnanimous-telecom-proxy-timeout-lock.mjs
 
+      - name: Verify failed Railway readiness never stalls native customer APIs
+        run: node qa/scripts/magnanimous-standalone-health-gate-lock.mjs
+
       - name: Verify paid tenant Code Studio cannot access platform engineering
         run: node qa/scripts/magnanimous-customer-code-studio-lock.mjs
 
