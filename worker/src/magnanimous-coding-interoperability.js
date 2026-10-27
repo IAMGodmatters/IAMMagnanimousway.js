@@ -77,9 +77,6 @@ function isPrivateOrLocalHost(hostname){
  if(/^\d+\.\d+\.\d+\.\d+$/.test(host))return privateIpv4(host);
  if(!host.includes(':'))return false;
  if(host==='::'||host==='::1'||/^0(?::0){6}:(?:0|1)$/.test(host))return true;
- const first=host.split(':').find(Boolean)||'0',prefix=Number.parseInt(first,16);
- if((prefix&0xfe00)===0xfc00||(prefix&0xffc0)===0xfe80||
-    (prefix&0xffc0)===0xfec0||(prefix&0xff00)===0xff00)return true;
  // URL normalization converts mapped dotted IPv4 to hex groups.
  const mapped=host.match(/(?:^|:)ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
  if(mapped){
@@ -87,7 +84,11 @@ function isPrivateOrLocalHost(hostname){
   return privateIpv4(`${high>>8}.${high&255}.${low>>8}.${low&255}`);
  }
  const dotted=host.match(/(?:^|:)ffff:(\d+\.\d+\.\d+\.\d+)$/);
- return dotted?privateIpv4(dotted[1]):false;
+ if(dotted)return privateIpv4(dotted[1]);
+ const first=host.split(':').find(Boolean)||'0',prefix=Number.parseInt(first,16);
+ if((prefix&0xfe00)===0xfc00||(prefix&0xffc0)===0xfe80||
+    (prefix&0xffc0)===0xfec0||(prefix&0xff00)===0xff00)return true;
+ return false;
 }
 
 function inspectMcp(source,out){
