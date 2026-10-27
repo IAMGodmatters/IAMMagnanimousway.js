@@ -31,3 +31,21 @@ test('homepage treats invalid JSON and aborted network requests as unavailable',
  controller.abort();
  assert.deepEqual(await pending,{});
 });
+
+// Guard the production edge routing rule as well as the frontend health display.
+// This endpoint must stay fast even when the database or provider vault is down.
+test('public tools serve ahead of mutable Worker bootstrap and retain one shared catalog',async()=>{
+ const fs=await import('node:fs');
+ const security=fs.readFileSync(new URL('../../worker/src/security-entrypoint.js',import.meta.url),'utf8');
+ const provider=fs.readFileSync(new URL('../../worker/src/provider-entrypoint.js',import.meta.url),'utf8');
+ const toolsModule=await import('../../worker/src/public-tool-catalog.js');
+ assert.equal(security.includes("import { PUBLIC_TOOLS } from './public-tool-catalog.js'"),true);
+ assert.equal(provider.includes("import { PUBLIC_TOOLS as TOOLS } from './public-tool-catalog.js'"),true);
+ const early=security.indexOf("outerUrl.pathname==='/api/tools'");
+ const routed=security.indexOf('const standaloneApiResponse=await proxyApiToStandalone(request,env)');
+ assert(early>0 && early<routed,'tools must be served before proxy/DB bootstrap');
+ assert(Array.isArray(toolsModule.PUBLIC_TOOLS) && toolsModule.PUBLIC_TOOLS.length>=15);
+ const ids=toolsModule.PUBLIC_TOOLS.map(x=>x.id);
+ assert.equal(new Set(ids).size,ids.length);
+ assert(ids.includes('magnanimous')&&ids.includes('ai-chat')&&ids.includes('native-web'));
+});
