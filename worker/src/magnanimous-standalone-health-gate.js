@@ -19,7 +19,11 @@ export async function standaloneApiReady(origin,{fetcher=fetch,clock=Date.now}={
     headers:{'x-magnanimous-standalone-proxy':'1'},
     signal:AbortSignal.timeout(PROBE_TIMEOUT_MS)
    });
-   ready=response.status>=200&&response.status<300;
+   // A provider error page can have HTTP 200. Trust only Magnanimous JSON health.
+   if(response.status===200&&String(response.headers.get('content-type')||'').toLowerCase().includes('application/json')){
+    const body=await response.json();
+    ready=body?.status==='ok'&&(!body.service||body.service==='iamagnanimous-ai');
+   }
   }catch{ready=false;}
   recent.set(key,{ready,until:clock()+HEALTH_TTL_MS});
   return ready;

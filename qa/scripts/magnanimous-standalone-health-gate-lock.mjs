@@ -46,6 +46,19 @@ assert.equal(
 );
 assert.equal(await standaloneApiReady('', { fetcher, clock }), false);
 
+for(const [caseName,payload,contentType] of [
+ ['HTML 200 provider page','<html>Not Magnanimous</html>','text/html'],
+ ['JSON 200 unhealthy','{"status":"error"}','application/json'],
+ ['JSON 200 other service','{"status":"ok","service":"unrelated"}','application/json'],
+ ['JSON 200 malformed','not JSON','application/json']
+]){
+ resetStandaloneHealthGateForTest();
+ assert.equal(await standaloneApiReady(ORIGIN,{
+  fetcher:async()=>new Response(payload,{status:200,headers:{'content-type':contentType}}),clock
+ }),false,caseName+' must not send any customer traffic to standby');
+}
+
+
 const entrypoint = readFileSync(new URL('../../worker/src/security-entrypoint.js', import.meta.url), 'utf8');
 const gate = entrypoint.indexOf('if(!await standaloneApiReady(origin))return null;');
 const proxy = entrypoint.indexOf('const target=new URL(url.pathname+url.search,origin);');
