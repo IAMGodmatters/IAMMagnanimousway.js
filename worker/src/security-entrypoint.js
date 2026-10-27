@@ -1,4 +1,5 @@
 import app from './operations-entrypoint.js';
+import { PUBLIC_TOOLS } from './public-tool-catalog.js';
 import ownerAuthApp from './admin-compat-entrypoint.js';
 import { securityPreflight, securityPostflight } from './security-hardening.js';
 import { recoverProfessionalGeneration } from './professional-resilience-runtime.js';
@@ -273,6 +274,11 @@ export default {
         database_bootstrap:'bypassed-for-health',
         database_independent:true
       },{headers:{'cache-control':'no-store'}}));
+    }
+    // This is a public, static catalogue. Do not enter the legacy schema,
+    // provider vault, or standalone proxy on unauthenticated homepage probes.
+    if(request.method==='GET'&&outerUrl.pathname==='/api/tools'){
+      return finalizeResponse(request,Response.json({tools:PUBLIC_TOOLS},{headers:{'cache-control':'no-store'}}));
     }
     // Reject anonymous Telecom reads before reaching an unhealthy standalone origin.
     // The native Telecom handler requires an authenticated Bearer session as well.
