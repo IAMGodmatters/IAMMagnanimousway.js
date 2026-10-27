@@ -39,7 +39,13 @@ function capabilityCount(){
  return MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS.reduce((n,row)=>n+(row.capabilities||[]).length,0);
 }
 
+// The capability catalogs here are code-bundled, not per-user state. Compute their
+// expensive cross-catalog joins once per isolate. Cache the JSON snapshot rather than
+// a mutable object so each caller gets an independent response (tenant-safe).
+let cachedSingleBrainSummaryJson='';
+
 export function getMagnanimousSingleBrainSummary(){
+ if(cachedSingleBrainSummaryJson)return JSON.parse(cachedSingleBrainSummaryJson);
  const absorbed=getConnectorAbsorptionSummary();
  const videoCapabilities=getVideoExpressCapabilityManifest();
  const videoBenchmark=getVideoExpressAbsorptionSummary();
@@ -52,7 +58,7 @@ export function getMagnanimousSingleBrainSummary(){
  const desktopBenchmark=getDesktopCapabilityAbsorptionSummary();
  const publicApiCapabilities=getPublicApiCapabilityManifest();
  const publicApiBenchmark=getPublicApiAbsorptionSummary();
- return{
+ const summary={
   ...MAGNANIMOUS_SINGLE_BRAIN_CONTRACT,
   role:MAGNANIMOUS_UNIVERSAL_EXECUTION_MODEL.role,
   universal_capability_domains:MAGNANIMOUS_UNIVERSAL_CAPABILITY_DOMAINS.length,
@@ -108,6 +114,8 @@ export function getMagnanimousSingleBrainSummary(){
    arbitrary_public_api_proxying:false
   }
  };
+ cachedSingleBrainSummaryJson=JSON.stringify(summary);
+ return summary;
 }
 
 export function magnanimousPublicRoutingSummary(providerRows=[]){
