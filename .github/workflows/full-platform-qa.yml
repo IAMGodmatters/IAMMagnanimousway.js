@@ -60,6 +60,9 @@ jobs:
       - name: Lock free-first software directive
         run: node qa/scripts/magnanimous-software-directive-lock.mjs
 
+      - name: Exercise free-first runtime D1 schema safeguards
+        run: node qa/scripts/free-first-runtime-plane-lock.mjs
+
       - name: Lock durable active development checkpoint
         run: node qa/scripts/development-checkpoint-lock.mjs
 

@@ -27,8 +27,12 @@ function cleanText(value,limit=2400){
 function int(v,min,max,fallback){const n=Number.parseInt(String(v??''),10);return Number.isFinite(n)?Math.max(min,Math.min(max,n)):fallback}
 function isQaPath(path){return qnaPaths.has(String(path||''))||/^\/api\/[^/]+\/chat$/.test(String(path||''))}
 
+let qaSchemaReady=false;
+let qaSchemaPromise=null;
 export async function ensureQaObservationSchema(env){
- if(!env?.DB)return;
+ if(!env?.DB||qaSchemaReady)return;
+ if(qaSchemaPromise)return qaSchemaPromise;
+ qaSchemaPromise=(async()=>{
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS qa_observations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   tenant_id TEXT NOT NULL DEFAULT '',
@@ -50,8 +54,10 @@ export async function ensureQaObservationSchema(env){
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_qa_observations_time ON qa_observations(created_at DESC)').run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_qa_observations_kind_time ON qa_observations(kind,created_at DESC)').run();
  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_qa_observations_unresolved ON qa_observations(resolved,http_status,created_at DESC)').run();
+  qaSchemaReady=true;
+ })();
+ try{await qaSchemaPromise}finally{if(!qaSchemaReady)qaSchemaPromise=null}
 }
-
 async function fingerprint(request){
  const seed=[request.headers.get('cf-connecting-ip')||request.headers.get('x-forwarded-for')||'',request.headers.get('user-agent')||'',request.headers.get('accept-language')||''].join('|');
  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(seed||crypto.randomUUID()));
