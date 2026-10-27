@@ -1,6 +1,13 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "iam-magnanimous",
+  // Keep a small diagnostic sample on Cloudflare Workers Free. Do not log
+  // request bodies, secrets or payment data, and do not require a paid tier.
+  // Sampling is limited to 5% and can be disabled without other changes.
+  "observability": {
+    "logs": { "enabled": true, "head_sampling_rate": 0.05 },
+    "traces": { "enabled": false }
+  },
   // Security boundary delegates to src/operations-entrypoint.js, preserving the established non-destructive operations layer beneath it.
   "main": "src/security-entrypoint.js",
   "compatibility_date": "2026-08-27",
