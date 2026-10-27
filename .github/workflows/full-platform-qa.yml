@@ -87,6 +87,12 @@ jobs:
       - name: Verify native coding-agent interoperability inspector
         run: node qa/scripts/magnanimous-coding-interop-lock.mjs
 
+      - name: Verify native untrusted repository preflight gate
+        run: node qa/scripts/magnanimous-repo-preflight-lock.mjs
+
+      - name: Verify atomic owner-confirmed multi-file code edits
+        run: node qa/scripts/magnanimous-multi-file-change-lock.mjs
+
       - name: Lock public-only GitHub productivity shortcuts
         run: node qa/scripts/github-repository-shortcuts-lock.mjs
 
