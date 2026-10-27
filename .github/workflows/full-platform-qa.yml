@@ -84,6 +84,9 @@ jobs:
       - name: Verify Magnanimous native vibe coding studio
         run: node qa/scripts/magnanimous-vibe-studio-lock.mjs
 
+      - name: Verify native coding-agent interoperability inspector
+        run: node qa/scripts/magnanimous-coding-interop-lock.mjs
+
       - name: Lock public-only GitHub productivity shortcuts
         run: node qa/scripts/github-repository-shortcuts-lock.mjs
 
