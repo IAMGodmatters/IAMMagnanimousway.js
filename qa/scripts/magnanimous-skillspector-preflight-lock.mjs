@@ -4,6 +4,7 @@ import fs from 'node:fs';
 const path='.github/workflows/magnanimous-skillspector-preflight.yml';
 const yml=fs.readFileSync(path,'utf8');
 const dev=fs.readFileSync('worker/src/magnanimous-dev-agent.js','utf8');
+const frontend=fs.readFileSync('frontend/app/developer-agent/page.tsx','utf8');
 const expected='d7338f58200a9ae2a24810cee08911ab68b107a7';
 assert(yml.includes('workflow_dispatch:'),'Scan must be an explicit owner action, not an automatic paid runner.');
 assert(!/^[ \t]+(?:push|pull_request|schedule):/m.test(yml),'Untrusted scans must not run on every push, PR or schedule.');
@@ -19,4 +20,7 @@ assert(yml.includes('retention-days: 7'),'Scan artifacts must have short retenti
 assert(yml.includes('NOT permission to execute or install'),'A scan pass must never automatically authorize imported source.');
 assert(dev.includes("if(action==='dispatch_workflow')"),'Existing Developer Agent has an owner-staged workflow dispatch path.');
 assert(dev.includes('DEV_ACTION_APPROVER_MISMATCH'),'Workflow execution must stay behind separate owner confirmation.');
+assert(frontend.includes('PREPARE DEEP STATIC SCAN'),'Owners must have an understandable way to prepare a deep scan.');
+assert(frontend.includes("workflow_id:'magnanimous-skillspector-preflight.yml'"),'Owner button must dispatch only the pinned no-LLM workflow.');
+assert(frontend.includes('setAction(\'dispatch_workflow\')')&&frontend.includes('setPayload(JSON.stringify('),'Owner UI must stage the payload for separate review, not execute it directly.');
 console.log('Magnanimous SkillSpector adapter lock passed: pinned Apache-2.0 upstream, manually triggered, strict non-LLM scan, SHA validation and owner-approved dispatch.');

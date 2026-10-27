@@ -37,6 +37,8 @@ Existing owner-gated Developer Agent workflow dispatch can also stage the action
 
 Stage it with `dispatch_workflow` and approve it separately. No direct browser token entry is required.
 
+After the native Repository Preflight returns a verified commit SHA, the Developer Agent also provides **Prepare Deep Static Scan**. It fills in the above immutable commit and workflow ID, then takes the owner to the staged-action review. This button never starts the scan itself. Only a successful separate owner-confirmed workflow dispatch launches the GitHub Actions job.
+
 ## Boundaries
 
 SkillSpector's static analysis has false negatives and false positives. The upstream tool may also consult free OSV vulnerability lookups; `--no-llm` means no paid model is called, **not** a guarantee that all network access is disabled. GitHub Actions free-minute availability depends on account/repository visibility; this is manual-only to prevent silent variable usage. The code does not download and install NVIDIA's software onto the customer-facing Worker and does not call an unconfigured paid GPU/LLM service. No imported skill is automatically activated.
