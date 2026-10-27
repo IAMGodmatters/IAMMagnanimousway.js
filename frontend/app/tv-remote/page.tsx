@@ -90,9 +90,14 @@ export default function TvRemote(){
  }
 
  async function disconnect(){
-  if(!pair)return;
-  try{await fetch(`${API}/disconnect`,{method:'POST',headers:{'content-type':'application/json',Authorization:`Bearer ${pair.remote_token}`},body:JSON.stringify({session_id:pair.session_id}),cache:'no-store'})}catch{}
-  sessionStorage.removeItem(STORAGE_KEY);setPair(null);setCode('');setMessage('Disconnected.');
+  if(!pair||busy)return;
+  setBusy(true);setMessage('Disconnecting securely…');
+  try{
+   const response=await fetch(`${API}/disconnect`,{method:'POST',headers:{'content-type':'application/json',Authorization:`Bearer ${pair.remote_token}`},body:JSON.stringify({session_id:pair.session_id}),cache:'no-store'});
+   const data=await reply(response);
+   if(!response.ok||data.disconnected!==true)throw new Error(data.detail||'Disconnect was not confirmed. Please try again.');
+   sessionStorage.removeItem(STORAGE_KEY);setPair(null);setCode('');setMessage('Disconnected.');
+  }catch(error){setMessage(error instanceof Error?error.message:'Unable to confirm disconnect. Please try again.')}finally{setBusy(false)}
  }
 
  const control=(action:Action,label:string,extra='')=><button type="button" disabled={busy} className={`key ${extra}`} onClick={()=>send(action)} aria-label={label}>{label}</button>;
@@ -100,7 +105,7 @@ export default function TvRemote(){
   <header><a href="/" aria-label="Return to I AM Magnanimous Way">✦ I AM MAGNANIMOUS WAY™</a><span className="pill">MAGNANIMOUS TV</span></header>
   <section className="intro"><span className="eyebrow">YOUR PHONE. YOUR TELEVISION. ONE EXPERIENCE.</span><h1>TV Browser Remote</h1><p>Control your Magnanimous TV browser from your iPhone. Your Google login and video files stay on your devices and with Google—not in the remote-control service.</p></section>
   {!pair?<section className="panel pairing"><span className="step">STEP 1 — CONNECT</span><h2>Enter the code on your TV</h2><p>Open the Magnanimous TV Browser on your Android / Google TV. Type its 10-character pairing code here. Codes expire after five minutes.</p><label htmlFor="pair-code">TV pairing code</label><input id="pair-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} inputMode="text" maxLength={12} value={code} onChange={e=>setCode(e.target.value.toUpperCase().replace(/[^A-Z2-9\s-]/g,''))} placeholder="ABCDEFGHIJ"/><button type="button" className="primary" onClick={connect} disabled={busy}>{busy?'Connecting…':'Connect to my TV →'}</button></section>
-  :<><section className="panel"><div className="connected"><span className="dot"/><div><b>TV paired</b><small>Commands are sent over an encrypted connection</small></div><button type="button" className="disconnect" onClick={disconnect}>Disconnect</button></div>
+  :<><section className="panel"><div className="connected"><span className="dot"/><div><b>TV paired</b><small>Commands are sent over an encrypted connection</small></div><button type="button" className="disconnect" onClick={disconnect} disabled={busy}>{busy?'Disconnecting…':'Disconnect'}</button></div>
    <div className="url"><label htmlFor="tv-address">Open a website or movie link on the TV</label><form onSubmit={e=>{e.preventDefault();send('navigate',address)}}><input id="tv-address" aria-label="Website HTTPS address" type="url" required value={address} onChange={e=>setAddress(e.target.value)} placeholder="https://drive.google.com"/><button type="submit" disabled={busy}>Open ↗</button></form><div className="row"><button type="button" className="quick" onClick={()=>send('navigate','https://drive.google.com/drive/u/0/my-drive')}>▸ Open Google Drive</button><button type="button" className="quick" onClick={saveFavorite}>☆ Save this link</button></div><p className="hint">For a movie, copy its HTTPS sharing link from Google Drive on your iPhone and paste it above. Private files still require authorized access on your TV. Google may block sign-in inside a TV browser.</p></div>
   {favorites.length>0&&<div className="favorites"><span className="step">SAVED ON THIS PHONE</span>{favorites.map(item=><div className="favorite" key={item.url}><button type="button" disabled={busy} onClick={()=>send('navigate',item.url)} title={item.url}>▶ {item.label}</button><button type="button" className="remove" onClick={()=>removeFavorite(item.url)} aria-label={`Remove ${item.label}`}>×</button></div>)}</div>}
   </section><section className="panel pad"><span className="step">NAVIGATE</span><div className="directions"><span/>{control('up','↑')}<span/>{control('left','←')}{control('select','OK','select')}{control('right','→')}<span/>{control('down','↓')}<span/></div><div className="row">{control('back','← Back')}{control('forward','Forward →')}{control('home','⌂ Home')}{control('reload','↻ Reload')}</div></section>
