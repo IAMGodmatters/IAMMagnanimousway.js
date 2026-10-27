@@ -99,6 +99,9 @@ jobs:
       - name: Verify tenant-scoped pinned repository file-map indexing
         run: node qa/scripts/magnanimous-repository-index-lock.mjs
 
+      - name: Verify safe Telecom auth-first reads and bounded standalone failover
+        run: node qa/scripts/magnanimous-telecom-proxy-timeout-lock.mjs
+
       - name: Keep business-operations smoke serialized behind production D1 deploy
         run: node qa/scripts/magnanimous-business-operations-deploy-serialization-lock.mjs
 
