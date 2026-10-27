@@ -58,7 +58,8 @@ assert.ok(!runtime.includes('new Function('),'Server must never compile prototyp
 assert.ok(!runtime.includes('execSync('),'Server must never run arbitrary code.');
 const operations=read('worker/src/operations-entrypoint.js');
 assert.ok(operations.includes('handleMagnanimousVibeStudio(request,env)'),'Vibe Studio API must be live-routed behind the security entrypoint.');
-const frontend=read('frontend/app/vibe-studio/page.tsx');
+const frontend=read('frontend/app/vibe-studio/VibeStudioClient.tsx');
+assert.ok(read('frontend/app/vibe-studio/page.tsx').includes('<MagnanimousVibeStudio />'),'Owner route must render the secured client.');
 for(const word of ['getPlatformAuthToken','sandbox="allow-scripts"','referrerPolicy="no-referrer"','Content-Security-Policy','connect-src &#39;none&#39;','form-action &#39;none&#39;','/api/magnanimous/compute-accelerator','Request AI Draft','Review before applying','Save Checkpoint','Export HTML','expected_revision','/versions/'])
  assert.ok(frontend.includes(word),'Vibe Studio UI safety feature missing '+word);
 assert.ok(!frontend.includes('dangerouslySetInnerHTML'),'Never inject prototype source into the parent app.');

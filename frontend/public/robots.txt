@@ -21,6 +21,7 @@ Disallow: /crm/
 Disallow: /customer-service/
 Disallow: /developer-agent/
 Disallow: /vibe-studio/
+Disallow: /code-studio/
 Disallow: /orca-workbench/
 Disallow: /god-coding/
 Disallow: /local-bridge/

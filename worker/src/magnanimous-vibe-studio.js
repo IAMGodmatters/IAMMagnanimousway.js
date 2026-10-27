@@ -1,5 +1,6 @@
 import {currentUser} from './integrations.js';
 import {requirePlatformOwner} from './platform-owner-guard.js';
+import {tenantPlan} from './usage-guard.js';
 
 // Magnanimous Vibe Studio never executes generated code on the Worker.
 // It stores owner-authored single-file prototypes behind tenant-scoped D1 access.
@@ -117,13 +118,24 @@ async function scopedProject(env,user,id){
 const methodNotAllowed=()=>json({detail:'Unsupported Vibe Studio action.'},405);
 
 export async function handleMagnanimousVibeStudio(request,env){
- const u=new URL(request.url),p=u.pathname;
- if(!p.startsWith('/api/magnanimous/vibe-studio'))return null;
+ const u=new URL(request.url),rawPath=u.pathname;
+ const ownerPrefix='/api/magnanimous/vibe-studio',customerPrefix='/api/customer/code-studio';
+ const customer=rawPath===customerPrefix||rawPath.startsWith(customerPrefix+'/');
+ if(!customer&&rawPath!==ownerPrefix&&!rawPath.startsWith(ownerPrefix+'/'))return null;
+ const p=customer?ownerPrefix+rawPath.slice(customerPrefix.length):rawPath;
  if(!env?.DB)return json({detail:'Magnanimous project database unavailable.'},503);
- const denied=await requirePlatformOwner(request,env);if(denied)return denied;
- const user=await currentUser(request,env);if(!user)return json({detail:'Owner sign-in required.'},401);
+ if(!customer){const denied=await requirePlatformOwner(request,env);if(denied)return denied;}
+ const user=await currentUser(request,env);if(!user)return json({detail:'Sign in to use your private coding workspace.'},401);
+ if(customer){
+  // Only Stripe-confirmed active paid subscriptions grant customer code storage.
+  // This route exposes no GitHub App, shell runner, platform keys, deployment or owner API.
+  const subscription=await tenantPlan(env,user.tenant_id);
+  if(subscription.status!=='active'||Number(subscription.limits?.rank||0)<1){
+   return json({detail:'An active paid Magnanimous plan is required for Customer Code Studio.',code:'PAID_PLAN_REQUIRED',upgrade_path:'/pricing'},402);
+  }
+ }
  try{
-  if(p==='/api/magnanimous/vibe-studio'&&request.method==='GET')return json({policy:MAGNANIMOUS_VIBE_STUDIO_POLICY,templates:[...kinds],limits:{max_projects:MAX_PROJECTS,max_html_bytes:MAX_HTML}});
+  if(p==='/api/magnanimous/vibe-studio'&&request.method==='GET')return json({policy:{...MAGNANIMOUS_VIBE_STUDIO_POLICY,owner_only:!customer,customer_workspace:customer,platform_repository_access:false,paid_active_subscription_required:customer},templates:[...kinds],limits:{max_projects:MAX_PROJECTS,max_html_bytes:MAX_HTML}});
   if(p==='/api/magnanimous/vibe-studio/review'&&request.method==='POST'){
    const b=await request.json().catch(()=>({}));return json(reviewVibeSource(b?.html));
   }
