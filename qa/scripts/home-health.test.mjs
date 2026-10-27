@@ -49,3 +49,12 @@ test('public tools serve ahead of mutable Worker bootstrap and retain one shared
  assert.equal(new Set(ids).size,ids.length);
  assert(ids.includes('magnanimous')&&ids.includes('ai-chat')&&ids.includes('native-web'));
 });
+
+test('both public health aliases bypass DB and provider bootstrap',async()=>{
+ const fs=await import('node:fs');
+ const security=fs.readFileSync(new URL('../../worker/src/security-entrypoint.js',import.meta.url),'utf8');
+ const health=security.indexOf("outerUrl.pathname==='/health'||outerUrl.pathname==='/api/health'");
+ const proxy=security.indexOf('const standaloneApiResponse=await proxyApiToStandalone(request,env)');
+ assert(health>0&&health<proxy,'both health routes must bypass the standalone proxy and database bootstrap');
+ assert(security.includes("database_bootstrap:'bypassed-for-health'"),'health must truthfully report deferred database bootstrap');
+});
