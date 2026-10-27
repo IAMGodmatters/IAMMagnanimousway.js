@@ -1,3 +1,5 @@
+
+import {getMagnanimousSingleBrainSummary} from '../../worker/src/magnanimous-single-brain-contract.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -96,3 +98,13 @@ assert(!deployWorkflow.includes("Magnanimous AI routing', data"),'production smo
 assert(!deployWorkflow.includes("private-execution', data"),'production smoke must not retain the retired provider compatibility type');
 
 console.log('Magnanimous single-brain lock passed — one public AI identity, specialist departments, private execution routing, absorbed tools/skills, and owner-only infrastructure disclosure are enforced.');
+
+// Immutable bundled public capability metadata may be cached per Worker isolate, but
+// a caller must never mutate another caller's returned summary.
+const firstStaticBrain=getMagnanimousSingleBrainSummary();
+const secondStaticBrain=getMagnanimousSingleBrainSummary();
+assert.deepEqual(secondStaticBrain,firstStaticBrain,'Cached summary must preserve every visible field');
+assert.notStrictEqual(secondStaticBrain,firstStaticBrain,'Do not return shared mutable reference to tenants');
+assert.ok(Array.isArray(secondStaticBrain.native_targets));
+secondStaticBrain.native_targets.push('__private_test_mutation__');
+assert.ok(!getMagnanimousSingleBrainSummary().native_targets.includes('__private_test_mutation__'),'Caller mutations must not leak into cached summaries');
