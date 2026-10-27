@@ -266,7 +266,10 @@ export default {
     if(reelsProxyResponse)return finalizeResponse(request,reelsProxyResponse);
     const edgeAiResponse=await handleEdgeAiBridge(request,env);
     if(edgeAiResponse)return finalizeResponse(request,await securityPostflight(request,edgeAiResponse,env));
-    if(request.method==='GET'&&outerUrl.pathname==='/health'){
+    // Both public health URLs use a zero-database, provider-independent fast path.
+    // /api/health previously entered expensive catch-all initialization and could
+    // produce Cloudflare 1102 or an unrelated static fallback.
+    if(request.method==='GET'&&(outerUrl.pathname==='/health'||outerUrl.pathname==='/api/health')){
       return finalizeResponse(request,Response.json({
         status:'ok',
         service:'iamagnanimous-ai',
