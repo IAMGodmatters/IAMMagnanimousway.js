@@ -43,7 +43,9 @@ function normalizeCode(input) {
   return /^[A-HJ-NP-Z2-9]{10}$/.test(code) ? code : null;
 }
 function localHost(hostname) {
-  const host = hostname.toLowerCase().replace(/^\[|\]$/g,'');
+  // A fully-qualified DNS name may end in a dot: printer.local. must be
+  // subject to the same LAN restrictions as printer.local.
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g,'').replace(/\.+$/,'');
   if (!host.includes('.') || host.endsWith('.local') || host.endsWith('.localhost') || host.endsWith('.internal')) return true;
   // Avoid remotely navigating a paired TV to LAN devices or IP-literal endpoints.
   if (host.includes(':') || /^\d+(?:\.\d+){3}$/.test(host)) return true;
@@ -148,7 +150,12 @@ export async function handleTvCompanion(request, env) {
       const id = String(data?.session_id || '');
       const record = await session(env, id, token, 'tv_token_hash') || await session(env, id, token, 'remote_token_hash');
       if (!record) return response({ detail: 'Session not found.' }, 401);
-      await env.DB.prepare('DELETE FROM tv_companion_sessions WHERE id=?').bind(id).run();
+      // Never report successful remote revocation unless the session row was
+      // actually deleted. A failed write must not silently clear the phone UI.
+      const revoked = await env.DB.prepare('DELETE FROM tv_companion_sessions WHERE id=?').bind(id).run();
+      if (Number(revoked?.meta?.changes || 0) !== 1) {
+        return response({ detail: 'TV disconnect was not confirmed. Please retry.' }, 503);
+      }
       return response({ disconnected: true });
     }
     return response({ detail: 'TV companion route not found.' }, 404);

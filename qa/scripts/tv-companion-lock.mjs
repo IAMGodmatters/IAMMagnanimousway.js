@@ -38,7 +38,9 @@ test('remote navigation accepts HTTPS and blocks executable or credential-bearin
   action:'navigate',value:'https://drive.google.com/drive/my-drive'
  });
  for(const value of ['javascript:alert(1)','http://example.com','file:///etc/passwd',
-  'https://user:password@example.com','https://localhost','https://ok.test/?access_token=private']){
+  'https://user:password@example.com','https://localhost','https://localhost./',
+  'https://printer.local./','https://camera.internal./','https://router./',
+  'https://ok.test/?access_token=private']){
   assert.equal(validateTvCommand({action:'navigate',value}),null,value);
  }
  assert.equal(validateTvCommand({action:'shell'}),null);
@@ -86,4 +88,31 @@ test('failed pairing attempts are rate limited without a global account login',a
   assert.equal((await api(env,'pair',{method:'POST',body:{code:'AAAAAAAAAA'},ip:'3.3.3.3'})).status,404);
  }
  assert.equal((await api(env,'pair',{method:'POST',body:{code:'AAAAAAAAAA'},ip:'3.3.3.3'})).status,429);
+});
+
+test('TV disconnect never reports success if the session deletion write has not completed',async()=>{
+ const base=database();
+ const created=await api({DB:base},'session',{method:'POST',body:{}});
+ const paired=await api({DB:base},'pair',{method:'POST',body:{code:created.data.pairing_code}});
+ assert.equal(paired.status,200);
+ const sabotaged={DB:{prepare(sql){
+  if(sql.includes('DELETE FROM tv_companion_sessions WHERE id=?'))return{bind(){return{async run(){return{meta:{changes:0}}}}}};
+  return base.prepare(sql);
+ }}};
+ const failed=await api(sabotaged,'disconnect',{method:'POST',body:{session_id:created.data.session_id},token:paired.data.remote_token});
+ assert.equal(failed.status,503);
+ assert.notEqual(failed.data.disconnected,true);
+ const stillValid=await api({DB:base},'command',{method:'POST',body:{session_id:created.data.session_id,action:'home'},token:paired.data.remote_token});
+ assert.equal(stillValid.status,201,'A non-committed disconnect must leave the still-valid remote visible for retry');
+ const successful=await api({DB:base},'disconnect',{method:'POST',body:{session_id:created.data.session_id},token:paired.data.remote_token});
+ assert.equal(successful.status,200);
+ assert.equal((await api({DB:base},'command',{method:'POST',body:{session_id:created.data.session_id,action:'home'},token:paired.data.remote_token})).status,401);
+});
+
+test('phone disconnect distinguishes an expired remote from an unconfirmed write',()=>{
+ const source=readFileSync(new URL('../../frontend/app/tv-remote/page.tsx',import.meta.url),'utf8');
+ assert(source.includes('if(response.status===401){'),'revoked token allows return to pairing screen');
+ assert(source.includes('TV pairing is no longer active. Enter a new code to reconnect.'),'authorization loss is not labeled successful revocation');
+ assert(source.includes("if(!response.ok||data.disconnected!==true)throw"),'other failed revocations retain pairing for retry');
+ assert(!source.includes('}catch{}\\n  sessionStorage.removeItem(STORAGE_KEY)'),'network failure cannot silently clear pairing');
 });
