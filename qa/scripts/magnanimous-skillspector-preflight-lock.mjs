@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const path='.github/workflows/magnanimous-skillspector-preflight.yml';
+const yml=fs.readFileSync(path,'utf8');
+const dev=fs.readFileSync('worker/src/magnanimous-dev-agent.js','utf8');
+const expected='d7338f58200a9ae2a24810cee08911ab68b107a7';
+assert(yml.includes('workflow_dispatch:'),'Scan must be an explicit owner action, not an automatic paid runner.');
+assert(!/^[ \t]+(?:push|pull_request|schedule):/m.test(yml),'Untrusted scans must not run on every push, PR or schedule.');
+assert(yml.includes('contents: read'),'Workflow must have read-only repository permission.');
+assert(yml.includes(`NVIDIA/SkillSpector.git@${expected}`),'Upstream scanner must be pinned to the audited exact revision.');
+assert(yml.includes('--no-llm'),'Do not invoke paid AI providers.');
+assert(yml.includes('--fail-on-findings')&&yml.includes('--fail-on-incomplete')&&yml.includes('--min-coverage 95'),'Scanner must reject risky and incomplete analysis.');
+assert(yml.includes('SOURCE_COMMIT')&&yml.includes('rev-parse HEAD'),'Target repository must be pinned to a verified exact SHA.');
+assert(yml.includes('scan_code=$?')&&yml.includes('SCAN_EXIT_CODE'),'Nonzero scanner results must remain an actionable CI failure.');
+assert(yml.includes('2097152')&&yml.includes('Security scan report was missing'),'Missing or oversized evidence must fail closed.');
+assert(!/ANTHROPIC_API_KEY|OPENAI_API_KEY|NVIDIA_INFERENCE_KEY|--with-llm/i.test(yml),'Do not pass inference secrets or paid model options.');
+assert(yml.includes('retention-days: 7'),'Scan artifacts must have short retention.');
+assert(yml.includes('NOT permission to execute or install'),'A scan pass must never automatically authorize imported source.');
+assert(dev.includes("if(action==='dispatch_workflow')"),'Existing Developer Agent has an owner-staged workflow dispatch path.');
+assert(dev.includes('DEV_ACTION_APPROVER_MISMATCH'),'Workflow execution must stay behind separate owner confirmation.');
+console.log('Magnanimous SkillSpector adapter lock passed: pinned Apache-2.0 upstream, manually triggered, strict non-LLM scan, SHA validation and owner-approved dispatch.');
