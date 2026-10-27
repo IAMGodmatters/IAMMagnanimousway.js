@@ -80,15 +80,21 @@ jobs:
           scan_code=$?
           set -e
           report="$RUNNER_TEMP/magnanimous-skill-preflight.json"
+          # Only valid, bounded evidence may be uploaded. A scanner exit code
+          # of zero alone does not prove the report is safe to preserve.
+          report_valid=false
           if [ ! -s "$report" ] || [ "$(wc -c < "$report")" -gt 2097152 ]; then
             echo '::error::Security scan report was missing or exceeded the 2 MiB evidence limit.'
             scan_code=2
+          else
+            report_valid=true
           fi
+          echo "report_valid=$report_valid" >> "$GITHUB_OUTPUT"
           echo "exit_code=$scan_code" >> "$GITHUB_OUTPUT"
           echo "Static SkillSpector exit code: $scan_code (0 only for passing strict gates)."
 
       - name: Preserve bounded scan report
-        if: always() && steps.scan.outcome == 'success'
+        if: always() && steps.scan.outcome == 'success' && steps.scan.outputs.report_valid == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: magnanimous-skill-preflight-${{ github.run_id }}
