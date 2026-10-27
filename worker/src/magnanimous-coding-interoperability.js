@@ -60,6 +60,36 @@ function inspectRule(source,out){
  out.next_steps.push('Map this rule to a Magnanimous-owned, version-controlled skill; manually review its instructions before enabling it.');
 }
 
+// Read-only classification; no DNS lookup or network request is performed.
+function isPrivateOrLocalHost(hostname){
+ const host=hostname.toLowerCase().replace(/\.$/,'').replace(/^\[|\]$/g,'');
+ if(host==='localhost'||host.endsWith('.localhost'))return true;
+ const privateIpv4=value=>{
+  const parts=value.split('.');
+  if(parts.length!==4||parts.some(p=>!/^\d{1,3}$/.test(p)||Number(p)>255))return false;
+  const [a,b,c]=parts.map(Number);
+  return a===0||a===10||a===127||(a===169&&b===254)||
+   (a===172&&b>=16&&b<=31)||(a===192&&b===168)||
+   (a===100&&b>=64&&b<=127)||(a===198&&(b===18||b===19))||
+   (a===192&&b===0&&(c===0||c===2))||
+   (a===198&&b===51&&c===100)||(a===203&&b===0&&c===113)||a>=224;
+ };
+ if(/^\d+\.\d+\.\d+\.\d+$/.test(host))return privateIpv4(host);
+ if(!host.includes(':'))return false;
+ if(host==='::'||host==='::1'||/^0(?::0){6}:(?:0|1)$/.test(host))return true;
+ const first=host.split(':').find(Boolean)||'0',prefix=Number.parseInt(first,16);
+ if((prefix&0xfe00)===0xfc00||(prefix&0xffc0)===0xfe80||
+    (prefix&0xffc0)===0xfec0||(prefix&0xff00)===0xff00)return true;
+ // URL normalization converts mapped dotted IPv4 to hex groups.
+ const mapped=host.match(/(?:^|:)ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+ if(mapped){
+  const high=parseInt(mapped[1],16),low=parseInt(mapped[2],16);
+  return privateIpv4(`${high>>8}.${high&255}.${low>>8}.${low&255}`);
+ }
+ const dotted=host.match(/(?:^|:)ffff:(\d+\.\d+\.\d+\.\d+)$/);
+ return dotted?privateIpv4(dotted[1]):false;
+}
+
 function inspectMcp(source,out){
  let doc;
  try{doc=JSON.parse(source)}catch{out.errors.push('Invalid MCP JSON.');return;}
@@ -81,7 +111,7 @@ function inspectMcp(source,out){
    let url;
    try{url=new URL(config.url)}catch{out.errors.push(`Server ${name}: invalid URL.`);continue;}
    if(url.protocol!=='https:'||url.username||url.password){out.errors.push(`Server ${name}: remote server must use credential-free HTTPS URL.`);continue;}
-   if(/^(?:localhost|127\.|0\.|169\.254\.|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|\[?::1\]?)/i.test(url.hostname)){
+   if(isPrivateOrLocalHost(url.hostname)){
     out.errors.push(`Server ${name}: private or loopback endpoint requires separate local-only handling.`);continue;
    }
   }
