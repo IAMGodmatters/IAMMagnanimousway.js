@@ -16,6 +16,26 @@ function replaceOnce(text,from,to,label){
 const meshPath='worker/src/magnanimous-capability-mesh.js';
 let mesh=read(meshPath);
 
+// This historical migration runs on every PR. Once the native Agent Skills
+// surface is installed, rerunning it must not depend on obsolete insertion
+// anchors or overwrite newer Capability Mesh routes.
+const alreadyInstalled=[
+  "from './magnanimous-agent-skills.js'",
+  "'skills.summary':{surface:'magnanimous-agent-skills'",
+  "'skills.catalog':{surface:'magnanimous-agent-skills'",
+  "'skills.resolve':{surface:'magnanimous-agent-skills'",
+  "'skills.validate':{surface:'magnanimous-agent-skills'",
+  "capability==='skills.summary'",
+  "capability==='skills.validate'",
+  'agent_skills:getMagnanimousAgentSkillsSummary()',
+  'agent_skill_catalog:listMagnanimousAgentSkills',
+  'source-available document skills'
+].every(anchor=>mesh.includes(anchor));
+if(alreadyInstalled){
+  console.log('Magnanimous Agent Skills compatibility layer already installed; no changes necessary.');
+  process.exit(0);
+}
+
 mesh=addAfter(
   mesh,
   "import { MAGNANIMOUS_NATIVE_TERMINAL_CAPABILITIES, getMagnanimousNativeTerminalSummary, handleMagnanimousNativeTerminal } from './magnanimous-native-terminal.js';\n",
