@@ -94,14 +94,24 @@ const opportunities:Opportunity[]=[
   verified:'2026-10-26'
  },
  {
+  id:'ndc-svf',name:'NDC — Startup Venture Fund (equity investment)',status:'location-check',badge:'PHILIPPINES • REGISTERED STARTUPS • EQUITY, NOT A GRANT',
+  summary:'The Philippine National Development Company currently provides an official Startup Venture Fund application form. SVF invests in eligible innovative startups from seed through Series B; it is EQUITY FINANCING, not free grant money, and investment is not guaranteed. No fixed award amount or 2026 deadline is shown on the official application.',
+  requirements:['Startup must be based and SEC-registered in the Philippines, with an existing minimum viable product, working service or validated business model','At least one year of operating history; no pending accountability to government agencies; disclose government funding received','A co-investment partner is needed before investment; NDC may help find a match but cannot invest alone or lead','Application requests pitch deck, 3–7 minute product demo, SEC documents, business permit, financial statements, monthly 3-year projections and capitalization data','Read equity/dilution and legal terms before applying; this is not the separate DICT/IIDB Startup Grant Fund','Official online intake was accessible October 27, 2026; screening, due diligence and investment approval still apply'],
+  official:'https://www.ndc.gov.ph/svf-startup-application/',
+  secondary:'https://www.ndc.gov.ph/svf/',
+  secondaryLabel:'Official eligibility and investment terms',
+  cta:'Review official SVF application',
+  verified:'2026-10-27'
+ },
+ {
   id:'aniani',name:'AniAni — Household Video Tasks (Android pilot)',status:'location-check',badge:'METRO MANILA ONLY • ANDROID PILOT',
-  summary:'The operator advertises paid first-person household-task recordings. Advertised ₱150 per approved hour, up to ₱250 for boosted tasks; actual payment track record has NOT been independently verified.',
+  summary:'The operator advertises paid first-person household-task recordings. Advertised ₱150 per approved hour, up to ₱200 for boosted tasks as shown on the operator website October 27, 2026; actual payment track record has NOT been independently verified.',
   requirements:['Currently onboarding in Metro Manila only; not a nationwide or iPhone opportunity','Android app available on Google Play; iOS listed as coming soon','Operator says free signup, free head strap after approved practice task, Friday GCash payments at ₱100 minimum','Google Play listing updated October 21, 2026; its data disclosures include photo/video/audio sharing','Operator website displays no actual contributor payout receipts yet; treat this as an unproven pilot','Never record children, private conversations, IDs, financial details or anyone without consent; do not pay a fee'],
   official:'https://aniani.app/',
   secondary:'https://play.google.com/store/apps/details?id=app.aniani.aniani_app',
   secondaryLabel:'Official Google Play app',
   cta:'Review operator claims and eligibility',
-  verified:'2026-10-23'
+  verified:'2026-10-27'
  },
  {
   id:'outlier',name:'Outlier',status:'location-check',badge:'PHILIPPINES ALLOWED • PROJECT-SPECIFIC',
@@ -123,7 +133,7 @@ const opportunities:Opportunity[]=[
  }
 ];
 
-const statusLabel=(s:Opportunity['status'])=>s==='active-ph'?'Verified PH path':s==='location-check'?'Check live location':'Waitlist / unavailable in PH';
+const statusLabel=(s:Opportunity['status'])=>s==='active-ph'?'Verified PH path':s==='location-check'?'Check eligibility / location':'Waitlist / unavailable in PH';
 
 export default function OpportunityVault(){
  const[filter,setFilter]=useState<'all'|'active-ph'|'location-check'|'waitlist'>('all'),[msg,setMsg]=useState('');
@@ -145,7 +155,7 @@ export default function OpportunityVault(){
    <b>Safety rule</b><span>Never pay an application fee. Equipment, identity verification or platform-specific onboarding can have separate requirements; verify them on the official source before spending money.</span>
    <b>Truth rule</b><span>Displayed pay is not guaranteed income. Availability, task volume, approval and payouts are controlled by the outside platform.</span>
   </section>
-  <nav>{[['all','All'],['active-ph','Verified PH'],['location-check','Check location'],['waitlist','Waitlist / unavailable']] .map(([id,label])=><button key={id} className={filter===id?'on':''} onClick={()=>setFilter(id as any)}>{label}</button>)}</nav>
+  <nav>{[['all','All'],['active-ph','Verified PH'],['location-check','Eligibility / location'],['waitlist','Waitlist / unavailable']] .map(([id,label])=><button key={id} className={filter===id?'on':''} onClick={()=>setFilter(id as any)}>{label}</button>)}</nav>
   {msg&&<div className="msg">{msg}</div>}
   <section className="grid">
    {visible.map(o=><article key={o.id} className={o.status}>
@@ -159,7 +169,7 @@ export default function OpportunityVault(){
    </article>)}
   </section>
   <section className="watch">
-   <small>STARTUP FUNDING WATCH • 2026-10-26</small><h2>DICT / IIDB Startup Grant Fund 2026 — not yet confirmed open</h2><p>IIDB said its revised SGF circular and next application call were targeted for October 2026, but a published official 2026 application opening, deadline, final eligibility rules and templates have not been verified. Do not confuse this with the separate DOST SGF or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
+   <small>STARTUP FUNDING WATCH • 2026-10-27</small><h2>DICT / IIDB Startup Grant Fund 2026 — not yet confirmed open</h2><p>IIDB said its revised SGF circular and next application call were targeted for October 2026, but a published official 2026 application opening, deadline, final eligibility rules and templates have not been verified. Do not confuse this with the separate DOST SGF or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
    <h2>Unverified names stay out of the active list.</h2><p>Older notes mentioned ClarU.ai/Claru.ai, but no sufficiently authoritative current opportunity source has been verified, so it is not presented as an active earning option. AniAni is listed with pilot and privacy warnings, not a verified payout history.</p>
   </section>
   <style jsx>{`
