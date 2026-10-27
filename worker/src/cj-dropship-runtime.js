@@ -34,6 +34,17 @@ async function cjCall(token,path,options={}){
  return apiJson(`${API}${path}`,{...options,headers});
 }
 function cents(value){return Math.max(0,Math.round(Number(value||0)*100))}
+// Never buy inventory from a missing, invalid, or zero-cost automatic policy.
+// Existing explicitly enabled and capped supplier workflows remain unchanged.
+export function automaticCjFulfillmentAllowed(rt){
+ return String(rt?.STORE_AUTO_FULFILL??'').trim().toLowerCase()==='true';
+}
+export function automaticCjSupplierCapCents(rt){
+ const raw=String(rt?.STORE_AUTO_FULFILL_MAX_USD??'').trim();
+ if(!raw)return 0;
+ const dollars=Number(raw);
+ return Number.isFinite(dollars)&&dollars>0?cents(dollars):0;
+}
 function exactVariant(data,sku){
  const variants=Array.isArray(data?.variants)?data.variants:[];
  return variants.find(v=>String(v.variantSku||'').trim()===sku)||null;
@@ -138,6 +149,11 @@ export async function reconcileCjOrder(env,externalOrderId){
 export async function resumeCjOrderPayment(env,{externalOrderId,budgetCents=0}){
  const id=String(externalOrderId||'').trim();
  if(!id)return{ok:false,code:'supplier_order_missing',status:'retry',detail:'Supplier order reference is missing.'};
+ // Resume may execute a supplier payment, so it must obey the same explicit
+ // automatic purchasing gate as first-time fulfillment.
+ const rt=await runtime(env);
+ if(!automaticCjFulfillmentAllowed(rt))return{ok:false,code:'auto_fulfillment_disabled',status:'awaiting_supplier_activation',externalOrderId:id};
+ if(!automaticCjSupplierCapCents(rt))return{ok:false,code:'auto_cap_not_configured',status:'awaiting_supplier_activation',externalOrderId:id};
  const auth=await access(env);if(!auth.ok)return{...auth,status:'retry'};
  const detail=await cjCall(auth.token,`/shopping/order/getOrderDetail?orderId=${encodeURIComponent(id)}`);
  if(!detail.ok)return{ok:false,code:'supplier_status_unknown',status:'retry',externalOrderId:id,detail:String(detail.data?.message||'Supplier order status could not be confirmed.')};
@@ -149,8 +165,8 @@ export async function resumeCjOrderPayment(env,{externalOrderId,budgetCents=0}){
  const amount=cents(Number(data.orderAmount||data.totalAmount||0)),budget=Math.max(0,Number(budgetCents||0));
  if(!amount)return{ok:false,code:'supplier_cost_unverified',status:'retry',externalOrderId:id,detail:'Existing supplier order cost could not be verified before payment.'};
  if(amount>budget)return{ok:false,code:'cost_guard_existing_order',status:'supplier_cost_guard',externalOrderId:id,detail:'Existing supplier order exceeds the prepaid supplier budget.'};
- const maxAuto=cents(Number(auth.rt.STORE_AUTO_FULFILL_MAX_USD||100));
- if(maxAuto&&amount>maxAuto)return{ok:false,code:'auto_cap_existing_order',status:'supplier_cost_guard',externalOrderId:id,detail:'Existing supplier order exceeds the automatic fulfillment safety cap.'};
+ const maxAuto=automaticCjSupplierCapCents(rt);
+ if(amount>maxAuto)return{ok:false,code:'auto_cap_existing_order',status:'supplier_cost_guard',externalOrderId:id,detail:'Existing supplier order exceeds the automatic fulfillment safety cap.'};
  const balance=await supplierBalance(auth.token);
  if(!balance.ok)return{ok:false,code:'supplier_balance_unavailable',status:'retry',externalOrderId:id,detail:balance.detail};
  if(balance.balanceCents<amount)return{ok:false,code:'insufficient_supplier_balance',status:'awaiting_supplier_funds',externalOrderId:id,detail:'Supplier balance is below the verified existing order cost.'};
@@ -162,13 +178,14 @@ export async function resumeCjOrderPayment(env,{externalOrderId,budgetCents=0}){
 
 export async function fulfillCjOrder(env,{order,items,shipping}){
  const rt=await runtime(env);
- if(String(rt.STORE_AUTO_FULFILL||'true').toLowerCase()!=='true')return{ok:false,code:'auto_fulfillment_disabled',status:'awaiting_supplier_activation'};
+ if(!automaticCjFulfillmentAllowed(rt))return{ok:false,code:'auto_fulfillment_disabled',status:'awaiting_supplier_activation'};
+ if(!automaticCjSupplierCapCents(rt))return{ok:false,code:'auto_cap_not_configured',status:'awaiting_supplier_activation'};
  const quote=await quoteCjCart(rt,items,{country:shipping?.address?.country||order.destination_country||'US',zip:shipping?.address?.postal_code||''});
  if(!quote.ok)return{...quote,status:'retry'};
  const budget=Math.max(0,Number(order.supplier_budget_cents||0));
  if(quote.supplierTotalCents>budget)return{ok:false,code:'cost_guard',status:'supplier_cost_guard',detail:'Live supplier product and freight cost exceeds the prepaid supplier budget.'};
- const maxAuto=cents(Number(rt.STORE_AUTO_FULFILL_MAX_USD||100));
- if(maxAuto&&quote.supplierTotalCents>maxAuto)return{ok:false,code:'auto_cap',status:'supplier_cost_guard',detail:'Supplier cost exceeds the automatic fulfillment safety cap.'};
+ const maxAuto=automaticCjSupplierCapCents(rt);
+ if(quote.supplierTotalCents>maxAuto)return{ok:false,code:'auto_cap',status:'supplier_cost_guard',detail:'Supplier cost exceeds the automatic fulfillment safety cap.'};
  const balance=await supplierBalance(quote.token);
  if(!balance.ok)return{ok:false,code:'supplier_balance_unavailable',status:'retry',detail:balance.detail};
  if(balance.balanceCents<quote.supplierTotalCents)return{ok:false,code:'insufficient_supplier_balance',status:'awaiting_supplier_funds',detail:'Supplier balance is below the verified order cost.'};
