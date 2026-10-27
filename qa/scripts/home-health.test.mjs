@@ -64,3 +64,12 @@ test('public tools postflight preserves configured CORS without database access'
  const denied=await securityPostflight(new Request(url,{headers:{origin:'https://untrusted.example'}}),Response.json({tools:[]}),{ALLOWED_ORIGINS:'https://studio.example'});
  assert.equal(denied.headers.get('access-control-allow-origin'),null);
 });
+
+test('public health alias uses the same lightweight response path',async()=>{
+ const fs=await import('node:fs');
+ const security=fs.readFileSync(new URL('../../worker/src/security-entrypoint.js',import.meta.url),'utf8');
+ const health=security.indexOf("outerUrl.pathname==='/health'||outerUrl.pathname==='/api/health'");
+ const proxy=security.indexOf('const standaloneApiResponse=await proxyApiToStandalone(request,env)');
+ assert(health>0&&health<proxy,'both public health routes must precede the standalone proxy');
+ assert(security.includes("database_bootstrap:'bypassed-for-health'"),'health must not imply database readiness');
+});
