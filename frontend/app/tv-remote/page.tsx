@@ -95,6 +95,13 @@ export default function TvRemote(){
   try{
    const response=await fetch(`${API}/disconnect`,{method:'POST',headers:{'content-type':'application/json',Authorization:`Bearer ${pair.remote_token}`},body:JSON.stringify({session_id:pair.session_id}),cache:'no-store'});
    const data=await reply(response);
+   if(response.status===401){
+    // The server no longer recognizes this session: the TV has already
+    // revoked it, or it expired. Do not claim this request performed revocation.
+    sessionStorage.removeItem(STORAGE_KEY);setPair(null);setCode('');
+    setMessage('TV pairing is no longer active. Enter a new code to reconnect.');
+    return;
+   }
    if(!response.ok||data.disconnected!==true)throw new Error(data.detail||'Disconnect was not confirmed. Please try again.');
    sessionStorage.removeItem(STORAGE_KEY);setPair(null);setCode('');setMessage('Disconnected.');
   }catch(error){setMessage(error instanceof Error?error.message:'Unable to confirm disconnect. Please try again.')}finally{setBusy(false)}
