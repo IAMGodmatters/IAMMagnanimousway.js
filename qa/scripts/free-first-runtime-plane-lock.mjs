@@ -12,6 +12,7 @@ const reels=read('worker/src/reels-proxy.js');
 const reelsPage=read('frontend/app/reels/page.tsx');
 const oidc=read('worker/src/github-actions-oidc.js');
 const checks=[
+  ['Worker diagnostic sampling stays free-first and bounded',/"observability"\s*:\s*\{[\s\S]*?"logs"\s*:\s*\{\s*"enabled"\s*:\s*true\s*,\s*"head_sampling_rate"\s*:\s*0\.05/.test(wrangler)&&/"traces"\s*:\s*\{\s*"enabled"\s*:\s*false/.test(wrangler)],
   ['BPO D1 schema initialization is single-flight per Worker isolate',bpo.includes('let bpoSchemaReady=false')&&bpo.includes('let bpoSchemaPromise=null')&&bpo.includes('if(bpoSchemaReady)return;')&&bpo.includes('if(bpoSchemaPromise)return bpoSchemaPromise;')&&bpo.includes('bpoSchemaReady=true;')],
   ['BPO initialization retries after transient D1 failure',bpo.includes('finally{if(!bpoSchemaReady)bpoSchemaPromise=null}')],
   ['Worker config has no required standalone paid origin',!wrangler.includes('MAGNANIMOUS_STANDALONE_API_ORIGIN')],
