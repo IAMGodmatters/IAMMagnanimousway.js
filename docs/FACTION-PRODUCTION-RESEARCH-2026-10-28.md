@@ -8,12 +8,33 @@
 | Source | Access and observations | Evidence status |
 | --- | --- | --- |
 | Faction Facebook security reel: https://www.facebook.com/reel/1873276024056468 | Previously accessible caption/visible generated summary promoted procurement questionnaires, an audit followed by penetration testing, and a buyer security page. The spoken audio was not independently transcribed. | **One reel, caption/summary only**; not a complete audiovisual audit. |
-| Faction Facebook Reels listing: https://www.facebook.com/people/The-Faction-Group-LLC/100091065962204/?sk=reels_tab | Direct access returned a fetch/cache failure in this run; indexed search did not return a verifiable list of individual Faction reel URLs. | **Catalog unenumerated**. Do not claim all videos were reviewed. |
+| Faction Facebook Reels listing: https://www.facebook.com/people/The-Faction-Group-LLC/100091065962204/?sk=reels_tab | Public web fetch failed, but the authorized signed-in Opera browser displayed **10 reel tiles**, and their opening accessible caption text was inspected. | **10 visible reel URLs indexed**, not the entire catalog or full audiovisual transcripts. |
 | Official company site: https://www.gofactiongroup.com/ | Describes audit-in / modular-build / audit-out workflow, AI-directed human-led engineering, and authorization for consequential actions. | **Public website text reviewed**. |
 | Official methodology: https://www.gofactiongroup.com/conveyor-belt/ | Details staged finishing, entry and exit discovery, and thirteen named production engineering layers. | **Public website text reviewed**. |
 | Official audit description: https://gofactiongroup.com/audit/ | Lists production layers, source review, live probing, risk-based findings and a paid assessment. Marketing claims are not independent assurance. | **Public website text reviewed**. |
 | Public educational companion: https://mattmurphy.ai/community/ and https://mattmurphy.ai/vibecoding-diy-kit/ | Describes free engineering curriculum and a production-readiness checklist. The free materials are reference/learning resources, not licensed source code for copying. | **Public website text reviewed**. |
 | Company LinkedIn: https://www.linkedin.com/company/the-faction-group-llc | Describes business-process-first AI adoption, measurable workflows, agent governance and operational readiness. Reported performance statistics were not independently validated. | **Public company profile reviewed**. |
+
+### Facebook Reel catalog: first 10 visible tiles, 2026-10-28
+
+The following links and opening captions were read through the authorized browser's accessibility tree. This is **title/topic triage**, not an audit of all spoken content. No automated scrolling, complete video transcripts, or claims beyond these opening lines were available. All proposed techniques are independently designed, not copied from a video.
+
+| Reel URL | Opening topic actually visible | Magnanimous relevance / independent check | Priority and limitation |
+| --- | --- | --- | --- |
+| https://www.facebook.com/reel/28753552417604749 | Fine-tuning a model on company documents | Data classification, permissions, retention, provider training terms; verify actual provider contracts. | P1 privacy; rest of video not reviewed. |
+| https://www.facebook.com/reel/2177096433688755 | Professionals reportedly paid to teach AI | Opportunity Vault could check original job listings and payment legitimacy. | P3; compensation claim **unverified**, no endorsement. |
+| https://www.facebook.com/reel/1851094802741650 | Local GPU runs out of memory | Model sizing, capacity probes, smaller quantized-model fallback and budget caps. | P1 compute; hardware claim not independently tested. |
+| https://www.facebook.com/reel/1584937932941162 | GPU scarcity and affordability | Free-first inference routing and capacity-aware fallback; compare actual provider pricing. | P2; broad market claims unverified. |
+| https://www.facebook.com/reel/1665598515092077 | Public discussion about an “agent outbreak” | Per-agent identity, least privilege, audit trails and kill switches. | P1 security; no inference about unseen remainder. |
+| https://www.facebook.com/reel/1731054055051523 | Major AI labs shipping consumer agents | Provider-neutral tool interfaces, approval gates and versioned capability registry. | P1 architecture; vendor claims need official release notes. |
+| https://www.facebook.com/reel/1109234588581666 | Large local Mac Studio/GPU clusters | Avoid expensive default hardware; document minimal resource envelopes. | P2 cost; anecdote not benchmark. |
+| https://www.facebook.com/reel/1179905091026727 | Voice-agent pauses leading to customer hangups | Instrument speech-to-first-audio latency, barge-in and fallback; test actual contact-center routes. | **P0 voice UX**; no numerical latency claim from partial caption. |
+| https://www.facebook.com/reel/1452937746788882 | Open-model use through a routing provider still creates dependency | Native routing, explicit vendor egress and portable model adapters; test failure behavior. | P1 resilience; distinguish open weights from hosted inference. |
+| https://www.facebook.com/reel/3017667775244130 | Ads about monetizing support tickets, emails and invoices | Never monetize or export private records without clear customer authorization; data minimization and retention. | **P0 privacy**; advertisement assertions unverified. |
+
+The original security reel https://www.facebook.com/reel/1873276024056468 was also opened in the signed-in browser; its opening accessible text describes a polished product demo before a large meeting. The earlier security caption summary remains the only support for the audit/procurement framing. The browser did not supply a full spoken transcript.
+
+**Official cross-checks:** OWASP ASVS for security requirements, GitHub's secure-use guidance for agent/CI privileges, official model-provider privacy and deployment policies for data retention, and direct service-level measurements for voice latency and cloud usage. A topical opening caption alone is never an implementation specification.
 
 ### Important distinction: two different thirteen-part inventories
 
