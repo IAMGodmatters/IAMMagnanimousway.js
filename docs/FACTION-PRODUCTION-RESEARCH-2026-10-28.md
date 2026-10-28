@@ -17,6 +17,8 @@
 
 ### Facebook Reel catalog: first 10 visible tiles, 2026-10-28
 
+**Follow-on evidence:** The later [caption-based batch 2 audit](FACTION-REEL-BATCH2-SOURCE-AUDIT-2026-10-28.md) recovers longer author-written captions for these ten items and an additional video. Together with the original security reel, it records twelve distinct identifiers. Neither batch claims the complete Facebook archive or all spoken dialogue.
+
 The following links and opening captions were read through the authorized browser's accessibility tree. This is **title/topic triage**, not an audit of all spoken content. No automated scrolling, complete video transcripts, or claims beyond these opening lines were available. All proposed techniques are independently designed, not copied from a video.
 
 | Reel URL | Opening topic actually visible | Magnanimous relevance / independent check | Priority and limitation |
