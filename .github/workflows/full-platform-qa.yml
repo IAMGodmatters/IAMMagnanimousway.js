@@ -189,9 +189,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      # The deployed-SHA baseline fetch below needs read credentials after checkout.
+      # Preserve this only for browser QA so private-repository verification still works.
       - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 22
