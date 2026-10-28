@@ -104,6 +104,16 @@ const opportunities:Opportunity[]=[
   verified:'2026-10-27'
  },
  {
+  id:'swc-ph-2026',name:'Startup World Cup Philippines Regional 2026 — Pitch Competition',status:'location-check',badge:'PHILIPPINE STARTUPS • DEADLINE OCT 30, 2026 • APPLICATION LINK WARNING',
+  summary:'The organizers extended the Philippines regional competition deadline to October 30, 2026 at 11:59 PM Philippine time. A Philippine regional winner may compete at the international final for a US$1 million INVESTMENT prize; this is NOT a guaranteed grant, cash award or paid job. The official competition site and local organizer confirm the new deadline, but the current Apply button redirects to a page titled MAURITIUS REGIONAL COMPETITION. Do not submit sensitive company information until the organizer confirms the Philippines application is correctly routed.',
+  requirements:['Organizer says applicants need an active business presence in the Philippines, at least one full-time Filipino co-founder, and a functional product/MVP with traction and growth potential','Prepare an English-language pitch deck covering problem, solution, product, business model, market, competition, growth, traction, financials, team and current funding','Finalists notified November 3, 2026; Philippine regional finale November 10, 2026 in Quezon City','Official Philippines event Apply button currently points to /copy-of-mauritius-app and that form is headed Mauritius; request corrected Philippines intake from the organizer before submitting','Participation/application fees were not independently confirmed; do not pay an unverified fee or submit through an impersonator','A US$1 million investment prize is offered at the global finale, not guaranteed to the Philippine regional winner; review investor terms if selected'],
+  official:'https://www.startupworldcup.io/philippines-2026',
+  secondary:'https://ignite.ph/swc',
+  secondaryLabel:'Philippine organizer deadline and updates',
+  cta:'Review official event and application warning',
+  verified:'2026-10-28'
+ },
+ {
   id:'aniani',name:'AniAni — Household Video Tasks (Android pilot)',status:'location-check',badge:'METRO MANILA ONLY • ANDROID PILOT',
   summary:'The operator advertises paid first-person household-task recordings. Advertised ₱150 per approved hour, up to ₱200 for boosted tasks as shown on the operator website October 27, 2026; actual payment track record has NOT been independently verified.',
   requirements:['Currently onboarding in Metro Manila only; not a nationwide or iPhone opportunity','Android app available on Google Play; iOS listed as coming soon','Operator says free signup, free head strap after approved practice task, Friday GCash payments at ₱100 minimum','Google Play listing updated October 21, 2026; its data disclosures include photo/video/audio sharing','Operator website displays no actual contributor payout receipts yet; treat this as an unproven pilot','Never record children, private conversations, IDs, financial details or anyone without consent; do not pay a fee'],
@@ -169,7 +179,7 @@ export default function OpportunityVault(){
    </article>)}
   </section>
   <section className="watch">
-   <small>STARTUP FUNDING WATCH • 2026-10-27</small><h2>DICT / IIDB Startup Grant Fund 2026 — not yet confirmed open</h2><p>IIDB said its revised SGF circular and next application call were targeted for October 2026, but a published official 2026 application opening, deadline, final eligibility rules and templates have not been verified. Do not confuse this with the separate DOST SGF or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
+   <small>STARTUP FUNDING WATCH • 2026-10-28</small><h2>DICT / IIDB Startup Grant Fund 2026 — not yet confirmed open</h2><p>IIDB said its revised SGF circular and next application call were targeted for October 2026, but a published official 2026 application opening, deadline, final eligibility rules and templates have not been verified. Do not confuse this with the separate DOST SGF or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
    <h2>Unverified names stay out of the active list.</h2><p>Older notes mentioned ClarU.ai/Claru.ai, but no sufficiently authoritative current opportunity source has been verified, so it is not presented as an active earning option. AniAni is listed with pilot and privacy warnings, not a verified payout history.</p>
   </section>
   <style jsx>{`
