@@ -51,6 +51,12 @@ public final class MainActivity extends Activity {
     private long lastCommand = 0;
     private boolean closed = false;
     private volatile boolean pairedSession = false;
+    private boolean creatingSession = false;
+
+    private static final class HttpFailure extends Exception {
+        final int status;
+        HttpFailure(int status) { super("TV service HTTP " + status); this.status = status; }
+    }
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
@@ -166,6 +172,7 @@ public final class MainActivity extends Activity {
 
     private void show(String text) { ui.post(() -> { if (!closed) state.setText(text); }); }
     private static String read(InputStream stream) throws Exception {
+        if (stream == null) return "";
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
             StringBuilder out = new StringBuilder();
             String line;
@@ -190,32 +197,66 @@ public final class MainActivity extends Activity {
         int status = connection.getResponseCode();
         String result = read(status < 400 ? connection.getInputStream() : connection.getErrorStream());
         connection.disconnect();
-        if (status >= 400) throw new Exception("TV service HTTP " + status);
+        if (status >= 400) throw new HttpFailure(status);
         return new JSONObject(result);
     }
     private void createSession() {
+        if (closed || creatingSession) return;
+        creatingSession = true;
         String previousId = sessionId, previousToken = tvToken;
-        sessionId = null;
-        tvToken = null;
-        pairedSession = false;
-        lastCommand = 0;
-        pairing.setText("Pairing…");
+        String previousLabel = pairing.getText().toString();
+        pairing.setText(previousId == null ? "Pairing…" : "Replacing pairing…");
         network.execute(() -> {
+            boolean oldSessionGone = previousId == null;
             try {
-                if (previousId != null) request("POST", "/disconnect", previousToken,
-                    new JSONObject().put("session_id", previousId));
+                if (previousId != null) {
+                    try {
+                        JSONObject result = request("POST", "/disconnect", previousToken,
+                            new JSONObject().put("session_id", previousId));
+                        if (!result.optBoolean("disconnected", false)) throw new Exception("Unconfirmed TV revocation");
+                    } catch (HttpFailure failure) {
+                        // An expired/revoked token is safe to replace; a 503 is not.
+                        if (failure.status != 401) throw failure;
+                    }
+                    oldSessionGone = true;
+                }
                 JSONObject data = request("POST", "/session", null, new JSONObject());
                 String id = data.getString("session_id");
                 String secret = data.getString("tv_token");
                 String code = data.getString("pairing_code");
-                ui.post(() -> { if (!closed) {
-                    sessionId = id;
-                    tvToken = secret;
-                    pairing.setText("PAIR CODE: " + code);
-                    state.setText("On your iPhone, open iammagnanimousway.com/tv-remote");
-                    ui.postDelayed(() -> poll(id, secret), 1000);
-                }});
-            } catch (Exception ex) { show("Could not create pairing code. Check internet and deployed service."); }
+                ui.post(() -> {
+                    creatingSession = false;
+                    if (!closed) {
+                        sessionId = id;
+                        tvToken = secret;
+                        pairedSession = false;
+                        lastCommand = 0;
+                        pairing.setText("PAIR CODE: " + code);
+                        state.setText("On your iPhone, open iammagnanimousway.com/tv-remote");
+                        ui.postDelayed(() -> poll(id, secret), 1000);
+                    }
+                });
+            } catch (Exception ex) {
+                final boolean previouslyRevoked = oldSessionGone;
+                ui.post(() -> {
+                    creatingSession = false;
+                    if (closed) return;
+                    if (previouslyRevoked) {
+                        // Never display an old credential as active after server revocation.
+                        sessionId = null;
+                        tvToken = null;
+                        pairedSession = false;
+                        lastCommand = 0;
+                        pairing.setText("No active pairing");
+                        state.setText(previousId == null
+                            ? "Could not create a pairing code. Check internet and retry New code."
+                            : "New code unavailable. Your previous pairing is inactive; retry New code.");
+                    } else {
+                        pairing.setText(previousLabel);
+                        state.setText("Could not confirm old pairing was revoked. It may remain active; retry New code.");
+                    }
+                });
+            }
         });
     }
     private void poll(String id, String secret) {
@@ -251,9 +292,12 @@ public final class MainActivity extends Activity {
         } catch (Exception ex) { state.setText("Only safe HTTPS website addresses are supported."); }
     }
     private boolean localHost(String host) {
-        if (host == null || !host.contains(".") || host.endsWith(".localhost") ||
-            host.endsWith(".local") || host.endsWith(".internal") || host.contains(":")) return true;
-        return host.matches("[0-9]+(\\.[0-9]+){3}");
+        if (host == null) return true;
+        // DNS permits terminal dots; printer.local. is still a LAN address.
+        String normalized = host.toLowerCase(java.util.Locale.ROOT).replaceFirst("\\.+$", "");
+        if (!normalized.contains(".") || normalized.endsWith(".localhost") ||
+            normalized.endsWith(".local") || normalized.endsWith(".internal") || normalized.contains(":")) return true;
+        return normalized.matches("[0-9]+(\\.[0-9]+){3}");
     }
     private void key(int keyCode) {
         browser.requestFocus();
