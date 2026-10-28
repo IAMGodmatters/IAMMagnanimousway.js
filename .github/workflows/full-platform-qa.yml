@@ -45,6 +45,11 @@ jobs:
       - name: Verify 13-layer offline security-review evidence
         run: node qa/scripts/security-procurement-evidence.mjs
 
+      - name: Inventory 13 production engineering domains without live probes
+        run: |
+          node qa/scripts/production-readiness-evidence.mjs --self-test
+          node qa/scripts/production-readiness-evidence.mjs --strict
+
       - name: Lock AI disclosure and synthetic-content provenance
         run: node qa/scripts/ai-transparency-article50-lock.mjs
 
