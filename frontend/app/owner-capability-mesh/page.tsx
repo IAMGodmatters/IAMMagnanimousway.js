@@ -7,6 +7,7 @@ import {connectionError,fetchWithTimeout} from './network';
 const api=process.env.NEXT_PUBLIC_API_BASE_URL||'';
 type Ready={id:string;ready:boolean;required:boolean;mode:string;detail:string};
 type Suggestion={id:string;risk:string;action:string};
+type Blueprint={identity:string;status:string;counts:{nodes:number;edges:number;domains:number;providers:number;capabilities:number;configured_unverified:number};source_checked_at:string|null;domains:Array<{id:string;name:string;providers:Array<{id:string;name:string;status:string;capability_count:number}>}>;integrity:{status:string;warnings:string[]};graph:{nodes:unknown[];edges:unknown[]}};
 type Mesh={
  identity:string;status:string;ready_count:number;total_readiness_checks:number;route_count:number;
  required_ready_count?:number;required_check_count?:number;optional_ready_count?:number;optional_check_count?:number;
@@ -26,6 +27,7 @@ const card={border:'1px solid #254552',borderRadius:16,padding:18,background:'#0
 
 export default function OwnerCapabilityMesh(){
  const[data,setData]=useState<Mesh|null>(null),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(''),[loading,setLoading]=useState(true);
+ const[blueprint,setBlueprint]=useState<Blueprint|null>(null),[blueprintBusy,setBlueprintBusy]=useState(false);
  const token=()=>localStorage.getItem('magnanimous_admin_token')||localStorage.getItem('odin_admin_token')||'';
  async function load(){
   const t=token();if(!t){location.replace('/owner-login?returnTo=%2Fowner-capability-mesh');return}
@@ -57,6 +59,16 @@ export default function OwnerCapabilityMesh(){
   }catch(e){setError(connectionError(e)+' Review Developer Agent before staging this action again.')}
   finally{setBusy('')}
  }
+ async function loadBlueprint(){
+  setBlueprintBusy(true);setError('');
+  try{
+   const r=await fetchWithTimeout(api+'/api/ecosystem/blueprint',{headers:{Authorization:'Bearer '+token()},cache:'no-store'}),d=await read(r);
+   if(r.status===401||r.status===403){location.replace('/owner-login?returnTo=%2Fowner-capability-mesh');return}
+   if(!r.ok){setError(d.detail||'The source-truth blueprint could not load.');return}
+   setBlueprint(d);
+  }catch(e){setError(connectionError(e))}
+  finally{setBlueprintBusy(false)}
+ }
  return <main style={{minHeight:'100vh',background:'#04090d',color:'#ecf8ff',padding:'24px 30px 60px',fontFamily:'Inter,system-ui,sans-serif'}}>
   <header style={{maxWidth:1400,margin:'auto',display:'flex',justifyContent:'space-between',fontSize:10,letterSpacing:'.16em',color:'#7194a4'}}><a href="/owner-center" style={{color:'#7be7ff'}}>← Owner Center</a><span>PRIVATE MAGNANIMOUS CONTROL</span></header>
   <section style={{...card,maxWidth:1400,margin:'28px auto 12px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:24,flexWrap:'wrap'}}>
@@ -68,10 +80,19 @@ export default function OwnerCapabilityMesh(){
   <section style={{maxWidth:1400,margin:'0 auto 12px',display:'flex',gap:10,flexWrap:'wrap'}}>
    <button onClick={selfCheck} disabled={!!busy} style={{padding:'12px 15px',borderRadius:10,border:'1px solid #26788e',background:'#0d5264',color:'#effcff',fontWeight:800,cursor:'pointer'}}>{busy==='check'?'CHECKING…':'RUN FULL READINESS CHECK'}</button>
    <button onClick={stageRailway} disabled={!!busy||!data?.surfaces?.railway?.exact_commit_workflow_control_ready} style={{padding:'12px 15px',borderRadius:10,border:'1px solid #6b5a2b',background:'#463610',color:'#ffe8a8',fontWeight:800,cursor:'pointer'}}>{busy==='railway'?'STAGING…':'STAGE CURRENT-MAIN RAILWAY PROMOTION'}</button>
+   <button onClick={loadBlueprint} disabled={!!busy||blueprintBusy} style={{padding:'12px 15px',borderRadius:10,border:'1px solid #26788e',background:'#123741',color:'#d5f7ff',fontWeight:800,cursor:'pointer'}}>{blueprintBusy?'COMPILING SOURCE MAP…':'VIEW SOURCE-TRUTH BLUEPRINT'}</button>
    <a href="/developer-agent" style={{padding:'12px 15px',borderRadius:10,border:'1px solid #31515f',color:'#a8eaff',textDecoration:'none'}}>Developer Agent / approvals →</a>
    <a href="/owner-web-agent" style={{padding:'12px 15px',borderRadius:10,border:'1px solid #31515f',color:'#a8eaff',textDecoration:'none'}}>Native Web →</a>
    <a href="/owner-infrastructure" style={{padding:'12px 15px',borderRadius:10,border:'1px solid #31515f',color:'#a8eaff',textDecoration:'none'}}>Infrastructure →</a>
   </section>
+  {blueprint&&<section style={{...card,maxWidth:1400,margin:'0 auto 12px',borderColor:'#2a665c'}} aria-label="Compiled ecosystem source-truth blueprint">
+   <small style={{color:'#6ee7b7'}}>MAGNANIMOUS-OWNED • READ-ONLY • NO PROVIDER PROBES</small><h2>Compiled Ecosystem Blueprint</h2>
+   <p style={{color:'#bedbd5',lineHeight:1.6}}>Source-mapped, <strong>not live-verified</strong>. This map is derived from Magnanimous's actual provider and capability registry. A configured credential is not proof of connection, and no purchase, provider write, deployment, or external probe occurred.</p>
+   <p><b>{blueprint.counts.providers}</b> cataloged providers · <b>{blueprint.counts.capabilities}</b> capability contracts · <b>{blueprint.counts.domains}</b> domains · <b>{blueprint.counts.nodes}</b> nodes · <b>{blueprint.counts.edges}</b> validated edges · <b>{blueprint.counts.configured_unverified}</b> configured but unverified</p>
+   <p style={{color:'#93b3b8',fontSize:12}}>Graph integrity: {blueprint.integrity.status.toUpperCase()} · Registry source checked: {blueprint.source_checked_at||'date not recorded'}</p>
+   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(265px,1fr))',gap:10}}>{blueprint.domains.map(domain=><article key={domain.id} style={{border:'1px solid #244b53',padding:14,borderRadius:12}}><h3 style={{textTransform:'capitalize',marginTop:0}}>{domain.name}</h3>{domain.providers.map(provider=><p key={provider.id} style={{fontSize:12,color:'#b2c7c9'}}><b>{provider.name}</b> · {provider.capability_count} contracts · <span style={{color:provider.status==='configured-unverified'?'#e9c77e':'#8aa8b3'}}>{provider.status}</span></p>)}</article>)}</div>
+   <details style={{marginTop:15}}><summary style={{cursor:'pointer',color:'#9eeefa'}}>Inspect every source-backed node and relationship</summary><pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',maxHeight:480,overflow:'auto',fontSize:11}}>{JSON.stringify(blueprint.graph,null,2)}</pre></details>
+  </section>}
   {data&&<>
    <ModelArena getToken={token} />
    <section style={{...card,maxWidth:1400,margin:'0 auto 12px',borderColor:'#2a5b60'}} aria-label="Capability readiness explanation">

@@ -1,5 +1,6 @@
 import { currentUser } from './integrations.js';
 import { MAGNANIMOUS_ECOSYSTEM_PROVIDERS, magnanimousEcosystemSummary } from './magnanimous-ecosystem-capability-registry.js';
+import { buildMagnanimousEcosystemBlueprint } from './magnanimous-ecosystem-blueprint.js';
 
 const json=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 const ownerOnly=user=>user?.role==='owner';
@@ -15,6 +16,7 @@ export async function handleMagnanimousEcosystem(request,env){
 
  const summary=magnanimousEcosystemSummary(env);
  if(path==='/api/ecosystem'||path==='/api/ecosystem/')return json(summary);
+ if(path==='/api/ecosystem/blueprint')return json(buildMagnanimousEcosystemBlueprint(summary));
  if(path==='/api/ecosystem/capabilities')return json({identity:summary.identity,brain_identity:summary.brain_identity,provider_count:summary.provider_count,capability_count:summary.capability_count,providers:summary.providers.map(({readiness,...provider})=>provider)});
  if(path==='/api/ecosystem/readiness')return json({identity:summary.identity,brain_identity:summary.brain_identity,locks:{purchase_actions_enabled:summary.purchase_actions_enabled,ad_spend_actions_enabled:summary.ad_spend_actions_enabled,carrier_provisioning_enabled:summary.carrier_provisioning_enabled,sim_esim_activation_enabled:summary.sim_esim_activation_enabled,domain_purchase_enabled:summary.domain_purchase_enabled,destructive_devops_enabled:summary.destructive_devops_enabled,secret_exposure_allowed:summary.secret_exposure_allowed},providers:summary.providers.map(provider=>({id:provider.id,name:provider.name,category:provider.category,access:provider.access,readiness:provider.readiness}))});
  const prefix='/api/ecosystem/providers/';
