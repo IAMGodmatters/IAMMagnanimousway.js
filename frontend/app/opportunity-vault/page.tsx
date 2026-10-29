@@ -8,16 +8,27 @@ type Opportunity={
 
 const opportunities:Opportunity[]=[
  {
-  id:'atlas',name:'Atlas Capture',status:'active-ph',badge:'PHILIPPINES • ACTIVE PATHS',
-  summary:'Paid AI-data work with two different paths: first-person video capture through the iPhone app, plus browser-based text labeling and AI-response review.',
-  requirements:['Video capture: iPhone 11 or newer plus a head strap','Labeling/review: current browser; no iPhone required for that track','Tasks, rates and location availability vary; review the shown terms before starting'],
-  examples:['Video capture tasks show per-task pay','Browser annotation is advertised up to $10 USD/hour','Official site says payouts run biweekly'],
+  id:'atlas',name:'Atlas Capture',status:'location-check',badge:'IPHONE VIDEO TASKS • COUNTRY AVAILABILITY VARIES',
+  summary:'The current official opportunity page lists first-person home-task video capture for AI research. It currently specifies an iPhone 11 or newer and pay per approved hour; rates and task availability vary by country. The current official page no longer advertises the older browser-labeling rate claim, so that claim has been removed pending confirmation.',
+  requirements:['iPhone 11 or newer; a head strap is required and the official site says it is available through the app—confirm whether it is provided and whether any cost applies before spending money','Only approved hours are paid; task volume and pay vary by country and task','The current official site says withdrawals start at USD $10 and unlock after 5 approved hours; verify payout method and Philippines eligibility in-app','Do not buy equipment from unsolicited messages or third-party sellers expecting reimbursement; app-store reviews report reimbursement and support complaints','Review video licensing/privacy terms and keep children, faces, IDs, screens, addresses and confidential household details out of frame'],
+  examples:['Official tasks include folding laundry, washing dishes, watering plants and wiping counters','Pay is per approved hour; no universal country rate is published','Withdrawal threshold: USD $10 after 5 approved hours, according to the current official site'],
   official:'https://www.atlascapture.io/opportunities',
   secondary:'https://apps.apple.com/ph/app/atlas-capture/id6755671397',
   cta:'Open official opportunities',
   referral:'2PDR9UXD',
-  verified:'2026-09-25'
+  verified:'2026-10-29'
  },
+ {
+  id:'kled-iphone-data-tasks',name:'Kled — iPhone Photo/Video Data Tasks',status:'location-check',badge:'IPHONE ONLY • CONFIRM LIVE PH TASKS',
+  summary:'The free Kled app is listed in the Philippines App Store and offers paid photo/video uploads and special data-collection tasks for AI training. Earnings for ordinary uploads vary by content value and demand; a Kled task listing advertises USD $0.30 per accepted photo for one specific task in supported Southeast Asian countries, including the Philippines. Confirm the task is still available in-app before relying on that rate.',
+  requirements:['iPhone only and 18+; the official App Store listing is available in the Philippines','The app lists PayPal, Venmo or Solana wallet payouts; a developer response states a USD $25 minimum cashout. Confirm PayPal availability and all payout/identity requirements in-app before uploading','Uploads are reviewed and may be licensed to AI companies for training. Do not upload private/family photos, children, IDs, financial information or images of people without consent','Specific tasks are piecework: the USD $0.30 figure applies only to the named task and accepted photos; rejected submissions are unpaid and general camera-roll uploads have no fixed rate','Do not pay a joining fee or share OTPs, passwords or crypto recovery phrases; avoid crypto payouts unless you understand the risks'],
+  official:'https://apps.apple.com/ph/app/kled/id6752585718',
+  secondary:'https://ph.linkedin.com/jobs/view/transit-departure-boards-paid-data-task-remote-contract-at-kled-ai-4484264268',
+  secondaryLabel:'Example task details from Kled listing',
+  cta:'Open official App Store listing',
+  verified:'2026-10-29'
+ },
+
  {
   id:'welo',name:'Welo Global',status:'active-ph',badge:'PHILIPPINES • ACTIVE ROLES',
   summary:'Current official Philippines listings include remote/freelance AI training, quality review, ads rating and video annotation. Some AI Trainers Network entries are talent pools, not active paid job openings.',
@@ -133,6 +144,15 @@ const opportunities:Opportunity[]=[
   cta:'Check live opportunities',
   verified:'2026-10-26'
  },
+ {
+  id:'user-interviews-ph',name:'User Interviews — Paid Research Studies',status:'waitlist',badge:'PHILIPPINES NOT CURRENTLY SUPPORTED',
+  summary:'The official participant-support country list, updated October 5, 2026, does not include the Philippines. Do not expect to qualify for studies while residing in the Philippines unless the company updates its country list.',
+  requirements:['The Philippines is absent from the current supported-country list','The company says people in countries not listed cannot yet participate; recheck the official list before applying','Eligibility follows supported-country rules; do not use a false address or VPN to bypass location restrictions'],
+  official:'https://support.userinterviews.com/hc/en-us/articles/51535822654099-Countries-where-you-can-participate-in-studies',
+  cta:'Check official country eligibility',
+  verified:'2026-10-29'
+ },
+
   {
   id:'prolific',name:'Prolific',status:'waitlist',badge:'NOT CURRENTLY PH-SUPPORTED',
   summary:'Paid studies and AI-task work are legitimate opportunities, but Prolific’s current participant-country list does not include the Philippines. Eligibility is based on where you currently live, not citizenship.',
@@ -179,7 +199,7 @@ export default function OpportunityVault(){
    </article>)}
   </section>
   <section className="watch">
-   <small>STARTUP FUNDING WATCH • 2026-10-28</small><h2>DICT / IIDB Startup Grant Fund 2026 — not yet confirmed open</h2><p>IIDB said its revised SGF circular and next application call were targeted for October 2026, but a published official 2026 application opening, deadline, final eligibility rules and templates have not been verified. Do not confuse this with the separate DOST SGF or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
+   <small>STARTUP FUNDING WATCH • 2026-10-29</small><h2>DICT / IIDB Startup Grant Fund 2026 — application call not yet verified open</h2><p>As of October 29, 2026, the latest official IIDB public update still says the revised SGF circular and next Call for Applications were targeted for October; a live official 2026 call, deadline, final eligibility rules and application templates have not been verified in DICT/IIDB channels. This is a high-priority watch item, not an open application. Do not confuse it with the separate DOST-PCAARRD SGF or DEPDev Innovation Grants. Check the <a href="https://www.linkedin.com/posts/dict-iidb_dict-iidb-startupgrantfund-activity-7502542376213598208-hx9S" target="_blank" rel="noreferrer">official IIDB update</a> and <a href="https://startup.gov.ph/programs" target="_blank" rel="noreferrer">government Startup Philippines programs</a> before applying or sharing documents.</p>
    <h2>Unverified names stay out of the active list.</h2><p>Older notes mentioned ClarU.ai/Claru.ai, but no sufficiently authoritative current opportunity source has been verified, so it is not presented as an active earning option. AniAni is listed with pilot and privacy warnings, not a verified payout history.</p>
   </section>
   <style jsx>{`
