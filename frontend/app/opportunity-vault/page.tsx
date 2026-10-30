@@ -147,11 +147,13 @@ const opportunities:Opportunity[]=[
  },
  {
   id:'userlytics-ph-usability',name:'Userlytics — Paid Website & App Usability Tests',status:'active-ph',badge:'PHILIPPINES • PAYPAL • DESKTOP & MOBILE STUDIES',
-  summary:'Userlytics accepts testers in countries where PayPal can receive payments; PayPal’s official country feature list includes the Philippines. Its official tester page advertises USD $10–$50 per study, with the reward shown before a test begins. Study length and invitations vary; tests are selected from the contributor pool and no test volume or income is guaranteed.',
+  summary:'Userlytics accepts testers in countries where PayPal can receive payments; PayPal’s official country feature list includes the Philippines. Its official tester page advertises USD $10–$50 per study, with the reward shown before a test begins. The official tester FAQ says typical tests take 20–40 minutes; invitations are limited and selected from the contributor pool, so no test volume or income is guaranteed.',
   requirements:['Free tester registration; Philippines eligibility depends on maintaining a working PayPal account able to receive payments','The official Userlytics page advertises USD $10–$50 per study; actual reward depends on the specific invitation and is shown before starting','Tests may require a Windows or Mac computer, high-speed internet, headphones, microphone and sometimes webcam; selected studies can use iOS or Android phones','Approved-test payments are made every 15 days; the September 2026 tester terms allow up to 30 days after full completion','Important privacy/rights warning: tests may record your screen, voice and face; the current terms allow use of generated data to train/improve AI and assign copyright in recordings and test content to Userlytics. Read the terms before joining','No application fee. Never provide passwords, card details or government ID during a test unless the official study explicitly requires a legitimate and necessary verification step'],
   official:'https://www.userlytics.com/user-experience-research/paid-ux-testing/',
   secondary:'https://www.userlytics.com/user-experience-research/legal-resources/terms-of-service-testers/',
   secondaryLabel:'Official tester terms and privacy conditions',
+  tertiary:'https://www.userlytics.com/user-experience-research/paid-ux-testing/frequently-asked-questions-testers/',
+  tertiaryLabel:'Official tester FAQ: typical duration and payment timing',
   cta:'Join official tester program',
   verified:'2026-10-31'
  },
